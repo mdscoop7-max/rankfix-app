@@ -4,7 +4,6 @@ let initialized = false;
 let initializing: Promise<void> | null = null;
 
 const statements = [
-  `CREATE EXTENSION IF NOT EXISTS pgcrypto`,
   `CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email TEXT UNIQUE NOT NULL,

@@ -26,7 +26,9 @@ export async function POST(request: Request) {
     await db.query("INSERT INTO credit_transactions (user_id,amount,reason) VALUES ($1,25,'welcome_credits')", [result.rows[0].id]);
     await createSession(result.rows[0].id);
     return NextResponse.json({ success: true, user: result.rows[0] });
-  } catch {
-    return NextResponse.json({ error: "Account aanmaken mislukt. Controleer de databaseconfiguratie." }, { status: 500 });
+  } catch (error) {
+    console.error("RankFix registration failed:", error);
+    const message = error instanceof Error ? error.message : "Onbekende databasefout.";
+    return NextResponse.json({ error: process.env.NODE_ENV === "production" ? "Account aanmaken mislukt. Controleer de databaseconfiguratie." : message }, { status: 500 });
   }
 }
