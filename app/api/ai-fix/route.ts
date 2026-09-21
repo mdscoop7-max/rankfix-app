@@ -57,7 +57,8 @@ export async function POST(request: Request) {
     const context = body?.context && typeof body.context==="object" ? body.context : {};
     if (!url || !["meta_title","meta_description","h1","faq","structured_data"].includes(type)) return NextResponse.json({error:"Ongeldige AI-fix aanvraag."},{status:400});
 
-    let user = null;\n    try { user = await getCurrentUser(); } catch {}
+    let user = null;
+    try { user = await getCurrentUser(); } catch {}
     if (user && user.credits < 2) return NextResponse.json({error:"Onvoldoende credits. Deze AI-fix kost 2 credits."},{status:402});
 
     let fix;
