@@ -242,7 +242,10 @@ export default function Home() {
                                 <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">{fixes[item.key].title}</div>
                                 <div className="mt-2 whitespace-pre-wrap break-words text-sm text-slate-200">{fixes[item.key].content}</div>
                                 <p className="mt-2 text-xs text-slate-500">{fixes[item.key].reason}</p>
-                                <button type="button" onClick={() => copyFix(item.key)} className="mt-3 rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-950">{copied === item.key ? "Gekopieerd ✓" : "Gebruik deze tekst"}</button>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  <button type="button" onClick={() => copyFix(item.key)} className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-950">{copied === item.key ? "Gekopieerd ✓" : "Gebruik deze tekst"}</button>
+                                  <a href={`/dashboard/github?issue=${encodeURIComponent(item.title + ": " + item.fix)}&context=${encodeURIComponent("URL: " + result.finalUrl + "\nHuidige title: " + result.metrics.title + "\nHuidige description: " + result.metrics.description + "\nH1: " + (result.metrics.h1s[0] || ""))}`} className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs font-bold text-cyan-200">Fix via GitHub →</a>
+                                </div>
                               </div>
                             )}
                           </div>
