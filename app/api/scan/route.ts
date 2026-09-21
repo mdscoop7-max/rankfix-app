@@ -354,7 +354,7 @@ export async function POST(request: Request) {
     const overallScore = Math.round(seoScore * 0.6 + geoScore * 0.4);
     const checks = [...seoChecks, ...geoChecks];
 
-    const user = await getCurrentUser();
+    let user = null;\n    try { user = await getCurrentUser(); } catch {}
     if (user) {
       try {
         await getDb().query(
