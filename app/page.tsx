@@ -318,7 +318,7 @@ export default function Home() {
             ["Product", ["SEO Audit", "GEO Audit", "AI Fixes", "Reports"]],
             ["Voor wie", ["Bedrijven", "Webshops", "Agencies", "SaaS"]],
             ["Company", ["Over RankFix", "Contact", "Privacy", "Voorwaarden"]],
-          ].map(([title, links]) => <div key={title}><div className="text-sm font-bold">{title}</div><div className="mt-4 space-y-3 text-sm text-slate-500">{(links as string[]).map((link) => <a href="#" key={link} className="block hover:text-white">{link}</a>)}</div></div>)}
+          ].map(([title, links]) => <div key={title}><div className="text-sm font-bold">{title}</div><div className="mt-4 space-y-3 text-sm text-slate-500">{(links as string[]).map((link) => <a href={link === "Privacy" ? "/privacy" : link === "Voorwaarden" ? "/voorwaarden" : "#"} key={link} className="block hover:text-white">{link}</a>)}</div></div>)}
         </div>
         <div className="mx-auto mt-12 flex max-w-7xl flex-col justify-between gap-3 border-t border-white/10 pt-6 text-xs text-slate-600 sm:flex-row">
           <span>© 2026 RankFix AI. Alle rechten voorbehouden.</span>
