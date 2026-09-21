@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { sendScanReportEmail } from "@/lib/email";
 
 type Status = "pass" | "warning" | "fail";
 
@@ -374,6 +375,29 @@ export async function POST(request: Request) {
           })]
         );
       } catch {}
+    }
+
+    if (user?.email) {
+      try {
+        await sendScanReportEmail({
+          to: user.email,
+          name: user.name,
+          scannedUrl: target.toString(),
+          finalUrl: finalUrl.toString(),
+          scannedAt: new Date().toISOString(),
+          overallScore,
+          overallGrade: grade(overallScore),
+          seoScore,
+          seoGrade: grade(seoScore),
+          geoScore,
+          geoGrade: grade(geoScore),
+          responseTime,
+          httpStatus: response.status,
+          checks,
+        });
+      } catch (error) {
+        console.error("RankFix scan report email failed:", error);
+      }
     }
 
     return NextResponse.json({
