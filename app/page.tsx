@@ -317,7 +317,7 @@ export default function Home() {
             ["Free", "€0", "Eerste scan", ["1 gratis audit", "SEO + GEO score", "Actiepunten", "Geen creditcard"]],
             ["Pro", "€19", "per maand", ["Meer scans", "AI fixes", "Scan history", "PDF rapporten"]],
             ["Agency", "€49", "per maand", ["Meerdere klanten", "White-label reports", "Credits voor AI", "Team & dashboard"]],
-          ].map(([name, price, period, items]: [string, string, string, string[]]) => (
+          ].map((entry) => { const [name, price, period, items] = entry as [string, string, string, string[]]; return (
             <div key={name} className={`rounded-3xl border p-7 ${name === "Pro" ? "border-cyan-400/30 bg-cyan-400/[0.05]" : "border-white/10 bg-white/[0.025]"}`}>
               <div className="text-sm font-bold">{name}</div>
               <div className="mt-5 text-4xl font-black">{price}</div>
@@ -326,7 +326,7 @@ export default function Home() {
               <ul className="space-y-3 text-sm text-slate-400">{(items as string[]).map((item) => <li key={item}>✓ {item}</li>)}</ul>
               <button className="mt-7 w-full rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold transition hover:bg-white/5">Binnenkort beschikbaar</button>
             </div>
-          ))}
+          ); })}
         </div>
       </section>
 
@@ -353,7 +353,7 @@ export default function Home() {
             ["Product", ["SEO Audit", "GEO Audit", "AI Fixes", "Reports"]],
             ["Voor wie", ["Bedrijven", "Webshops", "Agencies", "SaaS"]],
             ["Company", ["Over RankFix", "Contact", "Privacy", "Voorwaarden"]],
-          ].map(([title, links]: [string, string[]]) => <div key={title}><div className="text-sm font-bold">{title}</div><div className="mt-4 space-y-3 text-sm text-slate-500">{(links as string[]).map((link) => <a href={link === "Privacy" ? "/privacy" : link === "Voorwaarden" ? "/voorwaarden" : "#"} key={link} className="block hover:text-white">{link}</a>)}</div></div>)}
+          ].map((entry) => { const [title, links] = entry as [string, string[]]; return <div key={title}><div className="text-sm font-bold">{title}</div><div className="mt-4 space-y-3 text-sm text-slate-500">{(links as string[]).map((link) => <a href={link === "Privacy" ? "/privacy" : link === "Voorwaarden" ? "/voorwaarden" : "#"} key={link} className="block hover:text-white">{link}</a>)}</div></div>)}
         </div>
         <div className="mx-auto mt-12 flex max-w-7xl flex-col justify-between gap-3 border-t border-white/10 pt-6 text-xs text-slate-600 sm:flex-row">
           <span>© 2026 RankFix AI. Alle rechten voorbehouden.</span>
