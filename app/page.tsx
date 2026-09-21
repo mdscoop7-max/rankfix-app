@@ -128,7 +128,7 @@ export default function Home() {
           <a href="#prijzen" className="transition hover:text-white">Prijzen</a>
           <a href="#footer" className="transition hover:text-white">Resources</a>
         </div>
-        <a href="#scan" className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium transition hover:bg-white/10">Start gratis</a>
+        <div className="flex items-center gap-2"><a href="/account" className="hidden rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium transition hover:bg-white/10 sm:inline-flex">Inloggen</a><a href="#scan" className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium transition hover:bg-white/10">Start gratis</a></div>
       </nav>
 
       <section id="scan" className="mx-auto max-w-6xl px-5 pb-16 pt-16 text-center lg:px-8 lg:pt-24">
@@ -234,9 +234,17 @@ export default function Home() {
                           <div className="mt-3 rounded-xl border border-cyan-400/10 bg-cyan-400/[0.04] p-3">
                             <div className="text-[10px] font-bold uppercase tracking-widest text-cyan-300">RankFix recommendation</div>
                             <p className="mt-1 text-sm text-slate-300">{item.fix}</p>
-                            <button type="button" disabled className="mt-3 rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-slate-500">
-                              ✨ Fix met AI — binnenkort
+                            <button type="button" onClick={() => generateFix(item)} disabled={fixing === item.key} className="mt-3 rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-400/10 disabled:opacity-50">
+                              {fixing === item.key ? "AI analyseert…" : "✨ Fix met AI"}
                             </button>
+                            {fixes[item.key] && (
+                              <div className="mt-3 rounded-xl border border-emerald-400/15 bg-emerald-400/[0.04] p-4">
+                                <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">{fixes[item.key].title}</div>
+                                <div className="mt-2 whitespace-pre-wrap break-words text-sm text-slate-200">{fixes[item.key].content}</div>
+                                <p className="mt-2 text-xs text-slate-500">{fixes[item.key].reason}</p>
+                                <button type="button" onClick={() => copyFix(item.key)} className="mt-3 rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-950">{copied === item.key ? "Gekopieerd ✓" : "Gebruik deze tekst"}</button>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
