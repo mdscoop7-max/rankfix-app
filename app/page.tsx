@@ -55,6 +55,30 @@ export default function Home() {
   const [error, setError] = useState("");
   const [result, setResult] = useState<ScanResult | null>(null);
   const [tab, setTab] = useState<"seo" | "geo">("seo");
+  const [fixes, setFixes] = useState<Record<string, { title: string; content: string; reason: string }>>({});
+  const [fixing, setFixing] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  async function generateFix(item: Check) {
+    if (!result) return;
+    setFixing(item.key);
+    try {
+      const type = item.key === "title" ? "meta_title" : item.key === "description" ? "meta_description" : item.key === "h1" ? "h1" : item.key === "faq" ? "faq" : "structured_data";
+      const response = await fetch("/api/ai-fix", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: result.finalUrl, type, current: item.key === "title" ? result.metrics.title : item.key === "description" ? result.metrics.description : item.key === "h1" ? (result.metrics.h1s[0] || "") : "", context: { title: result.metrics.title, description: result.metrics.description, h1: result.metrics.h1s[0] || "" } }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Fix mislukt.");
+      setFixes((prev) => ({ ...prev, [item.key]: data.fix }));
+    } catch (err) { setError(err instanceof Error ? err.message : "Fix mislukt."); }
+    finally { setFixing(null); }
+  }
+
+  async function copyFix(key: string) {
+    const content = fixes[key]?.content;
+    if (!content) return;
+    await navigator.clipboard.writeText(content);
+    setCopied(key);
+    setTimeout(() => setCopied(null), 1600);
+  }
 
   async function handleScan(e: React.FormEvent) {
     e.preventDefault();
