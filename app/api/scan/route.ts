@@ -352,6 +352,27 @@ export async function POST(request: Request) {
     const overallScore = Math.round(seoScore * 0.6 + geoScore * 0.4);
     const checks = [...seoChecks, ...geoChecks];
 
+    const user = await getCurrentUser();
+    if (user) {
+      try {
+        await getDb().query(
+          "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result) VALUES ($1,$2,$3,$4,$5,$6,$7)",
+          [user.id, target.toString(), finalUrl.toString(), overallScore, seoScore, geoScore, JSON.stringify({
+            scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus,
+            overallScore, grade: grade(overallScore),
+            seo: { score: seoScore, grade: grade(seoScore), checks: seoChecks },
+            geo: { score: geoScore, grade: grade(geoScore), checks: geoChecks },
+            metrics: { title, titleLength: title.length, description, descriptionLength: description.length, h1Count: h1s.length, h1s,
+              imageCount: images.length, imagesMissingAlt, wordCount, headingsCount: headings.length, linksCount: links.length,
+              internalLinks, canonical: canonical || null, lang: lang || null, robots: robots || null,
+              openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null },
+              twitterCard: twitterCard || null, schemaTypes: [...new Set(schemaTypes)].slice(0,12),
+              jsonLdBlocks: validJsonLd, sitemapFound, robotsMentionsSitemap }
+          })]
+        );
+      } catch {}
+    }
+
     return NextResponse.json({
       success: true,
       scannedUrl: target.toString(),
