@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { createSession, verifyPassword } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { ensureDatabase } from "@/lib/db-init";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
     const password = typeof body?.password === "string" ? body.password : "";
+    await ensureDatabase();
     const result = await getDb().query("SELECT id,email,name,password_hash,credits FROM users WHERE email=$1", [email]);
     const user = result.rows[0];
     if (!user || !(await verifyPassword(password, user.password_hash))) {
