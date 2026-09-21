@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSession, hashPassword } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { ensureDatabase } from "@/lib/db-init";
 
 export async function POST(request: Request) {
   try {
@@ -13,6 +14,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Vul een naam, geldig e-mailadres en wachtwoord van minimaal 8 tekens in." }, { status: 400 });
     }
 
+    await ensureDatabase();
     const db = getDb();
     const exists = await db.query("SELECT id FROM users WHERE email=$1", [email]);
     if (exists.rowCount) return NextResponse.json({ error: "Er bestaat al een account met dit e-mailadres." }, { status: 409 });
