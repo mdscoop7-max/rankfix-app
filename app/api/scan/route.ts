@@ -74,7 +74,7 @@ async function safeFetch(url: URL, timeoutMs = 10000, maxRedirects = 4) {
   let current = new URL(url.toString());
 
   for (let i = 0; i <= maxRedirects; i++) {
-    validateUrl(current);
+    validateUrl(current.toString());
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     let response: Response;
@@ -361,7 +361,7 @@ export async function POST(request: Request) {
         await getDb().query(
           "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result) VALUES ($1,$2,$3,$4,$5,$6,$7)",
           [user.id, target.toString(), finalUrl.toString(), overallScore, seoScore, geoScore, JSON.stringify({
-            scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus,
+            scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             overallScore, grade: grade(overallScore),
             seo: { score: seoScore, grade: grade(seoScore), checks: seoChecks },
             geo: { score: geoScore, grade: grade(geoScore), checks: geoChecks },
