@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
+import { getDb } from "@/lib/db";
 
 type Status = "pass" | "warning" | "fail";
 
