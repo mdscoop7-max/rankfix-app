@@ -12,6 +12,7 @@ type ScanReportEmail = {
   to: string;
   name?: string | null;
   scannedUrl: string;
+  finalUrl: string;
   scannedAt: string;
   overallScore: number;
   overallGrade: string;
@@ -70,7 +71,8 @@ export async function sendScanReportEmail(report: ScanReportEmail) {
     '<p style="margin:0;color:#cbd5e1;">Hallo' + name + ', hier is je scanresultaat.</p></div>',
     '<div style="background:#fff;border-radius:18px;padding:24px;margin-top:18px;">',
     '<p style="margin:0 0 6px;font-weight:700;">Website</p>',
-    '<p style="margin:0 0 18px;"><a href="' + escapeHtml(report.scannedUrl) + '">' + escapeHtml(report.scannedUrl) + '</a></p>',
+    '<p style="margin:0 0 8px;"><a href="' + escapeHtml(report.scannedUrl) + '">' + escapeHtml(report.scannedUrl) + '</a></p>',
+    '<p style="margin:0 0 18px;color:#64748b;">Eindadres: ' + escapeHtml(report.finalUrl) + '</p>',
     '<div style="display:flex;gap:12px;flex-wrap:wrap;">',
     '<div style="min-width:150px;padding:16px;border:1px solid #e5e7eb;border-radius:12px;"><div style="font-size:12px;color:#64748b;">OVERALL</div><div style="font-size:30px;font-weight:800;">' + report.overallScore + '/100</div><div>Grade ' + escapeHtml(report.overallGrade) + '</div></div>',
     '<div style="min-width:150px;padding:16px;border:1px solid #e5e7eb;border-radius:12px;"><div style="font-size:12px;color:#64748b;">SEO</div><div style="font-size:30px;font-weight:800;">' + report.seoScore + '/100</div><div>Grade ' + escapeHtml(report.seoGrade) + '</div></div>',
@@ -89,6 +91,7 @@ export async function sendScanReportEmail(report: ScanReportEmail) {
     "RANKFIX AI — SEO + GEO scanrapport",
     "",
     "Website: " + report.scannedUrl,
+    "Eindadres: " + report.finalUrl,
     "Overall: " + report.overallScore + "/100 (grade " + report.overallGrade + ")",
     "SEO: " + report.seoScore + "/100 (grade " + report.seoGrade + ")",
     "GEO: " + report.geoScore + "/100 (grade " + report.geoGrade + ")",
