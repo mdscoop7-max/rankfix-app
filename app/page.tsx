@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Check = {
   key: string;
@@ -65,6 +65,23 @@ export default function Home() {
   const [fixes, setFixes] = useState<Record<string, { title: string; content: string; reason: string }>>({});
   const [fixing, setFixing] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [scanStep, setScanStep] = useState(0);
+
+  const scanSteps = [
+    "Meta tags controleren",
+    "Laadsnelheid meten",
+    "Content analyseren",
+    "Mobile check uitvoeren",
+    "Structured data controleren",
+    "SEO & GEO signalen verwerken",
+  ];
+
+  useEffect(() => {
+    if (!scanning) return;
+    setScanStep(0);
+    const timer = window.setInterval(() => setScanStep((step) => Math.min(step + 1, scanSteps.length - 1)), 850);
+    return () => window.clearInterval(timer);
+  }, [scanning]);
 
   async function generateFix(item: Check) {
     if (!result) return;
@@ -189,6 +206,62 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {scanning && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#02050d]/80 px-4 py-6 backdrop-blur-xl">
+          <div className="relative w-full max-w-3xl overflow-hidden rounded-[28px] border border-white/10 bg-[#080d1b]/95 p-5 shadow-2xl shadow-blue-950/50 sm:p-8">
+            <div className="absolute -left-24 -top-24 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
+            <div className="absolute -bottom-32 -right-20 h-72 w-72 rounded-full bg-blue-600/10 blur-3xl" />
+            <div className="relative">
+              <div className="mb-7 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-cyan-300 to-blue-600 text-sm font-black text-slate-950 shadow-lg shadow-cyan-500/20">RF</span>
+                  <div><div className="text-sm font-bold">RankFix <span className="text-cyan-300">AI</span></div><div className="text-[11px] text-slate-500">SEO Scanner</div></div>
+                </div>
+                <span className="rounded-full border border-cyan-400/20 bg-cyan-400/5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-cyan-300">Live scan</span>
+              </div>
+
+              <div className="grid items-center gap-8 md:grid-cols-[240px_1fr]">
+                <div className="mx-auto flex h-[210px] w-[210px] items-center justify-center sm:h-[235px] sm:w-[235px]">
+                  <div className="relative flex h-full w-full items-center justify-center rounded-full border-[18px] border-slate-800/80 shadow-inner shadow-black/40">
+                    <div className="absolute inset-[-18px] animate-[spin_2.2s_linear_infinite] rounded-full border-[18px] border-transparent border-t-cyan-300 border-r-blue-600 shadow-[0_0_35px_rgba(34,211,238,0.18)]" />
+                    <div className="flex h-24 w-24 flex-col items-center justify-center rounded-3xl bg-gradient-to-br from-blue-600/30 to-cyan-300/10 ring-1 ring-cyan-300/20">
+                      <svg viewBox="0 0 24 24" className="h-10 w-10 text-cyan-200" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+                      <span className="mt-1 text-[11px] font-bold text-white">Scannen...</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">Website analyseren</div>
+                  <h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">We zijn je website aan het controleren</h2>
+                  <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3">
+                    <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-cyan-300" />
+                    <span className="truncate text-sm font-semibold text-slate-200">{url}</span>
+                  </div>
+                  <div className="mt-6 space-y-3">
+                    {scanSteps.map((step, index) => {
+                      const done = index < scanStep;
+                      const active = index === scanStep;
+                      return <div key={step} className={`flex items-center gap-3 text-sm transition-all duration-500 ${done ? "text-emerald-300" : active ? "text-white" : "text-slate-600"}`}>
+                        <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border ${done ? "border-emerald-400/40 bg-emerald-400/10" : active ? "border-cyan-300/40 bg-cyan-300/10" : "border-white/10 bg-white/[0.02]"}`}>
+                          {done ? "✓" : active ? <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-300" /> : <span className="h-1.5 w-1.5 rounded-full bg-slate-700" />}
+                        </span>
+                        <span>{step}</span>
+                        {active && <span className="ml-auto text-[10px] font-bold uppercase tracking-widest text-cyan-300">bezig</span>}
+                      </div>;
+                    })}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-7 flex items-center justify-between border-t border-white/10 pt-5 text-[11px] text-slate-600">
+                <span>SEO · GEO · Performance · Content</span>
+                <span>Even geduld…</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {result && (
         <section id="resultaat" className="mx-auto max-w-7xl scroll-mt-8 px-5 py-14 lg:px-8">
