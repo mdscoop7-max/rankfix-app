@@ -60,9 +60,9 @@ const statusIcon = { pass: "✓", warning: "!", fail: "×" };
 const translations = {
   nl: {
     moreInfo:"Meer info", audit:"Audit", pricing:"Prijzen", resources:"Resources", contact:"Contact", login:"Inloggen", register:"Account aanmaken",
-    badge:"{t.badge}", hero:"{t.hero}", hero2:"{t.hero2}",
+    badge:"SEO + GEO audit voor Google & AI Search", hero:"Vind wat je rankings blokkeert.", hero2:"Fix het met RankFix.",
     intro:"Eén snelle scan voor technische SEO, content, structured data en AI-search readiness. Eerst inzicht. Daarna concrete fixes — met AI wanneer jij dat activeert.",
-    seoDesc:t.seoDesc, geoDesc:t.geoDesc, bothDesc:t.bothDesc,
+    seoDesc:"Google & organische vindbaarheid", geoDesc:"AI Search & generatieve vindbaarheid", bothDesc:"Volledige analyse",
     start:"Gratis", auditStart:"audit starten →", scanning:"Scan wordt uitgevoerd…", noCard:"Geen creditcard", direct:"Direct rapport", both:"SEO + GEO",
     about:"Over RankFix", forWho:"Voor wie", company:"Bedrijf", product:"Product", language:"Taal",
     contactTitle:"Neem contact op.", contactText:"Vraag over RankFix, een samenwerking of hulp nodig? Stuur ons een bericht.",
