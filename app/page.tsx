@@ -11,6 +11,13 @@ type Check = {
   fix: string;
   points: number;
   maxPoints: number;
+  issue_id?: string;
+  rule_id?: string;
+  issue_status?: string;
+  severity?: string;
+  confidence?: string;
+  evidence?: { url: string; found: unknown; details: string };
+  fix_category?: "A" | "B" | "C";
 };
 
 type ScanResult = {
