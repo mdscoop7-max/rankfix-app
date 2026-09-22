@@ -1,6 +1,6 @@
 import { CrawlPage, CrawlResult, CrawlMode, crawlSite } from "@/lib/crawler";
 
-export const SITE_AUDIT_ENGINE_VERSION = "1.0.0";
+export const SITE_AUDIT_ENGINE_VERSION = "1.1.0";
 
 export type SiteRuleStatus = "PASS" | "FAIL" | "WARNING" | "NOT_APPLICABLE" | "UNABLE_TO_CONFIRM";
 
@@ -140,6 +140,21 @@ const rules: RuleDef[] = [
     recommendation: "Beoordeel of de pagina voldoende unieke, nuttige inhoud bevat voor de beoogde zoekintentie.",
     applicable: p => !["cart","checkout","account","search","filter"].includes(p.pageType) && !p.noindex,
     evaluate: p => p.wordCount < 80 ? {status:"WARNING",found:p.wordCount,expected:"≥ 80",details:"De pagina bevat weinig zichtbare tekst."} : {status:"PASS",found:p.wordCount,details:"De pagina bevat voldoende zichtbare tekst voor deze heuristiek."},
+  },
+  {
+    id: "SITE_LOCAL_BUSINESS_IDENTITY", category: "structured-data", title: "LocalBusiness gegevens ontbreken", severity: "HIGH",
+    description: "Een lokale onderneming hoort haar identiteit en fysieke locatie duidelijk als LocalBusiness te beschrijven.",
+    recommendation: "Gebruik het meest specifieke LocalBusiness-type en voeg minimaal de bedrijfsnaam en het fysieke adres toe. Voeg waar relevant ook telefoonnummer, URL, logo, afbeeldingen, openingstijden, diensten, prijsrange en officiële profielen via sameAs toe.",
+    applicable: p => !p.noindex && p.pageType === "local_business",
+    evaluate: p => {
+      const types = p.jsonLdTypes.map(x => x.toLowerCase());
+      const localTypes = types.filter(x => x === "localbusiness" || x.includes("business") || ["restaurant","bakery","barorcafe","beautysalon","dayspa","dentist","electrician","generalcontractor","homeandconstructionbusiness","locksmith","medicalclinic","plumber","roofingcontractor","store","hairdresser","automotivebusiness"].includes(x));
+      const hasLocal = localTypes.length > 0;
+      const hasOrganization = types.includes("organization");
+      if (hasLocal) return {status:"PASS",found:localTypes.join(", "),details:"Specifieke LocalBusiness structured data gevonden."};
+      if (hasOrganization) return {status:"WARNING",found:"Organization",expected:"LocalBusiness subtype",details:"Organization structured data is aanwezig, maar een specifiek LocalBusiness-type ontbreekt."};
+      return {status:"FAIL",found:types.join(", ") || "geen JSON-LD",expected:"LocalBusiness subtype",details:"Geen LocalBusiness structured data gevonden op een pagina met lokale bedrijfssignalen."};
+    },
   },
   {
     id: "SITE_STRUCTURED_DATA_MISSING", category: "structured-data", title: "Geen structured data", severity: "MEDIUM",
