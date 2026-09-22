@@ -247,16 +247,30 @@ export async function POST(request: Request) {
     const robotsUrl = new URL("/robots.txt", finalUrl);
     const sitemapUrl = new URL("/sitemap.xml", finalUrl);
     let robotsTxt = "";
+    let robotsStatus: "PASS" | "FAIL" | "UNABLE_TO_CONFIRM" = "UNABLE_TO_CONFIRM";
     let sitemapFound = false;
+    let discoveredSitemapUrl: string | null = null;
     try {
       const r = await safeFetch(robotsUrl, 5000, 2);
-      if (r.ok) robotsTxt = await r.text();
-    } catch {}
-    try {
-      const r = await safeFetch(sitemapUrl, 5000, 2);
-      sitemapFound = r.ok && (r.headers.get("content-type") || "").includes("xml");
-    } catch {}
-    const robotsMentionsSitemap = /(^|\n)\s*sitemap\s*:/im.test(robotsTxt);
+      if (r.ok) {
+        robotsTxt = await r.text();
+        robotsStatus = "PASS";
+        const declared = robotsTxt.match(/^\s*Sitemap\s*:\s*(\S+)/im)?.[1];
+        if (declared) discoveredSitemapUrl = new URL(declared, finalUrl).toString();
+      } else if (r.status === 404) robotsStatus = "FAIL";
+    } catch { robotsStatus = "UNABLE_TO_CONFIRM"; }
+    const sitemapCandidates = [discoveredSitemapUrl, sitemapUrl.toString()].filter(Boolean) as string[];
+    for (const candidate of sitemapCandidates) {
+      try {
+        const r = await safeFetch(new URL(candidate), 5000, 2);
+        if (r.ok && /xml|text\/xml/i.test(r.headers.get("content-type") || "")) {
+          sitemapFound = true;
+          discoveredSitemapUrl = candidate;
+          break;
+        }
+      } catch {}
+    }
+    const robotsMentionsSitemap = Boolean(discoveredSitemapUrl);
 
     const seoChecks: Check[] = [];
     const geoChecks: Check[] = [];
@@ -406,7 +420,7 @@ export async function POST(request: Request) {
               internalLinks, canonical: canonical || null, lang: lang || null, robots: robots || null,
               openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null },
               twitterCard: twitterCard || null, schemaTypes: [...new Set(schemaTypes)].slice(0,12),
-              jsonLdBlocks: validJsonLd, sitemapFound, robotsMentionsSitemap }
+              jsonLdBlocks: validJsonLd, sitemapFound, robotsMentionsSitemap, robotsStatus, sitemapUrl: discoveredSitemapUrl }
           })]
         );
       } catch {}
