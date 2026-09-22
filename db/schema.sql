@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS credit_transactions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS credit_transactions_user_created_idx ON credit_transactions(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS credit_transactions_user_created_idx ON credit_transactions(user_id, created_at DESC);\nCREATE UNIQUE INDEX IF NOT EXISTS credit_transactions_idempotency_idx ON credit_transactions(user_id, reference_id) WHERE reference_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS github_connections (
   user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,

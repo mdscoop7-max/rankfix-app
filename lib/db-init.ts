@@ -41,6 +41,11 @@ const statements = [
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`,
   `CREATE INDEX IF NOT EXISTS credit_transactions_user_created_idx ON credit_transactions(user_id, created_at DESC)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS credit_transactions_idempotency_idx ON credit_transactions(user_id, reference_id) WHERE reference_id IS NOT NULL`,
+  `ALTER TABLE scans ADD COLUMN IF NOT EXISTS crawler_version TEXT`,
+  `ALTER TABLE scans ADD COLUMN IF NOT EXISTS rules_version TEXT`,
+  `ALTER TABLE scans ADD COLUMN IF NOT EXISTS fix_policy_version TEXT`,
+  `ALTER TABLE scans ADD COLUMN IF NOT EXISTS ai_policy_version TEXT`,
   `CREATE TABLE IF NOT EXISTS github_connections (
     user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     github_user_id BIGINT NOT NULL,

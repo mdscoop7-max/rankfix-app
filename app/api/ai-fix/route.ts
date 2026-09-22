@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { validateFix } from "@/lib/seo-fix-validator";
 
 type FixType = "meta_title" | "meta_description" | "h1" | "faq" | "structured_data";
 
@@ -55,6 +56,8 @@ export async function POST(request: Request) {
     const type = body?.type as FixType;
     const current = typeof body?.current==="string" ? body.current : "";
     const context = body?.context && typeof body.context==="object" ? body.context : {};
+    const requestId = typeof body?.request_id === "string" && body.request_id.length <= 120 ? body.request_id : crypto.randomUUID();
+    const issueId = typeof body?.issue_id === "string" ? body.issue_id : type === "meta_title" ? (current ? "META_TITLE_GUIDANCE" : "META_TITLE_MISSING") : type === "meta_description" ? (current ? "META_DESCRIPTION_GUIDANCE" : "META_DESCRIPTION_MISSING") : type === "h1" ? "H1_MISSING" : type === "structured_data" ? "STRUCTURED_DATA_MISSING" : "AI_PROPOSAL";
     if (!url || !["meta_title","meta_description","h1","faq","structured_data"].includes(type)) return NextResponse.json({error:"Ongeldige AI-fix aanvraag."},{status:400});
 
     let user = null;
@@ -71,12 +74,32 @@ export async function POST(request: Request) {
     }
     fix ||= fallback(type,url,current,context);
 
+    const validated = validateFix({ issue_id: issueId, rule_id: issueId, proposed: fix.content, source: "ai", currentIssue: { issue_id: issueId, rule_id: issueId, status: "FAIL" }, currentValue: current });
+    if (!validated.validation.valid) return NextResponse.json({ success:false, error:"invalid_output", validation:validated.validation }, {status:422});
+
     if (user) {
       const db = getDb();
-      const updated = await db.query("UPDATE users SET credits=credits-2 WHERE id=$1 AND credits>=2 RETURNING credits",[user.id]);
-      if (!updated.rowCount) return NextResponse.json({error:"Onvoldoende credits."},{status:402});
-      await db.query("INSERT INTO credit_transactions (user_id,amount,reason) VALUES ($1,-2,$2)",[user.id,`ai_fix:${type}`]);
+      const client = await db.connect();
+      try {
+        await client.query("BEGIN");
+        const existing = await client.query("SELECT id FROM credit_transactions WHERE user_id=$1 AND reference_id=$2 LIMIT 1",[user.id,requestId]);
+        if (existing.rowCount) {
+          await client.query("COMMIT");
+        } else {
+          const locked = await client.query("SELECT credits FROM users WHERE id=$1 FOR UPDATE",[user.id]);
+          if (!locked.rowCount || Number(locked.rows[0].credits) < 2) {
+            await client.query("ROLLBACK");
+            return NextResponse.json({error:"Onvoldoende credits."},{status:402});
+          }
+          await client.query("UPDATE users SET credits=credits-2 WHERE id=$1",[user.id]);
+          await client.query("INSERT INTO credit_transactions (user_id,amount,reason,reference_id) VALUES ($1,-2,$3,$2)",[user.id,requestId,`ai_fix:${type}`]);
+          await client.query("COMMIT");
+        }
+      } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+      } finally { client.release(); }
     }
-    return NextResponse.json({success:true,mode,provider:mode==="openai"?"OpenAI":"RankFix",model:mode==="openai"?(process.env.OPENAI_MODEL||"gpt-5.6-luna"):null,fix,creditsCharged:user?2:0});
+    return NextResponse.json({success:true,mode,provider:mode==="openai"?"OpenAI":"RankFix",model:mode==="openai"?(process.env.OPENAI_MODEL||"gpt-5.6-luna"):null,fix,normalizedFix:validated,creditsCharged:user?2:0, requestId});
   } catch { return NextResponse.json({error:"De AI-fix kon niet worden gemaakt."},{status:500}); }
 }

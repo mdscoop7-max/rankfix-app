@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { sendScanReportEmail } from "@/lib/email";
+import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode } from "@/lib/seo-rules";
+import { getFixPolicy } from "@/lib/fix-policy";
 
 type Status = "pass" | "warning" | "fail";
 
@@ -14,6 +16,13 @@ type Check = {
   fix: string;
   points: number;
   maxPoints: number;
+  issue_id: string;
+  rule_id: string;
+  issue_status: "PASS" | "FAIL" | "WARNING" | "INFO" | "NOT_APPLICABLE" | "UNABLE_TO_CONFIRM";
+  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
+  confidence: "high" | "medium" | "low";
+  evidence: { url: string; found: string | number | boolean | null; expected?: string; details: string };
+  fix_category: "A" | "B" | "C";
 };
 
 const decode = (value: string) =>
@@ -116,7 +125,13 @@ function check(
   points: number,
   maxPoints: number
 ): Check {
-  return { key, category, title, status, message, fix, points, maxPoints };
+  return {
+    key, category, title, status, message, fix, points, maxPoints,
+    issue_id: key, rule_id: key, issue_status: statusCode(status),
+    severity: status === "fail" ? "HIGH" : status === "warning" ? "MEDIUM" : "INFO",
+    confidence: "high", evidence: { url: "", found: null, details: message },
+    fix_category: getFixPolicy(key).category,
+  };
 }
 
 function grade(score: number) {
@@ -232,16 +247,30 @@ export async function POST(request: Request) {
     const robotsUrl = new URL("/robots.txt", finalUrl);
     const sitemapUrl = new URL("/sitemap.xml", finalUrl);
     let robotsTxt = "";
+    let robotsStatus: "PASS" | "FAIL" | "UNABLE_TO_CONFIRM" = "UNABLE_TO_CONFIRM";
     let sitemapFound = false;
+    let discoveredSitemapUrl: string | null = null;
     try {
       const r = await safeFetch(robotsUrl, 5000, 2);
-      if (r.ok) robotsTxt = await r.text();
-    } catch {}
-    try {
-      const r = await safeFetch(sitemapUrl, 5000, 2);
-      sitemapFound = r.ok && (r.headers.get("content-type") || "").includes("xml");
-    } catch {}
-    const robotsMentionsSitemap = /(^|\n)\s*sitemap\s*:/im.test(robotsTxt);
+      if (r.ok) {
+        robotsTxt = await r.text();
+        robotsStatus = "PASS";
+        const declared = robotsTxt.match(/^\s*Sitemap\s*:\s*(\S+)/im)?.[1];
+        if (declared) discoveredSitemapUrl = new URL(declared, finalUrl).toString();
+      } else if (r.status === 404) robotsStatus = "FAIL";
+    } catch { robotsStatus = "UNABLE_TO_CONFIRM"; }
+    const sitemapCandidates = [discoveredSitemapUrl, sitemapUrl.toString()].filter(Boolean) as string[];
+    for (const candidate of sitemapCandidates) {
+      try {
+        const r = await safeFetch(new URL(candidate), 5000, 2);
+        if (r.ok && /xml|text\/xml/i.test(r.headers.get("content-type") || "")) {
+          sitemapFound = true;
+          discoveredSitemapUrl = candidate;
+          break;
+        }
+      } catch {}
+    }
+    const robotsMentionsSitemap = Boolean(discoveredSitemapUrl);
 
     const seoChecks: Check[] = [];
     const geoChecks: Check[] = [];
@@ -346,10 +375,30 @@ export async function POST(request: Request) {
       : check("warning", "identity", "geo", "Brand identity", "Weinig expliciete brand identity-signalen gevonden.", "Voeg Organization/LocalBusiness data en officiële profielen toe waar relevant.", 2, 5)
     );
 
-    const seoTotal = seoChecks.reduce((sum, c) => sum + c.points, 0);
-    const seoMax = seoChecks.reduce((sum, c) => sum + c.maxPoints, 0);
-    const geoTotal = geoChecks.reduce((sum, c) => sum + c.points, 0);
-    const geoMax = geoChecks.reduce((sum, c) => sum + c.maxPoints, 0);
+    const ruleMap: Record<string, { rule_id: string; severity: Check["severity"] }> = {
+      title: { rule_id: title ? "META_TITLE_GUIDANCE" : "META_TITLE_MISSING", severity: title ? "MEDIUM" : "HIGH" },
+      description: { rule_id: description ? "META_DESCRIPTION_GUIDANCE" : "META_DESCRIPTION_MISSING", severity: description ? "MEDIUM" : "HIGH" },
+      h1: { rule_id: h1s.length > 1 ? "H1_MULTIPLE" : "H1_MISSING", severity: h1s.length ? "MEDIUM" : "HIGH" },
+      alt: { rule_id: "IMAGE_ALT_MISSING", severity: "LOW" },
+      social: { rule_id: "SOCIAL_METADATA_INCOMPLETE", severity: "LOW" },
+      schema: { rule_id: "STRUCTURED_DATA_MISSING", severity: "MEDIUM" },
+    };
+    for (const item of [...seoChecks, ...geoChecks]) {
+      const mapped = ruleMap[item.key];
+      if (mapped) {
+        item.rule_id = mapped.rule_id;
+        item.issue_id = mapped.rule_id;
+        item.severity = mapped.severity;
+        item.fix_category = getFixPolicy(mapped.rule_id).category;
+      }
+      const found = item.key === "title" ? title : item.key === "description" ? description : item.key === "h1" ? h1s.length : item.key === "alt" ? imagesMissingAlt : item.key === "schema" ? validJsonLd : null;
+      item.evidence = { url: finalUrl.toString(), found, details: item.message };
+      item.issue_status = statusCode(item.status);
+    }
+    const seoTotal = seoChecks.reduce((sum, c) => sum + (c.issue_status === "NOT_APPLICABLE" || c.issue_status === "UNABLE_TO_CONFIRM" ? 0 : c.points), 0);
+    const seoMax = seoChecks.reduce((sum, c) => sum + (c.issue_status === "NOT_APPLICABLE" || c.issue_status === "UNABLE_TO_CONFIRM" ? 0 : c.maxPoints), 0);
+    const geoTotal = geoChecks.reduce((sum, c) => sum + (c.issue_status === "NOT_APPLICABLE" || c.issue_status === "UNABLE_TO_CONFIRM" ? 0 : c.points), 0);
+    const geoMax = geoChecks.reduce((sum, c) => sum + (c.issue_status === "NOT_APPLICABLE" || c.issue_status === "UNABLE_TO_CONFIRM" ? 0 : c.maxPoints), 0);
     const seoScore = Math.round((seoTotal / seoMax) * 100);
     const geoScore = Math.round((geoTotal / geoMax) * 100);
     const overallScore = Math.round(seoScore * 0.6 + geoScore * 0.4);
@@ -360,18 +409,18 @@ export async function POST(request: Request) {
     if (user) {
       try {
         await getDb().query(
-          "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result) VALUES ($1,$2,$3,$4,$5,$6,$7)",
+          "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
           [user.id, target.toString(), finalUrl.toString(), overallScore, seoScore, geoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             overallScore, grade: grade(overallScore),
             seo: { score: seoScore, grade: grade(seoScore), checks: seoChecks },
             geo: { score: geoScore, grade: grade(geoScore), checks: geoChecks },
-            metrics: { title, titleLength: title.length, description, descriptionLength: description.length, h1Count: h1s.length, h1s,
+            metrics: { siteType: (hasProductSchema || /add-to-cart|shopping cart|winkelwagen|checkout|sku|price|availability/i.test(text)) ? "ECOMMERCE" : "WEBSITE", title, titleLength: title.length, description, descriptionLength: description.length, h1Count: h1s.length, h1s,
               imageCount: images.length, imagesMissingAlt, wordCount, headingsCount: headings.length, linksCount: links.length,
               internalLinks, canonical: canonical || null, lang: lang || null, robots: robots || null,
               openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null },
               twitterCard: twitterCard || null, schemaTypes: [...new Set(schemaTypes)].slice(0,12),
-              jsonLdBlocks: validJsonLd, sitemapFound, robotsMentionsSitemap }
+              jsonLdBlocks: validJsonLd, sitemapFound, robotsMentionsSitemap, robotsStatus, sitemapUrl: discoveredSitemapUrl }
           })]
         );
       } catch {}
