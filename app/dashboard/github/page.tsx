@@ -37,8 +37,8 @@ export default function GithubPage(){
 
   return <main className="min-h-screen bg-[#050816] text-white">
     <nav className="mx-auto flex max-w-6xl items-center justify-between border-b border-white/10 px-5 py-5">
-      <a href="/dashboard" className="font-bold">RankFix <span className="text-cyan-300">AI</span></a>
-      <a href="/dashboard" className="text-sm text-slate-400 hover:text-white">← Dashboard</a>
+      <a href="/" className="font-bold">RankFix <span className="text-cyan-300">AI</span></a>
+      <a href="/" className="text-sm text-slate-400 hover:text-white">← Terug naar RankFix AI</a>
     </nav>
     <section className="mx-auto max-w-4xl px-5 py-12">
       <div className="text-xs uppercase tracking-widest text-cyan-300">GitHub Fix Engine</div>
