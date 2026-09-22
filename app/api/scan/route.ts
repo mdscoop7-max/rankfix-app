@@ -421,7 +421,7 @@ export async function POST(request: Request) {
       try {
         await getDb().query(
           "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
-          [user.id, target.toString(), finalUrl.toString(), overallScore: selectedOverallScore, seoScore: selectedSeoScore, geoScore: selectedGeoScore, JSON.stringify({
+          [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore),
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), checks: selectedSeoChecks },
@@ -445,9 +445,9 @@ export async function POST(request: Request) {
           scannedUrl: target.toString(),
           finalUrl: finalUrl.toString(),
           scannedAt: new Date().toISOString(),
-      mode,
-          overallScore,
-          overallGrade: grade(overallScore),
+          mode,
+          overallScore: selectedOverallScore,
+          overallGrade: grade(selectedOverallScore),
           seoScore: selectedSeoScore,
           seoGrade: grade(selectedSeoScore),
           geoScore: selectedGeoScore,
