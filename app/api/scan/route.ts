@@ -8,6 +8,8 @@ import { extractImageMetrics } from "@/lib/image-metrics";
 
 type Status = "pass" | "warning" | "fail";
 
+type AuditMode = "seo" | "geo" | "both";
+
 type Check = {
   key: string;
   category: "seo" | "geo";
@@ -143,6 +145,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const rawUrl = typeof body?.url === "string" ? body.url.trim() : "";
+    const mode: AuditMode = body?.mode === "seo" || body?.mode === "geo" || body?.mode === "both" ? body.mode : "both";
 
     if (!rawUrl) {
       return NextResponse.json({ error: "Vul een website URL in." }, { status: 400 });
@@ -405,7 +408,12 @@ export async function POST(request: Request) {
     const seoScore = Math.round((seoTotal / seoMax) * 100);
     const geoScore = Math.round((geoTotal / geoMax) * 100);
     const overallScore = Math.round(seoScore * 0.6 + geoScore * 0.4);
-    const checks = [...seoChecks, ...geoChecks];
+    const selectedSeoChecks = mode === "geo" ? [] : seoChecks;
+    const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
+    const selectedSeoScore = selectedSeoChecks.length ? Math.round((selectedSeoChecks.reduce((sum, c) => sum + c.points, 0) / selectedSeoChecks.reduce((sum, c) => sum + c.maxPoints, 0)) * 100) : 0;
+    const selectedGeoScore = selectedGeoChecks.length ? Math.round((selectedGeoChecks.reduce((sum, c) => sum + c.points, 0) / selectedGeoChecks.reduce((sum, c) => sum + c.maxPoints, 0)) * 100) : 0;
+    const selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
+    const checks = [...selectedSeoChecks, ...selectedGeoChecks];
 
     let user = null;
     try { user = await getCurrentUser(); } catch {}
@@ -413,11 +421,11 @@ export async function POST(request: Request) {
       try {
         await getDb().query(
           "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
-          [user.id, target.toString(), finalUrl.toString(), overallScore, seoScore, geoScore, JSON.stringify({
+          [user.id, target.toString(), finalUrl.toString(), overallScore: selectedOverallScore, seoScore: selectedSeoScore, geoScore: selectedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
-            overallScore, grade: grade(overallScore),
-            seo: { score: seoScore, grade: grade(seoScore), checks: seoChecks },
-            geo: { score: geoScore, grade: grade(geoScore), checks: geoChecks },
+            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore),
+            seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), checks: selectedSeoChecks },
+            geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), checks: selectedGeoChecks },
             metrics: { siteType: (hasProductSchema || /add-to-cart|shopping cart|winkelwagen|checkout|sku|price|availability/i.test(text)) ? "ECOMMERCE" : "WEBSITE", title, titleLength: title.length, description, descriptionLength: description.length, h1Count: h1s.length, h1s,
               imageCount, imageElementCount, imagesMissingAlt, wordCount, headingsCount: headings.length, linksCount: links.length,
               internalLinks, canonical: canonical || null, lang: lang || null, robots: robots || null,
@@ -437,12 +445,13 @@ export async function POST(request: Request) {
           scannedUrl: target.toString(),
           finalUrl: finalUrl.toString(),
           scannedAt: new Date().toISOString(),
+      mode,
           overallScore,
           overallGrade: grade(overallScore),
-          seoScore,
-          seoGrade: grade(seoScore),
-          geoScore,
-          geoGrade: grade(geoScore),
+          seoScore: selectedSeoScore,
+          seoGrade: grade(selectedSeoScore),
+          geoScore: selectedGeoScore,
+          geoGrade: grade(selectedGeoScore),
           responseTime,
           httpStatus: response.status,
           checks,
@@ -459,10 +468,10 @@ export async function POST(request: Request) {
       scannedAt: new Date().toISOString(),
       responseTime,
       httpStatus: response.status,
-      overallScore,
-      grade: grade(overallScore),
-      seo: { score: seoScore, grade: grade(seoScore), checks: seoChecks },
-      geo: { score: geoScore, grade: grade(geoScore), checks: geoChecks },
+      overallScore: selectedOverallScore,
+      grade: grade(selectedOverallScore),
+      seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), checks: selectedSeoChecks },
+      geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), checks: selectedGeoChecks },
       metrics: {
         title,
         titleLength: title.length,
