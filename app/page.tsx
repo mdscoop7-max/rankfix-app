@@ -664,7 +664,7 @@ export default function Home() {
                         else if (link === "SEO Audit") startAudit("seo");
                         else if (link === "GEO Audit") startAudit("geo");
                         else if (link === "AI Fixes") scrollToSection("features");
-                        else if (link === "Reports") scrollToSection("resultaat");
+                        else if (link === "Reports") scrollToSection(document.getElementById("resultaat") ? "resultaat" : "scan");
                         else if (link === "Contact") setContactOpen(true);
                         else if (link === "Over RankFix") scrollToSection("about");
                         else scrollToSection("scan");
