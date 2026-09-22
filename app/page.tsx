@@ -66,6 +66,9 @@ export default function Home() {
   const [fixing, setFixing] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [scanStep, setScanStep] = useState(0);
+  const [auditMode, setAuditMode] = useState<"seo" | "geo" | "both">("both");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [language, setLanguage] = useState("nl");
 
   const scanSteps = [
     "Meta tags controleren",
@@ -114,12 +117,12 @@ export default function Home() {
       const response = await fetch("/api/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, mode: auditMode }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Scan mislukt.");
       setResult(data);
-      setTab("seo");
+      setTab(auditMode === "geo" ? "geo" : "seo");
       setTimeout(() => document.getElementById("resultaat")?.scrollIntoView({ behavior: "smooth" }), 50);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Scan mislukt.");
@@ -141,18 +144,58 @@ export default function Home() {
         <div className="absolute right-[-180px] top-[520px] h-[420px] w-[420px] rounded-full bg-blue-600/10 blur-[120px]" />
       </div>
 
-      <nav className="mx-auto flex max-w-7xl items-center justify-between border-b border-white/10 px-5 py-5 lg:px-8">
-        <a href="#" className="flex items-center gap-3">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-cyan-300 to-blue-600 text-xs font-black text-slate-950 shadow-lg shadow-cyan-500/10">RF</span>
-          <span className="text-lg font-bold tracking-tight">RankFix <span className="text-cyan-300">AI</span></span>
-        </a>
-        <div className="hidden items-center gap-7 text-sm text-slate-400 md:flex">
-          <a href="#features" className="transition hover:text-white">Features</a>
-          <a href="#resultaat" className="transition hover:text-white">Audit</a>
-          <a href="#prijzen" className="transition hover:text-white">Prijzen</a>
-          <a href="#footer" className="transition hover:text-white">Resources</a>
+      <nav className="sticky top-0 z-50 mx-auto w-full border-b border-white/10 bg-[#050816]/95 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-5 lg:px-8">
+          <a href="#" className="flex shrink-0 items-center gap-3" onClick={() => setMobileMenuOpen(false)}>
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-cyan-300 to-blue-600 text-xs font-black text-slate-950 shadow-lg shadow-cyan-500/10">RF</span>
+            <span className="text-lg font-bold tracking-tight">RankFix <span className="text-cyan-300">AI</span></span>
+          </a>
+          <div className="hidden items-center gap-6 text-sm text-slate-400 lg:flex">
+            <a href="#features" className="transition hover:text-white">Features</a>
+            <a href="#resultaat" className="transition hover:text-white">Audit</a>
+            <a href="#prijzen" className="transition hover:text-white">Prijzen</a>
+            <a href="#footer" className="transition hover:text-white">Resources</a>
+            <a href="#footer" className="transition hover:text-white">Contact</a>
+          </div>
+          <div className="hidden items-center gap-2 lg:flex">
+            <label className="sr-only" htmlFor="language-desktop">Taal</label>
+            <select id="language-desktop" value={language} onChange={(e) => setLanguage(e.target.value)} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-200 outline-none">
+              <option value="nl">Nederlands</option>
+              <option value="en">English</option>
+              <option value="fr">Français</option>
+              <option value="de">Deutsch</option>
+              <option value="it">Italiano</option>
+              <option value="es">Español</option>
+            </select>
+            <a href="/account?mode=login" className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium transition hover:bg-white/10 sm:px-4 sm:text-sm">Inloggen</a>
+            <a href="/account?mode=register" className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-cyan-100 sm:px-4 sm:text-sm">Account aanmaken</a>
+          </div>
+          <button type="button" aria-label="Menu openen" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen((open) => !open)} className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-200 lg:hidden">
+            {mobileMenuOpen ? "×" : "☰"}
+          </button>
         </div>
-        <div className="flex items-center gap-2"><a href="/account?mode=login" className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium transition hover:bg-white/10 sm:px-4 sm:text-sm">Inloggen</a><a href="/account?mode=register" className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-cyan-100 sm:px-4 sm:text-sm">Account aanmaken</a></div>
+        {mobileMenuOpen && (
+          <div className="border-t border-white/10 px-4 pb-5 pt-3 lg:hidden">
+            <div className="grid gap-1">
+              {[["Features","#features"],["Audit","#resultaat"],["Prijzen","#prijzen"],["Resources","#footer"],["Contact","#footer"]].map(([label,href]) => (
+                <a key={label} href={href} onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-4 py-3 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">{label}</a>
+              ))}
+            </div>
+            <div className="mt-3 grid gap-2 border-t border-white/10 pt-3">
+              <label className="px-1 text-[10px] font-bold uppercase tracking-widest text-slate-500" htmlFor="language-mobile">Taal</label>
+              <select id="language-mobile" value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 outline-none">
+                <option value="nl">Nederlands</option>
+                <option value="en">English</option>
+                <option value="fr">Français</option>
+                <option value="de">Deutsch</option>
+                <option value="it">Italiano</option>
+                <option value="es">Español</option>
+              </select>
+              <a href="/account?mode=login" onClick={() => setMobileMenuOpen(false)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm font-semibold text-white">Inloggen</a>
+              <a href="/account?mode=register" onClick={() => setMobileMenuOpen(false)} className="rounded-xl bg-white px-4 py-3 text-center text-sm font-bold text-slate-950">Account aanmaken</a>
+            </div>
+          </div>
+        )}
       </nav>
 
       <section id="scan" className="mx-auto max-w-6xl px-5 pb-16 pt-16 text-center lg:px-8 lg:pt-24">
@@ -170,6 +213,18 @@ export default function Home() {
         </p>
 
         <div className="mx-auto mt-9 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.04] p-2 shadow-2xl shadow-blue-950/30 backdrop-blur">
+          <div className="mb-3 grid gap-2 sm:grid-cols-3">
+            {[
+              ["seo", "SEO", "Google & organische vindbaarheid"],
+              ["geo", "GEO", "AI Search & generatieve vindbaarheid"],
+              ["both", "SEO + GEO", "Volledige analyse"],
+            ].map(([value, label, description]) => (
+              <button key={value} type="button" onClick={() => setAuditMode(value as "seo" | "geo" | "both")} className={`rounded-xl border px-4 py-3 text-left transition ${auditMode === value ? "border-cyan-300/50 bg-cyan-300/10 text-white shadow-lg shadow-cyan-500/5" : "border-white/10 bg-white/[0.025] text-slate-400 hover:border-white/20 hover:text-white"}`}>
+                <div className="flex items-center gap-2 text-sm font-bold"><span className={`h-2 w-2 rounded-full ${auditMode === value ? "bg-cyan-300" : "bg-slate-700"}`} />{label}</div>
+                <div className="mt-1 text-[11px] leading-4 text-slate-500">{description}</div>
+              </button>
+            ))}
+          </div>
           <form onSubmit={handleScan} className="flex flex-col gap-2 sm:flex-row">
             <input
               type="text"
