@@ -1,4 +1,5 @@
 import { URL } from "node:url";
+import { extractImageMetrics } from "@/lib/image-metrics";
 
 export const CRAWLER_ENGINE_VERSION = "2.0.0";
 
@@ -142,15 +143,14 @@ export async function crawlSite(startUrl:string,requestedMode:CrawlMode="STANDAR
       const lang=first(html,/<html[^>]+lang\s*=\s*["']([^"']+)["']/i)||null;
       const robots=first(html,/<meta[^>]+name\s*=\s*["']robots["'][^>]+content\s*=\s*["']([^"']+)["']/i);
       const noindex=/\bnoindex\b/i.test(robots);
-      const images=[...html.matchAll(/<img\b[^>]*>/gi)].map(m=>m[0]);
-      const imageMissing=images.filter(t=>!attr(t,"alt").trim()).length;
+      const imageMetrics=extractImageMetrics(html);
       const links=[...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi)].map(m=>normalize(m[1],resolved)).filter(Boolean) as string[];
       const uniqueLinks=[...new Set(links)];
       const blocks=[...html.matchAll(/<script[^>]+type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
       const types:string[]=[];
       for(const b of blocks){try{const parsed=JSON.parse(b[1]);const items=Array.isArray(parsed)?parsed:(parsed?.["@graph"]||[parsed]);for(const x of items){const t=x?.["@type"];if(t)types.push(...(Array.isArray(t)?t:[t]).map(String));}}catch{}}
       const text=stripHtml(html);
-      pages.push({url:item.url,status:response.status,contentType,responseTimeMs:Date.now()-started,title,description,h1,canonical:canonical?new URL(canonical,resolved).toString():null,lang,noindex,wordCount:text.split(/\s+/).filter(Boolean).length,internalLinks:uniqueLinks,imageCount:images.length,imagesMissingAlt:imageMissing,jsonLdTypes:[...new Set(types)],pageType:classify(item.url,html,types),depth:item.depth,discoveredFrom:item.from});
+      pages.push({url:item.url,status:response.status,contentType,responseTimeMs:Date.now()-started,title,description,h1,canonical:canonical?new URL(canonical,resolved).toString():null,lang,noindex,wordCount:text.split(/\s+/).filter(Boolean).length,internalLinks:uniqueLinks,imageCount:imageMetrics.uniqueImageReferences,imagesMissingAlt:imageMetrics.missingAlt,jsonLdTypes:[...new Set(types)],pageType:classify(item.url,html,types),depth:item.depth,discoveredFrom:item.from});
       for(const next of uniqueLinks){if(!queued.has(next)&&queue.length+pages.length<limit){queued.add(next);queue.push({url:next,depth:item.depth+1,from:item.url});}}
     }catch(e){errors.push({url:item.url,code:e instanceof Error&&e.message==="URL_BLOCKED"?"URL_BLOCKED":"FETCH_FAILED",message:e instanceof Error?e.message:"Unknown crawl error"});}
   }
