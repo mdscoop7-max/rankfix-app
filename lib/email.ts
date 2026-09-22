@@ -9,6 +9,7 @@ type ScanCheck = {
 };
 
 type ScanReportEmail = {
+  mode?: "seo" | "geo" | "both";
   to: string;
   name?: string | null;
   scannedUrl: string;
