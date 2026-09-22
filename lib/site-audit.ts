@@ -42,6 +42,13 @@ export type SiteAudit = {
   issues: SiteIssue[];
 };
 
+type RuleEvaluation = {
+  status: SiteRuleStatus;
+  found?: string | number | boolean | null;
+  expected?: string;
+  details: string;
+};
+
 type RuleDef = {
   id: string;
   category: string;
@@ -50,10 +57,10 @@ type RuleDef = {
   description: string;
   recommendation: string;
   applicable: (p: CrawlPage, all: CrawlPage[]) => boolean;
-  evaluate: (p: CrawlPage, all: CrawlPage[]) => { status: SiteRuleStatus; found?: string | number | boolean | null; expected?: string; details: string };
+  evaluate: (p: CrawlPage, all: CrawlPage[]) => RuleEvaluation;
 };
 
-const example = (p: CrawlPage, result: ReturnType<RuleDef["evaluate"]>) => ({
+const example = (p: CrawlPage, result: RuleEvaluation) => ({
   url: p.url, found: result.found, expected: result.expected, details: result.details,
 });
 
