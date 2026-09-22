@@ -57,6 +57,72 @@ type ScanResult = {
 
 const statusIcon = { pass: "✓", warning: "!", fail: "×" };
 
+const translations = {
+  nl: {
+    moreInfo:"Meer info", audit:"Audit", pricing:"Prijzen", resources:"Resources", contact:"Contact", login:"Inloggen", register:"Account aanmaken",
+    badge:"{t.badge}", hero:"{t.hero}", hero2:"{t.hero2}",
+    intro:"Eén snelle scan voor technische SEO, content, structured data en AI-search readiness. Eerst inzicht. Daarna concrete fixes — met AI wanneer jij dat activeert.",
+    seoDesc:t.seoDesc, geoDesc:t.geoDesc, bothDesc:t.bothDesc,
+    start:"Gratis", auditStart:"audit starten →", scanning:"Scan wordt uitgevoerd…", noCard:"Geen creditcard", direct:"Direct rapport", both:"SEO + GEO",
+    about:"Over RankFix", forWho:"Voor wie", company:"Bedrijf", product:"Product", language:"Taal",
+    contactTitle:"Neem contact op.", contactText:"Vraag over RankFix, een samenwerking of hulp nodig? Stuur ons een bericht.",
+    send:"Bericht versturen →", sending:"Verzenden…", thanks:"Bedankt! Je bericht is verzonden.",
+    back:"← Terug naar RankFix AI"
+  },
+  en: {
+    moreInfo:"More info", audit:"Audit", pricing:"Pricing", resources:"Resources", contact:"Contact", login:"Log in", register:"Create account",
+    badge:"SEO + GEO audit for Google & AI Search", hero:"Find what is blocking your rankings.", hero2:"Fix it with RankFix.",
+    intro:"One fast scan for technical SEO, content, structured data and AI-search readiness. Get insight first, then concrete fixes — with AI when you activate it.",
+    seoDesc:"Google & organic visibility", geoDesc:"AI Search & generative visibility", bothDesc:"Full analysis",
+    start:"Free", auditStart:"audit →", scanning:"Scan in progress…", noCard:"No credit card", direct:"Instant report", both:"SEO + GEO",
+    about:"About RankFix", forWho:"Who it's for", company:"Company", product:"Product", language:"Language",
+    contactTitle:"Get in touch.", contactText:"Questions about RankFix, a partnership or need help? Send us a message.",
+    send:"Send message →", sending:"Sending…", thanks:"Thanks! Your message was sent.", back:"← Back to RankFix AI"
+  },
+  fr: {
+    moreInfo:"En savoir plus", audit:"Audit", pricing:"Tarifs", resources:"Ressources", contact:"Contact", login:"Connexion", register:"Créer un compte",
+    badge:"Audit SEO + GEO pour Google & AI Search", hero:"Trouvez ce qui bloque vos performances.", hero2:"Corrigez-le avec RankFix.",
+    intro:"Un scan rapide du SEO technique, du contenu, des données structurées et de la visibilité dans l'IA. Analysez d'abord, corrigez ensuite.",
+    seoDesc:"Google & visibilité organique", geoDesc:"AI Search & visibilité générative", bothDesc:"Analyse complète",
+    start:"Audit", auditStart:"gratuit →", scanning:"Analyse en cours…", noCard:"Sans carte bancaire", direct:"Rapport immédiat", both:"SEO + GEO",
+    about:"À propos de RankFix", forWho:"Pour qui", company:"Entreprise", product:"Produit", language:"Langue",
+    contactTitle:"Contactez-nous.", contactText:"Une question sur RankFix, un partenariat ou besoin d'aide ? Envoyez-nous un message.",
+    send:"Envoyer le message →", sending:"Envoi…", thanks:"Merci ! Votre message a été envoyé.", back:"← Retour à RankFix AI"
+  },
+  de: {
+    moreInfo:"Mehr erfahren", audit:"Audit", pricing:"Preise", resources:"Ressourcen", contact:"Kontakt", login:"Anmelden", register:"Konto erstellen",
+    badge:"SEO + GEO Audit für Google & AI Search", hero:"Finde, was deine Rankings blockiert.", hero2:"Behebe es mit RankFix.",
+    intro:"Ein schneller Scan für technisches SEO, Inhalte, strukturierte Daten und AI-Search-Bereitschaft. Erst analysieren, dann konkrete Fixes umsetzen.",
+    seoDesc:"Google & organische Sichtbarkeit", geoDesc:"AI Search & generative Sichtbarkeit", bothDesc:"Vollständige Analyse",
+    start:"Kostenlos", auditStart:"Audit starten →", scanning:"Scan läuft…", noCard:"Keine Kreditkarte", direct:"Direkter Bericht", both:"SEO + GEO",
+    about:"Über RankFix", forWho:"Für wen", company:"Unternehmen", product:"Produkt", language:"Sprache",
+    contactTitle:"Kontakt aufnehmen.", contactText:"Fragen zu RankFix, eine Zusammenarbeit oder Hilfe nötig? Schreib uns.",
+    send:"Nachricht senden →", sending:"Senden…", thanks:"Danke! Deine Nachricht wurde gesendet.", back:"← Zurück zu RankFix AI"
+  },
+  it: {
+    moreInfo:"Scopri di più", audit:"Audit", pricing:"Prezzi", resources:"Risorse", contact:"Contatti", login:"Accedi", register:"Crea account",
+    badge:"Audit SEO + GEO per Google & AI Search", hero:"Scopri cosa blocca il tuo ranking.", hero2:"Risolvilo con RankFix.",
+    intro:"Una scansione rapida per SEO tecnico, contenuti, dati strutturati e visibilità nell'AI. Prima l'analisi, poi fix concreti.",
+    seoDesc:"Google & visibilità organica", geoDesc:"AI Search & visibilità generativa", bothDesc:"Analisi completa",
+    start:"Audit", auditStart:"gratuito →", scanning:"Scansione in corso…", noCard:"Nessuna carta", direct:"Report immediato", both:"SEO + GEO",
+    about:"Chi è RankFix", forWho:"Per chi", company:"Azienda", product:"Prodotto", language:"Lingua",
+    contactTitle:"Contattaci.", contactText:"Domande su RankFix, partnership o bisogno di aiuto? Inviaci un messaggio.",
+    send:"Invia messaggio →", sending:"Invio…", thanks:"Grazie! Il messaggio è stato inviato.", back:"← Torna a RankFix AI"
+  },
+  es: {
+    moreInfo:"Más información", audit:"Auditoría", pricing:"Precios", resources:"Recursos", contact:"Contacto", login:"Iniciar sesión", register:"Crear cuenta",
+    badge:"Auditoría SEO + GEO para Google & AI Search", hero:"Descubre qué bloquea tus rankings.", hero2:"Arréglalo con RankFix.",
+    intro:"Un escaneo rápido de SEO técnico, contenido, datos estructurados y preparación para búsquedas con IA. Primero analiza, después corrige.",
+    seoDesc:"Google & visibilidad orgánica", geoDesc:"AI Search & visibilidad generativa", bothDesc:"Análisis completo",
+    start:"Gratis", auditStart:"auditoría →", scanning:"Escaneo en curso…", noCard:"Sin tarjeta", direct:"Informe directo", both:"SEO + GEO",
+    about:"Sobre RankFix", forWho:"Para quién", company:"Empresa", product:"Producto", language:"Idioma",
+    contactTitle:"Contacta con nosotros.", contactText:"¿Preguntas sobre RankFix, colaboración o necesitas ayuda? Envíanos un mensaje.",
+    send:"Enviar mensaje →", sending:"Enviando…", thanks:"¡Gracias! Tu mensaje ha sido enviado.", back:"← Volver a RankFix AI"
+  }
+} as const;
+
+type Language = keyof typeof translations;
+
 export default function Home() {
   const [url, setUrl] = useState("");
   const [scanning, setScanning] = useState(false);
@@ -69,11 +135,24 @@ export default function Home() {
   const [scanStep, setScanStep] = useState(0);
   const [auditMode, setAuditMode] = useState<"seo" | "geo" | "both">("both");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [language, setLanguage] = useState("nl");
+  const [language, setLanguage] = useState<Language>("nl");
+  const t = translations[language];
   const [contactOpen, setContactOpen] = useState(false);
   const [contactSending, setContactSending] = useState(false);
   const [contactSent, setContactSent] = useState(false);
   const [contactError, setContactError] = useState("");
+
+
+  function scrollToSection(id: string) {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setMobileMenuOpen(false);
+  }
+
+  function startAudit(mode: "seo" | "geo" | "both") {
+    setAuditMode(mode);
+    setMobileMenuOpen(false);
+    window.setTimeout(() => document.getElementById("scan")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  }
 
   async function handleContact(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -184,11 +263,11 @@ export default function Home() {
             <span className="text-lg font-bold tracking-tight">RankFix <span className="text-cyan-300">AI</span></span>
           </a>
           <div className="hidden items-center gap-6 text-sm text-slate-400 lg:flex">
-            <a href="#features" className="transition hover:text-white">Features</a>
-            <a href="#resultaat" className="transition hover:text-white">Audit</a>
-            <a href="#prijzen" className="transition hover:text-white">Prijzen</a>
-            <a href="#footer" className="transition hover:text-white">Resources</a>
-            <button type="button" onClick={() => setContactOpen(true)} className="transition hover:text-white">Contact</button>
+            <a href="#features" className="transition hover:text-white">{t.moreInfo}</a>
+            <button type="button" onClick={() => scrollToSection("scan")} className="transition hover:text-white">{t.audit}</button>
+            <a href="#prijzen" className="transition hover:text-white">{t.pricing}</a>
+            <a href="#resources" className="transition hover:text-white">{t.resources}</a>
+            <button type="button" onClick={() => setContactOpen(true)} className="transition hover:text-white">{t.contact}</button>
           </div>
           <div className="hidden items-center gap-2 lg:flex">
             <label className="sr-only" htmlFor="language-desktop">Taal</label>
@@ -210,7 +289,7 @@ export default function Home() {
         {mobileMenuOpen && (
           <div className="border-t border-white/10 px-4 pb-5 pt-3 lg:hidden">
             <div className="grid gap-1">
-              {[["Features","#features"],["Audit","#resultaat"],["Prijzen","#prijzen"],["Resources","#footer"],["Contact","#footer"]].map(([label,href]) => (
+              {[[t.moreInfo,"#features"],[t.audit,"#scan"],[t.pricing,"#prijzen"],[t.resources,"#resources"],[t.contact,"#footer"]].map(([label,href]) => (
                 label === "Contact" ? (
                   <button key={label} type="button" onClick={() => { setMobileMenuOpen(false); setContactOpen(true); }} className="rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">{label}</button>
                 ) : (
@@ -221,12 +300,12 @@ export default function Home() {
             <div className="mt-3 grid gap-2 border-t border-white/10 pt-3">
               <label className="px-1 text-[10px] font-bold uppercase tracking-widest text-slate-500" htmlFor="language-mobile">Taal</label>
               <select id="language-mobile" value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full rounded-xl border border-white/20 bg-slate-900 px-4 py-3 text-sm font-medium text-white outline-none shadow-sm">
-                <option value="nl">Nederlands</option>
-                <option value="en">English</option>
-                <option value="fr">Français</option>
-                <option value="de">Deutsch</option>
-                <option value="it">Italiano</option>
-                <option value="es">Español</option>
+                <option value="nl">🇳🇱 Nederlands</option>
+                <option value="en">🇬🇧 English</option>
+                <option value="fr">🇫🇷 Français</option>
+                <option value="de">🇩🇪 Deutsch</option>
+                <option value="it">🇮🇹 Italiano</option>
+                <option value="es">🇪🇸 Español</option>
               </select>
               <a href="/account?mode=login" onClick={() => setMobileMenuOpen(false)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm font-semibold text-white">Inloggen</a>
               <a href="/account?mode=register" onClick={() => setMobileMenuOpen(false)} className="rounded-xl bg-white px-4 py-3 text-center text-sm font-bold text-slate-950">Account aanmaken</a>
@@ -275,12 +354,12 @@ export default function Home() {
               disabled={scanning}
               className="rounded-xl bg-white px-6 py-4 text-sm font-bold text-slate-950 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {scanning ? "Scan wordt uitgevoerd…" : "Gratis audit starten →"}
+              {scanning ? t.scanning : `${t.start} ${auditMode === "seo" ? "SEO" : auditMode === "geo" ? "GEO" : "SEO + GEO"} ${t.auditStart}`}
             </button>
           </form>
         </div>
         <div className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-slate-500">
-          <span>✓ Geen creditcard</span><span>✓ Direct rapport</span><span>✓ SEO + GEO</span><span>✓ Geen Base44 afhankelijkheid</span>
+          <span>✓ {t.noCard}</span><span>✓ {t.direct}</span><span>✓ {t.both}</span><span>✓ Geen Base44 afhankelijkheid</span>
         </div>
         {error && <div className="mx-auto mt-5 max-w-2xl rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">{error}</div>}
 
@@ -407,13 +486,13 @@ export default function Home() {
                             <div className="text-[10px] font-bold uppercase tracking-widest text-cyan-300">RankFix recommendation</div>
                             <p className="mt-1 text-sm text-slate-300">{item.fix}</p>
                             <button type="button" onClick={() => generateFix(item)} disabled={fixing === (item.issue_id || item.key)} className="mt-3 rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-400/10 disabled:opacity-50">
-                              {fixing === item.key ? "AI analyseert…" : "✨ Fix met AI"}
+                              {fixing === (item.issue_id || item.key) ? "AI analyseert…" : "✨ Fix met AI"}
                             </button>
                             {fixes[item.issue_id || item.key] && (
                               <div className="mt-3 rounded-xl border border-emerald-400/15 bg-emerald-400/[0.04] p-4">
-                                <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">{fixes[item.key].title}</div>
-                                <div className="mt-2 whitespace-pre-wrap break-words text-sm text-slate-200">{fixes[item.key].content}</div>
-                                <p className="mt-2 text-xs text-slate-500">{fixes[item.key].reason}</p>
+                                <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">{fixes[item.issue_id || item.key].title}</div>
+                                <div className="mt-2 whitespace-pre-wrap break-words text-sm text-slate-200">{fixes[item.issue_id || item.key].content}</div>
+                                <p className="mt-2 text-xs text-slate-500">{fixes[item.issue_id || item.key].reason}</p>
                                 <div className="mt-3 flex flex-wrap gap-2">
                                   <button type="button" onClick={() => copyFix(item.issue_id || item.key)} className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-950">{copied === (item.issue_id || item.key) ? "Gekopieerd ✓" : "Gebruik deze tekst"}</button>
                                   <a href={`/dashboard/github?issue=${encodeURIComponent((item.issue_id || item.key) + ": " + item.fix)}&context=${encodeURIComponent("URL: " + result.finalUrl + "\nHuidige title: " + result.metrics.title + "\nHuidige description: " + result.metrics.description + "\nH1: " + (result.metrics.h1s[0] || ""))}`} className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs font-bold text-cyan-200">Fix via GitHub →</a>
@@ -519,21 +598,46 @@ export default function Home() {
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-md">
           <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-white/10 bg-[#080d1b] p-6 shadow-2xl sm:p-8">
             <button type="button" onClick={() => setContactOpen(false)} aria-label="Contactformulier sluiten" className="absolute right-5 top-5 grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/5 text-slate-300 hover:text-white">×</button>
-            <div className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">Contact</div>
-            <h2 className="mt-2 text-3xl font-black">Neem contact op.</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-500">Vraag over RankFix, een samenwerking of hulp nodig? Stuur ons een bericht.</p>
+            <div className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">{t.contact}</div>
+            <h2 className="mt-2 text-3xl font-black">{t.contactTitle}</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-500">{t.contactText}</p>
             <form onSubmit={handleContact} className="mt-6 space-y-4">
               <input name="name" required placeholder="Naam" className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/40" />
               <input name="email" required type="email" placeholder="E-mailadres" className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/40" />
               <input name="company" placeholder="Bedrijf (optioneel)" className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/40" />
               <textarea name="message" required rows={5} placeholder="Waar kunnen we mee helpen?" className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/40" />
               {contactError && <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">{contactError}</div>}
-              {contactSent && <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-3 text-sm text-emerald-200">Bedankt! Je bericht is verzonden.</div>}
-              <button disabled={contactSending} className="w-full rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-100 disabled:opacity-50">{contactSending ? "Verzenden…" : "Bericht versturen →"}</button>
+              {contactSent && <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-3 text-sm text-emerald-200">{t.thanks}</div>}
+              <button disabled={contactSending} className="w-full rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-100 disabled:opacity-50">{contactSending ? t.sending : t.send}</button>
             </form>
           </div>
         </div>
       )}
+
+      <section id="resources" className="border-y border-white/10 bg-white/[0.02] scroll-mt-8">
+        <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
+          <div className="max-w-2xl">
+            <div className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">{t.resources}</div>
+            <h2 className="mt-3 text-3xl font-black tracking-tight">Alles om van audit naar actie te gaan.</h2>
+            <p className="mt-4 text-slate-500">Gebruik RankFix voor audits, concrete fixes, klantrapporten en lokale SEO-data.</p>
+          </div>
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            {[
+              ["SEO Audit", "Technische en on-page signalen."],
+              ["GEO Audit", "Structured data en AI-search signalen."],
+              ["Local SEO", "LocalBusiness, locaties, openingstijden en officiële profielen."]
+            ].map(([title,text]) => <button key={title} type="button" onClick={() => title === "SEO Audit" ? startAudit("seo") : title === "GEO Audit" ? startAudit("geo") : scrollToSection("scan")} className="rounded-2xl border border-white/10 bg-white/[0.025] p-6 text-left transition hover:border-cyan-300/30 hover:bg-white/[0.05]"><div className="font-bold">{title}</div><div className="mt-2 text-sm text-slate-500">{text}</div></button>)}
+          </div>
+        </div>
+      </section>
+
+      <section id="about" className="mx-auto max-w-7xl scroll-mt-8 px-5 py-16 lg:px-8">
+        <div className="max-w-3xl">
+          <div className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">{t.about}</div>
+          <h2 className="mt-3 text-3xl font-black tracking-tight">RankFix maakt SEO en GEO begrijpelijk én uitvoerbaar.</h2>
+          <p className="mt-4 leading-7 text-slate-500">Voor lokale bedrijven, webshops, agencies en SaaS. Van een eerste gratis audit tot concrete fixes en klantklare rapporten.</p>
+        </div>
+      </section>
 
       <footer id="footer" className="bg-[#03050d] px-5 py-14 lg:px-8">
         <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-5">
@@ -542,9 +646,9 @@ export default function Home() {
             <p className="mt-4 max-w-sm text-sm leading-6 text-slate-500">SEO + GEO audit software voor bedrijven en agencies die willen weten wat ze moeten fixen — en het daarna ook willen fixen.</p>
           </div>
           {[
-            ["Product", ["SEO Audit", "GEO Audit", "AI Fixes", "Reports"]],
-            ["Voor wie", ["Bedrijven", "Webshops", "Agencies", "SaaS"]],
-            ["Company", ["Over RankFix", "Contact", "Privacy", "Voorwaarden"]],
+            [t.product, ["SEO Audit", "GEO Audit", "AI Fixes", "Reports"]],
+            [t.forWho, ["Bedrijven", "Webshops", "Agencies", "SaaS"]],
+            [t.company, ["Over RankFix", "Contact", "Privacy", "Voorwaarden"]],
           ].map((entry) => {
             const [title, links] = entry as [string, string[]];
             return (
@@ -552,21 +656,23 @@ export default function Home() {
                 <div className="text-sm font-bold">{title}</div>
                 <div className="mt-4 space-y-3 text-sm text-slate-500">
                   {links.map((link) => (
-                    <a
-                      href={
-                        link === "Privacy" ? "/privacy" :
-                        link === "Voorwaarden" ? "/voorwaarden" :
-                        link === "SEO Audit" ? "#scan" :
-                        link === "GEO Audit" ? "#scan" :
-                        link === "AI Fixes" ? "#features" :
-                        link === "Reports" ? "#resultaat" :
-                        link === "Contact" ? "#footer" : "#"
-                      }
-                      key={link}
-                      className="block hover:text-white"
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (link === "Privacy") window.location.href = "/privacy";
+                        else if (link === "Voorwaarden") window.location.href = "/voorwaarden";
+                        else if (link === "SEO Audit") startAudit("seo");
+                        else if (link === "GEO Audit") startAudit("geo");
+                        else if (link === "AI Fixes") scrollToSection("features");
+                        else if (link === "Reports") scrollToSection("resultaat");
+                        else if (link === "Contact") setContactOpen(true);
+                        else if (link === "Over RankFix") scrollToSection("about");
+                        else scrollToSection("scan");
+                      }}
+                      className="block text-left hover:text-white"
                     >
                       {link}
-                    </a>
+                    </button>
                   ))}
                 </div>
               </div>
