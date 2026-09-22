@@ -271,7 +271,7 @@ export default function Home() {
           </div>
           <div className="hidden items-center gap-2 lg:flex">
             <label className="sr-only" htmlFor="language-desktop">Taal</label>
-            <select id="language-desktop" value={language} onChange={(e) => setLanguage(e.target.value)} className="rounded-xl border border-white/20 bg-slate-900 px-3 py-2 text-xs font-medium text-white outline-none shadow-sm">
+            <select id="language-desktop" value={language} onChange={(e) => setLanguage(e.target.value as Language)} className="rounded-xl border border-white/20 bg-slate-900 px-3 py-2 text-xs font-medium text-white outline-none shadow-sm">
               <option value="nl" className="bg-slate-900 text-white">🇳🇱 Nederlands</option>
               <option value="en" className="bg-slate-900 text-white">🇬🇧 English</option>
               <option value="fr" className="bg-slate-900 text-white">🇫🇷 Français</option>
