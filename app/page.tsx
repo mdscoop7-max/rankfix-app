@@ -128,7 +128,7 @@ export default function Home() {
           <a href="#prijzen" className="transition hover:text-white">Prijzen</a>
           <a href="#footer" className="transition hover:text-white">Resources</a>
         </div>
-        <div className="flex items-center gap-2"><a href="/account" className="hidden rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium transition hover:bg-white/10 sm:inline-flex">Inloggen</a><a href="#scan" className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium transition hover:bg-white/10">Start gratis</a></div>
+        <div className="flex items-center gap-2"><a href="/account?mode=login" className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium transition hover:bg-white/10 sm:px-4 sm:text-sm">Inloggen</a><a href="/account?mode=register" className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-cyan-100 sm:px-4 sm:text-sm">Account aanmaken</a></div>
       </nav>
 
       <section id="scan" className="mx-auto max-w-6xl px-5 pb-16 pt-16 text-center lg:px-8 lg:pt-24">
