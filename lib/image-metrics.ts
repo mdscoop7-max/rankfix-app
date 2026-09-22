@@ -38,7 +38,7 @@ function addSrcSet(set: Set<string>, value: string): void {
   if (!value) return;
 
   for (const candidate of value.split(",")) {
-    const url = candidate.trim().split(/\\s+/)[0];
+    const url = candidate.trim().split(/\s+/)[0];
     const ref = imageReference(url);
     if (ref) set.add(ref);
   }
@@ -46,7 +46,7 @@ function addSrcSet(set: Set<string>, value: string): void {
 
 export function extractImageMetrics(html: string): ImageMetrics {
   const refs = new Set<string>();
-  const images = html.match(/<img\\b[^>]*>/gi) ?? [];
+  const images = html.match(/<img\b[^>]*>/gi) ?? [];
   let missingAlt = 0;
 
   for (const tag of images) {
@@ -62,7 +62,7 @@ export function extractImageMetrics(html: string): ImageMetrics {
     addSrcSet(refs, attr(tag, "data-srcset"));
   }
 
-  const sources = html.match(/<source\\b[^>]*>/gi) ?? [];
+  const sources = html.match(/<source\b[^>]*>/gi) ?? [];
   for (const tag of sources) {
     const ref = imageReference(attr(tag, "src"));
     if (ref) refs.add(ref);
@@ -71,16 +71,16 @@ export function extractImageMetrics(html: string): ImageMetrics {
   }
 
   // Include image URLs embedded in inline style/background-image declarations.
-  const styleUrls = html.match(/url\\(\\s*["']?([^"'\\)]+)["']?\\s*\\)/gi) ?? [];
+  const styleUrls = html.match(/url\(\\s*["']?([^"'\)]+)["']?\\s*\)/gi) ?? [];
   for (const match of styleUrls) {
-    const inner = match.replace(/^url\\(\\s*["']?/i, "").replace(/["']?\\s*\\)$/i, "");
+    const inner = match.replace(/^url\(\\s*["']?/i, "").replace(/["']?\\s*\)$/i, "");
     const ref = imageReference(inner);
     if (ref) refs.add(ref);
   }
 
   // Next.js and other SSR frameworks can serialize image URLs into the HTML payload.
   const serializedUrls =
-    html.match(/(?:https?:)?\\/\\/[^"'\\s<>]+|\\/_next\\/image\\?[^"'\\s<>]+/gi) ?? [];
+    html.match(/(?:https?:)?\/\/[^"'\\s<>]+|\/_next\/image\\?[^"'\\s<>]+/gi) ?? [];
 
   for (const url of serializedUrls) {
     const ref = imageReference(url);
