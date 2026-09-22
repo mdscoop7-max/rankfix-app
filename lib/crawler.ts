@@ -1,7 +1,7 @@
 import { URL } from "node:url";
 import { extractImageMetrics } from "@/lib/image-metrics";
 
-export const CRAWLER_ENGINE_VERSION = "2.0.0";
+export const CRAWLER_ENGINE_VERSION = "2.0.1";
 
 export type CrawlMode = "QUICK" | "STANDARD" | "DEEP" | "ECOMMERCE" | "ENTERPRISE";
 export type PageType =
@@ -95,6 +95,9 @@ function classify(url:string,html:string,jsonTypes:string[]):PageType{
   if(/\/(search|zoeken)\b/.test(p)||/[?&](q|query|search)=/.test(new URL(url).search))return "search";
   if(/\/(filter|filters)\b/.test(p))return "filter";
   const types=jsonTypes.map(x=>x.toLowerCase());
+  const hasLocalBusinessType = types.some(t => ["localbusiness","restaurant","bakery","barorcafe","beautysalon","dayspa","dentist","electrician","generalcontractor","homeandconstructionbusiness","locksmith","medicalclinic","plumber","roofingcontractor","store","hairdresser","automotivebusiness"].includes(t));
+  const localSignals = /\\b(openingstijden|opening hours|horaires|öffnungszeiten|orari|horario)\\b/i.test(text) && /(\\+?\\d[\\d\\s().-]{7,}|\\b(postcode|postcode|postal code|address|adres|straat|street|rue|straße|via)\\b)/i.test(text);
+  if(hasLocalBusinessType || localSignals)return "local_business";
   if(types.includes("product"))return "product";
   if(types.includes("article")||types.includes("newsarticle")||/\/(blog|nieuws|news|artikel)\b/.test(p))return /news|nieuws/.test(p)?"news":"blog_article";
   if(types.includes("faqpage")||/\b(faq|veelgestelde vragen|frequently asked questions)\b/.test(text))return "faq";
