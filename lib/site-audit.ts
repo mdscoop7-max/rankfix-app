@@ -157,7 +157,7 @@ const rules: RuleDef[] = [
   },
 ];
 
-function buildIssue(rule: RuleDef, affected: Array<{p:CrawlPage;r:ReturnType<RuleDef["evaluate"]}>, total: number): SiteIssue {
+function buildIssue(rule: RuleDef, affected: Array<{ p: CrawlPage; r: RuleEvaluation }>, total: number): SiteIssue {
   const fail = affected.filter(x => x.r.status === "FAIL");
   const warn = affected.filter(x => x.r.status === "WARNING");
   const status: SiteRuleStatus = fail.length ? "FAIL" : warn.length ? "WARNING" : "PASS";
