@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db";
 import { sendScanReportEmail } from "@/lib/email";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
+import { extractImageMetrics } from "@/lib/image-metrics";
 
 type Status = "pass" | "warning" | "fail";
 
@@ -193,8 +194,10 @@ export async function POST(request: Request) {
     const lang = firstMatch(html, /<html[^>]+lang\s*=\s*["']([^"']+)["']/i);
     const viewport = /<meta[^>]+name\s*=\s*["']viewport["']/i.test(html);
     const robots = firstMatch(html, /<meta[^>]+name\s*=\s*["']robots["'][^>]+content\s*=\s*["']([^"']+)["']/i);
-    const images = [...html.matchAll(/<img\b[^>]*>/gi)].map((m) => m[0]);
-    const imagesMissingAlt = images.filter((tag) => !attrFromTag(tag, "alt").trim()).length;
+    const imageMetrics = extractImageMetrics(html);
+    const imageCount = imageMetrics.uniqueImageReferences;
+    const imageElementCount = imageMetrics.elementCount;
+    const imagesMissingAlt = imageMetrics.missingAlt;
     const links = [...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>/gi)].map((m) => m[1]);
     const internalLinks = links.filter((href) => {
       try { return new URL(href, finalUrl).hostname === finalUrl.hostname; } catch { return false; }
@@ -311,9 +314,9 @@ export async function POST(request: Request) {
       ? check("pass", "lang", "seo", "HTML-taal", `De pagina heeft lang="${lang}".`, "Gebruik de juiste taalcode voor de primaire paginataal.", 4, 4)
       : check("warning", "lang", "seo", "HTML-taal", "Geen HTML lang-attribuut gevonden.", "Voeg het juiste lang-attribuut toe aan <html>.", 1, 4)
     );
-    seoChecks.push(images.length === 0 || imagesMissingAlt === 0
-      ? check("pass", "alt", "seo", "Afbeelding alt-teksten", images.length ? "Alle gevonden afbeeldingen hebben alt-attributen." : "Geen afbeeldingen gevonden.", "Schrijf beschrijvende alt-teksten voor informatieve afbeeldingen.", 7, 7)
-      : check("warning", "alt", "seo", "Afbeelding alt-teksten", `${imagesMissingAlt} van ${images.length} afbeeldingen missen alt.`, "Voeg beschrijvende alt-teksten toe waar ze betekenis toevoegen.", 3, 7)
+    seoChecks.push(imageElementCount === 0 || imagesMissingAlt === 0
+      ? check("pass", "alt", "seo", "Afbeelding alt-teksten", imageElementCount ? `Alle ${imageElementCount} gevonden afbeeldingselementen hebben alt-attributen.` : "Geen afbeeldingen gevonden.", "Schrijf beschrijvende alt-teksten voor informatieve afbeeldingen.", 7, 7)
+      : check("warning", "alt", "seo", "Afbeelding alt-teksten", `${imagesMissingAlt} van ${imageElementCount} gevonden afbeeldingselementen missen alt.`, "Voeg beschrijvende alt-teksten toe waar ze betekenis toevoegen.", 3, 7)
     );
     seoChecks.push(wordCount >= 300
       ? check("pass", "content", "seo", "Contentdiepte", `Ongeveer ${wordCount} woorden gevonden.`, "Verbeter vooral relevantie en volledigheid, niet alleen woordenaantal.", 7, 7)
@@ -416,7 +419,7 @@ export async function POST(request: Request) {
             seo: { score: seoScore, grade: grade(seoScore), checks: seoChecks },
             geo: { score: geoScore, grade: grade(geoScore), checks: geoChecks },
             metrics: { siteType: (hasProductSchema || /add-to-cart|shopping cart|winkelwagen|checkout|sku|price|availability/i.test(text)) ? "ECOMMERCE" : "WEBSITE", title, titleLength: title.length, description, descriptionLength: description.length, h1Count: h1s.length, h1s,
-              imageCount: images.length, imagesMissingAlt, wordCount, headingsCount: headings.length, linksCount: links.length,
+              imageCount, imageElementCount, imagesMissingAlt, wordCount, headingsCount: headings.length, linksCount: links.length,
               internalLinks, canonical: canonical || null, lang: lang || null, robots: robots || null,
               openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null },
               twitterCard: twitterCard || null, schemaTypes: [...new Set(schemaTypes)].slice(0,12),
@@ -467,7 +470,8 @@ export async function POST(request: Request) {
         descriptionLength: description.length,
         h1Count: h1s.length,
         h1s,
-        imageCount: images.length,
+        imageCount,
+        imageElementCount,
         imagesMissingAlt,
         wordCount,
         headingsCount: headings.length,
