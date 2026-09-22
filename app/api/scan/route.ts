@@ -409,7 +409,7 @@ export async function POST(request: Request) {
     if (user) {
       try {
         await getDb().query(
-          "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result) VALUES ($1,$2,$3,$4,$5,$6,$7)",
+          "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
           [user.id, target.toString(), finalUrl.toString(), overallScore, seoScore, geoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             overallScore, grade: grade(overallScore),
