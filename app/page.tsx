@@ -61,13 +61,13 @@ export default function Home() {
 
   async function generateFix(item: Check) {
     if (!result) return;
-    setFixing(item.key);
+    setFixing(item.issue_id || item.key);
     try {
       const type = item.key === "title" ? "meta_title" : item.key === "description" ? "meta_description" : item.key === "h1" ? "h1" : item.key === "faq" ? "faq" : "structured_data";
-      const response = await fetch("/api/ai-fix", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: result.finalUrl, type, current: item.key === "title" ? result.metrics.title : item.key === "description" ? result.metrics.description : item.key === "h1" ? (result.metrics.h1s[0] || "") : "", context: { title: result.metrics.title, description: result.metrics.description, h1: result.metrics.h1s[0] || "" } }) });
+      const response = await fetch("/api/ai-fix", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: result.finalUrl, issue_id: item.issue_id || item.key, type, current: item.key === "title" ? result.metrics.title : item.key === "description" ? result.metrics.description : item.key === "h1" ? (result.metrics.h1s[0] || "") : "", context: { title: result.metrics.title, description: result.metrics.description, h1: result.metrics.h1s[0] || "" } }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Fix mislukt.");
-      setFixes((prev) => ({ ...prev, [item.key]: data.fix }));
+      setFixes((prev) => ({ ...prev, [item.issue_id || item.key]: data.fix }));
     } catch (err) { setError(err instanceof Error ? err.message : "Fix mislukt."); }
     finally { setFixing(null); }
   }
@@ -219,7 +219,7 @@ export default function Home() {
 
               <div className="mt-5 space-y-3">
                 {activeChecks.map((item) => (
-                  <div key={item.key} className="rounded-2xl border border-white/10 bg-black/15 p-4">
+                  <div key={item.issue_id || item.key} className="rounded-2xl border border-white/10 bg-black/15 p-4">
                     <div className="flex items-start gap-3">
                       <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-bold ${item.status === "pass" ? "bg-emerald-400/10 text-emerald-300" : item.status === "warning" ? "bg-amber-400/10 text-amber-300" : "bg-red-400/10 text-red-300"}`}>
                         {statusIcon[item.status]}
@@ -234,17 +234,17 @@ export default function Home() {
                           <div className="mt-3 rounded-xl border border-cyan-400/10 bg-cyan-400/[0.04] p-3">
                             <div className="text-[10px] font-bold uppercase tracking-widest text-cyan-300">RankFix recommendation</div>
                             <p className="mt-1 text-sm text-slate-300">{item.fix}</p>
-                            <button type="button" onClick={() => generateFix(item)} disabled={fixing === item.key} className="mt-3 rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-400/10 disabled:opacity-50">
+                            <button type="button" onClick={() => generateFix(item)} disabled={fixing === (item.issue_id || item.key)} className="mt-3 rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-400/10 disabled:opacity-50">
                               {fixing === item.key ? "AI analyseert…" : "✨ Fix met AI"}
                             </button>
-                            {fixes[item.key] && (
+                            {fixes[item.issue_id || item.key] && (
                               <div className="mt-3 rounded-xl border border-emerald-400/15 bg-emerald-400/[0.04] p-4">
                                 <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">{fixes[item.key].title}</div>
                                 <div className="mt-2 whitespace-pre-wrap break-words text-sm text-slate-200">{fixes[item.key].content}</div>
                                 <p className="mt-2 text-xs text-slate-500">{fixes[item.key].reason}</p>
                                 <div className="mt-3 flex flex-wrap gap-2">
-                                  <button type="button" onClick={() => copyFix(item.key)} className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-950">{copied === item.key ? "Gekopieerd ✓" : "Gebruik deze tekst"}</button>
-                                  <a href={`/dashboard/github?issue=${encodeURIComponent(item.title + ": " + item.fix)}&context=${encodeURIComponent("URL: " + result.finalUrl + "\nHuidige title: " + result.metrics.title + "\nHuidige description: " + result.metrics.description + "\nH1: " + (result.metrics.h1s[0] || ""))}`} className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs font-bold text-cyan-200">Fix via GitHub →</a>
+                                  <button type="button" onClick={() => copyFix(item.issue_id || item.key)} className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-950">{copied === (item.issue_id || item.key) ? "Gekopieerd ✓" : "Gebruik deze tekst"}</button>
+                                  <a href={`/dashboard/github?issue=${encodeURIComponent((item.issue_id || item.key) + ": " + item.fix)}&context=${encodeURIComponent("URL: " + result.finalUrl + "\nHuidige title: " + result.metrics.title + "\nHuidige description: " + result.metrics.description + "\nH1: " + (result.metrics.h1s[0] || ""))}`} className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs font-bold text-cyan-200">Fix via GitHub →</a>
                                 </div>
                               </div>
                             )}
