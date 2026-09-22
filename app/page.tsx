@@ -71,7 +71,7 @@ export default function Home() {
     setFixing(item.issue_id || item.key);
     try {
       const type = item.key === "title" ? "meta_title" : item.key === "description" ? "meta_description" : item.key === "h1" ? "h1" : item.key === "faq" ? "faq" : "structured_data";
-      const response = await fetch("/api/ai-fix", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: result.finalUrl, issue_id: item.issue_id || item.key, type, current: item.key === "title" ? result.metrics.title : item.key === "description" ? result.metrics.description : item.key === "h1" ? (result.metrics.h1s[0] || "") : "", context: { title: result.metrics.title, description: result.metrics.description, h1: result.metrics.h1s[0] || "" } }) });
+      const response = await fetch("/api/ai-fix", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: result.finalUrl, issue_id: item.issue_id || item.key, request_id: crypto.randomUUID(), type, current: item.key === "title" ? result.metrics.title : item.key === "description" ? result.metrics.description : item.key === "h1" ? (result.metrics.h1s[0] || "") : "", context: { title: result.metrics.title, description: result.metrics.description, h1: result.metrics.h1s[0] || "" } }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Fix mislukt.");
       setFixes((prev) => ({ ...prev, [item.issue_id || item.key]: data.fix }));
