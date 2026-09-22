@@ -35,7 +35,7 @@ export function validateFix(input: {
   if (issue?.status === "PASS" || issue?.status === "NOT_APPLICABLE") errors.push("Issue is niet meer actief.");
   if (typeof input.proposed !== "string" || !input.proposed.trim()) errors.push("Fix bevat geen bruikbare output.");
   const proposed = typeof input.proposed === "string" ? input.proposed.trim() : "";
-  if (proposed.length > 0 && hasPlaceholder(proposed)) errors.push("Fix bevat placeholders.");
+  if (proposed.length > 0 && hasPlaceholder(proposed)) errors.push("Fix bevat placeholders.");\n  if (["meta_title","meta_description","h1"].includes(policy.safe_type || "") && /<[^>]+>/.test(proposed)) errors.push("Tekstfix bevat HTML-markup.");\n  if (policy.safe_type === "meta_title" && proposed.length > 60) errors.push("Meta title is langer dan 60 tekens.");\n  if (policy.safe_type === "meta_description" && proposed.length > 160) errors.push("Meta description is langer dan 160 tekens.");\n  if (input.currentValue && policy.safe_type !== "structured_data" && proposed === input.currentValue.trim()) errors.push("Fix is identiek aan de huidige waarde.");
   if (input.source === "ai") warnings.push("AI-output kan nooit automatisch worden toegepast.");
   if (policy.category === "C") warnings.push("Deze fix vereist menselijke controle.");
   return {
