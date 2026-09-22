@@ -5,9 +5,9 @@ export type ImageMetrics = {
   detection: "html";
 };
 
-const IMAGE_EXT = /\.(?:avif|webp|jpe?g|png|gif|svg|bmp|ico)(?:[?#].*)?$/i;
+const IMAGE_EXT = /\.(avif|webp|jpe?g|png|gif|svg|bmp|ico)(?:[?#].*)?$/i;
 
-function decode(value: string) {
+function decode(value: string): string {
   return value
     .replace(/&amp;/gi, "&")
     .replace(/&quot;/gi, '"')
@@ -16,22 +16,29 @@ function decode(value: string) {
     .trim();
 }
 
-function imageReference(value: string) {
+function imageReference(value: string): string | null {
   const v = decode(value);
-  if (!v || v.startsWith("data:") || v.startsWith("blob:") || v.startsWith("#")) return null;
-  if (IMAGE_EXT.test(v) || /(?:^|[/?])(?:_next/image|image|images?|media|uploads?)(?:[/?]|$)/i.test(v)) {
-    return v;
+  if (!v || v.startsWith("data:") || v.startsWith("blob:") || v.startsWith("#")) {
+    return null;
   }
-  return null;
+
+  const looksLikeImage =
+    IMAGE_EXT.test(v) ||
+    /(?:^|[/?])(?:_next\/image|image|images?|media|uploads?)(?:[/?]|$)/i.test(v);
+
+  return looksLikeImage ? v : null;
 }
 
-function attr(tag: string, name: string) {
-  return tag.match(new RegExp(name + "\s*=\s*[\"']([^\"']*)[\"']", "i"))?.[1] || "";
+function attr(tag: string, name: string): string {
+  const match = tag.match(new RegExp(name + "\\s*=\\s*[\\\"']([^\\\"']*)[\\\"']", "i"));
+  return match?.[1] ?? "";
 }
 
-function addSrcSet(set: Set<string>, value: string) {
+function addSrcSet(set: Set<string>, value: string): void {
+  if (!value) return;
+
   for (const candidate of value.split(",")) {
-    const url = candidate.trim().split(/\s+/)[0];
+    const url = candidate.trim().split(/\\s+/)[0];
     const ref = imageReference(url);
     if (ref) set.add(ref);
   }
@@ -39,7 +46,7 @@ function addSrcSet(set: Set<string>, value: string) {
 
 export function extractImageMetrics(html: string): ImageMetrics {
   const refs = new Set<string>();
-  const images = [...html.matchAll(/<img\b[^>]*>/gi)].map((m) => m[0]);
+  const images = html.match(/<img\\b[^>]*>/gi) ?? [];
   let missingAlt = 0;
 
   for (const tag of images) {
@@ -50,26 +57,33 @@ export function extractImageMetrics(html: string): ImageMetrics {
       const ref = imageReference(attr(tag, name));
       if (ref) refs.add(ref);
     }
+
     addSrcSet(refs, attr(tag, "srcset"));
     addSrcSet(refs, attr(tag, "data-srcset"));
   }
 
-  for (const tag of [...html.matchAll(/<source\b[^>]*>/gi)].map((m) => m[0])) {
+  const sources = html.match(/<source\\b[^>]*>/gi) ?? [];
+  for (const tag of sources) {
     const ref = imageReference(attr(tag, "src"));
     if (ref) refs.add(ref);
+
     addSrcSet(refs, attr(tag, "srcset"));
   }
 
   // Include image URLs embedded in inline style/background-image declarations.
-  for (const match of html.matchAll(/url\(\s*[\"']?([^\"')]+)[\"']?\s*\)/gi)) {
-    const ref = imageReference(match[1]);
+  const styleUrls = html.match(/url\\(\\s*["']?([^"'\\)]+)["']?\\s*\\)/gi) ?? [];
+  for (const match of styleUrls) {
+    const inner = match.replace(/^url\\(\\s*["']?/i, "").replace(/["']?\\s*\\)$/i, "");
+    const ref = imageReference(inner);
     if (ref) refs.add(ref);
   }
 
-  // Next.js and other SSR frameworks can serialize image URLs into the HTML payload
-  // without emitting an <img> until hydration. Count only URL-like image references.
-  for (const match of html.matchAll(/(?:https?:)?\/\/[^\"'\s<>]+|\/_next\/image\\?[^\"'\s<>]+/gi)) {
-    const ref = imageReference(match[0]);
+  // Next.js and other SSR frameworks can serialize image URLs into the HTML payload.
+  const serializedUrls =
+    html.match(/(?:https?:)?\\/\\/[^"'\\s<>]+|\\/_next\\/image\\?[^"'\\s<>]+/gi) ?? [];
+
+  for (const url of serializedUrls) {
+    const ref = imageReference(url);
     if (ref) refs.add(ref);
   }
 
@@ -79,4 +93,4 @@ export function extractImageMetrics(html: string): ImageMetrics {
     missingAlt,
     detection: "html",
   };
-}
+};
