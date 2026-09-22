@@ -299,7 +299,7 @@ export default function Home() {
             </div>
             <div className="mt-3 grid gap-2 border-t border-white/10 pt-3">
               <label className="px-1 text-[10px] font-bold uppercase tracking-widest text-slate-500" htmlFor="language-mobile">Taal</label>
-              <select id="language-mobile" value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full rounded-xl border border-white/20 bg-slate-900 px-4 py-3 text-sm font-medium text-white outline-none shadow-sm">
+              <select id="language-mobile" value={language} onChange={(e) => setLanguage(e.target.value as Language)} className="w-full rounded-xl border border-white/20 bg-slate-900 px-4 py-3 text-sm font-medium text-white outline-none shadow-sm">
                 <option value="nl">🇳🇱 Nederlands</option>
                 <option value="en">🇬🇧 English</option>
                 <option value="fr">🇫🇷 Français</option>
