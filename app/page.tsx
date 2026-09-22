@@ -21,6 +21,7 @@ type Check = {
 };
 
 type ScanResult = {
+  mode: "seo" | "geo" | "both";
   scannedUrl: string;
   finalUrl: string;
   overallScore: number;
@@ -341,7 +342,7 @@ export default function Home() {
 
             <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
               <div className="grid grid-cols-2 gap-2 rounded-2xl bg-black/20 p-1 sm:grid-cols-2">
-                {(["seo", "geo"] as const).map((key) => {
+                {(["seo", "geo"] as const).filter((key) => result.mode === "both" || result.mode === key).map((key) => {
                   const data = result[key];
                   return (
                     <button key={key} onClick={() => setTab(key)} className={`rounded-xl px-4 py-3 text-left transition ${tab === key ? "bg-white text-slate-950" : "text-slate-400 hover:text-white"}`}>
