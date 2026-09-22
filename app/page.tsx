@@ -70,6 +70,38 @@ export default function Home() {
   const [auditMode, setAuditMode] = useState<"seo" | "geo" | "both">("both");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [language, setLanguage] = useState("nl");
+  const [contactOpen, setContactOpen] = useState(false);
+  const [contactSending, setContactSending] = useState(false);
+  const [contactSent, setContactSent] = useState(false);
+  const [contactError, setContactError] = useState("");
+
+  async function handleContact(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setContactSending(true);
+    setContactSent(false);
+    setContactError("");
+    const form = new FormData(e.currentTarget);
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.get("name"),
+          email: form.get("email"),
+          company: form.get("company"),
+          message: form.get("message"),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Bericht verzenden mislukt.");
+      setContactSent(true);
+      e.currentTarget.reset();
+    } catch (err) {
+      setContactError(err instanceof Error ? err.message : "Bericht verzenden mislukt.");
+    } finally {
+      setContactSending(false);
+    }
+  }
 
   const scanSteps = [
     "Meta tags controleren",
@@ -156,17 +188,17 @@ export default function Home() {
             <a href="#resultaat" className="transition hover:text-white">Audit</a>
             <a href="#prijzen" className="transition hover:text-white">Prijzen</a>
             <a href="#footer" className="transition hover:text-white">Resources</a>
-            <a href="#footer" className="transition hover:text-white">Contact</a>
+            <button type="button" onClick={() => setContactOpen(true)} className="transition hover:text-white">Contact</button>
           </div>
           <div className="hidden items-center gap-2 lg:flex">
             <label className="sr-only" htmlFor="language-desktop">Taal</label>
-            <select id="language-desktop" value={language} onChange={(e) => setLanguage(e.target.value)} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-200 outline-none">
-              <option value="nl">Nederlands</option>
-              <option value="en">English</option>
-              <option value="fr">Français</option>
-              <option value="de">Deutsch</option>
-              <option value="it">Italiano</option>
-              <option value="es">Español</option>
+            <select id="language-desktop" value={language} onChange={(e) => setLanguage(e.target.value)} className="rounded-xl border border-white/20 bg-slate-900 px-3 py-2 text-xs font-medium text-white outline-none shadow-sm">
+              <option value="nl" className="bg-slate-900 text-white">🇳🇱 Nederlands</option>
+              <option value="en" className="bg-slate-900 text-white">🇬🇧 English</option>
+              <option value="fr" className="bg-slate-900 text-white">🇫🇷 Français</option>
+              <option value="de" className="bg-slate-900 text-white">🇩🇪 Deutsch</option>
+              <option value="it" className="bg-slate-900 text-white">🇮🇹 Italiano</option>
+              <option value="es" className="bg-slate-900 text-white">🇪🇸 Español</option>
             </select>
             <a href="/account?mode=login" className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium transition hover:bg-white/10 sm:px-4 sm:text-sm">Inloggen</a>
             <a href="/account?mode=register" className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-cyan-100 sm:px-4 sm:text-sm">Account aanmaken</a>
@@ -179,12 +211,16 @@ export default function Home() {
           <div className="border-t border-white/10 px-4 pb-5 pt-3 lg:hidden">
             <div className="grid gap-1">
               {[["Features","#features"],["Audit","#resultaat"],["Prijzen","#prijzen"],["Resources","#footer"],["Contact","#footer"]].map(([label,href]) => (
-                <a key={label} href={href} onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-4 py-3 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">{label}</a>
+                label === "Contact" ? (
+                  <button key={label} type="button" onClick={() => { setMobileMenuOpen(false); setContactOpen(true); }} className="rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">{label}</button>
+                ) : (
+                  <a key={label} href={href} onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-4 py-3 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">{label}</a>
+                )
               ))}
             </div>
             <div className="mt-3 grid gap-2 border-t border-white/10 pt-3">
               <label className="px-1 text-[10px] font-bold uppercase tracking-widest text-slate-500" htmlFor="language-mobile">Taal</label>
-              <select id="language-mobile" value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 outline-none">
+              <select id="language-mobile" value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full rounded-xl border border-white/20 bg-slate-900 px-4 py-3 text-sm font-medium text-white outline-none shadow-sm">
                 <option value="nl">Nederlands</option>
                 <option value="en">English</option>
                 <option value="fr">Français</option>
@@ -479,6 +515,26 @@ export default function Home() {
         </div>
       </section>
 
+      {contactOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-md">
+          <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-white/10 bg-[#080d1b] p-6 shadow-2xl sm:p-8">
+            <button type="button" onClick={() => setContactOpen(false)} aria-label="Contactformulier sluiten" className="absolute right-5 top-5 grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/5 text-slate-300 hover:text-white">×</button>
+            <div className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">Contact</div>
+            <h2 className="mt-2 text-3xl font-black">Neem contact op.</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-500">Vraag over RankFix, een samenwerking of hulp nodig? Stuur ons een bericht.</p>
+            <form onSubmit={handleContact} className="mt-6 space-y-4">
+              <input name="name" required placeholder="Naam" className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/40" />
+              <input name="email" required type="email" placeholder="E-mailadres" className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/40" />
+              <input name="company" placeholder="Bedrijf (optioneel)" className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/40" />
+              <textarea name="message" required rows={5} placeholder="Waar kunnen we mee helpen?" className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/40" />
+              {contactError && <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">{contactError}</div>}
+              {contactSent && <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-3 text-sm text-emerald-200">Bedankt! Je bericht is verzonden.</div>}
+              <button disabled={contactSending} className="w-full rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-100 disabled:opacity-50">{contactSending ? "Verzenden…" : "Bericht versturen →"}</button>
+            </form>
+          </div>
+        </div>
+      )}
+
       <footer id="footer" className="bg-[#03050d] px-5 py-14 lg:px-8">
         <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-5">
           <div className="md:col-span-2">
@@ -497,7 +553,15 @@ export default function Home() {
                 <div className="mt-4 space-y-3 text-sm text-slate-500">
                   {links.map((link) => (
                     <a
-                      href={link === "Privacy" ? "/privacy" : link === "Voorwaarden" ? "/voorwaarden" : "#"}
+                      href={
+                        link === "Privacy" ? "/privacy" :
+                        link === "Voorwaarden" ? "/voorwaarden" :
+                        link === "SEO Audit" ? "#scan" :
+                        link === "GEO Audit" ? "#scan" :
+                        link === "AI Fixes" ? "#features" :
+                        link === "Reports" ? "#resultaat" :
+                        link === "Contact" ? "#footer" : "#"
+                      }
                       key={link}
                       className="block hover:text-white"
                     >
