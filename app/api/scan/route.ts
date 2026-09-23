@@ -282,6 +282,19 @@ export async function POST(request: Request) {
     const hasRelevantLocalSchema = schemaSet.has("localbusiness") || (specificLocalSchema ? schemaSet.has(specificLocalSchema.toLowerCase()) : false);
     const recommendedSchema = hasLocalBusinessSignal ? specificLocalSchema || "LocalBusiness" : hasProductSignal ? "Product" : hasArticleSignal ? "Article" : hasItemListSignal ? "ItemList" : isHomepage ? "Organization + WebSite" : "WebPage";
     const schemaContextLabel = hasLocalBusinessSignal ? "lokale bedrijfs-/dienstpagina" : hasProductSignal ? "product-/e-commercepagina" : hasArticleSignal ? "artikel-/nieuwspagina" : hasItemListSignal ? "lijst-/categoriepagina" : isHomepage ? "homepage" : "contentpagina";
+    const businessName = organizationName || (title.split(/[|–—-]/)[0] || "").trim();
+    const phoneMatch = text.match(/(?:\\+31\\s?6|0)[\\d\\s().-]{8,}/);
+    const emailMatch = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i);
+    const addressMatch = text.match(/\\b([^,]{3,60}\\s+\\d+[A-Za-z]?)\\s+(\\d{4}\\s?[A-Z]{2})\\s+([A-Za-zÀ-ÿ' -]{2,40})\\b/);
+    const localBusinessDetails = hasLocalBusinessSignal ? {
+      name: businessName || null,
+      streetAddress: addressMatch?.[1]?.trim() || null,
+      postalCode: addressMatch?.[2]?.trim() || null,
+      addressLocality: addressMatch?.[3]?.trim() || null,
+      telephone: phoneMatch?.[0]?.trim() || null,
+      email: emailMatch?.[0]?.trim() || null,
+      url: finalUrl.toString(),
+    } : null;
 
     const robotsUrl = new URL("/robots.txt", finalUrl);
     const sitemapUrl = new URL("/sitemap.xml", finalUrl);
@@ -495,7 +508,7 @@ export async function POST(request: Request) {
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), checks: selectedGeoChecks },
             metrics: { siteType: (hasProductSchema || /add-to-cart|shopping cart|winkelwagen|checkout|sku|price|availability/i.test(text)) ? "ECOMMERCE" : "WEBSITE", title, titleLength: title.length, description, descriptionLength: description.length, h1Count: h1s.length, h1s,
-              imageCount, imageElementCount, imagesMissingAlt, wordCount, headingsCount: headings.length, linksCount: links.length, pageType: schemaContextLabel, recommendedSchema,
+              imageCount, imageElementCount, imagesMissingAlt, wordCount, headingsCount: headings.length, linksCount: links.length, pageType: schemaContextLabel, recommendedSchema, localBusinessDetails,
               internalLinks, canonical: canonical || null, lang: lang || null, robots: robots || null,
               openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null },
               twitterCard: twitterCard || null, schemaTypes: [...new Set(schemaTypes)].slice(0,12),
