@@ -19,7 +19,7 @@ async function generateWithOpenAI(type: FixType, url: string, current: string, c
   const prompt = [
     "You are RankFix AI, an SEO/GEO optimization expert.",
     "Create one production-ready fix for the supplied webpage.",
-    "Be factual, concise, natural in the page language, and never invent business facts.",
+    "Be factual, concise, natural in the page language, and never invent business facts. For structured_data, use the supplied recommended schema and verified business fields only; never invent address, phone, hours, profiles, coordinates, reviews, or ratings.",
     "Return ONLY valid JSON with keys title, content, reason.",
     `type=${type}`, `URL=${url}`, `Current=${current}`, `Context=${JSON.stringify(context)}`
   ].join("\n");
@@ -46,7 +46,26 @@ function fallback(type: FixType, url: string, current: string, context: Record<s
   if (type==="meta_description") return {title:"Nieuwe meta description",content:trimTo(`Ontdek alles over ${subject.replace(/[.!?]+$/,"")}. Bekijk de belangrijkste informatie, voordelen en praktische antwoorden op één plek. ${host} helpt je direct verder.`,158),reason:"Lokale fallback wanneer geen AI-key is ingesteld."};
   if (type==="h1") return {title:"Nieuwe H1",content:current.trim()||subject,reason:"Eén duidelijke hoofdboodschap passend bij de pagina-intentie."};
   if (type==="faq") return {title:"FAQ-blok",content:`<section><h2>Veelgestelde vragen over ${escapeHtml(subject)}</h2><h3>Wat is ${escapeHtml(subject)}?</h3><p>Deze pagina geeft een helder antwoord op de belangrijkste vragen over ${escapeHtml(subject)}.</p></section>`,reason:"Directe vragen en antwoorden maken de pagina beter scanbaar."};
-  return {title:"Structured data voorstel",content:`<script type="application/ld+json">${JSON.stringify({"@context":"https://schema.org","@type":"WebPage",name:subject,url},null,2)}</script>`,reason:"Geeft machines expliciete context over het paginatype."};
+  if (type==="structured_data") {
+    const recommendedSchema = context.recommendedSchema || "WebPage";
+    const details = {
+      "@context":"https://schema.org",
+      "@type":recommendedSchema,
+      ...(context.businessName ? {name: context.businessName} : {}),
+      ...(context.streetAddress || context.postalCode || context.addressLocality ? {
+        address: {
+          "@type":"PostalAddress",
+          ...(context.streetAddress ? {streetAddress: context.streetAddress} : {}),
+          ...(context.postalCode ? {postalCode: context.postalCode} : {}),
+          ...(context.addressLocality ? {addressLocality: context.addressLocality} : {}),
+          ...(context.addressCountry ? {addressCountry: context.addressCountry} : {})
+        }
+      } : {}),
+      ...(context.telephone ? {telephone: context.telephone} : {}),
+      ...(context.url ? {url: context.url} : {})
+    };
+    return {title:"Structured data voorstel",content:`<script type="application/ld+json">${JSON.stringify(details,null,2)}</script>`,reason:"Gebruikt alleen de tijdens de scan gevonden bedrijfsgegevens en het passende schema-type."};
+  }
 }
 
 export async function POST(request: Request) {
