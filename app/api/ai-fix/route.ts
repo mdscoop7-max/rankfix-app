@@ -105,7 +105,7 @@ function fallback(type: FixType, url: string, current: string, context: Record<s
                                     ? "Product"
                                     : "LocalBusiness";
     const recommendedSchema = safeContext.recommendedSchema && safeContext.recommendedSchema !== "WebPage"
-      ? context.recommendedSchema
+      ? safeContext.recommendedSchema
       : inferredSchema;
     const details = {
       "@context":"https://schema.org",
@@ -187,7 +187,7 @@ export async function POST(request: Request) {
                                     : /\b(product|webshop|e-commerce|winkelwagen|shopping cart|sku|price|availability)\b/i.test(classificationText)
                                       ? "Product"
                                       : "";
-    }    }
+    }
     if (type === "structured_data" && !expectedSchema) {
       return NextResponse.json({ error: "Geen aanbevolen schema-context beschikbaar voor deze structured-data fix." }, { status: 422 });
     }
