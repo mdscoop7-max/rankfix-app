@@ -31,17 +31,20 @@ async function generateWithOpenAI(type: FixType, url: string, current: string, c
   const prompt = [
     "You are RankFix AI, an SEO/GEO optimization expert.",
     "Create one production-ready fix for the supplied webpage.",
-    "For breadcrumb fixes, generate a valid BreadcrumbList JSON-LD proposal using only the supplied URL and page title; do not invent intermediate categories.",
-    "For expertise fixes, propose visible author/expert/organization context using only verified context; do not invent people, credentials, certifications, or claims.",
-    "For FAQ fixes, treat H1 and page-title campaign names as page topics, not business names. Use the verified brand/business name from context when available; otherwise do not invent a company. Prefer 2-3 useful question/answer pairs grounded in the supplied title, H1, description, and verified context. Never write generic filler such as 'X is een bedrijf dat op deze pagina wordt beschreven.'",
-    "Be factual, concise, natural in the page language, and never invent business facts. For structured_data, use the supplied recommended schema and verified business fields only; never invent address, phone, hours, profiles, coordinates, reviews, or ratings.",
-    "For social_metadata, generate concrete Open Graph meta tags from the supplied verified title, description, and existing og:image when available.",
+    "Use only verified supplied context. Never invent business facts, people, credentials, addresses, phone numbers, hours, profiles, reviews, ratings, coordinates, services, or URLs.",
+    "For breadcrumb fixes, generate valid BreadcrumbList JSON-LD using only the supplied URL and page title; do not invent intermediate categories.",
+    "For expertise fixes, propose visible author, expert, or organization context only when supported by verified context.",
+    "For FAQ fixes, treat H1 and page-title campaign names as topics, not business names. Prefer 2-3 useful question/answer pairs grounded in the supplied title, H1, description, and verified context. Avoid generic filler.",
+    "For social_metadata, generate concrete Open Graph meta tags from verified title, description, and existing og:image when available.",
     "For canonical fixes, generate one self-referencing canonical link using only the supplied final URL.",
-    "For heading_structure fixes, propose a small H2/H3 outline grounded only in the supplied page title, H1, and description; do not invent services.",
-    "For alt_text fixes, generate concise descriptive alt text for the supplied image URLs using only visible page context and the image filename/URL; do not claim details not supported by the filename or context. If no verified og:image exists, do not invent a URL; clearly state that an existing page image must be assigned.",
+    "For heading_structure fixes, propose a small H2/H3 outline grounded only in supplied page title, H1, and description; do not invent services.",
+    "For alt_text fixes, generate concise descriptive alt text for supplied image URLs using visible page context and image filename/URL. Do not claim unsupported details. If no verified og:image exists, do not invent a URL; state that an existing page image must be assigned.",
     "Return ONLY valid JSON with keys title, content, reason.",
-    `type=${type}`, `URL=${url}`, `Current=${current}`, `Context=${JSON.stringify(context)}`
-  ].join("\n");
+    `type=${type}`,
+    `URL=${url}`,
+    `Current=${current}`,
+    `Context=${JSON.stringify(context)}`
+  ].join("\\n");
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
