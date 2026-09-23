@@ -214,11 +214,11 @@ export async function POST(request: Request) {
 
     const metaTags = [...html.matchAll(/<meta\b[^>]*>/gi)].map((m) => m[0]);
     const getMeta = (key: string) =>
-      metaTags.map((tag) => ({
+      decode(metaTags.map((tag) => ({
         property: attrFromTag(tag, "property"),
         name: attrFromTag(tag, "name"),
         content: attrFromTag(tag, "content"),
-      })).find((x) => x.property.toLowerCase() === key.toLowerCase() || x.name.toLowerCase() === key.toLowerCase())?.content || "";
+      })).find((x) => x.property.toLowerCase() === key.toLowerCase() || x.name.toLowerCase() === key.toLowerCase())?.content || "");
 
     const ogTitle = getMeta("og:title");
     const ogDescription = getMeta("og:description");
