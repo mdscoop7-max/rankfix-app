@@ -38,7 +38,7 @@ async function generateWithOpenAI(type: FixType, url: string, current: string, c
     "For social_metadata, generate concrete Open Graph meta tags from the supplied verified title, description, and existing og:image when available.",
     "For canonical fixes, generate one self-referencing canonical link using only the supplied final URL.",
     "For heading_structure fixes, propose a small H2/H3 outline grounded only in the supplied page title, H1, and description; do not invent services.",
-    "For alt_text fixes, generate concise descriptive alt text for the supplied image URLs using only visible page context and the image filename/URL; do not claim details not supported by the filename or context." If no verified og:image exists, do not invent a URL; clearly state that an existing page image must be assigned.",
+    "For alt_text fixes, generate concise descriptive alt text for the supplied image URLs using only visible page context and the image filename/URL; do not claim details not supported by the filename or context. If no verified og:image exists, do not invent a URL; clearly state that an existing page image must be assigned.",
     "Return ONLY valid JSON with keys title, content, reason.",
     `type=${type}`, `URL=${url}`, `Current=${current}`, `Context=${JSON.stringify(context)}`
   ].join("\n");
