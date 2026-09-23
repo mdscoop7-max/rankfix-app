@@ -1,15 +1,18 @@
 "use client";
 
-import { Suspense, useSearchParams, useState } from "react";
+import { useEffect, useState } from "react";
 
 function ResetPasswordForm() {
-  const params = useSearchParams();
-  const token = params.get("token") || "";
+  const [token, setToken] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    setToken(new URLSearchParams(window.location.search).get("token") || "");
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -58,9 +61,5 @@ function ResetPasswordForm() {
 }
 
 export default function ResetPassword() {
-  return (
-    <Suspense fallback={<main className="min-h-screen bg-[#050816] px-5 py-12 text-white"><div className="mx-auto max-w-md"><div className="mt-10 rounded-3xl border border-white/10 bg-white/[0.04] p-7">Laden…</div></div></main>}>
-      <ResetPasswordForm />
-    </Suspense>
-  );
+  return <ResetPasswordForm />;
 }
