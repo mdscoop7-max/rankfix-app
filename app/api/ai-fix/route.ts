@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { validateFix } from "@/lib/seo-fix-validator";
 
-type FixType = "meta_title" | "meta_description" | "h1" | "faq" | "structured_data";
+type FixType = "meta_title" | "meta_description" | "h1" | "faq" | "breadcrumb" | "expertise" | "structured_data";
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, (char) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[char]!));
@@ -31,6 +31,8 @@ async function generateWithOpenAI(type: FixType, url: string, current: string, c
   const prompt = [
     "You are RankFix AI, an SEO/GEO optimization expert.",
     "Create one production-ready fix for the supplied webpage.",
+    "For breadcrumb fixes, generate a valid BreadcrumbList JSON-LD proposal using only the supplied URL and page title; do not invent intermediate categories.",
+    "For expertise fixes, propose visible author/expert/organization context using only verified context; do not invent people, credentials, certifications, or claims.",
     "Be factual, concise, natural in the page language, and never invent business facts. For structured_data, use the supplied recommended schema and verified business fields only; never invent address, phone, hours, profiles, coordinates, reviews, or ratings.",
     "Return ONLY valid JSON with keys title, content, reason.",
     `type=${type}`, `URL=${url}`, `Current=${current}`, `Context=${JSON.stringify(context)}`
@@ -59,6 +61,19 @@ function fallback(type: FixType, url: string, current: string, context: Record<s
   if (type==="meta_title") return {title:"Nieuwe meta title",content:trimTo(`${safeCurrent || subject} | ${host}`,60),reason:"Lokale fallback wanneer geen AI-key is ingesteld."};
   if (type==="meta_description") return {title:"Nieuwe meta description",content:trimTo(`Ontdek alles over ${subject.replace(/[.!?]+$/,"")}. Bekijk de belangrijkste informatie, voordelen en praktische antwoorden op één plek. ${host} helpt je direct verder.`,158),reason:"Lokale fallback wanneer geen AI-key is ingesteld."};
   if (type==="h1") return {title:"Nieuwe H1",content:safeCurrent||subject,reason:"Eén duidelijke hoofdboodschap passend bij de pagina-intentie."};
+  if (type==="breadcrumb") {
+    const pageName = safeContext.title || subject;
+    const homeUrl = new URL("/", url).toString();
+    const breadcrumb = {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
+      {"@type":"ListItem","position":1,"name":"Home","item":homeUrl},
+      {"@type":"ListItem","position":2,"name":pageName,"item":url}
+    ]};
+    return {title:"BreadcrumbList voorstel",content:`<script type="application/ld+json">${JSON.stringify(breadcrumb,null,2)}</script>`,reason:"Gebruikt alleen de homepage en de huidige pagina; er worden geen verzonnen tussenliggende categorieën toegevoegd."};
+  }
+  if (type==="expertise") {
+    const businessName = safeContext.businessName || safeContext.name || host;
+    return {title:"Expertise-context voorstel",content:`<section><h2>Over ${escapeHtml(businessName)}</h2><p>${escapeHtml(businessName)} publiceert op deze pagina informatie over het onderwerp van de pagina. Houd expertiseclaims gekoppeld aan aantoonbare organisatie- en inhoudssignalen.</p></section>`,reason:"De fallback voegt alleen aantoonbare organisatiecontext toe en verzint geen auteur, certificering of deskundigheidsclaim."};
+  }
   if (type==="faq") {
     const businessName = safeContext.businessName || safeContext.name || subject;
     const locality = safeContext.addressLocality;
@@ -136,9 +151,9 @@ export async function POST(request: Request) {
     const current = typeof body?.current==="string" ? body.current : "";
     const context = body?.context && typeof body.context==="object" ? body.context : {};
     const requestId = typeof body?.request_id === "string" && body.request_id.length <= 120 ? body.request_id : crypto.randomUUID();
-    const issueId = typeof body?.issue_id === "string" ? body.issue_id : type === "meta_title" ? (current ? "META_TITLE_GUIDANCE" : "META_TITLE_MISSING") : type === "meta_description" ? (current ? "META_DESCRIPTION_GUIDANCE" : "META_DESCRIPTION_MISSING") : type === "h1" ? "H1_MISSING" : type === "structured_data" ? "STRUCTURED_DATA_MISSING" : "AI_PROPOSAL";
+    const issueId = typeof body?.issue_id === "string" ? body.issue_id : type === "meta_title" ? (current ? "META_TITLE_GUIDANCE" : "META_TITLE_MISSING") : type === "meta_description" ? (current ? "META_DESCRIPTION_GUIDANCE" : "META_DESCRIPTION_MISSING") : type === "h1" ? "H1_MISSING" : type === "faq" ? "faq" : type === "breadcrumb" ? "breadcrumbs" : type === "expertise" ? "author" : type === "structured_data" ? "STRUCTURED_DATA_MISSING" : "AI_PROPOSAL";
     const issueStatus = typeof body?.issue_status === "string" ? body.issue_status : "FAIL";
-    if (!url || !["meta_title","meta_description","h1","faq","structured_data"].includes(type)) return NextResponse.json({error:"Ongeldige AI-fix aanvraag."},{status:400});
+    if (!url || !["meta_title","meta_description","h1","faq","breadcrumb","expertise","structured_data"].includes(type)) return NextResponse.json({error:"Ongeldige AI-fix aanvraag."},{status:400});
 
     let user = null;
     try { user = await getCurrentUser(); } catch {}
