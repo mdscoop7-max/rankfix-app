@@ -47,11 +47,25 @@ function fallback(type: FixType, url: string, current: string, context: Record<s
   if (type==="h1") return {title:"Nieuwe H1",content:current.trim()||subject,reason:"Eén duidelijke hoofdboodschap passend bij de pagina-intentie."};
   if (type==="faq") return {title:"FAQ-blok",content:`<section><h2>Veelgestelde vragen over ${escapeHtml(subject)}</h2><h3>Wat is ${escapeHtml(subject)}?</h3><p>Deze pagina geeft een helder antwoord op de belangrijkste vragen over ${escapeHtml(subject)}.</p></section>`,reason:"Directe vragen en antwoorden maken de pagina beter scanbaar."};
   if (type==="structured_data") {
-    const recommendedSchema = context.recommendedSchema || "WebPage";
+    const classificationText = [context.title, context.description, context.h1, context.name, context.businessName].filter(Boolean).join(" ");
+    const inferredSchema = /\b(hairdresser|kapper|kappers|kapsalon|salon|knippen|haarkleur|haar)\b/i.test(classificationText)
+      ? "Hairdresser"
+      : /\b(restaurant|eetcafé|eetgelegenheid|keuken|menu|diner|lunch)\b/i.test(classificationText)
+        ? "Restaurant"
+        : /\b(dentist|tandarts|tandheelkunde)\b/i.test(classificationText)
+          ? "Dentist"
+          : /\b(electrician|elektricien|elektro)\b/i.test(classificationText)
+            ? "Electrician"
+            : /\b(plumber|loodgieter|loodgieters)\b/i.test(classificationText)
+              ? "Plumber"
+              : "LocalBusiness";
+    const recommendedSchema = context.recommendedSchema && context.recommendedSchema !== "WebPage"
+      ? context.recommendedSchema
+      : inferredSchema;
     const details = {
       "@context":"https://schema.org",
       "@type":recommendedSchema,
-      ...(context.businessName ? {name: context.businessName} : {}),
+      ...((context.businessName || context.name) ? {name: context.businessName || context.name} : {}),
       ...(context.streetAddress || context.postalCode || context.addressLocality ? {
         address: {
           "@type":"PostalAddress",
@@ -90,7 +104,21 @@ export async function POST(request: Request) {
       if (process.env.NODE_ENV === "production") throw error;
       return null;
     });
-    const expectedSchema = typeof context.recommendedSchema === "string" ? context.recommendedSchema.trim() : "";
+    let expectedSchema = typeof context.recommendedSchema === "string" ? context.recommendedSchema.trim() : "";
+    if (type === "structured_data" && (!expectedSchema || expectedSchema === "WebPage")) {
+      const classificationText = [context.title, context.description, context.h1, context.name, context.businessName].filter(Boolean).join(" ");
+      expectedSchema = /\b(hairdresser|kapper|kappers|kapsalon|salon|knippen|haarkleur|haar)\b/i.test(classificationText)
+        ? "Hairdresser"
+        : /\b(restaurant|eetcafé|eetgelegenheid|keuken|menu|diner|lunch)\b/i.test(classificationText)
+          ? "Restaurant"
+          : /\b(dentist|tandarts|tandheelkunde)\b/i.test(classificationText)
+            ? "Dentist"
+            : /\b(electrician|elektricien|elektro)\b/i.test(classificationText)
+              ? "Electrician"
+              : /\b(plumber|loodgieter|loodgieters)\b/i.test(classificationText)
+                ? "Plumber"
+                : "";
+    }
     if (type === "structured_data" && !expectedSchema) {
       return NextResponse.json({ error: "Geen aanbevolen schema-context beschikbaar voor deze structured-data fix." }, { status: 422 });
     }
