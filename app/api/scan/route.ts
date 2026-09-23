@@ -272,18 +272,25 @@ export async function POST(request: Request) {
     const hasArticleSignal = schemaSet.has("article") || schemaSet.has("newsarticle") || /<article\b/i.test(html);
     const hasItemListSignal = schemaSet.has("itemlist");
     const localSchemaCandidates = [
-      { type: "Restaurant", pattern: /\b(restaurant|eetcafé|eetgelegenheid|menukaart|brasserie|bistro)\b/i },
+      { type: "Restaurant", pattern: /\b(restaurant|eetcafé|eetgelegenheid|brasserie|bistro|menukaart)\b/i },
       { type: "Hairdresser", pattern: /\b(hairdresser|kapper|kappers|kapsalon|knippen|haarkleur|haarstyling|coiffeur|barbier)\b/i },
-      { type: "Dentist", pattern: /\b(dentist|tandarts|tandheelkunde)\b/i },
-      { type: "Electrician", pattern: /\b(electrician|elektricien|elektro)\b/i },
-      { type: "Plumber", pattern: /\b(plumber|loodgieter|loodgieters)\b/i },
-      { type: "GeneralContractor", pattern: /\b(aannemer|contractor|bouwbedrijf|bouwservice|bouwbedrijf|verbouwing|renovatie)\b/i },
-      { type: "BeautySalon", pattern: /\b(beauty salon|beautysalon|schoonheidssalon)\b/i },
-      { type: "Store", pattern: /\b(store|winkel|shop|boetiek)\b/i },
+      { type: "Dentist", pattern: /\b(dentist|tandarts|tandheelkunde|mondzorg|orthodontist)\b/i },
+      { type: "Electrician", pattern: /\b(electrician|elektricien|elektro|elektrotechniek|installatietechniek)\b/i },
+      { type: "Plumber", pattern: /\b(plumber|loodgieter|loodgieters|cv-installateur|installateur)\b/i },
+      { type: "GeneralContractor", pattern: /\b(aannemer|contractor|bouwbedrijf|bouwservice|verbouwing|renovatie|bouw\s+en\s+verbouw)\b/i },
+      { type: "RoofingContractor", pattern: /\b(dakdekker|dakdekkers|dakbedekking|dakwerken|dakwerk)\b/i },
+      { type: "BeautySalon", pattern: /\b(beauty salon|beautysalon|schoonheidssalon|beauty)\b/i },
+      { type: "Store", pattern: /\b(store|winkel|shop|boetiek|retail)\b/i },
+      { type: "AutomotiveBusiness", pattern: /\b(garage|autogarage|autoservice|autobedrijf|autodealer|car dealer|auto onderhoud|autowerkplaats)\b/i },
+      { type: "RealEstateAgent", pattern: /\b(makelaar|makelaars|vastgoedmakelaar|real estate agent|realtor|woningmakelaar)\b/i },
+      { type: "LegalService", pattern: /\b(advocaat|advocatenkantoor|law firm|jurist|notaris|notariskantoor)\b/i },
+      { type: "AccountingService", pattern: /\b(accountant|accountantskantoor|boekhouder|boekhoudkantoor|administratiekantoor)\b/i },
+      { type: "TravelAgency", pattern: /\b(reisbureau|reisorganisatie|travel agency|tour operator|reisagent)\b/i },
+      { type: "Hotel", pattern: /\b(hotel|bed and breakfast|b&b|pension)\b/i },
     ];
     const localClassificationText = [title, description, h1s.join(" "), text].filter(Boolean).join(" ");
     const specificLocalSchema = hasLocalBusinessSignal
-      ? localSchemaCandidates.find((candidate) => candidate.pattern.test(localClassificationText))?.type || (hasServiceExpertiseSignal ? "Hairdresser" : "LocalBusiness")
+      ? localSchemaCandidates.find((candidate) => candidate.pattern.test(localClassificationText))?.type || "LocalBusiness"
       : null;
     const hasRelevantLocalSchema = schemaSet.has("localbusiness") || (specificLocalSchema ? schemaSet.has(specificLocalSchema.toLowerCase()) : false);
     const recommendedSchema = hasLocalBusinessSignal ? specificLocalSchema || "LocalBusiness" : hasProductSignal ? "Product" : hasArticleSignal ? "Article" : hasItemListSignal ? "ItemList" : isHomepage ? "Organization + WebSite" : "WebPage";
