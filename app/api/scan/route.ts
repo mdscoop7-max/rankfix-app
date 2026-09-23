@@ -660,6 +660,7 @@ export async function POST(request: Request) {
         lang: lang || null,
         robots: robots || null,
         openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null },
+        imageAltCandidates,
         twitterCard: twitterCard || null,
         schemaTypes: [...new Set(schemaTypes)].slice(0, 12),
         jsonLdBlocks: validJsonLd,
