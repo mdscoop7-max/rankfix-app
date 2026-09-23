@@ -15,7 +15,7 @@ export type NormalizedFix = {
 };
 
 function hasPlaceholder(value: string): boolean {
-  return /(?:\{\{[^}]+\}\}|\[YOUR_|\bTODO\b)/i.test(value);
+  return /(?:\[YOUR_[^\]]*\]|\bTODO\b|CHANGE_ME|REPLACE_ME|INSERT_[A-Z_]+)/i.test(value);
 }
 
 function validateStructuredData(value: string, expectedSchema?: string): string[] {
