@@ -1,6 +1,6 @@
 import { CrawlPage, CrawlResult, CrawlMode, crawlSite } from "@/lib/crawler";
 
-export const SITE_AUDIT_ENGINE_VERSION = "1.1.0";
+export const SITE_AUDIT_ENGINE_VERSION = "1.2.0";
 
 export type SiteRuleStatus = "PASS" | "FAIL" | "WARNING" | "NOT_APPLICABLE" | "UNABLE_TO_CONFIRM";
 
@@ -151,7 +151,7 @@ const rules: RuleDef[] = [
       const localTypes = types.filter(x => x === "localbusiness" || x.includes("business") || ["restaurant","bakery","barorcafe","beautysalon","dayspa","dentist","electrician","generalcontractor","homeandconstructionbusiness","locksmith","medicalclinic","plumber","roofingcontractor","store","hairdresser","automotivebusiness"].includes(x));
       const hasLocal = localTypes.length > 0;
       const hasOrganization = types.includes("organization");
-      if (hasLocal) return {status:"PASS",found:localTypes.join(", "),details:"Specifieke LocalBusiness structured data gevonden."};
+      if (hasLocal) { const lb=p.localBusiness; const missing=[!lb?.name&&"name",!lb?.address&&"address"].filter(Boolean) as string[]; const optional=[!lb?.telephone&&"telephone",!lb?.url&&"url",!lb?.openingHours&&"openingHours",!lb?.imageOrLogo&&"image/logo",!lb?.sameAs&&"sameAs"].filter(Boolean) as string[]; if(missing.length)return {status:"FAIL",found:localTypes.join(", "),expected:"name + address",details:`LocalBusiness type aanwezig, maar verplichte kernvelden ontbreken: ${missing.join(", ")}.`}; if(optional.length)return {status:"WARNING",found:localTypes.join(", "),expected:"name + address",details:`LocalBusiness type en kernvelden aanwezig. Controleer aanvullende velden waar relevant: ${optional.join(", ")}.`}; return {status:"PASS",found:localTypes.join(", "),details:"Specifieke LocalBusiness structured data met naam, adres en relevante aanvullende velden gevonden."}; }
       if (hasOrganization) return {status:"WARNING",found:"Organization",expected:"LocalBusiness subtype",details:"Organization structured data is aanwezig, maar een specifiek LocalBusiness-type ontbreekt."};
       return {status:"FAIL",found:types.join(", ") || "geen JSON-LD",expected:"LocalBusiness subtype",details:"Geen LocalBusiness structured data gevonden op een pagina met lokale bedrijfssignalen."};
     },

@@ -1,7 +1,7 @@
 import { URL } from "node:url";
 import { extractImageMetrics } from "@/lib/image-metrics";
 
-export const CRAWLER_ENGINE_VERSION = "2.0.1";
+export const CRAWLER_ENGINE_VERSION = "2.0.2";
 
 export type CrawlMode = "QUICK" | "STANDARD" | "DEEP" | "ECOMMERCE" | "ENTERPRISE";
 export type PageType =
@@ -25,6 +25,7 @@ export type CrawlPage = {
   imageCount: number;
   imagesMissingAlt: number;
   jsonLdTypes: string[];
+  localBusiness?: { types: string[]; name: boolean; address: boolean; telephone: boolean; url: boolean; openingHours: boolean; imageOrLogo: boolean; sameAs: boolean };
   pageType: PageType;
   depth: number;
   discoveredFrom: string | null;
@@ -96,7 +97,7 @@ function classify(url:string,html:string,jsonTypes:string[]):PageType{
   if(/\/(filter|filters)\b/.test(p))return "filter";
   const types=jsonTypes.map(x=>x.toLowerCase());
   const hasLocalBusinessType = types.some(t => ["localbusiness","restaurant","bakery","barorcafe","beautysalon","dayspa","dentist","electrician","generalcontractor","homeandconstructionbusiness","locksmith","medicalclinic","plumber","roofingcontractor","store","hairdresser","automotivebusiness"].includes(t));
-  const localSignals = /\\b(openingstijden|opening hours|horaires|öffnungszeiten|orari|horario)\\b/i.test(text) && /(\\+?\\d[\\d\\s().-]{7,}|\\b(postcode|postcode|postal code|address|adres|straat|street|rue|straße|via)\\b)/i.test(text);
+  const localSignals = /\b(openingstijden|opening hours|horaires|öffnungszeiten|orari|horario)\b/i.test(text) && /(\+?\d[\d\s().-]{7,}|\b(postcode|postal code|address|adres|straat|street|rue|straße|via)\b)/i.test(text);
   if(hasLocalBusinessType || localSignals)return "local_business";
   if(types.includes("product"))return "product";
   if(types.includes("article")||types.includes("newsarticle")||/\/(blog|nieuws|news|artikel)\b/.test(p))return /news|nieuws/.test(p)?"news":"blog_article";
@@ -151,9 +152,11 @@ export async function crawlSite(startUrl:string,requestedMode:CrawlMode="STANDAR
       const uniqueLinks=[...new Set(links)];
       const blocks=[...html.matchAll(/<script[^>]+type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
       const types:string[]=[];
-      for(const b of blocks){try{const parsed=JSON.parse(b[1]);const items=Array.isArray(parsed)?parsed:(parsed?.["@graph"]||[parsed]);for(const x of items){const t=x?.["@type"];if(t)types.push(...(Array.isArray(t)?t:[t]).map(String));}}catch{}}
+      const localBusiness = {types:[] as string[],name:false,address:false,telephone:false,url:false,openingHours:false,imageOrLogo:false,sameAs:false};
+      const localTypes = new Set(["localbusiness","restaurant","bakery","barorcafe","beautysalon","dayspa","dentist","electrician","generalcontractor","homeandconstructionbusiness","locksmith","medicalclinic","plumber","roofingcontractor","store","hairdresser","automotivebusiness"]);
+      for(const b of blocks){try{const parsed=JSON.parse(b[1]);const rawItems=Array.isArray(parsed)?parsed:(parsed?.["@graph"]||[parsed]);const items=Array.isArray(rawItems)?rawItems:[rawItems];for(const x of items){const t=x?.["@type"];const ts=(Array.isArray(t)?t:[t]).filter(Boolean).map(String);types.push(...ts);const isLocal=ts.some(v=>localTypes.has(v.toLowerCase()));if(isLocal){localBusiness.types.push(...ts.filter(v=>localTypes.has(v.toLowerCase())));localBusiness.name ||= Boolean(x?.name);localBusiness.address ||= Boolean(x?.address);localBusiness.telephone ||= Boolean(x?.telephone);localBusiness.url ||= Boolean(x?.url);localBusiness.openingHours ||= Boolean(x?.openingHours || x?.openingHoursSpecification);localBusiness.imageOrLogo ||= Boolean(x?.image || x?.logo);localBusiness.sameAs ||= Array.isArray(x?.sameAs) ? x.sameAs.length>0 : Boolean(x?.sameAs);}}}catch{}}
       const text=stripHtml(html);
-      pages.push({url:item.url,status:response.status,contentType,responseTimeMs:Date.now()-started,title,description,h1,canonical:canonical?new URL(canonical,resolved).toString():null,lang,noindex,wordCount:text.split(/\s+/).filter(Boolean).length,internalLinks:uniqueLinks,imageCount:imageMetrics.uniqueImageReferences,imagesMissingAlt:imageMetrics.missingAlt,jsonLdTypes:[...new Set(types)],pageType:classify(item.url,html,types),depth:item.depth,discoveredFrom:item.from});
+      pages.push({url:item.url,status:response.status,contentType,responseTimeMs:Date.now()-started,title,description,h1,canonical:canonical?new URL(canonical,resolved).toString():null,lang,noindex,wordCount:text.split(/\s+/).filter(Boolean).length,internalLinks:uniqueLinks,imageCount:imageMetrics.uniqueImageReferences,imagesMissingAlt:imageMetrics.missingAlt,jsonLdTypes:[...new Set(types)],localBusiness:localBusiness.types.length ? {...localBusiness,types:[...new Set(localBusiness.types)]} : undefined,pageType:classify(item.url,html,types),depth:item.depth,discoveredFrom:item.from});
       for(const next of uniqueLinks){if(!queued.has(next)&&queue.length+pages.length<limit){queued.add(next);queue.push({url:next,depth:item.depth+1,from:item.url});}}
     }catch(e){errors.push({url:item.url,code:e instanceof Error&&e.message==="URL_BLOCKED"?"URL_BLOCKED":"FETCH_FAILED",message:e instanceof Error?e.message:"Unknown crawl error"});}
   }

@@ -58,6 +58,7 @@ export async function POST(request: Request) {
     const context = body?.context && typeof body.context==="object" ? body.context : {};
     const requestId = typeof body?.request_id === "string" && body.request_id.length <= 120 ? body.request_id : crypto.randomUUID();
     const issueId = typeof body?.issue_id === "string" ? body.issue_id : type === "meta_title" ? (current ? "META_TITLE_GUIDANCE" : "META_TITLE_MISSING") : type === "meta_description" ? (current ? "META_DESCRIPTION_GUIDANCE" : "META_DESCRIPTION_MISSING") : type === "h1" ? "H1_MISSING" : type === "structured_data" ? "STRUCTURED_DATA_MISSING" : "AI_PROPOSAL";
+    const issueStatus = typeof body?.issue_status === "string" ? body.issue_status : "FAIL";
     if (!url || !["meta_title","meta_description","h1","faq","structured_data"].includes(type)) return NextResponse.json({error:"Ongeldige AI-fix aanvraag."},{status:400});
 
     let user = null;
@@ -74,7 +75,7 @@ export async function POST(request: Request) {
     }
     fix ||= fallback(type,url,current,context);
 
-    const validated = validateFix({ issue_id: issueId, rule_id: issueId, proposed: fix.content, source: "ai", currentIssue: { issue_id: issueId, rule_id: issueId, status: "FAIL" }, currentValue: current });
+    const validated = validateFix({ issue_id: issueId, rule_id: issueId, proposed: fix.content, source: "ai", currentIssue: { issue_id: issueId, rule_id: issueId, status: issueStatus }, currentValue: current });
     if (!validated.validation.valid) return NextResponse.json({ success:false, error:"invalid_output", validation:validated.validation }, {status:422});
 
     if (user) {
