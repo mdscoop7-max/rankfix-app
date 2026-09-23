@@ -147,6 +147,7 @@ export default function Home() {
   const [githubFixing, setGithubFixing] = useState<string | null>(null);
   const [githubProgress, setGithubProgress] = useState(0);
   const [githubResult, setGithubResult] = useState<{url:string;title:string;number:number;creditsRemaining?:number} | null>(null);
+  const [githubResults, setGithubResults] = useState<Record<string, {url:string;title:string;number:number;creditsRemaining?:number}>>({});
   const [githubError, setGithubError] = useState("");
 
 
@@ -333,7 +334,9 @@ export default function Home() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "GitHub fix mislukt.");
       setGithubProgress(100);
-      setGithubResult({url:data.pr.url,title:data.pr.title,number:data.pr.number,creditsRemaining:data.creditsRemaining});
+      const prResult = {url:data.pr.url,title:data.pr.title,number:data.pr.number,creditsRemaining:data.creditsRemaining};
+      setGithubResult(prResult);
+      setGithubResults((prev) => ({ ...prev, [key]: prResult }));
     } catch (err) { setGithubError(err instanceof Error ? err.message : "GitHub fix mislukt."); }
     finally { setTimeout(() => setGithubFixing(null), 500); }
   }
@@ -691,6 +694,13 @@ export default function Home() {
                                 <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">{fixes[item.issue_id || item.key].title}</div>
                                 <div className="mt-2 whitespace-pre-wrap break-words text-sm text-slate-200">{fixes[item.issue_id || item.key].content}</div>
                                 <p className="mt-2 text-xs text-slate-500">{fixes[item.issue_id || item.key].reason}</p>
+                                {githubResults[item.issue_id || item.key] && (
+                                  <div className="mt-3 rounded-xl border border-emerald-400/15 bg-emerald-400/[0.04] p-3">
+                                    <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">GitHub Pull Request aangemaakt</div>
+                                    <div className="mt-1 text-sm font-semibold text-slate-200">PR #{githubResults[item.issue_id || item.key].number}: {githubResults[item.issue_id || item.key].title}</div>
+                                    <a href={githubResults[item.issue_id || item.key].url} target="_blank" rel="noreferrer" className="mt-2 inline-flex rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-950">Open GitHub PR →</a>
+                                  </div>
+                                )}
                                 <div className="mt-3 flex flex-wrap gap-2">
                                   <button type="button" onClick={() => copyFix(item.issue_id || item.key)} className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-950">{copied === (item.issue_id || item.key) ? "Gekopieerd ✓" : "Gebruik deze tekst"}</button>
                                   <button type="button" onClick={() => createGithubFix(item)} disabled={githubFixing === (item.issue_id || item.key)} className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs font-bold text-cyan-200 disabled:opacity-50">{githubFixing === (item.issue_id || item.key) ? "Bezig…" : "Fix automatisch via GitHub →"}</button>
