@@ -75,13 +75,21 @@ function fallback(type: FixType, url: string, current: string, context: Record<s
     return {title:"Expertise-context voorstel",content:`<section><h2>Over ${escapeHtml(businessName)}</h2><p>${escapeHtml(businessName)} publiceert op deze pagina informatie over het onderwerp van de pagina. Houd expertiseclaims gekoppeld aan aantoonbare organisatie- en inhoudssignalen.</p></section>`,reason:"De fallback voegt alleen aantoonbare organisatiecontext toe en verzint geen auteur, certificering of deskundigheidsclaim."};
   }
   if (type==="faq") {
-    const businessName = safeContext.businessName || safeContext.name || subject;
+    const pageTitle = safeContext.title || subject;
+    const brandName = (pageTitle.split(/\s*[|–—-]\s*/)[0] || "").trim() || safeContext.businessName || safeContext.name || host;
+    const topic = safeContext.h1 || pageTitle;
+    const description = safeContext.description;
     const locality = safeContext.addressLocality;
-    const locationQuestion = locality ? `<h3>Waar is ${escapeHtml(businessName)} gevestigd?</h3><p>${escapeHtml(businessName)} is gevestigd in ${escapeHtml(locality)}.</p>` : "";
+    const locationQuestion = locality && (safeContext.businessName || safeContext.name)
+      ? `<h3>Waar is ${escapeHtml(safeContext.businessName || safeContext.name)} gevestigd?</h3><p>${escapeHtml(safeContext.businessName || safeContext.name)} is gevestigd in ${escapeHtml(locality)}.</p>`
+      : "";
+    const descriptionAnswer = description
+      ? `<h3>Waar gaat deze pagina over?</h3><p>${escapeHtml(description)}</p>`
+      : `<h3>Waar gaat deze pagina over?</h3><p>Deze pagina gaat over ${escapeHtml(topic)}.</p>`;
     return {
       title:"FAQ-blok",
-      content:`<section><h2>Veelgestelde vragen over ${escapeHtml(businessName)}${locality ? ` in ${escapeHtml(locality)}` : ""}</h2><h3>Wat is ${escapeHtml(businessName)}?</h3><p>${escapeHtml(businessName)} is een bedrijf dat op deze pagina wordt beschreven.</p>${locationQuestion}</section>`,
-      reason:"De FAQ gebruikt alleen de gevonden bedrijfsnaam en locatie en vermijdt verzonnen diensten, prijzen of openingstijden."
+      content:`<section><h2>Veelgestelde vragen over ${escapeHtml(topic)}</h2><h3>Wat is ${escapeHtml(topic)}?</h3><p>${escapeHtml(brandName)} beschrijft op deze pagina ${escapeHtml(topic)}. Gebruik deze FAQ alleen wanneer het onderwerp op de pagina daadwerkelijk wordt uitgelegd.</p>${descriptionAnswer}${locationQuestion}</section>`,
+      reason:"De FAQ gebruikt de paginatitel, H1 en bestaande beschrijving als bron en vermijdt verzonnen diensten, prijzen, openingstijden en bedrijfsclaims."
     };
   }
   if (type==="structured_data") {
