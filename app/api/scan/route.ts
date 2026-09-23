@@ -243,6 +243,16 @@ export async function POST(request: Request) {
     const hasFaqSchema = schemaSet.has("faqpage");
     const hasProductSchema = schemaSet.has("product");
     const hasAuthorSignal = /\b(author|auteur|geschreven door|written by|byline)\b/i.test(text) || schemaSet.has("person");
+    const hasVisibleBusinessIdentity = Boolean(
+      organizationName ||
+      (title && /\b(restaurant|salon|kapsalon|bakker|bakery|bar|cafe|café|dentist|tandarts|electrician|elektricien|plumber|loodgieter|aannemer|contractor|hairdresser|kapper|store|winkel)\b/i.test(title)) ||
+      hasLocalBusinessSignal
+    );
+    const hasBusinessContactDetails = /\b(\+?\d[\d\s().-]{7,}\b)/.test(text) ||
+      /\b(e-mail|email|mailto:)\b/i.test(html) ||
+      /\b(adres|address|straat|street|postcode|postal code)\b/i.test(text);
+    const hasSocialOrReviewSignal = /\b(instagram|facebook|linkedin|google reviews|reviews|tripadvisor|trustpilot)\b/i.test(text) || sameAsCount > 0;
+    const hasServiceExpertiseSignal = /\b(diensten|services|service|specialist|specialisten|expert|expertise|behandeling|behandelingen|hair|haar|knippen|kleur|color|styling|restaurant|keuken|cuisine|tandarts|elektricien|loodgieter|aannemer|dakdekker)\b/i.test(text);
     const hasFaqContent = /\b(faq|veelgestelde vragen|frequently asked questions|questions fréquentes|häufig gestellte fragen)\b/i.test(text) ||
       /<details\b/i.test(html) || /<h[2-6][^>]*>[^<]*(\?|faq|vragen|questions)[^<]*<\/h[2-6]>/i.test(html);
     const hasContactSignal = /\b(contact|contacteer|e-mail|email|telefoon|phone|adres|address)\b/i.test(text);
@@ -384,7 +394,11 @@ export async function POST(request: Request) {
     );
     geoChecks.push(hasEntitySchema
       ? check("pass", "entity", "geo", "Entity-signalen", `Entity schema gevonden: ${schemaTypes.slice(0, 5).join(", ")}.`, "Maak organisatie, product, persoon of publicatie nog duidelijker met consistente gegevens.", 10, 10)
-      : check("warning", "entity", "geo", "Entity-signalen", "Er is weinig expliciete entity-informatie gevonden.", "Definieer de organisatie/brand en relevante entiteiten met schema.org.", 4, 10)
+      : hasVisibleBusinessIdentity && (hasBusinessContactDetails || hasSocialOrReviewSignal)
+        ? check("pass", "entity", "geo", "Entity-signalen", "Duidelijke bedrijfsidentiteit en externe/contactsignalen zijn zichtbaar op de pagina.", "Maak de identiteit ook machineleesbaar met passende Organization/LocalBusiness structured data.", 8, 10)
+        : hasVisibleBusinessIdentity
+          ? check("warning", "entity", "geo", "Entity-signalen", "Een bedrijfsidentiteit is zichtbaar, maar aanvullende contact- of externe profielsignalen zijn beperkt.", "Maak de organisatie-identiteit concreter met contactgegevens, officiële profielen en passende schema.org data.", 6, 10)
+          : check("warning", "entity", "geo", "Entity-signalen", "Er is weinig expliciete entity-informatie gevonden.", "Definieer de organisatie/brand en relevante entiteiten met schema.org.", 4, 10)
     );
     geoChecks.push(isHomepage
       ? check("pass", "breadcrumbs", "geo", "Breadcrumbs", "Op de homepage is BreadcrumbList niet noodzakelijk.", "Gebruik BreadcrumbList vooral op diepe content-, categorie- en productpagina's.", 6, 6)
@@ -396,13 +410,13 @@ export async function POST(request: Request) {
       ? check("pass", "faq", "geo", "Vraag & antwoord content", "FAQ/Q&A-signalen zijn op de pagina gevonden.", "Beantwoord echte klantvragen kort, concreet en zonder marketingtaal.", 10, 10)
       : check("warning", "faq", "geo", "Vraag & antwoord content", "Geen duidelijke FAQ/Q&A-sectie gevonden.", "Voeg relevante vragen en directe antwoorden toe waar dat de gebruiker helpt.", 4, 10)
     );
-    geoChecks.push(hasAuthorSignal
-      ? check("pass", "author", "geo", "Expertise-signalen", "Auteur- of expertisesignalen zijn gevonden.", "Maak auteur, expertise en bronnen waar relevant nog explicieter.", 8, 8)
+    geoChecks.push(hasAuthorSignal || (hasLocalBusinessSignal && hasServiceExpertiseSignal)
+      ? check("pass", "author", "geo", "Expertise-signalen", hasAuthorSignal ? "Auteur- of expertisesignalen zijn gevonden." : "Duidelijke dienst- en vakgebiedsignalen zijn gevonden voor deze lokale bedrijfspagina.", "Maak auteur, expertise, diensten en bronnen waar relevant nog explicieter.", 8, 8)
       : check("warning", "author", "geo", "Expertise-signalen", "Geen duidelijke auteur/expertisesignalen gevonden.", "Voeg auteur, organisatie, expertise en betrouwbare bronnen toe aan informatieve content.", 3, 8)
     );
-    geoChecks.push(hasContactSignal && hasAboutSignal
-      ? check("pass", "trust", "geo", "Trust & context", "Contact- en organisatiecontext zijn zichtbaar.", "Houd bedrijfsnaam, contactgegevens en About-informatie consistent.", 8, 8)
-      : check("warning", "trust", "geo", "Trust & context", "Contact- of About-signalen zijn beperkt gevonden.", "Maak organisatie, contact, locatie en verantwoordelijkheden duidelijk.", 3, 8)
+    geoChecks.push((hasContactSignal && hasBusinessContactDetails) || hasAboutSignal || hasSocialOrReviewSignal
+      ? check("pass", "trust", "geo", "Trust & context", hasAboutSignal ? "Contact- en organisatiecontext zijn zichtbaar." : "Concrete contact-, locatie- of externe profielsignalen zijn zichtbaar.", "Houd bedrijfsnaam, contactgegevens, locatie, verantwoordelijkheden en officiële profielen consistent.", 8, 8)
+      : check("warning", "trust", "geo", "Trust & context", "Contact- of organisatiecontext is beperkt gevonden.", "Maak organisatie, contact, locatie en verantwoordelijkheden duidelijk.", 3, 8)
     );
     geoChecks.push(ogTitle && ogDescription
       ? check("pass", "answer", "geo", "Machine-leesbare samenvatting", "De pagina heeft duidelijke social metadata die de kern samenvat.", "Zorg dat title, description en zichtbare intro dezelfde kernboodschap vertellen.", 6, 6)
