@@ -52,6 +52,8 @@ type ScanResult = {
     jsonLdBlocks: number;
     sitemapFound: boolean;
     robotsMentionsSitemap: boolean;
+    recommendedSchema?: string;
+    localBusinessDetails?: { name?: string | null; streetAddress?: string | null; postalCode?: string | null; addressLocality?: string | null; telephone?: string | null; email?: string | null; url?: string | null } | null;
   };
 };
 
