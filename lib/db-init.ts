@@ -46,6 +46,13 @@ const statements = [
   `ALTER TABLE scans ADD COLUMN IF NOT EXISTS rules_version TEXT`,
   `ALTER TABLE scans ADD COLUMN IF NOT EXISTS fix_policy_version TEXT`,
   `ALTER TABLE scans ADD COLUMN IF NOT EXISTS ai_policy_version TEXT`,
+  `CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    token_hash TEXT PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS password_reset_tokens_user_idx ON password_reset_tokens(user_id)`,
   `CREATE TABLE IF NOT EXISTS github_connections (
     user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     github_user_id BIGINT NOT NULL,
