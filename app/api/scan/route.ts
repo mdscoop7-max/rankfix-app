@@ -266,7 +266,21 @@ export async function POST(request: Request) {
     const hasProductSignal = hasProductSchema || /\b(add to cart|add-to-cart|winkelwagen|shopping cart|sku|price|availability|in stock)\b/i.test(text);
     const hasArticleSignal = schemaSet.has("article") || schemaSet.has("newsarticle") || /<article\b/i.test(html);
     const hasItemListSignal = schemaSet.has("itemlist");
-    const recommendedSchema = hasLocalBusinessSignal ? "LocalBusiness" : hasProductSignal ? "Product" : hasArticleSignal ? "Article" : hasItemListSignal ? "ItemList" : isHomepage ? "Organization + WebSite" : "WebPage";
+    const localSchemaCandidates = [
+      { type: "Hairdresser", pattern: /\b(hairdresser|kapper|kappers|kapsalon|salon|knippen|kleur|haarkleur|haar)\b/i },
+      { type: "Restaurant", pattern: /\b(restaurant|eetcafé|eetgelegenheid|keuken|menu|diner|lunch)\b/i },
+      { type: "Dentist", pattern: /\b(dentist|tandarts|tandheelkunde)\b/i },
+      { type: "Electrician", pattern: /\b(electrician|elektricien|elektro)\b/i },
+      { type: "Plumber", pattern: /\b(plumber|loodgieter|loodgieters)\b/i },
+      { type: "GeneralContractor", pattern: /\b(aannemer|contractor|bouwbedrijf|bouwservice)\b/i },
+      { type: "BeautySalon", pattern: /\b(beauty salon|beautysalon|schoonheidssalon)\b/i },
+      { type: "Store", pattern: /\b(store|winkel|shop|boetiek)\b/i },
+    ];
+    const specificLocalSchema = hasLocalBusinessSignal
+      ? localSchemaCandidates.find((candidate) => candidate.pattern.test(text))?.type || "LocalBusiness"
+      : null;
+    const hasRelevantLocalSchema = schemaSet.has("localbusiness") || (specificLocalSchema ? schemaSet.has(specificLocalSchema.toLowerCase()) : false);
+    const recommendedSchema = hasLocalBusinessSignal ? specificLocalSchema || "LocalBusiness" : hasProductSignal ? "Product" : hasArticleSignal ? "Article" : hasItemListSignal ? "ItemList" : isHomepage ? "Organization + WebSite" : "WebPage";
     const schemaContextLabel = hasLocalBusinessSignal ? "lokale bedrijfs-/dienstpagina" : hasProductSignal ? "product-/e-commercepagina" : hasArticleSignal ? "artikel-/nieuwspagina" : hasItemListSignal ? "lijst-/categoriepagina" : isHomepage ? "homepage" : "contentpagina";
 
     const robotsUrl = new URL("/robots.txt", finalUrl);
@@ -389,9 +403,16 @@ export async function POST(request: Request) {
       : check("warning", "sitemap", "seo", "Sitemap-signaal", "Geen sitemap.xml of sitemap-verwijzing gevonden.", "Publiceer een XML sitemap en vermeld die in robots.txt.", 1, 4)
     );
 
-    geoChecks.push(validJsonLd > 0
-      ? check("pass", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden voor deze ${schemaContextLabel}.`, `Controleer of de schema-opbouw past bij dit paginatype. Relevante hoofdkeuze: ${recommendedSchema}.`, 12, 12)
-      : check("fail", "schema", "geo", "Structured data", `Geen geldige JSON-LD structured data gevonden voor deze ${schemaContextLabel}.`, `Voeg relevante schema.org JSON-LD toe. Voor dit paginatype is ${recommendedSchema} de belangrijkste richting; gebruik alleen typen die echt bij de zichtbare content passen.`, 0, 12)
+    geoChecks.push(
+      hasLocalBusinessSignal
+        ? hasRelevantLocalSchema
+          ? check("pass", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) met passend lokaal bedrijfstype gevonden voor deze ${schemaContextLabel}.`, `Behoud het meest specifieke passende type: ${recommendedSchema}. Controleer verplichte en relevante velden.`, 12, 12)
+          : validJsonLd > 0
+            ? check("warning", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden, maar geen passend LocalBusiness-subtype.`, `Gebruik voor deze lokale pagina het meest specifieke passende type: ${recommendedSchema}, met alleen gegevens die zichtbaar en aantoonbaar zijn.`, 6, 12)
+            : check("fail", "schema", "geo", "Structured data", `Geen geldige JSON-LD structured data gevonden voor deze ${schemaContextLabel}.`, `Voeg relevante schema.org JSON-LD toe. Voor dit paginatype is ${recommendedSchema} de belangrijkste richting; gebruik alleen typen die echt bij de zichtbare content passen.`, 0, 12)
+        : validJsonLd > 0
+          ? check("pass", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden voor deze ${schemaContextLabel}.`, `Controleer of de schema-opbouw past bij dit paginatype. Relevante hoofdkeuze: ${recommendedSchema}.`, 12, 12)
+          : check("fail", "schema", "geo", "Structured data", `Geen geldige JSON-LD structured data gevonden voor deze ${schemaContextLabel}.`, `Voeg relevante schema.org JSON-LD toe. Voor dit paginatype is ${recommendedSchema} de belangrijkste richting; gebruik alleen typen die echt bij de zichtbare content passen.`, 0, 12)
     );
     geoChecks.push(hasEntitySchema
       ? check("pass", "entity", "geo", "Entity-signalen", `Entity schema gevonden: ${schemaTypes.slice(0, 5).join(", ")}.`, "Maak organisatie, product, persoon of publicatie nog duidelijker met consistente gegevens.", 10, 10)
