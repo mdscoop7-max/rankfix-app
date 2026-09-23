@@ -39,7 +39,7 @@ async function generateWithOpenAI(type: FixType, url: string, current: string, c
   return { title:String(parsed.title), content:String(parsed.content), reason:String(parsed.reason) };
 }
 
-function fallback(type: FixType, url: string, current: string, context: Record<string,string>) {
+function fallback(type: FixType, url: string, current: string, context: Record<string,string>): { title: string; content: string; reason: string } {
   const host = new URL(url).hostname.replace(/^www\./,"");
   const subject = context.h1 || context.title || host;
   if (type==="meta_title") return {title:"Nieuwe meta title",content:trimTo(`${current.trim() || subject} | ${host}`,60),reason:"Lokale fallback wanneer geen AI-key is ingesteld."};
@@ -66,6 +66,7 @@ function fallback(type: FixType, url: string, current: string, context: Record<s
     };
     return {title:"Structured data voorstel",content:`<script type="application/ld+json">${JSON.stringify(details,null,2)}</script>`,reason:"Gebruikt alleen de tijdens de scan gevonden bedrijfsgegevens en het passende schema-type."};
   }
+  throw new Error("Unsupported fix type.");
 }
 
 export async function POST(request: Request) {
@@ -89,11 +90,13 @@ export async function POST(request: Request) {
       if (process.env.NODE_ENV === "production") throw error;
       return null;
     });
-    if (fix) {
-      mode = "openai";
-    } else {
+    if (fix === null) {
       fix = fallback(type,url,current,context);
     }
+    if (!fix) {
+      return NextResponse.json({error:"De AI-fix kon niet worden gemaakt."},{status:502});
+    }
+    mode = "openai";
 
     const validated = validateFix({ issue_id: issueId, rule_id: issueId, proposed: fix.content, source: "ai", currentIssue: { issue_id: issueId, rule_id: issueId, status: issueStatus }, currentValue: current, expectedSchema: typeof context.recommendedSchema === "string" ? context.recommendedSchema : null });
     if (!validated.validation.valid) return NextResponse.json({ success:false, error:"invalid_output", validation:validated.validation }, {status:422});
