@@ -5,7 +5,35 @@ import { decryptToken, githubFetch } from "@/lib/github";
 import { validateFix } from "@/lib/seo-fix-validator";
 
 function safeRepo(v:string){ return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(v) && !v.includes(".."); }
-function safePath(v:string){ return v.length>0 && v.length<240 && !v.startsWith("/") && !v.split("/").includes("..") && !/[<>:"|?*]/.test(v); }\n\nasync function chooseRepository(token:string,requested:string,url:string){\n  if(requested && safeRepo(requested)) return requested;\n  const repos=await githubFetch<any[]>(token,"/user/repos?per_page=100&sort=updated&direction=desc");\n  if(!Array.isArray(repos)||!repos.length) throw new Error("Geen GitHub-repository gevonden. Verbind een repository met RankFix.");\n  const host=new URL(url).hostname.toLowerCase().replace(/^www\\./,"");\n  const tokens=host.split(".").filter((x)=>x.length>2);\n  const scored=repos.map((r:any)=>{ const name=String(r.full_name||"").toLowerCase(); const hits=tokens.filter((t)=>name.includes(t)).length; return {name:r.full_name,score:hits}; }).sort((a,b)=>b.score-a.score);\n  return scored[0]?.name || repos[0].full_name;\n}\n\nasync function chooseFile(token:string,repo:string,branch:string,requested:string,issue:string){\n  if(requested && safePath(requested)) return requested;\n  const issueText=issue.toLowerCase();\n  const preferred=issueText.includes("social")||issueText.includes("open graph")\n    ? ["templates/index.html","index.html","app/layout.tsx","src/app/layout.tsx","pages/_document.tsx","app/page.tsx","src/app/page.tsx"]\n    : issueText.includes("canonical")\n      ? ["templates/index.html","index.html","app/layout.tsx","src/app/layout.tsx","pages/_document.tsx","app/page.tsx","src/app/page.tsx"]\n      : ["templates/index.html","index.html","app/layout.tsx","src/app/layout.tsx","pages/_document.tsx","app/page.tsx","src/app/page.tsx"];\n  for(const candidate of preferred){\n    try{ const f=await githubFetch<any>(token,"/repos/"+repo+"/contents/"+candidate+"?ref="+encodeURIComponent(branch)); if(f.type==="file"&&typeof f.content==="string") return candidate; }catch{}\n  }\n  const tree=await githubFetch<any>(token,"/repos/"+repo+"/git/trees/"+encodeURIComponent(branch)+"?recursive=1");\n  const files=Array.isArray(tree?.tree)?tree.tree.filter((x:any)=>x.type==="blob"&&typeof x.path==="string"&&safePath(x.path)):[];\n  const ranked=files.map((f:any)=>{ const p=f.path.toLowerCase(); let score=0; if(/(index|layout|document)/.test(p)) score+=5; if(/\\.(html?|tsx|jsx|vue|php)$/.test(p)) score+=3; if(issueText.includes("social")&&/(head|layout|index|document)/.test(p)) score+=5; if(issueText.includes("canonical")&&/(head|layout|index|document)/.test(p)) score+=5; if(p.includes("template")) score+=2; return {path:f.path,score}; }).sort((a:any,b:any)=>b.score-a.score);\n  if(!ranked[0]) throw new Error("RankFix kon geen geschikt bestand vinden voor deze fix.");\n  return ranked[0].path;\n}
+function safePath(v:string){ return v.length>0 && v.length<240 && !v.startsWith("/") && !v.split("/").includes("..") && !/[<>:"|?*]/.test(v); }
+
+async function chooseRepository(token:string,requested:string,url:string){
+  if(requested && safeRepo(requested)) return requested;
+  const repos=await githubFetch<any[]>(token,"/user/repos?per_page=100&sort=updated&direction=desc");
+  if(!Array.isArray(repos)||!repos.length) throw new Error("Geen GitHub-repository gevonden. Verbind een repository met RankFix.");
+  const host=new URL(url).hostname.toLowerCase().replace(/^www\\./,"");
+  const tokens=host.split(".").filter((x)=>x.length>2);
+  const scored=repos.map((r:any)=>{ const name=String(r.full_name||"").toLowerCase(); const hits=tokens.filter((t)=>name.includes(t)).length; return {name:r.full_name,score:hits}; }).sort((a,b)=>b.score-a.score);
+  return scored[0]?.name || repos[0].full_name;
+}
+
+async function chooseFile(token:string,repo:string,branch:string,requested:string,issue:string){
+  if(requested && safePath(requested)) return requested;
+  const issueText=issue.toLowerCase();
+  const preferred=issueText.includes("social")||issueText.includes("open graph")
+    ? ["templates/index.html","index.html","app/layout.tsx","src/app/layout.tsx","pages/_document.tsx","app/page.tsx","src/app/page.tsx"]
+    : issueText.includes("canonical")
+      ? ["templates/index.html","index.html","app/layout.tsx","src/app/layout.tsx","pages/_document.tsx","app/page.tsx","src/app/page.tsx"]
+      : ["templates/index.html","index.html","app/layout.tsx","src/app/layout.tsx","pages/_document.tsx","app/page.tsx","src/app/page.tsx"];
+  for(const candidate of preferred){
+    try{ const f=await githubFetch<any>(token,"/repos/"+repo+"/contents/"+candidate+"?ref="+encodeURIComponent(branch)); if(f.type==="file"&&typeof f.content==="string") return candidate; }catch{}
+  }
+  const tree=await githubFetch<any>(token,"/repos/"+repo+"/git/trees/"+encodeURIComponent(branch)+"?recursive=1");
+  const files=Array.isArray(tree?.tree)?tree.tree.filter((x:any)=>x.type==="blob"&&typeof x.path==="string"&&safePath(x.path)):[];
+  const ranked=files.map((f:any)=>{ const p=f.path.toLowerCase(); let score=0; if(/(index|layout|document)/.test(p)) score+=5; if(/\\.(html?|tsx|jsx|vue|php)$/.test(p)) score+=3; if(issueText.includes("social")&&/(head|layout|index|document)/.test(p)) score+=5; if(issueText.includes("canonical")&&/(head|layout|index|document)/.test(p)) score+=5; if(p.includes("template")) score+=2; return {path:f.path,score}; }).sort((a:any,b:any)=>b.score-a.score);
+  if(!ranked[0]) throw new Error("RankFix kon geen geschikt bestand vinden voor deze fix.");
+  return ranked[0].path;
+}
 function slug(v:string){ return v.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,42)||"seo-fix"; }
 
 async function generateCodeFix(filePath:string,fileContent:string,issue:string,context:string){
