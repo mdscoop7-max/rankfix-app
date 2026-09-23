@@ -567,9 +567,23 @@ export default function Home() {
         <div className="fixed inset-0 z-[130] flex items-center justify-center bg-[#02050d]/85 px-4 py-6 backdrop-blur-xl">
           <div className="w-full max-w-lg rounded-[28px] border border-white/10 bg-[#080d1b] p-6 shadow-2xl sm:p-8">
             <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-cyan-300 to-blue-600 text-sm font-black text-slate-950">RF</span><div><div className="font-bold">RankFix voert de fix uit</div><div className="text-xs text-slate-500">Je hoeft niets te kiezen</div></div></div>
-            <div className="mt-6 h-3 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-blue-500 transition-all duration-500" style={{width: githubProgress + "%"}} /></div>
-            <div className="mt-4 text-sm font-semibold text-white">{githubProgress < 30 ? "Auditgegevens verzamelen…" : githubProgress < 70 ? "Juiste bestand zoeken en wijziging maken…" : githubProgress < 100 ? "GitHub Pull Request aanmaken…" : "Klaar!"}</div>
-            <p className="mt-2 text-xs leading-5 text-slate-500">RankFix kiest automatisch het repository, bestand en de juiste wijziging op basis van deze audit.</p>
+            <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-5">
+              <div className="flex items-center justify-center">
+                <div className="relative h-20 w-20">
+                  <div className="absolute inset-0 rounded-full border border-cyan-300/10"></div>
+                  <div className="absolute inset-1 animate-spin rounded-full border-2 border-transparent border-t-cyan-300 border-r-blue-400"></div>
+                  <div className="absolute inset-4 grid place-items-center rounded-full bg-cyan-300/10 shadow-[0_0_35px_rgba(103,232,249,0.12)]">
+                    <span className="text-lg">✦</span>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-5 text-center text-base font-bold text-white">{githubProgress < 30 ? "We verzamelen je auditgegevens…" : githubProgress < 70 ? "RankFix zoekt het juiste bestand…" : githubProgress < 100 ? "De GitHub-wijziging wordt aangemaakt…" : "Klaar — bijna daar!"}</div>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 via-blue-400 to-violet-400 transition-all duration-700" style={{width: githubProgress + "%"}} />
+              </div>
+              <div className="mt-2 flex justify-between text-[10px] font-semibold uppercase tracking-widest text-slate-600"><span>Analyseren</span><span>Fixen</span><span>GitHub</span></div>
+              <p className="mt-4 text-center text-xs leading-5 text-slate-500">Dit kan een paar seconden duren. Je hoeft niets te doen — RankFix regelt repository, bestand, wijziging en Pull Request automatisch.</p>
+            </div>
           </div>
         </div>
       )}
