@@ -33,6 +33,7 @@ async function generateWithOpenAI(type: FixType, url: string, current: string, c
     "Create one production-ready fix for the supplied webpage.",
     "For breadcrumb fixes, generate a valid BreadcrumbList JSON-LD proposal using only the supplied URL and page title; do not invent intermediate categories.",
     "For expertise fixes, propose visible author/expert/organization context using only verified context; do not invent people, credentials, certifications, or claims.",
+    "For FAQ fixes, treat H1 and page-title campaign names as page topics, not business names. Use the verified brand/business name from context when available; otherwise do not invent a company. Prefer 2-3 useful question/answer pairs grounded in the supplied title, H1, description, and verified context. Never write generic filler such as 'X is een bedrijf dat op deze pagina wordt beschreven.'",
     "Be factual, concise, natural in the page language, and never invent business facts. For structured_data, use the supplied recommended schema and verified business fields only; never invent address, phone, hours, profiles, coordinates, reviews, or ratings.",
     "Return ONLY valid JSON with keys title, content, reason.",
     `type=${type}`, `URL=${url}`, `Current=${current}`, `Context=${JSON.stringify(context)}`
@@ -219,6 +220,10 @@ export async function POST(request: Request) {
       fix = fallback(type, url, safeCurrent, safeContext);
     } else {
       mode = "openai";
+    }
+    if (type === "faq" && /is een bedrijf dat op deze pagina wordt beschreven|alleen de gevonden bedrijfsnaam en locatie/i.test(`${fix.title} ${fix.content} ${fix.reason}`)) {
+      fix = fallback(type, url, safeCurrent, safeContext);
+      mode = "rule_based_fallback";
     }
     fix = cleanFix(fix);
     if (!fix) {
