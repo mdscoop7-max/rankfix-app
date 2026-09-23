@@ -29,9 +29,20 @@ export default function GithubPage(){
   async function createFix(e:React.FormEvent){
     e.preventDefault();
     if(busy) return;
+    const cleanRepo=repo.trim();
+    const cleanPath=path.trim();
+    const cleanIssue=issue.trim();
+    if(!cleanRepo || !cleanPath || !cleanIssue){
+      setError("Vul Repository, Bestand en Wat moet RankFix oplossen? in.");
+      return;
+    }
+    if(!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(cleanRepo)){
+      setError("Repository moet in het formaat owner/repository staan, bijvoorbeeld mdscoop7-max/Trendmix.");
+      return;
+    }
     setBusy(true);setError("");setMessage("");
     try{
-      const r=await fetch("/api/github/fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({repo,path,issue,context,baseBranch})});
+      const r=await fetch("/api/github/fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({repo:cleanRepo,path:cleanPath,issue:cleanIssue,context:context.trim(),baseBranch})});
       const text=await r.text();
       let d:any={};
       try{d=JSON.parse(text);}catch{}
@@ -57,11 +68,11 @@ export default function GithubPage(){
         <h2 className="text-xl font-bold">Verbind GitHub</h2>
         <p className="mt-2 text-sm text-slate-500">Je geeft RankFix alleen toegang tot GitHub nadat je dit bij GitHub zelf hebt goedgekeurd.</p>
         <a href="/api/github/connect" className="mt-5 inline-flex rounded-xl bg-white px-5 py-3 font-bold text-slate-950">Verbind met GitHub →</a>
-      </div> : <form onSubmit={createFix} className="mt-8 space-y-5 rounded-3xl border border-white/10 bg-white/[0.04] p-7">
+      </div> : <form noValidate onSubmit={createFix} className="mt-8 space-y-5 rounded-3xl border border-white/10 bg-white/[0.04] p-7">
         <div className="rounded-xl border border-emerald-400/15 bg-emerald-400/5 p-4 text-sm text-emerald-200">GitHub verbonden als <b>{login}</b>.</div>
-        <label className="block"><span className="text-sm font-semibold">Repository</span><input required list="github-repositories" value={repo} onChange={e=>{setRepo(e.target.value);const x=repos.find(r=>r.full_name===e.target.value);if(x)setBaseBranch(x.default_branch);}} placeholder="bijv. mdscoop7-max/Trendmix" className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/><datalist id="github-repositories">{repos.map(r=><option key={r.full_name} value={r.full_name}>{r.private?"private":""}</option>)}</datalist><p className="mt-2 text-xs text-slate-500">Kies een voorgestelde repository of vul zelf owner/repository in.</p></label>
-        <label className="block"><span className="text-sm font-semibold">Bestand</span><input required value={path} onChange={e=>setPath(e.target.value)} placeholder="bijv. app/layout.tsx of public/index.html" className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/></label>
-        <label className="block"><span className="text-sm font-semibold">Wat moet RankFix oplossen?</span><textarea required value={issue} onChange={e=>setIssue(e.target.value)} rows={4} placeholder="Bijv. de meta description ontbreekt of is te kort." className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/></label>
+        <label className="block"><span className="text-sm font-semibold">Repository</span><input required list="github-repositories" aria-invalid={!repo.trim()} value={repo} onChange={e=>{setRepo(e.target.value);const x=repos.find(r=>r.full_name===e.target.value);if(x)setBaseBranch(x.default_branch);}} placeholder="bijv. mdscoop7-max/Trendmix" className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/><datalist id="github-repositories">{repos.map(r=><option key={r.full_name} value={r.full_name}>{r.private?"private":""}</option>)}</datalist><p className="mt-2 text-xs text-slate-500">Kies een voorgestelde repository of vul zelf owner/repository in.</p></label>
+        <label className="block"><span className="text-sm font-semibold">Bestand</span><input required aria-invalid={!path.trim()} value={path} onChange={e=>setPath(e.target.value)} placeholder="bijv. app/layout.tsx of public/index.html" className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/></label>
+        <label className="block"><span className="text-sm font-semibold">Wat moet RankFix oplossen?</span><textarea required aria-invalid={!issue.trim()} value={issue} onChange={e=>setIssue(e.target.value)} rows={4} placeholder="Bijv. de meta description ontbreekt of is te kort." className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/></label>
         <label className="block"><span className="text-sm font-semibold">Context uit de audit</span><textarea value={context} onChange={e=>setContext(e.target.value)} rows={3} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/></label>
         {error&&<div className="rounded-xl bg-red-500/10 p-4 text-sm text-red-200">{error}</div>}
         {message&&<div className="rounded-xl bg-emerald-500/10 p-4 text-sm text-emerald-200 break-all">{message}</div>}
