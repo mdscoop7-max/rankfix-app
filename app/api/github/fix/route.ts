@@ -82,8 +82,8 @@ export async function POST(request:Request){
     const GITHUB_FIX_COST = 5;
     if(user.credits<GITHUB_FIX_COST) return NextResponse.json({error:`Minimaal ${GITHUB_FIX_COST} credits nodig voor een GitHub fix. Je hebt ${user.credits}.`},{status:402});
     const body=await request.json();
-    const repo=typeof body?.repo==="string"?body.repo.trim():"";
-    const path=typeof body?.path==="string"?body.path.trim():"";
+    const requestedRepo=typeof body?.repo==="string"?body.repo.trim():"";
+    const requestedPath=typeof body?.path==="string"?body.path.trim():"";
     const issue=typeof body?.issue==="string"?body.issue.trim():"";
     const context=typeof body?.context==="string"?body.context:"";
     const baseBranch=typeof body?.baseBranch==="string"&&/^[A-Za-z0-9._/-]{1,120}$/.test(body.baseBranch)?body.baseBranch:"main";
@@ -91,6 +91,8 @@ export async function POST(request:Request){
     const connection=await getDb().query("SELECT access_token_encrypted FROM github_connections WHERE user_id=$1",[user.id]);
     if(!connection.rowCount) return NextResponse.json({error:"Verbind eerst GitHub via je dashboard."},{status:409});
     const token=decryptToken(connection.rows[0].access_token_encrypted);
+    const repo=await chooseRepository(token,requestedRepo,typeof body?.url==="string"?body.url:"https://example.com");
+    const path=await chooseFile(token,repo,baseBranch,requestedPath,issue);
     const file=await githubFetch<any>(token,"/repos/"+repo+"/contents/"+path+"?ref="+encodeURIComponent(baseBranch));
     if(file.type!=="file"||typeof file.content!=="string") return NextResponse.json({error:"Dit bestand kan niet worden bewerkt."},{status:400});
     const current=Buffer.from(file.content.replace(/\n/g,""),"base64").toString("utf8");
