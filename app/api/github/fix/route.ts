@@ -69,7 +69,7 @@ export async function POST(request:Request){
     if(current.length>120000) return NextResponse.json({error:"Bestand is te groot voor een veilige AI-codefix."},{status:413});
     const generated=await generateCodeFix(path,current,issue,context);
     if(generated.content.length>180000) return NextResponse.json({error:"AI-output is te groot voor een veilige wijziging."},{status:422});
-    if(!generated.content.trim() || /(?:\{\{[^}]+\}\}|\[YOUR_|\bTODO\b)/i.test(generated.content)) return NextResponse.json({error:"AI-output bevat lege inhoud of placeholders."},{status:422});
+    if(!generated.content.trim() || /(?:\[YOUR_[^\]]*\]|\bTODO\b|CHANGE_ME|REPLACE_ME|INSERT_[A-Z_]+)/i.test(generated.content)) return NextResponse.json({error:"AI-output bevat lege inhoud of placeholders."},{status:422});
     const validated=validateFix({issue_id:"GITHUB_CODE_FIX",rule_id:"GITHUB_CODE_FIX",proposed:generated.content,source:"ai",currentIssue:{issue_id:"GITHUB_CODE_FIX",rule_id:"GITHUB_CODE_FIX",status:"FAIL"},currentValue:current});
     if(!validated.validation.valid) return NextResponse.json({error:"AI-codefix is niet door de validatie gekomen.",validation:validated.validation},{status:422});
     const branch="rankfix/"+Date.now()+"-"+slug(issue);
