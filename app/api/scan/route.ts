@@ -252,7 +252,12 @@ export async function POST(request: Request) {
     const sameAsCount = (html.match(/"sameAs"\s*:/gi) || []).length;
     const pathname = finalUrl.pathname.replace(/\/+$/, "") || "/";
     const isHomepage = pathname === "/";
-    const hasLocalBusinessSignal = schemaSet.has("localbusiness") || (/\b(opening hours|openingstijden|adres|address|telephone|telefoon|phone)\b/i.test(text) && /\b(address|adres|phone|telefoon|telephone)\b/i.test(text));
+    const localBusinessKeywordSignal = /\b(restaurant|eetcafé|eetgelegenheid|kapsalon|kapper|hairdresser|salon|bakker|bakery|bar|café|cafe|dentist|tandarts|electrician|elektricien|plumber|loodgieter|aannemer|contractor|bouwbedrijf|bouwservice|dakdekker|beautysalon|beauty salon|winkel|store|shop)\b/i.test([title, description, ...h1s].join(" "));
+    const localContactSignal = /\b(opening hours|openingstijden|adres|address|telephone|telefoon|phone|contact)\b/i.test(text) &&
+      /\b(address|adres|phone|telefoon|telephone|\+?31|0\d{1,3}[\s-]?\d)\b/i.test(text);
+    const hasLocalBusinessSignal =
+      schemaSet.has("localbusiness") ||
+      (localContactSignal && (localBusinessKeywordSignal || /\b(menu|menukaart|reserveren|reservation|openingstijden|opening hours)\b/i.test(text)));
     const hasVisibleBusinessIdentity = Boolean(
       organizationName ||
       (title && /\b(restaurant|salon|kapsalon|bakker|bakery|bar|cafe|café|dentist|tandarts|electrician|elektricien|plumber|loodgieter|aannemer|contractor|hairdresser|kapper|store|winkel)\b/i.test(title)) ||
