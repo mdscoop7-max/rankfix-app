@@ -76,7 +76,7 @@ export default function GithubPage(){
         <label className="block"><span className="text-sm font-semibold">Context uit de audit</span><textarea value={context} onChange={e=>setContext(e.target.value)} rows={3} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/></label>
         {error&&<div className="rounded-xl bg-red-500/10 p-4 text-sm text-red-200">{error}</div>}
         {message&&<div className="rounded-xl bg-emerald-500/10 p-4 text-sm text-emerald-200 break-all">{message}</div>}
-        <button type="submit" disabled={busy} className="w-full rounded-xl bg-white px-5 py-3 font-bold text-slate-950 disabled:opacity-50">{busy?"AI + GitHub zijn bezig…":"Maak GitHub Pull Request — 10 credits"}</button>
+        <button type="submit" onClick={()=>{if(!busy)setMessage("Klik ontvangen — GitHub Fix Engine start…");}} disabled={busy} className="w-full rounded-xl bg-white px-5 py-3 font-bold text-slate-950 disabled:opacity-50">{busy?"AI + GitHub zijn bezig…":"Maak GitHub Pull Request — 10 credits"}</button>
       </form>}
     </section>
   </main>
