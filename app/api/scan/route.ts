@@ -205,6 +205,14 @@ export async function POST(request: Request) {
     const imageCount = imageMetrics.uniqueImageReferences;
     const imageElementCount = imageMetrics.elementCount;
     const imagesMissingAlt = imageMetrics.missingAlt;
+    const imageAltCandidates = [...html.matchAll(/<img\b[^>]*>/gi)]
+      .filter((m) => !(/\balt\s*=\s*["'][^"']*["']/i.test(m[0]) && (m[0].match(/\balt\s*=\s*["']([^"']*)["']/i)?.[1] || "").trim()))
+      .slice(0, 10)
+      .map((m) => {
+        const src = m[0].match(/\b(?:src|data-src|data-lazy-src|data-original|data-image)\s*=\s*["']([^"']+)["']/i)?.[1] || "";
+        return { src: decode(src) };
+      })
+      .filter((item) => item.src);
     const links = [...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>/gi)].map((m) => m[1]);
     const internalLinks = links.filter((href) => {
       try { return new URL(href, finalUrl).hostname === finalUrl.hostname; } catch { return false; }
@@ -591,7 +599,7 @@ export async function POST(request: Request) {
             metrics: { siteType: (hasProductSchema || /add-to-cart|shopping cart|winkelwagen|checkout|sku|price|availability/i.test(text)) ? "ECOMMERCE" : "WEBSITE", title, titleLength: title.length, description, descriptionLength: description.length, h1Count: h1s.length, h1s,
               imageCount, imageElementCount, imagesMissingAlt, wordCount, headingsCount: headings.length, linksCount: links.length, pageType: schemaContextLabel, recommendedSchema, localBusinessDetails,
               internalLinks, canonical: canonical || null, lang: lang || null, robots: robots || null,
-              openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null },
+              openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null }, imageAltCandidates,
               twitterCard: twitterCard || null, schemaTypes: [...new Set(schemaTypes)].slice(0,12),
               jsonLdBlocks: validJsonLd, sitemapFound, robotsMentionsSitemap, robotsStatus, sitemapUrl: discoveredSitemapUrl }
           })]

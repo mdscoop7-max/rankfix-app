@@ -46,6 +46,23 @@ function validateStructuredData(value: string, expectedSchema?: string): string[
   return errors;
 }
 
+function validateOpenGraph(value: string): string[] {
+  const errors: string[] = [];
+  const tags = [...value.matchAll(/<meta\\b[^>]*>/gi)].map((m) => m[0]);
+  if (!tags.length) return ["Open Graph-fix bevat geen meta-tags."];
+  const properties = tags.map((tag) => tag.match(/property=["']([^"']+)["']/i)?.[1]?.toLowerCase() || "");
+  const contents = tags.map((tag) => tag.match(/content=["']([^"']*)["']/i)?.[1] || "");
+  if (properties.includes("og:title") && !contents[properties.indexOf("og:title")]) errors.push("og:title heeft geen content.");
+  if (properties.includes("og:description") && !contents[properties.indexOf("og:description")]) errors.push("og:description heeft geen content.");
+  if (properties.includes("og:image") && !contents[properties.indexOf("og:image")]) errors.push("og:image heeft geen content.");
+  if (!properties.some((p) => p === "og:title") && !properties.some((p) => p === "og:description")) errors.push("Open Graph-fix bevat geen bruikbare titel of beschrijving.");
+  return errors;
+}
+
+function validateBreadcrumb(value: string): string[] {
+  return validateStructuredData(value, "BreadcrumbList");
+}
+
 export function validateFix(input: {
   issue_id: string;
   rule_id?: string;
@@ -94,8 +111,26 @@ export function validateFix(input: {
     errors.push("Meta description is langer dan 160 tekens.");
   }
 
-  if (policy.safe_type === "structured_data" && proposed) {
-    errors.push(...validateStructuredData(proposed, input.expectedSchema || undefined));
+  if ((policy.safe_type === "structured_data" || policy.safe_type === "breadcrumb") && proposed) {
+    errors.push(...(policy.safe_type === "breadcrumb"
+      ? validateBreadcrumb(proposed)
+      : validateStructuredData(proposed, input.expectedSchema || undefined)));
+  }
+
+  if (policy.safe_type === "canonical" && proposed && !/^<link\s+rel=["']canonical["']\s+href=["'][^"']+["']\s*\/?>$/i.test(proposed)) {
+    errors.push("Canonical-fix bevat geen geldige canonical link.");
+  }
+
+  if (policy.safe_type === "heading_structure" && proposed && !/<h[23]\b/i.test(proposed)) {
+    errors.push("Heading-fix bevat geen H2/H3.");
+  }
+
+  if (policy.safe_type === "alt_text" && proposed && !/<img\b[^>]*\balt=["'][^"']+["']/i.test(proposed)) {
+    errors.push("Alt-fix bevat geen bruikbare alt-tekst.");
+  }
+
+  if (policy.safe_type === "social_metadata" && proposed) {
+    errors.push(...validateOpenGraph(proposed));
   }
 
   if (

@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { validateFix } from "@/lib/seo-fix-validator";
 
-type FixType = "meta_title" | "meta_description" | "h1" | "faq" | "breadcrumb" | "expertise" | "structured_data" | "social_metadata";
+type FixType = "meta_title" | "meta_description" | "h1" | "faq" | "breadcrumb" | "expertise" | "structured_data" | "social_metadata" | "heading_structure" | "canonical" | "alt_text";
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, (char) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[char]!));
@@ -35,7 +35,10 @@ async function generateWithOpenAI(type: FixType, url: string, current: string, c
     "For expertise fixes, propose visible author/expert/organization context using only verified context; do not invent people, credentials, certifications, or claims.",
     "For FAQ fixes, treat H1 and page-title campaign names as page topics, not business names. Use the verified brand/business name from context when available; otherwise do not invent a company. Prefer 2-3 useful question/answer pairs grounded in the supplied title, H1, description, and verified context. Never write generic filler such as 'X is een bedrijf dat op deze pagina wordt beschreven.'",
     "Be factual, concise, natural in the page language, and never invent business facts. For structured_data, use the supplied recommended schema and verified business fields only; never invent address, phone, hours, profiles, coordinates, reviews, or ratings.",
-    "For social_metadata, generate concrete Open Graph meta tags from the supplied verified title, description, and existing og:image when available. If no verified og:image exists, do not invent a URL; clearly state that an existing page image must be assigned.",
+    "For social_metadata, generate concrete Open Graph meta tags from the supplied verified title, description, and existing og:image when available.",
+    "For canonical fixes, generate one self-referencing canonical link using only the supplied final URL.",
+    "For heading_structure fixes, propose a small H2/H3 outline grounded only in the supplied page title, H1, and description; do not invent services.",
+    "For alt_text fixes, generate concise descriptive alt text for the supplied image URLs using only visible page context and the image filename/URL; do not claim details not supported by the filename or context." If no verified og:image exists, do not invent a URL; clearly state that an existing page image must be assigned.",
     "Return ONLY valid JSON with keys title, content, reason.",
     `type=${type}`, `URL=${url}`, `Current=${current}`, `Context=${JSON.stringify(context)}`
   ].join("\n");
@@ -93,6 +96,20 @@ function fallback(type: FixType, url: string, current: string, context: Record<s
       content:`<section><h2>Veelgestelde vragen over ${escapeHtml(topic)}</h2><h3>Wat is ${escapeHtml(topic)}?</h3><p>${escapeHtml(brandName)} beschrijft op deze pagina ${escapeHtml(topic)}. Gebruik deze FAQ alleen wanneer het onderwerp op de pagina daadwerkelijk wordt uitgelegd.</p>${descriptionAnswer}${locationQuestion}</section>`,
       reason:"De FAQ gebruikt de paginatitel, H1 en bestaande beschrijving als bron en vermijdt verzonnen diensten, prijzen, openingstijden en bedrijfsclaims."
     };
+  }
+  if (type==="canonical") return {title:"Canonical URL voorstel",content:`<link rel="canonical" href="${escapeHtml(url)}">`,reason:"Gebruikt de uiteindelijke scan-URL als self-referencing canonical."};
+  if (type==="heading_structure") {
+    const topic = safeContext.h1 || safeContext.title || host;
+    return {title:"Heading-structuur voorstel",content:`<h2>${escapeHtml(topic)}</h2>\n<h3>Veelgestelde vragen en belangrijke informatie</h3>`,reason:"Gebaseerd op de bestaande paginatitel/H1; controleer de onderwerpen voordat je publiceert."};
+  }
+  if (type==="alt_text") {
+    const candidates = Array.isArray((context as any).imageAltCandidates) ? (context as any).imageAltCandidates : [];
+    const rows = candidates.map((item:any) => {
+      const src = String(item?.src || "");
+      const filename = decodeURIComponent(src.split("?")[0].split("/").pop() || "afbeelding").replace(/[-_]+/g, " ").replace(/\.[a-z0-9]+$/i, "").trim();
+      return `<img src="${escapeHtml(src)}" alt="${escapeHtml(filename || safeContext.title || host)}">`;
+    });
+    return {title:"Alt-teksten voorstel",content:rows.join("\n"),reason:"Gebaseerd op de gevonden afbeeldings-URL's. Controleer elke alt-tekst visueel voordat je publiceert."};
   }
   if (type==="social_metadata") {
     const ogTitle = safeContext.ogTitle || safeContext.title;
@@ -178,9 +195,9 @@ export async function POST(request: Request) {
     const current = typeof body?.current==="string" ? body.current : "";
     const context = body?.context && typeof body.context==="object" ? body.context : {};
     const requestId = typeof body?.request_id === "string" && body.request_id.length <= 120 ? body.request_id : crypto.randomUUID();
-    const issueId = typeof body?.issue_id === "string" ? body.issue_id : type === "meta_title" ? (current ? "META_TITLE_GUIDANCE" : "META_TITLE_MISSING") : type === "meta_description" ? (current ? "META_DESCRIPTION_GUIDANCE" : "META_DESCRIPTION_MISSING") : type === "h1" ? "H1_MISSING" : type === "faq" ? "faq" : type === "breadcrumb" ? "breadcrumbs" : type === "expertise" ? "author" : type === "structured_data" ? "STRUCTURED_DATA_MISSING" : type === "social_metadata" ? "SOCIAL_METADATA_INCOMPLETE" : "AI_PROPOSAL";
+    const issueId = typeof body?.issue_id === "string" ? body.issue_id : type === "meta_title" ? (current ? "META_TITLE_GUIDANCE" : "META_TITLE_MISSING") : type === "meta_description" ? (current ? "META_DESCRIPTION_GUIDANCE" : "META_DESCRIPTION_MISSING") : type === "h1" ? "H1_MISSING" : type === "faq" ? "faq" : type === "breadcrumb" ? "breadcrumbs" : type === "expertise" ? "author" : type === "structured_data" ? "STRUCTURED_DATA_MISSING" : type === "social_metadata" ? "SOCIAL_METADATA_INCOMPLETE" : type === "canonical" ? "canonical" : type === "heading_structure" ? "headings" : type === "alt_text" ? "IMAGE_ALT_MISSING" : "AI_PROPOSAL";
     const issueStatus = typeof body?.issue_status === "string" ? body.issue_status : "FAIL";
-    if (!url || !["meta_title","meta_description","h1","faq","breadcrumb","expertise","structured_data","social_metadata"].includes(type)) return NextResponse.json({error:"Ongeldige AI-fix aanvraag."},{status:400});
+    if (!url || !["meta_title","meta_description","h1","faq","breadcrumb","expertise","structured_data","social_metadata","heading_structure","canonical","alt_text"].includes(type)) return NextResponse.json({error:"Ongeldige AI-fix aanvraag."},{status:400});
 
     let user = null;
     try { user = await getCurrentUser(); } catch {}

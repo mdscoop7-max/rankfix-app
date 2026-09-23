@@ -16,6 +16,8 @@ const POLICY: Record<string, FixPolicy> = {
   STRUCTURED_DATA_MISSING: { category: "B", safe_type: "structured_data" },
   breadcrumbs: { category: "B", safe_type: "breadcrumb" },
   author: { category: "C", safe_type: "expertise" },
+  canonical: { category: "B", safe_type: "canonical" },
+  headings: { category: "B", safe_type: "heading_structure" },
 };
 
 export function getFixPolicy(ruleId: string): FixPolicy {
