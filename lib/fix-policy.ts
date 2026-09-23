@@ -13,6 +13,8 @@ const POLICY: Record<string, FixPolicy> = {
   IMAGE_ALT_MISSING: { category: "B", safe_type: "alt_text" },
   SOCIAL_METADATA_INCOMPLETE: { category: "B", safe_type: "social_metadata" },
   STRUCTURED_DATA_MISSING: { category: "B", safe_type: "structured_data" },
+  breadcrumbs: { category: "B", safe_type: "breadcrumb" },
+  author: { category: "C", safe_type: "expertise" },
 };
 
 export function getFixPolicy(ruleId: string): FixPolicy {
