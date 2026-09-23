@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     }
     fix ||= fallback(type,url,current,context);
 
-    const validated = validateFix({ issue_id: issueId, rule_id: issueId, proposed: fix.content, source: "ai", currentIssue: { issue_id: issueId, rule_id: issueId, status: issueStatus }, currentValue: current });
+    const validated = validateFix({ issue_id: issueId, rule_id: issueId, proposed: fix.content, source: "ai", currentIssue: { issue_id: issueId, rule_id: issueId, status: issueStatus }, currentValue: current, expectedSchema: typeof context.recommendedSchema === "string" ? context.recommendedSchema : null });
     if (!validated.validation.valid) return NextResponse.json({ success:false, error:"invalid_output", validation:validated.validation }, {status:422});
 
     if (user) {
