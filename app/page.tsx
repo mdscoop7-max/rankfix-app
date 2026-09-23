@@ -435,83 +435,128 @@ export default function Home() {
       )}
 
       {result && (
-        <section id="resultaat" className="mx-auto max-w-7xl scroll-mt-8 px-5 py-14 lg:px-8">
-          <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <section id="resultaat" className="mx-auto max-w-6xl scroll-mt-8 px-5 py-12 lg:px-8">
+          <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
             <div>
               <div className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">Live audit</div>
-              <h2 className="mt-2 text-3xl font-black tracking-tight">Jouw kansen, op één scherm.</h2>
-              <p className="mt-2 max-w-2xl break-all text-sm text-slate-500">{result.finalUrl}</p>
+              <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">Jouw kansen, op één scherm.</h2>
+              <p className="mt-1 max-w-2xl break-all text-xs text-slate-500">{result.finalUrl}</p>
             </div>
-            <div className="text-sm text-slate-500">{result.responseTime} ms · HTTP {result.httpStatus}</div>
+            <div className="text-xs text-slate-500">{result.responseTime} ms · HTTP {result.httpStatus}</div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-[230px_1fr_230px]">
-            <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-7">
+          <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
+            <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-6">
               <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">Overall</div>
-              <div className="mt-3 text-7xl font-black tracking-tighter text-cyan-300">{result.overallScore}</div>
+              <div className="mt-2 text-6xl font-black tracking-tighter text-cyan-300">{result.overallScore}</div>
               <div className="mt-1 text-sm text-slate-500">Grade {result.grade}</div>
-              <div className="mt-7 h-2 overflow-hidden rounded-full bg-white/10">
-                <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-blue-500" style={{ width: `${result.overallScore}%` }} />
+              <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
+                <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-blue-500" style={{ width: \`\${result.overallScore}%\` }} />
+              </div>
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                {([["seo", result.seo], ["geo", result.geo]] as const)
+                  .filter(([key]) => result.mode === "both" || result.mode === key)
+                  .map(([key, data]) => (
+                    <button key={key} type="button" onClick={() => setTab(key)} className={\`rounded-xl border px-3 py-2 text-left transition \${tab === key ? "border-cyan-300/30 bg-cyan-300/10 text-white" : "border-white/10 bg-white/[0.02] text-slate-500 hover:text-white"}\`}>
+                      <div className="text-[10px] font-bold uppercase tracking-widest">{key}</div>
+                      <div className="mt-1 text-xl font-black">{data.score}</div>
+                    </button>
+                  ))}
               </div>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
-              <div className="grid grid-cols-2 gap-2 rounded-2xl bg-black/20 p-1 sm:grid-cols-2">
-                {(["seo", "geo"] as const).filter((key) => result.mode === "both" || result.mode === key).map((key) => {
-                  const data = result[key];
-                  return (
-                    <button key={key} onClick={() => setTab(key)} className={`rounded-xl px-4 py-3 text-left transition ${tab === key ? "bg-white text-slate-950" : "text-slate-400 hover:text-white"}`}>
-                      <div className="text-xs font-bold uppercase tracking-widest">{key}</div>
-                      <div className="mt-1 text-2xl font-black">{data.score}</div>
-                    </button>
-                  );
-                })}
+            <div className="space-y-4">
+              {issues.length > 0 ? (
+                <div className="rounded-3xl border border-amber-400/15 bg-amber-400/[0.035] p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-bold uppercase tracking-widest text-amber-300">Belangrijkste acties</div>
+                      <div className="mt-1 text-lg font-black">{issues.length} {issues.length === 1 ? "verbeterpunt" : "verbeterpunten"}</div>
+                    </div>
+                    <span className="rounded-full bg-amber-400/10 px-3 py-1 text-xs font-bold text-amber-200">Fix eerst</span>
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    {issues.slice(0, 5).map((item) => (
+                      <div key={item.issue_id || item.key} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/10 p-3">
+                        <span className={\`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg text-xs font-bold \${item.status === "warning" ? "bg-amber-400/10 text-amber-300" : "bg-red-400/10 text-red-300"}\`}>{statusIcon[item.status]}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-semibold">{item.title}</div>
+                          <p className="mt-0.5 text-sm leading-5 text-slate-500">{item.message}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-3xl border border-emerald-400/15 bg-emerald-400/[0.035] p-5">
+                  <div className="text-xs font-bold uppercase tracking-widest text-emerald-300">Alles gecontroleerd</div>
+                  <div className="mt-1 text-lg font-black">Geen actieve verbeterpunten gevonden.</div>
+                </div>
+              )}
+
+              <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-xs font-bold uppercase tracking-widest text-slate-500">{tab.toUpperCase()} audit</div>
+                    <div className="mt-1 text-lg font-black">{activeChecks.filter((item) => item.status === "pass").length} controles geslaagd</div>
+                  </div>
+                  <span className="text-xs text-slate-600">{activeChecks.length} controles</span>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {activeChecks.filter((item) => item.status === "pass").slice(0, 8).map((item) => (
+                    <span key={item.issue_id || item.key} className="rounded-full border border-emerald-400/10 bg-emerald-400/[0.04] px-3 py-1.5 text-xs text-emerald-200">✓ {item.title}</span>
+                  ))}
+                  {activeChecks.filter((item) => item.status === "pass").length > 8 && (
+                    <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-slate-500">+{activeChecks.filter((item) => item.status === "pass").length - 8} meer</span>
+                  )}
+                </div>
               </div>
 
-              <div className="mt-5 space-y-3">
-                {activeChecks.map((item) => (
-                  <div key={item.issue_id || item.key} className="rounded-2xl border border-white/10 bg-black/15 p-4">
-                    <div className="flex items-start gap-3">
-                      <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-xs font-bold ${item.status === "pass" ? "bg-emerald-400/10 text-emerald-300" : item.status === "warning" ? "bg-amber-400/10 text-amber-300" : "bg-red-400/10 text-red-300"}`}>
-                        {statusIcon[item.status]}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="font-semibold">{item.title}</div>
-                          <span className="text-xs text-slate-600">{item.points}/{item.maxPoints}</span>
+              <details className="rounded-3xl border border-white/10 bg-white/[0.025]">
+                <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-slate-300">
+                  <span className="mr-2">⌄</span> Bekijk alle technische details
+                </summary>
+                <div className="border-t border-white/10 px-5 py-4">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {activeChecks.map((item) => (
+                      <div key={item.issue_id || item.key} className="rounded-2xl border border-white/10 bg-black/10 p-3">
+                        <div className="flex items-center gap-2">
+                          <span className={\`text-xs font-bold \${item.status === "pass" ? "text-emerald-300" : item.status === "warning" ? "text-amber-300" : "text-red-300"}\`}>{statusIcon[item.status]}</span>
+                          <span className="text-sm font-semibold">{item.title}</span>
+                          <span className="ml-auto text-[10px] text-slate-600">{item.points}/{item.maxPoints}</span>
                         </div>
-                        <p className="mt-1 text-sm leading-6 text-slate-500">{item.message}</p>
+                        <p className="mt-1 text-xs leading-5 text-slate-500">{item.message}</p>
                         {item.status !== "pass" && (
                           <div className="mt-3 rounded-xl border border-cyan-400/10 bg-cyan-400/[0.04] p-3">
                             <div className="text-[10px] font-bold uppercase tracking-widest text-cyan-300">RankFix recommendation</div>
-                            <p className="mt-1 text-sm text-slate-300">{item.fix}</p>
-                            <button type="button" onClick={() => generateFix(item)} disabled={fixing === (item.issue_id || item.key)} className="mt-3 rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-400/10 disabled:opacity-50">
+                            <p className="mt-1 text-xs leading-5 text-slate-300">{item.fix}</p>
+                            <button type="button" onClick={() => generateFix(item)} disabled={fixing === (item.issue_id || item.key)} className="mt-2 rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-400/10 disabled:opacity-50">
                               {fixing === (item.issue_id || item.key) ? "AI analyseert…" : "✨ Fix met AI"}
                             </button>
                             {fixes[item.issue_id || item.key] && (
-                              <div className="mt-3 rounded-xl border border-emerald-400/15 bg-emerald-400/[0.04] p-4">
+                              <div className="mt-3 rounded-xl border border-emerald-400/15 bg-emerald-400/[0.04] p-3">
                                 <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">{fixes[item.issue_id || item.key].title}</div>
                                 <div className="mt-2 whitespace-pre-wrap break-words text-sm text-slate-200">{fixes[item.issue_id || item.key].content}</div>
                                 <p className="mt-2 text-xs text-slate-500">{fixes[item.issue_id || item.key].reason}</p>
                                 <div className="mt-3 flex flex-wrap gap-2">
                                   <button type="button" onClick={() => copyFix(item.issue_id || item.key)} className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-950">{copied === (item.issue_id || item.key) ? "Gekopieerd ✓" : "Gebruik deze tekst"}</button>
-                                  <a href={`/dashboard/github?issue=${encodeURIComponent((item.issue_id || item.key) + ": " + item.fix)}&context=${encodeURIComponent("URL: " + result.finalUrl + "\nHuidige title: " + result.metrics.title + "\nHuidige description: " + result.metrics.description + "\nH1: " + (result.metrics.h1s[0] || ""))}`} className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs font-bold text-cyan-200">Fix via GitHub →</a>
+                                  <a href={\`/dashboard/github?issue=\${encodeURIComponent((item.issue_id || item.key) + ": " + item.fix)}&context=\${encodeURIComponent("URL: " + result.finalUrl + "\\nHuidige title: " + result.metrics.title + "\\nHuidige description: " + result.metrics.description + "\\nH1: " + (result.metrics.h1s[0] || ""))}\`} className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs font-bold text-cyan-200">Fix via GitHub →</a>
                                 </div>
                               </div>
                             )}
                           </div>
                         )}
                       </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
+              </details>
 
-            <aside className="space-y-4">
-              <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-6">
-                <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">Kernmetrics</div>
-                <div className="mt-5 space-y-4">
+              <details className="rounded-3xl border border-white/10 bg-white/[0.025]">
+                <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-slate-300">
+                  <span className="mr-2">⌄</span> Kernmetrics
+                </summary>
+                <div className="grid grid-cols-2 gap-3 border-t border-white/10 px-5 py-4 sm:grid-cols-3">
                   {[
                     ["H1", result.metrics.h1Count],
                     ["Woorden", result.metrics.wordCount],
@@ -520,18 +565,20 @@ export default function Home() {
                     ["JSON-LD", result.metrics.jsonLdBlocks],
                     ["Schema types", result.metrics.schemaTypes.length],
                   ].map(([label, value]) => (
-                    <div key={label} className="flex items-center justify-between border-b border-white/5 pb-3 text-sm">
-                      <span className="text-slate-500">{label}</span><span className="font-bold">{value}</span>
+                    <div key={label} className="rounded-xl border border-white/5 bg-black/10 p-3">
+                      <div className="text-xs text-slate-500">{label}</div>
+                      <div className="mt-1 text-lg font-bold">{value}</div>
                     </div>
                   ))}
                 </div>
+              </details>
+
+              <div className="rounded-3xl border border-cyan-400/10 bg-cyan-400/[0.04] p-5">
+                <div className="text-xs font-semibold uppercase tracking-widest text-cyan-300">AI action layer</div>
+                <div className="mt-1 text-lg font-black">{issues.length} {issues.length === 1 ? "fix" : "fixes"} beschikbaar</div>
+                <p className="mt-1 text-sm leading-5 text-slate-500">Open een probleem voor een concrete AI-fix of implementatie via GitHub.</p>
               </div>
-              <div className="rounded-3xl border border-cyan-400/10 bg-cyan-400/[0.04] p-6">
-                <div className="text-xs font-semibold uppercase tracking-widest text-cyan-300">Actieplan</div>
-                <div className="mt-2 text-2xl font-black">{issues.length} punten</div>
-                <p className="mt-2 text-sm leading-6 text-slate-500">Dit worden straks directe AI-fixes die je kunt kopiëren of via GitHub/workflow kunt implementeren.</p>
-              </div>
-            </aside>
+            </div>
           </div>
         </section>
       )}
