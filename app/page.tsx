@@ -212,9 +212,21 @@ export default function Home() {
       // Social metadata is deterministic scan data; render the proposal immediately.
       if (type === "social_metadata") {
         const escapeAttr = (value: string) => {
-          const decoded = value
-            .replace(/&amp;#(x[0-9a-f]+|[0-9]+);/gi, (_, code: string) => String.fromCodePoint(code.toLowerCase().startsWith("x") ? parseInt(code.slice(1), 16) : parseInt(code, 10)))
-            .replace(/&#(x[0-9a-f]+|[0-9]+);/gi, (_, code: string) => String.fromCodePoint(code.toLowerCase().startsWith("x") ? parseInt(code.slice(1), 16) : parseInt(code, 10)));
+          let decoded = value;
+          for (let i = 0; i < 4; i++) {
+            const next = decoded
+              .replace(/&amp;/gi, "&")
+              .replace(/&quot;/gi, '"')
+              .replace(/&#39;/gi, "'")
+              .replace(/&lt;/gi, "<")
+              .replace(/&gt;/gi, ">")
+              .replace(/&#(x[0-9a-f]+|[0-9]+);/gi, (_, code: string) => {
+                const point = code.toLowerCase().startsWith("x") ? parseInt(code.slice(1), 16) : parseInt(code, 10);
+                return Number.isFinite(point) ? String.fromCodePoint(point) : "";
+              });
+            if (next === decoded) break;
+            decoded = next;
+          }
           return decoded.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         };
         const ogTitle = cleanFixContextValue(result.metrics.openGraph.title || result.metrics.title);
