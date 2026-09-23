@@ -209,8 +209,8 @@ export async function POST(request: Request) {
     const safeContext = cleanContext(context);
     let mode = "rule_based_fallback";
     const safeCurrent = cleanContextValue(current);
-    // Social metadata uses only verified scan data, so keep this path deterministic.
-    // That guarantees the Fix button returns a proposal even if the external AI provider fails.
+    // Structural SEO fix routing is deterministic in production; keep verified scan data on these paths.
+    // This prevents structural issues from being misclassified as structured-data proposals.
     const deterministicTypes: FixType[] = ["social_metadata", "canonical", "heading_structure", "alt_text"];
     let fix = deterministicTypes.includes(type)
       ? fallback(type, url, safeCurrent, context)
