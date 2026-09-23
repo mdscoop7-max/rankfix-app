@@ -13,7 +13,7 @@ function trimTo(value: string, max: number) {
 }
 
 function cleanContextValue(value: string) {
-  return value.replace(/\\s*\\|\\s*hide no longer\\b/gi, "").replace(/\\bhide no longer\\b/gi, "").replace(/\\s{2,}/g, " ").trim();
+  return value.replace(/\s*\|\s*hide no longer\b/gi, "").replace(/\bhide no longer\b/gi, "").replace(/\s{2,}/g, " ").trim();
 }
 
 function cleanContext(context: Record<string, string>) {
@@ -58,10 +58,13 @@ function fallback(type: FixType, url: string, current: string, context: Record<s
     const businessName = safeContext.businessName || safeContext.name || subject;
     const locality = safeContext.addressLocality;
     const locationQuestion = locality ? `<h3>Waar is ${escapeHtml(businessName)} gevestigd?</h3><p>${escapeHtml(businessName)} is gevestigd in ${escapeHtml(locality)}.</p>` : "";
+    const faqService = /\b(hairdresser|kapper|kappers|kapsalon|salon|knippen|haarkleur|haar)\b/i.test([safeContext.title, safeContext.description, safeContext.h1, safeContext.name, safeContext.businessName].join(" "))
+      ? `${escapeHtml(businessName)} biedt haarverzorging en kappersdiensten.`
+      : `${escapeHtml(businessName)} is het bedrijf of merk dat op deze pagina wordt beschreven.`;
     return {
       title:"FAQ-blok",
-      content:`<section><h2>Veelgestelde vragen over ${escapeHtml(businessName)}${locality ? ` in ${escapeHtml(locality)}` : ""}</h2><h3>Wat is ${escapeHtml(businessName)}?</h3><p>${escapeHtml(businessName)} is een bedrijf op het gebied van haarverzorging en kappersdiensten.</p>${locationQuestion}</section>`,
-      reason:"De FAQ gebruikt alleen de gevonden bedrijfsnaam en locatie en vermijdt verzonnen diensten, prijzen of openingstijden."
+      content:`<section><h2>Veelgestelde vragen over ${escapeHtml(businessName)}${locality ? ` in ${escapeHtml(locality)}` : ""}</h2><h3>Wat is ${escapeHtml(businessName)}?</h3><p>${faqService}</p>${locationQuestion}</section>`,
+      reason:"De FAQ gebruikt alleen gevonden bedrijfs- en locatiegegevens en vermijdt verzonnen prijzen, openingstijden of andere niet-geverifieerde feiten."
     };
   }
   if (type==="structured_data") {
@@ -147,6 +150,11 @@ export async function POST(request: Request) {
     } else {
       mode = "openai";
     }
+    fix = {
+      title: cleanContextValue(fix.title),
+      content: fix.content.replace(/\s*\|\s*hide no longer\b/gi, "").replace(/\bhide no longer\b/gi, ""),
+      reason: cleanContextValue(fix.reason)
+    };
     if (!fix) {
       return NextResponse.json({error:"De AI-fix kon niet worden gemaakt."},{status:502});
     }
