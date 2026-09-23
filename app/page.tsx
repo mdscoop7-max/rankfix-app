@@ -209,7 +209,28 @@ export default function Home() {
     if (!result) return;
     setFixing(item.issue_id || item.key);
     try {
-      const type = item.key === "title" ? "meta_title" : item.key === "description" ? "meta_description" : item.key === "h1" ? "h1" : item.key === "faq" ? "faq" : item.key === "breadcrumbs" ? "breadcrumb" : item.key === "author" ? "expertise" : item.key === "social" ? "social_metadata" : item.key === "headings" ? "heading_structure" : item.key === "canonical" ? "canonical" : item.key === "IMAGE_ALT_MISSING" ? "alt_text" : item.issue_id === "IMAGE_ALT_MISSING" ? "alt_text" : "structured_data";
+      const issueId = item.issue_id || item.rule_id || item.key;
+      const type = issueId === "META_TITLE_MISSING" || issueId === "META_TITLE_GUIDANCE" || item.key === "title"
+        ? "meta_title"
+        : issueId === "META_DESCRIPTION_MISSING" || issueId === "META_DESCRIPTION_GUIDANCE" || item.key === "description"
+          ? "meta_description"
+          : issueId === "H1_MISSING" || issueId === "H1_MULTIPLE" || item.key === "h1"
+            ? "h1"
+            : issueId === "faq" || item.key === "faq"
+              ? "faq"
+              : issueId === "breadcrumbs" || item.key === "breadcrumbs"
+                ? "breadcrumb"
+                : issueId === "author" || item.key === "author"
+                  ? "expertise"
+                  : issueId === "SOCIAL_METADATA_INCOMPLETE" || item.key === "social"
+                    ? "social_metadata"
+                    : issueId === "headings" || item.key === "headings" || item.key === "heading_structure"
+                      ? "heading_structure"
+                      : issueId === "canonical" || item.key === "canonical" || item.key === "canonical_url"
+                        ? "canonical"
+                        : issueId === "IMAGE_ALT_MISSING" || item.key === "alt" || item.key === "IMAGE_ALT_MISSING"
+                          ? "alt_text"
+                          : "structured_data";
       // Social metadata is deterministic scan data; render the proposal immediately.
       if (type === "social_metadata") {
         const escapeAttr = (value: string) => {
