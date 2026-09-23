@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { validateFix } from "@/lib/seo-fix-validator";
 
-type FixType = "meta_title" | "meta_description" | "h1" | "faq" | "breadcrumb" | "expertise" | "structured_data";
+type FixType = "meta_title" | "meta_description" | "h1" | "faq" | "breadcrumb" | "expertise" | "structured_data" | "social_metadata";
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, (char) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[char]!));
@@ -35,6 +35,7 @@ async function generateWithOpenAI(type: FixType, url: string, current: string, c
     "For expertise fixes, propose visible author/expert/organization context using only verified context; do not invent people, credentials, certifications, or claims.",
     "For FAQ fixes, treat H1 and page-title campaign names as page topics, not business names. Use the verified brand/business name from context when available; otherwise do not invent a company. Prefer 2-3 useful question/answer pairs grounded in the supplied title, H1, description, and verified context. Never write generic filler such as 'X is een bedrijf dat op deze pagina wordt beschreven.'",
     "Be factual, concise, natural in the page language, and never invent business facts. For structured_data, use the supplied recommended schema and verified business fields only; never invent address, phone, hours, profiles, coordinates, reviews, or ratings.",
+    "For social_metadata, generate concrete Open Graph meta tags from the supplied verified title, description, and existing og:image when available. If no verified og:image exists, do not invent a URL; clearly state that an existing page image must be assigned.",
     "Return ONLY valid JSON with keys title, content, reason.",
     `type=${type}`, `URL=${url}`, `Current=${current}`, `Context=${JSON.stringify(context)}`
   ].join("\n");
@@ -91,6 +92,23 @@ function fallback(type: FixType, url: string, current: string, context: Record<s
       title:"FAQ-blok",
       content:`<section><h2>Veelgestelde vragen over ${escapeHtml(topic)}</h2><h3>Wat is ${escapeHtml(topic)}?</h3><p>${escapeHtml(brandName)} beschrijft op deze pagina ${escapeHtml(topic)}. Gebruik deze FAQ alleen wanneer het onderwerp op de pagina daadwerkelijk wordt uitgelegd.</p>${descriptionAnswer}${locationQuestion}</section>`,
       reason:"De FAQ gebruikt de paginatitel, H1 en bestaande beschrijving als bron en vermijdt verzonnen diensten, prijzen, openingstijden en bedrijfsclaims."
+    };
+  }
+  if (type==="social_metadata") {
+    const ogTitle = safeContext.ogTitle || safeContext.title;
+    const ogDescription = safeContext.ogDescription || safeContext.description;
+    const ogImage = safeContext.ogImage;
+    const tags = [
+      ogTitle ? `<meta property="og:title" content="${escapeHtml(ogTitle)}">` : "",
+      ogDescription ? `<meta property="og:description" content="${escapeHtml(ogDescription)}">` : "",
+      ogImage ? `<meta property="og:image" content="${escapeHtml(ogImage)}">` : ""
+    ].filter(Boolean).join("\n");
+    return {
+      title:"Open Graph metadata voorstel",
+      content:tags,
+      reason:ogImage
+        ? "Gebruikt de bestaande paginatitel, beschrijving en gevonden Open Graph-afbeelding; er worden geen nieuwe URLs verzonnen."
+        : "Gebruikt de bestaande paginatitel en beschrijving. Voor og:image moet een bestaande relevante pagina- of productafbeelding worden gekoppeld."
     };
   }
   if (type==="structured_data") {
@@ -160,9 +178,9 @@ export async function POST(request: Request) {
     const current = typeof body?.current==="string" ? body.current : "";
     const context = body?.context && typeof body.context==="object" ? body.context : {};
     const requestId = typeof body?.request_id === "string" && body.request_id.length <= 120 ? body.request_id : crypto.randomUUID();
-    const issueId = typeof body?.issue_id === "string" ? body.issue_id : type === "meta_title" ? (current ? "META_TITLE_GUIDANCE" : "META_TITLE_MISSING") : type === "meta_description" ? (current ? "META_DESCRIPTION_GUIDANCE" : "META_DESCRIPTION_MISSING") : type === "h1" ? "H1_MISSING" : type === "faq" ? "faq" : type === "breadcrumb" ? "breadcrumbs" : type === "expertise" ? "author" : type === "structured_data" ? "STRUCTURED_DATA_MISSING" : "AI_PROPOSAL";
+    const issueId = typeof body?.issue_id === "string" ? body.issue_id : type === "meta_title" ? (current ? "META_TITLE_GUIDANCE" : "META_TITLE_MISSING") : type === "meta_description" ? (current ? "META_DESCRIPTION_GUIDANCE" : "META_DESCRIPTION_MISSING") : type === "h1" ? "H1_MISSING" : type === "faq" ? "faq" : type === "breadcrumb" ? "breadcrumbs" : type === "expertise" ? "author" : type === "structured_data" ? "STRUCTURED_DATA_MISSING" : type === "social_metadata" ? "SOCIAL_METADATA_INCOMPLETE" : "AI_PROPOSAL";
     const issueStatus = typeof body?.issue_status === "string" ? body.issue_status : "FAIL";
-    if (!url || !["meta_title","meta_description","h1","faq","breadcrumb","expertise","structured_data"].includes(type)) return NextResponse.json({error:"Ongeldige AI-fix aanvraag."},{status:400});
+    if (!url || !["meta_title","meta_description","h1","faq","breadcrumb","expertise","structured_data","social_metadata"].includes(type)) return NextResponse.json({error:"Ongeldige AI-fix aanvraag."},{status:400});
 
     let user = null;
     try { user = await getCurrentUser(); } catch {}
