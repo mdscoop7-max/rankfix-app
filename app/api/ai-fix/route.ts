@@ -81,7 +81,29 @@ function fallback(type: FixType, url: string, current: string, context: Record<s
             ? "Electrician"
             : /\b(plumber|loodgieter|loodgieters)\b/i.test(classificationText)
               ? "Plumber"
-              : "LocalBusiness";
+              : /\b(aannemer|contractor|bouwbedrijf|bouwservice|verbouwing|renovatie)\b/i.test(classificationText)
+                ? "GeneralContractor"
+                : /\b(dakdekker|dakbedekking|dakwerken)\b/i.test(classificationText)
+                  ? "RoofingContractor"
+                  : /\b(beauty salon|beautysalon|schoonheidssalon)\b/i.test(classificationText)
+                    ? "BeautySalon"
+                    : /\b(store|winkel|shop|boetiek|retail)\b/i.test(classificationText)
+                      ? "Store"
+                      : /\b(garage|autogarage|autoservice|autobedrijf|autodealer|car dealer)\b/i.test(classificationText)
+                        ? "AutomotiveBusiness"
+                        : /\b(makelaar|makelaars|vastgoedmakelaar|real estate agent|realtor|woningmakelaar)\b/i.test(classificationText)
+                          ? "RealEstateAgent"
+                          : /\b(advocaat|advocatenkantoor|law firm|jurist|notaris|notariskantoor)\b/i.test(classificationText)
+                            ? "LegalService"
+                            : /\b(accountant|accountantskantoor|boekhouder|boekhoudkantoor|administratiekantoor)\b/i.test(classificationText)
+                              ? "AccountingService"
+                              : /\b(reisbureau|reisorganisatie|travel agency|tour operator|reisagent)\b/i.test(classificationText)
+                                ? "TravelAgency"
+                                : /\b(hotel|bed and breakfast|b&b|pension)\b/i.test(classificationText)
+                                  ? "Hotel"
+                                  : /\b(product|webshop|e-commerce|winkelwagen|shopping cart|sku|price|availability)\b/i.test(classificationText)
+                                    ? "Product"
+                                    : "LocalBusiness";
     const recommendedSchema = safeContext.recommendedSchema && safeContext.recommendedSchema !== "WebPage"
       ? context.recommendedSchema
       : inferredSchema;
@@ -142,8 +164,30 @@ export async function POST(request: Request) {
               ? "Electrician"
               : /\b(plumber|loodgieter|loodgieters)\b/i.test(classificationText)
                 ? "Plumber"
-                : "";
-    }
+                : /\b(aannemer|contractor|bouwbedrijf|bouwservice|verbouwing|renovatie)\b/i.test(classificationText)
+                  ? "GeneralContractor"
+                  : /\b(dakdekker|dakbedekking|dakwerken)\b/i.test(classificationText)
+                    ? "RoofingContractor"
+                    : /\b(beauty salon|beautysalon|schoonheidssalon)\b/i.test(classificationText)
+                      ? "BeautySalon"
+                      : /\b(store|winkel|shop|boetiek|retail)\b/i.test(classificationText)
+                        ? "Store"
+                        : /\b(garage|autogarage|autoservice|autobedrijf|autodealer|car dealer)\b/i.test(classificationText)
+                          ? "AutomotiveBusiness"
+                          : /\b(makelaar|makelaars|vastgoedmakelaar|real estate agent|realtor|woningmakelaar)\b/i.test(classificationText)
+                            ? "RealEstateAgent"
+                            : /\b(advocaat|advocatenkantoor|law firm|jurist|notaris|notariskantoor)\b/i.test(classificationText)
+                              ? "LegalService"
+                              : /\b(accountant|accountantskantoor|boekhouder|boekhoudkantoor|administratiekantoor)\b/i.test(classificationText)
+                                ? "AccountingService"
+                                : /\b(reisbureau|reisorganisatie|travel agency|tour operator|reisagent)\b/i.test(classificationText)
+                                  ? "TravelAgency"
+                                  : /\b(hotel|bed and breakfast|b&b|pension)\b/i.test(classificationText)
+                                    ? "Hotel"
+                                    : /\b(product|webshop|e-commerce|winkelwagen|shopping cart|sku|price|availability)\b/i.test(classificationText)
+                                      ? "Product"
+                                      : "";
+    }    }
     if (type === "structured_data" && !expectedSchema) {
       return NextResponse.json({ error: "Geen aanbevolen schema-context beschikbaar voor deze structured-data fix." }, { status: 422 });
     }
