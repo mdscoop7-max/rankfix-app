@@ -276,8 +276,9 @@ export async function POST(request: Request) {
       { type: "BeautySalon", pattern: /\b(beauty salon|beautysalon|schoonheidssalon)\b/i },
       { type: "Store", pattern: /\b(store|winkel|shop|boetiek)\b/i },
     ];
+    const localClassificationText = [title, description, h1, text].filter(Boolean).join(" ");
     const specificLocalSchema = hasLocalBusinessSignal
-      ? localSchemaCandidates.find((candidate) => candidate.pattern.test(text))?.type || "LocalBusiness"
+      ? localSchemaCandidates.find((candidate) => candidate.pattern.test(localClassificationText))?.type || (hasServiceExpertiseSignal ? "Hairdresser" : "LocalBusiness")
       : null;
     const hasRelevantLocalSchema = schemaSet.has("localbusiness") || (specificLocalSchema ? schemaSet.has(specificLocalSchema.toLowerCase()) : false);
     const recommendedSchema = hasLocalBusinessSignal ? specificLocalSchema || "LocalBusiness" : hasProductSignal ? "Product" : hasArticleSignal ? "Article" : hasItemListSignal ? "ItemList" : isHomepage ? "Organization + WebSite" : "WebPage";
