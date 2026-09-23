@@ -90,16 +90,47 @@ export async function POST(request: Request) {
       if (process.env.NODE_ENV === "production") throw error;
       return null;
     });
+    const expectedSchema = typeof context.recommendedSchema === "string" ? context.recommendedSchema.trim() : "";
+    if (type === "structured_data" && !expectedSchema) {
+      return NextResponse.json({ error: "Geen aanbevolen schema-context beschikbaar voor deze structured-data fix." }, { status: 422 });
+    }
+
     if (fix === null) {
-      fix = fallback(type,url,current,context);
+      fix = fallback(type, url, current, context);
+    } else {
+      mode = "openai";
     }
     if (!fix) {
       return NextResponse.json({error:"De AI-fix kon niet worden gemaakt."},{status:502});
     }
-    mode = "openai";
 
-    const validated = validateFix({ issue_id: issueId, rule_id: issueId, proposed: fix.content, source: "ai", currentIssue: { issue_id: issueId, rule_id: issueId, status: issueStatus }, currentValue: current, expectedSchema: typeof context.recommendedSchema === "string" ? context.recommendedSchema : null });
-    if (!validated.validation.valid) return NextResponse.json({ success:false, error:"invalid_output", validation:validated.validation }, {status:422});
+    let validated = validateFix({
+      issue_id: issueId,
+      rule_id: issueId,
+      proposed: fix.content,
+      source: "ai",
+      currentIssue: { issue_id: issueId, rule_id: issueId, status: issueStatus },
+      currentValue: current,
+      expectedSchema: expectedSchema || null
+    });
+
+    if (!validated.validation.valid && type === "structured_data" && expectedSchema) {
+      fix = fallback(type, url, current, context);
+      mode = "rule_based_fallback";
+      validated = validateFix({
+        issue_id: issueId,
+        rule_id: issueId,
+        proposed: fix.content,
+        source: "deterministic",
+        currentIssue: { issue_id: issueId, rule_id: issueId, status: issueStatus },
+        currentValue: current,
+        expectedSchema
+      });
+    }
+
+    if (!validated.validation.valid) {
+      return NextResponse.json({ success:false, error:"invalid_output", validation:validated.validation }, {status:422});
+    }
 
     if (user) {
       const db = getDb();
