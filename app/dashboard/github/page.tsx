@@ -32,8 +32,8 @@ export default function GithubPage(){
     const cleanRepo=repo.trim();
     const cleanPath=path.trim();
     const cleanIssue=issue.trim();
-    if(!cleanRepo || !cleanPath || !cleanIssue){
-      setError("Vul Repository, Bestand en Wat moet RankFix oplossen? in.");
+    if(!cleanRepo || !cleanIssue){
+      setError("Vul Repository en Wat moet RankFix oplossen? in.");
       return;
     }
     if(!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(cleanRepo)){
@@ -47,7 +47,8 @@ export default function GithubPage(){
       let d:any={};
       try{d=JSON.parse(text);}catch{}
       if(!r.ok){setError(d.error||"GitHub fix mislukt. Controleer repository en bestand.");return;}
-      setMessage("PR aangemaakt: "+d.pr.title+" — "+d.pr.url);
+      setPath(d.path || cleanPath);
+      setMessage("PR aangemaakt: "+d.pr.title+" — "+d.pr.url+" | Bestand: "+(d.path || cleanPath));
     }catch(error){
       setError(error instanceof Error?error.message:"Verbinding met GitHub Fix Engine mislukt.");
     }finally{
@@ -71,7 +72,7 @@ export default function GithubPage(){
       </div> : <form noValidate onSubmit={createFix} className="mt-8 space-y-5 rounded-3xl border border-white/10 bg-white/[0.04] p-7">
         <div className="rounded-xl border border-emerald-400/15 bg-emerald-400/5 p-4 text-sm text-emerald-200">GitHub verbonden als <b>{login}</b>.</div>
         <label className="block"><span className="text-sm font-semibold">Repository</span><input required list="github-repositories" aria-invalid={!repo.trim()} value={repo} onChange={e=>{setRepo(e.target.value);const x=repos.find(r=>r.full_name===e.target.value);if(x)setBaseBranch(x.default_branch);}} placeholder="bijv. mdscoop7-max/Trendmix" className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/><datalist id="github-repositories">{repos.map(r=><option key={r.full_name} value={r.full_name}>{r.private?"private":""}</option>)}</datalist><p className="mt-2 text-xs text-slate-500">Kies een voorgestelde repository of vul zelf owner/repository in.</p></label>
-        <label className="block"><span className="text-sm font-semibold">Bestand</span><input required aria-invalid={!path.trim()} value={path} onChange={e=>setPath(e.target.value)} placeholder="bijv. app/layout.tsx of public/index.html" className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/></label>
+        <label className="block"><span className="text-sm font-semibold">Bestand <span className="text-xs font-normal text-cyan-300">(automatisch als je dit leeg laat)</span></span><input aria-invalid={false} value={path} onChange={e=>setPath(e.target.value)} placeholder="RankFix kiest automatisch het juiste bestand" className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/><p className="mt-2 text-xs text-slate-500">Laat leeg: RankFix zoekt zelf het meest relevante bestand voor deze auditfix.</p></label>
         <label className="block"><span className="text-sm font-semibold">Wat moet RankFix oplossen?</span><textarea required aria-invalid={!issue.trim()} value={issue} onChange={e=>setIssue(e.target.value)} rows={4} placeholder="Bijv. de meta description ontbreekt of is te kort." className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/></label>
         <label className="block"><span className="text-sm font-semibold">Context uit de audit</span><textarea value={context} onChange={e=>setContext(e.target.value)} rows={3} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/></label>
         {error&&<div className="rounded-xl bg-red-500/10 p-4 text-sm text-red-200">{error}</div>}
