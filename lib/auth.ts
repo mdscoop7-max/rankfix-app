@@ -48,10 +48,17 @@ export async function getCurrentUser() {
   const token = store.get(COOKIE)?.value;
   if (!token) return null;
   const result = await getDb().query(
-    `SELECT u.id, u.email, u.name, u.credits, u.created_at
+    `SELECT u.id, u.email, u.name, u.credits, u.created_at, s.expires_at
      FROM sessions s JOIN users u ON u.id=s.user_id
      WHERE s.token_hash=$1 AND s.expires_at > NOW()`,
     [tokenHash(token)]
   );
-  return result.rows[0] || null;
+  const user = result.rows[0];
+  if (!user) return null;
+  // Keep active customers signed in: refresh the 30-day session window.
+  const expires = new Date(Date.now() + SESSION_DAYS * 86400000);
+  await getDb().query("UPDATE sessions SET expires_at=$1 WHERE token_hash=$2", [expires, tokenHash(token)]);
+  const store2 = await cookies();
+  store2.set(COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", expires });
+  return user;
 }
