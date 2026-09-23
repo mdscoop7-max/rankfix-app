@@ -16,6 +16,10 @@ function cleanContextValue(value: string) {
   return value.replace(/\s*\|\s*hide no longer\b/gi, "").replace(/\bhide no longer\b/gi, "").replace(/\s{2,}/g, " ").trim();
 }
 
+function cleanFix(fix: { title: string; content: string; reason: string }) {
+  return { title: cleanContextValue(fix.title), content: cleanContextValue(fix.content), reason: cleanContextValue(fix.reason) };
+}
+
 function cleanContext(context: Record<string, string>) {
   return Object.fromEntries(Object.entries(context).map(([key, value]) => [key, cleanContextValue(String(value || ""))]));
 }
@@ -50,21 +54,19 @@ async function generateWithOpenAI(type: FixType, url: string, current: string, c
 function fallback(type: FixType, url: string, current: string, context: Record<string,string>): { title: string; content: string; reason: string } {
   const host = new URL(url).hostname.replace(/^www\./,"");
   const safeContext = cleanContext(context);
+  const safeCurrent = cleanContextValue(current);
   const subject = safeContext.h1 || safeContext.businessName || safeContext.name || safeContext.title || host;
-  if (type==="meta_title") return {title:"Nieuwe meta title",content:trimTo(`${current.trim() || subject} | ${host}`,60),reason:"Lokale fallback wanneer geen AI-key is ingesteld."};
+  if (type==="meta_title") return {title:"Nieuwe meta title",content:trimTo(`${safeCurrent || subject} | ${host}`,60),reason:"Lokale fallback wanneer geen AI-key is ingesteld."};
   if (type==="meta_description") return {title:"Nieuwe meta description",content:trimTo(`Ontdek alles over ${subject.replace(/[.!?]+$/,"")}. Bekijk de belangrijkste informatie, voordelen en praktische antwoorden op één plek. ${host} helpt je direct verder.`,158),reason:"Lokale fallback wanneer geen AI-key is ingesteld."};
-  if (type==="h1") return {title:"Nieuwe H1",content:current.trim()||subject,reason:"Eén duidelijke hoofdboodschap passend bij de pagina-intentie."};
+  if (type==="h1") return {title:"Nieuwe H1",content:safeCurrent||subject,reason:"Eén duidelijke hoofdboodschap passend bij de pagina-intentie."};
   if (type==="faq") {
     const businessName = safeContext.businessName || safeContext.name || subject;
     const locality = safeContext.addressLocality;
     const locationQuestion = locality ? `<h3>Waar is ${escapeHtml(businessName)} gevestigd?</h3><p>${escapeHtml(businessName)} is gevestigd in ${escapeHtml(locality)}.</p>` : "";
-    const faqService = /\b(hairdresser|kapper|kappers|kapsalon|salon|knippen|haarkleur|haar)\b/i.test([safeContext.title, safeContext.description, safeContext.h1, safeContext.name, safeContext.businessName].join(" "))
-      ? `${escapeHtml(businessName)} biedt haarverzorging en kappersdiensten.`
-      : `${escapeHtml(businessName)} is het bedrijf of merk dat op deze pagina wordt beschreven.`;
     return {
       title:"FAQ-blok",
-      content:`<section><h2>Veelgestelde vragen over ${escapeHtml(businessName)}${locality ? ` in ${escapeHtml(locality)}` : ""}</h2><h3>Wat is ${escapeHtml(businessName)}?</h3><p>${faqService}</p>${locationQuestion}</section>`,
-      reason:"De FAQ gebruikt alleen gevonden bedrijfs- en locatiegegevens en vermijdt verzonnen prijzen, openingstijden of andere niet-geverifieerde feiten."
+      content:`<section><h2>Veelgestelde vragen over ${escapeHtml(businessName)}${locality ? ` in ${escapeHtml(locality)}` : ""}</h2><h3>Wat is ${escapeHtml(businessName)}?</h3><p>${escapeHtml(businessName)} is een bedrijf dat op deze pagina wordt beschreven.</p>${locationQuestion}</section>`,
+      reason:"De FAQ gebruikt alleen de gevonden bedrijfsnaam en locatie en vermijdt verzonnen diensten, prijzen of openingstijden."
     };
   }
   if (type==="structured_data") {
@@ -122,13 +124,14 @@ export async function POST(request: Request) {
 
     const safeContext = cleanContext(context);
     let mode = "rule_based_fallback";
-    let fix = await generateWithOpenAI(type,url,current,safeContext).catch((error) => {
+    const safeCurrent = cleanContextValue(current);
+    let fix = await generateWithOpenAI(type,url,safeCurrent,safeContext).catch((error) => {
       if (process.env.NODE_ENV === "production") throw error;
       return null;
     });
     let expectedSchema = typeof context.recommendedSchema === "string" ? context.recommendedSchema.trim() : "";
     if (type === "structured_data" && (!expectedSchema || expectedSchema === "WebPage")) {
-      const classificationText = [context.title, context.description, context.h1, context.name, context.businessName].filter(Boolean).join(" ");
+      const classificationText = [safeContext.title, safeContext.description, safeContext.h1, safeContext.name, safeContext.businessName].filter(Boolean).join(" ");
       expectedSchema = /\b(hairdresser|kapper|kappers|kapsalon|salon|knippen|haarkleur|haar)\b/i.test(classificationText)
         ? "Hairdresser"
         : /\b(restaurant|eetcafé|eetgelegenheid|keuken|menu|diner|lunch)\b/i.test(classificationText)
@@ -146,15 +149,11 @@ export async function POST(request: Request) {
     }
 
     if (fix === null) {
-      fix = fallback(type, url, current, safeContext);
+      fix = fallback(type, url, safeCurrent, safeContext);
     } else {
       mode = "openai";
     }
-    fix = {
-      title: cleanContextValue(fix.title),
-      content: fix.content.replace(/\s*\|\s*hide no longer\b/gi, "").replace(/\bhide no longer\b/gi, ""),
-      reason: cleanContextValue(fix.reason)
-    };
+    fix = cleanFix(fix);
     if (!fix) {
       return NextResponse.json({error:"De AI-fix kon niet worden gemaakt."},{status:502});
     }
@@ -165,12 +164,12 @@ export async function POST(request: Request) {
       proposed: fix.content,
       source: "ai",
       currentIssue: { issue_id: issueId, rule_id: issueId, status: issueStatus },
-      currentValue: current,
+      currentValue: safeCurrent,
       expectedSchema: expectedSchema || null
     });
 
     if (!validated.validation.valid && type === "structured_data" && expectedSchema) {
-      fix = fallback(type, url, current, safeContext);
+      fix = cleanFix(fallback(type, url, safeCurrent, safeContext));
       mode = "rule_based_fallback";
       validated = validateFix({
         issue_id: issueId,
