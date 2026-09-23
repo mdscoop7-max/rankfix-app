@@ -144,6 +144,10 @@ export default function Home() {
   const [contactSending, setContactSending] = useState(false);
   const [contactSent, setContactSent] = useState(false);
   const [contactError, setContactError] = useState("");
+  const [githubFixing, setGithubFixing] = useState<string | null>(null);
+  const [githubProgress, setGithubProgress] = useState(0);
+  const [githubResult, setGithubResult] = useState<{url:string;title:string;number:number;creditsRemaining?:number} | null>(null);
+  const [githubError, setGithubError] = useState("");
 
 
   function scrollToSection(id: string) {
@@ -316,6 +320,23 @@ export default function Home() {
     finally { setFixing(null); }
   }
 
+  async function createGithubFix(item: Check) {
+    if (!result) return;
+    const key = item.issue_id || item.key;
+    setGithubFixing(key); setGithubProgress(8); setGithubResult(null); setGithubError("");
+    try {
+      const issueId = item.issue_id || item.rule_id || item.key;
+      const context = ["URL: " + result.finalUrl, "Scan URL: " + result.scannedUrl, "Issue: " + item.title, "Recommendation: " + item.fix, "Current title: " + cleanFixContextValue(result.metrics.title), "Current description: " + cleanFixContextValue(result.metrics.description), "H1: " + cleanFixContextValue(result.metrics.h1s[0] || ""), "Canonical: " + cleanFixContextValue(result.metrics.canonical || ""), "OG title: " + cleanFixContextValue(result.metrics.openGraph.title || ""), "OG description: " + cleanFixContextValue(result.metrics.openGraph.description || ""), "OG image: " + cleanFixContextValue(result.metrics.openGraph.image || ""), "Image alt candidates: " + JSON.stringify(result.metrics.imageAltCandidates || [])].join("\n");
+      setGithubProgress(30);
+      const response = await fetch("/api/github/fix", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ issue:item.title + ": " + item.fix, context, url:result.finalUrl, issue_id:issueId }) });
+      setGithubProgress(72);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "GitHub fix mislukt.");
+      setGithubProgress(100);
+      setGithubResult({url:data.pr.url,title:data.pr.title,number:data.pr.number,creditsRemaining:data.creditsRemaining});
+    } catch (err) { setGithubError(err instanceof Error ? err.message : "GitHub fix mislukt."); }
+    finally { setTimeout(() => setGithubFixing(null), 500); }
+  }
   async function copyFix(key: string) {
     const content = fixes[key]?.content;
     if (!content) return;
@@ -539,6 +560,33 @@ export default function Home() {
         </div>
       )}
 
+      {githubFixing && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-[#02050d]/85 px-4 py-6 backdrop-blur-xl">
+          <div className="w-full max-w-lg rounded-[28px] border border-white/10 bg-[#080d1b] p-6 shadow-2xl sm:p-8">
+            <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-cyan-300 to-blue-600 text-sm font-black text-slate-950">RF</span><div><div className="font-bold">RankFix voert de fix uit</div><div className="text-xs text-slate-500">Je hoeft niets te kiezen</div></div></div>
+            <div className="mt-6 h-3 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-blue-500 transition-all duration-500" style={{width: githubProgress + "%"}} /></div>
+            <div className="mt-4 text-sm font-semibold text-white">{githubProgress < 30 ? "Auditgegevens verzamelen…" : githubProgress < 70 ? "Juiste bestand zoeken en wijziging maken…" : githubProgress < 100 ? "GitHub Pull Request aanmaken…" : "Klaar!"}</div>
+            <p className="mt-2 text-xs leading-5 text-slate-500">RankFix kiest automatisch het repository, bestand en de juiste wijziging op basis van deze audit.</p>
+          </div>
+        </div>
+      )}
+
+      {githubResult && !githubFixing && (
+        <div className="fixed inset-0 z-[125] flex items-center justify-center bg-[#02050d]/80 px-4 py-6 backdrop-blur-xl">
+          <div className="w-full max-w-lg rounded-[28px] border border-emerald-400/20 bg-[#080d1b] p-6 shadow-2xl sm:p-8">
+            <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Fix aangemaakt</div>
+            <h2 className="mt-2 text-2xl font-black">De wijziging staat klaar op GitHub.</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-400">RankFix heeft de juiste gegevens meegenomen en een Pull Request aangemaakt. Je kunt de wijziging op GitHub bekijken, downloaden of laten reviewen.</p>
+            <a href={githubResult.url} target="_blank" rel="noreferrer" className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-950">Open GitHub Pull Request →</a>
+            <button type="button" onClick={() => setGithubResult(null)} className="mt-2 w-full rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold text-slate-300">Sluiten</button>
+          </div>
+        </div>
+      )}
+
+      {githubError && !githubFixing && (
+        <div className="fixed bottom-5 right-5 z-[125] max-w-md rounded-2xl border border-red-400/20 bg-[#12080b] p-4 text-sm text-red-200 shadow-2xl">{githubError}<button type="button" onClick={() => setGithubError("")} className="ml-3 text-red-300 underline">Sluiten</button></div>
+      )}
+
       {result && (
         <section id="resultaat" className="mx-auto max-w-6xl scroll-mt-8 px-5 py-12 lg:px-8">
           <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
@@ -645,7 +693,7 @@ export default function Home() {
                                 <p className="mt-2 text-xs text-slate-500">{fixes[item.issue_id || item.key].reason}</p>
                                 <div className="mt-3 flex flex-wrap gap-2">
                                   <button type="button" onClick={() => copyFix(item.issue_id || item.key)} className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-950">{copied === (item.issue_id || item.key) ? "Gekopieerd ✓" : "Gebruik deze tekst"}</button>
-                                  <a href={`/dashboard/github?issue=${encodeURIComponent((item.issue_id || item.key) + ": " + item.fix)}&context=${encodeURIComponent("URL: " + result.finalUrl + "\nHuidige title: " + cleanFixContextValue(result.metrics.title) + "\nHuidige description: " + cleanFixContextValue(result.metrics.description) + "\nH1: " + cleanFixContextValue(result.metrics.h1s[0] || ""))}`} className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs font-bold text-cyan-200">Fix via GitHub →</a>
+                                  <button type="button" onClick={() => createGithubFix(item)} disabled={githubFixing === (item.issue_id || item.key)} className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs font-bold text-cyan-200 disabled:opacity-50">{githubFixing === (item.issue_id || item.key) ? "Bezig…" : "Fix automatisch via GitHub →"}</button>
                                 </div>
                               </div>
                             )}
