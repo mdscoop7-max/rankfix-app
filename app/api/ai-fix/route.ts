@@ -211,8 +211,9 @@ export async function POST(request: Request) {
     const safeCurrent = cleanContextValue(current);
     // Social metadata uses only verified scan data, so keep this path deterministic.
     // That guarantees the Fix button returns a proposal even if the external AI provider fails.
-    let fix = type === "social_metadata"
-      ? fallback(type, url, safeCurrent, safeContext)
+    const deterministicTypes: FixType[] = ["social_metadata", "canonical", "heading_structure", "alt_text"];
+    let fix = deterministicTypes.includes(type)
+      ? fallback(type, url, safeCurrent, context)
       : await generateWithOpenAI(type,url,safeCurrent,safeContext).catch((error) => {
           if (process.env.NODE_ENV === "production") throw error;
           return null;
