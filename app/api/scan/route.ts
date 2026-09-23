@@ -37,6 +37,10 @@ const decode = (value: string) =>
     .replace(/&gt;/gi, ">")
     .replace(/&#x27;/gi, "'")
     .replace(/&#x2F;/gi, "/")
+    .replace(/&#(x[0-9a-f]+|[0-9]+);/gi, (_, code: string) => {
+      const value = code.toLowerCase().startsWith("x") ? parseInt(code.slice(1), 16) : parseInt(code, 10);
+      return Number.isFinite(value) ? String.fromCodePoint(value) : "";
+    })
     .trim();
 
 const stripHtml = (html: string) =>
