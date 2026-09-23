@@ -189,10 +189,14 @@ export async function POST(request: Request) {
     const safeContext = cleanContext(context);
     let mode = "rule_based_fallback";
     const safeCurrent = cleanContextValue(current);
-    let fix = await generateWithOpenAI(type,url,safeCurrent,safeContext).catch((error) => {
-      if (process.env.NODE_ENV === "production") throw error;
-      return null;
-    });
+    // Social metadata uses only verified scan data, so keep this path deterministic.
+    // That guarantees the Fix button returns a proposal even if the external AI provider fails.
+    let fix = type === "social_metadata"
+      ? fallback(type, url, safeCurrent, safeContext)
+      : await generateWithOpenAI(type,url,safeCurrent,safeContext).catch((error) => {
+          if (process.env.NODE_ENV === "production") throw error;
+          return null;
+        });
     let expectedSchema = typeof safeContext.recommendedSchema === "string" ? safeContext.recommendedSchema.trim() : "";
     if (type === "structured_data" && (!expectedSchema || expectedSchema === "WebPage")) {
       const classificationText = [safeContext.title, safeContext.description, safeContext.h1, safeContext.name, safeContext.businessName].filter(Boolean).join(" ");
