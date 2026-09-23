@@ -12,6 +12,7 @@ const POLICY: Record<string, FixPolicy> = {
   H1_MULTIPLE: { category: "C", safe_type: null },
   IMAGE_ALT_MISSING: { category: "B", safe_type: "alt_text" },
   SOCIAL_METADATA_INCOMPLETE: { category: "B", safe_type: "social_metadata" },
+  social: { category: "B", safe_type: "social_metadata" },
   STRUCTURED_DATA_MISSING: { category: "B", safe_type: "structured_data" },
   breadcrumbs: { category: "B", safe_type: "breadcrumb" },
   author: { category: "C", safe_type: "expertise" },
