@@ -208,7 +208,7 @@ export default function Home() {
     if (!result) return;
     setFixing(item.issue_id || item.key);
     try {
-      const type = item.key === "title" ? "meta_title" : item.key === "description" ? "meta_description" : item.key === "h1" ? "h1" : item.key === "faq" ? "faq" : "structured_data";
+      const type = item.key === "title" ? "meta_title" : item.key === "description" ? "meta_description" : item.key === "h1" ? "h1" : item.key === "faq" ? "faq" : item.key === "breadcrumbs" ? "breadcrumb" : item.key === "author" ? "expertise" : "structured_data";
       const response = await fetch("/api/ai-fix", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: result.finalUrl, issue_id: item.issue_id || item.key, request_id: crypto.randomUUID(), type, current: item.key === "title" ? result.metrics.title : item.key === "description" ? result.metrics.description : item.key === "h1" ? (result.metrics.h1s[0] || "") : "", context: { title: cleanFixContextValue(result.metrics.title), description: cleanFixContextValue(result.metrics.description), h1: cleanFixContextValue(result.metrics.h1s[0] || ""), recommendedSchema: result.metrics.recommendedSchema || "", ...(result.metrics.localBusinessDetails || {}) }, issue_status: item.issue_status || (item.status === "warning" ? "WARNING" : item.status === "fail" ? "FAIL" : "PASS") }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Fix mislukt.");
