@@ -205,24 +205,24 @@ export async function POST(request: Request) {
     const imageCount = imageMetrics.uniqueImageReferences;
     const imageElementCount = imageMetrics.elementCount;
     const imagesMissingAlt = imageMetrics.missingAlt;
-    const imageAltCandidates = [...html.matchAll(/<img\\b[^>]*>/gi)]
+    const imageAltCandidates = [...html.matchAll(/<img\b[^>]*>/gi)]
       .filter((m) => {
         const tag = m[0];
-        const altMatch = tag.match(/\\balt\\s*=\\s*(?:[\"']([^\"']*)[\"']|([^\\s>]+))/i);
-        return !(altMatch && (altMatch[1] ?? altMatch[2] ?? \"\").trim());
+        const altMatch = tag.match(/\balt\s*=\s*(?:["']([^"']*)["']|([^\s>]+))/i);
+        return !(altMatch && (altMatch[1] ?? altMatch[2] ?? "").trim());
       })
       .slice(0, 10)
       .map((m) => {
         const tag = m[0];
         const attr = (name: string) => {
           const match = tag.match(new RegExp(
-            `\\\\b${name}\\\\s*=\\\\s*(?:[\\\"']([^\\\"']+)[\\\"']|([^\\\\s>]+))`,
+            `\\b${name}\\s*=\\s*(?:["']([^"']+)["']|([^\\s>]+))`,
             "i"
           ));
           return decode(match?.[1] || match?.[2] || "");
         };
         const src = attr("src") || attr("data-src") || attr("data-lazy-src") || attr("data-original") || attr("data-image") ||
-          (attr("srcset") || attr("data-srcset")).split(",")[0]?.trim().split(/\\s+/)[0] || "";
+          (attr("srcset") || attr("data-srcset")).split(",")[0]?.trim().split(/\s+/)[0] || "";
         return { src };
       })
       .filter((item) => item.src);
