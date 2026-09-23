@@ -14,7 +14,16 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "RankFix AI — SEO + GEO Audit",
-  description: "SEO en GEO audits voor Google en AI Search met concrete fixes.",
+  description:
+    "Verbeter je vindbaarheid met SEO- en GEO-audits voor Google en AI Search, inclusief concrete fixes.",
+  keywords: ["SEO audit", "GEO audit", "AI Search", "Google vindbaarheid"],
+  openGraph: {
+    title: "RankFix AI — SEO + GEO Audit",
+    description:
+      "Verbeter je vindbaarheid met SEO- en GEO-audits voor Google en AI Search, inclusief concrete fixes.",
+    type: "website",
+    locale: "nl_NL",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
