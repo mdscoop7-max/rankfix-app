@@ -272,7 +272,7 @@ export async function POST(request: Request) {
     const hasArticleSignal = schemaSet.has("article") || schemaSet.has("newsarticle") || /<article\b/i.test(html);
     const hasItemListSignal = schemaSet.has("itemlist");
     const localSchemaCandidates = [
-      { type: "Restaurant", pattern: /\b(restaurant|eetcafé|eetgelegenheid|menukaart|menu|reserveren|reservation|diner|lunch|brasserie|bistro)\b/i },
+      { type: "Restaurant", pattern: /\b(restaurant|eetcafé|eetgelegenheid|menukaart|brasserie|bistro)\b/i },
       { type: "Hairdresser", pattern: /\b(hairdresser|kapper|kappers|kapsalon|knippen|haarkleur|haarstyling|coiffeur|barbier)\b/i },
       { type: "Dentist", pattern: /\b(dentist|tandarts|tandheelkunde)\b/i },
       { type: "Electrician", pattern: /\b(electrician|elektricien|elektro)\b/i },
