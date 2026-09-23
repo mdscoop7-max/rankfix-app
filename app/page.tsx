@@ -211,7 +211,31 @@ export default function Home() {
       const type = item.key === "title" ? "meta_title" : item.key === "description" ? "meta_description" : item.key === "h1" ? "h1" : item.key === "faq" ? "faq" : item.key === "breadcrumbs" ? "breadcrumb" : item.key === "author" ? "expertise" : item.key === "social" ? "social_metadata" : "structured_data";
       const response = await fetch("/api/ai-fix", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: result.finalUrl, issue_id: item.issue_id || item.key, request_id: crypto.randomUUID(), type, current: item.key === "title" ? result.metrics.title : item.key === "description" ? result.metrics.description : item.key === "h1" ? (result.metrics.h1s[0] || "") : "", context: { title: cleanFixContextValue(result.metrics.title), description: cleanFixContextValue(result.metrics.description), h1: cleanFixContextValue(result.metrics.h1s[0] || ""), ogTitle: cleanFixContextValue(result.metrics.openGraph.title || ""), ogDescription: cleanFixContextValue(result.metrics.openGraph.description || ""), ogImage: cleanFixContextValue(result.metrics.openGraph.image || ""), ...(type === "structured_data" ? { recommendedSchema: result.metrics.recommendedSchema || "", ...(result.metrics.localBusinessDetails || {}) } : {}) }, issue_status: item.issue_status || (item.status === "warning" ? "WARNING" : item.status === "fail" ? "FAIL" : "PASS") }) });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Fix mislukt.");
+      if (!response.ok) {
+        // Keep the social-metadata action usable even when the API/AI provider is unavailable.
+        if (type === "social_metadata") {
+          const ogTitle = cleanFixContextValue(result.metrics.openGraph.title || result.metrics.title);
+          const ogDescription = cleanFixContextValue(result.metrics.openGraph.description || result.metrics.description);
+          const ogImage = cleanFixContextValue(result.metrics.openGraph.image || "");
+          const content = [
+            ogTitle ? `<meta property="og:title" content="${ogTitle.replace(/"/g, "&quot;")}">` : "",
+            ogDescription ? `<meta property="og:description" content="${ogDescription.replace(/"/g, "&quot;")}">` : "",
+            ogImage ? `<meta property="og:image" content="${ogImage.replace(/"/g, "&quot;")}">` : ""
+          ].filter(Boolean).join("\\n");
+          setFixes((prev) => ({
+            ...prev,
+            [item.issue_id || item.key]: {
+              title: "Open Graph metadata voorstel",
+              content,
+              reason: ogImage
+                ? "Gebruikt bestaande paginatitel, beschrijving en gevonden Open Graph-afbeelding."
+                : "Gebruikt bestaande paginatitel en beschrijving. Koppel voor og:image een bestaande relevante pagina- of productafbeelding."
+            }
+          }));
+          return;
+        }
+        throw new Error(data.error || "Fix mislukt.");
+      }
       setFixes((prev) => ({ ...prev, [item.issue_id || item.key]: data.fix }));
     } catch (err) { setError(err instanceof Error ? err.message : "Fix mislukt."); }
     finally { setFixing(null); }
