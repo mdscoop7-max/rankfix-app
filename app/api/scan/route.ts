@@ -249,6 +249,14 @@ export async function POST(request: Request) {
     const hasAboutSignal = /\b(over ons|about us|over bedrijf|about)\b/i.test(text);
     const organizationName = firstMatch(html, /<meta[^>]+(?:property|name)\s*=\s*["'](?:og:site_name|application-name)["'][^>]+content\s*=\s*["']([^"']+)["']/i);
     const sameAsCount = (html.match(/"sameAs"\s*:/gi) || []).length;
+    const pathname = finalUrl.pathname.replace(/\/+$/, "") || "/";
+    const isHomepage = pathname === "/";
+    const hasLocalBusinessSignal = schemaSet.has("localbusiness") || (/\b(opening hours|openingstijden|adres|address|telephone|telefoon|phone)\b/i.test(text) && /\b(address|adres|phone|telefoon|telephone)\b/i.test(text));
+    const hasProductSignal = hasProductSchema || /\b(add to cart|add-to-cart|winkelwagen|shopping cart|sku|price|availability|in stock)\b/i.test(text);
+    const hasArticleSignal = schemaSet.has("article") || schemaSet.has("newsarticle") || /<article\b/i.test(html);
+    const hasItemListSignal = schemaSet.has("itemlist");
+    const recommendedSchema = hasLocalBusinessSignal ? "LocalBusiness" : hasProductSignal ? "Product" : hasArticleSignal ? "Article" : hasItemListSignal ? "ItemList" : isHomepage ? "Organization + WebSite" : "WebPage";
+    const schemaContextLabel = hasLocalBusinessSignal ? "lokale bedrijfs-/dienstpagina" : hasProductSignal ? "product-/e-commercepagina" : hasArticleSignal ? "artikel-/nieuwspagina" : hasItemListSignal ? "lijst-/categoriepagina" : isHomepage ? "homepage" : "contentpagina";
 
     const robotsUrl = new URL("/robots.txt", finalUrl);
     const sitemapUrl = new URL("/sitemap.xml", finalUrl);
@@ -371,16 +379,18 @@ export async function POST(request: Request) {
     );
 
     geoChecks.push(validJsonLd > 0
-      ? check("pass", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden.`, "Gebruik schema.org om entiteiten, contenttype en relaties expliciet te maken.", 12, 12)
-      : check("fail", "schema", "geo", "Structured data", "Geen geldige JSON-LD structured data gevonden.", "Voeg relevante schema.org JSON-LD toe voor de pagina en de organisatie.", 0, 12)
+      ? check("pass", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden voor deze ${schemaContextLabel}.`, `Controleer of de schema-opbouw past bij dit paginatype. Relevante hoofdkeuze: ${recommendedSchema}.`, 12, 12)
+      : check("fail", "schema", "geo", "Structured data", `Geen geldige JSON-LD structured data gevonden voor deze ${schemaContextLabel}.`, `Voeg relevante schema.org JSON-LD toe. Voor dit paginatype is ${recommendedSchema} de belangrijkste richting; gebruik alleen typen die echt bij de zichtbare content passen.`, 0, 12)
     );
     geoChecks.push(hasEntitySchema
       ? check("pass", "entity", "geo", "Entity-signalen", `Entity schema gevonden: ${schemaTypes.slice(0, 5).join(", ")}.`, "Maak organisatie, product, persoon of publicatie nog duidelijker met consistente gegevens.", 10, 10)
       : check("warning", "entity", "geo", "Entity-signalen", "Er is weinig expliciete entity-informatie gevonden.", "Definieer de organisatie/brand en relevante entiteiten met schema.org.", 4, 10)
     );
-    geoChecks.push(hasBreadcrumb
-      ? check("pass", "breadcrumbs", "geo", "Breadcrumbs", "BreadcrumbList structured data is aanwezig.", "Houd breadcrumbs gelijk aan de zichtbare navigatiestructuur.", 6, 6)
-      : check("warning", "breadcrumbs", "geo", "Breadcrumbs", "Geen BreadcrumbList schema gevonden.", "Voeg breadcrumbs toe op diepe content-, categorie- en productpagina's.", 2, 6)
+    geoChecks.push(isHomepage
+      ? check("pass", "breadcrumbs", "geo", "Breadcrumbs", "Op de homepage is BreadcrumbList niet noodzakelijk.", "Gebruik BreadcrumbList vooral op diepe content-, categorie- en productpagina's.", 6, 6)
+      : hasBreadcrumb
+        ? check("pass", "breadcrumbs", "geo", "Breadcrumbs", "BreadcrumbList structured data is aanwezig.", "Houd breadcrumbs gelijk aan de zichtbare navigatiestructuur.", 6, 6)
+        : check("warning", "breadcrumbs", "geo", "Breadcrumbs", "Geen BreadcrumbList schema gevonden op deze diepere pagina.", "Voeg BreadcrumbList toe wanneer de pagina onderdeel is van een duidelijke hiërarchische navigatie.", 2, 6)
     );
     geoChecks.push(hasFaqContent || hasFaqSchema
       ? check("pass", "faq", "geo", "Vraag & antwoord content", "FAQ/Q&A-signalen zijn op de pagina gevonden.", "Beantwoord echte klantvragen kort, concreet en zonder marketingtaal.", 10, 10)
@@ -449,7 +459,7 @@ export async function POST(request: Request) {
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), checks: selectedGeoChecks },
             metrics: { siteType: (hasProductSchema || /add-to-cart|shopping cart|winkelwagen|checkout|sku|price|availability/i.test(text)) ? "ECOMMERCE" : "WEBSITE", title, titleLength: title.length, description, descriptionLength: description.length, h1Count: h1s.length, h1s,
-              imageCount, imageElementCount, imagesMissingAlt, wordCount, headingsCount: headings.length, linksCount: links.length,
+              imageCount, imageElementCount, imagesMissingAlt, wordCount, headingsCount: headings.length, linksCount: links.length, pageType: schemaContextLabel, recommendedSchema,
               internalLinks, canonical: canonical || null, lang: lang || null, robots: robots || null,
               openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null },
               twitterCard: twitterCard || null, schemaTypes: [...new Set(schemaTypes)].slice(0,12),
