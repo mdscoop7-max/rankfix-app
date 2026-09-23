@@ -252,7 +252,7 @@ export async function POST(request: Request) {
     const sameAsCount = (html.match(/"sameAs"\s*:/gi) || []).length;
     const pathname = finalUrl.pathname.replace(/\/+$/, "") || "/";
     const isHomepage = pathname === "/";
-    const localBusinessKeywordSignal = /\b(restaurant|eetcafé|eetgelegenheid|kapsalon|kapper|hairdresser|salon|bakker|bakery|bar|café|cafe|dentist|tandarts|electrician|elektricien|plumber|loodgieter|aannemer|contractor|bouwbedrijf|bouwservice|dakdekker|beautysalon|beauty salon|winkel|store|shop)\b/i.test([title, description, ...h1s].join(" "));
+    const localBusinessKeywordSignal = /\b(restaurant|eetcafé|eetgelegenheid|brasserie|bistro|menukaart|kapsalon|kapper|hairdresser|salon|coiffeur|barbier|bakker|bakery|bar|café|cafe|dentist|tandarts|tandheelkunde|mondzorg|orthodontist|electrician|elektricien|elektro|elektrotechniek|installatietechniek|plumber|loodgieter|loodgieters|cv-installateur|installateur|aannemer|contractor|bouwbedrijf|bouwservice|verbouwing|renovatie|dakdekker|dakbedekking|dakwerken|beautysalon|beauty salon|schoonheidssalon|winkel|store|shop|boetiek|retail|garage|autogarage|autoservice|autobedrijf|autodealer|makelaar|makelaars|vastgoedmakelaar|real estate agent|realtor|woningmakelaar|advocaat|advocatenkantoor|law firm|jurist|notaris|notariskantoor|accountant|accountantskantoor|boekhouder|boekhoudkantoor|administratiekantoor|reisbureau|reisorganisatie|travel agency|tour operator|reisagent|hotel|bed and breakfast|b&b|pension)\b/i.test([title, description, ...h1s, finalUrl.hostname, finalUrl.pathname].join(" "));
     const localContactSignal = /\b(opening hours|openingstijden|adres|address|telephone|telefoon|phone|contact)\b/i.test(text) &&
       /\b(address|adres|phone|telefoon|telephone|\+?31|0\d{1,3}[\s-]?\d)\b/i.test(text);
     const hasLocalBusinessSignal =
@@ -288,9 +288,11 @@ export async function POST(request: Request) {
       { type: "TravelAgency", pattern: /\b(reisbureau|reisorganisatie|travel agency|tour operator|reisagent)\b/i },
       { type: "Hotel", pattern: /\b(hotel|bed and breakfast|b&b|pension)\b/i },
     ];
-    const localClassificationText = [title, description, h1s.join(" "), text].filter(Boolean).join(" ");
+    const localIdentityText = [title, description, h1s.join(" "), finalUrl.hostname, finalUrl.pathname].filter(Boolean).join(" ");
+    const localClassificationText = [localIdentityText, text].filter(Boolean).join(" ");
+    const identityLocalSchema = localSchemaCandidates.find((candidate) => candidate.pattern.test(localIdentityText))?.type;
     const specificLocalSchema = hasLocalBusinessSignal
-      ? localSchemaCandidates.find((candidate) => candidate.pattern.test(localClassificationText))?.type || "LocalBusiness"
+      ? identityLocalSchema || localSchemaCandidates.find((candidate) => candidate.pattern.test(localClassificationText))?.type || "LocalBusiness"
       : null;
     const hasRelevantLocalSchema = schemaSet.has("localbusiness") || (specificLocalSchema ? schemaSet.has(specificLocalSchema.toLowerCase()) : false);
     const recommendedSchema = hasLocalBusinessSignal ? specificLocalSchema || "LocalBusiness" : hasProductSignal ? "Product" : hasArticleSignal ? "Article" : hasItemListSignal ? "ItemList" : isHomepage ? "Organization + WebSite" : "WebPage";
