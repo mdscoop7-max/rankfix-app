@@ -305,9 +305,31 @@ export async function POST(request: Request) {
       ? check("pass", "headings", "seo", "Heading-structuur", `Er zijn ${headings.length} H2–H6 headings gevonden naast de H1.`, "Gebruik headings om onderwerpen en subonderwerpen logisch te groeperen.", 7, 7)
       : check("warning", "headings", "seo", "Heading-structuur", "De pagina heeft weinig duidelijke subheadings.", "Voeg H2/H3-secties toe rond belangrijke onderwerpen en vragen.", 3, 7)
     );
-    seoChecks.push(canonical
-      ? check("pass", "canonical", "seo", "Canonical URL", "Een canonical URL is aanwezig.", "Controleer dat de canonical naar de gewenste indexeerbare URL wijst.", 7, 7)
-      : check("warning", "canonical", "seo", "Canonical URL", "Geen canonical URL gevonden.", "Voeg een self-referencing canonical toe wanneer passend.", 3, 7)
+    let canonicalUrl: URL | null = null;
+    try {
+      canonicalUrl = canonical ? new URL(canonical, finalUrl) : null;
+    } catch {}
+
+    const normalizeCanonicalTarget = (url: URL) => {
+      const normalized = new URL(url.toString());
+      normalized.hash = "";
+      normalized.pathname = normalized.pathname.replace(/\/+$/, "") || "/";
+      return normalized.toString();
+    };
+
+    const canonicalTarget = canonicalUrl ? normalizeCanonicalTarget(canonicalUrl) : "";
+    const currentTarget = normalizeCanonicalTarget(finalUrl);
+    const canonicalIsSelf = Boolean(canonicalUrl && canonicalTarget === currentTarget);
+    const canonicalIsCrossDomain = Boolean(canonicalUrl && canonicalUrl.hostname !== finalUrl.hostname);
+
+    seoChecks.push(
+      !canonicalUrl
+        ? check("warning", "canonical", "seo", "Canonical URL", "Geen canonical URL gevonden.", "Voeg een self-referencing canonical toe wanneer passend.", 3, 7)
+        : canonicalIsSelf
+          ? check("pass", "canonical", "seo", "Canonical URL", "De canonical verwijst naar dezelfde URL als de gescande pagina.", "Behoud een duidelijke self-referencing canonical.", 7, 7)
+          : canonicalIsCrossDomain
+            ? check("warning", "canonical", "seo", "Canonical URL", "De canonical verwijst naar een ander domein dan de gescande pagina.", "Controleer of deze externe canonical bewust is. Voor een normale pagina hoort de canonical doorgaans naar de voorkeurs-URL van dezelfde site te wijzen.", 3, 7)
+            : check("warning", "canonical", "seo", "Canonical URL", "De canonical is aanwezig, maar verwijst niet naar de gescande URL.", "Controleer of de canonical bewust naar een andere, inhoudelijk gelijkwaardige voorkeurs-URL verwijst.", 5, 7)
     );
     seoChecks.push(viewport
       ? check("pass", "viewport", "seo", "Mobiele viewport", "Een viewport meta tag is aanwezig.", "Test daarnaast de echte mobiele layout en Core Web Vitals.", 5, 5)
