@@ -9,9 +9,9 @@ function safePath(v:string){ return v.length>0 && v.length<240 && !v.startsWith(
 function slug(v:string){ return v.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,42)||"seo-fix"; }
 
 async function generateCodeFix(filePath:string,fileContent:string,issue:string,context:string){
-  const key=process.env.OPENAI_API_KEY;
-  if(!key) throw new Error("OPENAI_API_KEY ontbreekt.");
-  const model=process.env.OPENAI_MODEL || "gpt-5.6-luna";
+  const key=process.env.OPENAI_API_KEY?.trim();
+  if(!key) throw new Error("OPENAI_API_KEY ontbreekt in de Render runtime. Controleer Environment Variables van rankfix-app en deploy opnieuw.");
+  const model=process.env.OPENAI_MODEL?.trim() || "gpt-5.6-luna";
   const input=[
     "You are RankFix AI. Modify this repository file to implement exactly one SEO/GEO fix.",
     "Return ONLY valid JSON: {summary:string,content:string}. content is the COMPLETE replacement file, not a diff.",
@@ -24,10 +24,21 @@ async function generateCodeFix(filePath:string,fileContent:string,issue:string,c
     fileContent.slice(0,120000)
   ].join("\n\n");
   const response=await fetch("https://api.openai.com/v1/responses",{
-    method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+key},
+    method:"POST",
+    headers:{"Content-Type":"application/json",Authorization:"Bearer "+key},
     body:JSON.stringify({model,input,max_output_tokens:12000})
   });
-  if(!response.ok) throw new Error("AI kon de codefix niet genereren.");
+  if(!response.ok){
+    const errorText=await response.text();
+    let detail="";
+    try{
+      const parsed=JSON.parse(errorText);
+      detail=typeof parsed?.error?.message==="string"?parsed.error.message:errorText.slice(0,500);
+    }catch{
+      detail=errorText.slice(0,500);
+    }
+    throw new Error(`OpenAI API fout (${response.status}): ${detail}`);
+  }
   const data=await response.json();
   const text=typeof data?.output_text==="string"?data.output_text:data?.output?.flatMap((x:any)=>x?.content||[]).map((x:any)=>x?.text||"").join("")||"";
   const clean=text.replace(/^\`\`\`json\s*/i,"").replace(/\s*\`\`\`$/,"").trim();
