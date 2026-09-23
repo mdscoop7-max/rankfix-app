@@ -26,7 +26,7 @@ function validateStructuredData(value: string, expectedSchema?: string): string[
   try { parsed = JSON.parse(raw); } catch { errors.push("Structured data bevat geen geldige JSON."); return errors; }
   const items = Array.isArray(parsed) ? parsed : parsed?.["@graph"] || [parsed];
   const list = Array.isArray(items) ? items : [items];
-  const localTypes = new Set(["localbusiness","hairdresser","beautysalon","restaurant","bakery","barorcafe","dayspa","dentist","electrician","generalcontractor","homeandconstructionbusiness","locksmith","medicalclinic","plumber","roofingcontractor","store","automotivebusiness"]);
+  const localTypes = new Set(["localbusiness","hairdresser","beautysalon","restaurant","bakery","barorcafe","dayspa","dentist","electrician","generalcontractor","homeandconstructionbusiness","locksmith","medicalclinic","plumber","roofingcontractor","store","automotivebusiness","realestateagent","legalservice","accountingservice","travelagency","hotel"]);
   const foundTypes = list.flatMap((item: any) => {
     const t = item?.["@type"];
     return (Array.isArray(t) ? t : [t]).filter(Boolean).map(String);
