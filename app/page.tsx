@@ -232,7 +232,8 @@ export default function Home() {
                           ? "alt_text"
                           : "structured_data";
       // Structural fixes are deterministic scan data; render them immediately.
-      // This keeps the dashboard correct even if an API deployment is temporarily stale.
+      // Keep this logic in the production dashboard bundle so stale AI-fix APIs cannot change the fix type.
+      // This is intentionally independent from the /api/ai-fix response.
       if (type === "canonical" || type === "heading_structure" || type === "alt_text") {
         const escapeHtml = (value: string) => value
           .replace(/&/g, "&amp;")
