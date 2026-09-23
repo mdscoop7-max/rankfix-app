@@ -117,6 +117,6 @@ export async function POST(request:Request){
     const updated=await db.query("UPDATE users SET credits=credits-$1 WHERE id=$2 AND credits>=$1 RETURNING credits",[GITHUB_FIX_COST,user.id]);
     if(!updated.rowCount) return NextResponse.json({error:"Onvoldoende credits."},{status:402});
     await db.query("INSERT INTO credit_transactions (user_id,amount,reason,reference_id) VALUES ($1,$2,'github_fix',$3)",[user.id,-GITHUB_FIX_COST,String(pr.number)]);
-    return NextResponse.json({success:true,summary:generated.summary,branch,pr:{number:pr.number,url:pr.html_url,title:pr.title},creditsCharged:GITHUB_FIX_COST,creditsRemaining:updated.rows[0].credits});
+    return NextResponse.json({success:true,summary:generated.summary,repository:repo,path,branch,pr:{number:pr.number,url:pr.html_url,title:pr.title},creditsCharged:GITHUB_FIX_COST,creditsRemaining:updated.rows[0].credits});
   }catch(error){ return NextResponse.json({error:error instanceof Error?error.message:"GitHub fix mislukt."},{status:500}); }
 }
