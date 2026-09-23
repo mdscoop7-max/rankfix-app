@@ -18,6 +18,34 @@ function hasPlaceholder(value: string): boolean {
   return /(?:\{\{[^}]+\}\}|\[YOUR_|\bTODO\b)/i.test(value);
 }
 
+function validateStructuredData(value: string, expectedSchema?: string): string[] {
+  const errors: string[] = [];
+  const match = value.match(/<script\\b[^>]*type=["']application\\/ld\\+json["'][^>]*>([\\s\\S]*?)<\\/script>/i);
+  const raw = match?.[1]?.trim() || value.trim();
+  let parsed: any;
+  try { parsed = JSON.parse(raw); } catch { errors.push("Structured data bevat geen geldige JSON."); return errors; }
+  const items = Array.isArray(parsed) ? parsed : parsed?.["@graph"] || [parsed];
+  const list = Array.isArray(items) ? items : [items];
+  const localTypes = new Set(["localbusiness","hairdresser","beautysalon","restaurant","bakery","barorcafe","dayspa","dentist","electrician","generalcontractor","homeandconstructionbusiness","locksmith","medicalclinic","plumber","roofingcontractor","store","automotivebusiness"]);
+  const foundTypes = list.flatMap((item: any) => {
+    const t = item?.["@type"];
+    return (Array.isArray(t) ? t : [t]).filter(Boolean).map(String);
+  });
+  if (!foundTypes.length) errors.push("Structured data bevat geen @type.");
+  if (expectedSchema && expectedSchema !== "LocalBusiness" && !foundTypes.some(t => t.toLowerCase() === expectedSchema.toLowerCase())) {
+    errors.push(`Structured data gebruikt niet het aanbevolen type: ${expectedSchema}.`);
+  }
+  if (expectedSchema && localTypes.has(expectedSchema.toLowerCase())) {
+    const localItem = list.find((item: any) => {
+      const t = item?.["@type"];
+      return (Array.isArray(t) ? t : [t]).some((x: any) => String(x).toLowerCase() === expectedSchema.toLowerCase());
+    });
+    if (!localItem?.name) errors.push("LocalBusiness structured data mist name.");
+    if (!localItem?.address) errors.push("LocalBusiness structured data mist address.");
+  }
+  return errors;
+}
+
 export function validateFix(input: {
   issue_id: string;
   rule_id?: string;
@@ -26,6 +54,7 @@ export function validateFix(input: {
   currentIssue?: { issue_id: string; status?: string; rule_id?: string } | null;
   currentValue?: string | null;
   scanId?: string | null;
+  expectedSchema?: string | null;
 }): NormalizedFix {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -63,6 +92,10 @@ export function validateFix(input: {
 
   if (policy.safe_type === "meta_description" && proposed.length > 160) {
     errors.push("Meta description is langer dan 160 tekens.");
+  }
+
+  if (policy.safe_type === "structured_data" && proposed) {
+    errors.push(...validateStructuredData(proposed, input.expectedSchema || undefined));
   }
 
   if (
