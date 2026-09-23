@@ -211,7 +211,12 @@ export default function Home() {
       const type = item.key === "title" ? "meta_title" : item.key === "description" ? "meta_description" : item.key === "h1" ? "h1" : item.key === "faq" ? "faq" : item.key === "breadcrumbs" ? "breadcrumb" : item.key === "author" ? "expertise" : item.key === "social" ? "social_metadata" : "structured_data";
       // Social metadata is deterministic scan data; render the proposal immediately.
       if (type === "social_metadata") {
-        const escapeAttr = (value: string) => value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const escapeAttr = (value: string) => {
+          const decoded = value
+            .replace(/&amp;#(x[0-9a-f]+|[0-9]+);/gi, (_, code: string) => String.fromCodePoint(code.toLowerCase().startsWith("x") ? parseInt(code.slice(1), 16) : parseInt(code, 10)))
+            .replace(/&#(x[0-9a-f]+|[0-9]+);/gi, (_, code: string) => String.fromCodePoint(code.toLowerCase().startsWith("x") ? parseInt(code.slice(1), 16) : parseInt(code, 10)));
+          return decoded.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        };
         const ogTitle = cleanFixContextValue(result.metrics.openGraph.title || result.metrics.title);
         const ogDescription = cleanFixContextValue(result.metrics.openGraph.description || result.metrics.description);
         const ogImage = cleanFixContextValue(result.metrics.openGraph.image || "");
