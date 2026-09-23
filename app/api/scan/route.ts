@@ -239,6 +239,37 @@ export async function POST(request: Request) {
     }
     const schemaSet = new Set(schemaTypes.map((v) => v.toLowerCase()));
     const hasEntitySchema = ["organization", "localbusiness", "person", "product", "article", "website"].some((t) => schemaSet.has(t));
+    const schemaObjects: any[] = [];
+    for (const raw of jsonLdBlocks) {
+      try {
+        const parsed = JSON.parse(raw);
+        const items = Array.isArray(parsed) ? parsed : parsed?.["@graph"] || [parsed];
+        schemaObjects.push(...items.filter(Boolean));
+      } catch {}
+    }
+    const organizationObjects = schemaObjects.filter((item) => {
+      const types = Array.isArray(item?.["@type"]) ? item["@type"] : [item?.["@type"]];
+      return types.some((type: unknown) => String(type || "").toLowerCase() === "organization");
+    });
+    const organizationSchema = organizationObjects[0] || null;
+    const organizationSchemaName = typeof organizationSchema?.name === "string" ? organizationSchema.name.trim() : "";
+    const organizationSchemaUrl = typeof organizationSchema?.url === "string" ? organizationSchema.url.trim() : "";
+    const organizationSchemaLogo = typeof organizationSchema?.logo === "string"
+      ? organizationSchema.logo.trim()
+      : typeof organizationSchema?.logo?.url === "string"
+        ? organizationSchema.logo.url.trim()
+        : "";
+    const organizationSchemaSameAs = Array.isArray(organizationSchema?.sameAs)
+      ? organizationSchema.sameAs.filter((value: unknown) => typeof value === "string" && value.trim()).length
+      : 0;
+    const organizationSchemaContact = organizationSchema?.contactPoint ? 1 : 0;
+    const hasOrganizationIdentity = Boolean(organizationSchema && (
+      organizationSchemaName ||
+      organizationSchemaUrl ||
+      organizationSchemaLogo ||
+      organizationSchemaSameAs ||
+      organizationSchemaContact
+    ));
     const hasBreadcrumb = schemaSet.has("breadcrumblist");
     const hasFaqSchema = schemaSet.has("faqpage");
     const hasProductSchema = schemaSet.has("product");
@@ -460,9 +491,18 @@ export async function POST(request: Request) {
       ? check("pass", "faq", "geo", "Vraag & antwoord content", "FAQ/Q&A-signalen zijn op de pagina gevonden.", "Beantwoord echte klantvragen kort, concreet en zonder marketingtaal.", 10, 10)
       : check("warning", "faq", "geo", "Vraag & antwoord content", "Geen duidelijke FAQ/Q&A-sectie gevonden.", "Voeg relevante vragen en directe antwoorden toe waar dat de gebruiker helpt.", 4, 10)
     );
+    const ecommerceExpertiseSignal = hasProductSignal && (
+      hasOrganizationIdentity ||
+      schemaSet.has("brand") ||
+      organizationName ||
+      hasBusinessContactDetails ||
+      hasSocialOrReviewSignal
+    );
     geoChecks.push(hasAuthorSignal || (hasLocalBusinessSignal && hasServiceExpertiseSignal)
       ? check("pass", "author", "geo", "Expertise-signalen", hasAuthorSignal ? "Auteur- of expertisesignalen zijn gevonden." : "Duidelijke dienst- en vakgebiedsignalen zijn gevonden voor deze lokale bedrijfspagina.", "Maak auteur, expertise, diensten en bronnen waar relevant nog explicieter.", 8, 8)
-      : check("warning", "author", "geo", "Expertise-signalen", "Geen duidelijke auteur/expertisesignalen gevonden.", "Voeg auteur, organisatie, expertise en betrouwbare bronnen toe aan informatieve content.", 3, 8)
+      : ecommerceExpertiseSignal
+        ? check("pass", "author", "geo", "Expertise-signalen", "Voor deze webshop zijn merk-, organisatie- en productcontext-signalen gevonden; een individuele auteur is niet noodzakelijk voor productcontent.", "Maak merk-, product- en organisatiecontext consistent en voeg auteurs of bronnen toe waar informatieve content dat vereist.", 8, 8)
+        : check("warning", "author", "geo", "Expertise-signalen", "Geen duidelijke auteur/expertisesignalen gevonden.", "Voeg auteur, organisatie, expertise en betrouwbare bronnen toe aan informatieve content.", 3, 8)
     );
     geoChecks.push((hasContactSignal && hasBusinessContactDetails) || hasAboutSignal || hasSocialOrReviewSignal
       ? check("pass", "trust", "geo", "Trust & context", hasAboutSignal ? "Contact- en organisatiecontext zijn zichtbaar." : "Concrete contact-, locatie- of externe profielsignalen zijn zichtbaar.", "Houd bedrijfsnaam, contactgegevens, locatie, verantwoordelijkheden en officiële profielen consistent.", 8, 8)
@@ -472,9 +512,18 @@ export async function POST(request: Request) {
       ? check("pass", "answer", "geo", "Machine-leesbare samenvatting", "De pagina heeft duidelijke social metadata die de kern samenvat.", "Zorg dat title, description en zichtbare intro dezelfde kernboodschap vertellen.", 6, 6)
       : check("warning", "answer", "geo", "Machine-leesbare samenvatting", "De kern van de pagina is niet overal expliciet samengevat.", "Schrijf een heldere introductie en complete meta description.", 2, 6)
     );
-    geoChecks.push(hasProductSchema || organizationName || sameAsCount > 0
-      ? check("pass", "identity", "geo", "Brand identity", "Er zijn expliciete merk-/identiteitssignalen gevonden.", "Gebruik consistente naam, logo, sameAs en organisatiegegevens.", 5, 5)
-      : check("warning", "identity", "geo", "Brand identity", "Weinig expliciete brand identity-signalen gevonden.", "Voeg Organization/LocalBusiness data en officiële profielen toe waar relevant.", 2, 5)
+    const brandIdentitySignals = [
+      organizationSchemaName || organizationName,
+      organizationSchemaUrl,
+      organizationSchemaLogo,
+      organizationSchemaSameAs > 0 || sameAsCount > 0,
+      organizationSchemaContact > 0,
+    ].filter(Boolean).length;
+    geoChecks.push(brandIdentitySignals >= 3
+      ? check("pass", "identity", "geo", "Brand identity", "De organisatie-identiteit is machineleesbaar en bevat meerdere consistente merksignalen.", "Houd naam, URL, logo, officiële profielen en contactcontext consistent.", 5, 5)
+      : brandIdentitySignals >= 1
+        ? check("warning", "identity", "geo", "Brand identity", "Er is Organization-context gevonden, maar de machineleesbare merkidentiteit kan vollediger.", "Vul relevante Organization-velden aan, zoals naam, URL, logo en officiële profielen, zonder gegevens te verzinnen.", 3, 5)
+        : check("warning", "identity", "geo", "Brand identity", "Weinig expliciete brand identity-signalen gevonden.", "Voeg Organization-data en officiële profielen toe waar relevant.", 2, 5)
     );
 
     const ruleMap: Record<string, { rule_id: string; severity: Check["severity"] }> = {
