@@ -20,7 +20,7 @@ function hasPlaceholder(value: string): boolean {
 
 function validateStructuredData(value: string, expectedSchema?: string): string[] {
   const errors: string[] = [];
-  const match = value.match(/<script\\b[^>]*type=["']application\\/ld\\+json["'][^>]*>([\\s\\S]*?)<\\/script>/i);
+  const match = value.match(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/i);
   const raw = match?.[1]?.trim() || value.trim();
   let parsed: any;
   try { parsed = JSON.parse(raw); } catch { errors.push("Structured data bevat geen geldige JSON."); return errors; }
