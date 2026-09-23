@@ -84,15 +84,16 @@ export async function POST(request: Request) {
     try { user = await getCurrentUser(); } catch {}
     if (user && user.credits < 2) return NextResponse.json({error:"Onvoldoende credits. Deze AI-fix kost 2 credits."},{status:402});
 
-    let fix;
     let mode = "rule_based_fallback";
-    try {
-      fix = await generateWithOpenAI(type,url,current,context);
-      if (fix) mode = "openai";
-    } catch (error) {
-      if (process.env.NODE_ENV === "production") return NextResponse.json({error:error instanceof Error ? error.message : "AI-fix mislukt."},{status:502});
+    let fix = await generateWithOpenAI(type,url,current,context).catch((error) => {
+      if (process.env.NODE_ENV === "production") throw error;
+      return null;
+    });
+    if (fix) {
+      mode = "openai";
+    } else {
+      fix = fallback(type,url,current,context);
     }
-    fix ||= fallback(type,url,current,context);
 
     const validated = validateFix({ issue_id: issueId, rule_id: issueId, proposed: fix.content, source: "ai", currentIssue: { issue_id: issueId, rule_id: issueId, status: issueStatus }, currentValue: current, expectedSchema: typeof context.recommendedSchema === "string" ? context.recommendedSchema : null });
     if (!validated.validation.valid) return NextResponse.json({ success:false, error:"invalid_output", validation:validated.validation }, {status:422});
