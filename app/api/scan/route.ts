@@ -243,6 +243,16 @@ export async function POST(request: Request) {
     const hasFaqSchema = schemaSet.has("faqpage");
     const hasProductSchema = schemaSet.has("product");
     const hasAuthorSignal = /\b(author|auteur|geschreven door|written by|byline)\b/i.test(text) || schemaSet.has("person");
+
+    const hasFaqContent = /\b(faq|veelgestelde vragen|frequently asked questions|questions fréquentes|häufig gestellte fragen)\b/i.test(text) ||
+      /<details\b/i.test(html) || /<h[2-6][^>]*>[^<]*(\?|faq|vragen|questions)[^<]*<\/h[2-6]>/i.test(html);
+    const hasContactSignal = /\b(contact|contacteer|e-mail|email|telefoon|phone|adres|address)\b/i.test(text);
+    const hasAboutSignal = /\b(over ons|about us|over bedrijf|about)\b/i.test(text);
+    const organizationName = firstMatch(html, /<meta[^>]+(?:property|name)\s*=\s*["'](?:og:site_name|application-name)["'][^>]+content\s*=\s*["']([^"']+)["']/i);
+    const sameAsCount = (html.match(/"sameAs"\s*:/gi) || []).length;
+    const pathname = finalUrl.pathname.replace(/\/+$/, "") || "/";
+    const isHomepage = pathname === "/";
+    const hasLocalBusinessSignal = schemaSet.has("localbusiness") || (/\b(opening hours|openingstijden|adres|address|telephone|telefoon|phone)\b/i.test(text) && /\b(address|adres|phone|telefoon|telephone)\b/i.test(text));
     const hasVisibleBusinessIdentity = Boolean(
       organizationName ||
       (title && /\b(restaurant|salon|kapsalon|bakker|bakery|bar|cafe|café|dentist|tandarts|electrician|elektricien|plumber|loodgieter|aannemer|contractor|hairdresser|kapper|store|winkel)\b/i.test(title)) ||
@@ -253,15 +263,6 @@ export async function POST(request: Request) {
       /\b(adres|address|straat|street|postcode|postal code)\b/i.test(text);
     const hasSocialOrReviewSignal = /\b(instagram|facebook|linkedin|google reviews|reviews|tripadvisor|trustpilot)\b/i.test(text) || sameAsCount > 0;
     const hasServiceExpertiseSignal = /\b(diensten|services|service|specialist|specialisten|expert|expertise|behandeling|behandelingen|hair|haar|knippen|kleur|color|styling|restaurant|keuken|cuisine|tandarts|elektricien|loodgieter|aannemer|dakdekker)\b/i.test(text);
-    const hasFaqContent = /\b(faq|veelgestelde vragen|frequently asked questions|questions fréquentes|häufig gestellte fragen)\b/i.test(text) ||
-      /<details\b/i.test(html) || /<h[2-6][^>]*>[^<]*(\?|faq|vragen|questions)[^<]*<\/h[2-6]>/i.test(html);
-    const hasContactSignal = /\b(contact|contacteer|e-mail|email|telefoon|phone|adres|address)\b/i.test(text);
-    const hasAboutSignal = /\b(over ons|about us|over bedrijf|about)\b/i.test(text);
-    const organizationName = firstMatch(html, /<meta[^>]+(?:property|name)\s*=\s*["'](?:og:site_name|application-name)["'][^>]+content\s*=\s*["']([^"']+)["']/i);
-    const sameAsCount = (html.match(/"sameAs"\s*:/gi) || []).length;
-    const pathname = finalUrl.pathname.replace(/\/+$/, "") || "/";
-    const isHomepage = pathname === "/";
-    const hasLocalBusinessSignal = schemaSet.has("localbusiness") || (/\b(opening hours|openingstijden|adres|address|telephone|telefoon|phone)\b/i.test(text) && /\b(address|adres|phone|telefoon|telephone)\b/i.test(text));
     const hasProductSignal = hasProductSchema || /\b(add to cart|add-to-cart|winkelwagen|shopping cart|sku|price|availability|in stock)\b/i.test(text);
     const hasArticleSignal = schemaSet.has("article") || schemaSet.has("newsarticle") || /<article\b/i.test(html);
     const hasItemListSignal = schemaSet.has("itemlist");
