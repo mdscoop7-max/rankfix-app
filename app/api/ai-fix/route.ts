@@ -12,6 +12,14 @@ function trimTo(value: string, max: number) {
   return value.length <= max ? value : value.slice(0, max - 1).trimEnd() + "…";
 }
 
+function cleanContextValue(value: string) {
+  return value.replace(/\\s*\\|\\s*hide no longer\\b/gi, "").replace(/\\bhide no longer\\b/gi, "").replace(/\\s{2,}/g, " ").trim();
+}
+
+function cleanContext(context: Record<string, string>) {
+  return Object.fromEntries(Object.entries(context).map(([key, value]) => [key, cleanContextValue(String(value || ""))]));
+}
+
 async function generateWithOpenAI(type: FixType, url: string, current: string, context: Record<string,string>) {
   const key = process.env.OPENAI_API_KEY;
   if (!key) return null;
@@ -41,13 +49,14 @@ async function generateWithOpenAI(type: FixType, url: string, current: string, c
 
 function fallback(type: FixType, url: string, current: string, context: Record<string,string>): { title: string; content: string; reason: string } {
   const host = new URL(url).hostname.replace(/^www\./,"");
-  const subject = context.h1 || context.title || host;
+  const safeContext = cleanContext(context);
+  const subject = safeContext.h1 || safeContext.businessName || safeContext.name || safeContext.title || host;
   if (type==="meta_title") return {title:"Nieuwe meta title",content:trimTo(`${current.trim() || subject} | ${host}`,60),reason:"Lokale fallback wanneer geen AI-key is ingesteld."};
   if (type==="meta_description") return {title:"Nieuwe meta description",content:trimTo(`Ontdek alles over ${subject.replace(/[.!?]+$/,"")}. Bekijk de belangrijkste informatie, voordelen en praktische antwoorden op één plek. ${host} helpt je direct verder.`,158),reason:"Lokale fallback wanneer geen AI-key is ingesteld."};
   if (type==="h1") return {title:"Nieuwe H1",content:current.trim()||subject,reason:"Eén duidelijke hoofdboodschap passend bij de pagina-intentie."};
-  if (type==="faq") return {title:"FAQ-blok",content:`<section><h2>Veelgestelde vragen over ${escapeHtml(subject)}</h2><h3>Wat is ${escapeHtml(subject)}?</h3><p>Deze pagina geeft een helder antwoord op de belangrijkste vragen over ${escapeHtml(subject)}.</p></section>`,reason:"Directe vragen en antwoorden maken de pagina beter scanbaar."};
+  if (type==="faq") {\n    const businessName = safeContext.businessName || safeContext.name || subject;\n    const locality = safeContext.addressLocality;\n    const locationQuestion = locality ? `<h3>Waar is ${escapeHtml(businessName)} gevestigd?</h3><p>${escapeHtml(businessName)} is gevestigd in ${escapeHtml(locality)}.</p>` : "";\n    return { title:"FAQ-blok", content:`<section><h2>Veelgestelde vragen over ${escapeHtml(businessName)}${locality ? ` in ${escapeHtml(locality)}` : ""}</h2><h3>Wat is ${escapeHtml(businessName)}?</h3><p>${escapeHtml(businessName)} is een bedrijf op het gebied van haarverzorging en kappersdiensten.</p>${locationQuestion}</section>`, reason:"De FAQ gebruikt alleen de gevonden bedrijfsnaam en locatie en vermijdt verzonnen diensten, prijzen of openingstijden." };\n  }
   if (type==="structured_data") {
-    const classificationText = [context.title, context.description, context.h1, context.name, context.businessName].filter(Boolean).join(" ");
+    const classificationText = [safeContext.title, safeContext.description, safeContext.h1, safeContext.name, safeContext.businessName].filter(Boolean).join(" ");
     const inferredSchema = /\b(hairdresser|kapper|kappers|kapsalon|salon|knippen|haarkleur|haar)\b/i.test(classificationText)
       ? "Hairdresser"
       : /\b(restaurant|eetcafé|eetgelegenheid|keuken|menu|diner|lunch)\b/i.test(classificationText)
@@ -59,24 +68,24 @@ function fallback(type: FixType, url: string, current: string, context: Record<s
             : /\b(plumber|loodgieter|loodgieters)\b/i.test(classificationText)
               ? "Plumber"
               : "LocalBusiness";
-    const recommendedSchema = context.recommendedSchema && context.recommendedSchema !== "WebPage"
+    const recommendedSchema = safeContext.recommendedSchema && safeContext.recommendedSchema !== "WebPage"
       ? context.recommendedSchema
       : inferredSchema;
     const details = {
       "@context":"https://schema.org",
       "@type":recommendedSchema,
-      ...((context.businessName || context.name) ? {name: context.businessName || context.name} : {}),
-      ...(context.streetAddress || context.postalCode || context.addressLocality ? {
+      ...((safeContext.businessName || safeContext.name) ? {name: safeContext.businessName || safeContext.name} : {}),
+      ...(safeContext.streetAddress || safeContext.postalCode || safeContext.addressLocality ? {
         address: {
           "@type":"PostalAddress",
-          ...(context.streetAddress ? {streetAddress: context.streetAddress} : {}),
-          ...(context.postalCode ? {postalCode: context.postalCode} : {}),
-          ...(context.addressLocality ? {addressLocality: context.addressLocality} : {}),
-          ...(context.addressCountry ? {addressCountry: context.addressCountry} : {})
+          ...(safeContext.streetAddress ? {streetAddress: safeContext.streetAddress} : {}),
+          ...(safeContext.postalCode ? {postalCode: safeContext.postalCode} : {}),
+          ...(safeContext.addressLocality ? {addressLocality: safeContext.addressLocality} : {}),
+          ...(safeContext.addressCountry ? {addressCountry: safeContext.addressCountry} : {})
         }
       } : {}),
-      ...(context.telephone ? {telephone: context.telephone} : {}),
-      ...(context.url ? {url: context.url} : {})
+      ...(safeContext.telephone ? {telephone: safeContext.telephone} : {}),
+      ...(safeContext.url ? {url: safeContext.url} : {})
     };
     return {title:"Structured data voorstel",content:`<script type="application/ld+json">${JSON.stringify(details,null,2)}</script>`,reason:"Gebruikt alleen de tijdens de scan gevonden bedrijfsgegevens en het passende schema-type."};
   }
@@ -99,8 +108,9 @@ export async function POST(request: Request) {
     try { user = await getCurrentUser(); } catch {}
     if (user && user.credits < 2) return NextResponse.json({error:"Onvoldoende credits. Deze AI-fix kost 2 credits."},{status:402});
 
+    const safeContext = cleanContext(context);
     let mode = "rule_based_fallback";
-    let fix = await generateWithOpenAI(type,url,current,context).catch((error) => {
+    let fix = await generateWithOpenAI(type,url,current,safeContext).catch((error) => {
       if (process.env.NODE_ENV === "production") throw error;
       return null;
     });
@@ -124,7 +134,7 @@ export async function POST(request: Request) {
     }
 
     if (fix === null) {
-      fix = fallback(type, url, current, context);
+      fix = fallback(type, url, current, safeContext);
     } else {
       mode = "openai";
     }
@@ -143,7 +153,7 @@ export async function POST(request: Request) {
     });
 
     if (!validated.validation.valid && type === "structured_data" && expectedSchema) {
-      fix = fallback(type, url, current, context);
+      fix = fallback(type, url, current, safeContext);
       mode = "rule_based_fallback";
       validated = validateFix({
         issue_id: issueId,
