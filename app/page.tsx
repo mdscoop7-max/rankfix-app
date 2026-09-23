@@ -231,6 +231,45 @@ export default function Home() {
                         : issueId === "IMAGE_ALT_MISSING" || item.key === "alt" || item.key === "IMAGE_ALT_MISSING"
                           ? "alt_text"
                           : "structured_data";
+      // Structural fixes are deterministic scan data; render them immediately.
+      // This keeps the dashboard correct even if an API deployment is temporarily stale.
+      if (type === "canonical" || type === "heading_structure" || type === "alt_text") {
+        const escapeHtml = (value: string) => value
+          .replace(/&/g, "&amp;")
+          .replace(/"/g, "&quot;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+        const title = cleanFixContextValue(result.metrics.title || new URL(result.finalUrl).hostname);
+        if (type === "canonical") {
+          setFixes((prev) => ({ ...prev, [item.issue_id || item.key]: {
+            title: "Canonical URL voorstel",
+            content: `<link rel="canonical" href="${escapeHtml(result.finalUrl)}">`,
+            reason: "Gebruikt de uiteindelijke scan-URL als self-referencing canonical."
+          }}));
+        } else if (type === "heading_structure") {
+          const topic = cleanFixContextValue(result.metrics.h1s[0] || result.metrics.title || new URL(result.finalUrl).hostname);
+          setFixes((prev) => ({ ...prev, [item.issue_id || item.key]: {
+            title: "Heading-structuur voorstel",
+            content: `<h2>${escapeHtml(topic)}</h2>\n<h3>Veelgestelde vragen en belangrijke informatie</h3>`,
+            reason: "Gebaseerd op de bestaande paginatitel/H1; controleer de onderwerpen voordat je publiceert."
+          }}));
+        } else {
+          const candidates = result.metrics.imageAltCandidates || [];
+          const rows = candidates.map(({ src }) => {
+            const filename = decodeURIComponent(src.split("?")[0].split("/").pop() || "afbeelding")
+              .replace(/[-_]+/g, " ")
+              .replace(/\.[a-z0-9]+$/i, "")
+              .trim();
+            return `<img src="${escapeHtml(src)}" alt="${escapeHtml(filename || title)}">`;
+          });
+          setFixes((prev) => ({ ...prev, [item.issue_id || item.key]: {
+            title: "Alt-teksten voorstel",
+            content: rows.join("\n"),
+            reason: "Gebaseerd op de gevonden afbeeldings-URL's. Controleer elke alt-tekst visueel voordat je publiceert."
+          }}));
+        }
+        return;
+      }
       // Social metadata is deterministic scan data; render the proposal immediately.
       if (type === "social_metadata") {
         const escapeAttr = (value: string) => {
