@@ -69,11 +69,19 @@ function validateRequestedFixCompletion(current:string, proposed:string, issue:s
   const wantsOgTitle=/og[: -]?title|open graph.*title/.test(text);
   const wantsOgDescription=/og[: -]?description|open graph.*description/.test(text);
   const wantsOgImage=/og[: -]?image|open graph.*image/.test(text);
-  const hasMetaProperty=(v:string,property:string)=>{ const p=property.replace(":","\\:"); return new RegExp("<meta\\\\b[^>]*(?:property|name)\\\\s*=\\\\s*[\\\\""\']"+p+"[\\\\""\'][^>]*content\\\\s*=\\\\s*[\\\\""\'][^\\\\""\']+[\\\\""\'][^>]*>|<meta\\\\b[^>]*content\\\\s*=\\\\s*[\\\\""\'][^\\\\""\']+[\\\\""\'][^>]*(?:property|name)\\\\s*=\\\\s*[\\\\""\']"+p+"[\\\\""\'][^>]*>","i").test(v); };
-  const hasOpenGraphField=(v:string,field:string)=>new RegExp("openGraph\\\\s*:\\\\s*\\\\{[\\\\s\\\\S]*?\\\\b"+field+"\\\\b\\\\s*:\\\\s*[\\\\""\']([^\\\\""\']+)[\\\\""\']","i").test(v);
+  const hasMetaProperty=(v:string,property:string)=>{
+    const escaped=property.replace(":","\\:");
+    const first=new RegExp("<meta[^>]*(?:property|name)=[\\\\""\']"+escaped+"[\\\\""\'][^>]*content=[\\\\""\'][^\\\\""\']+[\\\\""\']","i");
+    const second=new RegExp("<meta[^>]*content=[\\\\""\'][^\\\\""\']+[\\\\""\'][^>]*(?:property|name)=[\\\\""\']"+escaped+"[\\\\""\']","i");
+    return first.test(v)||second.test(v);
+  };
+  const hasOpenGraphField=(v:string,field:string)=>{
+    const block=v.match(/openGraph\\s*:\\s*\\{([\\s\\S]*?)\\}/i)?.[1]||"";
+    return new RegExp("\\b"+field+"\\b\\s*:\\s*[\\\\""\'][^\\\\""\']+[\\\\""\']","i").test(block);
+  };
   const hasOgTitle=(v:string)=>hasMetaProperty(v,"og:title")||hasOpenGraphField(v,"title");
   const hasOgDescription=(v:string)=>hasMetaProperty(v,"og:description")||hasOpenGraphField(v,"description");
-  const hasOgImage=(v:string)=>hasMetaProperty(v,"og:image")||/openGraph\\\\s*:\\\\s*\\\\{[\\\\s\\\\S]*?\\\\b(?:images|image)\\\\b\\\\s*:\\\\s*[^}]+/i.test(v);
+  const hasOgImage=(v:string)=>hasMetaProperty(v,"og:image")||/openGraph\\s*:\\s*\\{[\\s\\S]*?\\b(?:images|image)\\b\\s*:\\s*[^}]+/i.test(v);
   const checks=[[wantsOgTitle,hasOgTitle,"og:title"],[wantsOgDescription,hasOgDescription,"og:description"],[wantsOgImage,hasOgImage,"og:image"]] as const;
   let requestedCount=0; let currentSatisfied=0;
   for(const [requested,checker,label] of checks){ if(!requested) continue; requestedCount++; if(checker(current)) currentSatisfied++; if(!checker(proposed)) errors.push("De gevraagde verbetering voor "+label+" staat niet in de voorgestelde code."); }
