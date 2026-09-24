@@ -20,6 +20,7 @@ export async function POST(request: Request) {
     const user = await getCurrentUser();
     let customerContext = "";
     let selectedScanContext = "";
+    let githubContext = "";
 
     if (user) {
       const scans = await getDb().query(
@@ -27,10 +28,24 @@ export async function POST(request: Request) {
         [user.id]
       );
 
+      const githubConnection = await getDb().query(
+        "SELECT 1 FROM github_connections WHERE user_id=$1 LIMIT 1",
+        [user.id]
+      );
+      const githubFixes = await getDb().query(
+        "SELECT COUNT(*)::int AS count FROM credit_transactions WHERE user_id=$1 AND reason='github_fix'",
+        [user.id]
+      );
+
       customerContext = JSON.stringify({
         name: user.name,
         credits: user.credits,
         scans: scans.rows,
+      });
+      githubContext = JSON.stringify({
+        connected: Boolean(githubConnection.rowCount),
+        fixes_created: githubFixes.rows[0]?.count || 0,
+        normal_fix_cost: 5,
       });
 
       if (dashboard && scanId) {
@@ -91,6 +106,7 @@ export async function POST(request: Request) {
           "Geef praktische, korte stappen. Antwoord in het Nederlands tenzij de gebruiker een andere taal gebruikt.",
           "Klantcontext: " + (customerContext || "Geen ingelogde klantcontext beschikbaar."),
           "Geselecteerde scan: " + (selectedScanContext || "Geen specifieke scan geselecteerd."),
+          "GitHub Fix Engine-context: " + (githubContext || "Geen GitHub-context beschikbaar."),
         ].join("\n")
       : [
           "Je bent RankFix AI, de publieke informatie-assistent van RankFix.",
