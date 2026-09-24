@@ -10,8 +10,15 @@ export async function GET() {
   await ensureDatabase();
   const r=await getDb().query("SELECT github_login,scopes,connected_at,access_token_encrypted FROM github_connections WHERE user_id=$1",[user.id]);
   if(!r.rowCount) return NextResponse.json({connected:false});
+  let token="";
   try {
-    const ghUser=await githubFetch<any>(decryptToken(r.rows[0].access_token_encrypted),"/user");
+    token=decryptToken(r.rows[0].access_token_encrypted);
+  } catch {
+    await getDb().query("DELETE FROM github_connections WHERE user_id=$1",[user.id]);
+    return NextResponse.json({connected:false,reauthorize:true,error:"De opgeslagen GitHub-koppeling is ongeldig. Verbind GitHub opnieuw."});
+  }
+  try {
+    const ghUser=await githubFetch<any>(token,"/user");
     return NextResponse.json({connected:true,connection:{github_login:ghUser.login,scopes:r.rows[0].scopes,connected_at:r.rows[0].connected_at}});
   } catch(error) {
     const message=error instanceof Error?error.message:"GitHub-authenticatie mislukt.";
