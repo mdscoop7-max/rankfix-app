@@ -380,8 +380,23 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, mode: auditMode }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Scan mislukt.");
+      const contentType = response.headers.get("content-type") || "";
+      const raw = await response.text();
+      let data: any = null;
+      if (contentType.includes("application/json")) {
+        try { data = JSON.parse(raw); } catch {}
+      }
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+          `Scan endpoint gaf HTTP ${response.status} terug. Controleer of de nieuwste Render-deploy actief is.`
+        );
+      }
+      if (!data) {
+        throw new Error(
+          `RankFix kreeg geen JSON terug van /api/scan (content-type: ${contentType || "onbekend"}).`
+        );
+      }
       setResult(data);
       setTab(auditMode === "geo" ? "geo" : "seo");
       setTimeout(() => document.getElementById("resultaat")?.scrollIntoView({ behavior: "smooth" }), 50);
