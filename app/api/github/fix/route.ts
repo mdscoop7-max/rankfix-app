@@ -145,6 +145,16 @@ export async function POST(request:Request){
         creditsRemaining:user.credits
       },{status:401});
     }
+    const simulateInsufficientCredits = process.env.GITHUB_FIX_TEST_MODE?.trim().toLowerCase() === "credits";
+    if(simulateInsufficientCredits){
+      return NextResponse.json({
+        success:false,
+        status:"insufficient_credits",
+        error:"Je hebt momenteel onvoldoende credits om deze verbetering klaar te zetten. Er is niets gewijzigd en er zijn geen credits gebruikt.",
+        creditsCharged:0,
+        creditsRemaining:user.credits
+      },{status:402});
+    }
     const configuredCost = Math.max(0, Number.parseInt(process.env.GITHUB_FIX_COST || "5", 10) || 5);
     const freeTestEmails = (process.env.GITHUB_FIX_FREE_TEST_EMAILS || "")
       .split(",")
