@@ -149,6 +149,25 @@ export default function Home() {
   const [githubResult, setGithubResult] = useState<{url:string;title:string;number:number;creditsRemaining?:number} | null>(null);
   const [githubResults, setGithubResults] = useState<Record<string, {url:string;title:string;number:number;creditsRemaining?:number}>>({});
   const [githubError, setGithubError] = useState("");
+  const [authUser, setAuthUser] = useState<{ name?: string; email?: string } | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data) => {
+        if (!active) return;
+        setAuthUser(data.user || null);
+        setAuthLoading(false);
+      })
+      .catch(() => {
+        if (!active) return;
+        setAuthUser(null);
+        setAuthLoading(false);
+      });
+    return () => { active = false; };
+  }, []);
 
 
   function scrollToSection(id: string) {
@@ -408,8 +427,14 @@ export default function Home() {
               <option value="it" className="bg-slate-900 text-white">🇮🇹 Italiano</option>
               <option value="es" className="bg-slate-900 text-white">🇪🇸 Español</option>
             </select>
-            <a href="/account?mode=login" className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium transition hover:bg-white/10 sm:px-4 sm:text-sm">Inloggen</a>
-            <a href="/account?mode=register" className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-cyan-100 sm:px-4 sm:text-sm">Account aanmaken</a>
+            {!authLoading && (authUser ? (
+              <a href="/dashboard" className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-cyan-100 sm:px-4 sm:text-sm">Dashboard</a>
+            ) : (
+              <>
+                <a href="/account?mode=login" className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium transition hover:bg-white/10 sm:px-4 sm:text-sm">Inloggen</a>
+                <a href="/account?mode=register" className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-cyan-100 sm:px-4 sm:text-sm">Account aanmaken</a>
+              </>
+            ))}
           </div>
           <button type="button" aria-label="Menu openen" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen((open) => !open)} className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-200 lg:hidden">
             {mobileMenuOpen ? "×" : "☰"}
@@ -436,8 +461,14 @@ export default function Home() {
                 <option value="it">🇮🇹 Italiano</option>
                 <option value="es">🇪🇸 Español</option>
               </select>
-              <a href="/account?mode=login" onClick={() => setMobileMenuOpen(false)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm font-semibold text-white">Inloggen</a>
-              <a href="/account?mode=register" onClick={() => setMobileMenuOpen(false)} className="rounded-xl bg-white px-4 py-3 text-center text-sm font-bold text-slate-950">Account aanmaken</a>
+              {!authLoading && (authUser ? (
+                <a href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="rounded-xl bg-white px-4 py-3 text-center text-sm font-bold text-slate-950">Dashboard</a>
+              ) : (
+                <>
+                  <a href="/account?mode=login" onClick={() => setMobileMenuOpen(false)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm font-semibold text-white">Inloggen</a>
+                  <a href="/account?mode=register" onClick={() => setMobileMenuOpen(false)} className="rounded-xl bg-white px-4 py-3 text-center text-sm font-bold text-slate-950">Account aanmaken</a>
+                </>
+              ))}
             </div>
           </div>
         )}
