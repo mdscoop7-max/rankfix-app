@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import AiAssistant from "@/components/ai-assistant";
 
 type Check = {
   key: string;
@@ -939,6 +940,7 @@ export default function Home() {
           <span>SEO · GEO · AI Search · Built independent</span>
         </div>
       </footer>
+      <AiAssistant />
     </main>
   );
 }
