@@ -79,7 +79,7 @@ async function generateCodeFix(filePath:string,fileContent:string,issue:string,c
     "Return ONLY valid JSON: {summary:string,content:string}. content is the COMPLETE replacement file, not a diff.",
     "Preserve behavior and make the smallest safe change. Never invent business facts, branding, URLs, image files, or add secrets.",
     "Do not change existing site identity, brand name, metadata title, or metadata description unless the issue explicitly requests a rebrand.",
-    "Do not add an Open Graph image unless the referenced image already exists in the repository.",
+    "If the scan context contains an existing live-site OG image URL, you may use that exact URL for og:image; do not invent a different image URL.",
     "Do not modify dependencies or unrelated functionality.",
     "File: "+filePath,
     "Issue: "+issue,
