@@ -7,6 +7,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const message = typeof body?.message === "string" ? body.message.trim() : "";
     const dashboard = body?.dashboard === true;
+    const scanId = typeof body?.scanId === "string" ? body.scanId.trim() : "";
 
     if (!message) {
       return NextResponse.json({ error: "Stel eerst een vraag." }, { status: 400 });
@@ -18,6 +19,7 @@ export async function POST(request: Request) {
 
     const user = await getCurrentUser();
     let customerContext = "";
+    let selectedScanContext = "";
 
     if (user) {
       const scans = await getDb().query(
@@ -30,6 +32,44 @@ export async function POST(request: Request) {
         credits: user.credits,
         scans: scans.rows,
       });
+
+      if (dashboard && scanId) {
+        const selected = await getDb().query(
+          "SELECT id, scanned_url, final_url, overall_score, seo_score, geo_score, result, created_at FROM scans WHERE id=$1 AND user_id=$2 LIMIT 1",
+          [scanId, user.id]
+        );
+
+        if (selected.rows[0]) {
+          const row = selected.rows[0];
+          const result = typeof row.result === "string" ? JSON.parse(row.result) : row.result;
+          const checks = [
+            ...(Array.isArray(result?.seo?.checks) ? result.seo.checks : []),
+            ...(Array.isArray(result?.geo?.checks) ? result.geo.checks : []),
+          ].filter((check: any) => check?.status === "fail" || check?.status === "warning");
+
+          selectedScanContext = JSON.stringify({
+            id: row.id,
+            scanned_url: row.scanned_url,
+            final_url: row.final_url,
+            overall_score: row.overall_score,
+            seo_score: row.seo_score,
+            geo_score: row.geo_score,
+            created_at: row.created_at,
+            metrics: result?.metrics || {},
+            problems: checks.map((check: any) => ({
+              category: check.category,
+              title: check.title,
+              status: check.status,
+              message: check.message,
+              fix: check.fix,
+              issue_id: check.issue_id,
+              severity: check.severity,
+              confidence: check.confidence,
+              evidence: check.evidence,
+            })),
+          });
+        }
+      }
     }
 
     const key = process.env.OPENAI_API_KEY;
@@ -50,6 +90,7 @@ export async function POST(request: Request) {
           "Zeg nooit dat je een wijziging hebt uitgevoerd als dat niet in de context staat.",
           "Geef praktische, korte stappen. Antwoord in het Nederlands tenzij de gebruiker een andere taal gebruikt.",
           "Klantcontext: " + (customerContext || "Geen ingelogde klantcontext beschikbaar."),
+          "Geselecteerde scan: " + (selectedScanContext || "Geen specifieke scan geselecteerd."),
         ].join("\n")
       : [
           "Je bent RankFix AI, de publieke informatie-assistent van RankFix.",
