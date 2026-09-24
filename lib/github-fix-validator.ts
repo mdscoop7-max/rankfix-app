@@ -1,11 +1,16 @@
 export type GithubFixValidation = { valid: boolean; errors: string[]; warnings: string[] };
 
-function extractMetadataIdentity(value: string): { title?: string; description?: string; openGraphTitle?: string; openGraphDescription?: string } {
-  const title = value.match(/(?:^|[,{\\n]\\s*)title\\s*:\\s*["']([^"']{1,200})["']/i)?.[1];
-  const description = value.match(/(?:^|[,{\\n]\\s*)description\\s*:\\s*["']([^"']{1,300})["']/i)?.[1];
-  const openGraphBlock = value.match(/openGraph\\s*:\\s*\\{([\\s\\S]*?)\\}/i)?.[1] || "";
-  const openGraphTitle = openGraphBlock.match(/title\\s*:\\s*["']([^"']{1,200})["']/i)?.[1];
-  const openGraphDescription = openGraphBlock.match(/description\\s*:\\s*["']([^"']{1,300})["']/i)?.[1];
+function extractMetadataIdentity(value: string): {
+  title?: string;
+  description?: string;
+  openGraphTitle?: string;
+  openGraphDescription?: string;
+} {
+  const title = value.match(/(?:^|[,{\n][ \t\r\n]*)title[ \t\r\n]*:[ \t\r\n]*["']([^"']{1,200})["']/i)?.[1];
+  const description = value.match(/(?:^|[,{\n][ \t\r\n]*)description[ \t\r\n]*:[ \t\r\n]*["']([^"']{1,300})["']/i)?.[1];
+  const openGraphBlock = value.match(/openGraph[ \t\r\n]*:[ \t\r\n]*\{([\s\S]*?)\}/i)?.[1] || "";
+  const openGraphTitle = openGraphBlock.match(/title[ \t\r\n]*:[ \t\r\n]*["']([^"']{1,200})["']/i)?.[1];
+  const openGraphDescription = openGraphBlock.match(/description[ \t\r\n]*:[ \t\r\n]*["']([^"']{1,300})["']/i)?.[1];
   return { title, description, openGraphTitle, openGraphDescription };
 }
 
@@ -34,7 +39,6 @@ export function validateGithubFix(input: {
   if (!allowsRebrand && before.description && after.description && before.description !== after.description) {
     errors.push("De AI-fix wijzigt de bestaande metadata-beschrijving zonder dat dit is gevraagd.");
   }
-
   if (!allowsRebrand && before.title && after.openGraphTitle && before.title !== after.openGraphTitle) {
     errors.push("De AI-fix zet een andere merk-/paginatitel in Open Graph-metadata.");
   }
@@ -42,8 +46,8 @@ export function validateGithubFix(input: {
     errors.push("De AI-fix zet een andere beschrijving in Open Graph-metadata.");
   }
 
-  if (/openGraph\s*:\s*\{|og:image|images\s*:\s*\[/i.test(input.proposed)) {
-    warnings.push("Open Graph-afbeelding gevonden; controleer dat het bestand in de repository bestaat.");
+  if (/openGraph[ \t\r\n]*:[ \t\r\n]*\{|og:image|images[ \t\r\n]*:[ \t\r\n]*\[/i.test(input.proposed)) {
+    warnings.push("Open Graph-metadata gevonden; controleer dat waarden en eventuele afbeeldingen bij de bestaande site-identiteit passen.");
   }
 
   if (!input.filePath.match(/\.(tsx|ts|jsx|js|html|vue|php)$/i)) {
