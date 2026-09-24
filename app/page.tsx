@@ -641,11 +641,15 @@ export default function Home() {
       {githubResult && !githubFixing && (
         <div className="fixed inset-0 z-[125] flex items-center justify-center bg-[#02050d]/80 px-4 py-6 backdrop-blur-xl">
           <div className="w-full max-w-lg rounded-[28px] border border-emerald-400/20 bg-[#080d1b] p-6 shadow-2xl sm:p-8">
-            <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Fix aangemaakt</div>
+            <div className="text-4xl">🔵</div>
+            <div className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Automatisch klaargezet</div>
             <h2 className="mt-2 text-2xl font-black">De wijziging staat klaar voor controle.</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-400">RankFix heeft de wijziging gecontroleerd en als Pull Request klaargezet. Je hoeft GitHub alleen te openen als je de technische wijziging wilt bekijken of laten reviewen.</p>
-            <a href={githubResult.url} target="_blank" rel="noreferrer" className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-950">Bekijk technische wijziging op GitHub →</a>
-            <button type="button" onClick={() => setGithubResult(null)} className="mt-2 w-full rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold text-slate-300">Sluiten</button>
+            <p className="mt-3 text-sm leading-6 text-slate-400">RankFix heeft de wijziging gecontroleerd en veilig klaargezet. De technische stappen worden op de achtergrond afgehandeld.</p>
+            <div className="mt-5 rounded-2xl border border-cyan-400/10 bg-cyan-400/[0.035] p-4 text-sm leading-6 text-slate-300">
+              <span className="font-bold text-cyan-200">Je hoeft momenteel niets te doen.</span>
+              <div className="mt-1 text-slate-500">RankFix bewaakt de volgende stap automatisch.</div>
+            </div>
+            <button type="button" onClick={() => setGithubResult(null)} className="mt-6 w-full rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-950">Ga terug naar mijn resultaat</button>
           </div>
         </div>
       )}
