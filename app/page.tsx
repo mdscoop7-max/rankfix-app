@@ -379,6 +379,13 @@ export default function Home() {
       const prResult = {url:data.pr.url,title:data.pr.title,number:data.pr.number,creditsRemaining:data.creditsRemaining};
       setGithubResult(prResult);
       setGithubResults((prev) => ({ ...prev, [key]: prResult }));
+      setResult((prev) => {
+        if (!prev) return prev;
+        const markWaiting = (checks: Check[]) => checks.map((check) => (
+          (check.issue_id || check.key) === key ? { ...check, fix_status: "WAITING" as const } : check
+        ));
+        return { ...prev, seo: { ...prev.seo, checks: markWaiting(prev.seo.checks) }, geo: { ...prev.geo, checks: markWaiting(prev.geo.checks) } };
+      });
     } catch (err) { setGithubError(err instanceof Error ? err.message : "GitHub fix mislukt."); }
     finally { setTimeout(() => setGithubFixing(null), 500); }
   }
@@ -431,7 +438,10 @@ export default function Home() {
 
   const activeChecks = result ? (tab === "seo" ? result.seo.checks : result.geo.checks) : [];
   const waitingIssues = useMemo(() => activeChecks.filter((item) => item.fix_status === "WAITING"), [activeChecks]);
-  const issues = useMemo(() => activeChecks.filter((item) => item.status !== "pass" && item.fix_status !== "WAITING"), [activeChecks]);
+  const issues = useMemo(() => activeChecks.filter((item) => {
+    const key = item.issue_id || item.key;
+    return item.status !== "pass" && item.fix_status !== "WAITING" && !githubResults[key];
+  }), [activeChecks, githubResults]);
   const passedCount = activeChecks.filter((item) => item.status === "pass").length;
   const preparedCount = activeChecks.filter((item) => {
     const key = item.issue_id || item.key;
