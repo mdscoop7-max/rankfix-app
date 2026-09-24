@@ -149,8 +149,6 @@ function grade(score: number) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const simulateDatabaseDown = process.env.RANKFIX_TEST_MODE?.trim().toLowerCase() === "db";
-    const simulateScanFailure = process.env.RANKFIX_TEST_MODE?.trim().toLowerCase() === "scan";
     if (simulateScanFailure) {
       return NextResponse.json(
         {
