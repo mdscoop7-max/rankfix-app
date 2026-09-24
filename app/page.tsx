@@ -353,7 +353,7 @@ export default function Home() {
       const response = await fetch("/api/github/fix", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ issue:item.title + ": " + item.fix, context, url:result.finalUrl, issue_id:issueId }) });
       setGithubProgress(72);
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error ? data.error + (response.status === 422 ? " Er is geen GitHub Pull Request aangemaakt." : "") : "GitHub fix mislukt.");
+      if (!response.ok) throw new Error(data.error ? data.error : "RankFix kon deze verbetering nog niet veilig klaarzetten. Er is niets gewijzigd en er zijn geen credits gebruikt.");
       setGithubProgress(100);
       if (data.alreadyApplied) {
         setGithubAlreadyApplied(true);
