@@ -136,6 +136,23 @@ export async function POST(request:Request){
     const canonicalErrors=validateCanonicalTarget(generated.content,typeof body?.url==="string"?body.url:"");
     if(canonicalErrors.length) githubValidation.errors.push(...canonicalErrors);
     if(!githubValidation.valid) return NextResponse.json({error:"AI-codefix is geblokkeerd door de GitHub veiligheidscontrole.",validation:githubValidation},{status:422});
+
+    // Als AI exact dezelfde veilige inhoud teruggeeft, is de verbetering al aanwezig.
+    // Maak dan geen branch, commit, PR of credittransactie aan.
+    const normalizeFile = (value:string) => value.replace(/\r\n/g,"\n").replace(/[ \t]+$/gm,"").trim();
+    if(normalizeFile(current) === normalizeFile(generated.content)){
+      return NextResponse.json({
+        success:true,
+        alreadyApplied:true,
+        status:"already_ok",
+        summary:"Deze verbetering is al aanwezig. RankFix hoefde niets aan te passen.",
+        repository:repo,
+        path,
+        creditsCharged:0,
+        creditsRemaining:user.credits
+      });
+    }
+
     const branch="rankfix/"+Date.now()+"-"+slug(issue);
     const baseRef=await githubFetch<any>(token,"/repos/"+repo+"/git/ref/heads/"+encodeURIComponent(baseBranch));
     await githubFetch<any>(token,"/repos/"+repo+"/git/refs",{method:"POST",body:JSON.stringify({ref:"refs/heads/"+branch,sha:baseRef.object.sha})});
