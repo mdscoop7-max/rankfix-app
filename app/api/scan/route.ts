@@ -149,6 +149,17 @@ function grade(score: number) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const simulateDatabaseDown = process.env.RANKFIX_TEST_MODE?.trim().toLowerCase() === "db";
+    if (simulateDatabaseDown) {
+      return NextResponse.json(
+        {
+          success: false,
+          status: "database_unavailable",
+          error: "RankFix kan de resultaten tijdelijk niet opslaan. Probeer het over een moment opnieuw. Er is niets gewijzigd en er zijn geen credits gebruikt.",
+        },
+        { status: 503 }
+      );
+    }
     const rawUrl = typeof body?.url === "string" ? body.url.trim() : "";
     const mode: AuditMode = body?.mode === "seo" || body?.mode === "geo" || body?.mode === "both" ? body.mode : "both";
 
