@@ -125,6 +125,16 @@ export async function POST(request:Request){
         creditsRemaining:user.credits
       },{status:409});
     }
+    const simulateInvalid = process.env.GITHUB_FIX_TEST_MODE?.trim().toLowerCase() === "invalid";
+    if(simulateInvalid){
+      return NextResponse.json({
+        success:false,
+        status:"invalid_ai_fix",
+        error:"Deze wijziging kan niet veilig worden klaargezet. RankFix heeft de wijziging geblokkeerd. Er is niets aangepast en er zijn geen credits gebruikt.",
+        creditsCharged:0,
+        creditsRemaining:user.credits
+      },{status:422});
+    }
     const simulateExpired = process.env.GITHUB_FIX_TEST_MODE?.trim().toLowerCase() === "expired";
     if(simulateExpired){
       return NextResponse.json({
