@@ -37,6 +37,23 @@ async function chooseFile(token:string,repo:string,branch:string,requested:strin
   return ranked[0].path;
 }
 function slug(v:string){ return v.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,42)||"seo-fix"; }
+function normalizeHostname(value:string){
+  try { return new URL(value).hostname.toLowerCase().replace(/^www\\./,""); } catch { return ""; }
+}
+
+function validateCanonicalTarget(proposed:string,targetUrl:string): string[] {
+  const errors:string[]=[];
+  const canonical=proposed.match(/alternates\\s*:\\s*\\{[\\s\\S]*?canonical\\s*:\\s*[\"']([^\"']+)[\"']/i)?.[1]
+    || proposed.match(/<link\\s+rel=[\"']canonical[\"']\\s+href=[\"']([^\"']+)[\"']/i)?.[1]
+    || "";
+  if(!canonical) return errors;
+  const targetHost=normalizeHostname(targetUrl);
+  const canonicalHost=normalizeHostname(canonical);
+  if(!targetHost || !canonicalHost || canonicalHost!==targetHost){
+    errors.push("Canonical-URL wijst naar een ander domein dan de gescande site.");
+  }
+  return errors;
+}
 
 async function generateCodeFix(filePath:string,fileContent:string,issue:string,context:string){
   const key=process.env.OPENAI_API_KEY?.trim();
@@ -115,6 +132,8 @@ export async function POST(request:Request){
     const validated=validateFix({issue_id:"GITHUB_CODE_FIX",rule_id:"GITHUB_CODE_FIX",proposed:generated.content,source:"ai",currentIssue:{issue_id:"GITHUB_CODE_FIX",rule_id:"GITHUB_CODE_FIX",status:"FAIL"},currentValue:current});
     if(!validated.validation.valid) return NextResponse.json({error:"AI-codefix is niet door de validatie gekomen.",validation:validated.validation},{status:422});
     const githubValidation=validateGithubFix({current,proposed:generated.content,filePath:path,issue});
+    const canonicalErrors=validateCanonicalTarget(generated.content,typeof body?.url==="string"?body.url:"");
+    if(canonicalErrors.length) githubValidation.errors.push(...canonicalErrors);
     if(!githubValidation.valid) return NextResponse.json({error:"AI-codefix is geblokkeerd door de GitHub veiligheidscontrole.",validation:githubValidation},{status:422});
     const branch="rankfix/"+Date.now()+"-"+slug(issue);
     const baseRef=await githubFetch<any>(token,"/repos/"+repo+"/git/ref/heads/"+encodeURIComponent(baseBranch));
