@@ -353,8 +353,23 @@ export default function Home() {
       setGithubProgress(30);
       const response = await fetch("/api/github/fix", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ issue:item.title + ": " + item.fix, context, url:result.finalUrl, issue_id:issueId }) });
       setGithubProgress(72);
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ? data.error : "RankFix kon deze verbetering nog niet veilig klaarzetten. Er is niets gewijzigd en er zijn geen credits gebruikt.");
+      const contentType = response.headers.get("content-type") || "";
+      const raw = await response.text();
+      let data: any = null;
+      if (contentType.includes("application/json")) {
+        try { data = JSON.parse(raw); } catch {}
+      }
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+          `RankFix kon de verbetering niet uitvoeren (HTTP ${response.status}). Controleer of de nieuwste Render-deploy actief is.`
+        );
+      }
+      if (!data) {
+        throw new Error(
+          `RankFix kreeg geen JSON terug van /api/github/fix (content-type: ${contentType || "onbekend"}).`
+        );
+      }
       setGithubProgress(100);
       if (data.alreadyApplied) {
         setGithubAlreadyApplied(true);
