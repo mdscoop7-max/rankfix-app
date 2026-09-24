@@ -443,6 +443,22 @@ export async function POST(request: Request) {
     const websiteSchemaPresent = schemaSet.has("website");
     const productSchemaPresent = schemaSet.has("product");
     const criticalCanonicalIssue = canonicalIsCrossDomain;
+    const adsTrackingSignals = [
+      /googletagmanager\.com\/gtm\.js/i.test(html),
+      /gtag\s*\(|googletag\s*\(/i.test(html),
+      /google[-_ ]?analytics|\bG-[A-Z0-9]{6,}\b/i.test(html),
+      /google_adservices|googleads\.g\.doubleclick|\bAW-[0-9-]+\b/i.test(html),
+    ].filter(Boolean).length;
+    const hasGa4 = /google[-_ ]?analytics|\bG-[A-Z0-9]{6,}\b/i.test(html);
+    const hasGoogleAdsTag = /google_adservices|googleads\.g\.doubleclick|\bAW-[0-9-]+\b/i.test(html);
+    const hasConversionSignal = /conversion|conversie|purchase|lead|generate_lead|sign_up/i.test(html);
+    const hasShippingSignal = /verzendkosten|verzending|levering|shipping|delivery|bezorging|ophalen|afhalen/i.test(text);
+    const hasReturnsSignal = /retour|herroepingsrecht|14\s*dagen|bedenktijd|return policy|refund/i.test(text);
+    const hasReviewPlatformSignal = /trustpilot|kiyoh|google reviews|reviews?\.io/i.test(text);
+    const hasCheckoutTrustSignal = /checkout|afrekenen|ideal|iDEAL|visa|mastercard|bancontact|klarna|mollie|pay\s*pal|secure payment|veilig betalen/i.test(text);
+    const ecommerceVariantUrlSignal = hasProductSignal && /[?&](variant|sku|color|colour|size|maat)=/i.test(finalUrl.search);
+    const webshopClaimMatches = text.match(/(?:snelle levering|14\s*dagen retour|gratis verzending|nederlandse webshop|voor\s*\d+\s*uur\s*besteld)/gi) || [];
+    const hasWebshopClaims = webshopClaimMatches.length > 0;
 
     const titleWords = title.toLowerCase().split(/[^a-z0-9à-ÿ]+/i).filter(Boolean);
     const titleUniqueWordRatio = titleWords.length ? new Set(titleWords).size / titleWords.length : 1;
@@ -504,7 +520,7 @@ export async function POST(request: Request) {
         : canonicalIsSelf
           ? check("pass", "canonical", "seo", "Canonical URL", canonicalDropsQuery ? "De canonical wijst naar dezelfde inhoud zonder queryparameters." : "De canonical verwijst naar dezelfde URL als de gescande pagina.", "Behoud een duidelijke self-referencing canonical en laat trackingparameters buiten de voorkeurs-URL.", 7, 7)
           : canonicalIsCrossDomain
-            ? check("warning", "canonical", "seo", "Canonical URL", "De canonical verwijst naar een ander domein dan de gescande pagina.", "Controleer of deze externe canonical bewust is. Voor een normale pagina hoort de canonical doorgaans naar de voorkeurs-URL van dezelfde site te wijzen.", 3, 7)
+            ? check("fail", "canonical", "seo", "Canonical URL", "De canonical verwijst naar een ander domein dan de gescande pagina. Dit kan de verkeerde voorkeurs-URL voor zoekmachines aangeven.", "Gebruik voor een normale pagina een self-referencing canonical op het eigen domein, tenzij een externe canonical bewust en inhoudelijk onderbouwd is.", 0, 10)
             : check("warning", "canonical", "seo", "Canonical URL", "De canonical is aanwezig, maar verwijst niet naar de gescande URL.", "Controleer of de canonical bewust naar een andere, inhoudelijk gelijkwaardige voorkeurs-URL verwijst.", 5, 7)
     );
     seoChecks.push(viewport
@@ -596,6 +612,28 @@ export async function POST(request: Request) {
       : check("warning", "price_format", "seo", "Prijsnotatie", `${priceFormatMatches.length} prijsnotatie(s) gebruikt een punt als decimaalteken, zoals ${priceFormatMatches[0]}.`, "Gebruik voor Nederlandse content bijvoorbeeld € 129,95 en formatteer prijzen met locale-aware formatting.", 2, 5)
     );
 
+    seoChecks.push(hasProductSignal
+      ? hasShippingSignal && hasReturnsSignal && (hasReviewPlatformSignal || hasCheckoutTrustSignal)
+        ? check("pass","webshop_trust","seo","Webshop vertrouwen","Verzend-/retourinformatie en minimaal één duidelijk vertrouwenssignaal zijn zichtbaar.","Houd verzendkosten, retourvoorwaarden, betaalmethoden en reviews ook op checkout-niveau duidelijk.",7,7)
+        : check("warning","webshop_trust","seo","Webshop vertrouwen","Niet alle belangrijke verzend-, retour- en vertrouwenssignalen zijn zichtbaar op deze pagina.","Maak verzendkosten, retourvoorwaarden, betaalmogelijkheden en review-/vertrouwenssignalen duidelijk voordat bezoekers afrekenen.",3,7)
+      : check("pass","webshop_trust","seo","Webshop vertrouwen","Geen duidelijke webshop-signalen gevonden; deze e-commercecontrole is niet van toepassing.","Gebruik deze controle op product- en categoriepagina's.",7,7));
+    seoChecks.push(ecommerceVariantUrlSignal
+      ? check("warning","variant_url","seo","Productvariant-URL","Deze product-URL bevat een variant-/SKU-parameter. Dat kan duplicate URL's en indexatieproblemen veroorzaken.","Gebruik bij varianten een duidelijke canonical, stabiele URL-strategie en indexeer alleen pagina's die zelfstandig waarde hebben.",2,5)
+      : check("pass","variant_url","seo","Productvariant-URL","Geen duidelijke variant-/SKU-parameter in de gescande URL gevonden.","Houd product- en variant-URL's stabiel en canoniek.",5,5));
+    seoChecks.push(hasWebshopClaims
+      ? hasShippingSignal && hasReturnsSignal
+        ? check("pass","webshop_claims","seo","Webshop-beloftes","Belangrijke webshopbeloftes worden ondersteund door zichtbare verzend- en retourinformatie.","Zorg dat beloofde levertijden, retourtermijnen en verzendvoorwaarden juridisch en praktisch kloppen.",5,5)
+        : check("warning","webshop_claims","seo","Webshop-beloftes",`De pagina bevat claims zoals ${webshopClaimMatches.slice(0,3).join(", ")}, maar de bijbehorende voorwaarden zijn niet duidelijk gevonden.`,"Maak claims controleerbaar via duidelijke verzend-, retour- en voorwaardenpagina's.",2,5)
+      : check("pass","webshop_claims","seo","Webshop-beloftes","Geen specifieke webshopclaims zoals levertijd/retour gevonden.","Maak commerciële claims altijd controleerbaar.",5,5));
+    seoChecks.push(hasProductSignal
+      ? check(hasCheckoutTrustSignal?"pass":"warning","checkout_trust","seo","Checkout- en betaalvertrouwen",hasCheckoutTrustSignal?"Betaal-/checkoutsignalen zijn zichtbaar.":"Geen duidelijke betaal- of checkoutsignalen gevonden op deze pagina.","Toon betaalmogelijkheden en relevante veiligheids-/vertrouwensinformatie waar de bezoeker een aankoopbeslissing neemt.",hasCheckoutTrustSignal?5:2,5)
+      : check("pass","checkout_trust","seo","Checkout- en betaalvertrouwen","Geen webshop-signalen gevonden; checkoutcontrole is niet van toepassing.","Gebruik deze controle op echte webshopcontent.",5,5));
+    seoChecks.push(
+      hasGoogleAdsTag && hasGa4 && hasConversionSignal
+        ? check("pass","ads_readiness","seo","Google Ads readiness","Er zijn Google Ads-, GA4- en conversiesignalen gevonden. RankFix bevestigt hiermee niet dat de accounts correct gekoppeld zijn.","Controleer in Google Ads en GA4 of conversies actief binnenkomen, consent correct werkt en de juiste conversieacties worden gebruikt.",6,6)
+        : adsTrackingSignals > 0 || hasConversionSignal
+          ? check("warning","ads_readiness","seo","Google Ads readiness",`Er zijn enkele advertentie-/tracking-signalen gevonden (${adsTrackingSignals}), maar de volledige meetketen kon vanaf de publieke pagina niet worden bevestigd.`,"Controleer Google tag, GA4, Ads-conversies, consent en landingspagina-relevantie in de advertentieomgeving.",3,6)
+          : check("warning","ads_readiness","seo","Google Ads readiness","Vanaf de publieke pagina zijn geen duidelijke Google Ads/GA4 tracking-signalen gevonden.","Als je Google Ads gebruikt: controleer Google tag, GA4, conversies, consent en landingspagina-relevantie.",2,6));
     geoChecks.push(isHomepage
       ? organizationSchemaPresent && websiteSchemaPresent
         ? check("pass", "organization_website", "geo", "Organization + WebSite", "Organization en WebSite structured data zijn aanwezig op de homepage.", "Houd naam, URL en logo consistent met de zichtbare site-identiteit.", 8, 8)
@@ -682,6 +720,11 @@ export async function POST(request: Request) {
       image_sources: { rule_id: "EXTERNAL_IMAGE_SOURCE", severity: "LOW" },
       business_placeholders: { rule_id: "BUSINESS_PLACEHOLDER", severity: "HIGH" },
       price_format: { rule_id: "PRICE_FORMAT", severity: "LOW" },
+      webshop_trust: { rule_id: "WEBSHOP_TRUST_SIGNALS", severity: "HIGH" },
+      variant_url: { rule_id: "PRODUCT_VARIANT_URL", severity: "MEDIUM" },
+      webshop_claims: { rule_id: "WEBSHOP_CLAIM_VERIFICATION", severity: "MEDIUM" },
+      checkout_trust: { rule_id: "CHECKOUT_TRUST_SIGNALS", severity: "MEDIUM" },
+      ads_readiness: { rule_id: "GOOGLE_ADS_READINESS", severity: "MEDIUM" },
       organization_website: { rule_id: "ORGANIZATION_WEBSITE_SCHEMA", severity: "MEDIUM" },
       product_schema: { rule_id: "PRODUCT_SCHEMA_MISSING", severity: "MEDIUM" },
     };
@@ -709,8 +752,10 @@ export async function POST(request: Request) {
     const selectedSeoScore = selectedSeoChecks.length ? Math.round((selectedSeoChecks.reduce((sum, c) => sum + c.points, 0) / selectedSeoChecks.reduce((sum, c) => sum + c.maxPoints, 0)) * 100) : 0;
     const selectedGeoScore = selectedGeoChecks.length ? Math.round((selectedGeoChecks.reduce((sum, c) => sum + c.points, 0) / selectedGeoChecks.reduce((sum, c) => sum + c.maxPoints, 0)) * 100) : 0;
     let selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
-    const selectedHasCriticalIssue = [...selectedSeoChecks, ...selectedGeoChecks].some((item) => item.status === "fail" && item.severity === "CRITICAL");
-    if (selectedHasCriticalIssue) selectedOverallScore = Math.min(selectedOverallScore, 80);
+    const selectedHasCriticalIssue = [...selectedSeoChecks, ...selectedGeoChecks].some((item) => item.status !== "pass" && item.severity === "CRITICAL");
+    const selectedHasHighIssue = [...selectedSeoChecks, ...selectedGeoChecks].some((item) => item.status === "fail" && item.severity === "HIGH");
+    if (selectedHasCriticalIssue) selectedOverallScore = Math.min(selectedOverallScore, 70);
+    else if (selectedHasHighIssue) selectedOverallScore = Math.min(selectedOverallScore, 88);
     const checks = [...selectedSeoChecks, ...selectedGeoChecks];
 
     let user = null;

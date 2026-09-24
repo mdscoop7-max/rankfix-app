@@ -903,11 +903,12 @@ export default function Home() {
           <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Van scan naar actie.</h2>
           <p className="mt-4 text-slate-400">RankFix wordt een klantvriendelijk platform: ontdek het probleem, begrijp waarom het telt en krijg vervolgens een concrete oplossing.</p>
         </div>
-        <div className="mt-10 grid gap-4 md:grid-cols-3">
+        <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[
-            ["01", "SEO audit", "Technische SEO, metadata, headings, content, links, HTTPS, social metadata, sitemap en meer."],
-            ["02", "GEO audit", "Structured data, entities, FAQ/Q&A, expertise, trust en machine-leesbare context voor AI-search."],
-            ["03", "AI action layer", "Meta titles, descriptions, content en technische voorstellen genereren — met review en controle vóór publicatie."],
+            ["01", "SEO + GEO audit", "Technische SEO, metadata, structured data, entities, social metadata, URL-hygiëne en AI-search signalen."],
+            ["02", "Webshop audit", "Product-schema, prijsnotatie, retour- en verzendsignalen, reviewplatforms, checkout-trust en variant-URL's."],
+            ["03", "Ads readiness", "Controleer landingspagina, tracking-signalen, GA4/GTM en Google Ads-conversies zonder te doen alsof RankFix al toegang heeft tot je Ads-account."],
+            ["04", "Fix Engine", "Automatische fixes krijgen een echte wijziging + controle. Kan RankFix het niet veilig wijzigen, dan krijg je een concreet voorstel of klanttaak."],
           ].map(([number, title, text]) => (
             <div key={number} className="group rounded-3xl border border-white/10 bg-white/[0.025] p-7 transition hover:-translate-y-1 hover:bg-white/[0.04]">
               <div className="text-xs font-black text-cyan-300">{number}</div>
@@ -918,27 +919,27 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="border-t border-white/10 bg-white/[0.02]"><div className="mx-auto max-w-7xl px-5 py-16 lg:px-8"><div className="max-w-2xl"><div className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">Eerlijke fixes</div><h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Geen “fix klaar” als er niets is veranderd.</h2><p className="mt-4 text-slate-500">Elke technische fix doorloopt dezelfde keten: gevonden → gecontroleerd → echt gewijzigd → opnieuw gecontroleerd.</p></div><div className="mt-10 grid gap-4 md:grid-cols-4">{[
+["🟠","Gevonden","RankFix legt in gewone taal uit wat er misgaat en waarom het telt."],
+["🔵","Klaargezet","Alleen een echte, veilige wijziging krijgt deze status."],
+["🟡","Wacht op controle","Een voorbereide fix blijft uit nieuwe probleemlijsten totdat een volgende scan hem bevestigt."],
+["🟢","Bevestigd","De live scan laat zien dat de verbetering daadwerkelijk aanwezig is."]
+].map(([icon,title,text])=><div key={title} className="rounded-3xl border border-white/10 bg-white/[0.025] p-6"><div className="text-2xl">{icon}</div><h3 className="mt-4 font-bold">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-500">{text}</p></div>)}</div></div></section>
+
       <section id="prijzen" className="mx-auto max-w-7xl scroll-mt-8 border-t border-white/10 px-5 py-20 lg:px-8">
         <div className="text-center">
           <div className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">Simple pricing</div>
           <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Betaal voor gebruik. Niet voor ruis.</h2>
           <p className="mx-auto mt-4 max-w-2xl text-slate-500">We bouwen een transparant creditmodel met een gratis instapscan, zodat kleine bedrijven kunnen starten en agencies kunnen opschalen.</p>
         </div>
-        <div className="mx-auto mt-10 grid max-w-5xl gap-4 md:grid-cols-3">
+        <div className="mx-auto mt-10 grid max-w-6xl gap-4 md:grid-cols-2 xl:grid-cols-4">
           {[
-            ["Free", "€0", "Eerste scan", ["1 gratis audit", "SEO + GEO score", "Actiepunten", "Geen creditcard"]],
-            ["Pro", "€19", "per maand", ["Meer scans", "AI fixes", "Scan history", "PDF rapporten"]],
-            ["Agency", "€49", "per maand", ["Meerdere klanten", "White-label reports", "Credits voor AI", "Team & dashboard"]],
-          ].map((entry) => { const [name, price, period, items] = entry as [string, string, string, string[]]; return (
-            <div key={name} className={`rounded-3xl border p-7 ${name === "Pro" ? "border-cyan-400/30 bg-cyan-400/[0.05]" : "border-white/10 bg-white/[0.025]"}`}>
-              <div className="text-sm font-bold">{name}</div>
-              <div className="mt-5 text-4xl font-black">{price}</div>
-              <div className="mt-1 text-xs text-slate-500">{period}</div>
-              <div className="my-6 h-px bg-white/10" />
-              <ul className="space-y-3 text-sm text-slate-400">{(items as string[]).map((item) => <li key={item}>✓ {item}</li>)}</ul>
-              <button className="mt-7 w-full rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold transition hover:bg-white/5">Binnenkort beschikbaar</button>
-            </div>
-          ); })}
+            ["Free","€0","voor kennismaken",["1 site","3 audits / maand","SEO + GEO basis","Klantvriendelijke score","Geen AI-fix"]],
+            ["Starter","€9","per maand",["1 site","15 audits / maand","Webshop checks","5 AI-fix voorstellen","Scan history"]],
+            ["Pro","€19","per maand",["3 sites","50 audits / maand","20 AI-fixes","Ads readiness","PDF rapporten","Prioriteitscontrole"]],
+            ["Agency","€49","per maand",["15 sites","250 audits / maand","100 AI-fixes","White-label PDF","Klantprojecten","Team/workflow"]]
+          ].map((entry)=>{const [name,price,period,items]=entry as [string,string,string,string[]];return <div key={name} className={`rounded-3xl border p-7 ${name==="Pro"?"border-cyan-400/30 bg-cyan-400/[0.05]":"border-white/10 bg-white/[0.025]"}`}><div className="text-sm font-bold">{name}</div><div className="mt-5 text-4xl font-black">{price}</div><div className="mt-1 text-xs text-slate-500">{period}</div><div className="my-6 h-px bg-white/10"/><ul className="space-y-3 text-sm text-slate-400">{items.map(item=><li key={item}>✓ {item}</li>)}</ul><button className="mt-7 w-full rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold transition hover:bg-white/5">Binnenkort beschikbaar</button></div>})}
+        </div>
         </div>
       </section>
 
@@ -947,8 +948,8 @@ export default function Home() {
           <div className="grid gap-8 md:grid-cols-4">
             {[
               ["Websites", "SEO & GEO audits voor publieke webpagina's."],
-              ["Webshops", "Product-, categorie- en contentflows komen in de volgende auditlaag."],
-              ["Apps", "Publieke app-landingspagina's en store-content kunnen straks worden geanalyseerd."],
+              ["Webshops", "Product-, categorie- en conversiesignalen worden steeds verder uitgebreid."],
+              ["Apps", "Publieke app-landingspagina's en store-content kunnen via dezelfde auditprincipes worden voorbereid."],
               ["Agencies", "Klantprojecten, credits, rapporten en white-label workflows."],
             ].map(([title, text]) => <div key={title}><h3 className="font-bold">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-500">{text}</p></div>)}
           </div>
@@ -986,6 +987,8 @@ export default function Home() {
             {[
               ["SEO Audit", "Technische en on-page signalen."],
               ["GEO Audit", "Structured data en AI-search signalen."],
+              ["Webshop Audit", "Productdata, prijzen, trust en e-commerce signalen."],
+              ["Ads Readiness", "Landingspagina, tracking en conversiesignalen voor Google Ads."],
               ["Local SEO", "LocalBusiness, locaties, openingstijden en officiële profielen."]
             ].map(([title,text]) => <button key={title} type="button" onClick={() => title === "SEO Audit" ? startAudit("seo") : title === "GEO Audit" ? startAudit("geo") : scrollToSection("scan")} className="rounded-2xl border border-white/10 bg-white/[0.025] p-6 text-left transition hover:border-cyan-300/30 hover:bg-white/[0.05]"><div className="font-bold">{title}</div><div className="mt-2 text-sm text-slate-500">{text}</div></button>)}
           </div>
