@@ -87,9 +87,9 @@ export async function POST(request:Request){
       .split(",")
       .map((email) => email.trim().toLowerCase())
       .filter(Boolean);
-    const isFreeTestUser = freeTestEmails.includes(String(user.email || "").toLowerCase());
+    const isFreeTestUser = freeTestEmails.includes(String(user.email || "").trim().toLowerCase());
     const GITHUB_FIX_COST = isFreeTestUser ? 0 : configuredCost;
-    if(user.credits<GITHUB_FIX_COST) return NextResponse.json({error:`Minimaal ${GITHUB_FIX_COST} credits nodig voor een GitHub fix. Je hebt ${user.credits}.`},{status:402});
+    if(GITHUB_FIX_COST > 0 && user.credits < GITHUB_FIX_COST) return NextResponse.json({error:`Minimaal ${GITHUB_FIX_COST} credits nodig voor een GitHub fix. Je hebt ${user.credits}.`},{status:402});
     const body=await request.json();
     const requestedRepo=typeof body?.repo==="string"?body.repo.trim():"";
     const requestedPath=typeof body?.path==="string"?body.path.trim():"";
