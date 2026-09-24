@@ -710,7 +710,8 @@ export async function POST(request: Request) {
     const selectedSeoScore = selectedSeoChecks.length ? Math.round((selectedSeoChecks.reduce((sum, c) => sum + c.points, 0) / selectedSeoChecks.reduce((sum, c) => sum + c.maxPoints, 0)) * 100) : 0;
     const selectedGeoScore = selectedGeoChecks.length ? Math.round((selectedGeoChecks.reduce((sum, c) => sum + c.points, 0) / selectedGeoChecks.reduce((sum, c) => sum + c.maxPoints, 0)) * 100) : 0;
     let selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
-    if (checks.some((item) => item.status === "fail" && item.severity === "CRITICAL")) selectedOverallScore = Math.min(selectedOverallScore, 80);
+    const selectedHasCriticalIssue = [...selectedSeoChecks, ...selectedGeoChecks].some((item) => item.status === "fail" && item.severity === "CRITICAL");
+    if (selectedHasCriticalIssue) selectedOverallScore = Math.min(selectedOverallScore, 80);
     const checks = [...selectedSeoChecks, ...selectedGeoChecks];
 
     let user = null;
