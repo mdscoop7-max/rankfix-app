@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { ensureDatabase } from "@/lib/db-init";
 import { sendScanReportEmail } from "@/lib/email";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
@@ -602,6 +603,7 @@ export async function POST(request: Request) {
     try { user = await getCurrentUser(); } catch {}
     if (user) {
       try {
+        await ensureDatabase();
         await getDb().query(
           "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
