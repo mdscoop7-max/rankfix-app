@@ -5,6 +5,7 @@ import { getDb } from "./db";
 
 const scrypt = promisify(scryptCallback);
 const COOKIE = "rankfix_session";
+const REMEMBER_COOKIE = "rankfix_remember";
 const SESSION_DAYS = 30;
 
 export async function hashPassword(password: string) {
@@ -25,7 +26,7 @@ function tokenHash(token: string) {
   return createHmac("sha256", process.env.SESSION_SECRET || "change-me").update(token).digest("hex");
 }
 
-export async function createSession(userId: string) {
+export async function createSession(userId: string, rememberMe = true) {
   const token = randomBytes(32).toString("hex");
   const expires = new Date(Date.now() + SESSION_DAYS * 86400000);
   await getDb().query(
@@ -33,7 +34,15 @@ export async function createSession(userId: string) {
     [tokenHash(token), userId, expires]
   );
   const store = await cookies();
-  store.set(COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", expires });
+  const cookieOptions = {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    ...(rememberMe ? { expires } : {}),
+  };
+  store.set(COOKIE, token, cookieOptions);
+  store.set(REMEMBER_COOKIE, rememberMe ? "1" : "0", rememberMe ? { ...cookieOptions, httpOnly: false } : { ...cookieOptions, httpOnly: false });
 }
 
 export async function destroySession() {
@@ -41,6 +50,7 @@ export async function destroySession() {
   const token = store.get(COOKIE)?.value;
   if (token) await getDb().query("DELETE FROM sessions WHERE token_hash=$1", [tokenHash(token)]);
   store.delete(COOKIE);
+  store.delete(REMEMBER_COOKIE);
 }
 
 export async function getCurrentUser() {
@@ -55,10 +65,19 @@ export async function getCurrentUser() {
   );
   const user = result.rows[0];
   if (!user) return null;
-  // Keep active customers signed in: refresh the 30-day session window.
+
+  const rememberMe = store.get(REMEMBER_COOKIE)?.value !== "0";
   const expires = new Date(Date.now() + SESSION_DAYS * 86400000);
   await getDb().query("UPDATE sessions SET expires_at=$1 WHERE token_hash=$2", [expires, tokenHash(token)]);
+  const cookieOptions = {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    ...(rememberMe ? { expires } : {}),
+  };
   const store2 = await cookies();
-  store2.set(COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", expires });
+  store2.set(COOKIE, token, cookieOptions);
+  store2.set(REMEMBER_COOKIE, rememberMe ? "1" : "0", rememberMe ? { ...cookieOptions, httpOnly: false } : { ...cookieOptions, httpOnly: false });
   return user;
 }
