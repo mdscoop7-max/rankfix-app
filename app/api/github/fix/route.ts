@@ -115,46 +115,6 @@ export async function POST(request:Request){
   try{
     const user=await getCurrentUser();
     if(!user) return NextResponse.json({error:"Login vereist."},{status:401});
-    const simulateDisconnected = process.env.GITHUB_FIX_TEST_MODE?.trim().toLowerCase() === "disconnected";
-    if(simulateDisconnected){
-      return NextResponse.json({
-        success:false,
-        status:"github_not_connected",
-        error:"GitHub is niet verbonden. Verbind GitHub opnieuw om deze technische wijziging klaar te zetten.",
-        creditsCharged:0,
-        creditsRemaining:user.credits
-      },{status:409});
-    }
-    const simulateInvalid = process.env.GITHUB_FIX_TEST_MODE?.trim().toLowerCase() === "invalid";
-    if(simulateInvalid){
-      return NextResponse.json({
-        success:false,
-        status:"invalid_ai_fix",
-        error:"Deze wijziging kan niet veilig worden klaargezet. RankFix heeft de wijziging geblokkeerd. Er is niets aangepast en er zijn geen credits gebruikt.",
-        creditsCharged:0,
-        creditsRemaining:user.credits
-      },{status:422});
-    }
-    const simulateExpired = process.env.GITHUB_FIX_TEST_MODE?.trim().toLowerCase() === "expired";
-    if(simulateExpired){
-      return NextResponse.json({
-        success:false,
-        status:"github_auth_expired",
-        error:"De technische koppeling moet opnieuw worden verbonden. Verbind GitHub opnieuw om deze wijziging klaar te zetten.",
-        creditsCharged:0,
-        creditsRemaining:user.credits
-      },{status:401});
-    }
-    const simulateInsufficientCredits = process.env.GITHUB_FIX_TEST_MODE?.trim().toLowerCase() === "credits";
-    if(simulateInsufficientCredits){
-      return NextResponse.json({
-        success:false,
-        status:"insufficient_credits",
-        error:"Je hebt momenteel onvoldoende credits om deze verbetering klaar te zetten. Er is niets gewijzigd en er zijn geen credits gebruikt.",
-        creditsCharged:0,
-        creditsRemaining:user.credits
-      },{status:402});
-    }
     const configuredCost = Math.max(0, Number.parseInt(process.env.GITHUB_FIX_COST || "5", 10) || 5);
     const freeTestEmails = (process.env.GITHUB_FIX_FREE_TEST_EMAILS || "")
       .split(",")
