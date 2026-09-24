@@ -4,7 +4,14 @@ const API = "https://api.github.com";
 const VERSION = "2026-03-10";
 
 function key() {
-  return createHash("sha256").update(process.env.SESSION_SECRET || "rankfix-dev-secret").digest();
+  const secret = process.env.SESSION_SECRET?.trim();
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("SESSION_SECRET ontbreekt in de productieomgeving.");
+    }
+    return createHash("sha256").update("rankfix-dev-secret").digest();
+  }
+  return createHash("sha256").update(secret).digest();
 }
 export function encryptToken(value: string) {
   const iv = randomBytes(12);
