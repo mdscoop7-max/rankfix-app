@@ -15,6 +15,7 @@ type Check = {
   key: string;
   category: "seo" | "geo";
   title: string;
+  fix_status?: "WAITING" | "DONE";
   status: Status;
   message: string;
   fix: string;
@@ -144,6 +145,18 @@ function check(
 
 function grade(score: number) {
   return score >= 90 ? "A" : score >= 75 ? "B" : score >= 60 ? "C" : score >= 45 ? "D" : "E";
+}
+
+function normalizeScanUrl(value: string) {
+  try {
+    const url = new URL(value);
+    url.hash = "";
+    url.hostname = url.hostname.toLowerCase().replace(/^www\./, "");
+    url.pathname = url.pathname.replace(/\/+$/, "") || "/";
+    return url.toString();
+  } catch {
+    return value.trim().replace(/\/+$/, "");
+  }
 }
 
 export async function POST(request: Request) {
@@ -600,10 +613,33 @@ export async function POST(request: Request) {
     const checks = [...selectedSeoChecks, ...selectedGeoChecks];
 
     let user = null;
+    let pendingFixes = new Map<string, { status: string }>();
     try { user = await getCurrentUser(); } catch {}
     if (user) {
       try {
         await ensureDatabase();
+        const normalizedScanUrl = normalizeScanUrl(finalUrl.toString());
+        const pending = await getDb().query(
+          "SELECT issue_id, status FROM pending_fixes WHERE user_id=$1 AND scanned_url=$2 AND status='PREPARED' AND expires_at>NOW()",
+          [user.id, normalizedScanUrl]
+        );
+        pendingFixes = new Map(pending.rows.map((row: any) => [String(row.issue_id), { status: String(row.status) }]));
+
+        for (const item of checks) {
+          const issueId = String(item.issue_id || item.rule_id || item.key);
+          const pendingFix = pendingFixes.get(issueId);
+          if (!pendingFix) continue;
+          if (item.status === "pass") {
+            await getDb().query(
+              "UPDATE pending_fixes SET status='DONE', updated_at=NOW() WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 AND status='PREPARED'",
+              [user.id, normalizedScanUrl, issueId]
+            );
+            item.fix_status = "DONE";
+          } else {
+            item.fix_status = "WAITING";
+          }
+        }
+
         await getDb().query(
           "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
@@ -683,6 +719,7 @@ export async function POST(request: Request) {
         robotsMentionsSitemap,
       },
       checks,
+      pendingFixes: checks.filter((item) => item.fix_status === "WAITING").map((item) => item.issue_id || item.rule_id || item.key),
     });
   } catch {
     return NextResponse.json({ error: "Er ging iets mis tijdens de SEO/GEO-scan." }, { status: 500 });
