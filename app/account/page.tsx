@@ -10,6 +10,7 @@ export default function Account() {
   const [confirmPassword,setConfirmPassword]=useState("");
   const [error,setError]=useState("");
   const [busy,setBusy]=useState(false);
+  const [rememberMe,setRememberMe]=useState(true);
 
   useEffect(() => {
     fetch("/api/auth/me", { cache: "no-store" })
@@ -32,7 +33,7 @@ export default function Account() {
     }
 
     const endpoint=mode==="login"?"/api/auth/login":"/api/auth/register";
-    const body=mode==="login"?{email,password}:{name,email,password};
+    const body=mode==="login"?{email,password,rememberMe}:{name,email,password};
 
     try {
       const r=await fetch(endpoint,{
@@ -76,8 +77,14 @@ export default function Account() {
             <input required minLength={8} type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Wachtwoord (min. 8 tekens)" autoComplete={mode==="register"?"new-password":"current-password"} className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 outline-none"/>
 
             {mode==="login"&&(
-              <div className="text-right">
+              <div className="flex items-center justify-between gap-4">
+                <label className="flex items-center gap-2 text-sm text-slate-300">
+                  <input type="checkbox" checked={rememberMe} onChange={e=>setRememberMe(e.target.checked)} className="h-4 w-4 rounded" />
+                  Ingelogd blijven
+                </label>
+                <div>
                 <a href="/account/forgot-password" className="text-sm text-cyan-300 hover:text-cyan-200">Wachtwoord vergeten?</a>
+                </div>
               </div>
             )}
 
