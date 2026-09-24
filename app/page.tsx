@@ -412,6 +412,9 @@ export default function Home() {
     () => activeChecks.filter((item) => item.status !== "pass"),
     [activeChecks]
   );
+  const passedCount = activeChecks.filter((item) => item.status === "pass").length;
+  const preparedCount = Object.keys(githubResults).filter((key) => activeChecks.some((item) => (item.issue_id || item.key) === key)).length;
+  const remainingCount = Math.max(issues.length - preparedCount, 0);
 
   return (
     <main className="min-h-screen bg-[#050816] text-white selection:bg-cyan-400 selection:text-slate-950">
@@ -662,6 +665,25 @@ export default function Home() {
             <div className="text-xs text-slate-500">{result.responseTime} ms · HTTP {result.httpStatus}</div>
           </div>
 
+          <div className="mb-6 rounded-[28px] border border-white/10 bg-gradient-to-br from-white/[0.055] to-cyan-400/[0.025] p-5 shadow-2xl shadow-black/10 sm:p-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <div className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">Jouw RankFix resultaat</div>
+                <h3 className="mt-2 text-2xl font-black tracking-tight">Dit is wat er met je website gebeurt.</h3>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">RankFix laat hieronder in gewone taal zien wat al goed is, wat nog beter kan en welke verbeteringen automatisch zijn klaargezet. Je hoeft GitHub of Vercel niet te gebruiken.</p>
+              </div>
+              <div className="rounded-full border border-white/10 bg-black/10 px-3 py-1.5 text-xs font-semibold text-slate-400">{issues.length} {issues.length === 1 ? "verbeterpunt" : "verbeterpunten"} gevonden</div>
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/[0.045] p-4"><div className="text-lg">🟢</div><div className="mt-2 text-sm font-bold text-emerald-200">Gedaan</div><div className="mt-1 text-2xl font-black">{passedCount}</div><p className="mt-1 text-xs leading-5 text-slate-500">Controles die al goed staan.</p></div>
+              <div className="rounded-2xl border border-amber-400/15 bg-amber-400/[0.045] p-4"><div className="text-lg">🟠</div><div className="mt-2 text-sm font-bold text-amber-200">Nog te verbeteren</div><div className="mt-1 text-2xl font-black">{remainingCount}</div><p className="mt-1 text-xs leading-5 text-slate-500">Punten waarvoor nog geen wijziging is klaargezet.</p></div>
+              <div className="rounded-2xl border border-blue-400/15 bg-blue-400/[0.045] p-4"><div className="text-lg">🔵</div><div className="mt-2 text-sm font-bold text-blue-200">Automatisch klaargezet</div><div className="mt-1 text-2xl font-black">{preparedCount}</div><p className="mt-1 text-xs leading-5 text-slate-500">Wijzigingen die RankFix heeft voorbereid.</p></div>
+              <div className="rounded-2xl border border-yellow-400/15 bg-yellow-400/[0.045] p-4"><div className="text-lg">🟡</div><div className="mt-2 text-sm font-bold text-yellow-200">Wacht op controle</div><div className="mt-1 text-2xl font-black">0</div><p className="mt-1 text-xs leading-5 text-slate-500">Geen handeling nodig; RankFix handelt dit verder af.</p></div>
+              <div className="rounded-2xl border border-red-400/15 bg-red-400/[0.045] p-4"><div className="text-lg">🔴</div><div className="mt-2 text-sm font-bold text-red-200">Actie nodig</div><div className="mt-1 text-2xl font-black">0</div><p className="mt-1 text-xs leading-5 text-slate-500">Alleen punten waarvoor jij echt iets moet doen.</p></div>
+            </div>
+            <div className="mt-4 rounded-2xl border border-cyan-400/10 bg-cyan-400/[0.035] px-4 py-3 text-sm text-slate-300"><span className="font-bold text-cyan-200">Je hoeft momenteel niets te doen.</span><span className="ml-1 text-slate-500">Technische stappen worden op de achtergrond door RankFix voorbereid.</span></div>
+          </div>
+
           <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
             <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-6">
               <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">Overall</div>
@@ -687,10 +709,10 @@ export default function Home() {
                 <div className="rounded-3xl border border-amber-400/15 bg-amber-400/[0.035] p-5">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-xs font-bold uppercase tracking-widest text-amber-300">Belangrijkste acties</div>
+                      <div className="text-xs font-bold uppercase tracking-widest text-amber-300">Nog te verbeteren</div>
                       <div className="mt-1 text-lg font-black">{issues.length} {issues.length === 1 ? "verbeterpunt" : "verbeterpunten"}</div>
                     </div>
-                    <span className="rounded-full bg-amber-400/10 px-3 py-1 text-xs font-bold text-amber-200">Fix eerst</span>
+                    <span className="rounded-full bg-amber-400/10 px-3 py-1 text-xs font-bold text-amber-200">{remainingCount > 0 ? "Volgende stap" : "Klaar"}</span>
                   </div>
                   <div className="mt-4 space-y-2">
                     {issues.slice(0, 5).map((item) => (
@@ -731,7 +753,7 @@ export default function Home() {
 
               <details className="rounded-3xl border border-white/10 bg-white/[0.025]">
                 <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-slate-300">
-                  <span className="mr-2">⌄</span> Bekijk alle technische details
+                  <span className="mr-2">⌄</span> Bekijk technische details
                 </summary>
                 <div className="border-t border-white/10 px-5 py-4">
                   <div className="grid gap-2 sm:grid-cols-2">
