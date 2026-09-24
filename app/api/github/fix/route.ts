@@ -13,7 +13,7 @@ async function chooseRepository(token:string,requested:string,url:string){
   if(requested && safeRepo(requested)) return requested;
   const repos=await githubFetch<any[]>(token,"/user/repos?per_page=100&sort=updated&direction=desc");
   if(!Array.isArray(repos)||!repos.length) throw new Error("Geen GitHub-repository gevonden. Verbind een repository met RankFix.");
-  const host=new URL(url).hostname.toLowerCase().replace(/^www\\./,"");
+  const host=new URL(url).hostname.toLowerCase().replace(/^www\./,"");
   const tokens=host.split(".").filter((x)=>x.length>2);
   const scored=repos.map((r:any)=>{ const name=String(r.full_name||"").toLowerCase(); const hits=tokens.filter((t)=>name.includes(t)).length; return {name:r.full_name,score:hits}; }).sort((a,b)=>b.score-a.score);
   return scored[0]?.name || repos[0].full_name;
@@ -32,19 +32,19 @@ async function chooseFile(token:string,repo:string,branch:string,requested:strin
   }
   const tree=await githubFetch<any>(token,"/repos/"+repo+"/git/trees/"+encodeURIComponent(branch)+"?recursive=1");
   const files=Array.isArray(tree?.tree)?tree.tree.filter((x:any)=>x.type==="blob"&&typeof x.path==="string"&&safePath(x.path)):[];
-  const ranked=files.map((f:any)=>{ const p=f.path.toLowerCase(); let score=0; if(/(index|layout|document)/.test(p)) score+=5; if(/\\.(html?|tsx|jsx|vue|php)$/.test(p)) score+=3; if(issueText.includes("social")&&/(head|layout|index|document)/.test(p)) score+=5; if(issueText.includes("canonical")&&/(head|layout|index|document)/.test(p)) score+=5; if(p.includes("template")) score+=2; return {path:f.path,score}; }).sort((a:any,b:any)=>b.score-a.score);
+  const ranked=files.map((f:any)=>{ const p=f.path.toLowerCase(); let score=0; if(/(index|layout|document)/.test(p)) score+=5; if(/\.(html?|tsx|jsx|vue|php)$/.test(p)) score+=3; if(issueText.includes("social")&&/(head|layout|index|document)/.test(p)) score+=5; if(issueText.includes("canonical")&&/(head|layout|index|document)/.test(p)) score+=5; if(p.includes("template")) score+=2; return {path:f.path,score}; }).sort((a:any,b:any)=>b.score-a.score);
   if(!ranked[0]) throw new Error("RankFix kon geen geschikt bestand vinden voor deze fix.");
   return ranked[0].path;
 }
 function slug(v:string){ return v.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,42)||"seo-fix"; }
 function normalizeHostname(value:string){
-  try { return new URL(value).hostname.toLowerCase().replace(/^www\\./,""); } catch { return ""; }
+  try { return new URL(value).hostname.toLowerCase().replace(/^www\./,""); } catch { return ""; }
 }
 
 function validateCanonicalTarget(proposed:string,targetUrl:string): string[] {
   const errors:string[]=[];
-  const canonical=proposed.match(/alternates\\s*:\\s*\\{[\\s\\S]*?canonical\\s*:\\s*[\"']([^\"']+)[\"']/i)?.[1]
-    || proposed.match(/<link\\s+rel=[\"']canonical[\"']\\s+href=[\"']([^\"']+)[\"']/i)?.[1]
+  const canonical=proposed.match(/alternates\s*:\s*\{[\s\S]*?canonical\s*:\s*[\"']([^\"']+)[\"']/i)?.[1]
+    || proposed.match(/<link\s+rel=[\"']canonical[\"']\s+href=[\"']([^\"']+)[\"']/i)?.[1]
     || "";
   if(!canonical) return errors;
   const targetHost=normalizeHostname(targetUrl);
