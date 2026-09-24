@@ -61,7 +61,21 @@ const statements = [
     scopes TEXT,
     connected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-  )`
+  )`,
+  `CREATE TABLE IF NOT EXISTS pending_fixes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    scanned_url TEXT NOT NULL,
+    issue_id TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'PREPARED',
+    repository TEXT,
+    file_path TEXT,
+    pr_number INTEGER,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '7 days')
+  )`,
+  `CREATE INDEX IF NOT EXISTS pending_fixes_lookup_idx ON pending_fixes(user_id, scanned_url, issue_id, status)`
 ];
 
 export async function ensureDatabase() {
