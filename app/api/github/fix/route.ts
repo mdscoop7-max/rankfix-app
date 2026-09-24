@@ -115,6 +115,16 @@ export async function POST(request:Request){
   try{
     const user=await getCurrentUser();
     if(!user) return NextResponse.json({error:"Login vereist."},{status:401});
+    const simulateDisconnected = process.env.GITHUB_FIX_TEST_MODE?.trim().toLowerCase() === "disconnected";
+    if(simulateDisconnected){
+      return NextResponse.json({
+        success:false,
+        status:"github_not_connected",
+        error:"GitHub is niet verbonden. Verbind GitHub opnieuw om deze technische wijziging klaar te zetten.",
+        creditsCharged:0,
+        creditsRemaining:user.credits
+      },{status:409});
+    }
     const configuredCost = Math.max(0, Number.parseInt(process.env.GITHUB_FIX_COST || "5", 10) || 5);
     const freeTestEmails = (process.env.GITHUB_FIX_FREE_TEST_EMAILS || "")
       .split(",")
