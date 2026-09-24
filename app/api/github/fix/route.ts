@@ -40,6 +40,15 @@ function slug(v:string){ return v.toLowerCase().replace(/[^a-z0-9]+/g,"-").repla
 function normalizeHostname(value:string){
   try { return new URL(value).hostname.toLowerCase().replace(/^www\./,""); } catch { return ""; }
 }
+function normalizeScanUrl(value:string){
+  try {
+    const url=new URL(value);
+    url.hash="";
+    url.hostname=url.hostname.toLowerCase().replace(/^www\./,"");
+    url.pathname=url.pathname.replace(/\/+$/,"")||"/";
+    return url.toString();
+  } catch { return value.trim().replace(/\/+$/,""); }
+}
 
 function validateCanonicalTarget(proposed:string,targetUrl:string): string[] {
   const errors:string[]=[];
@@ -183,6 +192,16 @@ export async function POST(request:Request){
       creditsRemaining=updated.rows[0].credits;
       await db.query("INSERT INTO credit_transactions (user_id,amount,reason,reference_id) VALUES ($1,$2,'github_fix',$3)",[user.id,-GITHUB_FIX_COST,String(pr.number)]);
     }
+
+    const scannedUrl = typeof body?.url === "string" ? normalizeScanUrl(body.url) : "";
+    const issueId = String(body?.issue_id || "").trim();
+    if (scannedUrl && issueId) {
+      await db.query(
+        "INSERT INTO pending_fixes (user_id,scanned_url,issue_id,status,repository,file_path,pr_number) VALUES ($1,$2,$3,'PREPARED',$4,$5,$6)",
+        [user.id,scannedUrl,issueId,repo,path,Number(pr.number)||null]
+      );
+    }
+
     return NextResponse.json({success:true,summary:generated.summary,repository:repo,path,branch,pr:{number:pr.number,url:pr.html_url,title:pr.title},creditsCharged:GITHUB_FIX_COST,creditsRemaining});
   }catch(error){ return NextResponse.json({error:error instanceof Error?error.message:"GitHub fix mislukt."},{status:500}); }
 }
