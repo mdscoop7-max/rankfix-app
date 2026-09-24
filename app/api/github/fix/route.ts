@@ -128,7 +128,8 @@ function buildDeterministicOgFix(filePath:string,current:string,issue:string,con
     const openGraphMatch=content.match(/openGraph\s*:\s*\{/i);
     if(openGraphMatch){
       const pos=content.indexOf("{",openGraphMatch.index!)+1;
-      content=content.slice(0,pos)+"\n    "+additions.join(",\n    ")+content.slice(pos);
+      const existing=content.slice(pos).trim().length>0;
+      content=content.slice(0,pos)+"\n    "+additions.join(",\n    ")+(existing?",":"")+content.slice(pos);
     } else {
       const metadataMatch=content.match(/metadata\s*:\s*\{/i);
       if(!metadataMatch) return null;
