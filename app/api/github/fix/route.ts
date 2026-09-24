@@ -125,6 +125,16 @@ export async function POST(request:Request){
         creditsRemaining:user.credits
       },{status:409});
     }
+    const simulateExpired = process.env.GITHUB_FIX_TEST_MODE?.trim().toLowerCase() === "expired";
+    if(simulateExpired){
+      return NextResponse.json({
+        success:false,
+        status:"github_auth_expired",
+        error:"De technische koppeling moet opnieuw worden verbonden. Verbind GitHub opnieuw om deze wijziging klaar te zetten.",
+        creditsCharged:0,
+        creditsRemaining:user.credits
+      },{status:401});
+    }
     const configuredCost = Math.max(0, Number.parseInt(process.env.GITHUB_FIX_COST || "5", 10) || 5);
     const freeTestEmails = (process.env.GITHUB_FIX_FREE_TEST_EMAILS || "")
       .split(",")
