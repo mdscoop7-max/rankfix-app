@@ -87,6 +87,8 @@ async function generateCodeFix(filePath:string,fileContent:string,issue:string,c
     "You are RankFix AI. Modify this repository file to implement exactly one SEO/GEO fix.",
     "Return ONLY valid JSON: {summary:string,content:string}. content is the COMPLETE replacement file, not a diff.",
     "Preserve behavior and make the smallest safe change. Never invent business facts, branding, URLs, image files, or add secrets.",
+    "If the requested issue is not already satisfied, you MUST make a concrete change in the returned file. Never return the CURRENT FILE unchanged unless the issue is already satisfied.",
+    "For Open Graph/social metadata issues, implement every requested og:title, og:description, and og:image field that is missing, using the exact values supplied by the scan context.",
     "Do not change existing site identity, brand name, metadata title, or metadata description unless the issue explicitly requests a rebrand.",
     "If the scan context contains an existing live-site OG image URL, you may use that exact URL for og:image; do not invent a different image URL.",
     "Do not modify dependencies or unrelated functionality.",
