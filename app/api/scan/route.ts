@@ -412,6 +412,39 @@ export async function POST(request: Request) {
     const seoChecks: Check[] = [];
     const geoChecks: Check[] = [];
 
+    // Extended audit signals: trust, ecommerce quality, URL hygiene, social metadata and multilingual SEO.
+    const placeholderPattern = /\[(?:kvk|btw|adres|e-?mail|email|telefoon|phone|address|postcode|plaats|company|naam)\]/i;
+    const placeholderMatches = text.match(/\[(?:kvk|btw|adres|e-?mail|email|telefoon|phone|address|postcode|plaats|company|naam)\]/gi) || [];
+    const hasPlaceholders = placeholderMatches.length > 0;
+    const dutchEuroDecimalPattern = /€\s?\d{1,3}(?:[.,]\d{3})*[.]\d{2}\b/g;
+    const priceFormatMatches = text.match(dutchEuroDecimalPattern) || [];
+    const hasDotDecimalPrices = priceFormatMatches.length > 0;
+    const pathSegments = finalUrl.pathname.split("/").filter(Boolean).map((segment) => decodeURIComponent(segment).toLowerCase().trim());
+    const duplicatePathSegments = pathSegments.filter((segment, index) => index > 0 && segment === pathSegments[index - 1]);
+    const hasDuplicatePathSegments = duplicatePathSegments.length > 0;
+    const imageSrcs = [...html.matchAll(/<img\b[^>]*>/gi)].map((m) => {
+      const tag = m[0];
+      return attrFromTag(tag, "src") || attrFromTag(tag, "data-src") || attrFromTag(tag, "data-lazy-src") || "";
+    }).filter(Boolean);
+    const stockImageHosts = ["images.unsplash.com", "source.unsplash.com", "unsplash.com", "pexels.com", "images.pexels.com", "pixabay.com", "images.pixabay.com"];
+    const externalImageUrls = imageSrcs.filter((src) => {
+      try { return new URL(src, finalUrl).hostname !== finalUrl.hostname; } catch { return false; }
+    });
+    const stockImageUrls = externalImageUrls.filter((src) => {
+      try { return stockImageHosts.some((host) => new URL(src, finalUrl).hostname === host || new URL(src, finalUrl).hostname.endsWith("." + host)); } catch { return false; }
+    });
+    const hasStockImages = stockImageUrls.length > 0;
+    const hasExternalImageHotlinks = externalImageUrls.length > 0;
+    const hasVisibleHtmlEscape = /&amp;/.test(text);
+    const hreflangTags = [...html.matchAll(/<link\b[^>]*>/gi)].map((m) => m[0]).filter((tag) => /\brel\s*=\s*["']alternate["']/i.test(tag) && /\bhreflang\s*=/i.test(tag));
+    const hreflangValues = hreflangTags.map((tag) => attrFromTag(tag, "hreflang").toLowerCase()).filter(Boolean);
+    const hasHreflang = hreflangValues.length > 0;
+    const languageSelectorSignal = /(?:language|taal|sprache|idioma|lingua|français|deutsch|italiano|español|english|nederlands)\b/i.test(text) && /(?:select|dropdown|menu|switch|\bEN\b|\bNL\b|\bDE\b|\bFR\b|\bES\b|\bIT\b)/i.test(text);
+    const organizationSchemaPresent = schemaSet.has("organization");
+    const websiteSchemaPresent = schemaSet.has("website");
+    const productSchemaPresent = schemaSet.has("product");
+    const criticalCanonicalIssue = canonicalIsCrossDomain;
+
     const titleWords = title.toLowerCase().split(/[^a-z0-9à-ÿ]+/i).filter(Boolean);
     const titleUniqueWordRatio = titleWords.length ? new Set(titleWords).size / titleWords.length : 1;
     const descriptionWords = description.toLowerCase().split(/[^a-z0-9à-ÿ]+/i).filter(Boolean);
@@ -525,6 +558,59 @@ export async function POST(request: Request) {
           ? check("pass", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden voor deze ${schemaContextLabel}.`, `Controleer of de schema-opbouw past bij dit paginatype. Relevante hoofdkeuze: ${recommendedSchema}.`, 12, 12)
           : check("fail", "schema", "geo", "Structured data", `Geen geldige JSON-LD structured data gevonden voor deze ${schemaContextLabel}.`, `Voeg relevante schema.org JSON-LD toe. Voor dit paginatype is ${recommendedSchema} de belangrijkste richting; gebruik alleen typen die echt bij de zichtbare content passen.`, 0, 12)
     );
+    seoChecks.push(twitterCard === "summary_large_image"
+      ? check("pass", "twitter_card", "seo", "Twitter Card", "summary_large_image is ingesteld voor rijke social previews.", "Gebruik summary_large_image wanneer een grote social afbeelding beschikbaar is.", 3, 3)
+      : twitterCard
+        ? check("warning", "twitter_card", "seo", "Twitter Card", `Twitter Card is ingesteld als "${twitterCard}".`, "Gebruik summary_large_image met een passende og:image voor rijke previews.", 2, 3)
+        : check("warning", "twitter_card", "seo", "Twitter Card", "Geen twitter:card gevonden.", "Voeg twitter:card=summary_large_image toe voor gedeelde links.", 1, 3)
+    );
+
+    seoChecks.push(hasHreflang || !languageSelectorSignal
+      ? check("pass", "hreflang", "seo", "Meertalige SEO", !languageSelectorSignal ? "Geen duidelijke meertalige pagina-indicatie gevonden; hreflang is daarom niet vereist." : `${hreflangTags.length} hreflang-link(s) gevonden.`, "Gebruik hreflang wanneer dezelfde content in meerdere talen/URL's beschikbaar is.", 5, 5)
+      : check("warning", "hreflang", "seo", "Meertalige SEO", "De pagina lijkt meerdere talen aan te bieden, maar er zijn geen hreflang-verwijzingen gevonden.", "Voeg voor elke taalversie en eventueel x-default correcte hreflang-links toe.", 2, 5)
+    );
+
+    seoChecks.push(hasDuplicatePathSegments
+      ? check("warning", "duplicate_path", "seo", "URL-structuur", `Dubbele padsegmenten gevonden: ${[...new Set(duplicatePathSegments)].join(", ")}.`, "Maak de URL-structuur logisch en redirect oude dubbele URL's met een permanente 301 naar de definitieve URL.", 2, 5)
+      : check("pass", "duplicate_path", "seo", "URL-structuur", "Geen direct dubbele opeenvolgende padsegmenten gevonden.", "Houd URL's kort, logisch en stabiel.", 5, 5)
+    );
+
+    seoChecks.push(hasVisibleHtmlEscape
+      ? check("warning", "html_escape", "seo", "Tekstweergave", "Mogelijk HTML-escaped tekst zoals &amp; lijkt zichtbaar in de inhoud.", "Controleer rendering en encoding zodat bezoekers gewone leestekens zien.", 2, 4)
+      : check("pass", "html_escape", "seo", "Tekstweergave", "Geen duidelijke zichtbare HTML-escape-fout gevonden.", "Behoud correcte HTML-encoding.", 4, 4)
+    );
+
+    seoChecks.push(hasExternalImageHotlinks
+      ? hasStockImages
+        ? check("warning", "image_sources", "seo", "Afbeeldingsbronnen", `${stockImageUrls.length} afbeelding(en) lijken rechtstreeks van externe stocksites te worden geladen.`, "Gebruik waar mogelijk eigen product-/merkafbeeldingen en host publieke assets op het eigen domein.", 2, 5)
+        : check("warning", "image_sources", "seo", `${externalImageUrls.length} afbeelding(en) worden extern geladen.`, "Controleer rechten, beschikbaarheid en prestaties; host belangrijke eigen assets bij voorkeur zelf.", 3, 5)
+      : check("pass", "image_sources", "seo", "Afbeeldingsbronnen", "Geen externe afbeeldings-hotlinks gevonden.", "Gebruik eigen, geoptimaliseerde afbeeldingen voor belangrijke content.", 5, 5)
+    );
+
+    seoChecks.push(hasPlaceholders
+      ? check("fail", "business_placeholders", "seo", "Bedrijfsgegevens", `Er staan nog ${placeholderMatches.length} placeholder(s) zoals ${placeholderMatches.slice(0, 4).join(", ")} op de pagina.`, "Vervang placeholders door echte bedrijfs- en contactgegevens voordat de site live gaat.", 0, 6)
+      : check("pass", "business_placeholders", "seo", "Bedrijfsgegevens", "Geen bekende bedrijfsgegevens-placeholders gevonden.", "Houd bedrijfs- en contactgegevens actueel en consistent.", 6, 6)
+    );
+
+    seoChecks.push(!hasProductSignal || !hasDotDecimalPrices
+      ? check("pass", "price_format", "seo", "Prijsnotatie", !hasProductSignal ? "Geen duidelijke webshop/product-signalen gevonden; prijsnotatie is niet beoordeeld." : "Geen duidelijke Nederlandse europrijs met punt als decimaalteken gevonden.", "Gebruik per taal/regio een passende valuta- en getalnotatie.", 5, 5)
+      : check("warning", "price_format", "seo", "Prijsnotatie", `${priceFormatMatches.length} prijsnotatie(s) gebruikt een punt als decimaalteken, zoals ${priceFormatMatches[0]}.`, "Gebruik voor Nederlandse content bijvoorbeeld € 129,95 en formatteer prijzen met locale-aware formatting.", 2, 5)
+    );
+
+    geoChecks.push(isHomepage
+      ? organizationSchemaPresent && websiteSchemaPresent
+        ? check("pass", "organization_website", "geo", "Organization + WebSite", "Organization en WebSite structured data zijn aanwezig op de homepage.", "Houd naam, URL en logo consistent met de zichtbare site-identiteit.", 8, 8)
+        : check("warning", "organization_website", "geo", "Organization + WebSite", "De homepage mist Organization en/of WebSite structured data.", "Voeg passende Organization- en WebSite JSON-LD toe zonder gegevens te verzinnen.", 3, 8)
+      : check("pass", "organization_website", "geo", "Organization + WebSite", "Homepage-specifieke Organization/WebSite-controle is niet vereist op deze URL.", "Controleer de homepage afzonderlijk voor organisatie- en website-identiteit.", 8, 8)
+    );
+
+    geoChecks.push(hasProductSignal
+      ? productSchemaPresent
+        ? check("pass", "product_schema", "geo", "Product structured data", "Product JSON-LD is aanwezig op deze product-/e-commercepagina.", "Controleer prijs, valuta, beschikbaarheid, SKU en afbeelding tegen de zichtbare productinformatie.", 8, 8)
+        : check("warning", "product_schema", "geo", "Product structured data", "De pagina lijkt product-/e-commercecontent te bevatten, maar Product JSON-LD ontbreekt.", "Voeg Product structured data toe met alleen gegevens die zichtbaar en aantoonbaar zijn.", 3, 8)
+      : check("pass", "product_schema", "geo", "Product structured data", "Geen duidelijke productpagina-signalen gevonden; Product schema is hier niet vereist.", "Gebruik Product schema op echte productpagina's.", 8, 8)
+    );
+
     geoChecks.push(hasEntitySchema
       ? check("pass", "entity", "geo", "Entity-signalen", `Entity schema gevonden: ${schemaTypes.slice(0, 5).join(", ")}.`, "Maak organisatie, product, persoon of publicatie nog duidelijker met consistente gegevens.", 10, 10)
       : hasVisibleBusinessIdentity && (hasBusinessContactDetails || hasSocialOrReviewSignal)
@@ -578,6 +664,11 @@ export async function POST(request: Request) {
         : check("warning", "identity", "geo", "Brand identity", "Weinig expliciete brand identity-signalen gevonden.", "Voeg Organization-data en officiële profielen toe waar relevant.", 2, 5)
     );
 
+    if (criticalCanonicalIssue) {
+      const canonicalCheck = seoChecks.find((item) => item.key === "canonical");
+      if (canonicalCheck && canonicalCheck.status !== "pass") canonicalCheck.severity = "CRITICAL";
+    }
+
     const ruleMap: Record<string, { rule_id: string; severity: Check["severity"] }> = {
       title: { rule_id: title ? "META_TITLE_GUIDANCE" : "META_TITLE_MISSING", severity: title ? "MEDIUM" : "HIGH" },
       description: { rule_id: description ? "META_DESCRIPTION_GUIDANCE" : "META_DESCRIPTION_MISSING", severity: description ? "MEDIUM" : "HIGH" },
@@ -585,6 +676,15 @@ export async function POST(request: Request) {
       alt: { rule_id: "IMAGE_ALT_MISSING", severity: "LOW" },
       social: { rule_id: "SOCIAL_METADATA_INCOMPLETE", severity: "LOW" },
       schema: { rule_id: "STRUCTURED_DATA_MISSING", severity: "MEDIUM" },
+      twitter_card: { rule_id: "TWITTER_CARD_MISSING", severity: "LOW" },
+      hreflang: { rule_id: "HREFLANG_MISSING", severity: "MEDIUM" },
+      duplicate_path: { rule_id: "DUPLICATE_URL_PATH", severity: "MEDIUM" },
+      html_escape: { rule_id: "HTML_ESCAPE_VISIBLE", severity: "LOW" },
+      image_sources: { rule_id: "EXTERNAL_IMAGE_SOURCE", severity: "LOW" },
+      business_placeholders: { rule_id: "BUSINESS_PLACEHOLDER", severity: "HIGH" },
+      price_format: { rule_id: "PRICE_FORMAT", severity: "LOW" },
+      organization_website: { rule_id: "ORGANIZATION_WEBSITE_SCHEMA", severity: "MEDIUM" },
+      product_schema: { rule_id: "PRODUCT_SCHEMA_MISSING", severity: "MEDIUM" },
     };
     for (const item of [...seoChecks, ...geoChecks]) {
       const mapped = ruleMap[item.key];
@@ -609,7 +709,8 @@ export async function POST(request: Request) {
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
     const selectedSeoScore = selectedSeoChecks.length ? Math.round((selectedSeoChecks.reduce((sum, c) => sum + c.points, 0) / selectedSeoChecks.reduce((sum, c) => sum + c.maxPoints, 0)) * 100) : 0;
     const selectedGeoScore = selectedGeoChecks.length ? Math.round((selectedGeoChecks.reduce((sum, c) => sum + c.points, 0) / selectedGeoChecks.reduce((sum, c) => sum + c.maxPoints, 0)) * 100) : 0;
-    const selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
+    let selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
+    if (checks.some((item) => item.status === "fail" && item.severity === "CRITICAL")) selectedOverallScore = Math.min(selectedOverallScore, 80);
     const checks = [...selectedSeoChecks, ...selectedGeoChecks];
 
     let user = null;
