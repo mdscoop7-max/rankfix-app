@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 
 type Repo={full_name:string;default_branch:string;private:boolean};
+type ValidationResult={valid?:boolean;errors?:string[];warnings?:string[]};
+
 export default function GithubPage(){
   const [connected,setConnected]=useState(false);
   const [login,setLogin]=useState("");
@@ -15,6 +17,7 @@ export default function GithubPage(){
   const [busy,setBusy]=useState(false);
   const [message,setMessage]=useState("");
   const [error,setError]=useState("");
+  const [validation,setValidation]=useState<ValidationResult|null>(null);
 
   useEffect(()=>{
     const params=new URLSearchParams(location.search);
@@ -48,7 +51,7 @@ export default function GithubPage(){
       setError("Repository moet in het formaat owner/repository staan, bijvoorbeeld mdscoop7-max/Trendmix.");
       return;
     }
-    setBusy(true);setError("");setMessage("");
+    setBusy(true);setError("");setMessage("");setValidation(null);
     try{
       const r=await fetch("/api/github/fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({repo:cleanRepo,path:cleanPath,issue:cleanIssue,context:context.trim(),baseBranch})});
       const text=await r.text();
@@ -59,7 +62,10 @@ export default function GithubPage(){
         if(/bad credentials|GitHub-token|GitHub-koppeling|opnieuw verbinden/i.test(apiError)){
           setConnected(false);
           setError("Je GitHub-koppeling is ongeldig. Klik op 'GitHub opnieuw verbinden' en autoriseer RankFix opnieuw.");
-        } else setError(apiError);
+        } else {
+          setError(apiError);
+          if(d.validation) setValidation(d.validation);
+        }
         return;
       }
       setPath(d.path || cleanPath);
@@ -93,7 +99,12 @@ export default function GithubPage(){
         <label className="block"><span className="text-sm font-semibold">Bestand <span className="text-xs font-normal text-cyan-300">(automatisch als je dit leeg laat)</span></span><input aria-invalid={false} value={path} onChange={e=>setPath(e.target.value)} placeholder="RankFix kiest automatisch het juiste bestand" className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/><p className="mt-2 text-xs text-slate-500">Laat leeg: RankFix zoekt zelf het meest relevante bestand voor deze auditfix.</p></label>
         <label className="block"><span className="text-sm font-semibold">Wat moet RankFix oplossen?</span><textarea required aria-invalid={!issue.trim()} value={issue} onChange={e=>setIssue(e.target.value)} rows={4} placeholder="Bijv. de meta description ontbreekt of is te kort." className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/></label>
         <label className="block"><span className="text-sm font-semibold">Context uit de audit</span><textarea value={context} onChange={e=>setContext(e.target.value)} rows={3} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/></label>
-        {error&&<div className="rounded-xl bg-red-500/10 p-4 text-sm text-red-200">{error}</div>}
+        {error&&<div className="rounded-xl bg-red-500/10 p-4 text-sm text-red-200">
+          <div className="font-bold">Fix geblokkeerd</div>
+          <div className="mt-1">{error}</div>
+          {validation?.errors?.length ? <ul className="mt-3 list-disc space-y-1 pl-5">{validation.errors.map((item,i)=><li key={i}>{item}</li>)}</ul> : null}
+          {validation?.warnings?.length ? <div className="mt-4"><div className="font-semibold text-amber-200">Waarschuwingen</div><ul className="mt-1 list-disc space-y-1 pl-5 text-amber-100">{validation.warnings.map((item,i)=><li key={i}>{item}</li>)}</ul></div> : null}
+        </div>}
         {message&&<div className="rounded-xl bg-emerald-500/10 p-4 text-sm text-emerald-200 break-all">{message}</div>}
         <button type="submit" onClick={()=>{if(!busy)setMessage("Klik ontvangen — GitHub Fix Engine start…");}} disabled={busy} className="w-full rounded-xl bg-white px-5 py-3 font-bold text-slate-950 disabled:opacity-50">{busy?"AI + GitHub zijn bezig…":"Maak GitHub Pull Request — 5 credits"}</button>
       </form>}
