@@ -24,7 +24,42 @@ export default function AiAssistant({ dashboard = false, scanId = null }: Props)
     if (!dashboard || !scanId) return;
     setOpen(true);
     setInput("Leg deze scan uit en noem de 3 belangrijkste problemen met een concrete oplossing.");
+    setScanIssue(null);
+    setFixResult("");
+    fetch("/api/assistant/scan?scanId=" + encodeURIComponent(scanId), { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => setScanIssue(d.issues?.[0] || null))
+      .catch(() => setScanIssue(null));
   }, [dashboard, scanId]);
+
+  async function startGithubFix() {
+    if (!scanIssue || !scanId || fixBusy) return;
+    setFixBusy(true);
+    setFixResult("");
+    try {
+      const scanResponse = await fetch("/api/assistant/scan?scanId=" + encodeURIComponent(scanId), { cache: "no-store" });
+      const scanData = await scanResponse.json();
+      const issue = scanData.issues?.[0];
+      const scan = scanData.scan;
+      if (!scanResponse.ok || !issue) throw new Error(scanData.error || "Geen actief probleem gevonden.");
+      const response = await fetch("/api/github/fix", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          issue: [issue.title, issue.message, issue.fix].filter(Boolean).join(" - "),
+          context: JSON.stringify(issue),
+          url: scan.scanned_url,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "GitHub Fix kon niet worden gestart.");
+      setFixResult(data.pr?.url ? "PR aangemaakt: " + data.pr.url : "Veilige GitHub Fix is aangemaakt.");
+    } catch (error) {
+      setFixResult(error instanceof Error ? error.message : "GitHub Fix mislukt.");
+    } finally {
+      setFixBusy(false);
+    }
+  }
 
   async function send() {
     const question = input.trim();
