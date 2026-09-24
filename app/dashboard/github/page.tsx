@@ -22,7 +22,15 @@ export default function GithubPage(){
     setContext(params.get("context")||"");
     (async()=>{
       const r=await fetch("/api/github/status"); const d=await r.json();
-      if(d.connected){setConnected(true);setLogin(d.connection.github_login); const rr=await fetch("/api/github/repos"); const rd=await rr.json(); if(rr.ok){setRepos(rd.repos); if(rd.repos[0]){setRepo(rd.repos[0].full_name);setBaseBranch(rd.repos[0].default_branch);}}}
+      if(d.connected){
+        setConnected(true);setLogin(d.connection.github_login);
+        const rr=await fetch("/api/github/repos"); const rd=await rr.json();
+        if(rr.ok){setRepos(rd.repos); if(rd.repos[0]){setRepo(rd.repos[0].full_name);setBaseBranch(rd.repos[0].default_branch);}}
+        else if(/bad credentials|authenticatie|verbinden/i.test(rd.error||"")) { setConnected(false); setError("De GitHub-koppeling is ongeldig. Verbind GitHub opnieuw."); }
+      } else if(d.reauthorize || d.error) {
+        setConnected(false);
+        setError(d.error || "GitHub kan niet worden geverifieerd. Verbind GitHub opnieuw.");
+      }
     })();
   },[]);
 
@@ -46,7 +54,14 @@ export default function GithubPage(){
       const text=await r.text();
       let d:any={};
       try{d=JSON.parse(text);}catch{}
-      if(!r.ok){setError(d.error||"GitHub fix mislukt. Controleer repository en bestand.");return;}
+      if(!r.ok){
+        const apiError=d.error||"GitHub fix mislukt. Controleer repository en bestand.";
+        if(/bad credentials|GitHub-token|GitHub-koppeling|opnieuw verbinden/i.test(apiError)){
+          setConnected(false);
+          setError("Je GitHub-koppeling is ongeldig. Klik op 'GitHub opnieuw verbinden' en autoriseer RankFix opnieuw.");
+        } else setError(apiError);
+        return;
+      }
       setPath(d.path || cleanPath);
       setMessage("PR aangemaakt: "+d.pr.title+" — "+d.pr.url+" | Bestand: "+(d.path || cleanPath));
     }catch(error){
@@ -70,7 +85,10 @@ export default function GithubPage(){
         <p className="mt-2 text-sm text-slate-500">Je geeft RankFix alleen toegang tot GitHub nadat je dit bij GitHub zelf hebt goedgekeurd.</p>
         <a href="/api/github/connect" className="mt-5 inline-flex rounded-xl bg-white px-5 py-3 font-bold text-slate-950">Verbind met GitHub →</a>
       </div> : <form noValidate onSubmit={createFix} className="mt-8 space-y-5 rounded-3xl border border-white/10 bg-white/[0.04] p-7">
-        <div className="rounded-xl border border-emerald-400/15 bg-emerald-400/5 p-4 text-sm text-emerald-200">GitHub verbonden als <b>{login}</b>.</div>
+        <div className="flex flex-col gap-3 rounded-xl border border-emerald-400/15 bg-emerald-400/5 p-4 text-sm text-emerald-200 sm:flex-row sm:items-center sm:justify-between">
+          <span>GitHub verbonden als <b>{login}</b>.</span>
+          <a href="/api/github/connect" className="rounded-lg border border-emerald-300/20 px-3 py-2 text-xs font-bold text-emerald-100 hover:bg-emerald-300/10">GitHub opnieuw verbinden</a>
+        </div>
         <label className="block"><span className="text-sm font-semibold">Repository</span><input required list="github-repositories" aria-invalid={!repo.trim()} value={repo} onChange={e=>{setRepo(e.target.value);const x=repos.find(r=>r.full_name===e.target.value);if(x)setBaseBranch(x.default_branch);}} placeholder="bijv. mdscoop7-max/Trendmix" className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/><datalist id="github-repositories">{repos.map(r=><option key={r.full_name} value={r.full_name}>{r.private?"private":""}</option>)}</datalist><p className="mt-2 text-xs text-slate-500">Kies een voorgestelde repository of vul zelf owner/repository in.</p></label>
         <label className="block"><span className="text-sm font-semibold">Bestand <span className="text-xs font-normal text-cyan-300">(automatisch als je dit leeg laat)</span></span><input aria-invalid={false} value={path} onChange={e=>setPath(e.target.value)} placeholder="RankFix kiest automatisch het juiste bestand" className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/><p className="mt-2 text-xs text-slate-500">Laat leeg: RankFix zoekt zelf het meest relevante bestand voor deze auditfix.</p></label>
         <label className="block"><span className="text-sm font-semibold">Wat moet RankFix oplossen?</span><textarea required aria-invalid={!issue.trim()} value={issue} onChange={e=>setIssue(e.target.value)} rows={4} placeholder="Bijv. de meta description ontbreekt of is te kort." className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/></label>
