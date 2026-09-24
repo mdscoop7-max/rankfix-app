@@ -129,8 +129,9 @@ export async function POST(request:Request){
     const generated=await generateCodeFix(path,current,issue,context);
     if(generated.content.length>180000) return NextResponse.json({error:"AI-output is te groot voor een veilige wijziging."},{status:422});
     if(!generated.content.trim() || /(?:\[YOUR_[^\]]*\]|\bTODO\b|CHANGE_ME|REPLACE_ME|INSERT_[A-Z_]+)/i.test(generated.content)) return NextResponse.json({error:"AI-output bevat lege inhoud of placeholders."},{status:422});
-    const validated=validateFix({issue_id:"GITHUB_CODE_FIX",rule_id:"GITHUB_CODE_FIX",proposed:generated.content,source:"ai",currentIssue:{issue_id:"GITHUB_CODE_FIX",rule_id:"GITHUB_CODE_FIX",status:"FAIL"},currentValue:current});
-    if(!validated.validation.valid) return NextResponse.json({error:"AI-codefix is niet door de validatie gekomen.",validation:validated.validation},{status:422});
+    // GitHub fixes contain a complete source file, not a single SEO field.
+    // The SEO value validator is intentionally not applied to the whole file,
+    // because it can mistake unrelated source-code text for placeholders/field markup.
     const githubValidation=validateGithubFix({current,proposed:generated.content,filePath:path,issue});
     const canonicalErrors=validateCanonicalTarget(generated.content,typeof body?.url==="string"?body.url:"");
     if(canonicalErrors.length) githubValidation.errors.push(...canonicalErrors);
