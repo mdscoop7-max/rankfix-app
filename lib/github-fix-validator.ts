@@ -39,10 +39,10 @@ export function validateGithubFix(input: {
   if (!allowsRebrand && before.description && after.description && before.description !== after.description) {
     errors.push("De AI-fix wijzigt de bestaande metadata-beschrijving zonder dat dit is gevraagd.");
   }
-  if (!allowsRebrand && before.title && after.openGraphTitle && before.title !== after.openGraphTitle) {
+  if (!allowsRebrand && !/og[: -]?title|open graph.*title/i.test(issueText) && before.title && after.openGraphTitle && before.title !== after.openGraphTitle) {
     errors.push("De AI-fix zet een andere merk-/paginatitel in Open Graph-metadata.");
   }
-  if (!allowsRebrand && before.description && after.openGraphDescription && before.description !== after.openGraphDescription) {
+  if (!allowsRebrand && !/og[: -]?description|open graph.*description/i.test(issueText) && before.description && after.openGraphDescription && before.description !== after.openGraphDescription) {
     errors.push("De AI-fix zet een andere beschrijving in Open Graph-metadata.");
   }
 
