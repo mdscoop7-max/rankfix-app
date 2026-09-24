@@ -42,7 +42,7 @@ export async function createSession(userId: string, rememberMe = true) {
     ...(rememberMe ? { expires } : {}),
   };
   store.set(COOKIE, token, cookieOptions);
-  store.set(REMEMBER_COOKIE, rememberMe ? "1" : "0", rememberMe ? { ...cookieOptions, httpOnly: false } : { ...cookieOptions, httpOnly: false });
+  store.set(REMEMBER_COOKIE, rememberMe ? "1" : "0", cookieOptions);
 }
 
 export async function destroySession() {
@@ -78,6 +78,6 @@ export async function getCurrentUser() {
   };
   const store2 = await cookies();
   store2.set(COOKIE, token, cookieOptions);
-  store2.set(REMEMBER_COOKIE, rememberMe ? "1" : "0", rememberMe ? { ...cookieOptions, httpOnly: false } : { ...cookieOptions, httpOnly: false });
+  store2.set(REMEMBER_COOKIE, rememberMe ? "1" : "0", cookieOptions);
   return user;
 }
