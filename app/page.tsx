@@ -712,6 +712,25 @@ export default function Home() {
             <div className="mt-4 rounded-2xl border border-cyan-400/10 bg-cyan-400/[0.035] px-4 py-3 text-sm text-slate-300"><span className="font-bold text-cyan-200">Je hoeft momenteel niets te doen.</span><span className="ml-1 text-slate-500">Technische stappen worden op de achtergrond door RankFix voorbereid.</span></div>
           </div>
 
+          {waitingIssues.length > 0 && (
+            <div className="mb-4 rounded-3xl border border-yellow-400/15 bg-yellow-400/[0.035] p-5">
+              <div className="text-xs font-bold uppercase tracking-widest text-yellow-300">Wacht op controle</div>
+              <div className="mt-1 text-lg font-black">{waitingIssues.length} {waitingIssues.length === 1 ? "verbetering" : "verbeteringen"} zijn al klaargezet.</div>
+              <p className="mt-2 text-sm leading-6 text-slate-500">RankFix toont deze melding niet opnieuw als een nieuw probleem. Zodra een volgende scan bevestigt dat de wijziging live staat, wordt deze automatisch als gedaan verwerkt.</p>
+              <div className="mt-4 space-y-2">
+                {waitingIssues.slice(0, 5).map((item) => (
+                  <div key={item.issue_id || item.key} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/10 p-3">
+                    <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-yellow-400/10 text-xs font-bold text-yellow-300">!</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold">{item.title}</div>
+                      <p className="mt-0.5 text-sm leading-5 text-slate-500">Deze verbetering staat al klaar. RankFix wacht op de technische controle.</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
             <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-6">
               <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">Overall</div>
