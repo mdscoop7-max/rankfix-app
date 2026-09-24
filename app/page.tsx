@@ -733,7 +733,7 @@ export default function Home() {
                             <div className="text-[10px] font-bold uppercase tracking-widest text-cyan-300">RankFix recommendation</div>
                             <p className="mt-1 text-xs leading-5 text-slate-300">{item.fix}</p>
                             <button type="button" onClick={() => generateFix(item)} disabled={fixing === (item.issue_id || item.key)} className="mt-2 rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-400/10 disabled:opacity-50">
-                              {fixing === (item.issue_id || item.key) ? "AI analyseert…" : "✨ Fix met AI"}
+                              {fixing === (item.issue_id || item.key) ? "AI analyseert…" : "✨ Maak fixvoorstel"}
                             </button>
                             {fixes[item.issue_id || item.key] && (
                               <div className="mt-3 rounded-xl border border-emerald-400/15 bg-emerald-400/[0.04] p-3">
@@ -742,14 +742,14 @@ export default function Home() {
                                 <p className="mt-2 text-xs text-slate-500">{fixes[item.issue_id || item.key].reason}</p>
                                 {githubResults[item.issue_id || item.key] && (
                                   <div className="mt-3 rounded-xl border border-emerald-400/15 bg-emerald-400/[0.04] p-3">
-                                    <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">GitHub Pull Request aangemaakt</div>
+                                    <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">GitHub Pull Request</div>
                                     <div className="mt-1 text-sm font-semibold text-slate-200">PR #{githubResults[item.issue_id || item.key].number}: {githubResults[item.issue_id || item.key].title}</div>
                                     <a href={githubResults[item.issue_id || item.key].url} target="_blank" rel="noreferrer" className="mt-2 inline-flex rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-950">Open GitHub PR →</a>
                                   </div>
                                 )}
                                 <div className="mt-3 flex flex-wrap gap-2">
                                   <button type="button" onClick={() => copyFix(item.issue_id || item.key)} className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-950">{copied === (item.issue_id || item.key) ? "Gekopieerd ✓" : "Gebruik deze tekst"}</button>
-                                  <button type="button" onClick={() => createGithubFix(item)} disabled={githubFixing === (item.issue_id || item.key)} className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs font-bold text-cyan-200 disabled:opacity-50">{githubFixing === (item.issue_id || item.key) ? "Bezig…" : "Fix automatisch via GitHub →"}</button>
+                                  <button type="button" onClick={() => createGithubFix(item)} disabled={githubFixing === (item.issue_id || item.key)} className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs font-bold text-cyan-200 disabled:opacity-50">{githubFixing === (item.issue_id || item.key) ? "Bezig…" : "Optioneel: naar GitHub →"}</button>
                                 </div>
                               </div>
                             )}
@@ -785,7 +785,7 @@ export default function Home() {
               <div className="rounded-3xl border border-cyan-400/10 bg-cyan-400/[0.04] p-5">
                 <div className="text-xs font-semibold uppercase tracking-widest text-cyan-300">AI action layer</div>
                 <div className="mt-1 text-lg font-black">{issues.length} {issues.length === 1 ? "fix" : "fixes"} beschikbaar</div>
-                <p className="mt-1 text-sm leading-5 text-slate-500">Open een probleem voor een concrete AI-fix of implementatie via GitHub.</p>
+                <p className="mt-1 text-sm leading-5 text-slate-500">Maak eerst een lokaal fixvoorstel en bekijk het resultaat. GitHub is daarna alleen een optionele publicatiestap.</p>
               </div>
             </div>
           </div>
