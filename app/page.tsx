@@ -352,7 +352,7 @@ export default function Home() {
       const response = await fetch("/api/github/fix", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ issue:item.title + ": " + item.fix, context, url:result.finalUrl, issue_id:issueId }) });
       setGithubProgress(72);
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "GitHub fix mislukt.");
+      if (!response.ok) throw new Error(data.error ? data.error + (response.status === 422 ? " Er is geen GitHub Pull Request aangemaakt." : "") : "GitHub fix mislukt.");
       setGithubProgress(100);
       const prResult = {url:data.pr.url,title:data.pr.title,number:data.pr.number,creditsRemaining:data.creditsRemaining};
       setGithubResult(prResult);
@@ -624,9 +624,9 @@ export default function Home() {
         <div className="fixed inset-0 z-[125] flex items-center justify-center bg-[#02050d]/80 px-4 py-6 backdrop-blur-xl">
           <div className="w-full max-w-lg rounded-[28px] border border-emerald-400/20 bg-[#080d1b] p-6 shadow-2xl sm:p-8">
             <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Fix aangemaakt</div>
-            <h2 className="mt-2 text-2xl font-black">De wijziging staat klaar op GitHub.</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-400">RankFix heeft de juiste gegevens meegenomen en een Pull Request aangemaakt. Je kunt de wijziging op GitHub bekijken, downloaden of laten reviewen.</p>
-            <a href={githubResult.url} target="_blank" rel="noreferrer" className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-950">Open GitHub Pull Request →</a>
+            <h2 className="mt-2 text-2xl font-black">De wijziging staat klaar voor controle.</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-400">RankFix heeft de wijziging gecontroleerd en als Pull Request klaargezet. Je hoeft GitHub alleen te openen als je de technische wijziging wilt bekijken of laten reviewen.</p>
+            <a href={githubResult.url} target="_blank" rel="noreferrer" className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-950">Bekijk technische wijziging op GitHub →</a>
             <button type="button" onClick={() => setGithubResult(null)} className="mt-2 w-full rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold text-slate-300">Sluiten</button>
           </div>
         </div>
@@ -749,7 +749,7 @@ export default function Home() {
                                 )}
                                 <div className="mt-3 flex flex-wrap gap-2">
                                   <button type="button" onClick={() => copyFix(item.issue_id || item.key)} className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-950">{copied === (item.issue_id || item.key) ? "Gekopieerd ✓" : "Gebruik deze tekst"}</button>
-                                  <button type="button" onClick={() => createGithubFix(item)} disabled={githubFixing === (item.issue_id || item.key)} className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs font-bold text-cyan-200 disabled:opacity-50">{githubFixing === (item.issue_id || item.key) ? "Bezig…" : "Optioneel: naar GitHub →"}</button>
+                                  <button type="button" onClick={() => createGithubFix(item)} disabled={githubFixing === (item.issue_id || item.key)} className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs font-bold text-cyan-200 disabled:opacity-50">{githubFixing === (item.issue_id || item.key) ? "Bezig…" : "Fix veilig klaarzetten →"}</button>
                                 </div>
                               </div>
                             )}
