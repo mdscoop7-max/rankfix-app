@@ -141,6 +141,7 @@ export async function POST(request:Request){
     const context=typeof body?.context==="string"?body.context:"";
     const baseBranch=typeof body?.baseBranch==="string"&&/^[A-Za-z0-9._/-]{1,120}$/.test(body.baseBranch)?body.baseBranch:"main";
     if((requestedRepo&&!safeRepo(requestedRepo))||(requestedPath&&!safePath(requestedPath))||!issue) return NextResponse.json({error:"Ongeldige fixgegevens."},{status:400});
+    await ensureDatabase();
     const connection=await getDb().query("SELECT access_token_encrypted FROM github_connections WHERE user_id=$1",[user.id]);
     if(!connection.rowCount) return NextResponse.json({error:"Verbind eerst GitHub via je dashboard."},{status:409});
     const token=decryptToken(connection.rows[0].access_token_encrypted);
