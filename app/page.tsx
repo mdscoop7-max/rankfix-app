@@ -148,6 +148,7 @@ export default function Home() {
   const [githubFixing, setGithubFixing] = useState<string | null>(null);
   const [githubProgress, setGithubProgress] = useState(0);
   const [githubResult, setGithubResult] = useState<{url:string;title:string;number:number;creditsRemaining?:number} | null>(null);
+  const [githubAlreadyApplied, setGithubAlreadyApplied] = useState(false);
   const [githubResults, setGithubResults] = useState<Record<string, {url:string;title:string;number:number;creditsRemaining?:number}>>({});
   const [githubError, setGithubError] = useState("");
   const [authUser, setAuthUser] = useState<{ name?: string; email?: string } | null>(null);
@@ -344,7 +345,7 @@ export default function Home() {
   async function createGithubFix(item: Check) {
     if (!result) return;
     const key = item.issue_id || item.key;
-    setGithubFixing(key); setGithubProgress(8); setGithubResult(null); setGithubError("");
+    setGithubFixing(key); setGithubProgress(8); setGithubResult(null); setGithubAlreadyApplied(false); setGithubError("");
     try {
       const issueId = item.issue_id || item.rule_id || item.key;
       const context = ["URL: " + result.finalUrl, "Scan URL: " + result.scannedUrl, "Issue: " + item.title, "Recommendation: " + item.fix, "Current title: " + cleanFixContextValue(result.metrics.title), "Current description: " + cleanFixContextValue(result.metrics.description), "H1: " + cleanFixContextValue(result.metrics.h1s[0] || ""), "Canonical: " + cleanFixContextValue(result.metrics.canonical || ""), "OG title: " + cleanFixContextValue(result.metrics.openGraph.title || ""), "OG description: " + cleanFixContextValue(result.metrics.openGraph.description || ""), "OG image: " + cleanFixContextValue(result.metrics.openGraph.image || ""), "Image alt candidates: " + JSON.stringify(result.metrics.imageAltCandidates || [])].join("\n");
@@ -354,6 +355,11 @@ export default function Home() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ? data.error + (response.status === 422 ? " Er is geen GitHub Pull Request aangemaakt." : "") : "GitHub fix mislukt.");
       setGithubProgress(100);
+      if (data.alreadyApplied) {
+        setGithubAlreadyApplied(true);
+        return;
+      }
+      if (!data.pr?.url || !data.pr?.number) throw new Error("RankFix kon de technische wijziging niet veilig afronden.");
       const prResult = {url:data.pr.url,title:data.pr.title,number:data.pr.number,creditsRemaining:data.creditsRemaining};
       setGithubResult(prResult);
       setGithubResults((prev) => ({ ...prev, [key]: prResult }));
@@ -627,13 +633,29 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-              <div className="mt-5 text-center text-base font-bold text-white">{githubProgress < 30 ? "We verzamelen je auditgegevens…" : githubProgress < 70 ? "RankFix zoekt het juiste bestand…" : githubProgress < 100 ? "De GitHub-wijziging wordt aangemaakt…" : "Klaar — bijna daar!"}</div>
+              <div className="mt-5 text-center text-base font-bold text-white">{githubProgress < 30 ? "We verzamelen je auditgegevens…" : githubProgress < 70 ? "RankFix controleert de juiste wijziging…" : githubProgress < 100 ? "RankFix zet de verbetering veilig klaar…" : "Klaar — bijna daar!"}</div>
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
                 <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 via-blue-400 to-violet-400 transition-all duration-700" style={{width: githubProgress + "%"}} />
               </div>
-              <div className="mt-2 flex justify-between text-[10px] font-semibold uppercase tracking-widest text-slate-600"><span>Analyseren</span><span>Fixen</span><span>GitHub</span></div>
-              <p className="mt-4 text-center text-xs leading-5 text-slate-500">Dit kan een paar seconden duren. Je hoeft niets te doen — RankFix regelt repository, bestand, wijziging en Pull Request automatisch.</p>
+              <div className="mt-2 flex justify-between text-[10px] font-semibold uppercase tracking-widest text-slate-600"><span>Analyseren</span><span>Controleren</span><span>Klaar</span></div>
+              <p className="mt-4 text-center text-xs leading-5 text-slate-500">Dit kan een paar seconden duren. Je hoeft niets te doen — RankFix regelt de technische stappen automatisch op de achtergrond.</p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {githubAlreadyApplied && !githubFixing && (
+        <div className="fixed inset-0 z-[125] flex items-center justify-center bg-[#02050d]/80 px-4 py-6 backdrop-blur-xl">
+          <div className="w-full max-w-lg rounded-[28px] border border-emerald-400/20 bg-[#080d1b] p-6 shadow-2xl sm:p-8">
+            <div className="text-4xl">🟢</div>
+            <div className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Al in orde</div>
+            <h2 className="mt-2 text-2xl font-black">Deze verbetering was al aanwezig.</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-400">RankFix heeft gecontroleerd of er echt iets moest worden aangepast. Dat was niet nodig.</p>
+            <div className="mt-5 rounded-2xl border border-emerald-400/10 bg-emerald-400/[0.035] p-4 text-sm leading-6 text-slate-300">
+              <span className="font-bold text-emerald-200">Je hoeft niets te doen.</span>
+              <div className="mt-1 text-slate-500">Er is geen technische wijziging aangemaakt en er zijn geen credits gebruikt.</div>
+            </div>
+            <button type="button" onClick={() => setGithubAlreadyApplied(false)} className="mt-6 w-full rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-950">Ga terug naar mijn resultaat</button>
           </div>
         </div>
       )}
@@ -781,13 +803,6 @@ export default function Home() {
                                 <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">{fixes[item.issue_id || item.key].title}</div>
                                 <div className="mt-2 whitespace-pre-wrap break-words text-sm text-slate-200">{fixes[item.issue_id || item.key].content}</div>
                                 <p className="mt-2 text-xs text-slate-500">{fixes[item.issue_id || item.key].reason}</p>
-                                {githubResults[item.issue_id || item.key] && (
-                                  <div className="mt-3 rounded-xl border border-emerald-400/15 bg-emerald-400/[0.04] p-3">
-                                    <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">GitHub Pull Request</div>
-                                    <div className="mt-1 text-sm font-semibold text-slate-200">PR #{githubResults[item.issue_id || item.key].number}: {githubResults[item.issue_id || item.key].title}</div>
-                                    <a href={githubResults[item.issue_id || item.key].url} target="_blank" rel="noreferrer" className="mt-2 inline-flex rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-950">Open GitHub PR →</a>
-                                  </div>
-                                )}
                                 <div className="mt-3 flex flex-wrap gap-2">
                                   <button type="button" onClick={() => copyFix(item.issue_id || item.key)} className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-950">{copied === (item.issue_id || item.key) ? "Gekopieerd ✓" : "Gebruik deze tekst"}</button>
                                   <button type="button" onClick={() => createGithubFix(item)} disabled={githubFixing === (item.issue_id || item.key)} className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs font-bold text-cyan-200 disabled:opacity-50">{githubFixing === (item.issue_id || item.key) ? "Bezig…" : "Fix veilig klaarzetten →"}</button>
@@ -826,7 +841,7 @@ export default function Home() {
               <div className="rounded-3xl border border-cyan-400/10 bg-cyan-400/[0.04] p-5">
                 <div className="text-xs font-semibold uppercase tracking-widest text-cyan-300">AI action layer</div>
                 <div className="mt-1 text-lg font-black">{issues.length} {issues.length === 1 ? "fix" : "fixes"} beschikbaar</div>
-                <p className="mt-1 text-sm leading-5 text-slate-500">Maak eerst een lokaal fixvoorstel en bekijk het resultaat. GitHub is daarna alleen een optionele publicatiestap.</p>
+                <p className="mt-1 text-sm leading-5 text-slate-500">Maak eerst een fixvoorstel en bekijk het resultaat. RankFix regelt technische vervolgstappen automatisch op de achtergrond.</p>
               </div>
             </div>
           </div>
