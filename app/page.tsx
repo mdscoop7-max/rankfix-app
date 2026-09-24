@@ -319,7 +319,7 @@ export default function Home() {
         };
         const ogTitle = cleanFixContextValue(result.metrics.openGraph.title || result.metrics.title);
         const ogDescription = cleanFixContextValue(result.metrics.openGraph.description || result.metrics.description);
-        const ogImage = cleanFixContextValue(result.metrics.openGraph.image || "");
+        const ogImage = cleanFixContextValue(result.metrics.openGraph.image || result.metrics.imageAltCandidates?.[0]?.src || "");
         const content = [
           ogTitle ? `<meta property="og:title" content="${escapeAttr(ogTitle)}">` : "",
           ogDescription ? `<meta property="og:description" content="${escapeAttr(ogDescription)}">` : "",
@@ -328,7 +328,7 @@ export default function Home() {
         setFixes((prev) => ({ ...prev, [item.issue_id || item.key]: {
           title: "Open Graph metadata voorstel",
           content,
-          reason: ogImage ? "Gebruikt bestaande paginatitel, beschrijving en gevonden Open Graph-afbeelding." : "Gebruikt bestaande paginatitel en beschrijving. Voeg og:image toe met een bestaande relevante pagina- of productafbeelding."
+          reason: ogImage ? (result.metrics.openGraph.image ? "Gebruikt bestaande paginatitel, beschrijving en gevonden Open Graph-afbeelding." : "Gebruikt bestaande paginatitel, beschrijving en een bestaande afbeelding van de gescande pagina als og:image.") : "Er is geen bestaande afbeeldings-URL gevonden om veilig als og:image te gebruiken."
         }}));
         return;
       }
@@ -348,7 +348,7 @@ export default function Home() {
     setGithubFixing(key); setGithubProgress(8); setGithubResult(null); setGithubAlreadyApplied(false); setGithubError("");
     try {
       const issueId = item.issue_id || item.rule_id || item.key;
-      const context = ["URL: " + result.finalUrl, "Scan URL: " + result.scannedUrl, "Issue: " + item.title, "Recommendation: " + item.fix, "Current title: " + cleanFixContextValue(result.metrics.title), "Current description: " + cleanFixContextValue(result.metrics.description), "H1: " + cleanFixContextValue(result.metrics.h1s[0] || ""), "Canonical: " + cleanFixContextValue(result.metrics.canonical || ""), "OG title: " + cleanFixContextValue(result.metrics.openGraph.title || ""), "OG description: " + cleanFixContextValue(result.metrics.openGraph.description || ""), "OG image: " + cleanFixContextValue(result.metrics.openGraph.image || ""), "Image alt candidates: " + JSON.stringify(result.metrics.imageAltCandidates || [])].join("\n");
+      const context = ["URL: " + result.finalUrl, "Scan URL: " + result.scannedUrl, "Issue: " + item.title, "Recommendation: " + item.fix, "Current title: " + cleanFixContextValue(result.metrics.title), "Current description: " + cleanFixContextValue(result.metrics.description), "H1: " + cleanFixContextValue(result.metrics.h1s[0] || ""), "Canonical: " + cleanFixContextValue(result.metrics.canonical || ""), "OG title: " + cleanFixContextValue(result.metrics.openGraph.title || ""), "OG description: " + cleanFixContextValue(result.metrics.openGraph.description || ""), "OG image: " + cleanFixContextValue(result.metrics.openGraph.image || ""), "Existing page image candidate: " + cleanFixContextValue(result.metrics.imageAltCandidates?.[0]?.src || ""), "Image alt candidates: " + JSON.stringify(result.metrics.imageAltCandidates || [])].join("\n");
       setGithubProgress(30);
       const response = await fetch("/api/github/fix", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ issue:item.title + ": " + item.fix, context, url:result.finalUrl, issue_id:issueId }) });
       setGithubProgress(72);
