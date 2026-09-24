@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 
-type Props = { dashboard?: boolean };
+type Props = { dashboard?: boolean; scanId?: string | null };
 
-export default function AiAssistant({ dashboard = false }: Props) {
+export default function AiAssistant({ dashboard = false, scanId = null }: Props) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([
@@ -27,7 +27,7 @@ export default function AiAssistant({ dashboard = false }: Props) {
       const response = await fetch("/api/assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: question, dashboard }),
+        body: JSON.stringify({ message: question, dashboard, scanId }),
       });
       const data = await response.json();
       setMessages((m) => [...m, { role: "assistant", content: data.answer || data.error || "Er ging iets mis." }]);
