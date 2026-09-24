@@ -54,6 +54,21 @@ function validateCanonicalTarget(proposed:string,targetUrl:string): string[] {
   }
   return errors;
 }
+function validateRequestedFixCompletion(current:string, proposed:string, issue:string): { errors:string[]; currentAlreadySatisfied:boolean } {
+  const text=issue.toLowerCase();
+  const errors:string[]=[];
+  const wantsOgTitle=/og[: -]?title|open graph.*title/.test(text);
+  const wantsOgDescription=/og[: -]?description|open graph.*description/.test(text);
+  const wantsOgImage=/og[: -]?image|open graph.*image/.test(text);
+  const hasOgTitle=(v:string)=>/(?:property|name)\s*=\s*["']og:title["'][^>]*content\s*=\s*["'][^"']+["']/i.test(v)||/openGraph\s*:\s*\{[\s\S]*?title\s*:\s*["'][^"']+["']/i.test(v);
+  const hasOgDescription=(v:string)=>/(?:property|name)\s*=\s*["']og:description["'][^>]*content\s*=\s*["'][^"']+["']/i.test(v)||/openGraph\s*:\s*\{[\s\S]*?description\s*:\s*["'][^"']+["']/i.test(v);
+  const hasOgImage=(v:string)=>/(?:property|name)\s*=\s*["']og:image["'][^>]*content\s*=\s*["'][^"']+["']/i.test(v)||/openGraph\s*:\s*\{[\s\S]*?(?:images|image)\s*:\s*[^}]+/i.test(v);
+  const checks=[[wantsOgTitle,hasOgTitle,"og:title"],[wantsOgDescription,hasOgDescription,"og:description"],[wantsOgImage,hasOgImage,"og:image"]] as const;
+  let requestedCount=0; let currentSatisfied=0;
+  for(const [requested,checker,label] of checks){ if(!requested) continue; requestedCount++; if(checker(current)) currentSatisfied++; if(!checker(proposed)) errors.push("De gevraagde verbetering voor "+label+" staat niet in de voorgestelde code."); }
+  return {errors,currentAlreadySatisfied:requestedCount>0&&currentSatisfied===requestedCount};
+}
+
 
 async function generateCodeFix(filePath:string,fileContent:string,issue:string,context:string){
   const key=process.env.OPENAI_API_KEY?.trim();
@@ -135,22 +150,18 @@ export async function POST(request:Request){
     const githubValidation=validateGithubFix({current,proposed:generated.content,filePath:path,issue});
     const canonicalErrors=validateCanonicalTarget(generated.content,typeof body?.url==="string"?body.url:"");
     if(canonicalErrors.length) githubValidation.errors.push(...canonicalErrors);
+
+    const completion=validateRequestedFixCompletion(current,generated.content,issue);
+    if(completion.errors.length) githubValidation.errors.push(...completion.errors);
     if(!githubValidation.valid) return NextResponse.json({error:"AI-codefix is geblokkeerd door de GitHub veiligheidscontrole.",validation:githubValidation},{status:422});
 
-    // Als AI exact dezelfde veilige inhoud teruggeeft, is de verbetering al aanwezig.
-    // Maak dan geen branch, commit, PR of credittransactie aan.
-    const normalizeFile = (value:string) => value.replace(/\r\n/g,"\n").replace(/[ \t]+$/gm,"").trim();
-    if(normalizeFile(current) === normalizeFile(generated.content)){
-      return NextResponse.json({
-        success:true,
-        alreadyApplied:true,
-        status:"already_ok",
-        summary:"Deze verbetering is al aanwezig. RankFix hoefde niets aan te passen.",
-        repository:repo,
-        path,
-        creditsCharged:0,
-        creditsRemaining:user.credits
-      });
+    if(completion.currentAlreadySatisfied){
+      return NextResponse.json({success:true,alreadyApplied:true,status:"already_ok",summary:"Deze verbetering is al aanwezig. RankFix hoefde niets aan te passen.",repository:repo,path,creditsCharged:0,creditsRemaining:user.credits});
+    }
+
+    const normalizeFile=(value:string)=>value.replace(/\r\n/g,"\n").replace(/[ \t]+$/gm,"").trim();
+    if(normalizeFile(current)===normalizeFile(generated.content)){
+      return NextResponse.json({success:false,status:"fix_not_applied",error:"RankFix kon de gevraagde verbetering niet aantoonbaar in het bestand plaatsen. Er is niets gewijzigd en er zijn geen credits gebruikt.",repository:repo,path,creditsCharged:0,creditsRemaining:user.credits},{status:422});
     }
 
     const branch="rankfix/"+Date.now()+"-"+slug(issue);
