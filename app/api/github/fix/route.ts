@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { decryptToken, githubFetch } from "@/lib/github";
 import { validateFix } from "@/lib/seo-fix-validator";
+import { validateGithubFix } from "@/lib/github-fix-validator";
 
 function safeRepo(v:string){ return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(v) && !v.includes(".."); }
 function safePath(v:string){ return v.length>0 && v.length<240 && !v.startsWith("/") && !v.split("/").includes("..") && !/[<>:"|?*]/.test(v); }
@@ -43,7 +44,9 @@ async function generateCodeFix(filePath:string,fileContent:string,issue:string,c
   const input=[
     "You are RankFix AI. Modify this repository file to implement exactly one SEO/GEO fix.",
     "Return ONLY valid JSON: {summary:string,content:string}. content is the COMPLETE replacement file, not a diff.",
-    "Preserve behavior and make the smallest safe change. Never invent business facts or add secrets.",
+    "Preserve behavior and make the smallest safe change. Never invent business facts, branding, URLs, image files, or add secrets.",
+    "Do not change existing site identity, brand name, metadata title, or metadata description unless the issue explicitly requests a rebrand.",
+    "Do not add an Open Graph image unless the referenced image already exists in the repository.",
     "Do not modify dependencies or unrelated functionality.",
     "File: "+filePath,
     "Issue: "+issue,
@@ -103,6 +106,8 @@ export async function POST(request:Request){
     if(!generated.content.trim() || /(?:\[YOUR_[^\]]*\]|\bTODO\b|CHANGE_ME|REPLACE_ME|INSERT_[A-Z_]+)/i.test(generated.content)) return NextResponse.json({error:"AI-output bevat lege inhoud of placeholders."},{status:422});
     const validated=validateFix({issue_id:"GITHUB_CODE_FIX",rule_id:"GITHUB_CODE_FIX",proposed:generated.content,source:"ai",currentIssue:{issue_id:"GITHUB_CODE_FIX",rule_id:"GITHUB_CODE_FIX",status:"FAIL"},currentValue:current});
     if(!validated.validation.valid) return NextResponse.json({error:"AI-codefix is niet door de validatie gekomen.",validation:validated.validation},{status:422});
+    const githubValidation=validateGithubFix({current,proposed:generated.content,filePath:path,issue});
+    if(!githubValidation.valid) return NextResponse.json({error:"AI-codefix is geblokkeerd door de GitHub veiligheidscontrole.",validation:githubValidation},{status:422});
     const branch="rankfix/"+Date.now()+"-"+slug(issue);
     const baseRef=await githubFetch<any>(token,"/repos/"+repo+"/git/ref/heads/"+encodeURIComponent(baseBranch));
     await githubFetch<any>(token,"/repos/"+repo+"/git/refs",{method:"POST",body:JSON.stringify({ref:"refs/heads/"+branch,sha:baseRef.object.sha})});
