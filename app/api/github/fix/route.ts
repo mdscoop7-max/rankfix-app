@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { ensureDatabase } from "@/lib/db-init";
 import { decryptToken, githubFetch } from "@/lib/github";
 import { validateFix } from "@/lib/seo-fix-validator";
 import { validateGithubFix } from "@/lib/github-fix-validator";
