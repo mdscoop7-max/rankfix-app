@@ -82,9 +82,8 @@ export async function POST(request:Request){
   try{
     const user=await getCurrentUser();
     if(!user) return NextResponse.json({error:"Login vereist."},{status:401});
-    const isTestAccount = user.email.toLowerCase() === "mdscoop7@gmail.com";
-    const GITHUB_FIX_COST = isTestAccount ? 0 : 5;
-    if(!isTestAccount && user.credits<GITHUB_FIX_COST) return NextResponse.json({error:`Minimaal ${GITHUB_FIX_COST} credits nodig voor een GitHub fix. Je hebt ${user.credits}.`},{status:402});
+    const GITHUB_FIX_COST = 5;
+    if(user.credits<GITHUB_FIX_COST) return NextResponse.json({error:`Minimaal ${GITHUB_FIX_COST} credits nodig voor een GitHub fix. Je hebt ${user.credits}.`},{status:402});
     const body=await request.json();
     const requestedRepo=typeof body?.repo==="string"?body.repo.trim():"";
     const requestedPath=typeof body?.path==="string"?body.path.trim():"";
