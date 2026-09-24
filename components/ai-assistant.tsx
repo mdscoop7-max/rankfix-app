@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Props = { dashboard?: boolean; scanId?: string | null };
 
@@ -16,6 +16,12 @@ export default function AiAssistant({ dashboard = false, scanId = null }: Props)
     },
   ]);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!dashboard || !scanId) return;
+    setOpen(true);
+    setInput("Leg deze scan uit en noem de 3 belangrijkste problemen met een concrete oplossing.");
+  }, [dashboard, scanId]);
 
   async function send() {
     const question = input.trim();
