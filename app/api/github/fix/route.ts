@@ -90,6 +90,45 @@ function validateRequestedFixCompletion(current:string, proposed:string, issue:s
 }
 
 
+function buildDeterministicOgFix(filePath:string,current:string,issue:string,context:string): {content:string;summary:string}|null {
+  const text=issue.toLowerCase();
+  if(!/og[: -]?title|og[: -]?description|og[: -]?image|open graph/.test(text)) return null;
+  const getContext=(label:string)=>context.split("\n").find((line)=>line.toLowerCase().startsWith(label.toLowerCase()+":"))?.slice(label.length+1).trim()||"";
+  const title=getContext("OG title")||getContext("Current title");
+  const description=getContext("OG description")||getContext("Current description");
+  const image=getContext("OG image")||getContext("Existing page image candidate");
+  const esc=(v:string)=>v.replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const wantsTitle=/og[: -]?title|open graph.*title/.test(text);
+  const wantsDescription=/og[: -]?description|open graph.*description/.test(text);
+  const wantsImage=/og[: -]?image|open graph.*image/.test(text);
+  let content=current;
+  if(/\.(html?|php|vue)$/i.test(filePath)){
+    const tags=[
+      wantsTitle&&title&&!hasMetaProperty(content,"og:title")?'<meta property="og:title" content="'+esc(title)+'">':"",
+      wantsDescription&&description&&!hasMetaProperty(content,"og:description")?'<meta property="og:description" content="'+esc(description)+'">':"",
+      wantsImage&&image&&!hasMetaProperty(content,"og:image")?'<meta property="og:image" content="'+esc(image)+'">':""
+    ].filter(Boolean);
+    if(!tags.length) return null;
+    content=content.replace(/<\/head>/i,tags.join("\n")+"\n</head>");
+  } else if(/\.(tsx|jsx|ts|js)$/i.test(filePath)){
+    const additions:string[]=[];
+    if(wantsTitle&&title&&!hasOpenGraphField(content,"title")) additions.push('title: "'+title.replace(/\\/g,"\\\\").replace(/"/g,'\\\"')+'"');
+    if(wantsDescription&&description&&!hasOpenGraphField(content,"description")) additions.push('description: "'+description.replace(/\\/g,"\\\\").replace(/"/g,'\\\"')+'"');
+    if(wantsImage&&image&&!/openGraph[\s\S]*?images?\s*:/i.test(content)) additions.push('images: ["'+image.replace(/\\/g,"\\\\").replace(/"/g,'\\\"')+'"]');
+    if(!additions.length) return null;
+    const openGraphMatch=content.match(/openGraph\s*:\s*\{/i);
+    if(openGraphMatch){
+      const pos=content.indexOf("{",openGraphMatch.index!)+1;
+      content=content.slice(0,pos)+"\n    "+additions.join(",\n    ")+content.slice(pos);
+    } else {
+      const metadataMatch=content.match(/metadata\s*:\s*\{/i);
+      if(!metadataMatch) return null;
+      const pos=content.indexOf("{",metadataMatch.index!)+1;
+      content=content.slice(0,pos)+"\n  openGraph: {\n    "+additions.join(",\n    ")+"\n  },"+content.slice(pos);
+    }
+  } else return null;
+  return {content,summary:"RankFix heeft de ontbrekende Open Graph-metadata veilig toegevoegd met bestaande scanwaarden."};
+}
 async function generateCodeFix(filePath:string,fileContent:string,issue:string,context:string){
   const key=process.env.OPENAI_API_KEY?.trim();
   if(!key) throw new Error("OPENAI_API_KEY ontbreekt in de Render runtime. Controleer Environment Variables van rankfix-app en deploy opnieuw.");
@@ -164,7 +203,8 @@ export async function POST(request:Request){
     if(file.type!=="file"||typeof file.content!=="string") return NextResponse.json({error:"Dit bestand kan niet worden bewerkt."},{status:400});
     const current=Buffer.from(file.content.replace(/\n/g,""),"base64").toString("utf8");
     if(current.length>120000) return NextResponse.json({error:"Bestand is te groot voor een veilige AI-codefix."},{status:413});
-    const generated=await generateCodeFix(path,current,issue,context);
+    const deterministicOgFix=buildDeterministicOgFix(path,current,issue,context);
+    const generated=deterministicOgFix || await generateCodeFix(path,current,issue,context);
     if(generated.content.length>180000) return NextResponse.json({error:"AI-output is te groot voor een veilige wijziging."},{status:422});
     if(!generated.content.trim() || /(?:\[YOUR_[^\]]*\]|\bTODO\b|CHANGE_ME|REPLACE_ME|INSERT_[A-Z_]+)/i.test(generated.content)) return NextResponse.json({error:"AI-output bevat lege inhoud of placeholders."},{status:422});
     // GitHub fixes contain a complete source file, not a single SEO field.
