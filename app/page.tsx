@@ -829,7 +829,10 @@ export default function Home() {
                 </summary>
                 <div className="border-t border-white/10 px-5 py-4">
                   <div className="grid gap-2 sm:grid-cols-2">
-                    {activeChecks.map((item) => (
+                    {activeChecks.filter((item) => {
+                      const key = item.issue_id || item.key;
+                      return item.status === "pass" || (item.fix_status !== "WAITING" && !githubResults[key]);
+                    }).map((item) => (
                       <div key={item.issue_id || item.key} className="rounded-2xl border border-white/10 bg-black/10 p-3">
                         <div className="flex items-center gap-2">
                           <span className={`text-xs font-bold ${item.status === "pass" ? "text-emerald-300" : item.status === "warning" ? "text-amber-300" : "text-red-300"}`}>{statusIcon[item.status]}</span>
