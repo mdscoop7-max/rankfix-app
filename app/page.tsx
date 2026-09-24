@@ -14,6 +14,7 @@ type Check = {
   maxPoints: number;
   issue_id?: string;
   rule_id?: string;
+  fix_status?: "WAITING" | "DONE";
   issue_status?: string;
   severity?: string;
   confidence?: string;
@@ -414,13 +415,14 @@ export default function Home() {
   }
 
   const activeChecks = result ? (tab === "seo" ? result.seo.checks : result.geo.checks) : [];
-  const issues = useMemo(
-    () => activeChecks.filter((item) => item.status !== "pass"),
-    [activeChecks]
-  );
+  const waitingIssues = useMemo(() => activeChecks.filter((item) => item.fix_status === "WAITING"), [activeChecks]);
+  const issues = useMemo(() => activeChecks.filter((item) => item.status !== "pass" && item.fix_status !== "WAITING"), [activeChecks]);
   const passedCount = activeChecks.filter((item) => item.status === "pass").length;
-  const preparedCount = Object.keys(githubResults).filter((key) => activeChecks.some((item) => (item.issue_id || item.key) === key)).length;
-  const remainingCount = Math.max(issues.length - preparedCount, 0);
+  const preparedCount = activeChecks.filter((item) => {
+    const key = item.issue_id || item.key;
+    return item.fix_status === "WAITING" || Boolean(githubResults[key]);
+  }).length;
+  const remainingCount = issues.length;
 
   return (
     <main className="min-h-screen bg-[#050816] text-white selection:bg-cyan-400 selection:text-slate-950">
@@ -704,7 +706,7 @@ export default function Home() {
               <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/[0.045] p-4"><div className="text-lg">🟢</div><div className="mt-2 text-sm font-bold text-emerald-200">Gedaan</div><div className="mt-1 text-2xl font-black">{passedCount}</div><p className="mt-1 text-xs leading-5 text-slate-500">Controles die al goed staan.</p></div>
               <div className="rounded-2xl border border-amber-400/15 bg-amber-400/[0.045] p-4"><div className="text-lg">🟠</div><div className="mt-2 text-sm font-bold text-amber-200">Nog te verbeteren</div><div className="mt-1 text-2xl font-black">{remainingCount}</div><p className="mt-1 text-xs leading-5 text-slate-500">Punten waarvoor nog geen wijziging is klaargezet.</p></div>
               <div className="rounded-2xl border border-blue-400/15 bg-blue-400/[0.045] p-4"><div className="text-lg">🔵</div><div className="mt-2 text-sm font-bold text-blue-200">Automatisch klaargezet</div><div className="mt-1 text-2xl font-black">{preparedCount}</div><p className="mt-1 text-xs leading-5 text-slate-500">Wijzigingen die RankFix heeft voorbereid.</p></div>
-              <div className="rounded-2xl border border-yellow-400/15 bg-yellow-400/[0.045] p-4"><div className="text-lg">🟡</div><div className="mt-2 text-sm font-bold text-yellow-200">Wacht op controle</div><div className="mt-1 text-2xl font-black">0</div><p className="mt-1 text-xs leading-5 text-slate-500">Geen handeling nodig; RankFix handelt dit verder af.</p></div>
+              <div className="rounded-2xl border border-yellow-400/15 bg-yellow-400/[0.045] p-4"><div className="text-lg">🟡</div><div className="mt-2 text-sm font-bold text-yellow-200">Wacht op controle</div><div className="mt-1 text-2xl font-black">{waitingIssues.length}</div><p className="mt-1 text-xs leading-5 text-slate-500">Deze punten zijn al klaargezet en wachten op controle.</p></div>
               <div className="rounded-2xl border border-red-400/15 bg-red-400/[0.045] p-4"><div className="text-lg">🔴</div><div className="mt-2 text-sm font-bold text-red-200">Actie nodig</div><div className="mt-1 text-2xl font-black">0</div><p className="mt-1 text-xs leading-5 text-slate-500">Alleen punten waarvoor jij echt iets moet doen.</p></div>
             </div>
             <div className="mt-4 rounded-2xl border border-cyan-400/10 bg-cyan-400/[0.035] px-4 py-3 text-sm text-slate-300"><span className="font-bold text-cyan-200">Je hoeft momenteel niets te doen.</span><span className="ml-1 text-slate-500">Technische stappen worden op de achtergrond door RankFix voorbereid.</span></div>
