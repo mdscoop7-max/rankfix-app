@@ -22,8 +22,17 @@ export async function verifyPassword(password: string, stored: string) {
   return expected.length === derived.length && timingSafeEqual(expected, derived);
 }
 
+function sessionSecret() {
+  const secret = process.env.SESSION_SECRET?.trim();
+  if (secret) return secret;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("SESSION_SECRET ontbreekt in de productieomgeving.");
+  }
+  return "rankfix-dev-secret";
+}
+
 function tokenHash(token: string) {
-  return createHmac("sha256", process.env.SESSION_SECRET || "change-me").update(token).digest("hex");
+  return createHmac("sha256", sessionSecret()).update(token).digest("hex");
 }
 
 export async function createSession(userId: string, rememberMe = true) {
