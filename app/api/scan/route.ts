@@ -150,6 +150,17 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const simulateDatabaseDown = process.env.RANKFIX_TEST_MODE?.trim().toLowerCase() === "db";
+    const simulateScanFailure = process.env.RANKFIX_TEST_MODE?.trim().toLowerCase() === "scan";
+    if (simulateScanFailure) {
+      return NextResponse.json(
+        {
+          success: false,
+          status: "scan_failed",
+          error: "RankFix kon de website tijdelijk niet scannen. Controleer de website en probeer het zo opnieuw. Er is niets gewijzigd en er zijn geen credits gebruikt.",
+        },
+        { status: 502 }
+      );
+    }
     if (simulateDatabaseDown) {
       return NextResponse.json(
         {
