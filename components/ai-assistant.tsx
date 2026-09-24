@@ -16,6 +16,9 @@ export default function AiAssistant({ dashboard = false, scanId = null }: Props)
     },
   ]);
   const [busy, setBusy] = useState(false);
+  const [scanIssue, setScanIssue] = useState<any>(null);
+  const [fixBusy, setFixBusy] = useState(false);
+  const [fixResult, setFixResult] = useState("");
 
   useEffect(() => {
     if (!dashboard || !scanId) return;
@@ -73,6 +76,19 @@ export default function AiAssistant({ dashboard = false, scanId = null }: Props)
               ))}
               {busy && <div className="mr-8 rounded-2xl bg-white/5 p-3 text-sm text-slate-500">RankFix AI denkt na…</div>}
             </div>
+
+            {dashboard && scanId && (
+              <div className="border-t border-white/10 px-5 py-4">
+                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Veilige fix</div>
+                <p className="mt-1 text-xs text-slate-400">
+                  {scanIssue ? scanIssue.title : "Actief scanprobleem laden…"}
+                </p>
+                <button type="button" onClick={startGithubFix} disabled={!scanIssue || fixBusy} className="mt-3 w-full rounded-xl bg-cyan-300 px-4 py-3 text-sm font-bold text-slate-950 disabled:opacity-40">
+                  {fixBusy ? "GitHub Fix wordt gecontroleerd…" : "Start veilige GitHub Fix"}
+                </button>
+                {fixResult && <p className="mt-2 break-words text-xs text-slate-400">{fixResult}</p>}
+              </div>
+            )}
 
             <div className="border-t border-white/10 p-4">
               <div className="flex gap-2">
