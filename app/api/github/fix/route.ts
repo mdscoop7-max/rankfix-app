@@ -90,6 +90,15 @@ function validateRequestedFixCompletion(current:string, proposed:string, issue:s
 }
 
 
+function hasOgMetaTag(value:string,property:string){
+  const p=property.replace(":","\\:");
+  return new RegExp("<meta[^>]+(?:property|name)=[\"\']"+p+"[\"\'][^>]+content=[\"\'][^\"\']+[\"\']","i").test(value)
+    || new RegExp("<meta[^>]+content=[\"\'][^\"\']+[\"\'][^>]+(?:property|name)=[\"\']"+p+"[\"\']","i").test(value);
+}
+function hasOgOpenGraphField(value:string,field:string){
+  const block=value.match(/openGraph\s*:\s*\{([\s\S]*?)\}/i)?.[1]||"";
+  return new RegExp("\\b"+field+"\\b\\s*:\\s*[\"\'][^\"\']+[\"\']","i").test(block);
+}
 function buildDeterministicOgFix(filePath:string,current:string,issue:string,context:string): {content:string;summary:string}|null {
   const text=issue.toLowerCase();
   if(!/og[: -]?title|og[: -]?description|og[: -]?image|open graph/.test(text)) return null;
@@ -104,16 +113,16 @@ function buildDeterministicOgFix(filePath:string,current:string,issue:string,con
   let content=current;
   if(/\.(html?|php|vue)$/i.test(filePath)){
     const tags=[
-      wantsTitle&&title&&!hasMetaProperty(content,"og:title")?'<meta property="og:title" content="'+esc(title)+'">':"",
-      wantsDescription&&description&&!hasMetaProperty(content,"og:description")?'<meta property="og:description" content="'+esc(description)+'">':"",
-      wantsImage&&image&&!hasMetaProperty(content,"og:image")?'<meta property="og:image" content="'+esc(image)+'">':""
+      wantsTitle&&title&&!hasOgMetaTag(content,"og:title")?'<meta property="og:title" content="'+esc(title)+'">':"",
+      wantsDescription&&description&&!hasOgMetaTag(content,"og:description")?'<meta property="og:description" content="'+esc(description)+'">':"",
+      wantsImage&&image&&!hasOgMetaTag(content,"og:image")?'<meta property="og:image" content="'+esc(image)+'">':""
     ].filter(Boolean);
     if(!tags.length) return null;
     content=content.replace(/<\/head>/i,tags.join("\n")+"\n</head>");
   } else if(/\.(tsx|jsx|ts|js)$/i.test(filePath)){
     const additions:string[]=[];
-    if(wantsTitle&&title&&!hasOpenGraphField(content,"title")) additions.push('title: "'+title.replace(/\\/g,"\\\\").replace(/"/g,'\\\"')+'"');
-    if(wantsDescription&&description&&!hasOpenGraphField(content,"description")) additions.push('description: "'+description.replace(/\\/g,"\\\\").replace(/"/g,'\\\"')+'"');
+    if(wantsTitle&&title&&!hasOgOpenGraphField(content,"title")) additions.push('title: "'+title.replace(/\\/g,"\\\\").replace(/"/g,'\\\"')+'"');
+    if(wantsDescription&&description&&!hasOgOpenGraphField(content,"description")) additions.push('description: "'+description.replace(/\\/g,"\\\\").replace(/"/g,'\\\"')+'"');
     if(wantsImage&&image&&!/openGraph[\s\S]*?images?\s*:/i.test(content)) additions.push('images: ["'+image.replace(/\\/g,"\\\\").replace(/"/g,'\\\"')+'"]');
     if(!additions.length) return null;
     const openGraphMatch=content.match(/openGraph\s*:\s*\{/i);
