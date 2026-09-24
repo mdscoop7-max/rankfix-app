@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "RankFix AI — SEO + GEO Audit",
   description: "SEO en GEO audits voor Google en AI Search met concrete fixes.",
+  alternates: {
+    canonical: "/",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
