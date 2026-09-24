@@ -73,8 +73,8 @@ export default function Account() {
             {mode==="register"&&(
               <input required value={name} onChange={e=>setName(e.target.value)} placeholder="Naam" autoComplete="name" className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 outline-none"/>
             )}
-            <input required type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="E-mailadres" autoComplete="email" className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 outline-none"/>
-            <input required minLength={8} type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Wachtwoord (min. 8 tekens)" autoComplete={mode==="register"?"new-password":"current-password"} className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 outline-none"/>
+            <input required type="email" value={email} onChange={e=>setEmail(e.target.value)} name="email" placeholder="E-mailadres" autoComplete="username email" className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 outline-none"/>
+            <input required minLength={8} type="password" value={password} onChange={e=>setPassword(e.target.value)} name="password" placeholder="Wachtwoord (min. 8 tekens)" autoComplete={mode==="register"?"new-password":"current-password"} className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 outline-none"/>
 
             {mode==="login"&&(
               <div className="flex items-center justify-between gap-4">
