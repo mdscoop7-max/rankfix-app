@@ -11,7 +11,7 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
     {
       role: "assistant",
       content: dashboard
-        ? "Hoi! Ik ben RankFix AI. Stel gerust technische vragen over je scans, SEO, GEO, scores, fixes, credits of het Dashboard."
+        ? "Hoi! Ik ben RankFix AI. Stel gerust technische vragen over je scans, SEO, GEO, scores, fixes, abonnementen of het Dashboard."
         : "Hoi! Ik ben RankFix AI. Ik kan uitleg geven over RankFix, SEO, GEO, audits, AI Search en hoe de app werkt.",
     },
   ]);
