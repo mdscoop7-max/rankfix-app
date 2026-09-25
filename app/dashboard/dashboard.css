@@ -147,3 +147,14 @@
 .rf-review-form input,.rf-review-form textarea{background:#fff;color:#132238;border-color:#cbd5e1;caret-color:#132238}
 .rf-review-form input::placeholder,.rf-review-form textarea::placeholder{color:#94a3b8}
 .rf-review-form input:focus,.rf-review-form textarea:focus{border-color:var(--brand);outline:2px solid #5DCAA533;outline-offset:1px}
+
+
+/* Final dashboard readability pass */
+.rf-page{--text-primary:#10233d;--text-secondary:#64748b;--bg-page:#f4f8fc;--bg-card:#ffffff;--border-subtle:#dbe4ee;--border-muted:#cbd5e1;--brand-dark:#0b2f2a;--brand-light:#087f6b;--brand-surface:#e8faf5}
+.rf-page,.rf-shell{background:var(--bg-page);color:var(--text-primary)}
+.rf-header,.rf-nav{background:rgba(255,255,255,.96);border-color:var(--border-subtle)}
+.rf-card,.rf-site,.rf-history-list a,.rf-next-actions a,.rf-more-card,.rf-help-topic,.rf-dashboard-scan,.rf-process-grid article{background:#fff;color:var(--text-primary)}
+.rf-heading p,.rf-card span,.rf-card small,.rf-site-copy p,.rf-history-list span,.rf-more-card p,.rf-help-topic p{color:#64748b}
+.rf-dashboard-scan input,.rf-review-form input,.rf-review-form textarea{background:#fff;color:#10233d;border-color:#cbd5e1;caret-color:#10233d}
+.rf-dashboard-scan input::placeholder,.rf-review-form input::placeholder,.rf-review-form textarea::placeholder{color:#8291a6}
+@media(max-width:650px){.rf-nav{background:rgba(255,255,255,.97);border-top:1px solid #dbe4ee;box-shadow:0 -12px 32px rgba(15,35,61,.12)}}
