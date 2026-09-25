@@ -475,12 +475,12 @@ export default function Home() {
           <div className="hidden items-center gap-2 lg:flex">
             <label className="sr-only" htmlFor="language-desktop">Taal</label>
             <select id="language-desktop" value={language} onChange={(e) => { setLanguage(e.target.value as Language); window.location.href = "/" + e.target.value; }} className="rounded-xl border border-white/20 bg-slate-900 px-3 py-2 text-xs font-medium text-white outline-none shadow-sm">
-              <option value="nl" className="bg-slate-900 text-white">🇳🇱 Nederlands</option>
-              <option value="en" className="bg-slate-900 text-white">🇬🇧 English</option>
-              <option value="fr" className="bg-slate-900 text-white">🇫🇷 Français</option>
-              <option value="de" className="bg-slate-900 text-white">🇩🇪 Deutsch</option>
-              <option value="it" className="bg-slate-900 text-white">🇮🇹 Italiano</option>
-              <option value="es" className="bg-slate-900 text-white">🇪🇸 Español</option>
+              <option value="nl" className="bg-slate-900 text-white">🇳🇱 NL</option>
+              <option value="en" className="bg-slate-900 text-white">🇬🇧 EN</option>
+              <option value="fr" className="bg-slate-900 text-white">🇫🇷 FR</option>
+              <option value="de" className="bg-slate-900 text-white">🇩🇪 DE</option>
+              <option value="it" className="bg-slate-900 text-white">🇮🇹 IT</option>
+              <option value="es" className="bg-slate-900 text-white">🇪🇸 ES</option>
             </select>
             {!authLoading && (authUser ? (
               <a href="/dashboard" className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-emerald-100 sm:px-4 sm:text-sm">Dashboard</a>
