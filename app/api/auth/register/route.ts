@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     if (exists.rowCount) return NextResponse.json({ error: "Er bestaat al een account met dit e-mailadres." }, { status: 409 });
 
     const result = await db.query(
-      "INSERT INTO users (email,name,password_hash) VALUES ($1,$2,$3) RETURNING id,email,name",
+      "INSERT INTO users (email,name,password_hash,customer_id) VALUES ($1,$2,$3,\'RF-\' || UPPER(REPLACE(gen_random_uuid()::text,\'-\',\'\'))) RETURNING id,customer_id,email,name",
       [email, name, await hashPassword(password)]
     );
     await createSession(result.rows[0].id);
