@@ -203,11 +203,12 @@ export async function POST(request:Request){
     const body=await request.json();
     const requestedRepo=typeof body?.repo==="string"?body.repo.trim():"";
     const requestedPath=typeof body?.path==="string"?body.path.trim():"";
-    const issue=typeof body?.issue==="string"?body.issue.trim():"";
+    let issue=typeof body?.issue==="string"?body.issue.trim():"";
     const issueId=typeof body?.issue_id==="string"?body.issue_id.trim():"";
-    const context=typeof body?.context==="string"?body.context:"";
+    let context=typeof body?.context==="string"?body.context:"";
+    const scanId=typeof body?.scan_id==="string"?body.scan_id.trim():"";
     const baseBranch=typeof body?.baseBranch==="string"&&/^[A-Za-z0-9._/-]{1,120}$/.test(body.baseBranch)?body.baseBranch:"main";
-    if((requestedRepo&&!safeRepo(requestedRepo))||(requestedPath&&!safePath(requestedPath))||!issue||!issueId) return NextResponse.json({error:"Ongeldige fixgegevens: issue en issue_id zijn verplicht."},{status:400});
+    if((requestedRepo&&!safeRepo(requestedRepo))||(requestedPath&&!safePath(requestedPath))||!issueId||!scanId) return NextResponse.json({error:"Ongeldige fixgegevens: scan_id en issue_id zijn verplicht."},{status:400});
     const fixPolicy=getFixPolicy(issueId);
     if(fixPolicy.category==="C"||!fixPolicy.safe_type){
       return NextResponse.json({error:"Deze bevinding is niet toegestaan voor een automatische GitHub-codefix. RankFix vereist hier handmatige controle.",issue_id:issueId,fix_category:fixPolicy.category},{status:422});
