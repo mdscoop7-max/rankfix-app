@@ -16,7 +16,7 @@ export const privacyContent = {
     ] },
     { heading: "3. Doeleinden en juridische grondslagen", paragraphs: ["Wij verwerken persoonsgegevens voor de uitvoering van de dienst, wettelijke verplichtingen waar van toepassing en gerechtvaardigde belangen zoals beveiliging. Per concrete verwerking moet vóór commerciële ingebruikname worden getoetst welke AVG-grondslag geldt."], items: [
       "Dienstverlening: technische SEO- en GEO-audits, opgeslagen scanresultaten en op verzoek gebruikte AI-ondersteuning.",
-      "Accountbeheer: het aanmaken en beveiligen van je account en het beheren van credits.",
+      "Accountbeheer: het aanmaken en beveiligen van je account en het beheren van je abonnement en toegangsrechten.",
       "Veiligheid en verbetering: fouten opsporen en misbruik van de dienst tegengaan.",
       "Klantenservice: vragen beantwoorden en noodzakelijke serviceberichten versturen."
     ] },
