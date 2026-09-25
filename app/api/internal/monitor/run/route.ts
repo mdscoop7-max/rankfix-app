@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ensureDatabase } from "@/lib/db-init";
 import { getDb } from "@/lib/db";
-import { safeFetch } from "@/lib/safe-fetch";
+import { safePublicFetch } from "@/lib/safe-fetch";
 
 const BATCH_SIZE=5;
 const TIMEOUT_MS=12000;
@@ -24,7 +24,8 @@ export async function POST(request:Request){
   for(const monitor of due.rows){
     let status="ERROR"; let httpStatus:number|null=null; let detail="";
     try{
-      const response=await safeFetch(String(monitor.website_url),{method:"GET",redirect:"manual",signal:AbortSignal.timeout(TIMEOUT_MS)});
+      const fetched=await safePublicFetch(String(monitor.website_url),{timeoutMs:TIMEOUT_MS,maxRedirects:4});
+      const response=fetched.response;
       httpStatus=response.status;
       status=response.ok?"OK":"HTTP_ERROR";
       detail=`HTTP ${response.status}`;
