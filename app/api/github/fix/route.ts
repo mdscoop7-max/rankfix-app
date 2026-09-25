@@ -9,6 +9,16 @@ import { getFixPolicy } from "@/lib/fix-policy";
 
 function safeRepo(v:string){ return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(v) && !v.includes(".."); }
 function safePath(v:string){ return v.length>0 && v.length<240 && !v.startsWith("/") && !v.split("/").includes("..") && !/[<>:"|?*]/.test(v); }
+function safeFixTarget(v:string){
+  if(!safePath(v)) return false;
+  const p=v.toLowerCase().replace(/\\/g,"/");
+  const name=p.split("/").pop()||"";
+  if(name.startsWith(".env")||name===".npmrc"||name===".yarnrc"||name===".gitignore") return false;
+  if(/(^|\/)(api|server|auth|database|db|migrations?|secrets?|private)(\/|$)/.test(p)) return false;
+  if(/(^|\/)(middleware|instrumentation)\.(?:ts|js)$/.test(p)) return false;
+  if(/(^|\/)(package|package-lock|pnpm-lock|yarn\.lock|bun\.lockb?|next\.config|vite\.config|webpack\.config|tsconfig|eslint\.config|postcss\.config|tailwind\.config)(?:\.[^/]*)?$/.test(p)) return false;
+  return /\.(?:html?|tsx|jsx|vue|php)$/.test(p);
+}
 
 async function chooseRepository(token:string,requested:string){
   if(!requested || !safeRepo(requested)){
@@ -22,6 +32,10 @@ async function chooseRepository(token:string,requested:string){
   if(repo.archived===true || repo.disabled===true){
     throw new Error("Deze GitHub-repository is gearchiveerd of uitgeschakeld en kan niet veilig worden aangepast.");
   }
+  const canPush=repo?.permissions?.push===true || repo?.permissions?.admin===true || repo?.permissions?.maintain===true;
+  if(!canPush){
+    throw new Error("De gekoppelde GitHub-account heeft geen bevestigde schrijfrechten op deze repository.");
+  }
   const defaultBranch=String(repo.default_branch||"").trim();
   if(!defaultBranch || !/^[A-Za-z0-9._/-]{1,120}$/.test(defaultBranch)){
     throw new Error("De standaardbranch van deze GitHub-repository kon niet veilig worden bevestigd.");
@@ -30,7 +44,8 @@ async function chooseRepository(token:string,requested:string){
 }
 
 async function chooseFile(token:string,repo:string,branch:string,requested:string,issue:string){
-  if(requested && safePath(requested)) return requested;
+  if(requested && safeFixTarget(requested)) return requested;
+  if(requested) throw new Error("Dit bestand valt buiten de veilige RankFix-codefixlijst.");
   const issueText=issue.toLowerCase();
   const preferred=issueText.includes("social")||issueText.includes("open graph")
     ? ["templates/index.html","index.html","app/layout.tsx","src/app/layout.tsx","pages/_document.tsx","app/page.tsx","src/app/page.tsx"]
@@ -41,7 +56,7 @@ async function chooseFile(token:string,repo:string,branch:string,requested:strin
     try{ const f=await githubFetch<any>(token,"/repos/"+repo+"/contents/"+candidate+"?ref="+encodeURIComponent(branch)); if(f.type==="file"&&typeof f.content==="string") return candidate; }catch{}
   }
   const tree=await githubFetch<any>(token,"/repos/"+repo+"/git/trees/"+encodeURIComponent(branch)+"?recursive=1");
-  const files=Array.isArray(tree?.tree)?tree.tree.filter((x:any)=>x.type==="blob"&&typeof x.path==="string"&&safePath(x.path)):[];
+  const files=Array.isArray(tree?.tree)?tree.tree.filter((x:any)=>x.type==="blob"&&typeof x.path==="string"&&safeFixTarget(x.path)):[];
   const ranked=files.map((f:any)=>{ const p=f.path.toLowerCase(); let score=0; if(/(index|layout|document)/.test(p)) score+=5; if(/\.(html?|tsx|jsx|vue|php)$/.test(p)) score+=3; if(issueText.includes("social")&&/(head|layout|index|document)/.test(p)) score+=5; if(issueText.includes("canonical")&&/(head|layout|index|document)/.test(p)) score+=5; if(p.includes("template")) score+=2; return {path:f.path,score}; }).sort((a:any,b:any)=>b.score-a.score);
   if(!ranked[0]) throw new Error("RankFix kon geen geschikt bestand vinden voor deze fix.");
   return ranked[0].path;
@@ -204,7 +219,7 @@ export async function POST(request:Request){
     let context=typeof body?.context==="string"?body.context:"";
     const scanId=typeof body?.scan_id==="string"?body.scan_id.trim():"";
     const baseBranch=typeof body?.baseBranch==="string"&&/^[A-Za-z0-9._/-]{1,120}$/.test(body.baseBranch)?body.baseBranch:"main";
-    if((requestedRepo&&!safeRepo(requestedRepo))||(requestedPath&&!safePath(requestedPath))||!issueId||!scanId) return NextResponse.json({error:"Ongeldige fixgegevens: scan_id en issue_id zijn verplicht."},{status:400});
+    if((requestedRepo&&!safeRepo(requestedRepo))||(requestedPath&&!safeFixTarget(requestedPath))||!issueId||!scanId) return NextResponse.json({error:"Ongeldige fixgegevens: scan_id en issue_id zijn verplicht."},{status:400});
     const fixPolicy=getFixPolicy(issueId);
     if(fixPolicy.category==="C"||!fixPolicy.safe_type){
       return NextResponse.json({error:"Deze bevinding is niet toegestaan voor een automatische GitHub-codefix. RankFix vereist hier handmatige controle.",issue_id:issueId,fix_category:fixPolicy.category},{status:422});
@@ -282,7 +297,7 @@ export async function POST(request:Request){
 
     const normalizeFile=(value:string)=>value.replace(/\r\n/g,"\n").replace(/[ \t]+$/gm,"").trim();
     if(normalizeFile(current)===normalizeFile(generated.content)){
-      return NextResponse.json({success:false,status:"fix_not_applied",error:"RankFix kon de gevraagde verbetering niet aantoonbaar in het bestand plaatsen. Er is niets gewijzigd.",repository:repo,path,creditsCharged:0,creditsRemaining:user.credits},{status:422});
+      return NextResponse.json({success:false,status:"fix_not_applied",error:"RankFix kon de gevraagde verbetering niet aantoonbaar in het bestand plaatsen. Er is niets gewijzigd.",repository:repo,path},{status:422});
     }
 
     const branch="rankfix/"+Date.now()+"-"+slug(issue);
