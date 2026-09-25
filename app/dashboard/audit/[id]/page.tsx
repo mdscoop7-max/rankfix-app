@@ -52,6 +52,7 @@ export default function AuditDetail() {
   return <main className="rf-page" lang={language}>
     <div className="rf-shell">
       <header className="rf-header"><a href="/dashboard" className="rf-brand">RankFix <span>AI</span></a><a href="/dashboard" className="rf-back">← {t.back}</a></header>
+      <DashboardNav current={1} />
       <div className="rf-body">
         {loading && <p role="status">{t.loading}</p>}
         {error && <p role="alert" className="rf-alert">{error}</p>}
@@ -68,7 +69,6 @@ export default function AuditDetail() {
           <p className="rf-audit-footnote">{t.note}</p>
         </>}
       </div>
-      <DashboardNav current={1} />
     </div>
     <AiAssistant dashboard scanId={id} />
   </main>;
