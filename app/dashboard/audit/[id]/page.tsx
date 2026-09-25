@@ -11,14 +11,15 @@ import "./audit.css";
 
 type Check = { title: string; status: string; severity?: string; message: string; fix?: string; fix_status?: string; issue_id?: string; rule_id?: string; evidence?: { details?: string; found?: string | number | boolean | null } };
 type Result = { overallScore: number; seo?: { score: number; checks?: Check[] }; geo?: { score: number; checks?: Check[] } };
-type Scan = { scanned_url: string; created_at: string; result: Result };
+type Scan = { id?: string; scanned_url: string; created_at: string; result: Result };
 
 const FIXABLE = new Set(["META_TITLE_MISSING","META_TITLE_GUIDANCE","META_DESCRIPTION_MISSING","META_DESCRIPTION_GUIDANCE","H1_MISSING","IMAGE_ALT_MISSING","SOCIAL_METADATA_INCOMPLETE","social","STRUCTURED_DATA_MISSING","breadcrumbs","canonical","headings"]);
+function idForFix(scan:Scan){ return (scan as Scan & {id?:string}).id||""; }
 function fixHref(check:Check,scan:Scan){
   const issueId=check.issue_id||check.rule_id||"";
   if(!issueId||!FIXABLE.has(issueId)) return "";
   const context=[check.message,check.fix||"",check.evidence?.details||""].filter(Boolean).join("\n");
-  const q=new URLSearchParams({url:scan.scanned_url,issue_id:issueId,issue:check.title+": "+(check.fix||check.message),context});
+  const q=new URLSearchParams({scan_id:String(idForFix(scan)),issue_id:issueId});
   return "/dashboard/github?"+q.toString();
 }
 
@@ -51,7 +52,7 @@ export default function AuditDetail() {
         const data = await response.json();
         if (response.status === 401) { location.href = "/account"; return; }
         if (!response.ok) throw new Error(data.error || "Could not load audit.");
-        setScan(data.scan);
+        setScan({...data.scan,id});
         fetch("/api/health?url="+encodeURIComponent(data.scan.scanned_url),{cache:"no-store"}).then(r=>r.ok?r.json():null).then(h=>{if(h)setHealth({improvements:h.improvements||0,regressions:h.regressions||0,priorityRegressions:h.priorityRegressions||0,persistent:h.persistent||0,needsAttention:!!h.needsAttention});}).catch(()=>{});
         fetch("/api/monitor?url="+encodeURIComponent(data.scan.scanned_url),{cache:"no-store"}).then(r=>r.ok?r.json():null).then(m=>{if(m)setMonitoring(!!m.enabled);}).catch(()=>{});
       })
