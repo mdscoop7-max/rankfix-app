@@ -936,13 +936,15 @@ export default function Home() {
           <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Betaal voor gebruik. Niet voor ruis.</h2>
           <p className="mx-auto mt-4 max-w-2xl text-slate-500">We bouwen een transparant creditmodel met een gratis instapscan, zodat kleine bedrijven kunnen starten en agencies kunnen opschalen.</p>
         </div>
-        <div className="mx-auto mt-10 grid max-w-6xl gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mx-auto mt-10 grid max-w-7xl gap-4 md:grid-cols-2 xl:grid-cols-3">
           {[
-            ["Free","€0","voor kennismaken",["1 site","3 audits / maand","SEO + GEO basis","Klantvriendelijke score","Geen AI-fix"]],
-            ["Starter","€9","per maand",["1 site","15 audits / maand","Webshop checks","5 AI-fix voorstellen","Scan history"]],
-            ["Pro","€19","per maand",["3 sites","50 audits / maand","20 AI-fixes","Ads readiness","PDF rapporten","Prioriteitscontrole"]],
-            ["Agency","€49","per maand",["15 sites","250 audits / maand","100 AI-fixes","White-label PDF","Klantprojecten","Team/workflow"]]
-          ].map((entry)=>{const [name,price,period,items]=entry as [string,string,string,string[]];return <div key={name} className={`rounded-3xl border p-7 ${name==="Pro"?"border-emerald-400/30 bg-emerald-400/[0.05]":"border-white/10 bg-white/[0.025]"}`}><div className="text-sm font-bold">{name}</div><div className="mt-5 text-4xl font-black">{price}</div><div className="mt-1 text-xs text-slate-500">{period}</div><div className="my-6 h-px bg-white/10"/><ul className="space-y-3 text-sm text-slate-400">{items.map(item=><li key={item}>✓ {item}</li>)}</ul><button className="mt-7 w-full rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold transition hover:bg-white/5">Binnenkort beschikbaar</button></div>})}
+            ["Free","€0","voor kennismaken",["1 website","1 volledige audit","SEO + GEO basis","Actiepunten","Geen AI-fix"]],
+            ["Start","€29","per maand",["1 website","10 scans / maand","10 AI-fixcredits","SEO + GEO audit","3 maanden scanhistorie"]],
+            ["Business","€59","per maand",["5 websites","30 scans / maand","30 AI-fixcredits","Automatische controles","PDF- en e-mailrapporten"]],
+            ["E-commerce","€79","per maand",["5 webshops","50 scans / maand","50 AI-fixcredits","Shopify, WooCommerce & Next.js/custom","Product-, categorie- en structured-data checks"]],
+            ["Pro","€89","per maand",["15 websites","100 scans / maand","80 AI-fixcredits","Uitgebreide automatisering","Tot 5 gebruikers"]],
+            ["Agency","€179","per maand",["50 websites","300 scans / maand","200 AI-fixcredits","White-label rapporten","API + team/workflow"]]
+          ].map((entry)=>{const [name,price,period,items]=entry as [string,string,string,string[]];const featured=name==="Business";const ecommerce=name==="E-commerce";return <div key={name} className={`relative rounded-3xl border p-7 ${featured?"border-emerald-400/40 bg-emerald-400/[0.06]":ecommerce?"border-cyan-400/30 bg-cyan-400/[0.04]":"border-white/10 bg-white/[0.025]"}`}>{featured&&<div className="absolute right-5 top-5 rounded-full bg-emerald-300 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-950">Meest gekozen</div>}{ecommerce&&<div className="absolute right-5 top-5 rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-cyan-200">Voor webshops</div>}<div className="text-sm font-bold">{name}</div><div className="mt-5 text-4xl font-black">{price}</div><div className="mt-1 text-xs text-slate-500">{period}</div><div className="my-6 h-px bg-white/10"/><ul className="space-y-3 text-sm text-slate-400">{items.map(item=><li key={item}>✓ {item}</li>)}</ul><button className="mt-7 w-full rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold transition hover:bg-white/5">Binnenkort beschikbaar</button></div>})}
         </div>
       </section>
 
