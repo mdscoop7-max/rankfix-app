@@ -35,7 +35,7 @@ export default function AuditDetail() {
   const [scan, setScan] = useState<Scan | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [health,setHealth]=useState<{improvements:number;regressions:number}|null>(null);
+  const [health,setHealth]=useState<{improvements:number;regressions:number;persistent:number}|null>(null);
   const [language, setLanguage] = useState<Locale>("nl");
   const t = auditCopy[language];
   useEffect(() => {
@@ -49,7 +49,7 @@ export default function AuditDetail() {
         if (response.status === 401) { location.href = "/account"; return; }
         if (!response.ok) throw new Error(data.error || "Could not load audit.");
         setScan(data.scan);
-        fetch("/api/health?url="+encodeURIComponent(data.scan.scanned_url),{cache:"no-store"}).then(r=>r.ok?r.json():null).then(h=>{if(h)setHealth({improvements:h.improvements||0,regressions:h.regressions||0});}).catch(()=>{});
+        fetch("/api/health?url="+encodeURIComponent(data.scan.scanned_url),{cache:"no-store"}).then(r=>r.ok?r.json():null).then(h=>{if(h)setHealth({improvements:h.improvements||0,regressions:h.regressions||0,persistent:h.persistent||0});}).catch(()=>{});
       })
       .catch(cause => setError(cause instanceof Error ? cause.message : "Could not load audit."))
       .finally(() => setLoading(false));
@@ -70,7 +70,7 @@ export default function AuditDetail() {
         {scan && <>
           <div className="rf-audit-heading"><div><p className="rf-eyebrow">{t.detail}</p><h1>{(() => { try { return new URL(scan.scanned_url).hostname; } catch { return scan.scanned_url; } })()}</h1><p>{t.scanned} {new Date(scan.created_at).toLocaleString(language, { dateStyle: "long", timeStyle: "short" })}</p></div><a href={`/${language}/scan`} className="rf-primary-link">{t.newScan}</a></div>
           <div className="rf-stats rf-audit-stats"><div className="rf-card"><span>{t.score}</span><strong>{scan.result.overallScore}<small> / 100</small></strong></div><div className="rf-card"><span>{t.improvements}</span><strong className={problems.length ? "rf-danger" : ""}>{problems.length}</strong></div></div>
-          <p className="rf-audit-subscore">SEO {scan.result.seo?.score ?? "—"} · GEO {scan.result.geo?.score ?? "—"} · {t.snapshot}</p>{health && (health.improvements>0 || health.regressions>0) && <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm"><strong>Sinds eerdere scans:</strong> <span className="text-emerald-300">{health.improvements} verbeterd</span> · <span className={health.regressions?"text-amber-300":"text-slate-400"}>{health.regressions} nieuw probleem{health.regressions===1?"":"en"}</span></div>}
+          <p className="rf-audit-subscore">SEO {scan.result.seo?.score ?? "—"} · GEO {scan.result.geo?.score ?? "—"} · {t.snapshot}</p>{health && (health.improvements>0 || health.regressions>0) && <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm"><strong>Sinds eerdere scans:</strong> <span className="text-emerald-300">{health.improvements} verbeterd</span> · <span className={health.regressions?"text-amber-300":"text-slate-400"}>{health.regressions} nieuw probleem{health.regressions===1?"":"en"}</span> · <span className="text-slate-300">{health.persistent} aanhoudend</span></div>}
           <section className="rf-audit-list"><h2>{t.issues}</h2>{problems.length ? problems.map((check, index) => <article key={index} className="rf-audit-issue">
             <div className="rf-audit-row"><h3>{check.title}</h3><span className={check.severity === "CRITICAL" ? "rf-badge danger" : "rf-badge warning"}>{label(check,t)}</span></div>
             <p>{check.message}</p>{check.fix && <p><strong>{t.next}</strong> {check.fix}</p>}
