@@ -5,6 +5,7 @@ import { ensureDatabase } from "@/lib/db-init";
 import { decryptToken, githubFetch } from "@/lib/github";
 import { validateFix } from "@/lib/seo-fix-validator";
 import { validateGithubFix } from "@/lib/github-fix-validator";
+import { getFixPolicy } from "@/lib/fix-policy";
 
 function safeRepo(v:string){ return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(v) && !v.includes(".."); }
 function safePath(v:string){ return v.length>0 && v.length<240 && !v.startsWith("/") && !v.split("/").includes("..") && !/[<>:"|?*]/.test(v); }
@@ -200,9 +201,14 @@ export async function POST(request:Request){
     const requestedRepo=typeof body?.repo==="string"?body.repo.trim():"";
     const requestedPath=typeof body?.path==="string"?body.path.trim():"";
     const issue=typeof body?.issue==="string"?body.issue.trim():"";
+    const issueId=typeof body?.issue_id==="string"?body.issue_id.trim():"";
     const context=typeof body?.context==="string"?body.context:"";
     const baseBranch=typeof body?.baseBranch==="string"&&/^[A-Za-z0-9._/-]{1,120}$/.test(body.baseBranch)?body.baseBranch:"main";
-    if((requestedRepo&&!safeRepo(requestedRepo))||(requestedPath&&!safePath(requestedPath))||!issue) return NextResponse.json({error:"Ongeldige fixgegevens."},{status:400});
+    if((requestedRepo&&!safeRepo(requestedRepo))||(requestedPath&&!safePath(requestedPath))||!issue||!issueId) return NextResponse.json({error:"Ongeldige fixgegevens: issue en issue_id zijn verplicht."},{status:400});
+    const fixPolicy=getFixPolicy(issueId);
+    if(fixPolicy.category==="C"||!fixPolicy.safe_type){
+      return NextResponse.json({error:"Deze bevinding is niet toegestaan voor een automatische GitHub-codefix. RankFix vereist hier handmatige controle.",issue_id:issueId,fix_category:fixPolicy.category},{status:422});
+    }
     await ensureDatabase();
     const connection=await getDb().query("SELECT access_token_encrypted FROM github_connections WHERE user_id=$1",[user.id]);
     if(!connection.rowCount) return NextResponse.json({error:"Verbind eerst GitHub via je dashboard."},{status:409});
@@ -258,7 +264,6 @@ export async function POST(request:Request){
     }
 
     const scannedUrl = typeof body?.url === "string" ? normalizeScanUrl(body.url) : "";
-    const issueId = String(body?.issue_id || "").trim();
     if (scannedUrl && issueId) {
       await db.query(
         "INSERT INTO pending_fixes (user_id,scanned_url,issue_id,status,repository,file_path,pr_number) VALUES ($1,$2,$3,'PREPARED',$4,$5,$6)",
