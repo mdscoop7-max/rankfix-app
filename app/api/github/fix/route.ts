@@ -211,6 +211,27 @@ async function generateCodeFix(filePath:string,fileContent:string,issue:string,c
   return parsed;
 }
 
+function estimateChangedLines(before:string,after:string){
+  const normalize=(line:string)=>line.trimEnd();
+  const counts=new Map<string,number>();
+  for(const raw of before.split("\n")){
+    const line=normalize(raw);
+    if(!line.trim()) continue;
+    counts.set(line,(counts.get(line)||0)+1);
+  }
+  let matched=0;
+  let meaningfulAfter=0;
+  for(const raw of after.split("\n")){
+    const line=normalize(raw);
+    if(!line.trim()) continue;
+    meaningfulAfter++;
+    const available=counts.get(line)||0;
+    if(available>0){ matched++; counts.set(line,available-1); }
+  }
+  const meaningfulBefore=[...before.split("\n")].filter(line=>line.trim()).length;
+  return { changed:Math.max(meaningfulBefore,meaningfulAfter)-matched, meaningfulBefore, meaningfulAfter };
+}
+
 export async function POST(request:Request){
   try{
     const user=await getCurrentUser();
@@ -295,12 +316,19 @@ export async function POST(request:Request){
 
     const completion=validateRequestedFixCompletion(current,generated.content,issue);
     if(completion.errors.length) githubValidation.errors.push(...completion.errors);
-    const changedBytes=Math.abs(Buffer.byteLength(generated.content,"utf8")-Buffer.byteLength(current,"utf8"));
+    const currentBytes=Buffer.byteLength(current,"utf8");
+    const proposedBytes=Buffer.byteLength(generated.content,"utf8");
+    const changedBytes=Math.abs(proposedBytes-currentBytes);
     const currentLines=current.split("\n");
     const proposedLines=generated.content.split("\n");
     const lineGrowth=Math.max(0,proposedLines.length-currentLines.length);
-    if(changedBytes>50000 || lineGrowth>500){
-      githubValidation.errors.push("De voorgestelde wijziging is te groot voor één automatische RankFix-fix.");
+    const changeEstimate=estimateChangedLines(current,generated.content);
+    const changedRatio=changeEstimate.meaningfulBefore
+      ? changeEstimate.changed/changeEstimate.meaningfulBefore
+      : changeEstimate.changed>0 ? 1 : 0;
+    const sizeRatio=currentBytes ? proposedBytes/currentBytes : 1;
+    if(changedBytes>50000 || lineGrowth>500 || changeEstimate.changed>250 || changedRatio>0.35 || sizeRatio<0.65 || sizeRatio>1.5){
+      githubValidation.errors.push("De voorgestelde wijziging raakt te veel van het bestand voor één automatische RankFix-fix.");
     }
     if(!githubValidation.valid || githubValidation.errors.length) return NextResponse.json({error:"AI-codefix is geblokkeerd door de GitHub veiligheidscontrole.",validation:githubValidation},{status:422});
 
