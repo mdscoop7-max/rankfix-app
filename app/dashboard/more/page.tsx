@@ -2,7 +2,7 @@
 import DashboardNav from "../nav";
 import "../dashboard.css";
 const items=[
- ["Scanhistorie","Bekijk eerdere scans en veranderingen.","/dashboard#websites"],
+ ["Scanhistorie","Bekijk eerdere scans en veranderingen.","/dashboard/history"],
  ["Rapporten","Open en deel je RankFix-resultaten.","/dashboard"],
  ["RankFix AI & Help","Krijg uitleg over scores, fixes, SEO, GEO en GitHub.","/dashboard/help"],
  ["GitHub","Beheer de koppeling voor veilige codefixes.","/dashboard/github"],
