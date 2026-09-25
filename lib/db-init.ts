@@ -76,6 +76,17 @@ const statements = [
     expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '7 days')
   )`,
   `CREATE INDEX IF NOT EXISTS pending_fixes_lookup_idx ON pending_fixes(user_id, scanned_url, issue_id, status)`,
+  `CREATE TABLE IF NOT EXISTS website_repositories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    website_host TEXT NOT NULL,
+    repository TEXT NOT NULL,
+    base_branch TEXT NOT NULL DEFAULT 'main',
+    verified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(user_id, website_host)
+  )`,
+  `CREATE INDEX IF NOT EXISTS website_repositories_user_idx ON website_repositories(user_id, website_host)`,
   `CREATE TABLE IF NOT EXISTS user_preferences (
     user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     language TEXT NOT NULL DEFAULT 'nl' CHECK (language IN ('nl','en','fr','es','it','de')),
