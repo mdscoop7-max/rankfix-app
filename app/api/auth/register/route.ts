@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { createSession, hashPassword } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
+import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
+    await ensureDatabase();
+    if(!await consumeRateLimit("register",requestIp(request),6,3600)) return NextResponse.json({error:"Te veel registratiepogingen. Probeer later opnieuw."},{status:429});
     const body = await request.json();
     const name = typeof body?.name === "string" ? body.name.trim() : "";
     const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
