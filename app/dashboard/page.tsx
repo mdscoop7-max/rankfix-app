@@ -7,7 +7,7 @@ import { dashboardCopy } from "@/lib/dashboard-copy";
 import type { Locale } from "@/lib/locales";
 import "./dashboard.css";
 
-type User = { id: string; email: string; name: string; credits: number };
+type User = { id: string; email: string; name: string };
 type Scan = { id: string; scanned_url: string; overall_score: number; seo_score: number; geo_score: number; created_at: string; open_issues: number; critical_issues: number };
 type Check = { title: string; status: string; message: string; severity?: string; fix_status?: string };
 type ScanResult = { overallScore: number; seo?: { score: number; checks?: Check[] }; geo?: { score: number; checks?: Check[] } };
@@ -41,7 +41,6 @@ export default function Dashboard() {
     setScans(data.scans || []);
     setHistory(data.history || data.scans || []);
     setFixes(data.fixes || {});
-    setUser((current) => current ? { ...current, credits: data.credits } : current);
   }
 
   useEffect(() => {
@@ -83,7 +82,7 @@ export default function Dashboard() {
     <div className="rf-shell">
       <header className="rf-header">
         <a href="/dashboard" className="rf-brand">RankFix <span>AI</span></a>
-        <div className="rf-header-right"><span className="rf-credits">{user?.credits ?? "—"} credits</span><a href="/dashboard/account" className="rf-avatar" aria-label="Account">{user?.name?.charAt(0).toUpperCase() || "?"}</a></div>
+        <div className="rf-header-right"><a href="/dashboard/account" className="rf-avatar" aria-label="Account">{user?.name?.charAt(0).toUpperCase() || "?"}</a></div>
       </header>
       <DashboardNav current={0} />
       <div className="rf-body">
