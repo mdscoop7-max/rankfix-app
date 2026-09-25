@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import AiAssistant from "@/components/ai-assistant";
 import RootMobileNav from "./root-mobile-nav";
+import PublicReviews from "@/components/public-reviews";
 import "./root-mobile-nav.css";
 
 type Check = {
@@ -1009,6 +1010,8 @@ export default function Home() {
           <a href="/nl/about" className="mt-6 inline-flex rounded-xl border border-emerald-300/30 px-4 py-3 text-sm font-bold text-emerald-200">Lees meer over RankFix →</a>
         </div>
       </section>
+
+      <PublicReviews />
 
       <footer id="footer" className="bg-[#03050d] px-5 py-14 lg:px-8">
         <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-5">
