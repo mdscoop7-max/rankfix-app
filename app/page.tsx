@@ -164,7 +164,11 @@ export default function Home() {
       .then((response) => response.json())
       .then((data) => {
         if (!active) return;
-        setAuthUser(data.user || null);
+        if (data.user) {
+          window.location.replace("/dashboard");
+          return;
+        }
+        setAuthUser(null);
         setAuthLoading(false);
       })
       .catch(() => {
