@@ -32,7 +32,6 @@ export const termsContent = {
     { heading: "Artikel 6. Fair Use Policy en Accountgebruik", items: [
       "Accounts, abonnementen en inbegrepen gebruik zijn persoons- of bedrijfsgebonden en mogen niet worden gedeeld, doorverkocht of overgedragen aan derden.",
       "Het is ten strengste verboden om het platform te gebruiken voor geautomatiseerde massascans, webscraping, het omzeilen van abonnementslimieten of andere activiteiten die de serverinfrastructuur onredelijk belasten of de werking van de dienst verstoren.",
-      "Credits zijn digitale gebruikseenheden binnen de omgeving van RankFix AI en vertegenwoordigen geen contante geldwaarde, tenzij uitdrukkelijk schriftelijk anders is overeengekomen. Ongebruikte credits kunnen niet worden ingewisseld voor geld.",
       "Bij constatering of vermoeden van misbruik of overtreding van dit artikel behoudt RankFix AI zich het recht voor om het account van de gebruiker per direct te blokkeren en verdere toegang te ontzeggen zonder recht op restitutie."
     ] },
     { heading: "Artikel 7. Prijzen, Betaling, Abonnementen en EU-Consumentenrecht", items: [
