@@ -138,3 +138,12 @@
     box-shadow:0 8px 22px rgba(70,190,169,.24)!important
   }
 }
+
+
+/* Light dashboard forms: keep entered review/contact text readable */
+.rf-review-form .rf-card{background:#fff;color:#132238;border-color:#d8e1ec}
+.rf-review-form label{color:#132238}
+.rf-review-form small,.rf-review-form .rf-review-status{color:#64748b}
+.rf-review-form input,.rf-review-form textarea{background:#fff;color:#132238;border-color:#cbd5e1;caret-color:#132238}
+.rf-review-form input::placeholder,.rf-review-form textarea::placeholder{color:#94a3b8}
+.rf-review-form input:focus,.rf-review-form textarea:focus{border-color:var(--brand);outline:2px solid #5DCAA533;outline-offset:1px}
