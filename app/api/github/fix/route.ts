@@ -10,14 +10,17 @@ import { getFixPolicy } from "@/lib/fix-policy";
 function safeRepo(v:string){ return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(v) && !v.includes(".."); }
 function safePath(v:string){ return v.length>0 && v.length<240 && !v.startsWith("/") && !v.split("/").includes("..") && !/[<>:"|?*]/.test(v); }
 
-async function chooseRepository(token:string,requested:string,url:string){
-  if(requested && safeRepo(requested)) return requested;
-  const repos=await githubFetch<any[]>(token,"/user/repos?per_page=100&sort=updated&direction=desc");
-  if(!Array.isArray(repos)||!repos.length) throw new Error("Geen GitHub-repository gevonden. Verbind een repository met RankFix.");
-  const host=new URL(url).hostname.toLowerCase().replace(/^www\./,"");
-  const tokens=host.split(".").filter((x)=>x.length>2);
-  const scored=repos.map((r:any)=>{ const name=String(r.full_name||"").toLowerCase(); const hits=tokens.filter((t)=>name.includes(t)).length; return {name:r.full_name,score:hits}; }).sort((a,b)=>b.score-a.score);
-  return scored[0]?.name || repos[0].full_name;
+async function chooseRepository(token:string,requested:string){
+  if(!requested || !safeRepo(requested)){
+    throw new Error("Kies expliciet welke GitHub-repository bij deze website hoort voordat RankFix een codefix maakt.");
+  }
+  // Never guess a repository from a hostname. Verify that the connected GitHub
+  // identity can actually access the exact repository selected by the customer.
+  const repo=await githubFetch<any>(token,"/repos/"+requested);
+  if(!repo || String(repo.full_name||"").toLowerCase()!==requested.toLowerCase()){
+    throw new Error("De gekozen GitHub-repository kon niet veilig worden bevestigd.");
+  }
+  return String(repo.full_name);
 }
 
 async function chooseFile(token:string,repo:string,branch:string,requested:string,issue:string){
@@ -213,7 +216,7 @@ export async function POST(request:Request){
     const connection=await getDb().query("SELECT access_token_encrypted FROM github_connections WHERE user_id=$1",[user.id]);
     if(!connection.rowCount) return NextResponse.json({error:"Verbind eerst GitHub via je dashboard."},{status:409});
     const token=decryptToken(connection.rows[0].access_token_encrypted);
-    const repo=await chooseRepository(token,requestedRepo,typeof body?.url==="string"?body.url:"https://example.com");
+    const repo=await chooseRepository(token,requestedRepo);
     const path=await chooseFile(token,repo,baseBranch,requestedPath,issue);
     const file=await githubFetch<any>(token,"/repos/"+repo+"/contents/"+path+"?ref="+encodeURIComponent(baseBranch));
     if(file.type!=="file"||typeof file.content!=="string") return NextResponse.json({error:"Dit bestand kan niet worden bewerkt."},{status:400});
