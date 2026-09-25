@@ -17,6 +17,7 @@ export async function GET(request:Request){
   );
   const improvements=result.rows.filter((r:any)=>r.event_type==="IMPROVEMENT");
   const regressions=result.rows.filter((r:any)=>r.event_type==="REGRESSION");
+  const priorityRegressions=regressions.filter((r:any)=>r.severity==="CRITICAL"||r.severity==="HIGH");
   const latestScan=await getDb().query(
     "SELECT result,created_at FROM scans WHERE user_id=$1 AND lower(regexp_replace(split_part(split_part(final_url, '://', 2), '/', 1), '^www\\.', ''))=$2 ORDER BY created_at DESC LIMIT 2",
     [user.id,websiteHost]
@@ -31,5 +32,5 @@ export async function GET(request:Request){
     const before=String(previous.get(rule)||"").toLowerCase();
     if((now==="fail"||now==="warning")&&(before==="fail"||before==="warning")) persistent++;
   }
-  return NextResponse.json({website_host:websiteHost,improvements:improvements.length,regressions:regressions.length,persistent,events:result.rows});
+  return NextResponse.json({website_host:websiteHost,improvements:improvements.length,regressions:regressions.length,priorityRegressions:priorityRegressions.length,persistent,needsAttention:priorityRegressions.length>0,events:result.rows});
 }
