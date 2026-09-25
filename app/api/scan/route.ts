@@ -276,7 +276,7 @@ export async function POST(request: Request) {
       };
     });
     const hasCompleteProductOffer = productOfferEvidence.some((product) =>
-      Boolean(product.name && product.hasImage && product.offers.some((offer) => offer.price !== null && offer.currency && offer.availability))
+      Boolean(product.name && product.hasImage && product.offers.some((offer: { price: unknown; currency: string; availability: string }) => offer.price !== null && Boolean(offer.currency) && Boolean(offer.availability)))
     );
     const hasAuthorSignal = /\b(author|auteur|geschreven door|written by|byline)\b/i.test(text) || schemaSet.has("person");
 
@@ -421,7 +421,7 @@ export async function POST(request: Request) {
     // Only treat explicit analytics/tag event syntax as a conversion signal.
     // Plain marketing words such as "lead" or "purchase" in visible copy are not evidence of tracking.
     const conversionEventNames = [...new Set(
-      [...html.matchAll(/(?:gtag\s*\(\s*["']event["']\s*,\s*["']([^"']+)["']|dataLayer\.push\s*\(\s*\{[^}]*["']event["']\s*:\s*["']([^"']+)["']/gi)]
+      [...html.matchAll(/(?:gtag\s*\(\s*["']event["']\s*,\s*["']([^"']+)["']|dataLayer\.push\s*\(\s*\{[^}]*["']event["']\s*:\s*["']([^"']+)["'])/gi)]
         .map((match) => (match[1] || match[2] || "").toLowerCase())
         .filter(Boolean)
     )];
