@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { validateFix } from "@/lib/seo-fix-validator";
+import { ensureDatabase } from "@/lib/db-init";
+import { consumeRateLimit } from "@/lib/rate-limit";
 
 type FixType = "meta_title" | "meta_description" | "h1" | "faq" | "breadcrumb" | "expertise" | "structured_data" | "social_metadata" | "heading_structure" | "canonical" | "alt_text";
 
@@ -192,6 +194,10 @@ function fallback(type: FixType, url: string, current: string, context: Record<s
 
 export async function POST(request: Request) {
   try {
+    const user=await getCurrentUser();
+    if(!user) return NextResponse.json({error:"Login vereist."},{status:401});
+    await ensureDatabase();
+    if(!await consumeRateLimit("ai-fix",String(user.id),30,3600)) return NextResponse.json({error:"Te veel AI-fixverzoeken. Probeer later opnieuw."},{status:429});
     const body = await request.json();
     const url = typeof body?.url==="string" ? body.url.trim() : "";
     const type = body?.type as FixType;
@@ -201,9 +207,6 @@ export async function POST(request: Request) {
     const issueId = typeof body?.issue_id === "string" ? body.issue_id : type === "meta_title" ? (current ? "META_TITLE_GUIDANCE" : "META_TITLE_MISSING") : type === "meta_description" ? (current ? "META_DESCRIPTION_GUIDANCE" : "META_DESCRIPTION_MISSING") : type === "h1" ? "H1_MISSING" : type === "faq" ? "faq" : type === "breadcrumb" ? "breadcrumbs" : type === "expertise" ? "author" : type === "structured_data" ? "STRUCTURED_DATA_MISSING" : type === "social_metadata" ? "SOCIAL_METADATA_INCOMPLETE" : type === "canonical" ? "canonical" : type === "heading_structure" ? "headings" : type === "alt_text" ? "IMAGE_ALT_MISSING" : "AI_PROPOSAL";
     const issueStatus = typeof body?.issue_status === "string" ? body.issue_status : "FAIL";
     if (!url || !["meta_title","meta_description","h1","faq","breadcrumb","expertise","structured_data","social_metadata","heading_structure","canonical","alt_text"].includes(type)) return NextResponse.json({error:"Ongeldige AI-fix aanvraag."},{status:400});
-
-    let user = null;
-    try { user = await getCurrentUser(); } catch {}
 
     const safeContext = cleanContext(context);
     let mode = "rule_based_fallback";
