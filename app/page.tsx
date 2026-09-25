@@ -453,71 +453,71 @@ export default function Home() {
   const remainingCount = issues.length;
 
   return (
-    <main className="rankfix-home min-h-screen bg-[#0B1220] text-white selection:bg-emerald-400 selection:text-slate-950">
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    <main className="rankfix-home min-h-screen bg-[#F4F8FC] text-[#10213A] selection:bg-emerald-300 selection:text-[#10213A]">
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden opacity-40">
         <div className="absolute left-1/2 top-[-220px] h-[560px] w-[900px] -translate-x-1/2 rounded-full bg-emerald-500/10 blur-[130px]" />
         <div className="absolute right-[-180px] top-[520px] h-[420px] w-[420px] rounded-full bg-blue-600/10 blur-[120px]" />
       </div>
 
-      <nav className="sticky top-0 z-50 mx-auto w-full border-b border-white/10 bg-[#0B1220]/95 backdrop-blur-xl">
+      <nav className="sticky top-0 z-50 mx-auto w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-5 lg:px-8">
           <a href="#" className="flex shrink-0 items-center gap-3" onClick={() => setMobileMenuOpen(false)}>
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-emerald-300 to-blue-600 text-xs font-black text-slate-950 shadow-lg shadow-emerald-500/10">RF</span>
             <span className="text-lg font-bold tracking-tight">RankFix <span className="text-emerald-300">AI</span></span>
           </a>
-          <div className="hidden items-center gap-6 text-sm text-slate-400 lg:flex">
-            <button type="button" onClick={() => scrollToSection("scan")} className="transition hover:text-white">{t.audit}</button>
-            <a href="#features" className="transition hover:text-white">{t.moreInfo}</a>
-            <a href="#about" className="transition hover:text-white">{t.forWho}</a>
-            <a href="#prijzen" className="transition hover:text-white">{t.pricing}</a>
-            <button type="button" onClick={() => setContactOpen(true)} className="transition hover:text-white">{t.contact}</button>
+          <div className="hidden items-center gap-6 text-sm text-slate-600 lg:flex">
+            <button type="button" onClick={() => scrollToSection("scan")} className="transition hover:text-violet-700">{t.audit}</button>
+            <a href="#features" className="transition hover:text-violet-700">{t.moreInfo}</a>
+            <a href="#about" className="transition hover:text-violet-700">{t.forWho}</a>
+            <a href="#prijzen" className="transition hover:text-violet-700">{t.pricing}</a>
+            <button type="button" onClick={() => setContactOpen(true)} className="transition hover:text-violet-700">{t.contact}</button>
           </div>
           <div className="hidden items-center gap-2 lg:flex">
             <label className="sr-only" htmlFor="language-desktop">Taal</label>
-            <select id="language-desktop" value={language} onChange={(e) => { setLanguage(e.target.value as Language); window.location.href = "/" + e.target.value; }} className="rounded-xl border border-white/20 bg-slate-900 px-3 py-2 text-xs font-medium text-white outline-none shadow-sm">
-              <option value="nl" className="bg-slate-900 text-white">🇳🇱 NL</option>
-              <option value="en" className="bg-slate-900 text-white">🇬🇧 EN</option>
-              <option value="fr" className="bg-slate-900 text-white">🇫🇷 FR</option>
-              <option value="de" className="bg-slate-900 text-white">🇩🇪 DE</option>
-              <option value="it" className="bg-slate-900 text-white">🇮🇹 IT</option>
-              <option value="es" className="bg-slate-900 text-white">🇪🇸 ES</option>
+            <select id="language-desktop" value={language} onChange={(e) => { setLanguage(e.target.value as Language); window.location.href = "/" + e.target.value; }} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-900 outline-none shadow-sm">
+              <option value="nl" className="bg-white text-slate-900">🇳🇱 NL</option>
+              <option value="en" className="bg-white text-slate-900">🇬🇧 EN</option>
+              <option value="fr" className="bg-white text-slate-900">🇫🇷 FR</option>
+              <option value="de" className="bg-white text-slate-900">🇩🇪 DE</option>
+              <option value="it" className="bg-white text-slate-900">🇮🇹 IT</option>
+              <option value="es" className="bg-white text-slate-900">🇪🇸 ES</option>
             </select>
             {!authLoading && (authUser ? (
               <a href="/dashboard" className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-emerald-100 sm:px-4 sm:text-sm">Dashboard</a>
             ) : (
               <>
-                <a href="/account?mode=login" className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium transition hover:bg-white/10 sm:px-4 sm:text-sm">Inloggen</a>
+                <a href="/account?mode=login" className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium transition hover:bg-slate-100 sm:px-4 sm:text-sm">Inloggen</a>
                 <a href="/account?mode=register" className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-emerald-100 sm:px-4 sm:text-sm">Account aanmaken</a>
               </>
             ))}
           </div>
           <div className="ml-auto flex items-center gap-2 lg:hidden">
             <label className="sr-only" htmlFor="language-mobile-top">Taal</label>
-            <select id="language-mobile-top" value={language} onChange={(e) => { setLanguage(e.target.value as Language); window.location.href = "/" + e.target.value; }} className="h-11 max-w-[118px] rounded-xl border border-white/10 bg-slate-900 px-2 text-xs font-semibold text-white outline-none">
+            <select id="language-mobile-top" value={language} onChange={(e) => { setLanguage(e.target.value as Language); window.location.href = "/" + e.target.value; }} className="h-11 max-w-[118px] rounded-xl border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-900 outline-none">
               <option value="nl">🇳🇱 NL</option><option value="en">🇬🇧 EN</option><option value="fr">🇫🇷 FR</option><option value="de">🇩🇪 DE</option><option value="it">🇮🇹 IT</option><option value="es">🇪🇸 ES</option>
             </select>
           </div>
-          <button type="button" aria-label={mobileMenuOpen ? "Menu sluiten" : "Menu openen"} aria-controls="rankfix-mobile-menu" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen((open) => !open)} className="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-200 lg:hidden">
+          <button type="button" aria-label={mobileMenuOpen ? "Menu sluiten" : "Menu openen"} aria-controls="rankfix-mobile-menu" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen((open) => !open)} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-200 lg:hidden">
             {mobileMenuOpen ? <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 5l14 14 M19 5L5 19" /></svg> : <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16 M4 12h16 M4 18h16" /></svg>}
           </button>
         </div>
         {mobileMenuOpen && (
-          <div id="rankfix-mobile-menu" className="max-h-[calc(100dvh-68px)] overflow-y-auto border-t border-white/10 px-4 pb-5 pt-3 lg:hidden">
+          <div id="rankfix-mobile-menu" className="max-h-[calc(100dvh-68px)] overflow-y-auto border-t border-slate-200 px-4 pb-5 pt-3 lg:hidden">
             <div className="grid gap-1">
               {[[t.audit,"#scan"],[t.moreInfo,"#features"],[t.forWho,"#about"],[t.pricing,"#prijzen"],[t.contact,"#footer"]].map(([label,href]) => (
                 href === "#footer" ? (
-                  <button key={label} type="button" onClick={() => { setMobileMenuOpen(false); setContactOpen(true); }} className="rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">{label}</button>
+                  <button key={label} type="button" onClick={() => { setMobileMenuOpen(false); setContactOpen(true); }} className="rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-300 hover:bg-slate-50 hover:text-violet-700">{label}</button>
                 ) : (
-                  <a key={label} href={href} onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-4 py-3 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">{label}</a>
+                  <a key={label} href={href} onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-4 py-3 text-sm font-medium text-slate-300 hover:bg-slate-50 hover:text-violet-700">{label}</a>
                 )
               ))}
             </div>
-            <div className="mt-3 grid gap-2 border-t border-white/10 pt-3">
+            <div className="mt-3 grid gap-2 border-t border-slate-200 pt-3">
               {!authLoading && (authUser ? (
                 <a href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="rounded-xl bg-white px-4 py-3 text-center text-sm font-bold text-slate-950">Dashboard</a>
               ) : (
                 <>
-                  <a href="/account?mode=login" onClick={() => setMobileMenuOpen(false)} className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm font-semibold text-white">Inloggen</a>
+                  <a href="/account?mode=login" onClick={() => setMobileMenuOpen(false)} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm font-semibold text-slate-900">Inloggen</a>
                   <a href="/account?mode=register" onClick={() => setMobileMenuOpen(false)} className="rounded-xl bg-white px-4 py-3 text-center text-sm font-bold text-slate-950">Account aanmaken</a>
                 </>
               ))}
@@ -533,23 +533,23 @@ export default function Home() {
         </div>
         <h1 className="mx-auto max-w-4xl text-4xl font-black tracking-[-0.04em] sm:text-6xl lg:text-7xl">
           Vind wat je rankings blokkeert.
-          <span className="block bg-gradient-to-r from-emerald-200 via-white to-blue-300 bg-clip-text text-transparent">Fix het met RankFix.</span>
+          <span className="block bg-gradient-to-r from-emerald-500 via-violet-500 to-blue-500 bg-clip-text text-transparent">Fix het met RankFix.</span>
         </h1>
-        <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-slate-400 sm:text-lg">
+        <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
           Eén snelle scan voor technische SEO, content, structured data en AI-search readiness.
           Eerst inzicht. Daarna concrete fixes — met AI wanneer jij dat activeert.
         </p>
 
-        <div className="mx-auto mt-9 max-w-3xl rounded-2xl border border-white/10 bg-white/[0.04] p-2 shadow-2xl shadow-blue-950/30 backdrop-blur">
+        <div className="mx-auto mt-9 max-w-3xl rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-300/30 backdrop-blur">
           <div className="mb-3 grid grid-cols-3 gap-1.5 sm:gap-2">
             {[
               ["seo", "SEO", "Google & organische vindbaarheid"],
               ["geo", "GEO", "AI Search & generatieve vindbaarheid"],
               ["both", "SEO + GEO", "Volledige analyse"],
             ].map(([value, label, description]) => (
-              <button key={value} type="button" aria-pressed={auditMode === value} onClick={() => setAuditMode(value as "seo" | "geo" | "both")} className={`min-w-0 rounded-xl border px-2 py-3 text-center transition sm:px-4 sm:text-left ${auditMode === value ? "border-emerald-300/50 bg-emerald-300/10 text-white shadow-lg shadow-emerald-500/5" : "border-white/10 bg-white/[0.025] text-slate-400 hover:border-white/20 hover:text-white"}`}>
+              <button key={value} type="button" aria-pressed={auditMode === value} onClick={() => setAuditMode(value as "seo" | "geo" | "both")} className={`min-w-0 rounded-xl border px-2 py-3 text-center transition sm:px-4 sm:text-left ${auditMode === value ? "border-emerald-300/50 bg-emerald-300/10 text-slate-900 shadow-lg shadow-emerald-500/5" : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:text-violet-700"}`}>
                 <div className="flex items-center justify-center gap-1 text-xs font-bold sm:justify-start sm:text-sm"><span className={`h-2 w-2 shrink-0 rounded-full ${auditMode === value ? "bg-emerald-300" : "bg-slate-700"}`} />{label}</div>
-                <div className="mt-1 hidden text-[11px] leading-4 text-slate-400 sm:block">{description}</div>
+                <div className="mt-1 hidden text-[11px] leading-4 text-slate-600 sm:block">{description}</div>
               </button>
             ))}
           </div>
@@ -562,7 +562,7 @@ export default function Home() {
               onChange={(e) => setUrl(e.target.value)}
               placeholder="jouwdomein.nl"
               required
-              className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#16233A] px-4 py-4 text-base outline-none placeholder:text-slate-400 focus:border-emerald-300 sm:border-0 sm:bg-transparent sm:text-sm"
+              className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-[#16233A] px-4 py-4 text-base outline-none placeholder:text-slate-600 focus:border-emerald-300 sm:border-0 sm:bg-transparent sm:text-sm"
             />
             <button
               disabled={scanning}
@@ -584,7 +584,7 @@ export default function Home() {
             ["AI Fix", "Concrete verbeteringen"],
             ["Reports", "Klaar voor klanten"],
           ].map(([title, text]) => (
-            <div key={title} className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+            <div key={title} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="text-sm font-bold">{title}</div>
               <div className="mt-1 text-xs text-slate-500">{text}</div>
             </div>
@@ -594,7 +594,7 @@ export default function Home() {
 
       {scanning && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0B1220]/80 px-4 py-6 backdrop-blur-xl">
-          <div className="relative w-full max-w-3xl overflow-hidden rounded-[28px] border border-white/10 bg-[#101B2D]/95 p-5 shadow-2xl shadow-blue-950/50 sm:p-8">
+          <div className="relative w-full max-w-3xl overflow-hidden rounded-[28px] border border-slate-200 bg-[#101B2D]/95 p-5 shadow-2xl shadow-blue-950/50 sm:p-8">
             <div className="absolute -left-24 -top-24 h-64 w-64 rounded-full bg-emerald-400/10 blur-3xl" />
             <div className="absolute -bottom-32 -right-20 h-72 w-72 rounded-full bg-blue-600/10 blur-3xl" />
             <div className="relative">
@@ -612,7 +612,7 @@ export default function Home() {
                     <div className="absolute inset-[-18px] animate-[spin_2.2s_linear_infinite] rounded-full border-[18px] border-transparent border-t-emerald-300 border-r-blue-600 shadow-[0_0_35px_rgba(34,211,238,0.18)]" />
                     <div className="flex h-24 w-24 flex-col items-center justify-center rounded-3xl bg-gradient-to-br from-blue-600/30 to-emerald-300/10 ring-1 ring-emerald-300/20">
                       <svg viewBox="0 0 24 24" className="h-10 w-10 text-emerald-200" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
-                      <span className="mt-1 text-[11px] font-bold text-white">Scannen...</span>
+                      <span className="mt-1 text-[11px] font-bold text-slate-900">Scannen...</span>
                     </div>
                   </div>
                 </div>
@@ -620,7 +620,7 @@ export default function Home() {
                 <div>
                   <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Website analyseren</div>
                   <h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">We zijn je website aan het controleren</h2>
-                  <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3">
+                  <div className="mt-4 flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/[0.035] px-4 py-3">
                     <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-300" />
                     <span className="truncate text-sm font-semibold text-slate-200">{url}</span>
                   </div>
@@ -628,8 +628,8 @@ export default function Home() {
                     {scanSteps.map((step, index) => {
                       const done = index < scanStep;
                       const active = index === scanStep;
-                      return <div key={step} className={`flex items-center gap-3 text-sm transition-all duration-500 ${done ? "text-emerald-300" : active ? "text-white" : "text-slate-600"}`}>
-                        <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border ${done ? "border-emerald-400/40 bg-emerald-400/10" : active ? "border-emerald-300/40 bg-emerald-300/10" : "border-white/10 bg-white/[0.02]"}`}>
+                      return <div key={step} className={`flex items-center gap-3 text-sm transition-all duration-500 ${done ? "text-emerald-300" : active ? "text-slate-900" : "text-slate-600"}`}>
+                        <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border ${done ? "border-emerald-400/40 bg-emerald-400/10" : active ? "border-emerald-300/40 bg-emerald-300/10" : "border-slate-200 bg-white/[0.02]"}`}>
                           {done ? "✓" : active ? <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" /> : <span className="h-1.5 w-1.5 rounded-full bg-slate-700" />}
                         </span>
                         <span>{step}</span>
@@ -639,7 +639,7 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-              <div className="mt-7 flex items-center justify-between border-t border-white/10 pt-5 text-[11px] text-slate-600">
+              <div className="mt-7 flex items-center justify-between border-t border-slate-200 pt-5 text-[11px] text-slate-600">
                 <span>SEO · GEO · Performance · Content</span>
                 <span>Even geduld…</span>
               </div>
@@ -650,9 +650,9 @@ export default function Home() {
 
       {githubFixing && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center bg-[#0B1220]/85 px-4 py-6 backdrop-blur-xl">
-          <div className="w-full max-w-lg rounded-[28px] border border-white/10 bg-[#101B2D] p-6 shadow-2xl sm:p-8">
-            <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-emerald-300 to-teal-600 text-sm font-black text-slate-950">RF</span><div><div className="font-bold">RankFix bereidt een codewijziging voor</div><div className="text-xs text-slate-400">De live website verandert nog niet</div></div></div>
-            <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-5">
+          <div className="w-full max-w-lg rounded-[28px] border border-slate-200 bg-[#101B2D] p-6 shadow-2xl sm:p-8">
+            <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-emerald-300 to-teal-600 text-sm font-black text-slate-950">RF</span><div><div className="font-bold">RankFix bereidt een codewijziging voor</div><div className="text-xs text-slate-600">De live website verandert nog niet</div></div></div>
+            <div className="mt-6 rounded-2xl border border-slate-200 bg-black/20 p-5">
               <div className="flex items-center justify-center">
                 <div className="relative h-20 w-20">
                   <div className="absolute inset-0 rounded-full border border-emerald-300/10"></div>
@@ -662,12 +662,12 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-              <div className="mt-5 text-center text-base font-bold text-white">{githubProgress < 30 ? "We verzamelen je auditgegevens…" : githubProgress < 70 ? "RankFix controleert de juiste wijziging…" : githubProgress < 100 ? "RankFix zet de verbetering veilig klaar…" : "Klaar — bijna daar!"}</div>
+              <div className="mt-5 text-center text-base font-bold text-slate-900">{githubProgress < 30 ? "We verzamelen je auditgegevens…" : githubProgress < 70 ? "RankFix controleert de juiste wijziging…" : githubProgress < 100 ? "RankFix zet de verbetering veilig klaar…" : "Klaar — bijna daar!"}</div>
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
                 <div className="h-full rounded-full bg-gradient-to-r from-emerald-300 via-blue-400 to-violet-400 transition-all duration-700" style={{width: githubProgress + "%"}} />
               </div>
               <div className="mt-2 flex justify-between text-[10px] font-semibold uppercase tracking-widest text-slate-600"><span>Analyseren</span><span>Controleren</span><span>Klaar</span></div>
-              <p className="mt-4 text-center text-xs leading-5 text-slate-400">Dit kan even duren. Controleer daarna de wijziging in de pull request voordat je die publiceert.</p>
+              <p className="mt-4 text-center text-xs leading-5 text-slate-600">Dit kan even duren. Controleer daarna de wijziging in de pull request voordat je die publiceert.</p>
             </div>
           </div>
         </div>
@@ -679,7 +679,7 @@ export default function Home() {
             <div className="text-4xl">🟢</div>
             <div className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Al in orde</div>
             <h2 className="mt-2 text-2xl font-black">Deze verbetering was al aanwezig.</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-400">RankFix heeft gecontroleerd of er echt iets moest worden aangepast. Dat was niet nodig.</p>
+            <p className="mt-3 text-sm leading-6 text-slate-600">RankFix heeft gecontroleerd of er echt iets moest worden aangepast. Dat was niet nodig.</p>
             <div className="mt-5 rounded-2xl border border-emerald-400/10 bg-emerald-400/[0.035] p-4 text-sm leading-6 text-slate-300">
               <span className="font-bold text-emerald-200">Je hoeft niets te doen.</span>
               <div className="mt-1 text-slate-500">Er is geen technische wijziging aangemaakt en er zijn geen credits gebruikt.</div>
@@ -695,10 +695,10 @@ export default function Home() {
             <div className="text-4xl">🔵</div>
             <div className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Codevoorstel aangemaakt</div>
             <h2 className="mt-2 text-2xl font-black">De wijziging staat klaar voor controle.</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-400">RankFix heeft een bestand gewijzigd in een aparte GitHub-pull-request. De live website is nog niet aangepast.</p>
+            <p className="mt-3 text-sm leading-6 text-slate-600">RankFix heeft een bestand gewijzigd in een aparte GitHub-pull-request. De live website is nog niet aangepast.</p>
             <div className="mt-5 rounded-2xl border border-emerald-400/10 bg-emerald-400/[0.035] p-4 text-sm leading-6 text-slate-300">
               <span className="font-bold text-emerald-200">Controleer en publiceer de wijziging.</span>
-              <div className="mt-1 text-slate-400">Bekijk de diff, merge de pull request en scan je website opnieuw om de verbetering te bevestigen.</div>
+              <div className="mt-1 text-slate-600">Bekijk de diff, merge de pull request en scan je website opnieuw om de verbetering te bevestigen.</div>
             </div>
             <a href={githubResult.url} target="_blank" rel="noopener noreferrer" className="mt-4 block rounded-xl border border-emerald-300/30 px-5 py-3 text-center text-sm font-bold text-emerald-200">Bekijk pull request ↗</a>
             <button type="button" onClick={() => setGithubResult(null)} className="mt-6 w-full rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-950">Ga terug naar mijn resultaat</button>
@@ -721,20 +721,20 @@ export default function Home() {
             <div className="text-xs text-slate-500">{result.responseTime} ms · HTTP {result.httpStatus}</div>
           </div>
 
-          <div className="mb-6 rounded-[28px] border border-white/10 bg-gradient-to-br from-white/[0.055] to-emerald-400/[0.025] p-5 shadow-2xl shadow-black/10 sm:p-6">
+          <div className="mb-6 rounded-[28px] border border-slate-200 bg-gradient-to-br from-white/[0.055] to-emerald-400/[0.025] p-5 shadow-2xl shadow-black/10 sm:p-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Jouw RankFix resultaat</div>
                 <h3 className="mt-2 text-2xl font-black tracking-tight">Dit is wat er met je website gebeurt.</h3>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">Bekijk wat al goed is, wat nog aandacht vraagt en welke codevoorstellen op controle wachten. Een fix is pas bevestigd na een nieuwe scan van je live website.</p>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Bekijk wat al goed is, wat nog aandacht vraagt en welke codevoorstellen op controle wachten. Een fix is pas bevestigd na een nieuwe scan van je live website.</p>
               </div>
-              <div className="rounded-full border border-white/10 bg-black/10 px-3 py-1.5 text-xs font-semibold text-slate-400">{issues.length} {issues.length === 1 ? "verbeterpunt" : "verbeterpunten"} gevonden</div>
+              <div className="rounded-full border border-slate-200 bg-black/10 px-3 py-1.5 text-xs font-semibold text-slate-600">{issues.length} {issues.length === 1 ? "verbeterpunt" : "verbeterpunten"} gevonden</div>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
               <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/[0.045] p-4"><div className="text-lg">🟢</div><div className="mt-2 text-sm font-bold text-emerald-200">Gedaan</div><div className="mt-1 text-2xl font-black">{passedCount}</div><p className="mt-1 text-xs leading-5 text-slate-500">Controles die al goed staan.</p></div>
               <div className="rounded-2xl border border-amber-400/15 bg-amber-400/[0.045] p-4"><div className="text-lg">🟠</div><div className="mt-2 text-sm font-bold text-amber-200">Nog te verbeteren</div><div className="mt-1 text-2xl font-black">{remainingCount}</div><p className="mt-1 text-xs leading-5 text-slate-500">Punten waarvoor nog geen wijziging is klaargezet.</p></div>
-              <div className="rounded-2xl border border-blue-400/15 bg-blue-400/[0.045] p-4"><div className="text-lg">🔵</div><div className="mt-2 text-sm font-bold text-blue-200">Codevoorstel</div><div className="mt-1 text-2xl font-black">{preparedCount}</div><p className="mt-1 text-xs leading-5 text-slate-400">Pull requests die nog niet live bevestigd zijn.</p></div>
-              <div className="rounded-2xl border border-yellow-400/15 bg-yellow-400/[0.045] p-4"><div className="text-lg">🟡</div><div className="mt-2 text-sm font-bold text-yellow-200">Nog te bevestigen</div><div className="mt-1 text-2xl font-black">{waitingIssues.length}</div><p className="mt-1 text-xs leading-5 text-slate-400">Controleer, publiceer en scan opnieuw.</p></div>
+              <div className="rounded-2xl border border-blue-400/15 bg-blue-400/[0.045] p-4"><div className="text-lg">🔵</div><div className="mt-2 text-sm font-bold text-blue-200">Codevoorstel</div><div className="mt-1 text-2xl font-black">{preparedCount}</div><p className="mt-1 text-xs leading-5 text-slate-600">Pull requests die nog niet live bevestigd zijn.</p></div>
+              <div className="rounded-2xl border border-yellow-400/15 bg-yellow-400/[0.045] p-4"><div className="text-lg">🟡</div><div className="mt-2 text-sm font-bold text-yellow-200">Nog te bevestigen</div><div className="mt-1 text-2xl font-black">{waitingIssues.length}</div><p className="mt-1 text-xs leading-5 text-slate-600">Controleer, publiceer en scan opnieuw.</p></div>
             </div>
             <div className="mt-4 rounded-2xl border border-emerald-400/10 bg-emerald-400/[0.035] px-4 py-3 text-sm text-slate-300">{preparedCount ? "Controleer de pull request, publiceer en scan daarna opnieuw." : remainingCount ? "Open een verbeterpunt hieronder voor uitleg en een voorstel." : "De getoonde controles zijn in orde."}</div>
           </div>
@@ -743,10 +743,10 @@ export default function Home() {
             <div className="mb-4 rounded-3xl border border-yellow-400/15 bg-yellow-400/[0.035] p-5">
               <div className="text-xs font-bold uppercase tracking-widest text-yellow-300">Nog te bevestigen</div>
               <div className="mt-1 text-lg font-black">{waitingIssues.length} {waitingIssues.length === 1 ? "codevoorstel" : "codevoorstellen"} wachten op een nieuwe live controle.</div>
-              <p className="mt-2 text-sm leading-6 text-slate-400">Deze problemen zijn nog niet opgelost. Controleer de pull request, publiceer en scan daarna opnieuw. Pas wanneer de live controle slaagt, telt de fix als bevestigd.</p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Deze problemen zijn nog niet opgelost. Controleer de pull request, publiceer en scan daarna opnieuw. Pas wanneer de live controle slaagt, telt de fix als bevestigd.</p>
               <div className="mt-4 space-y-2">
                 {waitingIssues.slice(0, 5).map((item) => (
-                  <div key={item.issue_id || item.key} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/10 p-3">
+                  <div key={item.issue_id || item.key} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-black/10 p-3">
                     <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-yellow-400/10 text-xs font-bold text-yellow-300">!</span>
                     <div className="min-w-0 flex-1">
                       <div className="font-semibold">{item.title}</div>
@@ -759,7 +759,7 @@ export default function Home() {
           )}
 
           <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
-            <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-6">
+            <div className="rounded-3xl border border-slate-200 bg-white/[0.035] p-6">
               <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">Overall</div>
               <div className="mt-2 text-6xl font-black tracking-tighter text-emerald-300">{result.overallScore}</div>
               <div className="mt-1 text-sm text-slate-500">Grade {result.grade}</div>
@@ -770,7 +770,7 @@ export default function Home() {
                 {([["seo", result.seo], ["geo", result.geo]] as const)
                   .filter(([key]) => result.mode === "both" || result.mode === key)
                   .map(([key, data]) => (
-                    <button key={key} type="button" onClick={() => setTab(key)} className={`rounded-xl border px-3 py-2 text-left transition ${tab === key ? "border-emerald-300/30 bg-emerald-300/10 text-white" : "border-white/10 bg-white/[0.02] text-slate-500 hover:text-white"}`}>
+                    <button key={key} type="button" onClick={() => setTab(key)} className={`rounded-xl border px-3 py-2 text-left transition ${tab === key ? "border-emerald-300/30 bg-emerald-300/10 text-slate-900" : "border-slate-200 bg-white/[0.02] text-slate-500 hover:text-violet-700"}`}>
                       <div className="text-[10px] font-bold uppercase tracking-widest">{key}</div>
                       <div className="mt-1 text-xl font-black">{data.score}</div>
                     </button>
@@ -790,7 +790,7 @@ export default function Home() {
                   </div>
                   <div className="mt-4 space-y-2">
                     {issues.slice(0, 5).map((item) => (
-                      <div key={item.issue_id || item.key} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/10 p-3">
+                      <div key={item.issue_id || item.key} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-black/10 p-3">
                         <span className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg text-xs font-bold ${item.status === "warning" ? "bg-amber-400/10 text-amber-300" : "bg-red-400/10 text-red-300"}`}>{statusIcon[item.status]}</span>
                         <div className="min-w-0 flex-1">
                           <div className="font-semibold">{item.title}</div>
@@ -807,7 +807,7 @@ export default function Home() {
                 </div>
               )}
 
-              <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
+              <div className="rounded-3xl border border-slate-200 bg-white/[0.035] p-5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-500">{tab.toUpperCase()} audit</div>
@@ -820,22 +820,22 @@ export default function Home() {
                     <span key={item.issue_id || item.key} className="rounded-full border border-emerald-400/10 bg-emerald-400/[0.04] px-3 py-1.5 text-xs text-emerald-200">✓ {item.title}</span>
                   ))}
                   {activeChecks.filter((item) => item.status === "pass").length > 8 && (
-                    <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-slate-500">+{activeChecks.filter((item) => item.status === "pass").length - 8} meer</span>
+                    <span className="rounded-full border border-slate-200 bg-white/[0.03] px-3 py-1.5 text-xs text-slate-500">+{activeChecks.filter((item) => item.status === "pass").length - 8} meer</span>
                   )}
                 </div>
               </div>
 
-              <details className="rounded-3xl border border-white/10 bg-white/[0.025]">
+              <details className="rounded-3xl border border-slate-200 bg-slate-50">
                 <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-slate-300">
                   <span className="mr-2">⌄</span> Bekijk technische details
                 </summary>
-                <div className="border-t border-white/10 px-5 py-4">
+                <div className="border-t border-slate-200 px-5 py-4">
                   <div className="grid gap-2 sm:grid-cols-2">
                     {activeChecks.filter((item) => {
                       const key = item.issue_id || item.key;
                       return item.status === "pass" || (item.fix_status !== "WAITING" && !githubResults[key]);
                     }).map((item) => (
-                      <div key={item.issue_id || item.key} className="rounded-2xl border border-white/10 bg-black/10 p-3">
+                      <div key={item.issue_id || item.key} className="rounded-2xl border border-slate-200 bg-black/10 p-3">
                         <div className="flex items-center gap-2">
                           <span className={`text-xs font-bold ${item.status === "pass" ? "text-emerald-300" : item.status === "warning" ? "text-amber-300" : "text-red-300"}`}>{statusIcon[item.status]}</span>
                           <span className="text-sm font-semibold">{item.title}</span>
@@ -868,11 +868,11 @@ export default function Home() {
                 </div>
               </details>
 
-              <details className="rounded-3xl border border-white/10 bg-white/[0.025]">
+              <details className="rounded-3xl border border-slate-200 bg-slate-50">
                 <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-slate-300">
                   <span className="mr-2">⌄</span> Kernmetrics
                 </summary>
-                <div className="grid grid-cols-2 gap-3 border-t border-white/10 px-5 py-4 sm:grid-cols-3">
+                <div className="grid grid-cols-2 gap-3 border-t border-slate-200 px-5 py-4 sm:grid-cols-3">
                   {[
                     ["H1", result.metrics.h1Count],
                     ["Woorden", result.metrics.wordCount],
@@ -899,11 +899,11 @@ export default function Home() {
         </section>
       )}
 
-      <section id="features" className="mx-auto max-w-7xl scroll-mt-8 border-t border-white/10 px-5 py-20 lg:px-8">
+      <section id="features" className="mx-auto max-w-7xl scroll-mt-8 border-t border-slate-200 px-5 py-20 lg:px-8">
         <div className="max-w-2xl">
           <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Van inzicht naar verbetering</div>
           <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Van scan naar actie.</h2>
-          <p className="mt-4 text-slate-400">Ontdek wat aandacht vraagt, lees waarom het telt en bekijk een concreet codevoorstel. Na publicatie bevestig je de verandering met een nieuwe scan.</p>
+          <p className="mt-4 text-slate-600">Ontdek wat aandacht vraagt, lees waarom het telt en bekijk een concreet codevoorstel. Na publicatie bevestig je de verandering met een nieuwe scan.</p>
         </div>
         <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[
@@ -912,7 +912,7 @@ export default function Home() {
             ["03", "Ads readiness", "Controleer landingspagina, tracking-signalen, GA4/GTM en Google Ads-conversies zonder te doen alsof RankFix al toegang heeft tot je Ads-account."],
             ["04", "Fix Engine", "RankFix maakt een aparte pull request voor een veilige codewijziging. Controleer en publiceer die eerst; scan daarna de live website opnieuw."],
           ].map(([number, title, text]) => (
-            <div key={number} className="group rounded-3xl border border-white/10 bg-white/[0.025] p-7 transition hover:-translate-y-1 hover:bg-white/[0.04]">
+            <div key={number} className="group rounded-3xl border border-slate-200 bg-slate-50 p-7 transition hover:-translate-y-1 hover:bg-white">
               <div className="text-xs font-black text-emerald-300">{number}</div>
               <h3 className="mt-10 text-xl font-bold">{title}</h3>
               <p className="mt-3 text-sm leading-7 text-slate-500">{text}</p>
@@ -921,14 +921,14 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="border-t border-white/10 bg-white/[0.02]"><div className="mx-auto max-w-7xl px-5 py-16 lg:px-8"><div className="max-w-2xl"><div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Eerlijke fixes</div><h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Geen “fix klaar” als er niets is veranderd.</h2><p className="mt-4 text-slate-500">Elke technische fix doorloopt dezelfde keten: gevonden → gecontroleerd → echt gewijzigd → opnieuw gecontroleerd.</p></div><div className="mt-10 grid gap-4 md:grid-cols-4">{[
+      <section className="border-t border-slate-200 bg-white/[0.02]"><div className="mx-auto max-w-7xl px-5 py-16 lg:px-8"><div className="max-w-2xl"><div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Eerlijke fixes</div><h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Geen “fix klaar” als er niets is veranderd.</h2><p className="mt-4 text-slate-500">Elke technische fix doorloopt dezelfde keten: gevonden → gecontroleerd → echt gewijzigd → opnieuw gecontroleerd.</p></div><div className="mt-10 grid gap-4 md:grid-cols-4">{[
 ["🟠","Gevonden","RankFix legt in gewone taal uit wat er misgaat en waarom het telt."],
 ["🔵","Codevoorstel","De wijziging staat in een aparte pull request, nog niet op de live website."],
 ["🟡","Nog te bevestigen","Publiceer de codewijziging en scan de live website opnieuw."],
 ["🟢","Bevestigd","De live scan laat zien dat de verbetering daadwerkelijk aanwezig is."]
-].map(([icon,title,text])=><div key={title} className="rounded-3xl border border-white/10 bg-white/[0.025] p-6"><div className="text-2xl">{icon}</div><h3 className="mt-4 font-bold">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-500">{text}</p></div>)}</div></div></section>
+].map(([icon,title,text])=><div key={title} className="rounded-3xl border border-slate-200 bg-slate-50 p-6"><div className="text-2xl">{icon}</div><h3 className="mt-4 font-bold">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-500">{text}</p></div>)}</div></div></section>
 
-      <section id="prijzen" className="mx-auto max-w-7xl scroll-mt-8 border-t border-white/10 px-5 py-20 lg:px-8">
+      <section id="prijzen" className="mx-auto max-w-7xl scroll-mt-8 border-t border-slate-200 px-5 py-20 lg:px-8">
         <div className="text-center">
           <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Simple pricing</div>
           <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Betaal voor gebruik. Niet voor ruis.</h2>
@@ -942,11 +942,11 @@ export default function Home() {
             ["E-commerce","€79","per maand",["5 webshops","50 scans / maand","50 AI-fixcredits","Shopify, WooCommerce & Next.js/custom","Product-, categorie- en structured-data checks"]],
             ["Pro","€89","per maand",["15 websites","100 scans / maand","80 AI-fixcredits","Uitgebreide automatisering","Tot 5 gebruikers"]],
             ["Agency","€179","per maand",["50 websites","300 scans / maand","200 AI-fixcredits","White-label rapporten","API + team/workflow"]]
-          ].map((entry)=>{const [name,price,period,items]=entry as [string,string,string,string[]];const featured=name==="Business";const ecommerce=name==="E-commerce";return <div key={name} className={`relative rounded-3xl border p-7 ${featured?"border-emerald-400/40 bg-emerald-400/[0.06]":ecommerce?"border-cyan-400/30 bg-cyan-400/[0.04]":"border-white/10 bg-white/[0.025]"}`}>{featured&&<div className="absolute right-5 top-5 rounded-full bg-emerald-300 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-950">Meest gekozen</div>}{ecommerce&&<div className="absolute right-5 top-5 rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-cyan-200">Voor webshops</div>}<div className="text-sm font-bold">{name}</div><div className="mt-5 text-4xl font-black">{price}</div><div className="mt-1 text-xs text-slate-500">{period}</div><div className="my-6 h-px bg-white/10"/><ul className="space-y-3 text-sm text-slate-400">{items.map(item=><li key={item}>✓ {item}</li>)}</ul><button className="mt-7 w-full rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold transition hover:bg-white/5">Binnenkort beschikbaar</button></div>})}
+          ].map((entry)=>{const [name,price,period,items]=entry as [string,string,string,string[]];const featured=name==="Business";const ecommerce=name==="E-commerce";return <div key={name} className={`relative rounded-3xl border p-7 ${featured?"border-emerald-400/40 bg-emerald-400/[0.06]":ecommerce?"border-cyan-400/30 bg-cyan-400/[0.04]":"border-slate-200 bg-slate-50"}`}>{featured&&<div className="absolute right-5 top-5 rounded-full bg-emerald-300 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-950">Meest gekozen</div>}{ecommerce&&<div className="absolute right-5 top-5 rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-cyan-200">Voor webshops</div>}<div className="text-sm font-bold">{name}</div><div className="mt-5 text-4xl font-black">{price}</div><div className="mt-1 text-xs text-slate-500">{period}</div><div className="my-6 h-px bg-white/10"/><ul className="space-y-3 text-sm text-slate-600">{items.map(item=><li key={item}>✓ {item}</li>)}</ul><button className="mt-7 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold transition hover:bg-slate-50">Binnenkort beschikbaar</button></div>})}
         </div>
       </section>
 
-      <section className="border-y border-white/10 bg-white/[0.02]">
+      <section className="border-y border-slate-200 bg-white/[0.02]">
         <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
           <div className="grid gap-8 md:grid-cols-4">
             {[
@@ -961,16 +961,16 @@ export default function Home() {
 
       {contactOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-md">
-          <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-white/10 bg-[#101B2D] p-6 shadow-2xl sm:p-8">
-            <button type="button" onClick={() => setContactOpen(false)} aria-label="Contactformulier sluiten" className="absolute right-5 top-5 grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/5 text-slate-300 hover:text-white">×</button>
+          <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-slate-200 bg-[#101B2D] p-6 shadow-2xl sm:p-8">
+            <button type="button" onClick={() => setContactOpen(false)} aria-label="Contactformulier sluiten" className="absolute right-5 top-5 grid h-9 w-9 place-items-center rounded-full border border-slate-200 bg-slate-50 text-slate-300 hover:text-violet-700">×</button>
             <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{t.contact}</div>
             <h2 className="mt-2 text-3xl font-black">{t.contactTitle}</h2>
             <p className="mt-3 text-sm leading-6 text-slate-500">{t.contactText}</p>
             <form onSubmit={handleContact} className="mt-6 space-y-4">
-              <input name="name" required placeholder="Naam" className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-emerald-300/40" />
-              <input name="email" required type="email" placeholder="E-mailadres" className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-emerald-300/40" />
-              <input name="company" placeholder="Bedrijf (optioneel)" className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-emerald-300/40" />
-              <textarea name="message" required rows={5} placeholder="Waar kunnen we mee helpen?" className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-emerald-300/40" />
+              <input name="name" required placeholder="Naam" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-600 focus:border-emerald-300/40" />
+              <input name="email" required type="email" placeholder="E-mailadres" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-600 focus:border-emerald-300/40" />
+              <input name="company" placeholder="Bedrijf (optioneel)" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-600 focus:border-emerald-300/40" />
+              <textarea name="message" required rows={5} placeholder="Waar kunnen we mee helpen?" className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-600 focus:border-emerald-300/40" />
               {contactError && <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">{contactError}</div>}
               {contactSent && <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-3 text-sm text-emerald-200">{t.thanks}</div>}
               <button disabled={contactSending} className="w-full rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-100 disabled:opacity-50">{contactSending ? t.sending : t.send}</button>
@@ -979,12 +979,12 @@ export default function Home() {
         </div>
       )}
 
-      <section id="resources" className="border-y border-white/10 bg-white/[0.02] scroll-mt-8">
+      <section id="resources" className="border-y border-slate-200 bg-white/[0.02] scroll-mt-8">
         <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
           <div className="max-w-2xl">
             <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{t.resources}</div>
             <h2 className="mt-3 text-3xl font-black tracking-tight">Alles om van audit naar actie te gaan.</h2>
-            <p className="mt-4 text-slate-400">Gebruik RankFix voor audits en concrete codevoorstellen. Rapportdownloads en uitgebreidere lokale SEO-functies zijn nog in ontwikkeling.</p>
+            <p className="mt-4 text-slate-600">Gebruik RankFix voor audits en concrete codevoorstellen. Rapportdownloads en uitgebreidere lokale SEO-functies zijn nog in ontwikkeling.</p>
           </div>
           <div className="mt-8 grid gap-4 md:grid-cols-3">
             {[
@@ -993,7 +993,7 @@ export default function Home() {
               ["Webshop Audit", "Productdata, prijzen, trust en e-commerce signalen."],
               ["Ads Readiness", "Landingspagina, tracking en conversiesignalen voor Google Ads."],
               ["Local SEO", "LocalBusiness, locaties, openingstijden en officiële profielen."]
-            ].map(([title,text]) => <button key={title} type="button" onClick={() => title === "SEO Audit" ? startAudit("seo") : title === "GEO Audit" ? startAudit("geo") : scrollToSection("scan")} className="rounded-2xl border border-white/10 bg-white/[0.025] p-6 text-left transition hover:border-emerald-300/30 hover:bg-white/[0.05]"><div className="font-bold">{title}</div><div className="mt-2 text-sm text-slate-500">{text}</div></button>)}
+            ].map(([title,text]) => <button key={title} type="button" onClick={() => title === "SEO Audit" ? startAudit("seo") : title === "GEO Audit" ? startAudit("geo") : scrollToSection("scan")} className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-left transition hover:border-emerald-300/30 hover:bg-white/[0.05]"><div className="font-bold">{title}</div><div className="mt-2 text-sm text-slate-500">{text}</div></button>)}
           </div>
         </div>
       </section>
@@ -1003,7 +1003,7 @@ export default function Home() {
           <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{t.about}</div>
           <h2 className="mt-3 text-3xl font-black tracking-tight">Minder jargon. Meer grip op je website.</h2>
           <p className="mt-4 leading-7 text-slate-300">RankFix AI helpt ondernemers en teams om hun website beter te begrijpen. De scan bekijkt SEO- en GEO-signalen, van technische basis en inhoud tot structured data. Je ziet wat goed gaat en welke punten aandacht verdienen.</p>
-          <p className="mt-4 leading-7 text-slate-400">Voor geschikte codewijzigingen kan RankFix een aparte GitHub-pull-request voorbereiden. Je controleert en publiceert die zelf; een nieuwe scan laat zien of de verbetering live zichtbaar is.</p>
+          <p className="mt-4 leading-7 text-slate-600">Voor geschikte codewijzigingen kan RankFix een aparte GitHub-pull-request voorbereiden. Je controleert en publiceert die zelf; een nieuwe scan laat zien of de verbetering live zichtbaar is.</p>
           <a href="/nl/about" className="mt-6 inline-flex rounded-xl border border-emerald-300/30 px-4 py-3 text-sm font-bold text-emerald-200">Lees meer over RankFix →</a>
         </div>
       </section>
@@ -1041,7 +1041,7 @@ export default function Home() {
                         else if (link === "Over RankFix") window.location.href = "/nl/about";
                         else scrollToSection("scan");
                       }}
-                      className="block text-left hover:text-white"
+                      className="block text-left hover:text-violet-700"
                     >
                       {link}
                     </button>
@@ -1051,7 +1051,7 @@ export default function Home() {
             );
           })}
         </div>
-        <div className="mx-auto mt-12 flex max-w-7xl flex-col justify-between gap-3 border-t border-white/10 pt-6 text-xs text-slate-600 sm:flex-row">
+        <div className="mx-auto mt-12 flex max-w-7xl flex-col justify-between gap-3 border-t border-slate-200 pt-6 text-xs text-slate-600 sm:flex-row">
           <span>© 2026 RankFix AI. Alle rechten voorbehouden.</span>
           <span>SEO · GEO · AI Search · Built independent</span>
         </div>
