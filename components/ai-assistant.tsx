@@ -22,7 +22,6 @@ export default function AiAssistant({ dashboard = false, scanId = null }: Props)
 
   useEffect(() => {
     if (!dashboard || !scanId) return;
-    setOpen(true);
     setInput("Leg deze scan uit en noem de 3 belangrijkste problemen met een concrete oplossing.");
     setScanIssue(null);
     setFixResult("");

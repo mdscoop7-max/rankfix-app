@@ -14,7 +14,6 @@ export default function Dashboard() {
   const [scans, setScans] = useState<Scan[]>([]);
   const [fixes, setFixes] = useState<Record<string, number>>({});
   const [selectedResult, setSelectedResult] = useState<ScanResult | null>(null);
-  const [selectedScanId, setSelectedScanId] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -40,26 +39,13 @@ export default function Dashboard() {
     })();
   }, []);
 
-  async function viewScan(id: string) {
-    setBusy(id); setError("");
-    try {
-      const response = await fetch("/api/history/" + encodeURIComponent(id), { cache: "no-store" });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Resultaat laden mislukt.");
-      setSelectedScanId(id);
-      setSelectedResult(data.scan.result);
-      document.getElementById("resultaat")?.scrollIntoView({ behavior: "smooth" });
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Resultaat laden mislukt."); }
-    finally { setBusy(null); }
-  }
-
   async function rescan(scan: Scan) {
     setBusy(scan.id); setError(""); setMessage("");
     try {
       const response = await fetch("/api/scan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: scan.scanned_url, mode: "both" }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Nieuwe scan mislukt.");
-      setSelectedScanId(null); setSelectedResult(data);
+      setSelectedResult(data);
       setMessage("Nieuwe scan voltooid. Een voorbereide fix telt pas als opgelost wanneer de nieuwe scan de controle goedkeurt.");
       await loadHistory();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Nieuwe scan mislukt."); }
@@ -97,7 +83,7 @@ export default function Dashboard() {
               const tone = scan.critical_issues ? "critical" : scan.open_issues ? "warning" : "good";
               return <article key={scan.id} className="rf-site">
                 <div className="rf-site-main"><span className={`rf-dot ${tone}`} aria-hidden="true" /><div className="rf-site-copy"><h3>{hostname}</h3><p>{status} · {scan.open_issues} {scan.open_issues === 1 ? "verbeterpunt" : "verbeterpunten"} · scan {new Date(scan.created_at).toLocaleDateString("nl-NL")}</p></div></div>
-                <div className="rf-site-actions"><strong aria-label={`Score ${scan.overall_score} van 100`}>{scan.overall_score}</strong><button onClick={() => viewScan(scan.id)} disabled={busy === scan.id}>Bekijk rapport</button><button onClick={() => rescan(scan)} disabled={busy === scan.id}>Opnieuw scannen</button></div>
+                <div className="rf-site-actions"><strong aria-label={`Score ${scan.overall_score} van 100`}>{scan.overall_score}</strong><a href={`/dashboard/audit/${scan.id}`}>Bekijk audit</a><button onClick={() => rescan(scan)} disabled={busy === scan.id}>Opnieuw scannen</button></div>
               </article>;
             })}
             {!scans.length && <p className="rf-empty">Nog geen websites gescand. Voeg je eerste website toe om te zien wat aandacht nodig heeft.</p>}
@@ -105,7 +91,7 @@ export default function Dashboard() {
           </div>
         </section>
         <section className="rf-fix-summary" aria-label="Status van fixes"><h2>Fixes</h2><p>{fixes.PREPARED || 0} codevoorstellen wachten op toepassing of controle · {fixes.DONE || 0} verbeteringen bevestigd met een nieuwe scan.</p><a href="/dashboard/github">Bekijk GitHub-fixes →</a></section>
-        {selectedResult && <section id="resultaat" className="rf-report"><div className="rf-section-head"><h2>Scanresultaat</h2><button onClick={() => { setSelectedResult(null); setSelectedScanId(null); }}>Sluiten</button></div><p>Score {selectedResult.overallScore}/100 · SEO {selectedResult.seo?.score ?? "—"} · GEO {selectedResult.geo?.score ?? "—"}</p><div className="rf-checks">{checks.map((check, index) => <article key={index}><strong>{check.title}</strong><span>{check.fix_status === "DONE" ? "Live gecontroleerd" : check.fix_status === "WAITING" ? "Codevoorstel; nog niet bevestigd" : check.status === "pass" ? "In orde" : check.severity === "CRITICAL" ? "Kritiek" : "Aandacht nodig"}</span><p>{check.message}</p></article>)}</div></section>}
+        {selectedResult && <section id="resultaat" className="rf-report"><div className="rf-section-head"><h2>Nieuwe scan voltooid</h2><button onClick={() => setSelectedResult(null)}>Sluiten</button></div><p>Score {selectedResult.overallScore}/100 · SEO {selectedResult.seo?.score ?? "—"} · GEO {selectedResult.geo?.score ?? "—"}</p><div className="rf-checks">{checks.map((check, index) => <article key={index}><strong>{check.title}</strong><span>{check.fix_status === "DONE" ? "Live gecontroleerd" : check.fix_status === "WAITING" ? "Codevoorstel; nog niet bevestigd" : check.status === "pass" ? "In orde" : check.severity === "CRITICAL" ? "Kritiek" : "Aandacht nodig"}</span><p>{check.message}</p></article>)}</div></section>}
       </div>
       <nav className="rf-nav" aria-label="Dashboardnavigatie">
         <a href="/dashboard" aria-current="page"><span aria-hidden="true">⌂</span>Overzicht</a>
@@ -115,6 +101,6 @@ export default function Dashboard() {
         <a href="/account"><span aria-hidden="true">♙</span>Account</a>
       </nav>
     </div>
-    <AiAssistant dashboard scanId={selectedScanId} />
+    <AiAssistant dashboard />
   </main>;
 }

@@ -64,7 +64,7 @@ const statusIcon = { pass: "✓", warning: "!", fail: "×" };
 
 const translations = {
   nl: {
-    moreInfo:"Meer info", audit:"Audit", pricing:"Prijzen", resources:"Resources", contact:"Contact", login:"Inloggen", register:"Account aanmaken",
+    moreInfo:"Zo werkt het", audit:"Gratis scan", pricing:"Prijzen", resources:"Resources", contact:"Contact", login:"Inloggen", register:"Account aanmaken",
     badge:"SEO + GEO audit voor Google & AI Search", hero:"Vind wat je rankings blokkeert.", hero2:"Fix het met RankFix.",
     intro:"Eén snelle scan voor technische SEO, content, structured data en AI-search readiness. Eerst inzicht. Daarna concrete fixes — met AI wanneer jij dat activeert.",
     seoDesc:"Google & organische vindbaarheid", geoDesc:"AI Search & generatieve vindbaarheid", bothDesc:"Volledige analyse",
@@ -75,7 +75,7 @@ const translations = {
     back:"← Terug naar RankFix AI"
   },
   en: {
-    moreInfo:"More info", audit:"Audit", pricing:"Pricing", resources:"Resources", contact:"Contact", login:"Log in", register:"Create account",
+    moreInfo:"How it works", audit:"Free scan", pricing:"Pricing", resources:"Resources", contact:"Contact", login:"Log in", register:"Create account",
     badge:"SEO + GEO audit for Google & AI Search", hero:"Find what is blocking your rankings.", hero2:"Fix it with RankFix.",
     intro:"One fast scan for technical SEO, content, structured data and AI-search readiness. Get insight first, then concrete fixes — with AI when you activate it.",
     seoDesc:"Google & organic visibility", geoDesc:"AI Search & generative visibility", bothDesc:"Full analysis",
@@ -85,7 +85,7 @@ const translations = {
     send:"Send message →", sending:"Sending…", thanks:"Thanks! Your message was sent.", back:"← Back to RankFix AI"
   },
   fr: {
-    moreInfo:"En savoir plus", audit:"Audit", pricing:"Tarifs", resources:"Ressources", contact:"Contact", login:"Connexion", register:"Créer un compte",
+    moreInfo:"Comment ça marche", audit:"Audit gratuit", pricing:"Tarifs", resources:"Ressources", contact:"Contact", login:"Connexion", register:"Créer un compte",
     badge:"Audit SEO + GEO pour Google & AI Search", hero:"Trouvez ce qui bloque vos performances.", hero2:"Corrigez-le avec RankFix.",
     intro:"Un scan rapide du SEO technique, du contenu, des données structurées et de la visibilité dans l'IA. Analysez d'abord, corrigez ensuite.",
     seoDesc:"Google & visibilité organique", geoDesc:"AI Search & visibilité générative", bothDesc:"Analyse complète",
@@ -95,7 +95,7 @@ const translations = {
     send:"Envoyer le message →", sending:"Envoi…", thanks:"Merci ! Votre message a été envoyé.", back:"← Retour à RankFix AI"
   },
   de: {
-    moreInfo:"Mehr erfahren", audit:"Audit", pricing:"Preise", resources:"Ressourcen", contact:"Kontakt", login:"Anmelden", register:"Konto erstellen",
+    moreInfo:"So funktioniert’s", audit:"Kostenloser Scan", pricing:"Preise", resources:"Ressourcen", contact:"Kontakt", login:"Anmelden", register:"Konto erstellen",
     badge:"SEO + GEO Audit für Google & AI Search", hero:"Finde, was deine Rankings blockiert.", hero2:"Behebe es mit RankFix.",
     intro:"Ein schneller Scan für technisches SEO, Inhalte, strukturierte Daten und AI-Search-Bereitschaft. Erst analysieren, dann konkrete Fixes umsetzen.",
     seoDesc:"Google & organische Sichtbarkeit", geoDesc:"AI Search & generative Sichtbarkeit", bothDesc:"Vollständige Analyse",
@@ -105,7 +105,7 @@ const translations = {
     send:"Nachricht senden →", sending:"Senden…", thanks:"Danke! Deine Nachricht wurde gesendet.", back:"← Zurück zu RankFix AI"
   },
   it: {
-    moreInfo:"Scopri di più", audit:"Audit", pricing:"Prezzi", resources:"Risorse", contact:"Contatti", login:"Accedi", register:"Crea account",
+    moreInfo:"Come funziona", audit:"Analisi gratuita", pricing:"Prezzi", resources:"Risorse", contact:"Contatti", login:"Accedi", register:"Crea account",
     badge:"Audit SEO + GEO per Google & AI Search", hero:"Scopri cosa blocca il tuo ranking.", hero2:"Risolvilo con RankFix.",
     intro:"Una scansione rapida per SEO tecnico, contenuti, dati strutturati e visibilità nell'AI. Prima l'analisi, poi fix concreti.",
     seoDesc:"Google & visibilità organica", geoDesc:"AI Search & visibilità generativa", bothDesc:"Analisi completa",
@@ -115,7 +115,7 @@ const translations = {
     send:"Invia messaggio →", sending:"Invio…", thanks:"Grazie! Il messaggio è stato inviato.", back:"← Torna a RankFix AI"
   },
   es: {
-    moreInfo:"Más información", audit:"Auditoría", pricing:"Precios", resources:"Recursos", contact:"Contacto", login:"Iniciar sesión", register:"Crear cuenta",
+    moreInfo:"Cómo funciona", audit:"Análisis gratis", pricing:"Precios", resources:"Recursos", contact:"Contacto", login:"Iniciar sesión", register:"Crear cuenta",
     badge:"Auditoría SEO + GEO para Google & AI Search", hero:"Descubre qué bloquea tus rankings.", hero2:"Arréglalo con RankFix.",
     intro:"Un escaneo rápido de SEO técnico, contenido, datos estructurados y preparación para búsquedas con IA. Primero analiza, después corrige.",
     seoDesc:"Google & visibilidad orgánica", geoDesc:"AI Search & visibilidad generativa", bothDesc:"Análisis completo",
@@ -463,10 +463,10 @@ export default function Home() {
             <span className="text-lg font-bold tracking-tight">RankFix <span className="text-emerald-300">AI</span></span>
           </a>
           <div className="hidden items-center gap-6 text-sm text-slate-400 lg:flex">
-            <a href="#features" className="transition hover:text-white">{t.moreInfo}</a>
             <button type="button" onClick={() => scrollToSection("scan")} className="transition hover:text-white">{t.audit}</button>
+            <a href="#features" className="transition hover:text-white">{t.moreInfo}</a>
+            <a href="#about" className="transition hover:text-white">{t.forWho}</a>
             <a href="#prijzen" className="transition hover:text-white">{t.pricing}</a>
-            <a href="#resources" className="transition hover:text-white">{t.resources}</a>
             <button type="button" onClick={() => setContactOpen(true)} className="transition hover:text-white">{t.contact}</button>
           </div>
           <div className="hidden items-center gap-2 lg:flex">
@@ -495,7 +495,7 @@ export default function Home() {
         {mobileMenuOpen && (
           <div id="rankfix-mobile-menu" className="max-h-[calc(100dvh-68px)] overflow-y-auto border-t border-white/10 px-4 pb-5 pt-3 lg:hidden">
             <div className="grid gap-1">
-              {[[t.moreInfo,"#features"],[t.audit,"#scan"],[t.pricing,"#prijzen"],[t.resources,"#resources"],[t.contact,"#footer"]].map(([label,href]) => (
+              {[[t.audit,"#scan"],[t.moreInfo,"#features"],[t.forWho,"#about"],[t.pricing,"#prijzen"],[t.contact,"#footer"]].map(([label,href]) => (
                 href === "#footer" ? (
                   <button key={label} type="button" onClick={() => { setMobileMenuOpen(false); setContactOpen(true); }} className="rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">{label}</button>
                 ) : (
@@ -901,16 +901,16 @@ export default function Home() {
 
       <section id="features" className="mx-auto max-w-7xl scroll-mt-8 border-t border-white/10 px-5 py-20 lg:px-8">
         <div className="max-w-2xl">
-          <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Built to fix, not just report</div>
+          <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Van inzicht naar verbetering</div>
           <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Van scan naar actie.</h2>
-          <p className="mt-4 text-slate-400">RankFix wordt een klantvriendelijk platform: ontdek het probleem, begrijp waarom het telt en krijg vervolgens een concrete oplossing.</p>
+          <p className="mt-4 text-slate-400">Ontdek wat aandacht vraagt, lees waarom het telt en bekijk een concreet codevoorstel. Na publicatie bevestig je de verandering met een nieuwe scan.</p>
         </div>
         <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[
             ["01", "SEO + GEO audit", "Technische SEO, metadata, structured data, entities, social metadata, URL-hygiëne en AI-search signalen."],
             ["02", "Webshop audit", "Product-schema, prijsnotatie, retour- en verzendsignalen, reviewplatforms, checkout-trust en variant-URL's."],
             ["03", "Ads readiness", "Controleer landingspagina, tracking-signalen, GA4/GTM en Google Ads-conversies zonder te doen alsof RankFix al toegang heeft tot je Ads-account."],
-            ["04", "Fix Engine", "Automatische fixes krijgen een echte wijziging + controle. Kan RankFix het niet veilig wijzigen, dan krijg je een concreet voorstel of klanttaak."],
+            ["04", "Fix Engine", "RankFix maakt een aparte pull request voor een veilige codewijziging. Controleer en publiceer die eerst; scan daarna de live website opnieuw."],
           ].map(([number, title, text]) => (
             <div key={number} className="group rounded-3xl border border-white/10 bg-white/[0.025] p-7 transition hover:-translate-y-1 hover:bg-white/[0.04]">
               <div className="text-xs font-black text-emerald-300">{number}</div>
@@ -923,8 +923,8 @@ export default function Home() {
 
       <section className="border-t border-white/10 bg-white/[0.02]"><div className="mx-auto max-w-7xl px-5 py-16 lg:px-8"><div className="max-w-2xl"><div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Eerlijke fixes</div><h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Geen “fix klaar” als er niets is veranderd.</h2><p className="mt-4 text-slate-500">Elke technische fix doorloopt dezelfde keten: gevonden → gecontroleerd → echt gewijzigd → opnieuw gecontroleerd.</p></div><div className="mt-10 grid gap-4 md:grid-cols-4">{[
 ["🟠","Gevonden","RankFix legt in gewone taal uit wat er misgaat en waarom het telt."],
-["🔵","Klaargezet","Alleen een echte, veilige wijziging krijgt deze status."],
-["🟡","Wacht op controle","Een voorbereide fix blijft uit nieuwe probleemlijsten totdat een volgende scan hem bevestigt."],
+["🔵","Codevoorstel","De wijziging staat in een aparte pull request, nog niet op de live website."],
+["🟡","Nog te bevestigen","Publiceer de codewijziging en scan de live website opnieuw."],
 ["🟢","Bevestigd","De live scan laat zien dat de verbetering daadwerkelijk aanwezig is."]
 ].map(([icon,title,text])=><div key={title} className="rounded-3xl border border-white/10 bg-white/[0.025] p-6"><div className="text-2xl">{icon}</div><h3 className="mt-4 font-bold">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-500">{text}</p></div>)}</div></div></section>
 
@@ -982,7 +982,7 @@ export default function Home() {
           <div className="max-w-2xl">
             <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{t.resources}</div>
             <h2 className="mt-3 text-3xl font-black tracking-tight">Alles om van audit naar actie te gaan.</h2>
-            <p className="mt-4 text-slate-500">Gebruik RankFix voor audits, concrete fixes, klantrapporten en lokale SEO-data.</p>
+            <p className="mt-4 text-slate-400">Gebruik RankFix voor audits en concrete codevoorstellen. Rapportdownloads en uitgebreidere lokale SEO-functies zijn nog in ontwikkeling.</p>
           </div>
           <div className="mt-8 grid gap-4 md:grid-cols-3">
             {[
