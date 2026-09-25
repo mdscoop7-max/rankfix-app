@@ -45,9 +45,9 @@ export default function ResetPassword() {
   }
 
   return (
-    <main className="min-h-screen bg-[#050816] px-5 py-12 text-white">
+    <main className="min-h-screen bg-[#0B1220] px-5 py-12 text-white">
       <div className="mx-auto max-w-md">
-        <a href="/" className="text-lg font-bold">RankFix <span className="text-cyan-300">AI</span></a>
+        <a href="/" className="text-lg font-bold">RankFix <span className="text-emerald-300">AI</span></a>
         <div className="mt-10 rounded-3xl border border-white/10 bg-white/[0.04] p-7">
           <h1 className="text-3xl font-black">Nieuw wachtwoord</h1>
           {done ? (

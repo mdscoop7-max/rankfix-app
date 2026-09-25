@@ -53,7 +53,7 @@ export default function AiAssistant({ dashboard = false, scanId = null }: Props)
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "GitHub Fix kon niet worden gestart.");
-      setFixResult(data.pr?.url ? "PR aangemaakt: " + data.pr.url : "Veilige GitHub Fix is aangemaakt.");
+      setFixResult(data.pr?.url ? "Codevoorstel aangemaakt. Controleer en merge de PR, en scan daarna opnieuw: " + data.pr.url : data.alreadyApplied ? "De code bevat dit al; er is niets gewijzigd. Controleer de live pagina met een nieuwe scan." : "Er is geen wijziging bevestigd.");
     } catch (error) {
       setFixResult(error instanceof Error ? error.message : "GitHub Fix mislukt.");
     } finally {
@@ -87,25 +87,25 @@ export default function AiAssistant({ dashboard = false, scanId = null }: Props)
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-5 right-5 z-[110] rounded-full border border-cyan-300/30 bg-[#0b1224] px-4 py-3 text-sm font-bold text-cyan-200 shadow-2xl shadow-cyan-950/30"
+        className={`fixed right-4 z-[110] rounded-full border border-emerald-300/30 bg-[#0F3B30] px-4 py-3 text-sm font-bold text-emerald-100 shadow-2xl shadow-emerald-950/30 sm:right-5 ${dashboard ? "bottom-[calc(82px+env(safe-area-inset-bottom))] sm:bottom-5" : "bottom-5"}`}
       >
         ✦ {dashboard ? "AI Assistent" : "Vraag RankFix AI"}
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[120] flex items-end justify-end bg-black/50 p-4 backdrop-blur-sm sm:items-center">
-          <div className="flex h-[min(680px,90vh)] w-full max-w-md flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#080d1b] shadow-2xl">
+        <div className="fixed inset-0 z-[120] flex items-end justify-end bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+          <div className="flex h-[min(680px,100dvh)] w-full max-w-md flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#101B2D] shadow-2xl sm:h-[min(680px,90vh)] sm:rounded-3xl">
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
               <div>
                 <div className="font-bold">RankFix AI</div>
                 <div className="text-xs text-slate-500">{dashboard ? "Technische hulp voor je Dashboard" : "Info over RankFix en SEO/GEO"}</div>
               </div>
-              <button type="button" onClick={() => setOpen(false)} className="rounded-full px-3 py-1 text-xl text-slate-400 hover:text-white">×</button>
+              <button type="button" onClick={() => setOpen(false)} aria-label="Assistent sluiten" className="rounded-full px-3 py-1 text-xl text-slate-300 hover:text-white">×</button>
             </div>
 
             <div className="flex-1 space-y-4 overflow-y-auto p-5">
               {messages.map((message, index) => (
-                <div key={index} className={message.role === "user" ? "ml-8 rounded-2xl bg-cyan-400/10 p-3 text-sm text-cyan-50" : "mr-8 rounded-2xl bg-white/5 p-3 text-sm leading-6 text-slate-300"}>
+                <div key={index} className={message.role === "user" ? "ml-8 rounded-2xl bg-emerald-400/10 p-3 text-sm text-emerald-50" : "mr-8 rounded-2xl bg-white/5 p-3 text-sm leading-6 text-slate-300"}>
                   {message.content}
                 </div>
               ))}
@@ -118,14 +118,14 @@ export default function AiAssistant({ dashboard = false, scanId = null }: Props)
                 <p className="mt-1 text-xs text-slate-400">
                   {scanIssue ? scanIssue.title : "Actief scanprobleem laden…"}
                 </p>
-                <button type="button" onClick={startGithubFix} disabled={!scanIssue || fixBusy} className="mt-3 w-full rounded-xl bg-cyan-300 px-4 py-3 text-sm font-bold text-slate-950 disabled:opacity-40">
+                <button type="button" onClick={startGithubFix} disabled={!scanIssue || fixBusy} className="mt-3 w-full rounded-xl bg-emerald-300 px-4 py-3 text-sm font-bold text-slate-950 disabled:opacity-40">
                   {fixBusy ? "GitHub Fix wordt gecontroleerd…" : "Start veilige GitHub Fix"}
                 </button>
                 {fixResult && <p className="mt-2 break-words text-xs text-slate-400">{fixResult}</p>}
               </div>
             )}
 
-            <div className="border-t border-white/10 p-4">
+            <div className="border-t border-white/10 p-4 pb-[calc(16px+env(safe-area-inset-bottom))]">
               <div className="flex gap-2">
                 <input
                   value={input}

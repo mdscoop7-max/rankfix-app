@@ -77,26 +77,26 @@ export default function GithubPage(){
     }
   }
 
-  return <main className="min-h-screen bg-[#050816] text-white">
-    <nav className="mx-auto flex max-w-6xl items-center justify-between border-b border-white/10 px-5 py-5">
-      <a href="/" className="font-bold">RankFix <span className="text-cyan-300">AI</span></a>
-      <a href="/" className="text-sm text-slate-400 hover:text-white">← Terug naar RankFix AI</a>
+  return <main className="min-h-screen bg-[#0B1220] text-white">
+    <nav className="mx-auto flex max-w-6xl items-center justify-between gap-3 border-b border-white/10 px-4 py-4 sm:px-5 sm:py-5">
+      <a href="/" className="font-bold">RankFix <span className="text-emerald-300">AI</span></a>
+      <a href="/dashboard" className="text-right text-xs text-slate-300 hover:text-white sm:text-sm">← Dashboard</a>
     </nav>
-    <section className="mx-auto max-w-4xl px-5 py-12">
-      <div className="text-xs uppercase tracking-widest text-cyan-300">GitHub Fix Engine</div>
-      <h1 className="mt-2 text-4xl font-black">AI maakt een echte PR voor je website.</h1>
+    <section className="mx-auto max-w-4xl px-4 py-8 sm:px-5 sm:py-12">
+      <div className="text-xs uppercase tracking-widest text-emerald-300">GitHub Fix Engine</div>
+      <h1 className="mt-2 text-3xl font-black leading-tight sm:text-4xl">Een codevoorstel voor je website.</h1>
       <p className="mt-3 max-w-2xl text-slate-400">RankFix leest alleen het gekozen bestand, maakt de kleinste noodzakelijke wijziging en opent een aparte Pull Request. Er wordt niets automatisch naar productie gemerged.</p>
       {!connected ? <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-7">
         <h2 className="text-xl font-bold">Verbind GitHub</h2>
         <p className="mt-2 text-sm text-slate-500">Je geeft RankFix alleen toegang tot GitHub nadat je dit bij GitHub zelf hebt goedgekeurd.</p>
         <a href="/api/github/connect" className="mt-5 inline-flex rounded-xl bg-white px-5 py-3 font-bold text-slate-950">Verbind met GitHub →</a>
-      </div> : <form noValidate onSubmit={createFix} className="mt-8 space-y-5 rounded-3xl border border-white/10 bg-white/[0.04] p-7">
+      </div> : <form noValidate onSubmit={createFix} className="mt-8 space-y-5 rounded-3xl border border-[#334155] bg-[#101B2D] p-4 sm:p-7">
         <div className="flex flex-col gap-3 rounded-xl border border-emerald-400/15 bg-emerald-400/5 p-4 text-sm text-emerald-200 sm:flex-row sm:items-center sm:justify-between">
           <span>GitHub verbonden als <b>{login}</b>.</span>
           <a href="/api/github/connect" className="rounded-lg border border-emerald-300/20 px-3 py-2 text-xs font-bold text-emerald-100 hover:bg-emerald-300/10">GitHub opnieuw verbinden</a>
         </div>
         <label className="block"><span className="text-sm font-semibold">Repository</span><input required list="github-repositories" aria-invalid={!repo.trim()} value={repo} onChange={e=>{setRepo(e.target.value);const x=repos.find(r=>r.full_name===e.target.value);if(x)setBaseBranch(x.default_branch);}} placeholder="bijv. mdscoop7-max/Trendmix" className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/><datalist id="github-repositories">{repos.map(r=><option key={r.full_name} value={r.full_name}>{r.private?"private":""}</option>)}</datalist><p className="mt-2 text-xs text-slate-500">Kies een voorgestelde repository of vul zelf owner/repository in.</p></label>
-        <label className="block"><span className="text-sm font-semibold">Bestand <span className="text-xs font-normal text-cyan-300">(automatisch als je dit leeg laat)</span></span><input aria-invalid={false} value={path} onChange={e=>setPath(e.target.value)} placeholder="RankFix kiest automatisch het juiste bestand" className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/><p className="mt-2 text-xs text-slate-500">Laat leeg: RankFix zoekt zelf het meest relevante bestand voor deze auditfix.</p></label>
+        <label className="block"><span className="text-sm font-semibold">Bestand <span className="text-xs font-normal text-emerald-300">(automatisch als je dit leeg laat)</span></span><input aria-invalid={false} value={path} onChange={e=>setPath(e.target.value)} placeholder="RankFix kiest automatisch het juiste bestand" className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/><p className="mt-2 text-xs text-slate-500">Laat leeg: RankFix zoekt zelf het meest relevante bestand voor deze auditfix.</p></label>
         <label className="block"><span className="text-sm font-semibold">Wat moet RankFix oplossen?</span><textarea required aria-invalid={!issue.trim()} value={issue} onChange={e=>setIssue(e.target.value)} rows={4} placeholder="Bijv. de meta description ontbreekt of is te kort." className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/></label>
         <label className="block"><span className="text-sm font-semibold">Context uit de audit</span><textarea value={context} onChange={e=>setContext(e.target.value)} rows={3} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/></label>
         {error&&<div className="rounded-xl bg-red-500/10 p-4 text-sm text-red-200">
@@ -106,7 +106,7 @@ export default function GithubPage(){
           {validation?.warnings?.length ? <div className="mt-4"><div className="font-semibold text-amber-200">Waarschuwingen</div><ul className="mt-1 list-disc space-y-1 pl-5 text-amber-100">{validation.warnings.map((item,i)=><li key={i}>{item}</li>)}</ul></div> : null}
         </div>}
         {message&&<div className="rounded-xl bg-emerald-500/10 p-4 text-sm text-emerald-200 break-all">{message}</div>}
-        <button type="submit" onClick={()=>{if(!busy)setMessage("Klik ontvangen — GitHub Fix Engine start…");}} disabled={busy} className="w-full rounded-xl bg-white px-5 py-3 font-bold text-slate-950 disabled:opacity-50">{busy?"AI + GitHub zijn bezig…":"Maak GitHub Pull Request — 5 credits"}</button>
+        <button type="submit" disabled={busy} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 font-bold text-[#04342C] disabled:opacity-50">{busy?"AI + GitHub zijn bezig…":"Maak GitHub Pull Request — 5 credits"}</button>
       </form>}
     </section>
   </main>

@@ -1,8 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0B1220;
+  --foreground: #F1F5F9;
+  --rankfix-surface: #101B2D;
+  --rankfix-card: #16233A;
+  --rankfix-border: #334155;
+  --rankfix-muted: #94A3B8;
+  --rankfix-accent: #5DCAA5;
 }
 
 @theme inline {
@@ -12,15 +17,25 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+button, input, select, textarea { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+:where(a, button, input, select, textarea):focus-visible { outline: 2px solid var(--rankfix-accent); outline-offset: 3px; }
+@media (max-width: 640px) {
+  .rankfix-home #scan { padding-top: 42px; padding-bottom: 52px; }
+  .rankfix-home #scan h1 { font-size: clamp(2.15rem, 10vw, 3.5rem); line-height: 1.07; overflow-wrap: anywhere; }
+  .rankfix-home #scan p { font-size: .94rem; line-height: 1.55; }
+  .rankfix-home #scan input { min-height: 48px; }
+  .rankfix-home #scan form button { min-height: 48px; }
+  .rankfix-home #resultaat { padding-top: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
