@@ -140,7 +140,9 @@ const statements = [
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`,
-  `CREATE INDEX IF NOT EXISTS reviews_status_created_idx ON reviews(status, created_at DESC)`
+  `CREATE INDEX IF NOT EXISTS reviews_status_created_idx ON reviews(status, created_at DESC)`,
+  `CREATE TABLE IF NOT EXISTS api_rate_limits (\n    bucket TEXT PRIMARY KEY,\n    window_start TIMESTAMPTZ NOT NULL,\n    hits INTEGER NOT NULL DEFAULT 1\n  )`,
+  `CREATE INDEX IF NOT EXISTS api_rate_limits_window_idx ON api_rate_limits(window_start)`
 ];
 
 export async function ensureDatabase() {
