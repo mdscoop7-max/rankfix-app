@@ -94,7 +94,7 @@ export default function Dashboard() {
         {message && <p className="rf-notice" role="status">{message}</p>}
         <section className="rf-dashboard-status">
           <div className="rf-dashboard-hero">
-            <div><span className="rf-eyebrow">{x.latest}</span><h2>{latestHost || "Voeg je eerste website toe"}</h2><p>{latest ? `${x.scanned} ${new Date(latest.created_at).toLocaleString(language)}` : "Start een SEO + GEO-audit om je dashboard te vullen."}</p></div>
+            <div className="rf-dashboard-latest">{latest && <div className="rf-overall-meter" style={{"--rf-score":latest.overall_score} as React.CSSProperties}><div><strong>{latest.overall_score}</strong><span>/100</span></div></div>}<div><span className="rf-eyebrow">{x.latest}</span><h2>{latestHost || "Voeg je eerste website toe"}</h2><p>{latest ? `${x.scanned} ${new Date(latest.created_at).toLocaleString(language)}` : "Start een SEO + GEO-audit om je dashboard te vullen."}</p></div></div>
             <a className="rf-primary-link rf-scan-cta" href={`/${language}/scan`}>＋ {x.newScan}</a>
           </div>
           <div className="rf-status-grid">
