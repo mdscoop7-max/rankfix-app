@@ -4,6 +4,17 @@ import { ensureDatabase } from "@/lib/db-init";
 import { getDb } from "@/lib/db";
 
 function host(value:string){try{return new URL(value).hostname.toLowerCase().replace(/^www\./,"");}catch{return "";}}
+function normalizedStatus(value:unknown){
+  const raw=String(value||"").trim().toUpperCase();
+  if(raw==="PASS") return "PASS";
+  if(raw==="FAIL") return "FAIL";
+  if(raw==="WARNING") return "WARNING";
+  if(raw==="NOT_APPLICABLE"||raw==="N/A") return "NOT_APPLICABLE";
+  if(raw==="UNABLE_TO_CONFIRM"||raw==="UNKNOWN") return "UNABLE_TO_CONFIRM";
+  if(raw==="INFO") return "INFO";
+  return raw;
+}
+function isProblemStatus(value:unknown){ const s=normalizedStatus(value); return s==="FAIL"||s==="WARNING"; }
 
 export async function GET(request:Request){
   const user=await getCurrentUser();
@@ -24,13 +35,15 @@ export async function GET(request:Request){
   );
   const latestChecks=[...(latestScan.rows[0]?.result?.seo?.checks||[]),...(latestScan.rows[0]?.result?.geo?.checks||[])];
   const previousChecks=[...(latestScan.rows[1]?.result?.seo?.checks||[]),...(latestScan.rows[1]?.result?.geo?.checks||[])];
-  const previous=new Map(previousChecks.map((x:any)=>[String(x.issue_id||x.rule_id||x.key),String(x.issue_status||x.status)]));
+  const previous=new Map(previousChecks.map((x:any)=>[String(x.issue_id||x.rule_id||x.key),normalizedStatus(x.issue_status||x.status)]));
   let persistent=0;
   for(const item of latestChecks){
     const rule=String(item.issue_id||item.rule_id||item.key);
-    const now=String(item.issue_status||item.status).toLowerCase();
-    const before=String(previous.get(rule)||"").toLowerCase();
-    if((now==="fail"||now==="warning")&&(before==="fail"||before==="warning")) persistent++;
+    const now=normalizedStatus(item.issue_status||item.status);
+    const before=normalizedStatus(previous.get(rule));
+    // Only confirmed problem states count as persistent. N/A and unable-to-confirm
+    // are deliberately neutral and must never be presented as an ongoing issue.
+    if(isProblemStatus(now)&&isProblemStatus(before)) persistent++;
   }
   return NextResponse.json({website_host:websiteHost,improvements:improvements.length,regressions:regressions.length,priorityRegressions:priorityRegressions.length,persistent,needsAttention:priorityRegressions.length>0,events:result.rows});
 }
