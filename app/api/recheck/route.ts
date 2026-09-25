@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { runRuleForUrl, isRecheckSupported } from "@/lib/recheck";
 import { CRAWLER_VERSION, RULES_VERSION } from "@/lib/seo-rules";
 import { safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
+import { getCurrentUser } from "@/lib/auth";
+import { getDb } from "@/lib/db";
+import { ensureDatabase } from "@/lib/db-init";
+import { consumeRateLimit } from "@/lib/rate-limit";
 
 function decode(value: string) {
   return value.replace(/&amp;/gi, "&").replace(/&quot;/gi, '"').replace(/&#39;/gi, "'").trim();
@@ -10,11 +14,23 @@ function first(html: string, regex: RegExp) { const m = html.match(regex); retur
 function all(html: string, regex: RegExp) { return [...html.matchAll(regex)].map((m) => decode(m[1] || "")); }
 export async function POST(request: Request) {
   try {
+    const user=await getCurrentUser();
+    if(!user) return NextResponse.json({error:"Login vereist."},{status:401});
+    await ensureDatabase();
+    if(!await consumeRateLimit("recheck",String(user.id),30,3600)) return NextResponse.json({error:"Te veel hercontroles. Probeer later opnieuw."},{status:429});
     const body = await request.json();
     const issue = body?.issue;
-    const urlValue = typeof body?.url === "string" ? body.url.trim() : "";
-    if (!issue?.issue_id || !issue?.rule_id || !urlValue) return NextResponse.json({ error: "issue_id, rule_id en url zijn verplicht." }, {status:400});
-    if (!isRecheckSupported(issue)) return NextResponse.json({ success:false, error:"recheck_not_supported" }, {status:422});
+    const scanId=typeof body?.scan_id==="string"?body.scan_id.trim():"";
+    if(!issue?.issue_id || !issue?.rule_id || !scanId) return NextResponse.json({error:"scan_id, issue_id en rule_id zijn verplicht."},{status:400});
+    const stored=await getDb().query("SELECT final_url,result FROM scans WHERE id=$1 AND user_id=$2 LIMIT 1",[scanId,user.id]);
+    if(!stored.rowCount) return NextResponse.json({error:"Scan niet gevonden."},{status:404});
+    const storedResult=typeof stored.rows[0].result==="string"?JSON.parse(stored.rows[0].result):stored.rows[0].result;
+    const storedChecks=[...(Array.isArray(storedResult?.seo?.checks)?storedResult.seo.checks:[]),...(Array.isArray(storedResult?.geo?.checks)?storedResult.geo.checks:[])];
+    const trustedIssue=storedChecks.find((x:any)=>x?.issue_id===issue.issue_id && x?.rule_id===issue.rule_id);
+    if(!trustedIssue) return NextResponse.json({error:"Bevinding hoort niet bij deze scan."},{status:403});
+    const urlValue=String(stored.rows[0].final_url||"").trim();
+    if(!urlValue) return NextResponse.json({error:"Scan heeft geen betrouwbare eind-URL."},{status:422});
+    if (!isRecheckSupported(trustedIssue)) return NextResponse.json({ success:false, error:"recheck_not_supported" }, {status:422});
     let url: URL;
     try { url = validatePublicHttpUrl(urlValue); } catch { return NextResponse.json({ success:false, error:"unable_to_confirm" }, {status:422}); }
     let response: Response;
@@ -31,7 +47,7 @@ export async function POST(request: Request) {
     const imagesMissingAlt=images.filter(tag=>!(/\balt\s*=\s*(?:["'][^"']*["']|[^\s>]+)/i.test(tag))).length;
     const jsonLdTypes:string[]=[];
     for(const m of html.matchAll(/<script[^>]+type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)){ try { const parsed=JSON.parse(m[1]); const items=Array.isArray(parsed)?parsed:(parsed?.["@graph"]||[parsed]); for(const item of items){ const t=item?.["@type"]; jsonLdTypes.push(...(Array.isArray(t)?t:[t]).filter(Boolean).map(String)); } } catch {} }
-    const result = runRuleForUrl(issue, {title, description, h1s, url:url.toString(), canonical, ogTitle:meta("og:title"), ogDescription:meta("og:description"), ogImage:meta("og:image"), imageCount:images.length, imagesMissingAlt, jsonLdTypes:[...new Set(jsonLdTypes)]});
+    const result = runRuleForUrl(trustedIssue, {title, description, h1s, url:url.toString(), canonical, ogTitle:meta("og:title"), ogDescription:meta("og:description"), ogImage:meta("og:image"), imageCount:images.length, imagesMissingAlt, jsonLdTypes:[...new Set(jsonLdTypes)]});
     return NextResponse.json({...result, issue_id:issue.issue_id, rule_id:issue.rule_id, crawler_version:CRAWLER_VERSION, rules_version:RULES_VERSION});
   } catch { return NextResponse.json({error:"recheck_failed"},{status:500}); }
 }
