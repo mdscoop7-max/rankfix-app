@@ -776,15 +776,9 @@ export async function POST(request: Request) {
           const issueId = String(item.issue_id || item.rule_id || item.key);
           const pendingFix = pendingFixes.get(issueId);
           if (!pendingFix) continue;
-          if (item.status === "pass") {
-            await getDb().query(
-              "UPDATE pending_fixes SET status='DONE', updated_at=NOW() WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 AND status='PREPARED'",
-              [user.id, normalizedScanUrl, issueId]
-            );
-            item.fix_status = "DONE";
-          } else {
-            item.fix_status = "WAITING";
-          }
+          // A normal audit must never confirm a prepared fix as DONE.
+          // Confirmation belongs to the dedicated live recheck flow.
+          item.fix_status = "WAITING";
         }
 
         await getDb().query(
