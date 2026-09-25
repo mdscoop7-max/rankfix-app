@@ -1,7 +1,8 @@
 import { URL } from "node:url";
 import { extractImageMetrics } from "@/lib/image-metrics";
+import { safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 
-export const CRAWLER_ENGINE_VERSION = "2.0.2";
+export const CRAWLER_ENGINE_VERSION = "2.1.0";
 
 export type CrawlMode = "QUICK" | "STANDARD" | "DEEP" | "ECOMMERCE" | "ENTERPRISE";
 export type PageType =
@@ -60,31 +61,9 @@ function stripHtml(v: string) {
 }
 function first(v:string,re:RegExp){const m=v.match(re);return m?.[1]?decode(m[1]):"";}
 function attr(tag:string,name:string){return tag.match(new RegExp(name+"\\s*=\\s*[\"']([^\"']*)[\"']","i"))?.[1]||"";}
-function privateHost(host:string){
-  const h=host.toLowerCase().replace(/^\[|\]$/g,"");
-  if(!h||h==="localhost"||h==="::1"||h==="0.0.0.0"||h==="169.254.169.254") return true;
-  if(/^127\./.test(h)||/^10\./.test(h)||/^192\.168\./.test(h)) return true;
-  const m=h.match(/^172\.(\d+)\./); if(m&&+m[1]>=16&&+m[1]<=31)return true;
-  if(/^(fc|fd)[0-9a-f]{2}:/i.test(h)||/^fe8[0-9a-f]:/i.test(h))return true;
-  return false;
-}
-function validate(url:string){
-  const u=new URL(url);
-  if(!["http:","https:"].includes(u.protocol)||u.username||u.password||privateHost(u.hostname)|| (u.port&&!["80","443"].includes(u.port))) throw new Error("URL_BLOCKED");
-  return u;
-}
+function validate(url:string){ return validatePublicHttpUrl(url); }
 async function fetchSafe(url:URL, timeoutMs=8000){
-  let current=new URL(url.toString());
-  for(let i=0;i<=4;i++){
-    validate(current.toString());
-    const c=new AbortController(); const t=setTimeout(()=>c.abort(),timeoutMs);
-    let r:Response;
-    try{r=await fetch(current,{redirect:"manual",signal:c.signal,headers:{"User-Agent":"RankFixBot/2.0 (+https://rankfix.app)","Accept":"text/html,application/xhtml+xml,application/xml,text/xml"},cache:"no-store"});}
-    finally{clearTimeout(t);}
-    if(r.status>=300&&r.status<400&&r.headers.get("location")){current=new URL(r.headers.get("location")!,current);continue;}
-    return {response:r,finalUrl:current};
-  }
-  throw new Error("REDIRECT_LIMIT");
+  return safePublicFetch(url,{timeoutMs,maxRedirects:4,userAgent:"RankFixBot/2.1 (+https://rankfix-app.onrender.com)",accept:"text/html,application/xhtml+xml,application/xml,text/xml"});
 }
 function classify(url:string,html:string,jsonTypes:string[]):PageType{
   const p=new URL(url).pathname.toLowerCase();
@@ -156,7 +135,7 @@ export async function crawlSite(startUrl:string,requestedMode:CrawlMode="STANDAR
       const localTypes = new Set(["localbusiness","restaurant","bakery","barorcafe","beautysalon","dayspa","dentist","electrician","generalcontractor","homeandconstructionbusiness","locksmith","medicalclinic","plumber","roofingcontractor","store","hairdresser","automotivebusiness","realestateagent","legalservice","accountingservice","travelagency","hotel"]);
       for(const b of blocks){try{const parsed=JSON.parse(b[1]);const rawItems=Array.isArray(parsed)?parsed:(parsed?.["@graph"]||[parsed]);const items=Array.isArray(rawItems)?rawItems:[rawItems];for(const x of items){const t=x?.["@type"];const ts=(Array.isArray(t)?t:[t]).filter(Boolean).map(String);types.push(...ts);const isLocal=ts.some(v=>localTypes.has(v.toLowerCase()));if(isLocal){localBusiness.types.push(...ts.filter(v=>localTypes.has(v.toLowerCase())));localBusiness.name ||= Boolean(x?.name);localBusiness.address ||= Boolean(x?.address);localBusiness.telephone ||= Boolean(x?.telephone);localBusiness.url ||= Boolean(x?.url);localBusiness.openingHours ||= Boolean(x?.openingHours || x?.openingHoursSpecification);localBusiness.imageOrLogo ||= Boolean(x?.image || x?.logo);localBusiness.sameAs ||= Array.isArray(x?.sameAs) ? x.sameAs.length>0 : Boolean(x?.sameAs);}}}catch{}}
       const text=stripHtml(html);
-      pages.push({url:item.url,status:response.status,contentType,responseTimeMs:Date.now()-started,title,description,h1,canonical:canonical?new URL(canonical,resolved).toString():null,lang,noindex,wordCount:text.split(/\s+/).filter(Boolean).length,internalLinks:uniqueLinks,imageCount:imageMetrics.uniqueImageReferences,imagesMissingAlt:imageMetrics.missingAlt,jsonLdTypes:[...new Set(types)],localBusiness:localBusiness.types.length ? {...localBusiness,types:[...new Set(localBusiness.types)]} : undefined,pageType:classify(item.url,html,types),depth:item.depth,discoveredFrom:item.from});
+      pages.push({url:resolved.toString(),status:response.status,contentType,responseTimeMs:Date.now()-started,title,description,h1,canonical:canonical?new URL(canonical,resolved).toString():null,lang,noindex,wordCount:text.split(/\s+/).filter(Boolean).length,internalLinks:uniqueLinks,imageCount:imageMetrics.uniqueImageReferences,imagesMissingAlt:imageMetrics.missingAlt,jsonLdTypes:[...new Set(types)],localBusiness:localBusiness.types.length ? {...localBusiness,types:[...new Set(localBusiness.types)]} : undefined,pageType:classify(resolved.toString(),html,types),depth:item.depth,discoveredFrom:item.from});
       for(const next of uniqueLinks){if(!queued.has(next)&&queue.length+pages.length<limit){queued.add(next);queue.push({url:next,depth:item.depth+1,from:item.url});}}
     }catch(e){errors.push({url:item.url,code:e instanceof Error&&e.message==="URL_BLOCKED"?"URL_BLOCKED":"FETCH_FAILED",message:e instanceof Error?e.message:"Unknown crawl error"});}
   }
