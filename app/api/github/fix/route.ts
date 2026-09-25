@@ -56,7 +56,10 @@ async function chooseFile(token:string,repo:string,branch:string,requested:strin
     try{ const f=await githubFetch<any>(token,"/repos/"+repo+"/contents/"+candidate+"?ref="+encodeURIComponent(branch)); if(f.type==="file"&&typeof f.content==="string") return candidate; }catch{}
   }
   const tree=await githubFetch<any>(token,"/repos/"+repo+"/git/trees/"+encodeURIComponent(branch)+"?recursive=1");
-  const files=Array.isArray(tree?.tree)?tree.tree.filter((x:any)=>x.type==="blob"&&typeof x.path==="string"&&safeFixTarget(x.path)):[];
+  if(tree?.truncated===true) throw new Error("Deze repository is te groot om automatisch en volledig te doorzoeken. Kies eerst expliciet het bestand dat RankFix mag aanpassen.");
+  const rawTree=Array.isArray(tree?.tree)?tree.tree:[];
+  if(rawTree.length>12000) throw new Error("Deze repository bevat te veel bestanden voor veilige automatische bestandsselectie. Kies eerst expliciet het doelbestand.");
+  const files=rawTree.filter((x:any)=>x.type==="blob"&&typeof x.path==="string"&&safeFixTarget(x.path));
   const ranked=files.map((f:any)=>{ const p=f.path.toLowerCase(); let score=0; if(/(index|layout|document)/.test(p)) score+=5; if(/\.(html?|tsx|jsx|vue|php)$/.test(p)) score+=3; if(issueText.includes("social")&&/(head|layout|index|document)/.test(p)) score+=5; if(issueText.includes("canonical")&&/(head|layout|index|document)/.test(p)) score+=5; if(p.includes("template")) score+=2; return {path:f.path,score}; }).sort((a:any,b:any)=>b.score-a.score);
   if(!ranked[0]) throw new Error("RankFix kon geen geschikt bestand vinden voor deze fix.");
   return ranked[0].path;
@@ -289,7 +292,14 @@ export async function POST(request:Request){
 
     const completion=validateRequestedFixCompletion(current,generated.content,issue);
     if(completion.errors.length) githubValidation.errors.push(...completion.errors);
-    if(!githubValidation.valid) return NextResponse.json({error:"AI-codefix is geblokkeerd door de GitHub veiligheidscontrole.",validation:githubValidation},{status:422});
+    const changedBytes=Math.abs(Buffer.byteLength(generated.content,"utf8")-Buffer.byteLength(current,"utf8"));
+    const currentLines=current.split("\n");
+    const proposedLines=generated.content.split("\n");
+    const lineGrowth=Math.max(0,proposedLines.length-currentLines.length);
+    if(changedBytes>50000 || lineGrowth>500){
+      githubValidation.errors.push("De voorgestelde wijziging is te groot voor één automatische RankFix-fix.");
+    }
+    if(!githubValidation.valid || githubValidation.errors.length) return NextResponse.json({error:"AI-codefix is geblokkeerd door de GitHub veiligheidscontrole.",validation:githubValidation},{status:422});
 
     if(completion.currentAlreadySatisfied){
       return NextResponse.json({success:true,alreadyApplied:true,status:"already_ok",summary:"Deze verbetering is al aanwezig. RankFix hoefde niets aan te passen.",repository:repo,path});
