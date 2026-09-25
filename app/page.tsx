@@ -474,7 +474,7 @@ export default function Home() {
           </div>
           <div className="hidden items-center gap-2 lg:flex">
             <label className="sr-only" htmlFor="language-desktop">Taal</label>
-            <select id="language-desktop" value={language} onChange={(e) => { setLanguage(e.target.value as Language); window.location.href = "/" + e.target.value; }} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-900 outline-none shadow-sm">
+            <select id="language-desktop" value={language} onChange={(e) => { setLanguage(e.target.value as Language); }} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-900 outline-none shadow-sm">
               <option value="nl" className="bg-white text-slate-900">🇳🇱 NL</option>
               <option value="en" className="bg-white text-slate-900">🇬🇧 EN</option>
               <option value="fr" className="bg-white text-slate-900">🇫🇷 FR</option>
@@ -493,7 +493,7 @@ export default function Home() {
           </div>
           <div className="ml-auto flex items-center gap-2 lg:hidden">
             <label className="sr-only" htmlFor="language-mobile-top">Taal</label>
-            <select id="language-mobile-top" value={language} onChange={(e) => { setLanguage(e.target.value as Language); window.location.href = "/" + e.target.value; }} className="h-11 max-w-[118px] rounded-xl border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-900 outline-none">
+            <select id="language-mobile-top" value={language} onChange={(e) => { setLanguage(e.target.value as Language); }} className="h-11 max-w-[118px] rounded-xl border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-900 outline-none">
               <option value="nl">🇳🇱 NL</option><option value="en">🇬🇧 EN</option><option value="fr">🇫🇷 FR</option><option value="de">🇩🇪 DE</option><option value="it">🇮🇹 IT</option><option value="es">🇪🇸 ES</option>
             </select>
           </div>
