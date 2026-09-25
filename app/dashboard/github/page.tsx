@@ -84,6 +84,7 @@ export default function GithubPage(){
       <a href="/" className="font-bold">RankFix <span className="text-emerald-300">AI</span></a>
       <a href="/dashboard" className="text-right text-xs text-slate-300 hover:text-white sm:text-sm">← Dashboard</a>
     </nav>
+    <DashboardNav current={3} />
     <section className="mx-auto max-w-4xl px-4 py-8 sm:px-5 sm:py-12">
       <div className="text-xs uppercase tracking-widest text-emerald-300">GitHub Fix Engine</div>
       <h1 className="mt-2 text-3xl font-black leading-tight sm:text-4xl">Een codevoorstel voor je website.</h1>
@@ -111,6 +112,5 @@ export default function GithubPage(){
         <button type="submit" disabled={busy} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 font-bold text-[#04342C] disabled:opacity-50">{busy?"AI + GitHub zijn bezig…":"Maak GitHub Pull Request — 5 credits"}</button>
       </form>}
     </section>
-    <DashboardNav current={3} />
   </main>
 }
