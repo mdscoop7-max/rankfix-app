@@ -16,10 +16,27 @@ function authorized(request:Request){
 async function run(request:Request){
   if(!authorized(request)) return NextResponse.json({error:"Niet toegestaan."},{status:401});
   await ensureDatabase();
+
+  // Atomically claim due monitors for 30 minutes. This prevents overlapping
+  // scheduler invocations from checking the same website twice. If this
+  // process crashes, the short lease expires and the monitor becomes due again.
   const due=await getDb().query(
-    "SELECT id,user_id,website_host,website_url,interval_hours FROM website_monitors WHERE enabled=TRUE AND (next_check_at IS NULL OR next_check_at<=NOW()) ORDER BY next_check_at NULLS FIRST LIMIT $1",
+    `WITH due AS (
+       SELECT id
+       FROM website_monitors
+       WHERE enabled=TRUE AND (next_check_at IS NULL OR next_check_at<=NOW())
+       ORDER BY next_check_at NULLS FIRST
+       FOR UPDATE SKIP LOCKED
+       LIMIT $1
+     )
+     UPDATE website_monitors AS m
+     SET next_check_at=NOW()+INTERVAL '30 minutes',updated_at=NOW()
+     FROM due
+     WHERE m.id=due.id
+     RETURNING m.id,m.user_id,m.website_host,m.website_url,m.interval_hours`,
     [BATCH_SIZE]
   );
+
   const results:any[]=[];
   for(const monitor of due.rows){
     let status="ERROR"; let httpStatus:number|null=null; let detail="";
@@ -30,10 +47,23 @@ async function run(request:Request){
       status=response.ok?"OK":"HTTP_ERROR";
       detail=`HTTP ${response.status}`;
     }catch(error){
-      detail=error instanceof Error?error.message:"Controle mislukt.";
+      // Store a bounded generic detail instead of arbitrary internal exception data.
+      const code=error instanceof Error?error.message:"CHECK_FAILED";
+      detail=String(code).slice(0,120);
     }
+
+    // Successful checks return to the customer's configured interval.
+    // Failed checks retry after 24 hours, never aggressively.
     await getDb().query(
-      "UPDATE website_monitors SET last_checked_at=NOW(),next_check_at=NOW()+(interval_hours||' hours')::interval,last_status=$2,consecutive_failures=CASE WHEN $2='OK' THEN 0 ELSE consecutive_failures+1 END,updated_at=NOW() WHERE id=$1",
+      `UPDATE website_monitors
+       SET last_checked_at=NOW(),
+           next_check_at=CASE WHEN $2='OK'
+             THEN NOW()+(interval_hours||' hours')::interval
+             ELSE NOW()+INTERVAL '24 hours' END,
+           last_status=$2,
+           consecutive_failures=CASE WHEN $2='OK' THEN 0 ELSE consecutive_failures+1 END,
+           updated_at=NOW()
+       WHERE id=$1`,
       [monitor.id,status]
     );
     await getDb().query(
