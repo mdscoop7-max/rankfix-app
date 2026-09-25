@@ -104,7 +104,7 @@ export default function Dashboard() {
           </div>
         </section>
         <section className="rf-section">
-          <div className="rf-section-head"><div><h2>Recente scans</h2><p>Je laatste 5 controles.</p></div><a href="/dashboard/more">Bekijk historie →</a></div>
+          <div className="rf-section-head"><div><h2>Recente scans</h2><p>Je laatste 5 controles.</p></div><a href="/dashboard/history">Bekijk historie →</a></div>
           <div className="rf-history-list">{recentHistory.map((scan,index)=><a key={scan.id} href={`/dashboard/audit/${scan.id}`}><div><b>{(()=>{try{return new URL(scan.scanned_url).hostname}catch{return scan.scanned_url}})()}</b><span>{new Date(scan.created_at).toLocaleString(language)} · SEO {scan.seo_score} · GEO {scan.geo_score} · {scan.open_issues} verbeterpunten</span></div><strong>{scan.overall_score}</strong>{index===0&&<em>Nieuwste</em>}</a>)}</div>
         </section>
         <section id="websites" className="rf-section">
