@@ -471,7 +471,7 @@ export default function Home() {
           </div>
           <div className="hidden items-center gap-2 lg:flex">
             <label className="sr-only" htmlFor="language-desktop">Taal</label>
-            <select id="language-desktop" value={language} onChange={(e) => setLanguage(e.target.value as Language)} className="rounded-xl border border-white/20 bg-slate-900 px-3 py-2 text-xs font-medium text-white outline-none shadow-sm">
+            <select id="language-desktop" value={language} onChange={(e) => { setLanguage(e.target.value as Language); window.location.href = "/" + e.target.value; }} className="rounded-xl border border-white/20 bg-slate-900 px-3 py-2 text-xs font-medium text-white outline-none shadow-sm">
               <option value="nl" className="bg-slate-900 text-white">🇳🇱 Nederlands</option>
               <option value="en" className="bg-slate-900 text-white">🇬🇧 English</option>
               <option value="fr" className="bg-slate-900 text-white">🇫🇷 Français</option>
@@ -505,7 +505,7 @@ export default function Home() {
             </div>
             <div className="mt-3 grid gap-2 border-t border-white/10 pt-3">
               <label className="px-1 text-[10px] font-bold uppercase tracking-widest text-slate-500" htmlFor="language-mobile">Taal</label>
-              <select id="language-mobile" value={language} onChange={(e) => setLanguage(e.target.value as Language)} className="w-full rounded-xl border border-white/20 bg-slate-900 px-4 py-3 text-sm font-medium text-white outline-none shadow-sm">
+              <select id="language-mobile" value={language} onChange={(e) => { setLanguage(e.target.value as Language); window.location.href = "/" + e.target.value; }} className="w-full rounded-xl border border-white/20 bg-slate-900 px-4 py-3 text-sm font-medium text-white outline-none shadow-sm">
                 <option value="nl">🇳🇱 Nederlands</option>
                 <option value="en">🇬🇧 English</option>
                 <option value="fr">🇫🇷 Français</option>
@@ -999,8 +999,10 @@ export default function Home() {
       <section id="about" className="mx-auto max-w-7xl scroll-mt-8 px-5 py-16 lg:px-8">
         <div className="max-w-3xl">
           <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{t.about}</div>
-          <h2 className="mt-3 text-3xl font-black tracking-tight">RankFix maakt SEO en GEO begrijpelijk én uitvoerbaar.</h2>
-          <p className="mt-4 leading-7 text-slate-500">Voor lokale bedrijven, webshops, agencies en SaaS. Van een eerste gratis audit tot concrete fixes en klantklare rapporten.</p>
+          <h2 className="mt-3 text-3xl font-black tracking-tight">Minder jargon. Meer grip op je website.</h2>
+          <p className="mt-4 leading-7 text-slate-300">RankFix AI helpt ondernemers en teams om hun website beter te begrijpen. De scan bekijkt SEO- en GEO-signalen, van technische basis en inhoud tot structured data. Je ziet wat goed gaat en welke punten aandacht verdienen.</p>
+          <p className="mt-4 leading-7 text-slate-400">Voor geschikte codewijzigingen kan RankFix een aparte GitHub-pull-request voorbereiden. Je controleert en publiceert die zelf; een nieuwe scan laat zien of de verbetering live zichtbaar is.</p>
+          <a href="/nl/about" className="mt-6 inline-flex rounded-xl border border-emerald-300/30 px-4 py-3 text-sm font-bold text-emerald-200">Lees meer over RankFix →</a>
         </div>
       </section>
 
@@ -1013,7 +1015,7 @@ export default function Home() {
           {[
             [t.product, ["SEO Audit", "GEO Audit", "AI Fixes", "Reports"]],
             [t.forWho, ["Bedrijven", "Webshops", "Agencies", "SaaS"]],
-            [t.company, ["Over RankFix", "Contact", "Privacy", "Voorwaarden"]],
+            [t.company, ["Over RankFix", "Contact", "Privacy", "Voorwaarden", "Cookies"]],
           ].map((entry) => {
             const [title, links] = entry as [string, string[]];
             return (
@@ -1024,14 +1026,15 @@ export default function Home() {
                     <button
                       type="button"
                       onClick={() => {
-                        if (link === "Privacy") window.location.href = "/privacy";
-                        else if (link === "Voorwaarden") window.location.href = "/voorwaarden";
+                        if (link === "Privacy") window.location.href = "/nl/privacy";
+                        else if (link === "Voorwaarden") window.location.href = "/nl/terms";
+                        else if (link === "Cookies") window.location.href = "/nl/cookies";
                         else if (link === "SEO Audit") startAudit("seo");
                         else if (link === "GEO Audit") startAudit("geo");
                         else if (link === "AI Fixes") scrollToSection("features");
                         else if (link === "Reports") scrollToSection(document.getElementById("resultaat") ? "resultaat" : "scan");
                         else if (link === "Contact") setContactOpen(true);
-                        else if (link === "Over RankFix") scrollToSection("about");
+                        else if (link === "Over RankFix") window.location.href = "/nl/about";
                         else scrollToSection("scan");
                       }}
                       className="block text-left hover:text-white"

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import DashboardNav from "../nav";
+import "../dashboard.css";
 
 type Repo={full_name:string;default_branch:string;private:boolean};
 type ValidationResult={valid?:boolean;errors?:string[];warnings?:string[]};
@@ -77,7 +79,7 @@ export default function GithubPage(){
     }
   }
 
-  return <main className="min-h-screen bg-[#0B1220] text-white">
+  return <main className="min-h-screen bg-[#0B1220] pb-24 text-white sm:pb-0">
     <nav className="mx-auto flex max-w-6xl items-center justify-between gap-3 border-b border-white/10 px-4 py-4 sm:px-5 sm:py-5">
       <a href="/" className="font-bold">RankFix <span className="text-emerald-300">AI</span></a>
       <a href="/dashboard" className="text-right text-xs text-slate-300 hover:text-white sm:text-sm">← Dashboard</a>
@@ -109,5 +111,6 @@ export default function GithubPage(){
         <button type="submit" disabled={busy} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 font-bold text-[#04342C] disabled:opacity-50">{busy?"AI + GitHub zijn bezig…":"Maak GitHub Pull Request — 5 credits"}</button>
       </form>}
     </section>
+    <DashboardNav current={2} />
   </main>
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import AiAssistant from "@/components/ai-assistant";
+import DashboardNav from "../../nav";
 import "../../dashboard.css";
 import "./audit.css";
 
@@ -60,7 +61,7 @@ export default function AuditDetail() {
           <p className="rf-audit-footnote">Een codevoorstel verandert je live website pas na publicatie. Voer daarna een nieuwe scan uit om de fix te controleren.</p>
         </>}
       </div>
-      <nav className="rf-nav" aria-label="Dashboardnavigatie"><a href="/dashboard">⌂<span>Overzicht</span></a><a href="/dashboard#websites">◎<span>Websites</span></a><a href="/dashboard/github">⚒<span>Fixes</span></a><a href="/#prijzen">▣<span>Prijzen</span></a><a href="/account">♙<span>Account</span></a></nav>
+      <DashboardNav current={1} />
     </div>
     <AiAssistant dashboard scanId={id} />
   </main>;

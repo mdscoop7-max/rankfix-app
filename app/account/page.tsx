@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { accountCopy } from "@/lib/account-copy";
+import type { Locale } from "@/lib/locales";
 
 export default function Account() {
   const [mode,setMode]=useState<"login"|"register">("login");
@@ -11,9 +13,14 @@ export default function Account() {
   const [error,setError]=useState("");
   const [busy,setBusy]=useState(false);
   const [rememberMe,setRememberMe]=useState(true);
+  const [language,setLanguage]=useState<Locale>("nl");
+  const t=accountCopy[language];
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("mode") === "register") setMode("register");
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("mode") === "register") setMode("register");
+    const requested = params.get("lang");
+    if (requested && requested in accountCopy) setLanguage(requested as Locale);
     fetch("/api/auth/me", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
@@ -56,47 +63,47 @@ export default function Account() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0B1220] px-4 py-7 text-white sm:px-5 sm:py-12">
+    <main className="min-h-screen bg-[#0B1220] px-4 py-7 text-white sm:px-5 sm:py-12" lang={language}>
       <div className="mx-auto max-w-md">
-        <a href="/" className="text-lg font-bold">RankFix <span className="text-emerald-300">AI</span></a>
+        <a href={"/"+language} className="text-lg font-bold">RankFix <span className="text-emerald-300">AI</span></a>
         <div className="mt-8 rounded-3xl border border-[#334155] bg-[#101B2D] p-5 shadow-xl sm:mt-10 sm:p-7">
           <div className="flex rounded-xl bg-black/20 p-1">
-            <button onClick={()=>setMode("login")} className={`flex-1 rounded-lg px-3 py-2 text-sm ${mode==="login"?"bg-white text-slate-950":"text-slate-400"}`}>Inloggen</button>
-            <button onClick={()=>setMode("register")} className={`flex-1 rounded-lg px-3 py-2 text-sm ${mode==="register"?"bg-white text-slate-950":"text-slate-400"}`}>Account maken</button>
+            <button onClick={()=>setMode("login")} className={`flex-1 rounded-lg px-3 py-2 text-sm ${mode==="login"?"bg-white text-slate-950":"text-slate-400"}`}>{t.login}</button>
+            <button onClick={()=>setMode("register")} className={`flex-1 rounded-lg px-3 py-2 text-sm ${mode==="register"?"bg-white text-slate-950":"text-slate-400"}`}>{t.register}</button>
           </div>
 
-          <h1 className="mt-8 text-3xl font-black">{mode==="register"?"Start met RankFix AI":"Welkom terug"}</h1>
+          <h1 className="mt-8 text-3xl font-black">{mode==="register"?t.start:t.welcome}</h1>
           <p className="mt-2 text-sm text-slate-400">
-            {mode==="register"?"Je krijgt 25 gratis credits om te beginnen.":"Log in om direct naar je dashboard te gaan."}
+            {mode==="register"?t.startInfo:t.loginInfo}
           </p>
 
           <form onSubmit={submit} autoComplete="on" className="mt-7 space-y-4">
             {mode==="register"&&(
-              <input required aria-label="Naam" value={name} onChange={e=>setName(e.target.value)} placeholder="Naam" autoComplete="name" className="w-full rounded-xl border border-[#334155] bg-[#16233A] px-4 py-3 text-base outline-none"/>
+              <input required aria-label={t.name} value={name} onChange={e=>setName(e.target.value)} placeholder={t.name} autoComplete="name" className="w-full rounded-xl border border-[#334155] bg-[#16233A] px-4 py-3 text-base outline-none"/>
             )}
-            <input required aria-label="E-mailadres" type="email" value={email} onChange={e=>setEmail(e.target.value)} name="email" placeholder="E-mailadres" autoComplete="username email" className="w-full rounded-xl border border-[#334155] bg-[#16233A] px-4 py-3 text-base outline-none"/>
-            <input required aria-label="Wachtwoord" minLength={8} type="password" value={password} onChange={e=>setPassword(e.target.value)} name="password" placeholder="Wachtwoord (min. 8 tekens)" autoComplete={mode==="register"?"new-password":"current-password"} className="w-full rounded-xl border border-[#334155] bg-[#16233A] px-4 py-3 text-base outline-none"/>
+            <input required aria-label={t.email} type="email" value={email} onChange={e=>setEmail(e.target.value)} name="email" placeholder={t.email} autoComplete="username email" className="w-full rounded-xl border border-[#334155] bg-[#16233A] px-4 py-3 text-base outline-none"/>
+            <input required aria-label={t.password} minLength={8} type="password" value={password} onChange={e=>setPassword(e.target.value)} name="password" placeholder={t.password} autoComplete={mode==="register"?"new-password":"current-password"} className="w-full rounded-xl border border-[#334155] bg-[#16233A] px-4 py-3 text-base outline-none"/>
 
             {mode==="login"&&(
               <div className="flex items-center justify-between gap-4">
                 <label className="flex items-center gap-2 text-sm text-slate-300">
                   <input type="checkbox" checked={rememberMe} onChange={e=>setRememberMe(e.target.checked)} className="h-4 w-4 rounded" />
-                  Ingelogd blijven
+                  {t.remember}
                 </label>
                 <div>
-                <a href="/account/forgot-password" className="text-sm text-emerald-300 hover:text-emerald-200">Wachtwoord vergeten?</a>
+                <a href="/account/forgot-password" className="text-sm text-emerald-300 hover:text-emerald-200">{t.forgot}</a>
                 </div>
               </div>
             )}
 
             {mode==="register"&&(
-              <input required aria-label="Herhaal wachtwoord" minLength={8} type="password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} placeholder="Herhaal wachtwoord" autoComplete="new-password" className="w-full rounded-xl border border-[#334155] bg-[#16233A] px-4 py-3 text-base outline-none"/>
+              <input required aria-label={t.confirm} minLength={8} type="password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} placeholder={t.confirm} autoComplete="new-password" className="w-full rounded-xl border border-[#334155] bg-[#16233A] px-4 py-3 text-base outline-none"/>
             )}
 
             {error&&<div role="alert" className="rounded-xl bg-red-500/10 p-3 text-sm text-red-200">{error}</div>}
 
             <button disabled={busy} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-4 py-3 font-bold text-[#04342C] disabled:opacity-50">
-              {busy?"Even geduld…":mode==="register"?"Account aanmaken →":"Inloggen →"}
+              {busy?t.busy:mode==="register"?t.submitRegister:t.submitLogin}
             </button>
           </form>
         </div>
