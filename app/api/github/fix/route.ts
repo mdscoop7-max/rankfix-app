@@ -14,13 +14,19 @@ async function chooseRepository(token:string,requested:string){
   if(!requested || !safeRepo(requested)){
     throw new Error("Kies expliciet welke GitHub-repository bij deze website hoort voordat RankFix een codefix maakt.");
   }
-  // Never guess a repository from a hostname. Verify that the connected GitHub
-  // identity can actually access the exact repository selected by the customer.
+  // GitHub is authoritative for repository state and default branch.
   const repo=await githubFetch<any>(token,"/repos/"+requested);
   if(!repo || String(repo.full_name||"").toLowerCase()!==requested.toLowerCase()){
     throw new Error("De gekozen GitHub-repository kon niet veilig worden bevestigd.");
   }
-  return String(repo.full_name);
+  if(repo.archived===true || repo.disabled===true){
+    throw new Error("Deze GitHub-repository is gearchiveerd of uitgeschakeld en kan niet veilig worden aangepast.");
+  }
+  const defaultBranch=String(repo.default_branch||"").trim();
+  if(!defaultBranch || !/^[A-Za-z0-9._/-]{1,120}$/.test(defaultBranch)){
+    throw new Error("De standaardbranch van deze GitHub-repository kon niet veilig worden bevestigd.");
+  }
+  return {fullName:String(repo.full_name),defaultBranch};
 }
 
 async function chooseFile(token:string,repo:string,branch:string,requested:string,issue:string){
@@ -244,7 +250,9 @@ export async function POST(request:Request){
         effectiveBaseBranch=String(saved.rows[0].base_branch||baseBranch);
       }
     }
-    const repo=await chooseRepository(token,effectiveRepo);
+    const verifiedRepo=await chooseRepository(token,effectiveRepo);
+    const repo=verifiedRepo.fullName;
+    effectiveBaseBranch=verifiedRepo.defaultBranch;
     if(scannedHost){
       const existingMapping=await getDb().query(
         "SELECT repository, base_branch FROM website_repositories WHERE user_id=$1 AND website_host=$2",
@@ -259,7 +267,7 @@ export async function POST(request:Request){
       );
     }
     const path=await chooseFile(token,repo,effectiveBaseBranch,requestedPath,issue);
-    const file=await githubFetch<any>(token,"/repos/"+repo+"/contents/"+path+"?ref="+encodeURIComponent(baseBranch));
+    const file=await githubFetch<any>(token,"/repos/"+repo+"/contents/"+path+"?ref="+encodeURIComponent(effectiveBaseBranch));
     if(file.type!=="file"||typeof file.content!=="string") return NextResponse.json({error:"Dit bestand kan niet worden bewerkt."},{status:400});
     const current=Buffer.from(file.content.replace(/\n/g,""),"base64").toString("utf8");
     if(current.length>120000) return NextResponse.json({error:"Bestand is te groot voor een veilige AI-codefix."},{status:413});
