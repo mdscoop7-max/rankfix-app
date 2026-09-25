@@ -6,6 +6,7 @@ import { sendScanReportEmail } from "@/lib/email";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { extractImageMetrics } from "@/lib/image-metrics";
+import { safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -70,60 +71,6 @@ function attrFromTag(tag: string, attr: string) {
   return match?.[1] || "";
 }
 
-function isPrivateHost(hostname: string) {
-  const h = hostname.toLowerCase().replace(/^\[|\]$/g, "");
-  if (!h || h === "localhost" || h.endsWith(".localhost") || h === "::1") return true;
-  if (h === "0.0.0.0" || h === "127.0.0.1" || h === "169.254.169.254") return true;
-  if (/^127\./.test(h) || /^10\./.test(h) || /^192\.168\./.test(h)) return true;
-  const m = h.match(/^172\.(\d+)\./);
-  if (m && Number(m[1]) >= 16 && Number(m[1]) <= 31) return true;
-  if (/^(fc|fd)[0-9a-f]{2}:/i.test(h) || /^fe8[0-9a-f]:/i.test(h)) return true;
-  return false;
-}
-
-function validateUrl(value: string) {
-  const url = new URL(value);
-  if (!["http:", "https:"].includes(url.protocol)) throw new Error("unsupported");
-  if (url.username || url.password || isPrivateHost(url.hostname)) throw new Error("blocked");
-  if (url.port && !["80", "443"].includes(url.port)) throw new Error("port");
-  return url;
-}
-
-async function safeFetch(url: URL, timeoutMs = 10000, maxRedirects = 4) {
-  let current = new URL(url.toString());
-
-  for (let i = 0; i <= maxRedirects; i++) {
-    validateUrl(current.toString());
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
-    let response: Response;
-    try {
-      response = await fetch(current.toString(), {
-        signal: controller.signal,
-        redirect: "manual",
-        headers: {
-          "User-Agent": "RankFixBot/1.0 (+https://rankfix.app)",
-          Accept: "text/html,application/xhtml+xml,text/plain,application/xml",
-        },
-        cache: "no-store",
-      });
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get("location");
-      if (!location) return response;
-      current = new URL(location, current);
-      continue;
-    }
-
-    return response;
-  }
-
-  throw new Error("redirects");
-}
-
 function check(
   status: Status,
   key: string,
@@ -171,7 +118,7 @@ export async function POST(request: Request) {
 
     let target: URL;
     try {
-      target = validateUrl(/^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`);
+      target = validatePublicHttpUrl(/^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`);
     } catch {
       return NextResponse.json({ error: "Deze URL kan niet veilig worden gescand." }, { status: 400 });
     }
@@ -179,7 +126,7 @@ export async function POST(request: Request) {
     const started = Date.now();
     let response: Response;
     try {
-      response = await safeFetch(target, 12000);
+      ({ response } = await safePublicFetch(target, { timeoutMs: 12000, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml,text/plain,application/xml" }));
     } catch {
       return NextResponse.json(
         { error: "De website kon niet worden opgehaald. Controleer de URL en probeer opnieuw." },
@@ -388,7 +335,7 @@ export async function POST(request: Request) {
     let sitemapFound = false;
     let discoveredSitemapUrl: string | null = null;
     try {
-      const r = await safeFetch(robotsUrl, 5000, 2);
+      const r = (await safePublicFetch(robotsUrl, { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/plain,application/xml,text/xml" })).response;
       if (r.ok) {
         robotsTxt = await r.text();
         robotsStatus = "PASS";
@@ -399,7 +346,7 @@ export async function POST(request: Request) {
     const sitemapCandidates = [discoveredSitemapUrl, sitemapUrl.toString()].filter(Boolean) as string[];
     for (const candidate of sitemapCandidates) {
       try {
-        const r = await safeFetch(new URL(candidate), 5000, 2);
+        const r = (await safePublicFetch(new URL(candidate), { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/plain,application/xml,text/xml" })).response;
         if (r.ok && /xml|text\/xml/i.test(r.headers.get("content-type") || "")) {
           sitemapFound = true;
           discoveredSitemapUrl = candidate;
