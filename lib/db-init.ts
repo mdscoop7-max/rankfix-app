@@ -103,6 +103,22 @@ const statements = [
   )`,
   `CREATE INDEX IF NOT EXISTS website_health_events_lookup_idx ON website_health_events(user_id, website_host, created_at DESC)`,
   `CREATE INDEX IF NOT EXISTS website_health_events_rule_idx ON website_health_events(user_id, website_host, rule_id, created_at DESC)`,
+  `CREATE TABLE IF NOT EXISTS website_monitors (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    website_host TEXT NOT NULL,
+    website_url TEXT NOT NULL,
+    enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    interval_hours INTEGER NOT NULL DEFAULT 168 CHECK (interval_hours >= 24),
+    last_checked_at TIMESTAMPTZ,
+    next_check_at TIMESTAMPTZ,
+    last_status TEXT,
+    consecutive_failures INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(user_id, website_host)
+  )`,
+  `CREATE INDEX IF NOT EXISTS website_monitors_due_idx ON website_monitors(enabled, next_check_at) WHERE enabled=TRUE`,
   `CREATE TABLE IF NOT EXISTS user_preferences (
     user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     language TEXT NOT NULL DEFAULT 'nl' CHECK (language IN ('nl','en','fr','es','it','de')),
