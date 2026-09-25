@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-type Props = { dashboard?: boolean; scanId?: string | null };
+type Props = { dashboard?: boolean; scanId?: string | null; publicLocale?: string };
 
-export default function AiAssistant({ dashboard = false, scanId = null }: Props) {
+export default function AiAssistant({ dashboard = false, scanId = null, publicLocale = "nl" }: Props) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([
@@ -19,7 +19,7 @@ export default function AiAssistant({ dashboard = false, scanId = null }: Props)
   const [scanIssue, setScanIssue] = useState<any>(null);
   const [fixBusy, setFixBusy] = useState(false);
   const [fixResult, setFixResult] = useState("");
-  const [language, setLanguage] = useState("nl");
+  const [language, setLanguage] = useState(publicLocale);
 
   useEffect(() => {
     if (!dashboard) return;
@@ -102,9 +102,9 @@ export default function AiAssistant({ dashboard = false, scanId = null }: Props)
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`fixed right-4 z-[110] rounded-full border border-emerald-300/30 bg-[#0F3B30] px-4 py-3 text-sm font-bold text-emerald-100 shadow-2xl shadow-emerald-950/30 sm:right-5 ${dashboard ? "bottom-[calc(82px+env(safe-area-inset-bottom))] sm:bottom-5" : "bottom-5"}`}
+        className={`fixed right-4 z-[110] rounded-full border border-emerald-300/30 bg-[#0F3B30] px-4 py-3 text-sm font-bold text-emerald-100 shadow-2xl shadow-emerald-950/30 sm:right-5 ${dashboard ? "bottom-[calc(82px+env(safe-area-inset-bottom))] sm:bottom-5" : "bottom-[calc(82px+env(safe-area-inset-bottom))] sm:bottom-5"}`}
       >
-        ✦ {dashboard ? tx.button : "Vraag RankFix AI"}
+        ✦ {tx.button}
       </button>
 
       {open && (
@@ -113,7 +113,7 @@ export default function AiAssistant({ dashboard = false, scanId = null }: Props)
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
               <div>
                 <div className="font-bold">RankFix AI</div>
-                <div className="text-xs text-slate-500">{dashboard ? tx.subtitle : "Info over RankFix en SEO/GEO"}</div>
+                <div className="text-xs text-slate-500">{dashboard ? tx.subtitle : tx.subtitle}</div>
               </div>
               <button type="button" onClick={() => setOpen(false)} aria-label={tx.close} className="rounded-full px-3 py-1 text-xl text-slate-300 hover:text-white">×</button>
             </div>
@@ -146,11 +146,11 @@ export default function AiAssistant({ dashboard = false, scanId = null }: Props)
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") send(); }}
-                  placeholder={dashboard ? tx.placeholder : "Bijv. hoe werkt een GEO-audit?"}
+                  placeholder={tx.placeholder}
                   className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm outline-none placeholder:text-slate-600"
                 />
                 <button type="button" onClick={send} disabled={busy || !input.trim()} className="rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-950 disabled:opacity-40">
-                  {dashboard ? tx.send : "Stuur"}
+                  {tx.send}
                 </button>
               </div>
             </div>
