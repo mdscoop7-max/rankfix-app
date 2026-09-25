@@ -6,6 +6,7 @@ import { decryptToken, githubFetch } from "@/lib/github";
 import { validateFix } from "@/lib/seo-fix-validator";
 import { validateGithubFix } from "@/lib/github-fix-validator";
 import { getFixPolicy } from "@/lib/fix-policy";
+import { consumeRateLimit } from "@/lib/rate-limit";
 
 function safeRepo(v:string){ return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(v) && !v.includes(".."); }
 function safePath(v:string){ return v.length>0 && v.length<240 && !v.startsWith("/") && !v.split("/").includes("..") && !/[<>:"|?*]/.test(v); }
@@ -214,6 +215,8 @@ export async function POST(request:Request){
   try{
     const user=await getCurrentUser();
     if(!user) return NextResponse.json({error:"Login vereist."},{status:401});
+    await ensureDatabase();
+    if(!await consumeRateLimit("github-fix",String(user.id),12,3600)) return NextResponse.json({error:"Te veel codefix-verzoeken. Probeer later opnieuw."},{status:429});
     const body=await request.json();
     const requestedRepo=typeof body?.repo==="string"?body.repo.trim():"";
     const requestedPath=typeof body?.path==="string"?body.path.trim():"";
