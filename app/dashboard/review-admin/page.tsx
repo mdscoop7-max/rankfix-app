@@ -1,0 +1,9 @@
+"use client";
+import { useEffect,useState } from "react";
+import "../dashboard.css";
+type R={id:string;rating:number;review_text:string;company_name?:string;website?:string;status:string;name:string;email:string};
+export default function ReviewAdmin(){const [reviews,setReviews]=useState<R[]>([]),[error,setError]=useState("");
+ async function load(){const r=await fetch("/api/admin/reviews",{cache:"no-store"});const d=await r.json();if(!r.ok){setError(d.error||"Laden mislukt.");return}setReviews(d.reviews||[])}
+ useEffect(()=>{load()},[]);
+ async function setStatus(id:string,status:string){const r=await fetch("/api/admin/reviews",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,status})});if(r.ok)load()}
+ return <main className="rf-page"><div className="rf-shell"><header className="rf-header"><a href="/dashboard" className="rf-brand">RankFix <span>AI</span></a><a href="/dashboard" className="rf-back">← Dashboard</a></header><div className="rf-body"><div className="rf-heading"><h1>Reviewbeheer</h1><p>Publiceer alleen echte, passende klantreviews. Bewerk de inhoud van een review niet.</p></div>{error&&<p className="rf-alert">{error}</p>}<div className="rf-more-grid">{reviews.map(r=><article className="rf-card" key={r.id}><div className="rf-stars">{"★".repeat(r.rating)}</div><p style={{marginTop:8}}>{r.review_text}</p><p className="rf-review-status">{r.name} · {r.email}{r.company_name?" · "+r.company_name:""} · {r.status}</p><div style={{display:"flex",gap:8,marginTop:12,flexWrap:"wrap"}}><button className="rf-primary" onClick={()=>setStatus(r.id,"APPROVED")}>Goedkeuren</button><button className="rf-danger-button" onClick={()=>setStatus(r.id,"REJECTED")}>Niet publiceren</button></div></article>)}</div></div></div></main>}
