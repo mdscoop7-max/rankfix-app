@@ -74,6 +74,7 @@ export default function Dashboard() {
         <a href="/dashboard" className="rf-brand">RankFix <span>AI</span></a>
         <div className="rf-header-right"><span className="rf-credits">{user?.credits ?? "—"} credits</span><a href="/dashboard/account" className="rf-avatar" aria-label="Account">{user?.name?.charAt(0).toUpperCase() || "?"}</a></div>
       </header>
+      <DashboardNav current={0} />
       <div className="rf-body">
         <div className="rf-heading"><h1>{t.overview}</h1><p>{t.intro}</p></div>
         {scans.length === 0 && <section className="rf-welcome" aria-label="Aan de slag">
@@ -121,7 +122,6 @@ export default function Dashboard() {
         <section className="rf-fix-summary" aria-label={t.fixes}><h2>{t.fixes}</h2><p>{fixes.PREPARED || 0} {t.prepared} · {fixes.DONE || 0} {t.confirmed}.</p><a href="/dashboard/github">{t.fixLink} →</a></section>
         {selectedResult && <section id="resultaat" className="rf-report"><div className="rf-section-head"><h2>{t.result}</h2><button onClick={() => setSelectedResult(null)}>{t.close}</button></div><p>{selectedResult.overallScore}/100 · SEO {selectedResult.seo?.score ?? "—"} · GEO {selectedResult.geo?.score ?? "—"}</p><div className="rf-checks">{checks.map((check, index) => <article key={index}><strong>{check.title}</strong><span>{check.fix_status === "DONE" ? t.live : check.fix_status === "WAITING" ? t.proposal : check.status === "pass" ? t.passed : check.severity === "CRITICAL" ? t.critical : t.needsAttention}</span><p>{check.message}</p></article>)}</div></section>}
       </div>
-      <DashboardNav current={0} />
     </div>
     <AiAssistant dashboard />
   </main>;
