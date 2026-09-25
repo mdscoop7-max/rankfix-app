@@ -31,8 +31,14 @@ export default function GithubPage(){
     setContext(params.get("context")||"");
     const incomingScanId=params.get("scan_id")||""; setScanId(incomingScanId); setIssueId(params.get("issue_id")||"");
     let incomingUrl=params.get("url")||"";
-    if(incomingScanId){ try{ const sr=await fetch("/api/history/"+encodeURIComponent(incomingScanId),{cache:"no-store"}); const sd=await sr.json(); if(sr.ok&&sd?.scan?.scanned_url){ incomingUrl=sd.scan.scanned_url; setSiteUrl(incomingUrl); } }catch{} } else setSiteUrl(incomingUrl);
     (async()=>{
+      if(incomingScanId){
+        try{
+          const sr=await fetch("/api/history/"+encodeURIComponent(incomingScanId),{cache:"no-store"});
+          const sd=await sr.json();
+          if(sr.ok&&sd?.scan?.scanned_url){ incomingUrl=sd.scan.scanned_url; setSiteUrl(incomingUrl); }
+        }catch{}
+      } else setSiteUrl(incomingUrl);
       const r=await fetch("/api/github/status"); const d=await r.json();
       if(d.connected){
         setConnected(true);setLogin(d.connection.github_login);
