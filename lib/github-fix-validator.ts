@@ -1,4 +1,38 @@
 export type GithubFixValidation = { valid: boolean; errors: string[]; warnings: string[] };
+const ALLOWED_WEB_EXTENSIONS = new Set([".tsx",".ts",".jsx",".js",".html",".htm",".vue",".php"]);
+const FORBIDDEN_BASENAMES = new Set([
+  "package.json","package-lock.json","pnpm-lock.yaml","yarn.lock","bun.lockb",
+  ".env",".env.local",".env.production",".env.development",
+  "next.config.js","next.config.mjs","next.config.ts","vite.config.js","vite.config.ts",
+  "dockerfile","render.yaml","vercel.json"
+]);
+const FORBIDDEN_PATH_PARTS = [
+  ".github/","node_modules/","migrations/","prisma/","database/","db/","scripts/"
+];
+
+function pathPolicyError(filePath:string): string | null {
+  const normalized=filePath.replace(/\\/g,"/").toLowerCase();
+  const base=normalized.split("/").pop()||"";
+  if(FORBIDDEN_BASENAMES.has(base)||FORBIDDEN_PATH_PARTS.some((part)=>normalized.includes(part))){
+    return "Het doelbestand is gevoelig voor dependencies, deployment, database of automatisering en mag niet automatisch worden aangepast.";
+  }
+  const dot=base.lastIndexOf(".");
+  const ext=dot>=0?base.slice(dot):"";
+  if(!ALLOWED_WEB_EXTENSIONS.has(ext)){
+    return "Het doelbestand valt buiten de toegestane webbronbestanden voor automatische RankFix-wijzigingen.";
+  }
+  return null;
+}
+
+function changedLineCount(before:string,after:string){
+  const a=before.replace(/\r\n/g,"\n").split("\n");
+  const b=after.replace(/\r\n/g,"\n").split("\n");
+  const max=Math.max(a.length,b.length);
+  let changed=0;
+  for(let i=0;i<max;i++) if(a[i]!==b[i]) changed++;
+  return changed;
+}
+
 
 function extractMetadataIdentity(value: string): {
   title?: string;
@@ -23,6 +57,12 @@ export function validateGithubFix(input: {
   const errors: string[] = [];
   const warnings: string[] = [];
   const issueText = input.issue.toLowerCase();
+  const pathError=pathPolicyError(input.filePath);
+  if(pathError) errors.push(pathError);
+  const changedLines=changedLineCount(input.current,input.proposed);
+  if(changedLines>120){
+    errors.push("De voorgestelde wijziging raakt meer dan 120 regels en is te groot voor een automatische SEO/GEO-codefix.");
+  }
 
   if (!input.proposed.trim()) errors.push("De voorgestelde GitHub-wijziging is leeg.");
   if (/\b(?:rm\s+-rf|drop\s+table|delete\s+from|private[_-]?key)\b/i.test(input.proposed)) {
