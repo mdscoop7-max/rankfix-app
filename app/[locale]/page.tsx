@@ -12,6 +12,6 @@ export default async function LocalizedHome({ params }: { params: Promise<{ loca
     <section className="lc-section" id="how"><div className="lc-container"><h2>{t.processTitle}</h2><div className="lc-grid">{t.steps.map((step, index) => <div className="lc-card" key={index}><strong>0{index + 1}</strong>{step}</div>)}</div></div></section>
     <section className="lc-section" id="audience"><div className="lc-container"><h2>{t.audienceTitle}</h2><div className="lc-grid">{t.audiences.map((item, index) => <div className="lc-card" key={index}>{item}</div>)}</div></div></section>
     <section className="lc-section" id="pricing"><div className="lc-container"><h2>{t.pricingTitle}</h2><p className="lc-lead">{t.pricing}</p><div className="lc-actions"><a className="lc-primary" href={"/" + locale + "/scan"}>{t.nav[0]}</a></div></div></section>
-    <section className="lc-section" id="contact"><div className="lc-container"><h2>{t.nav[4]}</h2><p className="lc-lead">{t.contact}</p><a className="lc-secondary" href="/#footer">{t.nav[4]}</a></div></section>
+    <section className="lc-section" id="contact"><div className="lc-container"><h2>{t.nav[4]}</h2><p className="lc-lead">{t.contact}</p><div className="lc-actions"><a className="lc-primary" href={"/" + locale + "/contact"}>{t.nav[4]} →</a></div></div></section>
   </LocaleShell>;
 }
