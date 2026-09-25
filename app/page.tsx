@@ -1010,50 +1010,21 @@ export default function Home() {
 
       <PublicReviews />
 
-      <footer id="footer" className="bg-[#03050d] px-5 py-14 lg:px-8">
+      <footer id="footer" className="border-t border-slate-300 bg-[#10233d] px-5 py-14 text-slate-100 lg:px-8">
         <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-5">
           <div className="md:col-span-2">
             <div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-300 text-xs font-black text-slate-950">RF</span><span className="font-bold">RankFix AI</span></div>
-            <p className="mt-4 max-w-sm text-sm leading-6 text-slate-500">SEO + GEO audit software voor bedrijven en agencies die willen weten wat ze moeten fixen — en het daarna ook willen fixen.</p>
+            <p className="mt-4 max-w-sm text-sm leading-6 text-slate-300">{language==="nl"?"SEO + GEO auditsoftware voor bedrijven en bureaus die willen weten wat ze moeten verbeteren.":language==="en"?"SEO + GEO audit software for businesses and agencies that want clear, actionable improvements.":language==="de"?"SEO- und GEO-Auditsoftware für Unternehmen und Agenturen mit klaren, umsetzbaren Verbesserungen.":language==="fr"?"Logiciel d’audit SEO + GEO pour les entreprises et agences qui veulent des améliorations claires et concrètes.":language==="it"?"Software di audit SEO + GEO per aziende e agenzie che vogliono miglioramenti chiari e concreti.":"Software de auditoría SEO + GEO para empresas y agencias que quieren mejoras claras y prácticas."}</p>
           </div>
           {[
-            [t.product, ["SEO Audit", "GEO Audit", "AI Fixes", "Reports"]],
-            [t.forWho, ["Bedrijven", "Webshops", "Agencies", "SaaS"]],
-            [t.company, ["Over RankFix", "Contact", "Privacy", "Voorwaarden", "Cookies"]],
-          ].map((entry) => {
-            const [title, links] = entry as [string, string[]];
-            return (
-              <div key={title}>
-                <div className="text-sm font-bold">{title}</div>
-                <div className="mt-4 space-y-3 text-sm text-slate-500">
-                  {links.map((link) => (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (link === "Privacy") window.location.href = "/nl/privacy";
-                        else if (link === "Voorwaarden") window.location.href = "/nl/terms";
-                        else if (link === "Cookies") window.location.href = "/nl/cookies";
-                        else if (link === "SEO Audit") startAudit("seo");
-                        else if (link === "GEO Audit") startAudit("geo");
-                        else if (link === "AI Fixes") scrollToSection("features");
-                        else if (link === "Reports") scrollToSection(document.getElementById("resultaat") ? "resultaat" : "scan");
-                        else if (link === "Contact") setContactOpen(true);
-                        else if (link === "Over RankFix") window.location.href = "/nl/about";
-                        else scrollToSection("scan");
-                      }}
-                      className="block text-left hover:text-violet-700"
-                    >
-                      {link}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+            [t.product, language==="nl"?["SEO Audit","GEO Audit","AI Fixes","Rapporten"]:language==="en"?["SEO Audit","GEO Audit","AI Fixes","Reports"]:language==="de"?["SEO-Audit","GEO-Audit","AI-Fixes","Berichte"]:language==="fr"?["Audit SEO","Audit GEO","Correctifs IA","Rapports"]:language==="it"?["Audit SEO","Audit GEO","Fix AI","Report"]:["Auditoría SEO","Auditoría GEO","Mejoras IA","Informes"]],
+            [t.forWho, language==="nl"?["Bedrijven","Webshops","Bureaus","SaaS"]:language==="en"?["Businesses","Online stores","Agencies","SaaS"]:language==="de"?["Unternehmen","Onlineshops","Agenturen","SaaS"]:language==="fr"?["Entreprises","Boutiques en ligne","Agences","SaaS"]:language==="it"?["Aziende","Negozi online","Agenzie","SaaS"]:["Empresas","Tiendas online","Agencias","SaaS"]],
+            [t.company, [t.about, t.contact, t.privacy, t.terms, t.cookies]],
+          ].map((entry) => { const [title, links]=entry as [string,string[]]; return <div key={title}><div className="text-sm font-bold text-white">{title}</div><div className="mt-4 space-y-3 text-sm text-slate-300">{links.map((link,i)=><button type="button" key={link} onClick={()=>{if(title===t.company){if(i===0)window.location.href="/"+language+"/about";else if(i===1)setContactOpen(true);else if(i===2)window.location.href="/"+language+"/privacy";else if(i===3)window.location.href="/"+language+"/terms";else window.location.href="/"+language+"/cookies"}else if(i===0)startAudit("seo");else if(i===1)startAudit("geo");else scrollToSection("features")}} className="block text-left transition hover:text-emerald-300">{link}</button>)}</div></div>})}
         </div>
-        <div className="mx-auto mt-12 flex max-w-7xl flex-col justify-between gap-3 border-t border-slate-200 pt-6 text-xs text-slate-600 sm:flex-row">
-          <span>© 2026 RankFix AI. Alle rechten voorbehouden.</span>
-          <span>SEO · GEO · AI Search · Built independent</span>
+        <div className="mx-auto mt-12 flex max-w-7xl flex-col justify-between gap-3 border-t border-slate-600 pt-6 text-xs text-slate-300 sm:flex-row">
+          <span>© 2026 RankFix AI. {language==="nl"?"Alle rechten voorbehouden.":language==="en"?"All rights reserved.":language==="de"?"Alle Rechte vorbehalten.":language==="fr"?"Tous droits réservés.":language==="it"?"Tutti i diritti riservati.":"Todos los derechos reservados."}</span>
+          <span>SEO · GEO · AI Search</span>
         </div>
       </footer>
       <AiAssistant />
