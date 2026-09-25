@@ -8,7 +8,7 @@ const topics=[
  ["Problemen oplossen","Begin bij de belangrijkste verbeterpunten. RankFix legt eerst in gewone taal uit wat er mis is en wat de volgende stap is."],
  ["AI-fixes","Een AI-fix is een voorstel. Een technische wijziging telt pas als opgelost nadat deze is gepubliceerd en een nieuwe live scan de verbetering bevestigt."],
  ["GitHub koppelen","GitHub is de veilige route voor codewijzigingen: koppel je account, kies de repository, laat RankFix een voorstel maken, controleer/publiceer het en scan opnieuw."],
- ["Credits","Credits worden gebruikt voor RankFix AI-fixes. Voor een actie die credits kost hoort RankFix vooraf duidelijk te tonen hoeveel."],
+ ["Abonnementen","AI-fixes zijn inbegrepen in de betaalde RankFix-abonnementen. Je ziet vooraf duidelijk welke functies bij je pakket horen."],
  ["Rapporten en historie","Gebruik je scanhistorie om oude en nieuwe resultaten te vergelijken. Rapporten zijn bedoeld om resultaten eenvoudig te bewaren of delen."]
 ];
 export default function HelpPage(){
