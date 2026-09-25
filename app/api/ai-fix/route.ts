@@ -204,7 +204,6 @@ export async function POST(request: Request) {
 
     let user = null;
     try { user = await getCurrentUser(); } catch {}
-    if (user && user.credits < 2) return NextResponse.json({error:"Onvoldoende credits. Deze AI-fix kost 2 credits."},{status:402});
 
     const safeContext = cleanContext(context);
     let mode = "rule_based_fallback";
@@ -301,29 +300,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ success:false, error:"invalid_output", validation:validated.validation }, {status:422});
     }
 
-    if (user) {
-      const db = getDb();
-      const client = await db.connect();
-      try {
-        await client.query("BEGIN");
-        const existing = await client.query("SELECT id FROM credit_transactions WHERE user_id=$1 AND reference_id=$2 LIMIT 1",[user.id,requestId]);
-        if (existing.rowCount) {
-          await client.query("COMMIT");
-        } else {
-          const locked = await client.query("SELECT credits FROM users WHERE id=$1 FOR UPDATE",[user.id]);
-          if (!locked.rowCount || Number(locked.rows[0].credits) < 2) {
-            await client.query("ROLLBACK");
-            return NextResponse.json({error:"Onvoldoende credits."},{status:402});
-          }
-          await client.query("UPDATE users SET credits=credits-2 WHERE id=$1",[user.id]);
-          await client.query("INSERT INTO credit_transactions (user_id,amount,reason,reference_id) VALUES ($1,-2,$3,$2)",[user.id,requestId,`ai_fix:${type}`]);
-          await client.query("COMMIT");
-        }
-      } catch (error) {
-        await client.query("ROLLBACK");
-        throw error;
-      } finally { client.release(); }
-    }
-    return NextResponse.json({success:true,mode,provider:mode==="openai"?"OpenAI":"RankFix",model:mode==="openai"?(process.env.OPENAI_MODEL||"gpt-5.6-luna"):null,fix,normalizedFix:validated,creditsCharged:user?2:0, requestId});
+    return NextResponse.json({success:true,mode,provider:mode==="openai"?"OpenAI":"RankFix",model:mode==="openai"?(process.env.OPENAI_MODEL||"gpt-5.6-luna"):null,fix,normalizedFix:validated, requestId});
   } catch { return NextResponse.json({error:"De AI-fix kon niet worden gemaakt."},{status:500}); }
 }
