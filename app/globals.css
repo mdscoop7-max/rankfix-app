@@ -39,3 +39,13 @@ button, a { -webkit-tap-highlight-color: transparent; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* RankFix scan meter */
+.lc-scan-visual{margin:22px 0;display:flex;align-items:center;gap:24px;padding:22px;border:1px solid #263754;border-radius:18px;background:linear-gradient(135deg,#101b2d,#0c1728);box-shadow:0 18px 50px #02081740}
+.lc-scan-visual h2{font-size:clamp(1.35rem,3vw,2rem);font-weight:800}.lc-scan-visual p{margin-top:6px;color:#94a3b8}
+.lc-meter{--score:0;position:relative;flex:none;width:150px;height:150px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(from 210deg,#ff3b62 0deg,#ffb020 72deg,#e8e229 130deg,#36df8a calc(var(--score)*3.6deg),#1d2c47 calc(var(--score)*3.6deg) 360deg);box-shadow:0 0 34px #22d98b24}
+.lc-meter:before{content:"";position:absolute;inset:12px;border-radius:50%;background:#0b1526;box-shadow:inset 0 0 0 1px #2a3c58}
+.lc-meter-core{position:relative;z-index:1;text-align:center}.lc-meter-core strong{display:block;font-size:42px;line-height:1;font-weight:850}.lc-meter-core span{display:block;margin-top:7px;color:#9fb0c8;font-size:13px}
+.lc-meter-running{background:conic-gradient(from 0deg,#1677ff,#7c4dff,#ff3b62,#ffb020,#36df8a,#1677ff);animation:lc-meter-spin 1.15s linear infinite}.lc-meter-running .lc-meter-core{animation:lc-meter-counter 1.15s linear infinite}.lc-meter-running .lc-meter-core strong{font-size:25px;color:#70e7bd}
+@keyframes lc-meter-spin{to{transform:rotate(360deg)}}@keyframes lc-meter-counter{to{transform:rotate(-360deg)}}
+@media(max-width:640px){.lc-scan-visual{flex-direction:column;text-align:center;padding:18px 14px}.lc-meter{width:132px;height:132px}.lc-meter-core strong{font-size:36px}}
