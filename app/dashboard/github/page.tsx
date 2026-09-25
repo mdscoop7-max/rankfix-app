@@ -69,7 +69,7 @@ export default function GithubPage(){
         return;
       }
       setPath(d.path || cleanPath);
-      setMessage("PR aangemaakt: "+d.pr.title+" — "+d.pr.url+" | Bestand: "+(d.path || cleanPath));
+      setMessage(d.alreadyApplied ? "De gevraagde code staat al in het bestand. Er is niets gewijzigd en er zijn geen credits gebruikt. Controleer de live pagina met een nieuwe scan." : "Codewijziging voorgesteld in PR: "+d.pr.title+" — "+d.pr.url+" | Bestand: "+(d.path || cleanPath)+". Controleer de diff, merge en scan opnieuw om de live fix te bevestigen.");
     }catch(error){
       setError(error instanceof Error?error.message:"Verbinding met GitHub Fix Engine mislukt.");
     }finally{

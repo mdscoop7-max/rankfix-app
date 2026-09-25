@@ -442,7 +442,6 @@ export async function POST(request: Request) {
     const organizationSchemaPresent = schemaSet.has("organization");
     const websiteSchemaPresent = schemaSet.has("website");
     const productSchemaPresent = schemaSet.has("product");
-    const criticalCanonicalIssue = canonicalIsCrossDomain;
     const adsTrackingSignals = [
       /googletagmanager\.com\/gtm\.js/i.test(html),
       /gtag\s*\(|googletag\s*\(/i.test(html),
@@ -512,6 +511,7 @@ export async function POST(request: Request) {
     const currentTarget = normalizeCanonicalTarget(finalUrl);
     const canonicalIsSelf = Boolean(canonicalUrl && canonicalTarget === currentTarget);
     const canonicalIsCrossDomain = Boolean(canonicalUrl && canonicalUrl.hostname !== finalUrl.hostname);
+    const criticalCanonicalIssue = canonicalIsCrossDomain;
     const canonicalDropsQuery = Boolean(canonicalUrl && finalUrl.search && !canonicalUrl.search);
 
     seoChecks.push(
@@ -598,7 +598,7 @@ export async function POST(request: Request) {
     seoChecks.push(hasExternalImageHotlinks
       ? hasStockImages
         ? check("warning", "image_sources", "seo", "Afbeeldingsbronnen", `${stockImageUrls.length} afbeelding(en) lijken rechtstreeks van externe stocksites te worden geladen.`, "Gebruik waar mogelijk eigen product-/merkafbeeldingen en host publieke assets op het eigen domein.", 2, 5)
-        : check("warning", "image_sources", "seo", `${externalImageUrls.length} afbeelding(en) worden extern geladen.`, "Controleer rechten, beschikbaarheid en prestaties; host belangrijke eigen assets bij voorkeur zelf.", 3, 5)
+        : check("warning", "image_sources", "seo", "Afbeeldingsbronnen", `${externalImageUrls.length} afbeelding(en) worden extern geladen.`, "Controleer rechten, beschikbaarheid en prestaties; host belangrijke eigen assets bij voorkeur zelf.", 3, 5)
       : check("pass", "image_sources", "seo", "Afbeeldingsbronnen", "Geen externe afbeeldings-hotlinks gevonden.", "Gebruik eigen, geoptimaliseerde afbeeldingen voor belangrijke content.", 5, 5)
     );
 

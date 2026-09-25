@@ -890,7 +890,7 @@ export default function Home() {
               <div className="rounded-3xl border border-cyan-400/10 bg-cyan-400/[0.04] p-5">
                 <div className="text-xs font-semibold uppercase tracking-widest text-cyan-300">AI action layer</div>
                 <div className="mt-1 text-lg font-black">{issues.length} {issues.length === 1 ? "fix" : "fixes"} beschikbaar</div>
-                <p className="mt-1 text-sm leading-5 text-slate-500">Maak eerst een fixvoorstel en bekijk het resultaat. RankFix regelt technische vervolgstappen automatisch op de achtergrond.</p>
+                <p className="mt-1 text-sm leading-5 text-slate-500">Bekijk het fixvoorstel en de eventuele GitHub-wijziging. Een voorstel wijzigt je live website niet; scan opnieuw na het publiceren om het resultaat te controleren.</p>
               </div>
             </div>
           </div>
@@ -939,7 +939,6 @@ export default function Home() {
             ["Pro","€19","per maand",["3 sites","50 audits / maand","20 AI-fixes","Ads readiness","PDF rapporten","Prioriteitscontrole"]],
             ["Agency","€49","per maand",["15 sites","250 audits / maand","100 AI-fixes","White-label PDF","Klantprojecten","Team/workflow"]]
           ].map((entry)=>{const [name,price,period,items]=entry as [string,string,string,string[]];return <div key={name} className={`rounded-3xl border p-7 ${name==="Pro"?"border-cyan-400/30 bg-cyan-400/[0.05]":"border-white/10 bg-white/[0.025]"}`}><div className="text-sm font-bold">{name}</div><div className="mt-5 text-4xl font-black">{price}</div><div className="mt-1 text-xs text-slate-500">{period}</div><div className="my-6 h-px bg-white/10"/><ul className="space-y-3 text-sm text-slate-400">{items.map(item=><li key={item}>✓ {item}</li>)}</ul><button className="mt-7 w-full rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold transition hover:bg-white/5">Binnenkort beschikbaar</button></div>})}
-        </div>
         </div>
       </section>
 
