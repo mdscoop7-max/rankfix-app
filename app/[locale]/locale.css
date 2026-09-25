@@ -14,3 +14,10 @@
 .lc-footer-grid{display:grid!important;grid-template-columns:2fr 1fr 1fr 1fr;gap:38px!important;align-items:start;color:#dbe5f1!important;font-size:14px!important}
 .lc-footer-brand{max-width:390px}.lc-footer-logo{display:flex;align-items:center;gap:11px;color:#fff;font-size:16px}.lc-footer-logo>span{display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:#5dcaa5;color:#10233d;font-size:12px;font-weight:900}.lc-footer-brand p{margin-top:15px;color:#b8c7d9;line-height:1.65}.lc-footer-grid>div>strong{display:block;color:#fff;font-size:14px;margin-bottom:15px}.lc-footer-column{display:grid;gap:11px}.lc-footer-column a{color:#b8c7d9}.lc-footer-column a:hover{color:#72ddb9}.lc-footer-bottom{display:flex!important;justify-content:space-between!important;gap:18px!important;margin-top:38px;padding-top:20px!important;border-top:1px solid #34475f;color:#9fb0c4!important;font-size:12px!important}
 @media(max-width:850px){.lc-footer{padding:38px 0 32px}.lc-footer-grid{grid-template-columns:1fr 1fr!important;gap:30px 22px!important}.lc-footer-brand{grid-column:1/-1}.lc-footer-bottom{flex-direction:column!important}}
+
+/* Rich audit information on localized home pages */
+.lc-feature-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.lc-feature-grid .lc-card h3{margin:28px 0 10px;color:#132238;font-size:19px;line-height:1.25}
+.lc-feature-grid .lc-card p{margin:0;color:#64748b;line-height:1.65;font-size:14px}
+@media(max-width:1050px){.lc-feature-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.lc-feature-grid{grid-template-columns:1fr}}
