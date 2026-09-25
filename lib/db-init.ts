@@ -9,9 +9,14 @@ const statements = [
     email TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
     password_hash TEXT NOT NULL,
+    customer_id TEXT UNIQUE,
     credits INTEGER NOT NULL DEFAULT 25,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS customer_id TEXT`,
+  `UPDATE users SET customer_id='RF-' || UPPER(REPLACE(id::text,'-','')) WHERE customer_id IS NULL`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS users_customer_id_idx ON users(customer_id)`,
+  `ALTER TABLE users ALTER COLUMN customer_id SET NOT NULL`,
   `CREATE TABLE IF NOT EXISTS sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     token_hash TEXT UNIQUE NOT NULL,
