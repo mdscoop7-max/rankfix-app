@@ -2,9 +2,9 @@
 import { useEffect, useState } from "react";
 import { type Locale } from "@/lib/locales";
 const labels: Record<Locale,[string,string,string,string,string]> = {
- nl:["Overzicht","Websites","Scan","Fixes","Account"], en:["Overview","Websites","Scan","Fixes","Account"], fr:["Aperçu","Sites","Audit","Correctifs","Compte"], es:["Resumen","Sitios","Analizar","Mejoras","Cuenta"], it:["Panoramica","Siti","Analisi","Modifiche","Account"], de:["Übersicht","Websites","Scan","Fixes","Konto"]
+ nl:["Overzicht","Websites","Scannen","Fixes","Meer"], en:["Overview","Websites","Scan","Fixes","More"], fr:["Aperçu","Sites","Scanner","Correctifs","Plus"], es:["Resumen","Sitios","Escanear","Mejoras","Más"], it:["Panoramica","Siti","Scansiona","Modifiche","Altro"], de:["Übersicht","Websites","Scannen","Fixes","Mehr"]
 };
-const links = ["/dashboard","/dashboard#websites","", "/dashboard/github", "/dashboard/account"];
+const links = ["/dashboard","/dashboard#websites","", "/dashboard/github", "/dashboard/more"];
 const paths = ["M3 10l9-7 9 7v10H3z M9 20v-7h6v7","M3 5h18v14H3z M3 10h18 M9 10v9","M12 3v18 M3 12h18","M7 4l10 16 M17 4L7 20","M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21v-2a8 8 0 0 1 16 0v2"];
 export default function DashboardNav({ current }: { current: number }) {
  const [language,setLanguage] = useState<Locale>("nl");
