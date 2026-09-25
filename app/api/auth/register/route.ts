@@ -20,10 +20,9 @@ export async function POST(request: Request) {
     if (exists.rowCount) return NextResponse.json({ error: "Er bestaat al een account met dit e-mailadres." }, { status: 409 });
 
     const result = await db.query(
-      "INSERT INTO users (email,name,password_hash,credits) VALUES ($1,$2,$3,25) RETURNING id,email,name,credits",
+      "INSERT INTO users (email,name,password_hash) VALUES ($1,$2,$3) RETURNING id,email,name",
       [email, name, await hashPassword(password)]
     );
-    await db.query("INSERT INTO credit_transactions (user_id,amount,reason) VALUES ($1,25,'welcome_credits')", [result.rows[0].id]);
     await createSession(result.rows[0].id);
     return NextResponse.json({ success: true, user: result.rows[0] });
   } catch (error) {
