@@ -21,3 +21,10 @@
 .lc-feature-grid .lc-card p{margin:0;color:#64748b;line-height:1.65;font-size:14px}
 @media(max-width:1050px){.lc-feature-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){.lc-feature-grid{grid-template-columns:1fr}}
+
+/* Keep desktop plan prices, add the same plan information as the app */
+.lc-pricing-grid{align-items:stretch}
+.lc-price-card{display:flex;flex-direction:column;min-height:390px}
+.lc-price{font-size:34px;font-weight:800;margin-top:14px;color:#132238}.lc-price small{font-size:12px;font-weight:500;color:#64748b}
+.lc-price-card ul{list-style:none;padding:0;margin:24px 0 0;color:#64748b;line-height:1.55}.lc-price-card li{margin:10px 0}
+.lc-coming-soon{margin-top:auto;border:1px solid #d8e1ec;border-radius:10px;padding:12px;text-align:center;color:#132238;font-weight:650}
