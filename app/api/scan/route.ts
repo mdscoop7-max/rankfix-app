@@ -781,8 +781,13 @@ export async function POST(request: Request) {
           item.fix_status = "WAITING";
         }
 
-        await getDb().query(
-          "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
+        const websiteHost = finalUrl.hostname.toLowerCase().replace(/^www\\./, "");
+        const previousScan = await getDb().query(
+          "SELECT id,result FROM scans WHERE user_id=$1 AND lower(regexp_replace(split_part(split_part(final_url, '://', 2), '/', 1), '^www\\.', ''))=$2 ORDER BY created_at DESC LIMIT 1",
+          [user.id, websiteHost]
+        );
+        const insertedScan = await getDb().query(
+          "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id",
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore),
@@ -796,6 +801,33 @@ export async function POST(request: Request) {
               jsonLdBlocks: validJsonLd, sitemapFound, robotsMentionsSitemap, robotsStatus, sitemapUrl: discoveredSitemapUrl }
           })]
         );
+        try {
+          const scanId = insertedScan.rows[0]?.id || null;
+          await getDb().query(
+            "INSERT INTO website_health_events (user_id,website_host,scanned_url,scan_id,event_type,details) VALUES ($1,$2,$3,$4,'SCAN',$5)",
+            [user.id,websiteHost,finalUrl.toString(),scanId,JSON.stringify({overallScore:selectedOverallScore,seoScore:selectedSeoScore,geoScore:selectedGeoScore})]
+          );
+          const previousChecks = [
+            ...(previousScan.rows[0]?.result?.seo?.checks || []),
+            ...(previousScan.rows[0]?.result?.geo?.checks || [])
+          ];
+          const previousByRule = new Map(previousChecks.map((x:any)=>[String(x.issue_id||x.rule_id||x.key),String(x.issue_status||x.status)]));
+          for (const item of checks) {
+            const ruleId=String(item.issue_id||item.rule_id||item.key);
+            const before=previousByRule.get(ruleId);
+            const now=String(item.issue_status||item.status);
+            if(!before||before===now) continue;
+            const improved=(before==="FAIL"||before==="WARNING"||before==="fail"||before==="warning")&&(now==="PASS"||now==="pass");
+            const regressed=(before==="PASS"||before==="pass")&&(now==="FAIL"||now==="WARNING"||now==="fail"||now==="warning");
+            if(!improved&&!regressed) continue;
+            await getDb().query(
+              "INSERT INTO website_health_events (user_id,website_host,scanned_url,scan_id,event_type,rule_id,previous_status,current_status,severity,details) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+              [user.id,websiteHost,finalUrl.toString(),scanId,improved?"IMPROVEMENT":"REGRESSION",ruleId,before,now,item.severity||null,JSON.stringify({title:item.title,message:item.message})]
+            );
+          }
+        } catch (monitorError) {
+          console.error("RankFix health monitoring write failed:", monitorError);
+        }
       } catch {}
     }
 
