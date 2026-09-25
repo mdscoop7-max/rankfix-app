@@ -7,7 +7,7 @@ import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, 
 import { getFixPolicy } from "@/lib/fix-policy";
 import { extractImageMetrics } from "@/lib/image-metrics";
 
-type Status = "pass" | "warning" | "fail";
+type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
 type AuditMode = "seo" | "geo" | "both";
 
@@ -136,7 +136,7 @@ function check(
 ): Check {
   return {
     key, category, title, status, message, fix, points, maxPoints,
-    issue_id: key, rule_id: key, issue_status: statusCode(status),
+    issue_id: key, rule_id: key, issue_status: status === "not_applicable" ? "NOT_APPLICABLE" : status === "unable_to_confirm" ? "UNABLE_TO_CONFIRM" : statusCode(status),
     severity: status === "fail" ? "HIGH" : status === "warning" ? "MEDIUM" : "INFO",
     confidence: "high", evidence: { url: "", found: null, details: message },
     fix_category: getFixPolicy(key).category,
@@ -627,7 +627,7 @@ export async function POST(request: Request) {
       : check("pass","webshop_claims","seo","Webshop-beloftes","Geen specifieke webshopclaims zoals levertijd/retour gevonden.","Maak commerciële claims altijd controleerbaar.",5,5));
     seoChecks.push(hasProductSignal
       ? check(hasCheckoutTrustSignal?"pass":"warning","checkout_trust","seo","Checkout- en betaalvertrouwen",hasCheckoutTrustSignal?"Betaal-/checkoutsignalen zijn zichtbaar.":"Geen duidelijke betaal- of checkoutsignalen gevonden op deze pagina.","Toon betaalmogelijkheden en relevante veiligheids-/vertrouwensinformatie waar de bezoeker een aankoopbeslissing neemt.",hasCheckoutTrustSignal?5:2,5)
-      : check("pass","checkout_trust","seo","Checkout- en betaalvertrouwen","Geen webshop-signalen gevonden; checkoutcontrole is niet van toepassing.","Gebruik deze controle op echte webshopcontent.",5,5));
+      : check("not_applicable","checkout_trust","seo","Checkout- en betaalvertrouwen","Geen webshop-signalen gevonden; checkoutcontrole is niet van toepassing.","Gebruik deze controle op echte webshopcontent.",0,5));
     seoChecks.push(
       hasGoogleAdsTag && hasGa4 && hasConversionSignal
         ? check("pass","ads_readiness","seo","Google Ads readiness","Er zijn Google Ads-, GA4- en conversiesignalen gevonden. RankFix bevestigt hiermee niet dat de accounts correct gekoppeld zijn.","Controleer in Google Ads en GA4 of conversies actief binnenkomen, consent correct werkt en de juiste conversieacties worden gebruikt.",6,6)
@@ -638,7 +638,7 @@ export async function POST(request: Request) {
       ? organizationSchemaPresent && websiteSchemaPresent
         ? check("pass", "organization_website", "geo", "Organization + WebSite", "Organization en WebSite structured data zijn aanwezig op de homepage.", "Houd naam, URL en logo consistent met de zichtbare site-identiteit.", 8, 8)
         : check("warning", "organization_website", "geo", "Organization + WebSite", "De homepage mist Organization en/of WebSite structured data.", "Voeg passende Organization- en WebSite JSON-LD toe zonder gegevens te verzinnen.", 3, 8)
-      : check("pass", "organization_website", "geo", "Organization + WebSite", "Homepage-specifieke Organization/WebSite-controle is niet vereist op deze URL.", "Controleer de homepage afzonderlijk voor organisatie- en website-identiteit.", 8, 8)
+      : check("not_applicable", "organization_website", "geo", "Organization + WebSite", "Homepage-specifieke Organization/WebSite-controle is niet vereist op deze URL.", "Controleer de homepage afzonderlijk voor organisatie- en website-identiteit.", 0, 8)
     );
 
     geoChecks.push(hasProductSignal
@@ -749,8 +749,9 @@ export async function POST(request: Request) {
     const overallScore = Math.round(seoScore * 0.6 + geoScore * 0.4);
     const selectedSeoChecks = mode === "geo" ? [] : seoChecks;
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
-    const selectedSeoScore = selectedSeoChecks.length ? Math.round((selectedSeoChecks.reduce((sum, c) => sum + c.points, 0) / selectedSeoChecks.reduce((sum, c) => sum + c.maxPoints, 0)) * 100) : 0;
-    const selectedGeoScore = selectedGeoChecks.length ? Math.round((selectedGeoChecks.reduce((sum, c) => sum + c.points, 0) / selectedGeoChecks.reduce((sum, c) => sum + c.maxPoints, 0)) * 100) : 0;
+    const scoreSelected=(items:Check[])=>{const applicable=items.filter(c=>c.issue_status!=="NOT_APPLICABLE"&&c.issue_status!=="UNABLE_TO_CONFIRM");const max=applicable.reduce((sum,c)=>sum+c.maxPoints,0);return max?Math.round(applicable.reduce((sum,c)=>sum+c.points,0)/max*100):0;};
+    const selectedSeoScore = scoreSelected(selectedSeoChecks);
+    const selectedGeoScore = scoreSelected(selectedGeoChecks);
     let selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
     const selectedHasCriticalIssue = [...selectedSeoChecks, ...selectedGeoChecks].some((item) => item.status !== "pass" && item.severity === "CRITICAL");
     const selectedHasHighIssue = [...selectedSeoChecks, ...selectedGeoChecks].some((item) => item.status === "fail" && item.severity === "HIGH");
