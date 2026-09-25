@@ -217,6 +217,20 @@ export async function POST(request:Request){
     if(!connection.rowCount) return NextResponse.json({error:"Verbind eerst GitHub via je dashboard."},{status:409});
     const token=decryptToken(connection.rows[0].access_token_encrypted);
     const repo=await chooseRepository(token,requestedRepo);
+    const scannedHost=typeof body?.url==="string"?normalizeHostname(body.url):"";
+    if(scannedHost){
+      const existingMapping=await getDb().query(
+        "SELECT repository, base_branch FROM website_repositories WHERE user_id=$1 AND website_host=$2",
+        [user.id,scannedHost]
+      );
+      if(existingMapping.rowCount && String(existingMapping.rows[0].repository).toLowerCase()!==repo.toLowerCase()){
+        return NextResponse.json({error:"Deze website is al aan een andere GitHub-repository gekoppeld. Wijzig eerst bewust de websitekoppeling voordat RankFix code aanpast.",website:scannedHost,repository:existingMapping.rows[0].repository},{status:409});
+      }
+      await getDb().query(
+        "INSERT INTO website_repositories (user_id,website_host,repository,base_branch,verified_at,updated_at) VALUES ($1,$2,$3,$4,NOW(),NOW()) ON CONFLICT (user_id,website_host) DO UPDATE SET base_branch=EXCLUDED.base_branch,verified_at=NOW(),updated_at=NOW()",
+        [user.id,scannedHost,repo,baseBranch]
+      );
+    }
     const path=await chooseFile(token,repo,baseBranch,requestedPath,issue);
     const file=await githubFetch<any>(token,"/repos/"+repo+"/contents/"+path+"?ref="+encodeURIComponent(baseBranch));
     if(file.type!=="file"||typeof file.content!=="string") return NextResponse.json({error:"Dit bestand kan niet worden bewerkt."},{status:400});
