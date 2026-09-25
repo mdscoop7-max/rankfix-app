@@ -259,6 +259,25 @@ export async function POST(request: Request) {
     const hasBreadcrumb = schemaSet.has("breadcrumblist");
     const hasFaqSchema = schemaSet.has("faqpage");
     const hasProductSchema = schemaSet.has("product");
+    const productSchemaObjects = schemaObjects.filter((item) => {
+      const types = Array.isArray(item?.["@type"]) ? item["@type"] : [item?.["@type"]];
+      return types.some((type: unknown) => String(type || "").toLowerCase() === "product");
+    });
+    const productOfferEvidence = productSchemaObjects.map((product) => {
+      const offers = Array.isArray(product?.offers) ? product.offers : product?.offers ? [product.offers] : [];
+      return {
+        name: typeof product?.name === "string" ? product.name.trim() : "",
+        hasImage: Boolean(product?.image),
+        offers: offers.map((offer: any) => ({
+          price: offer?.price ?? offer?.lowPrice ?? null,
+          currency: typeof offer?.priceCurrency === "string" ? offer.priceCurrency.trim() : "",
+          availability: typeof offer?.availability === "string" ? offer.availability.trim() : "",
+        })),
+      };
+    });
+    const hasCompleteProductOffer = productOfferEvidence.some((product) =>
+      Boolean(product.name && product.hasImage && product.offers.some((offer) => offer.price !== null && offer.currency && offer.availability))
+    );
     const hasAuthorSignal = /\b(author|auteur|geschreven door|written by|byline)\b/i.test(text) || schemaSet.has("person");
 
     const hasFaqContent = /\b(faq|veelgestelde vragen|frequently asked questions|questions fréquentes|häufig gestellte fragen)\b/i.test(text) ||
@@ -579,14 +598,16 @@ export async function POST(request: Request) {
         ? check("pass","webshop_trust","seo","Webshop vertrouwen","Verzend-/retourinformatie en minimaal één duidelijk vertrouwenssignaal zijn zichtbaar.","Houd verzendkosten, retourvoorwaarden, betaalmethoden en reviews ook op checkout-niveau duidelijk.",7,7)
         : check("warning","webshop_trust","seo","Webshop vertrouwen","Niet alle belangrijke verzend-, retour- en vertrouwenssignalen zijn zichtbaar op deze pagina.","Maak verzendkosten, retourvoorwaarden, betaalmogelijkheden en review-/vertrouwenssignalen duidelijk voordat bezoekers afrekenen.",3,7)
       : check("not_applicable","webshop_trust","seo","Webshop vertrouwen","Geen duidelijke webshop-signalen gevonden; deze e-commercecontrole is niet van toepassing.","Gebruik deze controle op product- en categoriepagina's.",0,7));
-    seoChecks.push(ecommerceVariantUrlSignal
-      ? check("warning","variant_url","seo","Productvariant-URL","Deze product-URL bevat een variant-/SKU-parameter. Dat kan duplicate URL's en indexatieproblemen veroorzaken.","Gebruik bij varianten een duidelijke canonical, stabiele URL-strategie en indexeer alleen pagina's die zelfstandig waarde hebben.",2,5)
-      : check("pass","variant_url","seo","Productvariant-URL","Geen duidelijke variant-/SKU-parameter in de gescande URL gevonden.","Houd product- en variant-URL's stabiel en canoniek.",5,5));
-    seoChecks.push(hasWebshopClaims
-      ? hasShippingSignal && hasReturnsSignal
+    seoChecks.push(!hasProductSignal
+      ? check("not_applicable","variant_url","seo","Productvariant-URL","Geen duidelijke productpagina-signalen gevonden; variant-URL-controle is niet van toepassing.","Gebruik deze controle op echte productpagina's.",0,5)
+      : ecommerceVariantUrlSignal
+        ? check("warning","variant_url","seo","Productvariant-URL","Deze product-URL bevat een variant-/SKU-parameter. Dat kan duplicate URL's en indexatieproblemen veroorzaken.","Gebruik bij varianten een duidelijke canonical, stabiele URL-strategie en indexeer alleen pagina's die zelfstandig waarde hebben.",2,5)
+        : check("pass","variant_url","seo","Productvariant-URL","Geen duidelijke variant-/SKU-parameter in de gescande product-URL gevonden.","Houd product- en variant-URL's stabiel en canoniek.",5,5));
+    seoChecks.push(!hasProductSignal || !hasWebshopClaims
+      ? check("not_applicable","webshop_claims","seo","Webshop-beloftes",!hasProductSignal ? "Geen duidelijke webshop/product-signalen gevonden; claimcontrole is niet van toepassing." : "Geen specifieke verzend-/retourbelofte gevonden om te verifiëren.","Maak commerciële claims controleerbaar wanneer je ze gebruikt.",0,5)
+      : hasShippingSignal && hasReturnsSignal
         ? check("pass","webshop_claims","seo","Webshop-beloftes","Belangrijke webshopbeloftes worden ondersteund door zichtbare verzend- en retourinformatie.","Zorg dat beloofde levertijden, retourtermijnen en verzendvoorwaarden juridisch en praktisch kloppen.",5,5)
-        : check("warning","webshop_claims","seo","Webshop-beloftes",`De pagina bevat claims zoals ${webshopClaimMatches.slice(0,3).join(", ")}, maar de bijbehorende voorwaarden zijn niet duidelijk gevonden.`,"Maak claims controleerbaar via duidelijke verzend-, retour- en voorwaardenpagina's.",2,5)
-      : check("pass","webshop_claims","seo","Webshop-beloftes","Geen specifieke webshopclaims zoals levertijd/retour gevonden.","Maak commerciële claims altijd controleerbaar.",5,5));
+        : check("warning","webshop_claims","seo","Webshop-beloftes",`De pagina bevat claims zoals ${webshopClaimMatches.slice(0,3).join(", ")}, maar de bijbehorende voorwaarden zijn niet duidelijk gevonden.`,"Maak claims controleerbaar via duidelijke verzend-, retour- en voorwaardenpagina's.",2,5));
     seoChecks.push(hasProductSignal
       ? check(hasCheckoutTrustSignal?"pass":"warning","checkout_trust","seo","Checkout- en betaalvertrouwen",hasCheckoutTrustSignal?"Betaal-/checkoutsignalen zijn zichtbaar.":"Geen duidelijke betaal- of checkoutsignalen gevonden op deze pagina.","Toon betaalmogelijkheden en relevante veiligheids-/vertrouwensinformatie waar de bezoeker een aankoopbeslissing neemt.",hasCheckoutTrustSignal?5:2,5)
       : check("not_applicable","checkout_trust","seo","Checkout- en betaalvertrouwen","Geen webshop-signalen gevonden; checkoutcontrole is niet van toepassing.","Gebruik deze controle op echte webshopcontent.",0,5));
@@ -605,7 +626,9 @@ export async function POST(request: Request) {
 
     geoChecks.push(hasProductSignal
       ? productSchemaPresent
-        ? check("pass", "product_schema", "geo", "Product structured data", "Product JSON-LD is aanwezig op deze product-/e-commercepagina.", "Controleer prijs, valuta, beschikbaarheid, SKU en afbeelding tegen de zichtbare productinformatie.", 8, 8)
+        ? hasCompleteProductOffer
+          ? check("pass", "product_schema", "geo", "Product structured data", "Product JSON-LD bevat aantoonbaar productnaam, afbeelding en Offer-data met prijs, valuta en beschikbaarheid.", "Houd structured data gelijk aan de zichtbare productinformatie en controleer wijzigingen opnieuw.", 8, 8)
+          : check("warning", "product_schema", "geo", "Product structured data", "Product JSON-LD is aanwezig, maar RankFix vindt geen compleet Product/Offer-bewijs met productnaam, afbeelding, prijs, valuta en beschikbaarheid.", "Vul alleen aantoonbare Product/Offer-velden aan en laat structured data overeenkomen met de zichtbare productpagina.", 4, 8)
         : check("warning", "product_schema", "geo", "Product structured data", "De pagina lijkt product-/e-commercecontent te bevatten, maar Product JSON-LD ontbreekt.", "Voeg Product structured data toe met alleen gegevens die zichtbaar en aantoonbaar zijn.", 3, 8)
       : check("not_applicable", "product_schema", "geo", "Product structured data", "Geen duidelijke productpagina-signalen gevonden; Product schema is hier niet van toepassing.", "Gebruik Product schema op echte productpagina's.", 0, 8)
     );
