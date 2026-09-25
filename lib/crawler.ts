@@ -2,7 +2,7 @@ import { URL } from "node:url";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 
-export const CRAWLER_ENGINE_VERSION = "2.1.0";
+export const CRAWLER_ENGINE_VERSION = "2.2.0";
 
 export type CrawlMode = "QUICK" | "STANDARD" | "DEEP" | "ECOMMERCE" | "ENTERPRISE";
 export type PageType =
@@ -21,6 +21,9 @@ export type CrawlPage = {
   canonical: string | null;
   lang: string | null;
   noindex: boolean;
+  xRobotsTag: string | null;
+  jsonLdInvalid: number;
+  product?: { name: boolean; image: boolean; offers: boolean; price: boolean; priceCurrency: boolean; availability: boolean; brandOrSku: boolean };
   wordCount: number;
   internalLinks: string[];
   imageCount: number;
@@ -125,17 +128,19 @@ export async function crawlSite(startUrl:string,requestedMode:CrawlMode="STANDAR
       const canonical=first(html,/<link[^>]+rel\s*=\s*["']canonical["'][^>]+href\s*=\s*["']([^"']+)["']/i)||first(html,/<link[^>]+href\s*=\s*["']([^"']+)["'][^>]+rel\s*=\s*["']canonical["']/i)||null;
       const lang=first(html,/<html[^>]+lang\s*=\s*["']([^"']+)["']/i)||null;
       const robots=first(html,/<meta[^>]+name\s*=\s*["']robots["'][^>]+content\s*=\s*["']([^"']+)["']/i);
-      const noindex=/\bnoindex\b/i.test(robots);
+      const xRobotsTag=response.headers.get("x-robots-tag");
+      const noindex=/\bnoindex\b/i.test([robots,xRobotsTag||""].join(","));
       const imageMetrics=extractImageMetrics(html);
       const links=[...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi)].map(m=>normalize(m[1],resolved)).filter(Boolean) as string[];
       const uniqueLinks=[...new Set(links)];
       const blocks=[...html.matchAll(/<script[^>]+type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
-      const types:string[]=[];
+      const types:string[]=[]; let jsonLdInvalid=0;
+      const product={name:false,image:false,offers:false,price:false,priceCurrency:false,availability:false,brandOrSku:false};
       const localBusiness = {types:[] as string[],name:false,address:false,telephone:false,url:false,openingHours:false,imageOrLogo:false,sameAs:false};
       const localTypes = new Set(["localbusiness","restaurant","bakery","barorcafe","beautysalon","dayspa","dentist","electrician","generalcontractor","homeandconstructionbusiness","locksmith","medicalclinic","plumber","roofingcontractor","store","hairdresser","automotivebusiness","realestateagent","legalservice","accountingservice","travelagency","hotel"]);
-      for(const b of blocks){try{const parsed=JSON.parse(b[1]);const rawItems=Array.isArray(parsed)?parsed:(parsed?.["@graph"]||[parsed]);const items=Array.isArray(rawItems)?rawItems:[rawItems];for(const x of items){const t=x?.["@type"];const ts=(Array.isArray(t)?t:[t]).filter(Boolean).map(String);types.push(...ts);const isLocal=ts.some(v=>localTypes.has(v.toLowerCase()));if(isLocal){localBusiness.types.push(...ts.filter(v=>localTypes.has(v.toLowerCase())));localBusiness.name ||= Boolean(x?.name);localBusiness.address ||= Boolean(x?.address);localBusiness.telephone ||= Boolean(x?.telephone);localBusiness.url ||= Boolean(x?.url);localBusiness.openingHours ||= Boolean(x?.openingHours || x?.openingHoursSpecification);localBusiness.imageOrLogo ||= Boolean(x?.image || x?.logo);localBusiness.sameAs ||= Array.isArray(x?.sameAs) ? x.sameAs.length>0 : Boolean(x?.sameAs);}}}catch{}}
+      for(const b of blocks){try{const parsed=JSON.parse(b[1]);const rawItems=Array.isArray(parsed)?parsed:(parsed?.["@graph"]||[parsed]);const items=Array.isArray(rawItems)?rawItems:[rawItems];for(const x of items){const t=x?.["@type"];const ts=(Array.isArray(t)?t:[t]).filter(Boolean).map(String);types.push(...ts);const isProduct=ts.some(v=>v.toLowerCase()==="product");if(isProduct){product.name ||= Boolean(x?.name);product.image ||= Boolean(x?.image);product.offers ||= Boolean(x?.offers);const offers=Array.isArray(x?.offers)?x.offers:[x?.offers].filter(Boolean);for(const o of offers){product.price ||= Boolean(o?.price ?? o?.lowPrice);product.priceCurrency ||= Boolean(o?.priceCurrency);product.availability ||= Boolean(o?.availability);}product.brandOrSku ||= Boolean(x?.brand || x?.sku || x?.gtin || x?.gtin13 || x?.mpn);}const isLocal=ts.some(v=>localTypes.has(v.toLowerCase()));if(isLocal){localBusiness.types.push(...ts.filter(v=>localTypes.has(v.toLowerCase())));localBusiness.name ||= Boolean(x?.name);localBusiness.address ||= Boolean(x?.address);localBusiness.telephone ||= Boolean(x?.telephone);localBusiness.url ||= Boolean(x?.url);localBusiness.openingHours ||= Boolean(x?.openingHours || x?.openingHoursSpecification);localBusiness.imageOrLogo ||= Boolean(x?.image || x?.logo);localBusiness.sameAs ||= Array.isArray(x?.sameAs) ? x.sameAs.length>0 : Boolean(x?.sameAs);}}}catch{jsonLdInvalid++}}
       const text=stripHtml(html);
-      pages.push({url:resolved.toString(),status:response.status,contentType,responseTimeMs:Date.now()-started,title,description,h1,canonical:canonical?new URL(canonical,resolved).toString():null,lang,noindex,wordCount:text.split(/\s+/).filter(Boolean).length,internalLinks:uniqueLinks,imageCount:imageMetrics.uniqueImageReferences,imagesMissingAlt:imageMetrics.missingAlt,jsonLdTypes:[...new Set(types)],localBusiness:localBusiness.types.length ? {...localBusiness,types:[...new Set(localBusiness.types)]} : undefined,pageType:classify(resolved.toString(),html,types),depth:item.depth,discoveredFrom:item.from});
+      pages.push({url:resolved.toString(),status:response.status,contentType,responseTimeMs:Date.now()-started,title,description,h1,canonical:canonical?new URL(canonical,resolved).toString():null,lang,noindex,xRobotsTag,jsonLdInvalid,product:types.some(t=>t.toLowerCase()==="product")?product:undefined,wordCount:text.split(/\s+/).filter(Boolean).length,internalLinks:uniqueLinks,imageCount:imageMetrics.uniqueImageReferences,imagesMissingAlt:imageMetrics.missingAlt,jsonLdTypes:[...new Set(types)],localBusiness:localBusiness.types.length ? {...localBusiness,types:[...new Set(localBusiness.types)]} : undefined,pageType:classify(resolved.toString(),html,types),depth:item.depth,discoveredFrom:item.from});
       for(const next of uniqueLinks){if(!queued.has(next)&&queue.length+pages.length<limit){queued.add(next);queue.push({url:next,depth:item.depth+1,from:item.url});}}
     }catch(e){errors.push({url:item.url,code:e instanceof Error&&e.message==="URL_BLOCKED"?"URL_BLOCKED":"FETCH_FAILED",message:e instanceof Error?e.message:"Unknown crawl error"});}
   }
