@@ -11,6 +11,15 @@ type User = { id: string; email: string; name: string; credits: number };
 type Scan = { id: string; scanned_url: string; overall_score: number; seo_score: number; geo_score: number; created_at: string; open_issues: number; critical_issues: number };
 type Check = { title: string; status: string; message: string; severity?: string; fix_status?: string };
 type ScanResult = { overallScore: number; seo?: { score: number; checks?: Check[] }; geo?: { score: number; checks?: Check[] } };
+const dashboardExtras: Record<Locale, {latest:string;scanned:string;newScan:string;seoAudit:string;geoAudit:string;openIssues:string;confirmedSolved:string;scoreChange:string;previousScan:string;nextTitle:string;nextIntro:string;recent:string;recentIntro:string;history:string;firstIssue:string;firstIssueHint:string;newControl:string;newControlHint:string;codeProposals:string;askAi:string;askAiHint:string}> = {
+ nl:{latest:"{x.latest}",scanned:"Gescand",newScan:"Nieuwe scan starten",seoAudit:"Bekijk SEO-audit",geoAudit:"Bekijk GEO-audit",openIssues:"{x.openIssues}",confirmedSolved:"{x.confirmedSolved}",scoreChange:"{x.scoreChange}",previousScan:"{x.previousScan}",nextTitle:"{x.nextTitle}",nextIntro:"{x.nextIntro}",recent:"{x.recent}",recentIntro:"{x.recentIntro}",history:"Bekijk historie",firstIssue:"Bekijk de nieuwste verbeterpunten",firstIssueHint:"punten vragen aandacht",newControl:"Start een nieuwe controle",newControlHint:"Controleer of je website nog steeds goed staat",codeProposals:"Controleer je codevoorstellen",askAi:"Vraag RankFix AI",askAiHint:"Laat je score of een probleem in gewone taal uitleggen"},
+ en:{latest:"Latest check",scanned:"Scanned",newScan:"Start new scan",seoAudit:"View SEO audit",geoAudit:"View GEO audit",openIssues:"Open improvements",confirmedSolved:"confirmed solved",scoreChange:"Score change",previousScan:"vs previous scan",nextTitle:"What should I do now?",nextIntro:"Your most important next actions.",recent:"Recent scans",recentIntro:"Your last 5 checks.",history:"View history",firstIssue:"Review the latest improvements",firstIssueHint:"items need attention",newControl:"Start a new check",newControlHint:"Check whether your website is still in good shape",codeProposals:"Review your code proposals",askAi:"Ask RankFix AI",askAiHint:"Have your score or an issue explained in plain language"},
+ fr:{latest:"Dernier contrôle",scanned:"Analysé",newScan:"Lancer une nouvelle analyse",seoAudit:"Voir l’audit SEO",geoAudit:"Voir l’audit GEO",openIssues:"Améliorations ouvertes",confirmedSolved:"confirmées résolues",scoreChange:"Évolution du score",previousScan:"par rapport à l’analyse précédente",nextTitle:"Que dois-je faire maintenant ?",nextIntro:"Les prochaines actions les plus importantes.",recent:"Analyses récentes",recentIntro:"Vos 5 derniers contrôles.",history:"Voir l’historique",firstIssue:"Voir les dernières améliorations",firstIssueHint:"points nécessitent votre attention",newControl:"Lancer un nouveau contrôle",newControlHint:"Vérifiez si votre site est toujours en ordre",codeProposals:"Vérifiez vos propositions de code",askAi:"Demander à RankFix AI",askAiHint:"Faites expliquer votre score ou un problème simplement"},
+ de:{latest:"Letzte Kontrolle",scanned:"Gescannt",newScan:"Neuen Scan starten",seoAudit:"SEO-Audit ansehen",geoAudit:"GEO-Audit ansehen",openIssues:"Offene Verbesserungen",confirmedSolved:"bestätigt gelöst",scoreChange:"Score-Veränderung",previousScan:"gegenüber dem vorherigen Scan",nextTitle:"Was soll ich jetzt tun?",nextIntro:"Die wichtigsten nächsten Schritte.",recent:"Letzte Scans",recentIntro:"Deine letzten 5 Kontrollen.",history:"Verlauf ansehen",firstIssue:"Neueste Verbesserungen ansehen",firstIssueHint:"Punkte benötigen Aufmerksamkeit",newControl:"Neue Kontrolle starten",newControlHint:"Prüfe, ob deine Website weiterhin gut aufgestellt ist",codeProposals:"Codevorschläge prüfen",askAi:"RankFix AI fragen",askAiHint:"Lass dir deinen Score oder ein Problem einfach erklären"},
+ it:{latest:"Ultimo controllo",scanned:"Analizzato",newScan:"Avvia nuova scansione",seoAudit:"Apri audit SEO",geoAudit:"Apri audit GEO",openIssues:"Migliorie aperte",confirmedSolved:"confermate risolte",scoreChange:"Variazione punteggio",previousScan:"rispetto alla scansione precedente",nextTitle:"Cosa devo fare ora?",nextIntro:"Le prossime azioni più importanti.",recent:"Scansioni recenti",recentIntro:"Gli ultimi 5 controlli.",history:"Vedi cronologia",firstIssue:"Controlla le ultime migliorie",firstIssueHint:"punti richiedono attenzione",newControl:"Avvia un nuovo controllo",newControlHint:"Controlla se il sito è ancora in ordine",codeProposals:"Controlla le proposte di codice",askAi:"Chiedi a RankFix AI",askAiHint:"Fatti spiegare il punteggio o un problema in modo semplice"},
+ es:{latest:"Último control",scanned:"Analizado",newScan:"Iniciar nuevo análisis",seoAudit:"Ver auditoría SEO",geoAudit:"Ver auditoría GEO",openIssues:"Mejoras abiertas",confirmedSolved:"confirmadas como resueltas",scoreChange:"Cambio de puntuación",previousScan:"frente al análisis anterior",nextTitle:"¿Qué debo hacer ahora?",nextIntro:"Las próximas acciones más importantes.",recent:"Análisis recientes",recentIntro:"Tus últimos 5 controles.",history:"Ver historial",firstIssue:"Revisa las últimas mejoras",firstIssueHint:"puntos requieren atención",newControl:"Inicia un nuevo control",newControlHint:"Comprueba si tu web sigue en buen estado",codeProposals:"Revisa tus propuestas de código",askAi:"Pregunta a RankFix AI",askAiHint:"Haz que te explique tu puntuación o un problema de forma sencilla"}
+};
+
 
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
@@ -23,6 +32,7 @@ export default function Dashboard() {
   const [message, setMessage] = useState("");
   const [language, setLanguage] = useState<Locale>("nl");
   const t = dashboardCopy[language];
+  const x = dashboardExtras[language];
 
   async function loadHistory() {
     const response = await fetch("/api/history", { cache: "no-store" });
@@ -85,12 +95,12 @@ export default function Dashboard() {
         {message && <p className="rf-notice" role="status">{message}</p>}
         <section className="rf-dashboard-status">
           <div className="rf-dashboard-hero">
-            <div><span className="rf-eyebrow">Laatste controle</span><h2>{latestHost || "Voeg je eerste website toe"}</h2><p>{latest ? `Gescand ${new Date(latest.created_at).toLocaleString(language)}` : "Start een SEO + GEO-audit om je dashboard te vullen."}</p></div>
-            <a className="rf-primary-link rf-scan-cta" href={`/${language}/scan`}>＋ Nieuwe scan starten</a>
+            <div><span className="rf-eyebrow">Laatste controle</span><h2>{latestHost || "Voeg je eerste website toe"}</h2><p>{latest ? `${x.scanned} ${new Date(latest.created_at).toLocaleString(language)}` : "Start een SEO + GEO-audit om je dashboard te vullen."}</p></div>
+            <a className="rf-primary-link rf-scan-cta" href={`/${language}/scan`}>＋ {x.newScan}</a>
           </div>
           <div className="rf-status-grid">
-            <a className="rf-card rf-score-card" href={latest ? `/dashboard/audit/${latest.id}` : `/${language}/scan`}><span>SEO-score</span><strong>{latest?.seo_score ?? "—"}<small>/100</small></strong><small>Bekijk SEO-audit →</small></a>
-            <a className="rf-card rf-score-card" href={latest ? `/dashboard/audit/${latest.id}` : `/${language}/scan`}><span>GEO-score</span><strong>{latest?.geo_score ?? "—"}<small>/100</small></strong><small>Bekijk GEO-audit →</small></a>
+            <a className="rf-card rf-score-card" href={latest ? `/dashboard/audit/${latest.id}` : `/${language}/scan`}><span>SEO-score</span><strong>{latest?.seo_score ?? "—"}<small>/100</small></strong><small>{x.seoAudit} →</small></a>
+            <a className="rf-card rf-score-card" href={latest ? `/dashboard/audit/${latest.id}` : `/${language}/scan`}><span>GEO-score</span><strong>{latest?.geo_score ?? "—"}<small>/100</small></strong><small>{x.geoAudit} →</small></a>
             <div className="rf-card"><span>Open verbeterpunten</span><strong>{latest?.open_issues ?? 0}</strong><small>{fixes.DONE || 0} bevestigd opgelost</small></div>
             <div className="rf-card"><span>Scoreverandering</span><strong className={scoreChange !== null && scoreChange < 0 ? "rf-danger" : ""}>{scoreChange === null ? "—" : `${scoreChange > 0 ? "+" : ""}${scoreChange}`}</strong><small>tegenover vorige scan</small></div>
           </div>
@@ -98,13 +108,13 @@ export default function Dashboard() {
         <section className="rf-section">
           <div className="rf-section-head"><div><h2>Wat moet ik nu doen?</h2><p>De belangrijkste volgende acties.</p></div></div>
           <div className="rf-next-actions">
-            {latest?.open_issues ? <a href={`/dashboard/audit/${latest.id}`}><b>1. Bekijk de nieuwste verbeterpunten</b><span>{latest.open_issues} punten vragen aandacht →</span></a> : <a href={`/${language}/scan`}><b>1. Start een nieuwe controle</b><span>Controleer of je website nog steeds goed staat →</span></a>}
-            {(fixes.PREPARED || 0) > 0 && <a href="/dashboard/github"><b>2. Controleer je codevoorstellen</b><span>{fixes.PREPARED} wachten op publicatie of controle →</span></a>}
-            <a href="/dashboard/help"><b>{(fixes.PREPARED || 0) > 0 ? "3" : "2"}. Vraag RankFix AI</b><span>Laat je score of een probleem in gewone taal uitleggen →</span></a>
+            {latest?.open_issues ? <a href={`/dashboard/audit/${latest.id}`}><b>1. {x.firstIssue}</b><span>{latest.open_issues} {x.firstIssueHint} →</span></a> : <a href={`/${language}/scan`}><b>1. {x.newControl}</b><span>{x.newControlHint} →</span></a>}
+            {(fixes.PREPARED || 0) > 0 && <a href="/dashboard/github"><b>2. {x.codeProposals}</b><span>{fixes.PREPARED} wachten op publicatie of controle →</span></a>}
+            <a href="/dashboard/help"><b>{(fixes.PREPARED || 0) > 0 ? "3" : "2"}}. {x.askAi}</b><span>{x.askAiHint} →</span></a>
           </div>
         </section>
         <section className="rf-section">
-          <div className="rf-section-head"><div><h2>Recente scans</h2><p>Je laatste 5 controles.</p></div><a href="/dashboard/history">Bekijk historie →</a></div>
+          <div className="rf-section-head"><div><h2>Recente scans</h2><p>Je laatste 5 controles.</p></div><a href="/dashboard/history">{x.history} →</a></div>
           <div className="rf-history-list">{recentHistory.map((scan,index)=><a key={scan.id} href={`/dashboard/audit/${scan.id}`}><div><b>{(()=>{try{return new URL(scan.scanned_url).hostname}catch{return scan.scanned_url}})()}</b><span>{new Date(scan.created_at).toLocaleString(language)} · SEO {scan.seo_score} · GEO {scan.geo_score} · {scan.open_issues} verbeterpunten</span></div><strong>{scan.overall_score}</strong>{index===0&&<em>Nieuwste</em>}</a>)}</div>
         </section>
         <section id="websites" className="rf-section">
