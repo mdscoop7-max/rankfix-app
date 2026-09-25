@@ -108,8 +108,8 @@ export default function AiAssistant({ dashboard = false, scanId = null }: Props)
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[120] flex items-end justify-end bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4">
-          <div className="flex h-[min(680px,100dvh)] w-full max-w-md flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#101B2D] shadow-2xl sm:h-[min(680px,90vh)] sm:rounded-3xl">
+        <div className={dashboard ? "fixed inset-0 z-[120] flex items-end justify-end bg-black/50 p-0 backdrop-blur-sm sm:pointer-events-none sm:bg-transparent sm:p-5 sm:backdrop-blur-none" : "fixed inset-0 z-[120] flex items-end justify-end bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4"}>
+          <div className={`flex h-[min(680px,100dvh)] w-full max-w-md flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#101B2D] shadow-2xl sm:h-[min(680px,90vh)] sm:rounded-3xl ${dashboard ? "sm:pointer-events-auto" : ""}`}>
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
               <div>
                 <div className="font-bold">RankFix AI</div>
