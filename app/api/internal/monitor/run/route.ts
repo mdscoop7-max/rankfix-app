@@ -13,7 +13,7 @@ function authorized(request:Request){
   return auth===`Bearer ${secret}`;
 }
 
-export async function POST(request:Request){
+async function run(request:Request){
   if(!authorized(request)) return NextResponse.json({error:"Niet toegestaan."},{status:401});
   await ensureDatabase();
   const due=await getDb().query(
@@ -44,3 +44,6 @@ export async function POST(request:Request){
   }
   return NextResponse.json({checked:results.length,results});
 }
+
+export async function GET(request:Request){ return run(request); }
+export async function POST(request:Request){ return run(request); }
