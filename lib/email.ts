@@ -1,7 +1,7 @@
 type ScanCheck = {
   category: "seo" | "geo";
   title: string;
-  status: "pass" | "warning" | "fail";
+  status: "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
   message: string;
   fix: string;
   points: number;
