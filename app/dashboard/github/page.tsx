@@ -79,13 +79,11 @@ export default function GithubPage(){
     }
   }
 
-  return <main className="min-h-screen bg-[#0B1220] pb-24 text-white sm:pb-0">
-    <nav className="mx-auto flex max-w-6xl items-center justify-between gap-3 border-b border-white/10 px-4 py-4 sm:px-5 sm:py-5">
-      <a href="/" className="font-bold">RankFix <span className="text-emerald-300">AI</span></a>
-      <a href="/dashboard" className="text-right text-xs text-slate-300 hover:text-white sm:text-sm">← Dashboard</a>
-    </nav>
+  return <main className="rf-page">
+    <div className="rf-shell">
+    <header className="rf-header"><a href="/dashboard" className="rf-brand">RankFix <span>AI</span></a><a href="/dashboard" className="rf-back">← Dashboard</a></header>
     <DashboardNav current={3} />
-    <section className="mx-auto max-w-4xl px-4 py-8 sm:px-5 sm:py-12">
+    <section className="rf-body rf-fix-engine">
       <div className="text-xs uppercase tracking-widest text-emerald-300">GitHub Fix Engine</div>
       <h1 className="mt-2 text-3xl font-black leading-tight sm:text-4xl">Een codevoorstel voor je website.</h1>
       <p className="mt-3 max-w-2xl text-slate-400">RankFix leest alleen het gekozen bestand, maakt de kleinste noodzakelijke wijziging en opent een aparte Pull Request. Er wordt niets automatisch naar productie gemerged.</p>
@@ -112,5 +110,6 @@ export default function GithubPage(){
         <button type="submit" disabled={busy} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 font-bold text-[#04342C] disabled:opacity-50">{busy?"AI + GitHub zijn bezig…":"Maak GitHub Pull Request — 5 credits"}</button>
       </form>}
     </section>
+    </div>
   </main>
 }
