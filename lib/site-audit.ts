@@ -1,6 +1,6 @@
 import { CrawlPage, CrawlResult, CrawlMode, crawlSite } from "@/lib/crawler";
 
-export const SITE_AUDIT_ENGINE_VERSION = "1.2.0";
+export const SITE_AUDIT_ENGINE_VERSION = "1.3.0";
 
 export type SiteRuleStatus = "PASS" | "FAIL" | "WARNING" | "NOT_APPLICABLE" | "UNABLE_TO_CONFIRM";
 
@@ -172,14 +172,16 @@ const rules: RuleDef[] = [
   },
 ];
 
-function buildIssue(rule: RuleDef, affected: Array<{ p: CrawlPage; r: RuleEvaluation }>, total: number): SiteIssue {
+function buildIssue(rule: RuleDef, affected: Array<{ p: CrawlPage; r: RuleEvaluation }>, total: number, crawlComplete: boolean): SiteIssue {
   const fail = affected.filter(x => x.r.status === "FAIL");
   const warn = affected.filter(x => x.r.status === "WARNING");
-  const status: SiteRuleStatus = fail.length ? "FAIL" : warn.length ? "WARNING" : "PASS";
+  const unable = affected.filter(x => x.r.status === "UNABLE_TO_CONFIRM");
+  const status: SiteRuleStatus = fail.length ? "FAIL" : warn.length ? "WARNING" : unable.length ? "UNABLE_TO_CONFIRM" : "PASS";
+  const confidence: SiteIssue["confidence"] = crawlComplete ? "high" : affected.length >= 3 ? "medium" : "low";
   return {
     issue_id: rule.id, rule_id: rule.id, category: rule.category, title: rule.title,
     description: rule.description, recommendation: rule.recommendation, severity: rule.severity,
-    confidence: "high", status, affected_urls: affected.filter(x => x.r.status !== "PASS").map(x => x.p.url),
+    confidence, status, affected_urls: affected.filter(x => x.r.status === "FAIL" || x.r.status === "WARNING").map(x => x.p.url),
     evidence: {total_pages: total, affected_pages: fail.length + warn.length, examples: affected.filter(x => x.r.status !== "PASS").slice(0,5).map(x => example(x.p,x.r))},
   };
 }
@@ -201,10 +203,11 @@ function grade(score: number) { return score >= 90 ? "A" : score >= 75 ? "B" : s
 export async function auditSite(url: string, mode: CrawlMode = "STANDARD"): Promise<SiteAudit> {
   const crawl = await crawlSite(url, mode);
   const pages = crawl.pages;
+  const crawlComplete = crawl.errors.length === 0 && crawl.discovered <= pages.length;
   const evaluated = rules.map(rule => {
     const applicable = pages.filter(p => rule.applicable(p, pages));
     if (!applicable.length) return {rule, issue: {issue_id:rule.id,rule_id:rule.id,category:rule.category,title:rule.title,description:rule.description,recommendation:rule.recommendation,severity:rule.severity,confidence:"high" as const,status:"NOT_APPLICABLE" as const,affected_urls:[],evidence:{total_pages:pages.length,affected_pages:0,examples:[]}}};
-    return {rule, issue:buildIssue(rule, applicable.map(p => ({p,r:rule.evaluate(p,pages)})), pages.length)};
+    return {rule, issue:buildIssue(rule, applicable.map(p => ({p,r:rule.evaluate(p,pages)})), pages.length, crawlComplete)};
   });
   const issues = evaluated.map(x=>x.issue);
   const technical = scoreFor(issues,["technical","indexability"]);
@@ -219,7 +222,7 @@ export async function auditSite(url: string, mode: CrawlMode = "STANDARD"): Prom
     startUrl:crawl.startUrl, finalUrl:crawl.finalUrl, mode,
     crawler_version:crawl.engineVersion, audit_version:SITE_AUDIT_ENGINE_VERSION,
     startedAt:crawl.startedAt, finishedAt:crawl.finishedAt,
-    crawl:{pages:pages.length,discovered:crawl.discovered,errors:crawl.errors.length,blocked:crawl.blocked,complete:crawl.errors.length===0},
+    crawl:{pages:pages.length,discovered:crawl.discovered,errors:crawl.errors.length,blocked:crawl.blocked,complete:crawlComplete},
     scores:{technical,onPage,content,structuredData,internalLinks,overall,grade:grade(overall)},
     page_types, issues,
   };
