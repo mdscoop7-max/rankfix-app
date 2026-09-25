@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import AiAssistant from "@/components/ai-assistant";
+import RootMobileNav from "./root-mobile-nav";
+import "./root-mobile-nav.css";
 
 type Check = {
   key: string;
@@ -489,7 +491,7 @@ export default function Home() {
             ))}
           </div>
           <button type="button" aria-label={mobileMenuOpen ? "Menu sluiten" : "Menu openen"} aria-controls="rankfix-mobile-menu" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen((open) => !open)} className="grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-200 lg:hidden">
-            {mobileMenuOpen ? "×" : "☰"}
+            {mobileMenuOpen ? <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 5l14 14 M19 5L5 19" /></svg> : <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16 M4 12h16 M4 18h16" /></svg>}
           </button>
         </div>
         {mobileMenuOpen && (
@@ -1053,6 +1055,7 @@ export default function Home() {
         </div>
       </footer>
       <AiAssistant />
+      <RootMobileNav />
     </main>
   );
 }

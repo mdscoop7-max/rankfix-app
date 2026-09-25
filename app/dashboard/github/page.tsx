@@ -111,6 +111,6 @@ export default function GithubPage(){
         <button type="submit" disabled={busy} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 font-bold text-[#04342C] disabled:opacity-50">{busy?"AI + GitHub zijn bezig…":"Maak GitHub Pull Request — 5 credits"}</button>
       </form>}
     </section>
-    <DashboardNav current={2} />
+    <DashboardNav current={3} />
   </main>
 }
