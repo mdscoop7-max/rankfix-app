@@ -19,6 +19,12 @@ export default function AiAssistant({ dashboard = false, scanId = null }: Props)
   const [scanIssue, setScanIssue] = useState<any>(null);
   const [fixBusy, setFixBusy] = useState(false);
   const [fixResult, setFixResult] = useState("");
+  const [language, setLanguage] = useState("nl");
+
+  useEffect(() => {
+    if (!dashboard) return;
+    fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language)setLanguage(d.language)}).catch(()=>{});
+  }, [dashboard]);
 
   useEffect(() => {
     if (!dashboard || !scanId) return;
@@ -70,7 +76,7 @@ export default function AiAssistant({ dashboard = false, scanId = null }: Props)
       const response = await fetch("/api/assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: question, dashboard, scanId }),
+        body: JSON.stringify({ message: question, dashboard, scanId, language }),
       });
       const data = await response.json();
       setMessages((m) => [...m, { role: "assistant", content: data.answer || data.error || "Er ging iets mis." }]);
@@ -81,6 +87,15 @@ export default function AiAssistant({ dashboard = false, scanId = null }: Props)
     }
   }
 
+  const ui:Record<string,{button:string,subtitle:string,close:string,thinking:string,placeholder:string,send:string}> = {
+    nl:{button:"AI Assistent",subtitle:"Hulp voor je dashboard",close:"Assistent sluiten",thinking:"RankFix AI denkt na…",placeholder:"Bijv. waarom is mijn GEO-score laag?",send:"Stuur"},
+    en:{button:"AI Assistant",subtitle:"Help for your dashboard",close:"Close assistant",thinking:"RankFix AI is thinking…",placeholder:"E.g. why is my GEO score low?",send:"Send"},
+    fr:{button:"Assistant IA",subtitle:"Aide pour votre tableau de bord",close:"Fermer l’assistant",thinking:"RankFix AI réfléchit…",placeholder:"Ex. pourquoi mon score GEO est-il bas ?",send:"Envoyer"},
+    de:{button:"KI-Assistent",subtitle:"Hilfe für dein Dashboard",close:"Assistent schließen",thinking:"RankFix AI denkt nach…",placeholder:"Z. B. warum ist mein GEO-Score niedrig?",send:"Senden"},
+    it:{button:"Assistente AI",subtitle:"Aiuto per la dashboard",close:"Chiudi assistente",thinking:"RankFix AI sta pensando…",placeholder:"Es. perché il mio punteggio GEO è basso?",send:"Invia"},
+    es:{button:"Asistente IA",subtitle:"Ayuda para tu panel",close:"Cerrar asistente",thinking:"RankFix AI está pensando…",placeholder:"Ej. ¿por qué mi puntuación GEO es baja?",send:"Enviar"}
+  };
+  const tx=ui[language]||ui.nl;
   return (
     <>
       <button
@@ -88,7 +103,7 @@ export default function AiAssistant({ dashboard = false, scanId = null }: Props)
         onClick={() => setOpen(true)}
         className={`fixed right-4 z-[110] rounded-full border border-emerald-300/30 bg-[#0F3B30] px-4 py-3 text-sm font-bold text-emerald-100 shadow-2xl shadow-emerald-950/30 sm:right-5 ${dashboard ? "bottom-[calc(82px+env(safe-area-inset-bottom))] sm:bottom-5" : "bottom-5"}`}
       >
-        ✦ {dashboard ? "AI Assistent" : "Vraag RankFix AI"}
+        ✦ {dashboard ? tx.button : "Vraag RankFix AI"}
       </button>
 
       {open && (
@@ -97,9 +112,9 @@ export default function AiAssistant({ dashboard = false, scanId = null }: Props)
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
               <div>
                 <div className="font-bold">RankFix AI</div>
-                <div className="text-xs text-slate-500">{dashboard ? "Technische hulp voor je Dashboard" : "Info over RankFix en SEO/GEO"}</div>
+                <div className="text-xs text-slate-500">{dashboard ? tx.subtitle : "Info over RankFix en SEO/GEO"}</div>
               </div>
-              <button type="button" onClick={() => setOpen(false)} aria-label="Assistent sluiten" className="rounded-full px-3 py-1 text-xl text-slate-300 hover:text-white">×</button>
+              <button type="button" onClick={() => setOpen(false)} aria-label={tx.close} className="rounded-full px-3 py-1 text-xl text-slate-300 hover:text-white">×</button>
             </div>
 
             <div className="flex-1 space-y-4 overflow-y-auto p-5">
@@ -108,7 +123,7 @@ export default function AiAssistant({ dashboard = false, scanId = null }: Props)
                   {message.content}
                 </div>
               ))}
-              {busy && <div className="mr-8 rounded-2xl bg-white/5 p-3 text-sm text-slate-500">RankFix AI denkt na…</div>}
+              {busy && <div className="mr-8 rounded-2xl bg-white/5 p-3 text-sm text-slate-500">{tx.thinking}</div>}
             </div>
 
             {dashboard && scanId && (
@@ -130,11 +145,11 @@ export default function AiAssistant({ dashboard = false, scanId = null }: Props)
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") send(); }}
-                  placeholder={dashboard ? "Bijv. waarom is mijn GEO-score laag?" : "Bijv. hoe werkt een GEO-audit?"}
+                  placeholder={dashboard ? tx.placeholder : "Bijv. hoe werkt een GEO-audit?"}
                   className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm outline-none placeholder:text-slate-600"
                 />
                 <button type="button" onClick={send} disabled={busy || !input.trim()} className="rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-950 disabled:opacity-40">
-                  Stuur
+                  {dashboard ? tx.send : "Stuur"}
                 </button>
               </div>
             </div>
