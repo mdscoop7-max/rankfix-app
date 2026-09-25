@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { ensureDatabase } from "@/lib/db-init";
+import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
+    await ensureDatabase();
+    if(!await consumeRateLimit("assistant",requestIp(request),30,3600)) return NextResponse.json({error:"Te veel AI-verzoeken. Probeer later opnieuw."},{status:429});
     const body = await request.json();
     const message = typeof body?.message === "string" ? body.message.trim() : "";
     const dashboard = body?.dashboard === true;
