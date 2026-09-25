@@ -102,7 +102,7 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`fixed right-4 z-[110] rounded-full border border-emerald-300/30 bg-[#0F3B30] px-4 py-3 text-sm font-bold text-emerald-100 shadow-2xl shadow-emerald-950/30 sm:right-5 ${dashboard ? "bottom-[calc(82px+env(safe-area-inset-bottom))] sm:bottom-5" : "bottom-[calc(82px+env(safe-area-inset-bottom))] sm:bottom-5"}`}
+        className={`fixed right-4 z-[110] rounded-full border border-emerald-300/30 bg-[#0F3B30] px-4 py-3 text-sm font-bold text-emerald-100 shadow-2xl shadow-emerald-950/30 sm:right-5 ${dashboard ? "bottom-[calc(104px+env(safe-area-inset-bottom))] sm:bottom-5" : "bottom-[calc(104px+env(safe-area-inset-bottom))] sm:bottom-5"}`}
       >
         ✦ {tx.button}
       </button>
