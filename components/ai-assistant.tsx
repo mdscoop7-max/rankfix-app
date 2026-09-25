@@ -87,15 +87,16 @@ export default function AiAssistant({ dashboard = false, scanId = null }: Props)
     }
   }
 
-  const ui:Record<string,{button:string,subtitle:string,close:string,thinking:string,placeholder:string,send:string}> = {
-    nl:{button:"AI Assistent",subtitle:"Hulp voor je dashboard",close:"Assistent sluiten",thinking:"RankFix AI denkt na…",placeholder:"Bijv. waarom is mijn GEO-score laag?",send:"Stuur"},
-    en:{button:"AI Assistant",subtitle:"Help for your dashboard",close:"Close assistant",thinking:"RankFix AI is thinking…",placeholder:"E.g. why is my GEO score low?",send:"Send"},
-    fr:{button:"Assistant IA",subtitle:"Aide pour votre tableau de bord",close:"Fermer l’assistant",thinking:"RankFix AI réfléchit…",placeholder:"Ex. pourquoi mon score GEO est-il bas ?",send:"Envoyer"},
-    de:{button:"KI-Assistent",subtitle:"Hilfe für dein Dashboard",close:"Assistent schließen",thinking:"RankFix AI denkt nach…",placeholder:"Z. B. warum ist mein GEO-Score niedrig?",send:"Senden"},
-    it:{button:"Assistente AI",subtitle:"Aiuto per la dashboard",close:"Chiudi assistente",thinking:"RankFix AI sta pensando…",placeholder:"Es. perché il mio punteggio GEO è basso?",send:"Invia"},
-    es:{button:"Asistente IA",subtitle:"Ayuda para tu panel",close:"Cerrar asistente",thinking:"RankFix AI está pensando…",placeholder:"Ej. ¿por qué mi puntuación GEO es baja?",send:"Enviar"}
+  const ui: Record<string, { button: string; subtitle: string; close: string; thinking: string; placeholder: string; send: string }> = {
+    nl: { button: "AI Assistent", subtitle: "Hulp voor je dashboard", close: "Assistent sluiten", thinking: "RankFix AI denkt na...", placeholder: "Bijv. waarom is mijn GEO-score laag?", send: "Stuur" },
+    en: { button: "AI Assistant", subtitle: "Help for your dashboard", close: "Close assistant", thinking: "RankFix AI is thinking...", placeholder: "E.g. why is my GEO score low?", send: "Send" },
+    fr: { button: "Assistant IA", subtitle: "Aide pour votre tableau de bord", close: "Fermer assistant", thinking: "RankFix AI reflechit...", placeholder: "Ex. pourquoi mon score GEO est-il bas ?", send: "Envoyer" },
+    de: { button: "KI-Assistent", subtitle: "Hilfe fuer dein Dashboard", close: "Assistent schliessen", thinking: "RankFix AI denkt nach...", placeholder: "Z. B. warum ist mein GEO-Score niedrig?", send: "Senden" },
+    it: { button: "Assistente AI", subtitle: "Aiuto per la dashboard", close: "Chiudi assistente", thinking: "RankFix AI sta pensando...", placeholder: "Es. perche il mio punteggio GEO e basso?", send: "Invia" },
+    es: { button: "Asistente IA", subtitle: "Ayuda para tu panel", close: "Cerrar asistente", thinking: "RankFix AI esta pensando...", placeholder: "Ej. por que mi puntuacion GEO es baja?", send: "Enviar" }
   };
-  const tx=ui[language]||ui.nl;
+  const tx = ui[language] || ui.nl;
+
   return (
     <>
       <button
