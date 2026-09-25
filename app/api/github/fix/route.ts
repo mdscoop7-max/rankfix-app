@@ -214,10 +214,24 @@ export async function POST(request:Request){
       return NextResponse.json({error:"Deze bevinding is niet toegestaan voor een automatische GitHub-codefix. RankFix vereist hier handmatige controle.",issue_id:issueId,fix_category:fixPolicy.category},{status:422});
     }
     await ensureDatabase();
+    const trustedScan=await getDb().query("SELECT final_url,result FROM scans WHERE id=$1 AND user_id=$2 LIMIT 1",[scanId,user.id]);
+    if(!trustedScan.rowCount) return NextResponse.json({error:"Deze scan bestaat niet of hoort niet bij dit account."},{status:404});
+    const scanRow=trustedScan.rows[0];
+    const scanResult=scanRow.result||{};
+    const trustedChecks=[
+      ...(Array.isArray(scanResult?.seo?.checks)?scanResult.seo.checks:[]),
+      ...(Array.isArray(scanResult?.geo?.checks)?scanResult.geo.checks:[])
+    ];
+    const trustedCheck=trustedChecks.find((check:any)=>String(check?.issue_id||check?.rule_id||"")===issueId);
+    if(!trustedCheck) return NextResponse.json({error:"Deze bevinding kon niet in de opgeslagen scan worden bevestigd."},{status:404});
+    issue=String(trustedCheck.title||issueId)+": "+String(trustedCheck.fix||trustedCheck.message||"");
+    context=[trustedCheck.message,trustedCheck.fix,trustedCheck?.evidence?.details].filter(Boolean).map(String).join("\n").slice(0,6000);
+    const trustedUrl=String(scanRow.final_url||"");
+
     const connection=await getDb().query("SELECT access_token_encrypted FROM github_connections WHERE user_id=$1",[user.id]);
     if(!connection.rowCount) return NextResponse.json({error:"Verbind eerst GitHub via je dashboard."},{status:409});
     const token=decryptToken(connection.rows[0].access_token_encrypted);
-    const scannedHost=typeof body?.url==="string"?normalizeHostname(body.url):"";
+    const scannedHost=normalizeHostname(trustedUrl);
     let effectiveRepo=requestedRepo;
     let effectiveBaseBranch=baseBranch;
     if(!effectiveRepo && scannedHost){
@@ -257,7 +271,7 @@ export async function POST(request:Request){
     // The SEO value validator is intentionally not applied to the whole file,
     // because it can mistake unrelated source-code text for placeholders/field markup.
     const githubValidation=validateGithubFix({current,proposed:generated.content,filePath:path,issue});
-    const canonicalErrors=validateCanonicalTarget(generated.content,typeof body?.url==="string"?body.url:"");
+    const canonicalErrors=validateCanonicalTarget(generated.content,trustedUrl);
     if(canonicalErrors.length) githubValidation.errors.push(...canonicalErrors);
 
     const completion=validateRequestedFixCompletion(current,generated.content,issue);
@@ -293,7 +307,7 @@ export async function POST(request:Request){
       await db.query("INSERT INTO credit_transactions (user_id,amount,reason,reference_id) VALUES ($1,$2,'github_fix',$3)",[user.id,-GITHUB_FIX_COST,String(pr.number)]);
     }
 
-    const scannedUrl = typeof body?.url === "string" ? normalizeScanUrl(body.url) : "";
+    const scannedUrl = normalizeScanUrl(trustedUrl);
     if (scannedUrl && issueId) {
       await db.query(
         "INSERT INTO pending_fixes (user_id,scanned_url,issue_id,status,repository,file_path,pr_number) VALUES ($1,$2,$3,'PREPARED',$4,$5,$6)",
