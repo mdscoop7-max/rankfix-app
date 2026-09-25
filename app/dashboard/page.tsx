@@ -67,6 +67,7 @@ export default function Dashboard() {
   const previous = latest ? history.find((scan) => scan.scanned_url === latest.scanned_url && scan.id !== latest.id) : undefined;
   const scoreChange = latest && previous ? latest.overall_score - previous.overall_score : null;
   const recentHistory = history.slice(0, 5);
+  const latestHost = latest ? (() => { try { return new URL(latest.scanned_url).hostname; } catch { return latest.scanned_url; } })() : null;
 
   return <main className="rf-page" lang={language}>
     <div className="rf-shell">
@@ -82,17 +83,16 @@ export default function Dashboard() {
         </section>}
         {error && <p className="rf-alert" role="alert">{error}</p>}
         {message && <p className="rf-notice" role="status">{message}</p>}
-        <section className="rf-section">
-          <div className="rf-section-head"><div><h2>Scanhistorie</h2><p>Je laatste controles blijven bewaard.</p></div><a href="/dashboard/more">Bekijk alles →</a></div>
-          <div className="rf-history-list">{recentHistory.map((scan,index)=><a key={scan.id} href={`/dashboard/audit/${scan.id}`}><div><b>{(()=>{try{return new URL(scan.scanned_url).hostname}catch{return scan.scanned_url}})()}</b><span>{new Date(scan.created_at).toLocaleString(language)} · {scan.open_issues} verbeterpunten</span></div><strong>{scan.overall_score}</strong>{index===0&&<em>Nieuwste</em>}</a>)}</div>
-        </section>
         <section className="rf-dashboard-status">
-          <div className="rf-section-head"><div><h2>Huidige status</h2><p>De nieuwste live scan en wat er sinds de vorige scan is veranderd.</p></div><a className="rf-primary-link" href={`/${language}/scan`}>Nieuwe scan</a></div>
+          <div className="rf-dashboard-hero">
+            <div><span className="rf-eyebrow">Laatste controle</span><h2>{latestHost || "Voeg je eerste website toe"}</h2><p>{latest ? `Gescand ${new Date(latest.created_at).toLocaleString(language)}` : "Start een SEO + GEO-audit om je dashboard te vullen."}</p></div>
+            <a className="rf-primary-link rf-scan-cta" href={`/${language}/scan`}>＋ Nieuwe scan starten</a>
+          </div>
           <div className="rf-status-grid">
-            <div className="rf-card"><span>Laatste score</span><strong>{latest?.overall_score ?? "—"}</strong><small>{latest ? new Date(latest.created_at).toLocaleString(language) : "Nog geen scan"}</small></div>
-            <div className="rf-card"><span>Verandering</span><strong className={scoreChange !== null && scoreChange < 0 ? "rf-danger" : ""}>{scoreChange === null ? "—" : `${scoreChange > 0 ? "+" : ""}${scoreChange}`}</strong><small>ten opzichte van de vorige scan</small></div>
-            <div className="rf-card"><span>Open problemen</span><strong>{latest?.open_issues ?? 0}</strong><small>in de nieuwste scan</small></div>
-            <div className="rf-card"><span>Bevestigd opgelost</span><strong>{fixes.DONE || 0}</strong><small>na een nieuwe live controle</small></div>
+            <a className="rf-card rf-score-card" href={latest ? `/dashboard/audit/${latest.id}` : `/${language}/scan`}><span>SEO-score</span><strong>{latest?.seo_score ?? "—"}<small>/100</small></strong><small>Bekijk SEO-audit →</small></a>
+            <a className="rf-card rf-score-card" href={latest ? `/dashboard/audit/${latest.id}` : `/${language}/scan`}><span>GEO-score</span><strong>{latest?.geo_score ?? "—"}<small>/100</small></strong><small>Bekijk GEO-audit →</small></a>
+            <div className="rf-card"><span>Open verbeterpunten</span><strong>{latest?.open_issues ?? 0}</strong><small>{fixes.DONE || 0} bevestigd opgelost</small></div>
+            <div className="rf-card"><span>Scoreverandering</span><strong className={scoreChange !== null && scoreChange < 0 ? "rf-danger" : ""}>{scoreChange === null ? "—" : `${scoreChange > 0 ? "+" : ""}${scoreChange}`}</strong><small>tegenover vorige scan</small></div>
           </div>
         </section>
         <section className="rf-section">
@@ -102,6 +102,10 @@ export default function Dashboard() {
             {(fixes.PREPARED || 0) > 0 && <a href="/dashboard/github"><b>2. Controleer je codevoorstellen</b><span>{fixes.PREPARED} wachten op publicatie of controle →</span></a>}
             <a href="/dashboard/help"><b>{(fixes.PREPARED || 0) > 0 ? "3" : "2"}. Vraag RankFix AI</b><span>Laat je score of een probleem in gewone taal uitleggen →</span></a>
           </div>
+        </section>
+        <section className="rf-section">
+          <div className="rf-section-head"><div><h2>Recente scans</h2><p>Je laatste 5 controles.</p></div><a href="/dashboard/more">Bekijk historie →</a></div>
+          <div className="rf-history-list">{recentHistory.map((scan,index)=><a key={scan.id} href={`/dashboard/audit/${scan.id}`}><div><b>{(()=>{try{return new URL(scan.scanned_url).hostname}catch{return scan.scanned_url}})()}</b><span>{new Date(scan.created_at).toLocaleString(language)} · SEO {scan.seo_score} · GEO {scan.geo_score} · {scan.open_issues} verbeterpunten</span></div><strong>{scan.overall_score}</strong>{index===0&&<em>Nieuwste</em>}</a>)}</div>
         </section>
         <section id="websites" className="rf-section">
           <div className="rf-section-head"><h2>{t.websites}</h2><span>{scans.length}</span></div>
