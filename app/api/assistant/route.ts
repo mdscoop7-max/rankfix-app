@@ -8,6 +8,7 @@ export async function POST(request: Request) {
     const message = typeof body?.message === "string" ? body.message.trim() : "";
     const dashboard = body?.dashboard === true;
     const scanId = typeof body?.scanId === "string" ? body.scanId.trim() : "";
+    const requestedLanguage = typeof body?.language === "string" ? body.language.toLowerCase() : "";
 
     if (!message) {
       return NextResponse.json({ error: "Stel eerst een vraag." }, { status: 400 });
@@ -21,8 +22,13 @@ export async function POST(request: Request) {
     let customerContext = "";
     let selectedScanContext = "";
     let githubContext = "";
+    let preferredLanguage = requestedLanguage;
 
     if (user) {
+      if (!preferredLanguage) {
+        const pref = await getDb().query("SELECT language FROM user_preferences WHERE user_id=$1 LIMIT 1",[user.id]);
+        preferredLanguage = pref.rows[0]?.language || "nl";
+      }
       const scans = await getDb().query(
         "SELECT scanned_url, overall_score, seo_score, geo_score, created_at FROM scans WHERE user_id=$1 ORDER BY created_at DESC LIMIT 10",
         [user.id]
@@ -103,7 +109,7 @@ export async function POST(request: Request) {
           "Gebruik klantgegevens alleen uit de meegeleverde context. Verzin nooit scanresultaten, scores, credits, URLs, technische fouten of uitgevoerde acties.",
           "Als de context onvoldoende is, zeg dat duidelijk en geef algemene technische uitleg.",
           "Zeg nooit dat je een wijziging hebt uitgevoerd als dat niet in de context staat.",
-          "Geef praktische, korte stappen. Antwoord in het Nederlands tenzij de gebruiker een andere taal gebruikt.",
+          "Geef praktische, korte stappen. Antwoord in de gekozen dashboardtaal: " + (preferredLanguage || "nl") + ". Alleen als de gebruiker expliciet in een andere taal vraagt, mag je die taal volgen.",
           "Klantcontext: " + (customerContext || "Geen ingelogde klantcontext beschikbaar."),
           "Geselecteerde scan: " + (selectedScanContext || "Geen specifieke scan geselecteerd."),
           "GitHub Fix Engine-context: " + (githubContext || "Geen GitHub-context beschikbaar."),
