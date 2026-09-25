@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { createSession, verifyPassword } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
+import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
+    await ensureDatabase();
+    if(!await consumeRateLimit("login",requestIp(request),12,900)) return NextResponse.json({error:"Te veel inlogpogingen. Probeer later opnieuw."},{status:429});
     const body = await request.json();
     const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
     const password = typeof body?.password === "string" ? body.password : "";
