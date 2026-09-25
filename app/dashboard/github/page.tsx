@@ -13,6 +13,9 @@ export default function GithubPage(){
   const [repos,setRepos]=useState<Repo[]>([]);
   const [repo,setRepo]=useState("");
   const [path,setPath]=useState("");
+  const [siteUrl,setSiteUrl]=useState("");
+  const [issueId,setIssueId]=useState("");
+  const [mapped,setMapped]=useState(false);
   const [issue,setIssue]=useState("");
   const [context,setContext]=useState("");
   const [baseBranch,setBaseBranch]=useState("main");
@@ -25,12 +28,13 @@ export default function GithubPage(){
     const params=new URLSearchParams(location.search);
     setIssue(params.get("issue")||"");
     setContext(params.get("context")||"");
+    const incomingUrl=params.get("url")||""; setSiteUrl(incomingUrl); setIssueId(params.get("issue_id")||"");
     (async()=>{
       const r=await fetch("/api/github/status"); const d=await r.json();
       if(d.connected){
         setConnected(true);setLogin(d.connection.github_login);
         const rr=await fetch("/api/github/repos"); const rd=await rr.json();
-        if(rr.ok){setRepos(rd.repos); if(rd.repos[0]){setRepo(rd.repos[0].full_name);setBaseBranch(rd.repos[0].default_branch);}}
+        if(rr.ok){setRepos(rd.repos); if(incomingUrl){ const mr=await fetch("/api/github/site-repository?url="+encodeURIComponent(incomingUrl)); const md=await mr.json(); if(mr.ok&&md.mapped){setRepo(md.repository);setBaseBranch(md.baseBranch||"main");setMapped(true);} } }
         else if(/bad credentials|authenticatie|verbinden/i.test(rd.error||"")) { setConnected(false); setError("De GitHub-koppeling is ongeldig. Verbind GitHub opnieuw."); }
       } else if(d.reauthorize || d.error) {
         setConnected(false);
@@ -45,8 +49,8 @@ export default function GithubPage(){
     const cleanRepo=repo.trim();
     const cleanPath=path.trim();
     const cleanIssue=issue.trim();
-    if(!cleanRepo || !cleanIssue){
-      setError("Vul Repository en Wat moet RankFix oplossen? in.");
+    if(!cleanRepo || !cleanIssue || !issueId){
+      setError("Open deze fix vanuit een RankFix-audit en kies bij de eerste koppeling alleen de repository.");
       return;
     }
     if(!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(cleanRepo)){
@@ -55,7 +59,7 @@ export default function GithubPage(){
     }
     setBusy(true);setError("");setMessage("");setValidation(null);
     try{
-      const r=await fetch("/api/github/fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({repo:cleanRepo,path:cleanPath,issue:cleanIssue,context:context.trim(),baseBranch})});
+      const r=await fetch("/api/github/fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({repo:cleanRepo,path:cleanPath,issue:cleanIssue,context:context.trim(),baseBranch,url:siteUrl,issue_id:issueId})});
       const text=await r.text();
       let d:any={};
       try{d=JSON.parse(text);}catch{}
@@ -96,10 +100,11 @@ export default function GithubPage(){
           <span>GitHub verbonden als <b>{login}</b>.</span>
           <a href="/api/github/connect" className="rounded-lg border border-emerald-300/20 px-3 py-2 text-xs font-bold text-emerald-100 hover:bg-emerald-300/10">GitHub opnieuw verbinden</a>
         </div>
-        <label className="block"><span className="text-sm font-semibold">Repository</span><input required list="github-repositories" aria-invalid={!repo.trim()} value={repo} onChange={e=>{setRepo(e.target.value);const x=repos.find(r=>r.full_name===e.target.value);if(x)setBaseBranch(x.default_branch);}} placeholder="bijv. mdscoop7-max/Trendmix" className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/><datalist id="github-repositories">{repos.map(r=><option key={r.full_name} value={r.full_name}>{r.private?"private":""}</option>)}</datalist><p className="mt-2 text-xs text-slate-500">Kies een voorgestelde repository of vul zelf owner/repository in.</p></label>
-        <label className="block"><span className="text-sm font-semibold">Bestand <span className="text-xs font-normal text-emerald-300">(automatisch als je dit leeg laat)</span></span><input aria-invalid={false} value={path} onChange={e=>setPath(e.target.value)} placeholder="RankFix kiest automatisch het juiste bestand" className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/><p className="mt-2 text-xs text-slate-500">Laat leeg: RankFix zoekt zelf het meest relevante bestand voor deze auditfix.</p></label>
-        <label className="block"><span className="text-sm font-semibold">Wat moet RankFix oplossen?</span><textarea required aria-invalid={!issue.trim()} value={issue} onChange={e=>setIssue(e.target.value)} rows={4} placeholder="Bijv. de meta description ontbreekt of is te kort." className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/></label>
-        <label className="block"><span className="text-sm font-semibold">Context uit de audit</span><textarea value={context} onChange={e=>setContext(e.target.value)} rows={3} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"/></label>
+        <label className="block"><span className="text-sm font-semibold">{mapped?"Gekoppelde repository":"Kies eenmalig de repository van deze website"}</span><select required disabled={mapped} value={repo} onChange={e=>{setRepo(e.target.value);const x=repos.find(r=>r.full_name===e.target.value);if(x)setBaseBranch(x.default_branch);}} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"><option value="">Selecteer repository</option>{repos.map(r=><option key={r.full_name} value={r.full_name}>{r.full_name}{r.private?" · privé":""}</option>)}</select><p className="mt-2 text-xs text-slate-500">{mapped?"RankFix gebruikt deze geverifieerde koppeling automatisch.":"Dit hoef je maar één keer per website te doen. RankFix kiest branch, bestand en technische gegevens daarna zelf."}</p></label>
+        {siteUrl&&<div className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm"><span className="text-slate-500">Website</span><div className="mt-1 font-semibold break-all">{siteUrl}</div></div>}
+        <input type="hidden" value={path} readOnly />
+        <input type="hidden" value={issue} readOnly />
+        <input type="hidden" value={context} readOnly />
         {error&&<div className="rounded-xl bg-red-500/10 p-4 text-sm text-red-200">
           <div className="font-bold">Fix geblokkeerd</div>
           <div className="mt-1">{error}</div>
