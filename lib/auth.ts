@@ -67,7 +67,7 @@ export async function getCurrentUser() {
   const token = store.get(COOKIE)?.value;
   if (!token) return null;
   const result = await getDb().query(
-    `SELECT u.id, u.email, u.name, u.credits, u.created_at, s.expires_at
+    `SELECT u.id, u.email, u.name, u.created_at, s.expires_at
      FROM sessions s JOIN users u ON u.id=s.user_id
      WHERE s.token_hash=$1 AND s.expires_at > NOW()`,
     [tokenHash(token)]
