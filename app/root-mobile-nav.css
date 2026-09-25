@@ -1,2 +1,24 @@
 .root-bottom-nav{display:none}
 @media(max-width:850px){.rankfix-home{padding-bottom:calc(76px + env(safe-area-inset-bottom))}.rankfix-home #scan,.rankfix-home #features{scroll-margin-top:90px}.root-bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:60;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:center;min-height:calc(70px + env(safe-area-inset-bottom));padding:4px max(5px,env(safe-area-inset-left)) env(safe-area-inset-bottom) max(5px,env(safe-area-inset-right));background:#101B2D;border-top:1px solid #334155;box-shadow:0 -12px 36px #050B16a8}.root-bottom-nav a{min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:3px 1px;text-align:center;color:#AAB9CD;font-size:10px;line-height:1.15;font-weight:650;touch-action:manipulation}.root-bottom-nav a[aria-current]{color:#9FE1CB}.root-bottom-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:12px}.root-bottom-nav a[aria-current] .root-bottom-icon{background:#0F3B30}.root-bottom-nav .root-bottom-scan .root-bottom-icon{width:42px;height:42px;border-radius:13px;background:#5DCAA5;color:#04342C;box-shadow:0 4px 18px #5DCAA540}.root-bottom-nav a:focus-visible{outline:2px solid #9FE1CB;outline-offset:2px}.root-bottom-nav a:active{transform:scale(.96)}}
+
+/* Unified light RankFix public app navigation */
+@media(max-width:850px){
+  .root-bottom-nav{
+    bottom:10px;left:12px;right:12px;
+    min-height:72px;
+    padding:7px 6px calc(7px + env(safe-area-inset-bottom));
+    background:rgba(255,255,255,.96);
+    border:1px solid #DDE7F1;
+    border-radius:24px;
+    box-shadow:0 14px 38px rgba(49,76,108,.16);
+    backdrop-filter:blur(18px)
+  }
+  .root-bottom-nav a{color:#71839A;border-radius:16px}
+  .root-bottom-nav a[aria-current]{color:#6956D9;background:#F0EDFF}
+  .root-bottom-nav a[aria-current] .root-bottom-icon{background:#E9E4FF;color:#6752D8}
+  .root-bottom-nav .root-bottom-scan .root-bottom-icon{
+    width:50px;height:50px;border-radius:17px;
+    background:linear-gradient(145deg,#65DDBB,#73BDF5);
+    color:#083B3B;box-shadow:0 8px 22px rgba(70,190,169,.24)
+  }
+}
