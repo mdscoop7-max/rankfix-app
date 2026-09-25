@@ -80,7 +80,19 @@ const statements = [
     user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     language TEXT NOT NULL DEFAULT 'nl' CHECK (language IN ('nl','en','fr','es','it','de')),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-  )`
+  )`,
+  `CREATE TABLE IF NOT EXISTS reviews (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    review_text TEXT NOT NULL,
+    company_name TEXT,
+    website TEXT,
+    status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING','APPROVED','REJECTED')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS reviews_status_created_idx ON reviews(status, created_at DESC)`
 ];
 
 export async function ensureDatabase() {
