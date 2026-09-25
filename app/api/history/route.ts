@@ -19,5 +19,5 @@ export async function GET(){
  const seen=new Set<string>();
  const scans=allScans.filter((scan:any)=>{const key=host(scan as Row);if(seen.has(key))return false;seen.add(key);return true});
  const pending=await getDb().query("SELECT status,count(*)::int AS count FROM pending_fixes WHERE user_id=$1 AND (status='DONE' OR (status='PREPARED' AND expires_at>NOW())) GROUP BY status",[user.id]);
- return NextResponse.json({scans,history:allScans,credits:user.credits,fixes:Object.fromEntries(pending.rows.map(row=>[row.status,row.count]))});
+ return NextResponse.json({scans,history:allScans,fixes:Object.fromEntries(pending.rows.map(row=>[row.status,row.count]))});
 }
