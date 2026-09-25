@@ -14,6 +14,7 @@ export default function GithubPage(){
   const [repo,setRepo]=useState("");
   const [path,setPath]=useState("");
   const [siteUrl,setSiteUrl]=useState("");
+  const [scanId,setScanId]=useState("");
   const [issueId,setIssueId]=useState("");
   const [mapped,setMapped]=useState(false);
   const [issue,setIssue]=useState("");
@@ -28,7 +29,9 @@ export default function GithubPage(){
     const params=new URLSearchParams(location.search);
     setIssue(params.get("issue")||"");
     setContext(params.get("context")||"");
-    const incomingUrl=params.get("url")||""; setSiteUrl(incomingUrl); setIssueId(params.get("issue_id")||"");
+    const incomingScanId=params.get("scan_id")||""; setScanId(incomingScanId); setIssueId(params.get("issue_id")||"");
+    let incomingUrl=params.get("url")||"";
+    if(incomingScanId){ try{ const sr=await fetch("/api/history/"+encodeURIComponent(incomingScanId),{cache:"no-store"}); const sd=await sr.json(); if(sr.ok&&sd?.scan?.scanned_url){ incomingUrl=sd.scan.scanned_url; setSiteUrl(incomingUrl); } }catch{} } else setSiteUrl(incomingUrl);
     (async()=>{
       const r=await fetch("/api/github/status"); const d=await r.json();
       if(d.connected){
@@ -49,7 +52,7 @@ export default function GithubPage(){
     const cleanRepo=repo.trim();
     const cleanPath=path.trim();
     const cleanIssue=issue.trim();
-    if(!cleanRepo || !cleanIssue || !issueId){
+    if(!cleanRepo || !issueId || !scanId){
       setError("Open deze fix vanuit een RankFix-audit en kies bij de eerste koppeling alleen de repository.");
       return;
     }
@@ -59,7 +62,7 @@ export default function GithubPage(){
     }
     setBusy(true);setError("");setMessage("");setValidation(null);
     try{
-      const r=await fetch("/api/github/fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({repo:cleanRepo,path:cleanPath,issue:cleanIssue,context:context.trim(),baseBranch,url:siteUrl,issue_id:issueId})});
+      const r=await fetch("/api/github/fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({repo:cleanRepo,path:cleanPath,baseBranch,scan_id:scanId,issue_id:issueId})});
       const text=await r.text();
       let d:any={};
       try{d=JSON.parse(text);}catch{}
