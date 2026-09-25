@@ -811,14 +811,22 @@ export async function POST(request: Request) {
             ...(previousScan.rows[0]?.result?.seo?.checks || []),
             ...(previousScan.rows[0]?.result?.geo?.checks || [])
           ];
-          const previousByRule = new Map(previousChecks.map((x:any)=>[String(x.issue_id||x.rule_id||x.key),String(x.issue_status||x.status)]));
+          const normalizeHealthStatus=(value:unknown)=>{
+            const status=String(value||"").trim().toUpperCase();
+            if(status==="PASS"||status==="FAIL"||status==="WARNING") return status;
+            return null;
+          };
+          const statusRank:Record<string,number>={FAIL:0,WARNING:1,PASS:2};
+          const previousByRule = new Map(previousChecks.map((x:any)=>[String(x.issue_id||x.rule_id||x.key),normalizeHealthStatus(x.issue_status||x.status)]));
           for (const item of checks) {
             const ruleId=String(item.issue_id||item.rule_id||item.key);
             const before=previousByRule.get(ruleId);
-            const now=String(item.issue_status||item.status);
-            if(!before||before===now) continue;
-            const improved=(before==="FAIL"||before==="WARNING"||before==="fail"||before==="warning")&&(now==="PASS"||now==="pass");
-            const regressed=(before==="PASS"||before==="pass")&&(now==="FAIL"||now==="WARNING"||now==="fail"||now==="warning");
+            const now=normalizeHealthStatus(item.issue_status||item.status);
+            // N/A, INFO and unable-to-confirm are neutral: never infer a
+            // regression or improvement from an unconfirmed comparison.
+            if(!before||!now||before===now) continue;
+            const improved=statusRank[now]>statusRank[before];
+            const regressed=statusRank[now]<statusRank[before];
             if(!improved&&!regressed) continue;
             await getDb().query(
               "INSERT INTO website_health_events (user_id,website_host,scanned_url,scan_id,event_type,rule_id,previous_status,current_status,severity,details) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
