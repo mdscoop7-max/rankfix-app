@@ -630,10 +630,10 @@ export async function POST(request: Request) {
       : check("not_applicable","checkout_trust","seo","Checkout- en betaalvertrouwen","Geen webshop-signalen gevonden; checkoutcontrole is niet van toepassing.","Gebruik deze controle op echte webshopcontent.",0,5));
     seoChecks.push(
       hasGoogleAdsTag && hasGa4 && hasConversionSignal
-        ? check("pass","ads_readiness","seo","Google Ads readiness","Er zijn Google Ads-, GA4- en conversiesignalen gevonden. RankFix bevestigt hiermee niet dat de accounts correct gekoppeld zijn.","Controleer in Google Ads en GA4 of conversies actief binnenkomen, consent correct werkt en de juiste conversieacties worden gebruikt.",6,6)
+        ? check("unable_to_confirm","ads_readiness","seo","Google Ads readiness","Google Ads-, GA4- en conversiesignalen zijn in de publieke bron gevonden, maar RankFix kan vanaf HTML niet bevestigen dat events werkelijk afvuren, consent correct wordt toegepast of Ads/GA4 correct gekoppeld zijn.","Verifieer de meetketen met runtime/tag-debugging en controleer daarna de ontvangen conversies in Google Ads en GA4.",0,6)
         : adsTrackingSignals > 0 || hasConversionSignal
-          ? check("warning","ads_readiness","seo","Google Ads readiness",`Er zijn enkele advertentie-/tracking-signalen gevonden (${adsTrackingSignals}), maar de volledige meetketen kon vanaf de publieke pagina niet worden bevestigd.`,"Controleer Google tag, GA4, Ads-conversies, consent en landingspagina-relevantie in de advertentieomgeving.",3,6)
-          : check("warning","ads_readiness","seo","Google Ads readiness","Vanaf de publieke pagina zijn geen duidelijke Google Ads/GA4 tracking-signalen gevonden.","Als je Google Ads gebruikt: controleer Google tag, GA4, conversies, consent en landingspagina-relevantie.",2,6));
+          ? check("unable_to_confirm","ads_readiness","seo","Google Ads readiness",`Er zijn enkele advertentie-/tracking-signalen gevonden (${adsTrackingSignals}), maar de werkende meetketen is vanaf statische publieke HTML niet betrouwbaar vast te stellen.`,"Controleer Google tag, GA4, Ads-conversies en consent met runtime/tag-debugging.",0,6)
+          : check("not_applicable","ads_readiness","seo","Google Ads readiness","Geen publieke Google Ads/GA4-signalen gevonden. Dat bewijst niet dat tracking ontbreekt of dat deze site Google Ads gebruikt.","Beoordeel Ads readiness alleen wanneer advertentietracking voor deze site daadwerkelijk van toepassing is.",0,6));
     geoChecks.push(isHomepage
       ? organizationSchemaPresent && websiteSchemaPresent
         ? check("pass", "organization_website", "geo", "Organization + WebSite", "Organization en WebSite structured data zijn aanwezig op de homepage.", "Houd naam, URL en logo consistent met de zichtbare site-identiteit.", 8, 8)
@@ -684,8 +684,8 @@ export async function POST(request: Request) {
       : check("warning", "trust", "geo", "Trust & context", "Contact- of organisatiecontext is beperkt gevonden.", "Maak organisatie, contact, locatie en verantwoordelijkheden duidelijk.", 3, 8)
     );
     geoChecks.push(ogTitle && ogDescription
-      ? check("pass", "answer", "geo", "Machine-leesbare samenvatting", "De pagina heeft duidelijke social metadata die de kern samenvat.", "Zorg dat title, description en zichtbare intro dezelfde kernboodschap vertellen.", 6, 6)
-      : check("warning", "answer", "geo", "Machine-leesbare samenvatting", "De kern van de pagina is niet overal expliciet samengevat.", "Schrijf een heldere introductie en complete meta description.", 2, 6)
+      ? check("pass", "answer", "geo", "Expliciete paginasamenvatting", "Open Graph title en description geven een expliciete machineleesbare samenvatting van de pagina.", "Houd title, description en zichtbare introductie inhoudelijk consistent.", 6, 6)
+      : check("warning", "answer", "geo", "Expliciete paginasamenvatting", "Een complete Open Graph-samenvatting is niet gevonden.", "Voeg een duidelijke zichtbare introductie en consistente metadata toe; dit is een readiness-signaal en geen garantie op zichtbaarheid in AI-zoekmachines.", 2, 6)
     );
     const brandIdentitySignals = [
       organizationSchemaName || organizationName,
