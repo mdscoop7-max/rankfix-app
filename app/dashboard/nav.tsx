@@ -15,7 +15,7 @@ export default function DashboardNav({current}:{current:number}){
     {links.slice(0,4).map((href,i)=><a key={href} href={href==="scan"?base+"/scan":href} aria-current={current===i?"page":undefined}>{mobileLabels[language][i]}</a>)}
     <a href={base+"#how"}>{desktopExtra[language][0]}</a>
     <a href="/dashboard/reviews">{desktopExtra[language][1]}</a>
-    <a href={base+"#contact"}>{desktopExtra[language][2]}</a>
+    <a href={base+"/contact"}>{desktopExtra[language][2]}</a>
     <a href="/dashboard/more">{mobileLabels[language][4]}</a>
    </div>
    <a className="rf-site-link" href={base}>← {desktopExtra[language][3]}</a>
