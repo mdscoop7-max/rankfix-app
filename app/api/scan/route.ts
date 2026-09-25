@@ -478,8 +478,10 @@ export async function POST(request: Request) {
       ? check("pass", "lang", "seo", "HTML-taal", `De pagina heeft lang="${lang}".`, "Gebruik de juiste taalcode voor de primaire paginataal.", 4, 4)
       : check("warning", "lang", "seo", "HTML-taal", "Geen HTML lang-attribuut gevonden.", "Voeg het juiste lang-attribuut toe aan <html>.", 1, 4)
     );
-    seoChecks.push(imageElementCount === 0 || imagesMissingAlt === 0
-      ? check("pass", "alt", "seo", "Afbeelding alt-teksten", imageElementCount ? `Alle ${imageElementCount} gevonden afbeeldingselementen hebben alt-attributen.` : "Geen afbeeldingen gevonden.", "Schrijf beschrijvende alt-teksten voor informatieve afbeeldingen.", 7, 7)
+    seoChecks.push(imageElementCount === 0
+      ? check("not_applicable", "alt", "seo", "Afbeelding alt-teksten", "Geen <img>-elementen gevonden in de opgehaalde HTML; deze controle telt daarom niet mee.", "Controleer dynamisch geladen afbeeldingen afzonderlijk wanneer die voor de pagina belangrijk zijn.", 0, 7)
+      : imagesMissingAlt === 0
+      ? check("pass", "alt", "seo", "Afbeelding alt-teksten", `Alle ${imageElementCount} gevonden afbeeldingselementen hebben alt-attributen.`, "Schrijf beschrijvende alt-teksten voor informatieve afbeeldingen.", 7, 7)
       : check("warning", "alt", "seo", "Afbeelding alt-teksten", `${imagesMissingAlt} van ${imageElementCount} gevonden afbeeldingselementen missen alt.`, "Voeg beschrijvende alt-teksten toe waar ze betekenis toevoegen.", 3, 7)
     );
     seoChecks.push(wordCount >= 300
@@ -527,8 +529,10 @@ export async function POST(request: Request) {
         : check("warning", "twitter_card", "seo", "Twitter Card", "Geen twitter:card gevonden.", "Voeg twitter:card=summary_large_image toe voor gedeelde links.", 1, 3)
     );
 
-    seoChecks.push(hasHreflang || !languageSelectorSignal
-      ? check("pass", "hreflang", "seo", "Meertalige SEO", !languageSelectorSignal ? "Geen duidelijke meertalige pagina-indicatie gevonden; hreflang is daarom niet vereist." : `${hreflangTags.length} hreflang-link(s) gevonden.`, "Gebruik hreflang wanneer dezelfde content in meerdere talen/URL's beschikbaar is.", 5, 5)
+    seoChecks.push(!languageSelectorSignal
+      ? check("not_applicable", "hreflang", "seo", "Meertalige SEO", "Geen duidelijke meertalige pagina-indicatie gevonden; RankFix telt hreflang daarom niet mee in de score.", "Gebruik hreflang wanneer dezelfde content in meerdere talen/URL's beschikbaar is.", 0, 5)
+      : hasHreflang
+      ? check("pass", "hreflang", "seo", "Meertalige SEO", `${hreflangTags.length} hreflang-link(s) gevonden.`, "Controleer ook wederkerigheid, taal-/regiocodes en x-default waar passend.", 5, 5)
       : check("warning", "hreflang", "seo", "Meertalige SEO", "De pagina lijkt meerdere talen aan te bieden, maar er zijn geen hreflang-verwijzingen gevonden.", "Voeg voor elke taalversie en eventueel x-default correcte hreflang-links toe.", 2, 5)
     );
 
@@ -554,8 +558,10 @@ export async function POST(request: Request) {
       : check("pass", "business_placeholders", "seo", "Bedrijfsgegevens", "Geen bekende bedrijfsgegevens-placeholders gevonden.", "Houd bedrijfs- en contactgegevens actueel en consistent.", 6, 6)
     );
 
-    seoChecks.push(!hasProductSignal || !hasDotDecimalPrices
-      ? check("pass", "price_format", "seo", "Prijsnotatie", !hasProductSignal ? "Geen duidelijke webshop/product-signalen gevonden; prijsnotatie is niet beoordeeld." : "Geen duidelijke Nederlandse europrijs met punt als decimaalteken gevonden.", "Gebruik per taal/regio een passende valuta- en getalnotatie.", 5, 5)
+    seoChecks.push(!hasProductSignal
+      ? check("not_applicable", "price_format", "seo", "Prijsnotatie", "Geen duidelijke webshop/product-signalen gevonden; prijsnotatie is niet beoordeeld.", "Gebruik deze controle op echte product- en e-commercepagina's.", 0, 5)
+      : !hasDotDecimalPrices
+      ? check("pass", "price_format", "seo", "Prijsnotatie", "Geen duidelijke Nederlandse europrijs met punt als decimaalteken gevonden.", "Gebruik per taal/regio een passende valuta- en getalnotatie.", 5, 5)
       : check("warning", "price_format", "seo", "Prijsnotatie", `${priceFormatMatches.length} prijsnotatie(s) gebruikt een punt als decimaalteken, zoals ${priceFormatMatches[0]}.`, "Gebruik voor Nederlandse content bijvoorbeeld € 129,95 en formatteer prijzen met locale-aware formatting.", 2, 5)
     );
 
@@ -563,7 +569,7 @@ export async function POST(request: Request) {
       ? hasShippingSignal && hasReturnsSignal && (hasReviewPlatformSignal || hasCheckoutTrustSignal)
         ? check("pass","webshop_trust","seo","Webshop vertrouwen","Verzend-/retourinformatie en minimaal één duidelijk vertrouwenssignaal zijn zichtbaar.","Houd verzendkosten, retourvoorwaarden, betaalmethoden en reviews ook op checkout-niveau duidelijk.",7,7)
         : check("warning","webshop_trust","seo","Webshop vertrouwen","Niet alle belangrijke verzend-, retour- en vertrouwenssignalen zijn zichtbaar op deze pagina.","Maak verzendkosten, retourvoorwaarden, betaalmogelijkheden en review-/vertrouwenssignalen duidelijk voordat bezoekers afrekenen.",3,7)
-      : check("pass","webshop_trust","seo","Webshop vertrouwen","Geen duidelijke webshop-signalen gevonden; deze e-commercecontrole is niet van toepassing.","Gebruik deze controle op product- en categoriepagina's.",7,7));
+      : check("not_applicable","webshop_trust","seo","Webshop vertrouwen","Geen duidelijke webshop-signalen gevonden; deze e-commercecontrole is niet van toepassing.","Gebruik deze controle op product- en categoriepagina's.",0,7));
     seoChecks.push(ecommerceVariantUrlSignal
       ? check("warning","variant_url","seo","Productvariant-URL","Deze product-URL bevat een variant-/SKU-parameter. Dat kan duplicate URL's en indexatieproblemen veroorzaken.","Gebruik bij varianten een duidelijke canonical, stabiele URL-strategie en indexeer alleen pagina's die zelfstandig waarde hebben.",2,5)
       : check("pass","variant_url","seo","Productvariant-URL","Geen duidelijke variant-/SKU-parameter in de gescande URL gevonden.","Houd product- en variant-URL's stabiel en canoniek.",5,5));
@@ -592,7 +598,7 @@ export async function POST(request: Request) {
       ? productSchemaPresent
         ? check("pass", "product_schema", "geo", "Product structured data", "Product JSON-LD is aanwezig op deze product-/e-commercepagina.", "Controleer prijs, valuta, beschikbaarheid, SKU en afbeelding tegen de zichtbare productinformatie.", 8, 8)
         : check("warning", "product_schema", "geo", "Product structured data", "De pagina lijkt product-/e-commercecontent te bevatten, maar Product JSON-LD ontbreekt.", "Voeg Product structured data toe met alleen gegevens die zichtbaar en aantoonbaar zijn.", 3, 8)
-      : check("pass", "product_schema", "geo", "Product structured data", "Geen duidelijke productpagina-signalen gevonden; Product schema is hier niet vereist.", "Gebruik Product schema op echte productpagina's.", 8, 8)
+      : check("not_applicable", "product_schema", "geo", "Product structured data", "Geen duidelijke productpagina-signalen gevonden; Product schema is hier niet van toepassing.", "Gebruik Product schema op echte productpagina's.", 0, 8)
     );
 
     geoChecks.push(hasEntitySchema
@@ -604,7 +610,7 @@ export async function POST(request: Request) {
           : check("warning", "entity", "geo", "Entity-signalen", "Er is weinig expliciete entity-informatie gevonden.", "Definieer de organisatie/brand en relevante entiteiten met schema.org.", 4, 10)
     );
     geoChecks.push(isHomepage
-      ? check("pass", "breadcrumbs", "geo", "Breadcrumbs", "Op de homepage is BreadcrumbList niet noodzakelijk.", "Gebruik BreadcrumbList vooral op diepe content-, categorie- en productpagina's.", 6, 6)
+      ? check("not_applicable", "breadcrumbs", "geo", "Breadcrumbs", "Op de homepage is BreadcrumbList normaal niet nodig; deze controle telt daarom niet mee.", "Gebruik BreadcrumbList vooral op diepe content-, categorie- en productpagina's.", 0, 6)
       : hasBreadcrumb
         ? check("pass", "breadcrumbs", "geo", "Breadcrumbs", "BreadcrumbList structured data is aanwezig.", "Houd breadcrumbs gelijk aan de zichtbare navigatiestructuur.", 6, 6)
         : check("warning", "breadcrumbs", "geo", "Breadcrumbs", "Geen BreadcrumbList schema gevonden op deze diepere pagina.", "Voeg BreadcrumbList toe wanneer de pagina onderdeel is van een duidelijke hiërarchische navigatie.", 2, 6)
