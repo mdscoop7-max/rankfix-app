@@ -38,3 +38,11 @@
 .rf-desktop-nav{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 18px;border-bottom:1px solid var(--border-subtle);background:#0D1728}.rf-desktop-main{display:flex;align-items:center;gap:4px;flex-wrap:wrap}.rf-desktop-nav a{padding:8px 9px;border-radius:8px;color:var(--text-secondary);font-size:12px;font-weight:650}.rf-desktop-nav a:hover,.rf-desktop-nav a[aria-current]{color:var(--brand-light);background:var(--brand-surface)}.rf-desktop-nav .rf-site-link{flex:none;background:var(--brand);color:var(--brand-dark);font-weight:800}.rf-desktop-nav .rf-site-link:hover{background:var(--brand-light);color:var(--brand-dark)}
 @media(min-width:651px){.rf-nav{display:none}.rf-body{padding-top:22px}}
 @media(max-width:650px){.rf-desktop-nav{display:none}}
+
+/* Dashboard overview: primary information first */
+.rf-dashboard-hero{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:14px;padding:18px;border:1px solid var(--border-subtle);border-radius:14px;background:linear-gradient(135deg,var(--brand-surface),var(--bg-card))}
+.rf-dashboard-hero .rf-eyebrow{display:block;color:var(--brand-light);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+.rf-dashboard-hero h2{margin-top:5px;font-size:20px;font-weight:800;overflow-wrap:anywhere}.rf-dashboard-hero p{margin-top:4px;color:var(--text-secondary);font-size:12px}
+.rf-scan-cta{flex:none;min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding-inline:16px}
+.rf-score-card{display:block;transition:border-color .15s ease,transform .15s ease}.rf-score-card:hover{border-color:#5DCAA570;transform:translateY(-1px)}.rf-score-card strong small{display:inline;font-size:11px;font-weight:500;margin-left:3px}
+@media(max-width:650px){.rf-dashboard-status{margin-top:16px}.rf-dashboard-hero{align-items:stretch;flex-direction:column;padding:15px}.rf-dashboard-hero h2{font-size:17px}.rf-scan-cta{width:100%;min-height:48px}.rf-status-grid{gap:8px}.rf-status-grid .rf-card{min-height:112px}.rf-section{margin-top:22px}.rf-history-list span{line-height:1.45}}
