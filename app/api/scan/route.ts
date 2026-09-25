@@ -418,14 +418,21 @@ export async function POST(request: Request) {
     const googleAdsIds = [...new Set(html.match(/\bAW-[0-9-]+\b/gi) || [])];
     const hasGa4 = ga4MeasurementIds.length > 0 || /google[-_ ]?analytics/i.test(html);
     const hasGoogleAdsTag = googleAdsIds.length > 0 || /google_adservices|googleads\.g\.doubleclick/i.test(html);
-    // Only treat explicit analytics/tag event syntax as a conversion signal.
-    // Plain marketing words such as "lead" or "purchase" in visible copy are not evidence of tracking.
-    const conversionEventNames = [...new Set(
-      [...html.matchAll(/(?:gtag\s*\(\s*["']event["']\s*,\s*["']([^"']+)["']|dataLayer\.push\s*\(\s*\{[^}]*["']event["']\s*:\s*["']([^"']+)["'])/gi)]
-        .map((match) => (match[1] || match[2] || "").toLowerCase())
-        .filter(Boolean)
-    )];
-    const hasConversionSignal = conversionEventNames.some((name) => /^(purchase|generate_lead|sign_up|conversion|begin_checkout|add_to_cart)$/.test(name));
+    // Only explicit analytics event calls count as conversion evidence.
+    // Visible marketing words alone are never treated as tracking proof.
+    const conversionEventNames: string[] = [];
+    const gtagEventPattern = /gtag\s*\(\s*["']event["']\s*,\s*["']([^"']+)["']/gi;
+    for (const match of html.matchAll(gtagEventPattern)) {
+      if (match[1]) conversionEventNames.push(match[1].toLowerCase());
+    }
+    const dataLayerEventPattern = /["']event["']\s*:\s*["']([^"']+)["']/gi;
+    for (const match of html.matchAll(dataLayerEventPattern)) {
+      if (match[1]) conversionEventNames.push(match[1].toLowerCase());
+    }
+    const uniqueConversionEventNames = [...new Set(conversionEventNames)];
+    const hasConversionSignal = uniqueConversionEventNames.some((name: string) =>
+      /^(purchase|generate_lead|sign_up|conversion|begin_checkout|add_to_cart)$/.test(name)
+    );
     const hasShippingSignal = /verzendkosten|verzending|levering|shipping|delivery|bezorging|ophalen|afhalen/i.test(text);
     const hasReturnsSignal = /retour|herroepingsrecht|14\s*dagen|bedenktijd|return policy|refund/i.test(text);
     const hasReviewPlatformSignal = /trustpilot|kiyoh|google reviews|reviews?\.io/i.test(text);
@@ -613,9 +620,9 @@ export async function POST(request: Request) {
       : check("not_applicable","checkout_trust","seo","Checkout- en betaalvertrouwen","Geen webshop-signalen gevonden; checkoutcontrole is niet van toepassing.","Gebruik deze controle op echte webshopcontent.",0,5));
     seoChecks.push(
       hasGoogleAdsTag && hasGa4 && hasConversionSignal
-        ? check("unable_to_confirm","ads_readiness","seo","Google Ads readiness",`Google Ads-tag${googleAdsIds.length ? ` (${googleAdsIds.join(", ")})` : ""}, GA4${ga4MeasurementIds.length ? ` (${ga4MeasurementIds.join(", ")})` : ""} en expliciete event-signalen (${conversionEventNames.slice(0,5).join(", ")}) zijn in de publieke bron gevonden. Dat bewijst nog niet dat events werkelijk afvuren, consent correct werkt of conversies in Ads/GA4 worden ontvangen.`,"Verifieer de meetketen met runtime/tag-debugging en controleer daarna de ontvangen conversies in Google Ads en GA4.",0,6)
+        ? check("unable_to_confirm","ads_readiness","seo","Google Ads readiness",`Google Ads-tag${googleAdsIds.length ? ` (${googleAdsIds.join(", ")})` : ""}, GA4${ga4MeasurementIds.length ? ` (${ga4MeasurementIds.join(", ")})` : ""} en expliciete event-signalen (${uniqueConversionEventNames.slice(0,5).join(", ")}) zijn in de publieke bron gevonden. Dat bewijst nog niet dat events werkelijk afvuren, consent correct werkt of conversies in Ads/GA4 worden ontvangen.`,"Verifieer de meetketen met runtime/tag-debugging en controleer daarna de ontvangen conversies in Google Ads en GA4.",0,6)
         : adsTrackingSignals > 0 || hasConversionSignal
-          ? check("unable_to_confirm","ads_readiness","seo","Google Ads readiness",`Er zijn advertentie-/tracking-signalen gevonden, maar geen volledig verifieerbare meetketen. Gedetecteerd: Ads-ID's ${googleAdsIds.length}, GA4-ID's ${ga4MeasurementIds.length}, expliciete conversie-events ${conversionEventNames.length}.`,"Controleer Google tag, GA4, Ads-conversies en consent met runtime/tag-debugging.",0,6)
+          ? check("unable_to_confirm","ads_readiness","seo","Google Ads readiness",`Er zijn advertentie-/tracking-signalen gevonden, maar geen volledig verifieerbare meetketen. Gedetecteerd: Ads-ID's ${googleAdsIds.length}, GA4-ID's ${ga4MeasurementIds.length}, expliciete conversie-events ${uniqueConversionEventNames.length}.`,"Controleer Google tag, GA4, Ads-conversies en consent met runtime/tag-debugging.",0,6)
           : check("not_applicable","ads_readiness","seo","Google Ads readiness","Geen publieke Google Ads/GA4-signalen gevonden. Dat bewijst niet dat tracking ontbreekt of dat deze site Google Ads gebruikt.","Beoordeel Ads readiness alleen wanneer advertentietracking voor deze site daadwerkelijk van toepassing is.",0,6));
     geoChecks.push(isHomepage
       ? organizationSchemaPresent && websiteSchemaPresent
