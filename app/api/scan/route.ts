@@ -395,9 +395,18 @@ export async function POST(request: Request) {
       /google[-_ ]?analytics|\bG-[A-Z0-9]{6,}\b/i.test(html),
       /google_adservices|googleads\.g\.doubleclick|\bAW-[0-9-]+\b/i.test(html),
     ].filter(Boolean).length;
-    const hasGa4 = /google[-_ ]?analytics|\bG-[A-Z0-9]{6,}\b/i.test(html);
-    const hasGoogleAdsTag = /google_adservices|googleads\.g\.doubleclick|\bAW-[0-9-]+\b/i.test(html);
-    const hasConversionSignal = /conversion|conversie|purchase|lead|generate_lead|sign_up/i.test(html);
+    const ga4MeasurementIds = [...new Set(html.match(/\bG-[A-Z0-9]{6,}\b/gi) || [])];
+    const googleAdsIds = [...new Set(html.match(/\bAW-[0-9-]+\b/gi) || [])];
+    const hasGa4 = ga4MeasurementIds.length > 0 || /google[-_ ]?analytics/i.test(html);
+    const hasGoogleAdsTag = googleAdsIds.length > 0 || /google_adservices|googleads\.g\.doubleclick/i.test(html);
+    // Only treat explicit analytics/tag event syntax as a conversion signal.
+    // Plain marketing words such as "lead" or "purchase" in visible copy are not evidence of tracking.
+    const conversionEventNames = [...new Set(
+      [...html.matchAll(/(?:gtag\s*\(\s*["']event["']\s*,\s*["']([^"']+)["']|dataLayer\.push\s*\(\s*\{[^}]*["']event["']\s*:\s*["']([^"']+)["']/gi)]
+        .map((match) => (match[1] || match[2] || "").toLowerCase())
+        .filter(Boolean)
+    )];
+    const hasConversionSignal = conversionEventNames.some((name) => /^(purchase|generate_lead|sign_up|conversion|begin_checkout|add_to_cart)$/.test(name));
     const hasShippingSignal = /verzendkosten|verzending|levering|shipping|delivery|bezorging|ophalen|afhalen/i.test(text);
     const hasReturnsSignal = /retour|herroepingsrecht|14\s*dagen|bedenktijd|return policy|refund/i.test(text);
     const hasReviewPlatformSignal = /trustpilot|kiyoh|google reviews|reviews?\.io/i.test(text);
@@ -583,9 +592,9 @@ export async function POST(request: Request) {
       : check("not_applicable","checkout_trust","seo","Checkout- en betaalvertrouwen","Geen webshop-signalen gevonden; checkoutcontrole is niet van toepassing.","Gebruik deze controle op echte webshopcontent.",0,5));
     seoChecks.push(
       hasGoogleAdsTag && hasGa4 && hasConversionSignal
-        ? check("unable_to_confirm","ads_readiness","seo","Google Ads readiness","Google Ads-, GA4- en conversiesignalen zijn in de publieke bron gevonden, maar RankFix kan vanaf HTML niet bevestigen dat events werkelijk afvuren, consent correct wordt toegepast of Ads/GA4 correct gekoppeld zijn.","Verifieer de meetketen met runtime/tag-debugging en controleer daarna de ontvangen conversies in Google Ads en GA4.",0,6)
+        ? check("unable_to_confirm","ads_readiness","seo","Google Ads readiness",`Google Ads-tag${googleAdsIds.length ? ` (${googleAdsIds.join(", ")})` : ""}, GA4${ga4MeasurementIds.length ? ` (${ga4MeasurementIds.join(", ")})` : ""} en expliciete event-signalen (${conversionEventNames.slice(0,5).join(", ")}) zijn in de publieke bron gevonden. Dat bewijst nog niet dat events werkelijk afvuren, consent correct werkt of conversies in Ads/GA4 worden ontvangen.`,"Verifieer de meetketen met runtime/tag-debugging en controleer daarna de ontvangen conversies in Google Ads en GA4.",0,6)
         : adsTrackingSignals > 0 || hasConversionSignal
-          ? check("unable_to_confirm","ads_readiness","seo","Google Ads readiness",`Er zijn enkele advertentie-/tracking-signalen gevonden (${adsTrackingSignals}), maar de werkende meetketen is vanaf statische publieke HTML niet betrouwbaar vast te stellen.`,"Controleer Google tag, GA4, Ads-conversies en consent met runtime/tag-debugging.",0,6)
+          ? check("unable_to_confirm","ads_readiness","seo","Google Ads readiness",`Er zijn advertentie-/tracking-signalen gevonden, maar geen volledig verifieerbare meetketen. Gedetecteerd: Ads-ID's ${googleAdsIds.length}, GA4-ID's ${ga4MeasurementIds.length}, expliciete conversie-events ${conversionEventNames.length}.`,"Controleer Google tag, GA4, Ads-conversies en consent met runtime/tag-debugging.",0,6)
           : check("not_applicable","ads_readiness","seo","Google Ads readiness","Geen publieke Google Ads/GA4-signalen gevonden. Dat bewijst niet dat tracking ontbreekt of dat deze site Google Ads gebruikt.","Beoordeel Ads readiness alleen wanneer advertentietracking voor deze site daadwerkelijk van toepassing is.",0,6));
     geoChecks.push(isHomepage
       ? organizationSchemaPresent && websiteSchemaPresent
