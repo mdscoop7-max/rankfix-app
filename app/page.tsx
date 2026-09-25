@@ -682,7 +682,7 @@ export default function Home() {
             <p className="mt-3 text-sm leading-6 text-slate-600">RankFix heeft gecontroleerd of er echt iets moest worden aangepast. Dat was niet nodig.</p>
             <div className="mt-5 rounded-2xl border border-emerald-400/10 bg-emerald-400/[0.035] p-4 text-sm leading-6 text-slate-300">
               <span className="font-bold text-emerald-200">Je hoeft niets te doen.</span>
-              <div className="mt-1 text-slate-500">Er is geen technische wijziging aangemaakt en er zijn geen credits gebruikt.</div>
+              <div className="mt-1 text-slate-500">Er is geen technische wijziging aangemaakt.</div>
             </div>
             <button type="button" onClick={() => setGithubAlreadyApplied(false)} className="mt-6 w-full rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-950">Ga terug naar mijn resultaat</button>
           </div>
@@ -953,7 +953,7 @@ export default function Home() {
               ["Websites", "SEO & GEO audits voor publieke webpagina's."],
               ["Webshops", "Product-, categorie- en conversiesignalen worden steeds verder uitgebreid."],
               ["Apps", "Publieke app-landingspagina's en store-content kunnen via dezelfde auditprincipes worden voorbereid."],
-              ["Agencies", "Klantprojecten, credits, rapporten en white-label workflows."],
+              ["Agencies", "Klantprojecten, rapporten en white-label workflows."],
             ].map(([title, text]) => <div key={title}><h3 className="font-bold">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-500">{text}</p></div>)}
           </div>
         </div>
