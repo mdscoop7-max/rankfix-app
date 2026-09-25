@@ -1,6 +1,6 @@
 import { CrawlPage, CrawlResult, CrawlMode, crawlSite } from "@/lib/crawler";
 
-export const SITE_AUDIT_ENGINE_VERSION = "1.3.0";
+export const SITE_AUDIT_ENGINE_VERSION = "1.4.0";
 
 export type SiteRuleStatus = "PASS" | "FAIL" | "WARNING" | "NOT_APPLICABLE" | "UNABLE_TO_CONFIRM";
 
@@ -162,6 +162,34 @@ const rules: RuleDef[] = [
     recommendation: "Voeg alleen schema.org markup toe die de zichtbare en aantoonbare inhoud van de pagina beschrijft.",
     applicable: p => !p.noindex && ["homepage","product","product_category","category","blog_article","news","faq","local_business"].includes(p.pageType),
     evaluate: p => p.jsonLdTypes.length === 0 ? {status:"WARNING",found:0,details:"Geen JSON-LD types gevonden."} : {status:"PASS",found:p.jsonLdTypes.join(", "),details:"JSON-LD structured data gevonden."},
+  },
+  {
+    id: "SITE_JSONLD_INVALID", category: "structured-data", title: "Ongeldige JSON-LD", severity: "HIGH",
+    description: "JSON-LD die niet als geldige JSON kan worden gelezen, kan niet betrouwbaar als structured data worden verwerkt.",
+    recommendation: "Herstel de JSON-syntaxis en valideer de markup opnieuw.",
+    applicable: p => !p.noindex && p.jsonLdInvalid > 0,
+    evaluate: p => ({status:"FAIL",found:p.jsonLdInvalid,expected:"0",details:"Een of meer JSON-LD blokken konden niet als geldige JSON worden gelezen."}),
+  },
+  {
+    id: "SITE_PRODUCT_SCHEMA_CORE", category: "structured-data", title: "Product structured data onvolledig", severity: "HIGH",
+    description: "Productpagina's hebben bruikbare product- en aanbodgegevens nodig om productinformatie machineleesbaar te maken.",
+    recommendation: "Controleer Product markup en voeg aantoonbare kerngegevens toe, waaronder naam en waar van toepassing Offer met prijs en valuta.",
+    applicable: p => !p.noindex && p.pageType === "product" && Boolean(p.product),
+    evaluate: p => {
+      const x=p.product!;
+      const missing=[!x.name&&"name",!x.image&&"image",!x.offers&&"offers",x.offers&&!x.price&&"price",x.offers&&!x.priceCurrency&&"priceCurrency"].filter(Boolean) as string[];
+      return missing.length ? {status:"FAIL",found:missing.join(", "),expected:"complete Product/Offer core fields",details:`Product JSON-LD is gevonden, maar kernvelden ontbreken: ${missing.join(", ")}.`} : {status:"PASS",found:"Product + core Offer fields",details:"Product structured data bevat de gecontroleerde kernvelden."};
+    },
+  },
+  {
+    id: "SITE_CANONICAL_CROSS_HOST", category: "technical", title: "Canonical wijst naar ander domein", severity: "HIGH",
+    description: "Een cross-domain canonical kan zoekmachines vragen een andere URL als voorkeursversie te behandelen.",
+    recommendation: "Controleer of de cross-domain canonical bewust is ingesteld; gebruik anders de juiste voorkeurs-URL op hetzelfde domein.",
+    applicable: p => !p.noindex && Boolean(p.canonical),
+    evaluate: p => {
+      try { const same=new URL(p.canonical!).hostname.toLowerCase().replace(/^www\./,"")===new URL(p.url).hostname.toLowerCase().replace(/^www\./,""); return same?{status:"PASS",found:p.canonical,details:"Canonical blijft op hetzelfde domein."}:{status:"FAIL",found:p.canonical,expected:new URL(p.url).hostname,details:"Canonical wijst naar een ander domein."}; }
+      catch { return {status:"UNABLE_TO_CONFIRM",found:p.canonical,details:"Canonical URL kon niet betrouwbaar worden geïnterpreteerd."}; }
+    },
   },
   {
     id: "SITE_INTERNAL_LINKS_LOW", category: "internal-linking", title: "Weinig interne links", severity: "LOW",
