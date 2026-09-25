@@ -7,11 +7,11 @@ export const termsContent = {
     { heading: "Artikel 1. Definities", intro: "In deze algemene voorwaarden wordt verstaan onder:", items: [
       "RankFix AI: Het software-as-a-service (SaaS) platform, toegankelijk via meertalige websites en applicaties, dat geautomatiseerde technische SEO-, GEO- (Generative Engine Optimization) en e-commerce-audits, rapportages en AI-ondersteunde optimalisaties aanbiedt binnen de Europese Unie (EU) en wereldwijd.",
       "Gebruiker: De natuurlijke persoon of rechtspersoon die handelt in de uitoefening van beroep of bedrijf (B2B), dan wel een consument (B2C) gevestigd binnen of buiten de Europese Unie, die zich registreert of gebruikmaakt van het platform.",
-      "Overeenkomst: Elke digitale of schriftelijke overeenkomst tussen RankFix AI en de gebruiker met betrekking tot het gebruik van het platform, abonnementsvormen of de aanschaf van creditbundels.",
+      "Overeenkomst: Elke digitale of schriftelijke overeenkomst tussen RankFix AI en de gebruiker met betrekking tot het gebruik van het platform, abonnementsvormen en bijbehorende diensten.",
       "AI-output: Alle gegenereerde teksten, codes, meta-tags, schema's en technische voorstellen die tot stand komen via de automatische ‘Fix Engine’ van het platform."
     ] },
     { heading: "Artikel 2. Toepasselijkheid en Reikwijdte", items: [
-      "Deze algemene voorwaarden zijn van toepassing op elk gebruik van het RankFix AI-platform, alle offertes, aanbiedingen, gratis scans, betaalde abonnementen en de aanschaf van credits binnen de Europese Unie en daarbuiten.",
+      "Deze algemene voorwaarden zijn van toepassing op elk gebruik van het RankFix AI-platform, alle offertes, aanbiedingen, gratis scans en betaalde abonnementen binnen de Europese Unie en daarbuiten.",
       "Indien de gebruiker handelt als consument (B2C) binnen de EU, blijven de dwingendrechtelijke consumentenbeschermingsregels van het land van de verblijfplaats van de consument te allen tijde van toepassing indien deze gunstiger zijn.",
       "De toepasselijkheid van eventuele algemene of inkoopvoorwaarden van de gebruiker wordt uitdrukkelijk van de hand gewezen."
     ] },
@@ -29,8 +29,8 @@ export const termsContent = {
       "De gebruiker is verplicht alle gegenereerde teksten, codefragmenten en metadata kritisch te controleren en te testen in een veilige omgeving vóórdat deze op een live productieomgeving worden doorgevoerd.",
       "RankFix AI fungeert uitsluitend als technisch hulpmiddel en vervangt nimmer professioneel juridisch, fiscaal, technisch, SEO- of marketingadvies. RankFix AI aanvaardt geen enkele aansprakelijkheid voor schade voortvloeiend uit ongecontroleerd gebruik van AI-output."
     ] },
-    { heading: "Artikel 6. Fair Use Policy, Credits en Accountgebruik", items: [
-      "Gratis scans en betaalde credits zijn strikt persoons- of bedrijfsgebonden en mogen niet worden gedeeld, doorverkocht of overgedragen aan derden.",
+    { heading: "Artikel 6. Fair Use Policy en Accountgebruik", items: [
+      "Accounts, abonnementen en inbegrepen gebruik zijn persoons- of bedrijfsgebonden en mogen niet worden gedeeld, doorverkocht of overgedragen aan derden.",
       "Het is ten strengste verboden om het platform te gebruiken voor geautomatiseerde massascans, webscraping, het omzeilen van abonnementslimieten of andere activiteiten die de serverinfrastructuur onredelijk belasten of de werking van de dienst verstoren.",
       "Credits zijn digitale gebruikseenheden binnen de omgeving van RankFix AI en vertegenwoordigen geen contante geldwaarde, tenzij uitdrukkelijk schriftelijk anders is overeengekomen. Ongebruikte credits kunnen niet worden ingewisseld voor geld.",
       "Bij constatering of vermoeden van misbruik of overtreding van dit artikel behoudt RankFix AI zich het recht voor om het account van de gebruiker per direct te blokkeren en verdere toegang te ontzeggen zonder recht op restitutie."
