@@ -61,8 +61,6 @@ export default function Dashboard() {
     finally { setBusy(null); }
   }
 
-  const openIssues = scans.reduce((total, scan) => total + scan.open_issues, 0);
-  const average = scans.length ? Math.round(scans.reduce((total, scan) => total + scan.overall_score, 0) / scans.length) : null;
   const steps = 1 + Number(scans.length > 0) + Number((fixes.DONE || 0) > 0);
   const checks = [...(selectedResult?.seo?.checks || []), ...(selectedResult?.geo?.checks || [])];
   const latest = history[0] || scans[0];
@@ -78,15 +76,15 @@ export default function Dashboard() {
       </header>
       <div className="rf-body">
         <div className="rf-heading"><h1>{t.overview}</h1><p>{t.intro}</p></div>
-        {steps < 3 && <section className="rf-welcome" aria-label="Aan de slag">
+        {scans.length === 0 && <section className="rf-welcome" aria-label="Aan de slag">
           <div><strong>{t.welcome}, {user?.name || "…"}</strong><p>{steps} {t.steps} · {steps === 1 ? t.firstSite : t.firstFix}</p></div><span aria-hidden="true">☑</span>
         </section>}
         {error && <p className="rf-alert" role="alert">{error}</p>}
         {message && <p className="rf-notice" role="status">{message}</p>}
-        <div className="rf-stats">
-          <div className="rf-card"><span>{t.average}</span><strong>{average ?? "—"}</strong><small>{t.averageHint}</small></div>
-          <div className="rf-card"><span>{t.improvements}</span><strong className={openIssues ? "rf-danger" : ""}>{openIssues}</strong><small>{t.improvementsHint}</small></div>
-        </div>
+        <section className="rf-section">
+          <div className="rf-section-head"><div><h2>Scanhistorie</h2><p>Je laatste controles blijven bewaard.</p></div><a href="/dashboard/more">Bekijk alles →</a></div>
+          <div className="rf-history-list">{recentHistory.map((scan,index)=><a key={scan.id} href={`/dashboard/audit/${scan.id}`}><div><b>{(()=>{try{return new URL(scan.scanned_url).hostname}catch{return scan.scanned_url}})()}</b><span>{new Date(scan.created_at).toLocaleString(language)} · {scan.open_issues} verbeterpunten</span></div><strong>{scan.overall_score}</strong>{index===0&&<em>Nieuwste</em>}</a>)}</div>
+        </section>
         <section className="rf-dashboard-status">
           <div className="rf-section-head"><div><h2>Huidige status</h2><p>De nieuwste live scan en wat er sinds de vorige scan is veranderd.</p></div><a className="rf-primary-link" href={`/${language}/scan`}>Nieuwe scan</a></div>
           <div className="rf-status-grid">
@@ -119,10 +117,6 @@ export default function Dashboard() {
             {!scans.length && <p className="rf-empty">{t.empty}</p>}
             <a className="rf-add" href={`/${language}/scan`}><span aria-hidden="true">＋</span> {t.add}</a>
           </div>
-        </section>
-        <section className="rf-section">
-          <div className="rf-section-head"><div><h2>Scanhistorie</h2><p>Je laatste controles blijven bewaard.</p></div><a href="/dashboard/more">Bekijk alles →</a></div>
-          <div className="rf-history-list">{recentHistory.map((scan,index)=><a key={scan.id} href={`/dashboard/audit/${scan.id}`}><div><b>{(()=>{try{return new URL(scan.scanned_url).hostname}catch{return scan.scanned_url}})()}</b><span>{new Date(scan.created_at).toLocaleString(language)} · {scan.open_issues} verbeterpunten</span></div><strong>{scan.overall_score}</strong>{index===0&&<em>Nieuwste</em>}</a>)}</div>
         </section>
         <section className="rf-fix-summary" aria-label={t.fixes}><h2>{t.fixes}</h2><p>{fixes.PREPARED || 0} {t.prepared} · {fixes.DONE || 0} {t.confirmed}.</p><a href="/dashboard/github">{t.fixLink} →</a></section>
         {selectedResult && <section id="resultaat" className="rf-report"><div className="rf-section-head"><h2>{t.result}</h2><button onClick={() => setSelectedResult(null)}>{t.close}</button></div><p>{selectedResult.overallScore}/100 · SEO {selectedResult.seo?.score ?? "—"} · GEO {selectedResult.geo?.score ?? "—"}</p><div className="rf-checks">{checks.map((check, index) => <article key={index}><strong>{check.title}</strong><span>{check.fix_status === "DONE" ? t.live : check.fix_status === "WAITING" ? t.proposal : check.status === "pass" ? t.passed : check.severity === "CRITICAL" ? t.critical : t.needsAttention}</span><p>{check.message}</p></article>)}</div></section>}
