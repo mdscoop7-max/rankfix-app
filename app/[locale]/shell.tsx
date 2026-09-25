@@ -12,7 +12,7 @@ export default function LocaleShell({ locale, page = "", children }: { locale: L
     </div></header>
     {children}
     <footer className="lc-footer"><div className="lc-container"><span>© 2026 RankFix AI</span><div className="lc-footer-links"><a href={"/" + locale + "/about"}>{t.aboutTitle}</a><a href={"/" + locale + "/privacy"}>{t.privacyTitle}</a><a href={"/" + locale + "/terms"}>{t.termsTitle}</a><a href={"/" + locale + "/cookies"}>{t.cookiesTitle}</a></div></div></footer>
-    <AiAssistant />
+    <AiAssistant publicLocale={locale} />
     <MobileNav locale={locale} page={page} />
   </main>;
 }
