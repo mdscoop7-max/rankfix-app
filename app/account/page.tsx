@@ -91,7 +91,7 @@ export default function Account() {
                   {t.remember}
                 </label>
                 <div>
-                <a href="/account/forgot-password" className="text-sm text-emerald-300 hover:text-emerald-200">{t.forgot}</a>
+                <a href={`/account/forgot-password?lang=${language}`} className="text-sm text-emerald-300 hover:text-emerald-200">{t.forgot}</a>
                 </div>
               </div>
             )}
