@@ -463,7 +463,8 @@ export default function Home() {
     return item.fix_status === "WAITING" || Boolean(githubResults[key]);
   }).length;
   const remainingCount = issues.length;
-  const pageNotFound = Boolean(result && (result.httpStatus === 404 || result.httpStatus === 410));
+  const resultHttpStatus = result ? Number(result.httpStatus) : 0;
+  const pageNotFound = resultHttpStatus === 404 || resultHttpStatus === 410;
 
   return (
     <main className="rankfix-home min-h-screen bg-[#07172B] text-[#F7FBFF] selection:bg-emerald-300 selection:text-[#032D24]">
