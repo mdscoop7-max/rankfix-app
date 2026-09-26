@@ -730,11 +730,12 @@ export default function Home() {
               <p className="mt-1 max-w-2xl break-all text-xs text-slate-500">{result.finalUrl}</p>
             </div>
             <div className="text-xs text-slate-500">{result.responseTime} ms · HTTP {result.httpStatus}</div>{result.rendering&&<div className="mt-1 text-xs text-slate-500">Bron: {result.rendering.mode==="raw_html"?"Raw HTML · JavaScript niet uitgevoerd":"JavaScript-gerenderd"}{result.pageTypeEvidence?` · ${result.pageTypeEvidence.type} (${result.pageTypeEvidence.confidence})`:""}</div>}
-            {result.technologyProfile && (result.technologyProfile.cms || result.technologyProfile.commercePlatform || result.technologyProfile.framework) && (
+            {result.technologyProfile && (
               <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                {result.technologyProfile.cms && <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600">CMS: <strong>{result.technologyProfile.cms}</strong></span>}
-                {result.technologyProfile.commercePlatform && <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600">Webshop: <strong>{result.technologyProfile.commercePlatform}</strong></span>}
-                {result.technologyProfile.framework && <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600">Framework: <strong>{result.technologyProfile.framework}</strong></span>}
+                <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600">Type: <strong>{result.technologyProfile.isCommerce ? "Webshop" : "Website"}</strong></span>
+                <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600">CMS: <strong>{result.technologyProfile.cms || "Niet bevestigd"}</strong></span>
+                <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600">Platform: <strong>{result.technologyProfile.commercePlatform || "Niet bevestigd"}</strong></span>
+                <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600">Framework: <strong>{result.technologyProfile.framework || "Niet bevestigd"}</strong></span>
                 <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600">Confidence: <strong>{result.technologyProfile.confidence}%</strong></span>
               </div>
             )}
