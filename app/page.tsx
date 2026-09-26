@@ -861,9 +861,11 @@ export default function Home() {
                         className={`rounded-2xl border px-4 py-3 text-left transition ${tab === key ? "border-emerald-300/30 bg-emerald-300/10 text-slate-900" : "border-slate-200 bg-white/[0.02] text-slate-500 hover:bg-white/[0.05] hover:text-violet-700"}`}
                       >
                         <div className="text-[10px] font-bold uppercase tracking-widest">{key} audit</div>
-                        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                          <span className="whitespace-nowrap text-xl font-black">{data.score}<span className="ml-0.5 text-xs font-bold opacity-60">/100</span></span>
-                          <span className="whitespace-nowrap rounded-full border border-current/10 bg-white/60 px-2 py-1 text-[11px] font-semibold">Dekking: {data.checks.filter((item) => item.status !== "not_applicable" && item.status !== "unable_to_confirm").length}/{data.checks.length}</span>
+                        <div className="mt-2">
+                          <div className="whitespace-nowrap text-xl font-black">{data.score}<span className="ml-0.5 text-xs font-bold opacity-60">/100</span></div>
+                          <div className="mt-2">
+                            <span className="inline-flex whitespace-nowrap rounded-full border border-current/10 bg-white/60 px-2 py-1 text-[11px] font-semibold">Dekking: {data.checks.filter((item) => item.status !== "not_applicable" && item.status !== "unable_to_confirm").length}/{data.checks.length}</span>
+                          </div>
                         </div>
                       </button>
                     ))}
