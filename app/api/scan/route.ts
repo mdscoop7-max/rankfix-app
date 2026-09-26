@@ -85,7 +85,7 @@ function check(
     key, category, title, status, message, fix, points, maxPoints,
     issue_id: key, rule_id: key, issue_status: status === "not_applicable" ? "NOT_APPLICABLE" : status === "unable_to_confirm" ? "UNABLE_TO_CONFIRM" : statusCode(status),
     severity: status === "fail" ? "HIGH" : status === "warning" ? "MEDIUM" : "INFO",
-    confidence: "high", evidence: { url: "", found: null, details: message },
+    confidence: status === "unable_to_confirm" ? "low" : status === "not_applicable" ? "medium" : "high", evidence: { url: "", found: null, details: message },
     fix_category: getFixPolicy(key).category,
   };
 }
@@ -765,9 +765,48 @@ export async function POST(request: Request) {
         item.severity = mapped.severity;
         item.fix_category = getFixPolicy(mapped.rule_id).category;
       }
-      const found = item.key === "title" ? title : item.key === "description" ? description : item.key === "h1" ? h1s.length : item.key === "alt" ? imagesMissingAlt : item.key === "schema" ? validJsonLd : null;
-      item.evidence = { url: finalUrl.toString(), found, details: item.message };
-      item.issue_status = statusCode(item.status);
+      const evidenceByKey: Record<string, string | number | boolean | null> = {
+        title,
+        description,
+        h1: h1s.length,
+        headings: headings.length,
+        canonical: canonical || null,
+        viewport: viewportContent || null,
+        lang: lang || null,
+        alt: imageElementCount ? imagesMissingAlt : null,
+        schema: validJsonLd,
+        https: finalUrl.protocol === "https:",
+        status: response.status,
+        response: responseTime,
+        sitemap: sitemapFound ? (discoveredSitemapUrl || true) : sitemapStatus,
+        robots_txt: robotsStatus === "PASS" ? robotsUrl.toString() : robotsStatus,
+        indexability: noindexSignal ? [robots, xRobotsTag].filter(Boolean).join(" | ") : "no noindex signal found",
+        hreflang: hreflangValues.length ? hreflangValues.join(", ") : null,
+        social: [ogTitle ? "og:title" : "", ogDescription ? "og:description" : "", ogImage ? "og:image" : ""].filter(Boolean).join(", ") || null,
+        product_schema: hasProductSchema ? (hasCompleteProductOffer ? "Product + complete Offer evidence" : "Product schema present; offer evidence incomplete") : null,
+      };
+      const heuristicKeys = new Set([
+        "content", "headings", "duplicate_path", "html_escape", "image_sources", "webshop_claims",
+        "webshop_trust", "price_format", "variant_url", "ads_readiness", "conversion_tracking",
+        "organization_identity", "entity_consistency", "author", "faq", "reviews"
+      ]);
+      item.confidence = item.status === "unable_to_confirm"
+        ? "low"
+        : heuristicKeys.has(item.key)
+          ? "medium"
+          : item.status === "not_applicable"
+            ? "medium"
+            : "high";
+      item.evidence = {
+        url: finalUrl.toString(),
+        found: Object.prototype.hasOwnProperty.call(evidenceByKey, item.key) ? evidenceByKey[item.key] : null,
+        details: item.message,
+      };
+      item.issue_status = item.status === "not_applicable"
+        ? "NOT_APPLICABLE"
+        : item.status === "unable_to_confirm"
+          ? "UNABLE_TO_CONFIRM"
+          : statusCode(item.status);
     }
     const seoTotal = seoChecks.reduce((sum, c) => sum + (c.issue_status === "NOT_APPLICABLE" || c.issue_status === "UNABLE_TO_CONFIRM" ? 0 : c.points), 0);
     const seoMax = seoChecks.reduce((sum, c) => sum + (c.issue_status === "NOT_APPLICABLE" || c.issue_status === "UNABLE_TO_CONFIRM" ? 0 : c.maxPoints), 0);
