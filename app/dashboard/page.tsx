@@ -95,11 +95,11 @@ export default function Dashboard() {
         <section className="rf-dashboard-status">
           <div className="rf-dashboard-hero">
             <div className="rf-dashboard-latest">{latest && <div className="rf-overall-meter" style={{"--rf-score":latest.overall_score} as React.CSSProperties}><div><strong>{latest.overall_score}</strong><span>/100</span></div></div>}<div><span className="rf-eyebrow">{x.latest}</span><h2>{latestHost || "Voeg je eerste website toe"}</h2><p>{latest ? `${x.scanned} ${new Date(latest.created_at).toLocaleString(language)}` : "Start een SEO + GEO-audit om je dashboard te vullen."}</p></div></div>
-            <a className="rf-primary-link rf-scan-cta" href={`/${language}/scan`}>＋ {x.newScan}</a>
+            <a className="rf-primary-link rf-scan-cta" href={"/#scan"}>＋ {x.newScan}</a>
           </div>
           <div className="rf-status-grid">
-            <a className="rf-card rf-score-card" href={latest ? `/dashboard/audit/${latest.id}` : `/${language}/scan`}><span>SEO-score</span><strong>{latest?.seo_score ?? "—"}<small>/100</small></strong><small>{x.seoAudit} →</small></a>
-            <a className="rf-card rf-score-card" href={latest ? `/dashboard/audit/${latest.id}` : `/${language}/scan`}><span>GEO-score</span><strong>{latest?.geo_score ?? "—"}<small>/100</small></strong><small>{x.geoAudit} →</small></a>
+            <a className="rf-card rf-score-card" href={latest ? `/dashboard/audit/${latest.id}` : "/#scan"}><span>SEO-score</span><strong>{latest?.seo_score ?? "—"}<small>/100</small></strong><small>{x.seoAudit} →</small></a>
+            <a className="rf-card rf-score-card" href={latest ? `/dashboard/audit/${latest.id}` : "/#scan"}><span>GEO-score</span><strong>{latest?.geo_score ?? "—"}<small>/100</small></strong><small>{x.geoAudit} →</small></a>
             <div className="rf-card"><span>{x.openIssues}</span><strong>{latest?.open_issues ?? 0}</strong><small>{fixes.DONE || 0} {x.confirmedSolved}</small></div>
             <div className="rf-card"><span>{x.scoreChange}</span><strong className={scoreChange !== null && scoreChange < 0 ? "rf-danger" : ""}>{scoreChange === null ? "—" : `${scoreChange > 0 ? "+" : ""}${scoreChange}`}</strong><small>{x.previousScan}</small></div>
           </div>
@@ -107,7 +107,7 @@ export default function Dashboard() {
         <section className="rf-section">
           <div className="rf-section-head"><div><h2>{x.nextTitle}</h2><p>{x.nextIntro}</p></div></div>
           <div className="rf-next-actions">
-            {latest?.open_issues ? <a href={`/dashboard/audit/${latest.id}`}><b>1. {x.firstIssue}</b><span>{latest.open_issues} {x.firstIssueHint} →</span></a> : <a href={`/${language}/scan`}><b>1. {x.newControl}</b><span>{x.newControlHint} →</span></a>}
+            {latest?.open_issues ? <a href={`/dashboard/audit/${latest.id}`}><b>1. {x.firstIssue}</b><span>{latest.open_issues} {x.firstIssueHint} →</span></a> : <a href={"/#scan"}><b>1. {x.newControl}</b><span>{x.newControlHint} →</span></a>}
             {(fixes.PREPARED || 0) > 0 && <a href="/dashboard/github"><b>2. {x.codeProposals}</b><span>{fixes.PREPARED} wachten op publicatie of controle →</span></a>}
             <a href="/dashboard/help"><b>{(fixes.PREPARED || 0) > 0 ? "3" : "2"}. {x.askAi}</b><span>{x.askAiHint} →</span></a>
           </div>
@@ -129,7 +129,7 @@ export default function Dashboard() {
               </article>;
             })}
             {!scans.length && <p className="rf-empty">{t.empty}</p>}
-            <a className="rf-add" href={`/${language}/scan`}><span aria-hidden="true">＋</span> {t.add}</a>
+            <a className="rf-add" href={"/#scan"}><span aria-hidden="true">＋</span> {t.add}</a>
           </div>
         </section>
         <section className="rf-fix-summary" aria-label={t.fixes}><h2>{t.fixes}</h2><p>{fixes.PREPARED || 0} {t.prepared} · {fixes.DONE || 0} {t.confirmed}.</p><a href="/dashboard/github">{t.fixLink} →</a></section>
