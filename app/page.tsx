@@ -1,4 +1,5 @@
 "use client";
+import WebsiteProfile from "@/components/website-profile";
 
 import { useEffect, useMemo, useState } from "react";
 import AiAssistant from "@/components/ai-assistant";
@@ -730,23 +731,7 @@ export default function Home() {
               <p className="mt-1 max-w-2xl break-all text-xs text-slate-500">{result.finalUrl}</p>
             </div>
             <div className="text-xs text-slate-500">{result.responseTime} ms · HTTP {result.httpStatus}</div>{result.rendering&&<div className="mt-1 text-xs text-slate-500">Bron: {result.rendering.mode==="raw_html"?"Raw HTML · JavaScript niet uitgevoerd":"JavaScript-gerenderd"}{result.pageTypeEvidence?` · ${result.pageTypeEvidence.type} (${result.pageTypeEvidence.confidence})`:""}</div>}
-            <div className="mt-2 rounded-xl border border-slate-200 bg-white/70 p-3 text-xs text-slate-600">
-              <div className="font-bold text-slate-700">Websiteprofiel</div>
-              {result.technologyProfile ? (
-                <>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <span className="rounded-full border border-slate-200 bg-white px-3 py-1">Type: <strong>{result.technologyProfile.isCommerce ? "Webshop" : "Website"}</strong></span>
-                    <span className="rounded-full border border-slate-200 bg-white px-3 py-1">CMS: <strong>{result.technologyProfile.cms || "Niet bevestigd"}</strong></span>
-                    <span className="rounded-full border border-slate-200 bg-white px-3 py-1">Platform: <strong>{result.technologyProfile.commercePlatform || "Niet bevestigd"}</strong></span>
-                    <span className="rounded-full border border-slate-200 bg-white px-3 py-1">Framework: <strong>{result.technologyProfile.framework || "Niet bevestigd"}</strong></span>
-                    <span className="rounded-full border border-slate-200 bg-white px-3 py-1">Confidence: <strong>{result.technologyProfile.confidence}%</strong></span>
-                  </div>
-                  <div className="mt-2 text-slate-500">Bewijs: {result.technologyProfile.evidence?.length ? result.technologyProfile.evidence.join(" · ") : "Geen publiek platformfingerprint met voldoende bewijs gevonden."}</div>
-                </>
-              ) : (
-                <div className="mt-2 text-amber-700">Platformprofiel ontbreekt in deze scanresponse. Scan opnieuw met de nieuwste scanner.</div>
-              )}
-            </div>
+            <WebsiteProfile profile={result.technologyProfile} />
           </div>
 
           <div className="mb-6 rounded-[28px] border border-slate-200 bg-gradient-to-br from-white/[0.055] to-emerald-400/[0.025] p-5 shadow-2xl shadow-black/10 sm:p-6">
