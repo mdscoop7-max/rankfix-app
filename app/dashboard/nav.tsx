@@ -3,7 +3,7 @@ import { useEffect,useState } from "react";
 import { type Locale } from "@/lib/locales";
 const labels:Record<Locale,string[]>={nl:["Overzicht & websites","Scannen","Fixes","Zo werkt het","Reviews","Contact","Meer"],en:["Overview & websites","Scan","Fixes","How it works","Reviews","Contact","More"],fr:["Aperçu & sites","Scanner","Correctifs","Comment ça marche","Avis","Contact","Plus"],es:["Resumen y sitios","Escanear","Mejoras","Cómo funciona","Reseñas","Contacto","Más"],it:["Panoramica e siti","Scansiona","Modifiche","Come funziona","Recensioni","Contatti","Altro"],de:["Übersicht & Websites","Scannen","Fixes","So funktioniert es","Bewertungen","Kontakt","Mehr"]};
 const flags:Record<Locale,string>={nl:"🇳🇱",en:"🇬🇧",fr:"🇫🇷",de:"🇩🇪",it:"🇮🇹",es:"🇪🇸"};
-const desktop=["/dashboard","/#scan","/dashboard/github","/dashboard/how","/dashboard/reviews","/dashboard/contact","/dashboard/more"];
+const desktop=["/dashboard","/dashboard/scan","/dashboard/github","/dashboard/how","/dashboard/reviews","/dashboard/contact","/dashboard/more"];
 const mobile=[0,1,2,6];
 const paths=["M3 10l9-7 9 7v10H3z M9 20v-7h6v7","M12 3v18 M3 12h18","M7 4l10 16 M17 4L7 20","M5 12h14 M12 5v14"];
 export default function DashboardNav({current}:{current:number}){
