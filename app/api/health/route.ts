@@ -45,5 +45,22 @@ export async function GET(request:Request){
     // are deliberately neutral and must never be presented as an ongoing issue.
     if(isProblemStatus(now)&&isProblemStatus(before)) persistent++;
   }
-  return NextResponse.json({website_host:websiteHost,improvements:improvements.length,regressions:regressions.length,priorityRegressions:priorityRegressions.length,persistent,needsAttention:priorityRegressions.length>0,events:result.rows});
+  const recentSiteScans=await getDb().query(
+    "SELECT final_url,result FROM scans WHERE user_id=$1 AND lower(regexp_replace(split_part(split_part(final_url, '://', 2), '/', 1), '^www\\.', ''))=$2 ORDER BY created_at DESC LIMIT 40",
+    [user.id,websiteHost]
+  );
+  const patternMap=new Map<string,{title:string;urls:Set<string>}>();
+  for(const scan of recentSiteScans.rows){
+    const url=String(scan.final_url||"");
+    const scanChecks=[...(scan.result?.seo?.checks||[]),...(scan.result?.geo?.checks||[])];
+    for(const item of scanChecks){
+      if(!isProblemStatus(item.issue_status||item.status)) continue;
+      const rule=String(item.issue_id||item.rule_id||item.key||"");
+      if(!rule) continue;
+      const current=patternMap.get(rule)||{title:String(item.title||rule),urls:new Set<string>()};
+      current.urls.add(url); patternMap.set(rule,current);
+    }
+  }
+  const recurringPatterns=[...patternMap.entries()].map(([rule,value])=>({rule_id:rule,title:value.title,pageCount:value.urls.size,examples:[...value.urls].slice(0,3)})).filter(item=>item.pageCount>=2).sort((a,b)=>b.pageCount-a.pageCount).slice(0,8);
+  return NextResponse.json({website_host:websiteHost,improvements:improvements.length,regressions:regressions.length,priorityRegressions:priorityRegressions.length,persistent,needsAttention:priorityRegressions.length>0,recurringPatterns,events:result.rows});
 }
