@@ -901,9 +901,9 @@ export async function POST(request: Request) {
       ? check("pass", "alt", "seo", "Afbeelding alt-teksten", `Alle ${imageElementCount} controleerbare <img>-elementen in de raw HTML hebben alt-attributen. JavaScript-geladen afbeeldingen zijn niet meegenomen.`, "Schrijf beschrijvende alt-teksten voor informatieve afbeeldingen.", 7, 7)
       : check("warning", "alt", "seo", "Afbeelding alt-teksten", `${imagesMissingAlt} van ${imageElementCount} controleerbare <img>-elementen in de raw HTML missen alt. JavaScript-geladen afbeeldingen zijn niet meegenomen.`, "Voeg beschrijvende alt-teksten toe waar ze betekenis toevoegen.", 3, 7)
     );
-    const contentContext = isHomepage ? "homepage" : isProductPage ? "productpagina" : hasItemListSignal ? "categorie-/lijstpagina" : hasArticleSignal ? "artikelpagina" : "contentpagina";
-    const contentMinimumSignal = isHomepage ? 150 : isProductPage ? 80 : hasItemListSignal ? 120 : hasArticleSignal ? 300 : 200;
-    const contentStrongSignal = isHomepage ? 250 : isProductPage ? 180 : hasItemListSignal ? 220 : hasArticleSignal ? 600 : 350;
+    const contentContext = isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "categorie-/lijstpagina" : hasArticleSignal ? "artikelpagina" : "contentpagina";
+    const contentMinimumSignal = isHomepage ? 150 : isProductPage ? 80 : hasCategorySignal ? 120 : hasArticleSignal ? 300 : 200;
+    const contentStrongSignal = isHomepage ? 250 : isProductPage ? 180 : hasCategorySignal ? 220 : hasArticleSignal ? 600 : 350;
     seoChecks.push(wordCount >= contentStrongSignal
       ? check("pass", "content", "seo", "Contentdekking", `Ongeveer ${wordCount} woorden gevonden op deze ${contentContext}. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld.`, "Behoud nuttige, unieke content die de zoekintentie en klantvragen beantwoordt.", 7, 7)
       : wordCount >= contentMinimumSignal
