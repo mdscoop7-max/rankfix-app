@@ -9,7 +9,7 @@ type Result={overallScore:number;seo?:{score:number;checks:Array<{status:string}
 export default function DashboardScan(){
  const [language,setLanguage]=useState<Locale>("nl"),[url,setUrl]=useState(""),[busy,setBusy]=useState(false),[error,setError]=useState(""),[result,setResult]=useState<Result|null>(null);
  const [showAdsProfile,setShowAdsProfile]=useState(false);
- const [adsProfile,setAdsProfile]=useState({industry:"",primaryOffer:"",targetArea:"",campaignGoal:"",audience:"",adLanguages:"",excludeIntent:""});
+ const [adsProfile,setAdsProfile]=useState({industry:"",primaryOffer:"",targetArea:"",targetCountries:"",campaignGoal:"",audience:"",adLanguages:"",excludeIntent:""});
  const setAds=(key:keyof typeof adsProfile,value:string)=>setAdsProfile(current=>({...current,[key]:value}));
  useEffect(()=>{fetch("/api/auth/me").then(r=>r.json()).then(d=>{if(!d.user)location.href="/account"});fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language)setLanguage(d.language)}).catch(()=>{})},[]);
  const t=copy[language];
@@ -20,7 +20,7 @@ export default function DashboardScan(){
 {showAdsProfile&&<div className="rf-card"><p><strong>Google Ads-profiel</strong><br/>Alleen invullen wat nuttig is. RankFix analyseert de website ook automatisch.</p>
 <label>Branche</label><input value={adsProfile.industry} onChange={e=>setAds("industry",e.target.value)} maxLength={120} placeholder="Bijv. webshop, loodgieter, SaaS"/>
 <label>Belangrijkste product of dienst</label><input value={adsProfile.primaryOffer} onChange={e=>setAds("primaryOffer",e.target.value)} maxLength={160} placeholder="Wat wil je vooral promoten?"/>
-<label>Doelgebied</label><input value={adsProfile.targetArea} onChange={e=>setAds("targetArea",e.target.value)} maxLength={120} placeholder="Bijv. Nederland, Amsterdam, EU"/>
+<label>Doelgebied</label><input value={adsProfile.targetArea} onChange={e=>setAds("targetArea",e.target.value)} maxLength={120} placeholder="Bijv. Nederland, Amsterdam, EU"/><label>Doelland(en)</label><input value={adsProfile.targetCountries} onChange={e=>setAds("targetCountries",e.target.value)} maxLength={160} placeholder="Bijv. Nederland, België, Duitsland"/>
 <label>Campagnedoel</label><select value={adsProfile.campaignGoal} onChange={e=>setAds("campaignGoal",e.target.value)}><option value="">Automatisch bepalen</option><option value="sales">Verkoop</option><option value="leads">Leads / offertes</option><option value="calls">Telefoontjes</option><option value="appointments">Afspraken</option><option value="store_visits">Winkelbezoek</option></select>
 <label>Doelgroep</label><select value={adsProfile.audience} onChange={e=>setAds("audience",e.target.value)}><option value="">Automatisch bepalen</option><option value="consumer">Particulieren</option><option value="business">Bedrijven</option><option value="both">Beide</option></select>
 <label>Advertentietaal/talen</label><input value={adsProfile.adLanguages} onChange={e=>setAds("adLanguages",e.target.value)} maxLength={80} placeholder="Bijv. NL, EN"/>
