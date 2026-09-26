@@ -352,6 +352,8 @@ export async function POST(request: Request) {
     let robotsTxt = "";
     let robotsStatus: "PASS" | "FAIL" | "UNABLE_TO_CONFIRM" = "UNABLE_TO_CONFIRM";
     let sitemapFound = false;
+    let sitemapStatus: "PASS" | "FAIL" | "UNABLE_TO_CONFIRM" = "UNABLE_TO_CONFIRM";
+    let sitemapFetchCompleted = false;
     let discoveredSitemapUrl: string | null = null;
     try {
       const r = (await safePublicFetch(robotsUrl, { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/plain,application/xml,text/xml" })).response;
@@ -366,13 +368,17 @@ export async function POST(request: Request) {
     for (const candidate of sitemapCandidates) {
       try {
         const r = (await safePublicFetch(new URL(candidate), { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/plain,application/xml,text/xml" })).response;
+        sitemapFetchCompleted = true;
         if (r.ok && /xml|text\/xml/i.test(r.headers.get("content-type") || "")) {
           sitemapFound = true;
+          sitemapStatus = "PASS";
           discoveredSitemapUrl = candidate;
           break;
         }
+        if (r.status === 404) sitemapStatus = "FAIL";
       } catch {}
     }
+    if (!sitemapFound && sitemapFetchCompleted && sitemapStatus === "UNABLE_TO_CONFIRM") sitemapStatus = "FAIL";
     const robotsMentionsSitemap = Boolean(discoveredSitemapUrl);
 
     const seoChecks: Check[] = [];
@@ -478,9 +484,12 @@ export async function POST(request: Request) {
       : check("warning", "headings", "seo", "Heading-structuur", "De pagina heeft weinig duidelijke subheadings.", "Voeg H2/H3-secties toe rond belangrijke onderwerpen en vragen.", 3, 7)
     );
     let canonicalUrl: URL | null = null;
+    let canonicalInvalid = false;
     try {
       canonicalUrl = canonical ? new URL(canonical, finalUrl) : null;
-    } catch {}
+    } catch {
+      canonicalInvalid = Boolean(canonical);
+    }
 
     const normalizeCanonicalTarget = (url: URL) => {
       const normalized = new URL(url.toString());
@@ -497,8 +506,10 @@ export async function POST(request: Request) {
     const canonicalDropsQuery = Boolean(canonicalUrl && finalUrl.search && !canonicalUrl.search);
 
     seoChecks.push(
-      !canonicalUrl
-        ? check("warning", "canonical", "seo", "Canonical URL", "Geen canonical URL gevonden.", "Voeg een self-referencing canonical toe wanneer passend.", 3, 7)
+      canonicalInvalid
+        ? check("fail", "canonical", "seo", "Canonical URL", `Er is een canonical gevonden, maar de waarde is geen geldige URL: "${canonical}".`, "Corrigeer de canonical naar één geldige absolute of relatieve voorkeurs-URL.", 0, 7)
+        : !canonicalUrl
+          ? check("warning", "canonical", "seo", "Canonical URL", "Geen canonical URL gevonden.", "Voeg een self-referencing canonical toe wanneer passend.", 3, 7)
         : canonicalIsSelf
           ? check("pass", "canonical", "seo", "Canonical URL", canonicalDropsQuery ? "De canonical wijst naar dezelfde inhoud zonder queryparameters." : "De canonical verwijst naar dezelfde URL als de gescande pagina.", "Behoud een duidelijke self-referencing canonical en laat trackingparameters buiten de voorkeurs-URL.", 7, 7)
           : canonicalIsCrossDomain
@@ -527,9 +538,11 @@ export async function POST(request: Request) {
       ? check("pass", "https", "seo", "HTTPS", "De uiteindelijke URL gebruikt HTTPS.", "Behoud HTTPS op alle publieke pagina's en redirects.", 7, 7)
       : check("fail", "https", "seo", "HTTPS", "De uiteindelijke URL gebruikt geen HTTPS.", "Zet de site volledig achter HTTPS.", 0, 7)
     );
-    seoChecks.push(response.ok
-      ? check("pass", "status", "seo", "HTTP-status", `De pagina gaf HTTP ${response.status} terug.`, "Gebruik 200 voor normale indexeerbare pagina's.", 6, 6)
-      : check("warning", "status", "seo", "HTTP-status", `De pagina gaf HTTP ${response.status} terug.`, "Controleer redirects, 404's en serverfouten.", 2, 6)
+    seoChecks.push(response.status === 200
+      ? check("pass", "status", "seo", "HTTP-status", "De pagina gaf HTTP 200 terug.", "Behoud HTTP 200 voor normale indexeerbare pagina's.", 6, 6)
+      : response.ok
+        ? check("warning", "status", "seo", "HTTP-status", `De pagina gaf HTTP ${response.status} terug. Dat is succesvol op HTTP-niveau, maar niet de normale 200-response voor een indexeerbare HTML-pagina.`, "Controleer waarom deze URL geen HTTP 200 teruggeeft.", 3, 6)
+        : check("warning", "status", "seo", "HTTP-status", `De pagina gaf HTTP ${response.status} terug.`, "Controleer redirects, 404's en serverfouten.", 2, 6)
     );
     seoChecks.push(responseTime < 1500
       ? check("pass", "response", "seo", "Server response", `De eerste response kwam in ongeveer ${responseTime} ms.`, "Blijf server response en Core Web Vitals monitoren.", 5, 5)
@@ -541,9 +554,11 @@ export async function POST(request: Request) {
       ? check("pass", "social", "seo", "Social metadata", "Open Graph title, description en image zijn aanwezig.", "Controleer social previews voor belangrijke pagina's.", 4, 4)
       : check("warning", "social", "seo", "Social metadata", "Niet alle belangrijke Open Graph velden zijn gevonden.", "Voeg og:title, og:description en og:image toe.", 2, 4)
     );
-    seoChecks.push(sitemapFound || robotsMentionsSitemap
-      ? check("pass", "sitemap", "seo", "Sitemap-signaal", "Er is een sitemap.xml gevonden of robots.txt verwijst naar een sitemap.", "Controleer of de sitemap alleen canonieke, indexeerbare URL's bevat.", 4, 4)
-      : check("warning", "sitemap", "seo", "Sitemap-signaal", "Geen sitemap.xml of sitemap-verwijzing gevonden.", "Publiceer een XML sitemap en vermeld die in robots.txt.", 1, 4)
+    seoChecks.push(sitemapFound
+      ? check("pass", "sitemap", "seo", "Sitemap-signaal", `Een bereikbare XML sitemap is gevonden${discoveredSitemapUrl ? `: ${discoveredSitemapUrl}` : "."}`, "Controleer of de sitemap alleen canonieke, indexeerbare URL's bevat.", 4, 4)
+      : sitemapStatus === "FAIL"
+        ? check("warning", "sitemap", "seo", "Sitemap-signaal", robotsMentionsSitemap ? "robots.txt verwijst naar een sitemap, maar RankFix kon geen geldige bereikbare XML sitemap bevestigen." : "Geen geldige bereikbare XML sitemap gevonden.", "Controleer de sitemap-URL, HTTP-status en XML content-type.", 1, 4)
+        : check("unable_to_confirm", "sitemap", "seo", "Sitemap-signaal", robotsMentionsSitemap ? "robots.txt bevat een sitemapverwijzing, maar RankFix kon de sitemap tijdens deze scan niet betrouwbaar ophalen." : "RankFix kon tijdens deze scan niet betrouwbaar bevestigen of een sitemap beschikbaar is.", "Controleer de sitemap opnieuw wanneer de server bereikbaar is.", 0, 4)
     );
 
     geoChecks.push(
@@ -554,7 +569,9 @@ export async function POST(request: Request) {
             ? check("warning", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden, maar geen passend LocalBusiness-subtype.`, `Gebruik voor deze lokale pagina het meest specifieke passende type: ${recommendedSchema}, met alleen gegevens die zichtbaar en aantoonbaar zijn.`, 6, 12)
             : check("fail", "schema", "geo", "Structured data", `Geen geldige JSON-LD structured data gevonden voor deze ${schemaContextLabel}.`, `Voeg relevante schema.org JSON-LD toe. Voor dit paginatype is ${recommendedSchema} de belangrijkste richting; gebruik alleen typen die echt bij de zichtbare content passen.`, 0, 12)
         : validJsonLd > 0
-          ? check("pass", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden voor deze ${schemaContextLabel}.`, `Controleer of de schema-opbouw past bij dit paginatype. Relevante hoofdkeuze: ${recommendedSchema}.`, 12, 12)
+          ? hasEntitySchema
+            ? check("pass", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) met een herkenbaar inhoudelijk schema-type gevonden voor deze ${schemaContextLabel}.`, `Controleer of het schema inhoudelijk overeenkomt met de pagina. Relevante hoofdkeuze: ${recommendedSchema}.`, 12, 12)
+            : check("warning", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden, maar geen herkenbaar Organization, WebSite, Person, Product of Article-type dat deze pagina inhoudelijk beschrijft.`, `Gebruik structured data die aantoonbaar bij het paginatype past. Relevante hoofdkeuze: ${recommendedSchema}.`, 6, 12)
           : check("fail", "schema", "geo", "Structured data", `Geen geldige JSON-LD structured data gevonden voor deze ${schemaContextLabel}.`, `Voeg relevante schema.org JSON-LD toe. Voor dit paginatype is ${recommendedSchema} de belangrijkste richting; gebruik alleen typen die echt bij de zichtbare content passen.`, 0, 12)
     );
     seoChecks.push(twitterCard === "summary_large_image"
