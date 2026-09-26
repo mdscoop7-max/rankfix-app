@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { extractImageMetrics } from "../lib/image-metrics.ts";
-import { scoreApplicableChecks, summarizeAuditChecks } from "../lib/audit-score.ts";
+import { applyEvidenceBasedScoreCap, scoreApplicableChecks, summarizeAuditChecks } from "../lib/audit-score.ts";
 
 test("decorative empty alt is valid; only a missing alt attribute is actionable", () => {
   const metrics = extractImageMetrics('<img src="/hero.jpg" alt=""><img src="/product.jpg" alt="Product"><img src="/broken.jpg">');
@@ -26,4 +26,17 @@ test("summary never counts N/A or unable-to-confirm as passed", () => {
     { issue_status: "UNABLE_TO_CONFIRM", points: 0, maxPoints: 1 },
   ]);
   assert.deepEqual(summary, { passed: 1, issues: 1, notApplicable: 1, unableToConfirm: 1, pendingFixes: 0 });
+});
+
+
+test("critical score cap requires a confirmed high-confidence failure", () => {
+  assert.equal(applyEvidenceBasedScoreCap(96, [
+    { issue_status: "UNABLE_TO_CONFIRM", severity: "CRITICAL", confidence: "low" },
+  ]), 96);
+  assert.equal(applyEvidenceBasedScoreCap(96, [
+    { issue_status: "WARNING", severity: "CRITICAL", confidence: "high" },
+  ]), 96);
+  assert.equal(applyEvidenceBasedScoreCap(96, [
+    { issue_status: "FAIL", severity: "CRITICAL", confidence: "high" },
+  ]), 70);
 });
