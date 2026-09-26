@@ -485,11 +485,23 @@ export async function POST(request: Request) {
     const hasItemListSignal = schemaSet.has("itemlist");
     const commerceNavigationSignal = /\b(winkelwagen|cart|checkout|afrekenen|shop|webshop|producten|products)\b/i.test(text);
     const visiblePriceCount = (text.match(/(?:€|£|\$)\s*\d|\d[\d.,]*\s*(?:€|EUR|GBP|USD)\b/gi) || []).length;
-    const categoryPathSignal = !isHomepage && pathSegmentsForType.some((segment) =>
-      /^(?:shop|winkel|products?|producten?|category|categorie|collections?|pc-componenten|gadgets?|smart-home|beauty-care|lifestyle-sport|aanbiedingen)$/.test(segment)
+    // Category detection must be portable across customer sites: use generic taxonomy paths
+    // plus repeated commerce evidence, never customer-specific category slugs.
+    const genericCategoryPathSignal = !isHomepage && pathSegmentsForType.some((segment) =>
+      /^(?:shop|store|winkel|products?|producten?|catalog(?:ue)?|catalogus|category|categories|categorie|categorieen|collection|collections|departments?|assortiment|angebote|produits?|productos?|prodotti)$/.test(segment)
     );
     const repeatedProductCardSignal = !isHomepage && hasStrongCommerceAction && visiblePriceCount >= 2;
-    const hasCategorySignal = !isProductPage && (hasItemListSignal || categoryPathSignal || repeatedProductCardSignal);
+    const commerceCategoryContentSignal = !isHomepage &&
+      commerceNavigationSignal &&
+      visiblePriceCount >= 2 &&
+      !hasSkuSignal &&
+      !hasStockSignal;
+    const hasCategorySignal = !isProductPage && (
+      hasItemListSignal ||
+      genericCategoryPathSignal ||
+      repeatedProductCardSignal ||
+      commerceCategoryContentSignal
+    );
     const hasEcommerceSignal = hasProductSignal || hasCategorySignal || (commerceNavigationSignal && (hasExplicitPriceSignal || visiblePriceCount >= 2 || hasStrongCommerceAction));
     const requestedLanguages = adsProfile.adLanguages.split(/[,;]/).map((value) => value.trim().toLowerCase()).filter(Boolean).slice(0, 6);
     const requestedCountries = adsProfile.targetCountries.split(/[,;]/).map((value) => value.trim()).filter(Boolean).slice(0, 8);
@@ -1265,7 +1277,7 @@ export async function POST(request: Request) {
     const pageTypeEvidence = {
       type: isHomepage ? "homepage" : isProductPage ? "product" : hasCategorySignal ? "category" : hasArticleSignal ? "article" : hasLocalBusinessSignal ? "service" : "unknown",
       confidence: isHomepage ? "high" : isProductPage && (hasProductSchema || hasSkuSignal) ? "high" : isProductPage ? "medium" : hasCategorySignal && (hasItemListSignal || repeatedProductCardSignal) ? "high" : hasCategorySignal || hasArticleSignal || hasLocalBusinessSignal ? "medium" : "low",
-      evidence: [isHomepage ? `localized/root path: ${pathname}` : "", hasProductSchema ? "Product schema present" : "", hasItemListSignal ? "ItemList schema present" : "", categoryPathSignal ? `commerce category path: ${pathname}` : "", repeatedProductCardSignal ? "repeated product-card commerce signals" : "", hasSkuSignal ? "SKU signal present" : "", hasStrongCommerceAction ? "commerce action present" : ""].filter(Boolean),
+      evidence: [isHomepage ? `localized/root path: ${pathname}` : "", hasProductSchema ? "Product schema present" : "", hasItemListSignal ? "ItemList schema present" : "", genericCategoryPathSignal ? `generic commerce category path: ${pathname}` : "", repeatedProductCardSignal ? "repeated product-card commerce signals" : "", hasSkuSignal ? "SKU signal present" : "", hasStrongCommerceAction ? "commerce action present" : ""].filter(Boolean),
     };
     const technologyProfile = detectTechnologyProfile(html, response.headers, Boolean(hasProductSchema || hasProductSignal || hasStrongCommerceAction || /add-to-cart|shopping cart|winkelwagen|checkout|sku|price|availability/i.test(text)));
     const rendering = { mode: "raw_html" as const, javascriptExecuted: false, note: "RankFix beoordeelde de HTTP HTML-response; client-side JavaScript is in deze scan niet uitgevoerd." };
