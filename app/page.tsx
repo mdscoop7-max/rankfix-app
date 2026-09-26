@@ -443,13 +443,20 @@ export default function Home() {
   }
 
   const activeChecks = result ? (tab === "seo" ? result.seo.checks : result.geo.checks) : [];
-  const waitingIssues = useMemo(() => activeChecks.filter((item) => item.fix_status === "WAITING"), [activeChecks]);
-  const issues = useMemo(() => activeChecks.filter((item) => {
+  // The top-level result summarizes the complete requested audit. In SEO + GEO mode
+  // it must not hide GEO issues merely because the details initially open on the SEO tab.
+  const summaryChecks = result
+    ? result.mode === "both"
+      ? [...result.seo.checks, ...result.geo.checks]
+      : activeChecks
+    : [];
+  const waitingIssues = useMemo(() => summaryChecks.filter((item) => item.fix_status === "WAITING"), [summaryChecks]);
+  const issues = useMemo(() => summaryChecks.filter((item) => {
     const key = item.issue_id || item.key;
     return (item.status === "fail" || item.status === "warning") && item.fix_status !== "WAITING" && !githubResults[key];
-  }), [activeChecks, githubResults]);
-  const passedCount = activeChecks.filter((item) => item.status === "pass").length;
-  const preparedCount = activeChecks.filter((item) => {
+  }), [summaryChecks, githubResults]);
+  const passedCount = summaryChecks.filter((item) => item.status === "pass").length;
+  const preparedCount = summaryChecks.filter((item) => {
     const key = item.issue_id || item.key;
     return item.fix_status === "WAITING" || Boolean(githubResults[key]);
   }).length;
