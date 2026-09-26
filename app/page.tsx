@@ -454,8 +454,6 @@ export default function Home() {
     return item.fix_status === "WAITING" || Boolean(githubResults[key]);
   }).length;
   const remainingCount = issues.length;
-  const notApplicableCount = activeChecks.filter((item) => item.status === "not_applicable").length;
-  const unableToConfirmCount = activeChecks.filter((item) => item.status === "unable_to_confirm").length;
 
   return (
     <main className="rankfix-home min-h-screen bg-[#07172B] text-[#F7FBFF] selection:bg-emerald-300 selection:text-[#032D24]">
