@@ -36,6 +36,7 @@ type ScanResult = {
   summary?: {passed:number;issues:number;notApplicable:number;unableToConfirm:number;pendingFixes:number};
   rendering?: {mode:string;javascriptExecuted:boolean;note:string};
   pageTypeEvidence?: {type:string;confidence:string;evidence:string[]};
+  technologyProfile?: {cms:string|null;commercePlatform:string|null;framework:string|null;isCommerce:boolean;confidence:number;confidenceLabel:"high"|"medium"|"low";evidence:string[]};
   seo: { score: number; grade: string; checks: Check[] };
   geo: { score: number; grade: string; checks: Check[] };
   metrics: {
@@ -729,6 +730,14 @@ export default function Home() {
               <p className="mt-1 max-w-2xl break-all text-xs text-slate-500">{result.finalUrl}</p>
             </div>
             <div className="text-xs text-slate-500">{result.responseTime} ms · HTTP {result.httpStatus}</div>{result.rendering&&<div className="mt-1 text-xs text-slate-500">Bron: {result.rendering.mode==="raw_html"?"Raw HTML · JavaScript niet uitgevoerd":"JavaScript-gerenderd"}{result.pageTypeEvidence?` · ${result.pageTypeEvidence.type} (${result.pageTypeEvidence.confidence})`:""}</div>}
+            {result.technologyProfile && (result.technologyProfile.cms || result.technologyProfile.commercePlatform || result.technologyProfile.framework) && (
+              <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                {result.technologyProfile.cms && <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600">CMS: <strong>{result.technologyProfile.cms}</strong></span>}
+                {result.technologyProfile.commercePlatform && <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600">Webshop: <strong>{result.technologyProfile.commercePlatform}</strong></span>}
+                {result.technologyProfile.framework && <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600">Framework: <strong>{result.technologyProfile.framework}</strong></span>}
+                <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600">Confidence: <strong>{result.technologyProfile.confidence}%</strong></span>
+              </div>
+            )}
           </div>
 
           <div className="mb-6 rounded-[28px] border border-slate-200 bg-gradient-to-br from-white/[0.055] to-emerald-400/[0.025] p-5 shadow-2xl shadow-black/10 sm:p-6">
