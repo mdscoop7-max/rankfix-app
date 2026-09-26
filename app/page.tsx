@@ -820,6 +820,28 @@ export default function Home() {
                 </div>
               )}
 
+              {result.mode === "both" && (
+                <div className="rounded-3xl border border-slate-200 bg-white/[0.035] p-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    {([["seo", result.seo], ["geo", result.geo]] as const).map(([key, data]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setTab(key)}
+                        className={`rounded-2xl border px-4 py-3 text-left transition ${tab === key ? "border-emerald-300/30 bg-emerald-300/10 text-slate-900" : "border-slate-200 bg-white/[0.02] text-slate-500 hover:bg-white/[0.05] hover:text-violet-700"}`}
+                      >
+                        <div className="text-[10px] font-bold uppercase tracking-widest">{key} audit</div>
+                        <div className="mt-1 flex items-end justify-between gap-2">
+                          <span className="text-xl font-black">{data.score}</span>
+                          <span className="text-[11px]">{data.checks.filter((item) => item.status === "pass").length}/{data.checks.length} geslaagd</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="px-2 pb-1 pt-2 text-xs text-slate-500">Kies SEO of GEO om de bijbehorende controles, punten en aanbevelingen te bekijken.</p>
+                </div>
+              )}
+
               <div className="rounded-3xl border border-slate-200 bg-white/[0.035] p-5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
