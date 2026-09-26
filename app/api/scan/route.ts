@@ -116,6 +116,7 @@ export async function POST(request: Request) {
       industry: cleanAdsField(body?.adsProfile?.industry),
       primaryOffer: cleanAdsField(body?.adsProfile?.primaryOffer, 160),
       targetArea: cleanAdsField(body?.adsProfile?.targetArea),
+      targetCountries: cleanAdsField(body?.adsProfile?.targetCountries, 160),
       campaignGoal: cleanAdsField(body?.adsProfile?.campaignGoal, 80),
       audience: cleanAdsField(body?.adsProfile?.audience, 80),
       adLanguages: cleanAdsField(body?.adsProfile?.adLanguages, 80),
@@ -368,7 +369,9 @@ export async function POST(request: Request) {
     const hasProductSignal = hasProductSchema || /\b(add to cart|add-to-cart|winkelwagen|shopping cart|sku|price|availability|in stock)\b/i.test(text);
     const hasArticleSignal = schemaSet.has("article") || schemaSet.has("newsarticle") || /<article\b/i.test(html);
     const hasItemListSignal = schemaSet.has("itemlist");
-    const pageLanguage = (adsProfile.adLanguages || lang || "").toLowerCase().split(/[,-]/)[0].trim();
+    const requestedLanguages = adsProfile.adLanguages.split(/[,;]/).map((value) => value.trim().toLowerCase()).filter(Boolean).slice(0, 6);
+    const requestedCountries = adsProfile.targetCountries.split(/[,;]/).map((value) => value.trim()).filter(Boolean).slice(0, 8);
+    const pageLanguage = (requestedLanguages[0] || lang || "").toLowerCase().split("-")[0].trim();
     const pageEvidenceSeeds = [...h1s.slice(0, 2), title, ...productOfferEvidence.map((product) => product.name).filter(Boolean)]
       .map((value) => stripHtml(String(value || "")).replace(/\s+/g, " ").trim())
       .filter((value) => value.length >= 3 && value.length <= 120);
@@ -418,7 +421,11 @@ export async function POST(request: Request) {
     const adsKeywordIntelligence = {
       evidenceLevel: customerSeeds.length && pageEvidenceSeeds.length ? "customer_and_page_evidence" : customerSeeds.length ? "customer_context" : pageEvidenceSeeds.length ? "page_evidence" : "insufficient",
       language: pageLanguage || null, intent: keywordIntent, campaignGoal: goal || null, audience: adsProfile.audience || null,
-      targetArea: targetArea || null, landingPage: finalUrl.toString(), seedTerms: keywordSeeds,
+      targetArea: targetArea || null, targetCountries: requestedCountries, adLanguages: requestedLanguages.length ? requestedLanguages : (pageLanguage ? [pageLanguage] : []),
+      markets: (requestedCountries.length ? requestedCountries : [targetArea].filter(Boolean)).flatMap((country) =>
+        (requestedLanguages.length ? requestedLanguages : [pageLanguage].filter(Boolean)).map((language) => ({ country, language }))
+      ),
+      landingPage: finalUrl.toString(), seedTerms: keywordSeeds,
       keywordCandidates: baseKeywordCandidates, keywordGroups: adsKeywordGroups, negativeKeywordCandidates,
       metrics: { searchVolume: null, cpc: null, competition: null, source: null },
       disclaimer: "Zoekvolume, CPC en Google Ads-concurrentie worden pas getoond wanneer een actuele externe databron is gekoppeld.",
