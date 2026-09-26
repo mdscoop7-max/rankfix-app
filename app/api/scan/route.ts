@@ -514,6 +514,19 @@ export async function POST(request: Request) {
     const hreflangTags = [...html.matchAll(/<link\b[^>]*>/gi)].map((m) => m[0]).filter((tag) => /\brel\s*=\s*["']alternate["']/i.test(tag) && /\bhreflang\s*=/i.test(tag));
     const hreflangValues = hreflangTags.map((tag) => attrFromTag(tag, "hreflang").toLowerCase()).filter(Boolean);
     const hasHreflang = hreflangValues.length > 0;
+    const hreflangEntries = hreflangTags.map((tag) => {
+      const language = attrFromTag(tag, "hreflang").toLowerCase();
+      const href = attrFromTag(tag, "href");
+      let validHref = false;
+      try {
+        const parsed = new URL(href, finalUrl);
+        validHref = parsed.protocol === "http:" || parsed.protocol === "https:";
+      } catch {}
+      const validLanguage = language === "x-default" || /^(?:[a-z]{2,3})(?:-[a-z]{2}|-[0-9]{3})?$/i.test(language);
+      return { language, href, validHref, validLanguage };
+    });
+    const invalidHreflangEntries = hreflangEntries.filter((entry) => !entry.validLanguage || !entry.validHref);
+    const duplicateHreflangLanguages = [...new Set(hreflangValues.filter((value, index) => hreflangValues.indexOf(value) !== index))];
     const languageSelectorSignal = /(?:language|taal|sprache|idioma|lingua|français|deutsch|italiano|español|english|nederlands)\b/i.test(text) && /(?:select|dropdown|menu|switch|\bEN\b|\bNL\b|\bDE\b|\bFR\b|\bES\b|\bIT\b)/i.test(text);
     const organizationSchemaPresent = schemaSet.has("organization");
     const websiteSchemaPresent = schemaSet.has("website");
@@ -721,9 +734,13 @@ export async function POST(request: Request) {
 
     seoChecks.push(!languageSelectorSignal
       ? check("not_applicable", "hreflang", "seo", "Meertalige SEO", "Geen duidelijke meertalige pagina-indicatie gevonden; RankFix telt hreflang daarom niet mee in de score.", "Gebruik hreflang wanneer dezelfde content in meerdere talen/URL's beschikbaar is.", 0, 5)
-      : hasHreflang
-      ? check("pass", "hreflang", "seo", "Meertalige SEO", `${hreflangTags.length} hreflang-link(s) gevonden.`, "Controleer ook wederkerigheid, taal-/regiocodes en x-default waar passend.", 5, 5)
-      : check("warning", "hreflang", "seo", "Meertalige SEO", "De pagina lijkt meerdere talen aan te bieden, maar er zijn geen hreflang-verwijzingen gevonden.", "Voeg voor elke taalversie en eventueel x-default correcte hreflang-links toe.", 2, 5)
+      : !hasHreflang
+        ? check("warning", "hreflang", "seo", "Meertalige SEO", "De pagina lijkt meerdere talen aan te bieden, maar er zijn geen hreflang-verwijzingen gevonden.", "Voeg voor elke taalversie en eventueel x-default correcte hreflang-links toe.", 2, 5)
+        : invalidHreflangEntries.length
+          ? check("warning", "hreflang", "seo", "Meertalige SEO", `${hreflangTags.length} hreflang-link(s) gevonden, maar ${invalidHreflangEntries.length} bevat een ongeldige taal-/regiocode of URL.`, "Corrigeer ongeldige hreflang-codes en href-URL's. Controleer daarna wederkerigheid tussen taalversies.", 2, 5)
+          : duplicateHreflangLanguages.length
+            ? check("warning", "hreflang", "seo", "Meertalige SEO", `Geldige hreflang-links gevonden, maar dezelfde taalcode komt meerdere keren voor: ${duplicateHreflangLanguages.join(", ")}.`, "Gebruik per pagina een eenduidige doel-URL per taal/regiocode en controleer wederkerigheid.", 3, 5)
+            : check("unable_to_confirm", "hreflang", "seo", "Meertalige SEO", `${hreflangTags.length} syntactisch geldige hreflang-link(s) gevonden. Vanuit één pagina kan RankFix wederkerigheid en canonicals van alle taalversies nog niet bewijzen.`, "Controleer de gekoppelde taal-URL's in een sitebrede crawl voordat hreflang volledig wordt bevestigd.", 0, 5)
     );
 
     seoChecks.push(hasDuplicatePathSegments
@@ -917,7 +934,7 @@ export async function POST(request: Request) {
         sitemap: sitemapFound ? (confirmedSitemapUrl || true) : robotsDeclaredSitemapUrl ? `declared=${robotsDeclaredSitemapUrl}; status=${sitemapStatus}` : sitemapStatus,
         robots_txt: robotsStatus === "PASS" ? `${robotsUrl.toString()}; pathBlocked=${robotsPathBlocked}${matchingRobotsRules[0] ? `; rule=${matchingRobotsRules[0].kind}:${matchingRobotsRules[0].path}` : ""}` : robotsStatus,
         indexability: noindexSignal ? [robots, xRobotsTag].filter(Boolean).join(" | ") : robotsPathBlocked ? `robots disallow: ${matchingRobotsRules[0].path}` : "no noindex or applicable robots block found",
-        hreflang: hreflangValues.length ? hreflangValues.join(", ") : null,
+        hreflang: hreflangEntries.length ? hreflangEntries.map((entry) => `${entry.language}=>${entry.href || "missing"}`).join(" | ") : null,
         social: [ogTitle ? "og:title" : "", ogDescription ? "og:description" : "", ogImage ? "og:image" : ""].filter(Boolean).join(", ") || null,
         product_schema: hasProductSchema ? JSON.stringify(productOfferSummary.slice(0, 3)) : null,
         webshop_trust: hasProductSignal ? `shipping=${hasShippingSignal}; returns=${hasReturnsSignal}; reviewPlatform=${hasReviewPlatformSignal}; checkoutSignal=${hasCheckoutTrustSignal}` : null,
