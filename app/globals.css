@@ -1,17 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0B1220;
-  --foreground: #F1F5F9;
-  --rankfix-surface: #101B2D;
-  --rankfix-card: #16233A;
-  --rankfix-border: #334155;
-  --rankfix-muted: #94A3B8;
-  --rankfix-accent: #5DCAA5;
+  --background: #07172B;
+  --foreground: #F7FBFF;
+  --rankfix-surface: #0B2038;
+  --rankfix-card: #102A46;
+  --rankfix-border: #315875;
+  --rankfix-muted: #B7C8DA;
+  --rankfix-accent: #18DC8C;
 }
 
 @theme inline {
-  --color-background: var(--background);
+  --color-background: radial-gradient(circle at 75% -10%, rgba(19,142,190,.20), transparent 34rem), linear-gradient(180deg,#081A30 0%,var(--background) 72%);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -49,3 +49,14 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .lc-meter-running{background:conic-gradient(from 0deg,#1677ff,#7c4dff,#ff3b62,#ffb020,#36df8a,#1677ff);animation:lc-meter-spin 1.15s linear infinite}.lc-meter-running .lc-meter-core{animation:lc-meter-counter 1.15s linear infinite}.lc-meter-running .lc-meter-core strong{font-size:25px;color:#70e7bd}
 @keyframes lc-meter-spin{to{transform:rotate(360deg)}}@keyframes lc-meter-counter{to{transform:rotate(-360deg)}}
 @media(max-width:640px){.lc-scan-visual{flex-direction:column;text-align:center;padding:18px 14px}.lc-meter{width:132px;height:132px}.lc-meter-core strong{font-size:36px}}
+
+/* Shared public RankFix readability: same visual language as the app */
+.rankfix-home{color:#f7fbff}
+.rankfix-home :where(p,small){text-wrap:pretty}
+.rankfix-home :where(input,select,textarea){color:#f7fbff}
+.rankfix-home :where(input,select,textarea)::placeholder{color:#91a6bc}
+.rankfix-home #resultaat{scroll-margin-top:24px}
+@media(max-width:640px){
+  .rankfix-home{overflow-x:hidden}
+  .rankfix-home #resultaat{scroll-margin-top:12px}
+}
