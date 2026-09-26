@@ -587,7 +587,7 @@ export async function POST(request: Request) {
       .slice(0, Math.max(0, crawlLimit - 1));
     const sitewidePages: Array<{url:string;status:number;pageType:string;title:string;lang:string|null;canonical:string|null;hreflangCount:number;productSchema:boolean;offerSignal:boolean;shippingReturnSignal:boolean;checkoutSignal:boolean}> = [{
       url: finalUrl.toString(), status: response.status, pageType: "primary", title, lang: lang || null, canonical: canonical || null,
-      hreflangCount: hreflangTags.length, productSchema: schemaSet.has("product"),
+      hreflangCount: (html.match(/<link\\b[^>]*\\bhreflang\\s*=/gi) || []).length, productSchema: schemaSet.has("product"),
       offerSignal: /["']@type["']\s*:\s*["']offer["']|\bprice\b|€\s*\d/i.test(html),
       shippingReturnSignal: /(?:verzend|shipping|retour|return|delivery|levering)/i.test(text),
       checkoutSignal: /(?:checkout|afrekenen|winkelwagen|cart|ideal|paypal|visa|mastercard)/i.test(text)
