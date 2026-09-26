@@ -34,6 +34,10 @@ function attr(tag: string, name: string): string {
   return match?.[1] ?? "";
 }
 
+function hasAttr(tag: string, name: string): boolean {
+  return new RegExp("(?:^|\\s)" + name + "(?:\\s*=|\\s|/?>)", "i").test(tag);
+}
+
 function addSrcSet(set: Set<string>, value: string): void {
   if (!value) return;
 
@@ -50,8 +54,9 @@ export function extractImageMetrics(html: string): ImageMetrics {
   let missingAlt = 0;
 
   for (const tag of images) {
-    const alt = attr(tag, "alt");
-    if (!alt.trim()) missingAlt++;
+    // alt="" is valid for decorative images. Only a genuinely missing alt
+    // attribute is an accessibility/SEO finding in a raw-HTML scan.
+    if (!hasAttr(tag, "alt")) missingAlt++;
 
     for (const name of ["src", "data-src", "data-lazy-src", "data-original", "data-image"]) {
       const ref = imageReference(attr(tag, name));
