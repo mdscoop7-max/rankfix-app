@@ -483,11 +483,32 @@ export async function POST(request: Request) {
     const dutchEuroDecimalPattern = /€\s?\d{1,3}(?:[.,]\d{3})*[.]\d{2}\b/g;
     const priceFormatMatches = text.match(dutchEuroDecimalPattern) || [];
     const hasDotDecimalPrices = priceFormatMatches.length > 0;
-    const visiblePriceCandidates = [...new Set(
-      [...text.matchAll(/(?:€\s*|EUR\s*)(\d{1,6}(?:[.,]\d{2})?)/gi)]
-        .map((match) => Number(String(match[1]).replace(/\./g, "").replace(",", ".")))
-        .filter((value) => Number.isFinite(value))
+    const parseVisiblePrice = (value: string) => {
+      const compact = value.replace(/\s/g, "");
+      const normalized = compact.includes(",")
+        ? compact.replace(/\./g, "").replace(",", ".")
+        : compact;
+      const numeric = Number(normalized);
+      return Number.isFinite(numeric) && numeric >= 0 ? numeric : null;
+    };
+    const explicitProductPriceCandidates = [...new Set(
+      [...html.matchAll(/<(?:meta|span|div|p)[^>]*(?:itemprop\s*=\s*["']price["']|property\s*=\s*["']product:price:amount["']|class\s*=\s*["'][^"']*(?:product[-_ ]?price|price)[^"']*["'])[^>]*?(?:content\s*=\s*["']([^"']+)["']|>([^<]{0,80}))/gi)]
+        .flatMap((match) => {
+          const raw = String(match[1] || match[2] || "");
+          const price = raw.match(/(\d{1,6}(?:[.,]\d{2})?)/)?.[1];
+          const parsed = price ? parseVisiblePrice(price) : null;
+          return parsed === null ? [] : [parsed];
+        })
     )].slice(0, 20);
+    const broadVisiblePriceCandidates = [...new Set(
+      [...text.matchAll(/(?:€\s*|EUR\s*)(\d{1,6}(?:[.,]\d{2})?)/gi)]
+        .flatMap((match) => {
+          const parsed = parseVisiblePrice(String(match[1]));
+          return parsed === null ? [] : [parsed];
+        })
+    )].slice(0, 20);
+    const visiblePriceCandidates = explicitProductPriceCandidates.length ? explicitProductPriceCandidates : broadVisiblePriceCandidates;
+    const visiblePriceEvidenceStrength = explicitProductPriceCandidates.length ? "explicit_product_markup" : broadVisiblePriceCandidates.length ? "broad_page_text" : "none";
     const structuredPriceCandidates = [...new Set(
       productOfferEvidence
         .flatMap((product) => product.offers.map((offer) => offer.price))
@@ -807,9 +828,13 @@ export async function POST(request: Request) {
       ? check("not_applicable","product_price_consistency","seo","Productprijs consistentie","Geen duidelijke productpagina-signalen gevonden; prijsvergelijking is niet van toepassing.","Gebruik deze controle op echte productpagina's.",0,6)
       : !visiblePriceCandidates.length || !structuredPriceCandidates.length
         ? check("unable_to_confirm","product_price_consistency","seo","Productprijs consistentie","RankFix kan niet zowel een zichtbare EUR-prijs als een structured-data prijs aantoonbaar vergelijken.","Zorg dat de zichtbare productprijs en Product/Offer structured data beide beschikbaar en gelijk zijn.",0,6)
-        : hasMatchingVisibleStructuredPrice
-          ? check("pass","product_price_consistency","seo","Productprijs consistentie","Minimaal één zichtbare productprijs komt exact overeen met een Product/Offer structured-data prijs.","Houd zichtbare prijs en structured data synchroon bij prijswijzigingen.",6,6)
-          : check("warning","product_price_consistency","seo","Productprijs consistentie",`Zichtbare prijswaarden (${visiblePriceCandidates.slice(0,4).join(", ")}) komen niet overeen met gevonden structured-data prijzen (${structuredPriceCandidates.slice(0,4).join(", ")}).`,"Controleer welke prijs bij dit product hoort en synchroniseer de zichtbare prijs met Product/Offer structured data.",2,6));
+        : hasMatchingVisibleStructuredPrice && visiblePriceEvidenceStrength === "explicit_product_markup"
+          ? check("pass","product_price_consistency","seo","Productprijs consistentie","Een expliciet gemarkeerde productprijs komt overeen met de Product/Offer structured-data prijs.","Houd zichtbare productprijs en structured data synchroon bij prijswijzigingen.",6,6)
+          : hasMatchingVisibleStructuredPrice
+            ? check("unable_to_confirm","product_price_consistency","seo","Productprijs consistentie","Een eurobedrag in de paginatekst komt overeen met de structured-data prijs, maar RankFix kan niet betrouwbaar bewijzen dat dit bedrag de primaire productprijs is.","Gebruik duidelijke productprijs-markup zodat de zichtbare prijs betrouwbaar aan het product kan worden gekoppeld.",0,6)
+            : visiblePriceEvidenceStrength === "explicit_product_markup"
+              ? check("warning","product_price_consistency","seo","Productprijs consistentie",`Expliciet gemarkeerde productprijswaarden (${visiblePriceCandidates.slice(0,4).join(", ")}) komen niet overeen met structured-data prijzen (${structuredPriceCandidates.slice(0,4).join(", ")}).`,"Synchroniseer de zichtbare productprijs met Product/Offer structured data.",2,6)
+              : check("unable_to_confirm","product_price_consistency","seo","Productprijs consistentie","Er zijn eurobedragen en structured-data prijzen gevonden, maar de zichtbare bedragen zijn niet betrouwbaar aan de primaire productprijs te koppelen.","Gebruik expliciete productprijs-markup en houd die gelijk aan Product/Offer structured data.",0,6));
     seoChecks.push(!hasProductSignal
       ? check("not_applicable","product_availability","seo","Productvoorraad","Geen duidelijke productpagina-signalen gevonden; voorraadcontrole is niet van toepassing.","Gebruik deze controle op echte productpagina's.",0,5)
       : availabilityContradiction
@@ -964,7 +989,7 @@ export async function POST(request: Request) {
         webshop_claims: hasWebshopClaims ? webshopClaimMatches.slice(0, 3).join(", ") : null,
         variant_url: ecommerceVariantUrlSignal ? finalUrl.search : null,
         checkout_trust: hasCheckoutTrustSignal ? "checkout/payment signal found in static page content" : null,
-        product_price_consistency: hasProductSignal ? `visible=${visiblePriceCandidates.join(",") || "none"}; schema=${structuredPriceCandidates.join(",") || "none"}` : null,
+        product_price_consistency: hasProductSignal ? `visible=${visiblePriceCandidates.join(",") || "none"}; visibleEvidence=${visiblePriceEvidenceStrength}; schema=${structuredPriceCandidates.join(",") || "none"}` : null,
         product_availability: hasProductSignal ? `visibleState=${visibleAvailabilityState || "none"}; schemaStates=${structuredAvailabilityStates.join(",") || "none"}; schema=${structuredAvailabilityValues.join(",") || "none"}; contradiction=${availabilityContradiction}` : null,
         ads_readiness: (adsTrackingSignals || hasConversionSignal || hasExplicitAdsConversionSnippet) ? `adsIds=${googleAdsIds.join(",") || "none"}; ga4Ids=${ga4MeasurementIds.join(",") || "none"}; events=${uniqueConversionEventNames.join(",") || "none"}; adsLabels=${googleAdsSendToLabels.join(",") || "none"}; consentSignal=${hasConsentModeSignal}` : null,
       };
