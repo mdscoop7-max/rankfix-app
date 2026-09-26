@@ -350,7 +350,12 @@ export async function POST(request: Request) {
     const organizationName = firstMatch(html, /<meta[^>]+(?:property|name)\s*=\s*["'](?:og:site_name|application-name)["'][^>]+content\s*=\s*["']([^"']+)["']/i);
     const sameAsCount = (html.match(/"sameAs"\s*:/gi) || []).length;
     const pathname = finalUrl.pathname.replace(/\/+$/, "") || "/";
-    const isHomepage = pathname === "/";
+    const pathSegmentsForType = pathname.split("/").filter(Boolean).map((segment) => decodeURIComponent(segment).toLowerCase());
+    const localeSegmentPattern = /^(?:[a-z]{2,3})(?:-[a-z]{2})?$/i;
+    // Many international sites expose a localized homepage below /nl/, /nl/nl/, /en-gb/, etc.
+    // Treat a path made only of locale segments as a homepage instead of article/product content.
+    const isLocalizedHomepage = pathSegmentsForType.length > 0 && pathSegmentsForType.length <= 2 && pathSegmentsForType.every((segment) => localeSegmentPattern.test(segment));
+    const isHomepage = pathname === "/" || isLocalizedHomepage;
     const localBusinessKeywordSignal = /\b(restaurant|eetcafé|eetgelegenheid|brasserie|bistro|menukaart|kapsalon|kapper|hairdresser|salon|coiffeur|barbier|bakker|bakery|bar|café|cafe|dentist|tandarts|tandheelkunde|mondzorg|orthodontist|electrician|elektricien|elektro|elektrotechniek|installatietechniek|plumber|loodgieter|loodgieters|cv-installateur|installateur|aannemer|contractor|bouwbedrijf|bouwservice|verbouwing|renovatie|dakdekker|dakbedekking|dakwerken|beautysalon|beauty salon|schoonheidssalon|winkel|store|shop|boetiek|retail|garage|autogarage|autoservice|autobedrijf|autodealer|makelaar|makelaars|vastgoedmakelaar|real estate agent|realtor|woningmakelaar|advocaat|advocatenkantoor|law firm|jurist|notaris|notariskantoor|accountant|accountantskantoor|boekhouder|boekhoudkantoor|administratiekantoor|reisbureau|reisorganisatie|travel agency|tour operator|reisagent|hotel|bed and breakfast|b&b|pension)\b/i.test([title, description, ...h1s, finalUrl.hostname, finalUrl.pathname].join(" "));
     const localContactSignal = /\b(opening hours|openingstijden|adres|address|telephone|telefoon|phone|contact)\b/i.test(text) &&
       /\b(address|adres|phone|telefoon|telephone|\+?31|0\d{1,3}[\s-]?\d)\b/i.test(text);
@@ -499,10 +504,26 @@ export async function POST(request: Request) {
         return groups;
       }, []);
     const applicableRobotsGroups = robotsGroups.filter((group) => group.agents.includes("*") || group.agents.some((agent) => /rankfixbot|googlebot/.test(agent)));
-    const matchingRobotsRules = applicableRobotsGroups
+    const robotsRuleMatches = (rulePath: string, candidatePath: string) => {
+      if (!rulePath) return false;
+      // Google-style robots patterns: * is a wildcard and $ anchors the end.
+      // Escape every regex character first, then restore the robots wildcards.
+      const anchored = rulePath.endsWith("$");
+      const source = (anchored ? rulePath.slice(0, -1) : rulePath)
+        .replace(/[.+?^{}()|[\]\\]/g, "\\    const matchingRobotsRules = applicableRobotsGroups
       .flatMap((group) => group.rules)
       .filter((rule) => rule.path && robotsPath.startsWith(rule.path.replace(/\*.*$/, "")))
       .sort((a, b) => b.path.length - a.path.length);
+    const robotsPathBlocked = robotsStatus === "PASS" && matchingRobotsRules.length > 0 && matchingRobotsRules[0].kind === "disallow";")
+        .replace(/\*/g, ".*");
+      try { return new RegExp("^" + source + (anchored ? "$" : "")).test(candidatePath); }
+      catch { return false; }
+    };
+    const matchingRobotsRules = applicableRobotsGroups
+      .flatMap((group) => group.rules)
+      .filter((rule) => robotsRuleMatches(rule.path, robotsPath))
+      // Longest matching rule wins; Allow wins when specificity is equal.
+      .sort((a, b) => b.path.length - a.path.length || (a.kind === "allow" ? -1 : 1));
     const robotsPathBlocked = robotsStatus === "PASS" && matchingRobotsRules.length > 0 && matchingRobotsRules[0].kind === "disallow";
     const sitemapCandidates = [...new Set([...robotsDeclaredSitemapUrls, sitemapUrl.toString()])].slice(0, 20);
     let sitemapFetchFailed = false;
@@ -590,7 +611,9 @@ export async function POST(request: Request) {
     const hasVariantSelectorSignal = hasProductSignal && /<(?:select|button)[^>]*(?:name|id|class)\s*=\s*["'][^"']*(?:variant|size|maat|color|colour|kleur)[^"']*["']/i.test(html);
     const pathSegments = finalUrl.pathname.split("/").filter(Boolean).map((segment) => decodeURIComponent(segment).toLowerCase().trim());
     const duplicatePathSegments = pathSegments.filter((segment, index) => index > 0 && segment === pathSegments[index - 1]);
-    const hasDuplicatePathSegments = duplicatePathSegments.length > 0;
+    // Repeated locale segments such as /nl/nl/ can be a deliberate international routing convention.
+    const actionableDuplicatePathSegments = duplicatePathSegments.filter((segment) => !localeSegmentPattern.test(segment));
+    const hasDuplicatePathSegments = actionableDuplicatePathSegments.length > 0;
     const imageSrcs = [...html.matchAll(/<img\b[^>]*>/gi)].map((m) => {
       const tag = m[0];
       return attrFromTag(tag, "src") || attrFromTag(tag, "data-src") || attrFromTag(tag, "data-lazy-src") || "";
@@ -604,7 +627,10 @@ export async function POST(request: Request) {
     });
     const hasStockImages = stockImageUrls.length > 0;
     const hasExternalImageHotlinks = externalImageUrls.length > 0;
-    const hasVisibleHtmlEscape = /&amp;/.test(text);
+    // stripHtml keeps entities encoded, so decode the visible text before checking rendering.
+    // A normal "&amp;" in source HTML renders as "&" and is not a visible escape defect.
+    const decodedVisibleText = decode(text);
+    const hasVisibleHtmlEscape = /&(?:amp|quot|lt|gt|#(?:x[0-9a-f]+|\d+));/i.test(decodedVisibleText);
     const hreflangTags = [...html.matchAll(/<link\b[^>]*>/gi)].map((m) => m[0]).filter((tag) => /\brel\s*=\s*["']alternate["']/i.test(tag) && /\bhreflang\s*=/i.test(tag));
     const hreflangValues = hreflangTags.map((tag) => attrFromTag(tag, "hreflang").toLowerCase()).filter(Boolean);
     const hasHreflang = hreflangValues.length > 0;
@@ -843,7 +869,7 @@ export async function POST(request: Request) {
     );
 
     seoChecks.push(hasDuplicatePathSegments
-      ? check("warning", "duplicate_path", "seo", "URL-structuur", `Dubbele padsegmenten gevonden: ${[...new Set(duplicatePathSegments)].join(", ")}.`, "Maak de URL-structuur logisch en redirect oude dubbele URL's met een permanente 301 naar de definitieve URL.", 2, 5)
+      ? check("warning", "duplicate_path", "seo", "URL-structuur", `Dubbele padsegmenten gevonden: ${[...new Set(actionableDuplicatePathSegments)].join(", ")}.`, "Maak de URL-structuur logisch en redirect oude dubbele URL's met een permanente 301 naar de definitieve URL.", 2, 5)
       : check("pass", "duplicate_path", "seo", "URL-structuur", "Geen direct dubbele opeenvolgende padsegmenten gevonden.", "Houd URL's kort, logisch en stabiel.", 5, 5)
     );
 
@@ -852,11 +878,11 @@ export async function POST(request: Request) {
       : check("pass", "html_escape", "seo", "Tekstweergave", "Geen duidelijke zichtbare HTML-escape-fout gevonden.", "Behoud correcte HTML-encoding.", 4, 4)
     );
 
-    seoChecks.push(hasExternalImageHotlinks
-      ? hasStockImages
-        ? check("warning", "image_sources", "seo", "Afbeeldingsbronnen", `${stockImageUrls.length} afbeelding(en) lijken rechtstreeks van externe stocksites te worden geladen.`, "Gebruik waar mogelijk eigen product-/merkafbeeldingen en host publieke assets op het eigen domein.", 2, 5)
-        : check("warning", "image_sources", "seo", "Afbeeldingsbronnen", `${externalImageUrls.length} afbeelding(en) worden extern geladen.`, "Controleer rechten, beschikbaarheid en prestaties; host belangrijke eigen assets bij voorkeur zelf.", 3, 5)
-      : check("pass", "image_sources", "seo", "Afbeeldingsbronnen", "Geen externe afbeeldings-hotlinks gevonden.", "Gebruik eigen, geoptimaliseerde afbeeldingen voor belangrijke content.", 5, 5)
+    seoChecks.push(hasStockImages
+      ? check("unable_to_confirm", "image_sources", "seo", "Afbeeldingsbronnen", `${stockImageUrls.length} afbeelding(en) worden vanaf bekende externe stockhosts geladen. Dat is op zichzelf geen SEO-fout; RankFix kan rechten, caching en CDN-configuratie uit HTML niet bevestigen.`, "Controleer alleen wanneer deze assets belangrijk zijn voor merk, rechten of performance.", 0, 5)
+      : hasExternalImageHotlinks
+        ? check("not_applicable", "image_sources", "seo", "Afbeeldingsbronnen", `${externalImageUrls.length} afbeelding(en) worden vanaf een ander hostnaam geladen. Een CDN of image-service is normaal en vormt zonder prestatie- of bereikbaarheidsbewijs geen probleem.`, "Beoordeel afbeeldingsperformance afzonderlijk met runtime-metingen.", 0, 5)
+        : check("pass", "image_sources", "seo", "Afbeeldingsbronnen", "Geen externe afbeeldingshosts gevonden in de statische HTML.", "Blijf belangrijke afbeeldingen optimaliseren.", 5, 5)
     );
 
     seoChecks.push(hasPlaceholders
@@ -874,7 +900,9 @@ export async function POST(request: Request) {
     seoChecks.push(hasEcommerceSignal
       ? hasShippingSignal && hasReturnsSignal && (hasReviewPlatformSignal || hasCheckoutTrustSignal)
         ? check("pass","webshop_trust","seo","Webshop vertrouwen","Verzend-/retourinformatie en minimaal één duidelijk vertrouwenssignaal zijn zichtbaar.","Houd verzendkosten, retourvoorwaarden, betaalmethoden en reviews ook op checkout-niveau duidelijk.",7,7)
-        : check("warning","webshop_trust","seo","Webshop vertrouwen","Niet alle belangrijke verzend-, retour- en vertrouwenssignalen zijn zichtbaar op deze pagina.","Maak verzendkosten, retourvoorwaarden, betaalmogelijkheden en review-/vertrouwenssignalen duidelijk voordat bezoekers afrekenen.",3,7)
+        : isHomepage
+          ? check("unable_to_confirm","webshop_trust","seo","Webshop vertrouwen","Deze homepage bevat webshop-signalen, maar RankFix heeft in deze paginascan niet bewezen waar verzend-, retour- en betaalinformatie sitebreed staat.","Controleer deze signalen in een sitebrede crawl of op product-, service- en checkoutpagina's.",0,7)
+          : check("warning","webshop_trust","seo","Webshop vertrouwen","Niet alle belangrijke verzend-, retour- en vertrouwenssignalen zijn zichtbaar op deze commerciële pagina.","Maak relevante verzend-, retour- en betaalinformatie duidelijk waar bezoekers de aankoopbeslissing nemen.",3,7)
       : check("not_applicable","webshop_trust","seo","Webshop vertrouwen","Geen duidelijke webshop-signalen gevonden; deze e-commercecontrole is niet van toepassing.","Gebruik deze controle op product- en categoriepagina's.",0,7));
     seoChecks.push(!hasProductSignal
       ? check("not_applicable","variant_url","seo","Productvariant-URL","Geen duidelijke productpagina-signalen gevonden; variant-URL-controle is niet van toepassing.","Gebruik deze controle op echte productpagina's.",0,5)
@@ -911,7 +939,11 @@ export async function POST(request: Request) {
         ? check("pass","webshop_claims","seo","Webshop-beloftes","Belangrijke webshopbeloftes worden ondersteund door zichtbare verzend- en retourinformatie.","Zorg dat beloofde levertijden, retourtermijnen en verzendvoorwaarden juridisch en praktisch kloppen.",5,5)
         : check("warning","webshop_claims","seo","Webshop-beloftes",`De pagina bevat claims zoals ${webshopClaimMatches.slice(0,3).join(", ")}, maar de bijbehorende voorwaarden zijn niet duidelijk gevonden.`,"Maak claims controleerbaar via duidelijke verzend-, retour- en voorwaardenpagina's.",2,5));
     seoChecks.push(hasEcommerceSignal
-      ? check(hasCheckoutTrustSignal?"pass":"warning","checkout_trust","seo","Checkout- en betaalvertrouwen",hasCheckoutTrustSignal?"Betaal-/checkoutsignalen zijn zichtbaar.":"Geen duidelijke betaal- of checkoutsignalen gevonden op deze pagina.","Toon betaalmogelijkheden en relevante veiligheids-/vertrouwensinformatie waar de bezoeker een aankoopbeslissing neemt.",hasCheckoutTrustSignal?5:2,5)
+      ? hasCheckoutTrustSignal
+        ? check("pass","checkout_trust","seo","Checkout- en betaalvertrouwen","Betaal-/checkoutsignalen zijn zichtbaar op deze pagina.","Houd betaalmogelijkheden en relevante veiligheidsinformatie duidelijk op aankoop- en checkoutpagina's.",5,5)
+        : isHomepage
+          ? check("unable_to_confirm","checkout_trust","seo","Checkout- en betaalvertrouwen","Deze homepage bevat webshop-signalen, maar afwezigheid van betaalinformatie op de homepage bewijst geen checkoutprobleem.","Controleer de echte winkelwagen- en checkoutflow voordat je dit als probleem beoordeelt.",0,5)
+          : check("warning","checkout_trust","seo","Checkout- en betaalvertrouwen","Geen duidelijke betaal- of checkoutsignalen gevonden op deze commerciële pagina.","Toon betaalmogelijkheden en relevante veiligheids-/vertrouwensinformatie waar de bezoeker een aankoopbeslissing neemt.",2,5)
       : check("not_applicable","checkout_trust","seo","Checkout- en betaalvertrouwen","Geen webshop-signalen gevonden; checkoutcontrole is niet van toepassing.","Gebruik deze controle op echte webshopcontent.",0,5));
     const adsApplicableByCustomer = hasAdsProfile && Boolean(adsProfile.campaignGoal || adsProfile.primaryOffer || adsProfile.targetCountries || adsProfile.adLanguages);
     const adsApplicableByEvidence = adsTrackingSignals > 0 || hasConversionSignal || hasExplicitAdsConversionSnippet;
