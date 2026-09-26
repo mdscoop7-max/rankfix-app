@@ -906,16 +906,16 @@ export default function Home() {
               </details>
 
               {result.mode === "both" && tab === "seo" && (
-                <details open className="rounded-3xl border border-violet-200 bg-violet-50">
-                  <summary className="cursor-pointer list-none px-5 py-4">
+                <section className="rounded-3xl border border-violet-200 bg-violet-50">
+                  <div className="px-5 py-4">
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <div className="text-xs font-bold uppercase tracking-widest text-violet-700">GEO audit</div>
-                        <div className="mt-1 text-lg font-black text-slate-900">{result.geo.checks.filter((item) => item.status === "pass").length} controles geslaagd</div>
+                        <div className="mt-1 text-lg font-black text-slate-900">{result.geo.checks.filter((item) => item.status === "pass").length} controles geslaagd · {result.geo.checks.length} controles totaal</div>
                       </div>
                       <span className="rounded-full bg-violet-100 px-3 py-1 text-sm font-black text-violet-800">{result.geo.score}/100</span>
                     </div>
-                  </summary>
+                  </div>
                   <div className="border-t border-violet-200 px-5 py-4">
                     <div className="grid gap-2 sm:grid-cols-2">
                       {result.geo.checks.map((item) => (
@@ -923,14 +923,17 @@ export default function Home() {
                           <div className="flex items-center gap-2">
                             <span className={`text-xs font-bold ${item.status === "pass" ? "text-emerald-600" : item.status === "warning" ? "text-amber-600" : item.status === "fail" ? "text-red-600" : "text-cyan-700"}`}>{statusIcon[item.status]}</span>
                             <span className="text-sm font-semibold text-slate-900">{item.title}</span>
-                            <span className="ml-auto text-[10px] text-slate-500">{item.status==="not_applicable"?"N.v.t.":item.status==="unable_to_confirm"?"Niet te bevestigen":`${item.points}/${item.maxPoints}`}</span>
+                            <span className="ml-auto text-[10px] font-semibold text-slate-500">{item.status==="not_applicable"?"N.v.t.":item.status==="unable_to_confirm"?"Niet te bevestigen":`${item.points}/${item.maxPoints}`}</span>
                           </div>
                           <p className="mt-1 text-xs leading-5 text-slate-600">{item.message}</p>
+                          {item.status !== "pass" && item.fix && (
+                            <p className="mt-2 text-xs leading-5 text-violet-800"><span className="font-bold">Aanbeveling:</span> {item.fix}</p>
+                          )}
                         </div>
                       ))}
                     </div>
                   </div>
-                </details>
+                </section>
               )}
 
               <details className="rounded-3xl border border-slate-200 bg-slate-50">
