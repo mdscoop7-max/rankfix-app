@@ -104,7 +104,7 @@ export default function GithubPage(){
   return <main className="rf-page">
     <div className="rf-shell">
     <header className="rf-header"><a href="/dashboard" className="rf-brand">RankFix <span>AI</span></a><a href="/dashboard" className="rf-back">← Dashboard</a></header>
-    <DashboardNav current={3} />
+    <DashboardNav current={2} />
     <section className="rf-body rf-fix-engine">
       <div className="text-xs uppercase tracking-widest text-emerald-300">GitHub Fix Engine</div>
       <h1 className="mt-2 text-3xl font-black leading-tight sm:text-4xl">Een codevoorstel voor je website.</h1>
