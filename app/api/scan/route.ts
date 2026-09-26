@@ -1000,7 +1000,7 @@ export async function POST(request: Request) {
     );
     geoChecks.push(hasFaqContent || hasFaqSchema
       ? check("pass", "faq", "geo", "Vraag & antwoord content", "FAQ/Q&A-signalen zijn op de pagina gevonden.", "Beantwoord echte klantvragen kort, concreet en zonder marketingtaal.", 10, 10)
-      : check("warning", "faq", "geo", "Vraag & antwoord content", "Geen duidelijke FAQ/Q&A-sectie gevonden.", "Voeg relevante vragen en directe antwoorden toe waar dat de gebruiker helpt.", 4, 10)
+      : check("not_applicable", "faq", "geo", "Vraag & antwoord content", "Geen duidelijke FAQ/Q&A-sectie gevonden. Een FAQ is niet verplicht voor iedere pagina en wordt daarom niet als GEO-fout bestraft.", "Voeg alleen relevante vragen en directe antwoorden toe wanneer dit de gebruiker inhoudelijk helpt.", 0, 10)
     );
     const ecommerceExpertiseSignal = hasProductSignal && (
       hasOrganizationIdentity ||
@@ -1271,6 +1271,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
+      mode,
       scannedUrl: target.toString(),
       finalUrl: finalUrl.toString(),
       scannedAt: new Date().toISOString(),
