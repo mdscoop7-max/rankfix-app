@@ -368,54 +368,61 @@ export async function POST(request: Request) {
     const hasProductSignal = hasProductSchema || /\b(add to cart|add-to-cart|winkelwagen|shopping cart|sku|price|availability|in stock)\b/i.test(text);
     const hasArticleSignal = schemaSet.has("article") || schemaSet.has("newsarticle") || /<article\b/i.test(html);
     const hasItemListSignal = schemaSet.has("itemlist");
-    const keywordSeedText = [...h1s.slice(0, 2), title, ...productOfferEvidence.map((product) => product.name).filter(Boolean)]
+    const pageLanguage = (adsProfile.adLanguages || lang || "").toLowerCase().split(/[,-]/)[0].trim();
+    const pageEvidenceSeeds = [...h1s.slice(0, 2), title, ...productOfferEvidence.map((product) => product.name).filter(Boolean)]
       .map((value) => stripHtml(String(value || "")).replace(/\s+/g, " ").trim())
       .filter((value) => value.length >= 3 && value.length <= 120);
+    const customerSeeds = [adsProfile.primaryOffer, adsProfile.industry].filter((value) => value.length >= 3);
     const keywordStopSegments = /\s+[|–—-]\s+/;
-    const keywordSeeds = [...new Set(keywordSeedText.flatMap((value) => {
+    const keywordSeeds = [...new Set([...customerSeeds, ...pageEvidenceSeeds].flatMap((value) => {
       const primary = value.split(keywordStopSegments)[0]?.trim() || value;
       return primary && primary.length >= 3 ? [primary] : [];
-    }))].slice(0, 8);
-    const pageLanguage = (lang || "").toLowerCase().split("-")[0];
+    }))].slice(0, 10);
     const commercialModifiers: Record<string, string[]> = {
-      nl: ["kopen", "prijs", "bestellen"],
-      en: ["buy", "price", "order"],
-      de: ["kaufen", "preis", "bestellen"],
-      fr: ["acheter", "prix", "commander"],
-      es: ["comprar", "precio", "pedir"],
-      it: ["comprare", "prezzo", "ordinare"],
+      nl: ["kopen", "prijs", "bestellen"], en: ["buy", "price", "order"], de: ["kaufen", "preis", "bestellen"],
+      fr: ["acheter", "prix", "commander"], es: ["comprar", "precio", "pedir"], it: ["comprare", "prezzo", "ordinare"],
     };
-    const modifiers = commercialModifiers[pageLanguage] || commercialModifiers.en;
-    const keywordIntent = hasProductSignal ? "transactional" : hasLocalBusinessSignal ? "local_commercial" : hasArticleSignal ? "informational" : "mixed";
-    const adsKeywordCandidates = [...new Set([
+    const leadModifiers: Record<string, string[]> = {
+      nl: ["offerte", "specialist", "bedrijf"], en: ["quote", "specialist", "company"], de: ["angebot", "spezialist", "firma"],
+      fr: ["devis", "spécialiste", "entreprise"], es: ["presupuesto", "especialista", "empresa"], it: ["preventivo", "specialista", "azienda"],
+    };
+    const goal = adsProfile.campaignGoal || (hasProductSignal ? "sales" : hasLocalBusinessSignal ? "leads" : "");
+    const modifiers = goal === "sales" ? (commercialModifiers[pageLanguage] || commercialModifiers.en) : (leadModifiers[pageLanguage] || leadModifiers.en);
+    const keywordIntent = goal === "sales" ? "transactional" : ["leads","calls","appointments","store_visits"].includes(goal) ? "commercial" : hasArticleSignal ? "informational" : "mixed";
+    const targetArea = adsProfile.targetArea;
+    const baseKeywordCandidates = [...new Set([
       ...keywordSeeds,
-      ...(hasProductSignal ? keywordSeeds.slice(0, 4).flatMap((seed) => modifiers.map((modifier) => `${seed} ${modifier}`)) : []),
-    ])].slice(0, 20);
+      ...keywordSeeds.slice(0, 4).flatMap((seed) => modifiers.map((modifier) => `${seed} ${modifier}`)),
+      ...(targetArea ? keywordSeeds.slice(0, 5).map((seed) => `${seed} ${targetArea}`) : []),
+    ])].slice(0, 30);
     const negativeTermsByLanguage: Record<string, string[]> = {
-      nl: ["gratis", "vacature", "handleiding", "tweedehands"],
-      en: ["free", "jobs", "manual", "used"],
-      de: ["kostenlos", "jobs", "anleitung", "gebraucht"],
-      fr: ["gratuit", "emploi", "manuel", "occasion"],
-      es: ["gratis", "empleo", "manual", "segunda mano"],
-      it: ["gratis", "lavoro", "manuale", "usato"],
+      nl: ["gratis", "vacature", "handleiding", "tweedehands"], en: ["free", "jobs", "manual", "used"],
+      de: ["kostenlos", "jobs", "anleitung", "gebraucht"], fr: ["gratuit", "emploi", "manuel", "occasion"],
+      es: ["gratis", "empleo", "manual", "segunda mano"], it: ["gratis", "lavoro", "manuale", "usato"],
     };
-    const negativeKeywordCandidates = (negativeTermsByLanguage[pageLanguage] || negativeTermsByLanguage.en).map((term) => ({
+    const requestedExclusions = adsProfile.excludeIntent.split(/[,;\n]/).map((term) => term.trim()).filter(Boolean).slice(0, 10);
+    const negativeKeywordCandidates = [...new Set([...(negativeTermsByLanguage[pageLanguage] || negativeTermsByLanguage.en), ...requestedExclusions])].map((term) => ({
       term,
+      source: requestedExclusions.includes(term) ? "customer" : "suggested",
       requiresReview: true,
-      reason: "Alleen uitsluiten wanneer deze zoekintentie niet past bij het aanbod of campagnedoel.",
+      reason: requestedExclusions.includes(term)
+        ? "Door de klant opgegeven als niet te promoten; controleer vóór campagne-uitsluiting."
+        : "Suggestie op basis van veelvoorkomende afwijkende intentie; controleer vóór campagne-uitsluiting.",
     }));
-    const adsKeywordIntelligence = {
-      evidenceLevel: keywordSeeds.length ? "page_evidence" : "insufficient",
-      language: pageLanguage || null,
+    const adsKeywordGroups = keywordSeeds.slice(0, 6).map((seed) => ({
+      theme: seed,
       intent: keywordIntent,
       landingPage: finalUrl.toString(),
-      seedTerms: keywordSeeds,
-      keywordCandidates: adsKeywordCandidates,
-      negativeKeywordCandidates,
+      keywords: baseKeywordCandidates.filter((candidate) => candidate.toLowerCase().includes(seed.toLowerCase())).slice(0, 8),
+    }));
+    const adsKeywordIntelligence = {
+      evidenceLevel: customerSeeds.length && pageEvidenceSeeds.length ? "customer_and_page_evidence" : customerSeeds.length ? "customer_context" : pageEvidenceSeeds.length ? "page_evidence" : "insufficient",
+      language: pageLanguage || null, intent: keywordIntent, campaignGoal: goal || null, audience: adsProfile.audience || null,
+      targetArea: targetArea || null, landingPage: finalUrl.toString(), seedTerms: keywordSeeds,
+      keywordCandidates: baseKeywordCandidates, keywordGroups: adsKeywordGroups, negativeKeywordCandidates,
       metrics: { searchVolume: null, cpc: null, competition: null, source: null },
       disclaimer: "Zoekvolume, CPC en Google Ads-concurrentie worden pas getoond wanneer een actuele externe databron is gekoppeld.",
     };
-
 
     const localSchemaCandidates = [
       { type: "Restaurant", pattern: /\b(restaurant|eetcafé|eetgelegenheid|brasserie|bistro|menukaart)\b/i },
