@@ -160,8 +160,14 @@ export async function POST(request: Request) {
       firstMatch(html, /<link[^>]+rel\s*=\s*["']canonical["'][^>]+href\s*=\s*["']([^"']+)["'][^>]*>/i) ||
       firstMatch(html, /<link[^>]+href\s*=\s*["']([^"']+)["'][^>]+rel\s*=\s*["']canonical["'][^>]*>/i);
     const lang = firstMatch(html, /<html[^>]+lang\s*=\s*["']([^"']+)["']/i);
-    const viewport = /<meta[^>]+name\s*=\s*["']viewport["']/i.test(html);
+    const langIsValid = /^(?:[a-z]{2,3})(?:-[a-z0-9]{2,8})*$/i.test(lang);
+    const viewportContent =
+      firstMatch(html, /<meta[^>]+name\s*=\s*["']viewport["'][^>]+content\s*=\s*["']([^"']+)["']/i) ||
+      firstMatch(html, /<meta[^>]+content\s*=\s*["']([^"']+)["'][^>]+name\s*=\s*["']viewport["']/i);
+    const viewportIsResponsive = /(?:^|[,;\s])width\s*=\s*device-width(?:$|[,;\s])/i.test(viewportContent);
     const robots = firstMatch(html, /<meta[^>]+name\s*=\s*["']robots["'][^>]+content\s*=\s*["']([^"']+)["']/i);
+    const xRobotsTag = response.headers.get("x-robots-tag") || "";
+    const noindexSignal = /(?:^|[,;\s])noindex(?:$|[,;\s])/i.test(robots) || /(?:^|[,;\s])noindex(?:$|[,;\s])/i.test(xRobotsTag);
     const imageMetrics = extractImageMetrics(html);
     const imageCount = imageMetrics.uniqueImageReferences;
     const imageElementCount = imageMetrics.elementCount;
@@ -516,13 +522,21 @@ export async function POST(request: Request) {
             ? check("fail", "canonical", "seo", "Canonical URL", "De canonical verwijst naar een ander domein dan de gescande pagina. Dit kan de verkeerde voorkeurs-URL voor zoekmachines aangeven.", "Gebruik voor een normale pagina een self-referencing canonical op het eigen domein, tenzij een externe canonical bewust en inhoudelijk onderbouwd is.", 0, 10)
             : check("warning", "canonical", "seo", "Canonical URL", "De canonical is aanwezig, maar verwijst niet naar de gescande URL.", "Controleer of de canonical bewust naar een andere, inhoudelijk gelijkwaardige voorkeurs-URL verwijst.", 5, 7)
     );
-    seoChecks.push(viewport
-      ? check("pass", "viewport", "seo", "Mobiele viewport", "Een viewport meta tag is aanwezig.", "Test daarnaast de echte mobiele layout en Core Web Vitals.", 5, 5)
-      : check("fail", "viewport", "seo", "Mobiele viewport", "Geen viewport meta tag gevonden.", "Voeg een responsive viewport meta tag toe.", 0, 5)
+    seoChecks.push(!viewportContent
+      ? check("fail", "viewport", "seo", "Mobiele viewport", "Geen viewport meta tag met content gevonden.", "Voeg content=\"width=device-width, initial-scale=1\" toe aan de viewport meta tag.", 0, 5)
+      : viewportIsResponsive
+        ? check("pass", "viewport", "seo", "Mobiele viewport", `De viewport bevat een responsive width=device-width-instelling: "${viewportContent}".`, "Test daarnaast de echte mobiele layout en Core Web Vitals.", 5, 5)
+        : check("warning", "viewport", "seo", "Mobiele viewport", `Een viewport meta tag is aanwezig, maar width=device-width is niet gevonden: "${viewportContent}".`, "Gebruik een responsive viewport met width=device-width.", 2, 5)
     );
-    seoChecks.push(lang
-      ? check("pass", "lang", "seo", "HTML-taal", `De pagina heeft lang="${lang}".`, "Gebruik de juiste taalcode voor de primaire paginataal.", 4, 4)
-      : check("warning", "lang", "seo", "HTML-taal", "Geen HTML lang-attribuut gevonden.", "Voeg het juiste lang-attribuut toe aan <html>.", 1, 4)
+    seoChecks.push(!lang
+      ? check("warning", "lang", "seo", "HTML-taal", "Geen HTML lang-attribuut gevonden.", "Voeg het juiste lang-attribuut toe aan <html>.", 1, 4)
+      : langIsValid
+        ? check("pass", "lang", "seo", "HTML-taal", `De pagina heeft een syntactisch geldige lang-code: "${lang}".`, "Controleer afzonderlijk of deze code overeenkomt met de werkelijk gebruikte paginataal.", 4, 4)
+        : check("warning", "lang", "seo", "HTML-taal", `Het lang-attribuut "${lang}" heeft geen geldige taalcode-opbouw.`, "Gebruik een geldige taalcode, bijvoorbeeld nl, en, de of nl-NL.", 1, 4)
+    );
+    seoChecks.push(noindexSignal
+      ? check("warning", "indexability", "seo", "Indexeerbaarheid", `Een noindex-signaal is gevonden${xRobotsTag ? ` in X-Robots-Tag/meta robots (${[robots, xRobotsTag].filter(Boolean).join(" | ")})` : ` in meta robots (${robots})`}.`, "Controleer of noindex bewust is ingesteld. Verwijder het alleen als deze pagina in zoekmachines moet verschijnen.", 0, 6)
+      : check("pass", "indexability", "seo", "Indexeerbaarheid", `Geen noindex gevonden in meta robots of X-Robots-Tag${robots ? `; meta robots: "${robots}"` : ""}.`, "Controleer daarnaast robots.txt en externe zoekmachine-status voor volledige indexeerbaarheid.", 6, 6)
     );
     seoChecks.push(imageElementCount === 0
       ? check("not_applicable", "alt", "seo", "Afbeelding alt-teksten", "Geen <img>-elementen gevonden in de opgehaalde HTML; deze controle telt daarom niet mee.", "Controleer dynamisch geladen afbeeldingen afzonderlijk wanneer die voor de pagina belangrijk zijn.", 0, 7)
@@ -553,6 +567,12 @@ export async function POST(request: Request) {
     seoChecks.push(ogTitle && ogDescription && ogImage
       ? check("pass", "social", "seo", "Social metadata", "Open Graph title, description en image zijn aanwezig.", "Controleer social previews voor belangrijke pagina's.", 4, 4)
       : check("warning", "social", "seo", "Social metadata", "Niet alle belangrijke Open Graph velden zijn gevonden.", "Voeg og:title, og:description en og:image toe.", 2, 4)
+    );
+    seoChecks.push(robotsStatus === "PASS"
+      ? check("pass", "robots_txt", "seo", "robots.txt", "robots.txt is bereikbaar en kon door RankFix worden gelezen.", "Controleer dat belangrijke publieke pagina's niet onbedoeld worden geblokkeerd.", 4, 4)
+      : robotsStatus === "FAIL"
+        ? check("warning", "robots_txt", "seo", "robots.txt", "robots.txt gaf een bevestigde 404 terug.", "Publiceer een robots.txt wanneer je crawlregels of een sitemap wilt declareren.", 2, 4)
+        : check("unable_to_confirm", "robots_txt", "seo", "robots.txt", "RankFix kon robots.txt tijdens deze scan niet betrouwbaar ophalen.", "Probeer opnieuw wanneer de server bereikbaar is.", 0, 4)
     );
     seoChecks.push(sitemapFound
       ? check("pass", "sitemap", "seo", "Sitemap-signaal", `Een bereikbare XML sitemap is gevonden${discoveredSitemapUrl ? `: ${discoveredSitemapUrl}` : "."}`, "Controleer of de sitemap alleen canonieke, indexeerbare URL's bevat.", 4, 4)
