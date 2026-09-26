@@ -443,7 +443,7 @@ export default function Home() {
   const waitingIssues = useMemo(() => activeChecks.filter((item) => item.fix_status === "WAITING"), [activeChecks]);
   const issues = useMemo(() => activeChecks.filter((item) => {
     const key = item.issue_id || item.key;
-    return item.status !== "pass" && item.fix_status !== "WAITING" && !githubResults[key];
+    return (item.status === "fail" || item.status === "warning") && item.fix_status !== "WAITING" && !githubResults[key];
   }), [activeChecks, githubResults]);
   const passedCount = activeChecks.filter((item) => item.status === "pass").length;
   const preparedCount = activeChecks.filter((item) => {
@@ -453,7 +453,7 @@ export default function Home() {
   const remainingCount = issues.length;
 
   return (
-    <main className="rankfix-home min-h-screen bg-[#F4F8FC] text-[#10213A] selection:bg-emerald-300 selection:text-[#10213A]">
+    <main className="rankfix-home min-h-screen bg-[#07172B] text-[#F7FBFF] selection:bg-emerald-300 selection:text-[#032D24]">
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden opacity-40">
         <div className="absolute left-1/2 top-[-220px] h-[560px] w-[900px] -translate-x-1/2 rounded-full bg-emerald-500/10 blur-[130px]" />
         <div className="absolute right-[-180px] top-[520px] h-[420px] w-[420px] rounded-full bg-blue-600/10 blur-[120px]" />

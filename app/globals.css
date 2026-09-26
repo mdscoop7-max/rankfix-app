@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0B1220;
-  --foreground: #F1F5F9;
-  --rankfix-surface: #101B2D;
-  --rankfix-card: #16233A;
-  --rankfix-border: #334155;
-  --rankfix-muted: #94A3B8;
-  --rankfix-accent: #5DCAA5;
+  --background: #07172B;
+  --foreground: #F7FBFF;
+  --rankfix-surface: #0B2038;
+  --rankfix-card: #102A46;
+  --rankfix-border: #315875;
+  --rankfix-muted: #B7C8DA;
+  --rankfix-accent: #18DC8C;
 }
 
 @theme inline {
@@ -18,7 +18,7 @@
 }
 
 body {
-  background: var(--background);
+  background: radial-gradient(circle at 75% -10%, rgba(19,142,190,.20), transparent 34rem), linear-gradient(180deg,#081A30 0%,var(--background) 72%);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -49,3 +49,23 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .lc-meter-running{background:conic-gradient(from 0deg,#1677ff,#7c4dff,#ff3b62,#ffb020,#36df8a,#1677ff);animation:lc-meter-spin 1.15s linear infinite}.lc-meter-running .lc-meter-core{animation:lc-meter-counter 1.15s linear infinite}.lc-meter-running .lc-meter-core strong{font-size:25px;color:#70e7bd}
 @keyframes lc-meter-spin{to{transform:rotate(360deg)}}@keyframes lc-meter-counter{to{transform:rotate(-360deg)}}
 @media(max-width:640px){.lc-scan-visual{flex-direction:column;text-align:center;padding:18px 14px}.lc-meter{width:132px;height:132px}.lc-meter-core strong{font-size:36px}}
+
+/* Shared public RankFix readability: same visual language as the app */
+.rankfix-home{color:#f7fbff}
+.rankfix-home :where(p,small){text-wrap:pretty}
+.rankfix-home :where(input,select,textarea){color:#f7fbff}
+.rankfix-home :where(input,select,textarea)::placeholder{color:#91a6bc}
+.rankfix-home #resultaat{scroll-margin-top:24px}
+@media(max-width:640px){
+  .rankfix-home{overflow-x:hidden}
+  .rankfix-home #resultaat{scroll-margin-top:12px}
+}
+
+/* Public shell: calm dark cards, same palette as signed-in app */
+.rankfix-home nav{background:rgba(7,25,45,.95)!important;border-color:#1c4261!important}
+.rankfix-home [class*="bg-white"]{background-color:rgba(16,42,70,.82)!important}
+.rankfix-home [class*="bg-slate-50"],.rankfix-home [class*="bg-[#F"]{background-color:#0b2038!important}
+.rankfix-home [class*="border-slate-200"],.rankfix-home [class*="border-slate-300"]{border-color:#315875!important}
+.rankfix-home [class*="text-[#10213A]"],.rankfix-home [class*="text-slate-900"],.rankfix-home [class*="text-slate-800"]{color:#f7fbff!important}
+.rankfix-home [class*="text-slate-700"],.rankfix-home [class*="text-slate-600"],.rankfix-home [class*="text-slate-500"]{color:#b7c8da!important}
+.rankfix-home [class*="shadow-slate"]{--tw-shadow-color:rgba(0,8,20,.18)!important}
