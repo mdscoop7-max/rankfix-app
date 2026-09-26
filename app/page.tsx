@@ -10,7 +10,7 @@ type Check = {
   key: string;
   category: "seo" | "geo";
   title: string;
-  status: "pass" | "warning" | "fail";
+  status: "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
   message: string;
   fix: string;
   points: number;
@@ -33,6 +33,9 @@ type ScanResult = {
   grade: string;
   responseTime: number;
   httpStatus: number;
+  summary?: {passed:number;issues:number;notApplicable:number;unableToConfirm:number;pendingFixes:number};
+  rendering?: {mode:string;javascriptExecuted:boolean;note:string};
+  pageTypeEvidence?: {type:string;confidence:string;evidence:string[]};
   seo: { score: number; grade: string; checks: Check[] };
   geo: { score: number; grade: string; checks: Check[] };
   metrics: {
@@ -63,7 +66,7 @@ type ScanResult = {
   };
 };
 
-const statusIcon = { pass: "✓", warning: "!", fail: "×" };
+const statusIcon = { pass: "✓", warning: "!", fail: "×", not_applicable: "—", unable_to_confirm: "?" };
 
 const translations = {
   nl: {
@@ -451,6 +454,8 @@ export default function Home() {
     return item.fix_status === "WAITING" || Boolean(githubResults[key]);
   }).length;
   const remainingCount = issues.length;
+  const notApplicableCount = activeChecks.filter((item) => item.status === "not_applicable").length;
+  const unableToConfirmCount = activeChecks.filter((item) => item.status === "unable_to_confirm").length;
 
   return (
     <main className="rankfix-home min-h-screen bg-[#07172B] text-[#F7FBFF] selection:bg-emerald-300 selection:text-[#032D24]">
@@ -718,7 +723,7 @@ export default function Home() {
               <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">Jouw kansen, op één scherm.</h2>
               <p className="mt-1 max-w-2xl break-all text-xs text-slate-500">{result.finalUrl}</p>
             </div>
-            <div className="text-xs text-slate-500">{result.responseTime} ms · HTTP {result.httpStatus}</div>
+            <div className="text-xs text-slate-500">{result.responseTime} ms · HTTP {result.httpStatus}</div>{result.rendering&&<div className="mt-1 text-xs text-slate-500">Bron: {result.rendering.mode==="raw_html"?"Raw HTML · JavaScript niet uitgevoerd":"JavaScript-gerenderd"}{result.pageTypeEvidence?` · ${result.pageTypeEvidence.type} (${result.pageTypeEvidence.confidence})`:""}</div>}
           </div>
 
           <div className="mb-6 rounded-[28px] border border-slate-200 bg-gradient-to-br from-white/[0.055] to-emerald-400/[0.025] p-5 shadow-2xl shadow-black/10 sm:p-6">
@@ -837,9 +842,9 @@ export default function Home() {
                     }).map((item) => (
                       <div key={item.issue_id || item.key} className="rounded-2xl border border-slate-200 bg-black/10 p-3">
                         <div className="flex items-center gap-2">
-                          <span className={`text-xs font-bold ${item.status === "pass" ? "text-emerald-300" : item.status === "warning" ? "text-amber-300" : "text-red-300"}`}>{statusIcon[item.status]}</span>
-                          <span className="text-sm font-semibold">{item.title}</span>
-                          <span className="ml-auto text-[10px] text-slate-600">{item.points}/{item.maxPoints}</span>
+                          <span className={`text-xs font-bold ${item.status === "pass" ? "text-emerald-300" : item.status === "warning" ? "text-amber-300" : item.status === "fail" ? "text-red-300" : "text-cyan-300"}`}>{statusIcon[item.status]}</span>
+                          <span className="text-sm font-semibold">{item.title} <span className="cursor-help text-slate-600" title={`Weging: maximaal ${item.maxPoints} punten. N.v.t. en niet te bevestigen tellen niet mee in de score.`}>ⓘ</span></span>
+                          <span className="ml-auto text-[10px] text-slate-600">{item.status==="not_applicable"?"N.v.t.":item.status==="unable_to_confirm"?"Niet te bevestigen":`${item.points}/${item.maxPoints}`}</span>
                         </div>
                         <p className="mt-1 text-xs leading-5 text-slate-500">{item.message}</p>
                         {item.status !== "pass" && (
