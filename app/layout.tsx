@@ -19,6 +19,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "RankFix AI — SEO + GEO Audit",
     description: "SEO en GEO audits voor Google en AI Search met concrete fixes.",
+    images: [],
   },
 };
 
