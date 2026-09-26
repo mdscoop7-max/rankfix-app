@@ -8,6 +8,7 @@ import { getFixPolicy } from "@/lib/fix-policy";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
+import { scoreApplicableChecks, summarizeAuditChecks } from "@/lib/audit-score";
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -1132,9 +1133,8 @@ export async function POST(request: Request) {
     const overallScore = Math.round(seoScore * 0.6 + geoScore * 0.4);
     const selectedSeoChecks = mode === "geo" ? [] : seoChecks;
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
-    const scoreSelected=(items:Check[])=>{const applicable=items.filter(c=>c.issue_status!=="NOT_APPLICABLE"&&c.issue_status!=="UNABLE_TO_CONFIRM");const max=applicable.reduce((sum,c)=>sum+c.maxPoints,0);return max?Math.round(applicable.reduce((sum,c)=>sum+c.points,0)/max*100):0;};
-    const selectedSeoScore = scoreSelected(selectedSeoChecks);
-    const selectedGeoScore = scoreSelected(selectedGeoChecks);
+    const selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);
+    const selectedGeoScore = scoreApplicableChecks(selectedGeoChecks);
     let selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
     const selectedHasCriticalIssue = [...selectedSeoChecks, ...selectedGeoChecks].some((item) => item.status !== "pass" && item.severity === "CRITICAL");
     const selectedHasHighIssue = [...selectedSeoChecks, ...selectedGeoChecks].some((item) => item.status === "fail" && item.severity === "HIGH");
@@ -1156,13 +1156,7 @@ export async function POST(request: Request) {
     const seoCoverage = coverageFor(selectedSeoChecks);
     const geoCoverage = coverageFor(selectedGeoChecks);
     const overallCoverage = coverageFor(checks);
-    const scanSummary = {
-      passed: checks.filter((item) => item.issue_status === "PASS").length,
-      issues: checks.filter((item) => item.issue_status === "FAIL" || item.issue_status === "WARNING").length,
-      notApplicable: checks.filter((item) => item.issue_status === "NOT_APPLICABLE").length,
-      unableToConfirm: checks.filter((item) => item.issue_status === "UNABLE_TO_CONFIRM").length,
-      pendingFixes: checks.filter((item) => item.fix_status === "WAITING").length,
-    };
+    const scanSummary = summarizeAuditChecks(checks);
     const pageTypeEvidence = {
       type: isHomepage ? "homepage" : isProductPage ? "product" : hasItemListSignal ? "category" : hasArticleSignal ? "article" : hasLocalBusinessSignal ? "service" : "unknown",
       confidence: isHomepage ? "high" : isProductPage && (hasProductSchema || hasSkuSignal) ? "high" : isProductPage ? "medium" : hasItemListSignal || hasArticleSignal || hasLocalBusinessSignal ? "medium" : "low",
