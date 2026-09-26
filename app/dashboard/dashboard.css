@@ -218,3 +218,11 @@
   .rf-nav .rf-nav-scan{color:#d8fff0!important}
   .rf-nav .rf-nav-scan .rf-nav-icon{background:linear-gradient(145deg,#18dc8c,#35c9dc)!important;color:#032d24!important;box-shadow:0 8px 22px rgba(24,220,140,.20)!important}
 }
+
+/* Shared scan experience inside the authenticated dashboard */
+.rf-shared-scan{background:linear-gradient(145deg,#10243b,#12374a);border-color:rgba(93,202,165,.25);box-shadow:0 18px 42px rgba(5,18,34,.18)}
+.rf-shared-scan-badge{display:inline-flex;margin-bottom:16px;padding:6px 10px;border-radius:999px;background:rgba(93,202,165,.13);color:#9FE1CB;font-size:11px;font-weight:800;letter-spacing:.04em}
+.rf-shared-scan-form{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}.rf-shared-scan-form .rf-primary{width:auto;min-width:150px;margin:0}.rf-shared-scan input{background:#fff;color:#10213A;border-color:#D8E3EF}.rf-shared-scan-meta{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:14px;color:#C8D9E8;font-size:11px}
+.rf-scan-progress{margin-top:16px;display:flex;align-items:center;gap:14px;padding:18px;border:1px solid #BFEBDD;border-radius:14px;background:#F5FFFB;color:#10213A}.rf-scan-progress p{margin-top:4px;color:#667892;font-size:12px}.rf-scan-spinner{width:34px;height:34px;flex:none;border:3px solid #CBEFE4;border-top-color:#34C7A1;border-radius:50%;animation:rf-spin .9s linear infinite}@keyframes rf-spin{to{transform:rotate(360deg)}}
+.rf-shared-result{display:flex;align-items:center;gap:22px}.rf-shared-score{--rf-score:0;width:116px;height:116px;flex:none;border-radius:50%;display:grid;place-content:center;text-align:center;background:conic-gradient(#34C7A1 calc(var(--rf-score)*1%),#DCE8EF 0);position:relative}.rf-shared-score:before{content:"";position:absolute;inset:10px;border-radius:50%;background:#fff}.rf-shared-score strong,.rf-shared-score span{position:relative;z-index:1}.rf-shared-score strong{font-size:31px}.rf-shared-score span{font-size:11px;color:#667892}.rf-shared-result h2{margin-top:5px}.rf-shared-actions{display:flex;align-items:center;gap:14px;margin-top:13px}
+@media(max-width:650px){.rf-shared-scan-form{grid-template-columns:1fr}.rf-shared-scan-form .rf-primary{width:100%}.rf-shared-result{align-items:flex-start;flex-direction:column}.rf-shared-score{width:100px;height:100px}}
