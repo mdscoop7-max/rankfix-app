@@ -951,12 +951,17 @@ export async function POST(request: Request) {
     seoChecks.push(hasEcommerceSignal
       ? check(hasCheckoutTrustSignal?"pass":"warning","checkout_trust","seo","Checkout- en betaalvertrouwen",hasCheckoutTrustSignal?"Betaal-/checkoutsignalen zijn zichtbaar.":"Geen duidelijke betaal- of checkoutsignalen gevonden op deze pagina.","Toon betaalmogelijkheden en relevante veiligheids-/vertrouwensinformatie waar de bezoeker een aankoopbeslissing neemt.",hasCheckoutTrustSignal?5:2,5)
       : check("not_applicable","checkout_trust","seo","Checkout- en betaalvertrouwen","Geen webshop-signalen gevonden; checkoutcontrole is niet van toepassing.","Gebruik deze controle op echte webshopcontent.",0,5));
+    const adsApplicableByCustomer = hasAdsProfile && Boolean(adsProfile.campaignGoal || adsProfile.primaryOffer || adsProfile.targetCountries || adsProfile.adLanguages);
+    const adsApplicableByEvidence = adsTrackingSignals > 0 || hasConversionSignal || hasExplicitAdsConversionSnippet;
+    const adsApplicable = adsApplicableByCustomer || adsApplicableByEvidence;
     seoChecks.push(
-      hasGoogleAdsTag && hasGa4 && (hasConversionSignal || hasExplicitAdsConversionSnippet)
+      !adsApplicable
+        ? check("not_applicable","ads_readiness","seo","Google Ads readiness","Geen Ads-doel of publieke advertentietracking aangetoond; deze controle telt daarom niet mee in de score.","Vul het Google Ads-profiel in wanneer Ads voor deze website relevant is.",0,6)
+        : hasGoogleAdsTag && hasGa4 && (hasConversionSignal || hasExplicitAdsConversionSnippet)
         ? check("unable_to_confirm","ads_readiness","seo","Google Ads readiness",`Google Ads-tag${googleAdsIds.length ? ` (${googleAdsIds.join(", ")})` : ""}, GA4${ga4MeasurementIds.length ? ` (${ga4MeasurementIds.join(", ")})` : ""} en expliciete conversiecode zijn in de publieke bron gevonden. Events: ${uniqueConversionEventNames.slice(0,5).join(", ") || "geen naam gevonden"}; Ads send_to: ${googleAdsSendToLabels.length}; consent-signaal: ${hasConsentModeSignal ? "gevonden" : "niet aangetoond"}. Dit bewijst nog niet dat tags runtime afvuren of conversies door Google worden ontvangen.`,"Verifieer met Tag Assistant/Preview en controleer daarna ontvangen events en consentstatus in GA4/Google Ads.",0,6)
         : adsTrackingSignals > 0 || hasConversionSignal || hasExplicitAdsConversionSnippet
           ? check("unable_to_confirm","ads_readiness","seo","Google Ads readiness",`Trackingcode is gedeeltelijk aangetroffen. Ads-ID's: ${googleAdsIds.length}; GA4-ID's: ${ga4MeasurementIds.length}; GTM-containers: ${gtmContainerIds.length}; expliciete events: ${uniqueConversionEventNames.length}; Ads conversion labels: ${googleAdsSendToLabels.length}; consent-signaal: ${hasConsentModeSignal ? "gevonden" : "niet aangetoond"}.`,"Maak de meetketen compleet en verifieer Google tag, GA4, Ads-conversies en consent runtime.",0,6)
-          : check("not_applicable","ads_readiness","seo","Google Ads readiness","Geen publieke Google Ads/GA4-signalen gevonden. Dat bewijst niet dat tracking ontbreekt of dat deze site Google Ads gebruikt.","Beoordeel Ads readiness alleen wanneer advertentietracking voor deze site daadwerkelijk van toepassing is.",0,6));
+          : check("unable_to_confirm","ads_readiness","seo","Google Ads readiness","Google Ads is volgens de opgegeven scancontext relevant, maar in de publieke HTML zijn geen Google Ads/GA4-signalen bevestigd. Client-side of via GTM geladen tracking kan met deze broncontrole gemist worden.","Controleer de runtime meetketen met Tag Assistant/Preview voordat je concludeert dat tracking ontbreekt.",0,6));
     geoChecks.push(isHomepage
       ? organizationSchemaPresent && websiteSchemaPresent
         ? check("pass", "organization_website", "geo", "Organization + WebSite", "Organization en WebSite structured data zijn aanwezig op de homepage.", "Houd naam, URL en logo consistent met de zichtbare site-identiteit.", 8, 8)
