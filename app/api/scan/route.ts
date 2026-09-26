@@ -8,6 +8,7 @@ import { getFixPolicy } from "@/lib/fix-policy";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
+import { scoreApplicableChecks, summarizeAuditChecks } from "@/lib/audit-score";
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -190,8 +191,9 @@ export async function POST(request: Request) {
     const imageAltCandidates = [...html.matchAll(/<img\b[^>]*>/gi)]
       .filter((m) => {
         const tag = m[0];
-        const altMatch = tag.match(/\balt\s*=\s*(?:["']([^"']*)["']|([^\s>]+))/i);
-        return !(altMatch && (altMatch[1] ?? altMatch[2] ?? "").trim());
+        // alt="" intentionally marks a decorative image. Only images without
+        // an alt attribute belong in the actionable fix candidates.
+        return !/\balt(?:\s*=|\s|\/?>)/i.test(tag);
       })
       .slice(0, 10)
       .map((m) => {
@@ -856,11 +858,13 @@ export async function POST(request: Request) {
               : check("warning", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden, maar geen herkenbaar relevant entity- of paginaschema voor deze ${schemaContextLabel}.`, `Gebruik structured data die aantoonbaar bij het paginatype past. Relevante hoofdkeuze: ${recommendedSchema}.`, 6, 12)
           : check("fail", "schema", "geo", "Structured data", `Geen geldige JSON-LD structured data gevonden voor deze ${schemaContextLabel}.`, `Voeg relevante schema.org JSON-LD toe. Voor dit paginatype is ${recommendedSchema} de belangrijkste richting; gebruik alleen typen die echt bij de zichtbare content passen.`, 0, 12)
     );
-    seoChecks.push(twitterCard === "summary_large_image"
-      ? check("pass", "twitter_card", "seo", "Twitter Card", "summary_large_image is ingesteld voor rijke social previews.", "Gebruik summary_large_image wanneer een grote social afbeelding beschikbaar is.", 3, 3)
-      : twitterCard
-        ? check("warning", "twitter_card", "seo", "Twitter Card", `Twitter Card is ingesteld als "${twitterCard}".`, "Gebruik summary_large_image met een passende og:image voor rijke previews.", 2, 3)
-        : check("warning", "twitter_card", "seo", "Twitter Card", "Geen twitter:card gevonden.", "Voeg twitter:card=summary_large_image toe voor gedeelde links.", 1, 3)
+    const normalizedTwitterCard = twitterCard.toLowerCase();
+    const validTwitterCards = new Set(["summary", "summary_large_image", "app", "player"]);
+    seoChecks.push(twitterCard
+      ? validTwitterCards.has(normalizedTwitterCard)
+        ? check("pass", "twitter_card", "seo", "Twitter Card", `Geldige Twitter/X Card ingesteld: "${twitterCard}".`, "Behoud dit type zolang de social preview past bij de pagina.", 3, 3)
+        : check("warning", "twitter_card", "seo", "Twitter Card", `Onbekende twitter:card-waarde gevonden: "${twitterCard}".`, "Gebruik een ondersteund Card-type en controleer de social preview.", 1, 3)
+      : check("not_applicable", "twitter_card", "seo", "Twitter Card", "Geen twitter:card gevonden. Dit is een optionele social-previewtag en wordt niet als SEO-fout of rankingprobleem bestraft.", "Voeg alleen Twitter/X Card metadata toe wanneer je een specifieke preview op X wilt beheren.", 0, 3)
     );
 
     seoChecks.push(!multilingualUrlEvidence
@@ -1129,9 +1133,8 @@ export async function POST(request: Request) {
     const overallScore = Math.round(seoScore * 0.6 + geoScore * 0.4);
     const selectedSeoChecks = mode === "geo" ? [] : seoChecks;
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
-    const scoreSelected=(items:Check[])=>{const applicable=items.filter(c=>c.issue_status!=="NOT_APPLICABLE"&&c.issue_status!=="UNABLE_TO_CONFIRM");const max=applicable.reduce((sum,c)=>sum+c.maxPoints,0);return max?Math.round(applicable.reduce((sum,c)=>sum+c.points,0)/max*100):0;};
-    const selectedSeoScore = scoreSelected(selectedSeoChecks);
-    const selectedGeoScore = scoreSelected(selectedGeoChecks);
+    const selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);
+    const selectedGeoScore = scoreApplicableChecks(selectedGeoChecks);
     let selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
     const selectedHasCriticalIssue = [...selectedSeoChecks, ...selectedGeoChecks].some((item) => item.status !== "pass" && item.severity === "CRITICAL");
     const selectedHasHighIssue = [...selectedSeoChecks, ...selectedGeoChecks].some((item) => item.status === "fail" && item.severity === "HIGH");
@@ -1153,13 +1156,7 @@ export async function POST(request: Request) {
     const seoCoverage = coverageFor(selectedSeoChecks);
     const geoCoverage = coverageFor(selectedGeoChecks);
     const overallCoverage = coverageFor(checks);
-    const scanSummary = {
-      passed: checks.filter((item) => item.issue_status === "PASS").length,
-      issues: checks.filter((item) => item.issue_status === "FAIL" || item.issue_status === "WARNING").length,
-      notApplicable: checks.filter((item) => item.issue_status === "NOT_APPLICABLE").length,
-      unableToConfirm: checks.filter((item) => item.issue_status === "UNABLE_TO_CONFIRM").length,
-      pendingFixes: checks.filter((item) => item.fix_status === "WAITING").length,
-    };
+    const scanSummary = summarizeAuditChecks(checks);
     const pageTypeEvidence = {
       type: isHomepage ? "homepage" : isProductPage ? "product" : hasItemListSignal ? "category" : hasArticleSignal ? "article" : hasLocalBusinessSignal ? "service" : "unknown",
       confidence: isHomepage ? "high" : isProductPage && (hasProductSchema || hasSkuSignal) ? "high" : isProductPage ? "medium" : hasItemListSignal || hasArticleSignal || hasLocalBusinessSignal ? "medium" : "low",
