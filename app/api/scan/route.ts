@@ -897,7 +897,9 @@ export async function POST(request: Request) {
       ? check("not_applicable", "price_format", "seo", "Prijsnotatie", "Geen duidelijke webshop/product-signalen gevonden; prijsnotatie is niet beoordeeld.", "Gebruik deze controle op echte product- en e-commercepagina's.", 0, 5)
       : !hasDotDecimalPrices
       ? check("pass", "price_format", "seo", "Prijsnotatie", "Geen duidelijke Nederlandse europrijs met punt als decimaalteken gevonden.", "Gebruik per taal/regio een passende valuta- en getalnotatie.", 5, 5)
-      : check("warning", "price_format", "seo", "Prijsnotatie", `${priceFormatMatches.length} prijsnotatie(s) gebruikt een punt als decimaalteken, zoals ${priceFormatMatches[0]}.`, "Gebruik voor Nederlandse content bijvoorbeeld € 129,95 en formatteer prijzen met locale-aware formatting.", 2, 5)
+      : isHomepage
+        ? check("unable_to_confirm", "price_format", "seo", "Prijsnotatie", `${priceFormatMatches.length} eurobedrag(en) met een punt zijn in de statische homepage-tekst gevonden, zoals ${priceFormatMatches[0]}, maar RankFix kan vanuit raw HTML niet bewijzen dat dit de werkelijk zichtbare gelokaliseerde prijsweergave is.`, "Bevestig prijsnotatie op een echte productpagina of met JavaScript-rendering voordat dit als fout wordt beoordeeld.", 0, 5)
+        : check("warning", "price_format", "seo", "Prijsnotatie", `${priceFormatMatches.length} prijsnotatie(s) gebruikt een punt als decimaalteken, zoals ${priceFormatMatches[0]}.`, "Gebruik voor Nederlandse content bijvoorbeeld € 129,95 en formatteer prijzen met locale-aware formatting.", 2, 5)
     );
 
     seoChecks.push(hasEcommerceSignal
