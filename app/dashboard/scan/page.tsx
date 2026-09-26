@@ -5,7 +5,8 @@ import AiAssistant from "@/components/ai-assistant";
 import type { Locale } from "@/lib/locales";
 import { copy } from "@/lib/locales";
 import "../dashboard.css";
-type Result={overallScore:number;seo?:{score:number;checks:Array<{status:string}>};geo?:{score:number;checks:Array<{status:string}>}};
+type AdsKeywords={intent?:string;campaignGoal?:string|null;targetArea?:string|null;targetCountries?:string[];adLanguages?:string[];keywordGroups?:Array<{theme:string;intent:string;landingPage:string;keywords:string[]}>;negativeKeywordCandidates?:Array<{term:string;source?:string;requiresReview:boolean;reason:string}>;metrics?:{searchVolume:null;cpc:null;competition:null;source:null};disclaimer?:string};
+type Result={overallScore:number;seo?:{score:number;checks:Array<{status:string}>};geo?:{score:number;checks:Array<{status:string}>};adsKeywordIntelligence?:AdsKeywords};
 export default function DashboardScan(){
  const [language,setLanguage]=useState<Locale>("nl"),[url,setUrl]=useState(""),[busy,setBusy]=useState(false),[error,setError]=useState(""),[result,setResult]=useState<Result|null>(null);
  const [showAdsProfile,setShowAdsProfile]=useState(false);
@@ -26,5 +27,14 @@ export default function DashboardScan(){
 <label>Advertentietaal/talen</label><input value={adsProfile.adLanguages} onChange={e=>setAds("adLanguages",e.target.value)} maxLength={80} placeholder="Bijv. NL, EN"/>
 <label>Niet promoten (optioneel)</label><input value={adsProfile.excludeIntent} onChange={e=>setAds("excludeIntent",e.target.value)} maxLength={160} placeholder="Bijv. vacatures, tweedehands"/>
 </div>}
-<button className="rf-primary" disabled={busy}>{busy?t.running:"SEO + GEO scan starten"}</button></form>{error&&<p className="rf-alert">{error}</p>}{result&&<section className="rf-report"><div className="rf-section-head"><h2>{t.score}: {result.overallScore}/100</h2><a className="rf-primary-link" href="/dashboard">Naar overzicht</a></div><div className="rf-status-grid"><div className="rf-card"><span>SEO</span><strong>{result.seo?.score??"—"}</strong></div><div className="rf-card"><span>GEO</span><strong>{result.geo?.score??"—"}</strong></div><div className="rf-card"><span>{t.issues}</span><strong>{issues}</strong></div><div className="rf-card"><span>Geslaagd</span><strong>{checks.length-issues}</strong></div></div></section>}</div></div><AiAssistant dashboard/></main>
+<button className="rf-primary" disabled={busy}>{busy?t.running:"SEO + GEO scan starten"}</button></form>{error&&<p className="rf-alert">{error}</p>}{result&&<section className="rf-report"><div className="rf-section-head"><h2>{t.score}: {result.overallScore}/100</h2><a className="rf-primary-link" href="/dashboard">Naar overzicht</a></div><div className="rf-status-grid"><div className="rf-card"><span>SEO</span><strong>{result.seo?.score??"—"}</strong></div><div className="rf-card"><span>GEO</span><strong>{result.geo?.score??"—"}</strong></div><div className="rf-card"><span>{t.issues}</span><strong>{issues}</strong></div><div className="rf-card"><span>Geslaagd</span><strong>{checks.length-issues}</strong></div></div>
+{result.adsKeywordIntelligence&&<div className="rf-card" style={{marginTop:16}}>
+<div className="rf-section-head"><div><span>Google Ads</span><h2>Zoekwoorden</h2></div></div>
+<p>Intentie: <strong>{result.adsKeywordIntelligence.intent||"—"}</strong>{result.adsKeywordIntelligence.campaignGoal?` · Doel: ${result.adsKeywordIntelligence.campaignGoal}`:""}</p>
+{((result.adsKeywordIntelligence.targetCountries?.length||0)>0||(result.adsKeywordIntelligence.adLanguages?.length||0)>0)&&<p>Markt: <strong>{result.adsKeywordIntelligence.targetCountries?.join(", ")||result.adsKeywordIntelligence.targetArea||"—"}</strong> · Taal: <strong>{result.adsKeywordIntelligence.adLanguages?.join(", ")||"—"}</strong></p>}
+{result.adsKeywordIntelligence.keywordGroups?.map((group,index)=><div className="rf-card" key={`${group.theme}-${index}`} style={{marginTop:12}}><strong>{group.theme}</strong><p>{group.keywords.length?group.keywords.join(" · "):"Nog geen betrouwbare zoekwoorden voor deze groep."}</p><small>Landingspagina: {group.landingPage}</small></div>)}
+{(result.adsKeywordIntelligence.negativeKeywordCandidates?.length||0)>0&&<div style={{marginTop:16}}><strong>Negatieve zoekwoorden — eerst controleren</strong><p>{result.adsKeywordIntelligence.negativeKeywordCandidates?.map(item=>item.term).join(" · ")}</p></div>}
+<p className="rf-alert" style={{marginTop:16}}>{result.adsKeywordIntelligence.disclaimer||"Zoekvolume en CPC worden alleen getoond met een actuele databron."}</p>
+</div>}
+</section>}</div></div><AiAssistant dashboard/></main>
 }
