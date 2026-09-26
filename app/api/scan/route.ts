@@ -328,6 +328,54 @@ export async function POST(request: Request) {
         returnPolicy: offer.returnPolicy,
       })),
     }));
+    const keywordSeedText = [...h1s.slice(0, 2), title, ...productOfferEvidence.map((product) => product.name).filter(Boolean)]
+      .map((value) => stripHtml(String(value || "")).replace(/\s+/g, " ").trim())
+      .filter((value) => value.length >= 3 && value.length <= 120);
+    const keywordStopSegments = /\s+[|–—-]\s+/;
+    const keywordSeeds = [...new Set(keywordSeedText.flatMap((value) => {
+      const primary = value.split(keywordStopSegments)[0]?.trim() || value;
+      return primary && primary.length >= 3 ? [primary] : [];
+    }))].slice(0, 8);
+    const pageLanguage = (lang || "").toLowerCase().split("-")[0];
+    const commercialModifiers: Record<string, string[]> = {
+      nl: ["kopen", "prijs", "bestellen"],
+      en: ["buy", "price", "order"],
+      de: ["kaufen", "preis", "bestellen"],
+      fr: ["acheter", "prix", "commander"],
+      es: ["comprar", "precio", "pedir"],
+      it: ["comprare", "prezzo", "ordinare"],
+    };
+    const modifiers = commercialModifiers[pageLanguage] || commercialModifiers.en;
+    const keywordIntent = hasProductSignal ? "transactional" : hasLocalBusinessSignal ? "local_commercial" : hasArticleSignal ? "informational" : "mixed";
+    const adsKeywordCandidates = [...new Set([
+      ...keywordSeeds,
+      ...(hasProductSignal ? keywordSeeds.slice(0, 4).flatMap((seed) => modifiers.map((modifier) => `${seed} ${modifier}`)) : []),
+    ])].slice(0, 20);
+    const negativeTermsByLanguage: Record<string, string[]> = {
+      nl: ["gratis", "vacature", "handleiding", "tweedehands"],
+      en: ["free", "jobs", "manual", "used"],
+      de: ["kostenlos", "jobs", "anleitung", "gebraucht"],
+      fr: ["gratuit", "emploi", "manuel", "occasion"],
+      es: ["gratis", "empleo", "manual", "segunda mano"],
+      it: ["gratis", "lavoro", "manuale", "usato"],
+    };
+    const negativeKeywordCandidates = (negativeTermsByLanguage[pageLanguage] || negativeTermsByLanguage.en).map((term) => ({
+      term,
+      requiresReview: true,
+      reason: "Alleen uitsluiten wanneer deze zoekintentie niet past bij het aanbod of campagnedoel.",
+    }));
+    const adsKeywordIntelligence = {
+      evidenceLevel: keywordSeeds.length ? "page_evidence" : "insufficient",
+      language: pageLanguage || null,
+      intent: keywordIntent,
+      landingPage: finalUrl.toString(),
+      seedTerms: keywordSeeds,
+      keywordCandidates: adsKeywordCandidates,
+      negativeKeywordCandidates,
+      metrics: { searchVolume: null, cpc: null, competition: null, source: null },
+      disclaimer: "Zoekvolume, CPC en Google Ads-concurrentie worden pas getoond wanneer een actuele externe databron is gekoppeld.",
+    };
+
     const hasAuthorSignal = /\b(author|auteur|geschreven door|written by|byline)\b/i.test(text) || schemaSet.has("person");
 
     const hasFaqContent = /\b(faq|veelgestelde vragen|frequently asked questions|questions fréquentes|häufig gestellte fragen)\b/i.test(text) ||
@@ -1087,6 +1135,7 @@ export async function POST(request: Request) {
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage,
+            adsKeywordIntelligence,
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
             metrics: { siteType: (hasProductSchema || /add-to-cart|shopping cart|winkelwagen|checkout|sku|price|availability/i.test(text)) ? "ECOMMERCE" : "WEBSITE", title, titleLength: title.length, description, descriptionLength: description.length, h1Count: h1s.length, h1s,
@@ -1169,6 +1218,7 @@ export async function POST(request: Request) {
       overallScore: selectedOverallScore,
       grade: grade(selectedOverallScore),
       coverage: overallCoverage,
+      adsKeywordIntelligence,
       seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
       geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
       metrics: {
