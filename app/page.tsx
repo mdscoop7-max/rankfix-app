@@ -730,7 +730,7 @@ export default function Home() {
               <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">Jouw kansen, op één scherm.</h2>
               <p className="mt-1 max-w-2xl break-all text-xs text-slate-500">{result.finalUrl}</p>
             </div>
-            <div className="text-xs text-slate-500">{result.responseTime} ms · HTTP {result.httpStatus}</div>{result.rendering&&<div className="mt-1 text-xs text-slate-500">Bron: {result.rendering.mode==="raw_html"?"Raw HTML · JavaScript niet uitgevoerd":"JavaScript-gerenderd"}{result.pageTypeEvidence?` · ${result.pageTypeEvidence.type} (${result.pageTypeEvidence.confidence})`:""}</div>}
+            <div className="text-xs text-slate-500">{result.responseTime} ms · HTTP {result.httpStatus}</div>{result.rendering&&<div className="mt-1 text-xs text-slate-500">Bron: {result.rendering.mode==="raw_html"?"Raw HTML · JavaScript niet uitgevoerd":"JavaScript-gerenderd"}{result.rendering.mode==="raw_html"&&<span className="ml-1 cursor-help" title="Dynamische onderdelen zoals checkout, JavaScript-content en sommige voorraad- of prijssignalen kunnen hierdoor niet volledig worden bevestigd.">ⓘ</span>}{result.pageTypeEvidence?` · ${result.pageTypeEvidence.type} (${result.pageTypeEvidence.confidence})`:""}</div>}
             <WebsiteProfile profile={result.technologyProfile} />
           </div>
 
@@ -833,12 +833,12 @@ export default function Home() {
                         <div className="text-[10px] font-bold uppercase tracking-widest">{key} audit</div>
                         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                           <span className="whitespace-nowrap text-xl font-black">{data.score}<span className="ml-0.5 text-xs font-bold opacity-60">/100</span></span>
-                          <span className="whitespace-nowrap rounded-full border border-current/10 bg-white/60 px-2 py-1 text-[11px] font-semibold">{data.checks.filter((item) => item.status === "pass").length}/{data.checks.length} geslaagd</span>
+                          <span className="whitespace-nowrap rounded-full border border-current/10 bg-white/60 px-2 py-1 text-[11px] font-semibold">Dekking: {data.checks.filter((item) => item.status !== "not_applicable" && item.status !== "unable_to_confirm").length}/{data.checks.length}</span>
                         </div>
                       </button>
                     ))}
                   </div>
-                  <p className="px-2 pb-1 pt-2 text-xs text-slate-500">Kies SEO of GEO om de bijbehorende controles, punten en aanbevelingen te bekijken.</p>
+                  <p className="px-2 pb-1 pt-2 text-xs text-slate-500">Auditdekking toont hoeveel controles daadwerkelijk beoordeeld konden worden. N.v.t. en niet te bevestigen tellen niet mee in de score.</p>
                 </div>
               )}
 
@@ -846,7 +846,8 @@ export default function Home() {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-500">{tab.toUpperCase()} audit</div>
-                    <div className="mt-1 text-lg font-black">{activeChecks.filter((item) => item.status === "pass").length} controles geslaagd</div>
+                    <div className="mt-1 text-lg font-black">Auditdekking: {activeChecks.filter((item) => item.status !== "not_applicable" && item.status !== "unable_to_confirm").length} van {activeChecks.length} controles beoordeeld</div>
+                    <div className="mt-1 text-xs text-slate-500">{activeChecks.filter((item) => item.status === "pass").length} geslaagd · {activeChecks.filter((item) => item.status === "warning" || item.status === "fail").length} verbeterpunten · {activeChecks.filter((item) => item.status === "not_applicable" || item.status === "unable_to_confirm").length} N.v.t. of niet te bevestigen</div>
                   </div>
                   <span className="text-xs text-slate-600">{activeChecks.length} controles</span>
                 </div>
