@@ -846,9 +846,11 @@ export default function Home() {
                           <div className="mt-3 rounded-xl border border-emerald-400/10 bg-emerald-400/[0.04] p-3">
                             <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">RankFix recommendation</div>
                             <p className="mt-1 text-xs leading-5 text-slate-300">{item.fix}</p>
-                            <button type="button" onClick={() => generateFix(item)} disabled={fixing === (item.issue_id || item.key)} className="mt-2 rounded-lg border border-emerald-400/20 bg-emerald-400/5 px-3 py-2 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-400/10 disabled:opacity-50">
-                              {fixing === (item.issue_id || item.key) ? "AI analyseert…" : "✨ Maak fixvoorstel"}
-                            </button>
+                            {item.status !== "not_applicable" && item.status !== "unable_to_confirm" && item.issue_status !== "NOT_APPLICABLE" && item.issue_status !== "UNABLE_TO_CONFIRM" && (
+                              <button type="button" onClick={() => generateFix(item)} disabled={fixing === (item.issue_id || item.key)} className="mt-2 rounded-lg border border-emerald-400/20 bg-emerald-400/5 px-3 py-2 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-400/10 disabled:opacity-50">
+                                {fixing === (item.issue_id || item.key) ? "AI analyseert…" : "✨ Maak fixvoorstel"}
+                              </button>
+                            )}
                             {fixes[item.issue_id || item.key] && (
                               <div className="mt-3 rounded-xl border border-emerald-400/15 bg-emerald-400/[0.04] p-3">
                                 <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">{fixes[item.issue_id || item.key].title}</div>
