@@ -1092,7 +1092,7 @@ export async function POST(request: Request) {
         ? check("pass", "entity", "geo", "Entity-signalen", "Duidelijke bedrijfsidentiteit en externe/contactsignalen zijn zichtbaar op de pagina.", "Maak de identiteit ook machineleesbaar met passende Organization/LocalBusiness structured data.", 10, 10)
         : hasVisibleBusinessIdentity
           ? check("warning", "entity", "geo", "Entity-signalen", "Een bedrijfsidentiteit is zichtbaar, maar aanvullende contact- of externe profielsignalen zijn beperkt.", "Maak de organisatie-identiteit concreter met contactgegevens, officiële profielen en passende schema.org data.", 6, 10)
-          : check("warning", "entity", "geo", "Entity-signalen", "Er is weinig expliciete entity-informatie gevonden.", "Definieer de organisatie/brand en relevante entiteiten met schema.org.", 4, 10)
+          : check("warning", "entity", "geo", "Entity-signalen", "Er is weinig expliciete zichtbare entity-informatie gevonden.", "Maak organisatie- of merknaam, contactcontext en officiële profielen zichtbaar en consistent. Machineleesbare structured data wordt apart beoordeeld.", 4, 10)
     );
     geoChecks.push(isHomepage
       ? check("not_applicable", "breadcrumbs", "geo", "Breadcrumbs", "Op de homepage is BreadcrumbList normaal niet nodig; deze controle telt daarom niet mee.", "Gebruik BreadcrumbList vooral op diepe content-, categorie- en productpagina's.", 0, 6)
@@ -1125,18 +1125,29 @@ export async function POST(request: Request) {
       ? check("pass", "answer", "geo", "Expliciete paginasamenvatting", "Open Graph title en description geven een expliciete machineleesbare samenvatting van de pagina.", "Houd title, description en zichtbare introductie inhoudelijk consistent.", 6, 6)
       : check("warning", "answer", "geo", "Expliciete paginasamenvatting", "Een complete Open Graph-samenvatting is niet gevonden.", "Voeg een duidelijke zichtbare introductie en consistente metadata toe; dit is een readiness-signaal en geen garantie op zichtbaarheid in AI-zoekmachines.", 2, 6)
     );
-    const brandIdentitySignals = [
-      organizationSchemaName || organizationName,
-      organizationSchemaUrl,
-      organizationSchemaLogo,
-      organizationSchemaSameAs > 0 || sameAsCount > 0,
-      organizationSchemaContact > 0,
+    // Brand identity is a visible-consistency check. Structured data quality is scored separately above,
+    // so missing Organization JSON-LD must not create a second schema penalty here.
+    const visibleBrandNameSignal = Boolean(
+      organizationName ||
+      firstMatch(html, /<meta[^>]+name\s*=\s*["']application-name["'][^>]+content\s*=\s*["']([^"']+)["']/i) ||
+      /<img[^>]+(?:class|id)\s*=\s*["'][^"']*(?:logo|brand)[^"']*["']/i.test(html) ||
+      /<img[^>]+alt\s*=\s*["'][^"']*(?:logo|brand)[^"']*["']/i.test(html)
+    );
+    const visibleBrandLogoSignal = Boolean(
+      /<img[^>]+(?:class|id)\s*=\s*["'][^"']*(?:logo|brand)[^"']*["']/i.test(html) ||
+      /<img[^>]+alt\s*=\s*["'][^"']*(?:logo|brand)[^"']*["']/i.test(html)
+    );
+    const visibleBrandSignals = [
+      visibleBrandNameSignal,
+      visibleBrandLogoSignal,
+      hasBusinessContactDetails,
+      hasSocialOrReviewSignal,
     ].filter(Boolean).length;
-    geoChecks.push(brandIdentitySignals >= 3
-      ? check("pass", "identity", "geo", "Brand identity", "De organisatie-identiteit is machineleesbaar en bevat meerdere consistente merksignalen.", "Houd naam, URL, logo, officiële profielen en contactcontext consistent.", 5, 5)
-      : brandIdentitySignals >= 1
-        ? check("warning", "identity", "geo", "Brand identity", "Er is Organization-context gevonden, maar de machineleesbare merkidentiteit kan vollediger.", "Vul relevante Organization-velden aan, zoals naam, URL, logo en officiële profielen, zonder gegevens te verzinnen.", 3, 5)
-        : check("warning", "identity", "geo", "Brand identity", "Weinig expliciete brand identity-signalen gevonden.", "Voeg Organization-data en officiële profielen toe waar relevant.", 2, 5)
+    geoChecks.push(visibleBrandSignals >= 3
+      ? check("pass", "identity", "geo", "Brand identity", "Meerdere zichtbare merksignalen zijn consistent aanwezig: naam/branding, contactcontext en/of officiële externe profielen.", "Houd merknaam, logo, contactgegevens en officiële profielen consistent. Beoordeel machineleesbare Organization-data afzonderlijk via Structured data.", 5, 5)
+      : visibleBrandSignals >= 1
+        ? check("warning", "identity", "geo", "Brand identity", "Er zijn zichtbare merksignalen gevonden, maar de merkidentiteit kan consistenter of vollediger worden bevestigd.", "Maak merknaam, logo, contactcontext en officiële profielen duidelijk en consistent. Structured data wordt apart beoordeeld.", 3, 5)
+        : check("warning", "identity", "geo", "Brand identity", "Weinig expliciete zichtbare brand identity-signalen gevonden.", "Maak merknaam, logo en officiële contact-/profielsignalen zichtbaar en consistent. Structured data wordt apart beoordeeld.", 2, 5)
     );
 
     const ruleMap: Record<string, { rule_id: string; severity: Check["severity"] }> = {
