@@ -415,15 +415,17 @@ export async function POST(request: Request) {
     let sitemapFound = false;
     let sitemapStatus: "PASS" | "FAIL" | "UNABLE_TO_CONFIRM" = "UNABLE_TO_CONFIRM";
     let sitemapFetchCompleted = false;
-    let robotsDeclaredSitemapUrl: string | null = null;
+    let robotsDeclaredSitemapUrls: string[] = [];
     let confirmedSitemapUrl: string | null = null;
     try {
       const r = (await safePublicFetch(robotsUrl, { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/plain,application/xml,text/xml" })).response;
       if (r.ok) {
         robotsTxt = await r.text();
         robotsStatus = "PASS";
-        const declared = robotsTxt.match(/^\s*Sitemap\s*:\s*(\S+)/im)?.[1];
-        if (declared) robotsDeclaredSitemapUrl = new URL(declared, finalUrl).toString();
+        const declared = [...robotsTxt.matchAll(/^\s*Sitemap\s*:\s*(\S+)/gim)].map((match) => match[1]).filter(Boolean);
+        robotsDeclaredSitemapUrls = [...new Set(declared.flatMap((value) => {
+          try { return [new URL(value, finalUrl).toString()]; } catch { return []; }
+        }))].slice(0, 20);
       } else if (r.status === 404) robotsStatus = "FAIL";
     } catch { robotsStatus = "UNABLE_TO_CONFIRM"; }
     const robotsPath = finalUrl.pathname || "/";
@@ -448,24 +450,29 @@ export async function POST(request: Request) {
       .filter((rule) => rule.path && robotsPath.startsWith(rule.path.replace(/\*.*$/, "")))
       .sort((a, b) => b.path.length - a.path.length);
     const robotsPathBlocked = robotsStatus === "PASS" && matchingRobotsRules.length > 0 && matchingRobotsRules[0].kind === "disallow";
-    const sitemapCandidates = [...new Set([robotsDeclaredSitemapUrl, sitemapUrl.toString()].filter(Boolean) as string[])];
+    const sitemapCandidates = [...new Set([...robotsDeclaredSitemapUrls, sitemapUrl.toString()])].slice(0, 20);
     let sitemapFetchFailed = false;
     for (const candidate of sitemapCandidates) {
       try {
         const r = (await safePublicFetch(new URL(candidate), { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/plain,application/xml,text/xml" })).response;
         sitemapFetchCompleted = true;
-        if (r.ok && /xml|text\/xml/i.test(r.headers.get("content-type") || "")) {
-          sitemapFound = true;
-          sitemapStatus = "PASS";
-          confirmedSitemapUrl = candidate;
-          break;
+        if (r.ok) {
+          const sitemapBody = (await r.text()).slice(0, 2_000_000);
+          const hasSitemapRoot = /<(?:[a-z0-9_-]+:)?(?:urlset|sitemapindex)\b/i.test(sitemapBody);
+          if (hasSitemapRoot) {
+            sitemapFound = true;
+            sitemapStatus = "PASS";
+            confirmedSitemapUrl = candidate;
+            break;
+          }
+          sitemapStatus = "FAIL";
         }
         if (r.status === 404) sitemapStatus = "FAIL";
       } catch { sitemapFetchFailed = true; }
     }
     if (!sitemapFound && sitemapFetchCompleted && !sitemapFetchFailed && sitemapStatus === "UNABLE_TO_CONFIRM") sitemapStatus = "FAIL";
     if (!sitemapFound && sitemapFetchFailed) sitemapStatus = "UNABLE_TO_CONFIRM";
-    const robotsMentionsSitemap = Boolean(robotsDeclaredSitemapUrl);
+    const robotsMentionsSitemap = robotsDeclaredSitemapUrls.length > 0;
 
     const seoChecks: Check[] = [];
     const geoChecks: Check[] = [];
@@ -931,7 +938,7 @@ export async function POST(request: Request) {
         https: finalUrl.protocol === "https:",
         status: response.status,
         response: responseTime,
-        sitemap: sitemapFound ? (confirmedSitemapUrl || true) : robotsDeclaredSitemapUrl ? `declared=${robotsDeclaredSitemapUrl}; status=${sitemapStatus}` : sitemapStatus,
+        sitemap: sitemapFound ? (confirmedSitemapUrl || true) : robotsDeclaredSitemapUrls.length ? `declared=${robotsDeclaredSitemapUrls.join(",")}; status=${sitemapStatus}` : sitemapStatus,
         robots_txt: robotsStatus === "PASS" ? `${robotsUrl.toString()}; pathBlocked=${robotsPathBlocked}${matchingRobotsRules[0] ? `; rule=${matchingRobotsRules[0].kind}:${matchingRobotsRules[0].path}` : ""}` : robotsStatus,
         indexability: noindexSignal ? [robots, xRobotsTag].filter(Boolean).join(" | ") : robotsPathBlocked ? `robots disallow: ${matchingRobotsRules[0].path}` : "no noindex or applicable robots block found",
         hreflang: hreflangEntries.length ? hreflangEntries.map((entry) => `${entry.language}=>${entry.href || "missing"}`).join(" | ") : null,
@@ -1041,7 +1048,7 @@ export async function POST(request: Request) {
               internalLinks, canonical: canonical || null, lang: lang || null, robots: robots || null,
               openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null }, imageAltCandidates,
               twitterCard: twitterCard || null, schemaTypes: [...new Set(schemaTypes)].slice(0,12),
-              jsonLdBlocks: validJsonLd, sitemapFound, robotsMentionsSitemap, robotsStatus, sitemapUrl: confirmedSitemapUrl || robotsDeclaredSitemapUrl }
+              jsonLdBlocks: validJsonLd, sitemapFound, robotsMentionsSitemap, robotsStatus, sitemapUrl: confirmedSitemapUrl || robotsDeclaredSitemapUrls[0] || null }
           })]
         );
         try {
