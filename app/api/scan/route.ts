@@ -857,7 +857,6 @@ export async function POST(request: Request) {
     const currentTarget = normalizeCanonicalTarget(finalUrl);
     const canonicalIsSelf = Boolean(canonicalUrl && canonicalTarget === currentTarget);
     const canonicalIsCrossDomain = Boolean(canonicalUrl && canonicalUrl.hostname !== finalUrl.hostname);
-    const criticalCanonicalIssue = canonicalIsCrossDomain;
     const canonicalDropsQuery = Boolean(canonicalUrl && finalUrl.search && !canonicalUrl.search);
 
     seoChecks.push(
@@ -1134,11 +1133,6 @@ export async function POST(request: Request) {
         ? check("warning", "identity", "geo", "Brand identity", "Er is Organization-context gevonden, maar de machineleesbare merkidentiteit kan vollediger.", "Vul relevante Organization-velden aan, zoals naam, URL, logo en officiële profielen, zonder gegevens te verzinnen.", 3, 5)
         : check("warning", "identity", "geo", "Brand identity", "Weinig expliciete brand identity-signalen gevonden.", "Voeg Organization-data en officiële profielen toe waar relevant.", 2, 5)
     );
-
-    if (criticalCanonicalIssue) {
-      const canonicalCheck = seoChecks.find((item) => item.key === "canonical");
-      if (canonicalCheck && canonicalCheck.status !== "pass") canonicalCheck.severity = "CRITICAL";
-    }
 
     const ruleMap: Record<string, { rule_id: string; severity: Check["severity"] }> = {
       title: { rule_id: title ? "META_TITLE_GUIDANCE" : "META_TITLE_MISSING", severity: title ? "MEDIUM" : "HIGH" },
