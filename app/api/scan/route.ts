@@ -371,8 +371,11 @@ export async function POST(request: Request) {
     const hasStockSignal = /\b(in stock|out of stock|op voorraad|niet op voorraad|uitverkocht|auf lager|nicht auf lager|en stock|rupture de stock|agotado|disponible|esaurito|disponibile|pre-?order|backorder)\b/i.test(text);
     const hasExplicitPriceSignal = /(?:€|£|\$)\s*\d|\d[\d.,]*\s*(?:€|EUR|GBP|USD)\b|\b(?:prijs|price|preis|prix|precio|prezzo)\s*[:€£$]?\s*\d/i.test(text);
     const hasProductSignal = hasProductSchema || (hasStrongCommerceAction && (hasExplicitPriceSignal || hasStockSignal || hasSkuSignal)) || (hasSkuSignal && hasExplicitPriceSignal && hasStockSignal);
-    const hasArticleSignal = schemaSet.has("article") || schemaSet.has("newsarticle") || /<article\b/i.test(html);
+    const hasArticleSignal = schemaSet.has("article") || schemaSet.has("newsarticle") || (!isHomepage && /<article\b/i.test(html));
     const hasItemListSignal = schemaSet.has("itemlist");
+    const commerceNavigationSignal = /\b(winkelwagen|cart|checkout|afrekenen|shop|webshop|producten|products)\b/i.test(text);
+    const visiblePriceCount = (text.match(/(?:€|£|\$)\s*\d|\d[\d.,]*\s*(?:€|EUR|GBP|USD)\b/gi) || []).length;
+    const hasEcommerceSignal = hasProductSignal || hasItemListSignal || (commerceNavigationSignal && (hasExplicitPriceSignal || visiblePriceCount >= 2 || hasStrongCommerceAction));
     const requestedLanguages = adsProfile.adLanguages.split(/[,;]/).map((value) => value.trim().toLowerCase()).filter(Boolean).slice(0, 6);
     const requestedCountries = adsProfile.targetCountries.split(/[,;]/).map((value) => value.trim()).filter(Boolean).slice(0, 8);
     const pageLanguage = (requestedLanguages[0] || lang || "").toLowerCase().split("-")[0].trim();
@@ -404,7 +407,7 @@ export async function POST(request: Request) {
       nl: ["offerte", "specialist", "bedrijf"], en: ["quote", "specialist", "company"], de: ["angebot", "spezialist", "firma"],
       fr: ["devis", "spécialiste", "entreprise"], es: ["presupuesto", "especialista", "empresa"], it: ["preventivo", "specialista", "azienda"],
     };
-    const goal = adsProfile.campaignGoal || (hasProductSignal ? "sales" : hasLocalBusinessSignal ? "leads" : "");
+    const goal = adsProfile.campaignGoal || (hasEcommerceSignal ? "sales" : hasLocalBusinessSignal ? "leads" : "");
     const primaryMarketLanguage = marketLanguages[0] || pageLanguage || "en";
     const modifiers = goal === "sales" ? (commercialModifiers[primaryMarketLanguage] || commercialModifiers.en) : (leadModifiers[primaryMarketLanguage] || leadModifiers.en);
     const keywordIntent = goal === "sales" ? "transactional" : ["leads","calls","appointments","store_visits"].includes(goal) ? "commercial" : hasArticleSignal ? "informational" : "mixed";
@@ -800,7 +803,7 @@ export async function POST(request: Request) {
       ? check("pass", "alt", "seo", "Afbeelding alt-teksten", `Alle ${imageElementCount} gevonden afbeeldingselementen hebben alt-attributen.`, "Schrijf beschrijvende alt-teksten voor informatieve afbeeldingen.", 7, 7)
       : check("warning", "alt", "seo", "Afbeelding alt-teksten", `${imagesMissingAlt} van ${imageElementCount} gevonden afbeeldingselementen missen alt.`, "Voeg beschrijvende alt-teksten toe waar ze betekenis toevoegen.", 3, 7)
     );
-    const contentContext = hasProductSignal ? "productpagina" : hasItemListSignal ? "categorie-/lijstpagina" : hasArticleSignal ? "artikelpagina" : isHomepage ? "homepage" : "contentpagina";
+    const contentContext = hasProductSignal ? "productpagina" : isHomepage ? "homepage" : hasItemListSignal ? "categorie-/lijstpagina" : hasArticleSignal ? "artikelpagina" : "contentpagina";
     const contentMinimumSignal = hasProductSignal ? 80 : hasItemListSignal ? 120 : isHomepage ? 150 : hasArticleSignal ? 300 : 200;
     const contentStrongSignal = hasProductSignal ? 180 : hasItemListSignal ? 220 : isHomepage ? 250 : hasArticleSignal ? 600 : 350;
     seoChecks.push(wordCount >= contentStrongSignal
@@ -899,14 +902,14 @@ export async function POST(request: Request) {
       : check("pass", "business_placeholders", "seo", "Bedrijfsgegevens", "Geen bekende bedrijfsgegevens-placeholders gevonden.", "Houd bedrijfs- en contactgegevens actueel en consistent.", 6, 6)
     );
 
-    seoChecks.push(!hasProductSignal
+    seoChecks.push(!hasEcommerceSignal
       ? check("not_applicable", "price_format", "seo", "Prijsnotatie", "Geen duidelijke webshop/product-signalen gevonden; prijsnotatie is niet beoordeeld.", "Gebruik deze controle op echte product- en e-commercepagina's.", 0, 5)
       : !hasDotDecimalPrices
       ? check("pass", "price_format", "seo", "Prijsnotatie", "Geen duidelijke Nederlandse europrijs met punt als decimaalteken gevonden.", "Gebruik per taal/regio een passende valuta- en getalnotatie.", 5, 5)
       : check("warning", "price_format", "seo", "Prijsnotatie", `${priceFormatMatches.length} prijsnotatie(s) gebruikt een punt als decimaalteken, zoals ${priceFormatMatches[0]}.`, "Gebruik voor Nederlandse content bijvoorbeeld € 129,95 en formatteer prijzen met locale-aware formatting.", 2, 5)
     );
 
-    seoChecks.push(hasProductSignal
+    seoChecks.push(hasEcommerceSignal
       ? hasShippingSignal && hasReturnsSignal && (hasReviewPlatformSignal || hasCheckoutTrustSignal)
         ? check("pass","webshop_trust","seo","Webshop vertrouwen","Verzend-/retourinformatie en minimaal één duidelijk vertrouwenssignaal zijn zichtbaar.","Houd verzendkosten, retourvoorwaarden, betaalmethoden en reviews ook op checkout-niveau duidelijk.",7,7)
         : check("warning","webshop_trust","seo","Webshop vertrouwen","Niet alle belangrijke verzend-, retour- en vertrouwenssignalen zijn zichtbaar op deze pagina.","Maak verzendkosten, retourvoorwaarden, betaalmogelijkheden en review-/vertrouwenssignalen duidelijk voordat bezoekers afrekenen.",3,7)
@@ -940,12 +943,12 @@ export async function POST(request: Request) {
         : visibleStockSignal
           ? check("warning","product_availability","seo","Productvoorraad","Een zichtbare voorraadstatus is gevonden, maar geen Offer availability in structured data.","Voeg de aantoonbare voorraadstatus toe aan Product/Offer structured data.",2,5)
           : check("unable_to_confirm","product_availability","seo","Productvoorraad","Geen betrouwbare zichtbare of structured voorraadstatus gevonden.","Maak voorraadstatus expliciet op productpagina en in Offer structured data.",0,5));
-        seoChecks.push(!hasProductSignal || !hasWebshopClaims
-      ? check("not_applicable","webshop_claims","seo","Webshop-beloftes",!hasProductSignal ? "Geen duidelijke webshop/product-signalen gevonden; claimcontrole is niet van toepassing." : "Geen specifieke verzend-/retourbelofte gevonden om te verifiëren.","Maak commerciële claims controleerbaar wanneer je ze gebruikt.",0,5)
+        seoChecks.push(!hasEcommerceSignal || !hasWebshopClaims
+      ? check("not_applicable","webshop_claims","seo","Webshop-beloftes",!hasEcommerceSignal ? "Geen duidelijke webshop/product-signalen gevonden; claimcontrole is niet van toepassing." : "Geen specifieke verzend-/retourbelofte gevonden om te verifiëren.","Maak commerciële claims controleerbaar wanneer je ze gebruikt.",0,5)
       : hasShippingSignal && hasReturnsSignal
         ? check("pass","webshop_claims","seo","Webshop-beloftes","Belangrijke webshopbeloftes worden ondersteund door zichtbare verzend- en retourinformatie.","Zorg dat beloofde levertijden, retourtermijnen en verzendvoorwaarden juridisch en praktisch kloppen.",5,5)
         : check("warning","webshop_claims","seo","Webshop-beloftes",`De pagina bevat claims zoals ${webshopClaimMatches.slice(0,3).join(", ")}, maar de bijbehorende voorwaarden zijn niet duidelijk gevonden.`,"Maak claims controleerbaar via duidelijke verzend-, retour- en voorwaardenpagina's.",2,5));
-    seoChecks.push(hasProductSignal
+    seoChecks.push(hasEcommerceSignal
       ? check(hasCheckoutTrustSignal?"pass":"warning","checkout_trust","seo","Checkout- en betaalvertrouwen",hasCheckoutTrustSignal?"Betaal-/checkoutsignalen zijn zichtbaar.":"Geen duidelijke betaal- of checkoutsignalen gevonden op deze pagina.","Toon betaalmogelijkheden en relevante veiligheids-/vertrouwensinformatie waar de bezoeker een aankoopbeslissing neemt.",hasCheckoutTrustSignal?5:2,5)
       : check("not_applicable","checkout_trust","seo","Checkout- en betaalvertrouwen","Geen webshop-signalen gevonden; checkoutcontrole is niet van toepassing.","Gebruik deze controle op echte webshopcontent.",0,5));
     seoChecks.push(
