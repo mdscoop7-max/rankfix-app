@@ -642,9 +642,14 @@ export async function POST(request: Request) {
       ? check("pass", "alt", "seo", "Afbeelding alt-teksten", `Alle ${imageElementCount} gevonden afbeeldingselementen hebben alt-attributen.`, "Schrijf beschrijvende alt-teksten voor informatieve afbeeldingen.", 7, 7)
       : check("warning", "alt", "seo", "Afbeelding alt-teksten", `${imagesMissingAlt} van ${imageElementCount} gevonden afbeeldingselementen missen alt.`, "Voeg beschrijvende alt-teksten toe waar ze betekenis toevoegen.", 3, 7)
     );
-    seoChecks.push(wordCount >= 300
-      ? check("pass", "content", "seo", "Contentdiepte", `Ongeveer ${wordCount} woorden gevonden.`, "Verbeter vooral relevantie en volledigheid, niet alleen woordenaantal.", 7, 7)
-      : check("warning", "content", "seo", "Contentdiepte", `Ongeveer ${wordCount} woorden gevonden.`, "Beantwoord de belangrijkste vragen van de bezoeker uitgebreider.", 3, 7)
+    const contentContext = hasProductSignal ? "productpagina" : hasItemListSignal ? "categorie-/lijstpagina" : hasArticleSignal ? "artikelpagina" : isHomepage ? "homepage" : "contentpagina";
+    const contentMinimumSignal = hasProductSignal ? 80 : hasItemListSignal ? 120 : isHomepage ? 150 : hasArticleSignal ? 300 : 200;
+    const contentStrongSignal = hasProductSignal ? 180 : hasItemListSignal ? 220 : isHomepage ? 250 : hasArticleSignal ? 600 : 350;
+    seoChecks.push(wordCount >= contentStrongSignal
+      ? check("pass", "content", "seo", "Contentdekking", `Ongeveer ${wordCount} woorden gevonden op deze ${contentContext}. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld.`, "Behoud nuttige, unieke content die de zoekintentie en klantvragen beantwoordt.", 7, 7)
+      : wordCount >= contentMinimumSignal
+        ? check("warning", "content", "seo", "Contentdekking", `Ongeveer ${wordCount} woorden gevonden op deze ${contentContext}. Dat is geen bewijs van slechte content, maar de tekstuele dekking is beperkt voor dit paginatype.`, "Breid alleen uit waar extra productinformatie, categoriecontext of antwoorden de bezoeker daadwerkelijk helpen.", 5, 7)
+        : check("warning", "content", "seo", "Contentdekking", `Ongeveer ${wordCount} woorden gevonden op deze ${contentContext}; RankFix gebruikt hiervoor een contextuele richtwaarde van circa ${contentMinimumSignal}+ woorden als eerste dekkingssignaal.`, "Controleer of essentiële informatie en zoekintentie voldoende worden beantwoord; voeg geen tekst toe puur voor woordenaantal.", 3, 7)
     );
     seoChecks.push(finalUrl.protocol === "https:"
       ? check("pass", "https", "seo", "HTTPS", "De uiteindelijke URL gebruikt HTTPS.", "Behoud HTTPS op alle publieke pagina's en redirects.", 7, 7)
