@@ -913,9 +913,11 @@ export async function POST(request: Request) {
       ? check("pass", "alt", "seo", "Afbeelding alt-teksten", `Alle ${imageElementCount} controleerbare <img>-elementen in de raw HTML hebben alt-attributen. JavaScript-geladen afbeeldingen zijn niet meegenomen.`, "Schrijf beschrijvende alt-teksten voor informatieve afbeeldingen.", 7, 7)
       : check("warning", "alt", "seo", "Afbeelding alt-teksten", `${imagesMissingAlt} van ${imageElementCount} controleerbare <img>-elementen in de raw HTML missen alt. JavaScript-geladen afbeeldingen zijn niet meegenomen.`, "Voeg beschrijvende alt-teksten toe waar ze betekenis toevoegen.", 3, 7)
     );
-    const contentContext = isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "categorie-/lijstpagina" : hasArticleSignal ? "artikelpagina" : "contentpagina";
-    const contentMinimumSignal = isHomepage ? 150 : isProductPage ? 80 : hasCategorySignal ? 120 : hasArticleSignal ? 300 : 200;
-    const contentStrongSignal = isHomepage ? 250 : isProductPage ? 180 : hasCategorySignal ? 220 : hasArticleSignal ? 600 : 350;
+    const effectiveLocalBusinessPage = !isProductPage && !hasCategorySignal && hasLocalBusinessSignal;
+    const effectiveArticlePage = hasArticleSignal && !effectiveLocalBusinessPage;
+    const contentContext = isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "categorie-/lijstpagina" : effectiveLocalBusinessPage ? "lokale bedrijfspagina" : effectiveArticlePage ? "artikelpagina" : "contentpagina";
+    const contentMinimumSignal = isHomepage ? 150 : isProductPage ? 80 : hasCategorySignal ? 120 : effectiveLocalBusinessPage ? 150 : effectiveArticlePage ? 300 : 200;
+    const contentStrongSignal = isHomepage ? 250 : isProductPage ? 180 : hasCategorySignal ? 220 : effectiveLocalBusinessPage ? 300 : effectiveArticlePage ? 600 : 350;
     seoChecks.push(wordCount >= contentStrongSignal
       ? check("pass", "content", "seo", "Contentdekking", `Ongeveer ${wordCount} woorden gevonden op deze ${contentContext}. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld.`, "Behoud nuttige, unieke content die de zoekintentie en klantvragen beantwoordt.", 7, 7)
       : wordCount >= contentMinimumSignal
@@ -1282,8 +1284,8 @@ export async function POST(request: Request) {
     const overallCoverage = coverageFor(checks);
     const scanSummary = summarizeAuditChecks(checks);
     const pageTypeEvidence = {
-      type: isHomepage ? "homepage" : isProductPage ? "product" : hasCategorySignal ? "category" : hasArticleSignal ? "article" : hasLocalBusinessSignal ? "service" : "unknown",
-      confidence: isHomepage ? "high" : isProductPage && (hasProductSchema || hasSkuSignal) ? "high" : isProductPage ? "medium" : hasCategorySignal && (hasItemListSignal || repeatedProductCardSignal) ? "high" : hasCategorySignal || hasArticleSignal || hasLocalBusinessSignal ? "medium" : "low",
+      type: isHomepage ? "homepage" : isProductPage ? "product" : hasCategorySignal ? "category" : effectiveLocalBusinessPage ? "service" : effectiveArticlePage ? "article" : "unknown",
+      confidence: isHomepage ? "high" : isProductPage && (hasProductSchema || hasSkuSignal) ? "high" : isProductPage ? "medium" : hasCategorySignal && (hasItemListSignal || repeatedProductCardSignal) ? "high" : effectiveLocalBusinessPage || hasCategorySignal || effectiveArticlePage ? "medium" : "low",
       evidence: [isHomepage ? `localized/root path: ${pathname}` : "", hasProductSchema ? "Product schema present" : "", hasItemListSignal ? "ItemList schema present" : "", genericCategoryPathSignal ? `generic commerce category path: ${pathname}` : "", repeatedProductCardSignal ? "repeated product-card commerce signals" : "", hasSkuSignal ? "SKU signal present" : "", hasStrongCommerceAction ? "commerce action present" : ""].filter(Boolean),
     };
     const technologyProfile = detectTechnologyProfile(html, response.headers, Boolean(hasProductSchema || hasProductSignal || hasStrongCommerceAction || /add-to-cart|shopping cart|winkelwagen|checkout|sku|price|availability/i.test(text)));
