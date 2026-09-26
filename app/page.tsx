@@ -463,6 +463,7 @@ export default function Home() {
     return item.fix_status === "WAITING" || Boolean(githubResults[key]);
   }).length;
   const remainingCount = issues.length;
+  const pageNotFound = Boolean(result && (result.httpStatus === 404 || result.httpStatus === 410));
 
   return (
     <main className="rankfix-home min-h-screen bg-[#07172B] text-[#F7FBFF] selection:bg-emerald-300 selection:text-[#032D24]">
@@ -723,6 +724,16 @@ export default function Home() {
       )}
 
       {result && (
+        pageNotFound ? (
+          <section id="resultaat" className="mx-auto max-w-6xl scroll-mt-8 px-5 py-12 lg:px-8">
+            <div className="rounded-[28px] border border-red-400/20 bg-red-400/[0.045] p-5 shadow-2xl shadow-black/10 sm:p-6">
+              <div className="text-xs font-bold uppercase tracking-[0.2em] text-red-300">Scan gestopt</div>
+              <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">Pagina niet gevonden — HTTP {result.httpStatus}</h2>
+              <p className="mt-1 max-w-2xl break-all text-xs text-slate-500">{result.finalUrl}</p>
+              <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600">RankFix kan deze URL niet betrouwbaar auditen omdat de server geen geldige pagina retourneert. Controleer de URL en voer de scan opnieuw uit. SEO- en GEO-inhoudsfouten van deze foutpagina worden daarom niet als verbeterpunten gepresenteerd.</p>
+            </div>
+          </section>
+        ) : (
         <section id="resultaat" className="mx-auto max-w-6xl scroll-mt-8 px-5 py-12 lg:px-8">
           <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
             <div>
@@ -935,6 +946,7 @@ export default function Home() {
             </div>
           </div>
         </section>
+        )
       )}
 
       <section id="features" className="mx-auto max-w-7xl scroll-mt-8 border-t border-slate-200 px-5 py-20 lg:px-8">
