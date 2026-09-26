@@ -273,9 +273,18 @@ export async function POST(request: Request) {
       const types = Array.isArray(item?.["@type"]) ? item["@type"] : [item?.["@type"]];
       return types.some((type: unknown) => String(type || "").toLowerCase() === "product");
     });
+    type ProductOfferEvidence = {
+      type: string;
+      price: unknown;
+      highPrice: unknown;
+      currency: string;
+      availability: string;
+      shippingDetails: boolean;
+      returnPolicy: boolean;
+    };
     const productOfferEvidence = productSchemaObjects.map((product) => {
       const offers = Array.isArray(product?.offers) ? product.offers : product?.offers ? [product.offers] : [];
-      const normalizedOffers = offers.map((offer: any) => ({
+      const normalizedOffers: ProductOfferEvidence[] = offers.map((offer: any) => ({
         type: Array.isArray(offer?.["@type"]) ? offer["@type"].map(String).join(",") : String(offer?.["@type"] || ""),
         price: offer?.price ?? offer?.lowPrice ?? null,
         highPrice: offer?.highPrice ?? null,
