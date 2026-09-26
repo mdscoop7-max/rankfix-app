@@ -404,14 +404,15 @@ export async function POST(request: Request) {
     let sitemapFound = false;
     let sitemapStatus: "PASS" | "FAIL" | "UNABLE_TO_CONFIRM" = "UNABLE_TO_CONFIRM";
     let sitemapFetchCompleted = false;
-    let discoveredSitemapUrl: string | null = null;
+    let robotsDeclaredSitemapUrl: string | null = null;
+    let confirmedSitemapUrl: string | null = null;
     try {
       const r = (await safePublicFetch(robotsUrl, { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/plain,application/xml,text/xml" })).response;
       if (r.ok) {
         robotsTxt = await r.text();
         robotsStatus = "PASS";
         const declared = robotsTxt.match(/^\s*Sitemap\s*:\s*(\S+)/im)?.[1];
-        if (declared) discoveredSitemapUrl = new URL(declared, finalUrl).toString();
+        if (declared) robotsDeclaredSitemapUrl = new URL(declared, finalUrl).toString();
       } else if (r.status === 404) robotsStatus = "FAIL";
     } catch { robotsStatus = "UNABLE_TO_CONFIRM"; }
     const robotsPath = finalUrl.pathname || "/";
@@ -436,7 +437,8 @@ export async function POST(request: Request) {
       .filter((rule) => rule.path && robotsPath.startsWith(rule.path.replace(/\*.*$/, "")))
       .sort((a, b) => b.path.length - a.path.length);
     const robotsPathBlocked = robotsStatus === "PASS" && matchingRobotsRules.length > 0 && matchingRobotsRules[0].kind === "disallow";
-    const sitemapCandidates = [discoveredSitemapUrl, sitemapUrl.toString()].filter(Boolean) as string[];
+    const sitemapCandidates = [...new Set([robotsDeclaredSitemapUrl, sitemapUrl.toString()].filter(Boolean) as string[])];
+    let sitemapFetchFailed = false;
     for (const candidate of sitemapCandidates) {
       try {
         const r = (await safePublicFetch(new URL(candidate), { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/plain,application/xml,text/xml" })).response;
@@ -444,14 +446,15 @@ export async function POST(request: Request) {
         if (r.ok && /xml|text\/xml/i.test(r.headers.get("content-type") || "")) {
           sitemapFound = true;
           sitemapStatus = "PASS";
-          discoveredSitemapUrl = candidate;
+          confirmedSitemapUrl = candidate;
           break;
         }
         if (r.status === 404) sitemapStatus = "FAIL";
-      } catch {}
+      } catch { sitemapFetchFailed = true; }
     }
-    if (!sitemapFound && sitemapFetchCompleted && sitemapStatus === "UNABLE_TO_CONFIRM") sitemapStatus = "FAIL";
-    const robotsMentionsSitemap = Boolean(discoveredSitemapUrl);
+    if (!sitemapFound && sitemapFetchCompleted && !sitemapFetchFailed && sitemapStatus === "UNABLE_TO_CONFIRM") sitemapStatus = "FAIL";
+    if (!sitemapFound && sitemapFetchFailed) sitemapStatus = "UNABLE_TO_CONFIRM";
+    const robotsMentionsSitemap = Boolean(robotsDeclaredSitemapUrl);
 
     const seoChecks: Check[] = [];
     const geoChecks: Check[] = [];
@@ -672,7 +675,7 @@ export async function POST(request: Request) {
         : check("unable_to_confirm", "robots_txt", "seo", "robots.txt", "RankFix kon robots.txt tijdens deze scan niet betrouwbaar ophalen.", "Probeer opnieuw wanneer de server bereikbaar is.", 0, 4)
     );
     seoChecks.push(sitemapFound
-      ? check("pass", "sitemap", "seo", "Sitemap-signaal", `Een bereikbare XML sitemap is gevonden${discoveredSitemapUrl ? `: ${discoveredSitemapUrl}` : "."}`, "Controleer of de sitemap alleen canonieke, indexeerbare URL's bevat.", 4, 4)
+      ? check("pass", "sitemap", "seo", "Sitemap-signaal", `Een bereikbare XML sitemap is gevonden${confirmedSitemapUrl ? `: ${confirmedSitemapUrl}` : "."}`, "Controleer of de sitemap alleen canonieke, indexeerbare URL's bevat.", 4, 4)
       : sitemapStatus === "FAIL"
         ? check("warning", "sitemap", "seo", "Sitemap-signaal", robotsMentionsSitemap ? "robots.txt verwijst naar een sitemap, maar RankFix kon geen geldige bereikbare XML sitemap bevestigen." : "Geen geldige bereikbare XML sitemap gevonden.", "Controleer de sitemap-URL, HTTP-status en XML content-type.", 1, 4)
         : check("unable_to_confirm", "sitemap", "seo", "Sitemap-signaal", robotsMentionsSitemap ? "robots.txt bevat een sitemapverwijzing, maar RankFix kon de sitemap tijdens deze scan niet betrouwbaar ophalen." : "RankFix kon tijdens deze scan niet betrouwbaar bevestigen of een sitemap beschikbaar is.", "Controleer de sitemap opnieuw wanneer de server bereikbaar is.", 0, 4)
@@ -893,7 +896,7 @@ export async function POST(request: Request) {
         https: finalUrl.protocol === "https:",
         status: response.status,
         response: responseTime,
-        sitemap: sitemapFound ? (discoveredSitemapUrl || true) : sitemapStatus,
+        sitemap: sitemapFound ? (confirmedSitemapUrl || true) : robotsDeclaredSitemapUrl ? `declared=${robotsDeclaredSitemapUrl}; status=${sitemapStatus}` : sitemapStatus,
         robots_txt: robotsStatus === "PASS" ? `${robotsUrl.toString()}; pathBlocked=${robotsPathBlocked}${matchingRobotsRules[0] ? `; rule=${matchingRobotsRules[0].kind}:${matchingRobotsRules[0].path}` : ""}` : robotsStatus,
         indexability: noindexSignal ? [robots, xRobotsTag].filter(Boolean).join(" | ") : robotsPathBlocked ? `robots disallow: ${matchingRobotsRules[0].path}` : "no noindex or applicable robots block found",
         hreflang: hreflangValues.length ? hreflangValues.join(", ") : null,
