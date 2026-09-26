@@ -499,7 +499,19 @@ export async function POST(request: Request) {
       visiblePriceCandidates.some((visiblePrice) => Math.abs(visiblePrice - schemaPrice) < 0.005)
     );
     const visibleStockSignal = /\b(op voorraad|voorraad|in stock|out of stock|uitverkocht|sold out|pre-?order|backorder|niet op voorraad)\b/i.test(text);
+    const visibleAvailabilityState =
+      /\b(niet op voorraad|out of stock|uitverkocht|sold out)\b/i.test(text) ? "out_of_stock" :
+      /\b(pre-?order)\b/i.test(text) ? "preorder" :
+      /\b(backorder)\b/i.test(text) ? "backorder" :
+      /\b(op voorraad|in stock)\b/i.test(text) ? "in_stock" : null;
     const structuredAvailabilityValues = [...new Set(productOfferEvidence.flatMap((product) => product.offers.map((offer) => offer.availability).filter(Boolean)))];
+    const structuredAvailabilityStates = [...new Set(structuredAvailabilityValues.map((value) =>
+      /OutOfStock|SoldOut|Discontinued/i.test(value) ? "out_of_stock" :
+      /PreOrder/i.test(value) ? "preorder" :
+      /BackOrder/i.test(value) ? "backorder" :
+      /InStock|LimitedAvailability|OnlineOnly|InStoreOnly/i.test(value) ? "in_stock" : "unknown"
+    ).filter((value) => value !== "unknown"))];
+    const availabilityContradiction = Boolean(visibleAvailabilityState && structuredAvailabilityStates.length && !structuredAvailabilityStates.includes(visibleAvailabilityState));
     const hasVariantSelectorSignal = hasProductSignal && /<(?:select|button)[^>]*(?:name|id|class)\s*=\s*["'][^"']*(?:variant|size|maat|color|colour|kleur)[^"']*["']/i.test(html);
     const pathSegments = finalUrl.pathname.split("/").filter(Boolean).map((segment) => decodeURIComponent(segment).toLowerCase().trim());
     const duplicatePathSegments = pathSegments.filter((segment, index) => index > 0 && segment === pathSegments[index - 1]);
@@ -800,8 +812,12 @@ export async function POST(request: Request) {
           : check("warning","product_price_consistency","seo","Productprijs consistentie",`Zichtbare prijswaarden (${visiblePriceCandidates.slice(0,4).join(", ")}) komen niet overeen met gevonden structured-data prijzen (${structuredPriceCandidates.slice(0,4).join(", ")}).`,"Controleer welke prijs bij dit product hoort en synchroniseer de zichtbare prijs met Product/Offer structured data.",2,6));
     seoChecks.push(!hasProductSignal
       ? check("not_applicable","product_availability","seo","Productvoorraad","Geen duidelijke productpagina-signalen gevonden; voorraadcontrole is niet van toepassing.","Gebruik deze controle op echte productpagina's.",0,5)
-      : structuredAvailabilityValues.length
-        ? check("pass","product_availability","seo","Productvoorraad",`Structured availability gevonden: ${structuredAvailabilityValues.slice(0,3).join(", ")}.`,visibleStockSignal ? "Houd zichtbare voorraadstatus en structured availability synchroon." : "Toon de voorraadstatus ook duidelijk aan bezoekers.",5,5)
+      : availabilityContradiction
+        ? check("warning","product_availability","seo","Productvoorraad",`De zichtbare voorraadstatus (${visibleAvailabilityState}) spreekt de structured availability tegen (${structuredAvailabilityValues.slice(0,3).join(", ")}).`,"Synchroniseer de zichtbare voorraadstatus en Product/Offer availability; publiceer geen tegenstrijdige beschikbaarheid.",1,5)
+        : structuredAvailabilityValues.length && visibleAvailabilityState
+          ? check("pass","product_availability","seo","Productvoorraad",`Zichtbare voorraadstatus (${visibleAvailabilityState}) en structured availability (${structuredAvailabilityValues.slice(0,3).join(", ")}) zijn consistent.`,"Houd zichtbare voorraadstatus en structured availability synchroon.",5,5)
+          : structuredAvailabilityValues.length
+            ? check("unable_to_confirm","product_availability","seo","Productvoorraad",`Structured availability gevonden: ${structuredAvailabilityValues.slice(0,3).join(", ")}, maar RankFix kon geen eenduidige zichtbare voorraadstatus bevestigen.`,"Toon de voorraadstatus ook duidelijk aan bezoekers en houd die gelijk aan structured data.",0,5)
         : visibleStockSignal
           ? check("warning","product_availability","seo","Productvoorraad","Een zichtbare voorraadstatus is gevonden, maar geen Offer availability in structured data.","Voeg de aantoonbare voorraadstatus toe aan Product/Offer structured data.",2,5)
           : check("unable_to_confirm","product_availability","seo","Productvoorraad","Geen betrouwbare zichtbare of structured voorraadstatus gevonden.","Maak voorraadstatus expliciet op productpagina en in Offer structured data.",0,5));
@@ -949,7 +965,7 @@ export async function POST(request: Request) {
         variant_url: ecommerceVariantUrlSignal ? finalUrl.search : null,
         checkout_trust: hasCheckoutTrustSignal ? "checkout/payment signal found in static page content" : null,
         product_price_consistency: hasProductSignal ? `visible=${visiblePriceCandidates.join(",") || "none"}; schema=${structuredPriceCandidates.join(",") || "none"}` : null,
-        product_availability: hasProductSignal ? `visibleStockSignal=${visibleStockSignal}; schema=${structuredAvailabilityValues.join(",") || "none"}` : null,
+        product_availability: hasProductSignal ? `visibleState=${visibleAvailabilityState || "none"}; schemaStates=${structuredAvailabilityStates.join(",") || "none"}; schema=${structuredAvailabilityValues.join(",") || "none"}; contradiction=${availabilityContradiction}` : null,
         ads_readiness: (adsTrackingSignals || hasConversionSignal || hasExplicitAdsConversionSnippet) ? `adsIds=${googleAdsIds.join(",") || "none"}; ga4Ids=${ga4MeasurementIds.join(",") || "none"}; events=${uniqueConversionEventNames.join(",") || "none"}; adsLabels=${googleAdsSendToLabels.join(",") || "none"}; consentSignal=${hasConsentModeSignal}` : null,
       };
       const heuristicKeys = new Set([
