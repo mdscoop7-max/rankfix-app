@@ -381,6 +381,17 @@ export async function POST(request: Request) {
       const primary = value.split(keywordStopSegments)[0]?.trim() || value;
       return primary && primary.length >= 3 ? [primary] : [];
     }))].slice(0, 10);
+    const normalizeMarketLanguage = (value: string) => {
+      const normalized = value.toLowerCase().trim();
+      const aliases: Record<string,string> = { nederlands:"nl", dutch:"nl", engels:"en", english:"en", duits:"de", german:"de", deutsch:"de", frans:"fr", french:"fr", français:"fr", spaans:"es", spanish:"es", español:"es", italiaans:"it", italian:"it", italiano:"it" };
+      return aliases[normalized] || normalized.split("-")[0];
+    };
+    const marketLanguages = (requestedLanguages.length ? requestedLanguages : [pageLanguage]).map(normalizeMarketLanguage).filter(Boolean);
+    const marketCountries = requestedCountries.length ? requestedCountries : [adsProfile.targetArea].filter(Boolean);
+    const localIntentModifiers: Record<string,string[]> = {
+      nl:["in de buurt","bij mij in de buurt"], en:["near me","local"], de:["in der nähe","vor ort"],
+      fr:["près de moi","local"], es:["cerca de mí","local"], it:["vicino a me","locale"],
+    };
     const commercialModifiers: Record<string, string[]> = {
       nl: ["kopen", "prijs", "bestellen"], en: ["buy", "price", "order"], de: ["kaufen", "preis", "bestellen"],
       fr: ["acheter", "prix", "commander"], es: ["comprar", "precio", "pedir"], it: ["comprare", "prezzo", "ordinare"],
@@ -390,13 +401,15 @@ export async function POST(request: Request) {
       fr: ["devis", "spécialiste", "entreprise"], es: ["presupuesto", "especialista", "empresa"], it: ["preventivo", "specialista", "azienda"],
     };
     const goal = adsProfile.campaignGoal || (hasProductSignal ? "sales" : hasLocalBusinessSignal ? "leads" : "");
-    const modifiers = goal === "sales" ? (commercialModifiers[pageLanguage] || commercialModifiers.en) : (leadModifiers[pageLanguage] || leadModifiers.en);
+    const primaryMarketLanguage = marketLanguages[0] || pageLanguage || "en";
+    const modifiers = goal === "sales" ? (commercialModifiers[primaryMarketLanguage] || commercialModifiers.en) : (leadModifiers[primaryMarketLanguage] || leadModifiers.en);
     const keywordIntent = goal === "sales" ? "transactional" : ["leads","calls","appointments","store_visits"].includes(goal) ? "commercial" : hasArticleSignal ? "informational" : "mixed";
     const targetArea = adsProfile.targetArea;
     const baseKeywordCandidates = [...new Set([
       ...keywordSeeds,
       ...keywordSeeds.slice(0, 4).flatMap((seed) => modifiers.map((modifier) => `${seed} ${modifier}`)),
       ...(targetArea ? keywordSeeds.slice(0, 5).map((seed) => `${seed} ${targetArea}`) : []),
+      ...(hasLocalBusinessSignal ? keywordSeeds.slice(0, 3).flatMap((seed) => (localIntentModifiers[primaryMarketLanguage] || localIntentModifiers.en).map((modifier) => `${seed} ${modifier}`)) : []),
     ])].slice(0, 30);
     const negativeTermsByLanguage: Record<string, string[]> = {
       nl: ["gratis", "vacature", "handleiding", "tweedehands"], en: ["free", "jobs", "manual", "used"],
@@ -404,7 +417,7 @@ export async function POST(request: Request) {
       es: ["gratis", "empleo", "manual", "segunda mano"], it: ["gratis", "lavoro", "manuale", "usato"],
     };
     const requestedExclusions = adsProfile.excludeIntent.split(/[,;\n]/).map((term) => term.trim()).filter(Boolean).slice(0, 10);
-    const negativeKeywordCandidates = [...new Set([...(negativeTermsByLanguage[pageLanguage] || negativeTermsByLanguage.en), ...requestedExclusions])].map((term) => ({
+    const negativeKeywordCandidates = [...new Set([...(negativeTermsByLanguage[primaryMarketLanguage] || negativeTermsByLanguage.en), ...requestedExclusions])].map((term) => ({
       term,
       source: requestedExclusions.includes(term) ? "customer" : "suggested",
       requiresReview: true,
@@ -422,9 +435,7 @@ export async function POST(request: Request) {
       evidenceLevel: customerSeeds.length && pageEvidenceSeeds.length ? "customer_and_page_evidence" : customerSeeds.length ? "customer_context" : pageEvidenceSeeds.length ? "page_evidence" : "insufficient",
       language: pageLanguage || null, intent: keywordIntent, campaignGoal: goal || null, audience: adsProfile.audience || null,
       targetArea: targetArea || null, targetCountries: requestedCountries, adLanguages: requestedLanguages.length ? requestedLanguages : (pageLanguage ? [pageLanguage] : []),
-      markets: (requestedCountries.length ? requestedCountries : [targetArea].filter(Boolean)).flatMap((country) =>
-        (requestedLanguages.length ? requestedLanguages : [pageLanguage].filter(Boolean)).map((language) => ({ country, language }))
-      ),
+      markets: marketCountries.flatMap((country) => marketLanguages.map((language) => ({ country, language }))),
       landingPage: finalUrl.toString(), seedTerms: keywordSeeds,
       keywordCandidates: baseKeywordCandidates, keywordGroups: adsKeywordGroups, negativeKeywordCandidates,
       metrics: { searchVolume: null, cpc: null, competition: null, source: null },
