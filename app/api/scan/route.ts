@@ -552,6 +552,90 @@ export async function POST(request: Request) {
     if (!sitemapFound && sitemapFetchFailed) sitemapStatus = "UNABLE_TO_CONFIRM";
     const robotsMentionsSitemap = robotsDeclaredSitemapUrls.length > 0;
 
+    // Sitewide Crawler v1: authenticated scans get a small, same-origin evidence crawl.
+    // This is deliberately bounded and supplements (never changes) the primary-page score.
+    const sitewideEnabled = Boolean(await getCurrentUser().catch(() => null));
+    const crawlLimit = 6;
+    const crawlOrigin = finalUrl.origin;
+    const ignoredCrawlPath = /\.(?:jpg|jpeg|png|gif|webp|svg|ico|pdf|zip|xml|txt|css|js|json|woff2?)(?:$|\?)/i;
+    const normalizeCrawlCandidate = (value: string) => {
+      try {
+        const candidate = new URL(value, finalUrl);
+        candidate.hash = "";
+        if (candidate.origin !== crawlOrigin || !/^https?:$/.test(candidate.protocol) || ignoredCrawlPath.test(candidate.pathname)) return null;
+        candidate.search = "";
+        candidate.pathname = candidate.pathname.replace(/\/{2,}/g, "/");
+        return candidate.toString();
+      } catch { return null; }
+    };
+    const pageTypeFromEvidence = (pageUrl: URL, pageHtml: string) => {
+      const lower = pageHtml.toLowerCase();
+      const path = pageUrl.pathname.toLowerCase();
+      if (/["']@type["']\s*:\s*["']product["']/i.test(pageHtml) || /(?:\/product|\/products|\/p\/|\/artikel|\/producte?\/)/i.test(path)) return "product";
+      if (/["']@type["']\s*:\s*["'](?:itemlist|collectionpage)["']/i.test(pageHtml) || /(?:\/category|\/categorie|\/collections?|\/shop\/)/i.test(path)) return "category";
+      if (/["']@type["']\s*:\s*["'](?:article|blogposting|newsarticle)["']/i.test(pageHtml) || /(?:\/blog|\/news|\/nieuws|\/artikel\/)/i.test(path)) return "article";
+      if (/(?:checkout|afrekenen|winkelwagen|cart)/i.test(path)) return "checkout";
+      if (pageUrl.pathname === "/" || lower.includes('"@type":"website"')) return "homepage";
+      return "other";
+    };
+    const crawlSeeds = [...new Set(links.map(normalizeCrawlCandidate).filter((value): value is string => Boolean(value)))]
+      .filter((value) => normalizeScanUrl(value) !== normalizeScanUrl(finalUrl.toString()))
+      .sort((a, b) => {
+        const rank = (value: string) => /(?:product|artikel|\/p\/)/i.test(value) ? 0 : /(?:category|categorie|collection|shop)/i.test(value) ? 1 : /(?:checkout|cart|winkelwagen|afrekenen)/i.test(value) ? 2 : 3;
+        return rank(a) - rank(b);
+      })
+      .slice(0, Math.max(0, crawlLimit - 1));
+    const sitewidePages: Array<{url:string;status:number;pageType:string;title:string;lang:string|null;canonical:string|null;hreflangCount:number;productSchema:boolean;offerSignal:boolean;shippingReturnSignal:boolean;checkoutSignal:boolean}> = [{
+      url: finalUrl.toString(), status: response.status, pageType: "primary", title, lang: lang || null, canonical: canonical || null,
+      hreflangCount: (html.match(/<link\\b[^>]*\\bhreflang\\s*=/gi) || []).length, productSchema: schemaSet.has("product"),
+      offerSignal: /["']@type["']\s*:\s*["']offer["']|\bprice\b|€\s*\d/i.test(html),
+      shippingReturnSignal: /(?:verzend|shipping|retour|return|delivery|levering)/i.test(text),
+      checkoutSignal: /(?:checkout|afrekenen|winkelwagen|cart|ideal|paypal|visa|mastercard)/i.test(text)
+    }];
+    if (sitewideEnabled) {
+      for (const candidate of crawlSeeds) {
+        try {
+          const crawlResponse = (await safePublicFetch(new URL(candidate), { timeoutMs: 6500, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml" })).response;
+          const crawlFinal = new URL(crawlResponse.url || candidate);
+          if (crawlFinal.origin !== crawlOrigin) continue;
+          const contentType = crawlResponse.headers.get("content-type") || "";
+          if (!crawlResponse.ok || (contentType && !/html|xhtml/i.test(contentType))) continue;
+          const pageHtml = (await crawlResponse.text()).slice(0, 1_500_000);
+          if (!pageHtml) continue;
+          const pageText = stripHtml(pageHtml);
+          const pageTitle = firstMatch(pageHtml, /<title[^>]*>([\s\S]*?)<\/title>/i);
+          const pageLang = firstMatch(pageHtml, /<html[^>]+lang\s*=\s*["']([^"']+)["']/i) || null;
+          const pageCanonical = firstMatch(pageHtml, /<link[^>]+rel\s*=\s*["']canonical["'][^>]+href\s*=\s*["']([^"']+)["'][^>]*>/i) || firstMatch(pageHtml, /<link[^>]+href\s*=\s*["']([^"']+)["'][^>]+rel\s*=\s*["']canonical["'][^>]*>/i) || null;
+          const pageHreflangCount = [...pageHtml.matchAll(/<link\b[^>]*\bhreflang\s*=\s*["'][^"']+["'][^>]*>/gi)].length;
+          sitewidePages.push({
+            url: crawlFinal.toString(), status: crawlResponse.status, pageType: pageTypeFromEvidence(crawlFinal, pageHtml), title: pageTitle, lang: pageLang, canonical: pageCanonical,
+            hreflangCount: pageHreflangCount,
+            productSchema: /["']@type["']\s*:\s*["']product["']/i.test(pageHtml),
+            offerSignal: /["']@type["']\s*:\s*["']offer["']|\bprice\b|€\s*\d/i.test(pageHtml),
+            shippingReturnSignal: /(?:verzend|shipping|retour|return|delivery|levering)/i.test(pageText),
+            checkoutSignal: /(?:checkout|afrekenen|winkelwagen|cart|ideal|paypal|visa|mastercard)/i.test(pageText)
+          });
+        } catch {}
+      }
+    }
+    const sitewide = {
+      enabled: sitewideEnabled,
+      version: "v1",
+      limit: crawlLimit,
+      pagesScanned: sitewidePages.length,
+      pages: sitewidePages,
+      evidence: {
+        pageTypes: [...new Set(sitewidePages.map((page) => page.pageType))],
+        hreflangPages: sitewidePages.filter((page) => page.hreflangCount > 0).length,
+        productPages: sitewidePages.filter((page) => page.pageType === "product" || page.productSchema).length,
+        checkoutPages: sitewidePages.filter((page) => page.pageType === "checkout").length,
+        shippingReturnPages: sitewidePages.filter((page) => page.shippingReturnSignal).length,
+      },
+      note: sitewideEnabled
+        ? "Begrensde same-origin crawl; maximaal 6 HTML-pagina's. JavaScript wordt niet uitgevoerd."
+        : "Sitewide crawl is alleen actief voor ingelogde scans; de publieke scan blijft één pagina."
+    };
+
     const seoChecks: Check[] = [];
     const geoChecks: Check[] = [];
 
@@ -1198,7 +1282,7 @@ export async function POST(request: Request) {
           "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id",
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
-            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, summary: scanSummary, rendering, pageTypeEvidence,
+            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, summary: scanSummary, rendering, pageTypeEvidence, sitewide,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -1285,6 +1369,7 @@ export async function POST(request: Request) {
       summary: scanSummary,
       rendering,
       pageTypeEvidence,
+      sitewide,
       adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
       seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
       geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
