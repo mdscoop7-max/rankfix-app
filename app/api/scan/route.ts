@@ -111,6 +111,17 @@ export async function POST(request: Request) {
     const body = await request.json();
     const rawUrl = typeof body?.url === "string" ? body.url.trim() : "";
     const mode: AuditMode = body?.mode === "seo" || body?.mode === "geo" || body?.mode === "both" ? body.mode : "both";
+    const cleanAdsField = (value: unknown, max = 120) => typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, max) : "";
+    const adsProfile = {
+      industry: cleanAdsField(body?.adsProfile?.industry),
+      primaryOffer: cleanAdsField(body?.adsProfile?.primaryOffer, 160),
+      targetArea: cleanAdsField(body?.adsProfile?.targetArea),
+      campaignGoal: cleanAdsField(body?.adsProfile?.campaignGoal, 80),
+      audience: cleanAdsField(body?.adsProfile?.audience, 80),
+      adLanguages: cleanAdsField(body?.adsProfile?.adLanguages, 80),
+      excludeIntent: cleanAdsField(body?.adsProfile?.excludeIntent, 160),
+    };
+    const hasAdsProfile = Object.values(adsProfile).some(Boolean);
 
     if (!rawUrl) {
       return NextResponse.json({ error: "Vul een website URL in." }, { status: 400 });
@@ -1136,7 +1147,7 @@ export async function POST(request: Request) {
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage,
-            adsKeywordIntelligence,
+            adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
             metrics: { siteType: (hasProductSchema || /add-to-cart|shopping cart|winkelwagen|checkout|sku|price|availability/i.test(text)) ? "ECOMMERCE" : "WEBSITE", title, titleLength: title.length, description, descriptionLength: description.length, h1Count: h1s.length, h1s,
@@ -1219,7 +1230,7 @@ export async function POST(request: Request) {
       overallScore: selectedOverallScore,
       grade: grade(selectedOverallScore),
       coverage: overallCoverage,
-      adsKeywordIntelligence,
+      adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
       seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
       geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
       metrics: {
