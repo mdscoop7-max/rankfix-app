@@ -438,6 +438,24 @@ export async function POST(request: Request) {
     const dutchEuroDecimalPattern = /€\s?\d{1,3}(?:[.,]\d{3})*[.]\d{2}\b/g;
     const priceFormatMatches = text.match(dutchEuroDecimalPattern) || [];
     const hasDotDecimalPrices = priceFormatMatches.length > 0;
+    const visiblePriceCandidates = [...new Set(
+      [...text.matchAll(/(?:€\s*|EUR\s*)(\d{1,6}(?:[.,]\d{2})?)/gi)]
+        .map((match) => Number(String(match[1]).replace(/\./g, "").replace(",", ".")))
+        .filter((value) => Number.isFinite(value))
+    )].slice(0, 20);
+    const structuredPriceCandidates = [...new Set(
+      productOfferEvidence
+        .flatMap((product) => product.offers.map((offer) => offer.price))
+        .map((value) => typeof value === "number" ? value : Number(String(value ?? "").replace(",", ".")))
+        .filter((value) => Number.isFinite(value))
+    )].slice(0, 20);
+    const canCompareVisibleAndStructuredPrice = hasProductSignal && visiblePriceCandidates.length > 0 && structuredPriceCandidates.length > 0;
+    const hasMatchingVisibleStructuredPrice = canCompareVisibleAndStructuredPrice && structuredPriceCandidates.some((schemaPrice) =>
+      visiblePriceCandidates.some((visiblePrice) => Math.abs(visiblePrice - schemaPrice) < 0.005)
+    );
+    const visibleStockSignal = /\b(op voorraad|voorraad|in stock|out of stock|uitverkocht|sold out|pre-?order|backorder|niet op voorraad)\b/i.test(text);
+    const structuredAvailabilityValues = [...new Set(productOfferEvidence.flatMap((product) => product.offers.map((offer) => offer.availability).filter(Boolean)))];
+    const hasVariantSelectorSignal = hasProductSignal && /<(?:select|button)[^>]*(?:name|id|class)\s*=\s*["'][^"']*(?:variant|size|maat|color|colour|kleur)[^"']*["']/i.test(html);
     const pathSegments = finalUrl.pathname.split("/").filter(Boolean).map((segment) => decodeURIComponent(segment).toLowerCase().trim());
     const duplicatePathSegments = pathSegments.filter((segment, index) => index > 0 && segment === pathSegments[index - 1]);
     const hasDuplicatePathSegments = duplicatePathSegments.length > 0;
@@ -688,8 +706,24 @@ export async function POST(request: Request) {
       ? check("not_applicable","variant_url","seo","Productvariant-URL","Geen duidelijke productpagina-signalen gevonden; variant-URL-controle is niet van toepassing.","Gebruik deze controle op echte productpagina's.",0,5)
       : ecommerceVariantUrlSignal
         ? check("warning","variant_url","seo","Productvariant-URL","Deze product-URL bevat een variant-/SKU-parameter. Dat kan duplicate URL's en indexatieproblemen veroorzaken.","Gebruik bij varianten een duidelijke canonical, stabiele URL-strategie en indexeer alleen pagina's die zelfstandig waarde hebben.",2,5)
-        : check("pass","variant_url","seo","Productvariant-URL","Geen duidelijke variant-/SKU-parameter in de gescande product-URL gevonden.","Houd product- en variant-URL's stabiel en canoniek.",5,5));
-    seoChecks.push(!hasProductSignal || !hasWebshopClaims
+        : hasVariantSelectorSignal
+          ? check("unable_to_confirm","variant_url","seo","Productvariant-URL","Er zijn variantkeuzes op de productpagina gevonden, maar uit statische HTML kan RankFix niet bevestigen hoe elke variant-URL en canonical zich gedraagt.","Controleer variant-URL's runtime en indexeer alleen varianten die zelfstandig zoekwaarde hebben.",0,5)
+          : check("not_applicable","variant_url","seo","Productvariant-URL","Geen variantparameter of duidelijke variantselector gevonden; er is geen variantprobleem aantoonbaar.","Controleer opnieuw wanneer dit product varianten krijgt.",0,5));
+    seoChecks.push(!hasProductSignal
+      ? check("not_applicable","product_price_consistency","seo","Productprijs consistentie","Geen duidelijke productpagina-signalen gevonden; prijsvergelijking is niet van toepassing.","Gebruik deze controle op echte productpagina's.",0,6)
+      : !visiblePriceCandidates.length || !structuredPriceCandidates.length
+        ? check("unable_to_confirm","product_price_consistency","seo","Productprijs consistentie","RankFix kan niet zowel een zichtbare EUR-prijs als een structured-data prijs aantoonbaar vergelijken.","Zorg dat de zichtbare productprijs en Product/Offer structured data beide beschikbaar en gelijk zijn.",0,6)
+        : hasMatchingVisibleStructuredPrice
+          ? check("pass","product_price_consistency","seo","Productprijs consistentie","Minimaal één zichtbare productprijs komt exact overeen met een Product/Offer structured-data prijs.","Houd zichtbare prijs en structured data synchroon bij prijswijzigingen.",6,6)
+          : check("warning","product_price_consistency","seo","Productprijs consistentie",`Zichtbare prijswaarden (${visiblePriceCandidates.slice(0,4).join(", ")}) komen niet overeen met gevonden structured-data prijzen (${structuredPriceCandidates.slice(0,4).join(", ")}).`,"Controleer welke prijs bij dit product hoort en synchroniseer de zichtbare prijs met Product/Offer structured data.",2,6));
+    seoChecks.push(!hasProductSignal
+      ? check("not_applicable","product_availability","seo","Productvoorraad","Geen duidelijke productpagina-signalen gevonden; voorraadcontrole is niet van toepassing.","Gebruik deze controle op echte productpagina's.",0,5)
+      : structuredAvailabilityValues.length
+        ? check("pass","product_availability","seo","Productvoorraad",`Structured availability gevonden: ${structuredAvailabilityValues.slice(0,3).join(", ")}.`,visibleStockSignal ? "Houd zichtbare voorraadstatus en structured availability synchroon." : "Toon de voorraadstatus ook duidelijk aan bezoekers.",5,5)
+        : visibleStockSignal
+          ? check("warning","product_availability","seo","Productvoorraad","Een zichtbare voorraadstatus is gevonden, maar geen Offer availability in structured data.","Voeg de aantoonbare voorraadstatus toe aan Product/Offer structured data.",2,5)
+          : check("unable_to_confirm","product_availability","seo","Productvoorraad","Geen betrouwbare zichtbare of structured voorraadstatus gevonden.","Maak voorraadstatus expliciet op productpagina en in Offer structured data.",0,5));
+        seoChecks.push(!hasProductSignal || !hasWebshopClaims
       ? check("not_applicable","webshop_claims","seo","Webshop-beloftes",!hasProductSignal ? "Geen duidelijke webshop/product-signalen gevonden; claimcontrole is niet van toepassing." : "Geen specifieke verzend-/retourbelofte gevonden om te verifiëren.","Maak commerciële claims controleerbaar wanneer je ze gebruikt.",0,5)
       : hasShippingSignal && hasReturnsSignal
         ? check("pass","webshop_claims","seo","Webshop-beloftes","Belangrijke webshopbeloftes worden ondersteund door zichtbare verzend- en retourinformatie.","Zorg dat beloofde levertijden, retourtermijnen en verzendvoorwaarden juridisch en praktisch kloppen.",5,5)
@@ -798,6 +832,8 @@ export async function POST(request: Request) {
       ads_readiness: { rule_id: "GOOGLE_ADS_READINESS", severity: "MEDIUM" },
       organization_website: { rule_id: "ORGANIZATION_WEBSITE_SCHEMA", severity: "MEDIUM" },
       product_schema: { rule_id: "PRODUCT_SCHEMA_MISSING", severity: "MEDIUM" },
+      product_price_consistency: { rule_id: "PRODUCT_PRICE_CONSISTENCY", severity: "HIGH" },
+      product_availability: { rule_id: "PRODUCT_AVAILABILITY", severity: "MEDIUM" },
     };
     for (const item of [...seoChecks, ...geoChecks]) {
       const mapped = ruleMap[item.key];
@@ -830,6 +866,8 @@ export async function POST(request: Request) {
         webshop_claims: hasWebshopClaims ? webshopClaimMatches.slice(0, 3).join(", ") : null,
         variant_url: ecommerceVariantUrlSignal ? finalUrl.search : null,
         checkout_trust: hasCheckoutTrustSignal ? "checkout/payment signal found in static page content" : null,
+        product_price_consistency: hasProductSignal ? `visible=${visiblePriceCandidates.join(",") || "none"}; schema=${structuredPriceCandidates.join(",") || "none"}` : null,
+        product_availability: hasProductSignal ? `visibleStockSignal=${visibleStockSignal}; schema=${structuredAvailabilityValues.join(",") || "none"}` : null,
       };
       const heuristicKeys = new Set([
         "content", "headings", "duplicate_path", "html_escape", "image_sources", "webshop_claims",
