@@ -190,8 +190,9 @@ export async function POST(request: Request) {
     const imageAltCandidates = [...html.matchAll(/<img\b[^>]*>/gi)]
       .filter((m) => {
         const tag = m[0];
-        const altMatch = tag.match(/\balt\s*=\s*(?:["']([^"']*)["']|([^\s>]+))/i);
-        return !(altMatch && (altMatch[1] ?? altMatch[2] ?? "").trim());
+        // alt="" intentionally marks a decorative image. Only images without
+        // an alt attribute belong in the actionable fix candidates.
+        return !/\balt(?:\s*=|\s|\/?>)/i.test(tag);
       })
       .slice(0, 10)
       .map((m) => {
@@ -856,11 +857,13 @@ export async function POST(request: Request) {
               : check("warning", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden, maar geen herkenbaar relevant entity- of paginaschema voor deze ${schemaContextLabel}.`, `Gebruik structured data die aantoonbaar bij het paginatype past. Relevante hoofdkeuze: ${recommendedSchema}.`, 6, 12)
           : check("fail", "schema", "geo", "Structured data", `Geen geldige JSON-LD structured data gevonden voor deze ${schemaContextLabel}.`, `Voeg relevante schema.org JSON-LD toe. Voor dit paginatype is ${recommendedSchema} de belangrijkste richting; gebruik alleen typen die echt bij de zichtbare content passen.`, 0, 12)
     );
-    seoChecks.push(twitterCard === "summary_large_image"
-      ? check("pass", "twitter_card", "seo", "Twitter Card", "summary_large_image is ingesteld voor rijke social previews.", "Gebruik summary_large_image wanneer een grote social afbeelding beschikbaar is.", 3, 3)
-      : twitterCard
-        ? check("warning", "twitter_card", "seo", "Twitter Card", `Twitter Card is ingesteld als "${twitterCard}".`, "Gebruik summary_large_image met een passende og:image voor rijke previews.", 2, 3)
-        : check("warning", "twitter_card", "seo", "Twitter Card", "Geen twitter:card gevonden.", "Voeg twitter:card=summary_large_image toe voor gedeelde links.", 1, 3)
+    const normalizedTwitterCard = twitterCard.toLowerCase();
+    const validTwitterCards = new Set(["summary", "summary_large_image", "app", "player"]);
+    seoChecks.push(twitterCard
+      ? validTwitterCards.has(normalizedTwitterCard)
+        ? check("pass", "twitter_card", "seo", "Twitter Card", `Geldige Twitter/X Card ingesteld: "${twitterCard}".`, "Behoud dit type zolang de social preview past bij de pagina.", 3, 3)
+        : check("warning", "twitter_card", "seo", "Twitter Card", `Onbekende twitter:card-waarde gevonden: "${twitterCard}".`, "Gebruik een ondersteund Card-type en controleer de social preview.", 1, 3)
+      : check("not_applicable", "twitter_card", "seo", "Twitter Card", "Geen twitter:card gevonden. Dit is een optionele social-previewtag en wordt niet als SEO-fout of rankingprobleem bestraft.", "Voeg alleen Twitter/X Card metadata toe wanneer je een specifieke preview op X wilt beheren.", 0, 3)
     );
 
     seoChecks.push(!multilingualUrlEvidence
