@@ -1,4 +1,6 @@
-export type AdsEntityType = "brand" | "product" | "category" | "service" | "marketing-copy" | "unknown";
+export type AdsEntityType = "brand" | "product" | "category" | "service" | "marketing-copy" | "navigation" | "unknown";
+export type AdsIntent = "commercial-transactional" | "local" | "navigational-brand" | "informational" | "ambiguous";
+export type AdsConfidence = "high" | "medium" | "low";
 
 export type AdsKeywordInput = {
   pageUrl: string;
@@ -11,7 +13,17 @@ export type AdsKeywordInput = {
   primaryOffer: string;
   excludeIntent: string;
   productNames: string[];
+  organizationName: string;
   siteName: string;
+  hasLocalBusinessSchema: boolean;
+  hasTrustedLocalEvidence: boolean;
+};
+
+type Entity = {
+  text: string;
+  type: AdsEntityType;
+  confidence: AdsConfidence;
+  source: "jsonld-product" | "customer-context" | "jsonld-organization" | "og-site-name";
 };
 
 const LANGUAGE_ALIASES: Record<string,string> = {
@@ -19,12 +31,17 @@ const LANGUAGE_ALIASES: Record<string,string> = {
   frans:"fr", french:"fr", français:"fr", spaans:"es", spanish:"es", español:"es",
   italiaans:"it", italian:"it", italiano:"it",
 };
-
-const MODIFIERS: Record<string,string[]> = {
+const SALES_MODIFIERS: Record<string,string[]> = {
   nl:["kopen","prijs","bestellen"], en:["buy","price","order"], de:["kaufen","preis","bestellen"],
   fr:["acheter","prix","commander"], es:["comprar","precio","pedir"], it:["comprare","prezzo","ordinare"],
 };
-
+const LEAD_MODIFIERS: Record<string,string[]> = {
+  nl:["prijs","offerte"], en:["price","quote"], de:["preis","angebot"], fr:["prix","devis"],
+  es:["precio","presupuesto"], it:["prezzo","preventivo"],
+};
+const LOCAL_MODIFIERS: Record<string,string[]> = {
+  nl:["in de buurt"], en:["near me"], de:["in der nähe"], fr:["près de moi"], es:["cerca de mí"], it:["vicino a me"],
+};
 const NEGATIVES: Record<string,string[]> = {
   nl:["gratis","vacature","handleiding","tweedehands"], en:["free","jobs","manual","used"],
   de:["kostenlos","jobs","anleitung","gebraucht"], fr:["gratuit","emploi","manuel","occasion"],
@@ -37,43 +54,73 @@ const normalizeLanguage=(value:string)=>{
   return LANGUAGE_ALIASES[normalized] || normalized.split("-")[0];
 };
 const unique=(values:string[])=>[...new Set(values.map(clean).filter((v)=>v.length>=3))];
+const uniqueEntities=(entities:Entity[])=>{
+  const seen=new Set<string>();
+  return entities.filter((entity)=>{
+    const key=`${entity.type}:${entity.text.toLocaleLowerCase()}`;
+    if(seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
 
 export function buildAdsKeywordIntelligence(input: AdsKeywordInput) {
-  const languages=unique(input.requestedLanguages.length ? input.requestedLanguages.map(normalizeLanguage) : [normalizeLanguage(input.pageLanguage || "en")]);
+  const requestedLanguages=unique(input.requestedLanguages.map(normalizeLanguage));
+  const detectedLanguage=normalizeLanguage(input.pageLanguage || "");
+  const languages=requestedLanguages.length ? requestedLanguages : (detectedLanguage ? [detectedLanguage] : []);
   const countries=unique(input.requestedCountries);
-  const primaryLanguage=languages[0] || "en";
   const goal=input.campaignGoal || (input.productNames.length ? "sales" : "");
-  const intent=goal==="sales" ? "transactional" : ["leads","calls","appointments","store_visits"].includes(goal) ? "commercial" : "mixed";
+  const baseIntent: AdsIntent=goal==="sales" ? "commercial-transactional" : ["leads","calls","appointments","store_visits"].includes(goal) ? "commercial-transactional" : "ambiguous";
+  const localIntentConfirmed=input.hasLocalBusinessSchema && input.hasTrustedLocalEvidence;
 
-  // Customer-entered offer/industry and exact Product schema names are strong evidence.
-  // Generic H1/title copy is deliberately excluded: it may be a slogan or welcome text.
-  const productEntities=unique(input.productNames).map((text)=>({text,type:"product" as AdsEntityType,confidence:"high",source:"jsonld-product"}));
-  const customerEntities=unique([input.primaryOffer,input.industry]).map((text)=>({
-    text,type:(goal==="sales" ? "category" : "service") as AdsEntityType,confidence:"medium",source:"customer-context"
+  const productEntities:Entity[]=unique(input.productNames).map((text)=>({text,type:"product",confidence:"high",source:"jsonld-product"}));
+  const customerEntities:Entity[]=unique([input.primaryOffer,input.industry]).map((text)=>({
+    text,type:goal==="sales" ? "category" : "service",confidence:"medium",source:"customer-context"
   }));
-  const brandEntities=unique([input.siteName]).map((text)=>({text,type:"brand" as AdsEntityType,confidence:"medium",source:"site-identity"}));
-  const entities=[...customerEntities,...productEntities,...brandEntities];
+  const brandText=clean(input.organizationName || input.siteName);
+  const brandEntities:Entity[]=brandText ? [{
+    text:brandText,type:"brand",confidence:input.organizationName ? "high" : "medium",
+    source:input.organizationName ? "jsonld-organization" : "og-site-name"
+  }] : [];
+  const entities=uniqueEntities([...customerEntities,...productEntities,...brandEntities]).slice(0,10);
 
-  const marketScopes=countries.length
-    ? countries.flatMap((country)=>languages.map((language)=>({country,language,countrySource:"customer" as const,languageSource:input.requestedLanguages.length ? "customer" as const : "html-lang" as const})))
-    : languages.map((language)=>({country:null,language,countrySource:"unknown" as const,languageSource:input.requestedLanguages.length ? "customer" as const : "html-lang" as const}));
+  const marketScopes=(countries.length ? countries : [null]).flatMap((country)=>
+    (languages.length ? languages : [null]).map((language)=>({
+      country,
+      language,
+      countrySource:country ? "customer" as const : "unknown" as const,
+      languageSource:language ? (requestedLanguages.length ? "customer" as const : "html-lang" as const) : "unknown" as const,
+    }))
+  );
 
-  const keywordGroups=entities.slice(0,8).map((entity)=>{
-    const canUseCommercialModifiers=goal==="sales" && (entity.type==="product" || entity.type==="category");
-    const modifiers=canUseCommercialModifiers ? (MODIFIERS[primaryLanguage] || MODIFIERS.en) : [];
+  const marketKeywordGroups=marketScopes.flatMap((market)=>entities.map((entity)=>{
+    const language=market.language || "en";
+    let intent:AdsIntent=entity.type==="brand" ? "navigational-brand" : baseIntent;
+    let modifiers:string[]=[];
+    if(entity.type==="product" || entity.type==="category"){
+      if(goal==="sales") modifiers=SALES_MODIFIERS[language] || SALES_MODIFIERS.en;
+    } else if(entity.type==="service" && baseIntent==="commercial-transactional"){
+      modifiers=LEAD_MODIFIERS[language] || LEAD_MODIFIERS.en;
+      if(localIntentConfirmed) {
+        intent="local";
+        modifiers=[...modifiers,...(LOCAL_MODIFIERS[language] || LOCAL_MODIFIERS.en)];
+      }
+    }
     return {
       theme:entity.text,
       entityType:entity.type,
-      intent:entity.type==="brand" ? "navigational-brand" : intent,
+      intent,
       confidence:entity.confidence,
       evidenceSource:entity.source,
+      market,
       landingPage:input.pageUrl,
       keywords:unique([entity.text,...modifiers.map((modifier)=>`${entity.text} ${modifier}`)]).slice(0,8),
     };
-  });
+  }));
 
   const requestedExclusions=unique(input.excludeIntent.split(/[,;\n]/));
-  const negativeKeywordCandidates=unique([...(NEGATIVES[primaryLanguage] || NEGATIVES.en),...requestedExclusions]).map((term)=>({
+  const negativeLanguage=languages[0] || "en";
+  const negativeKeywordCandidates=unique([...(NEGATIVES[negativeLanguage] || NEGATIVES.en),...requestedExclusions]).map((term)=>({
     term,
     source:requestedExclusions.includes(term) ? "customer" : "suggested",
     requiresReview:true,
@@ -82,21 +129,28 @@ export function buildAdsKeywordIntelligence(input: AdsKeywordInput) {
       : "Suggestie op basis van veelvoorkomende afwijkende intentie; controleer vóór campagne-uitsluiting.",
   }));
 
+  const evidenceLevel=productEntities.length || customerEntities.length ? "typed_evidence" : brandEntities.length ? "brand_only" : "insufficient";
+  const confirmationStatus=evidenceLevel==="typed_evidence" ? "confirmed" : "unable_to_confirm";
+
   return {
-    evidenceLevel: productEntities.length || customerEntities.length ? "typed_evidence" : brandEntities.length ? "brand_only" : "insufficient",
-    language:primaryLanguage || null,
-    intent,
+    evidenceLevel,
+    confirmationStatus,
+    language:languages[0] || null,
+    pageLanguage:detectedLanguage || null,
+    intent:baseIntent,
     campaignGoal:goal || null,
     targetArea:input.targetArea || null,
     targetCountries:countries,
     adLanguages:languages,
     markets:marketScopes,
+    localIntentConfirmed,
     landingPage:input.pageUrl,
     seedTerms:entities.map((entity)=>entity.text),
-    keywordCandidates:unique(keywordGroups.flatMap((group)=>group.keywords)),
-    keywordGroups,
+    keywordCandidates:unique(marketKeywordGroups.flatMap((group)=>group.keywords)),
+    keywordGroups:marketKeywordGroups,
+    marketKeywordGroups,
     negativeKeywordCandidates,
-    metrics:{searchVolume:null,cpc:null,competition:null,source:null},
-    disclaimer:"Keywordkandidaten zijn gebaseerd op aantoonbare pagina- of klantcontext. Zoekvolume, CPC en Google Ads-concurrentie worden pas getoond wanneer een actuele externe databron is gekoppeld.",
+    metrics:{searchVolume:"unknown_not_confirmed" as const,cpc:"unknown_not_confirmed" as const,competition:"unknown_not_confirmed" as const,source:null},
+    disclaimer:"Keywordkandidaten zijn gebaseerd op getypeerd pagina- of klantbewijs. Doelmarkten worden niet afgeleid uit alleen de paginataal. Zoekvolume, CPC en Google Ads-concurrentie vereisen een actuele externe databron.",
   };
 }
