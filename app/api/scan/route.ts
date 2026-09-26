@@ -8,7 +8,7 @@ import { getFixPolicy } from "@/lib/fix-policy";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
-import { scoreApplicableChecks, summarizeAuditChecks } from "@/lib/audit-score";
+import { applyEvidenceBasedScoreCap, scoreApplicableChecks, summarizeAuditChecks } from "@/lib/audit-score";
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -1234,10 +1234,7 @@ export async function POST(request: Request) {
     const selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);
     const selectedGeoScore = scoreApplicableChecks(selectedGeoChecks);
     let selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
-    const selectedHasCriticalIssue = [...selectedSeoChecks, ...selectedGeoChecks].some((item) => item.status !== "pass" && item.severity === "CRITICAL");
-    const selectedHasHighIssue = [...selectedSeoChecks, ...selectedGeoChecks].some((item) => item.status === "fail" && item.severity === "HIGH");
-    if (selectedHasCriticalIssue) selectedOverallScore = Math.min(selectedOverallScore, 70);
-    else if (selectedHasHighIssue) selectedOverallScore = Math.min(selectedOverallScore, 88);
+    selectedOverallScore = applyEvidenceBasedScoreCap(selectedOverallScore, [...selectedSeoChecks, ...selectedGeoChecks]);
     const checks = [...selectedSeoChecks, ...selectedGeoChecks];
     const coverageFor = (items: Check[]) => {
       const relevant = items.filter((item) => item.issue_status !== "NOT_APPLICABLE");
