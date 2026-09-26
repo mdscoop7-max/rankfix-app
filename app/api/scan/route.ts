@@ -490,21 +490,28 @@ export async function POST(request: Request) {
     const googleAdsIds = [...new Set(html.match(/\bAW-[0-9-]+\b/gi) || [])];
     const hasGa4 = ga4MeasurementIds.length > 0 || /google[-_ ]?analytics/i.test(html);
     const hasGoogleAdsTag = googleAdsIds.length > 0 || /google_adservices|googleads\.g\.doubleclick/i.test(html);
-    // Only explicit analytics event calls count as conversion evidence.
-    // Visible marketing words alone are never treated as tracking proof.
+    // Only explicit analytics calls or dataLayer.push objects count as event evidence.
+    // Marketing copy and arbitrary object literals must never become tracking proof.
     const conversionEventNames: string[] = [];
     const gtagEventPattern = /gtag\s*\(\s*["']event["']\s*,\s*["']([^"']+)["']/gi;
     for (const match of html.matchAll(gtagEventPattern)) {
       if (match[1]) conversionEventNames.push(match[1].toLowerCase());
     }
-    const dataLayerEventPattern = /["']event["']\s*:\s*["']([^"']+)["']/gi;
-    for (const match of html.matchAll(dataLayerEventPattern)) {
-      if (match[1]) conversionEventNames.push(match[1].toLowerCase());
+    const dataLayerPushPattern = /dataLayer\.push\s*\(\s*\{([\s\S]{0,2500}?)\}\s*\)/gi;
+    for (const push of html.matchAll(dataLayerPushPattern)) {
+      const eventMatch = push[1]?.match(/(?:["']event["']|\bevent\b)\s*:\s*["']([^"']+)["']/i);
+      if (eventMatch?.[1]) conversionEventNames.push(eventMatch[1].toLowerCase());
     }
     const uniqueConversionEventNames = [...new Set(conversionEventNames)];
     const hasConversionSignal = uniqueConversionEventNames.some((name: string) =>
       /^(purchase|generate_lead|sign_up|conversion|begin_checkout|add_to_cart)$/.test(name)
     );
+    const googleAdsSendToLabels = [...new Set(
+      [...html.matchAll(/send_to\s*:\s*["'](AW-\d+\/[^"']+)["']/gi)].map((match) => match[1])
+    )];
+    const hasExplicitAdsConversionSnippet = googleAdsSendToLabels.length > 0;
+    const hasConsentModeSignal = /gtag\s*\(\s*["']consent["']\s*,\s*["'](?:default|update)["']/i.test(html) ||
+      /ad_storage|analytics_storage|ad_user_data|ad_personalization/i.test(html);
     const hasShippingSignal = hasStructuredShipping || /verzendkosten|verzending|levering|shipping|delivery|bezorging|ophalen|afhalen/i.test(text);
     const hasReturnsSignal = hasStructuredReturns || /retour|herroepingsrecht|14\s*dagen|bedenktijd|return policy|refund/i.test(text);
     const hasReviewPlatformSignal = /trustpilot|kiyoh|google reviews|reviews?\.io/i.test(text);
@@ -732,10 +739,10 @@ export async function POST(request: Request) {
       ? check(hasCheckoutTrustSignal?"pass":"warning","checkout_trust","seo","Checkout- en betaalvertrouwen",hasCheckoutTrustSignal?"Betaal-/checkoutsignalen zijn zichtbaar.":"Geen duidelijke betaal- of checkoutsignalen gevonden op deze pagina.","Toon betaalmogelijkheden en relevante veiligheids-/vertrouwensinformatie waar de bezoeker een aankoopbeslissing neemt.",hasCheckoutTrustSignal?5:2,5)
       : check("not_applicable","checkout_trust","seo","Checkout- en betaalvertrouwen","Geen webshop-signalen gevonden; checkoutcontrole is niet van toepassing.","Gebruik deze controle op echte webshopcontent.",0,5));
     seoChecks.push(
-      hasGoogleAdsTag && hasGa4 && hasConversionSignal
-        ? check("unable_to_confirm","ads_readiness","seo","Google Ads readiness",`Google Ads-tag${googleAdsIds.length ? ` (${googleAdsIds.join(", ")})` : ""}, GA4${ga4MeasurementIds.length ? ` (${ga4MeasurementIds.join(", ")})` : ""} en expliciete event-signalen (${uniqueConversionEventNames.slice(0,5).join(", ")}) zijn in de publieke bron gevonden. Dat bewijst nog niet dat events werkelijk afvuren, consent correct werkt of conversies in Ads/GA4 worden ontvangen.`,"Verifieer de meetketen met runtime/tag-debugging en controleer daarna de ontvangen conversies in Google Ads en GA4.",0,6)
-        : adsTrackingSignals > 0 || hasConversionSignal
-          ? check("unable_to_confirm","ads_readiness","seo","Google Ads readiness",`Er zijn advertentie-/tracking-signalen gevonden, maar geen volledig verifieerbare meetketen. Gedetecteerd: Ads-ID's ${googleAdsIds.length}, GA4-ID's ${ga4MeasurementIds.length}, expliciete conversie-events ${uniqueConversionEventNames.length}.`,"Controleer Google tag, GA4, Ads-conversies en consent met runtime/tag-debugging.",0,6)
+      hasGoogleAdsTag && hasGa4 && (hasConversionSignal || hasExplicitAdsConversionSnippet)
+        ? check("unable_to_confirm","ads_readiness","seo","Google Ads readiness",`Google Ads-tag${googleAdsIds.length ? ` (${googleAdsIds.join(", ")})` : ""}, GA4${ga4MeasurementIds.length ? ` (${ga4MeasurementIds.join(", ")})` : ""} en expliciete conversiecode zijn in de publieke bron gevonden. Events: ${uniqueConversionEventNames.slice(0,5).join(", ") || "geen naam gevonden"}; Ads send_to: ${googleAdsSendToLabels.length}; consent-signaal: ${hasConsentModeSignal ? "gevonden" : "niet aangetoond"}. Dit bewijst nog niet dat tags runtime afvuren of conversies door Google worden ontvangen.`,"Verifieer met Tag Assistant/Preview en controleer daarna ontvangen events en consentstatus in GA4/Google Ads.",0,6)
+        : adsTrackingSignals > 0 || hasConversionSignal || hasExplicitAdsConversionSnippet
+          ? check("unable_to_confirm","ads_readiness","seo","Google Ads readiness",`Trackingcode is gedeeltelijk aangetroffen. Ads-ID's: ${googleAdsIds.length}; GA4-ID's: ${ga4MeasurementIds.length}; expliciete events: ${uniqueConversionEventNames.length}; Ads conversion labels: ${googleAdsSendToLabels.length}; consent-signaal: ${hasConsentModeSignal ? "gevonden" : "niet aangetoond"}.`,"Maak de meetketen compleet en verifieer Google tag, GA4, Ads-conversies en consent runtime.",0,6)
           : check("not_applicable","ads_readiness","seo","Google Ads readiness","Geen publieke Google Ads/GA4-signalen gevonden. Dat bewijst niet dat tracking ontbreekt of dat deze site Google Ads gebruikt.","Beoordeel Ads readiness alleen wanneer advertentietracking voor deze site daadwerkelijk van toepassing is.",0,6));
     geoChecks.push(isHomepage
       ? organizationSchemaPresent && websiteSchemaPresent
@@ -868,6 +875,7 @@ export async function POST(request: Request) {
         checkout_trust: hasCheckoutTrustSignal ? "checkout/payment signal found in static page content" : null,
         product_price_consistency: hasProductSignal ? `visible=${visiblePriceCandidates.join(",") || "none"}; schema=${structuredPriceCandidates.join(",") || "none"}` : null,
         product_availability: hasProductSignal ? `visibleStockSignal=${visibleStockSignal}; schema=${structuredAvailabilityValues.join(",") || "none"}` : null,
+        ads_readiness: (adsTrackingSignals || hasConversionSignal || hasExplicitAdsConversionSnippet) ? `adsIds=${googleAdsIds.join(",") || "none"}; ga4Ids=${ga4MeasurementIds.join(",") || "none"}; events=${uniqueConversionEventNames.join(",") || "none"}; adsLabels=${googleAdsSendToLabels.join(",") || "none"}; consentSignal=${hasConsentModeSignal}` : null,
       };
       const heuristicKeys = new Set([
         "content", "headings", "duplicate_path", "html_escape", "image_sources", "webshop_claims",
