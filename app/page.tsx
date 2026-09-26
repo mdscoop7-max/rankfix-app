@@ -464,7 +464,25 @@ export default function Home() {
   }).length;
   const remainingCount = issues.length;
   const resultHttpStatus = result ? Number(result.httpStatus) : 0;
+  const blockedHttpStatus = resultHttpStatus === 401 || resultHttpStatus === 403;
+  const rateLimitedHttpStatus = resultHttpStatus === 429;
+  const serverErrorHttpStatus = resultHttpStatus >= 500 && resultHttpStatus <= 599;
   const pageNotFound = resultHttpStatus === 404 || resultHttpStatus === 410;
+  const stopContentAudit = pageNotFound || blockedHttpStatus || rateLimitedHttpStatus || serverErrorHttpStatus;
+  const stoppedAuditTitle = pageNotFound
+    ? `Pagina niet gevonden — HTTP ${resultHttpStatus}`
+    : blockedHttpStatus
+      ? `Toegang tot pagina geblokkeerd — HTTP ${resultHttpStatus}`
+      : rateLimitedHttpStatus
+        ? "Website beperkt tijdelijk scans — HTTP 429"
+        : `Serverfout op website — HTTP ${resultHttpStatus}`;
+  const stoppedAuditMessage = pageNotFound
+    ? "RankFix kan deze URL niet betrouwbaar auditen omdat de server geen geldige pagina retourneert. Controleer de URL en voer de scan opnieuw uit. SEO- en GEO-inhoudsfouten van deze foutpagina worden daarom niet als verbeterpunten gepresenteerd."
+    : blockedHttpStatus
+      ? "RankFix krijgt geen toegang tot deze pagina. Controleer of de pagina publiek toegankelijk is en of een firewall, login of beveiligingsregel de scan blokkeert. Voer daarna de scan opnieuw uit."
+      : rateLimitedHttpStatus
+        ? "De website accepteert momenteel te veel verzoeken of beperkt automatische scans. Wacht even en probeer de scan opnieuw. RankFix presenteert de tijdelijke foutpagina niet als SEO- of GEO-probleem."
+        : "De website retourneert een serverfout. Controleer de website of hosting en voer de scan opnieuw uit zodra de pagina normaal bereikbaar is. RankFix presenteert deze foutpagina niet als SEO- of GEO-probleem.";
 
   return (
     <main className="rankfix-home min-h-screen bg-[#07172B] text-[#F7FBFF] selection:bg-emerald-300 selection:text-[#032D24]">
@@ -725,13 +743,13 @@ export default function Home() {
       )}
 
       {result && (
-        pageNotFound ? (
+        stopContentAudit ? (
           <section id="resultaat" className="mx-auto max-w-6xl scroll-mt-8 px-5 py-12 lg:px-8">
             <div className="rounded-[28px] border border-red-400/20 bg-red-400/[0.045] p-5 shadow-2xl shadow-black/10 sm:p-6">
               <div className="text-xs font-bold uppercase tracking-[0.2em] text-red-300">Scan gestopt</div>
-              <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">Pagina niet gevonden — HTTP {result.httpStatus}</h2>
+              <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">{stoppedAuditTitle}</h2>
               <p className="mt-1 max-w-2xl break-all text-xs text-slate-500">{result.finalUrl}</p>
-              <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600">RankFix kan deze URL niet betrouwbaar auditen omdat de server geen geldige pagina retourneert. Controleer de URL en voer de scan opnieuw uit. SEO- en GEO-inhoudsfouten van deze foutpagina worden daarom niet als verbeterpunten gepresenteerd.</p>
+              <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600">{stoppedAuditMessage}</p>
             </div>
           </section>
         ) : (
