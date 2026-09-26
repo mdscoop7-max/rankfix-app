@@ -383,6 +383,17 @@ export async function POST(request: Request) {
     const hasRelevantLocalSchema = schemaSet.has("localbusiness") || (specificLocalSchema ? schemaSet.has(specificLocalSchema.toLowerCase()) : false);
     const recommendedSchema = hasLocalBusinessSignal ? specificLocalSchema || "LocalBusiness" : hasProductSignal ? "Product" : hasArticleSignal ? "Article" : hasItemListSignal ? "ItemList" : isHomepage ? "Organization + WebSite" : "WebPage";
     const schemaContextLabel = hasLocalBusinessSignal ? "lokale bedrijfs-/dienstpagina" : hasProductSignal ? "product-/e-commercepagina" : hasArticleSignal ? "artikel-/nieuwspagina" : hasItemListSignal ? "lijst-/categoriepagina" : isHomepage ? "homepage" : "contentpagina";
+    const hasRelevantContextSchema = hasLocalBusinessSignal
+      ? hasRelevantLocalSchema
+      : hasProductSignal
+        ? hasProductSchema
+        : hasArticleSignal
+          ? schemaSet.has("article") || schemaSet.has("newsarticle") || schemaSet.has("blogposting")
+          : hasItemListSignal
+            ? schemaSet.has("itemlist") || schemaSet.has("collectionpage")
+            : isHomepage
+              ? schemaSet.has("organization") || schemaSet.has("website")
+              : schemaSet.has("webpage") || schemaSet.has("article") || schemaSet.has("organization") || schemaSet.has("website");
     const businessName = organizationName || (title.split(/[|–—-]/)[0] || "").trim();
     const phoneMatch = text.match(/(?:\\+31\\s?6|0)[\\d\\s().-]{8,}/);
     const emailMatch = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i);
@@ -694,9 +705,11 @@ export async function POST(request: Request) {
             ? check("warning", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden, maar geen passend LocalBusiness-subtype.`, `Gebruik voor deze lokale pagina het meest specifieke passende type: ${recommendedSchema}, met alleen gegevens die zichtbaar en aantoonbaar zijn.`, 6, 12)
             : check("fail", "schema", "geo", "Structured data", `Geen geldige JSON-LD structured data gevonden voor deze ${schemaContextLabel}.`, `Voeg relevante schema.org JSON-LD toe. Voor dit paginatype is ${recommendedSchema} de belangrijkste richting; gebruik alleen typen die echt bij de zichtbare content passen.`, 0, 12)
         : validJsonLd > 0
-          ? hasEntitySchema
-            ? check("pass", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) met een herkenbaar inhoudelijk schema-type gevonden voor deze ${schemaContextLabel}.`, `Controleer of het schema inhoudelijk overeenkomt met de pagina. Relevante hoofdkeuze: ${recommendedSchema}.`, 12, 12)
-            : check("warning", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden, maar geen herkenbaar Organization, WebSite, Person, Product of Article-type dat deze pagina inhoudelijk beschrijft.`, `Gebruik structured data die aantoonbaar bij het paginatype past. Relevante hoofdkeuze: ${recommendedSchema}.`, 6, 12)
+          ? hasRelevantContextSchema
+            ? check("pass", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) met een voor deze ${schemaContextLabel} relevant schema-type gevonden.`, `Controleer ook de inhoudelijke velden en houd structured data gelijk aan zichtbare content. Relevante hoofdkeuze: ${recommendedSchema}.`, 12, 12)
+            : hasEntitySchema
+              ? check("warning", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) en herkenbare entity-schema's gevonden, maar geen schema-type dat RankFix overtuigend aan deze ${schemaContextLabel} kan koppelen.`, `Voeg alleen het relevante paginaschema toe wanneer het door de zichtbare content wordt ondersteund. Richting: ${recommendedSchema}.`, 6, 12)
+              : check("warning", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden, maar geen herkenbaar relevant entity- of paginaschema voor deze ${schemaContextLabel}.`, `Gebruik structured data die aantoonbaar bij het paginatype past. Relevante hoofdkeuze: ${recommendedSchema}.`, 6, 12)
           : check("fail", "schema", "geo", "Structured data", `Geen geldige JSON-LD structured data gevonden voor deze ${schemaContextLabel}.`, `Voeg relevante schema.org JSON-LD toe. Voor dit paginatype is ${recommendedSchema} de belangrijkste richting; gebruik alleen typen die echt bij de zichtbare content passen.`, 0, 12)
     );
     seoChecks.push(twitterCard === "summary_large_image"
@@ -897,7 +910,7 @@ export async function POST(request: Request) {
         viewport: viewportContent || null,
         lang: lang || null,
         alt: imageElementCount ? imagesMissingAlt : null,
-        schema: validJsonLd,
+        schema: validJsonLd ? `blocks=${validJsonLd}; types=${[...new Set(schemaTypes)].slice(0,12).join(",")}; contextRelevant=${hasRelevantContextSchema}` : null,
         https: finalUrl.protocol === "https:",
         status: response.status,
         response: responseTime,
