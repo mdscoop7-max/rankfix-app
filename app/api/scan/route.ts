@@ -165,7 +165,9 @@ export async function POST(request: Request) {
       firstMatch(html, /<meta[^>]+name\s*=\s*["']viewport["'][^>]+content\s*=\s*["']([^"']+)["']/i) ||
       firstMatch(html, /<meta[^>]+content\s*=\s*["']([^"']+)["'][^>]+name\s*=\s*["']viewport["']/i);
     const viewportIsResponsive = /(?:^|[,;\s])width\s*=\s*device-width(?:$|[,;\s])/i.test(viewportContent);
-    const robots = firstMatch(html, /<meta[^>]+name\s*=\s*["']robots["'][^>]+content\s*=\s*["']([^"']+)["']/i);
+    const robots =
+      firstMatch(html, /<meta[^>]+name\s*=\s*["']robots["'][^>]+content\s*=\s*["']([^"']+)["']/i) ||
+      firstMatch(html, /<meta[^>]+content\s*=\s*["']([^"']+)["'][^>]+name\s*=\s*["']robots["']/i);
     const xRobotsTag = response.headers.get("x-robots-tag") || "";
     const noindexSignal = /(?:^|[,;\s])noindex(?:$|[,;\s])/i.test(robots) || /(?:^|[,;\s])noindex(?:$|[,;\s])/i.test(xRobotsTag);
     const imageMetrics = extractImageMetrics(html);
@@ -412,6 +414,28 @@ export async function POST(request: Request) {
         if (declared) discoveredSitemapUrl = new URL(declared, finalUrl).toString();
       } else if (r.status === 404) robotsStatus = "FAIL";
     } catch { robotsStatus = "UNABLE_TO_CONFIRM"; }
+    const robotsPath = finalUrl.pathname || "/";
+    const robotsGroups = robotsTxt
+      .split(/\r?\n/)
+      .map((line) => line.replace(/#.*$/, "").trim())
+      .reduce((groups: Array<{ agents: string[]; rules: Array<{ kind: "allow" | "disallow"; path: string }> }>, line) => {
+        const agent = line.match(/^user-agent\s*:\s*(.+)$/i)?.[1]?.trim().toLowerCase();
+        if (agent) {
+          const last = groups[groups.length - 1];
+          if (!last || last.rules.length) groups.push({ agents: [agent], rules: [] });
+          else last.agents.push(agent);
+          return groups;
+        }
+        const rule = line.match(/^(allow|disallow)\s*:\s*(.*)$/i);
+        if (rule && groups.length) groups[groups.length - 1].rules.push({ kind: rule[1].toLowerCase() as "allow" | "disallow", path: rule[2].trim() });
+        return groups;
+      }, []);
+    const applicableRobotsGroups = robotsGroups.filter((group) => group.agents.includes("*") || group.agents.some((agent) => /rankfixbot|googlebot/.test(agent)));
+    const matchingRobotsRules = applicableRobotsGroups
+      .flatMap((group) => group.rules)
+      .filter((rule) => rule.path && robotsPath.startsWith(rule.path.replace(/\*.*$/, "")))
+      .sort((a, b) => b.path.length - a.path.length);
+    const robotsPathBlocked = robotsStatus === "PASS" && matchingRobotsRules.length > 0 && matchingRobotsRules[0].kind === "disallow";
     const sitemapCandidates = [discoveredSitemapUrl, sitemapUrl.toString()].filter(Boolean) as string[];
     for (const candidate of sitemapCandidates) {
       try {
@@ -603,7 +627,11 @@ export async function POST(request: Request) {
     );
     seoChecks.push(noindexSignal
       ? check("warning", "indexability", "seo", "Indexeerbaarheid", `Een noindex-signaal is gevonden${xRobotsTag ? ` in X-Robots-Tag/meta robots (${[robots, xRobotsTag].filter(Boolean).join(" | ")})` : ` in meta robots (${robots})`}.`, "Controleer of noindex bewust is ingesteld. Verwijder het alleen als deze pagina in zoekmachines moet verschijnen.", 0, 6)
-      : check("pass", "indexability", "seo", "Indexeerbaarheid", `Geen noindex gevonden in meta robots of X-Robots-Tag${robots ? `; meta robots: "${robots}"` : ""}.`, "Controleer daarnaast robots.txt en externe zoekmachine-status voor volledige indexeerbaarheid.", 6, 6)
+      : robotsPathBlocked
+        ? check("warning", "indexability", "seo", "Indexeerbaarheid", `robots.txt blokkeert het gescande pad via: Disallow: ${matchingRobotsRules[0].path}`, "Controleer of deze crawlblokkade bewust is. Pas robots.txt alleen aan wanneer zoekmachines deze pagina moeten kunnen crawlen.", 0, 6)
+        : robotsStatus === "UNABLE_TO_CONFIRM"
+          ? check("unable_to_confirm", "indexability", "seo", "Indexeerbaarheid", "Geen noindex-signaal gevonden, maar RankFix kon robots.txt niet betrouwbaar controleren.", "Probeer opnieuw om crawlbaarheid en indexeerbaarheid samen te bevestigen.", 0, 6)
+          : check("pass", "indexability", "seo", "Indexeerbaarheid", `Geen noindex gevonden en geen robots.txt-regel blokkeert dit pad${robots ? `; meta robots: "${robots}"` : ""}.`, "Externe zoekmachine-indexstatus blijft een aparte controle.", 6, 6)
     );
     seoChecks.push(imageElementCount === 0
       ? check("not_applicable", "alt", "seo", "Afbeelding alt-teksten", "Geen <img>-elementen gevonden in de opgehaalde HTML; deze controle telt daarom niet mee.", "Controleer dynamisch geladen afbeeldingen afzonderlijk wanneer die voor de pagina belangrijk zijn.", 0, 7)
@@ -636,9 +664,11 @@ export async function POST(request: Request) {
       : check("warning", "social", "seo", "Social metadata", "Niet alle belangrijke Open Graph velden zijn gevonden.", "Voeg og:title, og:description en og:image toe.", 2, 4)
     );
     seoChecks.push(robotsStatus === "PASS"
-      ? check("pass", "robots_txt", "seo", "robots.txt", "robots.txt is bereikbaar en kon door RankFix worden gelezen.", "Controleer dat belangrijke publieke pagina's niet onbedoeld worden geblokkeerd.", 4, 4)
+      ? robotsPathBlocked
+        ? check("warning", "robots_txt", "seo", "robots.txt", `robots.txt is bereikbaar, maar blokkeert het gescande pad via Disallow: ${matchingRobotsRules[0].path}.`, "Controleer of deze blokkade bewust is.", 1, 4)
+        : check("pass", "robots_txt", "seo", "robots.txt", "robots.txt is bereikbaar en bevat geen toepasselijke blokkade voor het gescande pad.", "Houd crawlregels bewust en controleer belangrijke publieke pagina's.", 4, 4)
       : robotsStatus === "FAIL"
-        ? check("warning", "robots_txt", "seo", "robots.txt", "robots.txt gaf een bevestigde 404 terug.", "Publiceer een robots.txt wanneer je crawlregels of een sitemap wilt declareren.", 2, 4)
+        ? check("not_applicable", "robots_txt", "seo", "robots.txt", "robots.txt gaf 404 terug. Het ontbreken van robots.txt blokkeert crawlers op zichzelf niet en kost daarom geen SEO-punten.", "Publiceer robots.txt alleen wanneer je crawlregels of sitemapverwijzingen wilt beheren.", 0, 4)
         : check("unable_to_confirm", "robots_txt", "seo", "robots.txt", "RankFix kon robots.txt tijdens deze scan niet betrouwbaar ophalen.", "Probeer opnieuw wanneer de server bereikbaar is.", 0, 4)
     );
     seoChecks.push(sitemapFound
@@ -864,8 +894,8 @@ export async function POST(request: Request) {
         status: response.status,
         response: responseTime,
         sitemap: sitemapFound ? (discoveredSitemapUrl || true) : sitemapStatus,
-        robots_txt: robotsStatus === "PASS" ? robotsUrl.toString() : robotsStatus,
-        indexability: noindexSignal ? [robots, xRobotsTag].filter(Boolean).join(" | ") : "no noindex signal found",
+        robots_txt: robotsStatus === "PASS" ? `${robotsUrl.toString()}; pathBlocked=${robotsPathBlocked}${matchingRobotsRules[0] ? `; rule=${matchingRobotsRules[0].kind}:${matchingRobotsRules[0].path}` : ""}` : robotsStatus,
+        indexability: noindexSignal ? [robots, xRobotsTag].filter(Boolean).join(" | ") : robotsPathBlocked ? `robots disallow: ${matchingRobotsRules[0].path}` : "no noindex or applicable robots block found",
         hreflang: hreflangValues.length ? hreflangValues.join(", ") : null,
         social: [ogTitle ? "og:title" : "", ogDescription ? "og:description" : "", ogImage ? "og:image" : ""].filter(Boolean).join(", ") || null,
         product_schema: hasProductSchema ? JSON.stringify(productOfferSummary.slice(0, 3)) : null,
