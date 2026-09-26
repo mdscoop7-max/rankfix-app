@@ -6,6 +6,7 @@ import "../dashboard.css";
 
 type Repo={full_name:string;default_branch:string;private:boolean};
 type ValidationResult={valid?:boolean;errors?:string[];warnings?:string[]};
+type FixPreview={startLine:number;before:string[];after:string[];truncated?:boolean;changedLines?:number;summary?:string};
 
 export default function GithubPage(){
   const [connected,setConnected]=useState(false);
@@ -24,6 +25,7 @@ export default function GithubPage(){
   const [message,setMessage]=useState("");
   const [error,setError]=useState("");
   const [validation,setValidation]=useState<ValidationResult|null>(null);
+  const [preview,setPreview]=useState<FixPreview|null>(null);
 
   useEffect(()=>{
     const params=new URLSearchParams(location.search);
@@ -53,6 +55,7 @@ export default function GithubPage(){
   },[]);
 
   async function createFix(e:React.FormEvent){
+    const publish=preview!==null;
     e.preventDefault();
     if(busy) return;
     const cleanRepo=repo.trim();
@@ -68,7 +71,7 @@ export default function GithubPage(){
     }
     setBusy(true);setError("");setMessage("");setValidation(null);
     try{
-      const r=await fetch("/api/github/fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({repo:cleanRepo,path:cleanPath,baseBranch,scan_id:scanId,issue_id:issueId})});
+      const r=await fetch("/api/github/fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({repo:cleanRepo,path:cleanPath,baseBranch,scan_id:scanId,issue_id:issueId,preview:!publish})});
       const text=await r.text();
       let d:any={};
       try{d=JSON.parse(text);}catch{}
@@ -84,7 +87,13 @@ export default function GithubPage(){
         return;
       }
       setPath(d.path || cleanPath);
-      setMessage(d.alreadyApplied ? "De gevraagde code staat al in het bestand. Er is niets gewijzigd. Controleer de live pagina met een nieuwe scan." : "Codewijziging voorgesteld in PR: "+d.pr.title+" — "+d.pr.url+" | Bestand: "+(d.path || cleanPath)+". Controleer de diff, merge en scan opnieuw om de live fix te bevestigen.");
+      if(d.status==="preview"&&d.preview){
+        setPreview({...d.preview,summary:d.summary});
+        setMessage("Preview klaar. Controleer de wijziging hieronder; er is nog geen branch of Pull Request aangemaakt.");
+      } else {
+        setPreview(null);
+        setMessage(d.alreadyApplied ? "De gevraagde code staat al in het bestand. Er is niets gewijzigd. Controleer de live pagina met een nieuwe scan." : "Codewijziging voorgesteld in PR: "+d.pr.title+" — "+d.pr.url+" | Bestand: "+(d.path || cleanPath)+". Controleer de diff, merge en scan opnieuw om de live fix te bevestigen.");
+      }
     }catch(error){
       setError(error instanceof Error?error.message:"Verbinding met GitHub Fix Engine mislukt.");
     }finally{
@@ -121,7 +130,14 @@ export default function GithubPage(){
           {validation?.warnings?.length ? <div className="mt-4"><div className="font-semibold text-amber-200">Waarschuwingen</div><ul className="mt-1 list-disc space-y-1 pl-5 text-amber-100">{validation.warnings.map((item,i)=><li key={i}>{item}</li>)}</ul></div> : null}
         </div>}
         {message&&<div className="rounded-xl bg-emerald-500/10 p-4 text-sm text-emerald-200 break-all">{message}</div>}
-        <button type="submit" disabled={busy} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 font-bold text-[#04342C] disabled:opacity-50">{busy?"AI + GitHub zijn bezig…":"Maak GitHub Pull Request"}</button>
+        {preview&&<div className="rounded-2xl border border-cyan-300/20 bg-black/25 p-4 text-sm">
+          <div className="flex items-center justify-between gap-3"><strong>Diff-preview · vanaf regel {preview.startLine}</strong><span className="text-slate-400">{preview.changedLines??"?"} gewijzigde regels</span></div>
+          {preview.summary&&<p className="mt-2 text-slate-300">{preview.summary}</p>}
+          <div className="mt-4 grid gap-3 lg:grid-cols-2"><pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded-xl border border-red-400/15 bg-red-500/5 p-3 text-xs text-red-100">{preview.before.map((line,i)=>`- ${line}`).join("\n")||"- (leeg)"}</pre><pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded-xl border border-emerald-400/15 bg-emerald-500/5 p-3 text-xs text-emerald-100">{preview.after.map((line,i)=>`+ ${line}`).join("\n")||"+ (leeg)"}</pre></div>
+          {preview.truncated&&<p className="mt-2 text-xs text-amber-200">Preview is ingekort; controleer na het aanmaken ook de volledige GitHub-diff.</p>}
+          <button type="button" onClick={()=>{setPreview(null);setMessage("");}} className="mt-3 text-xs text-slate-300 underline">Preview annuleren</button>
+        </div>}
+        <button type="submit" disabled={busy} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 font-bold text-[#04342C] disabled:opacity-50">{busy?"AI + GitHub zijn bezig…":preview?"Preview goedgekeurd — maak Pull Request":"Maak eerst diff-preview"}</button>
       </form>}
     </section>
     </div>

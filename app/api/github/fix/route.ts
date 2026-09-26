@@ -246,6 +246,7 @@ export async function POST(request:Request){
     let context=typeof body?.context==="string"?body.context:"";
     const scanId=typeof body?.scan_id==="string"?body.scan_id.trim():"";
     const baseBranch=typeof body?.baseBranch==="string"&&/^[A-Za-z0-9._/-]{1,120}$/.test(body.baseBranch)?body.baseBranch:"main";
+    const previewOnly=body?.preview===true;
     if((requestedRepo&&!safeRepo(requestedRepo))||(requestedPath&&!safeFixTarget(requestedPath))||!issueId||!scanId) return NextResponse.json({error:"Ongeldige fixgegevens: scan_id en issue_id zijn verplicht."},{status:400});
     const fixPolicy=getFixPolicy(issueId);
     if(fixPolicy.category==="C"||!fixPolicy.safe_type){
@@ -339,6 +340,21 @@ export async function POST(request:Request){
     const normalizeFile=(value:string)=>value.replace(/\r\n/g,"\n").replace(/[ \t]+$/gm,"").trim();
     if(normalizeFile(current)===normalizeFile(generated.content)){
       return NextResponse.json({success:false,status:"fix_not_applied",error:"RankFix kon de gevraagde verbetering niet aantoonbaar in het bestand plaatsen. Er is niets gewijzigd.",repository:repo,path},{status:422});
+    }
+
+    if(previewOnly){
+      const beforeLines=current.split("\n");
+      const afterLines=generated.content.split("\n");
+      let prefix=0;
+      while(prefix<beforeLines.length&&prefix<afterLines.length&&beforeLines[prefix]===afterLines[prefix]) prefix++;
+      let suffix=0;
+      while(suffix<beforeLines.length-prefix&&suffix<afterLines.length-prefix&&beforeLines[beforeLines.length-1-suffix]===afterLines[afterLines.length-1-suffix]) suffix++;
+      const beforeChanged=beforeLines.slice(prefix,Math.min(beforeLines.length-suffix,prefix+80));
+      const afterChanged=afterLines.slice(prefix,Math.min(afterLines.length-suffix,prefix+80));
+      return NextResponse.json({
+        success:true,status:"preview",summary:generated.summary,repository:repo,path,
+        preview:{startLine:prefix+1,before:beforeChanged,after:afterChanged,truncated:(beforeLines.length-prefix-suffix>80)||(afterLines.length-prefix-suffix>80),changedLines:changeEstimate.changed}
+      });
     }
 
     const branch="rankfix/"+Date.now()+"-"+slug(issue);
