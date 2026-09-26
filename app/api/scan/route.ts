@@ -108,6 +108,104 @@ function normalizeScanUrl(value: string) {
   }
 }
 
+type TechnologyProfile = {
+  cms: string | null;
+  commercePlatform: string | null;
+  framework: string | null;
+  isCommerce: boolean;
+  confidence: number;
+  confidenceLabel: "high" | "medium" | "low";
+  evidence: string[];
+};
+
+function detectTechnologyProfile(html: string, headers: Headers, commerceSignal: boolean): TechnologyProfile {
+  const source = html.toLowerCase();
+  const headerText = [...headers.entries()].map(([key, value]) => `${key}:${value}`).join("\n").toLowerCase();
+  const evidence: string[] = [];
+  const hit = (pattern: RegExp, label: string) => {
+    if (pattern.test(source) || pattern.test(headerText)) {
+      evidence.push(label);
+      return true;
+    }
+    return false;
+  };
+
+  const wordpressSignals = [
+    hit(/\/wp-content\//i, "WordPress wp-content"),
+    hit(/\/wp-includes\//i, "WordPress wp-includes"),
+    hit(/(?:api\.w\.org|\/wp-json\/)/i, "WordPress REST/API"),
+    hit(/generator[^>]+wordpress/i, "WordPress generator"),
+  ].filter(Boolean).length;
+  const wooSignals = [
+    hit(/wp-content\/plugins\/woocommerce/i, "WooCommerce plugin assets"),
+    hit(/(?:wc-ajax|woocommerce-cart|woocommerce-checkout|woocommerce-page)/i, "WooCommerce storefront"),
+    hit(/(?:add_to_cart|add-to-cart)[^a-z]/i, "WooCommerce add-to-cart"),
+  ].filter(Boolean).length;
+  const shopifySignals = [
+    hit(/(?:cdn\.shopify\.com|\/cdn\/shop\/)/i, "Shopify CDN"),
+    hit(/(?:shopify\.theme|shopify-section|shopify-payment-button)/i, "Shopify storefront"),
+    hit(/\.myshopify\.com/i, "Shopify domain reference"),
+  ].filter(Boolean).length;
+  const magentoSignals = [
+    hit(/(?:mage\/cookies|magento_|x-magento|\/static\/version\d+)/i, "Magento storefront"),
+    hit(/(?:form_key|checkout\/cart)/i, "Magento commerce pattern"),
+  ].filter(Boolean).length;
+  const prestashopSignals = [
+    hit(/prestashop/i, "PrestaShop marker"),
+    hit(/\/modules\/(?:ps_|blockcart|blockreassurance)/i, "PrestaShop module assets"),
+  ].filter(Boolean).length;
+  const bigCommerceSignals = [
+    hit(/(?:bigcommerce|cdn\d*\.bigcommerce\.com|stencil-utils)/i, "BigCommerce storefront"),
+  ].filter(Boolean).length;
+  const wixSignals = [
+    hit(/(?:wixstatic\.com|wix-code|x-wix-)/i, "Wix platform"),
+  ].filter(Boolean).length;
+  const squarespaceSignals = [
+    hit(/(?:static\d*\.squarespace\.com|squarespace)/i, "Squarespace platform"),
+  ].filter(Boolean).length;
+  const webflowSignals = [
+    hit(/(?:data-wf-page|webflow\.js|website-files\.com)/i, "Webflow platform"),
+  ].filter(Boolean).length;
+  const nextSignals = [
+    hit(/(?:__next_data__|\/_next\/static\/)/i, "Next.js runtime"),
+  ].filter(Boolean).length;
+  const nuxtSignals = [
+    hit(/(?:__nuxt__|\/_nuxt\/)/i, "Nuxt runtime"),
+  ].filter(Boolean).length;
+
+  let cms: string | null = null;
+  let commercePlatform: string | null = null;
+  let framework: string | null = null;
+  let strongest = 0;
+
+  if (wordpressSignals) { cms = "WordPress"; strongest = Math.max(strongest, wordpressSignals); }
+  if (wooSignals) { cms = "WordPress"; commercePlatform = "WooCommerce"; strongest = Math.max(strongest, wooSignals + Math.min(wordpressSignals, 1)); }
+  if (shopifySignals) { commercePlatform = "Shopify"; strongest = Math.max(strongest, shopifySignals); }
+  if (magentoSignals) { commercePlatform = "Magento / Adobe Commerce"; strongest = Math.max(strongest, magentoSignals); }
+  if (prestashopSignals) { commercePlatform = "PrestaShop"; strongest = Math.max(strongest, prestashopSignals); }
+  if (bigCommerceSignals) { commercePlatform = "BigCommerce"; strongest = Math.max(strongest, bigCommerceSignals); }
+  if (wixSignals) { cms = "Wix"; strongest = Math.max(strongest, wixSignals); }
+  if (squarespaceSignals) { cms = "Squarespace"; strongest = Math.max(strongest, squarespaceSignals); }
+  if (webflowSignals) { cms = "Webflow"; strongest = Math.max(strongest, webflowSignals); }
+  if (nextSignals) { framework = "Next.js"; strongest = Math.max(strongest, nextSignals); }
+  else if (nuxtSignals) { framework = "Nuxt"; strongest = Math.max(strongest, nuxtSignals); }
+
+  const isCommerce = Boolean(commercePlatform || commerceSignal);
+  if (!commercePlatform && isCommerce) commercePlatform = "Custom / niet bevestigd";
+  const confidence = strongest >= 3 ? 97 : strongest === 2 ? 90 : strongest === 1 ? 72 : isCommerce ? 55 : 40;
+  const confidenceLabel = confidence >= 90 ? "high" : confidence >= 70 ? "medium" : "low";
+
+  return {
+    cms,
+    commercePlatform,
+    framework,
+    isCommerce,
+    confidence,
+    confidenceLabel,
+    evidence: [...new Set(evidence)].slice(0, 8),
+  };
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -1162,6 +1260,7 @@ export async function POST(request: Request) {
       confidence: isHomepage ? "high" : isProductPage && (hasProductSchema || hasSkuSignal) ? "high" : isProductPage ? "medium" : hasItemListSignal || hasArticleSignal || hasLocalBusinessSignal ? "medium" : "low",
       evidence: [isHomepage ? `localized/root path: ${pathname}` : "", hasProductSchema ? "Product schema present" : "", hasItemListSignal ? "ItemList schema present" : "", hasSkuSignal ? "SKU signal present" : "", hasStrongCommerceAction ? "commerce action present" : ""].filter(Boolean),
     };
+    const technologyProfile = detectTechnologyProfile(html, response.headers, Boolean(hasProductSchema || hasProductSignal || hasStrongCommerceAction || /add-to-cart|shopping cart|winkelwagen|checkout|sku|price|availability/i.test(text)));
     const rendering = { mode: "raw_html" as const, javascriptExecuted: false, note: "RankFix beoordeelde de HTTP HTML-response; client-side JavaScript is in deze scan niet uitgevoerd." };
 
     let user = null;
@@ -1195,7 +1294,7 @@ export async function POST(request: Request) {
           "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id",
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
-            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, summary: scanSummary, rendering, pageTypeEvidence,
+            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, summary: scanSummary, rendering, pageTypeEvidence, technologyProfile,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -1283,6 +1382,7 @@ export async function POST(request: Request) {
       summary: scanSummary,
       rendering,
       pageTypeEvidence,
+      technologyProfile,
       adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
       seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
       geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
