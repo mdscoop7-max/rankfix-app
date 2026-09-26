@@ -380,13 +380,19 @@ export async function POST(request: Request) {
     const requestedLanguages = adsProfile.adLanguages.split(/[,;]/).map((value) => value.trim().toLowerCase()).filter(Boolean).slice(0, 6);
     const requestedCountries = adsProfile.targetCountries.split(/[,;]/).map((value) => value.trim()).filter(Boolean).slice(0, 8);
     const pageLanguage = (requestedLanguages[0] || lang || "").toLowerCase().split("-")[0].trim();
-    const siteName = (() => {
-      const ogSiteName = html.match(/<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']+)["']/i)?.[1]
-        || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:site_name["']/i)?.[1];
-      if (ogSiteName) return stripHtml(ogSiteName).trim();
-      const titleBrand = title.split(/\s+[|–—-]\s+/)[0]?.trim() || "";
-      return titleBrand.length <= 60 ? titleBrand : "";
-    })();
+    const ogSiteName = html.match(/<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']+)["']/i)?.[1]
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:site_name["']/i)?.[1]
+      || "";
+    const localBusinessObjects = schemaObjects.filter((item) => {
+      const types = Array.isArray(item?.["@type"]) ? item["@type"] : [item?.["@type"]];
+      return types.some((type: unknown) => {
+        const normalized = String(type || "").toLowerCase();
+        return normalized === "localbusiness" || normalized.endsWith("store") || normalized === "restaurant";
+      });
+    });
+    const hasTrustedLocalEvidence = localBusinessObjects.some((item) =>
+      Boolean(item?.address && (item?.telephone || item?.geo || item?.areaServed))
+    );
     const adsKeywordIntelligence = buildAdsKeywordIntelligence({
       pageUrl: finalUrl.toString(),
       pageLanguage: (lang || "").toLowerCase().trim(),
@@ -398,7 +404,10 @@ export async function POST(request: Request) {
       primaryOffer: adsProfile.primaryOffer,
       excludeIntent: adsProfile.excludeIntent,
       productNames: productOfferEvidence.map((product) => product.name).filter(Boolean),
-      siteName,
+      organizationName: organizationSchemaName,
+      siteName: stripHtml(ogSiteName).trim(),
+      hasLocalBusinessSchema: hasLocalBusinessSignal,
+      hasTrustedLocalEvidence,
     });
     const goal = adsKeywordIntelligence.campaignGoal || "";
 
@@ -1075,8 +1084,8 @@ export async function POST(request: Request) {
     const seoMax = seoChecks.reduce((sum, c) => sum + (c.issue_status === "NOT_APPLICABLE" || c.issue_status === "UNABLE_TO_CONFIRM" ? 0 : c.maxPoints), 0);
     const geoTotal = geoChecks.reduce((sum, c) => sum + (c.issue_status === "NOT_APPLICABLE" || c.issue_status === "UNABLE_TO_CONFIRM" ? 0 : c.points), 0);
     const geoMax = geoChecks.reduce((sum, c) => sum + (c.issue_status === "NOT_APPLICABLE" || c.issue_status === "UNABLE_TO_CONFIRM" ? 0 : c.maxPoints), 0);
-    const seoScore = Math.round((seoTotal / seoMax) * 100);
-    const geoScore = Math.round((geoTotal / geoMax) * 100);
+    const seoScore = seoMax ? Math.round((seoTotal / seoMax) * 100) : 0;
+    const geoScore = geoMax ? Math.round((geoTotal / geoMax) * 100) : 0;
     const overallScore = Math.round(seoScore * 0.6 + geoScore * 0.4);
     const selectedSeoChecks = mode === "geo" ? [] : seoChecks;
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
