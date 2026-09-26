@@ -506,23 +506,22 @@ export async function POST(request: Request) {
     const applicableRobotsGroups = robotsGroups.filter((group) => group.agents.includes("*") || group.agents.some((agent) => /rankfixbot|googlebot/.test(agent)));
     const robotsRuleMatches = (rulePath: string, candidatePath: string) => {
       if (!rulePath) return false;
-      // Google-style robots patterns: * is a wildcard and $ anchors the end.
-      // Escape every regex character first, then restore the robots wildcards.
       const anchored = rulePath.endsWith("$");
-      const source = (anchored ? rulePath.slice(0, -1) : rulePath)
-        .replace(/[.+?^{}()|[\]\\]/g, "\\    const matchingRobotsRules = applicableRobotsGroups
-      .flatMap((group) => group.rules)
-      .filter((rule) => rule.path && robotsPath.startsWith(rule.path.replace(/\*.*$/, "")))
-      .sort((a, b) => b.path.length - a.path.length);
-    const robotsPathBlocked = robotsStatus === "PASS" && matchingRobotsRules.length > 0 && matchingRobotsRules[0].kind === "disallow";")
-        .replace(/\*/g, ".*");
-      try { return new RegExp("^" + source + (anchored ? "$" : "")).test(candidatePath); }
-      catch { return false; }
+      const rawPattern = anchored ? rulePath.slice(0, -1) : rulePath;
+      // Escape regex metacharacters except the robots wildcard, then expand *.
+      const escapedPattern = rawPattern
+        .split("*")
+        .map((part) => part.replace(/[.+?^{}()|[\]\\]/g, "\\$&"))
+        .join(".*");
+      try {
+        return new RegExp("^" + escapedPattern + (anchored ? "$" : "")).test(candidatePath);
+      } catch {
+        return false;
+      }
     };
     const matchingRobotsRules = applicableRobotsGroups
       .flatMap((group) => group.rules)
       .filter((rule) => robotsRuleMatches(rule.path, robotsPath))
-      // Longest matching rule wins; Allow wins when specificity is equal.
       .sort((a, b) => b.path.length - a.path.length || (a.kind === "allow" ? -1 : 1));
     const robotsPathBlocked = robotsStatus === "PASS" && matchingRobotsRules.length > 0 && matchingRobotsRules[0].kind === "disallow";
     const sitemapCandidates = [...new Set([...robotsDeclaredSitemapUrls, sitemapUrl.toString()])].slice(0, 20);
