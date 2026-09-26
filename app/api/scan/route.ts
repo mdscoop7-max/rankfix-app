@@ -651,6 +651,9 @@ export async function POST(request: Request) {
     const invalidHreflangEntries = hreflangEntries.filter((entry) => !entry.validLanguage || !entry.validHref);
     const duplicateHreflangLanguages = [...new Set(hreflangValues.filter((value, index) => hreflangValues.indexOf(value) !== index))];
     const languageSelectorSignal = /(?:language|taal|sprache|idioma|lingua|français|deutsch|italiano|español|english|nederlands)\b/i.test(text) && /(?:select|dropdown|menu|switch|\bEN\b|\bNL\b|\bDE\b|\bFR\b|\bES\b|\bIT\b)/i.test(text);
+    // A language/country selector alone does not prove equivalent translated URLs exist.
+    // Only explicit hreflang markup is strong enough in a single raw-HTML page scan.
+    const multilingualUrlEvidence = hasHreflang;
     const organizationSchemaPresent = schemaSet.has("organization");
     const websiteSchemaPresent = schemaSet.has("website");
     const productSchemaPresent = schemaSet.has("product");
@@ -791,8 +794,8 @@ export async function POST(request: Request) {
     seoChecks.push(imageElementCount === 0
       ? check("not_applicable", "alt", "seo", "Afbeelding alt-teksten", "Geen <img>-elementen gevonden in de opgehaalde HTML; deze controle telt daarom niet mee.", "Controleer dynamisch geladen afbeeldingen afzonderlijk wanneer die voor de pagina belangrijk zijn.", 0, 7)
       : imagesMissingAlt === 0
-      ? check("pass", "alt", "seo", "Afbeelding alt-teksten", `Alle ${imageElementCount} gevonden afbeeldingselementen hebben alt-attributen.`, "Schrijf beschrijvende alt-teksten voor informatieve afbeeldingen.", 7, 7)
-      : check("warning", "alt", "seo", "Afbeelding alt-teksten", `${imagesMissingAlt} van ${imageElementCount} gevonden afbeeldingselementen missen alt.`, "Voeg beschrijvende alt-teksten toe waar ze betekenis toevoegen.", 3, 7)
+      ? check("pass", "alt", "seo", "Afbeelding alt-teksten", `Alle ${imageElementCount} controleerbare <img>-elementen in de raw HTML hebben alt-attributen. JavaScript-geladen afbeeldingen zijn niet meegenomen.`, "Schrijf beschrijvende alt-teksten voor informatieve afbeeldingen.", 7, 7)
+      : check("warning", "alt", "seo", "Afbeelding alt-teksten", `${imagesMissingAlt} van ${imageElementCount} controleerbare <img>-elementen in de raw HTML missen alt. JavaScript-geladen afbeeldingen zijn niet meegenomen.`, "Voeg beschrijvende alt-teksten toe waar ze betekenis toevoegen.", 3, 7)
     );
     const contentContext = isHomepage ? "homepage" : isProductPage ? "productpagina" : hasItemListSignal ? "categorie-/lijstpagina" : hasArticleSignal ? "artikelpagina" : "contentpagina";
     const contentMinimumSignal = isHomepage ? 150 : isProductPage ? 80 : hasItemListSignal ? 120 : hasArticleSignal ? 300 : 200;
@@ -860,11 +863,11 @@ export async function POST(request: Request) {
         : check("warning", "twitter_card", "seo", "Twitter Card", "Geen twitter:card gevonden.", "Voeg twitter:card=summary_large_image toe voor gedeelde links.", 1, 3)
     );
 
-    seoChecks.push(!languageSelectorSignal
-      ? check("not_applicable", "hreflang", "seo", "Meertalige SEO", "Geen duidelijke meertalige pagina-indicatie gevonden; RankFix telt hreflang daarom niet mee in de score.", "Gebruik hreflang wanneer dezelfde content in meerdere talen/URL's beschikbaar is.", 0, 5)
-      : !hasHreflang
-        ? check("warning", "hreflang", "seo", "Meertalige SEO", "De pagina lijkt meerdere talen aan te bieden, maar er zijn geen hreflang-verwijzingen gevonden.", "Voeg voor elke taalversie en eventueel x-default correcte hreflang-links toe.", 2, 5)
-        : invalidHreflangEntries.length
+    seoChecks.push(!multilingualUrlEvidence
+      ? languageSelectorSignal
+        ? check("unable_to_confirm", "hreflang", "seo", "Meertalige SEO", "Een taal- of landkeuze is zichtbaar, maar deze paginascan bewijst niet dat equivalente vertaalde URL's bestaan. Hreflang wordt daarom niet als ontbrekende fout beoordeeld.", "Bevestig alternatieve taal-URL's in een sitebrede crawl voordat hreflang verplicht wordt gesteld.", 0, 5)
+        : check("not_applicable", "hreflang", "seo", "Meertalige SEO", "Geen bewezen alternatieve taal-URL's gevonden; RankFix telt hreflang daarom niet mee in de score.", "Gebruik hreflang wanneer dezelfde content aantoonbaar in meerdere talen/URL's beschikbaar is.", 0, 5)
+      : invalidHreflangEntries.length
           ? check("warning", "hreflang", "seo", "Meertalige SEO", `${hreflangTags.length} hreflang-link(s) gevonden, maar ${invalidHreflangEntries.length} bevat een ongeldige taal-/regiocode of URL.`, "Corrigeer ongeldige hreflang-codes en href-URL's. Controleer daarna wederkerigheid tussen taalversies.", 2, 5)
           : duplicateHreflangLanguages.length
             ? check("warning", "hreflang", "seo", "Meertalige SEO", `Geldige hreflang-links gevonden, maar dezelfde taalcode komt meerdere keren voor: ${duplicateHreflangLanguages.join(", ")}.`, "Gebruik per pagina een eenduidige doel-URL per taal/regiocode en controleer wederkerigheid.", 3, 5)
@@ -944,10 +947,10 @@ export async function POST(request: Request) {
         ? check("pass","webshop_claims","seo","Webshop-beloftes","Belangrijke webshopbeloftes worden ondersteund door zichtbare verzend- en retourinformatie.","Zorg dat beloofde levertijden, retourtermijnen en verzendvoorwaarden juridisch en praktisch kloppen.",5,5)
         : check("warning","webshop_claims","seo","Webshop-beloftes",`De pagina bevat claims zoals ${webshopClaimMatches.slice(0,3).join(", ")}, maar de bijbehorende voorwaarden zijn niet duidelijk gevonden.`,"Maak claims controleerbaar via duidelijke verzend-, retour- en voorwaardenpagina's.",2,5));
     seoChecks.push(hasEcommerceSignal
-      ? hasCheckoutTrustSignal
-        ? check("pass","checkout_trust","seo","Checkout- en betaalvertrouwen","Betaal-/checkoutsignalen zijn zichtbaar op deze pagina.","Houd betaalmogelijkheden en relevante veiligheidsinformatie duidelijk op aankoop- en checkoutpagina's.",5,5)
-        : isHomepage
-          ? check("unable_to_confirm","checkout_trust","seo","Checkout- en betaalvertrouwen","Deze homepage bevat webshop-signalen, maar afwezigheid van betaalinformatie op de homepage bewijst geen checkoutprobleem.","Controleer de echte winkelwagen- en checkoutflow voordat je dit als probleem beoordeelt.",0,5)
+      ? isHomepage
+        ? check("unable_to_confirm","checkout_trust","seo","Checkout- en betaalvertrouwen",hasCheckoutTrustSignal ? "Betaal-/checkoutsignalen zijn zichtbaar op de homepage, maar RankFix heeft de echte winkelwagen- en checkoutflow niet uitgevoerd." : "Deze homepage bevat webshop-signalen, maar afwezigheid van betaalinformatie op de homepage bewijst geen checkoutprobleem.","Controleer de echte winkelwagen- en checkoutflow voordat deze controle als volledig geslaagd wordt beoordeeld.",0,5)
+        : hasCheckoutTrustSignal
+          ? check("unable_to_confirm","checkout_trust","seo","Checkout- en betaalvertrouwen","Betaal-/checkoutsignalen zijn zichtbaar op deze pagina, maar een raw-HTML paginascan bewijst niet dat de checkoutflow functioneert.","Voer een gecontroleerde winkelwagen- en checkoutflow uit voordat deze controle als volledig geslaagd wordt beoordeeld.",0,5)
           : check("warning","checkout_trust","seo","Checkout- en betaalvertrouwen","Geen duidelijke betaal- of checkoutsignalen gevonden op deze commerciële pagina.","Toon betaalmogelijkheden en relevante veiligheids-/vertrouwensinformatie waar de bezoeker een aankoopbeslissing neemt.",2,5)
       : check("not_applicable","checkout_trust","seo","Checkout- en betaalvertrouwen","Geen webshop-signalen gevonden; checkoutcontrole is niet van toepassing.","Gebruik deze controle op echte webshopcontent.",0,5));
     const adsApplicableByCustomer = hasAdsProfile && Boolean(adsProfile.campaignGoal || adsProfile.primaryOffer || adsProfile.targetCountries || adsProfile.adLanguages);
