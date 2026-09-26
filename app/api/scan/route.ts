@@ -1149,17 +1149,24 @@ export async function POST(request: Request) {
       /<img[^>]+(?:class|id)\s*=\s*["'][^"']*(?:logo|brand)[^"']*["']/i.test(html) ||
       /<img[^>]+alt\s*=\s*["'][^"']*(?:logo|brand)[^"']*["']/i.test(html)
     );
-    const visibleBrandSignals = [
-      visibleBrandNameSignal,
-      visibleBrandLogoSignal,
-      hasBusinessContactDetails,
-      hasSocialOrReviewSignal,
-    ].filter(Boolean).length;
+    const visibleBrandSignalChecks = [
+      { label: "merknaam/branding", found: visibleBrandNameSignal },
+      { label: "logo", found: visibleBrandLogoSignal },
+      { label: "bedrijfs-/contactgegevens", found: hasBusinessContactDetails },
+      { label: "officieel social/review-profiel", found: hasSocialOrReviewSignal },
+    ];
+    const visibleBrandSignals = visibleBrandSignalChecks.filter((signal) => signal.found).length;
+    const foundBrandSignals = visibleBrandSignalChecks.filter((signal) => signal.found).map((signal) => signal.label);
+    const missingBrandSignals = visibleBrandSignalChecks.filter((signal) => !signal.found).map((signal) => signal.label);
+    const brandSignalDetail = `${visibleBrandSignals}/4 merksignalen gevonden. Gevonden: ${foundBrandSignals.length ? foundBrandSignals.join(", ") : "geen"}. Ontbrekend: ${missingBrandSignals.length ? missingBrandSignals.join(", ") : "geen"}.`;
+    const brandRecommendation = missingBrandSignals.length
+      ? `Maak de ontbrekende merksignalen duidelijk en consistent zichtbaar: ${missingBrandSignals.join(", ")}. Structured data wordt apart beoordeeld.`
+      : "Houd merknaam, logo, contactgegevens en officiële profielen consistent. Structured data wordt apart beoordeeld.";
     geoChecks.push(visibleBrandSignals >= 3
-      ? check("pass", "identity", "geo", "Brand identity", "Meerdere zichtbare merksignalen zijn consistent aanwezig: naam/branding, contactcontext en/of officiële externe profielen.", "Houd merknaam, logo, contactgegevens en officiële profielen consistent. Beoordeel machineleesbare Organization-data afzonderlijk via Structured data.", 5, 5)
+      ? check("pass", "identity", "geo", "Brand identity", brandSignalDetail, brandRecommendation, 5, 5)
       : visibleBrandSignals >= 1
-        ? check("warning", "identity", "geo", "Brand identity", "Er zijn zichtbare merksignalen gevonden, maar de merkidentiteit kan consistenter of vollediger worden bevestigd.", "Maak merknaam, logo, contactcontext en officiële profielen duidelijk en consistent. Structured data wordt apart beoordeeld.", 3, 5)
-        : check("warning", "identity", "geo", "Brand identity", "Weinig expliciete zichtbare brand identity-signalen gevonden.", "Maak merknaam, logo en officiële contact-/profielsignalen zichtbaar en consistent. Structured data wordt apart beoordeeld.", 2, 5)
+        ? check("warning", "identity", "geo", "Brand identity", brandSignalDetail, brandRecommendation, 3, 5)
+        : check("warning", "identity", "geo", "Brand identity", brandSignalDetail, brandRecommendation, 2, 5)
     );
 
     const ruleMap: Record<string, { rule_id: string; severity: Check["severity"] }> = {
