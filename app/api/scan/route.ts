@@ -215,30 +215,34 @@ export async function POST(request: Request) {
 
     const jsonLdBlocks = allMatches(html, /<script[^>]+type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
     const schemaTypes: string[] = [];
+    const schemaObjects: any[] = [];
     let validJsonLd = 0;
+    const collectSchemaObjects = (value: unknown, seen = new Set<object>()) => {
+      if (!value || typeof value !== "object") return;
+      const objectValue = value as Record<string, unknown>;
+      if (seen.has(objectValue)) return;
+      seen.add(objectValue);
+      schemaObjects.push(objectValue);
+      const rawTypes = objectValue["@type"];
+      if (rawTypes) {
+        const types = Array.isArray(rawTypes) ? rawTypes : [rawTypes];
+        schemaTypes.push(...types.filter((type) => typeof type === "string").map(String));
+      }
+      for (const nested of Object.values(objectValue)) {
+        if (Array.isArray(nested)) nested.forEach((item) => collectSchemaObjects(item, seen));
+        else if (nested && typeof nested === "object") collectSchemaObjects(nested, seen);
+      }
+    };
     for (const raw of jsonLdBlocks) {
       try {
         const parsed = JSON.parse(raw);
         validJsonLd++;
-        const items = Array.isArray(parsed) ? parsed : parsed?.["@graph"] || [parsed];
-        for (const item of items) {
-          if (item?.["@type"]) {
-            const types = Array.isArray(item["@type"]) ? item["@type"] : [item["@type"]];
-            schemaTypes.push(...types.map(String));
-          }
-        }
+        if (Array.isArray(parsed)) parsed.forEach((item) => collectSchemaObjects(item));
+        else collectSchemaObjects(parsed);
       } catch {}
     }
     const schemaSet = new Set(schemaTypes.map((v) => v.toLowerCase()));
     const hasEntitySchema = ["organization", "localbusiness", "person", "product", "article", "website"].some((t) => schemaSet.has(t));
-    const schemaObjects: any[] = [];
-    for (const raw of jsonLdBlocks) {
-      try {
-        const parsed = JSON.parse(raw);
-        const items = Array.isArray(parsed) ? parsed : parsed?.["@graph"] || [parsed];
-        schemaObjects.push(...items.filter(Boolean));
-      } catch {}
-    }
     const organizationObjects = schemaObjects.filter((item) => {
       const types = Array.isArray(item?.["@type"]) ? item["@type"] : [item?.["@type"]];
       return types.some((type: unknown) => String(type || "").toLowerCase() === "organization");
@@ -271,19 +275,48 @@ export async function POST(request: Request) {
     });
     const productOfferEvidence = productSchemaObjects.map((product) => {
       const offers = Array.isArray(product?.offers) ? product.offers : product?.offers ? [product.offers] : [];
+      const normalizedOffers = offers.map((offer: any) => ({
+        type: Array.isArray(offer?.["@type"]) ? offer["@type"].map(String).join(",") : String(offer?.["@type"] || ""),
+        price: offer?.price ?? offer?.lowPrice ?? null,
+        highPrice: offer?.highPrice ?? null,
+        currency: typeof offer?.priceCurrency === "string" ? offer.priceCurrency.trim().toUpperCase() : "",
+        availability: typeof offer?.availability === "string" ? offer.availability.trim() : "",
+        shippingDetails: Boolean(offer?.shippingDetails),
+        returnPolicy: Boolean(offer?.hasMerchantReturnPolicy),
+      }));
       return {
         name: typeof product?.name === "string" ? product.name.trim() : "",
         hasImage: Boolean(product?.image),
-        offers: offers.map((offer: any) => ({
-          price: offer?.price ?? offer?.lowPrice ?? null,
-          currency: typeof offer?.priceCurrency === "string" ? offer.priceCurrency.trim() : "",
-          availability: typeof offer?.availability === "string" ? offer.availability.trim() : "",
-        })),
+        sku: typeof product?.sku === "string" ? product.sku.trim() : "",
+        offers: normalizedOffers,
       };
     });
+    const offerHasPrice = (offer: { price: unknown }) => {
+      if (offer.price === null || offer.price === undefined || offer.price === "") return false;
+      const numeric = typeof offer.price === "number" ? offer.price : Number(String(offer.price).replace(",", "."));
+      return Number.isFinite(numeric) && numeric >= 0;
+    };
+    const offerHasValidCurrency = (offer: { currency: string }) => /^[A-Z]{3}$/.test(offer.currency);
+    const offerHasAvailability = (offer: { availability: string }) => Boolean(offer.availability && /(?:InStock|OutOfStock|PreOrder|BackOrder|LimitedAvailability|SoldOut|OnlineOnly|InStoreOnly|Discontinued)/i.test(offer.availability));
     const hasCompleteProductOffer = productOfferEvidence.some((product) =>
-      Boolean(product.name && product.hasImage && product.offers.some((offer: { price: unknown; currency: string; availability: string }) => offer.price !== null && Boolean(offer.currency) && Boolean(offer.availability)))
+      Boolean(product.name && product.hasImage && product.offers.some((offer) => offerHasPrice(offer) && offerHasValidCurrency(offer) && offerHasAvailability(offer)))
     );
+    const hasStructuredShipping = schemaSet.has("offershippingdetails") || productOfferEvidence.some((product) => product.offers.some((offer) => offer.shippingDetails));
+    const hasStructuredReturns = schemaSet.has("merchantreturnpolicy") || productOfferEvidence.some((product) => product.offers.some((offer) => offer.returnPolicy));
+    const productOfferSummary = productOfferEvidence.map((product) => ({
+      name: product.name || null,
+      image: product.hasImage,
+      sku: product.sku || null,
+      offers: product.offers.map((offer) => ({
+        type: offer.type || null,
+        price: offer.price,
+        highPrice: offer.highPrice,
+        currency: offer.currency || null,
+        availability: offer.availability || null,
+        shippingDetails: offer.shippingDetails,
+        returnPolicy: offer.returnPolicy,
+      })),
+    }));
     const hasAuthorSignal = /\b(author|auteur|geschreven door|written by|byline)\b/i.test(text) || schemaSet.has("person");
 
     const hasFaqContent = /\b(faq|veelgestelde vragen|frequently asked questions|questions fréquentes|häufig gestellte fragen)\b/i.test(text) ||
@@ -445,8 +478,8 @@ export async function POST(request: Request) {
     const hasConversionSignal = uniqueConversionEventNames.some((name: string) =>
       /^(purchase|generate_lead|sign_up|conversion|begin_checkout|add_to_cart)$/.test(name)
     );
-    const hasShippingSignal = /verzendkosten|verzending|levering|shipping|delivery|bezorging|ophalen|afhalen/i.test(text);
-    const hasReturnsSignal = /retour|herroepingsrecht|14\s*dagen|bedenktijd|return policy|refund/i.test(text);
+    const hasShippingSignal = hasStructuredShipping || /verzendkosten|verzending|levering|shipping|delivery|bezorging|ophalen|afhalen/i.test(text);
+    const hasReturnsSignal = hasStructuredReturns || /retour|herroepingsrecht|14\s*dagen|bedenktijd|return policy|refund/i.test(text);
     const hasReviewPlatformSignal = /trustpilot|kiyoh|google reviews|reviews?\.io/i.test(text);
     const hasCheckoutTrustSignal = /checkout|afrekenen|ideal|iDEAL|visa|mastercard|bancontact|klarna|mollie|pay\s*pal|secure payment|veilig betalen/i.test(text);
     const ecommerceVariantUrlSignal = hasProductSignal && /[?&](variant|sku|color|colour|size|maat)=/i.test(finalUrl.search);
@@ -783,7 +816,11 @@ export async function POST(request: Request) {
         indexability: noindexSignal ? [robots, xRobotsTag].filter(Boolean).join(" | ") : "no noindex signal found",
         hreflang: hreflangValues.length ? hreflangValues.join(", ") : null,
         social: [ogTitle ? "og:title" : "", ogDescription ? "og:description" : "", ogImage ? "og:image" : ""].filter(Boolean).join(", ") || null,
-        product_schema: hasProductSchema ? (hasCompleteProductOffer ? "Product + complete Offer evidence" : "Product schema present; offer evidence incomplete") : null,
+        product_schema: hasProductSchema ? JSON.stringify(productOfferSummary.slice(0, 3)) : null,
+        webshop_trust: hasProductSignal ? `shipping=${hasShippingSignal}; returns=${hasReturnsSignal}; reviewPlatform=${hasReviewPlatformSignal}; checkoutSignal=${hasCheckoutTrustSignal}` : null,
+        webshop_claims: hasWebshopClaims ? webshopClaimMatches.slice(0, 3).join(", ") : null,
+        variant_url: ecommerceVariantUrlSignal ? finalUrl.search : null,
+        checkout_trust: hasCheckoutTrustSignal ? "checkout/payment signal found in static page content" : null,
       };
       const heuristicKeys = new Set([
         "content", "headings", "duplicate_path", "html_escape", "image_sources", "webshop_claims",
