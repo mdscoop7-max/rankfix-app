@@ -571,16 +571,21 @@ export async function POST(request: Request) {
     const organizationSchemaPresent = schemaSet.has("organization");
     const websiteSchemaPresent = schemaSet.has("website");
     const productSchemaPresent = schemaSet.has("product");
-    const adsTrackingSignals = [
-      /googletagmanager\.com\/gtm\.js/i.test(html),
-      /gtag\s*\(|googletag\s*\(/i.test(html),
-      /google[-_ ]?analytics|\bG-[A-Z0-9]{6,}\b/i.test(html),
-      /google_adservices|googleads\.g\.doubleclick|\bAW-[0-9-]+\b/i.test(html),
-    ].filter(Boolean).length;
     const ga4MeasurementIds = [...new Set(html.match(/\bG-[A-Z0-9]{6,}\b/gi) || [])];
     const googleAdsIds = [...new Set(html.match(/\bAW-[0-9-]+\b/gi) || [])];
-    const hasGa4 = ga4MeasurementIds.length > 0 || /google[-_ ]?analytics/i.test(html);
-    const hasGoogleAdsTag = googleAdsIds.length > 0 || /google_adservices|googleads\.g\.doubleclick/i.test(html);
+    const gtmContainerIds = [...new Set(html.match(/\bGTM-[A-Z0-9]{4,}\b/gi) || [])];
+    const hasGtagLoader = /googletagmanager\.com\/gtag\/js/i.test(html);
+    const hasGtmLoader = /googletagmanager\.com\/gtm\.js/i.test(html);
+    const configuredGa4Ids = [...new Set(
+      [...html.matchAll(/gtag\s*\(\s*["']config["']\s*,\s*["'](G-[A-Z0-9]{6,})["']/gi)].map((match) => match[1].toUpperCase())
+    )];
+    const configuredAdsIds = [...new Set(
+      [...html.matchAll(/gtag\s*\(\s*["']config["']\s*,\s*["'](AW-[0-9-]+)["']/gi)].map((match) => match[1].toUpperCase())
+    )];
+    const hasGa4 = ga4MeasurementIds.length > 0 && (hasGtagLoader || configuredGa4Ids.length > 0 || hasGtmLoader);
+    const hasGoogleAdsTag = googleAdsIds.length > 0 && (hasGtagLoader || configuredAdsIds.length > 0 || hasGtmLoader);
+    const hasGtm = gtmContainerIds.length > 0 && hasGtmLoader;
+    const adsTrackingSignals = [hasGa4, hasGoogleAdsTag, hasGtm].filter(Boolean).length;
     // Only explicit analytics calls or dataLayer.push objects count as event evidence.
     // Marketing copy and arbitrary object literals must never become tracking proof.
     const conversionEventNames: string[] = [];
@@ -858,7 +863,7 @@ export async function POST(request: Request) {
       hasGoogleAdsTag && hasGa4 && (hasConversionSignal || hasExplicitAdsConversionSnippet)
         ? check("unable_to_confirm","ads_readiness","seo","Google Ads readiness",`Google Ads-tag${googleAdsIds.length ? ` (${googleAdsIds.join(", ")})` : ""}, GA4${ga4MeasurementIds.length ? ` (${ga4MeasurementIds.join(", ")})` : ""} en expliciete conversiecode zijn in de publieke bron gevonden. Events: ${uniqueConversionEventNames.slice(0,5).join(", ") || "geen naam gevonden"}; Ads send_to: ${googleAdsSendToLabels.length}; consent-signaal: ${hasConsentModeSignal ? "gevonden" : "niet aangetoond"}. Dit bewijst nog niet dat tags runtime afvuren of conversies door Google worden ontvangen.`,"Verifieer met Tag Assistant/Preview en controleer daarna ontvangen events en consentstatus in GA4/Google Ads.",0,6)
         : adsTrackingSignals > 0 || hasConversionSignal || hasExplicitAdsConversionSnippet
-          ? check("unable_to_confirm","ads_readiness","seo","Google Ads readiness",`Trackingcode is gedeeltelijk aangetroffen. Ads-ID's: ${googleAdsIds.length}; GA4-ID's: ${ga4MeasurementIds.length}; expliciete events: ${uniqueConversionEventNames.length}; Ads conversion labels: ${googleAdsSendToLabels.length}; consent-signaal: ${hasConsentModeSignal ? "gevonden" : "niet aangetoond"}.`,"Maak de meetketen compleet en verifieer Google tag, GA4, Ads-conversies en consent runtime.",0,6)
+          ? check("unable_to_confirm","ads_readiness","seo","Google Ads readiness",`Trackingcode is gedeeltelijk aangetroffen. Ads-ID's: ${googleAdsIds.length}; GA4-ID's: ${ga4MeasurementIds.length}; GTM-containers: ${gtmContainerIds.length}; expliciete events: ${uniqueConversionEventNames.length}; Ads conversion labels: ${googleAdsSendToLabels.length}; consent-signaal: ${hasConsentModeSignal ? "gevonden" : "niet aangetoond"}.`,"Maak de meetketen compleet en verifieer Google tag, GA4, Ads-conversies en consent runtime.",0,6)
           : check("not_applicable","ads_readiness","seo","Google Ads readiness","Geen publieke Google Ads/GA4-signalen gevonden. Dat bewijst niet dat tracking ontbreekt of dat deze site Google Ads gebruikt.","Beoordeel Ads readiness alleen wanneer advertentietracking voor deze site daadwerkelijk van toepassing is.",0,6));
     geoChecks.push(isHomepage
       ? organizationSchemaPresent && websiteSchemaPresent
