@@ -549,16 +549,16 @@ export async function POST(request: Request) {
       ? identityLocalSchema || localSchemaCandidates.find((candidate) => candidate.pattern.test(localClassificationText))?.type || "LocalBusiness"
       : null;
     const hasRelevantLocalSchema = schemaSet.has("localbusiness") || (specificLocalSchema ? schemaSet.has(specificLocalSchema.toLowerCase()) : false);
-    const recommendedSchema = hasLocalBusinessSignal ? specificLocalSchema || "LocalBusiness" : isHomepage ? "Organization + WebSite" : isProductPage ? "Product" : hasArticleSignal ? "Article" : hasItemListSignal ? "ItemList" : "WebPage";
-    const schemaContextLabel = hasLocalBusinessSignal ? "lokale bedrijfs-/dienstpagina" : isHomepage ? "homepage" : isProductPage ? "productpagina" : hasArticleSignal ? "artikel-/nieuwspagina" : hasItemListSignal ? "lijst-/categoriepagina" : "contentpagina";
+    const recommendedSchema = hasLocalBusinessSignal ? specificLocalSchema || "LocalBusiness" : isHomepage ? "Organization + WebSite" : isProductPage ? "Product" : hasCategorySignal ? "ItemList / CollectionPage" : hasArticleSignal ? "Article" : "WebPage";
+    const schemaContextLabel = hasLocalBusinessSignal ? "lokale bedrijfs-/dienstpagina" : isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "lijst-/categoriepagina" : hasArticleSignal ? "artikel-/nieuwspagina" : "contentpagina";
     const hasRelevantContextSchema = hasLocalBusinessSignal
       ? hasRelevantLocalSchema
       : isProductPage
         ? hasProductSchema
-        : hasArticleSignal
-          ? schemaSet.has("article") || schemaSet.has("newsarticle") || schemaSet.has("blogposting")
-          : hasItemListSignal
-            ? schemaSet.has("itemlist") || schemaSet.has("collectionpage")
+        : hasCategorySignal
+          ? schemaSet.has("itemlist") || schemaSet.has("collectionpage")
+          : hasArticleSignal
+            ? schemaSet.has("article") || schemaSet.has("newsarticle") || schemaSet.has("blogposting")
             : isHomepage
               ? schemaSet.has("organization") || schemaSet.has("website")
               : schemaSet.has("webpage") || schemaSet.has("article") || schemaSet.has("organization") || schemaSet.has("website");
@@ -1104,7 +1104,7 @@ export async function POST(request: Request) {
       ? check("pass", "faq", "geo", "Vraag & antwoord content", "FAQ/Q&A-signalen zijn op de pagina gevonden.", "Beantwoord echte klantvragen kort, concreet en zonder marketingtaal.", 10, 10)
       : check("not_applicable", "faq", "geo", "Vraag & antwoord content", "Geen duidelijke FAQ/Q&A-sectie gevonden. Een FAQ is niet verplicht voor iedere pagina en wordt daarom niet als GEO-fout bestraft.", "Voeg alleen relevante vragen en directe antwoorden toe wanneer dit de gebruiker inhoudelijk helpt.", 0, 10)
     );
-    const ecommerceExpertiseSignal = hasProductSignal && (
+    const ecommerceExpertiseSignal = hasEcommerceSignal && (
       hasOrganizationIdentity ||
       schemaSet.has("brand") ||
       organizationName ||
