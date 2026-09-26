@@ -951,6 +951,21 @@ export async function POST(request: Request) {
     if (selectedHasCriticalIssue) selectedOverallScore = Math.min(selectedOverallScore, 70);
     else if (selectedHasHighIssue) selectedOverallScore = Math.min(selectedOverallScore, 88);
     const checks = [...selectedSeoChecks, ...selectedGeoChecks];
+    const coverageFor = (items: Check[]) => {
+      const relevant = items.filter((item) => item.issue_status !== "NOT_APPLICABLE");
+      const confirmed = relevant.filter((item) => item.issue_status !== "UNABLE_TO_CONFIRM");
+      const highConfidence = confirmed.filter((item) => item.confidence === "high");
+      return {
+        relevant: relevant.length,
+        confirmed: confirmed.length,
+        unableToConfirm: relevant.length - confirmed.length,
+        coveragePercent: relevant.length ? Math.round((confirmed.length / relevant.length) * 100) : 100,
+        highConfidencePercent: confirmed.length ? Math.round((highConfidence.length / confirmed.length) * 100) : 100,
+      };
+    };
+    const seoCoverage = coverageFor(selectedSeoChecks);
+    const geoCoverage = coverageFor(selectedGeoChecks);
+    const overallCoverage = coverageFor(checks);
 
     let user = null;
     let pendingFixes = new Map<string, { status: string }>();
@@ -983,9 +998,9 @@ export async function POST(request: Request) {
           "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id",
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
-            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore),
-            seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), checks: selectedSeoChecks },
-            geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), checks: selectedGeoChecks },
+            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage,
+            seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
+            geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
             metrics: { siteType: (hasProductSchema || /add-to-cart|shopping cart|winkelwagen|checkout|sku|price|availability/i.test(text)) ? "ECOMMERCE" : "WEBSITE", title, titleLength: title.length, description, descriptionLength: description.length, h1Count: h1s.length, h1s,
               imageCount, imageElementCount, imagesMissingAlt, wordCount, headingsCount: headings.length, linksCount: links.length, pageType: schemaContextLabel, recommendedSchema, localBusinessDetails,
               internalLinks, canonical: canonical || null, lang: lang || null, robots: robots || null,
@@ -1065,8 +1080,9 @@ export async function POST(request: Request) {
       httpStatus: response.status,
       overallScore: selectedOverallScore,
       grade: grade(selectedOverallScore),
-      seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), checks: selectedSeoChecks },
-      geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), checks: selectedGeoChecks },
+      coverage: overallCoverage,
+      seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
+      geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
       metrics: {
         title,
         titleLength: title.length,
