@@ -457,7 +457,7 @@ export default function Home() {
     const key = item.issue_id || item.key;
     return (item.status === "fail" || item.status === "warning") && item.fix_status !== "WAITING" && !githubResults[key];
   }), [summaryChecks, githubResults]);
-  const passedCount = summaryChecks.filter((item) => item.status === "pass").length;
+  const passedCount = result?.summary?.passed ?? summaryChecks.filter((item) => item.status === "pass").length;
   const preparedCount = summaryChecks.filter((item) => {
     const key = item.issue_id || item.key;
     return item.fix_status === "WAITING" || Boolean(githubResults[key]);
