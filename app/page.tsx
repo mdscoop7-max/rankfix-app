@@ -37,7 +37,7 @@ type ScanResult = {
   summary?: {passed:number;issues:number;notApplicable:number;unableToConfirm:number;pendingFixes:number};
   rendering?: {mode:string;javascriptExecuted:boolean;note:string};
   pageTypeEvidence?: {type:string;confidence:string;evidence:string[]};
-  technologyProfile?: {cms:string|null;commercePlatform:string|null;framework:string|null;isCommerce:boolean;confidence:number;confidenceLabel:"high"|"medium"|"low";evidence:string[]};
+  technologyProfile?: {siteType?:"Webshop"|"Landingpage"|"Website";cms:string|null;commercePlatform:string|null;framework:string|null;isCommerce:boolean;confidence:number;confidenceLabel:"high"|"medium"|"low";evidence:string[]};
   seo: { score: number; grade: string; checks: Check[] };
   geo: { score: number; grade: string; checks: Check[] };
   metrics: {
