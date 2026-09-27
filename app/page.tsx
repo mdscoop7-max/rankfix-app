@@ -195,6 +195,17 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
+    const openContactFromHash = () => {
+      if (window.location.hash === "#contact") {
+        setContactOpen(true);
+      }
+    };
+    openContactFromHash();
+    window.addEventListener("hashchange", openContactFromHash);
+    return () => window.removeEventListener("hashchange", openContactFromHash);
+  }, []);
+
+  useEffect(() => {
     let active = true;
     fetch("/api/auth/me", { cache: "no-store" })
       .then((response) => response.json())
