@@ -36,7 +36,7 @@ export default function RootMobileNav({ locale = "nl" }: { locale?: string }) {
  }));
  const items=[...localizedBase,signedIn
    ? {href:"/dashboard/more",label:tx[5],icon:helpIcon}
-   : {href:"/"+locale+"#footer",label:tx[6],icon:helpIcon}
+   : {href:"/"+locale+"#contact",label:tx[6],icon:helpIcon}
  ];
  const activeIndex=(()=>{
    const [pathname,hash=""]=locationKey.split("#");
