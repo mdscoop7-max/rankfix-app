@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import DashboardNav from "../nav";
 import AiAssistant from "@/components/ai-assistant";
 import "../dashboard.css";
@@ -10,6 +11,7 @@ type ValidationResult={valid?:boolean;errors?:string[];warnings?:string[]};
 type FixPreview={startLine:number;before:string[];after:string[];truncated?:boolean;changedLines?:number;summary?:string};
 
 export default function GithubPage(){
+  const searchParams=useSearchParams();
   const [connected,setConnected]=useState(false);
   const [login,setLogin]=useState("");
   const [repos,setRepos]=useState<Repo[]>([]);
@@ -30,7 +32,7 @@ export default function GithubPage(){
   const [preview,setPreview]=useState<FixPreview|null>(null);
 
   useEffect(()=>{
-    const params=new URLSearchParams(location.search);
+    const params=new URLSearchParams(searchParams.toString());
     setIssue(params.get("issue")||"");
     setContext(params.get("context")||"");
     const incomingScanId=params.get("scan_id")||""; setScanId(incomingScanId); setIssueId(params.get("issue_id")||"");
@@ -55,7 +57,7 @@ export default function GithubPage(){
         setError(d.error || "GitHub kan niet worden geverifieerd. Verbind GitHub opnieuw.");
       }
     })();
-  },[]);
+  },[searchParams]);
 
   async function createFix(e:React.FormEvent){
     const publish=preview!==null;
