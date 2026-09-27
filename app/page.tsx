@@ -658,6 +658,15 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
             </div>
           ))}
         </div>
+
+        <div className="mx-auto mt-10 max-w-5xl overflow-hidden rounded-[28px] border border-slate-200 bg-[#0B1830] p-2 shadow-2xl shadow-blue-950/30">
+          <img
+            src="/opengraph-image"
+            alt="RankFix AI SEO en GEO dashboard preview"
+            className="block h-auto w-full rounded-[22px]"
+            loading="eager"
+          />
+        </div>
       </section>
 
       {scanning && (
