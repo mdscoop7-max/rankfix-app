@@ -1195,12 +1195,7 @@ export async function POST(request: Request) {
     // Brand identity is a visible-consistency check. Structured data quality is scored separately above,
     // so missing Organization JSON-LD must not create a second schema penalty here.
     const titleBrandCandidate = (title.split(/[|–—-]/)[0] || "").trim();
-    const escapedTitleBrand = titleBrandCandidate.replace(/[.*+?^{}()|[\]\\]/g, "\\const visibleBrandNameSignal = Boolean(
-      organizationName ||
-      firstMatch(html, /<meta[^>]+name\s*=\s*["']application-name["'][^>]+content\s*=\s*["']([^"']+)["']/i) ||
-      /<img[^>]+(?:class|id)\s*=\s*["'][^"']*(?:logo|brand)[^"']*["']/i.test(html) ||
-      /<img[^>]+alt\s*=\s*["'][^"']*(?:logo|brand)[^"']*["']/i.test(html)
-    );");
+    const escapedTitleBrand = titleBrandCandidate.replace(/[.*+?^{}()|[\]\\]/g, "\\$&");
     const visibleTitleBrandSignal = titleBrandCandidate.length >= 3 &&
       new RegExp(`\\b${escapedTitleBrand}\\b`, "i").test(text);
     const visibleBrandNameSignal = Boolean(
