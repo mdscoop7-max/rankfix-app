@@ -241,7 +241,6 @@ export async function POST(request:Request){
     const user=await getCurrentUser();
     if(!user) return NextResponse.json({error:"Login vereist."},{status:401});
     await ensureDatabase();
-    if(!await consumeRateLimit("github-fix",String(user.id),12,3600)) return NextResponse.json({error:"Te veel codefix-verzoeken. Probeer later opnieuw."},{status:429});
     const body=await request.json();
     const requestedRepo=typeof body?.repo==="string"?body.repo.trim():"";
     const requestedPath=typeof body?.path==="string"?body.path.trim():"";
@@ -251,6 +250,11 @@ export async function POST(request:Request){
     const scanId=typeof body?.scan_id==="string"?body.scan_id.trim():"";
     const baseBranch=typeof body?.baseBranch==="string"&&/^[A-Za-z0-9._/-]{1,120}$/.test(body.baseBranch)?body.baseBranch:"main";
     const previewOnly=body?.preview===true;
+    // Preview is read-only: it must not consume the PR/code-write rate limit.
+    // Only a confirmed publish request can create a branch/commit/PR.
+    if(!previewOnly && !await consumeRateLimit("github-fix",String(user.id),12,3600)){
+      return NextResponse.json({error:"Te veel codefix-publicaties. Probeer later opnieuw."},{status:429});
+    }
     if((requestedRepo&&!safeRepo(requestedRepo))||(requestedPath&&!safeFixTarget(requestedPath))||!issueId||!scanId) return NextResponse.json({error:"Ongeldige fixgegevens: scan_id en issue_id zijn verplicht."},{status:400});
     const fixPolicy=getFixPolicy(issueId);
     if(fixPolicy.category==="C"||!fixPolicy.safe_type){
