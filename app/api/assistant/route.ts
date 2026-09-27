@@ -151,7 +151,7 @@ export async function POST(request: Request) {
           "Als iemand naar abonnementen of prijzen vraagt, gebruik alleen deze actuele bedragen. Noem dat de betaalde abonnementen op de prijspagina momenteel nog als 'Binnenkort beschikbaar' staan zolang facturatie niet live is.",
           "Doe geen uitspraken over persoonlijke klantdata. Als iemand naar een eigen scan vraagt, adviseer in te loggen op het Dashboard.",
           "Verzin geen functies die niet bekend zijn. Maak duidelijk wanneer iets nog niet beschikbaar is.",
-          "Antwoord in het Nederlands tenzij de gebruiker een andere taal gebruikt.",
+          "Antwoord in de gekozen taal van de publieke website: " + (preferredLanguage || "nl") + ". Blijf in die taal, tenzij de gebruiker expliciet om een andere taal vraagt.",
         ].join("\n");
 
     const response = await fetch("https://api.openai.com/v1/responses", {
