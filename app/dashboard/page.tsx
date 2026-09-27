@@ -117,7 +117,7 @@ export default function Dashboard() {
         </section>
         <section className="rf-section">
           <div className="rf-section-head"><div><h2>{x.recent}</h2><p>{x.recentIntro}</p></div><a href="/dashboard/history">{x.history} →</a></div>
-          <div className="rf-history-list">{recentHistory.map((scan,index)=><a key={scan.id} href={`/dashboard/audit/${scan.id}`}><div><b>{(()=>{try{return new URL(scan.scanned_url).hostname}catch{return scan.scanned_url}})()}</b><span>{new Date(scan.created_at).toLocaleString(language)} · SEO {scan.seo_score} · GEO {scan.geo_score} · {scan.open_issues} verbeterpunten</span></div><strong>{scan.overall_score}</strong>{index===0&&<em>Nieuwste</em>}</a>)}</div>
+          <div className="rf-history-list">{recentHistory.map((scan,index)=><a key={scan.id} href={`/dashboard/audit/${scan.id}`}><div><b>{(()=>{try{return new URL(scan.scanned_url).hostname}catch{return scan.scanned_url}})()}</b><span>{new Date(scan.created_at).toLocaleString(language)} · SEO {scan.seo_score === 0 && scan.overall_score === 100 ? "—" : scan.seo_score} · GEO {scan.geo_score === 0 && scan.overall_score === 100 ? "—" : scan.geo_score} · {scan.open_issues} verbeterpunten</span></div><strong>{scan.overall_score}</strong>{index===0&&<em>Nieuwste</em>}</a>)}</div>
         </section>
         <section id="websites" className="rf-section">
           <div className="rf-section-head"><h2>{t.websites}</h2><span>{scans.length}</span></div>
