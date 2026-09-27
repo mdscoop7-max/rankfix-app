@@ -13,6 +13,7 @@ export async function POST(request: Request) {
     const dashboard = body?.dashboard === true;
     const scanId = typeof body?.scanId === "string" ? body.scanId.trim() : "";
     const requestedLanguage = typeof body?.language === "string" ? body.language.toLowerCase() : "";
+    const errorContext = typeof body?.errorContext === "string" ? body.errorContext.trim().slice(0, 2000) : "";
 
     if (!message) {
       return NextResponse.json({ error: "Stel eerst een vraag." }, { status: 400 });
@@ -130,6 +131,8 @@ export async function POST(request: Request) {
           "Klantcontext: " + (customerContext || "Geen ingelogde klantcontext beschikbaar."),
           "Geselecteerde scan: " + (selectedScanContext || "Geen specifieke scan geselecteerd."),
           "GitHub Fix Engine-context: " + (githubContext || "Geen GitHub-context beschikbaar."),
+          "Actuele dashboardfout/blokkade: " + (errorContext || "Geen actuele dashboardfout meegegeven."),
+          errorContext ? "Als er een actuele dashboardfout is meegegeven, behandel die letterlijk als de bekende oorzaak van deze interactie. Zeg niet dat de foutmelding ontbreekt en verzin geen andere blokkade." : "",
         ].join("\n")
       : [
           "Je bent RankFix AI, de publieke informatie-assistent van RankFix.",
