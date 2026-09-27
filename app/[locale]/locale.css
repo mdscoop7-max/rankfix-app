@@ -82,3 +82,19 @@
  .lc-header-actions{gap:6px}
 }
 @media(max-width:390px){.lc-auth-link{display:none}.lc-header-actions .lc-language{max-width:82px}}
+
+
+/* Mobile navigation polish: compact right drawer instead of a full-width menu */
+@media(max-width:850px){
+ .lc-mobile-menu[open]::before{content:"";position:fixed;inset:76px 0 0;background:rgba(1,8,18,.58);backdrop-filter:blur(2px);z-index:20;pointer-events:none}
+ .lc-mobile-menu[open] .lc-mobile-links{
+   position:fixed;top:76px;right:0;left:auto;width:min(86vw,360px);height:calc(100dvh - 76px);
+   align-content:start;gap:10px;padding:20px 16px calc(110px + env(safe-area-inset-bottom));
+   background:linear-gradient(180deg,#0b2038,#08182b);border:0;border-left:1px solid #285979;
+   box-shadow:-22px 0 54px rgba(0,7,18,.42);overflow-y:auto;z-index:23
+ }
+ .lc-mobile-links a{min-height:54px;padding:0 18px;border:1px solid transparent;background:#0d2743;color:#dbe9f7;font-weight:650}
+ .lc-mobile-links a:hover,.lc-mobile-links a:focus-visible{background:#103553;border-color:#315875;color:#fff}
+ .lc-mobile-links a:last-child{margin-top:6px;background:linear-gradient(135deg,#0c5949,#0c7560);border-color:#238a70;color:#baffdf}
+ .lc-mobile-menu[open] summary{border-color:#35dba1!important;box-shadow:0 0 0 3px rgba(53,219,161,.12)}
+}
