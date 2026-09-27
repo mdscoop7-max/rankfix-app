@@ -29,7 +29,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       lang={/^(nl|en|fr|es|it|de)$/.test(language) ? language : "nl"}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <h1>RankFix AI — SEO + GEO Audit</h1>
+        {children}
+      </body>
     </html>
   );
 }
