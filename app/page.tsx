@@ -525,9 +525,10 @@ export default function Home() {
           </div>
           <div className="ml-auto flex items-center gap-2 lg:hidden">
             <label className="sr-only" htmlFor="language-mobile-top">Taal</label>
-            <select id="language-mobile-top" value={language} onChange={(e) => { setLanguage(e.target.value as Language); }} className="h-11 max-w-[118px] rounded-xl border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-900 outline-none">
+            <select id="language-mobile-top" value={language} onChange={(e) => { setLanguage(e.target.value as Language); }} className="h-11 max-w-[96px] rounded-xl border border-slate-600 bg-[#102A46] px-2 text-xs font-semibold text-white outline-none">
               <option value="nl">🇳🇱 NL</option><option value="en">🇬🇧 EN</option><option value="fr">🇫🇷 FR</option><option value="de">🇩🇪 DE</option><option value="it">🇮🇹 IT</option><option value="es">🇪🇸 ES</option>
             </select>
+            {!authLoading && <a href={authUser?"/dashboard":"/account?mode=login"} className="flex h-11 items-center rounded-xl border border-slate-600 bg-[#102A46] px-3 text-xs font-bold text-slate-100">{authUser?"Dashboard":t.login}</a>}
           </div>
           <button type="button" aria-label={mobileMenuOpen ? "Menu sluiten" : "Menu openen"} aria-controls="rankfix-mobile-menu" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen((open) => !open)} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-200 lg:hidden">
             {mobileMenuOpen ? <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 5l14 14 M19 5L5 19" /></svg> : <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16 M4 12h16 M4 18h16" /></svg>}
