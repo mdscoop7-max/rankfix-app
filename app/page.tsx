@@ -562,23 +562,22 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
       <section id="scan" className="mx-auto max-w-6xl px-5 pb-16 pt-16 text-center lg:px-8 lg:pt-24">
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/5 px-4 py-2 text-xs font-semibold text-emerald-200">
           <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" />
-          SEO + GEO audit voor Google & AI Search
+          {t.badge}
         </div>
         <h1 className="mx-auto max-w-4xl text-4xl font-black tracking-[-0.04em] sm:text-6xl lg:text-7xl">
-          Vind wat je rankings blokkeert.
-          <span className="block bg-gradient-to-r from-emerald-500 via-violet-500 to-blue-500 bg-clip-text text-transparent">Fix het met RankFix.</span>
+          {t.hero}
+          <span className="block bg-gradient-to-r from-emerald-500 via-violet-500 to-blue-500 bg-clip-text text-transparent">{t.hero2}</span>
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
-          Eén snelle scan voor technische SEO, content, structured data en AI-search readiness.
-          Eerst inzicht. Daarna concrete fixes — met AI wanneer jij dat activeert.
+          {t.intro}
         </p>
 
         <div className="mx-auto mt-9 max-w-3xl rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-300/30 backdrop-blur">
           <div className="mb-3 grid grid-cols-3 gap-1.5 sm:gap-2">
             {[
-              ["seo", "SEO", "Google & organische vindbaarheid"],
-              ["geo", "GEO", "AI Search & generatieve vindbaarheid"],
-              ["both", "SEO + GEO", "Volledige analyse"],
+              ["seo", "SEO", t.seoDesc],
+              ["geo", "GEO", t.geoDesc],
+              ["both", "SEO + GEO", t.bothDesc],
             ].map(([value, label, description]) => (
               <button key={value} type="button" aria-pressed={auditMode === value} onClick={() => setAuditMode(value as "seo" | "geo" | "both")} className={`min-w-0 rounded-xl border px-2 py-3 text-center transition sm:px-4 sm:text-left ${auditMode === value ? "border-emerald-300/50 bg-emerald-300/10 text-slate-900 shadow-lg shadow-emerald-500/5" : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:text-violet-700"}`}>
                 <div className="flex items-center justify-center gap-1 text-xs font-bold sm:justify-start sm:text-sm"><span className={`h-2 w-2 shrink-0 rounded-full ${auditMode === value ? "bg-emerald-300" : "bg-slate-700"}`} />{label}</div>
