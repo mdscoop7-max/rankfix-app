@@ -868,7 +868,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                     <span className="rounded-full bg-amber-400/10 px-3 py-1 text-xs font-bold text-amber-200">{remainingCount > 0 ? "Volgende stap" : "Klaar"}</span>
                   </div>
                   <div className="mt-4 space-y-2">
-                    {issues.slice(0, 5).map((item) => (
+                    {issues.map((item) => (
                       <div key={item.issue_id || item.key} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-black/10 p-3">
                         <span className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg text-xs font-bold ${item.status === "warning" ? "bg-amber-400/10 text-amber-300" : "bg-red-400/10 text-red-300"}`}>{statusIcon[item.status]}</span>
                         <div className="min-w-0 flex-1">
@@ -997,8 +997,8 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
 
               <div className="rounded-3xl border border-emerald-400/10 bg-emerald-400/[0.04] p-5">
                 <div className="text-xs font-semibold uppercase tracking-widest text-emerald-300">AI action layer</div>
-                <div className="mt-1 text-lg font-black">{issues.length} {issues.length === 1 ? "fix" : "fixes"} beschikbaar</div>
-                <p className="mt-1 text-sm leading-5 text-slate-500">Bekijk het fixvoorstel en de eventuele GitHub-wijziging. Een voorstel wijzigt je live website niet; scan opnieuw na het publiceren om het resultaat te controleren.</p>
+                <div className="mt-1 text-lg font-black">{issues.length} {issues.length === 1 ? "verbeterpunt" : "verbeterpunten"} om te bekijken</div>
+                <p className="mt-1 text-sm leading-5 text-slate-500">Bekijk per verbeterpunt of RankFix een concreet fixvoorstel kan maken. Een voorstel wijzigt je live website niet; scan opnieuw na het publiceren om het resultaat te controleren.</p>
               </div>
             </div>
           </div>
