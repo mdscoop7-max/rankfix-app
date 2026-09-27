@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import DashboardNav from "../nav";
+import AiAssistant from "@/components/ai-assistant";
 import "../dashboard.css";
 
 type Repo={full_name:string;default_branch:string;private:boolean};
