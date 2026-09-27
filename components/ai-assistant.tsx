@@ -115,14 +115,14 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`fixed right-3 z-[110] rounded-full border border-emerald-300/30 bg-[#0F3B30]/95 px-3 py-2.5 text-xs font-bold text-emerald-100 shadow-xl shadow-emerald-950/25 backdrop-blur sm:right-5 sm:px-4 sm:py-3 sm:text-sm ${dashboard ? "bottom-[calc(92px+env(safe-area-inset-bottom))] sm:bottom-5" : "bottom-[calc(92px+env(safe-area-inset-bottom))] sm:bottom-5"}`}
+        className={`fixed right-3 z-[110] rounded-full border border-emerald-300/30 bg-[#0F3B30]/95 px-3 py-2.5 text-xs font-bold text-emerald-100 shadow-xl shadow-emerald-950/25 backdrop-blur sm:right-5 sm:px-4 sm:py-3 sm:text-sm ${dashboard ? "bottom-[calc(88px+env(safe-area-inset-bottom))] sm:bottom-5" : "bottom-[calc(92px+env(safe-area-inset-bottom))] sm:bottom-5"} ${open ? "pointer-events-none opacity-0" : "opacity-100"}`}
       >
         ✦ {tx.button}
       </button>
 
       {open && (
-        <div className={dashboard ? "pointer-events-none fixed inset-0 z-[120] flex items-end justify-end p-0 pb-[calc(82px+env(safe-area-inset-bottom))] sm:p-5" : "fixed inset-0 z-[120] flex items-end justify-end bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4"}>
-          <div className={`flex w-full max-w-md flex-col overflow-hidden border border-white/10 bg-[#101B2D] shadow-2xl ${dashboard ? "pointer-events-auto h-[min(680px,calc(100dvh-92px))] rounded-t-3xl sm:h-[min(680px,90vh)] sm:rounded-3xl" : "h-[min(680px,100dvh)] rounded-t-3xl sm:h-[min(680px,90vh)] sm:rounded-3xl"}`}>
+        <div className={dashboard ? "pointer-events-none fixed inset-0 z-[120] flex items-end justify-end p-3 pb-[calc(88px+env(safe-area-inset-bottom))] sm:p-5" : "fixed inset-0 z-[120] flex items-end justify-end bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4"}>
+          <div className={`flex w-full max-w-md flex-col overflow-hidden border border-white/10 bg-[#101B2D]/98 shadow-2xl backdrop-blur-xl ${dashboard ? "pointer-events-auto h-[min(480px,56dvh)] rounded-3xl sm:h-[min(680px,90vh)]" : "h-[min(680px,100dvh)] rounded-t-3xl sm:h-[min(680px,90vh)] sm:rounded-3xl"}`}>
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
               <div>
                 <div className="font-bold">RankFix AI</div>
