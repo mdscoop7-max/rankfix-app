@@ -1346,7 +1346,9 @@ export async function POST(request: Request) {
       confidence: isHomepage ? "high" : isProductPage && (hasProductSchema || hasSkuSignal) ? "high" : isProductPage ? "medium" : hasCategorySignal && (hasItemListSignal || repeatedProductCardSignal) ? "high" : effectiveLocalBusinessPage || hasCategorySignal || effectiveArticlePage ? "medium" : "low",
       evidence: [isHomepage ? `localized/root path: ${pathname}` : "", hasProductSchema ? "Product schema present" : "", hasItemListSignal ? "ItemList schema present" : "", genericCategoryPathSignal ? `generic commerce category path: ${pathname}` : "", repeatedProductCardSignal ? "repeated product-card commerce signals" : "", hasSkuSignal ? "SKU signal present" : "", hasStrongCommerceAction ? "commerce action present" : ""].filter(Boolean),
     };
-    const technologyProfile = detectTechnologyProfile(html, response.headers, Boolean(hasProductSchema || hasProductSignal || hasStrongCommerceAction || /add-to-cart|shopping cart|winkelwagen|checkout|sku|price|availability/i.test(text)));
+    // Keep the website profile aligned with the same evidence used by webshop-only audit checks.
+    // Generic words such as "checkout", "price" or SaaS pricing must not classify a site as a webshop.
+    const technologyProfile = detectTechnologyProfile(html, response.headers, hasEcommerceSignal);
     const rendering = { mode: "raw_html" as const, javascriptExecuted: false, note: "RankFix beoordeelde de HTTP HTML-response; client-side JavaScript is in deze scan niet uitgevoerd." };
 
     let user = null;
