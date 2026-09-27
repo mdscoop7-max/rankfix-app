@@ -880,7 +880,7 @@ export async function POST(request: Request) {
         : check("warning", "h1", "seo", "H1-heading", `Er zijn ${h1s.length} H1-headings gevonden.`, "Maak de hoofdstructuur duidelijk met één primaire H1.", 4, 8)
     );
     seoChecks.push(headings.length && headings.some((h) => h.level === 2)
-      ? check("pass", "headings", "seo", "Heading-structuur", `Er zijn ${headings.length} H2–H6 headings gevonden naast de H1.`, "Gebruik headings om onderwerpen en subonderwerpen logisch te groeperen.", 7, 7)
+      ? check("pass", "headings", "seo", "Heading-structuur", h1s.length > 0 ? `Er zijn ${headings.length} H2–H6 headings gevonden naast de H1.` : `Er zijn ${headings.length} H2–H6 headings gevonden. Er is geen H1 gevonden; dit wordt afzonderlijk als verbeterpunt beoordeeld.`, "Gebruik headings om onderwerpen en subonderwerpen logisch te groeperen.", 7, 7)
       : check("warning", "headings", "seo", "Heading-structuur", "De pagina heeft weinig duidelijke subheadings.", "Voeg H2/H3-secties toe rond belangrijke onderwerpen en vragen.", 3, 7)
     );
     let canonicalUrl: URL | null = null;
