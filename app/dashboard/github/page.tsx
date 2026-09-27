@@ -12,6 +12,7 @@ export default function GithubPage(){
   const [connected,setConnected]=useState(false);
   const [login,setLogin]=useState("");
   const [repos,setRepos]=useState<Repo[]>([]);
+  const [reposLoading,setReposLoading]=useState(true);
   const [repo,setRepo]=useState("");
   const [path,setPath]=useState("");
   const [siteUrl,setSiteUrl]=useState("");
@@ -48,6 +49,7 @@ export default function GithubPage(){
         if(rr.ok){setRepos(rd.repos); if(incomingUrl){ const mr=await fetch("/api/github/site-repository?url="+encodeURIComponent(incomingUrl)); const md=await mr.json(); if(mr.ok&&md.mapped){setRepo(md.repository);setBaseBranch(md.baseBranch||"main");setMapped(true);} } }
         else if(/bad credentials|authenticatie|verbinden/i.test(rd.error||"")) { setConnected(false); setError("De GitHub-koppeling is ongeldig. Verbind GitHub opnieuw."); }
       } else if(d.reauthorize || d.error) {
+        setReposLoading(false);
         setConnected(false);
         setError(d.error || "GitHub kan niet worden geverifieerd. Verbind GitHub opnieuw.");
       }
@@ -118,7 +120,7 @@ export default function GithubPage(){
           <span>GitHub verbonden als <b>{login}</b>.</span>
           <a href="/api/github/connect" className="rounded-lg border border-emerald-300/20 px-3 py-2 text-xs font-bold text-emerald-100 hover:bg-emerald-300/10">GitHub opnieuw verbinden</a>
         </div>
-        <label className="block"><span className="text-sm font-semibold">{mapped?"Gekoppelde repository":"Kies eenmalig de repository van deze website"}</span><select required disabled={mapped} value={repo} onChange={e=>{setRepo(e.target.value);const x=repos.find(r=>r.full_name===e.target.value);if(x)setBaseBranch(x.default_branch);}} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"><option value="">Selecteer repository</option>{repos.map(r=><option key={r.full_name} value={r.full_name}>{r.full_name}{r.private?" · privé":""}</option>)}</select><p className="mt-2 text-xs text-slate-500">{mapped?"RankFix gebruikt deze geverifieerde koppeling automatisch.":"Dit hoef je maar één keer per website te doen. RankFix kiest branch, bestand en technische gegevens daarna zelf."}</p></label>
+        <label className="block"><span className="text-sm font-semibold">{mapped?"Gekoppelde repository":reposLoading?"Repository zoeken…":"Kies eenmalig de repository van deze website"}</span>{reposLoading&&<p className="mt-2 text-sm text-cyan-200" role="status">RankFix zoekt je GitHub-repositories en controleert de koppeling met deze website…</p>}<select required disabled={mapped||reposLoading} value={repo} onChange={e=>{setRepo(e.target.value);const x=repos.find(r=>r.full_name===e.target.value);if(x)setBaseBranch(x.default_branch);}} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"><option value="">{reposLoading?"Repositories laden…":"Selecteer repository"}</option>{repos.map(r=><option key={r.full_name} value={r.full_name}>{r.full_name}{r.private?" · privé":""}</option>)}</select><p className="mt-2 text-xs text-slate-500">{mapped?"RankFix gebruikt deze geverifieerde koppeling automatisch.":"Dit hoef je maar één keer per website te doen. RankFix kiest branch, bestand en technische gegevens daarna zelf."}</p></label>
         {siteUrl&&<div className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm"><span className="text-slate-500">Website</span><div className="mt-1 font-semibold break-all">{siteUrl}</div></div>}
         <input type="hidden" value={path} readOnly />
         <input type="hidden" value={issue} readOnly />
