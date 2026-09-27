@@ -63,7 +63,20 @@ export async function POST(request: Request) {
           const checks = [
             ...(Array.isArray(result?.seo?.checks) ? result.seo.checks : []),
             ...(Array.isArray(result?.geo?.checks) ? result.geo.checks : []),
-          ].filter((check: any) => check?.status === "fail" || check?.status === "warning");
+          ];
+          const serializeCheck = (check: any) => ({
+            category: check.category,
+            title: check.title,
+            status: check.status,
+            message: check.message,
+            fix: check.fix,
+            score: check.score,
+            maxScore: check.maxScore,
+            issue_id: check.issue_id,
+            severity: check.severity,
+            confidence: check.confidence,
+            evidence: check.evidence,
+          });
 
           selectedScanContext = JSON.stringify({
             id: row.id,
@@ -73,18 +86,23 @@ export async function POST(request: Request) {
             seo_score: row.seo_score,
             geo_score: row.geo_score,
             created_at: row.created_at,
+            page_type: result?.pageType || result?.page_type || null,
+            page_type_confidence: result?.pageTypeConfidence || result?.page_type_confidence || null,
+            website_profile: result?.websiteProfile || result?.website_profile || result?.technologyProfile || result?.technology_profile || null,
             metrics: result?.metrics || {},
-            problems: checks.map((check: any) => ({
-              category: check.category,
-              title: check.title,
-              status: check.status,
-              message: check.message,
-              fix: check.fix,
-              issue_id: check.issue_id,
-              severity: check.severity,
-              confidence: check.confidence,
-              evidence: check.evidence,
-            })),
+            seo_summary: result?.seo ? {
+              score: result.seo.score,
+              coverage: result.seo.coverage,
+            } : null,
+            geo_summary: result?.geo ? {
+              score: result.geo.score,
+              coverage: result.geo.coverage,
+            } : null,
+            checks: checks.map(serializeCheck),
+            problems: checks.filter((check: any) => check?.status === "fail" || check?.status === "warning").map(serializeCheck),
+            uncertain: checks.filter((check: any) => check?.status === "unable_to_confirm").map(serializeCheck),
+            not_applicable: checks.filter((check: any) => check?.status === "not_applicable").map(serializeCheck),
+            passed: checks.filter((check: any) => check?.status === "pass").map(serializeCheck),
           });
         }
       }
@@ -104,6 +122,8 @@ export async function POST(request: Request) {
           "Je bent RankFix AI, de technische assistent van RankFix.",
           "Beantwoord technische vragen over SEO, GEO, AI Search, scans, scores, fixes, GitHub Fix Engine, abonnementen en het Dashboard.",
           "Gebruik klantgegevens alleen uit de meegeleverde context. Verzin nooit scanresultaten, scores, abonnementen, URLs, technische fouten of uitgevoerde acties.",
+          "Behandel de geselecteerde scan als bron van waarheid. Maak altijd onderscheid tussen pass, warning, fail, unable_to_confirm (Niet te bevestigen) en not_applicable (N.v.t.).",
+          "Noem unable_to_confirm nooit een fout en presenteer ontbrekend bewijs nooit als bewezen afwezigheid. Noem not_applicable nooit een probleem. Baseer prioriteiten alleen op aantoonbare fail/warning-controles en leg onzekerheid apart uit.",
           "Als de context onvoldoende is, zeg dat duidelijk en geef algemene technische uitleg.",
           "Zeg nooit dat je een wijziging hebt uitgevoerd als dat niet in de context staat.",
           "Geef praktische, korte stappen. Antwoord in de gekozen dashboardtaal: " + (preferredLanguage || "nl") + ". Alleen als de gebruiker expliciet in een andere taal vraagt, mag je die taal volgen.",
