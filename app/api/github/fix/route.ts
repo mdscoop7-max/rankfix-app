@@ -277,26 +277,26 @@ export async function POST(request:Request){
     const scannedHost=normalizeHostname(trustedUrl);
     let effectiveRepo=requestedRepo;
     let effectiveBaseBranch=baseBranch;
-    if(!effectiveRepo && scannedHost){
+    let existingMapping:any=null;
+    if(scannedHost){
       const saved=await getDb().query(
         "SELECT repository,base_branch FROM website_repositories WHERE user_id=$1 AND website_host=$2 LIMIT 1",
         [user.id,scannedHost]
       );
       if(saved.rowCount){
-        effectiveRepo=String(saved.rows[0].repository||"");
-        effectiveBaseBranch=String(saved.rows[0].base_branch||baseBranch);
+        existingMapping=saved.rows[0];
+        effectiveRepo=String(existingMapping.repository||"");
+        effectiveBaseBranch=String(existingMapping.base_branch||baseBranch);
+      } else if(!requestedRepo){
+        return NextResponse.json({error:"Kies eenmalig de GitHub-repository die bij deze website hoort.",website:scannedHost},{status:409});
       }
     }
     const verifiedRepo=await chooseRepository(token,effectiveRepo);
     const repo=verifiedRepo.fullName;
     effectiveBaseBranch=verifiedRepo.defaultBranch;
     if(scannedHost){
-      const existingMapping=await getDb().query(
-        "SELECT repository, base_branch FROM website_repositories WHERE user_id=$1 AND website_host=$2",
-        [user.id,scannedHost]
-      );
-      if(existingMapping.rowCount && String(existingMapping.rows[0].repository).toLowerCase()!==repo.toLowerCase()){
-        return NextResponse.json({error:"Deze website is al aan een andere GitHub-repository gekoppeld. Wijzig eerst bewust de websitekoppeling voordat RankFix code aanpast.",website:scannedHost,repository:existingMapping.rows[0].repository},{status:409});
+      if(existingMapping && requestedRepo && requestedRepo.toLowerCase()!==repo.toLowerCase()){
+        return NextResponse.json({error:"Deze website is al aan een andere GitHub-repository gekoppeld. RankFix gebruikt de opgeslagen websitekoppeling en wijzigt die niet automatisch.",website:scannedHost,repository:repo},{status:409});
       }
       await getDb().query(
         "INSERT INTO website_repositories (user_id,website_host,repository,base_branch,verified_at,updated_at) VALUES ($1,$2,$3,$4,NOW(),NOW()) ON CONFLICT (user_id,website_host) DO UPDATE SET base_branch=EXCLUDED.base_branch,verified_at=NOW(),updated_at=NOW()",
