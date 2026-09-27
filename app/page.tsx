@@ -1081,11 +1081,11 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
           <h2 className="mt-3 text-3xl font-black tracking-tight">{pc.aboutTitle}</h2>
           <p className="mt-4 leading-7 text-slate-300">{pc.about1}</p>
           <p className="mt-4 leading-7 text-slate-600">{pc.about2}</p>
-          <a href="/nl/about" className="mt-6 inline-flex rounded-xl border border-emerald-300/30 px-4 py-3 text-sm font-bold text-emerald-200">{pc.learnMore}</a>
+          <a href={`/${language}/about`} className="mt-6 inline-flex rounded-xl border border-emerald-300/30 px-4 py-3 text-sm font-bold text-emerald-200">{pc.learnMore}</a>
         </div>
       </section>
 
-      <PublicReviews />
+      <PublicReviews language={language} />
 
       <footer id="footer" className="bg-[#16243a] px-5 py-14 text-slate-100 lg:px-8">
         <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-5">
