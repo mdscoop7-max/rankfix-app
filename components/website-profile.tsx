@@ -1,4 +1,5 @@
 export type WebsiteTechnologyProfile = {
+  siteType?: "Webshop" | "Landingpage" | "Website";
   cms: string | null;
   commercePlatform: string | null;
   framework: string | null;
@@ -15,7 +16,7 @@ export default function WebsiteProfile({ profile }: { profile?: WebsiteTechnolog
       {profile ? (
         <>
           <div className="mt-2 flex flex-wrap gap-2">
-            <span className="rounded-full border border-slate-200 bg-white px-3 py-1">Type: <strong>{profile.isCommerce ? "Webshop" : "Website"}</strong></span>
+            <span className="rounded-full border border-slate-200 bg-white px-3 py-1">Type: <strong>{profile.siteType || (profile.isCommerce ? "Webshop" : "Website")}</strong></span>
             <span className="rounded-full border border-slate-200 bg-white px-3 py-1">CMS: <strong>{profile.cms || "Niet bevestigd"}</strong></span>
             <span className="rounded-full border border-slate-200 bg-white px-3 py-1">Platform: <strong>{profile.commercePlatform || "Niet bevestigd"}</strong></span>
             <span className="rounded-full border border-slate-200 bg-white px-3 py-1">Framework: <strong>{profile.framework || "Niet bevestigd"}</strong></span>
