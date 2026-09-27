@@ -181,3 +181,18 @@
  .rf-nav-more[aria-current="page"]{background:#55431f!important;color:#ffe3aa!important}
  .rf-nav a[aria-current="page"] .rf-nav-icon{background:rgba(255,255,255,.07)!important;color:inherit!important}
 }
+
+
+/* Route-aware navigation: clear inactive/active states + site return */
+.rf-desktop-nav a:not([aria-current]):not(.rf-site-link){color:#A9B8CB;background:#13223A}
+.rf-desktop-nav a[aria-current="page"]{color:#D8FFF1;background:#176552;box-shadow:inset 0 0 0 1px #66E0B755}
+.rf-desktop-nav .rf-site-link{display:inline-flex;align-items:center;min-height:36px;padding:8px 11px;border-radius:9px;background:#243653;color:#E8EEF7!important}
+.rf-desktop-nav .rf-site-link:hover{background:#304766;color:#fff!important}
+.rf-mobile-site-link{display:none}
+.rf-nav a:not([aria-current]){color:#A8B8CC;background:transparent}
+.rf-nav a[aria-current="page"]{color:#D8FFF1;background:#155846}
+.rf-nav a[aria-current="page"] .rf-nav-icon{background:#25C99A;color:#062C25;box-shadow:0 6px 18px #25C99A35}
+@media(max-width:650px){
+ .rf-mobile-site-link{display:flex;align-items:center;width:max-content;margin:10px 12px 0;padding:8px 11px;border:1px solid #334B68;border-radius:10px;background:#172841;color:#D5E0EE;font-size:12px;font-weight:750}
+ .rf-mobile-site-link:active{transform:scale(.97)}
+}
