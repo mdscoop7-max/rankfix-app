@@ -61,8 +61,7 @@ export default function GithubPage(){
 
   async function changeRepositoryMapping(){
     if(!siteUrl||busy) return;
-    if(!window.confirm("Wil je de opgeslagen repositorykoppeling voor deze website wijzigen?")) return;
-    setBusy(true); setError(""); setMessage(""); setPreview(null);
+    setBusy(true); setError(""); setMessage("Repositorykoppeling wordt vrijgegeven…"); setPreview(null);
     try{
       const r=await fetch("/api/github/site-repository",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:siteUrl})});
       const d=await r.json();
