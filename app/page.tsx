@@ -494,6 +494,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
     return item.fix_status === "WAITING" || Boolean(githubResults[key]);
   }).length;
   const remainingCount = issues.length;
+  const totalIssueCount = remainingCount + preparedCount;
   const resultHttpStatus = result ? Number(result.httpStatus) : 0;
   const blockedHttpStatus = resultHttpStatus === 401 || resultHttpStatus === 403;
   const rateLimitedHttpStatus = resultHttpStatus === 429;
@@ -806,7 +807,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                 <h3 className="mt-2 text-2xl font-black tracking-tight">Dit is wat er met je website gebeurt.</h3>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Bekijk wat al goed is, wat nog aandacht vraagt en welke codevoorstellen op controle wachten. Een fix is pas bevestigd na een nieuwe scan van je live website.</p>
               </div>
-              <div className="rounded-full border border-slate-200 bg-black/10 px-3 py-1.5 text-xs font-semibold text-slate-600">{issues.length} {issues.length === 1 ? "verbeterpunt" : "verbeterpunten"} gevonden</div>
+              <div className="rounded-full border border-slate-200 bg-black/10 px-3 py-1.5 text-xs font-semibold text-slate-600">{totalIssueCount} {totalIssueCount === 1 ? "verbeterpunt" : "verbeterpunten"} gevonden</div>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
               <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/[0.045] p-4"><div className="text-lg">🟢</div><div className="mt-2 text-sm font-bold text-emerald-200">Gedaan</div><div className="mt-1 text-2xl font-black">{passedCount}</div><p className="mt-1 text-xs leading-5 text-slate-500">Controles die al goed staan.</p></div>
