@@ -6,7 +6,7 @@ type Props = { dashboard?: boolean; scanId?: string | null; publicLocale?: strin
 
 export default function AiAssistant({ dashboard = false, scanId = null, publicLocale = "nl", errorContext = null }: Props) {
   const greeting: Record<string, string> = {
-    nl: (greeting[publicLocale] || greeting.nl),
+    nl: "Hoi! Ik ben RankFix AI. Ik kan uitleg geven over RankFix, SEO, GEO, audits, AI Search en hoe de app werkt.",
     en: "Hi! I’m RankFix AI. I can explain RankFix, SEO, GEO, audits, AI Search and how the app works.",
     fr: "Bonjour ! Je suis RankFix AI. Je peux expliquer RankFix, le SEO, le GEO, les audits, AI Search et le fonctionnement de l’application.",
     de: "Hallo! Ich bin RankFix AI. Ich erkläre dir RankFix, SEO, GEO, Audits, AI Search und wie die App funktioniert.",
@@ -21,7 +21,7 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
       role: "assistant",
       content: dashboard
         ? "Hoi! Ik ben RankFix AI. Stel gerust technische vragen over je scans, SEO, GEO, scores, fixes, abonnementen of het Dashboard."
-        : "Hoi! Ik ben RankFix AI. Ik kan uitleg geven over RankFix, SEO, GEO, audits, AI Search en hoe de app werkt.",
+        : (greeting[publicLocale] || greeting.nl),
     },
   ]);
   const [busy, setBusy] = useState(false);
