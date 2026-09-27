@@ -144,5 +144,6 @@ export default function GithubPage(){
       </form>}
     </section>
     </div>
+    <AiAssistant dashboard scanId={scanId || null} errorContext={error ? [error, ...(validation?.errors || [])].join(" ") : null} />
   </main>
 }
