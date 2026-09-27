@@ -52,11 +52,16 @@ export async function POST(request: Request) {
         connected: Boolean(githubConnection.rowCount),
       });
 
-      if (dashboard && scanId) {
-        const selected = await getDb().query(
-          "SELECT id, scanned_url, final_url, overall_score, seo_score, geo_score, result, created_at FROM scans WHERE id=$1 AND user_id=$2 LIMIT 1",
-          [scanId, user.id]
-        );
+      if (dashboard) {
+        const selected = scanId
+          ? await getDb().query(
+              "SELECT id, scanned_url, final_url, overall_score, seo_score, geo_score, result, created_at FROM scans WHERE id=$1 AND user_id=$2 LIMIT 1",
+              [scanId, user.id]
+            )
+          : await getDb().query(
+              "SELECT id, scanned_url, final_url, overall_score, seo_score, geo_score, result, created_at FROM scans WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1",
+              [user.id]
+            );
 
         if (selected.rows[0]) {
           const row = selected.rows[0];
@@ -91,6 +96,10 @@ export async function POST(request: Request) {
             page_type_confidence: result?.pageTypeConfidence || result?.page_type_confidence || null,
             website_profile: result?.websiteProfile || result?.website_profile || result?.technologyProfile || result?.technology_profile || null,
             metrics: result?.metrics || {},
+            structured_data: result?.structuredData || result?.structured_data || null,
+            improvements: result?.improvements || result?.issues || [],
+            fixes: result?.fixes || result?.fix_proposals || result?.fixProposals || [],
+            ecommerce: result?.ecommerce || result?.webshop || result?.commerce || null,
             seo_summary: result?.seo ? {
               score: result.seo.score,
               coverage: result.seo.coverage,
@@ -123,7 +132,7 @@ export async function POST(request: Request) {
           "Je bent RankFix AI, de technische assistent van RankFix.",
           "Beantwoord technische vragen over SEO, GEO, AI Search, scans, scores, fixes, GitHub Fix Engine, abonnementen en het Dashboard.",
           "Gebruik klantgegevens alleen uit de meegeleverde context. Verzin nooit scanresultaten, scores, abonnementen, URLs, technische fouten of uitgevoerde acties.",
-          "Behandel de geselecteerde scan als bron van waarheid. Maak altijd onderscheid tussen pass, warning, fail, unable_to_confirm (Niet te bevestigen) en not_applicable (N.v.t.).",
+          "Wanneer geen specifieke audit is geopend, is de meest recente scan automatisch de actieve scancontext. Behandel die actieve scan als bron van waarheid. Maak altijd onderscheid tussen pass, warning, fail, unable_to_confirm (Niet te bevestigen) en not_applicable (N.v.t.).",
           "Noem unable_to_confirm nooit een fout en presenteer ontbrekend bewijs nooit als bewezen afwezigheid. Noem not_applicable nooit een probleem. Baseer prioriteiten alleen op aantoonbare fail/warning-controles en leg onzekerheid apart uit.",
           "Als de context onvoldoende is, zeg dat duidelijk en geef algemene technische uitleg.",
           "Zeg nooit dat je een wijziging hebt uitgevoerd als dat niet in de context staat.",
