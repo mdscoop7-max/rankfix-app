@@ -1,5 +1,6 @@
 "use client";
 import { useEffect,useState } from "react";
+
 const baseItems = [
   { href: "/", label: "Home", icon: "M3 10l9-7 9 7v10H3z M9 20v-7h6v7" },
   { href: "/nl/scan", label: "Scan", icon: "M12 3v18 M3 12h18" },
@@ -7,9 +8,26 @@ const baseItems = [
   { href: "/#pricing", label: "Prijzen", icon: "M4 6h16v12H4z M8 10h8 M8 14h5" }
 ];
 const accountIcon="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21v-2a8 8 0 0 1 16 0v2";
+
 export default function RootMobileNav() {
  const [signedIn,setSignedIn]=useState(false);
- useEffect(()=>{fetch("/api/auth/me",{cache:"no-store"}).then(r=>r.json()).then(d=>setSignedIn(Boolean(d?.user))).catch(()=>setSignedIn(false))},[]);
+ const [locationKey,setLocationKey]=useState("");
+ useEffect(()=>{
+   fetch("/api/auth/me",{cache:"no-store"}).then(r=>r.json()).then(d=>setSignedIn(Boolean(d?.user))).catch(()=>setSignedIn(false));
+   const sync=()=>setLocationKey(window.location.pathname+window.location.hash);
+   sync();
+   window.addEventListener("hashchange",sync);
+   window.addEventListener("popstate",sync);
+   return ()=>{window.removeEventListener("hashchange",sync);window.removeEventListener("popstate",sync)};
+ },[]);
  const items=[...baseItems,{href:signedIn?"/dashboard":"/account?lang=nl",label:signedIn?"Dashboard":"Inloggen",icon:accountIcon}];
- return <nav className="root-bottom-nav" aria-label="Mobiele navigatie">{items.map((item,index) => <a href={item.href} key={index} className={index === 1 ? "root-bottom-scan" : undefined} aria-current={index === 0 ? "page" : undefined}><span className="root-bottom-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={item.icon} /></svg></span><span>{item.label}</span></a>)}</nav>;
+ const activeIndex=(()=>{
+   const [pathname,hash=""]=locationKey.split("#");
+   if(pathname?.startsWith("/dashboard")) return 4;
+   if(pathname?.includes("/scan")) return 1;
+   if(hash==="features") return 2;
+   if(hash==="pricing") return 3;
+   return pathname==="/"||pathname==="" ? 0 : -1;
+ })();
+ return <nav className="root-bottom-nav" aria-label="Mobiele navigatie">{items.map((item,index) => <a href={item.href} key={index} onClick={()=>setLocationKey(index===2?"/#features":index===3?"/#pricing":item.href.split("?")[0])} aria-current={activeIndex===index?"page":undefined}><span className="root-bottom-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={item.icon} /></svg></span><span>{item.label}</span></a>)}</nav>;
 }
