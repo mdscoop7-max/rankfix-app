@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-type Props = { dashboard?: boolean; scanId?: string | null; publicLocale?: string };
+type Props = { dashboard?: boolean; scanId?: string | null; publicLocale?: string; errorContext?: string | null };
 
-export default function AiAssistant({ dashboard = false, scanId = null, publicLocale = "nl" }: Props) {
+export default function AiAssistant({ dashboard = false, scanId = null, publicLocale = "nl", errorContext = null }: Props) {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([
@@ -25,6 +25,13 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
     if (!dashboard) return;
     fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language)setLanguage(d.language)}).catch(()=>{});
   }, [dashboard]);
+
+  useEffect(() => {
+    if (!dashboard || !errorContext) return;
+    setOpen(true);
+    setMessages((m) => [...m, { role: "assistant", content: "Ik zie dat RankFix deze actie veilig heeft geblokkeerd. " + errorContext + " Ik kan uitleggen wat dit betekent en welke veilige volgende stap je kunt nemen." }]);
+    setInput("Leg uit waarom deze actie is geblokkeerd en wat ik veilig moet controleren.");
+  }, [dashboard, errorContext]);
 
   useEffect(() => {
     if (!dashboard || !scanId) return;
