@@ -107,9 +107,12 @@ export default function Dashboard() {
         <section className="rf-section">
           <div className="rf-section-head"><div><h2>{x.nextTitle}</h2><p>{x.nextIntro}</p></div></div>
           <div className="rf-next-actions">
+            {latest && <a href={`/dashboard/audit/${latest.id}`}><b>Bekijk laatste rapport</b><span>{latest.overall_score}/100 · open de nieuwste audit →</span></a>}
             {latest?.open_issues ? <a href={`/dashboard/audit/${latest.id}`}><b>1. {x.firstIssue}</b><span>{latest.open_issues} {x.firstIssueHint} →</span></a> : <a href="/dashboard/scan"><b>1. {x.newControl}</b><span>{x.newControlHint} →</span></a>}
             {(fixes.PREPARED || 0) > 0 && <a href="/dashboard/github"><b>2. {x.codeProposals}</b><span>{fixes.PREPARED} wachten op publicatie of controle →</span></a>}
-            <a href="/dashboard/help"><b>{(fixes.PREPARED || 0) > 0 ? "3" : "2"}. {x.askAi}</b><span>{x.askAiHint} →</span></a>
+            <a href={`/dashboard/competitor${latest ? `?url=${encodeURIComponent(latest.scanned_url)}` : ""}`}><b>{(fixes.PREPARED || 0) > 0 ? "3" : "2"}. Concurrent vergelijken</b><span>Vergelijk je website met een concurrent en ontdek concrete kansen →</span></a>
+            <a href={`/dashboard/local-seo${latest ? `?url=${encodeURIComponent(latest.scanned_url)}` : ""}`}><b>{(fixes.PREPARED || 0) > 0 ? "4" : "3"}. Local SEO controleren</b><span>Controleer lokale vindbaarheid en bedrijfssignalen →</span></a>
+            <a href="/dashboard/help"><b>{(fixes.PREPARED || 0) > 0 ? "5" : "4"}. {x.askAi}</b><span>{x.askAiHint} →</span></a>
           </div>
         </section>
         <section className="rf-section">
