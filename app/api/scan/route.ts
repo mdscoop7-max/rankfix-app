@@ -216,8 +216,9 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
     confidence,
     confidenceLabel,
     evidence: [...new Set(evidence)].filter((label) => {
-      if (commercePlatform === "Shopify" && label.startsWith("Magento")) return false;
-      if (commercePlatform === "Magento / Adobe Commerce" && label.startsWith("Shopify")) return false;
+      if (commercePlatform === "Shopify" && (label.startsWith("Magento") || label.startsWith("WooCommerce"))) return false;
+      if (commercePlatform === "Magento / Adobe Commerce" && (label.startsWith("Shopify") || label.startsWith("WooCommerce"))) return false;
+      if (commercePlatform === "WooCommerce" && (label.startsWith("Shopify") || label.startsWith("Magento"))) return false;
       return true;
     }).slice(0, 8),
   };
@@ -884,6 +885,7 @@ export async function POST(request: Request) {
       const normalized = new URL(url.toString());
       normalized.hash = "";
       normalized.pathname = normalized.pathname.replace(/\/+$/, "") || "/";
+      ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "fbclid", "msclkid"].forEach((param) => normalized.searchParams.delete(param));
       return normalized.toString();
     };
 
