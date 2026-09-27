@@ -163,3 +163,21 @@
  .rf-nav .rf-nav-scan .rf-nav-icon{background:linear-gradient(145deg,#1ee19a,#43d5dc)!important;color:#032d24!important}
  .rf-nav .rf-nav-label{color:inherit;font-weight:700}
 }
+
+
+/* Mobile-only tab identity: soft individual colors, strong fill only for current page */
+@media(max-width:650px){
+ .rf-nav a{background:transparent!important}
+ .rf-nav a .rf-nav-icon{background:transparent!important;box-shadow:none!important}
+ .rf-nav-overview{color:#8eeac8!important}
+ .rf-nav-scan{color:#66dfe5!important}
+ .rf-nav-fixes{color:#b8a8ff!important}
+ .rf-nav-history{color:#8fc5ff!important}
+ .rf-nav-more{color:#f2c783!important}
+ .rf-nav-overview[aria-current="page"]{background:#0b594a!important;color:#baffdf!important}
+ .rf-nav-scan[aria-current="page"]{background:#104d59!important;color:#a9f7f5!important}
+ .rf-nav-fixes[aria-current="page"]{background:#37315f!important;color:#ded6ff!important}
+ .rf-nav-history[aria-current="page"]{background:#173f66!important;color:#c9e5ff!important}
+ .rf-nav-more[aria-current="page"]{background:#55431f!important;color:#ffe3aa!important}
+ .rf-nav a[aria-current="page"] .rf-nav-icon{background:rgba(255,255,255,.07)!important;color:inherit!important}
+}
