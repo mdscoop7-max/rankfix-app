@@ -1028,7 +1028,7 @@ export async function POST(request: Request) {
     seoChecks.push(hasEcommerceSignal
       ? hasShippingSignal && hasReturnsSignal && (hasReviewPlatformSignal || hasCheckoutTrustSignal)
         ? check("pass","webshop_trust","seo","Webshop vertrouwen","Verzend-/retourinformatie en minimaal één duidelijk vertrouwenssignaal zijn zichtbaar.","Houd verzendkosten, retourvoorwaarden, betaalmethoden en reviews ook op checkout-niveau duidelijk.",7,7)
-        : isHomepage
+        : isHomepage || isProductPage
           ? check("unable_to_confirm","webshop_trust","seo","Webshop vertrouwen","Deze homepage bevat webshop-signalen, maar RankFix heeft in deze paginascan niet bewezen waar verzend-, retour- en betaalinformatie sitebreed staat.","Controleer deze signalen in een sitebrede crawl of op product-, service- en checkoutpagina's.",0,7)
           : check("warning","webshop_trust","seo","Webshop vertrouwen","Niet alle belangrijke verzend-, retour- en vertrouwenssignalen zijn zichtbaar op deze commerciële pagina.","Maak relevante verzend-, retour- en betaalinformatie duidelijk waar bezoekers de aankoopbeslissing nemen.",3,7)
       : check("not_applicable","webshop_trust","seo","Webshop vertrouwen","Geen duidelijke webshop-signalen gevonden; deze e-commercecontrole is niet van toepassing.","Gebruik deze controle op product- en categoriepagina's.",0,7));
