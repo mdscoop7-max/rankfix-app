@@ -20,12 +20,12 @@
   }
   .root-bottom-nav a:not([aria-current]) .root-bottom-icon{background:transparent!important;box-shadow:none!important}
   .root-bottom-nav a[aria-current]{
-    color:#b9f5df;background:#0d5b4c;font-weight:800;
+    color:#e6f5ff;background:#173f62;font-weight:800;
     box-shadow:inset 0 0 0 1px rgba(82,220,177,.18)
   }
   .root-bottom-nav a[aria-current] .root-bottom-icon{
-    width:42px;height:42px;border-radius:14px;background:#16725f!important;color:#c9ffed;
-    box-shadow:0 6px 18px rgba(8,84,70,.28)!important
+    width:42px;height:42px;border-radius:14px;background:#38bdf8!important;color:#06243a;
+    box-shadow:0 6px 18px rgba(56,189,248,.25)!important
   }
   .root-bottom-nav a:focus-visible{outline:2px solid #6ee7c3;outline-offset:2px}
   .root-bottom-nav a:active{transform:scale(.96)}
