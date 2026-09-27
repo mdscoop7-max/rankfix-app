@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Props = { dashboard?: boolean; scanId?: string | null; publicLocale?: string; errorContext?: string | null };
 
@@ -20,6 +20,7 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
   const [fixBusy, setFixBusy] = useState(false);
   const [fixResult, setFixResult] = useState("");
   const [language, setLanguage] = useState(publicLocale);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!dashboard) return;
@@ -73,6 +74,11 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
     }
   }
 
+  useEffect(() => {
+    if (!open) return;
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [open, messages, busy, fixResult]);
+
   async function send() {
     const question = input.trim();
     if (!question || busy) return;
@@ -83,7 +89,7 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
       const response = await fetch("/api/assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: question, dashboard, scanId, language }),
+        body: JSON.stringify({ message: question, dashboard, scanId, language, errorContext }),
       });
       const data = await response.json();
       setMessages((m) => [...m, { role: "assistant", content: data.answer || data.error || "Er ging iets mis." }]);
@@ -132,6 +138,7 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
                 </div>
               ))}
               {busy && <div className="mr-8 rounded-2xl bg-white/5 p-3 text-sm text-slate-500">{tx.thinking}</div>}
+              <div ref={messagesEndRef} aria-hidden="true" />
             </div>
 
             {dashboard && scanId && (
