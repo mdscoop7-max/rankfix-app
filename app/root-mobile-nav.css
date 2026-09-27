@@ -27,6 +27,14 @@
     width:42px;height:42px;border-radius:14px;background:#38bdf8!important;color:#06243a;
     box-shadow:0 6px 18px rgba(56,189,248,.25)!important
   }
+  .root-bottom-nav a:nth-child(5)[aria-current]{
+    color:#d9fff1;background:#0f513f;
+    box-shadow:inset 0 0 0 1px rgba(110,231,195,.25)
+  }
+  .root-bottom-nav a:nth-child(5)[aria-current] .root-bottom-icon{
+    background:#34d399!important;color:#062b22;
+    box-shadow:0 6px 18px rgba(52,211,153,.25)!important
+  }
   .root-bottom-nav a:focus-visible{outline:2px solid #6ee7c3;outline-offset:2px}
   .root-bottom-nav a:active{transform:scale(.96)}
 }
