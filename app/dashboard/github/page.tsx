@@ -52,10 +52,10 @@ export default function GithubPage(){
         if(rr.ok){setRepos(rd.repos); if(incomingUrl){ const mr=await fetch("/api/github/site-repository?url="+encodeURIComponent(incomingUrl)); const md=await mr.json(); if(mr.ok&&md.mapped){setRepo(md.repository);setBaseBranch(md.baseBranch||"main");setMapped(true);} } }
         else if(/bad credentials|authenticatie|verbinden/i.test(rd.error||"")) { setConnected(false); setError("De GitHub-koppeling is ongeldig. Verbind GitHub opnieuw."); }
       } else if(d.reauthorize || d.error) {
-        setReposLoading(false);
         setConnected(false);
         setError(d.error || "GitHub kan niet worden geverifieerd. Verbind GitHub opnieuw.");
       }
+      setReposLoading(false);
     })();
   },[searchParams]);
 
