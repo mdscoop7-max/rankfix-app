@@ -181,7 +181,7 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
   if (wordpressSignals) { cms = "WordPress"; strongest = Math.max(strongest, wordpressSignals); }
 
   const strongShopify = shopifySignals >= 2;
-  const strongMagento = /(?:mage\\/cookies|magento_|x-magento|\\/static\\/version\\d+)/i.test(source) || /x-magento/i.test(headerText);
+  const strongMagento = /(?:mage\/cookies|magento_|x-magento|\/static\/version\d+)/i.test(source) || /x-magento/i.test(headerText);
   const platformCandidates: Array<{ name: string; strength: number }> = [];
   if (wooSignals) platformCandidates.push({ name: "WooCommerce", strength: wooSignals + Math.min(wordpressSignals, 1) });
   if (strongShopify) platformCandidates.push({ name: "Shopify", strength: shopifySignals });
