@@ -179,11 +179,24 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
   let strongest = 0;
 
   if (wordpressSignals) { cms = "WordPress"; strongest = Math.max(strongest, wordpressSignals); }
-  if (wooSignals) { cms = "WordPress"; commercePlatform = "WooCommerce"; strongest = Math.max(strongest, wooSignals + Math.min(wordpressSignals, 1)); }
-  if (shopifySignals) { commercePlatform = "Shopify"; strongest = Math.max(strongest, shopifySignals); }
-  if (magentoSignals) { commercePlatform = "Magento / Adobe Commerce"; strongest = Math.max(strongest, magentoSignals); }
-  if (prestashopSignals) { commercePlatform = "PrestaShop"; strongest = Math.max(strongest, prestashopSignals); }
-  if (bigCommerceSignals) { commercePlatform = "BigCommerce"; strongest = Math.max(strongest, bigCommerceSignals); }
+
+  const strongShopify = shopifySignals >= 2;
+  const strongMagento = /(?:mage\\/cookies|magento_|x-magento|\\/static\\/version\\d+)/i.test(source) || /x-magento/i.test(headerText);
+  const platformCandidates: Array<{ name: string; strength: number }> = [];
+  if (wooSignals) platformCandidates.push({ name: "WooCommerce", strength: wooSignals + Math.min(wordpressSignals, 1) });
+  if (strongShopify) platformCandidates.push({ name: "Shopify", strength: shopifySignals });
+  if (strongMagento) platformCandidates.push({ name: "Magento / Adobe Commerce", strength: magentoSignals });
+  if (prestashopSignals) platformCandidates.push({ name: "PrestaShop", strength: prestashopSignals });
+  if (bigCommerceSignals) platformCandidates.push({ name: "BigCommerce", strength: bigCommerceSignals });
+
+  platformCandidates.sort((a, b) => b.strength - a.strength);
+  if (platformCandidates.length) {
+    const top = platformCandidates[0];
+    const tiedStrongPlatforms = platformCandidates.filter((candidate) => candidate.strength === top.strength);
+    if (tiedStrongPlatforms.length === 1) commercePlatform = top.name;
+    strongest = Math.max(strongest, top.strength);
+    if (top.name === "WooCommerce") cms = "WordPress";
+  }
   if (wixSignals) { cms = "Wix"; strongest = Math.max(strongest, wixSignals); }
   if (squarespaceSignals) { cms = "Squarespace"; strongest = Math.max(strongest, squarespaceSignals); }
   if (webflowSignals) { cms = "Webflow"; strongest = Math.max(strongest, webflowSignals); }
