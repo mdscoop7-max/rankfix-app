@@ -136,7 +136,7 @@ const translations = {
 
 type Language = keyof typeof translations;
 
-export default function Home() {
+export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Language } = {}) {
   const [url, setUrl] = useState("");
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState("");
@@ -148,7 +148,7 @@ export default function Home() {
   const [scanStep, setScanStep] = useState(0);
   const [auditMode, setAuditMode] = useState<"seo" | "geo" | "both">("both");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [language, setLanguage] = useState<Language>("nl");
+  const [language, setLanguage] = useState<Language>(initialLanguage);
   const t = translations[language];
   const [contactOpen, setContactOpen] = useState(false);
   const [contactSending, setContactSending] = useState(false);
@@ -1110,8 +1110,8 @@ export default function Home() {
           <span>SEO · GEO · AI Search · Built independent</span>
         </div>
       </footer>
-      <AiAssistant />
-      <RootMobileNav />
+      <AiAssistant publicLocale={language} />
+      <RootMobileNav locale={language} />
     </main>
   );
 }
