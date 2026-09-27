@@ -98,3 +98,9 @@
  .lc-mobile-links a:last-child{margin-top:6px;background:linear-gradient(135deg,#0c5949,#0c7560);border-color:#238a70;color:#baffdf}
  .lc-mobile-menu[open] summary{border-color:#35dba1!important;box-shadow:0 0 0 3px rgba(53,219,161,.12)}
 }
+
+/* Public mobile navigation: all active website destinations use the same RankFix blue. */
+@media(max-width:850px){
+ .lc-bottom-nav a[aria-current]{color:#e6f5ff!important;background:#173f62!important;box-shadow:inset 0 0 0 1px rgba(56,189,248,.22)!important}
+ .lc-bottom-nav a[aria-current] .lc-bottom-icon{background:#38bdf8!important;color:#06243a!important;box-shadow:0 6px 18px rgba(56,189,248,.25)!important}
+}
