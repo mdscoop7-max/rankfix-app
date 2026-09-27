@@ -152,3 +152,14 @@
   .rf-section{margin-top:34px}
   .rf-status-grid{gap:14px}
 }
+
+
+/* Mobile dashboard navigation polish */
+@media(max-width:650px){
+ .rf-nav{padding-left:8px!important;padding-right:8px!important;gap:3px}
+ .rf-nav a{border-radius:16px;transition:background .15s ease,color .15s ease,transform .15s ease}
+ .rf-nav a[aria-current="page"]{background:linear-gradient(180deg,#0b594a,#0a453d)!important;color:#9ff6d1!important;box-shadow:inset 0 0 0 1px rgba(96,240,187,.14)}
+ .rf-nav a[aria-current="page"] .rf-nav-icon{background:rgba(28,130,103,.55)!important;color:#baffdf!important}
+ .rf-nav .rf-nav-scan .rf-nav-icon{background:linear-gradient(145deg,#1ee19a,#43d5dc)!important;color:#032d24!important}
+ .rf-nav .rf-nav-label{color:inherit;font-weight:700}
+}
