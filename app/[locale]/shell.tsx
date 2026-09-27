@@ -1,16 +1,12 @@
 import { copy, type Locale } from "@/lib/locales";
-import LanguageSelect from "./language-select";
+import PublicHeader from "./public-header";
 import MobileNav from "./mobile-nav";
 import AiAssistant from "@/components/ai-assistant";
 import "./locale.css";
 export default function LocaleShell({ locale, page = "", children }: { locale: Locale; page?: string; children: React.ReactNode }) {
   const t = copy[locale];
   return <main className="lc-page" lang={locale}>
-    <header className="lc-header"><div className="lc-container"><a className="lc-brand" href={"/" + locale}>RankFix <span>AI</span></a>
-      <nav className="lc-nav" aria-label="Main navigation"><a href={"/" + locale + "/scan"}>{t.nav[0]}</a><a href={"/" + locale + "#how"}>{t.nav[1]}</a><a href={"/" + locale + "#audience"}>{t.nav[2]}</a><a href={"/" + locale + "#pricing"}>{t.nav[3]}</a><a href={"/" + locale + "#contact"}>{t.nav[4]}</a><a href={"/account?lang=" + locale}>{t.signIn}</a><LanguageSelect locale={locale} page={page} /></nav>
-      <details className="lc-mobile-menu"><summary><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16 M4 12h16 M4 18h16" /></svg><span>Menu</span></summary><div className="lc-mobile-links"><a href={"/" + locale + "/scan"}>{t.nav[0]}</a><a href={"/" + locale + "#how"}>{t.nav[1]}</a><a href={"/" + locale + "#audience"}>{t.nav[2]}</a><a href={"/" + locale + "#pricing"}>{t.nav[3]}</a><a href={"/" + locale + "#contact"}>{t.nav[4]}</a><a href={"/account?lang=" + locale}>{t.signIn}</a><LanguageSelect locale={locale} page={page} /></div></details>
-    </div></header>
-    {children}
+    <PublicHeader locale={locale} page={page} />\n    {children}
     <footer className="lc-footer">
       <div className="lc-container lc-footer-grid">
         <div className="lc-footer-brand"><div className="lc-footer-logo"><span>RF</span><strong>RankFix AI</strong></div><p>{locale==="nl"?"SEO + GEO auditsoftware voor bedrijven en agencies die willen weten wat ze moeten fixen — en het daarna ook willen fixen.":locale==="en"?"SEO + GEO audit software for businesses and agencies that want to know what to fix — and then fix it.":locale==="de"?"SEO- und GEO-Auditsoftware für Unternehmen und Agenturen, die wissen wollen, was sie verbessern müssen — und es anschließend beheben.":locale==="fr"?"Logiciel d’audit SEO + GEO pour les entreprises et agences qui veulent savoir quoi corriger — puis le corriger.":locale==="it"?"Software di audit SEO + GEO per aziende e agenzie che vogliono sapere cosa correggere — e poi correggerlo.":"Software de auditoría SEO + GEO para empresas y agencias que quieren saber qué corregir — y después corregirlo."}</p></div>
