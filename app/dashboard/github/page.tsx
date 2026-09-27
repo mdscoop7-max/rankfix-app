@@ -66,8 +66,15 @@ export default function GithubPage(){
     const cleanRepo=repo.trim();
     const cleanPath=path.trim();
     const cleanIssue=issue.trim();
-    if(!cleanRepo || !issueId || !scanId){
-      setError("Open deze fix vanuit een RankFix-audit en kies bij de eerste koppeling alleen de repository.");
+    const liveParams=new URLSearchParams(window.location.search);
+    const activeScanId=scanId || liveParams.get("scan_id") || "";
+    const activeIssueId=issueId || liveParams.get("issue_id") || "";
+    if(!activeScanId || !activeIssueId){
+      setError("De auditcontext ontbreekt. Open deze fix opnieuw via ‘Maak AI-fix’ bij het specifieke verbeterpunt in het auditrapport.");
+      return;
+    }
+    if(!cleanRepo){
+      setError("Kies eenmalig de GitHub-repository die bij deze website hoort.");
       return;
     }
     if(!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(cleanRepo)){
@@ -76,7 +83,7 @@ export default function GithubPage(){
     }
     setBusy(true);setError("");setMessage("");setValidation(null);
     try{
-      const r=await fetch("/api/github/fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({repo:cleanRepo,path:cleanPath,baseBranch,scan_id:scanId,issue_id:issueId,preview:!publish})});
+      const r=await fetch("/api/github/fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({repo:cleanRepo,path:cleanPath,baseBranch,scan_id:activeScanId,issue_id:activeIssueId,preview:!publish})});
       const text=await r.text();
       let d:any={};
       try{d=JSON.parse(text);}catch{}
