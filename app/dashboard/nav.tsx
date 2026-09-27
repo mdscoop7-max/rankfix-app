@@ -12,8 +12,8 @@ const labels:Record<Locale,string[]>={
 };
 const flags:Record<Locale,string>={nl:"🇳🇱",en:"🇬🇧",fr:"🇫🇷",de:"🇩🇪",it:"🇮🇹",es:"🇪🇸"};
 const desktop=["/dashboard","/dashboard/scan","/dashboard/github","/dashboard/history","/dashboard/more"];
-const mobile=[0,1,2,4];
-const paths=["M3 10l9-7 9 7v10H3z M9 20v-7h6v7","M12 3v18 M3 12h18","M7 4l10 16 M17 4L7 20","M5 12h14 M12 5v14"];
+const mobile=[0,1,2,3,4];
+const paths=["M3 10l9-7 9 7v10H3z M9 20v-7h6v7","M12 3v18 M3 12h18","M7 4l10 16 M17 4L7 20","M4 6h16 M4 12h16 M4 18h10","M5 12h14 M12 5v14"];
 
 export default function DashboardNav({current}:{current:number}){
  const [language,setLanguage]=useState<Locale>("nl");
