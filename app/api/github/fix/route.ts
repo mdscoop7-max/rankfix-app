@@ -168,7 +168,7 @@ function buildDeterministicOgFix(filePath:string,current:string,issue:string,con
   } else return null;
   return {content,summary:"RankFix heeft de ontbrekende Open Graph-metadata veilig toegevoegd met bestaande scanwaarden."};
 }
-async function generateCodeFix(filePath:string,fileContent:string,issue:string,context:string){
+async function generateCodeFix(filePath:string,fileContent:string,issue:string,context:string,issueId:string){
   const key=process.env.OPENAI_API_KEY?.trim();
   if(!key) throw new Error("OPENAI_API_KEY ontbreekt in de Render runtime. Controleer Environment Variables van rankfix-app en deploy opnieuw.");
   const model=process.env.OPENAI_MODEL?.trim() || "gpt-5.6-luna";
@@ -176,9 +176,13 @@ async function generateCodeFix(filePath:string,fileContent:string,issue:string,c
     "You are RankFix AI. Modify this repository file to implement exactly one SEO/GEO fix.",
     "Return ONLY valid JSON: {summary:string,content:string}. content is the COMPLETE replacement file, not a diff.",
     "Preserve behavior and make the smallest safe change. Never invent business facts, branding, URLs, image files, or add secrets.",
+    "The selected audit issue_id is: "+issueId+". Change ONLY what is necessary to resolve that exact issue_id. Do not opportunistically fix any other SEO/GEO issue in the file.",
     "If the requested issue is not already satisfied, you MUST make a concrete change in the returned file. Never return the CURRENT FILE unchanged unless the issue is already satisfied.",
-    "For Open Graph/social metadata issues, implement every requested og:title, og:description, and og:image field that is missing, using the exact values supplied by the scan context.",
-    "Do not change existing site identity, brand name, metadata title, or metadata description unless the issue explicitly requests a rebrand.",
+    "For Open Graph/social metadata issues, change only the specific Open Graph fields required by the selected issue. Never rewrite the normal meta description or title as a side effect. If exact safe values for a requested OG field are not present in trusted scan context or existing file content, leave that field unchanged rather than inventing it.",
+    "For META_DESCRIPTION_MISSING or META_DESCRIPTION_GUIDANCE, change only the normal meta description. Do not change og:title, og:description, title, H1, canonical, structured data, or unrelated content.",
+    "For META_TITLE_MISSING or META_TITLE_GUIDANCE, change only the normal metadata title. Do not change descriptions, Open Graph fields, H1, canonical, structured data, or unrelated content.",
+    "For H1_MISSING, change only the minimum markup needed to provide one H1. Do not rewrite its visible text or metadata.",
+    "Do not change existing site identity, brand name, metadata title, or metadata description unless that exact selected issue_id requires that exact field to change.",
     "If the scan context contains an existing live-site OG image URL, you may use that exact URL for og:image; do not invent a different image URL.",
     "Do not modify dependencies or unrelated functionality.",
     "File: "+filePath,
@@ -305,7 +309,7 @@ export async function POST(request:Request){
     const current=Buffer.from(file.content.replace(/\n/g,""),"base64").toString("utf8");
     if(current.length>120000) return NextResponse.json({error:"Bestand is te groot voor een veilige AI-codefix."},{status:413});
     const deterministicOgFix=buildDeterministicOgFix(path,current,issue,context);
-    const generated=deterministicOgFix || await generateCodeFix(path,current,issue,context);
+    const generated=deterministicOgFix || await generateCodeFix(path,current,issue,context,issueId);
     if(generated.content.length>180000) return NextResponse.json({error:"AI-output is te groot voor een veilige wijziging."},{status:422});
     if(!generated.content.trim() || /(?:\[YOUR_[^\]]*\]|\bTODO\b|CHANGE_ME|REPLACE_ME|INSERT_[A-Z_]+)/i.test(generated.content)) return NextResponse.json({error:"AI-output bevat lege inhoud of placeholders."},{status:422});
     // GitHub fixes contain a complete source file, not a single SEO field.
