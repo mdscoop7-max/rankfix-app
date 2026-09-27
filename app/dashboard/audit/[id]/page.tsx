@@ -31,7 +31,7 @@ function label(check: Check, t: Record<string,string>) {
   return check.status === "fail" ? t.important : t.warning;
 }
 
-export default function AuditDetail() {
+// Deployment refresh: ensure hosting receives the latest audit navigation update.\nexport default function AuditDetail() {
   const { id } = useParams<{ id: string }>();
   const [scan, setScan] = useState<Scan | null>(null);
   const [error, setError] = useState("");
