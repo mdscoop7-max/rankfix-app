@@ -229,6 +229,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const rawUrl = typeof body?.url === "string" ? body.url.trim() : "";
     const mode: AuditMode = body?.mode === "seo" || body?.mode === "geo" || body?.mode === "both" ? body.mode : "both";
+    const dashboardScan = body?.dashboard === true;
     const cleanAdsField = (value: unknown, max = 120) => typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, max) : "";
     const adsProfile = {
       industry: cleanAdsField(body?.adsProfile?.industry),
@@ -1322,8 +1323,10 @@ export async function POST(request: Request) {
     const rendering = { mode: "raw_html" as const, javascriptExecuted: false, note: "RankFix beoordeelde de HTTP HTML-response; client-side JavaScript is in deze scan niet uitgevoerd." };
 
     let user = null;
+    let savedScanId: string | null = null;
     let pendingFixes = new Map<string, { status: string }>();
     try { user = await getCurrentUser(); } catch {}
+    if (dashboardScan && !user) return NextResponse.json({ error: "Je sessie is verlopen. Log opnieuw in om deze scan in je dashboard op te slaan." }, { status: 401 });
     if (user) {
       try {
         await ensureDatabase();
@@ -1364,8 +1367,9 @@ export async function POST(request: Request) {
               jsonLdBlocks: validJsonLd, sitemapFound, robotsMentionsSitemap, robotsStatus, sitemapUrl: confirmedSitemapUrl || robotsDeclaredSitemapUrls[0] || null }
           })]
         );
+        savedScanId = insertedScan.rows[0]?.id ? String(insertedScan.rows[0].id) : null;
         try {
-          const scanId = insertedScan.rows[0]?.id || null;
+          const scanId = savedScanId;
           await getDb().query(
             "INSERT INTO website_health_events (user_id,website_host,scanned_url,scan_id,event_type,details) VALUES ($1,$2,$3,$4,'SCAN',$5)",
             [user.id,websiteHost,finalUrl.toString(),scanId,JSON.stringify({overallScore:selectedOverallScore,seoScore:selectedSeoScore,geoScore:selectedGeoScore})]
@@ -1399,7 +1403,10 @@ export async function POST(request: Request) {
         } catch (monitorError) {
           console.error("RankFix health monitoring write failed:", monitorError);
         }
-      } catch {}
+      } catch (saveError) {
+        console.error("RankFix scan history write failed:", saveError);
+        if (dashboardScan) return NextResponse.json({ error: "De scan is uitgevoerd, maar kon niet in je historie worden opgeslagen. Probeer opnieuw." }, { status: 500 });
+      }
     }
 
     if (user?.email) {
@@ -1428,6 +1435,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
+      scanId: savedScanId,
       mode,
       scannedUrl: target.toString(),
       finalUrl: finalUrl.toString(),
