@@ -23,3 +23,18 @@ export async function GET(request:Request){
   const row=result.rows[0];
   return NextResponse.json({mapped:true,website_host:host,repository:row.repository,baseBranch:row.base_branch,verifiedAt:row.verified_at});
 }
+
+
+export async function DELETE(request:Request){
+  const user=await getCurrentUser();
+  if(!user) return NextResponse.json({error:"Login vereist."},{status:401});
+  const body=await request.json().catch(()=>({}));
+  const host=normalizeHost(typeof body?.url==="string"?body.url:"");
+  if(!host) return NextResponse.json({error:"Ongeldige website-URL."},{status:400});
+  await ensureDatabase();
+  const result=await getDb().query(
+    "DELETE FROM website_repositories WHERE user_id=$1 AND website_host=$2 RETURNING repository",
+    [user.id,host]
+  );
+  return NextResponse.json({ok:true,mapped:false,website_host:host,previousRepository:result.rows[0]?.repository||null});
+}
