@@ -215,7 +215,11 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
     isCommerce,
     confidence,
     confidenceLabel,
-    evidence: [...new Set(evidence)].slice(0, 8),
+    evidence: [...new Set(evidence)].filter((label) => {
+      if (commercePlatform === "Shopify" && label.startsWith("Magento")) return false;
+      if (commercePlatform === "Magento / Adobe Commerce" && label.startsWith("Shopify")) return false;
+      return true;
+    }).slice(0, 8),
   };
 }
 
