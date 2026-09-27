@@ -257,7 +257,20 @@ export async function POST(request: Request) {
     const started = Date.now();
     let response: Response;
     try {
-      ({ response } = await safePublicFetch(target, { timeoutMs: 12000, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml,text/plain,application/xml" }));
+      const fetchTarget = () => safePublicFetch(target, { timeoutMs: 12000, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml,text/plain,application/xml" });
+      ({ response } = await fetchTarget());
+
+      // A 429 is a temporary rate limit, not an SEO finding. Respect Retry-After
+      // when practical and retry at most twice so RankFix never creates a request loop.
+      for (let retry = 0; response.status === 429 && retry < 2; retry++) {
+        const retryAfter = response.headers.get("retry-after");
+        const seconds = retryAfter && /^\d+$/.test(retryAfter.trim()) ? Number(retryAfter.trim()) : null;
+        const retryDateMs = retryAfter && seconds === null ? Date.parse(retryAfter) - Date.now() : NaN;
+        const requestedDelayMs = seconds !== null ? seconds * 1000 : Number.isFinite(retryDateMs) ? Math.max(0, retryDateMs) : 750 * (retry + 1);
+        const delayMs = Math.min(Math.max(requestedDelayMs, 500), 5000);
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        ({ response } = await fetchTarget());
+      }
     } catch {
       return NextResponse.json(
         { error: "De website kon niet worden opgehaald. Controleer de URL en probeer opnieuw." },
@@ -267,6 +280,13 @@ export async function POST(request: Request) {
 
     const responseTime = Date.now() - started;
     const finalUrl = new URL(response.url || target.toString());
+
+    if (response.status === 429) {
+      return NextResponse.json(
+        { error: "Deze website beperkt tijdelijk scanverzoeken. RankFix heeft opnieuw geprobeerd, maar de limiet is nog actief. Probeer later opnieuw.", retryable: true, charged: false },
+        { status: 429 }
+      );
+    }
 
     if (!response.ok && response.status !== 404) {
       return NextResponse.json(
