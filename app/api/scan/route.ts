@@ -541,7 +541,9 @@ export async function POST(request: Request) {
       repeatedProductCardSignal ||
       commerceCategoryContentSignal
     );
-    const hasEcommerceSignal = hasProductSignal || hasCategorySignal || (commerceNavigationSignal && (hasExplicitPriceSignal || visiblePriceCount >= 2 || hasStrongCommerceAction));
+    // Pricing tables on SaaS/service sites are not webshop evidence by themselves.
+    // A homepage needs an actual commerce action before webshop-only checks are enabled.
+    const hasEcommerceSignal = hasProductSignal || hasCategorySignal || (commerceNavigationSignal && hasStrongCommerceAction && (hasExplicitPriceSignal || visiblePriceCount >= 2));
     const requestedLanguages = adsProfile.adLanguages.split(/[,;]/).map((value) => value.trim().toLowerCase()).filter(Boolean).slice(0, 6);
     const requestedCountries = adsProfile.targetCountries.split(/[,;]/).map((value) => value.trim()).filter(Boolean).slice(0, 8);
     const pageLanguage = (requestedLanguages[0] || lang || "").toLowerCase().split("-")[0].trim();
@@ -1192,9 +1194,19 @@ export async function POST(request: Request) {
     );
     // Brand identity is a visible-consistency check. Structured data quality is scored separately above,
     // so missing Organization JSON-LD must not create a second schema penalty here.
+    const titleBrandCandidate = (title.split(/[|–—-]/)[0] || "").trim();
+    const escapedTitleBrand = titleBrandCandidate.replace(/[.*+?^{}()|[\]\\]/g, "\\const visibleBrandNameSignal = Boolean(
+      organizationName ||
+      firstMatch(html, /<meta[^>]+name\s*=\s*["']application-name["'][^>]+content\s*=\s*["']([^"']+)["']/i) ||
+      /<img[^>]+(?:class|id)\s*=\s*["'][^"']*(?:logo|brand)[^"']*["']/i.test(html) ||
+      /<img[^>]+alt\s*=\s*["'][^"']*(?:logo|brand)[^"']*["']/i.test(html)
+    );");
+    const visibleTitleBrandSignal = titleBrandCandidate.length >= 3 &&
+      new RegExp(`\\b${escapedTitleBrand}\\b`, "i").test(text);
     const visibleBrandNameSignal = Boolean(
       organizationName ||
       firstMatch(html, /<meta[^>]+name\s*=\s*["']application-name["'][^>]+content\s*=\s*["']([^"']+)["']/i) ||
+      visibleTitleBrandSignal ||
       /<img[^>]+(?:class|id)\s*=\s*["'][^"']*(?:logo|brand)[^"']*["']/i.test(html) ||
       /<img[^>]+alt\s*=\s*["'][^"']*(?:logo|brand)[^"']*["']/i.test(html)
     );
