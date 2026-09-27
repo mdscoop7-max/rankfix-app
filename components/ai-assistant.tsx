@@ -5,6 +5,15 @@ import { useEffect, useRef, useState } from "react";
 type Props = { dashboard?: boolean; scanId?: string | null; publicLocale?: string; errorContext?: string | null };
 
 export default function AiAssistant({ dashboard = false, scanId = null, publicLocale = "nl", errorContext = null }: Props) {
+  const greeting: Record<string, string> = {
+    nl: (greeting[publicLocale] || greeting.nl),
+    en: "Hi! I’m RankFix AI. I can explain RankFix, SEO, GEO, audits, AI Search and how the app works.",
+    fr: "Bonjour ! Je suis RankFix AI. Je peux expliquer RankFix, le SEO, le GEO, les audits, AI Search et le fonctionnement de l’application.",
+    de: "Hallo! Ich bin RankFix AI. Ich erkläre dir RankFix, SEO, GEO, Audits, AI Search und wie die App funktioniert.",
+    it: "Ciao! Sono RankFix AI. Posso spiegarti RankFix, SEO, GEO, audit, AI Search e come funziona l’app.",
+    es: "¡Hola! Soy RankFix AI. Puedo explicarte RankFix, SEO, GEO, auditorías, AI Search y cómo funciona la aplicación."
+  };
+
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([
@@ -20,6 +29,13 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
   const [fixBusy, setFixBusy] = useState(false);
   const [fixResult, setFixResult] = useState("");
   const [language, setLanguage] = useState(publicLocale);
+
+  useEffect(() => {
+    if (!dashboard) {
+      setLanguage(publicLocale);
+      setMessages((current) => current.length <= 1 ? [{ role: "assistant", content: greeting[publicLocale] || greeting.nl }] : current);
+    }
+  }, [dashboard, publicLocale]);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
