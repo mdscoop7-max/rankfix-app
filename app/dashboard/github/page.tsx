@@ -72,6 +72,27 @@ export default function GithubPage(){
     finally{ setBusy(false); }
   }
 
+  async function selectRepository(nextRepo:string){
+    if(reposLoading||busy) return;
+    if(mapped && nextRepo!==repo){
+      if(!siteUrl){ setError("Websitecontext ontbreekt; open deze fix opnieuw vanuit het auditrapport."); return; }
+      setBusy(true); setError(""); setMessage("Repositorykoppeling wordt gewijzigd…"); setPreview(null);
+      try{
+        const r=await fetch("/api/github/site-repository",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:siteUrl})});
+        const d=await r.json();
+        if(!r.ok) throw new Error(d.error||"Repositorykoppeling kon niet worden gewijzigd.");
+        setMapped(false);
+        setMessage("Oude koppeling vrijgegeven. Controleer de nieuwe repository en maak daarna de diff-preview.");
+      }catch(e:any){
+        setError(e?.message||"Repositorykoppeling kon niet worden gewijzigd.");
+        return;
+      }finally{ setBusy(false); }
+    }
+    setRepo(nextRepo);
+    const selected=repos.find(r=>r.full_name===nextRepo);
+    if(selected) setBaseBranch(selected.default_branch);
+  }
+
   async function createFix(e:React.FormEvent){
     const publish=preview!==null;
     e.preventDefault();
@@ -143,7 +164,7 @@ export default function GithubPage(){
           <span>GitHub verbonden als <b>{login}</b>.</span>
           <a href="/api/github/connect" className="rounded-lg border border-emerald-300/20 px-3 py-2 text-xs font-bold text-emerald-100 hover:bg-emerald-300/10">GitHub opnieuw verbinden</a>
         </div>
-        <label className="block"><span className="text-sm font-semibold">{mapped?"Gekoppelde repository":reposLoading?"Repository zoeken…":"Kies eenmalig de repository van deze website"}</span>{reposLoading&&<p className="mt-2 text-sm text-cyan-200" role="status">RankFix zoekt je GitHub-repositories en controleert de koppeling met deze website…</p>}<select required disabled={mapped||reposLoading} value={repo} onChange={e=>{setRepo(e.target.value);const x=repos.find(r=>r.full_name===e.target.value);if(x)setBaseBranch(x.default_branch);}} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"><option value="">{reposLoading?"Repositories laden…":"Selecteer repository"}</option>{repos.map(r=><option key={r.full_name} value={r.full_name}>{r.full_name}{r.private?" · privé":""}</option>)}</select><p className="mt-2 text-xs text-slate-500">{mapped?"RankFix gebruikt deze geverifieerde koppeling automatisch.":"Dit hoef je maar één keer per website te doen. RankFix kiest branch, bestand en technische gegevens daarna zelf."}</p>{mapped&&<button type="button" disabled={busy} onClick={changeRepositoryMapping} className="mt-3 rounded-lg border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/5 disabled:opacity-50">Repositorykoppeling wijzigen</button>}</label>
+        <label className="block"><span className="text-sm font-semibold">{mapped?"Gekoppelde repository":reposLoading?"Repository zoeken…":"Kies eenmalig de repository van deze website"}</span>{reposLoading&&<p className="mt-2 text-sm text-cyan-200" role="status">RankFix zoekt je GitHub-repositories en controleert de koppeling met deze website…</p>}<select required disabled={reposLoading||busy} value={repo} onChange={e=>void selectRepository(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"><option value="">{reposLoading?"Repositories laden…":"Selecteer repository"}</option>{repos.map(r=><option key={r.full_name} value={r.full_name}>{r.full_name}{r.private?" · privé":""}</option>)}</select><p className="mt-2 text-xs text-slate-500">{mapped?"RankFix gebruikt deze geverifieerde koppeling automatisch.":"Dit hoef je maar één keer per website te doen. RankFix kiest branch, bestand en technische gegevens daarna zelf."}</p>{mapped&&<button type="button" disabled={busy} onClick={changeRepositoryMapping} className="mt-3 rounded-lg border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/5 disabled:opacity-50">Repositorykoppeling wijzigen</button>}</label>
         {siteUrl&&<div className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm"><span className="text-slate-500">Website</span><div className="mt-1 font-semibold break-all">{siteUrl}</div></div>}
         <input type="hidden" value={path} readOnly />
         <input type="hidden" value={issue} readOnly />
