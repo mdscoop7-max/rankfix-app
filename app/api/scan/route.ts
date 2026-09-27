@@ -746,7 +746,16 @@ export async function POST(request: Request) {
       /InStock|LimitedAvailability|OnlineOnly|InStoreOnly/i.test(value) ? "in_stock" : "unknown"
     ).filter((value) => value !== "unknown"))];
     const availabilityContradiction = Boolean(visibleAvailabilityState && structuredAvailabilityStates.length && !structuredAvailabilityStates.includes(visibleAvailabilityState));
-    const hasVariantSelectorSignal = hasProductSignal && /<(?:select|button)[^>]*(?:name|id|class)\s*=\s*["'][^"']*(?:variant|size|maat|color|colour|kleur)[^"']*["']/i.test(html);
+    const genericVariantSelectorSignal = /<(?:select|button|input)[^>]*(?:name|id|class|aria-label|data-option-label)\s*=\s*["'][^"']*(?:variant|option|size|maat|color|colour|kleur|swatch)[^"']*["']/i.test(html);
+    const magentoVariantSelectorSignal = /(?:swatch-attribute|swatch-option|super_attribute|product-options-wrapper|data-role\s*=\s*["']swatch-options["']|data-mage-init\s*=\s*["'][^"']*(?:configurable|swatch))/i.test(html);
+    const shopifyVariantSelectorSignal = /(?:name\s*=\s*["'](?:id|options\[[^\]]+\])["']|product-form__input|variant-radios|variant-selects)/i.test(html);
+    const wooVariantSelectorSignal = /(?:variations_form|woocommerce-variation|attribute_pa_|name\s*=\s*["']attribute_[^"']+["'])/i.test(html);
+    const hasVariantSelectorSignal = hasProductSignal && (
+      genericVariantSelectorSignal ||
+      magentoVariantSelectorSignal ||
+      shopifyVariantSelectorSignal ||
+      wooVariantSelectorSignal
+    );
     const pathSegments = finalUrl.pathname.split("/").filter(Boolean).map((segment) => decodeURIComponent(segment).toLowerCase().trim());
     const duplicatePathSegments = pathSegments.filter((segment, index) => index > 0 && segment === pathSegments[index - 1]);
     // Repeated locale segments such as /nl/nl/ can be a deliberate international routing convention.
