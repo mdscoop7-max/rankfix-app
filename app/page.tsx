@@ -599,13 +599,13 @@ export default function Home() {
             />
             <button
               disabled={scanning}
-              className="rounded-xl bg-white px-6 py-4 text-sm font-bold text-slate-950 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl bg-emerald-300 px-6 py-4 text-sm font-bold text-[#032D24] shadow-lg shadow-emerald-500/10 transition hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {scanning ? t.scanning : `${t.start} ${auditMode === "seo" ? "SEO" : auditMode === "geo" ? "GEO" : "SEO + GEO"} ${t.auditStart}`}
             </button>
           </form>
         </div>
-        <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 px-2 text-xs text-slate-500 sm:gap-x-6">
+        <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 px-2 text-xs font-medium text-emerald-200 sm:gap-x-6">
           <span>✓ SEO</span>
           <span>✓ GEO</span>
           <span>✓ Techniek</span>
