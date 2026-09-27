@@ -24,6 +24,7 @@ export const metadata: Metadata = {
     siteName: "RankFix AI",
     title: "RankFix AI — SEO & GEO Audit met concrete fixes",
     description: "Scan technische SEO, content, structured data en AI-search readiness en krijg duidelijke verbeterpunten met concrete fixvoorstellen.",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "RankFix AI — SEO & GEO Audit" }],
   },
   twitter: {
     card: "summary",
