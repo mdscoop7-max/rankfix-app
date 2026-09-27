@@ -134,6 +134,16 @@ const translations = {
   }
 } as const;
 
+
+const publicCopy = {
+  nl:{featuresEyebrow:"Van inzicht naar verbetering",featuresTitle:"Van scan naar actie.",featuresIntro:"Ontdek wat aandacht vraagt, lees waarom het telt en bekijk een concreet codevoorstel. Na publicatie bevestig je de verandering met een nieuwe scan.",cards:[["SEO + GEO audit","Technische SEO, metadata, structured data, entities, social metadata, URL-hygiëne en AI-search signalen."],["Webshop audit","Product-schema, prijsnotatie, retour- en verzendsignalen, reviewplatforms, checkout-trust en variant-URL's."],["Ads readiness","Controleer landingspagina, tracking-signalen, GA4/GTM en Google Ads-conversies."],["Fix Engine","RankFix maakt een aparte pull request voor een veilige codewijziging. Controleer en publiceer die eerst; scan daarna opnieuw."]],pricingLabel:"Eenvoudige prijzen",pricingTitle:"Betaal voor gebruik. Niet voor ruis.",pricingIntro:"Kies het abonnement dat bij je website of webshop past. AI-fixes zijn inbegrepen in de betaalde pakketten.",perMonth:pc.perMonth,trial:"voor kennismaken",chosen:"Meest gekozen",forStores:"Voor webshops",freeScan:"Gratis scan starten",choose:"Kies",resourcesTitle:"Alles om van audit naar actie te gaan.",resourcesIntro:"Gebruik RankFix voor audits en concrete codevoorstellen. Rapportdownloads en uitgebreidere lokale SEO-functies zijn nog in ontwikkeling.",aboutTitle:"Minder jargon. Meer grip op je website.",about1:"RankFix AI helpt ondernemers en teams om hun website beter te begrijpen. De scan bekijkt SEO- en GEO-signalen, van technische basis en inhoud tot structured data.",about2:"Voor geschikte codewijzigingen kan RankFix een aparte GitHub-pull-request voorbereiden. Je controleert en publiceert die zelf; een nieuwe scan bevestigt de verbetering.",learnMore:"Lees meer over RankFix →",name:"Naam",email:"E-mailadres",company:"Bedrijf (optioneel)",message:"Waar kunnen we mee helpen?",tech:"Techniek",store:"Webshop",concrete:"Concrete verbeteringen",ready:"Klaar voor klanten"},
+  en:{featuresEyebrow:"From insight to improvement",featuresTitle:"From scan to action.",featuresIntro:"See what needs attention, understand why it matters and review a concrete code proposal. After publishing, confirm the change with a new scan.",cards:[["SEO + GEO audit","Technical SEO, metadata, structured data, entities, social metadata, URL hygiene and AI-search signals."],["E-commerce audit","Product schema, price notation, returns and shipping signals, review platforms, checkout trust and variant URLs."],["Ads readiness","Check landing pages, tracking signals, GA4/GTM and Google Ads conversions."],["Fix Engine","RankFix creates a separate pull request for a safe code change. Review and publish it first, then scan again."]],pricingLabel:"Simple pricing",pricingTitle:"Pay for usage. Not noise.",pricingIntro:"Choose the plan that fits your website or online store. AI fixes are included in paid plans.",perMonth:"per month",trial:"to get started",chosen:"Most popular",forStores:"For online stores",freeScan:"Start free scan",choose:"Choose",resourcesTitle:"Everything you need to move from audit to action.",resourcesIntro:"Use RankFix for audits and concrete code proposals. Report downloads and expanded local SEO features are still in development.",aboutTitle:"Less jargon. More control over your website.",about1:"RankFix AI helps businesses and teams understand their websites. The scan reviews SEO and GEO signals, from technical foundations and content to structured data.",about2:"For suitable code changes, RankFix can prepare a separate GitHub pull request. You review and publish it yourself; a new scan confirms the improvement.",learnMore:"Learn more about RankFix →",name:"Name",email:"Email address",company:"Company (optional)",message:"How can we help?",tech:"Technical",store:"E-commerce",concrete:"Concrete improvements",ready:"Client-ready"},
+  fr:{featuresEyebrow:"De l’analyse à l’amélioration",featuresTitle:"Du scan à l’action.",featuresIntro:"Découvrez ce qui demande votre attention, comprenez pourquoi et consultez une proposition de code concrète. Après publication, confirmez le changement avec un nouveau scan.",cards:[["Audit SEO + GEO","SEO technique, métadonnées, données structurées, entités, métadonnées sociales, hygiène des URL et signaux de recherche IA."],["Audit e-commerce","Schéma produit, prix, retours et livraison, plateformes d’avis, confiance du paiement et URL de variantes."],["Préparation Ads","Contrôlez les pages de destination, les signaux de suivi, GA4/GTM et les conversions Google Ads."],["Fix Engine","RankFix crée une pull request séparée pour une modification sûre. Vérifiez-la et publiez-la, puis relancez le scan."]],pricingLabel:"Tarifs simples",pricingTitle:"Payez pour l’usage, pas pour le bruit.",pricingIntro:"Choisissez l’offre adaptée à votre site ou boutique. Les correctifs IA sont inclus dans les offres payantes.",perMonth:"par mois",trial:"pour commencer",chosen:"Le plus choisi",forStores:"Pour boutiques",freeScan:"Lancer le scan gratuit",choose:"Choisir",resourcesTitle:"Tout pour passer de l’audit à l’action.",resourcesIntro:"Utilisez RankFix pour les audits et les propositions de code concrètes. Les téléchargements de rapports et les fonctions SEO local avancées sont encore en développement.",aboutTitle:"Moins de jargon. Plus de contrôle sur votre site.",about1:"RankFix AI aide les entreprises et les équipes à mieux comprendre leur site. Le scan analyse les signaux SEO et GEO, de la base technique au contenu et aux données structurées.",about2:"Pour les modifications adaptées, RankFix peut préparer une pull request GitHub séparée. Vous la vérifiez et la publiez vous-même; un nouveau scan confirme l’amélioration.",learnMore:"En savoir plus sur RankFix →",name:"Nom",email:"Adresse e-mail",company:"Entreprise (facultatif)",message:"Comment pouvons-nous vous aider ?",tech:"Technique",store:"E-commerce",concrete:"Améliorations concrètes",ready:"Prêt pour les clients"},
+  de:{featuresEyebrow:"Von der Analyse zur Verbesserung",featuresTitle:"Vom Scan zur Aktion.",featuresIntro:"Erkenne, was Aufmerksamkeit braucht, verstehe warum und prüfe einen konkreten Codevorschlag. Nach der Veröffentlichung bestätigst du die Änderung mit einem neuen Scan.",cards:[["SEO + GEO Audit","Technisches SEO, Metadaten, strukturierte Daten, Entitäten, Social Metadata, URL-Hygiene und AI-Search-Signale."],["Shop-Audit","Produktschema, Preisangaben, Rückgabe- und Versandsignale, Bewertungsplattformen, Checkout-Vertrauen und Varianten-URLs."],["Ads Readiness","Prüfe Landingpages, Tracking-Signale, GA4/GTM und Google-Ads-Conversions."],["Fix Engine","RankFix erstellt einen separaten Pull Request für eine sichere Codeänderung. Erst prüfen und veröffentlichen, danach erneut scannen."]],pricingLabel:"Einfache Preise",pricingTitle:"Zahle für Nutzung, nicht für Rauschen.",pricingIntro:"Wähle den Tarif, der zu deiner Website oder deinem Shop passt. AI-Fixes sind in den bezahlten Tarifen enthalten.",perMonth:"pro Monat",trial:"zum Kennenlernen",chosen:"Am beliebtesten",forStores:"Für Shops",freeScan:"Kostenlosen Scan starten",choose:"Wählen",resourcesTitle:"Alles für den Weg vom Audit zur Umsetzung.",resourcesIntro:"Nutze RankFix für Audits und konkrete Codevorschläge. Berichtdownloads und erweiterte Local-SEO-Funktionen sind noch in Entwicklung.",aboutTitle:"Weniger Fachsprache. Mehr Kontrolle über deine Website.",about1:"RankFix AI hilft Unternehmen und Teams, ihre Website besser zu verstehen. Der Scan prüft SEO- und GEO-Signale von der technischen Basis bis zu Inhalten und strukturierten Daten.",about2:"Für geeignete Codeänderungen kann RankFix einen separaten GitHub Pull Request vorbereiten. Du prüfst und veröffentlichst ihn selbst; ein neuer Scan bestätigt die Verbesserung.",learnMore:"Mehr über RankFix →",name:"Name",email:"E-Mail-Adresse",company:"Unternehmen (optional)",message:"Wie können wir helfen?",tech:"Technik",store:"Webshop",concrete:"Konkrete Verbesserungen",ready:"Bereit für Kunden"},
+  it:{featuresEyebrow:"Dall’analisi al miglioramento",featuresTitle:"Dalla scansione all’azione.",featuresIntro:"Scopri cosa richiede attenzione, capisci perché è importante e consulta una proposta di codice concreta. Dopo la pubblicazione, conferma la modifica con una nuova scansione.",cards:[["Audit SEO + GEO","SEO tecnico, metadati, dati strutturati, entità, metadati social, igiene URL e segnali di ricerca AI."],["Audit e-commerce","Schema prodotto, prezzi, resi e spedizioni, piattaforme di recensioni, fiducia nel checkout e URL delle varianti."],["Ads readiness","Controlla landing page, segnali di tracking, GA4/GTM e conversioni Google Ads."],["Fix Engine","RankFix crea una pull request separata per una modifica sicura. Controllala e pubblicala, poi esegui una nuova scansione."]],pricingLabel:"Prezzi semplici",pricingTitle:"Paga per l’utilizzo, non per il rumore.",pricingIntro:"Scegli il piano adatto al tuo sito o negozio online. I fix AI sono inclusi nei piani a pagamento.",perMonth:"al mese",trial:"per iniziare",chosen:"Più scelto",forStores:"Per e-commerce",freeScan:"Avvia scansione gratuita",choose:"Scegli",resourcesTitle:"Tutto per passare dall’audit all’azione.",resourcesIntro:"Usa RankFix per audit e proposte di codice concrete. Download dei report e funzioni SEO locale avanzate sono ancora in sviluppo.",aboutTitle:"Meno gergo. Più controllo sul tuo sito.",about1:"RankFix AI aiuta aziende e team a capire meglio il proprio sito. La scansione analizza segnali SEO e GEO, dalla base tecnica ai contenuti e ai dati strutturati.",about2:"Per modifiche adatte, RankFix può preparare una pull request GitHub separata. La controlli e pubblichi tu; una nuova scansione conferma il miglioramento.",learnMore:"Scopri di più su RankFix →",name:"Nome",email:"Indirizzo e-mail",company:"Azienda (opzionale)",message:"Come possiamo aiutarti?",tech:"Tecnica",store:"E-commerce",concrete:"Miglioramenti concreti",ready:"Pronto per i clienti"},
+  es:{featuresEyebrow:"Del análisis a la mejora",featuresTitle:"Del escaneo a la acción.",featuresIntro:"Descubre qué necesita atención, entiende por qué importa y revisa una propuesta de código concreta. Tras publicarla, confirma el cambio con un nuevo escaneo.",cards:[["Auditoría SEO + GEO","SEO técnico, metadatos, datos estructurados, entidades, metadatos sociales, higiene de URL y señales de búsqueda con IA."],["Auditoría e-commerce","Schema de producto, precios, devoluciones y envíos, plataformas de reseñas, confianza del checkout y URL de variantes."],["Preparación Ads","Comprueba landing pages, señales de tracking, GA4/GTM y conversiones de Google Ads."],["Fix Engine","RankFix crea una pull request separada para un cambio seguro. Revísala y publícala primero; después vuelve a escanear."]],pricingLabel:"Precios simples",pricingTitle:"Paga por uso, no por ruido.",pricingIntro:"Elige el plan adecuado para tu web o tienda. Los arreglos con IA están incluidos en los planes de pago.",perMonth:"al mes",trial:"para empezar",chosen:"Más elegido",forStores:"Para tiendas",freeScan:"Iniciar análisis gratis",choose:"Elegir",resourcesTitle:"Todo para pasar de la auditoría a la acción.",resourcesIntro:"Usa RankFix para auditorías y propuestas de código concretas. Las descargas de informes y las funciones avanzadas de SEO local siguen en desarrollo.",aboutTitle:"Menos jerga. Más control sobre tu web.",about1:"RankFix AI ayuda a empresas y equipos a entender mejor su web. El análisis revisa señales SEO y GEO, desde la base técnica y el contenido hasta los datos estructurados.",about2:"Para cambios adecuados, RankFix puede preparar una pull request de GitHub separada. Tú la revisas y publicas; un nuevo análisis confirma la mejora.",learnMore:"Más sobre RankFix →",name:"Nombre",email:"Correo electrónico",company:"Empresa (opcional)",message:"¿Cómo podemos ayudarte?",tech:"Técnica",store:"E-commerce",concrete:"Mejoras concretas",ready:"Listo para clientes"}
+} as const;
+
 type Language = keyof typeof translations;
 
 export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Language } = {}) {
@@ -150,6 +160,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [language, setLanguage] = useState<Language>(initialLanguage);
   const t = translations[language];
+  const pc = publicCopy[language];
   const [contactOpen, setContactOpen] = useState(false);
   const [contactSending, setContactSending] = useState(false);
   const [contactSent, setContactSent] = useState(false);
@@ -615,10 +626,10 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
 
         <div className="mx-auto mt-12 grid max-w-4xl grid-cols-2 gap-3 text-left sm:grid-cols-4">
           {[
-            ["SEO", "Techniek + on-page"],
+            ["SEO", `${pc.tech} + on-page`],
             ["GEO", "AI-search readiness"],
-            ["AI Fix", "Concrete verbeteringen"],
-            ["Reports", "Klaar voor klanten"],
+            ["AI Fix", pc.concrete],
+            ["Reports", pc.ready],
           ].map(([title, text]) => (
             <div key={title} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="text-sm font-bold">{title}</div>
@@ -976,23 +987,20 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
 
       <section id="features" className="mx-auto max-w-7xl scroll-mt-8 border-t border-slate-200 px-5 py-20 lg:px-8">
         <div className="max-w-2xl">
-          <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Van inzicht naar verbetering</div>
-          <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Van scan naar actie.</h2>
-          <p className="mt-4 text-slate-600">Ontdek wat aandacht vraagt, lees waarom het telt en bekijk een concreet codevoorstel. Na publicatie bevestig je de verandering met een nieuwe scan.</p>
+          <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{pc.featuresEyebrow}</div>
+          <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">{pc.featuresTitle}</h2>
+          <p className="mt-4 text-slate-600">{pc.featuresIntro}</p>
         </div>
         <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[
-            ["01", "SEO + GEO audit", "Technische SEO, metadata, structured data, entities, social metadata, URL-hygiëne en AI-search signalen."],
-            ["02", "Webshop audit", "Product-schema, prijsnotatie, retour- en verzendsignalen, reviewplatforms, checkout-trust en variant-URL's."],
-            ["03", "Ads readiness", "Controleer landingspagina, tracking-signalen, GA4/GTM en Google Ads-conversies zonder te doen alsof RankFix al toegang heeft tot je Ads-account."],
-            ["04", "Fix Engine", "RankFix maakt een aparte pull request voor een veilige codewijziging. Controleer en publiceer die eerst; scan daarna de live website opnieuw."],
-          ].map(([number, title, text]) => (
+          {pc.cards.map(([title, text], index) => {
+            const number = String(index + 1).padStart(2, "0");
+            return (
             <div key={number} className="group rounded-3xl border border-slate-200 bg-slate-50 p-7 transition hover:-translate-y-1 hover:bg-white">
               <div className="text-xs font-black text-emerald-300">{number}</div>
               <h3 className="mt-10 text-xl font-bold">{title}</h3>
               <p className="mt-3 text-sm leading-7 text-slate-500">{text}</p>
             </div>
-          ))}
+          )})}
         </div>
       </section>
 
@@ -1005,19 +1013,19 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
 
       <section id="prijzen" className="mx-auto max-w-7xl scroll-mt-8 border-t border-slate-200 px-5 py-20 lg:px-8">
         <div className="text-center">
-          <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Simple pricing</div>
-          <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">Betaal voor gebruik. Niet voor ruis.</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-slate-500">Kies het abonnement dat bij je website of webshop past. AI-fixes zijn inbegrepen in de betaalde pakketten.</p>
+          <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{pc.pricingLabel}</div>
+          <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">{pc.pricingTitle}</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-slate-500">{pc.pricingIntro}</p>
         </div>
         <div className="mx-auto mt-10 grid max-w-7xl gap-4 md:grid-cols-2 xl:grid-cols-3">
           {[
-            ["Free","€ 0,00","voor kennismaken",["1 website","1 volledige audit","SEO + GEO basis","Actiepunten","Geen AI-fix"]],
-            ["Start","€ 24,95","per maand",["1 website","10 scans / maand","AI-fixes inbegrepen","SEO + GEO audit","3 maanden scanhistorie"]],
-            ["Business","€ 44,95","per maand",["5 websites","30 scans / maand","AI-fixes inbegrepen","Automatische controles","PDF- en e-mailrapporten"]],
-            ["E-commerce","€ 64,95","per maand",["5 webshops","50 scans / maand","AI-fixes inbegrepen","Shopify, WooCommerce & Next.js/custom","Product-, categorie- en structured-data checks"]],
-            ["Pro","€ 94,95","per maand",["15 websites","100 scans / maand","AI-fixes inbegrepen","Uitgebreide automatisering","Tot 5 gebruikers"]],
-            ["Agency","€ 159,95","per maand",["50 websites","300 scans / maand","AI-fixes inbegrepen","White-label rapporten","API + team/workflow"]]
-          ].map((entry)=>{const [name,price,period,items]=entry as [string,string,string,string[]];const featured=name==="Business";const ecommerce=name==="E-commerce";return <div key={name} className={`relative rounded-3xl border p-7 ${featured?"border-emerald-400/40 bg-emerald-400/[0.06]":ecommerce?"border-cyan-400/30 bg-cyan-400/[0.04]":"border-slate-200 bg-slate-50"}`}>{featured&&<div className="absolute right-5 top-5 rounded-full bg-emerald-300 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-950">Meest gekozen</div>}{ecommerce&&<div className="absolute right-5 top-5 rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-cyan-200">Voor webshops</div>}<div className="text-sm font-bold">{name}</div><div className="mt-5 text-4xl font-black">{price}</div><div className="mt-1 text-xs text-slate-500">{period}</div><div className="my-6 h-px bg-white/10"/><ul className="space-y-3 text-sm text-slate-600">{items.map(item=><li key={item}>✓ {item}</li>)}</ul>{name==="Free"?<a href="#scan" className="mt-7 block w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold transition hover:bg-slate-50">Gratis scan starten</a>:<a href={`/checkout?plan=${name.toLowerCase()}`} className="mt-7 block w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold transition hover:bg-slate-50">Kies {name} →</a>}</div>})}
+            ["Free","€ 0,00",pc.trial,["1 website","1 volledige audit","SEO + GEO basis","Actiepunten","Geen AI-fix"]],
+            ["Start","€ 24,95",pc.perMonth,["1 website","10 scans / maand","AI-fixes inbegrepen","SEO + GEO audit","3 maanden scanhistorie"]],
+            ["Business","€ 44,95",pc.perMonth,["5 websites","30 scans / maand","AI-fixes inbegrepen","Automatische controles","PDF- en e-mailrapporten"]],
+            ["E-commerce","€ 64,95",pc.perMonth,["5 webshops","50 scans / maand","AI-fixes inbegrepen","Shopify, WooCommerce & Next.js/custom","Product-, categorie- en structured-data checks"]],
+            ["Pro","€ 94,95",pc.perMonth,["15 websites","100 scans / maand","AI-fixes inbegrepen","Uitgebreide automatisering","Tot 5 gebruikers"]],
+            ["Agency","€ 159,95",pc.perMonth,["50 websites","300 scans / maand","AI-fixes inbegrepen","White-label rapporten","API + team/workflow"]]
+          ].map((entry)=>{const [name,price,period,items]=entry as [string,string,string,string[]];const featured=name==="Business";const ecommerce=name==="E-commerce";return <div key={name} className={`relative rounded-3xl border p-7 ${featured?"border-emerald-400/40 bg-emerald-400/[0.06]":ecommerce?"border-cyan-400/30 bg-cyan-400/[0.04]":"border-slate-200 bg-slate-50"}`}>{featured&&<div className="absolute right-5 top-5 rounded-full bg-emerald-300 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-950">{pc.chosen}</div>}{ecommerce&&<div className="absolute right-5 top-5 rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-cyan-200">{pc.forStores}</div>}<div className="text-sm font-bold">{name}</div><div className="mt-5 text-4xl font-black">{price}</div><div className="mt-1 text-xs text-slate-500">{period}</div><div className="my-6 h-px bg-white/10"/><ul className="space-y-3 text-sm text-slate-600">{items.map(item=><li key={item}>✓ {item}</li>)}</ul>{name==="Free"?<a href="#scan" className="mt-7 block w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold transition hover:bg-slate-50">{pc.freeScan}</a>:<a href={`/checkout?plan=${name.toLowerCase()}`} className="mt-7 block w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold transition hover:bg-slate-50">{pc.choose} {name} →</a>}</div>})}
         </div>
       </section>
 
@@ -1042,10 +1050,10 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
             <h2 className="mt-2 text-3xl font-black">{t.contactTitle}</h2>
             <p className="mt-3 text-sm leading-6 text-slate-500">{t.contactText}</p>
             <form onSubmit={handleContact} className="mt-6 space-y-4">
-              <input name="name" required placeholder="Naam" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-600 focus:border-emerald-300/40" />
-              <input name="email" required type="email" placeholder="E-mailadres" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-600 focus:border-emerald-300/40" />
-              <input name="company" placeholder="Bedrijf (optioneel)" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-600 focus:border-emerald-300/40" />
-              <textarea name="message" required rows={5} placeholder="Waar kunnen we mee helpen?" className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-600 focus:border-emerald-300/40" />
+              <input name="name" required placeholder={pc.name} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-600 focus:border-emerald-300/40" />
+              <input name="email" required type="email" placeholder={pc.email} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-600 focus:border-emerald-300/40" />
+              <input name="company" placeholder={pc.company} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-600 focus:border-emerald-300/40" />
+              <textarea name="message" required rows={5} placeholder={pc.message} className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-600 focus:border-emerald-300/40" />
               {contactError && <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">{contactError}</div>}
               {contactSent && <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-3 text-sm text-emerald-200">{t.thanks}</div>}
               <button disabled={contactSending} className="w-full rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-100 disabled:opacity-50">{contactSending ? t.sending : t.send}</button>
@@ -1058,8 +1066,8 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
           <div className="max-w-2xl">
             <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{t.resources}</div>
-            <h2 className="mt-3 text-3xl font-black tracking-tight">Alles om van audit naar actie te gaan.</h2>
-            <p className="mt-4 text-slate-600">Gebruik RankFix voor audits en concrete codevoorstellen. Rapportdownloads en uitgebreidere lokale SEO-functies zijn nog in ontwikkeling.</p>
+            <h2 className="mt-3 text-3xl font-black tracking-tight">{pc.resourcesTitle}</h2>
+            <p className="mt-4 text-slate-600">{pc.resourcesIntro}</p>
           </div>
           <div className="mt-8 grid gap-4 md:grid-cols-3">
             {[
@@ -1076,10 +1084,10 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
       <section id="about" className="mx-auto max-w-7xl scroll-mt-8 px-5 py-16 lg:px-8">
         <div className="max-w-3xl">
           <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{t.about}</div>
-          <h2 className="mt-3 text-3xl font-black tracking-tight">Minder jargon. Meer grip op je website.</h2>
-          <p className="mt-4 leading-7 text-slate-300">RankFix AI helpt ondernemers en teams om hun website beter te begrijpen. De scan bekijkt SEO- en GEO-signalen, van technische basis en inhoud tot structured data. Je ziet wat goed gaat en welke punten aandacht verdienen.</p>
-          <p className="mt-4 leading-7 text-slate-600">Voor geschikte codewijzigingen kan RankFix een aparte GitHub-pull-request voorbereiden. Je controleert en publiceert die zelf; een nieuwe scan laat zien of de verbetering live zichtbaar is.</p>
-          <a href="/nl/about" className="mt-6 inline-flex rounded-xl border border-emerald-300/30 px-4 py-3 text-sm font-bold text-emerald-200">Lees meer over RankFix →</a>
+          <h2 className="mt-3 text-3xl font-black tracking-tight">{pc.aboutTitle}</h2>
+          <p className="mt-4 leading-7 text-slate-300">{pc.about1}</p>
+          <p className="mt-4 leading-7 text-slate-600">{pc.about2}</p>
+          <a href="/nl/about" className="mt-6 inline-flex rounded-xl border border-emerald-300/30 px-4 py-3 text-sm font-bold text-emerald-200">{pc.learnMore}</a>
         </div>
       </section>
 
