@@ -130,3 +130,25 @@
 .rf-scan-progress{margin-top:16px;display:flex;align-items:center;gap:14px;padding:18px;border:1px solid #BFEBDD;border-radius:14px;background:#F5FFFB;color:#10213A}.rf-scan-progress p{margin-top:4px;color:#667892;font-size:12px}.rf-scan-spinner{width:34px;height:34px;flex:none;border:3px solid #CBEFE4;border-top-color:#34C7A1;border-radius:50%;animation:rf-spin .9s linear infinite}@keyframes rf-spin{to{transform:rotate(360deg)}}
 .rf-shared-result{display:flex;align-items:center;gap:22px}.rf-shared-score{--rf-score:0;width:116px;height:116px;flex:none;border-radius:50%;display:grid;place-content:center;text-align:center;background:conic-gradient(#34C7A1 calc(var(--rf-score)*1%),#DCE8EF 0);position:relative}.rf-shared-score:before{content:"";position:absolute;inset:10px;border-radius:50%;background:#fff}.rf-shared-score strong,.rf-shared-score span{position:relative;z-index:1}.rf-shared-score strong{font-size:31px}.rf-shared-score span{font-size:11px;color:#667892}.rf-shared-result h2{margin-top:5px}.rf-shared-actions{display:flex;align-items:center;gap:14px;margin-top:13px}
 @media(max-width:650px){.rf-shared-scan-form{grid-template-columns:1fr}.rf-shared-scan-form .rf-primary{width:100%}.rf-shared-result{align-items:flex-start;flex-direction:column}.rf-shared-score{width:100px;height:100px}}
+
+
+/* 2026 audit-template alignment: use the same open canvas across every dashboard route */
+@media(min-width:651px){
+  .rf-page{padding:0 22px 80px}
+  .rf-shell{max-width:1280px;background:transparent;border:0;border-radius:0;box-shadow:none;overflow:visible}
+  .rf-header{min-height:72px;padding:0 8px;background:transparent;border-bottom:1px solid rgba(49,88,117,.72)}
+  .rf-brand{font-size:19px}
+  .rf-desktop-nav{padding:10px 8px;background:transparent!important;border-bottom:1px solid rgba(49,88,117,.72)!important}
+  .rf-body{padding:34px 8px 48px}
+  .rf-heading{margin-bottom:26px}
+  .rf-heading h1{font-size:clamp(30px,3vw,42px);line-height:1.08;letter-spacing:-.025em}
+  .rf-heading p{max-width:720px;margin-top:8px;font-size:15px;line-height:1.6}
+  .rf-dashboard-hero,.rf-card,.rf-site,.rf-fix-summary,.rf-report,.rf-history-list a,.rf-next-actions a,.rf-more-card,.rf-help-topic,.rf-dashboard-scan,.rf-process-grid article,.rf-history-filters,.rf-history-card{
+    border-color:#285979;
+    box-shadow:0 16px 44px rgba(0,8,22,.14)
+  }
+  .rf-dashboard-hero{padding:24px;border-radius:18px}
+  .rf-card,.rf-site,.rf-fix-summary,.rf-report,.rf-dashboard-scan,.rf-process-grid article,.rf-more-card,.rf-help-topic{border-radius:16px}
+  .rf-section{margin-top:34px}
+  .rf-status-grid{gap:14px}
+}
