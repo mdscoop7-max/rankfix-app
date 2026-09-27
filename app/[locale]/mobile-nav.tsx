@@ -20,5 +20,5 @@ export default function MobileNav({ locale, page }: { locale: Locale; page: stri
   const links = [`/${locale}`,`/${locale}/scan`,`/${locale}#how`, `/${locale}#pricing`,accountHref];
   const labels = [home[locale],t.nav[0],t.nav[1],t.nav[3],signedIn?dashboard[locale]:t.signIn];
   const active = page === "scan" ? 1 : page === "" ? 0 : -1;
-  return <nav className="lc-bottom-nav" aria-label="Mobile navigation">{links.map((href,index) => <a key={index} href={href} className={index === 1 ? "lc-bottom-scan" : undefined} aria-current={index === active ? "page" : undefined}><span className="lc-bottom-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={icons[index]} /></svg></span><span>{labels[index]}</span></a>)}</nav>;
+  return <nav className="lc-bottom-nav" aria-label="Mobile navigation">{links.map((href,index) => <a key={index} href={href} aria-current={index === active ? "page" : undefined}><span className="lc-bottom-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={icons[index]} /></svg></span><span>{labels[index]}</span></a>)}</nav>;
 }
