@@ -21,29 +21,29 @@ export default function RootMobileNav({ locale = "nl" }: { locale?: string }) {
    return ()=>{window.removeEventListener("hashchange",sync);window.removeEventListener("popstate",sync)};
  },[]);
  const labels: Record<string,string[]> = {
-   nl:["Home","Scan","Zo werkt het","Prijzen","Inloggen","Help"],
-   en:["Home","Scan","How it works","Pricing","Log in","Help"],
-   de:["Start","Scan","So funktioniert’s","Preise","Anmelden","Hilfe"],
-   fr:["Accueil","Scan","Comment ça marche","Tarifs","Connexion","Aide"],
-   it:["Home","Analisi","Come funziona","Prezzi","Accedi","Aiuto"],
-   es:["Inicio","Análisis","Cómo funciona","Precios","Iniciar sesión","Ayuda"]
+   nl:["Home","Scan","Zo werkt het","Prijzen","Inloggen","Help","Contact"],
+   en:["Home","Scan","How it works","Pricing","Log in","Help","Contact"],
+   de:["Start","Scan","So funktioniert’s","Preise","Anmelden","Hilfe","Kontakt"],
+   fr:["Accueil","Scan","Comment ça marche","Tarifs","Connexion","Aide","Contact"],
+   it:["Home","Analisi","Come funziona","Prezzi","Accedi","Aiuto","Contatti"],
+   es:["Inicio","Análisis","Cómo funciona","Precios","Iniciar sesión","Ayuda","Contacto"]
  };
  const tx=labels[locale]||labels.nl;
  const localizedBase=baseItems.map((item,index)=>({
    ...item,
-   href:index===0?"/"+locale:index===1?"/"+locale+"/scan":index===2?"/"+locale+"#features":"/"+locale+"#pricing",
+   href:index===0?"/"+locale:index===1?"/"+locale+"/scan":index===2?"/"+locale+"#features":"/"+locale+"#prijzen",
    label:tx[index]
  }));
  const items=[...localizedBase,signedIn
    ? {href:"/dashboard/more",label:tx[5],icon:helpIcon}
-   : {href:"/account?lang="+locale,label:tx[4],icon:helpIcon}
+   : {href:"/"+locale+"#footer",label:tx[6],icon:helpIcon}
  ];
  const activeIndex=(()=>{
    const [pathname,hash=""]=locationKey.split("#");
    if(pathname==="/dashboard/more") return 4;
    if(pathname?.includes("/scan")) return 1;
    if(hash==="features") return 2;
-   if(hash==="pricing") return 3;
+   if(hash==="prijzen") return 3;
    if(/^\\\/(nl|en|de|fr|it|es)\\\/?$/.test(pathname||"")) return 0;
    return pathname==="/"||pathname==="" ? 0 : -1;
  })();
