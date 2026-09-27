@@ -486,6 +486,7 @@ export async function POST(request: Request) {
       /<details\b/i.test(html) || /<h[2-6][^>]*>[^<]*(\?|faq|vragen|questions)[^<]*<\/h[2-6]>/i.test(html);
     const hasContactSignal = /\b(contact|contacteer|e-mail|email|telefoon|phone|adres|address|kontakt|contatti|contacto)\b/i.test(text);
     const hasContactFormSignal = /<form\b[\s\S]*?(?:name\s*=\s*["'](?:email|message|name)["']|type\s*=\s*["']email["'])[\s\S]*?<\/form>/i.test(html);
+    const hasContactActionSignal = /<(?:a|button)\b[^>]*(?:href\s*=\s*["'][^"']*(?:#contact|\/contact)|aria-label\s*=\s*["'][^"']*contact)[^>]*>|<(?:a|button)\b[^>]*>\s*(?:contact|kontakt|contatti|contacto)\s*<\/(?:a|button)>/i.test(html);
     const hasAboutSignal = /\b(over ons|over [a-z0-9][a-z0-9 .&-]{1,40}|about us|about [a-z0-9][a-z0-9 .&-]{1,40}|über [a-z0-9][a-z0-9 .&-]{1,40}|à propos|chi è|sobre [a-z0-9][a-z0-9 .&-]{1,40})\b/i.test(text);
     const organizationName = firstMatch(html, /<meta[^>]+(?:property|name)\s*=\s*["'](?:og:site_name|application-name)["'][^>]+content\s*=\s*["']([^"']+)["']/i);
     const sameAsCount = (html.match(/"sameAs"\s*:/gi) || []).length;
@@ -513,8 +514,8 @@ export async function POST(request: Request) {
       /\b(e-mail|email|mailto:)\b/i.test(html) ||
       /\b(adres|address|straat|street|postcode|postal code)\b/i.test(text);
     const hasSocialOrReviewSignal = /\b(instagram|facebook|linkedin|google reviews|reviews|tripadvisor|trustpilot)\b/i.test(text) || sameAsCount > 0;
-    const hasContactChannelSignal = hasBusinessContactDetails || (hasContactSignal && hasContactFormSignal);
-    const hasServiceExpertiseSignal = /\b(diensten|services|service|specialist|specialisten|expert|expertise|behandeling|behandelingen|hair|haar|knippen|kleur|color|styling|restaurant|keuken|cuisine|tandarts|elektricien|loodgieter|aannemer|dakdekker)\b/i.test(text);
+    const hasContactChannelSignal = hasBusinessContactDetails || (hasContactSignal && (hasContactFormSignal || hasContactActionSignal));
+    const hasServiceExpertiseSignal = /\b(diensten|services|service|specialist|specialisten|expert|expertise|seo|geo|structured data|schema\.org|technical seo|technische seo|ai[- ]search|search readiness|auditsoftware|auditing|behandeling|behandelingen|hair|haar|knippen|kleur|color|styling|restaurant|keuken|cuisine|tandarts|elektricien|loodgieter|aannemer|dakdekker)\b/i.test(text);
     const hasStrongCommerceAction = /\b(add to cart|add-to-cart|add to basket|buy now|in winkelwagen|toevoegen aan winkelwagen|koop nu|jetzt kaufen|ajouter au panier|acheter maintenant|añadir al carrito|comprar ahora|aggiungi al carrello|acquista ora)\b/i.test(text);
     const hasSkuSignal = /\b(sku|artikelnummer|productcode|référence produit|referencia del producto|codice prodotto)\b/i.test(text);
     const hasStockSignal = /\b(in stock|out of stock|op voorraad|niet op voorraad|uitverkocht|auf lager|nicht auf lager|en stock|rupture de stock|agotado|disponible|esaurito|disponibile|pre-?order|backorder)\b/i.test(text);
