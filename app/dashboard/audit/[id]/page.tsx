@@ -102,6 +102,13 @@ export default function AuditDetail() {
           </article>) : <p className="rf-empty">{t.empty}</p>}</section>
           <section className="rf-audit-list"><h2>{t.good}</h2><details><summary>{passed.length} {t.passedChecks}</summary><div className="rf-checks">{passed.map((check, index) => <article key={index}><strong>{check.title} <span title={weightReason(check)} className="cursor-help text-slate-500">ⓘ</span></strong><span>{label(check,t)}</span><p>{check.message}</p></article>)}</div></details></section>
           {(unableToConfirm.length>0||notApplicable.length>0)&&<section className="rf-audit-list"><h2>Geen bewezen probleem</h2>{unableToConfirm.length>0&&<details><summary>{unableToConfirm.length} niet te bevestigen — telt niet mee in de score</summary><div className="rf-checks">{unableToConfirm.map((check,index)=><article key={index}><strong>{check.title}</strong><span className="rf-badge">Niet te bevestigen</span><p>{check.message}</p></article>)}</div></details>}{notApplicable.length>0&&<details><summary>{notApplicable.length} niet van toepassing — telt niet mee in de score</summary><div className="rf-checks">{notApplicable.map((check,index)=><article key={index}><strong>{check.title}</strong><span className="rf-badge">N.v.t.</span><p>{check.message}</p></article>)}</div></details>}</section>}
+          <section className="mt-6 rounded-2xl border border-cyan-300/20 bg-gradient-to-br from-cyan-400/[0.09] to-blue-500/[0.06] p-5">
+            <div className="mb-4"><span className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-300">Extra analyses</span><h2 className="mt-1 text-xl font-bold text-white">Ga verder met RankFix</h2><p className="mt-1 text-sm text-slate-400">Gebruik deze scan als startpunt voor een vergelijking of lokale SEO-controle.</p></div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <a href={`/dashboard/competitor?url=${encodeURIComponent(scan.scanned_url)}`} className="rounded-xl border border-blue-300/20 bg-blue-500/10 p-4 transition hover:bg-blue-500/15"><strong className="text-blue-200">Concurrent vergelijken →</strong><p className="mt-1 text-sm text-slate-400">Vergelijk deze website met een concurrent en ontdek concrete kansen.</p></a>
+              <a href={`/dashboard/local-seo?url=${encodeURIComponent(scan.scanned_url)}`} className="rounded-xl border border-violet-300/20 bg-violet-500/10 p-4 transition hover:bg-violet-500/15"><strong className="text-violet-200">Local SEO controleren →</strong><p className="mt-1 text-sm text-slate-400">Controleer lokale vindbaarheid en bedrijfssignalen voor deze website.</p></a>
+            </div>
+          </section>
           <p className="rf-audit-footnote">{t.note}</p>
         </>}
       </div>
