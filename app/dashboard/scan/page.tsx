@@ -7,6 +7,7 @@ import "../dashboard.css";
 
 type Check = { status: string };
 type Result = {
+  scanId?: string | null;
   overallScore: number;
   grade?: string;
   seo?: { score: number; checks?: Check[] };
@@ -33,10 +34,11 @@ export default function DashboardScan() {
   async function run(event:React.FormEvent){
     event.preventDefault(); setBusy(true); setError(""); setResult(null);
     try{
-      const response=await fetch("/api/scan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url,mode:"both"})});
+      const response=await fetch("/api/scan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url,mode:"both",dashboard:true})});
       const data=await response.json();
       if(!response.ok) throw new Error(data.error||"Scan mislukt.");
-      setResult(data);
+      if(data.scanId){ location.href="/dashboard/audit/"+encodeURIComponent(data.scanId); return; }
+      throw new Error("De scan is uitgevoerd, maar het auditrapport kon niet worden geopend.");
     }catch(cause){setError(cause instanceof Error?cause.message:"Scan mislukt.");}
     finally{setBusy(false);}
   }
