@@ -109,6 +109,7 @@ function normalizeScanUrl(value: string) {
 }
 
 type TechnologyProfile = {
+  siteType: "Webshop" | "Landingpage" | "Website";
   cms: string | null;
   commercePlatform: string | null;
   framework: string | null;
@@ -209,6 +210,7 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
   const confidenceLabel = confidence >= 90 ? "high" : confidence >= 70 ? "medium" : "low";
 
   return {
+    siteType: isCommerce ? "Webshop" : "Website",
     cms,
     commercePlatform,
     framework,
@@ -1353,6 +1355,21 @@ export async function POST(request: Request) {
     // Keep the website profile aligned with the same evidence used by webshop-only audit checks.
     // Generic words such as "checkout", "price" or SaaS pricing must not classify a site as a webshop.
     const technologyProfile = detectTechnologyProfile(html, response.headers, hasEcommerceSignal);
+    // A homepage is only classified as a landing page when several independent
+    // conversion/content signals agree. The root URL alone is never enough.
+    if (!technologyProfile.isCommerce && isHomepage) {
+      const landingSignals = [
+        h1s.length === 1,
+        /\b(get started|start now|start gratis|gratis audit|audit starten|scan starten|try free|probeer|begin nu)\b/i.test(text),
+        /\b(features?|functies|voordelen|benefits|pricing|prijzen|abonnement)\b/i.test(text),
+        /\b(contact|demo|aanmelden|sign up|register|registreren)\b/i.test(text),
+      ];
+      const landingSignalCount = landingSignals.filter(Boolean).length;
+      if (landingSignalCount >= 3) {
+        technologyProfile.siteType = "Landingpage";
+        technologyProfile.evidence = [...technologyProfile.evidence, `Landingpage-signalen ${landingSignalCount}/4`].slice(0, 8);
+      }
+    }
     const rendering = { mode: "raw_html" as const, javascriptExecuted: false, note: "RankFix beoordeelde de HTTP HTML-response; client-side JavaScript is in deze scan niet uitgevoerd." };
 
     let user = null;
