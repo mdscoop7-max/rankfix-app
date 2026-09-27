@@ -605,8 +605,12 @@ export default function Home() {
             </button>
           </form>
         </div>
-        <div className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-slate-500">
-          <span>✓ {t.noCard}</span><span>✓ {t.direct}</span><span>✓ {t.both}</span><span>✓ Geen Base44 afhankelijkheid</span>
+        <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 px-2 text-xs text-slate-500 sm:gap-x-6">
+          <span>✓ SEO</span>
+          <span>✓ GEO</span>
+          <span>✓ Techniek</span>
+          <span>✓ Webshop</span>
+          <span>✓ Ads &amp; analytics</span>
         </div>
         {error && <div className="mx-auto mt-5 max-w-2xl rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">{error}</div>}
 
