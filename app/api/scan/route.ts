@@ -280,6 +280,24 @@ export async function POST(request: Request) {
       const planResult = await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1", [usageUser.id]);
       const planCode = String(planResult.rows[0]?.plan_code || "free").toLowerCase();
       if (planCode === "free") {
+        // Free includes one website. Bind the account to the first normalized
+        // website it has already scanned and reject additional domains.
+        const accountHosts = await getDb().query(
+          "SELECT DISTINCT lower(regexp_replace(split_part(split_part(COALESCE(final_url,scanned_url),'://',2),'/',1),'^www\\.','')) AS website_host FROM scans WHERE user_id=$1 ORDER BY website_host",
+          [usageUser.id]
+        );
+        const existingHosts = accountHosts.rows.map(row=>String(row.website_host||"").split(":")[0]).filter(Boolean);
+        if (existingHosts.length && !existingHosts.includes(usageWebsiteHost)) {
+          const websiteMessages: Record<string,string> = {
+            nl:"Free ondersteunt 1 website. Dit account is al gekoppeld aan een andere website. Upgrade om meerdere websites te beheren.",
+            en:"Free supports 1 website. This account is already linked to another website. Upgrade to manage multiple websites.",
+            de:"Free unterstützt 1 Website. Dieses Konto ist bereits mit einer anderen Website verknüpft. Upgrade für mehrere Websites.",
+            fr:"L’offre Free prend en charge 1 site. Ce compte est déjà associé à un autre site. Passez à une offre supérieure pour gérer plusieurs sites.",
+            it:"Il piano Free supporta 1 sito. Questo account è già collegato a un altro sito. Effettua l’upgrade per gestire più siti.",
+            es:"El plan Free admite 1 sitio. Esta cuenta ya está vinculada a otro sitio. Mejora tu plan para gestionar varios sitios."
+          };
+          return NextResponse.json({error:websiteMessages[scanLanguage],code:"FREE_WEBSITE_LIMIT",website:existingHosts[0]},{status:403});
+        }
         const monthStart = new Date();
         monthStart.setUTCDate(1); monthStart.setUTCHours(0,0,0,0);
         const hostUsage = await getDb().query(
