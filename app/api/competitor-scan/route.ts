@@ -5,18 +5,20 @@ import { ensureDatabase } from "@/lib/db-init";
 import { auditSite } from "@/lib/site-audit";
 
 export async function POST(request: Request) {
+  const body = await request.json().catch(()=>({}));
+  const language = typeof body?.language==="string"&&["nl","en","de","fr","it","es"].includes(body.language)?body.language:"nl";
+  const tr=(v:Record<string,string>)=>v[language]||v.nl;
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Log in om websites te vergelijken." }, { status: 401 });
+  if (!user) return NextResponse.json({ error:tr({nl:"Log in om websites te vergelijken.",en:"Log in to compare websites.",de:"Melde dich an, um Websites zu vergleichen.",fr:"Connectez-vous pour comparer des sites.",it:"Accedi per confrontare i siti.",es:"Inicia sesión para comparar sitios web."}) }, { status: 401 });
   await ensureDatabase();
   const planResult = await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1", [user.id]);
   if (String(planResult.rows[0]?.plan_code || "free").toLowerCase() === "free") {
-    return NextResponse.json({ error:"Concurrentanalyse is beschikbaar met een betaald abonnement.", code:"PAID_PLAN_REQUIRED" }, { status:403 });
+    return NextResponse.json({ error:tr({nl:"Concurrentanalyse is beschikbaar met een betaald abonnement.",en:"Competitor analysis is available with a paid plan.",de:"Die Konkurrenzanalyse ist mit einem kostenpflichtigen Tarif verfügbar.",fr:"L’analyse concurrentielle est disponible avec une offre payante.",it:"L’analisi concorrente è disponibile con un piano a pagamento.",es:"El análisis de competencia está disponible con un plan de pago."}), code:"PAID_PLAN_REQUIRED" }, { status:403 });
   }
   try {
-    const body = await request.json();
     const website = typeof body?.website === "string" ? body.website.trim() : "";
     const competitor = typeof body?.competitor === "string" ? body.competitor.trim() : "";
-    if (!website || !competitor) return NextResponse.json({ error: "Vul je website en een concurrent in." }, { status: 400 });
+    if (!website || !competitor) return NextResponse.json({ error:tr({nl:"Vul je website en een concurrent in.",en:"Enter your website and a competitor.",de:"Gib deine Website und einen Konkurrenten ein.",fr:"Saisissez votre site et un concurrent.",it:"Inserisci il tuo sito e un concorrente.",es:"Introduce tu web y un competidor."}) }, { status: 400 });
     const [own, other] = await Promise.all([auditSite(website, "QUICK"), auditSite(competitor, "QUICK")]);
     const active = (a: typeof own) => a.issues.filter(i => i.status === "FAIL" || i.status === "WARNING");
     const ownIssues = active(own), competitorIssues = active(other);
@@ -30,6 +32,6 @@ export async function POST(request: Request) {
       opportunities
     });
   } catch (error) {
-    return NextResponse.json({ error:"De vergelijking kon niet worden uitgevoerd.", code:error instanceof Error?error.message:"COMPARE_FAILED" }, { status:502 });
+    return NextResponse.json({ error:tr({nl:"De vergelijking kon niet worden uitgevoerd.",en:"The comparison could not be completed.",de:"Der Vergleich konnte nicht durchgeführt werden.",fr:"La comparaison n’a pas pu être effectuée.",it:"Non è stato possibile completare il confronto.",es:"No se pudo completar la comparación."}), code:error instanceof Error?error.message:"COMPARE_FAILED" }, { status:502 });
   }
 }
