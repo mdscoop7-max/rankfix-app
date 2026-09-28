@@ -34,6 +34,11 @@ export default function Account() {
     setBusy(true);
     setError("");
 
+    if (mode==="register" && !(password.length>=8 && /[A-Za-z]/.test(password) && /\\d/.test(password) && /[^A-Za-z0-9]/.test(password))) {
+      setError(language==="nl"?"Gebruik minimaal 8 tekens met letters, 1 cijfer en 1 speciaal teken.":language==="de"?"Mindestens 8 Zeichen mit Buchstaben, 1 Zahl und 1 Sonderzeichen verwenden.":language==="fr"?"Utilisez au moins 8 caractères avec des lettres, 1 chiffre et 1 caractère spécial.":language==="it"?"Usa almeno 8 caratteri con lettere, 1 numero e 1 carattere speciale.":language==="es"?"Usa al menos 8 caracteres con letras, 1 número y 1 carácter especial.":"Use at least 8 characters with letters, 1 number and 1 special character.");
+      setBusy(false); return;
+    }
+
     if (mode==="register" && password!==confirmPassword) {
       setError("De wachtwoorden komen niet overeen.");
       setBusy(false);
@@ -82,7 +87,9 @@ export default function Account() {
               <input required aria-label={t.name} value={name} onChange={e=>setName(e.target.value)} placeholder={t.name} autoComplete="name" className="w-full rounded-xl border border-[#334155] bg-[#16233A] px-4 py-3 text-base outline-none"/>
             )}
             <input required aria-label={t.email} type="email" value={email} onChange={e=>setEmail(e.target.value)} name="email" placeholder={t.email} autoComplete="username email" className="w-full rounded-xl border border-[#334155] bg-[#16233A] px-4 py-3 text-base outline-none"/>
-            <input required aria-label={t.password} minLength={8} type="password" value={password} onChange={e=>setPassword(e.target.value)} name="password" placeholder={t.password} autoComplete={mode==="register"?"new-password":"current-password"} className="w-full rounded-xl border border-[#334155] bg-[#16233A] px-4 py-3 text-base outline-none"/>
+            <input required aria-label={t.password} minLength={8} pattern={mode==="register"?"(?=.*[A-Za-z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{8,}":undefined} type="password" value={password} onChange={e=>setPassword(e.target.value)} name="password" placeholder={t.password} autoComplete={mode==="register"?"new-password":"current-password"} className="w-full rounded-xl border border-[#334155] bg-[#16233A] px-4 py-3 text-base outline-none"/>
+
+            {mode==="register"&&<p className="text-xs text-slate-400">{language==="nl"?"Minimaal 8 tekens: letters + 1 cijfer + 1 speciaal teken.":language==="de"?"Mindestens 8 Zeichen: Buchstaben + 1 Zahl + 1 Sonderzeichen.":language==="fr"?"Au moins 8 caractères : lettres + 1 chiffre + 1 caractère spécial.":language==="it"?"Almeno 8 caratteri: lettere + 1 numero + 1 carattere speciale.":language==="es"?"Mínimo 8 caracteres: letras + 1 número + 1 carácter especial.":"At least 8 characters: letters + 1 number + 1 special character."}</p>}
 
             {mode==="login"&&(
               <div className="flex items-center justify-between gap-4">
