@@ -4,14 +4,18 @@ import {getDb} from "@/lib/db";
 import {ensureDatabase} from "@/lib/db-init";
 import {decryptGoogleToken,refreshGoogleAccessToken} from "@/lib/google";
 
+type GoogleProperty={siteUrl:string;permissionLevel:string};
+
 async function googleProperties(userId:string){
  const c=await getDb().query("SELECT refresh_token_encrypted FROM google_connections WHERE user_id=$1",[userId]);
- if(!c.rows[0])return {connected:false as const,properties:[] as Array<{siteUrl:string;permissionLevel:string}>};
+ if(!c.rows[0])return {connected:false as const,properties:[] as GoogleProperty[]};
  const token=await refreshGoogleAccessToken(decryptGoogleToken(c.rows[0].refresh_token_encrypted));
  const r=await fetch("https://www.googleapis.com/webmasters/v3/sites",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
  const d=await r.json();
  if(!r.ok)throw new Error("gsc");
- return {connected:true as const,properties:(d.siteEntry||[]).map((x:any)=>({siteUrl:String(x.siteUrl),permissionLevel:String(x.permissionLevel)}))};
+ const entries=Array.isArray(d.siteEntry)?d.siteEntry:[];
+ const properties:GoogleProperty[]=entries.map((x:any)=>({siteUrl:String(x.siteUrl),permissionLevel:String(x.permissionLevel)}));
+ return {connected:true as const,properties};
 }
 
 export async function GET(){
@@ -22,7 +26,7 @@ export async function GET(){
   if(!google.connected)return NextResponse.json({connected:false,properties:[],selectedSiteUrl:null});
   const saved=await getDb().query("SELECT site_url FROM search_console_properties WHERE user_id=$1 AND selected=TRUE ORDER BY updated_at DESC LIMIT 1",[user.id]);
   const selectedSiteUrl=saved.rows[0]?.site_url||null;
-  return NextResponse.json({connected:true,properties:google.properties.map(p=>({...p,selected:p.siteUrl===selectedSiteUrl})),selectedSiteUrl});
+  return NextResponse.json({connected:true,properties:google.properties.map((p:GoogleProperty)=>({...p,selected:p.siteUrl===selectedSiteUrl})),selectedSiteUrl});
  }catch{return NextResponse.json({connected:true,error:"Search Console properties konden niet worden geladen.",properties:[],selectedSiteUrl:null},{status:502})}
 }
 
@@ -34,7 +38,7 @@ export async function POST(request:Request){
  try{
   const google=await googleProperties(user.id);
   if(!google.connected)return NextResponse.json({error:"Google Search Console is niet gekoppeld."},{status:409});
-  const property=google.properties.find(p=>p.siteUrl===siteUrl);
+  const property=google.properties.find((p:GoogleProperty)=>p.siteUrl===siteUrl);
   if(!property)return NextResponse.json({error:"Deze Search Console-property is niet beschikbaar voor dit Google-account."},{status:403});
   const db=await getDb();
   await db.query("BEGIN");
