@@ -1557,6 +1557,8 @@ export async function POST(request: Request) {
         await sendScanReportEmail({
           to: user.email,
           name: user.name,
+          language: scanLanguage,
+          scanId: savedScanId,
           scannedUrl: target.toString(),
           finalUrl: finalUrl.toString(),
           scannedAt: new Date().toISOString(),
