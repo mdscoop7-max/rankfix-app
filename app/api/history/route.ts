@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
+import { cookies } from "next/headers";
 
 type Row={id:string;scanned_url:string;final_url?:string;overall_score:number;seo_score:number;geo_score:number;created_at:string;result:any};
 function host(scan:Row){try{return new URL(scan.final_url||scan.scanned_url).hostname.toLowerCase().replace(/^www\./,"")}catch{return scan.scanned_url}}
@@ -12,7 +13,12 @@ function summary(scan:Row){
 }
 export async function GET(){
  const user=await getCurrentUser();
- if(!user)return NextResponse.json({error:"Login vereist."},{status:401});
+ if(!user){
+  const cookieStore=await cookies();
+  const lang=cookieStore.get("rankfix-language")?.value || "nl";
+  const messages:Record<string,string>={nl:"Login vereist.",en:"Login required.",de:"Anmeldung erforderlich.",fr:"Connexion requise.",it:"Accesso richiesto.",es:"Inicio de sesión requerido."};
+  return NextResponse.json({error:messages[lang]||messages.nl},{status:401});
+ }
  await ensureDatabase();
  const result=await getDb().query("SELECT id,scanned_url,final_url,overall_score,seo_score,geo_score,created_at,result FROM scans WHERE user_id=$1 ORDER BY created_at DESC LIMIT 200",[user.id]);
  const allScans=(result.rows as Row[]).map(summary);
