@@ -34,7 +34,7 @@ export default function DashboardScan() {
   async function run(event:React.FormEvent){
     event.preventDefault(); setBusy(true); setError(""); setResult(null);
     try{
-      const response=await fetch("/api/scan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url,mode:"both",dashboard:true})});
+      const response=await fetch("/api/scan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url,mode:"both",dashboard:true,language})});
       const data=await response.json();
       if(!response.ok) throw new Error(data.error||t.failed);
       if(data.scanId){ location.href="/dashboard/audit/"+encodeURIComponent(data.scanId); return; }
