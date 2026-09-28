@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json({ error: "Vul een geldig e-mailadres in." }, { status: 400 });
+      return NextResponse.json({ error:tr({nl:"Vul een geldig e-mailadres in.",en:"Enter a valid email address.",de:"Gib eine gültige E-Mail-Adresse ein.",fr:"Saisissez une adresse e-mail valide.",it:"Inserisci un indirizzo e-mail valido.",es:"Introduce una dirección de correo válida."}) }, { status: 400 });
     }
 
     await ensureDatabase();
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
 
     if (!apiKey || !from) {
       console.error("Password reset mail is not configured.");
-      return NextResponse.json({ error: "De herstelmail is momenteel niet geconfigureerd." }, { status: 503 });
+      return NextResponse.json({ error:tr({nl:"De herstelmail is momenteel niet geconfigureerd.",en:"Password recovery email is currently unavailable.",de:"Die E-Mail zur Passwortwiederherstellung ist derzeit nicht verfügbar.",fr:"L’e-mail de récupération du mot de passe est actuellement indisponible.",it:"L’e-mail per il recupero della password non è al momento disponibile.",es:"El correo de recuperación de contraseña no está disponible en este momento."}) }, { status: 503 });
     }
 
     const mail=tr({
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     if (!response.ok) {
       const details = await response.text();
       console.error("Resend password reset error:", details);
-      return NextResponse.json({ error: "De herstelmail kon niet worden verzonden." }, { status: 502 });
+      return NextResponse.json({ error:tr({nl:"De herstelmail kon niet worden verzonden.",en:"The recovery email could not be sent.",de:"Die Wiederherstellungs-E-Mail konnte nicht gesendet werden.",fr:"L’e-mail de récupération n’a pas pu être envoyé.",it:"Non è stato possibile inviare l’e-mail di recupero.",es:"No se pudo enviar el correo de recuperación."}) }, { status: 502 });
     }
 
     return NextResponse.json({ success:true, message:generic });
