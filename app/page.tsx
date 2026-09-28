@@ -645,11 +645,18 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
           </form>
         </div>
         <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 px-2 text-xs font-medium text-emerald-200 sm:gap-x-6">
-          <span>✓ SEO</span>
-          <span>✓ GEO</span>
-          <span>✓ Techniek</span>
-          <span>✓ Webshop</span>
-          <span>✓ Ads &amp; analytics</span>
+          {(language === "nl"
+            ? ["SEO","GEO","Techniek","Webshop","Search Console","Monitoring","Broken Links","Redirects","Accessibility"]
+            : language === "de"
+              ? ["SEO","GEO","Technik","Onlineshop","Search Console","Monitoring","Defekte Links","Weiterleitungen","Barrierefreiheit"]
+              : language === "fr"
+                ? ["SEO","GEO","Technique","E-commerce","Search Console","Monitoring","Liens cassés","Redirections","Accessibilité"]
+                : language === "it"
+                  ? ["SEO","GEO","Tecnica","E-commerce","Search Console","Monitoring","Link interrotti","Redirect","Accessibilità"]
+                  : language === "es"
+                    ? ["SEO","GEO","Técnica","E-commerce","Search Console","Monitoring","Enlaces rotos","Redirecciones","Accesibilidad"]
+                    : ["SEO","GEO","Technical","E-commerce","Search Console","Monitoring","Broken Links","Redirects","Accessibility"]
+          ).map((feature) => <span key={feature}>✓ {feature}</span>)}
         </div>
         {error && <div className="mx-auto mt-5 max-w-2xl rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">{error}</div>}
 
