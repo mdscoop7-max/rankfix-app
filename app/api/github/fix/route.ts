@@ -215,6 +215,19 @@ async function generateCodeFix(filePath:string,fileContent:string,issue:string,c
   return parsed;
 }
 
+function localizeFixError(message:string,language:"nl"|"en"|"de"|"fr"|"it"|"es"){
+  if(language==="nl") return message;
+  const translations:Record<string,Record<"en"|"de"|"fr"|"it"|"es",string>>={
+    "Kies expliciet welke GitHub-repository bij deze website hoort voordat RankFix een codefix maakt.":{en:"Choose the GitHub repository for this website before RankFix creates a code fix.",de:"Wähle das GitHub-Repository für diese Website aus, bevor RankFix einen Codefix erstellt.",fr:"Choisissez le dépôt GitHub associé à ce site avant que RankFix ne crée une correction.",it:"Scegli il repository GitHub associato a questo sito prima che RankFix crei una correzione.",es:"Elige el repositorio de GitHub asociado a este sitio antes de que RankFix cree una corrección."},
+    "De gekozen GitHub-repository kon niet veilig worden bevestigd.":{en:"The selected GitHub repository could not be safely verified.",de:"Das ausgewählte GitHub-Repository konnte nicht sicher bestätigt werden.",fr:"Le dépôt GitHub sélectionné n’a pas pu être vérifié en toute sécurité.",it:"Il repository GitHub selezionato non è stato verificato in modo sicuro.",es:"No se pudo verificar de forma segura el repositorio de GitHub seleccionado."},
+    "Deze GitHub-repository is gearchiveerd of uitgeschakeld en kan niet veilig worden aangepast.":{en:"This GitHub repository is archived or disabled and cannot be safely modified.",de:"Dieses GitHub-Repository ist archiviert oder deaktiviert und kann nicht sicher geändert werden.",fr:"Ce dépôt GitHub est archivé ou désactivé et ne peut pas être modifié en toute sécurité.",it:"Questo repository GitHub è archiviato o disabilitato e non può essere modificato in modo sicuro.",es:"Este repositorio de GitHub está archivado o deshabilitado y no se puede modificar de forma segura."},
+    "De gekoppelde GitHub-account heeft geen bevestigde schrijfrechten op deze repository.":{en:"The connected GitHub account does not have confirmed write access to this repository.",de:"Das verbundene GitHub-Konto hat keine bestätigten Schreibrechte für dieses Repository.",fr:"Le compte GitHub connecté ne dispose pas d’un accès en écriture confirmé à ce dépôt.",it:"L’account GitHub collegato non dispone di accesso in scrittura confermato a questo repository.",es:"La cuenta de GitHub conectada no tiene acceso de escritura confirmado a este repositorio."},
+    "Dit bestand valt buiten de veilige RankFix-codefixlijst.":{en:"This file is outside RankFix’s safe code-fix list.",de:"Diese Datei liegt außerhalb der sicheren RankFix-Codefix-Liste.",fr:"Ce fichier ne figure pas dans la liste sûre des corrections de code RankFix.",it:"Questo file non rientra nell’elenco sicuro delle correzioni di codice RankFix.",es:"Este archivo está fuera de la lista segura de correcciones de código de RankFix."},
+    "RankFix kon geen geschikt bestand vinden voor deze fix.":{en:"RankFix could not find a suitable file for this fix.",de:"RankFix konnte keine geeignete Datei für diesen Fix finden.",fr:"RankFix n’a pas trouvé de fichier adapté à cette correction.",it:"RankFix non ha trovato un file adatto a questa correzione.",es:"RankFix no encontró un archivo adecuado para esta corrección."}
+  };
+  return translations[message]?.[language]||message;
+}
+
 function estimateChangedLines(before:string,after:string){
   const normalize=(line:string)=>line.trimEnd();
   const counts=new Map<string,number>();
