@@ -242,8 +242,10 @@ export async function POST(request:Request){
     if(!user) return NextResponse.json({error:"Login vereist."},{status:401});
     await ensureDatabase();
     const body=await request.json();
-    const language=["nl","en","de","fr","it","es"].includes(body?.language)?body.language:"nl";
-    const msg=(nl:string,en:string,de:string,fr:string,it:string,es:string)=>({nl,en,de,fr,it,es}[language]||nl);
+    const supportedLanguages=["nl","en","de","fr","it","es"] as const;
+    type FixLanguage=(typeof supportedLanguages)[number];
+    const language:FixLanguage=supportedLanguages.includes(body?.language as FixLanguage)?body.language as FixLanguage:"nl";
+    const msg=(nl:string,en:string,de:string,fr:string,it:string,es:string)=>({nl,en,de,fr,it,es} as Record<FixLanguage,string>)[language];
     const requestedRepo=typeof body?.repo==="string"?body.repo.trim():"";
     const requestedPath=typeof body?.path==="string"?body.path.trim():"";
     let issue=typeof body?.issue==="string"?body.issue.trim():"";
