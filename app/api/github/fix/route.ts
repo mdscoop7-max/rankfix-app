@@ -242,6 +242,8 @@ export async function POST(request:Request){
     if(!user) return NextResponse.json({error:"Login vereist."},{status:401});
     await ensureDatabase();
     const body=await request.json();
+    const language=["nl","en","de","fr","it","es"].includes(body?.language)?body.language:"nl";
+    const msg=(nl:string,en:string,de:string,fr:string,it:string,es:string)=>({nl,en,de,fr,it,es}[language]||nl);
     const requestedRepo=typeof body?.repo==="string"?body.repo.trim():"";
     const requestedPath=typeof body?.path==="string"?body.path.trim():"";
     let issue=typeof body?.issue==="string"?body.issue.trim():"";
@@ -253,16 +255,16 @@ export async function POST(request:Request){
     // Preview is read-only: it must not consume the PR/code-write rate limit.
     // Only a confirmed publish request can create a branch/commit/PR.
     if(!previewOnly && !await consumeRateLimit("github-fix",String(user.id),12,3600)){
-      return NextResponse.json({error:"Te veel codefix-publicaties. Probeer later opnieuw."},{status:429});
+      return NextResponse.json({error:msg("Te veel codefix-publicaties. Probeer later opnieuw.","Too many code-fix publications. Try again later.","Zu viele Codefix-Veröffentlichungen. Versuche es später erneut.","Trop de publications de correctifs. Réessayez plus tard.","Troppe pubblicazioni di correzioni. Riprova più tardi.","Demasiadas publicaciones de correcciones. Inténtalo más tarde.")},{status:429});
     }
-    if((requestedRepo&&!safeRepo(requestedRepo))||(requestedPath&&!safeFixTarget(requestedPath))||!issueId||!scanId) return NextResponse.json({error:"Ongeldige fixgegevens: scan_id en issue_id zijn verplicht."},{status:400});
+    if((requestedRepo&&!safeRepo(requestedRepo))||(requestedPath&&!safeFixTarget(requestedPath))||!issueId||!scanId) return NextResponse.json({error:msg("Ongeldige fixgegevens: scan_id en issue_id zijn verplicht.","Invalid fix data: scan_id and issue_id are required.","Ungültige Fix-Daten: scan_id und issue_id sind erforderlich.","Données de correction invalides : scan_id et issue_id sont requis.","Dati di correzione non validi: scan_id e issue_id sono obbligatori.","Datos de corrección no válidos: scan_id e issue_id son obligatorios.")},{status:400});
     const fixPolicy=getFixPolicy(issueId);
     if(fixPolicy.category==="C"||!fixPolicy.safe_type){
-      return NextResponse.json({error:"Deze bevinding is niet toegestaan voor een automatische GitHub-codefix. RankFix vereist hier handmatige controle.",issue_id:issueId,fix_category:fixPolicy.category},{status:422});
+      return NextResponse.json({error:msg("Deze bevinding is niet toegestaan voor een automatische GitHub-codefix. RankFix vereist hier handmatige controle.","This finding is not eligible for an automatic GitHub code fix. RankFix requires manual review.","Dieser Befund ist nicht für einen automatischen GitHub-Codefix geeignet. RankFix erfordert eine manuelle Prüfung.","Ce problème ne peut pas être corrigé automatiquement via GitHub. RankFix exige une vérification manuelle.","Questo problema non è idoneo a una correzione automatica GitHub. RankFix richiede un controllo manuale.","Este problema no admite una corrección automática de GitHub. RankFix requiere una revisión manual."),issue_id:issueId,fix_category:fixPolicy.category},{status:422});
     }
     await ensureDatabase();
     const trustedScan=await getDb().query("SELECT final_url,result FROM scans WHERE id=$1 AND user_id=$2 LIMIT 1",[scanId,user.id]);
-    if(!trustedScan.rowCount) return NextResponse.json({error:"Deze scan bestaat niet of hoort niet bij dit account."},{status:404});
+    if(!trustedScan.rowCount) return NextResponse.json({error:msg("Deze scan bestaat niet of hoort niet bij dit account.","This scan does not exist or does not belong to this account.","Dieser Scan existiert nicht oder gehört nicht zu diesem Konto.","Cette analyse n’existe pas ou n’appartient pas à ce compte.","Questa scansione non esiste o non appartiene a questo account.","Este análisis no existe o no pertenece a esta cuenta.")},{status:404});
     const scanRow=trustedScan.rows[0];
     const scanResult=scanRow.result||{};
     const trustedChecks=[
@@ -270,13 +272,13 @@ export async function POST(request:Request){
       ...(Array.isArray(scanResult?.geo?.checks)?scanResult.geo.checks:[])
     ];
     const trustedCheck=trustedChecks.find((check:any)=>String(check?.issue_id||check?.rule_id||"")===issueId);
-    if(!trustedCheck) return NextResponse.json({error:"Deze bevinding kon niet in de opgeslagen scan worden bevestigd."},{status:404});
+    if(!trustedCheck) return NextResponse.json({error:msg("Deze bevinding kon niet in de opgeslagen scan worden bevestigd.","This finding could not be confirmed in the saved scan.","Dieser Befund konnte im gespeicherten Scan nicht bestätigt werden.","Ce problème n’a pas pu être confirmé dans l’analyse enregistrée.","Questo problema non è stato confermato nella scansione salvata.","Este problema no pudo confirmarse en el análisis guardado.")},{status:404});
     issue=String(trustedCheck.title||issueId)+": "+String(trustedCheck.fix||trustedCheck.message||"");
     context=[trustedCheck.message,trustedCheck.fix,trustedCheck?.evidence?.details].filter(Boolean).map(String).join("\n").slice(0,6000);
     const trustedUrl=String(scanRow.final_url||"");
 
     const connection=await getDb().query("SELECT access_token_encrypted FROM github_connections WHERE user_id=$1",[user.id]);
-    if(!connection.rowCount) return NextResponse.json({error:"Verbind eerst GitHub via je dashboard."},{status:409});
+    if(!connection.rowCount) return NextResponse.json({error:msg("Verbind eerst GitHub via je dashboard.","Connect GitHub from your dashboard first.","Verbinde zuerst GitHub über dein Dashboard.","Connectez d’abord GitHub depuis votre tableau de bord.","Collega prima GitHub dalla dashboard.","Conecta primero GitHub desde tu panel.")},{status:409});
     const token=decryptToken(connection.rows[0].access_token_encrypted);
     const scannedHost=normalizeHostname(trustedUrl);
     let effectiveRepo=requestedRepo;
@@ -292,7 +294,7 @@ export async function POST(request:Request){
         effectiveRepo=String(existingMapping.repository||"");
         effectiveBaseBranch=String(existingMapping.base_branch||baseBranch);
       } else if(!requestedRepo){
-        return NextResponse.json({error:"Kies eenmalig de GitHub-repository die bij deze website hoort.",website:scannedHost},{status:409});
+        return NextResponse.json({error:msg("Kies eenmalig de GitHub-repository die bij deze website hoort.","Choose the GitHub repository for this website once.","Wähle einmalig das GitHub-Repository für diese Website aus.","Choisissez une fois le dépôt GitHub associé à ce site.","Scegli una volta il repository GitHub associato a questo sito.","Elige una vez el repositorio de GitHub asociado a este sitio."),website:scannedHost},{status:409});
       }
     }
     const verifiedRepo=await chooseRepository(token,effectiveRepo);
