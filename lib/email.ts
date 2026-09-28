@@ -59,7 +59,7 @@ function statusColor(status: ScanCheck["status"]) {
 
 export async function sendScanReportEmail(report: ScanReportEmail) {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.SCAN_REPORT_FROM;
+  const from = process.env.SCAN_REPORT_FROM || process.env.RESEND_FROM;
 
   if (!apiKey || !from) {
     throw new Error("RESEND_API_KEY en SCAN_REPORT_FROM moeten zijn ingesteld.");

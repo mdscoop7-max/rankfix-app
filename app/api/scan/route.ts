@@ -230,12 +230,14 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
 }
 
 export async function POST(request: Request) {
+  let fallbackLanguage = "nl";
   try {
     const body = await request.json();
     const rawUrl = typeof body?.url === "string" ? body.url.trim() : "";
     const mode: AuditMode = body?.mode === "seo" || body?.mode === "geo" || body?.mode === "both" ? body.mode : "both";
     const dashboardScan = body?.dashboard === true;
     const scanLanguage = ["nl","en","de","fr","it","es"].includes(body?.language) ? body.language : "nl";
+    fallbackLanguage = scanLanguage;
     const errors: Record<string, Record<string, string>> = {
       nl:{url:"Vul een website URL in.",unsafe:"Deze URL kan niet veilig worden gescand.",fetch:"De website kon niet worden opgehaald. Controleer de URL en probeer opnieuw.",rate:"Deze website beperkt tijdelijk scanverzoeken. RankFix heeft opnieuw geprobeerd, maar de limiet is nog actief. Probeer later opnieuw.",html:"De website gaf geen bruikbare HTML terug.",session:"Je sessie is verlopen. Log opnieuw in om deze scan in je dashboard op te slaan.",history:"De scan is uitgevoerd, maar kon niet in je historie worden opgeslagen. Probeer opnieuw.",generic:"Er ging iets mis tijdens de SEO/GEO-scan."},
       en:{url:"Enter a website URL.",unsafe:"This URL cannot be scanned safely.",fetch:"The website could not be retrieved. Check the URL and try again.",rate:"This website is temporarily limiting scan requests. RankFix retried, but the limit is still active. Try again later.",html:"The website did not return usable HTML.",session:"Your session has expired. Log in again to save this scan to your dashboard.",history:"The scan completed but could not be saved to your history. Try again.",generic:"Something went wrong during the SEO/GEO scan."},
@@ -1615,6 +1617,7 @@ export async function POST(request: Request) {
       pendingFixes: checks.filter((item) => item.fix_status === "WAITING").map((item) => item.issue_id || item.rule_id || item.key),
     });
   } catch {
-    return NextResponse.json({ error: "The SEO/GEO scan could not be completed." }, { status: 500 });
+    const fallbackErrors: Record<string,string> = {nl:"De SEO/GEO-scan kon niet worden voltooid.",en:"The SEO/GEO scan could not be completed.",de:"Der SEO/GEO-Scan konnte nicht abgeschlossen werden.",fr:"L’analyse SEO/GEO n’a pas pu être terminée.",it:"La scansione SEO/GEO non è stata completata.",es:"No se pudo completar el análisis SEO/GEO."};
+    return NextResponse.json({ error: fallbackErrors[fallbackLanguage] || fallbackErrors.en }, { status: 500 });
   }
 }
