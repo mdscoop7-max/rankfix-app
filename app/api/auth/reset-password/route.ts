@@ -9,12 +9,14 @@ function hashToken(token: string) {
 }
 
 export async function POST(request: Request) {
+  let language: "nl"|"en"|"de"|"fr"|"it"|"es" = "nl";
+  const fail=()=>({nl:"Wachtwoord wijzigen mislukt.",en:"Could not change the password.",de:"Passwort konnte nicht geändert werden.",fr:"Impossible de modifier le mot de passe.",it:"Impossibile modificare la password.",es:"No se pudo cambiar la contraseña."}[language]);
   try {
     const body = await request.json();
     const token = typeof body?.token === "string" ? body.token.trim() : "";
     const password = typeof body?.password === "string" ? body.password : "";
     const requestedLanguage = typeof body?.language === "string" ? body.language : "nl";
-    const language: "nl"|"en"|"de"|"fr"|"it"|"es" = ["nl","en","de","fr","it","es"].includes(requestedLanguage) ? requestedLanguage as "nl"|"en"|"de"|"fr"|"it"|"es" : "nl";
+    language = ["nl","en","de","fr","it","es"].includes(requestedLanguage) ? requestedLanguage as "nl"|"en"|"de"|"fr"|"it"|"es" : "nl";
     const msg=(nl:string,en:string,de:string,fr:string,it:string,es:string)=>({nl,en,de,fr,it,es}[language]);
 
     if (!token || token.length < 20) {
@@ -47,6 +49,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success:true });
   } catch (error) {
     console.error("Reset password error:", error);
-    return NextResponse.json({ error:"Wachtwoord wijzigen mislukt." }, { status:500 });
+    return NextResponse.json({ error:fail() }, { status:500 });
   }
 }
