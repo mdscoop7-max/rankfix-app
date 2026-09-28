@@ -570,7 +570,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
             </select>
             {!authLoading && <a href={authUser?"/dashboard":`/account?mode=login&lang=${language}`} className="flex h-11 items-center rounded-xl border border-slate-600 bg-[#102A46] px-3 text-xs font-bold text-slate-100">{authUser?"Dashboard":t.login}</a>}
           </div>
-          <button type="button" aria-label={mobileMenuOpen ? "Menu sluiten" : "Menu openen"} aria-controls="rankfix-mobile-menu" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen((open) => !open)} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-200 lg:hidden">
+          <button type="button" aria-label={mobileMenuOpen ? (language==="nl"?"Menu sluiten":language==="de"?"Menü schließen":language==="fr"?"Fermer le menu":language==="it"?"Chiudi menu":language==="es"?"Cerrar menú":"Close menu") : (language==="nl"?"Menu openen":language==="de"?"Menü öffnen":language==="fr"?"Ouvrir le menu":language==="it"?"Apri menu":language==="es"?"Abrir menú":"Open menu")} aria-controls="rankfix-mobile-menu" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen((open) => !open)} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-200 lg:hidden">
             {mobileMenuOpen ? <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 5l14 14 M19 5L5 19" /></svg> : <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16 M4 12h16 M4 18h16" /></svg>}
           </button>
         </div>
@@ -792,7 +792,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
       )}
 
       {githubError && !githubFixing && (
-        <div className="fixed bottom-5 right-5 z-[125] max-w-md rounded-2xl border border-red-400/20 bg-[#12080b] p-4 text-sm text-red-200 shadow-2xl">{githubError}<button type="button" onClick={() => setGithubError("")} className="ml-3 text-red-300 underline">Sluiten</button></div>
+        <div className="fixed bottom-5 right-5 z-[125] max-w-md rounded-2xl border border-red-400/20 bg-[#12080b] p-4 text-sm text-red-200 shadow-2xl">{githubError}<button type="button" onClick={() => setGithubError("")} className="ml-3 text-red-300 underline">{language==="nl"?"Sluiten":language==="de"?"Schließen":language==="fr"?"Fermer":language==="it"?"Chiudi":language==="es"?"Cerrar":"Close"}</button></div>
       )}
 
       {result && (
@@ -1083,7 +1083,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
       {contactOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-md">
           <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-slate-200 bg-[#101B2D] p-6 shadow-2xl sm:p-8">
-            <button type="button" onClick={() => setContactOpen(false)} aria-label="Contactformulier sluiten" className="absolute right-5 top-5 grid h-9 w-9 place-items-center rounded-full border border-slate-200 bg-slate-50 text-slate-300 hover:text-violet-700">×</button>
+            <button type="button" onClick={() => setContactOpen(false)} aria-label={language==="nl"?"Contactformulier sluiten":language==="de"?"Kontaktformular schließen":language==="fr"?"Fermer le formulaire de contact":language==="it"?"Chiudi il modulo di contatto":language==="es"?"Cerrar el formulario de contacto":"Close contact form"} className="absolute right-5 top-5 grid h-9 w-9 place-items-center rounded-full border border-slate-200 bg-slate-50 text-slate-300 hover:text-violet-700">×</button>
             <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{t.contact}</div>
             <h2 className="mt-2 text-3xl font-black">{t.contactTitle}</h2>
             <p className="mt-3 text-sm leading-6 text-slate-500">{t.contactText}</p>
