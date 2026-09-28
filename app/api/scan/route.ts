@@ -10,6 +10,7 @@ import { extractImageMetrics } from "@/lib/image-metrics";
 import { safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
 import { applyEvidenceBasedScoreCap, scoreApplicableChecks, summarizeAuditChecks } from "@/lib/audit-score";
+import { normalizePlan, planLimits } from "@/lib/plans";
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -267,76 +268,59 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: scanError.unsafe }, { status: 400 });
     }
 
-    // Free dashboard scans are enforced server-side before crawling.
-    // The same normalized host shares the free allowance across accounts, which
-    // prevents simply registering another email address for more free scans.
+    // Dashboard allowances are enforced server-side before starting an expensive crawl.
+    // Free keeps the cross-account per-domain allowance; paid plans use account-level monthly allowances.
     let usageUser: Awaited<ReturnType<typeof getCurrentUser>> = null;
-    let usageWebsiteHost = target.hostname.toLowerCase().replace(/^www\./, "");
+    const usageWebsiteHost = target.hostname.toLowerCase().replace(/^www\./, "");
     let usageIpHash: string | null = null;
     if (dashboardScan) {
       try { usageUser = await getCurrentUser(); } catch {}
       if (!usageUser) return NextResponse.json({ error: scanError.session }, { status: 401 });
       await ensureDatabase();
       const planResult = await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1", [usageUser.id]);
-      const planCode = String(planResult.rows[0]?.plan_code || "free").toLowerCase();
-      if (planCode === "free") {
-        // Free includes one website. Bind the account to the first normalized
-        // website it has already scanned and reject additional domains.
-        const accountHosts = await getDb().query(
-          "SELECT DISTINCT lower(regexp_replace(split_part(split_part(COALESCE(final_url,scanned_url),'://',2),'/',1),'^www\\.','')) AS website_host FROM scans WHERE user_id=$1 ORDER BY website_host",
-          [usageUser.id]
-        );
-        const existingHosts = accountHosts.rows.map(row=>String(row.website_host||"").split(":")[0]).filter(Boolean);
-        if (existingHosts.length && !existingHosts.includes(usageWebsiteHost)) {
-          const websiteMessages: Record<string,string> = {
-            nl:"Free ondersteunt 1 website. Dit account is al gekoppeld aan een andere website. Upgrade om meerdere websites te beheren.",
-            en:"Free supports 1 website. This account is already linked to another website. Upgrade to manage multiple websites.",
-            de:"Free unterstützt 1 Website. Dieses Konto ist bereits mit einer anderen Website verknüpft. Upgrade für mehrere Websites.",
-            fr:"L’offre Free prend en charge 1 site. Ce compte est déjà associé à un autre site. Passez à une offre supérieure pour gérer plusieurs sites.",
-            it:"Il piano Free supporta 1 sito. Questo account è già collegato a un altro sito. Effettua l’upgrade per gestire più siti.",
-            es:"El plan Free admite 1 sitio. Esta cuenta ya está vinculada a otro sitio. Mejora tu plan para gestionar varios sitios."
-          };
-          return NextResponse.json({error:websiteMessages[scanLanguage],code:"FREE_WEBSITE_LIMIT",website:existingHosts[0]},{status:403});
-        }
-        const monthStart = new Date();
-        monthStart.setUTCDate(1); monthStart.setUTCHours(0,0,0,0);
-        const hostUsage = await getDb().query(
-          "SELECT COUNT(*)::int AS count FROM usage_events WHERE website_host=$1 AND event_type='SCAN' AND created_at >= $2",
-          [usageWebsiteHost, monthStart.toISOString()]
-        );
-        const used = Number(hostUsage.rows[0]?.count || 0);
-        if (used >= 2) {
-          const limitMessages: Record<string,string> = {
-            nl:"Je 2 gratis scans voor deze website zijn deze maand gebruikt. Je bestaande rapport blijft beschikbaar. Upgrade voor nieuwe scans en volledige fixes.",
-            en:"Your 2 free scans for this website have been used this month. Your existing report remains available. Upgrade for new scans and full fixes.",
-            de:"Deine 2 kostenlosen Scans für diese Website wurden diesen Monat verwendet. Dein bestehender Bericht bleibt verfügbar. Upgrade für neue Scans und vollständige Fixes.",
-            fr:"Vos 2 analyses gratuites pour ce site ont été utilisées ce mois-ci. Votre rapport existant reste disponible. Passez à une offre supérieure pour de nouvelles analyses et les correctifs complets.",
-            it:"Le 2 scansioni gratuite per questo sito sono state utilizzate questo mese. Il rapporto esistente resta disponibile. Effettua l’upgrade per nuove scansioni e correzioni complete.",
-            es:"Tus 2 análisis gratuitos para este sitio ya se han utilizado este mes. Tu informe existente seguirá disponible. Mejora tu plan para nuevos análisis y correcciones completas."
-          };
-          return NextResponse.json({ error: limitMessages[scanLanguage], code:"FREE_SCAN_LIMIT", usage:{plan:"free",used,limit:2} }, { status: 429 });
-        }
+      const planCode = normalizePlan(planResult.rows[0]?.plan_code);
+      const limits = planLimits(planCode);
+      const accountHosts = await getDb().query(
+        "SELECT DISTINCT lower(regexp_replace(split_part(split_part(COALESCE(final_url,scanned_url),'://',2),'/',1),'^www\\.','')) AS website_host FROM scans WHERE user_id=$1 ORDER BY website_host",
+        [usageUser.id]
+      );
+      const existingHosts = accountHosts.rows.map(row=>String(row.website_host||"").split(":")[0]).filter(Boolean);
+      if (!existingHosts.includes(usageWebsiteHost) && existingHosts.length >= limits.websites) {
+        const websiteMessages: Record<string,string> = {
+          nl:`Je ${planCode} abonnement ondersteunt maximaal ${limits.websites} website(s). Upgrade je abonnement om meer websites te beheren.`,
+          en:`Your ${planCode} plan supports up to ${limits.websites} website(s). Upgrade your plan to manage more websites.`,
+          de:`Dein ${planCode}-Tarif unterstützt bis zu ${limits.websites} Website(s). Upgrade deinen Tarif, um mehr Websites zu verwalten.`,
+          fr:`Votre offre ${planCode} prend en charge jusqu’à ${limits.websites} site(s). Passez à une offre supérieure pour gérer plus de sites.`,
+          it:`Il piano ${planCode} supporta fino a ${limits.websites} sito/i. Effettua l’upgrade per gestire più siti.`,
+          es:`Tu plan ${planCode} admite hasta ${limits.websites} sitio(s). Mejora tu plan para gestionar más sitios.`
+        };
+        return NextResponse.json({error:websiteMessages[scanLanguage],code:"WEBSITE_LIMIT",usage:{plan:planCode,used:existingHosts.length,limit:limits.websites}},{status:403});
+      }
+      const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0,0,0,0);
+      const scanUsage = planCode==="free"
+        ? await getDb().query("SELECT COUNT(*)::int AS count FROM usage_events WHERE website_host=$1 AND event_type='SCAN' AND created_at >= $2",[usageWebsiteHost,monthStart.toISOString()])
+        : await getDb().query("SELECT COUNT(*)::int AS count FROM usage_events WHERE user_id=$1 AND event_type='SCAN' AND created_at >= $2",[usageUser.id,monthStart.toISOString()]);
+      const used = Number(scanUsage.rows[0]?.count || 0);
+      if (used >= limits.scans) {
+        const limitMessages: Record<string,string> = {
+          nl:`Je ${limits.scans} scans van deze maand zijn gebruikt. Je bestaande rapporten blijven beschikbaar.`,
+          en:`Your ${limits.scans} scans for this month have been used. Your existing reports remain available.`,
+          de:`Deine ${limits.scans} Scans für diesen Monat wurden verwendet. Deine bestehenden Berichte bleiben verfügbar.`,
+          fr:`Vos ${limits.scans} analyses de ce mois ont été utilisées. Vos rapports existants restent disponibles.`,
+          it:`Le ${limits.scans} scansioni di questo mese sono state utilizzate. I rapporti esistenti restano disponibili.`,
+          es:`Tus ${limits.scans} análisis de este mes ya se han utilizado. Tus informes existentes seguirán disponibles.`
+        };
+        return NextResponse.json({error:limitMessages[scanLanguage],code:"SCAN_LIMIT",usage:{plan:planCode,used,limit:limits.scans}},{status:429});
+      }
+      if(planCode==="free"){
         const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip")?.trim() || "";
         if (forwarded) {
           const salt = process.env.USAGE_HASH_SALT || process.env.SESSION_SECRET || "rankfix-usage";
           usageIpHash = createHash("sha256").update(salt + ":" + forwarded).digest("hex");
-          // Coarse anti-abuse signal only: allow normal shared networks, but stop
-          // bursts of free dashboard scans before starting an expensive crawl.
           const hourStart = new Date(Date.now() - 60 * 60 * 1000);
-          const ipUsage = await getDb().query(
-            "SELECT COUNT(*)::int AS count FROM usage_events WHERE ip_hash=$1 AND event_type='SCAN' AND created_at >= $2",
-            [usageIpHash, hourStart.toISOString()]
-          );
-          const ipScans = Number(ipUsage.rows[0]?.count || 0);
-          if (ipScans >= 8) {
-            const rateMessages: Record<string,string> = {
-              nl:"Er zijn vanaf dit netwerk veel gratis scans uitgevoerd. Probeer het over ongeveer een uur opnieuw.",
-              en:"Many free scans have been run from this network. Please try again in about an hour.",
-              de:"Von diesem Netzwerk wurden viele kostenlose Scans ausgeführt. Bitte versuche es in etwa einer Stunde erneut.",
-              fr:"De nombreuses analyses gratuites ont été lancées depuis ce réseau. Réessayez dans environ une heure.",
-              it:"Da questa rete sono state eseguite molte scansioni gratuite. Riprova tra circa un’ora.",
-              es:"Se han realizado muchos análisis gratuitos desde esta red. Vuelve a intentarlo dentro de aproximadamente una hora."
-            };
+          const ipUsage = await getDb().query("SELECT COUNT(*)::int AS count FROM usage_events WHERE ip_hash=$1 AND event_type='SCAN' AND created_at >= $2",[usageIpHash,hourStart.toISOString()]);
+          if (Number(ipUsage.rows[0]?.count || 0) >= 8) {
+            const rateMessages: Record<string,string> = {nl:"Er zijn vanaf dit netwerk veel gratis scans uitgevoerd. Probeer het over ongeveer een uur opnieuw.",en:"Many free scans have been run from this network. Please try again in about an hour.",de:"Von diesem Netzwerk wurden viele kostenlose Scans ausgeführt. Bitte versuche es in etwa einer Stunde erneut.",fr:"De nombreuses analyses gratuites ont été lancées depuis ce réseau. Réessayez dans environ une heure.",it:"Da questa rete sono state eseguite molte scansioni gratuite. Riprova tra circa un’ora.",es:"Se han realizado muchos análisis gratuitos desde esta red. Vuelve a intentarlo dentro de aproximadamente una hora."};
             return NextResponse.json({error:rateMessages[scanLanguage],code:"FREE_SCAN_RATE_LIMIT"},{status:429,headers:{"Retry-After":"3600"}});
           }
         }
