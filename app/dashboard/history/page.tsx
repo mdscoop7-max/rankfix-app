@@ -20,7 +20,7 @@ export default function HistoryPage(){
  const t=ui[language];
  const sites=useMemo(()=>Array.from(new Set(history.map(s=>host(s.scanned_url)))),[history]);
  const filtered=history.filter(s=>(!query||host(s.scanned_url)===query)&&(score==="all"||(score==="good"?s.overall_score>=80:score==="attention"?s.overall_score>=60&&s.overall_score<80:s.overall_score<60)));
- const trend=useMemo(()=>{const source=(query?history.filter(s=>host(s.scanned_url)===query):history).slice(0,12).reverse();return source.map((s,i)=>({x:source.length<=1?50:(i/(source.length-1))*100,y:100-s.overall_score,score:s.overall_score,date:s.created_at}));},[history,query]);
+ const trend=useMemo(()=>{if(!query)return [];const source=history.filter(s=>host(s.scanned_url)===query).slice(0,12).reverse();return source.map((s,i)=>({x:source.length<=1?50:(i/(source.length-1))*100,y:100-s.overall_score,score:s.overall_score,date:s.created_at}));},[history,query]);
  const trendPoints=trend.map(p=>p.x+","+p.y).join(" ");
  return <main className="rf-page" lang={language}><div className="rf-shell">
   <header className="rf-header"><a href="/dashboard" className="rf-brand">RankFix <span>AI</span></a><a href="/dashboard" className="rf-back">← {t[0]}</a></header>
