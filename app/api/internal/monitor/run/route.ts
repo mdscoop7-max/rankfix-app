@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ensureDatabase } from "@/lib/db-init";
 import { getDb } from "@/lib/db";
 import { safePublicFetch } from "@/lib/safe-fetch";
+import { sendMonitoringAlertEmail } from "@/lib/email";
 
 const BATCH_SIZE=5;
 const TIMEOUT_MS=12000;
@@ -33,7 +34,7 @@ async function run(request:Request){
      SET next_check_at=NOW()+INTERVAL '30 minutes',updated_at=NOW()
      FROM due
      WHERE m.id=due.id
-     RETURNING m.id,m.user_id,m.website_host,m.website_url,m.interval_hours`,
+     RETURNING m.id,m.user_id,m.website_host,m.website_url,m.interval_hours,m.last_status`,
     [BATCH_SIZE]
   );
 
@@ -70,7 +71,30 @@ async function run(request:Request){
       "INSERT INTO website_health_events (user_id,website_host,scanned_url,event_type,details) VALUES ($1,$2,$3,'RECHECK',$4)",
       [monitor.user_id,monitor.website_host,monitor.website_url,JSON.stringify({status,httpStatus,detail,source:"scheduled_read_only_monitor"})]
     );
-    results.push({website_host:monitor.website_host,status,httpStatus});
+    let alerted=false;
+    const becameUnavailable=status!=="OK" && monitor.last_status!=="HTTP_ERROR" && monitor.last_status!=="ERROR";
+    if(becameUnavailable){
+      const recipient=await getDb().query(
+        `SELECT u.email,u.name,COALESCE(p.language,'nl') AS language,
+                COALESCE(a.email_enabled,TRUE) AS email_enabled
+         FROM users u
+         LEFT JOIN user_preferences p ON p.user_id=u.id
+         LEFT JOIN monitor_alert_preferences a ON a.user_id=u.id AND a.website_host=$2
+         WHERE u.id=$1 LIMIT 1`,
+        [monitor.user_id,monitor.website_host]
+      );
+      const customer=recipient.rows[0];
+      if(customer?.email && customer.email_enabled){
+        try{
+          await sendMonitoringAlertEmail({to:customer.email,name:customer.name,language:customer.language,website:monitor.website_url,status,httpStatus});
+          await getDb().query("UPDATE monitor_alert_preferences SET last_alert_at=NOW(),updated_at=NOW() WHERE user_id=$1 AND website_host=$2",[monitor.user_id,monitor.website_host]);
+          alerted=true;
+        }catch(error){
+          console.error("monitor alert delivery failed",{websiteHost:monitor.website_host,error:error instanceof Error?error.message:"EMAIL_FAILED"});
+        }
+      }
+    }
+    results.push({website_host:monitor.website_host,status,httpStatus,alerted});
   }
   return NextResponse.json({checked:results.length,results});
 }

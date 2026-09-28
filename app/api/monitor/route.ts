@@ -19,10 +19,10 @@ export async function GET(request:Request){
   if(!target) return NextResponse.json({error:"Ongeldige website-URL."},{status:400});
   await ensureDatabase();
   const row=await getDb().query(
-    "SELECT enabled,interval_hours,last_checked_at,next_check_at,last_status,consecutive_failures FROM website_monitors WHERE user_id=$1 AND website_host=$2 LIMIT 1",
+    "SELECT m.enabled,m.interval_hours,m.last_checked_at,m.next_check_at,m.last_status,m.consecutive_failures,a.email_enabled,a.last_alert_at FROM website_monitors m LEFT JOIN monitor_alert_preferences a ON a.user_id=m.user_id AND a.website_host=m.website_host WHERE m.user_id=$1 AND m.website_host=$2 LIMIT 1",
     [user.id,target.host]
   );
-  return NextResponse.json({enabled:!!row.rows[0]?.enabled,interval_hours:row.rows[0]?.interval_hours||168,last_checked_at:row.rows[0]?.last_checked_at||null,next_check_at:row.rows[0]?.next_check_at||null,last_status:row.rows[0]?.last_status||null,consecutive_failures:row.rows[0]?.consecutive_failures||0});
+  return NextResponse.json({enabled:!!row.rows[0]?.enabled,interval_hours:row.rows[0]?.interval_hours||168,last_checked_at:row.rows[0]?.last_checked_at||null,next_check_at:row.rows[0]?.next_check_at||null,last_status:row.rows[0]?.last_status||null,consecutive_failures:row.rows[0]?.consecutive_failures||0,email_enabled:row.rows[0]?.email_enabled!==false,last_alert_at:row.rows[0]?.last_alert_at||null});
 }
 
 export async function POST(request:Request){
