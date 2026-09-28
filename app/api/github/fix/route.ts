@@ -114,7 +114,7 @@ function validateRequestedFixCompletion(current:string, proposed:string, issue:s
   const hasOgImage=(v:string)=>hasMetaProperty(v,"og:image")||/openGraph\s*:\s*\{[\s\S]*?\b(?:images|image)\b\s*:\s*[^}]+/i.test(v);
   const checks=[[wantsOgTitle,hasOgTitle,"og:title"],[wantsOgDescription,hasOgDescription,"og:description"],[wantsOgImage,hasOgImage,"og:image"]] as const;
   let requestedCount=0; let currentSatisfied=0;
-  for(const [requested,checker,label] of checks){ if(!requested) continue; requestedCount++; if(checker(current)) currentSatisfied++; if(!checker(proposed)) errors.push("De gevraagde verbetering voor "+label+" staat niet in de voorgestelde code."); }
+  for(const [requested,checker,label] of checks){ if(!requested) continue; requestedCount++; if(checker(current)) currentSatisfied++; if(!checker(proposed)) errors.push("FIX_MISSING:"+label); }
   return {errors,currentAlreadySatisfied:requestedCount>0&&currentSatisfied===requestedCount};
 }
 
@@ -354,7 +354,20 @@ export async function POST(request:Request){
     if(canonicalErrors.length) githubValidation.errors.push(...canonicalErrors.map((error:string)=>localizeFixError(error,language)));
 
     const completion=validateRequestedFixCompletion(current,generated.content,issue);
-    if(completion.errors.length) githubValidation.errors.push(...completion.errors.map((error:string)=>localizeFixError(error,language)));
+    if(completion.errors.length) githubValidation.errors.push(...completion.errors.map((error:string)=>{
+      if(error.startsWith("FIX_MISSING:")){
+        const label=error.slice("FIX_MISSING:".length);
+        return msg(
+          "De gevraagde verbetering voor "+label+" staat niet in de voorgestelde code.",
+          "The requested improvement for "+label+" is missing from the proposed code.",
+          "Die angeforderte Verbesserung für "+label+" fehlt im vorgeschlagenen Code.",
+          "L’amélioration demandée pour "+label+" est absente du code proposé.",
+          "Il miglioramento richiesto per "+label+" non è presente nel codice proposto.",
+          "La mejora solicitada para "+label+" no está presente en el código propuesto."
+        );
+      }
+      return localizeFixError(error,language);
+    }));
     const currentBytes=Buffer.byteLength(current,"utf8");
     const proposedBytes=Buffer.byteLength(generated.content,"utf8");
     const changedBytes=Math.abs(proposedBytes-currentBytes);
