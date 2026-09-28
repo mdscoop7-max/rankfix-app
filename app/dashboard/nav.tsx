@@ -30,7 +30,7 @@ export default function DashboardNav({current:legacyCurrent}:{current?:number}){
  const pathname=usePathname()||"/dashboard";
  const current=activeIndex(pathname);
  const [language,setLanguage]=useState<Locale>("nl");
- useEffect(()=>{fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in labels)setLanguage(d.language)}).catch(()=>{})},[]);
+ useEffect(()=>{fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in labels)setLanguage(d.language)}).catch(()=>{})},[]);\n useEffect(()=>{const brand=document.querySelector<HTMLAnchorElement>(".rf-brand");if(brand){brand.href="/"+language;brand.setAttribute("aria-label","RankFix AI home")}},[language]);
  async function changeLanguage(next:Locale){setLanguage(next);await fetch("/api/account/language",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({language:next})}).catch(()=>{});window.dispatchEvent(new CustomEvent("rankfix-language",{detail:next}));location.reload()}
  const siteHref="/"+language;
  return <><nav className="rf-desktop-nav" aria-label="Dashboard menu"><div className="rf-desktop-main">{desktop.map((href,i)=><a key={href} href={href} aria-current={current===i?"page":undefined}>{labels[language][i]}</a>)}</div><div className="rf-desktop-tools"><div className="rf-desktop-languages" aria-label="Language">{languageOrder.map(l=><button key={l} type="button" className="rf-language-chip" aria-current={language===l?"true":undefined} onClick={()=>changeLanguage(l)}>{flags[l]} <span>{l.toUpperCase()}</span></button>)}</div><a className="rf-site-link" href={siteHref}>← {siteLabels[language]}</a></div></nav>
