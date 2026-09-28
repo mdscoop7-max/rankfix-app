@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
@@ -264,6 +265,45 @@ export async function POST(request: Request) {
       target = validatePublicHttpUrl(/^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`);
     } catch {
       return NextResponse.json({ error: scanError.unsafe }, { status: 400 });
+    }
+
+    // Free dashboard scans are enforced server-side before crawling.
+    // The same normalized host shares the free allowance across accounts, which
+    // prevents simply registering another email address for more free scans.
+    let usageUser: Awaited<ReturnType<typeof getCurrentUser>> = null;
+    let usageWebsiteHost = target.hostname.toLowerCase().replace(/^www\./, "");
+    let usageIpHash: string | null = null;
+    if (dashboardScan) {
+      try { usageUser = await getCurrentUser(); } catch {}
+      if (!usageUser) return NextResponse.json({ error: scanError.session }, { status: 401 });
+      await ensureDatabase();
+      const planResult = await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1", [usageUser.id]);
+      const planCode = String(planResult.rows[0]?.plan_code || "free").toLowerCase();
+      if (planCode === "free") {
+        const monthStart = new Date();
+        monthStart.setUTCDate(1); monthStart.setUTCHours(0,0,0,0);
+        const hostUsage = await getDb().query(
+          "SELECT COUNT(*)::int AS count FROM usage_events WHERE website_host=$1 AND event_type='SCAN' AND created_at >= $2",
+          [usageWebsiteHost, monthStart.toISOString()]
+        );
+        const used = Number(hostUsage.rows[0]?.count || 0);
+        if (used >= 2) {
+          const limitMessages: Record<string,string> = {
+            nl:"Je 2 gratis scans voor deze website zijn deze maand gebruikt. Je bestaande rapport blijft beschikbaar. Upgrade voor nieuwe scans en volledige fixes.",
+            en:"Your 2 free scans for this website have been used this month. Your existing report remains available. Upgrade for new scans and full fixes.",
+            de:"Deine 2 kostenlosen Scans für diese Website wurden diesen Monat verwendet. Dein bestehender Bericht bleibt verfügbar. Upgrade für neue Scans und vollständige Fixes.",
+            fr:"Vos 2 analyses gratuites pour ce site ont été utilisées ce mois-ci. Votre rapport existant reste disponible. Passez à une offre supérieure pour de nouvelles analyses et les correctifs complets.",
+            it:"Le 2 scansioni gratuite per questo sito sono state utilizzate questo mese. Il rapporto esistente resta disponibile. Effettua l’upgrade per nuove scansioni e correzioni complete.",
+            es:"Tus 2 análisis gratuitos para este sitio ya se han utilizado este mes. Tu informe existente seguirá disponible. Mejora tu plan para nuevos análisis y correcciones completas."
+          };
+          return NextResponse.json({ error: limitMessages[scanLanguage], code:"FREE_SCAN_LIMIT", usage:{plan:"free",used,limit:2} }, { status: 429 });
+        }
+        const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip")?.trim() || "";
+        if (forwarded) {
+          const salt = process.env.USAGE_HASH_SALT || process.env.SESSION_SECRET || "rankfix-usage";
+          usageIpHash = createHash("sha256").update(salt + ":" + forwarded).digest("hex");
+        }
+      }
     }
 
     const started = Date.now();
@@ -1428,6 +1468,12 @@ export async function POST(request: Request) {
           }), CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION]
         );
         savedScanId = insertedScan.rows[0]?.id ? String(insertedScan.rows[0].id) : null;
+        if (dashboardScan) {
+          await getDb().query(
+            "INSERT INTO usage_events (user_id,website_host,event_type,ip_hash) VALUES ($1,$2,'SCAN',$3)",
+            [user.id, websiteHost, usageIpHash]
+          );
+        }
         try {
           const scanId = savedScanId;
           await getDb().query(
