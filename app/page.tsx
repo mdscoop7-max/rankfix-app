@@ -629,7 +629,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
             <input
               type="text"
               inputMode="url"
-              aria-label="Websiteadres"
+              aria-label={language==="nl"?"Websiteadres":language==="de"?"Website-Adresse":language==="fr"?"Adresse du site":language==="it"?"Indirizzo del sito":language==="es"?"Dirección del sitio":"Website address"}
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="jouwdomein.nl"
