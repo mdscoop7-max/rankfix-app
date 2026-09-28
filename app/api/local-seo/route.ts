@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { getDb } from "@/lib/db";
+import { ensureDatabase } from "@/lib/db-init";
 import { auditSite } from "@/lib/site-audit";
 
 export async function POST(request: Request) {
  const user=await getCurrentUser();
  if(!user)return NextResponse.json({error:"Log in om een Local SEO scan uit te voeren."},{status:401});
+ await ensureDatabase();
+ const planResult=await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1",[user.id]);
+ if(String(planResult.rows[0]?.plan_code||"free").toLowerCase()==="free")return NextResponse.json({error:"Geavanceerde Local SEO is beschikbaar met een betaald abonnement.",code:"PAID_PLAN_REQUIRED"},{status:403});
  try{
   const body=await request.json();const url=typeof body?.url==="string"?body.url.trim():"";
   if(!url)return NextResponse.json({error:"Vul een website URL in."},{status:400});
