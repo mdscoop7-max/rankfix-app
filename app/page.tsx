@@ -549,9 +549,9 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
           </div>
           <div className="hidden items-center gap-2 lg:flex">
             <details className="rf-public-language">
-              <summary aria-label="Taal kiezen"><span>{({nl:"🇳🇱",en:"🇬🇧",de:"🇩🇪",fr:"🇫🇷",it:"🇮🇹",es:"🇪🇸"} as Record<Language,string>)[language]}</span><b>{language.toUpperCase()}</b><span aria-hidden="true">⌄</span></summary>
+              <summary aria-label="Taal kiezen"><span className={"fi fi-"+({nl:"nl",en:"gb",de:"de",fr:"fr",it:"it",es:"es"} as Record<Language,string>)[language]} aria-hidden="true"/><b>{language.toUpperCase()}</b><span aria-hidden="true">⌄</span></summary>
               <div className="rf-public-language-menu">
-                {(["nl","en","de","fr","it","es"] as Language[]).map(code=><button key={code} type="button" aria-current={language===code?"true":undefined} onClick={()=>{setLanguage(code);window.location.href="/"+code}}>{({nl:"🇳🇱",en:"🇬🇧",de:"🇩🇪",fr:"🇫🇷",it:"🇮🇹",es:"🇪🇸"} as Record<Language,string>)[code]} <b>{code.toUpperCase()}</b></button>)}
+                {(["nl","en","de","fr","it","es"] as Language[]).map(code=><button key={code} type="button" aria-current={language===code?"true":undefined} onClick={()=>{setLanguage(code);window.location.href="/"+code}}><span className={"fi fi-"+({nl:"nl",en:"gb",de:"de",fr:"fr",it:"it",es:"es"} as Record<Language,string>)[code]} aria-hidden="true"/> <b>{code.toUpperCase()}</b></button>)}
               </div>
             </details>
             {!authLoading && (authUser ? (
