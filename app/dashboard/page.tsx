@@ -77,7 +77,7 @@ export default function Dashboard() {
   const latest = history[0] || scans[0];
   const previous = latest ? history.find((scan) => scan.scanned_url === latest.scanned_url && scan.id !== latest.id) : undefined;
   const scoreChange = latest && previous ? latest.overall_score - previous.overall_score : null;
-  const recentHistory = history.slice(0, 5);
+  const recentHistory = (usage.plan==="free" ? history.slice(0,1) : history.slice(0,5));
   const latestHost = latest ? (() => { try { return new URL(latest.scanned_url).hostname; } catch { return latest.scanned_url; } })() : null;
 
   return <main className="rf-page" lang={language}>
@@ -127,7 +127,7 @@ export default function Dashboard() {
           </div>
         </section>
         <section className="rf-section">
-          <div className="rf-section-head"><div><h2>{x.recent}</h2><p>{x.recentIntro}</p></div><a href="/dashboard/history">{x.history} →</a></div>
+          <div className="rf-section-head"><div><h2>{x.recent}</h2><p>{usage.plan==="free"?(language==="nl"?"Je laatste controle. Volledige historie is beschikbaar met een betaald abonnement.":language==="de"?"Deine letzte Kontrolle. Der vollständige Verlauf ist mit einem kostenpflichtigen Tarif verfügbar.":language==="fr"?"Votre dernier contrôle. L’historique complet est disponible avec une offre payante.":language==="it"?"Il tuo ultimo controllo. La cronologia completa è disponibile con un piano a pagamento.":language==="es"?"Tu último control. El historial completo está disponible con un plan de pago.":"Your latest check. Full history is available with a paid plan."):x.recentIntro}</p></div><a href="/dashboard/history">{x.history} →</a></div>
           <div className="rf-history-list">{recentHistory.map((scan,index)=><a key={scan.id} href={`/dashboard/audit/${scan.id}`}><div><b>{(()=>{try{return new URL(scan.scanned_url).hostname}catch{return scan.scanned_url}})()}</b><span>{new Date(scan.created_at).toLocaleString(language)} · SEO {scan.seo_score === 0 && scan.overall_score === 100 ? "—" : scan.seo_score} · GEO {scan.geo_score === 0 && scan.overall_score === 100 ? "—" : scan.geo_score} · {scan.open_issues} {x.improvements}</span></div><strong>{scan.overall_score}</strong>{index===0&&<em>{x.newest}</em>}</a>)}</div>
         </section>
         <section id="websites" className="rf-section">
