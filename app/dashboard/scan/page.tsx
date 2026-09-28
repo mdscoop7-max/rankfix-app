@@ -46,7 +46,7 @@ export default function DashboardScan() {
   const issues=checks.filter(c=>c.status==="fail"||c.status==="warning").length;
   const passed=checks.filter(c=>c.status==="pass").length;
   return <main className="rf-page" lang={language}><div className="rf-shell">
-    <header className="rf-header"><a href="/dashboard" className="rf-brand">RankFix <span>AI</span></a><a href="/dashboard/account" className="rf-avatar" aria-label="Account">D</a></header>
+    <header className="rf-header"><a href="/" className="rf-brand" aria-label="RankFix AI home">RankFix <span>AI</span></a><a href="/dashboard/account" className="rf-avatar" aria-label="Account">D</a></header>
     <DashboardNav current={1}/>
     <div className="rf-body">
       <div className="rf-heading"><h1>{t.title}</h1><p>{t.intro}</p></div>
