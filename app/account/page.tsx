@@ -46,7 +46,7 @@ export default function Account() {
     }
 
     const endpoint=mode==="login"?"/api/auth/login":"/api/auth/register";
-    const body=mode==="login"?{email,password,rememberMe}:{name,email,password};
+    const body=mode==="login"?{email,password,rememberMe,language}:{name,email,password,language};
 
     try {
       const r=await fetch(endpoint,{
