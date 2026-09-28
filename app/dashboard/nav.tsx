@@ -40,3 +40,4 @@ export default function DashboardNav({current:legacyCurrent}:{current?:number}){
  <a className="rf-mobile-site-link" href={siteHref}>← {siteLabels[language]}</a>
  <nav className="rf-nav" aria-label={language==="nl"?"Mobiele dashboardnavigatie":language==="de"?"Mobile Dashboard-Navigation":language==="fr"?"Navigation mobile du tableau de bord":language==="it"?"Navigazione mobile dashboard":language==="es"?"Navegación móvil del panel":"Mobile dashboard navigation"}>{desktop.map((href,i)=><a key={href} href={href} aria-current={current===i?"page":undefined}><span className="rf-nav-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={paths[i]}/></svg></span><span className="rf-nav-label">{labels[language][i]}</span></a>)}</nav></>
 }
+
