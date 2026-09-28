@@ -312,7 +312,7 @@ export async function POST(request:Request){
         return NextResponse.json({error:msg("Kies eenmalig de GitHub-repository die bij deze website hoort.","Choose the GitHub repository for this website once.","Wähle einmalig das GitHub-Repository für diese Website aus.","Choisissez une fois le dépôt GitHub associé à ce site.","Scegli una volta il repository GitHub associato a questo sito.","Elige una vez el repositorio de GitHub asociado a este sitio."),website:scannedHost},{status:409});
       }
     }
-    const verifiedRepo=await chooseRepository(token,effectiveRepo);
+    let verifiedRepo;\n    try{ verifiedRepo=await chooseRepository(token,effectiveRepo); }\n    catch(error){ const raw=error instanceof Error?error.message:"GitHub fix mislukt."; throw new Error(localizeFixError(raw,language)); }
     const repo=verifiedRepo.fullName;
     effectiveBaseBranch=verifiedRepo.defaultBranch;
     if(scannedHost){
@@ -324,7 +324,7 @@ export async function POST(request:Request){
         [user.id,scannedHost,repo,effectiveBaseBranch]
       );
     }
-    const path=await chooseFile(token,repo,effectiveBaseBranch,requestedPath,issue);
+    let path:string;\n    try{ path=await chooseFile(token,repo,effectiveBaseBranch,requestedPath,issue); }\n    catch(error){ const raw=error instanceof Error?error.message:"GitHub fix mislukt."; throw new Error(localizeFixError(raw,language)); }
     const file=await githubFetch<any>(token,"/repos/"+repo+"/contents/"+path+"?ref="+encodeURIComponent(effectiveBaseBranch));
     if(file.type!=="file"||typeof file.content!=="string") return NextResponse.json({error:msg("Dit bestand kan niet worden bewerkt.","This file cannot be edited.","Diese Datei kann nicht bearbeitet werden.","Ce fichier ne peut pas être modifié.","Questo file non può essere modificato.","Este archivo no se puede editar.")},{status:400});
     const current=Buffer.from(file.content.replace(/\n/g,""),"base64").toString("utf8");
