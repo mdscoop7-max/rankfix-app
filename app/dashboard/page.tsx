@@ -60,7 +60,7 @@ export default function Dashboard() {
   async function rescan(scan: Scan) {
     setBusy(scan.id); setError(""); setMessage("");
     try {
-      const response = await fetch("/api/scan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: scan.scanned_url, mode: "both" }) });
+      const response = await fetch("/api/scan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: scan.scanned_url, mode: "both", language }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || x.scanError);
       setSelectedResult(data);
@@ -87,14 +87,14 @@ export default function Dashboard() {
       <DashboardNav current={0} />
       <div className="rf-body">
         <div className="rf-heading"><h1>{t.overview}</h1><p>{t.intro}</p></div>
-        {scans.length === 0 && <section className="rf-welcome" aria-label="Aan de slag">
+        {scans.length === 0 && <section className="rf-welcome" aria-label={x.nextTitle}>
           <div><strong>{t.welcome}, {user?.name || "…"}</strong><p>{steps} {t.steps} · {steps === 1 ? t.firstSite : t.firstFix}</p></div><span aria-hidden="true">☑</span>
         </section>}
         {error && <p className="rf-alert" role="alert">{error}</p>}
         {message && <p className="rf-notice" role="status">{message}</p>}
         <section className="rf-dashboard-status">
           <div className="rf-dashboard-hero">
-            <div className="rf-dashboard-latest">{latest && <div className="rf-overall-meter" style={{"--rf-score":latest.overall_score} as React.CSSProperties}><div><strong>{latest.overall_score}</strong><span>/100</span></div></div>}<div><span className="rf-eyebrow">{x.latest}</span><h2>{latestHost || x.firstWebsite}</h2><p>{latest ? `${x.scanned} ${new Date(latest.created_at).toLocaleString(language)}` : "Start een SEO + GEO-audit om je dashboard te vullen."}</p></div></div>
+            <div className="rf-dashboard-latest">{latest && <div className="rf-overall-meter" style={{"--rf-score":latest.overall_score} as React.CSSProperties}><div><strong>{latest.overall_score}</strong><span>/100</span></div></div>}<div><span className="rf-eyebrow">{x.latest}</span><h2>{latestHost || x.firstWebsite}</h2><p>{latest ? `${x.scanned} ${new Date(latest.created_at).toLocaleString(language)}` : x.startAudit}</p></div></div>
             <a className="rf-primary-link rf-scan-cta" href="/dashboard/scan">＋ {x.newScan}</a>
           </div>
           <div className="rf-status-grid">
