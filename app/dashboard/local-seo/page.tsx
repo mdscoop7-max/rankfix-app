@@ -12,7 +12,7 @@ export default function LocalSeoPage(){
  useEffect(()=>{setUrl(params.get("url")||"");fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in ui)setLanguage(d.language)}).catch(()=>{})},[params]); const t=ui[language];
  async function run(e:React.FormEvent){e.preventDefault();setBusy(true);setError("");setResult(null);try{const r=await fetch("/api/local-seo",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url})});const d=await r.json();if(!r.ok)throw new Error(d.error||"Scan mislukt.");setResult(d)}catch(x){setError(x instanceof Error?x.message:"Scan mislukt.")}finally{setBusy(false)}}
  const mark=(s:string)=>s==="PASS"?"✓":s==="FAIL"?"×":"!";
- return <main className="rf-page" lang={language}><div className="rf-shell"><header className="rf-header"><a href="/dashboard" className="rf-brand">RankFix <span>AI</span></a></header><DashboardNav/><div className="rf-body">
+ return <main className="rf-page" lang={language}><div className="rf-shell"><header className="rf-header"><a href="/" className="rf-brand" aria-label="RankFix AI home">RankFix <span>AI</span></a></header><DashboardNav/><div className="rf-body">
   <div className="rf-heading"><h1>{t[0]}</h1><p>{t[1]}</p></div>
   <section className="rf-dashboard-scan"><form onSubmit={run}><label>{t[2]}</label><input type="url" placeholder="https://bedrijf.nl" value={url} onChange={e=>setUrl(e.target.value)} required/><button className="rf-primary" disabled={busy}>{busy?t[3]:t[4]}</button></form></section>
   {error&&<p className="rf-alert">{error}</p>}
