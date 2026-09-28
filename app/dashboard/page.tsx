@@ -60,7 +60,7 @@ export default function Dashboard() {
   async function rescan(scan: Scan) {
     setBusy(scan.id); setError(""); setMessage("");
     try {
-      const response = await fetch("/api/scan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: scan.scanned_url, mode: "both", language }) });
+      const response = await fetch("/api/scan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: scan.scanned_url, mode: "both", dashboard: true, language }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || x.scanError);
       setSelectedResult(data);
