@@ -12,10 +12,12 @@ function escapeHtml(value: string): string {
 }
 
 export async function POST(request: Request) {
-  const generic = "Als er een RankFix-account met dit e-mailadres bestaat, hebben we een resetlink gestuurd. Controleer ook je spam.";
-
   try {
     const body = await request.json();
+    const requestedLanguage = typeof body?.language === "string" ? body.language : "nl";
+    const language: "nl"|"en"|"de"|"fr"|"it"|"es" = ["nl","en","de","fr","it","es"].includes(requestedLanguage) ? requestedLanguage as "nl"|"en"|"de"|"fr"|"it"|"es" : "nl";
+    const tr=<T,>(values:Record<"nl"|"en"|"de"|"fr"|"it"|"es",T>)=>values[language];
+    const generic=tr({nl:"Als er een RankFix-account met dit e-mailadres bestaat, hebben we een resetlink gestuurd. Controleer ook je spam.",en:"If a RankFix account exists for this email address, we sent a reset link. Please also check your spam folder.",de:"Wenn für diese E-Mail-Adresse ein RankFix-Konto existiert, haben wir einen Reset-Link gesendet. Prüfe auch deinen Spam-Ordner.",fr:"Si un compte RankFix existe pour cette adresse e-mail, nous avons envoyé un lien de réinitialisation. Vérifiez aussi vos spams.",it:"Se esiste un account RankFix per questo indirizzo e-mail, abbiamo inviato un link di reimpostazione. Controlla anche lo spam.",es:"Si existe una cuenta RankFix para este correo, hemos enviado un enlace de restablecimiento. Revisa también el spam."});
     const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -39,7 +41,7 @@ export async function POST(request: Request) {
     );
 
     const base = (process.env.APP_URL || "https://rankfix-app.onrender.com").replace(/\/$/,"");
-    const resetUrl = `${base}/account/reset-password?token=${encodeURIComponent(token)}`;
+    const resetUrl = `${base}/account/reset-password?token=${encodeURIComponent(token)}&lang=${language}`;
     const apiKey = process.env.RESEND_API_KEY;
     const from = process.env.SCAN_REPORT_FROM || process.env.RESEND_FROM;
 
@@ -48,32 +50,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "De herstelmail is momenteel niet geconfigureerd." }, { status: 503 });
     }
 
+    const mail=tr({
+      nl:{subject:"RankFix — wachtwoord herstellen",hello:"Hallo",intro:"Je hebt gevraagd om je RankFix-wachtwoord te herstellen.",button:"Nieuw wachtwoord instellen",valid:"Deze link is 30 minuten geldig.",ignore:"Heb je dit niet aangevraagd, dan kun je deze e-mail negeren."},
+      en:{subject:"RankFix — reset your password",hello:"Hello",intro:"You requested a reset of your RankFix password.",button:"Set new password",valid:"This link is valid for 30 minutes.",ignore:"If you did not request this, you can ignore this email."},
+      de:{subject:"RankFix — Passwort zurücksetzen",hello:"Hallo",intro:"Du hast angefordert, dein RankFix-Passwort zurückzusetzen.",button:"Neues Passwort festlegen",valid:"Dieser Link ist 30 Minuten gültig.",ignore:"Wenn du dies nicht angefordert hast, kannst du diese E-Mail ignorieren."},
+      fr:{subject:"RankFix — réinitialiser votre mot de passe",hello:"Bonjour",intro:"Vous avez demandé la réinitialisation de votre mot de passe RankFix.",button:"Définir un nouveau mot de passe",valid:"Ce lien est valable pendant 30 minutes.",ignore:"Si vous n’êtes pas à l’origine de cette demande, vous pouvez ignorer cet e-mail."},
+      it:{subject:"RankFix — reimposta la password",hello:"Ciao",intro:"Hai richiesto di reimpostare la password di RankFix.",button:"Imposta nuova password",valid:"Questo link è valido per 30 minuti.",ignore:"Se non hai richiesto questa modifica, puoi ignorare questa e-mail."},
+      es:{subject:"RankFix — restablecer contraseña",hello:"Hola",intro:"Has solicitado restablecer tu contraseña de RankFix.",button:"Establecer nueva contraseña",valid:"Este enlace es válido durante 30 minutos.",ignore:"Si no has solicitado este cambio, puedes ignorar este correo."}
+    });
     const response = await fetch("https://api.resend.com/emails", {
       method:"POST",
       headers:{Authorization:`Bearer ${apiKey}`,"Content-Type":"application/json"},
       body:JSON.stringify({
-        from,
-        to:[user.email],
-        subject:"RankFix — wachtwoord herstellen",
-        text:[
-          `Hallo ${user.name},`,
-          "",
-          "Je hebt gevraagd om je RankFix-wachtwoord te herstellen.",
-          "",
-          `Open deze link om een nieuw wachtwoord in te stellen: ${resetUrl}`,
-          "",
-          "Deze link is 30 minuten geldig. Heb je dit niet aangevraagd, dan kun je deze e-mail negeren."
-        ].join("\n"),
-        html:`
-          <div style="font-family:Arial,sans-serif;line-height:1.6;color:#172033">
-            <h2>RankFix — wachtwoord herstellen</h2>
-            <p>Hallo ${escapeHtml(user.name)},</p>
-            <p>Je hebt gevraagd om je RankFix-wachtwoord te herstellen.</p>
-            <p><a href="${escapeHtml(resetUrl)}" style="display:inline-block;padding:12px 18px;background:#111827;color:#fff;text-decoration:none;border-radius:8px">Nieuw wachtwoord instellen</a></p>
-            <p>Deze link is 30 minuten geldig.</p>
-            <p>Heb je dit niet aangevraagd, dan kun je deze e-mail negeren.</p>
-          </div>
-        `
+        from,to:[user.email],subject:mail.subject,
+        text:[`${mail.hello} ${user.name},`,"",mail.intro,"",`${mail.button}: ${resetUrl}`,"",mail.valid,mail.ignore].join("\n"),
+        html:`<div style="font-family:Arial,sans-serif;line-height:1.6;color:#172033"><h2>${escapeHtml(mail.subject)}</h2><p>${escapeHtml(mail.hello)} ${escapeHtml(user.name)},</p><p>${escapeHtml(mail.intro)}</p><p><a href="${escapeHtml(resetUrl)}" style="display:inline-block;padding:12px 18px;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px">${escapeHtml(mail.button)}</a></p><p>${escapeHtml(mail.valid)}</p><p>${escapeHtml(mail.ignore)}</p></div>`
       })
     });
 
