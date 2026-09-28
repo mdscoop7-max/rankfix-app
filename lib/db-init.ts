@@ -15,6 +15,11 @@ const statements = [
   )`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS customer_id TEXT`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_code TEXT NOT NULL DEFAULT 'free'`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_status TEXT NOT NULL DEFAULT 'inactive'`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_started_at TIMESTAMPTZ`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_current_period_end TIMESTAMPTZ`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS payment_customer_id TEXT`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS payment_subscription_id TEXT`,
   `CREATE TABLE IF NOT EXISTS usage_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE SET NULL,
