@@ -12,10 +12,11 @@ function escapeHtml(value: string): string {
 }
 
 export async function POST(request: Request) {
+  let language: "nl"|"en"|"de"|"fr"|"it"|"es" = "nl";
   try {
     const body = await request.json();
     const requestedLanguage = typeof body?.language === "string" ? body.language : "nl";
-    const language: "nl"|"en"|"de"|"fr"|"it"|"es" = ["nl","en","de","fr","it","es"].includes(requestedLanguage) ? requestedLanguage as "nl"|"en"|"de"|"fr"|"it"|"es" : "nl";
+    language = ["nl","en","de","fr","it","es"].includes(requestedLanguage) ? requestedLanguage as "nl"|"en"|"de"|"fr"|"it"|"es" : "nl";
     const tr=<T,>(values:Record<"nl"|"en"|"de"|"fr"|"it"|"es",T>)=>values[language];
     const generic=tr({nl:"Als er een RankFix-account met dit e-mailadres bestaat, hebben we een resetlink gestuurd. Controleer ook je spam.",en:"If a RankFix account exists for this email address, we sent a reset link. Please also check your spam folder.",de:"Wenn für diese E-Mail-Adresse ein RankFix-Konto existiert, haben wir einen Reset-Link gesendet. Prüfe auch deinen Spam-Ordner.",fr:"Si un compte RankFix existe pour cette adresse e-mail, nous avons envoyé un lien de réinitialisation. Vérifiez aussi vos spams.",it:"Se esiste un account RankFix per questo indirizzo e-mail, abbiamo inviato un link di reimpostazione. Controlla anche lo spam.",es:"Si existe una cuenta RankFix para este correo, hemos enviado un enlace de restablecimiento. Revisa también el spam."});
     const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
@@ -77,6 +78,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success:true, message:generic });
   } catch (error) {
     console.error("Forgot password error:", error);
-    return NextResponse.json({ error:"De herstelmail kon niet worden verzonden." }, { status:500 });
+    const errors={nl:"De herstelmail kon niet worden verzonden.",en:"The recovery email could not be sent.",de:"Die Wiederherstellungs-E-Mail konnte nicht gesendet werden.",fr:"L’e-mail de récupération n’a pas pu être envoyé.",it:"Non è stato possibile inviare l’e-mail di recupero.",es:"No se pudo enviar el correo de recuperación."};
+    return NextResponse.json({ error:errors[language] }, { status:500 });
   }
 }
