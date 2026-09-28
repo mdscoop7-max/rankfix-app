@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { getDb } from "@/lib/db";
+import { ensureDatabase } from "@/lib/db-init";
 import { auditSite } from "@/lib/site-audit";
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Log in om websites te vergelijken." }, { status: 401 });
+  await ensureDatabase();
+  const planResult = await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1", [user.id]);
+  if (String(planResult.rows[0]?.plan_code || "free").toLowerCase() === "free") {
+    return NextResponse.json({ error:"Concurrentanalyse is beschikbaar met een betaald abonnement.", code:"PAID_PLAN_REQUIRED" }, { status:403 });
+  }
   try {
     const body = await request.json();
     const website = typeof body?.website === "string" ? body.website.trim() : "";
