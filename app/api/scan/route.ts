@@ -11,6 +11,7 @@ import { safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
 import { applyEvidenceBasedScoreCap, scoreApplicableChecks, summarizeAuditChecks } from "@/lib/audit-score";
 import { normalizePlan, planLimits } from "@/lib/plans";
+import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -313,16 +314,15 @@ export async function POST(request: Request) {
         return NextResponse.json({error:limitMessages[scanLanguage],code:"SCAN_LIMIT",usage:{plan:planCode,used,limit:limits.scans}},{status:429});
       }
       if(planCode==="free"){
-        const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip")?.trim() || "";
-        if (forwarded) {
-          const salt = process.env.USAGE_HASH_SALT || process.env.SESSION_SECRET || "rankfix-usage";
-          usageIpHash = createHash("sha256").update(salt + ":" + forwarded).digest("hex");
-          const hourStart = new Date(Date.now() - 60 * 60 * 1000);
-          const ipUsage = await getDb().query("SELECT COUNT(*)::int AS count FROM usage_events WHERE ip_hash=$1 AND event_type='SCAN' AND created_at >= $2",[usageIpHash,hourStart.toISOString()]);
-          if (Number(ipUsage.rows[0]?.count || 0) >= 8) {
-            const rateMessages: Record<string,string> = {nl:"Er zijn vanaf dit netwerk veel gratis scans uitgevoerd. Probeer het over ongeveer een uur opnieuw.",en:"Many free scans have been run from this network. Please try again in about an hour.",de:"Von diesem Netzwerk wurden viele kostenlose Scans ausgeführt. Bitte versuche es in etwa einer Stunde erneut.",fr:"De nombreuses analyses gratuites ont été lancées depuis ce réseau. Réessayez dans environ une heure.",it:"Da questa rete sono state eseguite molte scansioni gratuite. Riprova tra circa un’ora.",es:"Se han realizado muchos análisis gratuitos desde esta red. Vuelve a intentarlo dentro de aproximadamente una hora."};
-            return NextResponse.json({error:rateMessages[scanLanguage],code:"FREE_SCAN_RATE_LIMIT"},{status:429,headers:{"Retry-After":"3600"}});
-          }
+        const ip = requestIp(request);
+        const salt = process.env.USAGE_HASH_SALT || process.env.SESSION_SECRET || "rankfix-usage";
+        usageIpHash = createHash("sha256").update(salt + ":" + ip).digest("hex");
+        // Count attempts, not only completed scans, so repeated failed crawls cannot
+        // bypass the coarse Free-plan network protection.
+        const allowed = await consumeRateLimit("free-scan", ip, 8, 3600);
+        if (!allowed) {
+          const rateMessages: Record<string,string> = {nl:"Er zijn vanaf dit netwerk veel gratis scans uitgevoerd. Probeer het over ongeveer een uur opnieuw.",en:"Many free scans have been run from this network. Please try again in about an hour.",de:"Von diesem Netzwerk wurden viele kostenlose Scans ausgeführt. Bitte versuche es in etwa einer Stunde erneut.",fr:"De nombreuses analyses gratuites ont été lancées depuis ce réseau. Réessayez dans environ une heure.",it:"Da questa rete sono state eseguite molte scansioni gratuite. Riprova tra circa un’ora.",es:"Se han realizado muchos análisis gratuitos desde esta red. Vuelve a intentarlo dentro de aproximadamente una hora."};
+          return NextResponse.json({error:rateMessages[scanLanguage],code:"FREE_SCAN_RATE_LIMIT"},{status:429,headers:{"Retry-After":"3600"}});
         }
       }
     }
@@ -362,10 +362,15 @@ export async function POST(request: Request) {
     }
 
     if (!response.ok && response.status !== 404) {
-      return NextResponse.json(
-        { error: `De website gaf HTTP ${response.status} terug en kan niet goed worden geanalyseerd.` },
-        { status: 422 }
-      );
+      const httpMessages: Record<string,string> = {
+        nl:`De website gaf HTTP ${response.status} terug en kan niet goed worden geanalyseerd.`,
+        en:`The website returned HTTP ${response.status} and cannot be analysed reliably.`,
+        de:`Die Website hat HTTP ${response.status} zurückgegeben und kann nicht zuverlässig analysiert werden.`,
+        fr:`Le site a renvoyé HTTP ${response.status} et ne peut pas être analysé de manière fiable.`,
+        it:`Il sito ha restituito HTTP ${response.status} e non può essere analizzato in modo affidabile.`,
+        es:`El sitio devolvió HTTP ${response.status} y no se puede analizar de forma fiable.`
+      };
+      return NextResponse.json({ error: httpMessages[scanLanguage] }, { status: 422 });
     }
 
     const html = await response.text();
@@ -1610,6 +1615,6 @@ export async function POST(request: Request) {
       pendingFixes: checks.filter((item) => item.fix_status === "WAITING").map((item) => item.issue_id || item.rule_id || item.key),
     });
   } catch {
-    return NextResponse.json({ error: "Er ging iets mis tijdens de SEO/GEO-scan." }, { status: 500 });
+    return NextResponse.json({ error: "The SEO/GEO scan could not be completed." }, { status: 500 });
   }
 }
