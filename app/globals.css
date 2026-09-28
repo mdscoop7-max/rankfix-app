@@ -83,3 +83,12 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .rf-public-language-menu button{width:100%;display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;color:#cfe0ef;text-align:left;font-size:13px;transition:background .15s ease,color .15s ease,transform .15s ease}
 .rf-public-language-menu button:hover{background:#12395a;color:#fff;transform:translateX(2px)}
 .rf-public-language-menu button[aria-current="true"]{background:linear-gradient(90deg,rgba(24,220,140,.18),rgba(37,185,255,.15));color:#9ff1d5}
+
+/* Desktop-only language flags and clear Dashboard CTA */
+@media(min-width:1024px){
+.rf-public-language summary>span:first-child,.rf-public-language-menu button{font-family:"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",Arial,sans-serif}
+.rf-public-language summary>span:first-child{font-size:20px;line-height:1}
+.rf-public-language-menu button{font-size:18px}.rf-public-language-menu button b{font-family:Arial,Helvetica,sans-serif;font-size:13px}
+.rf-desktop-dashboard-button{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:8px 16px;border:1px solid #25b9ff;border-radius:12px;background:linear-gradient(135deg,#1677ff,#5b5cf0);color:#fff!important;font-size:14px;font-weight:800;box-shadow:0 8px 24px rgba(22,119,255,.28);transition:transform .18s ease,box-shadow .18s ease,filter .18s ease}
+.rf-desktop-dashboard-button:hover{transform:translateY(-1px);box-shadow:0 10px 28px rgba(37,185,255,.38);filter:brightness(1.08)}
+}
