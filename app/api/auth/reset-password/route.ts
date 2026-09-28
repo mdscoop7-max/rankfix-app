@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     const reset = result.rows[0];
 
     if (!reset) {
-      return NextResponse.json({ error:"De resetlink is ongeldig of verlopen." }, { status:400 });
+      return NextResponse.json({ error:msg("De resetlink is ongeldig of verlopen.","The reset link is invalid or expired.","Der Reset-Link ist ungültig oder abgelaufen.","Le lien de réinitialisation est invalide ou expiré.","Il link di reimpostazione non è valido o è scaduto.","El enlace de restablecimiento no es válido o ha caducado.") }, { status:400 });
     }
 
     const passwordHash = await hashPassword(password);
