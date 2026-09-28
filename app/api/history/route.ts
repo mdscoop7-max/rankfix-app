@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
 import { cookies } from "next/headers";
+import { normalizePlan, planLimits } from "@/lib/plans";
 
 type Row={id:string;scanned_url:string;final_url?:string;overall_score:number;seo_score:number;geo_score:number;created_at:string;result:any};
 type HostScan={scanned_url:string;final_url?:string};
@@ -27,13 +28,21 @@ export async function GET(){
  const scans=allScans.filter((scan:any)=>{const key=host(scan);if(seen.has(key))return false;seen.add(key);return true});
  const pending=await getDb().query("SELECT status,count(*)::int AS count FROM pending_fixes WHERE user_id=$1 AND (status='DONE' OR (status='PREPARED' AND expires_at>NOW())) GROUP BY status",[user.id]);
  const planResult=await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1",[user.id]);
- const plan=String(planResult.rows[0]?.plan_code||"free").toLowerCase();
- let usage={plan,used:0,limit:plan==="free"?2:null as number|null,websiteHost:null as string|null};
+ const plan=normalizePlan(planResult.rows[0]?.plan_code);
+ const limits=planLimits(plan);
+ const monthStart=new Date();monthStart.setUTCDate(1);monthStart.setUTCHours(0,0,0,0);
+ let used=0;
+ let websiteHost:string|null=null;
  if(plan==="free"&&scans[0]){
-  const websiteHost=host(scans[0]);
-  const monthStart=new Date();monthStart.setUTCDate(1);monthStart.setUTCHours(0,0,0,0);
+  websiteHost=host(scans[0]);
   const usageResult=await getDb().query("SELECT COUNT(*)::int AS count FROM usage_events WHERE website_host=$1 AND event_type='SCAN' AND created_at >= $2",[websiteHost,monthStart.toISOString()]);
-  usage={plan,used:Number(usageResult.rows[0]?.count||0),limit:2,websiteHost};
+  used=Number(usageResult.rows[0]?.count||0);
+ }else if(plan!=="free"){
+  const usageResult=await getDb().query("SELECT COUNT(*)::int AS count FROM usage_events WHERE user_id=$1 AND event_type='SCAN' AND created_at >= $2",[user.id,monthStart.toISOString()]);
+  used=Number(usageResult.rows[0]?.count||0);
  }
+ const actionUsageResult=await getDb().query("SELECT event_type,COUNT(*)::int AS count FROM usage_events WHERE user_id=$1 AND created_at >= $2 AND event_type IN ('AI_FIX','COMPETITOR_SCAN','LOCAL_SEO') GROUP BY event_type",[user.id,monthStart.toISOString()]);
+ const actionCounts=Object.fromEntries(actionUsageResult.rows.map((row:any)=>[String(row.event_type),Number(row.count||0)]));
+ const usage={plan,used,limit:limits.scans,websiteHost,websites:limits.websites,actions:{aiFixes:{used:actionCounts.AI_FIX||0,limit:limits.aiFixes},competitorScans:{used:actionCounts.COMPETITOR_SCAN||0,limit:limits.competitorScans},localSeo:{used:actionCounts.LOCAL_SEO||0,limit:limits.localSeo}}};
  return NextResponse.json({scans,history:allScans,fixes:Object.fromEntries(pending.rows.map(row=>[row.status,row.count])),usage});
 }
