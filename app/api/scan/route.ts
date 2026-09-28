@@ -232,6 +232,16 @@ export async function POST(request: Request) {
     const rawUrl = typeof body?.url === "string" ? body.url.trim() : "";
     const mode: AuditMode = body?.mode === "seo" || body?.mode === "geo" || body?.mode === "both" ? body.mode : "both";
     const dashboardScan = body?.dashboard === true;
+    const scanLanguage = ["nl","en","de","fr","it","es"].includes(body?.language) ? body.language : "nl";
+    const errors: Record<string, Record<string, string>> = {
+      nl:{url:"Vul een website URL in.",unsafe:"Deze URL kan niet veilig worden gescand.",fetch:"De website kon niet worden opgehaald. Controleer de URL en probeer opnieuw.",rate:"Deze website beperkt tijdelijk scanverzoeken. RankFix heeft opnieuw geprobeerd, maar de limiet is nog actief. Probeer later opnieuw.",html:"De website gaf geen bruikbare HTML terug.",session:"Je sessie is verlopen. Log opnieuw in om deze scan in je dashboard op te slaan.",history:"De scan is uitgevoerd, maar kon niet in je historie worden opgeslagen. Probeer opnieuw.",generic:"Er ging iets mis tijdens de SEO/GEO-scan."},
+      en:{url:"Enter a website URL.",unsafe:"This URL cannot be scanned safely.",fetch:"The website could not be retrieved. Check the URL and try again.",rate:"This website is temporarily limiting scan requests. RankFix retried, but the limit is still active. Try again later.",html:"The website did not return usable HTML.",session:"Your session has expired. Log in again to save this scan to your dashboard.",history:"The scan completed but could not be saved to your history. Try again.",generic:"Something went wrong during the SEO/GEO scan."},
+      de:{url:"Gib eine Website-URL ein.",unsafe:"Diese URL kann nicht sicher gescannt werden.",fetch:"Die Website konnte nicht abgerufen werden. Prüfe die URL und versuche es erneut.",rate:"Diese Website begrenzt Scan-Anfragen vorübergehend. RankFix hat es erneut versucht, aber das Limit ist noch aktiv. Versuche es später erneut.",html:"Die Website hat kein verwendbares HTML zurückgegeben.",session:"Deine Sitzung ist abgelaufen. Melde dich erneut an, um diesen Scan im Dashboard zu speichern.",history:"Der Scan wurde ausgeführt, konnte aber nicht im Verlauf gespeichert werden. Versuche es erneut.",generic:"Beim SEO/GEO-Scan ist ein Fehler aufgetreten."},
+      fr:{url:"Saisissez l’URL d’un site.",unsafe:"Cette URL ne peut pas être analysée en toute sécurité.",fetch:"Le site n’a pas pu être récupéré. Vérifiez l’URL et réessayez.",rate:"Ce site limite temporairement les demandes d’analyse. RankFix a réessayé, mais la limite est toujours active. Réessayez plus tard.",html:"Le site n’a renvoyé aucun HTML exploitable.",session:"Votre session a expiré. Reconnectez-vous pour enregistrer cette analyse dans votre tableau de bord.",history:"L’analyse est terminée, mais n’a pas pu être enregistrée dans votre historique. Réessayez.",generic:"Une erreur s’est produite pendant l’analyse SEO/GEO."},
+      it:{url:"Inserisci l’URL di un sito.",unsafe:"Questo URL non può essere analizzato in sicurezza.",fetch:"Impossibile recuperare il sito. Controlla l’URL e riprova.",rate:"Questo sito limita temporaneamente le richieste di scansione. RankFix ha riprovato, ma il limite è ancora attivo. Riprova più tardi.",html:"Il sito non ha restituito HTML utilizzabile.",session:"La sessione è scaduta. Accedi di nuovo per salvare la scansione nella dashboard.",history:"La scansione è stata completata, ma non è stato possibile salvarla nella cronologia. Riprova.",generic:"Si è verificato un errore durante la scansione SEO/GEO."},
+      es:{url:"Introduce la URL de un sitio web.",unsafe:"Esta URL no se puede analizar de forma segura.",fetch:"No se pudo obtener el sitio web. Comprueba la URL e inténtalo de nuevo.",rate:"Este sitio limita temporalmente las solicitudes de análisis. RankFix lo ha intentado de nuevo, pero el límite sigue activo. Inténtalo más tarde.",html:"El sitio no devolvió HTML utilizable.",session:"Tu sesión ha caducado. Inicia sesión de nuevo para guardar este análisis en tu panel.",history:"El análisis se completó, pero no pudo guardarse en tu historial. Inténtalo de nuevo.",generic:"Se produjo un error durante el análisis SEO/GEO."}
+    };
+    const scanError = errors[scanLanguage];
     const cleanAdsField = (value: unknown, max = 120) => typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, max) : "";
     const adsProfile = {
       industry: cleanAdsField(body?.adsProfile?.industry),
@@ -246,14 +256,14 @@ export async function POST(request: Request) {
     const hasAdsProfile = Object.values(adsProfile).some(Boolean);
 
     if (!rawUrl) {
-      return NextResponse.json({ error: "Vul een website URL in." }, { status: 400 });
+      return NextResponse.json({ error: scanError.url }, { status: 400 });
     }
 
     let target: URL;
     try {
       target = validatePublicHttpUrl(/^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`);
     } catch {
-      return NextResponse.json({ error: "Deze URL kan niet veilig worden gescand." }, { status: 400 });
+      return NextResponse.json({ error: scanError.unsafe }, { status: 400 });
     }
 
     const started = Date.now();
@@ -275,7 +285,7 @@ export async function POST(request: Request) {
       }
     } catch {
       return NextResponse.json(
-        { error: "De website kon niet worden opgehaald. Controleer de URL en probeer opnieuw." },
+        { error: scanError.fetch },
         { status: 502 }
       );
     }
@@ -285,7 +295,7 @@ export async function POST(request: Request) {
 
     if (response.status === 429) {
       return NextResponse.json(
-        { error: "Deze website beperkt tijdelijk scanverzoeken. RankFix heeft opnieuw geprobeerd, maar de limiet is nog actief. Probeer later opnieuw.", retryable: true, charged: false },
+        { error: scanError.rate, retryable: true, charged: false },
         { status: 429 }
       );
     }
@@ -299,7 +309,7 @@ export async function POST(request: Request) {
 
     const html = await response.text();
     if (!html || html.length < 20) {
-      return NextResponse.json({ error: "De website gaf geen bruikbare HTML terug." }, { status: 422 });
+      return NextResponse.json({ error: scanError.html }, { status: 422 });
     }
 
     const title = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
@@ -1376,7 +1386,7 @@ export async function POST(request: Request) {
     let savedScanId: string | null = null;
     let pendingFixes = new Map<string, { status: string }>();
     try { user = await getCurrentUser(); } catch {}
-    if (dashboardScan && !user) return NextResponse.json({ error: "Je sessie is verlopen. Log opnieuw in om deze scan in je dashboard op te slaan." }, { status: 401 });
+    if (dashboardScan && !user) return NextResponse.json({ error: scanError.session }, { status: 401 });
     if (user) {
       try {
         await ensureDatabase();
@@ -1455,7 +1465,7 @@ export async function POST(request: Request) {
         }
       } catch (saveError) {
         console.error("RankFix scan history write failed:", saveError);
-        if (dashboardScan) return NextResponse.json({ error: "De scan is uitgevoerd, maar kon niet in je historie worden opgeslagen. Probeer opnieuw." }, { status: 500 });
+        if (dashboardScan) return NextResponse.json({ error: scanError.history }, { status: 500 });
       }
     }
 
