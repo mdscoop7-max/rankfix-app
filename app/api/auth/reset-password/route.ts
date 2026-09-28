@@ -13,12 +13,14 @@ export async function POST(request: Request) {
     const body = await request.json();
     const token = typeof body?.token === "string" ? body.token.trim() : "";
     const password = typeof body?.password === "string" ? body.password : "";
+    const language = ["nl","en","de","fr","it","es"].includes(body?.language) ? body.language : "nl";
+    const msg=(nl:string,en:string,de:string,fr:string,it:string,es:string)=>({nl,en,de,fr,it,es}[language]||nl);
 
     if (!token || token.length < 20) {
-      return NextResponse.json({ error:"De resetlink is ongeldig of verlopen." }, { status:400 });
+      return NextResponse.json({ error:msg("De resetlink is ongeldig of verlopen.","The reset link is invalid or expired.","Der Reset-Link ist ungültig oder abgelaufen.","Le lien de réinitialisation est invalide ou expiré.","Il link di reimpostazione non è valido o è scaduto.","El enlace de restablecimiento no es válido o ha caducado.") }, { status:400 });
     }
-    if (password.length < 8) {
-      return NextResponse.json({ error:"Het nieuwe wachtwoord moet minimaal 8 tekens bevatten." }, { status:400 });
+    if (!(password.length>=8 && /[A-Za-z]/.test(password) && /\\d/.test(password) && /[^A-Za-z0-9]/.test(password))) {
+      return NextResponse.json({ error:msg("Gebruik minimaal 8 tekens met letters, 1 cijfer en 1 speciaal teken.","Use at least 8 characters with letters, 1 number and 1 special character.","Mindestens 8 Zeichen mit Buchstaben, 1 Zahl und 1 Sonderzeichen verwenden.","Utilisez au moins 8 caractères avec des lettres, 1 chiffre et 1 caractère spécial.","Usa almeno 8 caratteri con lettere, 1 numero e 1 carattere speciale.","Usa al menos 8 caracteres con letras, 1 número y 1 carácter especial.") }, { status:400 });
     }
 
     await ensureDatabase();
