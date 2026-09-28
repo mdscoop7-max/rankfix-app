@@ -92,3 +92,15 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .rf-desktop-dashboard-button{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:8px 16px;border:1px solid #25b9ff;border-radius:12px;background:linear-gradient(135deg,#1677ff,#5b5cf0);color:#fff!important;font-size:14px;font-weight:800;box-shadow:0 8px 24px rgba(22,119,255,.28);transition:transform .18s ease,box-shadow .18s ease,filter .18s ease}
 .rf-desktop-dashboard-button:hover{transform:translateY(-1px);box-shadow:0 10px 28px rgba(37,185,255,.38);filter:brightness(1.08)}
 }
+
+/* CSS country flags for desktop language menu (avoids GB/EN text fallback) */
+@media(min-width:1024px){
+.rf-public-language .fi{display:inline-block;width:22px;height:15px;flex:0 0 22px;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.18);background-size:100% 100%}
+.rf-public-language .fi-nl{background:linear-gradient(#ae1c28 0 33.33%,#fff 33.33% 66.66%,#21468b 66.66%)}
+.rf-public-language .fi-de{background:linear-gradient(#000 0 33.33%,#dd0000 33.33% 66.66%,#ffce00 66.66%)}
+.rf-public-language .fi-fr{background:linear-gradient(90deg,#0055a4 0 33.33%,#fff 33.33% 66.66%,#ef4135 66.66%)}
+.rf-public-language .fi-it{background:linear-gradient(90deg,#009246 0 33.33%,#fff 33.33% 66.66%,#ce2b37 66.66%)}
+.rf-public-language .fi-es{background:linear-gradient(#aa151b 0 25%,#f1bf00 25% 75%,#aa151b 75%)}
+.rf-public-language .fi-gb{background:linear-gradient(33deg,transparent 43%,#fff 43% 48%,#c8102e 48% 52%,#fff 52% 57%,transparent 57%),linear-gradient(-33deg,transparent 43%,#fff 43% 48%,#c8102e 48% 52%,#fff 52% 57%,transparent 57%),linear-gradient(90deg,transparent 39%,#fff 39% 44%,#c8102e 44% 56%,#fff 56% 61%,transparent 61%),linear-gradient(transparent 35%,#fff 35% 42%,#c8102e 42% 58%,#fff 58% 65%,transparent 65%),#012169}
+.rf-public-language-menu button{font-size:13px}
+}
