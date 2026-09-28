@@ -26,6 +26,7 @@ export default function Dashboard() {
   const [scans, setScans] = useState<Scan[]>([]);
   const [history, setHistory] = useState<Scan[]>([]);
   const [fixes, setFixes] = useState<Record<string, number>>({});
+  const [usage, setUsage] = useState<{plan:string;used:number;limit:number|null;websiteHost:string|null}>({plan:"free",used:0,limit:2,websiteHost:null});
   const [selectedResult, setSelectedResult] = useState<ScanResult | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -41,6 +42,7 @@ export default function Dashboard() {
     setScans(data.scans || []);
     setHistory(data.history || data.scans || []);
     setFixes(data.fixes || {});
+    if (data.usage) setUsage(data.usage);
   }
 
   useEffect(() => {
@@ -87,6 +89,14 @@ export default function Dashboard() {
       <DashboardNav current={0} />
       <div className="rf-body">
         <div className="rf-heading"><h1>{t.overview}</h1><p>{t.intro}</p></div>
+        <section className="rf-plan-card" aria-label="Subscription usage">
+          <div>
+            <span className="rf-eyebrow">{usage.plan === "free" ? "Free · €0" : usage.plan}</span>
+            <h2>{language==="nl"?"Gebruik deze maand":language==="de"?"Nutzung in diesem Monat":language==="fr"?"Utilisation ce mois-ci":language==="it"?"Utilizzo questo mese":language==="es"?"Uso este mes":"Usage this month"}</h2>
+            <p>{usage.limit !== null ? `${usage.used} / ${usage.limit} ${language==="nl"?"scans gebruikt":language==="de"?"Scans verwendet":language==="fr"?"analyses utilisées":language==="it"?"scansioni utilizzate":language==="es"?"análisis utilizados":"scans used"}` : (language==="nl"?"Volgens je abonnement":language==="de"?"Gemäß deinem Tarif":language==="fr"?"Selon votre offre":language==="it"?"Secondo il tuo piano":language==="es"?"Según tu plan":"According to your plan")}{usage.websiteHost ? ` · ${usage.websiteHost}` : ""}</p>
+          </div>
+          {usage.plan==="free" && <a className="rf-primary-link" href="/#pricing">{usage.used >= (usage.limit ?? 2) ? (language==="nl"?"Limiet bereikt · Upgrade":language==="de"?"Limit erreicht · Upgrade":language==="fr"?"Limite atteinte · Mettre à niveau":language==="it"?"Limite raggiunto · Upgrade":language==="es"?"Límite alcanzado · Mejorar plan":"Limit reached · Upgrade") : (language==="nl"?"Bekijk abonnementen":language==="de"?"Tarife ansehen":language==="fr"?"Voir les offres":language==="it"?"Vedi i piani":language==="es"?"Ver planes":"View plans")}</a>}
+        </section>
         {scans.length === 0 && <section className="rf-welcome" aria-label={x.nextTitle}>
           <div><strong>{t.welcome}, {user?.name || "…"}</strong><p>{steps} {t.steps} · {steps === 1 ? t.firstSite : t.firstFix}</p></div><span aria-hidden="true">☑</span>
         </section>}
