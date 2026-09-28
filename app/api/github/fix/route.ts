@@ -304,7 +304,7 @@ export async function POST(request:Request){
     effectiveBaseBranch=verifiedRepo.defaultBranch;
     if(scannedHost){
       if(existingMapping && requestedRepo && requestedRepo.toLowerCase()!==repo.toLowerCase()){
-        return NextResponse.json({error:"Deze website is al aan een andere GitHub-repository gekoppeld. RankFix gebruikt de opgeslagen websitekoppeling en wijzigt die niet automatisch.",website:scannedHost,repository:repo},{status:409});
+        return NextResponse.json({error:msg("Deze website is al aan een andere GitHub-repository gekoppeld. RankFix gebruikt de opgeslagen websitekoppeling en wijzigt die niet automatisch.","This website is already linked to another GitHub repository. RankFix uses the saved website mapping and does not change it automatically.","Diese Website ist bereits mit einem anderen GitHub-Repository verknüpft. RankFix verwendet die gespeicherte Zuordnung und ändert sie nicht automatisch.","Ce site est déjà associé à un autre dépôt GitHub. RankFix utilise l’association enregistrée et ne la modifie pas automatiquement.","Questo sito è già collegato a un altro repository GitHub. RankFix usa il collegamento salvato e non lo modifica automaticamente.","Este sitio ya está vinculado a otro repositorio de GitHub. RankFix usa la vinculación guardada y no la cambia automáticamente."),website:scannedHost,repository:repo},{status:409});
       }
       await getDb().query(
         "INSERT INTO website_repositories (user_id,website_host,repository,base_branch,verified_at,updated_at) VALUES ($1,$2,$3,$4,NOW(),NOW()) ON CONFLICT (user_id,website_host) DO UPDATE SET base_branch=EXCLUDED.base_branch,verified_at=NOW(),updated_at=NOW()",
@@ -313,13 +313,13 @@ export async function POST(request:Request){
     }
     const path=await chooseFile(token,repo,effectiveBaseBranch,requestedPath,issue);
     const file=await githubFetch<any>(token,"/repos/"+repo+"/contents/"+path+"?ref="+encodeURIComponent(effectiveBaseBranch));
-    if(file.type!=="file"||typeof file.content!=="string") return NextResponse.json({error:"Dit bestand kan niet worden bewerkt."},{status:400});
+    if(file.type!=="file"||typeof file.content!=="string") return NextResponse.json({error:msg("Dit bestand kan niet worden bewerkt.","This file cannot be edited.","Diese Datei kann nicht bearbeitet werden.","Ce fichier ne peut pas être modifié.","Questo file non può essere modificato.","Este archivo no se puede editar.")},{status:400});
     const current=Buffer.from(file.content.replace(/\n/g,""),"base64").toString("utf8");
-    if(current.length>120000) return NextResponse.json({error:"Bestand is te groot voor een veilige AI-codefix."},{status:413});
+    if(current.length>120000) return NextResponse.json({error:msg("Bestand is te groot voor een veilige AI-codefix.","The file is too large for a safe AI code fix.","Die Datei ist zu groß für einen sicheren AI-Codefix.","Le fichier est trop volumineux pour une correction de code AI sûre.","Il file è troppo grande per una correzione di codice AI sicura.","El archivo es demasiado grande para una corrección de código AI segura.")},{status:413});
     const deterministicOgFix=buildDeterministicOgFix(path,current,issue,context);
     const generated=deterministicOgFix || await generateCodeFix(path,current,issue,context,issueId);
-    if(generated.content.length>180000) return NextResponse.json({error:"AI-output is te groot voor een veilige wijziging."},{status:422});
-    if(!generated.content.trim() || /(?:\[YOUR_[^\]]*\]|\bTODO\b|CHANGE_ME|REPLACE_ME|INSERT_[A-Z_]+)/i.test(generated.content)) return NextResponse.json({error:"AI-output bevat lege inhoud of placeholders."},{status:422});
+    if(generated.content.length>180000) return NextResponse.json({error:msg("AI-output is te groot voor een veilige wijziging.","AI output is too large for a safe change.","Die AI-Ausgabe ist zu groß für eine sichere Änderung.","La sortie AI est trop volumineuse pour une modification sûre.","L’output AI è troppo grande per una modifica sicura.","La salida de AI es demasiado grande para un cambio seguro.")},{status:422});
+    if(!generated.content.trim() || /(?:\[YOUR_[^\]]*\]|\bTODO\b|CHANGE_ME|REPLACE_ME|INSERT_[A-Z_]+)/i.test(generated.content)) return NextResponse.json({error:msg("AI-output bevat lege inhoud of placeholders.","AI output contains empty content or placeholders.","Die AI-Ausgabe enthält leere Inhalte oder Platzhalter.","La sortie AI contient du contenu vide ou des espaces réservés.","L’output AI contiene contenuti vuoti o segnaposto.","La salida de AI contiene contenido vacío o marcadores de posición.")},{status:422});
     // GitHub fixes contain a complete source file, not a single SEO field.
     // The SEO value validator is intentionally not applied to the whole file,
     // because it can mistake unrelated source-code text for placeholders/field markup.
@@ -343,15 +343,15 @@ export async function POST(request:Request){
     if(changedBytes>50000 || lineGrowth>500 || changeEstimate.changed>250 || changedRatio>0.35 || sizeRatio<0.65 || sizeRatio>1.5){
       githubValidation.errors.push("De voorgestelde wijziging raakt te veel van het bestand voor één automatische RankFix-fix.");
     }
-    if(!githubValidation.valid || githubValidation.errors.length) return NextResponse.json({error:"AI-codefix is geblokkeerd door de GitHub veiligheidscontrole.",validation:githubValidation},{status:422});
+    if(!githubValidation.valid || githubValidation.errors.length) return NextResponse.json({error:msg("AI-codefix is geblokkeerd door de GitHub veiligheidscontrole.","The AI code fix was blocked by the GitHub safety check.","Der AI-Codefix wurde von der GitHub-Sicherheitsprüfung blockiert.","La correction de code AI a été bloquée par le contrôle de sécurité GitHub.","La correzione di codice AI è stata bloccata dal controllo di sicurezza GitHub.","La corrección de código AI fue bloqueada por la comprobación de seguridad de GitHub."),validation:githubValidation},{status:422});
 
     if(completion.currentAlreadySatisfied){
-      return NextResponse.json({success:true,alreadyApplied:true,status:"already_ok",summary:"Deze verbetering is al aanwezig. RankFix hoefde niets aan te passen.",repository:repo,path});
+      return NextResponse.json({success:true,alreadyApplied:true,status:"already_ok",summary:msg("Deze verbetering is al aanwezig. RankFix hoefde niets aan te passen.","This improvement is already present. RankFix did not need to change anything.","Diese Verbesserung ist bereits vorhanden. RankFix musste nichts ändern.","Cette amélioration est déjà présente. RankFix n’a rien eu à modifier.","Questo miglioramento è già presente. RankFix non ha dovuto modificare nulla.","Esta mejora ya está presente. RankFix no tuvo que cambiar nada."),repository:repo,path});
     }
 
     const normalizeFile=(value:string)=>value.replace(/\r\n/g,"\n").replace(/[ \t]+$/gm,"").trim();
     if(normalizeFile(current)===normalizeFile(generated.content)){
-      return NextResponse.json({success:false,status:"fix_not_applied",error:"RankFix kon de gevraagde verbetering niet aantoonbaar in het bestand plaatsen. Er is niets gewijzigd.",repository:repo,path},{status:422});
+      return NextResponse.json({success:false,status:"fix_not_applied",error:msg("RankFix kon de gevraagde verbetering niet aantoonbaar in het bestand plaatsen. Er is niets gewijzigd.","RankFix could not verifiably apply the requested improvement to the file. Nothing was changed.","RankFix konnte die angeforderte Verbesserung nicht nachweisbar in der Datei anwenden. Es wurde nichts geändert.","RankFix n’a pas pu appliquer de manière vérifiable l’amélioration demandée au fichier. Rien n’a été modifié.","RankFix non è riuscito ad applicare in modo verificabile il miglioramento richiesto al file. Non è stato modificato nulla.","RankFix no pudo aplicar de forma verificable la mejora solicitada al archivo. No se modificó nada."),repository:repo,path},{status:422});
     }
 
     if(previewOnly){
