@@ -536,27 +536,24 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
 
       <nav className="sticky top-0 z-50 mx-auto w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-5 lg:px-8">
-          <a href="#" className="flex shrink-0 items-center gap-3" onClick={() => setMobileMenuOpen(false)}>
+          <a href={"/"+language} className="flex shrink-0 items-center gap-3" onClick={() => setMobileMenuOpen(false)} aria-label="RankFix AI home">
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-emerald-300 to-blue-600 text-xs font-black text-slate-950 shadow-lg shadow-emerald-500/10">RF</span>
             <span className="text-lg font-bold tracking-tight">RankFix <span className="text-emerald-300">AI</span></span>
           </a>
           <div className="hidden items-center gap-6 text-sm text-slate-600 lg:flex">
-            <button type="button" onClick={() => scrollToSection("scan")} className="transition hover:text-violet-700">{t.audit}</button>
-            <a href="#features" className="transition hover:text-violet-700">{t.moreInfo}</a>
-            <a href="#about" className="transition hover:text-violet-700">{t.forWho}</a>
-            <a href="#prijzen" className="transition hover:text-violet-700">{t.pricing}</a>
-            <button type="button" onClick={() => setContactOpen(true)} className="transition hover:text-violet-700">{t.contact}</button>
+            <button type="button" onClick={() => scrollToSection("scan")} className="rf-top-link">{t.audit}</button>
+            <a href="#features" className="rf-top-link">{t.moreInfo}</a>
+            <a href="#about" className="rf-top-link">{t.forWho}</a>
+            <a href="#prijzen" className="rf-top-link">{t.pricing}</a>
+            <button type="button" onClick={() => setContactOpen(true)} className="rf-top-link">{t.contact}</button>
           </div>
           <div className="hidden items-center gap-2 lg:flex">
-            <label className="sr-only" htmlFor="language-desktop">Taal</label>
-            <select id="language-desktop" value={language} onChange={(e) => { const next=e.target.value as Language; setLanguage(next); window.location.href="/"+next; }} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-900 outline-none shadow-sm">
-              <option value="nl" className="bg-white text-slate-900">🇳🇱 NL</option>
-              <option value="en" className="bg-white text-slate-900">🇬🇧 EN</option>
-              <option value="fr" className="bg-white text-slate-900">🇫🇷 FR</option>
-              <option value="de" className="bg-white text-slate-900">🇩🇪 DE</option>
-              <option value="it" className="bg-white text-slate-900">🇮🇹 IT</option>
-              <option value="es" className="bg-white text-slate-900">🇪🇸 ES</option>
-            </select>
+            <details className="rf-public-language">
+              <summary aria-label="Taal kiezen">{({nl:"🇳🇱",en:"🇬🇧",de:"🇩🇪",fr:"🇫🇷",it:"🇮🇹",es:"🇪🇸"} as Record<Language,string>)[language]} <b>{language.toUpperCase()}</b><span>⌄</span></summary>
+              <div className="rf-public-language-menu">
+                {(["nl","en","de","fr","it","es"] as Language[]).map(code=><button key={code} type="button" aria-current={language===code?"true":undefined} onClick={()=>{setLanguage(code);window.location.href="/"+code}}>{({nl:"🇳🇱",en:"🇬🇧",de:"🇩🇪",fr:"🇫🇷",it:"🇮🇹",es:"🇪🇸"} as Record<Language,string>)[code]} <b>{code.toUpperCase()}</b></button>)}
+              </div>
+            </details>
             {!authLoading && (authUser ? (
               <a href="/dashboard" className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-emerald-100 sm:px-4 sm:text-sm">Dashboard</a>
             ) : (
