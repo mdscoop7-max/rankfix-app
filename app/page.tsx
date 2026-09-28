@@ -549,7 +549,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
           </div>
           <div className="hidden items-center gap-2 lg:flex">
             <details className="rf-public-language">
-              <summary aria-label="Taal kiezen"><span className={"fi fi-"+({nl:"nl",en:"gb",de:"de",fr:"fr",it:"it",es:"es"} as Record<Language,string>)[language]} aria-hidden="true"/><b>{language.toUpperCase()}</b><span aria-hidden="true">⌄</span></summary>
+              <summary aria-label={t.language}><span className={"fi fi-"+({nl:"nl",en:"gb",de:"de",fr:"fr",it:"it",es:"es"} as Record<Language,string>)[language]} aria-hidden="true"/><b>{language.toUpperCase()}</b><span aria-hidden="true">⌄</span></summary>
               <div className="rf-public-language-menu">
                 {(["nl","en","de","fr","it","es"] as Language[]).map(code=><button key={code} type="button" aria-current={language===code?"true":undefined} onClick={()=>{setLanguage(code);window.location.href="/"+code}}><span className={"fi fi-"+({nl:"nl",en:"gb",de:"de",fr:"fr",it:"it",es:"es"} as Record<Language,string>)[code]} aria-hidden="true"/> <b>{code.toUpperCase()}</b></button>)}
               </div>
@@ -558,17 +558,17 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
               <a href="/dashboard" className="rf-desktop-dashboard-button">Dashboard</a>
             ) : (
               <>
-                <a href="/account?mode=login" className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium transition hover:bg-slate-100 sm:px-4 sm:text-sm">Inloggen</a>
-                <a href="/account?mode=register" className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-emerald-100 sm:px-4 sm:text-sm">Account aanmaken</a>
+                <a href={`/account?mode=login&lang=${language}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium transition hover:bg-slate-100 sm:px-4 sm:text-sm">{t.login}</a>
+                <a href={`/account?mode=register&lang=${language}`} className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-emerald-100 sm:px-4 sm:text-sm">{t.register}</a>
               </>
             ))}
           </div>
           <div className="ml-auto flex items-center gap-2 lg:hidden">
-            <label className="sr-only" htmlFor="language-mobile-top">Taal</label>
+            <label className="sr-only" htmlFor="language-mobile-top">{t.language}</label>
             <select id="language-mobile-top" value={language} onChange={(e) => { const next=e.target.value as Language; setLanguage(next); window.location.href="/"+next; }} className="h-11 max-w-[96px] rounded-xl border border-slate-600 bg-[#102A46] px-2 text-xs font-semibold text-white outline-none">
               <option value="nl">🇳🇱 NL</option><option value="en">🇬🇧 EN</option><option value="fr">🇫🇷 FR</option><option value="de">🇩🇪 DE</option><option value="it">🇮🇹 IT</option><option value="es">🇪🇸 ES</option>
             </select>
-            {!authLoading && <a href={authUser?"/dashboard":"/account?mode=login"} className="flex h-11 items-center rounded-xl border border-slate-600 bg-[#102A46] px-3 text-xs font-bold text-slate-100">{authUser?"Dashboard":t.login}</a>}
+            {!authLoading && <a href={authUser?"/dashboard":`/account?mode=login&lang=${language}`} className="flex h-11 items-center rounded-xl border border-slate-600 bg-[#102A46] px-3 text-xs font-bold text-slate-100">{authUser?"Dashboard":t.login}</a>}
           </div>
           <button type="button" aria-label={mobileMenuOpen ? "Menu sluiten" : "Menu openen"} aria-controls="rankfix-mobile-menu" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen((open) => !open)} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-200 lg:hidden">
             {mobileMenuOpen ? <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 5l14 14 M19 5L5 19" /></svg> : <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16 M4 12h16 M4 18h16" /></svg>}
@@ -590,8 +590,8 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                 <a href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="rounded-xl bg-white px-4 py-3 text-center text-sm font-bold text-slate-950">Dashboard</a>
               ) : (
                 <>
-                  <a href="/account?mode=login" onClick={() => setMobileMenuOpen(false)} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm font-semibold text-slate-900">Inloggen</a>
-                  <a href="/account?mode=register" onClick={() => setMobileMenuOpen(false)} className="rounded-xl bg-white px-4 py-3 text-center text-sm font-bold text-slate-950">Account aanmaken</a>
+                  <a href={`/account?mode=login&lang=${language}`} onClick={() => setMobileMenuOpen(false)} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm font-semibold text-slate-900">{t.login}</a>
+                  <a href={`/account?mode=register&lang=${language}`} onClick={() => setMobileMenuOpen(false)} className="rounded-xl bg-white px-4 py-3 text-center text-sm font-bold text-slate-950">{t.register}</a>
                 </>
               ))}
             </div>
@@ -1140,7 +1140,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
           {[
             [t.product, language==="nl"?["SEO Audit","GEO Audit","AI Fixes","Rapporten"]:language==="en"?["SEO Audit","GEO Audit","AI Fixes","Reports"]:language==="de"?["SEO-Audit","GEO-Audit","AI-Fixes","Berichte"]:language==="fr"?["Audit SEO","Audit GEO","Correctifs IA","Rapports"]:language==="it"?["Audit SEO","Audit GEO","Fix AI","Report"]:["Auditoría SEO","Auditoría GEO","Mejoras IA","Informes"]],
             [t.forWho, language==="nl"?["Bedrijven","Webshops","Bureaus","SaaS"]:language==="en"?["Businesses","Online stores","Agencies","SaaS"]:language==="de"?["Unternehmen","Onlineshops","Agenturen","SaaS"]:language==="fr"?["Entreprises","Boutiques en ligne","Agences","SaaS"]:language==="it"?["Aziende","Negozi online","Agenzie","SaaS"]:["Empresas","Tiendas online","Agencias","SaaS"]],
-            [t.company, language==="nl"?["Over RankFix","Contact","Privacy","Voorwaarden","Cookies"]:language==="en"?["About RankFix","Contact","Privacy","Terms","Cookies"]:language==="de"?["Über RankFix","Kontakt","Datenschutz","Bedingungen","Cookies"]:language==="fr"?["À propos de RankFix","Contact","Confidentialité","Conditions","Cookies"]:language==="it"?["Chi è RankFix","Contatti","Privacy","Condizioni","Cookie"]:["Sobre RankFix","Contacto","Privacidad","Condiciones","Cookies"]],
+            [t.company, language==="nl"?["Over RankFix","Contact","Privacy","Voorwaarden","Cookies"]:language==="en"?["About RankFix","Contact","Privacy","Terms","Cookies"]:language==="de"?["Über RankFix","Kontakt","Datenschutz","AGB","Cookies"]:language==="fr"?["À propos de RankFix","Contact","Confidentialité","Conditions générales","Cookies"]:language==="it"?["Chi è RankFix","Contatti","Privacy","Termini e condizioni","Cookie"]:["Sobre RankFix","Contacto","Privacidad","Condiciones","Cookies"]],
           ].map((entry,groupIndex) => {
             const [title, links] = entry as [string, string[]];
             return <div key={title}><div className="text-sm font-bold text-white">{title}</div><div className="mt-4 space-y-3 text-sm text-slate-300">{links.map((link,index)=><button type="button" key={link} onClick={()=>{
@@ -1152,7 +1152,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         </div>
         <div className="mx-auto mt-12 flex max-w-7xl flex-col justify-between gap-3 border-t border-slate-600 pt-6 text-xs text-slate-300 sm:flex-row">
           <span>© 2026 RankFix AI. {language==="nl"?"Alle rechten voorbehouden.":language==="en"?"All rights reserved.":language==="de"?"Alle Rechte vorbehalten.":language==="fr"?"Tous droits réservés.":language==="it"?"Tutti i diritti riservati.":"Todos los derechos reservados."}</span>
-          <span>SEO · GEO · AI Search · Built independent</span>
+          <span>SEO · GEO · AI Search · {language==="nl"?"Onafhankelijk ontwikkeld":language==="de"?"Unabhängig entwickelt":language==="fr"?"Conçu de manière indépendante":language==="it"?"Sviluppato in modo indipendente":language==="es"?"Desarrollado de forma independiente":"Built independently"}</span>
         </div>
       </footer>
       <AiAssistant publicLocale={language} />
