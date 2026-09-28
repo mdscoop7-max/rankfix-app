@@ -320,6 +320,25 @@ export async function POST(request: Request) {
         if (forwarded) {
           const salt = process.env.USAGE_HASH_SALT || process.env.SESSION_SECRET || "rankfix-usage";
           usageIpHash = createHash("sha256").update(salt + ":" + forwarded).digest("hex");
+          // Coarse anti-abuse signal only: allow normal shared networks, but stop
+          // bursts of free dashboard scans before starting an expensive crawl.
+          const hourStart = new Date(Date.now() - 60 * 60 * 1000);
+          const ipUsage = await getDb().query(
+            "SELECT COUNT(*)::int AS count FROM usage_events WHERE ip_hash=$1 AND event_type='SCAN' AND created_at >= $2",
+            [usageIpHash, hourStart.toISOString()]
+          );
+          const ipScans = Number(ipUsage.rows[0]?.count || 0);
+          if (ipScans >= 8) {
+            const rateMessages: Record<string,string> = {
+              nl:"Er zijn vanaf dit netwerk veel gratis scans uitgevoerd. Probeer het over ongeveer een uur opnieuw.",
+              en:"Many free scans have been run from this network. Please try again in about an hour.",
+              de:"Von diesem Netzwerk wurden viele kostenlose Scans ausgeführt. Bitte versuche es in etwa einer Stunde erneut.",
+              fr:"De nombreuses analyses gratuites ont été lancées depuis ce réseau. Réessayez dans environ une heure.",
+              it:"Da questa rete sono state eseguite molte scansioni gratuite. Riprova tra circa un’ora.",
+              es:"Se han realizado muchos análisis gratuitos desde esta red. Vuelve a intentarlo dentro de aproximadamente una hora."
+            };
+            return NextResponse.json({error:rateMessages[scanLanguage],code:"FREE_SCAN_RATE_LIMIT"},{status:429,headers:{"Retry-After":"3600"}});
+          }
         }
       }
     }
