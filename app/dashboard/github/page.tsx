@@ -128,7 +128,7 @@ export default function GithubPage(){
     }
     setBusy(true);setError("");setMessage("");setValidation(null);
     try{
-      const r=await fetch("/api/github/fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({repo:cleanRepo,path:cleanPath,baseBranch,scan_id:activeScanId,issue_id:activeIssueId,preview:!publish})});
+      const r=await fetch("/api/github/fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({repo:cleanRepo,path:cleanPath,baseBranch,scan_id:activeScanId,issue_id:activeIssueId,preview:!publish,language})});
       const text=await r.text();
       let d:any={};
       try{d=JSON.parse(text);}catch{}
