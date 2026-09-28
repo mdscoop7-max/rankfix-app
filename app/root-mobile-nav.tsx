@@ -49,3 +49,4 @@ export default function RootMobileNav({ locale = "nl" }: { locale?: string }) {
  })();
  return <nav className="root-bottom-nav" aria-label={locale==="nl"?"Mobiele navigatie":locale==="de"?"Mobile Navigation":locale==="fr"?"Navigation mobile":locale==="it"?"Navigazione mobile":locale==="es"?"Navegación móvil":"Mobile navigation"}>{items.map((item,index) => <a href={item.href} key={index} onClick={()=>setLocationKey(item.href.split("?")[0])} aria-current={activeIndex===index?"page":undefined}><span className="root-bottom-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={item.icon} /></svg></span><span>{item.label}</span></a>)}</nav>;
 }
+
