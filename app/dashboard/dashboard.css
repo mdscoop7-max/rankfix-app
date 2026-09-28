@@ -209,3 +209,10 @@
 .rf-language-chip .rf-flag-it{background:linear-gradient(90deg,#009246 0 33.33%,#fff 33.33% 66.66%,#ce2b37 66.66%)}
 .rf-language-chip .rf-flag-es{background:linear-gradient(#aa151b 0 25%,#f1bf00 25% 75%,#aa151b 75%)}
 .rf-language-chip .rf-flag-gb{background:linear-gradient(33deg,transparent 43%,#fff 43% 48%,#c8102e 48% 52%,#fff 52% 57%,transparent 57%),linear-gradient(-33deg,transparent 43%,#fff 43% 48%,#c8102e 48% 52%,#fff 52% 57%,transparent 57%),linear-gradient(90deg,transparent 39%,#fff 39% 44%,#c8102e 44% 56%,#fff 56% 61%,transparent 61%),linear-gradient(transparent 35%,#fff 35% 42%,#c8102e 42% 58%,#fff 58% 65%,transparent 65%),#012169}
+
+/* Subscription usage */
+.rf-plan-card{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:20px 22px;margin:0 0 20px;border:1px solid rgba(99,102,241,.22);border-radius:18px;background:linear-gradient(135deg,rgba(79,70,229,.09),rgba(59,130,246,.04));box-shadow:0 10px 30px rgba(15,23,42,.05)}
+.rf-plan-card h2{margin:4px 0 3px;font-size:18px}
+.rf-plan-card p{margin:0;opacity:.76;font-size:14px}
+.rf-plan-card .rf-primary-link{white-space:nowrap}
+@media(max-width:640px){.rf-plan-card{align-items:stretch;flex-direction:column;padding:17px}.rf-plan-card .rf-primary-link{text-align:center;width:100%}}
