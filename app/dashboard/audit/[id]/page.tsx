@@ -65,7 +65,7 @@ export default function AuditDetail() {
     if(!scan||monitorBusy) return;
     setMonitorBusy(true); setMonitorMessage("");
     try{
-      const response=await fetch("/api/monitor",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:scan.scanned_url,enabled:!monitoring})});
+      const response=await fetch("/api/monitor",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:scan.scanned_url,enabled:!monitoring,language})});
       const data=await response.json();
       if(!response.ok) throw new Error(data.error||tr({nl:"Monitoring kon niet worden aangepast.",en:"Monitoring could not be updated.",de:"Monitoring konnte nicht aktualisiert werden.",fr:"La surveillance n’a pas pu être mise à jour.",it:"Impossibile aggiornare il monitoraggio.",es:"No se pudo actualizar la monitorización."}));
       setMonitoring(!!data.enabled);

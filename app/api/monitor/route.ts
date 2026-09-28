@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { ensureDatabase } from "@/lib/db-init";
 import { getDb } from "@/lib/db";
+import { isPaidPlan } from "@/lib/plans";
 
 function normalize(value:string){
   try{
@@ -31,6 +32,12 @@ export async function POST(request:Request){
   const target=normalize(String(body?.url||""));
   if(!target||typeof body?.enabled!=="boolean") return NextResponse.json({error:"Ongeldige invoer."},{status:400});
   await ensureDatabase();
+  const language = ["nl","en","de","fr","it","es"].includes(body?.language) ? body.language : "nl";
+  const planRow = await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1",[user.id]);
+  if(!isPaidPlan(planRow.rows[0]?.plan_code)){
+    const messages:Record<string,string>={nl:"Automatische monitoring en e-mailalerts zijn beschikbaar vanaf een betaald abonnement.",en:"Automatic monitoring and email alerts are available on paid plans.",de:"Automatisches Monitoring und E-Mail-Benachrichtigungen sind ab einem kostenpflichtigen Tarif verfügbar.",fr:"La surveillance automatique et les alertes e-mail sont disponibles avec une offre payante.",it:"Il monitoraggio automatico e gli avvisi e-mail sono disponibili con un piano a pagamento.",es:"La monitorización automática y las alertas por correo están disponibles con un plan de pago."};
+    return NextResponse.json({error:messages[language],code:"PAID_PLAN_REQUIRED"},{status:403});
+  }
 
   // A user may only monitor a host that already exists in their own scan history.
   const owned=await getDb().query(
@@ -50,5 +57,6 @@ export async function POST(request:Request){
        updated_at=NOW()`,
     [user.id,target.host,target.url,body.enabled]
   );
+  await getDb().query(`INSERT INTO monitor_alert_preferences (user_id,website_host,email_enabled,regressions_only,updated_at) VALUES ($1,$2,TRUE,TRUE,NOW()) ON CONFLICT (user_id,website_host) DO UPDATE SET updated_at=NOW()`,[user.id,target.host]);
   return NextResponse.json({ok:true,enabled:body.enabled,interval_hours:168});
 }

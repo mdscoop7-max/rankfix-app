@@ -141,6 +141,7 @@ const statements = [
     UNIQUE(user_id, website_host)
   )`,
   `CREATE INDEX IF NOT EXISTS website_monitors_due_idx ON website_monitors(enabled, next_check_at) WHERE enabled=TRUE`,
+  `CREATE TABLE IF NOT EXISTS monitor_alert_preferences (\n    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n    website_host TEXT NOT NULL,\n    email_enabled BOOLEAN NOT NULL DEFAULT TRUE,\n    regressions_only BOOLEAN NOT NULL DEFAULT TRUE,\n    last_alert_at TIMESTAMPTZ,\n    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n    PRIMARY KEY(user_id, website_host)\n  )`,
   `CREATE TABLE IF NOT EXISTS user_preferences (
     user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     language TEXT NOT NULL DEFAULT 'nl' CHECK (language IN ('nl','en','fr','es','it','de')),
