@@ -9,6 +9,8 @@ type ScanCheck = {
 };
 
 type ScanReportEmail = {
+  language?: "nl"|"en"|"de"|"fr"|"it"|"es";
+  scanId?: string | null;
   mode?: "seo" | "geo" | "both";
   to: string;
   name?: string | null;
@@ -63,72 +65,22 @@ export async function sendScanReportEmail(report: ScanReportEmail) {
     throw new Error("RESEND_API_KEY en SCAN_REPORT_FROM moeten zijn ingesteld.");
   }
 
+  const language=report.language||"nl";
+  const copy={
+    nl:{subject:"Je RankFix-scan is klaar",hello:"Hallo",ready:"Je scan is klaar.",website:"Website",overall:"Totaalscore",attention:"verbeterpunten gevonden",next:"Volgende stap",nextText:"Open je rapport om de verbeterpunten te bekijken en opnieuw te scannen nadat je wijzigingen hebt doorgevoerd.",button:"Open rapport",seo:"SEO-score",geo:"GEO-score"},
+    en:{subject:"Your RankFix scan is ready",hello:"Hello",ready:"Your scan is ready.",website:"Website",overall:"Overall score",attention:"improvements found",next:"Next step",nextText:"Open your report to review the improvements and scan again after making changes.",button:"Open report",seo:"SEO score",geo:"GEO score"},
+    de:{subject:"Dein RankFix-Scan ist fertig",hello:"Hallo",ready:"Dein Scan ist fertig.",website:"Website",overall:"Gesamtscore",attention:"Verbesserungen gefunden",next:"Nächster Schritt",nextText:"Öffne deinen Bericht, prüfe die Verbesserungen und scanne nach deinen Änderungen erneut.",button:"Bericht öffnen",seo:"SEO-Score",geo:"GEO-Score"},
+    fr:{subject:"Votre analyse RankFix est prête",hello:"Bonjour",ready:"Votre analyse est prête.",website:"Site",overall:"Score global",attention:"améliorations trouvées",next:"Prochaine étape",nextText:"Ouvrez votre rapport pour consulter les améliorations, puis relancez une analyse après vos modifications.",button:"Ouvrir le rapport",seo:"Score SEO",geo:"Score GEO"},
+    it:{subject:"La scansione RankFix è pronta",hello:"Ciao",ready:"La scansione è pronta.",website:"Sito",overall:"Punteggio totale",attention:"miglioramenti trovati",next:"Prossimo passo",nextText:"Apri il report per vedere i miglioramenti e ripeti la scansione dopo le modifiche.",button:"Apri report",seo:"Punteggio SEO",geo:"Punteggio GEO"},
+    es:{subject:"Tu análisis de RankFix está listo",hello:"Hola",ready:"Tu análisis está listo.",website:"Web",overall:"Puntuación total",attention:"mejoras encontradas",next:"Siguiente paso",nextText:"Abre el informe para revisar las mejoras y vuelve a analizar después de aplicar los cambios.",button:"Abrir informe",seo:"Puntuación SEO",geo:"Puntuación GEO"}
+  }[language];
   const name = report.name ? " " + escapeHtml(report.name) : "";
   const attentionCount = report.checks.filter((check) => check.status !== "pass").length;
 
-  const rows = report.checks.map((check) =>
-    '<tr><td style="padding:10px 8px;border-bottom:1px solid #e5e7eb;color:' + statusColor(check.status) + ';font-weight:700;">' + statusLabel(check.status) + '</td>' +
-    '<td style="padding:10px 8px;border-bottom:1px solid #e5e7eb;font-weight:600;">' + escapeHtml(check.title) + '</td>' +
-    '<td style="padding:10px 8px;border-bottom:1px solid #e5e7eb;">' + escapeHtml(check.message) + '</td>' +
-    '<td style="padding:10px 8px;border-bottom:1px solid #e5e7eb;">' + escapeHtml(check.fix) + '</td></tr>'
-  ).join("");
-
-  const actionCards = report.checks.filter((check) => check.status !== "pass").map((check) => {
-    const w = fixWorksheet(check);
-    return '<div style="margin:12px 0;padding:16px;border:1px solid #dbe4f0;border-radius:14px;background:#f8fafc;">' +
-      '<div style="font-weight:800;font-size:15px;">' + escapeHtml(check.title) + '</div>' +
-      '<div style="margin-top:10px;font-size:12px;color:#64748b;">VAK / INSTELLING</div>' +
-      '<div style="margin-top:4px;padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;font-weight:700;">' + escapeHtml(w.field) + '</div>' +
-      '<div style="margin-top:10px;font-size:12px;color:#64748b;">WAT JE MOET INVULLEN</div>' +
-      '<div style="margin-top:4px;padding:10px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;">' + escapeHtml(w.value) + '</div>' +
-      '<div style="margin-top:10px;font-size:12px;color:#64748b;">WAAR</div>' +
-      '<div style="margin-top:4px;color:#334155;">' + escapeHtml(w.where) + '</div></div>';
-  }).join("");
-
-  const html = [
-    '<!doctype html><html lang="nl"><body style="margin:0;background:#f8fafc;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">',
-    '<div style="max-width:900px;margin:0 auto;padding:32px 18px;">',
-    '<div style="background:#0f172a;color:#fff;border-radius:18px;padding:24px;">',
-    '<div style="font-size:13px;color:#94a3b8;font-weight:700;letter-spacing:.08em;">RANKFIX AI</div>',
-    '<h1 style="margin:8px 0 6px;font-size:28px;">SEO + GEO scanrapport</h1>',
-    '<p style="margin:0;color:#cbd5e1;">Hallo' + name + ', hier is je scanresultaat.</p></div>',
-    '<div style="background:#fff;border-radius:18px;padding:24px;margin-top:18px;">',
-    '<p style="margin:0 0 6px;font-weight:700;">Website</p>',
-    '<p style="margin:0 0 8px;"><a href="' + escapeHtml(report.scannedUrl) + '">' + escapeHtml(report.scannedUrl) + '</a></p>',
-    '<p style="margin:0 0 18px;color:#64748b;">Eindadres: ' + escapeHtml(report.finalUrl) + '</p>',
-    '<div style="display:flex;gap:12px;flex-wrap:wrap;">',
-    '<div style="min-width:150px;padding:16px;border:1px solid #e5e7eb;border-radius:12px;"><div style="font-size:12px;color:#64748b;">OVERALL</div><div style="font-size:30px;font-weight:800;">' + report.overallScore + '/100</div><div>Grade ' + escapeHtml(report.overallGrade) + '</div></div>',
-    '<div style="min-width:150px;padding:16px;border:1px solid #e5e7eb;border-radius:12px;"><div style="font-size:12px;color:#64748b;">SEO</div><div style="font-size:30px;font-weight:800;">' + report.seoScore + '/100</div><div>Grade ' + escapeHtml(report.seoGrade) + '</div></div>',
-    '<div style="min-width:150px;padding:16px;border:1px solid #e5e7eb;border-radius:12px;"><div style="font-size:12px;color:#64748b;">GEO</div><div style="font-size:30px;font-weight:800;">' + report.geoScore + '/100</div><div>Grade ' + escapeHtml(report.geoGrade) + '</div></div>',
-    '</div>',
-    '<p style="margin:18px 0 0;color:#475569;">HTTP ' + report.httpStatus + ' · server response ' + report.responseTime + ' ms · ' + attentionCount + ' aandachtspunt(en)</p></div>',
-    '<div style="background:#fff;border-radius:18px;padding:24px;margin-top:18px;"><h2 style="margin-top:0;">Fix dit stap voor stap</h2><p style="color:#475569;">Gebruik hieronder per probleem het juiste vak in je CMS. Vul alleen waarden in die passen bij de pagina en controleer daarna opnieuw met RankFix.</p>' + actionCards + '</div><div style="background:#fff;border-radius:18px;padding:24px;margin-top:18px;"><h2 style="margin-top:0;">Checks</h2>',
-    '<div style="overflow:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">',
-    '<thead><tr><th align="left" style="padding:10px 8px;border-bottom:2px solid #e5e7eb;">Status</th><th align="left" style="padding:10px 8px;border-bottom:2px solid #e5e7eb;">Check</th><th align="left" style="padding:10px 8px;border-bottom:2px solid #e5e7eb;">Resultaat</th><th align="left" style="padding:10px 8px;border-bottom:2px solid #e5e7eb;">Aanbevolen actie</th></tr></thead>',
-    '<tbody>' + rows + '</tbody></table></div></div>',
-    '<p style="font-size:12px;color:#64748b;margin:18px 4px;">Automatisch gegenereerd door RankFix AI. Scanmoment: ' + escapeHtml(report.scannedAt) + '.</p>',
-    '</div></body></html>'
-  ].join("");
-
-  const text = [
-    "RANKFIX AI — SEO + GEO scanrapport",
-    "",
-    "Website: " + report.scannedUrl,
-    "Eindadres: " + report.finalUrl,
-    "Overall: " + report.overallScore + "/100 (grade " + report.overallGrade + ")",
-    "SEO: " + report.seoScore + "/100 (grade " + report.seoGrade + ")",
-    "GEO: " + report.geoScore + "/100 (grade " + report.geoGrade + ")",
-    "HTTP: " + report.httpStatus + " · response: " + report.responseTime + " ms",
-    "",
-    "FIX-INSTRUCTIES",
-    ...report.checks.filter((check) => check.status !== "pass").flatMap((check) => {
-      const w = fixWorksheet(check);
-      return ["", "[" + statusLabel(check.status) + "] " + check.title, "VAK: " + w.field, "INVULLEN: " + w.value, "WAAR: " + w.where, "CONTROLE: " + check.fix];
-    }),
-    "",
-    "CHECKS",
-    ...report.checks.map((check) => "[" + statusLabel(check.status) + "] " + check.title + ": " + check.message + " — " + check.fix),
-  ].join("\n");
+  const base=(process.env.APP_URL||"https://rankfix-app.onrender.com").replace(/\/$/,"");
+  const reportUrl=report.scanId?`${base}/dashboard/audit/${encodeURIComponent(report.scanId)}`:`${base}/dashboard`;
+  const html='<!doctype html><html lang="'+language+'"><body style="margin:0;background:#f8fafc;font-family:Arial,Helvetica,sans-serif;color:#0f172a;"><div style="max-width:640px;margin:0 auto;padding:28px 18px;"><div style="background:#0f172a;color:#fff;border-radius:18px;padding:24px;"><div style="font-size:13px;color:#94a3b8;font-weight:700;letter-spacing:.08em;">RANKFIX AI</div><h1 style="margin:8px 0 6px;font-size:26px;">'+escapeHtml(copy.subject)+'</h1><p style="margin:0;color:#cbd5e1;">'+escapeHtml(copy.hello)+name+', '+escapeHtml(copy.ready)+'</p></div><div style="background:#fff;border-radius:18px;padding:24px;margin-top:18px;"><p><strong>'+escapeHtml(copy.website)+'</strong><br>'+escapeHtml(report.scannedUrl)+'</p><div style="display:flex;gap:12px;flex-wrap:wrap;margin:20px 0;"><div style="padding:14px;border:1px solid #e5e7eb;border-radius:12px;"><small>'+escapeHtml(copy.overall)+'</small><div style="font-size:26px;font-weight:800;">'+report.overallScore+'/100</div></div><div style="padding:14px;border:1px solid #e5e7eb;border-radius:12px;"><small>'+escapeHtml(copy.seo)+'</small><div style="font-size:26px;font-weight:800;">'+report.seoScore+'/100</div></div><div style="padding:14px;border:1px solid #e5e7eb;border-radius:12px;"><small>'+escapeHtml(copy.geo)+'</small><div style="font-size:26px;font-weight:800;">'+report.geoScore+'/100</div></div></div><p><strong>'+attentionCount+'</strong> '+escapeHtml(copy.attention)+'.</p><h2 style="font-size:18px;margin-top:24px;">'+escapeHtml(copy.next)+'</h2><p style="color:#475569;">'+escapeHtml(copy.nextText)+'</p><p style="margin-top:22px;"><a href="'+escapeHtml(reportUrl)+'" style="display:inline-block;padding:12px 18px;background:#2563eb;color:#fff;text-decoration:none;border-radius:9px;font-weight:700;">'+escapeHtml(copy.button)+'</a></p></div></div></body></html>';
+  const text=[copy.subject,"",copy.hello+(report.name?" "+report.name:"")+", "+copy.ready,"",copy.website+": "+report.scannedUrl,copy.overall+": "+report.overallScore+"/100",copy.seo+": "+report.seoScore+"/100",copy.geo+": "+report.geoScore+"/100",attentionCount+" "+copy.attention+".","",copy.next+": "+copy.nextText,reportUrl].join("\n");
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -139,7 +91,7 @@ export async function sendScanReportEmail(report: ScanReportEmail) {
     body: JSON.stringify({
       from,
       to: [report.to],
-      subject: "RankFix scan: " + report.overallScore + "/100 — " + report.scannedUrl,
+      subject: copy.subject + ": " + report.overallScore + "/100 — " + report.scannedUrl,
       html,
       text,
     }),
