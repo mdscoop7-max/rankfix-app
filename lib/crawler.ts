@@ -2,7 +2,7 @@ import { URL } from "node:url";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 
-export const CRAWLER_ENGINE_VERSION = "2.2.0";
+export const CRAWLER_ENGINE_VERSION = "2.3.0";
 
 export type CrawlMode = "QUICK" | "STANDARD" | "DEEP" | "ECOMMERCE" | "ENTERPRISE";
 export type PageType =
@@ -13,6 +13,8 @@ export type PageType =
 export type CrawlPage = {
   url: string;
   status: number;
+  requestedUrl: string;
+  redirectChain: Array<{ from: string; to: string; status: number }>;
   contentType: string;
   responseTimeMs: number;
   title: string;
@@ -117,7 +119,7 @@ export async function crawlSite(startUrl:string,requestedMode:CrawlMode="STANDAR
   while(queue.length&&pages.length<limit){
     const item=queue.shift()!;
     try{
-      const started=Date.now(); const {response,finalUrl:resolved}=await fetchSafe(new URL(item.url));
+      const started=Date.now(); const {response,finalUrl:resolved,redirectChain}=await fetchSafe(new URL(item.url));
       finalUrl=pages.length===0?resolved.toString():finalUrl;
       const contentType=response.headers.get("content-type")||"";
       if(!contentType.includes("text/html")&&!contentType.includes("application/xhtml+xml"))continue;
@@ -140,7 +142,7 @@ export async function crawlSite(startUrl:string,requestedMode:CrawlMode="STANDAR
       const localTypes = new Set(["localbusiness","restaurant","bakery","barorcafe","beautysalon","dayspa","dentist","electrician","generalcontractor","homeandconstructionbusiness","locksmith","medicalclinic","plumber","roofingcontractor","store","hairdresser","automotivebusiness","realestateagent","legalservice","accountingservice","travelagency","hotel"]);
       for(const b of blocks){try{const parsed=JSON.parse(b[1]);const rawItems=Array.isArray(parsed)?parsed:(parsed?.["@graph"]||[parsed]);const items=Array.isArray(rawItems)?rawItems:[rawItems];for(const x of items){const t=x?.["@type"];const ts=(Array.isArray(t)?t:[t]).filter(Boolean).map(String);types.push(...ts);const isProduct=ts.some(v=>v.toLowerCase()==="product");if(isProduct){product.name ||= Boolean(x?.name);product.image ||= Boolean(x?.image);product.offers ||= Boolean(x?.offers);const offers=Array.isArray(x?.offers)?x.offers:[x?.offers].filter(Boolean);for(const o of offers){product.price ||= Boolean(o?.price ?? o?.lowPrice);product.priceCurrency ||= Boolean(o?.priceCurrency);product.availability ||= Boolean(o?.availability);}product.brandOrSku ||= Boolean(x?.brand || x?.sku || x?.gtin || x?.gtin13 || x?.mpn);}const isLocal=ts.some(v=>localTypes.has(v.toLowerCase()));if(isLocal){localBusiness.types.push(...ts.filter(v=>localTypes.has(v.toLowerCase())));localBusiness.name ||= Boolean(x?.name);localBusiness.address ||= Boolean(x?.address);localBusiness.telephone ||= Boolean(x?.telephone);localBusiness.url ||= Boolean(x?.url);localBusiness.openingHours ||= Boolean(x?.openingHours || x?.openingHoursSpecification);localBusiness.imageOrLogo ||= Boolean(x?.image || x?.logo);localBusiness.sameAs ||= Array.isArray(x?.sameAs) ? x.sameAs.length>0 : Boolean(x?.sameAs);}}}catch{jsonLdInvalid++}}
       const text=stripHtml(html);
-      pages.push({url:resolved.toString(),status:response.status,contentType,responseTimeMs:Date.now()-started,title,description,h1,canonical:canonical?new URL(canonical,resolved).toString():null,lang,noindex,xRobotsTag,jsonLdInvalid,product:types.some(t=>t.toLowerCase()==="product")?product:undefined,wordCount:text.split(/\s+/).filter(Boolean).length,internalLinks:uniqueLinks,imageCount:imageMetrics.uniqueImageReferences,imagesMissingAlt:imageMetrics.missingAlt,jsonLdTypes:[...new Set(types)],localBusiness:localBusiness.types.length ? {...localBusiness,types:[...new Set(localBusiness.types)]} : undefined,pageType:classify(resolved.toString(),html,types),depth:item.depth,discoveredFrom:item.from});
+      pages.push({url:resolved.toString(),status:response.status,requestedUrl:item.url,redirectChain,contentType,responseTimeMs:Date.now()-started,title,description,h1,canonical:canonical?new URL(canonical,resolved).toString():null,lang,noindex,xRobotsTag,jsonLdInvalid,product:types.some(t=>t.toLowerCase()==="product")?product:undefined,wordCount:text.split(/\s+/).filter(Boolean).length,internalLinks:uniqueLinks,imageCount:imageMetrics.uniqueImageReferences,imagesMissingAlt:imageMetrics.missingAlt,jsonLdTypes:[...new Set(types)],localBusiness:localBusiness.types.length ? {...localBusiness,types:[...new Set(localBusiness.types)]} : undefined,pageType:classify(resolved.toString(),html,types),depth:item.depth,discoveredFrom:item.from});
       for(const next of uniqueLinks){if(!queued.has(next)&&queue.length+pages.length<limit){queued.add(next);queue.push({url:next,depth:item.depth+1,from:item.url});}}
     }catch(e){errors.push({url:item.url,code:e instanceof Error&&e.message==="URL_BLOCKED"?"URL_BLOCKED":"FETCH_FAILED",message:e instanceof Error?e.message:"Unknown crawl error"});}
   }

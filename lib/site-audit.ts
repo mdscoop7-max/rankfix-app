@@ -1,6 +1,6 @@
 import { CrawlPage, CrawlResult, CrawlMode, crawlSite } from "@/lib/crawler";
 
-export const SITE_AUDIT_ENGINE_VERSION = "1.4.0";
+export const SITE_AUDIT_ENGINE_VERSION = "1.5.0";
 
 export type SiteRuleStatus = "PASS" | "FAIL" | "WARNING" | "NOT_APPLICABLE" | "UNABLE_TO_CONFIRM";
 
@@ -190,6 +190,37 @@ const rules: RuleDef[] = [
       try { const same=new URL(p.canonical!).hostname.toLowerCase().replace(/^www\./,"")===new URL(p.url).hostname.toLowerCase().replace(/^www\./,""); return same?{status:"PASS",found:p.canonical,details:"Canonical blijft op hetzelfde domein."}:{status:"FAIL",found:p.canonical,expected:new URL(p.url).hostname,details:"Canonical wijst naar een ander domein."}; }
       catch { return {status:"UNABLE_TO_CONFIRM",found:p.canonical,details:"Canonical URL kon niet betrouwbaar worden geïnterpreteerd."}; }
     },
+  },
+  {
+    id: "SITE_BROKEN_INTERNAL_LINK", category: "technical", title: "Broken internal links", severity: "HIGH",
+    description: "Interne links die op een foutstatus eindigen sturen bezoekers en crawlers naar een niet-werkende bestemming.",
+    recommendation: "Herstel de doel-URL, verwijder de link of laat de link direct naar een geldige 2xx-bestemming wijzen.",
+    applicable: () => true,
+    evaluate: p => {
+      if (p.status === 404 || p.status === 410) return {status:"FAIL",found:p.status,expected:"2xx",details:`Interne URL eindigt met HTTP ${p.status}: ${p.requestedUrl}`};
+      if (p.status >= 500) return {status:"FAIL",found:p.status,expected:"2xx",details:`Interne URL geeft een serverfout HTTP ${p.status}: ${p.requestedUrl}`};
+      if (p.status >= 400) return {status:"WARNING",found:p.status,expected:"2xx",details:`Interne URL geeft HTTP ${p.status}: ${p.requestedUrl}`};
+      return {status:"PASS",found:p.status,expected:"2xx",details:"Geen HTTP-foutstatus gevonden voor deze gecrawlde interne URL."};
+    },
+  },
+  {
+    id: "SITE_INTERNAL_REDIRECT", category: "technical", title: "Interne links via redirect", severity: "MEDIUM",
+    description: "Interne links die eerst redirecten veroorzaken extra verzoeken en kunnen onnodige redirectketens verbergen.",
+    recommendation: "Werk interne links waar mogelijk bij zodat ze rechtstreeks naar de uiteindelijke geldige URL wijzen.",
+    applicable: p => p.redirectChain.length > 0,
+    evaluate: p => {
+      const chain = p.redirectChain.map(step => `${step.status} ${step.from} → ${step.to}`).join(" | ");
+      return p.redirectChain.length > 1
+        ? {status:"WARNING",found:p.redirectChain.length,expected:"0–1",details:`Redirectketen met ${p.redirectChain.length} stappen gevonden: ${chain}`}
+        : {status:"WARNING",found:p.redirectChain[0].status,expected:"directe 2xx-link",details:`Interne link redirect: ${chain}`};
+    },
+  },
+  {
+    id: "SITE_REDIRECT_CHAIN", category: "technical", title: "Redirectketen", severity: "HIGH",
+    description: "Meerdere redirects achter elkaar vertragen crawlers en gebruikers en vergroten de kans op configuratiefouten.",
+    recommendation: "Laat de oorspronkelijke URL indien mogelijk in één stap naar de definitieve bestemming redirecten en werk interne links direct bij.",
+    applicable: p => p.redirectChain.length > 1,
+    evaluate: p => ({status:"WARNING",found:p.redirectChain.length,expected:"≤ 1",details:p.redirectChain.map(step => `${step.status} ${step.from} → ${step.to}`).join(" | ")}),
   },
   {
     id: "SITE_INTERNAL_LINKS_LOW", category: "internal-linking", title: "Weinig interne links", severity: "LOW",

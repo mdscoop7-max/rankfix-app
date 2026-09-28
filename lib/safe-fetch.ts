@@ -46,6 +46,7 @@ export async function safePublicFetch(value: string | URL, options: { timeoutMs?
   const timeoutMs = options.timeoutMs ?? 10000;
   const maxRedirects = options.maxRedirects ?? 4;
   let current = validatePublicHttpUrl(typeof value === "string" ? value : value.toString());
+  const redirectChain: Array<{ from: string; to: string; status: number }> = [];
 
   for (let redirect = 0; redirect <= maxRedirects; redirect++) {
     validatePublicHttpUrl(current.toString());
@@ -68,11 +69,13 @@ export async function safePublicFetch(value: string | URL, options: { timeoutMs?
     }
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get("location");
-      if (!location) return { response, finalUrl: current };
-      current = validatePublicHttpUrl(new URL(location, current).toString());
+      if (!location) return { response, finalUrl: current, redirectChain };
+      const next = validatePublicHttpUrl(new URL(location, current).toString());
+      redirectChain.push({ from: current.toString(), to: next.toString(), status: response.status });
+      current = next;
       continue;
     }
-    return { response, finalUrl: current };
+    return { response, finalUrl: current, redirectChain };
   }
   throw new Error("REDIRECT_LIMIT");
 }
