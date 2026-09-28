@@ -14,6 +14,18 @@ const statements = [
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS customer_id TEXT`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_code TEXT NOT NULL DEFAULT 'free'`,
+  `CREATE TABLE IF NOT EXISTS usage_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    website_host TEXT NOT NULL,
+    event_type TEXT NOT NULL CHECK (event_type IN ('SCAN','AI_FIX','GITHUB_FIX','COMPETITOR_SCAN','LOCAL_SEO')),
+    ip_hash TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS usage_events_user_month_idx ON usage_events(user_id, event_type, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS usage_events_host_month_idx ON usage_events(website_host, event_type, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS usage_events_ip_month_idx ON usage_events(ip_hash, event_type, created_at DESC)`,
   `UPDATE users SET customer_id='RF-' || UPPER(REPLACE(id::text,'-','')) WHERE customer_id IS NULL`,
   `CREATE UNIQUE INDEX IF NOT EXISTS users_customer_id_idx ON users(customer_id)`,
   `ALTER TABLE users ALTER COLUMN customer_id SET NOT NULL`,
