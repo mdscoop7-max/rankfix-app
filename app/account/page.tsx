@@ -40,7 +40,7 @@ export default function Account() {
     }
 
     if (mode==="register" && password!==confirmPassword) {
-      setError("De wachtwoorden komen niet overeen.");
+      setError(language==="nl"?"De wachtwoorden komen niet overeen.":language==="de"?"Die Passwörter stimmen nicht überein.":language==="fr"?"Les mots de passe ne correspondent pas.":language==="it"?"Le password non corrispondono.":language==="es"?"Las contraseñas no coinciden.":"The passwords do not match.");
       setBusy(false);
       return;
     }
@@ -56,13 +56,13 @@ export default function Account() {
       });
       const d=await r.json();
       if(!r.ok){
-        setError(d.error||"Actie mislukt.");
+        setError(d.error||(language==="nl"?"Actie mislukt.":language==="de"?"Aktion fehlgeschlagen.":language==="fr"?"L’action a échoué.":language==="it"?"Operazione non riuscita.":language==="es"?"La acción ha fallado.":"Action failed."));
         setBusy(false);
         return;
       }
       window.location.replace("/dashboard");
     } catch {
-      setError("Er ging iets mis. Probeer het opnieuw.");
+      setError(language==="nl"?"Er ging iets mis. Probeer het opnieuw.":language==="de"?"Etwas ist schiefgelaufen. Bitte versuche es erneut.":language==="fr"?"Une erreur s’est produite. Veuillez réessayer.":language==="it"?"Si è verificato un errore. Riprova.":language==="es"?"Se ha producido un error. Inténtalo de nuevo.":"Something went wrong. Please try again.");
       setBusy(false);
     }
   }
