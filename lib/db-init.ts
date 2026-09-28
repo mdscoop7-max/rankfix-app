@@ -142,6 +142,45 @@ const statements = [
   )`,
   `CREATE INDEX IF NOT EXISTS website_monitors_due_idx ON website_monitors(enabled, next_check_at) WHERE enabled=TRUE`,
   `CREATE TABLE IF NOT EXISTS monitor_alert_preferences (\n    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n    website_host TEXT NOT NULL,\n    email_enabled BOOLEAN NOT NULL DEFAULT TRUE,\n    regressions_only BOOLEAN NOT NULL DEFAULT TRUE,\n    last_alert_at TIMESTAMPTZ,\n    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n    PRIMARY KEY(user_id, website_host)\n  )`,
+  `CREATE TABLE IF NOT EXISTS google_connections (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    refresh_token_encrypted TEXT NOT NULL,
+    scopes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE TABLE IF NOT EXISTS search_console_properties (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    site_url TEXT NOT NULL,
+    permission_level TEXT,
+    selected BOOLEAN NOT NULL DEFAULT FALSE,
+    last_sync_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(user_id,site_url)
+  )`,
+  `CREATE INDEX IF NOT EXISTS search_console_properties_user_idx ON search_console_properties(user_id,selected)`,
+  `CREATE TABLE IF NOT EXISTS search_console_metrics (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    property_id UUID NOT NULL REFERENCES search_console_properties(id) ON DELETE CASCADE,
+    metric_date DATE NOT NULL,
+    page TEXT NOT NULL DEFAULT '',
+    query TEXT NOT NULL DEFAULT '',
+    clicks DOUBLE PRECISION NOT NULL DEFAULT 0,
+    impressions DOUBLE PRECISION NOT NULL DEFAULT 0,
+    ctr DOUBLE PRECISION NOT NULL DEFAULT 0,
+    position DOUBLE PRECISION NOT NULL DEFAULT 0,
+    UNIQUE(property_id,metric_date,page,query)
+  )`,
+  `CREATE TABLE IF NOT EXISTS search_console_sync_runs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    property_id UUID NOT NULL REFERENCES search_console_properties(id) ON DELETE CASCADE,
+    status TEXT NOT NULL,
+    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    finished_at TIMESTAMPTZ,
+    error_message TEXT
+  )`,
   `CREATE TABLE IF NOT EXISTS user_preferences (
     user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     language TEXT NOT NULL DEFAULT 'nl' CHECK (language IN ('nl','en','fr','es','it','de')),
