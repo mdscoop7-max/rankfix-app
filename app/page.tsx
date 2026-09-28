@@ -555,7 +555,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
               </div>
             </details>
             {!authLoading && (authUser ? (
-              <a href="/dashboard" className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-emerald-100 sm:px-4 sm:text-sm">Dashboard</a>
+              <a href="/dashboard" className="rf-desktop-dashboard-button">Dashboard</a>
             ) : (
               <>
                 <a href="/account?mode=login" className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium transition hover:bg-slate-100 sm:px-4 sm:text-sm">Inloggen</a>
