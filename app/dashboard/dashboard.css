@@ -196,3 +196,7 @@
  .rf-mobile-site-link{display:flex;align-items:center;width:max-content;margin:10px 12px 0;padding:8px 11px;border:1px solid #334B68;border-radius:10px;background:#172841;color:#D5E0EE;font-size:12px;font-weight:750}
  .rf-mobile-site-link:active{transform:scale(.97)}
 }
+
+/* Desktop language switcher: match the app flag-first experience */
+.rf-desktop-tools{display:flex;align-items:center;gap:10px}.rf-desktop-languages{display:flex;align-items:center;gap:4px;flex-wrap:nowrap}.rf-language-chip{display:inline-flex;align-items:center;gap:4px;min-height:34px;padding:6px 7px;border:1px solid var(--border-muted);border-radius:9px;background:var(--bg-card);color:var(--text-secondary);font-size:11px;font-weight:750;cursor:pointer;transition:background .15s ease,border-color .15s ease,color .15s ease}.rf-language-chip:hover{border-color:var(--brand);color:var(--text-primary)}.rf-language-chip[aria-current="true"]{border-color:var(--brand);background:var(--brand-surface);color:var(--brand-light)}
+@media(max-width:900px) and (min-width:651px){.rf-language-chip span{display:none}.rf-language-chip{font-size:16px;padding:5px 7px}.rf-desktop-nav{gap:8px}.rf-desktop-main{gap:1px}.rf-desktop-nav a{padding:8px 6px}}
