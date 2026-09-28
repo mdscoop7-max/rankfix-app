@@ -549,7 +549,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
           </div>
           <div className="hidden items-center gap-2 lg:flex">
             <details className="rf-public-language">
-              <summary aria-label="Taal kiezen">{({nl:"🇳🇱",en:"🇬🇧",de:"🇩🇪",fr:"🇫🇷",it:"🇮🇹",es:"🇪🇸"} as Record<Language,string>)[language]} <b>{language.toUpperCase()}</b><span>⌄</span></summary>
+              <summary aria-label="Taal kiezen"><span>{({nl:"🇳🇱",en:"🇬🇧",de:"🇩🇪",fr:"🇫🇷",it:"🇮🇹",es:"🇪🇸"} as Record<Language,string>)[language]}</span><b>{language.toUpperCase()}</b><span aria-hidden="true">⌄</span></summary>
               <div className="rf-public-language-menu">
                 {(["nl","en","de","fr","it","es"] as Language[]).map(code=><button key={code} type="button" aria-current={language===code?"true":undefined} onClick={()=>{setLanguage(code);window.location.href="/"+code}}>{({nl:"🇳🇱",en:"🇬🇧",de:"🇩🇪",fr:"🇫🇷",it:"🇮🇹",es:"🇪🇸"} as Record<Language,string>)[code]} <b>{code.toUpperCase()}</b></button>)}
               </div>
