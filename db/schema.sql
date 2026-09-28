@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT NOT NULL,
   password_hash TEXT NOT NULL,
   credits INTEGER NOT NULL DEFAULT 25,
+  plan_code TEXT NOT NULL DEFAULT 'free',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -42,7 +43,21 @@ CREATE TABLE IF NOT EXISTS credit_transactions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS credit_transactions_user_created_idx ON credit_transactions(user_id, created_at DESC);\nCREATE UNIQUE INDEX IF NOT EXISTS credit_transactions_idempotency_idx ON credit_transactions(user_id, reference_id) WHERE reference_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS credit_transactions_user_created_idx ON credit_transactions(user_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS credit_transactions_idempotency_idx ON credit_transactions(user_id, reference_id) WHERE reference_id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS usage_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  website_host TEXT NOT NULL,
+  event_type TEXT NOT NULL CHECK (event_type IN ('SCAN','AI_FIX','GITHUB_FIX','COMPETITOR_SCAN','LOCAL_SEO')),
+  ip_hash TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS usage_events_user_month_idx ON usage_events(user_id, event_type, created_at DESC);
+CREATE INDEX IF NOT EXISTS usage_events_host_month_idx ON usage_events(website_host, event_type, created_at DESC);
+CREATE INDEX IF NOT EXISTS usage_events_ip_month_idx ON usage_events(ip_hash, event_type, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS github_connections (
   user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
