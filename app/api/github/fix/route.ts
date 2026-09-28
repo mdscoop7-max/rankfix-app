@@ -223,7 +223,8 @@ function localizeFixError(message:string,language:"nl"|"en"|"de"|"fr"|"it"|"es")
     "Deze GitHub-repository is gearchiveerd of uitgeschakeld en kan niet veilig worden aangepast.":{en:"This GitHub repository is archived or disabled and cannot be safely modified.",de:"Dieses GitHub-Repository ist archiviert oder deaktiviert und kann nicht sicher geändert werden.",fr:"Ce dépôt GitHub est archivé ou désactivé et ne peut pas être modifié en toute sécurité.",it:"Questo repository GitHub è archiviato o disabilitato e non può essere modificato in modo sicuro.",es:"Este repositorio de GitHub está archivado o deshabilitado y no se puede modificar de forma segura."},
     "De gekoppelde GitHub-account heeft geen bevestigde schrijfrechten op deze repository.":{en:"The connected GitHub account does not have confirmed write access to this repository.",de:"Das verbundene GitHub-Konto hat keine bestätigten Schreibrechte für dieses Repository.",fr:"Le compte GitHub connecté ne dispose pas d’un accès en écriture confirmé à ce dépôt.",it:"L’account GitHub collegato non dispone di accesso in scrittura confermato a questo repository.",es:"La cuenta de GitHub conectada no tiene acceso de escritura confirmado a este repositorio."},
     "Dit bestand valt buiten de veilige RankFix-codefixlijst.":{en:"This file is outside RankFix’s safe code-fix list.",de:"Diese Datei liegt außerhalb der sicheren RankFix-Codefix-Liste.",fr:"Ce fichier ne figure pas dans la liste sûre des corrections de code RankFix.",it:"Questo file non rientra nell’elenco sicuro delle correzioni di codice RankFix.",es:"Este archivo está fuera de la lista segura de correcciones de código de RankFix."},
-    "RankFix kon geen geschikt bestand vinden voor deze fix.":{en:"RankFix could not find a suitable file for this fix.",de:"RankFix konnte keine geeignete Datei für diesen Fix finden.",fr:"RankFix n’a pas trouvé de fichier adapté à cette correction.",it:"RankFix non ha trovato un file adatto a questa correzione.",es:"RankFix no encontró un archivo adecuado para esta corrección."}
+    "RankFix kon geen geschikt bestand vinden voor deze fix.":{en:"RankFix could not find a suitable file for this fix.",de:"RankFix konnte keine geeignete Datei für diesen Fix finden.",fr:"RankFix n’a pas trouvé de fichier adapté à cette correction.",it:"RankFix non ha trovato un file adatto a questa correzione.",es:"RankFix no encontró un archivo adecuado para esta corrección."},
+    "Canonical-URL wijst naar een ander domein dan de gescande site.":{en:"The canonical URL points to a different domain than the scanned site.",de:"Die Canonical-URL verweist auf eine andere Domain als die gescannte Website.",fr:"L’URL canonique pointe vers un domaine différent du site analysé.",it:"L’URL canonico punta a un dominio diverso dal sito analizzato.",es:"La URL canónica apunta a un dominio diferente del sitio analizado."}
   };
   return translations[message]?.[language]||message;
 }
@@ -350,10 +351,10 @@ export async function POST(request:Request){
     // because it can mistake unrelated source-code text for placeholders/field markup.
     const githubValidation=validateGithubFix({current,proposed:generated.content,filePath:path,issue});
     const canonicalErrors=validateCanonicalTarget(generated.content,trustedUrl);
-    if(canonicalErrors.length) githubValidation.errors.push(...canonicalErrors);
+    if(canonicalErrors.length) githubValidation.errors.push(...canonicalErrors.map((error:string)=>localizeFixError(error,language)));
 
     const completion=validateRequestedFixCompletion(current,generated.content,issue);
-    if(completion.errors.length) githubValidation.errors.push(...completion.errors);
+    if(completion.errors.length) githubValidation.errors.push(...completion.errors.map((error:string)=>localizeFixError(error,language)));
     const currentBytes=Buffer.byteLength(current,"utf8");
     const proposedBytes=Buffer.byteLength(generated.content,"utf8");
     const changedBytes=Math.abs(proposedBytes-currentBytes);
@@ -366,7 +367,7 @@ export async function POST(request:Request){
       : changeEstimate.changed>0 ? 1 : 0;
     const sizeRatio=currentBytes ? proposedBytes/currentBytes : 1;
     if(changedBytes>50000 || lineGrowth>500 || changeEstimate.changed>250 || changedRatio>0.35 || sizeRatio<0.65 || sizeRatio>1.5){
-      githubValidation.errors.push("De voorgestelde wijziging raakt te veel van het bestand voor één automatische RankFix-fix.");
+      githubValidation.errors.push(msg("De voorgestelde wijziging raakt te veel van het bestand voor één automatische RankFix-fix.","The proposed change affects too much of the file for a single automatic RankFix fix.","Die vorgeschlagene Änderung betrifft zu viel der Datei für einen einzelnen automatischen RankFix-Fix.","La modification proposée affecte une trop grande partie du fichier pour une seule correction automatique RankFix.","La modifica proposta interessa una parte troppo ampia del file per una singola correzione automatica RankFix.","El cambio propuesto afecta demasiado al archivo para una sola corrección automática de RankFix."));
     }
     if(!githubValidation.valid || githubValidation.errors.length) return NextResponse.json({error:msg("AI-codefix is geblokkeerd door de GitHub veiligheidscontrole.","The AI code fix was blocked by the GitHub safety check.","Der AI-Codefix wurde von der GitHub-Sicherheitsprüfung blockiert.","La correction de code AI a été bloquée par le contrôle de sécurité GitHub.","La correzione di codice AI è stata bloccata dal controllo di sicurezza GitHub.","La corrección de código AI fue bloqueada por la comprobación de seguridad de GitHub."),validation:githubValidation},{status:422});
 
