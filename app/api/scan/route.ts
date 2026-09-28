@@ -799,6 +799,24 @@ export async function POST(request: Request) {
     // Extended audit signals: trust, ecommerce quality, URL hygiene, social metadata and multilingual SEO.
     const placeholderMatches = text.match(/\[(?:kvk|btw|adres|e-?mail|email|telefoon|phone|address|postcode|plaats|company|naam)\]/gi) || [];
     const hasPlaceholders = placeholderMatches.length > 0;
+    const hasPrivacyLink = links.some((href) => /privacy|privacybeleid|privacy-policy|datenschutz|confidentialite|privacidad/i.test(href));
+    const hasCookieLink = links.some((href) => /cookie|cookies|cookiebeleid|cookie-policy/i.test(href));
+    const hasTermsLink = links.some((href) => /voorwaarden|terms|conditions|agb|cgv|condiciones|termini/i.test(href));
+    const hasContactLink = links.some((href) => /contact|kontakt|contatti|contacto/i.test(href));
+    const formControls = [...html.matchAll(/<(input|select|textarea)\b([^>]*)>/gi)];
+    const unlabeledFormControls = formControls.filter((match) => {
+      const attrs=match[2]||"";
+      const type=(attrs.match(/\btype\s*=\s*["']?([^"'\s>]+)/i)?.[1]||"").toLowerCase();
+      if(["hidden","submit","button","reset","image"].includes(type)) return false;
+      const id=attrs.match(/\bid\s*=\s*["']([^"']+)["']/i)?.[1]||"";
+      const hasAria=/\baria-label(?:ledby)?\s*=\s*["'][^"']+["']/i.test(attrs);
+      const hasTitle=/\btitle\s*=\s*["'][^"']+["']/i.test(attrs);
+      const labelPattern=id ? new RegExp("<label[^>]+for\\s*=\\s*[\\\"']"+id.replace(/[^a-zA-Z0-9_-]/g,"")+"[\\\"']","i") : null;
+      return !hasAria&&!hasTitle&&!(labelPattern&&labelPattern.test(html));
+    }).length;
+    const buttonTags=[...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/gi)];
+    const emptyButtons=buttonTags.filter((match)=>!stripHtml(match[2]||"")&&!/\baria-label(?:ledby)?\s*=\s*["'][^"']+["']/i.test(match[1]||"")&&!/\btitle\s*=\s*["'][^"']+["']/i.test(match[1]||"")).length;
+    const accessibilityIssueCount=imagesMissingAlt+unlabeledFormControls+emptyButtons;
     const dutchEuroDecimalPattern = /€\s?\d{1,3}(?:[.,]\d{3})*[.]\d{2}\b/g;
     const priceFormatMatches = text.match(dutchEuroDecimalPattern) || [];
     const hasDotDecimalPrices = priceFormatMatches.length > 0;
@@ -1143,6 +1161,24 @@ export async function POST(request: Request) {
       : hasExternalImageHotlinks
         ? check("not_applicable", "image_sources", "seo", "Afbeeldingsbronnen", `${externalImageUrls.length} afbeelding(en) worden vanaf een ander hostnaam geladen. Een CDN of image-service is normaal en vormt zonder prestatie- of bereikbaarheidsbewijs geen probleem.`, "Beoordeel afbeeldingsperformance afzonderlijk met runtime-metingen.", 0, 5)
         : check("pass", "image_sources", "seo", "Afbeeldingsbronnen", "Geen externe afbeeldingshosts gevonden in de statische HTML.", "Blijf belangrijke afbeeldingen optimaliseren.", 5, 5)
+    );
+
+    seoChecks.push(
+      hasPrivacyLink && hasCookieLink && hasContactLink
+        ? check("pass","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Links naar privacy, cookies en contact zijn in de opgehaalde HTML gevonden.","Houd deze informatie duidelijk vindbaar en actueel. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",5,5)
+        : check("warning","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Niet alle basissignalen zijn gevonden: "+[!hasPrivacyLink?"privacy":null,!hasCookieLink?"cookies":null,!hasContactLink?"contact":null].filter(Boolean).join(", ")+".","Controleer of privacy-, cookie- en contactinformatie duidelijk bereikbaar is. RankFix beoordeelt hiermee geen wettelijke compliance.",2,5)
+    );
+    seoChecks.push(
+      hasEcommerceSignal && !hasTermsLink
+        ? check("warning","commercial_terms_signal","seo","Commerciële voorwaarden","Op deze commerciële pagina is geen duidelijke link naar voorwaarden gevonden.","Maak voorwaarden en relevante bestel-/retourinformatie duidelijk bereikbaar. Dit is geen juridisch compliance-oordeel.",2,4)
+        : hasEcommerceSignal
+          ? check("pass","commercial_terms_signal","seo","Commerciële voorwaarden","Een link naar voorwaarden is gevonden.","Houd voorwaarden en bestel-/retourinformatie actueel en goed vindbaar.",4,4)
+          : check("not_applicable","commercial_terms_signal","seo","Commerciële voorwaarden","Geen voldoende sterk webshop-signaal gevonden; deze controle is daarom niet van toepassing.","Gebruik deze controle op commerciële pagina's.",0,4)
+    );
+    seoChecks.push(
+      accessibilityIssueCount===0
+        ? check("pass","accessibility_basics","seo","Toegankelijkheid basis","Geen duidelijke basisproblemen gevonden bij afbeelding-alt, formulierlabels of lege knoppen in de statische HTML.","Blijf toetsenbordbediening, focus, contrast en dynamische content afzonderlijk testen. Dit is geen volledige toegankelijkheidsaudit.",5,5)
+        : check("warning","accessibility_basics","seo","Toegankelijkheid basis","Basiscontrole vond "+accessibilityIssueCount+" aandachtspunt(en): "+imagesMissingAlt+" afbeelding(en) zonder alt-attribuut, "+unlabeledFormControls+" formuliercontrol(s) zonder aantoonbaar label en "+emptyButtons+" lege knop(pen) zonder toegankelijke naam.","Corrigeer de aantoonbare HTML-signalen en voer daarna een uitgebreidere toegankelijkheidstest uit. RankFix claimt hiermee geen wettelijke conformiteit.",2,5)
     );
 
     seoChecks.push(hasPlaceholders
