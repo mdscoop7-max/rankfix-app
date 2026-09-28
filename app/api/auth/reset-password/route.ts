@@ -13,8 +13,9 @@ export async function POST(request: Request) {
     const body = await request.json();
     const token = typeof body?.token === "string" ? body.token.trim() : "";
     const password = typeof body?.password === "string" ? body.password : "";
-    const language = ["nl","en","de","fr","it","es"].includes(body?.language) ? body.language : "nl";
-    const msg=(nl:string,en:string,de:string,fr:string,it:string,es:string)=>({nl,en,de,fr,it,es}[language]||nl);
+    const requestedLanguage = typeof body?.language === "string" ? body.language : "nl";
+    const language: "nl"|"en"|"de"|"fr"|"it"|"es" = ["nl","en","de","fr","it","es"].includes(requestedLanguage) ? requestedLanguage as "nl"|"en"|"de"|"fr"|"it"|"es" : "nl";
+    const msg=(nl:string,en:string,de:string,fr:string,it:string,es:string)=>({nl,en,de,fr,it,es}[language]);
 
     if (!token || token.length < 20) {
       return NextResponse.json({ error:msg("De resetlink is ongeldig of verlopen.","The reset link is invalid or expired.","Der Reset-Link ist ungültig oder abgelaufen.","Le lien de réinitialisation est invalide ou expiré.","Il link di reimpostazione non è valido o è scaduto.","El enlace de restablecimiento no es válido o ha caducado.") }, { status:400 });
