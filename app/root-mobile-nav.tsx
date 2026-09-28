@@ -31,7 +31,7 @@ export default function RootMobileNav({ locale = "nl" }: { locale?: string }) {
  const tx=labels[locale]||labels.nl;
  const localizedBase=baseItems.map((item,index)=>({
    ...item,
-   href:index===0?"/"+locale:index===1?"/"+locale+"/scan":index===2?"/"+locale+"#features":"/"+locale+"#prijzen",
+   href:index===0?"/"+locale:index===1?"/"+locale+"/scan":index===2?"/"+locale+"#features":"/"+locale+"#pricing",
    label:tx[index]
  }));
  const items=[...localizedBase,signedIn
@@ -43,9 +43,9 @@ export default function RootMobileNav({ locale = "nl" }: { locale?: string }) {
    if(pathname==="/dashboard/more") return 4;
    if(pathname?.includes("/scan")) return 1;
    if(hash==="features") return 2;
-   if(hash==="prijzen") return 3;
+   if(hash==="pricing") return 3;
    if(/^\\\/(nl|en|de|fr|it|es)\\\/?$/.test(pathname||"")) return 0;
    return pathname==="/"||pathname==="" ? 0 : -1;
  })();
- return <nav className="root-bottom-nav" aria-label="Mobiele navigatie">{items.map((item,index) => <a href={item.href} key={index} onClick={()=>setLocationKey(item.href.split("?")[0])} aria-current={activeIndex===index?"page":undefined}><span className="root-bottom-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={item.icon} /></svg></span><span>{item.label}</span></a>)}</nav>;
+ return <nav className="root-bottom-nav" aria-label={locale==="nl"?"Mobiele navigatie":locale==="de"?"Mobile Navigation":locale==="fr"?"Navigation mobile":locale==="it"?"Navigazione mobile":locale==="es"?"Navegación móvil":"Mobile navigation"}>{items.map((item,index) => <a href={item.href} key={index} onClick={()=>setLocationKey(item.href.split("?")[0])} aria-current={activeIndex===index?"page":undefined}><span className="root-bottom-icon"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={item.icon} /></svg></span><span>{item.label}</span></a>)}</nav>;
 }
