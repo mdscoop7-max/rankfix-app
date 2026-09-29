@@ -626,7 +626,7 @@ export async function POST(request: Request) {
     );
     // Pricing tables on SaaS/service sites are not webshop evidence by themselves.
     // A homepage needs an actual commerce action before webshop-only checks are enabled.
-    const hasConfirmedCommercePlatform = Boolean(technologyProfile.commercePlatform && technologyProfile.commercePlatform !== "Custom / niet bevestigd" && technologyProfile.confidence >= 90);
+    const hasConfirmedCommercePlatform = /wp-content\/plugins\/woocommerce|wc-ajax|woocommerce-cart|woocommerce-checkout|woocommerce-page|cdn\.shopify\.com|\/cdn\/shop\/|shopify\.theme|shopify-section|shopify-payment-button|mage\/cookies|magento_|x-magento|\/static\/version\d+/i.test(html);
     const hasEcommerceSignal = hasConfirmedCommercePlatform || hasProductSignal || hasCategorySignal || (commerceNavigationSignal && hasStrongCommerceAction && (hasExplicitPriceSignal || visiblePriceCount >= 2));
     const requestedLanguages = adsProfile.adLanguages.split(/[,;]/).map((value) => value.trim().toLowerCase()).filter(Boolean).slice(0, 6);
     const requestedCountries = adsProfile.targetCountries.split(/[,;]/).map((value) => value.trim()).filter(Boolean).slice(0, 8);
