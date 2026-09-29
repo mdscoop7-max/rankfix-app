@@ -29,9 +29,27 @@ export async function POST(request: Request) {
     const active = (a: typeof own) => a.issues.filter(i => i.status === "FAIL" || i.status === "WARNING");
     const ownIssues = active(own), competitorIssues = active(other);
     const competitorPasses = new Set(other.issues.filter(i => i.status === "PASS" && i.confidence !== "low" && i.evidence?.examples?.length > 0).map(i => i.rule_id));
-    const opportunities = ownIssues.filter(i => i.status !== "UNABLE_TO_CONFIRM" && i.status !== "NOT_APPLICABLE" && i.confidence !== "low" && i.evidence?.examples?.length > 0 && competitorPasses.has(i.rule_id)).slice(0, 8).map(i => ({
-      rule_id:i.rule_id,title:i.title,severity:i.severity,recommendation:i.recommendation
-    }));
+    const opportunityCopy=(ruleId:string)=> {
+      const known:Record<string,Record<string,{title:string;recommendation:string}>>={
+        SITE_TITLE_MISSING:{
+          nl:{title:"Paginatitel",recommendation:"Voeg een duidelijke, unieke paginatitel toe."},en:{title:"Page title",recommendation:"Add a clear, unique page title."},de:{title:"Seitentitel",recommendation:"Füge einen klaren, eindeutigen Seitentitel hinzu."},fr:{title:"Titre de page",recommendation:"Ajoutez un titre de page clair et unique."},it:{title:"Titolo pagina",recommendation:"Aggiungi un titolo di pagina chiaro e univoco."},es:{title:"Título de página",recommendation:"Añade un título de página claro y único."}
+        },
+        SITE_DESCRIPTION_MISSING:{
+          nl:{title:"Meta description",recommendation:"Voeg een relevante meta description toe."},en:{title:"Meta description",recommendation:"Add a relevant meta description."},de:{title:"Meta-Beschreibung",recommendation:"Füge eine relevante Meta-Beschreibung hinzu."},fr:{title:"Méta-description",recommendation:"Ajoutez une méta-description pertinente."},it:{title:"Meta description",recommendation:"Aggiungi una meta description pertinente."},es:{title:"Meta description",recommendation:"Añade una meta description relevante."}
+        },
+        SITE_H1_MISSING:{
+          nl:{title:"H1-kop",recommendation:"Voeg één duidelijke hoofdheading toe."},en:{title:"H1 heading",recommendation:"Add one clear main heading."},de:{title:"H1-Überschrift",recommendation:"Füge eine klare Hauptüberschrift hinzu."},fr:{title:"Titre H1",recommendation:"Ajoutez un titre principal clair."},it:{title:"Titolo H1",recommendation:"Aggiungi un titolo principale chiaro."},es:{title:"Encabezado H1",recommendation:"Añade un encabezado principal claro."}
+        }
+      };
+      return known[ruleId]?.[language]||{
+        title:tr({nl:"Bevestigde verbeterkans",en:"Confirmed improvement opportunity",de:"Bestätigte Verbesserungsmöglichkeit",fr:"Opportunité d’amélioration confirmée",it:"Opportunità di miglioramento confermata",es:"Oportunidad de mejora confirmada"}),
+        recommendation:tr({nl:"Bekijk het bewijs uit je eigen scan en verbeter dit onderdeel.",en:"Review the evidence from your own scan and improve this area.",de:"Prüfe die Nachweise aus deinem eigenen Scan und verbessere diesen Bereich.",fr:"Consultez les preuves de votre propre analyse et améliorez ce point.",it:"Controlla le prove della tua scansione e migliora quest’area.",es:"Revisa la evidencia de tu propio análisis y mejora este punto."})
+      };
+    };
+    const opportunities = ownIssues.filter(i => i.status !== "UNABLE_TO_CONFIRM" && i.status !== "NOT_APPLICABLE" && i.confidence !== "low" && i.evidence?.examples?.length > 0 && competitorPasses.has(i.rule_id)).slice(0, 8).map(i => {
+      const copy=opportunityCopy(i.rule_id);
+      return {rule_id:i.rule_id,title:copy.title,severity:i.severity,recommendation:copy.recommendation,evidence_count:i.evidence.examples.length};
+    });
     await getDb().query("INSERT INTO usage_events (user_id,website_host,event_type) VALUES ($1,$2,'COMPETITOR_SCAN')",[user.id,new URL(own.finalUrl).hostname.toLowerCase().replace(/^www\./,"")]);
     return NextResponse.json({
       website:{url:own.finalUrl,scores:own.scores,issues:ownIssues.length,pages:own.crawl.pages},

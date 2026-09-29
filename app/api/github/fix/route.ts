@@ -168,9 +168,15 @@ function buildDeterministicOgFix(filePath:string,current:string,issue:string,con
   } else return null;
   return {content,summary:"RankFix heeft de ontbrekende Open Graph-metadata veilig toegevoegd met bestaande scanwaarden."};
 }
+class FixProviderError extends Error {
+  constructor(public readonly code:"AI_UNAVAILABLE"|"AI_PROVIDER_ERROR"|"AI_INVALID_OUTPUT",message:string){
+    super(message);
+    this.name="FixProviderError";
+  }
+}
 async function generateCodeFix(filePath:string,fileContent:string,issue:string,context:string,issueId:string){
   const key=process.env.OPENAI_API_KEY?.trim();
-  if(!key) throw new Error("OPENAI_API_KEY ontbreekt in de Render runtime. Controleer Environment Variables van rankfix-app en deploy opnieuw.");
+  if(!key) throw new FixProviderError("AI_UNAVAILABLE","OPENAI_API_KEY is missing from the runtime.");
   const model=process.env.OPENAI_MODEL?.trim() || "gpt-5.6-luna";
   const input=[
     "You are RankFix AI. Modify this repository file to implement exactly one SEO/GEO fix.",
@@ -205,14 +211,29 @@ async function generateCodeFix(filePath:string,fileContent:string,issue:string,c
     }catch{
       detail=errorText.slice(0,500);
     }
-    throw new Error(`OpenAI API fout (${response.status}): ${detail}`);
+    console.error("GitHub Fix AI provider error",response.status,detail);
+    throw new FixProviderError("AI_PROVIDER_ERROR",`AI provider returned HTTP ${response.status}.`);
   }
   const data=await response.json();
   const text=typeof data?.output_text==="string"?data.output_text:data?.output?.flatMap((x:any)=>x?.content||[]).map((x:any)=>x?.text||"").join("")||"";
   const clean=text.replace(/^\`\`\`json\s*/i,"").replace(/\s*\`\`\`$/,"").trim();
-  const parsed=JSON.parse(clean);
-  if(typeof parsed.content!=="string"||typeof parsed.summary!=="string") throw new Error("AI-output is ongeldig.");
+  let parsed:any;
+  try { parsed=JSON.parse(clean); }
+  catch(error){
+    console.error("GitHub Fix AI returned invalid JSON", error instanceof Error ? error.message : "invalid JSON");
+    throw new FixProviderError("AI_INVALID_OUTPUT","AI provider returned invalid structured output.");
+  }
+  if(typeof parsed.content!=="string"||typeof parsed.summary!=="string") throw new FixProviderError("AI_INVALID_OUTPUT","AI provider returned invalid structured output.");
   return parsed;
+}
+
+function localizeProviderError(code:FixProviderError["code"],language:"nl"|"en"|"de"|"fr"|"it"|"es"){
+  const copy={
+    AI_UNAVAILABLE:{nl:"AI Fix is tijdelijk niet beschikbaar.",en:"AI Fix is temporarily unavailable.",de:"AI Fix ist vorübergehend nicht verfügbar.",fr:"AI Fix est temporairement indisponible.",it:"AI Fix è temporaneamente non disponibile.",es:"AI Fix no está disponible temporalmente."},
+    AI_PROVIDER_ERROR:{nl:"AI Fix kon de provider niet bereiken. Probeer later opnieuw.",en:"AI Fix could not reach the provider. Try again later.",de:"AI Fix konnte den Anbieter nicht erreichen. Versuche es später erneut.",fr:"AI Fix n’a pas pu joindre le fournisseur. Réessayez plus tard.",it:"AI Fix non è riuscito a raggiungere il provider. Riprova più tardi.",es:"AI Fix no pudo contactar con el proveedor. Inténtalo más tarde."},
+    AI_INVALID_OUTPUT:{nl:"AI Fix ontving geen veilige geldige wijziging. Probeer opnieuw.",en:"AI Fix did not receive a safe valid change. Try again.",de:"AI Fix hat keine sichere gültige Änderung erhalten. Versuche es erneut.",fr:"AI Fix n’a pas reçu de modification valide et sûre. Réessayez.",it:"AI Fix non ha ricevuto una modifica valida e sicura. Riprova.",es:"AI Fix no recibió un cambio válido y seguro. Inténtalo de nuevo."}
+  } as const;
+  return copy[code][language];
 }
 
 function localizeFixError(message:string,language:"nl"|"en"|"de"|"fr"|"it"|"es"){
@@ -224,9 +245,32 @@ function localizeFixError(message:string,language:"nl"|"en"|"de"|"fr"|"it"|"es")
     "De gekoppelde GitHub-account heeft geen bevestigde schrijfrechten op deze repository.":{en:"The connected GitHub account does not have confirmed write access to this repository.",de:"Das verbundene GitHub-Konto hat keine bestätigten Schreibrechte für dieses Repository.",fr:"Le compte GitHub connecté ne dispose pas d’un accès en écriture confirmé à ce dépôt.",it:"L’account GitHub collegato non dispone di accesso in scrittura confermato a questo repository.",es:"La cuenta de GitHub conectada no tiene acceso de escritura confirmado a este repositorio."},
     "Dit bestand valt buiten de veilige RankFix-codefixlijst.":{en:"This file is outside RankFix’s safe code-fix list.",de:"Diese Datei liegt außerhalb der sicheren RankFix-Codefix-Liste.",fr:"Ce fichier ne figure pas dans la liste sûre des corrections de code RankFix.",it:"Questo file non rientra nell’elenco sicuro delle correzioni di codice RankFix.",es:"Este archivo está fuera de la lista segura de correcciones de código de RankFix."},
     "RankFix kon geen geschikt bestand vinden voor deze fix.":{en:"RankFix could not find a suitable file for this fix.",de:"RankFix konnte keine geeignete Datei für diesen Fix finden.",fr:"RankFix n’a pas trouvé de fichier adapté à cette correction.",it:"RankFix non ha trovato un file adatto a questa correzione.",es:"RankFix no encontró un archivo adecuado para esta corrección."},
-    "Canonical-URL wijst naar een ander domein dan de gescande site.":{en:"The canonical URL points to a different domain than the scanned site.",de:"Die Canonical-URL verweist auf eine andere Domain als die gescannte Website.",fr:"L’URL canonique pointe vers un domaine différent du site analysé.",it:"L’URL canonico punta a un dominio diverso dal sito analizzato.",es:"La URL canónica apunta a un dominio diferente del sitio analizado."}
+    "Canonical-URL wijst naar een ander domein dan de gescande site.":{en:"The canonical URL points to a different domain than the scanned site.",de:"Die Canonical-URL verweist auf eine andere Domain als die gescannte Website.",fr:"L’URL canonique pointe vers un domaine différent du site analysé.",it:"L’URL canonico punta a un dominio diverso dal sito analizzato.",es:"La URL canónica apunta a un dominio diferente del sitio analizado."},
+    "Het doelbestand is gevoelig voor dependencies, deployment, database of automatisering en mag niet automatisch worden aangepast.":{en:"The target file is sensitive to dependencies, deployment, database, or automation and cannot be modified automatically.",de:"Die Zieldatei betrifft Abhängigkeiten, Deployment, Datenbank oder Automatisierung und darf nicht automatisch geändert werden.",fr:"Le fichier cible concerne les dépendances, le déploiement, la base de données ou l’automatisation et ne peut pas être modifié automatiquement.",it:"Il file di destinazione riguarda dipendenze, deployment, database o automazione e non può essere modificato automaticamente.",es:"El archivo de destino afecta a dependencias, despliegue, base de datos o automatización y no puede modificarse automáticamente."},
+    "Het doelbestand valt buiten de toegestane webbronbestanden voor automatische RankFix-wijzigingen.":{en:"The target file is outside the web source files allowed for automatic RankFix changes.",de:"Die Zieldatei liegt außerhalb der für automatische RankFix-Änderungen erlaubten Webquelldateien.",fr:"Le fichier cible ne fait pas partie des fichiers source web autorisés pour les modifications automatiques RankFix.",it:"Il file di destinazione non rientra nei file sorgente web consentiti per le modifiche automatiche RankFix.",es:"El archivo de destino no está entre los archivos fuente web permitidos para cambios automáticos de RankFix."},
+    "De voorgestelde wijziging raakt meer dan 120 regels en is te groot voor een automatische SEO/GEO-codefix.":{en:"The proposed change affects more than 120 lines and is too large for an automatic SEO/GEO code fix.",de:"Die vorgeschlagene Änderung betrifft mehr als 120 Zeilen und ist zu groß für einen automatischen SEO/GEO-Codefix.",fr:"La modification proposée touche plus de 120 lignes et est trop importante pour une correction automatique SEO/GEO.",it:"La modifica proposta interessa più di 120 righe ed è troppo grande per una correzione automatica SEO/GEO.",es:"El cambio propuesto afecta a más de 120 líneas y es demasiado grande para una corrección automática SEO/GEO."},
+    "De voorgestelde GitHub-wijziging is leeg.":{en:"The proposed GitHub change is empty.",de:"Die vorgeschlagene GitHub-Änderung ist leer.",fr:"La modification GitHub proposée est vide.",it:"La modifica GitHub proposta è vuota.",es:"El cambio de GitHub propuesto está vacío."},
+    "De AI-output bevat mogelijk destructieve of geheime gegevens.":{en:"The AI output may contain destructive commands or secret data.",de:"Die AI-Ausgabe enthält möglicherweise destruktive Befehle oder geheime Daten.",fr:"La sortie AI peut contenir des commandes destructrices ou des données secrètes.",it:"L’output AI potrebbe contenere comandi distruttivi o dati segreti.",es:"La salida de AI puede contener comandos destructivos o datos secretos."},
+    "De AI-fix wijzigt de bestaande site-identiteit in de metadata.":{en:"The AI fix changes the existing site identity in metadata.",de:"Der AI-Fix ändert die bestehende Website-Identität in den Metadaten.",fr:"La correction AI modifie l’identité existante du site dans les métadonnées.",it:"La correzione AI modifica l’identità esistente del sito nei metadati.",es:"La corrección AI cambia la identidad existente del sitio en los metadatos."},
+    "De AI-fix wijzigt de bestaande metadata-beschrijving zonder dat dit is gevraagd.":{en:"The AI fix changes the existing metadata description without this being requested.",de:"Der AI-Fix ändert die bestehende Meta-Beschreibung, obwohl dies nicht angefordert wurde.",fr:"La correction AI modifie la description des métadonnées sans que cela ait été demandé.",it:"La correzione AI modifica la descrizione dei metadati senza che sia stato richiesto.",es:"La corrección AI cambia la descripción de metadatos sin que se haya solicitado."},
+    "De AI-fix zet een andere merk-/paginatitel in Open Graph-metadata.":{en:"The AI fix sets a different brand/page title in Open Graph metadata.",de:"Der AI-Fix setzt einen anderen Marken-/Seitentitel in den Open-Graph-Metadaten.",fr:"La correction AI définit un autre titre de marque/page dans les métadonnées Open Graph.",it:"La correzione AI imposta un titolo di brand/pagina diverso nei metadati Open Graph.",es:"La corrección AI establece un título de marca/página diferente en los metadatos Open Graph."},
+    "De AI-fix zet een andere beschrijving in Open Graph-metadata.":{en:"The AI fix sets a different description in Open Graph metadata.",de:"Der AI-Fix setzt eine andere Beschreibung in den Open-Graph-Metadaten.",fr:"La correction AI définit une autre description dans les métadonnées Open Graph.",it:"La correzione AI imposta una descrizione diversa nei metadati Open Graph.",es:"La corrección AI establece una descripción diferente en los metadatos Open Graph."},
+    "Open Graph-metadata gevonden; controleer dat waarden en eventuele afbeeldingen bij de bestaande site-identiteit passen.":{en:"Open Graph metadata found; verify that values and images match the existing site identity.",de:"Open-Graph-Metadaten gefunden; prüfe, ob Werte und Bilder zur bestehenden Website-Identität passen.",fr:"Métadonnées Open Graph détectées ; vérifiez que les valeurs et images correspondent à l’identité existante du site.",it:"Metadati Open Graph rilevati; verifica che valori e immagini corrispondano all’identità esistente del sito.",es:"Se encontraron metadatos Open Graph; comprueba que los valores y las imágenes coincidan con la identidad existente del sitio."},
+    "Het doelbestand is geen standaard web-templatebestand.":{en:"The target file is not a standard web template file.",de:"Die Zieldatei ist keine standardmäßige Web-Template-Datei.",fr:"Le fichier cible n’est pas un fichier de modèle web standard.",it:"Il file di destinazione non è un file template web standard.",es:"El archivo de destino no es un archivo de plantilla web estándar."},
+    "De AI-fix is buiten verhouding groot ten opzichte van het bestaande bestand.":{en:"The AI fix is disproportionately large compared with the existing file.",de:"Der AI-Fix ist im Verhältnis zur bestehenden Datei unverhältnismäßig groß.",fr:"La correction AI est disproportionnée par rapport au fichier existant.",it:"La correzione AI è sproporzionatamente grande rispetto al file esistente.",es:"La corrección AI es desproporcionadamente grande en comparación con el archivo existente."}
   };
-  return translations[message]?.[language]||message;
+  const known=translations[message]?.[language];
+  if(known) return known;
+  // Never expose unexpected GitHub/provider/database details to customers.
+  const generic={
+    nl:"GitHub Fix kon niet veilig worden voltooid. Probeer opnieuw of controleer de GitHub-koppeling.",
+    en:"GitHub Fix could not be completed safely. Try again or check the GitHub connection.",
+    de:"GitHub Fix konnte nicht sicher abgeschlossen werden. Versuche es erneut oder prüfe die GitHub-Verbindung.",
+    fr:"GitHub Fix n’a pas pu être terminé en toute sécurité. Réessayez ou vérifiez la connexion GitHub.",
+    it:"GitHub Fix non è stato completato in modo sicuro. Riprova o controlla la connessione GitHub.",
+    es:"GitHub Fix no pudo completarse de forma segura. Inténtalo de nuevo o revisa la conexión con GitHub."
+  } as const;
+  return generic[language];
 }
 
 function estimateChangedLines(before:string,after:string){
@@ -251,16 +295,22 @@ function estimateChangedLines(before:string,after:string){
 }
 
 export async function POST(request:Request){
+  let language:"nl"|"en"|"de"|"fr"|"it"|"es"="nl";
   try{
     const user=await getCurrentUser();
-    if(!user) return NextResponse.json({error:"Login vereist."},{status:401});
+    if(!user) {
+      const acceptLanguage=(request.headers.get("accept-language")||"").toLowerCase();
+      const requested=(acceptLanguage.match(/(?:^|,|\s)(nl|en|de|fr|it|es)(?:-|;|,|$)/)?.[1]||"nl") as typeof language;
+      const loginCopy={nl:"Login vereist.",en:"Login required.",de:"Anmeldung erforderlich.",fr:"Connexion requise.",it:"Accesso richiesto.",es:"Inicio de sesión requerido."} as const;
+      return NextResponse.json({error:loginCopy[requested]},{status:401});
+    }
     await ensureDatabase();
     const body=await request.json();
     const planResult=await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1",[user.id]);
     const planCode=String(planResult.rows[0]?.plan_code||"free").toLowerCase();
     const supportedLanguages=["nl","en","de","fr","it","es"] as const;
     type FixLanguage=(typeof supportedLanguages)[number];
-    const language:FixLanguage=supportedLanguages.includes(body?.language as FixLanguage)?body.language as FixLanguage:"nl";
+    language=supportedLanguages.includes(body?.language as FixLanguage)?body.language as FixLanguage:"nl";
     const msg=(nl:string,en:string,de:string,fr:string,it:string,es:string)=>({nl,en,de,fr,it,es} as Record<FixLanguage,string>)[language];
     if(planCode==="free") return NextResponse.json({error:msg("AI- en GitHub-fixes zijn beschikbaar met een betaald abonnement. Je bestaande scanrapport blijft beschikbaar.","AI and GitHub fixes are available with a paid plan. Your existing scan report remains available.","AI- und GitHub-Fixes sind mit einem kostenpflichtigen Tarif verfügbar. Dein bestehender Scanbericht bleibt verfügbar.","Les correctifs IA et GitHub sont disponibles avec une offre payante. Votre rapport d’analyse existant reste disponible.","Le correzioni AI e GitHub sono disponibili con un piano a pagamento. Il rapporto di scansione esistente resta disponibile.","Las correcciones de IA y GitHub están disponibles con un plan de pago. Tu informe de análisis existente seguirá disponible."),code:"PAID_PLAN_REQUIRED"},{status:403});
     const requestedRepo=typeof body?.repo==="string"?body.repo.trim():"";
@@ -367,6 +417,8 @@ export async function POST(request:Request){
     // The SEO value validator is intentionally not applied to the whole file,
     // because it can mistake unrelated source-code text for placeholders/field markup.
     const githubValidation=validateGithubFix({current,proposed:generated.content,filePath:path,issue});
+    githubValidation.errors = githubValidation.errors.map((error:string)=>localizeFixError(error,language));
+    githubValidation.warnings = githubValidation.warnings.map((warning:string)=>localizeFixError(warning,language));
     const canonicalErrors=validateCanonicalTarget(generated.content,trustedUrl);
     if(canonicalErrors.length) githubValidation.errors.push(...canonicalErrors.map((error:string)=>localizeFixError(error,language)));
 
@@ -446,5 +498,11 @@ export async function POST(request:Request){
     }
 
     return NextResponse.json({success:true,summary:generated.summary,repository:repo,path,branch,pr:{number:pr.number,url:pr.html_url,title:pr.title}});
-  }catch(error){ return NextResponse.json({error:error instanceof Error?error.message:"GitHub fix mislukt."},{status:500}); }
+  }catch(error){
+    if(error instanceof FixProviderError){
+      return NextResponse.json({error:localizeProviderError(error.code,language)},{status:error.code==="AI_UNAVAILABLE"?503:502});
+    }
+    const raw=error instanceof Error?error.message:"GitHub fix mislukt.";
+    return NextResponse.json({error:localizeFixError(raw,language)},{status:500});
+  }
 }

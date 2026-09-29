@@ -813,14 +813,15 @@ export async function POST(request: Request) {
         return { sourceHref, context: [anchorText, imageAlt].filter(Boolean).join(" ").trim().slice(0, 220) };
       })
       .filter((item) => item.sourceHref && !/^(?:#|mailto:|tel:|javascript:)/i.test(item.sourceHref));
-    const uniqueInternalAnchors = [...new Map(anchorTags.flatMap((item) => {
+    const allUniqueInternalAnchors = [...new Map(anchorTags.flatMap((item) => {
       try {
         const parsed = new URL(item.sourceHref, finalUrl);
         if (!/^https?:$/.test(parsed.protocol) || parsed.hostname !== finalUrl.hostname) return [];
         parsed.hash = "";
         return [[parsed.toString(), { ...item, url: parsed.toString() }] as const];
       } catch { return []; }
-    })).values()].slice(0, 24);
+    })).values()];
+    const uniqueInternalAnchors = allUniqueInternalAnchors.slice(0, 24);
     const linkAuditResults: LinkAuditResult[] = await Promise.all(uniqueInternalAnchors.map(async (item) => {
       try {
         const result = await safePublicFetch(new URL(item.url), { timeoutMs: 4500, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml,text/plain" });
@@ -1552,15 +1553,17 @@ export async function POST(request: Request) {
         item.fix_category = getFixPolicy(mapped.rule_id).category;
       }
       const evidenceByKey: Record<string, string | number | boolean | null> = {
-        title,
-        description,
+        // Proven absence is evidence too. Keep an explicit marker so missing title/description
+        // can safely pass the AI/GitHub fix evidence gate without weakening that gate.
+        title: title || (item.key === "title" ? "metaTitlePresent=false" : null),
+        description: description || (item.key === "description" ? "metaDescriptionPresent=false" : null),
         h1: h1s.length,
         headings: headings.length,
         canonical: canonical || null,
         viewport: viewportContent || null,
         lang: lang || null,
         alt: imageElementCount ? imagesMissingAlt : null,
-        schema: validJsonLd ? `blocks=${validJsonLd}; types=${[...new Set(schemaTypes)].slice(0,12).join(",")}; contextRelevant=${hasRelevantContextSchema}` : null,
+        schema: validJsonLd ? `blocks=${validJsonLd}; types=${[...new Set(schemaTypes)].slice(0,12).join(",")}; contextRelevant=${hasRelevantContextSchema}` : (item.key === "schema" ? "validJsonLdBlocks=0" : null),
         https: finalUrl.protocol === "https:",
         status: response.status,
         response: responseTime,
@@ -1568,7 +1571,7 @@ export async function POST(request: Request) {
         robots_txt: robotsStatus === "PASS" ? `${robotsUrl.toString()}; pathBlocked=${robotsPathBlocked}${matchingRobotsRules[0] ? `; rule=${matchingRobotsRules[0].kind}:${matchingRobotsRules[0].path}` : ""}` : robotsStatus,
         indexability: noindexSignal ? [robots, xRobotsTag].filter(Boolean).join(" | ") : robotsPathBlocked ? `robots disallow: ${matchingRobotsRules[0].path}` : "no noindex or applicable robots block found",
         hreflang: hreflangEntries.length ? hreflangEntries.map((entry) => `${entry.language}=>${entry.href || "missing"}`).join(" | ") : null,
-        social: [ogTitle ? "og:title" : "", ogDescription ? "og:description" : "", ogImage ? "og:image" : ""].filter(Boolean).join(", ") || null,
+        social: [ogTitle ? "og:title" : "", ogDescription ? "og:description" : "", ogImage ? "og:image" : ""].filter(Boolean).join(", ") || (item.key === "social" ? "Open Graph core fields missing" : null),
         product_schema: isProductPage && hasProductSchema ? JSON.stringify(productOfferSummary.slice(0, 3)) : null,
         webshop_trust: hasProductSignal ? `shipping=${hasShippingSignal}; returns=${hasReturnsSignal}; reviewPlatform=${hasReviewPlatformSignal}; checkoutSignal=${hasCheckoutTrustSignal}` : null,
         webshop_claims: hasWebshopClaims ? webshopClaimMatches.slice(0, 3).join(", ") : null,
@@ -1577,8 +1580,8 @@ export async function POST(request: Request) {
         product_price_consistency: isProductPage ? `visible=${visiblePriceCandidates.join(",") || "none"}; visibleEvidence=${visiblePriceEvidenceStrength}; schema=${structuredPriceCandidates.join(",") || "none"}` : null,
         product_availability: isProductPage ? `visibleState=${visibleAvailabilityState || "none"}; schemaStates=${structuredAvailabilityStates.join(",") || "none"}; schema=${structuredAvailabilityValues.join(",") || "none"}; contradiction=${availabilityContradiction}` : null,
         ads_readiness: (adsTrackingSignals || hasConversionSignal || hasExplicitAdsConversionSnippet) ? `adsIds=${googleAdsIds.join(",") || "none"}; ga4Ids=${ga4MeasurementIds.join(",") || "none"}; events=${uniqueConversionEventNames.join(",") || "none"}; adsLabels=${googleAdsSendToLabels.join(",") || "none"}; consentSignal=${hasConsentModeSignal}` : null,
-        broken_links: uniqueInternalAnchors.length ? `checked=${linkAuditResults.length}; broken=${brokenInternalLinks.length}; sampleLimit=24` : null,
-        internal_redirects: uniqueInternalAnchors.length ? `checked=${linkAuditResults.length}; redirected=${redirectedInternalLinks.length}; sampleLimit=24` : null,
+        broken_links: allUniqueInternalAnchors.length ? `discovered=${allUniqueInternalAnchors.length}; checked=${linkAuditResults.length}; broken=${brokenInternalLinks.length}; sampleLimit=24; truncated=${allUniqueInternalAnchors.length > linkAuditResults.length}` : null,
+        internal_redirects: allUniqueInternalAnchors.length ? `discovered=${allUniqueInternalAnchors.length}; checked=${linkAuditResults.length}; redirected=${redirectedInternalLinks.length}; sampleLimit=24; truncated=${allUniqueInternalAnchors.length > linkAuditResults.length}` : null,
         accessibility_basics: `imagesMissingAlt=${imagesMissingAlt}; unlabeledControls=${unlabeledFormControls}; emptyButtons=${emptyButtons}; staticHtmlOnly=true`,
         consent_mode_readiness: adsTrackingSignals > 0 ? `trackingSignals=${adsTrackingSignals}; explicitConsentSignal=${hasConsentModeSignal}; runtimeNotExecuted=true` : null,
         merchant_feed_signal: hasEcommerceSignal ? `feedHint=${hasMerchantFeedHint}; productReadiness=${merchantProductReadiness}; websiteSignalsOnly=true` : null,
@@ -1616,6 +1619,83 @@ export async function POST(request: Request) {
           ? "UNABLE_TO_CONFIRM"
           : statusCode(item.status);
     }
+    // Customer-facing scanner copy must follow the selected RankFix language.
+    // Keep Dutch as the canonical rule text used by the scanner, then translate the
+    // final check payload in one place so API responses, saved audits and emails agree.
+    if (scanLanguage !== "nl") {
+      const scannerLanguageNames: Record<string,string> = { en:"English", de:"German", fr:"French", it:"Italian", es:"Spanish" };
+      const translateCheckCopy = async (items: Check[]) => {
+        const apiKey = process.env.OPENAI_API_KEY;
+        if (!apiKey || items.length === 0) return;
+        try {
+          const payload = items.map((item) => ({ key:item.key, status:item.status, title:item.title, message:item.message, fix:item.fix }));
+          const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+            method:"POST",
+            headers:{ "Content-Type":"application/json", Authorization:`Bearer ${apiKey}` },
+            body:JSON.stringify({
+              model:process.env.OPENAI_MODEL || "gpt-5.6-luna",
+              temperature:0,
+              response_format:{type:"json_object"},
+              messages:[
+                {role:"system",content:`Translate RankFix website-audit copy into ${scannerLanguageNames[scanLanguage]}. Preserve URLs, numbers, HTML tags, SEO/GEO terminology and factual meaning exactly. Do not add claims or advice. Return JSON only as {"items":[{"key":"...","status":"...","title":"...","message":"...","fix":"..."}]}.`},
+                {role:"user",content:JSON.stringify(payload)}
+              ]
+            })
+          });
+          if (!aiResponse.ok) return;
+          const aiJson:any = await aiResponse.json();
+          const parsed = JSON.parse(aiJson?.choices?.[0]?.message?.content || "{}");
+          const translated = Array.isArray(parsed?.items) ? parsed.items : [];
+          const byKey = new Map(translated.map((item:any) => [String(item?.key || "")+"|"+String(item?.status || "")+"|"+String(item?.title || ""), item]));
+          for (const item of items) {
+            const translatedItem:any = translated.find((candidate:any)=>String(candidate?.key||"")===item.key && String(candidate?.status||"")===item.status && String(candidate?.title||"")===item.title) || translated.find((candidate:any)=>String(candidate?.key||"")===item.key && String(candidate?.status||"")===item.status);
+            if (!translatedItem) continue;
+            if (typeof translatedItem.title === "string" && translatedItem.title.trim()) item.title = translatedItem.title.trim();
+            if (typeof translatedItem.message === "string" && translatedItem.message.trim()) item.message = translatedItem.message.trim();
+            if (typeof translatedItem.fix === "string" && translatedItem.fix.trim()) item.fix = translatedItem.fix.trim();
+            item.evidence.details = item.message;
+          }
+        } catch (error) {
+          console.error("Scanner copy translation failed", error instanceof Error ? error.message : "unknown error");
+        }
+      };
+      const allLocalizedChecks=[...seoChecks, ...geoChecks];
+      const canonicalCopy=new Map(allLocalizedChecks.map((item)=>[item.key+"|"+item.status+"|"+item.title+"|"+item.message, {title:item.title,message:item.message,fix:item.fix}]));
+      await translateCheckCopy(allLocalizedChecks);
+
+      // Deterministic fallback: scanner correctness and language must never depend on
+      // the translation provider. If a check stayed canonical Dutch, replace its
+      // customer copy with concise local copy while keeping measured evidence intact.
+      const fallbackStatusCopy:Record<string,Record<string,{message:string,fix:string}>>={
+        en:{pass:{message:"Confirmed by this scan.",fix:"No action required."},warning:{message:"This check needs attention based on the scan evidence.",fix:"Review the evidence and correct the affected item."},fail:{message:"This scan confirmed a problem.",fix:"Correct the affected item and scan again."},not_applicable:{message:"This check is not applicable to this page.",fix:"No action required."},unable_to_confirm:{message:"This scan could not confirm this check reliably.",fix:"Review the evidence or verify it with the relevant connected source."}},
+        de:{pass:{message:"Durch diesen Scan bestätigt.",fix:"Keine Aktion erforderlich."},warning:{message:"Diese Prüfung erfordert anhand der Scan-Nachweise Aufmerksamkeit.",fix:"Prüfe die Nachweise und korrigiere den betroffenen Punkt."},fail:{message:"Dieser Scan hat ein Problem bestätigt.",fix:"Korrigiere den betroffenen Punkt und scanne erneut."},not_applicable:{message:"Diese Prüfung ist für diese Seite nicht anwendbar.",fix:"Keine Aktion erforderlich."},unable_to_confirm:{message:"Dieser Scan konnte diese Prüfung nicht zuverlässig bestätigen.",fix:"Prüfe die Nachweise oder bestätige sie über die passende verbundene Quelle."}},
+        fr:{pass:{message:"Confirmé par cette analyse.",fix:"Aucune action requise."},warning:{message:"Ce contrôle nécessite une attention selon les preuves de l’analyse.",fix:"Vérifiez les preuves et corrigez l’élément concerné."},fail:{message:"Cette analyse a confirmé un problème.",fix:"Corrigez l’élément concerné puis relancez l’analyse."},not_applicable:{message:"Ce contrôle ne s’applique pas à cette page.",fix:"Aucune action requise."},unable_to_confirm:{message:"Cette analyse n’a pas pu confirmer ce contrôle de manière fiable.",fix:"Vérifiez les preuves ou confirmez-les via la source connectée appropriée."}},
+        it:{pass:{message:"Confermato da questa scansione.",fix:"Nessuna azione richiesta."},warning:{message:"Questo controllo richiede attenzione in base alle prove della scansione.",fix:"Controlla le prove e correggi l’elemento interessato."},fail:{message:"Questa scansione ha confermato un problema.",fix:"Correggi l’elemento interessato ed esegui una nuova scansione."},not_applicable:{message:"Questo controllo non è applicabile a questa pagina.",fix:"Nessuna azione richiesta."},unable_to_confirm:{message:"Questa scansione non ha potuto confermare il controllo in modo affidabile.",fix:"Controlla le prove o verificale tramite la fonte collegata appropriata."}},
+        es:{pass:{message:"Confirmado por este análisis.",fix:"No se requiere ninguna acción."},warning:{message:"Esta comprobación requiere atención según las pruebas del análisis.",fix:"Revisa las pruebas y corrige el elemento afectado."},fail:{message:"Este análisis confirmó un problema.",fix:"Corrige el elemento afectado y vuelve a analizar."},not_applicable:{message:"Esta comprobación no se aplica a esta página.",fix:"No se requiere ninguna acción."},unable_to_confirm:{message:"Este análisis no pudo confirmar esta comprobación de forma fiable.",fix:"Revisa las pruebas o verifícalas mediante la fuente conectada correspondiente."}}
+      };
+      const fallbackTitles:Record<string,Record<string,string>>={
+        en:{title:"Meta title",description:"Meta description",h1:"H1 heading",headings:"Heading structure",canonical:"Canonical URL",viewport:"Mobile viewport",lang:"HTML language",indexability:"Indexability",alt:"Image alt text",https:"HTTPS",status:"HTTP status",social:"Social metadata",robots_txt:"robots.txt",sitemap:"Sitemap",broken_links:"Broken links",internal_redirects:"Internal redirects",schema:"Structured data",product_schema:"Product structured data",accessibility_basics:"Accessibility basics",consent_mode_readiness:"Consent Mode signal",ads_readiness:"Google Ads readiness"},
+        de:{title:"Meta-Titel",description:"Meta-Beschreibung",h1:"H1-Überschrift",headings:"Überschriftenstruktur",canonical:"Canonical-URL",viewport:"Mobile Ansicht",lang:"HTML-Sprache",indexability:"Indexierbarkeit",alt:"Bild-Alt-Texte",https:"HTTPS",status:"HTTP-Status",social:"Social-Metadaten",robots_txt:"robots.txt",sitemap:"Sitemap",broken_links:"Defekte Links",internal_redirects:"Interne Weiterleitungen",schema:"Strukturierte Daten",product_schema:"Produkt-Strukturdaten",accessibility_basics:"Grundlagen Barrierefreiheit",consent_mode_readiness:"Consent-Mode-Signal",ads_readiness:"Google Ads Bereitschaft"},
+        fr:{title:"Titre meta",description:"Meta description",h1:"Titre H1",headings:"Structure des titres",canonical:"URL canonique",viewport:"Viewport mobile",lang:"Langue HTML",indexability:"Indexabilité",alt:"Textes alt des images",https:"HTTPS",status:"Statut HTTP",social:"Métadonnées sociales",robots_txt:"robots.txt",sitemap:"Sitemap",broken_links:"Liens cassés",internal_redirects:"Redirections internes",schema:"Données structurées",product_schema:"Données structurées Product",accessibility_basics:"Bases de l’accessibilité",consent_mode_readiness:"Signal Consent Mode",ads_readiness:"Préparation Google Ads"},
+        it:{title:"Meta title",description:"Meta description",h1:"Titolo H1",headings:"Struttura dei titoli",canonical:"URL canonical",viewport:"Viewport mobile",lang:"Lingua HTML",indexability:"Indicizzabilità",alt:"Testi alt immagini",https:"HTTPS",status:"Stato HTTP",social:"Metadati social",robots_txt:"robots.txt",sitemap:"Sitemap",broken_links:"Link non funzionanti",internal_redirects:"Reindirizzamenti interni",schema:"Dati strutturati",product_schema:"Dati strutturati Product",accessibility_basics:"Basi accessibilità",consent_mode_readiness:"Segnale Consent Mode",ads_readiness:"Preparazione Google Ads"},
+        es:{title:"Meta title",description:"Meta description",h1:"Encabezado H1",headings:"Estructura de encabezados",canonical:"URL canónica",viewport:"Viewport móvil",lang:"Idioma HTML",indexability:"Indexabilidad",alt:"Textos alt de imágenes",https:"HTTPS",status:"Estado HTTP",social:"Metadatos sociales",robots_txt:"robots.txt",sitemap:"Sitemap",broken_links:"Enlaces rotos",internal_redirects:"Redirecciones internas",schema:"Datos estructurados",product_schema:"Datos estructurados Product",accessibility_basics:"Bases de accesibilidad",consent_mode_readiness:"Señal Consent Mode",ads_readiness:"Preparación para Google Ads"}
+      };
+      for(const item of allLocalizedChecks){
+        const originalKey=[...canonicalCopy.keys()].find((key)=>key.startsWith(item.key+"|"+item.status+"|") && key.endsWith("|"+item.message));
+        const canonical=originalKey ? canonicalCopy.get(originalKey) : undefined;
+        if(!canonical) continue;
+        if(item.message===canonical.message && item.fix===canonical.fix){
+          const fallback=fallbackStatusCopy[scanLanguage]?.[item.status];
+          if(fallback){
+            item.title=fallbackTitles[scanLanguage]?.[item.key] || item.key.replace(/_/g," ");
+            item.message=fallback.message;
+            item.fix=fallback.fix;
+            item.evidence.details=item.message;
+          }
+        }
+      }
+    }
+
     const seoTotal = seoChecks.reduce((sum, c) => sum + (c.issue_status === "NOT_APPLICABLE" || c.issue_status === "UNABLE_TO_CONFIRM" ? 0 : c.points), 0);
     const seoMax = seoChecks.reduce((sum, c) => sum + (c.issue_status === "NOT_APPLICABLE" || c.issue_status === "UNABLE_TO_CONFIRM" ? 0 : c.maxPoints), 0);
     const geoTotal = geoChecks.reduce((sum, c) => sum + (c.issue_status === "NOT_APPLICABLE" || c.issue_status === "UNABLE_TO_CONFIRM" ? 0 : c.points), 0);
@@ -1669,7 +1749,15 @@ export async function POST(request: Request) {
         technologyProfile.evidence = [...technologyProfile.evidence, `Landingpage-signalen ${landingSignalCount}/4`].slice(0, 8);
       }
     }
-    const rendering = { mode: "raw_html" as const, javascriptExecuted: false, note: "RankFix beoordeelde de HTTP HTML-response; client-side JavaScript is in deze scan niet uitgevoerd." };
+    const renderingNotes: Record<string,string> = {
+      nl:"RankFix beoordeelde de HTTP HTML-response; client-side JavaScript is in deze scan niet uitgevoerd.",
+      en:"RankFix evaluated the HTTP HTML response; client-side JavaScript was not executed in this scan.",
+      de:"RankFix hat die HTTP-HTML-Antwort ausgewertet; clientseitiges JavaScript wurde in diesem Scan nicht ausgeführt.",
+      fr:"RankFix a évalué la réponse HTML HTTP ; le JavaScript côté client n’a pas été exécuté pendant cette analyse.",
+      it:"RankFix ha valutato la risposta HTML HTTP; il JavaScript lato client non è stato eseguito durante questa scansione.",
+      es:"RankFix evaluó la respuesta HTML HTTP; el JavaScript del lado del cliente no se ejecutó durante este análisis."
+    };
+    const rendering = { mode: "raw_html" as const, javascriptExecuted: false, note: renderingNotes[scanLanguage] || renderingNotes.en };
 
     let user = null;
     let savedScanId: string | null = null;
@@ -1836,16 +1924,11 @@ export async function POST(request: Request) {
       mode: "PAGE_SAMPLE" as const,
       javascriptExecuted: false,
       internalLinks: {
-        discovered: anchorTags.length,
-        uniqueInternal: uniqueInternalAnchors.length,
+        anchorsFound: anchorTags.length,
+        uniqueInternal: allUniqueInternalAnchors.length,
         checked: linkAuditResults.length,
         limit: 24,
-        truncated: uniqueInternalAnchors.length < new Set(anchorTags.flatMap((item) => {
-          try {
-            const parsed = new URL(item.sourceHref, finalUrl);
-            return /^https?:$/.test(parsed.protocol) && parsed.hostname === finalUrl.hostname ? [parsed.toString()] : [];
-          } catch { return []; }
-        })).size,
+        truncated: allUniqueInternalAnchors.length > linkAuditResults.length,
       },
       accessibility: "STATIC_HTML_SIGNALS" as const,
       consentMode: "STATIC_HTML_SIGNAL" as const,

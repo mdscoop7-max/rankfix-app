@@ -178,6 +178,15 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [language, setLanguage] = useState<Language>(initialLanguage);
   const t = translations[language];
+  const renderingCopy = {
+    nl:{source:"Bron",raw:"Raw HTML · JavaScript niet uitgevoerd",rendered:"JavaScript-gerenderd",tip:"Dynamische onderdelen zoals checkout, JavaScript-content en sommige voorraad- of prijssignalen kunnen hierdoor niet volledig worden bevestigd."},
+    en:{source:"Source",raw:"Raw HTML · JavaScript not executed",rendered:"JavaScript-rendered",tip:"Dynamic parts such as checkout, JavaScript content and some stock or price signals may therefore not be fully confirmed."},
+    de:{source:"Quelle",raw:"Raw HTML · JavaScript nicht ausgeführt",rendered:"JavaScript-gerendert",tip:"Dynamische Bereiche wie Checkout, JavaScript-Inhalte und einige Bestands- oder Preissignale können dadurch möglicherweise nicht vollständig bestätigt werden."},
+    fr:{source:"Source",raw:"HTML brut · JavaScript non exécuté",rendered:"Rendu JavaScript",tip:"Les éléments dynamiques tels que le paiement, le contenu JavaScript et certains signaux de stock ou de prix peuvent donc ne pas être entièrement confirmés."},
+    it:{source:"Fonte",raw:"HTML grezzo · JavaScript non eseguito",rendered:"Rendering JavaScript",tip:"Le parti dinamiche come checkout, contenuti JavaScript e alcuni segnali di disponibilità o prezzo potrebbero quindi non essere confermate completamente."},
+    es:{source:"Fuente",raw:"HTML sin procesar · JavaScript no ejecutado",rendered:"Renderizado con JavaScript",tip:"Por ello, las partes dinámicas como el checkout, el contenido JavaScript y algunas señales de stock o precio pueden no confirmarse por completo."}
+  }[language];
+
   const pc = publicCopy[language];
   const sc = sectionCopy[language];
   const xc = extraPublicCopy[language];
@@ -820,7 +829,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
               <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">Jouw kansen, op één scherm.</h2>
               <p className="mt-1 max-w-2xl break-all text-xs text-slate-500">{result.finalUrl}</p>
             </div>
-            <div className="text-xs text-slate-500">{result.responseTime} ms · HTTP {result.httpStatus}</div>{result.rendering&&<div className="mt-1 text-xs text-slate-500">Bron: {result.rendering.mode==="raw_html"?"Raw HTML · JavaScript niet uitgevoerd":"JavaScript-gerenderd"}{result.rendering.mode==="raw_html"&&<span className="ml-1 cursor-help" title="Dynamische onderdelen zoals checkout, JavaScript-content en sommige voorraad- of prijssignalen kunnen hierdoor niet volledig worden bevestigd.">ⓘ</span>}{result.pageTypeEvidence?` · ${result.pageTypeEvidence.type} (${result.pageTypeEvidence.confidence})`:""}</div>}
+            <div className="text-xs text-slate-500">{result.responseTime} ms · HTTP {result.httpStatus}</div>{result.rendering&&<div className="mt-1 text-xs text-slate-500">{renderingCopy.source}: {result.rendering.mode==="raw_html"?renderingCopy.raw:renderingCopy.rendered}{result.rendering.mode==="raw_html"&&<span className="ml-1 cursor-help" title={renderingCopy.tip}>ⓘ</span>}{result.pageTypeEvidence?` · ${result.pageTypeEvidence.type} (${result.pageTypeEvidence.confidence})`:""}</div>}
             <WebsiteProfile profile={result.technologyProfile} />
           </div>
 
