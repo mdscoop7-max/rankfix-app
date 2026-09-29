@@ -7,7 +7,7 @@ import { sendScanReportEmail } from "@/lib/email";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { extractImageMetrics } from "@/lib/image-metrics";
-import { safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
+import { readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
 import { applyEvidenceBasedScoreCap, scoreApplicableChecks, summarizeAuditChecks } from "@/lib/audit-score";
 import { normalizePlan, planLimits } from "@/lib/plans";
@@ -377,7 +377,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: httpMessages[scanLanguage] }, { status: 422 });
     }
 
-    const html = await response.text();
+    const html = await readResponseTextLimited(response, 2_000_000);
     if (!html || html.length < 20) {
       return NextResponse.json({ error: scanError.html }, { status: 422 });
     }
@@ -727,7 +727,7 @@ export async function POST(request: Request) {
     try {
       const r = (await safePublicFetch(robotsUrl, { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/plain,application/xml,text/xml" })).response;
       if (r.ok) {
-        robotsTxt = await r.text();
+        robotsTxt = await readResponseTextLimited(r, 512_000);
         robotsStatus = "PASS";
         const declared = [...robotsTxt.matchAll(/^\s*Sitemap\s*:\s*(\S+)/gim)].map((match) => match[1]).filter(Boolean);
         robotsDeclaredSitemapUrls = [...new Set(declared.flatMap((value) => {
@@ -784,7 +784,7 @@ export async function POST(request: Request) {
         const r = (await safePublicFetch(new URL(candidate), { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/plain,application/xml,text/xml" })).response;
         sitemapFetchCompleted = true;
         if (r.ok) {
-          const sitemapBody = (await r.text()).slice(0, 2_000_000);
+          const sitemapBody = await readResponseTextLimited(r, 2_000_000);
           const hasSitemapRoot = /<(?:[a-z0-9_-]+:)?(?:urlset|sitemapindex)\b/i.test(sitemapBody);
           if (hasSitemapRoot) {
             sitemapFound = true;
