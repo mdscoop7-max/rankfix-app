@@ -7,6 +7,7 @@ import { releaseStaleJobs } from "@/lib/job-queue";
 import { getInternalCapacitySignals,overallCapacity } from "@/lib/internal-capacity";
 import { getCapacityTrends,overallCapacityTrend } from "@/lib/capacity-trend";
 import { getDatabaseAndQueueGuards } from "@/lib/operational-guards";
+import { getSecurityUsageGrowthGuards } from "@/lib/security-usage-growth";
 
 const FAILURE_THRESHOLD=3;
 function authorized(request:Request){const secret=process.env.MONITOR_SECRET;return Boolean(secret&&request.headers.get("authorization")===`Bearer ${secret}`)}
@@ -22,6 +23,7 @@ export async function GET(request:Request){
  const capacityTrends=await getCapacityTrends(capacity).catch(()=>[]);
  const capacityTrendLevel=capacityTrends.length?overallCapacityTrend(capacityTrends):"green";
  const operationalGuards=await getDatabaseAndQueueGuards().catch(error=>[{key:"operations_guard",label:"Operational Guard",level:"red" as const,message:error instanceof Error?error.message:"OPERATIONAL_CHECK_FAILED",metrics:{}}]);
+ const securityUsageGrowth=await getSecurityUsageGrowthGuards().catch(error=>[{key:"internal_guard",label:"Internal Guard",level:"red" as const,message:error instanceof Error?error.message:"INTERNAL_GUARD_FAILED",metrics:{}}]);
  const level=overallHealth(checks);
  const red=checks.filter(c=>c.level==="red");
  await db.query("INSERT INTO rankfix_health_runs (overall_level,checks) VALUES ($1,$2)",[level,JSON.stringify(checks)]);
@@ -30,7 +32,8 @@ export async function GET(request:Request){
  let alertSent=false,recoverySent=false;
  const persistentCapacityRed=capacityTrends.filter(t=>t.effective==="red").map(t=>({key:`capacity:${t.key}`,label:t.label,level:"red" as const,message:t.message}));
  const operationalRed=operationalGuards.filter(g=>g.level==="red").map(g=>({key:`operations:${g.key}`,label:g.label,level:"red" as const,message:g.message}));
- const criticalChecks=[...red,...persistentCapacityRed,...operationalRed];
+ const extendedRed=securityUsageGrowth.filter(g=>g.level==="red").map(g=>({key:g.key,label:g.label,level:"red" as const,message:g.message}));
+ const criticalChecks=[...red,...persistentCapacityRed,...operationalRed,...extendedRed];
  const activeKeys=new Set(criticalChecks.map(check=>`rankfix-production:${check.key}`));
 
  // Every critical subsystem owns its own incident. A database outage can no
@@ -78,6 +81,6 @@ export async function GET(request:Request){
  // Recover abandoned worker leases and bound completed queue history. Queue maintenance must never take Health Guard down.
  await releaseStaleJobs().catch(error=>console.error("Queue stale-job recovery failed",error instanceof Error?error.message:"QUEUE_RECOVERY_FAILED"));
  await db.query("DELETE FROM background_jobs WHERE status IN ('SUCCEEDED','FAILED') AND finished_at < NOW()-INTERVAL '30 days'").catch(()=>undefined);
- return NextResponse.json({level,checks,capacityLevel,capacity,capacityTrendLevel,capacityTrends,operationalGuards,critical:criticalChecks.length>0,alertSent,recoverySent,checkedAt:new Date().toISOString()});
+ return NextResponse.json({level,checks,capacityLevel,capacity,capacityTrendLevel,capacityTrends,operationalGuards,securityUsageGrowth,critical:criticalChecks.length>0,alertSent,recoverySent,checkedAt:new Date().toISOString()});
 }
 export async function POST(request:Request){return GET(request)}
