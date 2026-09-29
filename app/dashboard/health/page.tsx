@@ -1,6 +1,7 @@
 "use client";
 import {useEffect,useState} from "react";
 import DashboardNav from "../nav";
+import AiAssistant from "@/components/ai-assistant";
 import "../dashboard.css";
 
 type Level="green"|"orange"|"red";
@@ -38,6 +39,6 @@ export default function HealthPage(){
   <section className="rf-card"><span className="rf-eyebrow">Usage & Growth</span><h3>Technisch gebruik</h3>{guards.filter(g=>g.key==="usage"||g.key==="growth_upgrade").map(g=><p key={g.key}>{dot(g.level)} <strong>{g.label}</strong> · {g.message}</p>)}<p>Euro-kosten koppelen we pas aan definitieve leveranciersplannen.</p></section>
  </div>
  <section className="rf-card"><h2>Incidenten</h2>{incidents.length===0?<p>Geen incidenten geregistreerd.</p>:incidents.slice(0,12).map((i,n)=><p key={i.incident_key+n}><strong>{i.status==="open"?"Actief":"Hersteld"}</strong> · {i.incident_key.replace("rankfix-production:","")} · {i.failure_count} bevestigingen · {new Date(i.last_seen_at).toLocaleString("nl-NL")}{i.alerted_at?" · melding verzonden":""}</p>)}</section>
- <section className="rf-card"><h2>Recente controles</h2>{runs.slice(0,12).map((r,i)=><p key={r.created_at+i}><strong style={statusStyle(r.overall_level)}>{labels[r.overall_level]}</strong> · {new Date(r.created_at).toLocaleString("nl-NL")}</p>)}</section>
- </div></div></main>
+ <section className="rf-card"><h2>Recente controles</h2>{runs.slice(0,5).map((r,i)=><p key={r.created_at+i}><strong style={statusStyle(r.overall_level)}>{labels[r.overall_level]}</strong> · {new Date(r.created_at).toLocaleString("nl-NL")}</p>)}</section>
+ </div><AiAssistant dashboard /></div></main>
 }
