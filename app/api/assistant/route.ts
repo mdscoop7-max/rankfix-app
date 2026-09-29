@@ -27,6 +27,7 @@ export async function POST(request: Request) {
     let customerContext = "";
     let selectedScanContext = "";
     let githubContext = "";
+    let searchConsoleContext = "";
     let preferredLanguage = requestedLanguage;
 
     if (user) {
@@ -51,6 +52,45 @@ export async function POST(request: Request) {
       githubContext = JSON.stringify({
         connected: Boolean(githubConnection.rowCount),
       });
+
+      if (dashboard) {
+        const gscProperty = await getDb().query(
+          "SELECT id,site_url,last_sync_at FROM search_console_properties WHERE user_id=$1 AND selected=TRUE ORDER BY updated_at DESC LIMIT 1",
+          [user.id]
+        );
+        if (gscProperty.rows[0]) {
+          const property = gscProperty.rows[0];
+          const metrics = await getDb().query(
+            "SELECT metric_date,page,query,clicks,impressions,ctr,position FROM search_console_metrics WHERE property_id=$1 ORDER BY metric_date DESC, impressions DESC LIMIT 80",
+            [property.id]
+          );
+          const rows = metrics.rows.map((row:any)=>({
+            date: row.metric_date,
+            page: row.page || null,
+            query: row.query || null,
+            clicks: Number(row.clicks || 0),
+            impressions: Number(row.impressions || 0),
+            ctr: Number(row.ctr || 0),
+            position: Number(row.position || 0),
+          }));
+          const queries = rows.filter((row:any)=>row.query).slice(0,25);
+          const pages = rows.filter((row:any)=>row.page).slice(0,25);
+          const opportunities = queries
+            .filter((row:any)=>row.impressions >= 10 && row.position >= 6 && row.position <= 20 && row.ctr < 0.03)
+            .sort((a:any,b:any)=>b.impressions-a.impressions)
+            .slice(0,10);
+          searchConsoleContext = JSON.stringify({
+            connected: true,
+            site_url: property.site_url,
+            last_sync_at: property.last_sync_at,
+            queries,
+            pages,
+            opportunities,
+          });
+        } else {
+          searchConsoleContext = JSON.stringify({connected:false});
+        }
+      }
 
       if (dashboard) {
         const selected = scanId
@@ -140,6 +180,8 @@ export async function POST(request: Request) {
           "Klantcontext: " + (customerContext || "Geen ingelogde klantcontext beschikbaar."),
           "Geselecteerde scan: " + (selectedScanContext || "Geen specifieke scan geselecteerd."),
           "GitHub Fix Engine-context: " + (githubContext || "Geen GitHub-context beschikbaar."),
+          "Google Search Console-context: " + (searchConsoleContext || "Geen Search Console-data beschikbaar.").replace(/\n/g, " "),
+          "Gebruik Search Console-data alleen wanneer die in deze context staat. Leg hoge vertoningen/lage CTR, posities en pagina-/querykansen feitelijk uit. Verzin geen Google-data. Koppel een kans alleen aan een RankFix-fix wanneer de actieve scancontext daar aantoonbaar een passende fail/warning voor bevat.",
           "Actuele dashboardfout/blokkade: " + (errorContext || "Geen actuele dashboardfout meegegeven."),
           errorContext ? "Als er een actuele dashboardfout is meegegeven, behandel die letterlijk als de bekende oorzaak van deze interactie. Zeg niet dat de foutmelding ontbreekt en verzin geen andere blokkade." : "",
         ].join("\n")
