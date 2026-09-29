@@ -14,9 +14,10 @@ export async function GET(){
  if(!user)return NextResponse.json({error:"Niet ingelogd."},{status:401});
  if(!isHealthAdmin(String(user.email||"")))return NextResponse.json({error:"Niet toegestaan."},{status:403});
  await ensureDatabase();
- const [runs,incidents]=await Promise.all([
+ const [runs,incidents,capacity]=await Promise.all([
    getDb().query("SELECT overall_level,checks,created_at FROM rankfix_health_runs ORDER BY created_at DESC LIMIT 50"),
-   getDb().query("SELECT incident_key,status,failure_count,first_seen_at,last_seen_at,alerted_at,resolved_at,recovery_alerted_at,details FROM rankfix_health_incidents ORDER BY last_seen_at DESC LIMIT 20")
+   getDb().query("SELECT incident_key,status,failure_count,first_seen_at,last_seen_at,alerted_at,resolved_at,recovery_alerted_at,details FROM rankfix_health_incidents ORDER BY last_seen_at DESC LIMIT 20"),
+   getDb().query("SELECT overall_level,signals,created_at FROM rankfix_capacity_runs ORDER BY created_at DESC LIMIT 50")
  ]);
- return NextResponse.json({runs:runs.rows,incidents:incidents.rows});
+ return NextResponse.json({runs:runs.rows,incidents:incidents.rows,capacity:capacity.rows});
 }
