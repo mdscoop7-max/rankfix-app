@@ -1628,7 +1628,7 @@ export async function POST(request: Request) {
         const apiKey = process.env.OPENAI_API_KEY;
         if (!apiKey || items.length === 0) return;
         try {
-          const payload = items.map((item) => ({ key:item.key, title:item.title, message:item.message, fix:item.fix }));
+          const payload = items.map((item) => ({ key:item.key, status:item.status, title:item.title, message:item.message, fix:item.fix }));
           const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
             method:"POST",
             headers:{ "Content-Type":"application/json", Authorization:`Bearer ${apiKey}` },
@@ -1637,7 +1637,7 @@ export async function POST(request: Request) {
               temperature:0,
               response_format:{type:"json_object"},
               messages:[
-                {role:"system",content:`Translate RankFix website-audit copy into ${scannerLanguageNames[scanLanguage]}. Preserve URLs, numbers, HTML tags, SEO/GEO terminology and factual meaning exactly. Do not add claims or advice. Return JSON only as {"items":[{"key":"...","title":"...","message":"...","fix":"..."}]}.`},
+                {role:"system",content:`Translate RankFix website-audit copy into ${scannerLanguageNames[scanLanguage]}. Preserve URLs, numbers, HTML tags, SEO/GEO terminology and factual meaning exactly. Do not add claims or advice. Return JSON only as {"items":[{"key":"...","status":"...","title":"...","message":"...","fix":"..."}]}.`},
                 {role:"user",content:JSON.stringify(payload)}
               ]
             })
@@ -1646,9 +1646,9 @@ export async function POST(request: Request) {
           const aiJson:any = await aiResponse.json();
           const parsed = JSON.parse(aiJson?.choices?.[0]?.message?.content || "{}");
           const translated = Array.isArray(parsed?.items) ? parsed.items : [];
-          const byKey = new Map(translated.map((item:any) => [String(item?.key || ""), item]));
+          const byKey = new Map(translated.map((item:any) => [String(item?.key || "")+"|"+String(item?.status || "")+"|"+String(item?.title || ""), item]));
           for (const item of items) {
-            const translatedItem:any = byKey.get(item.key);
+            const translatedItem:any = translated.find((candidate:any)=>String(candidate?.key||"")===item.key && String(candidate?.status||"")===item.status && String(candidate?.title||"")===item.title) || translated.find((candidate:any)=>String(candidate?.key||"")===item.key && String(candidate?.status||"")===item.status);
             if (!translatedItem) continue;
             if (typeof translatedItem.title === "string" && translatedItem.title.trim()) item.title = translatedItem.title.trim();
             if (typeof translatedItem.message === "string" && translatedItem.message.trim()) item.message = translatedItem.message.trim();
@@ -1681,9 +1681,9 @@ export async function POST(request: Request) {
         es:{title:"Meta title",description:"Meta description",h1:"Encabezado H1",headings:"Estructura de encabezados",canonical:"URL canónica",viewport:"Viewport móvil",lang:"Idioma HTML",indexability:"Indexabilidad",alt:"Textos alt de imágenes",https:"HTTPS",status:"Estado HTTP",social:"Metadatos sociales",robots_txt:"robots.txt",sitemap:"Sitemap",broken_links:"Enlaces rotos",internal_redirects:"Redirecciones internas",schema:"Datos estructurados",product_schema:"Datos estructurados Product",accessibility_basics:"Bases de accesibilidad",consent_mode_readiness:"Señal Consent Mode",ads_readiness:"Preparación para Google Ads"}
       };
       for(const item of allLocalizedChecks){
-        const original=[...canonicalCopy.entries()].find(([key])=>key.startsWith(item.key+"|"+item.status+"|"));
-        if(!original) continue;
-        const canonical=original[1];
+        const originalKey=[...canonicalCopy.keys()].find((key)=>key.startsWith(item.key+"|"+item.status+"|") && key.endsWith("|"+item.message));
+        const canonical=originalKey ? canonicalCopy.get(originalKey) : undefined;
+        if(!canonical) continue;
         if(item.message===canonical.message && item.fix===canonical.fix){
           const fallback=fallbackStatusCopy[scanLanguage]?.[item.status];
           if(fallback){
