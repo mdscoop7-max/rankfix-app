@@ -203,7 +203,28 @@ const statements = [
   `CREATE TABLE IF NOT EXISTS rankfix_health_incidents (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    incident_key TEXT UNIQUE NOT NULL,\n    status TEXT NOT NULL CHECK (status IN ('open','resolved')),\n    failure_count INTEGER NOT NULL DEFAULT 0,\n    first_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n    last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n    alerted_at TIMESTAMPTZ,\n    resolved_at TIMESTAMPTZ,\n    recovery_alerted_at TIMESTAMPTZ,\n    details JSONB NOT NULL DEFAULT '{}'::jsonb\n  )`,
   `CREATE INDEX IF NOT EXISTS rankfix_health_incidents_status_idx ON rankfix_health_incidents(status,last_seen_at DESC)`,
   `CREATE TABLE IF NOT EXISTS api_rate_limits (\n    bucket TEXT PRIMARY KEY,\n    window_start TIMESTAMPTZ NOT NULL,\n    hits INTEGER NOT NULL DEFAULT 1\n  )`,
-  `CREATE INDEX IF NOT EXISTS api_rate_limits_window_idx ON api_rate_limits(window_start)`
+  `CREATE INDEX IF NOT EXISTS api_rate_limits_window_idx ON api_rate_limits(window_start)`,
+  `CREATE TABLE IF NOT EXISTS background_jobs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    job_type TEXT NOT NULL CHECK (job_type IN ('SCAN','AI_FIX','GITHUB_FIX','SEARCH_CONSOLE_SYNC')),
+    dedupe_key TEXT,
+    payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+    status TEXT NOT NULL DEFAULT 'QUEUED' CHECK (status IN ('QUEUED','RUNNING','SUCCEEDED','RETRY','FAILED')),
+    priority INTEGER NOT NULL DEFAULT 100,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    max_attempts INTEGER NOT NULL DEFAULT 4 CHECK (max_attempts BETWEEN 1 AND 10),
+    available_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    locked_at TIMESTAMPTZ,
+    locked_by TEXT,
+    last_error TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    finished_at TIMESTAMPTZ
+  )`,
+  `CREATE INDEX IF NOT EXISTS background_jobs_claim_idx ON background_jobs(status,available_at,priority,created_at) WHERE status IN ('QUEUED','RETRY')`,
+  `CREATE INDEX IF NOT EXISTS background_jobs_user_idx ON background_jobs(user_id,created_at DESC)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS background_jobs_dedupe_idx ON background_jobs(job_type,dedupe_key) WHERE dedupe_key IS NOT NULL AND status IN ('QUEUED','RUNNING','RETRY')`
 ];
 
 export async function ensureDatabase() {

@@ -1727,6 +1727,16 @@ export async function POST(request: Request) {
           }
         }
 
+        // Fix verification mutates the live check objects after the initial scan
+        // insert. Persist the verified state as well so history and the response
+        // cannot disagree about DONE versus WAITING.
+        if (verifyFixes && savedScanId) {
+          await getDb().query(
+            "UPDATE scans SET result=jsonb_set(jsonb_set(result,'{seo,checks}',$1::jsonb,true),'{geo,checks}',$2::jsonb,true) WHERE id=$3 AND user_id=$4",
+            [JSON.stringify(selectedSeoChecks), JSON.stringify(selectedGeoChecks), savedScanId, user.id]
+          );
+        }
+
         if (dashboardScan) {
           await getDb().query(
             "INSERT INTO usage_events (user_id,website_host,event_type,ip_hash) VALUES ($1,$2,'SCAN',$3)",
