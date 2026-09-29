@@ -70,6 +70,15 @@ type ScanResult = {
 
 const statusIcon = { pass: "✓", warning: "!", fail: "×", not_applicable: "—", unable_to_confirm: "?" };
 
+const workflowCopy = {
+  nl:{scanning:"Scannen...",analyzing:"Website analyseren",checking:"We zijn je website aan het controleren",preparing:"RankFix bereidt een codewijziging voor",liveSafe:"De live website verandert nog niet",collecting:"We verzamelen je auditgegevens…",validating:"RankFix controleert de juiste wijziging…",staging:"RankFix zet de verbetering veilig klaar…",almost:"Klaar — bijna daar!",already:"Al in orde",alreadyTitle:"Deze verbetering was al aanwezig.",alreadyText:"RankFix heeft gecontroleerd of er echt iets moest worden aangepast. Dat was niet nodig.",nothing:"Je hoeft niets te doen.",noChange:"Er is geen technische wijziging aangemaakt.",backResult:"Ga terug naar mijn resultaat",proposal:"Codevoorstel aangemaakt",proposalTitle:"De wijziging staat klaar voor controle.",proposalText:"RankFix heeft een bestand gewijzigd in een aparte GitHub-pull-request. De live website is nog niet aangepast.",publish:"Controleer en publiceer de wijziging.",publishText:"Bekijk de diff, merge de pull request en scan je website opnieuw om de verbetering te bevestigen.",viewPr:"Bekijk pull request ↗",stopped:"Scan gestopt",liveAudit:"Live audit"},
+  en:{scanning:"Scanning...",analyzing:"Analyzing website",checking:"We are checking your website",preparing:"RankFix is preparing a code change",liveSafe:"Your live website is not changing yet",collecting:"Collecting your audit data…",validating:"RankFix is validating the correct change…",staging:"RankFix is preparing the improvement safely…",almost:"Ready — almost there!",already:"Already correct",alreadyTitle:"This improvement was already present.",alreadyText:"RankFix checked whether a change was actually needed. It was not.",nothing:"You do not need to do anything.",noChange:"No technical change was created.",backResult:"Back to my result",proposal:"Code proposal created",proposalTitle:"The change is ready for review.",proposalText:"RankFix changed a file in a separate GitHub pull request. Your live website has not been changed yet.",publish:"Review and publish the change.",publishText:"Review the diff, merge the pull request and scan your website again to verify the improvement.",viewPr:"View pull request ↗",stopped:"Scan stopped",liveAudit:"Live audit"},
+  de:{scanning:"Scan läuft...",analyzing:"Website wird analysiert",checking:"Wir prüfen deine Website",preparing:"RankFix bereitet eine Codeänderung vor",liveSafe:"Die Live-Website wird noch nicht geändert",collecting:"Auditdaten werden gesammelt…",validating:"RankFix prüft die richtige Änderung…",staging:"RankFix bereitet die Verbesserung sicher vor…",almost:"Fertig — fast geschafft!",already:"Bereits in Ordnung",alreadyTitle:"Diese Verbesserung war bereits vorhanden.",alreadyText:"RankFix hat geprüft, ob wirklich eine Änderung nötig war. Das war nicht der Fall.",nothing:"Du musst nichts tun.",noChange:"Es wurde keine technische Änderung erstellt.",backResult:"Zurück zu meinem Ergebnis",proposal:"Codevorschlag erstellt",proposalTitle:"Die Änderung ist zur Prüfung bereit.",proposalText:"RankFix hat eine Datei in einem separaten GitHub-Pull-Request geändert. Die Live-Website wurde noch nicht angepasst.",publish:"Änderung prüfen und veröffentlichen.",publishText:"Prüfe den Diff, merge den Pull Request und scanne die Website erneut, um die Verbesserung zu bestätigen.",viewPr:"Pull Request ansehen ↗",stopped:"Scan gestoppt",liveAudit:"Live-Audit"},
+  fr:{scanning:"Analyse...",analyzing:"Analyse du site",checking:"Nous vérifions votre site",preparing:"RankFix prépare une modification du code",liveSafe:"Le site en production n’est pas encore modifié",collecting:"Collecte des données d’audit…",validating:"RankFix vérifie la modification appropriée…",staging:"RankFix prépare l’amélioration en toute sécurité…",almost:"Prêt — presque terminé !",already:"Déjà correct",alreadyTitle:"Cette amélioration était déjà présente.",alreadyText:"RankFix a vérifié si une modification était réellement nécessaire. Ce n’était pas le cas.",nothing:"Vous n’avez rien à faire.",noChange:"Aucune modification technique n’a été créée.",backResult:"Retour à mon résultat",proposal:"Proposition de code créée",proposalTitle:"La modification est prête à être vérifiée.",proposalText:"RankFix a modifié un fichier dans une pull request GitHub distincte. Le site en production n’a pas encore été modifié.",publish:"Vérifiez et publiez la modification.",publishText:"Vérifiez le diff, fusionnez la pull request puis analysez à nouveau le site pour confirmer l’amélioration.",viewPr:"Voir la pull request ↗",stopped:"Analyse arrêtée",liveAudit:"Audit en direct"},
+  it:{scanning:"Scansione...",analyzing:"Analisi del sito",checking:"Stiamo controllando il tuo sito",preparing:"RankFix sta preparando una modifica al codice",liveSafe:"Il sito live non viene ancora modificato",collecting:"Raccolta dei dati dell’audit…",validating:"RankFix verifica la modifica corretta…",staging:"RankFix prepara la correzione in sicurezza…",almost:"Pronto — ci siamo quasi!",already:"Già corretto",alreadyTitle:"Questo miglioramento era già presente.",alreadyText:"RankFix ha verificato se fosse davvero necessaria una modifica. Non lo era.",nothing:"Non devi fare nulla.",noChange:"Non è stata creata alcuna modifica tecnica.",backResult:"Torna al mio risultato",proposal:"Proposta di codice creata",proposalTitle:"La modifica è pronta per la verifica.",proposalText:"RankFix ha modificato un file in una pull request GitHub separata. Il sito live non è stato ancora modificato.",publish:"Verifica e pubblica la modifica.",publishText:"Controlla il diff, unisci la pull request e scansiona di nuovo il sito per confermare il miglioramento.",viewPr:"Visualizza pull request ↗",stopped:"Scansione interrotta",liveAudit:"Audit live"},
+  es:{scanning:"Escaneando...",analyzing:"Analizando el sitio",checking:"Estamos comprobando tu sitio",preparing:"RankFix está preparando un cambio de código",liveSafe:"El sitio en producción aún no cambia",collecting:"Recopilando los datos de la auditoría…",validating:"RankFix comprueba el cambio correcto…",staging:"RankFix prepara la mejora de forma segura…",almost:"Listo — ¡ya casi está!",already:"Ya está correcto",alreadyTitle:"Esta mejora ya estaba presente.",alreadyText:"RankFix comprobó si realmente era necesario hacer un cambio. No lo era.",nothing:"No tienes que hacer nada.",noChange:"No se creó ningún cambio técnico.",backResult:"Volver a mi resultado",proposal:"Propuesta de código creada",proposalTitle:"El cambio está listo para revisión.",proposalText:"RankFix modificó un archivo en una pull request de GitHub separada. El sitio en producción todavía no se ha modificado.",publish:"Revisa y publica el cambio.",publishText:"Revisa el diff, fusiona la pull request y vuelve a escanear el sitio para confirmar la mejora.",viewPr:"Ver pull request ↗",stopped:"Escaneo detenido",liveAudit:"Auditoría en vivo"}
+} as const;
+
 const translations = {
   nl: {
     moreInfo:"Zo werkt het", audit:"Gratis scan", pricing:"Prijzen", resources:"Resources", contact:"Contact", login:"Inloggen", register:"Account aanmaken",
@@ -145,7 +154,7 @@ const sectionCopy = {
 } as const;
 
 const auditResultCopy = {
-  nl:{opportunities:"{ar.opportunities}",result:"{ar.result}",resultTitle:"{ar.resultTitle}",resultIntro:"{ar.resultIntro}",found:"gevonden",improvement:"verbeterpunt",improvements:"verbeterpunten",done:"Gedaan",doneText:"Controles die al goed staan.",todo:"Nog te verbeteren",todoText:"Punten waarvoor nog geen wijziging is klaargezet.",proposal:"Codevoorstel",proposalText:"Pull requests die nog niet live bevestigd zijn.",confirm:"Nog te bevestigen",confirmText:"Controleer, publiceer en scan opnieuw.",openIssue:"Open een verbeterpunt hieronder voor uitleg en een voorstel.",checkPr:"Controleer de pull request, publiceer en scan daarna opnieuw.",allGood:"De getoonde controles zijn in orde.",next:"Volgende stap",ready:"Klaar",coverage:"Dekking",coverageInfo:"{ar.coverageInfo}",assessed:"controles beoordeeld",passed:"geslaagd",naOrUnknown:"N.v.t. of niet te bevestigen",checks:"controles",more:"meer",technical:"Bekijk technische details",na:"N.v.t.",unknown:"Niet te bevestigen",recommendation:"RankFix aanbeveling",fixProposal:"✨ Maak fixvoorstel",analyzing:"AI analyseert…",metrics:"Kernmetrics",words:"Woorden",images:"Afbeeldingen",internalLinks:"Interne links",action:"AI-actielaag",review:"om te bekijken"},
+  nl:{opportunities:"Jouw kansen, op één scherm.",result:"Jouw RankFix resultaat",resultTitle:"Dit is wat er met je website gebeurt.",resultIntro:"Bekijk wat al goed is, wat nog aandacht vraagt en welke codevoorstellen nog live bevestigd moeten worden. Een fix is pas bevestigd na een nieuwe scan van je live website.",found:"gevonden",improvement:"verbeterpunt",improvements:"verbeterpunten",done:"Gedaan",doneText:"Controles die al goed staan.",todo:"Nog te verbeteren",todoText:"Punten waarvoor nog geen wijziging is klaargezet.",proposal:"Codevoorstel",proposalText:"Pull requests die nog niet live bevestigd zijn.",confirm:"Nog te bevestigen",confirmText:"Controleer, publiceer en scan opnieuw.",openIssue:"Open een verbeterpunt hieronder voor uitleg en een voorstel.",checkPr:"Controleer de pull request, publiceer en scan daarna opnieuw.",allGood:"De getoonde controles zijn in orde.",next:"Volgende stap",ready:"Klaar",coverage:"Dekking",coverageInfo:"Alleen bewezen en toepasselijke controles tellen mee in de score. N.v.t. en niet te bevestigen blijven apart.",assessed:"controles beoordeeld",passed:"geslaagd",naOrUnknown:"N.v.t. of niet te bevestigen",checks:"controles",more:"meer",technical:"Bekijk technische details",na:"N.v.t.",unknown:"Niet te bevestigen",recommendation:"RankFix aanbeveling",fixProposal:"✨ Maak fixvoorstel",analyzing:"AI analyseert…",metrics:"Kernmetrics",words:"Woorden",images:"Afbeeldingen",internalLinks:"Interne links",action:"AI-actielaag",review:"om te bekijken"},
   en:{opportunities:"Your opportunities, at a glance.",result:"Your RankFix result",resultTitle:"This is what is happening with your website.",resultIntro:"See what is already working, what still needs attention and which code proposals are awaiting verification. A fix is only confirmed after a new scan of your live website.",found:"found",improvement:"improvement",improvements:"improvements",done:"Done",doneText:"Checks that are already correct.",todo:"Needs improvement",todoText:"Items for which no change has been prepared yet.",proposal:"Code proposal",proposalText:"Pull requests not yet verified live.",confirm:"Pending verification",confirmText:"Review, publish and scan again.",openIssue:"Open an improvement below for an explanation and proposal.",checkPr:"Review the pull request, publish it and scan again.",allGood:"The displayed checks are correct.",next:"Next step",ready:"Ready",coverage:"Coverage",coverageInfo:"Audit coverage shows how many checks could actually be assessed. N/A and unable to confirm do not count toward the score.",assessed:"checks assessed",passed:"passed",naOrUnknown:"N/A or unable to confirm",checks:"checks",more:"more",technical:"View technical details",na:"N/A",unknown:"Unable to confirm",recommendation:"{ar.recommendation}",fixProposal:"✨ Create fix proposal",analyzing:"AI is analyzing…",metrics:"Core metrics",words:"Words",images:"Images",internalLinks:"Internal links",action:"AI action layer",review:"to review"},
   de:{opportunities:"Deine Chancen auf einen Blick.",result:"Dein RankFix-Ergebnis",resultTitle:"Das passiert mit deiner Website.",resultIntro:"Sieh, was bereits gut funktioniert, was noch Aufmerksamkeit braucht und welche Codevorschläge auf Bestätigung warten. Ein Fix gilt erst nach einem neuen Live-Scan als bestätigt.",found:"gefunden",improvement:"Verbesserung",improvements:"Verbesserungen",done:"Erledigt",doneText:"Prüfungen, die bereits in Ordnung sind.",todo:"Noch zu verbessern",todoText:"Punkte, für die noch keine Änderung vorbereitet wurde.",proposal:"Codevorschlag",proposalText:"Pull Requests, die live noch nicht bestätigt sind.",confirm:"Noch zu bestätigen",confirmText:"Prüfen, veröffentlichen und erneut scannen.",openIssue:"Öffne unten einen Verbesserungspunkt für Erklärung und Vorschlag.",checkPr:"Prüfe den Pull Request, veröffentliche ihn und scanne erneut.",allGood:"Die angezeigten Prüfungen sind in Ordnung.",next:"Nächster Schritt",ready:"Fertig",coverage:"Abdeckung",coverageInfo:"Die Audit-Abdeckung zeigt, wie viele Prüfungen tatsächlich bewertet werden konnten. N. a. und nicht bestätigbar zählen nicht zur Punktzahl.",assessed:"Prüfungen bewertet",passed:"bestanden",naOrUnknown:"N. a. oder nicht bestätigbar",checks:"Prüfungen",more:"mehr",technical:"Technische Details ansehen",na:"N. a.",unknown:"Nicht bestätigbar",recommendation:"RankFix-Empfehlung",fixProposal:"✨ Fix-Vorschlag erstellen",analyzing:"KI analysiert…",metrics:"Kernmetriken",words:"Wörter",images:"Bilder",internalLinks:"Interne Links",action:"KI-Aktionsebene",review:"zu prüfen"},
   fr:{opportunities:"Vos opportunités, en un coup d’œil.",result:"Votre résultat RankFix",resultTitle:"Voici ce qui se passe sur votre site.",resultIntro:"Voyez ce qui fonctionne déjà, ce qui demande encore votre attention et quelles propositions de code attendent une vérification. Un correctif n’est confirmé qu’après une nouvelle analyse du site en ligne.",found:"trouvés",improvement:"amélioration",improvements:"améliorations",done:"Terminé",doneText:"Contrôles déjà conformes.",todo:"À améliorer",todoText:"Points pour lesquels aucune modification n’a encore été préparée.",proposal:"Proposition de code",proposalText:"Pull requests pas encore vérifiées en ligne.",confirm:"À confirmer",confirmText:"Vérifiez, publiez et relancez l’analyse.",openIssue:"Ouvrez une amélioration ci-dessous pour voir l’explication et une proposition.",checkPr:"Vérifiez la pull request, publiez-la puis relancez l’analyse.",allGood:"Les contrôles affichés sont conformes.",next:"Étape suivante",ready:"Prêt",coverage:"Couverture",coverageInfo:"La couverture indique combien de contrôles ont réellement pu être évalués. Les éléments non applicables ou impossibles à confirmer ne comptent pas dans le score.",assessed:"contrôles évalués",passed:"réussis",naOrUnknown:"N/A ou impossibles à confirmer",checks:"contrôles",more:"de plus",technical:"Voir les détails techniques",na:"N/A",unknown:"Impossible à confirmer",recommendation:"Recommandation RankFix",fixProposal:"✨ Créer une proposition de correctif",analyzing:"L’IA analyse…",metrics:"Indicateurs clés",words:"Mots",images:"Images",internalLinks:"Liens internes",action:"Couche d’action IA",review:"à examiner"},
@@ -505,6 +514,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
   }
 
   const ar = auditResultCopy[language];
+  const wf = workflowCopy[language];
   const activeChecks = result ? (tab === "seo" ? result.seo.checks : result.geo.checks) : [];
   // The top-level result summarizes the complete requested audit. In SEO + GEO mode
   // it must not hide GEO issues merely because the details initially open on the SEO tab.
@@ -723,14 +733,14 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                     <div className="absolute inset-[-18px] animate-[spin_2.2s_linear_infinite] rounded-full border-[18px] border-transparent border-t-emerald-300 border-r-blue-600 shadow-[0_0_35px_rgba(34,211,238,0.18)]" />
                     <div className="flex h-24 w-24 flex-col items-center justify-center rounded-3xl bg-gradient-to-br from-blue-600/30 to-emerald-300/10 ring-1 ring-emerald-300/20">
                       <svg viewBox="0 0 24 24" className="h-10 w-10 text-emerald-200" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
-                      <span className="mt-1 text-[11px] font-bold text-slate-900">Scannen...</span>
+                      <span className="mt-1 text-[11px] font-bold text-slate-900">{wf.scanning}</span>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Website analyseren</div>
-                  <h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">We zijn je website aan het controleren</h2>
+                  <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{wf.analyzing}</div>
+                  <h2 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">{wf.checking}</h2>
                   <div className="mt-4 flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/[0.035] px-4 py-3">
                     <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-300" />
                     <span className="truncate text-sm font-semibold text-slate-200">{url}</span>
@@ -762,7 +772,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
       {githubFixing && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center bg-[#0B1220]/85 px-4 py-6 backdrop-blur-xl">
           <div className="w-full max-w-lg rounded-[28px] border border-slate-200 bg-[#101B2D] p-6 shadow-2xl sm:p-8">
-            <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-emerald-300 to-teal-600 text-sm font-black text-slate-950">RF</span><div><div className="font-bold">RankFix bereidt een codewijziging voor</div><div className="text-xs text-slate-600">De live website verandert nog niet</div></div></div>
+            <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-emerald-300 to-teal-600 text-sm font-black text-slate-950">RF</span><div><div className="font-bold">{wf.preparing}</div><div className="text-xs text-slate-600">{wf.liveSafe}</div></div></div>
             <div className="mt-6 rounded-2xl border border-slate-200 bg-black/20 p-5">
               <div className="flex items-center justify-center">
                 <div className="relative h-20 w-20">
@@ -773,7 +783,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                   </div>
                 </div>
               </div>
-              <div className="mt-5 text-center text-base font-bold text-slate-900">{githubProgress < 30 ? "We verzamelen je auditgegevens…" : githubProgress < 70 ? "RankFix controleert de juiste wijziging…" : githubProgress < 100 ? "RankFix zet de verbetering veilig klaar…" : "Klaar — bijna daar!"}</div>
+              <div className="mt-5 text-center text-base font-bold text-slate-900">{githubProgress < 30 ? wf.collecting : githubProgress < 70 ? wf.validating : githubProgress < 100 ? wf.staging : wf.almost}</div>
               <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
                 <div className="h-full rounded-full bg-gradient-to-r from-emerald-300 via-blue-400 to-violet-400 transition-all duration-700" style={{width: githubProgress + "%"}} />
               </div>
@@ -788,14 +798,14 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         <div className="fixed inset-0 z-[125] flex items-center justify-center bg-[#0B1220]/80 px-4 py-6 backdrop-blur-xl">
           <div className="w-full max-w-lg rounded-[28px] border border-emerald-400/20 bg-[#101B2D] p-6 shadow-2xl sm:p-8">
             <div className="text-4xl">🟢</div>
-            <div className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Al in orde</div>
-            <h2 className="mt-2 text-2xl font-black">Deze verbetering was al aanwezig.</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-600">RankFix heeft gecontroleerd of er echt iets moest worden aangepast. Dat was niet nodig.</p>
+            <div className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{wf.already}</div>
+            <h2 className="mt-2 text-2xl font-black">{wf.alreadyTitle}</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-600">{wf.alreadyText}</p>
             <div className="mt-5 rounded-2xl border border-emerald-400/10 bg-emerald-400/[0.035] p-4 text-sm leading-6 text-slate-300">
-              <span className="font-bold text-emerald-200">Je hoeft niets te doen.</span>
-              <div className="mt-1 text-slate-500">Er is geen technische wijziging aangemaakt.</div>
+              <span className="font-bold text-emerald-200">{wf.nothing}</span>
+              <div className="mt-1 text-slate-500">{wf.noChange}</div>
             </div>
-            <button type="button" onClick={() => setGithubAlreadyApplied(false)} className="mt-6 w-full rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-950">Ga terug naar mijn resultaat</button>
+            <button type="button" onClick={() => setGithubAlreadyApplied(false)} className="mt-6 w-full rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-950">{wf.backResult}</button>
           </div>
         </div>
       )}
@@ -804,15 +814,15 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         <div className="fixed inset-0 z-[125] flex items-center justify-center bg-[#0B1220]/80 px-4 py-6 backdrop-blur-xl">
           <div className="w-full max-w-lg rounded-[28px] border border-emerald-400/20 bg-[#101B2D] p-6 shadow-2xl sm:p-8">
             <div className="text-4xl">🔵</div>
-            <div className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Codevoorstel aangemaakt</div>
-            <h2 className="mt-2 text-2xl font-black">De wijziging staat klaar voor controle.</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-600">RankFix heeft een bestand gewijzigd in een aparte GitHub-pull-request. De live website is nog niet aangepast.</p>
+            <div className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{wf.proposal}</div>
+            <h2 className="mt-2 text-2xl font-black">{wf.proposalTitle}</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-600">{wf.proposalText}</p>
             <div className="mt-5 rounded-2xl border border-emerald-400/10 bg-emerald-400/[0.035] p-4 text-sm leading-6 text-slate-300">
-              <span className="font-bold text-emerald-200">Controleer en publiceer de wijziging.</span>
-              <div className="mt-1 text-slate-600">Bekijk de diff, merge de pull request en scan je website opnieuw om de verbetering te bevestigen.</div>
+              <span className="font-bold text-emerald-200">{wf.publish}</span>
+              <div className="mt-1 text-slate-600">{wf.publishText}</div>
             </div>
-            <a href={githubResult.url} target="_blank" rel="noopener noreferrer" className="mt-4 block rounded-xl border border-emerald-300/30 px-5 py-3 text-center text-sm font-bold text-emerald-200">Bekijk pull request ↗</a>
-            <button type="button" onClick={() => setGithubResult(null)} className="mt-6 w-full rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-950">Ga terug naar mijn resultaat</button>
+            <a href={githubResult.url} target="_blank" rel="noopener noreferrer" className="mt-4 block rounded-xl border border-emerald-300/30 px-5 py-3 text-center text-sm font-bold text-emerald-200">{wf.viewPr}</a>
+            <button type="button" onClick={() => setGithubResult(null)} className="mt-6 w-full rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-950">{wf.backResult}</button>
           </div>
         </div>
       )}
@@ -825,7 +835,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         stopContentAudit ? (
           <section id="resultaat" className="mx-auto max-w-6xl scroll-mt-8 px-5 py-12 lg:px-8">
             <div className="rounded-[28px] border border-red-400/20 bg-red-400/[0.045] p-5 shadow-2xl shadow-black/10 sm:p-6">
-              <div className="text-xs font-bold uppercase tracking-[0.2em] text-red-300">Scan gestopt</div>
+              <div className="text-xs font-bold uppercase tracking-[0.2em] text-red-300">{wf.stopped}</div>
               <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">{stoppedAuditTitle}</h2>
               <p className="mt-1 max-w-2xl break-all text-xs text-slate-500">{result.finalUrl}</p>
               <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600">{stoppedAuditMessage}</p>
@@ -835,7 +845,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         <section id="resultaat" className="mx-auto max-w-6xl scroll-mt-8 px-5 py-12 lg:px-8">
           <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
             <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">Live audit</div>
+              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">{wf.liveAudit}</div>
               <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">{ar.opportunities}</h2>
               <p className="mt-1 max-w-2xl break-all text-xs text-slate-500">{result.finalUrl}</p>
             </div>
