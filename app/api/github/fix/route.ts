@@ -211,7 +211,8 @@ async function generateCodeFix(filePath:string,fileContent:string,issue:string,c
     }catch{
       detail=errorText.slice(0,500);
     }
-    console.error("GitHub Fix AI provider error",response.status,detail);\n    throw new FixProviderError("AI_PROVIDER_ERROR",`AI provider returned HTTP ${response.status}.`);
+    console.error("GitHub Fix AI provider error",response.status,detail);
+    throw new FixProviderError("AI_PROVIDER_ERROR",`AI provider returned HTTP ${response.status}.`);
   }
   const data=await response.json();
   const text=typeof data?.output_text==="string"?data.output_text:data?.output?.flatMap((x:any)=>x?.content||[]).map((x:any)=>x?.text||"").join("")||"";
