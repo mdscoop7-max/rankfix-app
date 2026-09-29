@@ -3,6 +3,7 @@ import { ensureDatabase } from "@/lib/db-init";
 import { getDb } from "@/lib/db";
 import { sendSystemHealthEmail } from "@/lib/email";
 import { overallHealth,runRankFixHealthChecks } from "@/lib/rankfix-health";
+import { releaseStaleJobs } from "@/lib/job-queue";
 
 const FAILURE_THRESHOLD=3;
 function authorized(request:Request){const secret=process.env.MONITOR_SECRET;return Boolean(secret&&request.headers.get("authorization")===`Bearer ${secret}`)}
@@ -58,6 +59,9 @@ export async function GET(request:Request){
 
  // Keep the rate-limit table bounded without needing a separate cleanup job.
  await db.query("DELETE FROM api_rate_limits WHERE window_start < NOW()-INTERVAL '48 hours'").catch(()=>undefined);
+ // Recover abandoned worker leases and bound completed queue history. Queue maintenance must never take Health Guard down.
+ await releaseStaleJobs().catch(error=>console.error("Queue stale-job recovery failed",error instanceof Error?error.message:"QUEUE_RECOVERY_FAILED"));
+ await db.query("DELETE FROM background_jobs WHERE status IN ('SUCCEEDED','FAILED') AND finished_at < NOW()-INTERVAL '30 days'").catch(()=>undefined);
  return NextResponse.json({level,checks,critical:red.length>0,alertSent,recoverySent,checkedAt:new Date().toISOString()});
 }
 export async function POST(request:Request){return GET(request)}
