@@ -5,6 +5,16 @@ import {ensureDatabase} from "@/lib/db-init";
 import {decryptGoogleToken,refreshGoogleAccessToken} from "@/lib/google";
 
 type GoogleProperty={siteUrl:string;permissionLevel:string};
+type Lang="nl"|"en"|"de"|"fr"|"it"|"es";
+function lang(request:Request):Lang{const q=new URL(request.url).searchParams.get("lang");if(q&&["nl","en","de","fr","it","es"].includes(q))return q as Lang;const a=(request.headers.get("accept-language")||"").toLowerCase();return (["nl","en","de","fr","it","es"].find(x=>a.startsWith(x))||"nl") as Lang}
+const msg={
+ nl:{login:"Login vereist.",load:"Search Console-properties konden niet worden geladen.",required:"Kies een Search Console-property.",connected:"Google Search Console is niet gekoppeld.",unavailable:"Deze Search Console-property is niet beschikbaar voor dit Google-account.",check:"Search Console-property kon niet worden gecontroleerd.",save:"Search Console-property kon niet worden opgeslagen."},
+ en:{login:"Login required.",load:"Search Console properties could not be loaded.",required:"Choose a Search Console property.",connected:"Google Search Console is not connected.",unavailable:"This Search Console property is not available for this Google account.",check:"The Search Console property could not be verified.",save:"The Search Console property could not be saved."},
+ de:{login:"Anmeldung erforderlich.",load:"Search-Console-Properties konnten nicht geladen werden.",required:"Wähle eine Search-Console-Property.",connected:"Google Search Console ist nicht verbunden.",unavailable:"Diese Search-Console-Property ist für dieses Google-Konto nicht verfügbar.",check:"Die Search-Console-Property konnte nicht geprüft werden.",save:"Die Search-Console-Property konnte nicht gespeichert werden."},
+ fr:{login:"Connexion requise.",load:"Impossible de charger les propriétés Search Console.",required:"Choisissez une propriété Search Console.",connected:"Google Search Console n’est pas connecté.",unavailable:"Cette propriété Search Console n’est pas disponible pour ce compte Google.",check:"Impossible de vérifier la propriété Search Console.",save:"Impossible d’enregistrer la propriété Search Console."},
+ it:{login:"Accesso richiesto.",load:"Impossibile caricare le proprietà Search Console.",required:"Scegli una proprietà Search Console.",connected:"Google Search Console non è collegato.",unavailable:"Questa proprietà Search Console non è disponibile per questo account Google.",check:"Impossibile verificare la proprietà Search Console.",save:"Impossibile salvare la proprietà Search Console."},
+ es:{login:"Inicio de sesión requerido.",load:"No se pudieron cargar las propiedades de Search Console.",required:"Elige una propiedad de Search Console.",connected:"Google Search Console no está conectado.",unavailable:"Esta propiedad de Search Console no está disponible para esta cuenta de Google.",check:"No se pudo verificar la propiedad de Search Console.",save:"No se pudo guardar la propiedad de Search Console."}
+} as const;
 
 async function googleProperties(userId:string){
  const c=await getDb().query("SELECT refresh_token_encrypted FROM google_connections WHERE user_id=$1",[userId]);
@@ -18,8 +28,8 @@ async function googleProperties(userId:string){
  return {connected:true as const,properties};
 }
 
-export async function GET(){
- const user=await getCurrentUser();if(!user)return NextResponse.json({error:"Unauthorized"},{status:401});
+export async function GET(request:Request){
+ const m=msg[lang(request)];const user=await getCurrentUser();if(!user)return NextResponse.json({error:m.login},{status:401});
  await ensureDatabase();
  try{
   const google=await googleProperties(user.id);
@@ -27,19 +37,19 @@ export async function GET(){
   const saved=await getDb().query("SELECT site_url FROM search_console_properties WHERE user_id=$1 AND selected=TRUE ORDER BY updated_at DESC LIMIT 1",[user.id]);
   const selectedSiteUrl=saved.rows[0]?.site_url||null;
   return NextResponse.json({connected:true,properties:google.properties.map((p:GoogleProperty)=>({...p,selected:p.siteUrl===selectedSiteUrl})),selectedSiteUrl});
- }catch{return NextResponse.json({connected:true,error:"Search Console properties konden niet worden geladen.",properties:[],selectedSiteUrl:null},{status:502})}
+ }catch{return NextResponse.json({connected:true,error:m.load,properties:[],selectedSiteUrl:null},{status:502})}
 }
 
 export async function POST(request:Request){
- const user=await getCurrentUser();if(!user)return NextResponse.json({error:"Unauthorized"},{status:401});
+ const m=msg[lang(request)];const user=await getCurrentUser();if(!user)return NextResponse.json({error:m.login},{status:401});
  await ensureDatabase();
  const body=await request.json().catch(()=>({})),siteUrl=String(body.siteUrl||"").slice(0,500);
- if(!siteUrl)return NextResponse.json({error:"siteUrl required"},{status:400});
+ if(!siteUrl)return NextResponse.json({error:m.required},{status:400});
  try{
   const google=await googleProperties(user.id);
-  if(!google.connected)return NextResponse.json({error:"Google Search Console is niet gekoppeld."},{status:409});
+  if(!google.connected)return NextResponse.json({error:m.connected},{status:409});
   const property=google.properties.find((p:GoogleProperty)=>p.siteUrl===siteUrl);
-  if(!property)return NextResponse.json({error:"Deze Search Console-property is niet beschikbaar voor dit Google-account."},{status:403});
+  if(!property)return NextResponse.json({error:m.unavailable},{status:403});
   const db=await getDb();
   await db.query("BEGIN");
   try{
@@ -49,7 +59,7 @@ export async function POST(request:Request){
   }catch(error){await db.query("ROLLBACK");throw error}
   return NextResponse.json({ok:true,siteUrl:property.siteUrl});
  }catch(error){
-  if(error instanceof Error&&(error.message==="gsc"))return NextResponse.json({error:"Search Console-property kon niet worden gecontroleerd."},{status:502});
-  return NextResponse.json({error:"Search Console-property kon niet worden opgeslagen."},{status:500});
+  if(error instanceof Error&&(error.message==="gsc"))return NextResponse.json({error:m.check},{status:502});
+  return NextResponse.json({error:m.save},{status:500});
  }
 }
