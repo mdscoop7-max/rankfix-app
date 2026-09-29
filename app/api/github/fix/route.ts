@@ -279,6 +279,7 @@ function estimateChangedLines(before:string,after:string){
 }
 
 export async function POST(request:Request){
+  let language:"nl"|"en"|"de"|"fr"|"it"|"es"="nl";
   try{
     const user=await getCurrentUser();
     if(!user) return NextResponse.json({error:"Login vereist."},{status:401});
