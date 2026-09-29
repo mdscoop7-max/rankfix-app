@@ -10,7 +10,7 @@ const freeInfo: Record<Locale,{title:string;items:string[]}> = {
   de:{title:"Was enthält der kostenlose Scan?",items:["Prüfung wichtiger SEO-, technischer und GEO/AI-Search-Signale.","Sofortige Bewertung und konkrete Verbesserungspunkte.","Keine Zahlungskarte erforderlich und RankFix ändert deine Website nicht automatisch."]}
 };
 const scanUi: Record<Locale,{scope:string;na:string;unconfirmed:string;scoreNote:string}> = {
-  nl:{scope:"SEO · GEO · techniek · webshop · Ads & analytics · structured data · accessibility · Merchant readiness · Consent Mode · Merchant readiness · Consent Mode",na:"N.v.t.",unconfirmed:"Niet te bevestigen",scoreNote:"Deze controles tellen niet als geslaagd en beïnvloeden de score niet."},
+  nl:{scope:"SEO · GEO · techniek · webshop · Ads & analytics · structured data · accessibility · Merchant readiness · Consent Mode",na:"N.v.t.",unconfirmed:"Niet te bevestigen",scoreNote:"Deze controles tellen niet als geslaagd en beïnvloeden de score niet."},
   en:{scope:"SEO · GEO · technical · ecommerce · Ads & analytics · structured data · accessibility",na:"N/A",unconfirmed:"Unable to confirm",scoreNote:"These checks do not count as passed and do not affect the score."},
   de:{scope:"SEO · GEO · Technik · Webshop · Ads & Analytics · strukturierte Daten · Barrierefreiheit · Merchant Readiness · Consent Mode",na:"N. zutr.",unconfirmed:"Nicht bestätigbar",scoreNote:"Diese Prüfungen zählen nicht als bestanden und beeinflussen die Bewertung nicht."},
   fr:{scope:"SEO · GEO · technique · e-commerce · Ads & analytics · données structurées · accessibilité · Merchant readiness · Consent Mode",na:"N/A",unconfirmed:"Impossible à confirmer",scoreNote:"Ces contrôles ne comptent pas comme réussis et n’influencent pas le score."},
@@ -29,7 +29,7 @@ export default function ScanClient({ locale }: { locale: Locale }) {
   async function run(event: React.FormEvent) {
     event.preventDefault(); setBusy(true); setError(""); setResult(null);
     try {
-      const response = await fetch("/api/scan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url, mode: "both" }) });
+      const response = await fetch("/api/scan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url, mode: "both", language: locale }) });
       const data = await response.json();
       if (!response.ok) throw new Error(t.error);
       setResult(data);
