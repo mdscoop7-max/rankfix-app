@@ -770,7 +770,12 @@ export async function POST(request: Request) {
       .filter((rule) => robotsRuleMatches(rule.path, robotsPath))
       .sort((a, b) => b.path.length - a.path.length || (a.kind === "allow" ? -1 : 1));
     const robotsPathBlocked = robotsStatus === "PASS" && matchingRobotsRules.length > 0 && matchingRobotsRules[0].kind === "disallow";
-    const sitemapCandidates = [...new Set([...robotsDeclaredSitemapUrls, sitemapUrl.toString()])].slice(0, 20);
+    const commonSitemapUrls = [
+      sitemapUrl.toString(),
+      new URL("/wp-sitemap.xml", finalUrl).toString(),
+      new URL("/sitemap_index.xml", finalUrl).toString(),
+    ];
+    const sitemapCandidates = [...new Set([...robotsDeclaredSitemapUrls, ...commonSitemapUrls])].slice(0, 20);
     let sitemapFetchFailed = false;
     for (const candidate of sitemapCandidates) {
       try {
