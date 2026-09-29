@@ -198,7 +198,9 @@ const statements = [
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`,
   `CREATE INDEX IF NOT EXISTS reviews_status_created_idx ON reviews(status, created_at DESC)`,
-  `CREATE TABLE IF NOT EXISTS rankfix_health_runs (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    overall_level TEXT NOT NULL CHECK (overall_level IN ('green','orange','red')),\n    checks JSONB NOT NULL DEFAULT '[]'::jsonb,\n    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n  )`,\n  `CREATE INDEX IF NOT EXISTS rankfix_health_runs_created_idx ON rankfix_health_runs(created_at DESC)`,\n  `CREATE TABLE IF NOT EXISTS api_rate_limits (\n    bucket TEXT PRIMARY KEY,\n    window_start TIMESTAMPTZ NOT NULL,\n    hits INTEGER NOT NULL DEFAULT 1\n  )`,
+  `CREATE TABLE IF NOT EXISTS rankfix_health_runs (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    overall_level TEXT NOT NULL CHECK (overall_level IN ('green','orange','red')),\n    checks JSONB NOT NULL DEFAULT '[]'::jsonb,\n    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n  )`,
+  `CREATE INDEX IF NOT EXISTS rankfix_health_runs_created_idx ON rankfix_health_runs(created_at DESC)`,
+  `CREATE TABLE IF NOT EXISTS api_rate_limits (\n    bucket TEXT PRIMARY KEY,\n    window_start TIMESTAMPTZ NOT NULL,\n    hits INTEGER NOT NULL DEFAULT 1\n  )`,
   `CREATE INDEX IF NOT EXISTS api_rate_limits_window_idx ON api_rate_limits(window_start)`
 ];
 
