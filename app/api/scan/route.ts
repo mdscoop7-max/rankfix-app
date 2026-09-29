@@ -1727,7 +1727,12 @@ export async function POST(request: Request) {
             const issueId = String(item.issue_id || item.rule_id || item.key);
             if (!pendingFixes.has(issueId)) continue;
             const liveStatus = String(item.issue_status || item.status || "").trim().toUpperCase();
-            if (liveStatus !== "PASS") continue;
+            const liveConfidence = String(item.confidence || "").trim().toLowerCase();
+            const liveEvidence = item.evidence;
+            const hasLiveEvidence = !!liveEvidence && liveEvidence.found !== null && liveEvidence.found !== undefined && liveEvidence.found !== "";
+            // A fix becomes DONE only from a fresh, evidence-backed PASS. A low-confidence
+            // or evidence-free PASS is not strong enough to confirm a published code change.
+            if (liveStatus !== "PASS" || liveConfidence === "low" || !hasLiveEvidence) continue;
 
             const confirmed = await getDb().query(
               "UPDATE pending_fixes SET status='DONE', updated_at=NOW() WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 AND status='PREPARED' AND expires_at>NOW() RETURNING id",
