@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureDatabase } from "@/lib/db-init";
-import { claimJobs,completeJob,failJob } from "@/lib/job-queue";
+import { claimJobs,completeJob,failJob,releaseStaleJobs } from "@/lib/job-queue";
 
 const DEFAULT_BATCH=3;
 function authorized(request:Request){const secret=process.env.MONITOR_SECRET;return Boolean(secret&&request.headers.get("authorization")===`Bearer ${secret}`)}
@@ -18,6 +18,9 @@ async function execute(job:{job_type:string;payload:unknown}){
 async function run(request:Request){
   if(!authorized(request)) return NextResponse.json({error:"Niet toegestaan."},{status:401});
   await ensureDatabase();
+  // Recover abandoned leases here too, so queue recovery does not depend on
+  // Health Guard being scheduled independently.
+  await releaseStaleJobs().catch(error=>console.error("Queue stale-job recovery failed",error instanceof Error?error.message:"QUEUE_RECOVERY_FAILED"));
   const {workerId,jobs}=await claimJobs(batchSize());
   const results:{id:string;status:string}[]=[];
   for(const job of jobs){
