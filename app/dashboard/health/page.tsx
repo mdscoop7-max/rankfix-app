@@ -13,6 +13,7 @@ type Guard={key:string;label:string;level:Level;message:string;metrics?:Record<s
 const labels={green:"Gezond",orange:"Aandacht",red:"Kritiek"};
 const dot=(l:Level)=>l==="green"?"●":l==="orange"?"▲":"■";
 const statusColor=(l:Level)=>l==="green"?"#22c55e":l==="orange"?"#f59e0b":"#ef4444";
+const statusStyle=(l:Level)=>({color:statusColor(l),fontWeight:700} as const);
 
 export default function HealthPage(){
  const [runs,setRuns]=useState<Run[]>([]),[capacity,setCapacity]=useState<CapacityRun[]>([]),[incidents,setIncidents]=useState<Incident[]>([]),[guards,setGuards]=useState<Guard[]>([]),[recovery,setRecovery]=useState<Guard[]>([]),[error,setError]=useState(""),[checking,setChecking]=useState(false);
@@ -27,7 +28,7 @@ export default function HealthPage(){
  {error&&<div className="rf-alert">{error}</div>}
  <section className="rf-plan-card"><div><span className="rf-eyebrow">System Health</span><h2 style={latest?{color:statusColor(latest.overall_level)}:undefined}>{latest?labels[latest.overall_level]:"Nog geen controle"}</h2><p>{latest?"Laatste health-run: "+new Date(latest.created_at).toLocaleString("nl-NL"):"Nog geen health-run opgeslagen."}</p></div><div><strong>{open.length}</strong><p>actieve incidenten</p></div></section>
  <div className="rf-grid">
-  <section className="rf-card"><span className="rf-eyebrow">Capacity</span><h3>{cap?dot(cap.overall_level)+" "+labels[cap.overall_level]:"Geen meting"}</h3>{signals.map(s=><p key={s.key}><strong>{s.label}:</strong> {s.value} {s.unit} · {labels[s.level]}</p>)}</section>
+  <section className="rf-card"><span className="rf-eyebrow">Capacity</span><h3>{cap?<span style={statusStyle(cap.overall_level)}>{dot(cap.overall_level)+" "+labels[cap.overall_level]}</span>:"Geen meting"}</h3>{signals.map(s=><p key={s.key}><strong>{s.label}:</strong> {s.value} {s.unit} · <span style={statusStyle(s.level)}>{labels[s.level]}</span></p>)}</section>
   <section className="rf-card"><span className="rf-eyebrow">Database</span><h3>PostgreSQL</h3>{guards.filter(g=>g.key==="database_guard").map(g=><p key={g.key}>{dot(g.level)} {g.message}</p>)}<p>Capaciteit wordt beoordeeld op werkelijke belasting en groei, niet alleen op klantenaantal.</p></section>
   <section className="rf-card"><span className="rf-eyebrow">Queue & Workers</span><h3>Achtergrondverwerking</h3>{guards.filter(g=>g.key==="queue_worker_guard").map(g=><p key={g.key}>{dot(g.level)} {g.message}</p>)}</section>
   <section className="rf-card"><span className="rf-eyebrow">External APIs</span><h3>Afhankelijkheden</h3>{group(["ai","github","google","email"]).map(c=><p key={c.key}>{dot(c.level)} <strong>{c.label}</strong> · {c.message}</p>)}</section>
@@ -37,6 +38,6 @@ export default function HealthPage(){
   <section className="rf-card"><span className="rf-eyebrow">Usage & Growth</span><h3>Technisch gebruik</h3>{guards.filter(g=>g.key==="usage"||g.key==="growth_upgrade").map(g=><p key={g.key}>{dot(g.level)} <strong>{g.label}</strong> · {g.message}</p>)}<p>Euro-kosten koppelen we pas aan definitieve leveranciersplannen.</p></section>
  </div>
  <section className="rf-card"><h2>Incidenten</h2>{incidents.length===0?<p>Geen incidenten geregistreerd.</p>:incidents.slice(0,12).map((i,n)=><p key={i.incident_key+n}><strong>{i.status==="open"?"Actief":"Hersteld"}</strong> · {i.incident_key.replace("rankfix-production:","")} · {i.failure_count} bevestigingen · {new Date(i.last_seen_at).toLocaleString("nl-NL")}{i.alerted_at?" · melding verzonden":""}</p>)}</section>
- <section className="rf-card"><h2>Recente controles</h2>{runs.slice(0,12).map((r,i)=><p key={r.created_at+i}><strong>{labels[r.overall_level]}</strong> · {new Date(r.created_at).toLocaleString("nl-NL")}</p>)}</section>
+ <section className="rf-card"><h2>Recente controles</h2>{runs.slice(0,12).map((r,i)=><p key={r.created_at+i}><strong style={statusStyle(r.overall_level)}>{labels[r.overall_level]}</strong> · {new Date(r.created_at).toLocaleString("nl-NL")}</p>)}</section>
  </div></div></main>
 }
