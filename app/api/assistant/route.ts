@@ -4,10 +4,20 @@ import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
 import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
 
+const assistantErrors = {
+  nl:{empty:"Vul een bericht in.",long:"Je bericht is te lang.",rate:"Te veel AI-verzoeken. Probeer later opnieuw.",unavailable:"AI-assistent is tijdelijk niet beschikbaar.",failed:"AI-assistent kon het verzoek niet verwerken."},
+  en:{empty:"Enter a message.",long:"Your message is too long.",rate:"Too many AI requests. Try again later.",unavailable:"The AI assistant is temporarily unavailable.",failed:"The AI assistant could not process the request."},
+  de:{empty:"Gib eine Nachricht ein.",long:"Deine Nachricht ist zu lang.",rate:"Zu viele AI-Anfragen. Versuche es später erneut.",unavailable:"Der AI-Assistent ist vorübergehend nicht verfügbar.",failed:"Der AI-Assistent konnte die Anfrage nicht verarbeiten."},
+  fr:{empty:"Saisissez un message.",long:"Votre message est trop long.",rate:"Trop de requêtes AI. Réessayez plus tard.",unavailable:"L’assistant AI est temporairement indisponible.",failed:"L’assistant AI n’a pas pu traiter la demande."},
+  it:{empty:"Inserisci un messaggio.",long:"Il messaggio è troppo lungo.",rate:"Troppe richieste AI. Riprova più tardi.",unavailable:"L’assistente AI è temporaneamente non disponibile.",failed:"L’assistente AI non è riuscito a elaborare la richiesta."},
+  es:{empty:"Introduce un mensaje.",long:"Tu mensaje es demasiado largo.",rate:"Demasiadas solicitudes de AI. Inténtalo más tarde.",unavailable:"El asistente de AI no está disponible temporalmente.",failed:"El asistente de AI no pudo procesar la solicitud."}
+} as const;
+type AssistantLanguage = keyof typeof assistantErrors;
+
 export async function POST(request: Request) {
+  let responseLanguage:AssistantLanguage="nl";
   try {
     await ensureDatabase();
-    if(!await consumeRateLimit("assistant",requestIp(request),30,3600)) return NextResponse.json({error:"Te veel AI-verzoeken. Probeer later opnieuw."},{status:429});
     const body = await request.json();
     const message = typeof body?.message === "string" ? body.message.trim() : "";
     const dashboard = body?.dashboard === true;
@@ -17,10 +27,10 @@ export async function POST(request: Request) {
     const requestedLanguage = supportedLanguages.includes(rawRequestedLanguage as (typeof supportedLanguages)[number]) ? rawRequestedLanguage : "";
     const errorContext = typeof body?.errorContext === "string" ? body.errorContext.trim().slice(0, 2000) : "";
 
-    responseLanguage = (requestedLanguage || "nl") as keyof typeof errors;
-    if(!await consumeRateLimit("assistant",requestIp(request),30,3600)) return NextResponse.json({error:errors[responseLanguage].rate},{status:429});
-    if (!message) return NextResponse.json({ error: errors[responseLanguage].empty }, { status: 400 });
-    if (message.length > 1200) return NextResponse.json({ error: errors[responseLanguage].long }, { status: 400 });
+    responseLanguage = (requestedLanguage || "nl") as AssistantLanguage;
+    if(!await consumeRateLimit("assistant",requestIp(request),30,3600)) return NextResponse.json({error:assistantErrors[responseLanguage].rate},{status:429});
+    if (!message) return NextResponse.json({ error: assistantErrors[responseLanguage].empty }, { status: 400 });
+    if (message.length > 1200) return NextResponse.json({ error: assistantErrors[responseLanguage].long }, { status: 400 });
 
     const user = await getCurrentUser();
     let customerContext = "";
@@ -161,7 +171,7 @@ export async function POST(request: Request) {
 
     if (!key) {
       return NextResponse.json(
-        { error: "AI-assistent is tijdelijk niet beschikbaar." },
+        { error: assistantErrors[responseLanguage].unavailable },
         { status: 503 }
       );
     }
@@ -231,7 +241,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Assistant error:", error);
     return NextResponse.json(
-      { error: errors[responseLanguage].failed },
+      { error: assistantErrors[responseLanguage].failed },
       { status: 500 }
     );
   }
