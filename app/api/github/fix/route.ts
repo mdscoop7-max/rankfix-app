@@ -168,9 +168,15 @@ function buildDeterministicOgFix(filePath:string,current:string,issue:string,con
   } else return null;
   return {content,summary:"RankFix heeft de ontbrekende Open Graph-metadata veilig toegevoegd met bestaande scanwaarden."};
 }
+class FixProviderError extends Error {
+  constructor(public readonly code:"AI_UNAVAILABLE"|"AI_PROVIDER_ERROR"|"AI_INVALID_OUTPUT",message:string){
+    super(message);
+    this.name="FixProviderError";
+  }
+}
 async function generateCodeFix(filePath:string,fileContent:string,issue:string,context:string,issueId:string){
   const key=process.env.OPENAI_API_KEY?.trim();
-  if(!key) throw new Error("OPENAI_API_KEY ontbreekt in de Render runtime. Controleer Environment Variables van rankfix-app en deploy opnieuw.");
+  if(!key) throw new FixProviderError("AI_UNAVAILABLE","OPENAI_API_KEY is missing from the runtime.");
   const model=process.env.OPENAI_MODEL?.trim() || "gpt-5.6-luna";
   const input=[
     "You are RankFix AI. Modify this repository file to implement exactly one SEO/GEO fix.",
@@ -205,14 +211,23 @@ async function generateCodeFix(filePath:string,fileContent:string,issue:string,c
     }catch{
       detail=errorText.slice(0,500);
     }
-    throw new Error(`OpenAI API fout (${response.status}): ${detail}`);
+    console.error("GitHub Fix AI provider error",response.status,detail);\n    throw new FixProviderError("AI_PROVIDER_ERROR",`AI provider returned HTTP ${response.status}.`);
   }
   const data=await response.json();
   const text=typeof data?.output_text==="string"?data.output_text:data?.output?.flatMap((x:any)=>x?.content||[]).map((x:any)=>x?.text||"").join("")||"";
   const clean=text.replace(/^\`\`\`json\s*/i,"").replace(/\s*\`\`\`$/,"").trim();
   const parsed=JSON.parse(clean);
-  if(typeof parsed.content!=="string"||typeof parsed.summary!=="string") throw new Error("AI-output is ongeldig.");
+  if(typeof parsed.content!=="string"||typeof parsed.summary!=="string") throw new FixProviderError("AI_INVALID_OUTPUT","AI provider returned invalid structured output.");
   return parsed;
+}
+
+function localizeProviderError(code:FixProviderError["code"],language:"nl"|"en"|"de"|"fr"|"it"|"es"){
+  const copy={
+    AI_UNAVAILABLE:{nl:"AI Fix is tijdelijk niet beschikbaar.",en:"AI Fix is temporarily unavailable.",de:"AI Fix ist vorübergehend nicht verfügbar.",fr:"AI Fix est temporairement indisponible.",it:"AI Fix è temporaneamente non disponibile.",es:"AI Fix no está disponible temporalmente."},
+    AI_PROVIDER_ERROR:{nl:"AI Fix kon de provider niet bereiken. Probeer later opnieuw.",en:"AI Fix could not reach the provider. Try again later.",de:"AI Fix konnte den Anbieter nicht erreichen. Versuche es später erneut.",fr:"AI Fix n’a pas pu joindre le fournisseur. Réessayez plus tard.",it:"AI Fix non è riuscito a raggiungere il provider. Riprova più tardi.",es:"AI Fix no pudo contactar con el proveedor. Inténtalo más tarde."},
+    AI_INVALID_OUTPUT:{nl:"AI Fix ontving geen veilige geldige wijziging. Probeer opnieuw.",en:"AI Fix did not receive a safe valid change. Try again.",de:"AI Fix hat keine sichere gültige Änderung erhalten. Versuche es erneut.",fr:"AI Fix n’a pas reçu de modification valide et sûre. Réessayez.",it:"AI Fix non ha ricevuto una modifica valida e sicura. Riprova.",es:"AI Fix no recibió un cambio válido y seguro. Inténtalo de nuevo."}
+  } as const;
+  return copy[code][language];
 }
 
 function localizeFixError(message:string,language:"nl"|"en"|"de"|"fr"|"it"|"es"){
