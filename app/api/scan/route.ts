@@ -449,7 +449,7 @@ export async function POST(request: Request) {
     const ogImage = getMeta("og:image");
     const twitterCard = getMeta("twitter:card");
 
-    const jsonLdBlocks = allMatches(html, /<script[^>]+type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+    const jsonLdBlocks = [...html.matchAll(/<script\b(?=[^>]*\btype\s*=\s*(?:(["'])application\/ld\+json\1|application\/ld\+json(?:\s|>|\/)))[^>]*>([\s\S]*?)<\/script>/gi)].map((match) => decode(match[2] || ""));
     const schemaTypes: string[] = [];
     const schemaObjects: any[] = [];
     let validJsonLd = 0;
