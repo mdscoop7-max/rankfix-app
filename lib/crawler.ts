@@ -1,6 +1,6 @@
 import { URL } from "node:url";
 import { extractImageMetrics } from "@/lib/image-metrics";
-import { safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
+import { readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 
 export const CRAWLER_ENGINE_VERSION = "2.5.0";
 
