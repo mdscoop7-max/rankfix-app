@@ -144,6 +144,15 @@ const sectionCopy = {
  es:{fixLabel:"Mejoras transparentes",fixTitle:"No hay «mejora completada» si nada ha cambiado.",fixIntro:"Cada mejora se detecta, revisa, modifica realmente y se comprueba de nuevo.",audiences:[["Sitios web","Auditorías SEO & GEO para páginas públicas."],["Tiendas online","Señales de producto, categoría y conversión."],["Apps","Landing pages públicas y contenido de stores."],["Agencias","Proyectos de clientes, informes y workflows white-label."]],resources:[["Auditoría SEO","Señales técnicas y on-page."],["Auditoría GEO","Datos estructurados y señales de búsqueda con IA."],["Auditoría e-commerce","Datos de producto, precios, confianza y señales e-commerce."],["Ads Readiness","Landing pages, tracking y conversiones Google Ads."],["SEO local","LocalBusiness, ubicaciones, horarios y perfiles oficiales."]]}
 } as const;
 
+const auditResultCopy = {
+  nl:{opportunities:"{ar.opportunities}",result:"{ar.result}",resultTitle:"{ar.resultTitle}",resultIntro:"{ar.resultIntro}",found:"gevonden",improvement:"verbeterpunt",improvements:"verbeterpunten",done:"Gedaan",doneText:"Controles die al goed staan.",todo:"Nog te verbeteren",todoText:"Punten waarvoor nog geen wijziging is klaargezet.",proposal:"Codevoorstel",proposalText:"Pull requests die nog niet live bevestigd zijn.",confirm:"Nog te bevestigen",confirmText:"Controleer, publiceer en scan opnieuw.",openIssue:"Open een verbeterpunt hieronder voor uitleg en een voorstel.",checkPr:"Controleer de pull request, publiceer en scan daarna opnieuw.",allGood:"De getoonde controles zijn in orde.",next:"Volgende stap",ready:"Klaar",coverage:"Dekking",coverageInfo:"{ar.coverageInfo}",assessed:"controles beoordeeld",passed:"geslaagd",naOrUnknown:"N.v.t. of niet te bevestigen",checks:"controles",more:"meer",technical:"Bekijk technische details",na:"N.v.t.",unknown:"Niet te bevestigen",recommendation:"RankFix aanbeveling",fixProposal:"✨ Maak fixvoorstel",analyzing:"AI analyseert…",metrics:"Kernmetrics",words:"Woorden",images:"Afbeeldingen",internalLinks:"Interne links",action:"AI-actielaag",review:"om te bekijken"},
+  en:{opportunities:"Your opportunities, at a glance.",result:"Your RankFix result",resultTitle:"This is what is happening with your website.",resultIntro:"See what is already working, what still needs attention and which code proposals are awaiting verification. A fix is only confirmed after a new scan of your live website.",found:"found",improvement:"improvement",improvements:"improvements",done:"Done",doneText:"Checks that are already correct.",todo:"Needs improvement",todoText:"Items for which no change has been prepared yet.",proposal:"Code proposal",proposalText:"Pull requests not yet verified live.",confirm:"Pending verification",confirmText:"Review, publish and scan again.",openIssue:"Open an improvement below for an explanation and proposal.",checkPr:"Review the pull request, publish it and scan again.",allGood:"The displayed checks are correct.",next:"Next step",ready:"Ready",coverage:"Coverage",coverageInfo:"Audit coverage shows how many checks could actually be assessed. N/A and unable to confirm do not count toward the score.",assessed:"checks assessed",passed:"passed",naOrUnknown:"N/A or unable to confirm",checks:"checks",more:"more",technical:"View technical details",na:"N/A",unknown:"Unable to confirm",recommendation:"{ar.recommendation}",fixProposal:"✨ Create fix proposal",analyzing:"AI is analyzing…",metrics:"Core metrics",words:"Words",images:"Images",internalLinks:"Internal links",action:"AI action layer",review:"to review"},
+  de:{opportunities:"Deine Chancen auf einen Blick.",result:"Dein RankFix-Ergebnis",resultTitle:"Das passiert mit deiner Website.",resultIntro:"Sieh, was bereits gut funktioniert, was noch Aufmerksamkeit braucht und welche Codevorschläge auf Bestätigung warten. Ein Fix gilt erst nach einem neuen Live-Scan als bestätigt.",found:"gefunden",improvement:"Verbesserung",improvements:"Verbesserungen",done:"Erledigt",doneText:"Prüfungen, die bereits in Ordnung sind.",todo:"Noch zu verbessern",todoText:"Punkte, für die noch keine Änderung vorbereitet wurde.",proposal:"Codevorschlag",proposalText:"Pull Requests, die live noch nicht bestätigt sind.",confirm:"Noch zu bestätigen",confirmText:"Prüfen, veröffentlichen und erneut scannen.",openIssue:"Öffne unten einen Verbesserungspunkt für Erklärung und Vorschlag.",checkPr:"Prüfe den Pull Request, veröffentliche ihn und scanne erneut.",allGood:"Die angezeigten Prüfungen sind in Ordnung.",next:"Nächster Schritt",ready:"Fertig",coverage:"Abdeckung",coverageInfo:"Die Audit-Abdeckung zeigt, wie viele Prüfungen tatsächlich bewertet werden konnten. N. a. und nicht bestätigbar zählen nicht zur Punktzahl.",assessed:"Prüfungen bewertet",passed:"bestanden",naOrUnknown:"N. a. oder nicht bestätigbar",checks:"Prüfungen",more:"mehr",technical:"Technische Details ansehen",na:"N. a.",unknown:"Nicht bestätigbar",recommendation:"RankFix-Empfehlung",fixProposal:"✨ Fix-Vorschlag erstellen",analyzing:"KI analysiert…",metrics:"Kernmetriken",words:"Wörter",images:"Bilder",internalLinks:"Interne Links",action:"KI-Aktionsebene",review:"zu prüfen"},
+  fr:{opportunities:"Vos opportunités, en un coup d’œil.",result:"Votre résultat RankFix",resultTitle:"Voici ce qui se passe sur votre site.",resultIntro:"Voyez ce qui fonctionne déjà, ce qui demande encore votre attention et quelles propositions de code attendent une vérification. Un correctif n’est confirmé qu’après une nouvelle analyse du site en ligne.",found:"trouvés",improvement:"amélioration",improvements:"améliorations",done:"Terminé",doneText:"Contrôles déjà conformes.",todo:"À améliorer",todoText:"Points pour lesquels aucune modification n’a encore été préparée.",proposal:"Proposition de code",proposalText:"Pull requests pas encore vérifiées en ligne.",confirm:"À confirmer",confirmText:"Vérifiez, publiez et relancez l’analyse.",openIssue:"Ouvrez une amélioration ci-dessous pour voir l’explication et une proposition.",checkPr:"Vérifiez la pull request, publiez-la puis relancez l’analyse.",allGood:"Les contrôles affichés sont conformes.",next:"Étape suivante",ready:"Prêt",coverage:"Couverture",coverageInfo:"La couverture indique combien de contrôles ont réellement pu être évalués. Les éléments non applicables ou impossibles à confirmer ne comptent pas dans le score.",assessed:"contrôles évalués",passed:"réussis",naOrUnknown:"N/A ou impossibles à confirmer",checks:"contrôles",more:"de plus",technical:"Voir les détails techniques",na:"N/A",unknown:"Impossible à confirmer",recommendation:"Recommandation RankFix",fixProposal:"✨ Créer une proposition de correctif",analyzing:"L’IA analyse…",metrics:"Indicateurs clés",words:"Mots",images:"Images",internalLinks:"Liens internes",action:"Couche d’action IA",review:"à examiner"},
+  it:{opportunities:"Le tue opportunità, a colpo d’occhio.",result:"Il tuo risultato RankFix",resultTitle:"Ecco cosa sta succedendo al tuo sito.",resultIntro:"Scopri cosa funziona già, cosa richiede attenzione e quali proposte di codice attendono verifica. Un fix è confermato solo dopo una nuova scansione del sito online.",found:"trovati",improvement:"miglioria",improvements:"migliorie",done:"Fatto",doneText:"Controlli già corretti.",todo:"Da migliorare",todoText:"Punti per cui non è ancora stata preparata una modifica.",proposal:"Proposta di codice",proposalText:"Pull request non ancora verificate online.",confirm:"Da confermare",confirmText:"Controlla, pubblica e scansiona di nuovo.",openIssue:"Apri una miglioria qui sotto per spiegazione e proposta.",checkPr:"Controlla la pull request, pubblicala e scansiona di nuovo.",allGood:"I controlli mostrati sono corretti.",next:"Passo successivo",ready:"Pronto",coverage:"Copertura",coverageInfo:"La copertura mostra quanti controlli sono stati effettivamente valutati. N/D e non confermabili non contano nel punteggio.",assessed:"controlli valutati",passed:"superati",naOrUnknown:"N/D o non confermabili",checks:"controlli",more:"in più",technical:"Vedi dettagli tecnici",na:"N/D",unknown:"Non confermabile",recommendation:"Raccomandazione RankFix",fixProposal:"✨ Crea proposta di fix",analyzing:"L’AI sta analizzando…",metrics:"Metriche principali",words:"Parole",images:"Immagini",internalLinks:"Link interni",action:"Livello azioni AI",review:"da esaminare"},
+  es:{opportunities:"Tus oportunidades, de un vistazo.",result:"Tu resultado RankFix",resultTitle:"Esto es lo que ocurre con tu sitio web.",resultIntro:"Consulta qué funciona bien, qué necesita atención y qué propuestas de código esperan verificación. Una corrección solo se confirma tras un nuevo análisis del sitio publicado.",found:"encontrados",improvement:"mejora",improvements:"mejoras",done:"Hecho",doneText:"Comprobaciones que ya están correctas.",todo:"Por mejorar",todoText:"Puntos para los que aún no se ha preparado un cambio.",proposal:"Propuesta de código",proposalText:"Pull requests aún no verificadas en vivo.",confirm:"Por confirmar",confirmText:"Revisa, publica y vuelve a analizar.",openIssue:"Abre una mejora abajo para ver la explicación y una propuesta.",checkPr:"Revisa la pull request, publícala y vuelve a analizar.",allGood:"Las comprobaciones mostradas son correctas.",next:"Siguiente paso",ready:"Listo",coverage:"Cobertura",coverageInfo:"La cobertura muestra cuántas comprobaciones pudieron evaluarse realmente. N/A y no confirmables no cuentan en la puntuación.",assessed:"comprobaciones evaluadas",passed:"correctas",naOrUnknown:"N/A o no confirmables",checks:"comprobaciones",more:"más",technical:"Ver detalles técnicos",na:"N/A",unknown:"No se puede confirmar",recommendation:"Recomendación RankFix",fixProposal:"✨ Crear propuesta de corrección",analyzing:"La IA está analizando…",metrics:"Métricas principales",words:"Palabras",images:"Imágenes",internalLinks:"Enlaces internos",action:"Capa de acción IA",review:"para revisar"}
+} as const;
+
 const publicCopy = {
   nl:{featuresEyebrow:"Van inzicht naar verbetering",featuresTitle:"Van scan naar actie.",featuresIntro:"Ontdek wat aandacht vraagt, lees waarom het telt en bekijk een concreet codevoorstel. Na publicatie bevestig je de verandering met een nieuwe scan.",cards:[["SEO + GEO audit","Technische SEO, metadata, structured data, entities, social metadata, URL-hygiëne en AI-search signalen."],["Webshop audit","Product-schema, prijsnotatie, retour- en verzendsignalen, reviewplatforms, checkout-trust en variant-URL's."],["Ads readiness","Controleer landingspagina, tracking-signalen, GA4/GTM en Google Ads-conversies."],["Fix Engine","RankFix maakt een aparte pull request voor een veilige codewijziging. Controleer en publiceer die eerst; scan daarna opnieuw."]],pricingLabel:"Eenvoudige prijzen",pricingTitle:"Duidelijke prijzen. Kies wat bij je past.",pricingIntro:"Kies het abonnement dat bij je website of webshop past. AI-fixes zijn inbegrepen in de betaalde pakketten.",perMonth:"per maand",trial:"voor kennismaken",chosen:"Meest gekozen",forStores:"Voor webshops",freeScan:"Gratis scan starten",choose:"Kies",resourcesTitle:"Alles om van audit naar actie te gaan.",resourcesIntro:"Gebruik RankFix voor audits en concrete codevoorstellen. Rapportdownloads en uitgebreidere lokale SEO-functies zijn nog in ontwikkeling.",aboutTitle:"Minder jargon. Meer grip op je website.",about1:"RankFix AI helpt ondernemers en teams om hun website beter te begrijpen. De scan bekijkt SEO- en GEO-signalen, van technische basis en inhoud tot structured data.",about2:"Voor geschikte codewijzigingen kan RankFix een aparte GitHub-pull-request voorbereiden. Je controleert en publiceert die zelf; een nieuwe scan bevestigt de verbetering.",learnMore:"Lees meer over RankFix →",name:"Naam",email:"E-mailadres",company:"Bedrijf (optioneel)",message:"Waar kunnen we mee helpen?",tech:"Techniek",store:"Webshop",concrete:"Concrete verbeteringen",ready:"Klaar voor klanten"},
   en:{featuresEyebrow:"From insight to improvement",featuresTitle:"From scan to action.",featuresIntro:"See what needs attention, understand why it matters and review a concrete code proposal. After publishing, confirm the change with a new scan.",cards:[["SEO + GEO audit","Technical SEO, metadata, structured data, entities, social metadata, URL hygiene and AI-search signals."],["E-commerce audit","Product schema, price notation, returns and shipping signals, review platforms, checkout trust and variant URLs."],["Ads readiness","Check landing pages, tracking signals, GA4/GTM and Google Ads conversions."],["Fix Engine","RankFix creates a separate pull request for a safe code change. Review and publish it first, then scan again."]],pricingLabel:"Simple pricing",pricingTitle:"Clear pricing. Choose what fits.",pricingIntro:"Choose the plan that fits your website or online store. AI fixes are included in paid plans.",perMonth:"per month",trial:"to get started",chosen:"Most popular",forStores:"For online stores",freeScan:"Start free scan",choose:"Choose",resourcesTitle:"Everything you need to move from audit to action.",resourcesIntro:"Use RankFix for audits and concrete code proposals. Report downloads and expanded local SEO features are still in development.",aboutTitle:"Less jargon. More control over your website.",about1:"RankFix AI helps businesses and teams understand their websites. The scan reviews SEO and GEO signals, from technical foundations and content to structured data.",about2:"For suitable code changes, RankFix can prepare a separate GitHub pull request. You review and publish it yourself; a new scan confirms the improvement.",learnMore:"Learn more about RankFix →",name:"Name",email:"Email address",company:"Company (optional)",message:"How can we help?",tech:"Technical",store:"E-commerce",concrete:"Concrete improvements",ready:"Client-ready"},
@@ -495,6 +504,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
     }
   }
 
+  const ar = auditResultCopy[language];
   const activeChecks = result ? (tab === "seo" ? result.seo.checks : result.geo.checks) : [];
   // The top-level result summarizes the complete requested audit. In SEO + GEO mode
   // it must not hide GEO issues merely because the details initially open on the SEO tab.
@@ -826,7 +836,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
           <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
             <div>
               <div className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">Live audit</div>
-              <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">Jouw kansen, op één scherm.</h2>
+              <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-3xl">{ar.opportunities}</h2>
               <p className="mt-1 max-w-2xl break-all text-xs text-slate-500">{result.finalUrl}</p>
             </div>
             <div className="text-xs text-slate-500">{result.responseTime} ms · HTTP {result.httpStatus}</div>{result.rendering&&<div className="mt-1 text-xs text-slate-500">{renderingCopy.source}: {result.rendering.mode==="raw_html"?renderingCopy.raw:renderingCopy.rendered}{result.rendering.mode==="raw_html"&&<span className="ml-1 cursor-help" title={renderingCopy.tip}>ⓘ</span>}{result.pageTypeEvidence?` · ${result.pageTypeEvidence.type} (${result.pageTypeEvidence.confidence})`:""}</div>}
@@ -836,24 +846,24 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
           <div className="mb-6 rounded-[28px] border border-slate-200 bg-gradient-to-br from-white/[0.055] to-emerald-400/[0.025] p-5 shadow-2xl shadow-black/10 sm:p-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Jouw RankFix resultaat</div>
-                <h3 className="mt-2 text-2xl font-black tracking-tight">Dit is wat er met je website gebeurt.</h3>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">Bekijk wat al goed is, wat nog aandacht vraagt en welke codevoorstellen op controle wachten. Een fix is pas bevestigd na een nieuwe scan van je live website.</p>
+                <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{ar.result}</div>
+                <h3 className="mt-2 text-2xl font-black tracking-tight">{ar.resultTitle}</h3>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{ar.resultIntro}</p>
               </div>
-              <div className="rounded-full border border-slate-200 bg-black/10 px-3 py-1.5 text-xs font-semibold text-slate-600">{totalIssueCount} {totalIssueCount === 1 ? "verbeterpunt" : "verbeterpunten"} gevonden</div>
+              <div className="rounded-full border border-slate-200 bg-black/10 px-3 py-1.5 text-xs font-semibold text-slate-600">{totalIssueCount} {totalIssueCount === 1 ? ar.improvement : ar.improvements} {ar.found}</div>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/[0.045] p-4"><div className="text-lg">🟢</div><div className="mt-2 text-sm font-bold text-emerald-200">Gedaan</div><div className="mt-1 text-2xl font-black">{passedCount}</div><p className="mt-1 text-xs leading-5 text-slate-500">Controles die al goed staan.</p></div>
-              <div className="rounded-2xl border border-amber-400/15 bg-amber-400/[0.045] p-4"><div className="text-lg">🟠</div><div className="mt-2 text-sm font-bold text-amber-200">Nog te verbeteren</div><div className="mt-1 text-2xl font-black">{remainingCount}</div><p className="mt-1 text-xs leading-5 text-slate-500">Punten waarvoor nog geen wijziging is klaargezet.</p></div>
-              <div className="rounded-2xl border border-blue-400/15 bg-blue-400/[0.045] p-4"><div className="text-lg">🔵</div><div className="mt-2 text-sm font-bold text-blue-200">Codevoorstel</div><div className="mt-1 text-2xl font-black">{preparedCount}</div><p className="mt-1 text-xs leading-5 text-slate-600">Pull requests die nog niet live bevestigd zijn.</p></div>
-              <div className="rounded-2xl border border-yellow-400/15 bg-yellow-400/[0.045] p-4"><div className="text-lg">🟡</div><div className="mt-2 text-sm font-bold text-yellow-200">Nog te bevestigen</div><div className="mt-1 text-2xl font-black">{waitingIssues.length}</div><p className="mt-1 text-xs leading-5 text-slate-600">Controleer, publiceer en scan opnieuw.</p></div>
+              <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/[0.045] p-4"><div className="text-lg">🟢</div><div className="mt-2 text-sm font-bold text-emerald-200">{ar.done}</div><div className="mt-1 text-2xl font-black">{passedCount}</div><p className="mt-1 text-xs leading-5 text-slate-500">{ar.doneText}</p></div>
+              <div className="rounded-2xl border border-amber-400/15 bg-amber-400/[0.045] p-4"><div className="text-lg">🟠</div><div className="mt-2 text-sm font-bold text-amber-200">{ar.todo}</div><div className="mt-1 text-2xl font-black">{remainingCount}</div><p className="mt-1 text-xs leading-5 text-slate-500">{ar.todoText}</p></div>
+              <div className="rounded-2xl border border-blue-400/15 bg-blue-400/[0.045] p-4"><div className="text-lg">🔵</div><div className="mt-2 text-sm font-bold text-blue-200">{ar.proposal}</div><div className="mt-1 text-2xl font-black">{preparedCount}</div><p className="mt-1 text-xs leading-5 text-slate-600">{ar.proposalText}</p></div>
+              <div className="rounded-2xl border border-yellow-400/15 bg-yellow-400/[0.045] p-4"><div className="text-lg">🟡</div><div className="mt-2 text-sm font-bold text-yellow-200">{ar.confirm}</div><div className="mt-1 text-2xl font-black">{waitingIssues.length}</div><p className="mt-1 text-xs leading-5 text-slate-600">{ar.confirmText}</p></div>
             </div>
-            <div className="mt-4 rounded-2xl border border-emerald-400/10 bg-emerald-400/[0.035] px-4 py-3 text-sm text-slate-300">{preparedCount ? "Controleer de pull request, publiceer en scan daarna opnieuw." : remainingCount ? "Open een verbeterpunt hieronder voor uitleg en een voorstel." : "De getoonde controles zijn in orde."}</div>
+            <div className="mt-4 rounded-2xl border border-emerald-400/10 bg-emerald-400/[0.035] px-4 py-3 text-sm text-slate-300">{preparedCount ? ar.checkPr : remainingCount ? ar.openIssue : ar.allGood}</div>
           </div>
 
           {waitingIssues.length > 0 && (
             <div className="mb-4 rounded-3xl border border-yellow-400/15 bg-yellow-400/[0.035] p-5">
-              <div className="text-xs font-bold uppercase tracking-widest text-yellow-300">Nog te bevestigen</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-yellow-300">{ar.confirm}</div>
               <div className="mt-1 text-lg font-black">{waitingIssues.length} {waitingIssues.length === 1 ? "codevoorstel" : "codevoorstellen"} wachten op een nieuwe live controle.</div>
               <p className="mt-2 text-sm leading-6 text-slate-600">Deze problemen zijn nog niet opgelost. Controleer de pull request, publiceer en scan daarna opnieuw. Pas wanneer de live controle slaagt, telt de fix als bevestigd.</p>
               <div className="mt-4 space-y-2">
@@ -895,10 +905,10 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                 <div className="rounded-3xl border border-amber-400/15 bg-amber-400/[0.035] p-5">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-xs font-bold uppercase tracking-widest text-amber-300">Nog te verbeteren</div>
+                      <div className="text-xs font-bold uppercase tracking-widest text-amber-300">{ar.todo}</div>
                       <div className="mt-1 text-lg font-black">{issues.length} {issues.length === 1 ? "verbeterpunt" : "verbeterpunten"}</div>
                     </div>
-                    <span className="rounded-full bg-amber-400/10 px-3 py-1 text-xs font-bold text-amber-200">{remainingCount > 0 ? "Volgende stap" : "Klaar"}</span>
+                    <span className="rounded-full bg-amber-400/10 px-3 py-1 text-xs font-bold text-amber-200">{remainingCount > 0 ? ar.next : ar.ready}</span>
                   </div>
                   <div className="mt-4 space-y-2">
                     {issues.map((item) => (
@@ -933,13 +943,13 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                         <div className="mt-2">
                           <div className="whitespace-nowrap text-xl font-black">{data.score}<span className="ml-0.5 text-xs font-bold opacity-60">/100</span></div>
                           <div className="mt-2">
-                            <span className="inline-flex whitespace-nowrap rounded-full border border-current/10 bg-white/60 px-2 py-1 text-[11px] font-semibold">Dekking: {data.checks.filter((item) => item.status !== "not_applicable" && item.status !== "unable_to_confirm").length}/{data.checks.length}</span>
+                            <span className="inline-flex whitespace-nowrap rounded-full border border-current/10 bg-white/60 px-2 py-1 text-[11px] font-semibold">{ar.coverage}: {data.checks.filter((item) => item.status !== "not_applicable" && item.status !== "unable_to_confirm").length}/{data.checks.length}</span>
                           </div>
                         </div>
                       </button>
                     ))}
                   </div>
-                  <p className="px-2 pb-1 pt-2 text-xs text-slate-500">Auditdekking toont hoeveel controles daadwerkelijk beoordeeld konden worden. N.v.t. en niet te bevestigen tellen niet mee in de score.</p>
+                  <p className="px-2 pb-1 pt-2 text-xs text-slate-500">{ar.coverageInfo}</p>
                 </div>
               )}
 
@@ -947,24 +957,24 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-500">{tab.toUpperCase()} audit</div>
-                    <div className="mt-1 text-lg font-black">Auditdekking: {activeChecks.filter((item) => item.status !== "not_applicable" && item.status !== "unable_to_confirm").length} van {activeChecks.length} controles beoordeeld</div>
-                    <div className="mt-1 text-xs text-slate-500">{activeChecks.filter((item) => item.status === "pass").length} geslaagd · {activeChecks.filter((item) => item.status === "warning" || item.status === "fail").length} verbeterpunten · {activeChecks.filter((item) => item.status === "not_applicable" || item.status === "unable_to_confirm").length} N.v.t. of niet te bevestigen</div>
+                    <div className="mt-1 text-lg font-black">{ar.coverage}: {activeChecks.filter((item) => item.status !== "not_applicable" && item.status !== "unable_to_confirm").length}/{activeChecks.length} {ar.assessed}</div>
+                    <div className="mt-1 text-xs text-slate-500">{activeChecks.filter((item) => item.status === "pass").length} {ar.passed} · {activeChecks.filter((item) => item.status === "warning" || item.status === "fail").length} {ar.improvements} · {activeChecks.filter((item) => item.status === "not_applicable" || item.status === "unable_to_confirm").length} {ar.naOrUnknown}</div>
                   </div>
-                  <span className="text-xs text-slate-600">{activeChecks.length} controles</span>
+                  <span className="text-xs text-slate-600">{activeChecks.length} {ar.checks}</span>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {activeChecks.filter((item) => item.status === "pass").slice(0, 8).map((item) => (
                     <span key={item.issue_id || item.key} className="rounded-full border border-emerald-400/10 bg-emerald-400/[0.04] px-3 py-1.5 text-xs text-emerald-200">✓ {item.title}</span>
                   ))}
                   {activeChecks.filter((item) => item.status === "pass").length > 8 && (
-                    <span className="rounded-full border border-slate-200 bg-white/[0.03] px-3 py-1.5 text-xs text-slate-500">+{activeChecks.filter((item) => item.status === "pass").length - 8} meer</span>
+                    <span className="rounded-full border border-slate-200 bg-white/[0.03] px-3 py-1.5 text-xs text-slate-500">+{activeChecks.filter((item) => item.status === "pass").length - 8} {ar.more}</span>
                   )}
                 </div>
               </div>
 
               <details className="rounded-3xl border border-slate-200 bg-slate-50">
                 <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-slate-300">
-                  <span className="mr-2">⌄</span> Bekijk technische details
+                  <span className="mr-2">⌄</span> {ar.technical}
                 </summary>
                 <div className="border-t border-slate-200 px-5 py-4">
                   <div className="grid gap-2 sm:grid-cols-2">
@@ -976,16 +986,16 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                         <div className="flex items-center gap-2">
                           <span className={`text-xs font-bold ${item.status === "pass" ? "text-emerald-300" : item.status === "warning" ? "text-amber-300" : item.status === "fail" ? "text-red-300" : "text-cyan-300"}`}>{statusIcon[item.status]}</span>
                           <span className="text-sm font-semibold">{item.title} <span className="cursor-help text-slate-600" title={`Weging: maximaal ${item.maxPoints} punten. N.v.t. en niet te bevestigen tellen niet mee in de score.`}>ⓘ</span></span>
-                          <span className="ml-auto text-[10px] text-slate-600">{item.status==="not_applicable"?"N.v.t.":item.status==="unable_to_confirm"?"Niet te bevestigen":`${item.points}/${item.maxPoints}`}</span>
+                          <span className="ml-auto text-[10px] text-slate-600">{item.status==="not_applicable"?ar.na:item.status==="unable_to_confirm"?ar.unknown:`${item.points}/${item.maxPoints}`}</span>
                         </div>
                         <p className="mt-1 text-xs leading-5 text-slate-500">{item.message}</p>
                         {item.status !== "pass" && (
                           <div className="mt-3 rounded-xl border border-emerald-400/10 bg-emerald-400/[0.04] p-3">
-                            <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">RankFix recommendation</div>
+                            <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">{ar.recommendation}</div>
                             <p className="mt-1 text-xs leading-5 text-slate-300">{item.fix}</p>
                             {item.issue_status !== "NOT_APPLICABLE" && item.issue_status !== "UNABLE_TO_CONFIRM" && (
                               <button type="button" onClick={() => generateFix(item)} disabled={fixing === (item.issue_id || item.key)} className="mt-2 rounded-lg border border-emerald-400/20 bg-emerald-400/5 px-3 py-2 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-400/10 disabled:opacity-50">
-                                {fixing === (item.issue_id || item.key) ? "AI analyseert…" : "✨ Maak fixvoorstel"}
+                                {fixing === (item.issue_id || item.key) ? ar.analyzing : ar.fixProposal}
                               </button>
                             )}
                             {fixes[item.issue_id || item.key] && (
@@ -1009,14 +1019,14 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
 
               <details className="rounded-3xl border border-slate-200 bg-slate-50">
                 <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-slate-300">
-                  <span className="mr-2">⌄</span> Kernmetrics
+                  <span className="mr-2">⌄</span> {ar.metrics}
                 </summary>
                 <div className="grid grid-cols-2 gap-3 border-t border-slate-200 px-5 py-4 sm:grid-cols-3">
                   {[
                     ["H1", result.metrics.h1Count],
-                    ["Woorden", result.metrics.wordCount],
-                    ["Afbeeldingen", result.metrics.imageCount],
-                    ["Interne links", result.metrics.internalLinks],
+                    [ar.words, result.metrics.wordCount],
+                    [ar.images, result.metrics.imageCount],
+                    [ar.internalLinks, result.metrics.internalLinks],
                     ["JSON-LD", result.metrics.jsonLdBlocks],
                     ["Schema types", result.metrics.schemaTypes.length],
                   ].map(([label, value]) => (
@@ -1029,8 +1039,8 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
               </details>
 
               <div className="rounded-3xl border border-emerald-400/10 bg-emerald-400/[0.04] p-5">
-                <div className="text-xs font-semibold uppercase tracking-widest text-emerald-300">AI action layer</div>
-                <div className="mt-1 text-lg font-black">{issues.length} {issues.length === 1 ? "verbeterpunt" : "verbeterpunten"} om te bekijken</div>
+                <div className="text-xs font-semibold uppercase tracking-widest text-emerald-300">{ar.action}</div>
+                <div className="mt-1 text-lg font-black">{issues.length} {issues.length === 1 ? ar.improvement : ar.improvements} {ar.review}</div>
                 <p className="mt-1 text-sm leading-5 text-slate-500">Bekijk per verbeterpunt of RankFix een concreet fixvoorstel kan maken. Een voorstel wijzigt je live website niet; scan opnieuw na het publiceren om het resultaat te controleren.</p>
               </div>
             </div>

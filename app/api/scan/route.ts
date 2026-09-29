@@ -1573,7 +1573,7 @@ export async function POST(request: Request) {
         description: description || (item.key === "description" ? "metaDescriptionPresent=false" : null),
         h1: h1s.length,
         headings: headings.length,
-        canonical: canonical || null,
+        canonical: canonical || (item.key === "canonical" ? "canonicalPresent=false" : null),
         viewport: viewportContent || null,
         lang: lang || null,
         alt: imageElementCount ? imagesMissingAlt : null,
@@ -1586,6 +1586,7 @@ export async function POST(request: Request) {
         indexability: noindexSignal ? [robots, xRobotsTag].filter(Boolean).join(" | ") : robotsPathBlocked ? `robots disallow: ${matchingRobotsRules[0].path}` : "no noindex or applicable robots block found",
         hreflang: hreflangEntries.length ? hreflangEntries.map((entry) => `${entry.language}=>${entry.href || "missing"}`).join(" | ") : null,
         twitter_card: twitterCard || null,
+        trust_legal_signals: item.key === "trust_legal_signals" ? `privacy=${hasPrivacyLink}; cookies=${hasCookieLink}; contact=${hasContactLink}` : null,
         social: [ogTitle ? "og:title" : "", ogDescription ? "og:description" : "", ogImage ? "og:image" : ""].filter(Boolean).join(", ") || (item.key === "social" ? "Open Graph core fields missing" : null),
         product_schema: isProductPage && hasProductSchema ? JSON.stringify(productOfferSummary.slice(0, 3)) : null,
         webshop_trust: hasProductSignal ? `shipping=${hasShippingSignal}; returns=${hasReturnsSignal}; reviewPlatform=${hasReviewPlatformSignal}; checkoutSignal=${hasCheckoutTrustSignal}` : null,
@@ -1708,6 +1709,38 @@ export async function POST(request: Request) {
             item.evidence.details=item.message;
           }
         }
+      }
+    }
+
+    // Keep high-value warnings concrete even when the optional AI translation layer
+    // is unavailable. These messages are derived from scan evidence, not generated guesses.
+    const concreteWarningCopy: Record<string, { canonicalMissing:string; canonicalOther:string; canonicalInvalid:string; trust:(missing:string)=>string; canonicalFix:string; trustFix:string }> = {
+      nl:{canonicalMissing:"Geen canonical URL gevonden.",canonicalOther:"De canonical verwijst niet naar de gescande URL.",canonicalInvalid:"De gevonden canonical is geen geldige URL.",trust:(m)=>"Niet alle basissignalen zijn gevonden: "+m+".",canonicalFix:"Controleer of de canonical bewust naar de juiste voorkeurs-URL verwijst; voeg anders een passende self-referencing canonical toe.",trustFix:"Maak privacy-, cookie- en contactinformatie duidelijk bereikbaar. Dit is een technische aanwezigheidstest, geen juridisch oordeel."},
+      en:{canonicalMissing:"No canonical URL was found.",canonicalOther:"The canonical does not point to the scanned URL.",canonicalInvalid:"The canonical found is not a valid URL.",trust:(m)=>"Not all basic trust signals were found: "+m+".",canonicalFix:"Check whether the canonical intentionally points to the correct preferred URL; otherwise add an appropriate self-referencing canonical.",trustFix:"Make privacy, cookie and contact information clearly accessible. This is a technical presence check, not a legal compliance judgment."},
+      de:{canonicalMissing:"Keine Canonical-URL gefunden.",canonicalOther:"Die Canonical-URL verweist nicht auf die gescannte URL.",canonicalInvalid:"Die gefundene Canonical-Angabe ist keine gültige URL.",trust:(m)=>"Nicht alle grundlegenden Vertrauenssignale wurden gefunden: "+m+".",canonicalFix:"Prüfe, ob die Canonical-URL bewusst auf die richtige bevorzugte URL verweist; füge sonst eine passende selbstreferenzierende Canonical-URL hinzu.",trustFix:"Mache Datenschutz-, Cookie- und Kontaktinformationen klar erreichbar. Dies ist eine technische Präsenzprüfung, keine rechtliche Bewertung."},
+      fr:{canonicalMissing:"Aucune URL canonique n’a été trouvée.",canonicalOther:"L’URL canonique ne pointe pas vers l’URL analysée.",canonicalInvalid:"La valeur canonique trouvée n’est pas une URL valide.",trust:(m)=>"Tous les signaux de confiance de base n’ont pas été trouvés : "+m+".",canonicalFix:"Vérifiez si l’URL canonique pointe volontairement vers la bonne URL préférée ; sinon, ajoutez une URL canonique auto-référente adaptée.",trustFix:"Rendez les informations de confidentialité, de cookies et de contact clairement accessibles. Il s’agit d’un contrôle technique de présence, pas d’un avis juridique."},
+      it:{canonicalMissing:"Non è stato trovato alcun URL canonico.",canonicalOther:"L’URL canonico non punta all’URL analizzato.",canonicalInvalid:"Il valore canonico trovato non è un URL valido.",trust:(m)=>"Non sono stati trovati tutti i segnali di fiducia di base: "+m+".",canonicalFix:"Controlla se l’URL canonico punta intenzionalmente all’URL preferito corretto; altrimenti aggiungi un canonical autoreferenziale appropriato.",trustFix:"Rendi chiaramente accessibili le informazioni su privacy, cookie e contatti. È un controllo tecnico di presenza, non una valutazione legale."},
+      es:{canonicalMissing:"No se encontró ninguna URL canónica.",canonicalOther:"La URL canónica no apunta a la URL analizada.",canonicalInvalid:"El valor canónico encontrado no es una URL válida.",trust:(m)=>"No se encontraron todas las señales básicas de confianza: "+m+".",canonicalFix:"Comprueba si la URL canónica apunta intencionadamente a la URL preferida correcta; si no, añade una canonical autorreferente adecuada.",trustFix:"Haz claramente accesible la información de privacidad, cookies y contacto. Es una comprobación técnica de presencia, no una evaluación legal."}
+    };
+    const concreteCopy=concreteWarningCopy[scanLanguage]||concreteWarningCopy.en;
+    const localizedMissingLabels: Record<string,Record<string,string>>={
+      nl:{privacy:"privacy",cookies:"cookies",contact:"contact"},en:{privacy:"privacy",cookies:"cookies",contact:"contact"},de:{privacy:"Datenschutz",cookies:"Cookies",contact:"Kontakt"},fr:{privacy:"confidentialité",cookies:"cookies",contact:"contact"},it:{privacy:"privacy",cookies:"cookie",contact:"contatti"},es:{privacy:"privacidad",cookies:"cookies",contact:"contacto"}
+    };
+    for(const item of seoChecks){
+      if(item.status!=="warning"&&item.status!=="fail") continue;
+      if(item.key==="canonical"){
+        item.title=({nl:"Canonical URL",en:"Canonical URL",de:"Canonical-URL",fr:"URL canonique",it:"URL canonico",es:"URL canónica"} as Record<string,string>)[scanLanguage]||"Canonical URL";
+        item.message=canonicalInvalid?concreteCopy.canonicalInvalid:!canonicalUrl?concreteCopy.canonicalMissing:concreteCopy.canonicalOther;
+        item.fix=concreteCopy.canonicalFix;
+        item.evidence.details=item.message;
+      }
+      if(item.key==="trust_legal_signals"){
+        const labels=localizedMissingLabels[scanLanguage]||localizedMissingLabels.en;
+        const missing=[!hasPrivacyLink?labels.privacy:null,!hasCookieLink?labels.cookies:null,!hasContactLink?labels.contact:null].filter(Boolean).join(", ");
+        item.title=({nl:"Privacy & vertrouwenssignalen",en:"Privacy & trust signals",de:"Datenschutz- & Vertrauenssignale",fr:"Signaux de confidentialité et de confiance",it:"Segnali di privacy e fiducia",es:"Señales de privacidad y confianza"} as Record<string,string>)[scanLanguage]||"Privacy & trust signals";
+        item.message=concreteCopy.trust(missing);
+        item.fix=concreteCopy.trustFix;
+        item.evidence.details=item.message;
       }
     }
 
