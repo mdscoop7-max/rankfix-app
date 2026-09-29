@@ -134,7 +134,7 @@ export async function crawlSite(startUrl:string,requestedMode:CrawlMode="STANDAR
       finalUrl=pages.length===0?resolved.toString():finalUrl;
       const contentType=response.headers.get("content-type")||"";
       if(!contentType.includes("text/html")&&!contentType.includes("application/xhtml+xml"))continue;
-      const html=await response.text();
+      const html=await readResponseTextLimited(response, 2_000_000);
       const title=first(html,/<title[^>]*>([\s\S]*?)<\/title>/i);
       const description=first(html,/<meta[^>]+(?:name|property)\s*=\s*["']description["'][^>]+content\s*=\s*["']([\s\S]*?)["'][^>]*>/i)||first(html,/<meta[^>]+content\s*=\s*["']([\s\S]*?)["'][^>]+(?:name|property)\s*=\s*["']description["'][^>]*>/i);
       const h1=[...html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gi)].map(m=>stripHtml(m[1])).filter(Boolean);
