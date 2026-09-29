@@ -12,6 +12,7 @@ type Incident={incident_key:string;status:"open"|"resolved";failure_count:number
 type Guard={key:string;label:string;level:Level;message:string;metrics?:Record<string,number>;details?:Record<string,string|number|boolean|null>};
 const labels={green:"Gezond",orange:"Aandacht",red:"Kritiek"};
 const dot=(l:Level)=>l==="green"?"●":l==="orange"?"▲":"■";
+const statusColor=(l:Level)=>l==="green"?"#22c55e":l==="orange"?"#f59e0b":"#ef4444";
 
 export default function HealthPage(){
  const [runs,setRuns]=useState<Run[]>([]),[capacity,setCapacity]=useState<CapacityRun[]>([]),[incidents,setIncidents]=useState<Incident[]>([]),[guards,setGuards]=useState<Guard[]>([]),[recovery,setRecovery]=useState<Guard[]>([]),[error,setError]=useState(""),[checking,setChecking]=useState(false);
@@ -22,9 +23,9 @@ export default function HealthPage(){
  const checks=latest?.checks||[],signals=cap?.signals||[];
  const group=(keys:string[])=>checks.filter(c=>keys.some(k=>c.key.includes(k)));
  return <main className="rf-page"><div className="rf-shell"><header className="rf-header"><a href="/dashboard" className="rf-brand">RankFix <span>AI</span></a></header><DashboardNav/>
- <div className="rf-body"><div className="rf-heading"><span className="rf-eyebrow">Alleen beheerder</span><h1>Internal Control Center</h1><p>Technische bewaking van RankFix zelf: gezondheid, capaciteit, database, verwerking, externe diensten en incidenten.</p><button type="button" className="rf-primary-button mt-4" onClick={runNow} disabled={checking}>{checking?"Controleren…":"↻ Nu controleren"}</button></div>
+ <div className="rf-body"><div className="rf-heading"><span className="rf-eyebrow">Alleen beheerder</span><h1>Internal Control Center</h1><p>Technische bewaking van RankFix zelf: gezondheid, capaciteit, database, verwerking, externe diensten en incidenten.</p><button type="button" className="rf-primary-button mt-4" style={{background:"#16a34a",color:"#fff",borderColor:"#16a34a"}} onClick={runNow} disabled={checking}>{checking?"Controleren…":"↻ Nu controleren"}</button></div>
  {error&&<div className="rf-alert">{error}</div>}
- <section className="rf-plan-card"><div><span className="rf-eyebrow">System Health</span><h2>{latest?labels[latest.overall_level]:"Nog geen controle"}</h2><p>{latest?"Laatste health-run: "+new Date(latest.created_at).toLocaleString("nl-NL"):"Nog geen health-run opgeslagen."}</p></div><div><strong>{open.length}</strong><p>actieve incidenten</p></div></section>
+ <section className="rf-plan-card"><div><span className="rf-eyebrow">System Health</span><h2 style={latest?{color:statusColor(latest.overall_level)}:undefined}>{latest?labels[latest.overall_level]:"Nog geen controle"}</h2><p>{latest?"Laatste health-run: "+new Date(latest.created_at).toLocaleString("nl-NL"):"Nog geen health-run opgeslagen."}</p></div><div><strong>{open.length}</strong><p>actieve incidenten</p></div></section>
  <div className="rf-grid">
   <section className="rf-card"><span className="rf-eyebrow">Capacity</span><h3>{cap?dot(cap.overall_level)+" "+labels[cap.overall_level]:"Geen meting"}</h3>{signals.map(s=><p key={s.key}><strong>{s.label}:</strong> {s.value} {s.unit} · {labels[s.level]}</p>)}</section>
   <section className="rf-card"><span className="rf-eyebrow">Database</span><h3>PostgreSQL</h3>{guards.filter(g=>g.key==="database_guard").map(g=><p key={g.key}>{dot(g.level)} {g.message}</p>)}<p>Capaciteit wordt beoordeeld op werkelijke belasting en groei, niet alleen op klantenaantal.</p></section>
