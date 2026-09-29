@@ -12,16 +12,22 @@ export async function POST(request: Request) {
     const message = typeof body?.message === "string" ? body.message.trim() : "";
     const dashboard = body?.dashboard === true;
     const scanId = typeof body?.scanId === "string" ? body.scanId.trim() : "";
-    const requestedLanguage = typeof body?.language === "string" ? body.language.toLowerCase() : "";
+    const supportedLanguages = ["nl","en","de","fr","it","es"] as const;
+    const rawRequestedLanguage = typeof body?.language === "string" ? body.language.toLowerCase() : "";
+    const requestedLanguage = supportedLanguages.includes(rawRequestedLanguage as (typeof supportedLanguages)[number]) ? rawRequestedLanguage : "";
     const errorContext = typeof body?.errorContext === "string" ? body.errorContext.trim().slice(0, 2000) : "";
 
-    if (!message) {
-      return NextResponse.json({ error: "Stel eerst een vraag." }, { status: 400 });
-    }
-
-    if (message.length > 1200) {
-      return NextResponse.json({ error: "De vraag is te lang." }, { status: 400 });
-    }
+    const inputErrors = {
+      nl:{empty:"Stel eerst een vraag.",long:"De vraag is te lang.",rate:"Te veel AI-verzoeken. Probeer later opnieuw.",unavailable:"AI-assistent is tijdelijk niet beschikbaar.",failed:"De AI-assistent kon nu geen antwoord geven."},
+      en:{empty:"Ask a question first.",long:"The question is too long.",rate:"Too many AI requests. Try again later.",unavailable:"The AI assistant is temporarily unavailable.",failed:"The AI assistant could not answer right now."},
+      de:{empty:"Stelle zuerst eine Frage.",long:"Die Frage ist zu lang.",rate:"Zu viele AI-Anfragen. Versuche es später erneut.",unavailable:"Der AI-Assistent ist vorübergehend nicht verfügbar.",failed:"Der AI-Assistent konnte gerade nicht antworten."},
+      fr:{empty:"Posez d’abord une question.",long:"La question est trop longue.",rate:"Trop de requêtes IA. Réessayez plus tard.",unavailable:"L’assistant IA est temporairement indisponible.",failed:"L’assistant IA ne peut pas répondre pour le moment."},
+      it:{empty:"Fai prima una domanda.",long:"La domanda è troppo lunga.",rate:"Troppe richieste AI. Riprova più tardi.",unavailable:"L’assistente AI è temporaneamente non disponibile.",failed:"L’assistente AI non può rispondere in questo momento."},
+      es:{empty:"Haz primero una pregunta.",long:"La pregunta es demasiado larga.",rate:"Demasiadas solicitudes de IA. Inténtalo más tarde.",unavailable:"El asistente de IA no está disponible temporalmente.",failed:"El asistente de IA no puede responder ahora mismo."}
+    } as const;
+    const inputLanguage=(requestedLanguage||"nl") as keyof typeof inputErrors;
+    if (!message) return NextResponse.json({ error: inputErrors[inputLanguage].empty }, { status: 400 });
+    if (message.length > 1200) return NextResponse.json({ error: inputErrors[inputLanguage].long }, { status: 400 });
 
     const user = await getCurrentUser();
     let customerContext = "";
@@ -174,6 +180,7 @@ export async function POST(request: Request) {
           "Gebruik klantgegevens alleen uit de meegeleverde context. Verzin nooit scanresultaten, scores, abonnementen, URLs, technische fouten of uitgevoerde acties.",
           "Wanneer geen specifieke audit is geopend, is de meest recente scan automatisch de actieve scancontext. Behandel die actieve scan als bron van waarheid. Maak altijd onderscheid tussen pass, warning, fail, unable_to_confirm (Niet te bevestigen) en not_applicable (N.v.t.).",
           "Noem unable_to_confirm nooit een fout en presenteer ontbrekend bewijs nooit als bewezen afwezigheid. Noem not_applicable nooit een probleem. Baseer prioriteiten alleen op aantoonbare fail/warning-controles en leg onzekerheid apart uit.",
+          "Adviseer een AI- of GitHub-fix alleen wanneer de actieve scan een fail/warning voor exact die issue_id bevat, confidence niet low is en concreet evidence aanwezig is. Bij low confidence, ontbrekend bewijs, unable_to_confirm of not_applicable: adviseer eerst controle of een nieuwe scan, nooit een automatische fix.",
           "Als de context onvoldoende is, zeg dat duidelijk en geef algemene technische uitleg.",
           "Zeg nooit dat je een wijziging hebt uitgevoerd als dat niet in de context staat.",
           "Geef praktische, korte stappen. Antwoord in de gekozen dashboardtaal: " + (preferredLanguage || "nl") + ". Alleen als de gebruiker expliciet in een andere taal vraagt, mag je die taal volgen.",
