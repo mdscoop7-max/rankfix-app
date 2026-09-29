@@ -646,16 +646,16 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         </div>
         <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 px-2 text-xs font-medium text-emerald-200 sm:gap-x-6">
           {(language === "nl"
-            ? ["SEO","GEO","Techniek","Webshop","Search Console","Monitoring","Broken Links","Redirects","Accessibility"]
+            ? ["SEO","GEO","Techniek","Webshop","Ads & Analytics","Search Console","Monitoring","Local SEO","Structured Data","Broken Links","Redirects","Accessibility","Concurrenten","AI Fixes","GitHub Fixes"]
             : language === "de"
-              ? ["SEO","GEO","Technik","Onlineshop","Search Console","Monitoring","Defekte Links","Weiterleitungen","Barrierefreiheit"]
+              ? ["SEO","GEO","Technik","Onlineshop","Ads & Analytics","Search Console","Monitoring","Local SEO","Strukturierte Daten","Defekte Links","Weiterleitungen","Barrierefreiheit","Wettbewerber","AI Fixes","GitHub Fixes"]
               : language === "fr"
-                ? ["SEO","GEO","Technique","E-commerce","Search Console","Monitoring","Liens cassés","Redirections","Accessibilité"]
+                ? ["SEO","GEO","Technique","E-commerce","Ads & Analytics","Search Console","Monitoring","SEO local","Données structurées","Liens cassés","Redirections","Accessibilité","Concurrents","AI Fixes","GitHub Fixes"]
                 : language === "it"
-                  ? ["SEO","GEO","Tecnica","E-commerce","Search Console","Monitoring","Link interrotti","Redirect","Accessibilità"]
+                  ? ["SEO","GEO","Tecnica","E-commerce","Ads & Analytics","Search Console","Monitoring","SEO locale","Dati strutturati","Link interrotti","Redirect","Accessibilità","Concorrenti","AI Fixes","GitHub Fixes"]
                   : language === "es"
-                    ? ["SEO","GEO","Técnica","E-commerce","Search Console","Monitoring","Enlaces rotos","Redirecciones","Accesibilidad"]
-                    : ["SEO","GEO","Technical","E-commerce","Search Console","Monitoring","Broken Links","Redirects","Accessibility"]
+                    ? ["SEO","GEO","Técnica","E-commerce","Ads & Analytics","Search Console","Monitoring","SEO local","Datos estructurados","Enlaces rotos","Redirecciones","Accesibilidad","Competidores","AI Fixes","GitHub Fixes"]
+                    : ["SEO","GEO","Technical","E-commerce","Ads & Analytics","Search Console","Monitoring","Local SEO","Structured Data","Broken Links","Redirects","Accessibility","Competitors","AI Fixes","GitHub Fixes"]
           ).map((feature) => <span key={feature}>✓ {feature}</span>)}
         </div>
         {error && <div className="mx-auto mt-5 max-w-2xl rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">{error}</div>}
