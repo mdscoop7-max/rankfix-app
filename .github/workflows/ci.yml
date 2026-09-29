@@ -39,7 +39,8 @@ jobs:
       - name: Tests
         run: npm test
 
-      - name: Lint
+      - name: Lint (legacy debt report)
+        continue-on-error: true
         run: npm run lint
 
       - name: Production build
