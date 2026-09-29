@@ -962,6 +962,12 @@ export async function POST(request: Request) {
     const hasExplicitAdsConversionSnippet = googleAdsSendToLabels.length > 0;
     const hasConsentModeSignal = /gtag\s*\(\s*["']consent["']\s*,\s*["'](?:default|update)["']/i.test(html) ||
       /ad_storage|analytics_storage|ad_user_data|ad_personalization/i.test(html);
+    const merchantFeedLinks = [...html.matchAll(/<link\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>/gi)]
+      .map((match) => match[1])
+      .filter((href) => /(?:google[-_ ]?merchant|merchant[-_ ]?center|product[-_ ]?feed|shopping[-_ ]?feed|products?\.(?:xml|rss|atom)|feed\/products?)/i.test(href));
+    const merchantFeedTextSignal = /\b(?:google merchant center|merchant center|google shopping|product feed|shopping feed)\b/i.test(text);
+    const hasMerchantFeedHint = merchantFeedLinks.length > 0 || merchantFeedTextSignal;
+    const merchantProductReadiness = productSchemaObjects.length > 0 && hasCompleteProductOffer;
     const hasShippingSignal = hasStructuredShipping || /verzendkosten|verzending|levering|shipping|delivery|bezorging|ophalen|afhalen/i.test(text);
     const hasReturnsSignal = hasStructuredReturns || /retour|herroepingsrecht|14\s*dagen|bedenktijd|return policy|refund/i.test(text);
     const hasReviewPlatformSignal = /trustpilot|kiyoh|google reviews|reviews?\.io/i.test(text);
@@ -1175,6 +1181,30 @@ export async function POST(request: Request) {
           ? check("pass","commercial_terms_signal","seo","Commerciële voorwaarden","Een link naar voorwaarden is gevonden.","Houd voorwaarden en bestel-/retourinformatie actueel en goed vindbaar.",4,4)
           : check("not_applicable","commercial_terms_signal","seo","Commerciële voorwaarden","Geen voldoende sterk webshop-signaal gevonden; deze controle is daarom niet van toepassing.","Gebruik deze controle op commerciële pagina's.",0,4)
     );
+    seoChecks.push(
+      !hasEcommerceSignal
+        ? check("not_applicable","merchant_product_readiness","seo","Merchant Center productbasis","Geen voldoende sterk webshop- of productsignaal gevonden; Merchant Center-productcontrole is niet van toepassing.","Gebruik deze controle op echte productpagina's van webshops.",0,6)
+        : merchantProductReadiness
+          ? check("pass","merchant_product_readiness","seo","Merchant Center productbasis","Product structured data bevat minimaal een productnaam, afbeelding en een aanbod met prijs, valuta en beschikbaarheid.","Houd productdata op de pagina en in eventuele Merchant Center-feeds consistent. RankFix bevestigt hiermee niet dat Google Merchant Center het product heeft goedgekeurd.",6,6)
+          : isProductPage
+            ? check("warning","merchant_product_readiness","seo","Merchant Center productbasis","Deze productpagina mist aantoonbare complete Product/Offer structured data voor naam, afbeelding, prijs, valuta of beschikbaarheid.","Vul Product/Offer structured data aan en zorg dat zichtbare productgegevens en eventuele feed dezelfde waarden gebruiken.",3,6)
+            : check("unable_to_confirm","merchant_product_readiness","seo","Merchant Center productbasis","De site heeft webshop-signalen, maar deze pagina is niet overtuigend als productpagina herkendend. Merchant-productdata kan hier niet volledig worden beoordeeld.","Scan een echte productpagina om Merchant Center-productbasis te beoordelen.",0,6)
+    );
+    seoChecks.push(
+      !hasEcommerceSignal
+        ? check("not_applicable","merchant_feed_signal","seo","Merchant Center feed-signaal","Geen voldoende sterk webshopsignaal gevonden; feedcontrole is niet van toepassing.","Gebruik deze controle voor webshops.",0,4)
+        : hasMerchantFeedHint
+          ? check("pass","merchant_feed_signal","seo","Merchant Center feed-signaal","Er is in de statische pagina een expliciet Merchant Center-, Shopping- of productfeed-signaal gevonden.","Controleer in Merchant Center zelf feedstatus, afkeuringen en synchronisatie; RankFix kan dat niet uit alleen de pagina bevestigen.",4,4)
+          : check("unable_to_confirm","merchant_feed_signal","seo","Merchant Center feed-signaal","In de statische HTML is geen expliciete productfeed gevonden. Een feed kan alsnog server-side, via een platformapp of rechtstreeks in Merchant Center zijn gekoppeld.","Controleer de feedbron in Google Merchant Center. Afwezigheid in HTML is geen bewijs dat er geen feed bestaat.",0,4)
+    );
+    seoChecks.push(
+      adsTrackingSignals===0
+        ? check("not_applicable","consent_mode_readiness","seo","Consent Mode signaal","Geen GA4-, Google Ads- of GTM-signaal gevonden waarop deze Consent Mode-controle kan worden toegepast.","Controleer consentconfiguratie zodra Google-meet- of advertentietags worden gebruikt.",0,5)
+        : hasConsentModeSignal
+          ? check("pass","consent_mode_readiness","seo","Consent Mode signaal","Een Google Consent Mode-signaal is in de opgehaalde bron gevonden.","Controleer runtime of consent default vóór meettags wordt gezet en of keuzes correct worden bijgewerkt. Dit is een technische signaaltest, geen juridisch compliance-oordeel.",5,5)
+          : check("warning","consent_mode_readiness","seo","Consent Mode signaal","Google tracking is gevonden, maar RankFix ziet in de statische bron geen aantoonbaar Consent Mode-signaal.","Controleer je CMP/GTM-configuratie en implementeer Consent Mode waar passend. RankFix beoordeelt hiermee geen wettelijke compliance.",2,5)
+    );
+
     seoChecks.push(
       accessibilityIssueCount===0
         ? check("pass","accessibility_basics","seo","Toegankelijkheid basis","Geen duidelijke basisproblemen gevonden bij afbeelding-alt, formulierlabels of lege knoppen in de statische HTML.","Blijf toetsenbordbediening, focus, contrast en dynamische content afzonderlijk testen. Dit is geen volledige toegankelijkheidsaudit.",5,5)

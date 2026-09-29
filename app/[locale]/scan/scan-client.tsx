@@ -10,12 +10,12 @@ const freeInfo: Record<Locale,{title:string;items:string[]}> = {
   de:{title:"Was enthält der kostenlose Scan?",items:["Prüfung wichtiger SEO-, technischer und GEO/AI-Search-Signale.","Sofortige Bewertung und konkrete Verbesserungspunkte.","Keine Zahlungskarte erforderlich und RankFix ändert deine Website nicht automatisch."]}
 };
 const scanUi: Record<Locale,{scope:string;na:string;unconfirmed:string;scoreNote:string}> = {
-  nl:{scope:"SEO · GEO · techniek · webshop · Ads & analytics · structured data · accessibility",na:"N.v.t.",unconfirmed:"Niet te bevestigen",scoreNote:"Deze controles tellen niet als geslaagd en beïnvloeden de score niet."},
+  nl:{scope:"SEO · GEO · techniek · webshop · Ads & analytics · structured data · accessibility · Merchant readiness · Consent Mode · Merchant readiness · Consent Mode",na:"N.v.t.",unconfirmed:"Niet te bevestigen",scoreNote:"Deze controles tellen niet als geslaagd en beïnvloeden de score niet."},
   en:{scope:"SEO · GEO · technical · ecommerce · Ads & analytics · structured data · accessibility",na:"N/A",unconfirmed:"Unable to confirm",scoreNote:"These checks do not count as passed and do not affect the score."},
-  de:{scope:"SEO · GEO · Technik · Webshop · Ads & Analytics · strukturierte Daten · Barrierefreiheit",na:"N. zutr.",unconfirmed:"Nicht bestätigbar",scoreNote:"Diese Prüfungen zählen nicht als bestanden und beeinflussen die Bewertung nicht."},
-  fr:{scope:"SEO · GEO · technique · e-commerce · Ads & analytics · données structurées · accessibilité",na:"N/A",unconfirmed:"Impossible à confirmer",scoreNote:"Ces contrôles ne comptent pas comme réussis et n’influencent pas le score."},
-  it:{scope:"SEO · GEO · tecnica · ecommerce · Ads e analytics · dati strutturati · accessibilità",na:"N/D",unconfirmed:"Non confermabile",scoreNote:"Questi controlli non risultano superati e non influenzano il punteggio."},
-  es:{scope:"SEO · GEO · técnica · ecommerce · Ads y analítica · datos estructurados · accesibilidad",na:"N/A",unconfirmed:"No se puede confirmar",scoreNote:"Estas comprobaciones no cuentan como superadas y no afectan a la puntuación."}
+  de:{scope:"SEO · GEO · Technik · Webshop · Ads & Analytics · strukturierte Daten · Barrierefreiheit · Merchant Readiness · Consent Mode",na:"N. zutr.",unconfirmed:"Nicht bestätigbar",scoreNote:"Diese Prüfungen zählen nicht als bestanden und beeinflussen die Bewertung nicht."},
+  fr:{scope:"SEO · GEO · technique · e-commerce · Ads & analytics · données structurées · accessibilité · Merchant readiness · Consent Mode",na:"N/A",unconfirmed:"Impossible à confirmer",scoreNote:"Ces contrôles ne comptent pas comme réussis et n’influencent pas le score."},
+  it:{scope:"SEO · GEO · tecnica · ecommerce · Ads e analytics · dati strutturati · accessibilità · Merchant readiness · Consent Mode",na:"N/D",unconfirmed:"Non confermabile",scoreNote:"Questi controlli non risultano superati e non influenzano il punteggio."},
+  es:{scope:"SEO · GEO · técnica · ecommerce · Ads y analítica · datos estructurados · accesibilidad · Merchant readiness · Consent Mode",na:"N/A",unconfirmed:"No se puede confirmar",scoreNote:"Estas comprobaciones no cuentan como superadas y no afectan a la puntuación."}
 };
 type Result = { overallScore: number; seo?: { score: number; checks: Array<{ status: string }> }; geo?: { score: number; checks: Array<{ status: string }> } };
 export default function ScanClient({ locale }: { locale: Locale }) {
