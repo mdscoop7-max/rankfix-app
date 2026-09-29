@@ -72,7 +72,7 @@ function allMatches(html: string, regex: RegExp) {
 }
 
 function attrFromTag(tag: string, attr: string) {
-  const match = tag.match(new RegExp(attr + "\\s*=\\s*[\"']([^\"']*)[\"']", "i"));
+  const match = tag.match(new RegExp(attr + "\s*=\s*[\"']([^\"']*)[\"']", "i"));
   return match?.[1] || "";
 }
 
@@ -417,7 +417,7 @@ export async function POST(request: Request) {
         const tag = m[0];
         const attr = (name: string) => {
           const match = tag.match(new RegExp(
-            `\\b${name}\\s*=\\s*(?:["']([^"']+)["']|([^\\s>]+))`,
+            `\b${name}\s*=\s*(?:["']([^"']+)["']|([^\s>]+))`,
             "i"
           ));
           return decode(match?.[1] || match?.[2] || "");
@@ -699,9 +699,9 @@ export async function POST(request: Request) {
               ? schemaSet.has("organization") || schemaSet.has("website")
               : schemaSet.has("webpage") || schemaSet.has("article") || schemaSet.has("organization") || schemaSet.has("website");
     const businessName = organizationName || (title.split(/[|–—-]/)[0] || "").trim();
-    const phoneMatch = text.match(/(?:\\+31\\s?6|0)[\\d\\s().-]{8,}/);
+    const phoneMatch = text.match(/(?:\\+31\s?6|0)[\\d\s().-]{8,}/);
     const emailMatch = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i);
-    const addressMatch = text.match(/\\b([^,]{3,60}\\s+\\d+[A-Za-z]?)\\s+(\\d{4}\\s?[A-Z]{2})\\s+([A-Za-zÀ-ÿ' -]{2,40})\\b/);
+    const addressMatch = text.match(/\b([^,]{3,60}\s+\\d+[A-Za-z]?)\s+(\\d{4}\s?[A-Z]{2})\s+([A-Za-zÀ-ÿ' -]{2,40})\b/);
     const localBusinessDetails = hasLocalBusinessSignal ? {
       name: businessName || null,
       streetAddress: addressMatch?.[1]?.trim() || null,
@@ -796,12 +796,12 @@ export async function POST(request: Request) {
     // Lightweight internal-link audit. Keep this bounded so one page cannot turn a scan
     // into an unbounded crawler. HTTP evidence and semantic evidence stay separate.
     type LinkAuditResult = { sourceHref: string; url: string; status: number | null; finalUrl: string | null; redirected: boolean; error: boolean; context: string };
-    const anchorTags = [...html.matchAll(/<a\\b[^>]*href\\s*=\\s*["']([^"']+)["'][^>]*>([\\s\\S]*?)<\\/a>/gi)]
+    const anchorTags = [...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)]
       .map((match) => {
         const sourceHref = decode(match[1] || "");
         const body = match[2] || "";
         const anchorText = stripHtml(body);
-        const imageAlt = [...body.matchAll(/<img\\b[^>]*\\balt\\s*=\\s*["']([^"']+)["'][^>]*>/gi)].map((m) => decode(m[1] || "")).filter(Boolean).join(" ");
+        const imageAlt = [...body.matchAll(/<img\b[^>]*\balt\s*=\s*["']([^"']+)["'][^>]*>/gi)].map((m) => decode(m[1] || "")).filter(Boolean).join(" ");
         return { sourceHref, context: [anchorText, imageAlt].filter(Boolean).join(" ").trim().slice(0, 220) };
       })
       .filter((item) => item.sourceHref && !/^(?:#|mailto:|tel:|javascript:)/i.test(item.sourceHref));
@@ -826,7 +826,7 @@ export async function POST(request: Request) {
     const brokenInternalLinks = linkAuditResults.filter((item) => item.error || item.status === null || item.status === 404 || item.status === 410 || (item.status >= 500));
     const redirectedInternalLinks = linkAuditResults.filter((item) => item.redirected && !item.error);
     const productSlugStopWords = new Set(["product","products","shop","winkel","store","category","categorie","tag","product-tag","collections","collection","the","and","voor","van","met","een","het","de"]);
-    const semanticTokens = (value: string) => decodeURIComponent(value).toLowerCase().replace(/[^a-z0-9à-ÿ]+/gi, " ").split(/\\s+/).filter((token) => token.length >= 3 && !productSlugStopWords.has(token));
+    const semanticTokens = (value: string) => decodeURIComponent(value).toLowerCase().replace(/[^a-z0-9à-ÿ]+/gi, " ").split(/\s+/).filter((token) => token.length >= 3 && !productSlugStopWords.has(token));
     const semanticLinkMismatches = linkAuditResults.flatMap((item) => {
       if (item.error || !item.status || item.status >= 400 || !item.context) return [];
       let destination: URL;
@@ -837,7 +837,7 @@ export async function POST(request: Request) {
       const destinationTokens = [...new Set(semanticTokens(destination.pathname))];
       if (contextTokens.length < 2 || destinationTokens.length < 2) return [];
       const overlap = contextTokens.filter((token) => destinationTokens.includes(token));
-      const productLikeDestination = /\\/(?:product|products|shop)\\//i.test(destination.pathname);
+      const productLikeDestination = /\/(?:product|products|shop)\//i.test(destination.pathname);
       if (!productLikeDestination || overlap.length > 0) return [];
       return [{ ...item, contextTokens: contextTokens.slice(0, 8), destinationTokens: destinationTokens.slice(0, 8) }];
     }).slice(0, 8);
@@ -882,7 +882,7 @@ export async function POST(request: Request) {
       const id=attrs.match(/\bid\s*=\s*["']([^"']+)["']/i)?.[1]||"";
       const hasAria=/\baria-label(?:ledby)?\s*=\s*["'][^"']+["']/i.test(attrs);
       const hasTitle=/\btitle\s*=\s*["'][^"']+["']/i.test(attrs);
-      const labelPattern=id ? new RegExp("<label[^>]+for\\s*=\\s*[\\\"']"+id.replace(/[^a-zA-Z0-9_-]/g,"")+"[\\\"']","i") : null;
+      const labelPattern=id ? new RegExp("<label[^>]+for\s*=\s*[\\\"']"+id.replace(/[^a-zA-Z0-9_-]/g,"")+"[\\\"']","i") : null;
       return !hasAria&&!hasTitle&&!(labelPattern&&labelPattern.test(html));
     }).length;
     const buttonTags=[...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/gi)];
@@ -1418,7 +1418,7 @@ export async function POST(request: Request) {
     const titleBrandCandidate = (title.split(/[|–—-]/)[0] || "").trim();
     const escapedTitleBrand = titleBrandCandidate.replace(/[.*+?^{}()|[\]\\]/g, "\\$&");
     const visibleTitleBrandSignal = titleBrandCandidate.length >= 3 &&
-      new RegExp(`\\b${escapedTitleBrand}\\b`, "i").test(text);
+      new RegExp(`\b${escapedTitleBrand}\b`, "i").test(text);
     const visibleBrandNameSignal = Boolean(
       organizationName ||
       firstMatch(html, /<meta[^>]+name\s*=\s*["']application-name["'][^>]+content\s*=\s*["']([^"']+)["']/i) ||
