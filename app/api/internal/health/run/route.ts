@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db";
 import { sendSystemHealthEmail } from "@/lib/email";
 import { overallHealth,runRankFixHealthChecks } from "@/lib/rankfix-health";
 import { releaseStaleJobs } from "@/lib/job-queue";
+import { getInternalCapacitySignals,overallCapacity } from "@/lib/internal-capacity";
 
 const FAILURE_THRESHOLD=3;
 function authorized(request:Request){const secret=process.env.MONITOR_SECRET;return Boolean(secret&&request.headers.get("authorization")===`Bearer ${secret}`)}
@@ -14,6 +15,8 @@ export async function GET(request:Request){
  await ensureDatabase();
  const db=getDb();
  const checks=await runRankFixHealthChecks();
+ const capacity=await getInternalCapacitySignals().catch(error=>[{key:"capacity_guard",label:"Capacity Guard",level:"red" as const,message:error instanceof Error?error.message:"CAPACITY_CHECK_FAILED",value:0,unit:"",orangeAt:0,redAt:0}]);
+ const capacityLevel=overallCapacity(capacity);
  const level=overallHealth(checks);
  const red=checks.filter(c=>c.level==="red");
  await db.query("INSERT INTO rankfix_health_runs (overall_level,checks) VALUES ($1,$2)",[level,JSON.stringify(checks)]);
@@ -65,6 +68,6 @@ export async function GET(request:Request){
  // Recover abandoned worker leases and bound completed queue history. Queue maintenance must never take Health Guard down.
  await releaseStaleJobs().catch(error=>console.error("Queue stale-job recovery failed",error instanceof Error?error.message:"QUEUE_RECOVERY_FAILED"));
  await db.query("DELETE FROM background_jobs WHERE status IN ('SUCCEEDED','FAILED') AND finished_at < NOW()-INTERVAL '30 days'").catch(()=>undefined);
- return NextResponse.json({level,checks,critical:red.length>0,alertSent,recoverySent,checkedAt:new Date().toISOString()});
+ return NextResponse.json({level,checks,capacityLevel,capacity,critical:red.length>0||capacityLevel==="red",alertSent,recoverySent,checkedAt:new Date().toISOString()});
 }
 export async function POST(request:Request){return GET(request)}
