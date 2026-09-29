@@ -272,7 +272,13 @@ export async function POST(request: Request) {
 
     let target: URL;
     try {
-      target = validatePublicHttpUrl(/^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`);
+      // Customers may enter example.com, www.example.com or a complete http(s) URL.
+      // Prefer HTTPS when the scheme is omitted; safePublicFetch still validates every redirect.
+      const preparedUrl = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
+      target = validatePublicHttpUrl(preparedUrl);
+      const host = target.hostname.toLowerCase().replace(/^www\./, "");
+      // Reject obvious non-host input early instead of turning it into a confusing fetch error.
+      if (!host.includes(".") && !/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) throw new Error("URL_HOST_INVALID");
     } catch {
       return NextResponse.json({ error: scanError.unsafe }, { status: 400 });
     }
@@ -338,8 +344,21 @@ export async function POST(request: Request) {
     const started = Date.now();
     let response: Response;
     try {
-      const fetchTarget = () => safePublicFetch(target, { timeoutMs: 12000, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml,text/plain,application/xml" });
-      ({ response } = await fetchTarget());
+      let activeTarget = target;
+      const fetchTarget = () => safePublicFetch(activeTarget, { timeoutMs: 12000, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml,text/plain,application/xml" });
+      try {
+        ({ response } = await fetchTarget());
+      } catch (httpsError) {
+        // For a scheme-less domain RankFix first tries HTTPS. Some legacy sites still only
+        // answer on HTTP, so retry HTTP once. Never downgrade an explicitly supplied HTTPS URL.
+        if (!/^https?:\/\//i.test(rawUrl) && target.protocol === "https:") {
+          activeTarget = validatePublicHttpUrl(`http://${target.host}${target.pathname}${target.search}`);
+          ({ response } = await fetchTarget());
+          target = activeTarget;
+        } else {
+          throw httpsError;
+        }
+      }
 
       // A 429 is a temporary rate limit, not an SEO finding. Respect Retry-After
       // when practical and retry at most twice so RankFix never creates a request loop.
