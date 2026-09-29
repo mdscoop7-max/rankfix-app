@@ -475,5 +475,11 @@ export async function POST(request:Request){
     }
 
     return NextResponse.json({success:true,summary:generated.summary,repository:repo,path,branch,pr:{number:pr.number,url:pr.html_url,title:pr.title}});
-  }catch(error){ return NextResponse.json({error:error instanceof Error?error.message:"GitHub fix mislukt."},{status:500}); }
+  }catch(error){
+    if(error instanceof FixProviderError){
+      return NextResponse.json({error:localizeProviderError(error.code,language)},{status:error.code==="AI_UNAVAILABLE"?503:502});
+    }
+    const raw=error instanceof Error?error.message:"GitHub fix mislukt.";
+    return NextResponse.json({error:localizeFixError(raw,language)},{status:500});
+  }
 }
