@@ -1,6 +1,6 @@
 import { CrawlPage, CrawlResult, CrawlMode, crawlSite } from "@/lib/crawler";
 
-export const SITE_AUDIT_ENGINE_VERSION = "1.5.0";
+export const SITE_AUDIT_ENGINE_VERSION = "1.6.0";
 
 export type SiteRuleStatus = "PASS" | "FAIL" | "WARNING" | "NOT_APPLICABLE" | "UNABLE_TO_CONFIRM";
 
@@ -37,7 +37,7 @@ export type SiteAudit = {
     blocked: number;
     complete: boolean;
   };
-  scores: { technical: number; onPage: number; content: number; structuredData: number; internalLinks: number; overall: number; grade: string };
+  scores: { technical: number; onPage: number; content: number; structuredData: number; internalLinks: number; accessibility: number; overall: number; grade: string };
   page_types: Record<string, number>;
   issues: SiteIssue[];
 };
@@ -223,6 +223,55 @@ const rules: RuleDef[] = [
     evaluate: p => ({status:"WARNING",found:p.redirectChain.length,expected:"≤ 1",details:p.redirectChain.map(step => `${step.status} ${step.from} → ${step.to}`).join(" | ")}),
   },
   {
+    id: "SITE_A11Y_HTML_LANG", category: "accessibility", title: "Paginataal ontbreekt", severity: "MEDIUM",
+    description: "De html lang-attribuut helpt schermlezers de juiste taal en uitspraak te gebruiken.",
+    recommendation: "Stel op iedere pagina een geldige html lang-waarde in die overeenkomt met de primaire taal.",
+    applicable: () => true,
+    evaluate: p => p.lang ? {status:"PASS",found:p.lang,details:"html lang-attribuut gevonden."} : {status:"FAIL",found:"",expected:"html lang",details:"Geen html lang-attribuut gevonden."},
+  },
+  {
+    id: "SITE_A11Y_FORM_LABELS", category: "accessibility", title: "Formuliervelden zonder aantoonbaar label", severity: "HIGH",
+    description: "Formuliervelden hebben een toegankelijke naam nodig zodat ondersteunende technologie hun doel kan bepalen.",
+    recommendation: "Koppel een zichtbaar label met for/id of gebruik een passende aria-label of aria-labelledby.",
+    applicable: () => true,
+    evaluate: p => p.accessibility.unlabeledControls ? {status:"FAIL",found:p.accessibility.unlabeledControls,expected:"0",details:`${p.accessibility.unlabeledControls} formulierveld(en) zonder aantoonbaar label in de statische HTML.`} : {status:"PASS",found:0,details:"Geen ongelabelde formuliervelden gevonden in de statische HTML."},
+  },
+  {
+    id: "SITE_A11Y_CONTROL_NAMES", category: "accessibility", title: "Knoppen of links zonder toegankelijke naam", severity: "HIGH",
+    description: "Interactieve elementen moeten een herkenbare tekst of toegankelijke naam hebben.",
+    recommendation: "Geef lege links en knoppen zichtbare tekst of een correcte toegankelijke naam.",
+    applicable: () => true,
+    evaluate: p => {const n=p.accessibility.emptyButtons+p.accessibility.emptyLinks;return n?{status:"FAIL",found:n,expected:"0",details:`${p.accessibility.emptyButtons} lege knop(pen) en ${p.accessibility.emptyLinks} lege link(s) zonder aantoonbare toegankelijke naam.`}:{status:"PASS",found:0,details:"Geen lege knoppen of links zonder aantoonbare toegankelijke naam gevonden."};},
+  },
+  {
+    id: "SITE_A11Y_IFRAME_TITLE", category: "accessibility", title: "Iframe zonder titel", severity: "MEDIUM",
+    description: "Een iframe heeft een toegankelijke naam nodig om de ingesloten inhoud herkenbaar te maken.",
+    recommendation: "Voeg een beschrijvende title of passende ARIA-naam toe aan ieder betekenisvol iframe.",
+    applicable: p => p.accessibility.iframesMissingTitle > 0,
+    evaluate: p => ({status:"FAIL",found:p.accessibility.iframesMissingTitle,expected:"0",details:`${p.accessibility.iframesMissingTitle} iframe(s) zonder aantoonbare titel of ARIA-naam.`}),
+  },
+  {
+    id: "SITE_A11Y_DUPLICATE_IDS", category: "accessibility", title: "Dubbele HTML-id's", severity: "MEDIUM",
+    description: "Dubbele id-attributen kunnen label- en ARIA-relaties ambigu maken.",
+    recommendation: "Maak id-attributen uniek binnen iedere pagina en controleer verwijzingen vanuit labels en ARIA-attributen.",
+    applicable: () => true,
+    evaluate: p => p.accessibility.duplicateIds ? {status:"WARNING",found:p.accessibility.duplicateIds,expected:"0",details:`${p.accessibility.duplicateIds} dubbele id-voorkomen(s) gevonden.`} : {status:"PASS",found:0,details:"Geen dubbele id-attributen gevonden."},
+  },
+  {
+    id: "SITE_A11Y_MAIN_LANDMARK", category: "accessibility", title: "Main landmark ontbreekt", severity: "LOW",
+    description: "Een main-element of role=main helpt gebruikers van ondersteunende technologie snel naar de hoofdinhoud te navigeren.",
+    recommendation: "Markeer de primaire pagina-inhoud met één passend main-element of main-landmark.",
+    applicable: () => true,
+    evaluate: p => p.accessibility.hasMainLandmark ? {status:"PASS",found:true,details:"Main landmark gevonden."} : {status:"WARNING",found:false,expected:"main landmark",details:"Geen main-element of role=main gevonden in de statische HTML."},
+  },
+  {
+    id: "SITE_A11Y_HEADING_ORDER", category: "accessibility", title: "Mogelijke sprong in headingstructuur", severity: "LOW",
+    description: "Grote sprongen tussen headingniveaus kunnen de documentstructuur minder duidelijk maken.",
+    recommendation: "Controleer de kopstructuur en gebruik headingniveaus in een logische hiërarchie.",
+    applicable: () => true,
+    evaluate: p => p.accessibility.headingLevelSkips ? {status:"WARNING",found:p.accessibility.headingLevelSkips,expected:"0",details:`${p.accessibility.headingLevelSkips} mogelijke sprong(en) in headingniveau gevonden.`} : {status:"PASS",found:0,details:"Geen duidelijke sprongen in headingniveaus gevonden."},
+  },
+  {
     id: "SITE_INTERNAL_LINKS_LOW", category: "internal-linking", title: "Weinig interne links", severity: "LOW",
     description: "Belangrijke indexeerbare pagina's hebben baat bij een begrijpelijke interne linkstructuur.",
     recommendation: "Voeg relevante contextuele interne links toe naar belangrijke gerelateerde pagina's.",
@@ -274,7 +323,8 @@ export async function auditSite(url: string, mode: CrawlMode = "STANDARD"): Prom
   const content = scoreFor(issues,["content"]);
   const structuredData = scoreFor(issues,["structured-data"]);
   const internalLinks = scoreFor(issues,["internal-linking"]);
-  const overall = Math.round((technical + onPage + content + structuredData + internalLinks) / 5);
+  const accessibility = scoreFor(issues,["accessibility","images"]);
+  const overall = Math.round((technical + onPage + content + structuredData + internalLinks + accessibility) / 6);
   const page_types: Record<string,number> = {};
   for (const p of pages) page_types[p.pageType]=(page_types[p.pageType]||0)+1;
   return {
@@ -282,7 +332,7 @@ export async function auditSite(url: string, mode: CrawlMode = "STANDARD"): Prom
     crawler_version:crawl.engineVersion, audit_version:SITE_AUDIT_ENGINE_VERSION,
     startedAt:crawl.startedAt, finishedAt:crawl.finishedAt,
     crawl:{pages:pages.length,discovered:crawl.discovered,errors:crawl.errors.length,blocked:crawl.blocked,complete:crawlComplete},
-    scores:{technical,onPage,content,structuredData,internalLinks,overall,grade:grade(overall)},
+    scores:{technical,onPage,content,structuredData,internalLinks,accessibility,overall,grade:grade(overall)},
     page_types, issues,
   };
 }

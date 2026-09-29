@@ -2,7 +2,7 @@ import { URL } from "node:url";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 
-export const CRAWLER_ENGINE_VERSION = "2.3.0";
+export const CRAWLER_ENGINE_VERSION = "2.4.0";
 
 export type CrawlMode = "QUICK" | "STANDARD" | "DEEP" | "ECOMMERCE" | "ENTERPRISE";
 export type PageType =
@@ -30,6 +30,15 @@ export type CrawlPage = {
   internalLinks: string[];
   imageCount: number;
   imagesMissingAlt: number;
+  accessibility: {
+    unlabeledControls: number;
+    emptyButtons: number;
+    emptyLinks: number;
+    iframesMissingTitle: number;
+    duplicateIds: number;
+    hasMainLandmark: boolean;
+    headingLevelSkips: number;
+  };
   jsonLdTypes: string[];
   localBusiness?: { types: string[]; name: boolean; address: boolean; telephone: boolean; url: boolean; openingHours: boolean; imageOrLogo: boolean; sameAs: boolean };
   pageType: PageType;
@@ -133,6 +142,18 @@ export async function crawlSite(startUrl:string,requestedMode:CrawlMode="STANDAR
       const xRobotsTag=response.headers.get("x-robots-tag");
       const noindex=/\bnoindex\b/i.test([robots,xRobotsTag||""].join(","));
       const imageMetrics=extractImageMetrics(html);
+      const ids=[...html.matchAll(/\bid\s*=\s*["']([^"']+)["']/gi)].map(m=>m[1]).filter(Boolean);
+      const duplicateIds=ids.length-new Set(ids).size;
+      const labels=new Set([...html.matchAll(/<label\b[^>]*for\s*=\s*["']([^"']+)["'][^>]*>/gi)].map(m=>m[1]));
+      const controls=[...html.matchAll(/<(input|select|textarea)\b[^>]*>/gi)].map(m=>m[0]).filter(tag=>!/\btype\s*=\s*["'](?:hidden|submit|button|reset|image)["']/i.test(tag));
+      const unlabeledControls=controls.filter(tag=>{const id=attr(tag,"id");return !/\baria-label\s*=\s*["'][^"']+["']/i.test(tag)&&!/\baria-labelledby\s*=\s*["'][^"']+["']/i.test(tag)&&!/\btitle\s*=\s*["'][^"']+["']/i.test(tag)&&!(id&&labels.has(id));}).length;
+      const emptyButtons=[...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/gi)].filter(m=>!stripHtml(m[2])&&!/\baria-label\s*=\s*["'][^"']+["']/i.test(m[1])&&!/\baria-labelledby\s*=\s*["'][^"']+["']/i.test(m[1])&&!/\btitle\s*=\s*["'][^"']+["']/i.test(m[1])).length;
+      const emptyLinks=[...html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)].filter(m=>!stripHtml(m[2])&&!/<img\b[^>]*\balt\s*=\s*["'][^"']+["']/i.test(m[2])&&!/\baria-label\s*=\s*["'][^"']+["']/i.test(m[1])&&!/\baria-labelledby\s*=\s*["'][^"']+["']/i.test(m[1])&&!/\btitle\s*=\s*["'][^"']+["']/i.test(m[1])).length;
+      const iframesMissingTitle=[...html.matchAll(/<iframe\b[^>]*>/gi)].filter(m=>!/\btitle\s*=\s*["'][^"']+["']/i.test(m[0])&&!/\baria-label\s*=\s*["'][^"']+["']/i.test(m[0])&&!/\baria-labelledby\s*=\s*["'][^"']+["']/i.test(m[0])).length;
+      const hasMainLandmark=/<main\b/i.test(html)||/<[^>]+\brole\s*=\s*["']main["']/i.test(html);
+      const headingLevels=[...html.matchAll(/<h([1-6])\b[^>]*>/gi)].map(m=>Number(m[1]));
+      let headingLevelSkips=0; for(let i=1;i<headingLevels.length;i++) if(headingLevels[i]>headingLevels[i-1]+1) headingLevelSkips++;
+      const accessibility={unlabeledControls,emptyButtons,emptyLinks,iframesMissingTitle,duplicateIds,hasMainLandmark,headingLevelSkips};
       const links=[...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi)].map(m=>normalize(m[1],resolved)).filter(Boolean) as string[];
       const uniqueLinks=[...new Set(links)];
       const blocks=[...html.matchAll(/<script[^>]+type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
@@ -142,7 +163,7 @@ export async function crawlSite(startUrl:string,requestedMode:CrawlMode="STANDAR
       const localTypes = new Set(["localbusiness","restaurant","bakery","barorcafe","beautysalon","dayspa","dentist","electrician","generalcontractor","homeandconstructionbusiness","locksmith","medicalclinic","plumber","roofingcontractor","store","hairdresser","automotivebusiness","realestateagent","legalservice","accountingservice","travelagency","hotel"]);
       for(const b of blocks){try{const parsed=JSON.parse(b[1]);const rawItems=Array.isArray(parsed)?parsed:(parsed?.["@graph"]||[parsed]);const items=Array.isArray(rawItems)?rawItems:[rawItems];for(const x of items){const t=x?.["@type"];const ts=(Array.isArray(t)?t:[t]).filter(Boolean).map(String);types.push(...ts);const isProduct=ts.some(v=>v.toLowerCase()==="product");if(isProduct){product.name ||= Boolean(x?.name);product.image ||= Boolean(x?.image);product.offers ||= Boolean(x?.offers);const offers=Array.isArray(x?.offers)?x.offers:[x?.offers].filter(Boolean);for(const o of offers){product.price ||= Boolean(o?.price ?? o?.lowPrice);product.priceCurrency ||= Boolean(o?.priceCurrency);product.availability ||= Boolean(o?.availability);}product.brandOrSku ||= Boolean(x?.brand || x?.sku || x?.gtin || x?.gtin13 || x?.mpn);}const isLocal=ts.some(v=>localTypes.has(v.toLowerCase()));if(isLocal){localBusiness.types.push(...ts.filter(v=>localTypes.has(v.toLowerCase())));localBusiness.name ||= Boolean(x?.name);localBusiness.address ||= Boolean(x?.address);localBusiness.telephone ||= Boolean(x?.telephone);localBusiness.url ||= Boolean(x?.url);localBusiness.openingHours ||= Boolean(x?.openingHours || x?.openingHoursSpecification);localBusiness.imageOrLogo ||= Boolean(x?.image || x?.logo);localBusiness.sameAs ||= Array.isArray(x?.sameAs) ? x.sameAs.length>0 : Boolean(x?.sameAs);}}}catch{jsonLdInvalid++}}
       const text=stripHtml(html);
-      pages.push({url:resolved.toString(),status:response.status,requestedUrl:item.url,redirectChain,contentType,responseTimeMs:Date.now()-started,title,description,h1,canonical:canonical?new URL(canonical,resolved).toString():null,lang,noindex,xRobotsTag,jsonLdInvalid,product:types.some(t=>t.toLowerCase()==="product")?product:undefined,wordCount:text.split(/\s+/).filter(Boolean).length,internalLinks:uniqueLinks,imageCount:imageMetrics.uniqueImageReferences,imagesMissingAlt:imageMetrics.missingAlt,jsonLdTypes:[...new Set(types)],localBusiness:localBusiness.types.length ? {...localBusiness,types:[...new Set(localBusiness.types)]} : undefined,pageType:classify(resolved.toString(),html,types),depth:item.depth,discoveredFrom:item.from});
+      pages.push({url:resolved.toString(),status:response.status,requestedUrl:item.url,redirectChain,contentType,responseTimeMs:Date.now()-started,title,description,h1,canonical:canonical?new URL(canonical,resolved).toString():null,lang,noindex,xRobotsTag,jsonLdInvalid,product:types.some(t=>t.toLowerCase()==="product")?product:undefined,wordCount:text.split(/\s+/).filter(Boolean).length,internalLinks:uniqueLinks,imageCount:imageMetrics.uniqueImageReferences,imagesMissingAlt:imageMetrics.missingAlt,accessibility,jsonLdTypes:[...new Set(types)],localBusiness:localBusiness.types.length ? {...localBusiness,types:[...new Set(localBusiness.types)]} : undefined,pageType:classify(resolved.toString(),html,types),depth:item.depth,discoveredFrom:item.from});
       for(const next of uniqueLinks){if(!queued.has(next)&&queue.length+pages.length<limit){queued.add(next);queue.push({url:next,depth:item.depth+1,from:item.url});}}
     }catch(e){errors.push({url:item.url,code:e instanceof Error&&e.message==="URL_BLOCKED"?"URL_BLOCKED":"FETCH_FAILED",message:e instanceof Error?e.message:"Unknown crawl error"});}
   }
