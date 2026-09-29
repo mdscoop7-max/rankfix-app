@@ -1553,8 +1553,10 @@ export async function POST(request: Request) {
         item.fix_category = getFixPolicy(mapped.rule_id).category;
       }
       const evidenceByKey: Record<string, string | number | boolean | null> = {
-        title,
-        description,
+        // Proven absence is evidence too. Keep an explicit marker so missing title/description
+        // can safely pass the AI/GitHub fix evidence gate without weakening that gate.
+        title: title || (item.key === "title" ? "metaTitlePresent=false" : null),
+        description: description || (item.key === "description" ? "metaDescriptionPresent=false" : null),
         h1: h1s.length,
         headings: headings.length,
         canonical: canonical || null,
