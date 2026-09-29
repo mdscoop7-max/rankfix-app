@@ -57,7 +57,7 @@ export default function DashboardScan() {
         <form onSubmit={run}><label htmlFor="dashboard-scan-url">{t.url}</label><div className="rf-shared-scan-form"><input id="dashboard-scan-url" type="url" value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://example.com" required/><button className="rf-primary" type="submit" disabled={busy||(usage.plan==="free"&&usage.used>=(usage.limit??2))}>{busy?t.running:t.run}</button></div></form>
         <div className="rf-shared-scan-meta"><span>✓ SEO</span><span>✓ GEO</span><span>✓ {t.technical}</span><span>✓ {t.shop}</span><span>✓ {t.ads}</span></div>
       </section>
-      {error&&<p className="rf-alert" role="alert">{error}</p>}
+      {error&&<p className="rf-alert text-sm font-semibold leading-relaxed sm:text-base" role="alert">{error}</p>}
       {busy&&<section className="rf-scan-progress" aria-live="polite"><div className="rf-scan-spinner"/><div><strong>{t.running}</strong><p>SEO · GEO · {t.technical} · {t.shop} · {t.ads}</p></div></section>}
       {result&&<section className="rf-report rf-shared-result" aria-live="polite"><div className="rf-shared-score" style={{"--rf-score":result.overallScore} as React.CSSProperties}><strong>{result.overallScore}</strong><span>/100</span></div><div><span className="rf-eyebrow">{t.score}</span><h2>SEO {result.seo?.score??"—"} · GEO {result.geo?.score??"—"}</h2><p>{passed} {t.passed} · {issues} {t.issues}</p><p>{t.next}</p><div className="rf-shared-actions"><a className="rf-primary-link" href="/dashboard/history">{t.history}</a><a className="rf-back" href="/dashboard">← {t.dashboard}</a></div></div></section>}
     </div>
