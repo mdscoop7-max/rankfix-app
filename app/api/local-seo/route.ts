@@ -26,7 +26,9 @@ export async function POST(request: Request) {
   if(!url)return NextResponse.json({error:tr({nl:"Vul een website-URL in.",en:"Enter a website URL.",de:"Gib eine Website-URL ein.",fr:"Saisissez l’URL d’un site.",it:"Inserisci l’URL di un sito.",es:"Introduce la URL de un sitio web."})},{status:400});
   const audit=await auditSite(url,"QUICK");
   const localPages=audit.page_types.local_business||0;
-  // The site-audit rule itself is only applicable to pages confidently classified as local_business.\n  // Do not turn absence of local signals on a generic website into a Local SEO warning.\n  const localApplicability = localPages > 0;
+  // The site-audit rule itself is only applicable to pages confidently classified as local_business.
+  // Do not turn absence of local signals on a generic website into a Local SEO warning.
+  const localApplicability = localPages > 0;
   const localRule=audit.issues.find(i=>i.rule_id==="SITE_LOCAL_BUSINESS_IDENTITY");
   const schemaRule=audit.issues.find(i=>i.rule_id==="SITE_STRUCTURED_DATA_MISSING");
   const na=tr({nl:"Niet van toepassing.",en:"Not applicable.",de:"Nicht zutreffend.",fr:"Non applicable.",it:"Non applicabile.",es:"No aplicable."});
