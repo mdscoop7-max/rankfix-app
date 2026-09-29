@@ -136,3 +136,20 @@ export async function sendMonitoringAlertEmail(alert:MonitoringAlertEmail){
   if(!response.ok) throw new Error("Monitoring alert email failed ("+response.status+")");
   return response.json();
 }
+
+
+type SystemHealthEmail={to:string;recovered?:boolean;checks:Array<{label:string;level:string;message:string}>};
+export async function sendSystemHealthEmail(alert:SystemHealthEmail){
+ const apiKey=process.env.RESEND_API_KEY;
+ const from=process.env.SCAN_REPORT_FROM||process.env.RESEND_FROM;
+ if(!apiKey||!from) throw new Error("Email configuration missing.");
+ const base=(process.env.APP_URL||"https://rankfix-app.onrender.com").replace(/\/$/,"");
+ const dashboard=base+"/dashboard/health";
+ const subject=alert.recovered?"RankFix Health Guard — systeem hersteld":"RankFix Health Guard — kritiek probleem";
+ const intro=alert.recovered?"RankFix werkt weer normaal. Het kritieke incident is automatisch als hersteld gemarkeerd.":"Health Guard heeft een kritiek probleem meerdere keren bevestigd. Controleer het interne health-dashboard.";
+ const rows=alert.checks.map(c=>"<li><strong>"+escapeHtml(c.label)+"</strong> — "+escapeHtml(c.message)+"</li>").join("");
+ const html='<!doctype html><html><body style="font-family:Arial,sans-serif;background:#f8fafc;color:#0f172a"><div style="max-width:620px;margin:auto;padding:28px"><div style="background:#fff;border-radius:16px;padding:24px"><div style="font-size:12px;font-weight:800">RANKFIX HEALTH GUARD</div><h1>'+escapeHtml(subject)+'</h1><p>'+escapeHtml(intro)+'</p><ul>'+rows+'</ul><p><a href="'+escapeHtml(dashboard)+'">Open Health Dashboard</a></p></div></div></body></html>';
+ const response=await fetch("https://api.resend.com/emails",{method:"POST",headers:{Authorization:"Bearer "+apiKey,"Content-Type":"application/json"},body:JSON.stringify({from,to:[alert.to],subject,html})});
+ if(!response.ok) throw new Error("System health email failed ("+response.status+")");
+ return response.json();
+}
