@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { ensureDatabase } from "@/lib/db-init";
 import { getDb } from "@/lib/db";
+import { getDatabaseAndQueueGuards } from "@/lib/operational-guards";
+import { getSecurityUsageGrowthGuards } from "@/lib/security-usage-growth";
+import { getBackupRecoveryGuards } from "@/lib/recovery-guard";
 
 function isHealthAdmin(email:string){
  const configured=(process.env.HEALTH_ADMIN_EMAILS||process.env.ADMIN_EMAIL||"")
@@ -19,5 +22,6 @@ export async function GET(){
    getDb().query("SELECT incident_key,status,failure_count,first_seen_at,last_seen_at,alerted_at,resolved_at,recovery_alerted_at,details FROM rankfix_health_incidents ORDER BY last_seen_at DESC LIMIT 20"),
    getDb().query("SELECT overall_level,signals,created_at FROM rankfix_capacity_runs ORDER BY created_at DESC LIMIT 50")
  ]);
- return NextResponse.json({runs:runs.rows,incidents:incidents.rows,capacity:capacity.rows});
+ const [operationalGuards,securityUsageGrowth,recoveryGuards]=await Promise.all([getDatabaseAndQueueGuards(),getSecurityUsageGrowthGuards(),getBackupRecoveryGuards()]);
+ return NextResponse.json({runs:runs.rows,incidents:incidents.rows,capacity:capacity.rows,operationalGuards,securityUsageGrowth,recoveryGuards});
 }
