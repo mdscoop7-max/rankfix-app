@@ -19,7 +19,12 @@ function isPrivateIp(address: string) {
     return parts[0]===10 || parts[0]===127 || (parts[0]===169&&parts[1]===254) || (parts[0]===172&&parts[1]>=16&&parts[1]<=31) || (parts[0]===192&&parts[1]===168) || parts[0]===0;
   }
   if(isIP(ip)===6){
-    return ip==="::1" || ip==="::" || ip.startsWith("fc") || ip.startsWith("fd") || /^fe[89ab]/i.test(ip) || ip.startsWith("::ffff:127.") || ip.startsWith("::ffff:10.") || ip.startsWith("::ffff:192.168.");
+    const mapped=ip.match(/^::ffff:(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/i);
+    if(mapped){
+      const parts=mapped.slice(1).map(Number);
+      return parts.some(part=>part>255) || parts[0]===10 || parts[0]===127 || (parts[0]===169&&parts[1]===254) || (parts[0]===172&&parts[1]>=16&&parts[1]<=31) || (parts[0]===192&&parts[1]===168) || parts[0]===0;
+    }
+    return ip==="::1" || ip==="::" || ip.startsWith("fc") || ip.startsWith("fd") || /^fe[89ab]/i.test(ip);
   }
   return true;
 }
