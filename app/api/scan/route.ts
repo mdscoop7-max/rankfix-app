@@ -843,6 +843,27 @@ export async function POST(request: Request) {
       return [{ ...item, contextTokens: contextTokens.slice(0, 8), destinationTokens: destinationTokens.slice(0, 8) }];
     }).slice(0, 8);
 
+    const productCardMismatches: { urls: string[] }[] = [];
+    const productCardPattern = /<li\b[^>]*class=["'][^"']*product[^"']*["'][^>]*>([\s\S]*?)<\/li>/gi;
+    for (const cardMatch of html.matchAll(productCardPattern)) {
+      const cardHtml = cardMatch[1] || "";
+      const urls = [...cardHtml.matchAll(/href\s*=\s*["']([^"']+)["']/gi)].flatMap((linkMatch) => {
+        try {
+          const target = new URL(decode(linkMatch[1] || ""), finalUrl);
+          if (target.hostname !== finalUrl.hostname || !/\/(?:product|products)\//i.test(target.pathname)) return [];
+          return [target.toString()];
+        } catch { return []; }
+      });
+      const uniqueUrls = [...new Set(urls.map((url) => normalizeScanUrl(url)))];
+      if (uniqueUrls.length < 2) continue;
+      const identities = uniqueUrls.map((url) => ({ url, tokens: semanticTokens(new URL(url).pathname) }));
+      const conflict = identities.some((left, index) => identities.slice(index + 1).some((right) =>
+        left.tokens.length > 0 && right.tokens.length > 0 && !left.tokens.some((token) => right.tokens.includes(token))
+      ));
+      if (conflict) productCardMismatches.push({ urls: uniqueUrls.slice(0, 5) });
+      if (productCardMismatches.length >= 8) break;
+    }
+
     const seoChecks: Check[] = [];
     const geoChecks: Check[] = [];
 
@@ -863,9 +884,9 @@ export async function POST(request: Request) {
     seoChecks.push(
       uniqueInternalAnchors.length === 0
         ? check("not_applicable", "semantic_link_destination", "seo", "Verkeerde linkbestemming", "Geen controleerbare interne links gevonden.", "Controleer productkaarten zodra ze op de pagina aanwezig zijn.", 0, 5)
-        : semanticLinkMismatches.length === 0
+        : semanticLinkMismatches.length === 0 && productCardMismatches.length === 0
           ? check("pass", "semantic_link_destination", "seo", "Verkeerde linkbestemming", "Geen sterke semantische mismatch gevonden tussen benoemde productlinks en hun product-URL. Prijs-only links worden bewust niet als bewijs gebruikt.", "Houd titel, afbeelding en productbestemming binnen productkaarten consistent.", 5, 5)
-          : check("warning", "semantic_link_destination", "seo", "Verkeerde linkbestemming", `Mogelijke verkeerde productbestemming gevonden: "${semanticLinkMismatches[0]?.context}" verwijst naar ${semanticLinkMismatches[0]?.finalUrl || semanticLinkMismatches[0]?.url}. De URL werkt technisch, maar de productnaam en bestemming delen geen duidelijke producttermen.`, "Controleer handmatig of titel/afbeelding/prijs binnen dezelfde productkaart naar hetzelfde product verwijzen. Markeer dit pas als definitieve fout na bevestiging.", 2, 5)
+          : check("warning", "semantic_link_destination", "seo", "Verkeerde linkbestemming", productCardMismatches.length > 0 ? `Binnen één productkaart verwijzen onderdelen naar verschillende productbestemmingen: ${productCardMismatches[0].urls.join(" ↔ ")}. De links werken technisch, maar lijken niet bij hetzelfde product te horen.` : `Mogelijke verkeerde productbestemming gevonden: "${semanticLinkMismatches[0]?.context}" verwijst naar ${semanticLinkMismatches[0]?.finalUrl || semanticLinkMismatches[0]?.url}. De URL werkt technisch, maar de productnaam en bestemming delen geen duidelijke producttermen.`, "Controleer handmatig of titel/afbeelding/prijs binnen dezelfde productkaart naar hetzelfde product verwijzen. Markeer dit pas als definitieve fout na bevestiging.", 2, 5)
     );
 
     // Extended audit signals: trust, ecommerce quality, URL hygiene, social metadata and multilingual SEO.
