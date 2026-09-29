@@ -217,7 +217,12 @@ async function generateCodeFix(filePath:string,fileContent:string,issue:string,c
   const data=await response.json();
   const text=typeof data?.output_text==="string"?data.output_text:data?.output?.flatMap((x:any)=>x?.content||[]).map((x:any)=>x?.text||"").join("")||"";
   const clean=text.replace(/^\`\`\`json\s*/i,"").replace(/\s*\`\`\`$/,"").trim();
-  const parsed=JSON.parse(clean);
+  let parsed:any;
+  try { parsed=JSON.parse(clean); }
+  catch(error){
+    console.error("GitHub Fix AI returned invalid JSON", error instanceof Error ? error.message : "invalid JSON");
+    throw new FixProviderError("AI_INVALID_OUTPUT","AI provider returned invalid structured output.");
+  }
   if(typeof parsed.content!=="string"||typeof parsed.summary!=="string") throw new FixProviderError("AI_INVALID_OUTPUT","AI provider returned invalid structured output.");
   return parsed;
 }
@@ -282,7 +287,12 @@ export async function POST(request:Request){
   let language:"nl"|"en"|"de"|"fr"|"it"|"es"="nl";
   try{
     const user=await getCurrentUser();
-    if(!user) return NextResponse.json({error:"Login vereist."},{status:401});
+    if(!user) {
+      const acceptLanguage=(request.headers.get("accept-language")||"").toLowerCase();
+      const requested=(acceptLanguage.match(/(?:^|,|\s)(nl|en|de|fr|it|es)(?:-|;|,|$)/)?.[1]||"nl") as typeof language;
+      const loginCopy={nl:"Login vereist.",en:"Login required.",de:"Anmeldung erforderlich.",fr:"Connexion requise.",it:"Accesso richiesto.",es:"Inicio de sesión requerido."} as const;
+      return NextResponse.json({error:loginCopy[requested]},{status:401});
+    }
     await ensureDatabase();
     const body=await request.json();
     const planResult=await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1",[user.id]);
