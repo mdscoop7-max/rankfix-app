@@ -14,13 +14,15 @@ const labels={green:"Gezond",orange:"Aandacht",red:"Kritiek"};
 const dot=(l:Level)=>l==="green"?"●":l==="orange"?"▲":"■";
 
 export default function HealthPage(){
- const [runs,setRuns]=useState<Run[]>([]),[capacity,setCapacity]=useState<CapacityRun[]>([]),[incidents,setIncidents]=useState<Incident[]>([]),[guards,setGuards]=useState<Guard[]>([]),[recovery,setRecovery]=useState<Guard[]>([]),[error,setError]=useState("");
- useEffect(()=>{fetch("/api/health/system",{cache:"no-store"}).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error||"Control Center laden mislukt.");setRuns(d.runs||[]);setCapacity(d.capacity||[]);setIncidents(d.incidents||[]);setGuards([...(d.operationalGuards||[]),...(d.securityUsageGrowth||[])]);setRecovery(d.recoveryGuards||[])}).catch(e=>setError(e.message))},[]);
+ const [runs,setRuns]=useState<Run[]>([]),[capacity,setCapacity]=useState<CapacityRun[]>([]),[incidents,setIncidents]=useState<Incident[]>([]),[guards,setGuards]=useState<Guard[]>([]),[recovery,setRecovery]=useState<Guard[]>([]),[error,setError]=useState(""),[checking,setChecking]=useState(false);
+ async function load(){const r=await fetch("/api/health/system",{cache:"no-store"});const d=await r.json();if(!r.ok)throw new Error(d.error||"Control Center laden mislukt.");setRuns(d.runs||[]);setCapacity(d.capacity||[]);setIncidents(d.incidents||[]);setGuards([...(d.operationalGuards||[]),...(d.securityUsageGrowth||[])]);setRecovery(d.recoveryGuards||[])}
+ useEffect(()=>{load().catch(e=>setError(e.message))},[]);
+ async function runNow(){setChecking(true);setError("");try{const r=await fetch("/api/health/run-now",{method:"POST"});const d=await r.json();if(!r.ok)throw new Error(d.error||"Health-controle mislukt.");await load()}catch(e){setError(e instanceof Error?e.message:"Health-controle mislukt.")}finally{setChecking(false)}}
  const latest=runs[0],cap=capacity[0],open=incidents.filter(i=>i.status==="open");
  const checks=latest?.checks||[],signals=cap?.signals||[];
  const group=(keys:string[])=>checks.filter(c=>keys.some(k=>c.key.includes(k)));
  return <main className="rf-page"><div className="rf-shell"><header className="rf-header"><a href="/dashboard" className="rf-brand">RankFix <span>AI</span></a></header><DashboardNav/>
- <div className="rf-body"><div className="rf-heading"><span className="rf-eyebrow">Alleen beheerder</span><h1>Internal Control Center</h1><p>Technische bewaking van RankFix zelf: gezondheid, capaciteit, database, verwerking, externe diensten en incidenten.</p></div>
+ <div className="rf-body"><div className="rf-heading"><span className="rf-eyebrow">Alleen beheerder</span><h1>Internal Control Center</h1><p>Technische bewaking van RankFix zelf: gezondheid, capaciteit, database, verwerking, externe diensten en incidenten.</p><button type="button" className="rf-primary-button mt-4" onClick={runNow} disabled={checking}>{checking?"Controleren…":"↻ Nu controleren"}</button></div>
  {error&&<div className="rf-alert">{error}</div>}
  <section className="rf-plan-card"><div><span className="rf-eyebrow">System Health</span><h2>{latest?labels[latest.overall_level]:"Nog geen controle"}</h2><p>{latest?"Laatste health-run: "+new Date(latest.created_at).toLocaleString("nl-NL"):"Nog geen health-run opgeslagen."}</p></div><div><strong>{open.length}</strong><p>actieve incidenten</p></div></section>
  <div className="rf-grid">

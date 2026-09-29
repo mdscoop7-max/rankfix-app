@@ -14,8 +14,7 @@ const FAILURE_THRESHOLD=3;
 function authorized(request:Request){const secret=process.env.MONITOR_SECRET;return Boolean(secret&&request.headers.get("authorization")===`Bearer ${secret}`)}
 function alertRecipient(){return (process.env.HEALTH_ALERT_EMAIL||process.env.ADMIN_EMAIL||"").trim()}
 
-export async function GET(request:Request){
- if(!authorized(request)) return NextResponse.json({error:"Niet toegestaan."},{status:401});
+export async function runHealthGuard(){
  await ensureDatabase();
  const db=getDb();
  const checks=await runRankFixHealthChecks();
@@ -85,5 +84,9 @@ export async function GET(request:Request){
  await releaseStaleJobs().catch(error=>console.error("Queue stale-job recovery failed",error instanceof Error?error.message:"QUEUE_RECOVERY_FAILED"));
  await db.query("DELETE FROM background_jobs WHERE status IN ('SUCCEEDED','FAILED') AND finished_at < NOW()-INTERVAL '30 days'").catch(()=>undefined);
  return NextResponse.json({level,checks,capacityLevel,capacity,capacityTrendLevel,capacityTrends,operationalGuards,securityUsageGrowth,recoveryGuards,critical:criticalChecks.length>0,alertSent,recoverySent,checkedAt:new Date().toISOString()});
+}
+export async function GET(request:Request){
+ if(!authorized(request)) return NextResponse.json({error:"Niet toegestaan."},{status:401});
+ return runHealthGuard();
 }
 export async function POST(request:Request){return GET(request)}
