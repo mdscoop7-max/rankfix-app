@@ -259,7 +259,18 @@ function localizeFixError(message:string,language:"nl"|"en"|"de"|"fr"|"it"|"es")
     "Het doelbestand is geen standaard web-templatebestand.":{en:"The target file is not a standard web template file.",de:"Die Zieldatei ist keine standardmäßige Web-Template-Datei.",fr:"Le fichier cible n’est pas un fichier de modèle web standard.",it:"Il file di destinazione non è un file template web standard.",es:"El archivo de destino no es un archivo de plantilla web estándar."},
     "De AI-fix is buiten verhouding groot ten opzichte van het bestaande bestand.":{en:"The AI fix is disproportionately large compared with the existing file.",de:"Der AI-Fix ist im Verhältnis zur bestehenden Datei unverhältnismäßig groß.",fr:"La correction AI est disproportionnée par rapport au fichier existant.",it:"La correzione AI è sproporzionatamente grande rispetto al file esistente.",es:"La corrección AI es desproporcionadamente grande en comparación con el archivo existente."}
   };
-  return translations[message]?.[language]||message;
+  const known=translations[message]?.[language];
+  if(known) return known;
+  // Never expose unexpected GitHub/provider/database details to customers.
+  const generic={
+    nl:"GitHub Fix kon niet veilig worden voltooid. Probeer opnieuw of controleer de GitHub-koppeling.",
+    en:"GitHub Fix could not be completed safely. Try again or check the GitHub connection.",
+    de:"GitHub Fix konnte nicht sicher abgeschlossen werden. Versuche es erneut oder prüfe die GitHub-Verbindung.",
+    fr:"GitHub Fix n’a pas pu être terminé en toute sécurité. Réessayez ou vérifiez la connexion GitHub.",
+    it:"GitHub Fix non è stato completato in modo sicuro. Riprova o controlla la connessione GitHub.",
+    es:"GitHub Fix no pudo completarse de forma segura. Inténtalo de nuevo o revisa la conexión con GitHub."
+  } as const;
+  return generic[language];
 }
 
 function estimateChangedLines(before:string,after:string){
