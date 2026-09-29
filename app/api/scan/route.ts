@@ -105,6 +105,10 @@ function normalizeScanUrl(value: string) {
     url.hash = "";
     url.hostname = url.hostname.toLowerCase().replace(/^www\./, "");
     url.pathname = url.pathname.replace(/\/+$/, "") || "/";
+    // Tracking parameters do not identify a different hreflang/canonical target.
+    // Remove only well-known marketing parameters; preserve functional query parameters.
+    ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "fbclid", "msclkid"]
+      .forEach((param) => url.searchParams.delete(param));
     return url.toString();
   } catch {
     return value.trim().replace(/\/+$/, "");
@@ -772,12 +776,22 @@ export async function POST(request: Request) {
       .filter((rule) => robotsRuleMatches(rule.path, robotsPath))
       .sort((a, b) => b.path.length - a.path.length || (a.kind === "allow" ? -1 : 1));
     const robotsPathBlocked = robotsStatus === "PASS" && matchingRobotsRules.length > 0 && matchingRobotsRules[0].kind === "disallow";
+    const htmlDeclaredSitemapUrls = [...html.matchAll(/<link\b[^>]*>/gi)]
+      .map((match) => match[0])
+      .filter((tag) => /\brel\s*=\s*["'][^"']*\bsitemap\b[^"']*["']/i.test(tag))
+      .flatMap((tag) => {
+        const href = attrFromTag(tag, "href");
+        if (!href) return [];
+        try { return [new URL(href, finalUrl).toString()]; } catch { return []; }
+      });
     const commonSitemapUrls = [
       sitemapUrl.toString(),
       new URL("/wp-sitemap.xml", finalUrl).toString(),
       new URL("/sitemap_index.xml", finalUrl).toString(),
+      new URL("/sitemap-index.xml", finalUrl).toString(),
     ];
-    const sitemapCandidates = [...new Set([...robotsDeclaredSitemapUrls, ...commonSitemapUrls])].slice(0, 20);
+    // Prefer explicit declarations, then conservative platform-standard fallbacks.
+    const sitemapCandidates = [...new Set([...robotsDeclaredSitemapUrls, ...htmlDeclaredSitemapUrls, ...commonSitemapUrls])].slice(0, 20);
     let sitemapFetchFailed = false;
     for (const candidate of sitemapCandidates) {
       try {
@@ -1571,6 +1585,7 @@ export async function POST(request: Request) {
         robots_txt: robotsStatus === "PASS" ? `${robotsUrl.toString()}; pathBlocked=${robotsPathBlocked}${matchingRobotsRules[0] ? `; rule=${matchingRobotsRules[0].kind}:${matchingRobotsRules[0].path}` : ""}` : robotsStatus,
         indexability: noindexSignal ? [robots, xRobotsTag].filter(Boolean).join(" | ") : robotsPathBlocked ? `robots disallow: ${matchingRobotsRules[0].path}` : "no noindex or applicable robots block found",
         hreflang: hreflangEntries.length ? hreflangEntries.map((entry) => `${entry.language}=>${entry.href || "missing"}`).join(" | ") : null,
+        twitter_card: twitterCard || null,
         social: [ogTitle ? "og:title" : "", ogDescription ? "og:description" : "", ogImage ? "og:image" : ""].filter(Boolean).join(", ") || (item.key === "social" ? "Open Graph core fields missing" : null),
         product_schema: isProductPage && hasProductSchema ? JSON.stringify(productOfferSummary.slice(0, 3)) : null,
         webshop_trust: hasProductSignal ? `shipping=${hasShippingSignal}; returns=${hasReturnsSignal}; reviewPlatform=${hasReviewPlatformSignal}; checkoutSignal=${hasCheckoutTrustSignal}` : null,
