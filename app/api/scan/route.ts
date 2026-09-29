@@ -1039,7 +1039,21 @@ export async function POST(request: Request) {
       return { language, href, validHref, validLanguage };
     });
     const invalidHreflangEntries = hreflangEntries.filter((entry) => !entry.validLanguage || !entry.validHref);
-    const duplicateHreflangLanguages = [...new Set(hreflangValues.filter((value, index) => hreflangValues.indexOf(value) !== index))];
+    const hreflangTargetsByLanguage = new Map<string, string[]>();
+    for (const entry of hreflangEntries) {
+      if (!entry.language || !entry.validHref) continue;
+      try {
+        const normalizedHref = normalizeScanUrl(new URL(entry.href, finalUrl).toString());
+        hreflangTargetsByLanguage.set(entry.language, [...(hreflangTargetsByLanguage.get(entry.language) || []), normalizedHref]);
+      } catch {}
+    }
+    const duplicateHreflangLanguages = [...hreflangTargetsByLanguage.entries()]
+      .filter(([, urls]) => urls.length > 1)
+      .map(([language]) => language);
+    const conflictingHreflangLanguages = [...hreflangTargetsByLanguage.entries()]
+      .filter(([, urls]) => new Set(urls).size > 1)
+      .map(([language]) => language);
+    const identicalDuplicateHreflangLanguages = duplicateHreflangLanguages.filter((language) => !conflictingHreflangLanguages.includes(language));
     const languageSelectorSignal = /(?:language|taal|sprache|idioma|lingua|français|deutsch|italiano|español|english|nederlands)\b/i.test(text) && /(?:select|dropdown|menu|switch|\bEN\b|\bNL\b|\bDE\b|\bFR\b|\bES\b|\bIT\b)/i.test(text);
     // A language/country selector alone does not prove equivalent translated URLs exist.
     // Only explicit hreflang markup is strong enough in a single raw-HTML page scan.
@@ -1269,9 +1283,11 @@ export async function POST(request: Request) {
         : check("not_applicable", "hreflang", "seo", "Meertalige SEO", "Geen bewezen alternatieve taal-URL's gevonden; RankFix telt hreflang daarom niet mee in de score.", "Gebruik hreflang wanneer dezelfde content aantoonbaar in meerdere talen/URL's beschikbaar is.", 0, 5)
       : invalidHreflangEntries.length
           ? check("warning", "hreflang", "seo", "Meertalige SEO", `${hreflangTags.length} hreflang-link(s) gevonden, maar ${invalidHreflangEntries.length} bevat een ongeldige taal-/regiocode of URL.`, "Corrigeer ongeldige hreflang-codes en href-URL's. Controleer daarna wederkerigheid tussen taalversies.", 2, 5)
-          : duplicateHreflangLanguages.length
-            ? check("warning", "hreflang", "seo", "Meertalige SEO", `Geldige hreflang-links gevonden, maar dezelfde taalcode komt meerdere keren voor: ${duplicateHreflangLanguages.join(", ")}.`, "Gebruik per pagina een eenduidige doel-URL per taal/regiocode en controleer wederkerigheid.", 3, 5)
-            : check("unable_to_confirm", "hreflang", "seo", "Meertalige SEO", `${hreflangTags.length} syntactisch geldige hreflang-link(s) gevonden. Vanuit één pagina kan RankFix wederkerigheid en canonicals van alle taalversies nog niet bewijzen.`, "Controleer de gekoppelde taal-URL's in een sitebrede crawl voordat hreflang volledig wordt bevestigd.", 0, 5)
+          : conflictingHreflangLanguages.length
+            ? check("warning", "hreflang", "seo", "Meertalige SEO", `Dezelfde hreflang-code verwijst naar verschillende doel-URL's: ${conflictingHreflangLanguages.map((language) => `${language} => ${[...new Set(hreflangTargetsByLanguage.get(language) || [])].join(" | ")}`).join("; ")}.`, "Gebruik per pagina één eenduidige doel-URL per taal/regiocode en controleer daarna wederkerigheid.", 3, 5)
+            : identicalDuplicateHreflangLanguages.length
+              ? check("warning", "hreflang", "seo", "Meertalige SEO", `Dezelfde hreflang-code is dubbel opgenomen met dezelfde doel-URL: ${identicalDuplicateHreflangLanguages.map((language) => `${language} => ${(hreflangTargetsByLanguage.get(language) || [])[0]}`).join("; ")}.`, "Verwijder de dubbele hreflang-tag zodat iedere taal-/regiocode één keer voorkomt. Controleer daarna wederkerigheid.", 4, 5)
+              : check("unable_to_confirm", "hreflang", "seo", "Meertalige SEO", `${hreflangTags.length} syntactisch geldige hreflang-link(s) gevonden. Vanuit één pagina kan RankFix wederkerigheid en canonicals van alle taalversies nog niet bewijzen.`, "Controleer de gekoppelde taal-URL's in een sitebrede crawl voordat hreflang volledig wordt bevestigd.", 0, 5)
     );
 
     seoChecks.push(hasDuplicatePathSegments
