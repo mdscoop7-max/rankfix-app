@@ -41,8 +41,11 @@ export async function GET(){
   const usageResult=await getDb().query("SELECT COUNT(*)::int AS count FROM usage_events WHERE user_id=$1 AND event_type='SCAN' AND created_at >= $2",[user.id,monthStart.toISOString()]);
   used=Number(usageResult.rows[0]?.count||0);
  }
+ const gscResult=await getDb().query("SELECT site_url,last_sync_at FROM search_console_properties WHERE user_id=$1 AND selected=TRUE ORDER BY updated_at DESC LIMIT 1",[user.id]);
+ const gscProperty=gscResult.rows[0]||null;
+ const searchConsole={connected:Boolean(gscProperty),siteUrl:gscProperty?.site_url||null,lastSyncAt:gscProperty?.last_sync_at||null,synced:Boolean(gscProperty?.last_sync_at)};
  const actionUsageResult=await getDb().query("SELECT event_type,COUNT(*)::int AS count FROM usage_events WHERE user_id=$1 AND created_at >= $2 AND event_type IN ('AI_FIX','COMPETITOR_SCAN','LOCAL_SEO') GROUP BY event_type",[user.id,monthStart.toISOString()]);
  const actionCounts=Object.fromEntries(actionUsageResult.rows.map((row:any)=>[String(row.event_type),Number(row.count||0)]));
  const usage={plan,used,limit:limits.scans,websiteHost,websites:limits.websites,actions:{aiFixes:{used:actionCounts.AI_FIX||0,limit:limits.aiFixes},competitorScans:{used:actionCounts.COMPETITOR_SCAN||0,limit:limits.competitorScans},localSeo:{used:actionCounts.LOCAL_SEO||0,limit:limits.localSeo}}};
- return NextResponse.json({scans,history:allScans,fixes:Object.fromEntries(pending.rows.map(row=>[row.status,row.count])),usage});
+ return NextResponse.json({scans,history:allScans,fixes:Object.fromEntries(pending.rows.map(row=>[row.status,row.count])),usage,searchConsole});
 }
