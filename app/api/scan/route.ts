@@ -1577,6 +1577,11 @@ export async function POST(request: Request) {
         product_price_consistency: isProductPage ? `visible=${visiblePriceCandidates.join(",") || "none"}; visibleEvidence=${visiblePriceEvidenceStrength}; schema=${structuredPriceCandidates.join(",") || "none"}` : null,
         product_availability: isProductPage ? `visibleState=${visibleAvailabilityState || "none"}; schemaStates=${structuredAvailabilityStates.join(",") || "none"}; schema=${structuredAvailabilityValues.join(",") || "none"}; contradiction=${availabilityContradiction}` : null,
         ads_readiness: (adsTrackingSignals || hasConversionSignal || hasExplicitAdsConversionSnippet) ? `adsIds=${googleAdsIds.join(",") || "none"}; ga4Ids=${ga4MeasurementIds.join(",") || "none"}; events=${uniqueConversionEventNames.join(",") || "none"}; adsLabels=${googleAdsSendToLabels.join(",") || "none"}; consentSignal=${hasConsentModeSignal}` : null,
+        broken_links: uniqueInternalAnchors.length ? `checked=${linkAuditResults.length}; broken=${brokenInternalLinks.length}; sampleLimit=24` : null,
+        internal_redirects: uniqueInternalAnchors.length ? `checked=${linkAuditResults.length}; redirected=${redirectedInternalLinks.length}; sampleLimit=24` : null,
+        accessibility_basics: `imagesMissingAlt=${imagesMissingAlt}; unlabeledControls=${unlabeledFormControls}; emptyButtons=${emptyButtons}; staticHtmlOnly=true`,
+        consent_mode_readiness: adsTrackingSignals > 0 ? `trackingSignals=${adsTrackingSignals}; explicitConsentSignal=${hasConsentModeSignal}; runtimeNotExecuted=true` : null,
+        merchant_feed_signal: hasEcommerceSignal ? `feedHint=${hasMerchantFeedHint}; productReadiness=${merchantProductReadiness}; websiteSignalsOnly=true` : null,
       };
       const heuristicKeys = new Set([
         "content", "headings", "duplicate_path", "html_escape", "image_sources", "webshop_claims",
