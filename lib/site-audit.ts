@@ -1,6 +1,6 @@
 import { CrawlPage, CrawlResult, CrawlMode, crawlSite } from "@/lib/crawler";
 
-export const SITE_AUDIT_ENGINE_VERSION = "1.6.0";
+export const SITE_AUDIT_ENGINE_VERSION = "1.7.0";
 
 export type SiteRuleStatus = "PASS" | "FAIL" | "WARNING" | "NOT_APPLICABLE" | "UNABLE_TO_CONFIRM";
 
@@ -36,6 +36,8 @@ export type SiteAudit = {
     errors: number;
     blocked: number;
     complete: boolean;
+    truncated: boolean;
+    scope: "sitewide" | "sample";
   };
   scores: { technical: number; onPage: number; content: number; structuredData: number; internalLinks: number; accessibility: number; overall: number; grade: string };
   page_types: Record<string, number>;
@@ -295,8 +297,8 @@ function buildIssue(rule: RuleDef, affected: Array<{ p: CrawlPage; r: RuleEvalua
 }
 
 function scoreFor(issues: SiteIssue[], categories: string[]) {
-  const relevant = issues.filter(i => categories.includes(i.category));
-  if (!relevant.length) return 100;
+  const relevant = issues.filter(i => categories.includes(i.category) && i.status !== "NOT_APPLICABLE" && i.status !== "UNABLE_TO_CONFIRM");
+  if (!relevant.length) return 0;
   const weights: Record<SiteIssue["severity"], number> = {CRITICAL:12,HIGH:8,MEDIUM:4,LOW:2,INFO:1};
   let penalty = 0;
   for (const i of relevant) {
@@ -311,10 +313,10 @@ function grade(score: number) { return score >= 90 ? "A" : score >= 75 ? "B" : s
 export async function auditSite(url: string, mode: CrawlMode = "STANDARD"): Promise<SiteAudit> {
   const crawl = await crawlSite(url, mode);
   const pages = crawl.pages;
-  const crawlComplete = crawl.errors.length === 0 && crawl.discovered <= pages.length;
+  const crawlComplete = crawl.errors.length === 0 && !crawl.truncated && crawl.discovered <= pages.length;
   const evaluated = rules.map(rule => {
     const applicable = pages.filter(p => rule.applicable(p, pages));
-    if (!applicable.length) return {rule, issue: {issue_id:rule.id,rule_id:rule.id,category:rule.category,title:rule.title,description:rule.description,recommendation:rule.recommendation,severity:rule.severity,confidence:"high" as const,status:"NOT_APPLICABLE" as const,affected_urls:[],evidence:{total_pages:pages.length,affected_pages:0,examples:[]}}};
+    if (!applicable.length) return {rule, issue: {issue_id:rule.id,rule_id:rule.id,category:rule.category,title:rule.title,description:rule.description,recommendation:rule.recommendation,severity:rule.severity,confidence:(crawlComplete?"high":"medium") as "high" | "medium",status:"NOT_APPLICABLE" as const,affected_urls:[],evidence:{total_pages:pages.length,affected_pages:0,examples:[]}}};
     return {rule, issue:buildIssue(rule, applicable.map(p => ({p,r:rule.evaluate(p,pages)})), pages.length, crawlComplete)};
   });
   const issues = evaluated.map(x=>x.issue);
@@ -331,7 +333,7 @@ export async function auditSite(url: string, mode: CrawlMode = "STANDARD"): Prom
     startUrl:crawl.startUrl, finalUrl:crawl.finalUrl, mode,
     crawler_version:crawl.engineVersion, audit_version:SITE_AUDIT_ENGINE_VERSION,
     startedAt:crawl.startedAt, finishedAt:crawl.finishedAt,
-    crawl:{pages:pages.length,discovered:crawl.discovered,errors:crawl.errors.length,blocked:crawl.blocked,complete:crawlComplete},
+    crawl:{pages:pages.length,discovered:crawl.discovered,errors:crawl.errors.length,blocked:crawl.blocked,complete:crawlComplete,truncated:crawl.truncated,scope:crawlComplete?"sitewide":"sample"},
     scores:{technical,onPage,content,structuredData,internalLinks,accessibility,overall,grade:grade(overall)},
     page_types, issues,
   };
