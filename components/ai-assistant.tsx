@@ -20,7 +20,7 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
     {
       role: "assistant",
       content: dashboard
-        ? "Hoi! Ik ben RankFix AI. Stel gerust technische vragen over je scans, SEO, GEO, scores, fixes, abonnementen of het Dashboard."
+        ? (extra[publicLocale]?.greet || extra.nl.greet)
         : (greeting[publicLocale] || greeting.nl),
     },
   ]);
@@ -29,6 +29,15 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
   const [fixBusy, setFixBusy] = useState(false);
   const [fixResult, setFixResult] = useState("");
   const [language, setLanguage] = useState(publicLocale);
+  const extra: Record<string, any> = {
+    nl:{greet:"Hoi! Ik ben RankFix AI. Stel gerust technische vragen over je scans, SEO, GEO, scores, fixes, abonnementen of het Dashboard.",blocked:"Ik zie dat RankFix deze actie veilig heeft geblokkeerd.",blockedAsk:"Leg uit waarom deze actie is geblokkeerd en wat ik veilig moet controleren.",scanAsk:"Leg deze scan uit en noem de 3 belangrijkste problemen met een concrete oplossing.",none:ex.none,githubFail:ex.githubFail,created:"Codevoorstel aangemaakt. Controleer en merge de PR, en scan daarna opnieuw: ",already:ex.already,nochange:ex.nochange,failed:ex.failed,generic:"Er ging iets mis.",retry:ex.retry,safe:"Veilige fix",loading:ex.loading,checking:"GitHub Fix wordt gecontroleerd…",start:"Start veilige GitHub Fix"},
+    en:{greet:"Hi! I’m RankFix AI. Ask me technical questions about your scans, SEO, GEO, scores, fixes, plans or Dashboard.",blocked:"I can see RankFix safely blocked this action.",blockedAsk:"Explain why this action was blocked and what I should safely check.",scanAsk:"Explain this scan and list the 3 most important problems with a concrete solution.",none:"No active issue found.",githubFail:"GitHub Fix could not be started.",created:"Code proposal created. Review and merge the PR, then scan again: ",already:"The code already contains this; nothing was changed. Verify the live page with a new scan.",nochange:"No change was confirmed.",failed:"GitHub Fix failed.",generic:"Something went wrong.",retry:"Something went wrong. Please try again.",safe:"Safe fix",loading:"Loading active scan issue…",checking:"GitHub Fix is being checked…",start:"Start safe GitHub Fix"},
+    de:{greet:"Hallo! Ich bin RankFix AI. Frag mich zu deinen Scans, SEO, GEO, Scores, Fixes, Tarifen oder dem Dashboard.",blocked:"RankFix hat diese Aktion aus Sicherheitsgründen blockiert.",blockedAsk:"Erkläre, warum diese Aktion blockiert wurde und was ich sicher prüfen sollte.",scanAsk:"Erkläre diesen Scan und nenne die 3 wichtigsten Probleme mit einer konkreten Lösung.",none:"Kein aktives Problem gefunden.",githubFail:"GitHub Fix konnte nicht gestartet werden.",created:"Codevorschlag erstellt. Prüfe und merge den PR und scanne danach erneut: ",already:"Der Code enthält dies bereits; es wurde nichts geändert. Prüfe die Live-Seite mit einem neuen Scan.",nochange:"Keine Änderung wurde bestätigt.",failed:"GitHub Fix fehlgeschlagen.",generic:"Etwas ist schiefgelaufen.",retry:"Etwas ist schiefgelaufen. Bitte versuche es erneut.",safe:"Sicherer Fix",loading:"Aktives Scanproblem wird geladen…",checking:"GitHub Fix wird geprüft…",start:"Sicheren GitHub Fix starten"},
+    fr:{greet:"Bonjour ! Je suis RankFix AI. Posez-moi vos questions techniques sur vos analyses, le SEO, le GEO, les scores, les correctifs, les offres ou le tableau de bord.",blocked:"RankFix a bloqué cette action de manière sécurisée.",blockedAsk:"Explique pourquoi cette action a été bloquée et ce que je dois vérifier en toute sécurité.",scanAsk:"Explique cette analyse et indique les 3 problèmes les plus importants avec une solution concrète.",none:"Aucun problème actif trouvé.",githubFail:"Impossible de démarrer GitHub Fix.",created:"Proposition de code créée. Vérifiez et fusionnez la PR, puis relancez une analyse : ",already:"Le code contient déjà ce correctif ; rien n’a été modifié. Vérifiez la page en ligne avec une nouvelle analyse.",nochange:"Aucune modification n’a été confirmée.",failed:"Échec de GitHub Fix.",generic:"Une erreur s’est produite.",retry:"Une erreur s’est produite. Réessayez.",safe:"Correctif sécurisé",loading:"Chargement du problème actif…",checking:"Vérification de GitHub Fix…",start:"Démarrer un GitHub Fix sécurisé"},
+    it:{greet:"Ciao! Sono RankFix AI. Fammi domande tecniche su scansioni, SEO, GEO, punteggi, correzioni, piani o Dashboard.",blocked:"RankFix ha bloccato questa azione in modo sicuro.",blockedAsk:"Spiega perché questa azione è stata bloccata e cosa devo controllare in sicurezza.",scanAsk:"Spiega questa scansione e indica i 3 problemi più importanti con una soluzione concreta.",none:"Nessun problema attivo trovato.",githubFail:"Impossibile avviare GitHub Fix.",created:"Proposta di codice creata. Controlla e unisci la PR, poi esegui una nuova scansione: ",already:"Il codice contiene già questa modifica; non è stato cambiato nulla. Verifica la pagina live con una nuova scansione.",nochange:"Nessuna modifica è stata confermata.",failed:"GitHub Fix non riuscito.",generic:"Si è verificato un errore.",retry:"Si è verificato un errore. Riprova.",safe:"Correzione sicura",loading:"Caricamento del problema attivo…",checking:"Controllo di GitHub Fix…",start:"Avvia GitHub Fix sicuro"},
+    es:{greet:"¡Hola! Soy RankFix AI. Pregúntame sobre tus análisis, SEO, GEO, puntuaciones, correcciones, planes o el panel.",blocked:"RankFix ha bloqueado esta acción de forma segura.",blockedAsk:"Explica por qué se bloqueó esta acción y qué debo comprobar de forma segura.",scanAsk:"Explica este análisis y enumera los 3 problemas más importantes con una solución concreta.",none:"No se encontró ningún problema activo.",githubFail:"No se pudo iniciar GitHub Fix.",created:"Propuesta de código creada. Revisa y fusiona la PR y después vuelve a analizar: ",already:"El código ya contiene este cambio; no se modificó nada. Verifica la página publicada con un nuevo análisis.",nochange:"No se confirmó ningún cambio.",failed:"GitHub Fix falló.",generic:"Algo salió mal.",retry:"Algo salió mal. Inténtalo de nuevo.",safe:"Corrección segura",loading:"Cargando problema activo…",checking:"Comprobando GitHub Fix…",start:"Iniciar GitHub Fix seguro"}
+  };
+  const ex=extra[language]||extra.nl;
 
   useEffect(() => {
     if (!dashboard) {
@@ -46,13 +55,13 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
   useEffect(() => {
     if (!dashboard || !errorContext) return;
     setOpen(true);
-    setMessages((m) => [...m, { role: "assistant", content: "Ik zie dat RankFix deze actie veilig heeft geblokkeerd. " + errorContext + " Ik kan uitleggen wat dit betekent en welke veilige volgende stap je kunt nemen." }]);
-    setInput("Leg uit waarom deze actie is geblokkeerd en wat ik veilig moet controleren.");
+    setMessages((m) => [...m, { role: "assistant", content: (extra[language]||extra.nl).blocked + " " + errorContext }]);
+    setInput((extra[language]||extra.nl).blockedAsk);
   }, [dashboard, errorContext]);
 
   useEffect(() => {
     if (!dashboard || !scanId) return;
-    setInput("Leg deze scan uit en noem de 3 belangrijkste problemen met een concrete oplossing.");
+    setInput((extra[language]||extra.nl).scanAsk);
     setScanIssue(null);
     setFixResult("");
     fetch("/api/assistant/scan?scanId=" + encodeURIComponent(scanId), { cache: "no-store" })
@@ -82,7 +91,7 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "GitHub Fix kon niet worden gestart.");
-      setFixResult(data.pr?.url ? "Codevoorstel aangemaakt. Controleer en merge de PR, en scan daarna opnieuw: " + data.pr.url : data.alreadyApplied ? "De code bevat dit al; er is niets gewijzigd. Controleer de live pagina met een nieuwe scan." : "Er is geen wijziging bevestigd.");
+      setFixResult(data.pr?.url ? ex.created + data.pr.url : data.alreadyApplied ? "De code bevat dit al; er is niets gewijzigd. Controleer de live pagina met een nieuwe scan." : "Er is geen wijziging bevestigd.");
     } catch (error) {
       setFixResult(error instanceof Error ? error.message : "GitHub Fix mislukt.");
     } finally {
@@ -108,7 +117,7 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
         body: JSON.stringify({ message: question, dashboard, scanId, language, errorContext }),
       });
       const data = await response.json();
-      setMessages((m) => [...m, { role: "assistant", content: data.answer || data.error || "Er ging iets mis." }]);
+      setMessages((m) => [...m, { role: "assistant", content: data.answer || data.error || ex.generic }]);
     } catch {
       setMessages((m) => [...m, { role: "assistant", content: "Er ging iets mis. Probeer het opnieuw." }]);
     } finally {
@@ -119,10 +128,10 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
   const ui: Record<string, { button: string; subtitle: string; close: string; thinking: string; placeholder: string; send: string }> = {
     nl: { button: "AI Assistent", subtitle: "Hulp voor je dashboard", close: "Assistent sluiten", thinking: "RankFix AI denkt na...", placeholder: "Bijv. waarom is mijn GEO-score laag?", send: "Stuur" },
     en: { button: "AI Assistant", subtitle: "Help for your dashboard", close: "Close assistant", thinking: "RankFix AI is thinking...", placeholder: "E.g. why is my GEO score low?", send: "Send" },
-    fr: { button: "Assistant IA", subtitle: "Aide pour votre tableau de bord", close: "Fermer assistant", thinking: "RankFix AI reflechit...", placeholder: "Ex. pourquoi mon score GEO est-il bas ?", send: "Envoyer" },
-    de: { button: "KI-Assistent", subtitle: "Hilfe fuer dein Dashboard", close: "Assistent schliessen", thinking: "RankFix AI denkt nach...", placeholder: "Z. B. warum ist mein GEO-Score niedrig?", send: "Senden" },
-    it: { button: "Assistente AI", subtitle: "Aiuto per la dashboard", close: "Chiudi assistente", thinking: "RankFix AI sta pensando...", placeholder: "Es. perche il mio punteggio GEO e basso?", send: "Invia" },
-    es: { button: "Asistente IA", subtitle: "Ayuda para tu panel", close: "Cerrar asistente", thinking: "RankFix AI esta pensando...", placeholder: "Ej. por que mi puntuacion GEO es baja?", send: "Enviar" }
+    fr: { button: "Assistant IA", subtitle: "Aide pour votre tableau de bord", close: "Fermer assistant", thinking: "RankFix AI réfléchit...", placeholder: "Ex. pourquoi mon score GEO est-il bas ?", send: "Envoyer" },
+    de: { button: "KI-Assistent", subtitle: "Hilfe für dein Dashboard", close: "Assistent schließen", thinking: "RankFix AI denkt nach...", placeholder: "Z. B. warum ist mein GEO-Score niedrig?", send: "Senden" },
+    it: { button: "Assistente AI", subtitle: "Aiuto per la dashboard", close: "Chiudi assistente", thinking: "RankFix AI sta pensando...", placeholder: "Es. perché il mio punteggio GEO è basso?", send: "Invia" },
+    es: { button: "Asistente IA", subtitle: "Ayuda para tu panel", close: "Cerrar asistente", thinking: "RankFix AI está pensando...", placeholder: "Ej. por qué mi puntuación GEO es baja?", send: "Enviar" }
   };
   const tx = ui[language] || ui.nl;
 
@@ -159,12 +168,12 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
 
             {dashboard && scanId && (
               <div className="border-t border-white/10 px-5 py-4">
-                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">Veilige fix</div>
+                <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">{ex.safe}</div>
                 <p className="mt-1 text-xs text-slate-400">
                   {scanIssue ? scanIssue.title : "Actief scanprobleem laden…"}
                 </p>
                 <button type="button" onClick={startGithubFix} disabled={!scanIssue || fixBusy} className="mt-3 w-full rounded-xl bg-emerald-300 px-4 py-3 text-sm font-bold text-slate-950 disabled:opacity-40">
-                  {fixBusy ? "GitHub Fix wordt gecontroleerd…" : "Start veilige GitHub Fix"}
+                  {fixBusy ? ex.checking : ex.start}
                 </button>
                 {fixResult && <p className="mt-2 break-words text-xs text-slate-400">{fixResult}</p>}
               </div>
