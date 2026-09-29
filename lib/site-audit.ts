@@ -1,6 +1,6 @@
 import { CrawlPage, CrawlResult, CrawlMode, crawlSite } from "@/lib/crawler";
 
-export const SITE_AUDIT_ENGINE_VERSION = "1.7.0";
+export const SITE_AUDIT_ENGINE_VERSION = "1.8.0";
 
 export type SiteRuleStatus = "PASS" | "FAIL" | "WARNING" | "NOT_APPLICABLE" | "UNABLE_TO_CONFIRM";
 
@@ -176,9 +176,12 @@ const rules: RuleDef[] = [
     id: "SITE_PRODUCT_SCHEMA_CORE", category: "structured-data", title: "Product structured data onvolledig", severity: "HIGH",
     description: "Productpagina's hebben bruikbare product- en aanbodgegevens nodig om productinformatie machineleesbaar te maken.",
     recommendation: "Controleer Product markup en voeg aantoonbare kerngegevens toe, waaronder naam en waar van toepassing Offer met prijs en valuta.",
-    applicable: p => !p.noindex && p.pageType === "product" && Boolean(p.product),
+    applicable: p => !p.noindex && p.pageType === "product",
     evaluate: p => {
-      const x=p.product!;
+      if (!p.product) {
+        return {status:"FAIL",found:"geen Product JSON-LD",expected:"Product structured data",details:"De crawler classificeert deze pagina als productpagina, maar heeft geen Product JSON-LD gevonden."};
+      }
+      const x=p.product;
       const missing=[!x.name&&"name",!x.image&&"image",!x.offers&&"offers",x.offers&&!x.price&&"price",x.offers&&!x.priceCurrency&&"priceCurrency"].filter(Boolean) as string[];
       return missing.length ? {status:"FAIL",found:missing.join(", "),expected:"complete Product/Offer core fields",details:`Product JSON-LD is gevonden, maar kernvelden ontbreken: ${missing.join(", ")}.`} : {status:"PASS",found:"Product + core Offer fields",details:"Product structured data bevat de gecontroleerde kernvelden."};
     },
