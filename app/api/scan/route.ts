@@ -1340,7 +1340,7 @@ export async function POST(request: Request) {
         ? check("not_applicable","consent_mode_readiness","seo","Consent Mode signaal","Geen GA4-, Google Ads- of GTM-signaal gevonden waarop deze Consent Mode-controle kan worden toegepast.","Controleer consentconfiguratie zodra Google-meet- of advertentietags worden gebruikt.",0,5)
         : hasConsentModeSignal
           ? check("pass","consent_mode_readiness","seo","Consent Mode signaal","Een Google Consent Mode-signaal is in de opgehaalde bron gevonden.","Controleer runtime of consent default vóór meettags wordt gezet en of keuzes correct worden bijgewerkt. Dit is een technische signaaltest, geen juridisch compliance-oordeel.",5,5)
-          : check("warning","consent_mode_readiness","seo","Consent Mode signaal","Google tracking is gevonden, maar RankFix ziet in de statische bron geen aantoonbaar Consent Mode-signaal.","Controleer je CMP/GTM-configuratie en implementeer Consent Mode waar passend. RankFix beoordeelt hiermee geen wettelijke compliance.",2,5)
+          : check("unable_to_confirm","consent_mode_readiness","seo","Consent Mode signaal","Google tracking is gevonden, maar de statische HTML bewijst niet of Consent Mode runtime via GTM of een CMP wordt ingesteld. Afwezigheid van een expliciet consent-signaal in raw HTML is daarom geen bewezen configuratiefout.","Verifieer Consent Mode runtime met GTM Preview/Tag Assistant of in de CMP-configuratie. RankFix beoordeelt hiermee geen wettelijke compliance.",0,5)
     );
 
     seoChecks.push(
