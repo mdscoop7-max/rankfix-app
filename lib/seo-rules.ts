@@ -1,5 +1,5 @@
-export const CRAWLER_VERSION = "1.1.0";
-export const RULES_VERSION = "1.1.0";
+export const CRAWLER_VERSION = "2.5.0";
+export const RULES_VERSION = "1.2.0";
 export const FIX_POLICY_VERSION = "1.0.0";
 export const AI_POLICY_VERSION = "1.0.0";
 
@@ -30,7 +30,7 @@ export function normalizeIssue(issue: Partial<NormalizedIssue> & { id?: string; 
     title: issue.title || issue_id,
     category: issue.category || "TECHNICAL",
     severity: issue.severity || "MEDIUM",
-    confidence: issue.confidence || "high",
+    confidence: issue.confidence || (issue.evidence && Object.keys(issue.evidence).length ? "medium" : "low"),
     evidence: issue.evidence || {},
     description: issue.description || "",
     recommendation: issue.recommendation || "",
@@ -40,8 +40,12 @@ export function normalizeIssue(issue: Partial<NormalizedIssue> & { id?: string; 
 }
 
 export function statusCode(status: string): IssueStatus {
-  if (status === "pass") return "PASS";
-  if (status === "fail") return "FAIL";
-  if (status === "warning") return "WARNING";
-  return "INFO";
+  const normalized = status.trim().toLowerCase();
+  if (normalized === "pass") return "PASS";
+  if (normalized === "fail") return "FAIL";
+  if (normalized === "warning") return "WARNING";
+  if (normalized === "not_applicable" || normalized === "not-applicable" || normalized === "n/a") return "NOT_APPLICABLE";
+  if (normalized === "unable_to_confirm" || normalized === "unable-to-confirm") return "UNABLE_TO_CONFIRM";
+  if (normalized === "info") return "INFO";
+  return "UNABLE_TO_CONFIRM";
 }

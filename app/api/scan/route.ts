@@ -449,7 +449,7 @@ export async function POST(request: Request) {
     const ogImage = getMeta("og:image");
     const twitterCard = getMeta("twitter:card");
 
-    const jsonLdBlocks = allMatches(html, /<script[^>]+type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+    const jsonLdBlocks = [...html.matchAll(/<script\b(?=[^>]*\btype\s*=\s*(?:(["'])application\/ld\+json\1|application\/ld\+json(?:\s|>|\/)))[^>]*>([\s\S]*?)<\/script>/gi)].map((match) => decode(match[2] || ""));
     const schemaTypes: string[] = [];
     const schemaObjects: any[] = [];
     let validJsonLd = 0;
@@ -1583,18 +1583,28 @@ export async function POST(request: Request) {
         "webshop_trust", "price_format", "variant_url", "ads_readiness", "conversion_tracking",
         "organization_identity", "entity_consistency", "author", "faq", "reviews"
       ]);
+      const hasMappedEvidence = Object.prototype.hasOwnProperty.call(evidenceByKey, item.key);
+      const foundEvidence = hasMappedEvidence ? evidenceByKey[item.key] : null;
       item.confidence = item.status === "unable_to_confirm"
         ? "low"
-        : heuristicKeys.has(item.key)
+        : item.status === "not_applicable"
           ? "medium"
-          : item.status === "not_applicable"
+          : heuristicKeys.has(item.key)
             ? "medium"
-            : "high";
+            : hasMappedEvidence && foundEvidence !== null
+              ? "high"
+              : "low";
       item.evidence = {
         url: finalUrl.toString(),
-        found: Object.prototype.hasOwnProperty.call(evidenceByKey, item.key) ? evidenceByKey[item.key] : null,
+        found: foundEvidence,
         details: item.message,
       };
+      // A PASS without concrete measured evidence is not a proven PASS.
+      // Keep it visible but exclude it from scoring until RankFix can confirm it.
+      if (item.status === "pass" && (!hasMappedEvidence || foundEvidence === null)) {
+        item.status = "unable_to_confirm";
+        item.confidence = "low";
+      }
       item.issue_status = item.status === "not_applicable"
         ? "NOT_APPLICABLE"
         : item.status === "unable_to_confirm"
@@ -1623,8 +1633,8 @@ export async function POST(request: Request) {
         relevant: relevant.length,
         confirmed: confirmed.length,
         unableToConfirm: relevant.length - confirmed.length,
-        coveragePercent: relevant.length ? Math.round((confirmed.length / relevant.length) * 100) : 100,
-        highConfidencePercent: confirmed.length ? Math.round((highConfidence.length / confirmed.length) * 100) : 100,
+        coveragePercent: relevant.length ? Math.round((confirmed.length / relevant.length) * 100) : 0,
+        highConfidencePercent: confirmed.length ? Math.round((highConfidence.length / confirmed.length) * 100) : 0,
       };
     };
     const seoCoverage = coverageFor(selectedSeoChecks);
@@ -1689,6 +1699,7 @@ export async function POST(request: Request) {
           "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id",
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
+            language: scanLanguage,
             mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, summary: scanSummary, rendering, pageTypeEvidence, technologyProfile,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },

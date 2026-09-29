@@ -457,7 +457,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
       const response = await fetch("/api/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, mode: auditMode }),
+        body: JSON.stringify({ url, mode: auditMode, language }),
       });
       const contentType = response.headers.get("content-type") || "";
       const raw = await response.text();

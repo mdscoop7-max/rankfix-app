@@ -1,6 +1,6 @@
 import { CrawlPage, CrawlResult, CrawlMode, crawlSite } from "@/lib/crawler";
 
-export const SITE_AUDIT_ENGINE_VERSION = "1.6.0";
+export const SITE_AUDIT_ENGINE_VERSION = "1.9.0";
 
 export type SiteRuleStatus = "PASS" | "FAIL" | "WARNING" | "NOT_APPLICABLE" | "UNABLE_TO_CONFIRM";
 
@@ -36,6 +36,8 @@ export type SiteAudit = {
     errors: number;
     blocked: number;
     complete: boolean;
+    truncated: boolean;
+    scope: "sitewide" | "sample";
   };
   scores: { technical: number; onPage: number; content: number; structuredData: number; internalLinks: number; accessibility: number; overall: number; grade: string };
   page_types: Record<string, number>;
@@ -174,9 +176,12 @@ const rules: RuleDef[] = [
     id: "SITE_PRODUCT_SCHEMA_CORE", category: "structured-data", title: "Product structured data onvolledig", severity: "HIGH",
     description: "Productpagina's hebben bruikbare product- en aanbodgegevens nodig om productinformatie machineleesbaar te maken.",
     recommendation: "Controleer Product markup en voeg aantoonbare kerngegevens toe, waaronder naam en waar van toepassing Offer met prijs en valuta.",
-    applicable: p => !p.noindex && p.pageType === "product" && Boolean(p.product),
+    applicable: p => !p.noindex && p.pageType === "product",
     evaluate: p => {
-      const x=p.product!;
+      if (!p.product) {
+        return {status:"FAIL",found:"geen Product JSON-LD",expected:"Product structured data",details:"De crawler classificeert deze pagina als productpagina, maar heeft geen Product JSON-LD gevonden."};
+      }
+      const x=p.product;
       const missing=[!x.name&&"name",!x.image&&"image",!x.offers&&"offers",x.offers&&!x.price&&"price",x.offers&&!x.priceCurrency&&"priceCurrency"].filter(Boolean) as string[];
       return missing.length ? {status:"FAIL",found:missing.join(", "),expected:"complete Product/Offer core fields",details:`Product JSON-LD is gevonden, maar kernvelden ontbreken: ${missing.join(", ")}.`} : {status:"PASS",found:"Product + core Offer fields",details:"Product structured data bevat de gecontroleerde kernvelden."};
     },
@@ -295,8 +300,8 @@ function buildIssue(rule: RuleDef, affected: Array<{ p: CrawlPage; r: RuleEvalua
 }
 
 function scoreFor(issues: SiteIssue[], categories: string[]) {
-  const relevant = issues.filter(i => categories.includes(i.category));
-  if (!relevant.length) return 100;
+  const relevant = issues.filter(i => categories.includes(i.category) && i.status !== "NOT_APPLICABLE" && i.status !== "UNABLE_TO_CONFIRM");
+  if (!relevant.length) return 0;
   const weights: Record<SiteIssue["severity"], number> = {CRITICAL:12,HIGH:8,MEDIUM:4,LOW:2,INFO:1};
   let penalty = 0;
   for (const i of relevant) {
@@ -311,27 +316,41 @@ function grade(score: number) { return score >= 90 ? "A" : score >= 75 ? "B" : s
 export async function auditSite(url: string, mode: CrawlMode = "STANDARD"): Promise<SiteAudit> {
   const crawl = await crawlSite(url, mode);
   const pages = crawl.pages;
-  const crawlComplete = crawl.errors.length === 0 && crawl.discovered <= pages.length;
+  // Page-level evidence warnings (for example malformed canonical markup) do not
+  // mean the crawl itself was incomplete. Only transport/fetch failures do.
+  const crawlBlockingErrors = crawl.errors.filter((error) => error.code !== "CANONICAL_INVALID");
+  const crawlComplete = crawlBlockingErrors.length === 0 && !crawl.truncated && crawl.discovered <= pages.length;
   const evaluated = rules.map(rule => {
     const applicable = pages.filter(p => rule.applicable(p, pages));
-    if (!applicable.length) return {rule, issue: {issue_id:rule.id,rule_id:rule.id,category:rule.category,title:rule.title,description:rule.description,recommendation:rule.recommendation,severity:rule.severity,confidence:"high" as const,status:"NOT_APPLICABLE" as const,affected_urls:[],evidence:{total_pages:pages.length,affected_pages:0,examples:[]}}};
+    if (!applicable.length) return {rule, issue: {issue_id:rule.id,rule_id:rule.id,category:rule.category,title:rule.title,description:rule.description,recommendation:rule.recommendation,severity:rule.severity,confidence:(crawlComplete?"high":"medium") as "high" | "medium",status:"NOT_APPLICABLE" as const,affected_urls:[],evidence:{total_pages:pages.length,affected_pages:0,examples:[]}}};
     return {rule, issue:buildIssue(rule, applicable.map(p => ({p,r:rule.evaluate(p,pages)})), pages.length, crawlComplete)};
   });
   const issues = evaluated.map(x=>x.issue);
-  const technical = scoreFor(issues,["technical","indexability"]);
-  const onPage = scoreFor(issues,["on-page"]);
-  const content = scoreFor(issues,["content"]);
-  const structuredData = scoreFor(issues,["structured-data"]);
-  const internalLinks = scoreFor(issues,["internal-linking"]);
-  const accessibility = scoreFor(issues,["accessibility","images"]);
-  const overall = Math.round((technical + onPage + content + structuredData + internalLinks + accessibility) / 6);
+  const categoryScore = (categories: string[]) => {
+    const scorable = issues.some(i => categories.includes(i.category) && i.status !== "NOT_APPLICABLE" && i.status !== "UNABLE_TO_CONFIRM");
+    return { score: scoreFor(issues, categories), scorable };
+  };
+  const technicalResult = categoryScore(["technical","indexability"]);
+  const onPageResult = categoryScore(["on-page"]);
+  const contentResult = categoryScore(["content"]);
+  const structuredDataResult = categoryScore(["structured-data"]);
+  const internalLinksResult = categoryScore(["internal-linking"]);
+  const accessibilityResult = categoryScore(["accessibility","images"]);
+  const technical = technicalResult.score;
+  const onPage = onPageResult.score;
+  const content = contentResult.score;
+  const structuredData = structuredDataResult.score;
+  const internalLinks = internalLinksResult.score;
+  const accessibility = accessibilityResult.score;
+  const scorableScores = [technicalResult,onPageResult,contentResult,structuredDataResult,internalLinksResult,accessibilityResult].filter(x=>x.scorable).map(x=>x.score);
+  const overall = scorableScores.length ? Math.round(scorableScores.reduce((sum,score)=>sum+score,0) / scorableScores.length) : 0;
   const page_types: Record<string,number> = {};
   for (const p of pages) page_types[p.pageType]=(page_types[p.pageType]||0)+1;
   return {
     startUrl:crawl.startUrl, finalUrl:crawl.finalUrl, mode,
     crawler_version:crawl.engineVersion, audit_version:SITE_AUDIT_ENGINE_VERSION,
     startedAt:crawl.startedAt, finishedAt:crawl.finishedAt,
-    crawl:{pages:pages.length,discovered:crawl.discovered,errors:crawl.errors.length,blocked:crawl.blocked,complete:crawlComplete},
+    crawl:{pages:pages.length,discovered:crawl.discovered,errors:crawl.errors.length,blocked:crawl.blocked,complete:crawlComplete,truncated:crawl.truncated,scope:crawlComplete?"sitewide":"sample"},
     scores:{technical,onPage,content,structuredData,internalLinks,accessibility,overall,grade:grade(overall)},
     page_types, issues,
   };
