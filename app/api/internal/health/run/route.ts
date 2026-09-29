@@ -20,6 +20,7 @@ export async function GET(request:Request){
  const level=overallHealth(checks);
  const red=checks.filter(c=>c.level==="red");
  await db.query("INSERT INTO rankfix_health_runs (overall_level,checks) VALUES ($1,$2)",[level,JSON.stringify(checks)]);
+ await db.query("INSERT INTO rankfix_capacity_runs (overall_level,signals) VALUES ($1,$2)",[capacityLevel,JSON.stringify(capacity)]);
 
  let alertSent=false,recoverySent=false;
  const activeKeys=new Set(red.map(check=>`rankfix-production:${check.key}`));
@@ -65,6 +66,7 @@ export async function GET(request:Request){
  // Health samples are operational telemetry, not customer records. Keep a bounded
  // window here instead of doing maintenance during normal request initialization.
  await db.query("DELETE FROM rankfix_health_runs WHERE created_at < NOW()-INTERVAL '90 days'").catch(()=>undefined);
+ await db.query("DELETE FROM rankfix_capacity_runs WHERE created_at < NOW()-INTERVAL '90 days'").catch(()=>undefined);
  // Recover abandoned worker leases and bound completed queue history. Queue maintenance must never take Health Guard down.
  await releaseStaleJobs().catch(error=>console.error("Queue stale-job recovery failed",error instanceof Error?error.message:"QUEUE_RECOVERY_FAILED"));
  await db.query("DELETE FROM background_jobs WHERE status IN ('SUCCEEDED','FAILED') AND finished_at < NOW()-INTERVAL '30 days'").catch(()=>undefined);
