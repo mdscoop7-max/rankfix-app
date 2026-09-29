@@ -187,9 +187,9 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
   const [contactError, setContactError] = useState("");
   const [githubFixing, setGithubFixing] = useState<string | null>(null);
   const [githubProgress, setGithubProgress] = useState(0);
-  const [githubResult, setGithubResult] = useState<{url:string;title:string;number:number;creditsRemaining?:number} | null>(null);
+  const [githubResult, setGithubResult] = useState<{url:string;title:string;number:number} | null>(null);
   const [githubAlreadyApplied, setGithubAlreadyApplied] = useState(false);
-  const [githubResults, setGithubResults] = useState<Record<string, {url:string;title:string;number:number;creditsRemaining?:number}>>({});
+  const [githubResults, setGithubResults] = useState<Record<string, {url:string;title:string;number:number}>>({});
   const [githubError, setGithubError] = useState("");
   const [authUser, setAuthUser] = useState<{ name?: string; email?: string } | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -426,7 +426,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         return;
       }
       if (!data.pr?.url || !data.pr?.number) throw new Error("RankFix kon de technische wijziging niet veilig afronden.");
-      const prResult = {url:data.pr.url,title:data.pr.title,number:data.pr.number,creditsRemaining:data.creditsRemaining};
+      const prResult = {url:data.pr.url,title:data.pr.title,number:data.pr.number};
       setGithubResult(prResult);
       setGithubResults((prev) => ({ ...prev, [key]: prResult }));
       setResult((prev) => {
