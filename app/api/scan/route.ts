@@ -236,6 +236,8 @@ export async function POST(request: Request) {
     const rawUrl = typeof body?.url === "string" ? body.url.trim() : "";
     const mode: AuditMode = body?.mode === "seo" || body?.mode === "geo" || body?.mode === "both" ? body.mode : "both";
     const dashboardScan = body?.dashboard === true;
+    // Explicit dashboard rechecks may confirm prepared fixes, but only from fresh live evidence below.
+    const verifyFixes = dashboardScan && body?.verifyFixes === true;
     const scanLanguage = ["nl","en","de","fr","it","es"].includes(body?.language) ? body.language : "nl";
     fallbackLanguage = scanLanguage;
     const errors: Record<string, Record<string, string>> = {
@@ -1700,6 +1702,31 @@ export async function POST(request: Request) {
           }), CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION]
         );
         savedScanId = insertedScan.rows[0]?.id ? String(insertedScan.rows[0].id) : null;
+
+        // Dedicated live verification: a prepared fix is confirmed only when the
+        // freshly fetched live page reports the exact same rule as PASS.
+        // WARNING, FAIL, N/A and unable-to-confirm deliberately keep it waiting.
+        if (verifyFixes && savedScanId && pendingFixes.size > 0) {
+          for (const item of checks) {
+            const issueId = String(item.issue_id || item.rule_id || item.key);
+            if (!pendingFixes.has(issueId)) continue;
+            const liveStatus = String(item.issue_status || item.status || "").trim().toUpperCase();
+            if (liveStatus !== "PASS") continue;
+
+            const confirmed = await getDb().query(
+              "UPDATE pending_fixes SET status='DONE', updated_at=NOW() WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 AND status='PREPARED' AND expires_at>NOW() RETURNING id",
+              [user.id, normalizedScanUrl, issueId]
+            );
+            if (!confirmed.rowCount) continue;
+
+            item.fix_status = "DONE";
+            await getDb().query(
+              "INSERT INTO website_health_events (user_id,website_host,scanned_url,scan_id,event_type,rule_id,previous_status,current_status,severity,details) VALUES ($1,$2,$3,$4,'FIX_CONFIRMED',$5,'PREPARED','PASS',$6,$7)",
+              [user.id, websiteHost, finalUrl.toString(), savedScanId, issueId, item.severity || null, JSON.stringify({title:item.title,message:item.message,verification:"live_scan"})]
+            );
+          }
+        }
+
         if (dashboardScan) {
           await getDb().query(
             "INSERT INTO usage_events (user_id,website_host,event_type,ip_hash) VALUES ($1,$2,'SCAN',$3)",
