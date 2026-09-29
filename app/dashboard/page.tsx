@@ -26,6 +26,7 @@ export default function Dashboard() {
   const [scans, setScans] = useState<Scan[]>([]);
   const [history, setHistory] = useState<Scan[]>([]);
   const [fixes, setFixes] = useState<Record<string, number>>({});
+  const [searchConsole, setSearchConsole] = useState<{connected:boolean;siteUrl:string|null;lastSyncAt:string|null;synced:boolean}>({connected:false,siteUrl:null,lastSyncAt:null,synced:false});
   const [usage, setUsage] = useState<{plan:string;used:number;limit:number|null;websiteHost:string|null}>({plan:"free",used:0,limit:2,websiteHost:null});
   const [selectedResult, setSelectedResult] = useState<ScanResult | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -42,6 +43,7 @@ export default function Dashboard() {
     setScans(data.scans || []);
     setHistory(data.history || data.scans || []);
     setFixes(data.fixes || {});
+    if (data.searchConsole) setSearchConsole(data.searchConsole);
     if (data.usage) setUsage(data.usage);
   }
 
@@ -114,6 +116,10 @@ export default function Dashboard() {
             <div className="rf-card"><span>{x.openIssues}</span><strong>{latest?.open_issues ?? 0}</strong><small>{fixes.DONE || 0} {x.confirmedSolved}</small></div>
             <div className="rf-card"><span>{x.scoreChange}</span><strong className={scoreChange !== null && scoreChange < 0 ? "rf-danger" : ""}>{scoreChange === null ? "—" : `${scoreChange > 0 ? "+" : ""}${scoreChange}`}</strong><small>{x.previousScan}</small></div>
           </div>
+        </section>
+        <section className="rf-section">
+          <div className="rf-section-head"><div><h2>Google Search Console</h2><p>{searchConsole.connected ? (searchConsole.synced ? (language==="nl"?"Echte Google-data is gekoppeld aan je dashboard.":language==="de"?"Echte Google-Daten sind mit deinem Dashboard verbunden.":language==="fr"?"Les données Google réelles sont connectées à votre tableau de bord.":language==="it"?"I dati Google reali sono collegati alla dashboard.":language==="es"?"Los datos reales de Google están conectados a tu panel.":"Real Google data is connected to your dashboard.") : (language==="nl"?"Property gekoppeld; synchroniseer om prestatiedata te laden.":language==="de"?"Property verbunden; synchronisiere, um Leistungsdaten zu laden.":language==="fr"?"Propriété connectée ; synchronisez pour charger les performances.":language==="it"?"Proprietà collegata; sincronizza per caricare le prestazioni.":language==="es"?"Propiedad conectada; sincroniza para cargar el rendimiento.":"Property connected; sync to load performance data.")) : (language==="nl"?"Koppel Search Console voor klikken, vertoningen, CTR en posities.":language==="de"?"Verbinde Search Console für Klicks, Impressionen, CTR und Positionen.":language==="fr"?"Connectez Search Console pour les clics, impressions, CTR et positions.":language==="it"?"Collega Search Console per clic, impressioni, CTR e posizioni.":language==="es"?"Conecta Search Console para clics, impresiones, CTR y posiciones.":"Connect Search Console for clicks, impressions, CTR and positions.")}</p></div><a href="/dashboard/search-console">{searchConsole.connected ? (language==="nl"?"Open Search Console":language==="de"?"Search Console öffnen":language==="fr"?"Ouvrir Search Console":language==="it"?"Apri Search Console":language==="es"?"Abrir Search Console":"Open Search Console") : (language==="nl"?"Google koppelen":language==="de"?"Google verbinden":language==="fr"?"Connecter Google":language==="it"?"Collega Google":language==="es"?"Conectar Google":"Connect Google")} →</a></div>
+          {searchConsole.connected && <div className="rf-card"><span>{searchConsole.siteUrl}</span><strong>{searchConsole.synced ? "✓" : "—"}</strong><small>{searchConsole.lastSyncAt ? new Date(searchConsole.lastSyncAt).toLocaleString(language) : (language==="nl"?"Nog niet gesynchroniseerd":language==="de"?"Noch nicht synchronisiert":language==="fr"?"Pas encore synchronisé":language==="it"?"Non ancora sincronizzato":language==="es"?"Aún no sincronizado":"Not synced yet")}</small></div>}
         </section>
         <section className="rf-section">
           <div className="rf-section-head"><div><h2>{x.nextTitle}</h2><p>{x.nextIntro}</p></div></div>
