@@ -864,6 +864,26 @@ export async function POST(request: Request) {
       if (productCardMismatches.length >= 8) break;
     }
 
+    // Featured-product widgets are not always rendered as WooCommerce <li class="product"> cards.
+    // Detect a compact heading/product link followed closely by a separately linked price.
+    const featuredProductMismatches: { label: string; namedUrl: string; priceUrl: string }[] = [];
+    const featuredPattern = /<h[2-6][^>]*>[\s\S]{0,500}?<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>[\s\S]{0,900}?<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>[\s\S]{0,120}?(?:€|EUR|&euro;)[\s\S]{0,120}?<\/a>/gi;
+    for (const match of html.matchAll(featuredPattern)) {
+      try {
+        const namedUrl = new URL(decode(match[1] || ""), finalUrl);
+        const priceUrl = new URL(decode(match[3] || ""), finalUrl);
+        const label = stripHtml(match[2] || "").trim();
+        if (namedUrl.hostname !== finalUrl.hostname || priceUrl.hostname !== finalUrl.hostname) continue;
+        if (normalizeScanUrl(namedUrl.toString()) === normalizeScanUrl(priceUrl.toString())) continue;
+        const labelTokens = semanticTokens(label);
+        const priceTokens = semanticTokens(priceUrl.pathname);
+        if (labelTokens.length < 2 || priceTokens.length < 1) continue;
+        if (labelTokens.some((token) => priceTokens.includes(token))) continue;
+        featuredProductMismatches.push({ label: label.slice(0, 160), namedUrl: namedUrl.toString(), priceUrl: priceUrl.toString() });
+        if (featuredProductMismatches.length >= 8) break;
+      } catch { continue; }
+    }
+
     const seoChecks: Check[] = [];
     const geoChecks: Check[] = [];
 
@@ -884,9 +904,9 @@ export async function POST(request: Request) {
     seoChecks.push(
       uniqueInternalAnchors.length === 0
         ? check("not_applicable", "semantic_link_destination", "seo", "Verkeerde linkbestemming", "Geen controleerbare interne links gevonden.", "Controleer productkaarten zodra ze op de pagina aanwezig zijn.", 0, 5)
-        : semanticLinkMismatches.length === 0 && productCardMismatches.length === 0
+        : semanticLinkMismatches.length === 0 && productCardMismatches.length === 0 && featuredProductMismatches.length === 0
           ? check("pass", "semantic_link_destination", "seo", "Verkeerde linkbestemming", "Geen sterke semantische mismatch gevonden tussen benoemde productlinks en hun product-URL. Prijs-only links worden bewust niet als bewijs gebruikt.", "Houd titel, afbeelding en productbestemming binnen productkaarten consistent.", 5, 5)
-          : check("warning", "semantic_link_destination", "seo", "Verkeerde linkbestemming", productCardMismatches.length > 0 ? `Binnen één productkaart verwijzen onderdelen naar verschillende productbestemmingen: ${productCardMismatches[0].urls.join(" ↔ ")}. De links werken technisch, maar lijken niet bij hetzelfde product te horen.` : `Mogelijke verkeerde productbestemming gevonden: "${semanticLinkMismatches[0]?.context}" verwijst naar ${semanticLinkMismatches[0]?.finalUrl || semanticLinkMismatches[0]?.url}. De URL werkt technisch, maar de productnaam en bestemming delen geen duidelijke producttermen.`, "Controleer handmatig of titel/afbeelding/prijs binnen dezelfde productkaart naar hetzelfde product verwijzen. Markeer dit pas als definitieve fout na bevestiging.", 2, 5)
+          : check("warning", "semantic_link_destination", "seo", "Verkeerde linkbestemming", featuredProductMismatches.length > 0 ? `Mogelijke verkeerde linkbestemming in een uitgelicht product: "${featuredProductMismatches[0].label}" verwijst naar ${featuredProductMismatches[0].namedUrl}, terwijl de prijs naar ${featuredProductMismatches[0].priceUrl} verwijst. Beide links werken technisch, maar wijzen naar verschillende bestemmingen.` : productCardMismatches.length > 0 ? `Binnen één productkaart verwijzen onderdelen naar verschillende productbestemmingen: ${productCardMismatches[0].urls.join(" ↔ ")}. De links werken technisch, maar lijken niet bij hetzelfde product te horen.` : `Mogelijke verkeerde productbestemming gevonden: "${semanticLinkMismatches[0]?.context}" verwijst naar ${semanticLinkMismatches[0]?.finalUrl || semanticLinkMismatches[0]?.url}. De URL werkt technisch, maar de productnaam en bestemming delen geen duidelijke producttermen.`, "Controleer handmatig of titel/afbeelding/prijs binnen dezelfde productkaart naar hetzelfde product verwijzen. Markeer dit pas als definitieve fout na bevestiging.", 2, 5)
     );
 
     // Extended audit signals: trust, ecommerce quality, URL hygiene, social metadata and multilingual SEO.
