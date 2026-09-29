@@ -2,7 +2,7 @@ import { URL } from "node:url";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 
-export const CRAWLER_ENGINE_VERSION = "2.4.0";
+export const CRAWLER_ENGINE_VERSION = "2.5.0";
 
 export type CrawlMode = "QUICK" | "STANDARD" | "DEEP" | "ECOMMERCE" | "ENTERPRISE";
 export type PageType =
@@ -52,6 +52,8 @@ export type CrawlResult = {
   mode: CrawlMode;
   pages: CrawlPage[];
   discovered: number;
+  queued: number;
+  truncated: boolean;
   blocked: number;
   errors: Array<{ url: string; code: string; message: string }>;
   startedAt: string;
@@ -123,7 +125,7 @@ export async function crawlSite(startUrl:string,requestedMode:CrawlMode="STANDAR
   const limit=LIMITS[requestedMode]??LIMITS.STANDARD;
   const queue:Array<{url:string,depth:number,from:string|null}>=[{url:start.toString(),depth:0,from:null}];
   const queued=new Set([start.toString()]);
-  const pages:CrawlPage[]=[]; const errors:CrawlResult["errors"]=[]; let blocked=0;
+  const pages:CrawlPage[]=[]; const errors:CrawlResult["errors"]=[]; let blocked=0; let discovered=1; let truncated=false;
   let finalUrl=start.toString();
   while(queue.length&&pages.length<limit){
     const item=queue.shift()!;
@@ -163,9 +165,19 @@ export async function crawlSite(startUrl:string,requestedMode:CrawlMode="STANDAR
       const localTypes = new Set(["localbusiness","restaurant","bakery","barorcafe","beautysalon","dayspa","dentist","electrician","generalcontractor","homeandconstructionbusiness","locksmith","medicalclinic","plumber","roofingcontractor","store","hairdresser","automotivebusiness","realestateagent","legalservice","accountingservice","travelagency","hotel"]);
       for(const b of blocks){try{const parsed=JSON.parse(b[1]);const rawItems=Array.isArray(parsed)?parsed:(parsed?.["@graph"]||[parsed]);const items=Array.isArray(rawItems)?rawItems:[rawItems];for(const x of items){const t=x?.["@type"];const ts=(Array.isArray(t)?t:[t]).filter(Boolean).map(String);types.push(...ts);const isProduct=ts.some(v=>v.toLowerCase()==="product");if(isProduct){product.name ||= Boolean(x?.name);product.image ||= Boolean(x?.image);product.offers ||= Boolean(x?.offers);const offers=Array.isArray(x?.offers)?x.offers:[x?.offers].filter(Boolean);for(const o of offers){product.price ||= Boolean(o?.price ?? o?.lowPrice);product.priceCurrency ||= Boolean(o?.priceCurrency);product.availability ||= Boolean(o?.availability);}product.brandOrSku ||= Boolean(x?.brand || x?.sku || x?.gtin || x?.gtin13 || x?.mpn);}const isLocal=ts.some(v=>localTypes.has(v.toLowerCase()));if(isLocal){localBusiness.types.push(...ts.filter(v=>localTypes.has(v.toLowerCase())));localBusiness.name ||= Boolean(x?.name);localBusiness.address ||= Boolean(x?.address);localBusiness.telephone ||= Boolean(x?.telephone);localBusiness.url ||= Boolean(x?.url);localBusiness.openingHours ||= Boolean(x?.openingHours || x?.openingHoursSpecification);localBusiness.imageOrLogo ||= Boolean(x?.image || x?.logo);localBusiness.sameAs ||= Array.isArray(x?.sameAs) ? x.sameAs.length>0 : Boolean(x?.sameAs);}}}catch{jsonLdInvalid++}}
       const text=stripHtml(html);
-      pages.push({url:resolved.toString(),status:response.status,requestedUrl:item.url,redirectChain,contentType,responseTimeMs:Date.now()-started,title,description,h1,canonical:canonical?new URL(canonical,resolved).toString():null,lang,noindex,xRobotsTag,jsonLdInvalid,product:types.some(t=>t.toLowerCase()==="product")?product:undefined,wordCount:text.split(/\s+/).filter(Boolean).length,internalLinks:uniqueLinks,imageCount:imageMetrics.uniqueImageReferences,imagesMissingAlt:imageMetrics.missingAlt,accessibility,jsonLdTypes:[...new Set(types)],localBusiness:localBusiness.types.length ? {...localBusiness,types:[...new Set(localBusiness.types)]} : undefined,pageType:classify(resolved.toString(),html,types),depth:item.depth,discoveredFrom:item.from});
-      for(const next of uniqueLinks){if(!queued.has(next)&&queue.length+pages.length<limit){queued.add(next);queue.push({url:next,depth:item.depth+1,from:item.url});}}
-    }catch(e){errors.push({url:item.url,code:e instanceof Error&&e.message==="URL_BLOCKED"?"URL_BLOCKED":"FETCH_FAILED",message:e instanceof Error?e.message:"Unknown crawl error"});}
+      let canonicalUrl:string|null=null;
+      if(canonical){
+        try{ canonicalUrl=new URL(canonical,resolved).toString(); }
+        catch{ errors.push({url:resolved.toString(),code:"CANONICAL_INVALID",message:"Malformed canonical URL in HTML."}); }
+      }
+      pages.push({url:resolved.toString(),status:response.status,requestedUrl:item.url,redirectChain,contentType,responseTimeMs:Date.now()-started,title,description,h1,canonical:canonicalUrl,lang,noindex,xRobotsTag,jsonLdInvalid,product:types.some(t=>t.toLowerCase()==="product")?product:undefined,wordCount:text.split(/\s+/).filter(Boolean).length,internalLinks:uniqueLinks,imageCount:imageMetrics.uniqueImageReferences,imagesMissingAlt:imageMetrics.missingAlt,accessibility,jsonLdTypes:[...new Set(types)],localBusiness:localBusiness.types.length ? {...localBusiness,types:[...new Set(localBusiness.types)]} : undefined,pageType:classify(resolved.toString(),html,types),depth:item.depth,discoveredFrom:item.from});
+      for(const next of uniqueLinks){
+        if(queued.has(next)) continue;
+        discovered++;
+        if(queue.length+pages.length<limit){queued.add(next);queue.push({url:next,depth:item.depth+1,from:item.url});}
+        else truncated=true;
+      }
+    }catch(e){const message=e instanceof Error?e.message:"Unknown crawl error"; const isBlocked=/^URL_(?:IP|DNS|HOST|PORT|PROTOCOL|CREDENTIALS)_BLOCKED$/.test(message); if(isBlocked) blocked++; errors.push({url:item.url,code:isBlocked?"URL_BLOCKED":"FETCH_FAILED",message});}
   }
-  return {startUrl:start.toString(),finalUrl,mode:requestedMode,pages,discovered:queued.size,blocked,errors,startedAt,finishedAt:new Date().toISOString(),engineVersion:CRAWLER_ENGINE_VERSION};
+  return {startUrl:start.toString(),finalUrl,mode:requestedMode,pages,discovered,queued:queued.size,truncated,blocked,errors,startedAt,finishedAt:new Date().toISOString(),engineVersion:CRAWLER_ENGINE_VERSION};
 }
