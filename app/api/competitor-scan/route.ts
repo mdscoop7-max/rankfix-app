@@ -28,15 +28,17 @@ export async function POST(request: Request) {
     const [own, other] = await Promise.all([auditSite(website, "QUICK"), auditSite(competitor, "QUICK")]);
     const active = (a: typeof own) => a.issues.filter(i => i.status === "FAIL" || i.status === "WARNING");
     const ownIssues = active(own), competitorIssues = active(other);
-    const competitorPasses = new Set(other.issues.filter(i => i.status === "PASS").map(i => i.rule_id));
-    const opportunities = ownIssues.filter(i => competitorPasses.has(i.rule_id)).slice(0, 8).map(i => ({
+    const competitorPasses = new Set(other.issues.filter(i => i.status === "PASS" && i.confidence !== "low" && i.evidence?.examples?.length > 0).map(i => i.rule_id));
+    const opportunities = ownIssues.filter(i => i.status !== "UNABLE_TO_CONFIRM" && i.status !== "NOT_APPLICABLE" && i.confidence !== "low" && i.evidence?.examples?.length > 0 && competitorPasses.has(i.rule_id)).slice(0, 8).map(i => ({
       rule_id:i.rule_id,title:i.title,severity:i.severity,recommendation:i.recommendation
     }));
     await getDb().query("INSERT INTO usage_events (user_id,website_host,event_type) VALUES ($1,$2,'COMPETITOR_SCAN')",[user.id,new URL(own.finalUrl).hostname.toLowerCase().replace(/^www\./,"")]);
     return NextResponse.json({
       website:{url:own.finalUrl,scores:own.scores,issues:ownIssues.length,pages:own.crawl.pages},
       competitor:{url:other.finalUrl,scores:other.scores,issues:competitorIssues.length,pages:other.crawl.pages},
-      opportunities
+      opportunities,
+      scope:{mode:"QUICK",website:own.crawl.scope,competitor:other.crawl.scope},
+      notice:tr({nl:"Vergelijking op basis van dezelfde bevestigde QUICK-steekproef. Niet bevestigde of niet-toepasselijke controles worden niet als kans getoond.",en:"Comparison uses the same confirmed QUICK sample. Unconfirmed or non-applicable checks are not shown as opportunities.",de:"Der Vergleich basiert auf derselben bestätigten QUICK-Stichprobe. Nicht bestätigte oder nicht anwendbare Prüfungen werden nicht als Chance angezeigt.",fr:"La comparaison utilise le même échantillon QUICK confirmé. Les contrôles non confirmés ou non applicables ne sont pas présentés comme opportunités.",it:"Il confronto usa lo stesso campione QUICK confermato. I controlli non confermati o non applicabili non vengono mostrati come opportunità.",es:"La comparación usa la misma muestra QUICK confirmada. Las comprobaciones no confirmadas o no aplicables no se muestran como oportunidades."})
     });
   } catch (error) {
     return NextResponse.json({ error:tr({nl:"De vergelijking kon niet worden uitgevoerd.",en:"The comparison could not be completed.",de:"Der Vergleich konnte nicht durchgeführt werden.",fr:"La comparaison n’a pas pu être effectuée.",it:"Non è stato possibile completare il confronto.",es:"No se pudo completar la comparación."}), code:error instanceof Error?error.message:"COMPARE_FAILED" }, { status:502 });

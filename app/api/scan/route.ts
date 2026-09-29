@@ -7,7 +7,7 @@ import { sendScanReportEmail } from "@/lib/email";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { extractImageMetrics } from "@/lib/image-metrics";
-import { safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
+import { readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
 import { applyEvidenceBasedScoreCap, scoreApplicableChecks, summarizeAuditChecks } from "@/lib/audit-score";
 import { normalizePlan, planLimits } from "@/lib/plans";
@@ -377,7 +377,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: httpMessages[scanLanguage] }, { status: 422 });
     }
 
-    const html = await response.text();
+    const html = await readResponseTextLimited(response, 2_000_000);
     if (!html || html.length < 20) {
       return NextResponse.json({ error: scanError.html }, { status: 422 });
     }
@@ -727,7 +727,7 @@ export async function POST(request: Request) {
     try {
       const r = (await safePublicFetch(robotsUrl, { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/plain,application/xml,text/xml" })).response;
       if (r.ok) {
-        robotsTxt = await r.text();
+        robotsTxt = await readResponseTextLimited(r, 512_000);
         robotsStatus = "PASS";
         const declared = [...robotsTxt.matchAll(/^\s*Sitemap\s*:\s*(\S+)/gim)].map((match) => match[1]).filter(Boolean);
         robotsDeclaredSitemapUrls = [...new Set(declared.flatMap((value) => {
@@ -784,7 +784,7 @@ export async function POST(request: Request) {
         const r = (await safePublicFetch(new URL(candidate), { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/plain,application/xml,text/xml" })).response;
         sitemapFetchCompleted = true;
         if (r.ok) {
-          const sitemapBody = (await r.text()).slice(0, 2_000_000);
+          const sitemapBody = await readResponseTextLimited(r, 2_000_000);
           const hasSitemapRoot = /<(?:[a-z0-9_-]+:)?(?:urlset|sitemapindex)\b/i.test(sitemapBody);
           if (hasSitemapRoot) {
             sitemapFound = true;
@@ -1577,6 +1577,11 @@ export async function POST(request: Request) {
         product_price_consistency: isProductPage ? `visible=${visiblePriceCandidates.join(",") || "none"}; visibleEvidence=${visiblePriceEvidenceStrength}; schema=${structuredPriceCandidates.join(",") || "none"}` : null,
         product_availability: isProductPage ? `visibleState=${visibleAvailabilityState || "none"}; schemaStates=${structuredAvailabilityStates.join(",") || "none"}; schema=${structuredAvailabilityValues.join(",") || "none"}; contradiction=${availabilityContradiction}` : null,
         ads_readiness: (adsTrackingSignals || hasConversionSignal || hasExplicitAdsConversionSnippet) ? `adsIds=${googleAdsIds.join(",") || "none"}; ga4Ids=${ga4MeasurementIds.join(",") || "none"}; events=${uniqueConversionEventNames.join(",") || "none"}; adsLabels=${googleAdsSendToLabels.join(",") || "none"}; consentSignal=${hasConsentModeSignal}` : null,
+        broken_links: uniqueInternalAnchors.length ? `checked=${linkAuditResults.length}; broken=${brokenInternalLinks.length}; sampleLimit=24` : null,
+        internal_redirects: uniqueInternalAnchors.length ? `checked=${linkAuditResults.length}; redirected=${redirectedInternalLinks.length}; sampleLimit=24` : null,
+        accessibility_basics: `imagesMissingAlt=${imagesMissingAlt}; unlabeledControls=${unlabeledFormControls}; emptyButtons=${emptyButtons}; staticHtmlOnly=true`,
+        consent_mode_readiness: adsTrackingSignals > 0 ? `trackingSignals=${adsTrackingSignals}; explicitConsentSignal=${hasConsentModeSignal}; runtimeNotExecuted=true` : null,
+        merchant_feed_signal: hasEcommerceSignal ? `feedHint=${hasMerchantFeedHint}; productReadiness=${merchantProductReadiness}; websiteSignalsOnly=true` : null,
       };
       const heuristicKeys = new Set([
         "content", "headings", "duplicate_path", "html_escape", "image_sources", "webshop_claims",
@@ -1821,6 +1826,27 @@ export async function POST(request: Request) {
       }
     }
 
+    const scanScope = {
+      page: finalUrl.toString(),
+      mode: "PAGE_SAMPLE" as const,
+      javascriptExecuted: false,
+      internalLinks: {
+        discovered: anchorTags.length,
+        uniqueInternal: uniqueInternalAnchors.length,
+        checked: linkAuditResults.length,
+        limit: 24,
+        truncated: uniqueInternalAnchors.length < new Set(anchorTags.flatMap((item) => {
+          try {
+            const parsed = new URL(item.sourceHref, finalUrl);
+            return /^https?:$/.test(parsed.protocol) && parsed.hostname === finalUrl.hostname ? [parsed.toString()] : [];
+          } catch { return []; }
+        })).size,
+      },
+      accessibility: "STATIC_HTML_SIGNALS" as const,
+      consentMode: "STATIC_HTML_SIGNAL" as const,
+      merchant: "WEBSITE_SIGNALS_ONLY" as const,
+    };
+
     return NextResponse.json({
       success: true,
       scanId: savedScanId,
@@ -1835,6 +1861,7 @@ export async function POST(request: Request) {
       coverage: overallCoverage,
       summary: scanSummary,
       rendering,
+      scope: scanScope,
       pageTypeEvidence,
       technologyProfile,
       adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
