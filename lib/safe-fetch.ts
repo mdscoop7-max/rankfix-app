@@ -84,3 +84,31 @@ export async function safePublicFetch(value: string | URL, options: { timeoutMs?
   }
   throw new Error("REDIRECT_LIMIT");
 }
+
+
+export async function readResponseTextLimited(response: Response, maxBytes = 2_000_000) {
+  if (!Number.isFinite(maxBytes) || maxBytes <= 0) throw new Error("RESPONSE_LIMIT_INVALID");
+  const declared = Number(response.headers.get("content-length") || 0);
+  if (declared > maxBytes) throw new Error("RESPONSE_TOO_LARGE");
+  if (!response.body) return "";
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let total = 0;
+  let text = "";
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel();
+        throw new Error("RESPONSE_TOO_LARGE");
+      }
+      text += decoder.decode(value, { stream: true });
+    }
+    text += decoder.decode();
+    return text;
+  } finally {
+    reader.releaseLock();
+  }
+}
