@@ -59,6 +59,9 @@ export async function GET(request:Request){
 
  // Keep the rate-limit table bounded without needing a separate cleanup job.
  await db.query("DELETE FROM api_rate_limits WHERE window_start < NOW()-INTERVAL '48 hours'").catch(()=>undefined);
+ // Health samples are operational telemetry, not customer records. Keep a bounded
+ // window here instead of doing maintenance during normal request initialization.
+ await db.query("DELETE FROM rankfix_health_runs WHERE created_at < NOW()-INTERVAL '90 days'").catch(()=>undefined);
  // Recover abandoned worker leases and bound completed queue history. Queue maintenance must never take Health Guard down.
  await releaseStaleJobs().catch(error=>console.error("Queue stale-job recovery failed",error instanceof Error?error.message:"QUEUE_RECOVERY_FAILED"));
  await db.query("DELETE FROM background_jobs WHERE status IN ('SUCCEEDED','FAILED') AND finished_at < NOW()-INTERVAL '30 days'").catch(()=>undefined);
