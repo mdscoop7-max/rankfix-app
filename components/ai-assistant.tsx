@@ -79,7 +79,7 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
       const scanData = await scanResponse.json();
       const issue = scanData.issues?.[0];
       const scan = scanData.scan;
-      if (!scanResponse.ok || !issue) throw new Error(scanData.error || "Geen actief probleem gevonden.");
+      if (!scanResponse.ok || !issue) throw new Error(scanData.error || ex.none);
       const response = await fetch("/api/github/fix", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -90,10 +90,10 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
         }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "GitHub Fix kon niet worden gestart.");
-      setFixResult(data.pr?.url ? ex.created + data.pr.url : data.alreadyApplied ? "De code bevat dit al; er is niets gewijzigd. Controleer de live pagina met een nieuwe scan." : "Er is geen wijziging bevestigd.");
+      if (!response.ok) throw new Error(data.error || ex.githubFail);
+      setFixResult(data.pr?.url ? ex.created + data.pr.url : data.alreadyApplied ? ex.already : ex.nochange);
     } catch (error) {
-      setFixResult(error instanceof Error ? error.message : "GitHub Fix mislukt.");
+      setFixResult(error instanceof Error ? error.message : ex.failed);
     } finally {
       setFixBusy(false);
     }
@@ -119,7 +119,7 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
       const data = await response.json();
       setMessages((m) => [...m, { role: "assistant", content: data.answer || data.error || ex.generic }]);
     } catch {
-      setMessages((m) => [...m, { role: "assistant", content: "Er ging iets mis. Probeer het opnieuw." }]);
+      setMessages((m) => [...m, { role: "assistant", content: ex.retry }]);
     } finally {
       setBusy(false);
     }
