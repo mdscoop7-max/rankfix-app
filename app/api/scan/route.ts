@@ -793,8 +793,79 @@ export async function POST(request: Request) {
     if (!sitemapFound && sitemapFetchFailed) sitemapStatus = "UNABLE_TO_CONFIRM";
     const robotsMentionsSitemap = robotsDeclaredSitemapUrls.length > 0;
 
+    // Lightweight internal-link audit. Keep this bounded so one page cannot turn a scan
+    // into an unbounded crawler. HTTP evidence and semantic evidence stay separate.
+    type LinkAuditResult = { sourceHref: string; url: string; status: number | null; finalUrl: string | null; redirected: boolean; error: boolean; context: string };
+    const anchorTags = [...html.matchAll(/<a\\b[^>]*href\\s*=\\s*["']([^"']+)["'][^>]*>([\\s\\S]*?)<\\/a>/gi)]
+      .map((match) => {
+        const sourceHref = decode(match[1] || "");
+        const body = match[2] || "";
+        const anchorText = stripHtml(body);
+        const imageAlt = [...body.matchAll(/<img\\b[^>]*\\balt\\s*=\\s*["']([^"']+)["'][^>]*>/gi)].map((m) => decode(m[1] || "")).filter(Boolean).join(" ");
+        return { sourceHref, context: [anchorText, imageAlt].filter(Boolean).join(" ").trim().slice(0, 220) };
+      })
+      .filter((item) => item.sourceHref && !/^(?:#|mailto:|tel:|javascript:)/i.test(item.sourceHref));
+    const uniqueInternalAnchors = [...new Map(anchorTags.flatMap((item) => {
+      try {
+        const parsed = new URL(item.sourceHref, finalUrl);
+        if (!/^https?:$/.test(parsed.protocol) || parsed.hostname !== finalUrl.hostname) return [];
+        parsed.hash = "";
+        return [[parsed.toString(), { ...item, url: parsed.toString() }] as const];
+      } catch { return []; }
+    })).values()].slice(0, 24);
+    const linkAuditResults: LinkAuditResult[] = await Promise.all(uniqueInternalAnchors.map(async (item) => {
+      try {
+        const result = await safePublicFetch(new URL(item.url), { timeoutMs: 4500, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml,text/plain" });
+        const res = result.response;
+        const destination = res.url || item.url;
+        return { sourceHref: item.sourceHref, url: item.url, status: res.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context };
+      } catch {
+        return { sourceHref: item.sourceHref, url: item.url, status: null, finalUrl: null, redirected: false, error: true, context: item.context };
+      }
+    }));
+    const brokenInternalLinks = linkAuditResults.filter((item) => item.error || item.status === null || item.status === 404 || item.status === 410 || (item.status >= 500));
+    const redirectedInternalLinks = linkAuditResults.filter((item) => item.redirected && !item.error);
+    const productSlugStopWords = new Set(["product","products","shop","winkel","store","category","categorie","tag","product-tag","collections","collection","the","and","voor","van","met","een","het","de"]);
+    const semanticTokens = (value: string) => decodeURIComponent(value).toLowerCase().replace(/[^a-z0-9à-ÿ]+/gi, " ").split(/\\s+/).filter((token) => token.length >= 3 && !productSlugStopWords.has(token));
+    const semanticLinkMismatches = linkAuditResults.flatMap((item) => {
+      if (item.error || !item.status || item.status >= 400 || !item.context) return [];
+      let destination: URL;
+      try { destination = new URL(item.finalUrl || item.url); } catch { return []; }
+      // Only judge product-like destinations when the visible anchor itself names a product.
+      // Price-only anchors do not contain enough semantic evidence and therefore never fail here.
+      const contextTokens = [...new Set(semanticTokens(item.context))];
+      const destinationTokens = [...new Set(semanticTokens(destination.pathname))];
+      if (contextTokens.length < 2 || destinationTokens.length < 2) return [];
+      const overlap = contextTokens.filter((token) => destinationTokens.includes(token));
+      const productLikeDestination = /\\/(?:product|products|shop)\\//i.test(destination.pathname);
+      if (!productLikeDestination || overlap.length > 0) return [];
+      return [{ ...item, contextTokens: contextTokens.slice(0, 8), destinationTokens: destinationTokens.slice(0, 8) }];
+    }).slice(0, 8);
+
     const seoChecks: Check[] = [];
     const geoChecks: Check[] = [];
+
+    seoChecks.push(
+      uniqueInternalAnchors.length === 0
+        ? check("not_applicable", "broken_links", "seo", "Broken links", "Geen controleerbare interne links gevonden op deze pagina.", "Controleer links opnieuw wanneer de pagina interne navigatie bevat.", 0, 5)
+        : brokenInternalLinks.length === 0
+          ? check("pass", "broken_links", "seo", "Broken links", \`${linkAuditResults.length} interne link(s) steekproefsgewijs gecontroleerd; geen 404, 410, 5xx of fetchfout gevonden.\`, "Blijf interne links controleren bij wijzigingen en verwijderde pagina's.", 5, 5)
+          : check("warning", "broken_links", "seo", "Broken links", \`${brokenInternalLinks.length} van ${linkAuditResults.length} gecontroleerde interne link(s) is niet betrouwbaar bereikbaar. Voorbeeld: ${brokenInternalLinks[0]?.url} → ${brokenInternalLinks[0]?.status ?? "fetchfout"}.\`, "Herstel de bestemming, verwijder de link of redirect een oude URL naar de juiste relevante pagina.", 2, 5)
+    );
+    seoChecks.push(
+      uniqueInternalAnchors.length === 0
+        ? check("not_applicable", "internal_redirects", "seo", "Interne redirects", "Geen controleerbare interne links gevonden op deze pagina.", "Gebruik directe interne links zodra er navigatie aanwezig is.", 0, 4)
+        : redirectedInternalLinks.length === 0
+          ? check("pass", "internal_redirects", "seo", "Interne redirects", \`${linkAuditResults.length} interne link(s) gecontroleerd; geen doorgestuurde bestemmingen gevonden.\`, "Link intern bij voorkeur direct naar de definitieve URL.", 4, 4)
+          : check("warning", "internal_redirects", "seo", "Interne redirects", \`${redirectedInternalLinks.length} interne link(s) komt via een redirect op een andere URL uit. Voorbeeld: ${redirectedInternalLinks[0]?.url} → ${redirectedInternalLinks[0]?.finalUrl}.\`, "Werk interne links bij naar de definitieve URL om onnodige redirects te vermijden.", 2, 4)
+    );
+    seoChecks.push(
+      uniqueInternalAnchors.length === 0
+        ? check("not_applicable", "semantic_link_destination", "seo", "Verkeerde linkbestemming", "Geen controleerbare interne links gevonden.", "Controleer productkaarten zodra ze op de pagina aanwezig zijn.", 0, 5)
+        : semanticLinkMismatches.length === 0
+          ? check("pass", "semantic_link_destination", "seo", "Verkeerde linkbestemming", "Geen sterke semantische mismatch gevonden tussen benoemde productlinks en hun product-URL. Prijs-only links worden bewust niet als bewijs gebruikt.", "Houd titel, afbeelding en productbestemming binnen productkaarten consistent.", 5, 5)
+          : check("warning", "semantic_link_destination", "seo", "Verkeerde linkbestemming", \`Mogelijke verkeerde productbestemming gevonden: "${semanticLinkMismatches[0]?.context}" verwijst naar ${semanticLinkMismatches[0]?.finalUrl || semanticLinkMismatches[0]?.url}. De URL werkt technisch, maar de productnaam en bestemming delen geen duidelijke producttermen.\`, "Controleer handmatig of titel/afbeelding/prijs binnen dezelfde productkaart naar hetzelfde product verwijzen. Markeer dit pas als definitieve fout na bevestiging.", 2, 5)
+    );
 
     // Extended audit signals: trust, ecommerce quality, URL hygiene, social metadata and multilingual SEO.
     const placeholderMatches = text.match(/\[(?:kvk|btw|adres|e-?mail|email|telefoon|phone|address|postcode|plaats|company|naam)\]/gi) || [];
