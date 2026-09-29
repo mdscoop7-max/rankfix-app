@@ -813,14 +813,15 @@ export async function POST(request: Request) {
         return { sourceHref, context: [anchorText, imageAlt].filter(Boolean).join(" ").trim().slice(0, 220) };
       })
       .filter((item) => item.sourceHref && !/^(?:#|mailto:|tel:|javascript:)/i.test(item.sourceHref));
-    const uniqueInternalAnchors = [...new Map(anchorTags.flatMap((item) => {
+    const allUniqueInternalAnchors = [...new Map(anchorTags.flatMap((item) => {
       try {
         const parsed = new URL(item.sourceHref, finalUrl);
         if (!/^https?:$/.test(parsed.protocol) || parsed.hostname !== finalUrl.hostname) return [];
         parsed.hash = "";
         return [[parsed.toString(), { ...item, url: parsed.toString() }] as const];
       } catch { return []; }
-    })).values()].slice(0, 24);
+    })).values()];
+    const uniqueInternalAnchors = allUniqueInternalAnchors.slice(0, 24);
     const linkAuditResults: LinkAuditResult[] = await Promise.all(uniqueInternalAnchors.map(async (item) => {
       try {
         const result = await safePublicFetch(new URL(item.url), { timeoutMs: 4500, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml,text/plain" });
@@ -1669,7 +1670,15 @@ export async function POST(request: Request) {
         technologyProfile.evidence = [...technologyProfile.evidence, `Landingpage-signalen ${landingSignalCount}/4`].slice(0, 8);
       }
     }
-    const rendering = { mode: "raw_html" as const, javascriptExecuted: false, note: "RankFix beoordeelde de HTTP HTML-response; client-side JavaScript is in deze scan niet uitgevoerd." };
+    const renderingNotes: Record<string,string> = {
+      nl:"RankFix beoordeelde de HTTP HTML-response; client-side JavaScript is in deze scan niet uitgevoerd.",
+      en:"RankFix evaluated the HTTP HTML response; client-side JavaScript was not executed in this scan.",
+      de:"RankFix hat die HTTP-HTML-Antwort ausgewertet; clientseitiges JavaScript wurde in diesem Scan nicht ausgeführt.",
+      fr:"RankFix a évalué la réponse HTML HTTP ; le JavaScript côté client n’a pas été exécuté pendant cette analyse.",
+      it:"RankFix ha valutato la risposta HTML HTTP; il JavaScript lato client non è stato eseguito durante questa scansione.",
+      es:"RankFix evaluó la respuesta HTML HTTP; el JavaScript del lado del cliente no se ejecutó durante este análisis."
+    };
+    const rendering = { mode: "raw_html" as const, javascriptExecuted: false, note: renderingNotes[scanLanguage] || renderingNotes.en };
 
     let user = null;
     let savedScanId: string | null = null;
@@ -1836,16 +1845,11 @@ export async function POST(request: Request) {
       mode: "PAGE_SAMPLE" as const,
       javascriptExecuted: false,
       internalLinks: {
-        discovered: anchorTags.length,
-        uniqueInternal: uniqueInternalAnchors.length,
+        anchorsFound: anchorTags.length,
+        uniqueInternal: allUniqueInternalAnchors.length,
         checked: linkAuditResults.length,
         limit: 24,
-        truncated: uniqueInternalAnchors.length < new Set(anchorTags.flatMap((item) => {
-          try {
-            const parsed = new URL(item.sourceHref, finalUrl);
-            return /^https?:$/.test(parsed.protocol) && parsed.hostname === finalUrl.hostname ? [parsed.toString()] : [];
-          } catch { return []; }
-        })).size,
+        truncated: allUniqueInternalAnchors.length > linkAuditResults.length,
       },
       accessibility: "STATIC_HTML_SIGNALS" as const,
       consentMode: "STATIC_HTML_SIGNAL" as const,
