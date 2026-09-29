@@ -1583,18 +1583,28 @@ export async function POST(request: Request) {
         "webshop_trust", "price_format", "variant_url", "ads_readiness", "conversion_tracking",
         "organization_identity", "entity_consistency", "author", "faq", "reviews"
       ]);
+      const hasMappedEvidence = Object.prototype.hasOwnProperty.call(evidenceByKey, item.key);
+      const foundEvidence = hasMappedEvidence ? evidenceByKey[item.key] : null;
       item.confidence = item.status === "unable_to_confirm"
         ? "low"
-        : heuristicKeys.has(item.key)
+        : item.status === "not_applicable"
           ? "medium"
-          : item.status === "not_applicable"
+          : heuristicKeys.has(item.key)
             ? "medium"
-            : "high";
+            : hasMappedEvidence && foundEvidence !== null
+              ? "high"
+              : "low";
       item.evidence = {
         url: finalUrl.toString(),
-        found: Object.prototype.hasOwnProperty.call(evidenceByKey, item.key) ? evidenceByKey[item.key] : null,
+        found: foundEvidence,
         details: item.message,
       };
+      // A PASS without concrete measured evidence is not a proven PASS.
+      // Keep it visible but exclude it from scoring until RankFix can confirm it.
+      if (item.status === "pass" && (!hasMappedEvidence || foundEvidence === null)) {
+        item.status = "unable_to_confirm";
+        item.confidence = "low";
+      }
       item.issue_status = item.status === "not_applicable"
         ? "NOT_APPLICABLE"
         : item.status === "unable_to_confirm"
