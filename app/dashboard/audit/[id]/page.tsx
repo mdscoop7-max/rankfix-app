@@ -78,7 +78,17 @@ export default function AuditDetail() {
     finally{setMonitorBusy(false);}
   }
 
-  const checks = [...(scan?.result?.seo?.checks || []), ...(scan?.result?.geo?.checks || [])];
+  // SEO and GEO can surface the same underlying rule. Keep one customer-facing
+  // finding per concrete issue so counts, priorities and fix links stay truthful.
+  const rawChecks = [...(scan?.result?.seo?.checks || []), ...(scan?.result?.geo?.checks || [])];
+  const statusRank: Record<string, number> = { fail: 5, warning: 4, pass: 3, unable_to_confirm: 2, not_applicable: 1 };
+  const checkKey=(check:Check)=>String(check.issue_id||check.rule_id||check.title).trim().toLowerCase();
+  const checks = Array.from(rawChecks.reduce((map,check)=>{
+    const key=checkKey(check);
+    const current=map.get(key);
+    if(!current || (statusRank[String(check.status).toLowerCase()]||0) > (statusRank[String(current.status).toLowerCase()]||0)) map.set(key,check);
+    return map;
+  },new Map<string,Check>()).values());
   const problems = checks.filter(check => check.status === "fail" || check.status === "warning")
     .sort((a, b) => (a.severity === "CRITICAL" ? -1 : a.severity === "HIGH" ? 0 : 1) - (b.severity === "CRITICAL" ? -1 : b.severity === "HIGH" ? 0 : 1));
   const topPriorities = problems.slice(0, 3);
