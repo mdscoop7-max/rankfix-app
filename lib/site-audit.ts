@@ -1,6 +1,6 @@
 import { CrawlPage, CrawlResult, CrawlMode, crawlSite } from "@/lib/crawler";
 
-export const SITE_AUDIT_ENGINE_VERSION = "1.8.0";
+export const SITE_AUDIT_ENGINE_VERSION = "1.9.0";
 
 export type SiteRuleStatus = "PASS" | "FAIL" | "WARNING" | "NOT_APPLICABLE" | "UNABLE_TO_CONFIRM";
 
@@ -316,20 +316,34 @@ function grade(score: number) { return score >= 90 ? "A" : score >= 75 ? "B" : s
 export async function auditSite(url: string, mode: CrawlMode = "STANDARD"): Promise<SiteAudit> {
   const crawl = await crawlSite(url, mode);
   const pages = crawl.pages;
-  const crawlComplete = crawl.errors.length === 0 && !crawl.truncated && crawl.discovered <= pages.length;
+  // Page-level evidence warnings (for example malformed canonical markup) do not
+  // mean the crawl itself was incomplete. Only transport/fetch failures do.
+  const crawlBlockingErrors = crawl.errors.filter((error) => error.code !== "CANONICAL_INVALID");
+  const crawlComplete = crawlBlockingErrors.length === 0 && !crawl.truncated && crawl.discovered <= pages.length;
   const evaluated = rules.map(rule => {
     const applicable = pages.filter(p => rule.applicable(p, pages));
     if (!applicable.length) return {rule, issue: {issue_id:rule.id,rule_id:rule.id,category:rule.category,title:rule.title,description:rule.description,recommendation:rule.recommendation,severity:rule.severity,confidence:(crawlComplete?"high":"medium") as "high" | "medium",status:"NOT_APPLICABLE" as const,affected_urls:[],evidence:{total_pages:pages.length,affected_pages:0,examples:[]}}};
     return {rule, issue:buildIssue(rule, applicable.map(p => ({p,r:rule.evaluate(p,pages)})), pages.length, crawlComplete)};
   });
   const issues = evaluated.map(x=>x.issue);
-  const technical = scoreFor(issues,["technical","indexability"]);
-  const onPage = scoreFor(issues,["on-page"]);
-  const content = scoreFor(issues,["content"]);
-  const structuredData = scoreFor(issues,["structured-data"]);
-  const internalLinks = scoreFor(issues,["internal-linking"]);
-  const accessibility = scoreFor(issues,["accessibility","images"]);
-  const overall = Math.round((technical + onPage + content + structuredData + internalLinks + accessibility) / 6);
+  const categoryScore = (categories: string[]) => {
+    const scorable = issues.some(i => categories.includes(i.category) && i.status !== "NOT_APPLICABLE" && i.status !== "UNABLE_TO_CONFIRM");
+    return { score: scoreFor(issues, categories), scorable };
+  };
+  const technicalResult = categoryScore(["technical","indexability"]);
+  const onPageResult = categoryScore(["on-page"]);
+  const contentResult = categoryScore(["content"]);
+  const structuredDataResult = categoryScore(["structured-data"]);
+  const internalLinksResult = categoryScore(["internal-linking"]);
+  const accessibilityResult = categoryScore(["accessibility","images"]);
+  const technical = technicalResult.score;
+  const onPage = onPageResult.score;
+  const content = contentResult.score;
+  const structuredData = structuredDataResult.score;
+  const internalLinks = internalLinksResult.score;
+  const accessibility = accessibilityResult.score;
+  const scorableScores = [technicalResult,onPageResult,contentResult,structuredDataResult,internalLinksResult,accessibilityResult].filter(x=>x.scorable).map(x=>x.score);
+  const overall = scorableScores.length ? Math.round(scorableScores.reduce((sum,score)=>sum+score,0) / scorableScores.length) : 0;
   const page_types: Record<string,number> = {};
   for (const p of pages) page_types[p.pageType]=(page_types[p.pageType]||0)+1;
   return {
