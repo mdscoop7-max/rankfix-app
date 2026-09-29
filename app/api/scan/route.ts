@@ -1821,6 +1821,27 @@ export async function POST(request: Request) {
       }
     }
 
+    const scanScope = {
+      page: finalUrl.toString(),
+      mode: "PAGE_SAMPLE" as const,
+      javascriptExecuted: false,
+      internalLinks: {
+        discovered: anchorTags.length,
+        uniqueInternal: uniqueInternalAnchors.length,
+        checked: linkAuditResults.length,
+        limit: 24,
+        truncated: uniqueInternalAnchors.length < new Set(anchorTags.flatMap((item) => {
+          try {
+            const parsed = new URL(item.sourceHref, finalUrl);
+            return /^https?:$/.test(parsed.protocol) && parsed.hostname === finalUrl.hostname ? [parsed.toString()] : [];
+          } catch { return []; }
+        })).size,
+      },
+      accessibility: "STATIC_HTML_SIGNALS" as const,
+      consentMode: "STATIC_HTML_SIGNAL" as const,
+      merchant: "WEBSITE_SIGNALS_ONLY" as const,
+    };
+
     return NextResponse.json({
       success: true,
       scanId: savedScanId,
@@ -1835,6 +1856,7 @@ export async function POST(request: Request) {
       coverage: overallCoverage,
       summary: scanSummary,
       rendering,
+      scope: scanScope,
       pageTypeEvidence,
       technologyProfile,
       adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
