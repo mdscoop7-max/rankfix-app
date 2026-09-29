@@ -864,22 +864,34 @@ export async function POST(request: Request) {
       if (productCardMismatches.length >= 8) break;
     }
 
-    // Featured-product widgets are not always rendered as WooCommerce <li class="product"> cards.
-    // Detect a compact heading/product link followed closely by a separately linked price.
+    // Featured-product widgets can use a category/tag link for the title or image and a product link for the price.
+    // Inspect only a tight window around each linked price, then select the nearest preceding named link.
     const featuredProductMismatches: { label: string; namedUrl: string; priceUrl: string }[] = [];
-    const featuredPattern = /<h[2-6][^>]*>[\s\S]{0,500}?<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>[\s\S]{0,900}?<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>[\s\S]{0,120}?(?:€|EUR|&euro;)[\s\S]{0,120}?<\/a>/gi;
-    for (const match of html.matchAll(featuredPattern)) {
+    const priceLinkPattern = /<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]{0,180}?(?:€|EUR|&euro;)[\s\S]{0,180}?)<\/a>/gi;
+    for (const priceMatch of html.matchAll(priceLinkPattern)) {
       try {
-        const namedUrl = new URL(decode(match[1] || ""), finalUrl);
-        const priceUrl = new URL(decode(match[3] || ""), finalUrl);
-        const label = stripHtml(match[2] || "").trim();
-        if (namedUrl.hostname !== finalUrl.hostname || priceUrl.hostname !== finalUrl.hostname) continue;
-        if (normalizeScanUrl(namedUrl.toString()) === normalizeScanUrl(priceUrl.toString())) continue;
-        const labelTokens = semanticTokens(label);
-        const priceTokens = semanticTokens(priceUrl.pathname);
-        if (labelTokens.length < 2 || priceTokens.length < 1) continue;
-        if (labelTokens.some((token) => priceTokens.includes(token))) continue;
-        featuredProductMismatches.push({ label: label.slice(0, 160), namedUrl: namedUrl.toString(), priceUrl: priceUrl.toString() });
+        const priceUrl = new URL(decode(priceMatch[1] || ""), finalUrl);
+        if (priceUrl.hostname !== finalUrl.hostname || !/\/(?:product|products)\//i.test(priceUrl.pathname)) continue;
+        const priceIndex = priceMatch.index ?? 0;
+        const before = html.slice(Math.max(0, priceIndex - 1800), priceIndex);
+        const namedLinks = [...before.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)];
+        for (let i = namedLinks.length - 1; i >= 0; i--) {
+          const candidate = namedLinks[i];
+          const label = stripHtml(candidate[2] || "").trim();
+          if (!label || /(?:€|EUR|&euro;)/i.test(candidate[2] || "")) continue;
+          const namedUrl = new URL(decode(candidate[1] || ""), finalUrl);
+          if (namedUrl.hostname !== finalUrl.hostname) continue;
+          if (!/\/(?:product|products|product-tag|tag)\//i.test(namedUrl.pathname)) continue;
+          if (normalizeScanUrl(namedUrl.toString()) === normalizeScanUrl(priceUrl.toString())) break;
+          const labelTokens = semanticTokens(label);
+          const namedTokens = semanticTokens(namedUrl.pathname);
+          const priceTokens = semanticTokens(priceUrl.pathname);
+          if (labelTokens.length < 2 || namedTokens.length < 1 || priceTokens.length < 1) continue;
+          if (!labelTokens.some((token) => namedTokens.includes(token))) continue;
+          if (labelTokens.some((token) => priceTokens.includes(token))) break;
+          featuredProductMismatches.push({ label: label.slice(0, 160), namedUrl: namedUrl.toString(), priceUrl: priceUrl.toString() });
+          break;
+        }
         if (featuredProductMismatches.length >= 8) break;
       } catch { continue; }
     }
