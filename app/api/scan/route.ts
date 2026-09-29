@@ -849,22 +849,22 @@ export async function POST(request: Request) {
       uniqueInternalAnchors.length === 0
         ? check("not_applicable", "broken_links", "seo", "Broken links", "Geen controleerbare interne links gevonden op deze pagina.", "Controleer links opnieuw wanneer de pagina interne navigatie bevat.", 0, 5)
         : brokenInternalLinks.length === 0
-          ? check("pass", "broken_links", "seo", "Broken links", \`${linkAuditResults.length} interne link(s) steekproefsgewijs gecontroleerd; geen 404, 410, 5xx of fetchfout gevonden.\`, "Blijf interne links controleren bij wijzigingen en verwijderde pagina's.", 5, 5)
-          : check("warning", "broken_links", "seo", "Broken links", \`${brokenInternalLinks.length} van ${linkAuditResults.length} gecontroleerde interne link(s) is niet betrouwbaar bereikbaar. Voorbeeld: ${brokenInternalLinks[0]?.url} → ${brokenInternalLinks[0]?.status ?? "fetchfout"}.\`, "Herstel de bestemming, verwijder de link of redirect een oude URL naar de juiste relevante pagina.", 2, 5)
+          ? check("pass", "broken_links", "seo", "Broken links", `${linkAuditResults.length} interne link(s) steekproefsgewijs gecontroleerd; geen 404, 410, 5xx of fetchfout gevonden.`, "Blijf interne links controleren bij wijzigingen en verwijderde pagina's.", 5, 5)
+          : check("warning", "broken_links", "seo", "Broken links", `${brokenInternalLinks.length} van ${linkAuditResults.length} gecontroleerde interne link(s) is niet betrouwbaar bereikbaar. Voorbeeld: ${brokenInternalLinks[0]?.url} → ${brokenInternalLinks[0]?.status ?? "fetchfout"}.`, "Herstel de bestemming, verwijder de link of redirect een oude URL naar de juiste relevante pagina.", 2, 5)
     );
     seoChecks.push(
       uniqueInternalAnchors.length === 0
         ? check("not_applicable", "internal_redirects", "seo", "Interne redirects", "Geen controleerbare interne links gevonden op deze pagina.", "Gebruik directe interne links zodra er navigatie aanwezig is.", 0, 4)
         : redirectedInternalLinks.length === 0
-          ? check("pass", "internal_redirects", "seo", "Interne redirects", \`${linkAuditResults.length} interne link(s) gecontroleerd; geen doorgestuurde bestemmingen gevonden.\`, "Link intern bij voorkeur direct naar de definitieve URL.", 4, 4)
-          : check("warning", "internal_redirects", "seo", "Interne redirects", \`${redirectedInternalLinks.length} interne link(s) komt via een redirect op een andere URL uit. Voorbeeld: ${redirectedInternalLinks[0]?.url} → ${redirectedInternalLinks[0]?.finalUrl}.\`, "Werk interne links bij naar de definitieve URL om onnodige redirects te vermijden.", 2, 4)
+          ? check("pass", "internal_redirects", "seo", "Interne redirects", `${linkAuditResults.length} interne link(s) gecontroleerd; geen doorgestuurde bestemmingen gevonden.`, "Link intern bij voorkeur direct naar de definitieve URL.", 4, 4)
+          : check("warning", "internal_redirects", "seo", "Interne redirects", `${redirectedInternalLinks.length} interne link(s) komt via een redirect op een andere URL uit. Voorbeeld: ${redirectedInternalLinks[0]?.url} → ${redirectedInternalLinks[0]?.finalUrl}.`, "Werk interne links bij naar de definitieve URL om onnodige redirects te vermijden.", 2, 4)
     );
     seoChecks.push(
       uniqueInternalAnchors.length === 0
         ? check("not_applicable", "semantic_link_destination", "seo", "Verkeerde linkbestemming", "Geen controleerbare interne links gevonden.", "Controleer productkaarten zodra ze op de pagina aanwezig zijn.", 0, 5)
         : semanticLinkMismatches.length === 0
           ? check("pass", "semantic_link_destination", "seo", "Verkeerde linkbestemming", "Geen sterke semantische mismatch gevonden tussen benoemde productlinks en hun product-URL. Prijs-only links worden bewust niet als bewijs gebruikt.", "Houd titel, afbeelding en productbestemming binnen productkaarten consistent.", 5, 5)
-          : check("warning", "semantic_link_destination", "seo", "Verkeerde linkbestemming", \`Mogelijke verkeerde productbestemming gevonden: "${semanticLinkMismatches[0]?.context}" verwijst naar ${semanticLinkMismatches[0]?.finalUrl || semanticLinkMismatches[0]?.url}. De URL werkt technisch, maar de productnaam en bestemming delen geen duidelijke producttermen.\`, "Controleer handmatig of titel/afbeelding/prijs binnen dezelfde productkaart naar hetzelfde product verwijzen. Markeer dit pas als definitieve fout na bevestiging.", 2, 5)
+          : check("warning", "semantic_link_destination", "seo", "Verkeerde linkbestemming", `Mogelijke verkeerde productbestemming gevonden: "${semanticLinkMismatches[0]?.context}" verwijst naar ${semanticLinkMismatches[0]?.finalUrl || semanticLinkMismatches[0]?.url}. De URL werkt technisch, maar de productnaam en bestemming delen geen duidelijke producttermen.`, "Controleer handmatig of titel/afbeelding/prijs binnen dezelfde productkaart naar hetzelfde product verwijzen. Markeer dit pas als definitieve fout na bevestiging.", 2, 5)
     );
 
     // Extended audit signals: trust, ecommerce quality, URL hygiene, social metadata and multilingual SEO.
