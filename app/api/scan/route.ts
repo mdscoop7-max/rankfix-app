@@ -1729,7 +1729,7 @@ export async function POST(request: Request) {
     for(const item of seoChecks){
       if(item.status!=="warning"&&item.status!=="fail") continue;
       if(item.key==="canonical"){
-        item.title={nl:"Canonical URL",en:"Canonical URL",de:"Canonical-URL",fr:"URL canonique",it:"URL canonico",es:"URL canónica"}[scanLanguage]||"Canonical URL";
+        item.title=({nl:"Canonical URL",en:"Canonical URL",de:"Canonical-URL",fr:"URL canonique",it:"URL canonico",es:"URL canónica"} as Record<string,string>)[scanLanguage]||"Canonical URL";
         item.message=canonicalInvalid?concreteCopy.canonicalInvalid:!canonicalUrl?concreteCopy.canonicalMissing:concreteCopy.canonicalOther;
         item.fix=concreteCopy.canonicalFix;
         item.evidence.details=item.message;
@@ -1737,7 +1737,7 @@ export async function POST(request: Request) {
       if(item.key==="trust_legal_signals"){
         const labels=localizedMissingLabels[scanLanguage]||localizedMissingLabels.en;
         const missing=[!hasPrivacyLink?labels.privacy:null,!hasCookieLink?labels.cookies:null,!hasContactLink?labels.contact:null].filter(Boolean).join(", ");
-        item.title={nl:"Privacy & vertrouwenssignalen",en:"Privacy & trust signals",de:"Datenschutz- & Vertrauenssignale",fr:"Signaux de confidentialité et de confiance",it:"Segnali di privacy e fiducia",es:"Señales de privacidad y confianza"}[scanLanguage]||"Privacy & trust signals";
+        item.title=({nl:"Privacy & vertrouwenssignalen",en:"Privacy & trust signals",de:"Datenschutz- & Vertrauenssignale",fr:"Signaux de confidentialité et de confiance",it:"Segnali di privacy e fiducia",es:"Señales de privacidad y confianza"} as Record<string,string>)[scanLanguage]||"Privacy & trust signals";
         item.message=concreteCopy.trust(missing);
         item.fix=concreteCopy.trustFix;
         item.evidence.details=item.message;
