@@ -292,6 +292,20 @@ export async function POST(request:Request){
     ];
     const trustedCheck=trustedChecks.find((check:any)=>String(check?.issue_id||check?.rule_id||"")===issueId);
     if(!trustedCheck) return NextResponse.json({error:msg("Deze bevinding kon niet in de opgeslagen scan worden bevestigd.","This finding could not be confirmed in the saved scan.","Dieser Befund konnte im gespeicherten Scan nicht bestätigt werden.","Ce problème n’a pas pu être confirmé dans l’analyse enregistrée.","Questo problema non è stato confermato nella scansione salvata.","Este problema no pudo confirmarse en el análisis guardado.")},{status:404});
+    const trustedStatus=String(trustedCheck?.issue_status||trustedCheck?.status||"").toUpperCase();
+    const trustedConfidence=String(trustedCheck?.confidence||"").toLowerCase();
+    const trustedEvidence=trustedCheck?.evidence;
+    const hasTrustedEvidence=!!trustedEvidence && trustedEvidence.found !== null && trustedEvidence.found !== undefined && trustedEvidence.found !== "";
+    if(!["FAIL","WARNING"].includes(trustedStatus) || trustedConfidence==="low" || !hasTrustedEvidence){
+      return NextResponse.json({error:msg(
+        "Deze bevinding is niet voldoende bewezen voor een automatische GitHub-codefix. Controleer de scan eerst handmatig.",
+        "This finding is not sufficiently proven for an automatic GitHub code fix. Review the scan first.",
+        "Dieser Befund ist für einen automatischen GitHub-Codefix nicht ausreichend bestätigt. Prüfe zuerst den Scan.",
+        "Ce problème n’est pas suffisamment confirmé pour une correction GitHub automatique. Vérifiez d’abord l’analyse.",
+        "Questo problema non è sufficientemente verificato per una correzione GitHub automatica. Controlla prima la scansione.",
+        "Este problema no está suficientemente confirmado para una corrección automática de GitHub. Revisa primero el análisis."
+      ),issue_id:issueId,status:trustedStatus||"UNABLE_TO_CONFIRM",confidence:trustedConfidence||"low"},{status:422});
+    }
     issue=String(trustedCheck.title||issueId)+": "+String(trustedCheck.fix||trustedCheck.message||"");
     context=[trustedCheck.message,trustedCheck.fix,trustedCheck?.evidence?.details].filter(Boolean).map(String).join("\n").slice(0,6000);
     const trustedUrl=String(scanRow.final_url||"");
