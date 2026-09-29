@@ -1619,6 +1619,49 @@ export async function POST(request: Request) {
           ? "UNABLE_TO_CONFIRM"
           : statusCode(item.status);
     }
+    // Customer-facing scanner copy must follow the selected RankFix language.
+    // Keep Dutch as the canonical rule text used by the scanner, then translate the
+    // final check payload in one place so API responses, saved audits and emails agree.
+    if (scanLanguage !== "nl") {
+      const scannerLanguageNames: Record<string,string> = { en:"English", de:"German", fr:"French", it:"Italian", es:"Spanish" };
+      const translateCheckCopy = async (items: Check[]) => {
+        const apiKey = process.env.OPENAI_API_KEY;
+        if (!apiKey || items.length === 0) return;
+        try {
+          const payload = items.map((item) => ({ key:item.key, title:item.title, message:item.message, fix:item.fix }));
+          const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+            method:"POST",
+            headers:{ "Content-Type":"application/json", Authorization:`Bearer ${apiKey}` },
+            body:JSON.stringify({
+              model:process.env.OPENAI_MODEL || "gpt-5.6-luna",
+              temperature:0,
+              response_format:{type:"json_object"},
+              messages:[
+                {role:"system",content:`Translate RankFix website-audit copy into ${scannerLanguageNames[scanLanguage]}. Preserve URLs, numbers, HTML tags, SEO/GEO terminology and factual meaning exactly. Do not add claims or advice. Return JSON only as {"items":[{"key":"...","title":"...","message":"...","fix":"..."}]}.`},
+                {role:"user",content:JSON.stringify(payload)}
+              ]
+            })
+          });
+          if (!aiResponse.ok) return;
+          const aiJson:any = await aiResponse.json();
+          const parsed = JSON.parse(aiJson?.choices?.[0]?.message?.content || "{}");
+          const translated = Array.isArray(parsed?.items) ? parsed.items : [];
+          const byKey = new Map(translated.map((item:any) => [String(item?.key || ""), item]));
+          for (const item of items) {
+            const translatedItem:any = byKey.get(item.key);
+            if (!translatedItem) continue;
+            if (typeof translatedItem.title === "string" && translatedItem.title.trim()) item.title = translatedItem.title.trim();
+            if (typeof translatedItem.message === "string" && translatedItem.message.trim()) item.message = translatedItem.message.trim();
+            if (typeof translatedItem.fix === "string" && translatedItem.fix.trim()) item.fix = translatedItem.fix.trim();
+            item.evidence.details = item.message;
+          }
+        } catch (error) {
+          console.error("Scanner copy translation failed", error instanceof Error ? error.message : "unknown error");
+        }
+      };
+      await translateCheckCopy([...seoChecks, ...geoChecks]);
+    }
+
     const seoTotal = seoChecks.reduce((sum, c) => sum + (c.issue_status === "NOT_APPLICABLE" || c.issue_status === "UNABLE_TO_CONFIRM" ? 0 : c.points), 0);
     const seoMax = seoChecks.reduce((sum, c) => sum + (c.issue_status === "NOT_APPLICABLE" || c.issue_status === "UNABLE_TO_CONFIRM" ? 0 : c.maxPoints), 0);
     const geoTotal = geoChecks.reduce((sum, c) => sum + (c.issue_status === "NOT_APPLICABLE" || c.issue_status === "UNABLE_TO_CONFIRM" ? 0 : c.points), 0);
