@@ -2,19 +2,38 @@
 import {useEffect,useState} from "react";
 import DashboardNav from "../nav";
 import "../dashboard.css";
-type Check={key:string;label:string;level:"green"|"orange"|"red";message:string;latencyMs?:number};
-type Run={overall_level:"green"|"orange"|"red";checks:Check[];created_at:string};
+
+type Level="green"|"orange"|"red";
+type Check={key:string;label:string;level:Level;message:string;latencyMs?:number};
+type Signal={key:string;label:string;level:Level;message:string;value:number;unit:string};
+type Run={overall_level:Level;checks:Check[];created_at:string};
+type CapacityRun={overall_level:Level;signals:Signal[];created_at:string};
 type Incident={incident_key:string;status:"open"|"resolved";failure_count:number;first_seen_at:string;last_seen_at:string;alerted_at?:string|null;resolved_at?:string|null};
-const label={green:"Alles goed",orange:"Aandacht",red:"Kritiek"};
+type Guard={key:string;label:string;level:Level;message:string;metrics?:Record<string,number>;details?:Record<string,string|number|boolean|null>};
+const labels={green:"Gezond",orange:"Aandacht",red:"Kritiek"};
+const dot=(l:Level)=>l==="green"?"●":l==="orange"?"▲":"■";
+
 export default function HealthPage(){
- const [runs,setRuns]=useState<Run[]>([]);const [incidents,setIncidents]=useState<Incident[]>([]);const [error,setError]=useState("");
- useEffect(()=>{fetch("/api/health/system",{cache:"no-store"}).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error||"Health status laden mislukt.");setRuns(d.runs||[]);setIncidents(d.incidents||[])}).catch(e=>setError(e.message))},[]);
- const latest=runs[0];
+ const [runs,setRuns]=useState<Run[]>([]),[capacity,setCapacity]=useState<CapacityRun[]>([]),[incidents,setIncidents]=useState<Incident[]>([]),[guards,setGuards]=useState<Guard[]>([]),[recovery,setRecovery]=useState<Guard[]>([]),[error,setError]=useState("");
+ useEffect(()=>{fetch("/api/health/system",{cache:"no-store"}).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error||"Control Center laden mislukt.");setRuns(d.runs||[]);setCapacity(d.capacity||[]);setIncidents(d.incidents||[]);setGuards([...(d.operationalGuards||[]),...(d.securityUsageGrowth||[])]);setRecovery(d.recoveryGuards||[])}).catch(e=>setError(e.message))},[]);
+ const latest=runs[0],cap=capacity[0],open=incidents.filter(i=>i.status==="open");
+ const checks=latest?.checks||[],signals=cap?.signals||[];
+ const group=(keys:string[])=>checks.filter(c=>keys.some(k=>c.key.includes(k)));
  return <main className="rf-page"><div className="rf-shell"><header className="rf-header"><a href="/dashboard" className="rf-brand">RankFix <span>AI</span></a></header><DashboardNav/>
- <div className="rf-body"><div className="rf-heading"><h1>Health Guard</h1><p>Interne bewaking van RankFix. Alleen echte kritieke incidenten worden later per e-mail geëscaleerd.</p></div>
+ <div className="rf-body"><div className="rf-heading"><span className="rf-eyebrow">Alleen beheerder</span><h1>Internal Control Center</h1><p>Technische bewaking van RankFix zelf: gezondheid, capaciteit, database, verwerking, externe diensten en incidenten.</p></div>
  {error&&<div className="rf-alert">{error}</div>}
- <section className="rf-plan-card"><div><span className="rf-eyebrow">Systeemstatus</span><h2>{latest?label[latest.overall_level]:"Nog geen controle"}</h2><p>{latest?"Laatste controle: "+new Date(latest.created_at).toLocaleString("nl-NL"):"De scheduler heeft nog geen health-run opgeslagen."}</p></div></section>
- <div className="rf-grid">{(latest?.checks||[]).map(c=><section className="rf-card" key={c.key}><span className="rf-eyebrow">{c.level.toUpperCase()}</span><h3>{c.label}</h3><p>{c.message}</p>{typeof c.latencyMs==="number"&&<small>{c.latencyMs} ms</small>}</section>)}</div>
- <section className="rf-card"><h2>Incidenten</h2>{incidents.length===0?<p>Geen incidenten geregistreerd.</p>:incidents.slice(0,8).map((i,n)=><p key={i.incident_key+n}><strong>{i.status==="open"?"Actief":"Hersteld"}</strong> · {i.failure_count} bevestigde fouten · {new Date(i.last_seen_at).toLocaleString("nl-NL")}{i.alerted_at?" · kritieke mail verzonden":""}</p>)}</section>\n <section className="rf-card"><h2>Recente controles</h2>{runs.slice(0,12).map((r,i)=><p key={r.created_at+i}><strong>{label[r.overall_level]}</strong> · {new Date(r.created_at).toLocaleString("nl-NL")}</p>)}</section>
+ <section className="rf-plan-card"><div><span className="rf-eyebrow">System Health</span><h2>{latest?labels[latest.overall_level]:"Nog geen controle"}</h2><p>{latest?"Laatste health-run: "+new Date(latest.created_at).toLocaleString("nl-NL"):"Nog geen health-run opgeslagen."}</p></div><div><strong>{open.length}</strong><p>actieve incidenten</p></div></section>
+ <div className="rf-grid">
+  <section className="rf-card"><span className="rf-eyebrow">Capacity</span><h3>{cap?dot(cap.overall_level)+" "+labels[cap.overall_level]:"Geen meting"}</h3>{signals.map(s=><p key={s.key}><strong>{s.label}:</strong> {s.value} {s.unit} · {labels[s.level]}</p>)}</section>
+  <section className="rf-card"><span className="rf-eyebrow">Database</span><h3>PostgreSQL</h3>{guards.filter(g=>g.key==="database_guard").map(g=><p key={g.key}>{dot(g.level)} {g.message}</p>)}<p>Capaciteit wordt beoordeeld op werkelijke belasting en groei, niet alleen op klantenaantal.</p></section>
+  <section className="rf-card"><span className="rf-eyebrow">Queue & Workers</span><h3>Achtergrondverwerking</h3>{guards.filter(g=>g.key==="queue_worker_guard").map(g=><p key={g.key}>{dot(g.level)} {g.message}</p>)}</section>
+  <section className="rf-card"><span className="rf-eyebrow">External APIs</span><h3>Afhankelijkheden</h3>{group(["ai","github","google","email"]).map(c=><p key={c.key}>{dot(c.level)} <strong>{c.label}</strong> · {c.message}</p>)}</section>
+  <section className="rf-card"><span className="rf-eyebrow">Performance</span><h3>App & scanner</h3>{group(["app","scanner","deployment"]).map(c=><p key={c.key}>{dot(c.level)} <strong>{c.label}</strong> · {c.message}</p>)}</section>
+  <section className="rf-card"><span className="rf-eyebrow">Backup & Recovery</span><h3>Herstelbaarheid</h3>{recovery.map(g=><p key={g.key}>{dot(g.level)} <strong>{g.label}</strong> · {g.message}</p>)}</section>
+  <section className="rf-card"><span className="rf-eyebrow">Security & Abuse</span><h3>Bescherming</h3>{guards.filter(g=>g.key==="security_abuse").map(g=><p key={g.key}>{dot(g.level)} {g.message}</p>)}</section>
+  <section className="rf-card"><span className="rf-eyebrow">Usage & Growth</span><h3>Technisch gebruik</h3>{guards.filter(g=>g.key==="usage"||g.key==="growth_upgrade").map(g=><p key={g.key}>{dot(g.level)} <strong>{g.label}</strong> · {g.message}</p>)}<p>Euro-kosten koppelen we pas aan definitieve leveranciersplannen.</p></section>
+ </div>
+ <section className="rf-card"><h2>Incidenten</h2>{incidents.length===0?<p>Geen incidenten geregistreerd.</p>:incidents.slice(0,12).map((i,n)=><p key={i.incident_key+n}><strong>{i.status==="open"?"Actief":"Hersteld"}</strong> · {i.incident_key.replace("rankfix-production:","")} · {i.failure_count} bevestigingen · {new Date(i.last_seen_at).toLocaleString("nl-NL")}{i.alerted_at?" · melding verzonden":""}</p>)}</section>
+ <section className="rf-card"><h2>Recente controles</h2>{runs.slice(0,12).map((r,i)=><p key={r.created_at+i}><strong>{labels[r.overall_level]}</strong> · {new Date(r.created_at).toLocaleString("nl-NL")}</p>)}</section>
  </div></div></main>
 }
