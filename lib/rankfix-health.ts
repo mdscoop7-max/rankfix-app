@@ -18,7 +18,9 @@ export async function runRankFixHealthChecks():Promise<HealthCheck[]>{
  const appSlow=app.ok&&app.latencyMs>15000;
  checks.push({key:"app",label:"RankFix app",level:app.ok?(appSlow?"orange":"green"):"red",message:app.ok?(appSlow?"Productie-app bereikbaar, maar reageert traag (mogelijke cold start).":"Productie-app bereikbaar."):"Productie-app niet normaal bereikbaar.",latencyMs:app.latencyMs});
 
- checks.push({key:"scanner",label:"Scanner",level:"green",message:"Scanner-module geladen; netwerkfouten worden per scan geïsoleerd."});
+ const scanner=await timed(async()=>{const r=await getDb().query("SELECT created_at,result FROM scans ORDER BY created_at DESC LIMIT 1");return r.rows[0]??null});
+ const latestScan=scanner.ok?scanner.value:null;
+ checks.push({key:"scanner",label:"Scanner",level:scanner.ok?"green":"orange",message:scanner.ok?(latestScan?`Scanner-opslag bereikbaar; laatste opgeslagen scan: ${new Date(latestScan.created_at).toISOString()}.`:"Scanner-opslag bereikbaar; er is nog geen opgeslagen scan om runtime-werking te bevestigen."):"Scannerstatus kon niet uit de scanopslag worden bevestigd.",latencyMs:scanner.latencyMs});
  checks.push({key:"ai",label:"AI",level:process.env.OPENAI_API_KEY?"green":"orange",message:process.env.OPENAI_API_KEY?"AI-configuratie aanwezig.":"AI-configuratie ontbreekt; audits blijven beschikbaar zonder AI-fixes."});
  checks.push({key:"email",label:"E-mail",level:process.env.RESEND_API_KEY&&(process.env.SCAN_REPORT_FROM||process.env.RESEND_FROM)?"green":"orange",message:process.env.RESEND_API_KEY&&(process.env.SCAN_REPORT_FROM||process.env.RESEND_FROM)?"Resend-configuratie aanwezig.":"E-mailconfiguratie is onvolledig."});
  checks.push({key:"github",label:"GitHub",level:process.env.GITHUB_CLIENT_ID&&process.env.GITHUB_CLIENT_SECRET?"green":"orange",message:process.env.GITHUB_CLIENT_ID&&process.env.GITHUB_CLIENT_SECRET?"GitHub OAuth-configuratie aanwezig.":"GitHub OAuth-configuratie is onvolledig; GitHub-fixes zijn dan niet beschikbaar."});
