@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import React from "react";
 
 const copy={
  nl:{line1:"Jouw website.",line2:"Meer zichtbaarheid.",desc:"SEO & GEO audits voor Google en AI-search met concrete fixes.",result:"Jouw RankFix resultaat",overall:"Totaal",grade:"Score A",reports:"Rapporten"},
