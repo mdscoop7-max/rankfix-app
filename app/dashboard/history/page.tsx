@@ -25,7 +25,7 @@ export default function HistoryPage(){
  const trendPoints=trend.map(p=>p.x+","+p.y).join(" ");
  return <main className="rf-page" lang={language}><div className="rf-shell">
   <header className="rf-header"><a href="/dashboard" className="rf-brand">RankFix <span>AI</span></a><a href="/dashboard" className="rf-back">← {t[0]}</a></header>
-  <DashboardNav />
+  <DashboardNav current={1}/>
   <div className="rf-body"><div className="rf-heading"><h1>{t[1]}</h1><p>{t[2]}</p></div>
    <div className="rf-history-filters"><label>{t[3]}<select value={query} onChange={e=>setQuery(e.target.value)}><option value="">{t[4]}</option>{sites.map(x=><option key={x}>{x}</option>)}</select></label><label>{t[5]}<select value={score} onChange={e=>setScore(e.target.value)}><option value="all">{t[6]}</option><option value="good">80–100</option><option value="attention">60–79</option><option value="low">0–59</option></select></label><a className="rf-primary-link" href="/dashboard/scan">{t[7]}</a></div>
    {loading&&<p className="rf-empty">{t[8]}</p>}{error&&<p className="rf-alert">{error}</p>}
