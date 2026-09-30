@@ -141,7 +141,7 @@ export function validateFix(input: {
     errors.push("Fix is identiek aan de huidige waarde.");
   }
 
-  if (input.source === "ai") { warnings.push("AI-output kan nooit automatisch worden toegepast."); if (input.currentIssue?.status !== "FAIL" && input.currentIssue?.status !== "WARNING") errors.push("AI-fix mag alleen worden gegenereerd voor een actief FAIL- of WARNING-issue."); }
+  if (input.source === "ai") { warnings.push("Een gegenereerd voorstel kan nooit automatisch worden toegepast."); if (input.currentIssue?.status !== "FAIL" && input.currentIssue?.status !== "WARNING") errors.push("Een fixvoorstel mag alleen worden gegenereerd voor een actief FAIL- of WARNING-issue."); }
 
   if (policy.category === "C") {
     warnings.push("Deze fix vereist menselijke controle.");
@@ -162,4 +162,4 @@ export function validateFix(input: {
 
 export function isFixStale(fix: NormalizedFix, currentScanId: string | null): boolean { return !!fix.scan_id && !!currentScanId && fix.scan_id !== currentScanId; }
 
-export function canApplyFix(fix: NormalizedFix, currentScanId: string | null): { valid: boolean; errors: string[] } { const errors=[...fix.validation.errors]; if(!fix.approved) errors.push("Fix is nog niet handmatig goedgekeurd."); if(isFixStale(fix,currentScanId)) errors.push("Fix hoort bij een verouderde scan."); if(fix.source==="ai") errors.push("AI-fixes mogen niet automatisch worden toegepast."); return {valid:errors.length===0,errors}; }
+export function canApplyFix(fix: NormalizedFix, currentScanId: string | null): { valid: boolean; errors: string[] } { const errors=[...fix.validation.errors]; if(!fix.approved) errors.push("Fix is nog niet handmatig goedgekeurd."); if(isFixStale(fix,currentScanId)) errors.push("Fix hoort bij een verouderde scan."); if(fix.source==="ai") errors.push("Gegenereerde fixes mogen niet automatisch worden toegepast."); return {valid:errors.length===0,errors}; }
