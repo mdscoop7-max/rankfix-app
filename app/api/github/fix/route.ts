@@ -7,6 +7,7 @@ import { validateFix } from "@/lib/seo-fix-validator";
 import { validateGithubFix } from "@/lib/github-fix-validator";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { consumeRateLimit } from "@/lib/rate-limit";
+import { createHash } from "crypto";
 
 function safeRepo(v:string){ return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(v) && !v.includes(".."); }
 function safePath(v:string){ return v.length>0 && v.length<240 && !v.startsWith("/") && !v.split("/").includes("..") && !/[<>:"|?*]/.test(v); }
@@ -319,6 +320,8 @@ export async function POST(request:Request){
     const baseBranch=typeof body?.baseBranch==="string"&&/^[A-Za-z0-9._/-]{1,120}$/.test(body.baseBranch)?body.baseBranch:"main";
     const previewOnly=body?.preview===true;
     const explicitApproval=body?.approved===true;
+    const proposalId=typeof body?.proposal_id==="string"?body.proposal_id.trim():"";
+    const proposalHash=typeof body?.proposal_hash==="string"?body.proposal_hash.trim():"";
     // Preview is read-only: it must not consume the PR/code-write rate limit.
     // Only a confirmed publish request can create a branch/commit/PR.
     if(!previewOnly && !explicitApproval) return NextResponse.json({error:msg("Expliciete goedkeuring is vereist voordat RankFix een branch, commit of Pull Request mag maken.","Explicit approval is required before RankFix may create a branch, commit, or Pull Request.","Eine ausdrückliche Genehmigung ist erforderlich, bevor RankFix einen Branch, Commit oder Pull Request erstellen darf.","Une approbation explicite est requise avant que RankFix puisse créer une branche, un commit ou une Pull Request.","È richiesta un’approvazione esplicita prima che RankFix possa crearere un branch, un commit o una Pull Request.","Se requiere aprobación explícita antes de que RankFix pueda crear una rama, un commit o una Pull Request.")},{status:409});
@@ -409,7 +412,33 @@ export async function POST(request:Request){
     const current=Buffer.from(file.content.replace(/\n/g,""),"base64").toString("utf8");
     if(current.length>120000) return NextResponse.json({error:msg("Bestand is te groot voor een veilige AI-codefix.","The file is too large for a safe AI code fix.","Die Datei ist zu groß für einen sicheren AI-Codefix.","Le fichier est trop volumineux pour une correction de code AI sûre.","Il file è troppo grande per una correzione di codice AI sicura.","El archivo es demasiado grande para una corrección de código AI segura.")},{status:413});
     const deterministicOgFix=buildDeterministicOgFix(path,current,issue,context);
-    const generated=deterministicOgFix || await generateCodeFix(path,current,issue,context,issueId);
+    let generated:{content:string;summary:string};
+    let reviewedProposal:any=null;
+    if(!previewOnly){
+      if(!proposalId || !/^[0-9a-f-]{36}$/i.test(proposalId) || !/^[a-f0-9]{64}$/i.test(proposalHash)){
+        return NextResponse.json({error:msg("Open eerst de preview en keur daarna exact dat voorstel goed.","Open the preview first, then approve that exact proposal.","Öffne zuerst die Vorschau und genehmige anschließend genau diesen Vorschlag.","Ouvrez d’abord l’aperçu, puis approuvez exactement cette proposition.","Apri prima l’anteprima, quindi approva esattamente quella proposta.","Abre primero la vista previa y después aprueba exactamente esa propuesta.")},{status:409});
+      }
+      const saved=await getDb().query(
+        "SELECT id,repository,file_path,base_branch,base_file_sha,proposed_content,content_hash,summary,status,expires_at FROM fix_proposals WHERE id=$1 AND user_id=$2 AND scan_id=$3 AND issue_id=$4 LIMIT 1",
+        [proposalId,user.id,scanId,issueId]
+      );
+      reviewedProposal=saved.rows[0];
+      if(!reviewedProposal || reviewedProposal.status!=="PREVIEWED" || new Date(reviewedProposal.expires_at).getTime()<=Date.now()){
+        return NextResponse.json({error:msg("Dit voorstel is verlopen of niet meer geldig. Maak een nieuwe preview.","This proposal expired or is no longer valid. Create a new preview.","Dieser Vorschlag ist abgelaufen oder nicht mehr gültig. Erstelle eine neue Vorschau.","Cette proposition a expiré ou n’est plus valide. Créez un nouvel aperçu.","Questa proposta è scaduta o non è più valida. Crea una nuova anteprima.","Esta propuesta ha caducado o ya no es válida. Crea una nueva vista previa.")},{status:409});
+      }
+      if(reviewedProposal.repository!==repo || reviewedProposal.file_path!==path || reviewedProposal.base_branch!==effectiveBaseBranch || reviewedProposal.base_file_sha!==String(file.sha) || reviewedProposal.content_hash!==proposalHash){
+        await getDb().query("UPDATE fix_proposals SET status='STALE' WHERE id=$1 AND user_id=$2",[proposalId,user.id]);
+        return NextResponse.json({error:msg("Het bestand of voorstel is sinds de preview veranderd. Controleer eerst een nieuwe preview.","The file or proposal changed since the preview. Review a new preview first.","Datei oder Vorschlag haben sich seit der Vorschau geändert. Prüfe zuerst eine neue Vorschau.","Le fichier ou la proposition a changé depuis l’aperçu. Vérifiez d’abord un nouvel aperçu.","Il file o la proposta sono cambiati dall’anteprima. Controlla prima una nuova anteprima.","El archivo o la propuesta cambió desde la vista previa. Revisa primero una nueva vista previa.")},{status:409});
+      }
+      const exactHash=createHash("sha256").update(String(reviewedProposal.proposed_content),"utf8").digest("hex");
+      if(exactHash!==proposalHash){
+        await getDb().query("UPDATE fix_proposals SET status='STALE' WHERE id=$1 AND user_id=$2",[proposalId,user.id]);
+        return NextResponse.json({error:msg("De opgeslagen preview kon niet veilig worden bevestigd.","The saved preview could not be safely verified.","Die gespeicherte Vorschau konnte nicht sicher bestätigt werden.","L’aperçu enregistré n’a pas pu être vérifié en toute sécurité.","L’anteprima salvata non è stata verificata in modo sicuro.","No se pudo verificar de forma segura la vista previa guardada.")},{status:409});
+      }
+      generated={content:String(reviewedProposal.proposed_content),summary:String(reviewedProposal.summary)};
+    } else {
+      generated=deterministicOgFix || await generateCodeFix(path,current,issue,context,issueId);
+    }
     if(generated.content.length>180000) return NextResponse.json({error:msg("AI-output is te groot voor een veilige wijziging.","AI output is too large for a safe change.","Die AI-Ausgabe ist zu groß für eine sichere Änderung.","La sortie AI est trop volumineuse pour une modification sûre.","L’output AI è troppo grande per una modifica sicura.","La salida de AI es demasiado grande para un cambio seguro.")},{status:422});
     if(!generated.content.trim() || /(?:\[YOUR_[^\]]*\]|\bTODO\b|CHANGE_ME|REPLACE_ME|INSERT_[A-Z_]+)/i.test(generated.content)) return NextResponse.json({error:msg("AI-output bevat lege inhoud of placeholders.","AI output contains empty content or placeholders.","Die AI-Ausgabe enthält leere Inhalte oder Platzhalter.","La sortie AI contient du contenu vide ou des espaces réservés.","L’output AI contiene contenuti vuoti o segnaposto.","La salida de AI contiene contenido vacío o marcadores de posición.")},{status:422});
     // GitHub fixes contain a complete source file, not a single SEO field.
@@ -462,6 +491,11 @@ export async function POST(request:Request){
     }
 
     if(previewOnly){
+      const contentHash=createHash("sha256").update(generated.content,"utf8").digest("hex");
+      const savedProposal=await getDb().query(
+        "INSERT INTO fix_proposals (user_id,scan_id,issue_id,repository,file_path,base_branch,base_file_sha,proposed_content,content_hash,summary,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'PREVIEWED') RETURNING id,expires_at",
+        [user.id,scanId,issueId,repo,path,effectiveBaseBranch,String(file.sha),generated.content,contentHash,generated.summary]
+      );
       const beforeLines=current.split("\n");
       const afterLines=generated.content.split("\n");
       let prefix=0;
@@ -471,12 +505,13 @@ export async function POST(request:Request){
       const beforeChanged=beforeLines.slice(prefix,Math.min(beforeLines.length-suffix,prefix+80));
       const afterChanged=afterLines.slice(prefix,Math.min(afterLines.length-suffix,prefix+80));
       return NextResponse.json({
-        success:true,status:"preview",summary:generated.summary,repository:repo,path,
+        success:true,status:"preview",summary:generated.summary,repository:repo,path,proposal_id:savedProposal.rows[0].id,proposal_hash:contentHash,proposal_expires_at:savedProposal.rows[0].expires_at,
         preview:{startLine:prefix+1,before:beforeChanged,after:afterChanged,truncated:(beforeLines.length-prefix-suffix>80)||(afterLines.length-prefix-suffix>80),changedLines:changeEstimate.changed}
       });
     }
 
-    const branch="rankfix/"+Date.now()+"-"+slug(issue);
+    await getDb().query("UPDATE fix_proposals SET status='APPROVED',approved_at=NOW() WHERE id=$1 AND user_id=$2 AND status='PREVIEWED'",[proposalId,user.id]);
+        const branch="rankfix/"+Date.now()+"-"+slug(issue);
     const baseRef=await githubFetch<any>(token,"/repos/"+repo+"/git/ref/heads/"+encodeURIComponent(effectiveBaseBranch));
     await githubFetch<any>(token,"/repos/"+repo+"/git/refs",{method:"POST",body:JSON.stringify({ref:"refs/heads/"+branch,sha:baseRef.object.sha})});
     await githubFetch<any>(token,"/repos/"+repo+"/contents/"+path,{
@@ -487,7 +522,8 @@ export async function POST(request:Request){
       method:"POST",
       body:JSON.stringify({title:"RankFix: "+generated.summary.slice(0,70),head:branch,base:effectiveBaseBranch,body:"## RankFix codevoorstel\n\n"+generated.summary+"\n\nRankFix heeft alleen een aparte branch en Pull Request voorbereid. Controleer de volledige diff en tests voordat je zelf besluit te mergen/publiceren. RankFix mergt of publiceert nooit automatisch.\n\nTarget: "+path})
     });
-    const db=getDb();
+    await getDb().query("UPDATE fix_proposals SET status='PR_CREATED',used_at=NOW() WHERE id=$1 AND user_id=$2 AND status='APPROVED'",[proposalId,user.id]);
+        const db=getDb();
     const scannedUrl = normalizeScanUrl(trustedUrl);
     if (scannedUrl && issueId) {
       await db.query(
