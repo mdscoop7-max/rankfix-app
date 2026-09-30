@@ -306,13 +306,10 @@ export async function POST(request:Request){
     }
     await ensureDatabase();
     const body=await request.json();
-    const planResult=await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1",[user.id]);
-    const planCode=String(planResult.rows[0]?.plan_code||"free").toLowerCase();
     const supportedLanguages=["nl","en","de","fr","it","es"] as const;
     type FixLanguage=(typeof supportedLanguages)[number];
     language=supportedLanguages.includes(body?.language as FixLanguage)?body.language as FixLanguage:"nl";
     const msg=(nl:string,en:string,de:string,fr:string,it:string,es:string)=>({nl,en,de,fr,it,es} as Record<FixLanguage,string>)[language];
-    if(planCode==="free") return NextResponse.json({error:msg("AI- en GitHub-fixes zijn beschikbaar met een betaald abonnement. Je bestaande scanrapport blijft beschikbaar.","AI and GitHub fixes are available with a paid plan. Your existing scan report remains available.","AI- und GitHub-Fixes sind mit einem kostenpflichtigen Tarif verfügbar. Dein bestehender Scanbericht bleibt verfügbar.","Les correctifs IA et GitHub sont disponibles avec une offre payante. Votre rapport d’analyse existant reste disponible.","Le correzioni AI e GitHub sono disponibili con un piano a pagamento. Il rapporto di scansione esistente resta disponibile.","Las correcciones de IA y GitHub están disponibles con un plan de pago. Tu informe de análisis existente seguirá disponible."),code:"PAID_PLAN_REQUIRED"},{status:403});
     const requestedRepo=typeof body?.repo==="string"?body.repo.trim():"";
     const requestedPath=typeof body?.path==="string"?body.path.trim():"";
     let issue=typeof body?.issue==="string"?body.issue.trim():"";
