@@ -1806,7 +1806,10 @@ export async function POST(request: Request) {
     const commerceDiscovery = technologyProfile.isCommerce ? discoverCommercePages(html, finalUrl.toString(), 24) : [];
     const commerceProducts = commerceDiscovery.filter((item) => item.kind === "product").slice(0, 6);
     const commerceCategories = commerceDiscovery.filter((item) => item.kind === "category").slice(0, 4);
-    const commerceAuditTargets = [...commerceProducts, ...commerceCategories].slice(0, 8);
+    const commerceAuditTargets = [...commerceProducts, ...commerceCategories]
+      .filter((candidate): candidate is typeof candidate & { kind: "product" | "category" } =>
+        candidate.kind === "product" || candidate.kind === "category")
+      .slice(0, 8);
     const commercePageAudits: CommercePageAudit[] = [];
     for (const candidate of commerceAuditTargets) {
       try {
