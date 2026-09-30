@@ -240,8 +240,9 @@ export async function POST(request: Request) {
     const rawUrl = typeof body?.url === "string" ? body.url.trim() : "";
     const mode: AuditMode = body?.mode === "seo" || body?.mode === "geo" || body?.mode === "both" ? body.mode : "both";
     const dashboardScan = body?.dashboard === true;
-    // Explicit dashboard rechecks may confirm prepared fixes, but only from fresh live evidence below.
-    const verifyFixes = dashboardScan && body?.verifyFixes === true;
+    // Every authenticated dashboard rescan automatically rechecks prepared fixes.
+    // A fix is still marked DONE only by the strict fresh-evidence PASS gate below.
+    const verifyFixes = dashboardScan;
     const scanLanguage = ["nl","en","de","fr","it","es"].includes(body?.language) ? body.language : "nl";
     fallbackLanguage = scanLanguage;
     const errors: Record<string, Record<string, string>> = {
