@@ -1,6 +1,6 @@
 import { CrawlPage, CrawlResult, CrawlMode, crawlSite } from "@/lib/crawler";
 
-export const SITE_AUDIT_ENGINE_VERSION = "1.9.0";
+export const SITE_AUDIT_ENGINE_VERSION = "1.10.0";
 
 export type SiteRuleStatus = "PASS" | "FAIL" | "WARNING" | "NOT_APPLICABLE" | "UNABLE_TO_CONFIRM";
 
@@ -187,6 +187,33 @@ const rules: RuleDef[] = [
     },
   },
   {
+    id: "SITE_PRODUCT_AVAILABILITY", category: "ecommerce", title: "Productbeschikbaarheid ontbreekt", severity: "MEDIUM",
+    description: "Een productaanbod is vollediger wanneer de actuele beschikbaarheid machineleesbaar is.",
+    recommendation: "Voeg alleen een geldige schema.org availability-waarde toe wanneer de voorraadstatus aantoonbaar op de productpagina staat.",
+    applicable: p => !p.noindex && p.pageType === "product" && Boolean(p.product?.offers),
+    evaluate: p => p.product?.availability
+      ? {status:"PASS",found:true,details:"Offer bevat een availability-waarde."}
+      : {status:"WARNING",found:false,expected:"Offer.availability",details:"Product/Offer is gevonden, maar availability kon niet worden bevestigd."},
+  },
+  {
+    id: "SITE_PRODUCT_IDENTITY", category: "ecommerce", title: "Productidentiteit beperkt", severity: "LOW",
+    description: "Merk- of productidentificatie helpt productgegevens eenduidig te koppelen.",
+    recommendation: "Voeg alleen aantoonbare merk- of SKU/GTIN/MPN-gegevens toe; verzin nooit productidentifiers.",
+    applicable: p => !p.noindex && p.pageType === "product" && Boolean(p.product),
+    evaluate: p => p.product?.brandOrSku
+      ? {status:"PASS",found:true,details:"Merk of productidentifier is gevonden in Product structured data."}
+      : {status:"WARNING",found:false,expected:"brand of productidentifier",details:"Geen aantoonbaar merk of productidentifier gevonden in Product structured data."},
+  },
+  {
+    id: "SITE_CATEGORY_INDEXABILITY", category: "ecommerce", title: "Categoriepagina niet indexeerbaar", severity: "HIGH",
+    description: "Belangrijke productcategorieën horen alleen noindex te zijn wanneer dat bewust is ingesteld.",
+    recommendation: "Controleer of noindex op deze categorie bewust is; verwijder de directive alleen wanneer de pagina geïndexeerd hoort te worden.",
+    applicable: p => ["product_category","category"].includes(p.pageType),
+    evaluate: p => p.noindex
+      ? {status:"WARNING",found:true,expected:"indexeerbaar indien dit een belangrijke categorie is",details:"Categoriepagina bevat noindex; RankFix markeert dit voor menselijke controle."}
+      : {status:"PASS",found:false,details:"Geen noindex gevonden op deze categoriepagina."},
+  },
+  {
     id: "SITE_CANONICAL_CROSS_HOST", category: "technical", title: "Canonical wijst naar ander domein", severity: "HIGH",
     description: "Een cross-domain canonical kan zoekmachines vragen een andere URL als voorkeursversie te behandelen.",
     recommendation: "Controleer of de cross-domain canonical bewust is ingesteld; gebruik anders de juiste voorkeurs-URL op hetzelfde domein.",
@@ -333,7 +360,7 @@ export async function auditSite(url: string, mode: CrawlMode = "STANDARD"): Prom
   const technicalResult = categoryScore(["technical","indexability"]);
   const onPageResult = categoryScore(["on-page"]);
   const contentResult = categoryScore(["content"]);
-  const structuredDataResult = categoryScore(["structured-data"]);
+  const structuredDataResult = categoryScore(["structured-data","ecommerce"]);
   const internalLinksResult = categoryScore(["internal-linking"]);
   const accessibilityResult = categoryScore(["accessibility","images"]);
   const technical = technicalResult.score;
