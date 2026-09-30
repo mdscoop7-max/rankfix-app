@@ -675,16 +675,16 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         </div>
         <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 px-2 text-xs font-medium text-emerald-200 sm:gap-x-6">
           {(language === "nl"
-            ? ["SEO","GEO","Techniek","Webshop","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","Local SEO","Structured Data","Broken Links","Redirects","Accessibility","Concurrenten","AI Fixes","GitHub Fixes"]
+            ? ["SEO","GEO","Techniek","Webshop","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","Local SEO","Structured Data","Broken Links","Redirects","Accessibility","Concurrenten","Fixes","GitHub Fixes"]
             : language === "de"
-              ? ["SEO","GEO","Technik","Onlineshop","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","Local SEO","Strukturierte Daten","Defekte Links","Weiterleitungen","Barrierefreiheit","Wettbewerber","AI Fixes","GitHub Fixes"]
+              ? ["SEO","GEO","Technik","Onlineshop","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","Local SEO","Strukturierte Daten","Defekte Links","Weiterleitungen","Barrierefreiheit","Wettbewerber","Fixes","GitHub Fixes"]
               : language === "fr"
-                ? ["SEO","GEO","Technique","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","SEO local","Données structurées","Liens cassés","Redirections","Accessibilité","Concurrents","AI Fixes","GitHub Fixes"]
+                ? ["SEO","GEO","Technique","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","SEO local","Données structurées","Liens cassés","Redirections","Accessibilité","Concurrents","Fixes","GitHub Fixes"]
                 : language === "it"
-                  ? ["SEO","GEO","Tecnica","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","SEO locale","Dati strutturati","Link interrotti","Redirect","Accessibilità","Concorrenti","AI Fixes","GitHub Fixes"]
+                  ? ["SEO","GEO","Tecnica","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","SEO locale","Dati strutturati","Link interrotti","Redirect","Accessibilità","Concorrenti","Fixes","GitHub Fixes"]
                   : language === "es"
-                    ? ["SEO","GEO","Técnica","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","SEO local","Datos estructurados","Enlaces rotos","Redirecciones","Accesibilidad","Competidores","AI Fixes","GitHub Fixes"]
-                    : ["SEO","GEO","Technical","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","Local SEO","Structured Data","Broken Links","Redirects","Accessibility","Competitors","AI Fixes","GitHub Fixes"]
+                    ? ["SEO","GEO","Técnica","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","SEO local","Datos estructurados","Enlaces rotos","Redirecciones","Accesibilidad","Competidores","Fixes","GitHub Fixes"]
+                    : ["SEO","GEO","Technical","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","Local SEO","Structured Data","Broken Links","Redirects","Accessibility","Competitors","Fixes","GitHub Fixes"]
           ).map((feature) => <span key={feature}>✓ {feature}</span>)}
         </div>
         {error && <div className="mx-auto mt-5 max-w-2xl rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">{error}</div>}
@@ -1166,7 +1166,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
           <div className="md:col-span-2">
             <div className="flex items-center gap-3">
               <img src={"/api/preview-image?lang="+language} alt="RankFix AI logo" className="h-9 w-9 rounded-xl object-cover" loading="lazy" />
-              <span className="font-bold">RankFix AI</span>
+              <span className="font-bold">RankFix</span>
             </div>
             <p className="mt-4 max-w-sm text-sm leading-6 text-slate-300">{language==="nl"?"SEO + GEO auditsoftware voor bedrijven en bureaus die willen weten wat ze moeten verbeteren — en het daarna ook willen verbeteren.":language==="en"?"SEO + GEO audit software for businesses and agencies that want to know what to improve — and then improve it.":language==="de"?"SEO- und GEO-Auditsoftware für Unternehmen und Agenturen, die wissen wollen, was sie verbessern müssen — und es dann umsetzen.":language==="fr"?"Logiciel d’audit SEO + GEO pour les entreprises et agences qui veulent savoir quoi améliorer — puis passer à l’action.":language==="it"?"Software di audit SEO + GEO per aziende e agenzie che vogliono sapere cosa migliorare — e poi farlo.":"Software de auditoría SEO + GEO para empresas y agencias que quieren saber qué mejorar — y después mejorarlo."}</p>
             <p className="mt-3 max-w-sm text-xs leading-5 text-slate-400">
@@ -1174,7 +1174,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
             </p>
           </div>
           {[
-            [t.product, language==="nl"?["SEO Audit","GEO Audit","AI Fixes","Rapporten"]:language==="en"?["SEO Audit","GEO Audit","AI Fixes","Reports"]:language==="de"?["SEO-Audit","GEO-Audit","AI-Fixes","Berichte"]:language==="fr"?["Audit SEO","Audit GEO","Correctifs IA","Rapports"]:language==="it"?["Audit SEO","Audit GEO","Fix AI","Report"]:["Auditoría SEO","Auditoría GEO","Mejoras IA","Informes"]],
+            [t.product, language==="nl"?["SEO Audit","GEO Audit","Fixes","Rapporten"]:language==="en"?["SEO Audit","GEO Audit","Fixes","Reports"]:language==="de"?["SEO-Audit","GEO-Audit","Fixes","Berichte"]:language==="fr"?["Audit SEO","Audit GEO","Correctifs","Rapports"]:language==="it"?["Audit SEO","Audit GEO","Fix","Report"]:["Auditoría SEO","Auditoría GEO","Mejoras","Informes"]],
             [t.forWho, language==="nl"?["Bedrijven","Webshops","Bureaus","SaaS"]:language==="en"?["Businesses","Online stores","Agencies","SaaS"]:language==="de"?["Unternehmen","Onlineshops","Agenturen","SaaS"]:language==="fr"?["Entreprises","Boutiques en ligne","Agences","SaaS"]:language==="it"?["Aziende","Negozi online","Agenzie","SaaS"]:["Empresas","Tiendas online","Agencias","SaaS"]],
             [t.company, language==="nl"?["Over RankFix","Contact","Privacy","Voorwaarden","Cookies"]:language==="en"?["About RankFix","Contact","Privacy","Terms","Cookies"]:language==="de"?["Über RankFix","Kontakt","Datenschutz","AGB","Cookies"]:language==="fr"?["À propos de RankFix","Contact","Confidentialité","Conditions générales","Cookies"]:language==="it"?["Chi è RankFix","Contatti","Privacy","Termini e condizioni","Cookie"]:["Sobre RankFix","Contacto","Privacidad","Condiciones","Cookies"]],
           ].map((entry,groupIndex) => {
@@ -1187,7 +1187,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
           })}
         </div>
         <div className="mx-auto mt-12 flex max-w-7xl flex-col justify-between gap-3 border-t border-slate-600 pt-6 text-xs text-slate-300 sm:flex-row">
-          <span>© 2026 RankFix AI. {language==="nl"?"Alle rechten voorbehouden.":language==="en"?"All rights reserved.":language==="de"?"Alle Rechte vorbehalten.":language==="fr"?"Tous droits réservés.":language==="it"?"Tutti i diritti riservati.":"Todos los derechos reservados."}</span>
+          <span>© 2026 RankFix. {language==="nl"?"Alle rechten voorbehouden.":language==="en"?"All rights reserved.":language==="de"?"Alle Rechte vorbehalten.":language==="fr"?"Tous droits réservés.":language==="it"?"Tutti i diritti riservati.":"Todos los derechos reservados."}</span>
           <span>SEO · GEO · AI Search · {language==="nl"?"Onafhankelijk ontwikkeld":language==="de"?"Unabhängig entwickelt":language==="fr"?"Conçu de manière indépendante":language==="it"?"Sviluppato in modo indipendente":language==="es"?"Desarrollado de forma independiente":"Built independently"}</span>
         </div>
       </footer>
