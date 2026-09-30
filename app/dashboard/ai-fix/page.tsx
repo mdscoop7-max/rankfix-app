@@ -1,11 +1,11 @@
 "use client";
 import { useEffect,useState } from "react";
 import { useSearchParams } from "next/navigation";
-import DashboardNav from "../../nav";
+import DashboardNav from "../nav";
 import AiAssistant from "@/components/ai-assistant";
 import type { Locale } from "@/lib/locales";
 import { aiFixType, helpHref } from "@/lib/fix-routing";
-import "../../dashboard.css";
+import "../dashboard.css";
 
 type Issue={title?:string;message?:string;fix?:string;issue_id?:string;status?:string;evidence?:any};
 type Proposal={title:string;content:string;reason:string};
@@ -27,5 +27,5 @@ export default function AiFixPage(){
  return <main className="rf-page" lang={language}><div className="rf-shell"><header className="rf-header"><a href="/dashboard" className="rf-brand">RankFix <span>AI</span></a></header><DashboardNav/><div className="rf-body"><div className="rf-heading"><h1>{t.title}</h1><p>{t.intro}</p></div>
  {loading&&<p className="rf-empty">…</p>}{error&&<p className="rf-alert">{error}</p>}
  {!loading&&issue&&<section className="rf-card"><span className="rf-eyebrow">AI Fix</span><h2>{issue.title}</h2><p className="mt-2">{issue.message}</p>{!aiFixType(issueId)?<><p className="mt-3 text-sm text-amber-200">{t.missing}</p><a className="rf-primary-link mt-3 inline-flex" href={helpHref(issueId)}>{t.help} →</a></>:!proposal?<button onClick={makeProposal} disabled={busy} className="rf-primary-link mt-4">{busy?t.busy:t.make}</button>:<div className="mt-5"><span className="rf-eyebrow">{t.proposal}</span><h3 className="mt-1 font-bold">{proposal.title}</h3><pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/20 p-4 text-sm">{proposal.content}</pre><h3 className="mt-4 font-bold">{t.reason}</h3><p className="mt-1 text-sm text-slate-400">{proposal.reason}</p><p className="mt-5 text-sm font-semibold">{t.next}</p><a className="rf-primary-link mt-3 inline-flex" href={"/dashboard/github?"+params.toString()}>{t.github} →</a></div>}</section>}
- </div></div><AiAssistant dashboard scanId={scanId||null}/></main>
+ </div></div><AiAssistant dashboard scanId={scanId||undefined}/></main>
 }
