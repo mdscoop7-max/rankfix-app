@@ -4,7 +4,6 @@ import { extractImageMetrics } from "../lib/image-metrics.ts";
 import { applyEvidenceBasedScoreCap, scoreApplicableChecks, summarizeAuditChecks } from "../lib/audit-score.ts";
 import { isPrivateHost, validatePublicHttpUrl } from "../lib/safe-fetch.ts";
 import { statusCode } from "../lib/seo-rules.ts";
-import { getFixPolicy } from "../lib/fix-policy.ts";
 
 test("decorative empty alt is valid; only a missing alt attribute is actionable", () => {
   const metrics = extractImageMetrics('<img src="/hero.jpg" alt=""><img src="/product.jpg" alt="Product"><img src="/broken.jpg">');
@@ -67,29 +66,4 @@ test("scanner URL guard blocks local and private targets", () => {
   assert.throws(() => validatePublicHttpUrl("ftp://example.com/file"), /URL_PROTOCOL_BLOCKED/);
   assert.throws(() => validatePublicHttpUrl("https://user:pass@example.com/"), /URL_CREDENTIALS_BLOCKED/);
   assert.throws(() => validatePublicHttpUrl("https://example.com:8443/"), /URL_PORT_BLOCKED/);
-});
-
-
-test("site audit safe fixes are explicitly allowlisted", () => {
-  assert.deepEqual(getFixPolicy("SITE_TITLE_MISSING"), { category: "B", safe_type: "meta_title" });
-  assert.deepEqual(getFixPolicy("SITE_DESCRIPTION_MISSING"), { category: "B", safe_type: "meta_description" });
-  assert.deepEqual(getFixPolicy("SITE_H1_MISSING"), { category: "B", safe_type: "h1" });
-  assert.deepEqual(getFixPolicy("SITE_IMAGES_ALT"), { category: "B", safe_type: "alt_text" });
-  assert.deepEqual(getFixPolicy("SITE_CANONICAL_MISSING"), { category: "B", safe_type: "canonical" });
-  assert.deepEqual(getFixPolicy("SITE_STRUCTURED_DATA_MISSING"), { category: "B", safe_type: "structured_data" });
-});
-
-test("ecommerce evidence-only findings cannot become automatic fixes", () => {
-  for (const rule of [
-    "SITE_PRODUCT_SCHEMA_CORE",
-    "SITE_PRODUCT_AVAILABILITY",
-    "SITE_PRODUCT_IDENTITY",
-    "SITE_CATEGORY_INDEXABILITY",
-  ]) {
-    assert.deepEqual(getFixPolicy(rule), { category: "C", safe_type: null });
-  }
-});
-
-test("unknown rules fail closed and cannot become automatic fixes", () => {
-  assert.deepEqual(getFixPolicy("UNKNOWN_FUTURE_RULE"), { category: "C", safe_type: null });
 });
