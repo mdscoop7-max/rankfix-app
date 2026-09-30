@@ -29,7 +29,18 @@ const DEFINITIONS: Record<string, FixDefinition> = {
 
 export function getFixDefinition(issueId?: string | null): FixDefinition {
   const key=String(issueId||"").trim();
-  return DEFINITIONS[key] || {route:"guided",helpSlug:"problem-solving"};
+  if(DEFINITIONS[key]) return DEFINITIONS[key];
+  // Webshop findings include the affected page URL after "::". Route by the
+  // stable issue prefix while preserving that URL as evidence in the report.
+  const commerceKey=key.split("::",1)[0];
+  if(/^COMMERCE_(PRODUCT|CATEGORY)_TITLE_MISSING$/.test(commerceKey)) return {route:"ai",aiType:"meta_title",helpSlug:"meta-title"};
+  if(/^COMMERCE_(PRODUCT|CATEGORY)_DESCRIPTION_MISSING$/.test(commerceKey)) return {route:"ai",aiType:"meta_description",helpSlug:"meta-description"};
+  if(/^COMMERCE_(PRODUCT|CATEGORY)_H1_MISSING$/.test(commerceKey)) return {route:"ai",aiType:"h1",helpSlug:"headings"};
+  if(/^COMMERCE_(PRODUCT|CATEGORY)_CANONICAL_MISSING$/.test(commerceKey)) return {route:"github",helpSlug:"canonical"};
+  if(/^COMMERCE_(PRODUCT|CATEGORY)_BREADCRUMB_SCHEMA_MISSING$/.test(commerceKey)) return {route:"github",helpSlug:"structured-data"};
+  if(/^COMMERCE_PRODUCT_(PRODUCT_SCHEMA_MISSING|OFFER_SCHEMA_MISSING)$/.test(commerceKey)) return {route:"github",helpSlug:"structured-data"};
+  if(/^COMMERCE_PRODUCT_(PRICE_MISSING|AVAILABILITY_MISSING)$/.test(commerceKey)) return {route:"customer_input",helpSlug:"problem-solving"};
+  return {route:"guided",helpSlug:"problem-solving"};
 }
 
 export function helpHref(issueId?: string | null){
