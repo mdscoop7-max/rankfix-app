@@ -18,6 +18,16 @@ const POLICY: Record<string, FixPolicy> = {
   author: { category: "C", safe_type: "expertise" },
   canonical: { category: "B", safe_type: "canonical" },
   headings: { category: "B", safe_type: "heading_structure" },
+  SITE_TITLE_MISSING: { category: "B", safe_type: "meta_title" },
+  SITE_DESCRIPTION_MISSING: { category: "B", safe_type: "meta_description" },
+  SITE_H1_MISSING: { category: "B", safe_type: "h1" },
+  SITE_IMAGES_ALT: { category: "B", safe_type: "alt_text" },
+  SITE_CANONICAL_MISSING: { category: "B", safe_type: "canonical" },
+  SITE_STRUCTURED_DATA_MISSING: { category: "B", safe_type: "structured_data" },
+  SITE_PRODUCT_SCHEMA_CORE: { category: "C", safe_type: null },
+  SITE_PRODUCT_AVAILABILITY: { category: "C", safe_type: null },
+  SITE_PRODUCT_IDENTITY: { category: "C", safe_type: null },
+  SITE_CATEGORY_INDEXABILITY: { category: "C", safe_type: null },
 };
 
 export function getFixPolicy(ruleId: string): FixPolicy {
