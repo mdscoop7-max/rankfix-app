@@ -27,7 +27,7 @@ function activeIndex(pathname:string){
  return 0;
 }
 
-export default function DashboardNav({current:legacyCurrent}:{current?:number}){
+export default function DashboardNav(){
  const pathname=usePathname()||"/dashboard";
  const current=activeIndex(pathname);
  const [language,setLanguage]=useState<Locale>("nl");

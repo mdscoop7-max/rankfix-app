@@ -88,7 +88,7 @@ export default function Dashboard() {
         <a href="/dashboard" className="rf-brand">RankFix <span>AI</span></a>
         <div className="rf-header-right"><a href="/dashboard/account" className="rf-avatar" aria-label="Account">{user?.name?.charAt(0).toUpperCase() || "?"}</a></div>
       </header>
-      <DashboardNav current={0} />
+      <DashboardNav />
       <div className="rf-body">
         <div className="rf-heading"><h1>{t.overview}</h1><p>{t.intro}</p></div>
         <section className="rf-plan-card" aria-label="Subscription usage">
