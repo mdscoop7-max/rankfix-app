@@ -527,7 +527,7 @@ export async function POST(request:Request){
     const scannedUrl = normalizeScanUrl(trustedUrl);
     if (scannedUrl && issueId) {
       await db.query(
-        "INSERT INTO pending_fixes (user_id,scanned_url,issue_id,status,repository,file_path,pr_number) VALUES ($1,$2,$3,'PREPARED',$4,$5,$6)",
+        "INSERT INTO pending_fixes (user_id,scanned_url,issue_id,status,repository,file_path,pr_number) VALUES ($1,$2,$3,'PR_CREATED',$4,$5,$6)",
         [user.id,scannedUrl,issueId,repo,path,Number(pr.number)||null]
       );
     }
