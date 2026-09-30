@@ -3,6 +3,18 @@ import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
 
+function normalizeScanUrl(value: string) {
+  try {
+    const url = new URL(value);
+    url.hash = "";
+    url.hostname = url.hostname.toLowerCase().replace(/^www\./, "");
+    url.pathname = url.pathname.replace(/\/+$/, "") || "/";
+    return url.toString();
+  } catch {
+    return value.trim().replace(/\/+$/, "");
+  }
+}
+
 export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Login required." }, { status: 401 });
@@ -19,7 +31,11 @@ export async function GET(request: Request) {
   const scan = scanResult.rows[0];
   if (!scan) return NextResponse.json({ error: "Scan not found." }, { status: 404 });
 
-  const urls = [scan.scanned_url, scan.final_url].filter(Boolean);
+  const urls = [...new Set(
+    [scan.scanned_url, scan.final_url]
+      .filter(Boolean)
+      .flatMap((value: string) => [value, normalizeScanUrl(value)])
+  )];
   const result = await getDb().query(
     `SELECT DISTINCT ON (issue_id)
        id, issue_id, status, repository, file_path, pr_number, created_at, updated_at, expires_at
@@ -29,5 +45,11 @@ export async function GET(request: Request) {
     [user.id, urls]
   );
 
-  return NextResponse.json({ fixes: result.rows });
+  return NextResponse.json({
+    fixes: result.rows,
+    workflow: {
+      confirmation: "LIVE_RESCAN_ONLY",
+      note: "A Pull Request is only a proposal. RankFix marks a fix DONE only after a fresh evidence-backed live rescan passes the same issue."
+    }
+  });
 }
