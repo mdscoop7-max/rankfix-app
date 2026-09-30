@@ -104,3 +104,33 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .rf-public-language .fi-gb{background:linear-gradient(33deg,transparent 43%,#fff 43% 48%,#c8102e 48% 52%,#fff 52% 57%,transparent 57%),linear-gradient(-33deg,transparent 43%,#fff 43% 48%,#c8102e 48% 52%,#fff 52% 57%,transparent 57%),linear-gradient(90deg,transparent 39%,#fff 39% 44%,#c8102e 44% 56%,#fff 56% 61%,transparent 61%),linear-gradient(transparent 35%,#fff 35% 42%,#c8102e 42% 58%,#fff 58% 65%,transparent 65%),#012169}
 .rf-public-language-menu button{font-size:13px}
 }
+
+/* RankFix public v2 — premium navy hero + bright business sections */
+.rf-public-v2{background:#f7faff;color:#0b1f45}
+.rf-public-v2>div:first-child{display:none}
+.rf-public-v2 nav{background:rgba(6,35,75,.96)!important;border-color:rgba(88,166,255,.28)!important;box-shadow:0 10px 30px rgba(3,23,52,.18)}
+.rf-public-v2 nav a,.rf-public-v2 nav button{color:#f8fbff}
+.rf-public-v2 .rf-top-link{color:#dbeafe}
+.rf-public-v2 #scan{max-width:none!important;margin:0!important;padding-left:max(20px,calc((100vw - 1152px)/2))!important;padding-right:max(20px,calc((100vw - 1152px)/2))!important;background:radial-gradient(circle at 78% 22%,rgba(37,99,235,.34),transparent 27rem),radial-gradient(circle at 66% 45%,rgba(124,58,237,.20),transparent 22rem),linear-gradient(135deg,#061f46 0%,#07376f 58%,#082f62 100%);color:#fff}
+.rf-public-v2 #scan>h1{max-width:900px}
+.rf-public-v2 #scan>h1 span{background-image:linear-gradient(90deg,#35b8ff,#5f7cff,#b052ff)}
+.rf-public-v2 #scan>p{color:#d8e7f7!important}
+.rf-public-v2 #scan>div:nth-of-type(2){border-color:rgba(94,169,255,.35)!important;background:rgba(8,39,80,.72)!important;box-shadow:0 22px 70px rgba(0,14,43,.32)}
+.rf-public-v2 #scan>div:nth-of-type(4){border-color:rgba(86,162,255,.34)!important;background:rgba(5,31,68,.78)!important}
+.rf-public-v2 #features,.rf-public-v2 #pricing,.rf-public-v2 #about,.rf-public-v2 #resources,.rf-public-v2 #reviews{background:#f7faff!important;color:#0b1f45;border-color:#dce8f5!important}
+.rf-public-v2 #features :where(h1,h2,h3,strong),.rf-public-v2 #pricing :where(h1,h2,h3,strong),.rf-public-v2 #about :where(h1,h2,h3,strong),.rf-public-v2 #resources :where(h1,h2,h3,strong),.rf-public-v2 #reviews :where(h1,h2,h3,strong){color:#0b1f45!important}
+.rf-public-v2 #features :where(p,small),.rf-public-v2 #pricing :where(p,small),.rf-public-v2 #about :where(p,small),.rf-public-v2 #resources :where(p,small),.rf-public-v2 #reviews :where(p,small){color:#536987!important}
+.rf-public-v2 #features [class*="bg-white"],.rf-public-v2 #features [class*="bg-slate-50"],.rf-public-v2 #pricing [class*="bg-white"],.rf-public-v2 #pricing [class*="bg-slate-50"],.rf-public-v2 #resources [class*="bg-white"],.rf-public-v2 #resources [class*="bg-slate-50"],.rf-public-v2 #reviews [class*="bg-"]{background:#fff!important}
+.rf-public-v2 #features [class*="border-slate"],.rf-public-v2 #pricing [class*="border-slate"],.rf-public-v2 #resources [class*="border-slate"],.rf-public-v2 #reviews [class*="border-"]{border-color:#d9e6f3!important}
+.rf-public-v2 #features,.rf-public-v2 #pricing,.rf-public-v2 #resources,.rf-public-v2 #about{position:relative}
+.rf-public-v2 #features:before,.rf-public-v2 #about:before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 12% 20%,rgba(37,99,235,.055),transparent 22rem),radial-gradient(circle at 88% 72%,rgba(124,58,237,.045),transparent 20rem)}
+.rf-public-v2 footer{background:linear-gradient(135deg,#061f46,#082f62)!important;border-top:1px solid rgba(96,165,250,.22)}
+@media(max-width:640px){
+ .rf-public-v2 #scan{padding-top:34px!important;padding-bottom:42px!important;text-align:left}
+ .rf-public-v2 #scan>div:first-child{margin-bottom:18px}
+ .rf-public-v2 #scan>h1{font-size:clamp(2.35rem,11vw,3.25rem)!important;line-height:1.02!important}
+ .rf-public-v2 #scan>p{margin-left:0!important;font-size:1rem!important}
+ .rf-public-v2 #scan>div:nth-of-type(2){margin-top:24px!important}
+ .rf-public-v2 #scan>div:nth-of-type(3){justify-content:flex-start}
+ .rf-public-v2 #features,.rf-public-v2 #pricing{padding-top:56px;padding-bottom:56px}
+}
