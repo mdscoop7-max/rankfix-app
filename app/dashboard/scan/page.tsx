@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import DashboardNav from "../nav";
 import type { Locale } from "@/lib/locales";
 import "../dashboard.css";
@@ -24,12 +25,14 @@ const text: Record<Locale,{title:string;intro:string;url:string;run:string;runni
 };
 
 export default function DashboardScan() {
+  const searchParams=useSearchParams();
   const [language,setLanguage]=useState<Locale>("nl");
   const [url,setUrl]=useState("");
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState("");
   const [result,setResult]=useState<Result|null>(null);
 
+  useEffect(()=>{const requested=searchParams.get("url");if(requested)setUrl(requested);},[searchParams]);
   useEffect(()=>{fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in text)setLanguage(d.language)}).catch(()=>{})},[]);
   const t=text[language];
   function normalizeUrl(value:string){
