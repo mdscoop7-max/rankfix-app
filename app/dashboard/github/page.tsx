@@ -39,12 +39,10 @@ export default function GithubPage(){
   const [validation,setValidation]=useState<ValidationResult|null>(null);
   const [preview,setPreview]=useState<FixPreview|null>(null);
   const [language,setLanguage]=useState<Locale>("nl");
-  const [plan,setPlan]=useState("free");
   const t=ui[language];
 
   useEffect(()=>{
     fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in ui)setLanguage(d.language)}).catch(()=>{});
-    fetch("/api/history",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(d?.usage?.plan)setPlan(d.usage.plan)}).catch(()=>{});
     const params=new URLSearchParams(searchParams.toString());
     setIssue(params.get("issue")||"");
     setContext(params.get("context")||"");
@@ -168,7 +166,7 @@ export default function GithubPage(){
       <div className="text-xs uppercase tracking-widest text-emerald-300">GitHub Fix Engine</div>
       <h1 className="mt-2 text-3xl font-black leading-tight sm:text-4xl">Een codevoorstel voor je website.</h1>
       <p className="mt-3 max-w-2xl text-slate-400">RankFix leest alleen het gekozen bestand, maakt de kleinste noodzakelijke wijziging en opent een aparte Pull Request. Er wordt niets automatisch naar productie gemerged.</p>
-      {plan==="free" ? null : !connected ? <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-7">
+      {!connected ? <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-7">
         <h2 className="text-xl font-bold">{t.connect}</h2>
         <p className="mt-2 text-sm text-slate-500">{t.connectInfo}</p>
         <a href="/api/github/connect" className="mt-5 inline-flex rounded-xl bg-white px-5 py-3 font-bold text-slate-950">{t.connectCta} →</a>
