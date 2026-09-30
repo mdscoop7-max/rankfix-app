@@ -12,6 +12,7 @@ import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
 import { applyEvidenceBasedScoreCap, scoreApplicableChecks, summarizeAuditChecks } from "@/lib/audit-score";
 import { normalizePlan, planLimits } from "@/lib/plans";
 import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
+import { discoverCommercePages } from "@/lib/commerce-discovery";
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -1801,6 +1802,13 @@ export async function POST(request: Request) {
     // Keep the website profile aligned with the same evidence used by webshop-only audit checks.
     // Generic words such as "checkout", "price" or SaaS pricing must not classify a site as a webshop.
     const technologyProfile = detectTechnologyProfile(html, response.headers, hasEcommerceSignal);
+    const commerceDiscovery = technologyProfile.isCommerce ? discoverCommercePages(html, finalUrl.toString(), 24) : [];
+    const commerceScope = technologyProfile.isCommerce ? {
+      discovered: commerceDiscovery.length,
+      products: commerceDiscovery.filter((item) => item.kind === "product").slice(0, 12).map((item) => item.url),
+      categories: commerceDiscovery.filter((item) => item.kind === "category").slice(0, 12).map((item) => item.url),
+      note: "Safe same-domain candidates discovered from the scanned page; product/category crawling remains bounded."
+    } : null;
     // A homepage is only classified as a landing page when several independent
     // conversion/content signals agree. The root URL alone is never enough.
     if (!technologyProfile.isCommerce && isHomepage) {
@@ -1860,7 +1868,7 @@ export async function POST(request: Request) {
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             language: scanLanguage,
-            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, summary: scanSummary, rendering, pageTypeEvidence, technologyProfile,
+            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, summary: scanSummary, rendering, pageTypeEvidence, technologyProfile, commerceScope,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -2019,6 +2027,7 @@ export async function POST(request: Request) {
       scope: scanScope,
       pageTypeEvidence,
       technologyProfile,
+      commerceScope,
       adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
       seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
       geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
