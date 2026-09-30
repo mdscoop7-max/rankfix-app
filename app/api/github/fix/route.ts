@@ -297,6 +297,8 @@ function estimateChangedLines(before:string,after:string){
 
 export async function POST(request:Request){
   let language:"nl"|"en"|"de"|"fr"|"it"|"es"="nl";
+  let recoveryProposalId="";
+  let recoveryUserId:string|number|null=null;
   try{
     const user=await getCurrentUser();
     if(!user) {
@@ -321,6 +323,8 @@ export async function POST(request:Request){
     const previewOnly=body?.preview===true;
     const explicitApproval=body?.approved===true;
     const proposalId=typeof body?.proposal_id==="string"?body.proposal_id.trim():"";
+    recoveryProposalId=proposalId;
+    recoveryUserId=user.id;
     const proposalHash=typeof body?.proposal_hash==="string"?body.proposal_hash.trim():"";
     // Preview is read-only: it must not consume the PR/code-write rate limit.
     // Only an explicitly approved, exact reviewed proposal may create a separate branch/commit/PR. This never merges or publishes production.
@@ -562,10 +566,10 @@ export async function POST(request:Request){
 
     return NextResponse.json({success:true,summary:generated.summary,repository:repo,path,branch,pr:{number:pr.number,url:pr.html_url,title:pr.title}});
   }catch(error){
-    if(proposalId && /^[0-9a-f-]{36}$/i.test(proposalId)){
+    if(recoveryProposalId && recoveryUserId!==null && /^[0-9a-f-]{36}$/i.test(recoveryProposalId)){
       await getDb().query(
         "UPDATE fix_proposals SET status='PREVIEWED',approved_at=NULL WHERE id=$1 AND user_id=$2 AND status='PROCESSING' AND expires_at>NOW()",
-        [proposalId,user.id]
+        [recoveryProposalId,recoveryUserId]
       ).catch(()=>{});
     }
     if(error instanceof FixProviderError){
