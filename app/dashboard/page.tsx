@@ -152,7 +152,7 @@ export default function Dashboard() {
             <a className="rf-add" href="/dashboard/scan"><span aria-hidden="true">＋</span> {t.add}</a>
           </div>
         </section>
-        <section className="rf-fix-summary" aria-label={t.fixes}><h2>{t.fixes} {usage.plan==="free"&&<small className="ml-2 rounded-full border border-blue-400/30 bg-blue-400/10 px-2 py-0.5 text-[11px] font-bold text-blue-200">Premium</small>}</h2><p>{fixes.PREPARED || 0} {t.prepared} · {fixes.DONE || 0} {t.confirmed}.</p><a href="/dashboard/github">{t.fixLink} →</a></section>
+        <section className="rf-fix-summary" aria-label={t.fixes}><h2>{t.fixes} {usage.plan==="free"&&<small className="ml-2 rounded-full border border-blue-400/30 bg-blue-400/10 px-2 py-0.5 text-[11px] font-bold text-blue-200">Premium</small>}</h2><p>{fixes.PREPARED || 0} {t.prepared} · {fixes.DONE || 0} {t.confirmed}.</p><a href="/dashboard/fixes">{t.fixLink} →</a></section>
         {selectedResult && <section id="resultaat" className="rf-report"><div className="rf-section-head"><h2>{t.result}</h2><button onClick={() => setSelectedResult(null)}>{t.close}</button></div><p>{selectedResult.overallScore}/100 · SEO {selectedResult.seo?.score ?? "—"} · GEO {selectedResult.geo?.score ?? "—"}</p><div className="rf-checks">{checks.map((check, index) => <article key={index}><strong>{check.title}</strong><span>{check.fix_status === "DONE" ? t.live : check.fix_status === "WAITING" ? t.proposal : check.status === "pass" ? t.passed : check.severity === "CRITICAL" ? t.critical : t.needsAttention}</span><p>{check.message}</p></article>)}</div></section>}
       </div>
     </div>
