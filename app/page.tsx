@@ -705,7 +705,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
 
         <div className="mx-auto mt-10 max-w-5xl overflow-hidden rounded-[28px] border border-slate-200 bg-[#0B1830] p-2 shadow-2xl shadow-blue-950/30">
           <img
-            src="/opengraph-image"
+            src={"/api/preview-image?lang="+language}
             alt={language==="nl"?"RankFix AI SEO- en GEO-dashboardvoorbeeld":language==="de"?"Vorschau des RankFix AI SEO- und GEO-Dashboards":language==="fr"?"Aperçu du tableau de bord SEO et GEO de RankFix AI":language==="it"?"Anteprima della dashboard SEO e GEO di RankFix AI":language==="es"?"Vista previa del panel SEO y GEO de RankFix AI":"RankFix AI SEO and GEO dashboard preview"}
             className="block h-auto w-full rounded-[22px]"
             loading="eager"
@@ -1165,7 +1165,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-5">
           <div className="md:col-span-2">
             <div className="flex items-center gap-3">
-              <img src="/opengraph-image" alt="RankFix AI logo" className="h-9 w-9 rounded-xl object-cover" loading="lazy" />
+              <img src={"/api/preview-image?lang="+language} alt="RankFix AI logo" className="h-9 w-9 rounded-xl object-cover" loading="lazy" />
               <span className="font-bold">RankFix AI</span>
             </div>
             <p className="mt-4 max-w-sm text-sm leading-6 text-slate-300">{language==="nl"?"SEO + GEO auditsoftware voor bedrijven en bureaus die willen weten wat ze moeten verbeteren — en het daarna ook willen verbeteren.":language==="en"?"SEO + GEO audit software for businesses and agencies that want to know what to improve — and then improve it.":language==="de"?"SEO- und GEO-Auditsoftware für Unternehmen und Agenturen, die wissen wollen, was sie verbessern müssen — und es dann umsetzen.":language==="fr"?"Logiciel d’audit SEO + GEO pour les entreprises et agences qui veulent savoir quoi améliorer — puis passer à l’action.":language==="it"?"Software di audit SEO + GEO per aziende e agenzie che vogliono sapere cosa migliorare — e poi farlo.":"Software de auditoría SEO + GEO para empresas y agencias que quieren saber qué mejorar — y después mejorarlo."}</p>
