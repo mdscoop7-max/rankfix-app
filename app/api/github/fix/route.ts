@@ -534,10 +534,17 @@ export async function POST(request:Request){
     if(!branchExists){
       await githubFetch<any>(token,"/repos/"+repo+"/git/refs",{method:"POST",body:JSON.stringify({ref:"refs/heads/"+branch,sha:baseRef.object.sha})});
     }
-    await githubFetch<any>(token,"/repos/"+repo+"/contents/"+path,{
-      method:"PUT",
-      body:JSON.stringify({message:"fix: RankFix "+slug(issue),content:Buffer.from(generated.content,"utf8").toString("base64"),branch,sha:file.sha})
-    });
+    let branchFile:any=null;
+    try{ branchFile=await githubFetch<any>(token,"/repos/"+repo+"/contents/"+path+"?ref="+encodeURIComponent(branch)); }catch{}
+    const branchCurrent=branchFile?.type==="file"&&typeof branchFile.content==="string"
+      ? Buffer.from(branchFile.content.replace(/\\n/g,""),"base64").toString("utf8")
+      : "";
+    if(normalizeFile(branchCurrent)!==normalizeFile(generated.content)){
+      await githubFetch<any>(token,"/repos/"+repo+"/contents/"+path,{
+        method:"PUT",
+        body:JSON.stringify({message:"fix: RankFix "+slug(issue),content:Buffer.from(generated.content,"utf8").toString("base64"),branch,sha:branchFile?.sha||file.sha})
+      });
+    }
     const existingPrs=await githubFetch<any[]>(token,"/repos/"+repo+"/pulls?state=open&head="+encodeURIComponent(repo.split("/")[0]+":"+branch)+"&base="+encodeURIComponent(effectiveBaseBranch));
     const pr=Array.isArray(existingPrs)&&existingPrs[0] ? existingPrs[0] : await githubFetch<any>(token,"/repos/"+repo+"/pulls",{
       method:"POST",
@@ -548,7 +555,7 @@ export async function POST(request:Request){
     const scannedUrl = normalizeScanUrl(trustedUrl);
     if (scannedUrl && issueId) {
       await db.query(
-        "INSERT INTO pending_fixes (user_id,scanned_url,issue_id,status,repository,file_path,pr_number) VALUES ($1,$2,$3,'PR_CREATED',$4,$5,$6)",
+        "INSERT INTO pending_fixes (user_id,scanned_url,issue_id,status,repository,file_path,pr_number) VALUES ($1,$2,$3,'PR_CREATED',$4,$5,$6) ON CONFLICT DO NOTHING",
         [user.id,scannedUrl,issueId,repo,path,Number(pr.number)||null]
       );
     }
