@@ -517,7 +517,7 @@ export async function POST(request:Request){
     }
 
     const approval=await getDb().query(
-      "UPDATE fix_proposals SET status='APPROVED',approved_at=NOW() WHERE id=$1 AND user_id=$2 AND scan_id=$3 AND issue_id=$4 AND status='PREVIEWED' AND expires_at>NOW() RETURNING id",
+      "UPDATE fix_proposals SET status='PROCESSING',approved_at=NOW() WHERE id=$1 AND user_id=$2 AND scan_id=$3 AND issue_id=$4 AND status='PREVIEWED' AND expires_at>NOW() RETURNING id",
       [proposalId,user.id,scanId,issueId]
     );
     if(!approval.rowCount){
@@ -550,7 +550,7 @@ export async function POST(request:Request){
       method:"POST",
       body:JSON.stringify({title:"RankFix: "+generated.summary.slice(0,70),head:branch,base:effectiveBaseBranch,body:"## RankFix codevoorstel\n\n"+generated.summary+"\n\nRankFix heeft alleen een aparte branch en Pull Request voorbereid. Controleer de volledige diff en tests voordat je zelf besluit te mergen/publiceren. RankFix mergt of publiceert nooit automatisch.\n\nTarget: "+path})
     });
-    await getDb().query("UPDATE fix_proposals SET status='PR_CREATED',used_at=NOW() WHERE id=$1 AND user_id=$2 AND status='APPROVED'",[proposalId,user.id]);
+    await getDb().query("UPDATE fix_proposals SET status='PR_CREATED',used_at=NOW() WHERE id=$1 AND user_id=$2 AND status='PROCESSING'",[proposalId,user.id]);
         const db=getDb();
     const scannedUrl = normalizeScanUrl(trustedUrl);
     if (scannedUrl && issueId) {
@@ -562,6 +562,12 @@ export async function POST(request:Request){
 
     return NextResponse.json({success:true,summary:generated.summary,repository:repo,path,branch,pr:{number:pr.number,url:pr.html_url,title:pr.title}});
   }catch(error){
+    if(proposalId && /^[0-9a-f-]{36}$/i.test(proposalId)){
+      await getDb().query(
+        "UPDATE fix_proposals SET status='PREVIEWED',approved_at=NULL WHERE id=$1 AND user_id=$2 AND status='PROCESSING' AND expires_at>NOW()",
+        [proposalId,user.id]
+      ).catch(()=>{});
+    }
     if(error instanceof FixProviderError){
       return NextResponse.json({error:localizeProviderError(error.code,language)},{status:error.code==="AI_UNAVAILABLE"?503:502});
     }
