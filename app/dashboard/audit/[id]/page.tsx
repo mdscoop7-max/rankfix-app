@@ -107,9 +107,9 @@ export default function AuditDetail() {
 
   return <main className="rf-page" lang={language}>
     <div className="rf-shell">
-      <header className="rf-header"><a href="/dashboard" className="rf-brand">RankFix <span>AI</span></a></header>
+      <header className="rf-header"><a href="/dashboard" className="rf-brand">RankFix</a></header>
       <DashboardNav current={0} />
-      <div className="rf-body">
+      <div className="rf-body rf-audit-body">
         {loading && <p role="status">{t.loading}</p>}
         {error && <p role="alert" className="rf-alert">{error}</p>}
         {scan && <>
