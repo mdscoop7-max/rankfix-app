@@ -26,7 +26,7 @@ export async function GET(){
  const allScans=(result.rows as Row[]).map(summary);
  const seen=new Set<string>();
  const scans=allScans.filter((scan:any)=>{const key=host(scan);if(seen.has(key))return false;seen.add(key);return true});
- const pending=await getDb().query("SELECT status,count(*)::int AS count FROM pending_fixes WHERE user_id=$1 AND (status='DONE' OR (status='PREPARED' AND expires_at>NOW())) GROUP BY status",[user.id]);
+ const pending=await getDb().query("SELECT status,count(*)::int AS count FROM pending_fixes WHERE user_id=$1 AND (status='DONE' OR (status IN ('PREPARED','PR_CREATED','WAITING_PUBLICATION','WAITING_VERIFICATION') AND expires_at>NOW())) GROUP BY status",[user.id]);
  const planResult=await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1",[user.id]);
  const plan=normalizePlan(planResult.rows[0]?.plan_code);
  const limits=planLimits(plan);
