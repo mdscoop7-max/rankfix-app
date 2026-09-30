@@ -13,6 +13,7 @@ import { applyEvidenceBasedScoreCap, scoreApplicableChecks, summarizeAuditChecks
 import { normalizePlan, planLimits } from "@/lib/plans";
 import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
 import { discoverCommercePages } from "@/lib/commerce-discovery";
+import { auditCommerceHtml, type CommercePageAudit } from "@/lib/commerce-page-audit";
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -1803,11 +1804,29 @@ export async function POST(request: Request) {
     // Generic words such as "checkout", "price" or SaaS pricing must not classify a site as a webshop.
     const technologyProfile = detectTechnologyProfile(html, response.headers, hasEcommerceSignal);
     const commerceDiscovery = technologyProfile.isCommerce ? discoverCommercePages(html, finalUrl.toString(), 24) : [];
+    const commerceProducts = commerceDiscovery.filter((item) => item.kind === "product").slice(0, 6);
+    const commerceCategories = commerceDiscovery.filter((item) => item.kind === "category").slice(0, 4);
+    const commerceAuditTargets = [...commerceProducts, ...commerceCategories].slice(0, 8);
+    const commercePageAudits: CommercePageAudit[] = [];
+    for (const candidate of commerceAuditTargets) {
+      try {
+        const candidateUrl=validatePublicHttpUrl(candidate.url);
+        if(candidateUrl.hostname.toLowerCase()!==finalUrl.hostname.toLowerCase()) continue;
+        const fetched=await safePublicFetch(candidateUrl,{timeoutMs:7000,maxRedirects:3,userAgent:"RankFixBot/2.1 (+https://rankfix-app.onrender.com)",accept:"text/html,application/xhtml+xml"});
+        if(fetched.finalUrl.hostname.toLowerCase()!==finalUrl.hostname.toLowerCase()) continue;
+        const pageHtml=await readResponseTextLimited(fetched.response,750_000);
+        commercePageAudits.push(auditCommerceHtml(fetched.finalUrl.toString(),candidate.kind,fetched.response.status,pageHtml));
+      } catch (error) {
+        commercePageAudits.push({url:candidate.url,kind:candidate.kind,status:null,title:false,description:false,h1:false,canonical:false,productSchema:false,offerSchema:false,breadcrumbSchema:false,priceSignal:false,availabilitySignal:false,imageSignal:false,error:error instanceof Error?error.message:"FETCH_FAILED"});
+      }
+    }
     const commerceScope = technologyProfile.isCommerce ? {
       discovered: commerceDiscovery.length,
-      products: commerceDiscovery.filter((item) => item.kind === "product").slice(0, 12).map((item) => item.url),
-      categories: commerceDiscovery.filter((item) => item.kind === "category").slice(0, 12).map((item) => item.url),
-      note: "Safe same-domain candidates discovered from the scanned page; product/category crawling remains bounded."
+      products: commerceProducts.map((item) => item.url),
+      categories: commerceCategories.map((item) => item.url),
+      audited: commercePageAudits.length,
+      audits: commercePageAudits,
+      note: "Bounded same-domain sample only; this is not presented as a full-site crawl."
     } : null;
     // A homepage is only classified as a landing page when several independent
     // conversion/content signals agree. The root URL alone is never enough.
