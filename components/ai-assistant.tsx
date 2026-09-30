@@ -30,12 +30,12 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
   const [fixResult, setFixResult] = useState("");
   const [language, setLanguage] = useState(publicLocale);
   const extra: Record<string, any> = {
-    nl:{greet:"Hoi! Ik ben RankFix AI. Stel gerust technische vragen over je scans, SEO, GEO, scores, fixes, abonnementen of het Dashboard.",blocked:"Ik zie dat RankFix deze actie veilig heeft geblokkeerd.",blockedAsk:"Leg uit waarom deze actie is geblokkeerd en wat ik veilig moet controleren.",scanAsk:"Leg deze scan uit en noem de 3 belangrijkste problemen met een concrete oplossing.",none:"Geen actief probleem gevonden.",githubFail:"GitHub Fix kon niet worden gestart.",created:"Codevoorstel aangemaakt. Controleer en merge de PR, en scan daarna opnieuw: ",already:"De code bevat dit al; er is niets gewijzigd. Controleer de live pagina met een nieuwe scan.",nochange:"Er is geen wijziging bevestigd.",failed:"GitHub Fix mislukt.",generic:"Er ging iets mis.",retry:"Er ging iets mis. Probeer het opnieuw.",safe:"Veilige fix",loading:"Actief scanprobleem laden…",checking:"GitHub Fix wordt gecontroleerd…",start:"Start veilige GitHub Fix"},
-    en:{greet:"Hi! I’m RankFix AI. Ask me technical questions about your scans, SEO, GEO, scores, fixes, plans or Dashboard.",blocked:"I can see RankFix safely blocked this action.",blockedAsk:"Explain why this action was blocked and what I should safely check.",scanAsk:"Explain this scan and list the 3 most important problems with a concrete solution.",none:"No active issue found.",githubFail:"GitHub Fix could not be started.",created:"Code proposal created. Review and merge the PR, then scan again: ",already:"The code already contains this; nothing was changed. Verify the live page with a new scan.",nochange:"No change was confirmed.",failed:"GitHub Fix failed.",generic:"Something went wrong.",retry:"Something went wrong. Please try again.",safe:"Safe fix",loading:"Loading active scan issue…",checking:"GitHub Fix is being checked…",start:"Start safe GitHub Fix"},
-    de:{greet:"Hallo! Ich bin RankFix AI. Frag mich zu deinen Scans, SEO, GEO, Scores, Fixes, Tarifen oder dem Dashboard.",blocked:"RankFix hat diese Aktion aus Sicherheitsgründen blockiert.",blockedAsk:"Erkläre, warum diese Aktion blockiert wurde und was ich sicher prüfen sollte.",scanAsk:"Erkläre diesen Scan und nenne die 3 wichtigsten Probleme mit einer konkreten Lösung.",none:"Kein aktives Problem gefunden.",githubFail:"GitHub Fix konnte nicht gestartet werden.",created:"Codevorschlag erstellt. Prüfe und merge den PR und scanne danach erneut: ",already:"Der Code enthält dies bereits; es wurde nichts geändert. Prüfe die Live-Seite mit einem neuen Scan.",nochange:"Keine Änderung wurde bestätigt.",failed:"GitHub Fix fehlgeschlagen.",generic:"Etwas ist schiefgelaufen.",retry:"Etwas ist schiefgelaufen. Bitte versuche es erneut.",safe:"Sicherer Fix",loading:"Aktives Scanproblem wird geladen…",checking:"GitHub Fix wird geprüft…",start:"Sicheren GitHub Fix starten"},
-    fr:{greet:"Bonjour ! Je suis RankFix AI. Posez-moi vos questions techniques sur vos analyses, le SEO, le GEO, les scores, les correctifs, les offres ou le tableau de bord.",blocked:"RankFix a bloqué cette action de manière sécurisée.",blockedAsk:"Explique pourquoi cette action a été bloquée et ce que je dois vérifier en toute sécurité.",scanAsk:"Explique cette analyse et indique les 3 problèmes les plus importants avec une solution concrète.",none:"Aucun problème actif trouvé.",githubFail:"Impossible de démarrer GitHub Fix.",created:"Proposition de code créée. Vérifiez et fusionnez la PR, puis relancez une analyse : ",already:"Le code contient déjà ce correctif ; rien n’a été modifié. Vérifiez la page en ligne avec une nouvelle analyse.",nochange:"Aucune modification n’a été confirmée.",failed:"Échec de GitHub Fix.",generic:"Une erreur s’est produite.",retry:"Une erreur s’est produite. Réessayez.",safe:"Correctif sécurisé",loading:"Chargement du problème actif…",checking:"Vérification de GitHub Fix…",start:"Démarrer un GitHub Fix sécurisé"},
-    it:{greet:"Ciao! Sono RankFix AI. Fammi domande tecniche su scansioni, SEO, GEO, punteggi, correzioni, piani o Dashboard.",blocked:"RankFix ha bloccato questa azione in modo sicuro.",blockedAsk:"Spiega perché questa azione è stata bloccata e cosa devo controllare in sicurezza.",scanAsk:"Spiega questa scansione e indica i 3 problemi più importanti con una soluzione concreta.",none:"Nessun problema attivo trovato.",githubFail:"Impossibile avviare GitHub Fix.",created:"Proposta di codice creata. Controlla e unisci la PR, poi esegui una nuova scansione: ",already:"Il codice contiene già questa modifica; non è stato cambiato nulla. Verifica la pagina live con una nuova scansione.",nochange:"Nessuna modifica è stata confermata.",failed:"GitHub Fix non riuscito.",generic:"Si è verificato un errore.",retry:"Si è verificato un errore. Riprova.",safe:"Correzione sicura",loading:"Caricamento del problema attivo…",checking:"Controllo di GitHub Fix…",start:"Avvia GitHub Fix sicuro"},
-    es:{greet:"¡Hola! Soy RankFix AI. Pregúntame sobre tus análisis, SEO, GEO, puntuaciones, correcciones, planes o el panel.",blocked:"RankFix ha bloqueado esta acción de forma segura.",blockedAsk:"Explica por qué se bloqueó esta acción y qué debo comprobar de forma segura.",scanAsk:"Explica este análisis y enumera los 3 problemas más importantes con una solución concreta.",none:"No se encontró ningún problema activo.",githubFail:"No se pudo iniciar GitHub Fix.",created:"Propuesta de código creada. Revisa y fusiona la PR y después vuelve a analizar: ",already:"El código ya contiene este cambio; no se modificó nada. Verifica la página publicada con un nuevo análisis.",nochange:"No se confirmó ningún cambio.",failed:"GitHub Fix falló.",generic:"Algo salió mal.",retry:"Algo salió mal. Inténtalo de nuevo.",safe:"Corrección segura",loading:"Cargando problema activo…",checking:"Comprobando GitHub Fix…",start:"Iniciar GitHub Fix seguro"}
+    nl:{greet:"Hoi! Ik ben RankFix AI. Stel gerust technische vragen over je scans, SEO, GEO, scores, fixes of het Dashboard.",blocked:"Ik zie dat RankFix deze actie veilig heeft geblokkeerd.",blockedAsk:"Leg uit waarom deze actie is geblokkeerd en wat ik veilig moet controleren.",scanAsk:"Leg deze scan uit en noem de 3 belangrijkste problemen met een concrete oplossing.",none:"Geen actief probleem gevonden.",githubFail:"GitHub Fix kon niet worden gestart.",created:"Codevoorstel aangemaakt. Controleer en merge de PR, en scan daarna opnieuw: ",already:"De code bevat dit al; er is niets gewijzigd. Controleer de live pagina met een nieuwe scan.",nochange:"Er is geen wijziging bevestigd.",failed:"GitHub Fix mislukt.",generic:"Er ging iets mis.",retry:"Er ging iets mis. Probeer het opnieuw.",safe:"Veilige fix",loading:"Actief scanprobleem laden…",checking:"GitHub Fix wordt gecontroleerd…",start:"Start veilige GitHub Fix"},
+    en:{greet:"Hi! I’m RankFix AI. Ask me technical questions about your scans, SEO, GEO, scores, fixes or Dashboard.",blocked:"I can see RankFix safely blocked this action.",blockedAsk:"Explain why this action was blocked and what I should safely check.",scanAsk:"Explain this scan and list the 3 most important problems with a concrete solution.",none:"No active issue found.",githubFail:"GitHub Fix could not be started.",created:"Code proposal created. Review and merge the PR, then scan again: ",already:"The code already contains this; nothing was changed. Verify the live page with a new scan.",nochange:"No change was confirmed.",failed:"GitHub Fix failed.",generic:"Something went wrong.",retry:"Something went wrong. Please try again.",safe:"Safe fix",loading:"Loading active scan issue…",checking:"GitHub Fix is being checked…",start:"Start safe GitHub Fix"},
+    de:{greet:"Hallo! Ich bin RankFix AI. Frag mich zu deinen Scans, SEO, GEO, Scores, Fixes oder dem Dashboard.",blocked:"RankFix hat diese Aktion aus Sicherheitsgründen blockiert.",blockedAsk:"Erkläre, warum diese Aktion blockiert wurde und was ich sicher prüfen sollte.",scanAsk:"Erkläre diesen Scan und nenne die 3 wichtigsten Probleme mit einer konkreten Lösung.",none:"Kein aktives Problem gefunden.",githubFail:"GitHub Fix konnte nicht gestartet werden.",created:"Codevorschlag erstellt. Prüfe und merge den PR und scanne danach erneut: ",already:"Der Code enthält dies bereits; es wurde nichts geändert. Prüfe die Live-Seite mit einem neuen Scan.",nochange:"Keine Änderung wurde bestätigt.",failed:"GitHub Fix fehlgeschlagen.",generic:"Etwas ist schiefgelaufen.",retry:"Etwas ist schiefgelaufen. Bitte versuche es erneut.",safe:"Sicherer Fix",loading:"Aktives Scanproblem wird geladen…",checking:"GitHub Fix wird geprüft…",start:"Sicheren GitHub Fix starten"},
+    fr:{greet:"Bonjour ! Je suis RankFix AI. Posez-moi vos questions techniques sur vos analyses, le SEO, le GEO, les scores, les correctifs ou le tableau de bord.",blocked:"RankFix a bloqué cette action de manière sécurisée.",blockedAsk:"Explique pourquoi cette action a été bloquée et ce que je dois vérifier en toute sécurité.",scanAsk:"Explique cette analyse et indique les 3 problèmes les plus importants avec une solution concrète.",none:"Aucun problème actif trouvé.",githubFail:"Impossible de démarrer GitHub Fix.",created:"Proposition de code créée. Vérifiez et fusionnez la PR, puis relancez une analyse : ",already:"Le code contient déjà ce correctif ; rien n’a été modifié. Vérifiez la page en ligne avec une nouvelle analyse.",nochange:"Aucune modification n’a été confirmée.",failed:"Échec de GitHub Fix.",generic:"Une erreur s’est produite.",retry:"Une erreur s’est produite. Réessayez.",safe:"Correctif sécurisé",loading:"Chargement du problème actif…",checking:"Vérification de GitHub Fix…",start:"Démarrer un GitHub Fix sécurisé"},
+    it:{greet:"Ciao! Sono RankFix AI. Fammi domande tecniche su scansioni, SEO, GEO, punteggi, correzioni o Dashboard.",blocked:"RankFix ha bloccato questa azione in modo sicuro.",blockedAsk:"Spiega perché questa azione è stata bloccata e cosa devo controllare in sicurezza.",scanAsk:"Spiega questa scansione e indica i 3 problemi più importanti con una soluzione concreta.",none:"Nessun problema attivo trovato.",githubFail:"Impossibile avviare GitHub Fix.",created:"Proposta di codice creata. Controlla e unisci la PR, poi esegui una nuova scansione: ",already:"Il codice contiene già questa modifica; non è stato cambiato nulla. Verifica la pagina live con una nuova scansione.",nochange:"Nessuna modifica è stata confermata.",failed:"GitHub Fix non riuscito.",generic:"Si è verificato un errore.",retry:"Si è verificato un errore. Riprova.",safe:"Correzione sicura",loading:"Caricamento del problema attivo…",checking:"Controllo di GitHub Fix…",start:"Avvia GitHub Fix sicuro"},
+    es:{greet:"¡Hola! Soy RankFix AI. Pregúntame sobre tus análisis, SEO, GEO, puntuaciones, correcciones o el panel.",blocked:"RankFix ha bloqueado esta acción de forma segura.",blockedAsk:"Explica por qué se bloqueó esta acción y qué debo comprobar de forma segura.",scanAsk:"Explica este análisis y enumera los 3 problemas más importantes con una solución concreta.",none:"No se encontró ningún problema activo.",githubFail:"No se pudo iniciar GitHub Fix.",created:"Propuesta de código creada. Revisa y fusiona la PR y después vuelve a analizar: ",already:"El código ya contiene este cambio; no se modificó nada. Verifica la página publicada con un nuevo análisis.",nochange:"No se confirmó ningún cambio.",failed:"GitHub Fix falló.",generic:"Algo salió mal.",retry:"Algo salió mal. Inténtalo de nuevo.",safe:"Corrección segura",loading:"Cargando problema activo…",checking:"Comprobando GitHub Fix…",start:"Iniciar GitHub Fix seguro"}
   };
   const ex=extra[language]||extra.nl;
 
@@ -70,33 +70,11 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
       .catch(() => setScanIssue(null));
   }, [dashboard, scanId]);
 
-  async function startGithubFix() {
-    if (!scanIssue || !scanId || fixBusy) return;
-    setFixBusy(true);
-    setFixResult("");
-    try {
-      const scanResponse = await fetch("/api/assistant/scan?scanId=" + encodeURIComponent(scanId), { cache: "no-store" });
-      const scanData = await scanResponse.json();
-      const issue = scanData.issues?.[0];
-      const scan = scanData.scan;
-      if (!scanResponse.ok || !issue) throw new Error(scanData.error || "Geen actief probleem gevonden.");
-      const response = await fetch("/api/github/fix", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          issue: [issue.title, issue.message, issue.fix].filter(Boolean).join(" - "),
-          context: JSON.stringify(issue),
-          url: scan.scanned_url,
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "GitHub Fix kon niet worden gestart.");
-      setFixResult(data.pr?.url ? ex.created + data.pr.url : data.alreadyApplied ? "De code bevat dit al; er is niets gewijzigd. Controleer de live pagina met een nieuwe scan." : "Er is geen wijziging bevestigd.");
-    } catch (error) {
-      setFixResult(error instanceof Error ? error.message : "GitHub Fix mislukt.");
-    } finally {
-      setFixBusy(false);
-    }
+  function openSafeFix() {
+    if (!scanIssue || !scanId) return;
+    const issueId = scanIssue.issue_id || scanIssue.rule_id || "";
+    const query = new URLSearchParams({ scan_id: scanId, issue_id: issueId });
+    window.location.href = "/dashboard/fixes?" + query.toString();
   }
 
   useEffect(() => {
@@ -119,7 +97,7 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
       const data = await response.json();
       setMessages((m) => [...m, { role: "assistant", content: data.answer || data.error || ex.generic }]);
     } catch {
-      setMessages((m) => [...m, { role: "assistant", content: "Er ging iets mis. Probeer het opnieuw." }]);
+      setMessages((m) => [...m, { role: "assistant", content: ex.retry }]);
     } finally {
       setBusy(false);
     }
@@ -170,10 +148,10 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
               <div className="border-t border-white/10 px-5 py-4">
                 <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">{ex.safe}</div>
                 <p className="mt-1 text-xs text-slate-400">
-                  {scanIssue ? scanIssue.title : "Actief scanprobleem laden…"}
+                  {scanIssue ? scanIssue.title : ex.loading}
                 </p>
-                <button type="button" onClick={startGithubFix} disabled={!scanIssue || fixBusy} className="mt-3 w-full rounded-xl bg-emerald-300 px-4 py-3 text-sm font-bold text-slate-950 disabled:opacity-40">
-                  {fixBusy ? ex.checking : ex.start}
+                <button type="button" onClick={openSafeFix} disabled={!scanIssue || fixBusy} className="mt-3 w-full rounded-xl bg-emerald-300 px-4 py-3 text-sm font-bold text-slate-950 disabled:opacity-40">
+                  {ex.start}
                 </button>
                 {fixResult && <p className="mt-2 break-words text-xs text-slate-400">{fixResult}</p>}
               </div>
