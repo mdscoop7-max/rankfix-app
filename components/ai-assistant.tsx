@@ -26,8 +26,6 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
   ]);
   const [busy, setBusy] = useState(false);
   const [scanIssue, setScanIssue] = useState<any>(null);
-  const [fixBusy, setFixBusy] = useState(false);
-  const [fixResult, setFixResult] = useState("");
   const [language, setLanguage] = useState(publicLocale);
   const extra: Record<string, any> = {
     nl:{greet:"Hoi! Ik ben RankFix AI. Stel gerust technische vragen over je scans, SEO, GEO, scores, fixes of het Dashboard.",blocked:"Ik zie dat RankFix deze actie veilig heeft geblokkeerd.",blockedAsk:"Leg uit waarom deze actie is geblokkeerd en wat ik veilig moet controleren.",scanAsk:"Leg deze scan uit en noem de 3 belangrijkste problemen met een concrete oplossing.",none:"Geen actief probleem gevonden.",githubFail:"GitHub Fix kon niet worden gestart.",created:"Codevoorstel aangemaakt. Controleer en merge de PR, en scan daarna opnieuw: ",already:"De code bevat dit al; er is niets gewijzigd. Controleer de live pagina met een nieuwe scan.",nochange:"Er is geen wijziging bevestigd.",failed:"GitHub Fix mislukt.",generic:"Er ging iets mis.",retry:"Er ging iets mis. Probeer het opnieuw.",safe:"Veilige fix",loading:"Actief scanprobleem laden…",checking:"GitHub Fix wordt gecontroleerd…",start:"Start veilige GitHub Fix"},
@@ -63,7 +61,6 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
     if (!dashboard || !scanId) return;
     setInput((extra[language]||extra.nl).scanAsk);
     setScanIssue(null);
-    setFixResult("");
     fetch("/api/assistant/scan?scanId=" + encodeURIComponent(scanId), { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => setScanIssue(d.issues?.[0] || null))
@@ -80,7 +77,7 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
   useEffect(() => {
     if (!open) return;
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [open, messages, busy, fixResult]);
+  }, [open, messages, busy]);
 
   async function send() {
     const question = input.trim();
@@ -150,10 +147,9 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
                 <p className="mt-1 text-xs text-slate-400">
                   {scanIssue ? scanIssue.title : ex.loading}
                 </p>
-                <button type="button" onClick={openSafeFix} disabled={!scanIssue || fixBusy} className="mt-3 w-full rounded-xl bg-emerald-300 px-4 py-3 text-sm font-bold text-slate-950 disabled:opacity-40">
+                <button type="button" onClick={openSafeFix} disabled={!scanIssue} className="mt-3 w-full rounded-xl bg-emerald-300 px-4 py-3 text-sm font-bold text-slate-950 disabled:opacity-40">
                   {ex.start}
                 </button>
-                {fixResult && <p className="mt-2 break-words text-xs text-slate-400">{fixResult}</p>}
               </div>
             )}
 
