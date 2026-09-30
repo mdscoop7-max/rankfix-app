@@ -66,7 +66,7 @@ export function validateGithubFix(input: {
 
   if (!input.proposed.trim()) errors.push("De voorgestelde GitHub-wijziging is leeg.");
   if (/\b(?:rm\s+-rf|drop\s+table|delete\s+from|private[_-]?key)\b/i.test(input.proposed)) {
-    errors.push("De AI-output bevat mogelijk destructieve of geheime gegevens.");
+    errors.push("De voorgestelde wijziging bevat mogelijk destructieve of geheime gegevens.");
   }
 
   const before = extractMetadataIdentity(input.current);
@@ -74,16 +74,16 @@ export function validateGithubFix(input: {
   const allowsRebrand = /rebrand|branding|brandnaam|naam wijzigen|site name|website name/i.test(issueText);
 
   if (!allowsRebrand && before.title && after.title && before.title !== after.title) {
-    errors.push("De AI-fix wijzigt de bestaande site-identiteit in de metadata.");
+    errors.push("De voorgestelde fix wijzigt de bestaande site-identiteit in de metadata.");
   }
   if (!allowsRebrand && before.description && after.description && before.description !== after.description) {
-    errors.push("De AI-fix wijzigt de bestaande metadata-beschrijving zonder dat dit is gevraagd.");
+    errors.push("De voorgestelde fix wijzigt de bestaande metadata-beschrijving zonder dat dit is gevraagd.");
   }
   if (!allowsRebrand && !/og[: -]?title|open graph.*title/i.test(issueText) && before.title && after.openGraphTitle && before.title !== after.openGraphTitle) {
-    errors.push("De AI-fix zet een andere merk-/paginatitel in Open Graph-metadata.");
+    errors.push("De voorgestelde fix zet een andere merk-/paginatitel in Open Graph-metadata.");
   }
   if (!allowsRebrand && !/og[: -]?description|open graph.*description/i.test(issueText) && before.description && after.openGraphDescription && before.description !== after.openGraphDescription) {
-    errors.push("De AI-fix zet een andere beschrijving in Open Graph-metadata.");
+    errors.push("De voorgestelde fix zet een andere beschrijving in Open Graph-metadata.");
   }
 
   if (/openGraph[ \t\r\n]*:[ \t\r\n]*\{|og:image|images[ \t\r\n]*:[ \t\r\n]*\[/i.test(input.proposed)) {
@@ -95,7 +95,7 @@ export function validateGithubFix(input: {
   }
 
   if (input.proposed.length > input.current.length * 3 + 5000) {
-    errors.push("De AI-fix is buiten verhouding groot ten opzichte van het bestaande bestand.");
+    errors.push("De voorgestelde fix is buiten verhouding groot ten opzichte van het bestaande bestand.");
   }
 
   return { valid: errors.length === 0, errors, warnings };
