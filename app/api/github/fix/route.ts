@@ -323,15 +323,15 @@ export async function POST(request:Request){
     const proposalId=typeof body?.proposal_id==="string"?body.proposal_id.trim():"";
     const proposalHash=typeof body?.proposal_hash==="string"?body.proposal_hash.trim():"";
     // Preview is read-only: it must not consume the PR/code-write rate limit.
-    // Only a confirmed publish request can create a branch/commit/PR.
+    // Only an explicitly approved, exact reviewed proposal may create a separate branch/commit/PR. This never merges or publishes production.
     if(!previewOnly && !explicitApproval) return NextResponse.json({error:msg("Expliciete goedkeuring is vereist voordat RankFix een branch, commit of Pull Request mag maken.","Explicit approval is required before RankFix may create a branch, commit, or Pull Request.","Eine ausdrückliche Genehmigung ist erforderlich, bevor RankFix einen Branch, Commit oder Pull Request erstellen darf.","Une approbation explicite est requise avant que RankFix puisse créer une branche, un commit ou une Pull Request.","È richiesta un’approvazione esplicita prima che RankFix possa crearere un branch, un commit o una Pull Request.","Se requiere aprobación explícita antes de que RankFix pueda crear una rama, un commit o una Pull Request.")},{status:409});
     if(!previewOnly && !await consumeRateLimit("github-fix",String(user.id),12,3600)){
-      return NextResponse.json({error:msg("Te veel codefix-publicaties. Probeer later opnieuw.","Too many code-fix publications. Try again later.","Zu viele Codefix-Veröffentlichungen. Versuche es später erneut.","Trop de publications de correctifs. Réessayez plus tard.","Troppe pubblicazioni di correzioni. Riprova più tardi.","Demasiadas publicaciones de correcciones. Inténtalo más tarde.")},{status:429});
+      return NextResponse.json({error:msg("Te veel Pull Request-voorstellen. Probeer later opnieuw.","Too many Pull Request proposals. Try again later.","Zu viele Pull-Request-Vorschläge. Versuche es später erneut.","Trop de propositions de Pull Request. Réessayez plus tard.","Troppe proposte di Pull Request. Riprova più tardi.","Demasiadas propuestas de Pull Request. Inténtalo más tarde.")},{status:429});
     }
     if((requestedRepo&&!safeRepo(requestedRepo))||(requestedPath&&!safeFixTarget(requestedPath))||!issueId||!scanId) return NextResponse.json({error:msg("Ongeldige fixgegevens: scan_id en issue_id zijn verplicht.","Invalid fix data: scan_id and issue_id are required.","Ungültige Fix-Daten: scan_id und issue_id sind erforderlich.","Données de correction invalides : scan_id et issue_id sont requis.","Dati di correzione non validi: scan_id e issue_id sono obbligatori.","Datos de corrección no válidos: scan_id e issue_id son obligatorios.")},{status:400});
     const fixPolicy=getFixPolicy(issueId);
     if(fixPolicy.category==="C"||!fixPolicy.safe_type){
-      return NextResponse.json({error:msg("Deze bevinding is niet toegestaan voor een automatische GitHub-codefix. RankFix vereist hier handmatige controle.","This finding is not eligible for an automatic GitHub code fix. RankFix requires manual review.","Dieser Befund ist nicht für einen automatischen GitHub-Codefix geeignet. RankFix erfordert eine manuelle Prüfung.","Ce problème ne peut pas être corrigé automatiquement via GitHub. RankFix exige une vérification manuelle.","Questo problema non è idoneo a una correzione automatica GitHub. RankFix richiede un controllo manuale.","Este problema no admite una corrección automática de GitHub. RankFix requiere una revisión manual."),issue_id:issueId,fix_category:fixPolicy.category},{status:422});
+      return NextResponse.json({error:msg("Deze bevinding is niet toegestaan voor een GitHub-codevoorstel. RankFix vereist hier handmatige controle.","This finding is not eligible for an GitHub code proposal. RankFix requires manual review.","Dieser Befund ist nicht für einen GitHub-Codevorschlag geeignet. RankFix erfordert eine manuelle Prüfung.","Ce problème ne peut pas être corrigé automatiquement via GitHub. RankFix exige une vérification manuelle.","Questo problema non è idoneo a una proposta di codice GitHub. RankFix richiede un controllo manuale.","Este problema no admite una propuesta de código de GitHub. RankFix requiere una revisión manual."),issue_id:issueId,fix_category:fixPolicy.category},{status:422});
     }
     await ensureDatabase();
     const trustedScan=await getDb().query("SELECT final_url,result FROM scans WHERE id=$1 AND user_id=$2 LIMIT 1",[scanId,user.id]);
@@ -350,12 +350,12 @@ export async function POST(request:Request){
     const hasTrustedEvidence=!!trustedEvidence && trustedEvidence.found !== null && trustedEvidence.found !== undefined && trustedEvidence.found !== "";
     if(!["FAIL","WARNING"].includes(trustedStatus) || trustedConfidence==="low" || !hasTrustedEvidence){
       return NextResponse.json({error:msg(
-        "Deze bevinding is niet voldoende bewezen voor een automatische GitHub-codefix. Controleer de scan eerst handmatig.",
-        "This finding is not sufficiently proven for an automatic GitHub code fix. Review the scan first.",
-        "Dieser Befund ist für einen automatischen GitHub-Codefix nicht ausreichend bestätigt. Prüfe zuerst den Scan.",
-        "Ce problème n’est pas suffisamment confirmé pour une correction GitHub automatique. Vérifiez d’abord l’analyse.",
+        "Deze bevinding is niet voldoende bewezen voor een GitHub-codevoorstel. Controleer de scan eerst handmatig.",
+        "This finding is not sufficiently proven for an GitHub code proposal. Review the scan first.",
+        "Dieser Befund ist für einen GitHub-Codevorschlag nicht ausreichend bestätigt. Prüfe zuerst den Scan.",
+        "Ce problème n’est pas suffisamment confirmé pour une proposition de code GitHub. Vérifiez d’abord l’analyse.",
         "Questo problema non è sufficientemente verificato per una correzione GitHub automatica. Controlla prima la scansione.",
-        "Este problema no está suficientemente confirmado para una corrección automática de GitHub. Revisa primero el análisis."
+        "Este problema no está suficientemente confirmado para una propuesta de código de GitHub. Revisa primero el análisis."
       ),issue_id:issueId,status:trustedStatus||"UNABLE_TO_CONFIRM",confidence:trustedConfidence||"low"},{status:422});
     }
     issue=String(trustedCheck.title||issueId)+": "+String(trustedCheck.fix||trustedCheck.message||"");
