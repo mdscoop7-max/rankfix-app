@@ -9,7 +9,7 @@ export default function PublicHeader({locale,page}:{locale:Locale;page:string}){
  const t=copy[locale]; const [user,setUser]=useState<any>(null); const [ready,setReady]=useState(false);
  useEffect(()=>{fetch("/api/auth/me",{cache:"no-store"}).then(r=>r.json()).then(d=>{setUser(d?.user||null);setReady(true)}).catch(()=>setReady(true))},[]);
  return <header className="lc-header"><div className="lc-container">
-   <a className="lc-brand" href={"/"+locale}><span className="lc-brand-mark">RF</span><b>RankFix <em>AI</em></b></a>
+   <a className="lc-brand" href={"/"+locale}><span className="lc-brand-mark">RF</span><b>RankFix</b></a>
    <div className="lc-header-actions">
     <LanguageSelect locale={locale} page={page}/>
     <a className="lc-auth-link" href={user?"/dashboard":"/account?lang="+locale}>{ready?(user?dashboard[locale]:t.signIn):t.signIn}</a>
