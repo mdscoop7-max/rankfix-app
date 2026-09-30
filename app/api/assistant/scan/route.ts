@@ -30,7 +30,34 @@ export async function GET(request: Request) {
   let parsed: any = {};
   try { parsed = typeof result.rows[0].result === "string" ? JSON.parse(result.rows[0].result) : (result.rows[0].result || {}); } catch {}
 
-  const checks = [...(parsed?.seo?.checks || []), ...(parsed?.geo?.checks || [])]
+  const commerceAudits = Array.isArray(parsed?.commerceScope?.audits) ? parsed.commerceScope.audits : [];
+  const commerceIssues = commerceAudits.flatMap((audit: any) => {
+    if (!audit || audit.error || !audit.url || !["product","category"].includes(String(audit.kind))) return [];
+    const url=String(audit.url);
+    const kind=String(audit.kind);
+    const issue=(suffix:string,title:string,message:string,fix:string,severity="medium")=>({
+      category:"ecommerce", title, status:"FAIL", message, fix,
+      issue_id:"COMMERCE_"+kind.toUpperCase()+"_"+suffix+"::"+url,
+      severity, confidence:"high",
+      evidence:{found:url,details:"Affected "+kind+" page: "+url}
+    });
+    const items:any[]=[];
+    if(!audit.title) items.push(issue("TITLE_MISSING","Title ontbreekt op webshop-pagina","Deze "+kind+"pagina heeft geen bevestigde title.","Voeg een unieke title toe."));
+    if(!audit.description) items.push(issue("DESCRIPTION_MISSING","Meta description ontbreekt op webshop-pagina","Deze "+kind+"pagina heeft geen bevestigde meta description.","Voeg een passende meta description toe."));
+    if(!audit.h1) items.push(issue("H1_MISSING","H1 ontbreekt op webshop-pagina","Deze "+kind+"pagina heeft geen bevestigde H1.","Voeg één duidelijke H1 toe."));
+    if(!audit.canonical) items.push(issue("CANONICAL_MISSING","Canonical ontbreekt op webshop-pagina","Deze "+kind+"pagina heeft geen bevestigde canonical.","Voeg een self-referencing canonical toe."));
+    if(!audit.breadcrumbSchema) items.push(issue("BREADCRUMB_SCHEMA_MISSING","Breadcrumb schema ontbreekt","Deze "+kind+"pagina heeft geen bevestigde BreadcrumbList structured data.","Voeg correcte BreadcrumbList structured data toe."));
+    if(!audit.imageSignal) items.push(issue("IMAGE_MISSING","Product- of categorieafbeelding niet bevestigd","RankFix kon op deze "+kind+"pagina geen afbeelding bevestigen.","Controleer of de pagina een relevante afbeelding bevat."));
+    if(kind==="product"){
+      if(!audit.productSchema) items.push(issue("PRODUCT_SCHEMA_MISSING","Product schema ontbreekt","Deze productpagina heeft geen bevestigd Product schema.","Voeg Product structured data toe.","high"));
+      if(!audit.offerSchema) items.push(issue("OFFER_SCHEMA_MISSING","Offer schema ontbreekt","Deze productpagina heeft geen bevestigd Offer of AggregateOffer schema.","Voeg prijs en aanbod toe via Offer structured data.","high"));
+      if(!audit.priceSignal) items.push(issue("PRICE_MISSING","Prijs niet bevestigd","RankFix kon geen prijs op deze productpagina bevestigen.","Controleer en voeg een zichtbare actuele prijs toe.","high"));
+      if(!audit.availabilitySignal) items.push(issue("AVAILABILITY_MISSING","Voorraadstatus niet bevestigd","RankFix kon geen voorraadstatus op deze productpagina bevestigen.","Voeg een actuele voorraadstatus toe.","high"));
+    }
+    return items;
+  });
+
+  const checks = [...(parsed?.seo?.checks || []), ...(parsed?.geo?.checks || []), ...commerceIssues]
     .filter((x: any) => {
       const status=String(x?.issue_status||x?.status||"").toLowerCase();
       const confidence=String(x?.confidence||"").toLowerCase();
@@ -49,7 +76,7 @@ export async function GET(request: Request) {
       confidence: x.confidence,
       evidence: x.evidence,
     }))
-    .slice(0, 10);
+    .slice(0, 30);
 
   return NextResponse.json({
     scan: {
