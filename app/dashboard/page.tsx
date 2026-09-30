@@ -26,6 +26,7 @@ export default function Dashboard() {
   const [scans, setScans] = useState<Scan[]>([]);
   const [history, setHistory] = useState<Scan[]>([]);
   const [fixes, setFixes] = useState<Record<string, number>>({});
+  const [comparisons,setComparisons]=useState<Record<string,{previousScore:number;scoreChange:number;improved:number;newIssues:number;stillOpen:number}>>({});
   const [searchConsole, setSearchConsole] = useState<{connected:boolean;siteUrl:string|null;lastSyncAt:string|null;synced:boolean}>({connected:false,siteUrl:null,lastSyncAt:null,synced:false});
   const [usage, setUsage] = useState<{plan:string;used:number;limit:number|null;websiteHost:string|null}>({plan:"free",used:0,limit:2,websiteHost:null});
   const [selectedResult, setSelectedResult] = useState<ScanResult | null>(null);
@@ -43,6 +44,7 @@ export default function Dashboard() {
     setScans(data.scans || []);
     setHistory(data.history || data.scans || []);
     setFixes(data.fixes || {});
+    setComparisons(data.comparisonByScan || {});
     if (data.searchConsole) setSearchConsole(data.searchConsole);
     if (data.usage) setUsage(data.usage);
   }
@@ -78,14 +80,15 @@ export default function Dashboard() {
   const checks = [...(selectedResult?.seo?.checks || []), ...(selectedResult?.geo?.checks || [])];
   const latest = history[0] || scans[0];
   const previous = latest ? history.find((scan) => scan.scanned_url === latest.scanned_url && scan.id !== latest.id) : undefined;
-  const scoreChange = latest && previous ? latest.overall_score - previous.overall_score : null;
+  const latestComparison=latest?comparisons[latest.id]:undefined;
+  const scoreChange = latestComparison?.scoreChange ?? (latest && previous ? latest.overall_score - previous.overall_score : null);
   const recentHistory = (usage.plan==="free" ? history.slice(0,1) : history.slice(0,5));
   const latestHost = latest ? (() => { try { return new URL(latest.scanned_url).hostname; } catch { return latest.scanned_url; } })() : null;
 
   return <main className="rf-page" lang={language}>
     <div className="rf-shell">
       <header className="rf-header">
-        <a href="/dashboard" className="rf-brand">RankFix <span>AI</span></a>
+        <a href="/dashboard" className="rf-brand">RankFix</a>
         <div className="rf-header-right"><a href="/dashboard/account" className="rf-avatar" aria-label="Account">{user?.name?.charAt(0).toUpperCase() || "?"}</a></div>
       </header>
       <DashboardNav current={0} />
@@ -110,7 +113,7 @@ export default function Dashboard() {
             <div className="rf-dashboard-latest">{latest && <div className="rf-overall-meter" style={{"--rf-score":latest.overall_score} as React.CSSProperties}><div><strong>{latest.overall_score}</strong><span>/100</span></div></div>}<div><span className="rf-eyebrow">{x.latest}</span><h2>{latestHost || x.firstWebsite}</h2><p>{latest ? `${x.scanned} ${new Date(latest.created_at).toLocaleString(language)}` : x.startAudit}</p></div></div>
             <a className="rf-primary-link rf-scan-cta" href="/dashboard/scan">＋ {x.newScan}</a>
           </div>
-          <div className="rf-status-grid">
+          {latestComparison&&<div className="mb-3 grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-center"><div><strong className="block text-lg text-emerald-300">{latestComparison.improved}</strong><span className="text-xs text-slate-400">{language==="nl"?"Verbeterd":language==="de"?"Verbessert":language==="fr"?"Amélioré":language==="it"?"Migliorato":language==="es"?"Mejorado":"Improved"}</span></div><div><strong className="block text-lg text-amber-300">{latestComparison.newIssues}</strong><span className="text-xs text-slate-400">{language==="nl"?"Nieuw":language==="de"?"Neu":language==="fr"?"Nouveau":language==="it"?"Nuovo":language==="es"?"Nuevo":"New"}</span></div><div><strong className="block text-lg">{latestComparison.stillOpen}</strong><span className="text-xs text-slate-400">{language==="nl"?"Nog open":language==="de"?"Noch offen":language==="fr"?"Toujours ouvert":language==="it"?"Ancora aperto":language==="es"?"Aún abierto":"Still open"}</span></div></div>\n          <div className="rf-status-grid">
             <a className="rf-card rf-score-card" href={latest ? `/dashboard/audit/${latest.id}` : "/#scan"}><span>SEO-score</span><strong>{latest?.seo_score ?? "—"}<small>/100</small></strong><small>{x.seoAudit} →</small></a>
             <a className="rf-card rf-score-card" href={latest ? `/dashboard/audit/${latest.id}` : "/#scan"}><span>GEO-score</span><strong>{latest?.geo_score ?? "—"}<small>/100</small></strong><small>{x.geoAudit} →</small></a>
             <div className="rf-card"><span>{x.openIssues}</span><strong>{latest?.open_issues ?? 0}</strong><small>{fixes.DONE || 0} {x.confirmedSolved}</small></div>
@@ -126,10 +129,10 @@ export default function Dashboard() {
           <div className="rf-next-actions">
             {latest && <a href={`/dashboard/audit/${latest.id}`}><b>{x.latestReport}</b><span>{latest.overall_score}/100 · {x.openLatest} →</span></a>}
             {latest?.open_issues ? <a href={`/dashboard/audit/${latest.id}`}><b>1. {x.firstIssue}</b><span>{latest.open_issues} {x.firstIssueHint} →</span></a> : <a href="/dashboard/scan"><b>1. {x.newControl}</b><span>{x.newControlHint} →</span></a>}
-            {(fixes.PREPARED || 0) > 0 && <a href="/dashboard/github"><b>2. {x.codeProposals} {usage.plan==="free"&&<small className="ml-2 rounded-full border border-blue-400/30 bg-blue-400/10 px-2 py-0.5 text-[11px] font-bold text-blue-200">Premium</small>}</b><span>{fixes.PREPARED} {x.waiting} →</span></a>}
-            <a href={`/dashboard/competitor${latest ? `?url=${encodeURIComponent(latest.scanned_url)}` : ""}`}><b>{(fixes.PREPARED || 0) > 0 ? "3" : "2"}. {x.compare} {usage.plan==="free"&&<small className="ml-2 rounded-full border border-blue-400/30 bg-blue-400/10 px-2 py-0.5 text-[11px] font-bold text-blue-200">Premium</small>}</b><span>{x.compareHint} →</span></a>
-            <a href={`/dashboard/local-seo${latest ? `?url=${encodeURIComponent(latest.scanned_url)}` : ""}`}><b>{(fixes.PREPARED || 0) > 0 ? "4" : "3"}. {x.local} {usage.plan==="free"&&<small className="ml-2 rounded-full border border-blue-400/30 bg-blue-400/10 px-2 py-0.5 text-[11px] font-bold text-blue-200">Premium</small>}</b><span>{x.localHint} →</span></a>
-            <a href="/dashboard/help"><b>{(fixes.PREPARED || 0) > 0 ? "5" : "4"}. {x.askAi}</b><span>{x.askAiHint} →</span></a>
+            {((fixes.PREPARED||0)+(fixes.PR_CREATED||0)+(fixes.WAITING_PUBLICATION||0)+(fixes.WAITING_VERIFICATION||0)) > 0 && <a href="/dashboard/fixes"><b>2. {x.codeProposals} {usage.plan==="free"&&<small className="ml-2 rounded-full border border-blue-400/30 bg-blue-400/10 px-2 py-0.5 text-[11px] font-bold text-blue-200">Premium</small>}</b><span>{(fixes.PREPARED||0)+(fixes.PR_CREATED||0)+(fixes.WAITING_PUBLICATION||0)+(fixes.WAITING_VERIFICATION||0)} {x.waiting} →</span></a>}
+            <a href={`/dashboard/competitor${latest ? `?url=${encodeURIComponent(latest.scanned_url)}` : ""}`}><b>{((fixes.PREPARED||0)+(fixes.PR_CREATED||0)+(fixes.WAITING_PUBLICATION||0)+(fixes.WAITING_VERIFICATION||0)) > 0 ? "3" : "2"}. {x.compare} {usage.plan==="free"&&<small className="ml-2 rounded-full border border-blue-400/30 bg-blue-400/10 px-2 py-0.5 text-[11px] font-bold text-blue-200">Premium</small>}</b><span>{x.compareHint} →</span></a>
+            <a href={`/dashboard/local-seo${latest ? `?url=${encodeURIComponent(latest.scanned_url)}` : ""}`}><b>{((fixes.PREPARED||0)+(fixes.PR_CREATED||0)+(fixes.WAITING_PUBLICATION||0)+(fixes.WAITING_VERIFICATION||0)) > 0 ? "4" : "3"}. {x.local} {usage.plan==="free"&&<small className="ml-2 rounded-full border border-blue-400/30 bg-blue-400/10 px-2 py-0.5 text-[11px] font-bold text-blue-200">Premium</small>}</b><span>{x.localHint} →</span></a>
+            <a href="/dashboard/help"><b>{((fixes.PREPARED||0)+(fixes.PR_CREATED||0)+(fixes.WAITING_PUBLICATION||0)+(fixes.WAITING_VERIFICATION||0)) > 0 ? "5" : "4"}. {x.askAi}</b><span>{x.askAiHint} →</span></a>
           </div>
         </section>
         <section className="rf-section">
@@ -152,7 +155,7 @@ export default function Dashboard() {
             <a className="rf-add" href="/dashboard/scan"><span aria-hidden="true">＋</span> {t.add}</a>
           </div>
         </section>
-        <section className="rf-fix-summary" aria-label={t.fixes}><h2>{t.fixes} {usage.plan==="free"&&<small className="ml-2 rounded-full border border-blue-400/30 bg-blue-400/10 px-2 py-0.5 text-[11px] font-bold text-blue-200">Premium</small>}</h2><p>{fixes.PREPARED || 0} {t.prepared} · {fixes.DONE || 0} {t.confirmed}.</p><a href="/dashboard/fixes">{t.fixLink} →</a></section>
+        <section className="rf-fix-summary" aria-label={t.fixes}><h2>{t.fixes} {usage.plan==="free"&&<small className="ml-2 rounded-full border border-blue-400/30 bg-blue-400/10 px-2 py-0.5 text-[11px] font-bold text-blue-200">Premium</small>}</h2><p>{(fixes.PREPARED||0)+(fixes.PR_CREATED||0)+(fixes.WAITING_PUBLICATION||0)+(fixes.WAITING_VERIFICATION||0)} {t.prepared} · {fixes.DONE || 0} {t.confirmed}.</p><a href="/dashboard/fixes">{t.fixLink} →</a></section>
         {selectedResult && <section id="resultaat" className="rf-report"><div className="rf-section-head"><h2>{t.result}</h2><button onClick={() => setSelectedResult(null)}>{t.close}</button></div><p>{selectedResult.overallScore}/100 · SEO {selectedResult.seo?.score ?? "—"} · GEO {selectedResult.geo?.score ?? "—"}</p><div className="rf-checks">{checks.map((check, index) => <article key={index}><strong>{check.title}</strong><span>{check.fix_status === "DONE" ? t.live : check.fix_status === "WAITING" ? t.proposal : check.status === "pass" ? t.passed : check.severity === "CRITICAL" ? t.critical : t.needsAttention}</span><p>{check.message}</p></article>)}</div></section>}
       </div>
     </div>
