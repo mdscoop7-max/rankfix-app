@@ -1863,7 +1863,7 @@ export async function POST(request: Request) {
         await ensureDatabase();
         const normalizedScanUrl = normalizeScanUrl(finalUrl.toString());
         const pending = await getDb().query(
-          "SELECT issue_id, status FROM pending_fixes WHERE user_id=$1 AND scanned_url=$2 AND status='PREPARED' AND expires_at>NOW()",
+          "SELECT issue_id, status FROM pending_fixes WHERE user_id=$1 AND scanned_url=$2 AND status IN ('PREPARED','PR_CREATED','WAITING_PUBLICATION','WAITING_VERIFICATION') AND expires_at>NOW()",
           [user.id, normalizedScanUrl]
         );
         pendingFixes = new Map(pending.rows.map((row: any) => [String(row.issue_id), { status: String(row.status) }]));
@@ -1917,7 +1917,7 @@ export async function POST(request: Request) {
             if (liveStatus !== "PASS" || liveConfidence === "low" || !hasLiveEvidence) continue;
 
             const confirmed = await getDb().query(
-              "UPDATE pending_fixes SET status='DONE', updated_at=NOW() WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 AND status='PREPARED' AND expires_at>NOW() RETURNING id",
+              "UPDATE pending_fixes SET status='DONE', updated_at=NOW() WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 AND status IN ('PREPARED','PR_CREATED','WAITING_PUBLICATION','WAITING_VERIFICATION') AND expires_at>NOW() RETURNING id",
               [user.id, normalizedScanUrl, issueId]
             );
             if (!confirmed.rowCount) continue;
