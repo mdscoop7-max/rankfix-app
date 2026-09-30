@@ -523,14 +523,23 @@ export async function POST(request:Request){
     if(!approval.rowCount){
       return NextResponse.json({error:msg("Dit voorstel is niet meer actief. Maak een nieuwe preview en controleer die opnieuw.","This proposal is no longer active. Create and review a new preview.","Dieser Vorschlag ist nicht mehr aktiv. Erstelle und prüfe eine neue Vorschau.","Cette proposition n’est plus active. Créez et vérifiez un nouvel aperçu.","Questa proposta non è più attiva. Crea e controlla una nuova anteprima.","Esta propuesta ya no está activa. Crea y revisa una nueva vista previa.")},{status:409});
     }
-    const branch="rankfix/"+Date.now()+"-"+slug(issue);
+    // A stable proposal branch makes retries recoverable and avoids duplicate branches.
+    const branch="rankfix/proposal-"+String(proposalId).replace(/-/g,"").slice(0,12)+"-"+slug(issue);
     const baseRef=await githubFetch<any>(token,"/repos/"+repo+"/git/ref/heads/"+encodeURIComponent(effectiveBaseBranch));
-    await githubFetch<any>(token,"/repos/"+repo+"/git/refs",{method:"POST",body:JSON.stringify({ref:"refs/heads/"+branch,sha:baseRef.object.sha})});
+    let branchExists=false;
+    try{
+      const existingRef=await githubFetch<any>(token,"/repos/"+repo+"/git/ref/heads/"+encodeURIComponent(branch));
+      branchExists=Boolean(existingRef?.object?.sha);
+    }catch{}
+    if(!branchExists){
+      await githubFetch<any>(token,"/repos/"+repo+"/git/refs",{method:"POST",body:JSON.stringify({ref:"refs/heads/"+branch,sha:baseRef.object.sha})});
+    }
     await githubFetch<any>(token,"/repos/"+repo+"/contents/"+path,{
       method:"PUT",
       body:JSON.stringify({message:"fix: RankFix "+slug(issue),content:Buffer.from(generated.content,"utf8").toString("base64"),branch,sha:file.sha})
     });
-    const pr=await githubFetch<any>(token,"/repos/"+repo+"/pulls",{
+    const existingPrs=await githubFetch<any[]>(token,"/repos/"+repo+"/pulls?state=open&head="+encodeURIComponent(repo.split("/")[0]+":"+branch)+"&base="+encodeURIComponent(effectiveBaseBranch));
+    const pr=Array.isArray(existingPrs)&&existingPrs[0] ? existingPrs[0] : await githubFetch<any>(token,"/repos/"+repo+"/pulls",{
       method:"POST",
       body:JSON.stringify({title:"RankFix: "+generated.summary.slice(0,70),head:branch,base:effectiveBaseBranch,body:"## RankFix codevoorstel\n\n"+generated.summary+"\n\nRankFix heeft alleen een aparte branch en Pull Request voorbereid. Controleer de volledige diff en tests voordat je zelf besluit te mergen/publiceren. RankFix mergt of publiceert nooit automatisch.\n\nTarget: "+path})
     });
