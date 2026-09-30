@@ -1,0 +1,35 @@
+"use client";
+import { useEffect,useState } from "react";
+import { useSearchParams } from "next/navigation";
+import DashboardNav from "../../nav";
+import AiAssistant from "@/components/ai-assistant";
+import type { Locale } from "@/lib/locales";
+import "../../dashboard.css";
+
+type Issue={title?:string;message?:string;fix?:string;issue_id?:string;status?:string;evidence?:any};
+type Proposal={title:string;content:string;reason:string};
+const types:Record<string,string>={
+ META_TITLE_MISSING:"meta_title",META_TITLE_GUIDANCE:"meta_title",
+ META_DESCRIPTION_MISSING:"meta_description",META_DESCRIPTION_GUIDANCE:"meta_description",
+ H1_MISSING:"h1",IMAGE_ALT_MISSING:"alt_text",headings:"heading_structure"
+};
+const copy:Record<Locale,any>={
+ nl:{title:"AI-fix controleren",intro:"RankFix maakt eerst een voorstel. Er wordt niets automatisch gepubliceerd.",make:"Maak AI-voorstel",busy:"Voorstel maken…",proposal:"Voorstel",reason:"Waarom dit voorstel",next:"Voorstel goed? Ga verder naar veilige publicatie",github:"Verder met GitHub",help:"Bekijk uitleg",missing:"Deze AI-fix heeft onvoldoende scancontext. Open de uitleg voor de veilige vervolgstap."},
+ en:{title:"Review AI fix",intro:"RankFix creates a proposal first. Nothing is published automatically.",make:"Create AI proposal",busy:"Creating proposal…",proposal:"Proposal",reason:"Why this proposal",next:"Proposal looks good? Continue to safe publishing",github:"Continue with GitHub",help:"View guidance",missing:"This AI fix has insufficient scan context. Open the guidance for the safe next step."},
+ de:{title:"AI-Fix prüfen",intro:"RankFix erstellt zuerst einen Vorschlag. Nichts wird automatisch veröffentlicht.",make:"AI-Vorschlag erstellen",busy:"Vorschlag wird erstellt…",proposal:"Vorschlag",reason:"Warum dieser Vorschlag",next:"Vorschlag in Ordnung? Sicher veröffentlichen",github:"Mit GitHub fortfahren",help:"Anleitung ansehen",missing:"Für diesen AI-Fix fehlen Scan-Daten. Öffne die Anleitung für den sicheren nächsten Schritt."},
+ fr:{title:"Vérifier le correctif IA",intro:"RankFix prépare d’abord une proposition. Rien n’est publié automatiquement.",make:"Créer la proposition IA",busy:"Création…",proposal:"Proposition",reason:"Pourquoi cette proposition",next:"Proposition correcte ? Continuer vers une publication sûre",github:"Continuer avec GitHub",help:"Voir l’aide",missing:"Le contexte d’analyse est insuffisant. Ouvrez l’aide pour l’étape sûre suivante."},
+ it:{title:"Controlla il fix AI",intro:"RankFix crea prima una proposta. Nulla viene pubblicato automaticamente.",make:"Crea proposta AI",busy:"Creazione…",proposal:"Proposta",reason:"Perché questa proposta",next:"Proposta corretta? Continua con la pubblicazione sicura",github:"Continua con GitHub",help:"Vedi guida",missing:"Il contesto della scansione non è sufficiente. Apri la guida per il prossimo passo sicuro."},
+ es:{title:"Revisar corrección IA",intro:"RankFix crea primero una propuesta. Nada se publica automáticamente.",make:"Crear propuesta IA",busy:"Creando…",proposal:"Propuesta",reason:"Por qué esta propuesta",next:"¿Propuesta correcta? Continúa con publicación segura",github:"Continuar con GitHub",help:"Ver ayuda",missing:"No hay suficiente contexto del análisis. Abre la ayuda para el siguiente paso seguro."}
+};
+export default function AiFixPage(){
+ const q=useSearchParams(),scanId=q.get("scan_id")||"",issueId=q.get("issue_id")||"";
+ const [language,setLanguage]=useState<Locale>("nl"),[issue,setIssue]=useState<Issue|null>(null),[url,setUrl]=useState(""),[proposal,setProposal]=useState<Proposal|null>(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState("");
+ useEffect(()=>{(async()=>{try{const p=await fetch("/api/account/language").then(r=>r.ok?r.json():null);const lang=(p?.language&&p.language in copy?p.language:"nl") as Locale;setLanguage(lang);const r=await fetch("/api/assistant/scan?scanId="+encodeURIComponent(scanId)+"&language="+lang,{cache:"no-store"});const d=await r.json();if(!r.ok)throw new Error(d.error||"Scan failed");setUrl(d.scan?.final_url||d.scan?.scanned_url||"");setIssue((d.issues||[]).find((x:Issue)=>x.issue_id===issueId)||null)}catch(e){setError(e instanceof Error?e.message:"AI fix failed")}finally{setLoading(false)}})()},[scanId,issueId]);
+ const t=copy[language];
+ async function makeProposal(){if(!issue||!types[issueId]||!url)return;setBusy(true);setError("");try{const e=issue.evidence||{};const current=String(e.found??"");const context={title:e.title||"",description:e.description||"",h1:e.h1||"",...e};const r=await fetch("/api/ai-fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url,type:types[issueId],current,context,issue_id:issueId,issue_status:issue.status})});const d=await r.json();if(!r.ok)throw new Error(d.error||"AI fix failed");setProposal(d.fix)}catch(e){setError(e instanceof Error?e.message:"AI fix failed")}finally{setBusy(false)}}
+ const params=new URLSearchParams({scan_id:scanId,issue_id:issueId});
+ return <main className="rf-page" lang={language}><div className="rf-shell"><header className="rf-header"><a href="/dashboard" className="rf-brand">RankFix <span>AI</span></a></header><DashboardNav/><div className="rf-body"><div className="rf-heading"><h1>{t.title}</h1><p>{t.intro}</p></div>
+ {loading&&<p className="rf-empty">…</p>}{error&&<p className="rf-alert">{error}</p>}
+ {!loading&&issue&&<section className="rf-card"><span className="rf-eyebrow">AI Fix</span><h2>{issue.title}</h2><p className="mt-2">{issue.message}</p>{!types[issueId]?<><p className="mt-3 text-sm text-amber-200">{t.missing}</p><a className="rf-primary-link mt-3 inline-flex" href={"/dashboard/help#problem-solving"}>{t.help} →</a></>:!proposal?<button onClick={makeProposal} disabled={busy} className="rf-primary-link mt-4">{busy?t.busy:t.make}</button>:<div className="mt-5"><span className="rf-eyebrow">{t.proposal}</span><h3 className="mt-1 font-bold">{proposal.title}</h3><pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/20 p-4 text-sm">{proposal.content}</pre><h3 className="mt-4 font-bold">{t.reason}</h3><p className="mt-1 text-sm text-slate-400">{proposal.reason}</p><p className="mt-5 text-sm font-semibold">{t.next}</p><a className="rf-primary-link mt-3 inline-flex" href={"/dashboard/github?"+params.toString()}>{t.github} →</a></div>}</section>}
+ </div></div><AiAssistant dashboard scanId={scanId||null}/></main>
+}
