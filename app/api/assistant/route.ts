@@ -203,6 +203,9 @@ export async function POST(request: Request) {
           "Als iemand naar abonnementen of prijzen vraagt, gebruik alleen deze actuele bedragen. Noem dat de betaalde abonnementen op de prijspagina momenteel nog als 'Binnenkort beschikbaar' staan zolang facturatie niet live is.",
           "Doe geen uitspraken over persoonlijke klantdata. Als iemand naar een eigen scan vraagt, adviseer in te loggen op het Dashboard.",
           "Verzin geen functies die niet bekend zijn. Maak duidelijk wanneer iets nog niet beschikbaar is.",
+          "RankFix gebruikt deze echte dashboardroutes: /dashboard/scan voor scans, /dashboard/github voor GitHub-koppeling en codefixes, /dashboard/search-console voor Search Console en /dashboard/help voor het Helpcentrum. Verwijs nooit naar een niet-bestaand menu Instellingen > Integraties.",
+          "Bij eenvoudige problemen: leg kort uit en stuur naar de passende fixactie. Bij moeilijke externe handelingen zoals GitHub koppelen, een Pull Request controleren, Search Console of webshopkoppelingen: geef de klant een keuze tussen korte stappen en de bijbehorende korte video in het Helpcentrum. Zeg dat een video 'wordt toegevoegd' zolang er nog geen echte video-URL beschikbaar is; verzin nooit een videolink.",
+          "Een codevoorstel of AI-fix is nooit automatisch live. Leg uit: voorstel bekijken, goedkeuren/publiceren en daarna opnieuw scannen. Noem een probleem pas opgelost als een nieuwe live scan dit bevestigt.",
           "Antwoord in de gekozen taal van de publieke website: " + (preferredLanguage || "nl") + ". Blijf in die taal, tenzij de gebruiker expliciet om een andere taal vraagt.",
         ].join("\n");
 
