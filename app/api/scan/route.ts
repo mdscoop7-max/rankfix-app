@@ -242,7 +242,6 @@ export async function POST(request: Request) {
     const dashboardScan = body?.dashboard === true;
     // Every authenticated dashboard rescan automatically rechecks prepared fixes.
     // A fix is still marked DONE only by the strict fresh-evidence PASS gate below.
-    const verifyFixes = dashboardScan;
     const scanLanguage = ["nl","en","de","fr","it","es"].includes(body?.language) ? body.language : "nl";
     fallbackLanguage = scanLanguage;
     const errors: Record<string, Record<string, string>> = {
@@ -1878,7 +1877,7 @@ export async function POST(request: Request) {
         // Dedicated live verification: a prepared fix is confirmed only when the
         // freshly fetched live page reports the exact same rule as PASS.
         // WARNING, FAIL, N/A and unable-to-confirm deliberately keep it waiting.
-        if (verifyFixes && savedScanId && pendingFixes.size > 0) {
+        if (dashboardScan && savedScanId && pendingFixes.size > 0) {
           for (const item of checks) {
             const issueId = String(item.issue_id || item.rule_id || item.key);
             if (!pendingFixes.has(issueId)) continue;
@@ -1907,7 +1906,7 @@ export async function POST(request: Request) {
         // Fix verification mutates the live check objects after the initial scan
         // insert. Persist the verified state as well so history and the response
         // cannot disagree about DONE versus WAITING.
-        if (verifyFixes && savedScanId) {
+        if (dashboardScan && savedScanId) {
           await getDb().query(
             "UPDATE scans SET result=jsonb_set(jsonb_set(result,'{seo,checks}',$1::jsonb,true),'{geo,checks}',$2::jsonb,true) WHERE id=$3 AND user_id=$4",
             [JSON.stringify(selectedSeoChecks), JSON.stringify(selectedGeoChecks), savedScanId, user.id]
