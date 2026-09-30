@@ -230,9 +230,9 @@ async function generateCodeFix(filePath:string,fileContent:string,issue:string,c
 
 function localizeProviderError(code:FixProviderError["code"],language:"nl"|"en"|"de"|"fr"|"it"|"es"){
   const copy={
-    AI_UNAVAILABLE:{nl:"AI Fix is tijdelijk niet beschikbaar.",en:"AI Fix is temporarily unavailable.",de:"AI Fix ist vorübergehend nicht verfügbar.",fr:"AI Fix est temporairement indisponible.",it:"AI Fix è temporaneamente non disponibile.",es:"AI Fix no está disponible temporalmente."},
-    AI_PROVIDER_ERROR:{nl:"AI Fix kon de provider niet bereiken. Probeer later opnieuw.",en:"AI Fix could not reach the provider. Try again later.",de:"AI Fix konnte den Anbieter nicht erreichen. Versuche es später erneut.",fr:"AI Fix n’a pas pu joindre le fournisseur. Réessayez plus tard.",it:"AI Fix non è riuscito a raggiungere il provider. Riprova più tardi.",es:"AI Fix no pudo contactar con el proveedor. Inténtalo más tarde."},
-    AI_INVALID_OUTPUT:{nl:"AI Fix ontving geen veilige geldige wijziging. Probeer opnieuw.",en:"AI Fix did not receive a safe valid change. Try again.",de:"AI Fix hat keine sichere gültige Änderung erhalten. Versuche es erneut.",fr:"AI Fix n’a pas reçu de modification valide et sûre. Réessayez.",it:"AI Fix non ha ricevuto una modifica valida e sicura. Riprova.",es:"AI Fix no recibió un cambio válido y seguro. Inténtalo de nuevo."}
+    AI_UNAVAILABLE:{nl:"RankFix kan tijdelijk geen codevoorstel maken.",en:"RankFix cannot create a code proposal temporarily.",de:"RankFix kann vorübergehend keinen Codevorschlag erstellen.",fr:"RankFix ne peut temporairement pas créer de proposition de code.",it:"RankFix non può creare temporaneamente una proposta di codice.",es:"RankFix no puede crear temporalmente una propuesta de código."},
+    AI_PROVIDER_ERROR:{nl:"RankFix kon de voorstelservice niet bereiken. Probeer later opnieuw.",en:"RankFix could not reach the proposal service. Try again later.",de:"RankFix konnte den Vorschlagsdienst nicht erreichen. Versuche es später erneut.",fr:"RankFix n’a pas pu joindre le service de proposition. Réessayez plus tard.",it:"RankFix non è riuscito a raggiungere il servizio di proposta. Riprova più tardi.",es:"RankFix no pudo contactar con el servicio de propuestas. Inténtalo más tarde."},
+    AI_INVALID_OUTPUT:{nl:"RankFix ontving geen veilige geldige wijziging. Probeer opnieuw.",en:"RankFix did not receive a safe valid change. Try again.",de:"RankFix hat keine sichere gültige Änderung erhalten. Versuche es erneut.",fr:"RankFix n’a pas reçu de modification valide et sûre. Réessayez.",it:"RankFix non ha ricevuto una modifica valida e sicura. Riprova.",es:"RankFix no recibió un cambio válido y seguro. Inténtalo de nuevo."}
   } as const;
   return copy[code][language];
 }
@@ -492,6 +492,12 @@ export async function POST(request:Request){
 
     if(previewOnly){
       const contentHash=createHash("sha256").update(generated.content,"utf8").digest("hex");
+      // A customer should have only one active reviewed preview per scan issue.
+      // Older previews become stale so approval can never target an outdated proposal.
+      await getDb().query(
+        "UPDATE fix_proposals SET status='STALE' WHERE user_id=$1 AND scan_id=$2 AND issue_id=$3 AND status='PREVIEWED'",
+        [user.id,scanId,issueId]
+      );
       const savedProposal=await getDb().query(
         "INSERT INTO fix_proposals (user_id,scan_id,issue_id,repository,file_path,base_branch,base_file_sha,proposed_content,content_hash,summary,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'PREVIEWED') RETURNING id,expires_at",
         [user.id,scanId,issueId,repo,path,effectiveBaseBranch,String(file.sha),generated.content,contentHash,generated.summary]
@@ -510,8 +516,14 @@ export async function POST(request:Request){
       });
     }
 
-    await getDb().query("UPDATE fix_proposals SET status='APPROVED',approved_at=NOW() WHERE id=$1 AND user_id=$2 AND status='PREVIEWED'",[proposalId,user.id]);
-        const branch="rankfix/"+Date.now()+"-"+slug(issue);
+    const approval=await getDb().query(
+      "UPDATE fix_proposals SET status='APPROVED',approved_at=NOW() WHERE id=$1 AND user_id=$2 AND scan_id=$3 AND issue_id=$4 AND status='PREVIEWED' AND expires_at>NOW() RETURNING id",
+      [proposalId,user.id,scanId,issueId]
+    );
+    if(!approval.rowCount){
+      return NextResponse.json({error:msg("Dit voorstel is niet meer actief. Maak een nieuwe preview en controleer die opnieuw.","This proposal is no longer active. Create and review a new preview.","Dieser Vorschlag ist nicht mehr aktiv. Erstelle und prüfe eine neue Vorschau.","Cette proposition n’est plus active. Créez et vérifiez un nouvel aperçu.","Questa proposta non è più attiva. Crea e controlla una nuova anteprima.","Esta propuesta ya no está activa. Crea y revisa una nueva vista previa.")},{status:409});
+    }
+    const branch="rankfix/"+Date.now()+"-"+slug(issue);
     const baseRef=await githubFetch<any>(token,"/repos/"+repo+"/git/ref/heads/"+encodeURIComponent(effectiveBaseBranch));
     await githubFetch<any>(token,"/repos/"+repo+"/git/refs",{method:"POST",body:JSON.stringify({ref:"refs/heads/"+branch,sha:baseRef.object.sha})});
     await githubFetch<any>(token,"/repos/"+repo+"/contents/"+path,{

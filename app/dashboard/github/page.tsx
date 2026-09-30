@@ -72,6 +72,13 @@ export default function GithubPage(){
     })();
   },[searchParams]);
 
+  useEffect(()=>{
+    // Approval is valid only for the exact scan/issue/repository context that was previewed.
+    // Context changes always require a fresh preview.
+    setPreview(null);
+    setValidation(null);
+  },[repo,baseBranch,scanId,issueId]);
+
   async function changeRepositoryMapping(){
     if(!siteUrl||busy) return;
     setBusy(true); setError(""); setMessage(t.release); setPreview(null);
@@ -135,6 +142,12 @@ export default function GithubPage(){
       let d:any={};
       try{d=JSON.parse(text);}catch{}
       if(!r.ok){
+        // A conflict means the reviewed preview can no longer be trusted
+        // (expired, stale, already used, or the base file changed).
+        if(r.status===409 && createPr){
+          setPreview(null);
+          setMessage("");
+        }
         const apiError=d.error||t.fixFail;
         if(/bad credentials|GitHub-token|GitHub-koppeling|opnieuw verbinden/i.test(apiError)){
           setConnected(false);
