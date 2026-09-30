@@ -1,4 +1,4 @@
-import { FIX_POLICY_VERSION } from "./seo-rules.ts";
+import { FIX_POLICY_VERSION } from "./seo-rules";
 
 export type FixCategory = "A" | "B" | "C";
 export type FixPolicy = { category: FixCategory; safe_type: string | null };
