@@ -497,7 +497,22 @@ export async function POST(request:Request){
       );
     }
 
-    return NextResponse.json({success:true,summary:generated.summary,repository:repo,path,branch,pr:{number:pr.number,url:pr.html_url,title:pr.title}});
+    return NextResponse.json({
+      success:true,
+      status:"prepared",
+      summary:generated.summary,
+      repository:repo,
+      path,
+      branch,
+      issue_id:issueId,
+      verification:{
+        required:true,
+        state:"WAITING_FOR_MERGE_AND_RESCAN",
+        scanned_url:scannedUrl,
+        message:"De fix is voorbereid. RankFix bevestigt het probleem pas als opgelost nadat de PR is gemerged en een nieuwe scan hetzelfde issue_id niet meer als FAIL of WARNING teruggeeft."
+      },
+      pr:{number:pr.number,url:pr.html_url,title:pr.title}
+    });
   }catch(error){
     if(error instanceof FixProviderError){
       return NextResponse.json({error:localizeProviderError(error.code,language)},{status:error.code==="AI_UNAVAILABLE"?503:502});
