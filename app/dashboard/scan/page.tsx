@@ -32,10 +32,22 @@ export default function DashboardScan() {
   const [usage,setUsage]=useState<{plan:string;used:number;limit:number|null}>({plan:"free",used:0,limit:2});
   useEffect(()=>{fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in text)setLanguage(d.language)}).catch(()=>{});fetch("/api/history",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(d?.usage)setUsage(d.usage);const saved=d?.usage?.websiteHost||d?.scans?.[0]?.scanned_url||d?.history?.[0]?.scanned_url;if(saved)setUrl(/^https?:\/\//i.test(saved)?saved:`https://${saved}`)}).catch(()=>{})},[]);
   const t=text[language];
+  function normalizeUrl(value:string){
+    const clean=value.trim();
+    if(!clean) return "";
+    try{
+      const candidate=/^https?:\/\//i.test(clean)?clean:`https://${clean}`;
+      const parsed=new URL(candidate);
+      parsed.hash="";
+      return parsed.toString();
+    }catch{return clean;}
+  }
   async function run(event:React.FormEvent){
     event.preventDefault(); setBusy(true); setError(""); setResult(null);
+    const normalizedUrl=normalizeUrl(url);
+    setUrl(normalizedUrl);
     try{
-      const response=await fetch("/api/scan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url,mode:"both",dashboard:true,language})});
+      const response=await fetch("/api/scan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:normalizedUrl,mode:"both",dashboard:true,language})});
       const data=await response.json();
       if(!response.ok) throw new Error(data.error||t.failed);
       if(data.scanId){ location.href="/dashboard/audit/"+encodeURIComponent(data.scanId); return; }
@@ -54,7 +66,7 @@ export default function DashboardScan() {
       {usage.plan==="free"&&<section className="rf-plan-card"><div><span className="rf-eyebrow">Free · €0</span><h2>{usage.used} / {usage.limit??2} {language==="nl"?"scans deze maand":language==="de"?"Scans diesen Monat":language==="fr"?"analyses ce mois-ci":language==="it"?"scansioni questo mese":language==="es"?"análisis este mes":"scans this month"}</h2><p>{usage.used>=(usage.limit??2)?(language==="nl"?"Je gratis scans zijn gebruikt. Je bestaande rapport blijft beschikbaar. Upgrade voor nieuwe scans en Premium-functies.":language==="de"?"Deine kostenlosen Scans sind aufgebraucht. Dein bestehender Bericht bleibt verfügbar. Upgrade für neue Scans und Premium-Funktionen.":language==="fr"?"Vos analyses gratuites sont utilisées. Votre rapport reste disponible. Passez à une offre supérieure pour de nouvelles analyses et les fonctions Premium.":language==="it"?"Hai utilizzato le scansioni gratuite. Il report esistente resta disponibile. Passa a un piano superiore per nuove scansioni e funzioni Premium.":language==="es"?"Has utilizado tus análisis gratuitos. Tu informe sigue disponible. Mejora el plan para nuevos análisis y funciones Premium.":"Your free scans have been used. Your existing report remains available. Upgrade for new scans and Premium features."):(language==="nl"?"Free bevat 1 website en 2 volledige scans per maand.":language==="de"?"Free enthält 1 Website und 2 vollständige Scans pro Monat.":language==="fr"?"L’offre gratuite comprend 1 site et 2 analyses complètes par mois.":language==="it"?"Free include 1 sito e 2 scansioni complete al mese.":language==="es"?"Free incluye 1 web y 2 análisis completos al mes.":"Free includes 1 website and 2 full scans per month.")}</p></div>{usage.used>=(usage.limit??2)&&<a className="rf-primary-link" href={`/${language}#pricing`}>{language==="nl"?"Bekijk abonnementen":language==="de"?"Tarife ansehen":language==="fr"?"Voir les offres":language==="it"?"Vedi i piani":language==="es"?"Ver planes":"View plans"}</a>}</section>}
       <section className="rf-dashboard-scan rf-shared-scan">
         <div className="rf-shared-scan-badge">SEO + GEO · Google & AI Search</div>
-        <form onSubmit={run}><label htmlFor="dashboard-scan-url">{t.url}</label><div className="rf-shared-scan-form"><input id="dashboard-scan-url" type="url" value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://example.com" required/><button className="rf-primary" type="submit" disabled={busy||(usage.plan==="free"&&usage.used>=(usage.limit??2))}>{busy?t.running:t.run}</button></div></form>
+        <form onSubmit={run}><label htmlFor="dashboard-scan-url">{t.url}</label><div className="rf-shared-scan-form"><input id="dashboard-scan-url" type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" value={url} onChange={e=>setUrl(e.target.value)} placeholder="example.com" required/><button className="rf-primary" type="submit" disabled={busy||(usage.plan==="free"&&usage.used>=(usage.limit??2))}>{busy?t.running:t.run}</button></div></form>
         <div className="rf-shared-scan-meta"><span>✓ SEO</span><span>✓ GEO</span><span>✓ {t.technical}</span><span>✓ {t.shop}</span><span>✓ {t.ads}</span></div>
       </section>
       {error&&<p className="rf-alert" role="alert">{error}</p>}
