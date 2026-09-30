@@ -50,7 +50,7 @@ export default function DashboardScan() {
     const normalizedUrl=normalizeUrl(url);
     setUrl(normalizedUrl);
     try{
-      const response=await fetch("/api/scan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:normalizedUrl,mode:"both",dashboard:true,language})});
+      const response=await fetch("/api/scan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:normalizedUrl,mode:"both",dashboard:true,language,verify_fixes:searchParams.get("verify")==="1"})});
       const data=await response.json();
       if(!response.ok) throw new Error(data.error||t.failed);
       if(data.scanId){ location.href="/dashboard/audit/"+encodeURIComponent(data.scanId); return; }
