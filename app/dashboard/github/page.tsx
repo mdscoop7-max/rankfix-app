@@ -40,6 +40,8 @@ export default function GithubPage(){
   const [preview,setPreview]=useState<FixPreview|null>(null);
   const [language,setLanguage]=useState<Locale>("nl");
   const t=ui[language];
+  const returnTo="/dashboard/github?"+new URLSearchParams({scan_id:incomingScanId,issue_id:incomingIssueId}).toString();
+  const connectHref="/api/github/connect?return_to="+encodeURIComponent(returnTo);
 
   useEffect(()=>{
     fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in ui)setLanguage(d.language)}).catch(()=>{});
@@ -169,11 +171,11 @@ export default function GithubPage(){
       {!connected ? <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-7">
         <h2 className="text-xl font-bold">{t.connect}</h2>
         <p className="mt-2 text-sm text-slate-500">{t.connectInfo}</p>
-        <a href="/api/github/connect" className="mt-5 inline-flex rounded-xl bg-white px-5 py-3 font-bold text-slate-950">{t.connectCta} →</a>
+        <a href={connectHref} className="mt-5 inline-flex rounded-xl bg-white px-5 py-3 font-bold text-slate-950">{t.connectCta} →</a>
       </div> : <form noValidate onSubmit={createFix} className="mt-8 space-y-5 rounded-3xl border border-[#334155] bg-[#101B2D] p-4 sm:p-7">
         <div className="flex flex-col gap-3 rounded-xl border border-emerald-400/15 bg-emerald-400/5 p-4 text-sm text-emerald-200 sm:flex-row sm:items-center sm:justify-between">
           <span>{t.connected} <b>{login}</b>.</span>
-          <a href="/api/github/connect" className="rounded-lg border border-emerald-300/20 px-3 py-2 text-xs font-bold text-emerald-100 hover:bg-emerald-300/10">{t.reconnect}</a>
+          <a href={connectHref} className="rounded-lg border border-emerald-300/20 px-3 py-2 text-xs font-bold text-emerald-100 hover:bg-emerald-300/10">{t.reconnect}</a>
         </div>
         <label className="block"><span className="text-sm font-semibold">{mapped?t.linkedRepo:reposLoading?t.searchRepo:t.chooseRepo}</span>{reposLoading&&<p className="mt-2 text-sm text-cyan-200" role="status">{t.searching}</p>}<select required disabled={reposLoading||busy} value={repo} onChange={e=>void selectRepository(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"><option value="">{reposLoading?t.loading:t.selectRepo}</option>{repos.map(r=><option key={r.full_name} value={r.full_name}>{r.full_name}{r.private?` · ${t.privateRepo}`:""}</option>)}</select><p className="mt-2 text-xs text-slate-500">{mapped?t.mappedInfo:t.chooseInfo}</p>{mapped&&<button type="button" disabled={busy} onClick={changeRepositoryMapping} className="mt-3 rounded-lg border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/5 disabled:opacity-50">{t.changeRepo}</button>}</label>
         {siteUrl&&<div className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm"><span className="text-slate-500">{t.website}</span><div className="mt-1 font-semibold break-all">{siteUrl}</div></div>}
