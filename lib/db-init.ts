@@ -98,6 +98,25 @@ const statements = [
     expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '7 days')
   )`,
   `CREATE INDEX IF NOT EXISTS pending_fixes_lookup_idx ON pending_fixes(user_id, scanned_url, issue_id, status)`,
+  `CREATE TABLE IF NOT EXISTS fix_proposals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    scan_id UUID NOT NULL REFERENCES scans(id) ON DELETE CASCADE,
+    issue_id TEXT NOT NULL,
+    repository TEXT NOT NULL,
+    file_path TEXT NOT NULL,
+    base_branch TEXT NOT NULL,
+    base_file_sha TEXT NOT NULL,
+    proposed_content TEXT NOT NULL,
+    content_hash TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'PREVIEWED' CHECK (status IN ('PREVIEWED','APPROVED','PR_CREATED','STALE','EXPIRED')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    approved_at TIMESTAMPTZ,
+    used_at TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '2 hours')
+  )`,
+  `CREATE INDEX IF NOT EXISTS fix_proposals_lookup_idx ON fix_proposals(user_id, scan_id, issue_id, status, expires_at)`,
   `CREATE TABLE IF NOT EXISTS website_repositories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
