@@ -15,7 +15,7 @@ const siteLabels:Record<Locale,string>={nl:"Terug naar site",en:"Back to site",f
 const languageLabels:Record<Locale,string>={nl:"Taal kiezen",en:"Choose language",fr:"Choisir la langue",es:"Elegir idioma",it:"Scegli lingua",de:"Sprache wählen"};
 const flagCodes:Record<Locale,string>={nl:"nl",en:"gb",de:"de",fr:"fr",it:"it",es:"es"};
 const languageOrder:Locale[]=["nl","en","de","fr","it","es"];
-const desktop=["/dashboard","/dashboard/scan","/dashboard/github","/dashboard/history","/dashboard/more"];
+const desktop=["/dashboard","/dashboard/scan","/dashboard/fixes","/dashboard/history","/dashboard/more"];
 const paths=["M3 10l9-7 9 7v10H3z M9 20v-7h6v7","M12 3v18 M3 12h18","M14.7 6.3a4 4 0 0 0-5 5L4 17v3h3l5.7-5.7a4 4 0 0 0 5-5l-2.3 2.3-3-3L14.7 6.3z","M4 6h16 M4 12h16 M4 18h10","M12 3v3 M12 18v3 M3 12h3 M18 12h3 M5.6 5.6l2.1 2.1 M16.3 16.3l2.1 2.1 M18.4 5.6l-2.1 2.1 M7.7 16.3l-2.1 2.1 M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"];
 
 function activeIndex(pathname:string){
