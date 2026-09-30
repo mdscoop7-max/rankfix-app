@@ -26,6 +26,15 @@ export async function GET(){
  const allScans=(result.rows as Row[]).map(summary);
  const seen=new Set<string>();
  const scans=allScans.filter((scan:any)=>{const key=host(scan);if(seen.has(key))return false;seen.add(key);return true});
+ const comparisonByScan:Record<string,{previousScore:number;scoreChange:number;improved:number;newIssues:number;stillOpen:number}>={};
+ const openMap=(scan:Row)=>{const map=new Map<string,string>();for(const check of [...(scan.result?.seo?.checks||[]),...(scan.result?.geo?.checks||[])]){const key=String(check.issue_id||check.rule_id||check.title||"").trim().toLowerCase();if(key)map.set(key,String(check.status||"").toLowerCase())}return map};
+ const isOpen=(status?:string)=>status==="fail"||status==="warning";
+ for(const current of result.rows as Row[]){
+  const currentHost=host(current),previous=(result.rows as Row[]).find(candidate=>candidate.id!==current.id&&candidate.created_at<current.created_at&&host(candidate)===currentHost);
+  if(!previous)continue;
+  const now=openMap(current),before=openMap(previous);
+  comparisonByScan[current.id]={previousScore:Number(previous.overall_score||0),scoreChange:Number(current.overall_score||0)-Number(previous.overall_score||0),improved:[...before].filter(([key,status])=>isOpen(status)&&!isOpen(now.get(key))).length,newIssues:[...now].filter(([key,status])=>isOpen(status)&&!isOpen(before.get(key))).length,stillOpen:[...now].filter(([key,status])=>isOpen(status)&&isOpen(before.get(key))).length};
+ }
  const pending=await getDb().query("SELECT status,count(*)::int AS count FROM pending_fixes WHERE user_id=$1 AND (status='DONE' OR (status IN ('PREPARED','PR_CREATED','WAITING_PUBLICATION','WAITING_VERIFICATION') AND expires_at>NOW())) GROUP BY status",[user.id]);
  const planResult=await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1",[user.id]);
  const plan=normalizePlan(planResult.rows[0]?.plan_code);
@@ -47,5 +56,5 @@ export async function GET(){
  const actionUsageResult=await getDb().query("SELECT event_type,COUNT(*)::int AS count FROM usage_events WHERE user_id=$1 AND created_at >= $2 AND event_type IN ('AI_FIX','COMPETITOR_SCAN','LOCAL_SEO') GROUP BY event_type",[user.id,monthStart.toISOString()]);
  const actionCounts=Object.fromEntries(actionUsageResult.rows.map((row:any)=>[String(row.event_type),Number(row.count||0)]));
  const usage={plan,used,limit:limits.scans,websiteHost,websites:limits.websites,actions:{aiFixes:{used:actionCounts.AI_FIX||0,limit:limits.aiFixes},competitorScans:{used:actionCounts.COMPETITOR_SCAN||0,limit:limits.competitorScans},localSeo:{used:actionCounts.LOCAL_SEO||0,limit:limits.localSeo}}};
- return NextResponse.json({scans,history:allScans,fixes:Object.fromEntries(pending.rows.map(row=>[row.status,row.count])),usage,searchConsole});
+ return NextResponse.json({scans,history:allScans,comparisonByScan,fixes:Object.fromEntries(pending.rows.map(row=>[row.status,row.count])),usage,searchConsole});
 }
