@@ -27,9 +27,9 @@ function activeIndex(pathname:string){
  return 0;
 }
 
-export default function DashboardNav({current:legacyCurrent}:{current?:number}){
+export default function DashboardNav({current:currentOverride}:{current?:number}){
  const pathname=usePathname()||"/dashboard";
- const current=activeIndex(pathname);
+ const current=currentOverride ?? activeIndex(pathname);
  const [language,setLanguage]=useState<Locale>("nl");
  const [languageOpen,setLanguageOpen]=useState(false);
  useEffect(()=>{fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in labels)setLanguage(d.language)}).catch(()=>{})},[]);
