@@ -40,6 +40,8 @@ export default function GithubPage(){
   const [preview,setPreview]=useState<FixPreview|null>(null);
   const [language,setLanguage]=useState<Locale>("nl");
   const t=ui[language];
+  const incomingScanId=searchParams.get("scan_id")||"";
+  const incomingIssueId=searchParams.get("issue_id")||"";
   const returnTo="/dashboard/github?"+new URLSearchParams({scan_id:incomingScanId,issue_id:incomingIssueId}).toString();
   const connectHref="/api/github/connect?return_to="+encodeURIComponent(returnTo);
 
@@ -48,7 +50,7 @@ export default function GithubPage(){
     const params=new URLSearchParams(searchParams.toString());
     setIssue(params.get("issue")||"");
     setContext(params.get("context")||"");
-    const incomingScanId=params.get("scan_id")||""; setScanId(incomingScanId); setIssueId(params.get("issue_id")||"");
+    setScanId(incomingScanId); setIssueId(incomingIssueId);
     let incomingUrl=params.get("url")||"";
     (async()=>{
       if(incomingScanId){
