@@ -115,14 +115,14 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`fixed right-3 z-[110] rounded-full border border-emerald-300/30 bg-[#0F3B30]/95 px-3 py-2.5 text-xs font-bold text-emerald-100 shadow-xl shadow-emerald-950/25 backdrop-blur sm:right-5 sm:px-4 sm:py-3 sm:text-sm ${dashboard ? "bottom-[calc(88px+env(safe-area-inset-bottom))] sm:bottom-5" : "bottom-[calc(92px+env(safe-area-inset-bottom))] sm:bottom-5"} ${open ? "pointer-events-none opacity-0" : "opacity-100"}`}
+        className={`fixed right-3 z-[110] rounded-full border border-blue-300/30 bg-[#123F73]/95 px-3 py-2.5 text-xs font-bold text-blue-100 shadow-xl shadow-blue-950/25 backdrop-blur sm:right-5 sm:px-4 sm:py-3 sm:text-sm ${dashboard ? "bottom-[calc(88px+env(safe-area-inset-bottom))] sm:bottom-5" : "bottom-[calc(92px+env(safe-area-inset-bottom))] sm:bottom-5"} ${open ? "pointer-events-none opacity-0" : "opacity-100"}`}
       >
         ✦ {tx.button}
       </button>
 
       {open && (
         <div className={dashboard ? "pointer-events-none fixed inset-0 z-[120] flex items-end justify-end p-3 pb-[calc(88px+env(safe-area-inset-bottom))] sm:p-5" : "fixed inset-0 z-[120] flex items-end justify-end bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4"}>
-          <div className={`flex w-full max-w-md flex-col overflow-hidden border border-white/10 bg-[#101B2D]/98 shadow-2xl backdrop-blur-xl ${dashboard ? "pointer-events-auto h-[min(480px,56dvh)] rounded-3xl sm:h-[min(680px,90vh)]" : "h-[min(680px,100dvh)] rounded-t-3xl sm:h-[min(680px,90vh)] sm:rounded-3xl"}`}>
+          <div className={`flex w-full max-w-md flex-col overflow-hidden border border-white/10 bg-[#081C33]/98 shadow-2xl backdrop-blur-xl ${dashboard ? "pointer-events-auto h-[min(480px,56dvh)] rounded-3xl sm:h-[min(680px,90vh)]" : "h-[min(680px,100dvh)] rounded-t-3xl sm:h-[min(680px,90vh)] sm:rounded-3xl"}`}>
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
               <div>
                 <div className="font-bold">RankFix AI</div>
@@ -133,7 +133,7 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
 
             <div className="flex-1 space-y-4 overflow-y-auto p-5">
               {messages.map((message, index) => (
-                <div key={index} className={message.role === "user" ? "ml-8 rounded-2xl bg-emerald-400/10 p-3 text-sm text-emerald-50" : "mr-8 rounded-2xl bg-white/5 p-3 text-sm leading-6 text-slate-300"}>
+                <div key={index} className={message.role === "user" ? "ml-8 rounded-2xl bg-blue-400/10 p-3 text-sm text-blue-50" : "mr-8 rounded-2xl bg-white/5 p-3 text-sm leading-6 text-slate-300"}>
                   {message.content}
                 </div>
               ))}
@@ -147,7 +147,7 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
                 <p className="mt-1 text-xs text-slate-400">
                   {scanIssue ? scanIssue.title : ex.loading}
                 </p>
-                <button type="button" onClick={openSafeFix} disabled={!scanIssue} className="mt-3 w-full rounded-xl bg-emerald-300 px-4 py-3 text-sm font-bold text-slate-950 disabled:opacity-40">
+                <button type="button" onClick={openSafeFix} disabled={!scanIssue} className="mt-3 w-full rounded-xl bg-blue-400 px-4 py-3 text-sm font-bold text-white disabled:opacity-40">
                   {ex.start}
                 </button>
               </div>
@@ -162,7 +162,7 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
                   placeholder={tx.placeholder}
                   className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm outline-none placeholder:text-slate-600"
                 />
-                <button type="button" onClick={send} disabled={busy || !input.trim()} className="rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-950 disabled:opacity-40">
+                <button type="button" onClick={send} disabled={busy || !input.trim()} className="rounded-xl bg-white px-4 py-3 text-sm font-bold text-white disabled:opacity-40">
                   {tx.send}
                 </button>
               </div>
