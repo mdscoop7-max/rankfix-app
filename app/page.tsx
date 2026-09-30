@@ -82,8 +82,8 @@ const workflowCopy = {
 const translations = {
   nl: {
     moreInfo:"Zo werkt het", audit:"Gratis scan", pricing:"Prijzen", resources:"Resources", contact:"Contact", login:"Inloggen", register:"Account aanmaken",
-    badge:"SEO + GEO audit voor Google & AI Search", hero:"Vind wat je rankings blokkeert.", hero2:"Fix het met RankFix.",
-    intro:"Eén snelle scan voor technische SEO, content, structured data en AI-search readiness. Eerst inzicht. Daarna concrete fixes — met AI wanneer jij dat activeert.",
+    badge:"SEO + GEO audit voor Google & AI Search", hero:"Zie wat je website tegenhoudt.", hero2:"Verbeter wat ertoe doet.",
+    intro:"SEO, GEO en technische controles met concrete fixes, speciaal voor websites en webshops.",
     seoDesc:"Google & organische vindbaarheid", geoDesc:"AI Search & generatieve vindbaarheid", bothDesc:"Volledige analyse",
     start:"Gratis", auditStart:"audit starten →", scanning:"Scan wordt uitgevoerd…", noCard:"Geen creditcard", direct:"Direct rapport", both:"SEO + GEO",
     about:"Over RankFix", forWho:"Voor wie", company:"Bedrijf", product:"Product", language:"Taal",
@@ -557,7 +557,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         : "De website retourneert een serverfout. Controleer de website of hosting en voer de scan opnieuw uit zodra de pagina normaal bereikbaar is. RankFix presenteert deze foutpagina niet als SEO- of GEO-probleem.";
 
   return (
-    <main className="rankfix-home min-h-screen bg-[#07172B] text-[#F7FBFF] selection:bg-emerald-300 selection:text-[#032D24]">
+    <main className="rankfix-home rf-public-v2 min-h-screen bg-[#07172B] text-[#F7FBFF] selection:bg-emerald-300 selection:text-[#032D24]">
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden opacity-40">
         <div className="absolute left-1/2 top-[-220px] h-[560px] w-[900px] -translate-x-1/2 rounded-full bg-emerald-500/10 blur-[130px]" />
         <div className="absolute right-[-180px] top-[520px] h-[420px] w-[420px] rounded-full bg-blue-600/10 blur-[120px]" />
@@ -565,9 +565,9 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
 
       <nav className="sticky top-0 z-50 mx-auto w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-5 lg:px-8">
-          <a href={"/"+language} className="flex shrink-0 items-center gap-3" onClick={() => setMobileMenuOpen(false)} aria-label="RankFix AI home">
+          <a href={"/"+language} className="flex shrink-0 items-center gap-3" onClick={() => setMobileMenuOpen(false)} aria-label="RankFix home">
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-emerald-300 to-blue-600 text-xs font-black text-slate-950 shadow-lg shadow-emerald-500/10">RF</span>
-            <span className="text-lg font-bold tracking-tight">RankFix <span className="text-emerald-300">AI</span></span>
+            <span className="text-lg font-black tracking-tight">Rank<span className="text-sky-400">Fix</span></span>
           </a>
           <div className="hidden items-center gap-6 text-sm text-slate-600 lg:flex">
             <button type="button" onClick={() => scrollToSection("scan")} className="rf-top-link">{t.audit}</button>
@@ -693,7 +693,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
           {[
             ["SEO", `${pc.tech} + on-page`],
             ["GEO", "AI-search readiness"],
-            ["AI Fix", pc.concrete],
+            ["Fixes", pc.concrete],
             ["Reports", pc.ready],
           ].map(([title, text]) => (
             <div key={title} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -706,7 +706,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         <div className="mx-auto mt-10 max-w-5xl overflow-hidden rounded-[28px] border border-slate-200 bg-[#0B1830] p-2 shadow-2xl shadow-blue-950/30">
           <img
             src={"/api/preview-image?lang="+language}
-            alt={language==="nl"?"RankFix AI SEO- en GEO-dashboardvoorbeeld":language==="de"?"Vorschau des RankFix AI SEO- und GEO-Dashboards":language==="fr"?"Aperçu du tableau de bord SEO et GEO de RankFix AI":language==="it"?"Anteprima della dashboard SEO e GEO di RankFix AI":language==="es"?"Vista previa del panel SEO y GEO de RankFix AI":"RankFix AI SEO and GEO dashboard preview"}
+            alt={language==="nl"?"RankFix SEO- en GEO-dashboardvoorbeeld":language==="de"?"Vorschau des RankFix SEO- und GEO-Dashboards":language==="fr"?"Aperçu du tableau de bord SEO et GEO de RankFix":language==="it"?"Anteprima della dashboard SEO e GEO di RankFix":language==="es"?"Vista previa del panel SEO y GEO de RankFix":"RankFix SEO and GEO dashboard preview"}
             className="block h-auto w-full rounded-[22px]"
             loading="eager"
           />
