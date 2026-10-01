@@ -434,19 +434,20 @@ export async function POST(request:Request){
       }
       const stored=await db.query("SELECT id,proposal_hash,base_blob_sha,base_commit_sha,proposed_content,original_content,summary,file_path,repository,base_branch,status FROM fix_proposals WHERE id=$1 AND user_id=$2 AND scan_id=$3 AND issue_id=$4 AND expires_at>NOW() LIMIT 1",[proposalId,user.id,scanId,issueId]);
       if(!stored.rowCount) return NextResponse.json({error:msg("Deze preview is verlopen of bestaat niet meer. Maak een nieuwe preview.","This preview expired or no longer exists. Create a new preview.","Diese Vorschau ist abgelaufen oder existiert nicht mehr. Erstelle eine neue Vorschau.","Cet aperçu a expiré ou n’existe plus. Créez un nouvel aperçu.","Questa anteprima è scaduta o non esiste più. Creane una nuova.","Esta vista previa caducó o ya no existe. Crea una nueva."),code:"PROPOSAL_EXPIRED"},{status:409});
-      activeProposal=stored.rows[0];
-      if(activeProposal.repository.toLowerCase()!==repo.toLowerCase() || activeProposal.base_branch!==effectiveBaseBranch || activeProposal.proposal_hash!==approvedHash){
+      const loadedProposal=stored.rows[0] as NonNullable<typeof activeProposal>;
+      activeProposal=loadedProposal;
+      if(loadedProposal.repository.toLowerCase()!==repo.toLowerCase() || loadedProposal.base_branch!==effectiveBaseBranch || loadedProposal.proposal_hash!==approvedHash){
         return NextResponse.json({error:msg("Het goedgekeurde voorstel komt niet meer overeen met deze publicatie.","The approved proposal no longer matches this publication.","Der genehmigte Vorschlag stimmt nicht mehr mit dieser Veröffentlichung überein.","La proposition approuvée ne correspond plus à cette publication.","La proposta approvata non corrisponde più a questa pubblicazione.","La propuesta aprobada ya no coincide con esta publicación."),code:"PROPOSAL_HASH_MISMATCH"},{status:409});
       }
-      path=activeProposal.file_path;
+      path=loadedProposal.file_path;
       file=await githubFetch<{type?:string;content?:string;sha:string}>(token,"/repos/"+repo+"/contents/"+path+"?ref="+encodeURIComponent(effectiveBaseBranch));
-      if(file.sha!==activeProposal.base_blob_sha){
-        await db.query("UPDATE fix_proposals SET status='INVALIDATED',failure=$2::jsonb,updated_at=NOW() WHERE id=$1",[activeProposal.id,JSON.stringify({code:"STALE_BASE"})]);
+      if(file.sha!==loadedProposal.base_blob_sha){
+        await db.query("UPDATE fix_proposals SET status='INVALIDATED',failure=$2::jsonb,updated_at=NOW() WHERE id=$1",[loadedProposal.id,JSON.stringify({code:"STALE_BASE"})]);
         return NextResponse.json({error:msg("Het bronbestand is gewijzigd sinds de preview. Maak een nieuwe preview.","The source file changed since the preview. Create a new preview.","Die Quelldatei wurde seit der Vorschau geändert. Erstelle eine neue Vorschau.","Le fichier source a changé depuis l’aperçu. Créez un nouvel aperçu.","Il file sorgente è cambiato dall'anteprima. Crea una nuova anteprima.","El archivo fuente cambió desde la vista previa. Crea una nueva vista previa."),code:"STALE_BASE"},{status:409});
       }
       current=Buffer.from(file.content?.replace(/\n/g,"")||"","base64").toString("utf8");
-      generated={content:activeProposal.proposed_content,summary:activeProposal.summary};
-      await db.query("UPDATE fix_proposals SET status='APPROVED',approved_hash=proposal_hash,approved_at=COALESCE(approved_at,NOW()),updated_at=NOW() WHERE id=$1",[activeProposal.id]);
+      generated={content:loadedProposal.proposed_content,summary:loadedProposal.summary};
+      await db.query("UPDATE fix_proposals SET status='APPROVED',approved_hash=proposal_hash,approved_at=COALESCE(approved_at,NOW()),updated_at=NOW() WHERE id=$1",[loadedProposal.id]);
     }else{
       try{
         path=await chooseFile(token,repo,effectiveBaseBranch,requestedPath,issue,issueId);
