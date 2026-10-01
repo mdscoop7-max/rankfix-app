@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import Link from "next/link";\nimport { useEffect, useState } from "react";
 import AiAssistant from "@/components/ai-assistant";
 import DashboardNav from "../nav";
 import type { Locale } from "@/lib/locales";
@@ -66,9 +66,9 @@ export default function HelpPage(){
  useEffect(()=>{fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in labels)setLanguage(d.language)}).catch(()=>{})},[]);
  useEffect(()=>{const id=location.hash.slice(1);if(id)setOpen(id)},[]);
  const t=labels[language]; const topics=localizedTopics(language);
- return <main className="rf-page" lang={language}><div className="rf-shell"><header className="rf-header"><a href="/" className="rf-brand">RankFix</a></header><DashboardNav/><div className="rf-body">
+ return <main className="rf-page" lang={language}><div className="rf-shell"><header className="rf-header"><Link href="/" className="rf-brand">RankFix</Link></header><DashboardNav/><div className="rf-body">
  <div className="rf-heading"><h1>{t.title}</h1><p>{t.intro}</p></div>
  <section className="rf-help-ai"><strong>{t.ai}</strong><p>{t.aiBody}</p></section>
- <div className="rf-help-grid">{topics.map(topic=><section id={topic.id} key={topic.id} className="rf-help-topic"><button type="button" onClick={()=>setOpen(open===topic.id?"":topic.id)} aria-expanded={open===topic.id}><span><b>{topic.title}</b><em>{open===topic.id?"−":"+"}</em></span></button>{open===topic.id&&<div><p>{topic.body}</p><div className="mt-3 flex flex-wrap gap-2">{topic.href&&<a className="rf-primary-link" href={topic.href}>{t.open} →</a>}{topic.video&&<span className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-400">▶ {t.video} · {t.videoSoon}</span>}</div></div>}</section>)}</div>
+ <div className="rf-help-grid">{topics.map(topic=><section id={topic.id} key={topic.id} className="rf-help-topic"><button type="button" onClick={()=>setOpen(open===topic.id?"":topic.id)} aria-expanded={open===topic.id}><span><b>{topic.title}</b><em>{open===topic.id?"−":"+"}</em></span></button>{open===topic.id&&<div><p>{topic.body}</p><div className="mt-3 flex flex-wrap gap-2">{topic.href&&<Link className="rf-primary-link" href={topic.href}>{t.open} →</Link>}{topic.video&&<span className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-400">▶ {t.video} · {t.videoSoon}</span>}</div></div>}</section>)}</div>
  </div></div><AiAssistant dashboard/></main>
 }

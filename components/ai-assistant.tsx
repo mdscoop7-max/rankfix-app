@@ -61,11 +61,11 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
     if (!dashboard || !scanId) return;
     setInput((extra[language]||extra.nl).scanAsk);
     setScanIssue(null);
-    fetch("/api/assistant/scan?scanId=" + encodeURIComponent(scanId), { cache: "no-store" })
+    fetch("/api/assistant/scan?scanId=" + encodeURIComponent(scanId) + "&language=" + encodeURIComponent(language), { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => setScanIssue(d.issues?.[0] || null))
       .catch(() => setScanIssue(null));
-  }, [dashboard, scanId]);
+  }, [dashboard, scanId, language]);
 
   function openSafeFix() {
     if (!scanIssue || !scanId) return;
