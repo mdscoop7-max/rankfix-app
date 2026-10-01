@@ -21,7 +21,7 @@ type Check = {
   key: string;
   category: "seo" | "geo";
   title: string;
-  fix_status?: "WAITING" | "DONE";
+  fix_status?: "WAITING" | "AWAITING_MERGE" | "STILL_PRESENT" | "DONE";
   status: Status;
   message: string;
   fix: string;
