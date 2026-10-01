@@ -37,26 +37,6 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#39;");
 }
 
-function statusLabel(status: ScanCheck["status"]) {
-  return status === "pass" ? "PASS" : status === "warning" ? "WAARSCHUWING" : "ACTIE";
-}
-
-function fixWorksheet(check: ScanCheck) {
-  const key = (check.category + ":" + check.title).toLowerCase();
-  if (check.status === "pass") return { field: "Geen actie nodig", value: "—", where: "—" };
-  if (key.includes("meta title")) return { field: "Meta title / <title>", value: "Vul hier de nieuwe unieke title in.", where: "CMS → pagina → SEO/metadata → Meta title" };
-  if (key.includes("meta description")) return { field: "Meta description", value: "Vul hier de nieuwe description in.", where: "CMS → pagina → SEO/metadata → Meta description" };
-  if (key.includes("h1")) return { field: "H1", value: "Vul hier één duidelijke hoofdheading in.", where: "CMS → pagina → inhoud → H1-heading" };
-  if (key.includes("alt-teksten")) return { field: "Alt-tekst", value: "Vul per afbeelding een korte, beschrijvende alt-tekst in.", where: "CMS → afbeelding → Alt tekst / Alternative text" };
-  if (key.includes("social metadata")) return { field: "Open Graph", value: "Vul og:title, og:description en og:image in.", where: "CMS/plugin → Social sharing / Open Graph" };
-  if (key.includes("structured data")) return { field: "Structured data / JSON-LD", value: "Plaats gevalideerde schema.org JSON-LD in de <head> of via je SEO-plugin.", where: "CMS/plugin → Structured data / schema.org" };
-  return { field: "SEO-instelling", value: check.fix, where: "Zoek de genoemde SEO-instelling in je CMS of vraag je developer." };
-}
-
-function statusColor(status: ScanCheck["status"]) {
-  return status === "pass" ? "#16a34a" : status === "warning" ? "#d97706" : "#dc2626";
-}
-
 export async function sendScanReportEmail(report: ScanReportEmail) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.SCAN_REPORT_FROM || process.env.RESEND_FROM;
