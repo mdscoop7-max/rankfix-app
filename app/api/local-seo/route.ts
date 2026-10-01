@@ -36,6 +36,7 @@ export async function POST(request: Request) {
   const na=tr({nl:"Niet van toepassing.",en:"Not applicable.",de:"Nicht zutreffend.",fr:"Non applicable.",it:"Non applicabile.",es:"No aplicable."});
   const localizedRuleDetail=(rule:typeof localRule)=>{
    if(!rule)return na;
+   if(rule.status==="NOT_APPLICABLE")return na;
    const count=Array.isArray(rule?.evidence?.examples)?rule.evidence.examples.length:0;
    if(rule.status==="PASS")return tr({nl:"Controle bevestigd met bewijs uit de gescande website.",en:"Check confirmed with evidence from the scanned website.",de:"Prüfung mit Nachweisen aus der gescannten Website bestätigt.",fr:"Contrôle confirmé avec des preuves du site analysé.",it:"Controllo confermato con prove dal sito analizzato.",es:"Comprobación confirmada con evidencia del sitio analizado."});
    if(rule.status==="UNABLE_TO_CONFIRM")return tr({nl:"Deze controle kon met de beschikbare websitegegevens niet worden bevestigd.",en:"This check could not be confirmed with the available website data.",de:"Diese Prüfung konnte mit den verfügbaren Website-Daten nicht bestätigt werden.",fr:"Ce contrôle n’a pas pu être confirmé avec les données disponibles du site.",it:"Questo controllo non è stato confermato con i dati disponibili del sito.",es:"Esta comprobación no pudo confirmarse con los datos disponibles del sitio."});
