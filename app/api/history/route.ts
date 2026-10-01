@@ -5,13 +5,14 @@ import { ensureDatabase } from "@/lib/db-init";
 import { cookies } from "next/headers";
 import { normalizePlan, planLimits } from "@/lib/plans";
 
-type Row={id:string;scanned_url:string;final_url?:string;overall_score:number;seo_score:number;geo_score:number;created_at:string;result:any};
+type AuditCheck={status?:string;severity?:string};
+type Row={id:string;scanned_url:string;final_url?:string;overall_score:number;seo_score:number;geo_score:number;created_at:string;result:{seo?:{checks?:AuditCheck[]};geo?:{checks?:AuditCheck[]}}};
 type HostScan={scanned_url:string;final_url?:string};
 function host(scan:HostScan){try{return new URL(scan.final_url||scan.scanned_url).hostname.toLowerCase().replace(/^www\./,"")}catch{return scan.scanned_url}}
 function summary(scan:Row){
  const checks=[...(scan.result?.seo?.checks||[]),...(scan.result?.geo?.checks||[])];
- const issues=checks.filter((c:any)=>c.status==="fail"||c.status==="warning");
- return {id:scan.id,scanned_url:scan.scanned_url,final_url:scan.final_url,overall_score:scan.overall_score,seo_score:scan.seo_score,geo_score:scan.geo_score,created_at:scan.created_at,open_issues:issues.length,critical_issues:issues.filter((c:any)=>c.severity==="CRITICAL").length};
+ const issues=checks.filter((c:AuditCheck)=>c.status==="fail"||c.status==="warning");
+ return {id:scan.id,scanned_url:scan.scanned_url,final_url:scan.final_url,overall_score:scan.overall_score,seo_score:scan.seo_score,geo_score:scan.geo_score,created_at:scan.created_at,open_issues:issues.length,critical_issues:issues.filter((c:AuditCheck)=>c.severity==="CRITICAL").length};
 }
 export async function GET(){
  const user=await getCurrentUser();
@@ -25,7 +26,7 @@ export async function GET(){
  const result=await getDb().query("SELECT id,scanned_url,final_url,overall_score,seo_score,geo_score,created_at,result FROM scans WHERE user_id=$1 ORDER BY created_at DESC LIMIT 200",[user.id]);
  const allScans=(result.rows as Row[]).map(summary);
  const seen=new Set<string>();
- const scans=allScans.filter((scan:any)=>{const key=host(scan);if(seen.has(key))return false;seen.add(key);return true});
+ const scans=allScans.filter((scan)=>{const key=host(scan);if(seen.has(key))return false;seen.add(key);return true});
  const pending=await getDb().query("SELECT status,count(*)::int AS count FROM pending_fixes WHERE user_id=$1 AND (status='DONE' OR (status='PREPARED' AND expires_at>NOW())) GROUP BY status",[user.id]);
  const planResult=await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1",[user.id]);
  const plan=normalizePlan(planResult.rows[0]?.plan_code);
@@ -45,7 +46,7 @@ export async function GET(){
  const gscProperty=gscResult.rows[0]||null;
  const searchConsole={connected:Boolean(gscProperty),siteUrl:gscProperty?.site_url||null,lastSyncAt:gscProperty?.last_sync_at||null,synced:Boolean(gscProperty?.last_sync_at)};
  const actionUsageResult=await getDb().query("SELECT event_type,COUNT(*)::int AS count FROM usage_events WHERE user_id=$1 AND created_at >= $2 AND event_type IN ('AI_FIX','COMPETITOR_SCAN','LOCAL_SEO') GROUP BY event_type",[user.id,monthStart.toISOString()]);
- const actionCounts=Object.fromEntries(actionUsageResult.rows.map((row:any)=>[String(row.event_type),Number(row.count||0)]));
+ const actionCounts=Object.fromEntries(actionUsageResult.rows.map((row:{event_type:unknown;count:unknown})=>[String(row.event_type),Number(row.count||0)]));
  const usage={plan,used,limit:limits.scans,websiteHost,websites:limits.websites,actions:{aiFixes:{used:actionCounts.AI_FIX||0,limit:limits.aiFixes},competitorScans:{used:actionCounts.COMPETITOR_SCAN||0,limit:limits.competitorScans},localSeo:{used:actionCounts.LOCAL_SEO||0,limit:limits.localSeo}}};
  return NextResponse.json({scans,history:allScans,fixes:Object.fromEntries(pending.rows.map(row=>[row.status,row.count])),usage,searchConsole});
 }

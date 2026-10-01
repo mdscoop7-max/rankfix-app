@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     if(!stored.rowCount) return NextResponse.json({error:"Scan niet gevonden."},{status:404});
     const storedResult=typeof stored.rows[0].result==="string"?JSON.parse(stored.rows[0].result):stored.rows[0].result;
     const storedChecks=[...(Array.isArray(storedResult?.seo?.checks)?storedResult.seo.checks:[]),...(Array.isArray(storedResult?.geo?.checks)?storedResult.geo.checks:[])];
-    const trustedIssue=storedChecks.find((x:any)=>x?.issue_id===issue.issue_id && x?.rule_id===issue.rule_id);
+    const trustedIssue=storedChecks.find((x:Record<string,unknown>)=>x?.issue_id===issue.issue_id && x?.rule_id===issue.rule_id);
     if(!trustedIssue) return NextResponse.json({error:"Bevinding hoort niet bij deze scan."},{status:403});
     const urlValue=String(stored.rows[0].final_url||"").trim();
     if(!urlValue) return NextResponse.json({error:"Scan heeft geen betrouwbare eind-URL."},{status:422});

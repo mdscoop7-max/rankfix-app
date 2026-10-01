@@ -38,7 +38,7 @@ async function run(request:Request){
     [BATCH_SIZE]
   );
 
-  const results:any[]=[];
+  const results:Array<Record<string,unknown>>=[];
   for(const monitor of due.rows){
     let status="ERROR"; let httpStatus:number|null=null; let detail="";
     try{
