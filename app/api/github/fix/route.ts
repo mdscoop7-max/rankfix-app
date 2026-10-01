@@ -500,7 +500,18 @@ export async function POST(request:Request){
       ? changeEstimate.changed/changeEstimate.meaningfulBefore
       : changeEstimate.changed>0 ? 1 : 0;
     const sizeRatio=currentBytes ? proposedBytes/currentBytes : 1;
-    if(changedBytes>50000 || lineGrowth>500 || changeEstimate.changed>250 || changedRatio>0.35 || sizeRatio<0.65 || sizeRatio>1.5){
+    // A one-line template can contain many tags. A tiny in-line metadata change must not
+    // be treated as a rewrite of the entire file merely because that single line changed.
+    let prefix=0;
+    const maxPrefix=Math.min(current.length,generated.content.length);
+    while(prefix<maxPrefix && current.charCodeAt(prefix)===generated.content.charCodeAt(prefix)) prefix++;
+    let suffix=0;
+    const maxSuffix=Math.min(current.length-prefix,generated.content.length-prefix);
+    while(suffix<maxSuffix && current.charCodeAt(current.length-1-suffix)===generated.content.charCodeAt(generated.content.length-1-suffix)) suffix++;
+    const changedWindowBytes=Buffer.byteLength(current.slice(prefix,current.length-suffix),"utf8")
+      +Buffer.byteLength(generated.content.slice(prefix,generated.content.length-suffix),"utf8");
+    const compactInlineChange=changeEstimate.changed<=2 && changedWindowBytes<=12000 && lineGrowth<=2 && sizeRatio>=0.9 && sizeRatio<=1.1;
+    if(changedBytes>50000 || lineGrowth>500 || changeEstimate.changed>250 || (!compactInlineChange && changedRatio>0.35) || sizeRatio<0.65 || sizeRatio>1.5){
       githubValidation.errors.push(msg("De voorgestelde wijziging raakt te veel van het bestand voor één automatische RankFix-fix.","The proposed change affects too much of the file for a single automatic RankFix fix.","Die vorgeschlagene Änderung betrifft zu viel der Datei für einen einzelnen automatischen RankFix-Fix.","La modification proposée affecte une trop grande partie du fichier pour une seule correction automatique RankFix.","La modifica proposta interessa una parte troppo ampia del file per una singola correzione automatica RankFix.","El cambio propuesto afecta demasiado al archivo para una sola corrección automática de RankFix."));
     }
     if(!githubValidation.valid || githubValidation.errors.length) return NextResponse.json({error:msg("AI-codefix is geblokkeerd door de GitHub veiligheidscontrole.","The AI code fix was blocked by the GitHub safety check.","Der AI-Codefix wurde von der GitHub-Sicherheitsprüfung blockiert.","La correction de code AI a été bloquée par le contrôle de sécurité GitHub.","La correzione di codice AI è stata bloccata dal controllo di sicurezza GitHub.","La corrección de código AI fue bloqueada por la comprobación de seguridad de GitHub."),validation:githubValidation},{status:422});
