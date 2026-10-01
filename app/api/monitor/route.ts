@@ -6,7 +6,7 @@ import { isPaidPlan } from "@/lib/plans";
 
 type Lang="nl"|"en"|"de"|"fr"|"it"|"es";
 const supported=["nl","en","de","fr","it","es"] as const;
-function requestLang(request:Request,body?:{language?:Lang}):Lang{if(body&&supported.includes(body.language))return body.language;const q=new URL(request.url).searchParams.get("lang");if(q&&supported.includes(q as Lang))return q as Lang;const a=(request.headers.get("accept-language")||"").toLowerCase();return (supported.find(x=>a.startsWith(x))||"nl") as Lang}
+function requestLang(request:Request,body?:{language?:Lang}):Lang{if(body?.language&&supported.includes(body.language))return body.language;const q=new URL(request.url).searchParams.get("lang");if(q&&supported.includes(q as Lang))return q as Lang;const a=(request.headers.get("accept-language")||"").toLowerCase();return (supported.find(x=>a.startsWith(x))||"nl") as Lang}
 const errors={
  nl:{login:"Login vereist.",url:"Ongeldige website-URL.",input:"Ongeldige invoer.",owned:"Scan deze website eerst voordat monitoring wordt ingeschakeld."},
  en:{login:"Login required.",url:"Invalid website URL.",input:"Invalid input.",owned:"Scan this website first before enabling monitoring."},

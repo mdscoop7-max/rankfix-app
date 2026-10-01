@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   const localRule=audit.issues.find(i=>i.rule_id==="SITE_LOCAL_BUSINESS_IDENTITY");
   const schemaRule=audit.issues.find(i=>i.rule_id==="SITE_STRUCTURED_DATA_MISSING");
   const na=tr({nl:"Niet van toepassing.",en:"Not applicable.",de:"Nicht zutreffend.",fr:"Non applicable.",it:"Non applicabile.",es:"No aplicable."});
-  const localizedRuleDetail=(rule:Record<string,unknown>)=>{
+  const localizedRuleDetail=(rule:typeof localRule)=>{
    if(!rule)return na;
    const count=Array.isArray(rule?.evidence?.examples)?rule.evidence.examples.length:0;
    if(rule.status==="PASS")return tr({nl:"Controle bevestigd met bewijs uit de gescande website.",en:"Check confirmed with evidence from the scanned website.",de:"Prüfung mit Nachweisen aus der gescannten Website bestätigt.",fr:"Contrôle confirmé avec des preuves du site analysé.",it:"Controllo confermato con prove dal sito analizzato.",es:"Comprobación confirmada con evidencia del sitio analizado."});
