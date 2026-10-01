@@ -316,7 +316,7 @@ export async function POST(request: Request) {
         ? await getDb().query("SELECT COUNT(*)::int AS count FROM usage_events WHERE website_host=$1 AND event_type='SCAN' AND created_at >= $2",[usageWebsiteHost,monthStart.toISOString()])
         : await getDb().query("SELECT COUNT(*)::int AS count FROM usage_events WHERE user_id=$1 AND event_type='SCAN' AND created_at >= $2",[usageUser.id,monthStart.toISOString()]);
       const used = Number(scanUsage.rows[0]?.count || 0);
-      if (used >= limits.scans) {
+      // TrendMix is our internal test shop: allow unlimited dashboard scans while RankFix is being validated.\n      const unlimitedTestHost = usageWebsiteHost === "trendmix.onrender.com" || usageWebsiteHost === "trendmix-jet.vercel.app";\n      if (!unlimitedTestHost && used >= limits.scans) {
         const limitMessages: Record<string,string> = {
           nl:`Je ${limits.scans} scans van deze maand zijn gebruikt. Je bestaande rapporten blijven beschikbaar.`,
           en:`Your ${limits.scans} scans for this month have been used. Your existing reports remain available.`,
