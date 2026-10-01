@@ -14,6 +14,7 @@ import { normalizePlan, planLimits } from "@/lib/plans";
 import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
 import { discoverCommercePages } from "@/lib/commerce-discovery";
 import { auditCommerceHtml, type CommercePageAudit } from "@/lib/commerce-page-audit";
+import { buildCommerceFindings } from "@/lib/commerce-findings";
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -1823,12 +1824,14 @@ export async function POST(request: Request) {
         commercePageAudits.push({url:candidate.url,kind:candidate.kind,status:null,title:false,description:false,h1:false,canonical:false,productSchema:false,offerSchema:false,breadcrumbSchema:false,priceSignal:false,availabilitySignal:false,imageSignal:false,error:error instanceof Error?error.message:"FETCH_FAILED"});
       }
     }
+    const commerceFindings = buildCommerceFindings(commercePageAudits, scanLanguage);
     const commerceScope = technologyProfile.isCommerce ? {
       discovered: commerceDiscovery.length,
       products: commerceProducts.map((item) => item.url),
       categories: commerceCategories.map((item) => item.url),
       audited: commercePageAudits.length,
       audits: commercePageAudits,
+      findings: commerceFindings,
       note: "Bounded same-domain sample only; this is not presented as a full-site crawl."
     } : null;
     // A homepage is only classified as a landing page when several independent
@@ -1871,8 +1874,9 @@ export async function POST(request: Request) {
         );
         pendingFixes = new Map(pending.rows.map((row: any) => [String(row.issue_id), { status: String(row.status) }]));
 
-        for (const item of checks) {
-          const issueId = String(item.issue_id || item.rule_id || item.key);
+        const verificationChecks = [...checks, ...commerceFindings];
+        for (const item of verificationChecks) {
+          const issueId = String(item.issue_id || ("rule_id" in item ? item.rule_id : "") || ("key" in item ? item.key : ""));
           const pendingFix = pendingFixes.get(issueId);
           if (!pendingFix) continue;
           // A normal audit must never confirm a prepared fix as DONE.
@@ -1908,8 +1912,8 @@ export async function POST(request: Request) {
         // freshly fetched live page reports the exact same rule as PASS.
         // WARNING, FAIL, N/A and unable-to-confirm deliberately keep it waiting.
         if (verifyFixes && savedScanId && pendingFixes.size > 0) {
-          for (const item of checks) {
-            const issueId = String(item.issue_id || item.rule_id || item.key);
+          for (const item of verificationChecks) {
+            const issueId = String(item.issue_id || ("rule_id" in item ? item.rule_id : "") || ("key" in item ? item.key : ""));
             if (!pendingFixes.has(issueId)) continue;
             const liveStatus = String(item.issue_status || item.status || "").trim().toUpperCase();
             const liveConfidence = String(item.confidence || "").trim().toLowerCase();
@@ -1938,8 +1942,8 @@ export async function POST(request: Request) {
         // cannot disagree about DONE versus WAITING.
         if (verifyFixes && savedScanId) {
           await getDb().query(
-            "UPDATE scans SET result=jsonb_set(jsonb_set(result,'{seo,checks}',$1::jsonb,true),'{geo,checks}',$2::jsonb,true) WHERE id=$3 AND user_id=$4",
-            [JSON.stringify(selectedSeoChecks), JSON.stringify(selectedGeoChecks), savedScanId, user.id]
+            "UPDATE scans SET result=jsonb_set(jsonb_set(jsonb_set(result,'{seo,checks}',$1::jsonb,true),'{geo,checks}',$2::jsonb,true),'{commerceScope}',$3::jsonb,true) WHERE id=$4 AND user_id=$5",
+            [JSON.stringify(selectedSeoChecks), JSON.stringify(selectedGeoChecks), JSON.stringify(commerceScope), savedScanId, user.id]
           );
         }
 

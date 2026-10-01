@@ -8,6 +8,7 @@ import { validateGithubFix } from "@/lib/github-fix-validator";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { createHash } from "crypto";
+import { buildCommerceFindings } from "@/lib/commerce-findings";
 
 function safeRepo(v:string){ return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(v) && !v.includes(".."); }
 function safePath(v:string){ return v.length>0 && v.length<240 && !v.startsWith("/") && !v.split("/").includes("..") && !/[<>:"|?*]/.test(v); }
@@ -342,9 +343,13 @@ export async function POST(request:Request){
     if(!trustedScan.rowCount) return NextResponse.json({error:msg("Deze scan bestaat niet of hoort niet bij dit account.","This scan does not exist or does not belong to this account.","Dieser Scan existiert nicht oder gehört nicht zu diesem Konto.","Cette analyse n’existe pas ou n’appartient pas à ce compte.","Questa scansione non esiste o non appartiene a questo account.","Este análisis no existe o no pertenece a esta cuenta.")},{status:404});
     const scanRow=trustedScan.rows[0];
     const scanResult=scanRow.result||{};
+    const trustedCommerceChecks=Array.isArray(scanResult?.commerceScope?.findings)
+      ? scanResult.commerceScope.findings
+      : buildCommerceFindings(scanResult?.commerceScope?.audits, scanResult?.language||language);
     const trustedChecks=[
       ...(Array.isArray(scanResult?.seo?.checks)?scanResult.seo.checks:[]),
-      ...(Array.isArray(scanResult?.geo?.checks)?scanResult.geo.checks:[])
+      ...(Array.isArray(scanResult?.geo?.checks)?scanResult.geo.checks:[]),
+      ...trustedCommerceChecks
     ];
     const trustedCheck=trustedChecks.find((check:any)=>String(check?.issue_id||check?.rule_id||"")===issueId);
     if(!trustedCheck) return NextResponse.json({error:msg("Deze bevinding kon niet in de opgeslagen scan worden bevestigd.","This finding could not be confirmed in the saved scan.","Dieser Befund konnte im gespeicherten Scan nicht bestätigt werden.","Ce problème n’a pas pu être confirmé dans l’analyse enregistrée.","Questo problema non è stato confermato nella scansione salvata.","Este problema no pudo confirmarse en el análisis guardado.")},{status:404});
