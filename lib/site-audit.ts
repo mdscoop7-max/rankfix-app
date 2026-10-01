@@ -1,4 +1,4 @@
-import { CrawlPage, CrawlResult, CrawlMode, crawlSite } from "@/lib/crawler";
+import { CrawlPage, CrawlMode, crawlSite } from "@/lib/crawler";
 
 export const SITE_AUDIT_ENGINE_VERSION = "1.10.0";
 
