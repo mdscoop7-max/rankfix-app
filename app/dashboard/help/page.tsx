@@ -1,5 +1,6 @@
 "use client";
-import Link from "next/link";\nimport { useEffect, useState } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import AiAssistant from "@/components/ai-assistant";
 import DashboardNav from "../nav";
 import type { Locale } from "@/lib/locales";
