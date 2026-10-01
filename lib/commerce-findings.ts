@@ -7,10 +7,10 @@ export type CommerceAuditLike = {
 };
 
 type Copy = { title:string; message:string; fix:string };
-type Finding = {
+export type CommerceFinding = {
   category:"ecommerce"; title:string; status:"PASS"|"FAIL"; issue_status:"PASS"|"FAIL";
   message:string; fix:string; issue_id:string; severity:"HIGH"|"MEDIUM";
-  confidence:"high"; evidence:{found:string;details:string};
+  confidence:"high"; fix_status?:"WAITING"|"DONE"; evidence:{found:string;details:string};
 };
 
 const supported: CommerceLanguage[]=["nl","en","de","fr","it","es"];
@@ -103,10 +103,10 @@ const kindLabel=(lang:CommerceLanguage,kind:string)=>{
  return kind==="product"?labels[lang][0]:labels[lang][1];
 };
 
-export function buildCommerceFindings(audits:unknown,language:unknown="nl"):Finding[]{
+export function buildCommerceFindings(audits:unknown,language:unknown="nl"):CommerceFinding[]{
  const lang=commerceLanguage(language);
  if(!Array.isArray(audits)) return [];
- const out:Finding[]=[];
+ const out:CommerceFinding[]=[];
  const add=(audit:CommerceAuditLike,key:string,ok:boolean,severity:"HIGH"|"MEDIUM"="MEDIUM")=>{
    const url=String(audit.url||""); const kind=String(audit.kind||"");
    const c=COPY[lang][key]; if(!url||!c) return;

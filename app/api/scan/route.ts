@@ -1915,7 +1915,7 @@ export async function POST(request: Request) {
           for (const item of verificationChecks) {
             const issueId = String(item.issue_id || ("rule_id" in item ? item.rule_id : "") || ("key" in item ? item.key : ""));
             if (!pendingFixes.has(issueId)) continue;
-            const liveStatus = String(item.issue_status || item.status || "").trim().toUpperCase();
+            const liveStatus = String(item.issue_status || "").trim().toUpperCase();
             const liveConfidence = String(item.confidence || "").trim().toLowerCase();
             const liveEvidence = item.evidence;
             const hasLiveEvidence = !!liveEvidence && liveEvidence.found !== null && liveEvidence.found !== undefined && liveEvidence.found !== "";
