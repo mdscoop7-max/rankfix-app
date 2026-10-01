@@ -29,8 +29,8 @@ export default function GithubPage(){
   const [repo,setRepo]=useState("");
   const [path,setPath]=useState("");
   const [siteUrl,setSiteUrl]=useState("");
-  const [scanId,setScanId]=useState("");
-  const [issueId,setIssueId]=useState("");
+  const [scanId,setScanId]=useState(()=>searchParams.get("scan_id")||"");
+  const [issueId,setIssueId]=useState(()=>searchParams.get("issue_id")||"");
   const [mapped,setMapped]=useState(false);
   const [issue,setIssue]=useState("");
   const [context,setContext]=useState("");
@@ -201,7 +201,7 @@ export default function GithubPage(){
 
   return <main className="rf-page" lang={language}>
     <div className="rf-shell">
-    <header className="rf-header"><Link href="/dashboard" className="rf-brand">RankFix <span>AI</span></Link><Link href="/dashboard" className="rf-back">← {t.back}</Link></header>
+    <header className="rf-header"><Link href="/dashboard" className="rf-brand">RankFix <span>AI</span></Link><Link href={scanId?`/dashboard/audit/${encodeURIComponent(scanId)}`:"/dashboard"} className="rf-back">← {scanId?(language==="nl"?"Terug naar audit":"Back to audit"):t.back}</Link></header>
     <DashboardNav current={2} />
     <section className="rf-body rf-fix-engine">
       <div className="text-xs uppercase tracking-widest text-emerald-300">GitHub Fix Engine</div>
@@ -214,7 +214,7 @@ export default function GithubPage(){
         {proposal&&<><h2 className="mt-3 text-xl font-bold text-white">{proposal.title}</h2><p className="mt-2 text-sm text-slate-400">{proposal.reason}</p><pre className="mt-4 max-h-96 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/25 p-4 text-sm text-slate-100">{proposal.content}</pre><button type="button" onClick={()=>navigator.clipboard.writeText(proposal.content)} className="mt-4 rounded-xl border border-cyan-300/20 px-4 py-2 text-sm font-bold text-cyan-100">{language==="nl"?"Kopieer voorstel":"Copy proposal"}</button></>}
       </div>}
       {plan==="free"&&proposal&&<p className="mt-4 text-sm text-slate-400">{language==="nl"?"Je kunt dit voorstel handmatig gebruiken. GitHub is optioneel.":"You can use this proposal manually. GitHub is optional."}</p>}
-      {plan==="free"&&<Link href="/dashboard" className="mt-4 inline-flex rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-slate-200">← {language==="nl"?"Terug naar audit":"Back to audit"}</Link>}
+      {scanId&&<Link href={`/dashboard/audit/${encodeURIComponent(scanId)}`} className="mt-4 inline-flex rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-slate-200">← {language==="nl"?"Terug naar audit":"Back to audit"}</Link>}
       {plan==="free" ? null : !connected ? <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-7">
         <h2 className="text-xl font-bold">{t.connect}</h2>
         <p className="mt-2 text-sm text-slate-500">{t.connectInfo}</p>
@@ -243,7 +243,7 @@ export default function GithubPage(){
           {preview.truncated&&<p className="mt-2 text-xs text-amber-200">Preview is ingekort; controleer na het aanmaken ook de volledige GitHub-diff.</p>}
           <button type="button" onClick={()=>{setPreview(null);setMessage("");}} className="mt-3 text-xs text-slate-300 underline">{t.cancel}</button>
         </div>}
-        <button type="submit" disabled={busy} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 font-bold text-[#04342C] disabled:opacity-50">{busy?t.busy:preview?t.approve:t.makePreview}</button>
+        <button type="submit" disabled={busy||Boolean(validation?.errors?.length)||error===t.missingAudit} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 font-bold text-[#04342C] disabled:opacity-50">{busy?t.busy:preview?t.approve:t.makePreview}</button>
       </form>}
     </section>
     </div>

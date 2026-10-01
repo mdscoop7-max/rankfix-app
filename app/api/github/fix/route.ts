@@ -429,7 +429,7 @@ export async function POST(request:Request){
     const githubValidation=validateGithubFix({current,proposed:generated.content,filePath:path,issue});
     githubValidation.errors = githubValidation.errors.map((error:string)=>localizeFixError(error,language));
     githubValidation.warnings = githubValidation.warnings.map((warning:string)=>localizeFixError(warning,language));
-    const canonicalErrors=validateCanonicalTarget(generated.content,trustedUrl);
+    const canonicalErrors=fixPolicy.safe_type==="canonical"?validateCanonicalTarget(generated.content,trustedUrl):[];
     if(canonicalErrors.length) githubValidation.errors.push(...canonicalErrors.map((error:string)=>localizeFixError(error,language)));
 
     const completion=validateRequestedFixCompletion(current,generated.content,issue);
