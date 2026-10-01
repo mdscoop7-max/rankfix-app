@@ -43,6 +43,7 @@ export default function GithubPage(){
   const [language,setLanguage]=useState<Locale>("nl");
   const [plan,setPlan]=useState("free");
   const [scanData,setScanData]=useState<any>(null);
+  const [selectedCheck,setSelectedCheck]=useState<any>(null);
   const [proposal,setProposal]=useState<AiProposal|null>(null);
   const [proposalLoading,setProposalLoading]=useState(false);
   const [proposalError,setProposalError]=useState("");
@@ -85,6 +86,13 @@ export default function GithubPage(){
     const allChecks=[...(scanData?.result?.seo?.checks||[]),...(scanData?.result?.geo?.checks||[])];
     const check=allChecks.find((c:any)=>String(c.issue_id||c.rule_id||"")===issueId);
     if(!check){setProposalError(language==="nl"?"Dit verbeterpunt kon niet in de actieve scan worden gevonden.":"This issue could not be found in the active scan.");return;}
+    setSelectedCheck(check);
+    const directProposal=String(check.fix||"").trim();
+    const directLooksConcrete=directProposal && (directProposal.includes("<") || directProposal.length>45) && !/voeg toe|maak aan|controleer|verbeter|add |create |check |improve /i.test(directProposal.slice(0,45));
+    if(directLooksConcrete){
+      setProposal({title:language==="nl"?"Scanvoorstel":"Scan proposal",content:directProposal,reason:language==="nl"?"Dit concrete voorstel komt rechtstreeks uit de gecontroleerde scan.":"This concrete proposal comes directly from the verified scan."});
+      return;
+    }
     const typeMap:Record<string,string>={META_TITLE_MISSING:"meta_title",META_TITLE_GUIDANCE:"meta_title",META_DESCRIPTION_MISSING:"meta_description",META_DESCRIPTION_GUIDANCE:"meta_description",H1_MISSING:"h1",IMAGE_ALT_MISSING:"alt_text",SOCIAL_METADATA_INCOMPLETE:"social_metadata",social:"social_metadata",STRUCTURED_DATA_MISSING:"structured_data",breadcrumbs:"breadcrumb",canonical:"canonical",headings:"heading_structure",faq:"faq",author:"expertise"};
     const type=typeMap[issueId];
     if(!type){setProposalError(language==="nl"?"Voor dit verbeterpunt is nog geen veilig AI-fixformaat beschikbaar.":"No safe AI fix format is available for this issue yet.");return;}
@@ -192,15 +200,16 @@ export default function GithubPage(){
     <DashboardNav current={2} />
     <section className="rf-body rf-fix-engine">
       <div className="text-xs uppercase tracking-widest text-emerald-300">GitHub Fix Engine</div>
-      <h1 className="mt-2 text-3xl font-black leading-tight sm:text-4xl">Een codevoorstel voor je website.</h1>
-      <p className="mt-3 max-w-2xl text-slate-400">RankFix leest alleen het gekozen bestand, maakt de kleinste noodzakelijke wijziging en opent een aparte Pull Request. Er wordt niets automatisch naar productie gemerged.</p>
+      <h1 className="mt-2 text-3xl font-black leading-tight sm:text-4xl">{language==="nl"?"AI-fix voor je website.":"AI fix for your website."}</h1>
+      <p className="mt-3 max-w-2xl text-slate-400">{language==="nl"?"Bekijk eerst het concrete voorstel uit je scan. Je kunt het kopiëren en handmatig toepassen. GitHub is alleen nodig als je later automatisch een Pull Request wilt maken.":"Review the concrete proposal from your scan first. You can copy it and apply it manually. GitHub is only needed if you later want to create a Pull Request automatically."}</p>
       {scanId&&issueId&&<div className="mt-8 rounded-3xl border border-cyan-300/20 bg-cyan-400/[0.05] p-5 sm:p-7">
         <div className="text-xs font-bold uppercase tracking-widest text-cyan-300">{language==="nl"?"AI-fixvoorstel":"AI fix proposal"}</div>
         {proposalLoading&&<p className="mt-3 text-slate-300">{language==="nl"?"RankFix maakt een concreet voorstel op basis van deze scan…":"RankFix is creating a concrete proposal from this scan…"}</p>}
-        {proposalError&&<div className="mt-3 rounded-xl bg-red-500/10 p-4 text-sm text-red-200">{proposalError}</div>}
+        {proposalError&&<div className="mt-3 rounded-xl bg-red-500/10 p-4 text-sm text-red-200"><strong>{language==="nl"?"Voorstel kon niet automatisch worden gevalideerd.":"Proposal could not be validated automatically."}</strong><div className="mt-1">{proposalError}</div>{selectedCheck?.fix&&<div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3 text-slate-100">{selectedCheck.fix}</div>}</div>}
         {proposal&&<><h2 className="mt-3 text-xl font-bold text-white">{proposal.title}</h2><p className="mt-2 text-sm text-slate-400">{proposal.reason}</p><pre className="mt-4 max-h-96 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/25 p-4 text-sm text-slate-100">{proposal.content}</pre><button type="button" onClick={()=>navigator.clipboard.writeText(proposal.content)} className="mt-4 rounded-xl border border-cyan-300/20 px-4 py-2 text-sm font-bold text-cyan-100">{language==="nl"?"Kopieer voorstel":"Copy proposal"}</button></>}
       </div>}
-      {plan==="free"&&proposal&&<p className="mt-4 text-sm text-slate-400">{language==="nl"?"Je kunt dit voorstel handmatig gebruiken. GitHub is optioneel en staat los van het tonen van het AI-voorstel.":"You can use this proposal manually. GitHub is optional and separate from showing the AI proposal."}</p>}
+      {plan==="free"&&proposal&&<p className="mt-4 text-sm text-slate-400">{language==="nl"?"Je kunt dit voorstel handmatig gebruiken. GitHub is optioneel.":"You can use this proposal manually. GitHub is optional."}</p>}
+      {plan==="free"&&<Link href="/dashboard" className="mt-4 inline-flex rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-slate-200">← {language==="nl"?"Terug naar audit":"Back to audit"}</Link>}
       {plan==="free" ? null : !connected ? <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-7">
         <h2 className="text-xl font-bold">{t.connect}</h2>
         <p className="mt-2 text-sm text-slate-500">{t.connectInfo}</p>
