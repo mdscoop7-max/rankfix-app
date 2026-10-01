@@ -547,7 +547,16 @@ export async function POST(request:Request){
 
     const normalizeFile=(value:string)=>value.replace(/\r\n/g,"\n").replace(/[ \t]+$/gm,"").trim();
     if(normalizeFile(current)===normalizeFile(generated.content)){
-      return NextResponse.json({success:false,status:"fix_not_applied",error:msg("RankFix kon de gevraagde verbetering niet aantoonbaar in het bestand plaatsen. Er is niets gewijzigd.","RankFix could not verifiably apply the requested improvement to the file. Nothing was changed.","RankFix konnte die angeforderte Verbesserung nicht nachweisbar in der Datei anwenden. Es wurde nichts geändert.","RankFix n’a pas pu appliquer de manière vérifiable l’amélioration demandée au fichier. Rien n’a été modifié.","RankFix non è riuscito ad applicare in modo verificabile il miglioramento richiesto al file. Non è stato modificato nulla.","RankFix no pudo aplicar de forma verificable la mejora solicitada al archivo. No se modificó nada."),repository:repo,path},{status:422});
+      const guidanceIssue=issueId==="META_TITLE_GUIDANCE"||issueId==="META_DESCRIPTION_GUIDANCE";
+      return NextResponse.json({
+        success:false,
+        status:"fix_not_applied",
+        error:guidanceIssue
+          ? msg("De bestaande metadata is gevonden, maar de voorgestelde waarde verschilt niet. RankFix maakt daarom geen lege GitHub-wijziging.","The existing metadata was found, but the proposed value is unchanged. RankFix will not create an empty GitHub change.","Die vorhandenen Metadaten wurden gefunden, aber der vorgeschlagene Wert ist unverändert. RankFix erstellt daher keine leere GitHub-Änderung.","Les métadonnées existantes ont été trouvées, mais la valeur proposée est inchangée. RankFix ne créera donc pas de modification GitHub vide.","I metadati esistenti sono stati trovati, ma il valore proposto è invariato. RankFix non creerà quindi una modifica GitHub vuota.","Se encontraron los metadatos existentes, pero el valor propuesto no ha cambiado. RankFix no creará un cambio vacío en GitHub.")
+          : msg("RankFix kon de gevraagde verbetering niet aantoonbaar in het bestand plaatsen. Er is niets gewijzigd.","RankFix could not verifiably apply the requested improvement to the file. Nothing was changed.","RankFix konnte die angeforderte Verbesserung nicht nachweisbar in der Datei anwenden. Es wurde nichts geändert.","RankFix n’a pas pu appliquer de manière vérifiable l’amélioration demandée au fichier. Rien n’a été modifié.","RankFix non è riuscito ad applicare in modo verificabile il miglioramento richiesto al file. Non è stato modificato nulla.","RankFix no pudo aplicar de forma verificable la mejora solicitada al archivo. No se modificó nada."),
+        code:guidanceIssue?"GUIDANCE_VALUE_UNCHANGED":"FIX_NOT_APPLIED",
+        repository:repo,path
+      },{status:422});
     }
 
     if(previewOnly){
