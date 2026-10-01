@@ -104,6 +104,17 @@ const statements = [
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ`,
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS verification_scan_id UUID REFERENCES scans(id) ON DELETE SET NULL`,
   `CREATE INDEX IF NOT EXISTS pending_fixes_lookup_idx ON pending_fixes(user_id, scanned_url, issue_id, status)`,
+  `WITH ranked_pending_fixes AS (
+    SELECT id, ROW_NUMBER() OVER (
+      PARTITION BY user_id, scanned_url, issue_id
+      ORDER BY updated_at DESC, created_at DESC, id DESC
+    ) AS row_number
+    FROM pending_fixes
+    WHERE status IN ('PROPOSED','PR_CREATED','AWAITING_MERGE','AWAITING_VERIFICATION','STILL_PRESENT','PREPARED')
+  )
+  UPDATE pending_fixes
+  SET status = 'SUPERSEDED', updated_at = NOW()
+  WHERE id IN (SELECT id FROM ranked_pending_fixes WHERE row_number > 1)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS pending_fixes_active_issue_idx ON pending_fixes(user_id, scanned_url, issue_id) WHERE status IN ('PROPOSED','PR_CREATED','AWAITING_MERGE','AWAITING_VERIFICATION','STILL_PRESENT','PREPARED')`,
   `CREATE TABLE IF NOT EXISTS website_repositories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
