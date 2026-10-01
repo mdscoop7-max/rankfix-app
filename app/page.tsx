@@ -629,7 +629,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         )}
       </nav>
 
-      <section id="scan" className="relative overflow-hidden bg-gradient-to-br from-[#F8FCFF] via-white to-[#EEF6FF] px-5 pb-16 pt-16 lg:px-8 lg:pt-20">\n        <div className="pointer-events-none absolute -right-24 top-8 h-80 w-80 rounded-full bg-blue-400/15 blur-3xl" />\n        <div className="relative mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[1.05fr_.95fr]">\n        <div className="text-center lg:text-left">
+      <section id="scan" className="mx-auto max-w-6xl bg-gradient-to-br from-[#F8FCFF] via-white to-[#EEF6FF] px-5 pb-16 pt-16 text-center lg:px-8 lg:pt-20">
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-bold uppercase tracking-[.08em] text-blue-700">
           <span className="h-2 w-2 animate-pulse rounded-full bg-blue-500" />
           {t.badge}
