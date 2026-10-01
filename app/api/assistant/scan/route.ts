@@ -27,18 +27,27 @@ export async function GET(request: Request) {
   );
   if (!result.rowCount) return NextResponse.json({ error: errors[language].notFound }, { status: 404 });
 
-  let parsed: any = {};
-  try { parsed = typeof result.rows[0].result === "string" ? JSON.parse(result.rows[0].result) : (result.rows[0].result || {}); } catch {}
+  type ScanCheck = {
+    category?: unknown; title?: unknown; issue_status?: unknown; status?: unknown;
+    message?: unknown; fix?: unknown; issue_id?: unknown; severity?: unknown;
+    confidence?: unknown; evidence?: { found?: unknown } | null;
+  };
+  type ScanResult = { seo?: { checks?: ScanCheck[] }; geo?: { checks?: ScanCheck[] } };
+  let parsed: ScanResult = {};
+  try {
+    const raw: unknown = typeof result.rows[0].result === "string" ? JSON.parse(result.rows[0].result) : (result.rows[0].result || {});
+    parsed = raw && typeof raw === "object" ? raw as ScanResult : {};
+  } catch {}
 
-  const checks = [...(parsed?.seo?.checks || []), ...(parsed?.geo?.checks || [])]
-    .filter((x: any) => {
+  const checks = [...(parsed.seo?.checks || []), ...(parsed.geo?.checks || [])]
+    .filter((x) => {
       const status=String(x?.issue_status||x?.status||"").toLowerCase();
       const confidence=String(x?.confidence||"").toLowerCase();
       const evidence=x?.evidence;
       const hasEvidence=!!evidence && evidence.found !== null && evidence.found !== undefined && evidence.found !== "";
       return (status === "fail" || status === "warning") && confidence !== "low" && hasEvidence;
     })
-    .map((x: any) => ({
+    .map((x) => ({
       category: x.category,
       title: x.title,
       status: x.issue_status || x.status,
