@@ -148,6 +148,7 @@ const statements = [
   `ALTER TABLE fix_proposals ADD COLUMN IF NOT EXISTS base_blob_sha TEXT`,
   `ALTER TABLE fix_proposals ADD COLUMN IF NOT EXISTS base_file_sha TEXT`,
   `UPDATE fix_proposals SET base_file_sha = COALESCE(base_file_sha, base_blob_sha, 'legacy-unknown') WHERE base_file_sha IS NULL`,
+  `ALTER TABLE fix_proposals ALTER COLUMN base_file_sha DROP NOT NULL`,
   `ALTER TABLE fix_proposals ADD COLUMN IF NOT EXISTS original_content TEXT`,
   `ALTER TABLE fix_proposals ADD COLUMN IF NOT EXISTS proposed_content TEXT`,
   `ALTER TABLE fix_proposals ADD COLUMN IF NOT EXISTS proposal_hash TEXT`,
