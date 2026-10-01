@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
@@ -340,6 +341,8 @@ export async function POST(request:Request){
     const scanId=typeof body?.scan_id==="string"?body.scan_id.trim():"";
     const baseBranch=typeof body?.baseBranch==="string"&&/^[A-Za-z0-9._/-]{1,120}$/.test(body.baseBranch)?body.baseBranch:"main";
     const previewOnly=body?.preview===true;
+    const proposalId=typeof body?.proposal_id==="string"?body.proposal_id.trim():"";
+    const approvedHash=typeof body?.proposal_hash==="string"?body.proposal_hash.trim():"";
     // Preview is read-only: it must not consume the PR/code-write rate limit.
     // Only a confirmed publish request can create a branch/commit/PR.
     if(!previewOnly && !await consumeRateLimit("github-fix",String(user.id),12,3600)){
@@ -418,19 +421,46 @@ export async function POST(request:Request){
         [user.id,scannedHost,repo,effectiveBaseBranch]
       );
     }
+    const db=getDb();
     let path:string;
-    try{
-      path=await chooseFile(token,repo,effectiveBaseBranch,requestedPath,issue,issueId);
-    }catch(error){
-      const raw=error instanceof Error?error.message:"GitHub fix mislukt.";
-      throw new Error(localizeFixError(raw,language));
+    let current:string;
+    let file:{type?:string;content?:string;sha:string};
+    let generated:{content:string;summary:string};
+    let activeProposal:{id:string;proposal_hash:string;base_blob_sha:string;base_commit_sha:string;proposed_content:string;original_content:string;summary:string;file_path:string;repository:string;base_branch:string;status:string;branch?:string|null;pr_number?:number|null;pr_url?:string|null}|null=null;
+
+    if(!previewOnly){
+      if(!proposalId || !approvedHash){
+        return NextResponse.json({error:msg("Maak eerst een diff-preview en keur precies dat voorstel goed.","Create a diff preview first and approve that exact proposal.","Erstelle zuerst eine Diff-Vorschau und bestätige genau diesen Vorschlag.","Créez d’abord un aperçu du diff et approuvez exactement cette proposition.","Crea prima un'anteprima diff e approva esattamente quella proposta.","Crea primero una vista previa del diff y aprueba exactamente esa propuesta."),code:"PROPOSAL_REQUIRED"},{status:409});
+      }
+      const stored=await db.query("SELECT id,proposal_hash,base_blob_sha,base_commit_sha,proposed_content,original_content,summary,file_path,repository,base_branch,status FROM fix_proposals WHERE id=$1 AND user_id=$2 AND scan_id=$3 AND issue_id=$4 AND expires_at>NOW() LIMIT 1",[proposalId,user.id,scanId,issueId]);
+      if(!stored.rowCount) return NextResponse.json({error:msg("Deze preview is verlopen of bestaat niet meer. Maak een nieuwe preview.","This preview expired or no longer exists. Create a new preview.","Diese Vorschau ist abgelaufen oder existiert nicht mehr. Erstelle eine neue Vorschau.","Cet aperçu a expiré ou n’existe plus. Créez un nouvel aperçu.","Questa anteprima è scaduta o non esiste più. Creane una nuova.","Esta vista previa caducó o ya no existe. Crea una nueva."),code:"PROPOSAL_EXPIRED"},{status:409});
+      activeProposal=stored.rows[0];
+      if(activeProposal.repository.toLowerCase()!==repo.toLowerCase() || activeProposal.base_branch!==effectiveBaseBranch || activeProposal.proposal_hash!==approvedHash){
+        return NextResponse.json({error:msg("Het goedgekeurde voorstel komt niet meer overeen met deze publicatie.","The approved proposal no longer matches this publication.","Der genehmigte Vorschlag stimmt nicht mehr mit dieser Veröffentlichung überein.","La proposition approuvée ne correspond plus à cette publication.","La proposta approvata non corrisponde più a questa pubblicazione.","La propuesta aprobada ya no coincide con esta publicación."),code:"PROPOSAL_HASH_MISMATCH"},{status:409});
+      }
+      path=activeProposal.file_path;
+      file=await githubFetch<{type?:string;content?:string;sha:string}>(token,"/repos/"+repo+"/contents/"+path+"?ref="+encodeURIComponent(effectiveBaseBranch));
+      if(file.sha!==activeProposal.base_blob_sha){
+        await db.query("UPDATE fix_proposals SET status='INVALIDATED',failure=$2::jsonb,updated_at=NOW() WHERE id=$1",[activeProposal.id,JSON.stringify({code:"STALE_BASE"})]);
+        return NextResponse.json({error:msg("Het bronbestand is gewijzigd sinds de preview. Maak een nieuwe preview.","The source file changed since the preview. Create a new preview.","Die Quelldatei wurde seit der Vorschau geändert. Erstelle eine neue Vorschau.","Le fichier source a changé depuis l’aperçu. Créez un nouvel aperçu.","Il file sorgente è cambiato dall'anteprima. Crea una nuova anteprima.","El archivo fuente cambió desde la vista previa. Crea una nueva vista previa."),code:"STALE_BASE"},{status:409});
+      }
+      current=Buffer.from(file.content?.replace(/\n/g,"")||"","base64").toString("utf8");
+      generated={content:activeProposal.proposed_content,summary:activeProposal.summary};
+      await db.query("UPDATE fix_proposals SET status='APPROVED',approved_hash=proposal_hash,approved_at=COALESCE(approved_at,NOW()),updated_at=NOW() WHERE id=$1",[activeProposal.id]);
+    }else{
+      try{
+        path=await chooseFile(token,repo,effectiveBaseBranch,requestedPath,issue,issueId);
+      }catch(error){
+        const raw=error instanceof Error?error.message:"GitHub fix mislukt.";
+        throw new Error(localizeFixError(raw,language));
+      }
+      file=await githubFetch<{type?:string;content?:string;sha:string}>(token,"/repos/"+repo+"/contents/"+path+"?ref="+encodeURIComponent(effectiveBaseBranch));
+      if(file.type!=="file"||typeof file.content!=="string") return NextResponse.json({error:msg("Dit bestand kan niet worden bewerkt.","This file cannot be edited.","Diese Datei kann nicht bearbeitet werden.","Ce fichier ne peut pas être modifié.","Questo file non può essere modificato.","Este archivo no se puede editar.")},{status:400});
+      current=Buffer.from(file.content.replace(/\n/g,""),"base64").toString("utf8");
+      if(current.length>120000) return NextResponse.json({error:msg("Bestand is te groot voor een veilige AI-codefix.","The file is too large for a safe AI code fix.","Die Datei ist zu groß für einen sicheren AI-Codefix.","Le fichier est trop volumineux pour une correction de code AI sûre.","Il file è troppo grande per una correzione di codice AI sicura.","El archivo es demasiado grande para una corrección de código AI segura.")},{status:413});
+      const deterministicOgFix=buildDeterministicOgFix(path,current,issue,context,issueId);
+      generated=deterministicOgFix || await generateCodeFix(path,current,issue,context,issueId);
     }
-    const file=await githubFetch<{type?:string;content?:string;sha:string}>(token,"/repos/"+repo+"/contents/"+path+"?ref="+encodeURIComponent(effectiveBaseBranch));
-    if(file.type!=="file"||typeof file.content!=="string") return NextResponse.json({error:msg("Dit bestand kan niet worden bewerkt.","This file cannot be edited.","Diese Datei kann nicht bearbeitet werden.","Ce fichier ne peut pas être modifié.","Questo file non può essere modificato.","Este archivo no se puede editar.")},{status:400});
-    const current=Buffer.from(file.content.replace(/\n/g,""),"base64").toString("utf8");
-    if(current.length>120000) return NextResponse.json({error:msg("Bestand is te groot voor een veilige AI-codefix.","The file is too large for a safe AI code fix.","Die Datei ist zu groß für einen sicheren AI-Codefix.","Le fichier est trop volumineux pour une correction de code AI sûre.","Il file è troppo grande per una correzione di codice AI sicura.","El archivo es demasiado grande para una corrección de código AI segura.")},{status:413});
-    const deterministicOgFix=buildDeterministicOgFix(path,current,issue,context,issueId);
-    const generated=deterministicOgFix || await generateCodeFix(path,current,issue,context,issueId);
     if(generated.content.length>180000) return NextResponse.json({error:msg("AI-output is te groot voor een veilige wijziging.","AI output is too large for a safe change.","Die AI-Ausgabe ist zu groß für eine sichere Änderung.","La sortie AI est trop volumineuse pour une modification sûre.","L’output AI è troppo grande per una modifica sicura.","La salida de AI es demasiado grande para un cambio seguro.")},{status:422});
     if(!generated.content.trim() || /(?:\[YOUR_[^\]]*\]|\bTODO\b|CHANGE_ME|REPLACE_ME|INSERT_[A-Z_]+)/i.test(generated.content)) return NextResponse.json({error:msg("AI-output bevat lege inhoud of placeholders.","AI output contains empty content or placeholders.","Die AI-Ausgabe enthält leere Inhalte oder Platzhalter.","La sortie AI contient du contenu vide ou des espaces réservés.","L’output AI contiene contenuti vuoti o segnaposto.","La salida de AI contiene contenido vacío o marcadores de posición.")},{status:422});
     // GitHub fixes contain a complete source file, not a single SEO field.
@@ -483,6 +513,12 @@ export async function POST(request:Request){
     }
 
     if(previewOnly){
+      const baseRef=await githubFetch<{object:{sha:string}}>(token,"/repos/"+repo+"/git/ref/heads/"+encodeURIComponent(effectiveBaseBranch));
+      const proposalHash=createHash("sha256").update([scanId,issueId,repo,effectiveBaseBranch,baseRef.object.sha,path,file.sha,generated.content].join("\\0")).digest("hex");
+      const stored=await db.query(
+        "INSERT INTO fix_proposals (user_id,scan_id,issue_id,policy_version,repository,base_branch,base_commit_sha,file_path,base_blob_sha,original_content,proposed_content,proposal_hash,summary,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'PREVIEW_READY') ON CONFLICT (user_id,proposal_hash) DO UPDATE SET expires_at=NOW()+INTERVAL '2 hours',updated_at=NOW() RETURNING id,proposal_hash",
+        [user.id,scanId,issueId,"fix-policy-v1",repo,effectiveBaseBranch,baseRef.object.sha,path,file.sha,current,generated.content,proposalHash,generated.summary]
+      );
       const beforeLines=current.split("\n");
       const afterLines=generated.content.split("\n");
       let prefix=0;
@@ -493,11 +529,11 @@ export async function POST(request:Request){
       const afterChanged=afterLines.slice(prefix,Math.min(afterLines.length-suffix,prefix+80));
       return NextResponse.json({
         success:true,status:"preview",summary:generated.summary,repository:repo,path,
+        proposal_id:stored.rows[0].id,proposal_hash:stored.rows[0].proposal_hash,
         preview:{startLine:prefix+1,before:beforeChanged,after:afterChanged,truncated:(beforeLines.length-prefix-suffix>80)||(afterLines.length-prefix-suffix>80),changedLines:changeEstimate.changed}
       });
     }
 
-    const db=getDb();
     const scannedUrl = normalizeScanUrl(trustedUrl);
     if(scannedUrl && issueId){
       const existing=await db.query(
@@ -516,13 +552,22 @@ export async function POST(request:Request){
       }
     }
 
-    const branch="rankfix/"+Date.now()+"-"+slug(issue);
+    if(activeProposal?.pr_number){
+      return NextResponse.json({success:true,idempotent:true,status:String(activeProposal.status||"PR_OPEN").toLowerCase(),repository:repo,path,pr:{number:activeProposal.pr_number,url:activeProposal.pr_url},branch:activeProposal.branch});
+    }
+    const branch=activeProposal ? "rankfix/"+slug(issueId)+"-"+activeProposal.proposal_hash.slice(0,8) : "rankfix/"+Date.now()+"-"+slug(issue);
     const baseRef=await githubFetch<{object:{sha:string}}>(token,"/repos/"+repo+"/git/ref/heads/"+encodeURIComponent(effectiveBaseBranch));
     await githubFetch<unknown>(token,"/repos/"+repo+"/git/refs",{method:"POST",body:JSON.stringify({ref:"refs/heads/"+branch,sha:baseRef.object.sha})});
     await githubFetch<unknown>(token,"/repos/"+repo+"/contents/"+path,{
       method:"PUT",
       body:JSON.stringify({message:"fix: RankFix "+slug(issue),content:Buffer.from(generated.content,"utf8").toString("base64"),branch,sha:file.sha})
     });
+    const written=await githubFetch<{type?:string;content?:string;sha:string}>(token,"/repos/"+repo+"/contents/"+path+"?ref="+encodeURIComponent(branch));
+    const writtenContent=Buffer.from((written.content||"").replace(/\n/g,""),"base64").toString("utf8");
+    if(writtenContent!==generated.content){
+      if(activeProposal) await db.query("UPDATE fix_proposals SET status='FAILED',failure=$2::jsonb,updated_at=NOW() WHERE id=$1",[activeProposal.id,JSON.stringify({code:"COMMIT_MISMATCH"})]);
+      return NextResponse.json({error:msg("GitHub bevestigde niet exact dezelfde inhoud als de goedgekeurde preview.","GitHub did not confirm the exact content from the approved preview.","GitHub hat nicht exakt den Inhalt der genehmigten Vorschau bestätigt.","GitHub n’a pas confirmé exactement le contenu de l’aperçu approuvé.","GitHub non ha confermato esattamente il contenuto dell'anteprima approvata.","GitHub no confirmó exactamente el contenido de la vista previa aprobada."),code:"COMMIT_MISMATCH"},{status:409});
+    }
     const pr=await githubFetch<{number?:number;html_url?:string;title?:string}>(token,"/repos/"+repo+"/pulls",{
       method:"POST",
       body:JSON.stringify({title:"RankFix: "+generated.summary.slice(0,70),head:branch,base:effectiveBaseBranch,body:"## RankFix AI fix\n\n"+generated.summary+"\n\nGenerated by RankFix AI. Review the diff before merging.\n\nTarget: "+path})
@@ -542,6 +587,9 @@ export async function POST(request:Request){
       }catch(mergeFailure){
         mergeError=mergeFailure instanceof Error?mergeFailure.message:"GitHub heeft de merge nog niet toegestaan.";
       }
+    }
+    if(activeProposal){
+      await db.query("UPDATE fix_proposals SET status=$2,branch=$3,pr_number=$4,pr_url=$5,updated_at=NOW() WHERE id=$1",[activeProposal.id,mergeState,branch,Number(pr.number)||null,pr.html_url||null]);
     }
     if (scannedUrl && issueId) {
       await db.query(

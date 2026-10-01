@@ -40,6 +40,8 @@ export default function GithubPage(){
   const [error,setError]=useState("");
   const [validation,setValidation]=useState<ValidationResult|null>(null);
   const [preview,setPreview]=useState<FixPreview|null>(null);
+  const [proposalId,setProposalId]=useState("");
+  const [proposalHash,setProposalHash]=useState("");
   const [language,setLanguage]=useState<Locale>("nl");
   const [plan,setPlan]=useState("free");
   const [scanData,setScanData]=useState<any>(null);
@@ -178,7 +180,7 @@ export default function GithubPage(){
     }
     setBusy(true);setError("");setMessage("");setValidation(null);
     try{
-      const r=await fetch("/api/github/fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({repo:cleanRepo,path:cleanPath,baseBranch,scan_id:activeScanId,issue_id:activeIssueId,preview:!publish,language})});
+      const r=await fetch("/api/github/fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({repo:cleanRepo,path:cleanPath,baseBranch,scan_id:activeScanId,issue_id:activeIssueId,preview:!publish,proposal_id:publish?proposalId:undefined,proposal_hash:publish?proposalHash:undefined,language})});
       const text=await r.text();
       let d:any={};
       try{d=JSON.parse(text);}catch{}
@@ -196,6 +198,8 @@ export default function GithubPage(){
       setPath(d.path || cleanPath);
       if(d.status==="preview"&&d.preview){
         setPreview({...d.preview,summary:d.summary});
+        setProposalId(String(d.proposal_id||""));
+        setProposalHash(String(d.proposal_hash||""));
         setMessage(t.previewReady);
       } else {
         setPreview(null);
@@ -262,7 +266,7 @@ export default function GithubPage(){
           {preview.summary&&<p className="mt-2 text-slate-300">{preview.summary}</p>}
           <div className="mt-4 grid gap-3 lg:grid-cols-2"><pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded-xl border border-red-400/15 bg-red-500/5 p-3 text-xs text-red-100">{preview.before.map((line,i)=>`- ${line}`).join("\n")||`- (${t.empty})`}</pre><pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded-xl border border-emerald-400/15 bg-emerald-500/5 p-3 text-xs text-emerald-100">{preview.after.map((line,i)=>`+ ${line}`).join("\n")||`+ (${t.empty})`}</pre></div>
           {preview.truncated&&<p className="mt-2 text-xs text-amber-200">Preview is ingekort; controleer na het aanmaken ook de volledige GitHub-diff.</p>}
-          <button type="button" onClick={()=>{setPreview(null);setMessage("");}} className="mt-3 text-xs text-slate-300 underline">{t.cancel}</button>
+          <button type="button" onClick={()=>{setPreview(null);setProposalId("");setProposalHash("");setMessage("");}} className="mt-3 text-xs text-slate-300 underline">{t.cancel}</button>
         </div>}
         {!completedPr&&<button type="submit" disabled={busy||Boolean(validation?.errors?.length)||error===t.missingAudit} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 font-bold text-[#04342C] disabled:opacity-50">{busy?t.busy:preview?t.approve:t.makePreview}</button>}
       </form>}
