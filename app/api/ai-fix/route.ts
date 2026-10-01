@@ -280,6 +280,15 @@ export async function POST(request: Request) {
       mode = "rule_based_fallback";
     }
     fix = cleanFix(fix);
+    // AI models may wrap text-only fixes in HTML. Normalize those outputs before
+    // validation so the validator still enforces plain text for title/description/H1.
+    if (["meta_title","meta_description","h1"].includes(type) && /<[^>]+>/.test(fix.content)) {
+      const html=fix.content;
+      const metaContent=html.match(/<meta\\b[^>]*\\bcontent=["']([^"']+)["'][^>]*>/i)?.[1];
+      const inner=html.match(type==="h1"?/<h1\\b[^>]*>([\\s\\S]*?)<\\/h1>/i:type==="meta_title"?/<title\\b[^>]*>([\\s\\S]*?)<\\/title>/i:/$^/)?.[1];
+      const normalized=(metaContent||inner||html.replace(/<[^>]+>/g," ")).replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/\\s+/g," ").trim();
+      fix={...fix,content:normalized};
+    }
     if (!fix) {
       return NextResponse.json({error:"De AI-fix kon niet worden gemaakt."},{status:502});
     }

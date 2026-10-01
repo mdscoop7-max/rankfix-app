@@ -52,7 +52,7 @@ function validateStructuredData(value: string, expectedSchema?: string): string[
 
 function validateOpenGraph(value: string): string[] {
   const errors: string[] = [];
-  const tags = [...value.matchAll(/<meta\\b[^>]*>/gi)].map((m) => m[0]);
+  const tags = [...value.matchAll(/<meta\b[^>]*>/gi)].map((m) => m[0]);
   if (!tags.length) return ["Open Graph-fix bevat geen meta-tags."];
   const properties = tags.map((tag) => tag.match(/property=["']([^"']+)["']/i)?.[1]?.toLowerCase() || "");
   const contents = tags.map((tag) => tag.match(/content=["']([^"']*)["']/i)?.[1] || "");
