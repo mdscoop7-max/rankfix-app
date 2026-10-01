@@ -563,7 +563,7 @@ export async function POST(request:Request){
       const baseRef=await githubFetch<{object:{sha:string}}>(token,"/repos/"+repo+"/git/ref/heads/"+encodeURIComponent(effectiveBaseBranch));
       const proposalHash=createHash("sha256").update([scanId,issueId,repo,effectiveBaseBranch,baseRef.object.sha,path,file.sha,generated.content].join("\\0")).digest("hex");
       const stored=await db.query(
-        "INSERT INTO fix_proposals (user_id,scan_id,issue_id,policy_version,repository,base_branch,base_commit_sha,file_path,base_blob_sha,base_file_sha,original_content,proposed_content,proposal_hash,summary,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9,$10,$11,$12,$13,'PREVIEW_READY') ON CONFLICT (user_id,proposal_hash) DO UPDATE SET expires_at=NOW()+INTERVAL '2 hours',updated_at=NOW() RETURNING id,proposal_hash",
+        "INSERT INTO fix_proposals (user_id,scan_id,issue_id,policy_version,repository,base_branch,base_commit_sha,file_path,base_blob_sha,base_file_sha,original_content,proposed_content,proposal_hash,content_hash,summary,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9,$10,$11,$12,$12,$13,'PREVIEW_READY') ON CONFLICT (user_id,proposal_hash) DO UPDATE SET expires_at=NOW()+INTERVAL '2 hours',updated_at=NOW() RETURNING id,proposal_hash",
         [user.id,scanId,issueId,"fix-policy-v1",repo,effectiveBaseBranch,baseRef.object.sha,path,file.sha,current,generated.content,proposalHash,generated.summary]
       );
       const beforeLines=current.split("\n");
