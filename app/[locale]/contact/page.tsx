@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import LocaleShell from "../shell";
 import { copy,isLocale } from "@/lib/locales";
@@ -17,7 +18,7 @@ export default async function ContactPage({params}:{params:Promise<{locale:strin
     <h2 style={{marginBottom:10}}>{locale==="nl"?"Waar kunnen we mee helpen?":"How can we help?"}</h2>
     <p className="lc-lead">{locale==="nl"?"Voor vragen over scans, je account, fixes of RankFix AI kun je vanuit je dashboard direct hulp krijgen.":"For questions about scans, your account, fixes or RankFix AI, you can get help directly from your dashboard."}</p>
     <ContactForm locale={locale}/>
-    <div className="lc-actions" style={{marginTop:20}}><a className="lc-secondary" href="/dashboard/help">{locale==="nl"?"Help & RankFix AI":"Help & RankFix AI"} →</a></div>
+    <div className="lc-actions" style={{marginTop:20}}><Link className="lc-secondary" href="/dashboard/help">{locale==="nl"?"Help & RankFix AI":"Help & RankFix AI"} →</Link></div>
    </div>
   </section>
  </LocaleShell>;
