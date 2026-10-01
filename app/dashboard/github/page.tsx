@@ -11,6 +11,7 @@ import "../dashboard.css";
 type Repo={full_name:string;default_branch:string;private:boolean};
 type ValidationResult={valid?:boolean;errors?:string[];warnings?:string[]};
 type FixPreview={startLine:number;before:string[];after:string[];truncated?:boolean;changedLines?:number;summary?:string};
+type AiProposal={title:string;content:string;reason:string};
 const ui:Record<Locale,{back:string;title:string;intro:string;connect:string;connectInfo:string;connectCta:string;connected:string;reconnect:string;linkedRepo:string;searchRepo:string;chooseRepo:string;searching:string;loading:string;selectRepo:string;privateRepo:string;mappedInfo:string;chooseInfo:string;changeRepo:string;website:string;blocked:string;warnings:string;preview:string;changed:string;empty:string;truncated:string;cancel:string;busy:string;approve:string;makePreview:string;invalidLink:string;verifyFail:string;release:string;mappingFail:string;released:string;missingSite:string;changing:string;oldReleased:string;missingAudit:string;chooseOnce:string;repoFormat:string;fixFail:string;invalidGithub:string;previewReady:string;alreadyApplied:string;prProposed:string;engineFail:string}>={
 nl:{back:"Dashboard",title:"Een codevoorstel voor je website.",intro:"RankFix leest alleen het gekozen bestand, maakt de kleinste noodzakelijke wijziging en opent een aparte Pull Request. Er wordt niets automatisch naar productie gemerged.",connect:"Verbind GitHub",connectInfo:"Je geeft RankFix alleen toegang tot GitHub nadat je dit bij GitHub zelf hebt goedgekeurd.",connectCta:"Verbind met GitHub",connected:"GitHub verbonden als",reconnect:"GitHub opnieuw verbinden",linkedRepo:"Gekoppelde repository",searchRepo:"Repository zoeken…",chooseRepo:"Kies eenmalig de repository van deze website",searching:"RankFix zoekt je GitHub-repositories en controleert de koppeling met deze website…",loading:"Repositories laden…",selectRepo:"Selecteer repository",privateRepo:"privé",mappedInfo:"RankFix gebruikt deze geverifieerde koppeling automatisch.",chooseInfo:"Dit hoef je maar één keer per website te doen. RankFix kiest branch, bestand en technische gegevens daarna zelf.",changeRepo:"Repositorykoppeling wijzigen",website:"Website",blocked:"Fix geblokkeerd",warnings:"Waarschuwingen",preview:"Diff-preview · vanaf regel",changed:"gewijzigde regels",empty:"leeg",truncated:"Preview is ingekort; controleer na het aanmaken ook de volledige GitHub-diff.",cancel:"Preview annuleren",busy:"AI + GitHub zijn bezig…",approve:"Preview goedgekeurd — maak Pull Request",makePreview:"Maak eerst diff-preview",invalidLink:"De GitHub-koppeling is ongeldig. Verbind GitHub opnieuw.",verifyFail:"GitHub kan niet worden geverifieerd. Verbind GitHub opnieuw.",release:"Repositorykoppeling wordt vrijgegeven…",mappingFail:"Repositorykoppeling kon niet worden gewijzigd.",released:"Koppeling vrijgegeven. Kies nu de juiste repository voor deze website.",missingSite:"Websitecontext ontbreekt; open deze fix opnieuw vanuit het auditrapport.",changing:"Repositorykoppeling wordt gewijzigd…",oldReleased:"Oude koppeling vrijgegeven. Controleer de nieuwe repository en maak daarna de diff-preview.",missingAudit:"De auditcontext ontbreekt. Open deze fix opnieuw via ‘Maak AI-fix’ bij het specifieke verbeterpunt in het auditrapport.",chooseOnce:"Kies eenmalig de GitHub-repository die bij deze website hoort.",repoFormat:"Repository moet in het formaat owner/repository staan, bijvoorbeeld mdscoop7-max/Trendmix.",fixFail:"GitHub fix mislukt. Controleer repository en bestand.",invalidGithub:"Je GitHub-koppeling is ongeldig. Klik op ‘GitHub opnieuw verbinden’ en autoriseer RankFix opnieuw.",previewReady:"Preview klaar. Controleer de wijziging hieronder; er is nog geen branch of Pull Request aangemaakt.",alreadyApplied:"De gevraagde code staat al in het bestand. Er is niets gewijzigd. Controleer de live pagina met een nieuwe scan.",prProposed:"Codewijziging voorgesteld in PR",engineFail:"Verbinding met GitHub Fix Engine mislukt."},
 en:{back:"Dashboard",title:"A code proposal for your website.",intro:"RankFix only reads the selected file, makes the smallest necessary change and opens a separate Pull Request. Nothing is merged to production automatically.",connect:"Connect GitHub",connectInfo:"RankFix only gets GitHub access after you approve it on GitHub.",connectCta:"Connect GitHub",connected:"GitHub connected as",reconnect:"Reconnect GitHub",linkedRepo:"Linked repository",searchRepo:"Searching repository…",chooseRepo:"Choose this website’s repository once",searching:"RankFix is searching your GitHub repositories and checking the link to this website…",loading:"Loading repositories…",selectRepo:"Select repository",privateRepo:"private",mappedInfo:"RankFix automatically uses this verified link.",chooseInfo:"You only need to do this once per website. RankFix then selects the branch, file and technical details automatically.",changeRepo:"Change repository link",website:"Website",blocked:"Fix blocked",warnings:"Warnings",preview:"Diff preview · from line",changed:"changed lines",empty:"empty",truncated:"Preview is shortened; also review the full GitHub diff after creating it.",cancel:"Cancel preview",busy:"AI + GitHub are working…",approve:"Preview approved — create Pull Request",makePreview:"Create diff preview first",invalidLink:"The GitHub connection is invalid. Reconnect GitHub.",verifyFail:"GitHub could not be verified. Reconnect GitHub.",release:"Releasing repository link…",mappingFail:"Repository link could not be changed.",released:"Link released. Now choose the correct repository for this website.",missingSite:"Website context is missing; reopen this fix from the audit report.",changing:"Changing repository link…",oldReleased:"Old link released. Check the new repository and then create the diff preview.",missingAudit:"Audit context is missing. Reopen this fix via ‘Create AI fix’ for the specific issue in the audit report.",chooseOnce:"Choose the GitHub repository for this website once.",repoFormat:"Repository must use owner/repository format, for example mdscoop7-max/Trendmix.",fixFail:"GitHub fix failed. Check the repository and file.",invalidGithub:"Your GitHub connection is invalid. Click ‘Reconnect GitHub’ and authorize RankFix again.",previewReady:"Preview ready. Review the change below; no branch or Pull Request has been created yet.",alreadyApplied:"The requested code is already in the file. Nothing was changed. Check the live page with a new scan.",prProposed:"Code change proposed in PR",engineFail:"Connection to GitHub Fix Engine failed."},
@@ -41,6 +42,11 @@ export default function GithubPage(){
   const [preview,setPreview]=useState<FixPreview|null>(null);
   const [language,setLanguage]=useState<Locale>("nl");
   const [plan,setPlan]=useState("free");
+  const [scanData,setScanData]=useState<any>(null);
+  const [proposal,setProposal]=useState<AiProposal|null>(null);
+  const [proposalLoading,setProposalLoading]=useState(false);
+  const [proposalError,setProposalError]=useState("");
+  const [proposalRequested,setProposalRequested]=useState(false);
   const t=ui[language];
 
   useEffect(()=>{
@@ -56,7 +62,7 @@ export default function GithubPage(){
         try{
           const sr=await fetch("/api/history/"+encodeURIComponent(incomingScanId),{cache:"no-store"});
           const sd=await sr.json();
-          if(sr.ok&&sd?.scan?.scanned_url){ incomingUrl=sd.scan.scanned_url; setSiteUrl(incomingUrl); }
+          if(sr.ok&&sd?.scan?.scanned_url){ incomingUrl=sd.scan.scanned_url; setSiteUrl(incomingUrl); setScanData(sd.scan); }
         }catch{}
       } else setSiteUrl(incomingUrl);
       const r=await fetch("/api/github/status"); const d=await r.json();
@@ -72,6 +78,25 @@ export default function GithubPage(){
       setReposLoading(false);
     })();
   },[searchParams]);
+
+  useEffect(()=>{
+    if(!scanData||!issueId||proposalRequested) return;
+    setProposalRequested(true);
+    const allChecks=[...(scanData?.result?.seo?.checks||[]),...(scanData?.result?.geo?.checks||[])];
+    const check=allChecks.find((c:any)=>String(c.issue_id||c.rule_id||"")===issueId);
+    if(!check){setProposalError(language==="nl"?"Dit verbeterpunt kon niet in de actieve scan worden gevonden.":"This issue could not be found in the active scan.");return;}
+    const typeMap:Record<string,string>={META_TITLE_MISSING:"meta_title",META_TITLE_GUIDANCE:"meta_title",META_DESCRIPTION_MISSING:"meta_description",META_DESCRIPTION_GUIDANCE:"meta_description",H1_MISSING:"h1",IMAGE_ALT_MISSING:"alt_text",SOCIAL_METADATA_INCOMPLETE:"social_metadata",social:"social_metadata",STRUCTURED_DATA_MISSING:"structured_data",breadcrumbs:"breadcrumb",canonical:"canonical",headings:"heading_structure",faq:"faq",author:"expertise"};
+    const type=typeMap[issueId];
+    if(!type){setProposalError(language==="nl"?"Voor dit verbeterpunt is nog geen veilig AI-fixformaat beschikbaar.":"No safe AI fix format is available for this issue yet.");return;}
+    const m=scanData?.result?.metrics||{};
+    const current=type==="meta_title"?(m.title||""):type==="meta_description"?(m.description||""):type==="h1"?(m.h1s?.[0]||""):"";
+    const context={title:m.title||"",description:m.description||"",h1:m.h1s?.[0]||"",canonical:m.canonical||"",imageAltCandidates:m.imageAltCandidates||[],ogTitle:m.openGraph?.title||"",ogDescription:m.openGraph?.description||"",ogImage:m.openGraph?.image||"",recommendedSchema:m.recommendedSchema||"",url:scanData.scanned_url};
+    setProposalLoading(true);setProposalError("");
+    fetch("/api/ai-fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:scanData.scanned_url,issue_id:issueId,request_id:crypto.randomUUID(),type,current,context,issue_status:String(check.status||"FAIL").toUpperCase()})})
+      .then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error==="invalid_output"?(d.validation?.errors||[]).join(" · "):d.error||"AI-fix mislukt.");setProposal(d.fix);})
+      .catch(e=>setProposalError(e instanceof Error?e.message:"AI-fix mislukt."))
+      .finally(()=>setProposalLoading(false));
+  },[scanData,issueId,proposalRequested,language]);
 
   async function changeRepositoryMapping(){
     if(!siteUrl||busy) return;
@@ -169,6 +194,13 @@ export default function GithubPage(){
       <div className="text-xs uppercase tracking-widest text-emerald-300">GitHub Fix Engine</div>
       <h1 className="mt-2 text-3xl font-black leading-tight sm:text-4xl">Een codevoorstel voor je website.</h1>
       <p className="mt-3 max-w-2xl text-slate-400">RankFix leest alleen het gekozen bestand, maakt de kleinste noodzakelijke wijziging en opent een aparte Pull Request. Er wordt niets automatisch naar productie gemerged.</p>
+      {scanId&&issueId&&<div className="mt-8 rounded-3xl border border-cyan-300/20 bg-cyan-400/[0.05] p-5 sm:p-7">
+        <div className="text-xs font-bold uppercase tracking-widest text-cyan-300">{language==="nl"?"AI-fixvoorstel":"AI fix proposal"}</div>
+        {proposalLoading&&<p className="mt-3 text-slate-300">{language==="nl"?"RankFix maakt een concreet voorstel op basis van deze scan…":"RankFix is creating a concrete proposal from this scan…"}</p>}
+        {proposalError&&<div className="mt-3 rounded-xl bg-red-500/10 p-4 text-sm text-red-200">{proposalError}</div>}
+        {proposal&&<><h2 className="mt-3 text-xl font-bold text-white">{proposal.title}</h2><p className="mt-2 text-sm text-slate-400">{proposal.reason}</p><pre className="mt-4 max-h-96 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/25 p-4 text-sm text-slate-100">{proposal.content}</pre><button type="button" onClick={()=>navigator.clipboard.writeText(proposal.content)} className="mt-4 rounded-xl border border-cyan-300/20 px-4 py-2 text-sm font-bold text-cyan-100">{language==="nl"?"Kopieer voorstel":"Copy proposal"}</button></>}
+      </div>}
+      {plan==="free"&&proposal&&<p className="mt-4 text-sm text-slate-400">{language==="nl"?"Je kunt dit voorstel handmatig gebruiken. GitHub is optioneel en staat los van het tonen van het AI-voorstel.":"You can use this proposal manually. GitHub is optional and separate from showing the AI proposal."}</p>}
       {plan==="free" ? null : !connected ? <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-7">
         <h2 className="text-xl font-bold">{t.connect}</h2>
         <p className="mt-2 text-sm text-slate-500">{t.connectInfo}</p>

@@ -623,7 +623,7 @@ export async function POST(request: Request) {
     const hasSocialOrReviewSignal = /\b(instagram|facebook|linkedin|google reviews|reviews|tripadvisor|trustpilot)\b/i.test(text) || sameAsCount > 0;
     const hasContactChannelSignal = hasBusinessContactDetails || (hasContactSignal && (hasContactFormSignal || hasContactActionSignal));
     const hasServiceExpertiseSignal = /\b(diensten|services|service|specialist|specialisten|expert|expertise|seo|geo|structured data|schema\.org|technical seo|technische seo|ai[- ]search|search readiness|auditsoftware|auditing|behandeling|behandelingen|hair|haar|knippen|kleur|color|styling|restaurant|keuken|cuisine|tandarts|elektricien|loodgieter|aannemer|dakdekker)\b/i.test(text);
-    const hasStrongCommerceAction = /\b(add to cart|add-to-cart|add to basket|buy now|in winkelwagen|toevoegen aan winkelwagen|koop nu|jetzt kaufen|ajouter au panier|acheter maintenant|añadir al carrito|comprar ahora|aggiungi al carrello|acquista ora)\b/i.test(text);
+    const hasStrongCommerceAction = /\b(add to cart|add-to-cart|add to basket|buy now|in winkelwagen|toevoegen(?: aan winkelwagen)?|koop nu|jetzt kaufen|in den warenkorb|ajouter au panier|acheter maintenant|añadir al carrito|comprar ahora|aggiungi al carrello|acquista ora)\b/i.test(text);
     const hasSkuSignal = /\b(sku|artikelnummer|productcode|référence produit|referencia del producto|codice prodotto)\b/i.test(text);
     const hasStockSignal = /\b(in stock|out of stock|op voorraad|niet op voorraad|uitverkocht|auf lager|nicht auf lager|en stock|rupture de stock|agotado|disponible|esaurito|disponibile|pre-?order|backorder)\b/i.test(text);
     const hasExplicitPriceSignal = /(?:€|£|\$)\s*\d|\d[\d.,]*\s*(?:€|EUR|GBP|USD)\b|\b(?:prijs|price|preis|prix|precio|prezzo)\s*[:€£$]?\s*\d/i.test(text);
@@ -654,7 +654,8 @@ export async function POST(request: Request) {
     // Pricing tables on SaaS/service sites are not webshop evidence by themselves.
     // A homepage needs an actual commerce action before webshop-only checks are enabled.
     const hasConfirmedCommercePlatform = /wp-content\/plugins\/woocommerce|wc-ajax|woocommerce-cart|woocommerce-checkout|woocommerce-page|cdn\.shopify\.com|\/cdn\/shop\/|shopify\.theme|shopify-section|shopify-payment-button|mage\/cookies|magento_|x-magento|\/static\/version\d+/i.test(html);
-    const hasEcommerceSignal = hasConfirmedCommercePlatform || hasProductSignal || hasCategorySignal || (commerceNavigationSignal && hasStrongCommerceAction && (hasExplicitPriceSignal || visiblePriceCount >= 2));
+    const hasCommerceHrefSignal = /href\s*=\s*["'][^"']*(?:cart|winkelwagen|checkout|product|producten|shop|store)[^"']*["']/i.test(html);
+    const hasEcommerceSignal = hasConfirmedCommercePlatform || hasProductSignal || hasCategorySignal || (commerceNavigationSignal && hasStrongCommerceAction && (hasExplicitPriceSignal || visiblePriceCount >= 2)) || (hasCommerceHrefSignal && hasStrongCommerceAction && visiblePriceCount >= 2);
     const requestedLanguages = adsProfile.adLanguages.split(/[,;]/).map((value) => value.trim().toLowerCase()).filter(Boolean).slice(0, 6);
     const requestedCountries = adsProfile.targetCountries.split(/[,;]/).map((value) => value.trim()).filter(Boolean).slice(0, 8);
     const pageLanguage = (requestedLanguages[0] || lang || "").toLowerCase().split("-")[0].trim();
