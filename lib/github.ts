@@ -32,7 +32,8 @@ export async function githubFetch<T>(token: string, path: string, init: RequestI
     cache:"no-store",
   });
   const text=await response.text();
-  let data:any=null; try{data=text?JSON.parse(text):null;}catch{data={message:text};}
-  if(!response.ok) throw new Error(data?.message || ("GitHub API error " + response.status));
+  let data:unknown=null; try{data=text?JSON.parse(text):null;}catch{data={message:text};}
+  const message=data&&typeof data==="object"&&"message" in data?String((data as {message?:unknown}).message||""):"";
+  if(!response.ok) throw new Error(message || ("GitHub API error " + response.status));
   return data as T;
 }

@@ -18,7 +18,7 @@ export async function GET() {
     return NextResponse.json({connected:false,reauthorize:true,error:"De opgeslagen GitHub-koppeling is ongeldig. Verbind GitHub opnieuw."});
   }
   try {
-    const ghUser=await githubFetch<any>(token,"/user");
+    const ghUser=await githubFetch<{login:string}>(token,"/user");
     return NextResponse.json({connected:true,connection:{github_login:ghUser.login,scopes:r.rows[0].scopes,connected_at:r.rows[0].connected_at}});
   } catch(error) {
     const message=error instanceof Error?error.message:"GitHub-authenticatie mislukt.";

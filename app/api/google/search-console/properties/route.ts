@@ -23,8 +23,9 @@ async function googleProperties(userId:string){
  const r=await fetch("https://www.googleapis.com/webmasters/v3/sites",{headers:{Authorization:"Bearer "+token},cache:"no-store"});
  const d=await r.json();
  if(!r.ok)throw new Error("gsc");
- const entries=Array.isArray(d.siteEntry)?d.siteEntry:[];
- const properties:GoogleProperty[]=entries.map((x:any)=>({siteUrl:String(x.siteUrl),permissionLevel:String(x.permissionLevel)}));
+ const raw=d&&typeof d==="object"?d as {siteEntry?:unknown}:{};
+ const entries=Array.isArray(raw.siteEntry)?raw.siteEntry:[];
+ const properties:GoogleProperty[]=entries.map((x:unknown)=>{const item=x&&typeof x==="object"?x as Record<string,unknown>:{};return {siteUrl:String(item.siteUrl||""),permissionLevel:String(item.permissionLevel||"")};});
  return {connected:true as const,properties};
 }
 
