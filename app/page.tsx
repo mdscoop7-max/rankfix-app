@@ -558,7 +558,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         : "De website retourneert een serverfout. Controleer de website of hosting en voer de scan opnieuw uit zodra de pagina normaal bereikbaar is. RankFix presenteert deze foutpagina niet als SEO- of GEO-probleem.";
 
   return (
-    <main className="rankfix-home min-h-screen bg-[#07172B] text-[#F7FBFF] selection:bg-emerald-300 selection:text-[#032D24]">
+    <main className="rankfix-home min-h-screen bg-[#F7FBFF] text-[#10233F] selection:bg-blue-200 selection:text-blue-950">
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden opacity-40">
         <div className="absolute left-1/2 top-[-220px] h-[560px] w-[900px] -translate-x-1/2 rounded-full bg-emerald-500/10 blur-[130px]" />
         <div className="absolute right-[-180px] top-[520px] h-[420px] w-[420px] rounded-full bg-blue-600/10 blur-[120px]" />
@@ -629,9 +629,9 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         )}
       </nav>
 
-      <section id="scan" className="mx-auto max-w-6xl px-5 pb-16 pt-16 text-center lg:px-8 lg:pt-24">
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/5 px-4 py-2 text-xs font-semibold text-emerald-200">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" />
+      <section id="scan" className="relative overflow-hidden bg-gradient-to-br from-[#F8FCFF] via-white to-[#EEF6FF] px-5 pb-16 pt-16 lg:px-8 lg:pt-20">\n        <div className="pointer-events-none absolute -right-24 top-8 h-80 w-80 rounded-full bg-blue-400/15 blur-3xl" />\n        <div className="relative mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[1.05fr_.95fr]">\n        <div className="text-center lg:text-left">
+        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-bold uppercase tracking-[.08em] text-blue-700">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-blue-500" />
           {t.badge}
         </div>
         <h1 className="mx-auto max-w-4xl text-4xl font-black tracking-[-0.04em] sm:text-6xl lg:text-7xl">
@@ -642,7 +642,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
           {t.intro}
         </p>
 
-        <div className="mx-auto mt-9 max-w-3xl rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-300/30 backdrop-blur">
+        <div className="mt-9 max-w-3xl rounded-2xl border border-blue-100 bg-white p-2 shadow-xl shadow-blue-200/30">
           <div className="mb-3 grid grid-cols-3 gap-1.5 sm:gap-2">
             {[
               ["seo", "SEO", t.seoDesc],
@@ -664,17 +664,17 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
               onChange={(e) => setUrl(e.target.value)}
               placeholder="jouwdomein.nl"
               required
-              className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-[#16233A] px-4 py-4 text-base outline-none placeholder:text-slate-600 focus:border-emerald-300 sm:border-0 sm:bg-transparent sm:text-sm"
+              className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-4 py-4 text-base text-slate-900 outline-none placeholder:text-slate-400 focus:border-blue-400 sm:border-0 sm:text-sm"
             />
             <button
               disabled={scanning}
-              className="rounded-xl bg-emerald-300 px-6 py-4 text-sm font-bold text-[#032D24] shadow-lg shadow-emerald-500/10 transition hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-6 py-4 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition hover:from-blue-700 hover:to-cyan-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {scanning ? t.scanning : `${t.start} ${auditMode === "seo" ? "SEO" : auditMode === "geo" ? "GEO" : "SEO + GEO"} ${t.auditStart}`}
             </button>
           </form>
         </div>
-        <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 px-2 text-xs font-medium text-emerald-200 sm:gap-x-6">
+        <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 px-2 text-xs font-medium text-emerald-600 sm:gap-x-6">
           {(language === "nl"
             ? ["SEO","GEO","Techniek","Webshop","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","Local SEO","Structured Data","Broken Links","Redirects","Accessibility","Concurrenten","AI Fixes","GitHub Fixes"]
             : language === "de"
