@@ -16,6 +16,7 @@ const ui: Record<Locale,{title:string;description:string;language:string;save:st
 };
 type User = { name:string; email:string; customer_id:string };
 export default function AccountSettings() {
+ const router=useRouter();
  const [user,setUser] = useState<User|null>(null), [language,setLanguage] = useState<Locale>("nl"), [busy,setBusy] = useState(false), [message,setMessage] = useState("");
  const [usage,setUsage]=useState<{plan:string;used:number;limit:number|null;websiteHost:string|null}>({plan:"free",used:0,limit:2,websiteHost:null});
  useEffect(() => { Promise.all([fetch("/api/auth/me").then(r => r.json()),fetch("/api/account/language").then(r => r.ok ? r.json() : null),fetch("/api/history",{cache:"no-store"}).then(r=>r.ok?r.json():null)]).then(([account,preferences,history]) => { if(!account.user){ router.push("/account"); return; } setUser(account.user); if(preferences?.language in ui) setLanguage(preferences.language); if(history?.usage)setUsage(history.usage); }) .catch(() => setMessage(ui[language].loadError)); },[]);
