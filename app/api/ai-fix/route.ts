@@ -284,9 +284,9 @@ export async function POST(request: Request) {
     // validation so the validator still enforces plain text for title/description/H1.
     if (["meta_title","meta_description","h1"].includes(type) && /<[^>]+>/.test(fix.content)) {
       const html=fix.content;
-      const metaContent=html.match(/<meta\\b[^>]*\\bcontent=["']([^"']+)["'][^>]*>/i)?.[1];
-      const inner=html.match(type==="h1"?/<h1\\b[^>]*>([\\s\\S]*?)<\\/h1>/i:type==="meta_title"?/<title\\b[^>]*>([\\s\\S]*?)<\\/title>/i:/$^/)?.[1];
-      const normalized=(metaContent||inner||html.replace(/<[^>]+>/g," ")).replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/\\s+/g," ").trim();
+      const metaContent=html.match(/<meta\b[^>]*\bcontent=["']([^"']+)["'][^>]*>/i)?.[1];
+      const inner=html.match(type==="h1"?new RegExp("<h1\\\\b[^>]*>([\\\\s\\\\S]*?)</h1>","i"):type==="meta_title"?new RegExp("<title\\\\b[^>]*>([\\\\s\\\\S]*?)</title>","i"):/$^/)?.[1];
+      const normalized=(metaContent||inner||html.replace(/<[^>]+>/g," ")).replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/\s+/g," ").trim();
       fix={...fix,content:normalized};
     }
     if (!fix) {
