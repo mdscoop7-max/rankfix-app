@@ -95,14 +95,17 @@ export default function GithubPage(){
       setProposal({title:language==="nl"?"Concreet scanvoorstel":"Concrete scan proposal",content:directProposal,reason:language==="nl"?"Dit concrete voorstel komt rechtstreeks uit de gecontroleerde scan.":"This concrete proposal comes directly from the verified scan."});
       return;
     }
+    const normalizedIssue=String(check.rule_id||check.issue_id||issueId);
+    const titleHint=String(check.title||"").toLowerCase();
     const typeMap:Record<string,string>={META_TITLE_MISSING:"meta_title",META_TITLE_GUIDANCE:"meta_title",META_DESCRIPTION_MISSING:"meta_description",META_DESCRIPTION_GUIDANCE:"meta_description",H1_MISSING:"h1",IMAGE_ALT_MISSING:"alt_text",SOCIAL_METADATA_INCOMPLETE:"social_metadata",social:"social_metadata",STRUCTURED_DATA_MISSING:"structured_data",breadcrumbs:"breadcrumb",canonical:"canonical",headings:"heading_structure",faq:"faq",author:"expertise"};
-    const type=typeMap[issueId];
+    const inferredType=titleHint.includes("social")||titleHint.includes("open graph")?"social_metadata":titleHint.includes("meta description")?"meta_description":titleHint.includes("meta title")?"meta_title":titleHint.includes("structured data")?"structured_data":titleHint.includes("canonical")?"canonical":titleHint.includes("alt")?"alt_text":titleHint.includes("heading")?"heading_structure":titleHint.includes("h1")?"h1":"";
+    const type=typeMap[normalizedIssue]||typeMap[issueId]||inferredType;
     if(!type){setProposalError(language==="nl"?"Voor dit verbeterpunt is nog geen veilig AI-fixformaat beschikbaar.":"No safe AI fix format is available for this issue yet.");return;}
     const m=scanData?.result?.metrics||{};
     const current=type==="meta_title"?(m.title||""):type==="meta_description"?(m.description||""):type==="h1"?(m.h1s?.[0]||""):"";
     const context={title:m.title||"",description:m.description||"",h1:m.h1s?.[0]||"",canonical:m.canonical||"",imageAltCandidates:m.imageAltCandidates||[],ogTitle:m.openGraph?.title||"",ogDescription:m.openGraph?.description||"",ogImage:m.openGraph?.image||"",recommendedSchema:m.recommendedSchema||"",url:scanData.scanned_url};
     setProposalLoading(true);setProposalError("");
-    fetch("/api/ai-fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:scanData.scanned_url,issue_id:issueId,request_id:crypto.randomUUID(),type,current,context,issue_status:String(check.status||"FAIL").toUpperCase()})})
+    fetch("/api/ai-fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:scanData.scanned_url,issue_id:normalizedIssue,request_id:crypto.randomUUID(),type,current,context,issue_status:String(check.status||"FAIL").toUpperCase()})})
       .then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error==="invalid_output"?(d.validation?.errors||[]).join(" · "):d.error||"AI-fix mislukt.");setProposal(d.fix);})
       .catch(e=>setProposalError(e instanceof Error?e.message:"AI-fix mislukt."))
       .finally(()=>setProposalLoading(false));
