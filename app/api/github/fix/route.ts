@@ -60,7 +60,7 @@ async function chooseFile(token:string,repo:string,branch:string,requested:strin
   const rawTree=Array.isArray(tree?.tree)?tree.tree:[];
   if(rawTree.length>12000) throw new Error("Deze repository bevat te veel bestanden voor veilige automatische bestandsselectie. Kies eerst expliciet het doelbestand.");
   const files=rawTree.filter((x): x is {type?:string;path:string}=>x.type==="blob"&&typeof x.path==="string"&&safeFixTarget(x.path));
-  const ranked=files.map((f:any)=>{ const p=f.path.toLowerCase(); let score=0; if(/(index|layout|document)/.test(p)) score+=5; if(/\.(html?|tsx|jsx|vue|php)$/.test(p)) score+=3; if(issueText.includes("social")&&/(head|layout|index|document)/.test(p)) score+=5; if(issueText.includes("canonical")&&/(head|layout|index|document)/.test(p)) score+=5; if(p.includes("template")) score+=2; return {path:f.path,score}; }).sort((a,b)=>b.score-a.score);
+  const ranked=files.map((f)=>{ const p=f.path.toLowerCase(); let score=0; if(/(index|layout|document)/.test(p)) score+=5; if(/\.(html?|tsx|jsx|vue|php)$/.test(p)) score+=3; if(issueText.includes("social")&&/(head|layout|index|document)/.test(p)) score+=5; if(issueText.includes("canonical")&&/(head|layout|index|document)/.test(p)) score+=5; if(p.includes("template")) score+=2; return {path:f.path,score}; }).sort((a,b)=>b.score-a.score);
   if(!ranked[0]) throw new Error("RankFix kon geen geschikt bestand vinden voor deze fix.");
   return ranked[0].path;
 }
@@ -349,7 +349,7 @@ export async function POST(request:Request){
       ...(Array.isArray(scanResult?.seo?.checks)?scanResult.seo.checks:[]),
       ...(Array.isArray(scanResult?.geo?.checks)?scanResult.geo.checks:[])
     ];
-    const trustedCheck=trustedChecks.find((check:any)=>String(check?.issue_id||check?.rule_id||"")===issueId);
+    const trustedCheck=trustedChecks.find((check:Record<string,unknown>)=>String(check.issue_id||check.rule_id||"")===issueId);
     if(!trustedCheck) return NextResponse.json({error:msg("Deze bevinding kon niet in de opgeslagen scan worden bevestigd.","This finding could not be confirmed in the saved scan.","Dieser Befund konnte im gespeicherten Scan nicht bestätigt werden.","Ce problème n’a pas pu être confirmé dans l’analyse enregistrée.","Questo problema non è stato confermato nella scansione salvata.","Este problema no pudo confirmarse en el análisis guardado.")},{status:404});
     const trustedStatus=String(trustedCheck?.issue_status||trustedCheck?.status||"").toUpperCase();
     const trustedConfidence=String(trustedCheck?.confidence||"").toLowerCase();
@@ -375,7 +375,7 @@ export async function POST(request:Request){
     const scannedHost=normalizeHostname(trustedUrl);
     let effectiveRepo=requestedRepo;
     let effectiveBaseBranch=baseBranch;
-    let existingMapping:any=null;
+    let existingMapping:{repository?:string;base_branch?:string}|null=null;
     if(scannedHost){
       const saved=await getDb().query(
         "SELECT repository,base_branch FROM website_repositories WHERE user_id=$1 AND website_host=$2 LIMIT 1",
@@ -414,7 +414,7 @@ export async function POST(request:Request){
       const raw=error instanceof Error?error.message:"GitHub fix mislukt.";
       throw new Error(localizeFixError(raw,language));
     }
-    const file=await githubFetch<any>(token,"/repos/"+repo+"/contents/"+path+"?ref="+encodeURIComponent(effectiveBaseBranch));
+    const file=await githubFetch<{type?:string;content?:string;sha:string}>(token,"/repos/"+repo+"/contents/"+path+"?ref="+encodeURIComponent(effectiveBaseBranch));
     if(file.type!=="file"||typeof file.content!=="string") return NextResponse.json({error:msg("Dit bestand kan niet worden bewerkt.","This file cannot be edited.","Diese Datei kann nicht bearbeitet werden.","Ce fichier ne peut pas être modifié.","Questo file non può essere modificato.","Este archivo no se puede editar.")},{status:400});
     const current=Buffer.from(file.content.replace(/\n/g,""),"base64").toString("utf8");
     if(current.length>120000) return NextResponse.json({error:msg("Bestand is te groot voor een veilige AI-codefix.","The file is too large for a safe AI code fix.","Die Datei ist zu groß für einen sicheren AI-Codefix.","Le fichier est trop volumineux pour une correction de code AI sûre.","Il file è troppo grande per una correzione di codice AI sicura.","El archivo es demasiado grande para una corrección de código AI segura.")},{status:413});
@@ -487,13 +487,13 @@ export async function POST(request:Request){
     }
 
     const branch="rankfix/"+Date.now()+"-"+slug(issue);
-    const baseRef=await githubFetch<any>(token,"/repos/"+repo+"/git/ref/heads/"+encodeURIComponent(effectiveBaseBranch));
-    await githubFetch<any>(token,"/repos/"+repo+"/git/refs",{method:"POST",body:JSON.stringify({ref:"refs/heads/"+branch,sha:baseRef.object.sha})});
-    await githubFetch<any>(token,"/repos/"+repo+"/contents/"+path,{
+    const baseRef=await githubFetch<{object:{sha:string}}>(token,"/repos/"+repo+"/git/ref/heads/"+encodeURIComponent(effectiveBaseBranch));
+    await githubFetch<unknown>(token,"/repos/"+repo+"/git/refs",{method:"POST",body:JSON.stringify({ref:"refs/heads/"+branch,sha:baseRef.object.sha})});
+    await githubFetch<unknown>(token,"/repos/"+repo+"/contents/"+path,{
       method:"PUT",
       body:JSON.stringify({message:"fix: RankFix "+slug(issue),content:Buffer.from(generated.content,"utf8").toString("base64"),branch,sha:file.sha})
     });
-    const pr=await githubFetch<any>(token,"/repos/"+repo+"/pulls",{
+    const pr=await githubFetch<{number?:number;html_url?:string}>(token,"/repos/"+repo+"/pulls",{
       method:"POST",
       body:JSON.stringify({title:"RankFix: "+generated.summary.slice(0,70),head:branch,base:effectiveBaseBranch,body:"## RankFix AI fix\n\n"+generated.summary+"\n\nGenerated by RankFix AI. Review the diff before merging.\n\nTarget: "+path})
     });
