@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getDb } from "@/lib/db";
 import { validateFix } from "@/lib/seo-fix-validator";
 import { ensureDatabase } from "@/lib/db-init";
 import { consumeRateLimit } from "@/lib/rate-limit";
@@ -53,10 +52,18 @@ async function generateWithOpenAI(type: FixType, url: string, current: string, c
     body: JSON.stringify({ model, input: prompt, max_output_tokens: 700 }),
   });
   if (!response.ok) throw new Error("AI-provider gaf geen geldige response.");
-  const data = await response.json();
-  const text = typeof data?.output_text === "string"
+  const rawData: unknown = await response.json();
+  const data = rawData && typeof rawData === "object" ? rawData as Record<string, unknown> : {};
+  const output = Array.isArray(data.output) ? data.output : [];
+  const text = typeof data.output_text === "string"
     ? data.output_text
-    : data?.output?.flatMap((x:any)=>x?.content||[]).map((x:any)=>x?.text||"").join("") || "";
+    : output.flatMap((item) => {
+        const record = item && typeof item === "object" ? item as Record<string, unknown> : {};
+        return Array.isArray(record.content) ? record.content : [];
+      }).map((part) => {
+        const record = part && typeof part === "object" ? part as Record<string, unknown> : {};
+        return typeof record.text === "string" ? record.text : "";
+      }).join("");
   const clean = text.replace(/^\`\`\`json\s*/i,"").replace(/\s*\`\`\`$/,"").trim();
   const parsed = JSON.parse(clean);
   if (!parsed?.title || !parsed?.content || !parsed?.reason) throw new Error("AI-output is onvolledig.");
@@ -108,9 +115,11 @@ function fallback(type: FixType, url: string, current: string, context: Record<s
     return {title:"Heading-structuur voorstel",content:`<h2>${escapeHtml(topic)}</h2>\n<h3>Veelgestelde vragen en belangrijke informatie</h3>`,reason:"Gebaseerd op de bestaande paginatitel/H1; controleer de onderwerpen voordat je publiceert."};
   }
   if (type==="alt_text") {
-    const candidates = Array.isArray((context as any).imageAltCandidates) ? (context as any).imageAltCandidates : [];
-    const rows = candidates.map((item:any) => {
-      const src = String(item?.src || "");
+    const rawCandidates: unknown = (context as Record<string, unknown>).imageAltCandidates;
+    const candidates = Array.isArray(rawCandidates) ? rawCandidates : [];
+    const rows = candidates.map((item) => {
+      const record = item && typeof item === "object" ? item as Record<string, unknown> : {};
+      const src = String(record.src || "");
       const filename = decodeURIComponent(src.split("?")[0].split("/").pop() || "afbeelding").replace(/[-_]+/g, " ").replace(/\.[a-z0-9]+$/i, "").trim();
       return `<img src="${escapeHtml(src)}" alt="${escapeHtml(filename || safeContext.title || host)}">`;
     });
