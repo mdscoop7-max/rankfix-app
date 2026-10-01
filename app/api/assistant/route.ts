@@ -73,7 +73,7 @@ export async function POST(request: Request) {
             "SELECT metric_date,page,query,clicks,impressions,ctr,position FROM search_console_metrics WHERE property_id=$1 ORDER BY metric_date DESC, impressions DESC LIMIT 80",
             [property.id]
           );
-          const rows = metrics.rows.map((row:any)=>({
+          const rows = metrics.rows.map((row)=>({
             date: row.metric_date,
             page: row.page || null,
             query: row.query || null,
@@ -82,11 +82,11 @@ export async function POST(request: Request) {
             ctr: Number(row.ctr || 0),
             position: Number(row.position || 0),
           }));
-          const queries = rows.filter((row:any)=>row.query).slice(0,25);
-          const pages = rows.filter((row:any)=>row.page).slice(0,25);
+          const queries = rows.filter((row)=>row.query).slice(0,25);
+          const pages = rows.filter((row)=>row.page).slice(0,25);
           const opportunities = queries
-            .filter((row:any)=>row.impressions >= 10 && row.position >= 6 && row.position <= 20 && row.ctr < 0.03)
-            .sort((a:any,b:any)=>b.impressions-a.impressions)
+            .filter((row)=>row.impressions >= 10 && row.position >= 6 && row.position <= 20 && row.ctr < 0.03)
+            .sort((a,b)=>b.impressions-a.impressions)
             .slice(0,10);
           searchConsoleContext = JSON.stringify({
             connected: true,
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
             ...(Array.isArray(result?.seo?.checks) ? result.seo.checks : []),
             ...(Array.isArray(result?.geo?.checks) ? result.geo.checks : []),
           ];
-          const serializeCheck = (check: any) => ({
+          const serializeCheck = (check: Record<string, unknown>) => ({
             category: check.category,
             title: check.title,
             status: check.status,
@@ -157,11 +157,11 @@ export async function POST(request: Request) {
               score: result.geo.score,
               coverage: result.geo.coverage,
             } : null,
-            checks: checks.map(serializeCheck),
-            problems: checks.filter((check: any) => check?.status === "fail" || check?.status === "warning").map(serializeCheck),
-            uncertain: checks.filter((check: any) => check?.status === "unable_to_confirm").map(serializeCheck),
-            not_applicable: checks.filter((check: any) => check?.status === "not_applicable").map(serializeCheck),
-            passed: checks.filter((check: any) => check?.status === "pass").map(serializeCheck),
+            checks: checks.map((check: Record<string, unknown>) => serializeCheck(check)),
+            problems: checks.filter((check: Record<string, unknown>) => check?.status === "fail" || check?.status === "warning").map(serializeCheck),
+            uncertain: checks.filter((check: Record<string, unknown>) => check?.status === "unable_to_confirm").map(serializeCheck),
+            not_applicable: checks.filter((check: Record<string, unknown>) => check?.status === "not_applicable").map(serializeCheck),
+            passed: checks.filter((check: Record<string, unknown>) => check?.status === "pass").map(serializeCheck),
           });
         }
       }
