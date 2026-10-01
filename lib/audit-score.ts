@@ -10,7 +10,7 @@ export type ScorableAuditCheck = {
   issue_status: AuditIssueStatus;
   points: number;
   maxPoints: number;
-  fix_status?: "WAITING" | "DONE";
+  fix_status?: "WAITING" | "AWAITING_MERGE" | "STILL_PRESENT" | "DONE";
 };
 
 export function scoreApplicableChecks(items: ScorableAuditCheck[]): number {
@@ -28,7 +28,7 @@ export function summarizeAuditChecks(items: ScorableAuditCheck[]) {
     issues: items.filter((item) => item.issue_status === "FAIL" || item.issue_status === "WARNING").length,
     notApplicable: items.filter((item) => item.issue_status === "NOT_APPLICABLE").length,
     unableToConfirm: items.filter((item) => item.issue_status === "UNABLE_TO_CONFIRM").length,
-    pendingFixes: items.filter((item) => item.fix_status === "WAITING").length,
+    pendingFixes: items.filter((item) => item.fix_status === "WAITING" || item.fix_status === "AWAITING_MERGE" || item.fix_status === "STILL_PRESENT").length,
   };
 }
 
