@@ -213,17 +213,27 @@ async function generateCodeFix(filePath:string,fileContent:string,issue:string,c
     console.error("GitHub Fix AI provider error",response.status,detail);
     throw new FixProviderError("AI_PROVIDER_ERROR",`AI provider returned HTTP ${response.status}.`);
   }
-  const data=await response.json();
-  const text=typeof data?.output_text==="string"?data.output_text:data?.output?.flatMap((x:any)=>x?.content||[]).map((x:any)=>x?.text||"").join("")||"";
+  const rawData:unknown=await response.json();
+  const data=rawData&&typeof rawData==="object"?rawData as Record<string,unknown>:{};
+  const output=Array.isArray(data.output)?data.output:[];
+  const text=typeof data.output_text==="string"?data.output_text:output.flatMap((item)=>{
+    const record=item&&typeof item==="object"?item as Record<string,unknown>:{};
+    return Array.isArray(record.content)?record.content:[];
+  }).map((item)=>{
+    const record=item&&typeof item==="object"?item as Record<string,unknown>:{};
+    return typeof record.text==="string"?record.text:"";
+  }).join("");
   const clean=text.replace(/^\`\`\`json\s*/i,"").replace(/\s*\`\`\`$/,"").trim();
-  let parsed:any;
+  let parsed:unknown;
   try { parsed=JSON.parse(clean); }
   catch(error){
     console.error("GitHub Fix AI returned invalid JSON", error instanceof Error ? error.message : "invalid JSON");
     throw new FixProviderError("AI_INVALID_OUTPUT","AI provider returned invalid structured output.");
   }
-  if(typeof parsed.content!=="string"||typeof parsed.summary!=="string") throw new FixProviderError("AI_INVALID_OUTPUT","AI provider returned invalid structured output.");
-  return parsed;
+  if(!parsed||typeof parsed!=="object") throw new FixProviderError("AI_INVALID_OUTPUT","AI provider returned invalid structured output.");
+  const result=parsed as Record<string,unknown>;
+  if(typeof result.content!=="string"||typeof result.summary!=="string") throw new FixProviderError("AI_INVALID_OUTPUT","AI provider returned invalid structured output.");
+  return {content:result.content,summary:result.summary};
 }
 
 function localizeProviderError(code:FixProviderError["code"],language:"nl"|"en"|"de"|"fr"|"it"|"es"){
