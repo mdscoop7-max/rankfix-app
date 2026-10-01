@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 type Issue = {
@@ -43,8 +44,8 @@ export default function SiteAuditPage(){
   return <main className="min-h-screen bg-[#0B1220] text-white">
     <nav className="border-b border-white/10 bg-[#0B1220]/95 px-5 py-4">
       <div className="mx-auto flex max-w-7xl items-center justify-between">
-        <a href="/" className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-300 text-xs font-black text-slate-950">RF</span><span className="font-bold">RankFix <span className="text-emerald-300">AI</span></span></a>
-        <a href="/dashboard" className="text-xs text-slate-300 hover:text-white sm:text-sm">← Dashboard</a>
+        <Link href="/" className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-300 text-xs font-black text-slate-950">RF</span><span className="font-bold">RankFix <span className="text-emerald-300">AI</span></span></Link>
+        <Link href="/dashboard" className="text-xs text-slate-300 hover:text-white sm:text-sm">← Dashboard</Link>
       </div>
     </nav>
 

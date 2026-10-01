@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import WebsiteProfile from "@/components/website-profile";
 
 import { useEffect, useMemo, useState } from "react";
@@ -565,15 +566,15 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
 
       <nav className="sticky top-0 z-50 mx-auto w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-5 lg:px-8">
-          <a href={"/"+language} className="flex shrink-0 items-center gap-3" onClick={() => setMobileMenuOpen(false)} aria-label="RankFix AI home">
+          <Link href={"/"+language} className="flex shrink-0 items-center gap-3" onClick={() => setMobileMenuOpen(false)} aria-label="RankFix AI home">
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-emerald-300 to-blue-600 text-xs font-black text-slate-950 shadow-lg shadow-emerald-500/10">RF</span>
             <span className="text-lg font-bold tracking-tight">RankFix <span className="text-emerald-300">AI</span></span>
-          </a>
+          </Link>
           <div className="hidden items-center gap-6 text-sm text-slate-600 lg:flex">
             <button type="button" onClick={() => scrollToSection("scan")} className="rf-top-link">{t.audit}</button>
-            <a href="#features" className="rf-top-link">{t.moreInfo}</a>
-            <a href="#about" className="rf-top-link">{t.forWho}</a>
-            <a href="#pricing" className="rf-top-link">{t.pricing}</a>
+            <Link href="#features" className="rf-top-link">{t.moreInfo}</Link>
+            <Link href="#about" className="rf-top-link">{t.forWho}</Link>
+            <Link href="#pricing" className="rf-top-link">{t.pricing}</Link>
             <button type="button" onClick={() => setContactOpen(true)} className="rf-top-link">{t.contact}</button>
           </div>
           <div className="hidden items-center gap-2 lg:flex">
@@ -584,11 +585,11 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
               </div>
             </details>
             {!authLoading && (authUser ? (
-              <a href="/dashboard" className="rf-desktop-dashboard-button">Dashboard</a>
+              <Link href="/dashboard" className="rf-desktop-dashboard-button">Dashboard</Link>
             ) : (
               <>
-                <a href={`/account?mode=login&lang=${language}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium transition hover:bg-slate-100 sm:px-4 sm:text-sm">{t.login}</a>
-                <a href={`/account?mode=register&lang=${language}`} className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-emerald-100 sm:px-4 sm:text-sm">{t.register}</a>
+                <Link href={`/account?mode=login&lang=${language}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium transition hover:bg-slate-100 sm:px-4 sm:text-sm">{t.login}</Link>
+                <Link href={`/account?mode=register&lang=${language}`} className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-emerald-100 sm:px-4 sm:text-sm">{t.register}</Link>
               </>
             ))}
           </div>
@@ -597,7 +598,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
             <select id="language-mobile-top" value={language} onChange={(e) => { const next=e.target.value as Language; setLanguage(next); window.location.href="/"+next; }} className="h-11 max-w-[96px] rounded-xl border border-slate-600 bg-[#102A46] px-2 text-xs font-semibold text-white outline-none">
               <option value="nl">🇳🇱 NL</option><option value="en">🇬🇧 EN</option><option value="fr">🇫🇷 FR</option><option value="de">🇩🇪 DE</option><option value="it">🇮🇹 IT</option><option value="es">🇪🇸 ES</option>
             </select>
-            {!authLoading && <a href={authUser?"/dashboard":`/account?mode=login&lang=${language}`} className="flex h-11 items-center rounded-xl border border-slate-600 bg-[#102A46] px-3 text-xs font-bold text-slate-100">{authUser?"Dashboard":t.login}</a>}
+            {!authLoading && <Link href={authUser?"/dashboard":`/account?mode=login&lang=${language}`} className="flex h-11 items-center rounded-xl border border-slate-600 bg-[#102A46] px-3 text-xs font-bold text-slate-100">{authUser?"Dashboard":t.login}</Link>}
           </div>
           <button type="button" aria-label={mobileMenuOpen ? (language==="nl"?"Menu sluiten":language==="de"?"Menü schließen":language==="fr"?"Fermer le menu":language==="it"?"Chiudi menu":language==="es"?"Cerrar menú":"Close menu") : (language==="nl"?"Menu openen":language==="de"?"Menü öffnen":language==="fr"?"Ouvrir le menu":language==="it"?"Apri menu":language==="es"?"Abrir menú":"Open menu")} aria-controls="rankfix-mobile-menu" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen((open) => !open)} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-200 lg:hidden">
             {mobileMenuOpen ? <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 5l14 14 M19 5L5 19" /></svg> : <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16 M4 12h16 M4 18h16" /></svg>}
@@ -610,17 +611,17 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                 href === "#footer" ? (
                   <button key={label} type="button" onClick={() => { setMobileMenuOpen(false); setContactOpen(true); }} className="rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-300 hover:bg-slate-50 hover:text-violet-700">{label}</button>
                 ) : (
-                  <a key={label} href={href} onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-4 py-3 text-sm font-medium text-slate-300 hover:bg-slate-50 hover:text-violet-700">{label}</a>
+                  <Link key={label} href={href} onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-4 py-3 text-sm font-medium text-slate-300 hover:bg-slate-50 hover:text-violet-700">{label}</Link>
                 )
               ))}
             </div>
             <div className="mt-3 grid gap-2 border-t border-slate-200 pt-3">
               {!authLoading && (authUser ? (
-                <a href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="rounded-xl bg-white px-4 py-3 text-center text-sm font-bold text-slate-950">Dashboard</a>
+                <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="rounded-xl bg-white px-4 py-3 text-center text-sm font-bold text-slate-950">Dashboard</Link>
               ) : (
                 <>
-                  <a href={`/account?mode=login&lang=${language}`} onClick={() => setMobileMenuOpen(false)} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm font-semibold text-slate-900">{t.login}</a>
-                  <a href={`/account?mode=register&lang=${language}`} onClick={() => setMobileMenuOpen(false)} className="rounded-xl bg-white px-4 py-3 text-center text-sm font-bold text-slate-950">{t.register}</a>
+                  <Link href={`/account?mode=login&lang=${language}`} onClick={() => setMobileMenuOpen(false)} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm font-semibold text-slate-900">{t.login}</Link>
+                  <Link href={`/account?mode=register&lang=${language}`} onClick={() => setMobileMenuOpen(false)} className="rounded-xl bg-white px-4 py-3 text-center text-sm font-bold text-slate-950">{t.register}</Link>
                 </>
               ))}
             </div>
@@ -821,7 +822,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
               <span className="font-bold text-emerald-200">{wf.publish}</span>
               <div className="mt-1 text-slate-600">{wf.publishText}</div>
             </div>
-            <a href={githubResult.url} target="_blank" rel="noopener noreferrer" className="mt-4 block rounded-xl border border-emerald-300/30 px-5 py-3 text-center text-sm font-bold text-emerald-200">{wf.viewPr}</a>
+            <Link href={githubResult.url} target="_blank" rel="noopener noreferrer" className="mt-4 block rounded-xl border border-emerald-300/30 px-5 py-3 text-center text-sm font-bold text-emerald-200">{wf.viewPr}</Link>
             <button type="button" onClick={() => setGithubResult(null)} className="mt-6 w-full rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-950">{wf.backResult}</button>
           </div>
         </div>
@@ -1104,7 +1105,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
             ["Gratuito","€ 0,00",pc.trial,["1 sito web","2 scansioni complete / mese","SEO + GEO base","Punti d'azione","Nessun fix AI"]],["Start","€ 24,95",pc.perMonth,["1 sito web","10 scansioni / mese","Fix AI inclusi","Audit SEO + GEO","3 mesi di cronologia scansioni"]],["Business","€ 44,95",pc.perMonth,["5 siti web","30 scansioni / mese","Fix AI inclusi","Controlli automatici","Report PDF ed e-mail · Prossimamente"]],["E-commerce","€ 64,95",pc.perMonth,["5 negozi online","50 scansioni / mese","Fix AI inclusi","Shopify, WooCommerce & Next.js/custom","Controlli di prodotto, categoria e dati strutturati"]],["Pro","€ 94,95",pc.perMonth,["15 siti web","100 scansioni / mese","Fix AI inclusi","Automazione avanzata","Fino a 5 utenti"]],["Agency","€ 159,95",pc.perMonth,["50 siti web","300 scansioni / mese","Fix AI inclusi","Report white-label · Prossimamente","API + team/workflow"]]
           ]:[
             ["Gratis","0,00 €",pc.trial,["1 sitio web","2 análisis completos / mes","SEO + GEO básico","Puntos de acción","Sin arreglos con IA"]],["Start","24,95 €",pc.perMonth,["1 sitio web","10 análisis al mes","Arreglos con IA incluidos","Auditoría SEO + GEO","3 meses de historial"]],["Business","44,95 €",pc.perMonth,["5 sitios web","30 análisis al mes","Arreglos con IA incluidos","Controles automáticos","Informes PDF y por email · Próximamente"]],["E-commerce","64,95 €",pc.perMonth,["5 tiendas online","50 análisis al mes","Arreglos con IA incluidos","Shopify, WooCommerce & Next.js/custom","Checks de producto, categoría y datos estructurados"]],["Pro","94,95 €",pc.perMonth,["15 sitios web","100 análisis al mes","Arreglos con IA incluidos","Automatización avanzada","Hasta 5 usuarios"]],["Agency","159,95 €",pc.perMonth,["50 sitios web","300 análisis al mes","Arreglos con IA incluidos","Informes white-label · Próximamente","API + equipo/workflow"]]
-          ]).map((entry)=>{const [name,price,period,items]=entry as [string,string,string,string[]];const featured=name==="Business";const ecommerce=name==="E-commerce";return <div key={name} className={`relative rounded-3xl border p-7 ${featured?"border-emerald-400/40 bg-emerald-400/[0.06]":ecommerce?"border-cyan-400/30 bg-cyan-400/[0.04]":"border-slate-200 bg-slate-50"}`}>{featured&&<div className="absolute right-5 top-5 rounded-full bg-emerald-300 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-950">{pc.chosen}</div>}{ecommerce&&<div className="absolute right-5 top-5 rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-cyan-200">{pc.forStores}</div>}<div className="text-sm font-bold">{name}</div><div className="mt-5 text-4xl font-black">{price}</div><div className="mt-1 text-xs text-slate-500">{period}</div><div className="my-6 h-px bg-white/10"/><ul className="space-y-3 text-sm text-slate-600">{items.map(item=><li key={item}>✓ {item}</li>)}</ul>{["Free","Gratis","Kostenlos","Gratuit","Gratuito"].includes(name)?<a href="#scan" className="mt-7 block w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold transition hover:bg-slate-50">{pc.freeScan}</a>:<a href={`/checkout?plan=${name.toLowerCase()}&lang=${language}`} className="mt-7 block w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold transition hover:bg-slate-50">{pc.choose} {name} →</a>}</div>})}
+          ]).map((entry)=>{const [name,price,period,items]=entry as [string,string,string,string[]];const featured=name==="Business";const ecommerce=name==="E-commerce";return <div key={name} className={`relative rounded-3xl border p-7 ${featured?"border-emerald-400/40 bg-emerald-400/[0.06]":ecommerce?"border-cyan-400/30 bg-cyan-400/[0.04]":"border-slate-200 bg-slate-50"}`}>{featured&&<div className="absolute right-5 top-5 rounded-full bg-emerald-300 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-950">{pc.chosen}</div>}{ecommerce&&<div className="absolute right-5 top-5 rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-cyan-200">{pc.forStores}</div>}<div className="text-sm font-bold">{name}</div><div className="mt-5 text-4xl font-black">{price}</div><div className="mt-1 text-xs text-slate-500">{period}</div><div className="my-6 h-px bg-white/10"/><ul className="space-y-3 text-sm text-slate-600">{items.map(item=><li key={item}>✓ {item}</li>)}</ul>{["Free","Gratis","Kostenlos","Gratuit","Gratuito"].includes(name)?<Link href="#scan" className="mt-7 block w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold transition hover:bg-slate-50">{pc.freeScan}</Link>:<Link href={`/checkout?plan=${name.toLowerCase()}&lang=${language}`} className="mt-7 block w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold transition hover:bg-slate-50">{pc.choose} {name} →</Link>}</div>})}
         </div>
       </section>
 
@@ -1155,7 +1156,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
           <h2 className="mt-3 text-3xl font-black tracking-tight">{pc.aboutTitle}</h2>
           <p className="mt-4 leading-7 text-slate-300">{pc.about1}</p>
           <p className="mt-4 leading-7 text-slate-600">{pc.about2}</p>
-          <a href={`/${language}/about`} className="mt-6 inline-flex rounded-xl border border-emerald-300/30 px-4 py-3 text-sm font-bold text-emerald-200">{pc.learnMore}</a>
+          <Link href={`/${language}/about`} className="mt-6 inline-flex rounded-xl border border-emerald-300/30 px-4 py-3 text-sm font-bold text-emerald-200">{pc.learnMore}</Link>
         </div>
       </section>
 

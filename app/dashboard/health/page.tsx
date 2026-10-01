@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import {useEffect,useState} from "react";
 import DashboardNav from "../nav";
 import AiAssistant from "@/components/ai-assistant";
@@ -24,7 +25,7 @@ export default function HealthPage(){
  const latest=runs[0],cap=capacity[0],open=incidents.filter(i=>i.status==="open");
  const checks=latest?.checks||[],signals=cap?.signals||[];
  const group=(keys:string[])=>checks.filter(c=>keys.some(k=>c.key.includes(k)));
- return <main className="rf-page"><div className="rf-shell"><header className="rf-header"><a href="/dashboard" className="rf-brand">RankFix <span>AI</span></a></header><DashboardNav/>
+ return <main className="rf-page"><div className="rf-shell"><header className="rf-header"><Link href="/dashboard" className="rf-brand">RankFix <span>AI</span></Link></header><DashboardNav/>
  <div className="rf-body"><div className="rf-heading"><span className="rf-eyebrow">Alleen beheerder</span><h1>Internal Control Center</h1><p>Technische bewaking van RankFix zelf: gezondheid, capaciteit, database, verwerking, externe diensten en incidenten.</p><button type="button" className="rf-primary-button mt-4" style={{background:"#16a34a",color:"#fff",borderColor:"#16a34a"}} onClick={runNow} disabled={checking}>{checking?"Controleren…":"↻ Nu controleren"}</button></div>
  {error&&<div className="rf-alert">{error}</div>}
  <section className="rf-plan-card"><div><span className="rf-eyebrow">System Health</span><h2 style={latest?{color:statusColor(latest.overall_level)}:undefined}>{latest?labels[latest.overall_level]:"Nog geen controle"}</h2><p>{latest?"Laatste health-run: "+new Date(latest.created_at).toLocaleString("nl-NL"):"Nog geen health-run opgeslagen."}</p></div><div><strong>{open.length}</strong><p>actieve incidenten</p></div></section>
