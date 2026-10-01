@@ -436,7 +436,7 @@ export async function POST(request:Request){
     // GitHub fixes contain a complete source file, not a single SEO field.
     // The SEO value validator is intentionally not applied to the whole file,
     // because it can mistake unrelated source-code text for placeholders/field markup.
-    const githubValidation=validateGithubFix({current,proposed:generated.content,filePath:path,issue});
+    const githubValidation=validateGithubFix({current,proposed:generated.content,filePath:path,issue,issueId});
     githubValidation.errors = githubValidation.errors.map((error:string)=>localizeFixError(error,language));
     githubValidation.warnings = githubValidation.warnings.map((warning:string)=>localizeFixError(warning,language));
     const canonicalErrors=fixPolicy.safe_type==="canonical"?validateCanonicalTarget(generated.content,trustedUrl):[];
