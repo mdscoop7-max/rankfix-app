@@ -224,14 +224,22 @@ export async function POST(request: Request) {
       throw new Error("AI-provider gaf geen geldige response.");
     }
 
-    const data = await response.json();
+    const rawData: unknown = await response.json();
+    const data = rawData && typeof rawData === "object" ? rawData as Record<string, unknown> : {};
+    const output = Array.isArray(data.output) ? data.output : [];
     const answer =
-      typeof data?.output_text === "string"
+      typeof data.output_text === "string"
         ? data.output_text
-        : data?.output
-            ?.flatMap((item: any) => item?.content || [])
-            .map((item: any) => item?.text || "")
-            .join("") || "";
+        : output
+            .flatMap((item) => {
+              const record = item && typeof item === "object" ? item as Record<string, unknown> : {};
+              return Array.isArray(record.content) ? record.content : [];
+            })
+            .map((item) => {
+              const record = item && typeof item === "object" ? item as Record<string, unknown> : {};
+              return typeof record.text === "string" ? record.text : "";
+            })
+            .join("");
 
     if (!answer.trim()) {
       throw new Error("AI gaf geen antwoord.");
