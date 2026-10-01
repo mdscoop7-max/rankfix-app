@@ -53,13 +53,18 @@ function validateStructuredData(value: string, expectedSchema?: string): string[
 function validateOpenGraph(value: string): string[] {
   const errors: string[] = [];
   const tags = [...value.matchAll(/<meta\b[^>]*>/gi)].map((m) => m[0]);
-  if (!tags.length) return ["Open Graph-fix bevat geen meta-tags."];
+  const openGraphBlock = value.match(/openGraph\s*:\s*\{([\s\S]*?)\}/i)?.[1] || "";
+  const nextHasTitle=/\btitle\s*:\s*["'][^"']+["']/i.test(openGraphBlock);
+  const nextHasDescription=/\bdescription\s*:\s*["'][^"']+["']/i.test(openGraphBlock);
+  const nextHasImage=/\b(?:images|image)\s*:\s*(?:\[|["'])/i.test(openGraphBlock);
+  if (!tags.length && !openGraphBlock) return ["Open Graph-fix bevat geen bruikbare metadata."];
   const properties = tags.map((tag) => tag.match(/property=["']([^"']+)["']/i)?.[1]?.toLowerCase() || "");
   const contents = tags.map((tag) => tag.match(/content=["']([^"']*)["']/i)?.[1] || "");
   if (properties.includes("og:title") && !contents[properties.indexOf("og:title")]) errors.push("og:title heeft geen content.");
   if (properties.includes("og:description") && !contents[properties.indexOf("og:description")]) errors.push("og:description heeft geen content.");
   if (properties.includes("og:image") && !contents[properties.indexOf("og:image")]) errors.push("og:image heeft geen content.");
-  if (!properties.some((p) => p === "og:title") && !properties.some((p) => p === "og:description")) errors.push("Open Graph-fix bevat geen bruikbare titel of beschrijving.");
+  if (!properties.some((p) => p === "og:title") && !properties.some((p) => p === "og:description") && !nextHasTitle && !nextHasDescription) errors.push("Open Graph-fix bevat geen bruikbare titel of beschrijving.");
+  if (openGraphBlock && !nextHasTitle && !nextHasDescription && !nextHasImage) errors.push("Open Graph-object bevat geen bruikbare velden.");
   return errors;
 }
 

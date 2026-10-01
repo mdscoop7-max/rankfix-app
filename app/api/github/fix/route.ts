@@ -43,10 +43,10 @@ async function chooseRepository(token:string,requested:string){
   return {fullName:String(repo.full_name),defaultBranch};
 }
 
-async function chooseFile(token:string,repo:string,branch:string,requested:string,issue:string){
+async function chooseFile(token:string,repo:string,branch:string,requested:string,issue:string,issueId:string){
   if(requested && safeFixTarget(requested)) return requested;
   if(requested) throw new Error("Dit bestand valt buiten de veilige RankFix-codefixlijst.");
-  const issueText=issue.toLowerCase();
+  const issueText=(issueId+" "+issue).toLowerCase();
   const preferred=issueText.includes("social")||issueText.includes("open graph")
     ? ["templates/index.html","index.html","app/layout.tsx","src/app/layout.tsx","pages/_document.tsx","app/page.tsx","src/app/page.tsx"]
     : issueText.includes("canonical")
@@ -84,6 +84,9 @@ function validateCanonicalTarget(proposed:string,targetUrl:string): string[] {
     || proposed.match(/<link\s+rel=[\"']canonical[\"']\s+href=[\"']([^\"']+)[\"']/i)?.[1]
     || "";
   if(!canonical) return errors;
+  const dynamicSameOrigin=/\{\{\s*request\.(?:url_root|base_url|host_url|url)\b/i.test(canonical)
+    || /\b(?:request\.url|request\.headers|getServerSideProps|headers\(\)|window\.location\.origin)\b/i.test(canonical);
+  if(dynamicSameOrigin) return errors;
   const targetHost=normalizeHostname(targetUrl);
   const canonicalHost=normalizeHostname(canonical);
   if(!targetHost || !canonicalHost || canonicalHost!==targetHost){
@@ -91,12 +94,13 @@ function validateCanonicalTarget(proposed:string,targetUrl:string): string[] {
   }
   return errors;
 }
-function validateRequestedFixCompletion(current:string, proposed:string, issue:string): { errors:string[]; currentAlreadySatisfied:boolean } {
-  const text=issue.toLowerCase();
+function validateRequestedFixCompletion(current:string, proposed:string, issue:string, issueId:string): { errors:string[]; currentAlreadySatisfied:boolean } {
+  const text=(issueId+" "+issue).toLowerCase();
   const errors:string[]=[];
-  const wantsOgTitle=/og[: -]?title|open graph.*title/.test(text);
-  const wantsOgDescription=/og[: -]?description|open graph.*description/.test(text);
-  const wantsOgImage=/og[: -]?image|open graph.*image/.test(text);
+  const socialIncomplete=issueId==="SOCIAL_METADATA_INCOMPLETE";
+  const wantsOgTitle=socialIncomplete||/og[: -]?title|open graph.*title/.test(text);
+  const wantsOgDescription=socialIncomplete||/og[: -]?description|open graph.*description/.test(text);
+  const wantsOgImage=socialIncomplete||/og[: -]?image|open graph.*image/.test(text);
   const hasMetaProperty=(v:string,property:string)=>{
     const source=v.toLowerCase().replace(/\s+/g," ");
     const p=property.toLowerCase();
@@ -127,17 +131,23 @@ function hasOgOpenGraphField(value:string,field:string){
   const block=value.match(/openGraph\s*:\s*\{([\s\S]*?)\}/i)?.[1]||"";
   return new RegExp("\\b"+field+"\\b\\s*:\\s*[\"\'][^\"\']+[\"\']","i").test(block);
 }
-function buildDeterministicOgFix(filePath:string,current:string,issue:string,context:string): {content:string;summary:string}|null {
-  const text=issue.toLowerCase();
+function buildDeterministicOgFix(filePath:string,current:string,issue:string,context:string,issueId:string): {content:string;summary:string}|null {
+  const text=(issueId+" "+issue).toLowerCase();
   if(!/og[: -]?title|og[: -]?description|og[: -]?image|open graph/.test(text)) return null;
   const getContext=(label:string)=>context.split("\n").find((line)=>line.toLowerCase().startsWith(label.toLowerCase()+":"))?.slice(label.length+1).trim()||"";
-  const title=getContext("OG title")||getContext("Current title");
-  const description=getContext("OG description")||getContext("Current description");
+  const existingTitle=current.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]?.trim()
+    || current.match(/(?:^|[,\{\n]\s*)title\s*:\s*["']([^"']+)["']/im)?.[1]?.trim() || "";
+  const existingDescription=current.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)?.[1]?.trim()
+    || current.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i)?.[1]?.trim()
+    || current.match(/(?:^|[,\{\n]\s*)description\s*:\s*["']([^"']+)["']/im)?.[1]?.trim() || "";
+  const title=getContext("OG title")||getContext("Current title")||existingTitle;
+  const description=getContext("OG description")||getContext("Current description")||existingDescription;
   const image=getContext("OG image")||getContext("Existing page image candidate");
   const esc=(v:string)=>v.replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-  const wantsTitle=/og[: -]?title|open graph.*title/.test(text);
-  const wantsDescription=/og[: -]?description|open graph.*description/.test(text);
-  const wantsImage=/og[: -]?image|open graph.*image/.test(text);
+  const socialIncomplete=issueId==="SOCIAL_METADATA_INCOMPLETE";
+  const wantsTitle=socialIncomplete||/og[: -]?title|open graph.*title/.test(text);
+  const wantsDescription=socialIncomplete||/og[: -]?description|open graph.*description/.test(text);
+  const wantsImage=socialIncomplete||/og[: -]?image|open graph.*image/.test(text);
   let content=current;
   if(/\.(html?|php|vue)$/i.test(filePath)){
     const tags=[
@@ -410,7 +420,7 @@ export async function POST(request:Request){
     }
     let path:string;
     try{
-      path=await chooseFile(token,repo,effectiveBaseBranch,requestedPath,issue);
+      path=await chooseFile(token,repo,effectiveBaseBranch,requestedPath,issue,issueId);
     }catch(error){
       const raw=error instanceof Error?error.message:"GitHub fix mislukt.";
       throw new Error(localizeFixError(raw,language));
@@ -419,7 +429,7 @@ export async function POST(request:Request){
     if(file.type!=="file"||typeof file.content!=="string") return NextResponse.json({error:msg("Dit bestand kan niet worden bewerkt.","This file cannot be edited.","Diese Datei kann nicht bearbeitet werden.","Ce fichier ne peut pas être modifié.","Questo file non può essere modificato.","Este archivo no se puede editar.")},{status:400});
     const current=Buffer.from(file.content.replace(/\n/g,""),"base64").toString("utf8");
     if(current.length>120000) return NextResponse.json({error:msg("Bestand is te groot voor een veilige AI-codefix.","The file is too large for a safe AI code fix.","Die Datei ist zu groß für einen sicheren AI-Codefix.","Le fichier est trop volumineux pour une correction de code AI sûre.","Il file è troppo grande per una correzione di codice AI sicura.","El archivo es demasiado grande para una corrección de código AI segura.")},{status:413});
-    const deterministicOgFix=buildDeterministicOgFix(path,current,issue,context);
+    const deterministicOgFix=buildDeterministicOgFix(path,current,issue,context,issueId);
     const generated=deterministicOgFix || await generateCodeFix(path,current,issue,context,issueId);
     if(generated.content.length>180000) return NextResponse.json({error:msg("AI-output is te groot voor een veilige wijziging.","AI output is too large for a safe change.","Die AI-Ausgabe ist zu groß für eine sichere Änderung.","La sortie AI est trop volumineuse pour une modification sûre.","L’output AI è troppo grande per una modifica sicura.","La salida de AI es demasiado grande para un cambio seguro.")},{status:422});
     if(!generated.content.trim() || /(?:\[YOUR_[^\]]*\]|\bTODO\b|CHANGE_ME|REPLACE_ME|INSERT_[A-Z_]+)/i.test(generated.content)) return NextResponse.json({error:msg("AI-output bevat lege inhoud of placeholders.","AI output contains empty content or placeholders.","Die AI-Ausgabe enthält leere Inhalte oder Platzhalter.","La sortie AI contient du contenu vide ou des espaces réservés.","L’output AI contiene contenuti vuoti o segnaposto.","La salida de AI contiene contenido vacío o marcadores de posición.")},{status:422});
@@ -432,7 +442,7 @@ export async function POST(request:Request){
     const canonicalErrors=fixPolicy.safe_type==="canonical"?validateCanonicalTarget(generated.content,trustedUrl):[];
     if(canonicalErrors.length) githubValidation.errors.push(...canonicalErrors.map((error:string)=>localizeFixError(error,language)));
 
-    const completion=validateRequestedFixCompletion(current,generated.content,issue);
+    const completion=validateRequestedFixCompletion(current,generated.content,issue,issueId);
     if(completion.errors.length) githubValidation.errors.push(...completion.errors.map((error:string)=>{
       if(error.startsWith("FIX_MISSING:")){
         const label=error.slice("FIX_MISSING:".length);

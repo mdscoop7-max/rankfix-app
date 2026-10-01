@@ -65,7 +65,7 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
     setScanIssue(null);
     setFixResult("");
     fetch("/api/assistant/scan?scanId=" + encodeURIComponent(scanId), { cache: "no-store" })
-      .then((r) => r.json())
+      .then(async (r) => { const raw=await r.text(); if(!raw.trim()) return {}; try{return JSON.parse(raw);}catch{return {};} })
       .then((d) => setScanIssue(d.issues?.[0] || null))
       .catch(() => setScanIssue(null));
   }, [dashboard, scanId]);
@@ -73,30 +73,13 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
   async function startGithubFix() {
     if (!scanIssue || !scanId || fixBusy) return;
     setFixBusy(true);
-    setFixResult("");
-    try {
-      const scanResponse = await fetch("/api/assistant/scan?scanId=" + encodeURIComponent(scanId), { cache: "no-store" });
-      const scanData = await scanResponse.json();
-      const issue = scanData.issues?.[0];
-      const scan = scanData.scan;
-      if (!scanResponse.ok || !issue) throw new Error(scanData.error || "Geen actief probleem gevonden.");
-      const response = await fetch("/api/github/fix", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          issue: [issue.title, issue.message, issue.fix].filter(Boolean).join(" - "),
-          context: JSON.stringify(issue),
-          url: scan.scanned_url,
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "GitHub Fix kon niet worden gestart.");
-      setFixResult(data.pr?.url ? ex.created + data.pr.url : data.alreadyApplied ? "De code bevat dit al; er is niets gewijzigd. Controleer de live pagina met een nieuwe scan." : "Er is geen wijziging bevestigd.");
-    } catch (error) {
-      setFixResult(error instanceof Error ? error.message : "GitHub Fix mislukt.");
-    } finally {
+    const issueId=String(scanIssue.issue_id||scanIssue.rule_id||"").trim();
+    if(!issueId){
+      setFixResult(ex.nochange);
       setFixBusy(false);
+      return;
     }
+    window.location.href="/dashboard/github?scan_id="+encodeURIComponent(scanId)+"&issue_id="+encodeURIComponent(issueId);
   }
 
   useEffect(() => {
@@ -116,7 +99,9 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: question, dashboard, scanId, language, errorContext }),
       });
-      const data = await response.json();
+      const raw = await response.text();
+      let data:any={};
+      try { data=raw.trim()?JSON.parse(raw):{}; } catch { data={}; }
       setMessages((m) => [...m, { role: "assistant", content: data.answer || data.error || ex.generic }]);
     } catch {
       setMessages((m) => [...m, { role: "assistant", content: "Er ging iets mis. Probeer het opnieuw." }]);
