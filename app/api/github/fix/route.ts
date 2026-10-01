@@ -3,7 +3,6 @@ import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
 import { decryptToken, githubFetch } from "@/lib/github";
-import { validateFix } from "@/lib/seo-fix-validator";
 import { validateGithubFix } from "@/lib/github-fix-validator";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { consumeRateLimit } from "@/lib/rate-limit";
@@ -26,7 +25,7 @@ async function chooseRepository(token:string,requested:string){
     throw new Error("Kies expliciet welke GitHub-repository bij deze website hoort voordat RankFix een codefix maakt.");
   }
   // GitHub is authoritative for repository state and default branch.
-  const repo=await githubFetch<any>(token,"/repos/"+requested);
+  const repo=await githubFetch<{permissions?:{push?:boolean};default_branch?:string}>(token,"/repos/"+requested);
   if(!repo || String(repo.full_name||"").toLowerCase()!==requested.toLowerCase()){
     throw new Error("De gekozen GitHub-repository kon niet veilig worden bevestigd.");
   }
@@ -54,14 +53,14 @@ async function chooseFile(token:string,repo:string,branch:string,requested:strin
       ? ["templates/index.html","index.html","app/layout.tsx","src/app/layout.tsx","pages/_document.tsx","app/page.tsx","src/app/page.tsx"]
       : ["templates/index.html","index.html","app/layout.tsx","src/app/layout.tsx","pages/_document.tsx","app/page.tsx","src/app/page.tsx"];
   for(const candidate of preferred){
-    try{ const f=await githubFetch<any>(token,"/repos/"+repo+"/contents/"+candidate+"?ref="+encodeURIComponent(branch)); if(f.type==="file"&&typeof f.content==="string") return candidate; }catch{}
+    try{ const f=await githubFetch<{type?:string;content?:string}>(token,"/repos/"+repo+"/contents/"+candidate+"?ref="+encodeURIComponent(branch)); if(f.type==="file"&&typeof f.content==="string") return candidate; }catch{}
   }
-  const tree=await githubFetch<any>(token,"/repos/"+repo+"/git/trees/"+encodeURIComponent(branch)+"?recursive=1");
+  const tree=await githubFetch<{tree?:Array<{type?:string;path?:string}>}>(token,"/repos/"+repo+"/git/trees/"+encodeURIComponent(branch)+"?recursive=1");
   if(tree?.truncated===true) throw new Error("Deze repository is te groot om automatisch en volledig te doorzoeken. Kies eerst expliciet het bestand dat RankFix mag aanpassen.");
   const rawTree=Array.isArray(tree?.tree)?tree.tree:[];
   if(rawTree.length>12000) throw new Error("Deze repository bevat te veel bestanden voor veilige automatische bestandsselectie. Kies eerst expliciet het doelbestand.");
-  const files=rawTree.filter((x:any)=>x.type==="blob"&&typeof x.path==="string"&&safeFixTarget(x.path));
-  const ranked=files.map((f:any)=>{ const p=f.path.toLowerCase(); let score=0; if(/(index|layout|document)/.test(p)) score+=5; if(/\.(html?|tsx|jsx|vue|php)$/.test(p)) score+=3; if(issueText.includes("social")&&/(head|layout|index|document)/.test(p)) score+=5; if(issueText.includes("canonical")&&/(head|layout|index|document)/.test(p)) score+=5; if(p.includes("template")) score+=2; return {path:f.path,score}; }).sort((a:any,b:any)=>b.score-a.score);
+  const files=rawTree.filter((x): x is {type?:string;path:string}=>x.type==="blob"&&typeof x.path==="string"&&safeFixTarget(x.path));
+  const ranked=files.map((f:any)=>{ const p=f.path.toLowerCase(); let score=0; if(/(index|layout|document)/.test(p)) score+=5; if(/\.(html?|tsx|jsx|vue|php)$/.test(p)) score+=3; if(issueText.includes("social")&&/(head|layout|index|document)/.test(p)) score+=5; if(issueText.includes("canonical")&&/(head|layout|index|document)/.test(p)) score+=5; if(p.includes("template")) score+=2; return {path:f.path,score}; }).sort((a,b)=>b.score-a.score);
   if(!ranked[0]) throw new Error("RankFix kon geen geschikt bestand vinden voor deze fix.");
   return ranked[0].path;
 }
