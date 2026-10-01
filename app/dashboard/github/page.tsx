@@ -88,9 +88,11 @@ export default function GithubPage(){
     if(!check){setProposalError(language==="nl"?"Dit verbeterpunt kon niet in de actieve scan worden gevonden.":"This issue could not be found in the active scan.");return;}
     setSelectedCheck(check);
     const directProposal=String(check.fix||"").trim();
-    const directLooksConcrete=directProposal && (directProposal.includes("<") || directProposal.length>45) && !/voeg toe|maak aan|controleer|verbeter|add |create |check |improve /i.test(directProposal.slice(0,45));
+    // Scan instructions such as "Voeg og:title..." describe what to fix, but are not a concrete proposal.
+    // Only bypass the AI generator when the scan already contains actual code/markup.
+    const directLooksConcrete=directProposal.includes("<") || /(?:\{|\[)[\s\S]*(?:\}|\])/.test(directProposal);
     if(directLooksConcrete){
-      setProposal({title:language==="nl"?"Scanvoorstel":"Scan proposal",content:directProposal,reason:language==="nl"?"Dit concrete voorstel komt rechtstreeks uit de gecontroleerde scan.":"This concrete proposal comes directly from the verified scan."});
+      setProposal({title:language==="nl"?"Concreet scanvoorstel":"Concrete scan proposal",content:directProposal,reason:language==="nl"?"Dit concrete voorstel komt rechtstreeks uit de gecontroleerde scan.":"This concrete proposal comes directly from the verified scan."});
       return;
     }
     const typeMap:Record<string,string>={META_TITLE_MISSING:"meta_title",META_TITLE_GUIDANCE:"meta_title",META_DESCRIPTION_MISSING:"meta_description",META_DESCRIPTION_GUIDANCE:"meta_description",H1_MISSING:"h1",IMAGE_ALT_MISSING:"alt_text",SOCIAL_METADATA_INCOMPLETE:"social_metadata",social:"social_metadata",STRUCTURED_DATA_MISSING:"structured_data",breadcrumbs:"breadcrumb",canonical:"canonical",headings:"heading_structure",faq:"faq",author:"expertise"};
