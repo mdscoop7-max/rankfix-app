@@ -22,13 +22,15 @@ function validateStructuredData(value: string, expectedSchema?: string): string[
   const errors: string[] = [];
   const match = value.match(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/i);
   const raw = match?.[1]?.trim() || value.trim();
-  let parsed: any;
+  let parsed: unknown;
   try { parsed = JSON.parse(raw); } catch { errors.push("Structured data bevat geen geldige JSON."); return errors; }
-  const items = Array.isArray(parsed) ? parsed : parsed?.["@graph"] || [parsed];
-  const list = Array.isArray(items) ? items : [items];
+  const root = parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : null;
+  const items = Array.isArray(parsed) ? parsed : root?.["@graph"] || [parsed];
+  const list: unknown[] = Array.isArray(items) ? items : [items];
   const localTypes = new Set(["localbusiness","hairdresser","beautysalon","restaurant","bakery","barorcafe","dayspa","dentist","electrician","generalcontractor","homeandconstructionbusiness","locksmith","medicalclinic","plumber","roofingcontractor","store","automotivebusiness","realestateagent","legalservice","accountingservice","travelagency","hotel"]);
-  const foundTypes = list.flatMap((item: any) => {
-    const t = item?.["@type"];
+  const foundTypes = list.flatMap((item) => {
+    const record = item && typeof item === "object" ? item as Record<string, unknown> : null;
+    const t = record?.["@type"];
     return (Array.isArray(t) ? t : [t]).filter(Boolean).map(String);
   });
   if (!foundTypes.length) errors.push("Structured data bevat geen @type.");
@@ -36,12 +38,14 @@ function validateStructuredData(value: string, expectedSchema?: string): string[
     errors.push(`Structured data gebruikt niet het aanbevolen type: ${expectedSchema}.`);
   }
   if (expectedSchema && localTypes.has(expectedSchema.toLowerCase())) {
-    const localItem = list.find((item: any) => {
-      const t = item?.["@type"];
-      return (Array.isArray(t) ? t : [t]).some((x: any) => String(x).toLowerCase() === expectedSchema.toLowerCase());
+    const localItem = list.find((item) => {
+      const record = item && typeof item === "object" ? item as Record<string, unknown> : null;
+      const t = record?.["@type"];
+      return (Array.isArray(t) ? t : [t]).some((x) => String(x).toLowerCase() === expectedSchema.toLowerCase());
     });
-    if (!localItem?.name) errors.push("LocalBusiness structured data mist name.");
-    if (!localItem?.address) errors.push("LocalBusiness structured data mist address.");
+    const localRecord = localItem && typeof localItem === "object" ? localItem as Record<string, unknown> : null;
+    if (!localRecord?.name) errors.push("LocalBusiness structured data mist name.");
+    if (!localRecord?.address) errors.push("LocalBusiness structured data mist address.");
   }
   return errors;
 }
