@@ -25,7 +25,7 @@ async function chooseRepository(token:string,requested:string){
     throw new Error("Kies expliciet welke GitHub-repository bij deze website hoort voordat RankFix een codefix maakt.");
   }
   // GitHub is authoritative for repository state and default branch.
-  const repo=await githubFetch<{permissions?:{push?:boolean};default_branch?:string}>(token,"/repos/"+requested);
+  const repo=await githubFetch<{full_name:string;archived?:boolean;disabled?:boolean;permissions?:{push?:boolean;admin?:boolean;maintain?:boolean};default_branch?:string}>(token,"/repos/"+requested);
   if(!repo || String(repo.full_name||"").toLowerCase()!==requested.toLowerCase()){
     throw new Error("De gekozen GitHub-repository kon niet veilig worden bevestigd.");
   }
@@ -55,7 +55,7 @@ async function chooseFile(token:string,repo:string,branch:string,requested:strin
   for(const candidate of preferred){
     try{ const f=await githubFetch<{type?:string;content?:string}>(token,"/repos/"+repo+"/contents/"+candidate+"?ref="+encodeURIComponent(branch)); if(f.type==="file"&&typeof f.content==="string") return candidate; }catch{}
   }
-  const tree=await githubFetch<{tree?:Array<{type?:string;path?:string}>}>(token,"/repos/"+repo+"/git/trees/"+encodeURIComponent(branch)+"?recursive=1");
+  const tree=await githubFetch<{truncated?:boolean;tree?:Array<{type?:string;path?:string}>}>(token,"/repos/"+repo+"/git/trees/"+encodeURIComponent(branch)+"?recursive=1");
   if(tree?.truncated===true) throw new Error("Deze repository is te groot om automatisch en volledig te doorzoeken. Kies eerst expliciet het bestand dat RankFix mag aanpassen.");
   const rawTree=Array.isArray(tree?.tree)?tree.tree:[];
   if(rawTree.length>12000) throw new Error("Deze repository bevat te veel bestanden voor veilige automatische bestandsselectie. Kies eerst expliciet het doelbestand.");
