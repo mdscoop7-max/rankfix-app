@@ -293,6 +293,30 @@ function localizeFixError(message:string,language:"nl"|"en"|"de"|"fr"|"it"|"es")
   return generic[language];
 }
 
+function minimizeGeneratedFix(current:string, proposed:string, issueId:string, filePath:string, targetUrl:string){
+  const id=issueId.toUpperCase();
+  let out=current;
+  if(id==="META_TITLE_GUIDANCE"||id==="META_TITLE_MISSING"||id==="SITE_TITLE_MISSING"){
+    const html=proposed.match(/<title([^>]*)>([^<]+)<\/title>/i);
+    const js=proposed.match(/\btitle\s*:\s*["']([^"']+)["']/i);
+    if(html && /<title[^>]*>[^<]*<\/title>/i.test(out)) out=out.replace(/<title([^>]*)>[^<]*<\/title>/i,"<title$1>"+html[2]+"</title>");
+    else if(js && /\btitle\s*:\s*["'][^"']*["']/i.test(out)) out=out.replace(/\btitle\s*:\s*["'][^"']*["']/i,'title: "'+js[1].replace(/"/g,'\\"')+'"');
+  } else if(id==="META_DESCRIPTION_GUIDANCE"||id==="META_DESCRIPTION_MISSING"||id==="SITE_DESCRIPTION_MISSING"){
+    const html=proposed.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["'][^>]*>/i)?.[1]
+      || proposed.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["'][^>]*>/i)?.[1];
+    const js=proposed.match(/\bdescription\s*:\s*["']([^"']+)["']/i)?.[1];
+    if(html && /<meta[^>]+name=["']description["'][^>]*>/i.test(out)) out=out.replace(/<meta[^>]+name=["']description["'][^>]*>/i,(tag)=>/content=["'][^"']*["']/i.test(tag)?tag.replace(/content=["'][^"']*["']/i,'content="'+html+'"'):tag);
+    else if(js && /\bdescription\s*:\s*["'][^"']*["']/i.test(out)) out=out.replace(/\bdescription\s*:\s*["'][^"']*["']/i,'description: "'+js.replace(/"/g,'\\"')+'"');
+  } else if(id==="CANONICAL"||id==="CANONICAL_URL_MISMATCH"||id==="SITE_CANONICAL_MISSING"){
+    let canonical=""; try{const u=new URL(targetUrl);u.hash="";canonical=u.toString();}catch{return proposed;}
+    if(/<link[^>]+rel=["']canonical["'][^>]*>/i.test(out)) out=out.replace(/<link[^>]+rel=["']canonical["'][^>]*>/i,(tag)=>/href=["'][^"']*["']/i.test(tag)?tag.replace(/href=["'][^"']*["']/i,'href="'+canonical+'"'):tag);
+    else if(/\.(html?|php|vue)$/i.test(filePath)&&/<\/head>/i.test(out)) out=out.replace(/<\/head>/i,'<link rel="canonical" href="'+canonical+'">\n</head>');
+    else if(/canonical\s*:\s*["'][^"']*["']/i.test(out)) out=out.replace(/canonical\s*:\s*["'][^"']*["']/i,'canonical: "'+canonical+'"');
+    else return proposed;
+  } else return proposed;
+  return out===current?proposed:out;
+}
+
 function estimateChangedLines(before:string,after:string){
   const normalize=(line:string)=>line.trimEnd();
   const counts=new Map<string,number>();
@@ -462,6 +486,7 @@ export async function POST(request:Request){
       if(current.length>120000) return NextResponse.json({error:msg("Bestand is te groot voor een veilige AI-codefix.","The file is too large for a safe AI code fix.","Die Datei ist zu groß für einen sicheren AI-Codefix.","Le fichier est trop volumineux pour une correction de code AI sûre.","Il file è troppo grande per una correzione di codice AI sicura.","El archivo es demasiado grande para una corrección de código AI segura.")},{status:413});
       const deterministicOgFix=buildDeterministicOgFix(path,current,issue,context,issueId);
       generated=deterministicOgFix || await generateCodeFix(path,current,issue,context,issueId);
+      generated={...generated,content:minimizeGeneratedFix(current,generated.content,issueId,path,trustedUrl)};
     }
     if(generated.content.length>180000) return NextResponse.json({error:msg("AI-output is te groot voor een veilige wijziging.","AI output is too large for a safe change.","Die AI-Ausgabe ist zu groß für eine sichere Änderung.","La sortie AI est trop volumineuse pour une modification sûre.","L’output AI è troppo grande per una modifica sicura.","La salida de AI es demasiado grande para un cambio seguro.")},{status:422});
     if(!generated.content.trim() || /(?:\[YOUR_[^\]]*\]|\bTODO\b|CHANGE_ME|REPLACE_ME|INSERT_[A-Z_]+)/i.test(generated.content)) return NextResponse.json({error:msg("AI-output bevat lege inhoud of placeholders.","AI output contains empty content or placeholders.","Die AI-Ausgabe enthält leere Inhalte oder Platzhalter.","La sortie AI contient du contenu vide ou des espaces réservés.","L’output AI contiene contenuti vuoti o segnaposto.","La salida de AI contiene contenido vacío o marcadores de posición.")},{status:422});
@@ -529,7 +554,7 @@ export async function POST(request:Request){
       const baseRef=await githubFetch<{object:{sha:string}}>(token,"/repos/"+repo+"/git/ref/heads/"+encodeURIComponent(effectiveBaseBranch));
       const proposalHash=createHash("sha256").update([scanId,issueId,repo,effectiveBaseBranch,baseRef.object.sha,path,file.sha,generated.content].join("\\0")).digest("hex");
       const stored=await db.query(
-        "INSERT INTO fix_proposals (user_id,scan_id,issue_id,policy_version,repository,base_branch,base_commit_sha,file_path,base_blob_sha,original_content,proposed_content,proposal_hash,summary,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'PREVIEW_READY') ON CONFLICT (user_id,proposal_hash) DO UPDATE SET expires_at=NOW()+INTERVAL '2 hours',updated_at=NOW() RETURNING id,proposal_hash",
+        "INSERT INTO fix_proposals (user_id,scan_id,issue_id,policy_version,repository,base_branch,base_commit_sha,file_path,base_blob_sha,base_file_sha,original_content,proposed_content,proposal_hash,summary,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9,$10,$11,$12,$13,'PREVIEW_READY') ON CONFLICT (user_id,proposal_hash) DO UPDATE SET expires_at=NOW()+INTERVAL '2 hours',updated_at=NOW() RETURNING id,proposal_hash",
         [user.id,scanId,issueId,"fix-policy-v1",repo,effectiveBaseBranch,baseRef.object.sha,path,file.sha,current,generated.content,proposalHash,generated.summary]
       );
       const beforeLines=current.split("\n");
