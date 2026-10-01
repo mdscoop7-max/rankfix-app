@@ -426,7 +426,8 @@ export async function POST(request:Request){
     let current:string;
     let file:{type?:string;content?:string;sha:string};
     let generated:{content:string;summary:string};
-    let activeProposal:{id:string;proposal_hash:string;base_blob_sha:string;base_commit_sha:string;proposed_content:string;original_content:string;summary:string;file_path:string;repository:string;base_branch:string;status:string;branch?:string|null;pr_number?:number|null;pr_url?:string|null}|null=null;
+    type StoredFixProposal = {id:string;proposal_hash:string;base_blob_sha:string;base_commit_sha:string;proposed_content:string;original_content:string;summary:string;file_path:string;repository:string;base_branch:string;status:string;branch?:string|null;pr_number?:number|null;pr_url?:string|null};
+    let activeProposal:StoredFixProposal|null=null;
 
     if(!previewOnly){
       if(!proposalId || !approvedHash){
@@ -434,7 +435,7 @@ export async function POST(request:Request){
       }
       const stored=await db.query("SELECT id,proposal_hash,base_blob_sha,base_commit_sha,proposed_content,original_content,summary,file_path,repository,base_branch,status FROM fix_proposals WHERE id=$1 AND user_id=$2 AND scan_id=$3 AND issue_id=$4 AND expires_at>NOW() LIMIT 1",[proposalId,user.id,scanId,issueId]);
       if(!stored.rowCount) return NextResponse.json({error:msg("Deze preview is verlopen of bestaat niet meer. Maak een nieuwe preview.","This preview expired or no longer exists. Create a new preview.","Diese Vorschau ist abgelaufen oder existiert nicht mehr. Erstelle eine neue Vorschau.","Cet aperçu a expiré ou n’existe plus. Créez un nouvel aperçu.","Questa anteprima è scaduta o non esiste più. Creane una nuova.","Esta vista previa caducó o ya no existe. Crea una nueva."),code:"PROPOSAL_EXPIRED"},{status:409});
-      const loadedProposal=stored.rows[0] as NonNullable<typeof activeProposal>;
+      const loadedProposal=stored.rows[0] as StoredFixProposal;
       activeProposal=loadedProposal;
       if(loadedProposal.repository.toLowerCase()!==repo.toLowerCase() || loadedProposal.base_branch!==effectiveBaseBranch || loadedProposal.proposal_hash!==approvedHash){
         return NextResponse.json({error:msg("Het goedgekeurde voorstel komt niet meer overeen met deze publicatie.","The approved proposal no longer matches this publication.","Der genehmigte Vorschlag stimmt nicht mehr mit dieser Veröffentlichung überein.","La proposition approuvée ne correspond plus à cette publication.","La proposta approvata non corrisponde più a questa pubblicazione.","La propuesta aprobada ya no coincide con esta publicación."),code:"PROPOSAL_HASH_MISMATCH"},{status:409});
