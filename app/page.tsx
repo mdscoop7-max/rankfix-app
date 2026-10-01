@@ -5,6 +5,7 @@ import WebsiteProfile from "@/components/website-profile";
 import { useEffect, useMemo, useState } from "react";
 import AiAssistant from "@/components/ai-assistant";
 import RootMobileNav from "./root-mobile-nav";
+import PublicReviews from "@/components/public-reviews";
 import "./root-mobile-nav.css";
 
 type Check = {
@@ -557,31 +558,161 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         : "De website retourneert een serverfout. Controleer de website of hosting en voer de scan opnieuw uit zodra de pagina normaal bereikbaar is. RankFix presenteert deze foutpagina niet als SEO- of GEO-probleem.";
 
   return (
-    <main className="rankfix-home min-h-screen bg-[#F7FBFF] text-[#10233F] selection:bg-blue-200 selection:text-blue-950">
+    <main className="rankfix-home min-h-screen bg-[#07172B] text-[#F7FBFF] selection:bg-emerald-300 selection:text-[#032D24]">
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden opacity-40">
         <div className="absolute left-1/2 top-[-220px] h-[560px] w-[900px] -translate-x-1/2 rounded-full bg-emerald-500/10 blur-[130px]" />
         <div className="absolute right-[-180px] top-[520px] h-[420px] w-[420px] rounded-full bg-blue-600/10 blur-[120px]" />
       </div>
 
-      <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#090d1f]/95 text-white backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 lg:px-6">
-          <Link href={"/"+language} className="flex items-center gap-2.5"><span className="text-2xl font-black text-cyan-400">▥</span><span className="text-xl font-black">RankFix</span></Link>
-          <div className="hidden items-center gap-7 text-sm font-semibold lg:flex"><button onClick={()=>scrollToSection("scan")}>Home</button><Link href="#features">Functies</Link><Link href="#about">Voor wie</Link><Link href="#pricing">Prijzen</Link><Link href={"/"+language+"/reviews"}>Reviews</Link><Link href="#process">Hoe het werkt</Link><button onClick={()=>setContactOpen(true)}>Contact</button></div>
-          <div className="flex items-center gap-2"><select value={language} onChange={(e)=>{const next=e.target.value as Language;setLanguage(next);window.location.href="/"+next}} className="hidden rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-bold sm:block"><option value="nl">🇳🇱 NL</option><option value="en">🇬🇧 EN</option><option value="de">🇩🇪 DE</option><option value="fr">🇫🇷 FR</option><option value="it">🇮🇹 IT</option><option value="es">🇪🇸 ES</option></select>{!authLoading&&<Link href={authUser?"/dashboard":"/account?mode=login&lang="+language} className="hidden rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold sm:block">{authUser?"Dashboard":t.login}</Link>}<button onClick={()=>scrollToSection("scan")} className="rounded-full bg-[#0066ff] px-5 py-2.5 text-sm font-bold">Gratis scan →</button></div>
+      <nav className="sticky top-0 z-50 mx-auto w-full border-b border-slate-200 bg-white/95 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-5 lg:px-8">
+          <Link href={"/"+language} className="flex shrink-0 items-center gap-3" onClick={() => setMobileMenuOpen(false)} aria-label="RankFix AI home">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-emerald-300 to-blue-600 text-xs font-black text-slate-950 shadow-lg shadow-emerald-500/10">RF</span>
+            <span className="text-lg font-bold tracking-tight">RankFix <span className="text-emerald-300">AI</span></span>
+          </Link>
+          <div className="hidden items-center gap-6 text-sm text-slate-600 lg:flex">
+            <button type="button" onClick={() => scrollToSection("scan")} className="rf-top-link">{t.audit}</button>
+            <Link href="#features" className="rf-top-link">{t.moreInfo}</Link>
+            <Link href="#about" className="rf-top-link">{t.forWho}</Link>
+            <Link href="#pricing" className="rf-top-link">{t.pricing}</Link>
+            <button type="button" onClick={() => setContactOpen(true)} className="rf-top-link">{t.contact}</button>
+          </div>
+          <div className="hidden items-center gap-2 lg:flex">
+            <details className="rf-public-language">
+              <summary aria-label={t.language}><span className={"fi fi-"+({nl:"nl",en:"gb",de:"de",fr:"fr",it:"it",es:"es"} as Record<Language,string>)[language]} aria-hidden="true"/><b>{language.toUpperCase()}</b><span aria-hidden="true">⌄</span></summary>
+              <div className="rf-public-language-menu">
+                {(["nl","en","de","fr","it","es"] as Language[]).map(code=><button key={code} type="button" aria-current={language===code?"true":undefined} onClick={()=>{setLanguage(code);window.location.href="/"+code}}><span className={"fi fi-"+({nl:"nl",en:"gb",de:"de",fr:"fr",it:"it",es:"es"} as Record<Language,string>)[code]} aria-hidden="true"/> <b>{code.toUpperCase()}</b></button>)}
+              </div>
+            </details>
+            {!authLoading && (authUser ? (
+              <Link href="/dashboard" className="rf-desktop-dashboard-button">Dashboard</Link>
+            ) : (
+              <>
+                <Link href={`/account?mode=login&lang=${language}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium transition hover:bg-slate-100 sm:px-4 sm:text-sm">{t.login}</Link>
+                <Link href={`/account?mode=register&lang=${language}`} className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-emerald-100 sm:px-4 sm:text-sm">{t.register}</Link>
+              </>
+            ))}
+          </div>
+          <div className="ml-auto flex items-center gap-2 lg:hidden">
+            <label className="sr-only" htmlFor="language-mobile-top">{t.language}</label>
+            <select id="language-mobile-top" value={language} onChange={(e) => { const next=e.target.value as Language; setLanguage(next); window.location.href="/"+next; }} className="h-11 max-w-[96px] rounded-xl border border-slate-600 bg-[#102A46] px-2 text-xs font-semibold text-white outline-none">
+              <option value="nl">🇳🇱 NL</option><option value="en">🇬🇧 EN</option><option value="fr">🇫🇷 FR</option><option value="de">🇩🇪 DE</option><option value="it">🇮🇹 IT</option><option value="es">🇪🇸 ES</option>
+            </select>
+            {!authLoading && <Link href={authUser?"/dashboard":`/account?mode=login&lang=${language}`} className="flex h-11 items-center rounded-xl border border-slate-600 bg-[#102A46] px-3 text-xs font-bold text-slate-100">{authUser?"Dashboard":t.login}</Link>}
+          </div>
+          <button type="button" aria-label={mobileMenuOpen ? (language==="nl"?"Menu sluiten":language==="de"?"Menü schließen":language==="fr"?"Fermer le menu":language==="it"?"Chiudi menu":language==="es"?"Cerrar menú":"Close menu") : (language==="nl"?"Menu openen":language==="de"?"Menü öffnen":language==="fr"?"Ouvrir le menu":language==="it"?"Apri menu":language==="es"?"Abrir menú":"Open menu")} aria-controls="rankfix-mobile-menu" aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen((open) => !open)} className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-200 lg:hidden">
+            {mobileMenuOpen ? <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M5 5l14 14 M19 5L5 19" /></svg> : <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16 M4 12h16 M4 18h16" /></svg>}
+          </button>
         </div>
+        {mobileMenuOpen && (
+          <div id="rankfix-mobile-menu" className="max-h-[calc(100dvh-68px)] overflow-y-auto border-t border-slate-200 px-4 pb-5 pt-3 lg:hidden">
+            <div className="grid gap-1">
+              {[[t.audit,"#scan"],[t.moreInfo,"#features"],[t.forWho,"#about"],[t.pricing,"#pricing"],[t.contact,"#footer"]].map(([label,href]) => (
+                href === "#footer" ? (
+                  <button key={label} type="button" onClick={() => { setMobileMenuOpen(false); setContactOpen(true); }} className="rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-300 hover:bg-slate-50 hover:text-violet-700">{label}</button>
+                ) : (
+                  <Link key={label} href={href} onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-4 py-3 text-sm font-medium text-slate-300 hover:bg-slate-50 hover:text-violet-700">{label}</Link>
+                )
+              ))}
+            </div>
+            <div className="mt-3 grid gap-2 border-t border-slate-200 pt-3">
+              {!authLoading && (authUser ? (
+                <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="rounded-xl bg-white px-4 py-3 text-center text-sm font-bold text-slate-950">Dashboard</Link>
+              ) : (
+                <>
+                  <Link href={`/account?mode=login&lang=${language}`} onClick={() => setMobileMenuOpen(false)} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm font-semibold text-slate-900">{t.login}</Link>
+                  <Link href={`/account?mode=register&lang=${language}`} onClick={() => setMobileMenuOpen(false)} className="rounded-xl bg-white px-4 py-3 text-center text-sm font-bold text-slate-950">{t.register}</Link>
+                </>
+              ))}
+            </div>
+          </div>
+        )}
       </nav>
-      <section id="scan" className="relative overflow-hidden bg-gradient-to-br from-[#090d1f] via-[#161033] to-[#0d081b] text-white"><div className="absolute -right-32 top-0 h-[600px] w-[760px] rounded-full border border-blue-400/20 bg-violet-500/15 blur-3xl"/><div className="relative mx-auto grid max-w-7xl items-center gap-10 px-5 py-16 lg:grid-cols-2 lg:px-6">
-        <div><div className="inline-flex rounded-full border border-cyan-300/25 bg-cyan-300/5 px-4 py-2 text-xs font-bold text-cyan-100">DE COMPLETE SEO & AI-SEARCH TOOL</div><h1 className="mt-5 text-4xl font-black leading-[.98] tracking-[-.045em] sm:text-6xl">Zie wat je website<br/>tegenhoudt.<span className="mt-2 block bg-gradient-to-r from-[#4aa3ff] via-[#6f8cff] to-[#a56bff] bg-clip-text text-transparent">Verbeter wat ertoe doet.</span></h1><p className="mt-6 max-w-xl text-lg leading-8 text-blue-100">SEO, GEO en technische controles met concrete fixes, speciaal voor websites en webshops.</p>
-        <form onSubmit={handleScan} className="mt-7 flex max-w-xl overflow-hidden rounded-2xl bg-white p-1.5 shadow-2xl"><input value={url} onChange={(e)=>setUrl(e.target.value)} required placeholder="🔗  Vul je website in (bijv. mijnsite.nl)" className="min-w-0 flex-1 px-4 text-sm text-slate-900 outline-none"/><button disabled={scanning} className="rounded-xl bg-gradient-to-r from-[#0066ff] to-[#4aa3ff] px-5 py-3 text-sm font-black">{scanning?t.scanning:"Gratis scan →"}</button></form><div className="mt-5 flex flex-wrap gap-5 text-xs text-blue-100"><span>✓ Geen creditcard</span><span>✓ Direct resultaat</span><span>✓ Veilig en betrouwbaar</span></div>{error&&<div className="mt-4 rounded-xl bg-red-500/10 p-3 text-sm text-red-100">{error}</div>}</div>
-        <div className="rounded-[30px] border border-blue-300/30 bg-gradient-to-br from-[#07346d] to-[#071936] p-4 shadow-2xl"><div className="rounded-[24px] bg-white p-5 text-[#10233F]"><div className="flex items-center justify-between"><div><b className="text-xl">Website scan</b><div className="text-xs text-slate-500">mijnshop.nl · Laatste scan</div></div><div className="grid h-24 w-24 place-items-center rounded-full border-[8px] border-emerald-400"><div className="text-center"><b className="text-3xl">92</b><div className="text-[10px]">Overall</div></div></div></div><div className="mt-5 grid grid-cols-4 gap-2">{[["SEO","95"],["GEO","88"],["Techniek","90"],["Webshop","86"]].map(([x,y])=><div key={x} className="rounded-xl bg-slate-50 p-3"><b className="text-xs">{x}</b><div className="mt-2 text-lg font-black">{y}<span className="text-[9px] text-slate-400">/100</span></div></div>)}</div><div className="mt-4 grid grid-cols-2 gap-3"><div className="rounded-xl bg-slate-50 p-4 text-xs"><b className="text-sm">Verbeterpunten</b><div className="mt-2">🔴 3 kritieke problemen<br/>🟠 7 belangrijke verbeteringen<br/>🟢 12 kleine optimalisaties</div></div><div className="rounded-xl bg-blue-50 p-4 text-xs"><b className="text-sm">Fixes voorstellen</b><div className="mt-2">🔵 10 codevoorstellen klaar</div><button onClick={()=>scrollToSection("scan")} type="button" className="mt-3 rounded-lg bg-blue-600 px-3 py-2 font-bold text-white">Bekijk fixes →</button></div></div></div></div>
-      </div></section>
-      <section id="features" className="bg-white px-5 py-16 text-[#10233F]"><div className="mx-auto max-w-7xl"><div className="text-center"><div className="text-xs font-black tracking-[.18em] text-blue-500">WAT RANKFIX CONTROLEERT</div><h2 className="mt-3 text-3xl font-black sm:text-4xl">Een complete scan, speciaal voor jouw website.</h2><p className="mt-2 text-slate-500">RankFix controleert je website of webshop op alle belangrijke punten.</p></div><div className="mt-9 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><div className="text-3xl">🔎</div><h3 className="mt-3 text-lg font-black">SEO</h3><p className="text-xs text-slate-500">Google & organische vindbaarheid</p><p className="mt-5 text-sm leading-8">✓ Meta titles & descriptions<br/>✓ Kopstructuur<br/>✓ Interne links<br/>✓ Zoekwoorden<br/>✓ Content kwaliteit</p></div>
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><div className="text-3xl">✦</div><h3 className="mt-3 text-lg font-black">GEO / AI Search</h3><p className="text-xs text-slate-500">Zichtbaarheid voor AI-zoekmachines</p><p className="mt-5 text-sm leading-8">✓ AI-vriendelijke inhoud<br/>✓ Structured data<br/>✓ Merkvermeldingen (basis)<br/>✓ Technische AI-readiness<br/>✓ E-E-A-T signalen</p></div>
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><div className="text-3xl">⚙</div><h3 className="mt-3 text-lg font-black">Techniek</h3><p className="text-xs text-slate-500">Technische gezondheid</p><p className="mt-5 text-sm leading-8">✓ Snelheid & Core Web Vitals<br/>✓ Indexatie & canonicals<br/>✓ Structured data<br/>✓ Veiligheid (HTTPS)<br/>✓ Mobielvriendelijkheid</p></div>
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><div className="text-3xl">🛒</div><h3 className="mt-3 text-lg font-black">Webshop</h3><p className="text-xs text-slate-500">Shopify · WooCommerce · Custom</p><p className="mt-5 text-sm leading-8">✓ Productpagina's<br/>✓ Categoriepagina's<br/>✓ Product/Offer schema<br/>✓ Prijs, voorraad en breadcrumbs<br/>✓ Checkout & structured data</p></div></div><div className="mt-6 flex flex-col justify-between gap-4 rounded-2xl bg-[#0f172a] p-6 text-white sm:flex-row sm:items-center"><div><b className="text-xl">◎ Volledige RankFix Scan</b><div className="text-sm text-blue-100">SEO + GEO + Techniek + Webshop (indien van toepassing)</div></div><button onClick={()=>scrollToSection("scan")} className="rounded-xl bg-[#0066ff] px-6 py-3 text-sm font-black">Gratis scan starten →</button></div></div></section>
-      <section id="process" className="bg-[#f8fafc] px-5 py-16 text-[#10233F]"><div className="mx-auto max-w-7xl text-center"><div className="text-xs font-black tracking-[.18em] text-blue-500">VAN INZICHT NAAR VERBETERING</div><h2 className="mt-3 text-3xl font-black">Van scan naar actie.</h2><p className="mt-2 text-slate-500">RankFix vindt niet alleen problemen, maar helpt je ze ook op te lossen.</p><div className="mt-10 grid gap-6 sm:grid-cols-3 lg:grid-cols-6">{[["1","📄","Scan","Je website wordt grondig geanalyseerd."],["2","☷","Problemen gevonden","Duidelijk inzicht met prioriteiten."],["3","</>","Fix voorstellen","Concrete oplossingen klaar voor je."],["4","✓","Goedkeuren","Jij bekijkt en keurt de wijzigingen."],["5","↻","Herscan","RankFix controleert het resultaat."],["6","✓","Bevestigd opgelost","Je website is weer beter vindbaar."]].map(([n,i,h,p])=><div key={n}><div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-white text-2xl shadow-lg">{i}</div><div className="mt-3 text-xs font-black text-blue-500">{n}</div><h3 className="font-black">{h}</h3><p className="mt-2 text-xs leading-5 text-slate-500">{p}</p></div>)}</div></div></section>
-      <section id="about" className="bg-white px-5 py-16 text-[#10233F]"><div className="mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-2"><div className="rounded-[28px] border border-slate-200 bg-[#f8fafc] p-6 shadow-xl"><div className="grid grid-cols-2 gap-3"><div className="col-span-2 rounded-xl bg-white p-4 font-black">RankFix · Overzicht</div><div className="rounded-xl bg-white p-4"><b>SEO audit</b><div className="text-3xl font-black text-emerald-500">95/100</div></div><div className="rounded-xl bg-white p-4"><b>GEO / AI Search</b><div className="text-3xl font-black text-violet-500">88/100</div></div></div></div><div><h2 className="text-3xl font-black sm:text-4xl">Geschikt voor websites én webshops.</h2><p className="mt-4 text-slate-500">RankFix werkt met alle populaire platformen en controleert ook je webshop-specifieke pagina's.</p><div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">{[["W","WordPress"],["S","Shopify"],["WOO","WooCommerce"],["</>","Custom websites"]].map(([i,n])=><div key={n} className="rounded-xl border border-slate-200 p-4 text-center"><div className="text-2xl font-black text-blue-600">{i}</div><b className="mt-2 block text-sm">{n}</b></div>)}</div><div className="mt-5 flex flex-wrap gap-4 text-xs font-semibold text-emerald-600"><span>✓ Eenvoudig in gebruik</span><span>✓ Geen technische kennis nodig</span><span>✓ Voor MKB én bureaus</span></div></div></div></section>
+
+      <section id="scan" className="mx-auto max-w-6xl px-5 pb-16 pt-16 text-center lg:px-8 lg:pt-24">
+        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/5 px-4 py-2 text-xs font-semibold text-emerald-200">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" />
+          {t.badge}
+        </div>
+        <h1 className="mx-auto max-w-4xl text-4xl font-black tracking-[-0.04em] sm:text-6xl lg:text-7xl">
+          {t.hero}
+          <span className="block bg-gradient-to-r from-emerald-500 via-violet-500 to-blue-500 bg-clip-text text-transparent">{t.hero2}</span>
+        </h1>
+        <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
+          {t.intro}
+        </p>
+
+        <div className="mx-auto mt-9 max-w-3xl rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-300/30 backdrop-blur">
+          <div className="mb-3 grid grid-cols-3 gap-1.5 sm:gap-2">
+            {[
+              ["seo", "SEO", t.seoDesc],
+              ["geo", "GEO", t.geoDesc],
+              ["both", "SEO + GEO", t.bothDesc],
+            ].map(([value, label, description]) => (
+              <button key={value} type="button" aria-pressed={auditMode === value} onClick={() => setAuditMode(value as "seo" | "geo" | "both")} className={`min-w-0 rounded-xl border px-2 py-3 text-center transition sm:px-4 sm:text-left ${auditMode === value ? "border-emerald-300/50 bg-emerald-300/10 text-slate-900 shadow-lg shadow-emerald-500/5" : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:text-violet-700"}`}>
+                <div className="flex items-center justify-center gap-1 text-xs font-bold sm:justify-start sm:text-sm"><span className={`h-2 w-2 shrink-0 rounded-full ${auditMode === value ? "bg-emerald-300" : "bg-slate-700"}`} />{label}</div>
+                <div className="mt-1 hidden text-[11px] leading-4 text-slate-600 sm:block">{description}</div>
+              </button>
+            ))}
+          </div>
+          <form onSubmit={handleScan} className="flex flex-col gap-2 sm:flex-row">
+            <input
+              type="text"
+              inputMode="url"
+              aria-label={language==="nl"?"Websiteadres":language==="de"?"Website-Adresse":language==="fr"?"Adresse du site":language==="it"?"Indirizzo del sito":language==="es"?"Dirección del sitio":"Website address"}
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="jouwdomein.nl"
+              required
+              className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-[#16233A] px-4 py-4 text-base outline-none placeholder:text-slate-600 focus:border-emerald-300 sm:border-0 sm:bg-transparent sm:text-sm"
+            />
+            <button
+              disabled={scanning}
+              className="rounded-xl bg-emerald-300 px-6 py-4 text-sm font-bold text-[#032D24] shadow-lg shadow-emerald-500/10 transition hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {scanning ? t.scanning : `${t.start} ${auditMode === "seo" ? "SEO" : auditMode === "geo" ? "GEO" : "SEO + GEO"} ${t.auditStart}`}
+            </button>
+          </form>
+        </div>
+        <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 px-2 text-xs font-medium text-emerald-200 sm:gap-x-6">
+          {(language === "nl"
+            ? ["SEO","GEO","Techniek","Webshop","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","Local SEO","Structured Data","Broken Links","Redirects","Accessibility","Concurrenten","AI Fixes","GitHub Fixes"]
+            : language === "de"
+              ? ["SEO","GEO","Technik","Onlineshop","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","Local SEO","Strukturierte Daten","Defekte Links","Weiterleitungen","Barrierefreiheit","Wettbewerber","AI Fixes","GitHub Fixes"]
+              : language === "fr"
+                ? ["SEO","GEO","Technique","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","SEO local","Données structurées","Liens cassés","Redirections","Accessibilité","Concurrents","AI Fixes","GitHub Fixes"]
+                : language === "it"
+                  ? ["SEO","GEO","Tecnica","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","SEO locale","Dati strutturati","Link interrotti","Redirect","Accessibilità","Concorrenti","AI Fixes","GitHub Fixes"]
+                  : language === "es"
+                    ? ["SEO","GEO","Técnica","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","SEO local","Datos estructurados","Enlaces rotos","Redirecciones","Accesibilidad","Competidores","AI Fixes","GitHub Fixes"]
+                    : ["SEO","GEO","Technical","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","Local SEO","Structured Data","Broken Links","Redirects","Accessibility","Competitors","AI Fixes","GitHub Fixes"]
+          ).map((feature) => <span key={feature}>✓ {feature}</span>)}
+        </div>
+        {error && <div className="mx-auto mt-5 max-w-2xl rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">{error}</div>}
+
+        <div className="mx-auto mt-12 grid max-w-4xl grid-cols-2 gap-3 text-left sm:grid-cols-4">
+          {[
+            ["SEO", `${pc.tech} + on-page`],
+            ["GEO", "AI-search readiness"],
+            ["AI Fix", pc.concrete],
+            ["Reports", pc.ready],
+          ].map(([title, text]) => (
+            <div key={title} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="text-sm font-bold">{title}</div>
+              <div className="mt-1 text-xs text-slate-500">{text}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mx-auto mt-10 max-w-5xl overflow-hidden rounded-[28px] border border-slate-200 bg-[#0B1830] p-2 shadow-2xl shadow-blue-950/30">
+          <img
+            src="/opengraph-image"
+            alt={language==="nl"?"RankFix AI SEO- en GEO-dashboardvoorbeeld":language==="de"?"Vorschau des RankFix AI SEO- und GEO-Dashboards":language==="fr"?"Aperçu du tableau de bord SEO et GEO de RankFix AI":language==="it"?"Anteprima della dashboard SEO e GEO di RankFix AI":language==="es"?"Vista previa del panel SEO y GEO de RankFix AI":"RankFix AI SEO and GEO dashboard preview"}
+            className="block h-auto w-full rounded-[22px]"
+            loading="eager"
+          />
+        </div>
+      </section>
 
       {scanning && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0B1220]/80 px-4 py-6 backdrop-blur-xl">
@@ -929,6 +1060,63 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         )
       )}
 
+      <section id="features" className="mx-auto max-w-7xl scroll-mt-8 border-t border-slate-200 px-5 py-20 lg:px-8">
+        <div className="max-w-2xl">
+          <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{pc.featuresEyebrow}</div>
+          <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">{pc.featuresTitle}</h2>
+          <p className="mt-4 text-slate-600">{pc.featuresIntro}</p>
+        </div>
+        <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {pc.cards.map(([title, text], index) => {
+            const number = String(index + 1).padStart(2, "0");
+            return (
+            <div key={number} className="group rounded-3xl border border-slate-200 bg-slate-50 p-7 transition hover:-translate-y-1 hover:bg-white">
+              <div className="text-xs font-black text-emerald-300">{number}</div>
+              <h3 className="mt-10 text-xl font-bold">{title}</h3>
+              <p className="mt-3 text-sm leading-7 text-slate-500">{text}</p>
+            </div>
+          )})}
+        </div>
+      </section>
+
+      <section className="border-t border-slate-200 bg-white/[0.02]"><div className="mx-auto max-w-7xl px-5 py-16 lg:px-8"><div className="max-w-2xl"><div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{xc.fairLabel}</div><h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">{xc.fairTitle}</h2><p className="mt-4 text-slate-500">{xc.fairIntro}</p></div><div className="mt-10 grid gap-4 md:grid-cols-4">{xc.fair.map(([icon,title,text])=><div key={title} className="rounded-3xl border border-slate-200 bg-slate-50 p-6"><div className="text-2xl">{icon}</div><h3 className="mt-4 font-bold">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-500">{text}</p></div>)}</div></div></section>
+
+      <section id="pricing" className="mx-auto max-w-7xl scroll-mt-8 border-t border-slate-200 px-5 py-20 lg:px-8">
+        <div className="text-center">
+          <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{pc.pricingLabel}</div>
+          <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">{pc.pricingTitle}</h2>
+          <p className="mx-auto mt-4 max-w-2xl text-slate-500">{pc.pricingIntro}</p>
+        </div>
+        <div className="mx-auto mt-10 grid max-w-7xl gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {(language==="nl"?[
+            ["Gratis","€ 0,00",pc.trial,["1 website","2 volledige scans / maand","SEO + GEO basis","Actiepunten","Geen AI-fix"]],
+            ["Start","€ 24,95",pc.perMonth,["1 website","10 scans / maand","AI-fixes inbegrepen","SEO + GEO audit","3 maanden scanhistorie"]],
+            ["Business","€ 44,95",pc.perMonth,["5 websites","30 scans / maand","AI-fixes inbegrepen","Automatische controles","PDF- en e-mailrapporten · Binnenkort"]],
+            ["E-commerce","€ 64,95",pc.perMonth,["5 webshops","50 scans / maand","AI-fixes inbegrepen","Shopify, WooCommerce & Next.js/custom","Product-, categorie- en structured-data checks"]],
+            ["Pro","€ 94,95",pc.perMonth,["15 websites","100 scans / maand","AI-fixes inbegrepen","Uitgebreide automatisering","Tot 5 gebruikers"]],
+            ["Agency","€ 159,95",pc.perMonth,["50 websites","300 scans / maand","AI-fixes inbegrepen","White-label rapporten · Binnenkort","API + team/workflow"]]
+          ]:language==="en"?[
+            ["Free","€0.00",pc.trial,["1 website","2 full scans / month","SEO + GEO basics","Action items","No AI fix"]],["Start","€24.95",pc.perMonth,["1 website","10 scans / month","AI fixes included","SEO + GEO audit","3 months scan history"]],["Business","€44.95",pc.perMonth,["5 websites","30 scans / month","AI fixes included","Automatic checks","PDF and email reports · Coming soon"]],["E-commerce","€64.95",pc.perMonth,["5 online stores","50 scans / month","AI fixes included","Shopify, WooCommerce & Next.js/custom","Product, category and structured data checks"]],["Pro","€94.95",pc.perMonth,["15 websites","100 scans / month","AI fixes included","Advanced automation","Up to 5 users"]],["Agency","€159.95",pc.perMonth,["50 websites","300 scans / month","AI fixes included","White-label reports · Coming soon","API + team/workflow"]]
+          ]:language==="de"?[
+            ["Kostenlos","0,00 €",pc.trial,["1 Website","2 vollständige Scans / Monat","SEO + GEO Basis","Maßnahmen","Kein AI-Fix"]],["Start","24,95 €",pc.perMonth,["1 Website","10 Scans / Monat","AI-Fixes inklusive","SEO + GEO Audit","3 Monate Scan-Verlauf"]],["Business","44,95 €",pc.perMonth,["5 Websites","30 Scans / Monat","AI-Fixes inklusive","Automatische Prüfungen","PDF- und E-Mail-Berichte · Demnächst"]],["E-commerce","64,95 €",pc.perMonth,["5 Onlineshops","50 Scans / Monat","AI-Fixes inklusive","Shopify, WooCommerce & Next.js/custom","Produkt-, Kategorie- und Structured-Data-Checks"]],["Pro","94,95 €",pc.perMonth,["15 Websites","100 Scans / Monat","AI-Fixes inklusive","Erweiterte Automatisierung","Bis zu 5 Nutzer"]],["Agency","159,95 €",pc.perMonth,["50 Websites","300 Scans / Monat","AI-Fixes inklusive","White-Label-Berichte · Demnächst","API + Team/Workflow"]]
+          ]:language==="fr"?[
+            ["Gratuit","0,00 €",pc.trial,["1 site web","2 audits complets / mois","SEO + GEO de base","Points d'action","Pas de correctif IA"]],["Start","24,95 €",pc.perMonth,["1 site web","10 scans / mois","Correctifs IA inclus","Audit SEO + GEO","3 mois d'historique des scans"]],["Business","44,95 €",pc.perMonth,["5 sites web","30 scans / mois","Correctifs IA inclus","Contrôles automatiques","Rapports PDF et e-mail · Bientôt"]],["E-commerce","64,95 €",pc.perMonth,["5 boutiques en ligne","50 scans / mois","Correctifs IA inclus","Shopify, WooCommerce & Next.js/custom","Contrôles produit, catégorie et données structurées"]],["Pro","94,95 €",pc.perMonth,["15 sites web","100 scans / mois","Correctifs IA inclus","Automatisation avancée","Jusqu'à 5 utilisateurs"]],["Agency","159,95 €",pc.perMonth,["50 sites web","300 scans / mois","Correctifs IA inclus","Rapports en marque blanche · Bientôt","API + équipe/workflow"]]
+          ]:language==="it"?[
+            ["Gratuito","€ 0,00",pc.trial,["1 sito web","2 scansioni complete / mese","SEO + GEO base","Punti d'azione","Nessun fix AI"]],["Start","€ 24,95",pc.perMonth,["1 sito web","10 scansioni / mese","Fix AI inclusi","Audit SEO + GEO","3 mesi di cronologia scansioni"]],["Business","€ 44,95",pc.perMonth,["5 siti web","30 scansioni / mese","Fix AI inclusi","Controlli automatici","Report PDF ed e-mail · Prossimamente"]],["E-commerce","€ 64,95",pc.perMonth,["5 negozi online","50 scansioni / mese","Fix AI inclusi","Shopify, WooCommerce & Next.js/custom","Controlli di prodotto, categoria e dati strutturati"]],["Pro","€ 94,95",pc.perMonth,["15 siti web","100 scansioni / mese","Fix AI inclusi","Automazione avanzata","Fino a 5 utenti"]],["Agency","€ 159,95",pc.perMonth,["50 siti web","300 scansioni / mese","Fix AI inclusi","Report white-label · Prossimamente","API + team/workflow"]]
+          ]:[
+            ["Gratis","0,00 €",pc.trial,["1 sitio web","2 análisis completos / mes","SEO + GEO básico","Puntos de acción","Sin arreglos con IA"]],["Start","24,95 €",pc.perMonth,["1 sitio web","10 análisis al mes","Arreglos con IA incluidos","Auditoría SEO + GEO","3 meses de historial"]],["Business","44,95 €",pc.perMonth,["5 sitios web","30 análisis al mes","Arreglos con IA incluidos","Controles automáticos","Informes PDF y por email · Próximamente"]],["E-commerce","64,95 €",pc.perMonth,["5 tiendas online","50 análisis al mes","Arreglos con IA incluidos","Shopify, WooCommerce & Next.js/custom","Checks de producto, categoría y datos estructurados"]],["Pro","94,95 €",pc.perMonth,["15 sitios web","100 análisis al mes","Arreglos con IA incluidos","Automatización avanzada","Hasta 5 usuarios"]],["Agency","159,95 €",pc.perMonth,["50 sitios web","300 análisis al mes","Arreglos con IA incluidos","Informes white-label · Próximamente","API + equipo/workflow"]]
+          ]).map((entry)=>{const [name,price,period,items]=entry as [string,string,string,string[]];const featured=name==="Business";const ecommerce=name==="E-commerce";return <div key={name} className={`relative rounded-3xl border p-7 ${featured?"border-emerald-400/40 bg-emerald-400/[0.06]":ecommerce?"border-cyan-400/30 bg-cyan-400/[0.04]":"border-slate-200 bg-slate-50"}`}>{featured&&<div className="absolute right-5 top-5 rounded-full bg-emerald-300 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-950">{pc.chosen}</div>}{ecommerce&&<div className="absolute right-5 top-5 rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-cyan-200">{pc.forStores}</div>}<div className="text-sm font-bold">{name}</div><div className="mt-5 text-4xl font-black">{price}</div><div className="mt-1 text-xs text-slate-500">{period}</div><div className="my-6 h-px bg-white/10"/><ul className="space-y-3 text-sm text-slate-600">{items.map(item=><li key={item}>✓ {item}</li>)}</ul>{["Free","Gratis","Kostenlos","Gratuit","Gratuito"].includes(name)?<Link href="#scan" className="mt-7 block w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold transition hover:bg-slate-50">{pc.freeScan}</Link>:<Link href={`/checkout?plan=${name.toLowerCase()}&lang=${language}`} className="mt-7 block w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold transition hover:bg-slate-50">{pc.choose} {name} →</Link>}</div>})}
+        </div>
+      </section>
+
+      <section className="border-y border-slate-200 bg-white/[0.02]">
+        <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
+          <div className="grid gap-8 md:grid-cols-4">
+            {xc.audiences.map(([title, text]) => <div key={title}><h3 className="font-bold">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-500">{text}</p></div>)}
+          </div>
+        </div>
+      </section>
+
       {contactOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-md">
           <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-slate-200 bg-[#101B2D] p-6 shadow-2xl sm:p-8">
@@ -948,6 +1136,31 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
           </div>
         </div>
       )}
+
+      <section id="resources" className="border-y border-slate-200 bg-white/[0.02] scroll-mt-8">
+        <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
+          <div className="max-w-2xl">
+            <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{t.resources}</div>
+            <h2 className="mt-3 text-3xl font-black tracking-tight">{pc.resourcesTitle}</h2>
+            <p className="mt-4 text-slate-600">{pc.resourcesIntro}</p>
+          </div>
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            {xc.resources.map(([title,text]) => <button key={title} type="button" onClick={() => title === "SEO Audit" ? startAudit("seo") : title === "GEO Audit" ? startAudit("geo") : scrollToSection("scan")} className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-left transition hover:border-emerald-300/30 hover:bg-white/[0.05]"><div className="font-bold">{title}</div><div className="mt-2 text-sm text-slate-500">{text}</div></button>)}
+          </div>
+        </div>
+      </section>
+
+      <section id="about" className="mx-auto max-w-7xl scroll-mt-8 px-5 py-16 lg:px-8">
+        <div className="max-w-3xl">
+          <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{t.about}</div>
+          <h2 className="mt-3 text-3xl font-black tracking-tight">{pc.aboutTitle}</h2>
+          <p className="mt-4 leading-7 text-slate-300">{pc.about1}</p>
+          <p className="mt-4 leading-7 text-slate-600">{pc.about2}</p>
+          <Link href={`/${language}/about`} className="mt-6 inline-flex rounded-xl border border-emerald-300/30 px-4 py-3 text-sm font-bold text-emerald-200">{pc.learnMore}</Link>
+        </div>
+      </section>
+
+      <PublicReviews language={language} />
 
       <footer id="footer" className="bg-[#16243a] px-5 py-14 text-slate-100 lg:px-8">
         <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-5">
