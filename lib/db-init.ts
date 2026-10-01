@@ -97,7 +97,14 @@ const statements = [
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '7 days')
   )`,
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS branch TEXT`,
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS pr_url TEXT`,
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS merge_error TEXT`,
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS merged_at TIMESTAMPTZ`,
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ`,
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS verification_scan_id UUID REFERENCES scans(id) ON DELETE SET NULL`,
   `CREATE INDEX IF NOT EXISTS pending_fixes_lookup_idx ON pending_fixes(user_id, scanned_url, issue_id, status)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS pending_fixes_active_issue_idx ON pending_fixes(user_id, scanned_url, issue_id) WHERE status IN ('PROPOSED','PR_CREATED','AWAITING_MERGE','AWAITING_VERIFICATION','STILL_PRESENT','PREPARED')`,
   `CREATE TABLE IF NOT EXISTS website_repositories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

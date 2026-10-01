@@ -1839,7 +1839,7 @@ export async function POST(request: Request) {
         await ensureDatabase();
         const normalizedScanUrl = normalizeScanUrl(finalUrl.toString());
         const pending = await getDb().query(
-          "SELECT issue_id, status FROM pending_fixes WHERE user_id=$1 AND scanned_url=$2 AND status='PREPARED' AND expires_at>NOW()",
+          "SELECT issue_id, status FROM pending_fixes WHERE user_id=$1 AND scanned_url=$2 AND status IN ('AWAITING_MERGE','AWAITING_VERIFICATION','STILL_PRESENT','PREPARED') AND expires_at>NOW()",
           [user.id, normalizedScanUrl]
         );
         pendingFixes = new Map(pending.rows.map((row: any) => [String(row.issue_id), { status: String(row.status) }]));
@@ -1850,7 +1850,7 @@ export async function POST(request: Request) {
           if (!pendingFix) continue;
           // A normal audit must never confirm a prepared fix as DONE.
           // Confirmation belongs to the dedicated live recheck flow.
-          item.fix_status = "WAITING";
+          item.fix_status = pendingFix.status === "AWAITING_MERGE" ? "AWAITING_MERGE" : pendingFix.status === "STILL_PRESENT" ? "STILL_PRESENT" : "WAITING";
         }
 
         const websiteHost = finalUrl.hostname.toLowerCase().replace(/^www\\./, "");
@@ -1888,19 +1888,20 @@ export async function POST(request: Request) {
             const liveConfidence = String(item.confidence || "").trim().toLowerCase();
             const liveEvidence = item.evidence;
             const hasLiveEvidence = !!liveEvidence && liveEvidence.found !== null && liveEvidence.found !== undefined && liveEvidence.found !== "";
-            // A fix becomes DONE only from a fresh, evidence-backed PASS. A low-confidence
-            // or evidence-free PASS is not strong enough to confirm a published code change.
-            if (liveStatus !== "PASS" || liveConfidence === "low" || !hasLiveEvidence) continue;
-
+            const pendingFix=pendingFixes.get(issueId);
+            if(!pendingFix || (pendingFix.status!=="AWAITING_VERIFICATION" && pendingFix.status!=="STILL_PRESENT")) continue;
+            const verified=liveStatus==="PASS" && liveConfidence!=="low" && hasLiveEvidence;
+            const nextStatus=verified?"VERIFIED_RESOLVED":"STILL_PRESENT";
             const confirmed = await getDb().query(
-              "UPDATE pending_fixes SET status='DONE', updated_at=NOW() WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 AND status='PREPARED' AND expires_at>NOW() RETURNING id",
-              [user.id, normalizedScanUrl, issueId]
+              "UPDATE pending_fixes SET status=$4, verified_at=CASE WHEN $4='VERIFIED_RESOLVED' THEN NOW() ELSE verified_at END, verification_scan_id=$5, updated_at=NOW() WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 AND status IN ('AWAITING_VERIFICATION','STILL_PRESENT') AND expires_at>NOW() RETURNING id",
+              [user.id, normalizedScanUrl, issueId, nextStatus, savedScanId]
             );
             if (!confirmed.rowCount) continue;
 
-            item.fix_status = "DONE";
+            item.fix_status = verified ? "DONE" : "STILL_PRESENT";
+            if(!verified) continue;
             await getDb().query(
-              "INSERT INTO website_health_events (user_id,website_host,scanned_url,scan_id,event_type,rule_id,previous_status,current_status,severity,details) VALUES ($1,$2,$3,$4,'FIX_CONFIRMED',$5,'PREPARED','PASS',$6,$7)",
+              "INSERT INTO website_health_events (user_id,website_host,scanned_url,scan_id,event_type,rule_id,previous_status,current_status,severity,details) VALUES ($1,$2,$3,$4,'FIX_CONFIRMED',$5,'AWAITING_VERIFICATION','PASS',$6,$7)",
               [user.id, websiteHost, finalUrl.toString(), savedScanId, issueId, item.severity || null, JSON.stringify({title:item.title,message:item.message,verification:"live_scan"})]
             );
           }
