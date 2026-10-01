@@ -51,9 +51,17 @@ export default function GithubPage(){
   const [completedPr,setCompletedPr]=useState<{number?:number;url:string;title?:string}|null>(null);
   const t=ui[language];
 
+  async function readJsonSafe(response:Response){
+    const raw=await response.text();
+    if(!raw.trim()) return {};
+    try{return JSON.parse(raw);}catch{
+      return {error: language==="nl"?"De server gaf een ongeldig antwoord. Probeer het opnieuw.":"The server returned an invalid response. Please try again."};
+    }
+  }
+
   useEffect(()=>{
-    fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in ui)setLanguage(d.language)}).catch(()=>{});
-    fetch("/api/history",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(d?.usage?.plan)setPlan(d.usage.plan)}).catch(()=>{});
+    fetch("/api/account/language").then(r=>r.ok?readJsonSafe(r):null).then(d=>{if(d?.language&&d.language in ui)setLanguage(d.language)}).catch(()=>{});
+    fetch("/api/history",{cache:"no-store"}).then(r=>r.ok?readJsonSafe(r):null).then(d=>{if(d?.usage?.plan)setPlan(d.usage.plan)}).catch(()=>{});
     const params=new URLSearchParams(searchParams.toString());
     setIssue(params.get("issue")||"");
     setContext(params.get("context")||"");
@@ -63,15 +71,15 @@ export default function GithubPage(){
       if(incomingScanId){
         try{
           const sr=await fetch("/api/history/"+encodeURIComponent(incomingScanId),{cache:"no-store"});
-          const sd=await sr.json();
+          const sd=await readJsonSafe(sr);
           if(sr.ok&&sd?.scan?.scanned_url){ incomingUrl=sd.scan.scanned_url; setSiteUrl(incomingUrl); setScanData(sd.scan); }
         }catch{}
       } else setSiteUrl(incomingUrl);
-      const r=await fetch("/api/github/status"); const d=await r.json();
+      const r=await fetch("/api/github/status"); const d=await readJsonSafe(r);
       if(d.connected){
         setConnected(true);setLogin(d.connection.github_login);
-        const rr=await fetch("/api/github/repos"); const rd=await rr.json();
-        if(rr.ok){setRepos(rd.repos); if(incomingUrl){ const mr=await fetch("/api/github/site-repository?url="+encodeURIComponent(incomingUrl)); const md=await mr.json(); if(mr.ok&&md.mapped){setRepo(md.repository);setBaseBranch(md.baseBranch||"main");setMapped(true);} } }
+        const rr=await fetch("/api/github/repos"); const rd=await readJsonSafe(rr);
+        if(rr.ok){setRepos(rd.repos); if(incomingUrl){ const mr=await fetch("/api/github/site-repository?url="+encodeURIComponent(incomingUrl)); const md=await readJsonSafe(mr); if(mr.ok&&md.mapped){setRepo(md.repository);setBaseBranch(md.baseBranch||"main");setMapped(true);} } }
         else if(/bad credentials|authenticatie|verbinden/i.test(rd.error||"")) { setConnected(false); setError(t.invalidLink); }
       } else if(d.reauthorize || d.error) {
         setConnected(false);
@@ -107,7 +115,7 @@ export default function GithubPage(){
     const context={title:m.title||"",description:m.description||"",h1:m.h1s?.[0]||"",canonical:m.canonical||"",imageAltCandidates:m.imageAltCandidates||[],ogTitle:m.openGraph?.title||"",ogDescription:m.openGraph?.description||"",ogImage:m.openGraph?.image||"",recommendedSchema:m.recommendedSchema||"",url:scanData.scanned_url};
     setProposalLoading(true);setProposalError("");
     fetch("/api/ai-fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:scanData.scanned_url,issue_id:normalizedIssue,request_id:crypto.randomUUID(),type,current,context,issue_status:String(check.status||"FAIL").toUpperCase()})})
-      .then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error==="invalid_output"?(d.validation?.errors||[]).join(" · "):d.error||"AI-fix mislukt.");setProposal(d.fix);})
+      .then(async r=>{const d=await readJsonSafe(r);if(!r.ok)throw new Error(d.error==="invalid_output"?(d.validation?.errors||[]).join(" · "):d.error||"AI-fix mislukt.");setProposal(d.fix);})
       .catch(e=>setProposalError(e instanceof Error?e.message:"AI-fix mislukt."))
       .finally(()=>setProposalLoading(false));
   },[scanData,issueId,proposalRequested,language]);
@@ -117,7 +125,7 @@ export default function GithubPage(){
     setBusy(true); setError(""); setMessage(t.release); setPreview(null);
     try{
       const r=await fetch("/api/github/site-repository",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:siteUrl})});
-      const d=await r.json();
+      const d=await readJsonSafe(r);
       if(!r.ok) throw new Error(d.error||t.mappingFail);
       setMapped(false); setRepo(""); setBaseBranch("main");
       setMessage(t.released);
@@ -132,7 +140,7 @@ export default function GithubPage(){
       setBusy(true); setError(""); setMessage(t.changing); setPreview(null);
       try{
         const r=await fetch("/api/github/site-repository",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:siteUrl})});
-        const d=await r.json();
+        const d=await readJsonSafe(r);
         if(!r.ok) throw new Error(d.error||t.mappingFail);
         setMapped(false);
         setMessage(t.oldReleased);
