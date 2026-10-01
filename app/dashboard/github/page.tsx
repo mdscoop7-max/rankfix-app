@@ -48,6 +48,7 @@ export default function GithubPage(){
   const [proposalLoading,setProposalLoading]=useState(false);
   const [proposalError,setProposalError]=useState("");
   const [proposalRequested,setProposalRequested]=useState(false);
+  const [completedPr,setCompletedPr]=useState<{number?:number;url:string;title?:string}|null>(null);
   const t=ui[language];
 
   useEffect(()=>{
@@ -190,7 +191,13 @@ export default function GithubPage(){
         setMessage(t.previewReady);
       } else {
         setPreview(null);
-        setMessage(d.alreadyApplied ? t.alreadyApplied : t.prProposed+": "+d.pr.title+" — "+d.pr.url+" | Bestand: "+(d.path || cleanPath)+". Controleer de diff, merge en scan opnieuw om de live fix te bevestigen.");
+        if(d.alreadyApplied){
+          setCompletedPr(null);
+          setMessage(t.alreadyApplied);
+        } else if(d.pr?.url){
+          setCompletedPr(d.pr);
+          setMessage(t.prProposed+": "+(d.pr.title||"Pull Request")+" | Bestand: "+(d.path || cleanPath)+". Merge de PR en scan daarna opnieuw om de live fix te bevestigen.");
+        }
       }
     }catch(error){
       setError(error instanceof Error?error.message:t.engineFail);
@@ -235,7 +242,7 @@ export default function GithubPage(){
           {validation?.errors?.length ? <ul className="mt-3 list-disc space-y-1 pl-5">{validation.errors.map((item,i)=><li key={i}>{item}</li>)}</ul> : null}
           {validation?.warnings?.length ? <div className="mt-4"><div className="font-semibold text-amber-200">{t.warnings}</div><ul className="mt-1 list-disc space-y-1 pl-5 text-amber-100">{validation.warnings.map((item,i)=><li key={i}>{item}</li>)}</ul></div> : null}
         </div>}
-        {message&&<div className="rounded-xl bg-emerald-500/10 p-4 text-sm text-emerald-200 break-all">{message}</div>}
+        {message&&<div className="rounded-xl bg-emerald-500/10 p-4 text-sm text-emerald-200 break-all">{message}</div>}{completedPr&&<div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/[0.06] p-5"><strong className="text-emerald-200">{language==="nl"?"Pull Request klaar":"Pull Request ready"}</strong><p className="mt-2 text-sm text-slate-300">{language==="nl"?"De codewijziging is veilig klaargezet. Controleer en merge de PR op GitHub en scan daarna opnieuw.":"The code change is ready. Review and merge the PR on GitHub, then scan again."}</p><div className="mt-4 flex flex-wrap gap-3"><a href={completedPr.url} target="_blank" rel="noreferrer" className="rf-primary-link inline-flex w-auto">{language==="nl"?"Open Pull Request →":"Open Pull Request →"}</a>{scanId&&<Link href={`/dashboard/audit/${encodeURIComponent(scanId)}`} className="inline-flex rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-slate-200">← {language==="nl"?"Terug naar audit":"Back to audit"}</Link>}</div></div>}
         {preview&&<div className="rounded-2xl border border-cyan-300/20 bg-black/25 p-4 text-sm">
           <div className="flex items-center justify-between gap-3"><strong>{t.preview} {preview.startLine}</strong><span className="text-slate-400">{preview.changedLines??"?"} {t.changed}</span></div>
           {preview.summary&&<p className="mt-2 text-slate-300">{preview.summary}</p>}
@@ -243,7 +250,7 @@ export default function GithubPage(){
           {preview.truncated&&<p className="mt-2 text-xs text-amber-200">Preview is ingekort; controleer na het aanmaken ook de volledige GitHub-diff.</p>}
           <button type="button" onClick={()=>{setPreview(null);setMessage("");}} className="mt-3 text-xs text-slate-300 underline">{t.cancel}</button>
         </div>}
-        <button type="submit" disabled={busy||Boolean(validation?.errors?.length)||error===t.missingAudit} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 font-bold text-[#04342C] disabled:opacity-50">{busy?t.busy:preview?t.approve:t.makePreview}</button>
+        {!completedPr&&<button type="submit" disabled={busy||Boolean(validation?.errors?.length)||error===t.missingAudit} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 font-bold text-[#04342C] disabled:opacity-50">{busy?t.busy:preview?t.approve:t.makePreview}</button>}
       </form>}
     </section>
     </div>
