@@ -5,7 +5,6 @@ import WebsiteProfile from "@/components/website-profile";
 import { useEffect, useMemo, useState } from "react";
 import AiAssistant from "@/components/ai-assistant";
 import RootMobileNav from "./root-mobile-nav";
-import PublicReviews from "@/components/public-reviews";
 import "./root-mobile-nav.css";
 
 type Check = {
@@ -567,7 +566,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
       <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#062451]/95 text-white backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 lg:px-6">
           <Link href={"/"+language} className="flex items-center gap-2.5"><span className="text-2xl font-black text-cyan-400">▥</span><span className="text-xl font-black">RankFix</span></Link>
-          <div className="hidden items-center gap-7 text-sm font-semibold lg:flex"><button onClick={()=>scrollToSection("scan")}>Home</button><Link href="#features">Functies</Link><Link href="#about">Voor wie</Link><Link href="#pricing">Prijzen</Link><Link href="#reviews">Reviews</Link><Link href="#process">Hoe het werkt</Link><button onClick={()=>setContactOpen(true)}>Contact</button></div>
+          <div className="hidden items-center gap-7 text-sm font-semibold lg:flex"><button onClick={()=>scrollToSection("scan")}>Home</button><Link href="#features">Functies</Link><Link href="#about">Voor wie</Link><Link href="#pricing">Prijzen</Link><Link href={"/"+language+"/reviews"}>Reviews</Link><Link href="#process">Hoe het werkt</Link><button onClick={()=>setContactOpen(true)}>Contact</button></div>
           <div className="flex items-center gap-2"><select value={language} onChange={(e)=>{const next=e.target.value as Language;setLanguage(next);window.location.href="/"+next}} className="hidden rounded-xl border border-white/15 bg-[#082d60] px-3 py-2 text-xs font-bold sm:block"><option value="nl">🇳🇱 NL</option><option value="en">🇬🇧 EN</option><option value="de">🇩🇪 DE</option><option value="fr">🇫🇷 FR</option><option value="it">🇮🇹 IT</option><option value="es">🇪🇸 ES</option></select>{!authLoading&&<Link href={authUser?"/dashboard":"/account?mode=login&lang="+language} className="hidden rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold sm:block">{authUser?"Dashboard":t.login}</Link>}<button onClick={()=>scrollToSection("scan")} className="rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-bold">Gratis scan →</button></div>
         </div>
       </nav>
@@ -930,35 +929,6 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         )
       )}
 
-      <section id="features" className="mx-auto max-w-7xl scroll-mt-8 border-t border-slate-200 px-5 py-20 lg:px-8">
-        <div className="max-w-2xl">
-          <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{pc.featuresEyebrow}</div>
-          <h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">{pc.featuresTitle}</h2>
-          <p className="mt-4 text-slate-600">{pc.featuresIntro}</p>
-        </div>
-        <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {pc.cards.map(([title, text], index) => {
-            const number = String(index + 1).padStart(2, "0");
-            return (
-            <div key={number} className="group rounded-3xl border border-slate-200 bg-slate-50 p-7 transition hover:-translate-y-1 hover:bg-white">
-              <div className="text-xs font-black text-emerald-300">{number}</div>
-              <h3 className="mt-10 text-xl font-bold">{title}</h3>
-              <p className="mt-3 text-sm leading-7 text-slate-500">{text}</p>
-            </div>
-          )})}
-        </div>
-      </section>
-
-      <section className="border-t border-slate-200 bg-white/[0.02]"><div className="mx-auto max-w-7xl px-5 py-16 lg:px-8"><div className="max-w-2xl"><div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{xc.fairLabel}</div><h2 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">{xc.fairTitle}</h2><p className="mt-4 text-slate-500">{xc.fairIntro}</p></div><div className="mt-10 grid gap-4 md:grid-cols-4">{xc.fair.map(([icon,title,text])=><div key={title} className="rounded-3xl border border-slate-200 bg-slate-50 p-6"><div className="text-2xl">{icon}</div><h3 className="mt-4 font-bold">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-500">{text}</p></div>)}</div></div></section>
-
-      <section className="border-y border-slate-200 bg-white/[0.02]">
-        <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
-          <div className="grid gap-8 md:grid-cols-4">
-            {xc.audiences.map(([title, text]) => <div key={title}><h3 className="font-bold">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-500">{text}</p></div>)}
-          </div>
-        </div>
-      </section>
-
       {contactOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-md">
           <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-slate-200 bg-[#101B2D] p-6 shadow-2xl sm:p-8">
@@ -978,31 +948,6 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
           </div>
         </div>
       )}
-
-      <section id="resources" className="border-y border-slate-200 bg-white/[0.02] scroll-mt-8">
-        <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
-          <div className="max-w-2xl">
-            <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{t.resources}</div>
-            <h2 className="mt-3 text-3xl font-black tracking-tight">{pc.resourcesTitle}</h2>
-            <p className="mt-4 text-slate-600">{pc.resourcesIntro}</p>
-          </div>
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {xc.resources.map(([title,text]) => <button key={title} type="button" onClick={() => title === "SEO Audit" ? startAudit("seo") : title === "GEO Audit" ? startAudit("geo") : scrollToSection("scan")} className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-left transition hover:border-emerald-300/30 hover:bg-white/[0.05]"><div className="font-bold">{title}</div><div className="mt-2 text-sm text-slate-500">{text}</div></button>)}
-          </div>
-        </div>
-      </section>
-
-      <section id="about" className="mx-auto max-w-7xl scroll-mt-8 px-5 py-16 lg:px-8">
-        <div className="max-w-3xl">
-          <div className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{t.about}</div>
-          <h2 className="mt-3 text-3xl font-black tracking-tight">{pc.aboutTitle}</h2>
-          <p className="mt-4 leading-7 text-slate-300">{pc.about1}</p>
-          <p className="mt-4 leading-7 text-slate-600">{pc.about2}</p>
-          <Link href={`/${language}/about`} className="mt-6 inline-flex rounded-xl border border-emerald-300/30 px-4 py-3 text-sm font-bold text-emerald-200">{pc.learnMore}</Link>
-        </div>
-      </section>
-
-      <PublicReviews language={language} />
 
       <footer id="footer" className="bg-[#16243a] px-5 py-14 text-slate-100 lg:px-8">
         <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-5">
