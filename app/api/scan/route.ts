@@ -2449,8 +2449,8 @@ export async function POST(request: Request) {
 
         const websiteHost = finalUrl.hostname.toLowerCase().replace(/^www\\./, "");
         const rememberedFixes = await getDb().query(
-          "SELECT rule_id,file_path,repository,pr_number,fix_summary,evidence,last_confirmed_at,recurrence_count,recurrence_open,last_recurred_at FROM fix_memory WHERE user_id=$1 AND website_host=$2",
-          [user.id, websiteHost]
+          "SELECT rule_id,file_path,repository,pr_number,fix_summary,evidence,last_confirmed_at,recurrence_count,recurrence_open,last_recurred_at FROM fix_memory WHERE user_id=$1 AND website_host=$2 AND scanned_url=$3",
+          [user.id, websiteHost, normalizedScanUrl]
         );
         const rememberedByRule = new Map(rememberedFixes.rows.map((row:any)=>[String(row.rule_id),row]));
 
@@ -2476,8 +2476,8 @@ export async function POST(request: Request) {
             let recurrenceCount = Number(remembered.recurrence_count || 0);
             if (remembered.recurrence_open !== true) {
               const opened = await getDb().query(
-                "UPDATE fix_memory SET recurrence_count=recurrence_count+1, recurrence_open=TRUE, last_recurred_at=NOW(), updated_at=NOW() WHERE user_id=$1 AND website_host=$2 AND rule_id=$3 AND recurrence_open=FALSE RETURNING recurrence_count,last_recurred_at",
-                [user.id, websiteHost, issueId]
+                "UPDATE fix_memory SET recurrence_count=recurrence_count+1, recurrence_open=TRUE, last_recurred_at=NOW(), updated_at=NOW() WHERE user_id=$1 AND website_host=$2 AND scanned_url=$3 AND rule_id=$4 AND recurrence_open=FALSE RETURNING recurrence_count,last_recurred_at",
+                [user.id, websiteHost, normalizedScanUrl, issueId]
               );
               if (opened.rows[0]) {
                 recurrenceCount = Number(opened.rows[0].recurrence_count || recurrenceCount + 1);
@@ -2574,7 +2574,7 @@ export async function POST(request: Request) {
             await getDb().query(
               `INSERT INTO fix_memory (user_id,website_host,rule_id,scanned_url,repository,file_path,pr_number,verification_scan_id,fix_summary,evidence,last_confirmed_at,updated_at)
                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,NOW(),NOW())
-               ON CONFLICT (user_id,website_host,rule_id) DO UPDATE SET
+               ON CONFLICT (user_id,website_host,scanned_url,rule_id) DO UPDATE SET
                  scanned_url=EXCLUDED.scanned_url,
                  repository=COALESCE(EXCLUDED.repository,fix_memory.repository),
                  file_path=COALESCE(EXCLUDED.file_path,fix_memory.file_path),
