@@ -245,10 +245,25 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
   // Confidence describes the labels we can actually show, not every incidental
   // technology marker seen in the source. A framework alone must not make an
   // unknown CMS/platform look highly confirmed.
+  // Score confidence per displayed label. Do not let a strong marker for one
+  // technology accidentally inflate the confidence of another label (for example
+  // a framework marker making an otherwise weak CMS detection look certain).
+  const cmsStrength = cms === "WordPress" ? wordpressSignals
+    : cms === "Wix" || cms === "Squarespace" || cms === "Webflow" ? 2
+    : 0;
+  const commerceStrength = commercePlatform === "WooCommerce" ? Math.max(2, wooSignals + Math.min(wordpressSignals, 1))
+    : commercePlatform === "Shopify" ? shopifySignals
+    : commercePlatform === "Magento / Adobe Commerce" ? magentoSignals
+    : commercePlatform === "PrestaShop" ? Math.max(2, prestashopSignals)
+    : commercePlatform === "BigCommerce" ? Math.max(2, bigCommerceSignals)
+    : 0;
+  const frameworkStrength = framework === "Next.js" ? nextSignals
+    : framework === "Nuxt" ? nuxtSignals
+    : 0;
   const confirmedLabelStrength = Math.max(
-    commercePlatform && commercePlatform !== "Custom / niet bevestigd" ? strongest : 0,
-    cms ? strongest : 0,
-    framework ? Math.min(strongest, 2) : 0,
+    commerceStrength,
+    cmsStrength,
+    Math.min(frameworkStrength, 2),
   );
   const confidence = confirmedLabelStrength >= 3 ? 97
     : confirmedLabelStrength === 2 ? 90
