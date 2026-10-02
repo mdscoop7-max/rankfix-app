@@ -1288,6 +1288,22 @@ export async function POST(request: Request) {
     const hasReviewPlatformSignal = /trustpilot|kiyoh|google reviews|reviews?\.io/i.test(text);
     const hasCheckoutTrustSignal = /checkout|afrekenen|ideal|iDEAL|visa|mastercard|bancontact|klarna|mollie|pay\s*pal|secure payment|veilig betalen/i.test(text);
     const ecommerceVariantUrlSignal = isProductPage && /[?&](variant|sku|color|colour|size|maat)=/i.test(finalUrl.search);
+    const cartHrefSignal = links.some((href) => /(?:\/cart(?:\/|$|[?#])|\/basket(?:\/|$|[?#])|\/winkelwagen(?:\/|$|[?#]))/i.test(href));
+    const checkoutHrefSignal = links.some((href) => /(?:\/checkout(?:\/|$|[?#])|\/afrekenen(?:\/|$|[?#])|\/kassa(?:\/|$|[?#]))/i.test(href));
+    const addToCartMarkupSignal = hasStrongCommerceAction || /(?:add[-_]?to[-_]?cart|add_to_cart|product-form|name\s*=\s*["']add-to-cart["'])/i.test(html);
+    const shippingCostSignal = /(?:verzendkosten|shipping cost|delivery cost|bezorgkosten|versandkosten|frais de livraison|spese di spedizione|gastos de envío)\s*[:€£$]?\s*(?:gratis|free|\d)/i.test(text);
+    const paymentMethodSignal = /\b(?:ideal|visa|mastercard|bancontact|klarna|paypal|apple pay|google pay|mollie)\b/i.test(text);
+    const checkoutFunnelEvidence = {
+      productPage: isProductPage,
+      addToCart: addToCartMarkupSignal,
+      cartLink: cartHrefSignal,
+      checkoutLink: checkoutHrefSignal,
+      shippingInformation: hasShippingSignal,
+      shippingCostVisible: shippingCostSignal,
+      paymentMethodsVisible: paymentMethodSignal,
+      staticHtmlOnly: true,
+      interactiveFlowExecuted: false,
+    };
     const webshopClaimMatches = text.match(/(?:snelle levering|14\s*dagen retour|gratis verzending|nederlandse webshop|voor\s*\d+\s*uur\s*besteld)/gi) || [];
     const hasWebshopClaims = webshopClaimMatches.length > 0;
     // EU consumer / Omnibus signals are evidence-only. Static HTML can surface
@@ -1573,6 +1589,21 @@ export async function POST(request: Request) {
       : isHomepage
         ? check("unable_to_confirm", "price_format", "seo", "Prijsnotatie", `${priceFormatMatches.length} eurobedrag(en) met een punt zijn in de statische homepage-tekst gevonden, zoals ${priceFormatMatches[0]}, maar RankFix kan vanuit raw HTML niet bewijzen dat dit de werkelijk zichtbare gelokaliseerde prijsweergave is.`, "Bevestig prijsnotatie op een echte productpagina of met JavaScript-rendering voordat dit als fout wordt beoordeeld.", 0, 5)
         : check("warning", "price_format", "seo", "Prijsnotatie", `${priceFormatMatches.length} prijsnotatie(s) gebruikt een punt als decimaalteken, zoals ${priceFormatMatches[0]}.`, "Gebruik voor Nederlandse content bijvoorbeeld € 129,95 en formatteer prijzen met locale-aware formatting.", 2, 5)
+    );
+
+    seoChecks.push(!hasEcommerceSignal
+      ? check("not_applicable","checkout_funnel_static","seo","Checkout & funnel","Geen duidelijke webshop-signalen gevonden; checkout/funnel is niet beoordeeld.","Gebruik deze controle op echte webshops.",0,0)
+      : isProductPage && !addToCartMarkupSignal
+        ? check("warning","checkout_funnel_static","seo","Checkout & funnel","Dit is een productpagina, maar RankFix kon in de statische HTML geen duidelijke toevoegen-aan-winkelwagen actie bevestigen.","Controleer of de koopactie zichtbaar en bruikbaar is. Als deze alleen via JavaScript verschijnt, bevestig dit later met de headless/browser-audit.",0,0)
+        : (cartHrefSignal || checkoutHrefSignal) && addToCartMarkupSignal
+          ? check("pass","checkout_funnel_static","seo","Checkout & funnel","Statische funnel-signalen zijn aanwezig: koopactie en een winkelwagen- of checkoutpad zijn gevonden.","Dit bewijst niet dat de interactieve funnel werkt; runtime add-to-cart en checkout worden later met browser/headless getest.",0,0)
+          : check("unable_to_confirm","checkout_funnel_static","seo","Checkout & funnel","RankFix vond webshop-signalen, maar kan vanuit deze losse raw-HTML pagina de volledige product → winkelwagen → checkout-flow niet bevestigen.","Gebruik de toekomstige browser/headless-controle om klikken, winkelwagenstatus en checkout runtime te testen.",0,0)
+    );
+    seoChecks.push(!hasEcommerceSignal
+      ? check("not_applicable","checkout_information_signal","seo","Checkout informatie","Geen duidelijke webshop-signalen gevonden.","Gebruik deze controle op echte webshops.",0,0)
+      : hasShippingSignal && paymentMethodSignal
+        ? check("pass","checkout_information_signal","seo","Checkout informatie","Verzendinformatie en betaalmethode-signalen zijn op deze pagina gevonden.","Controleer verzendkosten, btw en totaalbedrag opnieuw in de daadwerkelijke checkout.",0,0)
+        : check("unable_to_confirm","checkout_information_signal","seo","Checkout informatie","Niet alle verzend- en betaalinformatie kon op deze losse pagina worden bevestigd.","Dit is geen foutbewijs: informatie kan pas in winkelwagen of checkout verschijnen. Controleer de volledige funnel.",0,0)
     );
 
     seoChecks.push(!hasEcommerceSignal
@@ -2117,6 +2148,7 @@ export async function POST(request: Request) {
               productOptimizer: isProductPage ? { eligible: productOptimizerSourceCount >= 3, sourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null } : { eligible: false, sourceCount: 0, product: null },
               pricingCurrency: pricingCurrencyEvidence,
               euConsumerSignals: consumerLawSignals,
+              checkoutFunnel: checkoutFunnelEvidence,
               twitterCard: twitterCard || null, schemaTypes: [...new Set(schemaTypes)].slice(0,12),
               jsonLdBlocks: validJsonLd, sitemapFound, robotsMentionsSitemap, robotsStatus, sitemapUrl: confirmedSitemapUrl || robotsDeclaredSitemapUrls[0] || null }
           }), CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION]
@@ -2361,6 +2393,7 @@ export async function POST(request: Request) {
         productOptimizer: isProductPage ? { eligible: productOptimizerSourceCount >= 3, sourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null } : { eligible: false, sourceCount: 0, product: null },
         pricingCurrency: pricingCurrencyEvidence,
         euConsumerSignals: consumerLawSignals,
+        checkoutFunnel: checkoutFunnelEvidence,
         twitterCard: twitterCard || null,
         schemaTypes: [...new Set(schemaTypes)].slice(0, 12),
         jsonLdBlocks: validJsonLd,
