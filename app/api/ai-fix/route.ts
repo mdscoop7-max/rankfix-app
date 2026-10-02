@@ -25,6 +25,25 @@ function cleanContext(context: Record<string, string>) {
   return Object.fromEntries(Object.entries(context).map(([key, value]) => [key, cleanContextValue(String(value || ""))]));
 }
 
+function buildSafeProductProposal(context: Record<string, string>) {
+  const name = String(context.productName || "").trim();
+  const pageTitle = String(context.title || "").trim();
+  const brandMatch = pageTitle.match(/\|\s*([^|]+)$/);
+  const brand = String(context.productBrand || brandMatch?.[1] || "").trim();
+  const title = brand && !name.toLowerCase().includes(brand.toLowerCase()) ? `${name} | ${brand}` : name;
+  const metaDescription = brand
+    ? `Bekijk ${name} van ${brand}. Bekijk de productinformatie en actuele gegevens op de productpagina.`
+    : `Bekijk ${name}. Bekijk de productinformatie en actuele gegevens op de productpagina.`;
+  const productDescription = brand
+    ? `${name} is een product van ${brand}. Bekijk de productpagina voor de actuele productinformatie.`
+    : `${name}. Bekijk de productpagina voor de actuele productinformatie.`;
+  return {
+    title: `Productcopy en metadata optimaliseren voor ${name}`,
+    content: `Product title: ${name}\nMeta title: ${trimTo(title, 60)}\nMeta description: ${trimTo(metaDescription, 158)}\nProduct description: ${productDescription}`,
+    reason: "Dit veilige voorstel gebruikt alleen de geverifieerde productnaam en, wanneer aantoonbaar uit de bestaande paginatitel, de merknaam. Er zijn geen nieuwe producteigenschappen of verkoopclaims toegevoegd."
+  };
+}
+
 async function generateWithOpenAI(type: FixType, url: string, current: string, context: Record<string,string>) {
   const key = process.env.OPENAI_API_KEY;
   if (!key) return null;
@@ -39,7 +58,7 @@ async function generateWithOpenAI(type: FixType, url: string, current: string, c
     "For social_metadata, generate concrete Open Graph meta tags from verified title, description, and existing og:image when available.",
     "For canonical fixes, generate one self-referencing canonical link using only the supplied final URL.",
     "For heading_structure fixes, propose a small H2/H3 outline grounded only in supplied page title, H1, and description; do not invent services.",
-    "For product_copy_metadata, optimize only product copy and SEO/social metadata using verified supplied product facts. Never invent materials, dimensions, compatibility, benefits, certifications, reviews, ratings, discounts, delivery promises, stock, price, SKU, brand, performance, health/beauty claims, or any other product property. Preserve verified numeric/commercial facts exactly. Return a compact proposal with: Product title, Meta title, Meta description, and Product description. If the evidence is insufficient, do not guess.",
+    "For product_copy_metadata, use only facts explicitly present in the supplied verified product context. Do not infer descriptive adjectives or use persuasive language. Never add softness, warmth, color nuance, material, seasonality, style, quality, use case, benefits, dimensions, compatibility, certifications, reviews, ratings, discounts, delivery promises, stock, price, SKU, brand, performance, health/beauty claims, or any other property unless that exact fact is supplied as verified evidence. Return a compact proposal with: Product title, Meta title, Meta description, and Product description. If useful copy would require inference, stay factual and minimal.",
     "For alt_text fixes, generate concise descriptive alt text for supplied image URLs using visible page context and image filename/URL. Do not claim unsupported details. If no verified og:image exists, do not invent a URL; state that an existing page image must be assigned.",
     "Return ONLY valid JSON with keys title, content, reason.",
     `type=${type}`,
@@ -299,6 +318,14 @@ export async function POST(request: Request) {
     }
     if (type === "faq" && /is een bedrijf dat op deze pagina wordt beschreven|alleen de gevonden bedrijfsnaam en locatie/i.test(`${fix.title} ${fix.content} ${fix.reason}`)) {
       fix = fallback(type, url, safeCurrent, safeContext);
+      mode = "rule_based_fallback";
+    }
+    if (type === "product_copy_metadata") {
+      // Product Optimizer is deliberately fail-closed: AI may improve phrasing, but
+      // customer-facing copy must never introduce unverified product properties.
+      // Until claim-level provenance is available, publish a deterministic proposal
+      // built only from verified identity fields rather than trusting free-form AI copy.
+      fix = buildSafeProductProposal(safeContext);
       mode = "rule_based_fallback";
     }
     fix = cleanFix(fix);
