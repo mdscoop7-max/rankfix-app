@@ -216,3 +216,22 @@
 .rf-plan-card p{margin:0;opacity:.76;font-size:14px}
 .rf-plan-card .rf-primary-link{white-space:nowrap}
 @media(max-width:640px){.rf-plan-card{align-items:stretch;flex-direction:column;padding:17px}.rf-plan-card .rf-primary-link{text-align:center;width:100%}}
+
+/* 2026 dashboard refresh: RankFix identity, cleaner hierarchy, mobile-first actions */
+.rf-dashboard-status{border:1px solid var(--border-subtle);background:linear-gradient(145deg,#101B2D,#0D1727);border-radius:18px;padding:18px}
+.rf-dashboard-hero{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.rf-dashboard-latest{display:flex;align-items:center;gap:18px;min-width:0}.rf-dashboard-latest h2{font-size:20px;overflow-wrap:anywhere}.rf-dashboard-latest p{color:var(--text-secondary);font-size:12px;margin-top:4px}
+.rf-overall-meter{--rf-score:0;width:112px;height:112px;flex:none;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--brand) calc(var(--rf-score)*1%),#26364d 0);position:relative}.rf-overall-meter:before{content:"";position:absolute;inset:9px;border-radius:50%;background:var(--bg-surface)}.rf-overall-meter>div{position:relative;text-align:center}.rf-overall-meter strong{font-size:30px;line-height:1}.rf-overall-meter span{display:block;color:var(--text-secondary);font-size:11px;margin-top:3px}
+.rf-eyebrow{display:block;color:var(--brand);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px}.rf-profile-line{max-width:620px}
+.rf-score-card{transition:transform .15s ease,border-color .15s ease}.rf-score-card:hover{transform:translateY(-2px);border-color:var(--brand)}.rf-score-card strong small{display:inline;font-size:12px;margin-left:2px}
+.rf-plan-card{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-top:18px;padding:15px 18px;border:1px solid var(--border-subtle);border-radius:14px;background:#0D1727}.rf-plan-card h2{font-size:15px}.rf-plan-card p{font-size:11px;color:var(--text-secondary);margin-top:3px}
+.rf-scan-cta{white-space:nowrap}.rf-section-head>a{color:var(--brand-light);font-size:12px;font-weight:700}
+@media(max-width:650px){
+ .rf-plan-card{margin-top:14px;padding:13px;align-items:flex-start;flex-direction:column}.rf-plan-card .rf-primary-link{width:100%;text-align:center}
+ .rf-dashboard-status{margin-top:16px;padding:13px;border-radius:16px}.rf-dashboard-hero{align-items:stretch;flex-direction:column}.rf-dashboard-latest{align-items:center;gap:12px}
+ .rf-overall-meter{width:94px;height:94px}.rf-overall-meter strong{font-size:27px}.rf-dashboard-latest h2{font-size:17px}
+ .rf-scan-cta{width:100%;text-align:center;padding:12px 14px}
+ .rf-status-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.rf-status-grid .rf-card{min-height:105px}.rf-status-grid .rf-card strong{font-size:26px}
+ .rf-section{margin-top:22px}.rf-next-actions a{min-height:62px;align-items:center;padding:13px}.rf-next-actions b{font-size:12px}.rf-next-actions span{max-width:52%;font-size:11px}
+ .rf-history-list a{grid-template-columns:minmax(0,1fr) auto}.rf-history-list em{display:none}.rf-site-actions{justify-content:stretch}.rf-site-actions a,.rf-site-actions button{flex:1;text-align:center;min-height:40px}
+}
