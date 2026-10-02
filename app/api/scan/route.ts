@@ -2568,7 +2568,10 @@ export async function POST(request: Request) {
                  fix_summary=EXCLUDED.fix_summary,
                  evidence=EXCLUDED.evidence,
                  last_confirmed_at=NOW(),
-                 recurrence_count=fix_memory.recurrence_count+1,
+                 -- Confirmation proves the repair; it is not itself a recurrence.
+                 -- Recurrence is recognized only when a later live scan proves
+                 -- the same rule has become an active issue again.
+                 recurrence_count=fix_memory.recurrence_count,
                  updated_at=NOW()`,
               [user.id,websiteHost,issueId,normalizedScanUrl,verifiedFixRow.repository||null,verifiedFixRow.file_path||null,verifiedFixRow.pr_number||null,savedScanId,String(item.fix||item.message||item.title||""),JSON.stringify({status:"PASS",confidence:liveConfidence,details:liveEvidence?.details||null})]
             );
