@@ -1530,7 +1530,7 @@ export async function POST(request: Request) {
     const titleBrandCandidate = (title.split(/[|–—-]/)[0] || "").trim();
     const escapedTitleBrand = titleBrandCandidate.replace(/[.*+?^{}()|[\]\\]/g, "\\$&");
     const visibleTitleBrandSignal = titleBrandCandidate.length >= 3 &&
-      new RegExp(`\b${escapedTitleBrand}\b`, "i").test(text);
+      new RegExp(`\\b${escapedTitleBrand}\\b`, "i").test(text);
     const visibleBrandNameSignal = Boolean(
       organizationName ||
       firstMatch(html, /<meta[^>]+name\s*=\s*["']application-name["'][^>]+content\s*=\s*["']([^"']+)["']/i) ||
@@ -1540,7 +1540,8 @@ export async function POST(request: Request) {
     );
     const visibleBrandLogoSignal = Boolean(
       /<img[^>]+(?:class|id)\s*=\s*["'][^"']*(?:logo|brand)[^"']*["']/i.test(html) ||
-      /<img[^>]+alt\s*=\s*["'][^"']*(?:logo|brand)[^"']*["']/i.test(html)
+      /<img[^>]+alt\s*=\s*["'][^"']*(?:logo|brand)[^"']*["']/i.test(html) ||
+      /<(?:a|div|span)[^>]+(?:class|id)\s*=\s*["'][^"']*(?:logo|brand)[^"']*["'][^>]*>[\s\S]{1,500}?<\/(?:a|div|span)>/i.test(html)
     );
     const visibleBrandSignalChecks = [
       { label: "merknaam/branding", found: visibleBrandNameSignal },
