@@ -50,7 +50,7 @@ export default function GithubPage(){
   const [proposalLoading,setProposalLoading]=useState(false);
   const [proposalError,setProposalError]=useState("");
   const [proposalRequested,setProposalRequested]=useState(false);
-  const [completedPr,setCompletedPr]=useState<{number?:number;url:string;title?:string}|null>(null);
+  const [completedPr,setCompletedPr]=useState<{number?:number;url?:string;title?:string}|null>(null);
   const t=ui[language];
 
   async function readJsonSafe(response:Response){
@@ -206,8 +206,10 @@ export default function GithubPage(){
         if(d.alreadyApplied){
           setCompletedPr(null);
           setMessage(t.alreadyApplied);
-        } else if(d.pr?.url){
-          setCompletedPr(d.pr);
+        } else if(d.pr?.number || d.pr?.url || /awaiting_(merge|verification)|pr_created|published/i.test(String(d.status||""))){
+          const prNumber=Number(d.pr?.number)||undefined;
+          const prUrl=String(d.pr?.url||"").trim() || (prNumber ? `https://github.com/${cleanRepo}/pull/${prNumber}` : undefined);
+          setCompletedPr({number:prNumber,url:prUrl,title:d.pr?.title});
           if(d.merge?.merged){
             setMessage(language==="nl"?"Fix gepubliceerd. RankFix heeft de Pull Request automatisch gemerged. Scan de live website opnieuw om de oplossing te bevestigen.":"Fix published. RankFix merged the Pull Request automatically. Scan the live website again to verify the fix.");
           }else{
@@ -265,7 +267,7 @@ export default function GithubPage(){
           {validation?.errors?.length ? <ul className="mt-3 list-disc space-y-1 pl-5">{validation.errors.map((item,i)=><li key={i}>{item}</li>)}</ul> : null}
           {validation?.warnings?.length ? <div className="mt-4"><div className="font-semibold text-amber-200">{t.warnings}</div><ul className="mt-1 list-disc space-y-1 pl-5 text-amber-100">{validation.warnings.map((item,i)=><li key={i}>{item}</li>)}</ul></div> : null}
         </div>}
-        {message&&<div className="rounded-xl bg-emerald-500/10 p-4 text-sm text-emerald-200 break-all">{message}</div>}{completedPr&&<div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/[0.06] p-5"><strong className="text-emerald-200">{language==="nl"?"Pull Request klaar":"Pull Request ready"}</strong><p className="mt-2 text-sm text-slate-300">{error ? (language==="nl"?"Automatisch publiceren is geblokkeerd. RankFix AI is geopend om uit te leggen wat nodig is. Gebruik GitHub alleen als de AI aangeeft dat dit noodzakelijk is.":"Automatic publishing is blocked. RankFix AI is open to explain what is needed. Use GitHub only if the AI says it is necessary.") : (language==="nl"?"De fix is gepubliceerd. Scan de live website opnieuw om te controleren of het probleem echt is opgelost.":"The fix is published. Scan the live website again to verify the issue is really resolved.")}</p><div className="mt-4 flex flex-wrap gap-3">{siteUrl&&<Link href={`/dashboard/scan?url=${encodeURIComponent(siteUrl)}&verify_issue=${encodeURIComponent(issueId)}`} className="rf-primary-link inline-flex w-auto">{language==="nl"?"Opnieuw scannen en fix controleren →":"Rescan and verify fix →"}</Link>}<a href={completedPr.url} target="_blank" rel="noreferrer" className="inline-flex rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-slate-300">{language==="nl"?"Bekijk PR op GitHub ↗":"View PR on GitHub ↗"}</a></div></div>}
+        {message&&<div className="rounded-xl bg-emerald-500/10 p-4 text-sm text-emerald-200 break-all">{message}</div>}{completedPr&&<div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/[0.06] p-5"><strong className="text-emerald-200">{language==="nl"?"Pull Request klaar":"Pull Request ready"}</strong><p className="mt-2 text-sm text-slate-300">{error ? (language==="nl"?"Automatisch publiceren is geblokkeerd. RankFix AI is geopend om uit te leggen wat nodig is. Gebruik GitHub alleen als de AI aangeeft dat dit noodzakelijk is.":"Automatic publishing is blocked. RankFix AI is open to explain what is needed. Use GitHub only if the AI says it is necessary.") : (language==="nl"?"De fix is gepubliceerd. Scan de live website opnieuw om te controleren of het probleem echt is opgelost.":"The fix is published. Scan the live website again to verify the issue is really resolved.")}</p><div className="mt-4 flex flex-wrap gap-3">{siteUrl&&<Link href={`/dashboard/scan?url=${encodeURIComponent(siteUrl)}&verify_issue=${encodeURIComponent(issueId)}`} className="rf-primary-link inline-flex w-auto">{language==="nl"?"Opnieuw scannen en fix controleren →":"Rescan and verify fix →"}</Link>}{completedPr.url&&<a href={completedPr.url} target="_blank" rel="noreferrer" className="inline-flex rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-slate-300">{language==="nl"?"Bekijk PR op GitHub ↗":"View PR on GitHub ↗"}</a>}</div></div>}
         {preview&&<div className="rounded-2xl border border-cyan-300/20 bg-black/25 p-4 text-sm">
           <div className="flex items-center justify-between gap-3"><strong>{t.preview} {preview.startLine}</strong><span className="text-slate-400">{preview.changedLines??"?"} {t.changed}</span></div>
           {preview.summary&&<p className="mt-2 text-slate-300">{preview.summary}</p>}
