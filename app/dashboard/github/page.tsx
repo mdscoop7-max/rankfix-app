@@ -95,7 +95,8 @@ export default function GithubPage(){
     if(!scanData||!issueId||proposalRequested) return;
     setProposalRequested(true);
     const allChecks=[...(scanData?.result?.seo?.checks||[]),...(scanData?.result?.geo?.checks||[])];
-    const check=allChecks.find((c:any)=>String(c.issue_id||c.rule_id||"")===issueId);
+    const normalizedRequestedIssue=String(issueId||"").trim().toUpperCase();
+    const check=allChecks.find((c:any)=>String(c.issue_id||c.rule_id||"").trim().toUpperCase()===normalizedRequestedIssue);
     if(!check){setProposalError(language==="nl"?"Dit verbeterpunt kon niet in de actieve scan worden gevonden.":"This issue could not be found in the active scan.");return;}
     setSelectedCheck(check);
     const directProposal=String(check.fix||"").trim();
@@ -106,7 +107,8 @@ export default function GithubPage(){
       setProposal({title:language==="nl"?"Concreet scanvoorstel":"Concrete scan proposal",content:directProposal,reason:language==="nl"?"Dit concrete voorstel komt rechtstreeks uit de gecontroleerde scan.":"This concrete proposal comes directly from the verified scan."});
       return;
     }
-    const normalizedIssue=String(check.rule_id||check.issue_id||issueId);
+    const rawNormalizedIssue=String(check.rule_id||check.issue_id||issueId);
+    const normalizedIssue=rawNormalizedIssue.toLowerCase()==="product_copy_optimizer"?"PRODUCT_COPY_OPTIMIZER":rawNormalizedIssue;
     const titleHint=String(check.title||"").toLowerCase();
     const typeMap:Record<string,string>={META_TITLE_MISSING:"meta_title",META_TITLE_GUIDANCE:"meta_title",META_DESCRIPTION_MISSING:"meta_description",META_DESCRIPTION_GUIDANCE:"meta_description",H1_MISSING:"h1",IMAGE_ALT_MISSING:"alt_text",SOCIAL_METADATA_INCOMPLETE:"social_metadata",social:"social_metadata",STRUCTURED_DATA_MISSING:"structured_data",breadcrumbs:"breadcrumb",canonical:"canonical",headings:"heading_structure",faq:"faq",author:"expertise",PRODUCT_COPY_OPTIMIZER:"product_copy_metadata",product_copy_optimizer:"product_copy_metadata"};
     const inferredType=titleHint.includes("social")||titleHint.includes("open graph")?"social_metadata":titleHint.includes("meta description")?"meta_description":titleHint.includes("meta title")?"meta_title":titleHint.includes("structured data")?"structured_data":titleHint.includes("canonical")?"canonical":titleHint.includes("alt")?"alt_text":titleHint.includes("heading")?"heading_structure":titleHint.includes("h1")?"h1":"";

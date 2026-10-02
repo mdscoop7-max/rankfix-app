@@ -27,20 +27,19 @@ function cleanContext(context: Record<string, string>) {
 
 function buildSafeProductProposal(context: Record<string, string>) {
   const name = String(context.productName || "").trim();
-  const pageTitle = String(context.title || "").trim();
-  const brandMatch = pageTitle.match(/\|\s*([^|]+)$/);
-  const brand = String(context.productBrand || brandMatch?.[1] || "").trim();
-  const title = brand && !name.toLowerCase().includes(brand.toLowerCase()) ? `${name} | ${brand}` : name;
-  const metaDescription = brand
-    ? `Bekijk ${name} van ${brand}. Bekijk de productinformatie en actuele gegevens op de productpagina.`
-    : `Bekijk ${name}. Bekijk de productinformatie en actuele gegevens op de productpagina.`;
-  const productDescription = brand
-    ? `${name} is een product van ${brand}. Bekijk de productpagina voor de actuele productinformatie.`
-    : `${name}. Bekijk de productpagina voor de actuele productinformatie.`;
+  const verifiedDescription = String(context.description || "").trim();
+  const verifiedBrand = String(context.productBrand || "").trim();
+  const metaTitle = verifiedBrand && !name.toLowerCase().includes(verifiedBrand.toLowerCase())
+    ? `${name} | ${verifiedBrand}`
+    : name;
+  // Fail closed: copy comes only from fields already verified by the scanner.
+  // Do not infer a brand from separators in the page title and do not create
+  // adjectives, benefits, stock, delivery or commercial claims.
+  const metaDescription = trimTo(verifiedDescription, 158);
   return {
     title: `Productcopy en metadata optimaliseren voor ${name}`,
-    content: `Product title: ${name}\nMeta title: ${trimTo(title, 60)}\nMeta description: ${trimTo(metaDescription, 158)}\nProduct description: ${productDescription}`,
-    reason: "Dit veilige voorstel gebruikt alleen de geverifieerde productnaam en, wanneer aantoonbaar uit de bestaande paginatitel, de merknaam. Er zijn geen nieuwe producteigenschappen of verkoopclaims toegevoegd."
+    content: `Product title: ${name}\nMeta title: ${trimTo(metaTitle, 60)}\nMeta description: ${metaDescription}\nProduct description: ${verifiedDescription}`,
+    reason: "Dit voorstel gebruikt uitsluitend de door de scan bevestigde productnaam en bestaande paginabeschrijving. Er zijn geen producteigenschappen, voordelen, voorraad-, prijs-, leverings- of verkoopclaims toegevoegd."
   };
 }
 
