@@ -322,6 +322,8 @@ export async function ensureDatabase() {
       // Fix Engine schema. Reconcile it after all columns exist so preview
       // proposals use the same lifecycle on upgraded and fresh databases.
       await db.query("ALTER TABLE fix_proposals DROP CONSTRAINT IF EXISTS fix_proposals_status_check");
+      await db.query("ALTER TABLE fix_proposals ALTER COLUMN status SET DEFAULT 'PREVIEW_READY'");
+      await db.query("UPDATE fix_proposals SET status = 'PREVIEW_READY' WHERE status = 'PREVIEWED'");
       await db.query("ALTER TABLE fix_proposals ADD CONSTRAINT fix_proposals_status_check CHECK (status IN ('PREVIEW_READY','APPROVED','PUBLISHED','FAILED','EXPIRED'))");
 
       initialized = true;
