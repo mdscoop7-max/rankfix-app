@@ -2109,6 +2109,77 @@ export async function POST(request: Request) {
     };
     const rendering = { mode: "raw_html" as const, javascriptExecuted: false, note: renderingNotes[scanLanguage] || renderingNotes.en };
 
+    // Multi-page evidence audit: select a bounded same-host sample and fetch it
+    // without changing the score of the page the customer explicitly scanned.
+    type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "other"; evidence: string[] };
+    type MultiPageAudit = MultiPageCandidate & { status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
+    const siteHost = normalizeHost(finalUrl.hostname);
+    const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
+      try {
+        const candidate = new URL(urlValue, finalUrl); candidate.hash = "";
+        if (!/^https?:$/.test(candidate.protocol) || normalizeHost(candidate.hostname) !== siteHost) return null;
+        const normalized = normalizeScanUrl(candidate.toString());
+        if (normalized === normalizeScanUrl(finalUrl.toString())) return null;
+        const path = safeDecodeURIComponent(candidate.pathname).toLowerCase();
+        if (/\.(?:jpg|jpeg|png|gif|webp|svg|pdf|zip|xml|json|css|js|ico|woff2?)(?:$|\?)/i.test(path)) return null;
+        const evidence: string[] = [];
+        const productPath = /\/(?:product|products|product-page|p)\//i.test(path);
+        const categoryPath = /\/(?:category|categories|categorie|categorieen|collection|collections|shop|store|winkel|catalog|catalogue)(?:\/|$)/i.test(path);
+        if (productPath) evidence.push("product-like path");
+        if (categoryPath) evidence.push("category-like path");
+        return { url: candidate.toString(), type: productPath ? "product" : categoryPath ? "category" : "other", evidence };
+      } catch { return null; }
+    };
+    const discoveredMultiPage = [...new Map(allUniqueInternalAnchors.flatMap((item) => {
+      const candidate = classifyMultiPageCandidate(item.url);
+      return candidate ? [[normalizeScanUrl(candidate.url), candidate] as const] : [];
+    })).values()];
+    const pickMultiPage = (type: MultiPageCandidate["type"], limit: number) => discoveredMultiPage.filter((item) => item.type === type).slice(0, limit);
+    const multiPagePages: MultiPageCandidate[] = [
+      { url: new URL("/", finalUrl).toString(), type: "homepage", evidence: ["site root"] },
+      ...pickMultiPage("category", 2), ...pickMultiPage("product", 2), ...pickMultiPage("other", 1),
+    ];
+    const uniqueMultiPagePages = [...new Map(multiPagePages.map((item) => [normalizeScanUrl(item.url), item] as const)).values()].slice(0, 6);
+    const auditMultiPage = async (page: MultiPageCandidate): Promise<MultiPageAudit> => {
+      try {
+        const fetched = await safePublicFetch(page.url, { timeoutMs: 8000, maxRedirects: 3, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml" });
+        const r = fetched.response;
+        const finalCandidate = new URL(fetched.url.toString());
+        if (normalizeHost(finalCandidate.hostname) !== siteHost) throw new Error("CROSS_HOST_REDIRECT");
+        const contentType = r.headers.get("content-type") || "";
+        if (!r.ok || (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml"))) {
+          return { ...page, status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"http",status:"UNABLE_TO_CONFIRM",details:`HTTP ${r.status}; pagina kon niet betrouwbaar als HTML worden beoordeeld.`}] };
+        }
+        const pageHtml = await readResponseTextLimited(r, 2_000_000);
+        const pageTitle = firstMatch(pageHtml, /<title[^>]*>([\s\S]*?)<\/title>/i);
+        const pageDescription = firstMatch(pageHtml, /<meta[^>]+(?:name|property)\s*=\s*["']description["'][^>]+content\s*=\s*["']([\s\S]*?)["'][^>]*>/i) || firstMatch(pageHtml, /<meta[^>]+content\s*=\s*["']([\s\S]*?)["'][^>]+(?:name|property)\s*=\s*["']description["'][^>]*>/i);
+        const pageH1s = [...pageHtml.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gi)].map((m)=>stripHtml(m[1])).filter(Boolean);
+        const pageCanonical = firstMatch(pageHtml, /<link[^>]+rel\s*=\s*["'][^"']*canonical[^"']*["'][^>]+href\s*=\s*["']([^"']+)["'][^>]*>/i) || firstMatch(pageHtml, /<link[^>]+href\s*=\s*["']([^"']+)["'][^>]+rel\s*=\s*["'][^"']*canonical[^"']*["'][^>]*>/i);
+        const evidenceChecks: MultiPageAudit["evidenceChecks"] = [
+          {key:"http",status:"PASS",details:`HTTP ${r.status}`},
+          {key:"title",status:pageTitle?"PASS":"WARNING",details:pageTitle?`Title gevonden (${pageTitle.length} tekens).`:"Geen title gevonden in raw HTML."},
+          {key:"description",status:pageDescription?"PASS":"WARNING",details:pageDescription?`Meta description gevonden (${pageDescription.length} tekens).`:"Geen meta description gevonden in raw HTML."},
+          {key:"h1",status:pageH1s.length===1?"PASS":"WARNING",details:`${pageH1s.length} H1-heading(s) gevonden.`},
+          {key:"canonical",status:pageCanonical?"PASS":"WARNING",details:pageCanonical?"Canonical gevonden.":"Geen canonical gevonden in raw HTML."},
+        ];
+        const confirmed = evidenceChecks.filter((x)=>x.status!=="UNABLE_TO_CONFIRM");
+        const passed = confirmed.filter((x)=>x.status==="PASS").length;
+        return { ...page, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, score:confirmed.length?Math.round((passed/confirmed.length)*100):null, evidenceChecks };
+      } catch {
+        return { ...page, status:"unable_to_confirm", httpStatus:null, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"fetch",status:"UNABLE_TO_CONFIRM",details:"Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald."}] };
+      }
+    };
+    const multiPageAudits = await Promise.all(uniqueMultiPagePages.map(auditMultiPage));
+    const auditedMultiPages = multiPageAudits.filter((item)=>item.status==="audited");
+    const multiPage = {
+      enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:6,
+      discoveredInternalUrls:discoveredMultiPage.length, selectedPages:uniqueMultiPagePages, pageAudits:multiPageAudits,
+      siteSampleScore: auditedMultiPages.length ? Math.round(auditedMultiPages.reduce((sum,item)=>sum+(item.score||0),0)/auditedMultiPages.length) : null,
+      counts:{ homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedMultiPages.length, unableToConfirm:multiPageAudits.length-auditedMultiPages.length },
+      note:"Representative same-host pages are fetched with bounded raw-HTML checks. Their sample score is separate from the explicitly scanned page score.",
+    };
+
     let user = null;
     let savedScanId: string | null = null;
     let pendingFixes = new Map<string, { status: string }>();
@@ -2144,7 +2215,7 @@ export async function POST(request: Request) {
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             language: scanLanguage,
-            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, summary: scanSummary, rendering, pageTypeEvidence, technologyProfile,
+            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, summary: scanSummary, rendering, pageTypeEvidence, technologyProfile, multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -2287,57 +2358,6 @@ export async function POST(request: Request) {
         console.error("RankFix scan report email failed:", error);
       }
     }
-
-    // Multi-page discovery v1: build a bounded, same-host sample from the
-    // already parsed internal links. This does not inflate the current page score;
-    // it describes which representative pages a future site-wide run can scan.
-    type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "other"; evidence: string[] };
-    const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
-    const siteHost = normalizeHost(finalUrl.hostname);
-    const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
-      try {
-        const candidate = new URL(urlValue, finalUrl);
-        candidate.hash = "";
-        if (!/^https?:$/.test(candidate.protocol) || normalizeHost(candidate.hostname) !== siteHost) return null;
-        const normalized = normalizeScanUrl(candidate.toString());
-        if (normalized === normalizeScanUrl(finalUrl.toString())) return null;
-        const path = safeDecodeURIComponent(candidate.pathname).toLowerCase();
-        if (/\.(?:jpg|jpeg|png|gif|webp|svg|pdf|zip|xml|json|css|js|ico|woff2?)(?:$|\?)/i.test(path)) return null;
-        const evidence: string[] = [];
-        const productPath = /\/(?:product|products|product-page|p)\//i.test(path);
-        const categoryPath = /\/(?:category|categories|categorie|categorieen|collection|collections|shop|store|winkel|catalog|catalogue)(?:\/|$)/i.test(path);
-        if (productPath) evidence.push("product-like path");
-        if (categoryPath) evidence.push("category-like path");
-        return { url: candidate.toString(), type: productPath ? "product" : categoryPath ? "category" : "other", evidence };
-      } catch { return null; }
-    };
-    const discoveredMultiPage = [...new Map(allUniqueInternalAnchors.flatMap((item) => {
-      const candidate = classifyMultiPageCandidate(item.url);
-      return candidate ? [[normalizeScanUrl(candidate.url), candidate] as const] : [];
-    })).values()];
-    const pickMultiPage = (type: MultiPageCandidate["type"], limit: number) => discoveredMultiPage.filter((item) => item.type === type).slice(0, limit);
-    const multiPagePages: MultiPageCandidate[] = [
-      { url: new URL("/", finalUrl).toString(), type: "homepage", evidence: ["site root"] },
-      ...pickMultiPage("category", 2),
-      ...pickMultiPage("product", 2),
-      ...pickMultiPage("other", 1),
-    ];
-    const uniqueMultiPagePages = [...new Map(multiPagePages.map((item) => [normalizeScanUrl(item.url), item] as const)).values()].slice(0, 6);
-    const multiPage = {
-      enabled: true,
-      mode: "DISCOVERY_SAMPLE" as const,
-      currentPageScoredSeparately: true,
-      maxPages: 6,
-      discoveredInternalUrls: discoveredMultiPage.length,
-      selectedPages: uniqueMultiPagePages,
-      counts: {
-        homepage: uniqueMultiPagePages.filter((item) => item.type === "homepage").length,
-        category: uniqueMultiPagePages.filter((item) => item.type === "category").length,
-        product: uniqueMultiPagePages.filter((item) => item.type === "product").length,
-        other: uniqueMultiPagePages.filter((item) => item.type === "other").length,
-      },
-      note: "Representative same-host pages are discovered without changing this page's SEO/GEO score.",
-    };
 
     const scanScope = {
       page: finalUrl.toString(),
