@@ -2099,6 +2099,27 @@ export async function POST(request: Request) {
         technologyProfile.evidence = [...technologyProfile.evidence, `Landingpage-signalen ${landingSignalCount}/4`].slice(0, 8);
       }
     }
+    // Sector intelligence is deliberately separate from technology detection.
+    // It changes which future branch-specific checks are applicable, but never
+    // guesses a sector strongly enough to penalize a customer without evidence.
+    type SectorKey = "ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"saas_b2b"|"general_business"|"unknown";
+    const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]}> = [
+      {sector:"real_estate",label:"Makelaar / vastgoed",patterns:[/\\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria)\\b/i,/\\b(te koop|te huur|for sale|for rent)\\b/i]},
+      {sector:"automotive",label:"Garage / automotive",patterns:[/\\b(garage|autobedrijf|autodealer|occasions?|auto onderhoud|car dealer|vehicle|automotive)\\b/i,/\\b(apk|proefrit|werkplaats)\\b/i]},
+      {sector:"home_services",label:"Lokale diensten / vakbedrijf",patterns:[/\\b(loodgieter|aannemer|installateur|elektricien|schilder|dakdekker|klusbedrijf|plumber|electrician|contractor)\\b/i,/\\b(offerte|werkgebied|servicegebied)\\b/i]},
+      {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\\b(advocaat|accountant|boekhouder|consultant|notaris|law firm|legal services|accounting|consultancy)\\b/i,/\\b(diensten|expertise|advies|consult)\\b/i]},
+      {sector:"hospitality",label:"Horeca",patterns:[/\\b(restaurant|cafe|café|hotel|brasserie|bistro|menu|reserveren|reservation)\\b/i,/\\b(openingstijden|opening hours)\\b/i]},
+      {sector:"health_wellness",label:"Zorg & wellness",patterns:[/\\b(kliniek|clinic|fysiotherap|tandarts|dentist|therap|wellness|salon|beauty treatment)\\b/i,/\\b(afspraak|appointment|behandeling)\\b/i]},
+      {sector:"saas_b2b",label:"SaaS / B2B",patterns:[/\\b(saas|software platform|software-as-a-service|api platform|business software)\\b/i,/\\b(demo|features|integrations|integraties)\\b/i]},
+    ];
+    const sectorSource = [title, description, h1s.join(" "), text.slice(0,120000), schemaTypes.join(" ")].join(" ");
+    const sectorCandidates = sectorSignals.map(item=>({sector:item.sector,label:item.label,hits:item.patterns.filter(pattern=>pattern.test(sectorSource)).length})).filter(item=>item.hits>0).sort((a,b)=>b.hits-a.hits);
+    const sectorProfile = technologyProfile.isCommerce
+      ? {sector:"ecommerce" as SectorKey,label:"Webshop / e-commerce",confidence:"high" as const,evidence:["Bevestigde commerce-signalen"],applicableModules:["core_seo","geo","ecommerce","product","pricing_currency","merchant","checkout","eu_consumer"]}
+      : sectorCandidates[0] && sectorCandidates[0].hits>=2 && (!sectorCandidates[1] || sectorCandidates[0].hits>sectorCandidates[1].hits)
+        ? {sector:sectorCandidates[0].sector,label:sectorCandidates[0].label,confidence:"medium" as const,evidence:[`${sectorCandidates[0].hits} onafhankelijke sectorsignalen in raw HTML`],applicableModules:["core_seo","geo","local","lead_conversion","structured_data"]}
+        : {sector:"unknown" as SectorKey,label:"Sector niet bevestigd",confidence:"low" as const,evidence:sectorCandidates.slice(0,2).map(x=>`${x.label}: ${x.hits} signaal/signalen`),applicableModules:["core_seo","geo","technical"]};
+
     const renderingNotes: Record<string,string> = {
       nl:"RankFix beoordeelde de HTTP HTML-response; client-side JavaScript is in deze scan niet uitgevoerd.",
       en:"RankFix evaluated the HTTP HTML response; client-side JavaScript was not executed in this scan.",
@@ -2215,7 +2236,7 @@ export async function POST(request: Request) {
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             language: scanLanguage,
-            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, summary: scanSummary, rendering, pageTypeEvidence, technologyProfile, multiPage,
+            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, summary: scanSummary, rendering, pageTypeEvidence, technologyProfile, sectorProfile, multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
