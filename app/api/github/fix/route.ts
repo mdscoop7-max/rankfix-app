@@ -161,11 +161,18 @@ function buildDeterministicOgFix(filePath:string,current:string,issue:string,con
   const description=getContext("OG description")||getContext("Current description")||existingDescription;
   const rawImage=getContext("OG image")||getContext("Existing page image candidate");
   const pageUrl=getContext("URL")||getContext("Scan URL");
-  let image=rawImage;
-  // A relative image is still trusted scan evidence. Resolve it against the scanned page
-  // instead of asking AI to invent an image URL.
-  if(rawImage && pageUrl){
-    try { image=new URL(rawImage,pageUrl).toString(); } catch { image=rawImage; }
+  const isIconAsset=(value:string)=>{
+    if(!value) return false;
+    const normalized=value.toLowerCase().split("?")[0].split("#")[0];
+    return /(?:^|[\\/_-])(?:favicon|apple-touch-icon|touch-icon|mask-icon|site-icon|browserconfig)(?:[.\\/_-]|$)/i.test(normalized)
+      || /(?:^|[\\/_-])icon(?:[-_]?\\d{2,4}x\\d{2,4}|[-_]?\\d{2,4})?\\.(?:ico|svg|png|webp)$/i.test(normalized);
+  };
+  const trustedImage=rawImage&&!isIconAsset(rawImage)?rawImage:"";
+  let image=trustedImage;
+  // A relative content image is still trusted scan evidence. Resolve it against the
+  // scanned page, but never promote favicon/touch/browser icons to social previews.
+  if(trustedImage && pageUrl){
+    try { image=new URL(trustedImage,pageUrl).toString(); } catch { image=trustedImage; }
   }
   const esc=(v:string)=>v.replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   const socialIncomplete=issueId==="SOCIAL_METADATA_INCOMPLETE";
