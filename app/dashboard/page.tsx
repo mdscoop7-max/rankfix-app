@@ -92,18 +92,10 @@ export default function Dashboard() {
       <DashboardNav current={0} />
       <div className="rf-body">
         <div className="rf-heading rf-dashboard-title"><div><h1>{language==="nl"?`Hallo, ${user?.name || ""}`:language==="de"?`Hallo, ${user?.name || ""}`:language==="fr"?`Bonjour, ${user?.name || ""}`:language==="it"?`Ciao, ${user?.name || ""}`:language==="es"?`Hola, ${user?.name || ""}`:`Hello, ${user?.name || ""}`}</h1><p>{t.intro}</p></div><Link className="rf-primary-link" href="/dashboard/scan">＋ {x.newScan}</Link></div>
-        <section className="rf-plan-card" aria-label="Subscription usage">
-          <div>
-            <span className="rf-eyebrow">{usage.plan === "free" ? "Free · €0" : usage.plan}</span>
-            <h2>{language==="nl"?"Gebruik deze maand":language==="de"?"Nutzung in diesem Monat":language==="fr"?"Utilisation ce mois-ci":language==="it"?"Utilizzo questo mese":language==="es"?"Uso este mes":"Usage this month"}</h2>
-            <p>{usage.limit !== null ? `${usage.used} / ${usage.limit} ${language==="nl"?"scans gebruikt":language==="de"?"Scans verwendet":language==="fr"?"analyses utilisées":language==="it"?"scansioni utilizzate":language==="es"?"análisis utilizados":"scans used"}` : (language==="nl"?"Volgens je abonnement":language==="de"?"Gemäß deinem Tarif":language==="fr"?"Selon votre offre":language==="it"?"Secondo il tuo piano":language==="es"?"Según tu plan":"According to your plan")}{usage.websiteHost ? ` · ${usage.websiteHost}` : ""}</p>
-            {usage.plan==="free"&&<><p>{language==="nl"?"1 website · AI-fixes niet inbegrepen":language==="de"?"1 Website · AI-Fixes nicht enthalten":language==="fr"?"1 site · correctifs IA non inclus":language==="it"?"1 sito · correzioni AI non incluse":language==="es"?"1 sitio · correcciones de IA no incluidas":"1 website · AI fixes not included"}</p><p>{language==="nl"?"Nieuwe maandlimiet vanaf":language==="de"?"Neues Monatslimit ab":language==="fr"?"Nouvelle limite mensuelle à partir du":language==="it"?"Nuovo limite mensile dal":language==="es"?"Nuevo límite mensual desde":"Monthly limit resets"} <strong>{new Intl.DateTimeFormat(language==="nl"?"nl-NL":language==="de"?"de-DE":language==="fr"?"fr-FR":language==="it"?"it-IT":language==="es"?"es-ES":"en-GB",{day:"numeric",month:"long",timeZone:"UTC"}).format(new Date(Date.UTC(new Date().getUTCFullYear(),new Date().getUTCMonth()+1,1)))}</strong></p></>}
-          </div>
-          {usage.plan==="free" && <Link className="rf-primary-link" href="/#pricing">{usage.used >= (usage.limit ?? 2) ? (language==="nl"?"Limiet bereikt · Upgrade":language==="de"?"Limit erreicht · Upgrade":language==="fr"?"Limite atteinte · Mettre à niveau":language==="it"?"Limite raggiunto · Upgrade":language==="es"?"Límite alcanzado · Mejorar plan":"Limit reached · Upgrade") : (language==="nl"?"Bekijk abonnementen":language==="de"?"Tarife ansehen":language==="fr"?"Voir les offres":language==="it"?"Vedi i piani":language==="es"?"Ver planes":"View plans")}</Link>}
+        <section className="rf-workspace-strip" aria-label="Workspace summary">
+          <div><span className="rf-eyebrow">${usage.plan === "free" ? "Free · €0" : usage.plan}</span><strong>${latestHost || x.firstWebsite}</strong><small>${latest ? `${latest.overall_score}/100 · ${latest.open_issues} ${x.improvements}` : x.startAudit}</small></div>
+          <div className="rf-workspace-strip-actions"><Link href="/dashboard/history">${x.history}</Link><Link className="rf-primary-link" href="/dashboard/scan">＋ ${x.newScan}</Link></div>
         </section>
-        {scans.length === 0 && <section className="rf-welcome" aria-label={x.nextTitle}>
-          <div><strong>{t.welcome}, {user?.name || "…"}</strong><p>{steps} {t.steps} · {steps === 1 ? t.firstSite : t.firstFix}</p></div><span aria-hidden="true">☑</span>
-        </section>}
         {error && <p className="rf-alert" role="alert">{error}</p>}
         {message && <p className="rf-notice" role="status">{message}</p>}
         <section className="rf-dashboard-status">
