@@ -1504,9 +1504,11 @@ export async function POST(request: Request) {
           : check("fail", "description", "seo", "Meta description", "Er is geen meta description gevonden.", "Laat RankFix AI een nieuwe meta description maken op basis van de pagina.", 0, 10)
         : descriptionQualityIssue
           ? check("warning", "description", "seo", "Meta description", `De description is ${description.length} tekens, maar bevat relatief veel herhaalde woorden.`, "Maak de description natuurlijker en voorkom keyword stuffing.", 6, 10)
-          : description.length >= 120 && description.length <= 160
-            ? check("pass", "description", "seo", "Meta description", `De description is ${description.length} tekens en goed gevuld.`, "Houd de belofte concreet en voeg een duidelijke call-to-action toe.", 10, 10)
-            : check("warning", "description", "seo", "Meta description", `De description is ${description.length} tekens. Richtwaarde: 120–160 tekens.`, "Maak de description concreet, uniek en passend bij de zoekintentie.", 6, 10)
+          : description.length >= 70 && description.length <= 200
+            ? check("pass", "description", "seo", "Meta description", description.length >= 120 && description.length <= 160
+                ? `De description is ${description.length} tekens en goed gevuld.`
+                : `De description is ${description.length} tekens. De klassieke 120–160 tekens is een optimalisatierichtlijn, geen technische SEO-eis; deze aanwezige description wordt daarom niet als fout bestraft.`, "Houd de description concreet, uniek en passend bij de zoekintentie; optimaliseer lengte alleen wanneer dat de zoekpreview en boodschap verbetert.", 10, 10)
+            : check("warning", "description", "seo", "Meta description", `De description is ${description.length} tekens en is uitzonderlijk ${description.length < 70 ? "kort" : "lang"}. Dit is optimalisatieadvies, geen op zichzelf bewezen rankingfout.`, "Controleer of de description de pagina duidelijk samenvat en herschrijf alleen wanneer de zoekpreview of boodschap daar aantoonbaar van profiteert.", 8, 10)
     );
     seoChecks.push(h1s.length === 1
       ? check("pass", "h1", "seo", "H1-heading", "Er is precies één H1-heading gevonden.", "Behoud één duidelijke primaire H1.", 8, 8)
@@ -1989,7 +1991,7 @@ export async function POST(request: Request) {
 
     const ruleMap: Record<string, { rule_id: string; severity: Check["severity"] }> = {
       title: { rule_id: title ? "META_TITLE_GUIDANCE" : "META_TITLE_MISSING", severity: title ? "MEDIUM" : "HIGH" },
-      description: { rule_id: description ? "META_DESCRIPTION_GUIDANCE" : "META_DESCRIPTION_MISSING", severity: description ? "MEDIUM" : "HIGH" },
+      description: { rule_id: description ? "META_DESCRIPTION_GUIDANCE" : "META_DESCRIPTION_MISSING", severity: description ? "LOW" : "HIGH" },
       h1: { rule_id: h1s.length > 1 ? "H1_MULTIPLE" : "H1_MISSING", severity: h1s.length ? "MEDIUM" : "HIGH" },
       alt: { rule_id: "IMAGE_ALT_MISSING", severity: "LOW" },
       social: { rule_id: "SOCIAL_METADATA_INCOMPLETE", severity: "LOW" },
