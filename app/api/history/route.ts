@@ -6,13 +6,13 @@ import { cookies } from "next/headers";
 import { normalizePlan, planLimits } from "@/lib/plans";
 
 type AuditCheck={status?:string;severity?:string};
-type Row={id:string;scanned_url:string;final_url?:string;overall_score:number;seo_score:number;geo_score:number;created_at:string;result:{seo?:{checks?:AuditCheck[]};geo?:{checks?:AuditCheck[]}}};
+type Row={id:string;scanned_url:string;final_url?:string;overall_score:number;seo_score:number;geo_score:number;created_at:string;result:{technologyProfile?:{siteType?:string;cms?:string;platform?:string;framework?:string;confidence?:number;evidence?:string[]};seo?:{checks?:AuditCheck[]};geo?:{checks?:AuditCheck[]}}};
 type HostScan={scanned_url:string;final_url?:string};
 function host(scan:HostScan){try{return new URL(scan.final_url||scan.scanned_url).hostname.toLowerCase().replace(/^www\./,"")}catch{return scan.scanned_url}}
 function summary(scan:Row){
  const checks=[...(scan.result?.seo?.checks||[]),...(scan.result?.geo?.checks||[])];
  const issues=checks.filter((c:AuditCheck)=>c.status==="fail"||c.status==="warning");
- return {id:scan.id,scanned_url:scan.scanned_url,final_url:scan.final_url,overall_score:scan.overall_score,seo_score:scan.seo_score,geo_score:scan.geo_score,created_at:scan.created_at,open_issues:issues.length,critical_issues:issues.filter((c:AuditCheck)=>c.severity==="CRITICAL").length};
+ return {id:scan.id,scanned_url:scan.scanned_url,final_url:scan.final_url,overall_score:scan.overall_score,seo_score:scan.seo_score,geo_score:scan.geo_score,created_at:scan.created_at,open_issues:issues.length,critical_issues:issues.filter((c:AuditCheck)=>c.severity==="CRITICAL").length,technology_profile:scan.result?.technologyProfile||null};
 }
 export async function GET(){
  const user=await getCurrentUser();
