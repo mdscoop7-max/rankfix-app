@@ -1,6 +1,6 @@
-export const CRAWLER_VERSION = "2.5.0";
-export const RULES_VERSION = "1.2.0";
-export const FIX_POLICY_VERSION = "1.0.0";
+export const CRAWLER_VERSION = "2.6.0";
+export const RULES_VERSION = "1.3.0";
+export const FIX_POLICY_VERSION = "1.1.0";
 export const AI_POLICY_VERSION = "1.0.0";
 
 export type IssueStatus = "PASS" | "FAIL" | "WARNING" | "INFO" | "NOT_APPLICABLE" | "UNABLE_TO_CONFIRM";
