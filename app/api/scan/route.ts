@@ -51,6 +51,10 @@ const decode = (value: string) =>
     })
     .trim();
 
+const safeDecodeURIComponent = (value: string) => {
+  try { return decodeURIComponent(value); } catch { return value; }
+};
+
 const stripHtml = (html: string) =>
   html
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -598,7 +602,7 @@ export async function POST(request: Request) {
     const organizationName = firstMatch(html, /<meta[^>]+(?:property|name)\s*=\s*["'](?:og:site_name|application-name)["'][^>]+content\s*=\s*["']([^"']+)["']/i);
     const sameAsCount = (html.match(/"sameAs"\s*:/gi) || []).length;
     const pathname = finalUrl.pathname.replace(/\/+$/, "") || "/";
-    const pathSegmentsForType = pathname.split("/").filter(Boolean).map((segment) => decodeURIComponent(segment).toLowerCase());
+    const pathSegmentsForType = pathname.split("/").filter(Boolean).map((segment) => safeDecodeURIComponent(segment).toLowerCase());
     const knownLanguageSegments = new Set(["nl","en","de","fr","es","it","pt","pl","sv","no","da","fi","cs","sk","hu","ro","bg","el","tr"]);
     const localeSegmentPattern = /^(?:[a-z]{2})(?:-[a-z]{2})?$/i;
     // Localized roots such as /nl/, /nl/nl/ and /en-gb/ are homepages.
@@ -627,7 +631,9 @@ export async function POST(request: Request) {
     const hasSkuSignal = /\b(sku|artikelnummer|productcode|référence produit|referencia del producto|codice prodotto)\b/i.test(text);
     const hasStockSignal = /\b(in stock|out of stock|op voorraad|niet op voorraad|uitverkocht|auf lager|nicht auf lager|en stock|rupture de stock|agotado|disponible|esaurito|disponibile|pre-?order|backorder)\b/i.test(text);
     const hasExplicitPriceSignal = /(?:€|£|\$)\s*\d|\d[\d.,]*\s*(?:€|EUR|GBP|USD)\b|\b(?:prijs|price|preis|prix|precio|prezzo)\s*[:€£$]?\s*\d/i.test(text);
-    const hasProductSignal = hasProductSchema || (hasStrongCommerceAction && (hasExplicitPriceSignal || hasStockSignal || hasSkuSignal)) || (hasSkuSignal && hasExplicitPriceSignal && hasStockSignal);
+    const productOgType = firstMatch(html, /<meta[^>]+(?:property|name)\s*=\s*["']og:type["'][^>]+content\s*=\s*["']([^"']+)["']/i) || firstMatch(html, /<meta[^>]+content\s*=\s*["']([^"']+)["'][^>]+(?:property|name)\s*=\s*["']og:type["']/i);
+    const hasProductMetaSignal = /(?:^|[.:_-])product(?:$|[.:_-])/i.test(productOgType) || /(?:product|sku|price|availability)[.:_-]/i.test(html.match(/<meta\b[^>]*(?:property|name)\s*=\s*["'][^"']+["'][^>]*>/gi)?.join(" ") || "");
+    const hasProductSignal = hasProductSchema || (hasStrongCommerceAction && (hasExplicitPriceSignal || hasStockSignal || hasSkuSignal)) || (hasSkuSignal && hasExplicitPriceSignal && hasStockSignal) || (hasProductMetaSignal && hasExplicitPriceSignal);
     // Product cards and stock text on a webshop homepage do not make that URL a product detail page.
     const isProductPage = !isHomepage && hasProductSignal;
     const hasArticleSignal = !isHomepage && (schemaSet.has("article") || schemaSet.has("newsarticle") || /<article\b/i.test(html));
@@ -854,6 +860,7 @@ export async function POST(request: Request) {
     const sitemapCandidates = [...new Set([...robotsDeclaredSitemapUrls, ...htmlDeclaredSitemapUrls, ...commonSitemapUrls])].slice(0, 20);
     let sitemapFetchFailed = false;
     const brokenDeclaredSitemaps: string[] = [];
+    const declaredSitemapHttpFailures: Array<{ url: string; status: number }> = [];
     for (const candidate of sitemapCandidates) {
       try {
         const r = (await safePublicFetch(new URL(candidate), { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/plain,application/xml,text/xml" })).response;
@@ -873,7 +880,10 @@ export async function POST(request: Request) {
         } else {
           sitemapStatus = r.status === 404 ? "FAIL" : sitemapStatus;
           sitemapDiagnostic = `${candidate} gaf HTTP ${r.status}; content-type: ${r.headers.get("content-type") || "onbekend"}.`;
-          if (r.status === 404 && declaredSitemapEvidence.has(normalizeSitemapEvidenceUrl(candidate))) brokenDeclaredSitemaps.push(candidate);
+          if ((r.status === 404 || r.status === 410) && declaredSitemapEvidence.has(normalizeSitemapEvidenceUrl(candidate))) {
+            brokenDeclaredSitemaps.push(candidate);
+            declaredSitemapHttpFailures.push({ url: candidate, status: r.status });
+          }
         }
       } catch (error) {
         sitemapFetchFailed = true;
@@ -882,7 +892,7 @@ export async function POST(request: Request) {
     }
     if (!sitemapFound && sitemapFetchCompleted && !sitemapFetchFailed && sitemapStatus === "UNABLE_TO_CONFIRM") sitemapStatus = "FAIL";
     if (!sitemapFound && sitemapFetchFailed && brokenDeclaredSitemaps.length === 0) sitemapStatus = "UNABLE_TO_CONFIRM";
-    if (brokenDeclaredSitemaps.length > 0) sitemapStatus = "FAIL";
+    if (declaredSitemapHttpFailures.length > 0 || brokenDeclaredSitemaps.length > 0) sitemapStatus = "FAIL";
     const robotsMentionsSitemap = robotsDeclaredSitemapUrls.length > 0;
 
     // Lightweight internal-link audit. Keep this bounded so one page cannot turn a scan
@@ -919,7 +929,7 @@ export async function POST(request: Request) {
     const brokenInternalLinks = linkAuditResults.filter((item) => item.error || item.status === null || item.status === 404 || item.status === 410 || (item.status >= 500));
     const redirectedInternalLinks = linkAuditResults.filter((item) => item.redirected && !item.error);
     const productSlugStopWords = new Set(["product","products","shop","winkel","store","category","categorie","tag","product-tag","collections","collection","the","and","voor","van","met","een","het","de"]);
-    const semanticTokens = (value: string) => decodeURIComponent(value).toLowerCase().replace(/[^a-z0-9à-ÿ]+/gi, " ").split(/\s+/).filter((token) => token.length >= 3 && !productSlugStopWords.has(token));
+    const semanticTokens = (value: string) => safeDecodeURIComponent(value).toLowerCase().replace(/[^a-z0-9à-ÿ]+/gi, " ").split(/\s+/).filter((token) => token.length >= 3 && !productSlugStopWords.has(token));
     const semanticLinkMismatches = linkAuditResults.flatMap((item) => {
       if (item.error || !item.status || item.status >= 400 || !item.context) return [];
       let destination: URL;
@@ -1093,7 +1103,7 @@ export async function POST(request: Request) {
       shopifyVariantSelectorSignal ||
       wooVariantSelectorSignal
     );
-    const pathSegments = finalUrl.pathname.split("/").filter(Boolean).map((segment) => decodeURIComponent(segment).toLowerCase().trim());
+    const pathSegments = finalUrl.pathname.split("/").filter(Boolean).map((segment) => safeDecodeURIComponent(segment).toLowerCase().trim());
     const duplicatePathSegments = pathSegments.filter((segment, index) => index > 0 && segment === pathSegments[index - 1]);
     // Repeated locale segments such as /nl/nl/ can be a deliberate international routing convention.
     const actionableDuplicatePathSegments = duplicatePathSegments.filter((segment) => !localeSegmentPattern.test(segment));
@@ -1342,8 +1352,8 @@ export async function POST(request: Request) {
         ? check("not_applicable", "robots_txt", "seo", "robots.txt", "robots.txt gaf 404 terug. Het ontbreken van robots.txt blokkeert crawlers op zichzelf niet en kost daarom geen SEO-punten.", "Publiceer robots.txt alleen wanneer je crawlregels of sitemapverwijzingen wilt beheren.", 0, 4)
         : check("unable_to_confirm", "robots_txt", "seo", "robots.txt", "RankFix kon robots.txt tijdens deze scan niet betrouwbaar ophalen.", "Probeer opnieuw wanneer de server bereikbaar is.", 0, 4)
     );
-    seoChecks.push(brokenDeclaredSitemaps.length > 0
-      ? check("warning", "sitemap", "seo", "Sitemap-signaal", `robots.txt verwijst naar een sitemap die aantoonbaar HTTP 404 teruggeeft: ${brokenDeclaredSitemaps[0]}.${sitemapFound && confirmedSitemapUrl ? ` Een andere geldige sitemap is wel gevonden: ${confirmedSitemapUrl}.` : ""}`, "Herstel of verwijder de kapotte sitemapverwijzing in robots.txt en verwijs naar een bereikbare XML sitemap.", 1, 4)
+    seoChecks.push(declaredSitemapHttpFailures.length > 0
+      ? check("warning", "sitemap", "seo", "Sitemap-signaal", `robots.txt verwijst naar een sitemap die aantoonbaar HTTP ${declaredSitemapHttpFailures[0].status} teruggeeft: ${declaredSitemapHttpFailures[0].url}.${sitemapFound && confirmedSitemapUrl ? ` Een andere geldige sitemap is wel gevonden: ${confirmedSitemapUrl}.` : ""}`, "Herstel of verwijder de kapotte sitemapverwijzing in robots.txt en verwijs naar een bereikbare XML sitemap.", 1, 4)
       : sitemapFound
         ? check("pass", "sitemap", "seo", "Sitemap-signaal", `Een bereikbare XML sitemap is gevonden${confirmedSitemapUrl ? `: ${confirmedSitemapUrl}` : "."}`, "Controleer of de sitemap alleen canonieke, indexeerbare URL's bevat.", 4, 4)
       : sitemapStatus === "FAIL"
@@ -2143,8 +2153,10 @@ export async function POST(request: Request) {
       checks,
       pendingFixes: checks.filter((item) => item.fix_status === "WAITING").map((item) => item.issue_id || item.rule_id || item.key),
     });
-  } catch {
-    const fallbackErrors: Record<string,string> = {nl:"De SEO/GEO-scan kon niet worden voltooid.",en:"The SEO/GEO scan could not be completed.",de:"Der SEO/GEO-Scan konnte nicht abgeschlossen werden.",fr:"L’analyse SEO/GEO n’a pas pu être terminée.",it:"La scansione SEO/GEO non è stata completata.",es:"No se pudo completar el análisis SEO/GEO."};
-    return NextResponse.json({ error: fallbackErrors[fallbackLanguage] || fallbackErrors.en }, { status: 500 });
+  } catch (error) {
+    const technicalCode = error instanceof URIError ? "SCAN_URL_DECODE_ERROR" : error instanceof Error && /timeout|abort/i.test(error.message) ? "SCAN_TIMEOUT" : "SCAN_INTERNAL_ERROR";
+    console.error("RankFix scan failed:", technicalCode, error instanceof Error ? error.message : "unknown error");
+    const fallbackErrors: Record<string,string> = {nl:"De SEO/GEO-scan kon niet worden voltooid. RankFix heeft de technische fout vastgelegd; probeer de pagina opnieuw.",en:"The SEO/GEO scan could not be completed. RankFix recorded the technical error; try the page again.",de:"Der SEO/GEO-Scan konnte nicht abgeschlossen werden. RankFix hat den technischen Fehler erfasst; versuche die Seite erneut.",fr:"L’analyse SEO/GEO n’a pas pu être terminée. RankFix a enregistré l’erreur technique ; réessayez la page.",it:"La scansione SEO/GEO non è stata completata. RankFix ha registrato l’errore tecnico; riprova la pagina.",es:"No se pudo completar el análisis SEO/GEO. RankFix registró el error técnico; vuelve a intentar la página."};
+    return NextResponse.json({ error: fallbackErrors[fallbackLanguage] || fallbackErrors.en, code: technicalCode, retryable: true, charged: false }, { status: 500 });
   }
 }
