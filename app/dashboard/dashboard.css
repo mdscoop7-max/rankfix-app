@@ -281,3 +281,47 @@
  .rf-history-filters .rf-primary-link{grid-column:1/-1;width:100%;text-align:center}
  .rf-history-card{padding:13px!important}
 }
+
+
+/* Customer workspace redesign: calm professional desktop canvas */
+@media(min-width:651px){
+ .rf-page{padding:0 28px 72px;background:linear-gradient(180deg,#07182b 0%,#081d32 100%)}
+ .rf-shell{max-width:1360px}
+ .rf-header{min-height:76px;padding:0 18px}
+ .rf-desktop-nav{padding:12px 18px!important}
+ .rf-desktop-main{gap:8px}
+ .rf-desktop-nav a{min-height:40px;display:inline-flex;align-items:center;padding:9px 15px;border-radius:11px;font-size:13px}
+ .rf-desktop-nav a:not([aria-current]):not(.rf-site-link){background:transparent;color:#b6c5d5}
+ .rf-desktop-nav a[aria-current="page"]{background:#18dc8c;color:#042f26;box-shadow:none}
+ .rf-body{padding:38px 18px 58px}
+ .rf-dashboard-title{margin-bottom:22px}
+ .rf-dashboard-title h1{font-size:38px}
+ .rf-dashboard-status{padding:0;border:0;background:transparent}
+ .rf-dashboard-hero{padding:26px 28px;border-radius:20px;background:linear-gradient(135deg,#0d3a4c,#0d304b);border-color:#245876}
+ .rf-status-grid.rf-overview-metrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:14px}
+ .rf-status-grid .rf-card{min-height:126px;padding:20px;border-radius:18px;background:#0d2944}
+ .rf-status-grid .rf-card strong{font-size:34px}
+ .rf-quick-actions-grid{gap:14px}
+ .rf-quick-actions-grid a{min-height:112px;border-radius:18px;background:#0d2944}
+ .rf-websites-featured{padding:22px;border-radius:20px;background:#0b223a}
+ .rf-websites-featured .rf-site{min-height:82px;padding:16px 18px;border-radius:15px;background:#0e2b48}
+ .rf-site-copy h3{font-size:16px}
+ .rf-site-copy p{font-size:12px}
+ .rf-site-actions{gap:8px}
+ .rf-site-actions a,.rf-site-actions button{padding:9px 12px}
+ .rf-history-card{min-height:86px;padding:18px 20px;border-radius:16px;background:#0e2b48}
+ .rf-more-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+ .rf-more-card{min-height:112px;align-items:flex-start;padding:20px;border-radius:17px;background:#0e2b48}
+}
+
+/* Customer workspace redesign: compact app experience */
+@media(max-width:650px){
+ .rf-page{background:#08192d}
+ .rf-header{background:#08192d}
+ .rf-body{padding:20px 14px 42px}
+ .rf-dashboard-status{padding:0;border:0;background:transparent}
+ .rf-dashboard-hero{padding:16px;border-radius:17px;background:linear-gradient(145deg,#0d3b49,#0c2d48)}
+ .rf-status-grid .rf-card{background:#0e2b48}
+ .rf-quick-actions-grid a,.rf-websites-featured,.rf-websites-featured .rf-site,.rf-more-card,.rf-history-card{background:#0e2b48}
+ .rf-nav{background:rgba(8,25,45,.98)!important}
+}
