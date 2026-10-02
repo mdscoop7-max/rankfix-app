@@ -28,6 +28,7 @@ const POLICY: Record<string, FixPolicy> = {
   SITE_PRODUCT_AVAILABILITY: { category: "C", safe_type: null },
   SITE_PRODUCT_IDENTITY: { category: "C", safe_type: null },
   SITE_CATEGORY_INDEXABILITY: { category: "C", safe_type: null },
+  PRODUCT_COPY_OPTIMIZER: { category: "B", safe_type: "product_copy_metadata" },
 };
 
 export function getFixPolicy(ruleId: string): FixPolicy {

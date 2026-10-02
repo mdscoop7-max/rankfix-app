@@ -92,7 +92,11 @@ export function validateFix(input: {
   if (!issue || issue.issue_id !== input.issue_id) {
     errors.push("Issue bestaat niet meer in het actuele rapport.");
   }
-  if (issue?.status === "PASS" || issue?.status === "NOT_APPLICABLE") {
+  const isProductOptimizerPreview =
+    input.issue_id === "PRODUCT_COPY_OPTIMIZER" &&
+    ruleId === "PRODUCT_COPY_OPTIMIZER" &&
+    issue?.status === "PASS";
+  if ((issue?.status === "PASS" && !isProductOptimizerPreview) || issue?.status === "NOT_APPLICABLE") {
     errors.push("Issue is niet meer actief.");
   }
   if (typeof input.proposed !== "string" || !input.proposed.trim()) {
