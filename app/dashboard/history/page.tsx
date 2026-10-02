@@ -25,8 +25,8 @@ export default function HistoryPage(){
  const trend=useMemo(()=>{if(!query)return [];const source=history.filter(s=>host(s.scanned_url)===query).slice(0,12).reverse();return source.map((s,i)=>({x:source.length<=1?50:(i/(source.length-1))*100,y:100-s.overall_score,score:s.overall_score,date:s.created_at}));},[history,query]);
  const trendPoints=trend.map(p=>p.x+","+p.y).join(" ");
  return <main className="rf-page" lang={language}><div className="rf-shell">
-  <header className="rf-header"><Link href="/dashboard" className="rf-brand">RankFix <span>AI</span></Link><Link href="/dashboard" className="rf-back">← {t[0]}</Link></header>
-  <DashboardNav current={1}/>
+  <header className="rf-header"><Link href="/dashboard" className="rf-brand">RankFix <span>AI</span></Link></header>
+  <DashboardNav/>
   <div className="rf-body"><div className="rf-heading"><h1>{t[1]}</h1><p>{t[2]}</p></div>
    <div className="rf-history-filters"><label>{t[3]}<select value={query} onChange={e=>setQuery(e.target.value)}><option value="">{t[4]}</option>{sites.map(x=><option key={x}>{x}</option>)}</select></label><label>{t[5]}<select value={score} onChange={e=>setScore(e.target.value)}><option value="all">{t[6]}</option><option value="good">80–100</option><option value="attention">60–79</option><option value="low">0–59</option></select></label><Link className="rf-primary-link" href="/dashboard/scan">{t[7]}</Link></div>
    {loading&&<p className="rf-empty">{t[8]}</p>}{error&&<p className="rf-alert">{error}</p>}
