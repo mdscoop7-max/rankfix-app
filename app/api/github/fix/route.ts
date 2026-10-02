@@ -419,7 +419,7 @@ export async function POST(request:Request){
     }
     if((requestedRepo&&!safeRepo(requestedRepo))||(requestedPath&&!safeFixTarget(requestedPath))||!issueId||!scanId) return NextResponse.json({error:msg("Ongeldige fixgegevens: scan_id en issue_id zijn verplicht.","Invalid fix data: scan_id and issue_id are required.","Ungültige Fix-Daten: scan_id und issue_id sind erforderlich.","Données de correction invalides : scan_id et issue_id sont requis.","Dati di correzione non validi: scan_id e issue_id sono obbligatori.","Datos de corrección no válidos: scan_id e issue_id son obligatorios.")},{status:400});
     const fixPolicy=getFixPolicy(issueId);
-    if(fixPolicy.category==="C"||!fixPolicy.safe_type){
+    if(fixPolicy.action!=="github_fix"||!fixPolicy.safe_type){
       return NextResponse.json({error:msg("Deze bevinding is niet toegestaan voor een automatische GitHub-codefix. RankFix vereist hier handmatige controle.","This finding is not eligible for an automatic GitHub code fix. RankFix requires manual review.","Dieser Befund ist nicht für einen automatischen GitHub-Codefix geeignet. RankFix erfordert eine manuelle Prüfung.","Ce problème ne peut pas être corrigé automatiquement via GitHub. RankFix exige une vérification manuelle.","Questo problema non è idoneo a una correzione automatica GitHub. RankFix richiede un controllo manuale.","Este problema no admite una corrección automática de GitHub. RankFix requiere una revisión manual."),issue_id:issueId,fix_category:fixPolicy.category},{status:422});
     }
     await ensureDatabase();
