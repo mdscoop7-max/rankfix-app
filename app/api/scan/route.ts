@@ -2122,8 +2122,20 @@ export async function POST(request: Request) {
           console.error("RankFix health monitoring write failed:", monitorError);
         }
       } catch (saveError) {
-        console.error("RankFix scan history write failed:", saveError);
-        if (dashboardScan) return NextResponse.json({ error: scanError.history }, { status: 500 });
+        console.error("RankFix scan history write failed:", {
+          message: saveError instanceof Error ? saveError.message : "unknown error",
+          name: saveError instanceof Error ? saveError.name : "unknown",
+          stack: saveError instanceof Error ? saveError.stack : undefined,
+          page: finalUrl.toString(),
+          dashboardScan,
+          savedScanId: Boolean(savedScanId),
+        });
+        // If the primary scan row was already inserted, the audit report is
+        // usable even when a later monitoring/verification write fails.
+        // Do not turn a completed scan into a false "scan failed" response.
+        if (dashboardScan && !savedScanId) {
+          return NextResponse.json({ error: scanError.history, code: "SCAN_HISTORY_SAVE_FAILED", retryable: true, charged: false }, { status: 500 });
+        }
       }
     }
 
