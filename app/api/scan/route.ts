@@ -406,7 +406,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: httpMessages[scanLanguage] }, { status: 422 });
     }
 
-    const html = await readResponseTextLimited(response, 2_000_000);
+    // Modern commerce/product pages can contain large SSR payloads and JSON-LD. Keep a strict cap, but allow enough room to audit them safely.\n    const html = await readResponseTextLimited(response, 8_000_000);
     if (!html || html.length < 20) {
       return NextResponse.json({ error: scanError.html }, { status: 422 });
     }
