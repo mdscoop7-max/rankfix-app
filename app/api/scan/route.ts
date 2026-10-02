@@ -1108,6 +1108,43 @@ export async function POST(request: Request) {
       );
     }
 
+    } else if (sectorProfile.sector === "professional_services") {
+      const expertiseSignal = /\\b(expertise|specialis(?:t|atie)|advocaat|accountant|boekhouder|consultant|notaris|lawyer|attorney|accounting|consultancy|diensten|services)\\b/i.test(text) || hasServiceExpertiseSignal;
+      const contactSignal = hasContactChannelSignal || hasContactFormSignal || /\\b(afspraak|kennismaking|consult|adviesgesprek|contact|plan a call|book a consultation)\\b/i.test(text);
+      const authorSignal = schemaSet.has("person") || /\\b(auteur|author|door|by)\\s+[A-ZÀ-Ý][\\p{L}.'-]+/iu.test(text);
+      seoChecks.push(
+        sectorCheck("sector_professional_expertise","Expertise & diensten",expertiseSignal,"Diensten of expertise zijn in de pagina bevestigd.","Diensten of expertise konden in de raw HTML niet betrouwbaar worden bevestigd.","Maak specialisaties en concrete diensten duidelijk zichtbaar zonder niet-bewezen kwalificaties toe te voegen."),
+        sectorCheck("sector_professional_contact","Zakelijk contact",contactSignal,"Een contact- of adviesactie is bevestigd.","Een duidelijke contact- of adviesactie kon niet betrouwbaar worden bevestigd.","Maak de belangrijkste vervolgstap, zoals contact of een kennismaking, duidelijk zichtbaar."),
+        sectorCheck("sector_professional_authorship","Expertise-auteurschap",authorSignal,"Een auteurs-/persoonsignaal is in de pagina bevestigd.","Auteurschap of een verantwoordelijke expert kon in de raw HTML niet betrouwbaar worden bevestigd.","Koppel inhoud aan een echte auteur of expert wanneer dat feitelijk juist en relevant is.")
+      );
+    } else if (sectorProfile.sector === "hospitality") {
+      const openingSignal = /\\b(openingstijden|opening hours|geopend|open today|hours)\\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.openingHours || item?.openingHoursSpecification));
+      const menuSignal = /\\b(menu|menukaart|ontbijt|lunch|diner|dinner|drinks|gerechten)\\b/i.test(text) || links.some((href)=>/menu|menukaart/i.test(href));
+      const reservationSignal = hasContactChannelSignal || /\\b(reserveren|reserveer|reservation|book a table|boek een tafel|kamer boeken|book a room)\\b/i.test(text);
+      seoChecks.push(
+        sectorCheck("sector_hospitality_hours","Openingstijden",openingSignal,"Openingstijden of opening-hours structured data zijn bevestigd.","Openingstijden konden in de raw HTML niet betrouwbaar worden bevestigd.","Maak actuele openingstijden duidelijk vindbaar wanneer die voor deze locatie relevant zijn."),
+        sectorCheck("sector_hospitality_menu","Menu / aanbod",menuSignal,"Menu- of aanbodsignalen zijn bevestigd.","Een menu of concreet horeca-aanbod kon niet betrouwbaar worden bevestigd.","Maak menu of aanbod duidelijk bereikbaar wanneer dit voor deze onderneming relevant is."),
+        sectorCheck("sector_hospitality_reservation","Reserveren / contact",reservationSignal,"Een reserverings- of contactactie is bevestigd.","Een duidelijke reserverings- of contactactie kon niet betrouwbaar worden bevestigd.","Maak reserveren of contact opnemen duidelijk en eenvoudig.")
+      );
+    } else if (sectorProfile.sector === "health_wellness") {
+      const treatmentSignal = /\\b(behandeling|behandelingen|therapie|fysiotherap|tandarts|dentist|kliniek|clinic|wellness|salon|treatment|services)\\b/i.test(text);
+      const appointmentSignal = hasContactChannelSignal || /\\b(afspraak|appointment|boek afspraak|plan afspraak|book now|consult)\\b/i.test(text);
+      const trustSignal = hasAboutSignal || hasServiceExpertiseSignal || schemaSet.has("person") || /\\b(team|specialist|behandelaar|therapeut|practitioner)\\b/i.test(text);
+      seoChecks.push(
+        sectorCheck("sector_health_services","Behandelingen & diensten",treatmentSignal,"Behandelingen of diensten zijn in de pagina bevestigd.","Behandelingen of diensten konden in de raw HTML niet betrouwbaar worden bevestigd.","Beschrijf feitelijk welke diensten of behandelingen worden aangeboden; voeg geen medische werkzaamheidsclaims toe zonder bewijs."),
+        sectorCheck("sector_health_appointment","Afspraak maken",appointmentSignal,"Een afspraak- of contactactie is bevestigd.","Een duidelijke afspraak- of contactactie kon niet betrouwbaar worden bevestigd.","Maak de route naar afspraak of contact duidelijk zichtbaar."),
+        sectorCheck("sector_health_trust","Team & expertise",trustSignal,"Een team-, expertise- of behandelaarssignaal is bevestigd.","Team of expertise kon in de raw HTML niet betrouwbaar worden bevestigd.","Toon echte team- en expertise-informatie wanneer die beschikbaar en verifieerbaar is.")
+      );
+    } else if (sectorProfile.sector === "saas_b2b") {
+      const featureSignal = /\\b(features?|functies|mogelijkheden|platform|software|integrations?|integraties|api)\\b/i.test(text);
+      const leadSignal = hasContactChannelSignal || /\\b(demo|start gratis|free trial|try free|get started|contact sales|plan gesprek|boek demo)\\b/i.test(text);
+      const audienceSignal = /\\b(voor bedrijven|for businesses|for teams|teams|bedrijven|organisaties|business|enterprise|b2b)\\b/i.test(text);
+      seoChecks.push(
+        sectorCheck("sector_saas_features","Product & functies",featureSignal,"Software-/functiesignalen zijn in de pagina bevestigd.","Product- of functiesignalen konden in de raw HTML niet betrouwbaar worden bevestigd.","Maak duidelijk welk probleem het product oplost en welke functies werkelijk beschikbaar zijn."),
+        sectorCheck("sector_saas_conversion","Demo / conversie",leadSignal,"Een demo-, trial- of contactactie is bevestigd.","Een duidelijke demo-, trial- of contactactie kon niet betrouwbaar worden bevestigd.","Maak de primaire zakelijke vervolgstap duidelijk zichtbaar."),
+        sectorCheck("sector_saas_audience","Doelgroep",audienceSignal,"Een zakelijke doelgroep is in de pagina bevestigd.","De zakelijke doelgroep kon in de raw HTML niet betrouwbaar worden bevestigd.","Beschrijf voor welke echte klantgroepen of teams het product bedoeld is.")
+      );
+
     seoChecks.push(
       uniqueInternalAnchors.length === 0
         ? check("not_applicable", "broken_links", "seo", "Broken links", "Geen controleerbare interne links gevonden op deze pagina.", "Controleer links opnieuw wanneer de pagina interne navigatie bevat.", 0, 5)
