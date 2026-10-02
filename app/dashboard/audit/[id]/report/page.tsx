@@ -3,19 +3,29 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
+import type { Locale } from "@/lib/locales";
 import "./report.css";
 
 type Check={key?:string;category?:string;title:string;status:string;severity?:string;message:string;fix?:string;rule_id?:string;issue_id?:string;confidence?:string;evidence?:{details?:string;found?:unknown};points?:number;maxPoints?:number};
 type Scan={id?:string;scanned_url:string;created_at:string;result:any};
 
-const labels:Record<string,string>={fail:"Fout",warning:"Waarschuwing",pass:"Geslaagd",unable_to_confirm:"Niet te bevestigen",not_applicable:"N.v.t."};
+const reportText:Record<Locale,{back:string;save:string;title:string;subtitle:string;website:string;scanned:string;loading:string;failed:string;groups:string[];labels:Record<string,string>}>={
+ nl:{back:"Terug naar audit",save:"Opslaan als PDF",title:"Volledig scanrapport",subtitle:"Bewijsgericht SEO-, GEO- en sectorrapport",website:"Website",scanned:"Gescand",loading:"Rapport laden…",failed:"Rapport kon niet worden geladen.",groups:["Verbeterpunten","Geslaagde controles","Niet te bevestigen","Niet van toepassing"],labels:{fail:"Fout",warning:"Waarschuwing",pass:"Geslaagd",unable_to_confirm:"Niet te bevestigen",not_applicable:"N.v.t."}},
+ en:{back:"Back to audit",save:"Save as PDF",title:"Full scan report",subtitle:"Evidence-based SEO, GEO and sector report",website:"Website",scanned:"Scanned",loading:"Loading report…",failed:"Could not load report.",groups:["Improvements","Passed checks","Unable to confirm","Not applicable"],labels:{fail:"Error",warning:"Warning",pass:"Passed",unable_to_confirm:"Unable to confirm",not_applicable:"N/A"}},
+ de:{back:"Zurück zum Audit",save:"Als PDF speichern",title:"Vollständiger Scanbericht",subtitle:"Evidenzbasierter SEO-, GEO- und Branchenbericht",website:"Website",scanned:"Gescannt",loading:"Bericht wird geladen…",failed:"Bericht konnte nicht geladen werden.",groups:["Verbesserungen","Bestandene Prüfungen","Nicht bestätigbar","Nicht zutreffend"],labels:{fail:"Fehler",warning:"Warnung",pass:"Bestanden",unable_to_confirm:"Nicht bestätigbar",not_applicable:"N. z."}},
+ fr:{back:"Retour à l’audit",save:"Enregistrer en PDF",title:"Rapport d’analyse complet",subtitle:"Rapport SEO, GEO et sectoriel fondé sur des preuves",website:"Site",scanned:"Analysé",loading:"Chargement du rapport…",failed:"Impossible de charger le rapport.",groups:["Améliorations","Contrôles réussis","Impossible à confirmer","Non applicable"],labels:{fail:"Erreur",warning:"Avertissement",pass:"Réussi",unable_to_confirm:"Impossible à confirmer",not_applicable:"N/A"}},
+ it:{back:"Torna all’audit",save:"Salva come PDF",title:"Report completo della scansione",subtitle:"Report SEO, GEO e di settore basato su evidenze",website:"Sito",scanned:"Scansionato",loading:"Caricamento report…",failed:"Impossibile caricare il report.",groups:["Miglioramenti","Controlli superati","Non confermabile","Non applicabile"],labels:{fail:"Errore",warning:"Avviso",pass:"Superato",unable_to_confirm:"Non confermabile",not_applicable:"N/D"}},
+ es:{back:"Volver a la auditoría",save:"Guardar como PDF",title:"Informe completo del análisis",subtitle:"Informe SEO, GEO y sectorial basado en evidencias",website:"Web",scanned:"Analizado",loading:"Cargando informe…",failed:"No se pudo cargar el informe.",groups:["Mejoras","Controles superados","No se puede confirmar","No aplicable"],labels:{fail:"Error",warning:"Advertencia",pass:"Superado",unable_to_confirm:"No se puede confirmar",not_applicable:"N/A"}}
+};
 const esc=(v:unknown)=>String(v??"");
 
 export default function FullAuditReport(){
   const {id}=useParams<{id:string}>();
   const [scan,setScan]=useState<Scan|null>(null);
   const [error,setError]=useState("");
-  useEffect(()=>{if(!id)return;fetch("/api/history/"+encodeURIComponent(id),{cache:"no-store"}).then(async r=>{const d=await r.json();if(r.status===401){location.href="/account";return;}if(!r.ok)throw new Error(d.error||"Rapport kon niet worden geladen.");setScan({...d.scan,id});}).catch(e=>setError(e instanceof Error?e.message:"Rapport kon niet worden geladen."));},[id]);
+  const [language,setLanguage]=useState<Locale>("nl");
+  const t=reportText[language];
+  useEffect(()=>{fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in reportText)setLanguage(d.language)}).catch(()=>{});if(!id)return;fetch("/api/history/"+encodeURIComponent(id),{cache:"no-store"}).then(async r=>{const d=await r.json();if(r.status===401){location.href="/account";return;}if(!r.ok)throw new Error(d.error||t.failed);setScan({...d.scan,id});}).catch(e=>setError(e instanceof Error?e.message:t.failed));},[id]);
   const checks=useMemo(()=>{
     const raw:Check[]=[...(scan?.result?.seo?.checks||[]),...(scan?.result?.geo?.checks||[])];
     const rank:Record<string,number>={fail:5,warning:4,pass:3,unable_to_confirm:2,not_applicable:1};
@@ -24,21 +34,21 @@ export default function FullAuditReport(){
     return [...map.values()];
   },[scan]);
   const groups=[
-    ["Verbeterpunten",checks.filter(c=>c.status==="fail"||c.status==="warning")],
-    ["Geslaagde controles",checks.filter(c=>c.status==="pass")],
-    ["Niet te bevestigen",checks.filter(c=>c.status==="unable_to_confirm")],
-    ["Niet van toepassing",checks.filter(c=>c.status==="not_applicable")],
+    [t.groups[0],checks.filter(c=>c.status==="fail"||c.status==="warning")],
+    [t.groups[1],checks.filter(c=>c.status==="pass")],
+    [t.groups[2],checks.filter(c=>c.status==="unable_to_confirm")],
+    [t.groups[3],checks.filter(c=>c.status==="not_applicable")],
   ] as const;
   if(error)return <main className="report-wrap"><p>{error}</p></main>;
-  if(!scan)return <main className="report-wrap"><p>Rapport laden…</p></main>;
+  if(!scan)return <main className="report-wrap"><p>{t.loading}</p></main>;
   const r=scan.result||{}; const profile=r.technologyProfile; const sector=r.sectorProfile; const rendering=r.rendering; const pageType=r.pageTypeEvidence;
   return <main className="report-wrap">
-    <div className="report-actions"><Link href={"/dashboard/audit/"+encodeURIComponent(id)} className="report-button">← Terug naar audit</Link><button className="report-button primary" onClick={()=>window.print()}>Opslaan als PDF</button></div>
-    <header className="report-header"><div><div className="report-brand">RankFix <span>AI</span></div><h1>Volledig scanrapport</h1><p className="muted">Bewijsgericht SEO-, GEO- en sectorrapport</p></div><div className="score"><b>{r.overallScore??"—"}</b><span>/ 100</span></div></header>
-    <section className="summary-grid"><div><span>Website</span><strong>{scan.scanned_url}</strong></div><div><span>Gescand</span><strong>{new Date(scan.created_at).toLocaleString("nl-NL",{dateStyle:"long",timeStyle:"short"})}</strong></div><div><span>SEO</span><strong>{r.seo?.score??"—"} / 100</strong></div><div><span>GEO</span><strong>{r.geo?.score??"—"} / 100</strong></div></section>
+    <div className="report-actions"><Link href={"/dashboard/audit/"+encodeURIComponent(id)} className="report-button">← {t.back}</Link><button className="report-button primary" onClick={()=>window.print()}>{t.save}</button></div>
+    <header className="report-header"><div><div className="report-brand">RankFix <span>AI</span></div><h1>{t.title}</h1><p className="muted">{t.subtitle}</p></div><div className="score"><b>{r.overallScore??"—"}</b><span>/ 100</span></div></header>
+    <section className="summary-grid"><div><span>{t.website}</span><strong>{scan.scanned_url}</strong></div><div><span>{t.scanned}</span><strong>{new Date(scan.created_at).toLocaleString(language,{dateStyle:"long",timeStyle:"short"})}</strong></div><div><span>SEO</span><strong>{r.seo?.score??"—"} / 100</strong></div><div><span>GEO</span><strong>{r.geo?.score??"—"} / 100</strong></div></section>
     <section><h2>Scanbasis & websiteprofiel</h2><div className="box"><p><b>Scanbewijs:</b> {rendering?.mode==="raw_html"?"Raw HTML":"Rendered"} · JavaScript {rendering?.javascriptExecuted?"uitgevoerd":"niet uitgevoerd"}{pageType?.type?" · paginatype "+pageType.type+" ("+pageType.confidence+")":""}</p>{rendering?.note&&<p>{rendering.note}</p>}<p><b>Websiteprofiel:</b> {profile?.siteType||"Website"} · CMS: {profile?.cms||"Niet bevestigd"} · Platform: {profile?.commercePlatform||"Niet bevestigd"} · Framework: {profile?.framework||"Niet bevestigd"} · zekerheid {profile?.confidence??"—"}%</p>{profile?.evidence?.length>0&&<p><b>Websitebewijs:</b> {profile.evidence.join(" · ")}</p>}{sector&&<><p><b>Sector:</b> {sector.label||"Sector niet bevestigd"} · zekerheid {sector.confidenceScore??"—"}%</p>{sector.evidence?.length>0&&<p><b>Sectorbewijs:</b> {sector.evidence.join(" · ")}</p>}{sector.applicableModules?.length>0&&<p><b>Actieve scanmodules:</b> {sector.applicableModules.join(" · ")}</p>}</>}</div></section>
     {r.multiPage?.enabled&&<section><h2>Multi-page scan</h2><div className="box"><p><b>Site-samplescore:</b> {r.multiPage.siteSampleScore==null?"—":r.multiPage.siteSampleScore+" / 100"} · gecontroleerd {r.multiPage.counts?.audited??0} · niet te bevestigen {r.multiPage.counts?.unableToConfirm??0}. Deze score staat los van de huidige paginascore.</p>{(r.multiPage.pageAudits?.length?r.multiPage.pageAudits:r.multiPage.selectedPages||[]).map((p:any,i:number)=><div className="diagnostic-block" key={i}><h3>{esc(p.type)} {p.score!=null?"· "+p.score+" / 100":""}</h3>{p.title&&<p><b>Titel:</b> {esc(p.title)}</p>}<p><b>URL:</b> {esc(p.url)}</p>{p.httpStatus!=null&&<p><b>HTTP:</b> {esc(p.httpStatus)}</p>}{p.status&&<p><b>Status:</b> {p.status==="audited"?"Gecontroleerd":"Niet te bevestigen"}</p>}{p.evidenceChecks?.map((e:any,j:number)=><p key={j}><b>{esc(e.key)}:</b> {esc(e.details)}</p>)}</div>)}</div></section>}
-    {groups.map(([title,list])=><section key={title}><h2>{title} <small>({list.length})</small></h2>{list.length===0?<p className="empty">Geen items.</p>:list.map((c,i)=><article className="finding" key={(c.rule_id||c.title)+i}><div className="finding-head"><h3>{c.title}</h3><span className={"status "+c.status}>{labels[c.status]||c.status}</span></div><p>{c.message}</p>{c.fix&&<p><b>Volgende stap:</b> {c.fix}</p>}<p className="meta">Regel: {c.rule_id||c.issue_id||c.key||"—"} · categorie {c.category||"—"} · zekerheid {c.confidence||"—"}{c.maxPoints!==undefined?" · punten "+(c.points??0)+"/"+c.maxPoints:""}</p>{c.evidence?.details&&<p className="evidence"><b>Bewijs:</b> {c.evidence.details}</p>}</article>)}</section>)}
+    {groups.map(([title,list])=><section key={title}><h2>{title} <small>({list.length})</small></h2>{list.length===0?<p className="empty">Geen items.</p>:list.map((c,i)=><article className="finding" key={(c.rule_id||c.title)+i}><div className="finding-head"><h3>{c.title}</h3><span className={"status "+c.status}>{t.labels[c.status]||c.status}</span></div><p>{c.message}</p>{c.fix&&<p><b>Volgende stap:</b> {c.fix}</p>}<p className="meta">Regel: {c.rule_id||c.issue_id||c.key||"—"} · categorie {c.category||"—"} · zekerheid {c.confidence||"—"}{c.maxPoints!==undefined?" · punten "+(c.points??0)+"/"+c.maxPoints:""}</p>{c.evidence?.details&&<p className="evidence"><b>Bewijs:</b> {c.evidence.details}</p>}</article>)}</section>)}
     {(sector?.sector==="ecommerce"||sector?.key==="ecommerce"||profile?.isCommerce)&&<section><h2>Product & webshopdiagnostiek</h2><div className="box">
       {[
         ["Product Optimizer",r.metrics?.productOptimizer],
