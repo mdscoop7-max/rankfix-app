@@ -17,6 +17,7 @@ export async function POST(request: Request) {
   const db=getDb(); const exists=await db.query("SELECT id FROM users WHERE email=$1",[email]);
   if(exists.rowCount) return NextResponse.json({error:tr(language,{nl:"Er bestaat al een account met dit e-mailadres.",en:"An account already exists with this email address.",de:"Für diese E-Mail-Adresse existiert bereits ein Konto.",fr:"Un compte existe déjà avec cette adresse e-mail.",it:"Esiste già un account con questo indirizzo e-mail.",es:"Ya existe una cuenta con este correo electrónico."})},{status:409});
   const result=await db.query("INSERT INTO users (email,name,password_hash,customer_id) VALUES ($1,$2,$3,'RF-' || UPPER(REPLACE(gen_random_uuid()::text,'-',''))) RETURNING id,customer_id,email,name",[email,name,await hashPassword(password)]);
+  await db.query("INSERT INTO user_preferences (user_id,language) VALUES ($1,$2) ON CONFLICT (user_id) DO UPDATE SET language=EXCLUDED.language,updated_at=NOW()",[result.rows[0].id,language]);
   await createSession(result.rows[0].id); return NextResponse.json({success:true,user:result.rows[0]});
  }catch(error){console.error("RankFix registration failed:",error);return NextResponse.json({error:tr(language,{nl:"Account aanmaken mislukt. Probeer het opnieuw.",en:"Could not create account. Please try again.",de:"Konto konnte nicht erstellt werden. Bitte versuche es erneut.",fr:"Impossible de créer le compte. Veuillez réessayer.",it:"Impossibile creare l’account. Riprova.",es:"No se pudo crear la cuenta. Inténtalo de nuevo."})},{status:500});}
 }
