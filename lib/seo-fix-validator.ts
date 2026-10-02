@@ -154,7 +154,13 @@ export function validateFix(input: {
     errors.push("Fix is identiek aan de huidige waarde.");
   }
 
-  if (input.source === "ai") { warnings.push("AI-output kan nooit automatisch worden toegepast."); if (input.currentIssue?.status !== "FAIL" && input.currentIssue?.status !== "WARNING") errors.push("AI-fix mag alleen worden gegenereerd voor een actief FAIL- of WARNING-issue."); }
+  if (input.source === "ai") {
+    warnings.push("AI-output kan nooit automatisch worden toegepast.");
+    const activeIssue = input.currentIssue?.status === "FAIL" || input.currentIssue?.status === "WARNING";
+    if (!activeIssue && !isProductOptimizerPreview) {
+      errors.push("AI-fix mag alleen worden gegenereerd voor een actief FAIL- of WARNING-issue.");
+    }
+  }
 
   if (policy.category === "C") {
     warnings.push("Deze fix vereist menselijke controle.");
