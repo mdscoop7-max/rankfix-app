@@ -2044,6 +2044,29 @@ export async function POST(request: Request) {
       }
     }
 
+    // Applicability firewall: specialist commerce rules may never reduce the score
+    // of a site that has not been proven to be a webshop. This is deliberately
+    // evidence-based and runs before scoring.
+    const commerceOnlyKeys = new Set([
+      "commercial_terms_signal","merchant_product_readiness","merchant_feed_signal","price_format",
+      "product_schema","product_optimizer","product_price_consistency","product_availability_consistency",
+      "variant_url","webshop_claims","webshop_trust","checkout_funnel_static",
+      "eu_discount_signal","eu_reference_price_signal","eu_review_signal","eu_scarcity_signal",
+      "eu_consumer_information_signal","pricing_currency_consistency"
+    ]);
+    if (!hasEcommerceSignal) {
+      for (const item of [...seoChecks, ...geoChecks]) {
+        if (!commerceOnlyKeys.has(item.key)) continue;
+        item.status = "not_applicable";
+        item.issue_status = "NOT_APPLICABLE";
+        item.points = 0;
+        item.confidence = "high";
+        item.message = "Geen voldoende sterk webshop-signaal gevonden; deze branchespecifieke controle is niet van toepassing op deze website.";
+        item.fix = "Geen actie nodig. RankFix activeert deze controle alleen wanneer e-commerce voldoende is bewezen.";
+        item.evidence = { url: finalUrl.toString(), found: false, details: item.message };
+      }
+    }
+
     const seoTotal = seoChecks.reduce((sum, c) => sum + (c.issue_status === "NOT_APPLICABLE" || c.issue_status === "UNABLE_TO_CONFIRM" ? 0 : c.points), 0);
     const seoMax = seoChecks.reduce((sum, c) => sum + (c.issue_status === "NOT_APPLICABLE" || c.issue_status === "UNABLE_TO_CONFIRM" ? 0 : c.maxPoints), 0);
     const geoTotal = geoChecks.reduce((sum, c) => sum + (c.issue_status === "NOT_APPLICABLE" || c.issue_status === "UNABLE_TO_CONFIRM" ? 0 : c.points), 0);
