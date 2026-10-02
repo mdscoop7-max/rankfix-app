@@ -636,7 +636,13 @@ export async function POST(request:Request){
       }
     }
     if(activeProposal){
-      await db.query("UPDATE fix_proposals SET status=$2,branch=$3,pr_number=$4,pr_url=$5,updated_at=NOW() WHERE id=$1",[activeProposal.id,mergeState,branch,Number(pr.number)||null,pr.html_url||null]);
+      // fix_proposals tracks the proposal lifecycle; deployment/verification
+      // states belong to pending_fixes. Never write PR workflow states into
+      // the proposal status CHECK constraint.
+      await db.query(
+        "UPDATE fix_proposals SET status='PUBLISHED',branch=$2,pr_number=$3,pr_url=$4,updated_at=NOW() WHERE id=$1",
+        [activeProposal.id,branch,Number(pr.number)||null,pr.html_url||null]
+      );
     }
     if (scannedUrl && issueId) {
       await db.query(
