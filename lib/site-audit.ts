@@ -113,7 +113,7 @@ const rules: RuleDef[] = [
     description: "Meerdere primaire headings zijn niet automatisch fout, maar kunnen de hoofdstructuur onduidelijk maken.",
     recommendation: "Gebruik bij voorkeur één duidelijke primaire H1 per pagina.",
     applicable: p => !p.noindex,
-    evaluate: p => p.h1.length > 1 ? {status:"WARNING",found:p.h1.length,expected:"1",details:"Meerdere H1's gevonden."} : {status:"PASS",found:p.h1.length,details:"Niet meer dan één H1 gevonden."},
+    evaluate: p => p.h1.length > 1 ? {status:"PASS",found:p.h1.length,details:`${p.h1.length} H1-elementen gevonden. Dit is structuuradvies en geen bewezen SEO-fout; meerdere H1-elementen zijn technisch toegestaan.`} : {status:"PASS",found:p.h1.length,details:"Niet meer dan één H1 gevonden."},
   },
   {
     id: "SITE_CANONICAL_MISSING", category: "technical", title: "Canonical ontbreekt", severity: "MEDIUM",
