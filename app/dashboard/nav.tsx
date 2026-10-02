@@ -22,14 +22,14 @@ function activeIndex(pathname:string){
  if(pathname==="/dashboard") return 0;
  if(pathname.startsWith("/dashboard/scan")) return 1;
  if(pathname.startsWith("/dashboard/github")||pathname.startsWith("/dashboard/fix")) return 2;
- if(pathname.startsWith("/dashboard/history")||pathname.startsWith("/dashboard/audit")||pathname.startsWith("/dashboard/reports")) return 3;
+ if(pathname.startsWith("/dashboard/history")||pathname.startsWith("/dashboard/reports")) return 3;\n if(pathname.startsWith("/dashboard/audit")) return 0;
  if(pathname.startsWith("/dashboard/")) return 4;
  return 0;
 }
 
 export default function DashboardNav({current:currentOverride}:{current?:number}){
  const pathname=usePathname()||"/dashboard";
- const current=currentOverride ?? activeIndex(pathname);
+ const current=activeIndex(pathname);
  const [language,setLanguage]=useState<Locale>("nl");
  const [languageOpen,setLanguageOpen]=useState(false);
  useEffect(()=>{fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in labels)setLanguage(d.language)}).catch(()=>{})},[]);
