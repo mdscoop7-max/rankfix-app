@@ -4,7 +4,7 @@ import { validateFix } from "@/lib/seo-fix-validator";
 import { ensureDatabase } from "@/lib/db-init";
 import { consumeRateLimit } from "@/lib/rate-limit";
 
-type FixType = "meta_title" | "meta_description" | "h1" | "faq" | "breadcrumb" | "expertise" | "structured_data" | "social_metadata" | "heading_structure" | "canonical" | "alt_text";
+type FixType = "meta_title" | "meta_description" | "h1" | "faq" | "breadcrumb" | "expertise" | "structured_data" | "social_metadata" | "heading_structure" | "canonical" | "alt_text" | "product_copy_metadata";
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, (char) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[char]!));
@@ -39,6 +39,7 @@ async function generateWithOpenAI(type: FixType, url: string, current: string, c
     "For social_metadata, generate concrete Open Graph meta tags from verified title, description, and existing og:image when available.",
     "For canonical fixes, generate one self-referencing canonical link using only the supplied final URL.",
     "For heading_structure fixes, propose a small H2/H3 outline grounded only in supplied page title, H1, and description; do not invent services.",
+    "For product_copy_metadata, optimize only product copy and SEO/social metadata using verified supplied product facts. Never invent materials, dimensions, compatibility, benefits, certifications, reviews, ratings, discounts, delivery promises, stock, price, SKU, brand, performance, health/beauty claims, or any other product property. Preserve verified numeric/commercial facts exactly. Return a compact proposal with: Product title, Meta title, Meta description, and Product description. If the evidence is insufficient, do not guess.",
     "For alt_text fixes, generate concise descriptive alt text for supplied image URLs using visible page context and image filename/URL. Do not claim unsupported details. If no verified og:image exists, do not invent a URL; state that an existing page image must be assigned.",
     "Return ONLY valid JSON with keys title, content, reason.",
     `type=${type}`,
@@ -213,11 +214,23 @@ export async function POST(request: Request) {
     const current = typeof body?.current==="string" ? body.current : "";
     const context = body?.context && typeof body.context==="object" ? body.context : {};
     const requestId = typeof body?.request_id === "string" && body.request_id.length <= 120 ? body.request_id : crypto.randomUUID();
-    const issueId = typeof body?.issue_id === "string" ? body.issue_id : type === "meta_title" ? (current ? "META_TITLE_GUIDANCE" : "META_TITLE_MISSING") : type === "meta_description" ? (current ? "META_DESCRIPTION_GUIDANCE" : "META_DESCRIPTION_MISSING") : type === "h1" ? "H1_MISSING" : type === "faq" ? "faq" : type === "breadcrumb" ? "breadcrumbs" : type === "expertise" ? "author" : type === "structured_data" ? "STRUCTURED_DATA_MISSING" : type === "social_metadata" ? "SOCIAL_METADATA_INCOMPLETE" : type === "canonical" ? "canonical" : type === "heading_structure" ? "headings" : type === "alt_text" ? "IMAGE_ALT_MISSING" : "AI_PROPOSAL";
+    const issueId = typeof body?.issue_id === "string" ? body.issue_id : type === "meta_title" ? (current ? "META_TITLE_GUIDANCE" : "META_TITLE_MISSING") : type === "meta_description" ? (current ? "META_DESCRIPTION_GUIDANCE" : "META_DESCRIPTION_MISSING") : type === "h1" ? "H1_MISSING" : type === "faq" ? "faq" : type === "breadcrumb" ? "breadcrumbs" : type === "expertise" ? "author" : type === "structured_data" ? "STRUCTURED_DATA_MISSING" : type === "social_metadata" ? "SOCIAL_METADATA_INCOMPLETE" : type === "canonical" ? "canonical" : type === "heading_structure" ? "headings" : type === "alt_text" ? "IMAGE_ALT_MISSING" : type === "product_copy_metadata" ? "PRODUCT_COPY_OPTIMIZER" : "AI_PROPOSAL";
     const issueStatus = typeof body?.issue_status === "string" ? body.issue_status : "FAIL";
-    if (!url || !["meta_title","meta_description","h1","faq","breadcrumb","expertise","structured_data","social_metadata","heading_structure","canonical","alt_text"].includes(type)) return NextResponse.json({error:"Ongeldige AI-fix aanvraag."},{status:400});
+    if (!url || !["meta_title","meta_description","h1","faq","breadcrumb","expertise","structured_data","social_metadata","heading_structure","canonical","alt_text","product_copy_metadata"].includes(type)) return NextResponse.json({error:"Ongeldige AI-fix aanvraag."},{status:400});
 
     const safeContext = cleanContext(context);
+    if (type === "product_copy_metadata") {
+      const verifiedName = String(safeContext.productName || "").trim();
+      const verifiedDescription = String(safeContext.description || "").trim();
+      const sourceCount = Number(safeContext.productSourceCount || 0);
+      if (!verifiedName || !verifiedDescription || sourceCount < 3) {
+        return NextResponse.json({
+          error: "insufficient_verified_product_data",
+          message: "Product Optimizer heeft eerst voldoende bewezen productgegevens nodig. RankFix genereert geen productclaims wanneer naam, beschrijving en aanvullende Product/Offer-bronnen onvoldoende zijn bevestigd."
+        }, { status: 422 });
+      }
+    }
+
     if (type === "social_metadata" && issueId === "SOCIAL_METADATA_INCOMPLETE" && !String(safeContext.ogImage || "").trim()) {
       return NextResponse.json({
         error: "missing_verified_asset",
@@ -229,6 +242,9 @@ export async function POST(request: Request) {
     // Structural SEO fix routing is deterministic in production; keep verified scan data on these paths.
     // This prevents structural issues from being misclassified as structured-data proposals.
     const deterministicTypes: FixType[] = ["social_metadata", "canonical", "heading_structure", "alt_text"];
+    if (type === "product_copy_metadata" && !process.env.OPENAI_API_KEY) {
+      return NextResponse.json({ error:"ai_required", message:"Product Optimizer heeft de AI-service nodig om een veilig, brongebonden voorstel te maken." }, { status:503 });
+    }
     let fix = deterministicTypes.includes(type)
       ? fallback(type, url, safeCurrent, context)
       : await generateWithOpenAI(type,url,safeCurrent,safeContext).catch((error) => {

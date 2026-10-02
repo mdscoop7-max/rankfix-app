@@ -1527,6 +1527,22 @@ export async function POST(request: Request) {
       : check("not_applicable", "organization_website", "geo", "Organization + WebSite", "Homepage-specifieke Organization/WebSite-controle is niet vereist op deze URL.", "Controleer de homepage afzonderlijk voor organisatie- en website-identiteit.", 0, 8)
     );
 
+    const primaryProductEvidence = productOfferEvidence.find((product) => Boolean(product.name)) || productOfferEvidence[0] || null;
+    const productOptimizerSourceCount = [
+      Boolean(primaryProductEvidence?.name),
+      Boolean(description),
+      Boolean(title),
+      Boolean(primaryProductEvidence?.sku),
+      Boolean(primaryProductEvidence?.offers?.some((offer) => offer.price && offer.currency)),
+      Boolean(primaryProductEvidence?.offers?.some((offer) => offer.availability)),
+    ].filter(Boolean).length;
+    geoChecks.push(isProductPage
+      ? productOptimizerSourceCount >= 3
+        ? check("pass", "product_copy_optimizer", "geo", "AI Product Copy & Metadata", `Deze productpagina heeft ${productOptimizerSourceCount} controleerbare bronvelden voor veilige AI-optimalisatie. RankFix kan hiermee een voorstel maken zonder producteigenschappen te verzinnen.`, "Gebruik Product Optimizer voor een preview van productcopy en metadata. Controleer het voorstel vóór publicatie.", 5, 5)
+        : check("unable_to_confirm", "product_copy_optimizer", "geo", "AI Product Copy & Metadata", "Deze productpagina heeft te weinig controleerbare brongegevens om veilig productcopy te genereren.", "Voeg eerst betrouwbare productnaam, beschrijving en Product/Offer-data toe voordat AI-optimalisatie wordt gebruikt.", 0, 5)
+      : check("not_applicable", "product_copy_optimizer", "geo", "AI Product Copy & Metadata", "Geen bewezen productdetailpagina; Product Optimizer is hier niet van toepassing.", "Scan een echte productdetailpagina om Product Optimizer te gebruiken.", 0, 5)
+    );
+
     geoChecks.push(isProductPage
       ? productSchemaPresent
         ? hasCompleteProductOffer
@@ -1639,6 +1655,7 @@ export async function POST(request: Request) {
       product_schema: { rule_id: "PRODUCT_SCHEMA_MISSING", severity: "MEDIUM" },
       product_price_consistency: { rule_id: "PRODUCT_PRICE_CONSISTENCY", severity: "HIGH" },
       product_availability: { rule_id: "PRODUCT_AVAILABILITY", severity: "MEDIUM" },
+      product_copy_optimizer: { rule_id: "PRODUCT_COPY_OPTIMIZER", severity: "LOW" },
     };
     for (const item of [...seoChecks, ...geoChecks]) {
       const mapped = ruleMap[item.key];
@@ -1676,6 +1693,7 @@ export async function POST(request: Request) {
         checkout_trust: hasCheckoutTrustSignal ? "checkout/payment signal found in static page content" : null,
         product_price_consistency: isProductPage ? `visible=${visiblePriceCandidates.join(",") || "none"}; visibleEvidence=${visiblePriceEvidenceStrength}; schema=${structuredPriceCandidates.join(",") || "none"}` : null,
         product_availability: isProductPage ? `visibleState=${visibleAvailabilityState || "none"}; schemaStates=${structuredAvailabilityStates.join(",") || "none"}; schema=${structuredAvailabilityValues.join(",") || "none"}; contradiction=${availabilityContradiction}` : null,
+        product_copy_optimizer: isProductPage ? `verifiedSourceFields=${productOptimizerSourceCount}; product=${primaryProductEvidence?.name || "unknown"}` : null,
         ads_readiness: (adsTrackingSignals || hasConversionSignal || hasExplicitAdsConversionSnippet) ? `adsIds=${googleAdsIds.join(",") || "none"}; ga4Ids=${ga4MeasurementIds.join(",") || "none"}; events=${uniqueConversionEventNames.join(",") || "none"}; adsLabels=${googleAdsSendToLabels.join(",") || "none"}; consentSignal=${hasConsentModeSignal}` : null,
         broken_links: allUniqueInternalAnchors.length ? `discovered=${allUniqueInternalAnchors.length}; checked=${linkAuditResults.length}; broken=${brokenInternalLinks.length}; sampleLimit=24; truncated=${allUniqueInternalAnchors.length > linkAuditResults.length}` : null,
         internal_redirects: allUniqueInternalAnchors.length ? `discovered=${allUniqueInternalAnchors.length}; checked=${linkAuditResults.length}; redirected=${redirectedInternalLinks.length}; sampleLimit=24; truncated=${allUniqueInternalAnchors.length > linkAuditResults.length}` : null,
@@ -1940,6 +1958,7 @@ export async function POST(request: Request) {
               imageCount, imageElementCount, imagesMissingAlt, wordCount, headingsCount: headings.length, linksCount: links.length, pageType: schemaContextLabel, recommendedSchema, localBusinessDetails,
               internalLinks, canonical: canonical || null, lang: lang || null, robots: robots || null,
               openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null }, imageAltCandidates,
+              productOptimizer: isProductPage ? { eligible: productOptimizerSourceCount >= 3, sourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null } : { eligible: false, sourceCount: 0, product: null },
               twitterCard: twitterCard || null, schemaTypes: [...new Set(schemaTypes)].slice(0,12),
               jsonLdBlocks: validJsonLd, sitemapFound, robotsMentionsSitemap, robotsStatus, sitemapUrl: confirmedSitemapUrl || robotsDeclaredSitemapUrls[0] || null }
           }), CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION]
@@ -2114,6 +2133,7 @@ export async function POST(request: Request) {
         robots: robots || null,
         openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null },
         imageAltCandidates,
+        productOptimizer: isProductPage ? { eligible: productOptimizerSourceCount >= 3, sourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null } : { eligible: false, sourceCount: 0, product: null },
         twitterCard: twitterCard || null,
         schemaTypes: [...new Set(schemaTypes)].slice(0, 12),
         jsonLdBlocks: validJsonLd,
