@@ -1938,9 +1938,16 @@ export async function POST(request: Request) {
       ? check("pass", "trust", "geo", "Trust & context", hasAboutSignal ? "Contact- en organisatiecontext zijn zichtbaar." : "Concrete contact-, locatie- of externe profielsignalen zijn zichtbaar.", "Houd bedrijfsnaam, contactgegevens, locatie, verantwoordelijkheden en officiële profielen consistent.", 8, 8)
       : check("warning", "trust", "geo", "Trust & context", "Contact- of organisatiecontext is beperkt gevonden.", "Maak organisatie, contact, locatie en verantwoordelijkheden duidelijk.", 3, 8)
     );
-    geoChecks.push(ogTitle && ogDescription
-      ? check("pass", "answer", "geo", "Expliciete paginasamenvatting", "Open Graph title en description geven een expliciete machineleesbare samenvatting van de pagina.", "Houd title, description en zichtbare introductie inhoudelijk consistent.", 6, 6)
-      : check("warning", "answer", "geo", "Expliciete paginasamenvatting", "Een complete Open Graph-samenvatting is niet gevonden.", "Voeg een duidelijke zichtbare introductie en consistente metadata toe; dit is een readiness-signaal en geen garantie op zichtbaarheid in AI-zoekmachines.", 2, 6)
+    // GEO summary readiness must not double-penalize the same missing Open Graph
+    // fields already covered by the SEO social-metadata rule. Use independent
+    // page-summary evidence here: the normal meta description and meaningful
+    // visible page copy. Open Graph remains a social-preview concern above.
+    const hasExplicitPageSummary = Boolean(description) && wordCount >= (isProductPage ? 40 : 80);
+    geoChecks.push(hasExplicitPageSummary
+      ? check("pass", "answer", "geo", "Expliciete paginasamenvatting", "Een meta description en voldoende zichtbare paginatekst geven samen een concrete samenvatting van de pagina.", "Houd de meta description en zichtbare introductie inhoudelijk consistent.", 6, 6)
+      : metadataMayBeClientRendered
+        ? check("unable_to_confirm", "answer", "geo", "Expliciete paginasamenvatting", "De beschikbare raw HTML bewijst geen complete paginasamenvatting en deze JavaScript-pagina kon niet volledig worden gerenderd.", "Controleer de zichtbare introductie opnieuw met een volledige render voordat dit als GEO-verbeterpunt wordt aangemerkt.", 0, 6)
+        : check("warning", "answer", "geo", "Expliciete paginasamenvatting", "RankFix vond onvoldoende combinatie van een beschrijvende meta description en zichtbare paginatekst om een expliciete paginasamenvatting te bevestigen.", "Voeg een concrete meta description en duidelijke zichtbare introductie toe; dit is een readiness-signaal en geen garantie op zichtbaarheid in AI-zoekmachines.", 2, 6)
     );
     // Brand identity is a visible-consistency check. Structured data quality is scored separately above,
     // so missing Organization JSON-LD must not create a second schema penalty here.
@@ -2069,7 +2076,7 @@ export async function POST(request: Request) {
         entity: hasEntitySchema ? `schemaTypes=${schemaTypes.slice(0,12).join(",")}` : (hasVisibleBusinessIdentity ? `visibleIdentity=true; contact=${hasBusinessContactDetails}; externalProfile=${hasSocialOrReviewSignal}` : null),
         author: (hasAuthorSignal || ecommerceExpertiseSignal || organizationExpertiseSignal || (hasLocalBusinessSignal && hasServiceExpertiseSignal)) ? `author=${hasAuthorSignal}; ecommerceExpertise=${ecommerceExpertiseSignal}; organizationExpertise=${organizationExpertiseSignal}; localServiceExpertise=${hasLocalBusinessSignal && hasServiceExpertiseSignal}` : null,
         trust: (hasContactChannelSignal || hasAboutSignal || hasSocialOrReviewSignal) ? `contact=${hasContactChannelSignal}; about=${hasAboutSignal}; socialOrReview=${hasSocialOrReviewSignal}` : null,
-        answer: (ogTitle || ogDescription) ? `ogTitle=${Boolean(ogTitle)}; ogDescription=${Boolean(ogDescription)}` : null,
+        answer: `metaDescription=${Boolean(description)}; wordCount=${wordCount}; minimumVisibleWords=${isProductPage ? 40 : 80}; rendered=${javascriptExecuted}`,
         sector_real_estate_listings: sectorProfile.sector==="real_estate" ? "sector=real_estate; listing evidence evaluated" : null,
         sector_real_estate_leads: sectorProfile.sector==="real_estate" ? `sector=real_estate; contact=${hasContactChannelSignal}` : null,
         sector_real_estate_area: sectorProfile.sector==="real_estate" ? `sector=real_estate; areaServed=${schemaObjects.some((item:any)=>Boolean(item?.areaServed))}` : null,
