@@ -243,3 +243,12 @@
 .rf-websites-featured .rf-site-actions a,.rf-websites-featured .rf-site-actions button{min-width:84px;text-align:center}
 @media(min-width:900px){.rf-dashboard-status{padding:24px}.rf-overall-meter{width:132px;height:132px}.rf-overall-meter strong{font-size:38px}.rf-status-grid.rf-overview-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}.rf-websites-featured .rf-sites{gap:12px}}
 @media(max-width:650px){.rf-dashboard-title{align-items:stretch;flex-direction:column}.rf-dashboard-title .rf-primary-link{text-align:center}.rf-websites-featured{padding:12px}.rf-websites-featured .rf-site{padding:13px}.rf-site-score{width:44px;height:44px}.rf-websites-featured .rf-site-actions{display:grid;grid-template-columns:44px repeat(3,minmax(0,1fr));align-items:center}.rf-websites-featured .rf-site-actions a,.rf-websites-featured .rf-site-actions button{min-width:0;padding:8px 5px}}
+
+/* Focused customer overview: remove duplicate long lists from home */
+.rf-dashboard-long-section{display:none}
+.rf-quick-actions-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.rf-quick-actions-grid a{min-height:108px;border:1px solid var(--border-subtle);background:var(--bg-card);border-radius:15px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;text-align:center;transition:transform .15s ease,border-color .15s ease}
+.rf-quick-actions-grid a:hover{transform:translateY(-2px);border-color:var(--brand)}
+.rf-quick-actions-grid span{width:43px;height:43px;display:grid;place-items:center;border-radius:13px;background:var(--brand-surface);color:var(--brand-light);font-size:21px}.rf-quick-actions-grid b{font-size:12px}
+.rf-websites-featured{margin-top:18px}.rf-fix-summary{display:none}
+@media(max-width:650px){.rf-quick-actions-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.rf-quick-actions-grid a{min-height:92px}.rf-quick-actions-grid span{width:39px;height:39px}.rf-websites-featured{margin-top:16px}}
