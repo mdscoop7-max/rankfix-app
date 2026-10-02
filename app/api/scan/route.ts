@@ -1050,8 +1050,63 @@ export async function POST(request: Request) {
       } catch { continue; }
     }
 
+    // Sector intelligence is computed before scoring so only relevant specialist checks
+    // can participate. Low-confidence classification stays generic and never penalizes.
+    type SectorKey = "ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"saas_b2b"|"general_business"|"unknown";
+    const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]}> = [
+      {sector:"real_estate",label:"Makelaar / vastgoed",patterns:[/\\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria)\\b/i,/\\b(te koop|te huur|for sale|for rent)\\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
+      {sector:"automotive",label:"Garage / automotive",patterns:[/\\b(garage|autobedrijf|autodealer|occasions?|auto onderhoud|car dealer|vehicle|automotive)\\b/i,/\\b(apk|proefrit|werkplaats)\\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
+      {sector:"home_services",label:"Lokale diensten / vakbedrijf",patterns:[/\\b(loodgieter|aannemer|installateur|elektricien|schilder|dakdekker|klusbedrijf|plumber|electrician|contractor)\\b/i,/\\b(offerte|werkgebied|servicegebied)\\b/i],modules:["core_seo","geo","local","lead_conversion","home_services"]},
+      {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\\b(advocaat|accountant|boekhouder|consultant|notaris|law firm|legal services|accounting|consultancy)\\b/i,/\\b(diensten|expertise|advies|consult)\\b/i],modules:["core_seo","geo","local","lead_conversion","professional_services"]},
+      {sector:"hospitality",label:"Horeca",patterns:[/\\b(restaurant|cafe|café|hotel|brasserie|bistro|menu|reserveren|reservation)\\b/i,/\\b(openingstijden|opening hours)\\b/i],modules:["core_seo","geo","local","lead_conversion","hospitality"]},
+      {sector:"health_wellness",label:"Zorg & wellness",patterns:[/\\b(kliniek|clinic|fysiotherap|tandarts|dentist|therap|wellness|salon|beauty treatment)\\b/i,/\\b(afspraak|appointment|behandeling)\\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
+      {sector:"saas_b2b",label:"SaaS / B2B",patterns:[/\\b(saas|software platform|software-as-a-service|api platform|business software)\\b/i,/\\b(demo|features|integrations|integraties)\\b/i],modules:["core_seo","geo","lead_conversion","saas_b2b"]},
+    ];
+    const sectorSource = [title, description, h1s.join(" "), text.slice(0,120000), schemaTypes.join(" ")].join(" ");
+    const sectorCandidates = sectorSignals.map(item=>({sector:item.sector,label:item.label,hits:item.patterns.filter(pattern=>pattern.test(sectorSource)).length,modules:item.modules})).filter(item=>item.hits>0).sort((a,b)=>b.hits-a.hits);
+    const sectorProfile = hasEcommerceSignal
+      ? {sector:"ecommerce" as SectorKey,label:"Webshop / e-commerce",confidence:"high" as const,evidence:["Bevestigde commerce-signalen"],applicableModules:["core_seo","geo","ecommerce","product","pricing_currency","merchant","checkout","eu_consumer"]}
+      : sectorCandidates[0] && sectorCandidates[0].hits>=2 && (!sectorCandidates[1] || sectorCandidates[0].hits>sectorCandidates[1].hits)
+        ? {sector:sectorCandidates[0].sector,label:sectorCandidates[0].label,confidence:"medium" as const,evidence:[`${sectorCandidates[0].hits} onafhankelijke sectorsignalen in raw HTML`],applicableModules:sectorCandidates[0].modules}
+        : {sector:"unknown" as SectorKey,label:"Sector niet bevestigd",confidence:"low" as const,evidence:sectorCandidates.slice(0,2).map(x=>`${x.label}: ${x.hits} signaal/signalen`),applicableModules:["core_seo","geo","technical"]};
+
     const seoChecks: Check[] = [];
     const geoChecks: Check[] = [];
+
+    // First specialist sector checks. Positive raw-HTML evidence can pass; absence is
+    // "unable to confirm" rather than a penalty because JavaScript is not executed.
+    const sectorCheck = (key:string,titleText:string,found:boolean,foundMessage:string,missingMessage:string,fixText:string) =>
+      found
+        ? check("pass",key,"seo",titleText,foundMessage,fixText,4,4)
+        : check("unable_to_confirm",key,"seo",titleText,missingMessage,fixText,0,4);
+    if (sectorProfile.sector === "real_estate") {
+      const listingSignal = /\\b(te koop|te huur|koopwoning|huurwoning|woningaanbod|objecten|properties|for sale|for rent)\\b/i.test(text) || schemaSet.has("realestatelisting");
+      const leadSignal = hasContactChannelSignal || /\\b(bezichtiging|waardebepaling|verkoopadvies|plan een afspraak|contact opnemen)\\b/i.test(text);
+      const areaSignal = /\\b(werkgebied|regio|buurt|wijk|plaats|gemeente|service area|area served)\\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.areaServed));
+      seoChecks.push(
+        sectorCheck("sector_real_estate_listings","Vastgoedaanbod",listingSignal,"Vastgoed-/woningsignalen zijn in de pagina bevestigd.","RankFix kon in de raw HTML geen vastgoedaanbod betrouwbaar bevestigen.","Maak woningaanbod en de bijbehorende bestemming duidelijk vindbaar wanneer dit voor deze pagina relevant is."),
+        sectorCheck("sector_real_estate_leads","Makelaar conversie",leadSignal,"Een contact-, bezichtigings- of waardebepalingssignaal is bevestigd.","Een duidelijke makelaar-CTA kon in de raw HTML niet betrouwbaar worden bevestigd.","Maak de belangrijkste vervolgstap, zoals contact, bezichtiging of waardebepaling, duidelijk zichtbaar."),
+        sectorCheck("sector_real_estate_area","Werkgebied makelaar",areaSignal,"Een lokaal werkgebied-/regiosignaal is bevestigd.","Het werkgebied kon in de raw HTML niet betrouwbaar worden bevestigd.","Beschrijf relevante plaatsen of regio's wanneer lokale vindbaarheid belangrijk is.")
+      );
+    } else if (sectorProfile.sector === "automotive") {
+      const workshopSignal = /\\b(apk|onderhoud|reparatie|werkplaats|autoservice|banden|diagnose)\\b/i.test(text);
+      const appointmentSignal = hasContactChannelSignal || /\\b(afspraak|proefrit|werkplaatsafspraak|plan afspraak|book service)\\b/i.test(text);
+      const inventorySignal = /\\b(occasion|occasions|voorraad|auto(?:'s)? te koop|used cars?|vehicles? for sale)\\b/i.test(text);
+      seoChecks.push(
+        sectorCheck("sector_automotive_services","Garage diensten",workshopSignal,"Garage-/werkplaatsdiensten zijn in de pagina bevestigd.","Garage-/werkplaatsdiensten konden in de raw HTML niet betrouwbaar worden bevestigd.","Maak de belangrijkste garage- en werkplaatsdiensten duidelijk vindbaar."),
+        sectorCheck("sector_automotive_conversion","Afspraak / proefrit",appointmentSignal,"Een afspraak-, proefrit- of contactsignaal is bevestigd.","Een duidelijke afspraak- of proefritactie kon niet betrouwbaar worden bevestigd.","Maak de belangrijkste vervolgstap voor klanten duidelijk zichtbaar."),
+        sectorCheck("sector_automotive_inventory","Voertuigaanbod",inventorySignal,"Voertuig-/occasionaanbod is in de pagina bevestigd.","RankFix kon voertuigaanbod niet betrouwbaar bevestigen; dit kan ook niet van toepassing zijn.","Toon voertuigaanbod duidelijk wanneer de onderneming auto's verkoopt; anders is geen actie nodig.")
+      );
+    } else if (sectorProfile.sector === "home_services") {
+      const serviceSignal = /\\b(loodgieter|elektricien|installateur|aannemer|dakdekker|schilder|renovatie|reparatie|installatie|onderhoud)\\b/i.test(text);
+      const quoteSignal = /\\b(offerte|prijsopgave|aanvraag|bel ons|contact opnemen|request a quote|get a quote)\\b/i.test(text) || hasContactChannelSignal;
+      const areaSignal = /\\b(werkgebied|servicegebied|regio|gemeente|in en rondom|omgeving|area served|service area)\\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.areaServed));
+      seoChecks.push(
+        sectorCheck("sector_home_services_offer","Vakdiensten",serviceSignal,"De belangrijkste vak-/servicediensten zijn in de pagina bevestigd.","De aangeboden vakdiensten konden niet betrouwbaar worden bevestigd.","Maak concreet welke werkzaamheden en diensten worden uitgevoerd."),
+        sectorCheck("sector_home_services_quote","Offerte / contact",quoteSignal,"Een offerte- of contactactie is bevestigd.","Een duidelijke offerte- of contactactie kon niet betrouwbaar worden bevestigd.","Maak offerte aanvragen of contact opnemen eenvoudig en duidelijk."),
+        sectorCheck("sector_home_services_area","Servicegebied",areaSignal,"Een servicegebied-/regiosignaal is bevestigd.","Het servicegebied kon in de raw HTML niet betrouwbaar worden bevestigd.","Noem relevante plaatsen of regio's wanneer het bedrijf lokaal werkt.")
+      );
+    }
 
     seoChecks.push(
       uniqueInternalAnchors.length === 0
@@ -1900,6 +1955,15 @@ export async function POST(request: Request) {
         author: (hasAuthorSignal || ecommerceExpertiseSignal || organizationExpertiseSignal || (hasLocalBusinessSignal && hasServiceExpertiseSignal)) ? `author=${hasAuthorSignal}; ecommerceExpertise=${ecommerceExpertiseSignal}; organizationExpertise=${organizationExpertiseSignal}; localServiceExpertise=${hasLocalBusinessSignal && hasServiceExpertiseSignal}` : null,
         trust: (hasContactChannelSignal || hasAboutSignal || hasSocialOrReviewSignal) ? `contact=${hasContactChannelSignal}; about=${hasAboutSignal}; socialOrReview=${hasSocialOrReviewSignal}` : null,
         answer: (ogTitle || ogDescription) ? `ogTitle=${Boolean(ogTitle)}; ogDescription=${Boolean(ogDescription)}` : null,
+        sector_real_estate_listings: sectorProfile.sector==="real_estate" ? "sector=real_estate; listing evidence evaluated" : null,
+        sector_real_estate_leads: sectorProfile.sector==="real_estate" ? `sector=real_estate; contact=${hasContactChannelSignal}` : null,
+        sector_real_estate_area: sectorProfile.sector==="real_estate" ? `sector=real_estate; areaServed=${schemaObjects.some((item:any)=>Boolean(item?.areaServed))}` : null,
+        sector_automotive_services: sectorProfile.sector==="automotive" ? "sector=automotive; workshop evidence evaluated" : null,
+        sector_automotive_conversion: sectorProfile.sector==="automotive" ? `sector=automotive; contact=${hasContactChannelSignal}` : null,
+        sector_automotive_inventory: sectorProfile.sector==="automotive" ? "sector=automotive; inventory evidence evaluated" : null,
+        sector_home_services_offer: sectorProfile.sector==="home_services" ? "sector=home_services; service evidence evaluated" : null,
+        sector_home_services_quote: sectorProfile.sector==="home_services" ? `sector=home_services; contact=${hasContactChannelSignal}` : null,
+        sector_home_services_area: sectorProfile.sector==="home_services" ? `sector=home_services; areaServed=${schemaObjects.some((item:any)=>Boolean(item?.areaServed))}` : null,
         identity: `brandSignals=${visibleBrandSignals}/4; found=${foundBrandSignals.join(",") || "none"}; missing=${missingBrandSignals.join(",") || "none"}`,
       };
       const heuristicKeys = new Set([
@@ -2122,28 +2186,7 @@ export async function POST(request: Request) {
         technologyProfile.evidence = [...technologyProfile.evidence, `Landingpage-signalen ${landingSignalCount}/4`].slice(0, 8);
       }
     }
-    // Sector intelligence is deliberately separate from technology detection.
-    // It changes which future branch-specific checks are applicable, but never
-    // guesses a sector strongly enough to penalize a customer without evidence.
-    type SectorKey = "ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"saas_b2b"|"general_business"|"unknown";
-    const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]}> = [
-      {sector:"real_estate",label:"Makelaar / vastgoed",patterns:[/\\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria)\\b/i,/\\b(te koop|te huur|for sale|for rent)\\b/i]},
-      {sector:"automotive",label:"Garage / automotive",patterns:[/\\b(garage|autobedrijf|autodealer|occasions?|auto onderhoud|car dealer|vehicle|automotive)\\b/i,/\\b(apk|proefrit|werkplaats)\\b/i]},
-      {sector:"home_services",label:"Lokale diensten / vakbedrijf",patterns:[/\\b(loodgieter|aannemer|installateur|elektricien|schilder|dakdekker|klusbedrijf|plumber|electrician|contractor)\\b/i,/\\b(offerte|werkgebied|servicegebied)\\b/i]},
-      {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\\b(advocaat|accountant|boekhouder|consultant|notaris|law firm|legal services|accounting|consultancy)\\b/i,/\\b(diensten|expertise|advies|consult)\\b/i]},
-      {sector:"hospitality",label:"Horeca",patterns:[/\\b(restaurant|cafe|café|hotel|brasserie|bistro|menu|reserveren|reservation)\\b/i,/\\b(openingstijden|opening hours)\\b/i]},
-      {sector:"health_wellness",label:"Zorg & wellness",patterns:[/\\b(kliniek|clinic|fysiotherap|tandarts|dentist|therap|wellness|salon|beauty treatment)\\b/i,/\\b(afspraak|appointment|behandeling)\\b/i]},
-      {sector:"saas_b2b",label:"SaaS / B2B",patterns:[/\\b(saas|software platform|software-as-a-service|api platform|business software)\\b/i,/\\b(demo|features|integrations|integraties)\\b/i]},
-    ];
-    const sectorSource = [title, description, h1s.join(" "), text.slice(0,120000), schemaTypes.join(" ")].join(" ");
-    const sectorCandidates = sectorSignals.map(item=>({sector:item.sector,label:item.label,hits:item.patterns.filter(pattern=>pattern.test(sectorSource)).length})).filter(item=>item.hits>0).sort((a,b)=>b.hits-a.hits);
-    const sectorProfile = technologyProfile.isCommerce
-      ? {sector:"ecommerce" as SectorKey,label:"Webshop / e-commerce",confidence:"high" as const,evidence:["Bevestigde commerce-signalen"],applicableModules:["core_seo","geo","ecommerce","product","pricing_currency","merchant","checkout","eu_consumer"]}
-      : sectorCandidates[0] && sectorCandidates[0].hits>=2 && (!sectorCandidates[1] || sectorCandidates[0].hits>sectorCandidates[1].hits)
-        ? {sector:sectorCandidates[0].sector,label:sectorCandidates[0].label,confidence:"medium" as const,evidence:[`${sectorCandidates[0].hits} onafhankelijke sectorsignalen in raw HTML`],applicableModules:["core_seo","geo","local","lead_conversion","structured_data"]}
-        : {sector:"unknown" as SectorKey,label:"Sector niet bevestigd",confidence:"low" as const,evidence:sectorCandidates.slice(0,2).map(x=>`${x.label}: ${x.hits} signaal/signalen`),applicableModules:["core_seo","geo","technical"]};
-
-    const renderingNotes: Record<string,string> = {
+    // sectorProfile was determined before scoring so applicability and scoring stay aligned.\n    const renderingNotes: Record<string,string> = {
       nl:"RankFix beoordeelde de HTTP HTML-response; client-side JavaScript is in deze scan niet uitgevoerd.",
       en:"RankFix evaluated the HTTP HTML response; client-side JavaScript was not executed in this scan.",
       de:"RankFix hat die HTTP-HTML-Antwort ausgewertet; clientseitiges JavaScript wurde in diesem Scan nicht ausgeführt.",
