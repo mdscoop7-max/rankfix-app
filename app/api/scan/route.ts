@@ -2513,6 +2513,27 @@ export async function POST(request: Request) {
               "INSERT INTO website_health_events (user_id,website_host,scanned_url,scan_id,event_type,rule_id,previous_status,current_status,severity,details) VALUES ($1,$2,$3,$4,'FIX_CONFIRMED',$5,'AWAITING_VERIFICATION','PASS',$6,$7)",
               [user.id, websiteHost, finalUrl.toString(), savedScanId, issueId, item.severity || null, JSON.stringify({title:item.title,message:item.message,verification:"fresh_live_scan",confidence:liveConfidence,evidence:liveEvidence?.details||null})]
             );
+            const verifiedFix = await getDb().query(
+              "SELECT repository,file_path,pr_number FROM pending_fixes WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 ORDER BY updated_at DESC LIMIT 1",
+              [user.id, normalizedScanUrl, issueId]
+            );
+            const verifiedFixRow = verifiedFix.rows[0] || {};
+            await getDb().query(
+              `INSERT INTO fix_memory (user_id,website_host,rule_id,scanned_url,repository,file_path,pr_number,verification_scan_id,fix_summary,evidence,last_confirmed_at,updated_at)
+               VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,NOW(),NOW())
+               ON CONFLICT (user_id,website_host,rule_id) DO UPDATE SET
+                 scanned_url=EXCLUDED.scanned_url,
+                 repository=COALESCE(EXCLUDED.repository,fix_memory.repository),
+                 file_path=COALESCE(EXCLUDED.file_path,fix_memory.file_path),
+                 pr_number=COALESCE(EXCLUDED.pr_number,fix_memory.pr_number),
+                 verification_scan_id=EXCLUDED.verification_scan_id,
+                 fix_summary=EXCLUDED.fix_summary,
+                 evidence=EXCLUDED.evidence,
+                 last_confirmed_at=NOW(),
+                 recurrence_count=fix_memory.recurrence_count+1,
+                 updated_at=NOW()`,
+              [user.id,websiteHost,issueId,normalizedScanUrl,verifiedFixRow.repository||null,verifiedFixRow.file_path||null,verifiedFixRow.pr_number||null,savedScanId,String(item.fix||item.message||item.title||""),JSON.stringify({status:"PASS",confidence:liveConfidence,details:liveEvidence?.details||null})]
+            );
           }
           // If the exact rule is absent from the fresh scan, absence is not proof.
           // Keep the fix awaiting verification rather than incorrectly treating a
