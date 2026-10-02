@@ -977,6 +977,8 @@ export async function POST(request: Request) {
     const hasTermsLink = links.some((href) => /voorwaarden|terms|conditions|agb|cgv|condiciones|termini/i.test(href));
     const hasContactLink = links.some((href) => /contact|kontakt|contatti|contacto/i.test(href));
     const formControls = [...html.matchAll(/<(input|select|textarea)\b([^>]*)>/gi)];
+    const wrappingLabelRanges = [...html.matchAll(/<label\b[^>]*>[\s\S]*?<\/label>/gi)]
+      .map((match) => ({ start: match.index ?? -1, end: (match.index ?? -1) + match[0].length }));
     const unlabeledFormControls = formControls.filter((match) => {
       const attrs=match[2]||"";
       const type=(attrs.match(/\btype\s*=\s*["']?([^"'\s>]+)/i)?.[1]||"").toLowerCase();
@@ -985,7 +987,9 @@ export async function POST(request: Request) {
       const hasAria=/\baria-label(?:ledby)?\s*=\s*["'][^"']+["']/i.test(attrs);
       const hasTitle=/\btitle\s*=\s*["'][^"']+["']/i.test(attrs);
       const labelPattern=id ? new RegExp("<label[^>]+for\s*=\s*[\\\"']"+id.replace(/[^a-zA-Z0-9_-]/g,"")+"[\\\"']","i") : null;
-      return !hasAria&&!hasTitle&&!(labelPattern&&labelPattern.test(html));
+      const controlIndex=match.index ?? -1;
+      const hasWrappingLabel=controlIndex >= 0 && wrappingLabelRanges.some((range) => controlIndex > range.start && controlIndex < range.end);
+      return !hasAria&&!hasTitle&&!hasWrappingLabel&&!(labelPattern&&labelPattern.test(html));
     }).length;
     const buttonTags=[...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/gi)];
     const emptyButtons=buttonTags.filter((match)=>!stripHtml(match[2]||"")&&!/\baria-label(?:ledby)?\s*=\s*["'][^"']+["']/i.test(match[1]||"")&&!/\btitle\s*=\s*["'][^"']+["']/i.test(match[1]||"")).length;
