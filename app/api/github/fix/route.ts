@@ -436,8 +436,12 @@ export async function POST(request:Request){
     const trustedStatus=String(trustedCheck?.issue_status||trustedCheck?.status||"").toUpperCase();
     const trustedConfidence=String(trustedCheck?.confidence||"").toLowerCase();
     const trustedEvidence=trustedCheck?.evidence;
+    const trustedFixCategory=String(trustedCheck?.fix_category||fixPolicy.category).toUpperCase();
     const hasTrustedEvidence=!!trustedEvidence && trustedEvidence.found !== null && trustedEvidence.found !== undefined && trustedEvidence.found !== "";
-    if(!["FAIL","WARNING"].includes(trustedStatus) || trustedConfidence==="low" || !hasTrustedEvidence){
+    // Re-check the policy stored with the trusted scan as well as today's policy.
+    // This prevents a stale/tampered request from promoting a manual-only finding
+    // into an automatic code fix.
+    if(trustedFixCategory==="C" || !["FAIL","WARNING"].includes(trustedStatus) || trustedConfidence==="low" || !hasTrustedEvidence){
       return NextResponse.json({error:msg(
         "Deze bevinding is niet voldoende bewezen voor een automatische GitHub-codefix. Controleer de scan eerst handmatig.",
         "This finding is not sufficiently proven for an automatic GitHub code fix. Review the scan first.",
@@ -445,7 +449,7 @@ export async function POST(request:Request){
         "Ce problème n’est pas suffisamment confirmé pour une correction GitHub automatique. Vérifiez d’abord l’analyse.",
         "Questo problema non è sufficientemente verificato per una correzione GitHub automatica. Controlla prima la scansione.",
         "Este problema no está suficientemente confirmado para una corrección automática de GitHub. Revisa primero el análisis."
-      ),issue_id:issueId,status:trustedStatus||"UNABLE_TO_CONFIRM",confidence:trustedConfidence||"low"},{status:422});
+      ),issue_id:issueId,status:trustedStatus||"UNABLE_TO_CONFIRM",confidence:trustedConfidence||"low",fix_category:trustedFixCategory||"C"},{status:422});
     }
     issue=String(trustedCheck.title||issueId)+": "+String(trustedCheck.fix||trustedCheck.message||"");
     context=[trustedCheck.message,trustedCheck.fix,trustedCheck?.evidence?.details].filter(Boolean).map(String).join("\n").slice(0,6000);
