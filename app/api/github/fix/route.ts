@@ -494,19 +494,12 @@ export async function POST(request:Request){
     if (recurringIssue?.recognized && recurringIssue.previousEvidence) {
       const previousStatus=String(recurringIssue.previousEvidence?.status||"").toUpperCase();
       const previousConfidence=String(recurringIssue.previousEvidence?.confidence||"").toLowerCase();
-      const previousDetails=String(recurringIssue.previousEvidence?.details||"").trim().toLowerCase();
-      const currentDetails=String(trustedEvidence?.details||"").trim().toLowerCase();
-      // Memory is allowed to accelerate diagnosis only when it came from a
-      // genuinely verified repair and today's scan independently proves the
-      // same rule. If the evidence shape changed materially, treat it as a new
-      // situation instead of replaying assumptions from the old repair.
+      const previousDetails=String(recurringIssue.previousEvidence?.details||"").trim();
+      // A verified PASS and a later FAIL/WARNING naturally have different
+      // wording. Safety comes from exact trusted rule + page scope + current
+      // evidence; repository and target file identity are checked below.
       const priorWasVerified=previousStatus==="PASS" && previousConfidence==="high" && previousDetails.length>0;
-      const evidenceStillComparable=currentDetails.length>0 && (
-        previousDetails===currentDetails ||
-        previousDetails.includes(currentDetails) ||
-        currentDetails.includes(previousDetails)
-      );
-      if(!priorWasVerified || !evidenceStillComparable){
+      if(!priorWasVerified){
         return NextResponse.json({error:msg(
           "RankFix herkent dit probleem uit de fixgeschiedenis, maar het huidige bewijs wijkt af van de eerder bewezen situatie. Daarom wordt de oude oplossing niet automatisch hergebruikt.",
           "RankFix recognizes this issue from fix history, but the current evidence differs from the previously verified situation. The old repair will not be reused automatically.",
