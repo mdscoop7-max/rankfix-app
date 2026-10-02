@@ -1810,7 +1810,9 @@ export async function POST(request: Request) {
     seoChecks.push(!isProductPage
       ? check("not_applicable","variant_url","seo","Productvariant-URL","Geen duidelijke productpagina-signalen gevonden; variant-URL-controle is niet van toepassing.","Gebruik deze controle op echte productpagina's.",0,5)
       : ecommerceVariantUrlSignal
-        ? check("warning","variant_url","seo","Productvariant-URL","Deze product-URL bevat een variant-/SKU-parameter. Dat kan duplicate URL's en indexatieproblemen veroorzaken.","Gebruik bij varianten een duidelijke canonical, stabiele URL-strategie en indexeer alleen pagina's die zelfstandig waarde hebben.",2,5)
+        ? canonicalUrl && !canonicalIsCrossDomain && canonicalDropsQuery
+          ? check("pass","variant_url","seo","Productvariant-URL","Deze product-URL bevat een variant-/SKU-parameter en de canonical consolideert de variant aantoonbaar naar dezelfde product-URL zonder queryparameters.","Behoud deze consistente variant- en canonicalstrategie en controleer afzonderlijk varianten die zelfstandig zoekwaarde hebben.",5,5)
+          : check("unable_to_confirm","variant_url","seo","Productvariant-URL","Deze product-URL bevat een variant-/SKU-parameter, maar een parameter alleen bewijst geen duplicate-content- of indexatieprobleem.","Controleer canonical, indexeerbaarheid en variantgedrag samen voordat je de URL-strategie wijzigt.",0,5)
         : hasVariantSelectorSignal
           ? check("unable_to_confirm","variant_url","seo","Productvariant-URL","Er zijn variantkeuzes op de productpagina gevonden, maar uit de beschikbare pagina-evidence kan RankFix niet bevestigen hoe elke variant-URL en canonical zich gedraagt.","Controleer variant-URL's runtime en indexeer alleen varianten die zelfstandig zoekwaarde hebben.",0,5)
           : check("not_applicable","variant_url","seo","Productvariant-URL","Geen variantparameter of duidelijke variantselector gevonden; er is geen variantprobleem aantoonbaar.","Controleer opnieuw wanneer dit product varianten krijgt.",0,5));
