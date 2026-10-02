@@ -2186,7 +2186,8 @@ export async function POST(request: Request) {
         technologyProfile.evidence = [...technologyProfile.evidence, `Landingpage-signalen ${landingSignalCount}/4`].slice(0, 8);
       }
     }
-    // sectorProfile was determined before scoring so applicability and scoring stay aligned.\n    const renderingNotes: Record<string,string> = {
+    // sectorProfile was determined before scoring so applicability and scoring stay aligned.
+    const renderingNotes: Record<string,string> = {
       nl:"RankFix beoordeelde de HTTP HTML-response; client-side JavaScript is in deze scan niet uitgevoerd.",
       en:"RankFix evaluated the HTTP HTML response; client-side JavaScript was not executed in this scan.",
       de:"RankFix hat die HTTP-HTML-Antwort ausgewertet; clientseitiges JavaScript wurde in diesem Scan nicht ausgeführt.",
