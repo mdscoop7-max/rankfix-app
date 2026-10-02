@@ -237,8 +237,24 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
   else if (nuxtSignals) { framework = "Nuxt"; strongest = Math.max(strongest, nuxtSignals); }
 
   const isCommerce = Boolean(commercePlatform || commerceSignal);
-  if (!commercePlatform && isCommerce) commercePlatform = "Custom / niet bevestigd";
-  const confidence = strongest >= 3 ? 97 : strongest === 2 ? 90 : strongest === 1 ? 72 : isCommerce ? 55 : 40;
+  if (!commercePlatform && isCommerce) {
+    commercePlatform = "Custom / niet bevestigd";
+    evidence.push("Commerce-signalen bevestigd; platform niet eenduidig");
+  }
+
+  // Confidence describes the labels we can actually show, not every incidental
+  // technology marker seen in the source. A framework alone must not make an
+  // unknown CMS/platform look highly confirmed.
+  const confirmedLabelStrength = Math.max(
+    commercePlatform && commercePlatform !== "Custom / niet bevestigd" ? strongest : 0,
+    cms ? strongest : 0,
+    framework ? Math.min(strongest, 2) : 0,
+  );
+  const confidence = confirmedLabelStrength >= 3 ? 97
+    : confirmedLabelStrength === 2 ? 90
+    : confirmedLabelStrength === 1 ? 72
+    : isCommerce ? 55
+    : 40;
   const confidenceLabel = confidence >= 90 ? "high" : confidence >= 70 ? "medium" : "low";
 
   return {
@@ -256,6 +272,11 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
       if (label.startsWith("Shopify") && commercePlatform !== "Shopify") return false;
       if (label.startsWith("PrestaShop") && commercePlatform !== "PrestaShop") return false;
       if (label.startsWith("BigCommerce") && commercePlatform !== "BigCommerce") return false;
+      if (label.startsWith("Wix") && cms !== "Wix") return false;
+      if (label.startsWith("Squarespace") && cms !== "Squarespace") return false;
+      if (label.startsWith("Webflow") && cms !== "Webflow") return false;
+      if (label.startsWith("Next.js") && framework !== "Next.js") return false;
+      if (label.startsWith("Nuxt") && framework !== "Nuxt") return false;
       return true;
     }).slice(0, 8),
   };
