@@ -661,7 +661,13 @@ export async function POST(request: Request) {
     // with a webshop.
     const productHrefCount = (html.match(/href\s*=\s*["'][^"']*(?:\/product(?:en|s)?\/|\/p\/|\/shop\/[^"'#?]+|\/store\/[^"'#?]+)[^"']*["']/gi) || []).length;
     const repeatedProductLinkSignal = productHrefCount >= 2 && visiblePriceCount >= 2 && commerceNavigationSignal;
-    const hasEcommerceSignal = hasConfirmedCommercePlatform || hasProductSignal || hasCategorySignal || repeatedProductLinkSignal || (commerceNavigationSignal && hasStrongCommerceAction && (hasExplicitPriceSignal || visiblePriceCount >= 2)) || (hasCommerceHrefSignal && hasStrongCommerceAction && visiblePriceCount >= 2);
+    // Framework-agnostic storefront evidence: repeated server-rendered product cards carrying
+    // prices plus a real cart form/action is stronger evidence than URL shape alone.
+    // Requiring both independent signals prevents ordinary SaaS pricing cards from becoming shops.
+    const pricedProductCardCount = (html.match(/<(?:article|div)[^>]+(?:data-product-card|class\s*=\s*["'][^"']*product-card[^"']*["'])[^>]*(?:data-price\s*=\s*["'][^"']+["'])?/gi) || []).length;
+    const cartFormSignal = /<form[^>]+(?:action\s*=\s*["'][^"']*(?:cart|winkelwagen|checkout)[^"']*["']|class\s*=\s*["'][^"']*(?:cart|basket)[^"']*["'])/i.test(html);
+    const storefrontMarkupSignal = pricedProductCardCount >= 2 && visiblePriceCount >= 2 && (cartFormSignal || hasStrongCommerceAction) && commerceNavigationSignal;
+    const hasEcommerceSignal = hasConfirmedCommercePlatform || hasProductSignal || hasCategorySignal || repeatedProductLinkSignal || storefrontMarkupSignal || (commerceNavigationSignal && hasStrongCommerceAction && (hasExplicitPriceSignal || visiblePriceCount >= 2)) || (hasCommerceHrefSignal && hasStrongCommerceAction && visiblePriceCount >= 2);
     const requestedLanguages = adsProfile.adLanguages.split(/[,;]/).map((value) => value.trim().toLowerCase()).filter(Boolean).slice(0, 6);
     const requestedCountries = adsProfile.targetCountries.split(/[,;]/).map((value) => value.trim()).filter(Boolean).slice(0, 8);
     const pageLanguage = (requestedLanguages[0] || lang || "").toLowerCase().split("-")[0].trim();
