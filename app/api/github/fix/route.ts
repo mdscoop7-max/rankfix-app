@@ -485,6 +485,22 @@ export async function POST(request:Request){
     }
     const repo=verifiedRepo.fullName;
     effectiveBaseBranch=verifiedRepo.defaultBranch;
+
+    // A previously verified repair is useful context, never permission to replay
+    // old code. For a recognized recurrence, the current repository must still
+    // match the repository in which the proven repair was made. File matching is
+    // checked after RankFix resolves today's target file below.
+    const recurringIssue = trustedCheck?.recurring_issue;
+    if (recurringIssue?.recognized && recurringIssue.previousRepository && String(recurringIssue.previousRepository).toLowerCase() !== repo.toLowerCase()) {
+      return NextResponse.json({error:msg(
+        "Dit probleem kwam eerder voor, maar de huidige repository wijkt af van de repository van de bewezen eerdere fix. RankFix hergebruikt die oplossing daarom niet automatisch.",
+        "This issue occurred before, but the current repository differs from the repository of the previously verified fix. RankFix will not reuse that repair automatically.",
+        "Dieses Problem trat bereits auf, aber das aktuelle Repository unterscheidet sich vom Repository des zuvor bestätigten Fixes. RankFix verwendet diese Lösung daher nicht automatisch.",
+        "Ce problème s’est déjà produit, mais le dépôt actuel diffère de celui du correctif précédemment vérifié. RankFix ne réutilise donc pas automatiquement cette solution.",
+        "Questo problema si è già verificato, ma il repository attuale è diverso da quello della correzione verificata in precedenza. RankFix non riutilizzerà automaticamente quella soluzione.",
+        "Este problema ya ocurrió, pero el repositorio actual es distinto del repositorio de la corrección verificada anteriormente. RankFix no reutilizará esa solución automáticamente."
+      ),code:"RECURRENCE_REPOSITORY_MISMATCH",issue_id:issueId},{status:409});
+    }
     if(scannedHost){
       if(existingMapping && requestedRepo && requestedRepo.toLowerCase()!==repo.toLowerCase()){
         return NextResponse.json({error:msg("Deze website is al aan een andere GitHub-repository gekoppeld. RankFix gebruikt de opgeslagen websitekoppeling en wijzigt die niet automatisch.","This website is already linked to another GitHub repository. RankFix uses the saved website mapping and does not change it automatically.","Diese Website ist bereits mit einem anderen GitHub-Repository verknüpft. RankFix verwendet die gespeicherte Zuordnung und ändert sie nicht automatisch.","Ce site est déjà associé à un autre dépôt GitHub. RankFix utilise l’association enregistrée et ne la modifie pas automatiquement.","Questo sito è già collegato a un altro repository GitHub. RankFix usa il collegamento salvato e non lo modifica automaticamente.","Este sitio ya está vinculado a otro repositorio de GitHub. RankFix usa la vinculación guardada y no la cambia automáticamente."),website:scannedHost,repository:repo},{status:409});
@@ -528,6 +544,16 @@ export async function POST(request:Request){
       }catch(error){
         const raw=error instanceof Error?error.message:"GitHub fix mislukt.";
         throw new Error(localizeFixError(raw,language));
+      }
+      if (recurringIssue?.recognized && recurringIssue.previousFilePath && String(recurringIssue.previousFilePath) !== path) {
+        return NextResponse.json({error:msg(
+          "RankFix herkent dit terugkerende probleem, maar het huidige doelbestand is veranderd sinds de bewezen eerdere fix. Maak eerst een nieuwe veilige beoordeling van het bestand.",
+          "RankFix recognizes this recurring issue, but the current target file changed since the previously verified fix. Review the current file safely before reusing the repair.",
+          "RankFix erkennt dieses wiederkehrende Problem, aber die aktuelle Zieldatei hat sich seit dem zuvor bestätigten Fix geändert. Prüfe die aktuelle Datei zuerst erneut.",
+          "RankFix reconnaît ce problème récurrent, mais le fichier cible actuel a changé depuis le correctif précédemment vérifié. Vérifiez d’abord le fichier actuel.",
+          "RankFix riconosce questo problema ricorrente, ma il file di destinazione attuale è cambiato dalla correzione verificata in precedenza. Controlla prima il file attuale.",
+          "RankFix reconoce este problema recurrente, pero el archivo de destino actual cambió desde la corrección verificada anteriormente. Revisa primero el archivo actual."
+        ),code:"RECURRENCE_FILE_MISMATCH",issue_id:issueId,previous_file:recurringIssue.previousFilePath,current_file:path},{status:409});
       }
       file=await githubFetch<{type?:string;content?:string;sha:string}>(token,"/repos/"+repo+"/contents/"+path+"?ref="+encodeURIComponent(effectiveBaseBranch));
       if(file.type!=="file"||typeof file.content!=="string") return NextResponse.json({error:msg("Dit bestand kan niet worden bewerkt.","This file cannot be edited.","Diese Datei kann nicht bearbeitet werden.","Ce fichier ne peut pas être modifié.","Questo file non può essere modificato.","Este archivo no se puede editar.")},{status:400});
