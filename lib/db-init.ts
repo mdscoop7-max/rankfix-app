@@ -317,6 +317,13 @@ export async function ensureDatabase() {
     initializing = (async () => {
       const db = getDb();
       for (const statement of statements) await db.query(statement);
+
+      // Production may still have a legacy check constraint from an older
+      // Fix Engine schema. Reconcile it after all columns exist so preview
+      // proposals use the same lifecycle on upgraded and fresh databases.
+      await db.query("ALTER TABLE fix_proposals DROP CONSTRAINT IF EXISTS fix_proposals_status_check");
+      await db.query("ALTER TABLE fix_proposals ADD CONSTRAINT fix_proposals_status_check CHECK (status IN ('PREVIEW_READY','APPROVED','PUBLISHED','FAILED','EXPIRED'))");
+
       initialized = true;
     })().finally(() => {
       initializing = null;
