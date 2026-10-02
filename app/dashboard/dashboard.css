@@ -252,3 +252,11 @@
 .rf-quick-actions-grid span{width:43px;height:43px;display:grid;place-items:center;border-radius:13px;background:var(--brand-surface);color:var(--brand-light);font-size:21px}.rf-quick-actions-grid b{font-size:12px}
 .rf-websites-featured{margin-top:18px}.rf-fix-summary{display:none}
 @media(max-width:650px){.rf-quick-actions-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.rf-quick-actions-grid a{min-height:92px}.rf-quick-actions-grid span{width:39px;height:39px}.rf-websites-featured{margin-top:16px}}
+
+/* Focused customer overview */
+.rf-dashboard-long-section{display:none}
+.rf-quick-actions-section{margin-top:22px}.rf-quick-actions-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.rf-quick-actions-grid a{min-height:96px;border:1px solid var(--border-subtle);background:var(--bg-card);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;text-align:center}
+.rf-quick-actions-grid a:hover{border-color:var(--brand);transform:translateY(-1px)}.rf-quick-actions-grid span{width:40px;height:40px;border-radius:12px;background:var(--brand-surface);color:var(--brand-light);display:grid;place-items:center;font-size:22px}.rf-quick-actions-grid b{font-size:12px}
+.rf-websites-featured{margin-top:22px}.rf-fix-summary{display:none}
+@media(max-width:650px){.rf-quick-actions-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.rf-quick-actions-grid a{min-height:88px}.rf-websites-featured{margin-top:18px}}
