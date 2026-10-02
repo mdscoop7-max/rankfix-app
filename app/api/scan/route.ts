@@ -876,15 +876,30 @@ export async function POST(request: Request) {
         return value.trim().replace(/\/+$/, "").toLowerCase();
       }
     };
-    const declaredSitemapEvidence = new Set(robotsDeclaredSitemapUrls.map(normalizeSitemapEvidenceUrl));
-    // Prefer explicit declarations, then conservative platform-standard fallbacks.
-    const sitemapCandidates = [...new Set([...robotsDeclaredSitemapUrls, ...htmlDeclaredSitemapUrls, ...commonSitemapUrls])].slice(0, 20);
+    type SitemapCandidate = { url: string; source: "robots" | "html" | "fallback" };
+    const candidateMap = new Map<string, SitemapCandidate>();
+    const addSitemapCandidates = (urls: string[], source: SitemapCandidate["source"]) => {
+      for (const url of urls) {
+        const key = normalizeSitemapEvidenceUrl(url);
+        const existing = candidateMap.get(key);
+        // Preserve the strongest provenance. A robots.txt declaration is direct
+        // evidence and must never be downgraded to a guessed fallback URL.
+        if (!existing || source === "robots" || (source === "html" && existing.source === "fallback")) {
+          candidateMap.set(key, { url, source });
+        }
+      }
+    };
+    addSitemapCandidates(robotsDeclaredSitemapUrls, "robots");
+    addSitemapCandidates(htmlDeclaredSitemapUrls, "html");
+    addSitemapCandidates(commonSitemapUrls, "fallback");
+    const sitemapCandidates = [...candidateMap.values()].slice(0, 20);
     let sitemapFetchFailed = false;
+    let declaredSitemapFetchFailed = false;
     const brokenDeclaredSitemaps: string[] = [];
     const declaredSitemapHttpFailures: Array<{ url: string; status: number }> = [];
     for (const candidate of sitemapCandidates) {
       try {
-        const r = (await safePublicFetch(new URL(candidate), { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/plain,application/xml,text/xml" })).response;
+        const r = (await safePublicFetch(new URL(candidate.url), { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/plain,application/xml,text/xml" })).response;
         sitemapFetchCompleted = true;
         if (r.ok) {
           const contentType = r.headers.get("content-type") || "onbekend";
@@ -893,32 +908,35 @@ export async function POST(request: Request) {
           if (hasSitemapRoot) {
             sitemapFound = true;
             sitemapStatus = "PASS";
-            confirmedSitemapUrl = candidate;
-            break;
-          }
-          sitemapStatus = "FAIL";
-          sitemapDiagnostic = `${candidate} gaf HTTP ${r.status}; content-type: ${contentType}; geen geldige urlset/sitemapindex gevonden.`;
-        } else {
-          const isRobotsDeclaredCandidate =
-            robotsDeclaredSitemapUrls.includes(candidate) ||
-            declaredSitemapEvidence.has(normalizeSitemapEvidenceUrl(candidate));
-          sitemapDiagnostic = `${candidate} gaf HTTP ${r.status}; content-type: ${r.headers.get("content-type") || "onbekend"}.`;
-          if ((r.status === 404 || r.status === 410) && isRobotsDeclaredCandidate) {
-            // A robots.txt declaration is direct site evidence. A later fallback
-            // timeout or guessed sitemap must never erase this proven failure.
+            confirmedSitemapUrl = candidate.url;
+            // Keep scanning when robots.txt already declared a broken sitemap so
+            // the report can mention both the broken declaration and valid fallback.
+            if (declaredSitemapHttpFailures.length === 0) break;
+          } else if (candidate.source === "robots" || candidate.source === "html") {
             sitemapStatus = "FAIL";
-            brokenDeclaredSitemaps.push(candidate);
-            declaredSitemapHttpFailures.push({ url: candidate, status: r.status });
+            sitemapDiagnostic = `${candidate.url} gaf HTTP ${r.status}; content-type: ${contentType}; geen geldige urlset/sitemapindex gevonden.`;
+          }
+        } else {
+          sitemapDiagnostic = `${candidate.url} gaf HTTP ${r.status}; content-type: ${r.headers.get("content-type") || "onbekend"}.`;
+          if ((r.status === 404 || r.status === 410) && candidate.source === "robots") {
+            sitemapStatus = "FAIL";
+            brokenDeclaredSitemaps.push(candidate.url);
+            declaredSitemapHttpFailures.push({ url: candidate.url, status: r.status });
           }
         }
       } catch (error) {
         sitemapFetchFailed = true;
-        sitemapDiagnostic = `${candidate} kon niet worden opgehaald: ${error instanceof Error ? error.message : "fetchfout of timeout"}.`;
+        if (candidate.source === "robots") declaredSitemapFetchFailed = true;
+        sitemapDiagnostic = `${candidate.url} kon niet worden opgehaald: ${error instanceof Error ? error.message : "fetchfout of timeout"}.`;
       }
     }
-    if (!sitemapFound && sitemapFetchCompleted && !sitemapFetchFailed && sitemapStatus === "UNABLE_TO_CONFIRM") sitemapStatus = "FAIL";
-    if (!sitemapFound && sitemapFetchFailed && brokenDeclaredSitemaps.length === 0 && declaredSitemapHttpFailures.length === 0) sitemapStatus = "UNABLE_TO_CONFIRM";
+    // Evidence precedence: a hard 404/410 on a robots-declared sitemap is a
+    // proven warning. Guessed fallback failures never become a site problem.
     if (declaredSitemapHttpFailures.length > 0 || brokenDeclaredSitemaps.length > 0) sitemapStatus = "FAIL";
+    else if (sitemapFound) sitemapStatus = "PASS";
+    else if (declaredSitemapFetchFailed || sitemapFetchFailed) sitemapStatus = "UNABLE_TO_CONFIRM";
+    else if (robotsDeclaredSitemapUrls.length > 0 || htmlDeclaredSitemapUrls.length > 0) sitemapStatus = "FAIL";
+    else sitemapStatus = "UNABLE_TO_CONFIRM";
     const robotsMentionsSitemap = robotsDeclaredSitemapUrls.length > 0;
 
     // Lightweight internal-link audit. Keep this bounded so one page cannot turn a scan
