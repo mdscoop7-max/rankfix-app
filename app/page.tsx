@@ -39,6 +39,7 @@ type ScanResult = {
   rendering?: {mode:string;javascriptExecuted:boolean;note:string};
   pageTypeEvidence?: {type:string;confidence:string;evidence:string[]};
   technologyProfile?: {siteType?:"Webshop"|"Landingpage"|"Website";cms:string|null;commercePlatform:string|null;framework:string|null;isCommerce:boolean;confidence:number;confidenceLabel:"high"|"medium"|"low";evidence:string[]};
+  sectorProfile?: {sector?:string;key?:string;label:string;confidence:"high"|"medium"|"low";confidenceScore?:number;evidence:string[];applicableModules:string[]};
   seo: { score: number; grade: string; checks: Check[] };
   geo: { score: number; grade: string; checks: Check[] };
   metrics: {
@@ -867,6 +868,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
             </div>
             <div className="text-xs text-slate-500">{result.responseTime} ms · HTTP {result.httpStatus}</div>{result.rendering&&<div className="mt-1 text-xs text-slate-500">{renderingCopy.source}: {result.rendering.mode==="raw_html"?renderingCopy.raw:renderingCopy.rendered}{result.rendering.mode==="raw_html"&&<span className="ml-1 cursor-help" title={renderingCopy.tip}>ⓘ</span>}{result.pageTypeEvidence?` · ${result.pageTypeEvidence.type} (${result.pageTypeEvidence.confidence})`:""}</div>}
             <WebsiteProfile profile={result.technologyProfile} />
+            {result.sectorProfile&&<div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500"><span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-700">Sector: {result.sectorProfile.label}</span><span>Zekerheid {result.sectorProfile.confidenceScore??(result.sectorProfile.confidence==="high"?90:result.sectorProfile.confidence==="medium"?70:50)}%</span></div>}
           </div>
 
           <div className="mb-6 rounded-[28px] border border-slate-200 bg-gradient-to-br from-white/[0.055] to-emerald-400/[0.025] p-5 shadow-2xl shadow-black/10 sm:p-6">
