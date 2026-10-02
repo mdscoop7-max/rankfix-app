@@ -10,7 +10,7 @@ import type { Locale } from "@/lib/locales";
 import "../../dashboard.css";
 import "./audit.css";
 
-type Check = { key?: string; category?: string; title: string; status: string; severity?: string; message: string; fix?: string; fix_status?: string; issue_id?: string; rule_id?: string; points?:number; maxPoints?:number; confidence?:string; evidence?: { details?: string; found?: string | number | boolean | null } };
+type Check = { key?: string; category?: string; title: string; status: string; severity?: string; message: string; fix?: string; fix_status?: string; fix_category?: "A"|"B"|"C"; issue_id?: string; rule_id?: string; points?:number; maxPoints?:number; confidence?:string; evidence?: { details?: string; found?: string | number | boolean | null } };
 type FixFlowItem = { issue_id:string; status:string; pr_number?:number|null; pr_url?:string|null; branch?:string|null; merged_at?:string|null; verified_at?:string|null; verification_scan_id?:string|null };
 type ProductOffer = { price?: unknown; currency?: string | null; availability?: string | null };
 type ProductEvidence = { name?: string | null; image?: string | null; sku?: string | null; offers?: ProductOffer[] };
@@ -26,7 +26,9 @@ function fixHref(check:Check,scan:Scan){
   const confidence=String(check.confidence||"").toLowerCase();
   const found=check.evidence?.found;
   const hasEvidence=found!==null&&found!==undefined&&found!=="";
-  if(!issueId||!FIXABLE.has(issueId)||!["fail","warning"].includes(status)||confidence==="low"||!hasEvidence) return "";
+  // The scanner is the source of truth for fix safety. Category C means
+  // manual review only; low-confidence or unproven findings never get a code-fix button.
+  if(!issueId||check.fix_category==="C"||!FIXABLE.has(issueId)||!["fail","warning"].includes(status)||confidence==="low"||!hasEvidence) return "";
   const q=new URLSearchParams({scan_id:String(idForFix(scan)),issue_id:issueId});
   return "/dashboard/github?"+q.toString();
 }
