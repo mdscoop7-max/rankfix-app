@@ -16,7 +16,7 @@ export const termsContent = {
       "De toepasselijkheid van eventuele algemene of inkoopvoorwaarden van de gebruiker wordt uitdrukkelijk van de hand gewezen."
     ] },
     { heading: "Artikel 3. Totstandkoming van de Dienstverlening", items: [
-      "Een overeenkomst komt tot stand op het moment dat de gebruiker zich succesvol registreert op het platform, een gratis audit initieert of een betaald abonnement respectievelijk een creditbundel aanschaft via de online checkout (bijv. Stripe).",
+      "Een overeenkomst komt tot stand op het moment dat de gebruiker zich succesvol registreert op het platform, een gratis audit initieert of een betaald abonnement afsluit via de online checkout.",
       "RankFix AI spant zich in om de diensten naar beste inzicht en vermogen te leveren (inspanningsverbintenis). Het platform garandeert nimmer specifieke posities in zoekmachineresultaten (zoals Google), een toename in webverkeer, conversie, omzet of automatische opname door AI-zoeksystemen (zoals ChatGPT, Perplexity of Google AI Overviews) binnen de verschillende EU-markten."
     ] },
     { heading: "Artikel 4. Uitvoering van Scans en Technische Beperkingen", items: [
@@ -36,7 +36,7 @@ export const termsContent = {
     ] },
     { heading: "Artikel 7. Prijzen, Betaling, Abonnementen en EU-Consumentenrecht", items: [
       "Alle vermelde prijzen worden getoond conform de geldende EU-wetgeving voor e-commerce. Voor zakelijke klanten (B2B) binnen de EU kan de btw worden verlegd via een geldig btw-nummer (VAT-check). Voor consumenten (B2C) wordt de wettelijke btw van het land van de afnemer berekend.",
-      "Betaalde abonnementen en creditbundels dienen vooraf te worden voldaan via de aangeboden beveiligde betaalmethoden.",
+      "Betaalde abonnementen dienen te worden voldaan via de aangeboden beveiligde betaalmethoden.",
       "Voor EU-consumenten (B2C): Bij de aankoop van digitale diensten geldt in de regel een wettelijk herroepingsrecht van 14 dagen. Een uitzondering kan alleen gelden als aan de toepasselijke wettelijke voorwaarden is voldaan, waaronder waar vereist voorafgaande uitdrukkelijke toestemming, erkenning van het verlies van het herroepingsrecht en bevestiging daarvan. Het enkele starten met een dienst doet het herroepingsrecht niet automatisch vervallen.",
       "Informatie omtrent automatische verlengingen, facturatiecycli, opzegtermijnen en eventuele restitutieregels wordt helder gecommuniceerd tijdens het bestelproces."
     ] },
@@ -49,7 +49,7 @@ export const termsContent = {
       "RankFix AI is gerechtigd om het platform (of onderdelen daarvan) tijdelijk buiten gebruik te stellen ten behoeve van periodiek onderhoud, serverupdates, beveiligingsmaatregelen of noodzakelijke technische wijzigingen, zonder dat dit recht geeft op schadevergoeding of restitutie."
     ] },
     { heading: "Artikel 10. Beperking van Aansprakelijkheid", items: [
-      "Voor zover dwingend recht binnen de EU dit toestaat, is de totale aansprakelijkheid van RankFix AI voor directe schade, voortvloeiend uit of verband houdend met een toerekenbare tekortkoming in de nakoming van de overeenkomst, strikt beperkt tot het bedrag dat de gebruiker in de daaraan voorafgaande drie (3) maanden daadwerkelijk aan abonnementsgelden of credits aan RankFix AI heeft voldaan.",
+      "Voor zover dwingend recht binnen de EU dit toestaat, is de totale aansprakelijkheid van RankFix AI voor directe schade, voortvloeiend uit of verband houdend met een toerekenbare tekortkoming in de nakoming van de overeenkomst, strikt beperkt tot het bedrag dat de gebruiker in de daaraan voorafgaande drie (3) maanden daadwerkelijk aan abonnementsgelden aan RankFix AI heeft voldaan.",
       "RankFix AI is nimmer aansprakelijk voor indirecte schade, gevolgschade, gederfde winst, gemiste besparingen, bedrijfsstagnatie, reputatieschade, verlies van data of schade ontstaan door het klakkeloos toepassen van auditresultaten of AI-output.",
       "Niets in deze algemene voorwaarden sluit de aansprakelijkheid uit voor opzet of bewuste roekeloosheid, dan wel voor zover dwingendrechtelijke Europese of nationale consumentenwetgeving dit verbiedt."
     ] },
