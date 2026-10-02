@@ -775,6 +775,7 @@ export async function POST(request: Request) {
     let sitemapFetchCompleted = false;
     let robotsDeclaredSitemapUrls: string[] = [];
     let confirmedSitemapUrl: string | null = null;
+    let sitemapDiagnostic = "";
     try {
       const r = (await safePublicFetch(robotsUrl, { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/plain,application/xml,text/xml" })).response;
       if (r.ok) {
@@ -845,6 +846,7 @@ export async function POST(request: Request) {
         const r = (await safePublicFetch(new URL(candidate), { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/plain,application/xml,text/xml" })).response;
         sitemapFetchCompleted = true;
         if (r.ok) {
+          const contentType = r.headers.get("content-type") || "onbekend";
           const sitemapBody = await readResponseTextLimited(r, 2_000_000);
           const hasSitemapRoot = /<(?:[a-z0-9_-]+:)?(?:urlset|sitemapindex)\b/i.test(sitemapBody);
           if (hasSitemapRoot) {
@@ -854,9 +856,15 @@ export async function POST(request: Request) {
             break;
           }
           sitemapStatus = "FAIL";
+          sitemapDiagnostic = `${candidate} gaf HTTP ${r.status}; content-type: ${contentType}; geen geldige urlset/sitemapindex gevonden.`;
+        } else {
+          sitemapStatus = r.status === 404 ? "FAIL" : sitemapStatus;
+          sitemapDiagnostic = `${candidate} gaf HTTP ${r.status}; content-type: ${r.headers.get("content-type") || "onbekend"}.`;
         }
-        if (r.status === 404) sitemapStatus = "FAIL";
-      } catch { sitemapFetchFailed = true; }
+      } catch (error) {
+        sitemapFetchFailed = true;
+        sitemapDiagnostic = `${candidate} kon niet worden opgehaald: ${error instanceof Error ? error.message : "fetchfout of timeout"}.`;
+      }
     }
     if (!sitemapFound && sitemapFetchCompleted && !sitemapFetchFailed && sitemapStatus === "UNABLE_TO_CONFIRM") sitemapStatus = "FAIL";
     if (!sitemapFound && sitemapFetchFailed) sitemapStatus = "UNABLE_TO_CONFIRM";
@@ -1209,8 +1217,8 @@ export async function POST(request: Request) {
     seoChecks.push(h1s.length === 1
       ? check("pass", "h1", "seo", "H1-heading", "Er is precies één H1-heading gevonden.", "Behoud één duidelijke primaire H1.", 8, 8)
       : h1s.length === 0
-        ? check("fail", "h1", "seo", "H1-heading", "Er is geen H1-heading gevonden.", "Voeg één H1 toe die het hoofdonderwerp van de pagina beschrijft.", 0, 8)
-        : check("warning", "h1", "seo", "H1-heading", `Er zijn ${h1s.length} H1-headings gevonden.`, "Maak de hoofdstructuur duidelijk met één primaire H1.", 4, 8)
+        ? check("warning", "h1", "seo", "H1-heading", "Er is geen H1-heading gevonden. Dit is een structuur-/toegankelijkheidsaanbeveling en geen op zichzelf bewezen rankingfout.", "Voeg een duidelijke primaire H1 toe wanneer dat past bij de pagina-inhoud.", 6, 8)
+        : check("pass", "h1", "seo", "H1-heading", `Er zijn ${h1s.length} H1-headings gevonden. Meerdere H1-elementen zijn technisch toegestaan; RankFix behandelt dit daarom als structuuradvies en niet als bewezen SEO-probleem.`, "Overweeg één duidelijke primaire H1 en gebruik H2/H3 voor secties wanneer dat de documentstructuur begrijpelijker maakt.", 8, 8)
     );
     seoChecks.push(headings.length && headings.some((h) => h.level === 2)
       ? check("pass", "headings", "seo", "Heading-structuur", h1s.length > 0 ? `Er zijn ${headings.length} H2–H6 headings gevonden naast de H1.` : `Er zijn ${headings.length} H2–H6 headings gevonden. Er is geen H1 gevonden; dit wordt afzonderlijk als verbeterpunt beoordeeld.`, "Gebruik headings om onderwerpen en subonderwerpen logisch te groeperen.", 7, 7)
@@ -1302,9 +1310,14 @@ export async function POST(request: Request) {
         ? check("warning", "response", "seo", "Server response", `De eerste response duurde ongeveer ${responseTime} ms.`, "Onderzoek hosting, caching, database en server-side rendering.", 3, 5)
         : check("fail", "response", "seo", "Server response", `De eerste response duurde ongeveer ${responseTime} ms.`, "Verbeter hosting, caching en server response voordat je verder optimaliseert.", 0, 5)
     );
-    seoChecks.push(ogTitle && ogDescription && ogImage
+    const missingOpenGraphFields = [
+      !ogTitle ? "og:title" : null,
+      !ogDescription ? "og:description" : null,
+      !ogImage ? "og:image" : null,
+    ].filter(Boolean) as string[];
+    seoChecks.push(missingOpenGraphFields.length === 0
       ? check("pass", "social", "seo", "Social metadata", "Open Graph title, description en image zijn aanwezig.", "Controleer social previews voor belangrijke pagina's.", 4, 4)
-      : check("warning", "social", "seo", "Social metadata", "Niet alle belangrijke Open Graph velden zijn gevonden.", "Voeg og:title, og:description en og:image toe.", 2, 4)
+      : check("warning", "social", "seo", "Social metadata", `Open Graph is onvolledig. Ontbrekend: ${missingOpenGraphFields.join(", ")}.`, `Voeg alleen de ontbrekende Open Graph-velden toe: ${missingOpenGraphFields.join(", ")}.`, 2, 4)
     );
     seoChecks.push(robotsStatus === "PASS"
       ? robotsPathBlocked
@@ -1317,8 +1330,8 @@ export async function POST(request: Request) {
     seoChecks.push(sitemapFound
       ? check("pass", "sitemap", "seo", "Sitemap-signaal", `Een bereikbare XML sitemap is gevonden${confirmedSitemapUrl ? `: ${confirmedSitemapUrl}` : "."}`, "Controleer of de sitemap alleen canonieke, indexeerbare URL's bevat.", 4, 4)
       : sitemapStatus === "FAIL"
-        ? check("warning", "sitemap", "seo", "Sitemap-signaal", robotsMentionsSitemap ? "robots.txt verwijst naar een sitemap, maar RankFix kon geen geldige bereikbare XML sitemap bevestigen." : "Geen geldige bereikbare XML sitemap gevonden.", "Controleer de sitemap-URL, HTTP-status en XML content-type.", 1, 4)
-        : check("unable_to_confirm", "sitemap", "seo", "Sitemap-signaal", robotsMentionsSitemap ? "robots.txt bevat een sitemapverwijzing, maar RankFix kon de sitemap tijdens deze scan niet betrouwbaar ophalen." : "RankFix kon tijdens deze scan niet betrouwbaar bevestigen of een sitemap beschikbaar is.", "Controleer de sitemap opnieuw wanneer de server bereikbaar is.", 0, 4)
+        ? check("warning", "sitemap", "seo", "Sitemap-signaal", robotsMentionsSitemap ? `robots.txt verwijst naar een sitemap, maar RankFix kon geen geldige bereikbare XML sitemap bevestigen.${sitemapDiagnostic ? " Technisch: " + sitemapDiagnostic : ""}` : `Geen geldige bereikbare XML sitemap gevonden.${sitemapDiagnostic ? " Technisch: " + sitemapDiagnostic : ""}`, "Controleer de sitemap-URL, HTTP-status en XML content-type.", 1, 4)
+        : check("unable_to_confirm", "sitemap", "seo", "Sitemap-signaal", robotsMentionsSitemap ? `robots.txt bevat een sitemapverwijzing, maar RankFix kon de sitemap tijdens deze scan niet betrouwbaar ophalen.${sitemapDiagnostic ? " Technisch: " + sitemapDiagnostic : ""}` : `RankFix kon tijdens deze scan niet betrouwbaar bevestigen of een sitemap beschikbaar is.${sitemapDiagnostic ? " Technisch: " + sitemapDiagnostic : ""}`, "Controleer de sitemap opnieuw wanneer de server bereikbaar is.", 0, 4)
     );
 
     geoChecks.push(
