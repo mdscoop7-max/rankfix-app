@@ -222,6 +222,8 @@ const statements = [
     UNIQUE(user_id, website_host, rule_id)
   )`,
   `CREATE INDEX IF NOT EXISTS fix_memory_lookup_idx ON fix_memory(user_id, website_host, rule_id, last_confirmed_at DESC)`,
+  `ALTER TABLE fix_memory ADD COLUMN IF NOT EXISTS recurrence_open BOOLEAN NOT NULL DEFAULT FALSE`,
+  `ALTER TABLE fix_memory ADD COLUMN IF NOT EXISTS last_recurred_at TIMESTAMPTZ`,
   `CREATE TABLE IF NOT EXISTS website_monitors (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
