@@ -2447,7 +2447,11 @@ export async function POST(request: Request) {
             const hasLiveEvidence = !!liveEvidence && liveEvidence.found !== null && liveEvidence.found !== undefined && liveEvidence.found !== "";
             const pendingFix=pendingFixes.get(issueId);
             if(!pendingFix || (pendingFix.status!=="AWAITING_VERIFICATION" && pendingFix.status!=="STILL_PRESENT")) continue;
-            const verified=liveStatus==="PASS" && liveConfidence!=="low" && hasLiveEvidence;
+            // A merged PR is not proof that production changed. Verification must
+            // come from a fresh live scan with positive evidence for the exact rule.
+            // Medium confidence may be useful for diagnosis, but is not strong
+            // enough to permanently mark an automated code fix as resolved.
+            const verified=liveStatus==="PASS" && liveConfidence==="high" && hasLiveEvidence;
             const nextStatus=verified?"VERIFIED_RESOLVED":"STILL_PRESENT";
             const confirmed = await getDb().query(
               "UPDATE pending_fixes SET status=$4, verified_at=CASE WHEN $4='VERIFIED_RESOLVED' THEN NOW() ELSE verified_at END, verification_scan_id=$5, updated_at=NOW() WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 AND status IN ('AWAITING_VERIFICATION','STILL_PRESENT') AND expires_at>NOW() RETURNING id",
@@ -2459,7 +2463,7 @@ export async function POST(request: Request) {
             if(!verified) continue;
             await getDb().query(
               "INSERT INTO website_health_events (user_id,website_host,scanned_url,scan_id,event_type,rule_id,previous_status,current_status,severity,details) VALUES ($1,$2,$3,$4,'FIX_CONFIRMED',$5,'AWAITING_VERIFICATION','PASS',$6,$7)",
-              [user.id, websiteHost, finalUrl.toString(), savedScanId, issueId, item.severity || null, JSON.stringify({title:item.title,message:item.message,verification:"live_scan"})]
+              [user.id, websiteHost, finalUrl.toString(), savedScanId, issueId, item.severity || null, JSON.stringify({title:item.title,message:item.message,verification:"fresh_live_scan",confidence:liveConfidence,evidence:liveEvidence?.details||null})]
             );
           }
         }
