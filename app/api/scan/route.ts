@@ -2288,7 +2288,6 @@ export async function POST(request: Request) {
     // without changing the score of the page the customer explicitly scanned.
     type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "other"; evidence: string[] };
     type MultiPageAudit = MultiPageCandidate & { status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
-    const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
