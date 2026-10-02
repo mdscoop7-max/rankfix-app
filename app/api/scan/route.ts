@@ -1457,6 +1457,9 @@ export async function POST(request: Request) {
     const descriptionQualityIssue = Boolean(description && descriptionWords.length >= 8 && descriptionUniqueWordRatio < 0.5);
 
 
+    // If rendering failed on a JS-driven page, raw HTML absence is not proof of absence.
+    const metadataMayBeClientRendered = javascriptCandidate && !javascriptExecuted;
+
     seoChecks.push(
       !title
         ? metadataMayBeClientRendered
@@ -1514,9 +1517,6 @@ export async function POST(request: Request) {
     // www/apex redirects are normally the same site and must not become a cross-domain failure.
     const canonicalIsCrossDomain = Boolean(canonicalUrl && normalizeHost(canonicalUrl.hostname) !== normalizeHost(finalUrl.hostname));
     const canonicalDropsQuery = Boolean(canonicalUrl && finalUrl.search && !canonicalUrl.search);
-    // If JS rendering failed on a JS-driven page, absence in raw HTML is not proof of absence.
-    const metadataMayBeClientRendered = javascriptCandidate && !javascriptExecuted;
-
     seoChecks.push(
       canonicalInvalid
         ? check("fail", "canonical", "seo", "Canonical URL", `Er is een canonical gevonden, maar de waarde is geen geldige URL: "${canonical}".`, "Corrigeer de canonical naar één geldige absolute of relatieve voorkeurs-URL.", 0, 7)
