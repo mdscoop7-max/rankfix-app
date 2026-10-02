@@ -545,6 +545,7 @@ export async function POST(request: Request) {
     ));
     const hasBreadcrumb = schemaSet.has("breadcrumblist");
     const hasFaqSchema = schemaSet.has("faqpage");
+    console.info("RankFix scan phase", { phase: "schema_parsed", page: finalUrl.toString(), schemaObjects: schemaObjects.length });
     const hasProductSchema = schemaSet.has("product");
     const productSchemaObjects = schemaObjects.filter((item) => {
       const types = Array.isArray(item?.["@type"]) ? item["@type"] : [item?.["@type"]];
@@ -586,6 +587,7 @@ export async function POST(request: Request) {
         offers: normalizedOffers,
       };
     });
+    console.info("RankFix scan phase", { phase: "product_evidence_built", page: finalUrl.toString(), hasProductSchema, productSchemaObjects: productSchemaObjects.length, productEvidence: productOfferEvidence.length });
     const offerHasPrice = (offer: { price: unknown }) => {
       if (offer.price === null || offer.price === undefined || offer.price === "") return false;
       const numeric = typeof offer.price === "number" ? offer.price : Number(String(offer.price).replace(",", "."));
@@ -1604,6 +1606,7 @@ export async function POST(request: Request) {
       Boolean(primaryProductEvidence?.offers?.some((offer) => offer.price && offer.currency)),
       Boolean(primaryProductEvidence?.offers?.some((offer) => offer.availability)),
     ].filter(Boolean).length;
+    console.info("RankFix scan phase", { phase: "product_optimizer_ready", page: finalUrl.toString(), isProductPage, productOptimizerSourceCount, hasPrimaryProduct: Boolean(primaryProductEvidence) });
     geoChecks.push(isProductPage
       ? productOptimizerSourceCount >= 3
         ? check("pass", "product_copy_optimizer", "geo", "AI Product Copy & Metadata", `Deze productpagina heeft ${productOptimizerSourceCount} controleerbare bronvelden voor veilige AI-optimalisatie. RankFix kan hiermee een voorstel maken zonder producteigenschappen te verzinnen.`, "Gebruik Product Optimizer voor een preview van productcopy en metadata. Controleer het voorstel vóór publicatie.", 5, 5)
@@ -1958,7 +1961,9 @@ export async function POST(request: Request) {
     };
     // Keep the website profile aligned with the same evidence used by webshop-only audit checks.
     // Generic words such as "checkout", "price" or SaaS pricing must not classify a site as a webshop.
+    console.info("RankFix scan phase", { phase: "checks_built", page: finalUrl.toString(), seoChecks: selectedSeoChecks.length, geoChecks: selectedGeoChecks.length });
     const technologyProfile = detectTechnologyProfile(html, response.headers, hasEcommerceSignal);
+    console.info("RankFix scan phase", { phase: "technology_profile_built", page: finalUrl.toString(), siteType: technologyProfile.siteType, framework: technologyProfile.framework });
     // A homepage is only classified as a landing page when several independent
     // conversion/content signals agree. The root URL alone is never enough.
     if (!technologyProfile.isCommerce && isHomepage) {
@@ -2013,6 +2018,7 @@ export async function POST(request: Request) {
           "SELECT id,result FROM scans WHERE user_id=$1 AND lower(regexp_replace(split_part(split_part(final_url, '://', 2), '/', 1), '^www\\.', ''))=$2 ORDER BY created_at DESC LIMIT 1",
           [user.id, websiteHost]
         );
+        console.info("RankFix scan phase", { phase: "history_write_start", page: finalUrl.toString(), isProductPage, productOptimizerSourceCount });
         const insertedScan = await getDb().query(
           "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id",
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
@@ -2032,6 +2038,7 @@ export async function POST(request: Request) {
           }), CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION]
         );
         savedScanId = insertedScan.rows[0]?.id ? String(insertedScan.rows[0].id) : null;
+        console.info("RankFix scan phase", { phase: "history_write_done", page: finalUrl.toString(), savedScanId: Boolean(savedScanId) });
 
         // Dedicated live verification: a prepared fix is confirmed only when the
         // freshly fetched live page reports the exact same rule as PASS.
@@ -2162,6 +2169,7 @@ export async function POST(request: Request) {
       merchant: "WEBSITE_SIGNALS_ONLY" as const,
     };
 
+    console.info("RankFix scan phase", { phase: "response_ready", page: finalUrl.toString(), isProductPage, productOptimizerSourceCount, savedScanId: Boolean(savedScanId) });
     return NextResponse.json({
       success: true,
       scanId: savedScanId,
@@ -2213,7 +2221,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const technicalCode = error instanceof URIError ? "SCAN_URL_DECODE_ERROR" : error instanceof Error && /timeout|abort/i.test(error.message) ? "SCAN_TIMEOUT" : "SCAN_INTERNAL_ERROR";
-    console.error("RankFix scan failed:", technicalCode, error instanceof Error ? error.message : "unknown error");
+    console.error("RankFix scan failed:", { code: technicalCode, message: error instanceof Error ? error.message : "unknown error", name: error instanceof Error ? error.name : "unknown", stack: error instanceof Error ? error.stack : undefined });
     const fallbackErrors: Record<string,string> = {nl:"De SEO/GEO-scan kon niet worden voltooid. RankFix heeft de technische fout vastgelegd; probeer de pagina opnieuw.",en:"The SEO/GEO scan could not be completed. RankFix recorded the technical error; try the page again.",de:"Der SEO/GEO-Scan konnte nicht abgeschlossen werden. RankFix hat den technischen Fehler erfasst; versuche die Seite erneut.",fr:"L’analyse SEO/GEO n’a pas pu être terminée. RankFix a enregistré l’erreur technique ; réessayez la page.",it:"La scansione SEO/GEO non è stata completata. RankFix ha registrato l’errore tecnico; riprova la pagina.",es:"No se pudo completar el análisis SEO/GEO. RankFix registró el error técnico; vuelve a intentar la página."};
     return NextResponse.json({ error: fallbackErrors[fallbackLanguage] || fallbackErrors.en, code: technicalCode, retryable: true, charged: false }, { status: 500 });
   }
