@@ -143,7 +143,14 @@ function buildDeterministicOgFix(filePath:string,current:string,issue:string,con
     || current.match(/(?:^|[,\{\n]\s*)description\s*:\s*["']([^"']+)["']/im)?.[1]?.trim() || "";
   const title=getContext("OG title")||getContext("Current title")||existingTitle;
   const description=getContext("OG description")||getContext("Current description")||existingDescription;
-  const image=getContext("OG image")||getContext("Existing page image candidate");
+  const rawImage=getContext("OG image")||getContext("Existing page image candidate");
+  const pageUrl=getContext("URL")||getContext("Scan URL");
+  let image=rawImage;
+  // A relative image is still trusted scan evidence. Resolve it against the scanned page
+  // instead of asking AI to invent an image URL.
+  if(rawImage && pageUrl){
+    try { image=new URL(rawImage,pageUrl).toString(); } catch { image=rawImage; }
+  }
   const esc=(v:string)=>v.replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   const socialIncomplete=issueId==="SOCIAL_METADATA_INCOMPLETE";
   const wantsTitle=socialIncomplete||/og[: -]?title|open graph.*title/.test(text);
