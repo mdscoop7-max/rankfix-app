@@ -1256,8 +1256,10 @@ export async function POST(request: Request) {
           return parsed === null ? [] : [parsed];
         })
     )].slice(0, 20);
+    // Broad price evidence is intentionally currency-aware. It remains weaker
+    // than explicit product markup, but should not silently exclude non-EUR shops.
     const broadVisiblePriceCandidates = [...new Set(
-      [...text.matchAll(/(?:€\s*|EUR\s*)(\d{1,6}(?:[.,]\d{2})?)/gi)]
+      [...text.matchAll(/(?:€\s*|£\s*|\$\s*|(?:EUR|GBP|USD)\s*)(\d{1,6}(?:[.,]\d{2})?)/gi)]
         .flatMap((match) => {
           const parsed = parseVisiblePrice(String(match[1]));
           return parsed === null ? [] : [parsed];
@@ -1825,7 +1827,7 @@ export async function POST(request: Request) {
         : hasMatchingVisibleStructuredPrice && visiblePriceEvidenceStrength === "explicit_product_markup"
           ? check("pass","product_price_consistency","seo","Productprijs consistentie","Een expliciet gemarkeerde productprijs komt overeen met de Product/Offer structured-data prijs.","Houd zichtbare productprijs en structured data synchroon bij prijswijzigingen.",6,6)
           : hasMatchingVisibleStructuredPrice
-            ? check("unable_to_confirm","product_price_consistency","seo","Productprijs consistentie","Een eurobedrag in de paginatekst komt overeen met de structured-data prijs, maar RankFix kan niet betrouwbaar bewijzen dat dit bedrag de primaire productprijs is.","Gebruik duidelijke productprijs-markup zodat de zichtbare prijs betrouwbaar aan het product kan worden gekoppeld.",0,6)
+            ? check("unable_to_confirm","product_price_consistency","seo","Productprijs consistentie","Een bedrag met een herkende valuta in de paginatekst komt overeen met de structured-data prijs, maar RankFix kan niet betrouwbaar bewijzen dat dit bedrag de primaire productprijs is.","Gebruik duidelijke productprijs-markup zodat de zichtbare prijs betrouwbaar aan het product kan worden gekoppeld.",0,6)
             : visiblePriceEvidenceStrength === "explicit_product_markup"
               ? check("warning","product_price_consistency","seo","Productprijs consistentie",`Expliciet gemarkeerde productprijswaarden (${visiblePriceCandidates.slice(0,4).join(", ")}) komen niet overeen met structured-data prijzen (${structuredPriceCandidates.slice(0,4).join(", ")}).`,"Synchroniseer de zichtbare productprijs met Product/Offer structured data.",2,6)
               : check("unable_to_confirm","product_price_consistency","seo","Productprijs consistentie","Er zijn eurobedragen en structured-data prijzen gevonden, maar de zichtbare bedragen zijn niet betrouwbaar aan de primaire productprijs te koppelen.","Gebruik expliciete productprijs-markup en houd die gelijk aan Product/Offer structured data.",0,6));
