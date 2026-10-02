@@ -937,6 +937,20 @@ export async function POST(request: Request) {
     else if (declaredSitemapFetchFailed || sitemapFetchFailed) sitemapStatus = "UNABLE_TO_CONFIRM";
     else if (robotsDeclaredSitemapUrls.length > 0 || htmlDeclaredSitemapUrls.length > 0) sitemapStatus = "FAIL";
     else sitemapStatus = "UNABLE_TO_CONFIRM";
+    console.info("RankFix sitemap diagnostic", {
+      page: finalUrl.toString(),
+      robotsDeclaredSitemapUrls,
+      candidates: sitemapCandidates.map((candidate) => ({ url: candidate.url, source: candidate.source })),
+      declaredSitemapHttpFailures,
+      brokenDeclaredSitemaps,
+      sitemapFound,
+      confirmedSitemapUrl,
+      sitemapFetchCompleted,
+      sitemapFetchFailed,
+      declaredSitemapFetchFailed,
+      sitemapStatus,
+      sitemapDiagnostic,
+    });
     const robotsMentionsSitemap = robotsDeclaredSitemapUrls.length > 0;
 
     // Lightweight internal-link audit. Keep this bounded so one page cannot turn a scan
