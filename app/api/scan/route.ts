@@ -213,8 +213,12 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
   if (strongWoo) platformCandidates.push({ name: "WooCommerce", strength: Math.max(2, wooSignals + Math.min(wordpressSignals, 1)) });
   if (strongShopify) platformCandidates.push({ name: "Shopify", strength: shopifySignals });
   if (strongMagento) platformCandidates.push({ name: "Magento / Adobe Commerce", strength: magentoSignals });
-  if (prestashopSignals) platformCandidates.push({ name: "PrestaShop", strength: prestashopSignals });
-  if (bigCommerceSignals) platformCandidates.push({ name: "BigCommerce", strength: bigCommerceSignals });
+  // PrestaShop/BigCommerce names can appear in unrelated text or third-party assets.
+  // Require either multiple independent markers or one platform-specific asset/runtime marker.
+  const strongPrestaShop = prestashopSignals >= 2 || /\/modules\/(?:ps_|blockcart|blockreassurance)/i.test(source);
+  const strongBigCommerce = bigCommerceSignals >= 1 && /(?:cdn\d*\.bigcommerce\.com|stencil-utils)/i.test(source);
+  if (strongPrestaShop) platformCandidates.push({ name: "PrestaShop", strength: Math.max(2, prestashopSignals) });
+  if (strongBigCommerce) platformCandidates.push({ name: "BigCommerce", strength: Math.max(2, bigCommerceSignals) });
 
   platformCandidates.sort((a, b) => b.strength - a.strength);
   if (platformCandidates.length) {
@@ -224,9 +228,11 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
     strongest = Math.max(strongest, top.strength);
     if (top.name === "WooCommerce") cms = "WordPress";
   }
-  if (wixSignals) { cms = "Wix"; strongest = Math.max(strongest, wixSignals); }
-  if (squarespaceSignals) { cms = "Squarespace"; strongest = Math.max(strongest, squarespaceSignals); }
-  if (webflowSignals) { cms = "Webflow"; strongest = Math.max(strongest, webflowSignals); }
+  // Hosted builders are only labelled when their distinctive runtime/assets are present.
+  // This prevents a plain mention of a builder name from becoming a confirmed CMS.
+  if (wixSignals && /(?:wixstatic\.com|wix-code|x-wix-)/i.test(source + "\n" + headerText)) { cms = "Wix"; strongest = Math.max(strongest, 2); }
+  if (squarespaceSignals && /(?:static\d*\.squarespace\.com|squarespace-cdn|squarespace\.com\/universal\/scripts)/i.test(source)) { cms = "Squarespace"; strongest = Math.max(strongest, 2); }
+  if (webflowSignals && /(?:data-wf-page|webflow\.js|website-files\.com)/i.test(source)) { cms = "Webflow"; strongest = Math.max(strongest, 2); }
   if (nextSignals) { framework = "Next.js"; strongest = Math.max(strongest, nextSignals); }
   else if (nuxtSignals) { framework = "Nuxt"; strongest = Math.max(strongest, nuxtSignals); }
 
