@@ -190,12 +190,18 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
   let framework: string | null = null;
   let strongest = 0;
 
-  if (wordpressSignals) { cms = "WordPress"; strongest = Math.max(strongest, wordpressSignals); }
+  // CMS/platform labels require distinctive evidence. Generic commerce strings such
+  // as add-to-cart or checkout/cart may occur in headless/custom storefronts.
+  if (wordpressSignals >= 2 || /generator[^>]+wordpress/i.test(source)) {
+    cms = "WordPress";
+    strongest = Math.max(strongest, wordpressSignals);
+  }
 
   const strongShopify = shopifySignals >= 2;
-  const strongMagento = /(?:mage\/cookies|magento_|x-magento|\/static\/version\d+)/i.test(source) || /x-magento/i.test(headerText);
+  const strongMagento = /(?:mage\/cookies|magento_|\/static\/version\d+)/i.test(source) || /x-magento/i.test(headerText);
   const platformCandidates: Array<{ name: string; strength: number }> = [];
-  if (wooSignals) platformCandidates.push({ name: "WooCommerce", strength: wooSignals + Math.min(wordpressSignals, 1) });
+  const strongWoo = /wp-content\/plugins\/woocommerce/i.test(source) || (wordpressSignals >= 2 && wooSignals >= 2);
+  if (strongWoo) platformCandidates.push({ name: "WooCommerce", strength: Math.max(2, wooSignals + Math.min(wordpressSignals, 1)) });
   if (strongShopify) platformCandidates.push({ name: "Shopify", strength: shopifySignals });
   if (strongMagento) platformCandidates.push({ name: "Magento / Adobe Commerce", strength: magentoSignals });
   if (prestashopSignals) platformCandidates.push({ name: "PrestaShop", strength: prestashopSignals });
@@ -229,9 +235,12 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
     confidence,
     confidenceLabel,
     evidence: [...new Set(evidence)].filter((label) => {
-      if (commercePlatform === "Shopify" && (label.startsWith("Magento") || label.startsWith("WooCommerce"))) return false;
-      if (commercePlatform === "Magento / Adobe Commerce" && (label.startsWith("Shopify") || label.startsWith("WooCommerce"))) return false;
-      if (commercePlatform === "WooCommerce" && (label.startsWith("Shopify") || label.startsWith("Magento"))) return false;
+      if (label.startsWith("WordPress") && cms !== "WordPress") return false;
+      if (label.startsWith("WooCommerce") && commercePlatform !== "WooCommerce") return false;
+      if (label.startsWith("Magento") && commercePlatform !== "Magento / Adobe Commerce") return false;
+      if (label.startsWith("Shopify") && commercePlatform !== "Shopify") return false;
+      if (label.startsWith("PrestaShop") && commercePlatform !== "PrestaShop") return false;
+      if (label.startsWith("BigCommerce") && commercePlatform !== "BigCommerce") return false;
       return true;
     }).slice(0, 8),
   };
