@@ -667,7 +667,8 @@ export async function POST(request: Request) {
     const pricedProductCardCount = (html.match(/<(?:article|div)[^>]+(?:data-product-card|class\s*=\s*["'][^"']*product-card[^"']*["'])[^>]*(?:data-price\s*=\s*["'][^"']+["'])?/gi) || []).length;
     const cartFormSignal = /<form[^>]+(?:action\s*=\s*["'][^"']*(?:cart|winkelwagen|checkout)[^"']*["']|class\s*=\s*["'][^"']*(?:cart|basket)[^"']*["'])/i.test(html);
     const storefrontMarkupSignal = pricedProductCardCount >= 2 && visiblePriceCount >= 2 && (cartFormSignal || hasStrongCommerceAction) && commerceNavigationSignal;
-    const hasEcommerceSignal = hasConfirmedCommercePlatform || hasProductSignal || hasCategorySignal || repeatedProductLinkSignal || storefrontMarkupSignal || (commerceNavigationSignal && hasStrongCommerceAction && (hasExplicitPriceSignal || visiblePriceCount >= 2)) || (hasCommerceHrefSignal && hasStrongCommerceAction && visiblePriceCount >= 2);
+    const homepageStorefrontSignal = isHomepage && hasCommerceHrefSignal && commerceNavigationSignal && visiblePriceCount >= 3;
+    const hasEcommerceSignal = hasConfirmedCommercePlatform || hasProductSignal || hasCategorySignal || repeatedProductLinkSignal || storefrontMarkupSignal || homepageStorefrontSignal || (commerceNavigationSignal && hasStrongCommerceAction && (hasExplicitPriceSignal || visiblePriceCount >= 2)) || (hasCommerceHrefSignal && hasStrongCommerceAction && visiblePriceCount >= 2);
     const requestedLanguages = adsProfile.adLanguages.split(/[,;]/).map((value) => value.trim().toLowerCase()).filter(Boolean).slice(0, 6);
     const requestedCountries = adsProfile.targetCountries.split(/[,;]/).map((value) => value.trim()).filter(Boolean).slice(0, 8);
     const pageLanguage = (requestedLanguages[0] || lang || "").toLowerCase().split("-")[0].trim();
@@ -975,7 +976,7 @@ export async function POST(request: Request) {
     const hasPrivacyLink = links.some((href) => /privacy|privacybeleid|privacy-policy|datenschutz|confidentialite|privacidad/i.test(href));
     const hasCookieLink = links.some((href) => /cookie|cookies|cookiebeleid|cookie-policy/i.test(href));
     const hasTermsLink = links.some((href) => /voorwaarden|terms|conditions|agb|cgv|condiciones|termini/i.test(href));
-    const hasContactLink = links.some((href) => /contact|kontakt|contatti|contacto/i.test(href));
+    const hasContactLink = links.some((href) => /contact|kontakt|contatti|contacto|klantenservice|customer-service|customer_service|support|help(?:desk|center|centre)?/i.test(href));
     const formControls = [...html.matchAll(/<(input|select|textarea)\b([^>]*)>/gi)];
     const wrappingLabelRanges = [...html.matchAll(/<label\b[^>]*>[\s\S]*?<\/label>/gi)]
       .map((match) => ({ start: match.index ?? -1, end: (match.index ?? -1) + match[0].length }));
@@ -1381,7 +1382,7 @@ export async function POST(request: Request) {
           ? check("pass","merchant_product_readiness","seo","Merchant Center productbasis","Product structured data bevat minimaal een productnaam, afbeelding en een aanbod met prijs, valuta en beschikbaarheid.","Houd productdata op de pagina en in eventuele Merchant Center-feeds consistent. RankFix bevestigt hiermee niet dat Google Merchant Center het product heeft goedgekeurd.",6,6)
           : isProductPage
             ? check("warning","merchant_product_readiness","seo","Merchant Center productbasis","Deze productpagina mist aantoonbare complete Product/Offer structured data voor naam, afbeelding, prijs, valuta of beschikbaarheid.","Vul Product/Offer structured data aan en zorg dat zichtbare productgegevens en eventuele feed dezelfde waarden gebruiken.",3,6)
-            : check("unable_to_confirm","merchant_product_readiness","seo","Merchant Center productbasis","De site heeft webshop-signalen, maar deze pagina is niet overtuigend als productpagina herkendend. Merchant-productdata kan hier niet volledig worden beoordeeld.","Scan een echte productpagina om Merchant Center-productbasis te beoordelen.",0,6)
+            : check("unable_to_confirm","merchant_product_readiness","seo","Merchant Center productbasis","De site heeft webshop-signalen, maar deze pagina is niet overtuigend als productpagina herkend. Merchant-productdata kan hier niet volledig worden beoordeeld.","Scan een echte productpagina om Merchant Center-productbasis te beoordelen.",0,6)
     );
     seoChecks.push(
       !hasEcommerceSignal

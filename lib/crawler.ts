@@ -84,7 +84,7 @@ async function fetchSafe(url:URL, timeoutMs=8000){
 function classify(url:string,html:string,jsonTypes:string[]):PageType{
   const p=new URL(url).pathname.toLowerCase();
   const text=stripHtml(html).toLowerCase();
-  if(p==="/"||p==="")return "homepage";
+  if(p==="/"||p===""||/^\/(?:nl|en|de|fr|es|it)(?:[-_](?:nl|be|gb|us|de|fr|es|it))?\/?$/.test(p))return "homepage";
   if(/\/(cart|winkelwagen)\b/.test(p))return "cart";
   if(/\/(checkout|afrekenen)\b/.test(p))return "checkout";
   if(/\/(account|mijn-account|login|inloggen)\b/.test(p))return "account";
