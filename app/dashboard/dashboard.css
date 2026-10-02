@@ -235,3 +235,11 @@
  .rf-section{margin-top:22px}.rf-next-actions a{min-height:62px;align-items:center;padding:13px}.rf-next-actions b{font-size:12px}.rf-next-actions span{max-width:52%;font-size:11px}
  .rf-history-list a{grid-template-columns:minmax(0,1fr) auto}.rf-history-list em{display:none}.rf-site-actions{justify-content:stretch}.rf-site-actions a,.rf-site-actions button{flex:1;text-align:center;min-height:40px}
 }
+
+/* Design 2 structure with RankFix identity */
+.rf-dashboard-title{display:flex;align-items:center;justify-content:space-between;gap:16px}.rf-dashboard-title .rf-primary-link{margin:0}
+.rf-overview-metrics{margin-top:14px}.rf-websites-featured{padding:18px;border:1px solid var(--border-subtle);border-radius:18px;background:#0D1727}
+.rf-websites-featured .rf-site{padding:17px}.rf-site-score{width:48px;height:48px;border:4px solid var(--brand);border-radius:50%;display:grid;place-items:center;font-size:16px!important;margin:0!important}
+.rf-websites-featured .rf-site-actions a,.rf-websites-featured .rf-site-actions button{min-width:84px;text-align:center}
+@media(min-width:900px){.rf-dashboard-status{padding:24px}.rf-overall-meter{width:132px;height:132px}.rf-overall-meter strong{font-size:38px}.rf-status-grid.rf-overview-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}.rf-websites-featured .rf-sites{gap:12px}}
+@media(max-width:650px){.rf-dashboard-title{align-items:stretch;flex-direction:column}.rf-dashboard-title .rf-primary-link{text-align:center}.rf-websites-featured{padding:12px}.rf-websites-featured .rf-site{padding:13px}.rf-site-score{width:44px;height:44px}.rf-websites-featured .rf-site-actions{display:grid;grid-template-columns:44px repeat(3,minmax(0,1fr));align-items:center}.rf-websites-featured .rf-site-actions a,.rf-websites-featured .rf-site-actions button{min-width:0;padding:8px 5px}}
