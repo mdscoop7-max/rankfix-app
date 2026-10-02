@@ -655,7 +655,13 @@ export async function POST(request: Request) {
     // A homepage needs an actual commerce action before webshop-only checks are enabled.
     const hasConfirmedCommercePlatform = /wp-content\/plugins\/woocommerce|wc-ajax|woocommerce-cart|woocommerce-checkout|woocommerce-page|cdn\.shopify\.com|\/cdn\/shop\/|shopify\.theme|shopify-section|shopify-payment-button|mage\/cookies|magento_|x-magento|\/static\/version\d+/i.test(html);
     const hasCommerceHrefSignal = /href\s*=\s*["'][^"']*(?:cart|winkelwagen|checkout|product|producten|shop|store)[^"']*["']/i.test(html);
-    const hasEcommerceSignal = hasConfirmedCommercePlatform || hasProductSignal || hasCategorySignal || (commerceNavigationSignal && hasStrongCommerceAction && (hasExplicitPriceSignal || visiblePriceCount >= 2)) || (hasCommerceHrefSignal && hasStrongCommerceAction && visiblePriceCount >= 2);
+    // Custom storefronts often render product cards server-side without a literal add-to-cart
+    // button on the homepage. Repeated product-detail links + repeated prices + shop/cart
+    // navigation are independent commerce signals and avoid confusing a SaaS pricing table
+    // with a webshop.
+    const productHrefCount = (html.match(/href\s*=\s*["'][^"']*(?:\/product(?:en|s)?\/|\/p\/|\/shop\/[^"'#?]+|\/store\/[^"'#?]+)[^"']*["']/gi) || []).length;
+    const repeatedProductLinkSignal = productHrefCount >= 2 && visiblePriceCount >= 2 && commerceNavigationSignal;
+    const hasEcommerceSignal = hasConfirmedCommercePlatform || hasProductSignal || hasCategorySignal || repeatedProductLinkSignal || (commerceNavigationSignal && hasStrongCommerceAction && (hasExplicitPriceSignal || visiblePriceCount >= 2)) || (hasCommerceHrefSignal && hasStrongCommerceAction && visiblePriceCount >= 2);
     const requestedLanguages = adsProfile.adLanguages.split(/[,;]/).map((value) => value.trim().toLowerCase()).filter(Boolean).slice(0, 6);
     const requestedCountries = adsProfile.targetCountries.split(/[,;]/).map((value) => value.trim()).filter(Boolean).slice(0, 8);
     const pageLanguage = (requestedLanguages[0] || lang || "").toLowerCase().split("-")[0].trim();
