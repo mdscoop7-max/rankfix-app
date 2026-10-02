@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import DashboardNav from "../nav";
 import type { Locale } from "@/lib/locales";
@@ -27,13 +27,15 @@ const text: Record<Locale,{title:string;intro:string;url:string;run:string;runni
 
 export default function DashboardScan() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const verificationUrl = searchParams.get("url") || "";
   const [language,setLanguage]=useState<Locale>("nl");
   const [url,setUrl]=useState("");
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState("");
   const [result,setResult]=useState<Result|null>(null);
   const [usage,setUsage]=useState<{plan:string;used:number;limit:number|null}>({plan:"free",used:0,limit:2});
-  useEffect(()=>{fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in text)setLanguage(d.language)}).catch(()=>{});fetch("/api/history",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(d?.usage)setUsage(d.usage);const saved=d?.usage?.websiteHost||d?.scans?.[0]?.scanned_url||d?.history?.[0]?.scanned_url;if(saved)setUrl(/^https?:\/\//i.test(saved)?saved:`https://${saved}`)}).catch(()=>{})},[]);
+  useEffect(()=>{fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in text)setLanguage(d.language)}).catch(()=>{});fetch("/api/history",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(d?.usage)setUsage(d.usage);const saved=d?.usage?.websiteHost||d?.scans?.[0]?.scanned_url||d?.history?.[0]?.scanned_url;if(verificationUrl)setUrl(/^https?:\/\//i.test(verificationUrl)?verificationUrl:`https://${verificationUrl}`);else if(saved)setUrl(/^https?:\/\//i.test(saved)?saved:`https://${saved}`)}).catch(()=>{})},[verificationUrl]);
   const t=text[language];
   async function run(event:React.FormEvent){
     event.preventDefault(); setBusy(true); setError(""); setResult(null);
