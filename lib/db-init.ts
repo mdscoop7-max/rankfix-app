@@ -163,7 +163,7 @@ const statements = [
   `ALTER TABLE fix_proposals ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '2 hours')`,
   `ALTER TABLE fix_proposals ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`,
   `ALTER TABLE fix_proposals DROP CONSTRAINT IF EXISTS fix_proposals_status_check`,
-  `ALTER TABLE fix_proposals ADD CONSTRAINT fix_proposals_status_check CHECK (status IN ('PREVIEW_READY','APPROVED','PUBLISHED','FAILED','EXPIRED'))`,
+  `ALTER TABLE fix_proposals ADD CONSTRAINT fix_proposals_status_check CHECK (status IN ('PREVIEW_READY','APPROVED','PUBLISHED','FAILED','EXPIRED','INVALIDATED'))`,
   `CREATE UNIQUE INDEX IF NOT EXISTS fix_proposals_hash_idx ON fix_proposals(user_id,proposal_hash)`,
   `CREATE TABLE IF NOT EXISTS fix_events (
     id BIGSERIAL PRIMARY KEY,
@@ -221,7 +221,9 @@ const statements = [
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(user_id, website_host, rule_id)
   )`,
-  `CREATE INDEX IF NOT EXISTS fix_memory_lookup_idx ON fix_memory(user_id, website_host, rule_id, last_confirmed_at DESC)`,
+  `ALTER TABLE fix_memory DROP CONSTRAINT IF EXISTS fix_memory_user_id_website_host_rule_id_key`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS fix_memory_page_rule_idx ON fix_memory(user_id, website_host, scanned_url, rule_id)`,
+  `CREATE INDEX IF NOT EXISTS fix_memory_lookup_idx ON fix_memory(user_id, website_host, scanned_url, rule_id, last_confirmed_at DESC)`,
   `ALTER TABLE fix_memory ADD COLUMN IF NOT EXISTS recurrence_open BOOLEAN NOT NULL DEFAULT FALSE`,
   `ALTER TABLE fix_memory ADD COLUMN IF NOT EXISTS last_recurred_at TIMESTAMPTZ`,
   `CREATE TABLE IF NOT EXISTS website_monitors (
@@ -346,7 +348,7 @@ export async function ensureDatabase() {
       await db.query("ALTER TABLE fix_proposals DROP CONSTRAINT IF EXISTS fix_proposals_status_check");
       await db.query("ALTER TABLE fix_proposals ALTER COLUMN status SET DEFAULT 'PREVIEW_READY'");
       await db.query("UPDATE fix_proposals SET status = 'PREVIEW_READY' WHERE status = 'PREVIEWED'");
-      await db.query("ALTER TABLE fix_proposals ADD CONSTRAINT fix_proposals_status_check CHECK (status IN ('PREVIEW_READY','APPROVED','PUBLISHED','FAILED','EXPIRED'))");
+      await db.query("ALTER TABLE fix_proposals ADD CONSTRAINT fix_proposals_status_check CHECK (status IN ('PREVIEW_READY','APPROVED','PUBLISHED','FAILED','EXPIRED','INVALIDATED'))");
 
       initialized = true;
     })().finally(() => {
