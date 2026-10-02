@@ -2436,16 +2436,43 @@ export async function POST(request: Request) {
         );
         pendingFixes = new Map(pending.rows.map((row: any) => [String(row.issue_id), { status: String(row.status) }]));
 
+        const websiteHost = finalUrl.hostname.toLowerCase().replace(/^www\\./, "");
+        const rememberedFixes = await getDb().query(
+          "SELECT rule_id,file_path,repository,pr_number,fix_summary,evidence,last_confirmed_at,recurrence_count FROM fix_memory WHERE user_id=$1 AND website_host=$2",
+          [user.id, websiteHost]
+        );
+        const rememberedByRule = new Map(rememberedFixes.rows.map((row:any)=>[String(row.rule_id),row]));
+
         for (const item of checks) {
           const issueId = String(item.issue_id || item.rule_id || item.key);
           const pendingFix = pendingFixes.get(issueId);
-          if (!pendingFix) continue;
-          // A normal audit must never confirm a prepared fix as DONE.
-          // Confirmation belongs to the dedicated live recheck flow.
-          item.fix_status = pendingFix.status === "AWAITING_MERGE" ? "AWAITING_MERGE" : pendingFix.status === "STILL_PRESENT" ? "STILL_PRESENT" : "WAITING";
+          if (pendingFix) {
+            // A normal audit must never confirm a prepared fix as DONE.
+            // Confirmation belongs to the dedicated live recheck flow.
+            item.fix_status = pendingFix.status === "AWAITING_MERGE" ? "AWAITING_MERGE" : pendingFix.status === "STILL_PRESENT" ? "STILL_PRESENT" : "WAITING";
+          }
+          const remembered = rememberedByRule.get(issueId);
+          const currentStatus = String(item.issue_status || item.status || "").trim().toUpperCase();
+          const currentConfidence = String(item.confidence || "").trim().toLowerCase();
+          const currentEvidence = item.evidence;
+          const hasCurrentEvidence = !!currentEvidence && currentEvidence.found !== null && currentEvidence.found !== undefined && currentEvidence.found !== "";
+          // Reuse memory only as diagnostic context. Never auto-apply old code:
+          // the current page must independently prove that the same rule has
+          // returned before RankFix exposes the prior verified repair.
+          if (remembered && (currentStatus === "FAIL" || currentStatus === "WARNING") && currentConfidence !== "low" && hasCurrentEvidence) {
+            item.recurring_issue = {
+              recognized: true,
+              lastConfirmedAt: remembered.last_confirmed_at,
+              previousFilePath: remembered.file_path || null,
+              previousRepository: remembered.repository || null,
+              previousPrNumber: remembered.pr_number || null,
+              previousFixSummary: remembered.fix_summary || null,
+              previousEvidence: remembered.evidence || null,
+              recurrenceCount: Number(remembered.recurrence_count || 0) + 1,
+              requiresFreshVerification: true
+            };
+          }
         }
-
-        const websiteHost = finalUrl.hostname.toLowerCase().replace(/^www\\./, "");
         const previousScan = await getDb().query(
           "SELECT id,result FROM scans WHERE user_id=$1 AND lower(regexp_replace(split_part(split_part(final_url, '://', 2), '/', 1), '^www\\.', ''))=$2 ORDER BY created_at DESC LIMIT 1",
           [user.id, websiteHost]
