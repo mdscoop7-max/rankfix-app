@@ -157,7 +157,18 @@ function buildDeterministicOgFix(filePath:string,current:string,issue:string,con
       wantsImage&&image&&!hasOgMetaTag(content,"og:image")?'<meta property="og:image" content="'+esc(image)+'">':""
     ].filter(Boolean);
     if(!tags.length) return null;
-    content=content.replace(/<\/head>/i,tags.join("\n")+"\n</head>");
+    if(/<\/head>/i.test(content)){
+      content=content.replace(/<\/head>/i,tags.join("\n")+"\n</head>");
+    } else {
+      // Jinja/Flask child templates often inherit <head> from base.html.
+      // Keep the patch local to the page by extending its existing extra_head block.
+      const extraHead=/\{%\s*block\s+extra_head\s*%\}([\s\S]*?)\{%\s*endblock\s*%\}/i;
+      const match=content.match(extraHead);
+      if(!match) return null;
+      const inner=match[1]||"";
+      const replacement="{% block extra_head %}"+inner+(inner&&!/\n\s*$/.test(inner)?"\n":"")+tags.join("\n")+"{% endblock %}";
+      content=content.replace(extraHead,replacement);
+    }
   } else if(/\.(tsx|jsx|ts|js)$/i.test(filePath)){
     const additions:string[]=[];
     if(wantsTitle&&title&&!hasOgOpenGraphField(content,"title")) additions.push('title: "'+title.replace(/\\/g,"\\\\").replace(/"/g,'\\\"')+'"');
