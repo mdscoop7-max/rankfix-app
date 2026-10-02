@@ -30,6 +30,7 @@ export default function DashboardScan() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const verificationUrl = searchParams.get("url") || "";
+  const verificationIssue = searchParams.get("verify_issue") || "";
   const [language,setLanguage]=useState<Locale>("nl");
   const [url,setUrl]=useState("");
   const [urlError,setUrlError]=useState("");
@@ -50,7 +51,7 @@ export default function DashboardScan() {
       const response=await fetch("/api/scan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:normalized,mode:"both",dashboard:true,language})});
       const data=await response.json();
       if(!response.ok) throw new Error(data.error||t.failed);
-      if(data.scanId){ router.push("/dashboard/audit/"+encodeURIComponent(data.scanId)); return; }
+      if(data.scanId){ const target="/dashboard/audit/"+encodeURIComponent(data.scanId)+(verificationIssue?"?verify_issue="+encodeURIComponent(verificationIssue):""); router.push(target); return; }
       throw new Error(t.reportFailed);
     }catch(cause){setError(cause instanceof Error?cause.message:t.failed);}
     finally{setBusy(false);}
@@ -63,6 +64,7 @@ export default function DashboardScan() {
     <DashboardNav current={1}/>
     <div className="rf-body">
       <div className="rf-heading"><h1>{t.title}</h1><p>{t.intro}</p></div>
+      {verificationIssue&&<div className="mb-4 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] p-4 text-sm text-emerald-100"><strong>{language==="nl"?"Fix controleren":language==="de"?"Fix prüfen":language==="fr"?"Vérifier le correctif":language==="it"?"Verifica correzione":language==="es"?"Verificar corrección":"Verify fix"}</strong><p className="mt-1 text-slate-300">{language==="nl"?"RankFix scant de live website opnieuw en controleert of hetzelfde verbeterpunt nu is opgelost.":language==="de"?"RankFix scannt die Live-Website erneut und prüft, ob derselbe Punkt jetzt gelöst ist.":language==="fr"?"RankFix analyse à nouveau le site en ligne et vérifie si le même point est maintenant résolu.":language==="it"?"RankFix esegue una nuova scansione del sito live e verifica se lo stesso problema è stato risolto.":language==="es"?"RankFix vuelve a analizar la web en vivo y comprueba si el mismo punto está resuelto.":"RankFix rescans the live website and checks whether the same improvement is now resolved."}</p></div>}
       {usage.plan==="free"&&<section className="rf-plan-card"><div><span className="rf-eyebrow">Free · €0</span><h2>{usage.used} / {usage.limit??2} {language==="nl"?"scans deze maand":language==="de"?"Scans diesen Monat":language==="fr"?"analyses ce mois-ci":language==="it"?"scansioni questo mese":language==="es"?"análisis este mes":"scans this month"}</h2><p>{usage.used>=(usage.limit??2)?(language==="nl"?"Je gratis scans zijn gebruikt. Je bestaande rapport blijft beschikbaar. Upgrade voor nieuwe scans en Premium-functies.":language==="de"?"Deine kostenlosen Scans sind aufgebraucht. Dein bestehender Bericht bleibt verfügbar. Upgrade für neue Scans und Premium-Funktionen.":language==="fr"?"Vos analyses gratuites sont utilisées. Votre rapport reste disponible. Passez à une offre supérieure pour de nouvelles analyses et les fonctions Premium.":language==="it"?"Hai utilizzato le scansioni gratuite. Il report esistente resta disponibile. Passa a un piano superiore per nuove scansioni e funzioni Premium.":language==="es"?"Has utilizado tus análisis gratuitos. Tu informe sigue disponible. Mejora el plan para nuevos análisis y funciones Premium.":"Your free scans have been used. Your existing report remains available. Upgrade for new scans and Premium features."):(language==="nl"?"Free bevat 1 website en 2 volledige scans per maand.":language==="de"?"Free enthält 1 Website und 2 vollständige Scans pro Monat.":language==="fr"?"L’offre gratuite comprend 1 site et 2 analyses complètes par mois.":language==="it"?"Free include 1 sito e 2 scansioni complete al mese.":language==="es"?"Free incluye 1 web y 2 análisis completos al mes.":"Free includes 1 website and 2 full scans per month.")}</p></div>{usage.used>=(usage.limit??2)&&<Link className="rf-primary-link" href={`/${language}#pricing`}>{language==="nl"?"Bekijk abonnementen":language==="de"?"Tarife ansehen":language==="fr"?"Voir les offres":language==="it"?"Vedi i piani":language==="es"?"Ver planes":"View plans"}</Link>}</section>}
       <section className="rf-dashboard-scan rf-shared-scan">
         <div className="rf-shared-scan-badge">SEO + GEO · Google & AI Search</div>
