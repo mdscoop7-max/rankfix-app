@@ -695,7 +695,22 @@ export async function POST(request:Request){
     }
     if (scannedUrl && issueId) {
       await db.query(
-        "INSERT INTO pending_fixes (user_id,scanned_url,issue_id,status,repository,file_path,pr_number,pr_url,branch,merge_error,merged_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,CASE WHEN $11::boolean THEN NOW() ELSE NULL END)",
+        `INSERT INTO pending_fixes (user_id,scanned_url,issue_id,status,repository,file_path,pr_number,pr_url,branch,merge_error,merged_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,CASE WHEN $11::boolean THEN NOW() ELSE NULL END)
+         ON CONFLICT (user_id,scanned_url,issue_id)
+           WHERE status IN ('PROPOSED','PR_CREATED','AWAITING_MERGE','AWAITING_VERIFICATION','STILL_PRESENT','PREPARED')
+         DO UPDATE SET
+           status=EXCLUDED.status,
+           repository=EXCLUDED.repository,
+           file_path=EXCLUDED.file_path,
+           pr_number=EXCLUDED.pr_number,
+           pr_url=EXCLUDED.pr_url,
+           branch=EXCLUDED.branch,
+           merge_error=EXCLUDED.merge_error,
+           merged_at=EXCLUDED.merged_at,
+           verified_at=NULL,
+           verification_scan_id=NULL,
+           updated_at=NOW()`,
         [user.id,scannedUrl,issueId,mergeState,repo,path,Number(pr.number)||null,pr.html_url||null,branch,mergeError,merged]
       );
     }
