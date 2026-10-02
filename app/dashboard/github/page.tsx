@@ -211,9 +211,14 @@ export default function GithubPage(){
           if(d.merge?.merged){
             setMessage(language==="nl"?"Fix gepubliceerd. RankFix heeft de Pull Request automatisch gemerged. Scan de live website opnieuw om de oplossing te bevestigen.":"Fix published. RankFix merged the Pull Request automatically. Scan the live website again to verify the fix.");
           }else{
+            // A created PR is a successful Fix Engine result even when GitHub
+            // cannot merge it immediately. Keep this as a workflow state,
+            // not a blocking/error state.
             const reason=String(d.merge?.reason||"GitHub staat automatisch mergen nog niet toe.");
-            setMessage(language==="nl"?"De fix staat klaar, maar GitHub blokkeert automatisch mergen. RankFix AI helpt je eerst met de volgende stap. Reden: "+reason:"The fix is ready, but GitHub blocked automatic merging. RankFix AI will help with the next step. Reason: "+reason);
-            setError(reason);
+            setError("");
+            setMessage(language==="nl"
+              ?"Pull Request aangemaakt — wacht op merge. RankFix heeft de codewijziging veilig gepubliceerd naar GitHub. Automatisch mergen is nog niet beschikbaar. Reden: "+reason
+              :"Pull Request created — waiting for merge. RankFix safely published the code change to GitHub. Automatic merging is not available yet. Reason: "+reason);
           }
         }
       }
