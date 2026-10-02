@@ -491,6 +491,32 @@ export async function POST(request:Request){
     // match the repository in which the proven repair was made. File matching is
     // checked after RankFix resolves today's target file below.
     const recurringIssue = trustedCheck?.recurring_issue;
+    if (recurringIssue?.recognized && recurringIssue.previousEvidence) {
+      const previousStatus=String(recurringIssue.previousEvidence?.status||"").toUpperCase();
+      const previousConfidence=String(recurringIssue.previousEvidence?.confidence||"").toLowerCase();
+      const previousDetails=String(recurringIssue.previousEvidence?.details||"").trim().toLowerCase();
+      const currentDetails=String(trustedEvidence?.details||"").trim().toLowerCase();
+      // Memory is allowed to accelerate diagnosis only when it came from a
+      // genuinely verified repair and today's scan independently proves the
+      // same rule. If the evidence shape changed materially, treat it as a new
+      // situation instead of replaying assumptions from the old repair.
+      const priorWasVerified=previousStatus==="PASS" && previousConfidence==="high" && previousDetails.length>0;
+      const evidenceStillComparable=currentDetails.length>0 && (
+        previousDetails===currentDetails ||
+        previousDetails.includes(currentDetails) ||
+        currentDetails.includes(previousDetails)
+      );
+      if(!priorWasVerified || !evidenceStillComparable){
+        return NextResponse.json({error:msg(
+          "RankFix herkent dit probleem uit de fixgeschiedenis, maar het huidige bewijs wijkt af van de eerder bewezen situatie. Daarom wordt de oude oplossing niet automatisch hergebruikt.",
+          "RankFix recognizes this issue from fix history, but the current evidence differs from the previously verified situation. The old repair will not be reused automatically.",
+          "RankFix erkennt dieses Problem aus dem Fix-Verlauf, aber die aktuellen Nachweise unterscheiden sich von der zuvor bestätigten Situation. Der alte Fix wird daher nicht automatisch wiederverwendet.",
+          "RankFix reconnaît ce problème dans l’historique des correctifs, mais les preuves actuelles diffèrent de la situation précédemment vérifiée. L’ancien correctif ne sera donc pas réutilisé automatiquement.",
+          "RankFix riconosce questo problema dalla cronologia delle correzioni, ma le prove attuali differiscono dalla situazione verificata in precedenza. La vecchia correzione non verrà riutilizzata automaticamente.",
+          "RankFix reconoce este problema en el historial de correcciones, pero la evidencia actual difiere de la situación verificada anteriormente. La corrección anterior no se reutilizará automáticamente."
+        ),code:"RECURRENCE_EVIDENCE_MISMATCH",issue_id:issueId},{status:409});
+      }
+    }
     if (recurringIssue?.recognized && recurringIssue.previousRepository && String(recurringIssue.previousRepository).toLowerCase() !== repo.toLowerCase()) {
       return NextResponse.json({error:msg(
         "Dit probleem kwam eerder voor, maar de huidige repository wijkt af van de repository van de bewezen eerdere fix. RankFix hergebruikt die oplossing daarom niet automatisch.",
