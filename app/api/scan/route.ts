@@ -77,8 +77,14 @@ function allMatches(html: string, regex: RegExp) {
 }
 
 function attrFromTag(tag: string, attr: string) {
-  const match = tag.match(new RegExp(attr + "\s*=\s*[\"']([^\"']*)[\"']", "i"));
-  return match?.[1] || "";
+  // HTML attributes may be quoted, unquoted, empty, and appear in any order.
+  // Build the regex with escaped backslashes so JS does not turn \\s/\\b into string escapes.
+  const safeAttr = attr.replace(/[.*+?^$()|[\\]\\\\]/g, "\\$&");
+  const match = tag.match(new RegExp(
+    "(?:^|\\\\s)" + safeAttr + "\\\\s*=\\\\s*(?:[\\\"\']([^\\\"\']*)[\\\"\']|([^\\\\s>]+))",
+    "i"
+  ));
+  return decode(match?.[1] ?? match?.[2] ?? "");
 }
 
 function check(
@@ -476,13 +482,7 @@ export async function POST(request: Request) {
       .slice(0, 10)
       .map((m) => {
         const tag = m[0];
-        const attr = (name: string) => {
-          const match = tag.match(new RegExp(
-            `\b${name}\s*=\s*(?:["']([^"']+)["']|([^\s>]+))`,
-            "i"
-          ));
-          return decode(match?.[1] || match?.[2] || "");
-        };
+        const attr = (name: string) => attrFromTag(tag, name);
         const src = attr("src") || attr("data-src") || attr("data-lazy-src") || attr("data-original") || attr("data-image") ||
           (attr("srcset") || attr("data-srcset")).split(",")[0]?.trim().split(/\s+/)[0] || "";
         return { src };
