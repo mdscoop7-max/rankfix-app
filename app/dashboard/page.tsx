@@ -91,7 +91,7 @@ export default function Dashboard() {
       </header>
       <DashboardNav current={0} />
       <div className="rf-body">
-        <div className="rf-heading"><h1>{t.overview}</h1><p>{t.intro}</p></div>
+        <div className="rf-heading rf-dashboard-title"><div><h1>{language==="nl"?`Hallo, ${user?.name || ""}`:language==="de"?`Hallo, ${user?.name || ""}`:language==="fr"?`Bonjour, ${user?.name || ""}`:language==="it"?`Ciao, ${user?.name || ""}`:language==="es"?`Hola, ${user?.name || ""}`:`Hello, ${user?.name || ""}`}</h1><p>{t.intro}</p></div><Link className="rf-primary-link" href="/dashboard/scan">＋ {x.newScan}</Link></div>
         <section className="rf-plan-card" aria-label="Subscription usage">
           <div>
             <span className="rf-eyebrow">{usage.plan === "free" ? "Free · €0" : usage.plan}</span>
@@ -111,7 +111,7 @@ export default function Dashboard() {
             <div className="rf-dashboard-latest">{latest && <div className="rf-overall-meter" style={{"--rf-score":latest.overall_score} as React.CSSProperties}><div><strong>{latest.overall_score}</strong><span>/100</span></div></div>}<div><span className="rf-eyebrow">{x.latest}</span><h2>{latestHost || x.firstWebsite}</h2><p>{latest ? `${x.scanned} ${new Date(latest.created_at).toLocaleString(language)}` : x.startAudit}</p>{latest?.technology_profile && <p className="rf-profile-line"><strong>{language==="nl"?"Websiteprofiel":language==="de"?"Websiteprofil":language==="fr"?"Profil du site":language==="it"?"Profilo del sito":language==="es"?"Perfil del sitio":"Website profile"}:</strong> {latest.technology_profile.siteType || "Website"} · {latest.technology_profile.framework || latest.technology_profile.platform || latest.technology_profile.cms || (language==="nl"?"Niet bevestigd":"Not confirmed")} · {latest.technology_profile.confidence ?? 40}%</p>}</div></div>
             <Link className="rf-primary-link rf-scan-cta" href="/dashboard/scan">＋ {x.newScan}</Link>
           </div>
-          <div className="rf-status-grid">
+          <div className="rf-status-grid rf-overview-metrics">
             <Link className="rf-card rf-score-card" href={latest ? `/dashboard/audit/${latest.id}` : "/#scan"}><span>SEO-score</span><strong>{latest?.seo_score ?? "—"}<small>/100</small></strong><small>{x.seoAudit} →</small></Link>
             <Link className="rf-card rf-score-card" href={latest ? `/dashboard/audit/${latest.id}` : "/#scan"}><span>GEO-score</span><strong>{latest?.geo_score ?? "—"}<small>/100</small></strong><small>{x.geoAudit} →</small></Link>
             <div className="rf-card"><span>{x.openIssues}</span><strong>{latest?.open_issues ?? 0}</strong><small>{fixes.DONE || 0} {x.confirmedSolved}</small></div>
@@ -137,7 +137,7 @@ export default function Dashboard() {
           <div className="rf-section-head"><div><h2>{x.recent}</h2><p>{usage.plan==="free"?(language==="nl"?"Je laatste controle. Volledige historie is beschikbaar met een betaald abonnement.":language==="de"?"Deine letzte Kontrolle. Der vollständige Verlauf ist mit einem kostenpflichtigen Tarif verfügbar.":language==="fr"?"Votre dernier contrôle. L’historique complet est disponible avec une offre payante.":language==="it"?"Il tuo ultimo controllo. La cronologia completa è disponibile con un piano a pagamento.":language==="es"?"Tu último control. El historial completo está disponible con un plan de pago.":"Your latest check. Full history is available with a paid plan."):x.recentIntro}</p></div><Link href="/dashboard/history">{x.history} →</Link></div>
           <div className="rf-history-list">{recentHistory.map((scan,index)=><Link key={scan.id} href={`/dashboard/audit/${scan.id}`}><div><b>{(()=>{try{return new URL(scan.scanned_url).hostname}catch{return scan.scanned_url}})()}</b><span>{new Date(scan.created_at).toLocaleString(language)} · SEO {scan.seo_score === 0 && scan.overall_score === 100 ? "—" : scan.seo_score} · GEO {scan.geo_score === 0 && scan.overall_score === 100 ? "—" : scan.geo_score} · {scan.open_issues} {x.improvements}</span></div><strong>{scan.overall_score}</strong>{index===0&&<em>{x.newest}</em>}</Link>)}</div>
         </section>
-        <section id="websites" className="rf-section">
+        <section id="websites" className="rf-section rf-websites-featured">
           <div className="rf-section-head"><h2>{t.websites}</h2><span>{scans.length}</span></div>
           <div className="rf-sites">
             {scans.map((scan) => {
@@ -146,7 +146,7 @@ export default function Dashboard() {
               const tone = scan.critical_issues ? "critical" : scan.open_issues ? "warning" : "good";
               return <article key={scan.id} className="rf-site">
                 <div className="rf-site-main"><span className={`rf-dot ${tone}`} aria-hidden="true" /><div className="rf-site-copy"><h3>{hostname}</h3><p>{status} · {scan.open_issues} {scan.open_issues === 1 ? t.point : t.points} · {t.scanned} {new Date(scan.created_at).toLocaleDateString(language)}</p></div></div>
-                <div className="rf-site-actions"><strong aria-label={`${t.average} ${scan.overall_score}/100`}>{scan.overall_score}</strong><Link href={`/dashboard/audit/${scan.id}`}>{t.view}</Link><button onClick={() => rescan(scan)} disabled={busy === scan.id}>{busy === scan.id ? t.rescanning : t.rescan}</button></div>
+                <div className="rf-site-actions"><strong className="rf-site-score" aria-label={`${t.average} ${scan.overall_score}/100`}>{scan.overall_score}</strong><Link href={`/dashboard/audit/${scan.id}`}>{t.view}</Link><button onClick={() => rescan(scan)} disabled={busy === scan.id}>{busy === scan.id ? t.rescanning : t.rescan}</button><Link href={`/dashboard/audit/${scan.id}/report`}>PDF</Link></div>
               </article>;
             })}
             {!scans.length && <p className="rf-empty">{t.empty}</p>}
