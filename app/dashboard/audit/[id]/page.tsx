@@ -9,6 +9,7 @@ import { auditCopy } from "@/lib/audit-copy";
 import type { Locale } from "@/lib/locales";
 import "../../dashboard.css";
 import "./audit.css";
+import { getFixPolicy } from "../../../../lib/fix-policy";
 
 type Check = { key?: string; category?: string; title: string; status: string; severity?: string; message: string; fix?: string; fix_status?: string; fix_category?: "A"|"B"|"C"; issue_id?: string; rule_id?: string; points?:number; maxPoints?:number; confidence?:string; evidence?: { details?: string; found?: string | number | boolean | null } };
 type FixFlowItem = { issue_id:string; status:string; pr_number?:number|null; pr_url?:string|null; branch?:string|null; merged_at?:string|null; verified_at?:string|null; verification_scan_id?:string|null };
@@ -18,7 +19,6 @@ type MultiPageSummary = { enabled?:boolean; mode?:string; currentPageScoredSepar
 type Result = { multiPage?:MultiPageSummary; overallScore: number; summary?:{passed:number;issues:number;notApplicable:number;unableToConfirm:number;pendingFixes:number}; rendering?:{mode:string;javascriptExecuted:boolean;note:string}; pageTypeEvidence?:{type:string;confidence:string;evidence:string[]}; technologyProfile?:{siteType?:"Webshop"|"Landingpage"|"Website";cms:string|null;commercePlatform:string|null;framework:string|null;isCommerce:boolean;confidence:number;confidenceLabel:"high"|"medium"|"low";evidence:string[]}; sectorProfile?:{key:string;label:string;confidence:"high"|"medium"|"low";confidenceScore:number;evidence:string[];applicableModules:string[]}; metrics?:{productOptimizer?:{eligible?:boolean;sourceCount?:number;product?:ProductEvidence|null}}; seo?: { score:number;checks?:Check[] }; geo?: { score:number;checks?:Check[] } };
 type Scan = { id?: string; scanned_url: string; created_at: string; result: Result };
 
-const FIXABLE = new Set(["META_TITLE_MISSING","META_TITLE_GUIDANCE","META_DESCRIPTION_MISSING","META_DESCRIPTION_GUIDANCE","H1_MISSING","IMAGE_ALT_MISSING","SOCIAL_METADATA_INCOMPLETE","social","STRUCTURED_DATA_MISSING","breadcrumbs","canonical","headings"]);
 function idForFix(scan:Scan){ return (scan as Scan & {id?:string}).id||""; }
 function fixHref(check:Check,scan:Scan){
   const issueId=check.issue_id||check.rule_id||"";
@@ -26,9 +26,10 @@ function fixHref(check:Check,scan:Scan){
   const confidence=String(check.confidence||"").toLowerCase();
   const found=check.evidence?.found;
   const hasEvidence=found!==null&&found!==undefined&&found!=="";
-  // The scanner is the source of truth for fix safety. Category C means
-  // manual review only; low-confidence or unproven findings never get a code-fix button.
-  if(!issueId||check.fix_category==="C"||!FIXABLE.has(issueId)||!["fail","warning"].includes(status)||confidence==="low"||!hasEvidence) return "";
+  const policy=issueId?getFixPolicy(issueId):{category:"C" as const,safe_type:null};
+  // One policy source for scanner, UI and backend. A rule is exposed only when
+  // today's policy and the policy stored with the scan both allow a safe fix.
+  if(!issueId||policy.category==="C"||!policy.safe_type||check.fix_category==="C"||!["fail","warning"].includes(status)||confidence==="low"||!hasEvidence) return "";
   const q=new URLSearchParams({scan_id:String(idForFix(scan)),issue_id:issueId});
   return "/dashboard/github?"+q.toString();
 }
