@@ -1106,8 +1106,6 @@ export async function POST(request: Request) {
         sectorCheck("sector_home_services_quote","Offerte / contact",quoteSignal,"Een offerte- of contactactie is bevestigd.","Een duidelijke offerte- of contactactie kon niet betrouwbaar worden bevestigd.","Maak offerte aanvragen of contact opnemen eenvoudig en duidelijk."),
         sectorCheck("sector_home_services_area","Servicegebied",areaSignal,"Een servicegebied-/regiosignaal is bevestigd.","Het servicegebied kon in de raw HTML niet betrouwbaar worden bevestigd.","Noem relevante plaatsen of regio's wanneer het bedrijf lokaal werkt.")
       );
-    }
-
     } else if (sectorProfile.sector === "professional_services") {
       const expertiseSignal = /\\b(expertise|specialis(?:t|atie)|advocaat|accountant|boekhouder|consultant|notaris|lawyer|attorney|accounting|consultancy|diensten|services)\\b/i.test(text) || hasServiceExpertiseSignal;
       const contactSignal = hasContactChannelSignal || hasContactFormSignal || /\\b(afspraak|kennismaking|consult|adviesgesprek|contact|plan a call|book a consultation)\\b/i.test(text);
