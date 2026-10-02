@@ -218,6 +218,12 @@ export async function POST(request: Request) {
     if (!url || !["meta_title","meta_description","h1","faq","breadcrumb","expertise","structured_data","social_metadata","heading_structure","canonical","alt_text"].includes(type)) return NextResponse.json({error:"Ongeldige AI-fix aanvraag."},{status:400});
 
     const safeContext = cleanContext(context);
+    if (type === "social_metadata" && issueId === "SOCIAL_METADATA_INCOMPLETE" && !String(safeContext.ogImage || "").trim()) {
+      return NextResponse.json({
+        error: "missing_verified_asset",
+        message: "Voor og:image is eerst een bestaande, relevante afbeeldings-URL of repository-asset nodig. RankFix verzint geen afbeeldings-URL en wijzigt bestaande og:title/og:description niet."
+      }, { status: 422 });
+    }
     let mode = "rule_based_fallback";
     const safeCurrent = cleanContextValue(current);
     // Structural SEO fix routing is deterministic in production; keep verified scan data on these paths.

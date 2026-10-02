@@ -841,6 +841,7 @@ export async function POST(request: Request) {
     // Prefer explicit declarations, then conservative platform-standard fallbacks.
     const sitemapCandidates = [...new Set([...robotsDeclaredSitemapUrls, ...htmlDeclaredSitemapUrls, ...commonSitemapUrls])].slice(0, 20);
     let sitemapFetchFailed = false;
+    const brokenDeclaredSitemaps: string[] = [];
     for (const candidate of sitemapCandidates) {
       try {
         const r = (await safePublicFetch(new URL(candidate), { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/plain,application/xml,text/xml" })).response;
@@ -860,6 +861,7 @@ export async function POST(request: Request) {
         } else {
           sitemapStatus = r.status === 404 ? "FAIL" : sitemapStatus;
           sitemapDiagnostic = `${candidate} gaf HTTP ${r.status}; content-type: ${r.headers.get("content-type") || "onbekend"}.`;
+          if (r.status === 404 && robotsDeclaredSitemapUrls.includes(candidate)) brokenDeclaredSitemaps.push(candidate);
         }
       } catch (error) {
         sitemapFetchFailed = true;
@@ -867,7 +869,8 @@ export async function POST(request: Request) {
       }
     }
     if (!sitemapFound && sitemapFetchCompleted && !sitemapFetchFailed && sitemapStatus === "UNABLE_TO_CONFIRM") sitemapStatus = "FAIL";
-    if (!sitemapFound && sitemapFetchFailed) sitemapStatus = "UNABLE_TO_CONFIRM";
+    if (!sitemapFound && sitemapFetchFailed && brokenDeclaredSitemaps.length === 0) sitemapStatus = "UNABLE_TO_CONFIRM";
+    if (brokenDeclaredSitemaps.length > 0) sitemapStatus = "FAIL";
     const robotsMentionsSitemap = robotsDeclaredSitemapUrls.length > 0;
 
     // Lightweight internal-link audit. Keep this bounded so one page cannot turn a scan
@@ -1327,8 +1330,10 @@ export async function POST(request: Request) {
         ? check("not_applicable", "robots_txt", "seo", "robots.txt", "robots.txt gaf 404 terug. Het ontbreken van robots.txt blokkeert crawlers op zichzelf niet en kost daarom geen SEO-punten.", "Publiceer robots.txt alleen wanneer je crawlregels of sitemapverwijzingen wilt beheren.", 0, 4)
         : check("unable_to_confirm", "robots_txt", "seo", "robots.txt", "RankFix kon robots.txt tijdens deze scan niet betrouwbaar ophalen.", "Probeer opnieuw wanneer de server bereikbaar is.", 0, 4)
     );
-    seoChecks.push(sitemapFound
-      ? check("pass", "sitemap", "seo", "Sitemap-signaal", `Een bereikbare XML sitemap is gevonden${confirmedSitemapUrl ? `: ${confirmedSitemapUrl}` : "."}`, "Controleer of de sitemap alleen canonieke, indexeerbare URL's bevat.", 4, 4)
+    seoChecks.push(brokenDeclaredSitemaps.length > 0
+      ? check("warning", "sitemap", "seo", "Sitemap-signaal", `robots.txt verwijst naar een sitemap die aantoonbaar HTTP 404 teruggeeft: ${brokenDeclaredSitemaps[0]}.${sitemapFound && confirmedSitemapUrl ? ` Een andere geldige sitemap is wel gevonden: ${confirmedSitemapUrl}.` : ""}`, "Herstel of verwijder de kapotte sitemapverwijzing in robots.txt en verwijs naar een bereikbare XML sitemap.", 1, 4)
+      : sitemapFound
+        ? check("pass", "sitemap", "seo", "Sitemap-signaal", `Een bereikbare XML sitemap is gevonden${confirmedSitemapUrl ? `: ${confirmedSitemapUrl}` : "."}`, "Controleer of de sitemap alleen canonieke, indexeerbare URL's bevat.", 4, 4)
       : sitemapStatus === "FAIL"
         ? check("warning", "sitemap", "seo", "Sitemap-signaal", robotsMentionsSitemap ? `robots.txt verwijst naar een sitemap, maar RankFix kon geen geldige bereikbare XML sitemap bevestigen.${sitemapDiagnostic ? " Technisch: " + sitemapDiagnostic : ""}` : `Geen geldige bereikbare XML sitemap gevonden.${sitemapDiagnostic ? " Technisch: " + sitemapDiagnostic : ""}`, "Controleer de sitemap-URL, HTTP-status en XML content-type.", 1, 4)
         : check("unable_to_confirm", "sitemap", "seo", "Sitemap-signaal", robotsMentionsSitemap ? `robots.txt bevat een sitemapverwijzing, maar RankFix kon de sitemap tijdens deze scan niet betrouwbaar ophalen.${sitemapDiagnostic ? " Technisch: " + sitemapDiagnostic : ""}` : `RankFix kon tijdens deze scan niet betrouwbaar bevestigen of een sitemap beschikbaar is.${sitemapDiagnostic ? " Technisch: " + sitemapDiagnostic : ""}`, "Controleer de sitemap opnieuw wanneer de server bereikbaar is.", 0, 4)
