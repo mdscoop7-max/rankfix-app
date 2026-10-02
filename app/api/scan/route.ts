@@ -1298,12 +1298,12 @@ export async function POST(request: Request) {
     const hasMatchingVisibleStructuredPrice = canCompareVisibleAndStructuredPrice && structuredPriceCandidates.some((schemaPrice) =>
       visiblePriceCandidates.some((visiblePrice) => Math.abs(visiblePrice - schemaPrice) < 0.005)
     );
-    const visibleStockSignal = /\b(op voorraad|voorraad|in stock|out of stock|uitverkocht|sold out|pre-?order|backorder|niet op voorraad)\b/i.test(text);
+    const visibleStockSignal = /\b(op voorraad|voorraad|in stock|out of stock|uitverkocht|sold out|pre-?order|backorder|niet op voorraad|auf lager|nicht auf lager|ausverkauft|vorbestellung|en stock|rupture de stock|épuisé|epuise|précommande|precommande|disponibile|disponibilità|disponibilita|esaurito|non disponibile|preordine|en stock|agotado|sin stock|no disponible|preventa)\b/i.test(text);
     const visibleAvailabilityState =
-      /\b(niet op voorraad|out of stock|uitverkocht|sold out)\b/i.test(text) ? "out_of_stock" :
-      /\b(pre-?order)\b/i.test(text) ? "preorder" :
-      /\b(backorder)\b/i.test(text) ? "backorder" :
-      /\b(op voorraad|in stock)\b/i.test(text) ? "in_stock" : null;
+      /\b(niet op voorraad|out of stock|uitverkocht|sold out|nicht auf lager|ausverkauft|rupture de stock|épuisé|epuise|esaurito|non disponibile|agotado|sin stock|no disponible)\b/i.test(text) ? "out_of_stock" :
+      /\b(pre-?order|vorbestellung|précommande|precommande|preordine|preventa)\b/i.test(text) ? "preorder" :
+      /\b(backorder|lieferrückstand|lieferrueckstand|commande en attente|ordine arretrato|pedido pendiente)\b/i.test(text) ? "backorder" :
+      /\b(op voorraad|in stock|auf lager|en stock|disponibile|disponibilità|disponibilita)\b/i.test(text) ? "in_stock" : null;
     const structuredAvailabilityValues = [...new Set(productOfferEvidence.flatMap((product) => product.offers.map((offer) => offer.availability).filter(Boolean)))];
     const structuredAvailabilityStates = [...new Set(structuredAvailabilityValues.map((value) =>
       /OutOfStock|SoldOut|Discontinued/i.test(value) ? "out_of_stock" :
