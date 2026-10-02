@@ -676,16 +676,16 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         </div>
         <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 px-2 text-xs font-medium text-emerald-200 sm:gap-x-6">
           {(language === "nl"
-            ? ["SEO","GEO","Techniek","Webshop","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","Local SEO","Structured Data","Broken Links","Redirects","Accessibility","Concurrenten","AI Fixes","GitHub Fixes","Product Optimizer"]
+            ? ["SEO","GEO","Techniek","Webshop","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","Local SEO","Structured Data","Broken Links","Redirects","Accessibility","Concurrenten","AI Fixes","GitHub Fixes","Product Optimizer","EU Consumentenrecht & Omnibus-signalen"]
             : language === "de"
-              ? ["SEO","GEO","Technik","Onlineshop","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","Local SEO","Strukturierte Daten","Defekte Links","Weiterleitungen","Barrierefreiheit","Wettbewerber","AI Fixes","GitHub Fixes","Produktoptimierer"]
+              ? ["SEO","GEO","Technik","Onlineshop","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","Local SEO","Strukturierte Daten","Defekte Links","Weiterleitungen","Barrierefreiheit","Wettbewerber","AI Fixes","GitHub Fixes","Produktoptimierer","EU-Verbraucherrecht & Omnibus-Signale"]
               : language === "fr"
-                ? ["SEO","GEO","Technique","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","SEO local","Données structurées","Liens cassés","Redirections","Accessibilité","Concurrents","AI Fixes","GitHub Fixes","Optimiseur produit"]
+                ? ["SEO","GEO","Technique","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","SEO local","Données structurées","Liens cassés","Redirections","Accessibilité","Concurrents","AI Fixes","GitHub Fixes","Optimiseur produit","Droit UE des consommateurs & signaux Omnibus"]
                 : language === "it"
-                  ? ["SEO","GEO","Tecnica","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","SEO locale","Dati strutturati","Link interrotti","Redirect","Accessibilità","Concorrenti","AI Fixes","GitHub Fixes","Ottimizzatore prodotti"]
+                  ? ["SEO","GEO","Tecnica","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","SEO locale","Dati strutturati","Link interrotti","Redirect","Accessibilità","Concorrenti","AI Fixes","GitHub Fixes","Ottimizzatore prodotti","Diritto UE dei consumatori & segnali Omnibus"]
                   : language === "es"
-                    ? ["SEO","GEO","Técnica","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","SEO local","Datos estructurados","Enlaces rotos","Redirecciones","Accesibilidad","Competidores","AI Fixes","GitHub Fixes","Optimizador de productos"]
-                    : ["SEO","GEO","Technical","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","Local SEO","Structured Data","Broken Links","Redirects","Accessibility","Competitors","AI Fixes","GitHub Fixes","Product Optimizer"]
+                    ? ["SEO","GEO","Técnica","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","SEO local","Datos estructurados","Enlaces rotos","Redirecciones","Accesibilidad","Competidores","AI Fixes","GitHub Fixes","Optimizador de productos","Derecho UE del consumidor & señales Omnibus"]
+                    : ["SEO","GEO","Technical","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","Local SEO","Structured Data","Broken Links","Redirects","Accessibility","Competitors","AI Fixes","GitHub Fixes","Product Optimizer","EU Consumer Law & Omnibus Signals"]
           ).map((feature) => <span key={feature}>✓ {feature}</span>)}
         </div>
         {error && <div className="mx-auto mt-5 max-w-2xl rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">{error}</div>}

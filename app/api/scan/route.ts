@@ -1290,6 +1290,32 @@ export async function POST(request: Request) {
     const ecommerceVariantUrlSignal = isProductPage && /[?&](variant|sku|color|colour|size|maat)=/i.test(finalUrl.search);
     const webshopClaimMatches = text.match(/(?:snelle levering|14\s*dagen retour|gratis verzending|nederlandse webshop|voor\s*\d+\s*uur\s*besteld)/gi) || [];
     const hasWebshopClaims = webshopClaimMatches.length > 0;
+    // EU consumer / Omnibus signals are evidence-only. Static HTML can surface
+    // transparency signals but cannot certify legal compliance or historical prices.
+    const discountClaimMatches = text.match(/(?:\b(?:sale|korting|discount|rabatt|remise|sconto|descuento)\b|[-−]\s?\d{1,2}\s?%|\d{1,2}\s?%\s*(?:korting|off|discount))/gi) || [];
+    const referencePriceMatches = text.match(/(?:van|was|adviesprijs|oude prijs|previous price|was price|statt|prix avant|prezzo precedente|precio anterior)\s*[:€£$]?\s*\d[\d.,]*/gi) || [];
+    const hasDiscountClaim = discountClaimMatches.length > 0;
+    const hasReferencePriceSignal = referencePriceMatches.length > 0;
+    const reviewTransparencySignal = /(?:geverifieerde aankoop|verified purchase|verified buyer|reviewbeleid|review policy|reviews? worden|beoordelingen worden|wie kan.*review|how.*reviews?)/i.test(text);
+    const reviewContentSignal = /\b(?:reviews?|beoordelingen|klantbeoordelingen|avis clients|bewertungen|recensioni|reseñas)\b/i.test(text);
+    const scarcityMatches = text.match(/(?:nog\s+(?:maar\s+)?\d+\s+(?:op voorraad|beschikbaar)|only\s+\d+\s+left|last\s+\d+|nur\s+noch\s+\d+|plus que\s+\d+|solo\s+\d+\s+disponibili|solo quedan\s+\d+)/gi) || [];
+    const hasScarcityClaim = scarcityMatches.length > 0;
+    const personalizedPricingSignal = /(?:gepersonaliseerde prijs|personalised price|personalized price|personalisierter preis|prix personnalisé|prezzo personalizzato|precio personalizado)/i.test(text);
+    const consumerLawSignals = {
+      discountClaim: hasDiscountClaim,
+      referencePriceVisible: hasReferencePriceSignal,
+      discountExamples: discountClaimMatches.slice(0, 3),
+      referencePriceExamples: referencePriceMatches.slice(0, 3),
+      returnsVisible: hasReturnsSignal,
+      reviewContent: reviewContentSignal,
+      reviewTransparency: reviewTransparencySignal,
+      scarcityClaim: hasScarcityClaim,
+      scarcityExamples: scarcityMatches.slice(0, 3),
+      personalizedPricingDisclosure: personalizedPricingSignal,
+      businessIdentityVisible: hasVisibleBusinessIdentity,
+      businessContactVisible: hasBusinessContactDetails,
+      legalConclusion: false,
+    };
 
     const titleWords = title.toLowerCase().split(/[^a-z0-9à-ÿ]+/i).filter(Boolean);
     const titleUniqueWordRatio = titleWords.length ? new Set(titleWords).size / titleWords.length : 1;
@@ -1547,6 +1573,33 @@ export async function POST(request: Request) {
       : isHomepage
         ? check("unable_to_confirm", "price_format", "seo", "Prijsnotatie", `${priceFormatMatches.length} eurobedrag(en) met een punt zijn in de statische homepage-tekst gevonden, zoals ${priceFormatMatches[0]}, maar RankFix kan vanuit raw HTML niet bewijzen dat dit de werkelijk zichtbare gelokaliseerde prijsweergave is.`, "Bevestig prijsnotatie op een echte productpagina of met JavaScript-rendering voordat dit als fout wordt beoordeeld.", 0, 5)
         : check("warning", "price_format", "seo", "Prijsnotatie", `${priceFormatMatches.length} prijsnotatie(s) gebruikt een punt als decimaalteken, zoals ${priceFormatMatches[0]}.`, "Gebruik voor Nederlandse content bijvoorbeeld € 129,95 en formatteer prijzen met locale-aware formatting.", 2, 5)
+    );
+
+    seoChecks.push(!hasEcommerceSignal
+      ? check("not_applicable","eu_discount_reference_signal","seo","EU korting & referentieprijs","Geen duidelijke webshop-signalen gevonden; kortingssignalen zijn niet beoordeeld.","Gebruik deze controle op echte webshop- en productpagina's.",0,0)
+      : !hasDiscountClaim
+        ? check("not_applicable","eu_discount_reference_signal","seo","EU korting & referentieprijs","Geen expliciete kortingsclaim gevonden op deze pagina.","Geen actie nodig voor deze paginascan.",0,0)
+        : hasReferencePriceSignal
+          ? check("pass","eu_discount_reference_signal","seo","EU korting & referentieprijs","Een kortingsclaim én zichtbare referentieprijs zijn gevonden. RankFix kan vanuit één scan niet bewijzen dat de referentieprijs historisch juist is.","Bewaar prijs-/promotiehistorie en controleer de toepasselijke 30-dagenregel afzonderlijk.",0,0)
+          : check("unable_to_confirm","eu_discount_reference_signal","seo","EU korting & referentieprijs","Er is een kortingsclaim gevonden, maar geen duidelijke referentieprijs in de statische paginatekst.","Controleer of de toepasselijke referentieprijs duidelijk wordt getoond. RankFix geeft hier alleen een signaal, geen juridische conformiteitsverklaring.",0,0)
+    );
+    seoChecks.push(!hasEcommerceSignal
+      ? check("not_applicable","eu_review_transparency_signal","seo","EU reviewtransparantie","Geen duidelijke webshop-signalen gevonden.","Gebruik deze controle op webshops met klantreviews.",0,0)
+      : !reviewContentSignal
+        ? check("not_applicable","eu_review_transparency_signal","seo","EU reviewtransparantie","Geen klantreview-inhoud op deze pagina gevonden.","Controleer reviewtransparantie op de pagina waar reviews daadwerkelijk worden getoond.",0,0)
+        : reviewTransparencySignal
+          ? check("pass","eu_review_transparency_signal","seo","EU reviewtransparantie","Reviewinhoud en een zichtbaar transparantiesignaal over reviews zijn gevonden.","Controleer dat de uitleg feitelijk klopt met het gebruikte reviewproces.",0,0)
+          : check("unable_to_confirm","eu_review_transparency_signal","seo","EU reviewtransparantie","Reviewinhoud is gevonden, maar uit deze statische pagina blijkt niet duidelijk hoe reviews worden verzameld of geverifieerd.","Maak voor klanten duidelijk hoe reviews worden verzameld/gecontroleerd; dit is een transparantiesignaal, geen juridische conclusie.",0,0)
+    );
+    seoChecks.push(!hasEcommerceSignal || !hasScarcityClaim
+      ? check("not_applicable","eu_scarcity_signal","seo","EU schaarsteclaim","Geen expliciete numerieke schaarsteclaim gevonden.","Geen actie nodig voor deze paginascan.",0,0)
+      : check("unable_to_confirm","eu_scarcity_signal","seo","EU schaarsteclaim",`Een schaarsteclaim is gevonden, bijvoorbeeld: ${scarcityMatches[0]}. RankFix kan uit raw HTML niet bewijzen of de voorraadclaim realtime en juist is.`,"Verifieer dat de claim aantoonbaar actueel en waar is; gebruik geen kunstmatige schaarste.",0,0)
+    );
+    seoChecks.push(!hasEcommerceSignal
+      ? check("not_applicable","eu_consumer_information_signal","seo","EU consumenteninformatie","Geen duidelijke webshop-signalen gevonden.","Gebruik deze controle op echte webshops.",0,0)
+      : hasReturnsSignal && hasVisibleBusinessIdentity && hasBusinessContactDetails
+        ? check("pass","eu_consumer_information_signal","seo","EU consumenteninformatie","Retour-/herroepingssignalen, bedrijfsidentiteit en contactinformatie zijn op deze pagina aangetroffen.","Dit bewijst geen juridische conformiteit; controleer volledige voorwaarden, kosten en uitzonderingen afzonderlijk.",0,0)
+        : check("unable_to_confirm","eu_consumer_information_signal","seo","EU consumenteninformatie","Niet alle retour-, bedrijfsidentiteits- en contactsignalen konden op deze losse pagina worden bevestigd.","Controleer deze informatie sitebreed in voorwaarden, contact, product en checkout. RankFix geeft alleen signalen.",0,0)
     );
 
     seoChecks.push(!hasEcommerceSignal
@@ -2063,6 +2116,7 @@ export async function POST(request: Request) {
               openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null }, imageAltCandidates,
               productOptimizer: isProductPage ? { eligible: productOptimizerSourceCount >= 3, sourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null } : { eligible: false, sourceCount: 0, product: null },
               pricingCurrency: pricingCurrencyEvidence,
+              euConsumerSignals: consumerLawSignals,
               twitterCard: twitterCard || null, schemaTypes: [...new Set(schemaTypes)].slice(0,12),
               jsonLdBlocks: validJsonLd, sitemapFound, robotsMentionsSitemap, robotsStatus, sitemapUrl: confirmedSitemapUrl || robotsDeclaredSitemapUrls[0] || null }
           }), CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION]
@@ -2306,6 +2360,7 @@ export async function POST(request: Request) {
         imageAltCandidates,
         productOptimizer: isProductPage ? { eligible: productOptimizerSourceCount >= 3, sourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null } : { eligible: false, sourceCount: 0, product: null },
         pricingCurrency: pricingCurrencyEvidence,
+        euConsumerSignals: consumerLawSignals,
         twitterCard: twitterCard || null,
         schemaTypes: [...new Set(schemaTypes)].slice(0, 12),
         jsonLdBlocks: validJsonLd,
