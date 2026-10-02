@@ -11,7 +11,9 @@ type HostScan={scanned_url:string;final_url?:string};
 function host(scan:HostScan){try{return new URL(scan.final_url||scan.scanned_url).hostname.toLowerCase().replace(/^www\./,"")}catch{return scan.scanned_url}}
 function summary(scan:Row){
  const checks=[...(scan.result?.seo?.checks||[]),...(scan.result?.geo?.checks||[])];
- const issues=checks.filter((c:AuditCheck)=>c.status==="fail"||c.status==="warning");
+ const statusRank:Record<string,number>={fail:5,warning:4,pass:3,unable_to_confirm:2,not_applicable:1};
+ const uniqueChecks=Array.from(checks.reduce((map:Map<string,AuditCheck>,check:AuditCheck)=>{const category=String((check as AuditCheck & {category?:string}).category||"").trim().toLowerCase();const rule=String(check.rule_id||check.issue_id||check.key||check.title||"").trim().toLowerCase();const key=category+":"+rule;const current=map.get(key);if(!current||(statusRank[String(check.status).toLowerCase()]||0)>(statusRank[String(current.status).toLowerCase()]||0))map.set(key,check);return map;},new Map<string,AuditCheck>()).values());
+ const issues=uniqueChecks.filter((c:AuditCheck)=>c.status==="fail"||c.status==="warning");
  return {id:scan.id,scanned_url:scan.scanned_url,final_url:scan.final_url,overall_score:scan.overall_score,seo_score:scan.seo_score,geo_score:scan.geo_score,created_at:scan.created_at,open_issues:issues.length,critical_issues:issues.filter((c:AuditCheck)=>c.severity==="CRITICAL").length,technology_profile:scan.result?.technologyProfile||null};
 }
 export async function GET(){
