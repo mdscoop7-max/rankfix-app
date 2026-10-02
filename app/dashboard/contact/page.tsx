@@ -16,13 +16,13 @@ es:{back:"Panel",title:"Contacto",intro:"¿Tienes alguna pregunta sobre tu anál
 };
 
 export default function Contact(){
- const [busy,setBusy]=useState(false),[status,setStatus]=useState(""),[language,setLanguage]=useState<Locale>("nl");
+ const [busy,setBusy]=useState(false),[status,setStatus]=useState(""),[statusOk,setStatusOk]=useState(false),[language,setLanguage]=useState<Locale>("nl");
  const t=copy[language];
  useEffect(()=>{fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in copy)setLanguage(d.language)}).catch(()=>{})},[]);
  async function submit(e:React.FormEvent<HTMLFormElement>){
-  e.preventDefault();const form=e.currentTarget;setBusy(true);setStatus("");const data=Object.fromEntries(new FormData(form));
-  try{const r=await fetch("/api/contact",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});const d=await r.json();if(!r.ok)throw new Error(d.error||t.failed);setStatus(t.sent);form.reset()}
-  catch(e){setStatus(e instanceof Error?e.message:t.failed)}finally{setBusy(false)}
+  e.preventDefault();const form=e.currentTarget;setBusy(true);setStatus("");setStatusOk(false);const data=Object.fromEntries(new FormData(form));
+  try{const r=await fetch("/api/contact",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});const d=await r.json();if(!r.ok)throw new Error(d.error||t.failed);setStatus(t.sent);setStatusOk(true);form.reset()}
+  catch(e){setStatusOk(false);setStatus(e instanceof Error?e.message:t.failed)}finally{setBusy(false)}
  }
- return <main className="rf-page" lang={language}><div className="rf-shell"><header className="rf-header"><Link href="/" className="rf-brand" aria-label="RankFix AI home">RankFix <span>AI</span></Link><Link href="/dashboard" className="rf-back">← {t.back}</Link></header><DashboardNav current={6}/><div className="rf-body"><div className="rf-heading"><h1>{t.title}</h1><p>{t.intro}</p></div><form className="rf-review-form" onSubmit={submit}><label>{t.name}<input name="name" required/></label><label>{t.email}<input name="email" type="email" required/></label><label>{t.company} <small>({t.optional})</small><input name="company"/></label><label>{t.message}<textarea name="message" rows={6} required/></label><button className="rf-primary" disabled={busy}>{busy?t.sending:t.send}</button>{status&&<p className="rf-review-status" role="status">{status}</p>}</form></div></div><AiAssistant dashboard/></main>
+ return <main className="rf-page" lang={language}><div className="rf-shell"><header className="rf-header"><Link href="/" className="rf-brand" aria-label="RankFix AI home">RankFix <span>AI</span></Link><Link href="/dashboard" className="rf-back">← {t.back}</Link></header><DashboardNav current={6}/><div className="rf-body"><div className="rf-heading"><h1>{t.title}</h1><p>{t.intro}</p></div><form className="rf-review-form" onSubmit={submit}><label>{t.name}<input name="name" required/></label><label>{t.email}<input name="email" type="email" required/></label><label>{t.company} <small>({t.optional})</small><input name="company"/></label><label>{t.message}<textarea name="message" rows={6} required/></label><button className="rf-primary" disabled={busy}>{busy?t.sending:t.send}</button>{status&&<p className={statusOk?"rf-review-status":"rf-alert"} role={statusOk?"status":"alert"}>{status}</p>}</form></div></div><AiAssistant dashboard/></main>
 }
