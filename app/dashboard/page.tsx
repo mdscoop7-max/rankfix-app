@@ -9,7 +9,7 @@ import type { Locale } from "@/lib/locales";
 import "./dashboard.css";
 
 type User = { id: string; email: string; name: string };
-type Scan = { id: string; scanned_url: string; overall_score: number; seo_score: number; geo_score: number; created_at: string; open_issues: number; critical_issues: number };
+type Scan = { id: string; scanned_url: string; overall_score: number; seo_score: number; geo_score: number; created_at: string; open_issues: number; critical_issues: number; technology_profile?: { siteType?: string; cms?: string; platform?: string; framework?: string; confidence?: number; evidence?: string[] } | null };
 type Check = { title: string; status: string; message: string; severity?: string; fix_status?: string };
 type ScanResult = { overallScore: number; seo?: { score: number; checks?: Check[] }; geo?: { score: number; checks?: Check[] } };
 const dashboardExtras: Record<Locale, {latest:string;scanned:string;newScan:string;seoAudit:string;geoAudit:string;openIssues:string;confirmedSolved:string;scoreChange:string;previousScan:string;nextTitle:string;nextIntro:string;recent:string;recentIntro:string;history:string;firstIssue:string;firstIssueHint:string;newControl:string;newControlHint:string;codeProposals:string;askAi:string;askAiHint:string;latestReport:string;openLatest:string;waiting:string;compare:string;compareHint:string;local:string;localHint:string;improvements:string;newest:string;firstWebsite:string;startAudit:string;historyError:string;dashboardError:string;scanError:string}> = {
@@ -108,7 +108,7 @@ export default function Dashboard() {
         {message && <p className="rf-notice" role="status">{message}</p>}
         <section className="rf-dashboard-status">
           <div className="rf-dashboard-hero">
-            <div className="rf-dashboard-latest">{latest && <div className="rf-overall-meter" style={{"--rf-score":latest.overall_score} as React.CSSProperties}><div><strong>{latest.overall_score}</strong><span>/100</span></div></div>}<div><span className="rf-eyebrow">{x.latest}</span><h2>{latestHost || x.firstWebsite}</h2><p>{latest ? `${x.scanned} ${new Date(latest.created_at).toLocaleString(language)}` : x.startAudit}</p></div></div>
+            <div className="rf-dashboard-latest">{latest && <div className="rf-overall-meter" style={{"--rf-score":latest.overall_score} as React.CSSProperties}><div><strong>{latest.overall_score}</strong><span>/100</span></div></div>}<div><span className="rf-eyebrow">{x.latest}</span><h2>{latestHost || x.firstWebsite}</h2><p>{latest ? `${x.scanned} ${new Date(latest.created_at).toLocaleString(language)}` : x.startAudit}</p>{latest?.technology_profile && <p className="rf-profile-line"><strong>{language==="nl"?"Websiteprofiel":language==="de"?"Websiteprofil":language==="fr"?"Profil du site":language==="it"?"Profilo del sito":language==="es"?"Perfil del sitio":"Website profile"}:</strong> {latest.technology_profile.siteType || "Website"} · {latest.technology_profile.framework || latest.technology_profile.platform || latest.technology_profile.cms || (language==="nl"?"Niet bevestigd":"Not confirmed")} · {latest.technology_profile.confidence ?? 40}%</p>}</div></div>
             <Link className="rf-primary-link rf-scan-cta" href="/dashboard/scan">＋ {x.newScan}</Link>
           </div>
           <div className="rf-status-grid">
