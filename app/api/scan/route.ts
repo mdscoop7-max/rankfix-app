@@ -1272,7 +1272,10 @@ export async function POST(request: Request) {
       ...(text.includes("$") ? ["USD"] : []),
     ])];
     const structuredCurrencyCodes = [...new Set(productOfferEvidence.flatMap((product) => product.offers.map((offer) => offer.currency).filter((currency) => /^[A-Z]{3}$/.test(currency))))];
-    const currencyConflict = isProductPage && structuredCurrencyCodes.length === 1 && visibleCurrencyCodes.length === 1 && structuredCurrencyCodes[0] !== visibleCurrencyCodes[0];
+    // A currency mismatch is actionable only when the visible price is tied to
+    // explicit product markup. Currency symbols elsewhere on the page may belong
+    // to selectors, shipping examples or other products and are not contradiction proof.
+    const currencyConflict = isProductPage && visiblePriceEvidenceStrength === "explicit_product_markup" && structuredCurrencyCodes.length === 1 && visibleCurrencyCodes.length === 1 && structuredCurrencyCodes[0] !== visibleCurrencyCodes[0];
     const mixedVisibleCurrencies = hasEcommerceSignal && visibleCurrencyCodes.length > 1;
     const pricingCurrencyEvidence = {
       visibleCurrencies: visibleCurrencyCodes,
@@ -1792,8 +1795,8 @@ export async function POST(request: Request) {
         ? check("warning","price_currency_consistency","seo","Prijs & valuta consistentie",`De zichtbare valuta (${visibleCurrencyCodes.join(", ")}) en Product/Offer structured data (${structuredCurrencyCodes.join(", ")}) spreken elkaar tegen.`,"Laat zichtbare prijs, valuta en Product/Offer-data dezelfde markt/valuta beschrijven. Controleer land-, btw- en promotielogica vóór publicatie.",2,6)
         : mixedVisibleCurrencies
           ? check("unable_to_confirm","price_currency_consistency","seo","Prijs & valuta consistentie",`Meerdere valuta zijn op deze pagina gevonden (${visibleCurrencyCodes.join(", ")}). Dat kan correct zijn door een valutakiezer of internationale marktweergave.`,"Controleer per land/taal of product, winkelwagen en checkout dezelfde geselecteerde valuta blijven gebruiken.",0,6)
-          : isProductPage && structuredCurrencyCodes.length && visibleCurrencyCodes.length
-            ? check("pass","price_currency_consistency","seo","Prijs & valuta consistentie",`Zichtbare en machineleesbare valuta zijn consistent: ${structuredCurrencyCodes[0]}.`,"Controleer dezelfde valuta later ook in winkelwagen en checkout; btw, verzending en promoties kunnen legitieme prijsverschillen veroorzaken.",6,6)
+          : isProductPage && visiblePriceEvidenceStrength === "explicit_product_markup" && structuredCurrencyCodes.length === 1 && visibleCurrencyCodes.length === 1 && structuredCurrencyCodes[0] === visibleCurrencyCodes[0]
+            ? check("pass","price_currency_consistency","seo","Prijs & valuta consistentie",`Expliciet gemarkeerde productprijs en machineleesbare Product/Offer-data gebruiken dezelfde valuta: ${structuredCurrencyCodes[0]}.`,"Controleer dezelfde valuta later ook in winkelwagen en checkout; btw, verzending en promoties kunnen legitieme prijsverschillen veroorzaken.",6,6)
             : check("unable_to_confirm","price_currency_consistency","seo","Prijs & valuta consistentie","RankFix vond onvoldoende onafhankelijk zichtbaar én machineleesbaar valutabewijs om consistentie hard te bevestigen.","Controleer product, winkelwagen en checkout samen voordat prijsverschillen als fout worden beoordeeld.",0,6)
     );
 
