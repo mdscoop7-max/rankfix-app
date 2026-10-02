@@ -119,6 +119,22 @@ function validateRequestedFixCompletion(current:string, proposed:string, issue:s
   const checks=[[wantsOgTitle,hasOgTitle,"og:title"],[wantsOgDescription,hasOgDescription,"og:description"],[wantsOgImage,hasOgImage,"og:image"]] as const;
   let requestedCount=0; let currentSatisfied=0;
   for(const [requested,checker,label] of checks){ if(!requested) continue; requestedCount++; if(checker(current)) currentSatisfied++; if(!checker(proposed)) errors.push("FIX_MISSING:"+label); }
+
+  // Old scan issue links can outlive source changes. Recognize common stale issues from
+  // the current repository content so RankFix returns "already fixed / rescan" instead
+  // of a misleading blocked-fix error.
+  if(issueId==="H1_MISSING"){
+    const h1Count=(current.match(/<h1\b/gi)||[]).length;
+    if(h1Count>=1) return {errors:[],currentAlreadySatisfied:true};
+  }
+  if(issueId==="META_DESCRIPTION_GUIDANCE"||issueId==="META_DESCRIPTION_MISSING"){
+    const description=current.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["'][^>]*>/i)?.[1]
+      || current.match(/<meta[^>]+content=["']([^"']*)["'][^>]+name=["']description["'][^>]*>/i)?.[1]
+      || current.match(/\bdescription\s*:\s*["']([^"']*)["']/i)?.[1]
+      || "";
+    if(description.trim().length>=120 && description.trim().length<=160) return {errors:[],currentAlreadySatisfied:true};
+  }
+
   return {errors,currentAlreadySatisfied:requestedCount>0&&currentSatisfied===requestedCount};
 }
 
@@ -569,6 +585,10 @@ export async function POST(request:Request){
 
     const normalizeFile=(value:string)=>value.replace(/\r\n/g,"\n").replace(/[ \t]+$/gm,"").trim();
     if(normalizeFile(current)===normalizeFile(generated.content)){
+      const staleSatisfied=validateRequestedFixCompletion(current,current,issue,issueId).currentAlreadySatisfied;
+      if(staleSatisfied){
+        return NextResponse.json({success:true,alreadyApplied:true,status:"already_ok",summary:msg("Deze verbetering staat al in de huidige broncode. Voer een nieuwe scan uit om dit live te bevestigen.","This improvement is already present in the current source. Run a new scan to verify it live.","Diese Verbesserung ist bereits im aktuellen Quellcode vorhanden. Führe einen neuen Scan aus, um sie live zu bestätigen.","Cette amélioration est déjà présente dans le code source actuel. Lancez une nouvelle analyse pour la confirmer en ligne.","Questo miglioramento è già presente nel codice sorgente attuale. Esegui una nuova scansione per verificarlo online.","Esta mejora ya está presente en el código fuente actual. Ejecuta un nuevo análisis para verificarla en vivo."),repository:repo,path});
+      }
       const guidanceIssue=issueId==="META_TITLE_GUIDANCE"||issueId==="META_DESCRIPTION_GUIDANCE";
       return NextResponse.json({
         success:false,
