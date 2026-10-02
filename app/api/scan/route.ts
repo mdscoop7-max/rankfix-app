@@ -158,10 +158,12 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
     hit(/(?:shopify\.theme|shopify-section|shopify-payment-button)/i, "Shopify storefront"),
     hit(/\.myshopify\.com/i, "Shopify domain reference"),
   ].filter(Boolean).length;
-  const magentoSignals = [
-    hit(/(?:mage\/cookies|magento_|x-magento|\/static\/version\d+)/i, "Magento storefront"),
-    hit(/(?:form_key|checkout\/cart)/i, "Magento commerce pattern"),
-  ].filter(Boolean).length;
+  const magentoMageCookies = hit(/mage\/cookies/i, "Magento mage/cookies marker");
+  const magentoNamedMarker = hit(/magento_/i, "Magento named marker");
+  const magentoResponseHeader = hit(/x-magento/i, "Magento response header");
+  const magentoVersionedStatic = hit(/\/static\/version\d+/i, "Magento versioned static asset");
+  const magentoCommercePattern = hit(/(?:form_key|checkout\/cart)/i, "Magento commerce pattern");
+  const magentoSignals = [magentoMageCookies, magentoNamedMarker, magentoResponseHeader, magentoVersionedStatic, magentoCommercePattern].filter(Boolean).length;
   const prestashopSignals = [
     hit(/prestashop/i, "PrestaShop marker"),
     hit(/\/modules\/(?:ps_|blockcart|blockreassurance)/i, "PrestaShop module assets"),
@@ -198,7 +200,7 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
   }
 
   const strongShopify = shopifySignals >= 2;
-  const strongMagento = /(?:mage\/cookies|magento_|\/static\/version\d+)/i.test(source) || /x-magento/i.test(headerText);
+  const strongMagento = magentoMageCookies || magentoNamedMarker || magentoResponseHeader || magentoVersionedStatic;
   const platformCandidates: Array<{ name: string; strength: number }> = [];
   const strongWoo = /wp-content\/plugins\/woocommerce/i.test(source) || (wordpressSignals >= 2 && wooSignals >= 2);
   if (strongWoo) platformCandidates.push({ name: "WooCommerce", strength: Math.max(2, wooSignals + Math.min(wordpressSignals, 1)) });
@@ -897,9 +899,14 @@ export async function POST(request: Request) {
           sitemapStatus = "FAIL";
           sitemapDiagnostic = `${candidate} gaf HTTP ${r.status}; content-type: ${contentType}; geen geldige urlset/sitemapindex gevonden.`;
         } else {
-          sitemapStatus = r.status === 404 ? "FAIL" : sitemapStatus;
+          const isRobotsDeclaredCandidate =
+            robotsDeclaredSitemapUrls.includes(candidate) ||
+            declaredSitemapEvidence.has(normalizeSitemapEvidenceUrl(candidate));
           sitemapDiagnostic = `${candidate} gaf HTTP ${r.status}; content-type: ${r.headers.get("content-type") || "onbekend"}.`;
-          if ((r.status === 404 || r.status === 410) && declaredSitemapEvidence.has(normalizeSitemapEvidenceUrl(candidate))) {
+          if ((r.status === 404 || r.status === 410) && isRobotsDeclaredCandidate) {
+            // A robots.txt declaration is direct site evidence. A later fallback
+            // timeout or guessed sitemap must never erase this proven failure.
+            sitemapStatus = "FAIL";
             brokenDeclaredSitemaps.push(candidate);
             declaredSitemapHttpFailures.push({ url: candidate, status: r.status });
           }
@@ -910,7 +917,7 @@ export async function POST(request: Request) {
       }
     }
     if (!sitemapFound && sitemapFetchCompleted && !sitemapFetchFailed && sitemapStatus === "UNABLE_TO_CONFIRM") sitemapStatus = "FAIL";
-    if (!sitemapFound && sitemapFetchFailed && brokenDeclaredSitemaps.length === 0) sitemapStatus = "UNABLE_TO_CONFIRM";
+    if (!sitemapFound && sitemapFetchFailed && brokenDeclaredSitemaps.length === 0 && declaredSitemapHttpFailures.length === 0) sitemapStatus = "UNABLE_TO_CONFIRM";
     if (declaredSitemapHttpFailures.length > 0 || brokenDeclaredSitemaps.length > 0) sitemapStatus = "FAIL";
     const robotsMentionsSitemap = robotsDeclaredSitemapUrls.length > 0;
 
