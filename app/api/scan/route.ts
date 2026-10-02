@@ -1513,9 +1513,9 @@ export async function POST(request: Request) {
     const canonicalTarget = canonicalUrl ? normalizeCanonicalTarget(canonicalUrl) : "";
     const currentTarget = normalizeCanonicalTarget(finalUrl);
     const canonicalIsSelf = Boolean(canonicalUrl && canonicalTarget === currentTarget);
-    const normalizeHost = (host: string) => host.toLowerCase().replace(/^www\./, "");
     // www/apex redirects are normally the same site and must not become a cross-domain failure.
-    const canonicalIsCrossDomain = Boolean(canonicalUrl && normalizeHost(canonicalUrl.hostname) !== normalizeHost(finalUrl.hostname));
+    const canonicalHost = (host: string) => host.toLowerCase().replace(/^www\./, "");
+    const canonicalIsCrossDomain = Boolean(canonicalUrl && canonicalHost(canonicalUrl.hostname) !== canonicalHost(finalUrl.hostname));
     const canonicalDropsQuery = Boolean(canonicalUrl && finalUrl.search && !canonicalUrl.search);
     seoChecks.push(
       canonicalInvalid
