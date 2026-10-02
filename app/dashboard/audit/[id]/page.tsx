@@ -142,8 +142,17 @@ export default function AuditDetail() {
     if(!current || (statusRank[String(check.status).toLowerCase()]||0) > (statusRank[String(current.status).toLowerCase()]||0)) map.set(key,check);
     return map;
   },new Map<string,Check>()).values());
+  const severityRank: Record<string, number> = { CRITICAL: 5, HIGH: 4, MEDIUM: 3, LOW: 2, INFO: 1 };
   const problems = checks.filter(check => check.status === "fail" || check.status === "warning")
-    .sort((a, b) => (a.severity === "CRITICAL" ? -1 : a.severity === "HIGH" ? 0 : 1) - (b.severity === "CRITICAL" ? -1 : b.severity === "HIGH" ? 0 : 1));
+    .sort((a, b) => {
+      // Proven failures first, then severity, then audit weight. This keeps a
+      // low-impact warning from appearing above a higher-impact proven issue.
+      const statusDifference = (statusRank[String(b.status).toLowerCase()] || 0) - (statusRank[String(a.status).toLowerCase()] || 0);
+      if (statusDifference) return statusDifference;
+      const severityDifference = (severityRank[String(b.severity || "INFO").toUpperCase()] || 0) - (severityRank[String(a.severity || "INFO").toUpperCase()] || 0);
+      if (severityDifference) return severityDifference;
+      return (b.maxPoints || 0) - (a.maxPoints || 0);
+    });
   const topPriorities = problems.slice(0, 3);
   const remainingProblems = problems.slice(3);
   const advice = checks.filter(check => check.status === "pass" && check.key === "h1" && /structuuradvies/i.test(check.message));
