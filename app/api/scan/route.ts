@@ -1136,10 +1136,10 @@ export async function POST(request: Request) {
     const sectorSource = [title, description, h1s.join(" "), text.slice(0,120000), schemaTypes.join(" ")].join(" ");
     const sectorCandidates = sectorSignals.map(item=>({sector:item.sector,label:item.label,hits:item.patterns.filter(pattern=>pattern.test(sectorSource)).length,modules:item.modules})).filter(item=>item.hits>0).sort((a,b)=>b.hits-a.hits);
     const sectorProfile = hasEcommerceSignal
-      ? {sector:"ecommerce" as SectorKey,label:"Webshop / e-commerce",confidence:"high" as const,evidence:["Bevestigde commerce-signalen"],applicableModules:["core_seo","geo","ecommerce","product","pricing_currency","merchant","checkout","eu_consumer"]}
+      ? {sector:"ecommerce" as SectorKey,label:"Webshop / e-commerce",confidence:"high" as const,confidenceScore:95,evidence:["Bevestigde commerce-signalen"],applicableModules:["core_seo","geo","ecommerce","product","pricing_currency","merchant","checkout","eu_consumer"]}
       : sectorCandidates[0] && sectorCandidates[0].hits>=2 && (!sectorCandidates[1] || sectorCandidates[0].hits>sectorCandidates[1].hits)
-        ? {sector:sectorCandidates[0].sector,label:sectorCandidates[0].label,confidence:"medium" as const,evidence:[`${sectorCandidates[0].hits} onafhankelijke sectorsignalen in raw HTML`],applicableModules:sectorCandidates[0].modules}
-        : {sector:"unknown" as SectorKey,label:"Sector niet bevestigd",confidence:"low" as const,evidence:sectorCandidates.slice(0,2).map(x=>`${x.label}: ${x.hits} signaal/signalen`),applicableModules:["core_seo","geo","technical"]};
+        ? {sector:sectorCandidates[0].sector,label:sectorCandidates[0].label,confidence:"medium" as const,confidenceScore:75,evidence:[`${sectorCandidates[0].hits} onafhankelijke sectorsignalen in raw HTML`],applicableModules:sectorCandidates[0].modules}
+        : {sector:"unknown" as SectorKey,label:"Sector niet bevestigd",confidence:"low" as const,confidenceScore:sectorCandidates[0]?.hits ? 35 : 0,evidence:sectorCandidates.slice(0,2).map(x=>`${x.label}: ${x.hits} signaal/signalen`),applicableModules:["core_seo","geo","technical"]};
 
     const seoChecks: Check[] = [];
     const geoChecks: Check[] = [];
