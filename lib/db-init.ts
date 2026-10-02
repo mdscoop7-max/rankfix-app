@@ -162,6 +162,8 @@ const statements = [
   `ALTER TABLE fix_proposals ADD COLUMN IF NOT EXISTS failure JSONB`,
   `ALTER TABLE fix_proposals ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '2 hours')`,
   `ALTER TABLE fix_proposals ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`,
+  `ALTER TABLE fix_proposals DROP CONSTRAINT IF EXISTS fix_proposals_status_check`,
+  `ALTER TABLE fix_proposals ADD CONSTRAINT fix_proposals_status_check CHECK (status IN ('PREVIEW_READY','APPROVED','PUBLISHED','FAILED','EXPIRED'))`,
   `CREATE UNIQUE INDEX IF NOT EXISTS fix_proposals_hash_idx ON fix_proposals(user_id,proposal_hash)`,
   `CREATE TABLE IF NOT EXISTS fix_events (
     id BIGSERIAL PRIMARY KEY,
