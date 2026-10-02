@@ -22,7 +22,8 @@ function activeIndex(pathname:string){
  if(pathname==="/dashboard") return 0;
  if(pathname.startsWith("/dashboard/scan")) return 1;
  if(pathname.startsWith("/dashboard/github")||pathname.startsWith("/dashboard/fix")) return 2;
- if(pathname.startsWith("/dashboard/history")||pathname.startsWith("/dashboard/reports")) return 3;\n if(pathname.startsWith("/dashboard/audit")) return 0;
+ if(pathname.startsWith("/dashboard/history")||pathname.startsWith("/dashboard/reports")) return 3;
+ if(pathname.startsWith("/dashboard/audit")) return 0;
  if(pathname.startsWith("/dashboard/")) return 4;
  return 0;
 }
