@@ -369,7 +369,11 @@ export async function POST(request:Request){
     const approvedHash=typeof body?.proposal_hash==="string"?body.proposal_hash.trim():"";
     // Preview is read-only: it must not consume the PR/code-write rate limit.
     // Only a confirmed publish request can create a branch/commit/PR.
-    if(!previewOnly && !await consumeRateLimit("github-fix",String(user.id),12,3600)){
+    // Keep the customer production guard, but allow the owner's development
+    // account to exercise the Fix Engine repeatedly while it is being tested.
+    const isFixEngineTestAccount=String(user.email||"").trim().toLowerCase()==="mdscoop7@gmail.com";
+    const githubFixHourlyLimit=isFixEngineTestAccount?100:12;
+    if(!previewOnly && !await consumeRateLimit("github-fix",String(user.id),githubFixHourlyLimit,3600)){
       return NextResponse.json({error:msg("Te veel codefix-publicaties. Probeer later opnieuw.","Too many code-fix publications. Try again later.","Zu viele Codefix-Veröffentlichungen. Versuche es später erneut.","Trop de publications de correctifs. Réessayez plus tard.","Troppe pubblicazioni di correzioni. Riprova più tardi.","Demasiadas publicaciones de correcciones. Inténtalo más tarde.")},{status:429});
     }
     if((requestedRepo&&!safeRepo(requestedRepo))||(requestedPath&&!safeFixTarget(requestedPath))||!issueId||!scanId) return NextResponse.json({error:msg("Ongeldige fixgegevens: scan_id en issue_id zijn verplicht.","Invalid fix data: scan_id and issue_id are required.","Ungültige Fix-Daten: scan_id und issue_id sind erforderlich.","Données de correction invalides : scan_id et issue_id sont requis.","Dati di correzione non validi: scan_id e issue_id sono obbligatori.","Datos de corrección no válidos: scan_id e issue_id son obligatorios.")},{status:400});
