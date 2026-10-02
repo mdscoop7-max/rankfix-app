@@ -2449,7 +2449,7 @@ export async function POST(request: Request) {
 
         const websiteHost = finalUrl.hostname.toLowerCase().replace(/^www\\./, "");
         const rememberedFixes = await getDb().query(
-          "SELECT rule_id,file_path,repository,pr_number,fix_summary,evidence,last_confirmed_at,recurrence_count FROM fix_memory WHERE user_id=$1 AND website_host=$2",
+          "SELECT rule_id,file_path,repository,pr_number,fix_summary,evidence,last_confirmed_at,recurrence_count,recurrence_open,last_recurred_at FROM fix_memory WHERE user_id=$1 AND website_host=$2",
           [user.id, websiteHost]
         );
         const rememberedByRule = new Map(rememberedFixes.rows.map((row:any)=>[String(row.rule_id),row]));
@@ -2471,6 +2471,21 @@ export async function POST(request: Request) {
           // the current page must independently prove that the same rule has
           // returned before RankFix exposes the prior verified repair.
           if (remembered && (currentStatus === "FAIL" || currentStatus === "WARNING") && currentConfidence !== "low" && hasCurrentEvidence) {
+            // Count a recurrence once per episode. Repeated scans while the same
+            // recurrence is still open must not inflate the customer's history.
+            let recurrenceCount = Number(remembered.recurrence_count || 0);
+            if (remembered.recurrence_open !== true) {
+              const opened = await getDb().query(
+                "UPDATE fix_memory SET recurrence_count=recurrence_count+1, recurrence_open=TRUE, last_recurred_at=NOW(), updated_at=NOW() WHERE user_id=$1 AND website_host=$2 AND rule_id=$3 AND recurrence_open=FALSE RETURNING recurrence_count,last_recurred_at",
+                [user.id, websiteHost, issueId]
+              );
+              if (opened.rows[0]) {
+                recurrenceCount = Number(opened.rows[0].recurrence_count || recurrenceCount + 1);
+                remembered.recurrence_open = true;
+                remembered.last_recurred_at = opened.rows[0].last_recurred_at;
+                remembered.recurrence_count = recurrenceCount;
+              }
+            }
             item.recurring_issue = {
               recognized: true,
               lastConfirmedAt: remembered.last_confirmed_at,
@@ -2479,7 +2494,7 @@ export async function POST(request: Request) {
               previousPrNumber: remembered.pr_number || null,
               previousFixSummary: remembered.fix_summary || null,
               previousEvidence: remembered.evidence || null,
-              recurrenceCount: Number(remembered.recurrence_count || 0) + 1,
+              recurrenceCount,
               requiresFreshVerification: true
             };
           }
@@ -2572,6 +2587,7 @@ export async function POST(request: Request) {
                  -- Recurrence is recognized only when a later live scan proves
                  -- the same rule has become an active issue again.
                  recurrence_count=fix_memory.recurrence_count,
+                 recurrence_open=FALSE,
                  updated_at=NOW()`,
               [user.id,websiteHost,issueId,normalizedScanUrl,verifiedFixRow.repository||null,verifiedFixRow.file_path||null,verifiedFixRow.pr_number||null,savedScanId,String(item.fix||item.message||item.title||""),JSON.stringify({status:"PASS",confidence:liveConfidence,details:liveEvidence?.details||null})]
             );
