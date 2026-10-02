@@ -674,19 +674,34 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
             </button>
           </form>
         </div>
-        <div className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-2 px-2 text-xs font-medium text-emerald-200 sm:gap-x-6">
-          {(language === "nl"
-            ? ["SEO","GEO","Techniek","Webshop","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","Local SEO","Structured Data","Broken Links","Redirects","Accessibility","Concurrenten","AI Fixes","GitHub Fixes","Product Optimizer","EU Consumentenrecht & Omnibus-signalen","Checkout & Funnel Audit"]
-            : language === "de"
-              ? ["SEO","GEO","Technik","Onlineshop","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","Local SEO","Strukturierte Daten","Defekte Links","Weiterleitungen","Barrierefreiheit","Wettbewerber","AI Fixes","GitHub Fixes","Produktoptimierer","EU-Verbraucherrecht & Omnibus-Signale","Checkout & Funnel Audit"]
-              : language === "fr"
-                ? ["SEO","GEO","Technique","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","SEO local","Données structurées","Liens cassés","Redirections","Accessibilité","Concurrents","AI Fixes","GitHub Fixes","Optimiseur produit","Droit UE des consommateurs & signaux Omnibus","Audit checkout & tunnel"]
-                : language === "it"
-                  ? ["SEO","GEO","Tecnica","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","SEO locale","Dati strutturati","Link interrotti","Redirect","Accessibilità","Concorrenti","AI Fixes","GitHub Fixes","Ottimizzatore prodotti","Diritto UE dei consumatori & segnali Omnibus","Audit checkout & funnel"]
-                  : language === "es"
-                    ? ["SEO","GEO","Técnica","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","SEO local","Datos estructurados","Enlaces rotos","Redirecciones","Accesibilidad","Competidores","AI Fixes","GitHub Fixes","Optimizador de productos","Derecho UE del consumidor & señales Omnibus","Auditoría checkout & funnel"]
-                    : ["SEO","GEO","Technical","E-commerce","Ads & Analytics","Search Console","Merchant Readiness","Consent Mode","Monitoring","Local SEO","Structured Data","Broken Links","Redirects","Accessibility","Competitors","AI Fixes","GitHub Fixes","Product Optimizer","EU Consumer Law & Omnibus Signals","Checkout & Funnel Audit"]
-          ).map((feature) => <span key={feature}>✓ {feature}</span>)}
+        <div className="mx-auto mt-4 max-w-4xl px-2">
+          <div className="flex flex-wrap justify-center gap-2 text-xs font-semibold text-emerald-100">
+            {(language === "nl"
+              ? ["SEO + GEO","Techniek","Local SEO","Webshop","AI & GitHub Fixes","Rapporten"]
+              : language === "de"
+                ? ["SEO + GEO","Technik","Local SEO","Onlineshop","AI & GitHub Fixes","Berichte"]
+                : language === "fr"
+                  ? ["SEO + GEO","Technique","SEO local","E-commerce","Correctifs IA & GitHub","Rapports"]
+                  : language === "it"
+                    ? ["SEO + GEO","Tecnica","SEO locale","E-commerce","Fix AI & GitHub","Report"]
+                    : language === "es"
+                      ? ["SEO + GEO","Técnica","SEO local","E-commerce","Fixes IA & GitHub","Informes"]
+                      : ["SEO + GEO","Technical","Local SEO","E-commerce","AI & GitHub Fixes","Reports"]
+            ).map((feature) => <span key={feature} className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1.5">✓ {feature}</span>)}
+          </div>
+          <p className="mt-3 text-center text-xs text-slate-300">
+            {language === "nl"
+              ? "Begin klein en breid later alleen uit wat je nodig hebt · extra functies vanaf €2,95 p/m"
+              : language === "de"
+                ? "Klein starten und später nur das ergänzen, was du brauchst · Extras ab €2,95/Monat"
+                : language === "fr"
+                  ? "Commencez simplement et ajoutez ensuite uniquement ce dont vous avez besoin · options dès 2,95 €/mois"
+                  : language === "it"
+                    ? "Inizia in piccolo e aggiungi in seguito solo ciò che ti serve · extra da €2,95/mese"
+                    : language === "es"
+                      ? "Empieza con lo esencial y añade después solo lo que necesites · extras desde 2,95 €/mes"
+                      : "Start small and add only what you need later · extras from €2.95/month"}
+          </p>
         </div>
         {error && <div className="mx-auto mt-5 max-w-2xl rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">{error}</div>}
 
