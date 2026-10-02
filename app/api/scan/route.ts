@@ -668,7 +668,19 @@ export async function POST(request: Request) {
     const cartFormSignal = /<form[^>]+(?:action\s*=\s*["'][^"']*(?:cart|winkelwagen|checkout)[^"']*["']|class\s*=\s*["'][^"']*(?:cart|basket)[^"']*["'])/i.test(html);
     const storefrontMarkupSignal = pricedProductCardCount >= 2 && visiblePriceCount >= 2 && (cartFormSignal || hasStrongCommerceAction) && commerceNavigationSignal;
     const homepageStorefrontSignal = isHomepage && hasCommerceHrefSignal && commerceNavigationSignal && visiblePriceCount >= 3;
-    const hasEcommerceSignal = hasConfirmedCommercePlatform || hasProductSignal || hasCategorySignal || repeatedProductLinkSignal || storefrontMarkupSignal || homepageStorefrontSignal || (commerceNavigationSignal && hasStrongCommerceAction && (hasExplicitPriceSignal || visiblePriceCount >= 2)) || (hasCommerceHrefSignal && hasStrongCommerceAction && visiblePriceCount >= 2);
+    // Site-level commerce evidence must not depend on a homepage rendering prices or
+    // add-to-cart controls. Large storefronts often keep those client-side while the
+    // raw HTML still exposes Store schema and commercial navigation/support routes.
+    const hasStoreSchema = schemaSet.has("store") || schemaSet.has("onlinestore");
+    const commerceSupportHrefCount = links.filter((href) =>
+      /(?:verzend|shipping|delivery|bezorg|retour|return|refund|betaal|payment|bestel|order|winkelwagen|cart|checkout|klantenservice|customer-service)/i.test(href)
+    ).length;
+    const shopCatalogHrefCount = links.filter((href) =>
+      /(?:\/shop(?:\/|$)|\/store(?:\/|$)|\/product(?:en|s)?(?:\/|$)|\/collection(?:s)?(?:\/|$)|\/categor(?:y|ie|ies|ien)(?:\/|$))/i.test(href)
+    ).length;
+    const commercialNavigationEvidence = commerceNavigationSignal && (shopCatalogHrefCount >= 2 || commerceSupportHrefCount >= 2);
+    const siteLevelCommerceSignal = hasStoreSchema || homepageStorefrontSignal || commercialNavigationEvidence;
+    const hasEcommerceSignal = hasConfirmedCommercePlatform || hasProductSignal || hasCategorySignal || repeatedProductLinkSignal || storefrontMarkupSignal || siteLevelCommerceSignal || (commerceNavigationSignal && hasStrongCommerceAction && (hasExplicitPriceSignal || visiblePriceCount >= 2)) || (hasCommerceHrefSignal && hasStrongCommerceAction && visiblePriceCount >= 2);
     const requestedLanguages = adsProfile.adLanguages.split(/[,;]/).map((value) => value.trim().toLowerCase()).filter(Boolean).slice(0, 6);
     const requestedCountries = adsProfile.targetCountries.split(/[,;]/).map((value) => value.trim()).filter(Boolean).slice(0, 8);
     const pageLanguage = (requestedLanguages[0] || lang || "").toLowerCase().split("-")[0].trim();
@@ -1817,7 +1829,7 @@ export async function POST(request: Request) {
     const pageTypeEvidence = {
       type: isHomepage ? "homepage" : isProductPage ? "product" : hasCategorySignal ? "category" : effectiveLocalBusinessPage ? "service" : effectiveArticlePage ? "article" : "unknown",
       confidence: isHomepage ? "high" : isProductPage && (hasProductSchema || hasSkuSignal) ? "high" : isProductPage ? "medium" : hasCategorySignal && (hasItemListSignal || repeatedProductCardSignal) ? "high" : effectiveLocalBusinessPage || hasCategorySignal || effectiveArticlePage ? "medium" : "low",
-      evidence: [isHomepage ? `localized/root path: ${pathname}` : "", hasProductSchema ? "Product schema present" : "", hasItemListSignal ? "ItemList schema present" : "", genericCategoryPathSignal ? `generic commerce category path: ${pathname}` : "", repeatedProductCardSignal ? "repeated product-card commerce signals" : "", hasSkuSignal ? "SKU signal present" : "", hasStrongCommerceAction ? "commerce action present" : ""].filter(Boolean),
+      evidence: [isHomepage ? `localized/root path: ${pathname}` : "", hasProductSchema ? "Product schema present" : "", hasStoreSchema ? "Store schema present" : "", hasItemListSignal ? "ItemList schema present" : "", genericCategoryPathSignal ? `generic commerce category path: ${pathname}` : "", repeatedProductCardSignal ? "repeated product-card commerce signals" : "", commercialNavigationEvidence ? "commercial navigation + shop/support links" : "", hasSkuSignal ? "SKU signal present" : "", hasStrongCommerceAction ? "commerce action present" : ""].filter(Boolean),
     };
     // Keep the website profile aligned with the same evidence used by webshop-only audit checks.
     // Generic words such as "checkout", "price" or SaaS pricing must not classify a site as a webshop.
