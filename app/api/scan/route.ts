@@ -1129,6 +1129,24 @@ export async function POST(request: Request) {
     )].slice(0, 20);
     const visiblePriceCandidates = explicitProductPriceCandidates.length ? explicitProductPriceCandidates : broadVisiblePriceCandidates;
     const visiblePriceEvidenceStrength = explicitProductPriceCandidates.length ? "explicit_product_markup" : broadVisiblePriceCandidates.length ? "broad_page_text" : "none";
+    const visibleCurrencyCodes = [...new Set([
+      ...(text.match(/\b(?:EUR|GBP|USD)\b/gi) || []).map((value) => value.toUpperCase()),
+      ...(text.includes("€") ? ["EUR"] : []),
+      ...(text.includes("£") ? ["GBP"] : []),
+      ...(text.includes("$") ? ["USD"] : []),
+    ])];
+    const structuredCurrencyCodes = [...new Set(productOfferEvidence.flatMap((product) => product.offers.map((offer) => offer.currency).filter((currency) => /^[A-Z]{3}$/.test(currency))))];
+    const currencyConflict = isProductPage && structuredCurrencyCodes.length === 1 && visibleCurrencyCodes.length === 1 && structuredCurrencyCodes[0] !== visibleCurrencyCodes[0];
+    const mixedVisibleCurrencies = hasEcommerceSignal && visibleCurrencyCodes.length > 1;
+    const pricingCurrencyEvidence = {
+      visibleCurrencies: visibleCurrencyCodes,
+      structuredCurrencies: structuredCurrencyCodes,
+      visiblePriceCount: visiblePriceCandidates.length,
+      visiblePriceEvidenceStrength,
+      structuredPriceCount: productOfferEvidence.flatMap((product) => product.offers).filter((offer) => offerHasPrice(offer)).length,
+      currencyConflict,
+      mixedVisibleCurrencies,
+    };
     const structuredPriceCandidates = [...new Set(
       productOfferEvidence
         .flatMap((product) => product.offers.map((offer) => offer.price))
@@ -1529,6 +1547,17 @@ export async function POST(request: Request) {
       : isHomepage
         ? check("unable_to_confirm", "price_format", "seo", "Prijsnotatie", `${priceFormatMatches.length} eurobedrag(en) met een punt zijn in de statische homepage-tekst gevonden, zoals ${priceFormatMatches[0]}, maar RankFix kan vanuit raw HTML niet bewijzen dat dit de werkelijk zichtbare gelokaliseerde prijsweergave is.`, "Bevestig prijsnotatie op een echte productpagina of met JavaScript-rendering voordat dit als fout wordt beoordeeld.", 0, 5)
         : check("warning", "price_format", "seo", "Prijsnotatie", `${priceFormatMatches.length} prijsnotatie(s) gebruikt een punt als decimaalteken, zoals ${priceFormatMatches[0]}.`, "Gebruik voor Nederlandse content bijvoorbeeld € 129,95 en formatteer prijzen met locale-aware formatting.", 2, 5)
+    );
+
+    seoChecks.push(!hasEcommerceSignal
+      ? check("not_applicable","price_currency_consistency","seo","Prijs & valuta consistentie","Geen duidelijke webshop/product-signalen gevonden; prijs- en valutaconsistentie is niet beoordeeld.","Gebruik deze controle op echte e-commercepagina's.",0,6)
+      : currencyConflict
+        ? check("warning","price_currency_consistency","seo","Prijs & valuta consistentie",`De zichtbare valuta (${visibleCurrencyCodes.join(", ")}) en Product/Offer structured data (${structuredCurrencyCodes.join(", ")}) spreken elkaar tegen.`,"Laat zichtbare prijs, valuta en Product/Offer-data dezelfde markt/valuta beschrijven. Controleer land-, btw- en promotielogica vóór publicatie.",2,6)
+        : mixedVisibleCurrencies
+          ? check("unable_to_confirm","price_currency_consistency","seo","Prijs & valuta consistentie",`Meerdere valuta zijn op deze pagina gevonden (${visibleCurrencyCodes.join(", ")}). Dat kan correct zijn door een valutakiezer of internationale marktweergave.`,"Controleer per land/taal of product, winkelwagen en checkout dezelfde geselecteerde valuta blijven gebruiken.",0,6)
+          : isProductPage && structuredCurrencyCodes.length && visibleCurrencyCodes.length
+            ? check("pass","price_currency_consistency","seo","Prijs & valuta consistentie",`Zichtbare en machineleesbare valuta zijn consistent: ${structuredCurrencyCodes[0]}.`,"Controleer dezelfde valuta later ook in winkelwagen en checkout; btw, verzending en promoties kunnen legitieme prijsverschillen veroorzaken.",6,6)
+            : check("unable_to_confirm","price_currency_consistency","seo","Prijs & valuta consistentie","RankFix vond onvoldoende onafhankelijk zichtbaar én machineleesbaar valutabewijs om consistentie hard te bevestigen.","Controleer product, winkelwagen en checkout samen voordat prijsverschillen als fout worden beoordeeld.",0,6)
     );
 
     seoChecks.push(hasEcommerceSignal
@@ -2033,6 +2062,7 @@ export async function POST(request: Request) {
               internalLinks, canonical: canonical || null, lang: lang || null, robots: robots || null,
               openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null }, imageAltCandidates,
               productOptimizer: isProductPage ? { eligible: productOptimizerSourceCount >= 3, sourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null } : { eligible: false, sourceCount: 0, product: null },
+              pricingCurrency: pricingCurrencyEvidence,
               twitterCard: twitterCard || null, schemaTypes: [...new Set(schemaTypes)].slice(0,12),
               jsonLdBlocks: validJsonLd, sitemapFound, robotsMentionsSitemap, robotsStatus, sitemapUrl: confirmedSitemapUrl || robotsDeclaredSitemapUrls[0] || null }
           }), CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION]
@@ -2275,6 +2305,7 @@ export async function POST(request: Request) {
         openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null },
         imageAltCandidates,
         productOptimizer: isProductPage ? { eligible: productOptimizerSourceCount >= 3, sourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null } : { eligible: false, sourceCount: 0, product: null },
+        pricingCurrency: pricingCurrencyEvidence,
         twitterCard: twitterCard || null,
         schemaTypes: [...new Set(schemaTypes)].slice(0, 12),
         jsonLdBlocks: validJsonLd,
