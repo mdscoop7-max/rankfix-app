@@ -1,7 +1,8 @@
 import { FIX_POLICY_VERSION } from "./seo-rules";
 
 export type FixCategory = "A" | "B" | "C";
-export type FixPolicy = { category: FixCategory; safe_type: string | null };
+export type FixAction = "github_fix" | "ai_advice" | "manual";
+export type FixPolicy = { category: FixCategory; safe_type: string | null; action?: FixAction };
 
 const POLICY: Record<string, FixPolicy> = {
   META_TITLE_MISSING: { category: "B", safe_type: "meta_title" },
@@ -32,6 +33,14 @@ const POLICY: Record<string, FixPolicy> = {
 };
 
 export function getFixPolicy(ruleId: string): FixPolicy {
-  return POLICY[ruleId] || { category: "C", safe_type: null };
+  const policy = POLICY[ruleId] || { category: "C" as const, safe_type: null };
+  if (policy.action) return policy;
+  return {
+    ...policy,
+    // B rules have a bounded generated/code proposal that still requires review.
+    // C rules must never expose an automatic GitHub fix. They can still receive
+    // normal AI explanation elsewhere in RankFix, but the remediation is manual.
+    action: policy.category === "B" && policy.safe_type ? "github_fix" : "manual",
+  };
 }
 export const fixPolicyVersion = FIX_POLICY_VERSION;
