@@ -1706,10 +1706,12 @@ export async function POST(request: Request) {
     seoChecks.push(
       !hasEcommerceSignal
         ? check("not_applicable","merchant_product_readiness","seo","Merchant Center productbasis","Geen voldoende sterk webshop- of productsignaal gevonden; Merchant Center-productcontrole is niet van toepassing.","Gebruik deze controle op echte productpagina's van webshops.",0,6)
-        : merchantProductReadiness
-          ? check("pass","merchant_product_readiness","seo","Merchant Center productbasis","Product structured data bevat minimaal een productnaam, afbeelding en een aanbod met prijs, valuta en beschikbaarheid.","Houd productdata op de pagina en in eventuele Merchant Center-feeds consistent. RankFix bevestigt hiermee niet dat Google Merchant Center het product heeft goedgekeurd.",6,6)
+        : merchantProductReadiness && isProductPage
+          ? check("pass","merchant_product_readiness","seo","Merchant Center productbasis","Op deze bewezen productpagina bevat Product structured data minimaal een productnaam, afbeelding en een aanbod met prijs, valuta en beschikbaarheid.","Houd productdata op de pagina en in eventuele Merchant Center-feeds consistent. RankFix bevestigt hiermee niet dat Google Merchant Center het product heeft goedgekeurd.",6,6)
           : isProductPage
-            ? check("warning","merchant_product_readiness","seo","Merchant Center productbasis","Deze productpagina mist aantoonbare complete Product/Offer structured data voor naam, afbeelding, prijs, valuta of beschikbaarheid.","Vul Product/Offer structured data aan en zorg dat zichtbare productgegevens en eventuele feed dezelfde waarden gebruiken.",3,6)
+            ? metadataMayBeClientRendered && !productSchemaPresent
+              ? check("unable_to_confirm","merchant_product_readiness","seo","Merchant Center productbasis","Deze URL heeft productpagina-signalen, maar de JavaScript-pagina kon niet volledig worden gerenderd. RankFix kan daarom niet bewijzen dat complete Product/Offer-data live ontbreekt.","Controleer de productpagina opnieuw met een volledige render voordat Merchant-productdata als ontbrekend wordt aangemerkt.",0,6)
+              : check("warning","merchant_product_readiness","seo","Merchant Center productbasis","Deze productpagina mist aantoonbare complete Product/Offer structured data voor naam, afbeelding, prijs, valuta of beschikbaarheid.","Vul Product/Offer structured data aan en zorg dat zichtbare productgegevens en eventuele feed dezelfde waarden gebruiken.",3,6)
             : check("unable_to_confirm","merchant_product_readiness","seo","Merchant Center productbasis","De site heeft webshop-signalen, maar deze pagina is niet overtuigend als productpagina herkend. Merchant-productdata kan hier niet volledig worden beoordeeld.","Scan een echte productpagina om Merchant Center-productbasis te beoordelen.",0,6)
     );
     seoChecks.push(
