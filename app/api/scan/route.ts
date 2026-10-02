@@ -2479,9 +2479,16 @@ export async function POST(request: Request) {
         // freshly fetched live page reports the exact same rule as PASS.
         // WARNING, FAIL, N/A and unable-to-confirm deliberately keep it waiting.
         if (dashboardScan && savedScanId && pendingFixes.size > 0) {
+          const verificationCandidates = new Set(
+            [...pendingFixes.entries()]
+              .filter(([, pending]) => pending.status === "AWAITING_VERIFICATION" || pending.status === "STILL_PRESENT")
+              .map(([issueId]) => issueId)
+          );
+          const seenVerificationRules = new Set<string>();
           for (const item of checks) {
             const issueId = String(item.issue_id || item.rule_id || item.key);
-            if (!pendingFixes.has(issueId)) continue;
+            if (!verificationCandidates.has(issueId)) continue;
+            seenVerificationRules.add(issueId);
             const liveStatus = String(item.issue_status || item.status || "").trim().toUpperCase();
             const liveConfidence = String(item.confidence || "").trim().toLowerCase();
             const liveEvidence = item.evidence;
@@ -2505,6 +2512,16 @@ export async function POST(request: Request) {
             await getDb().query(
               "INSERT INTO website_health_events (user_id,website_host,scanned_url,scan_id,event_type,rule_id,previous_status,current_status,severity,details) VALUES ($1,$2,$3,$4,'FIX_CONFIRMED',$5,'AWAITING_VERIFICATION','PASS',$6,$7)",
               [user.id, websiteHost, finalUrl.toString(), savedScanId, issueId, item.severity || null, JSON.stringify({title:item.title,message:item.message,verification:"fresh_live_scan",confidence:liveConfidence,evidence:liveEvidence?.details||null})]
+            );
+          }
+          // If the exact rule is absent from the fresh scan, absence is not proof.
+          // Keep the fix awaiting verification rather than incorrectly treating a
+          // renamed, non-applicable or skipped check as resolved.
+          for (const issueId of verificationCandidates) {
+            if (seenVerificationRules.has(issueId)) continue;
+            await getDb().query(
+              "UPDATE pending_fixes SET status='AWAITING_VERIFICATION', verification_scan_id=$4, updated_at=NOW() WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 AND status IN ('AWAITING_VERIFICATION','STILL_PRESENT') AND expires_at>NOW()",
+              [user.id, normalizedScanUrl, issueId, savedScanId]
             );
           }
         }
