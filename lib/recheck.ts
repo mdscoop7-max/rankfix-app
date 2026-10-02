@@ -13,7 +13,7 @@ type PageData = {
 };
 
 export function isRecheckSupported(issue: Pick<NormalizedIssue, "rule_id">) {
-  return ["META_TITLE_MISSING","META_TITLE_GUIDANCE","META_DESCRIPTION_MISSING","META_DESCRIPTION_GUIDANCE","H1_MISSING","H1_MULTIPLE","IMAGE_ALT_MISSING","SOCIAL_METADATA_INCOMPLETE","STRUCTURED_DATA_MISSING","canonical"].includes(issue.rule_id);
+  return ["META_TITLE_MISSING","META_TITLE_GUIDANCE","META_DESCRIPTION_MISSING","META_DESCRIPTION_GUIDANCE","H1_MISSING","IMAGE_ALT_MISSING","SOCIAL_METADATA_INCOMPLETE","STRUCTURED_DATA_MISSING","canonical"].includes(issue.rule_id);
 }
 
 export function runRuleForUrl(issue: Pick<NormalizedIssue, "rule_id">, page: PageData): RecheckResult {
@@ -24,7 +24,6 @@ export function runRuleForUrl(issue: Pick<NormalizedIssue, "rule_id">, page: Pag
     case "META_DESCRIPTION_MISSING": return page.description ? {success:true,status:"PASS",evidence:{url,details:"Meta description aanwezig.",found:page.description}} : {success:true,status:"FAIL",evidence:{url,details:"Meta description ontbreekt.",found:""}};
     case "META_DESCRIPTION_GUIDANCE": return page.description.length >= 120 && page.description.length <= 160 ? {success:true,status:"PASS",evidence:{url,details:"Meta description voldoet aan de richtwaarde.",found:page.description}} : {success:true,status:"FAIL",evidence:{url,details:"Meta description valt buiten de richtwaarde.",found:page.description}};
     case "H1_MISSING": return page.h1s.length === 0 ? {success:true,status:"FAIL",evidence:{url,details:"Geen H1 gevonden.",found:0}} : {success:true,status:"PASS",evidence:{url,details:"H1 gevonden.",found:page.h1s.length}};
-    case "H1_MULTIPLE": return page.h1s.length > 1 ? {success:true,status:"FAIL",evidence:{url,details:"Meerdere H1's gevonden.",found:page.h1s.length}} : {success:true,status:"PASS",evidence:{url,details:"Niet meerdere H1's gevonden.",found:page.h1s.length}};
     case "IMAGE_ALT_MISSING":
       if (typeof page.imagesMissingAlt !== "number") return {success:true,status:"UNABLE_TO_CONFIRM",evidence:{url,details:"Alt-teksten konden niet betrouwbaar opnieuw worden geteld."}};
       return page.imagesMissingAlt === 0 ? {success:true,status:"PASS",evidence:{url,details:"Alle gevonden afbeeldingen hebben nu een alt-attribuut.",found:0}} : {success:true,status:"FAIL",evidence:{url,details:"Er zijn nog afbeeldingen zonder alt-attribuut.",found:page.imagesMissingAlt}};
