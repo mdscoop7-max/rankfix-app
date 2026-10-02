@@ -325,3 +325,9 @@
  .rf-quick-actions-grid a,.rf-websites-featured,.rf-websites-featured .rf-site,.rf-more-card,.rf-history-card{background:#0e2b48}
  .rf-nav{background:rgba(8,25,45,.98)!important}
 }
+
+
+/* New dashboard component structure */
+.rf-workspace-strip{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:0 0 22px;padding:16px 18px;border:1px solid var(--border-subtle);border-radius:16px;background:#0b223a}
+.rf-workspace-strip>div:first-child{min-width:0;display:grid;gap:3px}.rf-workspace-strip strong{font-size:16px;overflow-wrap:anywhere}.rf-workspace-strip small{color:var(--text-secondary);font-size:12px}.rf-workspace-strip-actions{display:flex;align-items:center;gap:10px;flex:none}.rf-workspace-strip-actions>a:first-child{color:var(--brand-light);font-size:12px;font-weight:700}
+@media(max-width:650px){.rf-workspace-strip{align-items:stretch;flex-direction:column;padding:14px}.rf-workspace-strip-actions{display:grid;grid-template-columns:1fr 1fr}.rf-workspace-strip-actions a{text-align:center;min-height:42px;display:flex;align-items:center;justify-content:center}}
