@@ -2165,6 +2165,57 @@ export async function POST(request: Request) {
       }
     }
 
+    // Multi-page discovery v1: build a bounded, same-host sample from the
+    // already parsed internal links. This does not inflate the current page score;
+    // it describes which representative pages a future site-wide run can scan.
+    type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "other"; evidence: string[] };
+    const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
+    const siteHost = normalizeHost(finalUrl.hostname);
+    const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
+      try {
+        const candidate = new URL(urlValue, finalUrl);
+        candidate.hash = "";
+        if (!/^https?:$/.test(candidate.protocol) || normalizeHost(candidate.hostname) !== siteHost) return null;
+        const normalized = normalizeScanUrl(candidate.toString());
+        if (normalized === normalizeScanUrl(finalUrl.toString())) return null;
+        const path = safeDecodeURIComponent(candidate.pathname).toLowerCase();
+        if (/\.(?:jpg|jpeg|png|gif|webp|svg|pdf|zip|xml|json|css|js|ico|woff2?)(?:$|\?)/i.test(path)) return null;
+        const evidence: string[] = [];
+        const productPath = /\/(?:product|products|product-page|p)\//i.test(path);
+        const categoryPath = /\/(?:category|categories|categorie|categorieen|collection|collections|shop|store|winkel|catalog|catalogue)(?:\/|$)/i.test(path);
+        if (productPath) evidence.push("product-like path");
+        if (categoryPath) evidence.push("category-like path");
+        return { url: candidate.toString(), type: productPath ? "product" : categoryPath ? "category" : "other", evidence };
+      } catch { return null; }
+    };
+    const discoveredMultiPage = [...new Map(allUniqueInternalAnchors.flatMap((item) => {
+      const candidate = classifyMultiPageCandidate(item.url);
+      return candidate ? [[normalizeScanUrl(candidate.url), candidate] as const] : [];
+    })).values()];
+    const pickMultiPage = (type: MultiPageCandidate["type"], limit: number) => discoveredMultiPage.filter((item) => item.type === type).slice(0, limit);
+    const multiPagePages: MultiPageCandidate[] = [
+      { url: new URL("/", finalUrl).toString(), type: "homepage", evidence: ["site root"] },
+      ...pickMultiPage("category", 2),
+      ...pickMultiPage("product", 2),
+      ...pickMultiPage("other", 1),
+    ];
+    const uniqueMultiPagePages = [...new Map(multiPagePages.map((item) => [normalizeScanUrl(item.url), item] as const)).values()].slice(0, 6);
+    const multiPage = {
+      enabled: true,
+      mode: "DISCOVERY_SAMPLE" as const,
+      currentPageScoredSeparately: true,
+      maxPages: 6,
+      discoveredInternalUrls: discoveredMultiPage.length,
+      selectedPages: uniqueMultiPagePages,
+      counts: {
+        homepage: uniqueMultiPagePages.filter((item) => item.type === "homepage").length,
+        category: uniqueMultiPagePages.filter((item) => item.type === "category").length,
+        product: uniqueMultiPagePages.filter((item) => item.type === "product").length,
+        other: uniqueMultiPagePages.filter((item) => item.type === "other").length,
+      },
+      note: "Representative same-host pages are discovered without changing this page's SEO/GEO score.",
+    };
+
     const scanScope = {
       page: finalUrl.toString(),
       mode: "PAGE_SAMPLE" as const,
@@ -2179,6 +2230,7 @@ export async function POST(request: Request) {
       accessibility: "STATIC_HTML_SIGNALS" as const,
       consentMode: "STATIC_HTML_SIGNAL" as const,
       merchant: "WEBSITE_SIGNALS_ONLY" as const,
+      multiPage,
     };
 
     console.info("RankFix scan phase", { phase: "response_ready", page: finalUrl.toString(), isProductPage, productOptimizerSourceCount, savedScanId: Boolean(savedScanId) });
@@ -2197,6 +2249,7 @@ export async function POST(request: Request) {
       summary: scanSummary,
       rendering,
       scope: scanScope,
+      multiPage,
       pageTypeEvidence,
       technologyProfile,
       adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
