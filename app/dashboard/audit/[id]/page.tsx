@@ -11,7 +11,8 @@ import "../../dashboard.css";
 import "./audit.css";
 import { getFixPolicy } from "../../../../lib/fix-policy";
 
-type Check = { key?: string; category?: string; title: string; status: string; severity?: string; message: string; fix?: string; fix_status?: string; fix_category?: "A"|"B"|"C"; issue_id?: string; rule_id?: string; points?:number; maxPoints?:number; confidence?:string; evidence?: { details?: string; found?: string | number | boolean | null } };
+type RecurringIssue = { recognized:true; lastConfirmedAt:string; previousFilePath:string|null; previousRepository:string|null; previousPrNumber:number|null; previousFixSummary:string|null; recurrenceCount:number; requiresFreshVerification:true };
+type Check = { key?: string; category?: string; title: string; status: string; severity?: string; message: string; fix?: string; fix_status?: string; fix_category?: "A"|"B"|"C"; issue_id?: string; rule_id?: string; points?:number; maxPoints?:number; confidence?:string; evidence?: { details?: string; found?: string | number | boolean | null }; recurring_issue?:RecurringIssue };
 type FixFlowItem = { issue_id:string; status:string; pr_number?:number|null; pr_url?:string|null; branch?:string|null; merged_at?:string|null; verified_at?:string|null; verification_scan_id?:string|null };
 type ProductOffer = { price?: unknown; currency?: string | null; availability?: string | null };
 type ProductEvidence = { name?: string | null; image?: string | null; sku?: string | null; offers?: ProductOffer[] };
@@ -29,7 +30,7 @@ function fixHref(check:Check,scan:Scan){
   const policy=issueId?getFixPolicy(issueId):{category:"C" as const,safe_type:null};
   // One policy source for scanner, UI and backend. A rule is exposed only when
   // today's policy and the policy stored with the scan both allow a safe fix.
-  if(!issueId||policy.category==="C"||!policy.safe_type||check.fix_category==="C"||!["fail","warning"].includes(status)||confidence==="low"||!hasEvidence) return "";
+  if(!issueId||policy.action!=="github_fix"||!policy.safe_type||check.fix_category==="C"||!["fail","warning"].includes(status)||confidence==="low"||!hasEvidence) return "";
   const q=new URLSearchParams({scan_id:String(idForFix(scan)),issue_id:issueId});
   return "/dashboard/github?"+q.toString();
 }
