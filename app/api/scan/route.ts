@@ -23,6 +23,17 @@ type Check = {
   category: "seo" | "geo";
   title: string;
   fix_status?: "WAITING" | "AWAITING_MERGE" | "STILL_PRESENT" | "DONE";
+  recurring_issue?: {
+    recognized: true;
+    lastConfirmedAt: string | Date;
+    previousFilePath: string | null;
+    previousRepository: string | null;
+    previousPrNumber: number | null;
+    previousFixSummary: string | null;
+    previousEvidence: unknown;
+    recurrenceCount: number;
+    requiresFreshVerification: true;
+  };
   status: Status;
   message: string;
   fix: string;
