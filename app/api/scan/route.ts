@@ -838,6 +838,18 @@ export async function POST(request: Request) {
       new URL("/sitemap_index.xml", finalUrl).toString(),
       new URL("/sitemap-index.xml", finalUrl).toString(),
     ];
+    const normalizeSitemapEvidenceUrl = (value: string) => {
+      try {
+        const parsed = new URL(value);
+        parsed.hash = "";
+        parsed.hostname = parsed.hostname.toLowerCase().replace(/^www\./, "");
+        parsed.pathname = parsed.pathname.replace(/\/+$/, "") || "/";
+        return parsed.toString();
+      } catch {
+        return value.trim().replace(/\/+$/, "").toLowerCase();
+      }
+    };
+    const declaredSitemapEvidence = new Set(robotsDeclaredSitemapUrls.map(normalizeSitemapEvidenceUrl));
     // Prefer explicit declarations, then conservative platform-standard fallbacks.
     const sitemapCandidates = [...new Set([...robotsDeclaredSitemapUrls, ...htmlDeclaredSitemapUrls, ...commonSitemapUrls])].slice(0, 20);
     let sitemapFetchFailed = false;
@@ -861,7 +873,7 @@ export async function POST(request: Request) {
         } else {
           sitemapStatus = r.status === 404 ? "FAIL" : sitemapStatus;
           sitemapDiagnostic = `${candidate} gaf HTTP ${r.status}; content-type: ${r.headers.get("content-type") || "onbekend"}.`;
-          if (r.status === 404 && robotsDeclaredSitemapUrls.includes(candidate)) brokenDeclaredSitemaps.push(candidate);
+          if (r.status === 404 && declaredSitemapEvidence.has(normalizeSitemapEvidenceUrl(candidate))) brokenDeclaredSitemaps.push(candidate);
         }
       } catch (error) {
         sitemapFetchFailed = true;
