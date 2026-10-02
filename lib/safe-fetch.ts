@@ -29,7 +29,7 @@ function isPrivateIp(address: string) {
   return true;
 }
 
-async function assertPublicDns(hostname:string){
+export async function assertPublicDns(hostname:string){
   if(isIP(hostname)){
     if(isPrivateIp(hostname)) throw new Error("URL_IP_BLOCKED");
     return;

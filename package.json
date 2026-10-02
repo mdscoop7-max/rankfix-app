@@ -14,7 +14,8 @@
     "next": "16.3.5",
     "pg": "^8.16.3",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "puppeteer": "^24.24.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

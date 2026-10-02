@@ -12,6 +12,7 @@ import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
 import { applyEvidenceBasedScoreCap, scoreApplicableChecks, summarizeAuditChecks } from "@/lib/audit-score";
 import { normalizePlan, planLimits } from "@/lib/plans";
 import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
+import { renderPublicPage } from "@/lib/headless-render";
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -418,9 +419,26 @@ export async function POST(request: Request) {
     }
 
     // Modern commerce/product pages can contain large SSR payloads and JSON-LD. Keep a strict cap, but allow enough room to audit them safely.
-    const html = await readResponseTextLimited(response, 8_000_000);
+    let html = await readResponseTextLimited(response, 8_000_000);
     if (!html || html.length < 20) {
       return NextResponse.json({ error: scanError.html }, { status: 422 });
+    }
+
+    const rawHtml = html;
+    const javascriptCandidate = /(?:__NEXT_DATA__|\/_next\/|__NUXT__|\/_nuxt\/|data-reactroot|data-react-helmet)/i.test(rawHtml);
+    let javascriptExecuted = false;
+    let renderElapsedMs: number | null = null;
+    let renderFallbackReason: string | null = null;
+    if (javascriptCandidate) {
+      try {
+        const rendered = await renderPublicPage(finalUrl.toString(), 12000);
+        html = rendered.html;
+        javascriptExecuted = true;
+        renderElapsedMs = rendered.elapsedMs;
+      } catch (renderError) {
+        renderFallbackReason = renderError instanceof Error ? renderError.message.slice(0, 120) : "RENDER_FAILED";
+        console.info("RankFix headless fallback", { page: finalUrl.toString(), reason: renderFallbackReason });
+      }
     }
 
     const title = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
@@ -2223,7 +2241,7 @@ export async function POST(request: Request) {
       }
     }
     // sectorProfile was determined before scoring so applicability and scoring stay aligned.
-    const renderingNotes: Record<string,string> = {
+    const rawRenderingNotes: Record<string,string> = {
       nl:"RankFix beoordeelde de HTTP HTML-response; client-side JavaScript is in deze scan niet uitgevoerd.",
       en:"RankFix evaluated the HTTP HTML response; client-side JavaScript was not executed in this scan.",
       de:"RankFix hat die HTTP-HTML-Antwort ausgewertet; clientseitiges JavaScript wurde in diesem Scan nicht ausgeführt.",
@@ -2231,7 +2249,21 @@ export async function POST(request: Request) {
       it:"RankFix ha valutato la risposta HTML HTTP; il JavaScript lato client non è stato eseguito durante questa scansione.",
       es:"RankFix evaluó la respuesta HTML HTTP; el JavaScript del lado del cliente no se ejecutó durante este análisis."
     };
-    const rendering = { mode: "raw_html" as const, javascriptExecuted: false, note: renderingNotes[scanLanguage] || renderingNotes.en };
+    const jsRenderingNotes: Record<string,string> = {
+      nl:"RankFix heeft deze JavaScript-site in een begrensde browser gerenderd. Interactieve login-, winkelwagen- en betaalflows zijn niet uitgevoerd.",
+      en:"RankFix rendered this JavaScript site in a bounded browser. Interactive login, cart and payment flows were not executed.",
+      de:"RankFix hat diese JavaScript-Seite in einem begrenzten Browser gerendert. Login-, Warenkorb- und Zahlungsabläufe wurden nicht ausgeführt.",
+      fr:"RankFix a rendu ce site JavaScript dans un navigateur limité. Les parcours de connexion, panier et paiement n’ont pas été exécutés.",
+      it:"RankFix ha renderizzato questo sito JavaScript in un browser limitato. I flussi di accesso, carrello e pagamento non sono stati eseguiti.",
+      es:"RankFix renderizó este sitio JavaScript en un navegador limitado. No se ejecutaron los flujos de inicio de sesión, carrito ni pago."
+    };
+    const rendering = {
+      mode: javascriptExecuted ? "javascript_rendered" as const : "raw_html" as const,
+      javascriptExecuted,
+      note: javascriptExecuted ? (jsRenderingNotes[scanLanguage] || jsRenderingNotes.en) : (rawRenderingNotes[scanLanguage] || rawRenderingNotes.en),
+      elapsedMs: renderElapsedMs,
+      fallbackReason: javascriptCandidate && !javascriptExecuted ? renderFallbackReason : null,
+    };
 
     // Multi-page evidence audit: select a bounded same-host sample and fetch it
     // without changing the score of the page the customer explicitly scanned.
@@ -2486,7 +2518,7 @@ export async function POST(request: Request) {
     const scanScope = {
       page: finalUrl.toString(),
       mode: "PAGE_SAMPLE" as const,
-      javascriptExecuted: false,
+      javascriptExecuted,
       internalLinks: {
         anchorsFound: anchorTags.length,
         uniqueInternal: allUniqueInternalAnchors.length,
