@@ -22,6 +22,17 @@ const POLICY: Record<string, FixPolicy> = {
   accessibility_basics: { category: "C", safe_type: null, action: "ai_advice" },
   // A broken/invalid sitemap can require CMS, server or routing changes.
   sitemap: { category: "C", safe_type: null, action: "ai_advice" },
+  // Commerce consistency findings can be proven by the scanner, but changing
+  // price, stock, checkout or merchant data automatically can affect orders.
+  merchant_product_readiness: { category: "C", safe_type: null, action: "ai_advice" },
+  merchant_feed_signal: { category: "C", safe_type: null, action: "manual" },
+  product_price_consistency: { category: "C", safe_type: null, action: "ai_advice" },
+  product_availability: { category: "C", safe_type: null, action: "ai_advice" },
+  price_currency_consistency: { category: "C", safe_type: null, action: "ai_advice" },
+  checkout_funnel_static: { category: "C", safe_type: null, action: "ai_advice" },
+  eu_consumer_information_signal: { category: "C", safe_type: null, action: "ai_advice" },
+  eu_discount_reference_signal: { category: "C", safe_type: null, action: "ai_advice" },
+  variant_url: { category: "C", safe_type: null, action: "ai_advice" },
   STRUCTURED_DATA_MISSING: { category: "B", safe_type: "structured_data" },
   breadcrumbs: { category: "B", safe_type: "breadcrumb" },
   author: { category: "C", safe_type: "expertise", action: "ai_advice" },
