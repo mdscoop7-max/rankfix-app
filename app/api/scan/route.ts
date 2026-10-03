@@ -1515,8 +1515,15 @@ export async function POST(request: Request) {
     const merchantFeedTextSignal = /\b(?:google merchant center|merchant center|google shopping|product feed|shopping feed)\b/i.test(text);
     const hasMerchantFeedHint = merchantFeedLinks.length > 0 || merchantFeedTextSignal;
     const merchantProductReadiness = productSchemaObjects.length > 0 && hasCompleteProductOffer;
-    const hasShippingSignal = hasStructuredShipping || /verzendkosten|verzending|levering|shipping|delivery|bezorging|ophalen|afhalen/i.test(text);
-    const hasReturnsSignal = hasStructuredReturns || /retour|herroepingsrecht|14\s*dagen|bedenktijd|return policy|refund/i.test(text);
+    // Keep structured and visible commerce evidence separate. A footer link or
+    // JSON-LD policy proves availability of information, not that product-page
+    // shoppers can actually see it where they make the purchase decision.
+    const visibleShippingMatches = text.match(/(?:verzendkosten|verzending|levering|bezorging|ophalen|afhalen|shipping(?:\s+(?:cost|costs|information))?|delivery(?:\s+(?:cost|costs|information))?|versand(?:kosten)?|lieferung|frais de livraison|livraison|spedizione|consegna|gastos de envío|envío)/gi) || [];
+    const visibleReturnsMatches = text.match(/(?:retour(?:neren|beleid)?|herroepingsrecht|bedenktijd|14\s*dagen|return(?:s| policy)?|refund(?: policy)?|rückgabe|widerrufsrecht|retour(?:s)?|droit de rétractation|reso|diritto di recesso|devolución|derecho de desistimiento)/gi) || [];
+    const hasVisibleShippingSignal = visibleShippingMatches.length > 0;
+    const hasVisibleReturnsSignal = visibleReturnsMatches.length > 0;
+    const hasShippingSignal = hasStructuredShipping || hasVisibleShippingSignal;
+    const hasReturnsSignal = hasStructuredReturns || hasVisibleReturnsSignal;
     const hasReviewPlatformSignal = /trustpilot|kiyoh|google reviews|reviews?\.io/i.test(text);
     const hasCheckoutTrustSignal = /checkout|afrekenen|ideal|iDEAL|visa|mastercard|bancontact|klarna|mollie|pay\s*pal|secure payment|veilig betalen/i.test(text);
     const ecommerceVariantUrlSignal = isProductPage && /[?&](variant|sku|color|colour|size|maat)=/i.test(finalUrl.search);
@@ -1531,6 +1538,10 @@ export async function POST(request: Request) {
       cartLink: cartHrefSignal,
       checkoutLink: checkoutHrefSignal,
       shippingInformation: hasShippingSignal,
+      shippingInformationVisible: hasVisibleShippingSignal,
+      shippingInformationStructured: hasStructuredShipping,
+      returnsInformationVisible: hasVisibleReturnsSignal,
+      returnsInformationStructured: hasStructuredReturns,
       shippingCostVisible: shippingCostSignal,
       paymentMethodsVisible: paymentMethodSignal,
       staticHtmlOnly: !javascriptExecuted,
