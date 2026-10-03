@@ -965,7 +965,13 @@ export async function POST(request: Request) {
     addSitemapCandidates(robotsDeclaredSitemapUrls, "robots");
     addSitemapCandidates(htmlDeclaredSitemapUrls, "html");
     addSitemapCandidates(commonSitemapUrls, "fallback");
-    const sitemapCandidates = [...candidateMap.values()].slice(0, 20);
+    // Keep sitemap discovery cheap: direct declarations are strongest evidence.
+    // Only probe a small fallback set when the site did not declare a sitemap.
+    const declaredSitemapCandidates = [...candidateMap.values()].filter((candidate) => candidate.source !== "fallback");
+    const fallbackSitemapCandidates = [...candidateMap.values()].filter((candidate) => candidate.source === "fallback");
+    const sitemapCandidates = declaredSitemapCandidates.length
+      ? declaredSitemapCandidates.slice(0, 8)
+      : fallbackSitemapCandidates.slice(0, 4);
     let sitemapFetchFailed = false;
     let declaredSitemapFetchFailed = false;
     const brokenDeclaredSitemaps: string[] = [];
@@ -1058,7 +1064,9 @@ export async function POST(request: Request) {
         return [[parsed.toString(), { ...item, url: parsed.toString() }] as const];
       } catch { return []; }
     })).values()];
-    const uniqueInternalAnchors = allUniqueInternalAnchors.slice(0, 24);
+    // A representative bounded sample is enough for the synchronous scan.
+    // Keep network fan-out modest so adding more motor checks does not make RankFix slower.
+    const uniqueInternalAnchors = allUniqueInternalAnchors.slice(0, 16);
     const linkAuditResults: LinkAuditResult[] = await Promise.all(uniqueInternalAnchors.map(async (item) => {
       try {
         const result = await safePublicFetch(new URL(item.url), { timeoutMs: 4500, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml,text/plain" });
@@ -2440,9 +2448,9 @@ export async function POST(request: Request) {
     const pickMultiPage = (type: MultiPageCandidate["type"], limit: number) => discoveredMultiPage.filter((item) => item.type === type).slice(0, limit);
     const multiPagePages: MultiPageCandidate[] = [
       { url: new URL("/", finalUrl).toString(), type: "homepage", evidence: ["site root"] },
-      ...pickMultiPage("category", 2), ...pickMultiPage("product", 2), ...pickMultiPage("other", 1),
+      ...pickMultiPage("category", 1), ...pickMultiPage("product", 1), ...pickMultiPage("other", 1),
     ];
-    const uniqueMultiPagePages = [...new Map(multiPagePages.map((item) => [normalizeScanUrl(item.url), item] as const)).values()].slice(0, 6);
+    const uniqueMultiPagePages = [...new Map(multiPagePages.map((item) => [normalizeScanUrl(item.url), item] as const)).values()].slice(0, 4);
     const auditMultiPage = async (page: MultiPageCandidate): Promise<MultiPageAudit> => {
       try {
         const fetched = await safePublicFetch(page.url, { timeoutMs: 8000, maxRedirects: 3, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml" });
@@ -2480,7 +2488,7 @@ export async function POST(request: Request) {
     const multiPageAudits = await Promise.all(uniqueMultiPagePages.map(auditMultiPage));
     const auditedMultiPages = multiPageAudits.filter((item)=>item.status==="audited");
     const multiPage = {
-      enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:6,
+      enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:4,
       discoveredInternalUrls:discoveredMultiPage.length, selectedPages:uniqueMultiPagePages, pageAudits:multiPageAudits,
       siteSampleScore: auditedMultiPages.length ? Math.round(auditedMultiPages.reduce((sum,item)=>sum+(item.score||0),0)/auditedMultiPages.length) : null,
       counts:{ homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedMultiPages.length, unableToConfirm:multiPageAudits.length-auditedMultiPages.length },
