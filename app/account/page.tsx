@@ -20,7 +20,17 @@ export default function Account() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("mode") === "register") setMode("register");
     const requested = params.get("lang");
-    if (requested && requested in accountCopy) setLanguage(requested as Locale);
+    if (requested && requested in accountCopy) {
+      setLanguage(requested as Locale);
+    } else {
+      // Fast, privacy-friendly first visit default: use the browser locale locally.
+      // A deliberate URL/account language always wins; no IP lookup is needed here.
+      const browserLocales = navigator.languages?.length ? navigator.languages : [navigator.language];
+      const detected = browserLocales
+        .map((value) => value.toLowerCase().split("-")[0])
+        .find((value): value is Locale => value in accountCopy);
+      if (detected) setLanguage(detected);
+    }
     fetch("/api/auth/me", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
