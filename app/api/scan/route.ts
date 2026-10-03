@@ -992,19 +992,28 @@ export async function POST(request: Request) {
           const validLocValues = locValues.filter((value) => {
             try { const parsed = new URL(value); return /^https?:$/.test(parsed.protocol); } catch { return false; }
           });
+          const sitemapOrigin = new URL(candidate.url).origin;
+          const sameOriginLocValues = validLocValues.filter((value) => {
+            try { return new URL(value).origin === sitemapOrigin; } catch { return false; }
+          });
           const structurallyValid = hasSitemapRoot && validLocValues.length > 0;
-          if (structurallyValid) {
+          const sitemapEntriesMatchSite = sitemapKind === "sitemapindex"
+            ? sameOriginLocValues.length > 0
+            : sameOriginLocValues.length > 0;
+          if (structurallyValid && sitemapEntriesMatchSite) {
             sitemapFound = true;
             sitemapStatus = "PASS";
             confirmedSitemapUrl = candidate.url;
-            sitemapDiagnostic = `${candidate.url} bevat een geldige ${sitemapKind || "sitemap"} met ${validLocValues.length} geldige URL-verwijzing(en) in de gecontroleerde response.`;
+            sitemapDiagnostic = `${candidate.url} bevat een geldige ${sitemapKind || "sitemap"} met ${validLocValues.length} geldige URL-verwijzing(en), waarvan ${sameOriginLocValues.length} voor dezelfde site, in de gecontroleerde response.`;
             // Keep scanning when robots.txt already declared a broken sitemap so
             // the report can mention both the broken declaration and valid fallback.
             if (declaredSitemapHttpFailures.length === 0) break;
           } else if (candidate.source === "robots" || candidate.source === "html") {
             sitemapStatus = "FAIL";
             sitemapDiagnostic = hasSitemapRoot
-              ? `${candidate.url} gaf HTTP ${r.status}; content-type: ${contentType}; sitemap-root gevonden maar geen geldige absolute URL in <loc>.`
+              ? validLocValues.length === 0
+                ? `${candidate.url} gaf HTTP ${r.status}; content-type: ${contentType}; sitemap-root gevonden maar geen geldige absolute URL in <loc>.`
+                : `${candidate.url} gaf HTTP ${r.status}; content-type: ${contentType}; geldige <loc>-URL's gevonden, maar geen daarvan hoort bij dezelfde site-origin.`
               : `${candidate.url} gaf HTTP ${r.status}; content-type: ${contentType}; geen geldige urlset/sitemapindex gevonden.`;
           }
         } else {
