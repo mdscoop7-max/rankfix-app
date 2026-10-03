@@ -1206,11 +1206,90 @@ export async function POST(request: Request) {
     };
     const presentSecurityHeaders = Object.entries(securityHeaders).filter(([, value]) => Boolean(value));
     const coreSecurityHeadersPresent = Boolean(securityHeaders.hsts && securityHeaders.contentTypeOptions && (securityHeaders.csp || securityHeaders.frameOptions));
-    seoChecks.push(
-      coreSecurityHeadersPresent
-        ? check("pass", "security_headers", "seo", "Security headers", `Belangrijke browser-securityheaders zijn bevestigd (${presentSecurityHeaders.map(([name]) => name).join(", ")}).`, "Houd deze headers actief en test wijzigingen aan CSP/HSTS eerst tegen de applicatie.", 4, 4)
-        : check("unable_to_confirm", "security_headers", "seo", "Security headers", `RankFix bevestigde ${presentSecurityHeaders.length} van 6 gecontroleerde securityheaders in de hoofdresponse. Ontbrekende headers worden niet automatisch als beveiligingslek beoordeeld.`, "Controleer HSTS, CSP/frame-bescherming en X-Content-Type-Options op server/CDN-niveau en voeg ze alleen toe na compatibiliteitstest.", 0, 4)
-    );
+
+    // Passive Security Engine: evidence comes only from the already fetched response
+    // and HTML. It never probes admin paths, exploits endpoints or brute-forces.
+    const securityChecks: Check[] = [];
+    const securityCheck = (status: Status, key: string, titleText: string, message: string, fixText: string, points = 5, maxPoints = 5) => {
+      const item = check(status, key, "seo", titleText, message, fixText, status === "pass" ? points : 0, maxPoints);
+      item.evidence = { url: finalUrl.toString(), found: status === "pass", details: message };
+      return item;
+    };
+    const isHttps = finalUrl.protocol === "https:";
+    securityChecks.push(isHttps
+      ? securityCheck("pass","security_https","HTTPS","De gescande pagina gebruikt HTTPS.","Houd HTTPS verplicht en stuur HTTP-verkeer permanent door naar HTTPS.")
+      : securityCheck("fail","security_https","HTTPS","De gescande pagina gebruikt geen HTTPS.","Activeer HTTPS/TLS en stuur HTTP permanent door naar HTTPS."));
+
+    securityChecks.push(coreSecurityHeadersPresent
+      ? securityCheck("pass","security_headers","Security headers",`Belangrijke browser-securityheaders zijn bevestigd (${presentSecurityHeaders.map(([name]) => name).join(", ")}).`,"Houd deze headers actief en test wijzigingen aan CSP/HSTS eerst tegen de applicatie.",6,6)
+      : securityCheck("warning","security_headers","Security headers",`RankFix bevestigde ${presentSecurityHeaders.length} van 6 gecontroleerde securityheaders. Dit is hardening-advies en op zichzelf geen bewijs van een kwetsbaarheid.`,"Controleer HSTS, CSP/frame-bescherming en X-Content-Type-Options op server/CDN-niveau.",6,6));
+
+    const mixedContentMatches = isHttps
+      ? [...html.matchAll(/(?:src|href)\\s*=\\s*["']http:\\/\\/([^"'\\s>]+)["']/gi)].map((m)=>m[0]).slice(0,5)
+      : [];
+    securityChecks.push(!isHttps
+      ? securityCheck("not_applicable","security_mixed_content","Mixed content","Mixed-contentcontrole is alleen van toepassing op HTTPS-pagina's.","Activeer eerst HTTPS.",0,4)
+      : mixedContentMatches.length === 0
+        ? securityCheck("pass","security_mixed_content","Mixed content","Geen expliciete HTTP-assets gevonden in de gescande HTTPS-HTML.","Blijf assets via HTTPS of relatieve URL's laden.",4,4)
+        : securityCheck("fail","security_mixed_content","Mixed content",`${mixedContentMatches.length} expliciete HTTP-assetverwijzing(en) gevonden op een HTTPS-pagina.`,"Vervang HTTP-asset-URL's door HTTPS of veilige relatieve URL's.",4,4));
+
+    const setCookieHeaders = response.headers.get("set-cookie") || "";
+    const cookiePresent = Boolean(setCookieHeaders);
+    const cookieSecure = /(?:^|[,;]\\s*)secure(?:;|,|$)/i.test(setCookieHeaders);
+    const cookieHttpOnly = /(?:^|[,;]\\s*)httponly(?:;|,|$)/i.test(setCookieHeaders);
+    const cookieSameSite = /samesite=(?:lax|strict|none)/i.test(setCookieHeaders);
+    securityChecks.push(!cookiePresent
+      ? securityCheck("not_applicable","security_cookie_flags","Cookie-beveiliging","De hoofdresponse zette geen cookie die RankFix betrouwbaar kon beoordelen.","Geen actie nodig voor deze response; controleer sessiecookies in ingelogde flows apart.",0,5)
+      : cookieSecure && cookieHttpOnly && cookieSameSite
+        ? securityCheck("pass","security_cookie_flags","Cookie-beveiliging","De zichtbare Set-Cookie-response bevat Secure, HttpOnly en SameSite-signalen.","Houd gevoelige sessiecookies voorzien van passende beveiligingsflags.",5,5)
+        : securityCheck("warning","security_cookie_flags","Cookie-beveiliging",`Cookie-flags zijn niet volledig bevestigd (Secure=${cookieSecure}, HttpOnly=${cookieHttpOnly}, SameSite=${cookieSameSite}). Dit bewijst niet dat alle cookies onveilig zijn.`,"Controleer vooral sessie- en authenticatiecookies op Secure, HttpOnly en een passende SameSite-instelling.",5,5));
+
+    const forms = [...html.matchAll(/<form\\b[\\s\\S]*?<\\/form>/gi)].map((m)=>m[0]);
+    const passwordForm = forms.some((form)=>/<input[^>]+type\\s*=\\s*["']password["']/i.test(form));
+    const insecureFormActions = forms.filter((form)=>/action\\s*=\\s*["']http:\\/\\//i.test(form)).length;
+    securityChecks.push(forms.length === 0
+      ? securityCheck("not_applicable","security_forms","Formuliertransport","Geen HTML-formulier gevonden in de gescande pagina.","Geen actie nodig voor deze pagina.",0,5)
+      : insecureFormActions > 0
+        ? securityCheck("fail","security_forms","Formuliertransport",`${insecureFormActions} formulier(en) sturen expliciet naar een HTTP-endpoint.`,"Gebruik uitsluitend HTTPS voor formulieracties en gevoelige gegevens.",5,5)
+        : isHttps
+          ? securityCheck("pass","security_forms","Formuliertransport",`${forms.length} formulier(en) gevonden zonder expliciete onveilige HTTP-action${passwordForm ? "; wachtwoordveld aanwezig" : ""}.`,"Controleer server-side validatie, CSRF-bescherming en autorisatie aanvullend; die zijn niet uit statische HTML te bewijzen.",5,5)
+          : securityCheck("warning","security_forms","Formuliertransport",`${forms.length} formulier(en) gevonden op een niet-HTTPS-pagina.`,"Bescherm formulieren met HTTPS; beoordeel server-side validatie en CSRF apart.",5,5));
+
+    const exposedSecretPatterns = [
+      { label:"private key", re:/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/i },
+      { label:"AWS access key", re:/\\bAKIA[0-9A-Z]{16}\\b/ },
+      { label:"GitHub token", re:/\\bgh[pousr]_[A-Za-z0-9_]{20,}\\b/ },
+      { label:"generic bearer token", re:/authorization\\s*[:=]\\s*["']?bearer\\s+[A-Za-z0-9._~-]{20,}/i },
+    ];
+    const exposedSignals = exposedSecretPatterns.filter((item)=>item.re.test(html)).map((item)=>item.label);
+    securityChecks.push(exposedSignals.length
+      ? securityCheck("fail","security_exposed_secrets","Blootgestelde secrets",`Mogelijk gevoelig secretpatroon gevonden: ${exposedSignals.join(", ")}. Handmatige verificatie is vereist.`,"Verwijder secrets uit client-side HTML/bundles, roteer bevestigde gelekte credentials en gebruik server-side secretopslag.",8,8)
+      : securityCheck("pass","security_exposed_secrets","Blootgestelde secrets","Geen bekende high-confidence secretpatronen gevonden in de opgehaalde HTML.","Bewaar API-sleutels en credentials uitsluitend server-side.",8,8));
+
+    const externalScriptTags = [...html.matchAll(/<script\\b[^>]*\\bsrc\\s*=\\s*["']([^"']+)["'][^>]*>/gi)].map((m)=>({tag:m[0],src:m[1]}));
+    const crossOriginScripts = externalScriptTags.filter((item)=>{ try { return new URL(item.src,finalUrl).origin !== finalUrl.origin; } catch { return false; } });
+    const crossOriginWithoutSri = crossOriginScripts.filter((item)=>!/\\bintegrity\\s*=/i.test(item.tag));
+    securityChecks.push(crossOriginScripts.length === 0
+      ? securityCheck("not_applicable","security_script_integrity","Externe scripts","Geen cross-origin scripts gevonden die statisch beoordeeld kunnen worden.","Geen actie nodig voor deze pagina.",0,4)
+      : crossOriginWithoutSri.length === 0
+        ? securityCheck("pass","security_script_integrity","Externe scripts",`Alle ${crossOriginScripts.length} zichtbare cross-origin script(s) bevatten een integrity-attribuut.`,"Houd externe scripts beperkt en gebruik SRI waar versievaste assets dit ondersteunen.",4,4)
+        : securityCheck("warning","security_script_integrity","Externe scripts",`${crossOriginWithoutSri.length} van ${crossOriginScripts.length} cross-origin script(s) hebben geen zichtbaar integrity-attribuut. SRI is niet voor elke dynamische provider toepasbaar.`,"Beperk derde-partij scripts en gebruik Subresource Integrity voor versievaste externe assets waar mogelijk.",4,4));
+
+    const securityApplicable = securityChecks.filter((item)=>item.issue_status !== "NOT_APPLICABLE" && item.issue_status !== "UNABLE_TO_CONFIRM");
+    const securityMax = securityApplicable.reduce((sum,item)=>sum+item.maxPoints,0);
+    const securityPoints = securityApplicable.reduce((sum,item)=>sum+item.points,0);
+    const securityScore = securityMax ? Math.round((securityPoints/securityMax)*100) : 0;
+    const securitySummary = summarizeAuditChecks(securityChecks);
+    const securityEngine = {
+      version:"1.0-passive",
+      mode:"PASSIVE_STATIC_EVIDENCE" as const,
+      score:securityScore,
+      grade:grade(securityScore),
+      summary:securitySummary,
+      checks:securityChecks,
+      note:"Passieve security-audit op responseheaders en opgehaalde HTML. Geen exploit-, brute-force-, login- of actieve kwetsbaarheidstests uitgevoerd."
+    };
+    seoChecks.push(...securityChecks);
 
     // First specialist sector checks. Positive raw-HTML evidence can pass; absence is
     // "unable to confirm" rather than a penalty because JavaScript is not executed.
@@ -2684,7 +2763,7 @@ export async function POST(request: Request) {
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             language: scanLanguage,
-            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, summary: scanSummary, rendering, pageTypeEvidence, technologyProfile, sectorProfile, multiPage,
+            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, summary: scanSummary, rendering, pageTypeEvidence, technologyProfile, sectorProfile, security: securityEngine, multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -2910,6 +2989,8 @@ export async function POST(request: Request) {
       multiPage,
       pageTypeEvidence,
       technologyProfile,
+      sectorProfile,
+      security: securityEngine,
       adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
       seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
       geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
