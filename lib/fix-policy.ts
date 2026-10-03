@@ -14,6 +14,14 @@ const POLICY: Record<string, FixPolicy> = {
   IMAGE_ALT_MISSING: { category: "B", safe_type: "alt_text" },
   SOCIAL_METADATA_INCOMPLETE: { category: "B", safe_type: "social_metadata" },
   social: { category: "B", safe_type: "social_metadata" },
+  // Performance timing is measured, but its root cause is not proven by a scan.
+  // Diagnose before changing hosting, caching, database or SSR configuration.
+  response: { category: "C", safe_type: null, action: "ai_advice" },
+  // This rule aggregates different accessibility signals. RankFix must not guess
+  // the semantics of an empty button or form control and auto-edit production code.
+  accessibility_basics: { category: "C", safe_type: null, action: "ai_advice" },
+  // A broken/invalid sitemap can require CMS, server or routing changes.
+  sitemap: { category: "C", safe_type: null, action: "ai_advice" },
   STRUCTURED_DATA_MISSING: { category: "B", safe_type: "structured_data" },
   breadcrumbs: { category: "B", safe_type: "breadcrumb" },
   author: { category: "C", safe_type: "expertise", action: "ai_advice" },
