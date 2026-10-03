@@ -1412,6 +1412,19 @@ export async function POST(request: Request) {
       .filter(([, urls]) => new Set(urls).size > 1)
       .map(([language]) => language);
     const identicalDuplicateHreflangLanguages = duplicateHreflangLanguages.filter((language) => !conflictingHreflangLanguages.includes(language));
+    const currentNormalizedUrl = normalizeScanUrl(finalUrl.toString());
+    const selfHreflangEntries = hreflangEntries.filter((entry) => {
+      if (!entry.validHref) return false;
+      try { return normalizeScanUrl(new URL(entry.href, finalUrl).toString()) === currentNormalizedUrl; } catch { return false; }
+    });
+    const documentLanguage = lang.trim().toLowerCase().replace("_", "-");
+    const documentLanguageBase = documentLanguage.split("-")[0] || "";
+    const hasMatchingSelfHreflang = selfHreflangEntries.some((entry) => {
+      if (entry.language === "x-default") return false;
+      const hreflangBase = entry.language.split("-")[0] || "";
+      return Boolean(documentLanguageBase && hreflangBase === documentLanguageBase);
+    });
+    const selfHreflangMismatch = Boolean(documentLanguage && selfHreflangEntries.length && !hasMatchingSelfHreflang);
     const languageSelectorSignal = /(?:language|taal|sprache|idioma|lingua|français|deutsch|italiano|español|english|nederlands)\b/i.test(text) && /(?:select|dropdown|menu|switch|\bEN\b|\bNL\b|\bDE\b|\bFR\b|\bES\b|\bIT\b)/i.test(text);
     // A language/country selector alone does not prove equivalent translated URLs exist.
     // Only explicit hreflang markup is strong enough in a single raw-HTML page scan.
@@ -1716,6 +1729,8 @@ export async function POST(request: Request) {
         : check("not_applicable", "hreflang", "seo", "Meertalige SEO", "Geen bewezen alternatieve taal-URL's gevonden; RankFix telt hreflang daarom niet mee in de score.", "Gebruik hreflang wanneer dezelfde content aantoonbaar in meerdere talen/URL's beschikbaar is.", 0, 5)
       : invalidHreflangEntries.length
           ? check("warning", "hreflang", "seo", "Meertalige SEO", `${hreflangTags.length} hreflang-link(s) gevonden, maar ${invalidHreflangEntries.length} bevat een ongeldige taal-/regiocode of URL.`, "Corrigeer ongeldige hreflang-codes en href-URL's. Controleer daarna wederkerigheid tussen taalversies.", 2, 5)
+          : selfHreflangMismatch
+            ? check("warning", "hreflang", "seo", "Meertalige SEO", `De huidige URL is als hreflang-doel opgenomen, maar de taalcode sluit niet aan op documenttaal "${documentLanguage}".`, "Laat de self-referencing hreflang-taal overeenkomen met de taal van deze pagina en controleer daarna de alternatieve taalversies.", 2, 5)
           : conflictingHreflangLanguages.length
             ? check("warning", "hreflang", "seo", "Meertalige SEO", `Dezelfde hreflang-code verwijst naar verschillende doel-URL's: ${conflictingHreflangLanguages.map((language) => `${language} => ${[...new Set(hreflangTargetsByLanguage.get(language) || [])].join(" | ")}`).join("; ")}.`, "Gebruik per pagina één eenduidige doel-URL per taal/regiocode en controleer daarna wederkerigheid.", 3, 5)
             : identicalDuplicateHreflangLanguages.length
