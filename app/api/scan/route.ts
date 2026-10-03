@@ -2432,7 +2432,12 @@ export async function POST(request: Request) {
           {key:"title",status:pageTitle?"PASS":"WARNING",details:pageTitle?`Title gevonden (${pageTitle.length} tekens).`:"Geen title gevonden in raw HTML."},
           {key:"description",status:pageDescription?"PASS":"WARNING",details:pageDescription?`Meta description gevonden (${pageDescription.length} tekens).`:"Geen meta description gevonden in raw HTML."},
           {key:"h1",status:pageH1s.length>0?"PASS":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:`${pageH1s.length} H1-heading(s) gevonden.`},
-          {key:"canonical",status:pageCanonical?"PASS":"WARNING",details:pageCanonical?"Canonical gevonden.":"Geen canonical gevonden in raw HTML."},
+          {key:"canonical",status:pageCanonical
+            ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); const sameHost=resolved.hostname.toLowerCase().replace(/^www\./,"")===finalCandidate.hostname.toLowerCase().replace(/^www\./,""); const samePage=resolved.pathname.replace(/\/+$/,"")===finalCandidate.pathname.replace(/\/+$/,"") && resolved.search===finalCandidate.search; return sameHost&&samePage?"PASS":"WARNING"; } catch { return "WARNING"; } })()
+            : "UNABLE_TO_CONFIRM",
+            details:pageCanonical
+              ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); const sameHost=resolved.hostname.toLowerCase().replace(/^www\./,"")===finalCandidate.hostname.toLowerCase().replace(/^www\./,""); const samePage=resolved.pathname.replace(/\/+$/,"")===finalCandidate.pathname.replace(/\/+$/,"") && resolved.search===finalCandidate.search; return sameHost&&samePage?`Self-canonical bevestigd: ${resolved.toString()}`:`Canonical wijst naar ${resolved.toString()}; controleer of deze afwijking bewust is.`; } catch { return "Canonical is aanwezig maar kon niet betrouwbaar als URL worden geïnterpreteerd."; } })()
+              : "Geen canonical gevonden in de begrensde raw-HTML fetch; afwezigheid wordt hier niet als bewezen fout gescoord."},
         ];
         const confirmed = evidenceChecks.filter((x)=>x.status!=="UNABLE_TO_CONFIRM");
         const passed = confirmed.filter((x)=>x.status==="PASS").length;
