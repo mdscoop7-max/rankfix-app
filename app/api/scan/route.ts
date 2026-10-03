@@ -1235,18 +1235,18 @@ export async function POST(request: Request) {
 
     const setCookieHeaders = response.headers.get("set-cookie") || "";
     const cookiePresent = Boolean(setCookieHeaders);
-    const cookieSecure = /(?:^|[,;]\\s*)secure(?:;|,|$)/i.test(setCookieHeaders);
-    const cookieHttpOnly = /(?:^|[,;]\\s*)httponly(?:;|,|$)/i.test(setCookieHeaders);
-    const cookieSameSite = /samesite=(?:lax|strict|none)/i.test(setCookieHeaders);
+    const cookieSecure = new RegExp("(?:^|[,;]\\\\s*)secure(?:;|,|$)", "i").test(setCookieHeaders);
+    const cookieHttpOnly = new RegExp("(?:^|[,;]\\\\s*)httponly(?:;|,|$)", "i").test(setCookieHeaders);
+    const cookieSameSite = new RegExp("samesite=(?:lax|strict|none)", "i").test(setCookieHeaders);
     securityChecks.push(!cookiePresent
       ? securityCheck("not_applicable","security_cookie_flags","Cookie-beveiliging","De hoofdresponse zette geen cookie die RankFix betrouwbaar kon beoordelen.","Geen actie nodig voor deze response; controleer sessiecookies in ingelogde flows apart.",0,5)
       : cookieSecure && cookieHttpOnly && cookieSameSite
         ? securityCheck("pass","security_cookie_flags","Cookie-beveiliging","De zichtbare Set-Cookie-response bevat Secure, HttpOnly en SameSite-signalen.","Houd gevoelige sessiecookies voorzien van passende beveiligingsflags.",5,5)
         : securityCheck("warning","security_cookie_flags","Cookie-beveiliging",`Cookie-flags zijn niet volledig bevestigd (Secure=${cookieSecure}, HttpOnly=${cookieHttpOnly}, SameSite=${cookieSameSite}). Dit bewijst niet dat alle cookies onveilig zijn.`,"Controleer vooral sessie- en authenticatiecookies op Secure, HttpOnly en een passende SameSite-instelling.",5,5));
 
-    const forms = [...html.matchAll(/<form\\b[\\s\\S]*?<\\/form>/gi)].map((m)=>m[0]);
-    const passwordForm = forms.some((form)=>/<input[^>]+type\\s*=\\s*["']password["']/i.test(form));
-    const insecureFormActions = forms.filter((form)=>/action\\s*=\\s*["']http:\\/\\//i.test(form)).length;
+    const forms = [...html.matchAll(new RegExp("<form\\\\b[\\\\s\\\\S]*?</form>", "gi"))].map((m)=>m[0]);
+    const passwordForm = forms.some((form)=>new RegExp("<input[^>]+type\\\\s*=\\\\s*[\\\"']password[\\\"']", "i").test(form));
+    const insecureFormActions = forms.filter((form)=>new RegExp("action\\\\s*=\\\\s*[\\\"']http://", "i").test(form)).length;
     securityChecks.push(forms.length === 0
       ? securityCheck("not_applicable","security_forms","Formuliertransport","Geen HTML-formulier gevonden in de gescande pagina.","Geen actie nodig voor deze pagina.",0,5)
       : insecureFormActions > 0
