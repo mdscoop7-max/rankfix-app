@@ -18,8 +18,9 @@ export async function generateMetadata():Promise<Metadata>{
  const raw=(await headers()).get("x-rankfix-language")||"nl";
  const language:Locale=/^(nl|en|de|fr|it|es)$/.test(raw)?raw as Locale:"nl";
  const m=meta[language],path=`/${language}`;
- const requestPath=(await headers()).get("x-rankfix-pathname")||"";
- const canonicalPath=requestPath==="/" ? "/" : path;
+ const requestHeaders=await headers();
+ const pathnameHint=requestHeaders.get("x-rankfix-pathname")||requestHeaders.get("x-next-url")||"";
+ const canonicalPath=pathnameHint==="/" ? "/" : path;
  return {metadataBase:new URL("https://rankfix-app.onrender.com"),title:m.title,description:m.description,
   alternates:{canonical:canonicalPath,languages:{nl:"/nl",en:"/en",de:"/de",fr:"/fr",it:"/it",es:"/es","x-default":"/nl"}},
   openGraph:{type:"website",url:canonicalPath,siteName:"RankFix AI",locale:m.locale,title:m.title,description:m.description,images:[{url:"/opengraph-image",width:1200,height:630,alt:m.title}]},

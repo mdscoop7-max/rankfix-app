@@ -1179,13 +1179,13 @@ export async function POST(request: Request) {
       {sector:"automotive",label:"Automotive",patterns:[/\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\b/i,/\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
       {sector:"home_services",label:"Bouw & Installatie",patterns:[/\b(loodgieter|plumber|aannemer|installateur|elektricien|schilder|dakdekker|klusbedrijf|electrician|contractor)\b/i,/\b(offerte|werkgebied|servicegebied|installatie|reparatie)\b/i],modules:["core_seo","geo","local","lead_conversion","home_services"]},
       {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\b(advocaat|accountant|boekhouder|consultant|notaris|law firm|legalservice|legal services|accounting|consultancy)\b/i,/\b(diensten|expertise|advies|consult)\b/i],modules:["core_seo","geo","local","lead_conversion","professional_services"]},
-      {sector:"hospitality",label:"Horeca",patterns:[/\b(restaurant|cafe|café|hotel|brasserie|bistro|menu|reserveren|reservation)\b/i,/\b(openingstijden|opening hours|tafel reserveren)\b/i],modules:["core_seo","geo","local","lead_conversion","hospitality"]},
+      {sector:"hospitality",label:"Horeca",patterns:[/\b(restaurant|cafe|café|hotel|brasserie|bistro|reserveren|reservation|restaurantmenu|menukaart)\b/i,/\b(openingstijden|opening hours|tafel reserveren)\b/i],modules:["core_seo","geo","local","lead_conversion","hospitality"]},
       {sector:"health_wellness",label:"Zorg & Gezondheid",patterns:[/\b(kliniek|clinic|fysiotherap|tandarts|dentist|medicalclinic|physician|mondzorg)\b/i,/\b(afspraak|appointment|behandeling|patient|patiënt)\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
       {sector:"beauty",label:"Beauty & Verzorging",patterns:[/\b(kapper|hairdresser|hairsalon|hair salon|hairstyling|beauty salon|beautysalon|nagelsalon|barber)\b/i,/\b(afspraak|appointment|salons?|knippen|haar|hair)\b/i],modules:["core_seo","geo","local","lead_conversion","beauty"]},
       {sector:"recruitment",label:"Recruitment & Werk",patterns:[/\b(randstad|recruitment|uitzendbureau|vacatures?|sollicitatie|solliciteren|jobs?|employment|werken bij)\b/i,/\b(werkgevers?|kandidaten?|cv|career|carrière)\b/i],modules:["core_seo","geo","lead_conversion","recruitment"]},
       {sector:"government",label:"Overheid & Gemeente",patterns:[/\b(gemeente|municipality|overheid|government|stadhuis|burgerzaken)\b/i,/\b(digid|vergunning|paspoort|loket|inwoners)\b/i],modules:["core_seo","geo","government"]},
       {sector:"news_media",label:"Nieuws & Media",patterns:[/\b(nieuws|news|journalist|redactie|breaking news|sportnieuws|nieuwsartikel|newsarticle)\b/i,/\b(binnenland|buitenland|politiek|sport|economie)\b/i],modules:["core_seo","geo","news_media"]},
-      {sector:"saas_b2b",label:"SaaS / B2B",patterns:[/\b(saas|software platform|software-as-a-service|api platform|business software)\b/i,/\b(demo|features|integrations|integraties)\b/i],modules:["core_seo","geo","lead_conversion","saas_b2b"]},
+      {sector:"saas_b2b",label:"SaaS / B2B",patterns:[/\b(saas|software platform|software-as-a-service|api platform|business software|auditsoftware|seo software|geo software|website audit|seo audit|geo audit)\b/i,/\b(demo|features|integrations|integraties|dashboard|website scan|website scannen|website analyseren|audit platform)\b/i],modules:["core_seo","geo","technical","security","structured_data","links","accessibility","lead_conversion","saas_b2b"]},
     ];
     const sectorIdentitySource = [title, description, h1s.join(" "), finalUrl.hostname, finalUrl.pathname].join(" ");
     const sectorSource = [sectorIdentitySource, text.slice(0,120000), schemaTypes.join(" ")].join(" ");
@@ -1230,7 +1230,7 @@ export async function POST(request: Request) {
     // and HTML. It never probes admin paths, exploits endpoints or brute-forces.
     const securityChecks: Check[] = [];
     const securityCheck = (status: Status, key: string, titleText: string, message: string, fixText: string, points = 5, maxPoints = 5) => {
-      const item = check(status, key, "seo", titleText, message, fixText, status === "pass" ? points : 0, maxPoints);
+      const item = check(status, key, "seo", titleText, message, fixText, (status === "pass" || status === "warning") ? points : 0, maxPoints);
       item.evidence = { url: finalUrl.toString(), found: status === "pass", details: message };
       return item;
     };
