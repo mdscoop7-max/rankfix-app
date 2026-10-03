@@ -26,9 +26,6 @@ export async function GET(request:Request){
     "SELECT event_type,rule_id,previous_status,current_status,severity,details,created_at FROM website_health_events WHERE user_id=$1 AND website_host=$2 AND event_type IN ('IMPROVEMENT','REGRESSION') ORDER BY created_at DESC LIMIT 20",
     [user.id,websiteHost]
   );
-  const improvements=result.rows.filter((r:{event_type:string})=>r.event_type==="IMPROVEMENT");
-  const regressions=result.rows.filter((r:{event_type:string;severity?:string})=>r.event_type==="REGRESSION");
-  const priorityRegressions=regressions.filter((r:{severity?:string})=>r.severity==="CRITICAL"||r.severity==="HIGH");
   const latestScan=await getDb().query(
     "SELECT result,created_at FROM scans WHERE user_id=$1 AND lower(regexp_replace(split_part(split_part(final_url, '://', 2), '/', 1), '^www\\.', ''))=$2 ORDER BY created_at DESC LIMIT 2",
     [user.id,websiteHost]
@@ -36,15 +33,28 @@ export async function GET(request:Request){
   const latestChecks=[...(latestScan.rows[0]?.result?.seo?.checks||[]),...(latestScan.rows[0]?.result?.geo?.checks||[])];
   const previousChecks=[...(latestScan.rows[1]?.result?.seo?.checks||[]),...(latestScan.rows[1]?.result?.geo?.checks||[])];
   const previous=new Map(previousChecks.map((x:Record<string,unknown>)=>[String(x.issue_id||x.rule_id||x.key),normalizedStatus(x.issue_status||x.status)]));
-  let persistent=0;
+  const current=new Map(latestChecks.map((x:Record<string,unknown>)=>[String(x.issue_id||x.rule_id||x.key),normalizedStatus(x.issue_status||x.status)]));
+  const improvements:string[]=[];
+  const regressions:string[]=[];
+  const persistent:string[]=[];
   for(const item of latestChecks){
     const rule=String(item.issue_id||item.rule_id||item.key);
+    if(!rule) continue;
     const now=normalizedStatus(item.issue_status||item.status);
     const before=normalizedStatus(previous.get(rule));
-    // Only confirmed problem states count as persistent. N/A and unable-to-confirm
-    // are deliberately neutral and must never be presented as an ongoing issue.
-    if(isProblemStatus(now)&&isProblemStatus(before)) persistent++;
+    if(isProblemStatus(now)&&isProblemStatus(before)) persistent.push(rule);
+    else if(isProblemStatus(now)&&!isProblemStatus(before)) regressions.push(rule);
   }
+  for(const item of previousChecks){
+    const rule=String(item.issue_id||item.rule_id||item.key);
+    if(!rule) continue;
+    const before=normalizedStatus(item.issue_status||item.status);
+    const now=normalizedStatus(current.get(rule));
+    if(isProblemStatus(before)&&!isProblemStatus(now)) improvements.push(rule);
+  }
+  const currentProblemByRule=new Map(latestChecks.filter((x:Record<string,unknown>)=>isProblemStatus(x.issue_status||x.status)).map((x:Record<string,unknown>)=>[String(x.issue_id||x.rule_id||x.key),x]));
+  const newIssues=regressions.map(rule=>{const x=currentProblemByRule.get(rule) as Record<string,unknown>|undefined;return {rule_id:rule,title:String(x?.title||rule),status:normalizedStatus(x?.issue_status||x?.status),severity:String(x?.severity||"")};});
+  const priorityRegressions=newIssues.filter(x=>x.severity==="CRITICAL"||x.severity==="HIGH");
   const recentSiteScans=await getDb().query(
     "SELECT final_url,result FROM scans WHERE user_id=$1 AND lower(regexp_replace(split_part(split_part(final_url, '://', 2), '/', 1), '^www\\.', ''))=$2 ORDER BY created_at DESC LIMIT 40",
     [user.id,websiteHost]
@@ -62,5 +72,5 @@ export async function GET(request:Request){
     }
   }
   const recurringPatterns=[...patternMap.entries()].map(([rule,value])=>({rule_id:rule,title:value.title,pageCount:value.urls.size,examples:[...value.urls].slice(0,3)})).filter(item=>item.pageCount>=2).sort((a,b)=>b.pageCount-a.pageCount).slice(0,8);
-  return NextResponse.json({website_host:websiteHost,improvements:improvements.length,regressions:regressions.length,priorityRegressions:priorityRegressions.length,persistent,needsAttention:priorityRegressions.length>0,recurringPatterns,events:result.rows});
+  return NextResponse.json({website_host:websiteHost,improvements:improvements.length,regressions:regressions.length,priorityRegressions:priorityRegressions.length,persistent:persistent.length,needsAttention:priorityRegressions.length>0,newIssues,recurringPatterns,events:result.rows});
 }
