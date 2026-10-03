@@ -70,7 +70,7 @@ export default function DashboardScan() {
       <section className="rf-dashboard-scan rf-shared-scan">
         <div className="rf-shared-scan-badge">SEO + GEO · Google & AI Search</div>
         <form onSubmit={run}><label htmlFor="dashboard-scan-url">{t.url}</label><div className="rf-shared-scan-form"><input id="dashboard-scan-url" type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://example.com" required/><button className="rf-primary" type="submit" disabled={busy||(usage.plan==="free"&&usage.used>=(usage.limit??2))}>{busy?t.running:t.run}</button></div></form>
-        <div className="rf-shared-scan-meta"><span>✓ SEO</span><span>✓ GEO</span><span>✓ {t.technical}</span><span>✓ {t.shop}</span><span>✓ {t.ads}</span></div>
+        <div className="rf-shared-scan-meta" aria-label="Scanonderdelen"><span>SEO</span><span>GEO</span><span>Security</span><span>{t.technical}</span><span>{t.shop}</span><span>{t.ads}</span></div>
       </section>
       {urlError&&<p className="rf-alert" role="alert">{urlError}</p>}{error&&<p className="rf-alert" role="alert">{error}</p>}
       {busy&&<section className="rf-scan-progress" aria-live="polite"><div className="rf-scan-spinner"/><div><strong>{t.running}</strong><p>SEO · GEO · {t.technical} · {t.shop} · {t.ads}</p></div></section>}
