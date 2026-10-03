@@ -469,7 +469,7 @@ export async function POST(request: Request) {
 
     if (!response.ok && response.status !== 404) {
       const httpMessages: Record<string,string> = {
-        nl:`De website gaf HTTP ${response.status} terug en kan niet goed worden geanalyseerd.`,
+        nl:`Scan geblokkeerd door website (HTTP ${response.status}). RankFix kon deze website niet betrouwbaar analyseren. Er is daarom geen score berekend.`,
         en:`The website returned HTTP ${response.status} and cannot be analysed reliably.`,
         de:`Die Website hat HTTP ${response.status} zurückgegeben und kann nicht zuverlässig analysiert werden.`,
         fr:`Le site a renvoyé HTTP ${response.status} et ne peut pas être analysé de manière fiable.`,
