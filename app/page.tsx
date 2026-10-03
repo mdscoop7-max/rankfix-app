@@ -1197,8 +1197,8 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
             [t.company, language==="nl"?["Over RankFix","Contact","Privacy","Voorwaarden","Cookies"]:language==="en"?["About RankFix","Contact","Privacy","Terms","Cookies"]:language==="de"?["Über RankFix","Kontakt","Datenschutz","AGB","Cookies"]:language==="fr"?["À propos de RankFix","Contact","Confidentialité","Conditions générales","Cookies"]:language==="it"?["Chi è RankFix","Contatti","Privacy","Termini e condizioni","Cookie"]:["Sobre RankFix","Contacto","Privacidad","Condiciones","Cookies"]],
           ].map((entry,groupIndex) => {
             const [title, links] = entry as [string, string[]];
-            return <div key={title}><div className="text-sm font-bold text-white">{title}</div><div className="mt-4 space-y-3 text-sm text-slate-300">{links.map((link,index)=><button type="button" key={link} onClick={()=>{
-              if(groupIndex===2){if(index===0)window.location.href="/"+language+"/about";else if(index===1)setContactOpen(true);else if(index===2)window.location.href="/"+language+"/privacy";else if(index===3)window.location.href="/"+language+"/terms";else window.location.href="/"+language+"/cookies";}
+            return <div key={title}><div className="text-sm font-bold text-white">{title}</div><div className="mt-4 space-y-3 text-sm text-slate-300">{links.map((link,index)=>groupIndex===2&&index!==1?<Link key={link} href={`/${language}/${index===0?"about":index===2?"privacy":index===3?"terms":"cookies"}`} className="block text-left hover:text-emerald-300">{link}</Link>:<button type="button" key={link} onClick={()=>{
+              if(groupIndex===2)setContactOpen(true);
               else if(groupIndex===0){if(index===0)startAudit("seo");else if(index===1)startAudit("geo");else if(index===2)scrollToSection("features");else scrollToSection(document.getElementById("resultaat")?"resultaat":"scan");}
               else scrollToSection("scan");
             }} className="block text-left hover:text-emerald-300">{link}</button>)}</div></div>;
