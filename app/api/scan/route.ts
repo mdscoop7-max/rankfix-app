@@ -769,12 +769,18 @@ export async function POST(request: Request) {
     // Requiring both independent signals prevents ordinary SaaS pricing cards from becoming shops.
     const pricedProductCardCount = (html.match(/<(?:article|div)[^>]+(?:data-product-card|class\s*=\s*["'][^"']*product-card[^"']*["'])[^>]*(?:data-price\s*=\s*["'][^"']+["'])?/gi) || []).length;
     const cartFormSignal = /<form[^>]+(?:action\s*=\s*["'][^"']*(?:cart|winkelwagen|checkout)[^"']*["']|class\s*=\s*["'][^"']*(?:cart|basket)[^"']*["'])/i.test(html);
+    const hasStoreSchema = schemaSet.has("store") || schemaSet.has("onlinestore");
     const storefrontMarkupSignal = pricedProductCardCount >= 2 && visiblePriceCount >= 2 && (cartFormSignal || hasStrongCommerceAction) && commerceNavigationSignal;
-    const homepageStorefrontSignal = isHomepage && hasCommerceHrefSignal && commerceNavigationSignal && visiblePriceCount >= 3;
+    // Generic links such as "product", "pricing" or "support" are common on SaaS sites.
+    // A homepage is only a storefront when catalog/product evidence is repeated, not merely
+    // because several prices and a commerce-looking navigation link are present.
+    const homepageStorefrontSignal = isHomepage &&
+      commerceNavigationSignal &&
+      visiblePriceCount >= 3 &&
+      (productHrefCount >= 2 || pricedProductCardCount >= 2 || hasStoreSchema || hasConfirmedCommercePlatform);
     // Site-level commerce evidence must not depend on a homepage rendering prices or
     // add-to-cart controls. Large storefronts often keep those client-side while the
     // raw HTML still exposes Store schema and commercial navigation/support routes.
-    const hasStoreSchema = schemaSet.has("store") || schemaSet.has("onlinestore");
     const commerceSupportHrefCount = links.filter((href) =>
       /(?:verzend|shipping|delivery|bezorg|retour|return|refund|betaal|payment|bestel|order|winkelwagen|cart|checkout|klantenservice|customer-service)/i.test(href)
     ).length;
@@ -1235,7 +1241,7 @@ export async function POST(request: Request) {
 
     securityChecks.push(coreSecurityHeadersPresent
       ? securityCheck("pass","security_headers","Security headers",`Belangrijke browser-securityheaders zijn bevestigd (${presentSecurityHeaders.map(([name]) => name).join(", ")}).`,"Houd deze headers actief en test wijzigingen aan CSP/HSTS eerst tegen de applicatie.",6,6)
-      : securityCheck("warning","security_headers","Security headers",`RankFix bevestigde ${presentSecurityHeaders.length} van 6 gecontroleerde securityheaders. Dit is hardening-advies en op zichzelf geen bewijs van een kwetsbaarheid.`,"Controleer HSTS, CSP/frame-bescherming en X-Content-Type-Options op server/CDN-niveau.",6,6));
+      : securityCheck("warning","security_headers","Security headers",`RankFix bevestigde ${presentSecurityHeaders.length} van 6 gecontroleerde securityheaders. Dit is hardening-advies en op zichzelf geen bewijs van een kwetsbaarheid.`,"Controleer HSTS, CSP/frame-bescherming en X-Content-Type-Options op server/CDN-niveau.",Math.max(0, presentSecurityHeaders.length),6));
 
     const mixedContentMatches = isHttps
       ? [...html.matchAll(new RegExp("(?:src|href)\\\\s*=\\\\s*[\\\"']http://[^\\\"'\\\\s>]+[\\\"']", "gi"))].map((m)=>m[0]).slice(0,5)
@@ -1403,10 +1409,13 @@ export async function POST(request: Request) {
     // Extended audit signals: trust, ecommerce quality, URL hygiene, social metadata and multilingual SEO.
     const placeholderMatches = text.match(/\[(?:kvk|btw|adres|e-?mail|email|telefoon|phone|address|postcode|plaats|company|naam)\]/gi) || [];
     const hasPlaceholders = placeholderMatches.length > 0;
-    const hasPrivacyLink = links.some((href) => /privacy|privacybeleid|privacy-policy|datenschutz|confidentialite|privacidad/i.test(href));
-    const hasCookieLink = links.some((href) => /cookie|cookies|cookiebeleid|cookie-policy/i.test(href));
-    const hasTermsLink = links.some((href) => /voorwaarden|terms|conditions|agb|cgv|condiciones|termini/i.test(href));
-    const hasContactLink = links.some((href) => /contact|kontakt|contatti|contacto|klantenservice|customer-service|customer_service|support|help(?:desk|center|centre)?/i.test(href));
+    const legalAnchorEvidence = [...html.matchAll(/<a\\b[^>]*href\\s*=\\s*["']([^"']+)["'][^>]*>([\\s\\S]*?)<\\/a>/gi)]
+      .map((match) => ({ href: decode(match[1] || ""), label: stripHtml(match[2] || "") }));
+    const hasLegalSignal = (pattern: RegExp) => legalAnchorEvidence.some((item) => pattern.test(item.href) || pattern.test(item.label));
+    const hasPrivacyLink = hasLegalSignal(/privacy|privacybeleid|privacy-policy|datenschutz|confidentialit[eé]|privacidad/i);
+    const hasCookieLink = hasLegalSignal(/cookie|cookies|cookiebeleid|cookie-policy/i);
+    const hasTermsLink = hasLegalSignal(/voorwaarden|terms|conditions|agb|cgv|condiciones|termini/i);
+    const hasContactLink = hasLegalSignal(/contact|kontakt|contatti|contacto|klantenservice|customer-service|customer_service|support|help(?:desk|center|centre)?/i);
     const formControls = [...html.matchAll(/<(input|select|textarea)\b([^>]*)>/gi)];
     const wrappingLabelRanges = [...html.matchAll(/<label\b[^>]*>[\s\S]*?<\/label>/gi)]
       .map((match) => ({ start: match.index ?? -1, end: (match.index ?? -1) + match[0].length }));
