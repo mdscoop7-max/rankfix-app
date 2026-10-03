@@ -1272,7 +1272,20 @@ export async function POST(request: Request) {
       return !hasAria&&!hasTitle&&!hasWrappingLabel&&!(labelPattern&&labelPattern.test(html));
     }).length;
     const buttonTags=[...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/gi)];
-    const emptyButtons=buttonTags.filter((match)=>!stripHtml(match[2]||"")&&!/\baria-label(?:ledby)?\s*=\s*["'][^"']+["']/i.test(match[1]||"")&&!/\btitle\s*=\s*["'][^"']+["']/i.test(match[1]||"")).length;
+    const emptyButtonMatches=buttonTags.filter((match)=>{
+      const attrs=match[1]||"";
+      const body=match[2]||"";
+      const hasText=Boolean(stripHtml(body).trim());
+      const hasAccessibleAttribute=/\baria-label(?:ledby)?\s*=\s*["'][^"']+["']/i.test(attrs)||/\btitle\s*=\s*["'][^"']+["']/i.test(attrs);
+      const hasNamedImage=/<img\b[^>]*\balt\s*=\s*["'][^"']+["'][^>]*>/i.test(body);
+      const hasInlineSvgName=/<svg\b[^>]*(?:\baria-label\s*=\s*["'][^"']+["']|\brole\s*=\s*["']img["'])[^>]*>[\s\S]*?<title\b[^>]*>\s*[^<]+\s*<\/title>/i.test(body);
+      return !hasText&&!hasAccessibleAttribute&&!hasNamedImage&&!hasInlineSvgName;
+    });
+    const emptyButtons=emptyButtonMatches.length;
+    const emptyButtonEvidence=emptyButtonMatches.slice(0,3).map((match)=>{
+      const attrs=(match[1]||"").replace(/\s+/g," ").trim().slice(0,220);
+      return `<button${attrs ? " "+attrs : ""}>…</button>`;
+    });
     const accessibilityIssueCount=imagesMissingAlt+unlabeledFormControls+emptyButtons;
     const dutchEuroDecimalPattern = /€\s?\d{1,3}(?:[.,]\d{3})*[.]\d{2}\b/g;
     const priceFormatMatches = text.match(dutchEuroDecimalPattern) || [];
@@ -2123,7 +2136,7 @@ export async function POST(request: Request) {
         image_sources: `images=${imageElementCount}; external=${externalImageUrls.length}; stockHosts=${stockImageUrls.length}`,
         commercial_terms_signal: hasEcommerceSignal ? `termsLink=${hasTermsLink}` : null,
         merchant_product_readiness: hasEcommerceSignal && isProductPage ? `ready=${merchantProductReadiness}; productSchema=${hasProductSchema}; offers=${productOfferSummary.length}` : null,
-        accessibility_basics: `imagesMissingAlt=${imagesMissingAlt}; unlabeledControls=${unlabeledFormControls}; emptyButtons=${emptyButtons}; staticHtmlOnly=true`,
+        accessibility_basics: `imagesMissingAlt=${imagesMissingAlt}; unlabeledControls=${unlabeledFormControls}; emptyButtons=${emptyButtons}; emptyButtonEvidence=${emptyButtonEvidence.join(" | ") || "none"}; source=${javascriptExecuted ? "rendered_html" : "raw_html"}`,
         consent_mode_readiness: adsTrackingSignals > 0 ? `trackingSignals=${adsTrackingSignals}; explicitConsentSignal=${hasConsentModeSignal}; runtimeNotExecuted=true` : null,
         merchant_feed_signal: hasEcommerceSignal ? `feedHint=${hasMerchantFeedHint}; productReadiness=${merchantProductReadiness}; websiteSignalsOnly=true` : null,
         content: `wordCount=${wordCount}; pageType=${contentContext}; minimum=${contentMinimumSignal}; strong=${contentStrongSignal}`,
