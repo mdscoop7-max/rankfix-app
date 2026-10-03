@@ -20,7 +20,7 @@ type AuditMode = "seo" | "geo" | "both";
 
 type Check = {
   key: string;
-  category: "seo" | "geo";
+  category: "seo" | "geo" | "security";
   title: string;
   fix_status?: "WAITING" | "AWAITING_MERGE" | "STILL_PRESENT" | "DONE";
   recurring_issue?: {
@@ -1256,8 +1256,18 @@ export async function POST(request: Request) {
     // and HTML. It never probes admin paths, exploits endpoints or brute-forces.
     const securityChecks: Check[] = [];
     const securityCheck = (status: Status, key: string, titleText: string, message: string, fixText: string, points = 5, maxPoints = 5) => {
-      const item = check(status, key, "seo", titleText, message, fixText, (status === "pass" || status === "warning") ? points : 0, maxPoints);
-      item.evidence = { url: finalUrl.toString(), found: status === "pass", details: message };
+      // Security is independent from SEO. Warnings receive partial credit only.
+      const awardedPoints = status === "pass"
+        ? Math.min(points, maxPoints)
+        : status === "warning"
+          ? Math.min(points, Math.max(0, maxPoints - 1))
+          : 0;
+      const item = check(status, key, "security", titleText, message, fixText, awardedPoints, maxPoints);
+      item.evidence = {
+        url: finalUrl.toString(),
+        found: status === "pass" ? true : status === "fail" ? false : null,
+        details: message
+      };
       return item;
     };
     const isHttps = finalUrl.protocol === "https:";
@@ -1298,7 +1308,7 @@ export async function POST(request: Request) {
         ? securityCheck("fail","security_forms","Formuliertransport",`${insecureFormActions} formulier(en) sturen expliciet naar een HTTP-endpoint.`,"Gebruik uitsluitend HTTPS voor formulieracties en gevoelige gegevens.",5,5)
         : isHttps
           ? securityCheck("pass","security_forms","Formuliertransport",`${forms.length} formulier(en) gevonden zonder expliciete onveilige HTTP-action${passwordForm ? "; wachtwoordveld aanwezig" : ""}.`,"Controleer server-side validatie, CSRF-bescherming en autorisatie aanvullend; die zijn niet uit statische HTML te bewijzen.",5,5)
-          : securityCheck("warning","security_forms","Formuliertransport",`${forms.length} formulier(en) gevonden op een niet-HTTPS-pagina.`,"Bescherm formulieren met HTTPS; beoordeel server-side validatie en CSRF apart.",5,5));
+          : securityCheck("warning","security_forms","Formuliertransport",`${forms.length} formulier(en) gevonden op een niet-HTTPS-pagina.`,"Bescherm formulieren met HTTPS; beoordeel server-side validatie en CSRF apart.",2,5));
 
     const exposedSecretPatterns = [
       { label:"private key", re:/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/i },
@@ -1318,7 +1328,7 @@ export async function POST(request: Request) {
       ? securityCheck("not_applicable","security_script_integrity","Externe scripts","Geen cross-origin scripts gevonden die statisch beoordeeld kunnen worden.","Geen actie nodig voor deze pagina.",0,4)
       : crossOriginWithoutSri.length === 0
         ? securityCheck("pass","security_script_integrity","Externe scripts",`Alle ${crossOriginScripts.length} zichtbare cross-origin script(s) bevatten een integrity-attribuut.`,"Houd externe scripts beperkt en gebruik SRI waar versievaste assets dit ondersteunen.",4,4)
-        : securityCheck("warning","security_script_integrity","Externe scripts",`${crossOriginWithoutSri.length} van ${crossOriginScripts.length} cross-origin script(s) hebben geen zichtbaar integrity-attribuut. SRI is niet voor elke dynamische provider toepasbaar.`,"Beperk derde-partij scripts en gebruik Subresource Integrity voor versievaste externe assets waar mogelijk.",4,4));
+        : securityCheck("warning","security_script_integrity","Externe scripts",`${crossOriginWithoutSri.length} van ${crossOriginScripts.length} cross-origin script(s) hebben geen zichtbaar integrity-attribuut. SRI is niet voor elke dynamische provider toepasbaar.`,"Beperk derde-partij scripts en gebruik Subresource Integrity voor versievaste externe assets waar mogelijk.",2,4));
 
     const securityApplicable = securityChecks.filter((item)=>item.issue_status !== "NOT_APPLICABLE" && item.issue_status !== "UNABLE_TO_CONFIRM");
     const securityMax = securityApplicable.reduce((sum,item)=>sum+item.maxPoints,0);
@@ -1326,7 +1336,7 @@ export async function POST(request: Request) {
     const securityScore = securityMax ? Math.round((securityPoints/securityMax)*100) : 0;
     const securitySummary = summarizeAuditChecks(securityChecks);
     const securityEngine = {
-      version:"1.0-passive",
+      version:"1.1-passive",
       mode:"PASSIVE_STATIC_EVIDENCE" as const,
       score:securityScore,
       grade:grade(securityScore),
@@ -1334,7 +1344,7 @@ export async function POST(request: Request) {
       checks:securityChecks,
       note:"Passieve security-audit op responseheaders en opgehaalde HTML. Geen exploit-, brute-force-, login- of actieve kwetsbaarheidstests uitgevoerd."
     };
-    seoChecks.push(...securityChecks);
+    // Security remains a separate engine and must never change SEO scoring/counts.
 
     // First specialist sector checks. Positive raw-HTML evidence can pass; absence is
     // "unable to confirm" rather than a penalty because JavaScript is not executed.
