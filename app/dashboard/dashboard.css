@@ -331,3 +331,11 @@
 .rf-workspace-strip{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:0 0 22px;padding:16px 18px;border:1px solid var(--border-subtle);border-radius:16px;background:#0b223a}
 .rf-workspace-strip>div:first-child{min-width:0;display:grid;gap:3px}.rf-workspace-strip strong{font-size:16px;overflow-wrap:anywhere}.rf-workspace-strip small{color:var(--text-secondary);font-size:12px}.rf-workspace-strip-actions{display:flex;align-items:center;gap:10px;flex:none}.rf-workspace-strip-actions>a:first-child{color:var(--brand-light);font-size:12px;font-weight:700}
 @media(max-width:650px){.rf-workspace-strip{align-items:stretch;flex-direction:column;padding:14px}.rf-workspace-strip-actions{display:grid;grid-template-columns:1fr 1fr}.rf-workspace-strip-actions a{text-align:center;min-height:42px;display:flex;align-items:center;justify-content:center}}
+
+
+/* Dashboard clarity bundle: readable help text, calmer cards and one primary scan action */
+.rf-section-head div>p,.rf-more-card p,.rf-help-topic p,.rf-help-ai p,.rf-github-steps div,.rf-workspace-strip small,.rf-site-copy p,.rf-dashboard-latest p{font-size:14px;line-height:1.6}
+.rf-more-card,.rf-help-topic{padding:20px 22px}.rf-more-card strong,.rf-help-topic b{font-size:16px}.rf-more-card p,.rf-help-topic p{margin-top:7px}
+.rf-quick-actions-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.rf-quick-actions-grid a{min-height:104px}.rf-workspace-strip-actions>a:first-child{min-height:42px;display:inline-flex;align-items:center;padding:0 10px;border-radius:9px}
+.rf-workspace-strip-actions>a:first-child:hover{background:var(--brand-surface)}
+@media(max-width:650px){.rf-section-head div>p,.rf-more-card p,.rf-help-topic p,.rf-help-ai p,.rf-github-steps div,.rf-workspace-strip small,.rf-site-copy p,.rf-dashboard-latest p{font-size:14px;line-height:1.55}.rf-more-card,.rf-help-topic{padding:16px!important}.rf-more-card strong,.rf-help-topic b{font-size:15px}.rf-quick-actions-grid{grid-template-columns:1fr 1fr}.rf-quick-actions-grid a:last-child:nth-child(odd){grid-column:1/-1}.rf-workspace-strip-actions{display:flex}.rf-workspace-strip-actions>a:first-child{width:100%;justify-content:center}.rf-site-copy p{font-size:13px}}
