@@ -977,17 +977,29 @@ export async function POST(request: Request) {
         if (r.ok) {
           const contentType = r.headers.get("content-type") || "onbekend";
           const sitemapBody = await readResponseTextLimited(r, 2_000_000);
-          const hasSitemapRoot = /<(?:[a-z0-9_-]+:)?(?:urlset|sitemapindex)\b/i.test(sitemapBody);
-          if (hasSitemapRoot) {
+          const rootMatch = sitemapBody.match(/<(?:(?:[a-z0-9_-]+):)?(urlset|sitemapindex)\b[^>]*>/i);
+          const hasSitemapRoot = !!rootMatch;
+          const sitemapKind = String(rootMatch?.[1] || "").toLowerCase();
+          const locValues = [...sitemapBody.matchAll(/<(?:(?:[a-z0-9_-]+):)?loc\b[^>]*>([\s\S]*?)<\/(?:(?:[a-z0-9_-]+):)?loc>/gi)]
+            .map((match) => decode(String(match[1] || "").trim()))
+            .filter(Boolean);
+          const validLocValues = locValues.filter((value) => {
+            try { const parsed = new URL(value); return /^https?:$/.test(parsed.protocol); } catch { return false; }
+          });
+          const structurallyValid = hasSitemapRoot && validLocValues.length > 0;
+          if (structurallyValid) {
             sitemapFound = true;
             sitemapStatus = "PASS";
             confirmedSitemapUrl = candidate.url;
+            sitemapDiagnostic = `${candidate.url} bevat een geldige ${sitemapKind || "sitemap"} met ${validLocValues.length} geldige URL-verwijzing(en) in de gecontroleerde response.`;
             // Keep scanning when robots.txt already declared a broken sitemap so
             // the report can mention both the broken declaration and valid fallback.
             if (declaredSitemapHttpFailures.length === 0) break;
           } else if (candidate.source === "robots" || candidate.source === "html") {
             sitemapStatus = "FAIL";
-            sitemapDiagnostic = `${candidate.url} gaf HTTP ${r.status}; content-type: ${contentType}; geen geldige urlset/sitemapindex gevonden.`;
+            sitemapDiagnostic = hasSitemapRoot
+              ? `${candidate.url} gaf HTTP ${r.status}; content-type: ${contentType}; sitemap-root gevonden maar geen geldige absolute URL in <loc>.`
+              : `${candidate.url} gaf HTTP ${r.status}; content-type: ${contentType}; geen geldige urlset/sitemapindex gevonden.`;
           }
         } else {
           sitemapDiagnostic = `${candidate.url} gaf HTTP ${r.status}; content-type: ${r.headers.get("content-type") || "onbekend"}.`;
