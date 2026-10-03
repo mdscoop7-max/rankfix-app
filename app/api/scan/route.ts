@@ -467,7 +467,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!response.ok && response.status !== 404) {
+    if (!response.ok) {
       const httpMessages: Record<string,string> = {
         nl:`Scan geblokkeerd door website (HTTP ${response.status}). RankFix kon deze website niet betrouwbaar analyseren. Er is daarom geen score berekend.`,
         en:`The website returned HTTP ${response.status} and cannot be analysed reliably.`,
@@ -500,6 +500,25 @@ export async function POST(request: Request) {
         renderFallbackReason = renderError instanceof Error ? renderError.message.slice(0, 120) : "RENDER_FAILED";
         console.info("RankFix headless fallback", { page: finalUrl.toString(), reason: renderFallbackReason });
       }
+    }
+
+    // Central Scan Quality Gate: HTTP 200 can still be a holding/challenge page.
+    // Reject it before SEO/GEO/Security scoring to prevent misleading reports.
+    const qualityTitle = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
+    const qualityText = stripHtml(html).slice(0, 12000);
+    const qualityWords = qualityText.split(/\s+/).filter(Boolean).length;
+    const strongInterstitialTitle = /\b(hang tight|routing to checkout|checking your browser|just a moment|please wait|verify (?:you are|that you are) human|access denied|security check|attention required)\b/i.test(qualityTitle);
+    const strongInterstitialBody = /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform)\b/i.test(qualityText);
+    if (strongInterstitialTitle || (strongInterstitialBody && qualityWords < 350)) {
+      const qualityMessages: Record<string,string> = {
+        nl:"Website kon niet betrouwbaar worden geanalyseerd. De server leverde een tussen-, challenge- of routingpagina in plaats van de verwachte website. Er is daarom geen score berekend.",
+        en:"The website could not be analysed reliably. The server returned an interstitial, challenge or routing page instead of the expected website, so no score was calculated.",
+        de:"Die Website konnte nicht zuverlässig analysiert werden. Der Server lieferte eine Zwischen-, Challenge- oder Routing-Seite statt der erwarteten Website. Daher wurde keine Bewertung berechnet.",
+        fr:"Le site n’a pas pu être analysé de manière fiable. Le serveur a renvoyé une page intermédiaire, de vérification ou de routage au lieu du site attendu. Aucun score n’a donc été calculé.",
+        it:"Il sito non ha potuto essere analizzato in modo affidabile. Il server ha restituito una pagina intermedia, di verifica o di routing invece del sito previsto. Non è stato quindi calcolato alcun punteggio.",
+        es:"El sitio no pudo analizarse de forma fiable. El servidor devolvió una página intermedia, de verificación o de enrutamiento en lugar del sitio esperado. Por eso no se calculó ninguna puntuación."
+      };
+      return NextResponse.json({ error: qualityMessages[scanLanguage], charged: false }, { status: 422 });
     }
 
     const title = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
@@ -1172,7 +1191,7 @@ export async function POST(request: Request) {
 
     // Sector intelligence is computed before scoring so only relevant specialist checks
     // can participate. Low-confidence classification stays generic and never penalizes.
-    type SectorKey = "ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"service_marketplace"|"saas_b2b"|"general_business"|"unknown";
+    type SectorKey = "ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"general_business"|"unknown";
     const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]}> = [
       {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\b/i,/\b(te koop|te huur|for sale|for rent|woningaanbod)\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
       {sector:"automotive",label:"Automotive",patterns:[/\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\b/i,/\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
@@ -1185,6 +1204,7 @@ export async function POST(request: Request) {
       {sector:"government",label:"Overheid & Gemeente",patterns:[/\b(gemeente|municipality|overheid|government|stadhuis|burgerzaken)\b/i,/\b(digid|vergunning|paspoort|loket|inwoners)\b/i],modules:["core_seo","geo","government"]},
       {sector:"news_media",label:"Nieuws & Media",patterns:[/\b(nieuws|news|journalist|redactie|breaking news|sportnieuws|nieuwsartikel|newsarticle)\b/i,/\b(binnenland|buitenland|politiek|sport|economie)\b/i],modules:["core_seo","geo","news_media"]},
       {sector:"tourism_recreation",label:"Toerisme & Recreatie",patterns:[/\b(toerisme|tourism|visit [a-zà-ÿ-]+|citymarketing|destination|bezoekers?|visitor|ontdek [a-zà-ÿ-]+)\b/i,/\b(agenda|evenementen|events|overnachten|hotels?|restaurants?|activiteiten|things to do|bezienswaardigheden)\b/i],modules:["core_seo","geo","local","tourism_recreation"]},
+      {sector:"food_local_retail",label:"Voeding & lokale retail",patterns:[/\b(bakkerij|bakker|bakery|baker|patisserie|pastry|brood|bread|banket|artisan bakery)\b/i,/\b(gebak|taart|cakes?|croissant|sourdough|zuurdesem|vers brood|fresh bread)\b/i],modules:["core_seo","geo","local","lead_conversion","food_local_retail"]},
       {sector:"service_marketplace",label:"Dienstenplatform",patterns:[/\b(vind (?:de )?beste bedrijven|vergelijk (?:bedrijven|specialisten|dienstverleners)|dienstverleners vergelijken|professionals vergelijken|bedrijven vergelijken)\b/i,/\b(top 10|reviews?|beoordelingen|offertes? vergelijken|bedrijven voor jou|specialisten in jouw regio)\b/i],modules:["core_seo","geo","technical","structured_data","links","service_marketplace"]},
       {sector:"saas_b2b",label:"SaaS / B2B",patterns:[/\b(saas|software platform|software-as-a-service|api platform|business software|auditsoftware|seo software|geo software|website audit|seo audit|geo audit)\b/i,/\b(demo|features|integrations|integraties|dashboard|website scan|website scannen|website analyseren|audit platform)\b/i],modules:["core_seo","geo","technical","security","structured_data","links","accessibility","lead_conversion","saas_b2b"]},
     ];
@@ -2685,7 +2705,16 @@ export async function POST(request: Request) {
       const candidate = classifyMultiPageCandidate(item.url);
       return candidate ? [[normalizeScanUrl(candidate.url), candidate] as const] : [];
     })).values()];
-    const pickMultiPage = (type: MultiPageCandidate["type"], limit: number) => discoveredMultiPage.filter((item) => item.type === type).slice(0, limit);
+    const multiPageRelevance = (item: MultiPageCandidate) => {
+      const path = new URL(item.url).pathname.toLowerCase();
+      if (/(?:^|\/)(?:privacy|privacy-policy|privacybeleid|terms|terms-and-conditions|voorwaarden|algemene-voorwaarden|cookie|cookies|disclaimer|legal|impressum)(?:\/|$)/i.test(path)) return -100;
+      if (/(?:^|\/)(?:customer-service|customerservice|klantenservice|support|help|faq|reviews?|beoordelingen|over-ons|about-us|contact)(?:\/|$)/i.test(path)) return -20;
+      if (item.type === "product") return 40;
+      if (item.type === "category") return 30;
+      return 10;
+    };
+    const rankedMultiPage = discoveredMultiPage.filter((item) => multiPageRelevance(item) > -100).sort((a,b) => multiPageRelevance(b) - multiPageRelevance(a));
+    const pickMultiPage = (type: MultiPageCandidate["type"], limit: number) => rankedMultiPage.filter((item) => item.type === type).slice(0, limit);
     const multiPagePages: MultiPageCandidate[] = [
       { url: new URL("/", finalUrl).toString(), type: "homepage", evidence: ["site root"] },
       ...pickMultiPage("category", 1), ...pickMultiPage("product", 1), ...pickMultiPage("other", 1),
