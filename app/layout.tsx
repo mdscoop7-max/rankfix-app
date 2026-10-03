@@ -18,9 +18,11 @@ export async function generateMetadata():Promise<Metadata>{
  const raw=(await headers()).get("x-rankfix-language")||"nl";
  const language:Locale=/^(nl|en|de|fr|it|es)$/.test(raw)?raw as Locale:"nl";
  const m=meta[language],path=`/${language}`;
+ const requestPath=(await headers()).get("x-rankfix-pathname")||"";
+ const canonicalPath=requestPath==="/" ? "/" : path;
  return {metadataBase:new URL("https://rankfix-app.onrender.com"),title:m.title,description:m.description,
-  alternates:{canonical:path,languages:{nl:"/nl",en:"/en",de:"/de",fr:"/fr",it:"/it",es:"/es","x-default":"/nl"}},
-  openGraph:{type:"website",url:path,siteName:"RankFix AI",locale:m.locale,title:m.title,description:m.description,images:[{url:"/opengraph-image",width:1200,height:630,alt:m.title}]},
+  alternates:{canonical:canonicalPath,languages:{nl:"/nl",en:"/en",de:"/de",fr:"/fr",it:"/it",es:"/es","x-default":"/nl"}},
+  openGraph:{type:"website",url:canonicalPath,siteName:"RankFix AI",locale:m.locale,title:m.title,description:m.description,images:[{url:"/opengraph-image",width:1200,height:630,alt:m.title}]},
   twitter:{card:"summary_large_image",title:m.title,description:m.description,images:["/opengraph-image"]}
  };
 }
