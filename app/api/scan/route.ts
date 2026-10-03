@@ -391,9 +391,12 @@ export async function POST(request: Request) {
         ? await getDb().query("SELECT COUNT(*)::int AS count FROM usage_events WHERE website_host=$1 AND event_type='SCAN' AND created_at >= $2",[usageWebsiteHost,monthStart.toISOString()])
         : await getDb().query("SELECT COUNT(*)::int AS count FROM usage_events WHERE user_id=$1 AND event_type='SCAN' AND created_at >= $2",[usageUser.id,monthStart.toISOString()]);
       const used = Number(scanUsage.rows[0]?.count || 0);
-      // TrendMix is our internal test shop: allow unlimited dashboard scans while RankFix is being validated.
+      // Validation mode: RankFix's current Pro test account must be able to keep running
+      // regression scans while the product is being hardened. Customer plan limits remain
+      // unchanged for Free/Start/Business/E-commerce/Agency accounts.
       const unlimitedTestHost = usageWebsiteHost === "trendmix.onrender.com" || usageWebsiteHost === "trendmix-jet.vercel.app";
-      if (!unlimitedTestHost && used >= limits.scans) {
+      const validationTestAccount = planCode === "pro";
+      if (!unlimitedTestHost && !validationTestAccount && used >= limits.scans) {
         const limitMessages: Record<string,string> = {
           nl:`Je ${limits.scans} scans van deze maand zijn gebruikt. Je bestaande rapporten blijven beschikbaar.`,
           en:`Your ${limits.scans} scans for this month have been used. Your existing reports remain available.`,
@@ -779,8 +782,12 @@ export async function POST(request: Request) {
       /(?:\/shop(?:\/|$)|\/store(?:\/|$)|\/product(?:en|s)?(?:\/|$)|\/collection(?:s)?(?:\/|$)|\/categor(?:y|ie|ies|ien)(?:\/|$))/i.test(href)
     ).length;
     const commercialNavigationEvidence = commerceNavigationSignal && (shopCatalogHrefCount >= 2 || commerceSupportHrefCount >= 2);
-    const siteLevelCommerceSignal = hasStoreSchema || homepageStorefrontSignal || commercialNavigationEvidence;
-    const hasEcommerceSignal = hasConfirmedCommercePlatform || hasProductSignal || hasCategorySignal || repeatedProductLinkSignal || storefrontMarkupSignal || siteLevelCommerceSignal || (commerceNavigationSignal && hasStrongCommerceAction && (hasExplicitPriceSignal || visiblePriceCount >= 2)) || (hasCommerceHrefSignal && hasStrongCommerceAction && visiblePriceCount >= 2);
+    // A service company, marketplace or corporate site may contain "shop", "products",
+    // prices, discounts or even a cart-like link without being an ecommerce checkout.
+    // Require hard purchase/storefront evidence before webshop-only modules are enabled.
+    const hardPurchaseFlowSignal = hasStrongCommerceAction && (hasExplicitPriceSignal || visiblePriceCount >= 2) && (hasCommerceHrefSignal || cartFormSignal);
+    const siteLevelCommerceSignal = hasStoreSchema && (hasConfirmedCommercePlatform || hardPurchaseFlowSignal || repeatedProductLinkSignal || storefrontMarkupSignal);
+    const hasEcommerceSignal = hasConfirmedCommercePlatform || hasProductSignal || repeatedProductLinkSignal || storefrontMarkupSignal || homepageStorefrontSignal || siteLevelCommerceSignal || hardPurchaseFlowSignal;
     const requestedLanguages = adsProfile.adLanguages.split(/[,;]/).map((value) => value.trim().toLowerCase()).filter(Boolean).slice(0, 6);
     const requestedCountries = adsProfile.targetCountries.split(/[,;]/).map((value) => value.trim()).filter(Boolean).slice(0, 8);
     const pageLanguage = (requestedLanguages[0] || lang || "").toLowerCase().split("-")[0].trim();
@@ -1152,22 +1159,35 @@ export async function POST(request: Request) {
 
     // Sector intelligence is computed before scoring so only relevant specialist checks
     // can participate. Low-confidence classification stays generic and never penalizes.
-    type SectorKey = "ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"saas_b2b"|"general_business"|"unknown";
+    type SectorKey = "ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"saas_b2b"|"general_business"|"unknown";
     const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]}> = [
-      {sector:"real_estate",label:"Makelaar / vastgoed",patterns:[/\\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria)\\b/i,/\\b(te koop|te huur|for sale|for rent)\\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
-      {sector:"automotive",label:"Garage / automotive",patterns:[/\\b(garage|autobedrijf|autodealer|occasions?|auto onderhoud|car dealer|vehicle|automotive)\\b/i,/\\b(apk|proefrit|werkplaats)\\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
-      {sector:"home_services",label:"Lokale diensten / vakbedrijf",patterns:[/\\b(loodgieter|aannemer|installateur|elektricien|schilder|dakdekker|klusbedrijf|plumber|electrician|contractor)\\b/i,/\\b(offerte|werkgebied|servicegebied)\\b/i],modules:["core_seo","geo","local","lead_conversion","home_services"]},
-      {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\\b(advocaat|accountant|boekhouder|consultant|notaris|law firm|legal services|accounting|consultancy)\\b/i,/\\b(diensten|expertise|advies|consult)\\b/i],modules:["core_seo","geo","local","lead_conversion","professional_services"]},
-      {sector:"hospitality",label:"Horeca",patterns:[/\\b(restaurant|cafe|café|hotel|brasserie|bistro|menu|reserveren|reservation)\\b/i,/\\b(openingstijden|opening hours)\\b/i],modules:["core_seo","geo","local","lead_conversion","hospitality"]},
-      {sector:"health_wellness",label:"Zorg & wellness",patterns:[/\\b(kliniek|clinic|fysiotherap|tandarts|dentist|therap|wellness|salon|beauty treatment)\\b/i,/\\b(afspraak|appointment|behandeling)\\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
+      {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\\b/i,/\\b(te koop|te huur|for sale|for rent|woningaanbod)\\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
+      {sector:"automotive",label:"Automotive",patterns:[/\\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\\b/i,/\\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
+      {sector:"home_services",label:"Bouw & Installatie",patterns:[/\\b(loodgieter|plumber|aannemer|installateur|elektricien|schilder|dakdekker|klusbedrijf|electrician|contractor)\\b/i,/\\b(offerte|werkgebied|servicegebied|installatie|reparatie)\\b/i],modules:["core_seo","geo","local","lead_conversion","home_services"]},
+      {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\\b(advocaat|accountant|boekhouder|consultant|notaris|law firm|legalservice|legal services|accounting|consultancy)\\b/i,/\\b(diensten|expertise|advies|consult)\\b/i],modules:["core_seo","geo","local","lead_conversion","professional_services"]},
+      {sector:"hospitality",label:"Horeca",patterns:[/\\b(restaurant|cafe|café|hotel|brasserie|bistro|menu|reserveren|reservation)\\b/i,/\\b(openingstijden|opening hours|tafel reserveren)\\b/i],modules:["core_seo","geo","local","lead_conversion","hospitality"]},
+      {sector:"health_wellness",label:"Zorg & Gezondheid",patterns:[/\\b(kliniek|clinic|fysiotherap|tandarts|dentist|medicalclinic|physician|mondzorg)\\b/i,/\\b(afspraak|appointment|behandeling|patient|patiënt)\\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
+      {sector:"beauty",label:"Beauty & Verzorging",patterns:[/\\b(kapper|hairdresser|hairsalon|hair salon|hairstyling|beauty salon|beautysalon|nagelsalon|barber)\\b/i,/\\b(afspraak|appointment|salons?|knippen|haar|hair)\\b/i],modules:["core_seo","geo","local","lead_conversion","beauty"]},
+      {sector:"recruitment",label:"Recruitment & Werk",patterns:[/\\b(randstad|recruitment|uitzendbureau|vacatures?|sollicitatie|solliciteren|jobs?|employment|werken bij)\\b/i,/\\b(werkgevers?|kandidaten?|cv|career|carrière)\\b/i],modules:["core_seo","geo","lead_conversion","recruitment"]},
+      {sector:"government",label:"Overheid & Gemeente",patterns:[/\\b(gemeente|municipality|overheid|government|stadhuis|burgerzaken)\\b/i,/\\b(digid|vergunning|paspoort|loket|inwoners)\\b/i],modules:["core_seo","geo","government"]},
+      {sector:"news_media",label:"Nieuws & Media",patterns:[/\\b(nieuws|news|journalist|redactie|breaking news|sportnieuws|nieuwsartikel|newsarticle)\\b/i,/\\b(binnenland|buitenland|politiek|sport|economie)\\b/i],modules:["core_seo","geo","news_media"]},
       {sector:"saas_b2b",label:"SaaS / B2B",patterns:[/\\b(saas|software platform|software-as-a-service|api platform|business software)\\b/i,/\\b(demo|features|integrations|integraties)\\b/i],modules:["core_seo","geo","lead_conversion","saas_b2b"]},
     ];
     const sectorSource = [title, description, h1s.join(" "), text.slice(0,120000), schemaTypes.join(" ")].join(" ");
-    const sectorCandidates = sectorSignals.map(item=>({sector:item.sector,label:item.label,hits:item.patterns.filter(pattern=>pattern.test(sectorSource)).length,modules:item.modules})).filter(item=>item.hits>0).sort((a,b)=>b.hits-a.hits);
+    const schemaSectorBoost: Partial<Record<SectorKey, number>> = {};
+    if (schemaSet.has("dentist") || schemaSet.has("medicalclinic") || schemaSet.has("physician")) schemaSectorBoost.health_wellness = 3;
+    if (schemaSet.has("plumber") || schemaSet.has("electrician") || schemaSet.has("homeandconstructionbusiness")) schemaSectorBoost.home_services = 3;
+    if (schemaSet.has("restaurant") || schemaSet.has("foodestablishment")) schemaSectorBoost.hospitality = 3;
+    if (schemaSet.has("hairsalon") || schemaSet.has("beautysalon")) schemaSectorBoost.beauty = 3;
+    if (schemaSet.has("automotivebusiness") || schemaSet.has("autodealer") || schemaSet.has("autorepair")) schemaSectorBoost.automotive = 3;
+    if (schemaSet.has("realestateagent")) schemaSectorBoost.real_estate = 3;
+    if (schemaSet.has("newsarticle")) schemaSectorBoost.news_media = 3;
+    const sectorCandidates = sectorSignals.map(item=>({sector:item.sector,label:item.label,hits:item.patterns.filter(pattern=>pattern.test(sectorSource)).length + (schemaSectorBoost[item.sector] || 0),modules:item.modules})).filter(item=>item.hits>0).sort((a,b)=>b.hits-a.hits);
+    const strongSectorCandidate = sectorCandidates[0] && sectorCandidates[0].hits>=2 && (!sectorCandidates[1] || sectorCandidates[0].hits>sectorCandidates[1].hits);
     const sectorProfile = hasEcommerceSignal
-      ? {sector:"ecommerce" as SectorKey,label:"Webshop / e-commerce",confidence:"high" as const,confidenceScore:95,evidence:["Bevestigde commerce-signalen"],applicableModules:["core_seo","geo","ecommerce","product","pricing_currency","merchant","checkout","eu_consumer"]}
-      : sectorCandidates[0] && sectorCandidates[0].hits>=2 && (!sectorCandidates[1] || sectorCandidates[0].hits>sectorCandidates[1].hits)
-        ? {sector:sectorCandidates[0].sector,label:sectorCandidates[0].label,confidence:"medium" as const,confidenceScore:75,evidence:[`${sectorCandidates[0].hits} onafhankelijke sectorsignalen in raw HTML`],applicableModules:sectorCandidates[0].modules}
+      ? {sector:"ecommerce" as SectorKey,label:"Webshop / e-commerce",confidence:"high" as const,confidenceScore:95,evidence:["Harde aankoop-/storefrontsignalen bevestigd"],applicableModules:["core_seo","geo","ecommerce","product","pricing_currency","merchant","checkout","eu_consumer"]}
+      : strongSectorCandidate
+        ? {sector:sectorCandidates[0].sector,label:sectorCandidates[0].label,confidence:(sectorCandidates[0].hits>=3 ? "high" : "medium") as "high"|"medium",confidenceScore:sectorCandidates[0].hits>=3 ? 95 : 75,evidence:[`${sectorCandidates[0].hits} sectorsignalen inclusief gedeeld schema-/contentsbewijs`],applicableModules:sectorCandidates[0].modules}
         : {sector:"unknown" as SectorKey,label:"Sector niet bevestigd",confidence:"low" as const,confidenceScore:sectorCandidates[0]?.hits ? 35 : 0,evidence:sectorCandidates.slice(0,2).map(x=>`${x.label}: ${x.hits} signaal/signalen`),applicableModules:["core_seo","geo","technical"]};
 
     const seoChecks: Check[] = [];
@@ -1279,9 +1299,9 @@ export async function POST(request: Request) {
     );
     seoChecks.push(
       uniqueInternalAnchors.length === 0
-        ? check("not_applicable", "semantic_link_destination", "seo", "Verkeerde linkbestemming", "Geen controleerbare interne links gevonden.", "Controleer productkaarten zodra ze op de pagina aanwezig zijn.", 0, 5)
+        ? check("not_applicable", "semantic_link_destination", "seo", "Verkeerde linkbestemming", "Geen controleerbare interne links gevonden.", "Controleer belangrijke interne links zodra ze op de pagina aanwezig zijn.", 0, 5)
         : semanticLinkMismatches.length === 0 && productCardMismatches.length === 0 && featuredProductMismatches.length === 0
-          ? check("pass", "semantic_link_destination", "seo", "Verkeerde linkbestemming", "Geen sterke semantische mismatch gevonden tussen benoemde productlinks en hun product-URL. Prijs-only links worden bewust niet als bewijs gebruikt.", "Houd titel, afbeelding en productbestemming binnen productkaarten consistent.", 5, 5)
+          ? check("pass", "semantic_link_destination", "seo", "Verkeerde linkbestemming", hasEcommerceSignal ? "Geen sterke semantische mismatch gevonden tussen benoemde productlinks en hun productbestemming. Prijs-only links worden bewust niet als bewijs gebruikt." : "Geen sterke semantische mismatch gevonden tussen benoemde interne links en hun bestemming.", hasEcommerceSignal ? "Houd titel, afbeelding en productbestemming binnen productkaarten consistent." : "Houd linktekst en bestemming inhoudelijk consistent.", 5, 5)
           : check("warning", "semantic_link_destination", "seo", "Verkeerde linkbestemming", featuredProductMismatches.length > 0 ? `Mogelijke verkeerde linkbestemming in een uitgelicht product: "${featuredProductMismatches[0].label}" verwijst naar ${featuredProductMismatches[0].namedUrl}, terwijl de prijs naar ${featuredProductMismatches[0].priceUrl} verwijst. Beide links werken technisch, maar wijzen naar verschillende bestemmingen.` : productCardMismatches.length > 0 ? `Binnen één productkaart verwijzen onderdelen naar verschillende productbestemmingen: ${productCardMismatches[0].urls.join(" ↔ ")}. De links werken technisch, maar lijken niet bij hetzelfde product te horen.` : `Mogelijke verkeerde productbestemming gevonden: "${semanticLinkMismatches[0]?.context}" verwijst naar ${semanticLinkMismatches[0]?.finalUrl || semanticLinkMismatches[0]?.url}. De URL werkt technisch, maar de productnaam en bestemming delen geen duidelijke producttermen.`, "Controleer handmatig of titel/afbeelding/prijs binnen dezelfde productkaart naar hetzelfde product verwijzen. Markeer dit pas als definitieve fout na bevestiging.", 2, 5)
     );
 
@@ -1588,7 +1608,7 @@ export async function POST(request: Request) {
     // EU consumer / Omnibus signals are evidence-only. Static HTML can surface
     // transparency signals but cannot certify legal compliance or historical prices.
     const discountClaimMatches = text.match(/(?:\b(?:sale|korting|discount|rabatt|remise|sconto|descuento)\b|[-−]\s?\d{1,2}\s?%|\d{1,2}\s?%\s*(?:korting|off|discount))/gi) || [];
-    const referencePriceMatches = text.match(/(?:van|was|adviesprijs|oude prijs|previous price|was price|statt|prix avant|prezzo precedente|precio anterior)\s*[:€£$]?\s*\d[\d.,]*/gi) || [];
+    const referencePriceMatches = text.match(/(?:van|was|adviesprijs|oude prijs|previous price|was price|statt|prix avant|prezzo precedente|precio anterior)\s*[:]?\s*(?:€|£|\$)\s*\d[\d.,]*|(?:van|was|adviesprijs|oude prijs|previous price|was price|statt|prix avant|prezzo precedente|precio anterior)\s*[:]?\s*\d[\d.,]*\s*(?:EUR|GBP|USD|CHF|CAD|AUD)\b/gi) || [];
     // A generic "sale" word in navigation/banner copy is too weak to judge a product.
     // Require a product page or an explicit percentage/price-reduction expression before
     // raising the EU reference-price signal. This is local parsing only: no extra requests.
@@ -1748,7 +1768,7 @@ export async function POST(request: Request) {
     seoChecks.push(wordCount >= contentStrongSignal
       ? check("pass", "content", "seo", "Contentdekking", `Ongeveer ${wordCount} woorden gevonden op deze ${contentContext}. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld.`, "Behoud nuttige, unieke content die de zoekintentie en klantvragen beantwoordt.", 7, 7)
       : wordCount >= contentMinimumSignal
-        ? check("warning", "content", "seo", "Contentdekking", `Ongeveer ${wordCount} woorden gevonden op deze ${contentContext}. Dat is geen bewijs van slechte content, maar de tekstuele dekking is beperkt voor dit paginatype.`, "Breid alleen uit waar extra productinformatie, categoriecontext of antwoorden de bezoeker daadwerkelijk helpen.", 5, 7)
+        ? check("warning", "content", "seo", "Contentdekking", `Ongeveer ${wordCount} woorden gevonden op deze ${contentContext}. Dat is geen bewijs van slechte content, maar de tekstuele dekking is beperkt voor dit paginatype.`, "Breid alleen uit waar extra context, dienst-/onderwerpinformatie of antwoorden de bezoeker daadwerkelijk helpen.", 5, 7)
         : check("warning", "content", "seo", "Contentdekking", `Ongeveer ${wordCount} woorden gevonden op deze ${contentContext}; RankFix gebruikt hiervoor een contextuele richtwaarde van circa ${contentMinimumSignal}+ woorden als eerste dekkingssignaal.`, "Controleer of essentiële informatie en zoekintentie voldoende worden beantwoord; voeg geen tekst toe puur voor woordenaantal.", 3, 7)
     );
     seoChecks.push(finalUrl.protocol === "https:"
@@ -1909,8 +1929,10 @@ export async function POST(request: Request) {
 
     seoChecks.push(!hasEcommerceSignal
       ? check("not_applicable", "price_format", "seo", "Prijsnotatie", "Geen duidelijke webshop/product-signalen gevonden; prijsnotatie is niet beoordeeld.", "Gebruik deze controle op echte product- en e-commercepagina's.", 0, 5)
+      : visiblePriceCount === 0
+      ? check("unable_to_confirm", "price_format", "seo", "Prijsnotatie", "RankFix vond geen betrouwbaar zichtbaar prijsbewijs om de notatie te beoordelen.", "Controleer prijsnotatie op een pagina waar prijzen aantoonbaar zichtbaar zijn.", 0, 5)
       : !hasDotDecimalPrices
-      ? check("pass", "price_format", "seo", "Prijsnotatie", "De gevonden europrijzen bevatten geen inconsistente decimaalnotatie die door deze controle als fout is aangemerkt.", "Gebruik per taal/regio een passende valuta- en getalnotatie.", 5, 5)
+      ? check("pass", "price_format", "seo", "Prijsnotatie", "De gevonden prijzen bevatten geen inconsistente decimaalnotatie die door deze controle als fout is aangemerkt.", "Gebruik per taal/regio een passende valuta- en getalnotatie.", 5, 5)
       : isHomepage
         ? check("unable_to_confirm", "price_format", "seo", "Prijsnotatie", `${priceFormatMatches.length} eurobedrag(en) met een punt zijn in de statische homepage-tekst gevonden, zoals ${priceFormatMatches[0]}, maar RankFix kan vanuit raw HTML niet bewijzen dat dit de werkelijk zichtbare gelokaliseerde prijsweergave is.`, "Bevestig prijsnotatie op een echte productpagina of met JavaScript-rendering voordat dit als fout wordt beoordeeld.", 0, 5)
         : check("warning", "price_format", "seo", "Prijsnotatie", `${priceFormatMatches.length} prijsnotatie(s) gebruikt een punt als decimaalteken, zoals ${priceFormatMatches[0]}.`, "Gebruik voor Nederlandse content bijvoorbeeld € 129,95 en formatteer prijzen met locale-aware formatting.", 2, 5)
@@ -2213,6 +2235,9 @@ export async function POST(request: Request) {
         indexability: noindexSignal ? [robots, xRobotsTag].filter(Boolean).join(" | ") : robotsPathBlocked ? `robots disallow: ${matchingRobotsRules[0].path}` : "no noindex or applicable robots block found",
         hreflang: hreflangEntries.length ? hreflangEntries.map((entry) => `${entry.language}=>${entry.href || "missing"}`).join(" | ") : null,
         twitter_card: twitterCard || null,
+        security_headers: presentSecurityHeaders.length ? `present=${presentSecurityHeaders.map(([name])=>name).join(",")}; core=${coreSecurityHeadersPresent}` : "present=none; core=false",
+        faq: (hasFaqContent || hasFaqSchema) ? `content=${hasFaqContent}; schema=${hasFaqSchema}` : null,
+        breadcrumbs: (hasBreadcrumbSchema || visibleBreadcrumbSignal) ? `schema=${hasBreadcrumbSchema}; visible=${visibleBreadcrumbSignal}` : null,
         trust_legal_signals: item.key === "trust_legal_signals" ? `privacy=${hasPrivacyLink}; cookies=${hasCookieLink}; contact=${hasContactLink}` : null,
         social: [ogTitle ? "og:title" : "", ogDescription ? "og:description" : "", ogImage ? "og:image" : ""].filter(Boolean).join(", ") || (item.key === "social" ? "Open Graph core fields missing" : null),
         product_schema: isProductPage && hasProductSchema ? JSON.stringify(productOfferSummary.slice(0, 3)) : null,
