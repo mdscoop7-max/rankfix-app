@@ -44,14 +44,6 @@ function remediationAction(check:Check){
 }
 
 function remediationNote(check:Check, language:Locale){
-  const action=remediationAction(check);
-  if(action==="github_fix") return null;
-  if(action==="ai_advice") return ({nl:"AI-begeleiding: RankFix kan dit analyseren en een veilige aanpak uitleggen, maar past productiecode niet automatisch aan.",en:"AI guidance: RankFix can analyse this and explain a safe approach, but will not automatically change production code.",de:"KI-Hilfe: RankFix kann dies analysieren und einen sicheren Ansatz erklären, ändert Produktionscode aber nicht automatisch.",fr:"Conseil IA : RankFix peut analyser ce point et expliquer une approche sûre, sans modifier automatiquement le code de production.",it:"Guida AI: RankFix può analizzare il problema e spiegare un approccio sicuro, senza modificare automaticamente il codice di produzione.",es:"Guía de IA: RankFix puede analizarlo y explicar un enfoque seguro, pero no modifica automáticamente el código de producción."} as Record<Locale,string>)[language];
-  if(action==="manual") return ({nl:"Handmatige controle: dit raakt configuratie, infrastructuur of context die RankFix niet veilig automatisch mag wijzigen.",en:"Manual review: this affects configuration, infrastructure or context that RankFix cannot safely change automatically.",de:"Manuelle Prüfung: Dies betrifft Konfiguration, Infrastruktur oder Kontext, den RankFix nicht sicher automatisch ändern kann.",fr:"Contrôle manuel : ce point touche à la configuration, l’infrastructure ou un contexte que RankFix ne peut pas modifier automatiquement en toute sécurité.",it:"Controllo manuale: riguarda configurazione, infrastruttura o contesto che RankFix non può modificare automaticamente in sicurezza.",es:"Revisión manual: afecta a configuración, infraestructura o contexto que RankFix no puede modificar automáticamente de forma segura."} as Record<Locale,string>)[language];
-  return null;
-}
-
-function remediationNote(check:Check, language:Locale){
   const issueId=check.issue_id||check.rule_id||check.key||"";
   const policy=issueId?getFixPolicy(issueId):{category:"C" as const,safe_type:null,action:"manual" as const};
   if(!["fail","warning"].includes(String(check.status||"").toLowerCase()) || policy.action==="github_fix") return "";
