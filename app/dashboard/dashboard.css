@@ -339,3 +339,12 @@
 .rf-quick-actions-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.rf-quick-actions-grid a{min-height:104px}.rf-workspace-strip-actions>a:first-child{min-height:42px;display:inline-flex;align-items:center;padding:0 10px;border-radius:9px}
 .rf-workspace-strip-actions>a:first-child:hover{background:var(--brand-surface)}
 @media(max-width:650px){.rf-section-head div>p,.rf-more-card p,.rf-help-topic p,.rf-help-ai p,.rf-github-steps div,.rf-workspace-strip small,.rf-site-copy p,.rf-dashboard-latest p{font-size:14px;line-height:1.55}.rf-more-card,.rf-help-topic{padding:16px!important}.rf-more-card strong,.rf-help-topic b{font-size:15px}.rf-quick-actions-grid{grid-template-columns:1fr 1fr}.rf-quick-actions-grid a:last-child:nth-child(odd){grid-column:1/-1}.rf-workspace-strip-actions{display:flex}.rf-workspace-strip-actions>a:first-child{width:100%;justify-content:center}.rf-site-copy p{font-size:13px}}
+
+
+/* 2026 dashboard readability pass: keep dense data readable without enlarging chrome. */
+.rf-body p,.rf-section-head p,.rf-card p,.rf-more-card p,.rf-sites span,.rf-history-list span{font-size:16px;line-height:1.6;color:#aebbd0}
+.rf-section-head h2{font-size:clamp(1.2rem,2vw,1.45rem);letter-spacing:-.02em}
+.rf-quick-actions-grid>a{min-height:88px;display:flex;align-items:center;gap:12px;padding:18px}
+.rf-quick-actions-grid>a span{font-size:1.15rem}
+.rf-websites-featured,.rf-quick-actions-section{scroll-margin-top:96px}
+@media(max-width:720px){.rf-body p,.rf-section-head p,.rf-card p,.rf-more-card p,.rf-sites span,.rf-history-list span{font-size:15px;line-height:1.55}.rf-quick-actions-grid{grid-template-columns:1fr 1fr}.rf-quick-actions-grid>a{min-height:76px;padding:14px}}
