@@ -34,7 +34,7 @@ test("summary never counts N/A or unable-to-confirm as passed", () => {
     { issue_status: "NOT_APPLICABLE", points: 0, maxPoints: 1 },
     { issue_status: "UNABLE_TO_CONFIRM", points: 0, maxPoints: 1 },
   ]);
-  assert.deepEqual(summary, { passed: 1, issues: 1, notApplicable: 1, unableToConfirm: 1, pendingFixes: 0 });
+  assert.deepEqual(summary, { passed: 1, issues: 1, critical: 0, important: 0, advice: 1, notApplicable: 1, unableToConfirm: 1, pendingFixes: 0 });
 });
 
 test("critical score cap requires a confirmed high-confidence failure", () => {
