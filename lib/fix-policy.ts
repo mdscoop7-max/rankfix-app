@@ -29,14 +29,6 @@ const POLICY: Record<string, FixPolicy> = {
   broken_links: { category: "C", safe_type: null, action: "ai_advice" },
   internal_redirects: { category: "C", safe_type: null, action: "ai_advice" },
   security_headers: { category: "C", safe_type: null, action: "manual" },
-  // Explicit technical remediation lanes keep the end-to-end Fix Engine truthful.
-  viewport: { category: "C", safe_type: null, action: "ai_advice" },
-  hreflang: { category: "C", safe_type: null, action: "ai_advice" },
-  lang: { category: "C", safe_type: null, action: "ai_advice" },
-  indexability: { category: "C", safe_type: null, action: "ai_advice" },
-  broken_links: { category: "C", safe_type: null, action: "ai_advice" },
-  internal_redirects: { category: "C", safe_type: null, action: "ai_advice" },
-  security_headers: { category: "C", safe_type: null, action: "manual" },
   // Commerce consistency findings can be proven by the scanner, but changing
   // price, stock, checkout or merchant data automatically can affect orders.
   merchant_product_readiness: { category: "C", safe_type: null, action: "ai_advice" },
