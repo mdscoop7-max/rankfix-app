@@ -1557,8 +1557,15 @@ export async function POST(request: Request) {
         : check("pass", "h1", "seo", "H1-heading", `Er zijn ${h1s.length} H1-headings gevonden. Meerdere H1-elementen zijn technisch toegestaan; RankFix behandelt dit daarom als structuuradvies en niet als bewezen SEO-probleem.`, "Overweeg één duidelijke primaire H1 en gebruik H2/H3 voor secties wanneer dat de documentstructuur begrijpelijker maakt.", 8, 8)
     );
     seoChecks.push(headings.length && headings.some((h) => h.level === 2)
-      ? check("pass", "headings", "seo", "Heading-structuur", h1s.length > 0 ? `Er zijn ${headings.length} H2–H6 headings gevonden naast de H1.` : `Er zijn ${headings.length} H2–H6 headings gevonden. Er is geen H1 gevonden; dit wordt afzonderlijk als verbeterpunt beoordeeld.`, "Gebruik headings om onderwerpen en subonderwerpen logisch te groeperen.", 7, 7)
-      : check("warning", "headings", "seo", "Heading-structuur", "De pagina heeft weinig duidelijke subheadings.", "Voeg H2/H3-secties toe rond belangrijke onderwerpen en vragen.", 3, 7)
+      ? check("pass", "headings", "seo", "Heading-structuur", h1s.length > 0
+          ? `Er zijn ${headings.length} H2–H6 headings gevonden naast de H1.`
+          : metadataMayBeClientRendered
+            ? `Er zijn ${headings.length} H2–H6 headings gevonden. De H1 wordt afzonderlijk gecontroleerd en kon op deze JavaScript-pagina niet betrouwbaar worden bevestigd.`
+            : `Er zijn ${headings.length} H2–H6 headings gevonden. Er is geen H1 gevonden; de H1 wordt afzonderlijk beoordeeld.`,
+        "Gebruik headings om onderwerpen en subonderwerpen logisch te groeperen.", 7, 7)
+      : metadataMayBeClientRendered && headings.length === 0
+        ? check("unable_to_confirm", "headings", "seo", "Heading-structuur", "De headingstructuur kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de headingstructuur opnieuw met een volledige render voordat je headings toevoegt of wijzigt.", 0, 7)
+        : check("warning", "headings", "seo", "Heading-structuur", "De pagina heeft weinig duidelijke subheadings.", "Voeg H2/H3-secties toe rond belangrijke onderwerpen en vragen.", 3, 7)
     );
     let canonicalUrl: URL | null = null;
     let canonicalInvalid = false;
