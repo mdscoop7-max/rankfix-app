@@ -6,11 +6,30 @@ import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
 type Lang="nl"|"en"|"de"|"fr"|"it"|"es";
 const langOf=(v:unknown):Lang=>typeof v==="string"&&["nl","en","de","fr","it","es"].includes(v)?v as Lang:"nl";
 const tr=<T,>(l:Lang,v:Record<Lang,T>)=>v[l];
+const countryLanguage=(country:string):Lang|null=>{
+ const code=country.trim().toUpperCase();
+ if(["NL","BE"].includes(code)) return "nl";
+ if(["DE","AT","CH","LI"].includes(code)) return "de";
+ if(["FR","MC","LU"].includes(code)) return "fr";
+ if(["IT","SM","VA"].includes(code)) return "it";
+ if(["ES","AD"].includes(code)) return "es";
+ if(["GB","IE","US","CA","AU","NZ"].includes(code)) return "en";
+ return null;
+};
+const languageFromRequest=(request:Request):Lang|null=>{
+ // Hosting/CDN country headers are already part of the request: no geolocation API call,
+ // no extra latency and no IP is stored. They are only a fallback hint.
+ const country=request.headers.get("cf-ipcountry")||request.headers.get("x-vercel-ip-country")||request.headers.get("cloudfront-viewer-country")||"";
+ return countryLanguage(country);
+};
 
 export async function POST(request: Request) {
  let language:Lang="nl";
  try{
-  const body=await request.json(); language=langOf(body?.language); await ensureDatabase();
+  const body=await request.json();
+  const explicitLanguage=typeof body?.language==="string"&&["nl","en","de","fr","it","es"].includes(body.language);
+  language=explicitLanguage?langOf(body.language):(languageFromRequest(request)||"nl");
+  await ensureDatabase();
   if(!await consumeRateLimit("register",requestIp(request),6,3600)) return NextResponse.json({error:tr(language,{nl:"Te veel registratiepogingen. Probeer later opnieuw.",en:"Too many registration attempts. Please try again later.",de:"Zu viele Registrierungsversuche. Bitte versuche es später erneut.",fr:"Trop de tentatives d’inscription. Veuillez réessayer plus tard.",it:"Troppi tentativi di registrazione. Riprova più tardi.",es:"Demasiados intentos de registro. Inténtalo de nuevo más tarde."})},{status:429});
   const name=typeof body?.name==="string"?body.name.trim():""; const email=typeof body?.email==="string"?body.email.trim().toLowerCase():""; const password=typeof body?.password==="string"?body.password:"";
   if(name.length<2||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!(password.length>=8&&/[A-Za-z]/.test(password)&&/\d/.test(password)&&/[^A-Za-z0-9]/.test(password))) return NextResponse.json({error:tr(language,{nl:"Vul een naam, geldig e-mailadres en wachtwoord van minimaal 8 tekens met letters, 1 cijfer en 1 speciaal teken in.",en:"Enter a name, valid email address and a password of at least 8 characters with letters, 1 number and 1 special character.",de:"Gib einen Namen, eine gültige E-Mail-Adresse und ein Passwort mit mindestens 8 Zeichen, Buchstaben, 1 Zahl und 1 Sonderzeichen ein.",fr:"Saisissez un nom, une adresse e-mail valide et un mot de passe d’au moins 8 caractères avec des lettres, 1 chiffre et 1 caractère spécial.",it:"Inserisci un nome, un indirizzo e-mail valido e una password di almeno 8 caratteri con lettere, 1 numero e 1 carattere speciale.",es:"Introduce un nombre, un correo válido y una contraseña de al menos 8 caracteres con letras, 1 número y 1 carácter especial."})},{status:400});
