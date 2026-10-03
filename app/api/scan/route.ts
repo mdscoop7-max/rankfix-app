@@ -1181,7 +1181,8 @@ export async function POST(request: Request) {
       {sector:"news_media",label:"Nieuws & Media",patterns:[/\b(nieuws|news|journalist|redactie|breaking news|sportnieuws|nieuwsartikel|newsarticle)\b/i,/\b(binnenland|buitenland|politiek|sport|economie)\b/i],modules:["core_seo","geo","news_media"]},
       {sector:"saas_b2b",label:"SaaS / B2B",patterns:[/\b(saas|software platform|software-as-a-service|api platform|business software)\b/i,/\b(demo|features|integrations|integraties)\b/i],modules:["core_seo","geo","lead_conversion","saas_b2b"]},
     ];
-    const sectorSource = [title, description, h1s.join(" "), text.slice(0,120000), schemaTypes.join(" ")].join(" ");
+    const sectorIdentitySource = [title, description, h1s.join(" "), finalUrl.hostname, finalUrl.pathname].join(" ");
+    const sectorSource = [sectorIdentitySource, text.slice(0,120000), schemaTypes.join(" ")].join(" ");
     const schemaSectorBoost: Partial<Record<SectorKey, number>> = {};
     if (schemaSet.has("dentist") || schemaSet.has("medicalclinic") || schemaSet.has("physician")) schemaSectorBoost.health_wellness = 3;
     if (schemaSet.has("plumber") || schemaSet.has("electrician") || schemaSet.has("homeandconstructionbusiness")) schemaSectorBoost.home_services = 3;
@@ -1190,7 +1191,11 @@ export async function POST(request: Request) {
     if (schemaSet.has("automotivebusiness") || schemaSet.has("autodealer") || schemaSet.has("autorepair")) schemaSectorBoost.automotive = 3;
     if (schemaSet.has("realestateagent")) schemaSectorBoost.real_estate = 3;
     if (schemaSet.has("newsarticle")) schemaSectorBoost.news_media = 3;
-    const sectorCandidates = sectorSignals.map(item=>({sector:item.sector,label:item.label,hits:item.patterns.filter(pattern=>pattern.test(sectorSource)).length + (schemaSectorBoost[item.sector] || 0),modules:item.modules})).filter(item=>item.hits>0).sort((a,b)=>b.hits-a.hits);
+    const sectorCandidates = sectorSignals.map(item=>{
+      const contentHits = item.patterns.filter(pattern=>pattern.test(sectorSource)).length;
+      const identityBoost = item.patterns[0]?.test(sectorIdentitySource) ? 1 : 0;
+      return {sector:item.sector,label:item.label,hits:contentHits + identityBoost + (schemaSectorBoost[item.sector] || 0),modules:item.modules};
+    }).filter(item=>item.hits>0).sort((a,b)=>b.hits-a.hits);
     const strongSectorCandidate = sectorCandidates[0] && sectorCandidates[0].hits>=2 && (!sectorCandidates[1] || sectorCandidates[0].hits>sectorCandidates[1].hits);
     const sectorProfile = hasEcommerceSignal
       ? {sector:"ecommerce" as SectorKey,label:"Webshop / e-commerce",confidence:"high" as const,confidenceScore:95,evidence:["Harde aankoop-/storefrontsignalen bevestigd"],applicableModules:["core_seo","geo","ecommerce","product","pricing_currency","merchant","checkout","eu_consumer"]}
