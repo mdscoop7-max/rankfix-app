@@ -1326,18 +1326,29 @@ export async function POST(request: Request) {
     )].slice(0, 20);
     const visiblePriceCandidates = explicitProductPriceCandidates.length ? explicitProductPriceCandidates : broadVisiblePriceCandidates;
     const visiblePriceEvidenceStrength = explicitProductPriceCandidates.length ? "explicit_product_markup" : broadVisiblePriceCandidates.length ? "broad_page_text" : "none";
-    const visibleCurrencyCodes = [...new Set([
+    const explicitPriceMarkupText = explicitProductPriceCandidates.length
+      ? [...html.matchAll(/<(?:meta|span|div|p)[^>]*(?:itemprop\s*=\s*["']price["']|property\s*=\s*["']product:price:(?:amount|currency)["']|class\s*=\s*["'][^"']*(?:product[-_ ]?price|price)[^"']*["'])[^>]*?(?:content\s*=\s*["']([^"']+)["']|>([^<]{0,80}))/gi)]
+          .map((match) => String(match[0] || "")).join(" ")
+      : "";
+    const explicitVisibleCurrencyCodes = [...new Set([
+      ...(explicitPriceMarkupText.match(/\b(?:EUR|GBP|USD)\b/gi) || []).map((value) => value.toUpperCase()),
+      ...(explicitPriceMarkupText.includes("€") ? ["EUR"] : []),
+      ...(explicitPriceMarkupText.includes("£") ? ["GBP"] : []),
+      ...(explicitPriceMarkupText.includes("$") ? ["USD"] : []),
+    ])];
+    const pageCurrencyCodes = [...new Set([
       ...(text.match(/\b(?:EUR|GBP|USD)\b/gi) || []).map((value) => value.toUpperCase()),
       ...(text.includes("€") ? ["EUR"] : []),
       ...(text.includes("£") ? ["GBP"] : []),
       ...(text.includes("$") ? ["USD"] : []),
     ])];
+    const visibleCurrencyCodes = explicitVisibleCurrencyCodes.length ? explicitVisibleCurrencyCodes : pageCurrencyCodes;
     const structuredCurrencyCodes = [...new Set(productOfferEvidence.flatMap((product) => product.offers.map((offer) => offer.currency).filter((currency) => /^[A-Z]{3}$/.test(currency))))];
     // A currency mismatch is actionable only when the visible price is tied to
     // explicit product markup. Currency symbols elsewhere on the page may belong
     // to selectors, shipping examples or other products and are not contradiction proof.
     const currencyConflict = isProductPage && visiblePriceEvidenceStrength === "explicit_product_markup" && structuredCurrencyCodes.length === 1 && visibleCurrencyCodes.length === 1 && structuredCurrencyCodes[0] !== visibleCurrencyCodes[0];
-    const mixedVisibleCurrencies = hasEcommerceSignal && visibleCurrencyCodes.length > 1;
+    const mixedVisibleCurrencies = hasEcommerceSignal && visibleCurrencyCodes.length > 1 && explicitVisibleCurrencyCodes.length > 1;
     const pricingCurrencyEvidence = {
       visibleCurrencies: visibleCurrencyCodes,
       structuredCurrencies: structuredCurrencyCodes,
