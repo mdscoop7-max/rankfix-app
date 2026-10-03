@@ -1173,6 +1173,25 @@ export async function POST(request: Request) {
     const seoChecks: Check[] = [];
     const geoChecks: Check[] = [];
 
+    // Security-header readiness uses the main page response already fetched by the
+    // scanner, so this adds no network work. Absence is guidance, not proof of a
+    // vulnerability: CSP/HSTS deployment depends on the site's architecture.
+    const securityHeaders = {
+      hsts: response.headers.get("strict-transport-security"),
+      csp: response.headers.get("content-security-policy"),
+      contentTypeOptions: response.headers.get("x-content-type-options"),
+      frameOptions: response.headers.get("x-frame-options"),
+      referrerPolicy: response.headers.get("referrer-policy"),
+      permissionsPolicy: response.headers.get("permissions-policy"),
+    };
+    const presentSecurityHeaders = Object.entries(securityHeaders).filter(([, value]) => Boolean(value));
+    const coreSecurityHeadersPresent = Boolean(securityHeaders.hsts && securityHeaders.contentTypeOptions && (securityHeaders.csp || securityHeaders.frameOptions));
+    seoChecks.push(
+      coreSecurityHeadersPresent
+        ? check("pass", "security_headers", "seo", "Security headers", `Belangrijke browser-securityheaders zijn bevestigd (${presentSecurityHeaders.map(([name]) => name).join(", ")}).`, "Houd deze headers actief en test wijzigingen aan CSP/HSTS eerst tegen de applicatie.", 4, 4)
+        : check("unable_to_confirm", "security_headers", "seo", "Security headers", `RankFix bevestigde ${presentSecurityHeaders.length} van 6 gecontroleerde securityheaders in de hoofdresponse. Ontbrekende headers worden niet automatisch als beveiligingslek beoordeeld.`, "Controleer HSTS, CSP/frame-bescherming en X-Content-Type-Options op server/CDN-niveau en voeg ze alleen toe na compatibiliteitstest.", 0, 4)
+    );
+
     // First specialist sector checks. Positive raw-HTML evidence can pass; absence is
     // "unable to confirm" rather than a penalty because JavaScript is not executed.
     const sectorCheck = (key:string,titleText:string,found:boolean,foundMessage:string,missingMessage:string,fixText:string) =>
