@@ -1172,11 +1172,11 @@ export async function POST(request: Request) {
 
     // Sector intelligence is computed before scoring so only relevant specialist checks
     // can participate. Low-confidence classification stays generic and never penalizes.
-    type SectorKey = "ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"saas_b2b"|"general_business"|"unknown";
+    type SectorKey = "ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"service_marketplace"|"saas_b2b"|"general_business"|"unknown";
     const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]}> = [
       {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\b/i,/\b(te koop|te huur|for sale|for rent|woningaanbod)\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
       {sector:"automotive",label:"Automotive",patterns:[/\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\b/i,/\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
-      {sector:"home_services",label:"Bouw & Installatie",patterns:[/\b(loodgieter|plumber|aannemer|installateur|elektricien|schilder|dakdekker|klusbedrijf|electrician|contractor)\b/i,/\b(offerte|werkgebied|servicegebied|installatie|reparatie)\b/i],modules:["core_seo","geo","local","lead_conversion","home_services"]},
+      {sector:"home_services",label:"Bouw & Installatie",patterns:[/\b(loodgieter|plumber|aannemer|installateur|elektricien|schilder|dakdekker|klusbedrijf|electrician|contractor|riool(?:service|specialist)?|rioolprobleem|ontstopping|ontstoppen|afvoer)\b/i,/\b(offerte|werkgebied|servicegebied|installatie|reparatie|verstopping|riolering|riooldienst(?:en)?)\b/i],modules:["core_seo","geo","local","lead_conversion","home_services"]},
       {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\b(advocaat|accountant|boekhouder|consultant|notaris|law firm|legalservice|legal services|accounting|consultancy)\b/i,/\b(diensten|expertise|advies|consult)\b/i],modules:["core_seo","geo","local","lead_conversion","professional_services"]},
       {sector:"hospitality",label:"Horeca",patterns:[/\b(restaurant|cafe|café|hotel|brasserie|bistro|reserveren|reservation|restaurantmenu|menukaart)\b/i,/\b(openingstijden|opening hours|tafel reserveren)\b/i],modules:["core_seo","geo","local","lead_conversion","hospitality"]},
       {sector:"health_wellness",label:"Zorg & Gezondheid",patterns:[/\b(kliniek|clinic|fysiotherap|tandarts|dentist|medicalclinic|physician|mondzorg)\b/i,/\b(afspraak|appointment|behandeling|patient|patiënt)\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
@@ -1184,10 +1184,15 @@ export async function POST(request: Request) {
       {sector:"recruitment",label:"Recruitment & Werk",patterns:[/\b(randstad|recruitment|uitzendbureau|vacatures?|sollicitatie|solliciteren|jobs?|employment|werken bij)\b/i,/\b(werkgevers?|kandidaten?|cv|career|carrière)\b/i],modules:["core_seo","geo","lead_conversion","recruitment"]},
       {sector:"government",label:"Overheid & Gemeente",patterns:[/\b(gemeente|municipality|overheid|government|stadhuis|burgerzaken)\b/i,/\b(digid|vergunning|paspoort|loket|inwoners)\b/i],modules:["core_seo","geo","government"]},
       {sector:"news_media",label:"Nieuws & Media",patterns:[/\b(nieuws|news|journalist|redactie|breaking news|sportnieuws|nieuwsartikel|newsarticle)\b/i,/\b(binnenland|buitenland|politiek|sport|economie)\b/i],modules:["core_seo","geo","news_media"]},
+      {sector:"tourism_recreation",label:"Toerisme & Recreatie",patterns:[/\b(toerisme|tourism|visit [a-zà-ÿ-]+|citymarketing|destination|bezoekers?|visitor|ontdek [a-zà-ÿ-]+)\b/i,/\b(agenda|evenementen|events|overnachten|hotels?|restaurants?|activiteiten|things to do|bezienswaardigheden)\b/i],modules:["core_seo","geo","local","tourism_recreation"]},
+      {sector:"service_marketplace",label:"Dienstenplatform",patterns:[/\b(vind (?:de )?beste bedrijven|vergelijk (?:bedrijven|specialisten|dienstverleners)|dienstverleners vergelijken|professionals vergelijken|bedrijven vergelijken)\b/i,/\b(top 10|reviews?|beoordelingen|offertes? vergelijken|bedrijven voor jou|specialisten in jouw regio)\b/i],modules:["core_seo","geo","technical","structured_data","links","service_marketplace"]},
       {sector:"saas_b2b",label:"SaaS / B2B",patterns:[/\b(saas|software platform|software-as-a-service|api platform|business software|auditsoftware|seo software|geo software|website audit|seo audit|geo audit)\b/i,/\b(demo|features|integrations|integraties|dashboard|website scan|website scannen|website analyseren|audit platform)\b/i],modules:["core_seo","geo","technical","security","structured_data","links","accessibility","lead_conversion","saas_b2b"]},
     ];
     const sectorIdentitySource = [title, description, h1s.join(" "), finalUrl.hostname, finalUrl.pathname].join(" ");
     const sectorSource = [sectorIdentitySource, text.slice(0,120000), schemaTypes.join(" ")].join(" ");
+    // Strong page/site identity must beat incidental words elsewhere in long pages.
+    // In particular, sewer/drain services often mention generic "reparatie", which is not automotive evidence.
+    const sewerIdentity = /\b(riool|riolering|verstopping|ontstoppen|ontstopping|afvoer)\b/i.test(sectorIdentitySource);
     const schemaSectorBoost: Partial<Record<SectorKey, number>> = {};
     if (schemaSet.has("dentist") || schemaSet.has("medicalclinic") || schemaSet.has("physician")) schemaSectorBoost.health_wellness = 3;
     if (schemaSet.has("plumber") || schemaSet.has("electrician") || schemaSet.has("homeandconstructionbusiness")) schemaSectorBoost.home_services = 3;
@@ -1199,7 +1204,9 @@ export async function POST(request: Request) {
     const sectorCandidates = sectorSignals.map(item=>{
       const contentHits = item.patterns.filter(pattern=>pattern.test(sectorSource)).length;
       const identityBoost = item.patterns[0]?.test(sectorIdentitySource) ? 1 : 0;
-      return {sector:item.sector,label:item.label,hits:contentHits + identityBoost + (schemaSectorBoost[item.sector] || 0),modules:item.modules};
+      const identityPriorityBoost = item.patterns[0]?.test(sectorIdentitySource) && item.patterns[1]?.test(sectorSource) ? 1 : 0;
+      const suppressedHits = item.sector === "automotive" && sewerIdentity && !(schemaSectorBoost.automotive || item.patterns[0]?.test(sectorIdentitySource)) ? 0 : contentHits + identityBoost + identityPriorityBoost + (schemaSectorBoost[item.sector] || 0);
+      return {sector:item.sector,label:item.label,hits:suppressedHits,modules:item.modules};
     }).filter(item=>item.hits>0).sort((a,b)=>b.hits-a.hits);
     const strongSectorCandidate = sectorCandidates[0] && sectorCandidates[0].hits>=2 && (!sectorCandidates[1] || sectorCandidates[0].hits>sectorCandidates[1].hits);
     const sectorProfile = hasEcommerceSignal
@@ -1260,7 +1267,7 @@ export async function POST(request: Request) {
       ? securityCheck("not_applicable","security_cookie_flags","Cookie-beveiliging","De hoofdresponse zette geen cookie die RankFix betrouwbaar kon beoordelen.","Geen actie nodig voor deze response; controleer sessiecookies in ingelogde flows apart.",0,5)
       : cookieSecure && cookieHttpOnly && cookieSameSite
         ? securityCheck("pass","security_cookie_flags","Cookie-beveiliging","De zichtbare Set-Cookie-response bevat Secure, HttpOnly en SameSite-signalen.","Houd gevoelige sessiecookies voorzien van passende beveiligingsflags.",5,5)
-        : securityCheck("warning","security_cookie_flags","Cookie-beveiliging",`Cookie-flags zijn niet volledig bevestigd (Secure=${cookieSecure}, HttpOnly=${cookieHttpOnly}, SameSite=${cookieSameSite}). Dit bewijst niet dat alle cookies onveilig zijn.`,"Controleer vooral sessie- en authenticatiecookies op Secure, HttpOnly en een passende SameSite-instelling.",5,5));
+        : securityCheck("warning","security_cookie_flags","Cookie-beveiliging",`Cookie-flags zijn niet volledig bevestigd (Secure=${cookieSecure}, HttpOnly=${cookieHttpOnly}, SameSite=${cookieSameSite}). Dit bewijst niet dat alle cookies onveilig zijn.`,"Controleer vooral sessie- en authenticatiecookies op Secure, HttpOnly en een passende SameSite-instelling.",Math.max(1,[cookieSecure,cookieHttpOnly,cookieSameSite].filter(Boolean).length),5));
 
     const forms = [...html.matchAll(new RegExp("<form\\\\b[\\\\s\\\\S]*?</form>", "gi"))].map((m)=>m[0]);
     const passwordForm = forms.some((form)=>new RegExp("<input[^>]+type\\\\s*=\\\\s*[\\\"']password[\\\"']", "i").test(form));
@@ -1337,7 +1344,7 @@ export async function POST(request: Request) {
         sectorCheck("sector_automotive_inventory","Voertuigaanbod",inventorySignal,"Voertuig-/occasionaanbod is in de pagina bevestigd.","RankFix kon voertuigaanbod niet betrouwbaar bevestigen; dit kan ook niet van toepassing zijn.","Toon voertuigaanbod duidelijk wanneer de onderneming auto's verkoopt; anders is geen actie nodig.")
       );
     } else if (sectorProfile.sector === "home_services") {
-      const serviceSignal = /\\b(loodgieter|elektricien|installateur|aannemer|dakdekker|schilder|renovatie|reparatie|installatie|onderhoud)\\b/i.test(text);
+      const serviceSignal = /\\b(loodgieter|elektricien|installateur|aannemer|dakdekker|schilder|renovatie|reparatie|installatie|onderhoud|riool|riolering|verstopping|ontstoppen|ontstopping|afvoer)\\b/i.test(text);
       const quoteSignal = /\\b(offerte|prijsopgave|aanvraag|bel ons|contact opnemen|request a quote|get a quote)\\b/i.test(text) || hasContactChannelSignal;
       const areaSignal = /\\b(werkgebied|servicegebied|regio|gemeente|in en rondom|omgeving|area served|service area)\\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.areaServed));
       seoChecks.push(
