@@ -89,10 +89,9 @@ function allMatches(html: string, regex: RegExp) {
 
 function attrFromTag(tag: string, attr: string) {
   // HTML attributes may be quoted, unquoted, empty, and appear in any order.
-  // Build the regex with escaped backslashes so JS does not turn \\s/\\b into string escapes.
-  const safeAttr = attr.replace(/[.*+?^$()|[\\]\\\\]/g, "\\$&");
+  const safeAttr = attr.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const match = tag.match(new RegExp(
-    "(?:^|\\\\s)" + safeAttr + "\\\\s*=\\\\s*(?:[\\\"\']([^\\\"\']*)[\\\"\']|([^\\\\s>]+))",
+    "(?:^|\\s)" + safeAttr + "\\s*=\\s*(?:[\"']([^\"']*)[\"']|([^\\s>]+))",
     "i"
   ));
   return decode(match?.[1] ?? match?.[2] ?? "");
