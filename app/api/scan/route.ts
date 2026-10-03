@@ -1543,7 +1543,7 @@ export async function POST(request: Request) {
           // content attribute as 21.85 created false product-price mismatches.
           const machineReadable = /(?:itemprop\s*=\s*["']price["']|property\s*=\s*["']product:price:amount["'])/i.test(tag) && /content\s*=/i.test(tag);
           const parsed = machineReadable ? Number(rawPrice.replace(",", ".")) : parseVisiblePrice(rawPrice);
-          return Number.isFinite(parsed) && parsed >= 0 ? [parsed] : [];
+          return parsed !== null && Number.isFinite(parsed) && parsed >= 0 ? [parsed] : [];
         })
     )].slice(0, 20);
     // Broad price evidence is intentionally currency-aware. It remains weaker
@@ -1593,7 +1593,7 @@ export async function POST(request: Request) {
       productOfferEvidence
         .flatMap((product) => product.offers.map((offer) => offer.price))
         .map((value) => typeof value === "number" ? value : Number(String(value ?? "").replace(",", ".")))
-        .filter((value) => Number.isFinite(value))
+        .filter((value): value is number => Number.isFinite(value))
     )].slice(0, 20);
     const canCompareVisibleAndStructuredPrice = hasProductSignal && visiblePriceCandidates.length > 0 && structuredPriceCandidates.length > 0;
     const hasMatchingVisibleStructuredPrice = canCompareVisibleAndStructuredPrice && structuredPriceCandidates.some((schemaPrice) =>
