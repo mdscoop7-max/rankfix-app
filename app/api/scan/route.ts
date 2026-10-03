@@ -1524,7 +1524,15 @@ export async function POST(request: Request) {
     // transparency signals but cannot certify legal compliance or historical prices.
     const discountClaimMatches = text.match(/(?:\b(?:sale|korting|discount|rabatt|remise|sconto|descuento)\b|[-−]\s?\d{1,2}\s?%|\d{1,2}\s?%\s*(?:korting|off|discount))/gi) || [];
     const referencePriceMatches = text.match(/(?:van|was|adviesprijs|oude prijs|previous price|was price|statt|prix avant|prezzo precedente|precio anterior)\s*[:€£$]?\s*\d[\d.,]*/gi) || [];
-    const hasDiscountClaim = discountClaimMatches.length > 0;
+    // A generic "sale" word in navigation/banner copy is too weak to judge a product.
+    // Require a product page or an explicit percentage/price-reduction expression before
+    // raising the EU reference-price signal. This is local parsing only: no extra requests.
+    const explicitDiscountClaimMatches = discountClaimMatches.filter((value) =>
+      /\d{1,2}\s?%|[-−]\s?\d{1,2}\s?%|\b(?:korting|discount|rabatt|remise|sconto|descuento)\b/i.test(value)
+    );
+    const hasDiscountClaim = isProductPage
+      ? discountClaimMatches.length > 0
+      : explicitDiscountClaimMatches.length > 0;
     const hasReferencePriceSignal = referencePriceMatches.length > 0;
     const reviewTransparencySignal = /(?:geverifieerde aankoop|verified purchase|verified buyer|reviewbeleid|review policy|reviews? worden|beoordelingen worden|wie kan.*review|how.*reviews?)/i.test(text);
     const reviewContentSignal = /\b(?:reviews?|beoordelingen|klantbeoordelingen|avis clients|bewertungen|recensioni|reseñas)\b/i.test(text);
@@ -1534,7 +1542,7 @@ export async function POST(request: Request) {
     const consumerLawSignals = {
       discountClaim: hasDiscountClaim,
       referencePriceVisible: hasReferencePriceSignal,
-      discountExamples: discountClaimMatches.slice(0, 3),
+      discountExamples: (isProductPage ? discountClaimMatches : explicitDiscountClaimMatches).slice(0, 3),
       referencePriceExamples: referencePriceMatches.slice(0, 3),
       returnsVisible: hasReturnsSignal,
       reviewContent: reviewContentSignal,
