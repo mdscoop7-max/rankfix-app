@@ -128,7 +128,7 @@ function normalizeScanUrl(value: string) {
     url.pathname = url.pathname.replace(/\/+$/, "") || "/";
     // Tracking parameters do not identify a different hreflang/canonical target.
     // Remove only well-known marketing parameters; preserve functional query parameters.
-    ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "fbclid", "msclkid"]
+    ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "fbclid", "msclkid", "from_srp", "prevent-auto-open-privacy-settings"]
       .forEach((param) => url.searchParams.delete(param));
     return url.toString();
   } catch {
@@ -1534,10 +1534,16 @@ export async function POST(request: Request) {
     const explicitProductPriceCandidates = [...new Set(
       [...html.matchAll(/<(?:meta|span|div|p)[^>]*(?:itemprop\s*=\s*["']price["']|property\s*=\s*["']product:price:amount["']|class\s*=\s*["'][^"']*(?:product[-_ ]?price|price)[^"']*["'])[^>]*?(?:content\s*=\s*["']([^"']+)["']|>([^<]{0,80}))/gi)]
         .flatMap((match) => {
+          const tag = String(match[0] || "");
           const raw = String(match[1] || match[2] || "");
-          const price = raw.match(/(\d{1,6}(?:[.,]\d{2})?)/)?.[1];
-          const parsed = price ? parseVisiblePrice(price) : null;
-          return parsed === null ? [] : [parsed];
+          const rawPrice = raw.match(/(\d{1,9}(?:[.,]\d{2})?)/)?.[1];
+          if (!rawPrice) return [];
+          // Schema-style/meta price attributes use a machine-readable decimal value.
+          // Visible class text follows locale formatting. Treating "21850" from a
+          // content attribute as 21.85 created false product-price mismatches.
+          const machineReadable = /(?:itemprop\s*=\s*["']price["']|property\s*=\s*["']product:price:amount["'])/i.test(tag) && /content\s*=/i.test(tag);
+          const parsed = machineReadable ? Number(rawPrice.replace(",", ".")) : parseVisiblePrice(rawPrice);
+          return Number.isFinite(parsed) && parsed >= 0 ? [parsed] : [];
         })
     )].slice(0, 20);
     // Broad price evidence is intentionally currency-aware. It remains weaker
@@ -2751,10 +2757,18 @@ export async function POST(request: Request) {
     };
     const rankedMultiPage = discoveredMultiPage.filter((item) => multiPageRelevance(item) > -100).sort((a,b) => multiPageRelevance(b) - multiPageRelevance(a));
     const pickMultiPage = (type: MultiPageCandidate["type"], limit: number) => rankedMultiPage.filter((item) => item.type === type).slice(0, limit);
-    const multiPagePages: MultiPageCandidate[] = [
-      { url: new URL("/", finalUrl).toString(), type: "homepage", evidence: ["site root"] },
-      ...pickMultiPage("category", 1), ...pickMultiPage("product", 1), ...pickMultiPage("other", 1),
-    ];
+    const multiPagePages: MultiPageCandidate[] = hasEcommerceSignal
+      ? [
+          { url: new URL("/", finalUrl).toString(), type: "homepage", evidence: ["site root"] },
+          ...pickMultiPage("category", 1), ...pickMultiPage("product", 1),
+          // Only spend the last slot on a generic page when category/product evidence
+          // is unavailable. This keeps webshop sampling representative.
+          ...(pickMultiPage("category", 1).length && pickMultiPage("product", 1).length ? [] : pickMultiPage("other", 1)),
+        ]
+      : [
+          { url: new URL("/", finalUrl).toString(), type: "homepage", evidence: ["site root"] },
+          ...pickMultiPage("other", 2), ...pickMultiPage("category", 1), ...pickMultiPage("product", 1),
+        ];
     const uniqueMultiPagePages = [...new Map(multiPagePages.map((item) => [normalizeScanUrl(item.url), item] as const)).values()].slice(0, 4);
     const auditMultiPage = async (page: MultiPageCandidate): Promise<MultiPageAudit> => {
       try {
