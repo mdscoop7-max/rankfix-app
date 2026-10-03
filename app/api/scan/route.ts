@@ -842,8 +842,11 @@ export async function POST(request: Request) {
     const localIdentityText = [title, description, h1s.join(" "), finalUrl.hostname, finalUrl.pathname].filter(Boolean).join(" ");
     const localClassificationText = [localIdentityText, text].filter(Boolean).join(" ");
     const identityLocalSchema = localSchemaCandidates.find((candidate) => candidate.pattern.test(localIdentityText))?.type;
+    // A specific LocalBusiness subtype must be supported by page-identity evidence.
+    // Broad body/navigation text can mention unrelated categories (for example a retailer
+    // linking to beauty products) and must never turn into BeautySalon/Dentist/etc advice.
     const specificLocalSchema = hasLocalBusinessSignal
-      ? identityLocalSchema || localSchemaCandidates.find((candidate) => candidate.pattern.test(localClassificationText))?.type || "LocalBusiness"
+      ? identityLocalSchema || "LocalBusiness"
       : null;
     const hasRelevantLocalSchema = schemaSet.has("localbusiness") || (specificLocalSchema ? schemaSet.has(specificLocalSchema.toLowerCase()) : false);
     const recommendedSchema = hasLocalBusinessSignal ? specificLocalSchema || "LocalBusiness" : isHomepage ? "Organization + WebSite" : isProductPage ? "Product" : hasCategorySignal ? "ItemList / CollectionPage" : hasArticleSignal ? "Article" : "WebPage";
@@ -889,8 +892,13 @@ export async function POST(request: Request) {
         robotsTxt = await readResponseTextLimited(r, 512_000);
         robotsStatus = "PASS";
         const declared = [...robotsTxt.matchAll(/^\s*Sitemap\s*:\s*(\S+)/gim)].map((match) => match[1]).filter(Boolean);
+        const scanHost = finalUrl.hostname.toLowerCase().replace(/^www\./, "");
         robotsDeclaredSitemapUrls = [...new Set(declared.flatMap((value) => {
-          try { return [new URL(value, finalUrl).toString()]; } catch { return []; }
+          try {
+            const parsed = new URL(value, finalUrl);
+            const sitemapHost = parsed.hostname.toLowerCase().replace(/^www\./, "");
+            return sitemapHost === scanHost ? [parsed.toString()] : [];
+          } catch { return []; }
         }))].slice(0, 20);
       } else if (r.status === 404) robotsStatus = "FAIL";
     } catch { robotsStatus = "UNABLE_TO_CONFIRM"; }
@@ -1161,17 +1169,17 @@ export async function POST(request: Request) {
     // can participate. Low-confidence classification stays generic and never penalizes.
     type SectorKey = "ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"saas_b2b"|"general_business"|"unknown";
     const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]}> = [
-      {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\\b/i,/\\b(te koop|te huur|for sale|for rent|woningaanbod)\\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
-      {sector:"automotive",label:"Automotive",patterns:[/\\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\\b/i,/\\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
-      {sector:"home_services",label:"Bouw & Installatie",patterns:[/\\b(loodgieter|plumber|aannemer|installateur|elektricien|schilder|dakdekker|klusbedrijf|electrician|contractor)\\b/i,/\\b(offerte|werkgebied|servicegebied|installatie|reparatie)\\b/i],modules:["core_seo","geo","local","lead_conversion","home_services"]},
-      {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\\b(advocaat|accountant|boekhouder|consultant|notaris|law firm|legalservice|legal services|accounting|consultancy)\\b/i,/\\b(diensten|expertise|advies|consult)\\b/i],modules:["core_seo","geo","local","lead_conversion","professional_services"]},
-      {sector:"hospitality",label:"Horeca",patterns:[/\\b(restaurant|cafe|café|hotel|brasserie|bistro|menu|reserveren|reservation)\\b/i,/\\b(openingstijden|opening hours|tafel reserveren)\\b/i],modules:["core_seo","geo","local","lead_conversion","hospitality"]},
-      {sector:"health_wellness",label:"Zorg & Gezondheid",patterns:[/\\b(kliniek|clinic|fysiotherap|tandarts|dentist|medicalclinic|physician|mondzorg)\\b/i,/\\b(afspraak|appointment|behandeling|patient|patiënt)\\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
-      {sector:"beauty",label:"Beauty & Verzorging",patterns:[/\\b(kapper|hairdresser|hairsalon|hair salon|hairstyling|beauty salon|beautysalon|nagelsalon|barber)\\b/i,/\\b(afspraak|appointment|salons?|knippen|haar|hair)\\b/i],modules:["core_seo","geo","local","lead_conversion","beauty"]},
-      {sector:"recruitment",label:"Recruitment & Werk",patterns:[/\\b(randstad|recruitment|uitzendbureau|vacatures?|sollicitatie|solliciteren|jobs?|employment|werken bij)\\b/i,/\\b(werkgevers?|kandidaten?|cv|career|carrière)\\b/i],modules:["core_seo","geo","lead_conversion","recruitment"]},
-      {sector:"government",label:"Overheid & Gemeente",patterns:[/\\b(gemeente|municipality|overheid|government|stadhuis|burgerzaken)\\b/i,/\\b(digid|vergunning|paspoort|loket|inwoners)\\b/i],modules:["core_seo","geo","government"]},
-      {sector:"news_media",label:"Nieuws & Media",patterns:[/\\b(nieuws|news|journalist|redactie|breaking news|sportnieuws|nieuwsartikel|newsarticle)\\b/i,/\\b(binnenland|buitenland|politiek|sport|economie)\\b/i],modules:["core_seo","geo","news_media"]},
-      {sector:"saas_b2b",label:"SaaS / B2B",patterns:[/\\b(saas|software platform|software-as-a-service|api platform|business software)\\b/i,/\\b(demo|features|integrations|integraties)\\b/i],modules:["core_seo","geo","lead_conversion","saas_b2b"]},
+      {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\b/i,/\b(te koop|te huur|for sale|for rent|woningaanbod)\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
+      {sector:"automotive",label:"Automotive",patterns:[/\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\b/i,/\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
+      {sector:"home_services",label:"Bouw & Installatie",patterns:[/\b(loodgieter|plumber|aannemer|installateur|elektricien|schilder|dakdekker|klusbedrijf|electrician|contractor)\b/i,/\b(offerte|werkgebied|servicegebied|installatie|reparatie)\b/i],modules:["core_seo","geo","local","lead_conversion","home_services"]},
+      {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\b(advocaat|accountant|boekhouder|consultant|notaris|law firm|legalservice|legal services|accounting|consultancy)\b/i,/\b(diensten|expertise|advies|consult)\b/i],modules:["core_seo","geo","local","lead_conversion","professional_services"]},
+      {sector:"hospitality",label:"Horeca",patterns:[/\b(restaurant|cafe|café|hotel|brasserie|bistro|menu|reserveren|reservation)\b/i,/\b(openingstijden|opening hours|tafel reserveren)\b/i],modules:["core_seo","geo","local","lead_conversion","hospitality"]},
+      {sector:"health_wellness",label:"Zorg & Gezondheid",patterns:[/\b(kliniek|clinic|fysiotherap|tandarts|dentist|medicalclinic|physician|mondzorg)\b/i,/\b(afspraak|appointment|behandeling|patient|patiënt)\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
+      {sector:"beauty",label:"Beauty & Verzorging",patterns:[/\b(kapper|hairdresser|hairsalon|hair salon|hairstyling|beauty salon|beautysalon|nagelsalon|barber)\b/i,/\b(afspraak|appointment|salons?|knippen|haar|hair)\b/i],modules:["core_seo","geo","local","lead_conversion","beauty"]},
+      {sector:"recruitment",label:"Recruitment & Werk",patterns:[/\b(randstad|recruitment|uitzendbureau|vacatures?|sollicitatie|solliciteren|jobs?|employment|werken bij)\b/i,/\b(werkgevers?|kandidaten?|cv|career|carrière)\b/i],modules:["core_seo","geo","lead_conversion","recruitment"]},
+      {sector:"government",label:"Overheid & Gemeente",patterns:[/\b(gemeente|municipality|overheid|government|stadhuis|burgerzaken)\b/i,/\b(digid|vergunning|paspoort|loket|inwoners)\b/i],modules:["core_seo","geo","government"]},
+      {sector:"news_media",label:"Nieuws & Media",patterns:[/\b(nieuws|news|journalist|redactie|breaking news|sportnieuws|nieuwsartikel|newsarticle)\b/i,/\b(binnenland|buitenland|politiek|sport|economie)\b/i],modules:["core_seo","geo","news_media"]},
+      {sector:"saas_b2b",label:"SaaS / B2B",patterns:[/\b(saas|software platform|software-as-a-service|api platform|business software)\b/i,/\b(demo|features|integrations|integraties)\b/i],modules:["core_seo","geo","lead_conversion","saas_b2b"]},
     ];
     const sectorSource = [title, description, h1s.join(" "), text.slice(0,120000), schemaTypes.join(" ")].join(" ");
     const schemaSectorBoost: Partial<Record<SectorKey, number>> = {};
@@ -1293,10 +1301,13 @@ export async function POST(request: Request) {
 
     // First specialist sector checks. Positive raw-HTML evidence can pass; absence is
     // "unable to confirm" rather than a penalty because JavaScript is not executed.
-    const sectorCheck = (key:string,titleText:string,found:boolean,foundMessage:string,missingMessage:string,fixText:string) =>
-      found
+    const sectorCheck = (key:string,titleText:string,found:boolean,foundMessage:string,missingMessage:string,fixText:string) => {
+      const item = found
         ? check("pass",key,"seo",titleText,foundMessage,fixText,4,4)
         : check("unable_to_confirm",key,"seo",titleText,missingMessage,fixText,0,4);
+      item.evidence = { url: finalUrl.toString(), found: found ? true : null, details: found ? foundMessage : missingMessage };
+      return item;
+    };
     if (sectorProfile.sector === "real_estate") {
       const listingSignal = /\\b(te koop|te huur|koopwoning|huurwoning|woningaanbod|objecten|properties|for sale|for rent)\\b/i.test(text) || schemaSet.has("realestatelisting");
       const leadSignal = hasContactChannelSignal || /\\b(bezichtiging|waardebepaling|verkoopadvies|plan een afspraak|contact opnemen)\\b/i.test(text);
@@ -1426,10 +1437,24 @@ export async function POST(request: Request) {
     const priceFormatMatches = text.match(dutchEuroDecimalPattern) || [];
     const hasDotDecimalPrices = priceFormatMatches.length > 0;
     const parseVisiblePrice = (value: string) => {
-      const compact = value.replace(/\s/g, "");
-      const normalized = compact.includes(",")
-        ? compact.replace(/\./g, "").replace(",", ".")
-        : compact;
+      const compact = value.replace(/\s/g, "").replace(/[^0-9.,-]/g, "");
+      if (!compact) return null;
+      const lastDot = compact.lastIndexOf(".");
+      const lastComma = compact.lastIndexOf(",");
+      const separator = lastDot > lastComma ? "." : lastComma > lastDot ? "," : "";
+      let normalized = compact;
+      if (separator) {
+        const separatorIndex = Math.max(lastDot, lastComma);
+        const decimals = compact.length - separatorIndex - 1;
+        const other = separator === "." ? "," : ".";
+        if (decimals === 3 && !compact.slice(separatorIndex + 1).includes(other)) {
+          // 2.699 / 2,699 is a thousands-group price, not 2.69.
+          normalized = compact.replace(/[.,]/g, "");
+        } else {
+          normalized = compact.replace(new RegExp("\\" + other, "g"), "");
+          if (separator === ",") normalized = normalized.replace(",", ".");
+        }
+      }
       const numeric = Number(normalized);
       return Number.isFinite(numeric) && numeric >= 0 ? numeric : null;
     };
@@ -2371,7 +2396,9 @@ export async function POST(request: Request) {
         "organization_identity", "entity_consistency", "author", "faq", "reviews"
       ]);
       const hasMappedEvidence = Object.prototype.hasOwnProperty.call(evidenceByKey, item.key);
-      const foundEvidence = hasMappedEvidence ? evidenceByKey[item.key] : null;
+      const specialistEvidence = item.evidence?.found;
+      const hasSpecialistEvidence = specialistEvidence !== null && specialistEvidence !== undefined && specialistEvidence !== "";
+      const foundEvidence = hasMappedEvidence ? evidenceByKey[item.key] : hasSpecialistEvidence ? specialistEvidence : null;
       item.confidence = item.status === "unable_to_confirm"
         ? "low"
         : item.status === "not_applicable"
@@ -2388,7 +2415,7 @@ export async function POST(request: Request) {
       };
       // A PASS without concrete measured evidence is not a proven PASS.
       // Keep it visible but exclude it from scoring until RankFix can confirm it.
-      if (item.status === "pass" && (!hasMappedEvidence || foundEvidence === null)) {
+      if (item.status === "pass" && foundEvidence === null) {
         item.status = "unable_to_confirm";
         item.confidence = "low";
       }
@@ -2624,6 +2651,8 @@ export async function POST(request: Request) {
         if (normalized === normalizeScanUrl(finalUrl.toString())) return null;
         const path = safeDecodeURIComponent(candidate.pathname).toLowerCase();
         if (/\.(?:jpg|jpeg|png|gif|webp|svg|pdf|zip|xml|json|css|js|ico|woff2?)(?:$|\?)/i.test(path)) return null;
+        if (/(?:^|\/)(?:myaccount|my-account|account|mijn-account|login|signin|sign-in|register|wishlist|verlanglijst|favorites?|favourites?|cart|basket|winkelwagen|checkout|afrekenen|kassa|search|zoeken)(?:\/|$)/i.test(path)) return null;
+        if (candidate.search && /(?:^|[?&])(?:q|query|search|sort|filter|page|session|token)=/i.test(candidate.search)) return null;
         const evidence: string[] = [];
         const productPath = /\/(?:product|products|product-page|p)\//i.test(path);
         const categoryPath = /\/(?:category|categories|categorie|categorieen|collection|collections|shop|store|winkel|catalog|catalogue)(?:\/|$)/i.test(path);
