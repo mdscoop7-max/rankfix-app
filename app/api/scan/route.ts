@@ -1366,9 +1366,9 @@ export async function POST(request: Request) {
       backorder: text.match(/\b(backorder|lieferrückstand|lieferrueckstand|commande en attente|ordine arretrato|pedido pendiente)\b/gi) || [],
       in_stock: text.match(/\b(op voorraad|in stock|auf lager|en stock|disponibile|disponibilità|disponibilita)\b/gi) || [],
     };
-    const visibleAvailabilityStates = Object.entries(visibleAvailabilityMatches)
-      .filter(([, matches]) => matches.length > 0)
-      .map(([state]) => state);
+    type AvailabilityState = "out_of_stock" | "preorder" | "backorder" | "in_stock";
+    const visibleAvailabilityStates: AvailabilityState[] = (Object.keys(visibleAvailabilityMatches) as AvailabilityState[])
+      .filter((state) => visibleAvailabilityMatches[state].length > 0);
     const visibleAvailabilityState = visibleAvailabilityStates.length === 1 ? visibleAvailabilityStates[0] : null;
     const visibleAvailabilityAmbiguous = visibleAvailabilityStates.length > 1;
     const structuredAvailabilityValues = [...new Set(productOfferEvidence.flatMap((product) => product.offers.map((offer) => offer.availability).filter(Boolean)))];
