@@ -1409,7 +1409,7 @@ export async function POST(request: Request) {
     // Extended audit signals: trust, ecommerce quality, URL hygiene, social metadata and multilingual SEO.
     const placeholderMatches = text.match(/\[(?:kvk|btw|adres|e-?mail|email|telefoon|phone|address|postcode|plaats|company|naam)\]/gi) || [];
     const hasPlaceholders = placeholderMatches.length > 0;
-    const legalAnchorEvidence = [...html.matchAll(/<a\\b[^>]*href\\s*=\\s*["']([^"']+)["'][^>]*>([\\s\\S]*?)<\\/a>/gi)]
+    const legalAnchorEvidence = [...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)]
       .map((match) => ({ href: decode(match[1] || ""), label: stripHtml(match[2] || "") }));
     const hasLegalSignal = (pattern: RegExp) => legalAnchorEvidence.some((item) => pattern.test(item.href) || pattern.test(item.label));
     const hasPrivacyLink = hasLegalSignal(/privacy|privacybeleid|privacy-policy|datenschutz|confidentialit[eé]|privacidad/i);
