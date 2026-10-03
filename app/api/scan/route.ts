@@ -758,7 +758,14 @@ export async function POST(request: Request) {
     const hasProductMetaSignal = /(?:^|[.:_-])product(?:$|[.:_-])/i.test(productOgType) || /(?:product|sku|price|availability)[.:_-]/i.test(html.match(/<meta\b[^>]*(?:property|name)\s*=\s*["'][^"']+["'][^>]*>/gi)?.join(" ") || "");
     const hasProductSignal = hasProductSchema || (hasStrongCommerceAction && (hasExplicitPriceSignal || hasStockSignal || hasSkuSignal)) || (hasSkuSignal && hasExplicitPriceSignal && hasStockSignal) || (hasProductMetaSignal && hasExplicitPriceSignal);
     // Product cards and stock text on a webshop homepage do not make that URL a product detail page.
-    const isProductPage = !isHomepage && hasProductSignal;
+    // Some marketplace/listing detail pages expose sparse Product markup in raw HTML
+    // but have a stable detail URL and specialist identity. Treat only strong, portable
+    // detail-path patterns as supporting evidence; never use a customer/domain exception.
+    const specialistDetailPathSignal = !isHomepage && (
+      /^\/a\/[^/]+-\d+(?:\/)?$/i.test(pathname) ||
+      pathSegmentsForType.some((segment) => /^(?:vehicle|voertuig|auto|car|listing|advert|advertentie|occasion)$/.test(segment))
+    );
+    const isProductPage = !isHomepage && (hasProductSignal || (specialistDetailPathSignal && (hasExplicitPriceSignal || hasSkuSignal || hasStockSignal)));
     const hasArticleSignal = !isHomepage && (schemaSet.has("article") || schemaSet.has("newsarticle") || /<article\b/i.test(html));
     const hasItemListSignal = schemaSet.has("itemlist");
     const commerceNavigationSignal = /\b(winkelwagen|cart|checkout|afrekenen|shop|webshop|producten|products)\b/i.test(text);
@@ -1889,7 +1896,7 @@ export async function POST(request: Request) {
       const normalized = new URL(url.toString());
       normalized.hash = "";
       normalized.pathname = normalized.pathname.replace(/\/+$/, "") || "/";
-      ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "fbclid", "msclkid"].forEach((param) => normalized.searchParams.delete(param));
+      ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "fbclid", "msclkid", "from_srp", "prevent-auto-open-privacy-settings"].forEach((param) => normalized.searchParams.delete(param));
       return normalized.toString();
     };
 
