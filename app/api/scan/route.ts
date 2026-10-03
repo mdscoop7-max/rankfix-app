@@ -507,9 +507,17 @@ export async function POST(request: Request) {
     const qualityTitle = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
     const qualityText = stripHtml(html).slice(0, 12000);
     const qualityWords = qualityText.split(/\s+/).filter(Boolean).length;
+    const qualityDescription =
+      firstMatch(html, /<meta[^>]+(?:name|property)\s*=\s*["']description["'][^>]+content\s*=\s*["']([\s\S]*?)["'][^>]*>/i) ||
+      firstMatch(html, /<meta[^>]+content\s*=\s*["']([\s\S]*?)["'][^>]+(?:name|property)\s*=\s*["']description["'][^>]*>/i);
     const strongInterstitialTitle = /\b(hang tight|routing to checkout|checking your browser|just a moment|please wait|verify (?:you are|that you are) human|access denied|security check|attention required)\b/i.test(qualityTitle);
     const strongInterstitialBody = /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform)\b/i.test(qualityText);
-    if (strongInterstitialTitle || (strongInterstitialBody && qualityWords < 350)) {
+    // A 2xx status other than 200 can represent asynchronous routing rather than the
+    // requested indexable document. Only stop when the response is also materially
+    // empty, so legitimate 202 endpoints are not rejected on status alone.
+    const nonStandardEmptyDocument = response.status !== 200 && qualityWords < 40 && !qualityTitle && !qualityDescription;
+    const emptyDocument = qualityWords < 15 && !qualityTitle && !qualityDescription;
+    if (strongInterstitialTitle || (strongInterstitialBody && qualityWords < 350) || nonStandardEmptyDocument || emptyDocument) {
       const qualityMessages: Record<string,string> = {
         nl:"Website kon niet betrouwbaar worden geanalyseerd. De server leverde een tussen-, challenge- of routingpagina in plaats van de verwachte website. Er is daarom geen score berekend.",
         en:"The website could not be analysed reliably. The server returned an interstitial, challenge or routing page instead of the expected website, so no score was calculated.",
@@ -1126,7 +1134,22 @@ export async function POST(request: Request) {
       }
     }));
     const brokenInternalLinks = linkAuditResults.filter((item) => item.error || item.status === null || item.status === 404 || item.status === 410 || (item.status >= 500));
-    const redirectedInternalLinks = linkAuditResults.filter((item) => item.redirected && !item.error);
+    const isAuthUtilityRedirect = (item: LinkAuditResult) => {
+      if (!item.redirected || item.error) return false;
+      try {
+        const source = new URL(item.url);
+        const destination = item.finalUrl ? new URL(item.finalUrl) : null;
+        const sourceAuthPath = /(?:^|\/)(?:myaccount|my-account|account|mijn-account|login|signin|sign-in|register|auth|sso)(?:\/|$)/i.test(source.pathname);
+        const destinationAuth = Boolean(destination && (
+          /(?:^|\.)(?:accounts?|auth|login|sso)\./i.test(destination.hostname) ||
+          /(?:^|\/)(?:oauth|oauth2|authorize|auth|login|signin|sso)(?:\/|$)/i.test(destination.pathname)
+        ));
+        return sourceAuthPath && destinationAuth;
+      } catch { return false; }
+    };
+    // Login/account links intentionally redirect to SSO/OAuth providers on many sites.
+    // They are not SEO redirect debt and must never produce "link to the OAuth URL" advice.
+    const redirectedInternalLinks = linkAuditResults.filter((item) => item.redirected && !item.error && !isAuthUtilityRedirect(item));
     const productSlugStopWords = new Set(["product","products","shop","winkel","store","category","categorie","tag","product-tag","collections","collection","the","and","voor","van","met","een","het","de"]);
     const semanticTokens = (value: string) => safeDecodeURIComponent(value).toLowerCase().replace(/[^a-z0-9à-ÿ]+/gi, " ").split(/\s+/).filter((token) => token.length >= 3 && !productSlugStopWords.has(token));
     const semanticLinkMismatches = linkAuditResults.flatMap((item) => {
@@ -1195,7 +1218,7 @@ export async function POST(request: Request) {
     const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]}> = [
       {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\b/i,/\b(te koop|te huur|for sale|for rent|woningaanbod)\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
       {sector:"automotive",label:"Automotive",patterns:[/\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\b/i,/\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
-      {sector:"home_services",label:"Bouw & Installatie",patterns:[/\b(loodgieter|plumber|aannemer|installateur|elektricien|schilder|dakdekker|klusbedrijf|electrician|contractor|riool(?:service|specialist)?|rioolprobleem|ontstopping|ontstoppen|afvoer)\b/i,/\b(offerte|werkgebied|servicegebied|installatie|reparatie|verstopping|riolering|riooldienst(?:en)?)\b/i],modules:["core_seo","geo","local","lead_conversion","home_services"]},
+      {sector:"home_services",label:"Bouw & Installatie",patterns:[/\b(loodgieter|plumber|aannemer|installateur|elektricien|schilder|dakdekker|klus(?:sen)?bedrijf|bouwbedrijf|bouwservice|general contractor|electrician|contractor|riool(?:service|specialist)?|rioolprobleem|ontstopping|ontstoppen|afvoer)\b/i,/\b(offerte|werkgebied|servicegebied|installatie|reparatie|renovatie|verbouwing|bouw|verstopping|riolering|riooldienst(?:en)?)\b/i],modules:["core_seo","geo","local","lead_conversion","home_services"]},
       {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\b(advocaat|accountant|boekhouder|consultant|notaris|law firm|legalservice|legal services|accounting|consultancy)\b/i,/\b(diensten|expertise|advies|consult)\b/i],modules:["core_seo","geo","local","lead_conversion","professional_services"]},
       {sector:"hospitality",label:"Horeca",patterns:[/\b(restaurant|cafe|café|hotel|brasserie|bistro|reserveren|reservation|restaurantmenu|menukaart)\b/i,/\b(openingstijden|opening hours|tafel reserveren)\b/i],modules:["core_seo","geo","local","lead_conversion","hospitality"]},
       {sector:"health_wellness",label:"Zorg & Gezondheid",patterns:[/\b(kliniek|clinic|fysiotherap|tandarts|dentist|medicalclinic|physician|mondzorg)\b/i,/\b(afspraak|appointment|behandeling|patient|patiënt)\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
@@ -2701,6 +2724,9 @@ export async function POST(request: Request) {
         if (normalized === normalizeScanUrl(finalUrl.toString())) return null;
         const path = safeDecodeURIComponent(candidate.pathname).toLowerCase();
         if (/\.(?:jpg|jpeg|png|gif|webp|svg|pdf|zip|xml|json|css|js|ico|woff2?)(?:$|\?)/i.test(path)) return null;
+        const pathSegments = path.split("/").filter(Boolean);
+        const legalUtilitySegment = /^(?:privacy|privacy-policy|privacybeleid|privacyverklaring|datenschutz|datenschutzhinweise|datenschutzerklaerung|terms|terms-and-conditions|terms-of-use|voorwaarden|algemene-voorwaarden|cookie|cookies|cookie-policy|cookiebeleid|disclaimer|legal|impressum)$/i;
+        if (pathSegments.some((segment) => legalUtilitySegment.test(segment))) return null;
         if (/(?:^|\/)(?:myaccount|my-account|account|mijn-account|login|signin|sign-in|register|wishlist|verlanglijst|favorites?|favourites?|cart|basket|winkelwagen|checkout|afrekenen|kassa|search|zoeken)(?:\/|$)/i.test(path)) return null;
         if (candidate.search && /(?:^|[?&])(?:q|query|search|sort|filter|page|session|token)=/i.test(candidate.search)) return null;
         const evidence: string[] = [];
@@ -2717,8 +2743,8 @@ export async function POST(request: Request) {
     })).values()];
     const multiPageRelevance = (item: MultiPageCandidate) => {
       const path = new URL(item.url).pathname.toLowerCase();
-      if (/(?:^|\/)(?:privacy|privacy-policy|privacybeleid|terms|terms-and-conditions|voorwaarden|algemene-voorwaarden|cookie|cookies|disclaimer|legal|impressum)(?:\/|$)/i.test(path)) return -100;
-      if (/(?:^|\/)(?:customer-service|customerservice|klantenservice|support|help|faq|reviews?|beoordelingen|over-ons|about-us|contact)(?:\/|$)/i.test(path)) return -20;
+      if (/(?:^|\/)(?:privacy|privacy-policy|privacybeleid|privacyverklaring|datenschutz|datenschutzhinweise|datenschutzerklaerung|terms|terms-and-conditions|terms-of-use|voorwaarden|algemene-voorwaarden|cookie|cookies|cookie-policy|cookiebeleid|disclaimer|legal|impressum)(?:\/|$)/i.test(path)) return -100;
+      if (/(?:^|\/)(?:customer-service|customerservice|klantenservice|support|help|faq|reviews?|beoordelingen|over-ons|about-us|contact|career|careers|jobs|vacatures|werken-bij)(?:\/|$)/i.test(path)) return -20;
       if (item.type === "product") return 40;
       if (item.type === "category") return 30;
       return 10;
@@ -2741,7 +2767,17 @@ export async function POST(request: Request) {
           return { ...page, status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"http",status:"UNABLE_TO_CONFIRM",details:`HTTP ${r.status}; pagina kon niet betrouwbaar als HTML worden beoordeeld.`}] };
         }
         const pageHtml = await readResponseTextLimited(r, 2_000_000);
-        const pageTitle = firstMatch(pageHtml, /<title[^>]*>([\s\S]*?)<\/title>/i);
+        const pageQualityTitle = firstMatch(pageHtml, /<title[^>]*>([\s\S]*?)<\/title>/i);
+        const pageQualityDescription =
+          firstMatch(pageHtml, /<meta[^>]+(?:name|property)\s*=\s*["']description["'][^>]+content\s*=\s*["']([\s\S]*?)["'][^>]*>/i) ||
+          firstMatch(pageHtml, /<meta[^>]+content\s*=\s*["']([\s\S]*?)["'][^>]+(?:name|property)\s*=\s*["']description["'][^>]*>/i);
+        const pageQualityText = stripHtml(pageHtml).slice(0, 12000);
+        const pageQualityWords = pageQualityText.split(/\s+/).filter(Boolean).length;
+        if ((r.status !== 200 && pageQualityWords < 40 && !pageQualityTitle && !pageQualityDescription) ||
+            (pageQualityWords < 15 && !pageQualityTitle && !pageQualityDescription)) {
+          return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"quality",status:"UNABLE_TO_CONFIRM",details:`HTTP ${r.status}; response bevat onvoldoende betrouwbare pagina-inhoud voor scoring.`}] };
+        }
+        const pageTitle = pageQualityTitle;
         const pageDescription = firstMatch(pageHtml, /<meta[^>]+(?:name|property)\s*=\s*["']description["'][^>]+content\s*=\s*["']([\s\S]*?)["'][^>]*>/i) || firstMatch(pageHtml, /<meta[^>]+content\s*=\s*["']([\s\S]*?)["'][^>]+(?:name|property)\s*=\s*["']description["'][^>]*>/i);
         const pageH1s = [...pageHtml.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gi)].map((m)=>stripHtml(m[1])).filter(Boolean);
         const pageCanonical = firstMatch(pageHtml, /<link[^>]+rel\s*=\s*["'][^"']*canonical[^"']*["'][^>]+href\s*=\s*["']([^"']+)["'][^>]*>/i) || firstMatch(pageHtml, /<link[^>]+href\s*=\s*["']([^"']+)["'][^>]+rel\s*=\s*["'][^"']*canonical[^"']*["'][^>]*>/i);
@@ -2751,10 +2787,10 @@ export async function POST(request: Request) {
           {key:"description",status:pageDescription?"PASS":"WARNING",details:pageDescription?`Meta description gevonden (${pageDescription.length} tekens).`:"Geen meta description gevonden in raw HTML."},
           {key:"h1",status:pageH1s.length>0?"PASS":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:`${pageH1s.length} H1-heading(s) gevonden.`},
           {key:"canonical",status:pageCanonical
-            ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); const sameHost=resolved.hostname.toLowerCase().replace(/^www\./,"")===finalCandidate.hostname.toLowerCase().replace(/^www\./,""); const samePage=resolved.pathname.replace(/\/+$/,"")===finalCandidate.pathname.replace(/\/+$/,"") && resolved.search===finalCandidate.search; return sameHost&&samePage?"PASS":"WARNING"; } catch { return "WARNING"; } })()
+            ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); return normalizeScanUrl(resolved.toString())===normalizeScanUrl(finalCandidate.toString())?"PASS":"WARNING"; } catch { return "WARNING"; } })()
             : "UNABLE_TO_CONFIRM",
             details:pageCanonical
-              ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); const sameHost=resolved.hostname.toLowerCase().replace(/^www\./,"")===finalCandidate.hostname.toLowerCase().replace(/^www\./,""); const samePage=resolved.pathname.replace(/\/+$/,"")===finalCandidate.pathname.replace(/\/+$/,"") && resolved.search===finalCandidate.search; return sameHost&&samePage?`Self-canonical bevestigd: ${resolved.toString()}`:`Canonical wijst naar ${resolved.toString()}; controleer of deze afwijking bewust is.`; } catch { return "Canonical is aanwezig maar kon niet betrouwbaar als URL worden geïnterpreteerd."; } })()
+              ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); const samePage=normalizeScanUrl(resolved.toString())===normalizeScanUrl(finalCandidate.toString()); return samePage?`Self-canonical/equivalente voorkeurs-URL bevestigd: ${resolved.toString()}`:`Canonical wijst naar ${resolved.toString()}; controleer of deze afwijking bewust is.`; } catch { return "Canonical is aanwezig maar kon niet betrouwbaar als URL worden geïnterpreteerd."; } })()
               : "Geen canonical gevonden in de begrensde raw-HTML fetch; afwezigheid wordt hier niet als bewezen fout gescoord."},
         ];
         const confirmed = evidenceChecks.filter((x)=>x.status!=="UNABLE_TO_CONFIRM");
