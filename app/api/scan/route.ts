@@ -2034,11 +2034,19 @@ export async function POST(request: Request) {
           ? check("warning", "entity", "geo", "Entity-signalen", "Een bedrijfsidentiteit is zichtbaar, maar aanvullende contact- of externe profielsignalen zijn beperkt.", "Maak de organisatie-identiteit concreter met contactgegevens, officiële profielen en passende schema.org data.", 6, 10)
           : check("warning", "entity", "geo", "Entity-signalen", "Er is weinig expliciete zichtbare entity-informatie gevonden.", "Maak organisatie- of merknaam, contactcontext en officiële profielen zichtbaar en consistent. Machineleesbare structured data wordt apart beoordeeld.", 4, 10)
     );
+    const visibleBreadcrumbSignal = !isHomepage && Boolean(
+      /<(?:nav|ol|ul)\b[^>]*(?:aria-label\s*=\s*["'][^"']*(?:breadcrumb|broodkruimel|fil d['’]ariane|brotkrumen|migas)[^"']*["']|class\s*=\s*["'][^"']*(?:breadcrumb|breadcrumbs|broodkruimel)[^"']*["'])/i.test(html) ||
+      /\b(?:breadcrumb|breadcrumbs|broodkruimel(?:s)?|fil d['’]ariane|brotkrumen|migas de pan)\b/i.test(text)
+    );
     geoChecks.push(isHomepage
       ? check("not_applicable", "breadcrumbs", "geo", "Breadcrumbs", "Op de homepage is BreadcrumbList normaal niet nodig; deze controle telt daarom niet mee.", "Gebruik BreadcrumbList vooral op diepe content-, categorie- en productpagina's.", 0, 6)
       : hasBreadcrumb
         ? check("pass", "breadcrumbs", "geo", "Breadcrumbs", "BreadcrumbList structured data is aanwezig.", "Houd breadcrumbs gelijk aan de zichtbare navigatiestructuur.", 6, 6)
-        : check("unable_to_confirm", "breadcrumbs", "geo", "Breadcrumbs", "Geen BreadcrumbList schema gevonden op deze diepere pagina. Vanuit raw HTML alleen is niet bewezen dat de pagina een hiërarchische breadcrumb nodig heeft of dat client-side breadcrumbs ontbreken.", "Controleer de zichtbare navigatiestructuur of een sitebrede/browser-scan voordat BreadcrumbList als verbeterpunt wordt aangemerkt.", 0, 6)
+        : visibleBreadcrumbSignal
+          ? check("warning", "breadcrumbs", "geo", "Breadcrumbs", "Een zichtbare breadcrumb-navigatie is aantoonbaar aanwezig, maar RankFix vindt geen BreadcrumbList structured data die deze hiërarchie machineleesbaar beschrijft.", "Voeg BreadcrumbList alleen toe met dezelfde stappen en URL's als de zichtbare breadcrumb-navigatie.", 3, 6)
+          : metadataMayBeClientRendered
+            ? check("unable_to_confirm", "breadcrumbs", "geo", "Breadcrumbs", "Geen BreadcrumbList of betrouwbare zichtbare breadcrumb kon worden bevestigd en de JavaScript-pagina kon niet volledig worden gerenderd.", "Controleer de zichtbare navigatiestructuur opnieuw met een volledige render voordat BreadcrumbList als verbeterpunt wordt aangemerkt.", 0, 6)
+            : check("not_applicable", "breadcrumbs", "geo", "Breadcrumbs", "Op deze diepere pagina is geen zichtbare breadcrumb-navigatie aangetoond. Ontbrekende BreadcrumbList wordt daarom niet als fout behandeld.", "Voeg BreadcrumbList alleen toe wanneer de pagina ook een echte hiërarchische breadcrumb gebruikt.", 0, 6)
     );
     geoChecks.push(hasFaqContent || hasFaqSchema
       ? check("pass", "faq", "geo", "Vraag & antwoord content", "FAQ/Q&A-signalen zijn op de pagina gevonden.", "Beantwoord echte klantvragen kort, concreet en zonder marketingtaal.", 10, 10)
