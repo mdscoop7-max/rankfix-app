@@ -1225,7 +1225,7 @@ export async function POST(request: Request) {
       : securityCheck("warning","security_headers","Security headers",`RankFix bevestigde ${presentSecurityHeaders.length} van 6 gecontroleerde securityheaders. Dit is hardening-advies en op zichzelf geen bewijs van een kwetsbaarheid.`,"Controleer HSTS, CSP/frame-bescherming en X-Content-Type-Options op server/CDN-niveau.",6,6));
 
     const mixedContentMatches = isHttps
-      ? [...html.matchAll(/(?:src|href)\\s*=\\s*["']http:\\/\\/([^"'\\s>]+)["']/gi)].map((m)=>m[0]).slice(0,5)
+      ? [...html.matchAll(new RegExp("(?:src|href)\\\\s*=\\\\s*[\\\"']http://[^\\\"'\\\\s>]+[\\\"']", "gi"))].map((m)=>m[0]).slice(0,5)
       : [];
     securityChecks.push(!isHttps
       ? securityCheck("not_applicable","security_mixed_content","Mixed content","Mixed-contentcontrole is alleen van toepassing op HTTPS-pagina's.","Activeer eerst HTTPS.",0,4)
