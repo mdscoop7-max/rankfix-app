@@ -1357,12 +1357,18 @@ export async function POST(request: Request) {
     const hasMatchingVisibleStructuredPrice = canCompareVisibleAndStructuredPrice && structuredPriceCandidates.some((schemaPrice) =>
       visiblePriceCandidates.some((visiblePrice) => Math.abs(visiblePrice - schemaPrice) < 0.005)
     );
-    const visibleStockSignal = /\b(op voorraad|voorraad|in stock|out of stock|uitverkocht|sold out|pre-?order|backorder|niet op voorraad|auf lager|nicht auf lager|ausverkauft|vorbestellung|en stock|rupture de stock|épuisé|epuise|précommande|precommande|disponibile|disponibilità|disponibilita|esaurito|non disponibile|preordine|en stock|agotado|sin stock|no disponible|preventa)\b/i.test(text);
-    const visibleAvailabilityState =
-      /\b(niet op voorraad|out of stock|uitverkocht|sold out|nicht auf lager|ausverkauft|rupture de stock|épuisé|epuise|esaurito|non disponibile|agotado|sin stock|no disponible)\b/i.test(text) ? "out_of_stock" :
-      /\b(pre-?order|vorbestellung|précommande|precommande|preordine|preventa)\b/i.test(text) ? "preorder" :
-      /\b(backorder|lieferrückstand|lieferrueckstand|commande en attente|ordine arretrato|pedido pendiente)\b/i.test(text) ? "backorder" :
-      /\b(op voorraad|in stock|auf lager|en stock|disponibile|disponibilità|disponibilita)\b/i.test(text) ? "in_stock" : null;
+    const visibleStockSignal = /\b(op voorraad|voorraad|in stock|out of stock|uitverkocht|sold out|pre-?order|backorder|niet op voorraad|auf lager|nicht auf lager|ausverkauft|vorbestellung|en stock|rupture de stock|épuisé|epuise|précommande|precommande|disponibile|disponibilità|disponibilita|esaurito|non disponibile|preordine|agotado|sin stock|no disponible|preventa)\b/i.test(text);
+    // Availability must be unambiguous before comparing it with Product/Offer schema.
+    // Global navigation, recommendations and hidden variant text can contain several states.
+    const visibleAvailabilityMatches = {
+      out_of_stock: text.match(/\b(niet op voorraad|out of stock|uitverkocht|sold out|nicht auf lager|ausverkauft|rupture de stock|épuisé|epuise|esaurito|non disponibile|agotado|sin stock|no disponible)\b/gi) || [],
+      preorder: text.match(/\b(pre-?order|vorbestellung|précommande|precommande|preordine|preventa)\b/gi) || [],
+      backorder: text.match(/\b(backorder|lieferrückstand|lieferrueckstand|commande en attente|ordine arretrato|pedido pendiente)\b/gi) || [],
+      in_stock: text.match(/\b(op voorraad|in stock|auf lager|en stock|disponibile|disponibilità|disponibilita)\b/gi) || [],
+    };
+    const visibleAvailabilityStates = (Object.entries(visibleAvailabilityMatches) as Array<[string,string[]]>).filter(([,matches])=>matches.length>0).map(([state])=>state);
+    const visibleAvailabilityState = visibleAvailabilityStates.length === 1 ? visibleAvailabilityStates[0] : null;
+    const visibleAvailabilityAmbiguous = visibleAvailabilityStates.length > 1;
     const structuredAvailabilityValues = [...new Set(productOfferEvidence.flatMap((product) => product.offers.map((offer) => offer.availability).filter(Boolean)))];
     const structuredAvailabilityStates = [...new Set(structuredAvailabilityValues.map((value) =>
       /OutOfStock|SoldOut|Discontinued/i.test(value) ? "out_of_stock" :
@@ -1935,7 +1941,7 @@ export async function POST(request: Request) {
             ? check("unable_to_confirm","product_availability","seo","Productvoorraad",`Structured availability gevonden: ${structuredAvailabilityValues.slice(0,3).join(", ")}, maar RankFix kon geen eenduidige zichtbare voorraadstatus bevestigen.`,"Toon de voorraadstatus ook duidelijk aan bezoekers en houd die gelijk aan structured data.",0,5)
         : visibleAvailabilityState
           ? check("warning","product_availability","seo","Productvoorraad",`Een eenduidige zichtbare voorraadstatus is gevonden (${visibleAvailabilityState}), maar geen Offer availability in structured data.`,"Voeg de aantoonbare voorraadstatus toe aan Product/Offer structured data.",2,5)
-          : check("unable_to_confirm","product_availability","seo","Productvoorraad",visibleStockSignal ? "Er is algemene voorraadtekst gevonden, maar RankFix kan daaruit geen eenduidige in-stock/out-of-stockstatus bewijzen en vindt ook geen Offer availability." : "Geen betrouwbare zichtbare of structured voorraadstatus gevonden.","Maak voorraadstatus expliciet op productpagina en in Offer structured data.",0,5));
+          : check("unable_to_confirm","product_availability","seo","Productvoorraad",visibleAvailabilityAmbiguous ? `Meerdere zichtbare voorraadstatussen zijn in de pagina gevonden (${visibleAvailabilityStates.join(", ")}); RankFix koppelt die daarom niet automatisch aan het hoofdproduct.` : visibleStockSignal ? "Er is algemene voorraadtekst gevonden, maar RankFix kan daaruit geen eenduidige in-stock/out-of-stockstatus bewijzen en vindt ook geen Offer availability." : "Geen betrouwbare zichtbare of structured voorraadstatus gevonden.","Maak voorraadstatus expliciet bij het hoofdproduct en in Offer structured data.",0,5));
         seoChecks.push(!hasEcommerceSignal || !hasWebshopClaims
       ? check("not_applicable","webshop_claims","seo","Webshop-beloftes",!hasEcommerceSignal ? "Geen duidelijke webshop/product-signalen gevonden; claimcontrole is niet van toepassing." : "Geen specifieke verzend-/retourbelofte gevonden om te verifiëren.","Maak commerciële claims controleerbaar wanneer je ze gebruikt.",0,5)
       : hasShippingSignal && hasReturnsSignal
