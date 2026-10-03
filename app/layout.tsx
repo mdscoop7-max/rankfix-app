@@ -19,7 +19,7 @@ export async function generateMetadata():Promise<Metadata>{
  const language:Locale=/^(nl|en|de|fr|it|es)$/.test(raw)?raw as Locale:"nl";
  const m=meta[language],path=`/${language}`;
  const requestHeaders=await headers();
- const pathnameHint=requestHeaders.get("x-rankfix-pathname")||requestHeaders.get("x-next-url")||"";
+ const pathnameHint=requestHeaders.get("x-rankfix-pathname")||"";
  const canonicalPath=pathnameHint==="/" ? "/" : path;
  return {metadataBase:new URL("https://rankfix-app.onrender.com"),title:m.title,description:m.description,
   alternates:{canonical:canonicalPath,languages:{nl:"/nl",en:"/en",de:"/de",fr:"/fr",it:"/it",es:"/es","x-default":"/nl"}},

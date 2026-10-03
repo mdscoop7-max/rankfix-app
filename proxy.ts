@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 export function proxy(request: NextRequest) {
   const language = request.nextUrl.pathname.split("/")[1];
   const headers = new Headers(request.headers);
+  headers.set("x-rankfix-pathname", request.nextUrl.pathname);
   if (/^(nl|en|fr|es|it|de)$/.test(language)) headers.set("x-rankfix-language", language);
   return NextResponse.next({ request: { headers } });
 }
-export const config = { matcher: ["/:locale(nl|en|fr|es|it|de)/:path*"] };
+export const config = { matcher: ["/", "/:locale(nl|en|fr|es|it|de)/:path*"] };
