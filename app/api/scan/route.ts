@@ -1474,6 +1474,13 @@ export async function POST(request: Request) {
       return Boolean(documentLanguageBase && hreflangBase === documentLanguageBase);
     });
     const selfHreflangMismatch = Boolean(documentLanguage && selfHreflangEntries.length && !hasMatchingSelfHreflang);
+    const hreflangHostMismatches = hreflangEntries.filter((entry) => {
+      if (!entry.validHref) return false;
+      try {
+        const target = new URL(entry.href, finalUrl);
+        return target.hostname.replace(/^www\./i, "").toLowerCase() !== finalUrl.hostname.replace(/^www\./i, "").toLowerCase();
+      } catch { return false; }
+    });
     const languageSelectorSignal = /(?:language|taal|sprache|idioma|lingua|français|deutsch|italiano|español|english|nederlands)\b/i.test(text) && /(?:select|dropdown|menu|switch|\bEN\b|\bNL\b|\bDE\b|\bFR\b|\bES\b|\bIT\b)/i.test(text);
     // A language/country selector alone does not prove equivalent translated URLs exist.
     // Only explicit hreflang markup is strong enough in a single raw-HTML page scan.
@@ -1802,6 +1809,8 @@ export async function POST(request: Request) {
           ? check("warning", "hreflang", "seo", "Meertalige SEO", `${hreflangTags.length} hreflang-link(s) gevonden, maar ${invalidHreflangEntries.length} bevat een ongeldige taal-/regiocode of URL.`, "Corrigeer ongeldige hreflang-codes en href-URL's. Controleer daarna wederkerigheid tussen taalversies.", 2, 5)
           : selfHreflangMismatch
             ? check("warning", "hreflang", "seo", "Meertalige SEO", `De huidige URL is als hreflang-doel opgenomen, maar de taalcode sluit niet aan op documenttaal "${documentLanguage}".`, "Laat de self-referencing hreflang-taal overeenkomen met de taal van deze pagina en controleer daarna de alternatieve taalversies.", 2, 5)
+          : hreflangHostMismatches.length
+            ? check("unable_to_confirm", "hreflang", "seo", "Meertalige SEO", `${hreflangHostMismatches.length} hreflang-doel(en) verwijzen naar een ander hostdomein. Dit kan geldig zijn voor internationale domeinen, maar RankFix kan de relatie vanuit deze ene pagina niet bewijzen.`, "Controleer de externe taalhosts en hun wederkerige hreflang/canonical-relaties in een sitebrede crawl voordat dit als fout wordt beoordeeld.", 0, 5)
           : conflictingHreflangLanguages.length
             ? check("warning", "hreflang", "seo", "Meertalige SEO", `Dezelfde hreflang-code verwijst naar verschillende doel-URL's: ${conflictingHreflangLanguages.map((language) => `${language} => ${[...new Set(hreflangTargetsByLanguage.get(language) || [])].join(" | ")}`).join("; ")}.`, "Gebruik per pagina één eenduidige doel-URL per taal/regiocode en controleer daarna wederkerigheid.", 3, 5)
             : identicalDuplicateHreflangLanguages.length
