@@ -15,6 +15,7 @@ type Result = {
   grade?: string;
   seo?: { score: number; checks?: Check[] };
   geo?: { score: number; checks?: Check[] };
+  security?: { score: number };
 };
 
 const text: Record<Locale,{title:string;intro:string;url:string;run:string;running:string;score:string;issues:string;passed:string;next:string;technical:string;shop:string;ads:string;history:string;dashboard:string;failed:string;reportFailed:string}> = {
@@ -73,7 +74,7 @@ export default function DashboardScan() {
       </section>
       {urlError&&<p className="rf-alert" role="alert">{urlError}</p>}{error&&<p className="rf-alert" role="alert">{error}</p>}
       {busy&&<section className="rf-scan-progress" aria-live="polite"><div className="rf-scan-spinner"/><div><strong>{t.running}</strong><p>SEO · GEO · {t.technical} · {t.shop} · {t.ads}</p></div></section>}
-      {result&&<section className="rf-report rf-shared-result" aria-live="polite"><div className="rf-shared-score" style={{"--rf-score":result.overallScore} as React.CSSProperties}><strong>{result.overallScore}</strong><span>/100</span></div><div><span className="rf-eyebrow">{t.score}</span><h2>SEO {result.seo?.score??"—"} · GEO {result.geo?.score??"—"}</h2><p>{passed} {t.passed} · {issues} {t.issues}</p><p>{t.next}</p><div className="rf-shared-actions"><Link className="rf-primary-link" href="/dashboard/history">{t.history}</Link><Link className="rf-back" href="/dashboard">← {t.dashboard}</Link></div></div></section>}
+      {result&&<section className="rf-report rf-shared-result" aria-live="polite"><div className="rf-shared-score" style={{"--rf-score":result.overallScore} as React.CSSProperties}><strong>{result.overallScore}</strong><span>/100</span></div><div><span className="rf-eyebrow">{t.score}</span><h2>SEO {result.seo?.score??"—"} · GEO {result.geo?.score??"—"} · Security {result.security?.score??"—"}</h2><p>{passed} {t.passed} · {issues} {t.issues}</p><p>{t.next}</p><div className="rf-shared-actions"><Link className="rf-primary-link" href="/dashboard/history">{t.history}</Link><Link className="rf-back" href="/dashboard">← {t.dashboard}</Link></div></div></section>}
     </div>
   </div><AiAssistant dashboard/></main>;
 }
