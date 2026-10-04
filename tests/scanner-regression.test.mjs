@@ -190,3 +190,17 @@ test("multi-page canonical absence uses the same evidence semantics as the main 
   assert.doesNotMatch(source, /afwezigheid wordt hier niet als bewezen fout gescoord/);
   assert.match(source, /item\.key === "canonical"\) return pageCanonical \? 0\.7 : 0\.35/);
 });
+
+
+test("strong product evidence wins over article classification and exposes an invariant", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /const rawArticleSignal = !isHomepage/);
+  assert.match(source, /const articleSuppressedByCommerce = isProductPage && rawArticleSignal/);
+  assert.match(source, /const hasArticleSignal = rawArticleSignal && !isProductPage/);
+  assert.match(source, /article signal suppressed by stronger product evidence/);
+  assert.match(source, /const pageTypeContradictions = \[/);
+  assert.match(source, /article_vs_product_schema/);
+  assert.match(source, /product_vs_transport_booking/);
+  assert.match(source, /pageTypeInvariant/);
+});
