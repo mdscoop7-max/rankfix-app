@@ -159,3 +159,14 @@ test("multi-page retail evidence can strengthen site profile without activating 
   assert.match(source, /technologyProfile\.siteType = "Webshop"/);
   assert.match(source, /never silently[\s\S]*activates page-specific webshop checks/);
 });
+
+
+test("government identity overrides generic LocalBusiness schema advice", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /governmentIdentitySignal/);
+  assert.match(source, /GovernmentOrganization \+ WebSite/);
+  assert.match(source, /effectiveLocalSchemaSignal = hasLocalBusinessSignal && !governmentIdentitySignal/);
+  assert.match(source, /effectiveLocalBusinessPage = !isProductPage && !hasCategorySignal && effectiveLocalSchemaSignal/);
+  assert.match(source, /localBusinessDetails = effectiveLocalSchemaSignal/);
+});

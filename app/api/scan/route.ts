@@ -929,24 +929,35 @@ export async function POST(request: Request) {
       ? identityLocalSchema || "LocalBusiness"
       : null;
     const hasRelevantLocalSchema = schemaSet.has("localbusiness") || (specificLocalSchema ? schemaSet.has(specificLocalSchema.toLowerCase()) : false);
-    const recommendedSchema = hasLocalBusinessSignal ? specificLocalSchema || "LocalBusiness" : isHomepage ? "Organization + WebSite" : isProductPage ? "Product" : hasCategorySignal ? "ItemList / CollectionPage" : hasArticleSignal ? "Article" : "WebPage";
-    const schemaContextLabel = hasLocalBusinessSignal ? "lokale bedrijfs-/dienstpagina" : isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "lijst-/categoriepagina" : hasArticleSignal ? "artikel-/nieuwspagina" : "contentpagina";
-    const hasRelevantContextSchema = hasLocalBusinessSignal
-      ? hasRelevantLocalSchema
-      : isProductPage
-        ? hasProductSchema
-        : hasCategorySignal
-          ? schemaSet.has("itemlist") || schemaSet.has("collectionpage")
-          : hasArticleSignal
-            ? schemaSet.has("article") || schemaSet.has("newsarticle") || schemaSet.has("blogposting")
-            : isHomepage
-              ? schemaSet.has("organization") || schemaSet.has("website")
-              : schemaSet.has("webpage") || schemaSet.has("article") || schemaSet.has("organization") || schemaSet.has("website");
+    const governmentIdentitySignal = /\b(rijksoverheid|government|government of|ministerie|ministry|rijksoverheid\.nl|overheid|gemeente|municipality|provincie|province|public authority|publieke sector)\b/i.test([title, description, h1s.join(" "), finalUrl.hostname].join(" "));
+    const governmentSchemaPresent = schemaSet.has("governmentorganization") || schemaSet.has("governmentoffice");
+    // Government/public-authority identity must override generic address/contact
+    // signals. A ministry or national government site is not a LocalBusiness.
+    const effectiveLocalSchemaSignal = hasLocalBusinessSignal && !governmentIdentitySignal && !governmentSchemaPresent;
+    const recommendedSchema = governmentIdentitySignal || governmentSchemaPresent
+      ? (isHomepage ? "GovernmentOrganization + WebSite" : "GovernmentOrganization / WebPage")
+      : effectiveLocalSchemaSignal
+        ? specificLocalSchema || "LocalBusiness"
+        : isHomepage ? "Organization + WebSite" : isProductPage ? "Product" : hasCategorySignal ? "ItemList / CollectionPage" : hasArticleSignal ? "Article" : "WebPage";
+    const schemaContextLabel = governmentIdentitySignal || governmentSchemaPresent ? "overheids-/publieke pagina" : effectiveLocalSchemaSignal ? "lokale bedrijfs-/dienstpagina" : isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "lijst-/categoriepagina" : hasArticleSignal ? "artikel-/nieuwspagina" : "contentpagina";
+    const hasRelevantContextSchema = governmentIdentitySignal || governmentSchemaPresent
+      ? governmentSchemaPresent || schemaSet.has("organization") || schemaSet.has("website") || schemaSet.has("webpage")
+      : effectiveLocalSchemaSignal
+        ? hasRelevantLocalSchema
+        : isProductPage
+          ? hasProductSchema
+          : hasCategorySignal
+            ? schemaSet.has("itemlist") || schemaSet.has("collectionpage")
+            : hasArticleSignal
+              ? schemaSet.has("article") || schemaSet.has("newsarticle") || schemaSet.has("blogposting")
+              : isHomepage
+                ? schemaSet.has("organization") || schemaSet.has("website")
+                : schemaSet.has("webpage") || schemaSet.has("article") || schemaSet.has("organization") || schemaSet.has("website");
     const businessName = organizationName || (title.split(/[|–—-]/)[0] || "").trim();
     const phoneMatch = text.match(/(?:\\+31\s?6|0)[\\d\s().-]{8,}/);
     const emailMatch = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i);
     const addressMatch = text.match(/\b([^,]{3,60}\s+\\d+[A-Za-z]?)\s+(\\d{4}\s?[A-Z]{2})\s+([A-Za-zÀ-ÿ' -]{2,40})\b/);
-    const localBusinessDetails = hasLocalBusinessSignal ? {
+    const localBusinessDetails = effectiveLocalSchemaSignal ? {
       name: businessName || null,
       streetAddress: addressMatch?.[1]?.trim() || null,
       postalCode: addressMatch?.[2]?.trim() || null,
@@ -2037,7 +2048,7 @@ export async function POST(request: Request) {
       ? check("pass", "alt", "seo", "Afbeelding alt-teksten", `Alle ${imageElementCount} controleerbare <img>-elementen in de raw HTML hebben alt-attributen. JavaScript-geladen afbeeldingen zijn niet meegenomen.`, "Schrijf beschrijvende alt-teksten voor informatieve afbeeldingen.", 7, 7)
       : check("warning", "alt", "seo", "Afbeelding alt-teksten", `${imagesMissingAlt} van ${imageElementCount} controleerbare <img>-elementen in de raw HTML missen alt. JavaScript-geladen afbeeldingen zijn niet meegenomen.`, "Voeg beschrijvende alt-teksten toe waar ze betekenis toevoegen.", 3, 7)
     );
-    const effectiveLocalBusinessPage = !isProductPage && !hasCategorySignal && hasLocalBusinessSignal;
+    const effectiveLocalBusinessPage = !isProductPage && !hasCategorySignal && effectiveLocalSchemaSignal;
     const effectiveArticlePage = hasArticleSignal && !effectiveLocalBusinessPage;
     const contentContext = isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "categorie-/lijstpagina" : effectiveLocalBusinessPage ? "lokale bedrijfspagina" : effectiveArticlePage ? "artikelpagina" : "contentpagina";
     const contentMinimumSignal = isHomepage ? 150 : isProductPage ? 80 : hasCategorySignal ? 120 : effectiveLocalBusinessPage ? 150 : effectiveArticlePage ? 300 : 200;
