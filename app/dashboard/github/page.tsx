@@ -237,7 +237,7 @@ export default function GithubPage(){
 
   return <main className="rf-page" lang={language}>
     <div className="rf-shell">
-    <header className="rf-header"><Link href="/dashboard" className="rf-brand">RankFix <span>AI</span></Link><Link href={scanId?`/dashboard/audit/${encodeURIComponent(scanId)}`:"/dashboard"} className="rf-back">← {scanId?(language==="nl"?"Terug naar audit":"Back to audit"):t.back}</Link></header>
+    <header className="rf-header"><Link href="/dashboard" className="rf-brand">RankFix <span>AI</span></Link></header>
     <DashboardNav current={2} />
     <section className="rf-body rf-fix-engine">
       <div className="text-xs uppercase tracking-widest text-emerald-300">GitHub Fix Engine</div>
