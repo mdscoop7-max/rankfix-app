@@ -1,0 +1,384 @@
+import { CrawlPage, CrawlMode, crawlSite } from "@/lib/crawler";
+
+export const SITE_AUDIT_ENGINE_VERSION = "1.10.0";
+
+export type SiteRuleStatus = "PASS" | "FAIL" | "WARNING" | "NOT_APPLICABLE" | "UNABLE_TO_CONFIRM";
+
+export type SiteIssue = {
+  issue_id: string;
+  rule_id: string;
+  category: string;
+  title: string;
+  description: string;
+  recommendation: string;
+  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
+  confidence: "high" | "medium" | "low";
+  status: SiteRuleStatus;
+  affected_urls: string[];
+  evidence: {
+    total_pages: number;
+    affected_pages: number;
+    examples: Array<{ url: string; found?: string | number | boolean | null; expected?: string; details?: string }>;
+  };
+};
+
+export type SiteAudit = {
+  startUrl: string;
+  finalUrl: string;
+  mode: CrawlMode;
+  crawler_version: string;
+  audit_version: string;
+  startedAt: string;
+  finishedAt: string;
+  crawl: {
+    pages: number;
+    discovered: number;
+    errors: number;
+    blocked: number;
+    complete: boolean;
+    truncated: boolean;
+    scope: "sitewide" | "sample";
+  };
+  scores: { technical: number; onPage: number; content: number; structuredData: number; internalLinks: number; accessibility: number; overall: number; grade: string };
+  page_types: Record<string, number>;
+  issues: SiteIssue[];
+};
+
+type RuleEvaluation = {
+  status: SiteRuleStatus;
+  found?: string | number | boolean | null;
+  expected?: string;
+  details: string;
+};
+
+type RuleDef = {
+  id: string;
+  category: string;
+  title: string;
+  severity: SiteIssue["severity"];
+  description: string;
+  recommendation: string;
+  applicable: (p: CrawlPage, all: CrawlPage[]) => boolean;
+  evaluate: (p: CrawlPage, all: CrawlPage[]) => RuleEvaluation;
+};
+
+const example = (p: CrawlPage, result: RuleEvaluation) => ({
+  url: p.url, found: result.found, expected: result.expected, details: result.details,
+});
+
+const rules: RuleDef[] = [
+  {
+    id: "SITE_TITLE_MISSING", category: "on-page", title: "Pagina zonder meta title", severity: "HIGH",
+    description: "Elke indexeerbare HTML-pagina hoort een bruikbare title te hebben.",
+    recommendation: "Voeg een unieke, beschrijvende meta title toe.",
+    applicable: p => !p.noindex,
+    evaluate: p => p.title.trim() ? {status:"PASS",details:"Meta title aanwezig.",found:p.title} : {status:"FAIL",details:"Meta title ontbreekt.",found:""},
+  },
+  {
+    id: "SITE_TITLE_DUPLICATE", category: "on-page", title: "Dubbele meta titles", severity: "HIGH",
+    description: "Identieke titles op meerdere indexeerbare pagina's verminderen onderscheid tussen pagina's.",
+    recommendation: "Maak titles uniek en laat ze aansluiten op de zoekintentie van de pagina.",
+    applicable: p => !p.noindex,
+    evaluate: (p, all) => {
+      const same = all.filter(x => !x.noindex && x.title.trim().toLowerCase() === p.title.trim().toLowerCase() && p.title.trim()).length;
+      return same > 1 ? {status:"FAIL",found:same,expected:"1",details:"Dezelfde meta title komt op meerdere pagina's voor."} : {status:"PASS",found:1,details:"Meta title is uniek binnen de gecrawlde pagina's."};
+    },
+  },
+  {
+    id: "SITE_DESCRIPTION_MISSING", category: "on-page", title: "Pagina zonder meta description", severity: "MEDIUM",
+    description: "Een beschrijvende meta description geeft zoekmachines en gebruikers extra context.",
+    recommendation: "Voeg een unieke, relevante meta description toe.",
+    applicable: p => !p.noindex,
+    evaluate: p => p.description.trim() ? {status:"PASS",details:"Meta description aanwezig.",found:p.description} : {status:"FAIL",details:"Meta description ontbreekt.",found:""},
+  },
+  {
+    id: "SITE_DESCRIPTION_DUPLICATE", category: "on-page", title: "Dubbele meta descriptions", severity: "MEDIUM",
+    description: "Dubbele descriptions maken pagina's minder onderscheidend.",
+    recommendation: "Schrijf per indexeerbare pagina een unieke description.",
+    applicable: p => !p.noindex,
+    evaluate: (p, all) => {
+      const same = all.filter(x => !x.noindex && x.description.trim().toLowerCase() === p.description.trim().toLowerCase() && p.description.trim()).length;
+      return same > 1 ? {status:"FAIL",found:same,expected:"1",details:"Dezelfde meta description komt op meerdere pagina's voor."} : {status:"PASS",found:1,details:"Meta description is uniek binnen de gecrawlde pagina's."};
+    },
+  },
+  {
+    id: "SITE_H1_MISSING", category: "on-page", title: "Pagina zonder H1", severity: "HIGH",
+    description: "Een duidelijke primaire heading helpt de hoofdonderwerpstructuur te bepalen.",
+    recommendation: "Voeg één duidelijke H1 toe die het hoofdonderwerp van de pagina beschrijft.",
+    applicable: p => !p.noindex,
+    evaluate: p => p.h1.length === 0 ? {status:"FAIL",found:0,expected:"1",details:"Geen H1 gevonden."} : {status:"PASS",found:p.h1.length,details:"Minstens één H1 gevonden."},
+  },
+  {
+    id: "SITE_H1_MULTIPLE", category: "on-page", title: "Meerdere H1's", severity: "MEDIUM",
+    description: "Meerdere primaire headings zijn niet automatisch fout, maar kunnen de hoofdstructuur onduidelijk maken.",
+    recommendation: "Gebruik bij voorkeur één duidelijke primaire H1 per pagina.",
+    applicable: p => !p.noindex,
+    evaluate: p => p.h1.length > 1 ? {status:"PASS",found:p.h1.length,details:`${p.h1.length} H1-elementen gevonden. Dit is structuuradvies en geen bewezen SEO-fout; meerdere H1-elementen zijn technisch toegestaan.`} : {status:"PASS",found:p.h1.length,details:"Niet meer dan één H1 gevonden."},
+  },
+  {
+    id: "SITE_CANONICAL_MISSING", category: "technical", title: "Canonical ontbreekt", severity: "MEDIUM",
+    description: "Een canonical helpt de voorkeurs-URL van vergelijkbare pagina's expliciet te maken.",
+    recommendation: "Voeg een self-referencing canonical toe waar dat passend is.",
+    applicable: p => !p.noindex,
+    evaluate: p => p.canonical ? {status:"PASS",found:p.canonical,details:"Canonical gevonden."} : {status:"WARNING",details:"Geen canonical gevonden."},
+  },
+  {
+    id: "SITE_NOINDEX", category: "indexability", title: "Pagina heeft noindex", severity: "HIGH",
+    description: "Noindex voorkomt indexatie van de betreffende pagina.",
+    recommendation: "Controleer bewust of noindex voor deze pagina gewenst is.",
+    applicable: () => true,
+    evaluate: p => p.noindex ? {status:"WARNING",found:true,details:"Pagina bevat een noindex-directive."} : {status:"PASS",found:false,details:"Geen noindex gevonden."},
+  },
+  {
+    id: "SITE_IMAGES_ALT", category: "images", title: "Afbeeldingen zonder alt-tekst", severity: "MEDIUM",
+    description: "Informatieve afbeeldingen horen een passende alternatieve tekst te hebben.",
+    recommendation: "Voeg relevante alt-teksten toe; gebruik een lege alt voor puur decoratieve afbeeldingen.",
+    applicable: p => p.imageCount > 0,
+    evaluate: p => p.imagesMissingAlt > 0 ? {status:"FAIL",found:p.imagesMissingAlt,expected:"0",details:"Een of meer afbeeldingen missen alt-tekst."} : {status:"PASS",found:0,details:"Alle gevonden afbeeldingen hebben alt-tekst."},
+  },
+  {
+    id: "SITE_CONTENT_THIN", category: "content", title: "Weinig zichtbare tekst", severity: "MEDIUM",
+    description: "Zeer dunne pagina-inhoud kan onvoldoende context bieden voor een zoekintentie.",
+    recommendation: "Beoordeel of de pagina voldoende unieke, nuttige inhoud bevat voor de beoogde zoekintentie.",
+    applicable: p => !["cart","checkout","account","search","filter"].includes(p.pageType) && !p.noindex,
+    evaluate: p => p.wordCount < 80 ? {status:"WARNING",found:p.wordCount,expected:"≥ 80",details:"De pagina bevat weinig zichtbare tekst."} : {status:"PASS",found:p.wordCount,details:"De pagina bevat voldoende zichtbare tekst voor deze heuristiek."},
+  },
+  {
+    id: "SITE_LOCAL_BUSINESS_IDENTITY", category: "structured-data", title: "LocalBusiness gegevens ontbreken", severity: "HIGH",
+    description: "Een lokale onderneming hoort haar identiteit en fysieke locatie duidelijk als LocalBusiness te beschrijven.",
+    recommendation: "Gebruik het meest specifieke LocalBusiness-type en voeg minimaal de bedrijfsnaam en het fysieke adres toe. Voeg waar relevant ook telefoonnummer, URL, logo, afbeeldingen, openingstijden, diensten, prijsrange en officiële profielen via sameAs toe.",
+    applicable: p => !p.noindex && p.pageType === "local_business",
+    evaluate: p => {
+      const types = p.jsonLdTypes.map(x => x.toLowerCase());
+      const localTypes = types.filter(x => x === "localbusiness" || x.includes("business") || ["restaurant","bakery","barorcafe","beautysalon","dayspa","dentist","electrician","generalcontractor","homeandconstructionbusiness","locksmith","medicalclinic","plumber","roofingcontractor","store","hairdresser","automotivebusiness"].includes(x));
+      const hasLocal = localTypes.length > 0;
+      const hasOrganization = types.includes("organization");
+      if (hasLocal) { const lb=p.localBusiness; const missing=[!lb?.name&&"name",!lb?.address&&"address"].filter(Boolean) as string[]; const optional=[!lb?.telephone&&"telephone",!lb?.url&&"url",!lb?.openingHours&&"openingHours",!lb?.imageOrLogo&&"image/logo",!lb?.sameAs&&"sameAs"].filter(Boolean) as string[]; if(missing.length)return {status:"FAIL",found:localTypes.join(", "),expected:"name + address",details:`LocalBusiness type aanwezig, maar verplichte kernvelden ontbreken: ${missing.join(", ")}.`}; if(optional.length)return {status:"WARNING",found:localTypes.join(", "),expected:"name + address",details:`LocalBusiness type en kernvelden aanwezig. Controleer aanvullende velden waar relevant: ${optional.join(", ")}.`}; return {status:"PASS",found:localTypes.join(", "),details:"Specifieke LocalBusiness structured data met naam, adres en relevante aanvullende velden gevonden."}; }
+      if (hasOrganization) return {status:"WARNING",found:"Organization",expected:"LocalBusiness subtype",details:"Organization structured data is aanwezig, maar een specifiek LocalBusiness-type ontbreekt."};
+      return {status:"FAIL",found:types.join(", ") || "geen JSON-LD",expected:"LocalBusiness subtype",details:"Geen LocalBusiness structured data gevonden op een pagina met lokale bedrijfssignalen."};
+    },
+  },
+  {
+    id: "SITE_STRUCTURED_DATA_MISSING", category: "structured-data", title: "Geen structured data", severity: "MEDIUM",
+    description: "Er is geen JSON-LD structured data aangetroffen op deze pagina.",
+    recommendation: "Voeg alleen schema.org markup toe die de zichtbare en aantoonbare inhoud van de pagina beschrijft.",
+    applicable: p => !p.noindex && ["homepage","product","product_category","category","blog_article","news","faq","local_business"].includes(p.pageType),
+    evaluate: p => p.jsonLdTypes.length === 0 ? {status:"WARNING",found:0,details:"Geen JSON-LD types gevonden."} : {status:"PASS",found:p.jsonLdTypes.join(", "),details:"JSON-LD structured data gevonden."},
+  },
+  {
+    id: "SITE_JSONLD_INVALID", category: "structured-data", title: "Ongeldige JSON-LD", severity: "HIGH",
+    description: "JSON-LD die niet als geldige JSON kan worden gelezen, kan niet betrouwbaar als structured data worden verwerkt.",
+    recommendation: "Herstel de JSON-syntaxis en valideer de markup opnieuw.",
+    applicable: p => !p.noindex && p.jsonLdInvalid > 0,
+    evaluate: p => ({status:"FAIL",found:p.jsonLdInvalid,expected:"0",details:"Een of meer JSON-LD blokken konden niet als geldige JSON worden gelezen."}),
+  },
+  {
+    id: "SITE_PRODUCT_SCHEMA_CORE", category: "structured-data", title: "Product structured data onvolledig", severity: "HIGH",
+    description: "Productpagina's hebben bruikbare product- en aanbodgegevens nodig om productinformatie machineleesbaar te maken.",
+    recommendation: "Controleer Product markup en voeg aantoonbare kerngegevens toe, waaronder naam en waar van toepassing Offer met prijs en valuta.",
+    applicable: p => !p.noindex && p.pageType === "product",
+    evaluate: p => {
+      if (!p.product) {
+        return {status:"FAIL",found:"geen Product JSON-LD",expected:"Product structured data",details:"De crawler classificeert deze pagina als productpagina, maar heeft geen Product JSON-LD gevonden."};
+      }
+      const x=p.product;
+      const missing=[!x.name&&"name",!x.image&&"image",!x.offers&&"offers",x.offers&&!x.price&&"price",x.offers&&!x.priceCurrency&&"priceCurrency"].filter(Boolean) as string[];
+      return missing.length ? {status:"FAIL",found:missing.join(", "),expected:"complete Product/Offer core fields",details:`Product JSON-LD is gevonden, maar kernvelden ontbreken: ${missing.join(", ")}.`} : {status:"PASS",found:"Product + core Offer fields",details:"Product structured data bevat de gecontroleerde kernvelden."};
+    },
+  },
+  {
+    id: "SITE_PRODUCT_AVAILABILITY", category: "ecommerce", title: "Productbeschikbaarheid ontbreekt", severity: "MEDIUM",
+    description: "Een productaanbod is vollediger wanneer de actuele beschikbaarheid machineleesbaar is.",
+    recommendation: "Voeg alleen een geldige schema.org availability-waarde toe wanneer de voorraadstatus aantoonbaar op de productpagina staat.",
+    applicable: p => !p.noindex && p.pageType === "product" && Boolean(p.product?.offers),
+    evaluate: p => p.product?.availability
+      ? {status:"PASS",found:true,details:"Offer bevat een availability-waarde."}
+      : {status:"WARNING",found:false,expected:"Offer.availability",details:"Product/Offer is gevonden, maar availability kon niet worden bevestigd."},
+  },
+  {
+    id: "SITE_PRODUCT_IDENTITY", category: "ecommerce", title: "Productidentiteit beperkt", severity: "LOW",
+    description: "Merk- of productidentificatie helpt productgegevens eenduidig te koppelen.",
+    recommendation: "Voeg alleen aantoonbare merk- of SKU/GTIN/MPN-gegevens toe; verzin nooit productidentifiers.",
+    applicable: p => !p.noindex && p.pageType === "product" && Boolean(p.product),
+    evaluate: p => p.product?.brandOrSku
+      ? {status:"PASS",found:true,details:"Merk of productidentifier is gevonden in Product structured data."}
+      : {status:"WARNING",found:false,expected:"brand of productidentifier",details:"Geen aantoonbaar merk of productidentifier gevonden in Product structured data."},
+  },
+  {
+    id: "SITE_CATEGORY_INDEXABILITY", category: "ecommerce", title: "Categoriepagina niet indexeerbaar", severity: "HIGH",
+    description: "Belangrijke productcategorieën horen alleen noindex te zijn wanneer dat bewust is ingesteld.",
+    recommendation: "Controleer of noindex op deze categorie bewust is; verwijder de directive alleen wanneer de pagina geïndexeerd hoort te worden.",
+    applicable: p => ["product_category","category"].includes(p.pageType),
+    evaluate: p => p.noindex
+      ? {status:"WARNING",found:true,expected:"indexeerbaar indien dit een belangrijke categorie is",details:"Categoriepagina bevat noindex; RankFix markeert dit voor menselijke controle."}
+      : {status:"PASS",found:false,details:"Geen noindex gevonden op deze categoriepagina."},
+  },
+  {
+    id: "SITE_CANONICAL_CROSS_HOST", category: "technical", title: "Canonical wijst naar ander domein", severity: "HIGH",
+    description: "Een cross-domain canonical kan zoekmachines vragen een andere URL als voorkeursversie te behandelen.",
+    recommendation: "Controleer of de cross-domain canonical bewust is ingesteld; gebruik anders de juiste voorkeurs-URL op hetzelfde domein.",
+    applicable: p => !p.noindex && Boolean(p.canonical),
+    evaluate: p => {
+      try { const same=new URL(p.canonical!).hostname.toLowerCase().replace(/^www\./,"")===new URL(p.url).hostname.toLowerCase().replace(/^www\./,""); return same?{status:"PASS",found:p.canonical,details:"Canonical blijft op hetzelfde domein."}:{status:"FAIL",found:p.canonical,expected:new URL(p.url).hostname,details:"Canonical wijst naar een ander domein."}; }
+      catch { return {status:"UNABLE_TO_CONFIRM",found:p.canonical,details:"Canonical URL kon niet betrouwbaar worden geïnterpreteerd."}; }
+    },
+  },
+  {
+    id: "SITE_BROKEN_INTERNAL_LINK", category: "technical", title: "Broken internal links", severity: "HIGH",
+    description: "Interne links die op een foutstatus eindigen sturen bezoekers en crawlers naar een niet-werkende bestemming.",
+    recommendation: "Herstel de doel-URL, verwijder de link of laat de link direct naar een geldige 2xx-bestemming wijzen.",
+    applicable: () => true,
+    evaluate: p => {
+      if (p.status === 404 || p.status === 410) return {status:"FAIL",found:p.status,expected:"2xx",details:`Interne URL eindigt met HTTP ${p.status}: ${p.requestedUrl}`};
+      if (p.status >= 500) return {status:"FAIL",found:p.status,expected:"2xx",details:`Interne URL geeft een serverfout HTTP ${p.status}: ${p.requestedUrl}`};
+      if (p.status >= 400) return {status:"WARNING",found:p.status,expected:"2xx",details:`Interne URL geeft HTTP ${p.status}: ${p.requestedUrl}`};
+      return {status:"PASS",found:p.status,expected:"2xx",details:"Geen HTTP-foutstatus gevonden voor deze gecrawlde interne URL."};
+    },
+  },
+  {
+    id: "SITE_INTERNAL_REDIRECT", category: "technical", title: "Interne links via redirect", severity: "MEDIUM",
+    description: "Interne links die eerst redirecten veroorzaken extra verzoeken en kunnen onnodige redirectketens verbergen.",
+    recommendation: "Werk interne links waar mogelijk bij zodat ze rechtstreeks naar de uiteindelijke geldige URL wijzen.",
+    applicable: p => p.redirectChain.length > 0,
+    evaluate: p => {
+      const chain = p.redirectChain.map(step => `${step.status} ${step.from} → ${step.to}`).join(" | ");
+      return p.redirectChain.length > 1
+        ? {status:"WARNING",found:p.redirectChain.length,expected:"0–1",details:`Redirectketen met ${p.redirectChain.length} stappen gevonden: ${chain}`}
+        : {status:"WARNING",found:p.redirectChain[0].status,expected:"directe 2xx-link",details:`Interne link redirect: ${chain}`};
+    },
+  },
+  {
+    id: "SITE_REDIRECT_CHAIN", category: "technical", title: "Redirectketen", severity: "HIGH",
+    description: "Meerdere redirects achter elkaar vertragen crawlers en gebruikers en vergroten de kans op configuratiefouten.",
+    recommendation: "Laat de oorspronkelijke URL indien mogelijk in één stap naar de definitieve bestemming redirecten en werk interne links direct bij.",
+    applicable: p => p.redirectChain.length > 1,
+    evaluate: p => ({status:"WARNING",found:p.redirectChain.length,expected:"≤ 1",details:p.redirectChain.map(step => `${step.status} ${step.from} → ${step.to}`).join(" | ")}),
+  },
+  {
+    id: "SITE_A11Y_HTML_LANG", category: "accessibility", title: "Paginataal ontbreekt", severity: "MEDIUM",
+    description: "De html lang-attribuut helpt schermlezers de juiste taal en uitspraak te gebruiken.",
+    recommendation: "Stel op iedere pagina een geldige html lang-waarde in die overeenkomt met de primaire taal.",
+    applicable: () => true,
+    evaluate: p => p.lang ? {status:"PASS",found:p.lang,details:"html lang-attribuut gevonden."} : {status:"FAIL",found:"",expected:"html lang",details:"Geen html lang-attribuut gevonden."},
+  },
+  {
+    id: "SITE_A11Y_FORM_LABELS", category: "accessibility", title: "Formuliervelden zonder aantoonbaar label", severity: "HIGH",
+    description: "Formuliervelden hebben een toegankelijke naam nodig zodat ondersteunende technologie hun doel kan bepalen.",
+    recommendation: "Koppel een zichtbaar label met for/id of gebruik een passende aria-label of aria-labelledby.",
+    applicable: () => true,
+    evaluate: p => p.accessibility.unlabeledControls ? {status:"FAIL",found:p.accessibility.unlabeledControls,expected:"0",details:`${p.accessibility.unlabeledControls} formulierveld(en) zonder aantoonbaar label in de statische HTML.`} : {status:"PASS",found:0,details:"Geen ongelabelde formuliervelden gevonden in de statische HTML."},
+  },
+  {
+    id: "SITE_A11Y_CONTROL_NAMES", category: "accessibility", title: "Knoppen of links zonder toegankelijke naam", severity: "HIGH",
+    description: "Interactieve elementen moeten een herkenbare tekst of toegankelijke naam hebben.",
+    recommendation: "Geef lege links en knoppen zichtbare tekst of een correcte toegankelijke naam.",
+    applicable: () => true,
+    evaluate: p => {const n=p.accessibility.emptyButtons+p.accessibility.emptyLinks;return n?{status:"FAIL",found:n,expected:"0",details:`${p.accessibility.emptyButtons} lege knop(pen) en ${p.accessibility.emptyLinks} lege link(s) zonder aantoonbare toegankelijke naam.`}:{status:"PASS",found:0,details:"Geen lege knoppen of links zonder aantoonbare toegankelijke naam gevonden."};},
+  },
+  {
+    id: "SITE_A11Y_IFRAME_TITLE", category: "accessibility", title: "Iframe zonder titel", severity: "MEDIUM",
+    description: "Een iframe heeft een toegankelijke naam nodig om de ingesloten inhoud herkenbaar te maken.",
+    recommendation: "Voeg een beschrijvende title of passende ARIA-naam toe aan ieder betekenisvol iframe.",
+    applicable: p => p.accessibility.iframesMissingTitle > 0,
+    evaluate: p => ({status:"FAIL",found:p.accessibility.iframesMissingTitle,expected:"0",details:`${p.accessibility.iframesMissingTitle} iframe(s) zonder aantoonbare titel of ARIA-naam.`}),
+  },
+  {
+    id: "SITE_A11Y_DUPLICATE_IDS", category: "accessibility", title: "Dubbele HTML-id's", severity: "MEDIUM",
+    description: "Dubbele id-attributen kunnen label- en ARIA-relaties ambigu maken.",
+    recommendation: "Maak id-attributen uniek binnen iedere pagina en controleer verwijzingen vanuit labels en ARIA-attributen.",
+    applicable: () => true,
+    evaluate: p => p.accessibility.duplicateIds ? {status:"WARNING",found:p.accessibility.duplicateIds,expected:"0",details:`${p.accessibility.duplicateIds} dubbele id-voorkomen(s) gevonden.`} : {status:"PASS",found:0,details:"Geen dubbele id-attributen gevonden."},
+  },
+  {
+    id: "SITE_A11Y_MAIN_LANDMARK", category: "accessibility", title: "Main landmark ontbreekt", severity: "LOW",
+    description: "Een main-element of role=main helpt gebruikers van ondersteunende technologie snel naar de hoofdinhoud te navigeren.",
+    recommendation: "Markeer de primaire pagina-inhoud met één passend main-element of main-landmark.",
+    applicable: () => true,
+    evaluate: p => p.accessibility.hasMainLandmark ? {status:"PASS",found:true,details:"Main landmark gevonden."} : {status:"WARNING",found:false,expected:"main landmark",details:"Geen main-element of role=main gevonden in de statische HTML."},
+  },
+  {
+    id: "SITE_A11Y_HEADING_ORDER", category: "accessibility", title: "Mogelijke sprong in headingstructuur", severity: "LOW",
+    description: "Grote sprongen tussen headingniveaus kunnen de documentstructuur minder duidelijk maken.",
+    recommendation: "Controleer de kopstructuur en gebruik headingniveaus in een logische hiërarchie.",
+    applicable: () => true,
+    evaluate: p => p.accessibility.headingLevelSkips ? {status:"WARNING",found:p.accessibility.headingLevelSkips,expected:"0",details:`${p.accessibility.headingLevelSkips} mogelijke sprong(en) in headingniveau gevonden.`} : {status:"PASS",found:0,details:"Geen duidelijke sprongen in headingniveaus gevonden."},
+  },
+  {
+    id: "SITE_INTERNAL_LINKS_LOW", category: "internal-linking", title: "Weinig interne links", severity: "LOW",
+    description: "Belangrijke indexeerbare pagina's hebben baat bij een begrijpelijke interne linkstructuur.",
+    recommendation: "Voeg relevante contextuele interne links toe naar belangrijke gerelateerde pagina's.",
+    applicable: p => !p.noindex && !["cart","checkout","account","search","filter"].includes(p.pageType),
+    evaluate: p => p.internalLinks.length < 2 ? {status:"WARNING",found:p.internalLinks.length,expected:"≥ 2",details:"Weinig interne links gevonden."} : {status:"PASS",found:p.internalLinks.length,details:"Voldoende interne links gevonden volgens deze heuristiek."},
+  },
+];
+
+function buildIssue(rule: RuleDef, affected: Array<{ p: CrawlPage; r: RuleEvaluation }>, total: number, crawlComplete: boolean): SiteIssue {
+  const fail = affected.filter(x => x.r.status === "FAIL");
+  const warn = affected.filter(x => x.r.status === "WARNING");
+  const unable = affected.filter(x => x.r.status === "UNABLE_TO_CONFIRM");
+  const status: SiteRuleStatus = fail.length ? "FAIL" : warn.length ? "WARNING" : unable.length ? "UNABLE_TO_CONFIRM" : "PASS";
+  const confidence: SiteIssue["confidence"] = crawlComplete ? "high" : affected.length >= 3 ? "medium" : "low";
+  return {
+    issue_id: rule.id, rule_id: rule.id, category: rule.category, title: rule.title,
+    description: rule.description, recommendation: rule.recommendation, severity: rule.severity,
+    confidence, status, affected_urls: affected.filter(x => x.r.status === "FAIL" || x.r.status === "WARNING").map(x => x.p.url),
+    evidence: {total_pages: total, affected_pages: fail.length + warn.length, examples: affected.filter(x => x.r.status !== "PASS").slice(0,5).map(x => example(x.p,x.r))},
+  };
+}
+
+function scoreFor(issues: SiteIssue[], categories: string[]) {
+  const relevant = issues.filter(i => categories.includes(i.category) && i.status !== "NOT_APPLICABLE" && i.status !== "UNABLE_TO_CONFIRM");
+  if (!relevant.length) return 0;
+  const weights: Record<SiteIssue["severity"], number> = {CRITICAL:12,HIGH:8,MEDIUM:4,LOW:2,INFO:1};
+  let penalty = 0;
+  for (const i of relevant) {
+    if (i.status === "FAIL") penalty += Math.min(30, weights[i.severity] * Math.min(1, i.affected_urls.length / Math.max(1, i.evidence.total_pages)));
+    else if (i.status === "WARNING") penalty += Math.min(15, weights[i.severity] * 0.5 * Math.min(1, i.affected_urls.length / Math.max(1, i.evidence.total_pages)));
+  }
+  return Math.max(0, Math.min(100, Math.round(100 - penalty)));
+}
+
+function grade(score: number) { return score >= 90 ? "A" : score >= 75 ? "B" : score >= 60 ? "C" : score >= 45 ? "D" : "E"; }
+
+export async function auditSite(url: string, mode: CrawlMode = "STANDARD"): Promise<SiteAudit> {
+  const crawl = await crawlSite(url, mode);
+  const pages = crawl.pages;
+  // Page-level evidence warnings (for example malformed canonical markup) do not
+  // mean the crawl itself was incomplete. Only transport/fetch failures do.
+  const crawlBlockingErrors = crawl.errors.filter((error) => error.code !== "CANONICAL_INVALID");
+  const crawlComplete = crawlBlockingErrors.length === 0 && !crawl.truncated && crawl.discovered <= pages.length;
+  const evaluated = rules.map(rule => {
+    const applicable = pages.filter(p => rule.applicable(p, pages));
+    if (!applicable.length) return {rule, issue: {issue_id:rule.id,rule_id:rule.id,category:rule.category,title:rule.title,description:rule.description,recommendation:rule.recommendation,severity:rule.severity,confidence:(crawlComplete?"high":"medium") as "high" | "medium",status:"NOT_APPLICABLE" as const,affected_urls:[],evidence:{total_pages:pages.length,affected_pages:0,examples:[]}}};
+    return {rule, issue:buildIssue(rule, applicable.map(p => ({p,r:rule.evaluate(p,pages)})), pages.length, crawlComplete)};
+  });
+  const issues = evaluated.map(x=>x.issue);
+  const categoryScore = (categories: string[]) => {
+    const scorable = issues.some(i => categories.includes(i.category) && i.status !== "NOT_APPLICABLE" && i.status !== "UNABLE_TO_CONFIRM");
+    return { score: scoreFor(issues, categories), scorable };
+  };
+  const technicalResult = categoryScore(["technical","indexability"]);
+  const onPageResult = categoryScore(["on-page"]);
+  const contentResult = categoryScore(["content"]);
+  const structuredDataResult = categoryScore(["structured-data","ecommerce"]);
+  const internalLinksResult = categoryScore(["internal-linking"]);
+  const accessibilityResult = categoryScore(["accessibility","images"]);
+  const technical = technicalResult.score;
+  const onPage = onPageResult.score;
+  const content = contentResult.score;
+  const structuredData = structuredDataResult.score;
+  const internalLinks = internalLinksResult.score;
+  const accessibility = accessibilityResult.score;
+  const scorableScores = [technicalResult,onPageResult,contentResult,structuredDataResult,internalLinksResult,accessibilityResult].filter(x=>x.scorable).map(x=>x.score);
+  const overall = scorableScores.length ? Math.round(scorableScores.reduce((sum,score)=>sum+score,0) / scorableScores.length) : 0;
+  const page_types: Record<string,number> = {};
+  for (const p of pages) page_types[p.pageType]=(page_types[p.pageType]||0)+1;
+  return {
+    startUrl:crawl.startUrl, finalUrl:crawl.finalUrl, mode,
+    crawler_version:crawl.engineVersion, audit_version:SITE_AUDIT_ENGINE_VERSION,
+    startedAt:crawl.startedAt, finishedAt:crawl.finishedAt,
+    crawl:{pages:pages.length,discovered:crawl.discovered,errors:crawl.errors.length,blocked:crawl.blocked,complete:crawlComplete,truncated:crawl.truncated,scope:crawlComplete?"sitewide":"sample"},
+    scores:{technical,onPage,content,structuredData,internalLinks,accessibility,overall,grade:grade(overall)},
+    page_types, issues,
+  };
+}

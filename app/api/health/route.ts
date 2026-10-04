@@ -1,0 +1,76 @@
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
+import { ensureDatabase } from "@/lib/db-init";
+import { getDb } from "@/lib/db";
+
+function host(value:string){try{return new URL(value).hostname.toLowerCase().replace(/^www\./,"");}catch{return "";}}
+function normalizedStatus(value:unknown){
+  const raw=String(value||"").trim().toUpperCase();
+  if(raw==="PASS") return "PASS";
+  if(raw==="FAIL") return "FAIL";
+  if(raw==="WARNING") return "WARNING";
+  if(raw==="NOT_APPLICABLE"||raw==="N/A") return "NOT_APPLICABLE";
+  if(raw==="UNABLE_TO_CONFIRM"||raw==="UNKNOWN") return "UNABLE_TO_CONFIRM";
+  if(raw==="INFO") return "INFO";
+  return raw;
+}
+function isProblemStatus(value:unknown){ const s=normalizedStatus(value); return s==="FAIL"||s==="WARNING"; }
+
+export async function GET(request:Request){
+  const user=await getCurrentUser();
+  if(!user) return NextResponse.json({error:"Login vereist."},{status:401});
+  const websiteHost=host(new URL(request.url).searchParams.get("url")||"");
+  if(!websiteHost) return NextResponse.json({error:"Ongeldige website-URL."},{status:400});
+  await ensureDatabase();
+  const result=await getDb().query(
+    "SELECT event_type,rule_id,previous_status,current_status,severity,details,created_at FROM website_health_events WHERE user_id=$1 AND website_host=$2 AND event_type IN ('IMPROVEMENT','REGRESSION') ORDER BY created_at DESC LIMIT 20",
+    [user.id,websiteHost]
+  );
+  const latestScan=await getDb().query(
+    "SELECT result,created_at FROM scans WHERE user_id=$1 AND lower(regexp_replace(split_part(split_part(final_url, '://', 2), '/', 1), '^www\\.', ''))=$2 ORDER BY created_at DESC LIMIT 2",
+    [user.id,websiteHost]
+  );
+  const latestChecks=[...(latestScan.rows[0]?.result?.seo?.checks||[]),...(latestScan.rows[0]?.result?.geo?.checks||[])];
+  const previousChecks=[...(latestScan.rows[1]?.result?.seo?.checks||[]),...(latestScan.rows[1]?.result?.geo?.checks||[])];
+  const previous=new Map(previousChecks.map((x:Record<string,unknown>)=>[String(x.issue_id||x.rule_id||x.key),normalizedStatus(x.issue_status||x.status)]));
+  const current=new Map(latestChecks.map((x:Record<string,unknown>)=>[String(x.issue_id||x.rule_id||x.key),normalizedStatus(x.issue_status||x.status)]));
+  const improvements:string[]=[];
+  const regressions:string[]=[];
+  const persistent:string[]=[];
+  for(const item of latestChecks){
+    const rule=String(item.issue_id||item.rule_id||item.key);
+    if(!rule) continue;
+    const now=normalizedStatus(item.issue_status||item.status);
+    const before=normalizedStatus(previous.get(rule));
+    if(isProblemStatus(now)&&isProblemStatus(before)) persistent.push(rule);
+    else if(isProblemStatus(now)&&!isProblemStatus(before)) regressions.push(rule);
+  }
+  for(const item of previousChecks){
+    const rule=String(item.issue_id||item.rule_id||item.key);
+    if(!rule) continue;
+    const before=normalizedStatus(item.issue_status||item.status);
+    const now=normalizedStatus(current.get(rule));
+    if(isProblemStatus(before)&&!isProblemStatus(now)) improvements.push(rule);
+  }
+  const currentProblemByRule=new Map(latestChecks.filter((x:Record<string,unknown>)=>isProblemStatus(x.issue_status||x.status)).map((x:Record<string,unknown>)=>[String(x.issue_id||x.rule_id||x.key),x]));
+  const newIssues=regressions.map(rule=>{const x=currentProblemByRule.get(rule) as Record<string,unknown>|undefined;return {rule_id:rule,title:String(x?.title||rule),status:normalizedStatus(x?.issue_status||x?.status),severity:String(x?.severity||"")};});
+  const priorityRegressions=newIssues.filter(x=>x.severity==="CRITICAL"||x.severity==="HIGH");
+  const recentSiteScans=await getDb().query(
+    "SELECT final_url,result FROM scans WHERE user_id=$1 AND lower(regexp_replace(split_part(split_part(final_url, '://', 2), '/', 1), '^www\\.', ''))=$2 ORDER BY created_at DESC LIMIT 40",
+    [user.id,websiteHost]
+  );
+  const patternMap=new Map<string,{title:string;urls:Set<string>}>();
+  for(const scan of recentSiteScans.rows){
+    const url=String(scan.final_url||"");
+    const scanChecks=[...(scan.result?.seo?.checks||[]),...(scan.result?.geo?.checks||[])];
+    for(const item of scanChecks){
+      if(!isProblemStatus(item.issue_status||item.status)) continue;
+      const rule=String(item.issue_id||item.rule_id||item.key||"");
+      if(!rule) continue;
+      const current=patternMap.get(rule)||{title:String(item.title||rule),urls:new Set<string>()};
+      current.urls.add(url); patternMap.set(rule,current);
+    }
+  }
+  const recurringPatterns=[...patternMap.entries()].map(([rule,value])=>({rule_id:rule,title:value.title,pageCount:value.urls.size,examples:[...value.urls].slice(0,3)})).filter(item=>item.pageCount>=2).sort((a,b)=>b.pageCount-a.pageCount).slice(0,8);
+  return NextResponse.json({website_host:websiteHost,improvements:improvements.length,regressions:regressions.length,priorityRegressions:priorityRegressions.length,persistent:persistent.length,needsAttention:priorityRegressions.length>0,newIssues,recurringPatterns,events:result.rows});
+}

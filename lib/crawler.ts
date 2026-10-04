@@ -1,0 +1,183 @@
+import { URL } from "node:url";
+import { extractImageMetrics } from "@/lib/image-metrics";
+import { readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
+
+export const CRAWLER_ENGINE_VERSION = "2.5.0";
+
+export type CrawlMode = "QUICK" | "STANDARD" | "DEEP" | "ECOMMERCE" | "ENTERPRISE";
+export type PageType =
+  | "homepage" | "service" | "local_business" | "city_landing" | "national_landing"
+  | "category" | "product_category" | "product" | "blog_article" | "news" | "faq"
+  | "contact" | "about" | "search" | "filter" | "cart" | "checkout" | "account" | "generic";
+
+export type CrawlPage = {
+  url: string;
+  status: number;
+  requestedUrl: string;
+  redirectChain: Array<{ from: string; to: string; status: number }>;
+  contentType: string;
+  responseTimeMs: number;
+  title: string;
+  description: string;
+  h1: string[];
+  canonical: string | null;
+  lang: string | null;
+  noindex: boolean;
+  xRobotsTag: string | null;
+  jsonLdInvalid: number;
+  product?: { name: boolean; image: boolean; offers: boolean; price: boolean; priceCurrency: boolean; availability: boolean; brandOrSku: boolean };
+  wordCount: number;
+  internalLinks: string[];
+  imageCount: number;
+  imagesMissingAlt: number;
+  accessibility: {
+    unlabeledControls: number;
+    emptyButtons: number;
+    emptyLinks: number;
+    iframesMissingTitle: number;
+    duplicateIds: number;
+    hasMainLandmark: boolean;
+    headingLevelSkips: number;
+  };
+  jsonLdTypes: string[];
+  localBusiness?: { types: string[]; name: boolean; address: boolean; telephone: boolean; url: boolean; openingHours: boolean; imageOrLogo: boolean; sameAs: boolean };
+  pageType: PageType;
+  depth: number;
+  discoveredFrom: string | null;
+};
+
+export type CrawlResult = {
+  startUrl: string;
+  finalUrl: string;
+  mode: CrawlMode;
+  pages: CrawlPage[];
+  discovered: number;
+  queued: number;
+  truncated: boolean;
+  blocked: number;
+  errors: Array<{ url: string; code: string; message: string }>;
+  startedAt: string;
+  finishedAt: string;
+  engineVersion: string;
+};
+
+const LIMITS: Record<CrawlMode, number> = {
+  QUICK: 5,
+  STANDARD: 25,
+  DEEP: 100,
+  ECOMMERCE: 150,
+  ENTERPRISE: 500,
+};
+
+function decode(v: string) {
+  return v.replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#39;/gi,"'").replace(/&lt;/gi,"<").replace(/&gt;/gi,">").trim();
+}
+function stripHtml(v: string) {
+  return v.replace(/<script[\s\S]*?<\/script>/gi," ").replace(/<style[\s\S]*?<\/style>/gi," ").replace(/<noscript[\s\S]*?<\/noscript>/gi," ").replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim();
+}
+function first(v:string,re:RegExp){const m=v.match(re);return m?.[1]?decode(m[1]):"";}
+function attr(tag:string,name:string){return tag.match(new RegExp(name+"\\s*=\\s*[\"']([^\"']*)[\"']","i"))?.[1]||"";}
+function validate(url:string){ return validatePublicHttpUrl(url); }
+async function fetchSafe(url:URL, timeoutMs=8000){
+  return safePublicFetch(url,{timeoutMs,maxRedirects:4,userAgent:"RankFixBot/2.1 (+https://rankfix-app.onrender.com)",accept:"text/html,application/xhtml+xml,application/xml,text/xml"});
+}
+function classify(url:string,html:string,jsonTypes:string[]):PageType{
+  const p=new URL(url).pathname.toLowerCase();
+  const text=stripHtml(html).toLowerCase();
+  if(p==="/"||p===""||/^\/(?:nl|en|de|fr|es|it)(?:[-_](?:nl|be|gb|us|de|fr|es|it))?\/?$/.test(p))return "homepage";
+  if(/\/(cart|winkelwagen)\b/.test(p))return "cart";
+  if(/\/(checkout|afrekenen)\b/.test(p))return "checkout";
+  if(/\/(account|mijn-account|login|inloggen)\b/.test(p))return "account";
+  if(/\/(search|zoeken)\b/.test(p)||/[?&](q|query|search)=/.test(new URL(url).search))return "search";
+  if(/\/(filter|filters)\b/.test(p))return "filter";
+  const types=jsonTypes.map(x=>x.toLowerCase());
+  const hasLocalBusinessType = types.some(t => ["localbusiness","restaurant","bakery","barorcafe","beautysalon","dayspa","dentist","electrician","generalcontractor","homeandconstructionbusiness","locksmith","medicalclinic","plumber","roofingcontractor","store","hairdresser","automotivebusiness","realestateagent","legalservice","accountingservice","travelagency","hotel"].includes(t));
+  const localSignals = /\b(openingstijden|opening hours|horaires|öffnungszeiten|orari|horario)\b/i.test(text) && /(\+?\d[\d\s().-]{7,}|\b(postcode|postal code|address|adres|straat|street|rue|straße|via)\b)/i.test(text);
+  if(hasLocalBusinessType || localSignals)return "local_business";
+  if(types.includes("product"))return "product";
+  if(types.includes("article")||types.includes("newsarticle")||/\/(blog|nieuws|news|artikel)\b/.test(p))return /news|nieuws/.test(p)?"news":"blog_article";
+  if(types.includes("faqpage")||/\b(faq|veelgestelde vragen|frequently asked questions)\b/.test(text))return "faq";
+  if(/\/(contact|contacteer-ons)\b/.test(p)||/\bcontact\b/.test(text))return "contact";
+  if(/\/(about|over-ons|over-ons)\b/.test(p))return "about";
+  if(types.includes("itemlist")||/\/(category|categorie|categories|collections|collection|shop|producten|products)\b/.test(p))return "product_category";
+  if(/\/(diensten|services|service)\b/.test(p))return "service";
+  if(/\/(stad|city|locatie|locations|regio)\b/.test(p))return "city_landing";
+  if(/\/(nl|en|de|fr|es)\//.test(p))return "national_landing";
+  return "generic";
+}
+function normalize(raw:string,base:URL){
+  try{
+    const u=new URL(raw,base);
+    if(u.protocol!==base.protocol&&u.protocol!=="https:"&&u.protocol!=="http:")return null;
+    if(u.hostname!==base.hostname)return null;
+    u.hash="";
+    u.username="";u.password="";
+    if(u.pathname!=="/")u.pathname=u.pathname.replace(/\/+/g,"/").replace(/\/$/,"");
+    const tracking=["utm_source","utm_medium","utm_campaign","utm_term","utm_content","gclid","fbclid"];
+    tracking.forEach(k=>u.searchParams.delete(k));
+    return u.toString();
+  }catch{return null}
+}
+
+export async function crawlSite(startUrl:string,requestedMode:CrawlMode="STANDARD"):Promise<CrawlResult>{
+  const start=validate(/^https?:\/\//i.test(startUrl)?startUrl:`https://${startUrl}`);
+  const startedAt=new Date().toISOString();
+  const limit=LIMITS[requestedMode]??LIMITS.STANDARD;
+  const queue:Array<{url:string,depth:number,from:string|null}>=[{url:start.toString(),depth:0,from:null}];
+  const queued=new Set([start.toString()]);
+  const pages:CrawlPage[]=[]; const errors:CrawlResult["errors"]=[]; let blocked=0; let discovered=1; let truncated=false;
+  let finalUrl=start.toString();
+  while(queue.length&&pages.length<limit){
+    const item=queue.shift()!;
+    try{
+      const started=Date.now(); const {response,finalUrl:resolved,redirectChain}=await fetchSafe(new URL(item.url));
+      finalUrl=pages.length===0?resolved.toString():finalUrl;
+      const contentType=response.headers.get("content-type")||"";
+      if(!contentType.includes("text/html")&&!contentType.includes("application/xhtml+xml"))continue;
+      const html=await readResponseTextLimited(response, 2_000_000);
+      const title=first(html,/<title[^>]*>([\s\S]*?)<\/title>/i);
+      const description=first(html,/<meta[^>]+(?:name|property)\s*=\s*["']description["'][^>]+content\s*=\s*["']([\s\S]*?)["'][^>]*>/i)||first(html,/<meta[^>]+content\s*=\s*["']([\s\S]*?)["'][^>]+(?:name|property)\s*=\s*["']description["'][^>]*>/i);
+      const h1=[...html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gi)].map(m=>stripHtml(m[1])).filter(Boolean);
+      const canonical=first(html,/<link[^>]+rel\s*=\s*["']canonical["'][^>]+href\s*=\s*["']([^"']+)["']/i)||first(html,/<link[^>]+href\s*=\s*["']([^"']+)["'][^>]+rel\s*=\s*["']canonical["']/i)||null;
+      const lang=first(html,/<html[^>]+lang\s*=\s*["']([^"']+)["']/i)||null;
+      const robots=first(html,/<meta[^>]+name\s*=\s*["']robots["'][^>]+content\s*=\s*["']([^"']+)["']/i);
+      const xRobotsTag=response.headers.get("x-robots-tag");
+      const noindex=/\bnoindex\b/i.test([robots,xRobotsTag||""].join(","));
+      const imageMetrics=extractImageMetrics(html);
+      const ids=[...html.matchAll(/\bid\s*=\s*["']([^"']+)["']/gi)].map(m=>m[1]).filter(Boolean);
+      const duplicateIds=ids.length-new Set(ids).size;
+      const labels=new Set([...html.matchAll(/<label\b[^>]*for\s*=\s*["']([^"']+)["'][^>]*>/gi)].map(m=>m[1]));
+      const controls=[...html.matchAll(/<(input|select|textarea)\b[^>]*>/gi)].map(m=>m[0]).filter(tag=>!/\btype\s*=\s*["'](?:hidden|submit|button|reset|image)["']/i.test(tag));
+      const unlabeledControls=controls.filter(tag=>{const id=attr(tag,"id");return !/\baria-label\s*=\s*["'][^"']+["']/i.test(tag)&&!/\baria-labelledby\s*=\s*["'][^"']+["']/i.test(tag)&&!/\btitle\s*=\s*["'][^"']+["']/i.test(tag)&&!(id&&labels.has(id));}).length;
+      const emptyButtons=[...html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/gi)].filter(m=>!stripHtml(m[2])&&!/\baria-label\s*=\s*["'][^"']+["']/i.test(m[1])&&!/\baria-labelledby\s*=\s*["'][^"']+["']/i.test(m[1])&&!/\btitle\s*=\s*["'][^"']+["']/i.test(m[1])).length;
+      const emptyLinks=[...html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)].filter(m=>!stripHtml(m[2])&&!/<img\b[^>]*\balt\s*=\s*["'][^"']+["']/i.test(m[2])&&!/\baria-label\s*=\s*["'][^"']+["']/i.test(m[1])&&!/\baria-labelledby\s*=\s*["'][^"']+["']/i.test(m[1])&&!/\btitle\s*=\s*["'][^"']+["']/i.test(m[1])).length;
+      const iframesMissingTitle=[...html.matchAll(/<iframe\b[^>]*>/gi)].filter(m=>!/\btitle\s*=\s*["'][^"']+["']/i.test(m[0])&&!/\baria-label\s*=\s*["'][^"']+["']/i.test(m[0])&&!/\baria-labelledby\s*=\s*["'][^"']+["']/i.test(m[0])).length;
+      const hasMainLandmark=/<main\b/i.test(html)||/<[^>]+\brole\s*=\s*["']main["']/i.test(html);
+      const headingLevels=[...html.matchAll(/<h([1-6])\b[^>]*>/gi)].map(m=>Number(m[1]));
+      let headingLevelSkips=0; for(let i=1;i<headingLevels.length;i++) if(headingLevels[i]>headingLevels[i-1]+1) headingLevelSkips++;
+      const accessibility={unlabeledControls,emptyButtons,emptyLinks,iframesMissingTitle,duplicateIds,hasMainLandmark,headingLevelSkips};
+      const links=[...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi)].map(m=>normalize(m[1],resolved)).filter(Boolean) as string[];
+      const uniqueLinks=[...new Set(links)];
+      const blocks=[...html.matchAll(/<script\b(?=[^>]*\btype\s*=\s*(?:(["'])application\/ld\+json\1|application\/ld\+json(?:\s|>|\/)))[^>]*>([\s\S]*?)<\/script>/gi)];
+      const types:string[]=[]; let jsonLdInvalid=0;
+      const product={name:false,image:false,offers:false,price:false,priceCurrency:false,availability:false,brandOrSku:false};
+      const localBusiness = {types:[] as string[],name:false,address:false,telephone:false,url:false,openingHours:false,imageOrLogo:false,sameAs:false};
+      const localTypes = new Set(["localbusiness","restaurant","bakery","barorcafe","beautysalon","dayspa","dentist","electrician","generalcontractor","homeandconstructionbusiness","locksmith","medicalclinic","plumber","roofingcontractor","store","hairdresser","automotivebusiness","realestateagent","legalservice","accountingservice","travelagency","hotel"]);
+      for(const b of blocks){try{const parsed=JSON.parse(b[2]);const rawItems=Array.isArray(parsed)?parsed:(parsed?.["@graph"]||[parsed]);const items=Array.isArray(rawItems)?rawItems:[rawItems];for(const x of items){const t=x?.["@type"];const ts=(Array.isArray(t)?t:[t]).filter(Boolean).map(String);types.push(...ts);const isProduct=ts.some(v=>v.toLowerCase()==="product");if(isProduct){product.name ||= Boolean(x?.name);product.image ||= Boolean(x?.image);product.offers ||= Boolean(x?.offers);const offers=Array.isArray(x?.offers)?x.offers:[x?.offers].filter(Boolean);for(const o of offers){product.price ||= Boolean(o?.price ?? o?.lowPrice);product.priceCurrency ||= Boolean(o?.priceCurrency);product.availability ||= Boolean(o?.availability);}product.brandOrSku ||= Boolean(x?.brand || x?.sku || x?.gtin || x?.gtin13 || x?.mpn);}const isLocal=ts.some(v=>localTypes.has(v.toLowerCase()));if(isLocal){localBusiness.types.push(...ts.filter(v=>localTypes.has(v.toLowerCase())));localBusiness.name ||= Boolean(x?.name);localBusiness.address ||= Boolean(x?.address);localBusiness.telephone ||= Boolean(x?.telephone);localBusiness.url ||= Boolean(x?.url);localBusiness.openingHours ||= Boolean(x?.openingHours || x?.openingHoursSpecification);localBusiness.imageOrLogo ||= Boolean(x?.image || x?.logo);localBusiness.sameAs ||= Array.isArray(x?.sameAs) ? x.sameAs.length>0 : Boolean(x?.sameAs);}}}catch{jsonLdInvalid++}}
+      const text=stripHtml(html);
+      let canonicalUrl:string|null=null;
+      if(canonical){
+        try{ canonicalUrl=new URL(canonical,resolved).toString(); }
+        catch{ errors.push({url:resolved.toString(),code:"CANONICAL_INVALID",message:"Malformed canonical URL in HTML."}); }
+      }
+      pages.push({url:resolved.toString(),status:response.status,requestedUrl:item.url,redirectChain,contentType,responseTimeMs:Date.now()-started,title,description,h1,canonical:canonicalUrl,lang,noindex,xRobotsTag,jsonLdInvalid,product:types.some(t=>t.toLowerCase()==="product")?product:undefined,wordCount:text.split(/\s+/).filter(Boolean).length,internalLinks:uniqueLinks,imageCount:imageMetrics.uniqueImageReferences,imagesMissingAlt:imageMetrics.missingAlt,accessibility,jsonLdTypes:[...new Set(types)],localBusiness:localBusiness.types.length ? {...localBusiness,types:[...new Set(localBusiness.types)]} : undefined,pageType:classify(resolved.toString(),html,types),depth:item.depth,discoveredFrom:item.from});
+      for(const next of uniqueLinks){
+        if(queued.has(next)) continue;
+        discovered++;
+        if(queue.length+pages.length<limit){queued.add(next);queue.push({url:next,depth:item.depth+1,from:item.url});}
+        else truncated=true;
+      }
+    }catch(e){const message=e instanceof Error?e.message:"Unknown crawl error"; const isBlocked=/^URL_(?:IP|DNS|HOST|PORT|PROTOCOL|CREDENTIALS)_BLOCKED$/.test(message); if(isBlocked) blocked++; errors.push({url:item.url,code:isBlocked?"URL_BLOCKED":"FETCH_FAILED",message});}
+  }
+  return {startUrl:start.toString(),finalUrl,mode:requestedMode,pages,discovered,queued:queued.size,truncated,blocked,errors,startedAt,finishedAt:new Date().toISOString(),engineVersion:CRAWLER_ENGINE_VERSION};
+}
