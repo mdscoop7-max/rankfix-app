@@ -292,3 +292,15 @@ test("GEO brand identity respects evidence confidence and gradual signals", asyn
   assert.match(source, /metadataMayBeClientRendered[\s\S]*check\("unable_to_confirm", "identity", "geo", "Brand identity"/);
   assert.match(source, /check\("warning", "identity", "geo", "Brand identity", brandSignalDetail, brandRecommendation, brandIdentityPoints, 5\)/);
 });
+
+
+test("link and accessibility penalties scale with proven impact", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /brokenInternalLinkRatio <= 0\.05 \? 4 : brokenInternalLinkRatio <= 0\.15 \? 3 : brokenInternalLinkRatio <= 0\.30 \? 2 : 1/);
+  assert.match(source, /redirectedInternalLinkRatio <= 0\.10 \? 3 : redirectedInternalLinkRatio <= 0\.30 \? 2 : 1/);
+  assert.match(source, /brokenLinkPoints, 5/);
+  assert.match(source, /internalRedirectPoints, 4/);
+  assert.match(source, /accessibilityIssueRatio <= 0\.05 \? 4 : accessibilityIssueRatio <= 0\.20 \? 3 : accessibilityIssueRatio <= 0\.50 \? 2 : 1/);
+  assert.match(source, /accessibilityPoints,5/);
+});
