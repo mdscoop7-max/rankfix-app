@@ -100,3 +100,19 @@ test("EU regression bundle keeps classification, confidence and challenge guards
   assert.match(report, /Security-score:/);
   assert.match(report, /— \{c.title\} · \{t.labels.not_applicable\}/);
 });
+
+
+test("central classification bundle keeps transport, retail and canonical decisions aligned", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /transportBookingIdentityEarly/);
+  assert.match(source, /transportRetailStoreEvidence/);
+  assert.match(source, /!transportBookingIdentity && shopCatalogHrefCount/);
+  assert.match(source, /strongArticleMarkupSignal/);
+  assert.match(source, /prijevoz\|putnički/);
+  assert.match(source, /δρομολόγ\|εισιτήρ\|πτήσ/);
+  assert.match(source, /sectorPriority/);
+  assert.match(source, /transportContextBoost/);
+  assert.match(source, /!\/\^https\?:\$\/\.test\(resolved\.protocol\)/);
+  assert.match(source, /hasEcommerceSignal && !transportBookingIdentity && scarcityMatches/);
+});
