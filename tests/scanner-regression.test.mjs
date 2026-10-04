@@ -81,3 +81,22 @@ test("scanner regression source keeps evidence-only classification safeguards", 
   assert.match(source, /buiten richtwaarde 30–60/);
   assert.match(source, /uitzonderlijk.*kort.*lang/s);
 });
+
+
+test("EU regression bundle keeps classification, confidence and challenge guards", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const report = await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /transportBookingIdentity/);
+  assert.match(source, /catalogStorefrontSignal/);
+  assert.match(source, /transport_travel/);
+  assert.match(source, /telecom_technology/);
+  assert.match(source, /radware page/);
+  assert.match(source, /canonicalIsLocalePreferred/);
+  assert.match(source, /Een individuele auteur is niet vereist op een organisatie-/);
+  assert.match(source, /te weinig onafhankelijk bewijs om entity-signalen betrouwbaar te beoordelen/);
+  assert.match(source, /evidenceCredit/);
+  assert.match(report, /Security-score:/);
+  assert.match(report, /— \{c.title\} · \{t.labels.not_applicable\}/);
+});

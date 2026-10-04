@@ -510,8 +510,8 @@ export async function POST(request: Request) {
     const qualityDescription =
       firstMatch(html, /<meta[^>]+(?:name|property)\s*=\s*["']description["'][^>]+content\s*=\s*["']([\s\S]*?)["'][^>]*>/i) ||
       firstMatch(html, /<meta[^>]+content\s*=\s*["']([\s\S]*?)["'][^>]+(?:name|property)\s*=\s*["']description["'][^>]*>/i);
-    const strongInterstitialTitle = /\b(hang tight|routing to checkout|checking your browser|just a moment|please wait|verify (?:you are|that you are) human|access denied|security check|attention required)\b/i.test(qualityTitle);
-    const strongInterstitialBody = /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform)\b/i.test(qualityText);
+    const strongInterstitialTitle = /\b(hang tight|routing to checkout|checking your browser|just a moment|please wait|verify (?:you are|that you are) human|access denied|security check|attention required|radware page|incapsula incident|request unsuccessful)\b/i.test(qualityTitle);
+    const strongInterstitialBody = /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform|radware|incapsula|imperva|akamai bot manager|request unsuccessful)\b/i.test(qualityText);
     // A 2xx status other than 200 can represent asynchronous routing rather than the
     // requested indexable document. Only stop when the response is also materially
     // empty, so legitimate 202 endpoints are not rejected on status alone.
@@ -821,10 +821,13 @@ export async function POST(request: Request) {
       /(?:\/shop(?:\/|$)|\/store(?:\/|$)|\/product(?:en|s)?(?:\/|$)|\/collection(?:s)?(?:\/|$)|\/categor(?:y|ie|ies|ien)(?:\/|$))/i.test(href)
     ).length;
     const commercialNavigationEvidence = commerceNavigationSignal && (shopCatalogHrefCount >= 2 || commerceSupportHrefCount >= 2);
-    // A service company, marketplace or corporate site may contain "shop", "products",
-    // prices, discounts or even a cart-like link without being an ecommerce checkout.
-    // Require hard purchase/storefront evidence before webshop-only modules are enabled.
-    const hardPurchaseFlowSignal = hasStrongCommerceAction && (hasExplicitPriceSignal || visiblePriceCount >= 2) && (hasCommerceHrefSignal || cartFormSignal);
+    const transportBookingIdentity = /\b(train|railway|rail|spoorweg|trein|bahn|zug|ferrovi|trenitalia|intercity|flight|flights|airline|airport|vols?|vlucht|flug|voli|voo|billet|ticket|fahrplan|timetable)\b/i.test([title, description, text.slice(0,30000), finalUrl.hostname].join(" "));
+    // Repeated catalog + customer-service evidence is sufficient for large SSR/headless
+    // retailers whose prices or cart controls are client-rendered.
+    const catalogStorefrontSignal = shopCatalogHrefCount >= 2 && commerceSupportHrefCount >= 1 && (commerceNavigationSignal || visiblePriceCount >= 2);
+    // Booking/ticket flows can look like checkout, but they are services rather than
+    // product storefronts unless independent store/catalog evidence also exists.
+    const hardPurchaseFlowSignal = !transportBookingIdentity && hasStrongCommerceAction && (hasExplicitPriceSignal || visiblePriceCount >= 2) && (hasCommerceHrefSignal || cartFormSignal);
     const siteLevelCommerceSignal = hasStoreSchema && (hasConfirmedCommercePlatform || hardPurchaseFlowSignal || repeatedProductLinkSignal || storefrontMarkupSignal);
     // Product schema is also used for software/SaaS offers. It may support a product-detail
     // classification, but it is not by itself proof that the whole site is a webshop.
@@ -836,7 +839,7 @@ export async function POST(request: Request) {
       hasStoreSchema ||
       (hasSkuSignal && hasStockSignal)
     );
-    const hasEcommerceSignal = hasConfirmedCommercePlatform || productSchemaCommerceSignal || repeatedProductLinkSignal || storefrontMarkupSignal || homepageStorefrontSignal || siteLevelCommerceSignal || hardPurchaseFlowSignal;
+    const hasEcommerceSignal = hasConfirmedCommercePlatform || productSchemaCommerceSignal || repeatedProductLinkSignal || storefrontMarkupSignal || homepageStorefrontSignal || siteLevelCommerceSignal || catalogStorefrontSignal || hardPurchaseFlowSignal;
     // EU consumer/Omnibus checks are jurisdiction-sensitive. A non-EU country
     // storefront (for example .com.au) must not receive EU compliance signals
     // merely because it is an e-commerce site.
@@ -1243,7 +1246,7 @@ export async function POST(request: Request) {
 
     // Sector intelligence is computed before scoring so only relevant specialist checks
     // can participate. Low-confidence classification stays generic and never penalizes.
-    type SectorKey = "ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"general_business"|"unknown";
+    type SectorKey = "ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"general_business"|"unknown";
     const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]}> = [
       {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\b/i,/\b(te koop|te huur|for sale|for rent|woningaanbod)\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
       {sector:"automotive",label:"Automotive",patterns:[/\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\b/i,/\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
@@ -1253,7 +1256,9 @@ export async function POST(request: Request) {
       {sector:"health_wellness",label:"Zorg & Gezondheid",patterns:[/\b(kliniek|clinic|fysiotherap|tandarts|dentist|medicalclinic|physician|mondzorg)\b/i,/\b(afspraak|appointment|behandeling|patient|patiënt)\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
       {sector:"beauty",label:"Beauty & Verzorging",patterns:[/\b(kapper|hairdresser|hairsalon|hair salon|hairstyling|beauty salon|beautysalon|nagelsalon|barber)\b/i,/\b(afspraak|appointment|salons?|knippen|haar|hair)\b/i],modules:["core_seo","geo","local","lead_conversion","beauty"]},
       {sector:"recruitment",label:"Recruitment & Werk",patterns:[/\b(randstad|recruitment|uitzendbureau|vacatures?|sollicitatie|solliciteren|jobs?|employment|werken bij)\b/i,/\b(werkgevers?|kandidaten?|cv|career|carrière)\b/i],modules:["core_seo","geo","lead_conversion","recruitment"]},
-      {sector:"government",label:"Overheid & Gemeente",patterns:[/\b(gemeente|municipality|overheid|government|stadhuis|burgerzaken)\b/i,/\b(digid|vergunning|paspoort|loket|inwoners)\b/i],modules:["core_seo","geo","government"]},
+      {sector:"government",label:"Overheid & Publieke sector",patterns:[/\b(gemeente|municipality|overheid|government|rijksoverheid|ministry|ministerie|public service|stadhuis|burgerzaken)\b/i,/\b(digid|vergunning|paspoort|loket|inwoners|wetgeving|beleid|minister|cabinet)\b/i],modules:["core_seo","geo","government"]},
+      {sector:"transport_travel",label:"Reizen & Transport",patterns:[/\b(spoorweg|railway|railways|train operator|national railway|nationale? vervoerder|airline|luchtvaartmaatschappij|public transport|openbaar vervoer|ferroviaria|železnice|dráhy|intercity)\b/i,/\b(tickets?|billet|fahrplan|timetable|dienstregeling|journey planner|vluchten?|flights?|destinations?|reizen|travel|utazás|dopravca)\b/i],modules:["core_seo","geo","technical","transport_travel"]},
+      {sector:"telecom_technology",label:"Telecom & Technologie",patterns:[/\b(telekom|telecom|telecommunications?|mobile network|internet provider|broadband provider|telefoonprovider)\b/i,/\b(fiber|fibre|glasvezel|internet|mobile|mobiel|5g|4g|broadband|telefonie|tv pakket)\b/i],modules:["core_seo","geo","technical","telecom_technology"]},
       {sector:"news_media",label:"Nieuws & Media",patterns:[/\b(nieuws|news|journalist|redactie|breaking news|sportnieuws|nieuwsartikel|newsarticle)\b/i,/\b(binnenland|buitenland|politiek|sport|economie)\b/i],modules:["core_seo","geo","news_media"]},
       {sector:"tourism_recreation",label:"Toerisme & Recreatie",patterns:[/\b(toerisme|tourism|visit [a-zà-ÿ-]+|citymarketing|destination|bezoekers?|visitor|ontdek [a-zà-ÿ-]+)\b/i,/\b(agenda|evenementen|events|overnachten|hotels?|restaurants?|activiteiten|things to do|bezienswaardigheden)\b/i],modules:["core_seo","geo","local","tourism_recreation"]},
       {sector:"food_local_retail",label:"Voeding & lokale retail",patterns:[/\b(bakkerij|bakker|bakery|baker|patisserie|pastry|brood|bread|banket|artisan bakery)\b/i,/\b(gebak|taart|cakes?|croissant|sourdough|zuurdesem|vers brood|fresh bread)\b/i],modules:["core_seo","geo","local","lead_conversion","food_local_retail"]},
@@ -1914,6 +1919,10 @@ export async function POST(request: Request) {
     let canonicalInvalid = false;
     try {
       canonicalUrl = canonical ? new URL(canonical, finalUrl) : null;
+      if (canonicalUrl && !/^https?:$/.test(canonicalUrl.protocol)) {
+        canonicalInvalid = true;
+        canonicalUrl = null;
+      }
     } catch {
       canonicalInvalid = Boolean(canonical);
     }
@@ -1929,6 +1938,8 @@ export async function POST(request: Request) {
     const canonicalTarget = canonicalUrl ? normalizeCanonicalTarget(canonicalUrl) : "";
     const currentTarget = normalizeCanonicalTarget(finalUrl);
     const canonicalIsSelf = Boolean(canonicalUrl && canonicalTarget === currentTarget);
+    const pageLanguageCode = (lang || "").toLowerCase().split("-")[0];
+    const canonicalIsLocalePreferred = Boolean(canonicalUrl && finalUrl.pathname === "/" && pageLanguageCode && canonicalUrl.pathname.replace(/\/+$/, "") === "/" + pageLanguageCode);
     // www/apex redirects are normally the same site and must not become a cross-domain failure.
     const canonicalHost = (host: string) => host.toLowerCase().replace(/^www\./, "");
     const canonicalIsCrossDomain = Boolean(canonicalUrl && canonicalHost(canonicalUrl.hostname) !== canonicalHost(finalUrl.hostname));
@@ -1940,8 +1951,8 @@ export async function POST(request: Request) {
           ? metadataMayBeClientRendered
             ? check("unable_to_confirm", "canonical", "seo", "Canonical URL", "De canonical kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de canonical opnieuw met een volledige render voordat je een wijziging maakt.", 0, 7)
             : check("warning", "canonical", "seo", "Canonical URL", "Geen canonical URL gevonden in de opgehaalde pagina.", "Voeg een self-referencing canonical toe wanneer passend.", 3, 7)
-        : canonicalIsSelf
-          ? check("pass", "canonical", "seo", "Canonical URL", canonicalDropsQuery ? "De canonical wijst naar dezelfde inhoud zonder queryparameters." : "De canonical verwijst naar dezelfde URL als de gescande pagina.", "Behoud een duidelijke self-referencing canonical en laat trackingparameters buiten de voorkeurs-URL.", 7, 7)
+        : canonicalIsSelf || canonicalIsLocalePreferred
+          ? check("pass", "canonical", "seo", "Canonical URL", canonicalIsLocalePreferred ? "De rootpagina verwijst bewust naar de equivalente taalvoorkeurs-URL." : canonicalDropsQuery ? "De canonical wijst naar dezelfde inhoud zonder queryparameters." : "De canonical verwijst naar dezelfde URL als de gescande pagina.", "Behoud een duidelijke canonical die overeenkomt met de voorkeurs- en taalstructuur van de site.", 7, 7)
           : canonicalIsCrossDomain
             ? check("fail", "canonical", "seo", "Canonical URL", "De canonical verwijst naar een ander domein dan de gescande pagina. Dit kan de verkeerde voorkeurs-URL voor zoekmachines aangeven.", "Gebruik voor een normale pagina een self-referencing canonical op het eigen domein, tenzij een externe canonical bewust en inhoudelijk onderbouwd is.", 0, 10)
             : check("warning", "canonical", "seo", "Canonical URL", "De canonical is aanwezig, maar verwijst niet naar de gescande URL.", "Controleer of de canonical bewust naar een andere, inhoudelijk gelijkwaardige voorkeurs-URL verwijst.", 5, 7)
@@ -2313,7 +2324,7 @@ export async function POST(request: Request) {
         ? check("pass", "entity", "geo", "Entity-signalen", "Duidelijke bedrijfsidentiteit en externe/contactsignalen zijn zichtbaar op de pagina.", "Maak de identiteit ook machineleesbaar met passende Organization/LocalBusiness structured data.", 10, 10)
         : hasVisibleBusinessIdentity
           ? check("warning", "entity", "geo", "Entity-signalen", "Een bedrijfsidentiteit is zichtbaar, maar aanvullende contact- of externe profielsignalen zijn beperkt.", "Maak de organisatie-identiteit concreter met contactgegevens, officiële profielen en passende schema.org data.", 6, 10)
-          : check("warning", "entity", "geo", "Entity-signalen", "Er is weinig expliciete zichtbare entity-informatie gevonden.", "Maak organisatie- of merknaam, contactcontext en officiële profielen zichtbaar en consistent. Machineleesbare structured data wordt apart beoordeeld.", 4, 10)
+          : check("unable_to_confirm", "entity", "geo", "Entity-signalen", "De beschikbare pagina bevat te weinig onafhankelijk bewijs om entity-signalen betrouwbaar te beoordelen.", "Bevestig organisatie- of merknaam, contactcontext en officiële profielen met aanvullende pagina- of sitebrede evidence.", 0, 10)
     );
     const visibleBreadcrumbSignal = !isHomepage && Boolean(
       /<(?:nav|ol|ul)\b[^>]*(?:aria-label\s*=\s*["'][^"']*(?:breadcrumb|broodkruimel|fil d['’]ariane|brotkrumen|migas)[^"']*["']|class\s*=\s*["'][^"']*(?:breadcrumb|breadcrumbs|broodkruimel)[^"']*["'])/i.test(html) ||
@@ -2341,8 +2352,8 @@ export async function POST(request: Request) {
       hasSocialOrReviewSignal
     );
     const organizationExpertiseSignal = hasOrganizationIdentity && hasServiceExpertiseSignal;
-    geoChecks.push(sectorProfile.sector === "news_media" && isHomepage
-      ? check("not_applicable", "author", "geo", "Expertise-signalen", "Een individuele auteur is niet vereist op de homepage van een nieuws- of mediasite. Auteurschap hoort op afzonderlijke artikelen te worden beoordeeld.", "Controleer auteur, publicatiedatum en broncontext op echte nieuwsartikelen.", 0, 8)
+    geoChecks.push(isHomepage
+      ? check("not_applicable", "author", "geo", "Expertise-signalen", "Een individuele auteur is niet vereist op een organisatie-, dienst- of merkhomepage. Auteurschap en expertise horen vooral op informatieve artikelen en adviescontent te worden beoordeeld.", "Controleer auteur, expertise, publicatiedatum en broncontext op pagina's waar auteurschap inhoudelijk relevant is.", 0, 8)
       : hasAuthorSignal || (hasLocalBusinessSignal && hasServiceExpertiseSignal) || organizationExpertiseSignal
         ? check("pass", "author", "geo", "Expertise-signalen", hasAuthorSignal ? "Auteur- of expertisesignalen zijn gevonden." : organizationExpertiseSignal ? "Duidelijke organisatie- en expertisesignalen zijn gevonden." : "Duidelijke dienst- en vakgebiedsignalen zijn gevonden voor deze lokale bedrijfspagina.", "Maak auteur, expertise, diensten en bronnen waar relevant nog explicieter.", 8, 8)
         : ecommerceExpertiseSignal
@@ -2824,6 +2835,10 @@ export async function POST(request: Request) {
           firstMatch(pageHtml, /<meta[^>]+content\s*=\s*["']([\s\S]*?)["'][^>]+(?:name|property)\s*=\s*["']description["'][^>]*>/i);
         const pageQualityText = stripHtml(pageHtml).slice(0, 12000);
         const pageQualityWords = pageQualityText.split(/\s+/).filter(Boolean).length;
+        const pageChallenge = /\b(radware page|checking your browser|just a moment|verify (?:you are|that you are) human|request unsuccessful|incapsula|imperva|challenge-platform)\b/i.test([pageQualityTitle,pageQualityText].join(" "));
+        if (pageChallenge) {
+          return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, title:pageQualityTitle||null, description:pageQualityDescription||null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"quality",status:"UNABLE_TO_CONFIRM",details:"HTTP-response lijkt een bot-/securitychallenge in plaats van de bedoelde pagina; deze sample wordt niet gescoord."}] };
+        }
         if ((r.status !== 200 && pageQualityWords < 40 && !pageQualityTitle && !pageQualityDescription) ||
             (pageQualityWords < 15 && !pageQualityTitle && !pageQualityDescription)) {
           return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"quality",status:"UNABLE_TO_CONFIRM",details:`HTTP ${r.status}; response bevat onvoldoende betrouwbare pagina-inhoud voor scoring.`}] };
@@ -2845,8 +2860,17 @@ export async function POST(request: Request) {
               : "Geen canonical gevonden in de begrensde raw-HTML fetch; afwezigheid wordt hier niet als bewezen fout gescoord."},
         ];
         const confirmed = evidenceChecks.filter((x)=>x.status!=="UNABLE_TO_CONFIRM");
-        const passed = confirmed.filter((x)=>x.status==="PASS").length;
-        return { ...page, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, score:confirmed.length?Math.round((passed/confirmed.length)*100):null, evidenceChecks };
+        const evidenceCredit = (item: MultiPageAudit["evidenceChecks"][number]) => {
+          if (item.status === "PASS") return 1;
+          if (item.status !== "WARNING") return 0;
+          if (item.key === "title") return pageTitle ? 0.7 : 0.25;
+          if (item.key === "description") return pageDescription ? 0.65 : 0.25;
+          if (item.key === "h1") return 0.6;
+          if (item.key === "canonical") return 0.7;
+          return 0.5;
+        };
+        const earned = confirmed.reduce((sum,item)=>sum+evidenceCredit(item),0);
+        return { ...page, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, score:confirmed.length?Math.round((earned/confirmed.length)*100):null, evidenceChecks };
       } catch {
         return { ...page, status:"unable_to_confirm", httpStatus:null, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"fetch",status:"UNABLE_TO_CONFIRM",details:"Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald."}] };
       }
