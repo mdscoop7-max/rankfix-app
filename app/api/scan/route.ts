@@ -1949,6 +1949,13 @@ export async function POST(request: Request) {
     // If rendering failed on a JS-driven page, raw HTML absence is not proof of absence.
     const metadataMayBeClientRendered = javascriptCandidate && !javascriptExecuted;
 
+    const titleLengthPoints = (length: number) => {
+      if (length >= 30 && length <= 60) return 10;
+      if (length >= 25 && length <= 65) return 8;
+      if (length >= 20 && length <= 70) return 6;
+      return 4;
+    };
+
     seoChecks.push(
       !title
         ? metadataMayBeClientRendered
@@ -1958,7 +1965,7 @@ export async function POST(request: Request) {
           ? check("warning", "title", "seo", "Meta title", `De title is ${title.length} tekens, maar bevat relatief veel herhaalde woorden.`, "Herschrijf de title natuurlijker en voorkom keyword stuffing.", 6, 10)
           : title.length >= 30 && title.length <= 60
             ? check("pass", "title", "seo", "Meta title", `De title is ${title.length} tekens en valt binnen de aanbevolen lengte.`, "Maak de title uniek, duidelijk en relevant voor de zoekintentie.", 10, 10)
-            : check("warning", "title", "seo", "Meta title", `De title is ${title.length} tekens. Richtwaarde: 30–60 tekens.`, "Herschrijf de title zodat onderwerp, merk en zoekintentie direct duidelijk zijn.", 6, 10)
+            : check("warning", "title", "seo", "Meta title", `De title is ${title.length} tekens. Richtwaarde: 30–60 tekens; de punten lopen geleidelijk af naarmate de lengte verder van deze band ligt.`, "Herschrijf de title zodat onderwerp, merk en zoekintentie direct duidelijk zijn.", titleLengthPoints(title.length), 10)
     );
     seoChecks.push(
       !description
@@ -2115,7 +2122,7 @@ export async function POST(request: Request) {
     ].filter(Boolean) as string[];
     seoChecks.push(missingOpenGraphFields.length === 0 && invalidOpenGraphFields.length === 0
       ? check("pass", "social", "seo", "Social metadata", "Open Graph title, description en image zijn aanwezig; URL-velden gebruiken geldige absolute http(s)-URL's.", "Controleer social previews voor belangrijke pagina's.", 4, 4)
-      : check("warning", "social", "seo", "Social metadata", `Open Graph vraagt aandacht.${missingOpenGraphFields.length ? " Ontbrekend: " + missingOpenGraphFields.join(", ") + "." : ""}${invalidOpenGraphFields.length ? " Ongeldig: " + invalidOpenGraphFields.join(", ") + "." : ""}`, "Vul ontbrekende velden aan en gebruik voor og:image en og:url absolute http(s)-URL's.", 2, 4)
+      : check("warning", "social", "seo", "Social metadata", `Open Graph vraagt aandacht.${missingOpenGraphFields.length ? " Ontbrekend: " + missingOpenGraphFields.join(", ") + "." : ""}${invalidOpenGraphFields.length ? " Ongeldig: " + invalidOpenGraphFields.join(", ") + "." : ""}`, "Vul ontbrekende velden aan en gebruik voor og:image en og:url absolute http(s)-URL's.", Math.max(1, 4 - Math.min(3, missingOpenGraphFields.length + invalidOpenGraphFields.length)), 4)
     );
     seoChecks.push(robotsStatus === "PASS"
       ? robotsPathBlocked

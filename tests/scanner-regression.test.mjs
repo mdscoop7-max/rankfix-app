@@ -248,3 +248,16 @@ test("alt scoring is gradual and keeps the existing fix rule stable", async () =
   assert.match(source, /alt: \{ rule_id: "IMAGE_ALT_MISSING", severity: "LOW" \}/);
   assert.match(source, /alt: imageElementCount \? imagesMissingAlt : null/);
 });
+
+
+test("measurable metadata defects use gradual penalties", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /const titleLengthPoints = \(length: number\) =>/);
+  assert.match(source, /length >= 25 && length <= 65\) return 8/);
+  assert.match(source, /length >= 20 && length <= 70\) return 6/);
+  assert.match(source, /titleLengthPoints\(title\.length\), 10/);
+  assert.match(source, /Math\.max\(1, 4 - Math\.min\(3, missingOpenGraphFields\.length \+ invalidOpenGraphFields\.length\)\), 4/);
+  assert.match(source, /title: \{ rule_id: title \? "META_TITLE_GUIDANCE" : "META_TITLE_MISSING"/);
+  assert.match(source, /social: \{ rule_id: "SOCIAL_METADATA_INCOMPLETE"/);
+});
