@@ -44,6 +44,7 @@ type Check = {
   issue_status: "PASS" | "FAIL" | "WARNING" | "INFO" | "NOT_APPLICABLE" | "UNABLE_TO_CONFIRM";
   severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
   confidence: "high" | "medium" | "low";
+  rootCause?: string;
   evidence: { url: string; found: string | number | boolean | null; expected?: string; details: string };
   fix_category: "A" | "B" | "C";
 };
@@ -113,6 +114,14 @@ function check(
     severity: status === "fail" ? "HIGH" : status === "warning" ? "MEDIUM" : "INFO",
     confidence: status === "unable_to_confirm" ? "low" : status === "not_applicable" ? "medium" : "high", evidence: { url: "", found: null, details: message },
     fix_category: getFixPolicy(key).category,
+    rootCause: ({
+      description: "meta_description",
+      geo_description: "meta_description",
+      schema: "structured_data_context",
+      entity: "structured_data_context",
+      social: "social_metadata",
+      twitter: "social_metadata",
+    } as Record<string,string>)[key],
   };
 }
 

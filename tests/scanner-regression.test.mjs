@@ -204,3 +204,26 @@ test("strong product evidence wins over article classification and exposes an in
   assert.match(source, /product_vs_transport_booking/);
   assert.match(source, /pageTypeInvariant/);
 });
+
+
+test("score engine deduplicates penalties that share one proven root cause", async () => {
+  const { scoreApplicableChecks, SCORE_MODEL_VERSION } = await import("../lib/audit-score.ts");
+  const base = { confidence: "high" };
+  const score = scoreApplicableChecks([
+    { ...base, issue_status: "WARNING", points: 0, maxPoints: 10, rootCause: "meta_description" },
+    { ...base, issue_status: "WARNING", points: 0, maxPoints: 4, rootCause: "meta_description" },
+    { ...base, issue_status: "PASS", points: 6, maxPoints: 6 },
+  ]);
+  assert.equal(SCORE_MODEL_VERSION, "2.1-root-cause");
+  assert.equal(score, 50);
+});
+
+test("score engine keeps independent penalties independent", async () => {
+  const { scoreApplicableChecks } = await import("../lib/audit-score.ts");
+  const score = scoreApplicableChecks([
+    { issue_status: "WARNING", points: 0, maxPoints: 10, rootCause: "meta_description" },
+    { issue_status: "WARNING", points: 0, maxPoints: 4, rootCause: "social_metadata" },
+    { issue_status: "PASS", points: 6, maxPoints: 6 },
+  ]);
+  assert.equal(score, 30);
+});

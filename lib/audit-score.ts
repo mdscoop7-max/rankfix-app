@@ -11,10 +11,11 @@ export type ScorableAuditCheck = {
   points: number;
   maxPoints: number;
   confidence?: "high" | "medium" | "low";
+  rootCause?: string;
   fix_status?: "WAITING" | "AWAITING_MERGE" | "STILL_PRESENT" | "DONE";
 };
 
-export const SCORE_MODEL_VERSION = "2.0-evidence";
+export const SCORE_MODEL_VERSION = "2.1-root-cause";
 
 export function weightedCoverage(items: ScorableAuditCheck[]) {
   const relevant = items.filter((item) => item.issue_status !== "NOT_APPLICABLE");
@@ -41,7 +42,25 @@ export function scoreApplicableChecks(items: ScorableAuditCheck[]): number {
   );
   const max = applicable.reduce((sum, item) => sum + item.maxPoints, 0);
   if (!max) return 0;
-  return Math.round((applicable.reduce((sum, item) => sum + item.points, 0) / max) * 100);
+
+  // Score each proven root cause once. Dependent checks stay visible for
+  // explanation, but cannot multiply the same underlying penalty.
+  const rootCausePenalty = new Map<string, number>();
+  let earnedWithoutRootCause = 0;
+  let maxWithoutRootCause = 0;
+  for (const item of applicable) {
+    if (!item.rootCause || item.issue_status === "PASS" || item.issue_status === "INFO") {
+      earnedWithoutRootCause += item.points;
+      maxWithoutRootCause += item.maxPoints;
+      continue;
+    }
+    const penalty = Math.max(0, item.maxPoints - item.points);
+    rootCausePenalty.set(item.rootCause, Math.max(rootCausePenalty.get(item.rootCause) || 0, penalty));
+    maxWithoutRootCause += item.maxPoints;
+    earnedWithoutRootCause += item.maxPoints;
+  }
+  const dedupedPenalty = [...rootCausePenalty.values()].reduce((sum, penalty) => sum + penalty, 0);
+  return Math.round(((earnedWithoutRootCause - dedupedPenalty) / maxWithoutRootCause) * 100);
 }
 
 export function summarizeAuditChecks(items: ScorableAuditCheck[]) {
