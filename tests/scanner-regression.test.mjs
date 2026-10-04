@@ -170,3 +170,13 @@ test("government identity overrides generic LocalBusiness schema advice", async 
   assert.match(source, /effectiveLocalBusinessPage = !isProductPage && !hasCategorySignal && effectiveLocalSchemaSignal/);
   assert.match(source, /localBusinessDetails = effectiveLocalSchemaSignal/);
 });
+
+
+test("meta description diagnostics distinguish missing from empty", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /descriptionState: "missing" \| "empty" \| "present"/);
+  assert.match(source, /descriptionState === "empty" \? "De meta description-tag is aanwezig, maar de content is leeg\."/);
+  assert.match(source, /descriptionState,/);
+  assert.match(source, /pageDescriptionTag\?"Meta description-tag aanwezig maar content is leeg\."/);
+});
