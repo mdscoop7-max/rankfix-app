@@ -840,8 +840,11 @@ export async function POST(request: Request) {
     const hardPurchaseFlowSignal = hasStrongCommerceAction && (hasExplicitPriceSignal || visiblePriceCount >= 2) && (hasCommerceHrefSignal || cartFormSignal);
     const siteLevelCommerceSignal = hasStoreSchema && (hasConfirmedCommercePlatform || hardPurchaseFlowSignal || repeatedProductLinkSignal || storefrontMarkupSignal);
     const financialInvestmentSignal = /\b(beleggen|belegging(?:en)?|beleggingsfonds|vastgoedfonds|invester(?:en|ing)|prospectus|rendement|certificaten|investment fund|investing|investor|fondsbeheer|asset management)\b/i.test([title, description, ...h1s, text.slice(0, 40000)].join(" "));
+    // Financial pages need stronger storefront evidence. Keep this expression limited to
+    // signals already declared above; cart/checkout detail flags are computed later.
+    const financialCommerceSignal = hasConfirmedCommercePlatform || hasProductSchema || repeatedProductLinkSignal || storefrontMarkupSignal || siteLevelCommerceSignal || (hardPurchaseFlowSignal && hasCommerceHrefSignal);
     const hasEcommerceSignal = financialInvestmentSignal
-      ? Boolean(hasConfirmedCommercePlatform || hasProductSchema || repeatedProductLinkSignal || storefrontMarkupSignal || (hardPurchaseFlowSignal && (cartHrefSignal || checkoutHrefSignal)))
+      ? Boolean(financialCommerceSignal)
       : Boolean(hasConfirmedCommercePlatform || hasProductSignal || repeatedProductLinkSignal || storefrontMarkupSignal || homepageStorefrontSignal || siteLevelCommerceSignal || hardPurchaseFlowSignal);
     // EU consumer/Omnibus checks are jurisdiction-sensitive. A non-EU country
     // storefront (for example .com.au) must not receive EU compliance signals
