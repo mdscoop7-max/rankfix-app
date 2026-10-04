@@ -436,3 +436,8 @@
  .rf-process-grid{gap:12px!important}
  .rf-process-grid article{padding:22px!important}
 }
+
+/* Screenshot QA fixes */
+.rf-history-actions{display:flex!important;flex-wrap:wrap!important;gap:8px!important;align-items:center;margin-top:14px}
+.rf-history-actions a{display:inline-flex!important;align-items:center;justify-content:center;min-height:38px;padding:8px 12px!important;border:1px solid #334155;border-radius:10px;background:#0b2038;color:#f1f5f9!important;font-size:13px!important;font-weight:800;line-height:1!important;text-decoration:none!important}
+@media(max-width:650px){.rf-back{display:none!important}.rf-history-actions a{flex:0 0 auto}}
