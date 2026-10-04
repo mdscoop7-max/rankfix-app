@@ -61,9 +61,23 @@ export async function POST(request: Request) {
       });
       githubContext = JSON.stringify({ connected: Boolean(githubConnection.rowCount) });
       if (dashboard) {
+        const [fixStats, monitoringStats] = await Promise.all([
+          getDb().query("SELECT status, COUNT(*)::int AS count FROM fix_proposals WHERE user_id=$1 GROUP BY status",[user.id]).catch(()=>({rows:[]} as any)),
+          getDb().query("SELECT enabled, COUNT(*)::int AS count FROM website_monitoring WHERE user_id=$1 GROUP BY enabled",[user.id]).catch(()=>({rows:[]} as any)),
+        ]);
         dashboardContext = JSON.stringify({
           recent_scans: scans.rows.length,
           latest_scan: scans.rows[0] || null,
+          fix_statuses: fixStats.rows,
+          monitoring: monitoringStats.rows,
+          help_routes: {
+            help:"/dashboard/help",
+            scan:"/dashboard/scan",
+            fixes:"/dashboard/github",
+            history:"/dashboard/history",
+            search_console:"/dashboard/search-console",
+            monitoring:"/dashboard/monitoring"
+          }
         });
       }
 
@@ -196,7 +210,7 @@ export async function POST(request: Request) {
           "Geselecteerde scan: " + (selectedScanContext || "Geen specifieke scan geselecteerd."),
           "GitHub Fix Engine-context: " + (githubContext || "Geen GitHub-context beschikbaar."),
           "Dashboardcontext: " + (dashboardContext || "Geen extra dashboardcontext beschikbaar."),
-          "Helpkennis: Hoofdnavigatie: Overzicht, Scannen, Fixes, Historie, Help en Meer. Help legt scans en scores, problemen, fixvoorstellen, GitHub, Search Console, monitoring, rapporten en historie uit. Een fix geldt pas als opgelost nadat deze gepubliceerd is en een nieuwe live scan de verbetering bevestigt. GitHub: koppelen, repository kiezen, voorstel controleren/publiceren, opnieuw scannen. Verzin nooit een koppeling, status of actie.",
+          "Helpkennis: Hoofdnavigatie: Overzicht, Scannen, Fixes, Historie, Help en Meer. Op mobiel staan Overzicht, Scannen, Fixes, Historie en Meer vast onderaan; Help staat onder Meer en is ook via dashboard/help bereikbaar. Help legt scans en scores, problemen, fixvoorstellen, GitHub, Search Console, monitoring, rapporten en historie uit. Een fix geldt pas als opgelost nadat deze gepubliceerd is en een nieuwe live scan de verbetering bevestigt. GitHub: koppelen, repository kiezen, voorstel controleren/publiceren, opnieuw scannen. Bij ingewikkelde handelingen mag je de klant naar de bijbehorende Help-uitleg/video verwijzen, maar verzin nooit een video-URL. Verzin nooit een koppeling, status of actie.",
           "Google Search Console-context: " + (searchConsoleContext || "Geen Search Console-data beschikbaar.").replace(/\n/g, " "),
           "Gebruik Search Console-data alleen wanneer die in deze context staat. Leg hoge vertoningen/lage CTR, posities en pagina-/querykansen feitelijk uit. Verzin geen Google-data. Koppel een kans alleen aan een RankFix-fix wanneer de actieve scancontext daar aantoonbaar een passende fail/warning voor bevat.",
           "Actuele dashboardfout/blokkade: " + (errorContext || "Geen actuele dashboardfout meegegeven."),

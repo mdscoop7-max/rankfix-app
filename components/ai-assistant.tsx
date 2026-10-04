@@ -48,6 +48,12 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    const openAssistant=()=>setOpen(true);
+    window.addEventListener("rankfix-open-ai",openAssistant);
+    return ()=>window.removeEventListener("rankfix-open-ai",openAssistant);
+  }, []);
+
+  useEffect(() => {
     if (!dashboard) return;
     fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language)setLanguage(d.language)}).catch(()=>{});
   }, [dashboard]);
