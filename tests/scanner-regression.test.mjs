@@ -283,3 +283,12 @@ test("score model protects low-confidence failures from hard penalties", async (
   assert.match(source, /points: item\.maxPoints, issue_status: "INFO" as const/);
   assert.match(source, /for \(const item of confidenceSafe\)/);
 });
+
+
+test("GEO brand identity respects evidence confidence and gradual signals", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /const brandIdentityPoints = visibleBrandSignals >= 3 \? 5 : visibleBrandSignals === 2 \? 4 : visibleBrandSignals === 1 \? 3 : 2/);
+  assert.match(source, /metadataMayBeClientRendered[\s\S]*check\("unable_to_confirm", "identity", "geo", "Brand identity"/);
+  assert.match(source, /check\("warning", "identity", "geo", "Brand identity", brandSignalDetail, brandRecommendation, brandIdentityPoints, 5\)/);
+});

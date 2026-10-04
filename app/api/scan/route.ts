@@ -2513,11 +2513,14 @@ export async function POST(request: Request) {
     const brandRecommendation = missingBrandSignals.length
       ? `Maak de ontbrekende merksignalen duidelijk en consistent zichtbaar: ${missingBrandSignals.join(", ")}. Structured data wordt apart beoordeeld.`
       : "Houd merknaam, logo, contactgegevens en officiële profielen consistent. Structured data wordt apart beoordeeld.";
+    const brandIdentityPoints = visibleBrandSignals >= 3 ? 5 : visibleBrandSignals === 2 ? 4 : visibleBrandSignals === 1 ? 3 : 2;
     geoChecks.push(visibleBrandSignals >= 3
       ? check("pass", "identity", "geo", "Brand identity", brandSignalDetail, brandRecommendation, 5, 5)
       : visibleBrandSignals >= 1
-        ? check("warning", "identity", "geo", "Brand identity", brandSignalDetail, brandRecommendation, 3, 5)
-        : check("warning", "identity", "geo", "Brand identity", brandSignalDetail, brandRecommendation, 2, 5)
+        ? check("warning", "identity", "geo", "Brand identity", brandSignalDetail, brandRecommendation, brandIdentityPoints, 5)
+        : metadataMayBeClientRendered
+          ? check("unable_to_confirm", "identity", "geo", "Brand identity", `${brandSignalDetail} De JavaScript-pagina kon niet volledig worden gerenderd, dus afwezigheid in raw HTML is onvoldoende bewijs voor een harde merkidentiteitsconclusie.`, "Controleer de zichtbare merkidentiteit opnieuw met een volledige render.", 0, 5)
+          : check("warning", "identity", "geo", "Brand identity", brandSignalDetail, brandRecommendation, brandIdentityPoints, 5)
     );
 
     const ruleMap: Record<string, { rule_id: string; severity: Check["severity"] }> = {
