@@ -9,7 +9,7 @@ export async function getDatabaseAndQueueGuards():Promise<OperationalGuard[]>{
  const [activity,jobs]=await Promise.all([
   db.query(`SELECT COUNT(*)::int total,
    COUNT(*) FILTER (WHERE state='active')::int active,
-   COUNT(*) FILTER (WHERE wait_event IS NOT NULL)::int waiting
+   COUNT(*) FILTER (WHERE state='active' AND wait_event IS NOT NULL)::int waiting
    FROM pg_stat_activity WHERE datname=current_database()`),
   db.query(`SELECT
    COUNT(*) FILTER (WHERE status IN ('QUEUED','RETRY'))::int queued,
