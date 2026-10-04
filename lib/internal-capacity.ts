@@ -13,7 +13,7 @@ export async function getInternalCapacitySignals():Promise<CapacitySignal[]>{
    COUNT(*) FILTER (WHERE status IN ('QUEUED','RETRY'))::int AS waiting,
    COUNT(*) FILTER (WHERE status='RUNNING')::int AS running,
    COUNT(*) FILTER (WHERE status='FAILED' AND finished_at>NOW()-INTERVAL '24 hours')::int AS failed_24h,
-   COALESCE(EXTRACT(EPOCH FROM (NOW()-MIN(created_at))) FILTER (WHERE status IN ('QUEUED','RETRY'))/60,0)::float AS oldest_wait_minutes
+   COALESCE(EXTRACT(EPOCH FROM (NOW()-MIN(created_at) FILTER (WHERE status IN ('QUEUED','RETRY'))))/60,0)::float AS oldest_wait_minutes
    FROM background_jobs`),
   db.query(`SELECT
    (SELECT COUNT(*)::int FROM pg_stat_activity WHERE datname=current_database()) AS connections,
