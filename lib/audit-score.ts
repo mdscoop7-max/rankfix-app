@@ -15,7 +15,7 @@ export type ScorableAuditCheck = {
   fix_status?: "WAITING" | "AWAITING_MERGE" | "STILL_PRESENT" | "DONE";
 };
 
-export const SCORE_MODEL_VERSION = "2.1-root-cause";
+export const SCORE_MODEL_VERSION = "2.2-gradual-evidence";
 
 export function weightedCoverage(items: ScorableAuditCheck[]) {
   const relevant = items.filter((item) => item.issue_status !== "NOT_APPLICABLE");
@@ -43,12 +43,21 @@ export function scoreApplicableChecks(items: ScorableAuditCheck[]): number {
   const max = applicable.reduce((sum, item) => sum + item.maxPoints, 0);
   if (!max) return 0;
 
+  // A low-confidence result must never masquerade as a proven hard failure.
+  // Callers should normally emit UNABLE_TO_CONFIRM for weak evidence; this
+  // safeguard prevents an accidental low-confidence FAIL from lowering scores.
+  const confidenceSafe = applicable.map((item) =>
+    item.issue_status === "FAIL" && item.confidence === "low"
+      ? { ...item, points: item.maxPoints, issue_status: "INFO" as const }
+      : item
+  );
+
   // Score each proven root cause once. Dependent checks stay visible for
   // explanation, but cannot multiply the same underlying penalty.
   const rootCausePenalty = new Map<string, number>();
   let earnedWithoutRootCause = 0;
   let maxWithoutRootCause = 0;
-  for (const item of applicable) {
+  for (const item of confidenceSafe) {
     if (!item.rootCause || item.issue_status === "PASS" || item.issue_status === "INFO") {
       earnedWithoutRootCause += item.points;
       maxWithoutRootCause += item.maxPoints;

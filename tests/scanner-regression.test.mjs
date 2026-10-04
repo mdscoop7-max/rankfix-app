@@ -273,3 +273,13 @@ test("description length advice is gradual without changing fix identity", async
   assert.match(source, /description: \{ rule_id: description \? "META_DESCRIPTION_GUIDANCE" : "META_DESCRIPTION_MISSING"/);
   assert.match(source, /description: description \|\| \(item\.key === "description" \? "metaDescriptionPresent=false" : null\)/);
 });
+
+
+test("score model protects low-confidence failures from hard penalties", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../lib/audit-score.ts", import.meta.url), "utf8");
+  assert.match(source, /SCORE_MODEL_VERSION = "2\.2-gradual-evidence"/);
+  assert.match(source, /item\.issue_status === "FAIL" && item\.confidence === "low"/);
+  assert.match(source, /points: item\.maxPoints, issue_status: "INFO" as const/);
+  assert.match(source, /for \(const item of confidenceSafe\)/);
+});
