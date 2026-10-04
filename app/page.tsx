@@ -1206,10 +1206,16 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         </div>
         <div className="mx-auto mt-10 max-w-7xl border-t border-slate-600 pt-7">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{language==="nl"?"Herkent en controleert onder andere":language==="de"?"Erkennt und prüft unter anderem":language==="fr"?"Reconnaît et contrôle notamment":language==="it"?"Riconosce e controlla tra gli altri":language==="es"?"Reconoce y comprueba, entre otros":"Recognises and checks, among others"}</p>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <a href="https://wordpress.org/" target="_blank" rel="noreferrer" className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-white hover:border-emerald-300/40">WordPress</a>
-            <a href="https://woocommerce.com/" target="_blank" rel="noreferrer" className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-white hover:border-emerald-300/40">WooCommerce</a>
-            <a href="https://www.shopify.com/" target="_blank" rel="noreferrer" className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-white hover:border-emerald-300/40">Shopify</a>
+          <div className="mt-4 flex flex-wrap items-center gap-3" aria-label="Ondersteunde platformen">
+            <div className="flex min-w-[150px] items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3" title="WordPress">
+              <span aria-hidden="true" className="grid h-8 w-8 place-items-center rounded-full border-2 border-white/80 font-serif text-lg font-bold text-white">W</span><span className="text-sm font-bold text-white">WordPress</span>
+            </div>
+            <div className="flex min-w-[170px] items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3" title="WooCommerce">
+              <span aria-hidden="true" className="grid h-8 min-w-10 place-items-center rounded-lg bg-[#96588a] px-1 text-[10px] font-black text-white">Woo</span><span className="text-sm font-bold text-white">WooCommerce</span>
+            </div>
+            <div className="flex min-w-[145px] items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3" title="Shopify">
+              <span aria-hidden="true" className="grid h-8 w-8 place-items-center rounded-lg bg-[#95bf47] text-base font-black text-white">S</span><span className="text-sm font-bold text-white">Shopify</span>
+            </div>
           </div>
           <p className="mt-3 text-xs text-slate-400">{language==="nl"?"Platformherkenning betekent ondersteuning door RankFix; het is geen partner- of certificeringsclaim.":language==="en"?"Platform recognition means RankFix support; it does not imply a partnership or certification.":"RankFix herkent deze platformen; dit betekent geen officiële samenwerking of certificering."}</p>
         </div>
