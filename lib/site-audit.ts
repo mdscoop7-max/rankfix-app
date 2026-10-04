@@ -1,6 +1,6 @@
 import { CrawlPage, CrawlMode, crawlSite } from "@/lib/crawler";
 
-export const SITE_AUDIT_ENGINE_VERSION = "1.10.0";
+export const SITE_AUDIT_ENGINE_VERSION = "1.11.0";
 
 export type SiteRuleStatus = "PASS" | "FAIL" | "WARNING" | "NOT_APPLICABLE" | "UNABLE_TO_CONFIRM";
 
@@ -39,7 +39,7 @@ export type SiteAudit = {
     truncated: boolean;
     scope: "sitewide" | "sample";
   };
-  scores: { technical: number; onPage: number; content: number; structuredData: number; internalLinks: number; accessibility: number; overall: number; grade: string };
+  scores: { technical: number; onPage: number; content: number; structuredData: number; internalLinks: number; accessibility: number; security: number; overall: number; grade: string };
   page_types: Record<string, number>;
   issues: SiteIssue[];
 };
@@ -67,6 +67,62 @@ const example = (p: CrawlPage, result: RuleEvaluation) => ({
 });
 
 const rules: RuleDef[] = [
+  {
+    id: "SEC_HTTPS", category: "security", title: "HTTPS-beveiliging", severity: "CRITICAL",
+    description: "Publieke pagina's horen via HTTPS te worden aangeboden.",
+    recommendation: "Forceer HTTPS voor de volledige website en redirect HTTP-verkeer naar HTTPS.",
+    applicable: () => true,
+    evaluate: p => p.security.https ? {status:"PASS",found:true,details:"Pagina is via HTTPS opgehaald."} : {status:"FAIL",found:false,expected:"HTTPS",details:"Pagina is niet via HTTPS opgehaald."},
+  },
+  {
+    id: "SEC_HSTS", category: "security", title: "HSTS ontbreekt", severity: "MEDIUM",
+    description: "HTTP Strict Transport Security helpt browsers HTTPS af te dwingen na een veilig bezoek.",
+    recommendation: "Configureer Strict-Transport-Security op HTTPS-responses nadat HTTPS voor het domein volledig correct werkt.",
+    applicable: p => p.security.https,
+    evaluate: p => p.security.strictTransportSecurity ? {status:"PASS",found:true,details:"Strict-Transport-Security header gevonden."} : {status:"WARNING",found:false,expected:"Strict-Transport-Security",details:"Geen HSTS-header aangetroffen op deze response."},
+  },
+  {
+    id: "SEC_CSP", category: "security", title: "Content Security Policy ontbreekt", severity: "MEDIUM",
+    description: "Een Content Security Policy kan de impact van content-injectie en XSS beperken.",
+    recommendation: "Voer een passende Content-Security-Policy gefaseerd in en test eerst welke bronnen de website nodig heeft.",
+    applicable: () => true,
+    evaluate: p => p.security.contentSecurityPolicy ? {status:"PASS",found:true,details:"Content-Security-Policy header gevonden."} : {status:"WARNING",found:false,expected:"Content-Security-Policy",details:"Geen CSP-header aangetroffen."},
+  },
+  {
+    id: "SEC_NOSNIFF", category: "security", title: "MIME sniffing bescherming ontbreekt", severity: "LOW",
+    description: "X-Content-Type-Options: nosniff voorkomt dat browsers sommige contenttypes anders interpreteren dan opgegeven.",
+    recommendation: "Stuur X-Content-Type-Options: nosniff mee op responses.",
+    applicable: () => true,
+    evaluate: p => p.security.xContentTypeOptions ? {status:"PASS",found:true,details:"X-Content-Type-Options: nosniff gevonden."} : {status:"WARNING",found:false,expected:"nosniff",details:"nosniff kon niet worden bevestigd."},
+  },
+  {
+    id: "SEC_FRAME_PROTECTION", category: "security", title: "Framebescherming ontbreekt", severity: "MEDIUM",
+    description: "Framebescherming helpt clickjacking tegen te gaan.",
+    recommendation: "Gebruik CSP frame-ancestors en/of een passende X-Frame-Options header.",
+    applicable: () => true,
+    evaluate: p => p.security.frameProtection ? {status:"PASS",found:true,details:"Framebescherming gevonden."} : {status:"WARNING",found:false,expected:"CSP frame-ancestors of X-Frame-Options",details:"Geen aantoonbare framebescherming gevonden."},
+  },
+  {
+    id: "SEC_MIXED_CONTENT", category: "security", title: "Mixed content verwijzingen", severity: "HIGH",
+    description: "HTTPS-pagina's horen actieve en zichtbare bronnen niet via onbeveiligde HTTP-URL's te laden.",
+    recommendation: "Vervang HTTP-bronverwijzingen door HTTPS of verwijder de onveilige bron.",
+    applicable: p => p.security.https,
+    evaluate: p => p.security.mixedContentReferences > 0 ? {status:"FAIL",found:p.security.mixedContentReferences,expected:"0",details:"Onbeveiligde HTTP-bronverwijzingen gevonden in statische HTML."} : {status:"PASS",found:0,details:"Geen mixed-content bronverwijzingen gevonden in statische HTML."},
+  },
+  {
+    id: "SEC_INSECURE_FORMS", category: "security", title: "Onveilig formulierdoel", severity: "CRITICAL",
+    description: "Een formulier op een website hoort gevoelige invoer niet naar een onbeveiligde HTTP-bestemming te sturen.",
+    recommendation: "Laat formulieracties uitsluitend naar een vertrouwde HTTPS-bestemming verzenden.",
+    applicable: () => true,
+    evaluate: p => p.security.insecureForms > 0 ? {status:"FAIL",found:p.security.insecureForms,expected:"0",details:"Formulier met expliciete http:// action gevonden."} : {status:"PASS",found:0,details:"Geen expliciet onbeveiligde formulieractie gevonden."},
+  },
+  {
+    id: "SEC_TECH_DISCLOSURE", category: "security", title: "Technische serverinformatie zichtbaar", severity: "LOW",
+    description: "Server- of frameworkheaders kunnen onnodige technische details prijsgeven.",
+    recommendation: "Verwijder of minimaliseer Server en X-Powered-By headers waar dit zonder operationele nadelen kan.",
+    applicable: () => true,
+    evaluate: p => p.security.serverHeaderExposed || p.security.poweredByHeaderExposed ? {status:"WARNING",found:true,expected:"minimale technische headers",details:"Server en/of X-Powered-By header is zichtbaar."} : {status:"PASS",found:false,details:"Geen Server of X-Powered-By disclosure aangetroffen."},
+  },
   {
     id: "SITE_TITLE_MISSING", category: "on-page", title: "Pagina zonder meta title", severity: "HIGH",
     description: "Elke indexeerbare HTML-pagina hoort een bruikbare title te hebben.",
@@ -363,13 +419,15 @@ export async function auditSite(url: string, mode: CrawlMode = "STANDARD"): Prom
   const structuredDataResult = categoryScore(["structured-data","ecommerce"]);
   const internalLinksResult = categoryScore(["internal-linking"]);
   const accessibilityResult = categoryScore(["accessibility","images"]);
+  const securityResult = categoryScore(["security"]);
   const technical = technicalResult.score;
   const onPage = onPageResult.score;
   const content = contentResult.score;
   const structuredData = structuredDataResult.score;
   const internalLinks = internalLinksResult.score;
   const accessibility = accessibilityResult.score;
-  const scorableScores = [technicalResult,onPageResult,contentResult,structuredDataResult,internalLinksResult,accessibilityResult].filter(x=>x.scorable).map(x=>x.score);
+  const security = securityResult.score;
+  const scorableScores = [technicalResult,onPageResult,contentResult,structuredDataResult,internalLinksResult,accessibilityResult,securityResult].filter(x=>x.scorable).map(x=>x.score);
   const overall = scorableScores.length ? Math.round(scorableScores.reduce((sum,score)=>sum+score,0) / scorableScores.length) : 0;
   const page_types: Record<string,number> = {};
   for (const p of pages) page_types[p.pageType]=(page_types[p.pageType]||0)+1;
@@ -378,7 +436,7 @@ export async function auditSite(url: string, mode: CrawlMode = "STANDARD"): Prom
     crawler_version:crawl.engineVersion, audit_version:SITE_AUDIT_ENGINE_VERSION,
     startedAt:crawl.startedAt, finishedAt:crawl.finishedAt,
     crawl:{pages:pages.length,discovered:crawl.discovered,errors:crawl.errors.length,blocked:crawl.blocked,complete:crawlComplete,truncated:crawl.truncated,scope:crawlComplete?"sitewide":"sample"},
-    scores:{technical,onPage,content,structuredData,internalLinks,accessibility,overall,grade:grade(overall)},
+    scores:{technical,onPage,content,structuredData,internalLinks,accessibility,security,overall,grade:grade(overall)},
     page_types, issues,
   };
 }

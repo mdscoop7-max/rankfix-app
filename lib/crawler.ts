@@ -2,7 +2,7 @@ import { URL } from "node:url";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 
-export const CRAWLER_ENGINE_VERSION = "2.5.0";
+export const CRAWLER_ENGINE_VERSION = "2.6.0";
 
 export type CrawlMode = "QUICK" | "STANDARD" | "DEEP" | "ECOMMERCE" | "ENTERPRISE";
 export type PageType =
@@ -24,6 +24,19 @@ export type CrawlPage = {
   lang: string | null;
   noindex: boolean;
   xRobotsTag: string | null;
+  security: {
+    https: boolean;
+    strictTransportSecurity: boolean;
+    contentSecurityPolicy: boolean;
+    xContentTypeOptions: boolean;
+    frameProtection: boolean;
+    referrerPolicy: boolean;
+    permissionsPolicy: boolean;
+    insecureForms: number;
+    mixedContentReferences: number;
+    serverHeaderExposed: boolean;
+    poweredByHeaderExposed: boolean;
+  };
   jsonLdInvalid: number;
   product?: { name: boolean; image: boolean; offers: boolean; price: boolean; priceCurrency: boolean; availability: boolean; brandOrSku: boolean };
   wordCount: number;
@@ -142,6 +155,19 @@ export async function crawlSite(startUrl:string,requestedMode:CrawlMode="STANDAR
       const lang=first(html,/<html[^>]+lang\s*=\s*["']([^"']+)["']/i)||null;
       const robots=first(html,/<meta[^>]+name\s*=\s*["']robots["'][^>]+content\s*=\s*["']([^"']+)["']/i);
       const xRobotsTag=response.headers.get("x-robots-tag");
+      const security={
+        https:resolved.protocol==="https:",
+        strictTransportSecurity:Boolean(response.headers.get("strict-transport-security")),
+        contentSecurityPolicy:Boolean(response.headers.get("content-security-policy")),
+        xContentTypeOptions:/nosniff/i.test(response.headers.get("x-content-type-options")||""),
+        frameProtection:Boolean(response.headers.get("x-frame-options")) || /frame-ancestors/i.test(response.headers.get("content-security-policy")||""),
+        referrerPolicy:Boolean(response.headers.get("referrer-policy")),
+        permissionsPolicy:Boolean(response.headers.get("permissions-policy")),
+        insecureForms:[...html.matchAll(/<form\b[^>]*action\s*=\s*["'](http:\/\/[^"']+)["'][^>]*>/gi)].length,
+        mixedContentReferences:resolved.protocol==="https:" ? [...html.matchAll(/<(?:img|script|iframe|link|source|video|audio)\b[^>]*(?:src|href)\s*=\s*["']http:\/\/[^"']+["'][^>]*>/gi)].length : 0,
+        serverHeaderExposed:Boolean(response.headers.get("server")),
+        poweredByHeaderExposed:Boolean(response.headers.get("x-powered-by")),
+      };
       const noindex=/\bnoindex\b/i.test([robots,xRobotsTag||""].join(","));
       const imageMetrics=extractImageMetrics(html);
       const ids=[...html.matchAll(/\bid\s*=\s*["']([^"']+)["']/gi)].map(m=>m[1]).filter(Boolean);
@@ -170,7 +196,7 @@ export async function crawlSite(startUrl:string,requestedMode:CrawlMode="STANDAR
         try{ canonicalUrl=new URL(canonical,resolved).toString(); }
         catch{ errors.push({url:resolved.toString(),code:"CANONICAL_INVALID",message:"Malformed canonical URL in HTML."}); }
       }
-      pages.push({url:resolved.toString(),status:response.status,requestedUrl:item.url,redirectChain,contentType,responseTimeMs:Date.now()-started,title,description,h1,canonical:canonicalUrl,lang,noindex,xRobotsTag,jsonLdInvalid,product:types.some(t=>t.toLowerCase()==="product")?product:undefined,wordCount:text.split(/\s+/).filter(Boolean).length,internalLinks:uniqueLinks,imageCount:imageMetrics.uniqueImageReferences,imagesMissingAlt:imageMetrics.missingAlt,accessibility,jsonLdTypes:[...new Set(types)],localBusiness:localBusiness.types.length ? {...localBusiness,types:[...new Set(localBusiness.types)]} : undefined,pageType:classify(resolved.toString(),html,types),depth:item.depth,discoveredFrom:item.from});
+      pages.push({url:resolved.toString(),status:response.status,requestedUrl:item.url,redirectChain,contentType,responseTimeMs:Date.now()-started,title,description,h1,canonical:canonicalUrl,lang,noindex,xRobotsTag,security,jsonLdInvalid,product:types.some(t=>t.toLowerCase()==="product")?product:undefined,wordCount:text.split(/\s+/).filter(Boolean).length,internalLinks:uniqueLinks,imageCount:imageMetrics.uniqueImageReferences,imagesMissingAlt:imageMetrics.missingAlt,accessibility,jsonLdTypes:[...new Set(types)],localBusiness:localBusiness.types.length ? {...localBusiness,types:[...new Set(localBusiness.types)]} : undefined,pageType:classify(resolved.toString(),html,types),depth:item.depth,discoveredFrom:item.from});
       for(const next of uniqueLinks){
         if(queued.has(next)) continue;
         discovered++;
