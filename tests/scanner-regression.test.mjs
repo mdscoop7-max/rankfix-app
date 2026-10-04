@@ -238,3 +238,13 @@ test("advisory evidence does not become a hard failure", async () => {
   assert.match(source, /"schema": "structured_data_context"/);
   assert.match(source, /issue_id: key, rule_id: key/);
 });
+
+
+test("alt scoring is gradual and keeps the existing fix rule stable", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /const missingAltRatio = imageElementCount \? imagesMissingAlt \/ imageElementCount : 0/);
+  assert.match(source, /missingAltRatio <= 0\.10[\s\S]*\? 6[\s\S]*missingAltRatio <= 0\.25[\s\S]*\? 5[\s\S]*missingAltRatio <= 0\.50[\s\S]*\? 3[\s\S]*: 1/);
+  assert.match(source, /alt: \{ rule_id: "IMAGE_ALT_MISSING", severity: "LOW" \}/);
+  assert.match(source, /alt: imageElementCount \? imagesMissingAlt : null/);
+});
