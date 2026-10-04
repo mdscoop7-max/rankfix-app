@@ -678,16 +678,16 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         <div className="mx-auto mt-4 max-w-4xl px-2">
           <div className="flex flex-wrap justify-center gap-2 text-xs font-semibold text-emerald-100">
             {(language === "nl"
-              ? ["SEO","GEO / AI Search","Security","Techniek","Webshop","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Consent Mode","Local SEO","Structured Data","Accessibility","Quality & Trust","Broken Links","Redirects"]
+              ? ["SEO","GEO / AI Search","Security","Techniek","Webshop","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Search Console","Consent Mode","Local SEO","Structured Data","Accessibility","Quality & Trust","Broken Links","Redirects"]
               : language === "de"
-                ? ["SEO","GEO / AI Search","Security","Technik","Onlineshop","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Consent Mode","Local SEO","Structured Data","Barrierefreiheit","Quality & Trust","Broken Links","Redirects"]
+                ? ["SEO","GEO / AI Search","Security","Technik","Onlineshop","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Search Console","Consent Mode","Local SEO","Structured Data","Barrierefreiheit","Quality & Trust","Broken Links","Redirects"]
                 : language === "fr"
-                  ? ["SEO","GEO / AI Search","Security","Technique","E-commerce","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Consent Mode","SEO local","Données structurées","Accessibilité","Quality & Trust","Liens cassés","Redirections"]
+                  ? ["SEO","GEO / AI Search","Security","Technique","E-commerce","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Search Console","Consent Mode","SEO local","Données structurées","Accessibilité","Quality & Trust","Liens cassés","Redirections"]
                   : language === "it"
-                    ? ["SEO","GEO / AI Search","Security","Tecnica","E-commerce","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Consent Mode","SEO locale","Dati strutturati","Accessibilità","Quality & Trust","Link non validi","Redirect"]
+                    ? ["SEO","GEO / AI Search","Security","Tecnica","E-commerce","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Search Console","Consent Mode","SEO locale","Dati strutturati","Accessibilità","Quality & Trust","Link non validi","Redirect"]
                     : language === "es"
-                      ? ["SEO","GEO / AI Search","Security","Técnica","E-commerce","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Consent Mode","SEO local","Datos estructurados","Accesibilidad","Quality & Trust","Enlaces rotos","Redirecciones"]
-                      : ["SEO","GEO / AI Search","Security","Technical","E-commerce","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Consent Mode","Local SEO","Structured Data","Accessibility","Quality & Trust","Broken Links","Redirects"]
+                      ? ["SEO","GEO / AI Search","Security","Técnica","E-commerce","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Search Console","Consent Mode","SEO local","Datos estructurados","Accesibilidad","Quality & Trust","Enlaces rotos","Redirecciones"]
+                      : ["SEO","GEO / AI Search","Security","Technical","E-commerce","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Search Console","Consent Mode","Local SEO","Structured Data","Accessibility","Quality & Trust","Broken Links","Redirects"]
             ).map((feature) => <span key={feature} className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1.5">✓ {feature}</span>)}
           </div>
           <p className="mt-3 text-center text-xs text-slate-300">
