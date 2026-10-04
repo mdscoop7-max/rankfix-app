@@ -37,6 +37,7 @@ export async function POST(request: Request) {
     let selectedScanContext = "";
     let githubContext = "";
     let searchConsoleContext = "";
+    let dashboardContext = "";
     let preferredLanguage = requestedLanguage;
 
     if (user) {
@@ -58,9 +59,7 @@ export async function POST(request: Request) {
         name: user.name,
         scans: scans.rows,
       });
-      githubContext = JSON.stringify({
-        connected: Boolean(githubConnection.rowCount),
-      });
+      githubContext = JSON.stringify({connected:Boolean(githubConnection.rowCount)});\n      if(dashboard){dashboardContext=JSON.stringify({recent_scans:scans.rows.length,latest_scan:scans.rows[0]||null});}
 
       if (dashboard) {
         const gscProperty = await getDb().query(
@@ -189,7 +188,7 @@ export async function POST(request: Request) {
           "Geef praktische, korte stappen. Antwoord in de gekozen dashboardtaal: " + (preferredLanguage || "nl") + ". Alleen als de gebruiker expliciet in een andere taal vraagt, mag je die taal volgen.",
           "Klantcontext: " + (customerContext || "Geen ingelogde klantcontext beschikbaar."),
           "Geselecteerde scan: " + (selectedScanContext || "Geen specifieke scan geselecteerd."),
-          "GitHub Fix Engine-context: " + (githubContext || "Geen GitHub-context beschikbaar."),
+          "GitHub Fix Engine-context: " + (githubContext || "Geen GitHub-context beschikbaar."),\n          "Dashboardcontext: " + (dashboardContext || "Geen extra dashboardcontext beschikbaar."),\n          "Helpkennis: Hoofdnavigatie: Overzicht, Scannen, Fixes, Historie, Help en Meer. Help legt scans en scores, problemen, fixvoorstellen, GitHub, Search Console, monitoring, rapporten en historie uit. Een fix geldt pas als opgelost nadat deze gepubliceerd is en een nieuwe live scan de verbetering bevestigt. GitHub: koppelen, repository kiezen, voorstel controleren/publiceren, opnieuw scannen. Verzin nooit een koppeling, status of actie.",
           "Google Search Console-context: " + (searchConsoleContext || "Geen Search Console-data beschikbaar.").replace(/\n/g, " "),
           "Gebruik Search Console-data alleen wanneer die in deze context staat. Leg hoge vertoningen/lage CTR, posities en pagina-/querykansen feitelijk uit. Verzin geen Google-data. Koppel een kans alleen aan een RankFix-fix wanneer de actieve scancontext daar aantoonbaar een passende fail/warning voor bevat.",
           "Actuele dashboardfout/blokkade: " + (errorContext || "Geen actuele dashboardfout meegegeven."),
