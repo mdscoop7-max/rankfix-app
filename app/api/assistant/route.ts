@@ -59,7 +59,13 @@ export async function POST(request: Request) {
         name: user.name,
         scans: scans.rows,
       });
-      githubContext = JSON.stringify({connected:Boolean(githubConnection.rowCount)});\n      if(dashboard){dashboardContext=JSON.stringify({recent_scans:scans.rows.length,latest_scan:scans.rows[0]||null});}
+      githubContext = JSON.stringify({ connected: Boolean(githubConnection.rowCount) });
+      if (dashboard) {
+        dashboardContext = JSON.stringify({
+          recent_scans: scans.rows.length,
+          latest_scan: scans.rows[0] || null,
+        });
+      }
 
       if (dashboard) {
         const gscProperty = await getDb().query(
