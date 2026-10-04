@@ -131,3 +131,19 @@ test("multilingual trust, social URL and auth redirect bundle stays evidence bas
   assert.match(source, /sourcePersonalizationPath/);
   assert.match(source, /recomendacoes\|recomendacoes-personalizadas\|recommendations/);
 });
+
+
+test("score model exposes weighted coverage and transparent formula", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const score = await readFile(new URL("../lib/audit-score.ts", import.meta.url), "utf8");
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const report = await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
+  assert.match(score, /SCORE_MODEL_VERSION = "2\.0-evidence"/);
+  assert.match(score, /assessedWeight \/ totalWeight/);
+  assert.match(route, /formula: mode === "both" \? "0\.6 × SEO \+ 0\.4 × GEO"/);
+  assert.match(route, /securitySeparate: true/);
+  assert.match(route, /coverageBasis: "assessed_weight \/ applicable_weight"/);
+  assert.match(report, /Dekking:/);
+  assert.match(report, /Beperkte dekking/);
+  assert.match(report, /Scoremodel:/);
+});

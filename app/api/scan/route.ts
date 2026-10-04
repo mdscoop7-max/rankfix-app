@@ -9,7 +9,7 @@ import { getFixPolicy } from "@/lib/fix-policy";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
-import { applyEvidenceBasedScoreCap, scoreApplicableChecks, summarizeAuditChecks } from "@/lib/audit-score";
+import { applyEvidenceBasedScoreCap, SCORE_MODEL_VERSION, scoreApplicableChecks, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
 import { normalizePlan, planLimits } from "@/lib/plans";
 import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
 import { renderPublicPage } from "@/lib/headless-render";
@@ -2754,21 +2754,17 @@ export async function POST(request: Request) {
     let selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
     selectedOverallScore = applyEvidenceBasedScoreCap(selectedOverallScore, [...selectedSeoChecks, ...selectedGeoChecks]);
     const checks = [...selectedSeoChecks, ...selectedGeoChecks];
-    const coverageFor = (items: Check[]) => {
-      const relevant = items.filter((item) => item.issue_status !== "NOT_APPLICABLE");
-      const confirmed = relevant.filter((item) => item.issue_status !== "UNABLE_TO_CONFIRM");
-      const highConfidence = confirmed.filter((item) => item.confidence === "high");
-      return {
-        relevant: relevant.length,
-        confirmed: confirmed.length,
-        unableToConfirm: relevant.length - confirmed.length,
-        coveragePercent: relevant.length ? Math.round((confirmed.length / relevant.length) * 100) : 0,
-        highConfidencePercent: confirmed.length ? Math.round((highConfidence.length / confirmed.length) * 100) : 0,
-      };
+    const seoCoverage = weightedCoverage(selectedSeoChecks);
+    const geoCoverage = weightedCoverage(selectedGeoChecks);
+    const overallCoverage = weightedCoverage(checks);
+    const scoreModel = {
+      version: SCORE_MODEL_VERSION,
+      formula: mode === "both" ? "0.6 × SEO + 0.4 × GEO" : mode === "seo" ? "SEO" : "GEO",
+      weights: mode === "both" ? { seo: 0.6, geo: 0.4, security: 0 } : mode === "seo" ? { seo: 1, geo: 0, security: 0 } : { seo: 0, geo: 1, security: 0 },
+      securitySeparate: true,
+      coverageBasis: "assessed_weight / applicable_weight",
+      note: "Niet te bevestigen en N.v.t. verlagen de score niet; dekking toont welk deel van het toepasselijke gewicht daadwerkelijk is beoordeeld.",
     };
-    const seoCoverage = coverageFor(selectedSeoChecks);
-    const geoCoverage = coverageFor(selectedGeoChecks);
-    const overallCoverage = coverageFor(checks);
     const scanSummary = summarizeAuditChecks(checks);
     const pageTypeEvidence = {
       type: isHomepage ? "homepage" : isProductPage ? "product" : hasCategorySignal ? "category" : effectiveLocalBusinessPage ? "service" : effectiveArticlePage ? "article" : "unknown",
@@ -3238,6 +3234,7 @@ export async function POST(request: Request) {
       overallScore: selectedOverallScore,
       grade: grade(selectedOverallScore),
       coverage: overallCoverage,
+      scoreModel,
       summary: scanSummary,
       rendering,
       scope: scanScope,

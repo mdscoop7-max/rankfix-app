@@ -10,8 +10,30 @@ export type ScorableAuditCheck = {
   issue_status: AuditIssueStatus;
   points: number;
   maxPoints: number;
+  confidence?: "high" | "medium" | "low";
   fix_status?: "WAITING" | "AWAITING_MERGE" | "STILL_PRESENT" | "DONE";
 };
+
+export const SCORE_MODEL_VERSION = "2.0-evidence";
+
+export function weightedCoverage(items: ScorableAuditCheck[]) {
+  const relevant = items.filter((item) => item.issue_status !== "NOT_APPLICABLE");
+  const totalWeight = relevant.reduce((sum, item) => sum + Math.max(0, item.maxPoints), 0);
+  const assessed = relevant.filter((item) => item.issue_status !== "UNABLE_TO_CONFIRM");
+  const assessedWeight = assessed.reduce((sum, item) => sum + Math.max(0, item.maxPoints), 0);
+  const highConfidenceWeight = assessed
+    .filter((item) => item.confidence === "high")
+    .reduce((sum, item) => sum + Math.max(0, item.maxPoints), 0);
+  return {
+    relevant: relevant.length,
+    confirmed: assessed.length,
+    unableToConfirm: relevant.length - assessed.length,
+    totalWeight,
+    assessedWeight,
+    coveragePercent: totalWeight ? Math.round((assessedWeight / totalWeight) * 100) : 0,
+    highConfidencePercent: assessedWeight ? Math.round((highConfidenceWeight / assessedWeight) * 100) : 0,
+  };
+}
 
 export function scoreApplicableChecks(items: ScorableAuditCheck[]): number {
   const applicable = items.filter(
