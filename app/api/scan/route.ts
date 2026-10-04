@@ -826,7 +826,17 @@ export async function POST(request: Request) {
     // Require hard purchase/storefront evidence before webshop-only modules are enabled.
     const hardPurchaseFlowSignal = hasStrongCommerceAction && (hasExplicitPriceSignal || visiblePriceCount >= 2) && (hasCommerceHrefSignal || cartFormSignal);
     const siteLevelCommerceSignal = hasStoreSchema && (hasConfirmedCommercePlatform || hardPurchaseFlowSignal || repeatedProductLinkSignal || storefrontMarkupSignal);
-    const hasEcommerceSignal = hasConfirmedCommercePlatform || hasProductSignal || repeatedProductLinkSignal || storefrontMarkupSignal || homepageStorefrontSignal || siteLevelCommerceSignal || hardPurchaseFlowSignal;
+    // Product schema is also used for software/SaaS offers. It may support a product-detail
+    // classification, but it is not by itself proof that the whole site is a webshop.
+    const productSchemaCommerceSignal = hasProductSignal && (
+      hasStrongCommerceAction ||
+      hasConfirmedCommercePlatform ||
+      repeatedProductLinkSignal ||
+      storefrontMarkupSignal ||
+      hasStoreSchema ||
+      (hasSkuSignal && hasStockSignal)
+    );
+    const hasEcommerceSignal = hasConfirmedCommercePlatform || productSchemaCommerceSignal || repeatedProductLinkSignal || storefrontMarkupSignal || homepageStorefrontSignal || siteLevelCommerceSignal || hardPurchaseFlowSignal;
     // EU consumer/Omnibus checks are jurisdiction-sensitive. A non-EU country
     // storefront (for example .com.au) must not receive EU compliance signals
     // merely because it is an e-commerce site.
@@ -1149,7 +1159,10 @@ export async function POST(request: Request) {
         return { sourceHref: item.sourceHref, url: item.url, status: null, finalUrl: null, redirected: false, error: true, context: item.context };
       }
     }));
-    const brokenInternalLinks = linkAuditResults.filter((item) => item.error || item.status === null || item.status === 404 || item.status === 410 || (item.status >= 500));
+    // A timeout/DNS/fetch failure is not proof of a broken link. Only an HTTP response
+    // that proves the destination is gone or server-broken is actionable here.
+    const unconfirmedInternalLinks = linkAuditResults.filter((item) => item.error || item.status === null);
+    const brokenInternalLinks = linkAuditResults.filter((item) => item.status === 404 || item.status === 410 || (item.status !== null && item.status >= 500));
     const isAuthUtilityRedirect = (item: LinkAuditResult) => {
       if (!item.redirected || item.error) return false;
       try {
@@ -1462,9 +1475,11 @@ export async function POST(request: Request) {
     seoChecks.push(
       uniqueInternalAnchors.length === 0
         ? check("not_applicable", "broken_links", "seo", "Broken links", "Geen controleerbare interne links gevonden op deze pagina.", "Controleer links opnieuw wanneer de pagina interne navigatie bevat.", 0, 5)
-        : brokenInternalLinks.length === 0
-          ? check("pass", "broken_links", "seo", "Broken links", `${linkAuditResults.length} interne link(s) steekproefsgewijs gecontroleerd; geen 404, 410, 5xx of fetchfout gevonden.`, "Blijf interne links controleren bij wijzigingen en verwijderde pagina's.", 5, 5)
-          : check("warning", "broken_links", "seo", "Broken links", `${brokenInternalLinks.length} van ${linkAuditResults.length} gecontroleerde interne link(s) is niet betrouwbaar bereikbaar. Voorbeeld: ${brokenInternalLinks[0]?.url} → ${brokenInternalLinks[0]?.status ?? "fetchfout"}.`, "Herstel de bestemming, verwijder de link of redirect een oude URL naar de juiste relevante pagina.", 2, 5)
+        : brokenInternalLinks.length > 0
+          ? check("warning", "broken_links", "seo", "Broken links", `${brokenInternalLinks.length} van ${linkAuditResults.length} gecontroleerde interne link(s) gaf een bewezen foutstatus. Voorbeeld: ${brokenInternalLinks[0]?.url} → HTTP ${brokenInternalLinks[0]?.status}.`, "Herstel de bestemming, verwijder de link of redirect een oude URL naar de juiste relevante pagina.", 2, 5)
+          : unconfirmedInternalLinks.length > 0
+            ? check("unable_to_confirm", "broken_links", "seo", "Broken links", `${unconfirmedInternalLinks.length} van ${linkAuditResults.length} interne link(s) kon tijdens deze scan niet betrouwbaar worden opgehaald. Er is geen 404/410/5xx bewezen.`, "Controleer deze links opnieuw; een fetchfout alleen is geen bewijs van een kapotte link.", 0, 5)
+            : check("pass", "broken_links", "seo", "Broken links", `${linkAuditResults.length} interne link(s) steekproefsgewijs gecontroleerd; geen 404, 410 of 5xx gevonden.`, "Blijf interne links controleren bij wijzigingen en verwijderde pagina's.", 5, 5)
     );
     seoChecks.push(
       uniqueInternalAnchors.length === 0
@@ -1521,7 +1536,9 @@ export async function POST(request: Request) {
       const attrs=(match[1]||"").replace(/\s+/g," ").trim().slice(0,220);
       return `<button${attrs ? " "+attrs : ""}>…</button>`;
     });
-    const accessibilityIssueCount=imagesMissingAlt+unlabeledFormControls+emptyButtons;
+    // Missing image alt is already scored by IMAGE_ALT_MISSING. Keep the accessibility
+    // aggregate independent so one defect cannot lower the audit twice.
+    const accessibilityIssueCount=unlabeledFormControls+emptyButtons;
     const dutchEuroDecimalPattern = /€\s?\d{1,3}(?:[.,]\d{3})*[.]\d{2}\b/g;
     const priceFormatMatches = text.match(dutchEuroDecimalPattern) || [];
     const hasDotDecimalPrices = priceFormatMatches.length > 0;
@@ -2117,8 +2134,8 @@ export async function POST(request: Request) {
 
     seoChecks.push(
       accessibilityIssueCount===0
-        ? check("pass","accessibility_basics","seo","Toegankelijkheid basis","Geen duidelijke basisproblemen gevonden bij afbeelding-alt, formulierlabels of lege knoppen in de statische HTML.","Blijf toetsenbordbediening, focus, contrast en dynamische content afzonderlijk testen. Dit is geen volledige toegankelijkheidsaudit.",5,5)
-        : check("warning","accessibility_basics","seo","Toegankelijkheid basis","Basiscontrole vond "+accessibilityIssueCount+" aandachtspunt(en): "+imagesMissingAlt+" afbeelding(en) zonder alt-attribuut, "+unlabeledFormControls+" formuliercontrol(s) zonder aantoonbaar label en "+emptyButtons+" lege knop(pen) zonder toegankelijke naam.","Corrigeer de aantoonbare HTML-signalen en voer daarna een uitgebreidere toegankelijkheidstest uit. RankFix claimt hiermee geen wettelijke conformiteit.",2,5)
+        ? check("pass","accessibility_basics","seo","Toegankelijkheid basis","Geen duidelijke basisproblemen gevonden bij formulierlabels of lege knoppen in de statische HTML. Afbeelding-alt wordt afzonderlijk beoordeeld.","Blijf toetsenbordbediening, focus, contrast en dynamische content afzonderlijk testen. Dit is geen volledige toegankelijkheidsaudit.",5,5)
+        : check("warning","accessibility_basics","seo","Toegankelijkheid basis","Basiscontrole vond "+accessibilityIssueCount+" onafhankelijk(e) aandachtspunt(en): "+unlabeledFormControls+" formuliercontrol(s) zonder aantoonbaar label en "+emptyButtons+" lege knop(pen) zonder toegankelijke naam. Afbeelding-alt wordt afzonderlijk beoordeeld.","Corrigeer de aantoonbare HTML-signalen en voer daarna een uitgebreidere toegankelijkheidstest uit. RankFix claimt hiermee geen wettelijke conformiteit.",2,5)
     );
 
     seoChecks.push(hasPlaceholders
@@ -2254,7 +2271,9 @@ export async function POST(request: Request) {
     geoChecks.push(isHomepage
       ? organizationSchemaPresent && websiteSchemaPresent
         ? check("pass", "organization_website", "geo", "Organization + WebSite", "Organization en WebSite structured data zijn aanwezig op de homepage.", "Houd naam, URL en logo consistent met de zichtbare site-identiteit.", 8, 8)
-        : check("warning", "organization_website", "geo", "Organization + WebSite", "De homepage mist Organization en/of WebSite structured data.", "Voeg passende Organization- en WebSite JSON-LD toe zonder gegevens te verzinnen.", 3, 8)
+        : metadataMayBeClientRendered && validJsonLd === 0
+          ? check("unable_to_confirm", "organization_website", "geo", "Organization + WebSite", "Organization/WebSite structured data kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de homepage opnieuw met een volledige render voordat je Organization of WebSite schema toevoegt.", 0, 8)
+          : check("warning", "organization_website", "geo", "Organization + WebSite", "De homepage mist Organization en/of WebSite structured data.", "Voeg passende Organization- en WebSite JSON-LD toe zonder gegevens te verzinnen.", 3, 8)
       : check("not_applicable", "organization_website", "geo", "Organization + WebSite", "Homepage-specifieke Organization/WebSite-controle is niet vereist op deze URL.", "Controleer de homepage afzonderlijk voor organisatie- en website-identiteit.", 0, 8)
     );
 
@@ -2322,11 +2341,13 @@ export async function POST(request: Request) {
       hasSocialOrReviewSignal
     );
     const organizationExpertiseSignal = hasOrganizationIdentity && hasServiceExpertiseSignal;
-    geoChecks.push(hasAuthorSignal || (hasLocalBusinessSignal && hasServiceExpertiseSignal) || organizationExpertiseSignal
-      ? check("pass", "author", "geo", "Expertise-signalen", hasAuthorSignal ? "Auteur- of expertisesignalen zijn gevonden." : organizationExpertiseSignal ? "Duidelijke organisatie- en expertisesignalen zijn gevonden." : "Duidelijke dienst- en vakgebiedsignalen zijn gevonden voor deze lokale bedrijfspagina.", "Maak auteur, expertise, diensten en bronnen waar relevant nog explicieter.", 8, 8)
-      : ecommerceExpertiseSignal
-        ? check("pass", "author", "geo", "Expertise-signalen", "Voor deze webshop zijn merk-, organisatie- en productcontext-signalen gevonden; een individuele auteur is niet noodzakelijk voor productcontent.", "Maak merk-, product- en organisatiecontext consistent en voeg auteurs of bronnen toe waar informatieve content dat vereist.", 8, 8)
-        : check("warning", "author", "geo", "Expertise-signalen", "Geen duidelijke auteur/expertisesignalen gevonden.", "Voeg auteur, organisatie, expertise en betrouwbare bronnen toe aan informatieve content.", 3, 8)
+    geoChecks.push(sectorProfile.sector === "news_media" && isHomepage
+      ? check("not_applicable", "author", "geo", "Expertise-signalen", "Een individuele auteur is niet vereist op de homepage van een nieuws- of mediasite. Auteurschap hoort op afzonderlijke artikelen te worden beoordeeld.", "Controleer auteur, publicatiedatum en broncontext op echte nieuwsartikelen.", 0, 8)
+      : hasAuthorSignal || (hasLocalBusinessSignal && hasServiceExpertiseSignal) || organizationExpertiseSignal
+        ? check("pass", "author", "geo", "Expertise-signalen", hasAuthorSignal ? "Auteur- of expertisesignalen zijn gevonden." : organizationExpertiseSignal ? "Duidelijke organisatie- en expertisesignalen zijn gevonden." : "Duidelijke dienst- en vakgebiedsignalen zijn gevonden voor deze lokale bedrijfspagina.", "Maak auteur, expertise, diensten en bronnen waar relevant nog explicieter.", 8, 8)
+        : ecommerceExpertiseSignal
+          ? check("pass", "author", "geo", "Expertise-signalen", "Voor deze webshop zijn merk-, organisatie- en productcontext-signalen gevonden; een individuele auteur is niet noodzakelijk voor productcontent.", "Maak merk-, product- en organisatiecontext consistent en voeg auteurs of bronnen toe waar informatieve content dat vereist.", 8, 8)
+          : check("warning", "author", "geo", "Expertise-signalen", "Geen duidelijke auteur/expertisesignalen gevonden.", "Voeg auteur, organisatie, expertise en betrouwbare bronnen toe aan informatieve content.", 3, 8)
     );
     geoChecks.push(hasContactChannelSignal || hasAboutSignal || hasSocialOrReviewSignal
       ? check("pass", "trust", "geo", "Trust & context", hasAboutSignal ? "Contact- en organisatiecontext zijn zichtbaar." : "Concrete contact-, locatie- of externe profielsignalen zijn zichtbaar.", "Houd bedrijfsnaam, contactgegevens, locatie, verantwoordelijkheden en officiële profielen consistent.", 8, 8)
@@ -2813,8 +2834,8 @@ export async function POST(request: Request) {
         const pageCanonical = firstMatch(pageHtml, /<link[^>]+rel\s*=\s*["'][^"']*canonical[^"']*["'][^>]+href\s*=\s*["']([^"']+)["'][^>]*>/i) || firstMatch(pageHtml, /<link[^>]+href\s*=\s*["']([^"']+)["'][^>]+rel\s*=\s*["'][^"']*canonical[^"']*["'][^>]*>/i);
         const evidenceChecks: MultiPageAudit["evidenceChecks"] = [
           {key:"http",status:"PASS",details:`HTTP ${r.status}`},
-          {key:"title",status:pageTitle?"PASS":"WARNING",details:pageTitle?`Title gevonden (${pageTitle.length} tekens).`:"Geen title gevonden in raw HTML."},
-          {key:"description",status:pageDescription?"PASS":"WARNING",details:pageDescription?`Meta description gevonden (${pageDescription.length} tekens).`:"Geen meta description gevonden in raw HTML."},
+          {key:"title",status:!pageTitle?"WARNING":pageTitle.length>=30&&pageTitle.length<=60?"PASS":"WARNING",details:!pageTitle?"Geen title gevonden in raw HTML.":pageTitle.length>=30&&pageTitle.length<=60?`Title gevonden (${pageTitle.length} tekens); binnen richtwaarde 30–60.`:`Title gevonden (${pageTitle.length} tekens); buiten richtwaarde 30–60.`},
+          {key:"description",status:!pageDescription?"WARNING":pageDescription.length>=70&&pageDescription.length<=200?"PASS":"WARNING",details:!pageDescription?"Geen meta description gevonden in raw HTML.":pageDescription.length>=70&&pageDescription.length<=200?`Meta description gevonden (${pageDescription.length} tekens); bruikbare lengte.`:`Meta description gevonden (${pageDescription.length} tekens); uitzonderlijk ${pageDescription.length<70?"kort":"lang"}.`},
           {key:"h1",status:pageH1s.length>0?"PASS":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:`${pageH1s.length} H1-heading(s) gevonden.`},
           {key:"canonical",status:pageCanonical
             ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); return normalizeScanUrl(resolved.toString())===normalizeScanUrl(finalCandidate.toString())?"PASS":"WARNING"; } catch { return "WARNING"; } })()
