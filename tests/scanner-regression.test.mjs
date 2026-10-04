@@ -304,3 +304,12 @@ test("link and accessibility penalties scale with proven impact", async () => {
   assert.match(source, /accessibilityIssueRatio <= 0\.05 \? 4 : accessibilityIssueRatio <= 0\.20 \? 3 : accessibilityIssueRatio <= 0\.50 \? 2 : 1/);
   assert.match(source, /accessibilityPoints,5/);
 });
+
+
+test("heading advice scales gradually without becoming a hard failure", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /const headingStructurePoints = hasH2 \? 7 : subheadingCount >= 3 \? 6 : subheadingCount >= 1 \? 5 : 4/);
+  assert.match(source, /check\("warning", "headings", "seo", "Heading-structuur"[\s\S]*headingStructurePoints, 7\)/);
+  assert.match(source, /structuuradvies en geen bewezen rankingfout/);
+});

@@ -2000,16 +2000,22 @@ export async function POST(request: Request) {
           : check("warning", "h1", "seo", "H1-heading", "Er is geen H1-heading gevonden. Dit is een structuur-/toegankelijkheidsaanbeveling en geen op zichzelf bewezen rankingfout.", "Voeg een duidelijke primaire H1 toe wanneer dat past bij de pagina-inhoud.", 6, 8)
         : check("pass", "h1", "seo", "H1-heading", `Er zijn ${h1s.length} H1-headings gevonden. Meerdere H1-elementen zijn technisch toegestaan; RankFix behandelt dit daarom als structuuradvies en niet als bewezen SEO-probleem.`, "Overweeg één duidelijke primaire H1 en gebruik H2/H3 voor secties wanneer dat de documentstructuur begrijpelijker maakt.", 8, 8)
     );
-    seoChecks.push(headings.length && headings.some((h) => h.level === 2)
+    const subheadingCount = headings.length;
+    const hasH2 = headings.some((h) => h.level === 2);
+    const headingStructurePoints = hasH2 ? 7 : subheadingCount >= 3 ? 6 : subheadingCount >= 1 ? 5 : 4;
+    seoChecks.push(subheadingCount > 0 && hasH2
       ? check("pass", "headings", "seo", "Heading-structuur", h1s.length > 0
-          ? `Er zijn ${headings.length} H2–H6 headings gevonden naast de H1.`
+          ? `Er zijn ${subheadingCount} H2–H6 headings gevonden naast de H1.`
           : metadataMayBeClientRendered
-            ? `Er zijn ${headings.length} H2–H6 headings gevonden. De H1 wordt afzonderlijk gecontroleerd en kon op deze JavaScript-pagina niet betrouwbaar worden bevestigd.`
-            : `Er zijn ${headings.length} H2–H6 headings gevonden. Er is geen H1 gevonden; de H1 wordt afzonderlijk beoordeeld.`,
+            ? `Er zijn ${subheadingCount} H2–H6 headings gevonden. De H1 wordt afzonderlijk gecontroleerd en kon op deze JavaScript-pagina niet betrouwbaar worden bevestigd.`
+            : `Er zijn ${subheadingCount} H2–H6 headings gevonden. Er is geen H1 gevonden; de H1 wordt afzonderlijk beoordeeld.`,
         "Gebruik headings om onderwerpen en subonderwerpen logisch te groeperen.", 7, 7)
-      : metadataMayBeClientRendered && headings.length === 0
+      : metadataMayBeClientRendered && subheadingCount === 0
         ? check("unable_to_confirm", "headings", "seo", "Heading-structuur", "De headingstructuur kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de headingstructuur opnieuw met een volledige render voordat je headings toevoegt of wijzigt.", 0, 7)
-        : check("warning", "headings", "seo", "Heading-structuur", "De pagina heeft weinig duidelijke subheadings.", "Voeg H2/H3-secties toe rond belangrijke onderwerpen en vragen.", 3, 7)
+        : check("warning", "headings", "seo", "Heading-structuur", subheadingCount
+            ? `Er zijn ${subheadingCount} subheading(s) gevonden, maar geen duidelijke H2-laag. Dit is structuuradvies en geen bewezen rankingfout.`
+            : "Er zijn geen H2–H6 subheadings gevonden. Dit is structuuradvies en geen bewezen rankingfout.",
+          "Gebruik H2/H3-secties wanneer die de inhoud logisch groeperen; voeg geen headings toe puur voor de score.", headingStructurePoints, 7)
     );
     let canonicalUrl: URL | null = null;
     let canonicalInvalid = false;
