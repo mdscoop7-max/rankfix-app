@@ -17,16 +17,19 @@ export async function getInternalCapacitySignals():Promise<CapacitySignal[]>{
    FROM background_jobs`),
   db.query(`SELECT
    (SELECT COUNT(*)::int FROM pg_stat_activity WHERE datname=current_database()) AS connections,
-   pg_database_size(current_database())::float AS database_bytes`)
+   pg_database_size(current_database())::float AS database_bytes,
+   (SELECT setting::int FROM pg_settings WHERE name='max_connections') AS max_connections`)
  ]);
  const q=queue.rows[0]||{},d=dbStats.rows[0]||{};
  const waiting=Number(q.waiting||0),oldest=Math.round(Number(q.oldest_wait_minutes||0)),failed=Number(q.failed_24h||0),connections=Number(d.connections||0),dbMb=Math.round(Number(d.database_bytes||0)/1024/1024);
- const configuredPool=Math.max(1,Number.parseInt(process.env.DB_POOL_MAX||"5",10)||5);
+ const maxConnections=Math.max(1,Number(d.max_connections||100));
+ const connectionWarnAt=Math.max(10,Math.floor(maxConnections*0.70));
+ const connectionCriticalAt=Math.max(connectionWarnAt+1,Math.floor(maxConnections*0.90));
  return [
   signal("queue_waiting","Wachtrij",waiting,"jobs",50,200,waiting===0?"Geen wachtende achtergrondtaken.":`${waiting} taken wachten op verwerking.`),
   signal("queue_age","Oudste job",oldest,"min",10,30,oldest===0?"Geen wachttijd.":`Oudste wachtende taak is ${oldest} minuten oud.`),
   signal("queue_failures","Mislukte jobs (24u)",failed,"jobs",5,20,failed===0?"Geen mislukte jobs in de laatste 24 uur.":`${failed} jobs zijn in 24 uur definitief mislukt.`),
-  signal("db_connections","Databaseconnecties",connections,"connecties",Math.max(4,configuredPool),Math.max(8,configuredPool*2),`${connections} actieve PostgreSQL-connecties zichtbaar.`),
+  signal("db_connections","Databaseconnecties",connections,"connecties",connectionWarnAt,connectionCriticalAt,`${connections} actieve PostgreSQL-connecties zichtbaar; waarschuwing vanaf ${connectionWarnAt} van maximaal ${maxConnections}.`),
   signal("db_size","Databasegrootte",dbMb,"MB",500,900,`RankFix gebruikt ongeveer ${dbMb} MB databaseopslag.`)
  ];
 }
