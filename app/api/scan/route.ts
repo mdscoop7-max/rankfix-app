@@ -2820,7 +2820,7 @@ export async function POST(request: Request) {
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
     type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageAudit = MultiPageCandidate & { status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -2899,6 +2899,24 @@ export async function POST(request: Request) {
         const pageDescription = firstMatch(pageHtml, /<meta[^>]+(?:name|property)\s*=\s*["']description["'][^>]+content\s*=\s*["']([\s\S]*?)["'][^>]*>/i) || firstMatch(pageHtml, /<meta[^>]+content\s*=\s*["']([\s\S]*?)["'][^>]+(?:name|property)\s*=\s*["']description["'][^>]*>/i);
         const pageH1s = [...pageHtml.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gi)].map((m)=>stripHtml(m[1])).filter(Boolean);
         const pageCanonical = firstMatch(pageHtml, /<link[^>]+rel\s*=\s*["'][^"']*canonical[^"']*["'][^>]+href\s*=\s*["']([^"']+)["'][^>]*>/i) || firstMatch(pageHtml, /<link[^>]+href\s*=\s*["']([^"']+)["'][^>]+rel\s*=\s*["'][^"']*canonical[^"']*["'][^>]*>/i);
+        const pageSchemaTypes = [...pageHtml.matchAll(/"@type"\s*:\s*"([^"]+)"/gi)].map((m)=>String(m[1]||"").toLowerCase());
+        const pageProductSchema = pageSchemaTypes.some((type)=>type==="product" || type.endsWith("product"));
+        const pageItemListSchema = pageSchemaTypes.some((type)=>type==="itemlist");
+        const pageStoreSchema = pageSchemaTypes.some((type)=>/^(?:store|onlinestore|departmentstore|wholesalestore)$/.test(type));
+        const pageStrongCommerceAction = /\b(?:add to cart|add to basket|buy now|shop now|toevoegen aan winkelwagen|in winkelwagen|acquista ora|aggiungi al carrello|comprar ahora|adicionar ao carrinho|ajouter au panier|in den warenkorb)\b/i.test(pageQualityText);
+        const pageProductLinks = [...pageHtml.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi)]
+          .map((m)=>safeDecodeURIComponent(m[1]||""))
+          .filter((href)=>/(?:^|\/)(?:product|products|product-page|p)(?:\/|$)|\/(?:dp|artikel|prodotto|produto)\//i.test(href));
+        const pagePriceSignals = (pageQualityText.match(/(?:€|EUR\b|\bEUR\s*)\s*\d{1,5}(?:[.,]\d{2})?|\d{1,5}(?:[.,]\d{2})?\s*(?:€|EUR\b)/gi)||[]).length;
+        const pageCommerceEvidence = {
+          productSchema: pageProductSchema,
+          itemListSchema: pageItemListSchema,
+          storeSchema: pageStoreSchema,
+          strongCommerceAction: pageStrongCommerceAction,
+          repeatedProductLinks: new Set(pageProductLinks).size >= 3,
+          priceSignals: pagePriceSignals,
+          confirmedRetailPage: pageProductSchema || (pageStrongCommerceAction && pagePriceSignals >= 1) || (pageItemListSchema && new Set(pageProductLinks).size >= 3) || (pageStoreSchema && pagePriceSignals >= 2),
+        };
         const evidenceChecks: MultiPageAudit["evidenceChecks"] = [
           {key:"http",status:"PASS",details:`HTTP ${r.status}`},
           {key:"title",status:!pageTitle?"WARNING":pageTitle.length>=30&&pageTitle.length<=60?"PASS":"WARNING",details:!pageTitle?"Geen title gevonden in raw HTML.":pageTitle.length>=30&&pageTitle.length<=60?`Title gevonden (${pageTitle.length} tekens); binnen richtwaarde 30–60.`:`Title gevonden (${pageTitle.length} tekens); buiten richtwaarde 30–60.`},
@@ -2922,19 +2940,45 @@ export async function POST(request: Request) {
           return 0.5;
         };
         const earned = confirmed.reduce((sum,item)=>sum+evidenceCredit(item),0);
-        return { ...page, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, score:confirmed.length?Math.round((earned/confirmed.length)*100):null, evidenceChecks };
+        return { ...page, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, score:confirmed.length?Math.round((earned/confirmed.length)*100):null, commerceEvidence:pageCommerceEvidence, evidenceChecks };
       } catch {
         return { ...page, status:"unable_to_confirm", httpStatus:null, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"fetch",status:"UNABLE_TO_CONFIRM",details:"Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald."}] };
       }
     };
     const multiPageAudits = await Promise.all(uniqueMultiPagePages.map(auditMultiPage));
     const auditedMultiPages = multiPageAudits.filter((item)=>item.status==="audited");
+    const confirmedRetailSamples = auditedMultiPages.filter((item)=>item.commerceEvidence?.confirmedRetailPage);
+    const sitewideCommerceEvidence = {
+      confirmed: confirmedRetailSamples.length > 0,
+      sampleCount: confirmedRetailSamples.length,
+      urls: confirmedRetailSamples.map((item)=>item.url).slice(0,3),
+      evidence: confirmedRetailSamples.map((item)=>({
+        url:item.url,
+        type:item.type,
+        productSchema:Boolean(item.commerceEvidence?.productSchema),
+        itemListSchema:Boolean(item.commerceEvidence?.itemListSchema),
+        storeSchema:Boolean(item.commerceEvidence?.storeSchema),
+        strongCommerceAction:Boolean(item.commerceEvidence?.strongCommerceAction),
+        repeatedProductLinks:Boolean(item.commerceEvidence?.repeatedProductLinks),
+        priceSignals:item.commerceEvidence?.priceSignals||0,
+      })).slice(0,3),
+    };
+    // Multi-page evidence may strengthen the site profile, but never silently
+    // activates page-specific webshop checks for the page the customer scanned.
+    if (!transportBookingIdentity && sitewideCommerceEvidence.confirmed && !technologyProfile.isCommerce) {
+      technologyProfile.isCommerce = true;
+      technologyProfile.siteType = "Webshop";
+      technologyProfile.commercePlatform = technologyProfile.commercePlatform === "Niet bevestigd" ? "Webshop bevestigd via site-sample" : technologyProfile.commercePlatform;
+      technologyProfile.confidence = Math.max(technologyProfile.confidence, 82);
+      technologyProfile.evidence = [...technologyProfile.evidence, `Site-sample bevestigt retail commerce op ${sitewideCommerceEvidence.sampleCount} pagina('s)`].slice(0,8);
+    }
     const multiPage = {
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:4,
       discoveredInternalUrls:discoveredMultiPage.length, selectedPages:uniqueMultiPagePages, pageAudits:multiPageAudits,
       siteSampleScore: auditedMultiPages.length ? Math.round(auditedMultiPages.reduce((sum,item)=>sum+(item.score||0),0)/auditedMultiPages.length) : null,
+      sitewideCommerceEvidence,
       counts:{ homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedMultiPages.length, unableToConfirm:multiPageAudits.length-auditedMultiPages.length },
-      note:"Representative same-host pages are fetched with bounded raw-HTML checks. Their sample score is separate from the explicitly scanned page score.",
+      note:"Representative same-host pages are fetched with bounded raw-HTML checks. Their sample score is separate from the explicitly scanned page score; confirmed sitewide retail evidence may only strengthen the website profile.",
     };
 
     let user = null;
