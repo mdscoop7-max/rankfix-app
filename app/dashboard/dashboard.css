@@ -428,3 +428,11 @@
  .rf-websites-featured .rf-site-actions{grid-template-columns:42px 1fr 1fr}
  .rf-websites-featured .rf-site-actions a:last-child{display:none}
 }
+
+/* Mobile polish: clear history actions and tighter cards */
+@media(max-width:850px){
+ .rf-history-actions{display:flex!important;flex-wrap:wrap;gap:8px!important;margin-top:14px}
+ .rf-history-actions a{display:inline-flex!important;align-items:center;justify-content:center;min-height:38px;padding:8px 12px!important;border:1px solid #315875;border-radius:10px;background:#0b2038;font-size:13px;font-weight:800;line-height:1.1}
+ .rf-process-grid{gap:12px!important}
+ .rf-process-grid article{padding:22px!important}
+}
