@@ -125,8 +125,9 @@ export async function sendSystemHealthEmail(alert:SystemHealthEmail){
  if(!apiKey||!from) throw new Error("Email configuration missing.");
  const base=(process.env.APP_URL||"https://rankfix-app.onrender.com").replace(/\/$/,"");
  const dashboard=base+"/dashboard/health";
- const subject=alert.recovered?"RankFix Health Guard — systeem hersteld":"RankFix Health Guard — kritiek probleem";
- const intro=alert.recovered?"RankFix werkt weer normaal. Het kritieke incident is automatisch als hersteld gemarkeerd.":"Health Guard heeft een kritiek probleem meerdere keren bevestigd. Controleer het interne health-dashboard.";
+ const highest=alert.checks.some(c=>c.level==="red")?"red":alert.checks.some(c=>c.level==="orange")?"orange":"green";
+ const subject=alert.recovered?"RankFix Health Guard — systeem hersteld":highest==="red"?"RankFix Health Guard — kritiek probleem":"RankFix Health Guard — waarschuwing hoge belasting";
+ const intro=alert.recovered?"RankFix werkt weer normaal. Het incident is automatisch als hersteld gemarkeerd.":highest==="red"?"Health Guard heeft een kritiek probleem meerdere keren bevestigd. Controleer het interne health-dashboard.":"Health Guard ziet structureel verhoogde belasting. RankFix werkt nog, maar controleer capaciteit en overweeg opschalen als dit aanhoudt.";
  const rows=alert.checks.map(c=>"<li><strong>"+escapeHtml(c.label)+"</strong> — "+escapeHtml(c.message)+"</li>").join("");
  const html='<!doctype html><html><body style="font-family:Arial,sans-serif;background:#f8fafc;color:#0f172a"><div style="max-width:620px;margin:auto;padding:28px"><div style="background:#fff;border-radius:16px;padding:24px"><div style="font-size:12px;font-weight:800">RANKFIX HEALTH GUARD</div><h1>'+escapeHtml(subject)+'</h1><p>'+escapeHtml(intro)+'</p><ul>'+rows+'</ul><p><a href="'+escapeHtml(dashboard)+'">Open Health Dashboard</a></p></div></div></body></html>';
  const response=await fetch("https://api.resend.com/emails",{method:"POST",headers:{Authorization:"Bearer "+apiKey,"Content-Type":"application/json"},body:JSON.stringify({from,to:[alert.to],subject,html})});

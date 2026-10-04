@@ -31,16 +31,18 @@ export async function runHealthGuard(){
  await db.query("INSERT INTO rankfix_capacity_runs (overall_level,signals) VALUES ($1,$2)",[capacityLevel,JSON.stringify(capacity)]);
 
  let alertSent=false,recoverySent=false;
- const persistentCapacityRed=capacityTrends.filter(t=>t.effective==="red").map(t=>({key:`capacity:${t.key}`,label:t.label,level:"red" as const,message:t.message}));
+ const persistentCapacityAlerts=capacityTrends.filter(t=>t.effective==="orange"||t.effective==="red").map(t=>({key:`capacity:${t.key}`,label:t.label,level:t.effective as "orange"|"red",message:t.message}));
  const operationalRed=operationalGuards.filter(g=>g.level==="red").map(g=>({key:`operations:${g.key}`,label:g.label,level:"red" as const,message:g.message}));
  const extendedRed=securityUsageGrowth.filter(g=>g.level==="red").map(g=>({key:g.key,label:g.label,level:"red" as const,message:g.message}));
  const recoveryRed=recoveryGuards.filter(g=>g.level==="red").map(g=>({key:g.key,label:g.label,level:"red" as const,message:g.message}));
- const criticalChecks=[...red,...persistentCapacityRed,...operationalRed,...extendedRed,...recoveryRed];
- const activeKeys=new Set(criticalChecks.map(check=>`rankfix-production:${check.key}`));
+ const warningChecks=capacityTrends.filter(t=>t.effective==="orange").map(t=>({key:`capacity:${t.key}`,label:t.label,level:"orange" as const,message:t.message}));
+ const criticalChecks=[...red,...persistentCapacityAlerts.filter(c=>c.level==="red"),...operationalRed,...extendedRed,...recoveryRed];
+ const alertChecks=[...criticalChecks,...warningChecks];
+ const activeKeys=new Set(alertChecks.map(check=>`rankfix-production:${check.key}`));
 
  // Every critical subsystem owns its own incident. A database outage can no
  // longer accidentally increment or resolve an unrelated app incident.
- for(const check of criticalChecks){
+ for(const check of alertChecks){
    const incidentKey=`rankfix-production:${check.key}`;
    const current=await db.query("SELECT * FROM rankfix_health_incidents WHERE incident_key=$1 LIMIT 1",[incidentKey]);
    const incident=current.rows[0];
@@ -84,7 +86,7 @@ export async function runHealthGuard(){
  // Recover abandoned worker leases and bound completed queue history. Queue maintenance must never take Health Guard down.
  await releaseStaleJobs().catch(error=>console.error("Queue stale-job recovery failed",error instanceof Error?error.message:"QUEUE_RECOVERY_FAILED"));
  await db.query("DELETE FROM background_jobs WHERE status IN ('SUCCEEDED','FAILED') AND finished_at < NOW()-INTERVAL '30 days'").catch(()=>undefined);
- return NextResponse.json({level,checks,capacityLevel,capacity,capacityTrendLevel,capacityTrends,operationalGuards,securityUsageGrowth,recoveryGuards,critical:criticalChecks.length>0,alertSent,recoverySent,checkedAt:new Date().toISOString()});
+ return NextResponse.json({level,checks,capacityLevel,capacity,capacityTrendLevel,capacityTrends,operationalGuards,securityUsageGrowth,recoveryGuards,warning:warningChecks.length>0,critical:criticalChecks.length>0,alertSent,recoverySent,checkedAt:new Date().toISOString()});
 }
 export async function GET(request:Request){
  if(!authorized(request)) return NextResponse.json({error:"Niet toegestaan."},{status:401});
