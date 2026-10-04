@@ -678,7 +678,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         <div className="mx-auto mt-4 max-w-4xl px-2">
           <div className="flex flex-wrap justify-center gap-2 text-xs font-semibold text-emerald-100">
             {(language === "nl"
-              ? ["SEO","GEO / AI Search","Security","Techniek","Webshop","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Search Console","Consent Mode","Local SEO","Structured Data","Accessibility","Quality & Trust","Broken Links","Redirects"]
+              ? ["SEO","GEO / AI Search","Security","Techniek","Webshop","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Search Console","Consent Mode","Local SEO","Structured Data","Toegankelijkheid","Quality & Trust","Broken Links","Redirects"]
               : language === "de"
                 ? ["SEO","GEO / AI Search","Security","Technik","Onlineshop","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Search Console","Consent Mode","Local SEO","Structured Data","Barrierefreiheit","Quality & Trust","Broken Links","Redirects"]
                 : language === "fr"
