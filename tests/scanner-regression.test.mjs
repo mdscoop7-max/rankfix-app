@@ -67,3 +67,17 @@ test("scanner URL guard blocks local and private targets", () => {
   assert.throws(() => validatePublicHttpUrl("https://user:pass@example.com/"), /URL_CREDENTIALS_BLOCKED/);
   assert.throws(() => validatePublicHttpUrl("https://example.com:8443/"), /URL_PORT_BLOCKED/);
 });
+
+
+test("scanner regression source keeps evidence-only classification safeguards", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+
+  assert.match(source, /productSchemaCommerceSignal/);
+  assert.match(source, /fetchfout alleen is geen bewijs van een kapotte link/);
+  assert.match(source, /const accessibilityIssueCount=unlabeledFormControls\+emptyButtons/);
+  assert.match(source, /Organization\/WebSite structured data kon niet betrouwbaar worden bevestigd/);
+  assert.match(source, /Een individuele auteur is niet vereist op de homepage van een nieuws- of mediasite/);
+  assert.match(source, /buiten richtwaarde 30–60/);
+  assert.match(source, /uitzonderlijk.*kort.*lang/s);
+});
