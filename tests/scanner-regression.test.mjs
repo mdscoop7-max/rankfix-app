@@ -227,3 +227,14 @@ test("score engine keeps independent penalties independent", async () => {
   ]);
   assert.equal(score, 30);
 });
+
+
+test("advisory evidence does not become a hard failure", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /check\("warning", "response", "seo", "Server response"[\s\S]*één meting is traag/);
+  assert.doesNotMatch(source, /check\("fail", "response", "seo", "Server response"/);
+  assert.match(source, /check\("warning", "schema", "geo", "Structured data"[\s\S]*machineleesbare optimalisatiekans/);
+  assert.match(source, /"schema": "structured_data_context"/);
+  assert.match(source, /issue_id: key, rule_id: key/);
+});
