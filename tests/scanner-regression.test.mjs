@@ -261,3 +261,15 @@ test("measurable metadata defects use gradual penalties", async () => {
   assert.match(source, /title: \{ rule_id: title \? "META_TITLE_GUIDANCE" : "META_TITLE_MISSING"/);
   assert.match(source, /social: \{ rule_id: "SOCIAL_METADATA_INCOMPLETE"/);
 });
+
+
+test("description length advice is gradual without changing fix identity", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /const descriptionLengthPoints = \(length: number\) =>/);
+  assert.match(source, /length >= 50 && length < 70/);
+  assert.match(source, /length >= 30 && length < 50/);
+  assert.match(source, /descriptionLengthPoints\(description\.length\), 10/);
+  assert.match(source, /description: \{ rule_id: description \? "META_DESCRIPTION_GUIDANCE" : "META_DESCRIPTION_MISSING"/);
+  assert.match(source, /description: description \|\| \(item\.key === "description" \? "metaDescriptionPresent=false" : null\)/);
+});

@@ -1956,6 +1956,13 @@ export async function POST(request: Request) {
       return 4;
     };
 
+    const descriptionLengthPoints = (length: number) => {
+      if (length >= 70 && length <= 200) return 10;
+      if ((length >= 50 && length < 70) || (length > 200 && length <= 230)) return 8;
+      if ((length >= 30 && length < 50) || (length > 230 && length <= 260)) return 6;
+      return 4;
+    };
+
     seoChecks.push(
       !title
         ? metadataMayBeClientRendered
@@ -1978,7 +1985,7 @@ export async function POST(request: Request) {
             ? check("pass", "description", "seo", "Meta description", description.length >= 120 && description.length <= 160
                 ? `De description is ${description.length} tekens en goed gevuld.`
                 : `De description is ${description.length} tekens. De klassieke 120–160 tekens is een optimalisatierichtlijn, geen technische SEO-eis; deze aanwezige description wordt daarom niet als fout bestraft.`, "Houd de description concreet, uniek en passend bij de zoekintentie; optimaliseer lengte alleen wanneer dat de zoekpreview en boodschap verbetert.", 10, 10)
-            : check("warning", "description", "seo", "Meta description", `De description is ${description.length} tekens en is uitzonderlijk ${description.length < 70 ? "kort" : "lang"}. Dit is optimalisatieadvies, geen op zichzelf bewezen rankingfout.`, "Controleer of de description de pagina duidelijk samenvat en herschrijf alleen wanneer de zoekpreview of boodschap daar aantoonbaar van profiteert.", 8, 10)
+            : check("warning", "description", "seo", "Meta description", `De description is ${description.length} tekens en is uitzonderlijk ${description.length < 70 ? "kort" : "lang"}. Dit is optimalisatieadvies, geen op zichzelf bewezen rankingfout; de punten lopen geleidelijk af naarmate de lengte extremer wordt.`, "Controleer of de description de pagina duidelijk samenvat en herschrijf alleen wanneer de zoekpreview of boodschap daar aantoonbaar van profiteert.", descriptionLengthPoints(description.length), 10)
     );
     seoChecks.push(h1s.length === 1
       ? check("pass", "h1", "seo", "H1-heading", "Er is precies één H1-heading gevonden.", "Behoud één duidelijke primaire H1.", 8, 8)
