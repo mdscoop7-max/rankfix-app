@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import type { Locale } from "@/lib/locales";
 import "./report.css";
 
@@ -22,6 +22,8 @@ const moduleLabel=(v:string)=>({core_seo:"SEO",geo:"GEO / AI-zichtbaarheid",tech
 
 export default function FullAuditReport(){
   const {id}=useParams<{id:string}>();
+  const searchParams=useSearchParams();
+  const downloadRequested=searchParams.get("download")==="1";
   const [scan,setScan]=useState<Scan|null>(null);
   const [error,setError]=useState("");
   const [language,setLanguage]=useState<Locale>("nl");
@@ -34,6 +36,15 @@ export default function FullAuditReport(){
  {basis:"Scan basis & website profile",next:"Next step",rule:"Rule",category:"category",confidence:"confidence",evidence:"Evidence",commerce:"Product & store diagnostics",technical:"Technical scan information",page:"Page",reportId:"Report ID",pageProof:"Page-type evidence",noData:"No data available."};
 
   useEffect(()=>{fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in reportText)setLanguage(d.language)}).catch(()=>{});if(!id)return;fetch("/api/history/"+encodeURIComponent(id),{cache:"no-store"}).then(async r=>{const d=await r.json();if(r.status===401){location.href="/account";return;}if(!r.ok)throw new Error(d.error||t.failed);setScan({...d.scan,id});}).catch(e=>setError(e instanceof Error?e.message:t.failed));},[id]);
+  useEffect(()=>{
+    if(!scan||!downloadRequested)return;
+    let host="website";
+    try{host=new URL(scan.scanned_url).hostname.replace(/[^a-z0-9.-]+/gi,"-");}catch{}
+    const day=new Date(scan.created_at).toISOString().slice(0,10);
+    document.title=`RankFix-test-${host}-${day}`;
+    const timer=window.setTimeout(()=>window.print(),350);
+    return()=>window.clearTimeout(timer);
+  },[scan,downloadRequested]);
   const checks=useMemo(()=>{
     const raw:Check[]=[...(scan?.result?.seo?.checks||[]),...(scan?.result?.geo?.checks||[])];
     const rank:Record<string,number>={fail:5,warning:4,pass:3,unable_to_confirm:2,not_applicable:1};
@@ -51,7 +62,7 @@ export default function FullAuditReport(){
   if(!scan)return <main className="report-wrap"><p>{t.loading}</p></main>;
   const r=scan.result||{}; const profile=r.technologyProfile; const sector=r.sectorProfile; const rendering=r.rendering; const pageType=r.pageTypeEvidence;
   return <main className="report-wrap">
-    <div className="report-actions"><Link href={"/dashboard/audit/"+encodeURIComponent(id)} className="report-button">← {t.back}</Link><button className="report-button primary" onClick={()=>window.print()}>{t.save}</button></div>
+    <div className="report-actions"><Link href={"/dashboard/audit/"+encodeURIComponent(id)} className="report-button">← {t.back}</Link><button className="report-button primary" onClick={()=>window.print()}>{language==="nl"?"PDF downloaden":t.save}</button></div>
     <header className="report-header"><div><div className="report-brand">RankFix <span>AI</span></div><h1>{t.title}</h1><p className="muted">{t.subtitle}</p></div><div className="score"><b>{r.overallScore??"—"}</b><span>/ 100</span></div></header>
     <div className="box score-explainer"><b>{language==="nl"?"Wat betekent deze score?":"What does this score mean?"}</b><p>{language==="nl"?"De score geldt voor de controles die RankFix tijdens deze scan betrouwbaar kon beoordelen. 100/100 betekent niet dat een website op ieder gebied perfect is, gegarandeerd hoog rankt of door AI-zoekmachines wordt genoemd. Niet te bevestigen en N.v.t. worden apart getoond en verlagen de score niet.":"The score applies to checks RankFix could reliably assess during this scan. 100/100 does not mean a website is perfect in every area, guaranteed to rank highly, or guaranteed to be cited by AI search. Unable-to-confirm and N/A checks are shown separately and do not lower the score."}</p></div><section className="summary-grid"><div><span>{t.website}</span><strong>{scan.scanned_url}</strong></div><div><span>{t.scanned}</span><strong>{new Date(scan.created_at).toLocaleString(language,{dateStyle:"long",timeStyle:"short"})}</strong></div><div><span>SEO</span><strong>{r.seo?.score??"—"} / 100</strong></div><div><span>GEO</span><strong>{r.geo?.score??"—"} / 100</strong></div><div><span>Security</span><strong>{r.security?.score??"—"} / 100</strong></div></section>
     <section><h2>{deep.basis}</h2><div className="box"><p><b>Scanbewijs:</b> {rendering?.mode==="raw_html"?"Raw HTML":"Rendered"} · JavaScript {rendering?.javascriptExecuted?"uitgevoerd":"niet uitgevoerd"}{pageType?.type?" · paginatype "+pageType.type+" ("+pageType.confidence+")":""}</p>{rendering?.note&&<p>{rendering.note}</p>}<p><b>Websiteprofiel:</b> {sector?.key==="saas_b2b"?"SaaS / webapp":profile?.siteType||"Website"} · CMS: {profile?.cms||"Niet bevestigd"} · Platform: {profile?.commercePlatform||"Niet bevestigd"} · Framework: {profile?.framework||"Niet bevestigd"} · zekerheid {profile?.confidence??"—"}%</p>{profile?.evidence?.length>0&&<p><b>Websitebewijs:</b> {profile.evidence.join(" · ")}</p>}{sector&&<><p><b>Sector:</b> {sector.label||"Sector niet bevestigd"} · zekerheid {sector.confidenceScore??"—"}%</p>{sector.evidence?.length>0&&<p><b>Sectorbewijs:</b> {sector.evidence.join(" · ")}</p>}{sector.applicableModules?.length>0&&<p><b>Actieve scanmodules:</b> {sector.applicableModules.map((m:string)=>moduleLabel(m)).join(" · ")}</p>}</>}</div></section>
