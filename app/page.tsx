@@ -1207,9 +1207,9 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         <div className="mx-auto mt-10 max-w-7xl border-t border-slate-600 pt-7">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{language==="nl"?"Herkent en controleert onder andere":language==="de"?"Erkennt und prüft unter anderem":language==="fr"?"Reconnaît et contrôle notamment":language==="it"?"Riconosce e controlla tra gli altri":language==="es"?"Reconoce y comprueba, entre otros":"Recognises and checks, among others"}</p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <a href="https://wordpress.org/" target="_blank" rel="noreferrer" className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-white hover:border-emerald-300/40">WordPress</a>
-            <a href="https://woocommerce.com/" target="_blank" rel="noreferrer" className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-white hover:border-emerald-300/40">WooCommerce</a>
-            <a href="https://www.shopify.com/" target="_blank" rel="noreferrer" className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-white hover:border-emerald-300/40">Shopify</a>
+            <span className="rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-2 text-sm font-bold text-emerald-200">WordPress</span>
+            <span className="rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-2 text-sm font-bold text-emerald-200">WooCommerce</span>
+            <span className="rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-2 text-sm font-bold text-emerald-200">Shopify</span>
           </div>
           <p className="mt-3 text-xs text-slate-400">{language==="nl"?"Platformherkenning betekent ondersteuning door RankFix; het is geen partner- of certificeringsclaim.":language==="en"?"Platform recognition means RankFix support; it does not imply a partnership or certification.":"RankFix herkent deze platformen; dit betekent geen officiële samenwerking of certificering."}</p>
         </div>

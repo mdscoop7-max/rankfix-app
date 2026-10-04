@@ -468,15 +468,28 @@ export async function POST(request: Request) {
     }
 
     if (!response.ok) {
-      const httpMessages: Record<string,string> = {
-        nl:`Scan geblokkeerd door website (HTTP ${response.status}). RankFix kon deze website niet betrouwbaar analyseren. Er is daarom geen score berekend.`,
-        en:`The website returned HTTP ${response.status} and cannot be analysed reliably.`,
-        de:`Die Website hat HTTP ${response.status} zurückgegeben und kann nicht zuverlässig analysiert werden.`,
-        fr:`Le site a renvoyé HTTP ${response.status} et ne peut pas être analysé de manière fiable.`,
-        it:`Il sito ha restituito HTTP ${response.status} e non può essere analizzato in modo affidabile.`,
-        es:`El sitio devolvió HTTP ${response.status} y no se puede analizar de forma fiable.`
-      };
-      return NextResponse.json({ error: httpMessages[scanLanguage] }, { status: 422 });
+      if (response.status === 403) {
+        try {
+          const rendered = await renderPublicPage(finalUrl.toString(), 12000);
+          const renderedTitle = firstMatch(rendered.html, /<title[^>]*>([\s\S]*?)<\/title>/i);
+          const renderedText = stripHtml(rendered.html).slice(0, 12000);
+          const renderedWords = renderedText.split(/\s+/).filter(Boolean).length;
+          const renderedChallenge = /\b(access denied|checking your browser|verify (?:you are|that you are) human|security check|attention required|enable javascript and cookies to continue|challenge-platform)\b/i.test(renderedTitle + " " + renderedText);
+          if (renderedWords >= 40 && !renderedChallenge) response = new Response(rendered.html, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
+        } catch {}
+      }
+      if (!response.ok) {
+        const statusKind = response.status === 503 ? "temporary" : response.status === 403 ? "blocked" : "http";
+        const httpMessages: Record<string,string> = {
+          nl: statusKind === "temporary" ? `Website tijdelijk niet beschikbaar (HTTP ${response.status}). RankFix kon de website daarom niet betrouwbaar analyseren. Er is geen score berekend.` : statusKind === "blocked" ? `Website weigerde de scan (HTTP ${response.status}). Ook via de aanvullende browsercontrole kon RankFix onvoldoende betrouwbaar bewijs verzamelen. Er is daarom geen score berekend.` : `De website gaf HTTP ${response.status}. RankFix kon deze website niet betrouwbaar analyseren. Er is daarom geen score berekend.`,
+          en:`The website returned HTTP ${response.status} and could not be analysed reliably, so no score was calculated.`,
+          de:`Die Website hat HTTP ${response.status} zurückgegeben und konnte nicht zuverlässig analysiert werden. Daher wurde keine Bewertung berechnet.`,
+          fr:`Le site a renvoyé HTTP ${response.status} et n’a pas pu être analysé de manière fiable. Aucun score n’a été calculé.`,
+          it:`Il sito ha restituito HTTP ${response.status} e non ha potuto essere analizzato in modo affidabile. Non è stato calcolato alcun punteggio.`,
+          es:`El sitio devolvió HTTP ${response.status} y no pudo analizarse de forma fiable. No se calculó ninguna puntuación.`
+        };
+        return NextResponse.json({ error: httpMessages[scanLanguage], charged: false }, { status: 422 });
+      }
     }
 
     // Modern commerce/product pages can contain large SSR payloads and JSON-LD. Keep a strict cap, but allow enough room to audit them safely.
@@ -826,7 +839,10 @@ export async function POST(request: Request) {
     // Require hard purchase/storefront evidence before webshop-only modules are enabled.
     const hardPurchaseFlowSignal = hasStrongCommerceAction && (hasExplicitPriceSignal || visiblePriceCount >= 2) && (hasCommerceHrefSignal || cartFormSignal);
     const siteLevelCommerceSignal = hasStoreSchema && (hasConfirmedCommercePlatform || hardPurchaseFlowSignal || repeatedProductLinkSignal || storefrontMarkupSignal);
-    const hasEcommerceSignal = hasConfirmedCommercePlatform || hasProductSignal || repeatedProductLinkSignal || storefrontMarkupSignal || homepageStorefrontSignal || siteLevelCommerceSignal || hardPurchaseFlowSignal;
+    const financialInvestmentSignal = /\b(beleggen|belegging(?:en)?|beleggingsfonds|vastgoedfonds|invester(?:en|ing)|prospectus|rendement|certificaten|investment fund|investing|investor|fondsbeheer|asset management)\b/i.test([title, description, ...h1s, text.slice(0, 40000)].join(" "));
+    const hasEcommerceSignal = financialInvestmentSignal
+      ? Boolean(hasConfirmedCommercePlatform || hasProductSchema || repeatedProductLinkSignal || storefrontMarkupSignal || (hardPurchaseFlowSignal && (cartHrefSignal || checkoutHrefSignal)))
+      : Boolean(hasConfirmedCommercePlatform || hasProductSignal || repeatedProductLinkSignal || storefrontMarkupSignal || homepageStorefrontSignal || siteLevelCommerceSignal || hardPurchaseFlowSignal);
     // EU consumer/Omnibus checks are jurisdiction-sensitive. A non-EU country
     // storefront (for example .com.au) must not receive EU compliance signals
     // merely because it is an e-commerce site.
@@ -1149,7 +1165,13 @@ export async function POST(request: Request) {
         return { sourceHref: item.sourceHref, url: item.url, status: null, finalUrl: null, redirected: false, error: true, context: item.context };
       }
     }));
-    const brokenInternalLinks = linkAuditResults.filter((item) => item.error || item.status === null || item.status === 404 || item.status === 410 || (item.status >= 500));
+    const authUtilitySource = (item: LinkAuditResult) => {
+      try {
+        const source = new URL(item.url);
+        return /(?:^|\/)(?:myprofile|myaccount|my-account|account|mijn-account|login|signin|sign-in|register|auth|sso)(?:\/|$)/i.test(source.pathname);
+      } catch { return false; }
+    };
+    const brokenInternalLinks = linkAuditResults.filter((item) => !authUtilitySource(item) && (item.error || item.status === null || item.status === 404 || item.status === 410 || (item.status >= 500)));
     const isAuthUtilityRedirect = (item: LinkAuditResult) => {
       if (!item.redirected || item.error) return false;
       try {
@@ -1230,8 +1252,9 @@ export async function POST(request: Request) {
 
     // Sector intelligence is computed before scoring so only relevant specialist checks
     // can participate. Low-confidence classification stays generic and never penalizes.
-    type SectorKey = "ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"general_business"|"unknown";
+    type SectorKey = "ecommerce"|"financial_services"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"general_business"|"unknown";
     const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]}> = [
+      {sector:"financial_services",label:"Financiële dienstverlening & beleggen",patterns:[/\b(beleggen|belegging(?:en)?|beleggingsfonds|vastgoedfonds|invester(?:en|ing)|investment fund|asset management|fondsbeheer)\b/i,/\b(prospectus|rendement|certificaten|risico(?:'s)?|investor|belegger)\b/i],modules:["core_seo","geo","lead_conversion","financial_services"]},
       {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\b/i,/\b(te koop|te huur|for sale|for rent|woningaanbod)\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
       {sector:"automotive",label:"Automotive",patterns:[/\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\b/i,/\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
       {sector:"home_services",label:"Bouw & Installatie",patterns:[/\b(loodgieter|plumber|aannemer|installateur|elektricien|schilder|dakdekker|klus(?:sen)?bedrijf|bouwbedrijf|bouwservice|general contractor|electrician|contractor|riool(?:service|specialist)?|rioolprobleem|ontstopping|ontstoppen|afvoer)\b/i,/\b(offerte|werkgebied|servicegebied|installatie|reparatie|renovatie|verbouwing|bouw|verstopping|riolering|riooldienst(?:en)?)\b/i],modules:["core_seo","geo","local","lead_conversion","home_services"]},
@@ -1268,8 +1291,11 @@ export async function POST(request: Request) {
       return {sector:item.sector,label:item.label,hits:suppressedHits,modules:item.modules};
     }).filter(item=>item.hits>0).sort((a,b)=>b.hits-a.hits);
     const strongSectorCandidate = sectorCandidates[0] && sectorCandidates[0].hits>=2 && (!sectorCandidates[1] || sectorCandidates[0].hits>sectorCandidates[1].hits);
+    const financialCandidate = sectorCandidates.find((candidate)=>candidate.sector==="financial_services");
     const sectorProfile = hasEcommerceSignal
       ? {sector:"ecommerce" as SectorKey,label:"Webshop / e-commerce",confidence:"high" as const,confidenceScore:95,evidence:["Harde aankoop-/storefrontsignalen bevestigd"],applicableModules:["core_seo","geo","ecommerce","product","pricing_currency","merchant","checkout",...(euConsumerApplicable?["eu_consumer"]:[])]}
+      : financialInvestmentSignal && financialCandidate && financialCandidate.hits >= 2
+        ? {sector:"financial_services" as SectorKey,label:"Financiële dienstverlening & beleggen",confidence:(financialCandidate.hits>=3 ? "high" : "medium") as "high"|"medium",confidenceScore:financialCandidate.hits>=3 ? 95 : 75,evidence:[`${financialCandidate.hits} financiële/beleggingssignalen bevestigd`],applicableModules:financialCandidate.modules}
       : strongSectorCandidate
         ? {sector:sectorCandidates[0].sector,label:sectorCandidates[0].label,confidence:(sectorCandidates[0].hits>=3 ? "high" : "medium") as "high"|"medium",confidenceScore:sectorCandidates[0].hits>=3 ? 95 : 75,evidence:[`${sectorCandidates[0].hits} sectorsignalen inclusief gedeeld schema-/contentsbewijs`],applicableModules:sectorCandidates[0].modules}
         : {sector:"unknown" as SectorKey,label:"Sector niet bevestigd",confidence:"low" as const,confidenceScore:sectorCandidates[0]?.hits ? 35 : 0,evidence:sectorCandidates.slice(0,2).map(x=>`${x.label}: ${x.hits} signaal/signalen`),applicableModules:["core_seo","geo","technical"]};
@@ -1521,7 +1547,7 @@ export async function POST(request: Request) {
       const attrs=(match[1]||"").replace(/\s+/g," ").trim().slice(0,220);
       return `<button${attrs ? " "+attrs : ""}>…</button>`;
     });
-    const accessibilityIssueCount=imagesMissingAlt+unlabeledFormControls+emptyButtons;
+    const accessibilityIssueCount=unlabeledFormControls+emptyButtons;
     const dutchEuroDecimalPattern = /€\s?\d{1,3}(?:[.,]\d{3})*[.]\d{2}\b/g;
     const priceFormatMatches = text.match(dutchEuroDecimalPattern) || [];
     const hasDotDecimalPrices = priceFormatMatches.length > 0;
@@ -1722,7 +1748,16 @@ export async function POST(request: Request) {
     const languageSelectorSignal = /(?:language|taal|sprache|idioma|lingua|français|deutsch|italiano|español|english|nederlands)\b/i.test(text) && /(?:select|dropdown|menu|switch|\bEN\b|\bNL\b|\bDE\b|\bFR\b|\bES\b|\bIT\b)/i.test(text);
     // A language/country selector alone does not prove equivalent translated URLs exist.
     // Only explicit hreflang markup is strong enough in a single raw-HTML page scan.
-    const multilingualUrlEvidence = hasHreflang;
+    const localizedPathLanguage = pathSegmentsForType.find((segment)=>knownLanguageSegments.has(segment.split("-")[0]))?.split("-")[0] || "";
+    const localizedAlternateLinkSignal = links.some((href)=>{
+      try {
+        const candidate=new URL(href,finalUrl);
+        if(candidate.hostname!==finalUrl.hostname) return false;
+        const first=candidate.pathname.split("/").filter(Boolean)[0]?.toLowerCase()||"";
+        return Boolean(localizedPathLanguage && knownLanguageSegments.has(first.split("-")[0]) && first.split("-")[0]!==localizedPathLanguage);
+      } catch { return false; }
+    });
+    const multilingualUrlEvidence = hasHreflang || localizedAlternateLinkSignal;
     const organizationSchemaPresent = schemaSet.has("organization");
     const websiteSchemaPresent = schemaSet.has("website");
     const productSchemaPresent = schemaSet.has("product");
@@ -1962,8 +1997,8 @@ export async function POST(request: Request) {
     const effectiveLocalBusinessPage = !isProductPage && !hasCategorySignal && hasLocalBusinessSignal;
     const effectiveArticlePage = hasArticleSignal && !effectiveLocalBusinessPage;
     const contentContext = isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "categorie-/lijstpagina" : effectiveLocalBusinessPage ? "lokale bedrijfspagina" : effectiveArticlePage ? "artikelpagina" : "contentpagina";
-    const contentMinimumSignal = isHomepage ? 150 : isProductPage ? 80 : hasCategorySignal ? 120 : effectiveLocalBusinessPage ? 150 : effectiveArticlePage ? 300 : 200;
-    const contentStrongSignal = isHomepage ? 250 : isProductPage ? 180 : hasCategorySignal ? 220 : effectiveLocalBusinessPage ? 300 : effectiveArticlePage ? 600 : 350;
+    const contentMinimumSignal = isHomepage ? 150 : isProductPage ? 80 : hasCategorySignal ? 120 : effectiveLocalBusinessPage ? 150 : effectiveArticlePage ? 200 : 200;
+    const contentStrongSignal = isHomepage ? 250 : isProductPage ? 180 : hasCategorySignal ? 220 : effectiveLocalBusinessPage ? 300 : effectiveArticlePage ? 400 : 350;
     seoChecks.push(wordCount >= contentStrongSignal
       ? check("pass", "content", "seo", "Contentdekking", `Ongeveer ${wordCount} woorden gevonden op deze ${contentContext}. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld.`, "Behoud nuttige, unieke content die de zoekintentie en klantvragen beantwoordt.", 7, 7)
       : wordCount >= contentMinimumSignal
@@ -2012,7 +2047,7 @@ export async function POST(request: Request) {
         ? check("pass", "sitemap", "seo", "Sitemap-signaal", `Een bereikbare XML sitemap is gevonden${confirmedSitemapUrl ? `: ${confirmedSitemapUrl}` : "."}`, "Controleer of de sitemap alleen canonieke, indexeerbare URL's bevat.", 4, 4)
       : sitemapStatus === "FAIL"
         ? check("warning", "sitemap", "seo", "Sitemap-signaal", robotsMentionsSitemap ? `robots.txt verwijst naar een sitemap, maar RankFix kon geen geldige bereikbare XML sitemap bevestigen.${sitemapDiagnostic ? " Technisch: " + sitemapDiagnostic : ""}` : `Geen geldige bereikbare XML sitemap gevonden.${sitemapDiagnostic ? " Technisch: " + sitemapDiagnostic : ""}`, "Controleer de sitemap-URL, HTTP-status en XML content-type.", 1, 4)
-        : check("unable_to_confirm", "sitemap", "seo", "Sitemap-signaal", robotsMentionsSitemap ? `robots.txt bevat een sitemapverwijzing, maar RankFix kon de sitemap tijdens deze scan niet betrouwbaar ophalen.${sitemapDiagnostic ? " Technisch: " + sitemapDiagnostic : ""}` : `RankFix kon tijdens deze scan niet betrouwbaar bevestigen of een sitemap beschikbaar is.${sitemapDiagnostic ? " Technisch: " + sitemapDiagnostic : ""}`, "Controleer de sitemap opnieuw wanneer de server bereikbaar is.", 0, 4)
+        : check("unable_to_confirm", "sitemap", "seo", "Sitemap-signaal", robotsMentionsSitemap ? `robots.txt bevat een sitemapverwijzing, maar RankFix kon de sitemap tijdens deze scan niet betrouwbaar ophalen.${sitemapDiagnostic ? " Technisch: " + sitemapDiagnostic : ""}` : `RankFix kon tijdens deze scan niet betrouwbaar bevestigen of een sitemap beschikbaar is.${sitemapDiagnostic ? " Technisch: " + sitemapDiagnostic : ""}`, "Controleer de sitemap opnieuw. RESPONSE_TOO_LARGE betekent dat RankFix de ingestelde responslimiet bereikte; dit bewijst niet dat de server onbereikbaar is.", 0, 4)
     );
 
     geoChecks.push(
@@ -2117,8 +2152,8 @@ export async function POST(request: Request) {
 
     seoChecks.push(
       accessibilityIssueCount===0
-        ? check("pass","accessibility_basics","seo","Toegankelijkheid basis","Geen duidelijke basisproblemen gevonden bij afbeelding-alt, formulierlabels of lege knoppen in de statische HTML.","Blijf toetsenbordbediening, focus, contrast en dynamische content afzonderlijk testen. Dit is geen volledige toegankelijkheidsaudit.",5,5)
-        : check("warning","accessibility_basics","seo","Toegankelijkheid basis","Basiscontrole vond "+accessibilityIssueCount+" aandachtspunt(en): "+imagesMissingAlt+" afbeelding(en) zonder alt-attribuut, "+unlabeledFormControls+" formuliercontrol(s) zonder aantoonbaar label en "+emptyButtons+" lege knop(pen) zonder toegankelijke naam.","Corrigeer de aantoonbare HTML-signalen en voer daarna een uitgebreidere toegankelijkheidstest uit. RankFix claimt hiermee geen wettelijke conformiteit.",2,5)
+        ? check("pass","accessibility_basics","seo","Toegankelijkheid basis",imagesMissingAlt>0 ? "Geen aanvullende basisproblemen gevonden bij formulierlabels of lege knoppen. Ontbrekende afbeelding-alt wordt afzonderlijk beoordeeld en niet dubbel gescoord." : "Geen duidelijke basisproblemen gevonden bij formulierlabels of lege knoppen in de statische HTML.","Blijf toetsenbordbediening, focus, contrast en dynamische content afzonderlijk testen. Dit is geen volledige toegankelijkheidsaudit.",5,5)
+        : check("warning","accessibility_basics","seo","Toegankelijkheid basis","Basiscontrole vond "+accessibilityIssueCount+" aanvullende aandachtspunt(en): "+unlabeledFormControls+" formuliercontrol(s) zonder aantoonbaar label en "+emptyButtons+" lege knop(pen) zonder toegankelijke naam. Afbeelding-alt wordt afzonderlijk gescoord ("+imagesMissingAlt+" ontbrekend).","Corrigeer de aantoonbare HTML-signalen en voer daarna een uitgebreidere toegankelijkheidstest uit. RankFix claimt hiermee geen wettelijke conformiteit.",2,5)
     );
 
     seoChecks.push(hasPlaceholders
@@ -2142,8 +2177,8 @@ export async function POST(request: Request) {
       : isProductPage && !addToCartMarkupSignal
         ? check("unable_to_confirm","checkout_funnel_static","seo","Checkout & funnel","Dit is een productpagina, maar RankFix kon in raw HTML geen duidelijke toevoegen-aan-winkelwagen actie bevestigen. De actie kan client-side via JavaScript worden gerenderd.","Controleer de koopactie later met de browser/headless-audit. Raw HTML alleen is onvoldoende bewijs voor een checkoutfout.",0,0)
         : (cartHrefSignal || checkoutHrefSignal) && addToCartMarkupSignal
-          ? check("pass","checkout_funnel_static","seo","Checkout & funnel","Statische funnel-signalen zijn aanwezig: koopactie en een winkelwagen- of checkoutpad zijn gevonden.","Dit bewijst niet dat de interactieve funnel werkt; runtime add-to-cart en checkout worden later met browser/headless getest.",0,0)
-          : check("unable_to_confirm","checkout_funnel_static","seo","Checkout & funnel","RankFix vond webshop-signalen, maar kan vanuit deze losse raw-HTML pagina de volledige product → winkelwagen → checkout-flow niet bevestigen.","Gebruik de toekomstige browser/headless-controle om klikken, winkelwagenstatus en checkout runtime te testen.",0,0)
+          ? check("pass","checkout_funnel_static","seo","Checkout & funnel","Statische funnel-signalen zijn aanwezig: koopactie en een winkelwagen- of checkoutpad zijn gevonden.","Dit bevestigt alleen statische funnel-signalen. De interactieve winkelwagen- en checkoutflow is in deze scan niet uitgevoerd.",0,0)
+          : check("unable_to_confirm","checkout_funnel_static","seo","Checkout & funnel","RankFix vond webshop-signalen, maar kan vanuit deze losse raw-HTML pagina de volledige product → winkelwagen → checkout-flow niet bevestigen.","Gebruik de aanvullende browsercontrole om klikken, winkelwagenstatus en checkout runtime te verifiëren wanneer de site dit toestaat.",0,0)
     );
     seoChecks.push(!hasEcommerceSignal
       ? check("not_applicable","checkout_information_signal","seo","Checkout informatie",euConsumerApplicable ? "Geen consumenteninformatie beoordeeld." : "EU-Omnibus & Consumer Rights is voor deze scan niet aantoonbaar van toepassing op deze markt/pagina.","Gebruik deze controle op relevante EU-webshops.",0,0)
@@ -2252,7 +2287,9 @@ export async function POST(request: Request) {
           ? check("unable_to_confirm","ads_readiness","seo","Google Ads readiness",`Trackingcode is gedeeltelijk aangetroffen. Ads-ID's: ${googleAdsIds.length}; GA4-ID's: ${ga4MeasurementIds.length}; GTM-containers: ${gtmContainerIds.length}; expliciete events: ${uniqueConversionEventNames.length}; Ads conversion labels: ${googleAdsSendToLabels.length}; consent-signaal: ${hasConsentModeSignal ? "gevonden" : "niet aangetoond"}.`,"Maak de meetketen compleet en verifieer Google tag, GA4, Ads-conversies en consent runtime.",0,6)
           : check("unable_to_confirm","ads_readiness","seo","Google Ads readiness","Google Ads is volgens de opgegeven scancontext relevant, maar in de publieke HTML zijn geen Google Ads/GA4-signalen bevestigd. Client-side of via GTM geladen tracking kan met deze broncontrole gemist worden.","Controleer de runtime meetketen met Tag Assistant/Preview voordat je concludeert dat tracking ontbreekt.",0,6));
     geoChecks.push(isHomepage
-      ? organizationSchemaPresent && websiteSchemaPresent
+      ? metadataMayBeClientRendered && (!organizationSchemaPresent || !websiteSchemaPresent)
+        ? check("unable_to_confirm", "organization_website", "geo", "Organization + WebSite", "Organization/WebSite structured data kon niet betrouwbaar volledig worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer structured data opnieuw met een volledige render voordat je schema toevoegt of wijzigt.", 0, 8)
+        : organizationSchemaPresent && websiteSchemaPresent
         ? check("pass", "organization_website", "geo", "Organization + WebSite", "Organization en WebSite structured data zijn aanwezig op de homepage.", "Houd naam, URL en logo consistent met de zichtbare site-identiteit.", 8, 8)
         : check("warning", "organization_website", "geo", "Organization + WebSite", "De homepage mist Organization en/of WebSite structured data.", "Voeg passende Organization- en WebSite JSON-LD toe zonder gegevens te verzinnen.", 3, 8)
       : check("not_applicable", "organization_website", "geo", "Organization + WebSite", "Homepage-specifieke Organization/WebSite-controle is niet vereist op deze URL.", "Controleer de homepage afzonderlijk voor organisatie- en website-identiteit.", 0, 8)
@@ -2837,7 +2874,8 @@ export async function POST(request: Request) {
       discoveredInternalUrls:discoveredMultiPage.length, selectedPages:uniqueMultiPagePages, pageAudits:multiPageAudits,
       siteSampleScore: auditedMultiPages.length ? Math.round(auditedMultiPages.reduce((sum,item)=>sum+(item.score||0),0)/auditedMultiPages.length) : null,
       counts:{ homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedMultiPages.length, unableToConfirm:multiPageAudits.length-auditedMultiPages.length },
-      note:"Representative same-host pages are fetched with bounded raw-HTML checks. Their sample score is separate from the explicitly scanned page score.",
+      coveragePercent: multiPageAudits.length ? Math.round((auditedMultiPages.length / multiPageAudits.length) * 100) : 0,
+      note:"Representative same-host pages are fetched with bounded raw-HTML checks. Their sample score is separate from the explicitly scanned page score; coverage shows how much of the selected sample was actually confirmed.",
     };
 
     let user = null;
