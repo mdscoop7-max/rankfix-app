@@ -104,3 +104,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .rf-public-language .fi-gb{background:linear-gradient(33deg,transparent 43%,#fff 43% 48%,#c8102e 48% 52%,#fff 52% 57%,transparent 57%),linear-gradient(-33deg,transparent 43%,#fff 43% 48%,#c8102e 48% 52%,#fff 52% 57%,transparent 57%),linear-gradient(90deg,transparent 39%,#fff 39% 44%,#c8102e 44% 56%,#fff 56% 61%,transparent 61%),linear-gradient(transparent 35%,#fff 35% 42%,#c8102e 42% 58%,#fff 58% 65%,transparent 65%),#012169}
 .rf-public-language-menu button{font-size:13px}
 }
+
+/* Free scan scope: compact, readable capability overview */
+.lc-free-scope{padding:22px!important}
+.lc-free-scope>strong{display:block;font-size:1.25rem;color:#7cf0c6;margin-bottom:16px}
+.lc-free-scope-grid{display:flex;flex-wrap:wrap;gap:9px}
+.lc-free-scope-grid span{display:inline-flex;align-items:center;min-height:38px;padding:8px 12px;border:1px solid rgba(93,202,165,.25);border-radius:999px;background:rgba(15,59,48,.55);color:#d7f8eb;font-size:.88rem;font-weight:700;line-height:1.25}
+@media(max-width:640px){.lc-free-scope{padding:18px!important}.lc-free-scope-grid{gap:8px}.lc-free-scope-grid span{font-size:.8rem;min-height:34px;padding:7px 10px}}
