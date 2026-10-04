@@ -2256,7 +2256,7 @@ export async function POST(request: Request) {
     );
 
     const accessibilityAffectedCount = unlabeledFormControls + emptyButtons;
-    const accessibilityScopeCount = formControls.length + buttonElements.length;
+    const accessibilityScopeCount = formControls.length + buttonTags.length;
     const accessibilityIssueRatio = accessibilityScopeCount ? accessibilityAffectedCount / accessibilityScopeCount : 0;
     const accessibilityPoints = accessibilityIssueCount === 0 ? 5 : accessibilityIssueRatio <= 0.05 ? 4 : accessibilityIssueRatio <= 0.20 ? 3 : accessibilityIssueRatio <= 0.50 ? 2 : 1;
     seoChecks.push(
