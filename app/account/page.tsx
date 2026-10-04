@@ -94,10 +94,10 @@ export default function Account() {
 
           <form onSubmit={submit} autoComplete="on" className="mt-7 space-y-4">
             {mode==="register"&&(
-              <input required aria-label={t.name} value={name} onChange={e=>setName(e.target.value)} placeholder={t.name} autoComplete="name" className="w-full rounded-xl border border-[#334155] bg-[#16233A] px-4 py-3 text-base outline-none"/>
+              <input required aria-label={t.name} value={name} onChange={e=>setName(e.target.value)} placeholder={t.name} autoComplete="name" className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-950 outline-none placeholder:text-slate-500"/>
             )}
-            <input required aria-label={t.email} type="email" value={email} onChange={e=>setEmail(e.target.value)} name="email" placeholder={t.email} autoComplete="username email" className="w-full rounded-xl border border-[#334155] bg-[#16233A] px-4 py-3 text-base outline-none"/>
-            <input required aria-label={t.password} minLength={8} pattern={mode==="register"?"(?=.*[A-Za-z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{8,}":undefined} type="password" value={password} onChange={e=>setPassword(e.target.value)} name="password" placeholder={t.password} autoComplete={mode==="register"?"new-password":"current-password"} className="w-full rounded-xl border border-[#334155] bg-[#16233A] px-4 py-3 text-base outline-none"/>
+            <input required aria-label={t.email} type="email" value={email} onChange={e=>setEmail(e.target.value)} name="email" placeholder={t.email} autoComplete="username email" className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-950 outline-none placeholder:text-slate-500"/>
+            <input required aria-label={t.password} minLength={8} pattern={mode==="register"?"(?=.*[A-Za-z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{8,}":undefined} type="password" value={password} onChange={e=>setPassword(e.target.value)} name="password" placeholder={t.password} autoComplete={mode==="register"?"new-password":"current-password"} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-950 outline-none placeholder:text-slate-500"/>
 
             {mode==="register"&&<p className="text-xs text-slate-400">{language==="nl"?"Minimaal 8 tekens: letters + 1 cijfer + 1 speciaal teken.":language==="de"?"Mindestens 8 Zeichen: Buchstaben + 1 Zahl + 1 Sonderzeichen.":language==="fr"?"Au moins 8 caractères : lettres + 1 chiffre + 1 caractère spécial.":language==="it"?"Almeno 8 caratteri: lettere + 1 numero + 1 carattere speciale.":language==="es"?"Mínimo 8 caracteres: letras + 1 número + 1 carácter especial.":"At least 8 characters: letters + 1 number + 1 special character."}</p>}
 
@@ -114,7 +114,7 @@ export default function Account() {
             )}
 
             {mode==="register"&&(
-              <input required aria-label={t.confirm} minLength={8} type="password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} placeholder={t.confirm} autoComplete="new-password" className="w-full rounded-xl border border-[#334155] bg-[#16233A] px-4 py-3 text-base outline-none"/>
+              <input required aria-label={t.confirm} minLength={8} type="password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} placeholder={t.confirm} autoComplete="new-password" className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-950 outline-none placeholder:text-slate-500"/>
             )}
 
             {error&&<div role="alert" className="rounded-xl bg-red-500/10 p-3 text-sm text-red-200">{error}</div>}
