@@ -827,6 +827,15 @@ export async function POST(request: Request) {
     const hardPurchaseFlowSignal = hasStrongCommerceAction && (hasExplicitPriceSignal || visiblePriceCount >= 2) && (hasCommerceHrefSignal || cartFormSignal);
     const siteLevelCommerceSignal = hasStoreSchema && (hasConfirmedCommercePlatform || hardPurchaseFlowSignal || repeatedProductLinkSignal || storefrontMarkupSignal);
     const hasEcommerceSignal = hasConfirmedCommercePlatform || hasProductSignal || repeatedProductLinkSignal || storefrontMarkupSignal || homepageStorefrontSignal || siteLevelCommerceSignal || hardPurchaseFlowSignal;
+    // EU consumer/Omnibus checks are jurisdiction-sensitive. A non-EU country
+    // storefront (for example .com.au) must not receive EU compliance signals
+    // merely because it is an e-commerce site.
+    const hostLower = finalUrl.hostname.toLowerCase();
+    const euCountryTld = /\.(?:at|be|bg|hr|cy|cz|de|dk|ee|es|fi|fr|gr|hu|ie|it|lt|lu|lv|mt|nl|pl|pt|ro|se|si|sk)$/.test(hostLower);
+    const explicitNonEuCountryTld = /\.(?:com\.au|co\.uk|ca|us|co\.nz|jp|cn|in|br|mx|ch|no)$/.test(hostLower);
+    const euLanguageSignal = /^(?:nl|de|fr|it|es|pt|pl|sv|da|fi|cs|sk|hu|ro|bg|el|hr|et|lv|lt|sl|mt)(?:-|$)/i.test(lang || "");
+    const euroMarketSignal = /(?:€|\bEUR\b)/i.test(text);
+    const euConsumerApplicable = hasEcommerceSignal && !explicitNonEuCountryTld && (euCountryTld || euLanguageSignal || euroMarketSignal);
     const requestedLanguages = adsProfile.adLanguages.split(/[,;]/).map((value) => value.trim().toLowerCase()).filter(Boolean).slice(0, 6);
     const requestedCountries = adsProfile.targetCountries.split(/[,;]/).map((value) => value.trim()).filter(Boolean).slice(0, 8);
     const pageLanguage = (requestedLanguages[0] || lang || "").toLowerCase().split("-")[0].trim();
@@ -1260,7 +1269,7 @@ export async function POST(request: Request) {
     }).filter(item=>item.hits>0).sort((a,b)=>b.hits-a.hits);
     const strongSectorCandidate = sectorCandidates[0] && sectorCandidates[0].hits>=2 && (!sectorCandidates[1] || sectorCandidates[0].hits>sectorCandidates[1].hits);
     const sectorProfile = hasEcommerceSignal
-      ? {sector:"ecommerce" as SectorKey,label:"Webshop / e-commerce",confidence:"high" as const,confidenceScore:95,evidence:["Harde aankoop-/storefrontsignalen bevestigd"],applicableModules:["core_seo","geo","ecommerce","product","pricing_currency","merchant","checkout","eu_consumer"]}
+      ? {sector:"ecommerce" as SectorKey,label:"Webshop / e-commerce",confidence:"high" as const,confidenceScore:95,evidence:["Harde aankoop-/storefrontsignalen bevestigd"],applicableModules:["core_seo","geo","ecommerce","product","pricing_currency","merchant","checkout",...(euConsumerApplicable?["eu_consumer"]:[])]}
       : strongSectorCandidate
         ? {sector:sectorCandidates[0].sector,label:sectorCandidates[0].label,confidence:(sectorCandidates[0].hits>=3 ? "high" : "medium") as "high"|"medium",confidenceScore:sectorCandidates[0].hits>=3 ? 95 : 75,evidence:[`${sectorCandidates[0].hits} sectorsignalen inclusief gedeeld schema-/contentsbewijs`],applicableModules:sectorCandidates[0].modules}
         : {sector:"unknown" as SectorKey,label:"Sector niet bevestigd",confidence:"low" as const,confidenceScore:sectorCandidates[0]?.hits ? 35 : 0,evidence:sectorCandidates.slice(0,2).map(x=>`${x.label}: ${x.hits} signaal/signalen`),applicableModules:["core_seo","geo","technical"]};
@@ -2137,34 +2146,34 @@ export async function POST(request: Request) {
           : check("unable_to_confirm","checkout_funnel_static","seo","Checkout & funnel","RankFix vond webshop-signalen, maar kan vanuit deze losse raw-HTML pagina de volledige product → winkelwagen → checkout-flow niet bevestigen.","Gebruik de toekomstige browser/headless-controle om klikken, winkelwagenstatus en checkout runtime te testen.",0,0)
     );
     seoChecks.push(!hasEcommerceSignal
-      ? check("not_applicable","checkout_information_signal","seo","Checkout informatie","Geen duidelijke webshop-signalen gevonden.","Gebruik deze controle op echte webshops.",0,0)
+      ? check("not_applicable","checkout_information_signal","seo","Checkout informatie",euConsumerApplicable ? "Geen consumenteninformatie beoordeeld." : "EU-Omnibus & Consumer Rights is voor deze scan niet aantoonbaar van toepassing op deze markt/pagina.","Gebruik deze controle op relevante EU-webshops.",0,0)
       : hasShippingSignal && paymentMethodSignal
         ? check("pass","checkout_information_signal","seo","Checkout informatie","Verzendinformatie en betaalmethode-signalen zijn op deze pagina gevonden.","Controleer verzendkosten, btw en totaalbedrag opnieuw in de daadwerkelijke checkout.",0,0)
         : check("unable_to_confirm","checkout_information_signal","seo","Checkout informatie","Niet alle verzend- en betaalinformatie kon op deze losse pagina worden bevestigd.","Dit is geen foutbewijs: informatie kan pas in winkelwagen of checkout verschijnen. Controleer de volledige funnel.",0,0)
     );
 
-    seoChecks.push(!hasEcommerceSignal
-      ? check("not_applicable","eu_discount_reference_signal","seo","EU korting & referentieprijs","Geen duidelijke webshop-signalen gevonden; kortingssignalen zijn niet beoordeeld.","Gebruik deze controle op echte webshop- en productpagina's.",0,0)
+    seoChecks.push(!euConsumerApplicable
+      ? check("not_applicable","eu_discount_reference_signal","seo","EU korting & referentieprijs",euConsumerApplicable ? "Geen kortingssignalen beoordeeld." : "EU-Omnibus & Consumer Rights is voor deze scan niet aantoonbaar van toepassing op deze markt/pagina.","Gebruik deze controle op echte webshop- en productpagina's.",0,0)
       : !hasDiscountClaim
         ? check("not_applicable","eu_discount_reference_signal","seo","EU korting & referentieprijs","Geen expliciete kortingsclaim gevonden op deze pagina.","Geen actie nodig voor deze paginascan.",0,0)
         : hasReferencePriceSignal
           ? check("pass","eu_discount_reference_signal","seo","EU korting & referentieprijs","Een kortingsclaim én zichtbare referentieprijs zijn gevonden. RankFix kan vanuit één scan niet bewijzen dat de referentieprijs historisch juist is.","Bewaar prijs-/promotiehistorie en controleer de toepasselijke 30-dagenregel afzonderlijk.",0,0)
           : check("unable_to_confirm","eu_discount_reference_signal","seo","EU korting & referentieprijs","Er is een kortingsclaim gevonden, maar geen duidelijke referentieprijs in de statische paginatekst.","Controleer of de toepasselijke referentieprijs duidelijk wordt getoond. RankFix geeft hier alleen een signaal, geen juridische conformiteitsverklaring.",0,0)
     );
-    seoChecks.push(!hasEcommerceSignal
-      ? check("not_applicable","eu_review_transparency_signal","seo","EU reviewtransparantie","Geen duidelijke webshop-signalen gevonden.","Gebruik deze controle op webshops met klantreviews.",0,0)
+    seoChecks.push(!euConsumerApplicable
+      ? check("not_applicable","eu_review_transparency_signal","seo","EU reviewtransparantie",euConsumerApplicable ? "Geen reviewinhoud gevonden." : "EU-Omnibus & Consumer Rights is voor deze scan niet aantoonbaar van toepassing op deze markt/pagina.","Gebruik deze controle op relevante EU-webshops met klantreviews.",0,0)
       : !reviewContentSignal
         ? check("not_applicable","eu_review_transparency_signal","seo","EU reviewtransparantie","Geen klantreview-inhoud op deze pagina gevonden.","Controleer reviewtransparantie op de pagina waar reviews daadwerkelijk worden getoond.",0,0)
         : reviewTransparencySignal
           ? check("pass","eu_review_transparency_signal","seo","EU reviewtransparantie","Reviewinhoud en een zichtbaar transparantiesignaal over reviews zijn gevonden.","Controleer dat de uitleg feitelijk klopt met het gebruikte reviewproces.",0,0)
           : check("unable_to_confirm","eu_review_transparency_signal","seo","EU reviewtransparantie","Reviewinhoud is gevonden, maar uit deze statische pagina blijkt niet duidelijk hoe reviews worden verzameld of geverifieerd.","Maak voor klanten duidelijk hoe reviews worden verzameld/gecontroleerd; dit is een transparantiesignaal, geen juridische conclusie.",0,0)
     );
-    seoChecks.push(!hasEcommerceSignal || !hasScarcityClaim
+    seoChecks.push(!euConsumerApplicable || !hasScarcityClaim
       ? check("not_applicable","eu_scarcity_signal","seo","EU schaarsteclaim","Geen expliciete numerieke schaarsteclaim gevonden.","Geen actie nodig voor deze paginascan.",0,0)
       : check("unable_to_confirm","eu_scarcity_signal","seo","EU schaarsteclaim",`Een schaarsteclaim is gevonden, bijvoorbeeld: ${scarcityMatches[0]}. RankFix kan uit raw HTML niet bewijzen of de voorraadclaim realtime en juist is.`,"Verifieer dat de claim aantoonbaar actueel en waar is; gebruik geen kunstmatige schaarste.",0,0)
     );
-    seoChecks.push(!hasEcommerceSignal
-      ? check("not_applicable","eu_consumer_information_signal","seo","EU consumenteninformatie","Geen duidelijke webshop-signalen gevonden.","Gebruik deze controle op echte webshops.",0,0)
+    seoChecks.push(!euConsumerApplicable
+      ? check("not_applicable","eu_consumer_information_signal","seo","EU consumenteninformatie",euConsumerApplicable ? "Geen consumenteninformatie beoordeeld." : "EU-Omnibus & Consumer Rights is voor deze scan niet aantoonbaar van toepassing op deze markt/pagina.","Gebruik deze controle op relevante EU-webshops.",0,0)
       : hasReturnsSignal && hasVisibleBusinessIdentity && hasBusinessContactDetails
         ? check("pass","eu_consumer_information_signal","seo","EU consumenteninformatie","Retour-/herroepingssignalen, bedrijfsidentiteit en contactinformatie zijn op deze pagina aangetroffen.","Dit bewijst geen juridische conformiteit; controleer volledige voorwaarden, kosten en uitzonderingen afzonderlijk.",0,0)
         : check("unable_to_confirm","eu_consumer_information_signal","seo","EU consumenteninformatie","Niet alle retour-, bedrijfsidentiteits- en contactsignalen konden op deze losse pagina worden bevestigd.","Controleer deze informatie sitebreed in voorwaarden, contact, product en checkout. RankFix geeft alleen signalen.",0,0)

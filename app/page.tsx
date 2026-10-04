@@ -678,16 +678,16 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         <div className="mx-auto mt-4 max-w-4xl px-2">
           <div className="flex flex-wrap justify-center gap-2 text-xs font-semibold text-emerald-100">
             {(language === "nl"
-              ? ["SEO + GEO","Techniek","Local SEO","Webshop","AI & GitHub Fixes","Rapporten"]
+              ? ["SEO","GEO / AI Search","Security","Techniek","Webshop","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Consent Mode","Local SEO","Structured Data","Accessibility","Quality & Trust","Broken Links","Redirects"]
               : language === "de"
-                ? ["SEO + GEO","Technik","Local SEO","Onlineshop","AI & GitHub Fixes","Berichte"]
+                ? ["SEO","GEO / AI Search","Security","Technik","Onlineshop","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Consent Mode","Local SEO","Structured Data","Barrierefreiheit","Quality & Trust","Broken Links","Redirects"]
                 : language === "fr"
-                  ? ["SEO + GEO","Technique","SEO local","E-commerce","Correctifs IA & GitHub","Rapports"]
+                  ? ["SEO","GEO / AI Search","Security","Technique","E-commerce","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Consent Mode","SEO local","Données structurées","Accessibilité","Quality & Trust","Liens cassés","Redirections"]
                   : language === "it"
-                    ? ["SEO + GEO","Tecnica","SEO locale","E-commerce","Fix AI & GitHub","Report"]
+                    ? ["SEO","GEO / AI Search","Security","Tecnica","E-commerce","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Consent Mode","SEO locale","Dati strutturati","Accessibilità","Quality & Trust","Link non validi","Redirect"]
                     : language === "es"
-                      ? ["SEO + GEO","Técnica","SEO local","E-commerce","Fixes IA & GitHub","Informes"]
-                      : ["SEO + GEO","Technical","Local SEO","E-commerce","AI & GitHub Fixes","Reports"]
+                      ? ["SEO","GEO / AI Search","Security","Técnica","E-commerce","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Consent Mode","SEO local","Datos estructurados","Accesibilidad","Quality & Trust","Enlaces rotos","Redirecciones"]
+                      : ["SEO","GEO / AI Search","Security","Technical","E-commerce","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Consent Mode","Local SEO","Structured Data","Accessibility","Quality & Trust","Broken Links","Redirects"]
             ).map((feature) => <span key={feature} className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1.5">✓ {feature}</span>)}
           </div>
           <p className="mt-3 text-center text-xs text-slate-300">
@@ -1203,6 +1203,15 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
               else scrollToSection("scan");
             }} className="block text-left hover:text-emerald-300">{link}</button>)}</div></div>;
           })}
+        </div>
+        <div className="mx-auto mt-10 max-w-7xl border-t border-slate-600 pt-7">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{language==="nl"?"Herkent en controleert onder andere":language==="de"?"Erkennt und prüft unter anderem":language==="fr"?"Reconnaît et contrôle notamment":language==="it"?"Riconosce e controlla tra gli altri":language==="es"?"Reconoce y comprueba, entre otros":"Recognises and checks, among others"}</p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <a href="https://wordpress.org/" target="_blank" rel="noreferrer" className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-white hover:border-emerald-300/40">WordPress</a>
+            <a href="https://woocommerce.com/" target="_blank" rel="noreferrer" className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-white hover:border-emerald-300/40">WooCommerce</a>
+            <a href="https://www.shopify.com/" target="_blank" rel="noreferrer" className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-white hover:border-emerald-300/40">Shopify</a>
+          </div>
+          <p className="mt-3 text-xs text-slate-400">{language==="nl"?"Platformherkenning betekent ondersteuning door RankFix; het is geen partner- of certificeringsclaim.":language==="en"?"Platform recognition means RankFix support; it does not imply a partnership or certification.":"RankFix herkent deze platformen; dit betekent geen officiële samenwerking of certificering."}</p>
         </div>
         <div className="mx-auto mt-12 flex max-w-7xl flex-col justify-between gap-3 border-t border-slate-600 pt-6 text-xs text-slate-300 sm:flex-row">
           <span>© 2026 RankFix AI. {language==="nl"?"Alle rechten voorbehouden.":language==="en"?"All rights reserved.":language==="de"?"Alle Rechte vorbehalten.":language==="fr"?"Tous droits réservés.":language==="it"?"Tutti i diritti riservati.":"Todos los derechos reservados."}</span>
