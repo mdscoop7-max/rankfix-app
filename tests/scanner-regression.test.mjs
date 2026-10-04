@@ -180,3 +180,13 @@ test("meta description diagnostics distinguish missing from empty", async () => 
   assert.match(source, /descriptionState,/);
   assert.match(source, /pageDescriptionTag\?"Meta description-tag aanwezig maar content is leeg\."/);
 });
+
+
+test("multi-page canonical absence uses the same evidence semantics as the main scan", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /key:"canonical",status:pageCanonical[\s\S]*?: "WARNING"/);
+  assert.match(source, /Geen canonical-linkelement gevonden in de gecontroleerde raw HTML/);
+  assert.doesNotMatch(source, /afwezigheid wordt hier niet als bewezen fout gescoord/);
+  assert.match(source, /item\.key === "canonical"\) return pageCanonical \? 0\.7 : 0\.35/);
+});

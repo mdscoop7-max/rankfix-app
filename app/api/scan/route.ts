@@ -2938,10 +2938,10 @@ export async function POST(request: Request) {
           {key:"h1",status:pageH1s.length>0?"PASS":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:`${pageH1s.length} H1-heading(s) gevonden.`},
           {key:"canonical",status:pageCanonical
             ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); if(!/^https?:$/.test(resolved.protocol)) return "WARNING"; return normalizeScanUrl(resolved.toString())===normalizeScanUrl(finalCandidate.toString())?"PASS":"WARNING"; } catch { return "WARNING"; } })()
-            : "UNABLE_TO_CONFIRM",
+            : "WARNING",
             details:pageCanonical
               ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); if(!/^https?:$/.test(resolved.protocol)) return `Canonical gebruikt een ongeldig protocol of schema: ${pageCanonical}.`; const samePage=normalizeScanUrl(resolved.toString())===normalizeScanUrl(finalCandidate.toString()); return samePage?`Self-canonical/equivalente voorkeurs-URL bevestigd: ${resolved.toString()}`:`Canonical wijst naar ${resolved.toString()}; controleer of deze afwijking bewust is.`; } catch { return "Canonical is aanwezig maar kon niet betrouwbaar als URL worden geïnterpreteerd."; } })()
-              : "Geen canonical gevonden in de begrensde raw-HTML fetch; afwezigheid wordt hier niet als bewezen fout gescoord."},
+              : "Geen canonical-linkelement gevonden in de gecontroleerde raw HTML. Dit is hetzelfde afwezigheidssignaal als in de hoofdscan; controleer alleen apart wanneer de site canonical-tags uitsluitend via JavaScript toevoegt."},
         ];
         const confirmed = evidenceChecks.filter((x)=>x.status!=="UNABLE_TO_CONFIRM");
         const evidenceCredit = (item: MultiPageAudit["evidenceChecks"][number]) => {
@@ -2950,7 +2950,7 @@ export async function POST(request: Request) {
           if (item.key === "title") return pageTitle ? 0.7 : 0.25;
           if (item.key === "description") return pageDescription ? 0.65 : 0.25;
           if (item.key === "h1") return 0.6;
-          if (item.key === "canonical") return 0.7;
+          if (item.key === "canonical") return pageCanonical ? 0.7 : 0.35;
           return 0.5;
         };
         const earned = confirmed.reduce((sum,item)=>sum+evidenceCredit(item),0);
