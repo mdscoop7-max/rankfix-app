@@ -116,3 +116,18 @@ test("central classification bundle keeps transport, retail and canonical decisi
   assert.match(source, /!\/\^https\?:\$\/\.test\(resolved\.protocol\)/);
   assert.match(source, /hasEcommerceSignal && !transportBookingIdentity && scarcityMatches/);
 });
+
+
+test("multilingual trust, social URL and auth redirect bundle stays evidence based", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /normalizeLegalText/);
+  assert.match(source, /privatnost\\w\*\|zasebnost\\w\*/);
+  assert.match(source, /piskotk\\w\*\|kolacic\\w\*/);
+  assert.match(source, /assistenza\\w\*\|apoio ao cliente\|pomoc\\w\*/);
+  assert.match(source, /legalLanguageSupported/);
+  assert.match(source, /og:image \(geen absolute http\(s\)-URL\)/);
+  assert.match(source, /og:url \(geen absolute http\(s\)-URL\)/);
+  assert.match(source, /sourcePersonalizationPath/);
+  assert.match(source, /recomendacoes\|recomendacoes-personalizadas\|recommendations/);
+});

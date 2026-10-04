@@ -588,7 +588,19 @@ export async function POST(request: Request) {
     const ogTitle = getMeta("og:title");
     const ogDescription = getMeta("og:description");
     const ogImage = getMeta("og:image");
+    const ogUrl = getMeta("og:url");
     const twitterCard = getMeta("twitter:card");
+    const isAbsoluteHttpUrl = (value: string) => {
+      if (!value) return false;
+      try {
+        const parsed = new URL(value);
+        return /^https?:$/.test(parsed.protocol);
+      } catch {
+        return false;
+      }
+    };
+    const ogImageIsAbsolute = isAbsoluteHttpUrl(ogImage);
+    const ogUrlIsAbsolute = !ogUrl || isAbsoluteHttpUrl(ogUrl);
 
     const jsonLdBlocks = [...html.matchAll(/<script\b(?=[^>]*\btype\s*=\s*(?:(["'])application\/ld\+json\1|application\/ld\+json(?:\s|>|\/)))[^>]*>([\s\S]*?)<\/script>/gi)].map((match) => decode(match[2] || ""));
     const schemaTypes: string[] = [];
@@ -1179,11 +1191,12 @@ export async function POST(request: Request) {
         const source = new URL(item.url);
         const destination = item.finalUrl ? new URL(item.finalUrl) : null;
         const sourceAuthPath = /(?:^|\/)(?:myaccount|my-account|account|mijn-account|login|signin|sign-in|register|auth|sso)(?:\/|$)/i.test(source.pathname);
+        const sourcePersonalizationPath = /(?:^|\/)(?:recomendacoes|recomendacoes-personalizadas|recommendations|preferences|profile|favorites|favourites|wishlist|personalization|personalisatie)(?:\/|$)/i.test(source.pathname);
         const destinationAuth = Boolean(destination && (
           /(?:^|\.)(?:accounts?|auth|login|sso)\./i.test(destination.hostname) ||
-          /(?:^|\/)(?:oauth|oauth2|authorize|auth|login|signin|sso)(?:\/|$)/i.test(destination.pathname)
+          /(?:^|\/)(?:oauth|oauth2|authorize|auth|login|signin|sign-in|sso)(?:\/|$)/i.test(destination.pathname)
         ));
-        return sourceAuthPath && destinationAuth;
+        return destinationAuth && (sourceAuthPath || sourcePersonalizationPath);
       } catch { return false; }
     };
     // Login/account links intentionally redirect to SSO/OAuth providers on many sites.
@@ -1513,13 +1526,41 @@ export async function POST(request: Request) {
     // Extended audit signals: trust, ecommerce quality, URL hygiene, social metadata and multilingual SEO.
     const placeholderMatches = text.match(/\[(?:kvk|btw|adres|e-?mail|email|telefoon|phone|address|postcode|plaats|company|naam)\]/gi) || [];
     const hasPlaceholders = placeholderMatches.length > 0;
-    const legalAnchorEvidence = [...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)]
-      .map((match) => ({ href: decode(match[1] || ""), label: stripHtml(match[2] || "") }));
-    const hasLegalSignal = (pattern: RegExp) => legalAnchorEvidence.some((item) => pattern.test(item.href) || pattern.test(item.label));
-    const hasPrivacyLink = hasLegalSignal(/privacy|privacybeleid|privacy-policy|datenschutz|confidentialit[eé]|privacidad/i);
-    const hasCookieLink = hasLegalSignal(/cookie|cookies|cookiebeleid|cookie-policy/i);
-    const hasTermsLink = hasLegalSignal(/voorwaarden|terms|conditions|agb|cgv|condiciones|termini/i);
-    const hasContactLink = hasLegalSignal(/contact|kontakt|contatti|contacto|klantenservice|customer-service|customer_service|support|help(?:desk|center|centre)?/i);
+    const normalizeLegalText = (value: string) =>
+      safeDecodeURIComponent(value)
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[_-]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    const legalAnchorEvidence = [...html.matchAll(/<a\b([^>]*)href\s*=\s*["']([^"']+)["']([^>]*)>([\s\S]*?)<\/a>/gi)]
+      .map((match) => {
+        const attrs = (match[1] || "") + " " + (match[3] || "");
+        const href = decode(match[2] || "");
+        const label = stripHtml(match[4] || "");
+        const aria = attrFromTag("<a " + attrs + ">", "aria-label");
+        const titleAttr = attrFromTag("<a " + attrs + ">", "title");
+        return { href, label, aria, title: titleAttr, haystack: normalizeLegalText([href, label, aria, titleAttr].join(" ")) };
+      });
+    const legalLexicon = {
+      privacy: /\b(?:privacy|privacybeleid|privacy policy|privacidade|privatnost\w*|zasebnost\w*|datenschutz|confidentialite|vie privee|privacidad|riservatezza)\b/i,
+      cookies: /\b(?:cookie\w*|piskotk\w*|kolacic\w*|galleta\w*|biscott\w*)\b/i,
+      terms: /\b(?:voorwaarden|terms|conditions|agb|cgv|condiciones|condizioni|termos|uvjet\w*|pogoj\w*|conditions generales)\b/i,
+      contact: /\b(?:contact\w*|kontakt\w*|contatt\w*|contacto\w*|klantenservice|customer service|support|helpdesk|help center|help centre|assistenza\w*|apoio ao cliente|pomoc\w*)\b/i,
+    };
+    const findLegalSignal = (pattern: RegExp) => legalAnchorEvidence.find((item) => pattern.test(item.haystack)) || null;
+    const privacyEvidence = findLegalSignal(legalLexicon.privacy);
+    const cookieEvidence = findLegalSignal(legalLexicon.cookies);
+    const termsEvidence = findLegalSignal(legalLexicon.terms);
+    const contactEvidence = findLegalSignal(legalLexicon.contact);
+    const hasPrivacyLink = Boolean(privacyEvidence);
+    const hasCookieLink = Boolean(cookieEvidence);
+    const hasTermsLink = Boolean(termsEvidence);
+    const hasContactLink = Boolean(contactEvidence);
+    const legalLanguageCode = (lang || "").toLowerCase().split("-")[0];
+    const legalLanguageSupported = new Set(["nl","en","it","pt","sl","hr","de","fr","es"]).has(legalLanguageCode);
+    const legalEvidenceSummary = [privacyEvidence && `privacy: "${privacyEvidence.label || privacyEvidence.aria || privacyEvidence.title}" → ${privacyEvidence.href}`, cookieEvidence && `cookies: "${cookieEvidence.label || cookieEvidence.aria || cookieEvidence.title}" → ${cookieEvidence.href}`, contactEvidence && `contact: "${contactEvidence.label || contactEvidence.aria || contactEvidence.title}" → ${contactEvidence.href}`].filter(Boolean).join(" · ");
     const formControls = [...html.matchAll(/<(input|select|textarea)\b([^>]*)>/gi)];
     const wrappingLabelRanges = [...html.matchAll(/<label\b[^>]*>[\s\S]*?<\/label>/gi)]
       .map((match) => ({ start: match.index ?? -1, end: (match.index ?? -1) + match[0].length }));
@@ -2031,9 +2072,13 @@ export async function POST(request: Request) {
       !ogDescription ? "og:description" : null,
       !ogImage ? "og:image" : null,
     ].filter(Boolean) as string[];
-    seoChecks.push(missingOpenGraphFields.length === 0
-      ? check("pass", "social", "seo", "Social metadata", "Open Graph title, description en image zijn aanwezig.", "Controleer social previews voor belangrijke pagina's.", 4, 4)
-      : check("warning", "social", "seo", "Social metadata", `Open Graph is onvolledig. Ontbrekend: ${missingOpenGraphFields.join(", ")}.`, `Voeg alleen de ontbrekende Open Graph-velden toe: ${missingOpenGraphFields.join(", ")}.`, 2, 4)
+    const invalidOpenGraphFields = [
+      ogImage && !ogImageIsAbsolute ? "og:image (geen absolute http(s)-URL)" : null,
+      ogUrl && !ogUrlIsAbsolute ? "og:url (geen absolute http(s)-URL)" : null,
+    ].filter(Boolean) as string[];
+    seoChecks.push(missingOpenGraphFields.length === 0 && invalidOpenGraphFields.length === 0
+      ? check("pass", "social", "seo", "Social metadata", "Open Graph title, description en image zijn aanwezig; URL-velden gebruiken geldige absolute http(s)-URL's.", "Controleer social previews voor belangrijke pagina's.", 4, 4)
+      : check("warning", "social", "seo", "Social metadata", `Open Graph vraagt aandacht.${missingOpenGraphFields.length ? " Ontbrekend: " + missingOpenGraphFields.join(", ") + "." : ""}${invalidOpenGraphFields.length ? " Ongeldig: " + invalidOpenGraphFields.join(", ") + "." : ""}`, "Vul ontbrekende velden aan en gebruik voor og:image en og:url absolute http(s)-URL's.", 2, 4)
     );
     seoChecks.push(robotsStatus === "PASS"
       ? robotsPathBlocked
@@ -2116,8 +2161,10 @@ export async function POST(request: Request) {
 
     seoChecks.push(
       hasPrivacyLink && hasCookieLink && hasContactLink
-        ? check("pass","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Links naar privacy, cookies en contact zijn in de opgehaalde HTML gevonden.","Houd deze informatie duidelijk vindbaar en actueel. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",5,5)
-        : check("warning","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Niet alle basissignalen zijn gevonden: "+[!hasPrivacyLink?"privacy":null,!hasCookieLink?"cookies":null,!hasContactLink?"contact":null].filter(Boolean).join(", ")+".","Controleer of privacy-, cookie- en contactinformatie duidelijk bereikbaar is. RankFix beoordeelt hiermee geen wettelijke compliance.",2,5)
+        ? check("pass","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Links naar privacy, cookies en contact zijn in de opgehaalde HTML gevonden."+(legalEvidenceSummary ? " Bewijs: "+legalEvidenceSummary+"." : ""),"Houd deze informatie duidelijk vindbaar en actueel. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",5,5)
+        : !legalLanguageSupported && Boolean(legalLanguageCode)
+          ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen","De paginataal ("+legalLanguageCode+") valt buiten de geteste juridische woordenlijst en niet alle signalen zijn rechtstreeks bevestigd."+(legalEvidenceSummary ? " Wel gevonden: "+legalEvidenceSummary+"." : ""),"Controleer de footer en cookiebanner handmatig of breid de woordenlijst voor deze taal uit.",0,5)
+          : check("warning","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Niet alle basissignalen zijn gevonden: "+[!hasPrivacyLink?"privacy":null,!hasCookieLink?"cookies":null,!hasContactLink?"contact":null].filter(Boolean).join(", ")+". "+(legalEvidenceSummary ? "Wel gevonden: "+legalEvidenceSummary+"." : ""),"Controleer of privacy-, cookie- en contactinformatie duidelijk bereikbaar is. RankFix beoordeelt hiermee geen wettelijke compliance.",2,5)
     );
     seoChecks.push(
       hasEcommerceSignal && !hasTermsLink
