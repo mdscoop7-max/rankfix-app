@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { copy, type Locale } from "@/lib/locales";
 const freeInfo: Record<Locale,{title:string;items:string[]}> = {
-  nl:{title:"Wat krijg je met de gratis scan?",items:["Controle van belangrijke SEO-, technische en GEO/AI Search-signalen.","Direct een score en concrete verbeterpunten.","Geen betaalkaart nodig en RankFix wijzigt niets automatisch aan je website."]},
+  nl:{title:"Wat controleert de gratis RankFix-scan?",items:["SEO & GEO / AI Search","Security & techniek","Webshop & Merchant Readiness","EU Consumer Rights & Consent Mode","Ads & Analytics · Local SEO","Structured Data & Accessibility","Quality & Trust · Broken Links · Redirects","Direct een score met concrete verbeterpunten. Geen betaalkaart nodig; RankFix wijzigt niets automatisch."]},
   en:{title:"What do you get with the free scan?",items:["Checks of key SEO, technical and GEO/AI Search signals.","An immediate score and concrete improvement points.","No payment card required and RankFix does not automatically change your website."]},
   fr:{title:"Que comprend l’audit gratuit ?",items:["Contrôle des principaux signaux SEO, techniques et GEO/recherche IA.","Un score immédiat et des améliorations concrètes.","Aucune carte bancaire requise et RankFix ne modifie pas automatiquement votre site."]},
   es:{title:"¿Qué incluye el análisis gratuito?",items:["Revisión de señales SEO, técnicas y GEO/búsqueda con IA importantes.","Puntuación inmediata y mejoras concretas.","No se requiere tarjeta y RankFix no modifica automáticamente tu web."]},
@@ -45,7 +45,7 @@ export default function ScanClient({ locale }: { locale: Locale }) {
   const notApplicable = checks.filter(check => check.status === "not_applicable").length;
   const unableToConfirm = checks.filter(check => check.status === "unable_to_confirm").length;
   return <div className="lc-container lc-prose"><h1>{t.run}</h1><p>{t.intro}</p>
-    <section className="lc-card"><strong>{free.title}</strong><ul>{free.items.map(item=><li key={item}>{item}</li>)}</ul></section>
+    <section className="lc-card lc-free-scope"><strong>{free.title}</strong><div className="lc-free-scope-grid">{free.items.map(item=><span key={item}>✓ {item}</span>)}</div></section>
     <form onSubmit={run} className="lc-scan-box"><label htmlFor="lc-url">{t.url}</label><input id="lc-url" value={url} onChange={event => { const next=event.target.value; const embedded=next.slice(1).search(/https?:\/\//i); setUrl(embedded>=0?next.slice(embedded+1):next); }} onFocus={event=>event.currentTarget.select()} placeholder="https://example.com" required /><button type="submit" disabled={busy} className="lc-primary">{busy ? t.running : t.run}</button></form>
     {error && <p role="alert" className="lc-note">{error}</p>}
     {busy && <section className="lc-scan-visual" aria-live="polite"><div className="lc-meter lc-meter-running"><div className="lc-meter-core"><strong>AI</strong><span>{t.running}</span></div></div><div><h2>{t.running}</h2><p>{u.scope}</p></div></section>}
