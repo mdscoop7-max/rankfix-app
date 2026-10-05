@@ -3408,6 +3408,18 @@ export async function POST(request: Request) {
       technologyProfile: technologyProfile.isCommerce,
       multiPageEvidence: sitewideCommerceEvidence.confirmed,
     };
+    // Motor v2.1: module applicability follows the final Master commerce decision,
+    // not an early incidental capability. Page-specific checks still require proof.
+    const commerceModules = new Set(["ecommerce","product","pricing_currency","merchant","checkout","eu_consumer"]);
+    if (finalCommerceDecision.confirmed) {
+      for (const module of commerceModules) {
+        if (!sectorProfile.applicableModules.includes(module)) sectorProfile.applicableModules.push(module);
+        if (!masterEvidence.activeModules.includes(module)) masterEvidence.activeModules.push(module);
+      }
+    } else {
+      sectorProfile.applicableModules = sectorProfile.applicableModules.filter((module)=>!commerceModules.has(module));
+      masterEvidence.activeModules = masterEvidence.activeModules.filter((module)=>!commerceModules.has(module));
+    }
     // Re-run only clearly contradicted/underspecified primary identity decisions
     // with representative evidence. Secondary topics can never override a strong
     // primary sector. This fixes recruitment text on hotel sites without hardcoding brands.
