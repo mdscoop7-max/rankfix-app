@@ -1256,14 +1256,14 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
             </p>
           </div>
           {[
-            [t.product, language==="nl"?["SEO Audit","GEO Audit","AI Fixes","Rapporten","Google Ads & Analytics","24/7 Monitoring","Security & Accessibility","E-commerce Checks"]:language==="en"?["SEO Audit","GEO Audit","AI Fixes","Reports","Google Ads & Analytics","24/7 Monitoring","Security & Accessibility","E-commerce Checks"]:language==="de"?["SEO-Audit","GEO-Audit","AI-Fixes","Berichte","Google Ads & Analytics","24/7 Monitoring","Security & Accessibility","E-Commerce-Checks"]:language==="fr"?["Audit SEO","Audit GEO","Correctifs IA","Rapports","Google Ads & Analytics","Monitoring 24/7","Sécurité & Accessibilité","Contrôles e-commerce"]:language==="it"?["Audit SEO","Audit GEO","Fix AI","Report","Google Ads & Analytics","Monitoraggio 24/7","Sicurezza & Accessibilità","Controlli e-commerce"]:["Auditoría SEO","Auditoría GEO","Mejoras IA","Informes","Google Ads & Analytics","Monitorización 24/7","Seguridad y Accesibilidad","Controles e-commerce"]],
+            [t.product, language==="nl"?["SEO Audit","GEO Audit","AI Fixes","Rapporten"]:language==="en"?["SEO Audit","GEO Audit","AI Fixes","Reports"]:language==="de"?["SEO-Audit","GEO-Audit","AI-Fixes","Berichte"]:language==="fr"?["Audit SEO","Audit GEO","Correctifs IA","Rapports"]:language==="it"?["Audit SEO","Audit GEO","Fix AI","Report"]:["Auditoría SEO","Auditoría GEO","Mejoras IA","Informes"]],
             [t.forWho, language==="nl"?["Bedrijven","Webshops","Bureaus","SaaS"]:language==="en"?["Businesses","Online stores","Agencies","SaaS"]:language==="de"?["Unternehmen","Onlineshops","Agenturen","SaaS"]:language==="fr"?["Entreprises","Boutiques en ligne","Agences","SaaS"]:language==="it"?["Aziende","Negozi online","Agenzie","SaaS"]:["Empresas","Tiendas online","Agencias","SaaS"]],
             [t.company, language==="nl"?["Over RankFix","Contact","Privacy","Voorwaarden","Cookies"]:language==="en"?["About RankFix","Contact","Privacy","Terms","Cookies"]:language==="de"?["Über RankFix","Kontakt","Datenschutz","AGB","Cookies"]:language==="fr"?["À propos de RankFix","Contact","Confidentialité","Conditions générales","Cookies"]:language==="it"?["Chi è RankFix","Contatti","Privacy","Termini e condizioni","Cookie"]:["Sobre RankFix","Contacto","Privacidad","Condiciones","Cookies"]],
           ].map((entry,groupIndex) => {
             const [title, links] = entry as [string, string[]];
             return <div key={title}><div className="text-sm font-bold text-white">{title}</div><div className="mt-4 space-y-3 text-sm text-slate-300">{links.map((link,index)=>groupIndex===2&&index!==1?<Link key={link} href={`/${language}/${index===0?"about":index===2?"privacy":index===3?"terms":"cookies"}`} className="block text-left hover:text-emerald-300">{link}</Link>:<button type="button" key={link} onClick={()=>{
               if(groupIndex===2)setContactOpen(true);
-              else if(groupIndex===0){if(index===0)startAudit("seo");else if(index===1)startAudit("geo");else if(index===2||index>=4)scrollToSection("features");else scrollToSection(document.getElementById("resultaat")?"resultaat":"scan");}
+              else if(groupIndex===0){if(index===0)startAudit("seo");else if(index===1)startAudit("geo");else if(index===2)scrollToSection("features");else scrollToSection(document.getElementById("resultaat")?"resultaat":"scan");}
               else scrollToSection("scan");
             }} className="block text-left hover:text-emerald-300">{link}</button>)}</div></div>;
           })}
@@ -1279,6 +1279,18 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
             </div>
             <div className="flex min-w-[145px] items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3" title="Shopify">
               <span aria-hidden="true" className="grid h-8 w-8 place-items-center rounded-lg bg-[#95bf47] text-base font-black text-white">S</span><span className="text-sm font-bold text-white">Shopify</span>
+            </div>
+            <div className="flex min-w-[170px] items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3" title="Google Ads & Analytics">
+              <span aria-hidden="true" className="grid h-8 w-8 place-items-center rounded-lg bg-blue-500/20 text-sm font-black text-blue-200">G</span><span className="text-sm font-bold text-white">Google Ads & Analytics</span>
+            </div>
+            <div className="flex min-w-[165px] items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3" title="24/7 Monitoring">
+              <span aria-hidden="true" className="grid h-8 w-8 place-items-center rounded-lg bg-cyan-500/20 text-sm font-black text-cyan-200">24/7</span><span className="text-sm font-bold text-white">24/7 Monitoring</span>
+            </div>
+            <div className="flex min-w-[190px] items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3" title="Security & Accessibility">
+              <span aria-hidden="true" className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-500/20 text-sm font-black text-emerald-200">✓</span><span className="text-sm font-bold text-white">Security & Accessibility</span>
+            </div>
+            <div className="flex min-w-[165px] items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3" title="E-commerce Checks">
+              <span aria-hidden="true" className="grid h-8 w-8 place-items-center rounded-lg bg-violet-500/20 text-sm font-black text-violet-200">E</span><span className="text-sm font-bold text-white">E-commerce Checks</span>
             </div>
           </div>
           <p className="mt-3 text-xs text-slate-400">{language==="nl"?"Platformherkenning betekent ondersteuning door RankFix; het is geen partner- of certificeringsclaim.":language==="en"?"Platform recognition means RankFix support; it does not imply a partnership or certification.":"RankFix herkent deze platformen; dit betekent geen officiële samenwerking of certificering."}</p>
