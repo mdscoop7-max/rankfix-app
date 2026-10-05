@@ -777,3 +777,15 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
 .rf-process-icon{display:grid;width:42px;height:42px;place-items:center;margin-bottom:14px;border-radius:12px;color:#fff!important;font-size:21px;font-weight:800;box-shadow:0 4px 12px rgba(20,40,70,.12)}
 .rf-process-icon-scan{background:#159de0}.rf-process-icon-fix{background:#7657e8}.rf-process-icon-check{background:#12b981}
 .rf-process-grid article>b{display:block;margin-bottom:2px;color:#168a6b!important}
+
+/* Help Center final desktop polish: functional topic buttons + readable lower content. */
+.rf-help-shortcuts .rf-help-shortcut{min-height:42px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;border-width:1px!important;border-style:solid!important;font-weight:750!important;box-shadow:0 2px 7px rgba(20,40,70,.06);transition:transform .15s ease,box-shadow .15s ease}
+.rf-help-shortcuts .rf-help-shortcut:hover{transform:translateY(-1px);box-shadow:0 5px 12px rgba(20,40,70,.1)}
+.rf-help-shortcut-scan{background:#edf6ff!important;border-color:#bddcff!important;color:#1769d2!important}
+.rf-help-shortcut-github{background:#eafaf7!important;border-color:#b9e9dd!important;color:#087f68!important}
+.rf-help-shortcut-video{background:#f2efff!important;border-color:#d8d0ff!important;color:#6548d7!important}
+.rf-help-shortcut-search{background:#eaf9f2!important;border-color:#b9e6d0!important;color:#087f5b!important}
+.rf-help-topic b,.rf-github-steps h2,.rf-help-side-card h2,.rf-help-videos h2{color:#172033!important}
+.rf-help-topic p,.rf-github-steps div,.rf-help-side-card a,.rf-help-videos p{color:#53627a!important;opacity:1!important}
+.rf-help-topic em{color:#1769d2!important;font-weight:800}
+.rf-help-side-card a{font-weight:650}
