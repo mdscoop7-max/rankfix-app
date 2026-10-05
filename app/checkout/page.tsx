@@ -1,11 +1,11 @@
 import Link from "next/link";
 
 const plans = {
-  start: { name: "Start", price: 24.95, websites: 1, scans: 10, stores: false },
-  business: { name: "Business", price: 44.95, websites: 5, scans: 30, stores: false },
-  "e-commerce": { name: "E-commerce", price: 64.95, websites: 5, scans: 50, stores: true },
-  pro: { name: "Pro", price: 94.95, websites: 15, scans: 100, stores: false },
-  agency: { name: "Agency", price: 159.95, websites: 50, scans: 300, stores: false },
+  start: { name: "Start", price: 34.95, websites: 1, scans: 15, stores: false },
+  business: { name: "Business", price: 69.95, websites: 5, scans: 50, stores: false },
+  "e-commerce": { name: "E-commerce", price: 89.95, websites: 5, scans: 75, stores: true },
+  pro: { name: "Pro", price: 129.95, websites: 15, scans: 150, stores: false },
+  agency: { name: "Agency", price: 219.95, websites: 50, scans: 500, stores: false },
 } as const;
 
 type PlanKey = keyof typeof plans;
