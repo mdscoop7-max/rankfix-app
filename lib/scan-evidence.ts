@@ -106,7 +106,12 @@ export function buildScanEvidence(input: {
 
   const vehicles = schemaHas("Vehicle", "Car", "AutoDealer", "AutomotiveBusiness") || has(text, /\b(occasions?|proefrit|test drive|fahrzeuge?|voitures? d'occasion|auto usate)\b/i);
   const properties = schemaHas("RealEstateAgent", "Residence", "House", "Apartment") || has(text, /\b(woningen?|huizen te koop|makelaar|real estate|properties for sale|immobilien|maisons? à vendre)\b/i);
-  const jobs = schemaHas("JobPosting") || has(text, /\b(vacatures?|solliciteren|jobs?|careers?|stellenangebote|offres d'emploi)\b/i);
+  // A careers/vacancy mention is a secondary capability, not proof that the
+  // organisation itself is a recruitment business. Structured JobPosting is
+  // strong job evidence; plain navigation text remains low-confidence.
+  const jobsSchema = schemaHas("JobPosting");
+  const jobsText = has(text, /\b(vacatures?|solliciteren|jobs?|careers?|stellenangebote|offres d'emploi)\b/i);
+  const jobs = jobsSchema || jobsText;
   const rooms = schemaHas("Hotel", "HotelRoom", "LodgingBusiness") || has(text, /\b(kamers?|rooms?|overnachting|hotelzimmer|chambres?)\b/i);
   const menu = schemaHas("Restaurant", "Menu") || has(text, /\b(menu|menukaart|gerechten|restaurant|speisekarte|carte des plats)\b/i);
 
@@ -136,7 +141,7 @@ export function buildScanEvidence(input: {
     inventory: {
       vehicles: fact(vehicles, vehicles ? "medium" : "low", [source], vehicles ? ["Voertuig/autodealer-signaal gevonden"] : []),
       properties: fact(properties, properties ? "medium" : "low", [source], properties ? ["Vastgoed/woning-signaal gevonden"] : []),
-      jobs: fact(jobs, jobs ? "medium" : "low", [source], jobs ? ["Vacature/recruitment-signaal gevonden"] : []),
+      jobs: fact(jobs, jobsSchema ? "high" : "low", [source, ...(jobsSchema ? ["structured_data" as EvidenceSource] : [])], jobsSchema ? ["JobPosting-schema gevonden"] : jobsText ? ["Vacature-/carrièrevermelding gevonden; dit is geen bewijs dat recruitment de primaire sector is"] : []),
       rooms: fact(rooms, rooms ? "medium" : "low", [source], rooms ? ["Hotel/kamer-signaal gevonden"] : []),
       menu: fact(menu, menu ? "medium" : "low", [source], menu ? ["Restaurant/menu-signaal gevonden"] : []),
     },
