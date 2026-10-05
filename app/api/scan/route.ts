@@ -3259,6 +3259,39 @@ export async function POST(request: Request) {
       technologyProfile.confidence = Math.max(technologyProfile.confidence, 82);
       technologyProfile.evidence = [...technologyProfile.evidence, `Site-sample bevestigt retail commerce op ${sitewideCommerceEvidence.sampleCount} pagina('s)`].slice(0,8);
     }
+    // Final Master reconciliation: representative same-site pages may add site-level
+    // capabilities after the current page was analysed. Feed that evidence back into
+    // the Master without changing the already-scored current-page checks.
+    if (sitewideCommerceEvidence.confirmed) {
+      masterEvidence.commerce.confirmed = true;
+      masterEvidence.commerce.strength = Math.max(masterEvidence.commerce.strength, 3);
+      for (const capability of ["ecommerce","products","pricing"]) {
+        if (!masterEvidence.capabilities.includes(capability)) masterEvidence.capabilities.push(capability);
+      }
+      for (const module of ["ecommerce","product","pricing_currency","merchant"]) {
+        if (!masterEvidence.activeModules.includes(module)) masterEvidence.activeModules.push(module);
+        if (!sectorProfile.applicableModules.includes(module)) sectorProfile.applicableModules.push(module);
+      }
+      if (!masterEvidence.businessModels.includes("commerce")) masterEvidence.businessModels.push("commerce");
+      if (!masterEvidence.coverage.evidenceSources.includes("multi_page")) masterEvidence.coverage.evidenceSources.push("multi_page");
+      masterEvidence.policy += " Representatieve same-site pagina's mogen sitebrede capabilities bevestigen, maar wijzigen niet achteraf de score van de expliciet gescande pagina.";
+    }
+    // Resolve the final site-level commerce decision once, after current-page,
+    // technology and multi-page evidence have all had a chance to contribute.
+    const finalCommerceDecision = {
+      confirmed: masterEvidence.commerce.confirmed || technologyProfile.isCommerce || sitewideCommerceEvidence.confirmed,
+      currentPageEvidence: masterEvidence.commerce.confirmed,
+      technologyProfile: technologyProfile.isCommerce,
+      multiPageEvidence: sitewideCommerceEvidence.confirmed,
+    };
+    if (finalCommerceDecision.confirmed && sectorProfile.key==="unknown") {
+      sectorProfile.key = "ecommerce";
+      sectorProfile.label = "Webshop / e-commerce";
+      sectorProfile.confidence = sitewideCommerceEvidence.confirmed ? "high" : sectorProfile.confidence;
+      sectorProfile.confidenceScore = Math.max(sectorProfile.confidenceScore, sitewideCommerceEvidence.confirmed ? 90 : 82);
+    }
+    (masterEvidence as typeof masterEvidence & {finalDecisions?:unknown}).finalDecisions = {commerce:finalCommerceDecision};
+
     const multiPage = {
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:4,
       discoveredInternalUrls:discoveredMultiPage.length, selectedPages:uniqueMultiPagePages, pageAudits:multiPageAudits,
