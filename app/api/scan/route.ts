@@ -1283,7 +1283,8 @@ export async function POST(request: Request) {
       try {
         const source = new URL(item.url);
         const destination = item.finalUrl ? new URL(item.finalUrl) : null;
-        const sourceAuthPath = /(?:^|\/)(?:myaccount|my-account|account|mijn-account|login|signin|sign-in|register|auth|sso)(?:\/|$)/i.test(source.pathname);
+        const sourceAuthPath = /(?:^|\/)(?:myaccount|my-account|account|mijn-account|login|signin|sign-in|register|auth|sso)(?:\/|$)/i.test(source.pathname) ||
+          /(?:^|\/)(?:sales\/order\/history|customer\/account|orders?|order-history)(?:\/|$)/i.test(source.pathname);
         const sourcePersonalizationPath = /(?:^|\/)(?:recomendacoes|recomendacoes-personalizadas|recommendations|preferences|profile|favorites|favourites|wishlist|personalization|personalisatie)(?:\/|$)/i.test(source.pathname);
         const destinationAuth = Boolean(destination && (
           /(?:^|\.)(?:accounts?|auth|login|sso)\./i.test(destination.hostname) ||
@@ -2479,7 +2480,9 @@ export async function POST(request: Request) {
       ? validTwitterCards.has(normalizedTwitterCard)
         ? check("pass", "twitter_card", "seo", "Twitter Card", `Geldige Twitter/X Card ingesteld: "${twitterCard}".`, "Behoud dit type zolang de social preview past bij de pagina.", 3, 3)
         : check("warning", "twitter_card", "seo", "Twitter Card", `Onbekende twitter:card-waarde gevonden: "${twitterCard}".`, "Gebruik een ondersteund Card-type en controleer de social preview.", 1, 3)
-      : check("not_applicable", "twitter_card", "seo", "Twitter Card", "Geen twitter:card gevonden. Dit is een optionele social-previewtag en wordt niet als SEO-fout of rankingprobleem bestraft.", "Voeg alleen Twitter/X Card metadata toe wanneer je een specifieke preview op X wilt beheren.", 0, 3)
+      : twitterCardInvalidValue
+        ? check("warning", "twitter_card", "seo", "Twitter Card", `twitter:card is aanwezig, maar bevat geen geldig Card-type: "${twitterCardRaw.slice(0,120)}".`, "Gebruik summary, summary_large_image, app of player als twitter:card-waarde.", 1, 3)
+        : check("not_applicable", "twitter_card", "seo", "Twitter Card", "Geen twitter:card gevonden. Dit is een optionele social-previewtag en wordt niet als SEO-fout of rankingprobleem bestraft.", "Voeg alleen Twitter/X Card metadata toe wanneer je een specifieke preview op X wilt beheren.", 0, 3)
     );
 
     seoChecks.push(!multilingualUrlEvidence
@@ -2792,7 +2795,9 @@ export async function POST(request: Request) {
     );
     geoChecks.push(hasContactChannelSignal || hasAboutSignal || hasSocialOrReviewSignal
       ? check("pass", "trust", "geo", "Trust & context", hasAboutSignal ? "Contact- en organisatiecontext zijn zichtbaar." : "Concrete contact-, locatie- of externe profielsignalen zijn zichtbaar.", "Houd bedrijfsnaam, contactgegevens, locatie, verantwoordelijkheden en officiële profielen consistent.", 8, 8)
-      : check("warning", "trust", "geo", "Trust & context", "Contact- of organisatiecontext is beperkt gevonden.", "Maak organisatie, contact, locatie en verantwoordelijkheden duidelijk.", 3, 8)
+      : thinRawHtmlEvidence
+        ? check("unable_to_confirm", "trust", "geo", "Trust & context", "De beschikbare raw HTML bevat onvoldoende betrouwbare zichtbare organisatie-/contactcontext en deze JavaScript-pagina kon niet volledig worden beoordeeld.", "Controleer trust- en contactcontext opnieuw met een volledige render voordat dit als tekortkoming wordt aangemerkt.", 0, 8)
+        : check("warning", "trust", "geo", "Trust & context", "Contact- of organisatiecontext is beperkt gevonden.", "Maak organisatie, contact, locatie en verantwoordelijkheden duidelijk.", 3, 8)
     );
     // GEO summary readiness must not double-penalize the same missing Open Graph
     // fields already covered by the SEO social-metadata rule. Use independent
@@ -2839,11 +2844,13 @@ export async function POST(request: Request) {
     const brandIdentityPoints = visibleBrandSignals >= 3 ? 5 : visibleBrandSignals === 2 ? 4 : visibleBrandSignals === 1 ? 3 : 2;
     geoChecks.push(visibleBrandSignals >= 3
       ? check("pass", "identity", "geo", "Brand identity", brandSignalDetail, brandRecommendation, 5, 5)
-      : visibleBrandSignals >= 1
-        ? check("warning", "identity", "geo", "Brand identity", brandSignalDetail, brandRecommendation, brandIdentityPoints, 5)
-        : metadataMayBeClientRendered
-          ? check("unable_to_confirm", "identity", "geo", "Brand identity", `${brandSignalDetail} De JavaScript-pagina kon niet volledig worden gerenderd, dus afwezigheid in raw HTML is onvoldoende bewijs voor een harde merkidentiteitsconclusie.`, "Controleer de zichtbare merkidentiteit opnieuw met een volledige render.", 0, 5)
-          : check("warning", "identity", "geo", "Brand identity", brandSignalDetail, brandRecommendation, brandIdentityPoints, 5)
+      : thinRawHtmlEvidence
+        ? check("unable_to_confirm", "identity", "geo", "Brand identity", `${brandSignalDetail} De beschikbare raw HTML is te dun om ontbrekende zichtbare merksignalen betrouwbaar als probleem te beoordelen.`, "Controleer de zichtbare merkidentiteit opnieuw met een volledige render.", 0, 5)
+        : visibleBrandSignals >= 1
+          ? check("warning", "identity", "geo", "Brand identity", brandSignalDetail, brandRecommendation, brandIdentityPoints, 5)
+          : metadataMayBeClientRendered
+            ? check("unable_to_confirm", "identity", "geo", "Brand identity", `${brandSignalDetail} De JavaScript-pagina kon niet volledig worden gerenderd, dus afwezigheid in raw HTML is onvoldoende bewijs voor een harde merkidentiteitsconclusie.`, "Controleer de zichtbare merkidentiteit opnieuw met een volledige render.", 0, 5)
+            : check("warning", "identity", "geo", "Brand identity", brandSignalDetail, brandRecommendation, brandIdentityPoints, 5)
     );
 
     const ruleMap: Record<string, { rule_id: string; severity: Check["severity"] }> = {
