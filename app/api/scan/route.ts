@@ -3253,10 +3253,19 @@ export async function POST(request: Request) {
         const finalCandidate = new URL(fetched.finalUrl.toString());
         if (normalizeHost(finalCandidate.hostname) !== siteHost) throw new Error("CROSS_HOST_REDIRECT");
         const contentType = r.headers.get("content-type") || "";
-        if (!r.ok || (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml"))) {
-          return { ...page, status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"http",status:"UNABLE_TO_CONFIRM",details:`HTTP ${r.status}; pagina kon niet betrouwbaar als HTML worden beoordeeld.`}] };
+        let pageHtml: string | null = null;
+        // Motor v2.1: representative pages get the same single bounded recovery
+        // opportunity as the primary page. A failed render remains UNABLE, never PASS.
+        if (!r.ok && (r.status === 202 || r.status === 403 || r.status === 405)) {
+          try {
+            const recoveredPage = await renderPublicPage(finalCandidate.toString(), 10000);
+            if (recoveredPage.html && recoveredPage.html.length >= 20) pageHtml = recoveredPage.html;
+          } catch {}
         }
-        const pageHtml = await readResponseTextLimited(r, 2_000_000);
+        if (!pageHtml && (!r.ok || (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")))) {
+          return { ...page, status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"http",status:"UNABLE_TO_CONFIRM",details:`HTTP ${r.status}; pagina kon niet betrouwbaar als HTML worden beoordeeld na begrensde recovery.`}] };
+        }
+        pageHtml = pageHtml || await readResponseTextLimited(r, 2_000_000);
         const pageQualityTitle = firstMatch(pageHtml, /<title[^>]*>([\s\S]*?)<\/title>/i);
         const pageDescriptionTag = pageHtml.match(/<meta\b[^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] ||
           pageHtml.match(/<meta\b[^>]*content\s*=\s*["'][^"']*["'][^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] || "";
