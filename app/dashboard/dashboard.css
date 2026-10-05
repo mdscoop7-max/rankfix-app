@@ -561,3 +561,15 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
 .rf-fix-engine form{background:#fff!important;border-color:#dfe6ee!important;color:#172033}.rf-fix-engine select{background:#f8fafc!important;border-color:#d8dee8!important;color:#172033!important}
 .rf-help-ai,.rf-github-steps{background:#eefbf6;border-color:#bfeede}.rf-help-ai strong,.rf-github-steps h2,.rf-github-steps a{color:#087f65}
 }
+
+/* Approved Help Center reference */
+@media(min-width:651px){
+.rf-help-reference-heading{margin-top:18px;margin-bottom:22px}.rf-help-reference-heading .rf-eyebrow{display:block;margin-bottom:7px;color:#2784ff;font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
+.rf-help-search{display:flex;gap:10px;max-width:860px;margin:0 0 18px}.rf-help-search input{flex:1;min-height:46px;border:1px solid #dfe5ed;border-radius:10px;background:#fff;padding:0 15px;color:#172033;box-shadow:0 3px 10px rgba(25,38,58,.03)}.rf-help-search button{min-width:104px;border-radius:10px;background:#2784ff;color:#fff;font-weight:800}
+.rf-help-ai{display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:24px;margin-top:0;padding:22px 24px;background:#eefbf6;border:1px solid #c8eee1;border-radius:14px}.rf-help-ai strong,.rf-help-ai p{grid-column:1}.rf-help-ai-button{grid-column:2;grid-row:1/4;align-self:center;min-height:42px;padding:0 17px;border-radius:9px;background:#16b981;color:#fff;font-size:13px;font-weight:800}.rf-help-ai-button:hover{background:#10a875}
+.rf-help-section-title{margin:28px 0 12px;color:#172033;font-size:18px;font-weight:800}.rf-help-shortcuts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px}.rf-help-shortcuts a{padding:8px 12px;border:1px solid #dfe5ed;border-radius:9px;background:#fff;color:#53627a;font-size:12px;font-weight:700}.rf-help-shortcuts a:hover{border-color:#9cc8ff;color:#1769d2}
+.rf-help-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:0}.rf-help-topic{min-height:86px;padding:18px 20px;border-radius:12px}.rf-help-topic b{color:#172033}.rf-help-topic em{color:#2784ff}.rf-help-topic p{color:#68758a}
+.rf-github-steps{margin-top:18px;padding:20px 22px;background:#f7f9fc;border:1px solid #e2e7ee}.rf-github-steps h2{color:#172033}.rf-github-steps div{color:#68758a}.rf-github-steps a{color:#1769d2}
+.rf-help-side-card{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:18px;padding:14px 16px;border:1px solid #e3e8ef;border-radius:12px;background:#fff}.rf-help-side-card h2{margin-right:8px;color:#172033;font-size:13px;font-weight:800}.rf-help-side-card a{padding:7px 9px;border-radius:8px;color:#53627a;font-size:12px;font-weight:700}.rf-help-side-card a:hover{background:#f1f6fd;color:#1769d2}
+.rf-help-videos{margin-top:18px;padding:20px 22px;border:1px solid #e3e8ef;border-radius:12px;background:#fff}.rf-help-videos .rf-eyebrow{color:#2784ff}.rf-help-videos h2{margin-top:4px;color:#172033;font-size:16px;font-weight:800}.rf-help-videos p{margin-top:5px;color:#68758a;font-size:13px}
+}
