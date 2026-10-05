@@ -640,3 +640,22 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
 .rf-shared-result{padding:22px;border:1px solid #c8eee1!important;border-radius:13px!important;background:#f5fcf9!important;color:#172033!important}.rf-shared-result h2{color:#172033!important}.rf-shared-result p{color:#68758a!important}.rf-shared-result .rf-eyebrow{color:#087f65!important}.rf-shared-score{background:#fff!important;color:#172033!important;box-shadow:0 0 0 1px #d9eee7}.rf-shared-actions .rf-back{color:#1769d2!important}
 .rf-body>.mb-4.rounded-xl.border-emerald-400\/20{border-color:#c8eee1!important;background:#eefbf6!important;color:#087f65!important}.rf-body>.mb-4.rounded-xl.border-emerald-400\/20 p{color:#53627a!important}
 }
+
+/* Readability pass — navigation and secondary dashboard pages */
+@media(min-width:651px){
+.rf-desktop-nav{background:#16243b!important;border-bottom:1px solid #253955!important;box-shadow:0 2px 8px rgba(14,27,46,.16)}
+.rf-desktop-main a,.rf-desktop-tools a,.rf-language-trigger{color:#e9f0f8!important}
+.rf-desktop-main a:hover{background:#223652!important;color:#fff!important}
+.rf-desktop-main a[aria-current="page"]{background:#2784ff!important;color:#fff!important;box-shadow:0 2px 8px rgba(39,132,255,.24)}
+.rf-site-link{color:#e9f0f8!important}.rf-language-chip{color:#172033}.rf-language-dropdown{background:#fff!important;border-color:#dfe6ee!important}
+.rf-body>h1,.rf-heading h1{color:#172033!important}.rf-body>p,.rf-heading p{color:#5d6b7e!important}
+.rf-more-card h2,.rf-more-card h3,.rf-more-card strong,.rf-more-section-title h2{color:#172033!important}
+.rf-more-card p,.rf-more-card small,.rf-more-section-title p,.rf-more-explainer p{color:#5d6b7e!important}
+.rf-more-card{border-color:#dce3eb!important;box-shadow:0 3px 12px rgba(25,38,58,.035)!important}
+.rf-more-card:hover{border-color:#9fc9f5!important;box-shadow:0 6px 18px rgba(25,38,58,.07)!important}
+}
+/* Keep mobile/app text readable too; visual redesign remains separate. */
+@media(max-width:650px){
+.rf-body h1,.rf-body h2,.rf-body h3,.rf-heading h1,.rf-heading h2{color:var(--text-primary)}
+.rf-body p,.rf-body small,.rf-heading p{opacity:1}
+}
