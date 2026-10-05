@@ -1478,7 +1478,27 @@ export async function POST(request: Request) {
       ...evidenceCapabilities,
       ...(evidenceCommerceConfirmed ? ["products","pricing","merchant","consumer_rights"] : []),
     ]);
-    sectorProfile.applicableModules = [...new Set([...sectorProfile.applicableModules, ...capabilityModules])];
+    const primarySectorModules: Partial<Record<string,string[]>> = {
+      ecommerce:["ecommerce","product","pricing_currency","merchant","checkout"],
+      automotive:["automotive"],
+      real_estate:["real_estate"],
+      recruitment:["recruitment"],
+      hospitality:["hospitality"],
+      health_wellness:["health_wellness"],
+      professional_services:["professional_services"],
+      home_services:["home_services"],
+      beauty:["beauty"],
+      saas_b2b:["saas_b2b"],
+    };
+    // Motor v2: sector modules come only from the primary identity decision.
+    // Capabilities may add generic functional modules (lead conversion, booking,
+    // local, trust) but may never turn an incidental topic into another sector.
+    const sectorDefiningModules = new Set(["automotive","real_estate","recruitment","hospitality","marketplace"]);
+    sectorProfile.applicableModules = [...new Set([
+      ...sectorProfile.applicableModules.filter((module)=>!sectorDefiningModules.has(module)),
+      ...(primarySectorModules[sectorProfile.sector] || []),
+      ...capabilityModules.filter((module)=>!sectorDefiningModules.has(module)),
+    ])];
 
     const masterEvidence = {
       version:"1.0",
