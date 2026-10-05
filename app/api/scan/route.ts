@@ -1788,12 +1788,15 @@ export async function POST(request: Request) {
     }
 
     const checkedInternalLinkCount = linkAuditResults.length;
+    const linkEvidenceUnavailable = thinRawHtmlEvidence && uniqueInternalAnchors.length === 0;
     const brokenInternalLinkRatio = checkedInternalLinkCount ? brokenInternalLinks.length / checkedInternalLinkCount : 0;
     const brokenLinkPoints = brokenInternalLinkRatio <= 0.05 ? 4 : brokenInternalLinkRatio <= 0.15 ? 3 : brokenInternalLinkRatio <= 0.30 ? 2 : 1;
     const redirectedInternalLinkRatio = checkedInternalLinkCount ? redirectedInternalLinks.length / checkedInternalLinkCount : 0;
     const internalRedirectPoints = redirectedInternalLinkRatio <= 0.10 ? 3 : redirectedInternalLinkRatio <= 0.30 ? 2 : 1;
     seoChecks.push(
-      uniqueInternalAnchors.length === 0
+      linkEvidenceUnavailable
+        ? check("unable_to_confirm", "broken_links", "seo", "Broken links", "De raw HTML is een dunne JavaScript-shell en bevat geen betrouwbare interne linkset.", "Controleer broken links opnieuw na geslaagde JavaScript-rendering.", 0, 5)
+        : uniqueInternalAnchors.length === 0
         ? check("not_applicable", "broken_links", "seo", "Broken links", "Geen controleerbare interne links gevonden op deze pagina.", "Controleer links opnieuw wanneer de pagina interne navigatie bevat.", 0, 5)
         : brokenInternalLinks.length > 0
           ? check("warning", "broken_links", "seo", "Broken links", `${brokenInternalLinks.length} van ${linkAuditResults.length} gecontroleerde interne link(s) gaf een bewezen foutstatus (${Math.round(brokenInternalLinkRatio * 100)}%). Voorbeeld: ${brokenInternalLinks[0]?.url} → HTTP ${brokenInternalLinks[0]?.status}.`, "Herstel de bestemming, verwijder de link of redirect een oude URL naar de juiste relevante pagina.", brokenLinkPoints, 5)
@@ -1802,14 +1805,18 @@ export async function POST(request: Request) {
             : check("pass", "broken_links", "seo", "Broken links", `${linkAuditResults.length} interne link(s) steekproefsgewijs gecontroleerd; geen 404, 410 of 5xx gevonden.`, "Blijf interne links controleren bij wijzigingen en verwijderde pagina's.", 5, 5)
     );
     seoChecks.push(
-      uniqueInternalAnchors.length === 0
+      linkEvidenceUnavailable
+        ? check("unable_to_confirm", "internal_redirects", "seo", "Interne redirects", "De raw HTML is een dunne JavaScript-shell en bevat geen betrouwbare interne linkset.", "Controleer redirects opnieuw na geslaagde JavaScript-rendering.", 0, 4)
+        : uniqueInternalAnchors.length === 0
         ? check("not_applicable", "internal_redirects", "seo", "Interne redirects", "Geen controleerbare interne links gevonden op deze pagina.", "Gebruik directe interne links zodra er navigatie aanwezig is.", 0, 4)
         : redirectedInternalLinks.length === 0
           ? check("pass", "internal_redirects", "seo", "Interne redirects", `${linkAuditResults.length} interne link(s) gecontroleerd; geen doorgestuurde bestemmingen gevonden.`, "Link intern bij voorkeur direct naar de definitieve URL.", 4, 4)
           : check("warning", "internal_redirects", "seo", "Interne redirects", `${redirectedInternalLinks.length} van ${linkAuditResults.length} gecontroleerde interne link(s) komt via een redirect op een andere URL uit (${Math.round(redirectedInternalLinkRatio * 100)}%). Voorbeeld: ${redirectedInternalLinks[0]?.url} → ${redirectedInternalLinks[0]?.finalUrl}.`, "Werk interne links bij naar de definitieve URL om onnodige redirects te vermijden.", internalRedirectPoints, 4)
     );
     seoChecks.push(
-      uniqueInternalAnchors.length === 0
+      linkEvidenceUnavailable
+        ? check("unable_to_confirm", "semantic_link_destination", "seo", "Verkeerde linkbestemming", "De raw HTML is een dunne JavaScript-shell; RankFix kan linktekst en bestemmingen niet betrouwbaar vergelijken.", "Controleer linkbestemmingen opnieuw na geslaagde JavaScript-rendering.", 0, 5)
+        : uniqueInternalAnchors.length === 0
         ? check("not_applicable", "semantic_link_destination", "seo", "Verkeerde linkbestemming", "Geen controleerbare interne links gevonden.", "Controleer belangrijke interne links zodra ze op de pagina aanwezig zijn.", 0, 5)
         : semanticLinkMismatches.length === 0 && productCardMismatches.length === 0 && featuredProductMismatches.length === 0
           ? check("pass", "semantic_link_destination", "seo", "Verkeerde linkbestemming", hasEcommerceSignal ? "Geen sterke semantische mismatch gevonden tussen benoemde productlinks en hun productbestemming. Prijs-only links worden bewust niet als bewijs gebruikt." : "Geen sterke semantische mismatch gevonden tussen benoemde interne links en hun bestemming.", hasEcommerceSignal ? "Houd titel, afbeelding en productbestemming binnen productkaarten consistent." : "Houd linktekst en bestemming inhoudelijk consistent.", 5, 5)
@@ -2482,7 +2489,9 @@ export async function POST(request: Request) {
       : check("pass", "html_escape", "seo", "Tekstweergave", "Geen duidelijke zichtbare HTML-escape-fout gevonden.", "Behoud correcte HTML-encoding.", 4, 4)
     );
 
-    seoChecks.push(hasStockImages
+    seoChecks.push(thinRawHtmlEvidence && imageSrcs.length === 0
+      ? check("unable_to_confirm", "image_sources", "seo", "Afbeeldingsbronnen", "De raw HTML is een dunne JavaScript-shell en bevat geen betrouwbare afbeeldingsset.", "Controleer afbeeldingsbronnen opnieuw na geslaagde JavaScript-rendering.", 0, 5)
+      : hasStockImages
       ? check("unable_to_confirm", "image_sources", "seo", "Afbeeldingsbronnen", `${stockImageUrls.length} afbeelding(en) worden vanaf bekende externe stockhosts geladen. Dat is op zichzelf geen SEO-fout; RankFix kan rechten, caching en CDN-configuratie uit HTML niet bevestigen.`, "Controleer alleen wanneer deze assets belangrijk zijn voor merk, rechten of performance.", 0, 5)
       : hasExternalImageHotlinks
         ? check("not_applicable", "image_sources", "seo", "Afbeeldingsbronnen", `${externalImageUrls.length} afbeelding(en) worden vanaf een ander hostnaam geladen. Een CDN of image-service is normaal en vormt zonder prestatie- of bereikbaarheidsbewijs geen probleem.`, "Beoordeel afbeeldingsperformance afzonderlijk met runtime-metingen.", 0, 5)

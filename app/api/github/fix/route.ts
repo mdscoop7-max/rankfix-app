@@ -75,6 +75,8 @@ function normalizeScanUrl(value:string){
     url.hash="";
     url.hostname=url.hostname.toLowerCase().replace(/^www\./,"");
     url.pathname=url.pathname.replace(/\/+$/,"")||"/";
+    ["utm_source","utm_medium","utm_campaign","utm_term","utm_content","gclid","fbclid","msclkid","from_srp","prevent-auto-open-privacy-settings"]
+      .forEach((param)=>url.searchParams.delete(param));
     return url.toString();
   } catch { return value.trim().replace(/\/+$/,""); }
 }
