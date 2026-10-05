@@ -3321,7 +3321,46 @@ export async function POST(request: Request) {
       sectorProfile.confidence = sitewideCommerceEvidence.confirmed ? "high" : sectorProfile.confidence;
       sectorProfile.confidenceScore = Math.max(sectorProfile.confidenceScore, sitewideCommerceEvidence.confirmed ? 90 : 82);
     }
-    (masterEvidence as typeof masterEvidence & {finalDecisions?:unknown}).finalDecisions = {commerce:finalCommerceDecision};
+
+    // Final Master reconciliation: late technology/multi-page evidence may improve
+    // the site-level decision after the initial Master object was created. Keep
+    // one authoritative website type, sector and page type for every consumer.
+    const sectorDisplayPolicy = sectorProfile.confidenceScore >= 80 ? "confirmed" : sectorProfile.confidenceScore >= 60 ? "probable" : "unconfirmed";
+    masterEvidence.primarySector = {
+      key: sectorProfile.key,
+      label: sectorProfile.label,
+      confidence: sectorProfile.confidence,
+      confidenceScore: sectorProfile.confidenceScore,
+      displayPolicy: sectorDisplayPolicy,
+    };
+    masterEvidence.coverage.confirmedCapabilities = masterEvidence.capabilities.length;
+    const websiteType = finalCommerceDecision.confirmed
+      ? "Webshop"
+      : masterEvidence.businessModels.includes("recruitment")
+        ? "Recruitmentwebsite"
+        : masterEvidence.businessModels.some(model => model === "appointments" || model === "reservations" || model === "bookings")
+          ? "Boekings-/afsprakenwebsite"
+          : technologyProfile.siteType === "Landingpage"
+            ? "Website"
+            : technologyProfile.siteType;
+    const classification = {
+      websiteType,
+      sector: {
+        key: sectorProfile.key,
+        label: sectorProfile.label,
+        confidence: sectorProfile.confidence,
+        confidenceScore: sectorProfile.confidenceScore,
+        displayPolicy: sectorDisplayPolicy,
+      },
+      pageType: {
+        type: pageTypeEvidence.type,
+        confidence: pageTypeEvidence.confidence,
+        commercialLandingPage: isHomepage && technologyProfile.evidence.some(item => /landingpage-signalen/i.test(item)),
+      },
+      policy: "Website type, sector en paginatype zijn afzonderlijke beslissingen. Een commerciële landingpage is nooit automatisch het type van de volledige website.",
+    };
+    (masterEvidence as typeof masterEvidence & {finalDecisions?:unknown;classification?:unknown}).finalDecisions = {commerce:finalCommerceDecision};
+    (masterEvidence as typeof masterEvidence & {classification?:unknown}).classification = classification;
 
     const multiPage = {
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:4,
@@ -3409,7 +3448,7 @@ export async function POST(request: Request) {
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             language: scanLanguage,
-            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, summary: scanSummary, rendering, recovery, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, security: securityEngine, multiPage,
+            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, summary: scanSummary, rendering, recovery, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, security: securityEngine, multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -3635,6 +3674,7 @@ export async function POST(request: Request) {
       recovery,
       scope: scanScope,
       multiPage,
+      classification,
       pageTypeEvidence,
       pageTypeInvariant,
       technologyProfile,
