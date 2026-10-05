@@ -2212,6 +2212,13 @@ export async function POST(request: Request) {
 
     // If rendering failed on a JS-driven page, raw HTML absence is not proof of absence.
     const metadataMayBeClientRendered = javascriptCandidate && !javascriptExecuted;
+    // One shared rule for text/link evidence. A thin client shell is insufficient
+    // evidence for negative content, trust or commercial-link conclusions.
+    const thinRawHtmlEvidence = !javascriptExecuted && (
+      rawVisibleWords < 60 ||
+      (rawVisibleWords < 100 && rawScriptCount >= 4) ||
+      /<div\b[^>]*\bid\s*=\s*["'](?:root|app|__next|__nuxt)["'][^>]*>\s*<\/div>/i.test(rawHtml)
+    );
 
     const titleLengthPoints = (length: number) => {
       if (length >= 30 && length <= 60) return 10;
@@ -2361,11 +2368,13 @@ export async function POST(request: Request) {
     const contentContext = isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "categorie-/lijstpagina" : effectiveLocalBusinessPage ? "lokale bedrijfspagina" : effectiveArticlePage ? "artikelpagina" : "contentpagina";
     const contentMinimumSignal = isHomepage ? 150 : isProductPage ? 80 : hasCategorySignal ? 120 : effectiveLocalBusinessPage ? 150 : effectiveArticlePage ? 300 : 200;
     const contentStrongSignal = isHomepage ? 250 : isProductPage ? 180 : hasCategorySignal ? 220 : effectiveLocalBusinessPage ? 300 : effectiveArticlePage ? 600 : 350;
-    seoChecks.push(wordCount >= contentStrongSignal
-      ? check("pass", "content", "seo", "Contentdekking", `Ongeveer ${wordCount} woorden gevonden op deze ${contentContext}. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld.`, "Behoud nuttige, unieke content die de zoekintentie en klantvragen beantwoordt.", 7, 7)
-      : wordCount >= contentMinimumSignal
-        ? check("warning", "content", "seo", "Contentdekking", `Ongeveer ${wordCount} woorden gevonden op deze ${contentContext}. Dat is geen bewijs van slechte content, maar de tekstuele dekking is beperkt voor dit paginatype.`, "Breid alleen uit waar extra context, dienst-/onderwerpinformatie of antwoorden de bezoeker daadwerkelijk helpen.", 5, 7)
-        : check("warning", "content", "seo", "Contentdekking", `Ongeveer ${wordCount} woorden gevonden op deze ${contentContext}; RankFix gebruikt hiervoor een contextuele richtwaarde van circa ${contentMinimumSignal}+ woorden als eerste dekkingssignaal.`, "Controleer of essentiële informatie en zoekintentie voldoende worden beantwoord; voeg geen tekst toe puur voor woordenaantal.", 3, 7)
+    seoChecks.push(thinRawHtmlEvidence
+      ? check("unable_to_confirm", "content", "seo", "Contentdekking", "De raw HTML is een dunne JavaScript-shell. RankFix kan de zichtbare contentdekking daarom niet betrouwbaar beoordelen zonder geslaagde rendering.", "Voer de controle opnieuw uit met renderbare JavaScript-evidence; behandel een lage raw-HTML woordtelling niet als contentfout.", 0, 7)
+      : wordCount >= contentStrongSignal
+        ? check("pass", "content", "seo", "Contentdekking", `Ongeveer ${wordCount} woorden gevonden op deze ${contentContext}. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld.`, "Behoud nuttige, unieke content die de zoekintentie en klantvragen beantwoordt.", 7, 7)
+        : wordCount >= contentMinimumSignal
+          ? check("warning", "content", "seo", "Contentdekking", `Ongeveer ${wordCount} woorden gevonden op deze ${contentContext}. Dat is geen bewijs van slechte content, maar de tekstuele dekking is beperkt voor dit paginatype.`, "Breid alleen uit waar extra context, dienst-/onderwerpinformatie of antwoorden de bezoeker daadwerkelijk helpen.", 5, 7)
+          : check("warning", "content", "seo", "Contentdekking", `Ongeveer ${wordCount} woorden gevonden op deze ${contentContext}; RankFix gebruikt hiervoor een contextuele richtwaarde van circa ${contentMinimumSignal}+ woorden als eerste dekkingssignaal.`, "Controleer of essentiële informatie en zoekintentie voldoende worden beantwoord; voeg geen tekst toe puur voor woordenaantal.", 3, 7)
     );
     seoChecks.push(finalUrl.protocol === "https:"
       ? check("pass", "https", "seo", "HTTPS", "De uiteindelijke URL gebruikt HTTPS.", "Behoud HTTPS op alle publieke pagina's en redirects.", 7, 7)
@@ -2479,14 +2488,18 @@ export async function POST(request: Request) {
     );
 
     seoChecks.push(
-      hasPrivacyLink && hasCookieLink && hasContactLink
+      thinRawHtmlEvidence
+        ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen","De raw HTML is een dunne JavaScript-shell. Privacy-, cookie- en contactlinks kunnen client-side worden toegevoegd en zijn daarom niet betrouwbaar als ontbrekend te beoordelen.","Controleer deze signalen opnieuw met geslaagde JavaScript-rendering.",0,5)
+        : hasPrivacyLink && hasCookieLink && hasContactLink
         ? check("pass","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Links naar privacy, cookies en contact zijn in de opgehaalde HTML gevonden."+(legalEvidenceSummary ? " Bewijs: "+legalEvidenceSummary+"." : ""),"Houd deze informatie duidelijk vindbaar en actueel. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",5,5)
         : !legalLanguageSupported && Boolean(legalLanguageCode)
           ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen","De paginataal ("+legalLanguageCode+") valt buiten de geteste juridische woordenlijst en niet alle signalen zijn rechtstreeks bevestigd."+(legalEvidenceSummary ? " Wel gevonden: "+legalEvidenceSummary+"." : ""),"Controleer de footer en cookiebanner handmatig of breid de woordenlijst voor deze taal uit.",0,5)
           : check("warning","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Niet alle basissignalen zijn gevonden: "+[!hasPrivacyLink?"privacy":null,!hasCookieLink?"cookies":null,!hasContactLink?"contact":null].filter(Boolean).join(", ")+". "+(legalEvidenceSummary ? "Wel gevonden: "+legalEvidenceSummary+"." : ""),"Controleer of privacy-, cookie- en contactinformatie duidelijk bereikbaar is. RankFix beoordeelt hiermee geen wettelijke compliance.",Math.max(2, Number(hasPrivacyLink)+Number(hasCookieLink)+Number(hasContactLink)+2),5)
     );
     seoChecks.push(
-      hasEcommerceSignal && !hasTermsLink
+      thinRawHtmlEvidence && hasEcommerceSignal
+        ? check("unable_to_confirm","commercial_terms_signal","seo","Commerciële voorwaarden","De raw HTML is een dunne JavaScript-shell. RankFix kan niet betrouwbaar bewijzen dat voorwaarden of retourinformatie ontbreken.","Controleer commerciële voorwaarden opnieuw met geslaagde JavaScript-rendering.",0,4)
+        : hasEcommerceSignal && !hasTermsLink
         ? check("warning","commercial_terms_signal","seo","Commerciële voorwaarden","Op deze commerciële pagina is geen duidelijke link naar voorwaarden gevonden.","Maak voorwaarden en relevante bestel-/retourinformatie duidelijk bereikbaar. Dit is geen juridisch compliance-oordeel.",2,4)
         : hasEcommerceSignal
           ? check("pass","commercial_terms_signal","seo","Commerciële voorwaarden","Een link naar voorwaarden is gevonden.","Houd voorwaarden en bestel-/retourinformatie actueel en goed vindbaar.",4,4)
