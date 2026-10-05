@@ -486,3 +486,24 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
 .rf-page-back{display:inline-flex;align-items:center;gap:7px;margin-bottom:18px;padding:9px 12px;border:1px solid #cfe2f5;border-radius:10px;background:#eef7ff;color:#0b4f93!important;font-size:14px;font-weight:850;line-height:1}.rf-page-back:hover{background:#dcefff;border-color:#b9d7f1;transform:translateY(-1px)}
 .rf-dashboard-scan form,.rf-review-form{max-width:880px}.rf-dashboard-scan label,.rf-review-form label{font-weight:800}.rf-dashboard-scan input,.rf-review-form input,.rf-review-form textarea{font-size:15px!important}
 @media(max-width:650px){.rf-page-back{margin-bottom:14px;padding:9px 11px;font-size:13px}.rf-dashboard-scan form,.rf-review-form{max-width:none}.rf-primary{min-height:44px!important}}
+
+/* Desktop command-center pass */
+@media(min-width:901px){
+.rf-body{max-width:1440px;margin:0 auto;padding-left:38px;padding-right:38px}
+.rf-dashboard-title{align-items:center;margin-bottom:22px}.rf-dashboard-title h1{font-size:34px;letter-spacing:-.035em}.rf-dashboard-title p{font-size:16px}
+.rf-workspace-strip{min-height:86px;padding:18px 22px;border-radius:18px;border:1px solid rgba(43,126,203,.18);box-shadow:0 12px 34px rgba(2,18,38,.08)}
+.rf-command-center{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(460px,.9fr);gap:18px;align-items:stretch;margin-top:18px}
+.rf-command-center .rf-dashboard-hero{margin:0;min-height:100%;border-radius:20px}
+.rf-command-center .rf-status-grid{margin:0;grid-template-columns:repeat(2,minmax(0,1fr));align-content:stretch}
+.rf-command-center .rf-card{min-height:132px;padding:20px}
+.rf-command-center .rf-card>strong{font-size:34px}
+.rf-gsc-summary{margin-top:22px;padding:22px;border:1px solid rgba(43,126,203,.14);border-radius:20px;background:linear-gradient(135deg,rgba(244,249,255,.98),rgba(255,255,255,.98))}
+.rf-gsc-summary .rf-section-head{margin-bottom:0}
+.rf-dashboard-long-section{margin-top:22px}
+.rf-next-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.rf-next-actions>a{min-height:92px}
+.rf-quick-actions-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.rf-websites-featured{margin-top:24px;border-radius:20px}.rf-websites-summary{padding:20px 22px}
+.rf-sites{padding:0 22px 22px}.rf-site{padding:16px 0}
+.rf-fix-summary{margin-top:22px;border-radius:20px;padding:22px}
+}
