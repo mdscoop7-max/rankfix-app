@@ -112,7 +112,7 @@ export function rankSectorCandidates(evidence: ScanEvidence, searchableText: str
 }
 
 
-export const CAPABILITY_MODULE_MAP: Record<string,string[]> = {
+// Capabilities are facts, not sectors. Only generic cross-sector capabilities map\n// directly to modules here. Sector-defining modules (recruitment, hospitality,\n// real estate, automotive, marketplace) are activated by the primary-sector\n// decision, never by a single incidental word/link.\nexport const CAPABILITY_MODULE_MAP: Record<string,string[]> = {
   products:["product","ecommerce"], pricing:["pricing_currency"], cart:["ecommerce"], add_to_cart:["ecommerce"],
   checkout:["checkout","ecommerce"], merchant:["merchant"], consumer_rights:["eu_consumer"],
   vehicles:["automotive"], vehicle_details:["automotive"], test_drive:["automotive","lead_conversion"],
@@ -123,7 +123,7 @@ export const CAPABILITY_MODULE_MAP: Record<string,string[]> = {
   booking:["booking","lead_conversion"], quote_request:["lead_conversion"],
   contact:["business_identity"], local:["local"], opening_hours:["local"], reviews:["quality_trust"],
   services:["business_identity"], treatments:["business_identity"], trust:["quality_trust"],
-  accessibility:["accessibility"], listings:["marketplace"], seller_identity:["marketplace"],
+  accessibility:["accessibility"], listings:[], seller_identity:[],
 };
 
 export function modulesForCapabilities(capabilities: Iterable<string>) {
