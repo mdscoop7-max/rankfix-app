@@ -36,7 +36,7 @@ export const SECTOR_CATALOG: SectorDefinition[] = [
   {key:"healthcare",label:"Zorg / healthcare",keywords:/\b(zorg|healthcare|health care|gezondheidszorg|medical care)\b/i,schemaTypes:["MedicalOrganization"],expectedCapabilities:["services","contact","trust","accessibility"]},
   {key:"pharmacy",label:"Apotheek",keywords:/\b(apotheek|pharmacy|apotheke|pharmacie)\b/i,schemaTypes:["Pharmacy"],expectedCapabilities:["products_or_prescriptions","contact","local","trust"],optionalCapabilities:["commerce"]},
   {key:"veterinary",label:"Dierenarts",keywords:/\b(dierenarts|veterinary|vet clinic|tierarzt)\b/i,schemaTypes:["VeterinaryCare"],expectedCapabilities:["services","appointment","contact","local"]},
-  {key:"restaurant",label:"Restaurant",keywords:/\b(restaurant|menukaart|menu|reserveer tafel|table reservation|speisekarte)\b/i,schemaTypes:["Restaurant","FoodEstablishment"],evidenceFlags:["inventory.menu","appointments.reservation"],expectedCapabilities:["menu","reservation","opening_hours","local","contact"],optionalCapabilities:["delivery","gift_cards"],forbiddenAssumptions:["product_stock"]},
+  {key:"restaurant",label:"Restaurant",keywords:/\b(restaurant|menukaart|menu kaart|food menu|dinerkaart|lunchkaart|reserveer tafel|table reservation|speisekarte)\b/i,schemaTypes:["Restaurant","FoodEstablishment"],evidenceFlags:["inventory.menu","appointments.reservation"],expectedCapabilities:["menu","reservation","opening_hours","local","contact"],optionalCapabilities:["delivery","gift_cards"],forbiddenAssumptions:["product_stock"]},
   {key:"cafe_bar",label:"Café / bar",keywords:/\b(café|cafe|bar|pub|coffee shop|koffiebar)\b/i,schemaTypes:["CafeOrCoffeeShop","BarOrPub"],expectedCapabilities:["menu","opening_hours","local","contact"],optionalCapabilities:["reservation"]},
   {key:"food_delivery",label:"Maaltijdbezorging",keywords:/\b(bezorgen|food delivery|delivery food|bestel eten|order food)\b/i,schemaTypes:["FoodEstablishment"],expectedCapabilities:["menu","ordering","delivery_area","pricing"],optionalCapabilities:["checkout"]},
   {key:"hotel",label:"Hotel / accommodatie",keywords:/\b(hotel|kamers|rooms|overnachting|accommodation)\b/i,schemaTypes:["Hotel","HotelRoom","LodgingBusiness"],evidenceFlags:["inventory.rooms","appointments.booking"],expectedCapabilities:["rooms","availability","booking","pricing","local"],forbiddenAssumptions:["product_stock"]},
@@ -101,7 +101,16 @@ export function rankSectorCandidates(evidence: ScanEvidence, searchableText: str
   return SECTOR_CATALOG.map(def=>{
     const keywordHit = def.keywords.test(searchableText);
     const schemaHits = (def.schemaTypes||[]).filter(x=>schema.has(x.toLowerCase()));
-    const evidenceHits = (def.evidenceFlags||[]).filter(x=>flags[x]);
+    let evidenceHits = (def.evidenceFlags||[]).filter(x=>flags[x]);
+    // Motor v2.1: inventory.menu can also mean a navigation menu. It is only
+    // restaurant identity evidence when an independent food/hospitality signal exists.
+    if (def.key === "restaurant" && evidenceHits.includes("inventory.menu")) {
+      const foodIdentity = keywordHit ||
+        schemaHits.some(x=>/^(?:Restaurant|FoodEstablishment)$/i.test(x)) ||
+        flags["appointments.reservation"] ||
+        /\b(?:gerechten|diner|lunch|ontbijt|eten|food|cuisine|chef|tafel reserveren|restaurant)\b/i.test(searchableText);
+      if (!foodIdentity) evidenceHits = evidenceHits.filter(x=>x!=="inventory.menu");
+    }
     const score = (keywordHit?2:0) + schemaHits.length*3 + evidenceHits.length*2;
     return {key:def.key,label:def.label,score,evidence:[
       ...(keywordHit?["Sectorspecifieke content gevonden"]:[]),
