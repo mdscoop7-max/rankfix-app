@@ -3303,6 +3303,9 @@ export async function POST(request: Request) {
         if (!masterEvidence.activeModules.includes(module)) masterEvidence.activeModules.push(module);
         if (!sectorProfile.applicableModules.includes(module)) sectorProfile.applicableModules.push(module);
       }
+      for (const capability of ["ecommerce","products","pricing","merchant","consumer_rights"]) {
+        if (!masterEvidence.capabilities.includes(capability)) masterEvidence.capabilities.push(capability);
+      }
       if (!masterEvidence.businessModels.includes("commerce")) masterEvidence.businessModels.push("commerce");
       if (!masterEvidence.coverage.evidenceSources.includes("multi_page")) masterEvidence.coverage.evidenceSources.push("multi_page");
       masterEvidence.policy += " Representatieve same-site pagina's mogen sitebrede capabilities bevestigen, maar wijzigen niet achteraf de score van de expliciet gescande pagina.";
@@ -3452,7 +3455,7 @@ export async function POST(request: Request) {
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
-            metrics: { siteType: (hasProductSchema || /add-to-cart|shopping cart|winkelwagen|checkout|sku|price|availability/i.test(text)) ? "ECOMMERCE" : "WEBSITE", title, titleLength: title.length, description, descriptionLength: description.length, descriptionState, h1Count: h1s.length, h1s,
+            metrics: { siteType: classification.websiteType === "Webshop" ? "ECOMMERCE" : "WEBSITE", websiteType: classification.websiteType, sector: classification.sector, pageTypeClassification: classification.pageType, title, titleLength: title.length, description, descriptionLength: description.length, descriptionState, h1Count: h1s.length, h1s,
               imageCount, imageElementCount, imagesMissingAlt, wordCount, headingsCount: headings.length, linksCount: links.length, pageType: schemaContextLabel, recommendedSchema, localBusinessDetails,
               internalLinks, canonical: canonical || null, lang: lang || null, robots: robots || null,
               openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null }, imageAltCandidates,
@@ -3685,6 +3688,10 @@ export async function POST(request: Request) {
       seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
       geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
       metrics: {
+        siteType: classification.websiteType === "Webshop" ? "ECOMMERCE" : "WEBSITE",
+        websiteType: classification.websiteType,
+        sector: classification.sector,
+        pageTypeClassification: classification.pageType,
         title,
         titleLength: title.length,
         description,
