@@ -22,7 +22,7 @@ type AuditMode = "seo" | "geo" | "both";
 
 type Check = {
   key: string;
-  category: "seo" | "geo" | "security";
+  category: "seo" | "geo" | "security" | "accessibility";
   title: string;
   fix_status?: "WAITING" | "AWAITING_MERGE" | "STILL_PRESENT" | "DONE";
   recurring_issue?: {
@@ -1588,6 +1588,7 @@ export async function POST(request: Request) {
 
     const seoChecks: Check[] = [];
     const geoChecks: Check[] = [];
+    const accessibilityChecks: Check[] = [];
 
     // Security-header readiness uses the main page response already fetched by the
     // scanner, so this adds no network work. Absence is guidance, not proof of a
@@ -1694,6 +1695,19 @@ export async function POST(request: Request) {
       summary:securitySummary,
       checks:securityChecks,
       note:"Passieve security-audit op responseheaders en opgehaalde HTML. Geen exploit-, brute-force-, login- of actieve kwetsbaarheidstests uitgevoerd."
+    };
+    const accessibilityApplicable = accessibilityChecks.filter((item)=>item.issue_status !== "NOT_APPLICABLE" && item.issue_status !== "UNABLE_TO_CONFIRM");
+    const accessibilityMax = accessibilityApplicable.reduce((sum,item)=>sum+item.maxPoints,0);
+    const accessibilityPointsTotal = accessibilityApplicable.reduce((sum,item)=>sum+item.points,0);
+    const accessibilityScore = accessibilityMax ? Math.round((accessibilityPointsTotal/accessibilityMax)*100) : 0;
+    const accessibilityEngine = {
+      version:"1.0-static-basics",
+      score:accessibilityScore,
+      grade:grade(accessibilityScore),
+      coverage:weightedCoverage(accessibilityChecks),
+      summary:summarizeAuditChecks(accessibilityChecks),
+      checks:accessibilityChecks,
+      note:"Technische HTML-basiscontrole voor toegankelijkheid. Dit is geen volledige WCAG- of EAA-conformiteitsbeoordeling en verandert de SEO/GEO-totaalscore niet."
     };
     // Security remains a separate engine and must never change SEO scoring/counts.
 
@@ -2310,9 +2324,7 @@ export async function POST(request: Request) {
       ? check("fail", "viewport", "seo", "Mobiele viewport", "Geen viewport meta tag met content gevonden.", "Voeg content=\"width=device-width, initial-scale=1\" toe aan de viewport meta tag.", 0, 5)
       : !viewportIsResponsive
         ? check("warning", "viewport", "seo", "Mobiele viewport", `Een viewport meta tag is aanwezig, maar width=device-width is niet gevonden: "${viewportContent}".`, "Gebruik een responsive viewport met width=device-width.", 2, 5)
-        : viewportBlocksZoom
-          ? check("warning", "viewport", "seo", "Mobiele viewport", `De viewport is responsive, maar beperkt browserzoom: "${viewportContent}". Dit kan mobiele toegankelijkheid verslechteren.`, "Laat gebruikers zoomen; vermijd user-scalable=no en onnodig beperkende maximum-scale-instellingen.", 3, 5)
-          : check("pass", "viewport", "seo", "Mobiele viewport", `De viewport bevat een responsive width=device-width-instelling zonder gedetecteerde zoomblokkade: "${viewportContent}".`, "Test daarnaast de echte mobiele layout, tapdoelen en Core Web Vitals.", 5, 5)
+        : check("pass", "viewport", "seo", "Mobiele viewport", `De viewport bevat een responsive width=device-width-instelling: "${viewportContent}".`, "Test daarnaast de echte mobiele layout, tapdoelen en Core Web Vitals.", 5, 5)
     );
     seoChecks.push(!lang
       ? check("warning", "lang", "seo", "HTML-taal", "Geen HTML lang-attribuut gevonden.", "Voeg het juiste lang-attribuut toe aan <html>.", 1, 4)
@@ -2510,10 +2522,15 @@ export async function POST(request: Request) {
     const accessibilityScopeCount = formControls.length + buttonTags.length;
     const accessibilityIssueRatio = accessibilityScopeCount ? accessibilityAffectedCount / accessibilityScopeCount : 0;
     const accessibilityPoints = accessibilityIssueCount === 0 ? 5 : accessibilityIssueRatio <= 0.05 ? 4 : accessibilityIssueRatio <= 0.20 ? 3 : accessibilityIssueRatio <= 0.50 ? 2 : 1;
-    seoChecks.push(
+    accessibilityChecks.push(
       accessibilityIssueCount===0
-        ? check("pass","accessibility_basics","seo","Toegankelijkheid basis","Geen duidelijke basisproblemen gevonden bij formulierlabels of lege knoppen in de statische HTML. Afbeelding-alt wordt afzonderlijk beoordeeld.","Blijf toetsenbordbediening, focus, contrast en dynamische content afzonderlijk testen. Dit is geen volledige toegankelijkheidsaudit.",5,5)
-        : check("warning","accessibility_basics","seo","Toegankelijkheid basis","Basiscontrole vond "+accessibilityIssueCount+" onafhankelijk(e) aandachtspunt(en): "+unlabeledFormControls+" formuliercontrol(s) zonder aantoonbaar label en "+emptyButtons+" lege knop(pen) zonder toegankelijke naam. Dat raakt "+Math.round(accessibilityIssueRatio*100)+"% van de controleerbare formuliercontrols en knoppen. Afbeelding-alt wordt afzonderlijk beoordeeld.","Corrigeer de aantoonbare HTML-signalen en voer daarna een uitgebreidere toegankelijkheidstest uit. RankFix claimt hiermee geen wettelijke conformiteit.",accessibilityPoints,5)
+        ? check("pass","accessibility_basics","accessibility","Toegankelijkheid basis","Geen duidelijke basisproblemen gevonden bij formulierlabels of lege knoppen in de statische HTML. Afbeelding-alt wordt afzonderlijk binnen SEO beoordeeld.","Blijf toetsenbordbediening, focus, contrast en dynamische content afzonderlijk testen. Dit is geen volledige WCAG/EAA-audit.",5,5)
+        : check("warning","accessibility_basics","accessibility","Toegankelijkheid basis","Basiscontrole vond "+accessibilityIssueCount+" onafhankelijk(e) aandachtspunt(en): "+unlabeledFormControls+" formuliercontrol(s) zonder aantoonbaar label en "+emptyButtons+" lege knop(pen) zonder toegankelijke naam. Dat raakt "+Math.round(accessibilityIssueRatio*100)+"% van de controleerbare formuliercontrols en knoppen.","Corrigeer de aantoonbare HTML-signalen en voer daarna een uitgebreidere toegankelijkheidstest uit. RankFix claimt hiermee geen WCAG/EAA-conformiteit.",accessibilityPoints,5),
+      !viewportContent
+        ? check("unable_to_confirm","viewport_zoom_blocked","accessibility","Browserzoom","Zonder viewport meta tag kan RankFix de zoominstelling niet afzonderlijk beoordelen.","Voeg eerst een geldige responsive viewport toe en controleer daarna zoomgedrag.",0,3)
+        : viewportBlocksZoom
+          ? check("warning","viewport_zoom_blocked","accessibility","Browserzoom",`De viewport beperkt browserzoom: "${viewportContent}".`,"Laat gebruikers zoomen; vermijd user-scalable=no en onnodig beperkende maximum-scale.",1,3)
+          : check("pass","viewport_zoom_blocked","accessibility","Browserzoom","Geen statische viewport-instelling gevonden die browserzoom blokkeert.","Test zoom en schaalbaarheid ook interactief op mobiele apparaten.",3,3)
     );
 
     seoChecks.push(hasPlaceholders
@@ -3650,7 +3667,7 @@ export async function POST(request: Request) {
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             language: scanLanguage,
-            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, summary: scanSummary, rendering, recovery, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, security: securityEngine, multiPage,
+            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, summary: scanSummary, rendering, recovery, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, security: securityEngine, accessibility: accessibilityEngine, multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -3887,6 +3904,7 @@ export async function POST(request: Request) {
       sectorProfile,
       evidenceLayer,
       security: securityEngine,
+      accessibility: accessibilityEngine,
       adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
       seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
       geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
