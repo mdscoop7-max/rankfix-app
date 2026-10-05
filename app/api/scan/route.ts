@@ -3854,7 +3854,9 @@ export async function POST(request: Request) {
           geoGrade: grade(selectedGeoScore),
           responseTime,
           httpStatus: response.status,
-          checks,
+          // Email report currently contains the SEO/GEO audit stream. Specialist
+          // engines (Security/Accessibility) are exposed separately in the scan result.
+          checks: checks.filter((item) => item.category === "seo" || item.category === "geo"),
         });
       } catch (error) {
         console.error("RankFix scan report email failed:", error);
