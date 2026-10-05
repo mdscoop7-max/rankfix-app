@@ -573,3 +573,23 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
 .rf-help-side-card{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:18px;padding:14px 16px;border:1px solid #e3e8ef;border-radius:12px;background:#fff}.rf-help-side-card h2{margin-right:8px;color:#172033;font-size:13px;font-weight:800}.rf-help-side-card a{padding:7px 9px;border-radius:8px;color:#53627a;font-size:12px;font-weight:700}.rf-help-side-card a:hover{background:#f1f6fd;color:#1769d2}
 .rf-help-videos{margin-top:18px;padding:20px 22px;border:1px solid #e3e8ef;border-radius:12px;background:#fff}.rf-help-videos .rf-eyebrow{color:#2784ff}.rf-help-videos h2{margin-top:4px;color:#172033;font-size:16px;font-weight:800}.rf-help-videos p{margin-top:5px;color:#68758a;font-size:13px}
 }
+
+/* Fixes workspace — approved Help Center visual language */
+@media(min-width:651px){
+.rf-fix-engine{color:#172033}.rf-fix-workspace-head{margin-top:6px;padding:24px 26px;border:1px solid #e1e7ef;border-radius:14px;background:#fff;box-shadow:0 5px 16px rgba(25,38,58,.045)}
+.rf-fix-workspace-head>div:first-child>div:first-child{color:#2784ff!important}.rf-fix-workspace-head h1{color:#172033!important;font-size:30px!important}.rf-fix-workspace-head p{color:#68758a!important}
+.rf-fix-workflow{margin-top:22px;padding:6px;border:1px solid #e1e7ef;border-radius:11px;background:#f7f9fc}.rf-fix-workflow span{min-height:42px;border-radius:8px;color:#68758a}.rf-fix-workflow span b{color:#42526a}.rf-fix-workflow span.active{background:#e9faf4;color:#087f65;box-shadow:0 1px 3px rgba(25,38,58,.05)}.rf-fix-workflow span.active b{color:#075e4c}
+.rf-fix-engine>.mt-8.rounded-3xl{border-color:#dce6f2!important;background:#f7fbff!important;border-radius:14px!important;box-shadow:none}.rf-fix-engine>.mt-8.rounded-3xl>div:first-child{color:#1769d2!important}.rf-fix-engine>.mt-8.rounded-3xl h2{color:#172033!important}.rf-fix-engine>.mt-8.rounded-3xl p{color:#68758a!important}
+.rf-fix-engine pre{border-color:#dfe5ed!important;background:#f7f9fc!important;color:#26364e!important}.rf-fix-engine button.border-cyan-300\/20{border-color:#a9cfff!important;background:#fff!important;color:#1769d2!important}
+.rf-fix-engine>a.mt-4{border-color:#d8dee8!important;background:#fff;color:#53627a!important}.rf-fix-engine>a.mt-4:hover{border-color:#9cc8ff!important;color:#1769d2!important}
+.rf-fix-engine form{border:1px solid #e1e7ef!important;border-radius:14px!important;background:#fff!important;box-shadow:0 5px 16px rgba(25,38,58,.045)!important}
+.rf-fix-engine form>div:first-child{border-color:#c8eee1!important;background:#eefbf6!important;color:#126b55!important}.rf-fix-engine form>div:first-child a{border-color:#a9ddcd!important;color:#087f65!important;background:#fff}
+.rf-fix-engine form label>span{color:#26364e}.rf-fix-engine form select{border:1px solid #d8dee8!important;background:#fff!important;color:#172033!important}.rf-fix-engine form label p{color:#68758a!important}
+.rf-fix-engine form label button{border-color:#d8dee8!important;background:#fff;color:#53627a!important}
+.rf-fix-engine form>div.bg-black\/20{border-color:#e1e7ef!important;background:#f7f9fc!important;color:#26364e!important}.rf-fix-engine form>div.bg-black\/20 span{color:#68758a!important}
+.rf-fix-engine form .bg-red-500\/10{background:#fff0f2!important;color:#a52b40!important}.rf-fix-engine form .bg-emerald-500\/10{background:#eefbf6!important;color:#126b55!important}
+.rf-fix-engine form .border-emerald-300\/20{border-color:#c8eee1!important;background:#eefbf6!important}.rf-fix-engine form .border-emerald-300\/20 strong{color:#087f65!important}.rf-fix-engine form .border-emerald-300\/20 p{color:#53627a!important}
+.rf-fix-engine form .border-cyan-300\/20.bg-black\/25{border-color:#dce6f2!important;background:#f7f9fc!important}.rf-fix-engine form .border-cyan-300\/20.bg-black\/25 strong{color:#172033}.rf-fix-engine form .border-cyan-300\/20.bg-black\/25 span,.rf-fix-engine form .border-cyan-300\/20.bg-black\/25 p{color:#68758a!important}
+.rf-fix-engine form button[type=submit]{background:#16b981!important;color:#fff!important}.rf-fix-engine form button[type=submit]:hover{background:#10a875!important}
+.rf-fix-engine form a[target=_blank]{border-color:#d8dee8!important;background:#fff!important;color:#1769d2!important}
+}
