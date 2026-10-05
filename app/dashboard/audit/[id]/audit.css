@@ -72,3 +72,11 @@
 .rf-audit-fold{border-color:#e1e7ef!important;background:#fff}.rf-audit-fold>summary{color:#172033!important}.rf-audit-fold>summary small{color:#68758a}.rf-audit-fold[open]>summary{border-color:#e1e7ef;background:#f6f9fc}.rf-audit-fold>summary b{color:#2784ff}
 .rf-audit-footnote{background:#edf5ff;color:#315b8c}
 }
+
+/* Customer decision layer: answer “what should I do now?” before diagnostics. */
+.rf-audit-customer-next{margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:17px 19px;border:1px solid #dce8f4;border-radius:14px;background:#f4f9ff}
+.rf-audit-customer-next h2{margin:0;color:#172033;font-size:19px;font-weight:800}.rf-audit-customer-next p{margin-top:5px;color:#68758a;font-size:13px;line-height:1.55}.rf-audit-customer-next .rf-eyebrow{color:#2784ff!important;font-size:11px}
+.rf-audit-customer-actions{display:flex;flex:none;gap:8px}.rf-audit-action-primary,.rf-audit-action-secondary{display:inline-flex;align-items:center;justify-content:center;border-radius:9px;padding:10px 13px;font-size:12px;font-weight:800;white-space:nowrap}.rf-audit-action-primary{background:#16b981;color:#fff}.rf-audit-action-secondary{border:1px solid #cfd9e5;background:#fff;color:#1769d2}
+#rankfix-priorities{scroll-margin-top:18px}
+@media(max-width:650px){.rf-audit-customer-next{align-items:stretch;flex-direction:column;padding:14px}.rf-audit-customer-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}.rf-audit-action-primary,.rf-audit-action-secondary{white-space:normal;text-align:center}}
+@media(min-width:651px){#rankfix-priorities{border-color:#dce8f4!important;background:#f7fbff!important}#rankfix-priorities h2,#rankfix-priorities strong{color:#172033!important}#rankfix-priorities p{color:#68758a!important}#rankfix-priorities li{border-color:#e1e7ef!important;background:#fff!important}#rankfix-priorities>div>span{color:#2784ff!important}}
