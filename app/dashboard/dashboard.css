@@ -530,3 +530,11 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
 .rf-history-cards{display:grid;gap:12px}.rf-history-card{border:1px solid rgba(43,126,203,.13);border-radius:18px;background:#fff;box-shadow:0 8px 24px rgba(2,18,38,.055);transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}.rf-history-card:hover{transform:translateY(-1px);border-color:rgba(43,126,203,.28);box-shadow:0 14px 34px rgba(2,18,38,.08)}
 .rf-history-actions a{font-weight:750}
 @media(max-width:800px){.rf-history-heading{align-items:stretch}.rf-history-heading>.rf-primary-link{align-self:flex-start}.rf-history-toolbar{align-items:stretch;flex-direction:column}.rf-history-toolbar .rf-history-filters{width:100%;flex-direction:column;align-items:stretch}.rf-history-toolbar .rf-history-filters label{min-width:0;width:100%}}
+
+/* Fixes customer workflow */
+.rf-fix-workspace-head{display:flex;align-items:flex-end;justify-content:space-between;gap:28px;margin-bottom:10px}.rf-fix-workspace-head>div:first-child{max-width:760px}
+.rf-fix-workflow{display:grid;grid-template-columns:repeat(4,minmax(86px,1fr));gap:6px;min-width:420px;padding:8px;border:1px solid rgba(93,202,165,.16);border-radius:16px;background:rgba(255,255,255,.035)}
+.rf-fix-workflow span{display:flex;flex-direction:column;gap:3px;padding:9px 10px;border-radius:11px;color:#8194aa;font-size:11px;font-weight:800}.rf-fix-workflow span b{color:#aebdcb;font-size:11px}.rf-fix-workflow span.active{background:rgba(93,202,165,.12);color:#72dfb9}.rf-fix-workflow span.active b{color:#d8fff1}
+.rf-fix-engine>div.rounded-3xl{box-shadow:0 16px 40px rgba(0,0,0,.14)}
+@media(max-width:900px){.rf-fix-workspace-head{align-items:stretch;flex-direction:column}.rf-fix-workflow{min-width:0;width:100%}}
+@media(max-width:560px){.rf-fix-workflow{grid-template-columns:repeat(2,1fr)}}
