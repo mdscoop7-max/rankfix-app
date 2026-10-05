@@ -251,8 +251,7 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
   }
   // Hosted builders are only labelled when their distinctive runtime/assets are present.
   // This prevents a plain mention of a builder name from becoming a confirmed CMS.
-  if (wixSignals && /(?:wixstatic\.com|wix-code|x-wix-)/i.test(source + "
-" + headerText)) { cms = "Wix"; strongest = Math.max(strongest, 2); }
+  if (wixSignals && /(?:wixstatic\.com|wix-code|x-wix-)/i.test(source + "\\n" + headerText)) { cms = "Wix"; strongest = Math.max(strongest, 2); }
   if (squarespaceSignals && /(?:static\d*\.squarespace\.com|squarespace-cdn|squarespace\.com\/universal\/scripts)/i.test(source)) { cms = "Squarespace"; strongest = Math.max(strongest, 2); }
   if (webflowSignals && /(?:data-wf-page|webflow\.js|website-files\.com)/i.test(source)) { cms = "Webflow"; strongest = Math.max(strongest, 2); }
   if (nextSignals) { framework = "Next.js"; strongest = Math.max(strongest, nextSignals); }
