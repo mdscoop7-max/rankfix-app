@@ -688,3 +688,22 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
 .rf-health-metrics article,.rf-health-panel{color:#172033!important}
 .rf-health-metrics article span,.rf-health-metrics article p,.rf-health-panel-head span,.rf-health-row span{color:#d8e4ee!important}
 }
+
+/* Accessibility/readability control — comfortable laptop reading without making the UI bulky. */
+@media(min-width:651px){
+.rf-body{font-size:16px;line-height:1.6}
+.rf-heading h1{font-size:30px!important;line-height:1.2}.rf-heading p{font-size:16px!important;line-height:1.55!important}
+.rf-desktop-main a,.rf-site-link,.rf-language-trigger{font-size:14px!important;font-weight:700!important}
+.rf-card span,.rf-card small,.rf-site-copy p,.rf-fix-summary p,.rf-report>p{font-size:14px!important;line-height:1.55!important}
+.rf-card strong{line-height:1.25}.rf-section-head h2,.rf-fix-summary h2{font-size:18px!important}
+.rf-more-card strong{font-size:16px!important;line-height:1.35}.rf-more-card p{font-size:14px!important;line-height:1.55!important}
+.rf-more-section-title strong{font-size:18px!important}.rf-more-section-title span{font-size:14px!important}
+.rf-history-main strong{font-size:16px!important}.rf-history-main span{font-size:14px!important}.rf-history-scores span{font-size:14px!important}
+.rf-history-actions a{min-height:40px!important;padding:9px 13px!important;font-size:13px!important}
+.rf-process-grid article h2{font-size:18px!important}.rf-process-grid article p{font-size:15px!important;line-height:1.6!important}
+.rf-back-link,.rf-help-back{font-size:14px!important;font-weight:750!important}
+.rf-primary-link,.rf-primary,.rf-primary-button{min-height:42px;font-size:14px!important}
+.rf-body input,.rf-body select,.rf-body textarea,.rf-body button{font-size:15px}
+}
+/* Better keyboard and low-vision focus visibility across dashboard. */
+.rf-page a:focus-visible,.rf-page button:focus-visible,.rf-page input:focus-visible,.rf-page select:focus-visible,.rf-page textarea:focus-visible{outline:3px solid #2784ff!important;outline-offset:3px!important}
