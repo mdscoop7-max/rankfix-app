@@ -139,7 +139,7 @@ function normalizeScanUrl(value: string) {
     url.pathname = url.pathname.replace(/\/+$/, "") || "/";
     // Tracking parameters do not identify a different hreflang/canonical target.
     // Remove only well-known marketing parameters; preserve functional query parameters.
-    ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "fbclid", "msclkid", "from_srp", "prevent-auto-open-privacy-settings"]
+    ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "gbraid", "wbraid", "fbclid", "msclkid", "_gl", "_up", "_gs", "from_srp", "prevent-auto-open-privacy-settings"]
       .forEach((param) => url.searchParams.delete(param));
     return url.toString();
   } catch {
@@ -1544,12 +1544,14 @@ export async function POST(request: Request) {
       ...evidenceCapabilities,
       ...(evidenceCommerceConfirmed ? ["products","pricing","merchant","consumer_rights"] : []),
     ]);
+    const lodgingSectorKeys = new Set(["bed_breakfast","holiday_rental","holiday_park","camping","hotel"]);
+    const isLodgingSector = sectorProfile.sector === "hospitality" && lodgingSectorKeys.has(sectorProfile.key);
     const primarySectorModules: Partial<Record<string,string[]>> = {
       ecommerce:["ecommerce","product","pricing_currency","merchant","checkout"],
       automotive:["automotive"],
       real_estate:["real_estate"],
       recruitment:["recruitment"],
-      hospitality:["hospitality"],
+      hospitality:isLodgingSector ? ["accommodation"] : ["hospitality"],
       health_wellness:["health_wellness"],
       professional_services:["professional_services"],
       home_services:["home_services"],
@@ -1559,7 +1561,7 @@ export async function POST(request: Request) {
     // Motor v2: sector modules come only from the primary identity decision.
     // Capabilities may add generic functional modules (lead conversion, booking,
     // local, trust) but may never turn an incidental topic into another sector.
-    const sectorDefiningModules = new Set(["automotive","real_estate","recruitment","hospitality","marketplace"]);
+    const sectorDefiningModules = new Set(["automotive","real_estate","recruitment","hospitality","accommodation","marketplace"]);
     sectorProfile.applicableModules = [...new Set([
       ...sectorProfile.applicableModules.filter((module)=>!sectorDefiningModules.has(module)),
       ...(primarySectorModules[sectorProfile.sector] || []),
@@ -2347,7 +2349,7 @@ export async function POST(request: Request) {
       const normalized = new URL(url.toString());
       normalized.hash = "";
       normalized.pathname = normalized.pathname.replace(/\/+$/, "") || "/";
-      ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "fbclid", "msclkid", "from_srp", "prevent-auto-open-privacy-settings"].forEach((param) => normalized.searchParams.delete(param));
+      ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "gbraid", "wbraid", "fbclid", "msclkid", "_gl", "_up", "_gs", "from_srp", "prevent-auto-open-privacy-settings"].forEach((param) => normalized.searchParams.delete(param));
       return normalized.toString();
     };
 
