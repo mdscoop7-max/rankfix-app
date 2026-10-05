@@ -385,7 +385,8 @@ export async function POST(request: Request) {
         [usageUser.id]
       );
       const existingHosts = accountHosts.rows.map(row=>String(row.website_host||"").split(":")[0]).filter(Boolean);
-      if (!existingHosts.includes(usageWebsiteHost) && existingHosts.length >= limits.websites) {
+      const internalTestAccount = process.env.RANKFIX_INTERNAL_TEST_USER_ID === usageUser.id || process.env.RANKFIX_INTERNAL_TEST_EMAIL?.toLowerCase() === String(usageUser.email||"").toLowerCase();
+      if (!internalTestAccount && !existingHosts.includes(usageWebsiteHost) && existingHosts.length >= limits.websites) {
         const websiteMessages: Record<string,string> = {
           nl:`Je ${planCode} abonnement ondersteunt maximaal ${limits.websites} website(s). Upgrade je abonnement om meer websites te beheren.`,
           en:`Your ${planCode} plan supports up to ${limits.websites} website(s). Upgrade your plan to manage more websites.`,
