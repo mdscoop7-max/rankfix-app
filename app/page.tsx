@@ -1149,12 +1149,16 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
             ["Agency","219,95 €",pc.perMonth,["50 sitios web","500 análisis / mes","Varios usuarios","Mejoras con IA incluidas","Monitorización 24/7 + alertas críticas por email","Informes para clientes y agencias","API + equipo/workflow","White-label preparado","Comprar capacidad adicional por separado"]]
           ]).map((entry)=>{const [name,price,period,items]=entry as [string,string,string,string[]];const featured=name==="Business";const ecommerce=name==="E-commerce";return <div key={name} className={`relative rounded-3xl border p-7 ${featured?"border-emerald-400/40 bg-emerald-400/[0.06]":ecommerce?"border-cyan-400/30 bg-cyan-400/[0.04]":"border-slate-200 bg-slate-50"}`}>{featured&&<div className="absolute right-5 top-5 rounded-full bg-emerald-300 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-slate-950">{pc.chosen}</div>}{ecommerce&&<div className="absolute right-5 top-5 rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-cyan-200">{pc.forStores}</div>}<div className="text-sm font-bold">{name}</div><div className="mt-5 text-4xl font-black">{price}</div><div className="mt-1 text-xs text-slate-500">{period}</div><div className="my-6 h-px bg-white/10"/><ul className="space-y-3 text-sm text-slate-600">{items.map(item=><li key={item}>✓ {item}</li>)}</ul>{["Free","Gratis","Kostenlos","Gratuit","Gratuito"].includes(name)?<Link href="#scan" className="mt-7 block w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold transition hover:bg-slate-50">{pc.freeScan}</Link>:<Link href={`/checkout?plan=${name.toLowerCase()}&lang=${language}`} className="mt-7 block w-full rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold transition hover:bg-slate-50">{pc.choose} {name} →</Link>}</div>})}
         </div>
-        <div className="mx-auto mt-12 max-w-7xl overflow-hidden rounded-3xl border border-slate-200 bg-white">
-          <div className="border-b border-slate-200 p-6">
-            <h3 className="text-2xl font-black">{language==="nl"?"Vergelijk de pakketten":language==="en"?"Compare plans":language==="de"?"Pakete vergleichen":language==="fr"?"Comparer les offres":language==="it"?"Confronta i piani":"Comparar planes"}</h3>
-            <p className="mt-2 text-sm text-slate-500">{language==="nl"?"Op mobiel kun je de tabel horizontaal schuiven.":language==="en"?"On mobile, swipe the table horizontally.":language==="de"?"Auf Mobilgeräten kannst du die Tabelle horizontal scrollen.":language==="fr"?"Sur mobile, faites défiler le tableau horizontalement.":language==="it"?"Su mobile, scorri la tabella orizzontalmente.":"En móvil, desplaza la tabla horizontalmente."}</p>
-          </div>
-          <div className="overflow-x-auto">
+        <details className="group mx-auto mt-12 max-w-7xl overflow-hidden rounded-3xl border border-sky-200 bg-sky-50/50 shadow-sm">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-6 transition hover:bg-sky-50 [&::-webkit-details-marker]:hidden">
+            <div>
+              <h3 className="text-2xl font-black text-slate-900">{language==="nl"?"Vergelijk de pakketten":language==="en"?"Compare plans":language==="de"?"Pakete vergleichen":language==="fr"?"Comparer les offres":language==="it"?"Confronta i piani":"Comparar planes"}</h3>
+              <p className="mt-2 text-sm text-slate-500">{language==="nl"?"Bekijk alle functies en verschillen per abonnement.":language==="en"?"View all features and differences for each plan.":language==="de"?"Alle Funktionen und Unterschiede der Pakete anzeigen.":language==="fr"?"Voir toutes les fonctionnalités et différences par offre.":language==="it"?"Visualizza tutte le funzioni e le differenze per piano.":"Consulta todas las funciones y diferencias de cada plan."}</p>
+            </div>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-sky-200 bg-white text-xl font-bold text-sky-700 transition-transform group-open:rotate-180">⌄</span>
+          </summary>
+          <div className="border-t border-sky-200 bg-white p-4 text-sm text-slate-500">{language==="nl"?"Op mobiel kun je de tabel horizontaal schuiven.":language==="en"?"On mobile, swipe the table horizontally.":language==="de"?"Auf Mobilgeräten kannst du die Tabelle horizontal scrollen.":language==="fr"?"Sur mobile, faites défiler le tableau horizontalement.":language==="it"?"Su mobile, scorri la tabella orizzontalmente.":"En móvil, desplaza la tabla horizontalmente."}</div>
+          <div className="overflow-x-auto bg-white">
             <table className="min-w-[900px] w-full text-left text-sm">
               <thead className="bg-slate-50"><tr><th className="p-4">{language==="nl"?"Functie":language==="en"?"Feature":language==="de"?"Funktion":language==="fr"?"Fonction":language==="it"?"Funzione":"Función"}</th>{[["Gratis","€0"],["Start","€34,95"],["Business","€69,95"],["E-commerce","€89,95"],["Pro","€129,95"],["Agency","€219,95"]].map(([n,p])=><th key={n} className="p-4">{n}<div className="mt-1 text-xs font-normal text-slate-500">{p}</div></th>)}</tr></thead>
               <tbody>{[
@@ -1183,7 +1187,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
               ].map(row=><tr key={String(row[0])} className="border-t border-slate-200"><th className="p-4 font-semibold">{row[0]}</th>{row.slice(1).map((v,i)=><td key={i} className="p-4 text-slate-600">{v}</td>)}</tr>)}</tbody>
             </table>
           </div>
-        </div>
+        </details>
       </section>
 
       <section className="border-y border-slate-200 bg-white/[0.02]">
