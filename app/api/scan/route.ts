@@ -2964,15 +2964,19 @@ export async function POST(request: Request) {
       "eu_discount_signal","eu_reference_price_signal","eu_review_signal","eu_scarcity_signal",
       "eu_consumer_information_signal","pricing_currency_consistency"
     ]);
-    if (!hasEcommerceSignal) {
+    // Module Activation Engine: Master Evidence is authoritative for applicability.
+    // Legacy commerce detection remains an input, but cannot deactivate controls when
+    // independent Commerce Evidence has already confirmed the capability.
+    const commerceModuleActive = sectorProfile.applicableModules.includes("ecommerce") || masterEvidence.commerce.confirmed;
+    if (!commerceModuleActive) {
       for (const item of [...seoChecks, ...geoChecks]) {
         if (!commerceOnlyKeys.has(item.key)) continue;
         item.status = "not_applicable";
         item.issue_status = "NOT_APPLICABLE";
         item.points = 0;
         item.confidence = "high";
-        item.message = "Geen voldoende sterk webshop-signaal gevonden; deze branchespecifieke controle is niet van toepassing op deze website.";
-        item.fix = "Geen actie nodig. RankFix activeert deze controle alleen wanneer e-commerce voldoende is bewezen.";
+        item.message = "Master Evidence heeft onvoldoende webshopbewijs; deze branchespecifieke controle is niet van toepassing op deze scan.";
+        item.fix = "Geen actie nodig. RankFix activeert deze controle zodra e-commerce met voldoende bewijs is bevestigd.";
         item.evidence = { url: finalUrl.toString(), found: false, details: item.message };
       }
     }
@@ -2984,6 +2988,31 @@ export async function POST(request: Request) {
     const seoScore = seoMax ? Math.round((seoTotal / seoMax) * 100) : 0;
     const geoScore = geoMax ? Math.round((geoTotal / geoMax) * 100) : 0;
     const overallScore = Math.round(seoScore * 0.6 + geoScore * 0.4);
+    // Evidence applicability guard: absence of a capability is not proof of a defect.
+    // Sector controls that need a proven function remain unscored when that function
+    // could not be confirmed from the available evidence.
+    const capabilityControlGroups: Array<{capabilities:string[]; keys:Set<string>}> = [
+      {capabilities:["vehicles"],keys:new Set(["vehicle_inventory","vehicle_details","test_drive"])},
+      {capabilities:["properties"],keys:new Set(["property_inventory","property_details","viewing"])},
+      {capabilities:["jobs"],keys:new Set(["job_inventory","job_details","application"])},
+      {capabilities:["rooms","booking"],keys:new Set(["room_inventory","availability","hotel_booking"])},
+      {capabilities:["menu","reservation"],keys:new Set(["restaurant_menu","table_reservation"])},
+    ];
+    const masterCapabilities = new Set(masterEvidence.capabilities);
+    for (const group of capabilityControlGroups) {
+      if (group.capabilities.some(capability=>masterCapabilities.has(capability))) continue;
+      for (const item of [...seoChecks,...geoChecks]) {
+        if (!group.keys.has(item.key)) continue;
+        item.status = "unable_to_confirm";
+        item.issue_status = "UNABLE_TO_CONFIRM";
+        item.points = 0;
+        item.confidence = "low";
+        item.message = "Deze functie kon in de beschikbare Evidence Layers niet betrouwbaar worden bevestigd.";
+        item.fix = "Geen bewezen defect. Controleer opnieuw met aanvullende pagina- of browser-evidence.";
+        item.evidence = {url:finalUrl.toString(),found:null,details:item.message};
+      }
+    }
+
     const selectedSeoChecks = mode === "geo" ? [] : seoChecks;
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
     const selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);
