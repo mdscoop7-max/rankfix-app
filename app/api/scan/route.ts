@@ -160,7 +160,8 @@ type TechnologyProfile = {
 
 function detectTechnologyProfile(html: string, headers: Headers, commerceSignal: boolean): TechnologyProfile {
   const source = html.toLowerCase();
-  const headerText = [...headers.entries()].map(([key, value]) => `${key}:${value}`).join("\n").toLowerCase();
+  const headerText = [...headers.entries()].map(([key, value]) => `${key}:${value}`).join("
+").toLowerCase();
   const evidence: string[] = [];
   const hit = (pattern: RegExp, label: string) => {
     if (pattern.test(source) || pattern.test(headerText)) {
@@ -251,7 +252,8 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
   }
   // Hosted builders are only labelled when their distinctive runtime/assets are present.
   // This prevents a plain mention of a builder name from becoming a confirmed CMS.
-  if (wixSignals && /(?:wixstatic\.com|wix-code|x-wix-)/i.test(source + "\n" + headerText)) { cms = "Wix"; strongest = Math.max(strongest, 2); }
+  if (wixSignals && /(?:wixstatic\.com|wix-code|x-wix-)/i.test(source + "
+" + headerText)) { cms = "Wix"; strongest = Math.max(strongest, 2); }
   if (squarespaceSignals && /(?:static\d*\.squarespace\.com|squarespace-cdn|squarespace\.com\/universal\/scripts)/i.test(source)) { cms = "Squarespace"; strongest = Math.max(strongest, 2); }
   if (webflowSignals && /(?:data-wf-page|webflow\.js|website-files\.com)/i.test(source)) { cms = "Webflow"; strongest = Math.max(strongest, 2); }
   if (nextSignals) { framework = "Next.js"; strongest = Math.max(strongest, nextSignals); }
@@ -432,7 +434,9 @@ export async function POST(request: Request) {
     }
 
     const started = Date.now();
-    let response: Response;\n    let fetchedFinalUrl: URL | null = null;\n    let redirectChain: Array<{ from: string; to: string; status: number }> = [];
+    let response: Response;
+    let fetchedFinalUrl: URL | null = null;
+    let redirectChain: Array<{ from: string; to: string; status: number }> = [];
     try {
       let activeTarget = target;
       const fetchTarget = () => safePublicFetch(activeTarget, { timeoutMs: 12000, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml,text/plain,application/xml" });
@@ -469,7 +473,11 @@ export async function POST(request: Request) {
     }
 
     const responseTime = Date.now() - started;
-    // safePublicFetch follows redirects manually for SSRF safety. Response.url therefore\n    // is not a reliable source of the terminal URL. Always use the validated finalUrl\n    // returned by safePublicFetch so share/short links are classified from the actual site.\n    const finalUrl = fetchedFinalUrl ?? new URL(response.url || target.toString());\n    console.info("RankFix redirect resolution", { requested: target.toString(), final: finalUrl.toString(), hops: redirectChain.length });
+    // safePublicFetch follows redirects manually for SSRF safety. Response.url therefore
+    // is not a reliable source of the terminal URL. Always use the validated finalUrl
+    // returned by safePublicFetch so share/short links are classified from the actual site.
+    const finalUrl = fetchedFinalUrl ?? new URL(response.url || target.toString());
+    console.info("RankFix redirect resolution", { requested: target.toString(), final: finalUrl.toString(), hops: redirectChain.length });
 
     if (response.status === 429) {
       return NextResponse.json(
@@ -1080,7 +1088,8 @@ export async function POST(request: Request) {
     } catch { robotsStatus = "UNABLE_TO_CONFIRM"; }
     const robotsPath = finalUrl.pathname || "/";
     const robotsGroups = robotsTxt
-      .split(/\r?\n/)
+      .split(/\r?
+/)
       .map((line) => line.replace(/#.*$/, "").trim())
       .reduce((groups: Array<{ agents: string[]; rules: Array<{ kind: "allow" | "disallow"; path: string }> }>, line) => {
         const agent = line.match(/^user-agent\s*:\s*(.+)$/i)?.[1]?.trim().toLowerCase();
