@@ -1,7 +1,7 @@
 // Dutch draft based on cookies set by the current application.
 export const cookiesContent = {
   title: "Cookieverklaring RankFix AI",
-  version: "Versie 4.0 — Laatst bijgewerkt: juni 2026 · Juridisch concept voor de commerciële productfase.",
+  version: "Versie 4.1 — Laatst bijgewerkt: oktober 2026 · Voorbereidingsversie voor de geplande commerciële start in 2027.",
   intro: [
     "Bij RankFix AI (hierna: ‘wij’, ‘ons’ of ‘het platform’) vinden we transparantie over gegevens belangrijk. Wanneer je de website of de applicatie gebruikt, kan de app noodzakelijke cookies op je apparaat plaatsen.",
     "Hier lees je welke cookies de huidige app gebruikt, waarvoor ze dienen en hoe je ze kunt beheren. We werken dit overzicht bij als er nieuwe functies of diensten bijkomen."
@@ -16,12 +16,14 @@ export const cookiesContent = {
     { heading: "3. Overzicht van cookies die de app zelf instelt", table: [
       { category: "Functioneel", name: "rankfix_session", purpose: "Behoud van de beveiligde aanmeldsessie.", retention: "Browsersessie of maximaal 30 dagen bij ‘ingelogd blijven’; de sessie kan tijdens gebruik worden verlengd." },
       { category: "Functioneel", name: "rankfix_remember", purpose: "Onthoudt de keuze om ingelogd te blijven.", retention: "Browsersessie of maximaal 30 dagen bij ‘ingelogd blijven’." },
-      { category: "Functioneel", name: "github_oauth_state", purpose: "Beveiliging van de vrijwillige GitHub-koppeling.", retention: "Maximaal 10 minuten." }
+      { category: "Functioneel", name: "github_oauth_state", purpose: "Beveiliging van de vrijwillige GitHub-koppeling.", retention: "Maximaal 10 minuten." },
+      { category: "Functioneel", name: "google_gsc_state", purpose: "Beveiliging van de vrijwillige Google Search Console OAuth-koppeling.", retention: "Maximaal 10 minuten." }
     ], closing: ["Stripe en een betaalcheckout zijn momenteel niet aangesloten. De app stelt geen stripe_mid-, session_token- of ui_settings-cookie in. Hostingpartijen kunnen technische gegevens verwerken; hun eventuele eigen cookies moeten voor een definitieve verklaring apart worden gecontroleerd."] },
     { heading: "4. Hoe kun je cookies beheren of uitschakelen?", bullets: [
       "Via je browser kun je cookies bekijken, verwijderen of blokkeren. De precieze stappen verschillen per browser.",
       "Als je noodzakelijke cookies blokkeert, werken inloggen en de GitHub-koppeling mogelijk niet. Via uitloggen kun je je actieve RankFix-sessie beëindigen."
-    ], closing: ["De huidige app heeft geen cookiebanner of toestemmingsinstellingen: zij plaatst zelf geen niet-noodzakelijke cookies waarvoor een keuze moet worden vastgelegd. Als zulke cookies later worden toegevoegd, regelen we eerst een passende toestemmings- en intrekkingsmogelijkheid."] },
-    { heading: "5. Wijzigingen in deze cookieverklaring", paragraphs: ["We actualiseren deze verklaring wanneer de gebruikte cookies, diensten of toepasselijke regels veranderen. De meest recente versie staat op deze pagina."] }
+    ], closing: ["De huidige app heeft geen cookiebanner of toestemmingsinstellingen omdat in de huidige code geen eigen niet-noodzakelijke trackingcookies worden geplaatst. Vóór de commerciële start voeren we opnieuw een volledige browser- en netwerkcontrole uit. Als niet-noodzakelijke cookies of trackers worden toegevoegd, worden deze vóór toestemming geblokkeerd en bieden we Accepteren en Weigeren op hetzelfde niveau, plus een blijvend bereikbare mogelijkheid om voorkeuren te wijzigen of toestemming in te trekken."] },
+    { heading: "5. Consent-ready voor 2027", bullets: ["Geen niet-noodzakelijke cookies of trackers laden vóór geldige toestemming.", "Accepteren en weigeren even eenvoudig aanbieden; geen misleidende visuele voorkeur voor accepteren.", "Doeleinden en categorieën duidelijk uitleggen vóór de keuze.", "Toestemming aantoonbaar registreren wanneer dat nodig is en intrekking even eenvoudig maken als toestemming geven.", "Na iedere nieuwe analytics-, advertentie-, chat-, betaal- of embedded dienst de cookie- en tracker-inventaris opnieuw uitvoeren."] },
+    { heading: "6. Wijzigingen in deze cookieverklaring", paragraphs: ["We actualiseren deze verklaring wanneer de gebruikte cookies, diensten of toepasselijke regels veranderen. De meest recente versie staat op deze pagina."] }
   ]
 };
