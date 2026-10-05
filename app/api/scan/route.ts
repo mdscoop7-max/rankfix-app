@@ -1788,7 +1788,12 @@ export async function POST(request: Request) {
     }
 
     const checkedInternalLinkCount = linkAuditResults.length;
-    const linkEvidenceUnavailable = thinRawHtmlEvidence && uniqueInternalAnchors.length === 0;
+    // Keep this local evidence gate independent of the later shared content gate.
+    const linkEvidenceUnavailable = !javascriptExecuted && uniqueInternalAnchors.length === 0 && (
+      rawVisibleWords < 60 ||
+      (rawVisibleWords < 100 && rawScriptCount >= 4) ||
+      /<div\b[^>]*\bid\s*=\s*["'](?:root|app|__next|__nuxt)["'][^>]*>\s*<\/div>/i.test(rawHtml)
+    );
     const brokenInternalLinkRatio = checkedInternalLinkCount ? brokenInternalLinks.length / checkedInternalLinkCount : 0;
     const brokenLinkPoints = brokenInternalLinkRatio <= 0.05 ? 4 : brokenInternalLinkRatio <= 0.15 ? 3 : brokenInternalLinkRatio <= 0.30 ? 2 : 1;
     const redirectedInternalLinkRatio = checkedInternalLinkCount ? redirectedInternalLinks.length / checkedInternalLinkCount : 0;
