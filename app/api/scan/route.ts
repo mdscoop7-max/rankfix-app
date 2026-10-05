@@ -432,18 +432,18 @@ export async function POST(request: Request) {
     }
 
     const started = Date.now();
-    let response: Response;
+    let response: Response;\n    let fetchedFinalUrl: URL | null = null;\n    let redirectChain: Array<{ from: string; to: string; status: number }> = [];
     try {
       let activeTarget = target;
       const fetchTarget = () => safePublicFetch(activeTarget, { timeoutMs: 12000, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml,text/plain,application/xml" });
       try {
-        ({ response } = await fetchTarget());
+        ({ response, finalUrl: fetchedFinalUrl, redirectChain } = await fetchTarget());
       } catch (httpsError) {
         // For a scheme-less domain RankFix first tries HTTPS. Some legacy sites still only
         // answer on HTTP, so retry HTTP once. Never downgrade an explicitly supplied HTTPS URL.
         if (!/^https?:\/\//i.test(rawUrl) && target.protocol === "https:") {
           activeTarget = validatePublicHttpUrl(`http://${target.host}${target.pathname}${target.search}`);
-          ({ response } = await fetchTarget());
+          ({ response, finalUrl: fetchedFinalUrl, redirectChain } = await fetchTarget());
           target = activeTarget;
         } else {
           throw httpsError;
@@ -459,7 +459,7 @@ export async function POST(request: Request) {
         const requestedDelayMs = seconds !== null ? seconds * 1000 : Number.isFinite(retryDateMs) ? Math.max(0, retryDateMs) : 750 * (retry + 1);
         const delayMs = Math.min(Math.max(requestedDelayMs, 500), 5000);
         await new Promise((resolve) => setTimeout(resolve, delayMs));
-        ({ response } = await fetchTarget());
+        ({ response, finalUrl: fetchedFinalUrl, redirectChain } = await fetchTarget());
       }
     } catch {
       return NextResponse.json(
@@ -469,7 +469,7 @@ export async function POST(request: Request) {
     }
 
     const responseTime = Date.now() - started;
-    const finalUrl = new URL(response.url || target.toString());
+    // safePublicFetch follows redirects manually for SSRF safety. Response.url therefore\n    // is not a reliable source of the terminal URL. Always use the validated finalUrl\n    // returned by safePublicFetch so share/short links are classified from the actual site.\n    const finalUrl = fetchedFinalUrl ?? new URL(response.url || target.toString());\n    console.info("RankFix redirect resolution", { requested: target.toString(), final: finalUrl.toString(), hops: redirectChain.length });
 
     if (response.status === 429) {
       return NextResponse.json(
