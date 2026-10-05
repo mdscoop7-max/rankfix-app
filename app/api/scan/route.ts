@@ -13,6 +13,8 @@ import { applyEvidenceBasedScoreCap, SCORE_MODEL_VERSION, scoreApplicableChecks,
 import { normalizePlan, planLimits } from "@/lib/plans";
 import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
 import { renderPublicPage } from "@/lib/headless-render";
+import { buildScanEvidence } from "@/lib/scan-evidence";
+import { rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -1293,6 +1295,28 @@ export async function POST(request: Request) {
 
     // Sector intelligence is computed before scoring so only relevant specialist checks
     // can participate. Low-confidence classification stays generic and never penalizes.
+    // Evidence Layer v1 runs alongside the proven audit rules. It records facts first;
+    // classification can evolve without changing the underlying scan evidence.
+    const scanEvidence = buildScanEvidence({
+      url: finalUrl.toString(),
+      html,
+      rawHtml,
+      rendered: javascriptExecuted,
+      language: lang || null,
+      title: title || null,
+    });
+    const evidenceSectorCandidates = rankSectorCandidates(
+      scanEvidence,
+      [title, description, h1s.join(" "), text].filter(Boolean).join(" ").slice(0, 250000),
+    ).slice(0, 8);
+    const evidenceLayer = {
+      version: scanEvidence.version,
+      evidence: scanEvidence,
+      sectorCandidates: evidenceSectorCandidates,
+      catalogSize: sectorCatalogSummary().length,
+      note: "Evidence-first: ontbrekend bewijs is niet automatisch een fout. Sectoren en functies worden alleen bevestigd op gevonden signalen.",
+    };
+
     type SectorKey = "ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"general_business"|"unknown";
     const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]}> = [
       {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\b/i,/\b(te koop|te huur|for sale|for rent|woningaanbod)\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
@@ -3368,6 +3392,7 @@ export async function POST(request: Request) {
       pageTypeInvariant,
       technologyProfile,
       sectorProfile,
+      evidenceLayer,
       security: securityEngine,
       adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
       seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
