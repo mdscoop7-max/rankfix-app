@@ -525,7 +525,15 @@ export async function POST(request: Request) {
     }
 
     const rawHtml = recoveredHtml ? "" : html;
-    const javascriptCandidate = !recoveredHtml && /(?:__NEXT_DATA__|\/_next\/|__NUXT__|\/_nuxt\/|data-reactroot|data-react-helmet)/i.test(rawHtml);
+    const rawVisibleText = stripHtml(rawHtml);
+    const rawVisibleWords = rawVisibleText.split(/\s+/).filter(Boolean).length;
+    const rawScriptCount = (rawHtml.match(/<script\b/gi) || []).length;
+    const thinClientShell = rawVisibleWords < 80 && rawScriptCount >= 4;
+    const javascriptFrameworkSignal = /(?:__NEXT_DATA__|\/_next\/|__NUXT__|\/_nuxt\/|data-reactroot|data-react-helmet|shopify|webpackJsonp|__APOLLO_STATE__)/i.test(rawHtml);
+    // Bounded render: framework evidence alone is useful, but a thin client shell
+    // is also a strong reason to render once. This improves Shopify/Next/Nuxt sites
+    // without rendering every SSR page or retrying indefinitely.
+    const javascriptCandidate = !recoveredHtml && (javascriptFrameworkSignal || thinClientShell);
     let javascriptExecuted = Boolean(recoveredHtml);
     let renderElapsedMs: number | null = recoveredRenderElapsedMs;
     let renderFallbackReason: string | null = recovery.reason;
@@ -3183,7 +3191,7 @@ export async function POST(request: Request) {
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
     type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageAudit = MultiPageCandidate & { status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -3301,6 +3309,35 @@ export async function POST(request: Request) {
           .map((m)=>safeDecodeURIComponent(m[1]||""))
           .filter((href)=>/(?:^|\/)(?:product|products|product-page|p)(?:\/|$)|\/(?:dp|artikel|prodotto|produto)\//i.test(href));
         const pagePriceSignals = (pageQualityText.match(/(?:€|EUR\b|\bEUR\s*)\s*\d{1,5}(?:[.,]\d{2})?|\d{1,5}(?:[.,]\d{2})?\s*(?:€|EUR\b)/gi)||[]).length;
+        const pageProductJson = (() => {
+          for (const raw of [...pageHtml.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)].map((m)=>m[1])) {
+            try {
+              const parsed = JSON.parse(raw);
+              const queue:any[] = Array.isArray(parsed) ? [...parsed] : [parsed];
+              while (queue.length) {
+                const value = queue.shift();
+                if (!value || typeof value !== "object") continue;
+                const types = Array.isArray(value["@type"]) ? value["@type"] : [value["@type"]];
+                if (types.some((t:any)=>String(t||"").toLowerCase()==="product")) return value;
+                for (const nested of Object.values(value)) {
+                  if (Array.isArray(nested)) queue.push(...nested);
+                  else if (nested && typeof nested==="object") queue.push(nested);
+                }
+              }
+            } catch {}
+          }
+          return null;
+        })();
+        const pageOffer:any = pageProductJson ? (Array.isArray(pageProductJson.offers) ? pageProductJson.offers[0] : pageProductJson.offers) : null;
+        const pageImageValue = pageProductJson?.image;
+        const pageProductEvidence = pageProductJson ? {
+          name: typeof pageProductJson.name==="string" ? pageProductJson.name.trim() || null : null,
+          image: typeof pageImageValue==="string" ? pageImageValue : Array.isArray(pageImageValue) && typeof pageImageValue[0]==="string" ? pageImageValue[0] : null,
+          sku: typeof pageProductJson.sku==="string" ? pageProductJson.sku : null,
+          price: pageOffer?.price != null ? String(pageOffer.price) : null,
+          currency: typeof pageOffer?.priceCurrency==="string" ? pageOffer.priceCurrency : null,
+          availability: typeof pageOffer?.availability==="string" ? pageOffer.availability : null,
+        } : null;
         const pageCommerceEvidence = {
           productSchema: pageProductSchema,
           itemListSchema: pageItemListSchema,
@@ -3308,6 +3345,7 @@ export async function POST(request: Request) {
           strongCommerceAction: pageStrongCommerceAction,
           repeatedProductLinks: new Set(pageProductLinks).size >= 3,
           priceSignals: pagePriceSignals,
+          product: pageProductEvidence,
           confirmedRetailPage: pageProductSchema || (pageStrongCommerceAction && pagePriceSignals >= 1) || (pageItemListSchema && new Set(pageProductLinks).size >= 3) || (pageStoreSchema && pagePriceSignals >= 2),
         };
         const evidenceChecks: MultiPageAudit["evidenceChecks"] = [
