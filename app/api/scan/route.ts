@@ -3277,7 +3277,15 @@ export async function POST(request: Request) {
           { url: representativeHomeUrl, type: "homepage", evidence: [localePathMatch ? "locale root" : "site root"] },
           ...pickMultiPage("other", 2), ...pickMultiPage("category", 1), ...pickMultiPage("product", 1),
         ];
-    const uniqueMultiPagePages = [...new Map(multiPagePages.map((item) => [normalizeScanUrl(item.url), item] as const)).values()].slice(0, 4);
+    // Always include the exact page the customer scanned as the first sample.
+    // This prevents a product scan from being represented only by a sibling product
+    // and makes failed cross-page sampling transparent without changing the main-page score.
+    const scannedPageSample: MultiPageCandidate = {
+      url: finalUrl.toString(),
+      type: isProductPage ? "product" : hasCategorySignal ? "category" : isHomepage ? "homepage" : "other",
+      evidence: ["scanned page"],
+    };
+    const uniqueMultiPagePages = [...new Map([scannedPageSample, ...multiPagePages].map((item) => [normalizeScanUrl(item.url), item] as const)).values()].slice(0, 4);
     const auditMultiPage = async (page: MultiPageCandidate): Promise<MultiPageAudit> => {
       try {
         const fetched = await safePublicFetch(page.url, { timeoutMs: 8000, maxRedirects: 3, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml" });
@@ -3389,8 +3397,20 @@ export async function POST(request: Request) {
         };
         const earned = confirmed.reduce((sum,item)=>sum+evidenceCredit(item),0);
         return { ...page, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, score:confirmed.length?Math.round((earned/confirmed.length)*100):null, commerceEvidence:pageCommerceEvidence, evidenceChecks };
-      } catch {
-        return { ...page, status:"unable_to_confirm", httpStatus:null, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"fetch",status:"UNABLE_TO_CONFIRM",details:"Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald."}] };
+      } catch (multiPageError) {
+        const rawReason = multiPageError instanceof Error ? multiPageError.message : "FETCH_FAILED";
+        const reason = /timeout|abort/i.test(rawReason)
+          ? "timeout"
+          : /CROSS_HOST_REDIRECT/i.test(rawReason)
+            ? "redirect naar ander domein"
+            : /redirect/i.test(rawReason)
+              ? "redirectfout"
+              : /403/i.test(rawReason)
+                ? "HTTP 403 / blokkade"
+                : /5\\d\\d/.test(rawReason)
+                  ? "serverfout"
+                  : "ophalen mislukt";
+        return { ...page, status:"unable_to_confirm", httpStatus:null, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"fetch",status:"UNABLE_TO_CONFIRM",details:`Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ${reason}).`}] };
       }
     };
     const multiPageAudits = await Promise.all(uniqueMultiPagePages.map(auditMultiPage));
