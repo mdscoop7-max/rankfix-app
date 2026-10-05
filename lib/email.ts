@@ -55,7 +55,7 @@ export async function sendScanReportEmail(report: ScanReportEmail) {
     es:{subject:"Tu análisis de RankFix está listo",hello:"Hola",ready:"Tu análisis está listo.",website:"Web",overall:"Puntuación total",attention:"mejoras encontradas",next:"Siguiente paso",nextText:"Abre el informe para revisar las mejoras y vuelve a analizar después de aplicar los cambios.",button:"Abrir informe",seo:"Puntuación SEO",geo:"Puntuación GEO"}
   }[language];
   const name = report.name ? " " + escapeHtml(report.name) : "";
-  const attentionCount = report.checks.filter((check) => check.status !== "pass").length;
+  const attentionCount = report.checks.filter((check) => check.status === "warning" || check.status === "fail").length;
 
   const base=(process.env.APP_URL||"https://rankfix-app.onrender.com").replace(/\/$/,"");
   const reportUrl=report.scanId?`${base}/dashboard/audit/${encodeURIComponent(report.scanId)}`:`${base}/dashboard`;
