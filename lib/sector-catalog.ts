@@ -112,13 +112,17 @@ export function rankSectorCandidates(evidence: ScanEvidence, searchableText: str
 }
 
 
-// Capabilities are facts, not sectors. Only generic cross-sector capabilities map\n// directly to modules here. Sector-defining modules (recruitment, hospitality,\n// real estate, automotive, marketplace) are activated by the primary-sector\n// decision, never by a single incidental word/link.\nexport const CAPABILITY_MODULE_MAP: Record<string,string[]> = {
+// Capabilities are facts, not sectors. Only generic cross-sector capabilities map
+// directly to modules here. Sector-defining modules (recruitment, hospitality,
+// real estate, automotive, marketplace) are activated by the primary-sector
+// decision, never by a single incidental word/link.
+export const CAPABILITY_MODULE_MAP: Record<string,string[]> = {
   products:["product","ecommerce"], pricing:["pricing_currency"], cart:["ecommerce"], add_to_cart:["ecommerce"],
   checkout:["checkout","ecommerce"], merchant:["merchant"], consumer_rights:["eu_consumer"],
-  vehicles:["automotive"], vehicle_details:["automotive"], test_drive:["automotive","lead_conversion"],
-  properties:["real_estate"], property_details:["real_estate"], viewing_request:["real_estate","lead_conversion"],
-  jobs:["recruitment"], application:["recruitment","lead_conversion"],
-  rooms:["hospitality"], menu:["hospitality"], availability:["booking"],
+  vehicles:[], vehicle_details:[], test_drive:["lead_conversion"],
+  properties:[], property_details:[], viewing_request:["lead_conversion"],
+  jobs:[], application:["lead_conversion"],
+  rooms:[], menu:[], availability:["booking"],
   appointment:["lead_conversion"], appointments:["lead_conversion"], reservation:["lead_conversion"],
   booking:["booking","lead_conversion"], quote_request:["lead_conversion"],
   contact:["business_identity"], local:["local"], opening_hours:["local"], reviews:["quality_trust"],
