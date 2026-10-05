@@ -79,7 +79,8 @@ export default function AuditDetail() {
   const [fixFlow,setFixFlow]=useState<FixFlowItem[]>([]);
   const [verificationBusy,setVerificationBusy]=useState(false);
   const [verificationMessage,setVerificationMessage]=useState("");
-  const [language, setLanguage] = useState<Locale>("nl");\n  const [deleteBusy,setDeleteBusy]=useState(false);
+  const [language, setLanguage] = useState<Locale>("nl");
+  const [deleteBusy,setDeleteBusy]=useState(false);
   const t = auditCopy[language];
   const tr=(v:Record<Locale,string>)=>v[language];
   useEffect(() => {
