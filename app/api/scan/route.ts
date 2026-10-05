@@ -478,7 +478,35 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!response.ok) {
+    // Recovery Evidence: a normal public request can receive 403/405 while a
+    // legitimate browser receives the public page. Try one bounded browser
+    // render only; never rotate proxies, bypass CAPTCHAs or evade a WAF.
+    const recovery = {
+      attempted: false,
+      originalHttpStatus: response.status,
+      browserRecovered: false,
+      limitedScope: false,
+      reason: null as string | null,
+      evidenceSource: null as "rendered_html" | null,
+    };
+    let recoveredHtml: string | null = null;
+    let recoveredRenderElapsedMs: number | null = null;
+    if (!response.ok && (response.status === 403 || response.status === 405)) {
+      recovery.attempted = true;
+      try {
+        const recovered = await renderPublicPage(finalUrl.toString(), 12000);
+        if (recovered.html && recovered.html.length >= 20) {
+          recoveredHtml = recovered.html;
+          recoveredRenderElapsedMs = recovered.elapsedMs;
+          recovery.browserRecovered = true;
+          recovery.limitedScope = true;
+          recovery.evidenceSource = "rendered_html";
+        }
+      } catch (recoveryError) {
+        recovery.reason = recoveryError instanceof Error ? recoveryError.message.slice(0, 120) : "RECOVERY_RENDER_FAILED";
+      }
+    }
+    if (!response.ok && !recoveredHtml) {
       const httpMessages: Record<string,string> = {
         nl:`Scan geblokkeerd door website (HTTP ${response.status}). RankFix kon deze website niet betrouwbaar analyseren. Er is daarom geen score berekend.`,
         en:`The website returned HTTP ${response.status} and cannot be analysed reliably.`,
@@ -487,20 +515,20 @@ export async function POST(request: Request) {
         it:`Il sito ha restituito HTTP ${response.status} e non può essere analizzato in modo affidabile.`,
         es:`El sitio devolvió HTTP ${response.status} y no se puede analizar de forma fiable.`
       };
-      return NextResponse.json({ error: httpMessages[scanLanguage] }, { status: 422 });
+      return NextResponse.json({ error: httpMessages[scanLanguage], recovery }, { status: 422 });
     }
 
     // Modern commerce/product pages can contain large SSR payloads and JSON-LD. Keep a strict cap, but allow enough room to audit them safely.
-    let html = await readResponseTextLimited(response, 8_000_000);
+    let html = recoveredHtml ?? await readResponseTextLimited(response, 8_000_000);
     if (!html || html.length < 20) {
-      return NextResponse.json({ error: scanError.html }, { status: 422 });
+      return NextResponse.json({ error: scanError.html, recovery }, { status: 422 });
     }
 
-    const rawHtml = html;
-    const javascriptCandidate = /(?:__NEXT_DATA__|\/_next\/|__NUXT__|\/_nuxt\/|data-reactroot|data-react-helmet)/i.test(rawHtml);
-    let javascriptExecuted = false;
-    let renderElapsedMs: number | null = null;
-    let renderFallbackReason: string | null = null;
+    const rawHtml = recoveredHtml ? "" : html;
+    const javascriptCandidate = !recoveredHtml && /(?:__NEXT_DATA__|\/_next\/|__NUXT__|\/_nuxt\/|data-reactroot|data-react-helmet)/i.test(rawHtml);
+    let javascriptExecuted = Boolean(recoveredHtml);
+    let renderElapsedMs: number | null = recoveredRenderElapsedMs;
+    let renderFallbackReason: string | null = recovery.reason;
     if (javascriptCandidate) {
       try {
         const rendered = await renderPublicPage(finalUrl.toString(), 12000);
@@ -3070,8 +3098,7 @@ export async function POST(request: Request) {
       ];
       const landingSignalCount = landingSignals.filter(Boolean).length;
       if (landingSignalCount >= 3) {
-        technologyProfile.siteType = "Landingpage";
-        technologyProfile.evidence = [...technologyProfile.evidence, `Landingpage-signalen ${landingSignalCount}/4`].slice(0, 8);
+        technologyProfile.evidence = [...technologyProfile.evidence, `Commerciële landingpage-signalen ${landingSignalCount}/4 (paginatype, niet websitetype)`].slice(0, 8);
       }
     }
     // sectorProfile was determined before scoring so applicability and scoring stay aligned.
@@ -3382,7 +3409,7 @@ export async function POST(request: Request) {
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             language: scanLanguage,
-            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, summary: scanSummary, rendering, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, security: securityEngine, multiPage,
+            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, summary: scanSummary, rendering, recovery, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, security: securityEngine, multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -3605,6 +3632,7 @@ export async function POST(request: Request) {
       scoreModel,
       summary: scanSummary,
       rendering,
+      recovery,
       scope: scanScope,
       multiPage,
       pageTypeEvidence,
