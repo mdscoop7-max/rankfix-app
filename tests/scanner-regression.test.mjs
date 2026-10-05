@@ -108,7 +108,7 @@ test("central classification bundle keeps transport, retail and canonical decisi
   assert.match(source, /transportBookingIdentityEarly/);
   assert.match(source, /transportRetailStoreEvidence/);
   assert.match(source, /!transportBookingIdentity && shopCatalogHrefCount/);
-  assert.match(source, /strongArticleMarkupSignal/);
+  assert.match(source, /strongArticleMarkupSignal/);\n  assert.match(source, /safePublicFetch follows redirects manually/);\n  assert.match(source, /fetchedFinalUrl \\?\\? new URL\\(response\\.url/);
   assert.match(source, /prijevoz\|putnički/);
   assert.match(source, /δρομολόγ\|εισιτήρ\|πτήσ/);
   assert.match(source, /sectorPriority/);
