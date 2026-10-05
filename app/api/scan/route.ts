@@ -1309,7 +1309,14 @@ export async function POST(request: Request) {
       scanEvidence,
       [title, description, h1s.join(" "), text].filter(Boolean).join(" ").slice(0, 250000),
     ).slice(0, 8);
-    const evidenceLayer = {
+    const evidenceLayer: {
+      version: typeof scanEvidence.version;
+      evidence: typeof scanEvidence;
+      sectorCandidates: typeof evidenceSectorCandidates;
+      catalogSize: number;
+      note: string;
+      master?: unknown;
+    } = {
       version: scanEvidence.version,
       evidence: scanEvidence,
       sectorCandidates: evidenceSectorCandidates,
