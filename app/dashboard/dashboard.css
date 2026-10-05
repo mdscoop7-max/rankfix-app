@@ -789,3 +789,19 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
 .rf-help-topic p,.rf-github-steps div,.rf-help-side-card a,.rf-help-videos p{color:#53627a!important;opacity:1!important}
 .rf-help-topic em{color:#1769d2!important;font-weight:800}
 .rf-help-side-card a{font-weight:650}
+
+/* Help Center final navigation: dashboard-blue jump bar, with video kept distinct. */
+.rf-help-shortcuts{display:flex!important;gap:8px!important;padding:8px!important;background:#102746!important;border:1px solid #1d3c66!important;border-radius:14px!important;width:max-content;max-width:100%;flex-wrap:wrap}
+.rf-help-shortcuts .rf-help-shortcut{min-height:40px!important;padding:9px 15px!important;background:transparent!important;border:0!important;border-radius:9px!important;color:#fff!important;font-weight:750!important;box-shadow:none!important;text-decoration:none!important}
+.rf-help-shortcuts .rf-help-shortcut:hover,.rf-help-shortcuts .rf-help-shortcut:focus-visible{background:#247cf0!important;color:#fff!important;transform:none!important}
+.rf-help-shortcuts .rf-help-shortcut-video{background:#5f50c8!important;color:#fff!important}
+.rf-help-shortcuts .rf-help-shortcut-video:hover,.rf-help-shortcuts .rf-help-shortcut-video:focus-visible{background:#5143b4!important}
+#help-topics,#help-github,#help-videos{scroll-margin-top:96px}
+.rf-github-steps{border:1px solid #d8e2ee!important;background:#fff!important;border-radius:16px!important;padding:24px!important}
+.rf-github-steps .rf-eyebrow{display:block!important;margin-bottom:7px!important;color:#1683d8!important;font-weight:800!important;letter-spacing:.08em!important;text-transform:uppercase!important}
+.rf-github-steps h2{font-size:1.25rem!important;font-weight:800!important;margin-bottom:10px!important}
+.rf-github-steps div{font-size:1rem!important;line-height:1.7!important;color:#44556d!important}
+.rf-help-github-action{display:inline-flex!important;align-items:center!important;margin-top:16px!important;padding:10px 16px!important;border-radius:9px!important;background:#1683d8!important;color:#fff!important;font-weight:800!important;text-decoration:none!important}
+.rf-help-github-action:hover{background:#0f6fba!important;color:#fff!important}
+.rf-help-ai p{color:#e8fff7!important;opacity:1!important}
+.rf-help-ai .text-slate-400{color:#d3f5e8!important}
