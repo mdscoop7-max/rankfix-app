@@ -10,7 +10,7 @@ export type SectorKey =
   | "food_delivery" | "telecom" | "energy" | "software_app" | "agency"
   | "photography" | "medical_clinic" | "pharmacy" | "veterinary" | "childcare"
   | "senior_care" | "car_rental" | "car_repair" | "parking" | "property_rental"
-  | "coworking" | "entertainment" | "museum_culture" | "sports_club" | "general_business";
+  | "bed_breakfast" | "holiday_rental" | "holiday_park" | "camping" | "coworking" | "entertainment" | "museum_culture" | "sports_club" | "general_business";
 
 export type SectorDefinition = {
   key: SectorKey;
@@ -40,6 +40,10 @@ export const SECTOR_CATALOG: SectorDefinition[] = [
   {key:"cafe_bar",label:"Café / bar",keywords:/\b(café|cafe|bar|pub|coffee shop|koffiebar)\b/i,schemaTypes:["CafeOrCoffeeShop","BarOrPub"],expectedCapabilities:["menu","opening_hours","local","contact"],optionalCapabilities:["reservation"]},
   {key:"food_delivery",label:"Maaltijdbezorging",keywords:/\b(bezorgen|food delivery|delivery food|bestel eten|order food)\b/i,schemaTypes:["FoodEstablishment"],expectedCapabilities:["menu","ordering","delivery_area","pricing"],optionalCapabilities:["checkout"]},
   {key:"hotel",label:"Hotel / accommodatie",keywords:/\b(hotel|kamers|rooms|overnachting|accommodation)\b/i,schemaTypes:["Hotel","HotelRoom","LodgingBusiness"],evidenceFlags:["inventory.rooms","appointments.booking"],expectedCapabilities:["rooms","availability","booking","pricing","local"],forbiddenAssumptions:["product_stock"]},
+  {key:"bed_breakfast",label:"B&B / guesthouse",keywords:/\b(b&b|bed and breakfast|bed & breakfast|guesthouse|guest house|pension)\b/i,schemaTypes:["BedAndBreakfast"],evidenceFlags:["inventory.rooms","appointments.booking"],expectedCapabilities:["rooms","availability","booking","pricing","local"],forbiddenAssumptions:["property_sale","long_term_rental","product_stock"]},
+  {key:"holiday_rental",label:"Vakantiehuis / vakantieverhuur",keywords:/\b(vakantiehuis|vakantiewoning|holiday home|holiday rental|vacation rental|ferienhaus|ferienwohnung|short[- ]term rental)\b/i,schemaTypes:["VacationRental"],evidenceFlags:["appointments.booking"],expectedCapabilities:["accommodation","availability","booking","pricing","guests","stay_dates"],forbiddenAssumptions:["property_sale","long_term_rental","product_stock"]},
+  {key:"holiday_park",label:"Vakantiepark / resort",keywords:/\b(vakantiepark|holiday park|ferienpark|resort|bungalowpark|recreatiepark)\b/i,schemaTypes:["Resort"],evidenceFlags:["appointments.booking"],expectedCapabilities:["accommodations","availability","booking","pricing","facilities","local"],forbiddenAssumptions:["property_sale","product_stock"]},
+  {key:"camping",label:"Camping / chaletpark",keywords:/\b(camping|campingplatz|campground|camperplaats|chaletpark|caravan park|glamping)\b/i,schemaTypes:["Campground"],evidenceFlags:["appointments.booking"],expectedCapabilities:["pitches_or_accommodation","availability","booking","pricing","facilities","local"],forbiddenAssumptions:["property_sale","product_stock"]},
   {key:"travel",label:"Reizen / toerisme",keywords:/\b(reizen|travel|vakantie|holiday|tours|excursies)\b/i,schemaTypes:["TravelAgency","TouristTrip"],expectedCapabilities:["destinations_or_trips","availability","booking","pricing"]},
   {key:"beauty_salon",label:"Beautysalon",keywords:/\b(beautysalon|beauty salon|schoonheidssalon|facial|beauty treatment)\b/i,schemaTypes:["BeautySalon"],expectedCapabilities:["services","pricing","appointment","local"],optionalCapabilities:["products"]},
   {key:"hair_salon",label:"Kapper / hair salon",keywords:/\b(kapper|hair salon|hairdresser|coiffeur|friseur)\b/i,schemaTypes:["HairSalon"],expectedCapabilities:["services","pricing","appointment","local"],optionalCapabilities:["products"]},
