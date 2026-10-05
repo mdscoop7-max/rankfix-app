@@ -1359,11 +1359,60 @@ export async function POST(request: Request) {
       return {sector:item.sector,label:item.label,hits:suppressedHits,modules:item.modules,priority:sectorPriority[item.sector] || 0};
     }).filter(item=>item.hits>0).sort((a,b)=>b.hits-a.hits || b.priority-a.priority);
     const strongSectorCandidate = sectorCandidates[0] && sectorCandidates[0].hits>=2 && (!sectorCandidates[1] || sectorCandidates[0].hits>sectorCandidates[1].hits || (sectorCandidates[0].hits===sectorCandidates[1].hits && sectorCandidates[0].priority>sectorCandidates[1].priority));
-    const sectorProfile = hasEcommerceSignal
+    const evidenceCommerceStrength = [
+      scanEvidence.commerce.cart.value,
+      scanEvidence.commerce.addToCart.value,
+      scanEvidence.commerce.checkout.value,
+      scanEvidence.commerce.products.value,
+      scanEvidence.commerce.productPage.value,
+      scanEvidence.commerce.productLinks.value >= 2,
+      scanEvidence.commerce.prices.value.count >= 2,
+      scanEvidence.schema.product,
+    ].filter(Boolean).length;
+    const evidenceCommerceConfirmed = evidenceCommerceStrength >= 3;
+    const catalogTop = evidenceSectorCandidates[0];
+    const catalogRunnerUp = evidenceSectorCandidates[1];
+    const catalogSectorStrong = Boolean(catalogTop && catalogTop.score >= 4 && (!catalogRunnerUp || catalogTop.score >= catalogRunnerUp.score + 2));
+    const legacyProfile = hasEcommerceSignal
       ? {sector:"ecommerce" as SectorKey,label:"Webshop / e-commerce",confidence:"high" as const,confidenceScore:95,evidence:["Harde aankoop-/storefrontsignalen bevestigd"],applicableModules:["core_seo","geo","ecommerce","product","pricing_currency","merchant","checkout",...(euConsumerApplicable?["eu_consumer"]:[])]}
       : strongSectorCandidate
         ? {sector:sectorCandidates[0].sector,label:sectorCandidates[0].label,confidence:(sectorCandidates[0].hits>=3 ? "high" : "medium") as "high"|"medium",confidenceScore:sectorCandidates[0].hits>=3 ? 95 : 75,evidence:[`${sectorCandidates[0].hits} sectorsignalen inclusief gedeeld schema-/contentsbewijs`],applicableModules:sectorCandidates[0].modules}
         : {sector:"unknown" as SectorKey,label:"Sector niet bevestigd",confidence:"low" as const,confidenceScore:sectorCandidates[0]?.hits ? 35 : 0,evidence:sectorCandidates.slice(0,2).map(x=>`${x.label}: ${x.hits} signaal/signalen`),applicableModules:["core_seo","geo","technical"]};
+
+    // Master Evidence decision v1. Commerce capabilities outrank incidental sector
+    // words, fixing the "Webshop profile but unknown sector/modules" contradiction.
+    // Other catalog sectors only replace an unknown legacy result when their evidence
+    // is clearly stronger; this keeps existing sector-specific checks backward safe.
+    const catalogLegacyMap: Partial<Record<string,SectorKey>> = {
+      automotive:"automotive", real_estate:"real_estate", recruitment:"recruitment",
+      government:"government", news_media:"news_media", saas_b2b:"saas_b2b",
+      home_services:"home_services", professional_services:"professional_services",
+      restaurant:"hospitality", cafe_bar:"hospitality", hotel:"hospitality",
+      dentist:"health_wellness", healthcare:"health_wellness", medical_clinic:"health_wellness",
+      beauty_salon:"beauty", hair_salon:"beauty",
+    };
+    const mappedCatalogSector = catalogTop ? catalogLegacyMap[catalogTop.key] : undefined;
+    const sectorProfile = evidenceCommerceConfirmed
+      ? {
+          sector:"ecommerce" as SectorKey,
+          key:"ecommerce",
+          label:"Webshop / e-commerce",
+          confidence:"high" as const,
+          confidenceScore:Math.min(99, 86 + evidenceCommerceStrength * 2),
+          evidence:[`Evidence Layer: ${evidenceCommerceStrength} onafhankelijke commerce-signalen`, ...(catalogTop?.key==="ecommerce" ? catalogTop.evidence : [])].slice(0,6),
+          applicableModules:["core_seo","geo","technical","ecommerce","product","pricing_currency","merchant","checkout",...(euConsumerApplicable?["eu_consumer"]:[])],
+        }
+      : legacyProfile.sector==="unknown" && catalogSectorStrong && mappedCatalogSector
+        ? {
+            sector:mappedCatalogSector,
+            key:catalogTop.key,
+            label:catalogTop.label,
+            confidence:(catalogTop.score>=7?"high":"medium") as "high"|"medium",
+            confidenceScore:catalogTop.score>=7?92:78,
+            evidence:[...catalogTop.evidence, `Evidence Layer sectorscore: ${catalogTop.score}`].slice(0,6),
+            applicableModules:[...new Set(["core_seo","geo","technical",...(sectorSignals.find(x=>x.sector===mappedCatalogSector)?.modules||[])])],
+          }
+        : {...legacyProfile,key:legacyProfile.sector};
 
     const seoChecks: Check[] = [];
     const geoChecks: Check[] = [];
