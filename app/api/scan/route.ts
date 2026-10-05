@@ -1474,9 +1474,8 @@ export async function POST(request: Request) {
           ...scanEvidence.organization.address.sources,
         ])],
       },
-      conflicts: technologyProfile.siteType==="Webshop" && !evidenceCommerceConfirmed
-        ? ["Technologieprofiel ziet commerce-signalen, maar Master Evidence heeft nog onvoldoende onafhankelijke commerce-bewijzen."]
-        : [],
+      // Cross-check with technologyProfile is added later, after that profile exists.
+      conflicts: [] as string[],
       policy:"Evidence-first: ontbrekend bewijs blijft onbevestigd en wordt niet automatisch als defect beoordeeld.",
     };
     evidenceLayer.master = masterEvidence;
