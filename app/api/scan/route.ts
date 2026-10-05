@@ -1473,8 +1473,21 @@ export async function POST(request: Request) {
       },
       capabilities:[...new Set([...evidenceCapabilities,...partnerCapabilities])],
       activeModules:sectorProfile.applicableModules,
+      businessModels:[...new Set([
+        evidenceCommerceConfirmed && "commerce",
+        evidenceCapabilities.includes("vehicles") && "automotive_inventory",
+        evidenceCapabilities.includes("properties") && "real_estate_inventory",
+        evidenceCapabilities.includes("jobs") && "recruitment",
+        evidenceCapabilities.includes("rooms") && "hospitality_rooms",
+        evidenceCapabilities.includes("menu") && "hospitality_food",
+        evidenceCapabilities.includes("appointment") && "appointments",
+        evidenceCapabilities.includes("reservation") && "reservations",
+        evidenceCapabilities.includes("booking") && "bookings",
+        evidenceCapabilities.includes("quote_request") && "lead_generation",
+        evidenceCapabilities.includes("local") && "local_business",
+      ].filter((value): value is string => Boolean(value)))],
       secondarySectorCandidates:evidenceSectorCandidates
-        .filter(candidate=>candidate.key!==sectorProfile.key)
+        .filter(candidate=>candidate.key!==sectorProfile.key && candidate.score>=3)
         .slice(0,4)
         .map(candidate=>({key:candidate.key,label:candidate.label,score:candidate.score,evidence:candidate.evidence})),
       commerce:{confirmed:evidenceCommerceConfirmed,strength:evidenceCommerceStrength},
@@ -3009,6 +3022,17 @@ export async function POST(request: Request) {
     console.info("RankFix scan phase", { phase: "checks_built", page: finalUrl.toString(), seoChecks: selectedSeoChecks.length, geoChecks: selectedGeoChecks.length });
     const technologyProfile = detectTechnologyProfile(html, response.headers, hasEcommerceSignal);
     console.info("RankFix scan phase", { phase: "technology_profile_built", page: finalUrl.toString(), siteType: technologyProfile.siteType, framework: technologyProfile.framework });
+    // Late Master cross-check: technologyProfile only exists at this point.
+    // A mismatch is recorded as evidence tension, never converted directly into a failure.
+    if (technologyProfile.siteType==="Webshop" && !masterEvidence.commerce.confirmed) {
+      masterEvidence.conflicts.push("Technologieprofiel ziet webshop-signalen, maar Commerce Evidence heeft nog onvoldoende onafhankelijke bevestiging.");
+    }
+    if (masterEvidence.commerce.confirmed && technologyProfile.siteType!=="Webshop") {
+      masterEvidence.conflicts.push("Commerce Evidence bevestigt webshopfuncties terwijl het technologieprofiel de site nog niet als webshop classificeert.");
+    }
+    if (masterEvidence.businessModels.length>1) {
+      masterEvidence.policy += " Hybride businessmodellen worden naast elkaar bewaard; een secundaire functie wordt niet door de hoofdsector overschreven.";
+    }
     // A homepage is only classified as a landing page when several independent
     // conversion/content signals agree. The root URL alone is never enough.
     if (!technologyProfile.isCommerce && isHomepage) {
