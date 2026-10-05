@@ -769,3 +769,11 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
 .rf-language-dropdown{background:#fff!important;border:1px solid #d7e0ea!important;box-shadow:0 12px 28px rgba(15,23,42,.18)!important}
 .rf-language-dropdown .rf-language-chip{color:#172033!important;background:#fff!important}
 .rf-language-dropdown .rf-language-chip:hover,.rf-language-dropdown .rf-language-chip[aria-current="true"]{background:#edf6ff!important;color:#1769d2!important}
+
+/* More subpages: clear digital process icons and parent navigation. */
+.rf-page-back,.rf-help-back{display:inline-flex;align-items:center;gap:7px;margin-bottom:16px;color:#1769d2!important;font-size:13px;font-weight:750}
+.rf-page-back:hover,.rf-help-back:hover{color:#0f55ad!important}
+.rf-process-grid article{position:relative;padding-top:22px!important}
+.rf-process-icon{display:grid;width:42px;height:42px;place-items:center;margin-bottom:14px;border-radius:12px;color:#fff!important;font-size:21px;font-weight:800;box-shadow:0 4px 12px rgba(20,40,70,.12)}
+.rf-process-icon-scan{background:#159de0}.rf-process-icon-fix{background:#7657e8}.rf-process-icon-check{background:#12b981}
+.rf-process-grid article>b{display:block;margin-bottom:2px;color:#168a6b!important}
