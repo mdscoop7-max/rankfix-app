@@ -507,3 +507,17 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
 .rf-sites{padding:0 22px 22px}.rf-site{padding:16px 0}
 .rf-fix-summary{margin-top:22px;border-radius:20px;padding:22px}
 }
+
+/* Modern active scan visual — presentation only, Motor logic untouched */
+.rf-scan-modern{position:relative;overflow:hidden;display:flex;align-items:center;gap:28px;padding:28px;border:1px solid rgba(47,129,247,.22);border-radius:22px;background:radial-gradient(circle at 12% 50%,rgba(36,115,214,.15),transparent 32%),linear-gradient(135deg,#07192d,#0b2744);box-shadow:0 20px 50px rgba(2,18,38,.16)}
+.rf-scan-visual{position:relative;flex:0 0 126px;width:126px;height:126px;display:grid;place-items:center}
+.rf-scan-core{position:relative;z-index:3;width:62px;height:62px;border-radius:50%;display:grid;place-items:center;background:#fff;color:#0a2847;font-size:23px;font-weight:900;letter-spacing:-2px;box-shadow:0 0 0 8px rgba(255,255,255,.05),0 0 30px rgba(66,153,255,.28)}
+.rf-scan-core span{color:#18b67c}.rf-scan-orbit,.rf-scan-radar{position:absolute;border-radius:50%;inset:9px;border:1px solid rgba(100,177,255,.3)}
+.rf-scan-orbit-one{animation:rfScanOrbit 3.2s linear infinite;border-top-color:#55a7ff}.rf-scan-orbit-two{inset:23px;animation:rfScanOrbit 2.2s linear infinite reverse;border-right-color:#29d49a}
+.rf-scan-radar{inset:0;border-color:rgba(84,168,255,.12);animation:rfScanPulse 2s ease-out infinite}
+.rf-scan-progress-copy{min-width:0;flex:1}.rf-scan-progress-copy .rf-eyebrow{color:#71b7ff}.rf-scan-progress-copy>strong{display:block;margin-top:4px;color:#fff;font-size:22px}.rf-scan-progress-copy>p{margin:7px 0 18px;color:#b8cce0;max-width:720px}
+.rf-scan-stage-track{display:grid;grid-template-columns:repeat(6,1fr);gap:7px}.rf-scan-stage-track span{height:5px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden;position:relative}.rf-scan-stage-track span:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#3b9cff,#26d49b);transform:translateX(-105%);animation:rfScanStage 3.6s ease-in-out infinite}.rf-scan-stage-track span:nth-child(2):after{animation-delay:.35s}.rf-scan-stage-track span:nth-child(3):after{animation-delay:.7s}.rf-scan-stage-track span:nth-child(4):after{animation-delay:1.05s}.rf-scan-stage-track span:nth-child(5):after{animation-delay:1.4s}.rf-scan-stage-track span:nth-child(6):after{animation-delay:1.75s}
+.rf-scan-stage-labels{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;margin-top:7px;color:#91a9bf;font-size:11px;font-weight:700;text-align:center}
+@keyframes rfScanOrbit{to{transform:rotate(360deg)}}@keyframes rfScanPulse{0%{transform:scale(.72);opacity:.8}100%{transform:scale(1.05);opacity:0}}@keyframes rfScanStage{0%,15%{transform:translateX(-105%)}45%,75%{transform:translateX(0)}100%{transform:translateX(105%)}}
+@media(max-width:700px){.rf-scan-modern{flex-direction:column;text-align:center;padding:22px 16px;gap:14px}.rf-scan-visual{flex-basis:108px;width:108px;height:108px}.rf-scan-progress-copy>p{font-size:13px}.rf-scan-stage-labels{font-size:9px}}
+@media(prefers-reduced-motion:reduce){.rf-scan-orbit,.rf-scan-radar,.rf-scan-stage-track span:after{animation:none}.rf-scan-stage-track span:after{transform:none}}
