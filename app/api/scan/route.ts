@@ -543,6 +543,32 @@ export async function POST(request: Request) {
 
     // Central Scan Quality Gate: HTTP 200 can still be a holding/challenge page.
     // Reject it before SEO/GEO/Security scoring to prevent misleading reports.
+    // Motor v2.1 Recovery Pipeline: an HTTP 200 challenge is not immediately fatal.
+    // Try one bounded browser render, then run the same Quality Gate on the recovered
+    // document. This never bypasses CAPTCHA/WAF controls; failed recovery still stops safely.
+    const preliminaryQualityTitle = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
+    const preliminaryQualityText = stripHtml(html).slice(0, 12000);
+    const preliminaryInterstitial = /\b(hang tight|routing to checkout|checking your browser|just a moment|please wait|verify (?:you are|that you are) human|access denied|security check|attention required|radware page|incapsula incident|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test(preliminaryQualityTitle)
+      || /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform|radware|incapsula|imperva|akamai bot manager|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test(preliminaryQualityText);
+    if (preliminaryInterstitial && !javascriptExecuted) {
+      try {
+        const recovered = await renderPublicPage(finalUrl.toString(), 12000);
+        if (recovered.html && recovered.html.length >= 20) {
+          html = recovered.html;
+          javascriptExecuted = true;
+          renderElapsedMs = recovered.elapsedMs;
+          recovery.attempted = true;
+          recovery.browserRecovered = true;
+          recovery.limitedScope = true;
+          recovery.evidenceSource = "rendered_html";
+          recovery.reason = "QUALITY_GATE_BROWSER_RECOVERY";
+        }
+      } catch (qualityRecoveryError) {
+        recovery.attempted = true;
+        recovery.reason = qualityRecoveryError instanceof Error ? qualityRecoveryError.message.slice(0,120) : "QUALITY_GATE_RECOVERY_FAILED";
+      }
+    }
+
     const qualityTitle = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
     const qualityText = stripHtml(html).slice(0, 12000);
     const qualityWords = qualityText.split(/\s+/).filter(Boolean).length;
@@ -3163,7 +3189,7 @@ export async function POST(request: Request) {
         const pathSegments = path.split("/").filter(Boolean);
         const legalUtilitySegment = /^(?:privacy|privacy-policy|privacybeleid|privacyverklaring|datenschutz|datenschutzhinweise|datenschutzerklaerung|terms|terms-and-conditions|terms-of-use|voorwaarden|algemene-voorwaarden|cookie|cookies|cookie-policy|cookiebeleid|disclaimer|legal|impressum)$/i;
         if (pathSegments.some((segment) => legalUtilitySegment.test(segment))) return null;
-        if (/(?:^|\/)(?:myaccount|my-account|account|mijn-account|login|signin|sign-in|register|wishlist|verlanglijst|favorites?|favourites?|cart|basket|winkelwagen|checkout|afrekenen|kassa|search|zoeken)(?:\/|$)/i.test(path)) return null;
+        if (/(?:^|\/)(?:myaccount|my-account|account|mijn-account|login|account-login|signin|sign-in|register|wishlist|verlanglijst|favorites?|favourites?|favorieten|cart|basket|winkelwagen|checkout|afrekenen|kassa|search|zoeken)(?:\/|$)/i.test(path)) return null;
         if (candidate.search && /(?:^|[?&])(?:q|query|search|sort|filter|page|session|token)=/i.test(candidate.search)) return null;
         const evidence: string[] = [];
         const productPath = /\/(?:product|products|product-page|p|artikel|item|vehicle|voertuig|woning|property|properties|occasion|occasions)\//i.test(path);
@@ -3299,6 +3325,28 @@ export async function POST(request: Request) {
     const multiPageAudits = await Promise.all(uniqueMultiPagePages.map(auditMultiPage));
     const auditedMultiPages = multiPageAudits.filter((item)=>item.status==="audited");
     const confirmedRetailSamples = auditedMultiPages.filter((item)=>item.commerceEvidence?.confirmedRetailPage);
+    // Motor v2.1: representative pages are site-level evidence partners. They may
+    // confirm capabilities/identity, but they never turn an unverified page-specific
+    // defect into a failure.
+    const multiPageIdentityText = auditedMultiPages.map((item)=>`${item.url} ${item.title||""}`).join(" ").toLowerCase();
+    const multiPageCapabilities = {
+      hospitality: /\b(hotel|hotels|room|rooms|kamer|kamers|overnachten|booking|boeken|reserveren|restaurant)\b/i.test(multiPageIdentityText),
+      treatment: /\b(behandeling|behandelingen|treatment|specialisatie|tandarts|dentist|spoed|afspraak)\b/i.test(multiPageIdentityText),
+      vehicles: /\b(voorraad|occasion|occasions|auto|autos|vehicle|voertuig|proefrit|werkplaats)\b/i.test(multiPageIdentityText),
+      properties: /\b(woning|woningen|huis|huizen|property|properties|makelaar|aanbod|koop|huur)\b/i.test(multiPageIdentityText),
+      professional: /\b(expert|experts|expertise|practice|rechtsgebied|people|professionals?)\b/i.test(multiPageIdentityText),
+      productSample: auditedMultiPages.some((item)=>item.type==="product"),
+      categorySample: auditedMultiPages.some((item)=>item.type==="category"),
+    };
+    const addMasterCapability = (capability:string) => {
+      if (!masterEvidence.capabilities.includes(capability)) masterEvidence.capabilities.push(capability);
+    };
+    if (multiPageCapabilities.productSample) for (const c of ["products","pricing"]) addMasterCapability(c);
+    if (multiPageCapabilities.vehicles) addMasterCapability("vehicles");
+    if (multiPageCapabilities.properties) addMasterCapability("properties");
+    if (multiPageCapabilities.treatment) addMasterCapability("services");
+    if (multiPageCapabilities.hospitality) for (const c of ["rooms","booking"]) addMasterCapability(c);
+    if (auditedMultiPages.length && !masterEvidence.coverage.evidenceSources.includes("multi_page")) masterEvidence.coverage.evidenceSources.push("multi_page");
     const sitewideCommerceEvidence = {
       confirmed: confirmedRetailSamples.length > 0,
       sampleCount: confirmedRetailSamples.length,
@@ -3351,6 +3399,33 @@ export async function POST(request: Request) {
       technologyProfile: technologyProfile.isCommerce,
       multiPageEvidence: sitewideCommerceEvidence.confirmed,
     };
+    // Re-run only clearly contradicted/underspecified primary identity decisions
+    // with representative evidence. Secondary topics can never override a strong
+    // primary sector. This fixes recruitment text on hotel sites without hardcoding brands.
+    if (!finalCommerceDecision.confirmed && multiPageCapabilities.hospitality && (sectorProfile.key==="recruitment" || sectorProfile.key==="unknown")) {
+      sectorProfile.sector = "hospitality";
+      sectorProfile.key = "hospitality";
+      sectorProfile.label = "Hotels & hospitality";
+      sectorProfile.confidence = "high";
+      sectorProfile.confidenceScore = Math.max(88, sectorProfile.confidenceScore);
+      sectorProfile.evidence = [...sectorProfile.evidence, "Representatieve sitepagina bevestigt hotel/hospitality-identiteit"].slice(0,6);
+      sectorProfile.applicableModules = [...new Set([...sectorProfile.applicableModules.filter((m)=>m!=="recruitment"), "hospitality"])];
+    }
+    // Preserve broad engine families internally, but show a more useful specific
+    // label when the catalog and representative evidence independently agree.
+    if (!finalCommerceDecision.confirmed && catalogTop?.key==="dentist" && multiPageCapabilities.treatment) {
+      sectorProfile.key = "dentist";
+      sectorProfile.label = "Tandarts / Dentist";
+      sectorProfile.confidence = "high";
+      sectorProfile.confidenceScore = Math.max(92, sectorProfile.confidenceScore);
+    }
+    if (!finalCommerceDecision.confirmed && catalogTop?.key==="legal" && multiPageCapabilities.professional) {
+      sectorProfile.key = "legal";
+      sectorProfile.label = "Juridisch / Advocatuur";
+      sectorProfile.confidence = "high";
+      sectorProfile.confidenceScore = Math.max(90, sectorProfile.confidenceScore);
+    }
+
     if (finalCommerceDecision.confirmed && sectorProfile.key==="unknown") {
       sectorProfile.key = "ecommerce";
       sectorProfile.label = "Webshop / e-commerce";
@@ -3484,7 +3559,7 @@ export async function POST(request: Request) {
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             language: scanLanguage,
-            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, summary: scanSummary, rendering, recovery, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, security: securityEngine, multiPage,
+            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, summary: scanSummary, rendering, recovery, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, security: securityEngine, multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
