@@ -13,7 +13,7 @@ import { applyEvidenceBasedScoreCap, SCORE_MODEL_VERSION, scoreApplicableChecks,
 import { normalizePlan, planLimits } from "@/lib/plans";
 import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
 import { renderPublicPage } from "@/lib/headless-render";
-import { buildScanEvidence } from "@/lib/scan-evidence";
+import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
@@ -1366,6 +1366,11 @@ export async function POST(request: Request) {
       return {sector:item.sector,label:item.label,hits:suppressedHits,modules:item.modules,priority:sectorPriority[item.sector] || 0};
     }).filter(item=>item.hits>0).sort((a,b)=>b.hits-a.hits || b.priority-a.priority);
     const strongSectorCandidate = sectorCandidates[0] && sectorCandidates[0].hits>=2 && (!sectorCandidates[1] || sectorCandidates[0].hits>sectorCandidates[1].hits || (sectorCandidates[0].hits===sectorCandidates[1].hits && sectorCandidates[0].priority>sectorCandidates[1].priority));
+    const evidencePartners = collectEvidencePartners(scanEvidence);
+    const partnerCapabilities = [...new Set(evidencePartners.flatMap(partner=>partner.capabilities))];
+    const partnerSources = [...new Set(evidencePartners.flatMap(partner=>partner.sources))];
+    const confirmedPartners = evidencePartners.filter(partner=>partner.status==="confirmed").length;
+
     const evidenceCommerceStrength = [
       scanEvidence.commerce.cart.value,
       scanEvidence.commerce.addToCart.value,
@@ -1459,7 +1464,14 @@ export async function POST(request: Request) {
     const masterEvidence = {
       version:"1.0",
       primarySector:{key:sectorProfile.key,label:sectorProfile.label,confidence:sectorProfile.confidence,confidenceScore:sectorProfile.confidenceScore},
-      capabilities:evidenceCapabilities,
+      partners:evidencePartners,
+      partnerSummary:{
+        total:evidencePartners.length,
+        confirmed:confirmedPartners,
+        partial:evidencePartners.filter(partner=>partner.status==="partial").length,
+        unconfirmed:evidencePartners.filter(partner=>partner.status==="unconfirmed").length,
+      },
+      capabilities:[...new Set([...evidenceCapabilities,...partnerCapabilities])],
       activeModules:sectorProfile.applicableModules,
       secondarySectorCandidates:evidenceSectorCandidates
         .filter(candidate=>candidate.key!==sectorProfile.key)
@@ -1469,10 +1481,12 @@ export async function POST(request: Request) {
       coverage:{
         confirmedCapabilities:evidenceCapabilities.length,
         evidenceSources:[...new Set([
+          ...partnerSources,
           ...scanEvidence.commerce.products.sources,
           ...scanEvidence.organization.contact.sources,
           ...scanEvidence.organization.address.sources,
         ])],
+        partnerCoverage: evidencePartners.length ? Math.round(((confirmedPartners + evidencePartners.filter(partner=>partner.status==="partial").length * 0.5) / evidencePartners.length) * 100) : 0,
       },
       // Cross-check with technologyProfile is added later, after that profile exists.
       conflicts: [] as string[],
