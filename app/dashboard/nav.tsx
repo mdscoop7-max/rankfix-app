@@ -17,7 +17,7 @@ const flagCodes:Record<Locale,string>={nl:"nl",en:"gb",de:"de",fr:"fr",it:"it",e
 const languageOrder:Locale[]=["nl","en","de","fr","it","es"];
 const desktop=["/dashboard","/dashboard#websites","/dashboard/scan","/dashboard/github","/dashboard/history","/dashboard/help","/dashboard/more"];
 const mobileIndexes=[0,1,2,3,6];
-const paths=["M3 10l9-7 9 7v10H3z M9 20v-7h6v7","M12 3v18 M3 12h18","M14.7 6.3a4 4 0 0 0-5 5L4 17v3h3l5.7-5.7a4 4 0 0 0 5-5l-2.3 2.3-3-3L14.7 6.3z","M4 6h16 M4 12h16 M4 18h10","M12 3v3 M12 18v3 M3 12h3 M18 12h3 M5.6 5.6l2.1 2.1 M16.3 16.3l2.1 2.1 M18.4 5.6l-2.1 2.1 M7.7 16.3l-2.1 2.1 M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"];
+const paths=["M3 10l9-7 9 7v10H3z M9 20v-7h6v7","M4 5h16v14H4z M8 9h8 M8 13h8 M8 17h5","M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M16 16l5 5","M14.7 6.3a4 4 0 0 0-5 5L4 17v3h3l5.7-5.7a4 4 0 0 0 5-5l-2.3 2.3-3-3L14.7 6.3z","M4 6h16 M4 12h16 M4 18h10","M12 18h.01 M9.5 9a2.5 2.5 0 1 1 3.7 2.2c-.8.5-1.2 1-1.2 2","M4 4h6v6H4z M14 4h6v6h-6z M4 14h6v6H4z M14 14h6v6h-6z"];
 
 function activeIndex(pathname:string){
  if(pathname==="/dashboard") return 0;
