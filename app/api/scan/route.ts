@@ -1414,6 +1414,66 @@ export async function POST(request: Request) {
           }
         : {...legacyProfile,key:legacyProfile.sector};
 
+    const evidenceCapabilities = [
+      scanEvidence.commerce.products.value && "products",
+      scanEvidence.commerce.prices.value.count > 0 && "pricing",
+      scanEvidence.commerce.cart.value && "cart",
+      scanEvidence.commerce.addToCart.value && "add_to_cart",
+      scanEvidence.commerce.checkout.value && "checkout",
+      scanEvidence.appointments.appointment.value && "appointment",
+      scanEvidence.appointments.reservation.value && "reservation",
+      scanEvidence.appointments.booking.value && "booking",
+      scanEvidence.appointments.quoteRequest.value && "quote_request",
+      scanEvidence.inventory.vehicles.value && "vehicles",
+      scanEvidence.inventory.properties.value && "properties",
+      scanEvidence.inventory.jobs.value && "jobs",
+      scanEvidence.inventory.rooms.value && "rooms",
+      scanEvidence.inventory.menu.value && "menu",
+      scanEvidence.organization.contact.value && "contact",
+      scanEvidence.organization.address.value && "local",
+      scanEvidence.organization.openingHours.value && "opening_hours",
+      scanEvidence.organization.reviews.value && "reviews",
+    ].filter((value): value is string => Boolean(value));
+    const capabilityModules = [
+      evidenceCapabilities.some(x=>["appointment","reservation","booking","quote_request"].includes(x)) && "lead_conversion",
+      evidenceCapabilities.includes("local") && "local",
+      evidenceCapabilities.includes("vehicles") && "automotive",
+      evidenceCapabilities.includes("properties") && "real_estate",
+      evidenceCapabilities.includes("jobs") && "recruitment",
+      (evidenceCapabilities.includes("rooms") || evidenceCapabilities.includes("menu")) && "hospitality",
+      evidenceCommerceConfirmed && "ecommerce",
+      evidenceCommerceConfirmed && "product",
+      evidenceCommerceConfirmed && "pricing_currency",
+      evidenceCommerceConfirmed && "merchant",
+      evidenceCommerceConfirmed && evidenceCapabilities.includes("checkout") && "checkout",
+    ].filter((value): value is string => Boolean(value));
+    sectorProfile.applicableModules = [...new Set([...sectorProfile.applicableModules, ...capabilityModules])];
+
+    const masterEvidence = {
+      version:"1.0",
+      primarySector:{key:sectorProfile.key,label:sectorProfile.label,confidence:sectorProfile.confidence,confidenceScore:sectorProfile.confidenceScore},
+      capabilities:evidenceCapabilities,
+      activeModules:sectorProfile.applicableModules,
+      secondarySectorCandidates:evidenceSectorCandidates
+        .filter(candidate=>candidate.key!==sectorProfile.key)
+        .slice(0,4)
+        .map(candidate=>({key:candidate.key,label:candidate.label,score:candidate.score,evidence:candidate.evidence})),
+      commerce:{confirmed:evidenceCommerceConfirmed,strength:evidenceCommerceStrength},
+      coverage:{
+        confirmedCapabilities:evidenceCapabilities.length,
+        evidenceSources:[...new Set([
+          ...scanEvidence.commerce.products.sources,
+          ...scanEvidence.organization.contact.sources,
+          ...scanEvidence.organization.address.sources,
+        ])],
+      },
+      conflicts: technologyProfile.siteType==="Webshop" && !evidenceCommerceConfirmed
+        ? ["Technologieprofiel ziet commerce-signalen, maar Master Evidence heeft nog onvoldoende onafhankelijke commerce-bewijzen."]
+        : [],
+      policy:"Evidence-first: ontbrekend bewijs blijft onbevestigd en wordt niet automatisch als defect beoordeeld.",
+    };
+    evidenceLayer.master = masterEvidence;
+
     const seoChecks: Check[] = [];
     const geoChecks: Check[] = [];
 
