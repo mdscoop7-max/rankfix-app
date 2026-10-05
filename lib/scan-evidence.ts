@@ -161,6 +161,91 @@ export function buildScanEvidence(input: {
   };
 }
 
+export type EvidencePartnerResult = {
+  partner: "core" | "commerce" | "business" | "local_booking";
+  status: "confirmed" | "partial" | "unconfirmed";
+  confidence: EvidenceConfidence;
+  capabilities: string[];
+  sources: EvidenceSource[];
+  evidence: string[];
+};
+
+export function collectEvidencePartners(evidence: ScanEvidence): EvidencePartnerResult[] {
+  const sourceSet = (...facts: EvidenceFact<unknown>[]) => uniq(facts.flatMap(item => item.sources));
+  const evidenceSet = (...facts: EvidenceFact<unknown>[]) => uniq(facts.flatMap(item => item.evidence)).slice(0, 12);
+  const booleanFacts = (facts: Array<[string, EvidenceFact<boolean>]>) =>
+    facts.filter(([, item]) => item.value).map(([name]) => name);
+
+  const coreCapabilities = [
+    evidence.page.title && "title",
+    evidence.page.language && "language",
+    evidence.schema.organization && "organization_schema",
+    evidence.schema.website && "website_schema",
+  ].filter((value): value is string => Boolean(value));
+
+  const commerceCapabilities = [
+    ...booleanFacts([
+      ["cart", evidence.commerce.cart],
+      ["add_to_cart", evidence.commerce.addToCart],
+      ["checkout", evidence.commerce.checkout],
+      ["products", evidence.commerce.products],
+      ["product_page", evidence.commerce.productPage],
+    ]),
+    evidence.commerce.prices.value.count > 0 && "pricing",
+  ].filter((value): value is string => Boolean(value));
+
+  const businessCapabilities = [
+    ...booleanFacts([
+      ["vehicles", evidence.inventory.vehicles],
+      ["properties", evidence.inventory.properties],
+      ["jobs", evidence.inventory.jobs],
+      ["rooms", evidence.inventory.rooms],
+      ["menu", evidence.inventory.menu],
+    ]),
+  ];
+
+  const localBookingCapabilities = [
+    ...booleanFacts([
+      ["appointment", evidence.appointments.appointment],
+      ["reservation", evidence.appointments.reservation],
+      ["booking", evidence.appointments.booking],
+      ["quote_request", evidence.appointments.quoteRequest],
+      ["contact", evidence.organization.contact],
+      ["local", evidence.organization.address],
+      ["opening_hours", evidence.organization.openingHours],
+      ["reviews", evidence.organization.reviews],
+    ]),
+  ];
+
+  const result = (
+    partner: EvidencePartnerResult["partner"],
+    capabilities: string[],
+    sources: EvidenceSource[],
+    details: string[],
+    strongAt: number,
+  ): EvidencePartnerResult => ({
+    partner,
+    status: capabilities.length >= strongAt ? "confirmed" : capabilities.length ? "partial" : "unconfirmed",
+    confidence: capabilities.length >= strongAt ? "high" : capabilities.length ? "medium" : "low",
+    capabilities: uniq(capabilities),
+    sources: uniq(sources),
+    evidence: uniq(details).slice(0, 12),
+  });
+
+  return [
+    result("core", coreCapabilities, ["url", evidence.page.rendered ? "rendered_html" : "raw_html"], evidence.schema.types.map(type => `Schema: ${type}`), 2),
+    result("commerce", commerceCapabilities,
+      sourceSet(evidence.commerce.cart, evidence.commerce.addToCart, evidence.commerce.checkout, evidence.commerce.products, evidence.commerce.productPage, evidence.commerce.prices),
+      evidenceSet(evidence.commerce.cart, evidence.commerce.addToCart, evidence.commerce.checkout, evidence.commerce.products, evidence.commerce.productPage, evidence.commerce.prices), 3),
+    result("business", businessCapabilities,
+      sourceSet(evidence.inventory.vehicles, evidence.inventory.properties, evidence.inventory.jobs, evidence.inventory.rooms, evidence.inventory.menu),
+      evidenceSet(evidence.inventory.vehicles, evidence.inventory.properties, evidence.inventory.jobs, evidence.inventory.rooms, evidence.inventory.menu), 1),
+    result("local_booking", localBookingCapabilities,
+      sourceSet(evidence.appointments.appointment, evidence.appointments.reservation, evidence.appointments.booking, evidence.appointments.quoteRequest, evidence.organization.contact, evidence.organization.address, evidence.organization.openingHours, evidence.organization.reviews),
+      evidenceSet(evidence.appointments.appointment, evidence.appointments.reservation, evidence.appointments.booking, evidence.appointments.quoteRequest, evidence.organization.contact, evidence.organization.address, evidence.organization.openingHours, evidence.organization.reviews), 2),
+  ];
+}
+
 export function mergeScanEvidence(base: ScanEvidence, additional: ScanEvidence): ScanEvidence {
   const mergeFact = <T,>(a: EvidenceFact<T>, b: EvidenceFact<T>, choose: (x: T, y: T) => T): EvidenceFact<T> => ({
     value: choose(a.value, b.value),
