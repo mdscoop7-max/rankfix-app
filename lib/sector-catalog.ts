@@ -110,3 +110,35 @@ export function rankSectorCandidates(evidence: ScanEvidence, searchableText: str
     ],expectedCapabilities:def.expectedCapabilities,optionalCapabilities:def.optionalCapabilities||[],forbiddenAssumptions:def.forbiddenAssumptions||[]};
   }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
 }
+
+
+export const CAPABILITY_MODULE_MAP: Record<string,string[]> = {
+  products:["product","ecommerce"], pricing:["pricing_currency"], cart:["ecommerce"], add_to_cart:["ecommerce"],
+  checkout:["checkout","ecommerce"], merchant:["merchant"], consumer_rights:["eu_consumer"],
+  vehicles:["automotive"], vehicle_details:["automotive"], test_drive:["automotive","lead_conversion"],
+  properties:["real_estate"], property_details:["real_estate"], viewing_request:["real_estate","lead_conversion"],
+  jobs:["recruitment"], application:["recruitment","lead_conversion"],
+  rooms:["hospitality"], menu:["hospitality"], availability:["booking"],
+  appointment:["lead_conversion"], appointments:["lead_conversion"], reservation:["lead_conversion"],
+  booking:["booking","lead_conversion"], quote_request:["lead_conversion"],
+  contact:["business_identity"], local:["local"], opening_hours:["local"], reviews:["quality_trust"],
+  services:["business_identity"], treatments:["business_identity"], trust:["quality_trust"],
+  accessibility:["accessibility"], listings:["marketplace"], seller_identity:["marketplace"],
+};
+
+export function modulesForCapabilities(capabilities: Iterable<string>) {
+  const modules = new Set<string>();
+  for (const capability of capabilities) {
+    for (const module of CAPABILITY_MODULE_MAP[capability] || []) modules.add(module);
+  }
+  return [...modules];
+}
+
+export function controlCapabilitiesForSector(key: SectorKey) {
+  const sector = SECTOR_CATALOG.find((item)=>item.key===key);
+  return sector ? {
+    expected:[...sector.expectedCapabilities],
+    optional:[...(sector.optionalCapabilities||[])],
+    forbiddenAssumptions:[...(sector.forbiddenAssumptions||[])],
+  } : {expected:[],optional:[],forbiddenAssumptions:[]};
+}
