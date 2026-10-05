@@ -491,7 +491,7 @@ export async function POST(request: Request) {
     };
     let recoveredHtml: string | null = null;
     let recoveredRenderElapsedMs: number | null = null;
-    if (!response.ok && (response.status === 403 || response.status === 405)) {
+    if (!response.ok && (response.status === 202 || response.status === 403 || response.status === 405)) {
       recovery.attempted = true;
       try {
         const recovered = await renderPublicPage(finalUrl.toString(), 12000);
@@ -549,8 +549,8 @@ export async function POST(request: Request) {
     const qualityDescription =
       firstMatch(html, /<meta[^>]+(?:name|property)\s*=\s*["']description["'][^>]+content\s*=\s*["']([\s\S]*?)["'][^>]*>/i) ||
       firstMatch(html, /<meta[^>]+content\s*=\s*["']([\s\S]*?)["'][^>]+(?:name|property)\s*=\s*["']description["'][^>]*>/i);
-    const strongInterstitialTitle = /\b(hang tight|routing to checkout|checking your browser|just a moment|please wait|verify (?:you are|that you are) human|access denied|security check|attention required|radware page|incapsula incident|request unsuccessful)\b/i.test(qualityTitle);
-    const strongInterstitialBody = /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform|radware|incapsula|imperva|akamai bot manager|request unsuccessful)\b/i.test(qualityText);
+    const strongInterstitialTitle = /\b(hang tight|routing to checkout|checking your browser|just a moment|please wait|verify (?:you are|that you are) human|access denied|security check|attention required|radware page|incapsula incident|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test(qualityTitle);
+    const strongInterstitialBody = /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform|radware|incapsula|imperva|akamai bot manager|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test(qualityText);
     // A 2xx status other than 200 can represent asynchronous routing rather than the
     // requested indexable document. Only stop when the response is also materially
     // empty, so legitimate 202 endpoints are not rejected on status alone.
@@ -1426,7 +1426,7 @@ export async function POST(request: Request) {
     const catalogLegacyMap: Partial<Record<string,SectorKey>> = {
       automotive:"automotive", real_estate:"real_estate", recruitment:"recruitment",
       government:"government", news_media:"news_media", saas_b2b:"saas_b2b",
-      home_services:"home_services", professional_services:"professional_services",
+      home_services:"home_services", professional_services:"professional_services", legal:"professional_services",
       restaurant:"hospitality", cafe_bar:"hospitality", hotel:"hospitality",
       dentist:"health_wellness", healthcare:"health_wellness", medical_clinic:"health_wellness",
       beauty_salon:"beauty", hair_salon:"beauty",
@@ -1466,7 +1466,7 @@ export async function POST(request: Request) {
       scanEvidence.appointments.quoteRequest.value && "quote_request",
       scanEvidence.inventory.vehicles.value && "vehicles",
       scanEvidence.inventory.properties.value && "properties",
-      scanEvidence.inventory.jobs.value && "jobs",
+      (scanEvidence.inventory.jobs.value && scanEvidence.inventory.jobs.confidence !== "low") && "jobs",
       scanEvidence.inventory.rooms.value && "rooms",
       scanEvidence.inventory.menu.value && "menu",
       scanEvidence.organization.contact.value && "contact",
@@ -1502,7 +1502,7 @@ export async function POST(request: Request) {
         evidenceCommerceConfirmed && "commerce",
         evidenceCapabilities.includes("vehicles") && "automotive_inventory",
         evidenceCapabilities.includes("properties") && "real_estate_inventory",
-        evidenceCapabilities.includes("jobs") && "recruitment",
+        (sectorProfile.key === "recruitment" && evidenceCapabilities.includes("jobs")) && "recruitment",
         evidenceCapabilities.includes("rooms") && "hospitality_rooms",
         evidenceCapabilities.includes("menu") && "hospitality_food",
         evidenceCapabilities.includes("appointment") && "appointments",
@@ -3146,8 +3146,8 @@ export async function POST(request: Request) {
         if (/(?:^|\/)(?:myaccount|my-account|account|mijn-account|login|signin|sign-in|register|wishlist|verlanglijst|favorites?|favourites?|cart|basket|winkelwagen|checkout|afrekenen|kassa|search|zoeken)(?:\/|$)/i.test(path)) return null;
         if (candidate.search && /(?:^|[?&])(?:q|query|search|sort|filter|page|session|token)=/i.test(candidate.search)) return null;
         const evidence: string[] = [];
-        const productPath = /\/(?:product|products|product-page|p)\//i.test(path);
-        const categoryPath = /\/(?:category|categories|categorie|categorieen|collection|collections|shop|store|winkel|catalog|catalogue)(?:\/|$)/i.test(path);
+        const productPath = /\/(?:product|products|product-page|p|artikel|item|vehicle|voertuig|woning|property|properties|occasion|occasions)\//i.test(path);
+        const categoryPath = /\/(?:category|categories|categorie|categorieen|cat|collection|collections|shop|store|winkel|catalog|catalogue|outlet|sale|aanbod|voorraad|huizen|woningen|cars|autos)(?:\/|$)/i.test(path);
         if (productPath) evidence.push("product-like path");
         if (categoryPath) evidence.push("category-like path");
         return { url: candidate.toString(), type: productPath ? "product" : categoryPath ? "category" : "other", evidence };
@@ -3161,8 +3161,21 @@ export async function POST(request: Request) {
       const path = new URL(item.url).pathname.toLowerCase();
       if (/(?:^|\/)(?:privacy|privacy-policy|privacybeleid|privacyverklaring|datenschutz|datenschutzhinweise|datenschutzerklaerung|terms|terms-and-conditions|terms-of-use|voorwaarden|algemene-voorwaarden|cookie|cookies|cookie-policy|cookiebeleid|disclaimer|legal|impressum)(?:\/|$)/i.test(path)) return -100;
       if (/(?:^|\/)(?:customer-service|customerservice|klantenservice|support|help|faq|reviews?|beoordelingen|over-ons|about-us|contact|career|careers|jobs|vacatures|werken-bij)(?:\/|$)/i.test(path)) return -20;
+      if (/^\/(?:[a-z]{2}(?:-[a-z]{2})?)\/?$/i.test(path)) return -10;
       if (item.type === "product") return 40;
       if (item.type === "category") return 30;
+      const sectorTarget = sectorProfile.key === "hospitality"
+        ? /(?:kamer|room|hotel|booking|boeken|reserve)/i.test(path)
+        : sectorProfile.key === "health_wellness"
+          ? /(?:behandel|treatment|dienst|service|afspraak|appointment|spoed)/i.test(path)
+          : sectorProfile.key === "real_estate"
+            ? /(?:woning|huis|property|aanbod|makelaar|koop|huur)/i.test(path)
+            : sectorProfile.key === "automotive"
+              ? /(?:occasion|voorraad|auto|vehicle|proefrit|werkplaats|vestiging)/i.test(path)
+              : sectorProfile.key === "professional_services"
+                ? /(?:expert|expertise|practice|rechtsgebied|dienst|service|people|professional)/i.test(path)
+                : null;
+      if (sectorTarget) return 28;
       return 10;
     };
     const rankedMultiPage = discoveredMultiPage.filter((item) => multiPageRelevance(item) > -100).sort((a,b) => multiPageRelevance(b) - multiPageRelevance(a));
@@ -3205,7 +3218,7 @@ export async function POST(request: Request) {
         const pageQualityDescription = pageDescriptionContent ? stripHtml(pageDescriptionContent[2]).trim() : "";
         const pageQualityText = stripHtml(pageHtml).slice(0, 12000);
         const pageQualityWords = pageQualityText.split(/\s+/).filter(Boolean).length;
-        const pageChallenge = /\b(radware page|checking your browser|just a moment|verify (?:you are|that you are) human|request unsuccessful|incapsula|imperva|challenge-platform)\b/i.test([pageQualityTitle,pageQualityText].join(" "));
+        const pageChallenge = /\b(radware page|checking your browser|just a moment|verify (?:you are|that you are) human|request unsuccessful|incapsula|imperva|challenge-platform|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test([pageQualityTitle,pageQualityText].join(" "));
         if (pageChallenge) {
           return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, title:pageQualityTitle||null, description:pageQualityDescription||null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"quality",status:"UNABLE_TO_CONFIRM",details:"HTTP-response lijkt een bot-/securitychallenge in plaats van de bedoelde pagina; deze sample wordt niet gescoord."}] };
         }
@@ -3339,7 +3352,7 @@ export async function POST(request: Request) {
     masterEvidence.coverage.confirmedCapabilities = masterEvidence.capabilities.length;
     const websiteType = finalCommerceDecision.confirmed
       ? "Webshop"
-      : masterEvidence.businessModels.includes("recruitment")
+      : sectorProfile.key === "recruitment" && masterEvidence.businessModels.includes("recruitment")
         ? "Recruitmentwebsite"
         : masterEvidence.businessModels.some(model => model === "appointments" || model === "reservations" || model === "bookings")
           ? "Boekings-/afsprakenwebsite"
