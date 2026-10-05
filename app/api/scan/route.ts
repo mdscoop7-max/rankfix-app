@@ -3596,11 +3596,17 @@ export async function POST(request: Request) {
       sectorProfile.confidenceScore = Math.max(90, sectorProfile.confidenceScore);
     }
 
-    if (finalCommerceDecision.confirmed && sectorProfile.key==="unknown") {
+    // Commerce is a primary site identity. Once Master Evidence confirms a webshop,
+    // incidental content-sector words must not leave the report labelled as an
+    // unrelated sector. Preserve the previous candidate as diagnostic evidence.
+    if (finalCommerceDecision.confirmed && sectorProfile.key!=="ecommerce") {
+      const previousSector = sectorProfile.label;
+      sectorProfile.sector = "ecommerce";
       sectorProfile.key = "ecommerce";
       sectorProfile.label = "Webshop / e-commerce";
-      sectorProfile.confidence = sitewideCommerceEvidence.confirmed ? "high" : sectorProfile.confidence;
-      sectorProfile.confidenceScore = Math.max(sectorProfile.confidenceScore, sitewideCommerceEvidence.confirmed ? 90 : 82);
+      sectorProfile.confidence = "high";
+      sectorProfile.confidenceScore = Math.max(sectorProfile.confidenceScore, sitewideCommerceEvidence.confirmed ? 92 : 88);
+      sectorProfile.evidence = [...sectorProfile.evidence, `Master Evidence bevestigt commerce; eerdere sectorhint: ${previousSector}`].slice(0,6);
     }
 
     // Final Master reconciliation: late technology/multi-page evidence may improve
@@ -3647,6 +3653,16 @@ export async function POST(request: Request) {
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:4,
       discoveredInternalUrls:discoveredMultiPage.length, selectedPages:uniqueMultiPagePages, pageAudits:multiPageAudits,
       siteSampleScore: auditedMultiPages.length ? Math.round(auditedMultiPages.reduce((sum,item)=>sum+(item.score||0),0)/auditedMultiPages.length) : null,
+      siteSampleCoverage: {
+        selected: multiPageAudits.length,
+        checked: auditedMultiPages.length,
+        unableToConfirm: multiPageAudits.length-auditedMultiPages.length,
+        coveragePercent: multiPageAudits.length ? Math.round((auditedMultiPages.length/multiPageAudits.length)*100) : 0,
+        provisional: multiPageAudits.length > 0 && auditedMultiPages.length < multiPageAudits.length,
+      },
+      siteSampleLabel: auditedMultiPages.length
+        ? (auditedMultiPages.length < multiPageAudits.length ? "Voorlopige site-samplescore" : "Site-samplescore")
+        : "Site-sample niet te bevestigen",
       sitewideCommerceEvidence,
       capabilities: {
         hospitality: multiPageCapabilities.hospitality,
