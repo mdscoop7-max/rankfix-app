@@ -707,3 +707,15 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
 }
 /* Better keyboard and low-vision focus visibility across dashboard. */
 .rf-page a:focus-visible,.rf-page button:focus-visible,.rf-page input:focus-visible,.rf-page select:focus-visible,.rf-page textarea:focus-visible{outline:3px solid #2784ff!important;outline-offset:3px!important}
+
+/* RankFix digital icon system — crisp SVGs, subtle tech depth, one language across menus. */
+.rf-nav-icon svg,.rf-more-icon svg{display:block;vector-effect:non-scaling-stroke}
+.rf-more-icon{position:relative;overflow:hidden}
+.rf-more-icon:after{content:"";position:absolute;inset:1px;border-radius:inherit;background:linear-gradient(145deg,rgba(255,255,255,.18),transparent 52%);pointer-events:none}
+.rf-more-icon svg{position:relative;z-index:1}
+@media(min-width:651px){
+.rf-desktop-main a{position:relative;padding-left:14px!important}
+.rf-desktop-main a:after{content:"";position:absolute;left:50%;bottom:5px;width:16px;height:2px;border-radius:4px;background:transparent;transform:translateX(-50%);transition:.18s ease}
+.rf-desktop-main a[aria-current="page"]:after{background:rgba(255,255,255,.72)}
+.rf-more-icon{box-shadow:inset 0 0 0 1px rgba(255,255,255,.22),0 4px 10px rgba(31,50,75,.09)}
+}
