@@ -3742,9 +3742,26 @@ export async function POST(request: Request) {
               openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null }, imageAltCandidates,
               productOptimizer: isProductPage
                 ? { eligible: productOptimizerSourceCount >= 3, sourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page" }
-                : multiPageCapabilities.productSample
-                  ? { eligible: false, sourceCount: 0, product: null, provenance: "representative_product_sample", status: "sample_found_requires_product_evidence_extraction", sampleUrl: auditedMultiPages.find((item)=>item.type==="product")?.url || null }
-                  : { eligible: false, sourceCount: 0, product: null, provenance: "no_product_sample" },
+                : (() => {
+                    const sample = auditedMultiPages.find((item)=>item.type==="product");
+                    const product = sample?.commerceEvidence?.product || null;
+                    const sourceCount = product ? [
+                      Boolean(product.name), Boolean(product.image), Boolean(product.sku),
+                      Boolean(product.price && product.currency), Boolean(product.availability),
+                    ].filter(Boolean).length : 0;
+                    if (sample) return {
+                      eligible: sourceCount >= 3,
+                      sourceCount,
+                      product,
+                      provenance: "representative_product_sample",
+                      status: sourceCount >= 3 ? "sample_evidence_extracted" : "sample_found_insufficient_product_evidence",
+                      sampleUrl: sample.url,
+                    };
+                    const blockedSample = multiPageAudits.find((item)=>item.type==="product" && item.status==="unable_to_confirm");
+                    return blockedSample
+                      ? { eligible:false, sourceCount:0, product:null, provenance:"representative_product_sample", status:"product_sample_found_but_unverifiable", sampleUrl:blockedSample.url }
+                      : { eligible:false, sourceCount:0, product:null, provenance:"no_product_sample" };
+                  })(),
               pricingCurrency: pricingCurrencyEvidence,
               euConsumerSignals: consumerLawSignals,
               checkoutFunnel: checkoutFunnelEvidence,
@@ -4001,9 +4018,26 @@ export async function POST(request: Request) {
         imageAltCandidates,
         productOptimizer: isProductPage
                 ? { eligible: productOptimizerSourceCount >= 3, sourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page" }
-                : multiPageCapabilities.productSample
-                  ? { eligible: false, sourceCount: 0, product: null, provenance: "representative_product_sample", status: "sample_found_requires_product_evidence_extraction", sampleUrl: auditedMultiPages.find((item)=>item.type==="product")?.url || null }
-                  : { eligible: false, sourceCount: 0, product: null, provenance: "no_product_sample" },
+                : (() => {
+                    const sample = auditedMultiPages.find((item)=>item.type==="product");
+                    const product = sample?.commerceEvidence?.product || null;
+                    const sourceCount = product ? [
+                      Boolean(product.name), Boolean(product.image), Boolean(product.sku),
+                      Boolean(product.price && product.currency), Boolean(product.availability),
+                    ].filter(Boolean).length : 0;
+                    if (sample) return {
+                      eligible: sourceCount >= 3,
+                      sourceCount,
+                      product,
+                      provenance: "representative_product_sample",
+                      status: sourceCount >= 3 ? "sample_evidence_extracted" : "sample_found_insufficient_product_evidence",
+                      sampleUrl: sample.url,
+                    };
+                    const blockedSample = multiPageAudits.find((item)=>item.type==="product" && item.status==="unable_to_confirm");
+                    return blockedSample
+                      ? { eligible:false, sourceCount:0, product:null, provenance:"representative_product_sample", status:"product_sample_found_but_unverifiable", sampleUrl:blockedSample.url }
+                      : { eligible:false, sourceCount:0, product:null, provenance:"no_product_sample" };
+                  })(),
         pricingCurrency: pricingCurrencyEvidence,
         euConsumerSignals: consumerLawSignals,
         checkoutFunnel: checkoutFunnelEvidence,
