@@ -664,7 +664,9 @@ export async function POST(request: Request) {
     const ogDescription = getMeta("og:description");
     const ogImage = getMeta("og:image");
     const ogUrl = getMeta("og:url");
-    const twitterCard = getMeta("twitter:card");
+    const twitterCardRaw = getMeta("twitter:card").trim();
+    const twitterCard = /^(summary|summary_large_image|app|player)$/i.test(twitterCardRaw) ? twitterCardRaw : "";
+    const twitterCardInvalidValue = Boolean(twitterCardRaw && !twitterCard);
     const isAbsoluteHttpUrl = (value: string) => {
       if (!value) return false;
       try {
@@ -1646,7 +1648,7 @@ export async function POST(request: Request) {
     const cookieHttpOnly = new RegExp("(?:^|[,;]\\\\s*)httponly(?:;|,|$)", "i").test(setCookieHeaders);
     const cookieSameSite = new RegExp("samesite=(?:lax|strict|none)", "i").test(setCookieHeaders);
     securityChecks.push(!cookiePresent
-      ? securityCheck("not_applicable","security_cookie_flags","Cookie-beveiliging","De hoofdresponse zette geen cookie die RankFix betrouwbaar kon beoordelen.","Geen actie nodig voor deze response; controleer sessiecookies in ingelogde flows apart.",0,5)
+      ? securityCheck("unable_to_confirm","security_cookie_flags","Cookie-beveiliging","De hoofdresponse bevatte geen zichtbare Set-Cookie-header. RankFix kan daardoor cookieflags voor browser-, consent- of ingelogde flows niet bevestigen.","Controleer sessie-, consent- en authenticatiecookies in de relevante flows; ken zonder cookie-evidence geen veiligheidspunten toe.",0,5)
       : cookieSecure && cookieHttpOnly && cookieSameSite
         ? securityCheck("pass","security_cookie_flags","Cookie-beveiliging","De zichtbare Set-Cookie-response bevat Secure, HttpOnly en SameSite-signalen.","Houd gevoelige sessiecookies voorzien van passende beveiligingsflags.",5,5)
         : securityCheck("warning","security_cookie_flags","Cookie-beveiliging",`Cookie-flags zijn niet volledig bevestigd (Secure=${cookieSecure}, HttpOnly=${cookieHttpOnly}, SameSite=${cookieSameSite}). Dit bewijst niet dat alle cookies onveilig zijn.`,"Controleer vooral sessie- en authenticatiecookies op Secure, HttpOnly en een passende SameSite-instelling.",Math.max(1,[cookieSecure,cookieHttpOnly,cookieSameSite].filter(Boolean).length),5));
@@ -2175,7 +2177,7 @@ export async function POST(request: Request) {
     // Require a product page or an explicit percentage/price-reduction expression before
     // raising the EU reference-price signal. This is local parsing only: no extra requests.
     const explicitDiscountClaimMatches = discountClaimMatches.filter((value) =>
-      /\d{1,2}\s?%|[-−]\s?\d{1,2}\s?%|\b(?:korting|discount|rabatt|remise|sconto|descuento)\b/i.test(value)
+      /\d{1,2}\s?%|[-−]\s?\d{1,2}\s?%|\b\d{1,2}\s?%\s*(?:korting|off|discount|rabatt|remise|sconto|descuento)\b/i.test(value)
     );
     const hasDiscountClaim = isProductPage
       ? discountClaimMatches.length > 0
