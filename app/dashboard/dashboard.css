@@ -481,3 +481,8 @@
 button,a,select,input{transition:background-color .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease,transform .16s ease}
 button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid rgba(56,189,248,.55);outline-offset:2px}
 @media(max-width:650px){.rf-more-section-title{display:block}.rf-more-section-title span{display:block;margin-top:4px}.rf-history-card{padding:16px!important}.rf-history-actions{gap:8px!important}.rf-history-actions a{min-height:40px;display:inline-flex;align-items:center}.rf-history-scores{gap:10px!important}.rf-history-scores span{min-width:54px}}
+
+/* Consistent page return control */
+.rf-page-back{display:inline-flex;align-items:center;gap:7px;margin-bottom:18px;padding:9px 12px;border:1px solid #cfe2f5;border-radius:10px;background:#eef7ff;color:#0b4f93!important;font-size:14px;font-weight:850;line-height:1}.rf-page-back:hover{background:#dcefff;border-color:#b9d7f1;transform:translateY(-1px)}
+.rf-dashboard-scan form,.rf-review-form{max-width:880px}.rf-dashboard-scan label,.rf-review-form label{font-weight:800}.rf-dashboard-scan input,.rf-review-form input,.rf-review-form textarea{font-size:15px!important}
+@media(max-width:650px){.rf-page-back{margin-bottom:14px;padding:9px 11px;font-size:13px}.rf-dashboard-scan form,.rf-review-form{max-width:none}.rf-primary{min-height:44px!important}}
