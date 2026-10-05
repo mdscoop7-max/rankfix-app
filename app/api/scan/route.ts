@@ -1468,16 +1468,34 @@ export async function POST(request: Request) {
       automotive:"automotive", car_repair:"automotive", car_rental:"automotive", real_estate:"real_estate", property_rental:"real_estate", recruitment:"recruitment",
       government:"government", news_media:"news_media", saas_b2b:"saas_b2b",
       home_services:"home_services", professional_services:"professional_services", legal:"professional_services",
-      restaurant:"hospitality", cafe_bar:"hospitality", hotel:"hospitality",
+      restaurant:"hospitality", cafe_bar:"hospitality", hotel:"hospitality", bed_breakfast:"hospitality", holiday_rental:"hospitality", holiday_park:"hospitality", camping:"hospitality",
       dentist:"health_wellness", healthcare:"health_wellness", medical_clinic:"health_wellness",
       beauty_salon:"beauty", hair_salon:"beauty",
     };
     const mappedCatalogSector = catalogTop ? catalogLegacyMap[catalogTop.key] : undefined;
-    const realEstateIdentity = Boolean(scanEvidence.inventory.properties.value && (/\/(?:woningaanbod|residential-listings|properties?|real-estate)(?:\/|$)/i.test(finalUrl.pathname) || /\b(?:makelaar|woningaanbod|te koop|te huur|for sale|for rent|real estate)\b/i.test(sectorIdentitySource)));
+    const lodgingDetail = scanEvidence.sectorDetails.lodging;
+    const shortStayIdentity = Boolean(
+      lodgingDetail.bedBreakfast.value || lodgingDetail.holidayRental.value || lodgingDetail.holidayPark.value || lodgingDetail.camping.value ||
+      (lodgingDetail.shortStay.value && scanEvidence.appointments.booking.value)
+    );
+    const lodgingSubtype = lodgingDetail.bedBreakfast.value
+      ? {key:"bed_breakfast",label:"B&B / guesthouse"}
+      : lodgingDetail.holidayPark.value
+        ? {key:"holiday_park",label:"Vakantiepark / resort"}
+        : lodgingDetail.camping.value
+          ? {key:"camping",label:"Camping / chaletpark"}
+          : lodgingDetail.holidayRental.value
+            ? {key:"holiday_rental",label:"Vakantiehuis / vakantieverhuur"}
+            : {key:"hotel",label:"Hotel / accommodatie"};
+    // Short-stay accommodation must outrank generic words such as "te huur".
+    // Long-term housing remains real estate; guest/night/date/booking evidence is hospitality.
+    const realEstateIdentity = Boolean(!shortStayIdentity && scanEvidence.inventory.properties.value && (/\/(?:woningaanbod|residential-listings|properties?|real-estate)(?:\/|$)/i.test(finalUrl.pathname) || /\b(?:makelaar|woningaanbod|te koop|te huur|for sale|for rent|real estate)\b/i.test(sectorIdentitySource)));
     const automotiveServiceIdentity = Boolean(/\b(?:apk|autobanden|banden|uitlijnen|werkplaats|autoservice|auto-onderhoud|car repair|tyres?)\b/i.test(sectorIdentitySource) || schemaSet.has("autorepair"));
-    const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[]} | null = realEstateIdentity
-      ? {sector:"real_estate",key:"real_estate",label:"Vastgoed & Makelaardij",evidence:["Master Evidence: vastgoed/woningidentiteit bevestigd", ...scanEvidence.inventory.properties.evidence]}
-      : automotiveServiceIdentity ? {sector:"automotive",key:"car_repair",label:"Automotive · garage / autoservice",evidence:["Master Evidence: garage-/autoservice-identiteit bevestigd"]} : null;
+    const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[]} | null = shortStayIdentity
+      ? {sector:"hospitality",key:lodgingSubtype.key,label:lodgingSubtype.label,evidence:["Master Evidence: kort verblijf/accommodatie bevestigd", ...lodgingDetail.shortStay.evidence, ...lodgingDetail.stayDates.evidence, ...lodgingDetail.guests.evidence]}
+      : realEstateIdentity
+        ? {sector:"real_estate",key:"real_estate",label:"Vastgoed & Makelaardij",evidence:["Master Evidence: vastgoed/woningidentiteit bevestigd", ...scanEvidence.inventory.properties.evidence]}
+        : automotiveServiceIdentity ? {sector:"automotive",key:"car_repair",label:"Automotive · garage / autoservice",evidence:["Master Evidence: garage-/autoservice-identiteit bevestigd"]} : null;
     const sectorProfile = evidenceCommerceConfirmed
       ? {
           sector:"ecommerce" as SectorKey,
