@@ -857,7 +857,10 @@ export async function POST(request: Request) {
     // Ticket/booking sites can expose prices and availability without being retail product pages.
     // Establish transport context before page typing so downstream modules share one decision.
     const transportBookingIdentityEarly = /(?:\b(train|railway|rail|spoorweg|trein|bahn|zug|ferrovi|trenitalia|intercity|flight|flights|airline|airport|vols?|vlucht|flug|voli|voo|billet|ticket|fahrplan|timetable|prijevoz|putnički|vlak|vozni red|karta|karte|željeznice|železnice|dráhy)\b|hellenic\s+train|cyprus\s+airways|δρομολόγ|εισιτήρ|τρένο|σιδηρόδρομ|πτήσ)/iu.test([title, description, text.slice(0,30000), finalUrl.hostname].join(" "));
-    const isProductPage = !isHomepage && !transportBookingIdentityEarly && (hasProductSignal || (specialistDetailPathSignal && (hasExplicitPriceSignal || hasSkuSignal || hasStockSignal)));
+    const propertyDetailPathEarly = !isHomepage && /\/(?:woningaanbod|residential-listings)\/(?:koop|huur|sale|rent)\//i.test(pathname);
+    // Some real-estate platforms publish Product schema for a property object. That
+    // schema describes an offer, but must not activate retail product/stock/copy checks.
+    const isProductPage = !isHomepage && !transportBookingIdentityEarly && !propertyDetailPathEarly && (hasProductSignal || (specialistDetailPathSignal && (hasExplicitPriceSignal || hasSkuSignal || hasStockSignal)));
     const strongArticleMarkupSignal = /<article\b/i.test(html) && (/<time\b[^>]*(?:datetime|pubdate)/i.test(html) || /\b(?:author|byline|published|publication date|auteur|geschreven door)\b/i.test(text));
     const rawArticleSignal = !isHomepage && (schemaSet.has("article") || schemaSet.has("newsarticle") || schemaSet.has("blogposting") || strongArticleMarkupSignal);
     // A page can contain editorial markup around a retail template. Strong product
@@ -1734,7 +1737,7 @@ export async function POST(request: Request) {
       return item;
     };
     if (sectorProfile.sector === "real_estate") {
-      const listingSignal = /\\b(te koop|te huur|koopwoning|huurwoning|woningaanbod|objecten|properties|for sale|for rent)\\b/i.test(text) || schemaSet.has("realestatelisting");
+      const listingSignal = scanEvidence.sectorDetails.realEstate.listing.value || /\\b(te koop|te huur|koopwoning|huurwoning|woningaanbod|objecten|properties|for sale|for rent)\\b/i.test(text) || schemaSet.has("realestatelisting");
       const leadSignal = hasContactChannelSignal || /\\b(bezichtiging|waardebepaling|verkoopadvies|plan een afspraak|contact opnemen)\\b/i.test(text);
       const areaSignal = /\\b(werkgebied|regio|buurt|wijk|plaats|gemeente|service area|area served)\\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.areaServed));
       seoChecks.push(
