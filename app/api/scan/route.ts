@@ -3341,9 +3341,13 @@ export async function POST(request: Request) {
     const multiPageCapabilities = {
       hospitality: /\b(hotel|hotels|room|rooms|kamer|kamers|overnachten|booking|boeken|reserveren|restaurant)\b/i.test(multiPageIdentityText),
       treatment: /\b(behandeling|behandelingen|treatment|specialisatie|tandarts|dentist|spoed|afspraak)\b/i.test(multiPageIdentityText),
-      vehicles: /\b(voorraad|occasion|occasions|auto|autos|vehicle|voertuig|proefrit|werkplaats)\b/i.test(multiPageIdentityText),
+      // Keep vehicle sales/inventory separate from garage/service capability.
+      // A tyre or workshop site is automotive, but that alone is not evidence that it sells vehicles.
+      vehicleSales: /\b(occasion|occasions|vehicle inventory|voertuigvoorraad|autovoorraad|proefrit|test drive|auto kopen|cars for sale)\b/i.test(multiPageIdentityText)
+        || auditedMultiPages.some((item)=>/\/(?:voorraad|occasions?|vehicles?|autos?|cars)(?:\/|$)/i.test(new URL(item.url).pathname) && !/\b(werkplaats|service|banden|tyres?|uitlijnen|apk|onderhoud|repair)\b/i.test(`${item.url} ${item.title||""}`)),
+      automotiveService: /\b(werkplaats|garage|banden|tyres?|uitlijnen|apk|onderhoud|autoservice|car service|repair)\b/i.test(multiPageIdentityText),
       properties: /\b(woning|woningen|huis|huizen|property|properties|makelaar|aanbod|koop|huur)\b/i.test(multiPageIdentityText),
-      professional: /\b(expert|experts|expertise|practice|rechtsgebied|people|professionals?)\b/i.test(multiPageIdentityText),
+      professional: /\b(expert|experts|expertise|practice|rechtsgebied|people|professionals?|advocaat|advocaten|lawyer|law firm)\b/i.test(multiPageIdentityText),
       productSample: auditedMultiPages.some((item)=>item.type==="product"),
       categorySample: auditedMultiPages.some((item)=>item.type==="category"),
     };
@@ -3351,7 +3355,8 @@ export async function POST(request: Request) {
       if (!masterEvidence.capabilities.includes(capability)) masterEvidence.capabilities.push(capability);
     };
     if (multiPageCapabilities.productSample) for (const c of ["products","pricing"]) addMasterCapability(c);
-    if (multiPageCapabilities.vehicles) addMasterCapability("vehicles");
+    if (multiPageCapabilities.vehicleSales) addMasterCapability("vehicles");
+    if (multiPageCapabilities.automotiveService) addMasterCapability("services");
     if (multiPageCapabilities.properties) addMasterCapability("properties");
     if (multiPageCapabilities.treatment) addMasterCapability("services");
     if (multiPageCapabilities.hospitality) for (const c of ["rooms","booking"]) addMasterCapability(c);
@@ -3410,15 +3415,25 @@ export async function POST(request: Request) {
     };
     // Motor v2.1: module applicability follows the final Master commerce decision,
     // not an early incidental capability. Page-specific checks still require proof.
-    const commerceModules = new Set(["ecommerce","product","pricing_currency","merchant","checkout","eu_consumer"]);
+    const commerceModules = new Set(["ecommerce","product","pricing_currency","merchant","checkout"]);
+    const allCommerceModules = new Set([...commerceModules, "eu_consumer"]);
     if (finalCommerceDecision.confirmed) {
       for (const module of commerceModules) {
         if (!sectorProfile.applicableModules.includes(module)) sectorProfile.applicableModules.push(module);
         if (!masterEvidence.activeModules.includes(module)) masterEvidence.activeModules.push(module);
       }
+      // EU consumer-readiness is jurisdiction-sensitive. Commerce identity alone
+      // must never activate EU checks for clearly non-EU storefronts.
+      if (euConsumerApplicable) {
+        if (!sectorProfile.applicableModules.includes("eu_consumer")) sectorProfile.applicableModules.push("eu_consumer");
+        if (!masterEvidence.activeModules.includes("eu_consumer")) masterEvidence.activeModules.push("eu_consumer");
+      } else {
+        sectorProfile.applicableModules = sectorProfile.applicableModules.filter((module)=>module!=="eu_consumer");
+        masterEvidence.activeModules = masterEvidence.activeModules.filter((module)=>module!=="eu_consumer");
+      }
     } else {
-      sectorProfile.applicableModules = sectorProfile.applicableModules.filter((module)=>!commerceModules.has(module));
-      masterEvidence.activeModules = masterEvidence.activeModules.filter((module)=>!commerceModules.has(module));
+      sectorProfile.applicableModules = sectorProfile.applicableModules.filter((module)=>!allCommerceModules.has(module));
+      masterEvidence.activeModules = masterEvidence.activeModules.filter((module)=>!allCommerceModules.has(module));
     }
     // Re-run only clearly contradicted/underspecified primary identity decisions
     // with representative evidence. Secondary topics can never override a strong
@@ -3499,8 +3514,18 @@ export async function POST(request: Request) {
       discoveredInternalUrls:discoveredMultiPage.length, selectedPages:uniqueMultiPagePages, pageAudits:multiPageAudits,
       siteSampleScore: auditedMultiPages.length ? Math.round(auditedMultiPages.reduce((sum,item)=>sum+(item.score||0),0)/auditedMultiPages.length) : null,
       sitewideCommerceEvidence,
+      capabilities: {
+        hospitality: multiPageCapabilities.hospitality,
+        treatment: multiPageCapabilities.treatment,
+        vehicleSales: multiPageCapabilities.vehicleSales,
+        automotiveService: multiPageCapabilities.automotiveService,
+        properties: multiPageCapabilities.properties,
+        professional: multiPageCapabilities.professional,
+        productSample: multiPageCapabilities.productSample,
+        categorySample: multiPageCapabilities.categorySample,
+      },
       counts:{ homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedMultiPages.length, unableToConfirm:multiPageAudits.length-auditedMultiPages.length },
-      note:"Representative same-host pages are fetched with bounded raw-HTML checks. Their sample score is separate from the explicitly scanned page score; confirmed sitewide retail evidence may only strengthen the website profile.",
+      note:"Representative same-host pages are fetched with bounded checks. Their sample score is separate from the explicitly scanned page score; site-level evidence may strengthen identity/capabilities, but page-specific failures still require direct proof.",
     };
 
     let user = null;
