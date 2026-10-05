@@ -1086,8 +1086,7 @@ export async function POST(request: Request) {
     } catch { robotsStatus = "UNABLE_TO_CONFIRM"; }
     const robotsPath = finalUrl.pathname || "/";
     const robotsGroups = robotsTxt
-      .split(/\r?
-/)
+      .split(/\\r?\\n/)
       .map((line) => line.replace(/#.*$/, "").trim())
       .reduce((groups: Array<{ agents: string[]; rules: Array<{ kind: "allow" | "disallow"; path: string }> }>, line) => {
         const agent = line.match(/^user-agent\s*:\s*(.+)$/i)?.[1]?.trim().toLowerCase();
