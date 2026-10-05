@@ -805,3 +805,16 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
 .rf-help-github-action:hover{background:#0f6fba!important;color:#fff!important}
 .rf-help-ai p{color:#e8fff7!important;opacity:1!important}
 .rf-help-ai .text-slate-400{color:#d3f5e8!important}
+
+/* Calm professional scan meter: visual feedback only, never a fake completion percentage. */
+.rf-scan-meter{position:relative!important;width:178px!important;height:178px!important;min-width:178px!important;border-radius:50%!important;display:grid!important;place-items:center!important;background:#f7fbff!important;border:1px solid #d7e6f3!important;box-shadow:0 12px 32px rgba(17,53,87,.09)!important;overflow:hidden}
+.rf-scan-meter-ring{position:absolute;inset:14px;border-radius:50%;border:8px solid #e4eef6}
+.rf-scan-meter-ring:after{content:"";position:absolute;inset:-8px;border-radius:50%;border:8px solid transparent;border-top-color:#1683d8;border-right-color:#18a46f;animation:rfMotorTurn 2.4s linear infinite}
+.rf-scan-meter-sweep{position:absolute;width:2px;height:65px;top:24px;left:50%;transform-origin:50% 65px;background:linear-gradient(to bottom,#1683d8,rgba(22,131,216,0));animation:rfMotorSweep 2.8s ease-in-out infinite}
+.rf-scan-meter-inner{position:relative;z-index:2;width:102px;height:102px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;border:1px solid #dce8f1;box-shadow:0 5px 18px rgba(17,53,87,.08)}
+.rf-scan-meter .rf-scan-core{position:static!important;width:auto!important;height:auto!important;border:0!important;background:transparent!important;box-shadow:none!important;font-size:25px!important;font-weight:900!important;color:#163b63!important}
+.rf-scan-meter .rf-scan-core span{color:#15986b!important}
+.rf-scan-meter-inner small{margin-top:2px;color:#6b7c90;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+@keyframes rfMotorTurn{to{transform:rotate(360deg)}}
+@keyframes rfMotorSweep{0%,100%{transform:rotate(-55deg);opacity:.45}50%{transform:rotate(55deg);opacity:1}}
+@media (prefers-reduced-motion:reduce){.rf-scan-meter-ring:after,.rf-scan-meter-sweep{animation:none!important}}
