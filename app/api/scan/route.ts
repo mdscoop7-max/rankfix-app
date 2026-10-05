@@ -14,7 +14,7 @@ import { normalizePlan, planLimits } from "@/lib/plans";
 import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
 import { renderPublicPage } from "@/lib/headless-render";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
-import { rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
+import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -1446,24 +1446,21 @@ export async function POST(request: Request) {
       scanEvidence.organization.openingHours.value && "opening_hours",
       scanEvidence.organization.reviews.value && "reviews",
     ].filter((value): value is string => Boolean(value));
-    const capabilityModules = [
-      evidenceCapabilities.some(x=>["appointment","reservation","booking","quote_request"].includes(x)) && "lead_conversion",
-      evidenceCapabilities.includes("local") && "local",
-      evidenceCapabilities.includes("vehicles") && "automotive",
-      evidenceCapabilities.includes("properties") && "real_estate",
-      evidenceCapabilities.includes("jobs") && "recruitment",
-      (evidenceCapabilities.includes("rooms") || evidenceCapabilities.includes("menu")) && "hospitality",
-      evidenceCommerceConfirmed && "ecommerce",
-      evidenceCommerceConfirmed && "product",
-      evidenceCommerceConfirmed && "pricing_currency",
-      evidenceCommerceConfirmed && "merchant",
-      evidenceCommerceConfirmed && evidenceCapabilities.includes("checkout") && "checkout",
-    ].filter((value): value is string => Boolean(value));
+    const capabilityModules = modulesForCapabilities([
+      ...evidenceCapabilities,
+      ...(evidenceCommerceConfirmed ? ["products","pricing","merchant","consumer_rights"] : []),
+    ]);
     sectorProfile.applicableModules = [...new Set([...sectorProfile.applicableModules, ...capabilityModules])];
 
     const masterEvidence = {
       version:"1.0",
-      primarySector:{key:sectorProfile.key,label:sectorProfile.label,confidence:sectorProfile.confidence,confidenceScore:sectorProfile.confidenceScore},
+      primarySector:{
+        key:sectorProfile.key,
+        label:sectorProfile.label,
+        confidence:sectorProfile.confidence,
+        confidenceScore:sectorProfile.confidenceScore,
+        displayPolicy: sectorProfile.confidenceScore >= 80 ? "confirmed" : sectorProfile.confidenceScore >= 60 ? "probable" : "unconfirmed",
+      },
       partners:evidencePartners,
       partnerSummary:{
         total:evidencePartners.length,
