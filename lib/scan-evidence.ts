@@ -49,6 +49,7 @@ export type ScanEvidence = {
     automotive: { service: EvidenceFact; dealer: EvidenceFact; };
     media: { article: EvidenceFact; author: EvidenceFact; publishedDate: EvidenceFact; };
     sports: { event: EvidenceFact; teamOrPlayer: EvidenceFact; resultsOrStandings: EvidenceFact; };
+    lodging: { shortStay: EvidenceFact; bedBreakfast: EvidenceFact; holidayRental: EvidenceFact; holidayPark: EvidenceFact; camping: EvidenceFact; stayDates: EvidenceFact; guests: EvidenceFact; };
   };
   schema: {
     types: string[];
@@ -128,6 +129,13 @@ export function buildScanEvidence(input: {
   const propertyListing = properties && (/\/(?:woningaanbod|residential-listings|properties?)\//i.test(url) || has(text, /\b(te koop|te huur|for sale|for rent|koopprijs|huurprijs)\b/i));
   const propertySale = propertyListing && (has(text, /\b(te koop|for sale|koopprijs)\b/i) || /\/(?:koop|sale)\//i.test(url));
   const propertyRental = propertyListing && (has(text, /\b(te huur|for rent|huurprijs)\b/i) || /\/(?:huur|rent)\//i.test(url));
+  const shortStay = schemaHas("Hotel","HotelRoom","LodgingBusiness","BedAndBreakfast","VacationRental","Resort","Campground") || has(text, /\b(overnachting|overnachten|per nacht|nightly|check[- ]?in|check[- ]?out|arrival|departure|aankomst|vertrek|short[- ]term stay)\b/i);
+  const bedBreakfast = has(text, /\b(b&b|bed and breakfast|bed & breakfast|guesthouse|guest house|pension)\b/i) || schemaHas("BedAndBreakfast");
+  const holidayRental = has(text, /\b(vakantiehuis|vakantiewoning|holiday home|holiday rental|vacation rental|ferienhaus|ferienwohnung|short[- ]term rental)\b/i) || schemaHas("VacationRental");
+  const holidayPark = has(text, /\b(vakantiepark|holiday park|ferienpark|resort|bungalowpark|recreatiepark)\b/i) || schemaHas("Resort");
+  const camping = has(text, /\b(camping|campingplatz|campground|camperplaats|chaletpark|caravan park|glamping)\b/i) || schemaHas("Campground");
+  const stayDates = has(text, /\b(aankomst|vertrek|check[- ]?in|check[- ]?out|arrival|departure|verblijfsdata|stay dates?)\b/i);
+  const guests = has(text, /\b(gasten?|guests?|personen|persons?|adults?|volwassenen|children|kinderen)\b/i);
   const automotiveService = has(text, /\b(apk|onderhoud|werkplaats|autoservice|banden|tyres?|uitlijnen|car repair|reparatie)\b/i);
   const automotiveDealer = has(text, /\b(autodealer|occasions?|auto(?:'s)? te koop|cars? for sale|proefrit|test drive)\b/i) || schemaHas("AutoDealer");
   const article = schemaHas("Article","NewsArticle","BlogPosting") || has(text, /\b(nieuws|news|artikel|article|breaking news)\b/i);
@@ -173,6 +181,7 @@ export function buildScanEvidence(input: {
       automotive: { service: fact(automotiveService, automotiveService ? "high" : "low", [source], automotiveService ? ["Garage-/autoservice-signaal bevestigd"] : []), dealer: fact(automotiveDealer, automotiveDealer ? "high" : "low", [source], automotiveDealer ? ["Autodealer-/verkoopsignaal bevestigd"] : []) },
       media: { article: fact(article, article ? "medium" : "low", [source], article ? ["Artikel-/nieuwssignaal gevonden"] : []), author: fact(author, author ? "medium" : "low", [source], author ? ["Auteurssignaal gevonden"] : []), publishedDate: fact(publishedDate, publishedDate ? "medium" : "low", [source], publishedDate ? ["Publicatiedatumsignaal gevonden"] : []) },
       sports: { event: fact(sportsEvent, sportsEvent ? "medium" : "low", [source], sportsEvent ? ["Wedstrijd-/sportevenementsignaal gevonden"] : []), teamOrPlayer: fact(teamOrPlayer, teamOrPlayer ? "medium" : "low", [source], teamOrPlayer ? ["Team-/spelersignaal gevonden"] : []), resultsOrStandings: fact(resultsOrStandings, resultsOrStandings ? "medium" : "low", [source], resultsOrStandings ? ["Uitslag-/standsignaal gevonden"] : []) },
+      lodging: { shortStay: fact(shortStay, shortStay ? "high" : "low", [source], shortStay ? ["Kort verblijf/accommodatie bevestigd"] : []), bedBreakfast: fact(bedBreakfast, bedBreakfast ? "high" : "low", [source], bedBreakfast ? ["B&B/guesthouse bevestigd"] : []), holidayRental: fact(holidayRental, holidayRental ? "high" : "low", [source], holidayRental ? ["Vakantiehuis/vakantieverhuur bevestigd"] : []), holidayPark: fact(holidayPark, holidayPark ? "high" : "low", [source], holidayPark ? ["Vakantiepark/resort bevestigd"] : []), camping: fact(camping, camping ? "high" : "low", [source], camping ? ["Camping/chaletpark bevestigd"] : []), stayDates: fact(stayDates, stayDates ? "medium" : "low", [source], stayDates ? ["Aankomst/vertrek gevonden"] : []), guests: fact(guests, guests ? "medium" : "low", [source], guests ? ["Gast-/persoonsaantal gevonden"] : []) },
     },
     schema: {
       types: schemaTypes,
@@ -318,6 +327,7 @@ export function mergeScanEvidence(base: ScanEvidence, additional: ScanEvidence):
       automotive: { service: mergeFact(base.sectorDetails.automotive.service, additional.sectorDetails.automotive.service, or), dealer: mergeFact(base.sectorDetails.automotive.dealer, additional.sectorDetails.automotive.dealer, or) },
       media: { article: mergeFact(base.sectorDetails.media.article, additional.sectorDetails.media.article, or), author: mergeFact(base.sectorDetails.media.author, additional.sectorDetails.media.author, or), publishedDate: mergeFact(base.sectorDetails.media.publishedDate, additional.sectorDetails.media.publishedDate, or) },
       sports: { event: mergeFact(base.sectorDetails.sports.event, additional.sectorDetails.sports.event, or), teamOrPlayer: mergeFact(base.sectorDetails.sports.teamOrPlayer, additional.sectorDetails.sports.teamOrPlayer, or), resultsOrStandings: mergeFact(base.sectorDetails.sports.resultsOrStandings, additional.sectorDetails.sports.resultsOrStandings, or) },
+      lodging: { shortStay: mergeFact(base.sectorDetails.lodging.shortStay, additional.sectorDetails.lodging.shortStay, or), bedBreakfast: mergeFact(base.sectorDetails.lodging.bedBreakfast, additional.sectorDetails.lodging.bedBreakfast, or), holidayRental: mergeFact(base.sectorDetails.lodging.holidayRental, additional.sectorDetails.lodging.holidayRental, or), holidayPark: mergeFact(base.sectorDetails.lodging.holidayPark, additional.sectorDetails.lodging.holidayPark, or), camping: mergeFact(base.sectorDetails.lodging.camping, additional.sectorDetails.lodging.camping, or), stayDates: mergeFact(base.sectorDetails.lodging.stayDates, additional.sectorDetails.lodging.stayDates, or), guests: mergeFact(base.sectorDetails.lodging.guests, additional.sectorDetails.lodging.guests, or) },
     },
     schema: {
       types: uniq([...base.schema.types, ...additional.schema.types]),
