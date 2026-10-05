@@ -44,6 +44,12 @@ export type ScanEvidence = {
     openingHours: EvidenceFact;
     reviews: EvidenceFact;
   };
+  sectorDetails: {
+    realEstate: { listing: EvidenceFact; sale: EvidenceFact; rental: EvidenceFact; };
+    automotive: { service: EvidenceFact; dealer: EvidenceFact; };
+    media: { article: EvidenceFact; author: EvidenceFact; publishedDate: EvidenceFact; };
+    sports: { event: EvidenceFact; teamOrPlayer: EvidenceFact; resultsOrStandings: EvidenceFact; };
+  };
   schema: {
     types: string[];
     organization: boolean;
@@ -119,6 +125,17 @@ export function buildScanEvidence(input: {
   const address = schemaHas("PostalAddress") || has(text, /\b(adres|address|adresse|indirizzo|dirección)\b/i);
   const openingHours = schemaHas("OpeningHoursSpecification") || has(text, /\b(openingstijden|opening hours|öffnungszeiten|horaires|orari|horario)\b/i);
   const reviews = schemaHas("Review", "AggregateRating") || has(text, /\b(reviews?|beoordelingen|bewertungen|avis|recensioni|reseñas)\b/i);
+  const propertyListing = properties && (/\/(?:woningaanbod|residential-listings|properties?)\//i.test(url) || has(text, /\b(te koop|te huur|for sale|for rent|koopprijs|huurprijs)\b/i));
+  const propertySale = propertyListing && (has(text, /\b(te koop|for sale|koopprijs)\b/i) || /\/(?:koop|sale)\//i.test(url));
+  const propertyRental = propertyListing && (has(text, /\b(te huur|for rent|huurprijs)\b/i) || /\/(?:huur|rent)\//i.test(url));
+  const automotiveService = has(text, /\b(apk|onderhoud|werkplaats|autoservice|banden|tyres?|uitlijnen|car repair|reparatie)\b/i);
+  const automotiveDealer = has(text, /\b(autodealer|occasions?|auto(?:'s)? te koop|cars? for sale|proefrit|test drive)\b/i) || schemaHas("AutoDealer");
+  const article = schemaHas("Article","NewsArticle","BlogPosting") || has(text, /\b(nieuws|news|artikel|article|breaking news)\b/i);
+  const author = schemaHas("Person") || /\b(?:auteur|author|door|by)\s+[a-zà-ÿ][a-zà-ÿ .'-]{2,}/i.test(text);
+  const publishedDate = /\b(?:datepublished|published|gepubliceerd|publicatiedatum)\b/i.test(html) || /<time\b/i.test(html);
+  const sportsEvent = schemaHas("SportsEvent") || has(text, /\b(wedstrijd|match|fixture|kick-?off|wedstrijdprogramma)\b/i);
+  const teamOrPlayer = schemaHas("SportsTeam") || has(text, /\b(team|speler|player|selectie|squad)\b/i);
+  const resultsOrStandings = has(text, /\b(uitslag|result|standings|league table|score)\b/i);
 
   return {
     version: "1.0",
@@ -150,6 +167,12 @@ export function buildScanEvidence(input: {
       address: fact(address, address ? "medium" : "low", [source], address ? ["Adres-signaal gevonden"] : []),
       openingHours: fact(openingHours, openingHours ? "medium" : "low", [source], openingHours ? ["Openingstijden-signaal gevonden"] : []),
       reviews: fact(reviews, reviews ? "medium" : "low", [source], reviews ? ["Review-signaal gevonden"] : []),
+    },
+    sectorDetails: {
+      realEstate: { listing: fact(propertyListing, propertyListing ? "high" : "low", [source], propertyListing ? ["Vastgoedobject/listing bevestigd"] : []), sale: fact(propertySale, propertySale ? "high" : "low", [source], propertySale ? ["Koopwoning-signaal bevestigd"] : []), rental: fact(propertyRental, propertyRental ? "high" : "low", [source], propertyRental ? ["Huurwoning-signaal bevestigd"] : []) },
+      automotive: { service: fact(automotiveService, automotiveService ? "high" : "low", [source], automotiveService ? ["Garage-/autoservice-signaal bevestigd"] : []), dealer: fact(automotiveDealer, automotiveDealer ? "high" : "low", [source], automotiveDealer ? ["Autodealer-/verkoopsignaal bevestigd"] : []) },
+      media: { article: fact(article, article ? "medium" : "low", [source], article ? ["Artikel-/nieuwssignaal gevonden"] : []), author: fact(author, author ? "medium" : "low", [source], author ? ["Auteurssignaal gevonden"] : []), publishedDate: fact(publishedDate, publishedDate ? "medium" : "low", [source], publishedDate ? ["Publicatiedatumsignaal gevonden"] : []) },
+      sports: { event: fact(sportsEvent, sportsEvent ? "medium" : "low", [source], sportsEvent ? ["Wedstrijd-/sportevenementsignaal gevonden"] : []), teamOrPlayer: fact(teamOrPlayer, teamOrPlayer ? "medium" : "low", [source], teamOrPlayer ? ["Team-/spelersignaal gevonden"] : []), resultsOrStandings: fact(resultsOrStandings, resultsOrStandings ? "medium" : "low", [source], resultsOrStandings ? ["Uitslag-/standsignaal gevonden"] : []) },
     },
     schema: {
       types: schemaTypes,
@@ -289,6 +312,12 @@ export function mergeScanEvidence(base: ScanEvidence, additional: ScanEvidence):
       address: mergeFact(base.organization.address, additional.organization.address, or),
       openingHours: mergeFact(base.organization.openingHours, additional.organization.openingHours, or),
       reviews: mergeFact(base.organization.reviews, additional.organization.reviews, or),
+    },
+    sectorDetails: {
+      realEstate: { listing: mergeFact(base.sectorDetails.realEstate.listing, additional.sectorDetails.realEstate.listing, or), sale: mergeFact(base.sectorDetails.realEstate.sale, additional.sectorDetails.realEstate.sale, or), rental: mergeFact(base.sectorDetails.realEstate.rental, additional.sectorDetails.realEstate.rental, or) },
+      automotive: { service: mergeFact(base.sectorDetails.automotive.service, additional.sectorDetails.automotive.service, or), dealer: mergeFact(base.sectorDetails.automotive.dealer, additional.sectorDetails.automotive.dealer, or) },
+      media: { article: mergeFact(base.sectorDetails.media.article, additional.sectorDetails.media.article, or), author: mergeFact(base.sectorDetails.media.author, additional.sectorDetails.media.author, or), publishedDate: mergeFact(base.sectorDetails.media.publishedDate, additional.sectorDetails.media.publishedDate, or) },
+      sports: { event: mergeFact(base.sectorDetails.sports.event, additional.sectorDetails.sports.event, or), teamOrPlayer: mergeFact(base.sectorDetails.sports.teamOrPlayer, additional.sectorDetails.sports.teamOrPlayer, or), resultsOrStandings: mergeFact(base.sectorDetails.sports.resultsOrStandings, additional.sectorDetails.sports.resultsOrStandings, or) },
     },
     schema: {
       types: uniq([...base.schema.types, ...additional.schema.types]),

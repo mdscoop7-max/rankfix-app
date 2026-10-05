@@ -1420,7 +1420,8 @@ export async function POST(request: Request) {
     if (schemaSet.has("automotivebusiness") || schemaSet.has("autodealer") || schemaSet.has("autorepair")) schemaSectorBoost.automotive = 3;
     if (schemaSet.has("realestateagent")) schemaSectorBoost.real_estate = 3;
     if (schemaSet.has("newsarticle")) schemaSectorBoost.news_media = 3;
-    const sectorPriority: Partial<Record<SectorKey, number>> = { government: 30, transport_travel: 25, telecom_technology: 20, news_media: 5 };
+    // Master Evidence priority: domain identity outranks incidental generic words.
+    const sectorPriority: Partial<Record<SectorKey, number>> = { government: 30, real_estate: 28, automotive: 27, transport_travel: 20, telecom_technology: 20, news_media: 10 };
     const sectorCandidates = sectorSignals.map(item=>{
       const contentHits = item.patterns.filter(pattern=>pattern.test(sectorSource)).length;
       const identityBoost = item.patterns[0]?.test(sectorIdentitySource) ? 1 : 0;
@@ -1460,7 +1461,7 @@ export async function POST(request: Request) {
     // Other catalog sectors only replace an unknown legacy result when their evidence
     // is clearly stronger; this keeps existing sector-specific checks backward safe.
     const catalogLegacyMap: Partial<Record<string,SectorKey>> = {
-      automotive:"automotive", real_estate:"real_estate", recruitment:"recruitment",
+      automotive:"automotive", car_repair:"automotive", car_rental:"automotive", real_estate:"real_estate", property_rental:"real_estate", recruitment:"recruitment",
       government:"government", news_media:"news_media", saas_b2b:"saas_b2b",
       home_services:"home_services", professional_services:"professional_services", legal:"professional_services",
       restaurant:"hospitality", cafe_bar:"hospitality", hotel:"hospitality",
@@ -1468,6 +1469,11 @@ export async function POST(request: Request) {
       beauty_salon:"beauty", hair_salon:"beauty",
     };
     const mappedCatalogSector = catalogTop ? catalogLegacyMap[catalogTop.key] : undefined;
+    const realEstateIdentity = Boolean(scanEvidence.inventory.properties.value && (/\/(?:woningaanbod|residential-listings|properties?|real-estate)(?:\/|$)/i.test(finalUrl.pathname) || /\b(?:makelaar|woningaanbod|te koop|te huur|for sale|for rent|real estate)\b/i.test(sectorIdentitySource)));
+    const automotiveServiceIdentity = Boolean(/\b(?:apk|autobanden|banden|uitlijnen|werkplaats|autoservice|auto-onderhoud|car repair|tyres?)\b/i.test(sectorIdentitySource) || schemaSet.has("autorepair"));
+    const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[]} | null = realEstateIdentity
+      ? {sector:"real_estate",key:"real_estate",label:"Vastgoed & Makelaardij",evidence:["Master Evidence: vastgoed/woningidentiteit bevestigd", ...scanEvidence.inventory.properties.evidence]}
+      : automotiveServiceIdentity ? {sector:"automotive",key:"car_repair",label:"Automotive · garage / autoservice",evidence:["Master Evidence: garage-/autoservice-identiteit bevestigd"]} : null;
     const sectorProfile = evidenceCommerceConfirmed
       ? {
           sector:"ecommerce" as SectorKey,
@@ -1478,6 +1484,8 @@ export async function POST(request: Request) {
           evidence:[`Evidence Layer: ${evidenceCommerceStrength} onafhankelijke commerce-signalen`, ...(catalogTop?.key==="ecommerce" ? catalogTop.evidence : [])].slice(0,6),
           applicableModules:["core_seo","geo","technical","ecommerce","product","pricing_currency","merchant","checkout",...(euConsumerApplicable?["eu_consumer"]:[])],
         }
+      : masterIdentityOverride
+        ? {sector:masterIdentityOverride.sector,key:masterIdentityOverride.key,label:masterIdentityOverride.label,confidence:"high" as const,confidenceScore:96,evidence:masterIdentityOverride.evidence.slice(0,6),applicableModules:[...new Set(["core_seo","geo","technical",...(sectorSignals.find(x=>x.sector===masterIdentityOverride.sector)?.modules||[])])]}
       : legacyProfile.sector==="unknown" && catalogSectorStrong && mappedCatalogSector
         ? {
             sector:mappedCatalogSector,
@@ -1629,9 +1637,11 @@ export async function POST(request: Request) {
       ? securityCheck("pass","security_https","HTTPS","De gescande pagina gebruikt HTTPS.","Houd HTTPS verplicht en stuur HTTP-verkeer permanent door naar HTTPS.")
       : securityCheck("fail","security_https","HTTPS","De gescande pagina gebruikt geen HTTPS.","Activeer HTTPS/TLS en stuur HTTP permanent door naar HTTPS."));
 
+    const missingSecurityHeaders = Object.entries(securityHeaders).filter(([, value]) => !value).map(([name])=>name);
+    const securityHeaderEvidence = `aanwezig: ${presentSecurityHeaders.map(([name])=>name).join(", ") || "geen"}; ontbrekend/niet bevestigd: ${missingSecurityHeaders.join(", ") || "geen"}`;
     securityChecks.push(coreSecurityHeadersPresent
-      ? securityCheck("pass","security_headers","Security headers",`Belangrijke browser-securityheaders zijn bevestigd (${presentSecurityHeaders.map(([name]) => name).join(", ")}).`,"Houd deze headers actief en test wijzigingen aan CSP/HSTS eerst tegen de applicatie.",6,6)
-      : securityCheck("warning","security_headers","Security headers",`RankFix bevestigde ${presentSecurityHeaders.length} van 6 gecontroleerde securityheaders. Dit is hardening-advies en op zichzelf geen bewijs van een kwetsbaarheid.`,"Controleer HSTS, CSP/frame-bescherming en X-Content-Type-Options op server/CDN-niveau.",Math.max(0, presentSecurityHeaders.length),6));
+      ? securityCheck("pass","security_headers","Security headers",`Browser-securityheaders voldoen aan de huidige kernregel (${securityHeaderEvidence}).`,"Houd deze headers actief en test wijzigingen aan CSP/HSTS eerst tegen de applicatie.",6,6)
+      : securityCheck("warning","security_headers","Security headers",`RankFix bevestigde ${presentSecurityHeaders.length} van 6 gecontroleerde securityheaders (${securityHeaderEvidence}). Dit is hardening-advies en op zichzelf geen bewijs van een kwetsbaarheid.`,"Controleer HSTS, CSP/frame-bescherming, X-Content-Type-Options, Referrer-Policy en Permissions-Policy op server/CDN-niveau.",Math.max(0, presentSecurityHeaders.length),6));
 
     const mixedContentMatches = isHttps
       ? [...html.matchAll(new RegExp("(?:src|href)\\\\s*=\\\\s*[\\\"']http://[^\\\"'\\\\s>]+[\\\"']", "gi"))].map((m)=>m[0]).slice(0,5)
@@ -1735,10 +1745,12 @@ export async function POST(request: Request) {
       const workshopSignal = /\\b(apk|onderhoud|reparatie|werkplaats|autoservice|banden|diagnose)\\b/i.test(text);
       const appointmentSignal = hasContactChannelSignal || /\\b(afspraak|proefrit|werkplaatsafspraak|plan afspraak|book service)\\b/i.test(text);
       const inventorySignal = /\\b(occasion|occasions|voorraad|auto(?:'s)? te koop|used cars?|vehicles? for sale)\\b/i.test(text);
+      const inventoryCheck = automotiveServiceIdentity && !inventorySignal
+        ? check("not_applicable","sector_automotive_inventory","seo","Voertuigaanbod","Deze site is als garage/autoservice herkend zonder bewijs van autoverkoop; voertuigvoorraad is daarom niet van toepassing.","Geen actie nodig tenzij de onderneming ook voertuigen verkoopt.",0,4)
+        : sectorCheck("sector_automotive_inventory","Voertuigaanbod",inventorySignal,"Voertuig-/occasionaanbod is in de pagina bevestigd.","RankFix kon voertuigaanbod niet betrouwbaar bevestigen; dit kan ook niet van toepassing zijn.","Toon voertuigaanbod duidelijk wanneer de onderneming auto's verkoopt; anders is geen actie nodig.");
       seoChecks.push(
         sectorCheck("sector_automotive_services","Garage diensten",workshopSignal,"Garage-/werkplaatsdiensten zijn in de pagina bevestigd.","Garage-/werkplaatsdiensten konden in de raw HTML niet betrouwbaar worden bevestigd.","Maak de belangrijkste garage- en werkplaatsdiensten duidelijk vindbaar."),
-        sectorCheck("sector_automotive_conversion","Afspraak / proefrit",appointmentSignal,"Een afspraak-, proefrit- of contactsignaal is bevestigd.","Een duidelijke afspraak- of proefritactie kon niet betrouwbaar worden bevestigd.","Maak de belangrijkste vervolgstap voor klanten duidelijk zichtbaar."),
-        sectorCheck("sector_automotive_inventory","Voertuigaanbod",inventorySignal,"Voertuig-/occasionaanbod is in de pagina bevestigd.","RankFix kon voertuigaanbod niet betrouwbaar bevestigen; dit kan ook niet van toepassing zijn.","Toon voertuigaanbod duidelijk wanneer de onderneming auto's verkoopt; anders is geen actie nodig.")
+        sectorCheck("sector_automotive_conversion","Afspraak / proefrit",appointmentSignal,"Een afspraak-, proefrit- of contactsignaal is bevestigd.","Een duidelijke afspraak- of proefritactie kon niet betrouwbaar worden bevestigd.","Maak de belangrijkste vervolgstap voor klanten duidelijk zichtbaar."), inventoryCheck
       );
     } else if (sectorProfile.sector === "home_services") {
       const serviceSignal = /\\b(loodgieter|elektricien|installateur|aannemer|dakdekker|schilder|renovatie|reparatie|installatie|onderhoud|riool|riolering|verstopping|ontstoppen|ontstopping|afvoer)\\b/i.test(text);
@@ -2320,6 +2332,9 @@ export async function POST(request: Request) {
     const canonicalTarget = canonicalUrl ? normalizeCanonicalTarget(canonicalUrl) : "";
     const currentTarget = normalizeCanonicalTarget(finalUrl);
     const canonicalIsSelf = Boolean(canonicalUrl && canonicalTarget === currentTarget);
+    const canonicalListingParams = new Set(["forsaleorrent","moveunavailablelistingstothebottom","orderby","orderdescending","take","page","pagesize","sort","sortby","filter","view"]);
+    const currentQueryKeys = [...finalUrl.searchParams.keys()].map((key)=>key.toLowerCase());
+    const canonicalDropsKnownListingParams = Boolean(canonicalUrl && canonicalUrl.origin === finalUrl.origin && canonicalUrl.pathname.replace(/\/+$/, "") === finalUrl.pathname.replace(/\/+$/, "") && !canonicalUrl.search && currentQueryKeys.length > 0 && currentQueryKeys.every((key)=>canonicalListingParams.has(key) || key.startsWith("utm_")));
     const pageLanguageCode = (lang || "").toLowerCase().split("-")[0];
     const canonicalIsLocalePreferred = Boolean(canonicalUrl && finalUrl.pathname === "/" && pageLanguageCode && canonicalUrl.pathname.replace(/\/+$/, "") === "/" + pageLanguageCode);
     // www/apex redirects are normally the same site and must not become a cross-domain failure.
@@ -2333,7 +2348,7 @@ export async function POST(request: Request) {
           ? metadataMayBeClientRendered
             ? check("unable_to_confirm", "canonical", "seo", "Canonical URL", "De canonical kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de canonical opnieuw met een volledige render voordat je een wijziging maakt.", 0, 7)
             : check("warning", "canonical", "seo", "Canonical URL", "Geen canonical URL gevonden in de opgehaalde pagina.", "Voeg een self-referencing canonical toe wanneer passend.", 3, 7)
-        : canonicalIsSelf || canonicalIsLocalePreferred
+        : canonicalIsSelf || canonicalIsLocalePreferred || canonicalDropsKnownListingParams
           ? check("pass", "canonical", "seo", "Canonical URL", canonicalIsLocalePreferred ? "De rootpagina verwijst bewust naar de equivalente taalvoorkeurs-URL." : canonicalDropsQuery ? "De canonical wijst naar dezelfde inhoud zonder queryparameters." : "De canonical verwijst naar dezelfde URL als de gescande pagina.", "Behoud een duidelijke canonical die overeenkomt met de voorkeurs- en taalstructuur van de site.", 7, 7)
           : canonicalIsCrossDomain
             ? check("fail", "canonical", "seo", "Canonical URL", "De canonical verwijst naar een ander domein dan de gescande pagina. Dit kan de verkeerde voorkeurs-URL voor zoekmachines aangeven.", "Gebruik voor een normale pagina een self-referencing canonical op het eigen domein, tenzij een externe canonical bewust en inhoudelijk onderbouwd is.", 0, 10)
@@ -3164,10 +3179,11 @@ export async function POST(request: Request) {
       note: "Niet te bevestigen verlaagt de score niet, maar blijft toepasselijk gewicht in de dekking. N.v.t. is uitgesloten. Het bereik toont de conservatieve en optimistische grens voor nog onbevestigd bewijs.",
     };
     const scanSummary = summarizeAuditChecks(checks);
+    const propertyListingPage = sectorProfile.sector === "real_estate" && (/\/(?:woningaanbod|residential-listings)\/(?:koop|huur|sale|rent)\//i.test(pathname) || /\b(?:te koop|te huur|for sale|for rent)\b/i.test(title));
     const pageTypeEvidence = {
-      type: isHomepage ? "homepage" : isProductPage ? "product" : hasCategorySignal ? "category" : effectiveLocalBusinessPage ? "service" : effectiveArticlePage ? "article" : "unknown",
-      confidence: isHomepage ? "high" : isProductPage && (hasProductSchema || hasSkuSignal) ? "high" : isProductPage ? "medium" : hasCategorySignal && (hasItemListSignal || repeatedProductCardSignal) ? "high" : effectiveLocalBusinessPage || hasCategorySignal || effectiveArticlePage ? "medium" : "low",
-      evidence: [isHomepage ? `localized/root path: ${pathname}` : "", hasProductSchema ? "Product schema present" : "", hasStoreSchema ? "Store schema present" : "", hasItemListSignal ? "ItemList schema present" : "", genericCategoryPathSignal ? `generic commerce category path: ${pathname}` : "", repeatedProductCardSignal ? "repeated product-card commerce signals" : "", commercialNavigationEvidence ? "commercial navigation + shop/support links" : "", hasSkuSignal ? "SKU signal present" : "", hasStrongCommerceAction ? "commerce action present" : "", articleSuppressedByCommerce ? "article signal suppressed by stronger product evidence" : ""].filter(Boolean),
+      type: isHomepage ? "homepage" : propertyListingPage ? "property_listing" : isProductPage ? "product" : hasCategorySignal ? "category" : effectiveLocalBusinessPage ? "service" : effectiveArticlePage ? "article" : "unknown",
+      confidence: isHomepage ? "high" : propertyListingPage ? "high" : isProductPage && (hasProductSchema || hasSkuSignal) ? "high" : isProductPage ? "medium" : hasCategorySignal && (hasItemListSignal || repeatedProductCardSignal) ? "high" : effectiveLocalBusinessPage || hasCategorySignal || effectiveArticlePage ? "medium" : "low",
+      evidence: [isHomepage ? `localized/root path: ${pathname}` : "", propertyListingPage ? "Master Evidence: vastgoedobject/listing" : "", hasProductSchema ? "Product schema present" : "", hasStoreSchema ? "Store schema present" : "", hasItemListSignal ? "ItemList schema present" : "", genericCategoryPathSignal ? `generic commerce category path: ${pathname}` : "", repeatedProductCardSignal ? "repeated product-card commerce signals" : "", commercialNavigationEvidence ? "commercial navigation + shop/support links" : "", hasSkuSignal ? "SKU signal present" : "", hasStrongCommerceAction ? "commerce action present" : "", articleSuppressedByCommerce ? "article signal suppressed by stronger product evidence" : ""].filter(Boolean),
     };
     const pageTypeContradictions = [
       pageTypeEvidence.type === "article" && isProductPage ? "article_vs_product" : null,
