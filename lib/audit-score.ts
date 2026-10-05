@@ -15,7 +15,7 @@ export type ScorableAuditCheck = {
   fix_status?: "WAITING" | "AWAITING_MERGE" | "STILL_PRESENT" | "DONE";
 };
 
-export const SCORE_MODEL_VERSION = "2.2-gradual-evidence";
+export const SCORE_MODEL_VERSION = "2.3-evidence-range";
 
 export function weightedCoverage(items: ScorableAuditCheck[]) {
   const relevant = items.filter((item) => item.issue_status !== "NOT_APPLICABLE");
@@ -33,6 +33,23 @@ export function weightedCoverage(items: ScorableAuditCheck[]) {
     assessedWeight,
     coveragePercent: totalWeight ? Math.round((assessedWeight / totalWeight) * 100) : 0,
     highConfidencePercent: assessedWeight ? Math.round((highConfidenceWeight / assessedWeight) * 100) : 0,
+  };
+}
+
+export function scoreRange(items: ScorableAuditCheck[]) {
+  const applicable = items.filter((item) => item.issue_status !== "NOT_APPLICABLE");
+  const assessed = applicable.filter((item) => item.issue_status !== "UNABLE_TO_CONFIRM");
+  const unverified = applicable.filter((item) => item.issue_status === "UNABLE_TO_CONFIRM");
+  const assessedWeight = assessed.reduce((sum, item) => sum + Math.max(0, item.maxPoints), 0);
+  const unverifiedWeight = unverified.reduce((sum, item) => sum + Math.max(0, item.maxPoints), 0);
+  const applicableWeight = assessedWeight + unverifiedWeight;
+  const earned = assessed.reduce((sum, item) => sum + Math.max(0, Math.min(item.maxPoints, item.points)), 0);
+  return {
+    low: applicableWeight ? Math.round((earned / applicableWeight) * 100) : 0,
+    high: applicableWeight ? Math.round(((earned + unverifiedWeight) / applicableWeight) * 100) : 0,
+    assessedWeight,
+    unverifiedWeight,
+    applicableWeight,
   };
 }
 
