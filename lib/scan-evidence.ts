@@ -1,0 +1,216 @@
+export type EvidenceConfidence = "high" | "medium" | "low";
+export type EvidenceSource = "raw_html" | "rendered_html" | "headers" | "url" | "structured_data" | "multi_page";
+
+export type EvidenceFact<T = boolean> = {
+  value: T;
+  confidence: EvidenceConfidence;
+  sources: EvidenceSource[];
+  evidence: string[];
+};
+
+export type ScanEvidence = {
+  version: "1.0";
+  page: {
+    url: string;
+    rendered: boolean;
+    language: string | null;
+    title: string | null;
+  };
+  commerce: {
+    cart: EvidenceFact;
+    addToCart: EvidenceFact;
+    checkout: EvidenceFact;
+    prices: EvidenceFact<{ count: number; currencies: string[] }>;
+    products: EvidenceFact;
+    productPage: EvidenceFact;
+    productLinks: EvidenceFact<number>;
+  };
+  appointments: {
+    appointment: EvidenceFact;
+    reservation: EvidenceFact;
+    booking: EvidenceFact;
+    quoteRequest: EvidenceFact;
+  };
+  inventory: {
+    vehicles: EvidenceFact;
+    properties: EvidenceFact;
+    jobs: EvidenceFact;
+    rooms: EvidenceFact;
+    menu: EvidenceFact;
+  };
+  organization: {
+    contact: EvidenceFact;
+    address: EvidenceFact;
+    openingHours: EvidenceFact;
+    reviews: EvidenceFact;
+  };
+  schema: {
+    types: string[];
+    organization: boolean;
+    website: boolean;
+    product: boolean;
+    localBusiness: boolean;
+    vehicle: boolean;
+    realEstate: boolean;
+    jobPosting: boolean;
+    restaurant: boolean;
+    hotel: boolean;
+  };
+};
+
+const uniq = <T,>(values: T[]) => [...new Set(values)];
+
+const fact = <T,>(value: T, confidence: EvidenceConfidence, sources: EvidenceSource[], evidence: string[]): EvidenceFact<T> => ({
+  value,
+  confidence,
+  sources: uniq(sources),
+  evidence: uniq(evidence).slice(0, 12),
+});
+
+const has = (text: string, re: RegExp) => re.test(text);
+
+export function buildScanEvidence(input: {
+  url: string;
+  html: string;
+  rawHtml?: string;
+  rendered?: boolean;
+  language?: string | null;
+  title?: string | null;
+}): ScanEvidence {
+  const html = input.html || "";
+  const rawHtml = input.rawHtml || html;
+  const text = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").toLowerCase();
+  const source: EvidenceSource = input.rendered ? "rendered_html" : "raw_html";
+  const url = input.url.toLowerCase();
+
+  const schemaTypes = uniq([...html.matchAll(/["']@type["']\s*:\s*["']([^"']+)["']/gi)].map(m => m[1]).filter(Boolean));
+  const schemaLower = schemaTypes.map(x => x.toLowerCase());
+  const schemaHas = (...names: string[]) => names.some(name => schemaLower.includes(name.toLowerCase()));
+
+  const hrefs = [...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>/gi)].map(m => m[1]);
+  const productLinkCount = hrefs.filter(h => /\/(?:product|products|p|artikel|artikelen|item|shop)\//i.test(h)).length;
+
+  const cart = has(html, /(?:cart|basket|winkelwagen|warenkorb|panier|carrello|carrito)/i);
+  const addToCart = has(text, /\b(add to cart|add to basket|in winkelwagen|toevoegen aan winkelwagen|in den warenkorb|ajouter au panier|aggiungi al carrello|añadir al carrito)\b/i);
+  const checkout = has(html, /(?:checkout|afrekenen|kasse|paiement|pagamento|pago)/i);
+  const productPage = schemaHas("Product", "Offer") || /\/(?:product|products|p|artikel|item)\//i.test(url);
+
+  const currencyMatches = [...text.matchAll(/(?:€|eur\b|\$|usd\b|£|gbp\b)/gi)].map(m => m[0].toUpperCase());
+  const currencies = uniq(currencyMatches.map(v => v === "€" ? "EUR" : v === "$" ? "USD" : v === "£" ? "GBP" : v));
+  const priceCount = [...text.matchAll(/(?:€\s*\d|\d[\d.,]*\s*(?:€|eur\b)|\$\s*\d|£\s*\d)/gi)].length;
+
+  const appointment = has(text, /\b(afspraak|appointment|termin|rendez-vous|appuntamento|cita)\b/i);
+  const reservation = has(text, /\b(reserveren|reservation|reserve a table|tisch reservieren|réserver|prenota|reservar)\b/i);
+  const booking = has(text, /\b(boeken|book now|booking|buchen|réserver|prenota|reservar)\b/i);
+  const quoteRequest = has(text, /\b(offerte|quote request|request a quote|angebot anfordern|devis|preventivo|presupuesto)\b/i);
+
+  const vehicles = schemaHas("Vehicle", "Car", "AutoDealer", "AutomotiveBusiness") || has(text, /\b(occasions?|proefrit|test drive|fahrzeuge?|voitures? d'occasion|auto usate)\b/i);
+  const properties = schemaHas("RealEstateAgent", "Residence", "House", "Apartment") || has(text, /\b(woningen?|huizen te koop|makelaar|real estate|properties for sale|immobilien|maisons? à vendre)\b/i);
+  const jobs = schemaHas("JobPosting") || has(text, /\b(vacatures?|solliciteren|jobs?|careers?|stellenangebote|offres d'emploi)\b/i);
+  const rooms = schemaHas("Hotel", "HotelRoom", "LodgingBusiness") || has(text, /\b(kamers?|rooms?|overnachting|hotelzimmer|chambres?)\b/i);
+  const menu = schemaHas("Restaurant", "Menu") || has(text, /\b(menu|menukaart|gerechten|restaurant|speisekarte|carte des plats)\b/i);
+
+  const contact = has(text, /\b(contact|contacteer|kontakt|contactez|contatti|contacto)\b/i) || has(html, /mailto:|tel:/i);
+  const address = schemaHas("PostalAddress") || has(text, /\b(adres|address|adresse|indirizzo|dirección)\b/i);
+  const openingHours = schemaHas("OpeningHoursSpecification") || has(text, /\b(openingstijden|opening hours|öffnungszeiten|horaires|orari|horario)\b/i);
+  const reviews = schemaHas("Review", "AggregateRating") || has(text, /\b(reviews?|beoordelingen|bewertungen|avis|recensioni|reseñas)\b/i);
+
+  return {
+    version: "1.0",
+    page: { url: input.url, rendered: Boolean(input.rendered), language: input.language || null, title: input.title || null },
+    commerce: {
+      cart: fact(cart, cart ? "high" : "low", [source], cart ? ["Cart/winkelwagen-signaal gevonden"] : []),
+      addToCart: fact(addToCart, addToCart ? "high" : "low", [source], addToCart ? ["Add-to-cart actie gevonden"] : []),
+      checkout: fact(checkout, checkout ? "high" : "low", [source], checkout ? ["Checkout/afreken-signaal gevonden"] : []),
+      prices: fact({ count: priceCount, currencies }, priceCount ? "high" : "low", [source], priceCount ? [`${priceCount} zichtbaar prijs-signaal/signalen; valuta: ${currencies.join(", ") || "onbekend"}`] : []),
+      products: fact(productPage || productLinkCount > 0, productPage ? "high" : productLinkCount > 0 ? "medium" : "low", [source, ...(schemaHas("Product") ? ["structured_data" as EvidenceSource] : [])], productPage ? ["Productpagina/schema-signaal gevonden"] : productLinkCount ? [`${productLinkCount} productachtige interne link(s) gevonden`] : []),
+      productPage: fact(productPage, productPage ? "high" : "low", [source, ...(schemaHas("Product", "Offer") ? ["structured_data" as EvidenceSource] : [])], productPage ? ["Productpaginabewijs gevonden"] : []),
+      productLinks: fact(productLinkCount, productLinkCount ? "medium" : "low", [source], productLinkCount ? [`${productLinkCount} productachtige interne link(s)`] : []),
+    },
+    appointments: {
+      appointment: fact(appointment, appointment ? "medium" : "low", [source], appointment ? ["Afspraak-signaal gevonden"] : []),
+      reservation: fact(reservation, reservation ? "medium" : "low", [source], reservation ? ["Reserveringssignaal gevonden"] : []),
+      booking: fact(booking, booking ? "medium" : "low", [source], booking ? ["Boekingssignaal gevonden"] : []),
+      quoteRequest: fact(quoteRequest, quoteRequest ? "medium" : "low", [source], quoteRequest ? ["Offerte-signaal gevonden"] : []),
+    },
+    inventory: {
+      vehicles: fact(vehicles, vehicles ? "medium" : "low", [source], vehicles ? ["Voertuig/autodealer-signaal gevonden"] : []),
+      properties: fact(properties, properties ? "medium" : "low", [source], properties ? ["Vastgoed/woning-signaal gevonden"] : []),
+      jobs: fact(jobs, jobs ? "medium" : "low", [source], jobs ? ["Vacature/recruitment-signaal gevonden"] : []),
+      rooms: fact(rooms, rooms ? "medium" : "low", [source], rooms ? ["Hotel/kamer-signaal gevonden"] : []),
+      menu: fact(menu, menu ? "medium" : "low", [source], menu ? ["Restaurant/menu-signaal gevonden"] : []),
+    },
+    organization: {
+      contact: fact(contact, contact ? "medium" : "low", [source], contact ? ["Contactsignaal gevonden"] : []),
+      address: fact(address, address ? "medium" : "low", [source], address ? ["Adres-signaal gevonden"] : []),
+      openingHours: fact(openingHours, openingHours ? "medium" : "low", [source], openingHours ? ["Openingstijden-signaal gevonden"] : []),
+      reviews: fact(reviews, reviews ? "medium" : "low", [source], reviews ? ["Review-signaal gevonden"] : []),
+    },
+    schema: {
+      types: schemaTypes,
+      organization: schemaHas("Organization", "Corporation", "LocalBusiness"),
+      website: schemaHas("WebSite"),
+      product: schemaHas("Product", "Offer"),
+      localBusiness: schemaHas("LocalBusiness"),
+      vehicle: schemaHas("Vehicle", "Car", "AutoDealer", "AutomotiveBusiness"),
+      realEstate: schemaHas("RealEstateAgent", "Residence", "House", "Apartment"),
+      jobPosting: schemaHas("JobPosting"),
+      restaurant: schemaHas("Restaurant", "FoodEstablishment"),
+      hotel: schemaHas("Hotel", "HotelRoom", "LodgingBusiness"),
+    },
+  };
+}
+
+export function mergeScanEvidence(base: ScanEvidence, additional: ScanEvidence): ScanEvidence {
+  const mergeFact = <T,>(a: EvidenceFact<T>, b: EvidenceFact<T>, choose: (x: T, y: T) => T): EvidenceFact<T> => ({
+    value: choose(a.value, b.value),
+    confidence: a.confidence === "high" || b.confidence === "high" ? "high" : a.confidence === "medium" || b.confidence === "medium" ? "medium" : "low",
+    sources: uniq([...a.sources, ...b.sources, "multi_page"]),
+    evidence: uniq([...a.evidence, ...b.evidence]).slice(0, 12),
+  });
+  const or = (a:boolean,b:boolean)=>a||b;
+  const max = (a:number,b:number)=>Math.max(a,b);
+  return {
+    ...base,
+    commerce: {
+      cart: mergeFact(base.commerce.cart, additional.commerce.cart, or),
+      addToCart: mergeFact(base.commerce.addToCart, additional.commerce.addToCart, or),
+      checkout: mergeFact(base.commerce.checkout, additional.commerce.checkout, or),
+      prices: mergeFact(base.commerce.prices, additional.commerce.prices, (a,b)=>({count:Math.max(a.count,b.count),currencies:uniq([...a.currencies,...b.currencies])})),
+      products: mergeFact(base.commerce.products, additional.commerce.products, or),
+      productPage: mergeFact(base.commerce.productPage, additional.commerce.productPage, or),
+      productLinks: mergeFact(base.commerce.productLinks, additional.commerce.productLinks, max),
+    },
+    appointments: {
+      appointment: mergeFact(base.appointments.appointment, additional.appointments.appointment, or),
+      reservation: mergeFact(base.appointments.reservation, additional.appointments.reservation, or),
+      booking: mergeFact(base.appointments.booking, additional.appointments.booking, or),
+      quoteRequest: mergeFact(base.appointments.quoteRequest, additional.appointments.quoteRequest, or),
+    },
+    inventory: {
+      vehicles: mergeFact(base.inventory.vehicles, additional.inventory.vehicles, or),
+      properties: mergeFact(base.inventory.properties, additional.inventory.properties, or),
+      jobs: mergeFact(base.inventory.jobs, additional.inventory.jobs, or),
+      rooms: mergeFact(base.inventory.rooms, additional.inventory.rooms, or),
+      menu: mergeFact(base.inventory.menu, additional.inventory.menu, or),
+    },
+    organization: {
+      contact: mergeFact(base.organization.contact, additional.organization.contact, or),
+      address: mergeFact(base.organization.address, additional.organization.address, or),
+      openingHours: mergeFact(base.organization.openingHours, additional.organization.openingHours, or),
+      reviews: mergeFact(base.organization.reviews, additional.organization.reviews, or),
+    },
+    schema: {
+      types: uniq([...base.schema.types, ...additional.schema.types]),
+      organization: base.schema.organization || additional.schema.organization,
+      website: base.schema.website || additional.schema.website,
+      product: base.schema.product || additional.schema.product,
+      localBusiness: base.schema.localBusiness || additional.schema.localBusiness,
+      vehicle: base.schema.vehicle || additional.schema.vehicle,
+      realEstate: base.schema.realEstate || additional.schema.realEstate,
+      jobPosting: base.schema.jobPosting || additional.schema.jobPosting,
+      restaurant: base.schema.restaurant || additional.schema.restaurant,
+      hotel: base.schema.hotel || additional.schema.hotel,
+    },
+  };
+}
