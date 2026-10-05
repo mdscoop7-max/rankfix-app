@@ -3140,16 +3140,23 @@ export async function POST(request: Request) {
     };
     const rankedMultiPage = discoveredMultiPage.filter((item) => multiPageRelevance(item) > -100).sort((a,b) => multiPageRelevance(b) - multiPageRelevance(a));
     const pickMultiPage = (type: MultiPageCandidate["type"], limit: number) => rankedMultiPage.filter((item) => item.type === type).slice(0, limit);
-    const multiPagePages: MultiPageCandidate[] = hasEcommerceSignal
+    // Keep representative sampling inside the locale/subdirectory the customer
+    // actually scanned. Falling back to origin "/" can switch country/language
+    // (for example /nl/nl/ -> global root) and contaminate sector/content evidence.
+    const localePathMatch = finalUrl.pathname.match(/^\/(?:[a-z]{2}(?:-[a-z]{2})?)(?:\/(?:[a-z]{2}(?:-[a-z]{2})?))?\//i);
+    const representativeHomeUrl = localePathMatch
+      ? new URL(localePathMatch[0], finalUrl.origin).toString()
+      : new URL("/", finalUrl).toString();
+    const multiPagePages: MultiPageCandidate[] = (masterEvidence.commerce.confirmed || technologyProfile.isCommerce || hasEcommerceSignal)
       ? [
-          { url: new URL("/", finalUrl).toString(), type: "homepage", evidence: ["site root"] },
+          { url: representativeHomeUrl, type: "homepage", evidence: [localePathMatch ? "locale root" : "site root"] },
           ...pickMultiPage("category", 1), ...pickMultiPage("product", 1),
           // Only spend the last slot on a generic page when category/product evidence
           // is unavailable. This keeps webshop sampling representative.
           ...(pickMultiPage("category", 1).length && pickMultiPage("product", 1).length ? [] : pickMultiPage("other", 1)),
         ]
       : [
-          { url: new URL("/", finalUrl).toString(), type: "homepage", evidence: ["site root"] },
+          { url: representativeHomeUrl, type: "homepage", evidence: [localePathMatch ? "locale root" : "site root"] },
           ...pickMultiPage("other", 2), ...pickMultiPage("category", 1), ...pickMultiPage("product", 1),
         ];
     const uniqueMultiPagePages = [...new Map(multiPagePages.map((item) => [normalizeScanUrl(item.url), item] as const)).values()].slice(0, 4);
