@@ -758,3 +758,14 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
 .rf-shared-scan-meta span:nth-child(5){background:#fff6df!important;border-color:#f4dda3!important;color:#9b6500!important}
 .rf-shared-scan-meta span:nth-child(6){background:#fff0f6!important;border-color:#f2cada!important;color:#b53c70!important}
 }
+
+/* Overview quick actions — same modern icon language as Help/More. */
+.rf-quick-icon{display:grid!important;place-items:center;width:42px!important;height:42px!important;border-radius:11px!important;color:#fff!important;box-shadow:0 3px 8px rgba(25,38,58,.12)}
+.rf-quick-icon svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.rf-quick-icon-health{background:#159de0!important}.rf-quick-icon-ai{background:#11b97a!important}.rf-quick-icon-github{background:#176b9d!important}.rf-quick-icon-report{background:#7657e8!important}
+/* Language selector: readable on dark header in every locale. */
+.rf-language-trigger{background:#fff!important;color:#172033!important;border:1px solid #d7e0ea!important;box-shadow:0 2px 8px rgba(0,0,0,.08)!important}
+.rf-language-trigger span{color:#172033!important;opacity:1!important}
+.rf-language-dropdown{background:#fff!important;border:1px solid #d7e0ea!important;box-shadow:0 12px 28px rgba(15,23,42,.18)!important}
+.rf-language-dropdown .rf-language-chip{color:#172033!important;background:#fff!important}
+.rf-language-dropdown .rf-language-chip:hover,.rf-language-dropdown .rf-language-chip[aria-current="true"]{background:#edf6ff!important;color:#1769d2!important}
