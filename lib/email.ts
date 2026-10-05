@@ -1,5 +1,5 @@
 type ScanCheck = {
-  category: "seo" | "geo" | "security";
+  category: "seo" | "geo" | "security" | "accessibility";
   title: string;
   status: "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
   message: string;
