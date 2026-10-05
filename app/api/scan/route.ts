@@ -9,7 +9,7 @@ import { getFixPolicy } from "@/lib/fix-policy";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
-import { applyEvidenceBasedScoreCap, SCORE_MODEL_VERSION, scoreApplicableChecks, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
+import { applyEvidenceBasedScoreCap, SCORE_MODEL_VERSION, scoreApplicableChecks, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
 import { normalizePlan, planLimits } from "@/lib/plans";
 import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
 import { renderPublicPage } from "@/lib/headless-render";
@@ -3094,13 +3094,20 @@ export async function POST(request: Request) {
     const seoCoverage = weightedCoverage(selectedSeoChecks);
     const geoCoverage = weightedCoverage(selectedGeoChecks);
     const overallCoverage = weightedCoverage(checks);
+    const seoScoreRange = scoreRange(selectedSeoChecks);
+    const geoScoreRange = scoreRange(selectedGeoChecks);
+    const overallScoreRange = scoreRange(checks);
     const scoreModel = {
       version: SCORE_MODEL_VERSION,
       formula: mode === "both" ? "0.6 × SEO + 0.4 × GEO" : mode === "seo" ? "SEO" : "GEO",
       weights: mode === "both" ? { seo: 0.6, geo: 0.4, security: 0 } : mode === "seo" ? { seo: 1, geo: 0, security: 0 } : { seo: 0, geo: 1, security: 0 },
       securitySeparate: true,
       coverageBasis: "assessed_weight / applicable_weight",
-      note: "Niet te bevestigen en N.v.t. verlagen de score niet; dekking toont welk deel van het toepasselijke gewicht daadwerkelijk is beoordeeld.",
+      range: overallScoreRange,
+      seoRange: seoScoreRange,
+      geoRange: geoScoreRange,
+      provisional: overallCoverage.coveragePercent < 90,
+      note: "Niet te bevestigen verlaagt de score niet, maar blijft toepasselijk gewicht in de dekking. N.v.t. is uitgesloten. Het bereik toont de conservatieve en optimistische grens voor nog onbevestigd bewijs.",
     };
     const scanSummary = summarizeAuditChecks(checks);
     const pageTypeEvidence = {
@@ -3613,7 +3620,11 @@ export async function POST(request: Request) {
               imageCount, imageElementCount, imagesMissingAlt, wordCount, headingsCount: headings.length, linksCount: links.length, pageType: schemaContextLabel, recommendedSchema, localBusinessDetails,
               internalLinks, canonical: canonical || null, lang: lang || null, robots: robots || null,
               openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null }, imageAltCandidates,
-              productOptimizer: isProductPage ? { eligible: productOptimizerSourceCount >= 3, sourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null } : { eligible: false, sourceCount: 0, product: null },
+              productOptimizer: isProductPage
+                ? { eligible: productOptimizerSourceCount >= 3, sourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page" }
+                : multiPageCapabilities.productSample
+                  ? { eligible: false, sourceCount: 0, product: null, provenance: "representative_product_sample", status: "sample_found_requires_product_evidence_extraction", sampleUrl: auditedMultiPages.find((item)=>item.type==="product")?.url || null }
+                  : { eligible: false, sourceCount: 0, product: null, provenance: "no_product_sample" },
               pricingCurrency: pricingCurrencyEvidence,
               euConsumerSignals: consumerLawSignals,
               checkoutFunnel: checkoutFunnelEvidence,
@@ -3865,7 +3876,11 @@ export async function POST(request: Request) {
         robots: robots || null,
         openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null },
         imageAltCandidates,
-        productOptimizer: isProductPage ? { eligible: productOptimizerSourceCount >= 3, sourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null } : { eligible: false, sourceCount: 0, product: null },
+        productOptimizer: isProductPage
+                ? { eligible: productOptimizerSourceCount >= 3, sourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page" }
+                : multiPageCapabilities.productSample
+                  ? { eligible: false, sourceCount: 0, product: null, provenance: "representative_product_sample", status: "sample_found_requires_product_evidence_extraction", sampleUrl: auditedMultiPages.find((item)=>item.type==="product")?.url || null }
+                  : { eligible: false, sourceCount: 0, product: null, provenance: "no_product_sample" },
         pricingCurrency: pricingCurrencyEvidence,
         euConsumerSignals: consumerLawSignals,
         checkoutFunnel: checkoutFunnelEvidence,
