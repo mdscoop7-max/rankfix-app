@@ -160,8 +160,7 @@ type TechnologyProfile = {
 
 function detectTechnologyProfile(html: string, headers: Headers, commerceSignal: boolean): TechnologyProfile {
   const source = html.toLowerCase();
-  const headerText = [...headers.entries()].map(([key, value]) => `${key}:${value}`).join("
-").toLowerCase();
+  const headerText = [...headers.entries()].map(([key, value]) => `${key}:${value}`).join("\\n").toLowerCase();
   const evidence: string[] = [];
   const hit = (pattern: RegExp, label: string) => {
     if (pattern.test(source) || pattern.test(headerText)) {
