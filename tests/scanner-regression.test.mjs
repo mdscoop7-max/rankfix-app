@@ -807,3 +807,13 @@ test("representative page audits expose raw versus rendered provenance", async (
   assert.match(scanner,/representativeEvidenceSource = "rendered_html"/);
   assert.match(scanner,/evidenceSource:representativeEvidenceSource/);
 });
+
+
+test("audit shows transparent representative page coverage", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const audit = await readFile(new URL("../app/dashboard/audit/[id]/page.tsx", import.meta.url), "utf8");
+  assert.match(audit,/Paginadekking/);
+  assert.match(audit,/counts\?\.audited/);
+  assert.match(audit,/counts\?\.unableToConfirm/);
+  assert.match(audit,/discoveredInternalUrls/);
+});
