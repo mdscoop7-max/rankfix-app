@@ -750,3 +750,21 @@ test("every audit problem has a visible remediation path", async () => {
   assert.match(audit,/Bekijk handmatige stappen/);
   assert.match(audit,/remediationAction\(check\)==="manual"/);
 });
+
+
+test("representative JS pages receive bounded browser evidence recovery", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(scanner,/representativeJsFramework/);
+  assert.match(scanner,/representativeThinShell/);
+  assert.match(scanner,/javascript-rendered representative page/);
+  assert.match(scanner,/javascript rendering unavailable; raw HTML retained/);
+});
+
+test("commerce identity requires confirmed high-confidence signals", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(scanner,/confirmedCommerceSignals >= 2 && evidenceCommerceStrength >= 3/);
+  assert.match(scanner,/scanEvidence\.commerce\.productPage\.confidence === "high"/);
+  assert.match(scanner,/scanEvidence\.commerce\.addToCart\.confidence === "high"/);
+});
