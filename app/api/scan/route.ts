@@ -2434,7 +2434,8 @@ export async function POST(request: Request) {
       return normalized.toString();
     };
 
-    const canonicalHost = (host: string) => host.toLowerCase().replace(/^www\./, "");\n    const canonicalTarget = canonicalUrl ? normalizeCanonicalTarget(canonicalUrl) : "";
+    const canonicalHost = (host: string) => host.toLowerCase().replace(/^www\./, "");
+    const canonicalTarget = canonicalUrl ? normalizeCanonicalTarget(canonicalUrl) : "";
     const currentTarget = normalizeCanonicalTarget(finalUrl);
     const canonicalIsSelf = Boolean(canonicalUrl && canonicalTarget === currentTarget);
     const canonicalListingParams = new Set(["forsaleorrent","moveunavailablelistingstothebottom","orderby","orderdescending","take","page","pagesize","sort","sortby","filter","filters","view","ref","source","campaign"]);
