@@ -3841,10 +3841,20 @@ export async function POST(request: Request) {
     // Commerce can be secondary to a proven service identity. Cart/checkout
     // navigation or a shop shell alone is not hard retail evidence.
     const representativeRetailProduct = auditedMultiPages.some((item)=>item.type==="product" && Boolean(item.commerceEvidence?.product));
+    // Hard commerce requires confirmed evidence. A product-looking URL is only
+    // a medium-confidence hint and must never activate retail modules by itself.
+    const confirmedCurrentProduct = scanEvidence.commerce.productPage.value &&
+      scanEvidence.commerce.productPage.confidence === "high";
+    const confirmedAddToCart = scanEvidence.commerce.addToCart.value &&
+      scanEvidence.commerce.addToCart.confidence === "high";
+    const corroboratedProductAndPrice = scanEvidence.commerce.products.value &&
+      scanEvidence.commerce.products.confidence === "high" &&
+      scanEvidence.commerce.prices.value.count > 0 &&
+      scanEvidence.commerce.prices.confidence !== "low";
     const hardCommerceEvidence = sitewideCommerceEvidence.confirmed || representativeRetailProduct || Boolean(
-      scanEvidence.commerce.productPage.value ||
-      scanEvidence.commerce.addToCart.value ||
-      (scanEvidence.commerce.products.value && scanEvidence.commerce.prices.value.count > 0)
+      confirmedCurrentProduct ||
+      confirmedAddToCart ||
+      corroboratedProductAndPrice
     );
     const technologyOnlyCommerce = technologyProfile.isCommerce && !hardCommerceEvidence;
     const secondaryCommerceOnly = Boolean(primaryNonCommerceIdentity && !hardCommerceEvidence);
