@@ -4083,6 +4083,28 @@ export async function POST(request: Request) {
     (masterEvidence as typeof masterEvidence & {finalDecisions?:unknown;classification?:unknown}).finalDecisions = {commerce:finalCommerceDecision};
     (masterEvidence as typeof masterEvidence & {classification?:unknown}).classification = classification;
 
+    // Sitewide aggregation is descriptive evidence, not a second scoring model.
+    // For each representative control we expose the worst *proven* result and the
+    // exact affected URLs. UNABLE samples remain uncertainty and never become FAIL.
+    const sitewideCheckAggregation = ["title","description","h1","canonical"].map((key) => {
+      const observations = auditedMultiPages.flatMap((page) => {
+        const finding = page.evidenceChecks.find((item)=>item.key===key);
+        return finding ? [{url:page.url,status:finding.status,details:finding.details}] : [];
+      });
+      const proven = observations.filter((item)=>item.status!=="UNABLE_TO_CONFIRM");
+      const warnings = proven.filter((item)=>item.status==="WARNING");
+      const passes = proven.filter((item)=>item.status==="PASS");
+      return {
+        key,
+        status: warnings.length ? "WARNING" as const : passes.length ? "PASS" as const : "UNABLE_TO_CONFIRM" as const,
+        checkedPages: observations.length,
+        provenPages: proven.length,
+        affectedUrls: warnings.map((item)=>item.url).slice(0,4),
+        evidence: (warnings.length ? warnings : passes).slice(0,4),
+        reason: !proven.length ? "Geen representatieve pagina leverde voldoende bewijs voor deze sitebrede samenvatting." : null,
+      };
+    });
+
     const multiPage = {
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:4,
       discoveredInternalUrls:discoveredMultiPage.length, selectedPages:uniqueMultiPagePages, pageAudits:multiPageAudits,
@@ -4098,6 +4120,7 @@ export async function POST(request: Request) {
         ? (auditedMultiPages.length < multiPageAudits.length ? "Voorlopige site-samplescore" : "Site-samplescore")
         : "Site-sample niet te bevestigen",
       sitewideCommerceEvidence,
+      sitewideCheckAggregation,
       capabilities: {
         hospitality: multiPageCapabilities.hospitality,
         treatment: multiPageCapabilities.treatment,
@@ -4108,7 +4131,7 @@ export async function POST(request: Request) {
         productSample: multiPageCapabilities.productSample,
         categorySample: multiPageCapabilities.categorySample,
       },
-      counts:{ homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedMultiPages.length, unableToConfirm:multiPageAudits.length-auditedMultiPages.length },
+      counts:{ homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, form:uniqueMultiPagePages.filter((x)=>x.type==="form").length, legal:uniqueMultiPagePages.filter((x)=>x.type==="legal").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedMultiPages.length, unableToConfirm:multiPageAudits.length-auditedMultiPages.length },
       note:"Representative same-host pages are fetched with bounded checks. Their sample score is separate from the explicitly scanned page score; site-level evidence may strengthen identity/capabilities, but page-specific failures still require direct proof.",
     };
 
