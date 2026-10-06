@@ -391,3 +391,14 @@ test("representative site evidence propagates into specialist checks", async () 
   assert.match(source, /"sector_automotive_services",\s*multiPageCapabilities\.automotiveService/);
   assert.match(source, /"sector_health_services",\s*multiPageCapabilities\.treatment/);
 });
+
+
+test("representative page ranking prefers structural capability context", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /anchorContextByUrl/);
+  assert.match(source, /const capabilityContext =/);
+  assert.match(source, /const utilityContext =/);
+  assert.match(source, /if \(capabilityContext\) score \+= 24/);
+  assert.match(source, /Path semantics are deliberately weak evidence only/);
+});
