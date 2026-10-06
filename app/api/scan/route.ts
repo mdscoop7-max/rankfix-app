@@ -3373,7 +3373,11 @@ export async function POST(request: Request) {
         const fetched = await safePublicFetch(page.url, { timeoutMs: 8000, maxRedirects: 3, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml" });
         const r = fetched.response;
         const finalCandidate = new URL(fetched.finalUrl.toString());
-        if (normalizeHost(finalCandidate.hostname) !== siteHost) throw new Error("CROSS_HOST_REDIRECT");
+        const finalCandidateHost = normalizeHost(finalCandidate.hostname);
+        const sameRegistrableSite = finalCandidateHost === siteHost
+          || finalCandidateHost.endsWith(`.${siteHost}`)
+          || siteHost.endsWith(`.${finalCandidateHost}`);
+        if (!sameRegistrableSite) throw new Error("CROSS_HOST_REDIRECT");
         const contentType = r.headers.get("content-type") || "";
         let pageHtml: string | null = null;
         // Motor v2.1: representative pages get the same single bounded recovery
