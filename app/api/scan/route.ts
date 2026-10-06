@@ -3425,8 +3425,8 @@ export async function POST(request: Request) {
     }
     // sectorProfile was determined before scoring so applicability and scoring stay aligned.
     const rawRenderingNotes: Record<string,string> = {
-      nl:"RankFix beoordeelde de HTTP HTML-response; client-side JavaScript is in deze scan niet uitgevoerd.",
-      en:"RankFix evaluated the HTTP HTML response; client-side JavaScript was not executed in this scan.",
+      nl: javascriptCandidate ? "JavaScript-framework gedetecteerd, maar browser-rendering kon niet betrouwbaar worden voltooid. Dynamische formulieren, metadata en interactieve onderdelen kunnen daarom ontbreken; deze controles blijven Niet te bevestigen." : "RankFix beoordeelde de HTTP HTML-response; client-side JavaScript was voor deze pagina niet nodig of werd niet uitgevoerd.",
+      en: javascriptCandidate ? "A JavaScript framework was detected, but browser rendering could not be completed reliably. Dynamic forms, metadata and interactive elements may therefore be missing; affected checks remain Unable to confirm." : "RankFix evaluated the HTTP HTML response; client-side JavaScript was not required for this page or was not executed.",
       de:"RankFix hat die HTTP-HTML-Antwort ausgewertet; clientseitiges JavaScript wurde in diesem Scan nicht ausgeführt.",
       fr:"RankFix a évalué la réponse HTML HTTP ; le JavaScript côté client n’a pas été exécuté pendant cette analyse.",
       it:"RankFix ha valutato la risposta HTML HTTP; il JavaScript lato client non è stato eseguito durante questa scansione.",
@@ -3445,7 +3445,9 @@ export async function POST(request: Request) {
       javascriptExecuted,
       note: javascriptExecuted ? (jsRenderingNotes[scanLanguage] || jsRenderingNotes.en) : (rawRenderingNotes[scanLanguage] || rawRenderingNotes.en),
       elapsedMs: renderElapsedMs,
-      fallbackReason: javascriptCandidate && !javascriptExecuted ? renderFallbackReason : null,
+      fallbackReason: javascriptCandidate && !javascriptExecuted ? (renderFallbackReason || "JAVASCRIPT_RENDER_UNAVAILABLE") : null,
+      warning: javascriptCandidate && !javascriptExecuted,
+      evidenceSource: javascriptExecuted ? "rendered_html" as const : "raw_html" as const,
     };
 
     // Multi-page evidence audit: select a bounded same-host sample and fetch it
