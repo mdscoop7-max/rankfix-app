@@ -712,3 +712,13 @@ test("expensive and mail-triggering endpoints have coarse rate limits", async ()
   assert.match(competitor,/consumeRateLimit\("competitor-scan",String\(user\.id\),4,600\)/);
   assert.match(health,/consumeRateLimit\("health-run-now",String\(user\.id\),6,3600\)/);
 });
+
+
+test("every audit problem has a visible remediation path", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const audit = await readFile(new URL("../app/dashboard/audit/[id]/page.tsx", import.meta.url), "utf8");
+  assert.match(audit,/Maak veilige GitHub-fix/);
+  assert.match(audit,/Vraag RankFix AI/);
+  assert.match(audit,/Bekijk handmatige stappen/);
+  assert.match(audit,/remediationAction\(check\)==="manual"/);
+});
