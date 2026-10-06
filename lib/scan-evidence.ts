@@ -9,7 +9,7 @@ export type EvidenceFact<T = boolean> = {
 };
 
 export type ScanEvidence = {
-  version: "1.0";
+  version: "1.1";
   page: {
     url: string;
     rendered: boolean;
@@ -155,15 +155,15 @@ export function buildScanEvidence(input: {
   const resultsOrStandings = has(text, /\b(uitslag|result|standings|league table|score)\b/i);
 
   return {
-    version: "1.0",
+    version: "1.1",
     page: { url: input.url, rendered: Boolean(input.rendered), language: input.language || null, title: input.title || null },
     commerce: {
       cart: fact(cart, cart ? "high" : "low", [source], cart ? ["Cart/winkelwagen-signaal gevonden"] : []),
       addToCart: fact(addToCart, addToCart ? "high" : "low", [source], addToCart ? ["Add-to-cart actie gevonden"] : []),
       checkout: fact(checkout, checkout ? "high" : "low", [source], checkout ? ["Checkout/afreken-signaal gevonden"] : []),
       prices: fact({ count: priceCount, currencies }, priceCount ? "high" : "low", [source], priceCount ? [`${priceCount} zichtbaar prijs-signaal/signalen; valuta: ${currencies.join(", ") || "onbekend"}`] : []),
-      products: fact(productPage || productLinkCount > 0, productPage ? "high" : productLinkCount > 0 ? "medium" : "low", [source, ...(schemaHas("Product") ? ["structured_data" as EvidenceSource] : [])], productPage ? ["Productpagina/schema-signaal gevonden"] : productLinkCount ? [`${productLinkCount} productachtige interne link(s) gevonden`] : []),
-      productPage: fact(productPage, productPage ? "high" : "low", [source, ...(schemaHas("Product") ? ["structured_data" as EvidenceSource] : [])], productPage ? ["Productpaginabewijs gevonden"] : []),
+      products: fact(productPage || productLinkCount > 0, productSchema ? "high" : productPage || productLinkCount > 0 ? "medium" : "low", [source, ...(productSchema ? ["structured_data" as EvidenceSource] : []), ...(productPathHint ? ["url" as EvidenceSource] : [])], productSchema ? ["Product-schema gevonden"] : productPathHint ? ["Productachtige URL gevonden; dit is ondersteunend bewijs, geen zelfstandig retailbewijs"] : productLinkCount ? [`${productLinkCount} productachtige interne link(s) gevonden`] : []),
+      productPage: fact(productPage, productSchema ? "high" : productPathHint ? "medium" : "low", [source, ...(productSchema ? ["structured_data" as EvidenceSource] : []), ...(productPathHint ? ["url" as EvidenceSource] : [])], productSchema ? ["Productpagina bevestigd met Product-schema"] : productPathHint ? ["Productachtige URL gevonden; aanvullende product-/prijs-/actie-evidence vereist"] : []),
       productLinks: fact(productLinkCount, productLinkCount ? "medium" : "low", [source], productLinkCount ? [`${productLinkCount} productachtige interne link(s)`] : []),
     },
     appointments: {
