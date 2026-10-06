@@ -82,7 +82,7 @@ export default function AuditDetail() {
   const [language, setLanguage] = useState<Locale>("nl");
   const [deleteBusy,setDeleteBusy]=useState(false);
   const t = auditCopy[language];
-  const auditedUrl=scan?.final_url||auditedUrl||"";
+  const auditedUrl=scan?.final_url||scan?.scanned_url||"";
   const tr=(v:Record<Locale,string>)=>v[language];
   useEffect(() => {
     if (!id) return;
@@ -95,8 +95,8 @@ export default function AuditDetail() {
         if (response.status === 401) { location.href = "/account"; return; }
         if (!response.ok) throw new Error(data.error || t.failed);
         setScan({...data.scan,id});
-        fetch("/api/health?url="+encodeURIComponent(data.auditedUrl),{cache:"no-store"}).then(r=>r.ok?r.json():null).then(h=>{if(h)setHealth({improvements:h.improvements||0,regressions:h.regressions||0,priorityRegressions:h.priorityRegressions||0,persistent:h.persistent||0,needsAttention:!!h.needsAttention,newIssues:h.newIssues||[],recurringPatterns:h.recurringPatterns||[]});}).catch(()=>{});
-        fetch("/api/monitor?url="+encodeURIComponent(data.auditedUrl),{cache:"no-store"}).then(r=>r.ok?r.json():null).then(m=>{if(m){setMonitoring(!!m.enabled);setMonitorInfo({last_checked_at:m.last_checked_at||null,next_check_at:m.next_check_at||null,last_status:m.last_status||null,consecutive_failures:m.consecutive_failures||0,email_enabled:m.email_enabled!==false,last_alert_at:m.last_alert_at||null});}}).catch(()=>{});
+        fetch("/api/health?url="+encodeURIComponent((data.scan.final_url||data.scan.scanned_url)),{cache:"no-store"}).then(r=>r.ok?r.json():null).then(h=>{if(h)setHealth({improvements:h.improvements||0,regressions:h.regressions||0,priorityRegressions:h.priorityRegressions||0,persistent:h.persistent||0,needsAttention:!!h.needsAttention,newIssues:h.newIssues||[],recurringPatterns:h.recurringPatterns||[]});}).catch(()=>{});
+        fetch("/api/monitor?url="+encodeURIComponent((data.scan.final_url||data.scan.scanned_url)),{cache:"no-store"}).then(r=>r.ok?r.json():null).then(m=>{if(m){setMonitoring(!!m.enabled);setMonitorInfo({last_checked_at:m.last_checked_at||null,next_check_at:m.next_check_at||null,last_status:m.last_status||null,consecutive_failures:m.consecutive_failures||0,email_enabled:m.email_enabled!==false,last_alert_at:m.last_alert_at||null});}}).catch(()=>{});
       })
       .catch(cause => setError(cause instanceof Error ? cause.message : t.failed))
       .finally(() => setLoading(false));
