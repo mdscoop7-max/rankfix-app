@@ -11,11 +11,12 @@ export type ScorableAuditCheck = {
   points: number;
   maxPoints: number;
   confidence?: "high" | "medium" | "low";
+  severity?: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
   rootCause?: string;
   fix_status?: "WAITING" | "AWAITING_MERGE" | "STILL_PRESENT" | "DONE";
 };
 
-export const SCORE_MODEL_VERSION = "2.3-evidence-range";
+export const SCORE_MODEL_VERSION = "3.0-evidence-strict";
 
 export function weightedCoverage(items: ScorableAuditCheck[]) {
   const relevant = items.filter((item) => item.issue_status !== "NOT_APPLICABLE");
@@ -80,13 +81,19 @@ export function scoreApplicableChecks(items: ScorableAuditCheck[]): number {
       maxWithoutRootCause += item.maxPoints;
       continue;
     }
-    const penalty = Math.max(0, item.maxPoints - item.points);
+    const rawPenalty = Math.max(0, item.maxPoints - item.points);
+    const severityMultiplier =
+      item.severity === "CRITICAL" ? 1.75 :
+      item.severity === "HIGH" ? 1.5 :
+      item.severity === "MEDIUM" ? 1.2 : 1;
+    const confidenceMultiplier = item.confidence === "medium" ? 0.9 : 1;
+    const penalty = Math.min(item.maxPoints, rawPenalty * severityMultiplier * confidenceMultiplier);
     rootCausePenalty.set(item.rootCause, Math.max(rootCausePenalty.get(item.rootCause) || 0, penalty));
     maxWithoutRootCause += item.maxPoints;
     earnedWithoutRootCause += item.maxPoints;
   }
   const dedupedPenalty = [...rootCausePenalty.values()].reduce((sum, penalty) => sum + penalty, 0);
-  return Math.round(((earnedWithoutRootCause - dedupedPenalty) / maxWithoutRootCause) * 100);
+  return Math.max(0, Math.round(((earnedWithoutRootCause - dedupedPenalty) / maxWithoutRootCause) * 100));
 }
 
 export function summarizeAuditChecks(items: ScorableAuditCheck[]) {
