@@ -368,3 +368,15 @@ test("customer audit UX is localized for every supported locale", async () => {
   assert.match(report, /Principales problemas demostrados/);
   assert.match(report, /const ux=AUDIT_UX\[language\]/);
 });
+
+
+test("cookie security is evaluated per observed Set-Cookie record", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /const cookieObservations = observedCookies\.map/);
+  assert.match(source, /cookiesMissingSecure/);
+  assert.match(source, /cookiesMissingSameSite/);
+  assert.match(source, /sessionCookiesMissingHttpOnly/);
+  assert.match(source, /HttpOnly wordt alleen als vereiste beoordeeld voor sessie-\/authenticatiecookies/);
+  assert.doesNotMatch(source, /Cookie-flags zijn niet volledig bevestigd \(Secure=/);
+});
