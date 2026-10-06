@@ -417,12 +417,27 @@ test("representative page ranking prefers structural capability context", async 
 });
 
 
+test("Evidence Engine keeps URL-only product hints below confirmed retail evidence", async () => {
+  const { buildScanEvidence } = await import("../lib/scan-evidence.ts");
+  const hint = buildScanEvidence({url:"https://example.com/product/widget/",html:"<html><body><h1>Widget</h1></body></html>"});
+  assert.equal(hint.version, "1.1");
+  assert.equal(hint.commerce.productPage.value, true);
+  assert.equal(hint.commerce.productPage.confidence, "medium");
+  assert.ok(hint.commerce.productPage.sources.includes("url"));
+  const schema = buildScanEvidence({url:"https://example.com/item",html:'<script type="application/ld+json">{"@type":"Product","name":"Widget"}</script>'});
+  assert.equal(schema.commerce.productPage.confidence, "high");
+  assert.ok(schema.commerce.productPage.sources.includes("structured_data"));
+});
+
 test("Evidence Engine exposes explicit capability states and never infers absence from one page", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   assert.match(source, /type EvidenceCapabilityState = "detected" \| "likely" \| "unknown" \| "absent_proven"/);
   assert.match(source, /buildCapabilityState/);
   assert.match(source, /reason:"insufficient_coverage"/);
+  assert.match(source, /state:"likely"/);
+  assert.match(source, /explicitNegativeProof/);
+  assert.match(source, /state:"absent_proven"/);
   assert.match(source, /const capabilityStates: EvidenceCapability\[\]/);
   assert.match(source, /capabilityStates = capabilityStates/);
 });
