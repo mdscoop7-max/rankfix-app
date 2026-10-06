@@ -3200,33 +3200,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // Late representative evidence is reconciled before the final score. Checks remain
-    // page-specific unless their rule is explicitly a site/capability check.
-    if (sectorProfile.sector === "automotive") {
-      const serviceCheck = seoChecks.find((item)=>item.key==="sector_automotive_services");
-      if (serviceCheck && multiPageCapabilities.automotiveService) {
-        Object.assign(serviceCheck, check("pass","sector_automotive_services","seo","Garage diensten","Representatieve same-site pagina's bevestigen garage-/werkplaatsdiensten.","Houd de belangrijkste garage- en werkplaatsdiensten duidelijk vindbaar.",4,4));
-      }
-      const inventoryCheck = seoChecks.find((item)=>item.key==="sector_automotive_inventory");
-      if (inventoryCheck && multiPageCapabilities.vehicleSales) {
-        Object.assign(inventoryCheck, check("pass","sector_automotive_inventory","seo","Voertuigaanbod","Representatieve same-site pagina's bevestigen voertuig-/occasionaanbod.","Houd voertuigaanbod en detailpagina's duidelijk vindbaar.",4,4));
-      }
-    }
-    // Organization + WebSite is a site-level identity control. When the customer
-    // scans a subpage, use the already-audited homepage sample instead of N.v.t.
-    const orgWebsiteCheck = geoChecks.find((item)=>item.key==="organization_website");
-    const homepageSample = auditedMultiPages.find((item)=>item.type==="homepage");
-    if (!isHomepage && orgWebsiteCheck && homepageSample) {
-      const homepageTypes = new Set((homepageSample.schemaTypes||[]).map((value)=>value.toLowerCase()));
-      const hasOrg = homepageTypes.has("organization");
-      const hasWebSite = homepageTypes.has("website");
-      const signals = Number(hasOrg)+Number(hasWebSite);
-      const replacement = hasOrg && hasWebSite
-        ? check("pass","organization_website","geo","Organization + WebSite","Organization en WebSite structured data zijn bevestigd op de representatieve homepage.","Houd naam, URL en logo consistent met de zichtbare site-identiteit.",8,8)
-        : check("warning","organization_website","geo","Organization + WebSite",signals===1?"De representatieve homepage bevat één van Organization of WebSite; het aanvullende identity-schema ontbreekt.":"De representatieve homepage bevat geen bevestigd Organization- of WebSite-schema.","Voeg alleen passende Organization- en/of WebSite JSON-LD toe met aantoonbare gegevens.",signals===1?6:4,8);
-      Object.assign(orgWebsiteCheck,replacement);
-    }
-
     const selectedSeoChecks = mode === "geo" ? [] : seoChecks;
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
     const selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);
@@ -3711,6 +3684,33 @@ export async function POST(request: Request) {
           : technologyProfile.siteType === "Landingpage"
             ? "Website"
             : technologyProfile.siteType;
+    // Late representative evidence is reconciled before the final score. Checks remain
+    // page-specific unless their rule is explicitly a site/capability check.
+    if (sectorProfile.sector === "automotive") {
+      const serviceCheck = seoChecks.find((item)=>item.key==="sector_automotive_services");
+      if (serviceCheck && multiPageCapabilities.automotiveService) {
+        Object.assign(serviceCheck, check("pass","sector_automotive_services","seo","Garage diensten","Representatieve same-site pagina's bevestigen garage-/werkplaatsdiensten.","Houd de belangrijkste garage- en werkplaatsdiensten duidelijk vindbaar.",4,4));
+      }
+      const inventoryCheck = seoChecks.find((item)=>item.key==="sector_automotive_inventory");
+      if (inventoryCheck && multiPageCapabilities.vehicleSales) {
+        Object.assign(inventoryCheck, check("pass","sector_automotive_inventory","seo","Voertuigaanbod","Representatieve same-site pagina's bevestigen voertuig-/occasionaanbod.","Houd voertuigaanbod en detailpagina's duidelijk vindbaar.",4,4));
+      }
+    }
+    // Organization + WebSite is a site-level identity control. When the customer
+    // scans a subpage, use the already-audited homepage sample instead of N.v.t.
+    const orgWebsiteCheck = geoChecks.find((item)=>item.key==="organization_website");
+    const homepageSample = auditedMultiPages.find((item)=>item.type==="homepage");
+    if (!isHomepage && orgWebsiteCheck && homepageSample) {
+      const homepageTypes = new Set((homepageSample.schemaTypes||[]).map((value)=>value.toLowerCase()));
+      const hasOrg = homepageTypes.has("organization");
+      const hasWebSite = homepageTypes.has("website");
+      const signals = Number(hasOrg)+Number(hasWebSite);
+      const replacement = hasOrg && hasWebSite
+        ? check("pass","organization_website","geo","Organization + WebSite","Organization en WebSite structured data zijn bevestigd op de representatieve homepage.","Houd naam, URL en logo consistent met de zichtbare site-identiteit.",8,8)
+        : check("warning","organization_website","geo","Organization + WebSite",signals===1?"De representatieve homepage bevat één van Organization of WebSite; het aanvullende identity-schema ontbreekt.":"De representatieve homepage bevat geen bevestigd Organization- of WebSite-schema.","Voeg alleen passende Organization- en/of WebSite JSON-LD toe met aantoonbare gegevens.",signals===1?6:4,8);
+      Object.assign(orgWebsiteCheck,replacement);
+    }
+
     const classification = {
       websiteType,
       sector: {
