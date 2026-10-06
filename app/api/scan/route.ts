@@ -3200,6 +3200,33 @@ export async function POST(request: Request) {
       }
     }
 
+    // Late representative evidence is reconciled before the final score. Checks remain
+    // page-specific unless their rule is explicitly a site/capability check.
+    if (sectorProfile.sector === "automotive") {
+      const serviceCheck = seoChecks.find((item)=>item.key==="sector_automotive_services");
+      if (serviceCheck && multiPageCapabilities.automotiveService) {
+        Object.assign(serviceCheck, check("pass","sector_automotive_services","seo","Garage diensten","Representatieve same-site pagina's bevestigen garage-/werkplaatsdiensten.","Houd de belangrijkste garage- en werkplaatsdiensten duidelijk vindbaar.",4,4));
+      }
+      const inventoryCheck = seoChecks.find((item)=>item.key==="sector_automotive_inventory");
+      if (inventoryCheck && multiPageCapabilities.vehicleSales) {
+        Object.assign(inventoryCheck, check("pass","sector_automotive_inventory","seo","Voertuigaanbod","Representatieve same-site pagina's bevestigen voertuig-/occasionaanbod.","Houd voertuigaanbod en detailpagina's duidelijk vindbaar.",4,4));
+      }
+    }
+    // Organization + WebSite is a site-level identity control. When the customer
+    // scans a subpage, use the already-audited homepage sample instead of N.v.t.
+    const orgWebsiteCheck = geoChecks.find((item)=>item.key==="organization_website");
+    const homepageSample = auditedMultiPages.find((item)=>item.type==="homepage");
+    if (!isHomepage && orgWebsiteCheck && homepageSample) {
+      const homepageTypes = new Set((homepageSample.schemaTypes||[]).map((value)=>value.toLowerCase()));
+      const hasOrg = homepageTypes.has("organization");
+      const hasWebSite = homepageTypes.has("website");
+      const signals = Number(hasOrg)+Number(hasWebSite);
+      const replacement = hasOrg && hasWebSite
+        ? check("pass","organization_website","geo","Organization + WebSite","Organization en WebSite structured data zijn bevestigd op de representatieve homepage.","Houd naam, URL en logo consistent met de zichtbare site-identiteit.",8,8)
+        : check("warning","organization_website","geo","Organization + WebSite",signals===1?"De representatieve homepage bevat één van Organization of WebSite; het aanvullende identity-schema ontbreekt.":"De representatieve homepage bevat geen bevestigd Organization- of WebSite-schema.","Voeg alleen passende Organization- en/of WebSite JSON-LD toe met aantoonbare gegevens.",signals===1?6:4,8);
+      Object.assign(orgWebsiteCheck,replacement);
+    }
+
     const selectedSeoChecks = mode === "geo" ? [] : seoChecks;
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
     const selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);
@@ -3305,7 +3332,7 @@ export async function POST(request: Request) {
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
     type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageAudit = MultiPageCandidate & { status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; schemaTypes?: string[]; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -3339,20 +3366,11 @@ export async function POST(request: Request) {
       if (/^\/(?:[a-z]{2}(?:-[a-z]{2})?)\/?$/i.test(path)) return -10;
       if (item.type === "product") return 40;
       if (item.type === "category") return 30;
-      const sectorTarget = sectorProfile.key === "hospitality"
-        ? /(?:kamer|room|hotel|booking|boeken|reserve)/i.test(path)
-        : sectorProfile.key === "health_wellness"
-          ? /(?:behandel|treatment|dienst|service|afspraak|appointment|spoed)/i.test(path)
-          : sectorProfile.key === "real_estate"
-            ? /(?:woning|huis|property|aanbod|makelaar|koop|huur)/i.test(path)
-            : sectorProfile.key === "automotive"
-              ? /(?:occasion|voorraad|auto|vehicle|proefrit|werkplaats|vestiging)/i.test(path)
-              : sectorProfile.key === "professional_services"
-                ? /(?:expert|expertise|practice|rechtsgebied|dienst|service|people|professional)/i.test(path)
-                : sectorProfile.key === "transport_travel"
-                  ? /(?:transport|logist|freight|vracht|groupage|ftl|ltl|wegtransport|road-transport|distribut|expedit|forward|koerier|courier|warehous|opslag|dienst|service|bestemming|destination)/i.test(path)
-                  : null;
-      if (sectorTarget) return 28;
+      // Discovery must be sector-independent: representative evidence is collected
+      // before the final business identity is trusted. Generic business/service paths
+      // outrank arbitrary content, while career/legal/account utility pages stay low.
+      const businessEvidencePath = /(?:dienst|diensten|service|services|solution|solutions|oplossing|oplossingen|expertise|transport|logist|freight|vracht|forward|warehouse|opslag|werkplaats|onderhoud|repair|occasion|voorraad|woning|property|aanbod|behandel|treatment|kamer|room|booking|reserve|practice|rechtsgebied|product|producten|shop|store|catalog)/i.test(path);
+      if (businessEvidencePath) return 28;
       return 10;
     };
     const rankedMultiPage = discoveredMultiPage.filter((item) => multiPageRelevance(item) > -100).sort((a,b) => multiPageRelevance(b) - multiPageRelevance(a));
@@ -3499,7 +3517,7 @@ export async function POST(request: Request) {
           return 0.5;
         };
         const earned = confirmed.reduce((sum,item)=>sum+evidenceCredit(item),0);
-        return { ...page, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, score:confirmed.length?Math.round((earned/confirmed.length)*100):null, commerceEvidence:pageCommerceEvidence, evidenceChecks };
+        return { ...page, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, score:confirmed.length?Math.round((earned/confirmed.length)*100):null, schemaTypes:[...new Set(pageSchemaTypes)], commerceEvidence:pageCommerceEvidence, evidenceChecks };
       } catch (multiPageError) {
         const rawReason = multiPageError instanceof Error ? multiPageError.message : "FETCH_FAILED";
         const reason = /timeout|abort/i.test(rawReason)
@@ -3524,6 +3542,7 @@ export async function POST(request: Request) {
     // defect into a failure.
     const multiPageIdentityText = auditedMultiPages.map((item)=>`${item.url} ${item.title||""}`).join(" ").toLowerCase();
     const multiPageCapabilities = {
+      transport: /\b(transport|logistics?|logistiek|freight|vracht|forwarding|expeditie|wegtransport|road transport|warehousing|opslag|distribution|distributie|courier|koerier)\b/i.test(multiPageIdentityText),
       hospitality: /\b(hotel|hotels|room|rooms|kamer|kamers|overnachten|booking|boeken|reserveren|restaurant)\b/i.test(multiPageIdentityText),
       treatment: /\b(behandeling|behandelingen|treatment|specialisatie|tandarts|dentist|spoed|afspraak)\b/i.test(multiPageIdentityText),
       // Keep vehicle sales/inventory separate from garage/service capability.
@@ -3540,6 +3559,7 @@ export async function POST(request: Request) {
       if (!masterEvidence.capabilities.includes(capability)) masterEvidence.capabilities.push(capability);
     };
     if (multiPageCapabilities.productSample) for (const c of ["products","pricing"]) addMasterCapability(c);
+    if (multiPageCapabilities.transport) for (const c of ["services","service_area","quote_request","contact"]) addMasterCapability(c);
     if (multiPageCapabilities.vehicleSales) addMasterCapability("vehicles");
     if (multiPageCapabilities.automotiveService) addMasterCapability("services");
     if (multiPageCapabilities.properties) addMasterCapability("properties");
@@ -3598,6 +3618,16 @@ export async function POST(request: Request) {
       technologyProfile: technologyProfile.isCommerce,
       multiPageEvidence: sitewideCommerceEvidence.confirmed,
     };
+    if (!finalCommerceDecision.confirmed && multiPageCapabilities.transport && sectorProfile.key==="unknown") {
+      sectorProfile.sector = "transport_travel";
+      sectorProfile.key = "transport_travel";
+      sectorProfile.label = "Transport & Logistiek";
+      sectorProfile.confidence = "high";
+      sectorProfile.confidenceScore = Math.max(88, sectorProfile.confidenceScore);
+      sectorProfile.evidence = [...sectorProfile.evidence, "Representatieve sitepagina's bevestigen transport/logistieke hoofdactiviteit"].slice(0,6);
+      sectorProfile.applicableModules = [...new Set([...sectorProfile.applicableModules, "transport_travel", "lead_conversion", "local"])];
+      for (const module of ["transport_travel","lead_conversion","local"]) if (!masterEvidence.activeModules.includes(module)) masterEvidence.activeModules.push(module);
+    }
     // Motor v2.1: module applicability follows the final Master commerce decision,
     // not an early incidental capability. Page-specific checks still require proof.
     const commerceModules = new Set(["ecommerce","product","pricing_currency","merchant","checkout"]);
