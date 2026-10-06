@@ -402,3 +402,14 @@ test("representative page ranking prefers structural capability context", async 
   assert.match(source, /if \(capabilityContext\) score \+= 24/);
   assert.match(source, /Path semantics are deliberately weak evidence only/);
 });
+
+
+test("Evidence Engine exposes explicit capability states and never infers absence from one page", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /type EvidenceCapabilityState = "detected" \| "likely" \| "unknown" \| "absent_proven"/);
+  assert.match(source, /buildCapabilityState/);
+  assert.match(source, /reason:"insufficient_coverage"/);
+  assert.match(source, /const capabilityStates: EvidenceCapability\[\]/);
+  assert.match(source, /capabilityStates = capabilityStates/);
+});
