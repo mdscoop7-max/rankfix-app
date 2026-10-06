@@ -1719,32 +1719,55 @@ export async function POST(request: Request) {
 
     const setCookieHeaders = response.headers.get("set-cookie") || "";
     const cookiePresent = Boolean(setCookieHeaders);
-    // Evaluate every observed Set-Cookie record separately. A flag on cookie A
-    // must never be used as proof that cookie B has the same protection.
-    const observedCookies = setCookieHeaders
-      ? setCookieHeaders.split(/,(?=\\s*[^;,=\\s]+=[^;,]*)/).map((raw)=>raw.trim()).filter(Boolean)
-      : [];
+    // Strict Set-Cookie parsing. Commas inside Expires must stay inside the cookie,
+    // and attributes are evaluated only on their own cookie record.
+    const splitSetCookieHeader = (header:string) => {
+      const out:string[] = [];
+      let from = 0;
+      let inExpires = false;
+      for (let i=0;i<header.length;i++) {
+        const tail = header.slice(i).toLowerCase();
+        if (tail.startsWith("expires=")) inExpires = true;
+        if (inExpires && header[i] === ";") inExpires = false;
+        if (!inExpires && header[i] === "," && /^\\s*[^;,=\\s]+=[^;,]*/.test(header.slice(i+1))) {
+          out.push(header.slice(from,i).trim()); from=i+1;
+        }
+      }
+      out.push(header.slice(from).trim());
+      return out.filter(Boolean);
+    };
+    const observedCookies = setCookieHeaders ? splitSetCookieHeader(setCookieHeaders) : [];
     const cookieObservations = observedCookies.map((raw)=>{
       const first = raw.split(";")[0] || "";
       const name = first.split("=")[0]?.trim() || "cookie";
+      const sameSiteMatch = raw.match(/(?:^|;\\s*)samesite=(lax|strict|none)(?:;|$)/i);
+      const antiCsrf = /(?:csrf|xsrf|verification[-_]?token|requestverificationtoken)/i.test(name);
+      const sessionLike = !antiCsrf && /(?:^|[-_.])(session|sess|auth|jwt|login|sid)(?:$|[-_.])/i.test(name);
       return {
-        name,
+        name, raw,
         secure: /(?:^|;\\s*)secure(?:;|$)/i.test(raw),
         httpOnly: /(?:^|;\\s*)httponly(?:;|$)/i.test(raw),
-        sameSite: /(?:^|;\\s*)samesite=(lax|strict|none)(?:;|$)/i.test(raw),
-        sessionLike: /session|sess|auth|token|jwt|login|sid|connect\.sid/i.test(name),
+        sameSite: sameSiteMatch ? sameSiteMatch[1].toLowerCase() : "missing",
+        sessionLike,
       };
     });
     const cookiesMissingSecure = cookieObservations.filter((cookie)=>isHttps && !cookie.secure);
-    const cookiesMissingSameSite = cookieObservations.filter((cookie)=>!cookie.sameSite);
+    const cookiesMissingSameSite = cookieObservations.filter((cookie)=>cookie.sameSite === "missing");
     const sessionCookiesMissingHttpOnly = cookieObservations.filter((cookie)=>cookie.sessionLike && !cookie.httpOnly);
-    const cookieIssues = [...cookiesMissingSecure,...cookiesMissingSameSite,...sessionCookiesMissingHttpOnly];
-    const cookieEvidenceSummary = cookieObservations.map((cookie)=>`${cookie.name}: Secure=${cookie.secure}, HttpOnly=${cookie.httpOnly}, SameSite=${cookie.sameSite}`).join(" · ");
+    const cookieIssueCount = cookiesMissingSecure.length + cookiesMissingSameSite.length + sessionCookiesMissingHttpOnly.length;
+    const cookieEvidenceSummary = cookieObservations.map((cookie)=>{
+      const missing = [
+        isHttps && !cookie.secure ? "Secure ontbreekt" : null,
+        cookie.sameSite === "missing" ? "SameSite ontbreekt" : null,
+        cookie.sessionLike && !cookie.httpOnly ? "HttpOnly ontbreekt" : null,
+      ].filter(Boolean);
+      return `${cookie.name}: ${missing.length ? missing.join(", ") : "relevante flags bevestigd"}`;
+    }).join(" · ");
     securityChecks.push(!cookiePresent
       ? securityCheck("unable_to_confirm","security_cookie_flags","Cookie-beveiliging","De hoofdresponse bevatte geen zichtbare Set-Cookie-header. RankFix kan daardoor cookieflags voor browser-, consent- of ingelogde flows niet bevestigen.","Controleer sessie-, consent- en authenticatiecookies in de relevante flows; ken zonder cookie-evidence geen veiligheidspunten toe.",0,5)
-      : cookieIssues.length === 0
-        ? securityCheck("pass","security_cookie_flags","Cookie-beveiliging",`De zichtbare Set-Cookie-response bevestigt passende flags voor ${cookieObservations.length} cookie(s): ${cookieEvidenceSummary}.`,"Houd gevoelige sessiecookies voorzien van passende beveiligingsflags.",5,5)
-        : securityCheck("warning","security_cookie_flags","Cookie-beveiliging",`Per-cookie controle vond ${cookieIssues.length} ontbrekende relevante flag(s). ${cookieEvidenceSummary}. HttpOnly wordt alleen als vereiste beoordeeld voor sessie-/authenticatiecookies.`,"Controleer de genoemde cookies afzonderlijk: Secure op HTTPS, een passende SameSite-instelling en HttpOnly voor sessie-/authenticatiecookies.",Math.max(1,5-Math.min(4,cookieIssues.length)),5));
+      : cookieIssueCount === 0
+        ? securityCheck("pass","security_cookie_flags","Cookie-beveiliging",`De zichtbare Set-Cookie-response bevestigt passende relevante flags voor ${cookieObservations.length} cookie(s).`,"Houd gevoelige sessiecookies voorzien van passende beveiligingsflags.",5,5)
+        : securityCheck("warning","security_cookie_flags","Cookie-beveiliging",`Per-cookie controle vond ${cookieIssueCount} ontbrekende relevante flag(s). ${cookieEvidenceSummary}. HttpOnly wordt alleen beoordeeld voor bevestigde sessie-/authenticatiecookies.`,"Controleer de genoemde cookies afzonderlijk: Secure op HTTPS, een passende SameSite-instelling en HttpOnly voor sessie-/authenticatiecookies.",Math.max(1,5-Math.min(4,cookieIssueCount)),5));
     const forms = [...html.matchAll(new RegExp("<form\\\\b[\\\\s\\\\S]*?</form>", "gi"))].map((m)=>m[0]);
     const passwordForm = forms.some((form)=>new RegExp("<input[^>]+type\\\\s*=\\\\s*[\\\"']password[\\\"']", "i").test(form));
     const insecureFormActions = forms.filter((form)=>new RegExp("action\\\\s*=\\\\s*[\\\"']http://", "i").test(form)).length;
@@ -2598,7 +2621,7 @@ export async function POST(request: Request) {
       : hasStockImages
       ? check("unable_to_confirm", "image_sources", "seo", "Afbeeldingsbronnen", `${stockImageUrls.length} afbeelding(en) worden vanaf bekende externe stockhosts geladen. Dat is op zichzelf geen SEO-fout; RankFix kan rechten, caching en CDN-configuratie uit HTML niet bevestigen.`, "Controleer alleen wanneer deze assets belangrijk zijn voor merk, rechten of performance.", 0, 5)
       : hasExternalImageHotlinks
-        ? check("not_applicable", "image_sources", "seo", "Afbeeldingsbronnen", `${externalImageUrls.length} afbeelding(en) worden vanaf een ander hostnaam geladen. Een CDN of image-service is normaal en vormt zonder prestatie- of bereikbaarheidsbewijs geen probleem.`, "Beoordeel afbeeldingsperformance afzonderlijk met runtime-metingen.", 0, 5)
+        ? check("pass", "image_sources", "seo", "Afbeeldingsbronnen", `${externalImageUrls.length} afbeelding(en) worden via een externe host/CDN geladen; de bronnen zijn in de opgehaalde HTML bevestigd. Dit is op zichzelf geen probleem.`, "Beoordeel afbeeldingsperformance alleen afzonderlijk wanneer runtime-metingen daar aanleiding toe geven.", 5, 5)
         : check("pass", "image_sources", "seo", "Afbeeldingsbronnen", "Geen externe afbeeldingshosts gevonden in de statische HTML.", "Blijf belangrijke afbeeldingen optimaliseren.", 5, 5)
     );
 
@@ -3428,7 +3451,27 @@ export async function POST(request: Request) {
       type: isProductPage ? "product" : hasCategorySignal ? "category" : isHomepage ? "homepage" : "other",
       evidence: ["scanned page"],
     };
-    const uniqueMultiPagePages = [...new Map([scannedPageSample, ...multiPagePages].map((item) => [normalizeScanUrl(item.url), item] as const)).values()].slice(0, 4);
+    const templateShapeKey = (rawUrl:string) => {
+      const u = new URL(rawUrl);
+      const parts = u.pathname.replace(/\\/+$/,"").split("/").filter(Boolean);
+      return parts.map((part)=>{
+        if (/^\\d/.test(part) || /\\d{3,}/.test(part)) return ":id";
+        return part.toLowerCase();
+      }).join("/") || "/";
+    };
+    // Prefer template diversity. Query-string variants and near-identical listing
+    // pages should not consume the limited representative sample twice.
+    const uniqueMultiPagePages = [];
+    const seenTemplates = new Set<string>();
+    for (const item of [scannedPageSample, ...multiPagePages]) {
+      const normalized = normalizeScanUrl(item.url);
+      const key = templateShapeKey(normalized);
+      if (uniqueMultiPagePages.some((existing)=>normalizeScanUrl(existing.url)===normalized)) continue;
+      if (seenTemplates.has(key) && item.type !== "product") continue;
+      seenTemplates.add(key);
+      uniqueMultiPagePages.push(item);
+      if (uniqueMultiPagePages.length >= 4) break;
+    }
     const auditMultiPage = async (page: MultiPageCandidate): Promise<MultiPageAudit> => {
       try {
         const fetched = await safePublicFetch(page.url, { timeoutMs: 8000, maxRedirects: 3, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml" });
