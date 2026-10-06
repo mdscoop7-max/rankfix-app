@@ -3779,6 +3779,74 @@ export async function POST(request: Request) {
       Object.assign(orgWebsiteCheck,replacement);
     }
 
+    // Evidence Engine final applicability gate.
+    // All collection/classification decisions above are now complete. From this point
+    // onwards, specialist checks must follow the final Master Evidence decision rather
+    // than an earlier page-level hint. This prevents stale commerce checks on service
+    // sites and lets representative product evidence activate product checks.
+    const finalCommerceOnlyKeys = new Set([
+      "commercial_terms_signal","merchant_product_readiness","merchant_feed_signal","price_format",
+      "price_currency_consistency","pricing_currency_consistency",
+      "product_schema","product_optimizer","product_copy_optimizer","product_price_consistency",
+      "product_availability","product_availability_consistency","variant_url",
+      "webshop_claims","webshop_trust","checkout_funnel_static","checkout_information_signal","checkout_trust",
+      "eu_discount_signal","eu_discount_reference_signal","eu_reference_price_signal",
+      "eu_review_signal","eu_review_transparency_signal","eu_scarcity_signal",
+      "eu_consumer_information_signal"
+    ]);
+    const finalEuCommerceKeys = new Set([
+      "eu_discount_signal","eu_discount_reference_signal","eu_reference_price_signal",
+      "eu_review_signal","eu_review_transparency_signal","eu_scarcity_signal",
+      "eu_consumer_information_signal"
+    ]);
+    const setFinalNotApplicable = (item:Check, reason:string) => {
+      item.status = "not_applicable";
+      item.issue_status = "NOT_APPLICABLE";
+      item.points = 0;
+      item.confidence = "high";
+      item.message = reason;
+      item.fix = "Geen actie nodig. RankFix activeert deze controle alleen wanneer de vereiste capability met voldoende bewijs is bevestigd.";
+      item.evidence = {url:finalUrl.toString(),found:false,details:item.message};
+    };
+    if (!finalCommerceDecision.confirmed) {
+      for (const item of [...seoChecks,...geoChecks]) {
+        if (finalCommerceOnlyKeys.has(item.key)) {
+          setFinalNotApplicable(item,"Definitieve Master Evidence bevestigt geen webshop-/retailketen; deze commercecontrole is niet van toepassing.");
+        }
+      }
+    } else if (!euConsumerApplicable) {
+      for (const item of [...seoChecks,...geoChecks]) {
+        if (finalEuCommerceKeys.has(item.key)) {
+          setFinalNotApplicable(item,"Commerce is bevestigd, maar EU-consumentenapplicability is voor deze storefront niet betrouwbaar bevestigd.");
+        }
+      }
+    }
+
+    const representativeProductPage = auditedMultiPages.find((item)=>item.type==="product" && item.commerceEvidence?.product);
+    if (finalCommerceDecision.confirmed && representativeProductPage?.commerceEvidence?.product) {
+      const product = representativeProductPage.commerceEvidence.product;
+      const sourceCount = [product.name,product.image,product.sku,product.price&&product.currency,product.availability].filter(Boolean).length;
+      // Diagnostics are consumers of Master Evidence too. A representative product
+      // sample must not coexist with productPage:false in the final report.
+      checkoutFunnelEvidence.productPage = true;
+      if (representativeProductPage.commerceEvidence.strongCommerceAction) checkoutFunnelEvidence.addToCart = true;
+
+      for (const item of [...seoChecks,...geoChecks]) {
+        if (item.key==="product_schema" && representativeProductPage.commerceEvidence.productSchema) {
+          Object.assign(item, check("pass","product_schema",item.category==="geo"?"geo":"seo","Product structured data","Een representatieve productpagina bevat bevestigde Product structured data.","Houd Product structured data gelijk aan de zichtbare productinformatie.",item.maxPoints,item.maxPoints));
+        }
+        if ((item.key==="product_optimizer" || item.key==="product_copy_optimizer") && sourceCount>=3) {
+          Object.assign(item, check("pass",item.key,item.category==="geo"?"geo":"seo","AI Product Copy & Metadata",`Een representatieve productpagina levert ${sourceCount} controleerbare productvelden voor veilige optimalisatie.`,"Gebruik alleen aantoonbare productgegevens voor optimalisaties.",item.maxPoints,item.maxPoints));
+        }
+        if ((item.key==="product_availability" || item.key==="product_availability_consistency") && product.availability) {
+          Object.assign(item, check("pass",item.key,item.category==="geo"?"geo":"seo","Productvoorraad",`Een representatieve productpagina bevat een expliciet structured availability-signaal: ${product.availability}.`,"Houd zichtbare voorraad en Product/Offer structured data consistent.",item.maxPoints,item.maxPoints));
+        }
+        if (item.key==="merchant_product_readiness" && sourceCount>=4) {
+          Object.assign(item, check("pass","merchant_product_readiness",item.category==="geo"?"geo":"seo","Merchant Center productbasis","Representatieve product-evidence bevestigt naam, afbeelding en meerdere machineleesbare Product/Offer-velden.","Houd productpagina en eventuele Merchant-feed consistent; RankFix bevestigt hiermee geen Merchant Center-goedkeuring.",item.maxPoints,item.maxPoints));
+        }
+      }
+    }
+
     // Final score is calculated only after representative evidence reconciliation.
     selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);
     selectedGeoScore = scoreApplicableChecks(selectedGeoChecks);
