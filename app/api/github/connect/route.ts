@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 
 export async function GET() {
   const user=await getCurrentUser();
-  const base=(process.env.APP_URL || "https://rankfix-app.vercel.app").replace(/\/$/,"");
+  const base=(process.env.APP_URL || "https://rankfix-app.onrender.com").replace(/\/$/,"");
   if(!user) return NextResponse.redirect(new URL("/account",base));
   const clientId=process.env.GITHUB_CLIENT_ID;
   if(!clientId) return NextResponse.json({error:"GITHUB_CLIENT_ID ontbreekt."},{status:503});

@@ -4,7 +4,6 @@ import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
 import { auditSite } from "@/lib/site-audit";
 
-// Deployment marker: customer-flow i18n bundle.
 import { normalizePlan, planLimits } from "@/lib/plans";
 
 export async function POST(request: Request) {

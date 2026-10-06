@@ -685,3 +685,17 @@ test("audit AI-advice actions open the in-dashboard assistant", async () => {
   assert.match(assistant,/addEventListener\("rankfix:open-assistant"/);
   assert.match(assistant,/if \(detail\?\.prompt\) setInput\(detail\.prompt\)/);
 });
+
+
+test("GitHub OAuth production fallback points to Render, not retired Vercel host", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/github/connect/route.ts", import.meta.url), "utf8");
+  assert.match(source,/https:\/\/rankfix-app\.onrender\.com/);
+  assert.doesNotMatch(source,/rankfix-app\.vercel\.app/);
+});
+
+test("Local SEO route contains no deployment-marker residue", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/local-seo/route.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(source,/Deployment marker/);
+});
