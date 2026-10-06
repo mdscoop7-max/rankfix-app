@@ -140,7 +140,7 @@ test("score model exposes weighted coverage and transparent formula", async () =
   const score = await readFile(new URL("../lib/audit-score.ts", import.meta.url), "utf8");
   const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   const report = await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
-  assert.match(score, /SCORE_MODEL_VERSION = "2\.3-evidence-range"/);
+  assert.match(score, /SCORE_MODEL_VERSION = "3\.0-evidence-strict"/);
   assert.match(score, /assessedWeight \/ totalWeight/);
   assert.match(route, /formula: mode === "both" \? "0\.6 × SEO \+ 0\.4 × GEO"/);
   assert.match(route, /securitySeparate: true/);
