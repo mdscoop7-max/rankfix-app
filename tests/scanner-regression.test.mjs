@@ -77,7 +77,7 @@ test("scanner regression source keeps evidence-only classification safeguards", 
   assert.match(source, /fetchfout alleen is geen bewijs van een kapotte link/);
   assert.match(source, /const accessibilityIssueCount=unlabeledFormControls\+emptyButtons/);
   assert.match(source, /Organization\/WebSite structured data kon niet betrouwbaar worden bevestigd/);
-  assert.match(source, /Een individuele auteur is niet vereist op de homepage van een nieuws- of mediasite/);
+  assert.match(source, /Een individuele auteur is niet vereist op een organisatie-, dienst- of merkhomepage/);
   assert.match(source, /buiten richtwaarde 30–60/);
   assert.match(source, /uitzonderlijk.*kort.*lang/s);
 });
@@ -98,7 +98,7 @@ test("EU regression bundle keeps classification, confidence and challenge guards
   assert.match(source, /te weinig onafhankelijk bewijs om entity-signalen betrouwbaar te beoordelen/);
   assert.match(source, /evidenceCredit/);
   assert.match(report, /Score beveiligingsinstellingen:/);
-  assert.match(report, /reasonFor\(c,language\)/);
+  assert.match(report, /reasonFor\(check,language\)/);
 });
 
 
@@ -234,7 +234,7 @@ test("score engine keeps independent penalties independent", async () => {
 test("advisory evidence does not become a hard failure", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  assert.match(source, /check\("warning", "response", "seo", "Server response"[\s\S]*één meting is traag/);
+  assert.match(source, /Deze ene meting is traag, maar bewijst geen structureel performanceprobleem/);
   assert.doesNotMatch(source, /check\("fail", "response", "seo", "Server response"/);
   assert.match(source, /check\("warning", "schema", "geo", "Structured data"[\s\S]*machineleesbare optimalisatiekans/);
   assert.match(source, /"schema": "structured_data_context"/);
@@ -333,7 +333,7 @@ test("Evidence Engine reconciles representative identity and capabilities before
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   assert.match(source, /reconciledIdentitySource/);
-  assert.match(source, /Master Evidence: primaire activiteit bevestigd over representatieve pagina's/);
+  assert.match(source, /Scanbewijs: primaire activiteit bevestigd over representatieve pagina's/);
   assert.match(source, /multiPageCapabilities\.treatment && sectorProfile\.sector === "health_wellness"/);
   assert.match(source, /representativeProduct/);
   assert.match(source, /selectedSeoScore = scoreApplicableChecks\(selectedSeoChecks\)/);
@@ -377,7 +377,7 @@ test("cookie security is evaluated per observed Set-Cookie record", async () => 
   assert.match(source, /cookiesMissingSecure/);
   assert.match(source, /cookiesMissingSameSite/);
   assert.match(source, /sessionCookiesMissingHttpOnly/);
-  assert.match(source, /HttpOnly wordt alleen als vereiste beoordeeld voor sessie-\/authenticatiecookies/);
+  assert.match(source, /HttpOnly wordt alleen beoordeeld voor bevestigde sessie-\/authenticatiecookies/);
   assert.doesNotMatch(source, /Cookie-flags zijn niet volledig bevestigd \(Secure=/);
 });
 
