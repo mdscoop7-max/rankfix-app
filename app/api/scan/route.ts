@@ -1701,15 +1701,32 @@ export async function POST(request: Request) {
 
     const setCookieHeaders = response.headers.get("set-cookie") || "";
     const cookiePresent = Boolean(setCookieHeaders);
-    const cookieSecure = new RegExp("(?:^|[,;]\\\\s*)secure(?:;|,|$)", "i").test(setCookieHeaders);
-    const cookieHttpOnly = new RegExp("(?:^|[,;]\\\\s*)httponly(?:;|,|$)", "i").test(setCookieHeaders);
-    const cookieSameSite = new RegExp("samesite=(?:lax|strict|none)", "i").test(setCookieHeaders);
+    // Evaluate every observed Set-Cookie record separately. A flag on cookie A
+    // must never be used as proof that cookie B has the same protection.
+    const observedCookies = setCookieHeaders
+      ? setCookieHeaders.split(/,(?=\\s*[^;,=\\s]+=[^;,]*)/).map((raw)=>raw.trim()).filter(Boolean)
+      : [];
+    const cookieObservations = observedCookies.map((raw)=>{
+      const first = raw.split(";")[0] || "";
+      const name = first.split("=")[0]?.trim() || "cookie";
+      return {
+        name,
+        secure: /(?:^|;\\s*)secure(?:;|$)/i.test(raw),
+        httpOnly: /(?:^|;\\s*)httponly(?:;|$)/i.test(raw),
+        sameSite: /(?:^|;\\s*)samesite=(lax|strict|none)(?:;|$)/i.test(raw),
+        sessionLike: /session|sess|auth|token|jwt|login|sid|connect\.sid/i.test(name),
+      };
+    });
+    const cookiesMissingSecure = cookieObservations.filter((cookie)=>isHttps && !cookie.secure);
+    const cookiesMissingSameSite = cookieObservations.filter((cookie)=>!cookie.sameSite);
+    const sessionCookiesMissingHttpOnly = cookieObservations.filter((cookie)=>cookie.sessionLike && !cookie.httpOnly);
+    const cookieIssues = [...cookiesMissingSecure,...cookiesMissingSameSite,...sessionCookiesMissingHttpOnly];
+    const cookieEvidenceSummary = cookieObservations.map((cookie)=>`${cookie.name}: Secure=${cookie.secure}, HttpOnly=${cookie.httpOnly}, SameSite=${cookie.sameSite}`).join(" · ");
     securityChecks.push(!cookiePresent
       ? securityCheck("unable_to_confirm","security_cookie_flags","Cookie-beveiliging","De hoofdresponse bevatte geen zichtbare Set-Cookie-header. RankFix kan daardoor cookieflags voor browser-, consent- of ingelogde flows niet bevestigen.","Controleer sessie-, consent- en authenticatiecookies in de relevante flows; ken zonder cookie-evidence geen veiligheidspunten toe.",0,5)
-      : cookieSecure && cookieHttpOnly && cookieSameSite
-        ? securityCheck("pass","security_cookie_flags","Cookie-beveiliging","De zichtbare Set-Cookie-response bevat Secure, HttpOnly en SameSite-signalen.","Houd gevoelige sessiecookies voorzien van passende beveiligingsflags.",5,5)
-        : securityCheck("warning","security_cookie_flags","Cookie-beveiliging",`Cookie-flags zijn niet volledig bevestigd (Secure=${cookieSecure}, HttpOnly=${cookieHttpOnly}, SameSite=${cookieSameSite}). Dit bewijst niet dat alle cookies onveilig zijn.`,"Controleer vooral sessie- en authenticatiecookies op Secure, HttpOnly en een passende SameSite-instelling.",Math.max(1,[cookieSecure,cookieHttpOnly,cookieSameSite].filter(Boolean).length),5));
-
+      : cookieIssues.length === 0
+        ? securityCheck("pass","security_cookie_flags","Cookie-beveiliging",`De zichtbare Set-Cookie-response bevestigt passende flags voor ${cookieObservations.length} cookie(s): ${cookieEvidenceSummary}.`,"Houd gevoelige sessiecookies voorzien van passende beveiligingsflags.",5,5)
+        : securityCheck("warning","security_cookie_flags","Cookie-beveiliging",`Per-cookie controle vond ${cookieIssues.length} ontbrekende relevante flag(s). ${cookieEvidenceSummary}. HttpOnly wordt alleen als vereiste beoordeeld voor sessie-/authenticatiecookies.`,"Controleer de genoemde cookies afzonderlijk: Secure op HTTPS, een passende SameSite-instelling en HttpOnly voor sessie-/authenticatiecookies.",Math.max(1,5-Math.min(4,cookieIssues.length)),5));
     const forms = [...html.matchAll(new RegExp("<form\\\\b[\\\\s\\\\S]*?</form>", "gi"))].map((m)=>m[0]);
     const passwordForm = forms.some((form)=>new RegExp("<input[^>]+type\\\\s*=\\\\s*[\\\"']password[\\\"']", "i").test(form));
     const insecureFormActions = forms.filter((form)=>new RegExp("action\\\\s*=\\\\s*[\\\"']http://", "i").test(form)).length;
