@@ -187,8 +187,33 @@ export default function AuditDetail() {
       if (severityDifference) return severityDifference;
       return (b.maxPoints || 0) - (a.maxPoints || 0);
     });
-  const topPriorities = problems.slice(0, 3);
-  const remainingProblems = problems.slice(3);
+  // Customer actions are grouped by technical root cause. Keep every finding in
+  // the audit evidence, but do not sell several GitHub fixes for one underlying change.
+  const remediationRootKey=(check:Check)=>{
+    const rule=String(check.rule_id||check.issue_id||check.key||"").toLowerCase();
+    const text=[check.title,check.message,check.fix||""].join(" ").toLowerCase();
+    if(/canonical/.test(rule+" "+text)) return "canonical";
+    if(/(?:meta.?description|description)/.test(rule+" "+text)) return "meta-description";
+    if(/(?:title|document title)/.test(rule+" "+text)) return "document-title";
+    if(/(?:structured.?data|schema|json.?ld)/.test(rule+" "+text)) return "structured-data";
+    if(/(?:consent|cookie|cmp)/.test(rule+" "+text)) return "consent";
+    if(/(?:security.?header|csp|hsts|x-frame|permissions-policy|referrer-policy)/.test(rule+" "+text)) return "security-headers";
+    if(/(?:hreflang|language alternate)/.test(rule+" "+text)) return "hreflang";
+    if(/(?:open.?graph|og:image|og:title|og:description)/.test(rule+" "+text)) return "open-graph";
+    if(/(?:sitemap)/.test(rule+" "+text)) return "sitemap";
+    if(/(?:robots)/.test(rule+" "+text)) return "robots";
+    if(/(?:h1|heading)/.test(rule+" "+text)) return "heading-structure";
+    return rule || normalizedCustomerText(check.title);
+  };
+  const actionRepresentatives = Array.from(problems.reduce((map,check)=>{
+    const key=remediationRootKey(check);
+    const current=map.get(key);
+    if(!current) map.set(key,check);
+    return map;
+  },new Map<string,Check>()).values());
+  const topPriorities = actionRepresentatives.slice(0, 3);
+  const topPriorityRoots = new Set(topPriorities.map(remediationRootKey));
+  const remainingProblems = problems.filter(check=>!topPriorityRoots.has(remediationRootKey(check)));
   const advice = checks.filter(check => check.status === "pass" && check.key === "h1" && /structuuradvies/i.test(check.message));
   const signalFound = checks.filter(check => check.status === "pass" && check.confidence === "medium" && !advice.includes(check));
   const passed = checks.filter(check => check.status === "pass" && !advice.includes(check) && !signalFound.includes(check));
