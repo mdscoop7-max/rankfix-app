@@ -25,14 +25,25 @@ type EvidenceCapability = {
   state: EvidenceCapabilityState;
   confidence: number;
   proof: string[];
-  reason?: "weak_evidence" | "insufficient_coverage";
+  reason?: "weak_evidence" | "insufficient_coverage" | "explicit_negative_evidence";
 };
 
-const buildCapabilityState = (id:string, proof:string[], coverage:number, confidence=0.95):EvidenceCapability => {
+const buildCapabilityState = (
+  id:string,
+  proof:string[],
+  coverage:number,
+  confidence=0.95,
+  options?:{ weakProof?:string[]; explicitNegativeProof?:string[] }
+):EvidenceCapability => {
   const uniqueProof = [...new Set(proof.filter(Boolean))];
+  const weakProof = [...new Set((options?.weakProof||[]).filter(Boolean))];
+  const negativeProof = [...new Set((options?.explicitNegativeProof||[]).filter(Boolean))];
   if (uniqueProof.length) return {id,state:"detected",confidence,proof:uniqueProof};
-  // Absence is deliberately not inferred from one page. Until representative
-  // coverage is sufficient, the capability remains unknown rather than false.
+  // Weak hints are surfaced as likely, never silently promoted to detected.
+  if (weakProof.length) return {id,state:"likely",confidence:Math.min(confidence,0.7),proof:weakProof,reason:"weak_evidence"};
+  // "Absent" requires explicit negative evidence plus representative coverage.
+  // Merely not finding a signal can never prove absence.
+  if (coverage >= 3 && negativeProof.length) return {id,state:"absent_proven",confidence:0.9,proof:negativeProof,reason:"explicit_negative_evidence"};
   if (coverage < 3) return {id,state:"unknown",confidence:0,proof:[],reason:"insufficient_coverage"};
   return {id,state:"unknown",confidence:0,proof:[],reason:"weak_evidence"};
 };
@@ -3769,7 +3780,16 @@ export async function POST(request: Request) {
       serves_local_customers: masterEvidence.capabilities.includes("local") ? [finalUrl.toString()] : [],
     };
     const capabilityCoverage = auditedMultiPages.length;
-    const capabilityStates: EvidenceCapability[] = Object.entries(capabilityProofs).map(([id,proof])=>buildCapabilityState(id,proof,capabilityCoverage));
+    const weakCapabilityHints: Record<string,string[]> = {
+      sells_products_online: masterEvidence.capabilities.includes("products") && !capabilityProofs.sells_products_online.length ? ["Product-/catalogussignaal gevonden zonder bevestigde retailketen"] : [],
+      lists_inventory: (masterEvidence.capabilities.includes("properties") || masterEvidence.capabilities.includes("vehicles")) && !capabilityProofs.lists_inventory.length ? ["Inventory-signaal gevonden zonder representatieve listingpagina"] : [],
+      offers_bookable_services: (masterEvidence.capabilities.includes("booking") || masterEvidence.capabilities.includes("appointment") || masterEvidence.capabilities.includes("reservation")) && !capabilityProofs.offers_bookable_services.length ? ["Boekings-/afspraaksignaal gevonden zonder representatief boekingsformulier"] : [],
+      collects_leads: (masterEvidence.capabilities.includes("contact") || masterEvidence.capabilities.includes("quote_request")) && !capabilityProofs.collects_leads.length ? ["Contact-/offertesignaal gevonden zonder representatief leadformulier"] : [],
+      serves_local_customers: masterEvidence.capabilities.includes("local") && !capabilityProofs.serves_local_customers.length ? ["Lokaal signaal gevonden zonder voldoende onafhankelijke lokale evidence"] : [],
+    };
+    const capabilityStates: EvidenceCapability[] = Object.entries(capabilityProofs).map(([id,proof])=>buildCapabilityState(
+      id, proof, capabilityCoverage, 0.95, {weakProof:weakCapabilityHints[id]||[]}
+    ));
     (masterEvidence as typeof masterEvidence & { capabilityStates?: EvidenceCapability[] }).capabilityStates = capabilityStates;
 
     const sitewideCommerceEvidence = {
