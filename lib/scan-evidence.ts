@@ -101,7 +101,9 @@ export function buildScanEvidence(input: {
   const addToCart = has(text, /\b(add to cart|add to basket|in winkelwagen|toevoegen aan winkelwagen|in den warenkorb|ajouter au panier|aggiungi al carrello|añadir al carrito)\b/i);
   const checkout = has(html, /(?:checkout|afrekenen|kasse|paiement|pagamento|pago)/i);
   // Offer is used by service businesses too; it must never be treated as a retail product page by itself.
-  const productPage = schemaHas("Product") || /\/(?:product|products|p|artikel|item)\//i.test(url);
+  const productSchema = schemaHas("Product");
+  const productPathHint = /\/(?:product|products|p|artikel|item)\//i.test(url);
+  const productPage = productSchema || productPathHint;
 
   const currencyMatches = [...text.matchAll(/(?:€|eur\b|\$|usd\b|£|gbp\b)/gi)].map(m => m[0].toUpperCase());
   const currencies = uniq(currencyMatches.map(v => v === "€" ? "EUR" : v === "$" ? "USD" : v === "£" ? "GBP" : v));
