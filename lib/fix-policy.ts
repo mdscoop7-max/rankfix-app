@@ -5,6 +5,13 @@ export type FixAction = "github_fix" | "ai_advice" | "manual";
 export type FixPolicy = { category: FixCategory; safe_type: string | null; action?: FixAction };
 
 const POLICY: Record<string, FixPolicy> = {
+  // Active scanner rule IDs. Keep these aliases aligned with app/api/scan/route.ts
+  // so proven, bounded issues actually expose their safe dashboard Fix action.
+  title: { category: "B", safe_type: "meta_title" },
+  description: { category: "B", safe_type: "meta_description" },
+  h1: { category: "B", safe_type: "h1" },
+  alt: { category: "B", safe_type: "alt_text" },
+  schema: { category: "B", safe_type: "structured_data" },
   META_TITLE_MISSING: { category: "B", safe_type: "meta_title" },
   META_TITLE_GUIDANCE: { category: "B", safe_type: "meta_title" },
   META_DESCRIPTION_MISSING: { category: "B", safe_type: "meta_description" },

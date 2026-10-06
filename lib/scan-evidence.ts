@@ -112,16 +112,24 @@ export function buildScanEvidence(input: {
   const booking = has(text, /\b(boeken|book now|booking|buchen|réserver|prenota|reservar)\b/i);
   const quoteRequest = has(text, /\b(offerte|quote request|request a quote|angebot anfordern|devis|preventivo|presupuesto)\b/i);
 
-  const vehicles = schemaHas("Vehicle", "Car", "AutoDealer", "AutomotiveBusiness") || has(text, /\b(occasions?|proefrit|test drive|fahrzeuge?|voitures? d'occasion|auto usate)\b/i);
-  const properties = schemaHas("RealEstateAgent", "Residence", "House", "Apartment") || has(text, /\b(woningen?|huizen te koop|makelaar|real estate|properties for sale|immobilien|maisons? à vendre)\b/i);
+  const vehicleSchema = schemaHas("Vehicle", "Car", "AutoDealer", "AutomotiveBusiness");
+  const vehicleText = has(text, /\b(occasions?|proefrit|test drive|fahrzeuge?|voitures? d'occasion|auto usate)\b/i);
+  const vehicles = vehicleSchema || vehicleText;
+  const propertySchema = schemaHas("RealEstateAgent", "Residence", "House", "Apartment");
+  const propertyText = has(text, /\b(woningen?|huizen te koop|makelaar|real estate|properties for sale|immobilien|maisons? à vendre)\b/i);
+  const properties = propertySchema || propertyText;
   // A careers/vacancy mention is a secondary capability, not proof that the
   // organisation itself is a recruitment business. Structured JobPosting is
   // strong job evidence; plain navigation text remains low-confidence.
   const jobsSchema = schemaHas("JobPosting");
   const jobsText = has(text, /\b(vacatures?|solliciteren|jobs?|careers?|stellenangebote|offres d'emploi)\b/i);
   const jobs = jobsSchema || jobsText;
-  const rooms = schemaHas("Hotel", "HotelRoom", "LodgingBusiness") || has(text, /\b(kamers?|rooms?|overnachting|hotelzimmer|chambres?)\b/i);
-  const menu = schemaHas("Restaurant", "Menu") || has(text, /\b(menu|menukaart|gerechten|restaurant|speisekarte|carte des plats)\b/i);
+  const roomSchema = schemaHas("Hotel", "HotelRoom", "LodgingBusiness");
+  const roomText = has(text, /\b(kamers?|rooms?|overnachting|hotelzimmer|chambres?)\b/i);
+  const rooms = roomSchema || roomText;
+  const menuSchema = schemaHas("Restaurant", "Menu");
+  const menuText = has(text, /\b(menu|menukaart|gerechten|restaurant|speisekarte|carte des plats)\b/i);
+  const menu = menuSchema || menuText;
 
   const contact = has(text, /\b(contact|contacteer|kontakt|contactez|contatti|contacto)\b/i) || has(html, /mailto:|tel:/i);
   const address = schemaHas("PostalAddress") || has(text, /\b(adres|address|adresse|indirizzo|dirección)\b/i);
@@ -165,11 +173,11 @@ export function buildScanEvidence(input: {
       quoteRequest: fact(quoteRequest, quoteRequest ? "medium" : "low", [source], quoteRequest ? ["Offerte-signaal gevonden"] : []),
     },
     inventory: {
-      vehicles: fact(vehicles, vehicles ? "medium" : "low", [source], vehicles ? ["Voertuig/autodealer-signaal gevonden"] : []),
-      properties: fact(properties, properties ? "medium" : "low", [source], properties ? ["Vastgoed/woning-signaal gevonden"] : []),
+      vehicles: fact(vehicles, vehicleSchema ? "high" : vehicles ? "medium" : "low", [source, ...(vehicleSchema ? ["structured_data" as EvidenceSource] : [])], vehicles ? [vehicleSchema ? "Voertuig-/autodealerschema gevonden" : "Voertuig/autodealer-tekstsignaal gevonden"] : []),
+      properties: fact(properties, propertySchema ? "high" : properties ? "medium" : "low", [source, ...(propertySchema ? ["structured_data" as EvidenceSource] : [])], properties ? [propertySchema ? "Vastgoedschema gevonden" : "Vastgoed/woning-tekstsignaal gevonden"] : []),
       jobs: fact(jobs, jobsSchema ? "high" : "low", [source, ...(jobsSchema ? ["structured_data" as EvidenceSource] : [])], jobsSchema ? ["JobPosting-schema gevonden"] : jobsText ? ["Vacature-/carrièrevermelding gevonden; dit is geen bewijs dat recruitment de primaire sector is"] : []),
-      rooms: fact(rooms, rooms ? "medium" : "low", [source], rooms ? ["Hotel/kamer-signaal gevonden"] : []),
-      menu: fact(menu, menu ? "medium" : "low", [source], menu ? ["Restaurant/menu-signaal gevonden"] : []),
+      rooms: fact(rooms, roomSchema ? "high" : rooms ? "medium" : "low", [source, ...(roomSchema ? ["structured_data" as EvidenceSource] : [])], rooms ? [roomSchema ? "Hotel-/accommodatieschema gevonden" : "Hotel/kamer-tekstsignaal gevonden"] : []),
+      menu: fact(menu, menuSchema ? "high" : menu ? "medium" : "low", [source, ...(menuSchema ? ["structured_data" as EvidenceSource] : [])], menu ? [menuSchema ? "Restaurant-/menuschema gevonden" : "Restaurant/menu-tekstsignaal gevonden"] : []),
     },
     organization: {
       contact: fact(contact, contact ? "medium" : "low", [source], contact ? ["Contactsignaal gevonden"] : []),
@@ -211,8 +219,9 @@ export type EvidencePartnerResult = {
 export function collectEvidencePartners(evidence: ScanEvidence): EvidencePartnerResult[] {
   const sourceSet = (...facts: EvidenceFact<unknown>[]) => uniq(facts.flatMap(item => item.sources));
   const evidenceSet = (...facts: EvidenceFact<unknown>[]) => uniq(facts.flatMap(item => item.evidence)).slice(0, 12);
-  const booleanFacts = (facts: Array<[string, EvidenceFact<boolean>]>) =>
-    facts.filter(([, item]) => item.value).map(([name]) => name);
+  const confidenceRank: Record<EvidenceConfidence,number> = {low:0,medium:1,high:2};
+  const booleanFacts = (facts: Array<[string, EvidenceFact<boolean>]>, minimum: EvidenceConfidence = "medium") =>
+    facts.filter(([, item]) => item.value && confidenceRank[item.confidence] >= confidenceRank[minimum]).map(([name]) => name);
 
   const coreCapabilities = [
     evidence.page.title && "title",
@@ -239,7 +248,7 @@ export function collectEvidencePartners(evidence: ScanEvidence): EvidencePartner
       ["jobs", evidence.inventory.jobs],
       ["rooms", evidence.inventory.rooms],
       ["menu", evidence.inventory.menu],
-    ]),
+    ], "high"),
   ];
 
   const localBookingCapabilities = [
@@ -282,65 +291,4 @@ export function collectEvidencePartners(evidence: ScanEvidence): EvidencePartner
       sourceSet(evidence.appointments.appointment, evidence.appointments.reservation, evidence.appointments.booking, evidence.appointments.quoteRequest, evidence.organization.contact, evidence.organization.address, evidence.organization.openingHours, evidence.organization.reviews),
       evidenceSet(evidence.appointments.appointment, evidence.appointments.reservation, evidence.appointments.booking, evidence.appointments.quoteRequest, evidence.organization.contact, evidence.organization.address, evidence.organization.openingHours, evidence.organization.reviews), 2),
   ];
-}
-
-export function mergeScanEvidence(base: ScanEvidence, additional: ScanEvidence): ScanEvidence {
-  const mergeFact = <T,>(a: EvidenceFact<T>, b: EvidenceFact<T>, choose: (x: T, y: T) => T): EvidenceFact<T> => ({
-    value: choose(a.value, b.value),
-    confidence: a.confidence === "high" || b.confidence === "high" ? "high" : a.confidence === "medium" || b.confidence === "medium" ? "medium" : "low",
-    sources: uniq([...a.sources, ...b.sources, "multi_page"]),
-    evidence: uniq([...a.evidence, ...b.evidence]).slice(0, 12),
-  });
-  const or = (a:boolean,b:boolean)=>a||b;
-  const max = (a:number,b:number)=>Math.max(a,b);
-  return {
-    ...base,
-    commerce: {
-      cart: mergeFact(base.commerce.cart, additional.commerce.cart, or),
-      addToCart: mergeFact(base.commerce.addToCart, additional.commerce.addToCart, or),
-      checkout: mergeFact(base.commerce.checkout, additional.commerce.checkout, or),
-      prices: mergeFact(base.commerce.prices, additional.commerce.prices, (a,b)=>({count:Math.max(a.count,b.count),currencies:uniq([...a.currencies,...b.currencies])})),
-      products: mergeFact(base.commerce.products, additional.commerce.products, or),
-      productPage: mergeFact(base.commerce.productPage, additional.commerce.productPage, or),
-      productLinks: mergeFact(base.commerce.productLinks, additional.commerce.productLinks, max),
-    },
-    appointments: {
-      appointment: mergeFact(base.appointments.appointment, additional.appointments.appointment, or),
-      reservation: mergeFact(base.appointments.reservation, additional.appointments.reservation, or),
-      booking: mergeFact(base.appointments.booking, additional.appointments.booking, or),
-      quoteRequest: mergeFact(base.appointments.quoteRequest, additional.appointments.quoteRequest, or),
-    },
-    inventory: {
-      vehicles: mergeFact(base.inventory.vehicles, additional.inventory.vehicles, or),
-      properties: mergeFact(base.inventory.properties, additional.inventory.properties, or),
-      jobs: mergeFact(base.inventory.jobs, additional.inventory.jobs, or),
-      rooms: mergeFact(base.inventory.rooms, additional.inventory.rooms, or),
-      menu: mergeFact(base.inventory.menu, additional.inventory.menu, or),
-    },
-    organization: {
-      contact: mergeFact(base.organization.contact, additional.organization.contact, or),
-      address: mergeFact(base.organization.address, additional.organization.address, or),
-      openingHours: mergeFact(base.organization.openingHours, additional.organization.openingHours, or),
-      reviews: mergeFact(base.organization.reviews, additional.organization.reviews, or),
-    },
-    sectorDetails: {
-      realEstate: { listing: mergeFact(base.sectorDetails.realEstate.listing, additional.sectorDetails.realEstate.listing, or), sale: mergeFact(base.sectorDetails.realEstate.sale, additional.sectorDetails.realEstate.sale, or), rental: mergeFact(base.sectorDetails.realEstate.rental, additional.sectorDetails.realEstate.rental, or) },
-      automotive: { service: mergeFact(base.sectorDetails.automotive.service, additional.sectorDetails.automotive.service, or), dealer: mergeFact(base.sectorDetails.automotive.dealer, additional.sectorDetails.automotive.dealer, or) },
-      media: { article: mergeFact(base.sectorDetails.media.article, additional.sectorDetails.media.article, or), author: mergeFact(base.sectorDetails.media.author, additional.sectorDetails.media.author, or), publishedDate: mergeFact(base.sectorDetails.media.publishedDate, additional.sectorDetails.media.publishedDate, or) },
-      sports: { event: mergeFact(base.sectorDetails.sports.event, additional.sectorDetails.sports.event, or), teamOrPlayer: mergeFact(base.sectorDetails.sports.teamOrPlayer, additional.sectorDetails.sports.teamOrPlayer, or), resultsOrStandings: mergeFact(base.sectorDetails.sports.resultsOrStandings, additional.sectorDetails.sports.resultsOrStandings, or) },
-      lodging: { shortStay: mergeFact(base.sectorDetails.lodging.shortStay, additional.sectorDetails.lodging.shortStay, or), bedBreakfast: mergeFact(base.sectorDetails.lodging.bedBreakfast, additional.sectorDetails.lodging.bedBreakfast, or), holidayRental: mergeFact(base.sectorDetails.lodging.holidayRental, additional.sectorDetails.lodging.holidayRental, or), holidayPark: mergeFact(base.sectorDetails.lodging.holidayPark, additional.sectorDetails.lodging.holidayPark, or), camping: mergeFact(base.sectorDetails.lodging.camping, additional.sectorDetails.lodging.camping, or), stayDates: mergeFact(base.sectorDetails.lodging.stayDates, additional.sectorDetails.lodging.stayDates, or), guests: mergeFact(base.sectorDetails.lodging.guests, additional.sectorDetails.lodging.guests, or) },
-    },
-    schema: {
-      types: uniq([...base.schema.types, ...additional.schema.types]),
-      organization: base.schema.organization || additional.schema.organization,
-      website: base.schema.website || additional.schema.website,
-      product: base.schema.product || additional.schema.product,
-      localBusiness: base.schema.localBusiness || additional.schema.localBusiness,
-      vehicle: base.schema.vehicle || additional.schema.vehicle,
-      realEstate: base.schema.realEstate || additional.schema.realEstate,
-      jobPosting: base.schema.jobPosting || additional.schema.jobPosting,
-      restaurant: base.schema.restaurant || additional.schema.restaurant,
-      hotel: base.schema.hotel || additional.schema.hotel,
-    },
-  };
 }

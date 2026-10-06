@@ -573,3 +573,64 @@ test("assistant monitoring context uses the production monitor table and real ro
   assert.doesNotMatch(source, /website_monitoring/);
   assert.doesNotMatch(source, /\/dashboard\/monitoring/);
 });
+
+
+test("active scanner fix IDs map to bounded dashboard fix actions", async () => {
+  const { getFixPolicy } = await import("../lib/fix-policy.ts");
+  const expected = {
+    title:"meta_title",
+    description:"meta_description",
+    h1:"h1",
+    alt:"alt_text",
+    schema:"structured_data",
+    social:"social_metadata",
+    canonical:"canonical",
+    headings:"heading_structure",
+    breadcrumbs:"breadcrumb",
+  };
+  for (const [ruleId,safeType] of Object.entries(expected)) {
+    const policy=getFixPolicy(ruleId);
+    assert.equal(policy.category,"B",ruleId);
+    assert.equal(policy.action,"github_fix",ruleId);
+    assert.equal(policy.safe_type,safeType,ruleId);
+  }
+});
+
+test("GitHub proposal routing recognizes active scanner IDs without title guessing", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/dashboard/github/page.tsx", import.meta.url), "utf8");
+  for (const mapping of ['title:"meta_title"','description:"meta_description"','h1:"h1"','alt:"alt_text"','schema:"structured_data"']) {
+    assert.equal(source.includes(mapping),true,mapping);
+  }
+});
+
+test("Evidence Engine avoids double-counting medium text hints as independent sector proof", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const evidence = await readFile(new URL("../lib/scan-evidence.ts", import.meta.url), "utf8");
+  const catalog = await readFile(new URL("../lib/sector-catalog.ts", import.meta.url), "utf8");
+  assert.match(evidence,/vehicleSchema \? "high" : vehicles \? "medium"/);
+  assert.match(evidence,/propertySchema \? "high" : properties \? "medium"/);
+  assert.match(evidence,/businessCapabilities[\s\S]*\], "high"\)/);
+  assert.match(catalog,/const high = \(item: \{ value: unknown; confidence: string \}\)/);
+  assert.match(catalog,/"inventory\.properties": high\(evidence\.inventory\.properties\)/);
+  assert.doesNotMatch(catalog,/"inventory\.properties": Boolean\(evidence\.inventory\.properties\.value\)/);
+});
+
+test("structured-data fix handles composite schema recommendations as separate nodes", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const route = await readFile(new URL("../app/api/ai-fix/route.ts", import.meta.url), "utf8");
+  const validator = await readFile(new URL("../lib/seo-fix-validator.ts", import.meta.url), "utf8");
+  assert.match(route,/preferredSchema\.split\("\+"\)/);
+  assert.match(route,/"@graph":schemaTypes\.map\(nodeFor\)/);
+  assert.match(route,/deterministicTypes: FixType\[\] = \["structured_data"/);
+  assert.match(validator,/expectedTypes = preferredAlternative\.split\("\+"\)/);
+  assert.match(validator,/Structured data mist aanbevolen type\(s\)/);
+});
+
+test("unused evidence merge and sector capability exports stay removed", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const evidence = await readFile(new URL("../lib/scan-evidence.ts", import.meta.url), "utf8");
+  const catalog = await readFile(new URL("../lib/sector-catalog.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(evidence,/export function mergeScanEvidence/);
+  assert.doesNotMatch(catalog,/export function controlCapabilitiesForSector/);
+});

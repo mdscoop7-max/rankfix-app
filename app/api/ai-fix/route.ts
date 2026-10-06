@@ -199,23 +199,33 @@ function fallback(type: FixType, url: string, current: string, context: Record<s
     const recommendedSchema = safeContext.recommendedSchema && safeContext.recommendedSchema !== "WebPage"
       ? safeContext.recommendedSchema
       : inferredSchema;
-    const details = {
-      "@context":"https://schema.org",
-      "@type":recommendedSchema,
-      ...((safeContext.businessName || safeContext.name) ? {name: safeContext.businessName || safeContext.name} : {}),
-      ...(safeContext.streetAddress || safeContext.postalCode || safeContext.addressLocality ? {
-        address: {
-          "@type":"PostalAddress",
-          ...(safeContext.streetAddress ? {streetAddress: safeContext.streetAddress} : {}),
-          ...(safeContext.postalCode ? {postalCode: safeContext.postalCode} : {}),
-          ...(safeContext.addressLocality ? {addressLocality: safeContext.addressLocality} : {}),
-          ...(safeContext.addressCountry ? {addressCountry: safeContext.addressCountry} : {})
-        }
-      } : {}),
-      ...(safeContext.telephone ? {telephone: safeContext.telephone} : {}),
-      ...(safeContext.url ? {url: safeContext.url} : {})
+    // A recommendation such as "Service + Organization" represents multiple
+    // schema nodes, never one literal @type. Slash-separated values are alternatives;
+    // use the first preferred option for a deterministic proposal.
+    const preferredSchema = String(recommendedSchema).split("/")[0].trim();
+    const schemaTypes = preferredSchema.split("+").map((value)=>value.trim()).filter(Boolean);
+    const name = safeContext.businessName || safeContext.name || safeContext.title;
+    const identity = {
+      ...(name ? {name} : {}),
+      ...(safeContext.url ? {url:safeContext.url} : {}),
     };
-    return {title:"Structured data voorstel",content:`<script type="application/ld+json">${JSON.stringify(details,null,2)}</script>`,reason:"Gebruikt alleen de tijdens de scan gevonden bedrijfsgegevens en het passende schema-type."};
+    const address = safeContext.streetAddress || safeContext.postalCode || safeContext.addressLocality ? {
+      "@type":"PostalAddress",
+      ...(safeContext.streetAddress ? {streetAddress: safeContext.streetAddress} : {}),
+      ...(safeContext.postalCode ? {postalCode: safeContext.postalCode} : {}),
+      ...(safeContext.addressLocality ? {addressLocality: safeContext.addressLocality} : {}),
+      ...(safeContext.addressCountry ? {addressCountry: safeContext.addressCountry} : {})
+    } : null;
+    const nodeFor = (schemaType:string) => ({
+      "@type":schemaType,
+      ...identity,
+      ...(/(?:Organization|Business|Store|Salon|Restaurant|Dentist|Contractor|Service)$/i.test(schemaType) && address ? {address} : {}),
+      ...(/(?:Organization|Business|Store|Salon|Restaurant|Dentist|Contractor|Service)$/i.test(schemaType) && safeContext.telephone ? {telephone:safeContext.telephone} : {}),
+    });
+    const details = schemaTypes.length > 1
+      ? {"@context":"https://schema.org","@graph":schemaTypes.map(nodeFor)}
+      : {"@context":"https://schema.org",...nodeFor(schemaTypes[0] || inferredSchema)};
+    return {title:"Structured data voorstel",content:`<script type="application/ld+json">${JSON.stringify(details,null,2)}</script>`,reason:"Gebruikt alleen tijdens de scan bevestigde context. Samengestelde aanbevelingen worden als aparte schema-nodes opgebouwd."};
   }
   throw new Error("Unsupported fix type.");
 }
@@ -259,7 +269,7 @@ export async function POST(request: Request) {
     const safeCurrent = cleanContextValue(current);
     // Structural SEO fix routing is deterministic in production; keep verified scan data on these paths.
     // This prevents structural issues from being misclassified as structured-data proposals.
-    const deterministicTypes: FixType[] = ["social_metadata", "canonical", "heading_structure", "alt_text"];
+    const deterministicTypes: FixType[] = ["structured_data", "social_metadata", "canonical", "heading_structure", "alt_text"];
     if (type === "product_copy_metadata" && !process.env.OPENAI_API_KEY) {
       return NextResponse.json({ error:"ai_required", message:"Product Optimizer heeft de AI-service nodig om een veilig, brongebonden voorstel te maken." }, { status:503 });
     }

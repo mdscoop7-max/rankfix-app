@@ -89,18 +89,23 @@ export function sectorCatalogSummary() {
 
 export function rankSectorCandidates(evidence: ScanEvidence, searchableText: string) {
   const schema = new Set(evidence.schema.types.map(x=>x.toLowerCase()));
+  const high = (item: { value: unknown; confidence: string }) => Boolean(item.value) && item.confidence === "high";
+  // Sector evidence must be independent of the same plain-text keyword that
+  // already contributes keywordHit below. Only high-confidence evidence gets
+  // the extra evidence score; medium text hints remain useful context but are
+  // never double-counted into a "strong" sector by themselves.
   const flags: Record<string,boolean> = {
-    "commerce.products": Boolean(evidence.commerce.products.value),
-    "commerce.cart": Boolean(evidence.commerce.cart.value),
-    "commerce.checkout": Boolean(evidence.commerce.checkout.value),
-    "inventory.vehicles": Boolean(evidence.inventory.vehicles.value),
-    "inventory.properties": Boolean(evidence.inventory.properties.value),
-    "inventory.jobs": Boolean(evidence.inventory.jobs.value && evidence.inventory.jobs.confidence !== "low"),
-    "inventory.rooms": Boolean(evidence.inventory.rooms.value),
-    "inventory.menu": Boolean(evidence.inventory.menu.value),
-    "appointments.appointment": Boolean(evidence.appointments.appointment.value),
-    "appointments.reservation": Boolean(evidence.appointments.reservation.value),
-    "appointments.booking": Boolean(evidence.appointments.booking.value),
+    "commerce.products": high(evidence.commerce.products),
+    "commerce.cart": high(evidence.commerce.cart),
+    "commerce.checkout": high(evidence.commerce.checkout),
+    "inventory.vehicles": high(evidence.inventory.vehicles),
+    "inventory.properties": high(evidence.inventory.properties),
+    "inventory.jobs": high(evidence.inventory.jobs),
+    "inventory.rooms": high(evidence.inventory.rooms),
+    "inventory.menu": high(evidence.inventory.menu),
+    "appointments.appointment": high(evidence.appointments.appointment),
+    "appointments.reservation": high(evidence.appointments.reservation),
+    "appointments.booking": high(evidence.appointments.booking),
   };
   return SECTOR_CATALOG.map(def=>{
     const keywordHit = def.keywords.test(searchableText);
@@ -155,13 +160,4 @@ export function modulesForCapabilities(capabilities: Iterable<string>) {
     for (const module of CAPABILITY_MODULE_MAP[capability] || []) modules.add(module);
   }
   return [...modules];
-}
-
-export function controlCapabilitiesForSector(key: SectorKey) {
-  const sector = SECTOR_CATALOG.find((item)=>item.key===key);
-  return sector ? {
-    expected:[...sector.expectedCapabilities],
-    optional:[...(sector.optionalCapabilities||[])],
-    forbiddenAssumptions:[...(sector.forbiddenAssumptions||[])],
-  } : {expected:[],optional:[],forbiddenAssumptions:[]};
 }

@@ -34,18 +34,24 @@ function validateStructuredData(value: string, expectedSchema?: string): string[
     return (Array.isArray(t) ? t : [t]).filter(Boolean).map(String);
   });
   if (!foundTypes.length) errors.push("Structured data bevat geen @type.");
-  if (expectedSchema && expectedSchema !== "LocalBusiness" && !foundTypes.some(t => t.toLowerCase() === expectedSchema.toLowerCase())) {
-    errors.push(`Structured data gebruikt niet het aanbevolen type: ${expectedSchema}.`);
+  const normalizedFound = new Set(foundTypes.map((type)=>type.toLowerCase()));
+  const expectedRaw = String(expectedSchema || "").trim();
+  const preferredAlternative = expectedRaw.split("/")[0].trim();
+  const expectedTypes = preferredAlternative.split("+").map((type)=>type.trim()).filter(Boolean);
+  if (expectedTypes.length) {
+    const missingExpected = expectedTypes.filter((type)=>!normalizedFound.has(type.toLowerCase()));
+    if (missingExpected.length) errors.push(`Structured data mist aanbevolen type(s): ${missingExpected.join(", ")}.`);
   }
-  if (expectedSchema && localTypes.has(expectedSchema.toLowerCase())) {
+  for (const expectedType of expectedTypes) {
+    if (!localTypes.has(expectedType.toLowerCase())) continue;
     const localItem = list.find((item) => {
       const record = item && typeof item === "object" ? item as Record<string, unknown> : null;
       const t = record?.["@type"];
-      return (Array.isArray(t) ? t : [t]).some((x) => String(x).toLowerCase() === expectedSchema.toLowerCase());
+      return (Array.isArray(t) ? t : [t]).some((x) => String(x).toLowerCase() === expectedType.toLowerCase());
     });
     const localRecord = localItem && typeof localItem === "object" ? localItem as Record<string, unknown> : null;
-    if (!localRecord?.name) errors.push("LocalBusiness structured data mist name.");
-    if (!localRecord?.address) errors.push("LocalBusiness structured data mist address.");
+    if (!localRecord?.name) errors.push(`${expectedType} structured data mist name.`);
+    if (!localRecord?.address) errors.push(`${expectedType} structured data mist address.`);
   }
   return errors;
 }
