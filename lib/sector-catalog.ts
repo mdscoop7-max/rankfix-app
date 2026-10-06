@@ -61,7 +61,7 @@ export const SECTOR_CATALOG: SectorDefinition[] = [
   {key:"insurance",label:"Verzekeringen",keywords:/\b(verzekering|insurance|verzekeren|assurance|versicherung)\b/i,schemaTypes:["InsuranceAgency"],expectedCapabilities:["products_or_policies","quote_request","contact","trust"]},
   {key:"education",label:"Onderwijs",keywords:/\b(school|universiteit|university|college|onderwijs|opleiding)\b/i,schemaTypes:["EducationalOrganization","School","CollegeOrUniversity"],expectedCapabilities:["programs","admissions","contact","accessibility"]},
   {key:"course_training",label:"Cursus / training",keywords:/\b(cursus|course|training|workshop|opleiding volgen)\b/i,schemaTypes:["Course"],expectedCapabilities:["courses","schedule","enrollment","pricing"],optionalCapabilities:["booking"]},
-  {key:"recruitment",label:"Recruitment / vacatures",keywords:/\b(vacatures|jobs|careers|recruitment|solliciteren|werken bij)\b/i,schemaTypes:["JobPosting","EmploymentAgency"],evidenceFlags:["inventory.jobs"],expectedCapabilities:["jobs","job_details","application","organization"]},
+  {key:"recruitment",label:"Recruitment / vacatures",keywords:/\b(recruitment|uitzendbureau|uitzendorganisatie|employment agency|staffing agency|staffing|werving en selectie|recruitmentbureau|recruitment agency)\b/i,schemaTypes:["EmploymentAgency"],evidenceFlags:["inventory.jobs"],expectedCapabilities:["jobs","job_details","application","organization"]},
   {key:"news_media",label:"Nieuws / media",keywords:/\b(nieuws|news|breaking news|journalistiek|newspaper|redactie|journalist|verslaggever|headline|liveblog)\b/i,schemaTypes:["NewsMediaOrganization","NewsArticle","Article"],expectedCapabilities:["articles","authors","dates","publisher","sources"],forbiddenAssumptions:["commerce"]},
   {key:"publisher_blog",label:"Blog / publisher",keywords:/\b(blog|magazine|artikelen|articles|editorial)\b/i,schemaTypes:["Blog","BlogPosting","Article"],expectedCapabilities:["articles","authors","dates","publisher"]},
   {key:"events",label:"Events / tickets",keywords:/\b(events?|evenementen|tickets|concert|festival)\b/i,schemaTypes:["Event"],expectedCapabilities:["events","dates","venue","tickets_or_registration"]},
@@ -95,7 +95,7 @@ export function rankSectorCandidates(evidence: ScanEvidence, searchableText: str
     "commerce.checkout": Boolean(evidence.commerce.checkout.value),
     "inventory.vehicles": Boolean(evidence.inventory.vehicles.value),
     "inventory.properties": Boolean(evidence.inventory.properties.value),
-    "inventory.jobs": Boolean(evidence.inventory.jobs.value),
+    "inventory.jobs": Boolean(evidence.inventory.jobs.value && evidence.inventory.jobs.confidence !== "low"),
     "inventory.rooms": Boolean(evidence.inventory.rooms.value),
     "inventory.menu": Boolean(evidence.inventory.menu.value),
     "appointments.appointment": Boolean(evidence.appointments.appointment.value),
@@ -106,6 +106,12 @@ export function rankSectorCandidates(evidence: ScanEvidence, searchableText: str
     const keywordHit = def.keywords.test(searchableText);
     const schemaHits = (def.schemaTypes||[]).filter(x=>schema.has(x.toLowerCase()));
     let evidenceHits = (def.evidenceFlags||[]).filter(x=>flags[x]);
+    // A vacancy is a capability of many businesses, not proof that recruitment is
+    // their primary activity. Jobs may support proven staffing/employment identity,
+    // but may never create recruitment identity by themselves.
+    if (def.key === "recruitment" && !keywordHit && !schemaHits.some(x=>/^EmploymentAgency$/i.test(x))) {
+      evidenceHits = evidenceHits.filter(x=>x!=="inventory.jobs");
+    }
     // Motor v2.1: inventory.menu can also mean a navigation menu. It is only
     // restaurant identity evidence when an independent food/hospitality signal exists.
     if (def.key === "restaurant" && evidenceHits.includes("inventory.menu")) {
