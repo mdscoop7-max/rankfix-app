@@ -3366,10 +3366,10 @@ export async function POST(request: Request) {
     const multiPageRelevance = (item: MultiPageCandidate) => {
       const path = new URL(item.url).pathname.toLowerCase();
       const context = (anchorContextByUrl.get(normalizeScanUrl(item.url)) || "").toLowerCase();
-      if (/(?:^|\\/)(?:privacy|privacy-policy|privacybeleid|privacyverklaring|datenschutz|datenschutzhinweise|datenschutzerklaerung|terms|terms-and-conditions|terms-of-use|voorwaarden|algemene-voorwaarden|cookie|cookies|cookie-policy|cookiebeleid|disclaimer|legal|impressum)(?:\\/|$)/i.test(path)) return -100;
-      const utilityContext = /\\b(privacy|cookie|voorwaarden|terms|login|account|vacature|career|jobs|nieuws|news|blog|geschiedenis|history|impressie|gallery|over ons|about us)\\b/i.test(context);
-      const capabilityContext = /\\b(product|producten|shop|winkel|aanbod|voorraad|woning|woningen|occasion|service|diensten|dienstverlening|transport|logistiek|freight|warehouse|opslag|behandeling|treatment|afspraak|booking|reserver|offerte|quote|kamer|rooms?)\\b/i.test(context);
-      const contextWords = context.split(/\\s+/).filter(Boolean).length;
+      if (/(?:^|\/)(?:privacy|privacy-policy|privacybeleid|privacyverklaring|datenschutz|datenschutzhinweise|datenschutzerklaerung|terms|terms-and-conditions|terms-of-use|voorwaarden|algemene-voorwaarden|cookie|cookies|cookie-policy|cookiebeleid|disclaimer|legal|impressum)(?:\/|$)/i.test(path)) return -100;
+      const utilityContext = /\b(privacy|cookie|voorwaarden|terms|login|account|vacature|career|jobs|nieuws|news|blog|geschiedenis|history|impressie|gallery|over ons|about us)\b/i.test(context);
+      const capabilityContext = /\b(product|producten|shop|winkel|aanbod|voorraad|woning|woningen|occasion|service|diensten|dienstverlening|transport|logistiek|freight|warehouse|opslag|behandeling|treatment|afspraak|booking|reserver|offerte|quote|kamer|rooms?)\b/i.test(context);
+      const contextWords = context.split(/\s+/).filter(Boolean).length;
       let score = item.type === "product" ? 34 : item.type === "category" ? 28 : 8;
       if (capabilityContext) score += 24;
       if (contextWords >= 2) score += 4;
@@ -3378,7 +3378,7 @@ export async function POST(request: Request) {
       // cannot by themselves dominate structural link context.
       if (/(?:dienst|service|product|shop|store|catalog|aanbod|voorraad|woning|property|occasion|transport|logist|warehouse|behandel|treatment|booking|reserve)/i.test(path)) score += 6;
       if (/(?:nieuws|news|blog|geschiedenis|history|impressie|gallery|over-ons|about-us)/i.test(path)) score -= 12;
-      if (/^\\/(?:[a-z]{2}(?:-[a-z]{2})?)\\/?$/i.test(path)) score -= 10;
+      if (/^\/(?:[a-z]{2}(?:-[a-z]{2})?)\/?$/i.test(path)) score -= 10;
       return score;
     };
     const rankedMultiPage = discoveredMultiPage.filter((item) => multiPageRelevance(item) > -100).sort((a,b) => multiPageRelevance(b) - multiPageRelevance(a));
