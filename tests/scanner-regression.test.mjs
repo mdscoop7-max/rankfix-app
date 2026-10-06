@@ -768,3 +768,21 @@ test("commerce identity requires confirmed high-confidence signals", async () =>
   assert.match(scanner,/scanEvidence\.commerce\.productPage\.confidence === "high"/);
   assert.match(scanner,/scanEvidence\.commerce\.addToCart\.confidence === "high"/);
 });
+
+
+test("sector identity ignores low-confidence accommodation and property evidence", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(scanner,/lodgingDetail\.shortStay\.confidence !== "low"/);
+  assert.match(scanner,/scanEvidence\.appointments\.booking\.confidence !== "low"/);
+  assert.match(scanner,/scanEvidence\.inventory\.properties\.confidence !== "low"/);
+});
+
+test("structural actions outrank plain text hints in scan evidence", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const evidence = await readFile(new URL("../lib/scan-evidence.ts", import.meta.url), "utf8");
+  assert.match(evidence,/appointmentAction \? "high" : appointment \? "medium"/);
+  assert.match(evidence,/contactLink \? "high" : contactText \? "medium"/);
+  assert.match(evidence,/shortStaySchema \? "high" : shortStayText \? "medium"/);
+  assert.match(evidence,/automotiveDealerSchema \? "high" : automotiveDealerText \? "medium"/);
+});
