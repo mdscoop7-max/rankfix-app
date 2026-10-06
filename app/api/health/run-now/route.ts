@@ -11,6 +11,6 @@ export async function POST(){
  const user=await getCurrentUser();
  if(!user)return NextResponse.json({error:"Niet ingelogd."},{status:401});
  if(!isHealthAdmin(String(user.email||"")))return NextResponse.json({error:"Niet toegestaan."},{status:403});
- try{return NextResponse.json(await runHealthGuard())}
+ try{return runHealthGuard()}
  catch(error){console.error("Manual admin health run failed",error);return NextResponse.json({error:"Health-controle mislukt."},{status:500})}
 }

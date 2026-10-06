@@ -10,7 +10,6 @@ const statements = [
     name TEXT NOT NULL,
     password_hash TEXT NOT NULL,
     customer_id TEXT UNIQUE,
-    credits INTEGER NOT NULL DEFAULT 25,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS customer_id TEXT`,
@@ -54,16 +53,6 @@ const statements = [
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`,
   `CREATE INDEX IF NOT EXISTS scans_user_created_idx ON scans(user_id, created_at DESC)`,
-  `CREATE TABLE IF NOT EXISTS credit_transactions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    amount INTEGER NOT NULL,
-    reason TEXT NOT NULL,
-    reference_id TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-  )`,
-  `CREATE INDEX IF NOT EXISTS credit_transactions_user_created_idx ON credit_transactions(user_id, created_at DESC)`,
-  `CREATE UNIQUE INDEX IF NOT EXISTS credit_transactions_idempotency_idx ON credit_transactions(user_id, reference_id) WHERE reference_id IS NOT NULL`,
   `ALTER TABLE scans ADD COLUMN IF NOT EXISTS crawler_version TEXT`,
   `ALTER TABLE scans ADD COLUMN IF NOT EXISTS rules_version TEXT`,
   `ALTER TABLE scans ADD COLUMN IF NOT EXISTS fix_policy_version TEXT`,

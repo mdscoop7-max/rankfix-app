@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
 import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
+import { publicPriceSummary } from "@/lib/plans";
 
 const assistantErrors = {
   nl:{empty:"Vul een bericht in.",long:"Je bericht is te lang.",rate:"Te veel AI-verzoeken. Probeer later opnieuw.",unavailable:"AI-assistent is tijdelijk niet beschikbaar.",failed:"AI-assistent kon het verzoek niet verwerken."},
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
       if (dashboard) {
         const [fixStats, monitoringStats] = await Promise.all([
           getDb().query("SELECT status, COUNT(*)::int AS count FROM fix_proposals WHERE user_id=$1 GROUP BY status",[user.id]).catch(()=>({rows:[]} as any)),
-          getDb().query("SELECT enabled, COUNT(*)::int AS count FROM website_monitoring WHERE user_id=$1 GROUP BY enabled",[user.id]).catch(()=>({rows:[]} as any)),
+          getDb().query("SELECT enabled, COUNT(*)::int AS count FROM website_monitors WHERE user_id=$1 GROUP BY enabled",[user.id]).catch(()=>({rows:[]} as any)),
         ]);
         dashboardContext = JSON.stringify({
           recent_scans: scans.rows.length,
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
             fixes:"/dashboard/github",
             history:"/dashboard/history",
             search_console:"/dashboard/search-console",
-            monitoring:"/dashboard/monitoring"
+            monitoring:"/dashboard/history"
           }
         });
       }
@@ -219,7 +220,7 @@ export async function POST(request: Request) {
       : [
           "Je bent RankFix AI, de publieke informatie-assistent van RankFix.",
           "Leg uit hoe RankFix werkt, wat SEO en GEO zijn, hoe audits, AI-fixes, abonnementen, Dashboard en GitHub Fix Engine werken.",
-          "Actuele publieke prijsinformatie van RankFix: Free € 0,00; Start € 34,95 per maand; Business € 69,95 per maand; E-commerce € 89,95 per maand; Pro € 129,95 per maand; Agency € 219,95 per maand. AI-fixes zijn binnen de betaalde pakketten inbegrepen; presenteer geen credits aan klanten.",
+          "Actuele publieke prijsinformatie van RankFix: " + publicPriceSummary() + ". AI-fixes zijn binnen de betaalde pakketten inbegrepen; presenteer geen credits aan klanten.",
           "Business is bedoeld voor MKB en meerdere websites en bevat 24/7 monitoring met kritieke e-mailwaarschuwingen. E-commerce is specifiek voor Shopify, WooCommerce en Next.js/custom webshops, bevat 75 scans per maand, 2 gebruikers en gespecialiseerde product-, categorie-, Merchant Readiness-, EU-Omnibus- en structured-data controles. Pro biedt meer capaciteit en automatisering. Agency is voor bureaus met veel klantwebsites, klant-/agencyrapportage, API en team/workflow. Audits worden niet standaard per e-mail verstuurd: klanten downloaden PDF-rapporten zelf en kunnen opgeslagen audits zelf verwijderen.",
           "Als iemand naar abonnementen of prijzen vraagt, gebruik alleen deze actuele bedragen. Noem dat de betaalde abonnementen op de prijspagina momenteel nog als 'Binnenkort beschikbaar' staan zolang facturatie niet live is.",
           "Doe geen uitspraken over persoonlijke klantdata. Als iemand naar een eigen scan vraagt, adviseer in te loggen op het Dashboard.",

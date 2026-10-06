@@ -1,11 +1,12 @@
 import Link from "next/link";
+import { PLAN_CATALOG } from "@/lib/plans";
 
 const plans = {
-  start: { name: "Start", price: 34.95, websites: 1, scans: 15, stores: false },
-  business: { name: "Business", price: 69.95, websites: 5, scans: 50, stores: false },
-  "e-commerce": { name: "E-commerce", price: 89.95, websites: 5, scans: 75, stores: true },
-  pro: { name: "Pro", price: 129.95, websites: 15, scans: 150, stores: false },
-  agency: { name: "Agency", price: 219.95, websites: 50, scans: 500, stores: false },
+  start: { name: PLAN_CATALOG.start.label, price: PLAN_CATALOG.start.priceEur, websites: PLAN_CATALOG.start.websites, scans: PLAN_CATALOG.start.scans, stores: false },
+  business: { name: PLAN_CATALOG.business.label, price: PLAN_CATALOG.business.priceEur, websites: PLAN_CATALOG.business.websites, scans: PLAN_CATALOG.business.scans, stores: false },
+  "e-commerce": { name: PLAN_CATALOG["e-commerce"].label, price: PLAN_CATALOG["e-commerce"].priceEur, websites: PLAN_CATALOG["e-commerce"].websites, scans: PLAN_CATALOG["e-commerce"].scans, stores: true },
+  pro: { name: PLAN_CATALOG.pro.label, price: PLAN_CATALOG.pro.priceEur, websites: PLAN_CATALOG.pro.websites, scans: PLAN_CATALOG.pro.scans, stores: false },
+  agency: { name: PLAN_CATALOG.agency.label, price: PLAN_CATALOG.agency.priceEur, websites: PLAN_CATALOG.agency.websites, scans: PLAN_CATALOG.agency.scans, stores: false },
 } as const;
 
 type PlanKey = keyof typeof plans;

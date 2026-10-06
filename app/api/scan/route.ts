@@ -3,7 +3,6 @@ import { createHash } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
-import { sendScanReportEmail } from "@/lib/email";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { extractImageMetrics } from "@/lib/image-metrics";
@@ -416,6 +415,26 @@ export async function POST(request: Request) {
       }
     }
 
+    // Public scans are intentionally available without login, but the endpoint can
+    // trigger network fetches and bounded browser rendering. Apply a coarse per-network
+    // limit so anonymous automation cannot consume unbounded scan capacity.
+    if (!dashboardScan) {
+      await ensureDatabase();
+      const publicIp=requestIp(request);
+      const publicAllowed=await consumeRateLimit("public-scan",publicIp,8,3600);
+      if(!publicAllowed){
+        const publicRateMessages:Record<string,string>={
+          nl:"Er zijn vanaf dit netwerk veel gratis scans uitgevoerd. Probeer het over ongeveer een uur opnieuw.",
+          en:"Many free scans have been run from this network. Please try again in about an hour.",
+          de:"Von diesem Netzwerk wurden viele kostenlose Scans ausgeführt. Bitte versuche es in etwa einer Stunde erneut.",
+          fr:"De nombreuses analyses gratuites ont été lancées depuis ce réseau. Réessayez dans environ une heure.",
+          it:"Da questa rete sono state eseguite molte scansioni gratuite. Riprova tra circa un’ora.",
+          es:"Se han realizado muchos análisis gratuitos desde esta red. Vuelve a intentarlo dentro de aproximadamente una hora."
+        };
+        return NextResponse.json({error:publicRateMessages[scanLanguage],code:"PUBLIC_SCAN_RATE_LIMIT"},{status:429,headers:{"Retry-After":"3600"}});
+      }
+    }
+
     // Dashboard allowances are enforced server-side before starting an expensive crawl.
     // Free keeps the cross-account per-domain allowance; paid plans use account-level monthly allowances.
     let usageUser: Awaited<ReturnType<typeof getCurrentUser>> = null;
@@ -450,12 +469,8 @@ export async function POST(request: Request) {
         ? await getDb().query("SELECT COUNT(*)::int AS count FROM usage_events WHERE website_host=$1 AND event_type='SCAN' AND created_at >= $2",[usageWebsiteHost,monthStart.toISOString()])
         : await getDb().query("SELECT COUNT(*)::int AS count FROM usage_events WHERE user_id=$1 AND event_type='SCAN' AND created_at >= $2",[usageUser.id,monthStart.toISOString()]);
       const used = Number(scanUsage.rows[0]?.count || 0);
-      // Validation mode: RankFix's current Pro test account must be able to keep running
-      // regression scans while the product is being hardened. Customer plan limits remain
-      // unchanged for Free/Start/Business/E-commerce/Agency accounts.
-      const unlimitedTestHost = usageWebsiteHost === "trendmix.onrender.com" || usageWebsiteHost === "trendmix-jet.vercel.app";
-      const validationTestAccount = planCode === "pro";
-      if (!unlimitedTestHost && !validationTestAccount && used >= limits.scans) {
+      // Only an explicitly configured internal test account may bypass customer limits.
+      if (!internalTestAccount && used >= limits.scans) {
         const limitMessages: Record<string,string> = {
           nl:`Je ${limits.scans} scans van deze maand zijn gebruikt. Je bestaande rapporten blijven beschikbaar.`,
           en:`Your ${limits.scans} scans for this month have been used. Your existing reports remain available.`,

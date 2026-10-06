@@ -110,7 +110,7 @@ test("central classification bundle keeps transport, retail and canonical decisi
   assert.match(source, /!transportBookingIdentity && shopCatalogHrefCount/);
   assert.match(source, /strongArticleMarkupSignal/);
   assert.match(source, /safePublicFetch follows redirects manually/);
-  assert.match(source, /fetchedFinalUrl \\?\\? new URL\\(response\\.url/);
+  assert.equal(source.includes("fetchedFinalUrl ?? new URL(response.url"), true);
   assert.match(source, /prijevoz\|putnički/);
   assert.match(source, /δρομολόγ\|εισιτήρ\|πτήσ/);
   assert.match(source, /sectorPriority/);
@@ -521,4 +521,55 @@ test("commerce product pages cannot inherit transport schema context from incide
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   assert.match(source, /const transportLogisticsSchemaContext = !hasEcommerceSignal && !isProductPage/);
   assert.match(source, /test\(localIdentityText\)/);
+});
+
+
+test("production scan limits have no plan-wide or hardcoded-host bypass", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /validationTestAccount\s*=\s*planCode\s*===\s*"pro"/);
+  assert.doesNotMatch(source, /unlimitedTestHost/);
+  assert.doesNotMatch(source, /trendmix-jet\.vercel\.app/);
+  assert.match(source, /if \(!internalTestAccount && used >= limits\.scans\)/);
+});
+
+test("anonymous public scans and contact mail have coarse abuse protection", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const scan = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const contact = await readFile(new URL("../app/api/contact/route.ts", import.meta.url), "utf8");
+  assert.match(scan, /consumeRateLimit\("public-scan",publicIp,8,3600\)/);
+  assert.match(contact, /consumeRateLimit\("contact",requestIp\(request\),5,3600\)/);
+  assert.match(contact, /message\.length>5000/);
+});
+
+test("plan catalog matches customer-visible website and scan limits", async () => {
+  const { PLAN_CATALOG } = await import("../lib/plans.ts");
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(PLAN_CATALOG).map(([key,value])=>[key,[value.websites,value.scans]])),
+    {free:[1,2],start:[1,15],business:[5,50],"e-commerce":[5,75],pro:[15,150],agency:[50,500]}
+  );
+});
+
+test("legacy credits and production test-plan route are no longer part of active schema", async () => {
+  const { readFile, access } = await import("node:fs/promises");
+  const dbInit = await readFile(new URL("../lib/db-init.ts", import.meta.url), "utf8");
+  const schema = await readFile(new URL("../db/schema.sql", import.meta.url), "utf8");
+  assert.doesNotMatch(dbInit, /credit_transactions|credits INTEGER/);
+  assert.doesNotMatch(schema, /credit_transactions|credits INTEGER/);
+  await assert.rejects(access(new URL("../app/api/account/test-plan/route.ts", import.meta.url)));
+});
+
+test("manual health run returns the Health Guard response directly", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/health/run-now/route.ts", import.meta.url), "utf8");
+  assert.match(source, /return runHealthGuard\(\)/);
+  assert.doesNotMatch(source, /NextResponse\.json\(await runHealthGuard\(\)\)/);
+});
+
+test("assistant monitoring context uses the production monitor table and real route", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/assistant/route.ts", import.meta.url), "utf8");
+  assert.match(source, /FROM website_monitors WHERE user_id=\$1/);
+  assert.doesNotMatch(source, /website_monitoring/);
+  assert.doesNotMatch(source, /\/dashboard\/monitoring/);
 });
