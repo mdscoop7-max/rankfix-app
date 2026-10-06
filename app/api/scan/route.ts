@@ -47,6 +47,9 @@ type Check = {
   severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
   confidence: "high" | "medium" | "low";
   rootCause?: string;
+  reasonCode?: "cap_absent" | "needs_js" | "insufficient_pages" | "weak_evidence" | "type_uncertain";
+  impactClaim: "proven_impact" | "best_practice" | "hygiene";
+  formKind?: "contact" | "appointment" | "booking" | "quote" | "checkout" | "newsletter" | "login" | "search";
   evidence: { url: string; found: string | number | boolean | null; expected?: string; details: string };
   fix_category: "A" | "B" | "C";
 };
@@ -114,7 +117,10 @@ function check(
     key, category, title, status, message, fix, points, maxPoints,
     issue_id: key, rule_id: key, issue_status: status === "not_applicable" ? "NOT_APPLICABLE" : status === "unable_to_confirm" ? "UNABLE_TO_CONFIRM" : statusCode(status),
     severity: status === "fail" ? "HIGH" : status === "warning" ? "MEDIUM" : "INFO",
-    confidence: status === "unable_to_confirm" ? "low" : status === "not_applicable" ? "medium" : "high", evidence: { url: "", found: null, details: message },
+    confidence: status === "unable_to_confirm" ? "low" : status === "not_applicable" ? "medium" : "high",
+    reasonCode: status === "unable_to_confirm" ? "weak_evidence" : status === "not_applicable" ? "cap_absent" : undefined,
+    impactClaim: status === "fail" ? "proven_impact" : status === "warning" ? "best_practice" : "hygiene",
+    evidence: { url: "", found: null, details: message },
     fix_category: getFixPolicy(key).category,
     rootCause: ({
       description: "meta_description",

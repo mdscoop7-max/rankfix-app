@@ -97,8 +97,8 @@ test("EU regression bundle keeps classification, confidence and challenge guards
   assert.match(source, /Een individuele auteur is niet vereist op een organisatie-/);
   assert.match(source, /te weinig onafhankelijk bewijs om entity-signalen betrouwbaar te beoordelen/);
   assert.match(source, /evidenceCredit/);
-  assert.match(report, /Security-score:/);
-  assert.match(report, /— \{c.title\} · \{t.labels.not_applicable\}/);
+  assert.match(report, /Score beveiligingsinstellingen:/);
+  assert.match(report, /reasonFor\(c,language\)/);
 });
 
 
@@ -140,13 +140,13 @@ test("score model exposes weighted coverage and transparent formula", async () =
   const score = await readFile(new URL("../lib/audit-score.ts", import.meta.url), "utf8");
   const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   const report = await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
-  assert.match(score, /SCORE_MODEL_VERSION = "2\.0-evidence"/);
+  assert.match(score, /SCORE_MODEL_VERSION = "2\.3-evidence-range"/);
   assert.match(score, /assessedWeight \/ totalWeight/);
   assert.match(route, /formula: mode === "both" \? "0\.6 × SEO \+ 0\.4 × GEO"/);
   assert.match(route, /securitySeparate: true/);
   assert.match(route, /coverageBasis: "assessed_weight \/ applicable_weight"/);
-  assert.match(report, /Dekking:/);
-  assert.match(report, /Beperkte dekking/);
+  assert.match(report, /Betrouwbaarheid:/);
+  assert.match(report, /representatieve selectie/);
   assert.match(report, /Scoremodel:/);
 });
 
@@ -280,7 +280,7 @@ test("description length advice is gradual without changing fix identity", async
 test("score model protects low-confidence failures from hard penalties", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../lib/audit-score.ts", import.meta.url), "utf8");
-  assert.match(source, /SCORE_MODEL_VERSION = "2\.2-gradual-evidence"/);
+  assert.match(source, /SCORE_MODEL_VERSION = "2\.3-evidence-range"/);
   assert.match(source, /item\.issue_status === "FAIL" && item\.confidence === "low"/);
   assert.match(source, /points: item\.maxPoints, issue_status: "INFO" as const/);
   assert.match(source, /for \(const item of confidenceSafe\)/);
