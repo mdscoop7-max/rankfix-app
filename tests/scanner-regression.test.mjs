@@ -490,3 +490,35 @@ test("full audit report shows complete actions and uncertainty lists", async () 
   assert.match(report, /group\.items\.map\(item=>item\.title\)\.join\(" · "\)/);
   assert.doesNotMatch(report, /groupedUnable\.map\(\(group,i\)=><details/);
 });
+
+
+test("transport route pages are typed as services for transport sectors", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /transport\|logist/);
+  assert.match(source, /\(\?:\^\|\\\/\)transport\(\?:\\\/\|\$\)/);
+});
+
+test("structured data uses effective local context instead of raw local hints", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /geoChecks\.push\(\s*effectiveLocalSchemaSignal/);
+  assert.doesNotMatch(source, /geoChecks\.push\(\s*hasLocalBusinessSignal\s*\?/);
+});
+
+
+test("tracking parameters are stripped before scan usage and fetch logic", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const stripping = source.indexOf('["utm_source", "utm_medium", "utm_campaign"');
+  const usage = source.indexOf("const usageWebsiteHost = target.hostname");
+  assert.ok(stripping >= 0 && usage > stripping);
+  assert.match(source, /target\.searchParams\.delete\(param\)/);
+});
+
+test("commerce product pages cannot inherit transport schema context from incidental text", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /const transportLogisticsSchemaContext = !hasEcommerceSignal && !isProductPage/);
+  assert.match(source, /test\(localIdentityText\)/);
+});

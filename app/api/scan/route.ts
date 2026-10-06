@@ -385,6 +385,8 @@ export async function POST(request: Request) {
       // Prefer HTTPS when the scheme is omitted; safePublicFetch still validates every redirect.
       const preparedUrl = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
       target = validatePublicHttpUrl(preparedUrl);
+      ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "gbraid", "wbraid", "fbclid", "msclkid", "gad_source", "gad_campaignid", "gad_adgroupid", "gad_creative", "_gl", "_up", "_gs"]
+        .forEach((param) => target.searchParams.delete(param));
       const host = target.hostname.toLowerCase().replace(/^www\./, "");
       // Reject obvious non-host input early instead of turning it into a confusing fetch error.
       if (!host.includes(".") && !/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) throw new Error("URL_HOST_INVALID");
@@ -1069,7 +1071,7 @@ export async function POST(request: Request) {
     const hasRelevantLocalSchema = schemaSet.has("localbusiness") || schemaSet.has("onlinestore") || (specificLocalSchema ? schemaSet.has(specificLocalSchema.toLowerCase()) : false);
     const governmentIdentitySignal = /\b(rijksoverheid|government|government of|ministerie|ministry|rijksoverheid\.nl|overheid|gemeente|municipality|provincie|province|public authority|publieke sector)\b/i.test([title, description, h1s.join(" "), finalUrl.hostname].join(" "));
     const governmentSchemaPresent = schemaSet.has("governmentorganization") || schemaSet.has("governmentoffice");
-    const transportLogisticsSchemaContext = /\b(transport|logistics?|logistiek|freight|vracht|forwarding|expeditie|warehousing|opslag|supply chain|distribution|distributie|4pl|3pl)\b/i.test(localClassificationText);
+    const transportLogisticsSchemaContext = !hasEcommerceSignal && !isProductPage && /\b(transport|logistics?|logistiek|freight|vracht|forwarding|expeditie|warehousing|opslag|supply chain|distribution|distributie|4pl|3pl)\b/i.test(localIdentityText);
     const transportServicePath = /\/(?:dienst|diensten|service|services|oplossing|oplossingen|solution|solutions|expertise|transport)(?:\/|$)/i.test(finalUrl.pathname);
     const ecommerceSchemaContext = hasEcommerceSignal || schemaSet.has("onlinestore") || schemaSet.has("product");
     // Government, international transport/logistics and e-commerce identities
@@ -2609,11 +2611,11 @@ export async function POST(request: Request) {
     );
 
     geoChecks.push(
-      hasLocalBusinessSignal
+      effectiveLocalSchemaSignal
         ? hasRelevantLocalSchema
           ? check("pass", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) met passend lokaal bedrijfstype gevonden voor deze ${schemaContextLabel}.`, `Behoud het meest specifieke passende type: ${recommendedSchema}. Controleer verplichte en relevante velden.`, 12, 12)
           : validJsonLd > 0
-            ? check("warning", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden, maar geen passend LocalBusiness-subtype.`, `Gebruik voor deze lokale pagina het meest specifieke passende type: ${recommendedSchema}, met alleen gegevens die zichtbaar en aantoonbaar zijn.`, 6, 12)
+            ? check("warning", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden, maar geen passend lokaal bedrijfsschema voor deze ${schemaContextLabel}.`, `Gebruik alleen het meest specifieke passende bedrijfsschema wanneer de zichtbare content dit ondersteunt. Richting: ${recommendedSchema}.`, 6, 12)
             : metadataMayBeClientRendered
             ? check("unable_to_confirm", "schema", "geo", "Structured data", `Structured data kon niet betrouwbaar worden bevestigd voor deze ${schemaContextLabel}, omdat de JavaScript-pagina niet volledig kon worden gerenderd.`, "Controleer structured data opnieuw met een volledige render voordat je schema toevoegt of wijzigt.", 0, 12)
             : check("warning", "schema", "geo", "Structured data", `Geen geldige JSON-LD structured data gevonden voor deze ${schemaContextLabel}. Dit is een machineleesbare optimalisatiekans; de zichtbare pagina kan zonder JSON-LD nog steeds inhoudelijk correct zijn.`, `Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is ${recommendedSchema} de belangrijkste richting.`, 4, 12)
@@ -3440,7 +3442,8 @@ export async function POST(request: Request) {
         const legalPath = pathSegments.some((segment) => legalUtilitySegment.test(segment));
         const formPath = /(?:^|\/)(?:contact|contact-us|contacteer|kontakt|offerte|quote|request-quote|afspraak|appointment|booking|book|reserve|reservation|reserveren)(?:\/|$)/i.test(path);
         const supportPath = /(?:^|\/)(?:faq|veelgestelde-vragen|help|support|customer-service|klantenservice|retour|retouren|returns?|refunds?|shipping|levering|bezorging)(?:\/|$)/i.test(path);
-        const servicePath = /(?:^|\/)(?:dienst|diensten|service|services|oplossing|oplossingen|solution|solutions|expertise|behandeling|behandelingen|treatment|practice|werkplaats)(?:\/|$)/i.test(path);
+        const servicePath = /(?:^|\/)(?:dienst|diensten|service|services|oplossing|oplossingen|solution|solutions|expertise|behandeling|behandelingen|treatment|practice|werkplaats)(?:\/|$)/i.test(path)
+          || (/transport|logist/i.test(String(sectorProfile.label||"")) && /(?:^|\/)transport(?:\/|$)/i.test(path));
         const listingPath = sectorProfile.sector === "real_estate" && /(?:^|\/)(?:woningaanbod|residential-listings|property-listings|properties|aanbod)(?:\/|$)/i.test(path);
         if (productPath) evidence.push("product-like path");
         if (categoryPath) evidence.push("category-like path");
