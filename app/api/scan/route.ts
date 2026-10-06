@@ -1503,7 +1503,16 @@ export async function POST(request: Request) {
       : realEstateIdentity
         ? {sector:"real_estate",key:"real_estate",label:"Vastgoed & Makelaardij",evidence:["Master Evidence: vastgoed/woningidentiteit bevestigd", ...scanEvidence.inventory.properties.evidence]}
         : automotiveServiceIdentity ? {sector:"automotive",key:"car_repair",label:"Automotive · garage / autoservice",evidence:["Master Evidence: garage-/autoservice-identiteit bevestigd"]} : null;
-    const sectorProfile = evidenceCommerceConfirmed
+    // Primary identity outranks generic commerce capability. A dealer, hotel,
+    // service provider or other clearly identified business may publish inventory
+    // and prices without being an e-commerce storefront. Commerce becomes the
+    // primary sector only when no stronger non-commerce identity is established.
+    const primaryNonCommerceIdentity = masterIdentityOverride
+      || (strongSectorCandidate && sectorCandidates[0].sector !== "ecommerce"
+        ? {sector:sectorCandidates[0].sector,key:sectorCandidates[0].sector,label:sectorCandidates[0].label,evidence:[`Primary identity: ${sectorCandidates[0].hits} independent sector signals`]}
+        : null);
+    const commerceAsPrimaryIdentity = evidenceCommerceConfirmed && !primaryNonCommerceIdentity;
+    const sectorProfile = commerceAsPrimaryIdentity
       ? {
           sector:"ecommerce" as SectorKey,
           key:"ecommerce",
@@ -1513,8 +1522,8 @@ export async function POST(request: Request) {
           evidence:[`Evidence Layer: ${evidenceCommerceStrength} onafhankelijke commerce-signalen`, ...(catalogTop?.key==="ecommerce" ? catalogTop.evidence : [])].slice(0,6),
           applicableModules:["core_seo","geo","technical","ecommerce","product","pricing_currency","merchant","checkout",...(euConsumerApplicable?["eu_consumer"]:[])],
         }
-      : masterIdentityOverride
-        ? {sector:masterIdentityOverride.sector,key:masterIdentityOverride.key,label:masterIdentityOverride.label,confidence:"high" as const,confidenceScore:96,evidence:masterIdentityOverride.evidence.slice(0,6),applicableModules:[...new Set(["core_seo","geo","technical",...(sectorSignals.find(x=>x.sector===masterIdentityOverride.sector)?.modules||[])])]}
+      : primaryNonCommerceIdentity
+        ? {sector:primaryNonCommerceIdentity.sector,key:primaryNonCommerceIdentity.key,label:primaryNonCommerceIdentity.label,confidence:"high" as const,confidenceScore:Math.max(90, strongSectorCandidate && sectorCandidates[0].sector===primaryNonCommerceIdentity.sector ? (sectorCandidates[0].hits>=3?95:90) : 96),evidence:primaryNonCommerceIdentity.evidence.slice(0,6),applicableModules:[...new Set(["core_seo","geo","technical",...(sectorSignals.find(x=>x.sector===primaryNonCommerceIdentity.sector)?.modules||[])])]}
       : legacyProfile.sector==="unknown" && catalogSectorStrong && mappedCatalogSector
         ? {
             sector:mappedCatalogSector,
@@ -3633,7 +3642,7 @@ export async function POST(request: Request) {
     // Commerce is a primary site identity. Once Master Evidence confirms a webshop,
     // incidental content-sector words must not leave the report labelled as an
     // unrelated sector. Preserve the previous candidate as diagnostic evidence.
-    if (finalCommerceDecision.confirmed && sectorProfile.key!=="ecommerce") {
+    if (finalCommerceDecision.confirmed && sectorProfile.key!=="ecommerce" && !primaryNonCommerceIdentity) {
       const previousSector = sectorProfile.label;
       sectorProfile.sector = "ecommerce";
       sectorProfile.key = "ecommerce";
