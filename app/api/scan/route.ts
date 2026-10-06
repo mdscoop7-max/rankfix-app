@@ -1650,12 +1650,12 @@ export async function POST(request: Request) {
       (scanEvidence.inventory.vehicles.value && scanEvidence.inventory.vehicles.confidence !== "low") && "vehicles",
       (scanEvidence.inventory.properties.value && scanEvidence.inventory.properties.confidence !== "low") && "properties",
       (scanEvidence.inventory.jobs.value && scanEvidence.inventory.jobs.confidence !== "low") && "jobs",
-      scanEvidence.inventory.rooms.value && "rooms",
-      scanEvidence.inventory.menu.value && "menu",
-      scanEvidence.organization.contact.value && "contact",
-      scanEvidence.organization.address.value && "local",
-      scanEvidence.organization.openingHours.value && "opening_hours",
-      scanEvidence.organization.reviews.value && "reviews",
+      (scanEvidence.inventory.rooms.value && scanEvidence.inventory.rooms.confidence !== "low") && "rooms",
+      (scanEvidence.inventory.menu.value && scanEvidence.inventory.menu.confidence !== "low") && "menu",
+      (scanEvidence.organization.contact.value && scanEvidence.organization.contact.confidence !== "low") && "contact",
+      (scanEvidence.organization.address.value && scanEvidence.organization.address.confidence !== "low") && "local",
+      (scanEvidence.organization.openingHours.value && scanEvidence.organization.openingHours.confidence !== "low") && "opening_hours",
+      (scanEvidence.organization.reviews.value && scanEvidence.organization.reviews.confidence !== "low") && "reviews",
     ].filter((value): value is string => Boolean(value));
     const capabilityModules = modulesForCapabilities([
       ...evidenceCapabilities,
@@ -1915,7 +1915,7 @@ export async function POST(request: Request) {
       return item;
     };
     if (sectorProfile.sector === "real_estate") {
-      const listingSignal = scanEvidence.sectorDetails.realEstate.listing.value || /\\b(te koop|te huur|koopwoning|huurwoning|woningaanbod|objecten|properties|for sale|for rent)\\b/i.test(text) || schemaSet.has("realestatelisting");
+      const listingSignal = (scanEvidence.sectorDetails.realEstate.listing.value && scanEvidence.sectorDetails.realEstate.listing.confidence !== "low") || /\\b(te koop|te huur|koopwoning|huurwoning|woningaanbod|objecten|properties|for sale|for rent)\\b/i.test(text) || schemaSet.has("realestatelisting");
       const leadSignal = hasContactChannelSignal || /\\b(bezichtiging|waardebepaling|verkoopadvies|plan een afspraak|contact opnemen)\\b/i.test(text);
       const areaSignal = /\\b(werkgebied|regio|buurt|wijk|plaats|gemeente|service area|area served)\\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.areaServed));
       seoChecks.push(
