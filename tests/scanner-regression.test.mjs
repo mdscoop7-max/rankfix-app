@@ -641,3 +641,47 @@ test("dashboard scans do not call removed automatic report email code", async ()
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   assert.doesNotMatch(source,/sendScanReportEmail/);
 });
+
+
+test("Local SEO has no hardcoded website bypass", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/local-seo/route.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(source,/internalTestHost/);
+  assert.doesNotMatch(source,/trendmix\.onrender\.com|trendmix-jet\.vercel\.app/);
+  assert.match(source,/if\(limits\.localSeo===0&&!internalTestAccount\)/);
+  assert.match(source,/if\(!internalTestAccount&&used>=limits\.localSeo\)/);
+});
+
+test("all mapped scanner rule IDs have an explicit fix policy", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const policy = await readFile(new URL("../lib/fix-policy.ts", import.meta.url), "utf8");
+  const start=scanner.indexOf("const ruleMap");
+  const end=scanner.indexOf("for (const item of [...seoChecks, ...geoChecks])",start);
+  assert.ok(start>=0&&end>start);
+  const block=scanner.slice(start,end);
+  const ruleIds=[...block.matchAll(/rule_id:\s*"([^"]+)"/g)].map((match)=>match[1]);
+  for(const ruleId of ruleIds) assert.equal(policy.includes(ruleId+":"),true,ruleId);
+  assert.match(policy,/ORGANIZATION_WEBSITE_SCHEMA: \{ category: "B", safe_type: "structured_data" \}/);
+  assert.match(policy,/GOOGLE_ADS_READINESS: \{ category: "C", safe_type: null, action: "manual" \}/);
+});
+
+test("Organization and FAQ fixes carry explicit evidence through the dashboard gate", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const policy = await readFile(new URL("../lib/fix-policy.ts", import.meta.url), "utf8");
+  assert.match(scanner,/organization_website: item\.key === "organization_website"/);
+  assert.match(scanner,/faqContent=false; faqSchema=false/);
+  assert.match(policy,/faq: \{ category: "B", safe_type: "faq" \}/);
+});
+
+test("audit AI-advice actions open the in-dashboard assistant", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const audit = await readFile(new URL("../app/dashboard/audit/[id]/page.tsx", import.meta.url), "utf8");
+  const assistant = await readFile(new URL("../components/ai-assistant.tsx", import.meta.url), "utf8");
+  assert.match(audit,/remediationAction\(check\)==="ai_advice"/);
+  assert.match(audit,/rankfix:open-assistant/);
+  assert.match(audit,/Vraag RankFix AI/);
+  assert.match(assistant,/addEventListener\("rankfix:open-assistant"/);
+  assert.match(assistant,/if \(detail\?\.prompt\) setInput\(detail\.prompt\)/);
+});

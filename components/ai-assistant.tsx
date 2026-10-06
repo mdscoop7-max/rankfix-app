@@ -59,6 +59,16 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
   }, [dashboard]);
 
   useEffect(() => {
+    const onOpenAssistant = (event: Event) => {
+      const detail = (event as CustomEvent<{ prompt?: string }>).detail;
+      setOpen(true);
+      if (detail?.prompt) setInput(detail.prompt);
+    };
+    window.addEventListener("rankfix:open-assistant", onOpenAssistant as EventListener);
+    return () => window.removeEventListener("rankfix:open-assistant", onOpenAssistant as EventListener);
+  }, []);
+
+  useEffect(() => {
     if (!dashboard || !errorContext) return;
     setOpen(true);
     setMessages((m) => [...m, { role: "assistant", content: (extra[language]||extra.nl).blocked + " " + errorContext }]);
