@@ -380,3 +380,14 @@ test("cookie security is evaluated per observed Set-Cookie record", async () => 
   assert.match(source, /HttpOnly wordt alleen als vereiste beoordeeld voor sessie-\/authenticatiecookies/);
   assert.doesNotMatch(source, /Cookie-flags zijn niet volledig bevestigd \(Secure=/);
 });
+
+
+test("representative site evidence propagates into specialist checks", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /promoteCheckFromRepresentativeEvidence/);
+  assert.match(source, /"sector_real_estate_listings",\s*multiPageCapabilities\.properties/);
+  assert.match(source, /"sector_automotive_inventory",\s*multiPageCapabilities\.vehicleSales/);
+  assert.match(source, /"sector_automotive_services",\s*multiPageCapabilities\.automotiveService/);
+  assert.match(source, /"sector_health_services",\s*multiPageCapabilities\.treatment/);
+});
