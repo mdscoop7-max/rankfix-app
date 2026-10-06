@@ -327,3 +327,21 @@ test("GEO identity and trust advice preserve partial proven signals", async () =
   assert.match(source, /rule_id: key/);
   assert.match(source, /issue_id: key/);
 });
+
+
+test("Evidence Engine reconciles representative identity and capabilities before final score", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /reconciledIdentitySource/);
+  assert.match(source, /Master Evidence: primaire activiteit bevestigd over representatieve pagina's/);
+  assert.match(source, /multiPageCapabilities\.treatment && sectorProfile\.sector === "health_wellness"/);
+  assert.match(source, /representativeProduct/);
+  assert.match(source, /selectedSeoScore = scoreApplicableChecks\(selectedSeoChecks\)/);
+});
+
+test("health identity includes acupuncture and therapy evidence", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /acupunctuur\|acupuncture\|acupuncturist/);
+  assert.match(source, /behandelingen\|treatment\|treatments/);
+});

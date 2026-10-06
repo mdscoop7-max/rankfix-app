@@ -1406,7 +1406,7 @@ export async function POST(request: Request) {
       {sector:"home_services",label:"Lokale vakdienst",patterns:[/\b(loodgieter|plumber|aannemer|installateur|elektricien|schilder|dakdekker|klus(?:sen)?bedrijf|bouwbedrijf|bouwservice|general contractor|electrician|contractor|riool(?:service|specialist)?|rioolprobleem|ontstopping|ontstoppen|afvoer|schoonmaak(?:bedrijf|dienst(?:en)?)?|kantoorschoonmaak|cleaning service|cleaning company)\b/i,/\b(offerte|werkgebied|servicegebied|installatie|reparatie|renovatie|verbouwing|bouw|verstopping|riolering|riooldienst(?:en)?|schoonmaak|cleaning)\b/i],modules:["core_seo","geo","local","lead_conversion","home_services"]},
       {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\b(advocaat|accountant|boekhouder|consultant|notaris|law firm|legalservice|legal services|accounting|consultancy)\b/i,/\b(diensten|expertise|advies|consult)\b/i],modules:["core_seo","geo","local","lead_conversion","professional_services"]},
       {sector:"hospitality",label:"Horeca",patterns:[/\b(restaurant|cafe|café|hotel|brasserie|bistro|reserveren|reservation|restaurantmenu|menukaart)\b/i,/\b(openingstijden|opening hours|tafel reserveren)\b/i],modules:["core_seo","geo","local","lead_conversion","hospitality"]},
-      {sector:"health_wellness",label:"Zorg & Gezondheid",patterns:[/\b(kliniek|clinic|fysiotherap|tandarts|dentist|medicalclinic|physician|mondzorg)\b/i,/\b(afspraak|appointment|behandeling|patient|patiënt)\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
+      {sector:"health_wellness",label:"Zorg & Gezondheid",patterns:[/\b(kliniek|clinic|fysiotherap|tandarts|dentist|medicalclinic|physician|mondzorg|acupunctuur|acupuncture|acupuncturist|therapeut|therapist|therapie|therapy|tuina)\b/i,/\b(afspraak|appointment|behandeling|behandelingen|treatment|treatments|patient|patiënt|praktijk|practice)\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
       {sector:"beauty",label:"Beauty & Verzorging",patterns:[/\b(kapper|hairdresser|hairsalon|hair salon|hairstyling|beauty salon|beautysalon|nagelsalon|barber)\b/i,/\b(afspraak|appointment|salons?|knippen|haar|hair)\b/i],modules:["core_seo","geo","local","lead_conversion","beauty"]},
       {sector:"recruitment",label:"Recruitment & Werk",patterns:[/\b(recruitment|uitzendbureau|uitzendorganisatie|employment agency|staffing agency|staffing|werving en selectie|recruitmentbureau|recruitment agency)\b/i,/\b(werkgevers?|kandidaten?|talent acquisition|detachering|interim professionals?|recruiter)\b/i],modules:["core_seo","geo","lead_conversion","recruitment"]},
       {sector:"government",label:"Overheid & Publieke sector",patterns:[/\b(gemeente|municipality|overheid|government|rijksoverheid|ministry|ministerie|public service|stadhuis|burgerzaken)\b/i,/\b(digid|vergunning|paspoort|loket|inwoners|wetgeving|beleid|minister|cabinet)\b/i],modules:["core_seo","geo","government"]},
@@ -3202,14 +3202,14 @@ export async function POST(request: Request) {
 
     const selectedSeoChecks = mode === "geo" ? [] : seoChecks;
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
-    const selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);
-    const selectedGeoScore = scoreApplicableChecks(selectedGeoChecks);
+    let selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);
+    let selectedGeoScore = scoreApplicableChecks(selectedGeoChecks);
     let selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
     selectedOverallScore = applyEvidenceBasedScoreCap(selectedOverallScore, [...selectedSeoChecks, ...selectedGeoChecks]);
     const checks = [...selectedSeoChecks, ...selectedGeoChecks];
-    const seoCoverage = weightedCoverage(selectedSeoChecks);
-    const geoCoverage = weightedCoverage(selectedGeoChecks);
-    const overallCoverage = weightedCoverage(checks);
+    let seoCoverage = weightedCoverage(selectedSeoChecks);
+    let geoCoverage = weightedCoverage(selectedGeoChecks);
+    let overallCoverage = weightedCoverage(checks);
     const seoScoreRange = scoreRange(selectedSeoChecks);
     const geoScoreRange = scoreRange(selectedGeoChecks);
     const overallScoreRange = scoreRange(checks);
@@ -3305,7 +3305,7 @@ export async function POST(request: Request) {
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
     type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; schemaTypes?: string[]; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageAudit = MultiPageCandidate & { status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; identityText?: string; schemaTypes?: string[]; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -3490,7 +3490,7 @@ export async function POST(request: Request) {
           return 0.5;
         };
         const earned = confirmed.reduce((sum,item)=>sum+evidenceCredit(item),0);
-        return { ...page, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, score:confirmed.length?Math.round((earned/confirmed.length)*100):null, schemaTypes:[...new Set(pageSchemaTypes)], commerceEvidence:pageCommerceEvidence, evidenceChecks };
+        return { ...page, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, score:confirmed.length?Math.round((earned/confirmed.length)*100):null, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), schemaTypes:[...new Set(pageSchemaTypes)], commerceEvidence:pageCommerceEvidence, evidenceChecks };
       } catch (multiPageError) {
         const rawReason = multiPageError instanceof Error ? multiPageError.message : "FETCH_FAILED";
         const reason = /timeout|abort/i.test(rawReason)
@@ -3513,7 +3513,7 @@ export async function POST(request: Request) {
     // Motor v2.1: representative pages are site-level evidence partners. They may
     // confirm capabilities/identity, but they never turn an unverified page-specific
     // defect into a failure.
-    const multiPageIdentityText = auditedMultiPages.map((item)=>`${item.url} ${item.title||""}`).join(" ").toLowerCase();
+    const multiPageIdentityText = auditedMultiPages.map((item)=>`${item.url} ${item.identityText||item.title||""}`).join(" ").toLowerCase();
     const multiPageCapabilities = {
       transport: /\b(transport|logistics?|logistiek|freight|vracht|forwarding|expeditie|wegtransport|road transport|warehousing|opslag|distribution|distributie|courier|koerier)\b/i.test(multiPageIdentityText),
       hospitality: /\b(hotel|hotels|room|rooms|kamer|kamers|overnachten|booking|boeken|reserveren|restaurant)\b/i.test(multiPageIdentityText),
@@ -3591,6 +3591,29 @@ export async function POST(request: Request) {
       technologyProfile: technologyProfile.isCommerce,
       multiPageEvidence: sitewideCommerceEvidence.confirmed,
     };
+    // Evidence Engine v2: reconcile primary identity after representative evidence.
+    const reconciledIdentitySource = [sectorIdentitySource, multiPageIdentityText].filter(Boolean).join(" ");
+    const reconciledSectorCandidates = sectorSignals.map((item) => {
+      const primaryIdentityHit = item.patterns[0]?.test(reconciledIdentitySource) ? 2 : 0;
+      const activityHit = item.patterns[1]?.test(reconciledIdentitySource) ? 1 : 0;
+      const schemaBoost = schemaSectorBoost[item.sector] || 0;
+      return { sector:item.sector, label:item.label, score:primaryIdentityHit + activityHit + schemaBoost, modules:item.modules };
+    }).filter((item)=>item.score>0).sort((a,b)=>b.score-a.score || (sectorPriority[b.sector]||0)-(sectorPriority[a.sector]||0));
+    const reconciledTop = reconciledSectorCandidates[0];
+    const reconciledRunnerUp = reconciledSectorCandidates[1];
+    const reconciledIdentityStrong = Boolean(reconciledTop && reconciledTop.score >= 3 && (!reconciledRunnerUp || reconciledTop.score > reconciledRunnerUp.score));
+    if (!finalCommerceDecision.confirmed && reconciledIdentityStrong && reconciledTop && sectorProfile.sector !== reconciledTop.sector) {
+      const previousSector = sectorProfile.label;
+      sectorProfile.sector = reconciledTop.sector;
+      sectorProfile.key = reconciledTop.sector;
+      sectorProfile.label = reconciledTop.label;
+      sectorProfile.confidence = "high";
+      sectorProfile.confidenceScore = Math.min(96, 86 + reconciledTop.score * 2);
+      sectorProfile.evidence = ["Master Evidence: primaire activiteit bevestigd over representatieve pagina's", `Vorige voorlopige sector: ${previousSector}`].slice(0,6);
+      sectorProfile.applicableModules = [...new Set(["core_seo","geo","technical",...reconciledTop.modules])];
+      masterEvidence.activeModules = sectorProfile.applicableModules;
+    }
+
     if (!finalCommerceDecision.confirmed && multiPageCapabilities.transport && sectorProfile.key==="unknown") {
       sectorProfile.sector = "transport_travel";
       sectorProfile.key = "transport_travel";
@@ -3698,6 +3721,29 @@ export async function POST(request: Request) {
     }
     // Organization + WebSite is a site-level identity control. When the customer
     // scans a subpage, use the already-audited homepage sample instead of N.v.t.
+    // Site-level capabilities: positive representative evidence may upgrade an
+    // earlier N/A/UNABLE result; absence never creates a failure.
+    if (multiPageCapabilities.treatment && sectorProfile.sector === "health_wellness") {
+      const treatmentCheck = seoChecks.find((item)=>item.key==="sector_health_services");
+      if (treatmentCheck) Object.assign(treatmentCheck, check("pass","sector_health_services","seo","Behandelingen & diensten","Representatieve same-site pagina's bevestigen behandelingen of therapeutische diensten.","Houd behandelingen en diensten feitelijk en duidelijk vindbaar.",4,4));
+    }
+    const representativeProduct = auditedMultiPages.find((item)=>item.type==="product" && item.commerceEvidence?.product)?.commerceEvidence?.product;
+    if (finalCommerceDecision.confirmed && representativeProduct) {
+      const productEvidenceCount = [representativeProduct.name,representativeProduct.image,representativeProduct.sku,representativeProduct.price&&representativeProduct.currency,representativeProduct.availability].filter(Boolean).length;
+      const productSchemaCheck = seoChecks.find((item)=>item.key==="product_schema");
+      if (productSchemaCheck && auditedMultiPages.some((item)=>item.type==="product" && item.commerceEvidence?.productSchema)) Object.assign(productSchemaCheck, check("pass","product_schema","seo","Product structured data","Een representatieve productpagina bevat bevestigde Product structured data.","Houd Product structured data gelijk aan de zichtbare productinformatie.",6,6));
+      const optimizerCheck = seoChecks.find((item)=>item.key==="product_optimizer");
+      if (optimizerCheck && productEvidenceCount>=3) Object.assign(optimizerCheck, check("pass","product_optimizer","seo","AI Product Copy & Metadata","Een representatieve productpagina levert voldoende productbewijs voor productoptimalisatie.","Gebruik alleen aantoonbare productgegevens voor optimalisaties.",5,5));
+      const availabilityCheck = seoChecks.find((item)=>item.key==="product_availability_consistency");
+      if (availabilityCheck && representativeProduct.availability) Object.assign(availabilityCheck, check("pass","product_availability_consistency","seo","Productvoorraad",`Een representatieve productpagina bevat een expliciet beschikbaarheidssignaal: ${representativeProduct.availability}.`,"Houd zichtbare voorraad en structured data consistent.",4,4));
+      const merchantCheck = seoChecks.find((item)=>item.key==="merchant_product_readiness");
+      if (merchantCheck && productEvidenceCount>=4) Object.assign(merchantCheck, check("pass","merchant_product_readiness","seo","Merchant Center productbasis","Een representatieve productpagina bevestigt naam, afbeelding en meerdere machineleesbare product-/aanbodvelden.","Houd productpagina en eventuele Merchant-feed consistent; RankFix bevestigt hiermee geen Merchant Center-goedkeuring.",6,6));
+    }
+    const securityFormCheck = securityChecks.find((item)=>item.key==="security_forms");
+    if (securityFormCheck && forms.length===0 && masterEvidence.capabilities.some((c)=>["appointment","reservation","booking","contact"].includes(c))) {
+      Object.assign(securityFormCheck, securityCheck("unable_to_confirm","security_forms","Formuliertransport","Geen HTML-formulier gevonden op de gescande pagina, terwijl de site wel een contact-, afspraak- of boekingsfunctie toont. De transportbeveiliging van die flow is vanuit raw HTML niet te bevestigen.","Controleer de daadwerkelijke formulier- of boekingsflow, inclusief HTTPS, server-side validatie en CSRF-bescherming.",0,5));
+    }
+
     const orgWebsiteCheck = geoChecks.find((item)=>item.key==="organization_website");
     const homepageSample = auditedMultiPages.find((item)=>item.type==="homepage");
     if (!isHomepage && orgWebsiteCheck && homepageSample) {
@@ -3710,6 +3756,19 @@ export async function POST(request: Request) {
         : check("warning","organization_website","geo","Organization + WebSite",signals===1?"De representatieve homepage bevat één van Organization of WebSite; het aanvullende identity-schema ontbreekt.":"De representatieve homepage bevat geen bevestigd Organization- of WebSite-schema.","Voeg alleen passende Organization- en/of WebSite JSON-LD toe met aantoonbare gegevens.",signals===1?6:4,8);
       Object.assign(orgWebsiteCheck,replacement);
     }
+
+    // Final score is calculated only after representative evidence reconciliation.
+    selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);
+    selectedGeoScore = scoreApplicableChecks(selectedGeoChecks);
+    selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
+    selectedOverallScore = applyEvidenceBasedScoreCap(selectedOverallScore, checks);
+    seoCoverage = weightedCoverage(selectedSeoChecks);
+    geoCoverage = weightedCoverage(selectedGeoChecks);
+    overallCoverage = weightedCoverage(checks);
+    scoreModel.range = scoreRange(checks);
+    scoreModel.seoRange = scoreRange(selectedSeoChecks);
+    scoreModel.geoRange = scoreRange(selectedGeoChecks);
+    scoreModel.provisional = overallCoverage.coveragePercent < 90;
 
     const classification = {
       websiteType,
