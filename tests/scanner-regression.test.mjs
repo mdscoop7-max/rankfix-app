@@ -699,3 +699,16 @@ test("Local SEO route contains no deployment-marker residue", async () => {
   const source = await readFile(new URL("../app/api/local-seo/route.ts", import.meta.url), "utf8");
   assert.doesNotMatch(source,/Deployment marker/);
 });
+
+
+test("expensive and mail-triggering endpoints have coarse rate limits", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const forgot = await readFile(new URL("../app/api/auth/forgot-password/route.ts", import.meta.url), "utf8");
+  const local = await readFile(new URL("../app/api/local-seo/route.ts", import.meta.url), "utf8");
+  const competitor = await readFile(new URL("../app/api/competitor-scan/route.ts", import.meta.url), "utf8");
+  const health = await readFile(new URL("../app/api/health/run-now/route.ts", import.meta.url), "utf8");
+  assert.match(forgot,/consumeRateLimit\("forgot-password",requestIp\(request\),5,3600\)/);
+  assert.match(local,/consumeRateLimit\("local-seo",String\(user\.id\),6,600\)/);
+  assert.match(competitor,/consumeRateLimit\("competitor-scan",String\(user\.id\),4,600\)/);
+  assert.match(health,/consumeRateLimit\("health-run-now",String\(user\.id\),6,3600\)/);
+});

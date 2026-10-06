@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createHash, randomBytes } from "crypto";
 import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
+import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
 
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
@@ -26,6 +27,9 @@ export async function POST(request: Request) {
     }
 
     await ensureDatabase();
+    if (!await consumeRateLimit("forgot-password",requestIp(request),5,3600)) {
+      return NextResponse.json({ error:tr({nl:"Te veel herstelverzoeken. Probeer later opnieuw.",en:"Too many recovery requests. Try again later.",de:"Zu viele Wiederherstellungsanfragen. Versuche es später erneut.",fr:"Trop de demandes de récupération. Réessayez plus tard.",it:"Troppe richieste di recupero. Riprova più tardi.",es:"Demasiadas solicitudes de recuperación. Inténtalo más tarde."}) }, { status:429 });
+    }
     const result = await getDb().query("SELECT id,name,email FROM users WHERE email=$1", [email]);
     const user = result.rows[0];
 

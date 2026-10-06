@@ -5,6 +5,7 @@ import { ensureDatabase } from "@/lib/db-init";
 import { auditSite } from "@/lib/site-audit";
 
 import { normalizePlan, planLimits } from "@/lib/plans";
+import { consumeRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
  const body=await request.json().catch(()=>({}));
@@ -13,6 +14,7 @@ export async function POST(request: Request) {
  const user=await getCurrentUser();
  if(!user)return NextResponse.json({error:tr({nl:"Log in om een Local SEO scan uit te voeren.",en:"Log in to run a Local SEO scan.",de:"Melde dich an, um einen Local-SEO-Scan auszuführen.",fr:"Connectez-vous pour lancer une analyse SEO local.",it:"Accedi per eseguire una scansione SEO locale.",es:"Inicia sesión para ejecutar un análisis SEO local."})},{status:401});
  await ensureDatabase();
+ if(!await consumeRateLimit("local-seo",String(user.id),6,600))return NextResponse.json({error:tr({nl:"Te veel Local SEO-scans kort na elkaar. Probeer later opnieuw.",en:"Too many Local SEO scans in a short period. Try again later.",de:"Zu viele Local-SEO-Scans in kurzer Zeit. Versuche es später erneut.",fr:"Trop d’analyses SEO local en peu de temps. Réessayez plus tard.",it:"Troppe scansioni SEO locale in poco tempo. Riprova più tardi.",es:"Demasiados análisis SEO local en poco tiempo. Inténtalo más tarde."}),code:"RATE_LIMITED"},{status:429});
  const planResult=await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1",[user.id]);
  const plan=normalizePlan(planResult.rows[0]?.plan_code); const limits=planLimits(plan);
  try{

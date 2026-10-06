@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
 import { auditSite } from "@/lib/site-audit";
 import { normalizePlan, planLimits } from "@/lib/plans";
+import { consumeRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(()=>({}));
@@ -12,6 +13,7 @@ export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error:tr({nl:"Log in om websites te vergelijken.",en:"Log in to compare websites.",de:"Melde dich an, um Websites zu vergleichen.",fr:"Connectez-vous pour comparer des sites.",it:"Accedi per confrontare i siti.",es:"Inicia sesión para comparar sitios web."}) }, { status: 401 });
   await ensureDatabase();
+  if(!await consumeRateLimit("competitor-scan",String(user.id),4,600)) return NextResponse.json({error:tr({nl:"Te veel concurrentanalyses kort na elkaar. Probeer later opnieuw.",en:"Too many competitor analyses in a short period. Try again later.",de:"Zu viele Konkurrenzanalysen in kurzer Zeit. Versuche es später erneut.",fr:"Trop d’analyses concurrentielles en peu de temps. Réessayez plus tard.",it:"Troppe analisi concorrenti in poco tempo. Riprova più tardi.",es:"Demasiados análisis de competencia en poco tiempo. Inténtalo más tarde."}),code:"RATE_LIMITED"},{status:429});
   const planResult = await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1", [user.id]);
   const plan=normalizePlan(planResult.rows[0]?.plan_code); const limits=planLimits(plan);
   const internalTestAccount = process.env.RANKFIX_INTERNAL_TEST_USER_ID === user.id || process.env.RANKFIX_INTERNAL_TEST_EMAIL?.toLowerCase() === String(user.email||"").toLowerCase();
