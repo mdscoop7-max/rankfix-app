@@ -3601,6 +3601,25 @@ export async function POST(request: Request) {
           return { ...page, status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"http",status:"UNABLE_TO_CONFIRM",details:`HTTP ${r.status}; pagina kon niet betrouwbaar als HTML worden beoordeeld na begrensde recovery.`}] };
         }
         pageHtml = pageHtml || await readResponseTextLimited(r, 2_000_000);
+        // Representative pages need the same JS evidence opportunity as the primary
+        // page. Otherwise a Nuxt/Next contact or booking page can look form-less in
+        // raw HTML and incorrectly keep site-level capabilities unconfirmed.
+        const representativeRawHtml = pageHtml;
+        const representativeVisibleWords = stripHtml(representativeRawHtml).split(/\s+/).filter(Boolean).length;
+        const representativeScriptCount = (representativeRawHtml.match(/<script\b/gi) || []).length;
+        const representativeJsFramework = /(?:__NEXT_DATA__|\/_next\/|__NUXT__|\/_nuxt\/|data-reactroot|data-react-helmet|shopify|webpackJsonp|__APOLLO_STATE__)/i.test(representativeRawHtml);
+        const representativeThinShell = representativeVisibleWords < 80 && representativeScriptCount >= 4;
+        if (representativeJsFramework || representativeThinShell) {
+          try {
+            const renderedPage = await renderPublicPage(finalCandidate.toString(), 10000);
+            if (renderedPage.html && renderedPage.html.length >= 20) {
+              pageHtml = renderedPage.html;
+              page.evidence.push("javascript-rendered representative page");
+            }
+          } catch {
+            page.evidence.push("javascript rendering unavailable; raw HTML retained");
+          }
+        }
         const pageQualityTitle = firstMatch(pageHtml, /<title[^>]*>([\s\S]*?)<\/title>/i);
         const pageDescriptionTag = pageHtml.match(/<meta\b[^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] ||
           pageHtml.match(/<meta\b[^>]*content\s*=\s*["'][^"']*["'][^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] || "";
