@@ -670,7 +670,7 @@ test("Organization and FAQ fixes carry explicit evidence through the dashboard g
   const { readFile } = await import("node:fs/promises");
   const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   const policy = await readFile(new URL("../lib/fix-policy.ts", import.meta.url), "utf8");
-  assert.match(scanner,/organization_website: item\.key === "organization_website"/);
+  assert.match(scanner,/organization_website: isHomepage \?/);
   assert.match(scanner,/faqContent=false; faqSchema=false/);
   assert.match(policy,/faq: \{ category: "B", safe_type: "faq" \}/);
 });
