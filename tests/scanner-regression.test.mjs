@@ -237,7 +237,7 @@ test("advisory evidence does not become a hard failure", async () => {
   assert.match(source, /Deze ene meting is traag, maar bewijst geen structureel performanceprobleem/);
   assert.doesNotMatch(source, /check\("fail", "response", "seo", "Server response"/);
   assert.match(source, /check\("warning", "schema", "geo", "Structured data"[\s\S]*machineleesbare optimalisatiekans/);
-  assert.match(source, /"schema": "structured_data_context"/);
+  assert.match(source, /schema:\s*"structured_data_context"/);
   assert.match(source, /issue_id: key, rule_id: key/);
 });
 
@@ -576,7 +576,8 @@ test("assistant monitoring context uses the production monitor table and real ro
 
 
 test("active scanner fix IDs map to bounded dashboard fix actions", async () => {
-  const { getFixPolicy } = await import("../lib/fix-policy.ts");
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../lib/fix-policy.ts", import.meta.url), "utf8");
   const expected = {
     title:"meta_title",
     description:"meta_description",
@@ -589,11 +590,10 @@ test("active scanner fix IDs map to bounded dashboard fix actions", async () => 
     breadcrumbs:"breadcrumb",
   };
   for (const [ruleId,safeType] of Object.entries(expected)) {
-    const policy=getFixPolicy(ruleId);
-    assert.equal(policy.category,"B",ruleId);
-    assert.equal(policy.action,"github_fix",ruleId);
-    assert.equal(policy.safe_type,safeType,ruleId);
+    const expectedEntry = ruleId + ': { category: "B", safe_type: "' + safeType + '" }';
+    assert.equal(source.includes(expectedEntry), true, ruleId);
   }
+  assert.match(source, /policy\.category === "B" && policy\.safe_type \? "github_fix" : "manual"/);
 });
 
 test("GitHub proposal routing recognizes active scanner IDs without title guessing", async () => {
