@@ -3369,7 +3369,7 @@ export async function POST(request: Request) {
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
     type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; identityText?: string; schemaTypes?: string[]; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageAudit = MultiPageCandidate & { status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; identityText?: string; schemaTypes?: string[]; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -3507,6 +3507,20 @@ export async function POST(request: Request) {
         const pageQualityDescription = pageDescriptionContent ? stripHtml(pageDescriptionContent[2]).trim() : "";
         const pageQualityText = stripHtml(pageHtml).slice(0, 12000);
         const pageQualityWords = pageQualityText.split(/\s+/).filter(Boolean).length;
+        // Structural fingerprint: language-independent DOM evidence used to detect
+        // near-duplicate representative templates after fetch. It deliberately
+        // ignores URL words and visible copy.
+        const countTag = (tag:string) => (pageHtml!.match(new RegExp("<"+tag+"\\\\b","gi"))||[]).length;
+        const pageStructureKey = [
+          "h"+Math.min(4,countTag("h1")+countTag("h2")+countTag("h3")),
+          "a"+Math.min(9,Math.floor(countTag("a")/10)),
+          "img"+Math.min(9,Math.floor(countTag("img")/5)),
+          "form"+Math.min(3,countTag("form")),
+          "article"+Math.min(5,countTag("article")),
+          "table"+Math.min(3,countTag("table")),
+          "li"+Math.min(9,Math.floor(countTag("li")/10)),
+          "schema"+Math.min(5,(pageHtml!.match(/"@type"\\s*:/gi)||[]).length),
+        ].join("|");
         const pageChallenge = /\b(radware page|checking your browser|just a moment|verify (?:you are|that you are) human|request unsuccessful|incapsula|imperva|challenge-platform|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test([pageQualityTitle,pageQualityText].join(" "));
         if (pageChallenge) {
           return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, title:pageQualityTitle||null, description:pageQualityDescription||null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"quality",status:"UNABLE_TO_CONFIRM",details:"HTTP-response lijkt een bot-/securitychallenge in plaats van de bedoelde pagina; deze sample wordt niet gescoord."}] };
@@ -3590,7 +3604,7 @@ export async function POST(request: Request) {
           return 0.5;
         };
         const earned = confirmed.reduce((sum,item)=>sum+evidenceCredit(item),0);
-        return { ...page, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, score:confirmed.length?Math.round((earned/confirmed.length)*100):null, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), schemaTypes:[...new Set(pageSchemaTypes)], commerceEvidence:pageCommerceEvidence, evidenceChecks };
+        return { ...page, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, score:confirmed.length?Math.round((earned/confirmed.length)*100):null, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), schemaTypes:[...new Set(pageSchemaTypes)], commerceEvidence:pageCommerceEvidence, evidenceChecks };
       } catch (multiPageError) {
         const rawReason = multiPageError instanceof Error ? multiPageError.message : "FETCH_FAILED";
         const reason = /timeout|abort/i.test(rawReason)
@@ -3608,7 +3622,17 @@ export async function POST(request: Request) {
       }
     };
     const multiPageAudits = await Promise.all(uniqueMultiPagePages.map(auditMultiPage));
-    const auditedMultiPages = multiPageAudits.filter((item)=>item.status==="audited");
+    // Keep the scanned page, then prefer structurally different DOM templates.
+    // This second-stage dedupe is universal: no sector or path vocabulary is used.
+    const auditedRawPages = multiPageAudits.filter((item)=>item.status==="audited");
+    const auditedMultiPages: MultiPageAudit[] = [];
+    const seenStructures = new Set<string>();
+    for (const item of auditedRawPages) {
+      const key = item.structureKey || templateShapeKey(item.url);
+      if (seenStructures.has(key) && normalizeScanUrl(item.url)!==normalizeScanUrl(finalUrl.toString())) continue;
+      seenStructures.add(key);
+      auditedMultiPages.push(item);
+    }
     const confirmedRetailSamples = auditedMultiPages.filter((item)=>item.commerceEvidence?.confirmedRetailPage);
     // Motor v2.1: representative pages are site-level evidence partners. They may
     // confirm capabilities/identity, but they never turn an unverified page-specific
@@ -3919,13 +3943,18 @@ export async function POST(request: Request) {
 
     const securityFormCheck = securityChecks.find((item)=>item.key==="security_forms");
     if (securityFormCheck && forms.length===0) {
-      const formFlow = masterEvidence.capabilities.includes("appointment") ? {kind:"appointment" as const,label:"afspraakflow"}
-        : masterEvidence.capabilities.includes("reservation") ? {kind:"booking" as const,label:"reserveringsflow"}
-        : masterEvidence.capabilities.includes("booking") ? {kind:"booking" as const,label:"boekingsflow"}
-        : masterEvidence.capabilities.includes("quote_request") ? {kind:"quote" as const,label:"offerteflow"}
-        : masterEvidence.capabilities.includes("contact") ? {kind:"contact" as const,label:"contactflow"}
-        : finalCommerceDecision.confirmed ? {kind:"checkout" as const,label:"checkout-/afrekenflow"}
-        : null;
+      const explicitCapability = (id:string) => capabilityStates.find((item)=>item.id===id && item.state==="detected");
+      // A specific customer-facing flow name is allowed only when the capability
+      // itself has explicit proof. Legacy sector inference may not label a flow.
+      const formFlow = explicitCapability("offers_bookable_services")
+        ? {kind:"appointment" as const,label:"afspraak-/reserveringsflow"}
+        : explicitCapability("collects_leads")
+          ? {kind:"contact" as const,label:"contact-/aanvraagflow"}
+          : finalCommerceDecision.confirmed
+            ? {kind:"checkout" as const,label:"checkout-/afrekenflow"}
+            : masterEvidence.capabilities.some((c)=>["appointment","reservation","booking","quote_request","contact"].includes(c))
+              ? {kind:"contact" as const,label:"formulier-/contactflow"}
+              : null;
       if (formFlow) {
         const sampledPaths = auditedMultiPages.map((item)=>{ try { return new URL(item.url).pathname || "/"; } catch { return item.url; } }).join(", ");
         Object.assign(securityFormCheck, securityCheck("unable_to_confirm","security_forms","Formuliertransport",`RankFix bevestigde een ${formFlow.label}, maar vond geen HTML-formulier in de ${auditedMultiPages.length || 1} representatief geanalyseerde pagina('s) (${sampledPaths || new URL(finalUrl).pathname}). De formuliertransportbeveiliging is daarom niet te bevestigen.`,`Controleer de daadwerkelijke ${formFlow.label}, inclusief HTTPS, server-side validatie en CSRF-bescherming.`,0,5));
