@@ -1540,17 +1540,21 @@ export async function POST(request: Request) {
     const partnerSources = [...new Set(evidencePartners.flatMap(partner=>partner.sources))];
     const confirmedPartners = evidencePartners.filter(partner=>partner.status==="confirmed").length;
 
-    const evidenceCommerceStrength = [
-      scanEvidence.commerce.cart.value,
-      scanEvidence.commerce.addToCart.value,
-      scanEvidence.commerce.checkout.value,
-      scanEvidence.commerce.products.value,
-      scanEvidence.commerce.productPage.value,
-      scanEvidence.commerce.productLinks.value >= 2,
-      scanEvidence.commerce.prices.value.count >= 2,
-      scanEvidence.schema.product,
-    ].filter(Boolean).length;
-    const evidenceCommerceConfirmed = evidenceCommerceStrength >= 3;
+    // Commerce identity is confidence-aware. Medium URL/link hints may support a
+    // decision, but they cannot add the same weight as confirmed actions/schema.
+    const commerceSignals = [
+      { active: scanEvidence.commerce.cart.value, confidence: scanEvidence.commerce.cart.confidence },
+      { active: scanEvidence.commerce.addToCart.value, confidence: scanEvidence.commerce.addToCart.confidence },
+      { active: scanEvidence.commerce.checkout.value, confidence: scanEvidence.commerce.checkout.confidence },
+      { active: scanEvidence.commerce.products.value, confidence: scanEvidence.commerce.products.confidence },
+      { active: scanEvidence.commerce.productPage.value, confidence: scanEvidence.commerce.productPage.confidence },
+      { active: scanEvidence.commerce.productLinks.value >= 2, confidence: scanEvidence.commerce.productLinks.confidence },
+      { active: scanEvidence.commerce.prices.value.count >= 2, confidence: scanEvidence.commerce.prices.confidence },
+      { active: scanEvidence.schema.product, confidence: "high" as const },
+    ].filter(signal=>signal.active);
+    const evidenceCommerceStrength = commerceSignals.reduce((sum,signal)=>sum+(signal.confidence==="high"?1:signal.confidence==="medium"?0.5:0),0);
+    const confirmedCommerceSignals = commerceSignals.filter(signal=>signal.confidence==="high").length;
+    const evidenceCommerceConfirmed = confirmedCommerceSignals >= 2 && evidenceCommerceStrength >= 3;
     const catalogTop = evidenceSectorCandidates[0];
     const catalogRunnerUp = evidenceSectorCandidates[1];
     const catalogSectorStrong = Boolean(catalogTop && catalogTop.score >= 4 && (!catalogRunnerUp || catalogTop.score >= catalogRunnerUp.score + 2));
@@ -1615,7 +1619,7 @@ export async function POST(request: Request) {
           key:"ecommerce",
           label:"Webshop / e-commerce",
           confidence:"high" as const,
-          confidenceScore:Math.min(99, 86 + evidenceCommerceStrength * 2),
+          confidenceScore:Math.min(99, Math.round(86 + evidenceCommerceStrength * 2)),
           evidence:[`Evidence Layer: ${evidenceCommerceStrength} onafhankelijke commerce-signalen`, ...(catalogTop?.key==="ecommerce" ? catalogTop.evidence : [])].slice(0,6),
           applicableModules:["core_seo","geo","technical","ecommerce","product","pricing_currency","merchant","checkout",...(euConsumerApplicable?["eu_consumer"]:[])],
         }
