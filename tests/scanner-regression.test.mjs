@@ -345,3 +345,14 @@ test("health identity includes acupuncture and therapy evidence", async () => {
   assert.match(source, /acupunctuur\|acupuncture\|acupuncturist/);
   assert.match(source, /behandelingen\|treatment\|treatments/);
 });
+
+
+test("audit report explains customer-facing evidence statuses", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const report = await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
+  const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(report, /Statusuitleg/);
+  assert.match(report, /Niet te bevestigen: onvoldoende bewijs/);
+  assert.match(report, /N\.v\.t\.: geldt niet voor deze website/);
+  assert.doesNotMatch(scanner, /contact-, afspraak- of boekingsfunctie toont/);
+});
