@@ -140,9 +140,15 @@ export function buildScanEvidence(input: {
   const contactLink = has(html, /(?:mailto:|tel:|href\s*=\s*["'][^"']*\/(?:contact|contact-us|kontakt|contacto)(?:\/|["'#?]))/i);
   const contactText = has(text, /\b(contact|contacteer|kontakt|contactez|contatti|contacto)\b/i);
   const contact = contactLink || contactText;
-  const address = schemaHas("PostalAddress") || has(text, /\b(adres|address|adresse|indirizzo|dirección)\b/i);
-  const openingHours = schemaHas("OpeningHoursSpecification") || has(text, /\b(openingstijden|opening hours|öffnungszeiten|horaires|orari|horario)\b/i);
-  const reviews = schemaHas("Review", "AggregateRating") || has(text, /\b(reviews?|beoordelingen|bewertungen|avis|recensioni|reseñas)\b/i);
+  const addressSchema = schemaHas("PostalAddress");
+  const addressText = has(text, /\b(adres|address|adresse|indirizzo|dirección)\b/i);
+  const address = addressSchema || addressText;
+  const openingHoursSchema = schemaHas("OpeningHoursSpecification");
+  const openingHoursText = has(text, /\b(openingstijden|opening hours|öffnungszeiten|horaires|orari|horario)\b/i);
+  const openingHours = openingHoursSchema || openingHoursText;
+  const reviewsSchema = schemaHas("Review", "AggregateRating");
+  const reviewsText = has(text, /\b(reviews?|beoordelingen|bewertungen|avis|recensioni|reseñas)\b/i);
+  const reviews = reviewsSchema || reviewsText;
   const propertyListing = properties && (/\/(?:woningaanbod|residential-listings|properties?)\//i.test(url) || has(text, /\b(te koop|te huur|for sale|for rent|koopprijs|huurprijs)\b/i));
   const propertyListingStrong = propertySchema || (propertyText && has(text, /\b(te koop|te huur|for sale|for rent|koopprijs|huurprijs)\b/i));
   const propertySale = propertyListing && (has(text, /\b(te koop|for sale|koopprijs)\b/i) || /\/(?:koop|sale)\//i.test(url));
@@ -190,9 +196,9 @@ export function buildScanEvidence(input: {
     },
     organization: {
       contact: fact(contact, contactLink ? "high" : contactText ? "medium" : "low", [source], contact ? [contactLink ? "Structurele contactlink of telefoon/e-mailactie gevonden" : "Contacttekstsignaal gevonden"] : []),
-      address: fact(address, address ? "medium" : "low", [source], address ? ["Adres-signaal gevonden"] : []),
-      openingHours: fact(openingHours, openingHours ? "medium" : "low", [source], openingHours ? ["Openingstijden-signaal gevonden"] : []),
-      reviews: fact(reviews, reviews ? "medium" : "low", [source], reviews ? ["Review-signaal gevonden"] : []),
+      address: fact(address, addressSchema ? "high" : addressText ? "medium" : "low", [source, ...(addressSchema ? ["structured_data" as EvidenceSource] : [])], address ? [addressSchema ? "PostalAddress-schema gevonden" : "Adres-tekstsignaal gevonden"] : []),
+      openingHours: fact(openingHours, openingHoursSchema ? "high" : openingHoursText ? "medium" : "low", [source, ...(openingHoursSchema ? ["structured_data" as EvidenceSource] : [])], openingHours ? [openingHoursSchema ? "OpeningHoursSpecification-schema gevonden" : "Openingstijden-tekstsignaal gevonden"] : []),
+      reviews: fact(reviews, reviewsSchema ? "high" : reviewsText ? "medium" : "low", [source, ...(reviewsSchema ? ["structured_data" as EvidenceSource] : [])], reviews ? [reviewsSchema ? "Review/AggregateRating-schema gevonden" : "Review-tekstsignaal gevonden"] : []),
     },
     sectorDetails: {
       realEstate: { listing: fact(propertyListing, propertyListingStrong ? "high" : propertyListing ? "medium" : "low", [source, ...(propertySchema ? ["structured_data" as EvidenceSource] : [])], propertyListing ? [propertyListingStrong ? "Vastgoedobject/listing met inhoudelijke evidence bevestigd" : "Vastgoedachtige listing-URL gevonden; aanvullende inhoudelijke evidence vereist"] : []), sale: fact(propertySale, propertySale ? "high" : "low", [source], propertySale ? ["Koopwoning-signaal bevestigd"] : []), rental: fact(propertyRental, propertyRental ? "high" : "low", [source], propertyRental ? ["Huurwoning-signaal bevestigd"] : []) },
