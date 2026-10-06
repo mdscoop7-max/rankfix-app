@@ -3453,9 +3453,9 @@ export async function POST(request: Request) {
     };
     const templateShapeKey = (rawUrl:string) => {
       const u = new URL(rawUrl);
-      const parts = u.pathname.replace(/\\/+$/,"").split("/").filter(Boolean);
+      const parts = u.pathname.replace(/\/+$/,"").split("/").filter(Boolean);
       return parts.map((part)=>{
-        if (/^\\d/.test(part) || /\\d{3,}/.test(part)) return ":id";
+        if (/^\d/.test(part) || /\d{3,}/.test(part)) return ":id";
         return part.toLowerCase();
       }).join("/") || "/";
     };
