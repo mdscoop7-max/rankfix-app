@@ -4270,7 +4270,7 @@ export async function POST(request: Request) {
     });
 
     const multiPage = {
-      enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:4,
+      enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:representativePageLimit,
       discoveredInternalUrls:discoveredMultiPage.length, selectedPages:uniqueMultiPagePages, pageAudits:multiPageAudits,
       siteSampleScore: auditedRawPages.length ? Math.round(auditedRawPages.reduce((sum,item)=>sum+(item.score||0),0)/auditedRawPages.length) : null,
       siteSampleCoverage: {
