@@ -137,7 +137,9 @@ export function buildScanEvidence(input: {
   const menuText = has(text, /\b(menu|menukaart|gerechten|restaurant|speisekarte|carte des plats)\b/i);
   const menu = menuSchema || menuText;
 
-  const contact = has(text, /\b(contact|contacteer|kontakt|contactez|contatti|contacto)\b/i) || has(html, /mailto:|tel:/i);
+  const contactLink = has(html, /(?:mailto:|tel:|href\s*=\s*["'][^"']*\/(?:contact|contact-us|kontakt|contacto)(?:\/|["'#?]))/i);
+  const contactText = has(text, /\b(contact|contacteer|kontakt|contactez|contatti|contacto)\b/i);
+  const contact = contactLink || contactText;
   const address = schemaHas("PostalAddress") || has(text, /\b(adres|address|adresse|indirizzo|dirección)\b/i);
   const openingHours = schemaHas("OpeningHoursSpecification") || has(text, /\b(openingstijden|opening hours|öffnungszeiten|horaires|orari|horario)\b/i);
   const reviews = schemaHas("Review", "AggregateRating") || has(text, /\b(reviews?|beoordelingen|bewertungen|avis|recensioni|reseñas)\b/i);
@@ -187,7 +189,7 @@ export function buildScanEvidence(input: {
       menu: fact(menu, menuSchema ? "high" : menu ? "medium" : "low", [source, ...(menuSchema ? ["structured_data" as EvidenceSource] : [])], menu ? [menuSchema ? "Restaurant-/menuschema gevonden" : "Restaurant/menu-tekstsignaal gevonden"] : []),
     },
     organization: {
-      contact: fact(contact, contact ? "medium" : "low", [source], contact ? ["Contactsignaal gevonden"] : []),
+      contact: fact(contact, contactLink ? "high" : contactText ? "medium" : "low", [source], contact ? [contactLink ? "Structurele contactlink of telefoon/e-mailactie gevonden" : "Contacttekstsignaal gevonden"] : []),
       address: fact(address, address ? "medium" : "low", [source], address ? ["Adres-signaal gevonden"] : []),
       openingHours: fact(openingHours, openingHours ? "medium" : "low", [source], openingHours ? ["Openingstijden-signaal gevonden"] : []),
       reviews: fact(reviews, reviews ? "medium" : "low", [source], reviews ? ["Review-signaal gevonden"] : []),
