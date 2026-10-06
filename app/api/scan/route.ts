@@ -3461,7 +3461,7 @@ export async function POST(request: Request) {
     };
     // Prefer template diversity. Query-string variants and near-identical listing
     // pages should not consume the limited representative sample twice.
-    const uniqueMultiPagePages = [];
+    const uniqueMultiPagePages: MultiPageCandidate[] = [];
     const seenTemplates = new Set<string>();
     for (const item of [scannedPageSample, ...multiPagePages]) {
       const normalized = normalizeScanUrl(item.url);
