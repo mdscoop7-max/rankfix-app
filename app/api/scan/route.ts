@@ -3587,19 +3587,31 @@ export async function POST(request: Request) {
     // technology and multi-page evidence have all had a chance to contribute.
     // Commerce can be secondary to a proven service identity. Cart/checkout
     // navigation or a shop shell alone is not hard retail evidence.
-    const hardCommerceEvidence = masterEvidence.commerce.confirmed || sitewideCommerceEvidence.confirmed;
+    const representativeRetailProduct = auditedMultiPages.some((item)=>item.type==="product" && Boolean(item.commerceEvidence?.product));
+    const hardCommerceEvidence = sitewideCommerceEvidence.confirmed || representativeRetailProduct || Boolean(
+      scanEvidence.commerce.productPage.value ||
+      scanEvidence.commerce.addToCart.value ||
+      (scanEvidence.commerce.products.value && scanEvidence.commerce.prices.value.count > 0)
+    );
     const technologyOnlyCommerce = technologyProfile.isCommerce && !hardCommerceEvidence;
+    const secondaryCommerceOnly = Boolean(primaryNonCommerceIdentity && !hardCommerceEvidence);
     const finalCommerceDecision = {
       confirmed: hardCommerceEvidence || (technologyOnlyCommerce && !primaryNonCommerceIdentity),
-      currentPageEvidence: masterEvidence.commerce.confirmed,
+      currentPageEvidence: hardCommerceEvidence && masterEvidence.commerce.confirmed,
       technologyProfile: technologyProfile.isCommerce,
       technologyOnly: technologyOnlyCommerce,
+      secondaryCommerceOnly,
       multiPageEvidence: sitewideCommerceEvidence.confirmed,
     };
-    if (!finalCommerceDecision.confirmed && primaryNonCommerceIdentity && technologyOnlyCommerce) {
+    if (!finalCommerceDecision.confirmed && primaryNonCommerceIdentity) {
+      masterEvidence.commerce.confirmed = false;
+      masterEvidence.businessModels = masterEvidence.businessModels.filter((model)=>model!=="commerce");
       technologyProfile.isCommerce = false;
       technologyProfile.siteType = technologyProfile.siteType === "Webshop" ? "Website" : technologyProfile.siteType;
-      technologyProfile.evidence = [...technologyProfile.evidence, "Commerce-navigatie gevonden, maar onvoldoende hard retailbewijs voor webshopclassificatie."].slice(0,8);
+      technologyProfile.evidence = [...technologyProfile.evidence, "Secundaire commerce-navigatie gevonden; geen harde product-/retailketen bevestigd."].slice(0,8);
+      for (const capability of ["ecommerce","merchant","consumer_rights"]) {
+        masterEvidence.capabilities = masterEvidence.capabilities.filter((item)=>item!==capability);
+      }
     }
     // Evidence Engine v2: reconcile primary identity after representative evidence.
     const reconciledIdentitySource = [sectorIdentitySource, multiPageIdentityText].filter(Boolean).join(" ");
