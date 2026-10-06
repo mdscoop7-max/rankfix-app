@@ -3914,8 +3914,20 @@ export async function POST(request: Request) {
     );
 
     const securityFormCheck = securityChecks.find((item)=>item.key==="security_forms");
-    if (securityFormCheck && forms.length===0 && masterEvidence.capabilities.some((c)=>["appointment","reservation","booking","contact"].includes(c))) {
-      Object.assign(securityFormCheck, securityCheck("unable_to_confirm","security_forms","Formuliertransport","Geen HTML-formulier gevonden op de gescande pagina, terwijl een functionele flow is gedetecteerd. Het exacte type flow en de transportbeveiliging moeten met aanvullend bewijs worden bevestigd.","Controleer de daadwerkelijke formulier- of boekingsflow, inclusief HTTPS, server-side validatie en CSRF-bescherming.",0,5));
+    if (securityFormCheck && forms.length===0) {
+      const formFlow = masterEvidence.capabilities.includes("appointment") ? {kind:"appointment" as const,label:"afspraakflow"}
+        : masterEvidence.capabilities.includes("reservation") ? {kind:"booking" as const,label:"reserveringsflow"}
+        : masterEvidence.capabilities.includes("booking") ? {kind:"booking" as const,label:"boekingsflow"}
+        : masterEvidence.capabilities.includes("quote_request") ? {kind:"quote" as const,label:"offerteflow"}
+        : masterEvidence.capabilities.includes("contact") ? {kind:"contact" as const,label:"contactflow"}
+        : finalCommerceDecision.confirmed ? {kind:"checkout" as const,label:"checkout-/afrekenflow"}
+        : null;
+      if (formFlow) {
+        const sampledPaths = auditedMultiPages.map((item)=>{ try { return new URL(item.url).pathname || "/"; } catch { return item.url; } }).join(", ");
+        Object.assign(securityFormCheck, securityCheck("unable_to_confirm","security_forms","Formuliertransport",`RankFix bevestigde een ${formFlow.label}, maar vond geen HTML-formulier in de ${auditedMultiPages.length || 1} representatief geanalyseerde pagina('s) (${sampledPaths || new URL(finalUrl).pathname}). De formuliertransportbeveiliging is daarom niet te bevestigen.`,`Controleer de daadwerkelijke ${formFlow.label}, inclusief HTTPS, server-side validatie en CSRF-bescherming.`,0,5));
+        securityFormCheck.formKind = formFlow.kind;
+        securityFormCheck.reasonCode = "insufficient_pages";
+      }
     }
 
     const orgWebsiteCheck = geoChecks.find((item)=>item.key==="organization_website");
@@ -3957,7 +3969,8 @@ export async function POST(request: Request) {
       item.points = 0;
       item.confidence = "high";
       item.message = reason;
-      item.fix = "Geen actie nodig. RankFix activeert deze controle alleen wanneer de vereiste capability met voldoende bewijs is bevestigd.";
+      item.fix = "Geen actie nodig. RankFix activeert deze controle alleen wanneer de vereiste functie met voldoende bewijs is bevestigd.";
+      item.reasonCode = "cap_absent";
       item.evidence = {url:finalUrl.toString(),found:false,details:item.message};
     };
     if (!finalCommerceDecision.confirmed) {
