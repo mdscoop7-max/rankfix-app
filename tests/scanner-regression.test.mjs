@@ -356,3 +356,15 @@ test("audit report explains customer-facing evidence statuses", async () => {
   assert.match(report, /N\.v\.t\.: geldt niet voor deze website/);
   assert.doesNotMatch(scanner, /contact-, afspraak- of boekingsfunctie toont/);
 });
+
+
+test("customer audit UX is localized for every supported locale", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const report = await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
+  assert.match(report, /const AUDIT_UX:Record<Locale/);
+  assert.match(report, /Wichtigste nachgewiesene Probleme/);
+  assert.match(report, /Principaux problèmes prouvés/);
+  assert.match(report, /Principali problemi dimostrati/);
+  assert.match(report, /Principales problemas demostrados/);
+  assert.match(report, /const ux=AUDIT_UX\[language\]/);
+});
