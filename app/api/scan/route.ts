@@ -2434,7 +2434,7 @@ export async function POST(request: Request) {
       return normalized.toString();
     };
 
-    const canonicalTarget = canonicalUrl ? normalizeCanonicalTarget(canonicalUrl) : "";
+    const canonicalHost = (host: string) => host.toLowerCase().replace(/^www\./, "");\n    const canonicalTarget = canonicalUrl ? normalizeCanonicalTarget(canonicalUrl) : "";
     const currentTarget = normalizeCanonicalTarget(finalUrl);
     const canonicalIsSelf = Boolean(canonicalUrl && canonicalTarget === currentTarget);
     const canonicalListingParams = new Set(["forsaleorrent","moveunavailablelistingstothebottom","orderby","orderdescending","take","page","pagesize","sort","sortby","filter","filters","view","ref","source","campaign"]);
@@ -2446,7 +2446,7 @@ export async function POST(request: Request) {
     const pageLanguageCode = (lang || "").toLowerCase().split("-")[0];
     const canonicalIsLocalePreferred = Boolean(canonicalUrl && finalUrl.pathname === "/" && pageLanguageCode && canonicalUrl.pathname.replace(/\/+$/, "") === "/" + pageLanguageCode);
     // www/apex redirects are normally the same site and must not become a cross-domain failure.
-    const canonicalHost = (host: string) => host.toLowerCase().replace(/^www\./, "");
+
     const canonicalIsCrossDomain = Boolean(canonicalUrl && canonicalHost(canonicalUrl.hostname) !== canonicalHost(finalUrl.hostname));
     const canonicalDropsQuery = Boolean(canonicalUrl && finalUrl.search && !canonicalUrl.search);
     seoChecks.push(
