@@ -88,6 +88,10 @@ export function buildScanEvidence(input: {
   const rawHtml = input.rawHtml || html;
   const text = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").toLowerCase();
   const source: EvidenceSource = input.rendered ? "rendered_html" : "raw_html";
+  const renderedAddsEvidence = Boolean(input.rendered && input.rawHtml && input.html !== input.rawHtml);
+  const provenanceEvidence = input.rendered
+    ? [renderedAddsEvidence ? "JavaScript-rendering leverde aanvullende DOM-evidence op" : "Pagina is met JavaScript-rendering beoordeeld"]
+    : ["Raw HTML beoordeeld; client-side signalen kunnen ontbreken"];
   const url = input.url.toLowerCase();
 
   const schemaTypes = uniq([...html.matchAll(/["']@type["']\s*:\s*["']([^"']+)["']/gi)].map(m => m[1]).filter(Boolean));
@@ -157,12 +161,12 @@ export function buildScanEvidence(input: {
   const resultsOrStandings = has(text, /\b(uitslag|result|standings|league table|score)\b/i);
 
   return {
-    version: "1.1",
+    version: "1.2",
     page: { url: input.url, rendered: Boolean(input.rendered), language: input.language || null, title: input.title || null },
     commerce: {
-      cart: fact(cart, cart ? "high" : "low", [source], cart ? ["Cart/winkelwagen-signaal gevonden"] : []),
-      addToCart: fact(addToCart, addToCart ? "high" : "low", [source], addToCart ? ["Add-to-cart actie gevonden"] : []),
-      checkout: fact(checkout, checkout ? "high" : "low", [source], checkout ? ["Checkout/afreken-signaal gevonden"] : []),
+      cart: fact(cart, cart ? "high" : "low", [source], cart ? ["Cart/winkelwagen-signaal gevonden", ...provenanceEvidence] : []),
+      addToCart: fact(addToCart, addToCart ? "high" : "low", [source], addToCart ? ["Add-to-cart actie gevonden", ...provenanceEvidence] : []),
+      checkout: fact(checkout, checkout ? "high" : "low", [source], checkout ? ["Checkout/afreken-signaal gevonden", ...provenanceEvidence] : []),
       prices: fact({ count: priceCount, currencies }, priceCount ? "high" : "low", [source], priceCount ? [`${priceCount} zichtbaar prijs-signaal/signalen; valuta: ${currencies.join(", ") || "onbekend"}`] : []),
       products: fact(productPage || productLinkCount > 0, productSchema ? "high" : productPage || productLinkCount > 0 ? "medium" : "low", [source, ...(productSchema ? ["structured_data" as EvidenceSource] : []), ...(productPathHint ? ["url" as EvidenceSource] : [])], productSchema ? ["Product-schema gevonden"] : productPathHint ? ["Productachtige URL gevonden; dit is ondersteunend bewijs, geen zelfstandig retailbewijs"] : productLinkCount ? [`${productLinkCount} productachtige interne link(s) gevonden`] : []),
       productPage: fact(productPage, productSchema ? "high" : productPathHint ? "medium" : "low", [source, ...(productSchema ? ["structured_data" as EvidenceSource] : []), ...(productPathHint ? ["url" as EvidenceSource] : [])], productSchema ? ["Productpagina bevestigd met Product-schema"] : productPathHint ? ["Productachtige URL gevonden; aanvullende product-/prijs-/actie-evidence vereist"] : []),
