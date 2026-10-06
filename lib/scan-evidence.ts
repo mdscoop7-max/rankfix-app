@@ -100,7 +100,7 @@ export function buildScanEvidence(input: {
   const cart = has(html, /(?:cart|basket|winkelwagen|warenkorb|panier|carrello|carrito)/i);
   const addToCart = has(text, /\b(add to cart|add to basket|in winkelwagen|toevoegen aan winkelwagen|in den warenkorb|ajouter au panier|aggiungi al carrello|añadir al carrito)\b/i);
   const checkout = has(html, /(?:checkout|afrekenen|kasse|paiement|pagamento|pago)/i);
-  const productPage = schemaHas("Product", "Offer") || /\/(?:product|products|p|artikel|item)\//i.test(url);
+  // Offer is used by service businesses too; it must never be treated as a retail product page by itself.\n  const productPage = schemaHas("Product") || /\/(?:product|products|p|artikel|item)\//i.test(url);
 
   const currencyMatches = [...text.matchAll(/(?:€|eur\b|\$|usd\b|£|gbp\b)/gi)].map(m => m[0].toUpperCase());
   const currencies = uniq(currencyMatches.map(v => v === "€" ? "EUR" : v === "$" ? "USD" : v === "£" ? "GBP" : v));
@@ -154,7 +154,7 @@ export function buildScanEvidence(input: {
       checkout: fact(checkout, checkout ? "high" : "low", [source], checkout ? ["Checkout/afreken-signaal gevonden"] : []),
       prices: fact({ count: priceCount, currencies }, priceCount ? "high" : "low", [source], priceCount ? [`${priceCount} zichtbaar prijs-signaal/signalen; valuta: ${currencies.join(", ") || "onbekend"}`] : []),
       products: fact(productPage || productLinkCount > 0, productPage ? "high" : productLinkCount > 0 ? "medium" : "low", [source, ...(schemaHas("Product") ? ["structured_data" as EvidenceSource] : [])], productPage ? ["Productpagina/schema-signaal gevonden"] : productLinkCount ? [`${productLinkCount} productachtige interne link(s) gevonden`] : []),
-      productPage: fact(productPage, productPage ? "high" : "low", [source, ...(schemaHas("Product", "Offer") ? ["structured_data" as EvidenceSource] : [])], productPage ? ["Productpaginabewijs gevonden"] : []),
+      productPage: fact(productPage, productPage ? "high" : "low", [source, ...(schemaHas("Product") ? ["structured_data" as EvidenceSource] : [])], productPage ? ["Productpaginabewijs gevonden"] : []),
       productLinks: fact(productLinkCount, productLinkCount ? "medium" : "low", [source], productLinkCount ? [`${productLinkCount} productachtige interne link(s)`] : []),
     },
     appointments: {
@@ -187,7 +187,7 @@ export function buildScanEvidence(input: {
       types: schemaTypes,
       organization: schemaHas("Organization", "Corporation", "LocalBusiness"),
       website: schemaHas("WebSite"),
-      product: schemaHas("Product", "Offer"),
+      product: schemaHas("Product"),
       localBusiness: schemaHas("LocalBusiness"),
       vehicle: schemaHas("Vehicle", "Car", "AutoDealer", "AutomotiveBusiness"),
       realEstate: schemaHas("RealEstateAgent", "Residence", "House", "Apartment"),
