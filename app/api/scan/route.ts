@@ -1703,7 +1703,7 @@ export async function POST(request: Request) {
       : securityCheck("fail","security_https","HTTPS","De gescande pagina gebruikt geen HTTPS.","Activeer HTTPS/TLS en stuur HTTP permanent door naar HTTPS."));
 
     const missingSecurityHeaders = Object.entries(securityHeaders).filter(([, value]) => !value).map(([name])=>name);
-    const securityHeaderEvidence = `aanwezig: ${presentSecurityHeaders.map(([name])=>name).join(", ") || "geen"}; ontbrekend/niet bevestigd: ${missingSecurityHeaders.join(", ") || "geen"}`;
+    const securityHeaderEvidence = `aanwezig: ${presentSecurityHeaders.map(([name])=>name).join(", ") || "geen"}; niet aangetroffen in de response: ${missingSecurityHeaders.join(", ") || "geen"}`;
     securityChecks.push(coreSecurityHeadersPresent
       ? securityCheck("pass","security_headers","Security headers",`Browser-securityheaders voldoen aan de huidige kernregel (${securityHeaderEvidence}).`,"Houd deze headers actief en test wijzigingen aan CSP/HSTS eerst tegen de applicatie.",6,6)
       : securityCheck("warning","security_headers","Security headers",`RankFix bevestigde ${presentSecurityHeaders.length} van 6 gecontroleerde securityheaders (${securityHeaderEvidence}). Dit is hardening-advies en op zichzelf geen bewijs van een kwetsbaarheid.`,"Controleer HSTS, CSP/frame-bescherming, X-Content-Type-Options, Referrer-Policy en Permissions-Policy op server/CDN-niveau.",Math.max(0, presentSecurityHeaders.length),6));
@@ -1794,7 +1794,7 @@ export async function POST(request: Request) {
     const crossOriginScripts = externalScriptTags.filter((item)=>{ try { return new URL(item.src,finalUrl).origin !== finalUrl.origin; } catch { return false; } });
     const crossOriginWithoutSri = crossOriginScripts.filter((item)=>!/\\bintegrity\\s*=/i.test(item.tag));
     securityChecks.push(crossOriginScripts.length === 0
-      ? securityCheck("not_applicable","security_script_integrity","Externe scripts","Geen cross-origin scripts gevonden die statisch beoordeeld kunnen worden.","Geen actie nodig voor deze pagina.",0,4)
+      ? securityCheck("pass","security_script_integrity","Externe scripts","Geen cross-origin scripts aangetroffen in de opgehaalde HTML.","Geen actie nodig; JavaScript kan runtime aanvullend scripts laden die buiten deze statische controle vallen.",4,4)
       : crossOriginWithoutSri.length === 0
         ? securityCheck("pass","security_script_integrity","Externe scripts",`Alle ${crossOriginScripts.length} zichtbare cross-origin script(s) bevatten een integrity-attribuut.`,"Houd externe scripts beperkt en gebruik SRI waar versievaste assets dit ondersteunen.",4,4)
         : securityCheck("warning","security_script_integrity","Externe scripts",`${crossOriginWithoutSri.length} van ${crossOriginScripts.length} cross-origin script(s) hebben geen zichtbaar integrity-attribuut. SRI is niet voor elke dynamische provider toepasbaar.`,"Beperk derde-partij scripts en gebruik Subresource Integrity voor versievaste externe assets waar mogelijk.",2,4));
@@ -3454,9 +3454,13 @@ export async function POST(request: Request) {
     const templateShapeKey = (rawUrl:string) => {
       const u = new URL(rawUrl);
       const parts = u.pathname.replace(/\/+$/,"").split("/").filter(Boolean);
-      return parts.map((part)=>{
-        if (/^\d/.test(part) || /\d{3,}/.test(part)) return ":id";
-        return part.toLowerCase();
+      // Query strings/fragments never define a template. Dynamic-looking path
+      // segments are generalized so sibling detail URLs share one structural key.
+      // Literal section names are retained only as weak navigation context.
+      return parts.map((part,index)=>{
+        const decoded = safeDecodeURIComponent(part).toLowerCase();
+        if (/^\d/.test(decoded) || /\d{3,}/.test(decoded) || /^[a-f0-9]{8,}$/i.test(decoded) || /^[a-z0-9]+(?:-[a-z0-9]+){2,}$/i.test(decoded)) return ":detail";
+        return index === 0 ? decoded : decoded.replace(/\d+/g,":n");
       }).join("/") || "/";
     };
     // Prefer template diversity. Query-string variants and near-identical listing
