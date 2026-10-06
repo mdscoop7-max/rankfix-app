@@ -2442,7 +2442,7 @@ export async function POST(request: Request) {
     const isNonContentVariantParam = (key:string) => canonicalListingParams.has(key)
       || key.startsWith("utm_")
       || /^(?:gclid|gbraid|wbraid|fbclid|msclkid|gad_|_gl$|_ga$|mc_[ce]id$|pk_(?:campaign|kwd|source|medium)|yclid|dclid|srsltid|ref_|affiliate|aff(?:id)?$)/i.test(key);
-    const canonicalDropsKnownListingParams = Boolean(canonicalUrl && canonicalHost(canonicalUrl.hostname) === canonicalHost(finalUrl.hostname) && canonicalUrl.pathname.replace(/\/+$/, "") === finalUrl.pathname.replace(/\/+$/, "") && !canonicalUrl.search && currentQueryKeys.length > 0 && currentQueryKeys.every(isNonContentVariantParam));
+    const canonicalDropsKnownListingParams = Boolean(canonicalUrl && canonicalUrl.hostname.toLowerCase().replace(/^www\\./, "") === finalUrl.hostname.toLowerCase().replace(/^www\\./, "") && canonicalUrl.pathname.replace(/\/+$/, "") === finalUrl.pathname.replace(/\/+$/, "") && !canonicalUrl.search && currentQueryKeys.length > 0 && currentQueryKeys.every(isNonContentVariantParam));
     const pageLanguageCode = (lang || "").toLowerCase().split("-")[0];
     const canonicalIsLocalePreferred = Boolean(canonicalUrl && finalUrl.pathname === "/" && pageLanguageCode && canonicalUrl.pathname.replace(/\/+$/, "") === "/" + pageLanguageCode);
     // www/apex redirects are normally the same site and must not become a cross-domain failure.
