@@ -114,9 +114,13 @@ export function buildScanEvidence(input: {
   const priceCount = [...text.matchAll(/(?:€\s*\d|\d[\d.,]*\s*(?:€|eur\b)|\$\s*\d|£\s*\d)/gi)].length;
 
   const appointment = has(text, /\b(afspraak|appointment|termin|rendez-vous|appuntamento|cita)\b/i);
+  const appointmentAction = has(html, /(?:href|action|aria-label)\s*=\s*["'][^"']*(?:afspraak|appointment|termin|rendez-vous|appuntamento|cita)[^"']*["']/i);
   const reservation = has(text, /\b(reserveren|reservation|reserve a table|tisch reservieren|réserver|prenota|reservar)\b/i);
+  const reservationAction = has(html, /(?:href|action|aria-label)\s*=\s*["'][^"']*(?:reserv|réserv|prenota)[^"']*["']/i);
   const booking = has(text, /\b(boeken|book now|booking|buchen|réserver|prenota|reservar)\b/i);
+  const bookingAction = has(html, /(?:href|action|aria-label)\s*=\s*["'][^"']*(?:book|boeken|buchen|réserv|prenota)[^"']*["']/i);
   const quoteRequest = has(text, /\b(offerte|quote request|request a quote|angebot anfordern|devis|preventivo|presupuesto)\b/i);
+  const quoteAction = has(html, /(?:href|action|aria-label)\s*=\s*["'][^"']*(?:offerte|quote|angebot|devis|preventivo|presupuesto)[^"']*["']/i);
 
   const vehicleSchema = schemaHas("Vehicle", "Car", "AutoDealer", "AutomotiveBusiness");
   const vehicleText = has(text, /\b(occasions?|proefrit|test drive|fahrzeuge?|voitures? d'occasion|auto usate)\b/i);
@@ -182,10 +186,10 @@ export function buildScanEvidence(input: {
       productLinks: fact(productLinkCount, productLinkCount ? "medium" : "low", [source], productLinkCount ? [`${productLinkCount} productachtige interne link(s)`] : []),
     },
     appointments: {
-      appointment: fact(appointment, appointment ? "medium" : "low", [source], appointment ? ["Afspraak-signaal gevonden"] : []),
-      reservation: fact(reservation, reservation ? "medium" : "low", [source], reservation ? ["Reserveringssignaal gevonden"] : []),
-      booking: fact(booking, booking ? "medium" : "low", [source], booking ? ["Boekingssignaal gevonden"] : []),
-      quoteRequest: fact(quoteRequest, quoteRequest ? "medium" : "low", [source], quoteRequest ? ["Offerte-signaal gevonden"] : []),
+      appointment: fact(appointment, appointmentAction ? "high" : appointment ? "medium" : "low", [source], appointment ? [appointmentAction ? "Structurele afspraakactie gevonden" : "Afspraak-tekstsignaal gevonden"] : []),
+      reservation: fact(reservation, reservationAction ? "high" : reservation ? "medium" : "low", [source], reservation ? [reservationAction ? "Structurele reserveringsactie gevonden" : "Reserverings-tekstsignaal gevonden"] : []),
+      booking: fact(booking, bookingAction ? "high" : booking ? "medium" : "low", [source], booking ? [bookingAction ? "Structurele boekingsactie gevonden" : "Boekings-tekstsignaal gevonden"] : []),
+      quoteRequest: fact(quoteRequest, quoteAction ? "high" : quoteRequest ? "medium" : "low", [source], quoteRequest ? [quoteAction ? "Structurele offerteactie gevonden" : "Offerte-tekstsignaal gevonden"] : []),
     },
     inventory: {
       vehicles: fact(vehicles, vehicleSchema ? "high" : vehicles ? "medium" : "low", [source, ...(vehicleSchema ? ["structured_data" as EvidenceSource] : [])], vehicles ? [vehicleSchema ? "Voertuig-/autodealerschema gevonden" : "Voertuig/autodealer-tekstsignaal gevonden"] : []),
