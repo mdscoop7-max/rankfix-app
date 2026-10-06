@@ -9,7 +9,7 @@ export type EvidenceFact<T = boolean> = {
 };
 
 export type ScanEvidence = {
-  version: "1.1";
+  version: "1.2";
   page: {
     url: string;
     rendered: boolean;
