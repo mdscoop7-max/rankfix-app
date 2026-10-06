@@ -101,9 +101,9 @@ export function buildScanEvidence(input: {
   const hrefs = [...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>/gi)].map(m => m[1]);
   const productLinkCount = hrefs.filter(h => /\/(?:product|products|p|artikel|artikelen|item|shop)\//i.test(h)).length;
 
-  const cart = has(html, /(?:cart|basket|winkelwagen|warenkorb|panier|carrello|carrito)/i);
+  const cart = has(html, /(?:href|action|id|class|aria-label|data-[\w-]+)\s*=\s*["'][^"']*(?:cart|basket|winkelwagen|warenkorb|panier|carrello|carrito)[^"']*["']/i);
   const addToCart = has(text, /\b(add to cart|add to basket|in winkelwagen|toevoegen aan winkelwagen|in den warenkorb|ajouter au panier|aggiungi al carrello|añadir al carrito)\b/i);
-  const checkout = has(html, /(?:checkout|afrekenen|kasse|paiement|pagamento|pago)/i);
+  const checkout = has(html, /(?:href|action|id|class|aria-label|data-[\w-]+)\s*=\s*["'][^"']*(?:checkout|afrekenen|kasse|paiement|pagamento|pago)[^"']*["']/i);
   // Offer is used by service businesses too; it must never be treated as a retail product page by itself.
   const productSchema = schemaHas("Product");
   const productPathHint = /\/(?:product|products|p|artikel|item)\//i.test(url);
