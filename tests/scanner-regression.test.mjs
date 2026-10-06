@@ -797,3 +797,13 @@ test("Scan Motor 3.0 audits a bounded diverse representative sample", async () =
   assert.match(scanner,/uniqueMultiPagePages\.length >= representativePageLimit/);
   assert.match(scanner,/seenTemplates\.has\(key\)/);
 });
+
+
+test("representative page audits expose raw versus rendered provenance", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(scanner,/evidenceSource\?: "raw_html" \| "rendered_html"/);
+  assert.match(scanner,/representativeEvidenceSource: "raw_html" \| "rendered_html" = "raw_html"/);
+  assert.match(scanner,/representativeEvidenceSource = "rendered_html"/);
+  assert.match(scanner,/evidenceSource:representativeEvidenceSource/);
+});
