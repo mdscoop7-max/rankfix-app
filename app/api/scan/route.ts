@@ -1579,8 +1579,12 @@ export async function POST(request: Request) {
     const mappedCatalogSector = catalogTop ? catalogLegacyMap[catalogTop.key] : undefined;
     const lodgingDetail = scanEvidence.sectorDetails.lodging;
     const shortStayIdentity = Boolean(
-      lodgingDetail.bedBreakfast.value || lodgingDetail.holidayRental.value || lodgingDetail.holidayPark.value || lodgingDetail.camping.value ||
-      (lodgingDetail.shortStay.value && scanEvidence.appointments.booking.value)
+      (lodgingDetail.bedBreakfast.value && lodgingDetail.bedBreakfast.confidence !== "low") ||
+      (lodgingDetail.holidayRental.value && lodgingDetail.holidayRental.confidence !== "low") ||
+      (lodgingDetail.holidayPark.value && lodgingDetail.holidayPark.confidence !== "low") ||
+      (lodgingDetail.camping.value && lodgingDetail.camping.confidence !== "low") ||
+      (lodgingDetail.shortStay.value && lodgingDetail.shortStay.confidence !== "low" &&
+        scanEvidence.appointments.booking.value && scanEvidence.appointments.booking.confidence !== "low")
     );
     const lodgingSubtype = lodgingDetail.bedBreakfast.value
       ? {key:"bed_breakfast",label:"B&B / guesthouse"}
