@@ -3344,7 +3344,9 @@ export async function POST(request: Request) {
               ? /(?:occasion|voorraad|auto|vehicle|proefrit|werkplaats|vestiging)/i.test(path)
               : sectorProfile.key === "professional_services"
                 ? /(?:expert|expertise|practice|rechtsgebied|dienst|service|people|professional)/i.test(path)
-                : null;
+                : sectorProfile.key === "transport_travel"
+                  ? /(?:transport|logist|freight|vracht|groupage|ftl|ltl|wegtransport|road-transport|distribut|expedit|forward|koerier|courier|warehous|opslag|dienst|service|bestemming|destination)/i.test(path)
+                  : null;
       if (sectorTarget) return 28;
       return 10;
     };
