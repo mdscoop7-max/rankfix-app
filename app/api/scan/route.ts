@@ -3530,6 +3530,10 @@ export async function POST(request: Request) {
     };
     const rankedMultiPage = discoveredMultiPage.filter((item) => multiPageRelevance(item) > -100).sort((a,b) => multiPageRelevance(b) - multiPageRelevance(a));
     const pickMultiPage = (type: MultiPageCandidate["type"], limit: number) => rankedMultiPage.filter((item) => item.type === type).slice(0, limit);
+    // Scan Motor 3.0 phase 1: broaden evidence coverage without turning the scan
+    // into an unbounded crawler. Twenty representative templates is enough to cover
+    // the important site capabilities while keeping synchronous scans predictable.
+    const representativePageLimit = 20;
     // Keep representative sampling inside the locale/subdirectory the customer
     // actually scanned. Falling back to origin "/" can switch country/language
     // (for example /nl/nl/ -> global root) and contaminate sector/content evidence.
@@ -3540,13 +3544,13 @@ export async function POST(request: Request) {
     const multiPagePages: MultiPageCandidate[] = (masterEvidence.commerce.confirmed || technologyProfile.isCommerce || hasEcommerceSignal)
       ? [
           { url: representativeHomeUrl, type: "homepage", evidence: [localePathMatch ? "locale root" : "site root"] },
-          ...pickMultiPage("category", 1), ...pickMultiPage("product", 1),
-          ...pickMultiPage("form", 1), ...pickMultiPage("legal", 1), ...pickMultiPage("support", 1),
-          ...(pickMultiPage("category", 1).length && pickMultiPage("product", 1).length ? [] : [...pickMultiPage("service", 1), ...pickMultiPage("other", 1)]),
+          ...pickMultiPage("category", 4), ...pickMultiPage("product", 4),
+          ...pickMultiPage("form", 3), ...pickMultiPage("legal", 2), ...pickMultiPage("support", 2),
+          ...pickMultiPage("service", 3), ...pickMultiPage("listing", 2), ...pickMultiPage("other", 2),
         ]
       : [
           { url: representativeHomeUrl, type: "homepage", evidence: [localePathMatch ? "locale root" : "site root"] },
-          ...pickMultiPage("form", 1), ...pickMultiPage("service", 1), ...pickMultiPage("listing", 1), ...pickMultiPage("legal", 1), ...pickMultiPage("support", 1), ...pickMultiPage("other", 1), ...pickMultiPage("category", 1), ...pickMultiPage("product", 1),
+          ...pickMultiPage("form", 4), ...pickMultiPage("service", 5), ...pickMultiPage("listing", 4), ...pickMultiPage("legal", 2), ...pickMultiPage("support", 2), ...pickMultiPage("category", 2), ...pickMultiPage("product", 2), ...pickMultiPage("other", 2),
         ];
     // Always include the exact page the customer scanned as the first sample.
     // This prevents a product scan from being represented only by a sibling product
@@ -3579,7 +3583,7 @@ export async function POST(request: Request) {
       if (seenTemplates.has(key)) continue;
       seenTemplates.add(key);
       uniqueMultiPagePages.push(item);
-      if (uniqueMultiPagePages.length >= 4) break;
+      if (uniqueMultiPagePages.length >= representativePageLimit) break;
     }
     const auditMultiPage = async (page: MultiPageCandidate): Promise<MultiPageAudit> => {
       try {
