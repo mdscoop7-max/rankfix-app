@@ -448,3 +448,45 @@ test("response decoder supports declared legacy charset", async () => {
   assert.equal(source.includes("declaredCharset"), true);
   assert.equal(source.includes('text.includes("\\uFFFD")'), true);
 });
+
+
+test("share.google is resolved before usage, history and scan evidence", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const resolver = source.indexOf('target.hostname.toLowerCase() === "share.google"');
+  const usage = source.indexOf("const usageWebsiteHost = target.hostname");
+  assert.ok(resolver >= 0 && usage > resolver);
+  assert.match(source, /target = validatePublicHttpUrl\(normalizeScanUrl\(resolvedShare\.finalUrl\.toString\(\)\)\)/);
+});
+
+test("representative page typing includes service listing and support intents", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /"service" \| "listing" \| "support"/);
+  assert.match(source, /supportPath \? "support" : listingPath \? "listing"/);
+  assert.match(source, /resolvedServicePage \? "service"/);
+});
+
+test("transport and ecommerce schema advice do not fall through to generic LocalBusiness", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /transportLogisticsSchemaContext/);
+  assert.match(source, /"Service \+ Organization"/);
+  assert.match(source, /ecommerceSchemaContext/);
+  assert.match(source, /"OnlineStore \+ WebSite"/);
+});
+
+test("security form transport uses representative form pages rather than global forms", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /representativeFormPages = auditedMultiPages\.filter\(\(item\)=>item\.type==="form"\)/);
+  assert.match(source, /Globale zoek-, login- en footerformulieren tellen niet als bewijs/);
+});
+
+test("full audit report shows complete actions and uncertainty lists", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const report = await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(report, /\.slice\(0,5\)\.map\(\(c,i\)=>/);
+  assert.match(report, /group\.items\.map\(item=>item\.title\)\.join\(" · "\)/);
+  assert.doesNotMatch(report, /groupedUnable\.map\(\(group,i\)=><details/);
+});

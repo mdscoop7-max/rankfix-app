@@ -392,6 +392,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: scanError.unsafe }, { status: 400 });
     }
 
+    // share.google is only a redirect resolver, never a scan target or evidence source.
+    // Resolve it once before plan limits, history, scoring and reporting, then discard
+    // the Google URL completely and continue from the real destination website.
+    if (target.hostname.toLowerCase() === "share.google") {
+      try {
+        const resolvedShare = await safePublicFetch(target.toString(), {
+          timeoutMs: 8000,
+          maxRedirects: 6,
+          userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)",
+          accept: "text/html,application/xhtml+xml",
+        });
+        const resolvedHost = resolvedShare.finalUrl.hostname.toLowerCase().replace(/^www\./, "");
+        try { await resolvedShare.response.body?.cancel(); } catch {}
+        if (resolvedHost === "share.google" || resolvedHost === "google.com" || resolvedHost.endsWith(".google.com")) {
+          throw new Error("SHARE_GOOGLE_UNRESOLVED");
+        }
+        target = validatePublicHttpUrl(normalizeScanUrl(resolvedShare.finalUrl.toString()));
+      } catch {
+        return NextResponse.json({ error: scanError.fetch }, { status: 502 });
+      }
+    }
+
     // Dashboard allowances are enforced server-side before starting an expensive crawl.
     // Free keeps the cross-account per-domain allowance; paid plans use account-level monthly allowances.
     let usageUser: Awaited<ReturnType<typeof getCurrentUser>> = null;
@@ -1047,28 +1069,47 @@ export async function POST(request: Request) {
     const hasRelevantLocalSchema = schemaSet.has("localbusiness") || schemaSet.has("onlinestore") || (specificLocalSchema ? schemaSet.has(specificLocalSchema.toLowerCase()) : false);
     const governmentIdentitySignal = /\b(rijksoverheid|government|government of|ministerie|ministry|rijksoverheid\.nl|overheid|gemeente|municipality|provincie|province|public authority|publieke sector)\b/i.test([title, description, h1s.join(" "), finalUrl.hostname].join(" "));
     const governmentSchemaPresent = schemaSet.has("governmentorganization") || schemaSet.has("governmentoffice");
-    // Government/public-authority identity must override generic address/contact
-    // signals. A ministry or national government site is not a LocalBusiness.
-    const effectiveLocalSchemaSignal = hasLocalBusinessSignal && !governmentIdentitySignal && !governmentSchemaPresent;
+    const transportLogisticsSchemaContext = /\b(transport|logistics?|logistiek|freight|vracht|forwarding|expeditie|warehousing|opslag|supply chain|distribution|distributie|4pl|3pl)\b/i.test(localClassificationText);
+    const transportServicePath = /\/(?:dienst|diensten|service|services|oplossing|oplossingen|solution|solutions|expertise|transport)(?:\/|$)/i.test(finalUrl.pathname);
+    const ecommerceSchemaContext = hasEcommerceSignal || schemaSet.has("onlinestore") || schemaSet.has("product");
+    // Government, international transport/logistics and e-commerce identities
+    // override generic LocalBusiness hints so advice follows the actual business model.
+    const effectiveLocalSchemaSignal = hasLocalBusinessSignal && !governmentIdentitySignal && !governmentSchemaPresent && !transportLogisticsSchemaContext && !ecommerceSchemaContext;
     const recommendedSchema = governmentIdentitySignal || governmentSchemaPresent
       ? (isHomepage ? "GovernmentOrganization + WebSite" : "GovernmentOrganization / WebPage")
-      : effectiveLocalSchemaSignal
-        ? specificLocalSchema || "LocalBusiness"
-        : isHomepage ? "Organization + WebSite" : isProductPage ? "Product" : hasCategorySignal ? "ItemList / CollectionPage" : hasArticleSignal ? "Article" : "WebPage";
-    const schemaContextLabel = governmentIdentitySignal || governmentSchemaPresent ? "overheids-/publieke pagina" : effectiveLocalSchemaSignal ? "lokale bedrijfs-/dienstpagina" : isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "lijst-/categoriepagina" : hasArticleSignal ? "artikel-/nieuwspagina" : "contentpagina";
+      : transportLogisticsSchemaContext
+        ? (isHomepage ? "Organization + WebSite" : transportServicePath ? "Service + Organization" : "Organization / WebPage")
+        : ecommerceSchemaContext
+          ? (isProductPage ? "Product" : isHomepage ? "OnlineStore + WebSite" : hasCategorySignal ? "ItemList / CollectionPage" : "Organization / WebPage")
+          : effectiveLocalSchemaSignal
+            ? specificLocalSchema || "LocalBusiness"
+            : isHomepage ? "Organization + WebSite" : isProductPage ? "Product" : hasCategorySignal ? "ItemList / CollectionPage" : hasArticleSignal ? "Article" : "WebPage";
+    const schemaContextLabel = governmentIdentitySignal || governmentSchemaPresent ? "overheids-/publieke pagina" : transportLogisticsSchemaContext ? (isHomepage ? "transport-/logistiekhomepage" : "transport-/dienstpagina") : ecommerceSchemaContext ? (isProductPage ? "productpagina" : isHomepage ? "webshophomepage" : hasCategorySignal ? "webshopcategorie" : "webshoppagina") : effectiveLocalSchemaSignal ? "lokale bedrijfs-/dienstpagina" : isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "lijst-/categoriepagina" : hasArticleSignal ? "artikel-/nieuwspagina" : "contentpagina";
     const hasRelevantContextSchema = governmentIdentitySignal || governmentSchemaPresent
       ? governmentSchemaPresent || schemaSet.has("organization") || schemaSet.has("website") || schemaSet.has("webpage")
-      : effectiveLocalSchemaSignal
-        ? hasRelevantLocalSchema
-        : isProductPage
-          ? hasProductSchema
-          : hasCategorySignal
-            ? schemaSet.has("itemlist") || schemaSet.has("collectionpage")
-            : hasArticleSignal
-              ? schemaSet.has("article") || schemaSet.has("newsarticle") || schemaSet.has("blogposting")
+      : transportLogisticsSchemaContext
+        ? (isHomepage
+            ? schemaSet.has("organization") || schemaSet.has("website") || schemaSet.has("service")
+            : schemaSet.has("service") || schemaSet.has("organization") || schemaSet.has("webpage"))
+        : ecommerceSchemaContext
+          ? (isProductPage
+              ? hasProductSchema
               : isHomepage
-                ? schemaSet.has("organization") || schemaSet.has("website")
-                : schemaSet.has("webpage") || schemaSet.has("article") || schemaSet.has("organization") || schemaSet.has("website");
+                ? schemaSet.has("onlinestore") || schemaSet.has("website") || schemaSet.has("organization")
+                : hasCategorySignal
+                  ? schemaSet.has("itemlist") || schemaSet.has("collectionpage") || schemaSet.has("onlinestore")
+                  : schemaSet.has("webpage") || schemaSet.has("organization") || schemaSet.has("onlinestore"))
+          : effectiveLocalSchemaSignal
+            ? hasRelevantLocalSchema
+            : isProductPage
+            ? hasProductSchema
+            : hasCategorySignal
+              ? schemaSet.has("itemlist") || schemaSet.has("collectionpage")
+              : hasArticleSignal
+                ? schemaSet.has("article") || schemaSet.has("newsarticle") || schemaSet.has("blogposting")
+                : isHomepage
+                  ? schemaSet.has("organization") || schemaSet.has("website")
+                  : schemaSet.has("webpage") || schemaSet.has("article") || schemaSet.has("organization") || schemaSet.has("website");
     const businessName = organizationName || (title.split(/[|–—-]/)[0] || "").trim();
     const phoneMatch = text.match(/(?:\\+31\s?6|0)[\\d\s().-]{8,}/);
     const emailMatch = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i);
@@ -3378,7 +3419,7 @@ export async function POST(request: Request) {
     // Multi-page evidence audit: select a bounded same-host sample and fetch it
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
-    type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "other"; evidence: string[] };
+    type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "other"; evidence: string[] };
     type MultiPageAudit = MultiPageCandidate & { status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; identityText?: string; schemaTypes?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
@@ -3390,7 +3431,7 @@ export async function POST(request: Request) {
         const path = safeDecodeURIComponent(candidate.pathname).toLowerCase();
         if (/\.(?:jpg|jpeg|png|gif|webp|svg|pdf|zip|xml|json|css|js|ico|woff2?)(?:$|\?)/i.test(path)) return null;
         const pathSegments = path.split("/").filter(Boolean);
-        const legalUtilitySegment = /^(?:privacy|privacy-policy|privacybeleid|privacyverklaring|datenschutz|datenschutzhinweise|datenschutzerklaerung|terms|terms-and-conditions|terms-of-use|voorwaarden|algemene-voorwaarden|cookie|cookies|cookie-policy|cookiebeleid|disclaimer|legal|impressum|retour|retouren|returns?|refunds?|shipping|levering|bezorging|support|help)$/i;
+        const legalUtilitySegment = /^(?:privacy|privacy-policy|privacybeleid|privacyverklaring|datenschutz|datenschutzhinweise|datenschutzerklaerung|terms|terms-and-conditions|terms-of-use|voorwaarden|algemene-voorwaarden|cookie|cookies|cookie-policy|cookiebeleid|disclaimer|legal|impressum)$/i;
         if (/(?:^|\/)(?:myaccount|my-account|account|mijn-account|login|account-login|signin|sign-in|register|wishlist|verlanglijst|favorites?|favourites?|favorieten|cart|basket|winkelwagen|checkout|afrekenen|kassa|search|zoeken)(?:\/|$)/i.test(path)) return null;
         if (candidate.search && /(?:^|[?&])(?:q|query|search|sort|filter|page|session|token)=/i.test(candidate.search)) return null;
         const evidence: string[] = [];
@@ -3398,11 +3439,18 @@ export async function POST(request: Request) {
         const categoryPath = /\/(?:category|categories|categorie|categorieen|cat|collection|collections|shop|store|winkel|catalog|catalogue|outlet|sale|aanbod|voorraad|huizen|woningen|cars|autos)(?:\/|$)/i.test(path);
         const legalPath = pathSegments.some((segment) => legalUtilitySegment.test(segment));
         const formPath = /(?:^|\/)(?:contact|contact-us|contacteer|kontakt|offerte|quote|request-quote|afspraak|appointment|booking|book|reserve|reservation|reserveren)(?:\/|$)/i.test(path);
+        const supportPath = /(?:^|\/)(?:faq|veelgestelde-vragen|help|support|customer-service|klantenservice|retour|retouren|returns?|refunds?|shipping|levering|bezorging)(?:\/|$)/i.test(path);
+        const servicePath = /(?:^|\/)(?:dienst|diensten|service|services|oplossing|oplossingen|solution|solutions|expertise|behandeling|behandelingen|treatment|practice|werkplaats)(?:\/|$)/i.test(path);
+        const listingPath = sectorProfile.sector === "real_estate" && /(?:^|\/)(?:woningaanbod|residential-listings|property-listings|properties|aanbod)(?:\/|$)/i.test(path);
         if (productPath) evidence.push("product-like path");
         if (categoryPath) evidence.push("category-like path");
         if (formPath) evidence.push("form/conversion-like path");
         if (legalPath) evidence.push("legal/policy-like path");
-        return { url: candidate.toString(), type: productPath ? "product" : formPath ? "form" : legalPath ? "legal" : categoryPath ? "category" : "other", evidence };
+        if (supportPath) evidence.push("support/faq-like path");
+        if (servicePath) evidence.push("service-like path");
+        if (listingPath) evidence.push("listing-like path");
+        const type: MultiPageCandidate["type"] = formPath ? "form" : legalPath ? "legal" : supportPath ? "support" : listingPath ? "listing" : productPath ? "product" : servicePath ? "service" : categoryPath ? "category" : "other";
+        return { url: candidate.toString(), type, evidence };
       } catch { return null; }
     };
     const anchorContextByUrl = new Map(allUniqueInternalAnchors.map((item)=>[normalizeScanUrl(item.url), item.context || ""] as const));
@@ -3417,14 +3465,20 @@ export async function POST(request: Request) {
     // structural link context from the scanned page is the primary signal. This keeps
     // narrative/news/history pages from outranking pages that expose services,
     // inventory, products, booking or other uncertainty-reducing capabilities.
+    const preferredLocale = (lang.match(/^([a-z]{2,3})/i)?.[1] || pathSegmentsForType.find((segment)=>localeSegmentPattern.test(segment))?.split("-")[0] || "").toLowerCase();
     const multiPageRelevance = (item: MultiPageCandidate) => {
       const path = new URL(item.url).pathname.toLowerCase();
       const context = (anchorContextByUrl.get(normalizeScanUrl(item.url)) || "").toLowerCase();
+      const firstPathSegment = path.split("/").filter(Boolean)[0] || "";
+      const candidateLocale = localeSegmentPattern.test(firstPathSegment) ? firstPathSegment.split("-")[0].toLowerCase() : "";
       const isLegal = /(?:^|\/)(?:privacy|privacy-policy|privacybeleid|privacyverklaring|datenschutz|datenschutzhinweise|datenschutzerklaerung|terms|terms-and-conditions|terms-of-use|voorwaarden|algemene-voorwaarden|cookie|cookies|cookie-policy|cookiebeleid|disclaimer|legal|impressum)(?:\/|$)/i.test(path);
       const utilityContext = /\b(privacy|cookie|voorwaarden|terms|login|account|vacature|career|jobs|nieuws|news|blog|geschiedenis|history|impressie|gallery|over ons|about us)\b/i.test(context);
       const capabilityContext = /\b(product|producten|shop|winkel|aanbod|voorraad|woning|woningen|occasion|service|diensten|dienstverlening|transport|logistiek|freight|warehouse|opslag|behandeling|treatment|afspraak|booking|reserver|offerte|quote|kamer|rooms?)\b/i.test(context);
       const contextWords = context.split(/\s+/).filter(Boolean).length;
-      let score = item.type === "product" ? 34 : item.type === "form" ? 32 : item.type === "category" ? 28 : item.type === "legal" || isLegal ? 18 : 8;
+      let score = item.type === "product" ? 34 : item.type === "form" ? 32 : item.type === "service" ? 30 : item.type === "listing" ? 30 : item.type === "category" ? 28 : item.type === "support" ? 16 : item.type === "legal" || isLegal ? 18 : 8;
+      if (preferredLocale && candidateLocale === preferredLocale) score += 12;
+      else if (preferredLocale && candidateLocale && candidateLocale !== preferredLocale) score -= 24;
+      else if (preferredLocale && !candidateLocale) score += 2;
       if (capabilityContext) score += 24;
       if (contextWords >= 2) score += 4;
       if (utilityContext && !capabilityContext) score -= 30;
@@ -3448,19 +3502,19 @@ export async function POST(request: Request) {
       ? [
           { url: representativeHomeUrl, type: "homepage", evidence: [localePathMatch ? "locale root" : "site root"] },
           ...pickMultiPage("category", 1), ...pickMultiPage("product", 1),
-          ...pickMultiPage("form", 1), ...pickMultiPage("legal", 1),
-          ...(pickMultiPage("category", 1).length && pickMultiPage("product", 1).length ? [] : pickMultiPage("other", 1)),
+          ...pickMultiPage("form", 1), ...pickMultiPage("legal", 1), ...pickMultiPage("support", 1),
+          ...(pickMultiPage("category", 1).length && pickMultiPage("product", 1).length ? [] : [...pickMultiPage("service", 1), ...pickMultiPage("other", 1)]),
         ]
       : [
           { url: representativeHomeUrl, type: "homepage", evidence: [localePathMatch ? "locale root" : "site root"] },
-          ...pickMultiPage("form", 1), ...pickMultiPage("other", 1), ...pickMultiPage("legal", 1), ...pickMultiPage("category", 1), ...pickMultiPage("product", 1),
+          ...pickMultiPage("form", 1), ...pickMultiPage("service", 1), ...pickMultiPage("listing", 1), ...pickMultiPage("legal", 1), ...pickMultiPage("support", 1), ...pickMultiPage("other", 1), ...pickMultiPage("category", 1), ...pickMultiPage("product", 1),
         ];
     // Always include the exact page the customer scanned as the first sample.
     // This prevents a product scan from being represented only by a sibling product
     // and makes failed cross-page sampling transparent without changing the main-page score.
     const scannedPageSample: MultiPageCandidate = {
       url: finalUrl.toString(),
-      type: isProductPage ? "product" : hasCategorySignal ? "category" : isHomepage ? "homepage" : "other",
+      type: isProductPage ? "product" : propertyListingPage ? "listing" : resolvedServicePage ? "service" : hasCategorySignal ? "category" : isHomepage ? "homepage" : "other",
       evidence: ["scanned page"],
     };
     const templateShapeKey = (rawUrl:string) => {
@@ -3958,19 +4012,26 @@ export async function POST(request: Request) {
     );
 
     const securityFormCheck = securityChecks.find((item)=>item.key==="security_forms");
-    const representativeFormEvidence = auditedMultiPages.filter((item)=>(item.formEvidence?.formCount||0)>0);
-    if (securityFormCheck && forms.length===0 && representativeFormEvidence.length>0) {
+    const representativeFormPages = auditedMultiPages.filter((item)=>item.type==="form");
+    const representativeFormEvidence = representativeFormPages.filter((item)=>(item.formEvidence?.formCount||0)>0);
+    const scannedFormIntent = /(?:^|\/)(?:contact|contact-us|contacteer|kontakt|offerte|quote|request-quote|afspraak|appointment|booking|book|reserve|reservation|reserveren)(?:\/|$)/i.test(finalUrl.pathname);
+    if (securityFormCheck && representativeFormEvidence.length>0) {
       const totalForms = representativeFormEvidence.reduce((sum,item)=>sum+(item.formEvidence?.formCount||0),0);
       const insecureForms = representativeFormEvidence.reduce((sum,item)=>sum+(item.formEvidence?.insecureFormActions||0),0);
-      const hasPasswordForm = representativeFormEvidence.some((item)=>item.formEvidence?.passwordForm);
       const allHttps = representativeFormEvidence.every((item)=>{ try { return new URL(item.url).protocol==="https:"; } catch { return false; } });
       const evidenceUrls = representativeFormEvidence.map((item)=>item.url).slice(0,4).join(", ");
       Object.assign(securityFormCheck, insecureForms>0
-        ? securityCheck("fail","security_forms","Formuliertransport",`${insecureForms} formulier(en) op representatieve pagina\'s sturen expliciet naar een HTTP-endpoint. Bewijs: ${evidenceUrls}.`,"Gebruik uitsluitend HTTPS voor formulieracties en gevoelige gegevens.",5,5)
+        ? securityCheck("fail","security_forms","Formuliertransport",`${insecureForms} relevant formulier op de geselecteerde contact-/aanvraagpagina stuurt expliciet naar een HTTP-endpoint. Bewijs: ${evidenceUrls}.`,"Gebruik uitsluitend HTTPS voor formulieracties en gevoelige gegevens.",5,5)
         : allHttps
-          ? securityCheck("pass","security_forms","Formuliertransport",`${totalForms} HTML-formulier(en) bevestigd op representatieve HTTPS-pagina\'s zonder expliciete onveilige HTTP-action${hasPasswordForm ? "; wachtwoordveld aanwezig" : ""}. Bewijs: ${evidenceUrls}.`,"Controleer server-side validatie, CSRF-bescherming en autorisatie aanvullend; die zijn niet uit statische HTML te bewijzen.",5,5)
-          : securityCheck("warning","security_forms","Formuliertransport",`${totalForms} formulier(en) gevonden op representatieve pagina\'s waarvan niet alle pagina\'s HTTPS gebruiken. Bewijs: ${evidenceUrls}.`,"Bescherm formulieren met HTTPS; beoordeel server-side validatie en CSRF apart.",2,5));
+          ? securityCheck("pass","security_forms","Formuliertransport",`${totalForms} relevant HTML-formulier bevestigd op de geselecteerde contact-/aanvraagpagina zonder expliciete onveilige HTTP-action. Bewijs: ${evidenceUrls}.`,"Controleer server-side validatie, CSRF-bescherming en autorisatie aanvullend; die zijn niet uit statische HTML te bewijzen.",5,5)
+          : securityCheck("warning","security_forms","Formuliertransport",`Relevant formulier gevonden op een contact-/aanvraagpagina die niet volledig via HTTPS loopt. Bewijs: ${evidenceUrls}.`,"Bescherm formulieren met HTTPS; beoordeel server-side validatie en CSRF apart.",2,5));
       securityFormCheck.reasonCode = "weak_evidence";
+    } else if (securityFormCheck && representativeFormPages.length>0) {
+      const evidenceUrls = representativeFormPages.map((item)=>item.url).slice(0,4).join(", ");
+      Object.assign(securityFormCheck, securityCheck("unable_to_confirm","security_forms","Formuliertransport",`RankFix selecteerde een relevante contact-/aanvraagpagina, maar vond daar in de gecontroleerde HTML geen betrouwbaar formulier. Bewijs: ${evidenceUrls}.`,"Controleer het daadwerkelijke formulier inclusief HTTPS, server-side validatie en CSRF-bescherming.",0,5));
+      securityFormCheck.reasonCode = "insufficient_pages";
+    } else if (securityFormCheck && !scannedFormIntent) {
+      Object.assign(securityFormCheck, securityCheck("not_applicable","security_forms","Formuliertransport","Geen representatieve contact-, aanvraag- of afspraakpagina met betrouwbaar formulierbewijs geselecteerd. Globale zoek-, login- en footerformulieren tellen niet als bewijs voor deze controle.","Geen actie nodig op basis van deze statische steekproef.",0,5));
     } else if (securityFormCheck && forms.length===0) {
       const explicitCapability = (id:string) => capabilityStates.find((item)=>item.id===id && item.state==="detected");
       // A specific customer-facing flow name is allowed only when the capability
@@ -4154,7 +4215,7 @@ export async function POST(request: Request) {
         productSample: multiPageCapabilities.productSample,
         categorySample: multiPageCapabilities.categorySample,
       },
-      counts:{ homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, form:uniqueMultiPagePages.filter((x)=>x.type==="form").length, legal:uniqueMultiPagePages.filter((x)=>x.type==="legal").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
+      counts:{ homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, form:uniqueMultiPagePages.filter((x)=>x.type==="form").length, legal:uniqueMultiPagePages.filter((x)=>x.type==="legal").length, service:uniqueMultiPagePages.filter((x)=>x.type==="service").length, listing:uniqueMultiPagePages.filter((x)=>x.type==="listing").length, support:uniqueMultiPagePages.filter((x)=>x.type==="support").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
       note:"Representative same-host pages are fetched with bounded checks. Their sample score is separate from the explicitly scanned page score; site-level evidence may strengthen identity/capabilities, but page-specific failures still require direct proof.",
     };
 
