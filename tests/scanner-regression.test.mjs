@@ -216,8 +216,21 @@ test("score engine deduplicates penalties that share one proven root cause", asy
     { ...base, issue_status: "WARNING", points: 0, maxPoints: 4, rootCause: "meta_description" },
     { ...base, issue_status: "PASS", points: 6, maxPoints: 6 },
   ]);
-  assert.equal(SCORE_MODEL_VERSION, "2.3-evidence-range");
+  assert.equal(SCORE_MODEL_VERSION, "3.0-evidence-strict");
   assert.equal(score, 50);
+});
+
+test("score engine gives confirmed high-impact findings a stricter bounded penalty", async () => {
+  const { scoreApplicableChecks } = await import("../lib/audit-score.ts");
+  const low = scoreApplicableChecks([
+    { issue_status: "WARNING", severity: "LOW", confidence: "high", points: 5, maxPoints: 10, rootCause: "a" },
+    { issue_status: "PASS", points: 90, maxPoints: 90 },
+  ]);
+  const high = scoreApplicableChecks([
+    { issue_status: "WARNING", severity: "HIGH", confidence: "high", points: 5, maxPoints: 10, rootCause: "a" },
+    { issue_status: "PASS", points: 90, maxPoints: 90 },
+  ]);
+  assert.ok(high < low);
 });
 
 test("score engine keeps independent penalties independent", async () => {
