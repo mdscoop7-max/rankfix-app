@@ -4012,7 +4012,6 @@ export async function POST(request: Request) {
     );
 
     const securityFormCheck = securityChecks.find((item)=>item.key==="security_forms");
-    const representativeFormPages = auditedMultiPages.filter((item)=>item.type==="form");
     const representativeFormEvidence = representativeFormPages.filter((item)=>(item.formEvidence?.formCount||0)>0);
     const scannedFormIntent = /(?:^|\/)(?:contact|contact-us|contacteer|kontakt|offerte|quote|request-quote|afspraak|appointment|booking|book|reserve|reservation|reserveren)(?:\/|$)/i.test(finalUrl.pathname);
     if (securityFormCheck && representativeFormEvidence.length>0) {
