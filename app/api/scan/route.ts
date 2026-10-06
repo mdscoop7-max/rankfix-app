@@ -3769,7 +3769,7 @@ export async function POST(request: Request) {
     }
     const securityFormCheck = securityChecks.find((item)=>item.key==="security_forms");
     if (securityFormCheck && forms.length===0 && masterEvidence.capabilities.some((c)=>["appointment","reservation","booking","contact"].includes(c))) {
-      Object.assign(securityFormCheck, securityCheck("unable_to_confirm","security_forms","Formuliertransport","Geen HTML-formulier gevonden op de gescande pagina, terwijl de site wel een contact-, afspraak- of boekingsfunctie toont. De transportbeveiliging van die flow is vanuit raw HTML niet te bevestigen.","Controleer de daadwerkelijke formulier- of boekingsflow, inclusief HTTPS, server-side validatie en CSRF-bescherming.",0,5));
+      Object.assign(securityFormCheck, securityCheck("unable_to_confirm","security_forms","Formuliertransport","Geen HTML-formulier gevonden op de gescande pagina, terwijl een functionele flow is gedetecteerd. Het exacte type flow en de transportbeveiliging moeten met aanvullend bewijs worden bevestigd.","Controleer de daadwerkelijke formulier- of boekingsflow, inclusief HTTPS, server-side validatie en CSRF-bescherming.",0,5));
     }
 
     const orgWebsiteCheck = geoChecks.find((item)=>item.key==="organization_website");
