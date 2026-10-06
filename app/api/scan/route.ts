@@ -20,6 +20,24 @@ type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confir
 
 type AuditMode = "seo" | "geo" | "both";
 
+type EvidenceCapabilityState = "detected" | "likely" | "unknown" | "absent_proven";
+type EvidenceCapability = {
+  id: string;
+  state: EvidenceCapabilityState;
+  confidence: number;
+  proof: string[];
+  reason?: "weak_evidence" | "insufficient_coverage";
+};
+
+const buildCapabilityState = (id:string, proof:string[], coverage:number, confidence=0.95):EvidenceCapability => {
+  const uniqueProof = [...new Set(proof.filter(Boolean))];
+  if (uniqueProof.length) return {id,state:"detected",confidence,proof:uniqueProof};
+  // Absence is deliberately not inferred from one page. Until representative
+  // coverage is sufficient, the capability remains unknown rather than false.
+  if (coverage < 3) return {id,state:"unknown",confidence:0,proof:[],reason:"insufficient_coverage"};
+  return {id,state:"unknown",confidence:0,proof:[],reason:"weak_evidence"};
+};
+
 type Check = {
   key: string;
   category: "seo" | "geo" | "security" | "accessibility";
@@ -3574,6 +3592,26 @@ export async function POST(request: Request) {
     if (multiPageCapabilities.treatment) addMasterCapability("services");
     if (multiPageCapabilities.hospitality) for (const c of ["rooms","booking"]) addMasterCapability(c);
     if (auditedMultiPages.length && !masterEvidence.coverage.evidenceSources.includes("multi_page")) masterEvidence.coverage.evidenceSources.push("multi_page");
+    // Evidence Engine v2 foundation: expose explicit capability states with proof.
+    // This runs after representative evidence collection so later checks can consume
+    // one central truth instead of interpreting missing page-local evidence as false.
+    const capabilityProofs: Record<string,string[]> = {
+      sells_products_online: [
+        ...confirmedRetailSamples.map((item)=>item.url),
+        ...(masterEvidence.commerce.confirmed ? [finalUrl.toString()] : []),
+      ],
+      lists_inventory: [
+        ...(multiPageCapabilities.properties ? auditedMultiPages.filter((item)=>/\\b(woning|woningen|property|properties|aanbod|koop|huur)\\b/i.test(item.identityText||"")).map((item)=>item.url) : []),
+        ...(multiPageCapabilities.vehicleSales ? auditedMultiPages.filter((item)=>/\\b(occasion|occasions|vehicle inventory|voertuigvoorraad|autovoorraad|cars for sale)\\b/i.test(item.identityText||"")).map((item)=>item.url) : []),
+      ],
+      offers_bookable_services: masterEvidence.capabilities.some((c)=>["appointment","reservation","booking"].includes(c)) ? [finalUrl.toString()] : [],
+      collects_leads: masterEvidence.capabilities.some((c)=>["contact","quote_request"].includes(c)) ? [finalUrl.toString()] : [],
+      serves_local_customers: masterEvidence.capabilities.includes("local") ? [finalUrl.toString()] : [],
+    };
+    const capabilityCoverage = auditedMultiPages.length;
+    const capabilityStates: EvidenceCapability[] = Object.entries(capabilityProofs).map(([id,proof])=>buildCapabilityState(id,proof,capabilityCoverage));
+    (masterEvidence as typeof masterEvidence & { capabilityStates?: EvidenceCapability[] }).capabilityStates = capabilityStates;
+
     const sitewideCommerceEvidence = {
       confirmed: confirmedRetailSamples.length > 0,
       sampleCount: confirmedRetailSamples.length,
