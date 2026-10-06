@@ -413,3 +413,38 @@ test("Evidence Engine exposes explicit capability states and never infers absenc
   assert.match(source, /const capabilityStates: EvidenceCapability\[\]/);
   assert.match(source, /capabilityStates = capabilityStates/);
 });
+
+
+test("representative evidence preserves page intent across structural dedupe", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.equal(source.includes('const key = `${item.type}:${item.structureKey || templateShapeKey(item.url)}`;'), true);
+  assert.equal(source.includes("audited:auditedRawPages.length"), true);
+  assert.equal(source.includes("formEvidence:{formCount:pageForms.length"), true);
+  assert.equal(source.includes("representativeFormEvidence"), true);
+});
+
+test("customer report groups not-applicable checks and shows sitewide sample warnings", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const report = await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
+  assert.equal(report.includes("Sitebrede steekproef"), true);
+  assert.equal(report.includes("groupedNa.map"), true);
+  assert.equal(report.includes('<p className="meta">{deep.rule}:'), false);
+  assert.equal(report.includes("</div>\\n    <footer>"), false);
+});
+
+test("sector reconciliation hides provisional previous sector and protects beauty-wellness identity", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.equal(source.includes("Vorige voorlopige sector:"), false);
+  assert.equal(source.includes("beautyServiceIdentity && !explicitMedicalIdentity"), true);
+  assert.equal(source.includes('label:"Beauty & Wellness"'), true);
+});
+
+test("response decoder supports declared legacy charset", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../lib/safe-fetch.ts", import.meta.url), "utf8");
+  assert.equal(source.includes("windows-1252"), true);
+  assert.equal(source.includes("declaredCharset"), true);
+  assert.equal(source.includes('text.includes("\\uFFFD")'), true);
+});

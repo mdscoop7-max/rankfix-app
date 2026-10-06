@@ -92,9 +92,8 @@ export async function readResponseTextLimited(response: Response, maxBytes = 2_0
   if (declared > maxBytes) throw new Error("RESPONSE_TOO_LARGE");
   if (!response.body) return "";
   const reader = response.body.getReader();
-  const decoder = new TextDecoder();
+  const chunks: Uint8Array[] = [];
   let total = 0;
-  let text = "";
   try {
     while (true) {
       const { done, value } = await reader.read();
@@ -104,9 +103,26 @@ export async function readResponseTextLimited(response: Response, maxBytes = 2_0
         await reader.cancel();
         throw new Error("RESPONSE_TOO_LARGE");
       }
-      text += decoder.decode(value, { stream: true });
+      chunks.push(value);
     }
-    text += decoder.decode();
+    const bytes = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    const declaredCharset = response.headers.get("content-type")?.match(/charset\s*=\s*["']?([^;"'\s]+)/i)?.[1]?.toLowerCase() || "";
+    const charset = /^(?:iso-8859-1|latin1|latin-1|windows-1252|cp1252)$/.test(declaredCharset) ? "windows-1252" : declaredCharset || "utf-8";
+    const decode = (label: string) => {
+      try { return new TextDecoder(label).decode(bytes); }
+      catch { return new TextDecoder("utf-8").decode(bytes); }
+    };
+    let text = decode(charset);
+    if ((!declaredCharset || charset === "utf-8") && text.includes("\uFFFD")) {
+      const legacy = decode("windows-1252");
+      const replacements = (value: string) => (value.match(/\uFFFD/g) || []).length;
+      if (replacements(legacy) < replacements(text)) text = legacy;
+    }
     return text;
   } finally {
     reader.releaseLock();

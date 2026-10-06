@@ -16,7 +16,7 @@ type Check = { key?: string; category?: string; title: string; status: string; s
 type FixFlowItem = { issue_id:string; status:string; pr_number?:number|null; pr_url?:string|null; branch?:string|null; merged_at?:string|null; verified_at?:string|null; verification_scan_id?:string|null };
 type ProductOffer = { price?: unknown; currency?: string | null; availability?: string | null };
 type ProductEvidence = { name?: string | null; image?: string | null; sku?: string | null; offers?: ProductOffer[] };
-type MultiPageSummary = { enabled?:boolean; mode?:string; currentPageScoredSeparately?:boolean; maxPages?:number; discoveredInternalUrls?:number; selectedPages?:Array<{url:string;type:string;evidence?:string[]}>; pageAudits?:Array<{url:string;type:string;status:string;httpStatus?:number|null;score?:number|null;title?:string|null;evidenceChecks?:Array<{key:string;status:string;details:string}>}>; siteSampleScore?:number|null; counts?:{homepage?:number;category?:number;product?:number;other?:number;audited?:number;unableToConfirm?:number}; note?:string };
+type MultiPageSummary = { enabled?:boolean; mode?:string; currentPageScoredSeparately?:boolean; maxPages?:number; discoveredInternalUrls?:number; selectedPages?:Array<{url:string;type:string;evidence?:string[]}>; pageAudits?:Array<{url:string;type:string;status:string;httpStatus?:number|null;score?:number|null;title?:string|null;evidenceChecks?:Array<{key:string;status:string;details:string}>}>; siteSampleScore?:number|null; counts?:{homepage?:number;category?:number;product?:number;form?:number;legal?:number;other?:number;audited?:number;unableToConfirm?:number}; note?:string };
 type Result = { multiPage?:MultiPageSummary; overallScore: number; summary?:{passed:number;issues:number;notApplicable:number;unableToConfirm:number;pendingFixes:number}; rendering?:{mode:string;javascriptExecuted:boolean;note:string}; pageTypeEvidence?:{type:string;confidence:string;evidence:string[]}; technologyProfile?:{siteType?:"Webshop"|"Landingpage"|"Website";cms:string|null;commercePlatform:string|null;framework:string|null;isCommerce:boolean;confidence:number;confidenceLabel:"high"|"medium"|"low";evidence:string[]}; sectorProfile?:{key:string;label:string;confidence:"high"|"medium"|"low";confidenceScore:number;evidence:string[];applicableModules:string[]}; metrics?:{productOptimizer?:{eligible?:boolean;sourceCount?:number;product?:ProductEvidence|null}}; seo?: { score:number;checks?:Check[] }; geo?: { score:number;checks?:Check[] }; security?: { score:number;grade?:string;checks?:Check[] } };
 type Scan = { id?: string; scanned_url: string; final_url?: string | null; created_at: string; result: Result };
 
@@ -187,6 +187,7 @@ export default function AuditDetail() {
       if (severityDifference) return severityDifference;
       return (b.maxPoints || 0) - (a.maxPoints || 0);
     });
+  const normalizedCustomerText=(value:string)=>String(value||"").toLowerCase().replace(/https?:\/\/\S+/g,"url").replace(/\d+/g,"#").replace(/[^a-zà-ÿ# ]/gi," ").replace(/\s+/g," ").trim();
   // Customer actions are grouped by technical root cause. Keep every finding in
   // the audit evidence, but do not sell several GitHub fixes for one underlying change.
   const remediationRootKey=(check:Check)=>{
@@ -219,7 +220,6 @@ export default function AuditDetail() {
   const passed = checks.filter(check => check.status === "pass" && !advice.includes(check) && !signalFound.includes(check));
   const notApplicable = checks.filter(check => check.status === "not_applicable");
   const unableToConfirm = checks.filter(check => check.status === "unable_to_confirm");
-  const normalizedCustomerText=(value:string)=>String(value||"").toLowerCase().replace(/https?:\/\/\S+/g,"url").replace(/\d+/g,"#").replace(/[^a-zà-ÿ# ]/gi," ").replace(/\s+/g," ").trim();
   const groupedUnableToConfirm = Array.from(unableToConfirm.reduce((map,check)=>{
     const reason=normalizedCustomerText(check.message);
     const key=reason || normalizedCustomerText(check.title);
