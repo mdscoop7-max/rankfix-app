@@ -244,7 +244,7 @@ export function collectEvidencePartners(evidence: ScanEvidence): EvidencePartner
       ["products", evidence.commerce.products],
       ["product_page", evidence.commerce.productPage],
     ]),
-    evidence.commerce.prices.value.count > 0 && "pricing",
+    (evidence.commerce.prices.value.count > 0 && confidenceRank[evidence.commerce.prices.confidence] >= confidenceRank.medium) && "pricing",
   ].filter((value): value is string => Boolean(value));
 
   const businessCapabilities = [
