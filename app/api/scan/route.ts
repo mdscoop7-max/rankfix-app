@@ -3351,23 +3351,35 @@ export async function POST(request: Request) {
         return { url: candidate.toString(), type: productPath ? "product" : categoryPath ? "category" : "other", evidence };
       } catch { return null; }
     };
+    const anchorContextByUrl = new Map(allUniqueInternalAnchors.map((item)=>[normalizeScanUrl(item.url), item.context || ""] as const));
     const discoveredMultiPage = [...new Map(allUniqueInternalAnchors.flatMap((item) => {
       const candidate = classifyMultiPageCandidate(item.url);
-      return candidate ? [[normalizeScanUrl(candidate.url), candidate] as const] : [];
+      if (!candidate) return [];
+      const context = (item.context || "").trim();
+      if (context) candidate.evidence.push(`link-context: ${context.slice(0,120)}`);
+      return [[normalizeScanUrl(candidate.url), candidate] as const];
     })).values()];
+    // Evidence-first representative selection. URL shape is only a weak fallback;
+    // structural link context from the scanned page is the primary signal. This keeps
+    // narrative/news/history pages from outranking pages that expose services,
+    // inventory, products, booking or other uncertainty-reducing capabilities.
     const multiPageRelevance = (item: MultiPageCandidate) => {
       const path = new URL(item.url).pathname.toLowerCase();
-      if (/(?:^|\/)(?:privacy|privacy-policy|privacybeleid|privacyverklaring|datenschutz|datenschutzhinweise|datenschutzerklaerung|terms|terms-and-conditions|terms-of-use|voorwaarden|algemene-voorwaarden|cookie|cookies|cookie-policy|cookiebeleid|disclaimer|legal|impressum)(?:\/|$)/i.test(path)) return -100;
-      if (/(?:^|\/)(?:customer-service|customerservice|klantenservice|support|help|faq|reviews?|beoordelingen|over-ons|about-us|contact|career|careers|jobs|vacatures|werken-bij)(?:\/|$)/i.test(path)) return -20;
-      if (/^\/(?:[a-z]{2}(?:-[a-z]{2})?)\/?$/i.test(path)) return -10;
-      if (item.type === "product") return 40;
-      if (item.type === "category") return 30;
-      // Discovery must be sector-independent: representative evidence is collected
-      // before the final business identity is trusted. Generic business/service paths
-      // outrank arbitrary content, while career/legal/account utility pages stay low.
-      const businessEvidencePath = /(?:dienst|diensten|service|services|solution|solutions|oplossing|oplossingen|expertise|transport|logist|freight|vracht|forward|warehouse|opslag|werkplaats|onderhoud|repair|occasion|voorraad|woning|property|aanbod|behandel|treatment|kamer|room|booking|reserve|practice|rechtsgebied|product|producten|shop|store|catalog)/i.test(path);
-      if (businessEvidencePath) return 28;
-      return 10;
+      const context = (anchorContextByUrl.get(normalizeScanUrl(item.url)) || "").toLowerCase();
+      if (/(?:^|\\/)(?:privacy|privacy-policy|privacybeleid|privacyverklaring|datenschutz|datenschutzhinweise|datenschutzerklaerung|terms|terms-and-conditions|terms-of-use|voorwaarden|algemene-voorwaarden|cookie|cookies|cookie-policy|cookiebeleid|disclaimer|legal|impressum)(?:\\/|$)/i.test(path)) return -100;
+      const utilityContext = /\\b(privacy|cookie|voorwaarden|terms|login|account|vacature|career|jobs|nieuws|news|blog|geschiedenis|history|impressie|gallery|over ons|about us)\\b/i.test(context);
+      const capabilityContext = /\\b(product|producten|shop|winkel|aanbod|voorraad|woning|woningen|occasion|service|diensten|dienstverlening|transport|logistiek|freight|warehouse|opslag|behandeling|treatment|afspraak|booking|reserver|offerte|quote|kamer|rooms?)\\b/i.test(context);
+      const contextWords = context.split(/\\s+/).filter(Boolean).length;
+      let score = item.type === "product" ? 34 : item.type === "category" ? 28 : 8;
+      if (capabilityContext) score += 24;
+      if (contextWords >= 2) score += 4;
+      if (utilityContext && !capabilityContext) score -= 30;
+      // Path semantics are deliberately weak evidence only; they can break ties but
+      // cannot by themselves dominate structural link context.
+      if (/(?:dienst|service|product|shop|store|catalog|aanbod|voorraad|woning|property|occasion|transport|logist|warehouse|behandel|treatment|booking|reserve)/i.test(path)) score += 6;
+      if (/(?:nieuws|news|blog|geschiedenis|history|impressie|gallery|over-ons|about-us)/i.test(path)) score -= 12;
+      if (/^\\/(?:[a-z]{2}(?:-[a-z]{2})?)\\/?$/i.test(path)) score -= 10;
+      return score;
     };
     const rankedMultiPage = discoveredMultiPage.filter((item) => multiPageRelevance(item) > -100).sort((a,b) => multiPageRelevance(b) - multiPageRelevance(a));
     const pickMultiPage = (type: MultiPageCandidate["type"], limit: number) => rankedMultiPage.filter((item) => item.type === type).slice(0, limit);
