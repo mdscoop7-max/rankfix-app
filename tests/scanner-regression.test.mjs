@@ -634,3 +634,10 @@ test("unused evidence merge and sector capability exports stay removed", async (
   assert.doesNotMatch(evidence,/export function mergeScanEvidence/);
   assert.doesNotMatch(catalog,/export function controlCapabilitiesForSector/);
 });
+
+
+test("dashboard scans do not call removed automatic report email code", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(source,/sendScanReportEmail/);
+});

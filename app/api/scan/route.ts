@@ -4498,33 +4498,6 @@ export async function POST(request: Request) {
       }
     }
 
-    if (user?.email) {
-      try {
-        await sendScanReportEmail({
-          to: user.email,
-          name: user.name,
-          language: scanLanguage,
-          scanId: savedScanId,
-          scannedUrl: target.toString(),
-          finalUrl: finalUrl.toString(),
-          scannedAt: new Date().toISOString(),
-          mode,
-          overallScore: selectedOverallScore,
-          overallGrade: grade(selectedOverallScore),
-          seoScore: selectedSeoScore,
-          seoGrade: grade(selectedSeoScore),
-          geoScore: selectedGeoScore,
-          geoGrade: grade(selectedGeoScore),
-          responseTime,
-          httpStatus: response.status,
-          // Email report currently contains the SEO/GEO audit stream. Specialist
-          // engines (Security/Accessibility) are exposed separately in the scan result.
-          checks: checks.filter((item) => item.category === "seo" || item.category === "geo"),
-        });
-      } catch (error) {
-        console.error("RankFix scan report email failed:", error);
-      }
-    }
 
     const scanScope = {
       page: finalUrl.toString(),
