@@ -420,7 +420,7 @@ test("representative page ranking prefers structural capability context", async 
 test("Evidence Engine keeps URL-only product hints below confirmed retail evidence", async () => {
   const { buildScanEvidence } = await import("../lib/scan-evidence.ts");
   const hint = buildScanEvidence({url:"https://example.com/product/widget/",html:"<html><body><h1>Widget</h1></body></html>"});
-  assert.equal(hint.version, "1.1");
+  assert.equal(hint.version, "1.2");
   assert.equal(hint.commerce.productPage.value, true);
   assert.equal(hint.commerce.productPage.confidence, "medium");
   assert.ok(hint.commerce.productPage.sources.includes("url"));
