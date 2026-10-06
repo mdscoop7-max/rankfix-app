@@ -3784,6 +3784,42 @@ export async function POST(request: Request) {
       const merchantCheck = seoChecks.find((item)=>item.key==="merchant_product_readiness");
       if (merchantCheck && productEvidenceCount>=4) Object.assign(merchantCheck, check("pass","merchant_product_readiness","seo","Merchant Center productbasis","Een representatieve productpagina bevestigt naam, afbeelding en meerdere machineleesbare product-/aanbodvelden.","Houd productpagina en eventuele Merchant-feed consistent; RankFix bevestigt hiermee geen Merchant Center-goedkeuring.",6,6));
     }
+    // Capability-to-check propagation: representative pages are first-class site
+    // evidence. Specialist checks consume the same Master Evidence instead of staying
+    // UNABLE merely because the scanned page itself did not contain the signal.
+    const promoteCheckFromRepresentativeEvidence = (key:string, proven:boolean, message:string, evidenceUrl:string | null) => {
+      if (!proven) return;
+      const item = [...seoChecks,...geoChecks].find((candidate)=>candidate.key===key);
+      if (!item || item.status==="pass") return;
+      Object.assign(item, check("pass",key,item.category,item.title,message,item.fix,item.maxPoints,item.maxPoints));
+      item.evidence = { url:evidenceUrl || finalUrl.toString(), found:true, details:message };
+    };
+    const firstRepresentativeUrl = (predicate:(item:MultiPageAudit)=>boolean) => auditedMultiPages.find(predicate)?.url || null;
+    promoteCheckFromRepresentativeEvidence(
+      "sector_real_estate_listings",
+      multiPageCapabilities.properties,
+      "Representatieve pagina-evidence bevestigt vastgoed-/woningaanbod op de website.",
+      firstRepresentativeUrl((item)=>/\\b(woning|woningen|property|properties|aanbod|koop|huur)\\b/i.test(item.identityText||""))
+    );
+    promoteCheckFromRepresentativeEvidence(
+      "sector_automotive_inventory",
+      multiPageCapabilities.vehicleSales,
+      "Representatieve pagina-evidence bevestigt voertuig-/occasionaanbod op de website.",
+      firstRepresentativeUrl((item)=>/\\b(occasion|occasions|vehicle inventory|voertuigvoorraad|autovoorraad|cars for sale)\\b/i.test(item.identityText||""))
+    );
+    promoteCheckFromRepresentativeEvidence(
+      "sector_automotive_services",
+      multiPageCapabilities.automotiveService,
+      "Representatieve pagina-evidence bevestigt garage-/werkplaatsdiensten op de website.",
+      firstRepresentativeUrl((item)=>/\\b(werkplaats|garage|banden|tyres?|apk|onderhoud|autoservice|repair)\\b/i.test(item.identityText||""))
+    );
+    promoteCheckFromRepresentativeEvidence(
+      "sector_health_services",
+      multiPageCapabilities.treatment,
+      "Representatieve pagina-evidence bevestigt behandelingen of zorgdiensten op de website.",
+      firstRepresentativeUrl((item)=>/\\b(behandeling|behandelingen|treatment|specialisatie|tandarts|dentist)\\b/i.test(item.identityText||""))
+    );
+
     const securityFormCheck = securityChecks.find((item)=>item.key==="security_forms");
     if (securityFormCheck && forms.length===0 && masterEvidence.capabilities.some((c)=>["appointment","reservation","booking","contact"].includes(c))) {
       Object.assign(securityFormCheck, securityCheck("unable_to_confirm","security_forms","Formuliertransport","Geen HTML-formulier gevonden op de gescande pagina, terwijl een functionele flow is gedetecteerd. Het exacte type flow en de transportbeveiliging moeten met aanvullend bewijs worden bevestigd.","Controleer de daadwerkelijke formulier- of boekingsflow, inclusief HTTPS, server-side validatie en CSRF-bescherming.",0,5));
