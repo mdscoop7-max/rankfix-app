@@ -3585,12 +3585,22 @@ export async function POST(request: Request) {
     }
     // Resolve the final site-level commerce decision once, after current-page,
     // technology and multi-page evidence have all had a chance to contribute.
+    // Commerce can be secondary to a proven service identity. Cart/checkout
+    // navigation or a shop shell alone is not hard retail evidence.
+    const hardCommerceEvidence = masterEvidence.commerce.confirmed || sitewideCommerceEvidence.confirmed;
+    const technologyOnlyCommerce = technologyProfile.isCommerce && !hardCommerceEvidence;
     const finalCommerceDecision = {
-      confirmed: masterEvidence.commerce.confirmed || technologyProfile.isCommerce || sitewideCommerceEvidence.confirmed,
+      confirmed: hardCommerceEvidence || (technologyOnlyCommerce && !primaryNonCommerceIdentity),
       currentPageEvidence: masterEvidence.commerce.confirmed,
       technologyProfile: technologyProfile.isCommerce,
+      technologyOnly: technologyOnlyCommerce,
       multiPageEvidence: sitewideCommerceEvidence.confirmed,
     };
+    if (!finalCommerceDecision.confirmed && primaryNonCommerceIdentity && technologyOnlyCommerce) {
+      technologyProfile.isCommerce = false;
+      technologyProfile.siteType = technologyProfile.siteType === "Webshop" ? "Website" : technologyProfile.siteType;
+      technologyProfile.evidence = [...technologyProfile.evidence, "Commerce-navigatie gevonden, maar onvoldoende hard retailbewijs voor webshopclassificatie."].slice(0,8);
+    }
     // Evidence Engine v2: reconcile primary identity after representative evidence.
     const reconciledIdentitySource = [sectorIdentitySource, multiPageIdentityText].filter(Boolean).join(" ");
     const reconciledSectorCandidates = sectorSignals.map((item) => {
