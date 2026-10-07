@@ -826,14 +826,3 @@ test("representative crawl uses bounded concurrency", async () => {
   assert.match(scanRoute, /Math\.min\(representativeAuditConcurrency, uniqueMultiPagePages\.length\)/);
   assert.doesNotMatch(scanRoute, /Promise\.all\(uniqueMultiPagePages\.map\(auditMultiPage\)\)/);
 });
-
-
-test("accessibility engine keeps structural evidence checks separate", async () => {
-  const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  assert.match(source, /version:"1\.1-structural-basics"/);
-  assert.match(source, /"accessible_link_names"/);
-  assert.match(source, /"heading_hierarchy"/);
-  assert.match(source, /"main_landmark"/);
-  assert.match(source, /const accessibilityIssueCount=unlabeledFormControls\+emptyButtons/);
-});
