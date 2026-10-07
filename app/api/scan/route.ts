@@ -1899,7 +1899,7 @@ export async function POST(request: Request) {
     const accessibilityPointsTotal = accessibilityApplicable.reduce((sum,item)=>sum+item.points,0);
     const accessibilityScore = accessibilityMax ? Math.round((accessibilityPointsTotal/accessibilityMax)*100) : 0;
     const accessibilityEngine = {
-      version:"1.0-static-basics",
+      version:"1.1-structural-basics",
       score:accessibilityScore,
       grade:grade(accessibilityScore),
       coverage:weightedCoverage(accessibilityChecks),
@@ -2094,6 +2094,25 @@ export async function POST(request: Request) {
       const attrs=(match[1]||"").replace(/\s+/g," ").trim().slice(0,220);
       return `<button${attrs ? " "+attrs : ""}>…</button>`;
     });
+    const anchorTags=[...html.matchAll(/<a\\b([^>]*)>([\\s\\S]*?)<\\/a>/gi)];
+    const unnamedLinkMatches=anchorTags.filter((match)=>{
+      const attrs=match[1]||"";
+      const body=match[2]||"";
+      const href=attrs.match(/\\bhref\\s*=\\s*["']([^"']+)["']/i)?.[1]||"";
+      if(!href || href==="#" || /^javascript:/i.test(href)) return false;
+      const hasText=Boolean(stripHtml(body).trim());
+      const hasAccessibleAttribute=/\\baria-label(?:ledby)?\\s*=\\s*["'][^"']+["']/i.test(attrs)||/\\btitle\\s*=\\s*["'][^"']+["']/i.test(attrs);
+      const hasNamedImage=/<img\\b[^>]*\\balt\\s*=\\s*["'][^"']+["'][^>]*>/i.test(body);
+      const hasInlineSvgName=/<svg\\b[^>]*(?:\\baria-label\\s*=\\s*["'][^"']+["']|\\brole\\s*=\\s*["']img["'])[^>]*>[\\s\\S]*?<title\\b[^>]*>\\s*[^<]+\\s*<\\/title>/i.test(body);
+      return !hasText&&!hasAccessibleAttribute&&!hasNamedImage&&!hasInlineSvgName;
+    });
+    const unnamedLinks=unnamedLinkMatches.length;
+    const headingLevelSkips=headings.reduce((count,heading,index)=>{
+      if(index===0) return count;
+      const previous=headings[index-1];
+      return count+(heading.level>previous.level+1?1:0);
+    },0);
+    const hasMainLandmark=/<main\\b/i.test(html)||/\\brole\\s*=\\s*["']main["']/i.test(html);
     // Missing image alt is already scored by IMAGE_ALT_MISSING. Keep the accessibility
     // aggregate independent so one defect cannot lower the audit twice.
     const accessibilityIssueCount=unlabeledFormControls+emptyButtons;
@@ -2766,7 +2785,18 @@ export async function POST(request: Request) {
         ? check("unable_to_confirm","viewport_zoom_blocked","accessibility","Browserzoom","Zonder viewport meta tag kan RankFix de zoominstelling niet afzonderlijk beoordelen.","Voeg eerst een geldige responsive viewport toe en controleer daarna zoomgedrag.",0,3)
         : viewportBlocksZoom
           ? check("warning","viewport_zoom_blocked","accessibility","Browserzoom",`De viewport beperkt browserzoom: "${viewportContent}".`,"Laat gebruikers zoomen; vermijd user-scalable=no en onnodig beperkende maximum-scale.",1,3)
-          : check("pass","viewport_zoom_blocked","accessibility","Browserzoom","Geen statische viewport-instelling gevonden die browserzoom blokkeert.","Test zoom en schaalbaarheid ook interactief op mobiele apparaten.",3,3)
+          : check("pass","viewport_zoom_blocked","accessibility","Browserzoom","Geen statische viewport-instelling gevonden die browserzoom blokkeert.","Test zoom en schaalbaarheid ook interactief op mobiele apparaten.",3,3),
+      unnamedLinks>0
+        ? check("warning","accessible_link_names","accessibility","Linknamen",unnamedLinks+" link(s) met een echte bestemming hebben in de opgehaalde HTML geen aantoonbare toegankelijke naam.","Geef elke interactieve link zichtbare tekst of een betrouwbare aria-label/aria-labelledby. Controleer vooral icoonlinks.",Math.max(1,4-Math.min(3,unnamedLinks)),4)
+        : check("pass","accessible_link_names","accessibility","Linknamen","Geen naamloze links met een echte bestemming gevonden in de opgehaalde HTML.","Controleer dynamisch toegevoegde links ook met toetsenbord en screenreader.",4,4),
+      headingLevelSkips>0
+        ? check("warning","heading_hierarchy","accessibility","Koppenstructuur",headingLevelSkips+" sprong(en) in kopniveau gevonden, bijvoorbeeld een overgang die meer dan één niveau overslaat.","Gebruik kopniveaus in een logische hiërarchie en kies niveaus op structuur, niet op visuele grootte.",2,4)
+        : headings.length
+          ? check("pass","heading_hierarchy","accessibility","Koppenstructuur","Geen sprongen van meer dan één niveau gevonden in de aantoonbare koppenstructuur.","Controleer ook of kopteksten inhoudelijk de pagina-opbouw beschrijven.",4,4)
+          : check("unable_to_confirm","heading_hierarchy","accessibility","Koppenstructuur","Geen betrouwbare koppenstructuur gevonden om de hiërarchie te beoordelen.","Controleer of de inhoud semantische h1-h6-koppen gebruikt; dynamische koppen vereisen gerenderde evidence.",0,4),
+      hasMainLandmark
+        ? check("pass","main_landmark","accessibility","Hoofdinhoud-landmark","Een main-element of role=main is aantoonbaar aanwezig.","Behoud één duidelijke hoofdinhoud-landmark per pagina.",3,3)
+        : check("warning","main_landmark","accessibility","Hoofdinhoud-landmark","Geen main-element of role=main gevonden in de opgehaalde HTML.","Markeer de primaire pagina-inhoud met <main> of een equivalente main-landmark zodat screenreadergebruikers sneller kunnen navigeren.",1,3)
     );
 
     seoChecks.push(hasPlaceholders
