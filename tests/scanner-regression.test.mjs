@@ -819,7 +819,9 @@ test("audit shows transparent representative page coverage", async () => {
 });
 
 
-test("representative crawl uses bounded concurrency", () => {
+test("representative crawl uses bounded concurrency", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const scanRoute = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   assert.match(scanRoute, /const representativeAuditConcurrency = 4;/);
   assert.match(scanRoute, /Math\.min\(representativeAuditConcurrency, uniqueMultiPagePages\.length\)/);
   assert.doesNotMatch(scanRoute, /Promise\.all\(uniqueMultiPagePages\.map\(auditMultiPage\)\)/);
