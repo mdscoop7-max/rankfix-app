@@ -3754,7 +3754,24 @@ export async function POST(request: Request) {
         return { ...page, status:"unable_to_confirm", httpStatus:null, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"fetch",status:"UNABLE_TO_CONFIRM",details:`Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ${reason}).`}] };
       }
     };
-    const multiPageAudits = await Promise.all(uniqueMultiPagePages.map(auditMultiPage));
+    // Keep multi-page scans predictable on small production instances. Up to 20
+    // representative pages are selected, but only four network/browser audits run
+    // concurrently. This prevents a JavaScript-heavy site from spawning 20
+    // simultaneous Puppeteer recoveries and exhausting memory/CPU.
+    const representativeAuditConcurrency = 4;
+    const multiPageAudits: MultiPageAudit[] = new Array(uniqueMultiPagePages.length);
+    let nextRepresentativePageIndex = 0;
+    const representativeWorkers = Array.from(
+      { length: Math.min(representativeAuditConcurrency, uniqueMultiPagePages.length) },
+      async () => {
+        while (true) {
+          const index = nextRepresentativePageIndex++;
+          if (index >= uniqueMultiPagePages.length) return;
+          multiPageAudits[index] = await auditMultiPage(uniqueMultiPagePages[index]);
+        }
+      },
+    );
+    await Promise.all(representativeWorkers);
     // Keep the scanned page, then prefer structurally different DOM templates.
     // This second-stage dedupe is universal: no sector or path vocabulary is used.
     const auditedRawPages = multiPageAudits.filter((item)=>item.status==="audited");
