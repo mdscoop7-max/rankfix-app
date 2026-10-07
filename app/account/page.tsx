@@ -44,7 +44,7 @@ export default function Account() {
     setBusy(true);
     setError("");
 
-    if (mode==="register" && !(password.length>=8 && /[A-Za-z]/.test(password) && /\\d/.test(password) && /[^A-Za-z0-9]/.test(password))) {
+    if (mode==="register" && !(password.length>=8 && /[A-Za-z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password))) {
       setError(language==="nl"?"Gebruik minimaal 8 tekens met letters, 1 cijfer en 1 speciaal teken.":language==="de"?"Mindestens 8 Zeichen mit Buchstaben, 1 Zahl und 1 Sonderzeichen verwenden.":language==="fr"?"Utilisez au moins 8 caractères avec des lettres, 1 chiffre et 1 caractère spécial.":language==="it"?"Usa almeno 8 caratteri con lettere, 1 numero e 1 carattere speciale.":language==="es"?"Usa al menos 8 caracteres con letras, 1 número y 1 carácter especial.":"Use at least 8 characters with letters, 1 number and 1 special character.");
       setBusy(false); return;
     }
