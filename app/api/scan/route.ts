@@ -2094,7 +2094,7 @@ export async function POST(request: Request) {
       const attrs=(match[1]||"").replace(/\s+/g," ").trim().slice(0,220);
       return `<button${attrs ? " "+attrs : ""}>…</button>`;
     });
-    const anchorTags=[...html.matchAll(/<a\\b([^>]*)>([\\s\\S]*?)<\\/a>/gi)];
+    const anchorTags=[...html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)];
     const unnamedLinkMatches=anchorTags.filter((match)=>{
       const attrs=match[1]||"";
       const body=match[2]||"";
