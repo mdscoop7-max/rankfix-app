@@ -817,3 +817,10 @@ test("audit shows transparent representative page coverage", async () => {
   assert.match(audit,/counts\?\.unableToConfirm/);
   assert.match(audit,/discoveredInternalUrls/);
 });
+
+
+test("representative crawl uses bounded concurrency", () => {
+  assert.match(scanRoute, /const representativeAuditConcurrency = 4;/);
+  assert.match(scanRoute, /Math\.min\(representativeAuditConcurrency, uniqueMultiPagePages\.length\)/);
+  assert.doesNotMatch(scanRoute, /Promise\.all\(uniqueMultiPagePages\.map\(auditMultiPage\)\)/);
+});
