@@ -25,14 +25,25 @@ type EvidenceCapability = {
   state: EvidenceCapabilityState;
   confidence: number;
   proof: string[];
-  reason?: "weak_evidence" | "insufficient_coverage";
+  reason?: "weak_evidence" | "insufficient_coverage" | "explicit_negative_evidence";
 };
 
-const buildCapabilityState = (id:string, proof:string[], coverage:number, confidence=0.95):EvidenceCapability => {
+const buildCapabilityState = (
+  id:string,
+  proof:string[],
+  coverage:number,
+  confidence=0.95,
+  options?:{ weakProof?:string[]; explicitNegativeProof?:string[] }
+):EvidenceCapability => {
   const uniqueProof = [...new Set(proof.filter(Boolean))];
+  const weakProof = [...new Set((options?.weakProof||[]).filter(Boolean))];
+  const negativeProof = [...new Set((options?.explicitNegativeProof||[]).filter(Boolean))];
   if (uniqueProof.length) return {id,state:"detected",confidence,proof:uniqueProof};
-  // Absence is deliberately not inferred from one page. Until representative
-  // coverage is sufficient, the capability remains unknown rather than false.
+  // Weak hints are surfaced as likely, never silently promoted to detected.
+  if (weakProof.length) return {id,state:"likely",confidence:Math.min(confidence,0.7),proof:weakProof,reason:"weak_evidence"};
+  // "Absent" requires explicit negative evidence plus representative coverage.
+  // Merely not finding a signal can never prove absence.
+  if (coverage >= 3 && negativeProof.length) return {id,state:"absent_proven",confidence:0.9,proof:negativeProof,reason:"explicit_negative_evidence"};
   if (coverage < 3) return {id,state:"unknown",confidence:0,proof:[],reason:"insufficient_coverage"};
   return {id,state:"unknown",confidence:0,proof:[],reason:"weak_evidence"};
 };
@@ -1529,17 +1540,21 @@ export async function POST(request: Request) {
     const partnerSources = [...new Set(evidencePartners.flatMap(partner=>partner.sources))];
     const confirmedPartners = evidencePartners.filter(partner=>partner.status==="confirmed").length;
 
-    const evidenceCommerceStrength = [
-      scanEvidence.commerce.cart.value,
-      scanEvidence.commerce.addToCart.value,
-      scanEvidence.commerce.checkout.value,
-      scanEvidence.commerce.products.value,
-      scanEvidence.commerce.productPage.value,
-      scanEvidence.commerce.productLinks.value >= 2,
-      scanEvidence.commerce.prices.value.count >= 2,
-      scanEvidence.schema.product,
-    ].filter(Boolean).length;
-    const evidenceCommerceConfirmed = evidenceCommerceStrength >= 3;
+    // Commerce identity is confidence-aware. Medium URL/link hints may support a
+    // decision, but they cannot add the same weight as confirmed actions/schema.
+    const commerceSignals = [
+      { active: scanEvidence.commerce.cart.value, confidence: scanEvidence.commerce.cart.confidence },
+      { active: scanEvidence.commerce.addToCart.value, confidence: scanEvidence.commerce.addToCart.confidence },
+      { active: scanEvidence.commerce.checkout.value, confidence: scanEvidence.commerce.checkout.confidence },
+      { active: scanEvidence.commerce.products.value, confidence: scanEvidence.commerce.products.confidence },
+      { active: scanEvidence.commerce.productPage.value, confidence: scanEvidence.commerce.productPage.confidence },
+      { active: scanEvidence.commerce.productLinks.value >= 2, confidence: scanEvidence.commerce.productLinks.confidence },
+      { active: scanEvidence.commerce.prices.value.count >= 2, confidence: scanEvidence.commerce.prices.confidence },
+      { active: scanEvidence.schema.product, confidence: "high" as const },
+    ].filter(signal=>signal.active);
+    const evidenceCommerceStrength = commerceSignals.reduce((sum,signal)=>sum+(signal.confidence==="high"?1:signal.confidence==="medium"?0.5:0),0);
+    const confirmedCommerceSignals = commerceSignals.filter(signal=>signal.confidence==="high").length;
+    const evidenceCommerceConfirmed = confirmedCommerceSignals >= 2 && evidenceCommerceStrength >= 3;
     const catalogTop = evidenceSectorCandidates[0];
     const catalogRunnerUp = evidenceSectorCandidates[1];
     const catalogSectorStrong = Boolean(catalogTop && catalogTop.score >= 4 && (!catalogRunnerUp || catalogTop.score >= catalogRunnerUp.score + 2));
@@ -1564,8 +1579,12 @@ export async function POST(request: Request) {
     const mappedCatalogSector = catalogTop ? catalogLegacyMap[catalogTop.key] : undefined;
     const lodgingDetail = scanEvidence.sectorDetails.lodging;
     const shortStayIdentity = Boolean(
-      lodgingDetail.bedBreakfast.value || lodgingDetail.holidayRental.value || lodgingDetail.holidayPark.value || lodgingDetail.camping.value ||
-      (lodgingDetail.shortStay.value && scanEvidence.appointments.booking.value)
+      (lodgingDetail.bedBreakfast.value && lodgingDetail.bedBreakfast.confidence !== "low") ||
+      (lodgingDetail.holidayRental.value && lodgingDetail.holidayRental.confidence !== "low") ||
+      (lodgingDetail.holidayPark.value && lodgingDetail.holidayPark.confidence !== "low") ||
+      (lodgingDetail.camping.value && lodgingDetail.camping.confidence !== "low") ||
+      (lodgingDetail.shortStay.value && lodgingDetail.shortStay.confidence !== "low" &&
+        scanEvidence.appointments.booking.value && scanEvidence.appointments.booking.confidence !== "low")
     );
     const lodgingSubtype = lodgingDetail.bedBreakfast.value
       ? {key:"bed_breakfast",label:"B&B / guesthouse"}
@@ -1578,7 +1597,7 @@ export async function POST(request: Request) {
             : {key:"hotel",label:"Hotel / accommodatie"};
     // Short-stay accommodation must outrank generic words such as "te huur".
     // Long-term housing remains real estate; guest/night/date/booking evidence is hospitality.
-    const realEstateIdentity = Boolean(!shortStayIdentity && scanEvidence.inventory.properties.value && (/\/(?:woningaanbod|residential-listings|properties?|real-estate)(?:\/|$)/i.test(finalUrl.pathname) || /\b(?:makelaar|woningaanbod|te koop|te huur|for sale|for rent|real estate)\b/i.test(sectorIdentitySource)));
+    const realEstateIdentity = Boolean(!shortStayIdentity && scanEvidence.inventory.properties.value && scanEvidence.inventory.properties.confidence !== "low" && (/\/(?:woningaanbod|residential-listings|properties?|real-estate)(?:\/|$)/i.test(finalUrl.pathname) || /\b(?:makelaar|woningaanbod|te koop|te huur|for sale|for rent|real estate)\b/i.test(sectorIdentitySource)));
     const automotiveServiceIdentity = Boolean(/\b(?:apk|autobanden|banden|uitlijnen|werkplaats|autoservice|auto-onderhoud|car repair|tyres?)\b/i.test(sectorIdentitySource) || schemaSet.has("autorepair"));
     const explicitMedicalIdentity = /\b(?:tandarts|dentist|kliniek|clinic|medical|medicalclinic|fysiotherap|mondzorg|patient|patiënt|physician|huisarts|doctor)\b/i.test(sectorIdentitySource) || schemaSet.has("dentist") || schemaSet.has("medicalclinic");
     const beautyServiceIdentity = /\b(?:beauty salon|beautysalon|schoonheidssalon|day spa|dayspa|city spa|wellness|manicure|pedicure|nail salon|nagelsalon|facial|gezichtsbehandeling)\b/i.test(sectorIdentitySource) || schemaSet.has("beautysalon") || schemaSet.has("dayspa");
@@ -1604,7 +1623,7 @@ export async function POST(request: Request) {
           key:"ecommerce",
           label:"Webshop / e-commerce",
           confidence:"high" as const,
-          confidenceScore:Math.min(99, 86 + evidenceCommerceStrength * 2),
+          confidenceScore:Math.min(99, Math.round(86 + evidenceCommerceStrength * 2)),
           evidence:[`Evidence Layer: ${evidenceCommerceStrength} onafhankelijke commerce-signalen`, ...(catalogTop?.key==="ecommerce" ? catalogTop.evidence : [])].slice(0,6),
           applicableModules:["core_seo","geo","technical","ecommerce","product","pricing_currency","merchant","checkout",...(euConsumerApplicable?["eu_consumer"]:[])],
         }
@@ -1623,24 +1642,24 @@ export async function POST(request: Request) {
         : {...legacyProfile,key:legacyProfile.sector};
 
     const evidenceCapabilities = [
-      scanEvidence.commerce.products.value && "products",
-      scanEvidence.commerce.prices.value.count > 0 && "pricing",
-      scanEvidence.commerce.cart.value && "cart",
-      scanEvidence.commerce.addToCart.value && "add_to_cart",
-      scanEvidence.commerce.checkout.value && "checkout",
-      scanEvidence.appointments.appointment.value && "appointment",
-      scanEvidence.appointments.reservation.value && "reservation",
-      scanEvidence.appointments.booking.value && "booking",
-      scanEvidence.appointments.quoteRequest.value && "quote_request",
-      scanEvidence.inventory.vehicles.value && "vehicles",
-      scanEvidence.inventory.properties.value && "properties",
+      (scanEvidence.commerce.products.value && scanEvidence.commerce.products.confidence === "high") && "products",
+      (scanEvidence.commerce.prices.value.count > 0 && scanEvidence.commerce.prices.confidence === "high") && "pricing",
+      (scanEvidence.commerce.cart.value && scanEvidence.commerce.cart.confidence === "high") && "cart",
+      (scanEvidence.commerce.addToCart.value && scanEvidence.commerce.addToCart.confidence === "high") && "add_to_cart",
+      (scanEvidence.commerce.checkout.value && scanEvidence.commerce.checkout.confidence === "high") && "checkout",
+      (scanEvidence.appointments.appointment.value && scanEvidence.appointments.appointment.confidence !== "low") && "appointment",
+      (scanEvidence.appointments.reservation.value && scanEvidence.appointments.reservation.confidence !== "low") && "reservation",
+      (scanEvidence.appointments.booking.value && scanEvidence.appointments.booking.confidence !== "low") && "booking",
+      (scanEvidence.appointments.quoteRequest.value && scanEvidence.appointments.quoteRequest.confidence !== "low") && "quote_request",
+      (scanEvidence.inventory.vehicles.value && scanEvidence.inventory.vehicles.confidence !== "low") && "vehicles",
+      (scanEvidence.inventory.properties.value && scanEvidence.inventory.properties.confidence !== "low") && "properties",
       (scanEvidence.inventory.jobs.value && scanEvidence.inventory.jobs.confidence !== "low") && "jobs",
-      scanEvidence.inventory.rooms.value && "rooms",
-      scanEvidence.inventory.menu.value && "menu",
-      scanEvidence.organization.contact.value && "contact",
-      scanEvidence.organization.address.value && "local",
-      scanEvidence.organization.openingHours.value && "opening_hours",
-      scanEvidence.organization.reviews.value && "reviews",
+      (scanEvidence.inventory.rooms.value && scanEvidence.inventory.rooms.confidence !== "low") && "rooms",
+      (scanEvidence.inventory.menu.value && scanEvidence.inventory.menu.confidence !== "low") && "menu",
+      (scanEvidence.organization.contact.value && scanEvidence.organization.contact.confidence !== "low") && "contact",
+      (scanEvidence.organization.address.value && scanEvidence.organization.address.confidence !== "low") && "local",
+      (scanEvidence.organization.openingHours.value && scanEvidence.organization.openingHours.confidence !== "low") && "opening_hours",
+      (scanEvidence.organization.reviews.value && scanEvidence.organization.reviews.confidence !== "low") && "reviews",
     ].filter((value): value is string => Boolean(value));
     const capabilityModules = modulesForCapabilities([
       ...evidenceCapabilities,
@@ -1900,7 +1919,7 @@ export async function POST(request: Request) {
       return item;
     };
     if (sectorProfile.sector === "real_estate") {
-      const listingSignal = scanEvidence.sectorDetails.realEstate.listing.value || /\\b(te koop|te huur|koopwoning|huurwoning|woningaanbod|objecten|properties|for sale|for rent)\\b/i.test(text) || schemaSet.has("realestatelisting");
+      const listingSignal = (scanEvidence.sectorDetails.realEstate.listing.value && scanEvidence.sectorDetails.realEstate.listing.confidence !== "low") || /\\b(te koop|te huur|koopwoning|huurwoning|woningaanbod|objecten|properties|for sale|for rent)\\b/i.test(text) || schemaSet.has("realestatelisting");
       const leadSignal = hasContactChannelSignal || /\\b(bezichtiging|waardebepaling|verkoopadvies|plan een afspraak|contact opnemen)\\b/i.test(text);
       const areaSignal = /\\b(werkgebied|regio|buurt|wijk|plaats|gemeente|service area|area served)\\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.areaServed));
       seoChecks.push(
@@ -3410,8 +3429,8 @@ export async function POST(request: Request) {
     }
     // sectorProfile was determined before scoring so applicability and scoring stay aligned.
     const rawRenderingNotes: Record<string,string> = {
-      nl:"RankFix beoordeelde de HTTP HTML-response; client-side JavaScript is in deze scan niet uitgevoerd.",
-      en:"RankFix evaluated the HTTP HTML response; client-side JavaScript was not executed in this scan.",
+      nl: javascriptCandidate ? "JavaScript-framework gedetecteerd, maar browser-rendering kon niet betrouwbaar worden voltooid. Dynamische formulieren, metadata en interactieve onderdelen kunnen daarom ontbreken; deze controles blijven Niet te bevestigen." : "RankFix beoordeelde de HTTP HTML-response; client-side JavaScript was voor deze pagina niet nodig of werd niet uitgevoerd.",
+      en: javascriptCandidate ? "A JavaScript framework was detected, but browser rendering could not be completed reliably. Dynamic forms, metadata and interactive elements may therefore be missing; affected checks remain Unable to confirm." : "RankFix evaluated the HTTP HTML response; client-side JavaScript was not required for this page or was not executed.",
       de:"RankFix hat die HTTP-HTML-Antwort ausgewertet; clientseitiges JavaScript wurde in diesem Scan nicht ausgeführt.",
       fr:"RankFix a évalué la réponse HTML HTTP ; le JavaScript côté client n’a pas été exécuté pendant cette analyse.",
       it:"RankFix ha valutato la risposta HTML HTTP; il JavaScript lato client non è stato eseguito durante questa scansione.",
@@ -3430,14 +3449,16 @@ export async function POST(request: Request) {
       javascriptExecuted,
       note: javascriptExecuted ? (jsRenderingNotes[scanLanguage] || jsRenderingNotes.en) : (rawRenderingNotes[scanLanguage] || rawRenderingNotes.en),
       elapsedMs: renderElapsedMs,
-      fallbackReason: javascriptCandidate && !javascriptExecuted ? renderFallbackReason : null,
+      fallbackReason: javascriptCandidate && !javascriptExecuted ? (renderFallbackReason || "JAVASCRIPT_RENDER_UNAVAILABLE") : null,
+      warning: javascriptCandidate && !javascriptExecuted,
+      evidenceSource: javascriptExecuted ? "rendered_html" as const : "raw_html" as const,
     };
 
     // Multi-page evidence audit: select a bounded same-host sample and fetch it
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
     type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; identityText?: string; schemaTypes?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageAudit = MultiPageCandidate & { status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; schemaTypes?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -3509,6 +3530,10 @@ export async function POST(request: Request) {
     };
     const rankedMultiPage = discoveredMultiPage.filter((item) => multiPageRelevance(item) > -100).sort((a,b) => multiPageRelevance(b) - multiPageRelevance(a));
     const pickMultiPage = (type: MultiPageCandidate["type"], limit: number) => rankedMultiPage.filter((item) => item.type === type).slice(0, limit);
+    // Scan Motor 3.0 phase 1: broaden evidence coverage without turning the scan
+    // into an unbounded crawler. Twenty representative templates is enough to cover
+    // the important site capabilities while keeping synchronous scans predictable.
+    const representativePageLimit = 20;
     // Keep representative sampling inside the locale/subdirectory the customer
     // actually scanned. Falling back to origin "/" can switch country/language
     // (for example /nl/nl/ -> global root) and contaminate sector/content evidence.
@@ -3519,13 +3544,13 @@ export async function POST(request: Request) {
     const multiPagePages: MultiPageCandidate[] = (masterEvidence.commerce.confirmed || technologyProfile.isCommerce || hasEcommerceSignal)
       ? [
           { url: representativeHomeUrl, type: "homepage", evidence: [localePathMatch ? "locale root" : "site root"] },
-          ...pickMultiPage("category", 1), ...pickMultiPage("product", 1),
-          ...pickMultiPage("form", 1), ...pickMultiPage("legal", 1), ...pickMultiPage("support", 1),
-          ...(pickMultiPage("category", 1).length && pickMultiPage("product", 1).length ? [] : [...pickMultiPage("service", 1), ...pickMultiPage("other", 1)]),
+          ...pickMultiPage("category", 4), ...pickMultiPage("product", 4),
+          ...pickMultiPage("form", 3), ...pickMultiPage("legal", 2), ...pickMultiPage("support", 2),
+          ...pickMultiPage("service", 3), ...pickMultiPage("listing", 2), ...pickMultiPage("other", 2),
         ]
       : [
           { url: representativeHomeUrl, type: "homepage", evidence: [localePathMatch ? "locale root" : "site root"] },
-          ...pickMultiPage("form", 1), ...pickMultiPage("service", 1), ...pickMultiPage("listing", 1), ...pickMultiPage("legal", 1), ...pickMultiPage("support", 1), ...pickMultiPage("other", 1), ...pickMultiPage("category", 1), ...pickMultiPage("product", 1),
+          ...pickMultiPage("form", 4), ...pickMultiPage("service", 5), ...pickMultiPage("listing", 4), ...pickMultiPage("legal", 2), ...pickMultiPage("support", 2), ...pickMultiPage("category", 2), ...pickMultiPage("product", 2), ...pickMultiPage("other", 2),
         ];
     // Always include the exact page the customer scanned as the first sample.
     // This prevents a product scan from being represented only by a sibling product
@@ -3558,7 +3583,7 @@ export async function POST(request: Request) {
       if (seenTemplates.has(key)) continue;
       seenTemplates.add(key);
       uniqueMultiPagePages.push(item);
-      if (uniqueMultiPagePages.length >= 4) break;
+      if (uniqueMultiPagePages.length >= representativePageLimit) break;
     }
     const auditMultiPage = async (page: MultiPageCandidate): Promise<MultiPageAudit> => {
       try {
@@ -3572,18 +3597,39 @@ export async function POST(request: Request) {
         if (!sameRegistrableSite) throw new Error("CROSS_HOST_REDIRECT");
         const contentType = r.headers.get("content-type") || "";
         let pageHtml: string | null = null;
+        let representativeEvidenceSource: "raw_html" | "rendered_html" = "raw_html";
         // Motor v2.1: representative pages get the same single bounded recovery
         // opportunity as the primary page. A failed render remains UNABLE, never PASS.
         if (!r.ok && (r.status === 202 || r.status === 403 || r.status === 405)) {
           try {
             const recoveredPage = await renderPublicPage(finalCandidate.toString(), 10000);
-            if (recoveredPage.html && recoveredPage.html.length >= 20) pageHtml = recoveredPage.html;
+            if (recoveredPage.html && recoveredPage.html.length >= 20) { pageHtml = recoveredPage.html; representativeEvidenceSource = "rendered_html"; }
           } catch {}
         }
         if (!pageHtml && (!r.ok || (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")))) {
           return { ...page, status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"http",status:"UNABLE_TO_CONFIRM",details:`HTTP ${r.status}; pagina kon niet betrouwbaar als HTML worden beoordeeld na begrensde recovery.`}] };
         }
         pageHtml = pageHtml || await readResponseTextLimited(r, 2_000_000);
+        // Representative pages need the same JS evidence opportunity as the primary
+        // page. Otherwise a Nuxt/Next contact or booking page can look form-less in
+        // raw HTML and incorrectly keep site-level capabilities unconfirmed.
+        const representativeRawHtml = pageHtml;
+        const representativeVisibleWords = stripHtml(representativeRawHtml).split(/\s+/).filter(Boolean).length;
+        const representativeScriptCount = (representativeRawHtml.match(/<script\b/gi) || []).length;
+        const representativeJsFramework = /(?:__NEXT_DATA__|\/_next\/|__NUXT__|\/_nuxt\/|data-reactroot|data-react-helmet|shopify|webpackJsonp|__APOLLO_STATE__)/i.test(representativeRawHtml);
+        const representativeThinShell = representativeVisibleWords < 80 && representativeScriptCount >= 4;
+        if (representativeJsFramework || representativeThinShell) {
+          try {
+            const renderedPage = await renderPublicPage(finalCandidate.toString(), 10000);
+            if (renderedPage.html && renderedPage.html.length >= 20) {
+              pageHtml = renderedPage.html;
+              representativeEvidenceSource = "rendered_html";
+              page.evidence.push("javascript-rendered representative page");
+            }
+          } catch {
+            page.evidence.push("javascript rendering unavailable; raw HTML retained");
+          }
+        }
         const pageQualityTitle = firstMatch(pageHtml, /<title[^>]*>([\s\S]*?)<\/title>/i);
         const pageDescriptionTag = pageHtml.match(/<meta\b[^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] ||
           pageHtml.match(/<meta\b[^>]*content\s*=\s*["'][^"']*["'][^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] || "";
@@ -3691,7 +3737,7 @@ export async function POST(request: Request) {
           return 0.5;
         };
         const earned = confirmed.reduce((sum,item)=>sum+evidenceCredit(item),0);
-        return { ...page, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, score:confirmed.length?Math.round((earned/confirmed.length)*100):null, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), schemaTypes:[...new Set(pageSchemaTypes)], formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, evidenceChecks };
+        return { ...page, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:confirmed.length?Math.round((earned/confirmed.length)*100):null, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), schemaTypes:[...new Set(pageSchemaTypes)], formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, evidenceChecks };
       } catch (multiPageError) {
         const rawReason = multiPageError instanceof Error ? multiPageError.message : "FETCH_FAILED";
         const reason = /timeout|abort/i.test(rawReason)
@@ -3708,7 +3754,24 @@ export async function POST(request: Request) {
         return { ...page, status:"unable_to_confirm", httpStatus:null, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"fetch",status:"UNABLE_TO_CONFIRM",details:`Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ${reason}).`}] };
       }
     };
-    const multiPageAudits = await Promise.all(uniqueMultiPagePages.map(auditMultiPage));
+    // Keep multi-page scans predictable on small production instances. Up to 20
+    // representative pages are selected, but only four network/browser audits run
+    // concurrently. This prevents a JavaScript-heavy site from spawning 20
+    // simultaneous Puppeteer recoveries and exhausting memory/CPU.
+    const representativeAuditConcurrency = 4;
+    const multiPageAudits: MultiPageAudit[] = new Array(uniqueMultiPagePages.length);
+    let nextRepresentativePageIndex = 0;
+    const representativeWorkers = Array.from(
+      { length: Math.min(representativeAuditConcurrency, uniqueMultiPagePages.length) },
+      async () => {
+        while (true) {
+          const index = nextRepresentativePageIndex++;
+          if (index >= uniqueMultiPagePages.length) return;
+          multiPageAudits[index] = await auditMultiPage(uniqueMultiPagePages[index]);
+        }
+      },
+    );
+    await Promise.all(representativeWorkers);
     // Keep the scanned page, then prefer structurally different DOM templates.
     // This second-stage dedupe is universal: no sector or path vocabulary is used.
     const auditedRawPages = multiPageAudits.filter((item)=>item.status==="audited");
@@ -3769,7 +3832,16 @@ export async function POST(request: Request) {
       serves_local_customers: masterEvidence.capabilities.includes("local") ? [finalUrl.toString()] : [],
     };
     const capabilityCoverage = auditedMultiPages.length;
-    const capabilityStates: EvidenceCapability[] = Object.entries(capabilityProofs).map(([id,proof])=>buildCapabilityState(id,proof,capabilityCoverage));
+    const weakCapabilityHints: Record<string,string[]> = {
+      sells_products_online: masterEvidence.capabilities.includes("products") && !capabilityProofs.sells_products_online.length ? ["Product-/catalogussignaal gevonden zonder bevestigde retailketen"] : [],
+      lists_inventory: (masterEvidence.capabilities.includes("properties") || masterEvidence.capabilities.includes("vehicles")) && !capabilityProofs.lists_inventory.length ? ["Inventory-signaal gevonden zonder representatieve listingpagina"] : [],
+      offers_bookable_services: (masterEvidence.capabilities.includes("booking") || masterEvidence.capabilities.includes("appointment") || masterEvidence.capabilities.includes("reservation")) && !capabilityProofs.offers_bookable_services.length ? ["Boekings-/afspraaksignaal gevonden zonder representatief boekingsformulier"] : [],
+      collects_leads: (masterEvidence.capabilities.includes("contact") || masterEvidence.capabilities.includes("quote_request")) && !capabilityProofs.collects_leads.length ? ["Contact-/offertesignaal gevonden zonder representatief leadformulier"] : [],
+      serves_local_customers: masterEvidence.capabilities.includes("local") && !capabilityProofs.serves_local_customers.length ? ["Lokaal signaal gevonden zonder voldoende onafhankelijke lokale evidence"] : [],
+    };
+    const capabilityStates: EvidenceCapability[] = Object.entries(capabilityProofs).map(([id,proof])=>buildCapabilityState(
+      id, proof, capabilityCoverage, 0.95, {weakProof:weakCapabilityHints[id]||[]}
+    ));
     (masterEvidence as typeof masterEvidence & { capabilityStates?: EvidenceCapability[] }).capabilityStates = capabilityStates;
 
     const sitewideCommerceEvidence = {
@@ -3821,10 +3893,20 @@ export async function POST(request: Request) {
     // Commerce can be secondary to a proven service identity. Cart/checkout
     // navigation or a shop shell alone is not hard retail evidence.
     const representativeRetailProduct = auditedMultiPages.some((item)=>item.type==="product" && Boolean(item.commerceEvidence?.product));
+    // Hard commerce requires confirmed evidence. A product-looking URL is only
+    // a medium-confidence hint and must never activate retail modules by itself.
+    const confirmedCurrentProduct = scanEvidence.commerce.productPage.value &&
+      scanEvidence.commerce.productPage.confidence === "high";
+    const confirmedAddToCart = scanEvidence.commerce.addToCart.value &&
+      scanEvidence.commerce.addToCart.confidence === "high";
+    const corroboratedProductAndPrice = scanEvidence.commerce.products.value &&
+      scanEvidence.commerce.products.confidence === "high" &&
+      scanEvidence.commerce.prices.value.count > 0 &&
+      scanEvidence.commerce.prices.confidence !== "low";
     const hardCommerceEvidence = sitewideCommerceEvidence.confirmed || representativeRetailProduct || Boolean(
-      scanEvidence.commerce.productPage.value ||
-      scanEvidence.commerce.addToCart.value ||
-      (scanEvidence.commerce.products.value && scanEvidence.commerce.prices.value.count > 0)
+      confirmedCurrentProduct ||
+      confirmedAddToCart ||
+      corroboratedProductAndPrice
     );
     const technologyOnlyCommerce = technologyProfile.isCommerce && !hardCommerceEvidence;
     const secondaryCommerceOnly = Boolean(primaryNonCommerceIdentity && !hardCommerceEvidence);
@@ -4207,7 +4289,7 @@ export async function POST(request: Request) {
     });
 
     const multiPage = {
-      enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:4,
+      enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:representativePageLimit,
       discoveredInternalUrls:discoveredMultiPage.length, selectedPages:uniqueMultiPagePages, pageAudits:multiPageAudits,
       siteSampleScore: auditedRawPages.length ? Math.round(auditedRawPages.reduce((sum,item)=>sum+(item.score||0),0)/auditedRawPages.length) : null,
       siteSampleCoverage: {

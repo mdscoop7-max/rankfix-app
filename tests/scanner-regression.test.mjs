@@ -140,7 +140,7 @@ test("score model exposes weighted coverage and transparent formula", async () =
   const score = await readFile(new URL("../lib/audit-score.ts", import.meta.url), "utf8");
   const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   const report = await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
-  assert.match(score, /SCORE_MODEL_VERSION = "2\.3-evidence-range"/);
+  assert.match(score, /SCORE_MODEL_VERSION = "3\.0-evidence-strict"/);
   assert.match(score, /assessedWeight \/ totalWeight/);
   assert.match(route, /formula: mode === "both" \? "0\.6 × SEO \+ 0\.4 × GEO"/);
   assert.match(route, /securitySeparate: true/);
@@ -216,8 +216,21 @@ test("score engine deduplicates penalties that share one proven root cause", asy
     { ...base, issue_status: "WARNING", points: 0, maxPoints: 4, rootCause: "meta_description" },
     { ...base, issue_status: "PASS", points: 6, maxPoints: 6 },
   ]);
-  assert.equal(SCORE_MODEL_VERSION, "2.3-evidence-range");
+  assert.equal(SCORE_MODEL_VERSION, "3.0-evidence-strict");
   assert.equal(score, 50);
+});
+
+test("score engine gives confirmed high-impact findings a stricter bounded penalty", async () => {
+  const { scoreApplicableChecks } = await import("../lib/audit-score.ts");
+  const low = scoreApplicableChecks([
+    { issue_status: "WARNING", severity: "LOW", confidence: "high", points: 5, maxPoints: 10, rootCause: "a" },
+    { issue_status: "PASS", points: 90, maxPoints: 90 },
+  ]);
+  const high = scoreApplicableChecks([
+    { issue_status: "WARNING", severity: "HIGH", confidence: "high", points: 5, maxPoints: 10, rootCause: "a" },
+    { issue_status: "PASS", points: 90, maxPoints: 90 },
+  ]);
+  assert.ok(high < low);
 });
 
 test("score engine keeps independent penalties independent", async () => {
@@ -280,7 +293,7 @@ test("description length advice is gradual without changing fix identity", async
 test("score model protects low-confidence failures from hard penalties", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../lib/audit-score.ts", import.meta.url), "utf8");
-  assert.match(source, /SCORE_MODEL_VERSION = "2\.3-evidence-range"/);
+  assert.match(source, /SCORE_MODEL_VERSION = "3\.0-evidence-strict"/);
   assert.match(source, /item\.issue_status === "FAIL" && item\.confidence === "low"/);
   assert.match(source, /points: item\.maxPoints, issue_status: "INFO" as const/);
   assert.match(source, /for \(const item of confidenceSafe\)/);
@@ -404,12 +417,27 @@ test("representative page ranking prefers structural capability context", async 
 });
 
 
+test("Evidence Engine keeps URL-only product hints below confirmed retail evidence", async () => {
+  const { buildScanEvidence } = await import("../lib/scan-evidence.ts");
+  const hint = buildScanEvidence({url:"https://example.com/product/widget/",html:"<html><body><h1>Widget</h1></body></html>"});
+  assert.equal(hint.version, "1.2");
+  assert.equal(hint.commerce.productPage.value, true);
+  assert.equal(hint.commerce.productPage.confidence, "medium");
+  assert.ok(hint.commerce.productPage.sources.includes("url"));
+  const schema = buildScanEvidence({url:"https://example.com/item",html:'<script type="application/ld+json">{"@type":"Product","name":"Widget"}</script>'});
+  assert.equal(schema.commerce.productPage.confidence, "high");
+  assert.ok(schema.commerce.productPage.sources.includes("structured_data"));
+});
+
 test("Evidence Engine exposes explicit capability states and never infers absence from one page", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   assert.match(source, /type EvidenceCapabilityState = "detected" \| "likely" \| "unknown" \| "absent_proven"/);
   assert.match(source, /buildCapabilityState/);
   assert.match(source, /reason:"insufficient_coverage"/);
+  assert.match(source, /state:"likely"/);
+  assert.match(source, /explicitNegativeProof/);
+  assert.match(source, /state:"absent_proven"/);
   assert.match(source, /const capabilityStates: EvidenceCapability\[\]/);
   assert.match(source, /capabilityStates = capabilityStates/);
 });
@@ -721,4 +749,80 @@ test("every audit problem has a visible remediation path", async () => {
   assert.match(audit,/Vraag RankFix AI/);
   assert.match(audit,/Bekijk handmatige stappen/);
   assert.match(audit,/remediationAction\(check\)==="manual"/);
+});
+
+
+test("representative JS pages receive bounded browser evidence recovery", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(scanner,/representativeJsFramework/);
+  assert.match(scanner,/representativeThinShell/);
+  assert.match(scanner,/javascript-rendered representative page/);
+  assert.match(scanner,/javascript rendering unavailable; raw HTML retained/);
+});
+
+test("commerce identity requires confirmed high-confidence signals", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(scanner,/confirmedCommerceSignals >= 2 && evidenceCommerceStrength >= 3/);
+  assert.match(scanner,/scanEvidence\.commerce\.productPage\.confidence === "high"/);
+  assert.match(scanner,/scanEvidence\.commerce\.addToCart\.confidence === "high"/);
+});
+
+
+test("sector identity ignores low-confidence accommodation and property evidence", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(scanner,/lodgingDetail\.shortStay\.confidence !== "low"/);
+  assert.match(scanner,/scanEvidence\.appointments\.booking\.confidence !== "low"/);
+  assert.match(scanner,/scanEvidence\.inventory\.properties\.confidence !== "low"/);
+});
+
+test("structural actions outrank plain text hints in scan evidence", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const evidence = await readFile(new URL("../lib/scan-evidence.ts", import.meta.url), "utf8");
+  assert.match(evidence,/appointmentAction \? "high" : appointment \? "medium"/);
+  assert.match(evidence,/contactLink \? "high" : contactText \? "medium"/);
+  assert.match(evidence,/shortStaySchema \? "high" : shortStayText \? "medium"/);
+  assert.match(evidence,/automotiveDealerSchema \? "high" : automotiveDealerText \? "medium"/);
+});
+
+
+test("Scan Motor 3.0 audits a bounded diverse representative sample", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(scanner,/const representativePageLimit = 20/);
+  assert.match(scanner,/pickMultiPage\("product", 4\)/);
+  assert.match(scanner,/pickMultiPage\("service", 5\)/);
+  assert.match(scanner,/uniqueMultiPagePages\.length >= representativePageLimit/);
+  assert.match(scanner,/seenTemplates\.has\(key\)/);
+});
+
+
+test("representative page audits expose raw versus rendered provenance", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(scanner,/evidenceSource\?: "raw_html" \| "rendered_html"/);
+  assert.match(scanner,/representativeEvidenceSource: "raw_html" \| "rendered_html" = "raw_html"/);
+  assert.match(scanner,/representativeEvidenceSource = "rendered_html"/);
+  assert.match(scanner,/evidenceSource:representativeEvidenceSource/);
+});
+
+
+test("audit shows transparent representative page coverage", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const audit = await readFile(new URL("../app/dashboard/audit/[id]/page.tsx", import.meta.url), "utf8");
+  assert.match(audit,/Paginadekking/);
+  assert.match(audit,/counts\?\.audited/);
+  assert.match(audit,/counts\?\.unableToConfirm/);
+  assert.match(audit,/discoveredInternalUrls/);
+});
+
+
+test("representative crawl uses bounded concurrency", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const scanRoute = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(scanRoute, /const representativeAuditConcurrency = 4;/);
+  assert.match(scanRoute, /Math\.min\(representativeAuditConcurrency, uniqueMultiPagePages\.length\)/);
+  assert.doesNotMatch(scanRoute, /Promise\.all\(uniqueMultiPagePages\.map\(auditMultiPage\)\)/);
 });

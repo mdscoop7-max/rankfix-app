@@ -9,7 +9,7 @@ export type EvidenceFact<T = boolean> = {
 };
 
 export type ScanEvidence = {
-  version: "1.0";
+  version: "1.2";
   page: {
     url: string;
     rendered: boolean;
@@ -88,6 +88,10 @@ export function buildScanEvidence(input: {
   const rawHtml = input.rawHtml || html;
   const text = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").toLowerCase();
   const source: EvidenceSource = input.rendered ? "rendered_html" : "raw_html";
+  const renderedAddsEvidence = Boolean(input.rendered && input.rawHtml && input.html !== input.rawHtml);
+  const provenanceEvidence = input.rendered
+    ? [renderedAddsEvidence ? "JavaScript-rendering leverde aanvullende DOM-evidence op" : "Pagina is met JavaScript-rendering beoordeeld"]
+    : ["Raw HTML beoordeeld; client-side signalen kunnen ontbreken"];
   const url = input.url.toLowerCase();
 
   const schemaTypes = uniq([...html.matchAll(/["']@type["']\s*:\s*["']([^"']+)["']/gi)].map(m => m[1]).filter(Boolean));
@@ -97,20 +101,26 @@ export function buildScanEvidence(input: {
   const hrefs = [...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>/gi)].map(m => m[1]);
   const productLinkCount = hrefs.filter(h => /\/(?:product|products|p|artikel|artikelen|item|shop)\//i.test(h)).length;
 
-  const cart = has(html, /(?:cart|basket|winkelwagen|warenkorb|panier|carrello|carrito)/i);
+  const cart = has(html, /(?:href|action|id|class|aria-label|data-[\w-]+)\s*=\s*["'][^"']*(?:cart|basket|winkelwagen|warenkorb|panier|carrello|carrito)[^"']*["']/i);
   const addToCart = has(text, /\b(add to cart|add to basket|in winkelwagen|toevoegen aan winkelwagen|in den warenkorb|ajouter au panier|aggiungi al carrello|añadir al carrito)\b/i);
-  const checkout = has(html, /(?:checkout|afrekenen|kasse|paiement|pagamento|pago)/i);
+  const checkout = has(html, /(?:href|action|id|class|aria-label|data-[\w-]+)\s*=\s*["'][^"']*(?:checkout|afrekenen|kasse|paiement|pagamento|pago)[^"']*["']/i);
   // Offer is used by service businesses too; it must never be treated as a retail product page by itself.
-  const productPage = schemaHas("Product") || /\/(?:product|products|p|artikel|item)\//i.test(url);
+  const productSchema = schemaHas("Product");
+  const productPathHint = /\/(?:product|products|p|artikel|item)\//i.test(url);
+  const productPage = productSchema || productPathHint;
 
   const currencyMatches = [...text.matchAll(/(?:€|eur\b|\$|usd\b|£|gbp\b)/gi)].map(m => m[0].toUpperCase());
   const currencies = uniq(currencyMatches.map(v => v === "€" ? "EUR" : v === "$" ? "USD" : v === "£" ? "GBP" : v));
   const priceCount = [...text.matchAll(/(?:€\s*\d|\d[\d.,]*\s*(?:€|eur\b)|\$\s*\d|£\s*\d)/gi)].length;
 
   const appointment = has(text, /\b(afspraak|appointment|termin|rendez-vous|appuntamento|cita)\b/i);
+  const appointmentAction = has(html, /(?:href|action|aria-label)\s*=\s*["'][^"']*(?:afspraak|appointment|termin|rendez-vous|appuntamento|cita)[^"']*["']/i);
   const reservation = has(text, /\b(reserveren|reservation|reserve a table|tisch reservieren|réserver|prenota|reservar)\b/i);
+  const reservationAction = has(html, /(?:href|action|aria-label)\s*=\s*["'][^"']*(?:reserv|réserv|prenota)[^"']*["']/i);
   const booking = has(text, /\b(boeken|book now|booking|buchen|réserver|prenota|reservar)\b/i);
+  const bookingAction = has(html, /(?:href|action|aria-label)\s*=\s*["'][^"']*(?:book|boeken|buchen|réserv|prenota)[^"']*["']/i);
   const quoteRequest = has(text, /\b(offerte|quote request|request a quote|angebot anfordern|devis|preventivo|presupuesto)\b/i);
+  const quoteAction = has(html, /(?:href|action|aria-label)\s*=\s*["'][^"']*(?:offerte|quote|angebot|devis|preventivo|presupuesto)[^"']*["']/i);
 
   const vehicleSchema = schemaHas("Vehicle", "Car", "AutoDealer", "AutomotiveBusiness");
   const vehicleText = has(text, /\b(occasions?|proefrit|test drive|fahrzeuge?|voitures? d'occasion|auto usate)\b/i);
@@ -131,46 +141,67 @@ export function buildScanEvidence(input: {
   const menuText = has(text, /\b(menu|menukaart|gerechten|restaurant|speisekarte|carte des plats)\b/i);
   const menu = menuSchema || menuText;
 
-  const contact = has(text, /\b(contact|contacteer|kontakt|contactez|contatti|contacto)\b/i) || has(html, /mailto:|tel:/i);
-  const address = schemaHas("PostalAddress") || has(text, /\b(adres|address|adresse|indirizzo|dirección)\b/i);
-  const openingHours = schemaHas("OpeningHoursSpecification") || has(text, /\b(openingstijden|opening hours|öffnungszeiten|horaires|orari|horario)\b/i);
-  const reviews = schemaHas("Review", "AggregateRating") || has(text, /\b(reviews?|beoordelingen|bewertungen|avis|recensioni|reseñas)\b/i);
+  const contactLink = has(html, /(?:mailto:|tel:|href\s*=\s*["'][^"']*\/(?:contact|contact-us|kontakt|contacto)(?:\/|["'#?]))/i);
+  const contactText = has(text, /\b(contact|contacteer|kontakt|contactez|contatti|contacto)\b/i);
+  const contact = contactLink || contactText;
+  const addressSchema = schemaHas("PostalAddress");
+  const addressText = has(text, /\b(adres|address|adresse|indirizzo|dirección)\b/i);
+  const address = addressSchema || addressText;
+  const openingHoursSchema = schemaHas("OpeningHoursSpecification");
+  const openingHoursText = has(text, /\b(openingstijden|opening hours|öffnungszeiten|horaires|orari|horario)\b/i);
+  const openingHours = openingHoursSchema || openingHoursText;
+  const reviewsSchema = schemaHas("Review", "AggregateRating");
+  const reviewsText = has(text, /\b(reviews?|beoordelingen|bewertungen|avis|recensioni|reseñas)\b/i);
+  const reviews = reviewsSchema || reviewsText;
   const propertyListing = properties && (/\/(?:woningaanbod|residential-listings|properties?)\//i.test(url) || has(text, /\b(te koop|te huur|for sale|for rent|koopprijs|huurprijs)\b/i));
+  const propertyListingStrong = propertySchema || (propertyText && has(text, /\b(te koop|te huur|for sale|for rent|koopprijs|huurprijs)\b/i));
   const propertySale = propertyListing && (has(text, /\b(te koop|for sale|koopprijs)\b/i) || /\/(?:koop|sale)\//i.test(url));
   const propertyRental = propertyListing && (has(text, /\b(te huur|for rent|huurprijs)\b/i) || /\/(?:huur|rent)\//i.test(url));
-  const shortStay = schemaHas("Hotel","HotelRoom","LodgingBusiness","BedAndBreakfast","VacationRental","Resort","Campground") || has(text, /\b(overnachting|overnachten|per nacht|nightly|check[- ]?in|check[- ]?out|arrival|departure|aankomst|vertrek|short[- ]term stay)\b/i);
+  const shortStaySchema = schemaHas("Hotel","HotelRoom","LodgingBusiness","BedAndBreakfast","VacationRental","Resort","Campground");
+  const shortStayText = has(text, /\b(overnachting|overnachten|per nacht|nightly|check[- ]?in|check[- ]?out|arrival|departure|aankomst|vertrek|short[- ]term stay)\b/i);
+  const shortStay = shortStaySchema || shortStayText;
   const bedBreakfast = has(text, /\b(b&b|bed and breakfast|bed & breakfast|guesthouse|guest house|pension)\b/i) || schemaHas("BedAndBreakfast");
   const holidayRental = has(text, /\b(vakantiehuis|vakantiewoning|holiday home|holiday rental|vacation rental|ferienhaus|ferienwohnung|short[- ]term rental)\b/i) || schemaHas("VacationRental");
   const holidayPark = has(text, /\b(vakantiepark|holiday park|ferienpark|resort|bungalowpark|recreatiepark)\b/i) || schemaHas("Resort");
   const camping = has(text, /\b(camping|campingplatz|campground|camperplaats|chaletpark|caravan park|glamping)\b/i) || schemaHas("Campground");
   const stayDates = has(text, /\b(aankomst|vertrek|check[- ]?in|check[- ]?out|arrival|departure|verblijfsdata|stay dates?)\b/i);
   const guests = has(text, /\b(gasten?|guests?|personen|persons?|adults?|volwassenen|children|kinderen)\b/i);
-  const automotiveService = has(text, /\b(apk|onderhoud|werkplaats|autoservice|banden|tyres?|uitlijnen|car repair|reparatie)\b/i);
-  const automotiveDealer = has(text, /\b(autodealer|occasions?|auto(?:'s)? te koop|cars? for sale|proefrit|test drive)\b/i) || schemaHas("AutoDealer");
-  const article = schemaHas("Article","NewsArticle","BlogPosting") || has(text, /\b(nieuws|news|artikel|article|breaking news)\b/i);
+  const automotiveServiceSchema = schemaHas("AutomotiveBusiness", "AutoRepair");
+  const automotiveServiceText = has(text, /\b(apk|onderhoud|werkplaats|autoservice|banden|tyres?|uitlijnen|car repair|reparatie)\b/i);
+  const automotiveService = automotiveServiceSchema || automotiveServiceText;
+  const automotiveDealerSchema = schemaHas("AutoDealer");
+  const automotiveDealerText = has(text, /\b(autodealer|occasions?|auto(?:'s)? te koop|cars? for sale|proefrit|test drive)\b/i);
+  const automotiveDealer = automotiveDealerSchema || automotiveDealerText;
+  const articleSchema = schemaHas("Article","NewsArticle","BlogPosting");
+  const articleText = has(text, /\b(nieuws|news|artikel|article|breaking news)\b/i);
+  const article = articleSchema || articleText;
   const author = schemaHas("Person") || /\b(?:auteur|author|door|by)\s+[a-zà-ÿ][a-zà-ÿ .'-]{2,}/i.test(text);
   const publishedDate = /\b(?:datepublished|published|gepubliceerd|publicatiedatum)\b/i.test(html) || /<time\b/i.test(html);
-  const sportsEvent = schemaHas("SportsEvent") || has(text, /\b(wedstrijd|match|fixture|kick-?off|wedstrijdprogramma)\b/i);
-  const teamOrPlayer = schemaHas("SportsTeam") || has(text, /\b(team|speler|player|selectie|squad)\b/i);
+  const sportsEventSchema = schemaHas("SportsEvent");
+  const sportsEventText = has(text, /\b(wedstrijd|match|fixture|kick-?off|wedstrijdprogramma)\b/i);
+  const sportsEvent = sportsEventSchema || sportsEventText;
+  const sportsTeamSchema = schemaHas("SportsTeam");
+  const teamOrPlayerText = has(text, /\b(team|speler|player|selectie|squad)\b/i);
+  const teamOrPlayer = sportsTeamSchema || teamOrPlayerText;
   const resultsOrStandings = has(text, /\b(uitslag|result|standings|league table|score)\b/i);
 
   return {
-    version: "1.0",
+    version: "1.2",
     page: { url: input.url, rendered: Boolean(input.rendered), language: input.language || null, title: input.title || null },
     commerce: {
-      cart: fact(cart, cart ? "high" : "low", [source], cart ? ["Cart/winkelwagen-signaal gevonden"] : []),
-      addToCart: fact(addToCart, addToCart ? "high" : "low", [source], addToCart ? ["Add-to-cart actie gevonden"] : []),
-      checkout: fact(checkout, checkout ? "high" : "low", [source], checkout ? ["Checkout/afreken-signaal gevonden"] : []),
+      cart: fact(cart, cart ? "high" : "low", [source], cart ? ["Cart/winkelwagen-signaal gevonden", ...provenanceEvidence] : []),
+      addToCart: fact(addToCart, addToCart ? "high" : "low", [source], addToCart ? ["Add-to-cart actie gevonden", ...provenanceEvidence] : []),
+      checkout: fact(checkout, checkout ? "high" : "low", [source], checkout ? ["Checkout/afreken-signaal gevonden", ...provenanceEvidence] : []),
       prices: fact({ count: priceCount, currencies }, priceCount ? "high" : "low", [source], priceCount ? [`${priceCount} zichtbaar prijs-signaal/signalen; valuta: ${currencies.join(", ") || "onbekend"}`] : []),
-      products: fact(productPage || productLinkCount > 0, productPage ? "high" : productLinkCount > 0 ? "medium" : "low", [source, ...(schemaHas("Product") ? ["structured_data" as EvidenceSource] : [])], productPage ? ["Productpagina/schema-signaal gevonden"] : productLinkCount ? [`${productLinkCount} productachtige interne link(s) gevonden`] : []),
-      productPage: fact(productPage, productPage ? "high" : "low", [source, ...(schemaHas("Product") ? ["structured_data" as EvidenceSource] : [])], productPage ? ["Productpaginabewijs gevonden"] : []),
+      products: fact(productPage || productLinkCount > 0, productSchema ? "high" : productPage || productLinkCount > 0 ? "medium" : "low", [source, ...(productSchema ? ["structured_data" as EvidenceSource] : []), ...(productPathHint ? ["url" as EvidenceSource] : [])], productSchema ? ["Product-schema gevonden"] : productPathHint ? ["Productachtige URL gevonden; dit is ondersteunend bewijs, geen zelfstandig retailbewijs"] : productLinkCount ? [`${productLinkCount} productachtige interne link(s) gevonden`] : []),
+      productPage: fact(productPage, productSchema ? "high" : productPathHint ? "medium" : "low", [source, ...(productSchema ? ["structured_data" as EvidenceSource] : []), ...(productPathHint ? ["url" as EvidenceSource] : [])], productSchema ? ["Productpagina bevestigd met Product-schema"] : productPathHint ? ["Productachtige URL gevonden; aanvullende product-/prijs-/actie-evidence vereist"] : []),
       productLinks: fact(productLinkCount, productLinkCount ? "medium" : "low", [source], productLinkCount ? [`${productLinkCount} productachtige interne link(s)`] : []),
     },
     appointments: {
-      appointment: fact(appointment, appointment ? "medium" : "low", [source], appointment ? ["Afspraak-signaal gevonden"] : []),
-      reservation: fact(reservation, reservation ? "medium" : "low", [source], reservation ? ["Reserveringssignaal gevonden"] : []),
-      booking: fact(booking, booking ? "medium" : "low", [source], booking ? ["Boekingssignaal gevonden"] : []),
-      quoteRequest: fact(quoteRequest, quoteRequest ? "medium" : "low", [source], quoteRequest ? ["Offerte-signaal gevonden"] : []),
+      appointment: fact(appointment, appointmentAction ? "high" : appointment ? "medium" : "low", [source], appointment ? [appointmentAction ? "Structurele afspraakactie gevonden" : "Afspraak-tekstsignaal gevonden"] : []),
+      reservation: fact(reservation, reservationAction ? "high" : reservation ? "medium" : "low", [source], reservation ? [reservationAction ? "Structurele reserveringsactie gevonden" : "Reserverings-tekstsignaal gevonden"] : []),
+      booking: fact(booking, bookingAction ? "high" : booking ? "medium" : "low", [source], booking ? [bookingAction ? "Structurele boekingsactie gevonden" : "Boekings-tekstsignaal gevonden"] : []),
+      quoteRequest: fact(quoteRequest, quoteAction ? "high" : quoteRequest ? "medium" : "low", [source], quoteRequest ? [quoteAction ? "Structurele offerteactie gevonden" : "Offerte-tekstsignaal gevonden"] : []),
     },
     inventory: {
       vehicles: fact(vehicles, vehicleSchema ? "high" : vehicles ? "medium" : "low", [source, ...(vehicleSchema ? ["structured_data" as EvidenceSource] : [])], vehicles ? [vehicleSchema ? "Voertuig-/autodealerschema gevonden" : "Voertuig/autodealer-tekstsignaal gevonden"] : []),
@@ -180,17 +211,17 @@ export function buildScanEvidence(input: {
       menu: fact(menu, menuSchema ? "high" : menu ? "medium" : "low", [source, ...(menuSchema ? ["structured_data" as EvidenceSource] : [])], menu ? [menuSchema ? "Restaurant-/menuschema gevonden" : "Restaurant/menu-tekstsignaal gevonden"] : []),
     },
     organization: {
-      contact: fact(contact, contact ? "medium" : "low", [source], contact ? ["Contactsignaal gevonden"] : []),
-      address: fact(address, address ? "medium" : "low", [source], address ? ["Adres-signaal gevonden"] : []),
-      openingHours: fact(openingHours, openingHours ? "medium" : "low", [source], openingHours ? ["Openingstijden-signaal gevonden"] : []),
-      reviews: fact(reviews, reviews ? "medium" : "low", [source], reviews ? ["Review-signaal gevonden"] : []),
+      contact: fact(contact, contactLink ? "high" : contactText ? "medium" : "low", [source], contact ? [contactLink ? "Structurele contactlink of telefoon/e-mailactie gevonden" : "Contacttekstsignaal gevonden"] : []),
+      address: fact(address, addressSchema ? "high" : addressText ? "medium" : "low", [source, ...(addressSchema ? ["structured_data" as EvidenceSource] : [])], address ? [addressSchema ? "PostalAddress-schema gevonden" : "Adres-tekstsignaal gevonden"] : []),
+      openingHours: fact(openingHours, openingHoursSchema ? "high" : openingHoursText ? "medium" : "low", [source, ...(openingHoursSchema ? ["structured_data" as EvidenceSource] : [])], openingHours ? [openingHoursSchema ? "OpeningHoursSpecification-schema gevonden" : "Openingstijden-tekstsignaal gevonden"] : []),
+      reviews: fact(reviews, reviewsSchema ? "high" : reviewsText ? "medium" : "low", [source, ...(reviewsSchema ? ["structured_data" as EvidenceSource] : [])], reviews ? [reviewsSchema ? "Review/AggregateRating-schema gevonden" : "Review-tekstsignaal gevonden"] : []),
     },
     sectorDetails: {
-      realEstate: { listing: fact(propertyListing, propertyListing ? "high" : "low", [source], propertyListing ? ["Vastgoedobject/listing bevestigd"] : []), sale: fact(propertySale, propertySale ? "high" : "low", [source], propertySale ? ["Koopwoning-signaal bevestigd"] : []), rental: fact(propertyRental, propertyRental ? "high" : "low", [source], propertyRental ? ["Huurwoning-signaal bevestigd"] : []) },
-      automotive: { service: fact(automotiveService, automotiveService ? "high" : "low", [source], automotiveService ? ["Garage-/autoservice-signaal bevestigd"] : []), dealer: fact(automotiveDealer, automotiveDealer ? "high" : "low", [source], automotiveDealer ? ["Autodealer-/verkoopsignaal bevestigd"] : []) },
-      media: { article: fact(article, article ? "medium" : "low", [source], article ? ["Artikel-/nieuwssignaal gevonden"] : []), author: fact(author, author ? "medium" : "low", [source], author ? ["Auteurssignaal gevonden"] : []), publishedDate: fact(publishedDate, publishedDate ? "medium" : "low", [source], publishedDate ? ["Publicatiedatumsignaal gevonden"] : []) },
-      sports: { event: fact(sportsEvent, sportsEvent ? "medium" : "low", [source], sportsEvent ? ["Wedstrijd-/sportevenementsignaal gevonden"] : []), teamOrPlayer: fact(teamOrPlayer, teamOrPlayer ? "medium" : "low", [source], teamOrPlayer ? ["Team-/spelersignaal gevonden"] : []), resultsOrStandings: fact(resultsOrStandings, resultsOrStandings ? "medium" : "low", [source], resultsOrStandings ? ["Uitslag-/standsignaal gevonden"] : []) },
-      lodging: { shortStay: fact(shortStay, shortStay ? "high" : "low", [source], shortStay ? ["Kort verblijf/accommodatie bevestigd"] : []), bedBreakfast: fact(bedBreakfast, bedBreakfast ? "high" : "low", [source], bedBreakfast ? ["B&B/guesthouse bevestigd"] : []), holidayRental: fact(holidayRental, holidayRental ? "high" : "low", [source], holidayRental ? ["Vakantiehuis/vakantieverhuur bevestigd"] : []), holidayPark: fact(holidayPark, holidayPark ? "high" : "low", [source], holidayPark ? ["Vakantiepark/resort bevestigd"] : []), camping: fact(camping, camping ? "high" : "low", [source], camping ? ["Camping/chaletpark bevestigd"] : []), stayDates: fact(stayDates, stayDates ? "medium" : "low", [source], stayDates ? ["Aankomst/vertrek gevonden"] : []), guests: fact(guests, guests ? "medium" : "low", [source], guests ? ["Gast-/persoonsaantal gevonden"] : []) },
+      realEstate: { listing: fact(propertyListing, propertyListingStrong ? "high" : propertyListing ? "medium" : "low", [source, ...(propertySchema ? ["structured_data" as EvidenceSource] : [])], propertyListing ? [propertyListingStrong ? "Vastgoedobject/listing met inhoudelijke evidence bevestigd" : "Vastgoedachtige listing-URL gevonden; aanvullende inhoudelijke evidence vereist"] : []), sale: fact(propertySale, propertySale ? "high" : "low", [source], propertySale ? ["Koopwoning-signaal bevestigd"] : []), rental: fact(propertyRental, propertyRental ? "high" : "low", [source], propertyRental ? ["Huurwoning-signaal bevestigd"] : []) },
+      automotive: { service: fact(automotiveService, automotiveServiceSchema ? "high" : automotiveServiceText ? "medium" : "low", [source, ...(automotiveServiceSchema ? ["structured_data" as EvidenceSource] : [])], automotiveService ? [automotiveServiceSchema ? "AutomotiveBusiness/AutoRepair-schema gevonden" : "Garage-/autoservice-tekstsignaal gevonden"] : []), dealer: fact(automotiveDealer, automotiveDealerSchema ? "high" : automotiveDealerText ? "medium" : "low", [source, ...(automotiveDealerSchema ? ["structured_data" as EvidenceSource] : [])], automotiveDealer ? [automotiveDealerSchema ? "AutoDealer-schema gevonden" : "Autodealer-/verkooptekstsignaal gevonden"] : []) },
+      media: { article: fact(article, articleSchema ? "high" : articleText ? "medium" : "low", [source, ...(articleSchema ? ["structured_data" as EvidenceSource] : [])], article ? [articleSchema ? "Article/NewsArticle/BlogPosting-schema gevonden" : "Artikel-/nieuwstekstsignaal gevonden"] : []), author: fact(author, author ? "medium" : "low", [source], author ? ["Auteurssignaal gevonden"] : []), publishedDate: fact(publishedDate, publishedDate ? "medium" : "low", [source], publishedDate ? ["Publicatiedatumsignaal gevonden"] : []) },
+      sports: { event: fact(sportsEvent, sportsEventSchema ? "high" : sportsEventText ? "medium" : "low", [source, ...(sportsEventSchema ? ["structured_data" as EvidenceSource] : [])], sportsEvent ? [sportsEventSchema ? "SportsEvent-schema gevonden" : "Wedstrijd-/sportevenementtekstsignaal gevonden"] : []), teamOrPlayer: fact(teamOrPlayer, sportsTeamSchema ? "high" : teamOrPlayerText ? "medium" : "low", [source, ...(sportsTeamSchema ? ["structured_data" as EvidenceSource] : [])], teamOrPlayer ? [sportsTeamSchema ? "SportsTeam-schema gevonden" : "Team-/spelertekstsignaal gevonden"] : []), resultsOrStandings: fact(resultsOrStandings, resultsOrStandings ? "medium" : "low", [source], resultsOrStandings ? ["Uitslag-/standsignaal gevonden"] : []) },
+      lodging: { shortStay: fact(shortStay, shortStaySchema ? "high" : shortStayText ? "medium" : "low", [source, ...(shortStaySchema ? ["structured_data" as EvidenceSource] : [])], shortStay ? [shortStaySchema ? "Accommodatie-schema bevestigt kort verblijf" : "Kort-verblijf tekstsignaal gevonden"] : []), bedBreakfast: fact(bedBreakfast, bedBreakfast ? "high" : "low", [source], bedBreakfast ? ["B&B/guesthouse bevestigd"] : []), holidayRental: fact(holidayRental, holidayRental ? "high" : "low", [source], holidayRental ? ["Vakantiehuis/vakantieverhuur bevestigd"] : []), holidayPark: fact(holidayPark, holidayPark ? "high" : "low", [source], holidayPark ? ["Vakantiepark/resort bevestigd"] : []), camping: fact(camping, camping ? "high" : "low", [source], camping ? ["Camping/chaletpark bevestigd"] : []), stayDates: fact(stayDates, stayDates ? "medium" : "low", [source], stayDates ? ["Aankomst/vertrek gevonden"] : []), guests: fact(guests, guests ? "medium" : "low", [source], guests ? ["Gast-/persoonsaantal gevonden"] : []) },
     },
     schema: {
       types: schemaTypes,
@@ -238,7 +269,7 @@ export function collectEvidencePartners(evidence: ScanEvidence): EvidencePartner
       ["products", evidence.commerce.products],
       ["product_page", evidence.commerce.productPage],
     ]),
-    evidence.commerce.prices.value.count > 0 && "pricing",
+    (evidence.commerce.prices.value.count > 0 && confidenceRank[evidence.commerce.prices.confidence] >= confidenceRank.medium) && "pricing",
   ].filter((value): value is string => Boolean(value));
 
   const businessCapabilities = [
