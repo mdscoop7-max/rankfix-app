@@ -1622,7 +1622,13 @@ export async function POST(request: Request) {
       || (strongSectorCandidate && sectorCandidates[0].sector !== "ecommerce"
         ? {sector:sectorCandidates[0].sector,key:sectorCandidates[0].sector,label:sectorCandidates[0].label,evidence:[`Primary identity: ${sectorCandidates[0].hits} independent sector signals`]}
         : null);
-    const commerceAsPrimaryIdentity = evidenceCommerceConfirmed && !primaryNonCommerceIdentity;
+    // Verified storefront actions outrank incidental tourism/news/transport words
+    // in navigation, product descriptions and footer content.
+    // Explicit real-estate, automotive and accommodation identity stays protected.
+    const incidentalSector = primaryNonCommerceIdentity &&
+      ["tourism_recreation", "news_media", "transport_travel", "professional_services"].includes(primaryNonCommerceIdentity.sector);
+    const commerceAsPrimaryIdentity = evidenceCommerceConfirmed &&
+      (!primaryNonCommerceIdentity || Boolean(incidentalSector && !masterIdentityOverride));
     const sectorProfile = commerceAsPrimaryIdentity
       ? {
           sector:"ecommerce" as SectorKey,
@@ -3539,7 +3545,7 @@ export async function POST(request: Request) {
     // Scan Motor 3.0 phase 1: broaden evidence coverage without turning the scan
     // into an unbounded crawler. Cap the selection at thirty distinct URLs;
     // the worker pool remains bounded to protect scan performance.
-    const representativePageLimit = 30;
+    const representativePageLimit = 20;
     // Keep representative sampling inside the locale/subdirectory the customer
     // actually scanned. Falling back to origin "/" can switch country/language
     // (for example /nl/nl/ -> global root) and contaminate sector/content evidence.
