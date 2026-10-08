@@ -3591,6 +3591,20 @@ export async function POST(request: Request) {
       uniqueMultiPagePages.push(item);
       if (uniqueMultiPagePages.length >= representativePageLimit) break;
     }
+    // A site can have many important pages sharing one URL template.
+    // First choose structurally diverse pages; if that yields fewer than ten,
+    // fill the remaining slots with distinct high-relevance URLs. This is still
+    // capped by representativePageLimit and never forces tiny sites to ten.
+    if (uniqueMultiPagePages.length < 10) {
+      const seenUrls = new Set(uniqueMultiPagePages.map((item)=>normalizeScanUrl(item.url)));
+      for (const item of rankedMultiPage) {
+        const normalized = normalizeScanUrl(item.url);
+        if (seenUrls.has(normalized)) continue;
+        seenUrls.add(normalized);
+        uniqueMultiPagePages.push(item);
+        if (uniqueMultiPagePages.length >= Math.min(10, representativePageLimit)) break;
+      }
+    }
     const auditMultiPage = async (page: MultiPageCandidate): Promise<MultiPageAudit> => {
       try {
         const fetched = await safePublicFetch(page.url, { timeoutMs: 8000, maxRedirects: 3, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml" });
