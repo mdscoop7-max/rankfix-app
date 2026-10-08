@@ -3778,9 +3778,22 @@ export async function POST(request: Request) {
       },
     );
     await Promise.all(representativeWorkers);
+    // Redirects can make two distinct candidates resolve to the same final URL.
+    // Deduplicate after fetching as well as before selection, so the customer
+    // never sees the same successfully audited page counted twice.
+    const reportedMultiPageAudits: MultiPageAudit[] = [];
+    const seenFinalAuditUrls = new Set<string>();
+    for (const item of multiPageAudits) {
+      if (item.status === "audited") {
+        const finalKey = normalizeScanUrl(item.url);
+        if (seenFinalAuditUrls.has(finalKey)) continue;
+        seenFinalAuditUrls.add(finalKey);
+      }
+      reportedMultiPageAudits.push(item);
+    }
     // Keep the scanned page, then prefer structurally different DOM templates.
     // This second-stage dedupe is universal: no sector or path vocabulary is used.
-    const auditedRawPages = multiPageAudits.filter((item)=>item.status==="audited");
+    const auditedRawPages = reportedMultiPageAudits.filter((item)=>item.status==="audited");
     const auditedMultiPages: MultiPageAudit[] = [];
     const seenStructures = new Set<string>();
     for (const item of auditedRawPages) {
@@ -4296,7 +4309,7 @@ export async function POST(request: Request) {
 
     const multiPage = {
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:representativePageLimit,
-      discoveredInternalUrls:discoveredMultiPage.length, selectedPages:uniqueMultiPagePages, pageAudits:multiPageAudits,
+      discoveredInternalUrls:discoveredMultiPage.length, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,
       siteSampleScore: auditedRawPages.length ? Math.round(auditedRawPages.reduce((sum,item)=>sum+(item.score||0),0)/auditedRawPages.length) : null,
       siteSampleCoverage: {
         selected: multiPageAudits.length,
