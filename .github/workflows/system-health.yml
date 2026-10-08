@@ -25,4 +25,4 @@ jobs:
           curl --fail-with-body --silent --show-error \
             --retry 2 --retry-delay 10 --max-time 180 \
             -H "Authorization: Bearer $MONITOR_SECRET" \
-            "https://rankfix-app.onrender.com/api/internal/health/run"
+            "https://rankfix-app.vercel.app/api/internal/health/run"
