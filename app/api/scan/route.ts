@@ -3537,9 +3537,9 @@ export async function POST(request: Request) {
     const rankedMultiPage = discoveredMultiPage.filter((item) => multiPageRelevance(item) > -100).sort((a,b) => multiPageRelevance(b) - multiPageRelevance(a));
     const pickMultiPage = (type: MultiPageCandidate["type"], limit: number) => rankedMultiPage.filter((item) => item.type === type).slice(0, limit);
     // Scan Motor 3.0 phase 1: broaden evidence coverage without turning the scan
-    // into an unbounded crawler. Twenty representative templates is enough to cover
-    // the important site capabilities while keeping synchronous scans predictable.
-    const representativePageLimit = 20;
+    // into an unbounded crawler. Cap the selection at thirty distinct URLs;
+    // the worker pool remains bounded to protect scan performance.
+    const representativePageLimit = 30;
     // Keep representative sampling inside the locale/subdirectory the customer
     // actually scanned. Falling back to origin "/" can switch country/language
     // (for example /nl/nl/ -> global root) and contaminate sector/content evidence.
@@ -3592,17 +3592,16 @@ export async function POST(request: Request) {
       if (uniqueMultiPagePages.length >= representativePageLimit) break;
     }
     // A site can have many important pages sharing one URL template.
-    // First choose structurally diverse pages; if that yields fewer than ten,
-    // fill the remaining slots with distinct high-relevance URLs. This is still
-    // capped by representativePageLimit and never forces tiny sites to ten.
-    if (uniqueMultiPagePages.length < 10) {
+    // First choose structurally diverse pages, then fill remaining slots with
+    // distinct high-relevance URLs up to the cap. Small sites stay small.
+    if (uniqueMultiPagePages.length < representativePageLimit) {
       const seenUrls = new Set(uniqueMultiPagePages.map((item)=>normalizeScanUrl(item.url)));
       for (const item of rankedMultiPage) {
         const normalized = normalizeScanUrl(item.url);
         if (seenUrls.has(normalized)) continue;
         seenUrls.add(normalized);
         uniqueMultiPagePages.push(item);
-        if (uniqueMultiPagePages.length >= Math.min(10, representativePageLimit)) break;
+        if (uniqueMultiPagePages.length >= representativePageLimit) break;
       }
     }
     const auditMultiPage = async (page: MultiPageCandidate): Promise<MultiPageAudit> => {
