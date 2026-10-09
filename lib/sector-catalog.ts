@@ -162,7 +162,7 @@ export function assessSectorConflict(candidates: ReturnType<typeof rankSectorCan
   // evidence of a reliable primary sector.
   const secondVerified = Boolean(second?.evidence.some(item => item.startsWith("Schema:") || item.startsWith("Evidence:")));
   const close = Boolean(second && second.score > 0 &&
-    (first.score - second.score <= 2 || (secondVerified && second.score >= first.score * 0.8)));
+    (secondVerified && (first.score - second.score <= 2 || second.score >= first.score * 0.8)));
   const strong = schema && verified && !close;
   const confidence = close ? 55 : strong ? 95 : independentGroups >= 2 ? 75 : 50;
   return {
