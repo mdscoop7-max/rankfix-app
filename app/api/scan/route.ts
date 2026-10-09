@@ -1727,8 +1727,8 @@ export async function POST(request: Request) {
         evidenceCapabilities.includes("quote_request") && "lead_generation",
         evidenceCapabilities.includes("local") && "local_business",
       ].filter((value): value is string => Boolean(value)))],
-      secondarySectorCandidates:evidenceSectorCandidates,
-      sectorMotor3Assessment:assessSectorConflict(evidenceSectorCandidates)
+      sectorMotor3Assessment:assessSectorConflict(evidenceSectorCandidates),
+      secondarySectorCandidates:evidenceSectorCandidates
         .filter(candidate=>candidate.key!==sectorProfile.key && candidate.score>=3)
         .slice(0,4)
         .map(candidate=>({key:candidate.key,label:candidate.label,score:candidate.score,evidence:candidate.evidence})),
