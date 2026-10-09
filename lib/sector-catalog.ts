@@ -158,7 +158,11 @@ export function assessSectorConflict(candidates: ReturnType<typeof rankSectorCan
   const verified = first.evidence.some(item => item.startsWith("Evidence:"));
   const text = first.evidence.some(item => item === "Sectorspecifieke content gevonden");
   const independentGroups = Number(schema) + Number(verified) + Number(text);
-  const close = Boolean(second && second.score > 0 && first.score - second.score <= 2);
+  // A near tie or a conflicting independently supported identity is not
+  // evidence of a reliable primary sector.
+  const secondVerified = Boolean(second?.evidence.some(item => item.startsWith("Schema:") || item.startsWith("Evidence:")));
+  const close = Boolean(second && second.score > 0 &&
+    (first.score - second.score <= 2 || (secondVerified && second.score >= first.score * 0.8)));
   const strong = schema && verified && !close;
   const confidence = close ? 55 : strong ? 95 : independentGroups >= 2 ? 75 : 50;
   return {
