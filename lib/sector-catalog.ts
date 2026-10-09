@@ -150,6 +150,27 @@ export function rankSectorCandidates(evidence: ScanEvidence, searchableText: str
 }
 
 
+/** Sector Motor 3.0 advisory confidence: no unsupported certainty from a single clue. */
+export function assessSectorConflict(candidates: ReturnType<typeof rankSectorCandidates>) {
+  const [first, second] = candidates;
+  if (!first) return { status: "unknown" as const, confidence: 0, sector: null, reason: "Geen sectorspecifiek bewijs" };
+  const schema = first.evidence.some(item => item.startsWith("Schema:"));
+  const verified = first.evidence.some(item => item.startsWith("Evidence:"));
+  const text = first.evidence.some(item => item === "Sectorspecifieke content gevonden");
+  const independentGroups = Number(schema) + Number(verified) + Number(text);
+  const close = Boolean(second && second.score > 0 && first.score - second.score <= 2);
+  const strong = schema && verified && !close;
+  const confidence = close ? 55 : strong ? 95 : independentGroups >= 2 ? 75 : 50;
+  return {
+    status: close ? "ambiguous" as const : confidence < 60 ? "uncertain" as const : "supported" as const,
+    confidence,
+    sector: close || confidence < 60 ? null : first.key,
+    reason: close ? "Concurrerende sectoren hebben vergelijkbaar bewijs" :
+      confidence < 60 ? "Onvoldoende onafhankelijke bewijsbronnen" : "Sector ondersteund door onafhankelijk bewijs",
+  };
+}
+
+
 // Capabilities are facts, not sectors. Only generic cross-sector capabilities map
 // directly to modules here. Sector-defining modules (recruitment, hospitality,
 // real estate, automotive, marketplace) are activated by the primary-sector
