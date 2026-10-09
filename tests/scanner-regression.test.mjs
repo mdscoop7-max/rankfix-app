@@ -791,7 +791,7 @@ test("structural actions outrank plain text hints in scan evidence", async () =>
 test("Scan Motor 3.0 audits a bounded diverse representative sample", async () => {
   const { readFile } = await import("node:fs/promises");
   const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  assert.match(scanner,/const representativePageLimit = 20/);
+  assert.match(scanner,/const representativePageLimit = 30/);
   assert.match(scanner,/pickMultiPage\("product", 4\)/);
   assert.match(scanner,/pickMultiPage\("service", 5\)/);
   assert.match(scanner,/uniqueMultiPagePages\.length >= representativePageLimit/);
