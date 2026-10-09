@@ -126,7 +126,21 @@ export function rankSectorCandidates(evidence: ScanEvidence, searchableText: str
         /\b(?:gerechten|diner|lunch|ontbijt|eten|food|cuisine|chef|tafel reserveren|restaurant)\b/i.test(searchableText);
       if (!foodIdentity) evidenceHits = evidenceHits.filter(x=>x!=="inventory.menu");
     }
-    const score = (keywordHit?2:0) + schemaHits.length*3 + evidenceHits.length*2;
+    // Sector Motor 3.0: structured identity and independently verified capabilities
+    // outweigh isolated words. Shared generic schema (Product/Offer/Store) must
+    // not establish a marketplace or specialist identity on its own.
+    const genericSchema = new Set(["product","offer","store","organization","professionalservice","foodestablishment"]);
+    const specificSchemaHits = schemaHits.filter(x=>!genericSchema.has(x.toLowerCase()));
+    const genericSchemaHits = schemaHits.filter(x=>genericSchema.has(x.toLowerCase()));
+    const schemaScore = specificSchemaHits.length * 5 + Math.min(genericSchemaHits.length, 1) * 2;
+    const evidenceScore = evidenceHits.length * 4;
+    const score = (keywordHit ? 1 : 0) + schemaScore + evidenceScore;
+    // A catalog alone is not proof of a multi-seller marketplace.
+    if (def.key === "marketplace" && !keywordHit && specificSchemaHits.length === 0) {
+      return {key:def.key,label:def.label,score:0,evidence:[],
+        expectedCapabilities:def.expectedCapabilities,optionalCapabilities:def.optionalCapabilities||[],
+        forbiddenAssumptions:def.forbiddenAssumptions||[]};
+    }
     return {key:def.key,label:def.label,score,evidence:[
       ...(keywordHit?["Sectorspecifieke content gevonden"]:[]),
       ...schemaHits.map(x=>`Schema: ${x}`),
