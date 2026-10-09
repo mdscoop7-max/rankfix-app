@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { rankSectorCandidates } from "../lib/sector-catalog.ts";
+import { rankSectorCandidates, assessSectorConflict } from "../lib/sector-catalog.ts";
 
 function evidence(schemaTypes = [], flags = {}) {
   const signal = (name) => ({ value: Boolean(flags[name]), confidence: flags[name] ? "high" : "low" });
@@ -31,4 +31,26 @@ test("Sector Motor 3.0: a lone word remains weaker than independent verified evi
 test("Sector Motor 3.0: a navigation menu alone cannot establish a restaurant", () => {
   const ranked = rankSectorCandidates(evidence([], { menu: true }), "services and contact");
   assert.equal(ranked.some(x => x.key === "restaurant"), false);
+});
+
+test("Sector Motor 3.0: close contenders remain ambiguous", () => {
+  const result = assessSectorConflict([
+    { key: "restaurant", score: 8, evidence: ["Schema: Restaurant", "Evidence: inventory.menu"] },
+    { key: "cafe_bar", score: 7, evidence: ["Schema: CafeOrCoffeeShop"] },
+  ]);
+  assert.equal(result.status, "ambiguous");
+  assert.equal(result.sector, null);
+  assert.ok(result.confidence < 60);
+});
+
+test("Sector Motor 3.0: single keyword never yields confirmed sector", () => {
+  const result = assessSectorConflict(rankSectorCandidates(evidence(), "tandarts"));
+  assert.equal(result.status, "uncertain");
+  assert.equal(result.sector, null);
+});
+
+test("Sector Motor 3.0: specific schema and verified inventory support identity", () => {
+  const result = assessSectorConflict(rankSectorCandidates(evidence(["RealEstateAgent"], { properties: true }), "makelaar"));
+  assert.equal(result.status, "supported");
+  assert.equal(result.sector, "real_estate");
 });
