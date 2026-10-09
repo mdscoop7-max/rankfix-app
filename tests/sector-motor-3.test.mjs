@@ -79,3 +79,21 @@ test("Sector Motor 3.0: scan retains the conflict assessment as internal evidenc
   assert.match(source, /sectorMotor3Assessment:assessSectorConflict\(evidenceSectorCandidates\)/);
   assert.match(source, /secondarySectorCandidates:evidenceSectorCandidates/);
 });
+
+test("Sector Motor 3.0: vacancies alone cannot turn a shop into recruitment", () => {
+  const ranked = rankSectorCandidates(evidence(["OnlineStore"], { products: true, jobs: true }), "webshop vacatures");
+  assert.equal(ranked[0].key, "ecommerce");
+  assert.equal(ranked.some(x => x.key === "recruitment" && x.score >= ranked[0].score), false);
+});
+
+test("Sector Motor 3.0: unknown evidence does not manufacture a sector", () => {
+  assert.deepEqual(rankSectorCandidates(evidence(), ""), []);
+  const result = assessSectorConflict([]);
+  assert.equal(result.status, "unknown");
+  assert.equal(result.confidence, 0);
+});
+
+test("Sector Motor 3.0: specific healthcare schema outranks stray retail keyword", () => {
+  const ranked = rankSectorCandidates(evidence(["MedicalClinic"], { appointment: true }), "webshop afspraak");
+  assert.equal(ranked[0].key, "medical_clinic");
+});
