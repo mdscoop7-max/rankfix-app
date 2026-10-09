@@ -72,3 +72,10 @@ test("Sector Motor 3.0: generic unsupported runner-up does not erase strong evid
   assert.equal(result.status, "supported");
   assert.equal(result.sector, "real_estate");
 });
+
+test("Sector Motor 3.0: scan retains the conflict assessment as internal evidence", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /sectorMotor3Assessment:assessSectorConflict\(evidenceSectorCandidates\)/);
+  assert.match(source, /secondarySectorCandidates:evidenceSectorCandidates/);
+});
