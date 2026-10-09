@@ -54,3 +54,21 @@ test("Sector Motor 3.0: specific schema and verified inventory support identity"
   assert.equal(result.status, "supported");
   assert.equal(result.sector, "real_estate");
 });
+
+test("Sector Motor 3.0: independently evidenced competing sector stays uncertain", () => {
+  const result = assessSectorConflict([
+    { key: "real_estate", score: 10, evidence: ["Schema: RealEstateAgent", "Evidence: inventory.properties"] },
+    { key: "ecommerce", score: 8, evidence: ["Schema: OnlineStore", "Evidence: commerce.cart"] },
+  ]);
+  assert.equal(result.status, "ambiguous");
+  assert.equal(result.sector, null);
+});
+
+test("Sector Motor 3.0: generic unsupported runner-up does not erase strong evidence", () => {
+  const result = assessSectorConflict([
+    { key: "real_estate", score: 10, evidence: ["Schema: RealEstateAgent", "Evidence: inventory.properties"] },
+    { key: "ecommerce", score: 8, evidence: ["Sectorspecifieke content gevonden"] },
+  ]);
+  assert.equal(result.status, "supported");
+  assert.equal(result.sector, "real_estate");
+});
