@@ -13,7 +13,7 @@ import { normalizePlan, planLimits } from "@/lib/plans";
 import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
 import { renderPublicPage } from "@/lib/headless-render";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
-import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
+import { assessSectorConflict, modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -1727,7 +1727,8 @@ export async function POST(request: Request) {
         evidenceCapabilities.includes("quote_request") && "lead_generation",
         evidenceCapabilities.includes("local") && "local_business",
       ].filter((value): value is string => Boolean(value)))],
-      secondarySectorCandidates:evidenceSectorCandidates
+      secondarySectorCandidates:evidenceSectorCandidates,
+      sectorMotor3Assessment:assessSectorConflict(evidenceSectorCandidates)
         .filter(candidate=>candidate.key!==sectorProfile.key && candidate.score>=3)
         .slice(0,4)
         .map(candidate=>({key:candidate.key,label:candidate.label,score:candidate.score,evidence:candidate.evidence})),
