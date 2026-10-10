@@ -1622,7 +1622,17 @@ export async function POST(request: Request) {
       || (strongSectorCandidate && sectorCandidates[0].sector !== "ecommerce"
         ? {sector:sectorCandidates[0].sector,key:sectorCandidates[0].sector,label:sectorCandidates[0].label,evidence:[`Primary identity: ${sectorCandidates[0].hits} independent sector signals`]}
         : null);
-    const commerceAsPrimaryIdentity = evidenceCommerceConfirmed && !primaryNonCommerceIdentity;
+    // A verified storefront with multiple independent commerce signals must not be
+    // reclassified by incidental hospitality, media or other generic page copy.
+    // Preserve genuinely distinct business models (property, automotive, lodging,
+    // healthcare and services) when supported by their own strong identity evidence.
+    const explicitStoreSchema = schemaSet.has("onlinestore") || schemaSet.has("store") || schemaSet.has("furniturestore");
+    const verifiedStorefront = evidenceCommerceConfirmed && explicitStoreSchema &&
+      (scanEvidence.commerce.products.value || scanEvidence.commerce.cart.value || scanEvidence.commerce.addToCart.value);
+    const incidentalSectorConflict = primaryNonCommerceIdentity !== null &&
+      (primaryNonCommerceIdentity.sector === "hospitality" || primaryNonCommerceIdentity.sector === "news_media" || primaryNonCommerceIdentity.sector === "general_business");
+    const commerceAsPrimaryIdentity = evidenceCommerceConfirmed &&
+      (!primaryNonCommerceIdentity || (verifiedStorefront && incidentalSectorConflict && !shortStayIdentity));
     const sectorProfile = commerceAsPrimaryIdentity
       ? {
           sector:"ecommerce" as SectorKey,
