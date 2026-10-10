@@ -10,7 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test tests/*.test.mjs",
+    "test": "node --experimental-strip-types --import ./tests/support/resolve-ts.mjs --test tests/*.test.mjs",
     "load:test": "node scripts/load-test.mjs"
   },
   "dependencies": {

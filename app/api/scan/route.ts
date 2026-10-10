@@ -12,6 +12,7 @@ import { applyEvidenceBasedScoreCap, SCORE_MODEL_VERSION, scoreApplicableChecks,
 import { normalizePlan, planLimits } from "@/lib/plans";
 import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
 import { renderPublicPage } from "@/lib/headless-render";
+import { apiStatusForFailure, classifyFetchError, classifyHttpStatus, inputFailure, retryDecision, scanFailurePayload } from "@/lib/scan-failure";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { assessSectorConflict, modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
 import { arbitratePrimarySector, arbiterEvidenceFromScan, collectIdentityEvidence, reconcileModulesAfterArbitration, summarizeArbiterDecision } from "@/lib/sector-arbiter";
@@ -401,8 +402,13 @@ export async function POST(request: Request) {
       const host = target.hostname.toLowerCase().replace(/^www\./, "");
       // Reject obvious non-host input early instead of turning it into a confusing fetch error.
       if (!host.includes(".") && !/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) throw new Error("URL_HOST_INVALID");
-    } catch {
-      return NextResponse.json({ error: scanError.unsafe }, { status: 400 });
+    } catch (inputError) {
+      // A business name ("Bakkerij Jansen") or a single word is not a domain: explain that
+      // instead of calling it unsafe. Real SSRF refusals keep their own explicit reason.
+      const inputMessage = inputError instanceof Error ? inputError.message : "";
+      const notADomain = inputMessage === "URL_HOST_INVALID" || /\s/.test(rawUrl.replace(/^https?:\/\//i, "").split("/")[0]);
+      const failure = notADomain ? inputFailure("NOT_A_DOMAIN") : classifyFetchError(inputError);
+      return NextResponse.json(scanFailurePayload(failure, scanLanguage), { status: apiStatusForFailure(failure) });
     }
 
     // share.google is only a redirect resolver, never a scan target or evidence source.
@@ -422,8 +428,9 @@ export async function POST(request: Request) {
           throw new Error("SHARE_GOOGLE_UNRESOLVED");
         }
         target = validatePublicHttpUrl(normalizeScanUrl(resolvedShare.finalUrl.toString()));
-      } catch {
-        return NextResponse.json({ error: scanError.fetch }, { status: 502 });
+      } catch (shareError) {
+        const failure = classifyFetchError(shareError);
+        return NextResponse.json(scanFailurePayload(failure, scanLanguage), { status: apiStatusForFailure(failure) });
       }
     }
 
@@ -525,7 +532,7 @@ export async function POST(request: Request) {
       } catch (httpsError) {
         // For a scheme-less domain RankFix first tries HTTPS. Some legacy sites still only
         // answer on HTTP, so retry HTTP once. Never downgrade an explicitly supplied HTTPS URL.
-        if (!/^https?:\/\//i.test(rawUrl) && target.protocol === "https:") {
+        if (!/^https?:\/\//i.test(rawUrl) && target.protocol === "https:" && classifyFetchError(httpsError).category !== "unsafe_target") {
           activeTarget = validatePublicHttpUrl(`http://${target.host}${target.pathname}${target.search}`);
           ({ response, finalUrl: fetchedFinalUrl, redirectChain } = await fetchTarget());
           target = activeTarget;
@@ -534,22 +541,23 @@ export async function POST(request: Request) {
         }
       }
 
-      // A 429 is a temporary rate limit, not an SEO finding. Respect Retry-After
-      // when practical and retry at most twice so RankFix never creates a request loop.
-      for (let retry = 0; response.status === 429 && retry < 2; retry++) {
-        const retryAfter = response.headers.get("retry-after");
-        const seconds = retryAfter && /^\d+$/.test(retryAfter.trim()) ? Number(retryAfter.trim()) : null;
-        const retryDateMs = retryAfter && seconds === null ? Date.parse(retryAfter) - Date.now() : NaN;
-        const requestedDelayMs = seconds !== null ? seconds * 1000 : Number.isFinite(retryDateMs) ? Math.max(0, retryDateMs) : 750 * (retry + 1);
-        const delayMs = Math.min(Math.max(requestedDelayMs, 500), 5000);
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      // 429/502/503/504 are temporary, not SEO findings. Retry politely: honour
+      // Retry-After, never wait longer than a few seconds inside a scan and never
+      // retry more than twice. A longer requested pause stops the scan and is
+      // reported to the customer instead of hammering the website.
+      for (let attempt = 0; ; attempt++) {
+        const decision = retryDecision(response.status, response.headers, attempt, { maxWaitMs: 5000 });
+        if (!decision.retry) break;
+        try { await response.body?.cancel(); } catch {}
+        await new Promise((resolve) => setTimeout(resolve, decision.delayMs));
         ({ response, finalUrl: fetchedFinalUrl, redirectChain } = await fetchTarget());
       }
-    } catch {
-      return NextResponse.json(
-        { error: scanError.fetch },
-        { status: 502 }
-      );
+    } catch (fetchError) {
+      // DNS, TLS, connection, timeout, redirect-loop and SSRF refusals each get their
+      // own category so a scanner limit is never reported as a website fault.
+      const failure = classifyFetchError(fetchError);
+      console.info("RankFix scan fetch failed", { target: target.toString(), code: failure.code, category: failure.category });
+      return NextResponse.json(scanFailurePayload(failure, scanLanguage), { status: apiStatusForFailure(failure) });
     }
 
     const responseTime = Date.now() - started;
@@ -559,11 +567,13 @@ export async function POST(request: Request) {
     const finalUrl = fetchedFinalUrl ?? new URL(response.url || target.toString());
     console.info("RankFix redirect resolution", { requested: target.toString(), final: finalUrl.toString(), hops: redirectChain.length });
 
-    if (response.status === 429) {
-      return NextResponse.json(
-        { error: scanError.rate, retryable: true, charged: false },
-        { status: 429 }
-      );
+    {
+      // Still temporary after the polite retries (429/408/502/503/504/52x): stop without a score.
+      const temporaryFailure = classifyHttpStatus(response.status, response.headers);
+      if (temporaryFailure?.category === "temporary") {
+        try { await response.body?.cancel(); } catch {}
+        return NextResponse.json(scanFailurePayload(temporaryFailure, scanLanguage), { status: apiStatusForFailure(temporaryFailure) });
+      }
     }
 
     // Recovery Evidence: a normal public request can receive 403/405 while a
@@ -595,15 +605,12 @@ export async function POST(request: Request) {
       }
     }
     if (!response.ok && !recoveredHtml) {
-      const httpMessages: Record<string,string> = {
-        nl:`Scan geblokkeerd door website (HTTP ${response.status}). RankFix kon deze website niet betrouwbaar analyseren. Er is daarom geen score berekend.`,
-        en:`The website returned HTTP ${response.status} and cannot be analysed reliably.`,
-        de:`Die Website hat HTTP ${response.status} zurückgegeben und kann nicht zuverlässig analysiert werden.`,
-        fr:`Le site a renvoyé HTTP ${response.status} et ne peut pas être analysé de manière fiable.`,
-        it:`Il sito ha restituito HTTP ${response.status} e non può essere analizzato in modo affidabile.`,
-        es:`El sitio devolvió HTTP ${response.status} y no se puede analizar de forma fiable.`
-      };
-      return NextResponse.json({ error: httpMessages[scanLanguage], recovery }, { status: 422 });
+      // Distinguish a real website fault (404/410/500) from an access block that only
+      // affects RankFix (401/403/405/451/WAF). Neither produces a score, and a block
+      // never turns into a negative SEO or security finding.
+      const httpFailure = classifyHttpStatus(response.status, response.headers) ?? classifyHttpStatus(599, response.headers)!;
+      try { await response.body?.cancel(); } catch {}
+      return NextResponse.json(scanFailurePayload(httpFailure, scanLanguage, { recovery }), { status: apiStatusForFailure(httpFailure) });
     }
 
     // Modern commerce/product pages can contain large SSR payloads and JSON-LD. Keep a strict cap, but allow enough room to audit them safely.
@@ -1803,7 +1810,12 @@ export async function POST(request: Request) {
 
     const missingSecurityHeaders = Object.entries(securityHeaders).filter(([, value]) => !value).map(([name])=>name);
     const securityHeaderEvidence = `aanwezig: ${presentSecurityHeaders.map(([name])=>name).join(", ") || "geen"}; niet aangetroffen in de response: ${missingSecurityHeaders.join(", ") || "geen"}`;
-    securityChecks.push(presentSecurityHeaders.length === 6
+    // A 403/405 recovered through the browser: the HTTP headers belong to the blocked
+    // (often WAF/CDN) response, not to the real page. They are no evidence either way.
+    const headersFromBlockedResponse = Boolean(recoveredHtml) && !response.ok;
+    securityChecks.push(headersFromBlockedResponse
+      ? securityCheck("unable_to_confirm","security_headers","Security headers",`De website blokkeerde het gewone verzoek van RankFix (HTTP ${response.status}); de pagina is via een browser hersteld. De headers van de blokkade-response zeggen niets over de echte securityheaders, dus deze controle is niet te bevestigen.`,"Scan opnieuw wanneer de website RankFix toelaat, of controleer de headers handmatig in de browser.",0,6)
+      : presentSecurityHeaders.length === 6
       ? securityCheck("pass","security_headers","Security headers",`Alle 6 gecontroleerde browser-securityheaders zijn bevestigd (${securityHeaderEvidence}).`,"Houd deze headers actief en test wijzigingen aan CSP/HSTS eerst tegen de applicatie.",6,6)
       : securityCheck("warning","security_headers","Security headers",`RankFix bevestigde ${presentSecurityHeaders.length} van 6 gecontroleerde securityheaders (${securityHeaderEvidence}). ${coreSecurityHeadersPresent ? "De kernregel is wel gehaald, maar niet alle zes headers zijn aanwezig." : "De kernregel is niet volledig gehaald."} Dit is hardening-advies en op zichzelf geen bewijs van een kwetsbaarheid.`,"Controleer HSTS, CSP/frame-bescherming, X-Content-Type-Options, Referrer-Policy en Permissions-Policy op server/CDN-niveau.",Math.max(0, presentSecurityHeaders.length),6));
 
@@ -1867,7 +1879,9 @@ export async function POST(request: Request) {
       ].filter(Boolean);
       return `${cookie.name}: ${missing.length ? missing.join(", ") : "relevante flags bevestigd"}`;
     }).join(" · ");
-    securityChecks.push(!cookiePresent
+    securityChecks.push(headersFromBlockedResponse
+      ? securityCheck("unable_to_confirm","security_cookie_flags","Cookie-beveiliging",`De cookies kwamen uit een blokkade-response (HTTP ${response.status}) en niet van de echte pagina; cookieflags zijn daardoor niet te bevestigen.`,"Scan opnieuw wanneer de website RankFix toelaat.",0,5)
+      : !cookiePresent
       ? securityCheck("unable_to_confirm","security_cookie_flags","Cookie-beveiliging","De hoofdresponse bevatte geen zichtbare Set-Cookie-header. RankFix kan daardoor cookieflags voor browser-, consent- of ingelogde flows niet bevestigen.","Controleer sessie-, consent- en authenticatiecookies in de relevante flows; ken zonder cookie-evidence geen veiligheidspunten toe.",0,5)
       : cookieIssueCount === 0
         ? securityCheck("pass","security_cookie_flags","Cookie-beveiliging",`De zichtbare Set-Cookie-response bevestigt passende relevante flags voor ${cookieObservations.length} cookie(s).`,"Houd gevoelige sessiecookies voorzien van passende beveiligingsflags.",5,5)
@@ -3464,10 +3478,10 @@ export async function POST(request: Request) {
     const rawRenderingNotes: Record<string,string> = {
       nl: javascriptCandidate ? "JavaScript-framework gedetecteerd, maar browser-rendering kon niet betrouwbaar worden voltooid. Dynamische formulieren, metadata en interactieve onderdelen kunnen daarom ontbreken; deze controles blijven Niet te bevestigen." : "RankFix beoordeelde de HTTP HTML-response; client-side JavaScript was voor deze pagina niet nodig of werd niet uitgevoerd.",
       en: javascriptCandidate ? "A JavaScript framework was detected, but browser rendering could not be completed reliably. Dynamic forms, metadata and interactive elements may therefore be missing; affected checks remain Unable to confirm." : "RankFix evaluated the HTTP HTML response; client-side JavaScript was not required for this page or was not executed.",
-      de:"RankFix hat die HTTP-HTML-Antwort ausgewertet; clientseitiges JavaScript wurde in diesem Scan nicht ausgeführt.",
-      fr:"RankFix a évalué la réponse HTML HTTP ; le JavaScript côté client n’a pas été exécuté pendant cette analyse.",
-      it:"RankFix ha valutato la risposta HTML HTTP; il JavaScript lato client non è stato eseguito durante questa scansione.",
-      es:"RankFix evaluó la respuesta HTML HTTP; el JavaScript del lado del cliente no se ejecutó durante este análisis."
+      de: javascriptCandidate ? "Ein JavaScript-Framework wurde erkannt, aber das Browser-Rendering konnte nicht zuverlässig abgeschlossen werden. Dynamische Formulare, Metadaten und interaktive Elemente können daher fehlen; betroffene Prüfungen bleiben „Nicht bestätigt“." : "RankFix hat die HTTP-HTML-Antwort ausgewertet; clientseitiges JavaScript wurde in diesem Scan nicht ausgeführt.",
+      fr: javascriptCandidate ? "Un framework JavaScript a été détecté, mais le rendu navigateur n’a pas pu être terminé de façon fiable. Les formulaires dynamiques, métadonnées et éléments interactifs peuvent donc manquer ; les contrôles concernés restent « Non confirmé »." : "RankFix a évalué la réponse HTML HTTP ; le JavaScript côté client n’a pas été exécuté pendant cette analyse.",
+      it: javascriptCandidate ? "È stato rilevato un framework JavaScript, ma il rendering nel browser non è stato completato in modo affidabile. Moduli dinamici, metadati ed elementi interattivi potrebbero quindi mancare; i controlli interessati restano «Non confermato»." : "RankFix ha valutato la risposta HTML HTTP; il JavaScript lato client non è stato eseguito durante questa scansione.",
+      es: javascriptCandidate ? "Se detectó un framework JavaScript, pero el renderizado en el navegador no pudo completarse de forma fiable. Por eso pueden faltar formularios dinámicos, metadatos y elementos interactivos; los controles afectados quedan como «No confirmado»." : "RankFix evaluó la respuesta HTML HTTP; el JavaScript del lado del cliente no se ejecutó durante este análisis."
     };
     const jsRenderingNotes: Record<string,string> = {
       nl:"RankFix heeft deze JavaScript-site in een begrensde browser gerenderd. Interactieve login-, winkelwagen- en betaalflows zijn niet uitgevoerd.",
@@ -4497,6 +4511,15 @@ export async function POST(request: Request) {
     };
 
     let user = null;
+    // Transparency: when a JavaScript page could not be rendered, list exactly which
+    // checks stayed "Niet te bevestigen" so the report never implies they were verified.
+    const renderingWithScope = rendering as typeof rendering & { unconfirmedChecks?: Array<{ key: string; title: string; category: string }> };
+    renderingWithScope.unconfirmedChecks = rendering.warning
+      ? [...selectedSeoChecks, ...selectedGeoChecks]
+          .filter((item) => item.status === "unable_to_confirm")
+          .map((item) => ({ key: item.key, title: item.title, category: item.category }))
+          .slice(0, 25)
+      : [];
     let savedScanId: string | null = null;
     let pendingFixes = new Map<string, { status: string }>();
     try { user = await getCurrentUser(); } catch {}
