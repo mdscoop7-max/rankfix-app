@@ -193,11 +193,18 @@ function gradeStorefront(input: ArbiterInput) {
     c.siteSampleProduct && "site_sample",
   ].filter((value): value is string => Boolean(value));
   const productLevel = c.product || c.addToCart;
+  // Catalogue storefront: a cart/checkout structure plus a priced product catalogue
+  // (many product links AND many visible prices) are three independent purchase-structure
+  // groups. Large retailers often show this on the homepage without Product schema or an
+  // add-to-cart button (those live on product pages that may be blocked or JS-rendered).
+  const catalogue = c.cartOrCheckout && c.productLinks >= 6 && c.priceCount >= 4;
   const strong = c.previouslyConfirmed || c.siteSampleProduct ||
     (store && (productLevel || c.cartOrCheckout)) ||
-    (c.addToCart && (c.cartOrCheckout || c.product));
-  // Weak evidence (product schema + prices, or only a platform fingerprint) is a hint, never a confirmation.
-  const weak = !strong && (Boolean(c.technologyOnly) || (productLevel && groups.length >= 2));
+    (c.addToCart && (c.cartOrCheckout || c.product)) ||
+    catalogue;
+  // Weak evidence (product schema + prices, a priced catalogue without cart, or only a
+  // platform fingerprint) is a hint, never a confirmation.
+  const weak = !strong && (Boolean(c.technologyOnly) || (productLevel && groups.length >= 2) || (c.productLinks >= 3 && c.priceCount >= 3));
   return { store, groups, grade: strong ? "strong" as const : weak ? "weak" as const : "none" as const };
 }
 
@@ -292,7 +299,14 @@ export function arbitratePrimarySector(input: ArbiterInput): ArbiterDecision {
 
   // A. Verified storefront.
   if (storefront.grade === "strong") {
-    if (top && top.proof.length >= 2 && !GENERIC_WORD_SECTORS.has(top.sector) && !contested) {
+    // Generic-word sectors only lose to a storefront when their "proof" could be words.
+    // A dedicated schema type PLUS an independent structural capability (menu+reservation,
+    // rooms+booking) is not a word match; with a small shop (e.g. gift cards) the
+    // specialist stays primary. A full product catalogue still wins as a storefront.
+    const dedicatedGenericSpecialist = !!top &&
+      top.proof.some(proof => proof.startsWith("schema:")) && top.proof.some(proof => !proof.startsWith("schema:"));
+    const smallShop = input.commerce.productLinks < 6 && !input.commerce.siteSampleProduct && !input.commerce.previouslyConfirmed;
+    if (top && top.proof.length >= 2 && !contested && (!GENERIC_WORD_SECTORS.has(top.sector) || (dedicatedGenericSpecialist && smallShop))) {
       reasons.push(`Sterke specialistische identiteit (${top.proof.join(", ")}) gaat voor de winkelfunctie.`);
       reasons.push(`Aankoopstructuur (${storefront.groups.join(", ")}) wordt als nevenactiviteit/webshopfunctie behandeld.`);
       return specialist(top, true);
