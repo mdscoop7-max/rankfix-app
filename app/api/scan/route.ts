@@ -1815,8 +1815,13 @@ export async function POST(request: Request) {
         ? securityCheck("pass","security_mixed_content","Mixed content","Geen expliciete HTTP-assets gevonden in de gescande HTTPS-HTML.","Blijf assets via HTTPS of relatieve URL's laden.",4,4)
         : securityCheck("fail","security_mixed_content","Mixed content",`${mixedContentMatches.length} expliciete HTTP-assetverwijzing(en) gevonden op een HTTPS-pagina.`,"Vervang HTTP-asset-URL's door HTTPS of veilige relatieve URL's.",4,4));
 
+    // Read individual Set-Cookie records where supported. A combined header can
+    // contain commas in Expires dates, so splitting it is only a fallback.
+    const individualSetCookies = typeof response.headers.getSetCookie === "function"
+      ? response.headers.getSetCookie()
+      : [];
     const setCookieHeaders = response.headers.get("set-cookie") || "";
-    const cookiePresent = Boolean(setCookieHeaders);
+    const cookiePresent = individualSetCookies.length > 0 || Boolean(setCookieHeaders);
     // Strict Set-Cookie parsing. Commas inside Expires must stay inside the cookie,
     // and attributes are evaluated only on their own cookie record.
     const splitSetCookieHeader = (header:string) => {
@@ -1834,7 +1839,7 @@ export async function POST(request: Request) {
       out.push(header.slice(from).trim());
       return out.filter(Boolean);
     };
-    const observedCookies = setCookieHeaders ? splitSetCookieHeader(setCookieHeaders) : [];
+    const observedCookies = individualSetCookies.length ? individualSetCookies : setCookieHeaders ? splitSetCookieHeader(setCookieHeaders) : [];
     const cookieObservations = observedCookies.map((raw)=>{
       const first = raw.split(";")[0] || "";
       const name = first.split("=")[0]?.trim() || "cookie";
