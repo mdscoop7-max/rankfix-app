@@ -214,18 +214,12 @@ export default function GithubPage(){
           const prNumber=Number(d.pr?.number)||undefined;
           const prUrl=String(d.pr?.url||"").trim() || (prNumber ? `https://github.com/${cleanRepo}/pull/${prNumber}` : undefined);
           setCompletedPr({number:prNumber,url:prUrl,title:d.pr?.title});
-          if(d.merge?.merged){
-            setMessage(language==="nl"?"Fix gepubliceerd. RankFix heeft de Pull Request automatisch gemerged. Scan de live website opnieuw om de oplossing te bevestigen.":"Fix published. RankFix merged the Pull Request automatically. Scan the live website again to verify the fix.");
-          }else{
-            // A created PR is a successful Fix Engine result even when GitHub
-            // cannot merge it immediately. Keep this as a workflow state,
-            // not a blocking/error state.
-            const reason=String(d.merge?.reason||"GitHub staat automatisch mergen nog niet toe.");
-            setError("");
-            setMessage(language==="nl"
-              ?"Pull Request aangemaakt — wacht op merge. RankFix heeft de codewijziging veilig gepubliceerd naar GitHub. Automatisch mergen is nog niet beschikbaar. Reden: "+reason
-              :"Pull Request created — waiting for merge. RankFix safely published the code change to GitHub. Automatic merging is not available yet. Reason: "+reason);
-          }
+          // RankFix never merges automatically: the customer reviews and merges the
+          // pull request on GitHub, then a fresh live scan confirms the fix.
+          setError("");
+          setMessage(language==="nl"
+            ?"Pull request aangemaakt — wacht op jouw merge. Controleer de wijziging op GitHub en merge hem zelf wanneer je akkoord bent. Scan daarna de live website opnieuw om de oplossing te bevestigen."
+            :"Pull request created — waiting for your merge. Review the change on GitHub and merge it yourself when you agree. Then rescan the live website to confirm the fix.");
         }
       }
     }catch(error){
