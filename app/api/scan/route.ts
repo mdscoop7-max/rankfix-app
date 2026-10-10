@@ -3720,7 +3720,7 @@ export async function POST(request: Request) {
         const pageForms = [...pageHtml.matchAll(new RegExp("<form\\b[\\s\\S]*?</form>", "gi"))].map((m)=>m[0]);
         const pagePasswordForm = pageForms.some((form)=>new RegExp("<input[^>]+type\\s*=\\s*[\"\']password[\"\']", "i").test(form));
         const pageInsecureFormActions = pageForms.filter((form)=>new RegExp("action\\s*=\\s*[\"\']http://", "i").test(form)).length;
-        const pageSchemaTypes = [...pageHtml.matchAll(/"@type"\s*:\s*"([^"]+)"/gi)].map((m)=>String(m[1]||"").toLowerCase());
+        const pageSchemaTypes = [...pageHtml.matchAll(/"@type"\s*:\s*(?:"([^"]+)"|\[([^\]]+)\])/gi)].flatMap((m)=>m[1] ? [m[1].toLowerCase()] : [...String(m[2]||"").matchAll(/"([^"]+)"/g)].map((entry)=>entry[1].toLowerCase()));
         const pageProductSchema = pageSchemaTypes.some((type)=>type==="product" || /(?:^|:)product$/.test(type));
         const pageItemListSchema = pageSchemaTypes.some((type)=>type==="itemlist" || /(?:^|:)itemlist$/.test(type));
         const pageStoreSchema = pageSchemaTypes.some((type)=>/(?:^|:)(?:store|onlinestore|departmentstore|wholesalestore|furniturestore)$/.test(type));
