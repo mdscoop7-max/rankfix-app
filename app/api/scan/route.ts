@@ -4062,7 +4062,7 @@ export async function POST(request: Request) {
     // Commerce is a primary site identity. Once Scanbewijs confirms a webshop,
     // incidental content-sector words must not leave the report labelled as an
     // unrelated sector. Preserve the previous candidate as diagnostic evidence.
-    if (finalCommerceDecision.confirmed && sectorProfile.key!=="ecommerce" && !primaryNonCommerceIdentity) {
+    if (finalCommerceDecision.confirmed && sectorProfile.key!=="ecommerce" && (!primaryNonCommerceIdentity || (verifiedStorefront && incidentalSectorConflict && !shortStayIdentity))) {
       const previousSector = sectorProfile.label;
       sectorProfile.sector = "ecommerce";
       sectorProfile.key = "ecommerce";
