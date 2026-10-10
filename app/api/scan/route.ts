@@ -3985,7 +3985,7 @@ export async function POST(request: Request) {
       scanEvidence.commerce.products.confidence === "high" &&
       scanEvidence.commerce.prices.value.count > 0 &&
       scanEvidence.commerce.prices.confidence !== "low";
-    const hardCommerceEvidence = sitewideCommerceEvidence.confirmed || representativeRetailProduct || Boolean(
+    const hardCommerceEvidence = verifiedStorefront || sitewideCommerceEvidence.confirmed || representativeRetailProduct || Boolean(
       confirmedCurrentProduct ||
       confirmedAddToCart ||
       corroboratedProductAndPrice
@@ -3999,6 +3999,7 @@ export async function POST(request: Request) {
       technologyOnly: technologyOnlyCommerce,
       secondaryCommerceOnly,
       multiPageEvidence: sitewideCommerceEvidence.confirmed,
+      explicitStorefrontEvidence: verifiedStorefront,
     };
     if (!finalCommerceDecision.confirmed && primaryNonCommerceIdentity) {
       masterEvidence.commerce.confirmed = false;
@@ -4101,7 +4102,7 @@ export async function POST(request: Request) {
       sectorProfile.label = "Webshop / e-commerce";
       sectorProfile.confidence = "high";
       sectorProfile.confidenceScore = Math.max(sectorProfile.confidenceScore, sitewideCommerceEvidence.confirmed ? 92 : 88);
-      sectorProfile.evidence = [...sectorProfile.evidence, `Scanbewijs bevestigt commerce; eerdere sectorhint: ${previousSector}`].slice(0,6);
+      sectorProfile.evidence = [...sectorProfile.evidence, verifiedStorefront ? "Store-schema plus product-/winkelwagenbewijs bevestigd" : "Representatieve product-/retailpagina bevestigd", `Eerdere sectorhint: ${previousSector}`].slice(0,6);
     }
 
     // Final Master reconciliation: late technology/multi-page evidence may improve
