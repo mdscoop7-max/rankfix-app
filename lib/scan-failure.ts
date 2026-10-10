@@ -127,6 +127,9 @@ export function classifyFetchError(error: unknown): ScanFailure {
   const message = error instanceof Error ? error.message : String(error || "");
   if (message === "RESPONSE_TOO_LARGE") return failure("scan_environment", "RESPONSE_TOO_LARGE");
   if (/^HEADLESS_/.test(message)) return failure("scan_environment", message);
+  // Plain errors that carry a known code as message (legacy throw sites) keep their meaning.
+  if (UNSAFE_CODES.has(message)) return failure("unsafe_target", message);
+  if (FETCH_CATEGORY[message]) return failure(FETCH_CATEGORY[message], message);
   const safe: SafeFetchError = toSafeFetchError(error);
   if (UNSAFE_CODES.has(safe.code)) return failure("unsafe_target", safe.code);
   return failure(FETCH_CATEGORY[safe.code] || "scan_environment", safe.code);

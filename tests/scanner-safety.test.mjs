@@ -50,3 +50,8 @@ test("Fix Engine refuses sector-dependent structured-data fixes when the sector 
   // Only proven, non-low-confidence FAIL/WARNING findings with evidence may become fixes.
   assert.match(fix, /!\["FAIL","WARNING"\]\.includes\(trustedStatus\) \|\| trustedConfidence==="low" \|\| !hasTrustedEvidence/);
 });
+
+test("non-http schemes typed by a customer are refused as unsafe, not as a strange hostname", async () => {
+  const route = await read("app/api/scan/route.ts");
+  assert.match(route, /throw new Error\("URL_PROTOCOL_BLOCKED"\)/);
+});

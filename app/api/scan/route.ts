@@ -395,6 +395,9 @@ export async function POST(request: Request) {
     try {
       // Customers may enter example.com, www.example.com or a complete http(s) URL.
       // Prefer HTTPS when the scheme is omitted; safePublicFetch still validates every redirect.
+      // Another scheme (ftp://, file:, javascript:, data:) is refused explicitly instead of
+      // being glued behind https:// and reported as a strange hostname.
+      if (/^(?!https?:)[a-z][a-z0-9+.-]*:\/\//i.test(rawUrl) || /^(?:javascript|data|file|mailto|tel|vbscript):/i.test(rawUrl)) throw new Error("URL_PROTOCOL_BLOCKED");
       const preparedUrl = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
       target = validatePublicHttpUrl(preparedUrl);
       ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "gbraid", "wbraid", "fbclid", "msclkid", "gad_source", "gad_campaignid", "gad_adgroupid", "gad_creative", "_gl", "_up", "_gs"]

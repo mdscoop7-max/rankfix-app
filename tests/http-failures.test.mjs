@@ -299,3 +299,9 @@ test("business names without a domain get a clear input message in every languag
   for (const lang of LANGS) assert.ok(scanFailureMessage(failure, lang).length > 40);
   assert.match(scanFailureMessage(failure, "nl"), /bedrijfsnaam zonder domein/);
 });
+
+test("plain errors carrying a known code keep their category (legacy throw sites)", () => {
+  assert.equal(classifyFetchError(new Error("URL_PROTOCOL_BLOCKED")).category, "unsafe_target");
+  assert.equal(classifyFetchError(new Error("REDIRECT_LIMIT")).category, "site_error");
+  assert.equal(classifyFetchError(new Error("something unexpected")).category, "scan_environment");
+});
