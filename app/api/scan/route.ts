@@ -3722,8 +3722,8 @@ export async function POST(request: Request) {
         const pageInsecureFormActions = pageForms.filter((form)=>new RegExp("action\\s*=\\s*[\"\']http://", "i").test(form)).length;
         const pageSchemaTypes = [...pageHtml.matchAll(/"@type"\s*:\s*"([^"]+)"/gi)].map((m)=>String(m[1]||"").toLowerCase());
         const pageProductSchema = pageSchemaTypes.some((type)=>type==="product" || /(?:^|:)product$/.test(type));
-        const pageItemListSchema = pageSchemaTypes.some((type)=>type==="itemlist");
-        const pageStoreSchema = pageSchemaTypes.some((type)=>/^(?:store|onlinestore|departmentstore|wholesalestore|furniturestore)$/.test(type));
+        const pageItemListSchema = pageSchemaTypes.some((type)=>type==="itemlist" || /(?:^|:)itemlist$/.test(type));
+        const pageStoreSchema = pageSchemaTypes.some((type)=>/(?:^|:)(?:store|onlinestore|departmentstore|wholesalestore|furniturestore)$/.test(type));
         const pageStrongCommerceAction = /\b(?:add to cart|add to basket|buy now|shop now|toevoegen aan winkelwagen|in winkelwagen|acquista ora|aggiungi al carrello|comprar ahora|adicionar ao carrinho|ajouter au panier|in den warenkorb)\b/i.test(pageQualityText);
         const pageProductLinks = [...pageHtml.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi)]
           .map((m)=>safeDecodeURIComponent(m[1]||""))
