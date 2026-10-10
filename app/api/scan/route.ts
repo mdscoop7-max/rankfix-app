@@ -1627,11 +1627,11 @@ export async function POST(request: Request) {
     // Preserve genuinely distinct business models (property, automotive, lodging,
     // healthcare and services) when supported by their own strong identity evidence.
     const explicitStoreSchema = schemaSet.has("onlinestore") || schemaSet.has("store") || schemaSet.has("furniturestore");
-    const verifiedStorefront = evidenceCommerceConfirmed && explicitStoreSchema &&
+    const verifiedStorefront = explicitStoreSchema &&
       (scanEvidence.commerce.products.value || scanEvidence.commerce.cart.value || scanEvidence.commerce.addToCart.value);
     const incidentalSectorConflict = primaryNonCommerceIdentity !== null &&
       (primaryNonCommerceIdentity.sector === "hospitality" || primaryNonCommerceIdentity.sector === "news_media" || primaryNonCommerceIdentity.sector === "general_business");
-    const commerceAsPrimaryIdentity = evidenceCommerceConfirmed &&
+    const commerceAsPrimaryIdentity = (evidenceCommerceConfirmed || verifiedStorefront) &&
       (!primaryNonCommerceIdentity || (verifiedStorefront && incidentalSectorConflict && !shortStayIdentity));
     const sectorProfile = commerceAsPrimaryIdentity
       ? {
