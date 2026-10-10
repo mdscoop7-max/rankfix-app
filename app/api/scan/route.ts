@@ -13,7 +13,7 @@ import { normalizePlan, planLimits } from "@/lib/plans";
 import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
 import { renderPublicPage } from "@/lib/headless-render";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
-import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
+import { assessSectorConflict, modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -1512,7 +1512,7 @@ export async function POST(request: Request) {
       {sector:"transport_travel",label:"Transport & Logistiek",patterns:[/(?:\b(logistiek|logistics|transportbedrijf|transport company|wegtransport|road transport|freight|vrachtvervoer|distributie|distribution|expeditie|forwarding|koerier|courier|spoorweg|railway|railways|train operator|national railway|nationale? vervoerder|airline|luchtvaartmaatschappij|public transport|openbaar vervoer|ferroviaria|železnice|željeznice|dráhy|intercity|prijevoz|putnički|vlak)\b|hellenic\s+train|cyprus\s+airways|σιδηρόδρομ|τρένο)/iu,/(?:\b(zending|shipments?|warehousing|opslag|supply chain|groupage|pallets?|containers?|internationaal transport|international transport|tickets?|billet|fahrplan|timetable|dienstregeling|journey planner|vluchten?|flights?|destinations?|reizen|travel|utazás|dopravca|vozni red|karta|karte)\b|δρομολόγ|εισιτήρ|πτήσ)/iu],modules:["core_seo","geo","technical","local","lead_conversion","transport_travel"]},
       {sector:"telecom_technology",label:"Telecom & Technologie",patterns:[/\b(telekom|telecom|telecommunications?|mobile network|internet provider|broadband provider|telefoonprovider)\b/i,/\b(fiber|fibre|glasvezel|internet|mobile|mobiel|5g|4g|broadband|telefonie|tv pakket)\b/i],modules:["core_seo","geo","technical","telecom_technology"]},
       {sector:"news_media",label:"Nieuws & Media",patterns:[/\b(nieuws|news|journalist|redactie|breaking news|sportnieuws|nieuwsartikel|newsarticle)\b/i,/\b(binnenland|buitenland|politiek|sport|economie)\b/i],modules:["core_seo","geo","news_media"]},
-      {sector:"tourism_recreation",label:"Toerisme & Recreatie",patterns:[/\b(toerisme|tourism|visit [a-zà-ÿ-]+|citymarketing|destination|bezoekers?|visitor|ontdek [a-zà-ÿ-]+)\b/i,/\b(agenda|evenementen|events|overnachten|hotels?|restaurants?|activiteiten|things to do|bezienswaardigheden)\b/i],modules:["core_seo","geo","local","tourism_recreation"]},
+      {sector:"tourism_recreation",label:"Toerisme & Recreatie",patterns:[/\b(toerisme|tourism board|tourist information|destination management|citymarketing|visitor centre|visitor center|v v v|bezoekerscentrum)\b/i,/\b(toeristische informatie|tourist attractions|bezienswaardigheden|guided tours|excursies|things to do)\b/i],modules:["core_seo","geo","local","tourism_recreation"]},
       {sector:"food_local_retail",label:"Voeding & lokale retail",patterns:[/\b(bakkerij|bakker|bakery|baker|patisserie|pastry|brood|bread|banket|artisan bakery)\b/i,/\b(gebak|taart|cakes?|croissant|sourdough|zuurdesem|vers brood|fresh bread)\b/i],modules:["core_seo","geo","local","lead_conversion","food_local_retail"]},
       {sector:"service_marketplace",label:"Dienstenplatform",patterns:[/\b(vind (?:de )?beste bedrijven|vergelijk (?:bedrijven|specialisten|dienstverleners)|dienstverleners vergelijken|professionals vergelijken|bedrijven vergelijken)\b/i,/\b(top 10|reviews?|beoordelingen|offertes? vergelijken|bedrijven voor jou|specialisten in jouw regio)\b/i],modules:["core_seo","geo","technical","structured_data","links","service_marketplace"]},
       {sector:"saas_b2b",label:"SaaS / B2B",patterns:[/\b(saas|software platform|software-as-a-service|api platform|business software|auditsoftware|seo software|geo software|website audit|seo audit|geo audit)\b/i,/\b(demo|features|integrations|integraties|dashboard|website scan|website scannen|website analyseren|audit platform)\b/i],modules:["core_seo","geo","technical","security","structured_data","links","accessibility","lead_conversion","saas_b2b"]},
@@ -1622,7 +1622,17 @@ export async function POST(request: Request) {
       || (strongSectorCandidate && sectorCandidates[0].sector !== "ecommerce"
         ? {sector:sectorCandidates[0].sector,key:sectorCandidates[0].sector,label:sectorCandidates[0].label,evidence:[`Primary identity: ${sectorCandidates[0].hits} independent sector signals`]}
         : null);
-    const commerceAsPrimaryIdentity = evidenceCommerceConfirmed && !primaryNonCommerceIdentity;
+    // A verified storefront with multiple independent commerce signals must not be
+    // reclassified by incidental hospitality, media or other generic page copy.
+    // Preserve genuinely distinct business models (property, automotive, lodging,
+    // healthcare and services) when supported by their own strong identity evidence.
+    const explicitStoreSchema = schemaSet.has("onlinestore") || schemaSet.has("store") || schemaSet.has("furniturestore");
+    const verifiedStorefront = explicitStoreSchema &&
+      (scanEvidence.commerce.products.value || scanEvidence.commerce.cart.value || scanEvidence.commerce.addToCart.value);
+    const incidentalSectorConflict = primaryNonCommerceIdentity !== null &&
+      !["real_estate","automotive","health_wellness","beauty","home_services","professional_services","recruitment","government","telecom_technology","service_marketplace","saas_b2b"].includes(primaryNonCommerceIdentity.sector);
+    const commerceAsPrimaryIdentity = (evidenceCommerceConfirmed || verifiedStorefront) &&
+      (!primaryNonCommerceIdentity || (verifiedStorefront && incidentalSectorConflict && !shortStayIdentity));
     const sectorProfile = commerceAsPrimaryIdentity
       ? {
           sector:"ecommerce" as SectorKey,
@@ -1727,6 +1737,7 @@ export async function POST(request: Request) {
         evidenceCapabilities.includes("quote_request") && "lead_generation",
         evidenceCapabilities.includes("local") && "local_business",
       ].filter((value): value is string => Boolean(value)))],
+      sectorMotor3Assessment:assessSectorConflict(evidenceSectorCandidates),
       secondarySectorCandidates:evidenceSectorCandidates
         .filter(candidate=>candidate.key!==sectorProfile.key && candidate.score>=3)
         .slice(0,4)
@@ -1791,9 +1802,9 @@ export async function POST(request: Request) {
 
     const missingSecurityHeaders = Object.entries(securityHeaders).filter(([, value]) => !value).map(([name])=>name);
     const securityHeaderEvidence = `aanwezig: ${presentSecurityHeaders.map(([name])=>name).join(", ") || "geen"}; niet aangetroffen in de response: ${missingSecurityHeaders.join(", ") || "geen"}`;
-    securityChecks.push(coreSecurityHeadersPresent
-      ? securityCheck("pass","security_headers","Security headers",`Browser-securityheaders voldoen aan de huidige kernregel (${securityHeaderEvidence}).`,"Houd deze headers actief en test wijzigingen aan CSP/HSTS eerst tegen de applicatie.",6,6)
-      : securityCheck("warning","security_headers","Security headers",`RankFix bevestigde ${presentSecurityHeaders.length} van 6 gecontroleerde securityheaders (${securityHeaderEvidence}). Dit is hardening-advies en op zichzelf geen bewijs van een kwetsbaarheid.`,"Controleer HSTS, CSP/frame-bescherming, X-Content-Type-Options, Referrer-Policy en Permissions-Policy op server/CDN-niveau.",Math.max(0, presentSecurityHeaders.length),6));
+    securityChecks.push(presentSecurityHeaders.length === 6
+      ? securityCheck("pass","security_headers","Security headers",`Alle 6 gecontroleerde browser-securityheaders zijn bevestigd (${securityHeaderEvidence}).`,"Houd deze headers actief en test wijzigingen aan CSP/HSTS eerst tegen de applicatie.",6,6)
+      : securityCheck("warning","security_headers","Security headers",`RankFix bevestigde ${presentSecurityHeaders.length} van 6 gecontroleerde securityheaders (${securityHeaderEvidence}). ${coreSecurityHeadersPresent ? "De kernregel is wel gehaald, maar niet alle zes headers zijn aanwezig." : "De kernregel is niet volledig gehaald."} Dit is hardening-advies en op zichzelf geen bewijs van een kwetsbaarheid.`,"Controleer HSTS, CSP/frame-bescherming, X-Content-Type-Options, Referrer-Policy en Permissions-Policy op server/CDN-niveau.",Math.max(0, presentSecurityHeaders.length),6));
 
     const mixedContentMatches = isHttps
       ? [...html.matchAll(new RegExp("(?:src|href)\\\\s*=\\\\s*[\\\"']http://[^\\\"'\\\\s>]+[\\\"']", "gi"))].map((m)=>m[0]).slice(0,5)
@@ -1804,8 +1815,13 @@ export async function POST(request: Request) {
         ? securityCheck("pass","security_mixed_content","Mixed content","Geen expliciete HTTP-assets gevonden in de gescande HTTPS-HTML.","Blijf assets via HTTPS of relatieve URL's laden.",4,4)
         : securityCheck("fail","security_mixed_content","Mixed content",`${mixedContentMatches.length} expliciete HTTP-assetverwijzing(en) gevonden op een HTTPS-pagina.`,"Vervang HTTP-asset-URL's door HTTPS of veilige relatieve URL's.",4,4));
 
+    // Read individual Set-Cookie records where supported. A combined header can
+    // contain commas in Expires dates, so splitting it is only a fallback.
+    const individualSetCookies = typeof response.headers.getSetCookie === "function"
+      ? response.headers.getSetCookie()
+      : [];
     const setCookieHeaders = response.headers.get("set-cookie") || "";
-    const cookiePresent = Boolean(setCookieHeaders);
+    const cookiePresent = individualSetCookies.length > 0 || Boolean(setCookieHeaders);
     // Strict Set-Cookie parsing. Commas inside Expires must stay inside the cookie,
     // and attributes are evaluated only on their own cookie record.
     const splitSetCookieHeader = (header:string) => {
@@ -1823,7 +1839,7 @@ export async function POST(request: Request) {
       out.push(header.slice(from).trim());
       return out.filter(Boolean);
     };
-    const observedCookies = setCookieHeaders ? splitSetCookieHeader(setCookieHeaders) : [];
+    const observedCookies = individualSetCookies.length ? individualSetCookies : setCookieHeaders ? splitSetCookieHeader(setCookieHeaders) : [];
     const cookieObservations = observedCookies.map((raw)=>{
       const first = raw.split(";")[0] || "";
       const name = first.split("=")[0]?.trim() || "cookie";
@@ -3389,10 +3405,20 @@ export async function POST(request: Request) {
     const servicePathSignal = /\/(?:dienst|diensten|service|services|oplossing|oplossingen|solution|solutions|expertise|behandeling|behandelingen|treatment|practice|werkplaats)(?:\/|$)/i.test(pathname);
     const serviceContentSignal = /\b(?:onze diensten|our services|dienstverlening|service|services|expertise|oplossingen|solutions)\b/i.test([title, description, h1s.join(" ")].join(" "));
     const resolvedServicePage = !isHomepage && !isProductPage && !hasCategorySignal && (servicePathSignal || serviceContentSignal);
+    // Page Type Engine: distinguish the intent of a service-area, case study,
+    // registration or service-category URL from a generic service detail.
+    // Path-only evidence remains medium confidence; no form/booking is invented.
+    const serviceAreaPath = /\/(?:service-area|servicegebied|werkgebied|transport|destinations?|bestemmingen|regios?|regions?)\/[^/]+\/?$/i.test(pathname);
+    const caseStudyPath = /\/(?:cases?|case-studies|klantverhalen|success-stories|projecten|projects)\/[^/]+\/?$/i.test(pathname);
+    const registrationPath = /\/(?:inschrijven(?:-als-patient)?|registreren|registration|register|sign-up|signup|aanmelden)\/?$/i.test(pathname);
+    const serviceCategoryPath = /\/(?:behandelingen|treatments|diensten|services|oplossingen|solutions)\/?$/i.test(pathname);
+    const specializedPageType = !isHomepage && !isProductPage && !propertyListingPage
+      ? serviceAreaPath ? "service_area" : caseStudyPath ? "case_study" : registrationPath ? "registration" : serviceCategoryPath ? "service_category" : null
+      : null;
     const pageTypeEvidence = {
-      type: isHomepage ? "homepage" : propertyListingPage ? "property_listing" : isProductPage ? "product" : hasCategorySignal ? "category" : (effectiveLocalBusinessPage || resolvedServicePage) ? "service" : effectiveArticlePage ? "article" : "unknown",
-      confidence: isHomepage ? "high" : propertyListingPage ? "high" : isProductPage && (hasProductSchema || hasSkuSignal) ? "high" : isProductPage ? "medium" : hasCategorySignal && (hasItemListSignal || repeatedProductCardSignal) ? "high" : resolvedServicePage && servicePathSignal ? "high" : effectiveLocalBusinessPage || resolvedServicePage || hasCategorySignal || effectiveArticlePage ? "medium" : "low",
-      evidence: [isHomepage ? `localized/root path: ${pathname}` : "", propertyListingPage ? "Scanbewijs: vastgoedobject/listing" : "", servicePathSignal ? `resolved service path: ${pathname}` : "", resolvedServicePage && serviceContentSignal ? "service intent in resolved page metadata/headings" : "", hasProductSchema ? "Product schema present" : "", hasStoreSchema ? "Store schema present" : "", hasItemListSignal ? "ItemList schema present" : "", genericCategoryPathSignal ? `generic commerce category path: ${pathname}` : "", repeatedProductCardSignal ? "repeated product-card commerce signals" : "", commercialNavigationEvidence ? "commercial navigation + shop/support links" : "", hasSkuSignal ? "SKU signal present" : "", hasStrongCommerceAction ? "commerce action present" : "", articleSuppressedByCommerce ? "article signal suppressed by stronger product evidence" : ""].filter(Boolean),
+      type: isHomepage ? "homepage" : propertyListingPage ? "property_listing" : isProductPage ? "product" : specializedPageType || (hasCategorySignal ? "category" : (effectiveLocalBusinessPage || resolvedServicePage) ? "service" : effectiveArticlePage ? "article" : "unknown"),
+      confidence: isHomepage ? "high" : propertyListingPage ? "high" : isProductPage && (hasProductSchema || hasSkuSignal) ? "high" : isProductPage ? "medium" : hasCategorySignal && (hasItemListSignal || repeatedProductCardSignal) ? "high" : specializedPageType ? "medium" : resolvedServicePage && servicePathSignal ? "high" : effectiveLocalBusinessPage || resolvedServicePage || hasCategorySignal || effectiveArticlePage ? "medium" : "low",
+      evidence: [isHomepage ? `localized/root path: ${pathname}` : "", propertyListingPage ? "Scanbewijs: vastgoedobject/listing" : "", specializedPageType ? `URL-intentie: ${specializedPageType}; inhoud en functionaliteit afzonderlijk te bevestigen` : "", servicePathSignal ? `resolved service path: ${pathname}` : "", resolvedServicePage && serviceContentSignal ? "service intent in resolved page metadata/headings" : "", hasProductSchema ? "Product schema present" : "", hasStoreSchema ? "Store schema present" : "", hasItemListSignal ? "ItemList schema present" : "", genericCategoryPathSignal ? `generic commerce category path: ${pathname}` : "", repeatedProductCardSignal ? "repeated product-card commerce signals" : "", commercialNavigationEvidence ? "commercial navigation + shop/support links" : "", hasSkuSignal ? "SKU signal present" : "", hasStrongCommerceAction ? "commerce action present" : "", articleSuppressedByCommerce ? "article signal suppressed by stronger product evidence" : ""].filter(Boolean),
     };
     const pageTypeContradictions = [
       pageTypeEvidence.type === "article" && isProductPage ? "article_vs_product" : null,
@@ -3563,7 +3589,7 @@ export async function POST(request: Request) {
     // and makes failed cross-page sampling transparent without changing the main-page score.
     const scannedPageSample: MultiPageCandidate = {
       url: finalUrl.toString(),
-      type: isProductPage ? "product" : propertyListingPage ? "listing" : resolvedServicePage ? "service" : hasCategorySignal ? "category" : isHomepage ? "homepage" : "other",
+      type: isProductPage ? "product" : propertyListingPage ? "listing" : resolvedServicePage ? "service" : specializedPageType === "service_category" ? "service" : hasCategorySignal ? "category" : isHomepage ? "homepage" : "other",
       evidence: ["scanned page"],
     };
     const templateShapeKey = (rawUrl:string) => {
@@ -3582,11 +3608,18 @@ export async function POST(request: Request) {
     // pages should not consume the limited representative sample twice.
     const uniqueMultiPagePages: MultiPageCandidate[] = [];
     const seenTemplates = new Set<string>();
+    // FAQ/help-center pages can dominate a crawl and crowd out product,
+    // category, service and legal evidence. Preserve a small FAQ sample.
+    const isFaqSample = (url: string) => /\/(?:faq|faqs|veelgestelde-vragen|help-center|helpcentrum|hilfe|ayuda|assistance)(?:\/|$)/i.test(new URL(url).pathname);
+    const faqSampleLimit = 3;
+    let faqSamples = 0;
     for (const item of [scannedPageSample, ...multiPagePages]) {
       const normalized = normalizeScanUrl(item.url);
       const key = `${item.type}:${templateShapeKey(normalized)}`;
       if (uniqueMultiPagePages.some((existing)=>normalizeScanUrl(existing.url)===normalized)) continue;
       if (seenTemplates.has(key)) continue;
+      if (isFaqSample(normalized) && faqSamples >= faqSampleLimit) continue;
+      if (isFaqSample(normalized)) faqSamples++;
       seenTemplates.add(key);
       uniqueMultiPagePages.push(item);
       if (uniqueMultiPagePages.length >= representativePageLimit) break;
@@ -3599,6 +3632,8 @@ export async function POST(request: Request) {
       for (const item of rankedMultiPage) {
         const normalized = normalizeScanUrl(item.url);
         if (seenUrls.has(normalized)) continue;
+        if (isFaqSample(normalized) && faqSamples >= faqSampleLimit) continue;
+        if (isFaqSample(normalized)) faqSamples++;
         seenUrls.add(normalized);
         uniqueMultiPagePages.push(item);
         if (uniqueMultiPagePages.length >= representativePageLimit) break;
@@ -3670,7 +3705,7 @@ export async function POST(request: Request) {
           "li"+Math.min(9,Math.floor(countTag("li")/10)),
           "schema"+Math.min(5,(pageHtml!.match(/"@type"\\s*:/gi)||[]).length),
         ].join("|");
-        const pageChallenge = /\b(radware page|checking your browser|just a moment|verify (?:you are|that you are) human|request unsuccessful|incapsula|imperva|challenge-platform|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test([pageQualityTitle,pageQualityText].join(" "));
+        const pageChallenge = /\b(radware page|checking your browser|just a moment|verify (?:you are|that you are) human|request unsuccessful|incapsula|imperva|challenge-platform|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for|un momento por favor|verifica che sei umano|überprüfen sie, ob sie ein mensch sind|vérifiez que vous êtes humain|access denied|zugriff verweigert|accès refusé|acceso denegado)\b/i.test([pageQualityTitle,pageQualityText].join(" "));
         if (pageChallenge) {
           return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, title:pageQualityTitle||null, description:pageQualityDescription||null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"quality",status:"UNABLE_TO_CONFIRM",details:"HTTP-response lijkt een bot-/securitychallenge in plaats van de bedoelde pagina; deze sample wordt niet gescoord."}] };
         }
@@ -3685,10 +3720,10 @@ export async function POST(request: Request) {
         const pageForms = [...pageHtml.matchAll(new RegExp("<form\\b[\\s\\S]*?</form>", "gi"))].map((m)=>m[0]);
         const pagePasswordForm = pageForms.some((form)=>new RegExp("<input[^>]+type\\s*=\\s*[\"\']password[\"\']", "i").test(form));
         const pageInsecureFormActions = pageForms.filter((form)=>new RegExp("action\\s*=\\s*[\"\']http://", "i").test(form)).length;
-        const pageSchemaTypes = [...pageHtml.matchAll(/"@type"\s*:\s*"([^"]+)"/gi)].map((m)=>String(m[1]||"").toLowerCase());
-        const pageProductSchema = pageSchemaTypes.some((type)=>type==="product" || type.endsWith("product"));
-        const pageItemListSchema = pageSchemaTypes.some((type)=>type==="itemlist");
-        const pageStoreSchema = pageSchemaTypes.some((type)=>/^(?:store|onlinestore|departmentstore|wholesalestore)$/.test(type));
+        const pageSchemaTypes = [...pageHtml.matchAll(/"@type"\s*:\s*(?:"([^"]+)"|\[([^\]]+)\])/gi)].flatMap((m)=>m[1] ? [m[1].toLowerCase()] : [...String(m[2]||"").matchAll(/"([^"]+)"/g)].map((entry)=>entry[1].toLowerCase()));
+        const pageProductSchema = pageSchemaTypes.some((type)=>type==="product" || /(?:^|:)product$/.test(type));
+        const pageItemListSchema = pageSchemaTypes.some((type)=>type==="itemlist" || /(?:^|:)itemlist$/.test(type));
+        const pageStoreSchema = pageSchemaTypes.some((type)=>/(?:^|:)(?:store|onlinestore|departmentstore|wholesalestore|furniturestore)$/.test(type));
         const pageStrongCommerceAction = /\b(?:add to cart|add to basket|buy now|shop now|toevoegen aan winkelwagen|in winkelwagen|acquista ora|aggiungi al carrello|comprar ahora|adicionar ao carrinho|ajouter au panier|in den warenkorb)\b/i.test(pageQualityText);
         const pageProductLinks = [...pageHtml.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi)]
           .map((m)=>safeDecodeURIComponent(m[1]||""))
@@ -3733,6 +3768,15 @@ export async function POST(request: Request) {
           product: pageProductEvidence,
           confirmedRetailPage: pageProductSchema || (pageStrongCommerceAction && pagePriceSignals >= 1) || (pageItemListSchema && new Set(pageProductLinks).size >= 3) || (pageStoreSchema && pagePriceSignals >= 2),
         };
+        // Use fetched structured evidence to correct discovery-time URL guesses.
+        // A product schema is page-specific proof; an ItemList with repeated
+        // product links is category proof. Never infer a product from the URL alone.
+        const verifiedRepresentativeType: MultiPageCandidate["type"] =
+          pageProductSchema ? "product"
+          : pageItemListSchema && new Set(pageProductLinks).size >= 3 ? "category"
+          : page.type === "category" && !(pageItemListSchema && new Set(pageProductLinks).size >= 3) && !(new Set(pageProductLinks).size >= 3 && pagePriceSignals >= 2) ? "other"
+          : page.type === "product" && !pageProductSchema && !(pageStrongCommerceAction && pagePriceSignals >= 1) ? "other"
+          : page.type;
         const evidenceChecks: MultiPageAudit["evidenceChecks"] = [
           {key:"http",status:"PASS",details:`HTTP ${r.status}`},
           {key:"title",status:!pageTitle?"WARNING":pageTitle.length>=30&&pageTitle.length<=60?"PASS":"WARNING",details:!pageTitle?"Geen title gevonden in raw HTML.":pageTitle.length>=30&&pageTitle.length<=60?`Title gevonden (${pageTitle.length} tekens); binnen richtwaarde 30–60.`:`Title gevonden (${pageTitle.length} tekens); buiten richtwaarde 30–60.`},
@@ -3756,7 +3800,7 @@ export async function POST(request: Request) {
           return 0.5;
         };
         const earned = confirmed.reduce((sum,item)=>sum+evidenceCredit(item),0);
-        return { ...page, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:confirmed.length?Math.round((earned/confirmed.length)*100):null, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), schemaTypes:[...new Set(pageSchemaTypes)], formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, evidenceChecks };
+        return { ...page, type:verifiedRepresentativeType, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:confirmed.length?Math.round((earned/confirmed.length)*100):null, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), schemaTypes:[...new Set(pageSchemaTypes)], formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, evidenceChecks };
       } catch (multiPageError) {
         const rawReason = multiPageError instanceof Error ? multiPageError.message : "FETCH_FAILED";
         const reason = /timeout|abort/i.test(rawReason)
@@ -3819,7 +3863,7 @@ export async function POST(request: Request) {
     // Motor v2.1: representative pages are site-level evidence partners. They may
     // confirm capabilities/identity, but they never turn an unverified page-specific
     // defect into a failure.
-    const multiPageIdentityText = auditedMultiPages.map((item)=>`${item.url} ${item.identityText||item.title||""}`).join(" ").toLowerCase();
+    const multiPageIdentityText = auditedMultiPages.filter((item)=>item.status==="audited").map((item)=>`${item.identityText||item.title||""}`).join(" ").toLowerCase();
     const multiPageCapabilities = {
       transport: /\b(transport|logistics?|logistiek|freight|vracht|forwarding|expeditie|wegtransport|road transport|warehousing|opslag|distribution|distributie|courier|koerier)\b/i.test(multiPageIdentityText),
       hospitality: /\b(hotel|hotels|room|rooms|kamer|kamers|overnachten|booking|boeken|reserveren|restaurant)\b/i.test(multiPageIdentityText),
@@ -3843,7 +3887,14 @@ export async function POST(request: Request) {
     if (multiPageCapabilities.automotiveService) addMasterCapability("services");
     if (multiPageCapabilities.properties) addMasterCapability("properties");
     if (multiPageCapabilities.treatment) addMasterCapability("services");
-    if (multiPageCapabilities.hospitality) for (const c of ["rooms","booking"]) addMasterCapability(c);
+    // Incidental restaurant, room or booking words in a retail catalogue do not
+    // establish accommodation inventory or a functioning booking capability.
+    // Preserve independently evidenced booking/rooms signals without synthesizing
+    // them from text across unrelated pages.
+    if (multiPageCapabilities.hospitality && (sectorProfile.sector === "hospitality" || shortStayIdentity)) {
+      if (scanEvidence.inventory.rooms.value) addMasterCapability("rooms");
+      if (scanEvidence.appointments.booking.value) addMasterCapability("booking");
+    }
     if (auditedMultiPages.length && !masterEvidence.coverage.evidenceSources.includes("multi_page")) masterEvidence.coverage.evidenceSources.push("multi_page");
     // Evidence Engine v2 foundation: expose explicit capability states with proof.
     // This runs after representative evidence collection so later checks can consume
@@ -3935,7 +3986,7 @@ export async function POST(request: Request) {
       scanEvidence.commerce.products.confidence === "high" &&
       scanEvidence.commerce.prices.value.count > 0 &&
       scanEvidence.commerce.prices.confidence !== "low";
-    const hardCommerceEvidence = sitewideCommerceEvidence.confirmed || representativeRetailProduct || Boolean(
+    const hardCommerceEvidence = verifiedStorefront || sitewideCommerceEvidence.confirmed || representativeRetailProduct || Boolean(
       confirmedCurrentProduct ||
       confirmedAddToCart ||
       corroboratedProductAndPrice
@@ -3949,6 +4000,7 @@ export async function POST(request: Request) {
       technologyOnly: technologyOnlyCommerce,
       secondaryCommerceOnly,
       multiPageEvidence: sitewideCommerceEvidence.confirmed,
+      explicitStorefrontEvidence: verifiedStorefront,
     };
     if (!finalCommerceDecision.confirmed && primaryNonCommerceIdentity) {
       masterEvidence.commerce.confirmed = false;
@@ -4044,14 +4096,14 @@ export async function POST(request: Request) {
     // Commerce is a primary site identity. Once Scanbewijs confirms a webshop,
     // incidental content-sector words must not leave the report labelled as an
     // unrelated sector. Preserve the previous candidate as diagnostic evidence.
-    if (finalCommerceDecision.confirmed && sectorProfile.key!=="ecommerce" && !primaryNonCommerceIdentity) {
+    if (finalCommerceDecision.confirmed && sectorProfile.key!=="ecommerce" && (!primaryNonCommerceIdentity || (verifiedStorefront && incidentalSectorConflict && !shortStayIdentity))) {
       const previousSector = sectorProfile.label;
       sectorProfile.sector = "ecommerce";
       sectorProfile.key = "ecommerce";
       sectorProfile.label = "Webshop / e-commerce";
       sectorProfile.confidence = "high";
       sectorProfile.confidenceScore = Math.max(sectorProfile.confidenceScore, sitewideCommerceEvidence.confirmed ? 92 : 88);
-      sectorProfile.evidence = [...sectorProfile.evidence, `Scanbewijs bevestigt commerce; eerdere sectorhint: ${previousSector}`].slice(0,6);
+      sectorProfile.evidence = [...sectorProfile.evidence, verifiedStorefront ? "Store-schema plus product-/winkelwagenbewijs bevestigd" : "Representatieve product-/retailpagina bevestigd", `Eerdere sectorhint: ${previousSector}`].slice(0,6);
     }
 
     // Final Master reconciliation: late technology/multi-page evidence may improve
