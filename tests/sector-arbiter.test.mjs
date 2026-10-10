@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { arbitratePrimarySector, hasStoreSchema, GENERIC_WORD_SECTORS } from "../lib/sector-arbiter.ts";
+import { arbitratePrimarySector, hasStoreSchema, GENERIC_WORD_SECTORS, collectIdentityEvidence, reconcileModulesAfterArbitration } from "../lib/sector-arbiter.ts";
 
 const LABELS = {
   hospitality: "Hotels & hospitality", transport_travel: "Transport & Logistiek", tourism_recreation: "Toerisme & Recreatie",
@@ -16,15 +16,17 @@ function input(overrides = {}) {
     commerce: { product: false, addToCart: false, cartOrCheckout: false, productLinks: 0, priceCount: 0, siteSampleProduct: false, previouslyConfirmed: false },
     inventory: { vehicles: false, properties: false, jobs: false, rooms: false, menu: false, booking: false, reservation: false },
     shortStayIdentity: false,
-    identitySectors: [],
+    identity: [],
     bodySectors: [],
     labels: LABELS,
   };
+  const { identitySectors, ...rest } = overrides;
+  if (identitySectors) rest.identity = identitySectors.map(sector => ({ sector, sources: ["title"] }));
   return {
-    ...base, ...overrides,
-    current: { ...base.current, ...(overrides.current || {}) },
-    commerce: { ...base.commerce, ...(overrides.commerce || {}) },
-    inventory: { ...base.inventory, ...(overrides.inventory || {}) },
+    ...base, ...rest,
+    current: { ...base.current, ...(rest.current || {}) },
+    commerce: { ...base.commerce, ...(rest.commerce || {}) },
+    inventory: { ...base.inventory, ...(rest.inventory || {}) },
   };
 }
 
@@ -126,15 +128,6 @@ test("Arbiter: weak product/price signals lose to structural real estate identit
   assert.equal(decision.commerceConfirmed, false);
 });
 
-test("Arbiter: weak product evidence without competitor stays a probable webshop, never supported", () => {
-  const decision = arbitratePrimarySector(input({
-    current: { sector: "unknown", key: "unknown", label: "Sector niet bevestigd", confidenceScore: 0 },
-    schemaTypes: ["Product"], commerce: { product: true, priceCount: 5 },
-  }));
-  assert.equal(decision.sector, "ecommerce");
-  assert.equal(decision.status, "probable");
-});
-
 test("Arbiter: contested structural sectors yield an explicit uncertain status", () => {
   const decision = arbitratePrimarySector(input({
     current: { sector: "unknown", key: "unknown", label: "Sector niet bevestigd", confidenceScore: 0 },
@@ -190,7 +183,7 @@ test("Arbiter: source contains no brand, hostname or country exceptions", async 
 
 test("Arbiter is wired as the final sector decision before the Master primary sector is published", async () => {
   const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  assert.match(route, /import \{ arbitratePrimarySector, arbiterEvidenceFromScan, summarizeArbiterDecision \} from "@\/lib\/sector-arbiter"/);
+  assert.match(route, /import \{[^}]*\barbitratePrimarySector\b[^}]*\} from "@\/lib\/sector-arbiter"/);
   const arbiterAt = route.indexOf("arbitratePrimarySector({");
   const publishedAt = route.indexOf("masterEvidence.primarySector = {", arbiterAt);
   assert.ok(arbiterAt > 0 && publishedAt > arbiterAt, "arbiter must run before primarySector is published");
@@ -258,4 +251,176 @@ test("Fixture: structured hotel page keeps hospitality", () => {
   });
   assert.equal(decision.sector, "hospitality");
   assert.notEqual(decision.status, "uncertain");
+});
+
+
+// ---- Review round 1: the four hardening points ----
+
+test("Point 1: weak webshop evidence is a hint, never a confirmed webshop", () => {
+  const weakCases = [
+    { product: true, priceCount: 5 },
+    { product: true, productLinks: 6 },
+    { technologyOnly: true },
+  ];
+  for (const commerce of weakCases) {
+    const decision = arbitratePrimarySector(input({ schemaTypes: commerce.product ? ["Product"] : [], commerce }));
+    assert.equal(decision.storefrontGrade, "weak", JSON.stringify(commerce));
+    assert.equal(decision.commerceConfirmed, false, JSON.stringify(commerce));
+    assert.notEqual(decision.sector, "ecommerce");
+    assert.ok(decision.secondaryActivities.some(item => item.sector === "ecommerce" && /niet bevestigd/i.test(item.label)));
+    assert.ok(decision.reasons.some(reason => /aanwijzing voor een webshop, geen bevestiging/.test(reason)));
+  }
+});
+
+test("Point 1: a platform fingerprint alone never outweighs a proven specialist identity", () => {
+  const decision = arbitratePrimarySector(input({
+    current: { sector: "health_wellness", key: "dentist", label: "Tandarts", confidenceScore: 92 },
+    schemaTypes: ["Dentist"], commerce: { technologyOnly: true },
+  }));
+  assert.equal(decision.sector, "health_wellness");
+  assert.equal(decision.commerceConfirmed, false);
+});
+
+test("Point 1: hard commerce evidence from earlier layers still confirms a webshop", () => {
+  const decision = arbitratePrimarySector(input({
+    current: { sector: "ecommerce", key: "ecommerce", label: "Webshop", confidenceScore: 90 },
+    commerce: { previouslyConfirmed: true },
+  }));
+  assert.equal(decision.sector, "ecommerce");
+  assert.equal(decision.commerceConfirmed, true);
+});
+
+test("Point 2: equal structural proof for two sectors is uncertain even when an earlier layer picked one", () => {
+  for (const pick of ["health_wellness", "automotive"]) {
+    const decision = arbitratePrimarySector(input({
+      current: { sector: pick, key: pick, label: pick, confidenceScore: 92 },
+      schemaTypes: ["Dentist", "AutoDealer"],
+    }));
+    assert.equal(decision.sector, "unknown", pick);
+    assert.equal(decision.status, "uncertain");
+    assert.ok(decision.secondaryActivities.some(item => item.sector === "health_wellness"));
+    assert.ok(decision.secondaryActivities.some(item => item.sector === "automotive"));
+  }
+});
+
+test("Point 2: a lead of only one proof group is not enough, two groups are", () => {
+  const narrow = arbitratePrimarySector(input({
+    current: { sector: "hospitality", key: "hotel", label: "Hotel", confidenceScore: 90 },
+    schemaTypes: ["Hotel", "Dentist"], inventory: { rooms: true, booking: true },
+  }));
+  assert.equal(narrow.status, "uncertain");
+  const clear = arbitratePrimarySector(input({
+    current: { sector: "hospitality", key: "hotel", label: "Hotel", confidenceScore: 90 },
+    schemaTypes: ["Hotel"], shortStayIdentity: true,
+  }));
+  assert.equal(clear.sector, "hospitality");
+  assert.equal(clear.status, "supported");
+});
+
+test("Point 2: contradictory specialists never override a verified storefront with a sector guess", () => {
+  const decision = arbitratePrimarySector(input({
+    schemaTypes: ["Dentist", "AutoDealer", "Store"], commerce: { addToCart: true, cartOrCheckout: true },
+  }));
+  assert.equal(decision.sector, "ecommerce");
+  assert.equal(decision.commerceConfirmed, true);
+});
+
+test("Point 3: valid generic modules survive a sector change, sector-owned modules do not", () => {
+  const owned = ["hospitality", "accommodation", "real_estate", "transport_travel", "tourism_recreation"];
+  const base = {
+    sectorOwned: owned, newSectorModules: [], capabilityModules: ["local", "quality_trust"],
+    commerceModules: ["ecommerce", "product", "pricing_currency", "merchant", "checkout"], euConsumerModule: "eu_consumer",
+    commerceConfirmed: false, euConsumerApplicable: true,
+  };
+  const after = reconcileModulesAfterArbitration({
+    ...base,
+    previous: ["core_seo", "geo", "technical", "local", "lead_conversion", "accessibility", "hospitality", "ecommerce", "eu_consumer"],
+  });
+  for (const keep of ["core_seo", "geo", "technical", "local", "lead_conversion", "accessibility", "quality_trust"]) assert.ok(after.includes(keep), keep);
+  for (const drop of ["hospitality", "ecommerce", "eu_consumer"]) assert.equal(after.includes(drop), false, drop);
+  assert.equal(new Set(after).size, after.length);
+});
+
+test("Point 3: core modules can never disappear and commerce modules follow the confirmed decision", () => {
+  const confirmed = reconcileModulesAfterArbitration({
+    previous: [], sectorOwned: ["hospitality"], newSectorModules: [], capabilityModules: [],
+    commerceModules: ["ecommerce", "product"], euConsumerModule: "eu_consumer", commerceConfirmed: true, euConsumerApplicable: false,
+  });
+  assert.deepEqual([...confirmed].sort(), ["core_seo", "ecommerce", "geo", "product", "technical"]);
+  const withEu = reconcileModulesAfterArbitration({
+    previous: [], sectorOwned: [], newSectorModules: [], capabilityModules: [],
+    commerceModules: ["ecommerce"], euConsumerModule: "eu_consumer", commerceConfirmed: true, euConsumerApplicable: true,
+  });
+  assert.ok(withEu.includes("eu_consumer"));
+  const sectorSwap = reconcileModulesAfterArbitration({
+    previous: ["core_seo", "geo", "technical", "hospitality", "local"], sectorOwned: ["hospitality", "real_estate"],
+    newSectorModules: ["local", "lead_conversion", "real_estate"], capabilityModules: [],
+    commerceModules: ["ecommerce"], commerceConfirmed: false, euConsumerApplicable: false,
+  });
+  assert.ok(sectorSwap.includes("real_estate") && sectorSwap.includes("local") && !sectorSwap.includes("hospitality"));
+});
+
+test("Point 3: the scan route reconciles modules instead of rebuilding them from a fixed base", async () => {
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const block = route.slice(route.indexOf("// Sector Motor 3.1"), route.indexOf("const arbiterFinalSector"));
+  assert.match(block, /reconcileModulesAfterArbitration\(/);
+  assert.doesNotMatch(block, /baseModules/);
+});
+
+test("Point 4: identity is collected per reliable source and general text is not a source", () => {
+  const sectors = [{ sector: "hospitality", pattern: /\b(hotel|resort)\b/i }, { sector: "real_estate", pattern: /\b(makelaar|real estate)\b/i }];
+  const evidence = collectIdentityEvidence(sectors, {
+    title: "Grand Hotel - Welcome", h1: "Plan your visit", meta_description: "", url: "makelaar-example/home",
+  });
+  assert.deepEqual(evidence.find(item => item.sector === "hospitality").sources, ["title"]);
+  assert.deepEqual(evidence.find(item => item.sector === "real_estate").sources, ["url"]);
+  assert.equal(collectIdentityEvidence(sectors, { title: "Home" }).length, 0);
+});
+
+test("Point 4: a URL-only identity term is not identity evidence", () => {
+  const decision = arbitratePrimarySector(input({
+    current: { sector: "hospitality", key: "hospitality", label: "Hotels & hospitality", confidenceScore: 88 },
+    identity: [{ sector: "hospitality", sources: ["url"] }],
+    bodySectors: ["hospitality"],
+  }));
+  assert.equal(decision.sector, "unknown");
+  assert.equal(decision.status, "uncertain");
+  const withTitle = arbitratePrimarySector(input({
+    current: { sector: "hospitality", key: "hospitality", label: "Hotels & hospitality", confidenceScore: 88 },
+    identity: [{ sector: "hospitality", sources: ["url", "title"] }],
+  }));
+  assert.equal(withTitle.sector, "hospitality");
+  assert.equal(withTitle.status, "probable");
+  assert.ok(withTitle.confidenceScore <= 75);
+});
+
+test("Point 4: audited site-sample titles and descriptions count; quality text does not", () => {
+  const sectors = [{ sector: "transport_travel", pattern: /\b(logistiek|logistics)\b/i }];
+  assert.equal(collectIdentityEvidence(sectors, { site_sample_title: "Logistics services" })[0].sources[0], "site_sample_title");
+  assert.equal(collectIdentityEvidence(sectors, { title: "Home", site_sample_title: "Contact" }).length, 0);
+});
+
+test("Point 4: the scan route feeds identity from title/h1/meta/site-sample only", async () => {
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const block = route.slice(route.indexOf("// Sector Motor 3.1"), route.indexOf("const arbiterFinalSector"));
+  assert.match(block, /collectIdentityEvidence\(/);
+  for (const forbidden of [/identityText/, /multiPageIdentityText/, /pageQualityText/, /reconciledIdentitySource/, /sectorSource/, /qualityText/]) {
+    assert.doesNotMatch(block, forbidden);
+  }
+});
+
+test("Arbiter decision is never overwritten after it is made (static + invariant)", async () => {
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const start = route.indexOf("const arbiterFinalSector");
+  const end = route.indexOf("const classification = {", start);
+  assert.ok(start > 0 && end > start);
+  const invariantStart = route.indexOf("// Arbiter invariant", start);
+  assert.ok(invariantStart > start && invariantStart < end, "invariant check must exist before the classification is built");
+  const between = route.slice(start, invariantStart);
+  const assignment = /(?:sectorProfile\.(?:sector|key|label|confidence|confidenceScore|applicableModules)|finalCommerceDecision\.confirmed|masterEvidence\.activeModules)\s*=[^=]/;
+  assert.match(between, /masterEvidence\.primarySector = \{\s*key: sectorProfile\.key,/, "published primary sector must derive from the arbiter-decided profile");
+  assert.doesNotMatch(between, assignment, "no code between the arbiter and the invariant may overwrite the decision");
+  const after = route.slice(end);
+  assert.doesNotMatch(after, /sectorProfile\.(?:sector|key|label|confidenceScore)\s*=[^=]/, "nothing after the classification may overwrite the sector");
+  assert.doesNotMatch(after, /finalCommerceDecision\.confirmed\s*=[^=]/);
 });

@@ -14,7 +14,7 @@ import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
 import { renderPublicPage } from "@/lib/headless-render";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { assessSectorConflict, modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
-import { arbitratePrimarySector, arbiterEvidenceFromScan, summarizeArbiterDecision } from "@/lib/sector-arbiter";
+import { arbitratePrimarySector, arbiterEvidenceFromScan, collectIdentityEvidence, reconcileModulesAfterArbitration, summarizeArbiterDecision } from "@/lib/sector-arbiter";
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -4108,60 +4108,84 @@ export async function POST(request: Request) {
     }
 
     // Sector Motor 3.1 — Universal Evidence Arbiter. Earlier layers propose a
-    // sector; this is the single definitive decision. Structural evidence
-    // (schema, verified inventory, verified purchase flow) outranks identity
-    // terms, and body-text words alone never decide the primary sector.
+    // sector; this is the single, definitive decision and nothing below may
+    // overwrite it (see the invariant check before the response is built).
+    // Structural evidence (schema, verified inventory, verified purchase flow)
+    // outranks identity terms; identity terms are only accepted from title, h1,
+    // meta description and audited site-sample titles/descriptions — never from
+    // general page text, and never from the URL alone.
+    const identitySamples = auditedMultiPages.filter((item)=>item.status==="audited");
+    const arbiterIdentity = collectIdentityEvidence(
+      sectorSignals.map(item=>({sector:item.sector as string,pattern:item.patterns[0]})),
+      {
+        title,
+        meta_description:description,
+        h1:h1s.join(" "),
+        site_sample_title:identitySamples.map(item=>item.title||"").join(" "),
+        site_sample_meta:identitySamples.map(item=>item.description||"").join(" "),
+        url:[finalUrl.hostname,finalUrl.pathname].join(" "),
+      },
+    );
+    const arbiterIdentityIds = new Set(arbiterIdentity.map(item=>item.sector));
+    const arbiterBodySectors = sectorCandidates.map(item=>item.sector as string).filter(sector=>!arbiterIdentityIds.has(sector));
+    const sectorArbiter = arbitratePrimarySector({
+      current:{sector:sectorProfile.sector as string,key:sectorProfile.key as string,label:sectorProfile.label,confidenceScore:sectorProfile.confidenceScore},
+      ...arbiterEvidenceFromScan(scanEvidence,{
+        siteSampleProduct:sitewideCommerceEvidence.confirmed || representativeRetailProduct,
+        previouslyConfirmed:hardCommerceEvidence,
+        technologyOnly:technologyOnlyCommerce,
+      }),
+      shortStayIdentity,
+      identity:arbiterIdentity,
+      bodySectors:arbiterBodySectors,
+      labels:Object.fromEntries(sectorSignals.map(item=>[item.sector,item.label])),
+    });
+    (masterEvidence as typeof masterEvidence & {sectorArbiter?:unknown}).sectorArbiter = summarizeArbiterDecision(sectorArbiter);
     {
-      const identityHit = (item:{patterns:RegExp[]}) => Boolean(item.patterns[0]?.test(reconciledIdentitySource));
-      const arbiterIdentitySectors = sectorSignals.filter(identityHit).map(item=>item.sector as string);
-      const arbiterBodySectors = sectorCandidates.map(item=>item.sector as string).filter(sector=>!arbiterIdentitySectors.includes(sector));
-      const sectorArbiter = arbitratePrimarySector({
-        current:{sector:sectorProfile.sector as string,key:sectorProfile.key as string,label:sectorProfile.label,confidenceScore:sectorProfile.confidenceScore},
-        ...arbiterEvidenceFromScan(scanEvidence,{siteSampleProduct:sitewideCommerceEvidence.confirmed || representativeRetailProduct,previouslyConfirmed:finalCommerceDecision.confirmed}),
-        shortStayIdentity,
-        identitySectors:arbiterIdentitySectors,
-        bodySectors:arbiterBodySectors,
-        labels:Object.fromEntries(sectorSignals.map(item=>[item.sector,item.label])),
-      });
-      (masterEvidence as typeof masterEvidence & {sectorArbiter?:unknown}).sectorArbiter = summarizeArbiterDecision(sectorArbiter);
-      if (sectorArbiter.changed || sectorArbiter.commerceConfirmed !== finalCommerceDecision.confirmed) {
-        const previousLabel = sectorProfile.label;
-        const baseModules = ["core_seo","geo","technical"];
-        const genericCapabilityModules = capabilityModules.filter(name=>!sectorDefiningModules.has(name) && !allCommerceModules.has(name));
-        const sectorModules = sectorArbiter.role === "specialist_business"
-          ? [...(sectorSignals.find(item=>item.sector===sectorArbiter.sector)?.modules||[]),...(primarySectorModules[sectorArbiter.sector]||[])]
-          : [];
-        // Commerce modules follow the arbiter's final commerce decision.
-        if (sectorArbiter.commerceConfirmed) {
-          finalCommerceDecision.confirmed = true;
-          finalCommerceDecision.explicitStorefrontEvidence = finalCommerceDecision.explicitStorefrontEvidence || sectorArbiter.storefrontGrade === "strong";
-          masterEvidence.commerce.confirmed = true;
-          if (!masterEvidence.businessModels.includes("commerce")) masterEvidence.businessModels.push("commerce");
-          technologyProfile.isCommerce = true;
-          technologyProfile.siteType = technologyProfile.siteType === "Website" || technologyProfile.siteType === "Landingpage" ? "Webshop" : technologyProfile.siteType;
-        } else {
-          finalCommerceDecision.confirmed = false;
-          masterEvidence.commerce.confirmed = false;
-          masterEvidence.businessModels = masterEvidence.businessModels.filter(model=>model!=="commerce");
-          technologyProfile.isCommerce = false;
-          technologyProfile.siteType = technologyProfile.siteType === "Webshop" ? "Website" : technologyProfile.siteType;
-          masterEvidence.capabilities = masterEvidence.capabilities.filter(item=>!["ecommerce","merchant","consumer_rights"].includes(item));
-        }
-        sectorProfile.sector = sectorArbiter.sector as typeof sectorProfile.sector;
-        sectorProfile.key = sectorArbiter.key as typeof sectorProfile.key;
-        sectorProfile.label = sectorArbiter.label;
-        sectorProfile.confidence = sectorArbiter.confidence as typeof sectorProfile.confidence;
-        sectorProfile.confidenceScore = sectorArbiter.confidenceScore;
-        sectorProfile.evidence = [...sectorArbiter.reasons, ...(previousLabel !== sectorArbiter.label ? [`Eerdere sectorhint: ${previousLabel}`] : [])].slice(0,6);
-        const nextModules = new Set([...baseModules,...sectorModules,...genericCapabilityModules]);
-        if (finalCommerceDecision.confirmed) {
-          for (const name of commerceModules) nextModules.add(name);
-          if (euConsumerApplicable) nextModules.add("eu_consumer");
-        }
-        sectorProfile.applicableModules = [...nextModules];
-        masterEvidence.activeModules = [...nextModules];
+      const previousLabel = sectorProfile.label;
+      const previousEvidence = sectorProfile.evidence;
+      if (sectorArbiter.commerceConfirmed) {
+        finalCommerceDecision.confirmed = true;
+        finalCommerceDecision.explicitStorefrontEvidence = finalCommerceDecision.explicitStorefrontEvidence || sectorArbiter.storefrontGrade === "strong";
+        masterEvidence.commerce.confirmed = true;
+        if (!masterEvidence.businessModels.includes("commerce")) masterEvidence.businessModels.push("commerce");
+        technologyProfile.isCommerce = true;
+        technologyProfile.siteType = technologyProfile.siteType === "Website" || technologyProfile.siteType === "Landingpage" ? "Webshop" : technologyProfile.siteType;
+      } else {
+        finalCommerceDecision.confirmed = false;
+        masterEvidence.commerce.confirmed = false;
+        masterEvidence.businessModels = masterEvidence.businessModels.filter(model=>model!=="commerce");
+        technologyProfile.isCommerce = false;
+        technologyProfile.siteType = technologyProfile.siteType === "Webshop" ? "Website" : technologyProfile.siteType;
+        masterEvidence.capabilities = masterEvidence.capabilities.filter(item=>!["ecommerce","merchant","consumer_rights"].includes(item));
       }
+      sectorProfile.sector = sectorArbiter.sector as typeof sectorProfile.sector;
+      sectorProfile.key = sectorArbiter.key as typeof sectorProfile.key;
+      sectorProfile.label = sectorArbiter.label;
+      sectorProfile.confidence = sectorArbiter.confidence as typeof sectorProfile.confidence;
+      sectorProfile.confidenceScore = sectorArbiter.confidenceScore;
+      sectorProfile.evidence = [
+        ...sectorArbiter.reasons,
+        ...(sectorArbiter.changed && previousLabel !== sectorArbiter.label ? [`Eerdere sectorhint: ${previousLabel}`] : []),
+        ...(sectorArbiter.changed ? [] : previousEvidence),
+      ].slice(0,6);
+      // Valid generic modules survive a sector change; only sector-defining modules
+      // of the old sector and unconfirmed commerce modules are removed.
+      sectorProfile.applicableModules = reconcileModulesAfterArbitration({
+        previous:sectorProfile.applicableModules,
+        sectorOwned:[...sectorSignals.map(item=>item.sector as string),...sectorDefiningModules],
+        newSectorModules:sectorArbiter.role === "specialist_business"
+          ? [...(sectorSignals.find(item=>item.sector===sectorArbiter.sector)?.modules||[]),...(primarySectorModules[sectorArbiter.sector]||[])]
+          : [],
+        capabilityModules,
+        commerceModules:[...commerceModules],
+        euConsumerModule:"eu_consumer",
+        commerceConfirmed:finalCommerceDecision.confirmed,
+        euConsumerApplicable,
+      });
+      masterEvidence.activeModules = [...sectorProfile.applicableModules];
     }
+    const arbiterFinalSector = {sector:sectorProfile.sector as string,key:sectorProfile.key as string,label:sectorProfile.label,confidenceScore:sectorProfile.confidenceScore};
 
     // Final Master reconciliation: late technology/multi-page evidence may improve
     // the site-level decision after the initial Master object was created. Keep
@@ -4387,6 +4411,19 @@ export async function POST(request: Request) {
     scoreModel.seoRange = scoreRange(selectedSeoChecks);
     scoreModel.geoRange = scoreRange(selectedGeoChecks);
     scoreModel.provisional = overallCoverage.coveragePercent < 90;
+
+    // Arbiter invariant: nothing after the Evidence Arbiter may change the primary
+    // sector. A deviation is recorded as a conflict and the arbiter decision restored.
+    if (sectorProfile.sector !== arbiterFinalSector.sector || sectorProfile.key !== arbiterFinalSector.key ||
+        sectorProfile.label !== arbiterFinalSector.label || sectorProfile.confidenceScore !== arbiterFinalSector.confidenceScore ||
+        masterEvidence.primarySector.key !== arbiterFinalSector.key) {
+      masterEvidence.conflicts.push(`Sector-arbiterbeslissing (${arbiterFinalSector.key}) werd later gewijzigd naar ${sectorProfile.key}; arbiterbeslissing hersteld.`);
+      sectorProfile.sector = arbiterFinalSector.sector as typeof sectorProfile.sector;
+      sectorProfile.key = arbiterFinalSector.key as typeof sectorProfile.key;
+      sectorProfile.label = arbiterFinalSector.label;
+      sectorProfile.confidenceScore = arbiterFinalSector.confidenceScore;
+      masterEvidence.primarySector = {...masterEvidence.primarySector,key:arbiterFinalSector.key,label:arbiterFinalSector.label,confidenceScore:arbiterFinalSector.confidenceScore};
+    }
 
     const classification = {
       websiteType,

@@ -25,6 +25,15 @@ import type { ScanEvidence } from "./scan-evidence";
 export type ArbiterStatus = "supported" | "probable" | "uncertain";
 export type ArbiterRole = "storefront" | "corporate_website" | "specialist_business" | "unconfirmed";
 export type EvidenceBasis = "structural" | "identity" | "body_text";
+/**
+ * Where an identity term was found. Only title, h1, meta description and the
+ * titles/descriptions of audited site-sample pages are reliable identity
+ * sources. A URL (host/path) alone never establishes identity, and general
+ * page text is not an identity source at all.
+ */
+export type IdentitySource = "title" | "h1" | "meta_description" | "site_sample_title" | "site_sample_meta" | "url";
+export type IdentityEvidence = { sector: string; sources: IdentitySource[] };
+const RELIABLE_IDENTITY_SOURCES: ReadonlySet<IdentitySource> = new Set(["title", "h1", "meta_description", "site_sample_title", "site_sample_meta"]);
 
 export type ArbiterInput = {
   /** Sector decided by the earlier engine layers (the arbiter may confirm or replace it). */
@@ -42,8 +51,10 @@ export type ArbiterInput = {
     priceCount: number;
     /** A representative same-site product page or sitewide commerce sample confirmed retail. */
     siteSampleProduct: boolean;
-    /** The earlier engine layers already confirmed commerce with hard evidence. */
+    /** Earlier engine layers confirmed commerce with HARD evidence (not technology fingerprints). */
     previouslyConfirmed: boolean;
+    /** Only a commerce platform/technology fingerprint was seen; this is never proof of a webshop. */
+    technologyOnly?: boolean;
   };
   /** High-confidence inventory/capability flags only. */
   inventory: {
@@ -57,8 +68,8 @@ export type ArbiterInput = {
   };
   /** Lodging evidence with guests/dates/booking (short stay). */
   shortStayIdentity: boolean;
-  /** Sectors whose primary term occurs in title/h1/meta description/host/path. */
-  identitySectors: string[];
+  /** Sector identity terms with the reliable source(s) they were found in. */
+  identity: IdentityEvidence[];
   /** Sectors that only matched somewhere in body text or secondary pages. */
   bodySectors: string[];
   /** Display labels per sector key. */
@@ -126,6 +137,25 @@ const FALLBACK_LABELS: Record<string, string> = {
   unknown: "Sector niet bevestigd",
 };
 
+const reliableIdentity = (input: ArbiterInput, sector: string) =>
+  input.identity.some(item => item.sector === sector && item.sources.some(source => RELIABLE_IDENTITY_SOURCES.has(source)));
+
+/** Test each sector's primary identity pattern against each identity source separately. */
+export function collectIdentityEvidence(
+  sectors: { sector: string; pattern: RegExp }[],
+  sources: Partial<Record<IdentitySource, string>>,
+): IdentityEvidence[] {
+  const out: IdentityEvidence[] = [];
+  for (const { sector, pattern } of sectors) {
+    const found = (Object.keys(sources) as IdentitySource[]).filter(source => {
+      const text = sources[source];
+      return Boolean(text) && new RegExp(pattern.source, pattern.flags.replace("g", "")).test(text as string);
+    });
+    if (found.length) out.push({ sector, sources: found });
+  }
+  return out;
+}
+
 // schema.org retail types all end in "Store" (Store, OnlineStore, FurnitureStore, ClothingStore, ...).
 const isStoreSchemaType = (type: string) => type.endsWith("store");
 
@@ -146,7 +176,7 @@ function structuralEvidenceFor(sector: string, input: ArbiterInput): string[] {
     else if (inv.rooms && inv.booking) found.push("inventory:rooms+booking");
     else if (inv.menu && inv.reservation) found.push("inventory:menu+reservation");
   }
-  if (sector === "recruitment" && inv.jobs && input.identitySectors.includes("recruitment")) found.push("inventory:jobs+identity");
+  if (sector === "recruitment" && inv.jobs && reliableIdentity(input, "recruitment")) found.push("inventory:jobs+identity");
   return found;
 }
 
@@ -163,12 +193,11 @@ function gradeStorefront(input: ArbiterInput) {
     c.siteSampleProduct && "site_sample",
   ].filter((value): value is string => Boolean(value));
   const productLevel = c.product || c.addToCart;
-  const strong = c.previouslyConfirmed && (store || productLevel || c.siteSampleProduct)
-    ? true
-    : c.siteSampleProduct ||
-      (store && (productLevel || c.cartOrCheckout)) ||
-      (c.addToCart && (c.cartOrCheckout || c.product));
-  const weak = !strong && (c.previouslyConfirmed || (productLevel && groups.length >= 2));
+  const strong = c.previouslyConfirmed || c.siteSampleProduct ||
+    (store && (productLevel || c.cartOrCheckout)) ||
+    (c.addToCart && (c.cartOrCheckout || c.product));
+  // Weak evidence (product schema + prices, or only a platform fingerprint) is a hint, never a confirmation.
+  const weak = !strong && (Boolean(c.technologyOnly) || (productLevel && groups.length >= 2));
   return { store, groups, grade: strong ? "strong" as const : weak ? "weak" as const : "none" as const };
 }
 
@@ -187,9 +216,9 @@ export function arbitratePrimarySector(input: ArbiterInput): ArbiterDecision {
     .sort((a, b) => b.proof.length - a.proof.length ||
       (SECTOR_PRIORITY.indexOf(a.sector) + 1 || 99) - (SECTOR_PRIORITY.indexOf(b.sector) + 1 || 99));
   const top = structural[0];
-  const contested = Boolean(top && structural[1] && structural[1].proof.length === top.proof.length &&
-    !(input.current.sector === top.sector || input.current.sector === structural[1].sector) &&
-    structural[1].sector !== top.sector);
+  // Contradictory structural proof: a second, different sector must trail the leader by at least two
+  // independent proof groups, otherwise there is no reliable primary sector (regardless of earlier layers).
+  const contested = Boolean(top && structural[1] && top.proof.length - structural[1].proof.length < 2);
 
   const activities = (exclude: string[]): ArbiterActivity[] => {
     const out: ArbiterActivity[] = [];
@@ -199,10 +228,15 @@ export function arbitratePrimarySector(input: ArbiterInput): ArbiterDecision {
       seen.add(item.sector);
       out.push({ sector: item.sector, label: labelOf(input, item.sector), basis: "structural", note: item.proof.join(", ") });
     }
-    for (const sector of input.identitySectors) {
+    for (const item of input.identity) {
+      const sector = item.sector;
       if (seen.has(sector) || sector === "ecommerce") continue;
       seen.add(sector);
-      out.push({ sector, label: labelOf(input, sector), basis: "identity", note: "Term in titel/koppen/omschrijving, zonder structureel bewijs" });
+      const reliable = reliableIdentity(input, sector);
+      out.push({
+        sector, label: labelOf(input, sector), basis: reliable ? "identity" : "body_text",
+        note: reliable ? `Term in ${item.sources.filter(source => RELIABLE_IDENTITY_SOURCES.has(source)).join("/")}, zonder structureel bewijs` : "Alleen in de URL; geen betrouwbare identiteitsbron",
+      });
     }
     for (const sector of input.bodySectors) {
       if (seen.has(sector) || sector === "ecommerce") continue;
@@ -212,13 +246,17 @@ export function arbitratePrimarySector(input: ArbiterInput): ArbiterDecision {
     return out.slice(0, 8);
   };
 
+  if (storefront.grade === "weak") {
+    reasons.push(`Beperkt winkelbewijs (${storefront.groups.join(", ") || "alleen platform-/technologiesignaal"}): een aanwijzing voor een webshop, geen bevestiging.`);
+  }
+
   const build = (partial: {
     role: ArbiterRole; sector: string; key?: string; label?: string; status: ArbiterStatus;
     confidenceScore: number; commerceConfirmed: boolean; structural?: string[];
   }): ArbiterDecision => {
     const key = partial.key || partial.sector;
     const label = partial.label || labelOf(input, partial.sector);
-    return {
+    const built: ArbiterDecision = {
       version: "3.1",
       role: partial.role,
       sector: partial.sector,
@@ -234,6 +272,14 @@ export function arbitratePrimarySector(input: ArbiterInput): ArbiterDecision {
       secondaryActivities: activities([partial.sector]),
       changed: partial.sector !== input.current.sector || key !== input.current.key,
     };
+    // Weak storefront signals stay visible as an unconfirmed hint and never confirm commerce.
+    if (storefront.grade === "weak" && !built.commerceConfirmed && partial.sector !== "ecommerce") {
+      built.secondaryActivities = [
+        { sector: "ecommerce", label: "Webshop (niet bevestigd)", basis: "structural" as const, note: `Beperkt bewijs: ${storefront.groups.join(", ") || "technologiesignaal"}` },
+        ...built.secondaryActivities,
+      ].slice(0, 8);
+    }
+    return built;
   };
 
   const specialist = (item: { sector: string; proof: string[] }, withCommerce: boolean) => {
@@ -259,31 +305,13 @@ export function arbitratePrimarySector(input: ArbiterInput): ArbiterDecision {
     });
   }
 
-  // B. Weak storefront signals (e.g. product schema + prices only).
-  if (storefront.grade === "weak") {
-    if (top) {
-      reasons.push(`Beperkt winkelbewijs (${storefront.groups.join(", ")}) verliest van structureel sectorbewijs (${top.proof.join(", ")}).`);
-      return specialist(top, false);
-    }
-    if (input.current.sector === "ecommerce" || input.commerce.previouslyConfirmed) {
-      reasons.push(`Webshop bevestigd door eerdere lagen en ${storefront.groups.join(", ") || "bestaand bewijs"}.`);
-      return build({ role: "storefront", sector: "ecommerce", status: "probable", confidenceScore: 84, commerceConfirmed: true, structural: storefront.groups });
-    }
-    if (input.identitySectors.includes(input.current.sector) && !GENERIC_WORD_SECTORS.has(input.current.sector)) {
-      reasons.push("Beperkt winkelbewijs; de eerder bepaalde identiteit staat in titel/koppen en blijft behouden.");
-      return build({ role: "specialist_business", sector: input.current.sector, key: input.current.key, label: input.current.label, status: "probable", confidenceScore: 78, commerceConfirmed: false });
-    }
-    reasons.push(`Product-/prijssignalen (${storefront.groups.join(", ")}) zonder concurrerende structurele sector: waarschijnlijk webshop.`);
-    return build({ role: "storefront", sector: "ecommerce", status: "probable", confidenceScore: 78, commerceConfirmed: true, structural: storefront.groups });
-  }
-
   // C. No purchase structure.
   if (top && !contested) {
     reasons.push(`Structureel bewijs voor ${labelOf(input, top.sector)}: ${top.proof.join(", ")}.`);
     return specialist(top, false);
   }
   if (contested && top) {
-    reasons.push("Meerdere sectoren hebben even sterk structureel bewijs; geen betrouwbare hoofdsector.");
+    reasons.push("Meerdere sectoren hebben structureel bewijs zonder duidelijke voorsprong (minimaal twee bewijsgroepen verschil nodig); geen betrouwbare hoofdsector.");
     return build({ role: "unconfirmed", sector: "unknown", label: FALLBACK_LABELS.unknown, status: "uncertain", confidenceScore: 40, commerceConfirmed: false });
   }
   if (storefront.store) {
@@ -295,10 +323,10 @@ export function arbitratePrimarySector(input: ArbiterInput): ArbiterDecision {
     return decision;
   }
   const current = input.current.sector;
-  const identityCompetitors = input.identitySectors.filter(sector => sector !== "ecommerce");
-  if (current && current !== "unknown" && current !== "ecommerce" && input.identitySectors.includes(current)) {
+  const identityCompetitors = input.identity.filter(item => item.sector !== "ecommerce" && reliableIdentity(input, item.sector));
+  if (current && current !== "unknown" && current !== "ecommerce" && reliableIdentity(input, current)) {
     if (identityCompetitors.length >= 3) {
-      reasons.push("Titel/koppen bevatten termen van drie of meer sectoren; geen betrouwbare hoofdsector.");
+      reasons.push("Titel/koppen/omschrijving bevatten termen van drie of meer sectoren; geen betrouwbare hoofdsector.");
       return build({ role: "unconfirmed", sector: "unknown", label: FALLBACK_LABELS.unknown, status: "uncertain", confidenceScore: 40, commerceConfirmed: false });
     }
     reasons.push("Sector alleen ondersteund door termen in titel/koppen/omschrijving; geen structureel bewijs.");
@@ -343,7 +371,7 @@ export function summarizeArbiterDecision(decision: ArbiterDecision) {
  */
 export function arbiterEvidenceFromScan(
   evidence: ScanEvidence,
-  extra: { siteSampleProduct: boolean; previouslyConfirmed: boolean },
+  extra: { siteSampleProduct: boolean; previouslyConfirmed: boolean; technologyOnly?: boolean },
 ): Pick<ArbiterInput, "schemaTypes" | "commerce" | "inventory"> {
   const high = (fact: { value: unknown; confidence: string }) => Boolean(fact.value) && fact.confidence === "high";
   const schema = new Set(evidence.schema.types.map(type => type.toLowerCase()));
@@ -357,6 +385,7 @@ export function arbiterEvidenceFromScan(
       priceCount: evidence.commerce.prices.value.count,
       siteSampleProduct: extra.siteSampleProduct,
       previouslyConfirmed: extra.previouslyConfirmed,
+      technologyOnly: Boolean(extra.technologyOnly),
     },
     inventory: {
       vehicles: high(evidence.inventory.vehicles),
@@ -368,4 +397,41 @@ export function arbiterEvidenceFromScan(
       reservation: high(evidence.appointments.reservation),
     },
   };
+}
+
+export const CORE_AUDIT_MODULES = ["core_seo", "geo", "technical"] as const;
+
+/**
+ * Module set after the arbiter changes the sector. Valid generic modules (local,
+ * lead conversion, trust, accessibility, ...) stay active; only modules that
+ * define a sector, and commerce modules when commerce is not confirmed, are
+ * removed. Core modules can never disappear.
+ */
+export function reconcileModulesAfterArbitration(input: {
+  previous: string[];
+  /** Modules that define a single sector (e.g. real_estate, hospitality). */
+  sectorOwned: Iterable<string>;
+  /** Modules supplied by the new primary sector. */
+  newSectorModules: string[];
+  /** Generic modules supported by verified capabilities. */
+  capabilityModules: string[];
+  commerceModules: string[];
+  euConsumerModule?: string;
+  commerceConfirmed: boolean;
+  euConsumerApplicable: boolean;
+}): string[] {
+  const owned = new Set(input.sectorOwned);
+  const commerce = new Set([...input.commerceModules, ...(input.euConsumerModule ? [input.euConsumerModule] : [])]);
+  const keep = (name: string) => !owned.has(name) && !commerce.has(name);
+  const next = new Set<string>([
+    ...CORE_AUDIT_MODULES,
+    ...input.previous.filter(keep),
+    ...input.capabilityModules.filter(keep),
+    ...input.newSectorModules.filter(name => !commerce.has(name)),
+  ]);
+  if (input.commerceConfirmed) {
+    for (const name of input.commerceModules) next.add(name);
+    if (input.euConsumerModule && input.euConsumerApplicable) next.add(input.euConsumerModule);
+  }
+  return [...next];
 }
