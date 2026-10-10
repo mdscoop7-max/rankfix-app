@@ -1630,7 +1630,7 @@ export async function POST(request: Request) {
     const verifiedStorefront = explicitStoreSchema &&
       (scanEvidence.commerce.products.value || scanEvidence.commerce.cart.value || scanEvidence.commerce.addToCart.value);
     const incidentalSectorConflict = primaryNonCommerceIdentity !== null &&
-      (primaryNonCommerceIdentity.sector === "hospitality" || primaryNonCommerceIdentity.sector === "news_media" || primaryNonCommerceIdentity.sector === "general_business");
+      !["real_estate","automotive","health_wellness","beauty","home_services","professional_services","recruitment","government","telecom_technology","service_marketplace","saas_b2b"].includes(primaryNonCommerceIdentity.sector);
     const commerceAsPrimaryIdentity = (evidenceCommerceConfirmed || verifiedStorefront) &&
       (!primaryNonCommerceIdentity || (verifiedStorefront && incidentalSectorConflict && !shortStayIdentity));
     const sectorProfile = commerceAsPrimaryIdentity
