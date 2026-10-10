@@ -3774,7 +3774,7 @@ export async function POST(request: Request) {
         const verifiedRepresentativeType: MultiPageCandidate["type"] =
           pageProductSchema ? "product"
           : pageItemListSchema && new Set(pageProductLinks).size >= 3 ? "category"
-          : page.type === "product" && !pageProductSchema && !pageStrongCommerceAction ? "other"
+          : page.type === "product" && !pageProductSchema && !(pageStrongCommerceAction && pagePriceSignals >= 1) ? "other"
           : page.type;
         const evidenceChecks: MultiPageAudit["evidenceChecks"] = [
           {key:"http",status:"PASS",details:`HTTP ${r.status}`},
