@@ -3400,8 +3400,18 @@ export async function POST(request: Request) {
     const servicePathSignal = /\/(?:dienst|diensten|service|services|oplossing|oplossingen|solution|solutions|expertise|behandeling|behandelingen|treatment|practice|werkplaats)(?:\/|$)/i.test(pathname);
     const serviceContentSignal = /\b(?:onze diensten|our services|dienstverlening|service|services|expertise|oplossingen|solutions)\b/i.test([title, description, h1s.join(" ")].join(" "));
     const resolvedServicePage = !isHomepage && !isProductPage && !hasCategorySignal && (servicePathSignal || serviceContentSignal);
+    // Page Type Engine: distinguish the intent of a service-area, case study,
+    // registration or service-category URL from a generic service detail.
+    // Path-only evidence remains medium confidence; no form/booking is invented.
+    const serviceAreaPath = /\/(?:service-area|servicegebied|werkgebied|transport|destinations?|bestemmingen|regios?|regions?)\/[^/]+\/?$/i.test(pathname);
+    const caseStudyPath = /\/(?:cases?|case-studies|klantverhalen|success-stories|projecten|projects)\/[^/]+\/?$/i.test(pathname);
+    const registrationPath = /\/(?:inschrijven(?:-als-patient)?|registreren|registration|register|sign-up|signup|aanmelden)\/?$/i.test(pathname);
+    const serviceCategoryPath = /\/(?:behandelingen|treatments|diensten|services|oplossingen|solutions)\/?$/i.test(pathname);
+    const specializedPageType = !isHomepage && !isProductPage && !propertyListingPage && !hasCategorySignal
+      ? serviceAreaPath ? "service_area" : caseStudyPath ? "case_study" : registrationPath ? "registration" : serviceCategoryPath ? "service_category" : null
+      : null;
     const pageTypeEvidence = {
-      type: isHomepage ? "homepage" : propertyListingPage ? "property_listing" : isProductPage ? "product" : hasCategorySignal ? "category" : (effectiveLocalBusinessPage || resolvedServicePage) ? "service" : effectiveArticlePage ? "article" : "unknown",
+      type: isHomepage ? "homepage" : propertyListingPage ? "property_listing" : isProductPage ? "product" : hasCategorySignal ? "category" : specializedPageType || ((effectiveLocalBusinessPage || resolvedServicePage) ? "service" : effectiveArticlePage ? "article" : "unknown"),
       confidence: isHomepage ? "high" : propertyListingPage ? "high" : isProductPage && (hasProductSchema || hasSkuSignal) ? "high" : isProductPage ? "medium" : hasCategorySignal && (hasItemListSignal || repeatedProductCardSignal) ? "high" : resolvedServicePage && servicePathSignal ? "high" : effectiveLocalBusinessPage || resolvedServicePage || hasCategorySignal || effectiveArticlePage ? "medium" : "low",
       evidence: [isHomepage ? `localized/root path: ${pathname}` : "", propertyListingPage ? "Scanbewijs: vastgoedobject/listing" : "", servicePathSignal ? `resolved service path: ${pathname}` : "", resolvedServicePage && serviceContentSignal ? "service intent in resolved page metadata/headings" : "", hasProductSchema ? "Product schema present" : "", hasStoreSchema ? "Store schema present" : "", hasItemListSignal ? "ItemList schema present" : "", genericCategoryPathSignal ? `generic commerce category path: ${pathname}` : "", repeatedProductCardSignal ? "repeated product-card commerce signals" : "", commercialNavigationEvidence ? "commercial navigation + shop/support links" : "", hasSkuSignal ? "SKU signal present" : "", hasStrongCommerceAction ? "commerce action present" : "", articleSuppressedByCommerce ? "article signal suppressed by stronger product evidence" : ""].filter(Boolean),
     };
