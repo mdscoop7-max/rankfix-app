@@ -3603,11 +3603,18 @@ export async function POST(request: Request) {
     // pages should not consume the limited representative sample twice.
     const uniqueMultiPagePages: MultiPageCandidate[] = [];
     const seenTemplates = new Set<string>();
+    // FAQ/help-center pages can dominate a crawl and crowd out product,
+    // category, service and legal evidence. Preserve a small FAQ sample.
+    const isFaqSample = (url: string) => /\/(?:faq|faqs|veelgestelde-vragen|help-center|helpcentrum|hilfe|ayuda|assistance)(?:\/|$)/i.test(new URL(url).pathname);
+    const faqSampleLimit = 3;
+    let faqSamples = 0;
     for (const item of [scannedPageSample, ...multiPagePages]) {
       const normalized = normalizeScanUrl(item.url);
       const key = `${item.type}:${templateShapeKey(normalized)}`;
       if (uniqueMultiPagePages.some((existing)=>normalizeScanUrl(existing.url)===normalized)) continue;
       if (seenTemplates.has(key)) continue;
+      if (isFaqSample(normalized) && faqSamples >= faqSampleLimit) continue;
+      if (isFaqSample(normalized)) faqSamples++;
       seenTemplates.add(key);
       uniqueMultiPagePages.push(item);
       if (uniqueMultiPagePages.length >= representativePageLimit) break;
@@ -3620,6 +3627,8 @@ export async function POST(request: Request) {
       for (const item of rankedMultiPage) {
         const normalized = normalizeScanUrl(item.url);
         if (seenUrls.has(normalized)) continue;
+        if (isFaqSample(normalized) && faqSamples >= faqSampleLimit) continue;
+        if (isFaqSample(normalized)) faqSamples++;
         seenUrls.add(normalized);
         uniqueMultiPagePages.push(item);
         if (uniqueMultiPagePages.length >= representativePageLimit) break;
