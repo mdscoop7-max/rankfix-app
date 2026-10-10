@@ -62,7 +62,7 @@ export const SECTOR_CATALOG: SectorDefinition[] = [
   {key:"education",label:"Onderwijs",keywords:/\b(school|universiteit|university|college|onderwijs|opleiding)\b/i,schemaTypes:["EducationalOrganization","School","CollegeOrUniversity"],expectedCapabilities:["programs","admissions","contact","accessibility"]},
   {key:"course_training",label:"Cursus / training",keywords:/\b(cursus|course|training|workshop|opleiding volgen)\b/i,schemaTypes:["Course"],expectedCapabilities:["courses","schedule","enrollment","pricing"],optionalCapabilities:["booking"]},
   {key:"recruitment",label:"Recruitment / vacatures",keywords:/\b(recruitment|uitzendbureau|uitzendorganisatie|employment agency|staffing agency|staffing|werving en selectie|recruitmentbureau|recruitment agency)\b/i,schemaTypes:["EmploymentAgency"],evidenceFlags:["inventory.jobs"],expectedCapabilities:["jobs","job_details","application","organization"]},
-  {key:"news_media",label:"Nieuws / media",keywords:/\b(nieuws|news|breaking news|journalistiek|newspaper|redactie|journalist|verslaggever|headline|liveblog)\b/i,schemaTypes:["NewsMediaOrganization","NewsArticle","Article"],expectedCapabilities:["articles","authors","dates","publisher","sources"],forbiddenAssumptions:["commerce"]},
+  {key:"news_media",label:"Nieuws / media",keywords:/\b(nieuws|news|breaking news|journalistiek|newspaper|redactie|journalist|verslaggever|headline|liveblog)\b/i,schemaTypes:["NewsMediaOrganization","NewsArticle"],expectedCapabilities:["articles","authors","dates","publisher","sources"],forbiddenAssumptions:["commerce"]},
   {key:"publisher_blog",label:"Blog / publisher",keywords:/\b(blog|magazine|artikelen|articles|editorial)\b/i,schemaTypes:["Blog","BlogPosting","Article"],expectedCapabilities:["articles","authors","dates","publisher"]},
   {key:"events",label:"Events / tickets",keywords:/\b(events?|evenementen|tickets|concert|festival)\b/i,schemaTypes:["Event"],expectedCapabilities:["events","dates","venue","tickets_or_registration"]},
   {key:"entertainment",label:"Entertainment / leisure",keywords:/\b(bioscoop|cinema|theater|amusement|leisure|escape room)\b/i,schemaTypes:["EntertainmentBusiness"],expectedCapabilities:["activities_or_program","schedule","pricing"],optionalCapabilities:["booking","tickets"]},
@@ -129,11 +129,23 @@ export function rankSectorCandidates(evidence: ScanEvidence, searchableText: str
     // Sector Motor 3.0: structured identity and independently verified capabilities
     // outweigh isolated words. Shared generic schema (Product/Offer/Store) must
     // not establish a marketplace or specialist identity on its own.
-    const genericSchema = new Set(["product","offer","store","organization","professionalservice","foodestablishment"]);
+    const genericSchema = new Set(["product","offer","store","organization","professionalservice","foodestablishment","article","blogposting","website"]);
     const specificSchemaHits = schemaHits.filter(x=>!genericSchema.has(x.toLowerCase()));
     const genericSchemaHits = schemaHits.filter(x=>genericSchema.has(x.toLowerCase()));
     const schemaScore = specificSchemaHits.length * 5 + Math.min(genericSchemaHits.length, 1) * 2;
     const evidenceScore = evidenceHits.length * 4;
+    // News links and generic articles appear on shops and other businesses.
+    // Require a dedicated publisher identity before classifying as news media.
+    if (def.key === "news_media" && specificSchemaHits.length === 0) {
+      return {key:def.key,label:def.label,score:0,evidence:[],
+        expectedCapabilities:def.expectedCapabilities,optionalCapabilities:def.optionalCapabilities||[],
+        forbiddenAssumptions:def.forbiddenAssumptions||[]};
+    }
+    if (def.key === "publisher_blog" && specificSchemaHits.length === 0 && !keywordHit) {
+      return {key:def.key,label:def.label,score:0,evidence:[],
+        expectedCapabilities:def.expectedCapabilities,optionalCapabilities:def.optionalCapabilities||[],
+        forbiddenAssumptions:def.forbiddenAssumptions||[]};
+    }
     const score = (keywordHit ? 1 : 0) + schemaScore + evidenceScore;
     // A catalog alone is not proof of a multi-seller marketplace.
     if (def.key === "marketplace" && !keywordHit && specificSchemaHits.length === 0) {
