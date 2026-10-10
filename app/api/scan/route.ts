@@ -3412,11 +3412,11 @@ export async function POST(request: Request) {
     const caseStudyPath = /\/(?:cases?|case-studies|klantverhalen|success-stories|projecten|projects)\/[^/]+\/?$/i.test(pathname);
     const registrationPath = /\/(?:inschrijven(?:-als-patient)?|registreren|registration|register|sign-up|signup|aanmelden)\/?$/i.test(pathname);
     const serviceCategoryPath = /\/(?:behandelingen|treatments|diensten|services|oplossingen|solutions)\/?$/i.test(pathname);
-    const specializedPageType = !isHomepage && !isProductPage && !propertyListingPage && !hasCategorySignal
+    const specializedPageType = !isHomepage && !isProductPage && !propertyListingPage
       ? serviceAreaPath ? "service_area" : caseStudyPath ? "case_study" : registrationPath ? "registration" : serviceCategoryPath ? "service_category" : null
       : null;
     const pageTypeEvidence = {
-      type: isHomepage ? "homepage" : propertyListingPage ? "property_listing" : isProductPage ? "product" : hasCategorySignal ? "category" : specializedPageType || ((effectiveLocalBusinessPage || resolvedServicePage) ? "service" : effectiveArticlePage ? "article" : "unknown"),
+      type: isHomepage ? "homepage" : propertyListingPage ? "property_listing" : isProductPage ? "product" : specializedPageType || (hasCategorySignal ? "category" : (effectiveLocalBusinessPage || resolvedServicePage) ? "service" : effectiveArticlePage ? "article" : "unknown"),
       confidence: isHomepage ? "high" : propertyListingPage ? "high" : isProductPage && (hasProductSchema || hasSkuSignal) ? "high" : isProductPage ? "medium" : hasCategorySignal && (hasItemListSignal || repeatedProductCardSignal) ? "high" : specializedPageType ? "medium" : resolvedServicePage && servicePathSignal ? "high" : effectiveLocalBusinessPage || resolvedServicePage || hasCategorySignal || effectiveArticlePage ? "medium" : "low",
       evidence: [isHomepage ? `localized/root path: ${pathname}` : "", propertyListingPage ? "Scanbewijs: vastgoedobject/listing" : "", specializedPageType ? `URL-intentie: ${specializedPageType}; inhoud en functionaliteit afzonderlijk te bevestigen` : "", servicePathSignal ? `resolved service path: ${pathname}` : "", resolvedServicePage && serviceContentSignal ? "service intent in resolved page metadata/headings" : "", hasProductSchema ? "Product schema present" : "", hasStoreSchema ? "Store schema present" : "", hasItemListSignal ? "ItemList schema present" : "", genericCategoryPathSignal ? `generic commerce category path: ${pathname}` : "", repeatedProductCardSignal ? "repeated product-card commerce signals" : "", commercialNavigationEvidence ? "commercial navigation + shop/support links" : "", hasSkuSignal ? "SKU signal present" : "", hasStrongCommerceAction ? "commerce action present" : "", articleSuppressedByCommerce ? "article signal suppressed by stronger product evidence" : ""].filter(Boolean),
     };
@@ -3589,7 +3589,7 @@ export async function POST(request: Request) {
     // and makes failed cross-page sampling transparent without changing the main-page score.
     const scannedPageSample: MultiPageCandidate = {
       url: finalUrl.toString(),
-      type: isProductPage ? "product" : propertyListingPage ? "listing" : resolvedServicePage ? "service" : hasCategorySignal ? "category" : isHomepage ? "homepage" : "other",
+      type: isProductPage ? "product" : propertyListingPage ? "listing" : resolvedServicePage ? "service" : specializedPageType === "service_category" ? "service" : hasCategorySignal ? "category" : isHomepage ? "homepage" : "other",
       evidence: ["scanned page"],
     };
     const templateShapeKey = (rawUrl:string) => {
