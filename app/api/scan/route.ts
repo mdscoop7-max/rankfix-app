@@ -3854,7 +3854,14 @@ export async function POST(request: Request) {
     if (multiPageCapabilities.automotiveService) addMasterCapability("services");
     if (multiPageCapabilities.properties) addMasterCapability("properties");
     if (multiPageCapabilities.treatment) addMasterCapability("services");
-    if (multiPageCapabilities.hospitality) for (const c of ["rooms","booking"]) addMasterCapability(c);
+    // Incidental restaurant, room or booking words in a retail catalogue do not
+    // establish accommodation inventory or a functioning booking capability.
+    // Preserve independently evidenced booking/rooms signals without synthesizing
+    // them from text across unrelated pages.
+    if (multiPageCapabilities.hospitality && (sectorProfile.sector === "hospitality" || shortStayIdentity)) {
+      if (scanEvidence.inventory.rooms.value) addMasterCapability("rooms");
+      if (scanEvidence.appointments.booking.value) addMasterCapability("booking");
+    }
     if (auditedMultiPages.length && !masterEvidence.coverage.evidenceSources.includes("multi_page")) masterEvidence.coverage.evidenceSources.push("multi_page");
     // Evidence Engine v2 foundation: expose explicit capability states with proof.
     // This runs after representative evidence collection so later checks can consume
