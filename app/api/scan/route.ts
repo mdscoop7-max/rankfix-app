@@ -950,7 +950,7 @@ export async function POST(request: Request) {
     const hasStrongCommerceAction = /\b(add to cart|add-to-cart|add to basket|buy now|in winkelwagen|toevoegen(?: aan winkelwagen)?|koop nu|jetzt kaufen|in den warenkorb|ajouter au panier|acheter maintenant|añadir al carrito|comprar ahora|aggiungi al carrello|acquista ora)\b/i.test(text);
     const hasSkuSignal = /\b(sku|artikelnummer|productcode|référence produit|referencia del producto|codice prodotto)\b/i.test(text);
     const hasStockSignal = /\b(in stock|out of stock|op voorraad|niet op voorraad|uitverkocht|auf lager|nicht auf lager|en stock|rupture de stock|agotado|disponible|esaurito|disponibile|pre-?order|backorder)\b/i.test(text);
-    const hasExplicitPriceSignal = /(?:€|£|\$)\s*\d|\d[\d.,]*\s*(?:€|EUR|GBP|USD)\b|\b(?:prijs|price|preis|prix|precio|prezzo)\s*[:€£$]?\s*\d/i.test(text);
+    const hasExplicitPriceSignal = /(?:€|£|\$)\s*\d|(?<![\d.,])\d[\d.,]{0,20}\s*(?:€|EUR|GBP|USD)\b|\b(?:prijs|price|preis|prix|precio|prezzo)\s*[:€£$]?\s*\d/i.test(text);
     const productOgType = firstMatch(html, /<meta[^>]+(?:property|name)\s*=\s*["']og:type["'][^>]+content\s*=\s*["']([^"']+)["']/i) || firstMatch(html, /<meta[^>]+content\s*=\s*["']([^"']+)["'][^>]+(?:property|name)\s*=\s*["']og:type["']/i);
     const hasProductMetaSignal = /(?:^|[.:_-])product(?:$|[.:_-])/i.test(productOgType) || /(?:product|sku|price|availability)[.:_-]/i.test(html.match(/<meta\b[^>]*(?:property|name)\s*=\s*["'][^"']+["'][^>]*>/gi)?.join(" ") || "");
     const hasProductSignal = hasProductSchema || (hasStrongCommerceAction && (hasExplicitPriceSignal || hasStockSignal || hasSkuSignal)) || (hasSkuSignal && hasExplicitPriceSignal && hasStockSignal) || (hasProductMetaSignal && hasExplicitPriceSignal);
@@ -978,7 +978,7 @@ export async function POST(request: Request) {
     const hasArticleSignal = rawArticleSignal && !isProductPage;
     const hasItemListSignal = schemaSet.has("itemlist");
     const commerceNavigationSignal = /\b(winkelwagen|cart|checkout|afrekenen|shop|webshop|producten|products)\b/i.test(text);
-    const visiblePriceCount = (text.match(/(?:€|£|\$)\s*\d|\d[\d.,]*\s*(?:€|EUR|GBP|USD)\b/gi) || []).length;
+    const visiblePriceCount = (text.match(/(?:€|£|\$)\s*\d|(?<![\d.,])\d[\d.,]{0,20}\s*(?:€|EUR|GBP|USD)\b/gi) || []).length;
     // Category detection must be portable across customer sites: use generic taxonomy paths
     // plus repeated commerce evidence, never customer-specific category slugs.
     const genericCategoryPathSignal = !isHomepage && pathSegmentsForType.some((segment) =>
@@ -1167,7 +1167,7 @@ export async function POST(request: Request) {
                   : schemaSet.has("webpage") || schemaSet.has("article") || schemaSet.has("organization") || schemaSet.has("website");
     const businessName = organizationName || (title.split(/[|–—-]/)[0] || "").trim();
     const phoneMatch = text.match(/(?:\+31\s?6|0)[\d\s().-]{8,}/);
-    const emailMatch = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+    const emailMatch = text.match(/(?<![A-Z0-9._%+-])[A-Z0-9._%+-]{1,64}@[A-Z0-9-]{1,63}(?:\.[A-Z0-9-]{1,63}){0,4}\.[A-Z]{2,24}(?![A-Z0-9-])/i);
     const addressMatch = text.match(/\b([^,]{3,60}\s+\d+[A-Za-z]?)\s+(\d{4}\s?[A-Z]{2})\s+([A-Za-zÀ-ÿ' -]{2,40})\b/);
     const localBusinessDetails = effectiveLocalSchemaSignal ? {
       name: businessName || null,
@@ -1194,7 +1194,7 @@ export async function POST(request: Request) {
       if (r.ok) {
         robotsTxt = await readResponseTextLimited(r, 512_000);
         robotsStatus = "PASS";
-        const declared = [...robotsTxt.matchAll(/^\s*Sitemap\s*:\s*(\S+)/gim)].map((match) => match[1]).filter(Boolean);
+        const declared = [...robotsTxt.matchAll(/^[ \t]*Sitemap[ \t]*:[ \t]*(\S+)/gim)].map((match) => match[1]).filter(Boolean);
         const scanHost = finalUrl.hostname.toLowerCase().replace(/^www\./, "");
         robotsDeclaredSitemapUrls = [...new Set(declared.flatMap((value) => {
           try {
