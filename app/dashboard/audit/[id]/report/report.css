@@ -36,3 +36,10 @@
  .report-wrap{overflow:visible}
  .pre{white-space:pre-wrap;word-break:break-word}
 }
+
+/* Full-report sharing works on desktop and narrow mobile screens. */
+.report-actions{flex-wrap:wrap}
+.report-share-message{margin:-10px 0 18px;padding:10px 13px;border:1px solid #a7d8c8;border-radius:9px;background:#effaf6;color:#115e51;font-size:13px}
+@media(max-width:650px){.report-actions{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:380px){.report-actions{grid-template-columns:1fr 1fr}.report-button{font-size:12px}}
+@media print{.report-share-message{display:none!important}}
