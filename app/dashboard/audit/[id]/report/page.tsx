@@ -68,6 +68,7 @@ export default function FullAuditReport(){
   const {id}=useParams<{id:string}>();
   const [scan,setScan]=useState<Scan|null>(null);
   const [error,setError]=useState("");
+  const [shareMessage,setShareMessage]=useState("");
   const [language,setLanguage]=useState<Locale>("nl");
   const t=reportText[language];
   const ux=AUDIT_UX[language];
@@ -104,8 +105,47 @@ export default function FullAuditReport(){
   const groupByReason=(items:Check[])=>Array.from(items.reduce((map,check)=>{const reason=reasonFor(check,language);const key=reason.toLowerCase();const current=map.get(key);if(current)current.items.push(check);else map.set(key,{reason,items:[check]});return map;},new Map<string,{reason:string;items:Check[]}>()).values());
   const groupedUnable=groupByReason(checks.filter(c=>c.status==="unable_to_confirm"));
   const groupedNa=groupByReason(checks.filter(c=>c.status==="not_applicable"));
+  const actionText:Record<Locale,{copy:string;share:string;copied:string;failed:string}>={
+    nl:{copy:"Audit kopiëren",share:"Audit sturen",copied:"Volledige audit gekopieerd. Plak deze in ChatGPT, WhatsApp of e-mail.",failed:"Kopiëren is niet gelukt. Gebruik de PDF-knop."},
+    en:{copy:"Copy audit",share:"Share audit",copied:"Full audit copied. Paste it into ChatGPT, WhatsApp or email.",failed:"Could not copy the audit. Use the PDF button."},
+    de:{copy:"Audit kopieren",share:"Audit teilen",copied:"Vollständiges Audit kopiert. In ChatGPT, WhatsApp oder E-Mail einfügen.",failed:"Audit konnte nicht kopiert werden. Verwende die PDF-Schaltfläche."},
+    fr:{copy:"Copier l’audit",share:"Partager l’audit",copied:"Audit complet copié. Collez-le dans ChatGPT, WhatsApp ou un e-mail.",failed:"Impossible de copier l’audit. Utilisez le bouton PDF."},
+    it:{copy:"Copia audit",share:"Condividi audit",copied:"Audit completo copiato. Incollalo in ChatGPT, WhatsApp o un’e-mail.",failed:"Impossibile copiare l’audit. Usa il pulsante PDF."},
+    es:{copy:"Copiar auditoría",share:"Compartir auditoría",copied:"Auditoría completa copiada. Pégala en ChatGPT, WhatsApp o correo electrónico.",failed:"No se pudo copiar la auditoría. Usa el botón PDF."}
+  };
+  // The printable report is fully expanded. Export only the report content:
+  // never include toolbar buttons or account-only share URLs.
+  function reportPlainText(){
+    const root=document.querySelector<HTMLElement>(".report-wrap");
+    if(!root)return "";
+    return [...root.children]
+      .filter(node=>!node.classList.contains("report-actions")&&!node.classList.contains("report-share-message"))
+      .map(node=>(node as HTMLElement).innerText?.trim()||"")
+      .filter(Boolean).join("\n\n");
+  }
+  async function copyAudit(){
+    try{
+      const content=reportPlainText();
+      if(!content||!navigator.clipboard?.writeText)throw new Error("Clipboard not available");
+      await navigator.clipboard.writeText(content);
+      setShareMessage(actionText[language].copied);
+    }catch{setShareMessage(actionText[language].failed);}
+  }
+  async function shareAudit(){
+    const content=reportPlainText();
+    if(!content)return;
+    if(typeof navigator.share!=="function"){await copyAudit();return;}
+    try{
+      await navigator.share({title:"RankFix — "+auditedUrl,text:content});
+      setShareMessage("");
+    }catch(cause){
+      if(cause instanceof Error&&cause.name==="AbortError")return;
+      await copyAudit();
+    }
+  }
   return <main className="report-wrap">
-    <div className="report-actions"><Link href={"/dashboard/audit/"+encodeURIComponent(id)} className="report-button">← {t.back}</Link><button className="report-button primary" onClick={()=>window.print()}>{language==="nl"?"PDF downloaden":t.save}</button></div>
+    <div className="report-actions"><Link href={"/dashboard/audit/"+encodeURIComponent(id)} className="report-button">← {t.back}</Link><button type="button" className="report-button" onClick={()=>void copyAudit()}>{actionText[language].copy}</button><button type="button" className="report-button" onClick={()=>void shareAudit()}>{actionText[language].share}</button><button type="button" className="report-button primary" onClick={()=>window.print()}>{language==="nl"?"PDF downloaden":t.save}</button></div>
+    {shareMessage&&<p className="report-share-message" role="status" aria-live="polite">{shareMessage}</p>}
     <header className="report-header"><div><div className="report-brand">RankFix <span>AI</span></div><h1>{t.title}</h1><p className="muted">{t.subtitle}</p></div><div className="score"><b>{r.overallScore??"—"}</b><span>/ 100</span></div></header>
     <div className="box score-explainer"><b>{language==="nl"?"Wat betekent deze score?":"What does this score mean?"}</b><p>{language==="nl"?"De score geldt voor de controles die RankFix tijdens deze scan betrouwbaar kon beoordelen. 100/100 betekent niet dat een website op ieder gebied perfect is, gegarandeerd hoog rankt of door AI-zoekmachines wordt genoemd. Niet te bevestigen en N.v.t. worden apart getoond en verlagen de score niet.":"The score applies to checks RankFix could reliably assess during this scan. 100/100 does not mean a website is perfect in every area, guaranteed to rank highly, or guaranteed to be cited by AI search. Unable-to-confirm and N/A checks are shown separately and do not lower the score."}</p><p><b>{language==="nl"?"Berekening:":"Calculation:"}</b> {r.scoreModel?.formula||"0.6 × SEO + 0.4 × GEO"} · Security {language==="nl"?"staat apart en telt niet mee in het totaal.":"is separate and is not included in the total."}</p>{(()=>{const c=assessedCounts(r);const rel=reliabilityOf(r);const pages=Number(r.multiPage?.counts?.audited||1);const relLabel=language==="nl"?(rel==="high"?"Hoog":rel==="medium"?"Gemiddeld":"Beperkt"):(rel==="high"?"High":rel==="medium"?"Medium":"Limited");return <><p><b>{language==="nl"?"Betrouwbaarheid:":"Reliability:"}</b> {relLabel}. {language==="nl"?`We beoordeelden ${c.assessed} van de ${c.applicable} toepasselijke controles op ${pages} pagina's van de website.`:`We assessed ${c.assessed} of ${c.applicable} applicable checks across ${pages} website pages.`}</p><p><b>{language==="nl"?"Geanalyseerde pagina's:":"Analysed pages:"}</b> {pages} ({ux.sample}). {ux.notFull}</p>{c.unconfirmed>0&&<p>{language==="nl"?`${c.unconfirmed} controles konden niet worden bevestigd; de score kan hierdoor afwijken.`:`${c.unconfirmed} checks could not be confirmed; this may affect the score.`}</p>}</>})()}</div><section className="summary-grid"><div><span>{t.website}</span><strong>{auditedUrl}</strong>{inputDiffers&&<small style={{display:"block",marginTop:4,opacity:.7}}>{language==="nl"?"Ingevoerde URL":"Input URL"}: {scan.scanned_url}</small>}</div><div><span>{t.scanned}</span><strong>{new Date(scan.created_at).toLocaleString(language,{dateStyle:"long",timeStyle:"short"})}</strong></div><div><span>SEO</span><strong>{r.seo?.score??"—"} / 100</strong></div><div><span>GEO</span><strong>{r.geo?.score??"—"} / 100</strong></div><div><span>{language==="nl"?"Beveiligingsinstellingen":"Security settings"}</span><strong>{r.security?.score??"—"} / 100</strong><small style={{display:"block",marginTop:4,opacity:.7}}>{language==="nl"?"Passieve controle · telt niet mee in totaalscore":"Passive check · excluded from total score"}</small></div><div><span>{language==="nl"?"Toegankelijkheid (basis)":"Accessibility (basic)"}</span><strong>{(r.accessibility?.coverage?.assessedWeight??0)>0?(r.accessibility?.score??"—")+" / 100":(language==="nl"?"Niet te bevestigen":"Unable to confirm")}</strong></div></section>
     <section><h2>{deep.basis}</h2><div className="box"><p><b>Scanbewijs:</b> {rendering?.mode==="raw_html"?"Raw HTML":"Rendered"} · JavaScript {rendering?.javascriptExecuted?"uitgevoerd":"niet uitgevoerd"}{pageType?.type?" · paginatype "+pageType.type+" ("+pageType.confidence+")":""}</p>{rendering?.note&&<p>{rendering.note}</p>}<p><b>Websiteprofiel:</b> {sector?.key==="saas_b2b"?"SaaS / webapp":profile?.siteType||"Website"} · CMS: {profile?.cms||"Niet bevestigd"} · Platform: {profile?.commercePlatform||"Niet bevestigd"} · Framework: {profile?.framework||"Niet bevestigd"} · zekerheid {profile?.confidence??"—"}%</p>{profile?.evidence?.length>0&&<p><b>Websitebewijs:</b> {profile.evidence.slice(0,3).join(" · ")}</p>}{sector&&<><p><b>Sector:</b> {sector.label||"Sector niet bevestigd"} · zekerheid {sector.confidenceScore??"—"}%</p>{visibleSectorEvidence.length>0&&<p><b>Beslissend sectorbewijs:</b> {visibleSectorEvidence.slice(-3).join(" · ")}</p>}{sector.applicableModules?.length>0&&<p><b>Actieve scanmodules:</b> {sector.applicableModules.map((m:string)=>moduleLabel(m,language)).join(" · ")}</p>}</>}</div></section>
