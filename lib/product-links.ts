@@ -30,3 +30,26 @@ export function extractProductDetailLinks(html: string, pageUrl: string, siteHos
   }
   return [...found];
 }
+
+// Product-detail candidates from a (partial) sitemap document.
+export function productUrlsFromSitemap(xml: string, siteHost: string, limit = 8): string[] {
+  const host = siteHost.toLowerCase().replace(/^www\./, "");
+  const found: string[] = [];
+  for (const match of xml.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/gi)) {
+    let url: URL;
+    try { url = new URL(match[1].replace(/&amp;/g, "&")); } catch { continue; }
+    if (url.hostname.toLowerCase().replace(/^www\./, "") !== host || !looksLikeProductDetailPath(url.pathname)) continue;
+    found.push(url.toString());
+    if (found.length >= limit) break;
+  }
+  return found;
+}
+
+// For a sitemap index: the child sitemaps, product-named ones first.
+export function childSitemapsFromIndex(xml: string): string[] {
+  if (!/<sitemapindex\b/i.test(xml)) return [];
+  const children = [...xml.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/gi)].map((m) => m[1].replace(/&amp;/g, "&")).filter((u) => !/\.gz(?:$|\?)/i.test(u));
+  // Match whole words in the file name; "sitemap" itself contains "item".
+  const isProductSitemap = (u: string) => /(?:^|[^a-z])(?:products?|artikel(?:en)?|items?|catalog(?:ue)?)(?:[^a-z]|$)/i.test(u.split("/").pop() || "");
+  return [...children.filter(isProductSitemap), ...children.filter((u) => !isProductSitemap(u))];
+}
