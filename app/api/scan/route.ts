@@ -7,8 +7,8 @@ import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, 
 import { getFixPolicy } from "@/lib/fix-policy";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { selectRepresentativePages } from "@/lib/representative-pages";
-import { COMMERCE_APPLICABILITY_COPY, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability } from "@/lib/commerce-applicability";
-import { classifyContactAnchor, findVisibleEmail, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
+import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
+import { assessBusinessDetails, classifyContactAnchor, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
@@ -907,9 +907,11 @@ export async function POST(request: Request) {
       (title && /\b(restaurant|salon|kapsalon|bakker|bakery|bar|cafe|café|dentist|tandarts|electrician|elektricien|plumber|loodgieter|aannemer|contractor|hairdresser|kapper|store|winkel)\b/i.test(title)) ||
       hasLocalBusinessSignal
     );
-    const hasBusinessContactDetails = /\b(\+?\d[\d\s().-]{7,}\b)/.test(text) ||
-      /\b(e-mail|email|mailto:)\b/i.test(html) ||
-      /\b(adres|address|straat|street|postcode|postal code)\b/i.test(text);
+    // Concrete details only: a dialable number, an address with postcode, a visible
+    // e-mail address or tel:/mailto: links. Counts, prices, dates and form labels
+    // such as "postcode" or an e-mail input are not contact details.
+    const businessContactDetails = findBusinessContactDetails(text, html);
+    const hasBusinessContactDetails = hasBusinessContactDetailsFn(businessContactDetails);
     const hasSocialOrReviewSignal = /\b(instagram|facebook|linkedin|google reviews|reviews|tripadvisor|trustpilot)\b/i.test(text) || sameAsCount > 0;
     const hasContactChannelSignal = hasBusinessContactDetails || (hasContactSignal && (hasContactFormSignal || hasContactActionSignal));
     const hasServiceExpertiseSignal = /\b(diensten|services|service|specialist|specialisten|expert|expertise|seo|geo|structured data|schema\.org|technical seo|technische seo|ai[- ]search|search readiness|auditsoftware|auditing|behandeling|behandelingen|hair|haar|knippen|kleur|color|styling|restaurant|keuken|cuisine|tandarts|elektricien|loodgieter|aannemer|dakdekker)\b/i.test(text);
@@ -1922,14 +1924,21 @@ export async function POST(request: Request) {
       );
     } else if (sectorProfile.sector === "automotive") {
       const workshopSignal = /\b(apk|onderhoud|reparatie|werkplaats|autoservice|banden|diagnose)\b/i.test(text);
-      const appointmentSignal = hasContactChannelSignal || /\b(afspraak|proefrit|werkplaatsafspraak|plan afspraak|book service)\b/i.test(text);
+      // A workshop appointment and a test drive are different customer actions; a
+      // contact detail is neither. Test drives only apply when vehicle sales are proven.
+      const appointmentSignal = /\b(afspraak|werkplaatsafspraak|apk[- ]afspraak|onderhoudsafspraak|plan (?:je |een )?afspraak|afspraak maken|online afspraak|book (?:a )?service|service appointment|termin vereinbaren)\b/i.test(text);
+      const testDriveSignal = /\b(proefrit|test ?drive|probefahrt|essai routier)\b/i.test(text);
       const inventorySignal = /\b(occasion|occasions|voorraad|auto(?:'s)? te koop|used cars?|vehicles? for sale)\b/i.test(text);
       const inventoryCheck = automotiveServiceIdentity && !inventorySignal
         ? check("not_applicable","sector_automotive_inventory","seo","Voertuigaanbod","Deze site is als garage/autoservice herkend zonder bewijs van autoverkoop; voertuigvoorraad is daarom niet van toepassing.","Geen actie nodig tenzij de onderneming ook voertuigen verkoopt.",0,4)
         : sectorCheck("sector_automotive_inventory","Voertuigaanbod",inventorySignal,"Voertuig-/occasionaanbod is in de pagina bevestigd.","RankFix kon voertuigaanbod niet betrouwbaar bevestigen; dit kan ook niet van toepassing zijn.","Toon voertuigaanbod duidelijk wanneer de onderneming auto's verkoopt; anders is geen actie nodig.");
       seoChecks.push(
         sectorCheck("sector_automotive_services","Garage diensten",workshopSignal,"Garage-/werkplaatsdiensten zijn in de pagina bevestigd.","Garage-/werkplaatsdiensten konden in de raw HTML niet betrouwbaar worden bevestigd.","Maak de belangrijkste garage- en werkplaatsdiensten duidelijk vindbaar."),
-        sectorCheck("sector_automotive_conversion","Afspraak / proefrit",appointmentSignal,"Een afspraak-, proefrit- of contactsignaal is bevestigd.","Een duidelijke afspraak- of proefritactie kon niet betrouwbaar worden bevestigd.","Maak de belangrijkste vervolgstap voor klanten duidelijk zichtbaar."), inventoryCheck
+        sectorCheck("sector_automotive_conversion","Werkplaatsafspraak",appointmentSignal,"Een afspraakactie (werkplaats, APK of onderhoud) is bevestigd.","Een duidelijke afspraakactie kon niet betrouwbaar worden bevestigd. Een contactgegeven alleen is geen afspraakmogelijkheid.","Maak afspraak maken voor werkplaats, APK of onderhoud duidelijk zichtbaar."),
+        automotiveServiceIdentity && !inventorySignal
+          ? check("not_applicable","sector_automotive_test_drive","seo","Proefrit","Deze site is als garage/autoservice herkend zonder bewijs van autoverkoop; een proefrit is daarom niet van toepassing.","Geen actie nodig tenzij de onderneming ook voertuigen verkoopt.",0,4)
+          : sectorCheck("sector_automotive_test_drive","Proefrit",testDriveSignal,"Een proefritactie is bevestigd.","Een proefritactie kon niet betrouwbaar worden bevestigd.","Maak een proefrit aanvragen duidelijk zichtbaar bij het voertuigaanbod."),
+        inventoryCheck
       );
     } else if (sectorProfile.sector === "home_services") {
       const serviceSignal = /\b(loodgieter|elektricien|installateur|aannemer|dakdekker|schilder|renovatie|reparatie|installatie|onderhoud|riool|riolering|verstopping|ontstoppen|ontstopping|afvoer)\b/i.test(text);
@@ -2021,7 +2030,6 @@ export async function POST(request: Request) {
 
     // Extended audit signals: trust, ecommerce quality, URL hygiene, social metadata and multilingual SEO.
     const placeholderMatches = text.match(/\[(?:kvk|btw|adres|e-?mail|email|telefoon|phone|address|postcode|plaats|company|naam)\]/gi) || [];
-    const hasPlaceholders = placeholderMatches.length > 0;
     const normalizeLegalText = (value: string) =>
       safeDecodeURIComponent(value)
         .normalize("NFD")
@@ -2048,16 +2056,16 @@ export async function POST(request: Request) {
     const privacyEvidence = findLegalSignal(legalLexicon.privacy);
     const cookieEvidence = findLegalSignal(legalLexicon.cookies);
     const termsEvidence = findLegalSignal(legalLexicon.terms);
-    const classifiedContactAnchors = legalAnchorEvidence.map((item) => ({ item, kind: classifyContactAnchor(item.href, item.haystack) }));
-    const contactChannelLabels: Record<ContactChannel, string> = { email: "e-mail", phone: "telefoon", contact_page: "contactpagina", contact_form: "contactformulier", customer_service: "klantenservice" };
-    const contactAnchor = (["contact_page", "email", "phone", "customer_service"] as const)
+    const classifiedContactAnchors = legalAnchorEvidence.map((item) => ({ item, kind: classifyContactAnchor({ href: item.href, text: [item.label, item.aria, item.title].join(" "), pageUrl: finalUrl.toString() }) }));
+    const contactChannelLabels: Record<ContactChannel, string> = { email: "e-mail", phone: "telefoon", contact_page: "contactpagina", contact_form: "contactformulier" };
+    const contactAnchor = (["contact_page", "email", "phone"] as const)
       .map((kind) => classifiedContactAnchors.find((entry) => entry.kind === kind))
       .find(Boolean) || null;
     const contactEvidence = contactAnchor ? { ...contactAnchor.item, channel: contactAnchor.kind as ContactChannel } : null;
     const contactFormFound = [...html.matchAll(/<form\b[\s\S]*?<\/form>/gi)].some((match) => isContactForm(match[0]));
     const visibleContactEmail = findVisibleEmail(text);
     // FAQ, help and support pages are not proof of a contact channel.
-    const helpOnlyContactAnchor = classifiedContactAnchors.find((entry) => entry.kind === "faq_help" || entry.kind === "support")?.item || null;
+    const helpOnlyContactAnchor = classifiedContactAnchors.find((entry) => entry.kind !== null && INDIRECT_CONTACT_KINDS.has(entry.kind))?.item || null;
     const hasPrivacyLink = Boolean(privacyEvidence);
     const hasCookieLink = Boolean(cookieEvidence);
     const hasTermsLink = Boolean(termsEvidence);
@@ -2672,7 +2680,7 @@ export async function POST(request: Request) {
         : hasPrivacyLink && hasCookieLink && hasContactLink
         ? check("pass","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Links naar privacy, cookies en contact zijn in de opgehaalde HTML gevonden."+(legalEvidenceSummary ? " Bewijs: "+legalEvidenceSummary+"." : ""),"Houd deze informatie duidelijk vindbaar en actueel. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",5,5)
         : hasPrivacyLink && hasCookieLink && helpOnlyContactAnchor
-        ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Links naar privacy en cookies zijn gevonden. Voor contact is alleen een FAQ-, help- of supportlink gevonden (\""+(helpOnlyContactAnchor.label || helpOnlyContactAnchor.aria || helpOnlyContactAnchor.title)+"\" → "+helpOnlyContactAnchor.href+"); dat bewijst geen directe contactmogelijkheid, maar ook niet dat die ontbreekt."+(legalEvidenceSummary ? " Bewijs: "+legalEvidenceSummary+"." : ""),"Controleer of de help- of supportpagina een contactpagina, contactformulier, e-mailadres of telefoonnummer aanbiedt.",0,5)
+        ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Links naar privacy en cookies zijn gevonden. Voor contact is alleen een indirecte link gevonden (FAQ, help, support, klantenservice of een andere website) (\""+(helpOnlyContactAnchor.label || helpOnlyContactAnchor.aria || helpOnlyContactAnchor.title)+"\" → "+helpOnlyContactAnchor.href+"); dat bewijst geen directe contactmogelijkheid, maar ook niet dat die ontbreekt."+(legalEvidenceSummary ? " Bewijs: "+legalEvidenceSummary+"." : ""),"Controleer of de help- of supportpagina een contactpagina, contactformulier, e-mailadres of telefoonnummer aanbiedt.",0,5)
         : !legalLanguageSupported && Boolean(legalLanguageCode)
           ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen","De paginataal ("+legalLanguageCode+") valt buiten de geteste juridische woordenlijst en niet alle signalen zijn rechtstreeks bevestigd."+(legalEvidenceSummary ? " Wel gevonden: "+legalEvidenceSummary+"." : ""),"Controleer de footer en cookiebanner handmatig of breid de woordenlijst voor deze taal uit.",0,5)
           : check("warning","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Niet alle basissignalen zijn gevonden: "+[!hasPrivacyLink?"privacy":null,!hasCookieLink?"cookies":null,!hasContactLink?"contact":null].filter(Boolean).join(", ")+". "+(legalEvidenceSummary ? "Wel gevonden: "+legalEvidenceSummary+"." : ""),"Controleer of privacy-, cookie- en contactinformatie duidelijk bereikbaar is. RankFix beoordeelt hiermee geen wettelijke compliance.",Math.max(2, Number(hasPrivacyLink)+Number(hasCookieLink)+Number(hasContactLink)+2),5)
@@ -2727,9 +2735,18 @@ export async function POST(request: Request) {
           : check("pass","viewport_zoom_blocked","accessibility","Browserzoom","Geen statische viewport-instelling gevonden die browserzoom blokkeert.","Test zoom en schaalbaarheid ook interactief op mobiele apparaten.",3,3)
     );
 
-    seoChecks.push(hasPlaceholders
+    const businessDetails = assessBusinessDetails({
+      placeholders: placeholderMatches,
+      details: businessContactDetails,
+      registration: findCompanyRegistration(text),
+      schemaContact: schemaObjects.some((item)=>Boolean(item?.address || item?.telephone || item?.email)),
+      thinShell: thinRawHtmlEvidence,
+    });
+    seoChecks.push(businessDetails.status === "fail"
       ? check("fail", "business_placeholders", "seo", "Bedrijfsgegevens", `Er staan nog ${placeholderMatches.length} placeholder(s) zoals ${placeholderMatches.slice(0, 4).join(", ")} op de pagina.`, "Vervang placeholders door echte bedrijfs- en contactgegevens voordat de site live gaat.", 0, 6)
-      : check("pass", "business_placeholders", "seo", "Bedrijfsgegevens", "Geen bekende bedrijfsgegevens-placeholders gevonden.", "Houd bedrijfs- en contactgegevens actueel en consistent.", 6, 6)
+      : businessDetails.status === "pass"
+        ? check("pass", "business_placeholders", "seo", "Bedrijfsgegevens", `Geen placeholders gevonden en concrete bedrijfsgegevens bevestigd: ${businessDetails.found.join(", ")}.`, "Houd bedrijfs- en contactgegevens actueel en consistent.", 6, 6)
+        : check("unable_to_confirm", "business_placeholders", "seo", "Bedrijfsgegevens", businessDetails.reason === "thin_shell" ? "Geen placeholders in de raw HTML, maar dit is een dunne JavaScript-shell; bedrijfsgegevens kunnen niet worden bevestigd." : "Geen placeholders gevonden, maar ook geen concrete bedrijfsgegevens (adres, telefoon, e-mail of KvK/BTW) op deze pagina. Dat bewijst niet dat ze ontbreken; ze kunnen op een contact- of over-onspagina staan.", "Toon bedrijfsnaam, adres, telefoon of e-mail en KvK/BTW waar klanten die verwachten, bijvoorbeeld in de footer of op de contactpagina.", 0, 6)
     );
 
     seoChecks.push(!hasEcommerceSignal
@@ -3099,7 +3116,7 @@ export async function POST(request: Request) {
         sector_real_estate_leads: sectorProfile.sector==="real_estate" ? `sector=real_estate; contact=${hasContactChannelSignal}` : null,
         sector_real_estate_area: sectorProfile.sector==="real_estate" ? `sector=real_estate; areaServed=${schemaObjects.some((item:any)=>Boolean(item?.areaServed))}` : null,
         sector_automotive_services: sectorProfile.sector==="automotive" ? "sector=automotive; workshop evidence evaluated" : null,
-        sector_automotive_conversion: sectorProfile.sector==="automotive" ? `sector=automotive; contact=${hasContactChannelSignal}` : null,
+        sector_automotive_conversion: sectorProfile.sector==="automotive" ? "sector=automotive" : null,
         sector_automotive_inventory: sectorProfile.sector==="automotive" ? "sector=automotive; inventory evidence evaluated" : null,
         sector_home_services_offer: sectorProfile.sector==="home_services" ? "sector=home_services; service evidence evaluated" : null,
         sector_home_services_quote: sectorProfile.sector==="home_services" ? `sector=home_services; contact=${hasContactChannelSignal}` : null,
@@ -4022,6 +4039,11 @@ export async function POST(request: Request) {
       if (inventoryCheck && multiPageCapabilities.vehicleSales) {
         Object.assign(inventoryCheck, check("pass","sector_automotive_inventory","seo","Voertuigaanbod","Representatieve same-site pagina's bevestigen voertuig-/occasionaanbod.","Houd voertuigaanbod en detailpagina's duidelijk vindbaar.",4,4));
       }
+      // Proven vehicle sales make a test drive applicable again; absence is unconfirmed, not N/A.
+      const testDriveCheck = seoChecks.find((item)=>item.key==="sector_automotive_test_drive");
+      if (testDriveCheck && testDriveCheck.status==="not_applicable" && multiPageCapabilities.vehicleSales) {
+        Object.assign(testDriveCheck, check("unable_to_confirm","sector_automotive_test_drive","seo","Proefrit","Representatieve pagina's bevestigen voertuigverkoop, maar een proefritactie kon niet betrouwbaar worden bevestigd.","Maak een proefrit aanvragen duidelijk zichtbaar bij het voertuigaanbod.",0,4));
+      }
     }
     // Organization + WebSite is a site-level identity control. When the customer
     // scans a subpage, use the already-audited homepage sample instead of N.v.t.
@@ -4189,6 +4211,31 @@ export async function POST(request: Request) {
       }
     }
 
+    // Wording that assumes a shop follows the final decision, not early page hints.
+    if (!shopWordingApplies(finalCommerceApplicability, Boolean(primaryNonCommerceIdentity))) {
+      for (const item of [...seoChecks,...geoChecks]) {
+        if (item.key === "schema") {
+          item.message = neutralizeShopWording(item.message);
+          item.fix = neutralizeShopWording(item.fix);
+          if (item.evidence?.details) item.evidence.details = neutralizeShopWording(String(item.evidence.details));
+        }
+        if (item.key === "semantic_link_destination" && /product/i.test(item.message)) {
+          if (item.status === "pass") {
+            item.message = GENERIC_LINK_DESTINATION_PASS.message;
+            item.fix = GENERIC_LINK_DESTINATION_PASS.fix;
+          } else if (item.status === "warning") {
+            item.status = "unable_to_confirm";
+            item.issue_status = "UNABLE_TO_CONFIRM";
+            item.points = 0;
+            item.confidence = "low";
+            item.message = PRODUCT_LINK_CHECK_UNCONFIRMED.message;
+            item.fix = PRODUCT_LINK_CHECK_UNCONFIRMED.fix;
+            item.reasonCode = "weak_evidence";
+          }
+          if (item.evidence) item.evidence.details = item.message;
+        }
+      }
+    }
     // Separate from sector: whether shop functionality is proven, proven absent or unknown.
     const commerceApplicabilityReport = {
       ...finalCommerceApplicability,

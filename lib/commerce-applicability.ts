@@ -41,3 +41,30 @@ export const UNCONFIRMED_COMMERCE_REASON_CODE = {
   weak_commerce_signals: "weak_evidence",
   low_coverage: "insufficient_pages",
 } as const;
+
+// Shop wording ("webshophomepage", "productlinks", OnlineStore advice) is only
+// correct when shop functionality is proven and no non-commerce identity (transport,
+// garage, hotel, ...) is primary. Early page signals can be wrong; this is final.
+export function shopWordingApplies(applicability: CommerceApplicability, primaryNonCommerceIdentity: boolean): boolean {
+  return applicability.state === "confirmed" && !primaryNonCommerceIdentity;
+}
+
+const SHOP_LABELS: Array<[RegExp, string]> = [
+  [/\bwebshophomepage\b/g, "homepage"],
+  [/\bwebshopcategorie\b/g, "lijst-/categoriepagina"],
+  [/\bwebshoppagina\b/g, "pagina"],
+  [/\bOnlineStore \+ WebSite\b/g, "Organization + WebSite"],
+];
+
+export function neutralizeShopWording(text: string): string {
+  return SHOP_LABELS.reduce((value, [pattern, replacement]) => value.replace(pattern, replacement), text);
+}
+
+export const GENERIC_LINK_DESTINATION_PASS = {
+  message: "Geen sterke semantische mismatch gevonden tussen benoemde interne links en hun bestemming.",
+  fix: "Houd linktekst en bestemming inhoudelijk consistent.",
+};
+export const PRODUCT_LINK_CHECK_UNCONFIRMED = {
+  message: "De mogelijke afwijking is gevonden met de productkaartcontrole, maar voor deze website is geen webshop bevestigd. Of linktekst en bestemming niet bij elkaar passen, kan daarom niet betrouwbaar worden vastgesteld.",
+  fix: "Controleer handmatig of belangrijke links naar de bestemming gaan die hun tekst belooft.",
+};

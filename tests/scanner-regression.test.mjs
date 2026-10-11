@@ -4,9 +4,9 @@ import { extractImageMetrics } from "../lib/image-metrics.ts";
 import { applyEvidenceBasedScoreCap, scoreApplicableChecks, scoreRange, summarizeAuditChecks, weightedCoverage } from "../lib/audit-score.ts";
 import { isPrivateHost, validatePublicHttpUrl } from "../lib/safe-fetch.ts";
 import { assessHreflang, hasSelfHreflangLanguageMismatch, isMarketSelectorPage, isValidHreflangCode, statusCode } from "../lib/seo-rules.ts";
-import { COMMERCE_APPLICABILITY_COPY, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability } from "../lib/commerce-applicability.ts";
+import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, neutralizeShopWording, shopWordingApplies } from "../lib/commerce-applicability.ts";
 import { decodeHtmlEntities } from "../lib/html-entities.ts";
-import { classifyContactAnchor, findVisibleEmail, isContactForm } from "../lib/contact-evidence.ts";
+import { INDIRECT_CONTACT_KINDS, assessBusinessDetails, classifyContactAnchor, findBusinessContactDetails, findCompanyRegistration, findVisibleAddress, findVisibleEmail, findVisiblePhone, isContactForm } from "../lib/contact-evidence.ts";
 import { selectRepresentativePages } from "../lib/representative-pages.ts";
 import { clientIpFromHeaders, isInternalTester, retryAfterSeconds, scanRateLimitMessage, scanRateLimitPolicy } from "../lib/scan-access.ts";
 
@@ -966,8 +966,8 @@ test("hreflang: no warning without proof (missing document lang, non-http target
   assert.equal(hreflang([{ language: "nl", href: "mailto:info@shop.nl" }], "https://shop.nl/", "nl").kind, "invalid");
 });
 
-// Haystack format used by the scan route: lowercased, accent-free, "-"/"_" as spaces.
-const contactKind = (href, label = "") => classifyContactAnchor(href, [href, label].join(" ").toLowerCase().replace(/[_-]+/g, " "));
+// Same-site page by default; pass pageUrl to test links to other websites.
+const contactKind = (href, label = "", pageUrl) => classifyContactAnchor({ href, text: label, pageUrl: pageUrl || (/^https?:/i.test(href) ? new URL(href).origin + "/" : "https://shop.nl/") });
 
 test("contact: FAQ and help articles are never a contact channel", () => {
   assert.equal(contactKind("https://www.ikea.com/global/en/support/faq/", "FAQs"), "faq_help");
@@ -1232,4 +1232,82 @@ test("no regex matches a literal backslash where an escape class was meant", asy
     });
   }
   assert.deepEqual(offenders, []);
+});
+
+// --- Audit findings 11 October (KwikFit, IKEA NL/international, Brenger) ---
+
+test("finding 1: review and rating links are never contact evidence", () => {
+  const page = "https://www.kwik-fit.nl/";
+  assert.equal(contactKind("https://www.kiyoh.com/reviews/1043233/kwik_fit", "76.121 beoordelingen", page), "review");
+  assert.equal(contactKind("https://nl.trustpilot.com/review/kwik-fit.nl", "Contact? Lees 76.121 reviews", page), "review");
+  assert.equal(contactKind("/klantbeoordelingen", "Bekijk alle beoordelingen", page), "review");
+  // A contact page on another website suggests contact but does not prove the business's own channel.
+  assert.equal(contactKind("https://partner.example.com/contact", "Contact", page), "external");
+  assert.ok(INDIRECT_CONTACT_KINDS.has("external"));
+  assert.equal(findVisiblePhone("Gemiddeld 9,2 uit 76.121 beoordelingen"), null);
+  assert.equal(findVisiblePhone("Prijs 1.234.567 · datum 11-10-2026 12:00"), null);
+  assert.equal(findVisiblePhone("Bel ons op 020-123 45 67"), "020-123 45 67");
+});
+
+test("finding 2: a general Services link is not a confirmed contact channel", () => {
+  const page = "https://www.ikea.com/nl/nl/";
+  assert.equal(contactKind("https://www.ikea.com/nl/nl/customer-service/services/", "Services", page), "support");
+  assert.equal(contactKind("https://www.ikea.com/nl/nl/customer-service/", "Klantenservice", page), "customer_service");
+  for (const kind of ["support", "customer_service", "faq_help"]) assert.ok(INDIRECT_CONTACT_KINDS.has(kind), kind);
+  assert.equal(contactKind("https://www.ikea.com/nl/nl/customer-service/contact-us/", "Contact", page), "contact_page");
+  assert.ok(!INDIRECT_CONTACT_KINDS.has("contact_page"));
+});
+
+test("finding 3: IKEA international FAQ, &amp; and x-default stay fixed", () => {
+  assert.equal(contactKind("https://www.ikea.com/global/en/support/faq/", "FAQs", "https://www.ikea.com/"), "faq_help");
+  assert.equal(decodeHtmlEntities("Privacy &amp; Cookie statement"), "Privacy & Cookie statement");
+  assert.equal(hreflang([{ language: "x-default", href: "https://www.ikea.com/" }, { language: "nl-nl", href: "https://www.ikea.com/nl/nl/" }, { language: "de-de", href: "https://www.ikea.com/de/de/" }], "https://ikea.com/", "en").kind, "unconfirmed");
+});
+
+test("findings 4 and 7: shop wording only when a shop is proven and no other identity is primary", () => {
+  const confirmed = { state: "confirmed" };
+  assert.equal(shopWordingApplies(confirmed, false), true);
+  assert.equal(shopWordingApplies(confirmed, true), false); // e.g. transport & logistics with prices
+  assert.equal(shopWordingApplies({ state: "unconfirmed", reason: "weak_commerce_signals" }, false), false);
+  assert.equal(neutralizeShopWording("1 geldige JSON-LD block(s) met een voor deze webshophomepage relevant schema-type gevonden. Relevante hoofdkeuze: OnlineStore + WebSite."),
+    "1 geldige JSON-LD block(s) met een voor deze homepage relevant schema-type gevonden. Relevante hoofdkeuze: Organization + WebSite.");
+  assert.doesNotMatch(GENERIC_LINK_DESTINATION_PASS.message, /product/i);
+});
+
+test("findings 4 and 7: scan route applies the shop-wording gate before final scoring", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const gate = route.indexOf("if (!shopWordingApplies(finalCommerceApplicability, Boolean(primaryNonCommerceIdentity)))");
+  assert.ok(gate > 0);
+  assert.ok(gate < route.lastIndexOf("selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);"));
+  assert.match(route.slice(gate, gate + 2000), /item\.key === "schema"/);
+  assert.match(route.slice(gate, gate + 2000), /item\.key === "semantic_link_destination"/);
+});
+
+test("finding 5: garage appointment and test drive are separate checks", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const block = route.slice(route.indexOf('} else if (sectorProfile.sector === "automotive") {'), route.indexOf('} else if (sectorProfile.sector === "home_services") {'));
+  const appointment = block.match(/const appointmentSignal = (.+);/)[1];
+  assert.doesNotMatch(appointment, /hasContactChannelSignal|proefrit/);
+  assert.match(block, /"sector_automotive_conversion","Werkplaatsafspraak"/);
+  assert.match(block, /"sector_automotive_test_drive","Proefrit"/);
+  // A garage without proven vehicle sales gets N/A for test drives, not a missing action.
+  assert.match(block, /automotiveServiceIdentity && !inventorySignal\s*\?\s*check\("not_applicable","sector_automotive_test_drive"/);
+  const appointmentRe = new RegExp(appointment.match(/^\/(.+)\/i\.test\(text\)$/)[1], "i");
+  assert.equal(appointmentRe.test("Plan je APK-afspraak online"), true);
+  assert.equal(appointmentRe.test("Maak een proefrit in de nieuwe Golf"), false);
+});
+
+test("finding 6: business details pass only with concrete details, not just absent placeholders", () => {
+  const none = { phone: null, email: null, address: null, telLink: false, mailtoLink: false };
+  assert.deepEqual(assessBusinessDetails({ placeholders: [], details: none, registration: null, schemaContact: false, thinShell: false }), { status: "unable_to_confirm", reason: "no_details" });
+  assert.deepEqual(assessBusinessDetails({ placeholders: [], details: none, registration: null, schemaContact: false, thinShell: true }), { status: "unable_to_confirm", reason: "thin_shell" });
+  assert.equal(assessBusinessDetails({ placeholders: ["[kvk]"], details: none, registration: null, schemaContact: false, thinShell: false }).status, "fail");
+  const details = findBusinessContactDetails("Damrak 1, 1012 LG Amsterdam · bel 020-123 45 67", '<a href="mailto:info@bedrijf.nl">mail</a>');
+  assert.deepEqual(assessBusinessDetails({ placeholders: [], details, registration: findCompanyRegistration("KvK-nummer: 12345678"), schemaContact: false, thinShell: false }),
+    { status: "pass", found: ["KvK 12345678", "adres (Damrak 1, 1012 LG Amsterdam)", "telefoonnummer", "e-mailadres"] });
+  assert.equal(findCompanyRegistration("Vul je KvK-nummer in"), null);
+  assert.equal(findVisibleAddress("Vul je postcode in"), null);
+  assert.equal(findBusinessContactDetails("", '<input type="email" name="email">').mailtoLink, false);
 });
