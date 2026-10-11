@@ -434,11 +434,11 @@ export async function POST(request: Request) {
       ? normalizePlan((await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1", [usageUser.id])).rows[0]?.plan_code)
       : "free";
     const configuredTestCustomer = Boolean(process.env.RANKFIX_INTERNAL_TEST_CUSTOMER_ID);
-    const customerIdRow = usageUser && configuredTestCustomer && !isInternalTester(usageUser.id)
+    const customerIdRow = usageUser && configuredTestCustomer && !isInternalTester(usageUser?.id)
       ? await getDb().query("SELECT customer_id FROM users WHERE id=$1 LIMIT 1", [usageUser.id])
       : null;
     const internalTestAccount = Boolean(usageUser) && (
-      isInternalTester(usageUser.id) ||
+      isInternalTester(usageUser?.id) ||
       isInternalTesterCustomerId(customerIdRow?.rows[0]?.customer_id)
     );
     if (usageUser && !internalTestAccount && process.env.RANKFIX_INTERNAL_TEST_EMAIL && !internalTesterIds().size) {
