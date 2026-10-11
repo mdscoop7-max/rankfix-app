@@ -1,6 +1,6 @@
 # RankFix Sector Motor 3.1 — lokaal testrapport
 
-Branch: `feat/sector-motor-3-1-universal-evidence-arbiter-20261010` · Basis op GitHub: `7e0ed5e` · Omgeving: Node 24.21 / npm 11.21, offline sandbox (geen externe websites, geen DNS, geen Google Fonts).
+Branch: `feat/sector-motor-3-1-universal-evidence-arbiter-20261010` · Basis op GitHub: `323893e` (op `7e0ed5e`) · Laatst bijgewerkt: 11-10-2026, codecommit `dc16d37` · Omgeving: Node 24.21 / npm 11.21, offline sandbox (geen externe websites, geen DNS, geen Google Fonts).
 
 Statussen: **Geslaagd**, **Mislukt**, **Niet uitgevoerd**, **Niet te bevestigen**.
 
@@ -9,12 +9,12 @@ Statussen: **Geslaagd**, **Mislukt**, **Niet uitgevoerd**, **Niet te bevestigen*
 | Controle | Status | Toelichting |
 |---|---|---|
 | `npm ci` (schone kopie) | Geslaagd | 404 pakketten |
-| Automatische tests | Geslaagd | 242/242, 0 overgeslagen |
+| Automatische tests | Geslaagd | 257/257, 0 overgeslagen |
 | TypeScript (`tsc --noEmit`) | Geslaagd | 0 fouten |
 | ESLint | Geslaagd (geen nieuwe meldingen) | 67 fouten / 41 waarschuwingen, identiek aan de basis; nieuwe en gewijzigde code is schoon |
 | Next.js-standaardbuild | Niet uitgevoerd (omgeving) | `next/font` kan Google Fonts niet ophalen in de sandbox. Vercel bouwde 7e0ed5e wel succesvol. |
 | Aanvullende build met tijdelijke fontstub | Geslaagd | Alleen ter controle van de compilatie; **geen** standaardbuild en niet gecommit |
-| Runtime-rooktest (`next start`) | Geslaagd | Invoer- en SSRF-afhandeling van `/api/scan` in nl/en/de/fr |
+| Runtime-rooktest (`next start`) | Geslaagd | Invoer- en SSRF-afhandeling van `/api/scan` in nl/en/de/fr; preview zonder database (publieke scan, limiet, dashboard 401) en productiemodus zonder database (geheugenpad niet gebruikt) |
 | Echte websitescans | Niet uitgevoerd | Externe websites niet bereikbaar vanuit de sandbox |
 
 ## Tests per bestand
@@ -24,14 +24,15 @@ Statussen: **Geslaagd**, **Mislukt**, **Niet uitgevoerd**, **Niet te bevestigen*
 | `scanner-regression.test.mjs` | 79 | Bestaande scanner-regressies |
 | `http-failures.test.mjs` | 41 | HTTP-statusmatrix, redirects, timeouts, TLS, DNS, SSRF, foutmeldingen |
 | `sector-arbiter.test.mjs` | 33 | Sector Motor 3.1-arbiter |
-| `sector-matrix.test.mjs` | 29 | HTML-fixture → Evidence Engine → arbiter, per sector |
-| `regex-evidence.test.mjs` | 15 | Bewijsregexes uit de echte broncode + AST-bewaking |
+| `sector-matrix.test.mjs` | 37 | HTML-fixture → Evidence Engine → arbiter, per sector |
+| `regex-evidence.test.mjs` | 17 | Bewijsregexes uit de echte broncode + AST-bewaking |
 | `sector-motor-3.test.mjs` | 13 | Sector Motor 3.0 |
 | `headless-render.test.mjs` | 9 | JavaScript-rendering (nagebootste browser) |
-| `scanner-safety.test.mjs` | 9 | Route-bewaking (classificatie, verbruik, Fix Engine, commercechecks) |
+| `scanner-safety.test.mjs` | 10 | Route-bewaking (classificatie, verbruik, Fix Engine, commercechecks) |
 | `github-client.test.mjs` | 4 | GitHub-client (gemockte fetch) |
 | `monitor-outcome.test.mjs` | 4 | Monitoring / uitvalmeldingen |
 | `health-guard.test.mjs` | 3 | Health Guard |
+| `preview-mode.test.mjs` | 4 | Preview zonder database: alleen Vercel Preview, geheugenlimiet, dashboard blijft afgeschermd |
 | `performance.test.mjs` | 3 | Snelheid op grote en kwaadwillige invoer |
 
 ## Belangrijkste tests
@@ -74,6 +75,13 @@ Statussen: **Geslaagd**, **Mislukt**, **Niet uitgevoerd**, **Niet te bevestigen*
 | Monitoring 403 / tijdelijk / uitval | Guards | Geen mail / pas na 2× / 1 mail | Zo | Geslaagd | Sessie 1 |
 | Health Guard op Vercel | Guards | Geen vals oranje | Zo | Geslaagd | **Deze sessie** |
 | Puppeteer niet beschikbaar / hangt / te druk | Rendering | Snel falen, deadline, kill, limiet | Zo | Geslaagd | Sessie 1 |
+| Restaurant mét schema + eigen online bestellen | Sector | Restaurant, bestellen = commercefunctie | Was webshop | Geslaagd na correctie | **Sessie 3** |
+| Garage mét AutoRepair-schema + bandenshop | Sector | Automotive | Was webshop | Geslaagd na correctie | **Sessie 3** |
+| Retailer met Restaurant-schema maar retailtitel; horeca-groothandel | Sector | Webshop | Webshop | Geslaagd | Tegentest sessie 3 |
+| Makelaar zonder schema met prijzen, zonder winkelwagen | Sector | Geen webshop | Vastgoed (waarschijnlijk) | Geslaagd | Sessie 3 |
+| "Café", "Eetcafé", "Über uns", "Öffnungszeiten", "épuisé", "19,99 €" | Evidence | Herkend | Werden **nooit** herkend | Geslaagd na correctie | **Sessie 3** |
+| Fix Engine-keten (hash → PR → handmatige merge → live herscan) | Fix Engine | Elke stap afgedwongen | Zo | Geslaagd | Bewakingstest sessie 3 |
+| Preview zonder database | Scanner | Publieke scan werkt, limiet blijft, geen opslag | Zo | Geslaagd | **Sessie 3** |
 | 574 unieke regexes op 50 KB kwaadwillige invoer | Performance | Lineair | 4 kwadratisch (e-mail, 2× prijs, sitemap) | Geslaagd na correctie | **Deze sessie** |
 | 4 MB catalogus → evidence + sector | Performance | < 3 s | 0,2 s | Geslaagd | — |
 
