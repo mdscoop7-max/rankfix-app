@@ -1200,3 +1200,36 @@ test("report shows commerce applicability and raw-HTML limitations separately fr
   assert.match(report, /r\.security\?\.score/);
   assert.match(report, /toepasselijke controles/);
 });
+
+test("no regex matches a literal backslash where an escape class was meant", async () => {
+  // "\\b", "\\s", "\\d", "\\." etc. inside a /regex/ literal (or "\\\\b" inside a
+  // new RegExp string) match a backslash character, so the pattern silently never
+  // fires. This broke sector checks, cookie flags, SRI, secret detection, robots.txt
+  // parsing, www-normalisation and the reset-password digit rule.
+  const { readFile, readdir } = await import("node:fs/promises");
+  const { join } = await import("node:path");
+  const root = new URL("..", import.meta.url).pathname;
+  const files = [];
+  const walk = async (dir) => {
+    for (const entry of await readdir(join(root, dir), { withFileTypes: true })) {
+      const rel = join(dir, entry.name);
+      if (entry.isDirectory()) await walk(rel);
+      else if (/\.(ts|tsx)$/.test(entry.name)) files.push(rel);
+    }
+  };
+  for (const dir of ["app", "lib", "components"]) await walk(dir);
+  const literal = /(?<![\w)\]])\/((?:\\.|\[(?:\\.|[^\]\\\n])*\]|[^/\\\n[])+)\/[dgimsuy]*/g;
+  const offenders = [];
+  for (const file of files) {
+    const lines = (await readFile(join(root, file), "utf8")).split("\n");
+    lines.forEach((line, index) => {
+      for (const match of line.matchAll(literal)) {
+        if (match[1].includes("RegExp(")) continue; // text between two "/" in strings, not a literal
+        const body = match[1].replace(/\[(?:\\.|[^\]\\])*\]/g, ""); // escaped "\\" inside a character class is legitimate
+        if (/\\\\[bBsSdDwWrnt.p+]/.test(body)) offenders.push(`${file}:${index + 1}`);
+      }
+      if (/RegExp\([^)]*\\\\\\\\[bBsSdDwW]/.test(line)) offenders.push(`${file}:${index + 1} (RegExp string)`);
+    });
+  }
+  assert.deepEqual(offenders, []);
+});
