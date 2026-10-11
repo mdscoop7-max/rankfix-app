@@ -22,6 +22,29 @@ export function hasRetailStoreSchema(schemaTypes: Iterable<string>): boolean {
   return retailStoreSchemaTypes(schemaTypes).length > 0;
 }
 
+// schema.org Organization and its common subtypes. OnlineStore, LocalBusiness,
+// Dentist, Restaurant etc. are Organizations; requiring the literal type
+// "Organization" would flag correct identity markup as missing.
+const ORGANIZATION_SCHEMA_TYPES = new Set([
+  "organization", "corporation", "onlinebusiness", "localbusiness", "ngo", "educationalorganization",
+  "collegeoruniversity", "school", "governmentorganization", "medicalorganization", "newsmediaorganization",
+  "sportsorganization", "sportsteam", "airline", "performinggroup", "researchorganization", "workersunion",
+  "politicalparty", "cooperative", "consortium", "fundingscheme", "librarysystem",
+  // Common LocalBusiness subtypes used by the Sector Motor.
+  "automotivebusiness", "autodealer", "autorepair", "autorental", "dentist", "physician", "medicalclinic",
+  "pharmacy", "veterinarycare", "restaurant", "foodestablishment", "cafeorcoffeeshop", "barorpub", "bakery",
+  "lodgingbusiness", "hotel", "bedandbreakfast", "resort", "campground", "realestateagent", "beautysalon",
+  "hairsalon", "dayspa", "healthclub", "exercisegym", "homeandconstructionbusiness", "generalcontractor",
+  "plumber", "electrician", "professionalservice", "legalservice", "attorney", "accountingservice",
+  "financialservice", "bankorcreditunion", "insuranceagency", "employmentagency", "travelagency",
+  "entertainmentbusiness", "childcare", "movingcompany", "parkingfacility",
+  ...RETAIL_STORE_SCHEMA_TYPES,
+]);
+
+export function hasOrganizationSchema(schemaTypes: Iterable<string>): boolean {
+  return [...schemaTypes].some((type) => ORGANIZATION_SCHEMA_TYPES.has(String(type).toLowerCase()));
+}
+
 // Retail self-description in the page identity (title, description, h1, URL).
 const RETAIL_ASSORTMENT = /\b(?:kleding|schoenen|accessoires|accessories|woonaccessoires|mode|fashion|elektronica|home.elektronica|apparaten|witgoed|wasmachines|televisies|laptops|meubels|meubelen|furniture|interieur|woonartikelen|bouwmaterialen|dierenbenodigdheden|sportartikelen|speelgoed|producten|products)\b/i;
 // Both word orders: "online bestellen" and "bestel online".

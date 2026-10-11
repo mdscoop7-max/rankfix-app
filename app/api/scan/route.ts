@@ -23,7 +23,7 @@ import { isSubstantiveRender, renderImprovesEvidence } from "@/lib/render-qualit
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
-import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes } from "@/lib/sector-identity";
+import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes } from "@/lib/sector-identity";
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -801,10 +801,10 @@ export async function POST(request: Request) {
       } catch {}
     }
     const schemaSet = new Set(schemaTypes.map((v) => v.toLowerCase()));
-    const hasEntitySchema = ["organization", "localbusiness", "person", "product", "article", "website"].some((t) => schemaSet.has(t));
+    const hasEntitySchema = hasOrganizationSchema(schemaTypes) || ["person", "product", "article", "website"].some((t) => schemaSet.has(t));
     const organizationObjects = schemaObjects.filter((item) => {
       const types = Array.isArray(item?.["@type"]) ? item["@type"] : [item?.["@type"]];
-      return types.some((type: unknown) => String(type || "").toLowerCase() === "organization");
+      return hasOrganizationSchema(types.filter((type: unknown) => typeof type === "string"));
     });
     const organizationSchema = organizationObjects[0] || null;
     const organizationSchemaName = typeof organizationSchema?.name === "string" ? organizationSchema.name.trim() : "";
@@ -2266,7 +2266,8 @@ export async function POST(request: Request) {
     // A language/country selector alone does not prove equivalent translated URLs exist.
     // Only explicit hreflang markup is strong enough in a single raw-HTML page scan.
     const multilingualUrlEvidence = hreflangAssessment.kind !== "none";
-    const organizationSchemaPresent = schemaSet.has("organization");
+    // OnlineStore, LocalBusiness, Dentist, ... are schema.org Organization subtypes.
+    const organizationSchemaPresent = hasOrganizationSchema(schemaTypes);
     const websiteSchemaPresent = schemaSet.has("website");
     const productSchemaPresent = schemaSet.has("product");
     const ga4MeasurementIds = [...new Set(html.match(/\bG-[A-Z0-9]{6,}\b/gi) || [])];
@@ -3551,10 +3552,18 @@ export async function POST(request: Request) {
         return index === 0 ? decoded : decoded.replace(/\d+/g,":n");
       }).join("/") || "/";
     };
-    const uniqueMultiPagePages = selectRepresentativePages([scannedPageSample, ...multiPagePages], rankedMultiPage, representativePageLimit, normalizeScanUrl, templateShapeKey);
+    // FAQ/help-center pages can dominate a crawl (one page per question) and crowd
+    // out product, category, service and legal evidence. Keep a small FAQ sample.
+    const isFaqSample = (url: string) => /\/(?:faq|faqs|veelgestelde-vragen|help-center|helpcentrum|hilfe|ayuda|assistance)(?:\/|$)/i.test(new URL(url).pathname);
+    const uniqueMultiPagePages = selectRepresentativePages([scannedPageSample, ...multiPagePages], rankedMultiPage, representativePageLimit, normalizeScanUrl, templateShapeKey, { matches: isFaqSample, limit: 3 });
     const auditMultiPage = async (page: MultiPageCandidate): Promise<MultiPageAudit> => {
       try {
-        const fetched = await safePublicFetch(page.url, { timeoutMs: 8000, maxRedirects: 3, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml" });
+        // The scanned page itself was already fetched; reuse that evidence instead of
+        // a second request that can be rate-limited and contradict the main scan.
+        const isScannedPage = normalizeScanUrl(page.url) === normalizeScanUrl(finalUrl.toString());
+        const fetched = isScannedPage
+          ? { response: new Response(html, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }), finalUrl }
+          : await safePublicFetch(page.url, { timeoutMs: 8000, maxRedirects: 3, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml" });
         const r = fetched.response;
         const finalCandidate = new URL(fetched.finalUrl.toString());
         const finalCandidateHost = normalizeHost(finalCandidate.hostname);
@@ -3576,7 +3585,8 @@ export async function POST(request: Request) {
         if (!pageHtml && (!r.ok || (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")))) {
           return { ...page, status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"http",status:"UNABLE_TO_CONFIRM",details:`HTTP ${r.status}; pagina kon niet betrouwbaar als HTML worden beoordeeld na begrensde recovery.`}] };
         }
-        pageHtml = pageHtml || await readResponseTextLimited(r, 2_000_000);
+        // The scanned page already passed the main-page size limit.
+        pageHtml = pageHtml || (isScannedPage ? html : await readResponseTextLimited(r, 2_000_000));
         // Representative pages need the same JS evidence opportunity as the primary
         // page. Otherwise a Nuxt/Next contact or booking page can look form-less in
         // raw HTML and incorrectly keep site-level capabilities unconfirmed.
@@ -3715,6 +3725,8 @@ export async function POST(request: Request) {
             ? "redirect naar ander domein"
             : /redirect/i.test(rawReason)
               ? "redirectfout"
+              : /RESPONSE_TOO_LARGE/i.test(rawReason)
+                ? "pagina groter dan de limiet van 2 MB"
               : /403/i.test(rawReason)
                 ? "HTTP 403 / blokkade"
                 : /5\d\d/.test(rawReason)
@@ -4171,7 +4183,7 @@ export async function POST(request: Request) {
     const homepageSample = auditedMultiPages.find((item)=>item.type==="homepage");
     if (!isHomepage && orgWebsiteCheck && homepageSample) {
       const homepageTypes = new Set((homepageSample.schemaTypes||[]).map((value)=>value.toLowerCase()));
-      const hasOrg = homepageTypes.has("organization");
+      const hasOrg = hasOrganizationSchema(homepageTypes);
       const hasWebSite = homepageTypes.has("website");
       const signals = Number(hasOrg)+Number(hasWebSite);
       const replacement = hasOrg && hasWebSite
