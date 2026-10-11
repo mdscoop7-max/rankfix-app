@@ -3,14 +3,20 @@ import { createHash } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
-import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode } from "@/lib/seo-rules";
+import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang, isMarketSelectorPage } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
+import { decodeHtmlEntities } from "@/lib/html-entities";
+import { assessPassiveSecurity, setCookieValues } from "@/lib/security-signals";
+import { selectRepresentativePages } from "@/lib/representative-pages";
+import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
+import { assessBusinessDetails, classifyContactAnchor, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
 import { applyEvidenceBasedScoreCap, SCORE_MODEL_VERSION, scoreApplicableChecks, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
-import { normalizePlan, planLimits } from "@/lib/plans";
-import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
+import { isPaidPlan, normalizePlan, planLimits } from "@/lib/plans";
+import { checkRateLimit, requestIp } from "@/lib/rate-limit";
+import { internalTesterIds, isInternalTester, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
 import { renderPublicPage } from "@/lib/headless-render";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
@@ -82,20 +88,7 @@ type Check = {
   fix_category: "A" | "B" | "C";
 };
 
-const decode = (value: string) =>
-  value
-    .replace(/&amp;/gi, "&")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/&#x27;/gi, "'")
-    .replace(/&#x2F;/gi, "/")
-    .replace(/&#(x[0-9a-f]+|[0-9]+);/gi, (_, code: string) => {
-      const value = code.toLowerCase().startsWith("x") ? parseInt(code.slice(1), 16) : parseInt(code, 10);
-      return Number.isFinite(value) ? String.fromCodePoint(value) : "";
-    })
-    .trim();
+const decode = (value: string) => decodeHtmlEntities(value).trim();
 
 const safeDecodeURIComponent = (value: string) => {
   try { return decodeURIComponent(value); } catch { return value; }
@@ -427,49 +420,47 @@ export async function POST(request: Request) {
     }
 
     // Public scans are intentionally available without login, but the endpoint can
-    // trigger network fetches and bounded browser rendering. Apply a coarse per-network
-    // limit so anonymous automation cannot consume unbounded scan capacity.
+    // trigger network fetches and bounded browser rendering. Hourly limits come from
+    // scanRateLimitPolicy: per network for visitors and Free accounts, per account for
+    // paying customers, none for server-configured internal tester account IDs.
+    await ensureDatabase();
+    let usageUser: Awaited<ReturnType<typeof getCurrentUser>> = null;
+    try { usageUser = await getCurrentUser(); } catch {}
+    const usageWebsiteHost = target.hostname.toLowerCase().replace(/^www\./, "");
+    let usageIpHash: string | null = null;
+    const planCode = usageUser
+      ? normalizePlan((await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1", [usageUser.id])).rows[0]?.plan_code)
+      : "free";
+    const internalTestAccount = Boolean(usageUser) && isInternalTester(usageUser?.id);
+    if (usageUser && !internalTestAccount && process.env.RANKFIX_INTERNAL_TEST_EMAIL && !internalTesterIds().size) {
+      console.warn("RankFix internal test exemption needs RANKFIX_INTERNAL_TEST_USER_ID; an e-mail address alone no longer grants it.");
+    }
+    const scanRateLimit = scanRateLimitPolicy({ dashboardScan, userId: usageUser?.id || null, paidPlan: isPaidPlan(planCode), tester: internalTestAccount });
+    const enforceScanRateLimit = async () => {
+      if (!scanRateLimit) return null;
+      const identity = scanRateLimit.key === "user" ? String(usageUser?.id) : requestIp(request);
+      const result = await checkRateLimit(scanRateLimit.scope, identity, scanRateLimit.limit, scanRateLimit.windowSeconds);
+      if (result.allowed) return null;
+      return NextResponse.json(
+        { error: scanRateLimitMessage(scanLanguage, result.retryAfterSeconds, scanRateLimit.key === "user"), code: scanRateLimit.code, retryAfterSeconds: result.retryAfterSeconds },
+        { status: 429, headers: { "Retry-After": String(result.retryAfterSeconds) } }
+      );
+    };
     if (!dashboardScan) {
-      await ensureDatabase();
-      const publicIp=requestIp(request);
-      const publicAllowed=await consumeRateLimit("public-scan",publicIp,8,3600);
-      if(!publicAllowed){
-        const publicRateMessages:Record<string,string>={
-          nl:"Er zijn vanaf dit netwerk veel gratis scans uitgevoerd. Probeer het over ongeveer een uur opnieuw.",
-          en:"Many free scans have been run from this network. Please try again in about an hour.",
-          de:"Von diesem Netzwerk wurden viele kostenlose Scans ausgeführt. Bitte versuche es in etwa einer Stunde erneut.",
-          fr:"De nombreuses analyses gratuites ont été lancées depuis ce réseau. Réessayez dans environ une heure.",
-          it:"Da questa rete sono state eseguite molte scansioni gratuite. Riprova tra circa un’ora.",
-          es:"Se han realizado muchos análisis gratuitos desde esta red. Vuelve a intentarlo dentro de aproximadamente una hora."
-        };
-        return NextResponse.json({error:publicRateMessages[scanLanguage],code:"PUBLIC_SCAN_RATE_LIMIT"},{status:429,headers:{"Retry-After":"3600"}});
-      }
+      const limited = await enforceScanRateLimit();
+      if (limited) return limited;
     }
 
     // Dashboard allowances are enforced server-side before starting an expensive crawl.
     // Free keeps the cross-account per-domain allowance; paid plans use account-level monthly allowances.
-    let usageUser: Awaited<ReturnType<typeof getCurrentUser>> = null;
-    const usageWebsiteHost = target.hostname.toLowerCase().replace(/^www\./, "");
-    let usageIpHash: string | null = null;
     if (dashboardScan) {
-      try { usageUser = await getCurrentUser(); } catch {}
       if (!usageUser) return NextResponse.json({ error: scanError.session }, { status: 401 });
-      await ensureDatabase();
-      const planResult = await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1", [usageUser.id]);
-      const planCode = normalizePlan(planResult.rows[0]?.plan_code);
       const limits = planLimits(planCode);
       const accountHosts = await getDb().query(
         "SELECT DISTINCT lower(regexp_replace(split_part(split_part(COALESCE(final_url,scanned_url),'://',2),'/',1),'^www\\.','')) AS website_host FROM scans WHERE user_id=$1 ORDER BY website_host",
         [usageUser.id]
       );
       const existingHosts = accountHosts.rows.map(row=>String(row.website_host||"").split(":")[0]).filter(Boolean);
-      const configuredTestUserId = (process.env.RANKFIX_INTERNAL_TEST_USER_ID || "").trim();
-      const configuredTestEmail = (process.env.RANKFIX_INTERNAL_TEST_EMAIL || "").trim().replace(/^["']|["']$/g, "").trim().toLowerCase();
-      const signedInEmail = String(usageUser.email || "").trim().toLowerCase();
-      const internalTestAccount = (Boolean(configuredTestUserId) && configuredTestUserId === usageUser.id) || (Boolean(configuredTestEmail) && configuredTestEmail === signedInEmail);
-      if (!internalTestAccount && process.env.RANKFIX_INTERNAL_TEST_EMAIL) {
-        console.warn("RankFix internal test account mismatch", { configured: Boolean(configuredTestEmail), signedInEmailPresent: Boolean(signedInEmail), matchingEmail: configuredTestEmail === signedInEmail });
-      }
       if (!internalTestAccount && !existingHosts.includes(usageWebsiteHost) && existingHosts.length >= limits.websites) {
         const websiteMessages: Record<string,string> = {
           nl:`Je ${planCode} abonnement ondersteunt maximaal ${limits.websites} website(s). Upgrade je abonnement om meer websites te beheren.`,
@@ -502,14 +493,11 @@ export async function POST(request: Request) {
         const ip = requestIp(request);
         const salt = process.env.USAGE_HASH_SALT || process.env.SESSION_SECRET || "rankfix-usage";
         usageIpHash = createHash("sha256").update(salt + ":" + ip).digest("hex");
-        // Count attempts, not only completed scans, so repeated failed crawls cannot
-        // bypass the coarse Free-plan network protection.
-        const allowed = await consumeRateLimit("free-scan", ip, 8, 3600);
-        if (!allowed) {
-          const rateMessages: Record<string,string> = {nl:"Er zijn vanaf dit netwerk veel gratis scans uitgevoerd. Probeer het over ongeveer een uur opnieuw.",en:"Many free scans have been run from this network. Please try again in about an hour.",de:"Von diesem Netzwerk wurden viele kostenlose Scans ausgeführt. Bitte versuche es in etwa einer Stunde erneut.",fr:"De nombreuses analyses gratuites ont été lancées depuis ce réseau. Réessayez dans environ une heure.",it:"Da questa rete sono state eseguite molte scansioni gratuite. Riprova tra circa un’ora.",es:"Se han realizado muchos análisis gratuitos desde esta red. Vuelve a intentarlo dentro de aproximadamente una hora."};
-          return NextResponse.json({error:rateMessages[scanLanguage],code:"FREE_SCAN_RATE_LIMIT"},{status:429,headers:{"Retry-After":"3600"}});
-        }
       }
+      // Count attempts, not only completed scans, so repeated failed crawls cannot
+      // bypass the coarse Free-plan network protection.
+      const limited = await enforceScanRateLimit();
+      if (limited) return limited;
     }
 
     const started = Date.now();
@@ -920,9 +908,11 @@ export async function POST(request: Request) {
       (title && /\b(restaurant|salon|kapsalon|bakker|bakery|bar|cafe|café|dentist|tandarts|electrician|elektricien|plumber|loodgieter|aannemer|contractor|hairdresser|kapper|store|winkel)\b/i.test(title)) ||
       hasLocalBusinessSignal
     );
-    const hasBusinessContactDetails = /\b(\+?\d[\d\s().-]{7,}\b)/.test(text) ||
-      /\b(e-mail|email|mailto:)\b/i.test(html) ||
-      /\b(adres|address|straat|street|postcode|postal code)\b/i.test(text);
+    // Concrete details only: a dialable number, an address with postcode, a visible
+    // e-mail address or tel:/mailto: links. Counts, prices, dates and form labels
+    // such as "postcode" or an e-mail input are not contact details.
+    const businessContactDetails = findBusinessContactDetails(text, html);
+    const hasBusinessContactDetails = hasBusinessContactDetailsFn(businessContactDetails);
     const hasSocialOrReviewSignal = /\b(instagram|facebook|linkedin|google reviews|reviews|tripadvisor|trustpilot)\b/i.test(text) || sameAsCount > 0;
     const hasContactChannelSignal = hasBusinessContactDetails || (hasContactSignal && (hasContactFormSignal || hasContactActionSignal));
     const hasServiceExpertiseSignal = /\b(diensten|services|service|specialist|specialisten|expert|expertise|seo|geo|structured data|schema\.org|technical seo|technische seo|ai[- ]search|search readiness|auditsoftware|auditing|behandeling|behandelingen|hair|haar|knippen|kleur|color|styling|restaurant|keuken|cuisine|tandarts|elektricien|loodgieter|aannemer|dakdekker)\b/i.test(text);
@@ -1145,9 +1135,9 @@ export async function POST(request: Request) {
                   ? schemaSet.has("organization") || schemaSet.has("website")
                   : schemaSet.has("webpage") || schemaSet.has("article") || schemaSet.has("organization") || schemaSet.has("website");
     const businessName = organizationName || (title.split(/[|–—-]/)[0] || "").trim();
-    const phoneMatch = text.match(/(?:\\+31\s?6|0)[\\d\s().-]{8,}/);
-    const emailMatch = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i);
-    const addressMatch = text.match(/\b([^,]{3,60}\s+\\d+[A-Za-z]?)\s+(\\d{4}\s?[A-Z]{2})\s+([A-Za-zÀ-ÿ' -]{2,40})\b/);
+    const phoneMatch = text.match(/(?:\+31\s?6|0)[\d\s().-]{8,}/);
+    const emailMatch = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+    const addressMatch = text.match(/\b([^,]{3,60}\s+\d+[A-Za-z]?)\s+(\d{4}\s?[A-Z]{2})\s+([A-Za-zÀ-ÿ' -]{2,40})\b/);
     const localBusinessDetails = effectiveLocalSchemaSignal ? {
       name: businessName || null,
       streetAddress: addressMatch?.[1]?.trim() || null,
@@ -1186,7 +1176,7 @@ export async function POST(request: Request) {
     } catch { robotsStatus = "UNABLE_TO_CONFIRM"; }
     const robotsPath = finalUrl.pathname || "/";
     const robotsGroups = robotsTxt
-      .split(/\\r?\\n/)
+      .split(/\r?\n/)
       .map((line) => line.replace(/#.*$/, "").trim())
       .reduce((groups: Array<{ agents: string[]; rules: Array<{ kind: "allow" | "disallow"; path: string }> }>, line) => {
         const agent = line.match(/^user-agent\s*:\s*(.+)$/i)?.[1]?.trim().toLowerCase();
@@ -1795,53 +1785,17 @@ export async function POST(request: Request) {
       ? securityCheck("pass","security_headers","Security headers",`Browser-securityheaders voldoen aan de huidige kernregel (${securityHeaderEvidence}).`,"Houd deze headers actief en test wijzigingen aan CSP/HSTS eerst tegen de applicatie.",6,6)
       : securityCheck("warning","security_headers","Security headers",`RankFix bevestigde ${presentSecurityHeaders.length} van 6 gecontroleerde securityheaders (${securityHeaderEvidence}). Dit is hardening-advies en op zichzelf geen bewijs van een kwetsbaarheid.`,"Controleer HSTS, CSP/frame-bescherming, X-Content-Type-Options, Referrer-Policy en Permissions-Policy op server/CDN-niveau.",Math.max(0, presentSecurityHeaders.length),6));
 
-    const mixedContentMatches = isHttps
-      ? [...html.matchAll(new RegExp("(?:src|href)\\\\s*=\\\\s*[\\\"']http://[^\\\"'\\\\s>]+[\\\"']", "gi"))].map((m)=>m[0]).slice(0,5)
-      : [];
-    securityChecks.push(!isHttps
+    // Status decisions come from lib/security-signals.ts (tested); this block only adds wording.
+    const passiveSecurity = assessPassiveSecurity({ isHttps, html, pageUrl: finalUrl.toString(), setCookies: setCookieValues(response.headers) });
+    const mixedContentMatches = passiveSecurity.mixedContent.urls;
+    securityChecks.push(passiveSecurity.mixedContent.status === "not_applicable"
       ? securityCheck("not_applicable","security_mixed_content","Mixed content","Mixed-contentcontrole is alleen van toepassing op HTTPS-pagina's.","Activeer eerst HTTPS.",0,4)
-      : mixedContentMatches.length === 0
-        ? securityCheck("pass","security_mixed_content","Mixed content","Geen expliciete HTTP-assets gevonden in de gescande HTTPS-HTML.","Blijf assets via HTTPS of relatieve URL's laden.",4,4)
-        : securityCheck("fail","security_mixed_content","Mixed content",`${mixedContentMatches.length} expliciete HTTP-assetverwijzing(en) gevonden op een HTTPS-pagina.`,"Vervang HTTP-asset-URL's door HTTPS of veilige relatieve URL's.",4,4));
+      : passiveSecurity.mixedContent.status === "pass"
+        ? securityCheck("pass","security_mixed_content","Mixed content","Geen via HTTP geladen afbeeldingen, scripts, stylesheets of frames gevonden in de gescande HTTPS-HTML. Gewone links naar HTTP-sites zijn geen mixed content.","Blijf assets via HTTPS of relatieve URL's laden.",4,4)
+        : securityCheck("fail","security_mixed_content","Mixed content",`${mixedContentMatches.length} via HTTP geladen bron(nen) gevonden op een HTTPS-pagina: ${mixedContentMatches.slice(0,3).join(", ")}.`,"Vervang HTTP-asset-URL's door HTTPS of veilige relatieve URL's.",4,4));
 
-    const setCookieHeaders = response.headers.get("set-cookie") || "";
-    const cookiePresent = Boolean(setCookieHeaders);
-    // Strict Set-Cookie parsing. Commas inside Expires must stay inside the cookie,
-    // and attributes are evaluated only on their own cookie record.
-    const splitSetCookieHeader = (header:string) => {
-      const out:string[] = [];
-      let from = 0;
-      let inExpires = false;
-      for (let i=0;i<header.length;i++) {
-        const tail = header.slice(i).toLowerCase();
-        if (tail.startsWith("expires=")) inExpires = true;
-        if (inExpires && header[i] === ";") inExpires = false;
-        if (!inExpires && header[i] === "," && /^\\s*[^;,=\\s]+=[^;,]*/.test(header.slice(i+1))) {
-          out.push(header.slice(from,i).trim()); from=i+1;
-        }
-      }
-      out.push(header.slice(from).trim());
-      return out.filter(Boolean);
-    };
-    const observedCookies = setCookieHeaders ? splitSetCookieHeader(setCookieHeaders) : [];
-    const cookieObservations = observedCookies.map((raw)=>{
-      const first = raw.split(";")[0] || "";
-      const name = first.split("=")[0]?.trim() || "cookie";
-      const sameSiteMatch = raw.match(/(?:^|;\\s*)samesite=(lax|strict|none)(?:;|$)/i);
-      const antiCsrf = /(?:csrf|xsrf|verification[-_]?token|requestverificationtoken)/i.test(name);
-      const sessionLike = !antiCsrf && /(?:^|[-_.])(session|sess|auth|jwt|login|sid)(?:$|[-_.])/i.test(name);
-      return {
-        name, raw,
-        secure: /(?:^|;\\s*)secure(?:;|$)/i.test(raw),
-        httpOnly: /(?:^|;\\s*)httponly(?:;|$)/i.test(raw),
-        sameSite: sameSiteMatch ? sameSiteMatch[1].toLowerCase() : "missing",
-        sessionLike,
-      };
-    });
-    const cookiesMissingSecure = cookieObservations.filter((cookie)=>isHttps && !cookie.secure);
-    const cookiesMissingSameSite = cookieObservations.filter((cookie)=>cookie.sameSite === "missing");
-    const sessionCookiesMissingHttpOnly = cookieObservations.filter((cookie)=>cookie.sessionLike && !cookie.httpOnly);
-    const cookieIssueCount = cookiesMissingSecure.length + cookiesMissingSameSite.length + sessionCookiesMissingHttpOnly.length;
+    const cookieObservations = passiveSecurity.cookieFlags.cookies;
+    const cookieIssueCount = passiveSecurity.cookieFlags.issues;
     const cookieEvidenceSummary = cookieObservations.map((cookie)=>{
       const missing = [
         isHttps && !cookie.secure ? "Secure ontbreekt" : null,
@@ -1850,41 +1804,35 @@ export async function POST(request: Request) {
       ].filter(Boolean);
       return `${cookie.name}: ${missing.length ? missing.join(", ") : "relevante flags bevestigd"}`;
     }).join(" · ");
-    securityChecks.push(!cookiePresent
+    securityChecks.push(passiveSecurity.cookieFlags.status === "unable_to_confirm"
       ? securityCheck("unable_to_confirm","security_cookie_flags","Cookie-beveiliging","De hoofdresponse bevatte geen zichtbare Set-Cookie-header. RankFix kan daardoor cookieflags voor browser-, consent- of ingelogde flows niet bevestigen.","Controleer sessie-, consent- en authenticatiecookies in de relevante flows; ken zonder cookie-evidence geen veiligheidspunten toe.",0,5)
-      : cookieIssueCount === 0
+      : passiveSecurity.cookieFlags.status === "pass"
         ? securityCheck("pass","security_cookie_flags","Cookie-beveiliging",`De zichtbare Set-Cookie-response bevestigt passende relevante flags voor ${cookieObservations.length} cookie(s).`,"Houd gevoelige sessiecookies voorzien van passende beveiligingsflags.",5,5)
         : securityCheck("warning","security_cookie_flags","Cookie-beveiliging",`Per-cookie controle vond ${cookieIssueCount} ontbrekende relevante flag(s). ${cookieEvidenceSummary}. HttpOnly wordt alleen beoordeeld voor bevestigde sessie-/authenticatiecookies.`,"Controleer de genoemde cookies afzonderlijk: Secure op HTTPS, een passende SameSite-instelling en HttpOnly voor sessie-/authenticatiecookies.",Math.max(1,5-Math.min(4,cookieIssueCount)),5));
-    const forms = [...html.matchAll(new RegExp("<form\\\\b[\\\\s\\\\S]*?</form>", "gi"))].map((m)=>m[0]);
-    const passwordForm = forms.some((form)=>new RegExp("<input[^>]+type\\\\s*=\\\\s*[\\\"']password[\\\"']", "i").test(form));
-    const insecureFormActions = forms.filter((form)=>new RegExp("action\\\\s*=\\\\s*[\\\"']http://", "i").test(form)).length;
-    securityChecks.push(forms.length === 0
+    const forms = { length: passiveSecurity.forms.count };
+    const passwordForm = passiveSecurity.forms.passwordForm;
+    const insecureFormActions = passiveSecurity.forms.insecureActions;
+    securityChecks.push(passiveSecurity.forms.status === "not_applicable"
       ? securityCheck("not_applicable","security_forms","Formuliertransport","Geen HTML-formulier gevonden in de gescande pagina.","Geen actie nodig voor deze pagina.",0,5)
-      : insecureFormActions > 0
+      : passiveSecurity.forms.status === "fail"
         ? securityCheck("fail","security_forms","Formuliertransport",`${insecureFormActions} formulier(en) sturen expliciet naar een HTTP-endpoint.`,"Gebruik uitsluitend HTTPS voor formulieracties en gevoelige gegevens.",5,5)
-        : isHttps
+        : passiveSecurity.forms.status === "pass"
           ? securityCheck("pass","security_forms","Formuliertransport",`${forms.length} formulier(en) gevonden zonder expliciete onveilige HTTP-action${passwordForm ? "; wachtwoordveld aanwezig" : ""}.`,"Controleer server-side validatie, CSRF-bescherming en autorisatie aanvullend; die zijn niet uit statische HTML te bewijzen.",5,5)
           : securityCheck("warning","security_forms","Formuliertransport",`${forms.length} formulier(en) gevonden op een niet-HTTPS-pagina.`,"Bescherm formulieren met HTTPS; beoordeel server-side validatie en CSRF apart.",2,5));
 
-    const exposedSecretPatterns = [
-      { label:"private key", re:/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/i },
-      { label:"AWS access key", re:/\\bAKIA[0-9A-Z]{16}\\b/ },
-      { label:"GitHub token", re:/\\bgh[pousr]_[A-Za-z0-9_]{20,}\\b/ },
-      { label:"generic bearer token", re:/authorization\\s*[:=]\\s*["']?bearer\\s+[A-Za-z0-9._~-]{20,}/i },
-    ];
-    const exposedSignals = exposedSecretPatterns.filter((item)=>item.re.test(html)).map((item)=>item.label);
-    securityChecks.push(exposedSignals.length
+    const exposedSignals = passiveSecurity.exposedSecrets.labels;
+    securityChecks.push(passiveSecurity.exposedSecrets.status === "fail"
       ? securityCheck("fail","security_exposed_secrets","Blootgestelde secrets",`Mogelijk gevoelig secretpatroon gevonden: ${exposedSignals.join(", ")}. Handmatige verificatie is vereist.`,"Verwijder secrets uit client-side HTML/bundles, roteer bevestigde gelekte credentials en gebruik server-side secretopslag.",8,8)
       : securityCheck("pass","security_exposed_secrets","Blootgestelde secrets","Geen bekende high-confidence secretpatronen gevonden in de opgehaalde HTML.","Bewaar API-sleutels en credentials uitsluitend server-side.",8,8));
 
-    const externalScriptTags = [...html.matchAll(/<script\\b[^>]*\\bsrc\\s*=\\s*["']([^"']+)["'][^>]*>/gi)].map((m)=>({tag:m[0],src:m[1]}));
-    const crossOriginScripts = externalScriptTags.filter((item)=>{ try { return new URL(item.src,finalUrl).origin !== finalUrl.origin; } catch { return false; } });
-    const crossOriginWithoutSri = crossOriginScripts.filter((item)=>!/\\bintegrity\\s*=/i.test(item.tag));
-    securityChecks.push(crossOriginScripts.length === 0
+    const scriptIntegrity = passiveSecurity.scriptIntegrity;
+    securityChecks.push(scriptIntegrity.crossOrigin === 0
       ? securityCheck("pass","security_script_integrity","Externe scripts","Geen cross-origin scripts aangetroffen in de opgehaalde HTML.","Geen actie nodig; JavaScript kan runtime aanvullend scripts laden die buiten deze statische controle vallen.",4,4)
-      : crossOriginWithoutSri.length === 0
-        ? securityCheck("pass","security_script_integrity","Externe scripts",`Alle ${crossOriginScripts.length} zichtbare cross-origin script(s) bevatten een integrity-attribuut.`,"Houd externe scripts beperkt en gebruik SRI waar versievaste assets dit ondersteunen.",4,4)
-        : securityCheck("warning","security_script_integrity","Externe scripts",`${crossOriginWithoutSri.length} van ${crossOriginScripts.length} cross-origin script(s) hebben geen zichtbaar integrity-attribuut. SRI is niet voor elke dynamische provider toepasbaar.`,"Beperk derde-partij scripts en gebruik Subresource Integrity voor versievaste externe assets waar mogelijk.",2,4));
+      : passiveSecurity.scriptIntegrity.status === "pass"
+        ? securityCheck("pass","security_script_integrity","Externe scripts",scriptIntegrity.missingDynamic.length
+            ? `Geen versievaste cross-origin scripts zonder integrity-attribuut. ${scriptIntegrity.missingDynamic.length} dynamisch script(s) van derden (zoals tag managers of betaal-SDK's) kunnen geen SRI gebruiken; houd die beperkt.`
+            : `Alle ${scriptIntegrity.crossOrigin} zichtbare cross-origin script(s) bevatten een integrity-attribuut.`,"Houd externe scripts beperkt en gebruik SRI waar versievaste assets dit ondersteunen.",4,4)
+        : securityCheck("warning","security_script_integrity","Externe scripts",`${scriptIntegrity.missingVersioned.length} versievast cross-origin script(s) zonder integrity-attribuut: ${scriptIntegrity.missingVersioned.slice(0,3).join(", ")}. Voor zulke vaste bestanden is Subresource Integrity toepasbaar.`,"Voeg een integrity- en crossorigin-attribuut toe aan versievaste externe scripts, of host ze zelf.",2,4));
 
     const securityApplicable = securityChecks.filter((item)=>item.issue_status !== "NOT_APPLICABLE" && item.issue_status !== "UNABLE_TO_CONFIRM");
     const securityMax = securityApplicable.reduce((sum,item)=>sum+item.maxPoints,0);
@@ -1925,65 +1873,72 @@ export async function POST(request: Request) {
       return item;
     };
     if (sectorProfile.sector === "real_estate") {
-      const listingSignal = (scanEvidence.sectorDetails.realEstate.listing.value && scanEvidence.sectorDetails.realEstate.listing.confidence !== "low") || /\\b(te koop|te huur|koopwoning|huurwoning|woningaanbod|objecten|properties|for sale|for rent)\\b/i.test(text) || schemaSet.has("realestatelisting");
-      const leadSignal = hasContactChannelSignal || /\\b(bezichtiging|waardebepaling|verkoopadvies|plan een afspraak|contact opnemen)\\b/i.test(text);
-      const areaSignal = /\\b(werkgebied|regio|buurt|wijk|plaats|gemeente|service area|area served)\\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.areaServed));
+      const listingSignal = (scanEvidence.sectorDetails.realEstate.listing.value && scanEvidence.sectorDetails.realEstate.listing.confidence !== "low") || /\b(te koop|te huur|koopwoning|huurwoning|woningaanbod|objecten|properties|for sale|for rent)\b/i.test(text) || schemaSet.has("realestatelisting");
+      const leadSignal = hasContactChannelSignal || /\b(bezichtiging|waardebepaling|verkoopadvies|plan een afspraak|contact opnemen)\b/i.test(text);
+      const areaSignal = /\b(werkgebied|regio|buurt|wijk|plaats|gemeente|service area|area served)\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.areaServed));
       seoChecks.push(
         sectorCheck("sector_real_estate_listings","Vastgoedaanbod",listingSignal,"Vastgoed-/woningsignalen zijn in de pagina bevestigd.","RankFix kon in de raw HTML geen vastgoedaanbod betrouwbaar bevestigen.","Maak woningaanbod en de bijbehorende bestemming duidelijk vindbaar wanneer dit voor deze pagina relevant is."),
         sectorCheck("sector_real_estate_leads","Makelaar conversie",leadSignal,"Een contact-, bezichtigings- of waardebepalingssignaal is bevestigd.","Een duidelijke makelaar-CTA kon in de raw HTML niet betrouwbaar worden bevestigd.","Maak de belangrijkste vervolgstap, zoals contact, bezichtiging of waardebepaling, duidelijk zichtbaar."),
         sectorCheck("sector_real_estate_area","Werkgebied makelaar",areaSignal,"Een lokaal werkgebied-/regiosignaal is bevestigd.","Het werkgebied kon in de raw HTML niet betrouwbaar worden bevestigd.","Beschrijf relevante plaatsen of regio's wanneer lokale vindbaarheid belangrijk is.")
       );
     } else if (sectorProfile.sector === "automotive") {
-      const workshopSignal = /\\b(apk|onderhoud|reparatie|werkplaats|autoservice|banden|diagnose)\\b/i.test(text);
-      const appointmentSignal = hasContactChannelSignal || /\\b(afspraak|proefrit|werkplaatsafspraak|plan afspraak|book service)\\b/i.test(text);
-      const inventorySignal = /\\b(occasion|occasions|voorraad|auto(?:'s)? te koop|used cars?|vehicles? for sale)\\b/i.test(text);
+      const workshopSignal = /\b(apk|onderhoud|reparatie|werkplaats|autoservice|banden|diagnose)\b/i.test(text);
+      // A workshop appointment and a test drive are different customer actions; a
+      // contact detail is neither. Test drives only apply when vehicle sales are proven.
+      const appointmentSignal = /\b(afspraak|werkplaatsafspraak|apk[- ]afspraak|onderhoudsafspraak|plan (?:je |een )?afspraak|afspraak maken|online afspraak|book (?:a )?service|service appointment|termin vereinbaren)\b/i.test(text);
+      const testDriveSignal = /\b(proefrit|test ?drive|probefahrt|essai routier)\b/i.test(text);
+      const inventorySignal = /\b(occasion|occasions|voorraad|auto(?:'s)? te koop|used cars?|vehicles? for sale)\b/i.test(text);
       const inventoryCheck = automotiveServiceIdentity && !inventorySignal
         ? check("not_applicable","sector_automotive_inventory","seo","Voertuigaanbod","Deze site is als garage/autoservice herkend zonder bewijs van autoverkoop; voertuigvoorraad is daarom niet van toepassing.","Geen actie nodig tenzij de onderneming ook voertuigen verkoopt.",0,4)
         : sectorCheck("sector_automotive_inventory","Voertuigaanbod",inventorySignal,"Voertuig-/occasionaanbod is in de pagina bevestigd.","RankFix kon voertuigaanbod niet betrouwbaar bevestigen; dit kan ook niet van toepassing zijn.","Toon voertuigaanbod duidelijk wanneer de onderneming auto's verkoopt; anders is geen actie nodig.");
       seoChecks.push(
         sectorCheck("sector_automotive_services","Garage diensten",workshopSignal,"Garage-/werkplaatsdiensten zijn in de pagina bevestigd.","Garage-/werkplaatsdiensten konden in de raw HTML niet betrouwbaar worden bevestigd.","Maak de belangrijkste garage- en werkplaatsdiensten duidelijk vindbaar."),
-        sectorCheck("sector_automotive_conversion","Afspraak / proefrit",appointmentSignal,"Een afspraak-, proefrit- of contactsignaal is bevestigd.","Een duidelijke afspraak- of proefritactie kon niet betrouwbaar worden bevestigd.","Maak de belangrijkste vervolgstap voor klanten duidelijk zichtbaar."), inventoryCheck
+        sectorCheck("sector_automotive_conversion","Werkplaatsafspraak",appointmentSignal,"Een afspraakactie (werkplaats, APK of onderhoud) is bevestigd.","Een duidelijke afspraakactie kon niet betrouwbaar worden bevestigd. Een contactgegeven alleen is geen afspraakmogelijkheid.","Maak afspraak maken voor werkplaats, APK of onderhoud duidelijk zichtbaar."),
+        automotiveServiceIdentity && !inventorySignal
+          ? check("not_applicable","sector_automotive_test_drive","seo","Proefrit","Deze site is als garage/autoservice herkend zonder bewijs van autoverkoop; een proefrit is daarom niet van toepassing.","Geen actie nodig tenzij de onderneming ook voertuigen verkoopt.",0,4)
+          : sectorCheck("sector_automotive_test_drive","Proefrit",testDriveSignal,"Een proefritactie is bevestigd.","Een proefritactie kon niet betrouwbaar worden bevestigd.","Maak een proefrit aanvragen duidelijk zichtbaar bij het voertuigaanbod."),
+        inventoryCheck
       );
     } else if (sectorProfile.sector === "home_services") {
-      const serviceSignal = /\\b(loodgieter|elektricien|installateur|aannemer|dakdekker|schilder|renovatie|reparatie|installatie|onderhoud|riool|riolering|verstopping|ontstoppen|ontstopping|afvoer)\\b/i.test(text);
-      const quoteSignal = /\\b(offerte|prijsopgave|aanvraag|bel ons|contact opnemen|request a quote|get a quote)\\b/i.test(text) || hasContactChannelSignal;
-      const areaSignal = /\\b(werkgebied|servicegebied|regio|gemeente|in en rondom|omgeving|area served|service area)\\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.areaServed));
+      const serviceSignal = /\b(loodgieter|elektricien|installateur|aannemer|dakdekker|schilder|renovatie|reparatie|installatie|onderhoud|riool|riolering|verstopping|ontstoppen|ontstopping|afvoer)\b/i.test(text);
+      const quoteSignal = /\b(offerte|prijsopgave|aanvraag|bel ons|contact opnemen|request a quote|get a quote)\b/i.test(text) || hasContactChannelSignal;
+      const areaSignal = /\b(werkgebied|servicegebied|regio|gemeente|in en rondom|omgeving|area served|service area)\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.areaServed));
       seoChecks.push(
         sectorCheck("sector_home_services_offer","Vakdiensten",serviceSignal,"De belangrijkste vak-/servicediensten zijn in de pagina bevestigd.","De aangeboden vakdiensten konden niet betrouwbaar worden bevestigd.","Maak concreet welke werkzaamheden en diensten worden uitgevoerd."),
         sectorCheck("sector_home_services_quote","Offerte / contact",quoteSignal,"Een offerte- of contactactie is bevestigd.","Een duidelijke offerte- of contactactie kon niet betrouwbaar worden bevestigd.","Maak offerte aanvragen of contact opnemen eenvoudig en duidelijk."),
         sectorCheck("sector_home_services_area","Servicegebied",areaSignal,"Een servicegebied-/regiosignaal is bevestigd.","Het servicegebied kon in de raw HTML niet betrouwbaar worden bevestigd.","Noem relevante plaatsen of regio's wanneer het bedrijf lokaal werkt.")
       );
     } else if (sectorProfile.sector === "professional_services") {
-      const expertiseSignal = /\\b(expertise|specialis(?:t|atie)|advocaat|accountant|boekhouder|consultant|notaris|lawyer|attorney|accounting|consultancy|diensten|services)\\b/i.test(text) || hasServiceExpertiseSignal;
-      const contactSignal = hasContactChannelSignal || hasContactFormSignal || /\\b(afspraak|kennismaking|consult|adviesgesprek|contact|plan a call|book a consultation)\\b/i.test(text);
-      const authorSignal = schemaSet.has("person") || /\\b(auteur|author|door|by)\\s+[A-ZÀ-Ý][\\p{L}.'-]+/iu.test(text);
+      const expertiseSignal = /\b(expertise|specialis(?:t|atie)|advocaat|accountant|boekhouder|consultant|notaris|lawyer|attorney|accounting|consultancy|diensten|services)\b/i.test(text) || hasServiceExpertiseSignal;
+      const contactSignal = hasContactChannelSignal || hasContactFormSignal || /\b(afspraak|kennismaking|consult|adviesgesprek|contact|plan a call|book a consultation)\b/i.test(text);
+      const authorSignal = schemaSet.has("person") || /\b(?:[Aa]uteur|[Aa]uthor|[Gg]eschreven door|[Ww]ritten by)\s*:?\s+[A-ZÀ-Ý][\p{L}.'-]+/u.test(text);
       seoChecks.push(
         sectorCheck("sector_professional_expertise","Expertise & diensten",expertiseSignal,"Diensten of expertise zijn in de pagina bevestigd.","Diensten of expertise konden in de raw HTML niet betrouwbaar worden bevestigd.","Maak specialisaties en concrete diensten duidelijk zichtbaar zonder niet-bewezen kwalificaties toe te voegen."),
         sectorCheck("sector_professional_contact","Zakelijk contact",contactSignal,"Een contact- of adviesactie is bevestigd.","Een duidelijke contact- of adviesactie kon niet betrouwbaar worden bevestigd.","Maak de belangrijkste vervolgstap, zoals contact of een kennismaking, duidelijk zichtbaar."),
         sectorCheck("sector_professional_authorship","Expertise-auteurschap",authorSignal,"Een auteurs-/persoonsignaal is in de pagina bevestigd.","Auteurschap of een verantwoordelijke expert kon in de raw HTML niet betrouwbaar worden bevestigd.","Koppel inhoud aan een echte auteur of expert wanneer dat feitelijk juist en relevant is.")
       );
     } else if (sectorProfile.sector === "hospitality") {
-      const openingSignal = /\\b(openingstijden|opening hours|geopend|open today|hours)\\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.openingHours || item?.openingHoursSpecification));
-      const menuSignal = /\\b(menu|menukaart|ontbijt|lunch|diner|dinner|drinks|gerechten)\\b/i.test(text) || links.some((href)=>/menu|menukaart/i.test(href));
-      const reservationSignal = hasContactChannelSignal || /\\b(reserveren|reserveer|reservation|book a table|boek een tafel|kamer boeken|book a room)\\b/i.test(text);
+      const openingSignal = /\b(openingstijden|openingsuren|opening hours|opening times|geopend van|open today|vandaag geopend)\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.openingHours || item?.openingHoursSpecification));
+      const menuSignal = /\b(menukaart|onze menu's|ons menu|bekijk (?:het|ons) menu|our menu|view (?:the |our )?menu|lunchkaart|dinerkaart|wijnkaart|drankenkaart|ontbijt|lunch|diner|dinner|gerechten|dishes)\b/i.test(text) || links.some((href)=>/\/(?:menu|menukaart|kaart|lunchkaart|dinerkaart)(?:[/.?#-]|$)/i.test(href));
+      const reservationSignal = hasContactChannelSignal || /\b(reserveren|reserveer|reservation|book a table|boek een tafel|kamer boeken|book a room)\b/i.test(text);
       seoChecks.push(
         sectorCheck("sector_hospitality_hours","Openingstijden",openingSignal,"Openingstijden of opening-hours structured data zijn bevestigd.","Openingstijden konden in de raw HTML niet betrouwbaar worden bevestigd.","Maak actuele openingstijden duidelijk vindbaar wanneer die voor deze locatie relevant zijn."),
         sectorCheck("sector_hospitality_menu","Menu / aanbod",menuSignal,"Menu- of aanbodsignalen zijn bevestigd.","Een menu of concreet horeca-aanbod kon niet betrouwbaar worden bevestigd.","Maak menu of aanbod duidelijk bereikbaar wanneer dit voor deze onderneming relevant is."),
         sectorCheck("sector_hospitality_reservation","Reserveren / contact",reservationSignal,"Een reserverings- of contactactie is bevestigd.","Een duidelijke reserverings- of contactactie kon niet betrouwbaar worden bevestigd.","Maak reserveren of contact opnemen duidelijk en eenvoudig.")
       );
     } else if (sectorProfile.sector === "health_wellness") {
-      const treatmentSignal = /\\b(behandeling|behandelingen|therapie|fysiotherap|tandarts|dentist|kliniek|clinic|wellness|salon|treatment|services)\\b/i.test(text);
-      const appointmentSignal = hasContactChannelSignal || /\\b(afspraak|appointment|boek afspraak|plan afspraak|book now|consult)\\b/i.test(text);
-      const trustSignal = hasAboutSignal || hasServiceExpertiseSignal || schemaSet.has("person") || /\\b(team|specialist|behandelaar|therapeut|practitioner)\\b/i.test(text);
+      const treatmentSignal = /\b(behandeling|behandelingen|therapie|fysiotherap\w*|tandarts\w*|dentist\w*|kliniek|clinic|wellness|salon|treatments?)\b/i.test(text);
+      const appointmentSignal = hasContactChannelSignal || /\b(afspraak|appointment|boek afspraak|plan afspraak|book now|consult)\b/i.test(text);
+      const trustSignal = hasAboutSignal || hasServiceExpertiseSignal || schemaSet.has("person") || /\b(team|specialist|behandelaar|therapeut|practitioner)\b/i.test(text);
       seoChecks.push(
         sectorCheck("sector_health_services","Behandelingen & diensten",treatmentSignal,"Behandelingen of diensten zijn in de pagina bevestigd.","Behandelingen of diensten konden in de raw HTML niet betrouwbaar worden bevestigd.","Beschrijf feitelijk welke diensten of behandelingen worden aangeboden; voeg geen medische werkzaamheidsclaims toe zonder bewijs."),
         sectorCheck("sector_health_appointment","Afspraak maken",appointmentSignal,"Een afspraak- of contactactie is bevestigd.","Een duidelijke afspraak- of contactactie kon niet betrouwbaar worden bevestigd.","Maak de route naar afspraak of contact duidelijk zichtbaar."),
         sectorCheck("sector_health_trust","Team & expertise",trustSignal,"Een team-, expertise- of behandelaarssignaal is bevestigd.","Team of expertise kon in de raw HTML niet betrouwbaar worden bevestigd.","Toon echte team- en expertise-informatie wanneer die beschikbaar en verifieerbaar is.")
       );
     } else if (sectorProfile.sector === "saas_b2b") {
-      const featureSignal = /\\b(features?|functies|mogelijkheden|platform|software|integrations?|integraties|api)\\b/i.test(text);
-      const leadSignal = hasContactChannelSignal || /\\b(demo|start gratis|free trial|try free|get started|contact sales|plan gesprek|boek demo)\\b/i.test(text);
-      const audienceSignal = /\\b(voor bedrijven|for businesses|for teams|teams|bedrijven|organisaties|business|enterprise|b2b)\\b/i.test(text);
+      const featureSignal = /\b(features?|functies|mogelijkheden|platform|software|integrations?|integraties|api)\b/i.test(text);
+      const leadSignal = hasContactChannelSignal || /\b(demo|start gratis|free trial|try free|get started|contact sales|plan gesprek|boek demo)\b/i.test(text);
+      const audienceSignal = /\b(voor bedrijven|voor teams|voor organisaties|for businesses|for teams|for enterprises?|enterprise plan|b2b)\b/i.test(text);
       seoChecks.push(
         sectorCheck("sector_saas_features","Product & functies",featureSignal,"Software-/functiesignalen zijn in de pagina bevestigd.","Product- of functiesignalen konden in de raw HTML niet betrouwbaar worden bevestigd.","Maak duidelijk welk probleem het product oplost en welke functies werkelijk beschikbaar zijn."),
         sectorCheck("sector_saas_conversion","Demo / conversie",leadSignal,"Een demo-, trial- of contactactie is bevestigd.","Een duidelijke demo-, trial- of contactactie kon niet betrouwbaar worden bevestigd.","Maak de primaire zakelijke vervolgstap duidelijk zichtbaar."),
@@ -2034,7 +1989,6 @@ export async function POST(request: Request) {
 
     // Extended audit signals: trust, ecommerce quality, URL hygiene, social metadata and multilingual SEO.
     const placeholderMatches = text.match(/\[(?:kvk|btw|adres|e-?mail|email|telefoon|phone|address|postcode|plaats|company|naam)\]/gi) || [];
-    const hasPlaceholders = placeholderMatches.length > 0;
     const normalizeLegalText = (value: string) =>
       safeDecodeURIComponent(value)
         .normalize("NFD")
@@ -2047,7 +2001,7 @@ export async function POST(request: Request) {
       .map((match) => {
         const attrs = (match[1] || "") + " " + (match[3] || "");
         const href = decode(match[2] || "");
-        const label = stripHtml(match[4] || "");
+        const label = decode(stripHtml(match[4] || ""));
         const aria = attrFromTag("<a " + attrs + ">", "aria-label");
         const titleAttr = attrFromTag("<a " + attrs + ">", "title");
         return { href, label, aria, title: titleAttr, haystack: normalizeLegalText([href, label, aria, titleAttr].join(" ")) };
@@ -2056,20 +2010,28 @@ export async function POST(request: Request) {
       privacy: /\b(?:privacy|privacybeleid|privacy policy|privacidade|privatnost\w*|zasebnost\w*|datenschutz|confidentialite|vie privee|privacidad|riservatezza)\b/i,
       cookies: /\b(?:cookie\w*|piskotk\w*|kolacic\w*|galleta\w*|biscott\w*)\b/i,
       terms: /\b(?:voorwaarden|terms|conditions|agb|cgv|condiciones|condizioni|termos|uvjet\w*|pogoj\w*|conditions generales)\b/i,
-      contact: /\b(?:contact\w*|kontakt\w*|contatt\w*|contacto\w*|klantenservice|customer service|support|helpdesk|help center|help centre|assistenza\w*|apoio ao cliente|pomoc\w*)\b/i,
     };
     const findLegalSignal = (pattern: RegExp) => legalAnchorEvidence.find((item) => pattern.test(item.haystack)) || null;
     const privacyEvidence = findLegalSignal(legalLexicon.privacy);
     const cookieEvidence = findLegalSignal(legalLexicon.cookies);
     const termsEvidence = findLegalSignal(legalLexicon.terms);
-    const contactEvidence = findLegalSignal(legalLexicon.contact);
+    const classifiedContactAnchors = legalAnchorEvidence.map((item) => ({ item, kind: classifyContactAnchor({ href: item.href, text: [item.label, item.aria, item.title].join(" "), pageUrl: finalUrl.toString() }) }));
+    const contactChannelLabels: Record<ContactChannel, string> = { email: "e-mail", phone: "telefoon", contact_page: "contactpagina", contact_form: "contactformulier" };
+    const contactAnchor = (["contact_page", "email", "phone"] as const)
+      .map((kind) => classifiedContactAnchors.find((entry) => entry.kind === kind))
+      .find(Boolean) || null;
+    const contactEvidence = contactAnchor ? { ...contactAnchor.item, channel: contactAnchor.kind as ContactChannel } : null;
+    const contactFormFound = [...html.matchAll(/<form\b[\s\S]*?<\/form>/gi)].some((match) => isContactForm(match[0]));
+    const visibleContactEmail = findVisibleEmail(text);
+    // FAQ, help and support pages are not proof of a contact channel.
+    const helpOnlyContactAnchor = classifiedContactAnchors.find((entry) => entry.kind !== null && INDIRECT_CONTACT_KINDS.has(entry.kind))?.item || null;
     const hasPrivacyLink = Boolean(privacyEvidence);
     const hasCookieLink = Boolean(cookieEvidence);
     const hasTermsLink = Boolean(termsEvidence);
-    const hasContactLink = Boolean(contactEvidence);
+    const hasContactLink = Boolean(contactEvidence || contactFormFound || visibleContactEmail);
     const legalLanguageCode = (lang || "").toLowerCase().split("-")[0];
     const legalLanguageSupported = new Set(["nl","en","it","pt","sl","hr","de","fr","es"]).has(legalLanguageCode);
-    const legalEvidenceSummary = [privacyEvidence && `privacy: "${privacyEvidence.label || privacyEvidence.aria || privacyEvidence.title}" → ${privacyEvidence.href}`, cookieEvidence && `cookies: "${cookieEvidence.label || cookieEvidence.aria || cookieEvidence.title}" → ${cookieEvidence.href}`, contactEvidence && `contact: "${contactEvidence.label || contactEvidence.aria || contactEvidence.title}" → ${contactEvidence.href}`].filter(Boolean).join(" · ");
+    const legalEvidenceSummary = [privacyEvidence && `privacy: "${privacyEvidence.label || privacyEvidence.aria || privacyEvidence.title}" → ${privacyEvidence.href}`, cookieEvidence && `cookies: "${cookieEvidence.label || cookieEvidence.aria || cookieEvidence.title}" → ${cookieEvidence.href}`, contactEvidence ? `contact (${contactChannelLabels[contactEvidence.channel]}): "${contactEvidence.label || contactEvidence.aria || contactEvidence.title}" → ${contactEvidence.href}` : contactFormFound ? "contact (contactformulier): formulier met berichtveld en e-mail/telefoonveld" : visibleContactEmail ? `contact (e-mail): ${visibleContactEmail}` : null].filter(Boolean).join(" · ");
     const formControls = [...html.matchAll(/<(input|select|textarea)\b([^>]*)>/gi)];
     const wrappingLabelRanges = [...html.matchAll(/<label\b[^>]*>[\s\S]*?<\/label>/gi)]
       .map((match) => ({ start: match.index ?? -1, end: (match.index ?? -1) + match[0].length }));
@@ -2251,59 +2213,14 @@ export async function POST(request: Request) {
     const decodedVisibleText = decode(text);
     const hasVisibleHtmlEscape = /&(?:amp|quot|lt|gt|#(?:x[0-9a-f]+|\d+));/i.test(decodedVisibleText);
     const hreflangTags = [...html.matchAll(/<link\b[^>]*>/gi)].map((m) => m[0]).filter((tag) => /\brel\s*=\s*["']alternate["']/i.test(tag) && /\bhreflang\s*=/i.test(tag));
-    const hreflangValues = hreflangTags.map((tag) => attrFromTag(tag, "hreflang").toLowerCase()).filter(Boolean);
-    const hasHreflang = hreflangValues.length > 0;
-    const hreflangEntries = hreflangTags.map((tag) => {
-      const language = attrFromTag(tag, "hreflang").toLowerCase();
-      const href = attrFromTag(tag, "href");
-      let validHref = false;
-      try {
-        const parsed = new URL(href, finalUrl);
-        validHref = parsed.protocol === "http:" || parsed.protocol === "https:";
-      } catch {}
-      const validLanguage = language === "x-default" || /^(?:[a-z]{2,3})(?:-[a-z]{2}|-[0-9]{3})?$/i.test(language);
-      return { language, href, validHref, validLanguage };
-    });
-    const invalidHreflangEntries = hreflangEntries.filter((entry) => !entry.validLanguage || !entry.validHref);
-    const hreflangTargetsByLanguage = new Map<string, string[]>();
-    for (const entry of hreflangEntries) {
-      if (!entry.language || !entry.validHref) continue;
-      try {
-        const normalizedHref = normalizeScanUrl(new URL(entry.href, finalUrl).toString());
-        hreflangTargetsByLanguage.set(entry.language, [...(hreflangTargetsByLanguage.get(entry.language) || []), normalizedHref]);
-      } catch {}
-    }
-    const duplicateHreflangLanguages = [...hreflangTargetsByLanguage.entries()]
-      .filter(([, urls]) => urls.length > 1)
-      .map(([language]) => language);
-    const conflictingHreflangLanguages = [...hreflangTargetsByLanguage.entries()]
-      .filter(([, urls]) => new Set(urls).size > 1)
-      .map(([language]) => language);
-    const identicalDuplicateHreflangLanguages = duplicateHreflangLanguages.filter((language) => !conflictingHreflangLanguages.includes(language));
-    const currentNormalizedUrl = normalizeScanUrl(finalUrl.toString());
-    const selfHreflangEntries = hreflangEntries.filter((entry) => {
-      if (!entry.validHref) return false;
-      try { return normalizeScanUrl(new URL(entry.href, finalUrl).toString()) === currentNormalizedUrl; } catch { return false; }
-    });
+    const hreflangEntries = hreflangTags.map((tag) => ({ language: attrFromTag(tag, "hreflang").toLowerCase(), href: attrFromTag(tag, "href") }));
     const documentLanguage = lang.trim().toLowerCase().replace("_", "-");
-    const documentLanguageBase = documentLanguage.split("-")[0] || "";
-    const hasMatchingSelfHreflang = selfHreflangEntries.some((entry) => {
-      if (entry.language === "x-default") return false;
-      const hreflangBase = entry.language.split("-")[0] || "";
-      return Boolean(documentLanguageBase && hreflangBase === documentLanguageBase);
-    });
-    const selfHreflangMismatch = Boolean(documentLanguage && selfHreflangEntries.length && !hasMatchingSelfHreflang);
-    const hreflangHostMismatches = hreflangEntries.filter((entry) => {
-      if (!entry.validHref) return false;
-      try {
-        const target = new URL(entry.href, finalUrl);
-        return target.hostname.replace(/^www\./i, "").toLowerCase() !== finalUrl.hostname.replace(/^www\./i, "").toLowerCase();
-      } catch { return false; }
-    });
+    const hreflangAssessment = assessHreflang(hreflangEntries, finalUrl.toString(), documentLanguage, normalizeScanUrl);
+    const marketSelectorPage = isMarketSelectorPage(hreflangEntries, finalUrl.toString(), normalizeScanUrl);
     const languageSelectorSignal = /(?:language|taal|sprache|idioma|lingua|français|deutsch|italiano|español|english|nederlands)\b/i.test(text) && /(?:select|dropdown|menu|switch|\bEN\b|\bNL\b|\bDE\b|\bFR\b|\bES\b|\bIT\b)/i.test(text);
     // A language/country selector alone does not prove equivalent translated URLs exist.
     // Only explicit hreflang markup is strong enough in a single raw-HTML page scan.
-    const multilingualUrlEvidence = hasHreflang;
+    const multilingualUrlEvidence = hreflangAssessment.kind !== "none";
     const organizationSchemaPresent = schemaSet.has("organization");
     const websiteSchemaPresent = schemaSet.has("website");
     const productSchemaPresent = schemaSet.has("product");
@@ -2530,7 +2447,7 @@ export async function POST(request: Request) {
     const isNonContentVariantParam = (key:string) => canonicalListingParams.has(key)
       || key.startsWith("utm_")
       || /^(?:gclid|gbraid|wbraid|fbclid|msclkid|gad_|_gl$|_ga$|mc_[ce]id$|pk_(?:campaign|kwd|source|medium)|yclid|dclid|srsltid|ref_|affiliate|aff(?:id)?$)/i.test(key);
-    const canonicalDropsKnownListingParams = Boolean(canonicalUrl && canonicalUrl.hostname.toLowerCase().replace(/^www\\./, "") === finalUrl.hostname.toLowerCase().replace(/^www\\./, "") && canonicalUrl.pathname.replace(/\/+$/, "") === finalUrl.pathname.replace(/\/+$/, "") && !canonicalUrl.search && currentQueryKeys.length > 0 && currentQueryKeys.every(isNonContentVariantParam));
+    const canonicalDropsKnownListingParams = Boolean(canonicalUrl && canonicalUrl.hostname.toLowerCase().replace(/^www\./, "") === finalUrl.hostname.toLowerCase().replace(/^www\./, "") && canonicalUrl.pathname.replace(/\/+$/, "") === finalUrl.pathname.replace(/\/+$/, "") && !canonicalUrl.search && currentQueryKeys.length > 0 && currentQueryKeys.every(isNonContentVariantParam));
     const pageLanguageCode = (lang || "").toLowerCase().split("-")[0];
     const canonicalIsLocalePreferred = Boolean(canonicalUrl && finalUrl.pathname === "/" && pageLanguageCode && canonicalUrl.pathname.replace(/\/+$/, "") === "/" + pageLanguageCode);
     // www/apex redirects are normally the same site and must not become a cross-domain failure.
@@ -2684,16 +2601,16 @@ export async function POST(request: Request) {
       ? languageSelectorSignal
         ? check("unable_to_confirm", "hreflang", "seo", "Meertalige SEO", "Een taal- of landkeuze is zichtbaar, maar deze paginascan bewijst niet dat equivalente vertaalde URL's bestaan. Hreflang wordt daarom niet als ontbrekende fout beoordeeld.", "Bevestig alternatieve taal-URL's in een sitebrede crawl voordat hreflang verplicht wordt gesteld.", 0, 5)
         : check("not_applicable", "hreflang", "seo", "Meertalige SEO", "Geen bewezen alternatieve taal-URL's gevonden; RankFix telt hreflang daarom niet mee in de score.", "Gebruik hreflang wanneer dezelfde content aantoonbaar in meerdere talen/URL's beschikbaar is.", 0, 5)
-      : invalidHreflangEntries.length
-          ? check("warning", "hreflang", "seo", "Meertalige SEO", `${hreflangTags.length} hreflang-link(s) gevonden, maar ${invalidHreflangEntries.length} bevat een ongeldige taal-/regiocode of URL.`, "Corrigeer ongeldige hreflang-codes en href-URL's. Controleer daarna wederkerigheid tussen taalversies.", 2, 5)
-          : selfHreflangMismatch
-            ? check("warning", "hreflang", "seo", "Meertalige SEO", `De huidige URL is als hreflang-doel opgenomen, maar de taalcode sluit niet aan op documenttaal "${documentLanguage}".`, "Laat de self-referencing hreflang-taal overeenkomen met de taal van deze pagina en controleer daarna de alternatieve taalversies.", 2, 5)
-          : hreflangHostMismatches.length
-            ? check("unable_to_confirm", "hreflang", "seo", "Meertalige SEO", `${hreflangHostMismatches.length} hreflang-doel(en) verwijzen naar een ander hostdomein. Dit kan geldig zijn voor internationale domeinen, maar RankFix kan de relatie vanuit deze ene pagina niet bewijzen.`, "Controleer de externe taalhosts en hun wederkerige hreflang/canonical-relaties in een sitebrede crawl voordat dit als fout wordt beoordeeld.", 0, 5)
-          : conflictingHreflangLanguages.length
-            ? check("warning", "hreflang", "seo", "Meertalige SEO", `Dezelfde hreflang-code verwijst naar verschillende doel-URL's: ${conflictingHreflangLanguages.map((language) => `${language} => ${[...new Set(hreflangTargetsByLanguage.get(language) || [])].join(" | ")}`).join("; ")}.`, "Gebruik per pagina één eenduidige doel-URL per taal/regiocode en controleer daarna wederkerigheid.", 3, 5)
-            : identicalDuplicateHreflangLanguages.length
-              ? check("warning", "hreflang", "seo", "Meertalige SEO", `Dezelfde hreflang-code is dubbel opgenomen met dezelfde doel-URL: ${identicalDuplicateHreflangLanguages.map((language) => `${language} => ${(hreflangTargetsByLanguage.get(language) || [])[0]}`).join("; ")}.`, "Verwijder de dubbele hreflang-tag zodat iedere taal-/regiocode één keer voorkomt. Controleer daarna wederkerigheid.", 4, 5)
+      : hreflangAssessment.kind === "invalid"
+          ? check("warning", "hreflang", "seo", "Meertalige SEO", `${hreflangAssessment.total} hreflang-link(s) gevonden, maar ${hreflangAssessment.invalid} bevat een ongeldige of ontbrekende taal-/regiocode of URL.`, "Corrigeer ongeldige hreflang-codes en href-URL's. Controleer daarna wederkerigheid tussen taalversies.", 2, 5)
+          : hreflangAssessment.kind === "self_mismatch"
+            ? check("warning", "hreflang", "seo", "Meertalige SEO", `De huidige URL is als hreflang-doel opgenomen, maar de taalcode sluit niet aan op documenttaal "${hreflangAssessment.documentLanguage}".`, "Laat de self-referencing hreflang-taal overeenkomen met de taal van deze pagina en controleer daarna de alternatieve taalversies.", 2, 5)
+          : hreflangAssessment.kind === "external_hosts"
+            ? check("unable_to_confirm", "hreflang", "seo", "Meertalige SEO", `${hreflangAssessment.count} hreflang-doel(en) verwijzen naar een ander hostdomein. Dit kan geldig zijn voor internationale domeinen, maar RankFix kan de relatie vanuit deze ene pagina niet bewijzen.`, "Controleer de externe taalhosts en hun wederkerige hreflang/canonical-relaties in een sitebrede crawl voordat dit als fout wordt beoordeeld.", 0, 5)
+          : hreflangAssessment.kind === "conflict"
+            ? check("warning", "hreflang", "seo", "Meertalige SEO", `Dezelfde hreflang-code verwijst naar verschillende doel-URL's: ${hreflangAssessment.targets.map(([language, urls]) => `${language} => ${urls.join(" | ")}`).join("; ")}.`, "Gebruik per pagina één eenduidige doel-URL per taal/regiocode en controleer daarna wederkerigheid.", 3, 5)
+            : hreflangAssessment.kind === "duplicate"
+              ? check("warning", "hreflang", "seo", "Meertalige SEO", `Dezelfde hreflang-code is dubbel opgenomen met dezelfde doel-URL: ${hreflangAssessment.targets.map(([language, url]) => `${language} => ${url}`).join("; ")}.`, "Verwijder de dubbele hreflang-tag zodat iedere taal-/regiocode één keer voorkomt. Controleer daarna wederkerigheid.", 4, 5)
               : check("unable_to_confirm", "hreflang", "seo", "Meertalige SEO", `${hreflangTags.length} syntactisch geldige hreflang-link(s) gevonden. Vanuit één pagina kan RankFix wederkerigheid en canonicals van alle taalversies nog niet bewijzen.`, "Controleer de gekoppelde taal-URL's in een sitebrede crawl voordat hreflang volledig wordt bevestigd.", 0, 5)
     );
 
@@ -2721,6 +2638,8 @@ export async function POST(request: Request) {
         ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen","De raw HTML is een dunne JavaScript-shell. Privacy-, cookie- en contactlinks kunnen client-side worden toegevoegd en zijn daarom niet betrouwbaar als ontbrekend te beoordelen.","Controleer deze signalen opnieuw met geslaagde JavaScript-rendering.",0,5)
         : hasPrivacyLink && hasCookieLink && hasContactLink
         ? check("pass","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Links naar privacy, cookies en contact zijn in de opgehaalde HTML gevonden."+(legalEvidenceSummary ? " Bewijs: "+legalEvidenceSummary+"." : ""),"Houd deze informatie duidelijk vindbaar en actueel. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",5,5)
+        : hasPrivacyLink && hasCookieLink && helpOnlyContactAnchor
+        ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Links naar privacy en cookies zijn gevonden. Voor contact is alleen een indirecte link gevonden (FAQ, help, support, klantenservice of een andere website) (\""+(helpOnlyContactAnchor.label || helpOnlyContactAnchor.aria || helpOnlyContactAnchor.title)+"\" → "+helpOnlyContactAnchor.href+"); dat bewijst geen directe contactmogelijkheid, maar ook niet dat die ontbreekt."+(legalEvidenceSummary ? " Bewijs: "+legalEvidenceSummary+"." : ""),"Controleer of de help- of supportpagina een contactpagina, contactformulier, e-mailadres of telefoonnummer aanbiedt.",0,5)
         : !legalLanguageSupported && Boolean(legalLanguageCode)
           ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen","De paginataal ("+legalLanguageCode+") valt buiten de geteste juridische woordenlijst en niet alle signalen zijn rechtstreeks bevestigd."+(legalEvidenceSummary ? " Wel gevonden: "+legalEvidenceSummary+"." : ""),"Controleer de footer en cookiebanner handmatig of breid de woordenlijst voor deze taal uit.",0,5)
           : check("warning","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Niet alle basissignalen zijn gevonden: "+[!hasPrivacyLink?"privacy":null,!hasCookieLink?"cookies":null,!hasContactLink?"contact":null].filter(Boolean).join(", ")+". "+(legalEvidenceSummary ? "Wel gevonden: "+legalEvidenceSummary+"." : ""),"Controleer of privacy-, cookie- en contactinformatie duidelijk bereikbaar is. RankFix beoordeelt hiermee geen wettelijke compliance.",Math.max(2, Number(hasPrivacyLink)+Number(hasCookieLink)+Number(hasContactLink)+2),5)
@@ -2775,9 +2694,18 @@ export async function POST(request: Request) {
           : check("pass","viewport_zoom_blocked","accessibility","Browserzoom","Geen statische viewport-instelling gevonden die browserzoom blokkeert.","Test zoom en schaalbaarheid ook interactief op mobiele apparaten.",3,3)
     );
 
-    seoChecks.push(hasPlaceholders
+    const businessDetails = assessBusinessDetails({
+      placeholders: placeholderMatches,
+      details: businessContactDetails,
+      registration: findCompanyRegistration(text),
+      schemaContact: schemaObjects.some((item)=>Boolean(item?.address || item?.telephone || item?.email)),
+      thinShell: thinRawHtmlEvidence,
+    });
+    seoChecks.push(businessDetails.status === "fail"
       ? check("fail", "business_placeholders", "seo", "Bedrijfsgegevens", `Er staan nog ${placeholderMatches.length} placeholder(s) zoals ${placeholderMatches.slice(0, 4).join(", ")} op de pagina.`, "Vervang placeholders door echte bedrijfs- en contactgegevens voordat de site live gaat.", 0, 6)
-      : check("pass", "business_placeholders", "seo", "Bedrijfsgegevens", "Geen bekende bedrijfsgegevens-placeholders gevonden.", "Houd bedrijfs- en contactgegevens actueel en consistent.", 6, 6)
+      : businessDetails.status === "pass"
+        ? check("pass", "business_placeholders", "seo", "Bedrijfsgegevens", `Geen placeholders gevonden en concrete bedrijfsgegevens bevestigd: ${businessDetails.found.join(", ")}.`, "Houd bedrijfs- en contactgegevens actueel en consistent.", 6, 6)
+        : check("unable_to_confirm", "business_placeholders", "seo", "Bedrijfsgegevens", businessDetails.reason === "thin_shell" ? "Geen placeholders in de raw HTML, maar dit is een dunne JavaScript-shell; bedrijfsgegevens kunnen niet worden bevestigd." : "Geen placeholders gevonden, maar ook geen concrete bedrijfsgegevens (adres, telefoon, e-mail of KvK/BTW) op deze pagina. Dat bewijst niet dat ze ontbreken; ze kunnen op een contact- of over-onspagina staan.", "Toon bedrijfsnaam, adres, telefoon of e-mail en KvK/BTW waar klanten die verwachten, bijvoorbeeld in de footer of op de contactpagina.", 0, 6)
     );
 
     seoChecks.push(!hasEcommerceSignal
@@ -3147,7 +3075,7 @@ export async function POST(request: Request) {
         sector_real_estate_leads: sectorProfile.sector==="real_estate" ? `sector=real_estate; contact=${hasContactChannelSignal}` : null,
         sector_real_estate_area: sectorProfile.sector==="real_estate" ? `sector=real_estate; areaServed=${schemaObjects.some((item:any)=>Boolean(item?.areaServed))}` : null,
         sector_automotive_services: sectorProfile.sector==="automotive" ? "sector=automotive; workshop evidence evaluated" : null,
-        sector_automotive_conversion: sectorProfile.sector==="automotive" ? `sector=automotive; contact=${hasContactChannelSignal}` : null,
+        sector_automotive_conversion: sectorProfile.sector==="automotive" ? "sector=automotive" : null,
         sector_automotive_inventory: sectorProfile.sector==="automotive" ? "sector=automotive; inventory evidence evaluated" : null,
         sector_home_services_offer: sectorProfile.sector==="home_services" ? "sector=home_services; service evidence evaluated" : null,
         sector_home_services_quote: sectorProfile.sector==="home_services" ? `sector=home_services; contact=${hasContactChannelSignal}` : null,
@@ -3578,32 +3506,7 @@ export async function POST(request: Request) {
         return index === 0 ? decoded : decoded.replace(/\d+/g,":n");
       }).join("/") || "/";
     };
-    // Prefer template diversity. Query-string variants and near-identical listing
-    // pages should not consume the limited representative sample twice.
-    const uniqueMultiPagePages: MultiPageCandidate[] = [];
-    const seenTemplates = new Set<string>();
-    for (const item of [scannedPageSample, ...multiPagePages]) {
-      const normalized = normalizeScanUrl(item.url);
-      const key = `${item.type}:${templateShapeKey(normalized)}`;
-      if (uniqueMultiPagePages.some((existing)=>normalizeScanUrl(existing.url)===normalized)) continue;
-      if (seenTemplates.has(key)) continue;
-      seenTemplates.add(key);
-      uniqueMultiPagePages.push(item);
-      if (uniqueMultiPagePages.length >= representativePageLimit) break;
-    }
-    // A site can have many important pages sharing one URL template.
-    // First choose structurally diverse pages, then fill remaining slots with
-    // distinct high-relevance URLs up to the cap. Small sites stay small.
-    if (uniqueMultiPagePages.length < representativePageLimit) {
-      const seenUrls = new Set(uniqueMultiPagePages.map((item)=>normalizeScanUrl(item.url)));
-      for (const item of rankedMultiPage) {
-        const normalized = normalizeScanUrl(item.url);
-        if (seenUrls.has(normalized)) continue;
-        seenUrls.add(normalized);
-        uniqueMultiPagePages.push(item);
-        if (uniqueMultiPagePages.length >= representativePageLimit) break;
-      }
-    }
+    const uniqueMultiPagePages = selectRepresentativePages([scannedPageSample, ...multiPagePages], rankedMultiPage, representativePageLimit, normalizeScanUrl, templateShapeKey);
     const auditMultiPage = async (page: MultiPageCandidate): Promise<MultiPageAudit> => {
       try {
         const fetched = await safePublicFetch(page.url, { timeoutMs: 8000, maxRedirects: 3, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml" });
@@ -3659,7 +3562,7 @@ export async function POST(request: Request) {
         // Structural fingerprint: language-independent DOM evidence used to detect
         // near-duplicate representative templates after fetch. It deliberately
         // ignores URL words and visible copy.
-        const countTag = (tag:string) => (pageHtml!.match(new RegExp("<"+tag+"\\\\b","gi"))||[]).length;
+        const countTag = (tag:string) => (pageHtml!.match(new RegExp("<"+tag+"\\b","gi"))||[]).length;
         const pageStructureKey = [
           "h"+Math.min(4,countTag("h1")+countTag("h2")+countTag("h3")),
           "a"+Math.min(9,Math.floor(countTag("a")/10)),
@@ -3668,7 +3571,7 @@ export async function POST(request: Request) {
           "article"+Math.min(5,countTag("article")),
           "table"+Math.min(3,countTag("table")),
           "li"+Math.min(9,Math.floor(countTag("li")/10)),
-          "schema"+Math.min(5,(pageHtml!.match(/"@type"\\s*:/gi)||[]).length),
+          "schema"+Math.min(5,(pageHtml!.match(/"@type"\s*:/gi)||[]).length),
         ].join("|");
         const pageChallenge = /\b(radware page|checking your browser|just a moment|verify (?:you are|that you are) human|request unsuccessful|incapsula|imperva|challenge-platform|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test([pageQualityTitle,pageQualityText].join(" "));
         if (pageChallenge) {
@@ -3767,7 +3670,7 @@ export async function POST(request: Request) {
               ? "redirectfout"
               : /403/i.test(rawReason)
                 ? "HTTP 403 / blokkade"
-                : /5\\d\\d/.test(rawReason)
+                : /5\d\d/.test(rawReason)
                   ? "serverfout"
                   : "ophalen mislukt";
         return { ...page, status:"unable_to_confirm", httpStatus:null, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"fetch",status:"UNABLE_TO_CONFIRM",details:`Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ${reason}).`}] };
@@ -3856,8 +3759,8 @@ export async function POST(request: Request) {
         ...(masterEvidence.commerce.confirmed ? [finalUrl.toString()] : []),
       ],
       lists_inventory: [
-        ...(multiPageCapabilities.properties ? auditedMultiPages.filter((item)=>/\\b(woning|woningen|property|properties|aanbod|koop|huur)\\b/i.test(item.identityText||"")).map((item)=>item.url) : []),
-        ...(multiPageCapabilities.vehicleSales ? auditedMultiPages.filter((item)=>/\\b(occasion|occasions|vehicle inventory|voertuigvoorraad|autovoorraad|cars for sale)\\b/i.test(item.identityText||"")).map((item)=>item.url) : []),
+        ...(multiPageCapabilities.properties ? auditedMultiPages.filter((item)=>/\b(woning|woningen|property|properties|aanbod|koop|huur)\b/i.test(item.identityText||"")).map((item)=>item.url) : []),
+        ...(multiPageCapabilities.vehicleSales ? auditedMultiPages.filter((item)=>/\b(occasion|occasions|vehicle inventory|voertuigvoorraad|autovoorraad|cars for sale)\b/i.test(item.identityText||"")).map((item)=>item.url) : []),
       ],
       offers_bookable_services: bookingFormPages.map((item)=>item.url),
       collects_leads: representativeFormPages.map((item)=>item.url),
@@ -3950,6 +3853,15 @@ export async function POST(request: Request) {
       secondaryCommerceOnly,
       multiPageEvidence: sitewideCommerceEvidence.confirmed,
     };
+    const representativeAuditedPageCount = auditedMultiPages.filter((item)=>item.status==="audited" && normalizeScanUrl(item.url)!==normalizeScanUrl(finalUrl.toString())).length;
+    const finalCommerceApplicability = commerceApplicability({
+      confirmed: finalCommerceDecision.confirmed,
+      primaryNonCommerceIdentity: Boolean(primaryNonCommerceIdentity),
+      commerceHints: Boolean(technologyProfile.isCommerce || hasEcommerceSignal || masterEvidence.commerce.strength > 0 || secondaryCommerceOnly),
+      thinShell: thinRawHtmlEvidence,
+      marketSelector: marketSelectorPage,
+      auditedRepresentativePages: representativeAuditedPageCount,
+    });
     if (!finalCommerceDecision.confirmed && primaryNonCommerceIdentity) {
       masterEvidence.commerce.confirmed = false;
       masterEvidence.businessModels = masterEvidence.businessModels.filter((model)=>model!=="commerce");
@@ -4086,6 +3998,11 @@ export async function POST(request: Request) {
       if (inventoryCheck && multiPageCapabilities.vehicleSales) {
         Object.assign(inventoryCheck, check("pass","sector_automotive_inventory","seo","Voertuigaanbod","Representatieve same-site pagina's bevestigen voertuig-/occasionaanbod.","Houd voertuigaanbod en detailpagina's duidelijk vindbaar.",4,4));
       }
+      // Proven vehicle sales make a test drive applicable again; absence is unconfirmed, not N/A.
+      const testDriveCheck = seoChecks.find((item)=>item.key==="sector_automotive_test_drive");
+      if (testDriveCheck && testDriveCheck.status==="not_applicable" && multiPageCapabilities.vehicleSales) {
+        Object.assign(testDriveCheck, check("unable_to_confirm","sector_automotive_test_drive","seo","Proefrit","Representatieve pagina's bevestigen voertuigverkoop, maar een proefritactie kon niet betrouwbaar worden bevestigd.","Maak een proefrit aanvragen duidelijk zichtbaar bij het voertuigaanbod.",0,4));
+      }
     }
     // Organization + WebSite is a site-level identity control. When the customer
     // scans a subpage, use the already-audited homepage sample instead of N.v.t.
@@ -4122,25 +4039,25 @@ export async function POST(request: Request) {
       "sector_real_estate_listings",
       multiPageCapabilities.properties,
       "Representatieve pagina-evidence bevestigt vastgoed-/woningaanbod op de website.",
-      firstRepresentativeUrl((item)=>/\\b(woning|woningen|property|properties|aanbod|koop|huur)\\b/i.test(item.identityText||""))
+      firstRepresentativeUrl((item)=>/\b(woning|woningen|property|properties|aanbod|koop|huur)\b/i.test(item.identityText||""))
     );
     promoteCheckFromRepresentativeEvidence(
       "sector_automotive_inventory",
       multiPageCapabilities.vehicleSales,
       "Representatieve pagina-evidence bevestigt voertuig-/occasionaanbod op de website.",
-      firstRepresentativeUrl((item)=>/\\b(occasion|occasions|vehicle inventory|voertuigvoorraad|autovoorraad|cars for sale)\\b/i.test(item.identityText||""))
+      firstRepresentativeUrl((item)=>/\b(occasion|occasions|vehicle inventory|voertuigvoorraad|autovoorraad|cars for sale)\b/i.test(item.identityText||""))
     );
     promoteCheckFromRepresentativeEvidence(
       "sector_automotive_services",
       multiPageCapabilities.automotiveService,
       "Representatieve pagina-evidence bevestigt garage-/werkplaatsdiensten op de website.",
-      firstRepresentativeUrl((item)=>/\\b(werkplaats|garage|banden|tyres?|apk|onderhoud|autoservice|repair)\\b/i.test(item.identityText||""))
+      firstRepresentativeUrl((item)=>/\b(werkplaats|garage|banden|tyres?|apk|onderhoud|autoservice|repair)\b/i.test(item.identityText||""))
     );
     promoteCheckFromRepresentativeEvidence(
       "sector_health_services",
       multiPageCapabilities.treatment,
       "Representatieve pagina-evidence bevestigt behandelingen of zorgdiensten op de website.",
-      firstRepresentativeUrl((item)=>/\\b(behandeling|behandelingen|treatment|specialisatie|tandarts|dentist)\\b/i.test(item.identityText||""))
+      firstRepresentativeUrl((item)=>/\b(behandeling|behandelingen|treatment|specialisatie|tandarts|dentist)\b/i.test(item.identityText||""))
     );
 
     const securityFormCheck = securityChecks.find((item)=>item.key==="security_forms");
@@ -4227,11 +4144,23 @@ export async function POST(request: Request) {
       item.reasonCode = "cap_absent";
       item.evidence = {url:finalUrl.toString(),found:false,details:item.message};
     };
-    if (!finalCommerceDecision.confirmed) {
+    const setFinalUnableToConfirm = (item:Check, reason:string) => {
+      item.status = "unable_to_confirm";
+      item.issue_status = "UNABLE_TO_CONFIRM";
+      item.points = 0;
+      item.confidence = "low";
+      item.message = reason;
+      item.fix = "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.";
+      item.reasonCode = finalCommerceApplicability.state === "unconfirmed" ? UNCONFIRMED_COMMERCE_REASON_CODE[finalCommerceApplicability.reason] : "weak_evidence";
+      item.evidence = {url:finalUrl.toString(),found:null,details:item.message};
+    };
+    if (finalCommerceApplicability.state === "absent") {
       for (const item of [...seoChecks,...geoChecks]) {
-        if (finalCommerceOnlyKeys.has(item.key)) {
-          setFinalNotApplicable(item,"Definitieve Scanbewijs bevestigt geen webshop-/retailketen; deze commercecontrole is niet van toepassing.");
-        }
+        if (finalCommerceOnlyKeys.has(item.key)) setFinalNotApplicable(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
+      }
+    } else if (finalCommerceApplicability.state === "unconfirmed") {
+      for (const item of [...seoChecks,...geoChecks]) {
+        if (finalCommerceOnlyKeys.has(item.key)) setFinalUnableToConfirm(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
       }
     } else if (!euConsumerApplicable) {
       for (const item of [...seoChecks,...geoChecks]) {
@@ -4241,6 +4170,38 @@ export async function POST(request: Request) {
       }
     }
 
+    // Wording that assumes a shop follows the final decision, not early page hints.
+    if (!shopWordingApplies(finalCommerceApplicability, Boolean(primaryNonCommerceIdentity))) {
+      for (const item of [...seoChecks,...geoChecks]) {
+        if (item.key === "schema") {
+          item.message = neutralizeShopWording(item.message);
+          item.fix = neutralizeShopWording(item.fix);
+          if (item.evidence?.details) item.evidence.details = neutralizeShopWording(String(item.evidence.details));
+        }
+        if (item.key === "semantic_link_destination" && /product/i.test(item.message)) {
+          if (item.status === "pass") {
+            item.message = GENERIC_LINK_DESTINATION_PASS.message;
+            item.fix = GENERIC_LINK_DESTINATION_PASS.fix;
+          } else if (item.status === "warning") {
+            item.status = "unable_to_confirm";
+            item.issue_status = "UNABLE_TO_CONFIRM";
+            item.points = 0;
+            item.confidence = "low";
+            item.message = PRODUCT_LINK_CHECK_UNCONFIRMED.message;
+            item.fix = PRODUCT_LINK_CHECK_UNCONFIRMED.fix;
+            item.reasonCode = "weak_evidence";
+          }
+          if (item.evidence) item.evidence.details = item.message;
+        }
+      }
+    }
+    // Separate from sector: whether shop functionality is proven, proven absent or unknown.
+    const commerceApplicabilityReport = {
+      ...finalCommerceApplicability,
+      marketSelector: marketSelectorPage,
+      representativePagesAudited: representativeAuditedPageCount,
+      message: finalCommerceApplicability.state === "confirmed" ? "Product-, prijs- of winkelwagenbewijs bevestigd." : COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason],
+    };
     const representativeProductPage = auditedMultiPages.find((item)=>item.type==="product" && item.commerceEvidence?.product);
     if (finalCommerceDecision.confirmed && representativeProductPage?.commerceEvidence?.product) {
       const product = representativeProductPage.commerceEvidence.product;
@@ -4365,7 +4326,7 @@ export async function POST(request: Request) {
         );
         pendingFixes = new Map(pending.rows.map((row: any) => [String(row.issue_id), { status: String(row.status) }]));
 
-        const websiteHost = finalUrl.hostname.toLowerCase().replace(/^www\\./, "");
+        const websiteHost = finalUrl.hostname.toLowerCase().replace(/^www\./, "");
         const rememberedFixes = await getDb().query(
           "SELECT rule_id,file_path,repository,pr_number,fix_summary,evidence,last_confirmed_at,recurrence_count,recurrence_open,last_recurred_at FROM fix_memory WHERE user_id=$1 AND website_host=$2 AND scanned_url=$3",
           [user.id, websiteHost, normalizedScanUrl]
@@ -4427,7 +4388,7 @@ export async function POST(request: Request) {
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             language: scanLanguage,
-            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, summary: scanSummary, rendering, recovery, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, security: securityEngine, accessibility: accessibilityEngine, multiPage,
+            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, summary: scanSummary, rendering, recovery, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -4654,6 +4615,7 @@ export async function POST(request: Request) {
       pageTypeInvariant,
       technologyProfile,
       sectorProfile,
+      commerceApplicability: commerceApplicabilityReport,
       evidenceLayer,
       security: securityEngine,
       accessibility: accessibilityEngine,

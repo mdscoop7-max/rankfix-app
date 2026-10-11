@@ -1,9 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { extractImageMetrics } from "../lib/image-metrics.ts";
-import { applyEvidenceBasedScoreCap, scoreApplicableChecks, summarizeAuditChecks } from "../lib/audit-score.ts";
+import { applyEvidenceBasedScoreCap, scoreApplicableChecks, scoreRange, summarizeAuditChecks, weightedCoverage } from "../lib/audit-score.ts";
 import { isPrivateHost, validatePublicHttpUrl } from "../lib/safe-fetch.ts";
-import { statusCode } from "../lib/seo-rules.ts";
+import { assessHreflang, hasSelfHreflangLanguageMismatch, isMarketSelectorPage, isValidHreflangCode, statusCode } from "../lib/seo-rules.ts";
+import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, neutralizeShopWording, shopWordingApplies } from "../lib/commerce-applicability.ts";
+import { decodeHtmlEntities } from "../lib/html-entities.ts";
+import { analyzeScriptIntegrity, assessPassiveSecurity, findExposedSecrets, findForms, findMixedContent, observeCookie, securityScore, setCookieValues, splitSetCookieHeader } from "../lib/security-signals.ts";
+import { legacyPassiveSecurity } from "./fixtures/security-legacy.mjs";
+import { pages as securityPages } from "./fixtures/security-pages.mjs";
+import { INDIRECT_CONTACT_KINDS, assessBusinessDetails, classifyContactAnchor, findBusinessContactDetails, findCompanyRegistration, findVisibleAddress, findVisibleEmail, findVisiblePhone, isContactForm } from "../lib/contact-evidence.ts";
+import { selectRepresentativePages } from "../lib/representative-pages.ts";
+import { clientIpFromHeaders, isInternalTester, retryAfterSeconds, scanRateLimitMessage, scanRateLimitPolicy } from "../lib/scan-access.ts";
 
 test("decorative empty alt is valid; only a missing alt attribute is actionable", () => {
   const metrics = extractImageMetrics('<img src="/hero.jpg" alt=""><img src="/product.jpg" alt="Product"><img src="/broken.jpg">');
@@ -126,7 +134,10 @@ test("multilingual trust, social URL and auth redirect bundle stays evidence bas
   assert.match(source, /normalizeLegalText/);
   assert.match(source, /privatnost\\w\*\|zasebnost\\w\*/);
   assert.match(source, /piskotk\\w\*\|kolacic\\w\*/);
-  assert.match(source, /assistenza\\w\*\|apoio ao cliente\|pomoc\\w\*/);
+  const contactLexicon = await readFile(new URL("../lib/contact-evidence.ts", import.meta.url), "utf8");
+  assert.match(contactLexicon, /assistenza clienti/);
+  assert.match(contactLexicon, /apoio ao cliente/);
+  assert.match(contactLexicon, /assistenza\|pomoc\\w\*/);
   assert.match(source, /legalLanguageSupported/);
   assert.match(source, /og:image \(geen absolute http\(s\)-URL\)/);
   assert.match(source, /og:url \(geen absolute http\(s\)-URL\)/);
@@ -386,10 +397,11 @@ test("customer audit UX is localized for every supported locale", async () => {
 test("cookie security is evaluated per observed Set-Cookie record", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  assert.match(source, /const cookieObservations = observedCookies\.map/);
-  assert.match(source, /cookiesMissingSecure/);
-  assert.match(source, /cookiesMissingSameSite/);
-  assert.match(source, /sessionCookiesMissingHttpOnly/);
+  // Per-cookie evaluation lives in lib/security-signals.ts (behaviour tested in "security FP/FN 4").
+  const signals = await readFile(new URL("../lib/security-signals.ts", import.meta.url), "utf8");
+  assert.match(source, /const cookieObservations = passiveSecurity\.cookieFlags\.cookies/);
+  assert.match(signals, /const cookies = input\.setCookies\.map\(observeCookie\)/);
+  for (const name of ["missingSecure", "missingSameSite", "sessionMissingHttpOnly"]) assert.match(signals, new RegExp(`const ${name} = cookies\\.filter`));
   assert.match(source, /HttpOnly wordt alleen beoordeeld voor bevestigde sessie-\/authenticatiecookies/);
   assert.doesNotMatch(source, /Cookie-flags zijn niet volledig bevestigd \(Secure=/);
 });
@@ -565,7 +577,9 @@ test("anonymous public scans and contact mail have coarse abuse protection", asy
   const { readFile } = await import("node:fs/promises");
   const scan = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   const contact = await readFile(new URL("../app/api/contact/route.ts", import.meta.url), "utf8");
-  assert.match(scan, /consumeRateLimit\("public-scan",publicIp,8,3600\)/);
+  // Anonymous scans are limited before any fetch starts (limits: lib/scan-access.ts).
+  assert.match(scan, /if \(!dashboardScan\) \{\n\s+const limited = await enforceScanRateLimit\(\);\n\s+if \(limited\) return limited;/);
+  assert.ok(scan.indexOf("const limited = await enforceScanRateLimit();") < scan.indexOf("const started = Date.now();"));
   assert.match(contact, /consumeRateLimit\("contact",requestIp\(request\),5,3600\)/);
   assert.match(contact, /message\.length>5000/);
 });
@@ -791,11 +805,12 @@ test("structural actions outrank plain text hints in scan evidence", async () =>
 test("Scan Motor 3.0 audits a bounded diverse representative sample", async () => {
   const { readFile } = await import("node:fs/promises");
   const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  assert.match(scanner,/const representativePageLimit = 30/);
+  // dfbe309 deliberately raised the cap from 20 to 30 distinct pages.
+  assert.match(scanner,/const representativePageLimit = 30;/);
   assert.match(scanner,/pickMultiPage\("product", 4\)/);
   assert.match(scanner,/pickMultiPage\("service", 5\)/);
-  assert.match(scanner,/uniqueMultiPagePages\.length >= representativePageLimit/);
-  assert.match(scanner,/seenTemplates\.has\(key\)/);
+  assert.match(scanner,/selectRepresentativePages\(\[scannedPageSample, \.\.\.multiPagePages\], rankedMultiPage, representativePageLimit, normalizeScanUrl, templateShapeKey[,)]/);
+  assert.match(scanner,/const representativeAuditConcurrency = 4;/);
 });
 
 
@@ -825,4 +840,740 @@ test("representative crawl uses bounded concurrency", async () => {
   assert.match(scanRoute, /const representativeAuditConcurrency = 4;/);
   assert.match(scanRoute, /Math\.min\(representativeAuditConcurrency, uniqueMultiPagePages\.length\)/);
   assert.doesNotMatch(scanRoute, /Promise\.all\(uniqueMultiPagePages\.map\(auditMultiPage\)\)/);
+});
+
+test("x-default self hreflang on a country picker is not a language mismatch", () => {
+  // ikea.com-style global portal: lang="en", self-reference only as x-default.
+  assert.equal(hasSelfHreflangLanguageMismatch(["x-default"], "en"), false);
+  assert.equal(hasSelfHreflangLanguageMismatch(["x-default", "en-gb"], "en"), false);
+  assert.equal(hasSelfHreflangLanguageMismatch(["nl-nl"], "nl"), false);
+  assert.equal(hasSelfHreflangLanguageMismatch(["de-de"], "en"), true);
+  assert.equal(hasSelfHreflangLanguageMismatch(["x-default", "de-de"], "en"), true);
+  assert.equal(hasSelfHreflangLanguageMismatch(["de-de"], ""), false);
+});
+
+// Mirrors normalizeScanUrl in the scan route: host without www, no trailing slash.
+const normalizeTestUrl = (value) => {
+  const url = new URL(value);
+  url.hash = "";
+  url.hostname = url.hostname.toLowerCase().replace(/^www\./, "");
+  url.pathname = url.pathname.replace(/\/+$/, "") || "/";
+  return url.toString();
+};
+const hreflang = (links, page, lang) => assessHreflang(links, page, lang, normalizeTestUrl);
+
+test("hreflang: country picker with only x-default self reference is not flagged", () => {
+  const result = hreflang([
+    { language: "x-default", href: "https://www.ikea.com/" },
+    { language: "nl-nl", href: "https://www.ikea.com/nl/nl/" },
+    { language: "de-de", href: "https://www.ikea.com/de/de/" },
+  ], "https://www.ikea.com/", "en");
+  assert.equal(result.kind, "unconfirmed");
+});
+
+test("hreflang: normal reciprocal set with matching self reference is unconfirmed, not a warning", () => {
+  const result = hreflang([
+    { language: "nl-nl", href: "https://shop.nl/nl/" },
+    { language: "en-gb", href: "https://shop.nl/en/" },
+    { language: "x-default", href: "https://shop.nl/en/" },
+  ], "https://www.shop.nl/nl", "nl");
+  assert.deepEqual(result, { kind: "unconfirmed", total: 3 });
+});
+
+test("hreflang: no hreflang markup is not applicable", () => {
+  assert.deepEqual(hreflang([], "https://shop.nl/", "nl"), { kind: "none" });
+});
+
+test("hreflang: missing or empty language code is still a real error", () => {
+  assert.deepEqual(hreflang([{ language: "", href: "https://shop.nl/" }], "https://shop.nl/", "nl"), { kind: "invalid", total: 1, invalid: 1 });
+  assert.equal(hreflang([{ language: "nl", href: "" }, { language: "en", href: "https://shop.nl/en/" }], "https://shop.nl/", "nl").kind, "invalid");
+});
+
+test("hreflang: invalid code combinations are detected, valid script and region codes pass", () => {
+  for (const code of ["en_GB", "en-uk", "english", "nl-nld", "e", "en-gb-x"]) assert.equal(isValidHreflangCode(code), false, code);
+  for (const code of ["nl", "nl-NL", "en-gb", "es-419", "zh-Hans", "zh-Hant-TW", "x-default", "uk", "uk-ua"]) assert.equal(isValidHreflangCode(code), true, code);
+  assert.equal(hreflang([{ language: "en-uk", href: "https://shop.nl/en/" }], "https://shop.nl/", "nl").kind, "invalid");
+});
+
+test("hreflang: genuine self-reference language mismatch is still detected", () => {
+  assert.deepEqual(hreflang([
+    { language: "de-de", href: "https://shop.nl/" },
+    { language: "x-default", href: "https://shop.nl/" },
+  ], "https://shop.nl/", "nl"), { kind: "self_mismatch", documentLanguage: "nl" });
+});
+
+test("hreflang: conflicting and duplicate targets are detected", () => {
+  assert.deepEqual(hreflang([
+    { language: "nl", href: "https://shop.nl/a" },
+    { language: "nl", href: "https://shop.nl/b" },
+  ], "https://shop.nl/x", "nl"), { kind: "conflict", targets: [["nl", ["https://shop.nl/a", "https://shop.nl/b"]]] });
+  assert.deepEqual(hreflang([
+    { language: "nl", href: "https://shop.nl/a" },
+    { language: "nl", href: "https://www.shop.nl/a/" },
+  ], "https://shop.nl/x", "nl"), { kind: "duplicate", targets: [["nl", "https://shop.nl/a"]] });
+});
+
+test("hreflang: other hosts are unable-to-confirm, not an error", () => {
+  assert.deepEqual(hreflang([
+    { language: "nl", href: "https://shop.nl/" },
+    { language: "de", href: "https://shop.de/" },
+  ], "https://shop.nl/", "nl"), { kind: "external_hosts", count: 1 });
+});
+
+test("html entities decode once, like a browser", () => {
+  assert.equal(decodeHtmlEntities("Privacy &amp; Cookie statement"), "Privacy & Cookie statement");
+  assert.equal(decodeHtmlEntities("&amp;lt;b&amp;gt;"), "&lt;b&gt;");
+  assert.equal(decodeHtmlEntities("&amp;amp;"), "&amp;");
+  assert.equal(decodeHtmlEntities("Caf&eacute; &euro;&nbsp;5 &ndash; IKEA&rsquo;s"), "Café €\u00a05 – IKEA’s");
+  assert.equal(decodeHtmlEntities("&#39;&#x27;&#x2F;&#8364;&#X20AC;"), "''/€€");
+  assert.equal(decodeHtmlEntities("&AMP; &Eacute; &EACUTE;"), "& É é");
+});
+
+test("html entities: unknown names stay visible and bad code points never throw", () => {
+  assert.equal(decodeHtmlEntities("&foo; &constructor; &toString;"), "&foo; &constructor; &toString;");
+  assert.equal(decodeHtmlEntities("&#x110000;&#xD800;&#0;&#99999999999;"), "\ufffd\ufffd\ufffd\ufffd");
+  assert.equal(decodeHtmlEntities("R&D en AT&T"), "R&D en AT&T");
+});
+
+test("hreflang: separate country domains are never a warning on their own", () => {
+  const result = hreflang([
+    { language: "nl-nl", href: "https://www.ikea.nl/nl/" },
+    { language: "de-de", href: "https://www.ikea.de/de/" },
+    { language: "fr-be", href: "https://www.ikea.be/fr/" },
+    { language: "x-default", href: "https://www.ikea.com/" },
+  ], "https://www.ikea.nl/nl/", "nl");
+  assert.deepEqual(result, { kind: "external_hosts", count: 3 });
+});
+
+test("hreflang: proven conflicts and duplicates are reported even with country domains", () => {
+  assert.equal(hreflang([
+    { language: "nl-nl", href: "https://shop.nl/a" },
+    { language: "nl-nl", href: "https://shop.nl/b" },
+    { language: "de-de", href: "https://shop.de/" },
+  ], "https://shop.nl/a", "nl").kind, "conflict");
+  assert.equal(hreflang([
+    { language: "de-de", href: "https://shop.de/" },
+    { language: "de-de", href: "https://www.shop.de" },
+  ], "https://shop.nl/", "nl").kind, "duplicate");
+});
+
+test("hreflang: self reference matches across www, trailing slash and relative href", () => {
+  for (const href of ["https://www.shop.nl/nl/", "https://shop.nl/nl", "/nl/", "/nl#top"]) {
+    assert.equal(hreflang([{ language: "de-de", href }, { language: "nl-nl", href: "https://shop.nl/x" }], "https://shop.nl/nl/", "nl").kind, "self_mismatch", href);
+    assert.equal(hreflang([{ language: "nl-nl", href }, { language: "de-de", href: "https://shop.nl/de/" }], "https://shop.nl/nl/", "nl").kind, "unconfirmed", href);
+  }
+});
+
+test("hreflang: no warning without proof (missing document lang, non-http targets are invalid only)", () => {
+  assert.equal(hreflang([{ language: "de-de", href: "https://shop.nl/" }], "https://shop.nl/", "").kind, "unconfirmed");
+  assert.equal(hreflang([{ language: "nl", href: "javascript:void(0)" }], "https://shop.nl/", "nl").kind, "invalid");
+  assert.equal(hreflang([{ language: "nl", href: "mailto:info@shop.nl" }], "https://shop.nl/", "nl").kind, "invalid");
+});
+
+// Same-site page by default; pass pageUrl to test links to other websites.
+const contactKind = (href, label = "", pageUrl) => classifyContactAnchor({ href, text: label, pageUrl: pageUrl || (/^https?:/i.test(href) ? new URL(href).origin + "/" : "https://shop.nl/") });
+
+test("contact: FAQ and help articles are never a contact channel", () => {
+  assert.equal(contactKind("https://www.ikea.com/global/en/support/faq/", "FAQs"), "faq_help");
+  assert.equal(contactKind("/klantenservice/veelgestelde-vragen", "Veelgestelde vragen"), "faq_help");
+  assert.equal(contactKind("/help-center", "Helpcentrum"), "faq_help");
+  assert.equal(contactKind("/support", "Support"), "support");
+});
+
+test("contact: real channels are recognised separately", () => {
+  assert.equal(contactKind("/contact", "Contact"), "contact_page");
+  assert.equal(contactKind("/support/contact-us", "Neem contact op"), "contact_page");
+  assert.equal(contactKind("/de/kontakt", "Kontakt"), "contact_page");
+  assert.equal(contactKind("/klantenservice", "Klantenservice"), "customer_service");
+  assert.equal(contactKind("mailto:info@tandarts.nl", "Mail ons"), "email");
+  assert.equal(contactKind("tel:+31201234567", "Bel ons"), "phone");
+});
+
+test("contact: look-alikes and broken channels are not contact evidence", () => {
+  assert.equal(contactKind("/contactlenzen", "Contactlenzen"), null);
+  assert.equal(contactKind("mailto:", "Mail"), null);
+  assert.equal(contactKind("tel:112", "Noodnummer"), null);
+});
+
+test("contact: contact forms need a message field and a reply field", () => {
+  assert.equal(isContactForm('<form><input type="email" name="email"><textarea name="message"></textarea></form>'), true);
+  assert.equal(isContactForm('<form><input name="telefoon"><textarea name="bericht"></textarea></form>'), true);
+  assert.equal(isContactForm('<form role="search"><input type="search" name="q"></form>'), false);
+  assert.equal(isContactForm('<form><input type="email" name="newsletter"><button>Aanmelden</button></form>'), false);
+});
+
+test("contact: visible e-mail addresses count, image asset names do not", () => {
+  assert.equal(findVisibleEmail("Mail ons via info@makelaar.nl of bel"), "info@makelaar.nl");
+  assert.equal(findVisibleEmail("logo@2x.png banner@3x.webp"), null);
+  assert.equal(findVisibleEmail("Geen adres hier"), null);
+});
+
+test("contact: multilingual customer service and support terms keep their meaning", () => {
+  assert.equal(contactKind("/assistenza-clienti", "Assistenza clienti"), "customer_service");
+  assert.equal(contactKind("/apoio-ao-cliente", "Apoio ao cliente"), "customer_service");
+  assert.equal(contactKind("/contacto", "Contacto"), "contact_page");
+  assert.equal(contactKind("/contatti", "Contatti"), "contact_page");
+  assert.equal(contactKind("/pomoc", "Pomoc"), "support");
+});
+
+test("image metrics decode entity-encoded src values with the shared decoder", () => {
+  // &amp; and &#38; are the same URL; the old decoder left &#38; encoded and counted it twice.
+  const metrics = extractImageMetrics('<img src="/media/a.jpg?w=1&amp;h=2"><source srcset="/media/a.jpg?w=1&#38;h=2"><source srcset="&#x2F;uploads&#x2F;b.png 2x">');
+  assert.equal(metrics.elementCount, 1);
+  assert.equal(metrics.uniqueImageReferences, 2);
+  assert.equal(metrics.missingAlt, 1);
+});
+
+const pageUrl = (path) => ({ url: `https://shop.nl${path}`, type: path.startsWith("/p/") ? "product" : "other" });
+const templateOf = (url) => new URL(url).pathname.replace(/\d+/g, ":n");
+const pick = (seeds, ranked, limit = 30) => selectRepresentativePages(seeds, ranked, limit, normalizeTestUrl, templateOf);
+
+test("representative sample never exceeds the 30-page cap", () => {
+  const many = Array.from({ length: 80 }, (_, i) => pageUrl(`/p/${i}`));
+  const seeds = Array.from({ length: 40 }, (_, i) => pageUrl(`/section-${String.fromCharCode(97 + (i % 26))}${i}`));
+  assert.equal(pick(seeds, many).length, 30);
+  assert.equal(pick([], many).length, 30);
+});
+
+test("representative sample keeps small sites small and never duplicates URLs", () => {
+  const ranked = [pageUrl("/p/1"), pageUrl("/p/2"), pageUrl("/contact"), pageUrl("/p/1/"), pageUrl("/contact")];
+  const selected = pick([pageUrl("/"), pageUrl("/contact")], ranked);
+  assert.deepEqual(selected.map((page) => page.url), ["https://shop.nl/", "https://shop.nl/contact", "https://shop.nl/p/1", "https://shop.nl/p/2"]);
+  assert.equal(pick([pageUrl("/")], []).length, 1);
+});
+
+test("representative sample prefers template diversity before filling same-template pages", () => {
+  const seeds = [pageUrl("/"), pageUrl("/p/1"), pageUrl("/p/2"), pageUrl("/about")];
+  const first = pick(seeds, [], 30).map((page) => page.url);
+  assert.deepEqual(first, ["https://shop.nl/", "https://shop.nl/p/1", "https://shop.nl/about"]);
+  const filled = pick(seeds, [pageUrl("/p/2"), pageUrl("/p/3")], 4).map((page) => page.url);
+  assert.deepEqual(filled, ["https://shop.nl/", "https://shop.nl/p/1", "https://shop.nl/about", "https://shop.nl/p/2"]);
+});
+
+test("representative sample can cap FAQ/help pages so they do not crowd out evidence", () => {
+  const faqCap = { matches: (url) => /\/(?:faq|help-center)(?:\/|$)/i.test(new URL(url).pathname), limit: 3 };
+  const ranked = [...Array.from({ length: 6 }, (_, i) => pageUrl(`/faq/q${i}`)), pageUrl("/p/1"), pageUrl("/about")];
+  const selected = selectRepresentativePages([pageUrl("/")], ranked, 30, normalizeTestUrl, templateOf, faqCap).map((page) => page.url);
+  assert.equal(selected.filter((url) => url.includes("/faq/")).length, 3);
+  assert.ok(selected.includes("https://shop.nl/p/1"));
+  assert.ok(selected.includes("https://shop.nl/about"));
+});
+
+const TESTER_ID = "6f1c2b9e-1d2a-4c3b-8e4f-0a1b2c3d4e5f";
+const testerEnv = { RANKFIX_INTERNAL_TEST_USER_ID: TESTER_ID, RANKFIX_INTERNAL_TEST_EMAIL: "owner@rankfix.test" };
+
+test("scan access: anonymous visitors keep the per-network free limit", () => {
+  assert.deepEqual(scanRateLimitPolicy({ dashboardScan: false, userId: null, paidPlan: false, tester: false }), { scope: "public-scan", key: "ip", limit: 8, windowSeconds: 3600, code: "PUBLIC_SCAN_RATE_LIMIT" });
+});
+
+test("scan access: Free accounts share the network limit, so fake accounts add no capacity", () => {
+  assert.equal(scanRateLimitPolicy({ dashboardScan: false, userId: "u1", paidPlan: false, tester: false })?.key, "ip");
+  assert.deepEqual(scanRateLimitPolicy({ dashboardScan: true, userId: "u1", paidPlan: false, tester: false }), { scope: "free-scan", key: "ip", limit: 8, windowSeconds: 3600, code: "FREE_SCAN_RATE_LIMIT" });
+});
+
+test("scan access: paying customers are never held to the anonymous network limit", () => {
+  assert.equal(scanRateLimitPolicy({ dashboardScan: true, userId: "u2", paidPlan: true, tester: false }), null);
+  assert.deepEqual(scanRateLimitPolicy({ dashboardScan: false, userId: "u2", paidPlan: true, tester: false }), { scope: "paid-public-scan", key: "user", limit: 30, windowSeconds: 3600, code: "ACCOUNT_SCAN_RATE_LIMIT" });
+  // A paid flag without a signed-in account is just a visitor.
+  assert.equal(scanRateLimitPolicy({ dashboardScan: false, userId: null, paidPlan: true, tester: false })?.scope, "public-scan");
+});
+
+test("scan access: configured tester account IDs are exempt from hourly limits", () => {
+  assert.equal(isInternalTester(TESTER_ID, testerEnv), true);
+  assert.equal(isInternalTester(TESTER_ID.toUpperCase(), testerEnv), true);
+  assert.equal(scanRateLimitPolicy({ dashboardScan: true, userId: TESTER_ID, paidPlan: false, tester: true }), null);
+  assert.equal(scanRateLimitPolicy({ dashboardScan: false, userId: TESTER_ID, paidPlan: false, tester: true }), null);
+  assert.equal(isInternalTester("6f1c2b9e-0000-4c3b-8e4f-0a1b2c3d4e5f", { RANKFIX_INTERNAL_TEST_USER_IDS: `x, ${TESTER_ID.toUpperCase()}, "6f1c2b9e-0000-4c3b-8e4f-0a1b2c3d4e5f"` }), true);
+});
+
+test("scan access: e-mail alone, empty or malformed config never grants the exemption", () => {
+  assert.equal(isInternalTester("owner@rankfix.test", testerEnv), false);
+  assert.equal(isInternalTester("some-other-id", { RANKFIX_INTERNAL_TEST_EMAIL: "owner@rankfix.test" }), false);
+  assert.equal(isInternalTester("", { RANKFIX_INTERNAL_TEST_USER_ID: "" }), false);
+  assert.equal(isInternalTester(undefined, testerEnv), false);
+  assert.equal(isInternalTester("not-a-uuid", { RANKFIX_INTERNAL_TEST_USER_ID: "not-a-uuid" }), false);
+});
+
+test("scan access: spoofed forwarding headers cannot pick a fresh rate-limit bucket", () => {
+  const spoofed = new Headers({ "x-forwarded-for": "1.2.3.4, 203.0.113.9", "x-real-ip": "1.2.3.4" });
+  assert.equal(clientIpFromHeaders(spoofed, {}), "203.0.113.9");
+  // On Vercel the platform overwrites both headers with the real client.
+  assert.equal(clientIpFromHeaders(new Headers({ "x-forwarded-for": "198.51.100.7", "x-real-ip": "198.51.100.7" }), { VERCEL: "1" }), "198.51.100.7");
+  assert.equal(clientIpFromHeaders(new Headers(), {}), "unknown");
+});
+
+test("scan access: the message shows the real remaining wait", () => {
+  const start = new Date("2026-10-11T12:00:00Z");
+  assert.equal(retryAfterSeconds(start, 3600, Date.parse("2026-10-11T12:43:00Z")), 1020);
+  assert.equal(retryAfterSeconds(start, 3600, Date.parse("2026-10-11T13:30:00Z")), 1);
+  assert.equal(scanRateLimitMessage("nl", 1020, false), "Er zijn vanaf dit netwerk veel gratis scans uitgevoerd. Probeer het over ongeveer 17 minuten opnieuw.");
+  assert.equal(scanRateLimitMessage("en", 30, true), "Many scans were started from this account in a short time. Please try again in about 1 minute.");
+  assert.match(scanRateLimitMessage("xx", 120, false), /ongeveer 2 minuten/);
+});
+
+test("scan route applies the shared policy and never trusts e-mail for the tester exemption", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const competitor = await readFile(new URL("../app/api/competitor-scan/route.ts", import.meta.url), "utf8");
+  assert.match(route, /scanRateLimitPolicy\(\{ dashboardScan, userId: usageUser\?\.id \|\| null, paidPlan: isPaidPlan\(planCode\), tester: internalTestAccount \}\)/);
+  assert.match(route, /isInternalTester\(usageUser\?\.id\)/);
+  assert.doesNotMatch(route, /configuredTestEmail === signedInEmail/);
+  assert.doesNotMatch(competitor, /RANKFIX_INTERNAL_TEST_EMAIL/);
+  assert.match(route, /"Retry-After": String\(result\.retryAfterSeconds\)/);
+});
+
+const commerce = (overrides) => commerceApplicability({ confirmed: false, primaryNonCommerceIdentity: false, commerceHints: false, thinShell: false, marketSelector: false, auditedRepresentativePages: 5, ...overrides });
+
+test("market selector: x-default global portal with many country versions", () => {
+  const ikeaGlobal = [
+    { language: "x-default", href: "https://www.ikea.com/" },
+    { language: "nl-nl", href: "https://www.ikea.com/nl/nl/" },
+    { language: "de-de", href: "https://www.ikea.com/de/de/" },
+    { language: "fr-fr", href: "https://www.ikea.com/fr/fr/" },
+  ];
+  assert.equal(isMarketSelectorPage(ikeaGlobal, "https://ikea.com/", normalizeTestUrl), true);
+  // The Dutch country version is a language version itself, not a selector.
+  assert.equal(isMarketSelectorPage(ikeaGlobal, "https://www.ikea.com/nl/nl/", normalizeTestUrl), false);
+  // A normal multilingual site whose English home is also x-default is not a selector.
+  assert.equal(isMarketSelectorPage([{ language: "x-default", href: "https://shop.nl/" }, { language: "en", href: "https://shop.nl/" }, { language: "nl", href: "https://shop.nl/nl/" }, { language: "de", href: "https://shop.nl/de/" }], "https://shop.nl/", normalizeTestUrl), false);
+  assert.equal(isMarketSelectorPage([{ language: "x-default", href: "https://shop.nl/" }, { language: "nl", href: "https://shop.nl/nl/" }], "https://shop.nl/", normalizeTestUrl), false);
+});
+
+test("commerce applicability: proven commerce activates shop checks", () => {
+  assert.deepEqual(commerce({ confirmed: true, marketSelector: true, thinShell: true }), { state: "confirmed" });
+});
+
+test("commerce applicability: country picker and JS shell are unable-to-confirm, never N/A", () => {
+  assert.deepEqual(commerce({ marketSelector: true, commerceHints: true }), { state: "unconfirmed", reason: "market_selector" });
+  assert.deepEqual(commerce({ thinShell: true }), { state: "unconfirmed", reason: "thin_shell" });
+  assert.deepEqual(commerce({ thinShell: true, primaryNonCommerceIdentity: true }), { state: "unconfirmed", reason: "thin_shell" });
+});
+
+test("commerce applicability: weak shop signals or a thin sample are unable-to-confirm", () => {
+  assert.deepEqual(commerce({ commerceHints: true }), { state: "unconfirmed", reason: "weak_commerce_signals" });
+  assert.deepEqual(commerce({ auditedRepresentativePages: 1 }), { state: "unconfirmed", reason: "low_coverage" });
+});
+
+test("commerce applicability: N/A only with evidence that the site is not a shop", () => {
+  // Service provider (dentist, broker, hotel) with secondary shop navigation.
+  assert.deepEqual(commerce({ primaryNonCommerceIdentity: true, commerceHints: true }), { state: "absent", reason: "service_identity" });
+  // Fully readable site, several pages sampled, no product/price/cart evidence anywhere.
+  assert.deepEqual(commerce({}), { state: "absent", reason: "no_commerce_evidence" });
+});
+
+test("commerce applicability: every reason has report copy and an existing report reason code", () => {
+  for (const reason of ["service_identity", "no_commerce_evidence", "market_selector", "thin_shell", "weak_commerce_signals", "low_coverage"]) assert.ok(COMMERCE_APPLICABILITY_COPY[reason], reason);
+  for (const code of Object.values(UNCONFIRMED_COMMERCE_REASON_CODE)) assert.ok(["type_uncertain", "needs_js", "weak_evidence", "insufficient_pages"].includes(code), code);
+});
+
+test("scan route uses the three-way commerce gate instead of blanket N/A", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(route, /Definitieve Scanbewijs bevestigt geen webshop-\/retailketen/);
+  assert.match(route, /finalCommerceApplicability\.state === "absent"/);
+  assert.match(route, /finalCommerceApplicability\.state === "unconfirmed"/);
+  assert.match(route, /commerceApplicability: commerceApplicabilityReport/);
+});
+
+test("score model: unconfirmed commerce checks keep the score but lower coverage and widen the range", () => {
+  // Current logic, recorded before any score change: only assessed checks score;
+  // N/A leaves coverage untouched; unable-to-confirm lowers coverage and the low end of the range.
+  const core = [
+    { issue_status: "PASS", points: 10, maxPoints: 10, confidence: "high" },
+    { issue_status: "WARNING", points: 5, maxPoints: 10, confidence: "high" },
+  ];
+  const commerce = (status) => Array.from({ length: 4 }, () => ({ issue_status: status, points: 0, maxPoints: 5 }));
+  const asNa = [...core, ...commerce("NOT_APPLICABLE")];
+  const asUnconfirmed = [...core, ...commerce("UNABLE_TO_CONFIRM")];
+  assert.equal(scoreApplicableChecks(asNa), 75);
+  assert.equal(scoreApplicableChecks(asUnconfirmed), 75);
+  assert.equal(weightedCoverage(asNa).coveragePercent, 100);
+  assert.equal(weightedCoverage(asUnconfirmed).coveragePercent, 50);
+  assert.equal(weightedCoverage(asUnconfirmed).unableToConfirm, 4);
+  assert.deepEqual([scoreRange(asNa).low, scoreRange(asNa).high], [75, 75]);
+  assert.deepEqual([scoreRange(asUnconfirmed).low, scoreRange(asUnconfirmed).high], [38, 88]);
+});
+
+test("report shows commerce applicability and raw-HTML limitations separately from sector", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const report = await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
+  assert.match(report, /Webshopfunctionaliteit:/);
+  assert.match(report, /Beperking scanbron:/);
+  assert.match(report, /r\.seo\?\.score/);
+  assert.match(report, /r\.geo\?\.score/);
+  assert.match(report, /r\.security\?\.score/);
+  assert.match(report, /toepasselijke controles/);
+});
+
+test("no regex matches a literal backslash where an escape class was meant", async () => {
+  // "\\b", "\\s", "\\d", "\\." etc. inside a /regex/ literal (or "\\\\b" inside a
+  // new RegExp string) match a backslash character, so the pattern silently never
+  // fires. This broke sector checks, cookie flags, SRI, secret detection, robots.txt
+  // parsing, www-normalisation and the reset-password digit rule.
+  const { readFile, readdir } = await import("node:fs/promises");
+  const { join } = await import("node:path");
+  const root = new URL("..", import.meta.url).pathname;
+  const files = [];
+  const walk = async (dir) => {
+    for (const entry of await readdir(join(root, dir), { withFileTypes: true })) {
+      const rel = join(dir, entry.name);
+      if (entry.isDirectory()) await walk(rel);
+      else if (/\.(ts|tsx)$/.test(entry.name)) files.push(rel);
+    }
+  };
+  for (const dir of ["app", "lib", "components"]) await walk(dir);
+  const literal = /(?<![\w)\]])\/((?:\\.|\[(?:\\.|[^\]\\\n])*\]|[^/\\\n[])+)\/[dgimsuy]*/g;
+  const offenders = [];
+  for (const file of files) {
+    const lines = (await readFile(join(root, file), "utf8")).split("\n");
+    lines.forEach((line, index) => {
+      for (const match of line.matchAll(literal)) {
+        if (match[1].includes("RegExp(")) continue; // text between two "/" in strings, not a literal
+        const body = match[1].replace(/\[(?:\\.|[^\]\\])*\]/g, ""); // escaped "\\" inside a character class is legitimate
+        if (/\\\\[bBsSdDwWrnt.p+]/.test(body)) offenders.push(`${file}:${index + 1}`);
+      }
+      if (/RegExp\([^)]*\\\\\\\\[bBsSdDwW]/.test(line)) offenders.push(`${file}:${index + 1} (RegExp string)`);
+    });
+  }
+  assert.deepEqual(offenders, []);
+});
+
+// --- Audit findings 11 October (KwikFit, IKEA NL/international, Brenger) ---
+
+test("finding 1: review and rating links are never contact evidence", () => {
+  const page = "https://www.kwik-fit.nl/";
+  assert.equal(contactKind("https://www.kiyoh.com/reviews/1043233/kwik_fit", "76.121 beoordelingen", page), "review");
+  assert.equal(contactKind("https://nl.trustpilot.com/review/kwik-fit.nl", "Contact? Lees 76.121 reviews", page), "review");
+  assert.equal(contactKind("/klantbeoordelingen", "Bekijk alle beoordelingen", page), "review");
+  // A contact page on another website suggests contact but does not prove the business's own channel.
+  assert.equal(contactKind("https://partner.example.com/contact", "Contact", page), "external");
+  assert.ok(INDIRECT_CONTACT_KINDS.has("external"));
+  assert.equal(findVisiblePhone("Gemiddeld 9,2 uit 76.121 beoordelingen"), null);
+  assert.equal(findVisiblePhone("Prijs 1.234.567 · datum 11-10-2026 12:00"), null);
+  assert.equal(findVisiblePhone("Bel ons op 020-123 45 67"), "020-123 45 67");
+});
+
+test("finding 2: a general Services link is not a confirmed contact channel", () => {
+  const page = "https://www.ikea.com/nl/nl/";
+  assert.equal(contactKind("https://www.ikea.com/nl/nl/customer-service/services/", "Services", page), "support");
+  assert.equal(contactKind("https://www.ikea.com/nl/nl/customer-service/", "Klantenservice", page), "customer_service");
+  for (const kind of ["support", "customer_service", "faq_help"]) assert.ok(INDIRECT_CONTACT_KINDS.has(kind), kind);
+  assert.equal(contactKind("https://www.ikea.com/nl/nl/customer-service/contact-us/", "Contact", page), "contact_page");
+  assert.ok(!INDIRECT_CONTACT_KINDS.has("contact_page"));
+});
+
+test("finding 3: IKEA international FAQ, &amp; and x-default stay fixed", () => {
+  assert.equal(contactKind("https://www.ikea.com/global/en/support/faq/", "FAQs", "https://www.ikea.com/"), "faq_help");
+  assert.equal(decodeHtmlEntities("Privacy &amp; Cookie statement"), "Privacy & Cookie statement");
+  assert.equal(hreflang([{ language: "x-default", href: "https://www.ikea.com/" }, { language: "nl-nl", href: "https://www.ikea.com/nl/nl/" }, { language: "de-de", href: "https://www.ikea.com/de/de/" }], "https://ikea.com/", "en").kind, "unconfirmed");
+});
+
+test("findings 4 and 7: shop wording only when a shop is proven and no other identity is primary", () => {
+  const confirmed = { state: "confirmed" };
+  assert.equal(shopWordingApplies(confirmed, false), true);
+  assert.equal(shopWordingApplies(confirmed, true), false); // e.g. transport & logistics with prices
+  assert.equal(shopWordingApplies({ state: "unconfirmed", reason: "weak_commerce_signals" }, false), false);
+  assert.equal(neutralizeShopWording("1 geldige JSON-LD block(s) met een voor deze webshophomepage relevant schema-type gevonden. Relevante hoofdkeuze: OnlineStore + WebSite."),
+    "1 geldige JSON-LD block(s) met een voor deze homepage relevant schema-type gevonden. Relevante hoofdkeuze: Organization + WebSite.");
+  assert.doesNotMatch(GENERIC_LINK_DESTINATION_PASS.message, /product/i);
+});
+
+test("findings 4 and 7: scan route applies the shop-wording gate before final scoring", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const gate = route.indexOf("if (!shopWordingApplies(finalCommerceApplicability, Boolean(primaryNonCommerceIdentity)))");
+  assert.ok(gate > 0);
+  assert.ok(gate < route.lastIndexOf("selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);"));
+  assert.match(route.slice(gate, gate + 2000), /item\.key === "schema"/);
+  assert.match(route.slice(gate, gate + 2000), /item\.key === "semantic_link_destination"/);
+});
+
+test("finding 5: garage appointment and test drive are separate checks", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const block = route.slice(route.indexOf('} else if (sectorProfile.sector === "automotive") {'), route.indexOf('} else if (sectorProfile.sector === "home_services") {'));
+  const appointment = block.match(/const appointmentSignal = (.+);/)[1];
+  assert.doesNotMatch(appointment, /hasContactChannelSignal|proefrit/);
+  assert.match(block, /"sector_automotive_conversion","Werkplaatsafspraak"/);
+  assert.match(block, /"sector_automotive_test_drive","Proefrit"/);
+  // A garage without proven vehicle sales gets N/A for test drives, not a missing action.
+  assert.match(block, /automotiveServiceIdentity && !inventorySignal\s*\?\s*check\("not_applicable","sector_automotive_test_drive"/);
+  const appointmentRe = new RegExp(appointment.match(/^\/(.+)\/i\.test\(text\)$/)[1], "i");
+  assert.equal(appointmentRe.test("Plan je APK-afspraak online"), true);
+  assert.equal(appointmentRe.test("Maak een proefrit in de nieuwe Golf"), false);
+});
+
+test("finding 6: business details pass only with concrete details, not just absent placeholders", () => {
+  const none = { phone: null, email: null, address: null, telLink: false, mailtoLink: false };
+  assert.deepEqual(assessBusinessDetails({ placeholders: [], details: none, registration: null, schemaContact: false, thinShell: false }), { status: "unable_to_confirm", reason: "no_details" });
+  assert.deepEqual(assessBusinessDetails({ placeholders: [], details: none, registration: null, schemaContact: false, thinShell: true }), { status: "unable_to_confirm", reason: "thin_shell" });
+  assert.equal(assessBusinessDetails({ placeholders: ["[kvk]"], details: none, registration: null, schemaContact: false, thinShell: false }).status, "fail");
+  const details = findBusinessContactDetails("Damrak 1, 1012 LG Amsterdam · bel 020-123 45 67", '<a href="mailto:info@bedrijf.nl">mail</a>');
+  assert.deepEqual(assessBusinessDetails({ placeholders: [], details, registration: findCompanyRegistration("KvK-nummer: 12345678"), schemaContact: false, thinShell: false }),
+    { status: "pass", found: ["KvK 12345678", "adres (Damrak 1, 1012 LG Amsterdam)", "telefoonnummer", "e-mailadres"] });
+  assert.equal(findCompanyRegistration("Vul je KvK-nummer in"), null);
+  assert.equal(findVisibleAddress("Vul je postcode in"), null);
+  assert.equal(findBusinessContactDetails("", '<input type="email" name="email">').mailtoLink, false);
+});
+
+// --- Security Engine (now that its regexes actually match) ---
+
+test("security: mixed content counts loaded subresources, not plain links", () => {
+  const html = `
+    <a href="http://partner.example.org/">Partner</a>
+    <link rel="canonical" href="http://shop.nl/">
+    <link rel="alternate" hreflang="de" href="http://shop.de/">
+    <form action="http://forms.example.org/x"></form>
+    <svg xmlns="http://www.w3.org/2000/svg"></svg>
+    <img src="https://cdn.shop.nl/a.png">`;
+  assert.deepEqual(findMixedContent(html), []);
+  const mixed = `<img src="http://cdn.shop.nl/a.png"><script src='http://cdn.shop.nl/a.js'></script><link rel="stylesheet" href="http://cdn.shop.nl/a.css"><iframe src="http://video.example.org/e"></iframe><img srcset="http://cdn.shop.nl/b.png 2x">`;
+  assert.deepEqual(findMixedContent(mixed).sort(), ["http://cdn.shop.nl/a.css", "http://cdn.shop.nl/a.js", "http://cdn.shop.nl/a.png", "http://cdn.shop.nl/b.png", "http://video.example.org/e"]);
+});
+
+test("security: cookie flags are read per cookie, including Expires commas", () => {
+  const joined = "sid=abc; Path=/; Secure; HttpOnly; SameSite=Lax, theme=dark; Expires=Wed, 21 Oct 2026 07:28:00 GMT; Path=/, consent=1; secure; samesite=strict";
+  const cookies = splitSetCookieHeader(joined).map(observeCookie);
+  assert.deepEqual(cookies.map((c) => [c.name, c.secure, c.httpOnly, c.sameSite, c.sessionLike]), [
+    ["sid", true, true, "lax", true],
+    ["theme", false, false, "missing", false],
+    ["consent", true, false, "strict", false],
+  ]);
+  // A cookie value containing "secure" is not the Secure attribute.
+  assert.equal(observeCookie("pref=secure; Path=/").secure, false);
+  assert.equal(observeCookie("csrftoken=x; Secure").sessionLike, false);
+  const headers = new Headers();
+  headers.append("set-cookie", "a=1; Secure; HttpOnly");
+  headers.append("set-cookie", "b=2; Expires=Wed, 21 Oct 2026 07:28:00 GMT");
+  assert.deepEqual(setCookieValues(headers), ["a=1; Secure; HttpOnly", "b=2; Expires=Wed, 21 Oct 2026 07:28:00 GMT"]);
+});
+
+test("security: forms, password fields and insecure actions are detected", () => {
+  assert.deepEqual(findForms("<p>geen formulier</p>"), { count: 0, passwordForm: false, insecureActions: 0 });
+  assert.deepEqual(findForms('<form action="/login"><input type="password" name="p"></form><form action="http://old.example.org/post"><input name="q"></form>'), { count: 2, passwordForm: true, insecureActions: 1 });
+  // An http:// link inside an https form is not an insecure form action.
+  assert.equal(findForms('<form action="https://shop.nl/s"><a href="http://help.example.org">help</a></form>').insecureActions, 0);
+});
+
+test("security: real exposed secrets are found, documentation examples are not", () => {
+  const realAws = "AKIA" + "Q3EGRZ7LW5MNXK2P";
+  const realGh = "ghp_" + "Zx9Qm2Lr7Tb4Vn8Kc1Hs6Pd3Wf5Gy0Ja8Nu4E";
+  assert.deepEqual(findExposedSecrets(`<script>window.cfg={aws:"${realAws}"}</script>`), ["AWS access key"]);
+  assert.deepEqual(findExposedSecrets(`<script>const t="${realGh}"</script>`), ["GitHub token"]);
+  assert.deepEqual(findExposedSecrets(`<script>fetch(u,{headers:{Authorization:"Bearer ${"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0MiJ9.k3Lq9xPz"}"}})</script>`), ["generic bearer token"]);
+  const pem = "-----BEGIN RSA PRIVATE KEY-----\n" + "MIIEowIBAAKCAQEA7dQ3x9Lq2Vh8Pz4Kn6Tr1Ws5Yb0Ec3Gu7Jm9Na2Df4Hk6Lp8Qs".repeat(2);
+  assert.deepEqual(findExposedSecrets(`<script>var k="${pem}"</script>`), ["private key"]);
+  // Tutorials and docs:
+  assert.deepEqual(findExposedSecrets("<p>Use AKIAIOSFODNN7EXAMPLE as access key id.</p>"), []);
+  assert.deepEqual(findExposedSecrets(`<pre><code>export AWS_KEY=${realAws}</code></pre>`), []);
+  assert.deepEqual(findExposedSecrets("<p>Start your file with -----BEGIN PRIVATE KEY----- ... </p>"), []);
+  assert.deepEqual(findExposedSecrets("<p>Authorization: Bearer YOUR_API_TOKEN_GOES_HERE_123</p>"), []);
+  assert.deepEqual(findExposedSecrets("<p>ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</p>"), []);
+});
+
+test("security: SRI is only asked for versioned third-party files", () => {
+  const html = `
+    <script src="/app.js"></script>
+    <script src="https://www.googletagmanager.com/gtm.js?id=GTM-ABC"></script>
+    <script src="https://js.stripe.com/v3/"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha384-x" crossorigin="anonymous"></script>`;
+  const result = analyzeScriptIntegrity(html, "https://shop.nl/");
+  assert.equal(result.crossOrigin, 4);
+  assert.deepEqual(result.missingVersioned, ["https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"]);
+  assert.deepEqual(result.missingDynamic, ["https://www.googletagmanager.com/gtm.js?id=GTM-ABC", "https://js.stripe.com/v3/"]);
+});
+
+test("security route takes every passive security status from assessPassiveSecurity", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(route, /const passiveSecurity = assessPassiveSecurity\(\{ isHttps, html, pageUrl: finalUrl\.toString\(\), setCookies: setCookieValues\(response\.headers\) \}\);/);
+  for (const [key, statuses] of [["mixedContent", ["not_applicable", "pass"]], ["cookieFlags", ["unable_to_confirm", "pass"]], ["forms", ["not_applicable", "fail", "pass"]], ["exposedSecrets", ["fail"]], ["scriptIntegrity", ["pass"]]]) {
+    for (const status of statuses) assert.ok(route.includes(`passiveSecurity.${key}.status === "${status}"`), `${key} ${status}`);
+  }
+  // No status may be decided from the raw signals any more.
+  assert.doesNotMatch(route, /securityChecks\.push\((?:!isHttps|!cookiePresent|forms\.length === 0|exposedSignals\.length)/);
+  assert.match(route, /securityCheck\("fail","security_https"/);
+});
+
+test("fix engine: AI-fix H1/title extraction and GitHub icon filter work on real markup", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const aiFix = await readFile(new URL("../app/api/ai-fix/route.ts", import.meta.url), "utf8");
+  // Evaluate the exact expressions from the source, so this fails if they regress.
+  const h1Source = aiFix.match(/type==="h1"\?new RegExp\(("[^"]+"),"i"\)/)[1];
+  const titleSource = aiFix.match(/type==="meta_title"\?new RegExp\(("[^"]+"),"i"\)/)[1];
+  const h1 = new RegExp(JSON.parse(h1Source), "i");
+  const title = new RegExp(JSON.parse(titleSource), "i");
+  assert.equal('<h1 class="x">Autoservice\nin Utrecht</h1>'.match(h1)?.[1], "Autoservice\nin Utrecht");
+  assert.equal("<title>Kwik Fit | APK</title>".match(title)?.[1], "Kwik Fit | APK");
+
+  const githubFix = await readFile(new URL("../app/api/github/fix/route.ts", import.meta.url), "utf8");
+  const iconBlock = githubFix.slice(githubFix.indexOf("const isIconAsset="), githubFix.indexOf("const trustedImage="));
+  const isIconAsset = new Function(`${iconBlock.replace(/:string\b/g, "")}; return isIconAsset;`)();
+  for (const icon of ["/favicon.ico", "/icons/icon-192x192.png", "/static/icon-512.png", "/apple-touch-icon.png"]) assert.equal(isIconAsset(icon), true, icon);
+  for (const image of ["/images/hero-1200x630.jpg", "/media/iconic-shoe.png", "/og/product.webp"]) assert.equal(isIconAsset(image), false, image);
+});
+
+test("sector signals recognise concrete evidence and ignore generic words", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const start = route.indexOf('if (sectorProfile.sector === "real_estate") {');
+  const sectors = route.slice(start, route.indexOf("const ", route.indexOf('} else if (sectorProfile.sector === "saas_b2b") {') + 600));
+  // First /regex/flags.test(text) on the "const <name> =" line inside the given sector block.
+  const signal = (sector, name) => {
+    const from = sectors.indexOf(`sectorProfile.sector === "${sector}"`);
+    const line = sectors.slice(from).split("\n").find((l) => l.includes(`const ${name} =`));
+    const m = line.match(/\/((?:\\.|\[(?:\\.|[^\]\\])*\]|[^/\\\n[])+)\/([a-z]*)\.test\(text\)/);
+    return new RegExp(m[1], m[2]);
+  };
+  const cases = [
+    ["automotive", "workshopSignal", ["APK-keuring en onderhoud", "Banden wisselen"], ["Welkom bij ons bedrijf"]],
+    ["automotive", "appointmentSignal", ["Plan je afspraak online", "Book a service"], ["Bel 020-1234567", "Maak een proefrit"]],
+    ["automotive", "inventorySignal", ["Bekijk onze occasions", "Auto's te koop"], ["APK-keuring"]],
+    ["home_services", "serviceSignal", ["Uw loodgieter voor verstopping", "Installatie van zonnepanelen"], ["Lees onze blog"]],
+    ["home_services", "quoteSignal", ["Vraag een offerte aan"], ["Over ons"]],
+    ["hospitality", "openingSignal", ["Openingstijden: ma-vr 9-17", "Opening hours"], ["Office hours for support", "Happy hours"]],
+    ["hospitality", "menuSignal", ["Bekijk de menukaart", "Lunch en diner", "View our menu"], ["Open menu", "Hoofdmenu sluiten"]],
+    ["hospitality", "reservationSignal", ["Reserveer een tafel"], ["Neem contact op"]],
+    ["health_wellness", "treatmentSignal", ["Fysiotherapie en behandelingen", "Tandartspraktijk"], ["Our services", "Customer services"]],
+    ["professional_services", "expertiseSignal", ["Uw notaris in Utrecht", "Ervaren accountant"], ["Welkom"]],
+    ["saas_b2b", "featureSignal", ["Bekijk alle features", "Integraties met je boekhouding"], ["Over ons team"]],
+    ["saas_b2b", "audienceSignal", ["Software voor bedrijven", "Built for teams"], ["Business news", "Ons team"]],
+  ];
+  for (const [sector, name, yes, no] of cases) {
+    const re = signal(sector, name);
+    for (const text of yes) assert.equal(re.test(text), true, `${sector}.${name} should match "${text}"`);
+    for (const text of no) assert.equal(re.test(text), false, `${sector}.${name} must not match "${text}"`);
+  }
+  // Author needs an explicit byline and a capitalised name; "door de" or "by Google" style text is not enough.
+  const author = sectors.split("\n").find((l) => l.includes("const authorSignal ="));
+  const authorRe = new RegExp(...author.match(/\/((?:\\.|\[(?:\\.|[^\]\\])*\]|[^/\\\n[])+)\/([a-z]*)\.test\(text\)/).slice(1));
+  assert.equal(authorRe.test("Geschreven door Anna de Vries"), true);
+  assert.equal(authorRe.test("Auteur: Mark Jansen"), true);
+  assert.equal(authorRe.test("Gemaakt door de klant"), false);
+  assert.equal(authorRe.test("Powered by Google"), false);
+});
+
+// --- Security Engine: false positives and false negatives per signal ---
+
+test("security FP/FN 1: real mixed content vs ordinary HTTP links", () => {
+  const realMixed = [
+    ['<IMG SRC = "http://cdn.example.nl/a.png">', "http://cdn.example.nl/a.png"],
+    ['<video poster="http://cdn.example.nl/p.jpg"></video>', "http://cdn.example.nl/p.jpg"],
+    ['<audio src="http://cdn.example.nl/a.mp3"></audio>', "http://cdn.example.nl/a.mp3"],
+    ['<object data="http://cdn.example.nl/x.swf"></object>', "http://cdn.example.nl/x.swf"],
+    ['<link href="http://cdn.example.nl/f.woff2" rel="preload" as="font">', "http://cdn.example.nl/f.woff2"],
+    ['<link rel="icon" href="http://cdn.example.nl/favicon.ico">', "http://cdn.example.nl/favicon.ico"],
+  ];
+  for (const [html, url] of realMixed) assert.deepEqual(findMixedContent(html), [url], html); // no false negatives
+  const notMixed = [
+    '<A HREF="http://partner.example.org">Partner</A>',
+    '<link rel="canonical" href="http://shop.nl/">',
+    '<link rel="alternate" hreflang="de" href="http://shop.de/">',
+    '<meta property="og:url" content="http://shop.nl/">',
+    '<form action="http://forms.example.org/x"></form>',
+    '<svg xmlns="http://www.w3.org/2000/svg"></svg>',
+    '<img src="https://cdn.example.nl/a.png" srcset="https://cdn.example.nl/b.png 2x">',
+    '<script>var u = "http://api.example.org/";</script>',
+  ];
+  for (const html of notMixed) assert.deepEqual(findMixedContent(html), [], html); // no false positives
+  assert.equal(assessPassiveSecurity({ isHttps: false, html: realMixed[0][0], pageUrl: "http://shop.nl/", setCookies: [] }).mixedContent.status, "not_applicable");
+});
+
+test("security FP/FN 2: versioned third-party scripts without SRI vs dynamic scripts", () => {
+  const page = "https://shop.nl/";
+  const versioned = [
+    "https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js",
+    "https://unpkg.com/htmx.org@1.9.12",
+    "https://cdn.example.com/wp-includes/js/jquery/jquery.min.js?ver=3.7.1",
+    "https://cdn.example.com/lib/v2.4.0/widget.js",
+  ];
+  for (const src of versioned) assert.deepEqual(analyzeScriptIntegrity(`<script src="${src}"></script>`, page).missingVersioned, [src], src);
+  const dynamic = [
+    "https://www.googletagmanager.com/gtag/js?id=G-ABC123",
+    "https://js.stripe.com/v3/",
+    "https://maps.googleapis.com/maps/api/js?key=AIzaSyA-example&v=weekly",
+    "https://connect.facebook.net/en_US/fbevents.js",
+  ];
+  for (const src of dynamic) {
+    const result = analyzeScriptIntegrity(`<script async src="${src}"></script>`, page);
+    assert.deepEqual([result.missingVersioned, result.missingDynamic], [[], [src]], src);
+  }
+  assert.equal(analyzeScriptIntegrity('<script src="/static/app.4f3a.js"></script>', page).crossOrigin, 0);
+  assert.deepEqual(analyzeScriptIntegrity(`<script src="${versioned[0]}" integrity="sha384-x" crossorigin="anonymous"></script>`, page).missingVersioned, []);
+  assert.equal(assessPassiveSecurity({ isHttps: true, html: dynamic.map((src) => `<script src="${src}"></script>`).join(""), pageUrl: page, setCookies: [] }).scriptIntegrity.status, "pass");
+  assert.equal(assessPassiveSecurity({ isHttps: true, html: `<script src="${versioned[1]}"></script>`, pageUrl: page, setCookies: [] }).scriptIntegrity.status, "warning");
+});
+
+test("security FP/FN 3: exposed secrets vs public identifiers and documentation", () => {
+  const aws = "AKIA" + "Q3EGRZ7LW5MNXK2P";
+  const gh = "ghp_" + "Zx9Qm2Lr7Tb4Vn8Kc1Hs6Pd3Wf5Gy0Ja8Nu4E";
+  const pemBody = "MIIEowIBAAKCAQEA7dQ3x9Lq2Vh8Pz4Kn6Tr1Ws5Yb0Ec3Gu7Jm9Na2Df4Hk6Lp8Qs".repeat(2);
+  const leaks = [
+    [`<script type="application/json">{"aws":"${aws}"}</script>`, "AWS access key"],
+    [`<script>const token = '${gh}';</script>`, "GitHub token"],
+    [`<script>var key = \`-----BEGIN PRIVATE KEY-----\n${pemBody}\`;</script>`, "private key"],
+    ['<script>fetch("/api",{headers:{"Authorization":"Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI5In0.Qm7Zr2Lx"}})</script>', "generic bearer token"],
+  ];
+  for (const [html, label] of leaks) assert.deepEqual(findExposedSecrets(html), [label], label); // no false negatives
+  const publicOrExample = [
+    '<script>firebase.initializeApp({apiKey:"AIzaSyD-public-browser-key-123456"})</script>', // public browser key by design
+    '<script>Stripe("pk_live_51H8xQ2EXAMPLEpublishable")</script>', // publishable key
+    '<script>gtag("config","G-1A2B3C4D5E")</script>', // measurement ID
+    '<script>mapboxgl.accessToken="pk.eyJ1IjoicmFua2ZpeCJ9.public"</script>', // public token
+    "<p>Use AKIAIOSFODNN7EXAMPLE in the tutorial.</p>",
+    `<pre><code>export AWS_ACCESS_KEY_ID=${aws}</code></pre>`,
+    "<p>The file begins with -----BEGIN RSA PRIVATE KEY----- and ends with the footer.</p>",
+    "<p>Send Authorization: Bearer YOUR_ACCESS_TOKEN_HERE in every request.</p>",
+    "<!-- old token ghp_" + "Zx9Qm2Lr7Tb4Vn8Kc1Hs6Pd3Wf5Gy0Ja8Nu4E -->",
+  ];
+  for (const html of publicOrExample) assert.deepEqual(findExposedSecrets(html), [], html); // no false positives
+});
+
+test("security FP/FN 4: multiple Set-Cookie headers and Secure/HttpOnly/SameSite", () => {
+  const headers = new Headers();
+  headers.append("set-cookie", "SID=a; Path=/; SECURE; HTTPONLY; SameSite=Strict");
+  headers.append("set-cookie", "prefs=dark,large; Expires=Wed, 21 Oct 2026 07:28:00 GMT; Path=/; Secure; SameSite=None");
+  headers.append("set-cookie", "auth_token=x; Path=/; Secure; SameSite=Lax");
+  headers.append("set-cookie", "theme=HttpOnly; Path=/; SameSite=bogus");
+  const values = setCookieValues(headers);
+  assert.equal(values.length, 4);
+  const result = assessPassiveSecurity({ isHttps: true, html: "", pageUrl: "https://shop.nl/", setCookies: values }).cookieFlags;
+  assert.deepEqual(result.cookies.map((c) => [c.name, c.secure, c.httpOnly, c.sameSite, c.sessionLike]), [
+    ["SID", true, true, "strict", true],
+    ["prefs", true, false, "none", false],
+    ["auth_token", true, false, "lax", true],
+    ["theme", false, false, "missing", false], // a value "HttpOnly" is not the attribute; invalid SameSite counts as missing
+  ]);
+  assert.deepEqual([result.missingSecure, result.missingSameSite, result.sessionMissingHttpOnly], [["theme"], ["theme"], ["auth_token"]]);
+  assert.deepEqual([result.status, result.issues, result.points, result.maxPoints], ["warning", 3, 2, 5]);
+  // HTTP pages do not require Secure; no cookies means unable to confirm, not pass.
+  assert.deepEqual(assessPassiveSecurity({ isHttps: false, html: "", pageUrl: "http://shop.nl/", setCookies: ["s=1; SameSite=Lax"] }).cookieFlags.status, "pass");
+  assert.equal(assessPassiveSecurity({ isHttps: true, html: "", pageUrl: "https://shop.nl/", setCookies: [] }).cookieFlags.status, "unable_to_confirm");
+  // Joined header fallback keeps Expires commas inside one cookie.
+  assert.deepEqual(splitSetCookieHeader("a=1; Expires=Wed, 21 Oct 2026 07:28:00 GMT, b=2; Secure").length, 2);
+});
+
+test("security 5: results and scores before (main) and after the fixes", () => {
+  const keys = ["mixedContent", "cookieFlags", "forms", "exposedSecrets", "scriptIntegrity"];
+  const expected = {
+    "modern shop": { before: ["pass", "warning", "not_applicable", "pass", "pass", 86], after: ["pass", "warning", "pass", "pass", "warning", 88] },
+    "documentation site": { before: ["pass", "unable_to_confirm", "not_applicable", "fail", "pass", 50], after: ["pass", "unable_to_confirm", "not_applicable", "pass", "pass", 100] },
+    "leaky site": { before: ["pass", "warning", "not_applicable", "pass", "pass", 86], after: ["fail", "warning", "fail", "fail", "pass", 23] },
+    "plain links only": { before: ["pass", "unable_to_confirm", "not_applicable", "pass", "pass", 100], after: ["pass", "unable_to_confirm", "not_applicable", "pass", "pass", 100] },
+  };
+  for (const page of securityPages) {
+    const before = legacyPassiveSecurity({ isHttps: true, html: page.html, pageUrl: page.url, joinedSetCookie: page.setCookies.join(", ") });
+    const after = assessPassiveSecurity({ isHttps: true, html: page.html, pageUrl: page.url, setCookies: page.setCookies });
+    assert.deepEqual([...keys.map((k) => before[k].status), securityScore(keys.map((k) => before[k]))], expected[page.name].before, `${page.name} before`);
+    assert.deepEqual([...keys.map((k) => after[k].status), securityScore(keys.map((k) => after[k]))], expected[page.name].after, `${page.name} after`);
+  }
+  // Evidence behind the leaky-site result.
+  const leaky = assessPassiveSecurity({ isHttps: true, html: securityPages[2].html, pageUrl: securityPages[2].url, setCookies: securityPages[2].setCookies });
+  assert.deepEqual(leaky.mixedContent.urls, ["http://cdn.leaky.example.nl/hero.jpg"]);
+  assert.deepEqual(leaky.exposedSecrets.labels, ["AWS access key"]);
+  assert.equal(leaky.forms.insecureActions, 1);
+  // main misread the modern shop's cookies: one cookie, no flags.
+  const legacyShop = legacyPassiveSecurity({ isHttps: true, html: "", pageUrl: securityPages[0].url, joinedSetCookie: securityPages[0].setCookies.join(", ") });
+  assert.deepEqual(legacyShop.detail.cookies.map((c) => [c.name, c.secure, c.httpOnly]), [["sid", false, false]]);
 });

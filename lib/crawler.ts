@@ -1,5 +1,6 @@
 import { URL } from "node:url";
 import { extractImageMetrics } from "@/lib/image-metrics";
+import { decodeHtmlEntities } from "@/lib/html-entities";
 import { readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 
 export const CRAWLER_ENGINE_VERSION = "2.6.0";
@@ -83,7 +84,7 @@ const LIMITS: Record<CrawlMode, number> = {
 };
 
 function decode(v: string) {
-  return v.replace(/&amp;/gi,"&").replace(/&quot;/gi,'"').replace(/&#39;/gi,"'").replace(/&lt;/gi,"<").replace(/&gt;/gi,">").trim();
+  return decodeHtmlEntities(v).trim();
 }
 function stripHtml(v: string) {
   return v.replace(/<script[\s\S]*?<\/script>/gi," ").replace(/<style[\s\S]*?<\/style>/gi," ").replace(/<noscript[\s\S]*?<\/noscript>/gi," ").replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim();

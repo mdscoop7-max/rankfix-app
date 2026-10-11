@@ -22,13 +22,15 @@ export async function POST(request: Request) {
     if (!token || token.length < 20) {
       return NextResponse.json({ error:msg("De resetlink is ongeldig of verlopen.","The reset link is invalid or expired.","Der Reset-Link ist ungültig oder abgelaufen.","Le lien de réinitialisation est invalide ou expiré.","Il link di reimpostazione non è valido o è scaduto.","El enlace de restablecimiento no es válido o ha caducado.") }, { status:400 });
     }
-    if (!(password.length>=8 && /[A-Za-z]/.test(password) && /\\d/.test(password) && /[^A-Za-z0-9]/.test(password))) {
+    if (!(password.length>=8 && /[A-Za-z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password))) {
       return NextResponse.json({ error:msg("Gebruik minimaal 8 tekens met letters, 1 cijfer en 1 speciaal teken.","Use at least 8 characters with letters, 1 number and 1 special character.","Mindestens 8 Zeichen mit Buchstaben, 1 Zahl und 1 Sonderzeichen verwenden.","Utilisez au moins 8 caractères avec des lettres, 1 chiffre et 1 caractère spécial.","Usa almeno 8 caratteri con lettere, 1 numero e 1 carattere speciale.","Usa al menos 8 caracteres con letras, 1 número y 1 carácter especial.") }, { status:400 });
     }
 
     await ensureDatabase();
+    // Claim the token atomically: of two concurrent requests with the same token,
+    // only one gets a row back, so a reset link works exactly once.
     const result = await getDb().query(
-      "SELECT user_id FROM password_reset_tokens WHERE token_hash=$1 AND expires_at>NOW()",
+      "DELETE FROM password_reset_tokens WHERE token_hash=$1 AND expires_at>NOW() RETURNING user_id",
       [hashToken(token)]
     );
     const reset = result.rows[0];
@@ -40,8 +42,10 @@ export async function POST(request: Request) {
     const passwordHash = await hashPassword(password);
     await getDb().query("UPDATE users SET password_hash=$1 WHERE id=$2",[passwordHash,reset.user_id]);
 
-    // Invalidate this token and any other outstanding reset tokens for the user.
+    // Invalidate any other outstanding reset tokens and every existing session, so a
+    // device that knew the old password is signed out.
     await getDb().query("DELETE FROM password_reset_tokens WHERE user_id=$1",[reset.user_id]);
+    await getDb().query("DELETE FROM sessions WHERE user_id=$1",[reset.user_id]);
 
     // Start a fresh authenticated session so the customer can continue immediately.
     await createSession(reset.user_id);

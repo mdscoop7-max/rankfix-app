@@ -5,6 +5,7 @@ import { ensureDatabase } from "@/lib/db-init";
 import { auditSite } from "@/lib/site-audit";
 import { normalizePlan, planLimits } from "@/lib/plans";
 import { consumeRateLimit } from "@/lib/rate-limit";
+import { isInternalTester } from "@/lib/scan-access";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(()=>({}));
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
   if(!await consumeRateLimit("competitor-scan",String(user.id),4,600)) return NextResponse.json({error:tr({nl:"Te veel concurrentanalyses kort na elkaar. Probeer later opnieuw.",en:"Too many competitor analyses in a short period. Try again later.",de:"Zu viele Konkurrenzanalysen in kurzer Zeit. Versuche es später erneut.",fr:"Trop d’analyses concurrentielles en peu de temps. Réessayez plus tard.",it:"Troppe analisi concorrenti in poco tempo. Riprova più tardi.",es:"Demasiados análisis de competencia en poco tiempo. Inténtalo más tarde."}),code:"RATE_LIMITED"},{status:429});
   const planResult = await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1", [user.id]);
   const plan=normalizePlan(planResult.rows[0]?.plan_code); const limits=planLimits(plan);
-  const internalTestAccount = process.env.RANKFIX_INTERNAL_TEST_USER_ID === user.id || process.env.RANKFIX_INTERNAL_TEST_EMAIL?.toLowerCase() === String(user.email||"").toLowerCase();
+  const internalTestAccount = isInternalTester(user.id);
   if (!internalTestAccount && limits.competitorScans === 0) {
     return NextResponse.json({ error:tr({nl:"Concurrentanalyse is beschikbaar met een betaald abonnement.",en:"Competitor analysis is available with a paid plan.",de:"Die Konkurrenzanalyse ist mit einem kostenpflichtigen Tarif verfügbar.",fr:"L’analyse concurrentielle est disponible avec une offre payante.",it:"L’analisi concorrente è disponibile con un piano a pagamento.",es:"El análisis de competencia está disponible con un plan de pago."}), code:"PAID_PLAN_REQUIRED" }, { status:403 });
   }
