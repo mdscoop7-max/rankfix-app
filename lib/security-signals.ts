@@ -8,7 +8,15 @@ const OBJECT_DATA = /<object\b[^>]*?\sdata\s*=\s*["']\s*(http:\/\/[^"'\s>]+)/gi;
 const LINK_TAG = /<link\b[^>]*>/gi;
 const LOADED_LINK_REL = /\brel\s*=\s*["']?[^"'>]*\b(?:stylesheet|preload|modulepreload|icon|apple-touch-icon|manifest)\b/i;
 
-export function findMixedContent(html: string): string[] {
+// HTML comments never load anything. Legacy IE conditional comments
+// (<!--[if lt IE 9]><script src="http://…html5shim…"><![endif]-->) are ignored by
+// every current browser, so their URLs are not mixed content or SRI candidates.
+export function stripHtmlComments(html: string): string {
+  return html.replace(/<!--[\s\S]*?-->/g, " ");
+}
+
+export function findMixedContent(rawHtml: string): string[] {
+  const html = stripHtmlComments(rawHtml);
   const found = new Set<string>();
   for (const match of html.matchAll(SUBRESOURCE_SRC)) found.add(match[1]);
   for (const match of html.matchAll(OBJECT_DATA)) found.add(match[1]);
@@ -97,7 +105,8 @@ export function findExposedSecrets(html: string): string[] {
 
 // SRI only works for immutable files. Versioned URLs (…@1.2.3/…, /1.2.3/, ?v=1.2.3)
 // are actionable; dynamic loaders (tag managers, analytics, payment SDKs) cannot use it.
-export function analyzeScriptIntegrity(html: string, pageUrl: string): { crossOrigin: number; missingVersioned: string[]; missingDynamic: string[] } {
+export function analyzeScriptIntegrity(rawHtml: string, pageUrl: string): { crossOrigin: number; missingVersioned: string[]; missingDynamic: string[] } {
+  const html = stripHtmlComments(rawHtml);
   const page = new URL(pageUrl);
   const scripts = [...html.matchAll(/<script\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi)].map((match) => ({ tag: match[0], src: match[1] }));
   const crossOrigin = scripts.filter((item) => { try { return new URL(item.src, page).origin !== page.origin; } catch { return false; } });

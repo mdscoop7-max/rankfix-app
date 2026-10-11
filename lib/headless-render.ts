@@ -11,7 +11,11 @@ export async function renderPublicPage(value: string, timeoutMs = 12000): Promis
   await assertPublicDns(target.hostname);
   const puppeteer = await import("puppeteer");
   const started = Date.now();
-  const browser = await puppeteer.default.launch({ headless: true });
+  // /dev/shm is tiny on most container hosts; Chrome crashes there without this flag.
+  // The sandbox stays on unless the host explicitly cannot provide one.
+  const args = ["--disable-dev-shm-usage"];
+  if (process.env.RANKFIX_CHROME_NO_SANDBOX === "1") args.push("--no-sandbox", "--disable-setuid-sandbox");
+  const browser = await puppeteer.default.launch({ headless: true, args });
   let requests = 0;
   try {
     const page = await browser.newPage();
