@@ -128,3 +128,28 @@ export async function readResponseTextLimited(response: Response, maxBytes = 2_0
     reader.releaseLock();
   }
 }
+
+// Reads at most maxBytes of a response body and stops there instead of failing.
+// For bounded sampling of large documents (e.g. product sitemaps), never for
+// documents that must be read completely.
+export async function readResponsePrefix(response: Response, maxBytes = 1_500_000) {
+  if (!response.body) return "";
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (total < maxBytes) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const take = value.subarray(0, Math.max(0, maxBytes - total));
+      chunks.push(take);
+      total += take.byteLength;
+    }
+  } finally {
+    try { await reader.cancel(); } catch {}
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  return new TextDecoder("utf-8").decode(bytes);
+}

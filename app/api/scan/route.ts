@@ -11,7 +11,7 @@ import { selectRepresentativePages } from "@/lib/representative-pages";
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
 import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
-import { readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
+import { readResponsePrefix, readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
 import { applyEvidenceBasedScoreCap, SCORE_MODEL_VERSION, scoreApplicableChecks, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
 import { isPaidPlan, normalizePlan, planLimits } from "@/lib/plans";
@@ -20,7 +20,7 @@ import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRa
 import { renderPublicPage } from "@/lib/headless-render";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { isSubstantiveRender, renderImprovesEvidence } from "@/lib/render-quality";
-import { extractProductDetailLinks, looksLikeProductDetailPath } from "@/lib/product-links";
+import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDetailPath, productUrlsFromSitemap } from "@/lib/product-links";
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
@@ -1115,7 +1115,11 @@ export async function POST(request: Request) {
     const governmentSchemaPresent = schemaSet.has("governmentorganization") || schemaSet.has("governmentoffice");
     const transportLogisticsSchemaContext = !hasEcommerceSignal && !isProductPage && /\b(transport|logistics?|logistiek|freight|vracht|forwarding|expeditie|warehousing|opslag|supply chain|distribution|distributie|4pl|3pl)\b/i.test(localIdentityText);
     const transportServicePath = /\/(?:dienst|diensten|service|services|oplossing|oplossingen|solution|solutions|expertise|transport)(?:\/|$)/i.test(finalUrl.pathname);
-    const ecommerceSchemaContext = hasEcommerceSignal || schemaSet.has("onlinestore") || schemaSet.has("product");
+    // Retail self-description (same rule as the Sector Motor) is enough to keep a
+    // store from getting LocalBusiness advice before shop functionality is proven.
+    const earlyRetailLanguage = retailIdentityLanguage([title, description, h1s.join(" "), finalUrl.hostname, finalUrl.pathname].join(" "));
+    const earlyRetailIdentity = hasRetailStoreSchema(schemaTypes) || (earlyRetailLanguage.assortment && (earlyRetailLanguage.onlineSales || (earlyRetailLanguage.store && commerceNavigationSignal)));
+    const ecommerceSchemaContext = hasEcommerceSignal || earlyRetailIdentity || schemaSet.has("onlinestore") || schemaSet.has("product");
     // Government, international transport/logistics and e-commerce identities
     // override generic LocalBusiness hints so advice follows the actual business model.
     const effectiveLocalSchemaSignal = hasLocalBusinessSignal && !governmentIdentitySignal && !governmentSchemaPresent && !transportLogisticsSchemaContext && !ecommerceSchemaContext;
@@ -3774,6 +3778,24 @@ export async function POST(request: Request) {
         return audits.some((item)=>item.status==="audited" && item.commerceEvidence?.confirmedRetailPage);
       };
       let productConfirmed = await auditProductCandidates(multiPageAudits.flatMap((item)=>item?.productLinks || []));
+      // Sitemaps often list product URLs directly and need no browser. Read at most
+      // three declared sitemaps (1.5 MB each, one child of an index, no .gz).
+      if (!productConfirmed) {
+        const readSitemap = async (url: string) => {
+          const fetchedSitemap = await safePublicFetch(url, { timeoutMs: 6000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "application/xml,text/xml" });
+          return fetchedSitemap.response.ok ? readResponsePrefix(fetchedSitemap.response, 1_500_000) : "";
+        };
+        const sitemapSources = [...new Set([...robotsDeclaredSitemapUrls, ...(confirmedSitemapUrl ? [confirmedSitemapUrl] : [])])].filter((url)=>!/\.gz(?:$|\?)/i.test(url)).slice(0,3);
+        for (const sitemapSource of sitemapSources) {
+          try {
+            let sitemapXml = await readSitemap(sitemapSource);
+            const childSitemap = childSitemapsFromIndex(sitemapXml)[0];
+            if (childSitemap) sitemapXml = await readSitemap(childSitemap);
+            productConfirmed = await auditProductCandidates(productUrlsFromSitemap(sitemapXml, siteHost, 8));
+          } catch {}
+          if (productConfirmed) break;
+        }
+      }
       if (!productConfirmed) {
         const listingPages = multiPageAudits.filter((item)=>item?.status==="audited" && (item.type==="category" || item.type==="other") && item.evidenceSource!=="rendered_html").slice(0,2);
         for (const listing of listingPages) {

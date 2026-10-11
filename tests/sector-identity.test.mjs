@@ -221,3 +221,28 @@ test("one page type cannot crowd out the representative sample", async () => {
   // Slug-with-id product nomination applies to retail sites only.
   assert.match(source, /\(\(sectorProfile\.key === "ecommerce" \|\| explicitRetailIdentity \|\| hasEcommerceSignal\) && looksLikeProductDetailPath\(path\)\)/);
 });
+
+test("product candidates come from sitemaps without a browser", async () => {
+  const { productUrlsFromSitemap, childSitemapsFromIndex } = await import("../lib/product-links.ts");
+  const urlset = `<?xml version="1.0"?><urlset><url><loc>https://www.shop.example/tefal-rk7051-waterkoker-372504463</loc></url><url><loc>https://www.shop.example/service/contact</loc></url><url><loc>https://other.example/x-y-z-1234567</loc></url><url><loc>https://www.shop.example/blog/tips-voor-koken-1234567</loc></url></urlset>`;
+  assert.deepEqual(productUrlsFromSitemap(urlset, "shop.example"), ["https://www.shop.example/tefal-rk7051-waterkoker-372504463"]);
+  const index = `<sitemapindex><sitemap><loc>https://www.shop.example/sitemap-pages.xml</loc></sitemap><sitemap><loc>https://www.shop.example/sitemap-products-1.xml</loc></sitemap><sitemap><loc>https://www.shop.example/sitemap-products-2.xml.gz</loc></sitemap></sitemapindex>`;
+  assert.deepEqual(childSitemapsFromIndex(index), ["https://www.shop.example/sitemap-products-1.xml", "https://www.shop.example/sitemap-pages.xml"]);
+  assert.deepEqual(childSitemapsFromIndex(urlset), []);
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /readResponsePrefix\(fetchedSitemap\.response, 1_500_000\)/);
+  assert.ok(source.indexOf("productUrlsFromSitemap(sitemapXml") < source.indexOf("const listingPages = multiPageAudits"), "sitemap is tried before any browser render");
+});
+
+test("bounded prefix reads never fail on large documents", async () => {
+  const { readResponsePrefix } = await import("../lib/safe-fetch.ts");
+  const big = "x".repeat(50_000);
+  assert.equal((await readResponsePrefix(new Response(big), 1000)).length, 1000);
+  assert.equal(await readResponsePrefix(new Response("<urlset/>"), 1000), "<urlset/>");
+});
+
+test("a retail identity never receives LocalBusiness schema advice", async () => {
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /const ecommerceSchemaContext = hasEcommerceSignal \|\| earlyRetailIdentity \|\|/);
+  assert.match(source, /const earlyRetailIdentity = hasRetailStoreSchema\(schemaTypes\) \|\| \(earlyRetailLanguage\.assortment && \(earlyRetailLanguage\.onlineSales \|\| \(earlyRetailLanguage\.store && commerceNavigationSignal\)\)\)/);
+});
