@@ -31,12 +31,15 @@ de originele SHA's behouden blijven.
 
 ## Samenvoegen met de scannercorrecties (proef op 3.0 uitgevoerd)
 
-Een proefmerge van `f1293c1` in de correctiebranch gaf twee kleine conflicten.
-Na oplossing: 118/118 tests geslaagd, productiebuild geslaagd.
+Een proefmerge van `f1293c1` in de correctiebranch geeft drie conflicthunks (twee in
+`route.ts`, één in de tests). Laatste proef op `c8ebd61`: na oplossing 151/151 tests,
+TypeScript 0 fouten, productiebuild geslaagd. Los elk conflict apart op: een
+automatische vervanging van alle hunks door hetzelfde blok is fout.
 
 | Bestand | Conflict | Oplossing |
 |---|---|---|
 | `app/api/scan/route.ts` | 3.0 voegde een FAQ-limiet (max. 3) toe aan de inline paginaselectie; de correcties verplaatsten die selectie naar `selectRepresentativePages` | Zie codeblok hieronder |
+| `app/api/scan/route.ts` (cookies) | 3.0 voegde `getSetCookie` toe in de oude inline cookiecode (met de kapotte `\\s`-regexen); de correcties verplaatsten die naar `lib/security-signals.ts` | Versie van de correcties houden (`setCookieValues` + `observeCookie`); die gebruikt ook `getSetCookie` |
 | `tests/scanner-regression.test.mjs` | Beide zetten de limiettest op 30 | Versie van de correcties houden |
 | `lib/sector-catalog.ts` | Geen | Niet aangeraakt door de correcties |
 
@@ -51,7 +54,7 @@ Als 3.1 dezelfde blokken verder wijzigt, eerst opnieuw een proefmerge doen.
 
 Na de merge faalt de bewakingstest "no regex matches a literal backslash" op één regel
 die 3.0 zelf toevoegt: `app/dashboard/page.tsx` (`siteHost`, `/^www\\./` moet `/^www\./`
-zijn, twee keer). Herstel die in de merge; daarna slagen alle 143 tests en de build.
+zijn, twee keer). Herstel die in de merge.
 Controleer bij 3.1 de uitvoer van die test opnieuw: elke regel die hij noemt is een
 regex die nooit matcht.
 
