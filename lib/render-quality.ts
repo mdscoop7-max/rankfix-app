@@ -28,3 +28,34 @@ export function renderImprovesEvidence(rawWords: number, rawThinShell: boolean, 
   if (rawThinShell) return renderedWords >= Math.min(MIN_RECOVERED_WORDS, rawWords + 1);
   return renderedWords >= rawWords * 0.5;
 }
+
+// A browser render can end in a client-side error state (the JavaScript app
+// throws, a blocked request breaks hydration) while the server already sent a
+// complete, indexable page. Such a render must never replace that evidence.
+const ERROR_TITLE = /^\s*(?:error|fout|404|500|503|page not found|pagina niet gevonden|not found|niet gevonden|something went wrong|er ging iets mis)\b/i;
+const NOINDEX = /<meta\b[^>]*name\s*=\s*["'](?:robots|googlebot)["'][^>]*content\s*=\s*["'][^"']*\bnoindex\b/i;
+
+const titleOf = (html: string) => (html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "").replace(/\s+/g, " ").trim();
+
+export function renderIsErrorState(rawHtml: string, renderedHtml: string): boolean {
+  if (!rawHtml) return false;
+  const rawTitle = titleOf(rawHtml);
+  const renderedTitle = titleOf(renderedHtml);
+  if (ERROR_TITLE.test(renderedTitle) && !ERROR_TITLE.test(rawTitle)) return true;
+  // The server said "index", the rendered app says "noindex": the app changed state.
+  if (NOINDEX.test(renderedHtml) && !NOINDEX.test(rawHtml)) return true;
+  return false;
+}
+
+// For server-rendered pages the server's <head> (title, description, canonical,
+// robots, JSON-LD) is what search engines receive first and is authoritative.
+// The browser render only contributes the body (footer links, forms, client
+// content). A client router that rewrites the title (e.g. "Nl | Brand") must not
+// replace a correct server title. Thin client shells keep the rendered head.
+export function withServerHead(rawHtml: string, renderedHtml: string, rawIsThinShell: boolean): string {
+  if (rawIsThinShell || !rawHtml) return renderedHtml;
+  const rawHead = rawHtml.match(/<head\b[^>]*>[\s\S]*?<\/head>/i)?.[0];
+  if (!rawHead || !/<title[^>]*>[\s\S]*?\S[\s\S]*?<\/title>/i.test(rawHead)) return renderedHtml;
+  const renderedHead = /<head\b[^>]*>[\s\S]*?<\/head>/i;
+  return renderedHead.test(renderedHtml) ? renderedHtml.replace(renderedHead, () => rawHead) : renderedHtml;
+}

@@ -20,7 +20,7 @@ import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
 import { createRenderBudget, renderPublicPage } from "@/lib/headless-render";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
-import { isSubstantiveRender, renderImprovesEvidence } from "@/lib/render-quality";
+import { isSubstantiveRender, renderImprovesEvidence, renderIsErrorState, withServerHead } from "@/lib/render-quality";
 import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDetailPath, productUrlsFromSitemap } from "@/lib/product-links";
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
@@ -639,8 +639,11 @@ export async function POST(request: Request) {
       try {
         const rendered = await renderPublicPage(finalUrl.toString(), 12000, renderBudget);
         // Never replace richer raw evidence with a poorer (blocked or partial) render.
-        if (renderImprovesEvidence(rawVisibleWords, thinClientShell, rendered.html)) {
-          html = rendered.html;
+        if (renderIsErrorState(rawHtml, rendered.html)) {
+          // The JavaScript app ended in an error/noindex state; the server page stays.
+          renderFallbackReason = "RENDER_DEGRADED";
+        } else if (renderImprovesEvidence(rawVisibleWords, thinClientShell, rendered.html)) {
+          html = withServerHead(rawHtml, rendered.html, thinClientShell);
           javascriptExecuted = true;
           renderElapsedMs = rendered.elapsedMs;
         } else {
@@ -3723,8 +3726,10 @@ export async function POST(request: Request) {
         if (representativeJsFramework || representativeThinShell) {
           try {
             const renderedPage = await renderPublicPage(finalCandidate.toString(), 10000, renderBudget);
-            if (renderImprovesEvidence(representativeVisibleWords, representativeThinShell, renderedPage.html)) {
-              pageHtml = renderedPage.html;
+            if (renderIsErrorState(representativeRawHtml, renderedPage.html)) {
+              page.evidence.push("javascript render ended in an error state; server HTML retained");
+            } else if (renderImprovesEvidence(representativeVisibleWords, representativeThinShell, renderedPage.html)) {
+              pageHtml = withServerHead(representativeRawHtml, renderedPage.html, representativeThinShell);
               representativeEvidenceSource = "rendered_html";
               page.evidence.push("javascript-rendered representative page");
             } else {

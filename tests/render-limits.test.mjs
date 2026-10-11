@@ -59,3 +59,20 @@ test("render wiring: puppeteer-core in production, Chromium traced, scan bounded
   assert.match(render, /const ALLOWED = new Set\(\["document", "script", "stylesheet", "xhr", "fetch"\]\)/);
   assert.match(render, /createBrowserContext\(\)/);
 });
+
+test("a render that ends in an error state never replaces a good server page", async () => {
+  const { renderIsErrorState, withServerHead } = await import("../lib/render-quality.ts");
+  const raw = `<html><head><title>Transport Europa van/naar Nederland | TransHeroes</title><meta name="description" content="x"></head><body><h1>Europa</h1></body></html>`;
+  // TransHeroes 22:58 preview scan: the Nuxt app rendered "Error | TransHeroes" + noindex.
+  const errorRender = `<html><head><title>Error | TransHeroes</title><meta name="robots" content="noindex"></head><body><h1>Oops</h1></body></html>`;
+  assert.equal(renderIsErrorState(raw, errorRender), true);
+  assert.equal(renderIsErrorState(raw, raw.replace("<h1>Europa</h1>", "<h1>Europa</h1><footer>privacy</footer>")), false);
+  assert.equal(renderIsErrorState(`<title>404 Not found</title>`, `<title>404 Not found</title>`), false);
+  // A client router that rewrites the title ("Nl | TransHeroes") keeps the server head.
+  const rendered = `<html><head><title>Nl | TransHeroes</title></head><body><h1>Home</h1><footer><a href="/nl/privacy">Privacy</a></footer></body></html>`;
+  const merged = withServerHead(raw, rendered, false);
+  assert.match(merged, /<title>Transport Europa van\/naar Nederland \| TransHeroes<\/title>/);
+  assert.match(merged, /<a href="\/nl\/privacy">Privacy<\/a>/);
+  // A thin client shell has no trustworthy server head: the rendered head is used.
+  assert.equal(withServerHead(`<html><head><title>App</title></head><body><div id="app"></div></body></html>`, rendered, true), rendered);
+});
