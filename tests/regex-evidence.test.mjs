@@ -217,6 +217,59 @@ test("no regex literal or new RegExp string in app/, lib/ or components/ contain
   assert.deepEqual(offenders, [], "doubled escapes match a literal backslash and silently disable the check");
 });
 
+test("no regex puts \\b directly against an accented letter (JavaScript \\b is ASCII-only)", async () => {
+  // \bcafé\b never matches "Café Central": é is not a \w character, so there is no boundary
+  // between é and the following space. The same holds for a leading "\bÜber" or "\bà propos".
+  const require = createRequire(import.meta.url);
+  const ts = require(path.join(root, "node_modules/typescript"));
+  const files = [];
+  const walk = async (dir) => {
+    for (const entry of await readdir(path.join(root, dir), { withFileTypes: true })) {
+      const rel = path.join(dir, entry.name);
+      if (entry.isDirectory()) { if (!["node_modules", ".next"].includes(entry.name)) await walk(rel); }
+      else if (/\.(ts|tsx)$/.test(entry.name)) files.push(rel);
+    }
+  };
+  await walk("app"); await walk("lib"); await walk("components");
+  const NON_ASCII = /[^\x00-\x7F]/;
+  const offenders = [];
+  for (const rel of files) {
+    const text = await read(rel);
+    const sf = ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true, rel.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+    const visit = (node) => {
+      if (node.kind === ts.SyntaxKind.RegularExpressionLiteral) {
+        const raw = node.getText(sf);
+        const body = raw.slice(1, raw.lastIndexOf("/"));
+        const where = `${rel}:${sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1}`;
+        for (const g of body.matchAll(/(\\b)?\((?:\?:)?([^()]*)\)(\\b)?/g)) {
+          const alts = g[2].split("|");
+          if (g[1] && alts.some(a => NON_ASCII.test(a[0] || ""))) offenders.push(`${where} leading \\b before ${alts.filter(a => NON_ASCII.test(a[0] || "")).join(",")}`);
+          if (g[3] && alts.some(a => NON_ASCII.test(a.at(-1) || ""))) offenders.push(`${where} trailing \\b after ${alts.filter(a => NON_ASCII.test(a.at(-1) || "")).join(",")}`);
+        }
+        if (/[^\x00-\x7F]\\b|\\b[^\x00-\x7F]/.test(body)) offenders.push(`${where} \\b next to a non-ASCII character`);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sf);
+  }
+  assert.deepEqual(offenders, []);
+});
+
+test("accented words, foreign 'about' pages, stock words and euro-after-amount prices are recognised", async () => {
+  const route = await read("app/api/scan/route.ts");
+  const about = literalAfter(route, "const hasAboutSignal = ");
+  for (const text of ["Über uns", "À propos de nous", "Chi è RankFix", "Over ons"]) assert.ok(about.test(text), text);
+  const hospitality = literalAfter(route, '{sector:"hospitality",label:"Horeca",patterns:[');
+  for (const text of ["Café Central", "Eetcafé De Kroeg", "Pizzeria Bella", "Trattoria Roma", "Lunchroom Zon"]) assert.ok(hospitality.test(text), text);
+  assert.ok(!hospitality.test("Cafeteria-meubels"), "no partial-word match");
+  const stock = literalAfter(route, "out_of_stock: text.match(");
+  assert.equal(("Épuisé · épuisé").match(stock)?.length, 2);
+  const prices = literalAfter(route, "const visiblePriceCount = (text.match(");
+  assert.equal(("19,99 € · 24,95 € · € 5 · 12 EUR · 3 EURO").match(prices)?.length, 4, "suffix € counted, EURO is not EUR");
+  const opening = literalAfter(await read("lib/scan-evidence.ts"), "const openingHoursText = has(text, ");
+  assert.ok(opening.test("Öffnungszeiten: Mo–Fr 9–18 Uhr"));
+});
+
 test("robots.txt rules are applied: SEO check sees Disallow, crawler obeys RankFixBot/* groups", async () => {
   const route = await read("app/api/scan/route.ts");
   const start = route.indexOf("    const robotsPath = finalUrl.pathname");

@@ -918,7 +918,7 @@ export async function POST(request: Request) {
     const hasContactSignal = /\b(contact|contacteer|e-mail|email|telefoon|phone|adres|address|kontakt|contatti|contacto)\b/i.test(text);
     const hasContactFormSignal = /<form\b[\s\S]*?(?:name\s*=\s*["'](?:email|message|name)["']|type\s*=\s*["']email["'])[\s\S]*?<\/form>/i.test(html);
     const hasContactActionSignal = /<(?:a|button)\b[^>]*(?:href\s*=\s*["'][^"']*(?:#contact|\/contact)|aria-label\s*=\s*["'][^"']*contact)[^>]*>|<(?:a|button)\b[^>]*>\s*(?:contact|kontakt|contatti|contacto)\s*<\/(?:a|button)>/i.test(html);
-    const hasAboutSignal = /\b(over ons|over [a-z0-9][a-z0-9 .&-]{1,40}|about us|about [a-z0-9][a-z0-9 .&-]{1,40}|über [a-z0-9][a-z0-9 .&-]{1,40}|à propos|chi è|sobre [a-z0-9][a-z0-9 .&-]{1,40})\b/i.test(text);
+    const hasAboutSignal = /(?<![A-Za-z0-9_])(over ons|over [a-z0-9][a-z0-9 .&-]{1,40}|about us|about [a-z0-9][a-z0-9 .&-]{1,40}|über [a-z0-9][a-z0-9 .&-]{1,40}|à propos|chi è|sobre [a-z0-9][a-z0-9 .&-]{1,40})(?![A-Za-z0-9_])/i.test(text);
     const organizationName = firstMatch(html, /<meta[^>]+(?:property|name)\s*=\s*["'](?:og:site_name|application-name)["'][^>]+content\s*=\s*["']([^"']+)["']/i);
     const sameAsCount = (html.match(/"sameAs"\s*:/gi) || []).length;
     const pathname = finalUrl.pathname.replace(/\/+$/, "") || "/";
@@ -930,7 +930,7 @@ export async function POST(request: Request) {
     const isLocalizedHomepage = pathSegmentsForType.length > 0 && pathSegmentsForType.length <= 2 &&
       pathSegmentsForType.every((segment) => localeSegmentPattern.test(segment) && knownLanguageSegments.has(segment.split("-")[0]));
     const isHomepage = pathname === "/" || isLocalizedHomepage;
-    const localBusinessKeywordSignal = /\b(restaurant|eetcafé|eetgelegenheid|brasserie|bistro|menukaart|kapsalon|kapper|hairdresser|salon|coiffeur|barbier|bakker|bakery|bar|café|cafe|dentist|tandarts|tandheelkunde|mondzorg|orthodontist|electrician|elektricien|elektro|elektrotechniek|installatietechniek|plumber|loodgieter|loodgieters|cv-installateur|installateur|aannemer|contractor|bouwbedrijf|bouwservice|verbouwing|renovatie|dakdekker|dakbedekking|dakwerken|beautysalon|beauty salon|schoonheidssalon|winkel|store|shop|boetiek|retail|garage|autogarage|autoservice|autobedrijf|autodealer|makelaar|makelaars|vastgoedmakelaar|real estate agent|realtor|woningmakelaar|advocaat|advocatenkantoor|law firm|jurist|notaris|notariskantoor|accountant|accountantskantoor|boekhouder|boekhoudkantoor|administratiekantoor|reisbureau|reisorganisatie|travel agency|tour operator|reisagent|hotel|bed and breakfast|b&b|pension)\b/i.test([title, description, ...h1s, finalUrl.hostname, finalUrl.pathname].join(" "));
+    const localBusinessKeywordSignal = /\b(restaurant|eetcafé|eetgelegenheid|brasserie|bistro|menukaart|kapsalon|kapper|hairdresser|salon|coiffeur|barbier|bakker|bakery|bar|café|cafe|dentist|tandarts|tandheelkunde|mondzorg|orthodontist|electrician|elektricien|elektro|elektrotechniek|installatietechniek|plumber|loodgieter|loodgieters|cv-installateur|installateur|aannemer|contractor|bouwbedrijf|bouwservice|verbouwing|renovatie|dakdekker|dakbedekking|dakwerken|beautysalon|beauty salon|schoonheidssalon|winkel|store|shop|boetiek|retail|garage|autogarage|autoservice|autobedrijf|autodealer|makelaar|makelaars|vastgoedmakelaar|real estate agent|realtor|woningmakelaar|advocaat|advocatenkantoor|law firm|jurist|notaris|notariskantoor|accountant|accountantskantoor|boekhouder|boekhoudkantoor|administratiekantoor|reisbureau|reisorganisatie|travel agency|tour operator|reisagent|hotel|bed and breakfast|b&b|pension)(?![A-Za-z0-9_])/i.test([title, description, ...h1s, finalUrl.hostname, finalUrl.pathname].join(" "));
     const localContactSignal = /\b(opening hours|openingstijden|adres|address|telephone|telefoon|phone|contact)\b/i.test(text) &&
       /\b(address|adres|phone|telefoon|telephone|\+?31|0\d{1,3}[\s-]?\d)\b/i.test(text);
     const hasLocalBusinessSignal =
@@ -938,7 +938,7 @@ export async function POST(request: Request) {
       (localContactSignal && (localBusinessKeywordSignal || /\b(menu|menukaart|reserveren|reservation|openingstijden|opening hours)\b/i.test(text)));
     const hasVisibleBusinessIdentity = Boolean(
       organizationName ||
-      (title && /\b(restaurant|salon|kapsalon|bakker|bakery|bar|cafe|café|dentist|tandarts|electrician|elektricien|plumber|loodgieter|aannemer|contractor|hairdresser|kapper|store|winkel)\b/i.test(title)) ||
+      (title && /\b(restaurant|salon|kapsalon|bakker|bakery|bar|cafe|café|dentist|tandarts|electrician|elektricien|plumber|loodgieter|aannemer|contractor|hairdresser|kapper|store|winkel)(?![A-Za-z0-9_])/i.test(title)) ||
       hasLocalBusinessSignal
     );
     const hasBusinessContactDetails = /\b(\+?\d[\d\s().-]{7,}\b)/.test(text) ||
@@ -950,7 +950,7 @@ export async function POST(request: Request) {
     const hasStrongCommerceAction = /\b(add to cart|add-to-cart|add to basket|buy now|in winkelwagen|toevoegen(?: aan winkelwagen)?|koop nu|jetzt kaufen|in den warenkorb|ajouter au panier|acheter maintenant|añadir al carrito|comprar ahora|aggiungi al carrello|acquista ora)\b/i.test(text);
     const hasSkuSignal = /\b(sku|artikelnummer|productcode|référence produit|referencia del producto|codice prodotto)\b/i.test(text);
     const hasStockSignal = /\b(in stock|out of stock|op voorraad|niet op voorraad|uitverkocht|auf lager|nicht auf lager|en stock|rupture de stock|agotado|disponible|esaurito|disponibile|pre-?order|backorder)\b/i.test(text);
-    const hasExplicitPriceSignal = /(?:€|£|\$)\s*\d|(?<![\d.,])\d[\d.,]{0,20}\s*(?:€|EUR|GBP|USD)\b|\b(?:prijs|price|preis|prix|precio|prezzo)\s*[:€£$]?\s*\d/i.test(text);
+    const hasExplicitPriceSignal = /(?:€|£|\$)\s*\d|(?<![\d.,])\d[\d.,]{0,20}\s*(?:€|(?:EUR|GBP|USD)\b)|\b(?:prijs|price|preis|prix|precio|prezzo)\s*[:€£$]?\s*\d/i.test(text);
     const productOgType = firstMatch(html, /<meta[^>]+(?:property|name)\s*=\s*["']og:type["'][^>]+content\s*=\s*["']([^"']+)["']/i) || firstMatch(html, /<meta[^>]+content\s*=\s*["']([^"']+)["'][^>]+(?:property|name)\s*=\s*["']og:type["']/i);
     const hasProductMetaSignal = /(?:^|[.:_-])product(?:$|[.:_-])/i.test(productOgType) || /(?:product|sku|price|availability)[.:_-]/i.test(html.match(/<meta\b[^>]*(?:property|name)\s*=\s*["'][^"']+["'][^>]*>/gi)?.join(" ") || "");
     const hasProductSignal = hasProductSchema || (hasStrongCommerceAction && (hasExplicitPriceSignal || hasStockSignal || hasSkuSignal)) || (hasSkuSignal && hasExplicitPriceSignal && hasStockSignal) || (hasProductMetaSignal && hasExplicitPriceSignal);
@@ -964,7 +964,7 @@ export async function POST(request: Request) {
     );
     // Ticket/booking sites can expose prices and availability without being retail product pages.
     // Establish transport context before page typing so downstream modules share one decision.
-    const transportBookingIdentityEarly = /(?:\b(train|railway|rail|spoorweg|trein|bahn|zug|ferrovi|trenitalia|intercity|flight|flights|airline|airport|vols?|vlucht|flug|voli|voo|billet|ticket|fahrplan|timetable|prijevoz|putnički|vlak|vozni red|karta|karte|željeznice|železnice|dráhy)\b|hellenic\s+train|cyprus\s+airways|δρομολόγ|εισιτήρ|τρένο|σιδηρόδρομ|πτήσ)/iu.test([title, description, text.slice(0,30000), finalUrl.hostname].join(" "));
+    const transportBookingIdentityEarly = /(?:(?<![A-Za-z0-9_])(train|railway|rail|spoorweg|trein|bahn|zug|ferrovi|trenitalia|intercity|flight|flights|airline|airport|vols?|vlucht|flug|voli|voo|billet|ticket|fahrplan|timetable|prijevoz|putnički|vlak|vozni red|karta|karte|željeznice|železnice|dráhy)\b|hellenic\s+train|cyprus\s+airways|δρομολόγ|εισιτήρ|τρένο|σιδηρόδρομ|πτήσ)/iu.test([title, description, text.slice(0,30000), finalUrl.hostname].join(" "));
     const propertyDetailPathEarly = !isHomepage && /\/(?:woningaanbod|residential-listings)\/(?:koop|huur|sale|rent)\//i.test(pathname);
     // Some real-estate platforms publish Product schema for a property object. That
     // schema describes an offer, but must not activate retail product/stock/copy checks.
@@ -978,7 +978,7 @@ export async function POST(request: Request) {
     const hasArticleSignal = rawArticleSignal && !isProductPage;
     const hasItemListSignal = schemaSet.has("itemlist");
     const commerceNavigationSignal = /\b(winkelwagen|cart|checkout|afrekenen|shop|webshop|producten|products)\b/i.test(text);
-    const visiblePriceCount = (text.match(/(?:€|£|\$)\s*\d|(?<![\d.,])\d[\d.,]{0,20}\s*(?:€|EUR|GBP|USD)\b/gi) || []).length;
+    const visiblePriceCount = (text.match(/(?:€|£|\$)\s*\d|(?<![\d.,])\d[\d.,]{0,20}\s*(?:€|(?:EUR|GBP|USD)\b)/gi) || []).length;
     // Category detection must be portable across customer sites: use generic taxonomy paths
     // plus repeated commerce evidence, never customer-specific category slugs.
     const genericCategoryPathSignal = !isHomepage && pathSegmentsForType.some((segment) =>
@@ -1096,7 +1096,7 @@ export async function POST(request: Request) {
     const goal = adsKeywordIntelligence.campaignGoal || "";
 
     const localSchemaCandidates = [
-      { type: "Restaurant", pattern: /\b(restaurant|eetcafé|eetgelegenheid|brasserie|bistro|menukaart)\b/i },
+      { type: "Restaurant", pattern: /\b(restaurant|eetcafé|eetgelegenheid|brasserie|bistro|menukaart)(?![A-Za-z0-9_])/i },
       { type: "Hairdresser", pattern: /\b(hairdresser|kapper|kappers|kapsalon|knippen|haarkleur|haarstyling|coiffeur|barbier)\b/i },
       { type: "Dentist", pattern: /\b(dentist|tandarts|tandheelkunde|mondzorg|orthodontist)\b/i },
       { type: "Electrician", pattern: /\b(electrician|elektricien|elektro|elektrotechniek|installatietechniek)\b/i },
@@ -1538,12 +1538,12 @@ export async function POST(request: Request) {
       {sector:"automotive",label:"Automotive",patterns:[/\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\b/i,/\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
       {sector:"home_services",label:"Lokale vakdienst",patterns:[/\b(loodgieter|plumber|aannemer|installateur|elektricien|schilder|dakdekker|klus(?:sen)?bedrijf|bouwbedrijf|bouwservice|general contractor|electrician|contractor|riool(?:service|specialist)?|rioolprobleem|ontstopping|ontstoppen|afvoer|schoonmaak(?:bedrijf|dienst(?:en)?)?|kantoorschoonmaak|cleaning service|cleaning company)\b/i,/\b(offerte|werkgebied|servicegebied|installatie|reparatie|renovatie|verbouwing|bouw|verstopping|riolering|riooldienst(?:en)?|schoonmaak|cleaning)\b/i],modules:["core_seo","geo","local","lead_conversion","home_services"]},
       {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\b(advocaat|accountant|boekhouder|consultant|notaris|law firm|legalservice|legal services|accounting|consultancy)\b/i,/\b(diensten|expertise|advies|consult)\b/i],modules:["core_seo","geo","local","lead_conversion","professional_services"]},
-      {sector:"hospitality",label:"Horeca",patterns:[/\b(restaurant|cafe|café|hotel|brasserie|bistro|reserveren|reservation|restaurantmenu|menukaart)\b/i,/\b(openingstijden|opening hours|tafel reserveren)\b/i],modules:["core_seo","geo","local","lead_conversion","hospitality"]},
+      {sector:"hospitality",label:"Horeca",patterns:[/\b(restaurant|cafe|café|eetcafe|eetcafé|pizzeria|trattoria|osteria|lunchroom|steakhouse|grillroom|hotel|brasserie|bistro|reserveren|reservation|restaurantmenu|menukaart)(?![A-Za-z0-9_])/i,/\b(openingstijden|opening hours|tafel reserveren)\b/i],modules:["core_seo","geo","local","lead_conversion","hospitality"]},
       {sector:"health_wellness",label:"Zorg & Gezondheid",patterns:[/\b(kliniek|clinic|fysiotherap|tandarts|dentist|medicalclinic|physician|mondzorg|acupunctuur|acupuncture|acupuncturist|therapeut|therapist|therapie|therapy|tuina)\b/i,/\b(afspraak|appointment|behandeling|behandelingen|treatment|treatments|patient|patiënt|praktijk|practice)\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
       {sector:"beauty",label:"Beauty & Verzorging",patterns:[/\b(kapper|hairdresser|hairsalon|hair salon|hairstyling|beauty salon|beautysalon|schoonheidssalon|nagelsalon|nail salon|barber|day spa|dayspa|city spa|wellness|manicure|pedicure|facial|gezichtsbehandeling)\b/i,/\b(afspraak|appointment|salons?|knippen|haar|hair|spa|wellness|manicure|pedicure|beauty treatment|beauty treatments)\b/i],modules:["core_seo","geo","local","lead_conversion","beauty"]},
       {sector:"recruitment",label:"Recruitment & Werk",patterns:[/\b(recruitment|uitzendbureau|uitzendorganisatie|employment agency|staffing agency|staffing|werving en selectie|recruitmentbureau|recruitment agency)\b/i,/\b(werkgevers?|kandidaten?|talent acquisition|detachering|interim professionals?|recruiter)\b/i],modules:["core_seo","geo","lead_conversion","recruitment"]},
       {sector:"government",label:"Overheid & Publieke sector",patterns:[/\b(gemeente|municipality|overheid|government|rijksoverheid|ministry|ministerie|public service|stadhuis|burgerzaken)\b/i,/\b(digid|vergunning|paspoort|loket|inwoners|wetgeving|beleid|minister|cabinet)\b/i],modules:["core_seo","geo","government"]},
-      {sector:"transport_travel",label:"Transport & Logistiek",patterns:[/(?:\b(logistiek|logistics|transportbedrijf|transport company|wegtransport|road transport|freight|vrachtvervoer|distributie|distribution|expeditie|forwarding|koerier|courier|spoorweg|railway|railways|train operator|national railway|nationale? vervoerder|airline|luchtvaartmaatschappij|public transport|openbaar vervoer|ferroviaria|železnice|željeznice|dráhy|intercity|prijevoz|putnički|vlak)\b|hellenic\s+train|cyprus\s+airways|σιδηρόδρομ|τρένο)/iu,/(?:\b(zending|shipments?|warehousing|opslag|supply chain|groupage|pallets?|containers?|internationaal transport|international transport|tickets?|billet|fahrplan|timetable|dienstregeling|journey planner|vluchten?|flights?|destinations?|reizen|travel|utazás|dopravca|vozni red|karta|karte)\b|δρομολόγ|εισιτήρ|πτήσ)/iu],modules:["core_seo","geo","technical","local","lead_conversion","transport_travel"]},
+      {sector:"transport_travel",label:"Transport & Logistiek",patterns:[/(?:(?<![A-Za-z0-9_])(logistiek|logistics|transportbedrijf|transport company|wegtransport|road transport|freight|vrachtvervoer|distributie|distribution|expeditie|forwarding|koerier|courier|spoorweg|railway|railways|train operator|national railway|nationale? vervoerder|airline|luchtvaartmaatschappij|public transport|openbaar vervoer|ferroviaria|železnice|željeznice|dráhy|intercity|prijevoz|putnički|vlak)\b|hellenic\s+train|cyprus\s+airways|σιδηρόδρομ|τρένο)/iu,/(?:\b(zending|shipments?|warehousing|opslag|supply chain|groupage|pallets?|containers?|internationaal transport|international transport|tickets?|billet|fahrplan|timetable|dienstregeling|journey planner|vluchten?|flights?|destinations?|reizen|travel|utazás|dopravca|vozni red|karta|karte)\b|δρομολόγ|εισιτήρ|πτήσ)/iu],modules:["core_seo","geo","technical","local","lead_conversion","transport_travel"]},
       {sector:"telecom_technology",label:"Telecom & Technologie",patterns:[/\b(telekom|telecom|telecommunications?|mobile network|internet provider|broadband provider|telefoonprovider)\b/i,/\b(fiber|fibre|glasvezel|internet|mobile|mobiel|5g|4g|broadband|telefonie|tv pakket)\b/i],modules:["core_seo","geo","technical","telecom_technology"]},
       {sector:"news_media",label:"Nieuws & Media",patterns:[/\b(nieuws|news|journalist|redactie|breaking news|sportnieuws|nieuwsartikel|newsarticle)\b/i,/\b(binnenland|buitenland|politiek|sport|economie)\b/i],modules:["core_seo","geo","news_media"]},
       {sector:"tourism_recreation",label:"Toerisme & Recreatie",patterns:[/\b(toerisme|tourism board|tourist information|destination management|citymarketing|visitor centre|visitor center|v v v|bezoekerscentrum)\b/i,/\b(toeristische informatie|tourist attractions|bezienswaardigheden|guided tours|excursies|things to do)\b/i],modules:["core_seo","geo","local","tourism_recreation"]},
@@ -2253,14 +2253,14 @@ export async function POST(request: Request) {
     const hasMatchingVisibleStructuredPrice = canCompareVisibleAndStructuredPrice && structuredPriceCandidates.some((schemaPrice) =>
       visiblePriceCandidates.some((visiblePrice) => Math.abs(visiblePrice - schemaPrice) < 0.005)
     );
-    const visibleStockSignal = /\b(op voorraad|voorraad|in stock|out of stock|uitverkocht|sold out|pre-?order|backorder|niet op voorraad|auf lager|nicht auf lager|ausverkauft|vorbestellung|en stock|rupture de stock|épuisé|epuise|précommande|precommande|disponibile|disponibilità|disponibilita|esaurito|non disponibile|preordine|agotado|sin stock|no disponible|preventa)\b/i.test(text);
+    const visibleStockSignal = /(?<![A-Za-z0-9_])(op voorraad|voorraad|in stock|out of stock|uitverkocht|sold out|pre-?order|backorder|niet op voorraad|auf lager|nicht auf lager|ausverkauft|vorbestellung|en stock|rupture de stock|épuisé|epuise|précommande|precommande|disponibile|disponibilità|disponibilita|esaurito|non disponibile|preordine|agotado|sin stock|no disponible|preventa)(?![A-Za-z0-9_])/i.test(text);
     // Availability must be unambiguous before comparing it with Product/Offer schema.
     // Global navigation, recommendations and hidden variant text can contain several states.
     const visibleAvailabilityMatches = {
-      out_of_stock: text.match(/\b(niet op voorraad|out of stock|uitverkocht|sold out|nicht auf lager|ausverkauft|rupture de stock|épuisé|epuise|esaurito|non disponibile|agotado|sin stock|no disponible)\b/gi) || [],
+      out_of_stock: text.match(/(?<![A-Za-z0-9_])(niet op voorraad|out of stock|uitverkocht|sold out|nicht auf lager|ausverkauft|rupture de stock|épuisé|epuise|esaurito|non disponibile|agotado|sin stock|no disponible)(?![A-Za-z0-9_])/gi) || [],
       preorder: text.match(/\b(pre-?order|vorbestellung|précommande|precommande|preordine|preventa)\b/gi) || [],
       backorder: text.match(/\b(backorder|lieferrückstand|lieferrueckstand|commande en attente|ordine arretrato|pedido pendiente)\b/gi) || [],
-      in_stock: text.match(/\b(op voorraad|in stock|auf lager|en stock|disponibile|disponibilità|disponibilita)\b/gi) || [],
+      in_stock: text.match(/\b(op voorraad|in stock|auf lager|en stock|disponibile|disponibilità|disponibilita)(?![A-Za-z0-9_])/gi) || [],
     };
     type AvailabilityState = "out_of_stock" | "preorder" | "backorder" | "in_stock";
     const visibleAvailabilityStates: AvailabilityState[] = (Object.keys(visibleAvailabilityMatches) as AvailabilityState[])

@@ -149,7 +149,7 @@ export function buildScanEvidence(input: {
   const addressText = has(text, /\b(adres|address|adresse|indirizzo|dirección)\b/i);
   const address = addressSchema || addressText;
   const openingHoursSchema = schemaHas("OpeningHoursSpecification");
-  const openingHoursText = has(text, /\b(openingstijden|opening hours|öffnungszeiten|horaires|orari|horario)\b/i);
+  const openingHoursText = has(text, /(?<![A-Za-z0-9_])(openingstijden|opening hours|öffnungszeiten|horaires|orari|horario)\b/i);
   const openingHours = openingHoursSchema || openingHoursText;
   const reviewsSchema = schemaHas("Review", "AggregateRating");
   const reviewsText = has(text, /\b(reviews?|beoordelingen|bewertungen|avis|recensioni|reseñas)\b/i);
