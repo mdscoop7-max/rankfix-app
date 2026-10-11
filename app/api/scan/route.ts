@@ -3715,7 +3715,21 @@ export async function POST(request: Request) {
           return { ...page, status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"http",status:"UNABLE_TO_CONFIRM",details:`HTTP ${r.status}; pagina kon niet betrouwbaar als HTML worden beoordeeld na begrensde recovery.`}] };
         }
         // The scanned page already passed the main-page size limit.
-        pageHtml = pageHtml || (isScannedPage ? html : await readResponseTextLimited(r, 2_000_000));
+        // Large storefront pages (often 2–10 MB of inline JSON) are read up to 3 MB.
+        // The <head> (title, description, canonical, robots) sits at the start, so it
+        // stays fully assessable; body-only signals of a truncated page stay unconfirmed.
+        const representativeReadLimit = 3_000_000;
+        let representativeTruncated = false;
+        if (!pageHtml) {
+          if (isScannedPage) pageHtml = html;
+          else {
+            pageHtml = await readResponsePrefix(r, representativeReadLimit);
+            representativeTruncated = Buffer.byteLength(pageHtml, "utf8") >= representativeReadLimit - 4;
+          }
+        }
+        if (representativeTruncated && !/<\/head>/i.test(pageHtml)) {
+          return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"fetch",status:"UNABLE_TO_CONFIRM",details:"Pagina groter dan 3 MB en de <head> viel buiten het gelezen deel; niet betrouwbaar te beoordelen."}] };
+        }
         // Representative pages need the same JS evidence opportunity as the primary
         // page. Otherwise a Nuxt/Next contact or booking page can look form-less in
         // raw HTML and incorrectly keep site-level capabilities unconfirmed.
@@ -3830,8 +3844,18 @@ export async function POST(request: Request) {
         const pageDescriptionAssessment = assessPageDescription(pageDescription, Boolean(pageDescriptionTag));
         // A JavaScript application shell that could not be rendered cannot prove a
         // missing title, description, H1 or canonical; those stay unconfirmed.
-        const pageClientShell = isClientShell({ visibleWords: pageQualityWords, scriptCount: (pageHtml.match(/<script\b/gi) || []).length, jsFramework: representativeJsFramework, h1Count: pageH1s.length, rendered: representativeEvidenceSource === "rendered_html" });
-        const clientShellNote = "De pagina laadt haar inhoud via JavaScript en browser-rendering was niet beschikbaar; dit wordt daarom niet als ontbrekend beoordeeld.";
+        // Same rule for a page that the site's bot manager served in reduced form
+        // (no JSON-LD, no Open Graph, no H1): its absences prove nothing either.
+        const pageReducedBotResponse = representativeEvidenceSource !== "rendered_html" && isReducedBotResponse({
+          botCookies: botCookieNames,
+          jsonLdBlocks: (pageHtml.match(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["']/gi) || []).length,
+          ogTags: (pageHtml.match(/<meta\b[^>]*property\s*=\s*["']og:/gi) || []).length,
+          h1Count: pageH1s.length,
+        });
+        const pageClientShell = pageReducedBotResponse || isClientShell({ visibleWords: pageQualityWords, scriptCount: (pageHtml.match(/<script\b/gi) || []).length, jsFramework: representativeJsFramework, h1Count: pageH1s.length, rendered: representativeEvidenceSource === "rendered_html" });
+        const clientShellNote = pageReducedBotResponse
+          ? "De website gaf voor deze pagina een uitgeklede versie via bot-beveiliging; dit wordt daarom niet als ontbrekend beoordeeld."
+          : "De pagina laadt haar inhoud via JavaScript en browser-rendering was niet beschikbaar; dit wordt daarom niet als ontbrekend beoordeeld.";
         // A page that asks search engines not to index it does not represent the
         // website in search results and is not scored.
         const pageNoindex = /<meta\b[^>]*name\s*=\s*["'](?:robots|googlebot)["'][^>]*content\s*=\s*["'][^"']*\bnoindex\b/i.test(pageHtml)
@@ -3844,7 +3868,7 @@ export async function POST(request: Request) {
           {key:"http",status:"PASS",details:`HTTP ${r.status}`},
           {key:"title",status:pageTitleAssessment.status==="PASS"?"PASS":pageClientShell?"UNABLE_TO_CONFIRM":"WARNING",details:pageTitleAssessment.status!=="PASS"&&pageClientShell?`${pageTitleAssessment.details} ${clientShellNote}`:pageTitleAssessment.details},
           {key:"description",status:pageDescriptionAssessment.status==="PASS"?"PASS":pageClientShell?"UNABLE_TO_CONFIRM":"WARNING",details:pageDescriptionAssessment.status!=="PASS"&&pageClientShell?`${pageDescriptionAssessment.details} ${clientShellNote}`:pageDescriptionAssessment.details},
-          {key:"h1",status:pageH1s.length>0?"PASS":pageClientShell?"UNABLE_TO_CONFIRM":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:pageH1s.length===0&&pageClientShell?`0 H1-heading(s) gevonden in de raw HTML. ${clientShellNote}`:`${pageH1s.length} H1-heading(s) gevonden.`},
+          {key:"h1",status:pageH1s.length>0?"PASS":(pageClientShell||representativeTruncated)?"UNABLE_TO_CONFIRM":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:pageH1s.length===0&&representativeTruncated&&!pageClientShell?"Pagina groter dan 3 MB; in het gelezen deel staat geen H1, de rest kon niet worden gecontroleerd.":pageH1s.length===0&&pageClientShell?`0 H1-heading(s) gevonden in de raw HTML. ${clientShellNote}`:`${pageH1s.length} H1-heading(s) gevonden.`},
           {key:"canonical",status:pageCanonical
             ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); if(!/^https?:$/.test(resolved.protocol)) return "WARNING"; return normalizeScanUrl(resolved.toString())===normalizeScanUrl(finalCandidate.toString())?"PASS":"WARNING"; } catch { return "WARNING"; } })()
             : pageClientShell ? "UNABLE_TO_CONFIRM" : "WARNING",
