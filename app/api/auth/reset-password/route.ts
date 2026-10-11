@@ -27,8 +27,10 @@ export async function POST(request: Request) {
     }
 
     await ensureDatabase();
+    // Claim the token atomically: of two concurrent requests with the same token,
+    // only one gets a row back, so a reset link works exactly once.
     const result = await getDb().query(
-      "SELECT user_id FROM password_reset_tokens WHERE token_hash=$1 AND expires_at>NOW()",
+      "DELETE FROM password_reset_tokens WHERE token_hash=$1 AND expires_at>NOW() RETURNING user_id",
       [hashToken(token)]
     );
     const reset = result.rows[0];
@@ -40,8 +42,10 @@ export async function POST(request: Request) {
     const passwordHash = await hashPassword(password);
     await getDb().query("UPDATE users SET password_hash=$1 WHERE id=$2",[passwordHash,reset.user_id]);
 
-    // Invalidate this token and any other outstanding reset tokens for the user.
+    // Invalidate any other outstanding reset tokens and every existing session, so a
+    // device that knew the old password is signed out.
     await getDb().query("DELETE FROM password_reset_tokens WHERE user_id=$1",[reset.user_id]);
+    await getDb().query("DELETE FROM sessions WHERE user_id=$1",[reset.user_id]);
 
     // Start a fresh authenticated session so the customer can continue immediately.
     await createSession(reset.user_id);
