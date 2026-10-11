@@ -1,0 +1,82 @@
+/* RankFix System Health — light, readable admin dashboard.
+   Scoped deliberately to this page; other dashboard screens remain unchanged. */
+.rf-body.rf-health.rf-health-v2{
+  --hc-ink:#17243a;--hc-muted:#51637b;--hc-border:#dbe5f0;
+  --hc-blue:#1769d2;--hc-shadow:0 5px 20px rgba(32,59,96,.055);
+  background:#f7f9fd!important;color:var(--hc-ink)!important;
+}
+.rf-health-v2 .rf-health-head{align-items:center;gap:18px;margin:18px 0 20px}
+.rf-health-v2 .rf-health-head h1{color:var(--hc-ink)!important;font-size:clamp(28px,3vw,36px);line-height:1.18;letter-spacing:-.03em}
+.rf-health-v2 .rf-eyebrow{color:#1769d2!important;font-size:12px;font-weight:800;letter-spacing:.055em}
+.rf-health-v2 .rf-health-head p{color:var(--hc-muted)!important;font-size:15px!important;line-height:1.55!important}
+.rf-health-v2 .rf-health-actions{gap:12px}
+.rf-health-v2 .rf-health-actions small{padding:8px 12px;border:1px solid var(--hc-border);border-radius:10px;background:#fff;color:var(--hc-muted)!important;font-size:12px;line-height:1.5}
+.rf-health-v2 .rf-health-actions small strong{color:var(--hc-ink)!important;font-size:13px}
+.rf-health-v2 .rf-health-actions .rf-primary-button{min-height:46px;padding:10px 18px;border-radius:11px;background:#1769d2!important;color:#fff!important;font-size:14px!important;font-weight:800;box-shadow:0 4px 11px rgba(23,105,210,.14)}
+.rf-health-v2 .rf-primary-button:hover:not(:disabled){background:#0f55b0!important}
+.rf-health-v2 .rf-health-message{padding:9px 13px;border:1px solid #b9e6d7;background:#eefaf5;color:#087b58!important;border-radius:10px;font-size:14px!important}
+.rf-health-v2 .rf-alert{border-radius:10px;font-size:14px}
+.rf-health-v2 .rf-health-hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);gap:22px;align-items:center;padding:24px 26px;border:1px solid var(--hc-border);border-left:5px solid #4d89d6;border-radius:16px;background:#fff;box-shadow:var(--hc-shadow);color:var(--hc-ink)}
+.rf-health-v2 .rf-health-hero.green{border-color:#c8e7d9;border-left-color:#15966f;background:linear-gradient(115deg,#f2fcf7,#fff 50%)}
+.rf-health-v2 .rf-health-hero.orange{border-color:#f2d9a1;border-left-color:#b66d0b;background:linear-gradient(115deg,#fffaf0,#fff 55%)}
+.rf-health-v2 .rf-health-hero.red{border-color:#f1c7ce;border-left-color:#c4374f;background:linear-gradient(115deg,#fff4f5,#fff 55%)}
+.rf-health-v2 .rf-health-hero h2{margin:8px 0 0;font-size:clamp(27px,3vw,36px);font-weight:850;color:#1769d2!important}
+.rf-health-v2 .rf-health-hero.green h2{color:#087a56!important}
+.rf-health-v2 .rf-health-hero.orange h2{color:#975600!important}
+.rf-health-v2 .rf-health-hero.red h2{color:#aa263e!important}
+.rf-health-v2 .rf-health-hero p{color:#43556c!important;font-size:15px!important;line-height:1.55!important}
+.rf-health-v2 .rf-health-reason{padding:16px 18px;border:1px solid #e1e9f1;border-radius:12px;background:#fff;color:var(--hc-ink)}
+.rf-health-v2 .rf-health-reason>strong{color:var(--hc-ink)!important;font-size:15px}
+.rf-health-v2 .rf-health-reason>strong:before{background:#e7f7ef;color:#087a56}
+.rf-health-v2 .rf-health-hero.red .rf-health-reason>strong:before{background:#fce9ed;color:#aa263e}
+.rf-health-v2 .rf-health-hero.orange .rf-health-reason>strong:before{background:#fff0d7;color:#975600}
+.rf-health-v2 .rf-health-reason p{margin-top:8px;color:#43556c!important;font-size:14px!important}
+.rf-health-v2 .rf-health-section-title{margin:26px 0 12px;color:var(--hc-ink)!important;font-size:19px;font-weight:850}
+.rf-health-v2 .rf-health-metrics{gap:12px}
+.rf-health-v2 .rf-health-metrics article{padding:17px 15px;border:1px solid var(--hc-border);border-radius:13px;background:#fff;box-shadow:var(--hc-shadow)}
+.rf-health-v2 .rf-health-metrics article>span{color:var(--hc-muted)!important;font-size:13px;font-weight:700;line-height:1.4}
+.rf-health-v2 .rf-health-metrics article>strong{margin:9px 0;color:var(--hc-ink)!important;font-size:25px;line-height:1.2;overflow-wrap:anywhere}
+.rf-health-v2 .rf-health-metrics article>p{margin-top:10px;color:var(--hc-muted)!important;font-size:13px!important;line-height:1.5!important}
+.rf-health-v2 .rf-health-state{display:inline-flex;align-items:center;gap:5px;max-width:100%;padding:5px 9px;border-radius:100px;background:#eef2f7;color:#53627a!important;font-size:12px!important;line-height:1.2;font-weight:800;white-space:nowrap}
+.rf-health-v2 .rf-health-state.green{background:#e8f7ef;color:#087751!important}
+.rf-health-v2 .rf-health-state.orange{background:#fff2d9;color:#895100!important}
+.rf-health-v2 .rf-health-state.red{background:#ffebee;color:#a4263b!important}
+.rf-health-v2 .rf-health-state.unknown{background:#eef2f7;color:#53627a!important}
+.rf-health-v2 .rf-health-overview{gap:14px;margin-top:16px}
+.rf-health-v2 .rf-health-panel{overflow:hidden;border:1px solid var(--hc-border);border-radius:13px;background:#fff;box-shadow:var(--hc-shadow)}
+.rf-health-v2 .rf-health-panel-head{padding:17px 18px;border-bottom:1px solid #e7edf3}
+.rf-health-v2 .rf-health-panel-head h2{color:var(--hc-ink)!important;font-size:16px}
+.rf-health-v2 .rf-health-panel-head span{color:var(--hc-muted)!important;font-size:12px}
+.rf-health-v2 .rf-health-row{padding:12px 18px;border-bottom:1px solid #edf1f6;font-size:13px;align-items:center}
+.rf-health-v2 .rf-health-row>span{color:#44566c!important;font-size:13px}
+.rf-health-v2 .rf-health-empty{padding:20px}
+.rf-health-v2 .rf-health-empty strong{color:#087751!important;font-size:14px}
+.rf-health-v2 .rf-health-empty p{color:var(--hc-muted)!important;font-size:13px!important}
+.rf-health-v2 .rf-health-components-intro{margin:-4px 0 14px;color:var(--hc-muted)!important;font-size:14px!important}
+.rf-health-v2 .rf-health-components{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.rf-health-v2 .rf-health-component-detail{min-width:0;overflow:hidden;border:1px solid var(--hc-border);border-radius:13px;background:#fff;box-shadow:var(--hc-shadow)}
+.rf-health-v2 .rf-health-component-detail.orange{border-left:4px solid #c98b22}
+.rf-health-v2 .rf-health-component-detail.red{border-left:4px solid #c4374f}
+.rf-health-v2 .rf-health-component-detail.green{border-left:4px solid #1b9872}
+.rf-health-v2 .rf-health-component-detail.unknown{border-left:4px solid #a8b6c7}
+.rf-health-v2 .rf-health-component-detail summary{display:flex;align-items:center;justify-content:space-between;gap:14px;min-height:94px;padding:17px 18px;list-style:none;cursor:pointer}
+.rf-health-v2 .rf-health-component-detail summary::-webkit-details-marker{display:none}
+.rf-health-v2 .rf-health-component-detail summary>div{min-width:0;flex:1}
+.rf-health-v2 .rf-health-component-title{display:flex;align-items:center;flex-wrap:wrap;gap:9px}
+.rf-health-v2 .rf-health-component-title>strong{color:var(--hc-ink)!important;font-size:15px}
+.rf-health-v2 .rf-health-component-detail summary p{margin-top:8px;color:var(--hc-muted)!important;font-size:13px!important;line-height:1.5!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rf-health-v2 .rf-health-chevron{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:9px;background:#edf5ff;color:#1769d2!important;font-size:21px;line-height:1}
+.rf-health-v2 .rf-health-component-detail[open]{border-color:#bfd4ec}
+.rf-health-v2 .rf-health-component-detail[open] .rf-health-chevron{transform:rotate(180deg)}
+.rf-health-v2 .rf-health-component-detail summary:hover{background:#f8fbff}
+.rf-health-v2 .rf-health-component-detail summary:focus-visible{outline:3px solid #2784ff;outline-offset:-3px}
+.rf-health-v2 .rf-health-component-body{padding:0 18px 18px}
+.rf-health-v2 .rf-health-component-check{margin-top:10px;padding:14px;border:1px solid #e4ecf4;border-radius:11px;background:#f7faff}
+.rf-health-v2 .rf-health-component-check>strong{margin-top:9px;color:var(--hc-ink)!important;font-size:14px}
+.rf-health-v2 .rf-health-component-check>p,.rf-health-v2 .rf-health-component-check>small{color:var(--hc-muted)!important;font-size:13px!important;line-height:1.5!important}
+.rf-health-v2 .rf-health-info{margin-top:22px;padding:17px 19px;border:1px solid #d9e7fa;border-radius:12px;background:#f0f7ff}
+.rf-health-v2 .rf-health-info strong{color:#184b8a!important;font-size:14px}
+.rf-health-v2 .rf-health-info p{color:#435c7a!important;font-size:14px!important;line-height:1.55!important}
+@media(max-width:900px){.rf-health-v2 .rf-health-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.rf-health-v2 .rf-health-hero{grid-template-columns:1fr}.rf-health-v2 .rf-health-overview{grid-template-columns:1fr}}
+@media(max-width:680px){.rf-health-v2 .rf-health-head{flex-direction:column;align-items:stretch}.rf-health-v2 .rf-health-actions{width:100%;justify-content:space-between}.rf-health-v2 .rf-health-components{grid-template-columns:1fr}.rf-health-v2 .rf-health-hero{padding:18px}.rf-health-v2 .rf-health-section-title{font-size:18px}.rf-health-v2 .rf-health-component-detail summary{min-height:80px}.rf-health-v2 .rf-health-panel-head{padding:14px}.rf-health-v2 .rf-health-row{padding:12px 14px}}
+@media(max-width:420px){.rf-health-v2 .rf-health-actions{flex-direction:column;align-items:stretch}.rf-health-v2 .rf-health-actions small{text-align:left}.rf-health-v2 .rf-health-actions button{width:100%}.rf-health-v2 .rf-health-metrics{grid-template-columns:1fr 1fr}.rf-health-v2 .rf-health-metrics article{padding:13px}.rf-health-v2 .rf-health-metrics article>strong{font-size:21px}.rf-health-v2 .rf-health-reason{padding:12px}}
