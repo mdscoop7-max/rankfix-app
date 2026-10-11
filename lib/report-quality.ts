@@ -248,7 +248,9 @@ export function titleTemplatePattern(titles: string[], host = ""): { suffix: str
     // problem; only long slogans or claims (20+ characters) are reported.
     .filter(([suffix, pages]) => pages >= 3 && suffix.trim().length >= 20)
     .map(([suffix, pages]) => ({ suffix, pages, overLimit: valid.filter((title) => title.endsWith(suffix) && title.length > 60).length }))
-    .filter((item) => item.overLimit >= 2);
+    // Only a pattern shared by at least four titles and responsible for at least three
+    // over-long ones is a real template issue, not a few hand-written titles.
+    .filter((item) => item.pages >= 4 && item.overLimit >= 3);
   if (!candidates.length) return null;
   // Prefer the tail that carries the brand, then the one that explains the most
   // over-long titles, then the most pages, then the shortest (the template itself).

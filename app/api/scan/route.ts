@@ -2080,7 +2080,8 @@ export async function POST(request: Request) {
         return { href, label, aria, title: titleAttr, haystack: normalizeLegalText([href, label, aria, titleAttr].join(" ")) };
       });
     const legalLexicon = {
-      privacy: /\b(?:privacy|privacybeleid|privacy policy|privacidade|privatnost\w*|zasebnost\w*|datenschutz|confidentialite|vie privee|privacidad|riservatezza)\b/i,
+      // Dutch/German compounds ("privacyverklaring", "privacystatement", "datenschutzerklarung") count too.
+      privacy: /\b(?:privacy\w*|privacy policy|privacidade|privatnost\w*|zasebnost\w*|datenschutz\w*|confidentialite|vie privee|privacidad|riservatezza)\b/i,
       cookies: /\b(?:cookie\w*|piskotk\w*|kolacic\w*|galleta\w*|biscott\w*)\b/i,
       terms: /\b(?:voorwaarden|terms|conditions|agb|cgv|condiciones|condizioni|termos|uvjet\w*|pogoj\w*|conditions generales)\b/i,
     };
