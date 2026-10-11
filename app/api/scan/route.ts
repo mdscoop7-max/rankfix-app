@@ -18,14 +18,18 @@ import { applyEvidenceBasedScoreCap, SCORE_MODEL_VERSION, scoreApplicableChecks,
 import { isPaidPlan, normalizePlan, planLimits } from "@/lib/plans";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
-import { renderPublicPage } from "@/lib/headless-render";
+import { createRenderBudget, renderPublicPage } from "@/lib/headless-render";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
-import { isSubstantiveRender, renderImprovesEvidence } from "@/lib/render-quality";
+import { isSubstantiveRender, renderImprovesEvidence, renderIsErrorState, withServerHead } from "@/lib/render-quality";
 import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDetailPath, productUrlsFromSitemap } from "@/lib/product-links";
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
 import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes } from "@/lib/sector-identity";
+
+// Vercel function limit for a full scan (fetches, representative pages and bounded
+// rendering). Rendering itself stops starting new pages well before this deadline.
+export const maxDuration = 300;
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -514,6 +518,9 @@ export async function POST(request: Request) {
     }
 
     const started = Date.now();
+    // Bounded browser rendering for this scan: a fixed number of renders and a time
+    // deadline. When the budget runs out, pages keep their raw-HTML evidence.
+    const renderBudget = createRenderBudget();
     let response: Response;
     let fetchedFinalUrl: URL | null = null;
     let redirectChain: Array<{ from: string; to: string; status: number }> = [];
@@ -582,7 +589,7 @@ export async function POST(request: Request) {
     if (!response.ok && (response.status === 202 || response.status === 403 || response.status === 405)) {
       recovery.attempted = true;
       try {
-        const recovered = await renderPublicPage(finalUrl.toString(), 12000);
+        const recovered = await renderPublicPage(finalUrl.toString(), 12000, renderBudget);
         // A blocked render (challenge or empty shell with only a <title>) is not a recovery.
         if (!isSubstantiveRender(recovered.html)) recovery.reason = "RECOVERY_RENDER_NOT_SUBSTANTIVE";
         else {
@@ -630,10 +637,13 @@ export async function POST(request: Request) {
     let renderFallbackReason: string | null = recovery.reason;
     if (javascriptCandidate) {
       try {
-        const rendered = await renderPublicPage(finalUrl.toString(), 12000);
+        const rendered = await renderPublicPage(finalUrl.toString(), 12000, renderBudget);
         // Never replace richer raw evidence with a poorer (blocked or partial) render.
-        if (renderImprovesEvidence(rawVisibleWords, thinClientShell, rendered.html)) {
-          html = rendered.html;
+        if (renderIsErrorState(rawHtml, rendered.html)) {
+          // The JavaScript app ended in an error/noindex state; the server page stays.
+          renderFallbackReason = "RENDER_DEGRADED";
+        } else if (renderImprovesEvidence(rawVisibleWords, thinClientShell, rendered.html)) {
+          html = withServerHead(rawHtml, rendered.html, thinClientShell);
           javascriptExecuted = true;
           renderElapsedMs = rendered.elapsedMs;
         } else {
@@ -657,7 +667,7 @@ export async function POST(request: Request) {
       || /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform|radware|incapsula|imperva|akamai bot manager|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test(preliminaryQualityText);
     if (preliminaryInterstitial && !javascriptExecuted) {
       try {
-        const recovered = await renderPublicPage(finalUrl.toString(), 12000);
+        const recovered = await renderPublicPage(finalUrl.toString(), 12000, renderBudget);
         if (isSubstantiveRender(recovered.html)) {
           html = recovered.html;
           javascriptExecuted = true;
@@ -2070,7 +2080,8 @@ export async function POST(request: Request) {
         return { href, label, aria, title: titleAttr, haystack: normalizeLegalText([href, label, aria, titleAttr].join(" ")) };
       });
     const legalLexicon = {
-      privacy: /\b(?:privacy|privacybeleid|privacy policy|privacidade|privatnost\w*|zasebnost\w*|datenschutz|confidentialite|vie privee|privacidad|riservatezza)\b/i,
+      // Dutch/German compounds ("privacyverklaring", "privacystatement", "datenschutzerklarung") count too.
+      privacy: /\b(?:privacy\w*|privacy policy|privacidade|privatnost\w*|zasebnost\w*|datenschutz\w*|confidentialite|vie privee|privacidad|riservatezza)\b/i,
       cookies: /\b(?:cookie\w*|piskotk\w*|kolacic\w*|galleta\w*|biscott\w*)\b/i,
       terms: /\b(?:voorwaarden|terms|conditions|agb|cgv|condiciones|condizioni|termos|uvjet\w*|pogoj\w*|conditions generales)\b/i,
     };
@@ -3696,7 +3707,7 @@ export async function POST(request: Request) {
         // opportunity as the primary page. A failed render remains UNABLE, never PASS.
         if (!r.ok && (r.status === 202 || r.status === 403 || r.status === 405)) {
           try {
-            const recoveredPage = await renderPublicPage(finalCandidate.toString(), 10000);
+            const recoveredPage = await renderPublicPage(finalCandidate.toString(), 10000, renderBudget);
             if (isSubstantiveRender(recoveredPage.html)) { pageHtml = recoveredPage.html; representativeEvidenceSource = "rendered_html"; }
           } catch {}
         }
@@ -3704,7 +3715,21 @@ export async function POST(request: Request) {
           return { ...page, status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"http",status:"UNABLE_TO_CONFIRM",details:`HTTP ${r.status}; pagina kon niet betrouwbaar als HTML worden beoordeeld na begrensde recovery.`}] };
         }
         // The scanned page already passed the main-page size limit.
-        pageHtml = pageHtml || (isScannedPage ? html : await readResponseTextLimited(r, 2_000_000));
+        // Large storefront pages (often 2–10 MB of inline JSON) are read up to 3 MB.
+        // The <head> (title, description, canonical, robots) sits at the start, so it
+        // stays fully assessable; body-only signals of a truncated page stay unconfirmed.
+        const representativeReadLimit = 3_000_000;
+        let representativeTruncated = false;
+        if (!pageHtml) {
+          if (isScannedPage) pageHtml = html;
+          else {
+            pageHtml = await readResponsePrefix(r, representativeReadLimit);
+            representativeTruncated = Buffer.byteLength(pageHtml, "utf8") >= representativeReadLimit - 4;
+          }
+        }
+        if (representativeTruncated && !/<\/head>/i.test(pageHtml)) {
+          return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"fetch",status:"UNABLE_TO_CONFIRM",details:"Pagina groter dan 3 MB en de <head> viel buiten het gelezen deel; niet betrouwbaar te beoordelen."}] };
+        }
         // Representative pages need the same JS evidence opportunity as the primary
         // page. Otherwise a Nuxt/Next contact or booking page can look form-less in
         // raw HTML and incorrectly keep site-level capabilities unconfirmed.
@@ -3715,9 +3740,11 @@ export async function POST(request: Request) {
         const representativeThinShell = representativeVisibleWords < 80 && representativeScriptCount >= 4;
         if (representativeJsFramework || representativeThinShell) {
           try {
-            const renderedPage = await renderPublicPage(finalCandidate.toString(), 10000);
-            if (renderImprovesEvidence(representativeVisibleWords, representativeThinShell, renderedPage.html)) {
-              pageHtml = renderedPage.html;
+            const renderedPage = await renderPublicPage(finalCandidate.toString(), 10000, renderBudget);
+            if (renderIsErrorState(representativeRawHtml, renderedPage.html)) {
+              page.evidence.push("javascript render ended in an error state; server HTML retained");
+            } else if (renderImprovesEvidence(representativeVisibleWords, representativeThinShell, renderedPage.html)) {
+              pageHtml = withServerHead(representativeRawHtml, renderedPage.html, representativeThinShell);
               representativeEvidenceSource = "rendered_html";
               page.evidence.push("javascript-rendered representative page");
             } else {
@@ -3817,8 +3844,22 @@ export async function POST(request: Request) {
         const pageDescriptionAssessment = assessPageDescription(pageDescription, Boolean(pageDescriptionTag));
         // A JavaScript application shell that could not be rendered cannot prove a
         // missing title, description, H1 or canonical; those stay unconfirmed.
-        const pageClientShell = isClientShell({ visibleWords: pageQualityWords, scriptCount: (pageHtml.match(/<script\b/gi) || []).length, jsFramework: representativeJsFramework, h1Count: pageH1s.length, rendered: representativeEvidenceSource === "rendered_html" });
-        const clientShellNote = "De pagina laadt haar inhoud via JavaScript en browser-rendering was niet beschikbaar; dit wordt daarom niet als ontbrekend beoordeeld.";
+        // Same rule for a page that the site's bot manager served in reduced form
+        // (no JSON-LD, no Open Graph, no H1): its absences prove nothing either.
+        const pageReducedBotResponse = representativeEvidenceSource !== "rendered_html" && (isReducedBotResponse({
+          botCookies: botCookieNames,
+          jsonLdBlocks: (pageHtml.match(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["']/gi) || []).length,
+          ogTags: (pageHtml.match(/<meta\b[^>]*property\s*=\s*["']og:/gi) || []).length,
+          h1Count: pageH1s.length,
+        }) || (
+          // On a site already proven to serve reduced bot pages, a sample page that
+          // lacks H1, description and canonical at once is the same reduced response.
+          reducedBotResponse && pageH1s.length === 0 && !pageQualityDescription && !/<link\b[^>]*rel\s*=\s*["'][^"']*canonical/i.test(pageHtml)
+        ));
+        const pageClientShell = pageReducedBotResponse || isClientShell({ visibleWords: pageQualityWords, scriptCount: (pageHtml.match(/<script\b/gi) || []).length, jsFramework: representativeJsFramework, h1Count: pageH1s.length, rendered: representativeEvidenceSource === "rendered_html" });
+        const clientShellNote = pageReducedBotResponse
+          ? "De website gaf voor deze pagina een uitgeklede versie via bot-beveiliging; dit wordt daarom niet als ontbrekend beoordeeld."
+          : "De pagina laadt haar inhoud via JavaScript en browser-rendering was niet beschikbaar; dit wordt daarom niet als ontbrekend beoordeeld.";
         // A page that asks search engines not to index it does not represent the
         // website in search results and is not scored.
         const pageNoindex = /<meta\b[^>]*name\s*=\s*["'](?:robots|googlebot)["'][^>]*content\s*=\s*["'][^"']*\bnoindex\b/i.test(pageHtml)
@@ -3831,7 +3872,7 @@ export async function POST(request: Request) {
           {key:"http",status:"PASS",details:`HTTP ${r.status}`},
           {key:"title",status:pageTitleAssessment.status==="PASS"?"PASS":pageClientShell?"UNABLE_TO_CONFIRM":"WARNING",details:pageTitleAssessment.status!=="PASS"&&pageClientShell?`${pageTitleAssessment.details} ${clientShellNote}`:pageTitleAssessment.details},
           {key:"description",status:pageDescriptionAssessment.status==="PASS"?"PASS":pageClientShell?"UNABLE_TO_CONFIRM":"WARNING",details:pageDescriptionAssessment.status!=="PASS"&&pageClientShell?`${pageDescriptionAssessment.details} ${clientShellNote}`:pageDescriptionAssessment.details},
-          {key:"h1",status:pageH1s.length>0?"PASS":pageClientShell?"UNABLE_TO_CONFIRM":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:pageH1s.length===0&&pageClientShell?`0 H1-heading(s) gevonden in de raw HTML. ${clientShellNote}`:`${pageH1s.length} H1-heading(s) gevonden.`},
+          {key:"h1",status:pageH1s.length>0?"PASS":(pageClientShell||representativeTruncated)?"UNABLE_TO_CONFIRM":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:pageH1s.length===0&&representativeTruncated&&!pageClientShell?"Pagina groter dan 3 MB; in het gelezen deel staat geen H1, de rest kon niet worden gecontroleerd.":pageH1s.length===0&&pageClientShell?`0 H1-heading(s) gevonden in de raw HTML. ${clientShellNote}`:`${pageH1s.length} H1-heading(s) gevonden.`},
           {key:"canonical",status:pageCanonical
             ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); if(!/^https?:$/.test(resolved.protocol)) return "WARNING"; return normalizeScanUrl(resolved.toString())===normalizeScanUrl(finalCandidate.toString())?"PASS":"WARNING"; } catch { return "WARNING"; } })()
             : pageClientShell ? "UNABLE_TO_CONFIRM" : "WARNING",
@@ -3926,7 +3967,7 @@ export async function POST(request: Request) {
         const listingPages = multiPageAudits.filter((item)=>item?.status==="audited" && (item.type==="category" || item.type==="other") && item.evidenceSource!=="rendered_html").slice(0,2);
         for (const listing of listingPages) {
           try {
-            const renderedListing = await renderPublicPage(listing.url, 10000);
+            const renderedListing = await renderPublicPage(listing.url, 10000, renderBudget);
             if (isSubstantiveRender(renderedListing.html)) productConfirmed = await auditProductCandidates(extractProductDetailLinks(renderedListing.html, listing.url, siteHost, 8));
           } catch {}
           if (productConfirmed) break;

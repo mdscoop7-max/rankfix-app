@@ -158,10 +158,25 @@ test("sitewide: a shared title suffix is reported as one template fix", () => {
     "Adidas Originals online kopen | Gratis verzending voor de meeste bestellingen* | Zalando",
     "Antony Morato online kopen | Gratis verzending voor de meeste bestellingen* | Zalando",
     "Björn Borg online kopen | Gratis verzending voor de meeste bestellingen* | Zalando",
+    "Dr. Martens online kopen | Gratis verzending voor de meeste bestellingen* | Zalando",
     "Topshop online shop | Snelle verzending | Zalando",
   ], "www.zalando.nl");
   assert.equal(zalando?.suffix.trim(), "| Gratis verzending voor de meeste bestellingen* | Zalando");
   assert.equal(titleTemplatePattern(["Over ons | Bakkerij", "Contact | Bakkerij", "Home | Bakkerij"], "bakkerij.nl"), null);
+  // Three hand-written titles sharing a tail are not a template issue (TransHeroes, 23:06 scan).
+  assert.equal(titleTemplatePattern([
+    "Transport Europa van/naar Nederland | Internationaal vervoer | TransHeroes",
+    "Transport Zuid-Amerika | Internationaal vervoer | TransHeroes",
+    "Transport Canada | Internationaal vervoer | TransHeroes",
+    "Transport Azië van/naar Nederland | TransHeroes",
+  ], "www.transheroes.com"), null);
+  // A short brand suffix is not reported as a template problem (TransHeroes, 22:32 scan).
+  assert.equal(titleTemplatePattern([
+    "Internationaal transport, zeevracht, luchtvracht & douane | TransHeroes",
+    "Contact | Stel je vraag over internationaal transport | TransHeroes",
+    "Speciaal & exceptioneel transport | Zwaar en buitenmaats | TransHeroes",
+    "Transport Azië van/naar Nederland | TransHeroes",
+  ], "www.transheroes.com"), null);
 });
 
 test("report text helpers: short URLs and real entity types", () => {
@@ -197,4 +212,13 @@ test("scan route wires the report-quality fixes", async () => {
   assert.match(report, /diagnosticRows\(data\)/);
   const puppeteerConfig = await readFile(new URL("../.puppeteerrc.cjs", import.meta.url), "utf8");
   assert.match(puppeteerConfig, /cacheDirectory: join\(__dirname, "\.cache", "puppeteer"\)/);
+});
+
+test("Dutch and German privacy compounds count as a privacy link", async () => {
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = route.match(/privacy: (\/\\b\(\?:privacy\\w\*[^\n]*\/i),/)?.[1];
+  assert.ok(source, "privacy lexicon found");
+  const lexicon = new Function(`return ${source}`)();
+  for (const label of ["privacyverklaring", "privacystatement", "privacy policy", "privacybeleid", "datenschutzerklarung"]) assert.equal(lexicon.test(label), true, label);
+  assert.equal(lexicon.test("algemene voorwaarden"), false);
 });
