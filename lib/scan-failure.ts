@@ -120,6 +120,8 @@ const FETCH_CATEGORY: Record<string, ScanFailureCategory> = {
   PROTOCOL_ERROR: "site_error",
   RESPONSE_TOO_LARGE: "scan_environment",
   FETCH_FAILED: "scan_environment",
+  EMPTY_DOCUMENT: "site_error",
+  JAVASCRIPT_NOT_RENDERED: "scan_environment",
 };
 
 /** Classifies a thrown network/fetch error (DNS, TLS, connection, redirects, SSRF guard). */
@@ -211,6 +213,8 @@ const REASONS: Record<string, Copy> = {
   REDIRECT_LIMIT: { nl: "te veel opeenvolgende redirects", en: "too many consecutive redirects", de: "zu viele aufeinanderfolgende Weiterleitungen", fr: "trop de redirections successives", it: "troppi reindirizzamenti consecutivi", es: "demasiadas redirecciones consecutivas" },
   PROTOCOL_ERROR: { nl: "de server stuurde een ongeldige HTTP-response", en: "the server sent an invalid HTTP response", de: "der Server hat eine ungültige HTTP-Antwort gesendet", fr: "le serveur a envoyé une réponse HTTP invalide", it: "il server ha inviato una risposta HTTP non valida", es: "el servidor envió una respuesta HTTP no válida" },
   RESPONSE_TOO_LARGE: { nl: "de pagina is groter dan de veilige scanlimiet", en: "the page exceeds the safe scan size limit", de: "die Seite überschreitet das sichere Scan-Limit", fr: "la page dépasse la limite de taille sécurisée", it: "la pagina supera il limite di dimensione sicuro", es: "la página supera el límite de tamaño seguro" },
+  EMPTY_DOCUMENT: { nl: "de pagina bevat geen inhoud (geen titel, beschrijving of tekst)", en: "the page contains no content (no title, description or text)", de: "die Seite enthält keinen Inhalt (kein Titel, keine Beschreibung, kein Text)", fr: "la page ne contient aucun contenu (ni titre, ni description, ni texte)", it: "la pagina non contiene contenuti (nessun titolo, descrizione o testo)", es: "la página no tiene contenido (sin título, descripción ni texto)" },
+  JAVASCRIPT_NOT_RENDERED: { nl: "de pagina toont alleen inhoud via JavaScript en JavaScript kon in deze scan niet worden uitgevoerd", en: "the page only shows content through JavaScript, which could not be executed in this scan", de: "die Seite zeigt Inhalte nur per JavaScript, das in diesem Scan nicht ausgeführt werden konnte", fr: "la page n’affiche son contenu que via JavaScript, qui n’a pas pu être exécuté lors de cette analyse", it: "la pagina mostra i contenuti solo tramite JavaScript, che non è stato possibile eseguire in questa scansione", es: "la página solo muestra contenido mediante JavaScript, que no se pudo ejecutar en este análisis" },
   FETCH_FAILED: { nl: "onbekende netwerkfout", en: "unknown network error", de: "unbekannter Netzwerkfehler", fr: "erreur réseau inconnue", it: "errore di rete sconosciuto", es: "error de red desconocido" },
   URL_HOST_BLOCKED: { nl: "het adres is intern of lokaal", en: "the address is internal or local", de: "die Adresse ist intern oder lokal", fr: "l’adresse est interne ou locale", it: "l’indirizzo è interno o locale", es: "la dirección es interna o local" },
   URL_IP_BLOCKED: { nl: "het IP-adres is intern of gereserveerd", en: "the IP address is internal or reserved", de: "die IP-Adresse ist intern oder reserviert", fr: "l’adresse IP est interne ou réservée", it: "l’indirizzo IP è interno o riservato", es: "la dirección IP es interna o reservada" },

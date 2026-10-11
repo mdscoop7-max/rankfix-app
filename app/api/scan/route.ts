@@ -619,7 +619,8 @@ export async function POST(request: Request) {
     // Modern commerce/product pages can contain large SSR payloads and JSON-LD. Keep a strict cap, but allow enough room to audit them safely.
     let html = recoveredHtml ?? await readResponseTextLimited(response, 8_000_000);
     if (!html || html.length < 20) {
-      return NextResponse.json({ error: scanError.html, recovery }, { status: 422 });
+      const emptyFailure = classifyFetchError(new Error("EMPTY_DOCUMENT"));
+      return NextResponse.json(scanFailurePayload({ ...emptyFailure, httpStatus: response.status }, scanLanguage, { recovery }), { status: apiStatusForFailure(emptyFailure) });
     }
 
     const rawHtml = recoveredHtml ? "" : html;
@@ -688,7 +689,16 @@ export async function POST(request: Request) {
     // empty, so legitimate 202 endpoints are not rejected on status alone.
     const nonStandardEmptyDocument = response.status !== 200 && qualityWords < 40 && !qualityTitle && !qualityDescription;
     const emptyDocument = qualityWords < 15 && !qualityTitle && !qualityDescription;
-    if (strongInterstitialTitle || (strongInterstitialBody && qualityWords < 350) || nonStandardEmptyDocument || emptyDocument) {
+    const interstitialDetected = strongInterstitialTitle || (strongInterstitialBody && qualityWords < 350);
+    if (!interstitialDetected && (nonStandardEmptyDocument || emptyDocument)) {
+      // An empty page is not a challenge page. If it is a JavaScript shell that could not be
+      // rendered, that is a limit of this scan; otherwise the website delivered no content.
+      const emptyFailure = javascriptCandidate && !javascriptExecuted
+        ? classifyFetchError(new Error("JAVASCRIPT_NOT_RENDERED"))
+        : classifyFetchError(new Error("EMPTY_DOCUMENT"));
+      return NextResponse.json(scanFailurePayload({ ...emptyFailure, httpStatus: response.status }, scanLanguage, { recovery }), { status: apiStatusForFailure(emptyFailure) });
+    }
+    if (interstitialDetected) {
       const qualityMessages: Record<string,string> = {
         nl:"Website kon niet betrouwbaar worden geanalyseerd. De server leverde een tussen-, challenge- of routingpagina in plaats van de verwachte website. Er is daarom geen score berekend.",
         en:"The website could not be analysed reliably. The server returned an interstitial, challenge or routing page instead of the expected website, so no score was calculated.",

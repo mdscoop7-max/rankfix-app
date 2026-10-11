@@ -55,3 +55,21 @@ test("non-http schemes typed by a customer are refused as unsafe, not as a stran
   const route = await read("app/api/scan/route.ts");
   assert.match(route, /throw new Error\("URL_PROTOCOL_BLOCKED"\)/);
 });
+
+test("a failed scan never registers scan usage: usage is written only after every failure exit", async () => {
+  const route = await read("app/api/scan/route.ts");
+  const usageInsert = route.indexOf("INSERT INTO usage_events");
+  assert.ok(usageInsert > 0);
+  const lastFailureExit = route.lastIndexOf("scanFailurePayload(");
+  assert.ok(lastFailureExit > 0 && lastFailureExit < usageInsert, "all classified failure responses come before the usage insert");
+  const lastQualityExit = route.lastIndexOf("qualityMessages[scanLanguage], charged: false");
+  assert.ok(lastQualityExit > 0 && lastQualityExit < usageInsert);
+  assert.match(route.slice(usageInsert - 200, usageInsert), /if \(dashboardScan\)/);
+});
+
+test("empty documents are not reported as challenge pages", async () => {
+  const route = await read("app/api/scan/route.ts");
+  assert.match(route, /if \(!interstitialDetected && \(nonStandardEmptyDocument \|\| emptyDocument\)\)/);
+  assert.match(route, /new Error\("JAVASCRIPT_NOT_RENDERED"\)/);
+  assert.match(route, /new Error\("EMPTY_DOCUMENT"\)/);
+});

@@ -305,3 +305,20 @@ test("plain errors carrying a known code keep their category (legacy throw sites
   assert.equal(classifyFetchError(new Error("REDIRECT_LIMIT")).category, "site_error");
   assert.equal(classifyFetchError(new Error("something unexpected")).category, "scan_environment");
 });
+
+test("2xx variants (200/201/204) are never failures; empty and JS-only pages get their own honest message", () => {
+  for (const status of [200, 201, 202, 204]) assert.equal(classifyHttpStatus(status), null, `HTTP ${status}`);
+  const empty = classifyFetchError(new Error("EMPTY_DOCUMENT"));
+  assert.equal(empty.category, "site_error");
+  const jsOnly = classifyFetchError(new Error("JAVASCRIPT_NOT_RENDERED"));
+  assert.equal(jsOnly.category, "scan_environment");
+  for (const lang of LANGS) {
+    for (const failure of [empty, jsOnly]) {
+      const message = scanFailureMessage(failure, lang);
+      assert.ok(message.length > 40);
+      assert.doesNotMatch(message, /[{}]/);
+      assert.doesNotMatch(message, /challenge|routing/i, "an empty page is not described as a challenge page");
+    }
+  }
+  assert.match(scanFailureMessage(jsOnly, "nl"), /JavaScript/);
+});
