@@ -279,3 +279,74 @@ test("business website with only a WooCommerce fingerprint (no shop) never gets 
   assert.notEqual(decision.sector, "ecommerce");
   assert.ok(decision.secondaryActivities.some(item => item.sector === "ecommerce" && /niet bevestigd/.test(item.label)), "shown only as an unconfirmed hint");
 });
+
+// --- Specialist schema + own title/heading vs. a full purchase flow ---------------------------
+const orderMenu = Array.from({ length: 10 }, (_, i) => `<div class="dish"><a href="/bestellen/pizza-${i}">Pizza ${i}</a> € ${9 + i},50 <button>Toevoegen aan winkelwagen</button></div>`).join("");
+
+test("restaurant with Restaurant schema and its own online ordering (full menu cart) stays a restaurant; ordering is a confirmed commerce function", () => {
+  const html = `<html><head><title>Pizzeria Bella – online bestellen en bezorgen</title></head><body><a href="/winkelwagen">Winkelwagen</a> Menukaart ${orderMenu}
+    Bezorgen of afhalen. <a href="/reserveren">Reserveer een tafel</a>${ld({ "@type": "Restaurant", name: "Bella", servesCuisine: "Italian" })}</body></html>`;
+  const decision = decide(html, { identity: ["hospitality"], bodySectors: ["transport_travel"] });
+  assert.equal(decision.sector, "hospitality");
+  assert.equal(decision.role, "specialist_business");
+  assert.equal(decision.commerceConfirmed, true, "checkout checks stay active for the ordering flow");
+  assert.equal(decision.storefrontGrade, "strong");
+  assert.ok(decision.reasons.some(reason => /titel\/koppen\/omschrijving/.test(reason)));
+});
+
+test("garage with AutoRepair schema and an online tyre shop stays automotive", () => {
+  const tyres = Array.from({ length: 8 }, (_, i) => `<div><a href="/banden/winterband-${i}">Winterband ${i}</a> € ${69 + i},00 <button>In winkelwagen</button></div>`).join("");
+  const html = `<html><head><title>Autobedrijf Jansen – APK, onderhoud en banden</title></head><body><a href="/afspraak">APK afspraak maken</a> <a href="/winkelwagen">Winkelwagen</a> ${tyres}
+    ${ld({ "@type": "AutoRepair", name: "Jansen" })}</body></html>`;
+  const decision = decide(html, { identity: ["automotive"] });
+  assert.equal(decision.sector, "automotive");
+  assert.equal(decision.commerceConfirmed, true);
+});
+
+test("a retailer with a Restaurant schema for its in-store restaurant, but a retail title, stays a webshop", () => {
+  const html = `<html><head><title>Betaalbare meubels & accessoires</title></head><body><a href="/shoppingcart/">Winkelwagen</a>${productCards(14)}
+    <a href="/restaurant">Restaurant</a>${ld({ "@type": "Restaurant", name: "Store restaurant" })}</body></html>`;
+  const decision = decide(html, { bodySectors: ["hospitality"] });
+  assert.equal(decision.sector, "ecommerce");
+  assert.ok(decision.secondaryActivities.some(item => item.sector === "hospitality"));
+});
+
+test("a hospitality-supply webshop with 'restaurant' in its title (no Restaurant schema) stays a webshop", () => {
+  const html = `<html><head><title>Alles voor restaurant en horeca – groothandel online</title></head><body><a href="/winkelwagen">Winkelwagen</a>${productCards(14)}</body></html>`;
+  assert.equal(decide(html, { identity: ["hospitality"] }).sector, "ecommerce");
+});
+
+test("specialist schema with a matching title never beats a Store schema: the shop itself is the identity", () => {
+  const html = `<html><head><title>Restaurantbenodigdheden winkel</title></head><body><a href="/cart">Cart</a>${productCards(10)}
+    ${ld({ "@type": "Restaurant", name: "X" }, { "@type": "Store", name: "X" })}</body></html>`;
+  assert.equal(decide(html, { identity: ["hospitality"] }).sector, "ecommerce");
+});
+
+test("known limitation, kept deliberately: a restaurant WITHOUT schema and with a full ordering cart is a webshop with hospitality as a secondary activity", () => {
+  // The word "menu" appears in most site navigations, so menu text alone is never structural proof.
+  const html = `<html><head><title>Pizzeria Bella – online bestellen</title></head><body><a href="/winkelwagen">Winkelwagen</a> Menukaart ${orderMenu} <a href="/reserveren">Reserveer</a></body></html>`;
+  const decision = decide(html, { identity: ["hospitality"] });
+  assert.equal(decision.sector, "ecommerce");
+  assert.ok(decision.secondaryActivities.some(item => item.sector === "hospitality"));
+});
+
+test("estate agent without schema, priced listings ('k.k.') and no cart is never a webshop", () => {
+  const listings = Array.from({ length: 9 }, (_, i) => `<div class="woning"><a href="/aanbod/straat-${i}-amsterdam">Straat ${i}, Amsterdam</a> € ${350 + i * 25}.000 k.k. <a href="/aanbod/straat-${i}-amsterdam">Bekijk woning</a></div>`).join("");
+  const html = `<html><head><title>Makelaardij Van Dijk – woningaanbod Amsterdam</title></head><body><a href="/aanbod">Aanbod</a> Gratis waardebepaling ${listings}</body></html>`;
+  const decision = decide(html, { identity: ["real_estate"] });
+  assert.equal(decision.sector, "real_estate");
+  assert.equal(decision.status, "probable");
+  assert.equal(decision.commerceConfirmed, false);
+  assert.notEqual(decision.storefrontGrade, "strong");
+});
+
+test("business service provider without schema: probable when an earlier layer and the title agree, otherwise honestly uncertain", () => {
+  const html = `<html><head><title>Bureau Nova – IT-advies en softwareontwikkeling voor het MKB</title></head><body><a href="/offerte">Offerte aanvragen</a> <a href="/vacatures">Vacatures</a></body></html>`;
+  const agreed = decide(html, { identity: ["professional_services"], bodySectors: ["recruitment"], current: { sector: "professional_services", key: "professional_services", label: LABELS.professional_services, confidenceScore: 64 } });
+  assert.equal(agreed.sector, "professional_services");
+  assert.equal(agreed.status, "probable");
+  assert.notEqual(agreed.sector, "recruitment");
+  const alone = decide(html, { identity: ["professional_services"], bodySectors: ["recruitment"] });
+  assert.equal(alone.status, "uncertain", "a generic-word sector is not presented as proven");
+  assert.equal(alone.commerceConfirmed, false);
+});

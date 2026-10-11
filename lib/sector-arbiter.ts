@@ -309,7 +309,18 @@ export function arbitratePrimarySector(input: ArbiterInput): ArbiterDecision {
     const dedicatedGenericSpecialist = !!top &&
       top.proof.some(proof => proof.startsWith("schema:")) && top.proof.some(proof => !proof.startsWith("schema:"));
     const smallShop = input.commerce.productLinks < 6 && !input.commerce.siteSampleProduct && !input.commerce.previouslyConfirmed;
-    if (top && top.proof.length >= 2 && !contested && (!GENERIC_WORD_SECTORS.has(top.sector) || (dedicatedGenericSpecialist && smallShop))) {
+    // A dedicated specialist schema type (Restaurant, AutoRepair, Dentist, ...) that the site's
+    // own title/h1/meta confirm is two independent sources for the same identity, even when
+    // the purchase flow is a full catalogue (online ordering, a tyre shop at a garage).
+    // Retail store schema means the shop itself is the identity, so it never applies there.
+    const identityBackedSpecialist = !!top && !contested && !storefront.store &&
+      top.proof.some(proof => proof.startsWith("schema:")) && reliableIdentity(input, top.sector);
+    if (identityBackedSpecialist && top && top.proof.length < 2) {
+      reasons.push(`Specialistisch schema (${top.proof.join(", ")}) wordt bevestigd door titel/koppen/omschrijving; de specialistische identiteit gaat voor de winkelfunctie.`);
+      reasons.push(`Aankoopstructuur (${storefront.groups.join(", ")}) wordt als bevestigde webshopfunctie/nevenactiviteit behandeld.`);
+      return specialist(top, true);
+    }
+    if (top && top.proof.length >= 2 && !contested && (!GENERIC_WORD_SECTORS.has(top.sector) || (dedicatedGenericSpecialist && smallShop) || identityBackedSpecialist)) {
       reasons.push(`Sterke specialistische identiteit (${top.proof.join(", ")}) gaat voor de winkelfunctie.`);
       reasons.push(`Aankoopstructuur (${storefront.groups.join(", ")}) wordt als nevenactiviteit/webshopfunctie behandeld.`);
       return specialist(top, true);
