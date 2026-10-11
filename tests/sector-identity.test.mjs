@@ -246,3 +246,14 @@ test("a retail identity never receives LocalBusiness schema advice", async () =>
   assert.match(source, /const ecommerceSchemaContext = hasEcommerceSignal \|\| earlyRetailIdentity \|\|/);
   assert.match(source, /const earlyRetailIdentity = hasRetailStoreSchema\(schemaTypes\) \|\| \(earlyRetailLanguage\.assortment && \(earlyRetailLanguage\.onlineSales \|\| \(earlyRetailLanguage\.store && commerceNavigationSignal\)\)\)/);
 });
+
+test("a confirmed shop never shows shop checks as 'not applicable' because one page lacked signals", async () => {
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /const euMarketEligible = !explicitNonEuCountryTld && \(euCountryTld \|\| euLanguageSignal \|\| euroMarketSignal\);/);
+  assert.match(source, /const euConsumerApplicable = hasEcommerceSignal && euMarketEligible;/);
+  // EU modules follow the final site decision plus market eligibility.
+  assert.match(source, /must never activate EU checks for clearly non-EU storefronts\.\n\s+if \(euMarketEligible\) \{/);
+  // Page-level "no shop signals" N/A becomes unable-to-confirm once the shop is confirmed site-wide.
+  assert.match(source, /finalCommerceOnlyKeys\.has\(item\.key\) && item\.status === "not_applicable" && \/webshop\|product/);
+  assert.match(source, /De webshop is sitebreed bevestigd, maar deze controle kon op de gescande pagina niet worden beoordeeld\./);
+});

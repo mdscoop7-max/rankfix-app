@@ -1049,7 +1049,10 @@ export async function POST(request: Request) {
     const explicitNonEuCountryTld = /\.(?:com\.au|co\.uk|ca|us|co\.nz|jp|cn|in|br|mx|ch|no)$/.test(hostLower);
     const euLanguageSignal = /^(?:nl|de|fr|it|es|pt|pl|sv|da|fi|cs|sk|hu|ro|bg|el|hr|et|lv|lt|sl|mt)(?:-|$)/i.test(lang || "");
     const euroMarketSignal = /(?:€|\bEUR\b)/i.test(text);
-    const euConsumerApplicable = hasEcommerceSignal && !explicitNonEuCountryTld && (euCountryTld || euLanguageSignal || euroMarketSignal);
+    // EU market eligibility is a property of the storefront; whether the shop itself
+    // is confirmed is decided later (page signal here, final site decision below).
+    const euMarketEligible = !explicitNonEuCountryTld && (euCountryTld || euLanguageSignal || euroMarketSignal);
+    const euConsumerApplicable = hasEcommerceSignal && euMarketEligible;
     const requestedLanguages = adsProfile.adLanguages.split(/[,;]/).map((value) => value.trim().toLowerCase()).filter(Boolean).slice(0, 6);
     const requestedCountries = adsProfile.targetCountries.split(/[,;]/).map((value) => value.trim()).filter(Boolean).slice(0, 8);
     const pageLanguage = (requestedLanguages[0] || lang || "").toLowerCase().split("-")[0].trim();
@@ -4040,7 +4043,7 @@ export async function POST(request: Request) {
       }
       // EU consumer-readiness is jurisdiction-sensitive. Commerce identity alone
       // must never activate EU checks for clearly non-EU storefronts.
-      if (euConsumerApplicable) {
+      if (euMarketEligible) {
         if (!sectorProfile.applicableModules.includes("eu_consumer")) sectorProfile.applicableModules.push("eu_consumer");
         if (!masterEvidence.activeModules.includes("eu_consumer")) masterEvidence.activeModules.push("eu_consumer");
       } else {
@@ -4304,10 +4307,15 @@ export async function POST(request: Request) {
       for (const item of [...seoChecks,...geoChecks]) {
         if (finalCommerceOnlyKeys.has(item.key)) setFinalUnableToConfirm(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
       }
-    } else if (!euConsumerApplicable) {
+    } else {
+      // Shop confirmed site-wide: a page-level "not applicable" (e.g. a homepage
+      // without product or checkout markup) is not evidence that the check does
+      // not apply to this website. It is unconfirmed on this page instead.
       for (const item of [...seoChecks,...geoChecks]) {
-        if (finalEuCommerceKeys.has(item.key)) {
+        if (finalEuCommerceKeys.has(item.key) && !euMarketEligible) {
           setFinalNotApplicable(item,"Commerce is bevestigd, maar EU-consumentenapplicability is voor deze storefront niet betrouwbaar bevestigd.");
+        } else if (finalCommerceOnlyKeys.has(item.key) && item.status === "not_applicable" && /webshop|product(?:pagina)?[- ]signalen|EU-consumentenapplicability|niet aantoonbaar van toepassing op deze markt/i.test(item.message)) {
+          setFinalUnableToConfirm(item, "De webshop is sitebreed bevestigd, maar deze controle kon op de gescande pagina niet worden beoordeeld.");
         }
       }
     }
