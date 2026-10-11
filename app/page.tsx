@@ -193,6 +193,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
   const [fixes, setFixes] = useState<Record<string, { title: string; content: string; reason: string }>>({});
   const [fixing, setFixing] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [auditCopied, setAuditCopied] = useState<"idle" | "ok" | "failed">("idle");
   const [scanStep, setScanStep] = useState(0);
   const [auditMode, setAuditMode] = useState<"seo" | "geo" | "both">("both");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -476,11 +477,85 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
     setTimeout(() => setCopied(null), 1600);
   }
 
+
+  // Database-free public audits can be copied in full directly from the browser.
+  // Includes both SEO and GEO checks, including items hidden in the UI accordion.
+  function fullPublicAuditText() {
+    if (!result) return "";
+    const status: Record<Check["status"], string> = {
+      pass: "Geslaagd", warning: "Aandacht nodig", fail: "Fout",
+      not_applicable: "N.v.t.", unable_to_confirm: "Niet te bevestigen"
+    };
+    const lines = [
+      "RankFix AI — Volledig scanrapport",
+      "Website: " + result.finalUrl,
+      "Gescande URL: " + result.scannedUrl,
+      "Rapport geëxporteerd: " + new Date().toLocaleString(language),
+      "HTTP: " + result.httpStatus + " | " + result.responseTime + " ms",
+      "Scanbron: " + (result.rendering?.mode || "raw_html") +
+        (result.rendering?.javascriptExecuted ? " (JavaScript uitgevoerd)" : " (JavaScript niet uitgevoerd)"),
+      "Sector: " + (result.sectorProfile?.label || "Niet bevestigd"),
+      "Sectorzekerheid: " + (result.sectorProfile?.confidenceScore ?? "Niet bevestigd") + "%",
+      "Websiteprofiel: " + (result.technologyProfile?.siteType || "Niet bevestigd"),
+      "CMS: " + (result.technologyProfile?.cms || "Niet bevestigd"),
+      "Platform: " + (result.technologyProfile?.commercePlatform || "Niet bevestigd"),
+      "Totaalscore: " + result.overallScore + "/100",
+      "SEO: " + result.seo.score + "/100 | GEO: " + result.geo.score + "/100",
+      "",
+      "Dit is een momentopname; niet te bevestigen betekent niet automatisch een fout."
+    ];
+    for (const group of ["seo", "geo"] as const) {
+      if (result.mode !== "both" && result.mode !== group) continue;
+      const checks = result[group].checks;
+      lines.push("", "===== " + group.toUpperCase() + " (" + checks.length + " controles) =====");
+      for (const item of checks) {
+        lines.push(
+          "", "[" + status[item.status] + "] " + item.title,
+          "Status: " + status[item.status],
+          "Toelichting: " + (item.message || "—"),
+          "RankFix aanbeveling: " + (item.fix || "—")
+        );
+        if (item.evidence?.details) lines.push("Bewijs: " + item.evidence.details);
+        if (item.evidence?.url) lines.push("Bewijs-URL: " + item.evidence.url);
+      }
+    }
+    return lines.join("\n");
+  }
+
+  async function copyFullPublicAudit() {
+    const text = fullPublicAuditText();
+    if (!text) return;
+    let ok = false;
+    try { if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(text); ok = true; } } catch {}
+    if (!ok) {
+      const area = document.createElement("textarea");
+      area.value = text; area.readOnly = true;
+      area.style.position = "fixed"; area.style.opacity = "0";
+      document.body.appendChild(area);
+      try { area.focus(); area.select(); ok = document.execCommand("copy"); }
+      catch { ok = false; }
+      finally { area.remove(); }
+    }
+    setAuditCopied(ok ? "ok" : "failed");
+  }
+
+  function downloadFullPublicAudit() {
+    if (!result) return;
+    const hostname = result.finalUrl.replace(/^https?:\/\//, "").split(/[/?#]/)[0]
+      .replace(/[^a-z0-9.-]/gi, "-").slice(0, 70) || "website";
+    const objectUrl = URL.createObjectURL(new Blob([fullPublicAuditText()], {type: "text/plain;charset=utf-8"}));
+    const anchor = document.createElement("a");
+    anchor.href = objectUrl; anchor.download = "rankfix-audit-" + hostname + ".txt";
+    document.body.appendChild(anchor); anchor.click(); anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  }
+
   async function handleScan(e: React.FormEvent) {
     e.preventDefault();
     setScanning(true);
     setError("");
     setResult(null);
+    setAuditCopied("idle");
 
     try {
       const response = await fetch("/api/scan", {
@@ -869,6 +944,17 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
             <div className="text-xs text-slate-500">{result.responseTime} ms · HTTP {result.httpStatus}</div>{result.rendering&&<div className="mt-1 text-xs text-slate-500">{renderingCopy.source}: {result.rendering.mode==="raw_html"?renderingCopy.raw:renderingCopy.rendered}{result.rendering.mode==="raw_html"&&<span className="ml-1 cursor-help" title={renderingCopy.tip}>ⓘ</span>}{result.pageTypeEvidence?` · ${result.pageTypeEvidence.type} (${result.pageTypeEvidence.confidence})`:""}</div>}
             <WebsiteProfile profile={result.technologyProfile} />
             {result.sectorProfile&&<div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500"><span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-700">Sector: {result.sectorProfile.label}</span><span>Zekerheid {result.sectorProfile.confidenceScore??(result.sectorProfile.confidence==="high"?90:result.sectorProfile.confidence==="medium"?70:50)}%</span></div>}
+          </div>
+
+
+          <div className="mb-5 flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => void copyFullPublicAudit()} className="rounded-xl bg-emerald-400 px-4 py-3 text-sm font-bold text-slate-950 hover:bg-emerald-300">
+              {auditCopied === "ok" ? "Gekopieerd ✓" : language === "en" ? "Copy full report" : language === "de" ? "Vollständigen Bericht kopieren" : language === "fr" ? "Copier le rapport complet" : language === "it" ? "Copia rapporto completo" : language === "es" ? "Copiar informe completo" : "Volledig auditrapport kopiëren"}
+            </button>
+            <button type="button" onClick={downloadFullPublicAudit} className="rounded-xl border border-emerald-400/30 px-4 py-3 text-sm font-bold text-emerald-200 hover:bg-emerald-400/10">
+              {language === "en" ? "Download report (.txt)" : language === "de" ? "Bericht herunterladen (.txt)" : language === "fr" ? "Télécharger (.txt)" : language === "it" ? "Scarica rapporto (.txt)" : language === "es" ? "Descargar informe (.txt)" : "Rapport downloaden (.txt)"}
+            </button>
+            {auditCopied === "failed" && <span role="status" className="text-sm text-amber-200">{language === "nl" ? "Kopiëren niet toegestaan. Download het rapportbestand." : "Copy unavailable. Download the report file instead."}</span>}
           </div>
 
           <div className="mb-6 rounded-[28px] border border-slate-200 bg-gradient-to-br from-white/[0.055] to-emerald-400/[0.025] p-5 shadow-2xl shadow-black/10 sm:p-6">
