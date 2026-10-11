@@ -77,7 +77,7 @@ export default function Dashboard() {
     finally { setBusy(null); }
   }
 
-  const siteHost=(url:string)=>{try{return new URL(url).hostname.replace(/^www\\./,"")}catch{return url.replace(/^www\\./,"")}};
+  const siteHost=(url:string)=>{try{return new URL(url).hostname.replace(/^www\./,"")}catch{return url.replace(/^www\./,"")}};
   async function removeSites(){
     if(deletingSites||!selectedSites.length)return;
     const targets=history.filter(scan=>selectedSites.includes(siteHost(scan.scanned_url)));

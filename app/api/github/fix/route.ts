@@ -167,7 +167,7 @@ function buildDeterministicOgFix(filePath:string,current:string,issue:string,con
     if(!value) return false;
     const normalized=value.toLowerCase().split("?")[0].split("#")[0];
     return /(?:^|[\\/_-])(?:favicon|apple-touch-icon|touch-icon|mask-icon|site-icon|browserconfig)(?:[.\\/_-]|$)/i.test(normalized)
-      || /(?:^|[\\/_-])icon(?:[-_]?\\d{2,4}x\\d{2,4}|[-_]?\\d{2,4})?\\.(?:ico|svg|png|webp)$/i.test(normalized);
+      || /(?:^|[\/_-])icon(?:[-_]?\d{2,4}x\d{2,4}|[-_]?\d{2,4})?\.(?:ico|svg|png|webp)$/i.test(normalized);
   };
   const trustedImage=rawImage&&!isIconAsset(rawImage)?rawImage:"";
   let image=trustedImage;
