@@ -18,7 +18,7 @@ import { applyEvidenceBasedScoreCap, SCORE_MODEL_VERSION, scoreApplicableChecks,
 import { isPaidPlan, normalizePlan, planLimits } from "@/lib/plans";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
-import { renderPublicPage } from "@/lib/headless-render";
+import { createRenderBudget, renderPublicPage } from "@/lib/headless-render";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { isSubstantiveRender, renderImprovesEvidence } from "@/lib/render-quality";
 import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDetailPath, productUrlsFromSitemap } from "@/lib/product-links";
@@ -26,6 +26,10 @@ import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
 import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes } from "@/lib/sector-identity";
+
+// Vercel function limit for a full scan (fetches, representative pages and bounded
+// rendering). Rendering itself stops starting new pages well before this deadline.
+export const maxDuration = 300;
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -514,6 +518,9 @@ export async function POST(request: Request) {
     }
 
     const started = Date.now();
+    // Bounded browser rendering for this scan: a fixed number of renders and a time
+    // deadline. When the budget runs out, pages keep their raw-HTML evidence.
+    const renderBudget = createRenderBudget();
     let response: Response;
     let fetchedFinalUrl: URL | null = null;
     let redirectChain: Array<{ from: string; to: string; status: number }> = [];
@@ -582,7 +589,7 @@ export async function POST(request: Request) {
     if (!response.ok && (response.status === 202 || response.status === 403 || response.status === 405)) {
       recovery.attempted = true;
       try {
-        const recovered = await renderPublicPage(finalUrl.toString(), 12000);
+        const recovered = await renderPublicPage(finalUrl.toString(), 12000, renderBudget);
         // A blocked render (challenge or empty shell with only a <title>) is not a recovery.
         if (!isSubstantiveRender(recovered.html)) recovery.reason = "RECOVERY_RENDER_NOT_SUBSTANTIVE";
         else {
@@ -630,7 +637,7 @@ export async function POST(request: Request) {
     let renderFallbackReason: string | null = recovery.reason;
     if (javascriptCandidate) {
       try {
-        const rendered = await renderPublicPage(finalUrl.toString(), 12000);
+        const rendered = await renderPublicPage(finalUrl.toString(), 12000, renderBudget);
         // Never replace richer raw evidence with a poorer (blocked or partial) render.
         if (renderImprovesEvidence(rawVisibleWords, thinClientShell, rendered.html)) {
           html = rendered.html;
@@ -657,7 +664,7 @@ export async function POST(request: Request) {
       || /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform|radware|incapsula|imperva|akamai bot manager|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test(preliminaryQualityText);
     if (preliminaryInterstitial && !javascriptExecuted) {
       try {
-        const recovered = await renderPublicPage(finalUrl.toString(), 12000);
+        const recovered = await renderPublicPage(finalUrl.toString(), 12000, renderBudget);
         if (isSubstantiveRender(recovered.html)) {
           html = recovered.html;
           javascriptExecuted = true;
@@ -3696,7 +3703,7 @@ export async function POST(request: Request) {
         // opportunity as the primary page. A failed render remains UNABLE, never PASS.
         if (!r.ok && (r.status === 202 || r.status === 403 || r.status === 405)) {
           try {
-            const recoveredPage = await renderPublicPage(finalCandidate.toString(), 10000);
+            const recoveredPage = await renderPublicPage(finalCandidate.toString(), 10000, renderBudget);
             if (isSubstantiveRender(recoveredPage.html)) { pageHtml = recoveredPage.html; representativeEvidenceSource = "rendered_html"; }
           } catch {}
         }
@@ -3715,7 +3722,7 @@ export async function POST(request: Request) {
         const representativeThinShell = representativeVisibleWords < 80 && representativeScriptCount >= 4;
         if (representativeJsFramework || representativeThinShell) {
           try {
-            const renderedPage = await renderPublicPage(finalCandidate.toString(), 10000);
+            const renderedPage = await renderPublicPage(finalCandidate.toString(), 10000, renderBudget);
             if (renderImprovesEvidence(representativeVisibleWords, representativeThinShell, renderedPage.html)) {
               pageHtml = renderedPage.html;
               representativeEvidenceSource = "rendered_html";
@@ -3926,7 +3933,7 @@ export async function POST(request: Request) {
         const listingPages = multiPageAudits.filter((item)=>item?.status==="audited" && (item.type==="category" || item.type==="other") && item.evidenceSource!=="rendered_html").slice(0,2);
         for (const listing of listingPages) {
           try {
-            const renderedListing = await renderPublicPage(listing.url, 10000);
+            const renderedListing = await renderPublicPage(listing.url, 10000, renderBudget);
             if (isSubstantiveRender(renderedListing.html)) productConfirmed = await auditProductCandidates(extractProductDetailLinks(renderedListing.html, listing.url, siteHost, 8));
           } catch {}
           if (productConfirmed) break;

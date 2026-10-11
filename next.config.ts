@@ -12,6 +12,15 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // @sparticuz/chromium and puppeteer-core are external server packages by default.
+  // The compressed Chromium binary is read from disk at runtime, so the scan route's
+  // trace must include it explicitly; the local puppeteer download never ships.
+  outputFileTracingIncludes: {
+    "/api/scan": ["./node_modules/@sparticuz/chromium/bin/**"],
+  },
+  outputFileTracingExcludes: {
+    "/*": ["./.cache/**", "./node_modules/puppeteer/**"],
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
