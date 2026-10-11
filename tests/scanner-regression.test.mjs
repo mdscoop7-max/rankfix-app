@@ -1577,3 +1577,17 @@ test("security 5: results and scores before (main) and after the fixes", () => {
   const legacyShop = legacyPassiveSecurity({ isHttps: true, html: "", pageUrl: securityPages[0].url, joinedSetCookie: securityPages[0].setCookies.join(", ") });
   assert.deepEqual(legacyShop.detail.cookies.map((c) => [c.name, c.secure, c.httpOnly]), [["sid", false, false]]);
 });
+
+test("retail sector evidence wins over incidental sector words without claiming verified checkout", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /const retailAssortmentIdentity =/);
+  assert.match(source, /const explicitRetailIdentity = retailAssortmentIdentity/);
+  assert.match(source, /const retailPrimaryIdentity = retailPurchaseEvidence/);
+  assert.match(source, /const primaryNonCommerceIdentity = retailPrimaryIdentity \? null/);
+  assert.match(source, /commerceAsPrimaryIdentity = retailPrimaryIdentity/);
+  assert.match(source, /commerceHints: Boolean\(retailPrimaryIdentity/);
+  assert.match(source, /!retailPrimaryIdentity && !finalCommerceDecision\.confirmed && reconciledIdentityStrong/);
+  assert.match(source, /explicitRetailIdentity && !evidenceCommerceConfirmed \? 78/);
+  assert.match(source, /!shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity/);
+});
