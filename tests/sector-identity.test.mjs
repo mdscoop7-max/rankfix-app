@@ -217,7 +217,7 @@ test("one page type cannot crowd out the representative sample", async () => {
   // Without a ceiling the previous behaviour is unchanged.
   assert.equal(selectRepresentativePages([], [...brands, ...rest], 30, (u) => u, (u) => u).filter((p) => p.type === "other").length, 25);
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  assert.match(source, /\{ matches: isFaqSample, limit: 3 \}, Math\.ceil\(representativePageLimit \* 0\.4\)\)/);
+  assert.match(source, /\{ matches: isFaqSample, limit: 3 \}, Math\.ceil\(representativePageLimit \* 0\.4\), \{ key: sectionKey, limit: 5, exemptTypes: \["product"\] \}\)/);
   // Slug-with-id product nomination applies to retail sites only.
   assert.match(source, /\(\(sectorProfile\.key === "ecommerce" \|\| explicitRetailIdentity \|\| hasEcommerceSignal\) && looksLikeProductDetailPath\(path\)\)/);
 });

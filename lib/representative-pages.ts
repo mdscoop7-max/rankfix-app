@@ -17,6 +17,9 @@ export function selectRepresentativePages<T extends RepresentativeCandidate>(
   // Optional ceiling per page type in the fill phase, so one type (brand pages,
   // product variants, listings) cannot crowd out the other evidence kinds.
   perTypeLimit?: number,
+  // Optional ceiling per site section (first path segment) in the fill phase, so
+  // one section such as customer service cannot fill the whole sample.
+  sectionCap?: { key: (url: string) => string; limit: number; exemptTypes?: string[] },
 ): T[] {
   const selected: T[] = [];
   const seenTemplates = new Set<string>();
@@ -37,12 +40,21 @@ export function selectRepresentativePages<T extends RepresentativeCandidate>(
   if (selected.length < limit) {
     const seenUrls = new Set(selected.map((item) => normalizeUrl(item.url)));
     const typeCounts = new Map<string, number>();
-    for (const item of selected) typeCounts.set(item.type, (typeCounts.get(item.type) || 0) + 1);
+    const sectionCounts = new Map<string, number>();
+    const sectionOf = (item: T) => (sectionCap && !(sectionCap.exemptTypes || []).includes(item.type)) ? sectionCap.key(item.url) : null;
+    for (const item of selected) {
+      typeCounts.set(item.type, (typeCounts.get(item.type) || 0) + 1);
+      const section = sectionOf(item);
+      if (section && section !== "/") sectionCounts.set(section, (sectionCounts.get(section) || 0) + 1);
+    }
     for (const item of ranked) {
       const normalized = normalizeUrl(item.url);
       if (seenUrls.has(normalized)) continue;
       if (overCap(normalized)) continue;
       if (perTypeLimit && (typeCounts.get(item.type) || 0) >= perTypeLimit) continue;
+      const section = sectionOf(item);
+      if (section && section !== "/" && sectionCap && (sectionCounts.get(section) || 0) >= sectionCap.limit) continue;
+      if (section && section !== "/") sectionCounts.set(section, (sectionCounts.get(section) || 0) + 1);
       typeCounts.set(item.type, (typeCounts.get(item.type) || 0) + 1);
       countCap(normalized);
       seenUrls.add(normalized);

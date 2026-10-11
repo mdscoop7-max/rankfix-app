@@ -88,8 +88,12 @@ test("scanner regression source keeps evidence-only classification safeguards", 
   assert.match(source, /const accessibilityIssueCount=unlabeledFormControls\+emptyButtons/);
   assert.match(source, /Organization\/WebSite structured data kon niet betrouwbaar worden bevestigd/);
   assert.match(source, /Een individuele auteur is niet vereist op een organisatie-, dienst- of merkhomepage/);
-  assert.match(source, /buiten richtwaarde 30–60/);
-  assert.match(source, /uitzonderlijk.*kort.*lang/s);
+  // Representative-page meta wording lives in lib/report-quality.ts.
+  const quality = await readFile(new URL("../lib/report-quality.ts", import.meta.url), "utf8");
+  assert.match(quality, /buiten richtwaarde 30–60/);
+  assert.match(quality, /uitzonderlijk kort/);
+  assert.match(quality, /uitzonderlijk lang/);
+  assert.match(source, /assessPageTitle\(pageTitle, finalCandidate\.hostname\)/);
 });
 
 
@@ -193,7 +197,9 @@ test("meta description diagnostics distinguish missing from empty", async () => 
   assert.match(source, /descriptionState: "missing" \| "empty" \| "present"/);
   assert.match(source, /descriptionState === "empty" \? "De meta description-tag is aanwezig, maar de content is leeg\."/);
   assert.match(source, /descriptionState,/);
-  assert.match(source, /pageDescriptionTag\?"Meta description-tag aanwezig maar content is leeg\."/);
+  assert.match(source, /assessPageDescription\(pageDescription, Boolean\(pageDescriptionTag\)\)/);
+  const quality = await readFile(new URL("../lib/report-quality.ts", import.meta.url), "utf8");
+  assert.match(quality, /"Meta description-tag aanwezig maar content is leeg\."/);
 });
 
 
@@ -811,7 +817,7 @@ test("Scan Motor 3.0 audits a bounded diverse representative sample", async () =
   assert.match(scanner,/const representativePageLimit = 30;/);
   assert.match(scanner,/pickMultiPage\("product", 4\)/);
   assert.match(scanner,/pickMultiPage\("service", 5\)/);
-  assert.match(scanner,/selectRepresentativePages\(\[scannedPageSample, \.\.\.multiPagePages\], rankedMultiPage, representativePageLimit, normalizeScanUrl, templateShapeKey[,)]/);
+  assert.match(scanner,/selectRepresentativePages\(\[scannedPageSample, \.\.\.multiPagePages\], rankedMultiPage, representativePageLimit, \(url\)=>normalizeScanUrl\(stripTrackingParams\(url\)\), templateShapeKey[,)]/);
   assert.match(scanner,/const representativeAuditConcurrency = 4;/);
 });
 
