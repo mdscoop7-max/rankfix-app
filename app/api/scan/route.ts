@@ -1612,8 +1612,11 @@ export async function POST(request: Request) {
     // tourism, food, or local-service keywords on category/support pages.
     // Require online purchase language AND physical retail assortment in the
     // primary page identity, not merely a generic "shop" or a contact CTA.
-    const explicitRetailIdentity = /\b(?:online (?:kopen|bestellen|shoppen|shopping)|webshop|webwinkel|online winkel|shop online|buy online|online store)\b/i.test(sectorIdentitySource)
-      && /\b(?:kleding|schoenen|accessoires|mode|fashion|elektronica|home.elektronica|apparaten|wasmachines|televisies|tv.s|laptops|meubels|furniture|interieur|woonartikelen|bouwmaterialen|dierenbenodigdheden|sportartikelen|producten|products)\b/i.test(sectorIdentitySource);
+    const retailAssortmentIdentity = /\b(?:kleding|schoenen|accessoires|mode|fashion|elektronica|home.elektronica|apparaten|wasmachines|televisies|laptops|meubels|furniture|interieur|woonartikelen|bouwmaterialen|dierenbenodigdheden|sportartikelen|producten|products)\b/i.test(sectorIdentitySource);
+    const onlineRetailCallout = /\b(?:online (?:kopen|bestellen|shoppen|shopping)|webshop|webwinkel|online winkel|shop online|buy online|online store)\b/i.test(sectorIdentitySource);
+    const retailStoreIdentity = /\b(?:winkels?|retailer|winkelketen|shop|stores?)\b/i.test(sectorIdentitySource);
+    const explicitRetailIdentity = retailAssortmentIdentity &&
+      (onlineRetailCallout || (retailStoreIdentity && commerceNavigationSignal));
     const retailPurchaseEvidence = evidenceCommerceConfirmed || hasEcommerceSignal || explicitRetailIdentity;
     const retailPrimaryIdentity = retailPurchaseEvidence
       && !shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity
@@ -1630,8 +1633,8 @@ export async function POST(request: Request) {
           key:"ecommerce",
           label:"Webshop / e-commerce",
           confidence:"high" as const,
-          confidenceScore:Math.min(99, Math.round(86 + evidenceCommerceStrength * 2)),
-          evidence:[...(explicitRetailIdentity ? ["Primair retailbewijs: online aankooptaal en fysiek productassortiment in titel, beschrijving of H1"] : []), `Evidence Layer: ${evidenceCommerceStrength} onafhankelijke commerce-signalen`, ...(catalogTop?.key==="ecommerce" ? catalogTop.evidence : [])].slice(0,6),
+          confidenceScore:explicitRetailIdentity && !evidenceCommerceConfirmed ? 78 : Math.min(99, Math.round(86 + evidenceCommerceStrength * 2)),
+          evidence:[...(explicitRetailIdentity ? ["Primair retailbewijs: productassortiment plus online-verkooptaal of winkelidentiteit in de paginametadata"] : []), `Evidence Layer: ${evidenceCommerceStrength} onafhankelijke commerce-signalen`, ...(catalogTop?.key==="ecommerce" ? catalogTop.evidence : [])].slice(0,6),
           applicableModules:["core_seo","geo","technical","ecommerce","product","pricing_currency","merchant","checkout",...(euConsumerApplicable?["eu_consumer"]:[])],
         }
       : primaryNonCommerceIdentity
@@ -3868,7 +3871,7 @@ export async function POST(request: Request) {
     const finalCommerceApplicability = commerceApplicability({
       confirmed: finalCommerceDecision.confirmed,
       primaryNonCommerceIdentity: Boolean(primaryNonCommerceIdentity),
-      commerceHints: Boolean(technologyProfile.isCommerce || hasEcommerceSignal || masterEvidence.commerce.strength > 0 || secondaryCommerceOnly),
+      commerceHints: Boolean(retailPrimaryIdentity || technologyProfile.isCommerce || hasEcommerceSignal || masterEvidence.commerce.strength > 0 || secondaryCommerceOnly),
       thinShell: thinRawHtmlEvidence,
       marketSelector: marketSelectorPage,
       auditedRepresentativePages: representativeAuditedPageCount,
@@ -3894,7 +3897,7 @@ export async function POST(request: Request) {
     const reconciledTop = reconciledSectorCandidates[0];
     const reconciledRunnerUp = reconciledSectorCandidates[1];
     const reconciledIdentityStrong = Boolean(reconciledTop && reconciledTop.score >= 3 && (!reconciledRunnerUp || reconciledTop.score > reconciledRunnerUp.score));
-    if (!finalCommerceDecision.confirmed && reconciledIdentityStrong && reconciledTop && sectorProfile.sector !== reconciledTop.sector) {
+    if (!retailPrimaryIdentity && !finalCommerceDecision.confirmed && reconciledIdentityStrong && reconciledTop && sectorProfile.sector !== reconciledTop.sector) {
       sectorProfile.sector = reconciledTop.sector;
       sectorProfile.key = reconciledTop.sector;
       sectorProfile.label = reconciledTop.label;
