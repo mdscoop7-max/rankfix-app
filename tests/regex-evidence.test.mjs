@@ -216,3 +216,42 @@ test("no regex literal or new RegExp string in app/ or lib/ contains a doubled e
   }
   assert.deepEqual(offenders, [], "doubled escapes match a literal backslash and silently disable the check");
 });
+
+test("robots.txt rules are applied: SEO check sees Disallow, crawler obeys RankFixBot/* groups", async () => {
+  const route = await read("app/api/scan/route.ts");
+  const start = route.indexOf("    const robotsPath = finalUrl.pathname");
+  const end = route.indexOf("    const htmlDeclaredSitemapUrls");
+  assert.ok(start > 0 && end > start);
+  const body = route.slice(start, end)
+    .replace(/: Array<\{ agents: string\[\]; rules: Array<\{ kind: "allow" \| "disallow"; path: string \}> \}>/g, "")
+    .replace(/ as "allow" \| "disallow"/g, "")
+    .replace(/\(rulePath: string, candidatePath: string\)/g, "(rulePath, candidatePath)")
+    .replace(/\(candidatePath: string\)/g, "(candidatePath)");
+  const run = (robotsTxt, scannedPath) => new Function("robotsTxt", "finalUrl", "robotsStatus",
+    `${body}\nreturn { robotsPathBlocked, robotsAllowsRankFix };`)(robotsTxt, new URL(`https://www.voorbeeld.nl${scannedPath}`), "PASS");
+
+  const general = "User-agent: *\nDisallow: /account\nDisallow: /checkout\nAllow: /checkout/help\n";
+  const a = run(general, "/");
+  assert.equal(a.robotsPathBlocked, false);
+  assert.equal(a.robotsAllowsRankFix("/account/orders"), false);
+  assert.equal(a.robotsAllowsRankFix("/checkout"), false);
+  assert.equal(a.robotsAllowsRankFix("/checkout/help"), true, "longest matching Allow wins");
+  assert.equal(a.robotsAllowsRankFix("/producten/stoel"), true);
+  assert.equal(run(general, "/account").robotsPathBlocked, true, "SEO check now sees the Disallow");
+
+  const named = "User-agent: *\nDisallow: /\n\nUser-agent: RankFixBot\nDisallow: /intern\n";
+  const b = run(named, "/");
+  assert.equal(b.robotsAllowsRankFix("/producten"), true, "a group naming RankFixBot replaces the * group");
+  assert.equal(b.robotsAllowsRankFix("/intern/x"), false);
+
+  const googleOnly = "User-agent: Googlebot\nDisallow: /zoeken\n";
+  assert.equal(run(googleOnly, "/").robotsAllowsRankFix("/zoeken"), true, "Googlebot-only rules do not bind RankFix");
+});
+
+test("representative crawl skips robots-disallowed pages and marks them unconfirmed", async () => {
+  const route = await read("app/api/scan/route.ts");
+  const audit = route.slice(route.indexOf("const auditMultiPage = async"), route.indexOf("const fetched = await safePublicFetch(page.url"));
+  assert.match(audit, /if \(!robotsAllowsRankFix\(robotsCandidatePath\)\)/);
+  assert.match(audit, /status:"unable_to_confirm"/);
+  assert.match(audit, /key:"robots",status:"UNABLE_TO_CONFIRM"/);
+});

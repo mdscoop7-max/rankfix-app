@@ -1242,6 +1242,19 @@ export async function POST(request: Request) {
       .filter((rule) => robotsRuleMatches(rule.path, robotsPath))
       .sort((a, b) => b.path.length - a.path.length || (a.kind === "allow" ? -1 : 1));
     const robotsPathBlocked = robotsStatus === "PASS" && matchingRobotsRules.length > 0 && matchingRobotsRules[0].kind === "disallow";
+    // Crawl politeness for additional same-site pages: obey the group that names
+    // RankFixBot, otherwise the "*" group (Googlebot rules are for the SEO check only).
+    const rankFixRobotsGroups = robotsGroups.some((group) => group.agents.some((agent) => agent.includes("rankfixbot")))
+      ? robotsGroups.filter((group) => group.agents.some((agent) => agent.includes("rankfixbot")))
+      : robotsGroups.filter((group) => group.agents.includes("*"));
+    const robotsAllowsRankFix = (candidatePath: string) => {
+      if (robotsStatus !== "PASS") return true;
+      const rules = rankFixRobotsGroups
+        .flatMap((group) => group.rules)
+        .filter((rule) => robotsRuleMatches(rule.path, candidatePath))
+        .sort((a, b) => b.path.length - a.path.length || (a.kind === "allow" ? -1 : 1));
+      return !rules.length || rules[0].kind === "allow";
+    };
     const htmlDeclaredSitemapUrls = [...html.matchAll(/<link\b[^>]*>/gi)]
       .map((match) => match[0])
       .filter((tag) => /\brel\s*=\s*["'][^"']*\bsitemap\b[^"']*["']/i.test(tag))
@@ -3669,6 +3682,12 @@ export async function POST(request: Request) {
     }
     const auditMultiPage = async (page: MultiPageCandidate): Promise<MultiPageAudit> => {
       try {
+        // Respect robots.txt: a disallowed page is not fetched and stays unconfirmed.
+        let robotsCandidatePath = "/";
+        try { const candidate = new URL(page.url); robotsCandidatePath = candidate.pathname + candidate.search; } catch {}
+        if (!robotsAllowsRankFix(robotsCandidatePath)) {
+          return { ...page, status:"unable_to_confirm", httpStatus:null, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"robots",status:"UNABLE_TO_CONFIRM",details:"robots.txt staat RankFix niet toe deze pagina op te halen; de pagina is daarom niet beoordeeld."}] };
+        }
         const fetched = await safePublicFetch(page.url, { timeoutMs: 8000, maxRedirects: 3, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml" });
         const r = fetched.response;
         const finalCandidate = new URL(fetched.finalUrl.toString());
