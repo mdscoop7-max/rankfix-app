@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       [tokenHash,user.id,expires]
     );
 
-    const base = (process.env.APP_URL || "https://rankfix-app.onrender.com").replace(/\/$/,"");
+    const base = (process.env.APP_URL || "https://rankfix-app.vercel.app").replace(/\/$/,"");
     const resetUrl = `${base}/account/reset-password?token=${encodeURIComponent(token)}&lang=${language}`;
     const apiKey = process.env.RESEND_API_KEY;
     const from = process.env.SCAN_REPORT_FROM || process.env.RESEND_FROM;
