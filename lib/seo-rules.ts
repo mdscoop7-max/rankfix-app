@@ -113,3 +113,23 @@ export function assessHreflang(links: HreflangLink[], pageUrl: string, documentL
   if (externalHosts) return { kind: "external_hosts", count: externalHosts };
   return { kind: "unconfirmed", total: valid.length };
 }
+
+// An international entry page (country/language picker) is the x-default target
+// for several language versions while not being any language version itself.
+// Sector and shop functionality live on the country versions, not here.
+export function isMarketSelectorPage(links: HreflangLink[], pageUrl: string, normalizeUrl: (url: string) => string): boolean {
+  const page = normalizeUrl(new URL(pageUrl).toString());
+  let selfIsDefault = false;
+  let selfHasLanguage = false;
+  const languages = new Set<string>();
+  for (const link of links) {
+    const language = link.language.trim().toLowerCase();
+    let target = "";
+    try { target = normalizeUrl(new URL(link.href, pageUrl).toString()); } catch { continue; }
+    if (language === "x-default") { if (target === page) selfIsDefault = true; continue; }
+    if (!isValidHreflangCode(language)) continue;
+    languages.add(language);
+    if (target === page) selfHasLanguage = true;
+  }
+  return selfIsDefault && !selfHasLanguage && languages.size >= 3;
+}

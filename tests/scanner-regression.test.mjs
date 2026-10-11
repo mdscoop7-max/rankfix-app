@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { extractImageMetrics } from "../lib/image-metrics.ts";
 import { applyEvidenceBasedScoreCap, scoreApplicableChecks, summarizeAuditChecks } from "../lib/audit-score.ts";
 import { isPrivateHost, validatePublicHttpUrl } from "../lib/safe-fetch.ts";
-import { assessHreflang, hasSelfHreflangLanguageMismatch, isValidHreflangCode, statusCode } from "../lib/seo-rules.ts";
+import { assessHreflang, hasSelfHreflangLanguageMismatch, isMarketSelectorPage, isValidHreflangCode, statusCode } from "../lib/seo-rules.ts";
+import { COMMERCE_APPLICABILITY_COPY, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability } from "../lib/commerce-applicability.ts";
 import { decodeHtmlEntities } from "../lib/html-entities.ts";
 import { classifyContactAnchor, findVisibleEmail, isContactForm } from "../lib/contact-evidence.ts";
 import { selectRepresentativePages } from "../lib/representative-pages.ts";
@@ -1115,4 +1116,57 @@ test("scan route applies the shared policy and never trusts e-mail for the teste
   assert.doesNotMatch(route, /configuredTestEmail === signedInEmail/);
   assert.doesNotMatch(competitor, /RANKFIX_INTERNAL_TEST_EMAIL/);
   assert.match(route, /"Retry-After": String\(result\.retryAfterSeconds\)/);
+});
+
+const commerce = (overrides) => commerceApplicability({ confirmed: false, primaryNonCommerceIdentity: false, commerceHints: false, thinShell: false, marketSelector: false, auditedRepresentativePages: 5, ...overrides });
+
+test("market selector: x-default global portal with many country versions", () => {
+  const ikeaGlobal = [
+    { language: "x-default", href: "https://www.ikea.com/" },
+    { language: "nl-nl", href: "https://www.ikea.com/nl/nl/" },
+    { language: "de-de", href: "https://www.ikea.com/de/de/" },
+    { language: "fr-fr", href: "https://www.ikea.com/fr/fr/" },
+  ];
+  assert.equal(isMarketSelectorPage(ikeaGlobal, "https://ikea.com/", normalizeTestUrl), true);
+  // The Dutch country version is a language version itself, not a selector.
+  assert.equal(isMarketSelectorPage(ikeaGlobal, "https://www.ikea.com/nl/nl/", normalizeTestUrl), false);
+  // A normal multilingual site whose English home is also x-default is not a selector.
+  assert.equal(isMarketSelectorPage([{ language: "x-default", href: "https://shop.nl/" }, { language: "en", href: "https://shop.nl/" }, { language: "nl", href: "https://shop.nl/nl/" }, { language: "de", href: "https://shop.nl/de/" }], "https://shop.nl/", normalizeTestUrl), false);
+  assert.equal(isMarketSelectorPage([{ language: "x-default", href: "https://shop.nl/" }, { language: "nl", href: "https://shop.nl/nl/" }], "https://shop.nl/", normalizeTestUrl), false);
+});
+
+test("commerce applicability: proven commerce activates shop checks", () => {
+  assert.deepEqual(commerce({ confirmed: true, marketSelector: true, thinShell: true }), { state: "confirmed" });
+});
+
+test("commerce applicability: country picker and JS shell are unable-to-confirm, never N/A", () => {
+  assert.deepEqual(commerce({ marketSelector: true, commerceHints: true }), { state: "unconfirmed", reason: "market_selector" });
+  assert.deepEqual(commerce({ thinShell: true }), { state: "unconfirmed", reason: "thin_shell" });
+  assert.deepEqual(commerce({ thinShell: true, primaryNonCommerceIdentity: true }), { state: "unconfirmed", reason: "thin_shell" });
+});
+
+test("commerce applicability: weak shop signals or a thin sample are unable-to-confirm", () => {
+  assert.deepEqual(commerce({ commerceHints: true }), { state: "unconfirmed", reason: "weak_commerce_signals" });
+  assert.deepEqual(commerce({ auditedRepresentativePages: 1 }), { state: "unconfirmed", reason: "low_coverage" });
+});
+
+test("commerce applicability: N/A only with evidence that the site is not a shop", () => {
+  // Service provider (dentist, broker, hotel) with secondary shop navigation.
+  assert.deepEqual(commerce({ primaryNonCommerceIdentity: true, commerceHints: true }), { state: "absent", reason: "service_identity" });
+  // Fully readable site, several pages sampled, no product/price/cart evidence anywhere.
+  assert.deepEqual(commerce({}), { state: "absent", reason: "no_commerce_evidence" });
+});
+
+test("commerce applicability: every reason has report copy and an existing report reason code", () => {
+  for (const reason of ["service_identity", "no_commerce_evidence", "market_selector", "thin_shell", "weak_commerce_signals", "low_coverage"]) assert.ok(COMMERCE_APPLICABILITY_COPY[reason], reason);
+  for (const code of Object.values(UNCONFIRMED_COMMERCE_REASON_CODE)) assert.ok(["type_uncertain", "needs_js", "weak_evidence", "insufficient_pages"].includes(code), code);
+});
+
+test("scan route uses the three-way commerce gate instead of blanket N/A", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(route, /Definitieve Scanbewijs bevestigt geen webshop-\/retailketen/);
+  assert.match(route, /finalCommerceApplicability\.state === "absent"/);
+  assert.match(route, /finalCommerceApplicability\.state === "unconfirmed"/);
+  assert.match(route, /commerceApplicability: commerceApplicabilityReport/);
 });

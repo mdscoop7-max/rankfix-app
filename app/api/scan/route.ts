@@ -3,10 +3,11 @@ import { createHash } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
-import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang } from "@/lib/seo-rules";
+import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang, isMarketSelectorPage } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { selectRepresentativePages } from "@/lib/representative-pages";
+import { COMMERCE_APPLICABILITY_COPY, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability } from "@/lib/commerce-applicability";
 import { classifyContactAnchor, findVisibleEmail, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
@@ -2248,6 +2249,7 @@ export async function POST(request: Request) {
     const hreflangEntries = hreflangTags.map((tag) => ({ language: attrFromTag(tag, "hreflang").toLowerCase(), href: attrFromTag(tag, "href") }));
     const documentLanguage = lang.trim().toLowerCase().replace("_", "-");
     const hreflangAssessment = assessHreflang(hreflangEntries, finalUrl.toString(), documentLanguage, normalizeScanUrl);
+    const marketSelectorPage = isMarketSelectorPage(hreflangEntries, finalUrl.toString(), normalizeScanUrl);
     const languageSelectorSignal = /(?:language|taal|sprache|idioma|lingua|français|deutsch|italiano|español|english|nederlands)\b/i.test(text) && /(?:select|dropdown|menu|switch|\bEN\b|\bNL\b|\bDE\b|\bFR\b|\bES\b|\bIT\b)/i.test(text);
     // A language/country selector alone does not prove equivalent translated URLs exist.
     // Only explicit hreflang markup is strong enough in a single raw-HTML page scan.
@@ -3875,6 +3877,15 @@ export async function POST(request: Request) {
       secondaryCommerceOnly,
       multiPageEvidence: sitewideCommerceEvidence.confirmed,
     };
+    const representativeAuditedPageCount = auditedMultiPages.filter((item)=>item.status==="audited" && normalizeScanUrl(item.url)!==normalizeScanUrl(finalUrl.toString())).length;
+    const finalCommerceApplicability = commerceApplicability({
+      confirmed: finalCommerceDecision.confirmed,
+      primaryNonCommerceIdentity: Boolean(primaryNonCommerceIdentity),
+      commerceHints: Boolean(technologyProfile.isCommerce || hasEcommerceSignal || masterEvidence.commerce.strength > 0 || secondaryCommerceOnly),
+      thinShell: thinRawHtmlEvidence,
+      marketSelector: marketSelectorPage,
+      auditedRepresentativePages: representativeAuditedPageCount,
+    });
     if (!finalCommerceDecision.confirmed && primaryNonCommerceIdentity) {
       masterEvidence.commerce.confirmed = false;
       masterEvidence.businessModels = masterEvidence.businessModels.filter((model)=>model!=="commerce");
@@ -4152,11 +4163,23 @@ export async function POST(request: Request) {
       item.reasonCode = "cap_absent";
       item.evidence = {url:finalUrl.toString(),found:false,details:item.message};
     };
-    if (!finalCommerceDecision.confirmed) {
+    const setFinalUnableToConfirm = (item:Check, reason:string) => {
+      item.status = "unable_to_confirm";
+      item.issue_status = "UNABLE_TO_CONFIRM";
+      item.points = 0;
+      item.confidence = "low";
+      item.message = reason;
+      item.fix = "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.";
+      item.reasonCode = finalCommerceApplicability.state === "unconfirmed" ? UNCONFIRMED_COMMERCE_REASON_CODE[finalCommerceApplicability.reason] : "weak_evidence";
+      item.evidence = {url:finalUrl.toString(),found:null,details:item.message};
+    };
+    if (finalCommerceApplicability.state === "absent") {
       for (const item of [...seoChecks,...geoChecks]) {
-        if (finalCommerceOnlyKeys.has(item.key)) {
-          setFinalNotApplicable(item,"Definitieve Scanbewijs bevestigt geen webshop-/retailketen; deze commercecontrole is niet van toepassing.");
-        }
+        if (finalCommerceOnlyKeys.has(item.key)) setFinalNotApplicable(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
+      }
+    } else if (finalCommerceApplicability.state === "unconfirmed") {
+      for (const item of [...seoChecks,...geoChecks]) {
+        if (finalCommerceOnlyKeys.has(item.key)) setFinalUnableToConfirm(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
       }
     } else if (!euConsumerApplicable) {
       for (const item of [...seoChecks,...geoChecks]) {
@@ -4166,6 +4189,13 @@ export async function POST(request: Request) {
       }
     }
 
+    // Separate from sector: whether shop functionality is proven, proven absent or unknown.
+    const commerceApplicabilityReport = {
+      ...finalCommerceApplicability,
+      marketSelector: marketSelectorPage,
+      representativePagesAudited: representativeAuditedPageCount,
+      message: finalCommerceApplicability.state === "confirmed" ? "Product-, prijs- of winkelwagenbewijs bevestigd." : COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason],
+    };
     const representativeProductPage = auditedMultiPages.find((item)=>item.type==="product" && item.commerceEvidence?.product);
     if (finalCommerceDecision.confirmed && representativeProductPage?.commerceEvidence?.product) {
       const product = representativeProductPage.commerceEvidence.product;
@@ -4352,7 +4382,7 @@ export async function POST(request: Request) {
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             language: scanLanguage,
-            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, summary: scanSummary, rendering, recovery, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, security: securityEngine, accessibility: accessibilityEngine, multiPage,
+            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, summary: scanSummary, rendering, recovery, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -4579,6 +4609,7 @@ export async function POST(request: Request) {
       pageTypeInvariant,
       technologyProfile,
       sectorProfile,
+      commerceApplicability: commerceApplicabilityReport,
       evidenceLayer,
       security: securityEngine,
       accessibility: accessibilityEngine,
