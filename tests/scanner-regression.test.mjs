@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { extractImageMetrics } from "../lib/image-metrics.ts";
 import { applyEvidenceBasedScoreCap, scoreApplicableChecks, summarizeAuditChecks } from "../lib/audit-score.ts";
 import { isPrivateHost, validatePublicHttpUrl } from "../lib/safe-fetch.ts";
-import { hasSelfHreflangLanguageMismatch, statusCode } from "../lib/seo-rules.ts";
+import { assessHreflang, hasSelfHreflangLanguageMismatch, isValidHreflangCode, statusCode } from "../lib/seo-rules.ts";
+import { decodeHtmlEntities } from "../lib/html-entities.ts";
 
 test("decorative empty alt is valid; only a missing alt attribute is actionable", () => {
   const metrics = extractImageMetrics('<img src="/hero.jpg" alt=""><img src="/product.jpg" alt="Product"><img src="/broken.jpg">');
@@ -835,4 +836,87 @@ test("x-default self hreflang on a country picker is not a language mismatch", (
   assert.equal(hasSelfHreflangLanguageMismatch(["de-de"], "en"), true);
   assert.equal(hasSelfHreflangLanguageMismatch(["x-default", "de-de"], "en"), true);
   assert.equal(hasSelfHreflangLanguageMismatch(["de-de"], ""), false);
+});
+
+// Mirrors normalizeScanUrl in the scan route: host without www, no trailing slash.
+const normalizeTestUrl = (value) => {
+  const url = new URL(value);
+  url.hash = "";
+  url.hostname = url.hostname.toLowerCase().replace(/^www\./, "");
+  url.pathname = url.pathname.replace(/\/+$/, "") || "/";
+  return url.toString();
+};
+const hreflang = (links, page, lang) => assessHreflang(links, page, lang, normalizeTestUrl);
+
+test("hreflang: country picker with only x-default self reference is not flagged", () => {
+  const result = hreflang([
+    { language: "x-default", href: "https://www.ikea.com/" },
+    { language: "nl-nl", href: "https://www.ikea.com/nl/nl/" },
+    { language: "de-de", href: "https://www.ikea.com/de/de/" },
+  ], "https://www.ikea.com/", "en");
+  assert.equal(result.kind, "unconfirmed");
+});
+
+test("hreflang: normal reciprocal set with matching self reference is unconfirmed, not a warning", () => {
+  const result = hreflang([
+    { language: "nl-nl", href: "https://shop.nl/nl/" },
+    { language: "en-gb", href: "https://shop.nl/en/" },
+    { language: "x-default", href: "https://shop.nl/en/" },
+  ], "https://www.shop.nl/nl", "nl");
+  assert.deepEqual(result, { kind: "unconfirmed", total: 3 });
+});
+
+test("hreflang: no hreflang markup is not applicable", () => {
+  assert.deepEqual(hreflang([], "https://shop.nl/", "nl"), { kind: "none" });
+});
+
+test("hreflang: missing or empty language code is still a real error", () => {
+  assert.deepEqual(hreflang([{ language: "", href: "https://shop.nl/" }], "https://shop.nl/", "nl"), { kind: "invalid", total: 1, invalid: 1 });
+  assert.equal(hreflang([{ language: "nl", href: "" }, { language: "en", href: "https://shop.nl/en/" }], "https://shop.nl/", "nl").kind, "invalid");
+});
+
+test("hreflang: invalid code combinations are detected, valid script and region codes pass", () => {
+  for (const code of ["en_GB", "en-uk", "english", "nl-nld", "e", "en-gb-x"]) assert.equal(isValidHreflangCode(code), false, code);
+  for (const code of ["nl", "nl-NL", "en-gb", "es-419", "zh-Hans", "zh-Hant-TW", "x-default", "uk", "uk-ua"]) assert.equal(isValidHreflangCode(code), true, code);
+  assert.equal(hreflang([{ language: "en-uk", href: "https://shop.nl/en/" }], "https://shop.nl/", "nl").kind, "invalid");
+});
+
+test("hreflang: genuine self-reference language mismatch is still detected", () => {
+  assert.deepEqual(hreflang([
+    { language: "de-de", href: "https://shop.nl/" },
+    { language: "x-default", href: "https://shop.nl/" },
+  ], "https://shop.nl/", "nl"), { kind: "self_mismatch", documentLanguage: "nl" });
+});
+
+test("hreflang: conflicting and duplicate targets are detected", () => {
+  assert.deepEqual(hreflang([
+    { language: "nl", href: "https://shop.nl/a" },
+    { language: "nl", href: "https://shop.nl/b" },
+  ], "https://shop.nl/x", "nl"), { kind: "conflict", targets: [["nl", ["https://shop.nl/a", "https://shop.nl/b"]]] });
+  assert.deepEqual(hreflang([
+    { language: "nl", href: "https://shop.nl/a" },
+    { language: "nl", href: "https://www.shop.nl/a/" },
+  ], "https://shop.nl/x", "nl"), { kind: "duplicate", targets: [["nl", "https://shop.nl/a"]] });
+});
+
+test("hreflang: other hosts are unable-to-confirm, not an error", () => {
+  assert.deepEqual(hreflang([
+    { language: "nl", href: "https://shop.nl/" },
+    { language: "de", href: "https://shop.de/" },
+  ], "https://shop.nl/", "nl"), { kind: "external_hosts", count: 1 });
+});
+
+test("html entities decode once, like a browser", () => {
+  assert.equal(decodeHtmlEntities("Privacy &amp; Cookie statement"), "Privacy & Cookie statement");
+  assert.equal(decodeHtmlEntities("&amp;lt;b&amp;gt;"), "&lt;b&gt;");
+  assert.equal(decodeHtmlEntities("&amp;amp;"), "&amp;");
+  assert.equal(decodeHtmlEntities("Caf&eacute; &euro;&nbsp;5 &ndash; IKEA&rsquo;s"), "Café €\u00a05 – IKEA’s");
+  assert.equal(decodeHtmlEntities("&#39;&#x27;&#x2F;&#8364;&#X20AC;"), "''/€€");
+  assert.equal(decodeHtmlEntities("&AMP; &Eacute; &EACUTE;"), "& É é");
+});
+
+test("html entities: unknown names stay visible and bad code points never throw", () => {
+  assert.equal(decodeHtmlEntities("&foo; &constructor; &toString;"), "&foo; &constructor; &toString;");
+  assert.equal(decodeHtmlEntities("&#x110000;&#xD800;&#0;&#99999999999;"), "\ufffd\ufffd\ufffd\ufffd");
+  assert.equal(decodeHtmlEntities("R&D en AT&T"), "R&D en AT&T");
 });

@@ -3,8 +3,9 @@ import { createHash } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
-import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, hasSelfHreflangLanguageMismatch } from "@/lib/seo-rules";
+import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
+import { decodeHtmlEntities } from "@/lib/html-entities";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
@@ -82,20 +83,7 @@ type Check = {
   fix_category: "A" | "B" | "C";
 };
 
-const decode = (value: string) =>
-  value
-    .replace(/&amp;/gi, "&")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/&#x27;/gi, "'")
-    .replace(/&#x2F;/gi, "/")
-    .replace(/&#(x[0-9a-f]+|[0-9]+);/gi, (_, code: string) => {
-      const value = code.toLowerCase().startsWith("x") ? parseInt(code.slice(1), 16) : parseInt(code, 10);
-      return Number.isFinite(value) ? String.fromCodePoint(value) : "";
-    })
-    .trim();
+const decode = (value: string) => decodeHtmlEntities(value).trim();
 
 const safeDecodeURIComponent = (value: string) => {
   try { return decodeURIComponent(value); } catch { return value; }
@@ -2251,53 +2239,13 @@ export async function POST(request: Request) {
     const decodedVisibleText = decode(text);
     const hasVisibleHtmlEscape = /&(?:amp|quot|lt|gt|#(?:x[0-9a-f]+|\d+));/i.test(decodedVisibleText);
     const hreflangTags = [...html.matchAll(/<link\b[^>]*>/gi)].map((m) => m[0]).filter((tag) => /\brel\s*=\s*["']alternate["']/i.test(tag) && /\bhreflang\s*=/i.test(tag));
-    const hreflangValues = hreflangTags.map((tag) => attrFromTag(tag, "hreflang").toLowerCase()).filter(Boolean);
-    const hasHreflang = hreflangValues.length > 0;
-    const hreflangEntries = hreflangTags.map((tag) => {
-      const language = attrFromTag(tag, "hreflang").toLowerCase();
-      const href = attrFromTag(tag, "href");
-      let validHref = false;
-      try {
-        const parsed = new URL(href, finalUrl);
-        validHref = parsed.protocol === "http:" || parsed.protocol === "https:";
-      } catch {}
-      const validLanguage = language === "x-default" || /^(?:[a-z]{2,3})(?:-[a-z]{2}|-[0-9]{3})?$/i.test(language);
-      return { language, href, validHref, validLanguage };
-    });
-    const invalidHreflangEntries = hreflangEntries.filter((entry) => !entry.validLanguage || !entry.validHref);
-    const hreflangTargetsByLanguage = new Map<string, string[]>();
-    for (const entry of hreflangEntries) {
-      if (!entry.language || !entry.validHref) continue;
-      try {
-        const normalizedHref = normalizeScanUrl(new URL(entry.href, finalUrl).toString());
-        hreflangTargetsByLanguage.set(entry.language, [...(hreflangTargetsByLanguage.get(entry.language) || []), normalizedHref]);
-      } catch {}
-    }
-    const duplicateHreflangLanguages = [...hreflangTargetsByLanguage.entries()]
-      .filter(([, urls]) => urls.length > 1)
-      .map(([language]) => language);
-    const conflictingHreflangLanguages = [...hreflangTargetsByLanguage.entries()]
-      .filter(([, urls]) => new Set(urls).size > 1)
-      .map(([language]) => language);
-    const identicalDuplicateHreflangLanguages = duplicateHreflangLanguages.filter((language) => !conflictingHreflangLanguages.includes(language));
-    const currentNormalizedUrl = normalizeScanUrl(finalUrl.toString());
-    const selfHreflangEntries = hreflangEntries.filter((entry) => {
-      if (!entry.validHref) return false;
-      try { return normalizeScanUrl(new URL(entry.href, finalUrl).toString()) === currentNormalizedUrl; } catch { return false; }
-    });
+    const hreflangEntries = hreflangTags.map((tag) => ({ language: attrFromTag(tag, "hreflang").toLowerCase(), href: attrFromTag(tag, "href") }));
     const documentLanguage = lang.trim().toLowerCase().replace("_", "-");
-    const selfHreflangMismatch = hasSelfHreflangLanguageMismatch(selfHreflangEntries.map((entry) => entry.language), documentLanguage);
-    const hreflangHostMismatches = hreflangEntries.filter((entry) => {
-      if (!entry.validHref) return false;
-      try {
-        const target = new URL(entry.href, finalUrl);
-        return target.hostname.replace(/^www\./i, "").toLowerCase() !== finalUrl.hostname.replace(/^www\./i, "").toLowerCase();
-      } catch { return false; }
-    });
+    const hreflangAssessment = assessHreflang(hreflangEntries, finalUrl.toString(), documentLanguage, normalizeScanUrl);
     const languageSelectorSignal = /(?:language|taal|sprache|idioma|lingua|français|deutsch|italiano|español|english|nederlands)\b/i.test(text) && /(?:select|dropdown|menu|switch|\bEN\b|\bNL\b|\bDE\b|\bFR\b|\bES\b|\bIT\b)/i.test(text);
     // A language/country selector alone does not prove equivalent translated URLs exist.
     // Only explicit hreflang markup is strong enough in a single raw-HTML page scan.
-    const multilingualUrlEvidence = hasHreflang;
+    const multilingualUrlEvidence = hreflangAssessment.kind !== "none";
     const organizationSchemaPresent = schemaSet.has("organization");
     const websiteSchemaPresent = schemaSet.has("website");
     const productSchemaPresent = schemaSet.has("product");
@@ -2678,16 +2626,16 @@ export async function POST(request: Request) {
       ? languageSelectorSignal
         ? check("unable_to_confirm", "hreflang", "seo", "Meertalige SEO", "Een taal- of landkeuze is zichtbaar, maar deze paginascan bewijst niet dat equivalente vertaalde URL's bestaan. Hreflang wordt daarom niet als ontbrekende fout beoordeeld.", "Bevestig alternatieve taal-URL's in een sitebrede crawl voordat hreflang verplicht wordt gesteld.", 0, 5)
         : check("not_applicable", "hreflang", "seo", "Meertalige SEO", "Geen bewezen alternatieve taal-URL's gevonden; RankFix telt hreflang daarom niet mee in de score.", "Gebruik hreflang wanneer dezelfde content aantoonbaar in meerdere talen/URL's beschikbaar is.", 0, 5)
-      : invalidHreflangEntries.length
-          ? check("warning", "hreflang", "seo", "Meertalige SEO", `${hreflangTags.length} hreflang-link(s) gevonden, maar ${invalidHreflangEntries.length} bevat een ongeldige taal-/regiocode of URL.`, "Corrigeer ongeldige hreflang-codes en href-URL's. Controleer daarna wederkerigheid tussen taalversies.", 2, 5)
-          : selfHreflangMismatch
-            ? check("warning", "hreflang", "seo", "Meertalige SEO", `De huidige URL is als hreflang-doel opgenomen, maar de taalcode sluit niet aan op documenttaal "${documentLanguage}".`, "Laat de self-referencing hreflang-taal overeenkomen met de taal van deze pagina en controleer daarna de alternatieve taalversies.", 2, 5)
-          : hreflangHostMismatches.length
-            ? check("unable_to_confirm", "hreflang", "seo", "Meertalige SEO", `${hreflangHostMismatches.length} hreflang-doel(en) verwijzen naar een ander hostdomein. Dit kan geldig zijn voor internationale domeinen, maar RankFix kan de relatie vanuit deze ene pagina niet bewijzen.`, "Controleer de externe taalhosts en hun wederkerige hreflang/canonical-relaties in een sitebrede crawl voordat dit als fout wordt beoordeeld.", 0, 5)
-          : conflictingHreflangLanguages.length
-            ? check("warning", "hreflang", "seo", "Meertalige SEO", `Dezelfde hreflang-code verwijst naar verschillende doel-URL's: ${conflictingHreflangLanguages.map((language) => `${language} => ${[...new Set(hreflangTargetsByLanguage.get(language) || [])].join(" | ")}`).join("; ")}.`, "Gebruik per pagina één eenduidige doel-URL per taal/regiocode en controleer daarna wederkerigheid.", 3, 5)
-            : identicalDuplicateHreflangLanguages.length
-              ? check("warning", "hreflang", "seo", "Meertalige SEO", `Dezelfde hreflang-code is dubbel opgenomen met dezelfde doel-URL: ${identicalDuplicateHreflangLanguages.map((language) => `${language} => ${(hreflangTargetsByLanguage.get(language) || [])[0]}`).join("; ")}.`, "Verwijder de dubbele hreflang-tag zodat iedere taal-/regiocode één keer voorkomt. Controleer daarna wederkerigheid.", 4, 5)
+      : hreflangAssessment.kind === "invalid"
+          ? check("warning", "hreflang", "seo", "Meertalige SEO", `${hreflangAssessment.total} hreflang-link(s) gevonden, maar ${hreflangAssessment.invalid} bevat een ongeldige of ontbrekende taal-/regiocode of URL.`, "Corrigeer ongeldige hreflang-codes en href-URL's. Controleer daarna wederkerigheid tussen taalversies.", 2, 5)
+          : hreflangAssessment.kind === "self_mismatch"
+            ? check("warning", "hreflang", "seo", "Meertalige SEO", `De huidige URL is als hreflang-doel opgenomen, maar de taalcode sluit niet aan op documenttaal "${hreflangAssessment.documentLanguage}".`, "Laat de self-referencing hreflang-taal overeenkomen met de taal van deze pagina en controleer daarna de alternatieve taalversies.", 2, 5)
+          : hreflangAssessment.kind === "external_hosts"
+            ? check("unable_to_confirm", "hreflang", "seo", "Meertalige SEO", `${hreflangAssessment.count} hreflang-doel(en) verwijzen naar een ander hostdomein. Dit kan geldig zijn voor internationale domeinen, maar RankFix kan de relatie vanuit deze ene pagina niet bewijzen.`, "Controleer de externe taalhosts en hun wederkerige hreflang/canonical-relaties in een sitebrede crawl voordat dit als fout wordt beoordeeld.", 0, 5)
+          : hreflangAssessment.kind === "conflict"
+            ? check("warning", "hreflang", "seo", "Meertalige SEO", `Dezelfde hreflang-code verwijst naar verschillende doel-URL's: ${hreflangAssessment.targets.map(([language, urls]) => `${language} => ${urls.join(" | ")}`).join("; ")}.`, "Gebruik per pagina één eenduidige doel-URL per taal/regiocode en controleer daarna wederkerigheid.", 3, 5)
+            : hreflangAssessment.kind === "duplicate"
+              ? check("warning", "hreflang", "seo", "Meertalige SEO", `Dezelfde hreflang-code is dubbel opgenomen met dezelfde doel-URL: ${hreflangAssessment.targets.map(([language, url]) => `${language} => ${url}`).join("; ")}.`, "Verwijder de dubbele hreflang-tag zodat iedere taal-/regiocode één keer voorkomt. Controleer daarna wederkerigheid.", 4, 5)
               : check("unable_to_confirm", "hreflang", "seo", "Meertalige SEO", `${hreflangTags.length} syntactisch geldige hreflang-link(s) gevonden. Vanuit één pagina kan RankFix wederkerigheid en canonicals van alle taalversies nog niet bewijzen.`, "Controleer de gekoppelde taal-URL's in een sitebrede crawl voordat hreflang volledig wordt bevestigd.", 0, 5)
     );
 
