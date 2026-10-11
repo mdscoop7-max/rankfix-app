@@ -29,6 +29,21 @@ function imageReference(value: string): string | null {
   return looksLikeImage ? v : null;
 }
 
+/**
+ * One key per image, not per delivered variant: responsive srcset widths (?imwidth=320,
+ * -320x240, @2x), absolute vs. relative URLs and format alternatives (.avif/.webp/.jpg of
+ * the same file) all describe the same picture. Counting each variant inflated large
+ * retail homepages to thousands of "images".
+ */
+function variantKey(ref: string): string {
+  return ref
+    .replace(/[?#].*$/, "")
+    .replace(/^(?:https?:)?\/\/[^/]+/i, "")
+    .replace(/(?:-\d{2,5}x\d{2,5}|@[1-4]x|_(?:s|w)\d{2,5})(?=\.[a-z0-9]+$)/i, "")
+    .replace(/\.(avif|webp|jpe?g|png|gif)$/i, "")
+    .toLowerCase();
+}
+
 function attr(tag: string, name: string): string {
   const match = tag.match(new RegExp(name + "\\s*=\\s*[\\\"']([^\\\"']*)[\\\"']", "i"));
   return match?.[1] ?? "";
@@ -44,7 +59,7 @@ function addSrcSet(set: Set<string>, value: string): void {
   for (const candidate of value.split(",")) {
     const url = candidate.trim().split(/\s+/)[0];
     const ref = imageReference(url);
-    if (ref) set.add(ref);
+    if (ref) set.add(variantKey(ref));
   }
 }
 
@@ -60,7 +75,7 @@ export function extractImageMetrics(html: string): ImageMetrics {
 
     for (const name of ["src", "data-src", "data-lazy-src", "data-original", "data-image"]) {
       const ref = imageReference(attr(tag, name));
-      if (ref) refs.add(ref);
+      if (ref) refs.add(variantKey(ref));
     }
 
     addSrcSet(refs, attr(tag, "srcset"));
@@ -70,7 +85,7 @@ export function extractImageMetrics(html: string): ImageMetrics {
   const sources = html.match(/<source\b[^>]*>/gi) ?? [];
   for (const tag of sources) {
     const ref = imageReference(attr(tag, "src"));
-    if (ref) refs.add(ref);
+    if (ref) refs.add(variantKey(ref));
 
     addSrcSet(refs, attr(tag, "srcset"));
   }
@@ -80,7 +95,7 @@ export function extractImageMetrics(html: string): ImageMetrics {
   for (const match of styleUrls) {
     const inner = match.replace(/^url\(\s*["']?/i, "").replace(/["']?\s*\)$/i, "");
     const ref = imageReference(inner);
-    if (ref) refs.add(ref);
+    if (ref) refs.add(variantKey(ref));
   }
 
   // Next.js and other SSR frameworks can serialize image URLs into the HTML payload.
@@ -89,7 +104,7 @@ export function extractImageMetrics(html: string): ImageMetrics {
 
   for (const url of serializedUrls) {
     const ref = imageReference(url);
-    if (ref) refs.add(ref);
+    if (ref) refs.add(variantKey(ref));
   }
 
   return {

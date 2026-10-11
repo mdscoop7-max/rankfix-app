@@ -18,7 +18,7 @@
 | Testbranch | `feat/sector-motor-3-1-universal-evidence-arbiter-20261010` |
 | GitHub vóór deze push | `323893e` (documentatiecommit ChatGPT) op `7e0ed5e` |
 | Laatste **codecommit** in deze push | `dc16d37` — 21 commits bovenop `323893e`; deze documentatiecommit staat daar direct boven |
-| Lokale tests | **258/258 geslaagd**, 0 mislukt, 0 overgeslagen (Node 24.21 / npm 11.21) |
+| Lokale tests | **262/262 geslaagd**, 0 mislukt, 0 overgeslagen (Node 24.21 / npm 11.21) |
 | TypeScript | Geslaagd (0 fouten, na `next typegen`) |
 | ESLint | 67 fouten / 41 waarschuwingen — **identiek aan de basis**, geen nieuwe meldingen |
 | Standaardbuild lokaal | **Niet uitvoerbaar** (sandbox kan Google Fonts niet ophalen); standaardbuild wordt op Vercel bevestigd |
@@ -53,6 +53,9 @@
 | `app/api/scan/route.ts`, `lib/scan-evidence.ts`, `lib/crawler.ts`, `lib/sector-catalog.ts`, `app/api/ai-fix/route.ts` | JavaScript-`\b` is alleen ASCII: `\bcafé\b`, `\bÜber`, `\bà propos`, `\bépuisé`, `\böffnungszeiten` matchten **nooit** ("Café Central", "Eetcafé", Duitse openingstijden/over-ons, Franse uitverkocht-tekst). Prijzen als "19,99 €" werden niet geteld | Grenzen naast accenten vervangen door `(?<![A-Za-z0-9_])`/`(?![A-Za-z0-9_])` (gelijk aan `\b` voor ASCII); euro-na-bedrag gecorrigeerd; pizzeria/trattoria/osteria/lunchroom/eetcafé/steakhouse/grillroom als horeca-identiteit; AST-bewaking tegen herhaling | `1bb1593` |
 | `tests/scanner-safety.test.mjs` | Fix Engine-keten niet volledig bewaakt | Test: geen PR zonder goedgekeurde, ongewijzigde voorstel-hash; exacte commitbevestiging; geen automatische merge; "opgelost" pas na verse live scan met PASS + hoge zekerheid + bewijs | `3be1fe7` |
 | `app/api/scan/route.ts` (Websiteprofiel) | **Eerste echte previewscan (IKEA NL):** sector "Webshop 96%" correct, maar het Websiteprofiel toonde "Type: Webshop · Confidence 40%" met de oude notitie "Commerciële landingpage-signalen 3/4": het technologieprofiel werd vóór Sector Motor 3.1 bepaald en daarna alleen van type gewisseld | Na bevestigde aankoopstructuur: landingpage-notitie verwijderd, bewijsregel "Aankoopstructuur bevestigd door Sector Motor 3.1", profielzekerheid minimaal 90% (sterk) / 70% (beperkt) | volgt in deze push |
+| `lib/schema-types.ts`, `app/api/scan/route.ts` | **Previewscan IKEA NL:** "Organization + WebSite 6/8 — aanvullend schema ontbreekt", terwijl `OnlineStore`/`FurnitureStore` aanwezig waren: alleen het letterlijke type `Organization` telde | schema.org-subtypes van Organization (alle *Store-types, LocalBusiness-, Medical-, Food-, Lodging-, Legal-typen, Corporation, NGO, …) tellen mee; ook voor naam/logo/sameAs | volgt in deze push |
+| `lib/image-metrics.ts` | **Previewscan IKEA NL:** "Afbeeldingen 2157" — elke srcset-breedte/-formaat telde als aparte afbeelding | Varianten van hetzelfde beeld (`?imwidth=`, `-320x240`, `@2x`, absolute/relatieve URL, avif/webp/jpg) = één afbeelding | volgt in deze push |
+| `app/api/scan/route.ts` (FAQ) | **Previewscan IKEA NL:** "Vraag & antwoord 10/10" op basis van alleen een FAQ-link of een `<details>`-menu | PASS alleen met FAQPage/QAPage-schema of ≥2 zichtbare vraagblokken; alleen een verwijzing → N.v.t. (telt niet mee) | volgt in deze push |
 | `lib/rate-limit.ts`, `app/api/scan/route.ts` | Elke scan (ook de publieke) vereiste de database voor de netwerklimiet → preview zonder database kon niets scannen | Alleen bij `VERCEL_ENV=preview` **én** geen `DATABASE_URL`: dezelfde limiet (8 per netwerk per uur) in een begrensde geheugentabel die bij overvol weigert. Niets wordt opgeslagen. Dashboard vereist nog steeds login + database. Productie (Render, Vercel Production) kan dit pad nooit nemen. Geen nieuw endpoint | `dc16d37` |
 
 Eerdere commits (sessies 1–2) staan in het archief hieronder.
@@ -62,7 +65,7 @@ Eerdere commits (sessies 1–2) staan in het archief hieronder.
 | Commando of testgroep | Uitgevoerd? | Geslaagd | Mislukt | Opmerking |
 | --- | --- | ---: | ---: | --- |
 | `npm ci` (schone kopie) | Ja | — | — | Geslaagd, Node 24.21 / npm 11.21 |
-| `npm test` | Ja | 258 | 0 | 0 overgeslagen |
+| `npm test` | Ja | 262 | 0 | 0 overgeslagen |
 | `npx tsc --noEmit` | Ja | — | — | 0 fouten (na `npx next typegen`; schone kopie heeft anders geen `LayoutProps`-types) |
 | `npm run lint` | Ja | — | — | 67 fouten / 41 waarschuwingen = basis; gewijzigde bestanden hebben alleen bestaande meldingen |
 | `npm run build` (standaard, zonder fontvervanging) | Ja | — | 1 | **Mislukt door omgeving**: `fonts.googleapis.com` niet bereikbaar in de sandbox. Geen codefout; Vercel moet dit bevestigen |

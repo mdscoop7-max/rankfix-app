@@ -6,6 +6,7 @@ import { ensureDatabase } from "@/lib/db-init";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { extractImageMetrics } from "@/lib/image-metrics";
+import { isOrganizationType, organizationTypeIn } from "@/lib/schema-types";
 import { readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
 import { applyEvidenceBasedScoreCap, SCORE_MODEL_VERSION, scoreApplicableChecks, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
@@ -824,10 +825,12 @@ export async function POST(request: Request) {
     }
     const schemaSet = new Set(schemaTypes.map((v) => v.toLowerCase()));
     const hasEntitySchema = ["organization", "localbusiness", "person", "product", "article", "website"].some((t) => schemaSet.has(t));
-    const organizationObjects = schemaObjects.filter((item) => {
-      const types = Array.isArray(item?.["@type"]) ? item["@type"] : [item?.["@type"]];
-      return types.some((type: unknown) => String(type || "").toLowerCase() === "organization");
-    });
+    // Organization or any schema.org subtype (OnlineStore, Dentist, Restaurant, ...); a literal
+    // Organization object is preferred as the identity source when both are present.
+    const schemaTypesOf = (item: { "@type"?: unknown }) => (Array.isArray(item?.["@type"]) ? item["@type"] : [item?.["@type"]]) as unknown[];
+    const organizationObjects = schemaObjects
+      .filter((item) => schemaTypesOf(item).some(isOrganizationType))
+      .sort((a, b) => Number(schemaTypesOf(b).some(type => String(type || "").toLowerCase() === "organization")) - Number(schemaTypesOf(a).some(type => String(type || "").toLowerCase() === "organization")));
     const organizationSchema = organizationObjects[0] || null;
     const organizationSchemaName = typeof organizationSchema?.name === "string" ? organizationSchema.name.trim() : "";
     const organizationSchemaUrl = typeof organizationSchema?.url === "string" ? organizationSchema.url.trim() : "";
@@ -922,6 +925,13 @@ export async function POST(request: Request) {
 
     const hasFaqContent = /\b(faq|veelgestelde vragen|frequently asked questions|questions fréquentes|häufig gestellte fragen)\b/i.test(text) ||
       /<details\b/i.test(html) || /<h[2-6][^>]*>[^<]*(\?|faq|vragen|questions)[^<]*<\/h[2-6]>/i.test(html);
+    // A FAQ link in the footer or a <details> menu is not Q&A content on this page. Only
+    // FAQPage/QAPage schema or at least two visible question blocks count as proof.
+    const faqQuestionBlocks =
+      (html.match(/<h[2-6]\b[^>]*>[^<]{3,200}\?\s*<\/h[2-6]>/gi) || []).length +
+      (html.match(/<summary\b[^>]*>[^<]{3,200}\?\s*<\/summary>/gi) || []).length +
+      (html.match(/<dt\b[^>]*>[^<]{3,200}\?\s*<\/dt>/gi) || []).length;
+    const hasFaqStructure = hasFaqSchema || schemaSet.has("qapage") || faqQuestionBlocks >= 2;
     const hasContactSignal = /\b(contact|contacteer|e-mail|email|telefoon|phone|adres|address|kontakt|contatti|contacto)\b/i.test(text);
     const hasContactFormSignal = /<form\b[\s\S]*?(?:name\s*=\s*["'](?:email|message|name)["']|type\s*=\s*["']email["'])[\s\S]*?<\/form>/i.test(html);
     const hasContactActionSignal = /<(?:a|button)\b[^>]*(?:href\s*=\s*["'][^"']*(?:#contact|\/contact)|aria-label\s*=\s*["'][^"']*contact)[^>]*>|<(?:a|button)\b[^>]*>\s*(?:contact|kontakt|contatti|contacto)\s*<\/(?:a|button)>/i.test(html);
@@ -2368,7 +2378,9 @@ export async function POST(request: Request) {
     // A language/country selector alone does not prove equivalent translated URLs exist.
     // Only explicit hreflang markup is strong enough in a single raw-HTML page scan.
     const multilingualUrlEvidence = hasHreflang;
-    const organizationSchemaPresent = schemaSet.has("organization");
+    const organizationSchemaType = organizationTypeIn(schemaTypes);
+    const organizationSchemaPresent = Boolean(organizationSchemaType);
+    const organizationSubtypeNote = organizationSchemaType && organizationSchemaType.toLowerCase() !== "organization" ? ` (als ${organizationSchemaType}, een schema.org-subtype van Organization)` : "";
     const websiteSchemaPresent = schemaSet.has("website");
     const productSchemaPresent = schemaSet.has("product");
     const ga4MeasurementIds = [...new Set(html.match(/\bG-[A-Z0-9]{6,}\b/gi) || [])];
@@ -2973,7 +2985,7 @@ export async function POST(request: Request) {
     const organizationWebsitePoints = organizationWebsiteSignals === 2 ? 8 : organizationWebsiteSignals === 1 ? 6 : 4;
     geoChecks.push(isHomepage
       ? organizationSchemaPresent && websiteSchemaPresent
-        ? check("pass", "organization_website", "geo", "Organization + WebSite", "Organization en WebSite structured data zijn aanwezig op de homepage.", "Houd naam, URL en logo consistent met de zichtbare site-identiteit.", 8, 8)
+        ? check("pass", "organization_website", "geo", "Organization + WebSite", `Organization${organizationSubtypeNote} en WebSite structured data zijn aanwezig op de homepage.`, "Houd naam, URL en logo consistent met de zichtbare site-identiteit.", 8, 8)
         : metadataMayBeClientRendered && validJsonLd === 0
           ? check("unable_to_confirm", "organization_website", "geo", "Organization + WebSite", "Organization/WebSite structured data kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de homepage opnieuw met een volledige render voordat je Organization of WebSite schema toevoegt.", 0, 8)
           : check("warning", "organization_website", "geo", "Organization + WebSite", organizationWebsiteSignals === 1 ? "De homepage bevat één van de twee identity-schema's (Organization of WebSite); het aanvullende schema ontbreekt." : "De homepage bevat geen bevestigd Organization- of WebSite-schema. Dit is machineleesbaar identity-advies en geen bewijs dat de zichtbare organisatie-identiteit ontbreekt.", "Voeg alleen passende Organization- en/of WebSite JSON-LD toe met aantoonbare gegevens.", organizationWebsitePoints, 8)
@@ -3032,9 +3044,11 @@ export async function POST(request: Request) {
             ? check("unable_to_confirm", "breadcrumbs", "geo", "Breadcrumbs", "Geen BreadcrumbList of betrouwbare zichtbare breadcrumb kon worden bevestigd en de JavaScript-pagina kon niet volledig worden gerenderd.", "Controleer de zichtbare navigatiestructuur opnieuw met een volledige render voordat BreadcrumbList als verbeterpunt wordt aangemerkt.", 0, 6)
             : check("not_applicable", "breadcrumbs", "geo", "Breadcrumbs", "Op deze diepere pagina is geen zichtbare breadcrumb-navigatie aangetoond. Ontbrekende BreadcrumbList wordt daarom niet als fout behandeld.", "Voeg BreadcrumbList alleen toe wanneer de pagina ook een echte hiërarchische breadcrumb gebruikt.", 0, 6)
     );
-    geoChecks.push(hasFaqContent || hasFaqSchema
-      ? check("pass", "faq", "geo", "Vraag & antwoord content", "FAQ/Q&A-signalen zijn op de pagina gevonden.", "Beantwoord echte klantvragen kort, concreet en zonder marketingtaal.", 10, 10)
-      : check("not_applicable", "faq", "geo", "Vraag & antwoord content", "Geen duidelijke FAQ/Q&A-sectie gevonden. Een FAQ is niet verplicht voor iedere pagina en wordt daarom niet als GEO-fout bestraft.", "Voeg alleen relevante vragen en directe antwoorden toe wanneer dit de gebruiker inhoudelijk helpt.", 0, 10)
+    geoChecks.push(hasFaqStructure
+      ? check("pass", "faq", "geo", "Vraag & antwoord content", hasFaqSchema || schemaSet.has("qapage") ? "FAQ/Q&A structured data is op de pagina gevonden." : `${faqQuestionBlocks} zichtbare vraag-en-antwoordblokken zijn op de pagina gevonden.`, "Beantwoord echte klantvragen kort, concreet en zonder marketingtaal.", 10, 10)
+      : hasFaqContent
+        ? check("not_applicable", "faq", "geo", "Vraag & antwoord content", "Alleen een verwijzing naar veelgestelde vragen gevonden (bijvoorbeeld een link of menu); op deze pagina zelf staan geen aantoonbare vraag-en-antwoordblokken. Telt daarom niet mee.", "Plaats korte vragen met directe antwoorden op pagina's waar klanten die vragen echt stellen.", 0, 10)
+        : check("not_applicable", "faq", "geo", "Vraag & antwoord content", "Geen duidelijke FAQ/Q&A-sectie gevonden. Een FAQ is niet verplicht voor iedere pagina en wordt daarom niet als GEO-fout bestraft.", "Voeg alleen relevante vragen en directe antwoorden toe wanneer dit de gebruiker inhoudelijk helpt.", 0, 10)
     );
     const ecommerceExpertiseSignal = hasEcommerceSignal && (
       hasOrganizationIdentity ||
@@ -3168,7 +3182,7 @@ export async function POST(request: Request) {
         hreflang: hreflangEntries.length ? hreflangEntries.map((entry) => `${entry.language}=>${entry.href || "missing"}`).join(" | ") : null,
         twitter_card: twitterCard || null,
         security_headers: presentSecurityHeaders.length ? `present=${presentSecurityHeaders.map(([name])=>name).join(",")}; core=${coreSecurityHeadersPresent}` : "present=none; core=false",
-        faq: (hasFaqContent || hasFaqSchema) ? `content=${hasFaqContent}; schema=${hasFaqSchema}` : (item.key === "faq" ? "faqContent=false; faqSchema=false" : null),
+        faq: (hasFaqContent || hasFaqSchema) ? `mention=${hasFaqContent}; questionBlocks=${faqQuestionBlocks}; schema=${hasFaqSchema}` : (item.key === "faq" ? "faqContent=false; faqSchema=false" : null),
         breadcrumbs: (hasBreadcrumb || visibleBreadcrumbSignal) ? `schema=${hasBreadcrumb}; visible=${visibleBreadcrumbSignal}` : null,
         trust_legal_signals: item.key === "trust_legal_signals" ? `privacy=${hasPrivacyLink}; cookies=${hasCookieLink}; contact=${hasContactLink}` : null,
         social: [ogTitle ? "og:title" : "", ogDescription ? "og:description" : "", ogImage ? "og:image" : ""].filter(Boolean).join(", ") || (item.key === "social" ? "Open Graph core fields missing" : null),
@@ -4386,7 +4400,7 @@ export async function POST(request: Request) {
     const homepageSample = auditedMultiPages.find((item)=>item.type==="homepage");
     if (!isHomepage && orgWebsiteCheck && homepageSample) {
       const homepageTypes = new Set((homepageSample.schemaTypes||[]).map((value)=>value.toLowerCase()));
-      const hasOrg = homepageTypes.has("organization");
+      const hasOrg = [...homepageTypes].some(isOrganizationType);
       const hasWebSite = homepageTypes.has("website");
       const signals = Number(hasOrg)+Number(hasWebSite);
       const replacement = hasOrg && hasWebSite
