@@ -20,6 +20,7 @@ import { internalTesterIds, isInternalTester, scanRateLimitPolicy, scanRateLimit
 import { renderPublicPage } from "@/lib/headless-render";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { confirmedFaqContent } from "@/lib/faq-evidence";
+import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
@@ -2317,7 +2318,7 @@ export async function POST(request: Request) {
       javascriptRendered: javascriptExecuted,
       interactiveFlowExecuted: false,
     };
-    const webshopClaimMatches = text.match(/(?:snelle levering|14\s*dagen retour|gratis verzending|nederlandse webshop|voor\s*\d+\s*uur\s*besteld)/gi) || [];
+    const webshopClaimMatches = findWebshopClaims([text, description].filter(Boolean).join(" "));
     const hasWebshopClaims = webshopClaimMatches.length > 0;
     // EU consumer / Omnibus signals are evidence-only. Static HTML can surface
     // transparency signals but cannot certify legal compliance or historical prices.
