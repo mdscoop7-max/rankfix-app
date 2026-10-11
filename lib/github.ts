@@ -25,12 +25,25 @@ export function decryptToken(value: string) {
   decipher.setAuthTag(Buffer.from(tag, "base64url"));
   return Buffer.concat([decipher.update(Buffer.from(encrypted, "base64url")), decipher.final()]).toString("utf8");
 }
+function githubTimeoutMs() {
+  const value = Number(process.env.GITHUB_API_TIMEOUT_MS || 20000);
+  return Number.isFinite(value) ? Math.min(60000, Math.max(500, value)) : 20000;
+}
 export async function githubFetch<T>(token: string, path: string, init: RequestInit = {}) {
-  const response = await fetch(API + path, {
-    ...init,
-    headers: { Accept:"application/vnd.github+json", Authorization:"Bearer " + token, "X-GitHub-Api-Version":VERSION, "Content-Type":"application/json", ...(init.headers || {}) },
-    cache:"no-store",
-  });
+  let response: Response;
+  try {
+    response = await fetch(API + path, {
+      ...init,
+      headers: { Accept:"application/vnd.github+json", Authorization:"Bearer " + token, "X-GitHub-Api-Version":VERSION, "Content-Type":"application/json", ...(init.headers || {}) },
+      cache:"no-store",
+      // A hanging GitHub API call must never stall a fix request indefinitely.
+      signal: init.signal ?? AbortSignal.timeout(githubTimeoutMs()),
+    });
+  } catch (error) {
+    const name = error instanceof Error ? error.name : "";
+    if (name === "TimeoutError" || name === "AbortError") throw new Error("GitHub reageerde niet op tijd. Probeer het later opnieuw.");
+    throw new Error("GitHub is tijdelijk niet bereikbaar. Probeer het later opnieuw.");
+  }
   const text=await response.text();
   let data:unknown=null; try{data=text?JSON.parse(text):null;}catch{data={message:text};}
   const message=data&&typeof data==="object"&&"message" in data?String((data as {message?:unknown}).message||""):"";
