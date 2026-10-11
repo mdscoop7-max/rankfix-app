@@ -1,2 +1,2 @@
-import { redirect } from "next/navigation";
-export default function Cookies() { redirect("/nl/cookies"); }
+import { permanentRedirect } from "next/navigation";
+export default function Cookies() { permanentRedirect("/nl/cookies"); }

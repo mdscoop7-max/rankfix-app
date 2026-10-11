@@ -1,5 +1,16 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { socialMetadata } from "@/lib/locale-metadata";
 import { PLAN_CATALOG } from "@/lib/plans";
+
+const pricingTitle = "Prijzen | RankFix AI";
+const pricingDescription = "Vergelijk de RankFix-abonnementen: van een gratis SEO- en GEO-scan tot pakketten voor webshops en bureaus.";
+export const metadata: Metadata = {
+  title: pricingTitle,
+  description: pricingDescription,
+  alternates: { canonical: "/pricing" },
+  ...socialMetadata("/pricing", pricingTitle, pricingDescription),
+};
 
 const euro=(value:number)=>"€ "+value.toFixed(2).replace(".",",");
 const plans = [

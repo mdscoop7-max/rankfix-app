@@ -1,2 +1,2 @@
-import { redirect } from "next/navigation";
-export default function Terms() { redirect("/nl/terms"); }
+import { permanentRedirect } from "next/navigation";
+export default function Terms() { permanentRedirect("/nl/terms"); }
