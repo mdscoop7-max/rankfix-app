@@ -3846,12 +3846,16 @@ export async function POST(request: Request) {
         // missing title, description, H1 or canonical; those stay unconfirmed.
         // Same rule for a page that the site's bot manager served in reduced form
         // (no JSON-LD, no Open Graph, no H1): its absences prove nothing either.
-        const pageReducedBotResponse = representativeEvidenceSource !== "rendered_html" && isReducedBotResponse({
+        const pageReducedBotResponse = representativeEvidenceSource !== "rendered_html" && (isReducedBotResponse({
           botCookies: botCookieNames,
           jsonLdBlocks: (pageHtml.match(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["']/gi) || []).length,
           ogTags: (pageHtml.match(/<meta\b[^>]*property\s*=\s*["']og:/gi) || []).length,
           h1Count: pageH1s.length,
-        });
+        }) || (
+          // On a site already proven to serve reduced bot pages, a sample page that
+          // lacks H1, description and canonical at once is the same reduced response.
+          reducedBotResponse && pageH1s.length === 0 && !pageQualityDescription && !/<link\b[^>]*rel\s*=\s*["'][^"']*canonical/i.test(pageHtml)
+        ));
         const pageClientShell = pageReducedBotResponse || isClientShell({ visibleWords: pageQualityWords, scriptCount: (pageHtml.match(/<script\b/gi) || []).length, jsFramework: representativeJsFramework, h1Count: pageH1s.length, rendered: representativeEvidenceSource === "rendered_html" });
         const clientShellNote = pageReducedBotResponse
           ? "De website gaf voor deze pagina een uitgeklede versie via bot-beveiliging; dit wordt daarom niet als ontbrekend beoordeeld."
