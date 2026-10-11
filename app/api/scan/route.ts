@@ -9,7 +9,7 @@ import { decodeHtmlEntities } from "@/lib/html-entities";
 import { assessPassiveSecurity, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
-import { assessBusinessDetails, classifyContactAnchor, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
+import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
@@ -2025,7 +2025,10 @@ export async function POST(request: Request) {
       cookies: /\b(?:cookie\w*|piskotk\w*|kolacic\w*|galleta\w*|biscott\w*)\b/i,
       terms: /\b(?:voorwaarden|terms|conditions|agb|cgv|condiciones|condizioni|termos|uvjet\w*|pogoj\w*|conditions generales)\b/i,
     };
-    const findLegalSignal = (pattern: RegExp) => legalAnchorEvidence.find((item) => pattern.test(item.haystack)) || null;
+    // Third-party provider policies (e.g. Google's Privacy Policy in an embed)
+    // do not establish the scanned business's own privacy, cookies or terms.
+    const findLegalSignal = (pattern: RegExp) =>
+      legalAnchorEvidence.find((item) => isFirstPartyLegalLink(item.href, finalUrl.toString()) && pattern.test(item.haystack)) || null;
     const privacyEvidence = findLegalSignal(legalLexicon.privacy);
     const cookieEvidence = findLegalSignal(legalLexicon.cookies);
     const termsEvidence = findLegalSignal(legalLexicon.terms);
