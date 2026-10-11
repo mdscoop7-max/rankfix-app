@@ -9,7 +9,7 @@ import { decodeHtmlEntities } from "../lib/html-entities.ts";
 import { analyzeScriptIntegrity, assessPassiveSecurity, findExposedSecrets, findForms, findMixedContent, observeCookie, securityScore, setCookieValues, splitSetCookieHeader } from "../lib/security-signals.ts";
 import { legacyPassiveSecurity } from "./fixtures/security-legacy.mjs";
 import { pages as securityPages } from "./fixtures/security-pages.mjs";
-import { INDIRECT_CONTACT_KINDS, assessBusinessDetails, classifyContactAnchor, findBusinessContactDetails, findCompanyRegistration, findVisibleAddress, findVisibleEmail, findVisiblePhone, isContactForm } from "../lib/contact-evidence.ts";
+import { INDIRECT_CONTACT_KINDS, assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findVisibleAddress, findVisibleEmail, findVisiblePhone, isContactForm } from "../lib/contact-evidence.ts";
 import { selectRepresentativePages } from "../lib/representative-pages.ts";
 import { clientIpFromHeaders, isInternalTester, retryAfterSeconds, scanRateLimitMessage, scanRateLimitPolicy } from "../lib/scan-access.ts";
 
@@ -1597,4 +1597,12 @@ test("street addresses exclude adjacent navigation and contact labels", () => {
   assert.equal(findVisibleAddress("Adres gegevens Artiscent Wellness Kanaalkade 48 1811LS Alkmaar Tel"), "Kanaalkade 48, 1811LS Alkmaar");
   assert.equal(findVisibleAddress("Contact Vestiging Aalsmeer F.A. Wentstraat 2b 1431 KZ Aalsmeer Vestiging Westland"), "F.A. Wentstraat 2b, 1431 KZ Aalsmeer");
   assert.equal(findVisibleAddress("Menu Toggle About Contact"), null);
+});
+
+test("privacy evidence belongs to scanned site, not embedded providers", () => {
+  assert.equal(isFirstPartyLegalLink("/privacy", "https://www.kwik-fit.nl/"), true);
+  assert.equal(isFirstPartyLegalLink("https://www.kwik-fit.nl/privacy", "https://kwik-fit.nl/"), true);
+  assert.equal(isFirstPartyLegalLink("https://policies.google.com/privacy", "https://www.kwik-fit.nl/"), false);
+  assert.equal(isFirstPartyLegalLink("https://privacy.kwik-fit.nl/beleid", "https://www.kwik-fit.nl/"), true);
+  assert.equal(isFirstPartyLegalLink("https://kwik-fit.nl.attacker.example/privacy", "https://kwik-fit.nl/"), false);
 });
