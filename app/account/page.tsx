@@ -13,8 +13,21 @@ export default function Account() {
   const [error,setError]=useState("");
   const [busy,setBusy]=useState(false);
   const [rememberMe,setRememberMe]=useState(true);
+  const [showPassword,setShowPassword]=useState(false);
   const [language,setLanguage]=useState<Locale>("nl");
   const t=accountCopy[language];
+  // Return only to a local dashboard page. Never trust arbitrary redirect URLs.
+  function loginDestination(){
+    if(typeof window==="undefined")return "/dashboard";
+    const raw=new URLSearchParams(window.location.search).get("next");
+    if(!raw||!raw.startsWith("/")||raw.startsWith("//")||raw.includes("\\"))return "/dashboard";
+    try{
+      const target=new URL(raw,window.location.origin);
+      if(target.origin===window.location.origin&&(target.pathname==="/dashboard"||target.pathname.startsWith("/dashboard/")))
+        return target.pathname+target.search+target.hash;
+    }catch{}
+    return "/dashboard";
+  }
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -34,7 +47,7 @@ export default function Account() {
     fetch("/api/auth/me", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
-        if (d.user) window.location.replace("/dashboard");
+        if (d.user) window.location.replace(loginDestination());
       })
       .catch(() => {});
   }, []);
@@ -71,7 +84,7 @@ export default function Account() {
         setBusy(false);
         return;
       }
-      window.location.replace("/dashboard");
+      window.location.replace(loginDestination());
     } catch {
       setError(language==="nl"?"Er ging iets mis. Probeer het opnieuw.":language==="de"?"Etwas ist schiefgelaufen. Bitte versuche es erneut.":language==="fr"?"Une erreur s’est produite. Veuillez réessayer.":language==="it"?"Si è verificato un errore. Riprova.":language==="es"?"Se ha producido un error. Inténtalo de nuevo.":"Something went wrong. Please try again.");
       setBusy(false);
@@ -98,7 +111,13 @@ export default function Account() {
               <input required aria-label={t.name} value={name} onChange={e=>setName(e.target.value)} placeholder={t.name} autoComplete="name" className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-950 outline-none placeholder:text-slate-500"/>
             )}
             <input required aria-label={t.email} type="email" value={email} onChange={e=>setEmail(e.target.value)} name="email" placeholder={t.email} autoComplete="username email" className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-950 outline-none placeholder:text-slate-500"/>
-            <input required aria-label={t.password} minLength={8} type="password" value={password} onChange={e=>setPassword(e.target.value)} name="password" placeholder={t.password} autoComplete={mode==="register"?"new-password":"current-password"} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-950 outline-none placeholder:text-slate-500"/>
+            <div>
+              <label htmlFor="rankfix-account-password" className="mb-2 block text-sm font-semibold text-slate-200">{t.password}</label>
+              <div className="relative">
+                <input id="rankfix-account-password" required minLength={8} type={showPassword?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)} name="password" placeholder={t.password} autoComplete={mode==="register"?"new-password":"current-password"} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pr-20 text-base text-slate-950 outline-none placeholder:text-slate-500"/>
+                <button type="button" aria-label={showPassword?"Hide password":"Show password"} aria-pressed={showPassword} onClick={()=>setShowPassword(value=>!value)} className="absolute inset-y-1 right-1 rounded-lg px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100">{showPassword?(language==="nl"?"Verberg":"Hide"):(language==="nl"?"Toon":"Show")}</button>
+              </div>
+            </div>
 
             {mode==="register"&&<p className="text-xs text-slate-400">{language==="nl"?"Minimaal 8 tekens: letters + 1 cijfer + 1 speciaal teken.":language==="de"?"Mindestens 8 Zeichen: Buchstaben + 1 Zahl + 1 Sonderzeichen.":language==="fr"?"Au moins 8 caractères : lettres + 1 chiffre + 1 caractère spécial.":language==="it"?"Almeno 8 caratteri: lettere + 1 numero + 1 carattere speciale.":language==="es"?"Mínimo 8 caracteres: letras + 1 número + 1 carácter especial.":"At least 8 characters: letters + 1 number + 1 special character."}</p>}
 
