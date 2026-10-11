@@ -1632,7 +1632,7 @@ export async function POST(request: Request) {
           sector:"ecommerce" as SectorKey,
           key:"ecommerce",
           label:"Webshop / e-commerce",
-          confidence:"high" as const,
+          confidence:(explicitRetailIdentity && !evidenceCommerceConfirmed ? "medium" : "high") as "medium"|"high",
           confidenceScore:explicitRetailIdentity && !evidenceCommerceConfirmed ? 78 : Math.min(99, Math.round(86 + evidenceCommerceStrength * 2)),
           evidence:[...(explicitRetailIdentity ? ["Primair retailbewijs: productassortiment plus online-verkooptaal of winkelidentiteit in de paginametadata"] : []), `Evidence Layer: ${evidenceCommerceStrength} onafhankelijke commerce-signalen`, ...(catalogTop?.key==="ecommerce" ? catalogTop.evidence : [])].slice(0,6),
           applicableModules:["core_seo","geo","technical","ecommerce","product","pricing_currency","merchant","checkout",...(euConsumerApplicable?["eu_consumer"]:[])],
