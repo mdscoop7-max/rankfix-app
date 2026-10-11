@@ -4204,6 +4204,18 @@ export async function POST(request: Request) {
         if (!masterEvidence.businessModels.includes("commerce")) masterEvidence.businessModels.push("commerce");
         technologyProfile.isCommerce = true;
         technologyProfile.siteType = technologyProfile.siteType === "Website" || technologyProfile.siteType === "Landingpage" ? "Webshop" : technologyProfile.siteType;
+        // Keep the website profile consistent with the final decision: the early landing-page
+        // hint (computed before commerce was confirmed) no longer applies, and the profile
+        // confidence follows the confirmed purchase structure instead of the platform fingerprint.
+        if (technologyProfile.siteType === "Webshop") {
+          technologyProfile.evidence = [
+            ...technologyProfile.evidence.filter(item => !item.startsWith("Commerciële landingpage-signalen")),
+            `Aankoopstructuur bevestigd door Sector Motor 3.1 (${sectorArbiter.storefrontGrade === "strong" ? "sterk" : "beperkt"} winkelbewijs)`,
+          ].slice(-8);
+          const profileConfidence = Math.max(technologyProfile.confidence, sectorArbiter.storefrontGrade === "strong" ? 90 : 70);
+          technologyProfile.confidence = profileConfidence;
+          technologyProfile.confidenceLabel = profileConfidence >= 90 ? "high" : profileConfidence >= 70 ? "medium" : "low";
+        }
       } else {
         finalCommerceDecision.confirmed = false;
         masterEvidence.commerce.confirmed = false;

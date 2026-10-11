@@ -101,3 +101,11 @@ test("Fix Engine chain: scan evidence -> approved proposal hash -> PR -> manual 
   assert.match(route, /pending\.status === "AWAITING_VERIFICATION" \|\| pending\.status === "STILL_PRESENT"/);
   assert.doesNotMatch(route, /status='VERIFIED_RESOLVED'[^"]*WHERE[^"]*AWAITING_MERGE/, "an unmerged PR is never marked resolved");
 });
+
+test("website profile follows the confirmed webshop decision (no stale landing-page hint or fingerprint confidence)", async () => {
+  const route = await read("app/api/scan/route.ts");
+  const branch = route.slice(route.indexOf("if (sectorArbiter.commerceConfirmed) {"), route.indexOf("} else {", route.indexOf("if (sectorArbiter.commerceConfirmed) {")));
+  assert.match(branch, /filter\(item => !item\.startsWith\("Commerciële landingpage-signalen"\)\)/);
+  assert.match(branch, /sectorArbiter\.storefrontGrade === "strong" \? 90 : 70/);
+  assert.match(branch, /technologyProfile\.confidenceLabel = profileConfidence >= 90 \? "high"/);
+});

@@ -18,7 +18,7 @@
 | Testbranch | `feat/sector-motor-3-1-universal-evidence-arbiter-20261010` |
 | GitHub vóór deze push | `323893e` (documentatiecommit ChatGPT) op `7e0ed5e` |
 | Laatste **codecommit** in deze push | `dc16d37` — 21 commits bovenop `323893e`; deze documentatiecommit staat daar direct boven |
-| Lokale tests | **257/257 geslaagd**, 0 mislukt, 0 overgeslagen (Node 24.21 / npm 11.21) |
+| Lokale tests | **258/258 geslaagd**, 0 mislukt, 0 overgeslagen (Node 24.21 / npm 11.21) |
 | TypeScript | Geslaagd (0 fouten, na `next typegen`) |
 | ESLint | 67 fouten / 41 waarschuwingen — **identiek aan de basis**, geen nieuwe meldingen |
 | Standaardbuild lokaal | **Niet uitvoerbaar** (sandbox kan Google Fonts niet ophalen); standaardbuild wordt op Vercel bevestigd |
@@ -52,6 +52,7 @@
 | `lib/sector-arbiter.ts` | Restaurant mét Restaurant-schema en eigen online bestellen (volledige menukaart met winkelwagen) werd **webshop**; idem garage mét AutoRepair-schema en bandenshop | Specialistisch schema dat door de eigen titel/h1/meta wordt bevestigd = twee onafhankelijke bronnen → specialist blijft hoofdsector (waarschijnlijk), bestellen blijft bevestigde commercefunctie (checkoutchecks blijven actief). Nooit bij Store-schema, nooit bij betwiste sectoren, nooit op footer-/tekstwoorden | `26219c2` |
 | `app/api/scan/route.ts`, `lib/scan-evidence.ts`, `lib/crawler.ts`, `lib/sector-catalog.ts`, `app/api/ai-fix/route.ts` | JavaScript-`\b` is alleen ASCII: `\bcafé\b`, `\bÜber`, `\bà propos`, `\bépuisé`, `\böffnungszeiten` matchten **nooit** ("Café Central", "Eetcafé", Duitse openingstijden/over-ons, Franse uitverkocht-tekst). Prijzen als "19,99 €" werden niet geteld | Grenzen naast accenten vervangen door `(?<![A-Za-z0-9_])`/`(?![A-Za-z0-9_])` (gelijk aan `\b` voor ASCII); euro-na-bedrag gecorrigeerd; pizzeria/trattoria/osteria/lunchroom/eetcafé/steakhouse/grillroom als horeca-identiteit; AST-bewaking tegen herhaling | `1bb1593` |
 | `tests/scanner-safety.test.mjs` | Fix Engine-keten niet volledig bewaakt | Test: geen PR zonder goedgekeurde, ongewijzigde voorstel-hash; exacte commitbevestiging; geen automatische merge; "opgelost" pas na verse live scan met PASS + hoge zekerheid + bewijs | `3be1fe7` |
+| `app/api/scan/route.ts` (Websiteprofiel) | **Eerste echte previewscan (IKEA NL):** sector "Webshop 96%" correct, maar het Websiteprofiel toonde "Type: Webshop · Confidence 40%" met de oude notitie "Commerciële landingpage-signalen 3/4": het technologieprofiel werd vóór Sector Motor 3.1 bepaald en daarna alleen van type gewisseld | Na bevestigde aankoopstructuur: landingpage-notitie verwijderd, bewijsregel "Aankoopstructuur bevestigd door Sector Motor 3.1", profielzekerheid minimaal 90% (sterk) / 70% (beperkt) | volgt in deze push |
 | `lib/rate-limit.ts`, `app/api/scan/route.ts` | Elke scan (ook de publieke) vereiste de database voor de netwerklimiet → preview zonder database kon niets scannen | Alleen bij `VERCEL_ENV=preview` **én** geen `DATABASE_URL`: dezelfde limiet (8 per netwerk per uur) in een begrensde geheugentabel die bij overvol weigert. Niets wordt opgeslagen. Dashboard vereist nog steeds login + database. Productie (Render, Vercel Production) kan dit pad nooit nemen. Geen nieuw endpoint | `dc16d37` |
 
 Eerdere commits (sessies 1–2) staan in het archief hieronder.
@@ -61,7 +62,7 @@ Eerdere commits (sessies 1–2) staan in het archief hieronder.
 | Commando of testgroep | Uitgevoerd? | Geslaagd | Mislukt | Opmerking |
 | --- | --- | ---: | ---: | --- |
 | `npm ci` (schone kopie) | Ja | — | — | Geslaagd, Node 24.21 / npm 11.21 |
-| `npm test` | Ja | 257 | 0 | 0 overgeslagen |
+| `npm test` | Ja | 258 | 0 | 0 overgeslagen |
 | `npx tsc --noEmit` | Ja | — | — | 0 fouten (na `npx next typegen`; schone kopie heeft anders geen `LayoutProps`-types) |
 | `npm run lint` | Ja | — | — | 67 fouten / 41 waarschuwingen = basis; gewijzigde bestanden hebben alleen bestaande meldingen |
 | `npm run build` (standaard, zonder fontvervanging) | Ja | — | 1 | **Mislukt door omgeving**: `fonts.googleapis.com` niet bereikbaar in de sandbox. Geen codefout; Vercel moet dit bevestigen |
@@ -89,7 +90,7 @@ Eerdere commits (sessies 1–2) staan in het archief hieronder.
 ### 5. Wat staat nog open?
 
 - Vercel-build van deze push: READY + standaardbuild met Google Fonts bevestigen (wordt in issue #106 gemeld).
-- Echte scans op de preview (homepage-scan, zonder login): zie de websitelijst in issue #106.
+- Echte scans op de preview (homepage-scan, zonder login): zie de websitelijst in issue #106. **IKEA NL (11-10-2026, door eigenaar):** HTTP 200, raw HTML, sector Webshop / e-commerce 96% — zoals verwacht; 29 goed, 2 te verbeteren.
 - **Niet mogelijk zonder geïsoleerde testdatabase:** inloggen/registreren, dashboardscans, opgeslagen rapporten en historie, PDF-download van opgeslagen rapporten, mobiele dashboard-auditweergave, monitoring, Fix Engine end-to-end (vereist ook een test-OAuth-app en testrepository).
 - Minimale instellingen voor later (alleen Preview, alleen deze branch, type Sensitive): `DATABASE_URL` van een **lege, aparte** testdatabase en een nieuw `SESSION_SECRET`; optioneel `USAGE_HASH_SALT`. Géén productiewaarden, géén Resend/OAuth/OpenAI/MONITOR_SECRET.
 - Bekende, bewuste beperking: een restaurant **zonder** Restaurant-schema met een volledige online bestelmodule wordt "webshop met horeca als nevenactiviteit" (menu-tekst alleen is geen structureel bewijs, omdat "menu" in vrijwel elke navigatie staat).
