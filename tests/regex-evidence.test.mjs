@@ -184,7 +184,7 @@ test("Fix Engine recognises icon assets so they are never used as content images
   for (const value of ["/images/hero.png", "/iconic-sofa.jpg", "/blog/icon-design.html"]) assert.equal(icon.test(value), false, value);
 });
 
-test("no regex literal or new RegExp string in app/ or lib/ contains a doubled escape", async () => {
+test("no regex literal or new RegExp string in app/, lib/ or components/ contains a doubled escape", async () => {
   const require = createRequire(import.meta.url);
   const ts = require(path.join(root, "node_modules/typescript"));
   const DOUBLE = /\\\\[bdswrnpBDSW.]/;
@@ -196,7 +196,7 @@ test("no regex literal or new RegExp string in app/ or lib/ contains a doubled e
       else if (/\.(ts|tsx)$/.test(entry.name)) files.push(rel);
     }
   };
-  await walk("app"); await walk("lib");
+  await walk("app"); await walk("lib"); await walk("components");
   const offenders = [];
   for (const rel of files) {
     const text = await read(rel);
