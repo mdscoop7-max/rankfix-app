@@ -1612,13 +1612,13 @@ export async function POST(request: Request) {
     // tourism, food, or local-service keywords on category/support pages.
     // Require online purchase language AND physical retail assortment in the
     // primary page identity, not merely a generic "shop" or a contact CTA.
-    const explicitRetailIdentity = /\\b(?:online (?:kopen|bestellen|shoppen|shopping)|webshop|webwinkel|online winkel|shop online|buy online|online store)\\b/i.test(sectorIdentitySource)
-      && /\\b(?:kleding|schoenen|accessoires|mode|fashion|elektronica|home.elektronica|apparaten|wasmachines|televisies|tv.s|laptops|meubels|furniture|interieur|woonartikelen|bouwmaterialen|dierenbenodigdheden|sportartikelen|producten|products)\\b/i.test(sectorIdentitySource);
+    const explicitRetailIdentity = /\b(?:online (?:kopen|bestellen|shoppen|shopping)|webshop|webwinkel|online winkel|shop online|buy online|online store)\b/i.test(sectorIdentitySource)
+      && /\b(?:kleding|schoenen|accessoires|mode|fashion|elektronica|home.elektronica|apparaten|wasmachines|televisies|tv.s|laptops|meubels|furniture|interieur|woonartikelen|bouwmaterialen|dierenbenodigdheden|sportartikelen|producten|products)\b/i.test(sectorIdentitySource);
     const retailPurchaseEvidence = evidenceCommerceConfirmed || hasEcommerceSignal || explicitRetailIdentity;
     const retailPrimaryIdentity = retailPurchaseEvidence
       && !shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity
       && !beautyServiceIdentity && !explicitMedicalIdentity && !transportBookingIdentity
-      && !/\\b(?:restaurant|hotel|reserveren|reserveer tafel|vakantieverhuur|transportdiensten|schoonmaakdienst)\\b/i.test(sectorIdentitySource);
+      && !/\b(?:restaurant|hotel|reserveren|reserveer tafel|vakantieverhuur|transportdiensten|schoonmaakdienst)\b/i.test(sectorIdentitySource);
     const primaryNonCommerceIdentity = retailPrimaryIdentity ? null : (masterIdentityOverride
       || (strongSectorCandidate && sectorCandidates[0].sector !== "ecommerce"
         ? {sector:sectorCandidates[0].sector,key:sectorCandidates[0].sector,label:sectorCandidates[0].label,evidence:[`Primary identity: ${sectorCandidates[0].hits} independent sector signals`]}
