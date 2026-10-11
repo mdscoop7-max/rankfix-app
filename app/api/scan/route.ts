@@ -20,7 +20,7 @@ import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRa
 import { renderPublicPage } from "@/lib/headless-render";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { isSubstantiveRender, renderImprovesEvidence } from "@/lib/render-quality";
-import { extractProductDetailLinks } from "@/lib/product-links";
+import { extractProductDetailLinks, looksLikeProductDetailPath } from "@/lib/product-links";
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
@@ -3454,7 +3454,10 @@ export async function POST(request: Request) {
         if (/(?:^|\/)(?:myaccount|my-account|account|mijn-account|login|account-login|signin|sign-in|register|wishlist|verlanglijst|favorites?|favourites?|favorieten|cart|basket|winkelwagen|checkout|afrekenen|kassa|search|zoeken)(?:\/|$)/i.test(path)) return null;
         if (candidate.search && /(?:^|[?&])(?:q|query|search|sort|filter|page|session|token)=/i.test(candidate.search)) return null;
         const evidence: string[] = [];
-        const productPath = /\/(?:product|products|product-page|p|artikel|item|vehicle|voertuig|woning|property|properties|occasion|occasions)\//i.test(path);
+        // On retail sites, product-detail URL shapes (slug ending in a product id) are
+        // nominated too; the fetched page must still prove itself as product evidence.
+        const productPath = /\/(?:product|products|product-page|p|artikel|item|vehicle|voertuig|woning|property|properties|occasion|occasions)\//i.test(path)
+          || ((sectorProfile.key === "ecommerce" || explicitRetailIdentity || hasEcommerceSignal) && looksLikeProductDetailPath(path));
         const categoryPath = /\/(?:category|categories|categorie|categorieen|cat|collection|collections|shop|store|winkel|catalog|catalogue|outlet|sale|aanbod|voorraad|huizen|woningen|cars|autos)(?:\/|$)/i.test(path);
         const legalPath = pathSegments.some((segment) => legalUtilitySegment.test(segment));
         const formPath = /(?:^|\/)(?:contact|contact-us|contacteer|kontakt|offerte|quote|request-quote|afspraak|appointment|booking|book|reserve|reservation|reserveren)(?:\/|$)/i.test(path);
@@ -3556,7 +3559,7 @@ export async function POST(request: Request) {
     // FAQ/help-center pages can dominate a crawl (one page per question) and crowd
     // out product, category, service and legal evidence. Keep a small FAQ sample.
     const isFaqSample = (url: string) => /\/(?:faq|faqs|veelgestelde-vragen|help-center|helpcentrum|hilfe|ayuda|assistance)(?:\/|$)/i.test(new URL(url).pathname);
-    const uniqueMultiPagePages = selectRepresentativePages([scannedPageSample, ...multiPagePages], rankedMultiPage, representativePageLimit, normalizeScanUrl, templateShapeKey, { matches: isFaqSample, limit: 3 });
+    const uniqueMultiPagePages = selectRepresentativePages([scannedPageSample, ...multiPagePages], rankedMultiPage, representativePageLimit, normalizeScanUrl, templateShapeKey, { matches: isFaqSample, limit: 3 }, Math.ceil(representativePageLimit * 0.4));
     const auditMultiPage = async (page: MultiPageCandidate): Promise<MultiPageAudit> => {
       try {
         // The scanned page itself was already fetched; reuse that evidence instead of

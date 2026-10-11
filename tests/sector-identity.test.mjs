@@ -153,7 +153,7 @@ test("FAQ/help-center pages cannot crowd out the representative sample", async (
   assert.equal(picked.filter((p) => isFaq(p.url)).length, 3);
   assert.equal(picked.filter((p) => !isFaq(p.url)).length, 10);
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  assert.match(source, /templateShapeKey, \{ matches: isFaqSample, limit: 3 \}\)/);
+  assert.match(source, /templateShapeKey, \{ matches: isFaqSample, limit: 3 \}/);
 });
 
 test("every module the scanner can activate has a report label in every locale", async () => {
@@ -201,4 +201,23 @@ test("retail sites without a product sample get a bounded second hop", async () 
   // Nomination is never evidence: confirmation still comes from the fetched page.
   assert.match(source, /return audits\.some\(\(item\)=>item\.status==="audited" && item\.commerceEvidence\?\.confirmedRetailPage\)/);
   assert.match(source, /sectorProfile\.key === "ecommerce" && finalCommerceDecision\.confirmed && sectorProfile\.confidenceScore < 88/);
+});
+
+test("one page type cannot crowd out the representative sample", async () => {
+  const { selectRepresentativePages } = await import("../lib/representative-pages.ts");
+  const brands = Array.from({ length: 25 }, (_, i) => ({ url: `https://shop.example/brand-${i}/`, type: "other" }));
+  const rest = [
+    ...Array.from({ length: 3 }, (_, i) => ({ url: `https://shop.example/legal-${i}`, type: "legal" })),
+    ...Array.from({ length: 4 }, (_, i) => ({ url: `https://shop.example/p/item-${i}`, type: "product" })),
+  ];
+  const picked = selectRepresentativePages([], [...brands, ...rest], 30, (u) => u, (u) => u, undefined, 12);
+  assert.equal(picked.filter((p) => p.type === "other").length, 12);
+  assert.equal(picked.filter((p) => p.type === "product").length, 4);
+  assert.equal(picked.filter((p) => p.type === "legal").length, 3);
+  // Without a ceiling the previous behaviour is unchanged.
+  assert.equal(selectRepresentativePages([], [...brands, ...rest], 30, (u) => u, (u) => u).filter((p) => p.type === "other").length, 25);
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /\{ matches: isFaqSample, limit: 3 \}, Math\.ceil\(representativePageLimit \* 0\.4\)\)/);
+  // Slug-with-id product nomination applies to retail sites only.
+  assert.match(source, /\(\(sectorProfile\.key === "ecommerce" \|\| explicitRetailIdentity \|\| hasEcommerceSignal\) && looksLikeProductDetailPath\(path\)\)/);
 });
