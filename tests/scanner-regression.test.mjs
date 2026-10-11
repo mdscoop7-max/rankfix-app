@@ -1,3 +1,4 @@
+import { confirmedFaqContent } from "../lib/faq-evidence.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { extractImageMetrics } from "../lib/image-metrics.ts";
@@ -1605,4 +1606,11 @@ test("privacy evidence belongs to scanned site, not embedded providers", () => {
   assert.equal(isFirstPartyLegalLink("https://policies.google.com/privacy", "https://www.kwik-fit.nl/"), false);
   assert.equal(isFirstPartyLegalLink("https://privacy.kwik-fit.nl/beleid", "https://www.kwik-fit.nl/"), true);
   assert.equal(isFirstPartyLegalLink("https://kwik-fit.nl.attacker.example/privacy", "https://kwik-fit.nl/"), false);
+});
+
+test("FAQ evidence requires actual answers, not just generic accordions", () => {
+  assert.equal(confirmedFaqContent('<h2>FAQ</h2><p>Welkom bij onze winkel</p>'), false);
+  assert.equal(confirmedFaqContent('<details><summary>Instellingen</summary>Menu links</details>'), false);
+  assert.equal(confirmedFaqContent('<details><summary>Hoe werkt retourneren?</summary><p>Stuur het product binnen 30 dagen terug.</p></details>'), true);
+  assert.equal(confirmedFaqContent('<h2>Wanneer wordt mijn bestelling verzonden?</h2><p>De bestelling wordt de volgende werkdag verzonden.</p>'), true);
 });
