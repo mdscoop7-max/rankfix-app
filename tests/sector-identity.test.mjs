@@ -119,7 +119,7 @@ test("a blocked or empty browser render is never treated as website evidence", a
   assert.equal(renderImprovesEvidence(5, true, rich), true);
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   assert.equal(source.includes("html.length >= 20) {"), false, "no render is accepted on byte length alone");
-  assert.equal((source.match(/isSubstantiveRender\(/g) || []).length, 3);
+  assert.equal((source.match(/isSubstantiveRender\(/g) || []).length, 4, "primary, quality-gate, representative and second-hop renders");
   assert.equal((source.match(/renderImprovesEvidence\(/g) || []).length, 2);
 });
 
@@ -153,7 +153,7 @@ test("FAQ/help-center pages cannot crowd out the representative sample", async (
   assert.equal(picked.filter((p) => isFaq(p.url)).length, 3);
   assert.equal(picked.filter((p) => !isFaq(p.url)).length, 10);
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  assert.match(source, /templateShapeKey, \{ matches: isFaqSample, limit: 3 \}\)/);
+  assert.match(source, /templateShapeKey, \{ matches: isFaqSample, limit: 3 \}/);
 });
 
 test("every module the scanner can activate has a report label in every locale", async () => {
@@ -168,4 +168,56 @@ test("every module the scanner can activate has a report label in every locale",
     assert.ok(line, `labels for ${locale}`);
     for (const module of modules) assert.ok(line.includes(`${module}:"`), `${locale} label for ${module}`);
   }
+});
+
+test("product-detail candidates are nominated by URL shape, never editorial pages", async () => {
+  const { looksLikeProductDetailPath, extractProductDetailLinks } = await import("../lib/product-links.ts");
+  for (const path of [
+    "/sandisk-cruzer-ultra-flair-64gb-usb-3-0-zwart-372526317",
+    "/calvin-klein-underwear-trunk-3-pack-onderbroeken-black-c1182o0bt-q14.html",
+    "/clinique-almost-lipstick-black-honey-cll31e01r-j11",
+    "/nl/nl/p/storklinta-ladekast-met-4-lades-wit-40627537/",
+    "/product/blue-widget",
+  ]) assert.equal(looksLikeProductDetailPath(path), true, path);
+  for (const path of [
+    "/reviews/samsung-galaxy-buds4-buds4-pro",
+    "/computers/opslag-en-geheugen/portable-ssd",
+    "/calvin-klein/",
+    "/faq/how-can-I-return-my-order.html",
+    "/nieuws/2026/10/11/bedrijf-opent-nieuwe-vestiging-123456",
+    "/blog/vijf-tips-voor-je-woonkamer-1234567",
+    "/vacatures/medewerker-klantenservice-utrecht-100234",
+  ]) assert.equal(looksLikeProductDetailPath(path), false, path);
+  const html = `<a href="/zwarte-sneakers-heren-leer-ab1234cd5-q11.html">a</a><a href="https://other.example/x-y-z-1234567">b</a><a href="/over-ons">c</a>`;
+  assert.deepEqual(extractProductDetailLinks(html, "https://shop.example/", "www.shop.example"), ["https://shop.example/zwarte-sneakers-heren-leer-ab1234cd5-q11.html"]);
+});
+
+test("retail sites without a product sample get a bounded second hop", async () => {
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /const retailContextForProducts = sectorProfile\.key === "ecommerce" \|\| explicitRetailIdentity \|\| hasEcommerceSignal;/);
+  assert.match(source, /if \(retailContextForProducts && !confirmedProductSample\)/);
+  assert.match(source, /unsampled\(urls\)\.slice\(0,3\)/, "at most three product audits per hop");
+  assert.match(source, /item\.evidenceSource!=="rendered_html"\)\.slice\(0,2\)/, "at most two listing renders");
+  // Nomination is never evidence: confirmation still comes from the fetched page.
+  assert.match(source, /return audits\.some\(\(item\)=>item\.status==="audited" && item\.commerceEvidence\?\.confirmedRetailPage\)/);
+  assert.match(source, /sectorProfile\.key === "ecommerce" && finalCommerceDecision\.confirmed && sectorProfile\.confidenceScore < 88/);
+});
+
+test("one page type cannot crowd out the representative sample", async () => {
+  const { selectRepresentativePages } = await import("../lib/representative-pages.ts");
+  const brands = Array.from({ length: 25 }, (_, i) => ({ url: `https://shop.example/brand-${i}/`, type: "other" }));
+  const rest = [
+    ...Array.from({ length: 3 }, (_, i) => ({ url: `https://shop.example/legal-${i}`, type: "legal" })),
+    ...Array.from({ length: 4 }, (_, i) => ({ url: `https://shop.example/p/item-${i}`, type: "product" })),
+  ];
+  const picked = selectRepresentativePages([], [...brands, ...rest], 30, (u) => u, (u) => u, undefined, 12);
+  assert.equal(picked.filter((p) => p.type === "other").length, 12);
+  assert.equal(picked.filter((p) => p.type === "product").length, 4);
+  assert.equal(picked.filter((p) => p.type === "legal").length, 3);
+  // Without a ceiling the previous behaviour is unchanged.
+  assert.equal(selectRepresentativePages([], [...brands, ...rest], 30, (u) => u, (u) => u).filter((p) => p.type === "other").length, 25);
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /\{ matches: isFaqSample, limit: 3 \}, Math\.ceil\(representativePageLimit \* 0\.4\)\)/);
+  // Slug-with-id product nomination applies to retail sites only.
+  assert.match(source, /\(\(sectorProfile\.key === "ecommerce" \|\| explicitRetailIdentity \|\| hasEcommerceSignal\) && looksLikeProductDetailPath\(path\)\)/);
 });

@@ -20,6 +20,7 @@ import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRa
 import { renderPublicPage } from "@/lib/headless-render";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { isSubstantiveRender, renderImprovesEvidence } from "@/lib/render-quality";
+import { extractProductDetailLinks, looksLikeProductDetailPath } from "@/lib/product-links";
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
@@ -3438,7 +3439,7 @@ export async function POST(request: Request) {
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
     type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; schemaTypes?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageAudit = MultiPageCandidate & { status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; schemaTypes?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -3453,7 +3454,10 @@ export async function POST(request: Request) {
         if (/(?:^|\/)(?:myaccount|my-account|account|mijn-account|login|account-login|signin|sign-in|register|wishlist|verlanglijst|favorites?|favourites?|favorieten|cart|basket|winkelwagen|checkout|afrekenen|kassa|search|zoeken)(?:\/|$)/i.test(path)) return null;
         if (candidate.search && /(?:^|[?&])(?:q|query|search|sort|filter|page|session|token)=/i.test(candidate.search)) return null;
         const evidence: string[] = [];
-        const productPath = /\/(?:product|products|product-page|p|artikel|item|vehicle|voertuig|woning|property|properties|occasion|occasions)\//i.test(path);
+        // On retail sites, product-detail URL shapes (slug ending in a product id) are
+        // nominated too; the fetched page must still prove itself as product evidence.
+        const productPath = /\/(?:product|products|product-page|p|artikel|item|vehicle|voertuig|woning|property|properties|occasion|occasions)\//i.test(path)
+          || ((sectorProfile.key === "ecommerce" || explicitRetailIdentity || hasEcommerceSignal) && looksLikeProductDetailPath(path));
         const categoryPath = /\/(?:category|categories|categorie|categorieen|cat|collection|collections|shop|store|winkel|catalog|catalogue|outlet|sale|aanbod|voorraad|huizen|woningen|cars|autos)(?:\/|$)/i.test(path);
         const legalPath = pathSegments.some((segment) => legalUtilitySegment.test(segment));
         const formPath = /(?:^|\/)(?:contact|contact-us|contacteer|kontakt|offerte|quote|request-quote|afspraak|appointment|booking|book|reserve|reservation|reserveren)(?:\/|$)/i.test(path);
@@ -3555,7 +3559,7 @@ export async function POST(request: Request) {
     // FAQ/help-center pages can dominate a crawl (one page per question) and crowd
     // out product, category, service and legal evidence. Keep a small FAQ sample.
     const isFaqSample = (url: string) => /\/(?:faq|faqs|veelgestelde-vragen|help-center|helpcentrum|hilfe|ayuda|assistance)(?:\/|$)/i.test(new URL(url).pathname);
-    const uniqueMultiPagePages = selectRepresentativePages([scannedPageSample, ...multiPagePages], rankedMultiPage, representativePageLimit, normalizeScanUrl, templateShapeKey, { matches: isFaqSample, limit: 3 });
+    const uniqueMultiPagePages = selectRepresentativePages([scannedPageSample, ...multiPagePages], rankedMultiPage, representativePageLimit, normalizeScanUrl, templateShapeKey, { matches: isFaqSample, limit: 3 }, Math.ceil(representativePageLimit * 0.4));
     const auditMultiPage = async (page: MultiPageCandidate): Promise<MultiPageAudit> => {
       try {
         // The scanned page itself was already fetched; reuse that evidence instead of
@@ -3716,7 +3720,7 @@ export async function POST(request: Request) {
           return 0.5;
         };
         const earned = confirmed.reduce((sum,item)=>sum+evidenceCredit(item),0);
-        return { ...page, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:confirmed.length?Math.round((earned/confirmed.length)*100):null, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), schemaTypes:[...new Set(pageSchemaTypes)], formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, evidenceChecks };
+        return { ...page, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:confirmed.length?Math.round((earned/confirmed.length)*100):null, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), schemaTypes:[...new Set(pageSchemaTypes)], formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, productLinks:extractProductDetailLinks(pageHtml, finalCandidate.toString(), siteHost, 8), evidenceChecks };
       } catch (multiPageError) {
         const rawReason = multiPageError instanceof Error ? multiPageError.message : "FETCH_FAILED";
         const reason = /timeout|abort/i.test(rawReason)
@@ -3753,6 +3757,34 @@ export async function POST(request: Request) {
       },
     );
     await Promise.all(representativeWorkers);
+    // Second hop for retail sites: product links often appear only on category or
+    // brand pages, not on the scanned homepage. Nominate a few product-detail links
+    // from audited listing pages (rendering at most two listings that load products
+    // client-side) and audit them. URL shape only nominates; a sample counts as
+    // retail evidence only when the fetched page itself proves it.
+    const retailContextForProducts = sectorProfile.key === "ecommerce" || explicitRetailIdentity || hasEcommerceSignal;
+    const confirmedProductSample = multiPageAudits.some((item)=>item?.status==="audited" && item.type==="product" && item.commerceEvidence?.confirmedRetailPage);
+    if (retailContextForProducts && !confirmedProductSample) {
+      const sampledUrls = new Set(multiPageAudits.map((item)=>normalizeScanUrl(item.url)));
+      const unsampled = (urls: string[]) => [...new Set(urls)].filter((url)=>!sampledUrls.has(normalizeScanUrl(url)));
+      const auditProductCandidates = async (urls: string[]) => {
+        const audits = await Promise.all(unsampled(urls).slice(0,3).map((url)=>auditMultiPage({ url, type:"product", evidence:["product link found on a representative listing page"] })));
+        for (const audit of audits) sampledUrls.add(normalizeScanUrl(audit.url));
+        multiPageAudits.push(...audits);
+        return audits.some((item)=>item.status==="audited" && item.commerceEvidence?.confirmedRetailPage);
+      };
+      let productConfirmed = await auditProductCandidates(multiPageAudits.flatMap((item)=>item?.productLinks || []));
+      if (!productConfirmed) {
+        const listingPages = multiPageAudits.filter((item)=>item?.status==="audited" && (item.type==="category" || item.type==="other") && item.evidenceSource!=="rendered_html").slice(0,2);
+        for (const listing of listingPages) {
+          try {
+            const renderedListing = await renderPublicPage(listing.url, 10000);
+            if (isSubstantiveRender(renderedListing.html)) productConfirmed = await auditProductCandidates(extractProductDetailLinks(renderedListing.html, listing.url, siteHost, 8));
+          } catch {}
+          if (productConfirmed) break;
+        }
+      }
+    }
     // Redirects can make two distinct candidates resolve to the same final URL.
     // Deduplicate after fetching as well as before selection, so the customer
     // never sees the same successfully audited page counted twice.
@@ -4054,6 +4086,16 @@ export async function POST(request: Request) {
     if (sectorProfile.key === "ecommerce" && !finalCommerceDecision.confirmed) {
       sectorProfile.label = "Retail · webshopfunctionaliteit niet bevestigd";
       masterEvidence.primarySector.label = sectorProfile.label;
+    }
+    // A retail identity whose shop is confirmed by hard evidence (for example a
+    // representative product page) carries the same confidence as any confirmed shop.
+    if (sectorProfile.key === "ecommerce" && finalCommerceDecision.confirmed && sectorProfile.confidenceScore < 88) {
+      sectorProfile.confidence = "high";
+      sectorProfile.confidenceScore = 88;
+      sectorProfile.evidence = [...sectorProfile.evidence, "Representatieve productpagina bevestigt webshopfunctionaliteit"].slice(0,6);
+      masterEvidence.primarySector.confidence = sectorProfile.confidence;
+      masterEvidence.primarySector.confidenceScore = sectorProfile.confidenceScore;
+      masterEvidence.primarySector.displayPolicy = "confirmed";
     }
     const websiteType = finalCommerceDecision.confirmed
       ? "Webshop"

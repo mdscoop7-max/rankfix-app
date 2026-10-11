@@ -14,6 +14,9 @@ export function selectRepresentativePages<T extends RepresentativeCandidate>(
   normalizeUrl: (url: string) => string,
   templateKey: (normalizedUrl: string) => string,
   cap?: RepresentativeCap,
+  // Optional ceiling per page type in the fill phase, so one type (brand pages,
+  // product variants, listings) cannot crowd out the other evidence kinds.
+  perTypeLimit?: number,
 ): T[] {
   const selected: T[] = [];
   const seenTemplates = new Set<string>();
@@ -33,10 +36,14 @@ export function selectRepresentativePages<T extends RepresentativeCandidate>(
   }
   if (selected.length < limit) {
     const seenUrls = new Set(selected.map((item) => normalizeUrl(item.url)));
+    const typeCounts = new Map<string, number>();
+    for (const item of selected) typeCounts.set(item.type, (typeCounts.get(item.type) || 0) + 1);
     for (const item of ranked) {
       const normalized = normalizeUrl(item.url);
       if (seenUrls.has(normalized)) continue;
       if (overCap(normalized)) continue;
+      if (perTypeLimit && (typeCounts.get(item.type) || 0) >= perTypeLimit) continue;
+      typeCounts.set(item.type, (typeCounts.get(item.type) || 0) + 1);
       countCap(normalized);
       seenUrls.add(normalized);
       selected.push(item);
