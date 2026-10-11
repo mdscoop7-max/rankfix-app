@@ -22,6 +22,7 @@ import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence"
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
+import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes } from "@/lib/sector-identity";
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -934,7 +935,8 @@ export async function POST(request: Request) {
     );
     // Ticket/booking sites can expose prices and availability without being retail product pages.
     // Establish transport context before page typing so downstream modules share one decision.
-    const transportBookingIdentityEarly = /(?:\b(train|railway|rail|spoorweg|trein|bahn|zug|ferrovi|trenitalia|intercity|flight|flights|airline|airport|vols?|vlucht|flug|voli|voo|billet|ticket|fahrplan|timetable|prijevoz|putnički|vlak|vozni red|karta|karte|željeznice|železnice|dráhy)\b|hellenic\s+train|cyprus\s+airways|δρομολόγ|εισιτήρ|τρένο|σιδηρόδρομ|πτήσ)/iu.test([title, description, text.slice(0,30000), finalUrl.hostname].join(" "));
+    // French singular "vol" is excluded: it is the common Dutch word "vol" (full).
+    const transportBookingIdentityEarly = /(?:\b(train|railway|rail|spoorweg|trein|bahn|zug|ferrovi|trenitalia|intercity|flight|flights|airline|airport|vols|vlucht|flug|voli|voo|billet|ticket|fahrplan|timetable|prijevoz|putnički|vlak|vozni red|karta|karte|željeznice|železnice|dráhy)\b|hellenic\s+train|cyprus\s+airways|δρομολόγ|εισιτήρ|τρένο|σιδηρόδρομ|πτήσ)/iu.test([title, description, text.slice(0,30000), finalUrl.hostname].join(" "));
     const propertyDetailPathEarly = !isHomepage && /\/(?:woningaanbod|residential-listings)\/(?:koop|huur|sale|rent)\//i.test(pathname);
     // Some real-estate platforms publish Product schema for a property object. That
     // schema describes an offer, but must not activate retail product/stock/copy checks.
@@ -981,7 +983,8 @@ export async function POST(request: Request) {
     // Requiring both independent signals prevents ordinary SaaS pricing cards from becoming shops.
     const pricedProductCardCount = (html.match(/<(?:article|div)[^>]+(?:data-product-card|class\s*=\s*["'][^"']*product-card[^"']*["'])[^>]*(?:data-price\s*=\s*["'][^"']+["'])?/gi) || []).length;
     const cartFormSignal = /<form[^>]+(?:action\s*=\s*["'][^"']*(?:cart|winkelwagen|checkout)[^"']*["']|class\s*=\s*["'][^"']*(?:cart|basket)[^"']*["'])/i.test(html);
-    const hasStoreSchema = schemaSet.has("store") || schemaSet.has("onlinestore");
+    // Store subtypes (FurnitureStore, ElectronicsStore, ...) are retail schema too.
+    const hasStoreSchema = hasRetailStoreSchema(schemaTypes);
     const storefrontMarkupSignal = pricedProductCardCount >= 2 && visiblePriceCount >= 2 && (cartFormSignal || hasStrongCommerceAction) && commerceNavigationSignal;
     // Generic links such as "product", "pricing" or "support" are common on SaaS sites.
     // A homepage is only a storefront when catalog/product evidence is repeated, not merely
@@ -1503,12 +1506,14 @@ export async function POST(request: Request) {
       {sector:"transport_travel",label:"Transport & Logistiek",patterns:[/(?:\b(logistiek|logistics|transportbedrijf|transport company|wegtransport|road transport|freight|vrachtvervoer|distributie|distribution|expeditie|forwarding|koerier|courier|spoorweg|railway|railways|train operator|national railway|nationale? vervoerder|airline|luchtvaartmaatschappij|public transport|openbaar vervoer|ferroviaria|železnice|željeznice|dráhy|intercity|prijevoz|putnički|vlak)\b|hellenic\s+train|cyprus\s+airways|σιδηρόδρομ|τρένο)/iu,/(?:\b(zending|shipments?|warehousing|opslag|supply chain|groupage|pallets?|containers?|internationaal transport|international transport|tickets?|billet|fahrplan|timetable|dienstregeling|journey planner|vluchten?|flights?|destinations?|reizen|travel|utazás|dopravca|vozni red|karta|karte)\b|δρομολόγ|εισιτήρ|πτήσ)/iu],modules:["core_seo","geo","technical","local","lead_conversion","transport_travel"]},
       {sector:"telecom_technology",label:"Telecom & Technologie",patterns:[/\b(telekom|telecom|telecommunications?|mobile network|internet provider|broadband provider|telefoonprovider)\b/i,/\b(fiber|fibre|glasvezel|internet|mobile|mobiel|5g|4g|broadband|telefonie|tv pakket)\b/i],modules:["core_seo","geo","technical","telecom_technology"]},
       {sector:"news_media",label:"Nieuws & Media",patterns:[/\b(nieuws|news|journalist|redactie|breaking news|sportnieuws|nieuwsartikel|newsarticle)\b/i,/\b(binnenland|buitenland|politiek|sport|economie)\b/i],modules:["core_seo","geo","news_media"]},
-      {sector:"tourism_recreation",label:"Toerisme & Recreatie",patterns:[/\b(toerisme|tourism|visit [a-zà-ÿ-]+|citymarketing|destination|bezoekers?|visitor|ontdek [a-zà-ÿ-]+)\b/i,/\b(agenda|evenementen|events|overnachten|hotels?|restaurants?|activiteiten|things to do|bezienswaardigheden)\b/i],modules:["core_seo","geo","local","tourism_recreation"]},
+      {sector:"tourism_recreation",label:"Toerisme & Recreatie",patterns:[TOURISM_IDENTITY_PATTERN,TOURISM_ACTIVITY_PATTERN],modules:["core_seo","geo","local","tourism_recreation"]},
       {sector:"food_local_retail",label:"Voeding & lokale retail",patterns:[/\b(bakkerij|bakker|bakery|baker|patisserie|pastry|brood|bread|banket|artisan bakery)\b/i,/\b(gebak|taart|cakes?|croissant|sourdough|zuurdesem|vers brood|fresh bread)\b/i],modules:["core_seo","geo","local","lead_conversion","food_local_retail"]},
       {sector:"service_marketplace",label:"Dienstenplatform",patterns:[/\b(vind (?:de )?beste bedrijven|vergelijk (?:bedrijven|specialisten|dienstverleners)|dienstverleners vergelijken|professionals vergelijken|bedrijven vergelijken)\b/i,/\b(top 10|reviews?|beoordelingen|offertes? vergelijken|bedrijven voor jou|specialisten in jouw regio)\b/i],modules:["core_seo","geo","technical","structured_data","links","service_marketplace"]},
       {sector:"saas_b2b",label:"SaaS / B2B",patterns:[/\b(saas|software platform|software-as-a-service|api platform|business software|auditsoftware|seo software|geo software|website audit|seo audit|geo audit)\b/i,/\b(demo|features|integrations|integraties|dashboard|website scan|website scannen|website analyseren|audit platform)\b/i],modules:["core_seo","geo","technical","security","structured_data","links","accessibility","lead_conversion","saas_b2b"]},
     ];
-    const sectorIdentitySource = [title, description, h1s.join(" "), finalUrl.hostname, finalUrl.pathname].join(" ");
+    // Tourist boards branded as "visit<place>" are recognised by hostname, never by
+    // the generic phrase "visit our ..." in page text.
+    const sectorIdentitySource = [title, description, h1s.join(" "), finalUrl.hostname, finalUrl.pathname, isTourismBoardHost(finalUrl.hostname) ? "toerisme" : ""].join(" ");
     const sectorSource = [sectorIdentitySource, text.slice(0,120000), schemaTypes.join(" ")].join(" ");
     // Strong page/site identity must beat incidental words elsewhere in long pages.
     // In particular, sewer/drain services often mention generic "reparatie", which is not automotive evidence.
@@ -1613,11 +1618,18 @@ export async function POST(request: Request) {
     // tourism, food, or local-service keywords on category/support pages.
     // Require online purchase language AND physical retail assortment in the
     // primary page identity, not merely a generic "shop" or a contact CTA.
-    const retailAssortmentIdentity = /\b(?:kleding|schoenen|accessoires|mode|fashion|elektronica|home.elektronica|apparaten|wasmachines|televisies|laptops|meubels|furniture|interieur|woonartikelen|bouwmaterialen|dierenbenodigdheden|sportartikelen|producten|products)\b/i.test(sectorIdentitySource);
-    const onlineRetailCallout = /\b(?:online (?:kopen|bestellen|shoppen|shopping)|webshop|webwinkel|online winkel|shop online|buy online|online store)\b/i.test(sectorIdentitySource);
-    const retailStoreIdentity = /\b(?:winkels?|retailer|winkelketen|shop|stores?)\b/i.test(sectorIdentitySource);
-    const explicitRetailIdentity = retailAssortmentIdentity &&
-      (onlineRetailCallout || (retailStoreIdentity && commerceNavigationSignal));
+    const retailLanguage = retailIdentityLanguage(sectorIdentitySource);
+    const retailAssortmentIdentity = retailLanguage.assortment;
+    const onlineRetailCallout = retailLanguage.onlineSales;
+    const retailStoreIdentity = retailLanguage.store;
+    // schema.org Store types (OnlineStore, FurnitureStore, ...) are self-declared
+    // retail identity. They count only together with independent commerce
+    // evidence or online-sales language, never on their own.
+    const storeSchemaTypes = retailStoreSchemaTypes(schemaTypes);
+    const storeSchemaRetailIdentity = storeSchemaTypes.length > 0 &&
+      (onlineRetailCallout || evidenceCommerceStrength >= 1 || hasEcommerceSignal);
+    const explicitRetailIdentity = storeSchemaRetailIdentity || (retailAssortmentIdentity &&
+      (onlineRetailCallout || (retailStoreIdentity && commerceNavigationSignal)));
     const retailPurchaseEvidence = evidenceCommerceConfirmed || hasEcommerceSignal || explicitRetailIdentity;
     const retailPrimaryIdentity = retailPurchaseEvidence
       && !shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity
@@ -1635,7 +1647,7 @@ export async function POST(request: Request) {
           label:"Webshop / e-commerce",
           confidence:(explicitRetailIdentity && !evidenceCommerceConfirmed ? "medium" : "high") as "medium"|"high",
           confidenceScore:explicitRetailIdentity && !evidenceCommerceConfirmed ? 78 : Math.min(99, Math.round(86 + evidenceCommerceStrength * 2)),
-          evidence:[...(explicitRetailIdentity ? ["Primair retailbewijs: productassortiment plus online-verkooptaal of winkelidentiteit in de paginametadata"] : []), `Evidence Layer: ${evidenceCommerceStrength} onafhankelijke commerce-signalen`, ...(catalogTop?.key==="ecommerce" ? catalogTop.evidence : [])].slice(0,6),
+          evidence:[...(storeSchemaRetailIdentity ? [`Schema: ${storeSchemaTypes.join(", ")} met onafhankelijk commercebewijs`] : []), ...(explicitRetailIdentity && !storeSchemaRetailIdentity ? ["Primair retailbewijs: productassortiment plus online-verkooptaal of winkelidentiteit in de paginametadata"] : []), `Evidence Layer: ${evidenceCommerceStrength} onafhankelijke commerce-signalen`, ...(catalogTop?.key==="ecommerce" ? catalogTop.evidence : [])].slice(0,6),
           applicableModules:["core_seo","geo","technical","ecommerce","product","pricing_currency","merchant","checkout",...(euConsumerApplicable?["eu_consumer"]:[])],
         }
       : primaryNonCommerceIdentity
@@ -3912,6 +3924,18 @@ export async function POST(request: Request) {
       masterEvidence.activeModules = sectorProfile.applicableModules;
     }
 
+    // An international country/language selector (proven by hreflang) is a brand
+    // portal. Without a proven sector it is labelled as such before any late
+    // fallback can guess one from a single word on a corporate subpage (transport,
+    // restaurant, booking). Commerce applicability stays "unconfirmed".
+    if (marketSelectorPage && !finalCommerceDecision.confirmed && sectorProfile.key==="unknown") {
+      sectorProfile.key = "market_selector";
+      sectorProfile.label = "Internationaal merk- en landkeuzeportaal";
+      sectorProfile.confidence = "high";
+      sectorProfile.confidenceScore = 90;
+      sectorProfile.evidence = ["Hreflang: x-default verwijst naar deze pagina en minstens drie taal-/landversies", ...(retailAssortmentIdentity ? ["Merkidentiteit noemt een productassortiment; de webshop staat op de landversies"] : [])];
+    }
+
     if (!finalCommerceDecision.confirmed && multiPageCapabilities.transport && sectorProfile.key==="unknown") {
       sectorProfile.sector = "transport_travel";
       sectorProfile.key = "transport_travel";
@@ -3996,11 +4020,18 @@ export async function POST(request: Request) {
       displayPolicy: sectorDisplayPolicy,
     };
     masterEvidence.coverage.confirmedCapabilities = masterEvidence.capabilities.length;
+    // Retail identity whose shop functionality could not be confirmed must say so,
+    // so sector, website profile and commerce applicability never contradict.
+    if (sectorProfile.key === "ecommerce" && !finalCommerceDecision.confirmed) {
+      sectorProfile.label = "Retail · webshopfunctionaliteit niet bevestigd";
+      masterEvidence.primarySector.label = sectorProfile.label;
+    }
     const websiteType = finalCommerceDecision.confirmed
       ? "Webshop"
       : sectorProfile.key === "recruitment" && masterEvidence.businessModels.includes("recruitment")
         ? "Recruitmentwebsite"
-        : masterEvidence.businessModels.some(model => model === "appointments" || model === "reservations" || model === "bookings")
+        // Reserving or collecting in-store is a secondary retail capability, not a booking site.
+        : sectorProfile.key !== "ecommerce" && masterEvidence.businessModels.some(model => model === "appointments" || model === "reservations" || model === "bookings")
           ? "Boekings-/afsprakenwebsite"
           : technologyProfile.siteType === "Landingpage"
             ? "Website"

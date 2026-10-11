@@ -94,7 +94,10 @@ export function buildScanEvidence(input: {
     : ["Raw HTML beoordeeld; client-side signalen kunnen ontbreken"];
   const url = input.url.toLowerCase();
 
-  const schemaTypes = uniq([...html.matchAll(/["']@type["']\s*:\s*["']([^"']+)["']/gi)].map(m => m[1]).filter(Boolean));
+  // "@type" may be a string or an array such as ["OnlineStore","FurnitureStore"].
+  const schemaTypes = uniq([...html.matchAll(/["']@type["']\s*:\s*(?:["']([^"']+)["']|\[([^\]]*)\])/gi)]
+    .flatMap(m => m[1] ? [m[1]] : [...(m[2] || "").matchAll(/["']([^"']+)["']/g)].map(x => x[1]))
+    .filter(Boolean));
   const schemaLower = schemaTypes.map(x => x.toLowerCase());
   const schemaHas = (...names: string[]) => names.some(name => schemaLower.includes(name.toLowerCase()));
 
