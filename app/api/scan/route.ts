@@ -6,6 +6,7 @@ import { ensureDatabase } from "@/lib/db-init";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang, isMarketSelectorPage } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { decodeHtmlEntities } from "@/lib/html-entities";
+import { analyzeScriptIntegrity, findExposedSecrets, findForms, findMixedContent, observeCookie, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
 import { assessBusinessDetails, classifyContactAnchor, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
@@ -1784,49 +1785,16 @@ export async function POST(request: Request) {
       ? securityCheck("pass","security_headers","Security headers",`Browser-securityheaders voldoen aan de huidige kernregel (${securityHeaderEvidence}).`,"Houd deze headers actief en test wijzigingen aan CSP/HSTS eerst tegen de applicatie.",6,6)
       : securityCheck("warning","security_headers","Security headers",`RankFix bevestigde ${presentSecurityHeaders.length} van 6 gecontroleerde securityheaders (${securityHeaderEvidence}). Dit is hardening-advies en op zichzelf geen bewijs van een kwetsbaarheid.`,"Controleer HSTS, CSP/frame-bescherming, X-Content-Type-Options, Referrer-Policy en Permissions-Policy op server/CDN-niveau.",Math.max(0, presentSecurityHeaders.length),6));
 
-    const mixedContentMatches = isHttps
-      ? [...html.matchAll(new RegExp("(?:src|href)\\s*=\\s*[\\\"']http://[^\\\"'\\s>]+[\\\"']", "gi"))].map((m)=>m[0]).slice(0,5)
-      : [];
+    const mixedContentMatches = isHttps ? findMixedContent(html).slice(0,5) : [];
     securityChecks.push(!isHttps
       ? securityCheck("not_applicable","security_mixed_content","Mixed content","Mixed-contentcontrole is alleen van toepassing op HTTPS-pagina's.","Activeer eerst HTTPS.",0,4)
       : mixedContentMatches.length === 0
-        ? securityCheck("pass","security_mixed_content","Mixed content","Geen expliciete HTTP-assets gevonden in de gescande HTTPS-HTML.","Blijf assets via HTTPS of relatieve URL's laden.",4,4)
-        : securityCheck("fail","security_mixed_content","Mixed content",`${mixedContentMatches.length} expliciete HTTP-assetverwijzing(en) gevonden op een HTTPS-pagina.`,"Vervang HTTP-asset-URL's door HTTPS of veilige relatieve URL's.",4,4));
+        ? securityCheck("pass","security_mixed_content","Mixed content","Geen via HTTP geladen afbeeldingen, scripts, stylesheets of frames gevonden in de gescande HTTPS-HTML. Gewone links naar HTTP-sites zijn geen mixed content.","Blijf assets via HTTPS of relatieve URL's laden.",4,4)
+        : securityCheck("fail","security_mixed_content","Mixed content",`${mixedContentMatches.length} via HTTP geladen bron(nen) gevonden op een HTTPS-pagina: ${mixedContentMatches.slice(0,3).join(", ")}.`,"Vervang HTTP-asset-URL's door HTTPS of veilige relatieve URL's.",4,4));
 
-    const setCookieHeaders = response.headers.get("set-cookie") || "";
-    const cookiePresent = Boolean(setCookieHeaders);
-    // Strict Set-Cookie parsing. Commas inside Expires must stay inside the cookie,
-    // and attributes are evaluated only on their own cookie record.
-    const splitSetCookieHeader = (header:string) => {
-      const out:string[] = [];
-      let from = 0;
-      let inExpires = false;
-      for (let i=0;i<header.length;i++) {
-        const tail = header.slice(i).toLowerCase();
-        if (tail.startsWith("expires=")) inExpires = true;
-        if (inExpires && header[i] === ";") inExpires = false;
-        if (!inExpires && header[i] === "," && /^\s*[^;,=\s]+=[^;,]*/.test(header.slice(i+1))) {
-          out.push(header.slice(from,i).trim()); from=i+1;
-        }
-      }
-      out.push(header.slice(from).trim());
-      return out.filter(Boolean);
-    };
-    const observedCookies = setCookieHeaders ? splitSetCookieHeader(setCookieHeaders) : [];
-    const cookieObservations = observedCookies.map((raw)=>{
-      const first = raw.split(";")[0] || "";
-      const name = first.split("=")[0]?.trim() || "cookie";
-      const sameSiteMatch = raw.match(/(?:^|;\s*)samesite=(lax|strict|none)(?:;|$)/i);
-      const antiCsrf = /(?:csrf|xsrf|verification[-_]?token|requestverificationtoken)/i.test(name);
-      const sessionLike = !antiCsrf && /(?:^|[-_.])(session|sess|auth|jwt|login|sid)(?:$|[-_.])/i.test(name);
-      return {
-        name, raw,
-        secure: /(?:^|;\s*)secure(?:;|$)/i.test(raw),
-        httpOnly: /(?:^|;\s*)httponly(?:;|$)/i.test(raw),
-        sameSite: sameSiteMatch ? sameSiteMatch[1].toLowerCase() : "missing",
-        sessionLike,
-      };
-    });
+    const observedCookies = setCookieValues(response.headers);
+    const cookiePresent = observedCookies.length > 0;
+    const cookieObservations = observedCookies.map(observeCookie);
     const cookiesMissingSecure = cookieObservations.filter((cookie)=>isHttps && !cookie.secure);
     const cookiesMissingSameSite = cookieObservations.filter((cookie)=>cookie.sameSite === "missing");
     const sessionCookiesMissingHttpOnly = cookieObservations.filter((cookie)=>cookie.sessionLike && !cookie.httpOnly);
@@ -1844,9 +1812,10 @@ export async function POST(request: Request) {
       : cookieIssueCount === 0
         ? securityCheck("pass","security_cookie_flags","Cookie-beveiliging",`De zichtbare Set-Cookie-response bevestigt passende relevante flags voor ${cookieObservations.length} cookie(s).`,"Houd gevoelige sessiecookies voorzien van passende beveiligingsflags.",5,5)
         : securityCheck("warning","security_cookie_flags","Cookie-beveiliging",`Per-cookie controle vond ${cookieIssueCount} ontbrekende relevante flag(s). ${cookieEvidenceSummary}. HttpOnly wordt alleen beoordeeld voor bevestigde sessie-/authenticatiecookies.`,"Controleer de genoemde cookies afzonderlijk: Secure op HTTPS, een passende SameSite-instelling en HttpOnly voor sessie-/authenticatiecookies.",Math.max(1,5-Math.min(4,cookieIssueCount)),5));
-    const forms = [...html.matchAll(new RegExp("<form\\b[\\s\\S]*?</form>", "gi"))].map((m)=>m[0]);
-    const passwordForm = forms.some((form)=>new RegExp("<input[^>]+type\\s*=\\s*[\\\"']password[\\\"']", "i").test(form));
-    const insecureFormActions = forms.filter((form)=>new RegExp("action\\s*=\\s*[\\\"']http://", "i").test(form)).length;
+    const formSignals = findForms(html);
+    const forms = { length: formSignals.count };
+    const passwordForm = formSignals.passwordForm;
+    const insecureFormActions = formSignals.insecureActions;
     securityChecks.push(forms.length === 0
       ? securityCheck("not_applicable","security_forms","Formuliertransport","Geen HTML-formulier gevonden in de gescande pagina.","Geen actie nodig voor deze pagina.",0,5)
       : insecureFormActions > 0
@@ -1855,25 +1824,19 @@ export async function POST(request: Request) {
           ? securityCheck("pass","security_forms","Formuliertransport",`${forms.length} formulier(en) gevonden zonder expliciete onveilige HTTP-action${passwordForm ? "; wachtwoordveld aanwezig" : ""}.`,"Controleer server-side validatie, CSRF-bescherming en autorisatie aanvullend; die zijn niet uit statische HTML te bewijzen.",5,5)
           : securityCheck("warning","security_forms","Formuliertransport",`${forms.length} formulier(en) gevonden op een niet-HTTPS-pagina.`,"Bescherm formulieren met HTTPS; beoordeel server-side validatie en CSRF apart.",2,5));
 
-    const exposedSecretPatterns = [
-      { label:"private key", re:/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/i },
-      { label:"AWS access key", re:/\bAKIA[0-9A-Z]{16}\b/ },
-      { label:"GitHub token", re:/\bgh[pousr]_[A-Za-z0-9_]{20,}\b/ },
-      { label:"generic bearer token", re:/authorization\s*[:=]\s*["']?bearer\s+[A-Za-z0-9._~-]{20,}/i },
-    ];
-    const exposedSignals = exposedSecretPatterns.filter((item)=>item.re.test(html)).map((item)=>item.label);
+    const exposedSignals = findExposedSecrets(html);
     securityChecks.push(exposedSignals.length
       ? securityCheck("fail","security_exposed_secrets","Blootgestelde secrets",`Mogelijk gevoelig secretpatroon gevonden: ${exposedSignals.join(", ")}. Handmatige verificatie is vereist.`,"Verwijder secrets uit client-side HTML/bundles, roteer bevestigde gelekte credentials en gebruik server-side secretopslag.",8,8)
       : securityCheck("pass","security_exposed_secrets","Blootgestelde secrets","Geen bekende high-confidence secretpatronen gevonden in de opgehaalde HTML.","Bewaar API-sleutels en credentials uitsluitend server-side.",8,8));
 
-    const externalScriptTags = [...html.matchAll(/<script\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi)].map((m)=>({tag:m[0],src:m[1]}));
-    const crossOriginScripts = externalScriptTags.filter((item)=>{ try { return new URL(item.src,finalUrl).origin !== finalUrl.origin; } catch { return false; } });
-    const crossOriginWithoutSri = crossOriginScripts.filter((item)=>!/\bintegrity\s*=/i.test(item.tag));
-    securityChecks.push(crossOriginScripts.length === 0
+    const scriptIntegrity = analyzeScriptIntegrity(html, finalUrl.toString());
+    securityChecks.push(scriptIntegrity.crossOrigin === 0
       ? securityCheck("pass","security_script_integrity","Externe scripts","Geen cross-origin scripts aangetroffen in de opgehaalde HTML.","Geen actie nodig; JavaScript kan runtime aanvullend scripts laden die buiten deze statische controle vallen.",4,4)
-      : crossOriginWithoutSri.length === 0
-        ? securityCheck("pass","security_script_integrity","Externe scripts",`Alle ${crossOriginScripts.length} zichtbare cross-origin script(s) bevatten een integrity-attribuut.`,"Houd externe scripts beperkt en gebruik SRI waar versievaste assets dit ondersteunen.",4,4)
-        : securityCheck("warning","security_script_integrity","Externe scripts",`${crossOriginWithoutSri.length} van ${crossOriginScripts.length} cross-origin script(s) hebben geen zichtbaar integrity-attribuut. SRI is niet voor elke dynamische provider toepasbaar.`,"Beperk derde-partij scripts en gebruik Subresource Integrity voor versievaste externe assets waar mogelijk.",2,4));
+      : scriptIntegrity.missingVersioned.length === 0
+        ? securityCheck("pass","security_script_integrity","Externe scripts",scriptIntegrity.missingDynamic.length
+            ? `Geen versievaste cross-origin scripts zonder integrity-attribuut. ${scriptIntegrity.missingDynamic.length} dynamisch script(s) van derden (zoals tag managers of betaal-SDK's) kunnen geen SRI gebruiken; houd die beperkt.`
+            : `Alle ${scriptIntegrity.crossOrigin} zichtbare cross-origin script(s) bevatten een integrity-attribuut.`,"Houd externe scripts beperkt en gebruik SRI waar versievaste assets dit ondersteunen.",4,4)
+        : securityCheck("warning","security_script_integrity","Externe scripts",`${scriptIntegrity.missingVersioned.length} versievast cross-origin script(s) zonder integrity-attribuut: ${scriptIntegrity.missingVersioned.slice(0,3).join(", ")}. Voor zulke vaste bestanden is Subresource Integrity toepasbaar.`,"Voeg een integrity- en crossorigin-attribuut toe aan versievaste externe scripts, of host ze zelf.",2,4));
 
     const securityApplicable = securityChecks.filter((item)=>item.issue_status !== "NOT_APPLICABLE" && item.issue_status !== "UNABLE_TO_CONFIRM");
     const securityMax = securityApplicable.reduce((sum,item)=>sum+item.maxPoints,0);
@@ -1952,15 +1915,15 @@ export async function POST(request: Request) {
     } else if (sectorProfile.sector === "professional_services") {
       const expertiseSignal = /\b(expertise|specialis(?:t|atie)|advocaat|accountant|boekhouder|consultant|notaris|lawyer|attorney|accounting|consultancy|diensten|services)\b/i.test(text) || hasServiceExpertiseSignal;
       const contactSignal = hasContactChannelSignal || hasContactFormSignal || /\b(afspraak|kennismaking|consult|adviesgesprek|contact|plan a call|book a consultation)\b/i.test(text);
-      const authorSignal = schemaSet.has("person") || /\b(auteur|author|door|by)\s+[A-ZÀ-Ý][\p{L}.'-]+/iu.test(text);
+      const authorSignal = schemaSet.has("person") || /\b(?:[Aa]uteur|[Aa]uthor|[Gg]eschreven door|[Ww]ritten by)\s*:?\s+[A-ZÀ-Ý][\p{L}.'-]+/u.test(text);
       seoChecks.push(
         sectorCheck("sector_professional_expertise","Expertise & diensten",expertiseSignal,"Diensten of expertise zijn in de pagina bevestigd.","Diensten of expertise konden in de raw HTML niet betrouwbaar worden bevestigd.","Maak specialisaties en concrete diensten duidelijk zichtbaar zonder niet-bewezen kwalificaties toe te voegen."),
         sectorCheck("sector_professional_contact","Zakelijk contact",contactSignal,"Een contact- of adviesactie is bevestigd.","Een duidelijke contact- of adviesactie kon niet betrouwbaar worden bevestigd.","Maak de belangrijkste vervolgstap, zoals contact of een kennismaking, duidelijk zichtbaar."),
         sectorCheck("sector_professional_authorship","Expertise-auteurschap",authorSignal,"Een auteurs-/persoonsignaal is in de pagina bevestigd.","Auteurschap of een verantwoordelijke expert kon in de raw HTML niet betrouwbaar worden bevestigd.","Koppel inhoud aan een echte auteur of expert wanneer dat feitelijk juist en relevant is.")
       );
     } else if (sectorProfile.sector === "hospitality") {
-      const openingSignal = /\b(openingstijden|opening hours|geopend|open today|hours)\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.openingHours || item?.openingHoursSpecification));
-      const menuSignal = /\b(menu|menukaart|ontbijt|lunch|diner|dinner|drinks|gerechten)\b/i.test(text) || links.some((href)=>/menu|menukaart/i.test(href));
+      const openingSignal = /\b(openingstijden|openingsuren|opening hours|opening times|geopend van|open today|vandaag geopend)\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.openingHours || item?.openingHoursSpecification));
+      const menuSignal = /\b(menukaart|onze menu's|ons menu|bekijk (?:het|ons) menu|our menu|view (?:the |our )?menu|lunchkaart|dinerkaart|wijnkaart|drankenkaart|ontbijt|lunch|diner|dinner|gerechten|dishes)\b/i.test(text) || links.some((href)=>/\/(?:menu|menukaart|kaart|lunchkaart|dinerkaart)(?:[/.?#-]|$)/i.test(href));
       const reservationSignal = hasContactChannelSignal || /\b(reserveren|reserveer|reservation|book a table|boek een tafel|kamer boeken|book a room)\b/i.test(text);
       seoChecks.push(
         sectorCheck("sector_hospitality_hours","Openingstijden",openingSignal,"Openingstijden of opening-hours structured data zijn bevestigd.","Openingstijden konden in de raw HTML niet betrouwbaar worden bevestigd.","Maak actuele openingstijden duidelijk vindbaar wanneer die voor deze locatie relevant zijn."),
@@ -1968,7 +1931,7 @@ export async function POST(request: Request) {
         sectorCheck("sector_hospitality_reservation","Reserveren / contact",reservationSignal,"Een reserverings- of contactactie is bevestigd.","Een duidelijke reserverings- of contactactie kon niet betrouwbaar worden bevestigd.","Maak reserveren of contact opnemen duidelijk en eenvoudig.")
       );
     } else if (sectorProfile.sector === "health_wellness") {
-      const treatmentSignal = /\b(behandeling|behandelingen|therapie|fysiotherap|tandarts|dentist|kliniek|clinic|wellness|salon|treatment|services)\b/i.test(text);
+      const treatmentSignal = /\b(behandeling|behandelingen|therapie|fysiotherap\w*|tandarts\w*|dentist\w*|kliniek|clinic|wellness|salon|treatments?)\b/i.test(text);
       const appointmentSignal = hasContactChannelSignal || /\b(afspraak|appointment|boek afspraak|plan afspraak|book now|consult)\b/i.test(text);
       const trustSignal = hasAboutSignal || hasServiceExpertiseSignal || schemaSet.has("person") || /\b(team|specialist|behandelaar|therapeut|practitioner)\b/i.test(text);
       seoChecks.push(
@@ -1979,7 +1942,7 @@ export async function POST(request: Request) {
     } else if (sectorProfile.sector === "saas_b2b") {
       const featureSignal = /\b(features?|functies|mogelijkheden|platform|software|integrations?|integraties|api)\b/i.test(text);
       const leadSignal = hasContactChannelSignal || /\b(demo|start gratis|free trial|try free|get started|contact sales|plan gesprek|boek demo)\b/i.test(text);
-      const audienceSignal = /\b(voor bedrijven|for businesses|for teams|teams|bedrijven|organisaties|business|enterprise|b2b)\b/i.test(text);
+      const audienceSignal = /\b(voor bedrijven|voor teams|voor organisaties|for businesses|for teams|for enterprises?|enterprise plan|b2b)\b/i.test(text);
       seoChecks.push(
         sectorCheck("sector_saas_features","Product & functies",featureSignal,"Software-/functiesignalen zijn in de pagina bevestigd.","Product- of functiesignalen konden in de raw HTML niet betrouwbaar worden bevestigd.","Maak duidelijk welk probleem het product oplost en welke functies werkelijk beschikbaar zijn."),
         sectorCheck("sector_saas_conversion","Demo / conversie",leadSignal,"Een demo-, trial- of contactactie is bevestigd.","Een duidelijke demo-, trial- of contactactie kon niet betrouwbaar worden bevestigd.","Maak de primaire zakelijke vervolgstap duidelijk zichtbaar."),

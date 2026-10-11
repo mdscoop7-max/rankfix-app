@@ -6,6 +6,7 @@ import { isPrivateHost, validatePublicHttpUrl } from "../lib/safe-fetch.ts";
 import { assessHreflang, hasSelfHreflangLanguageMismatch, isMarketSelectorPage, isValidHreflangCode, statusCode } from "../lib/seo-rules.ts";
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, neutralizeShopWording, shopWordingApplies } from "../lib/commerce-applicability.ts";
 import { decodeHtmlEntities } from "../lib/html-entities.ts";
+import { analyzeScriptIntegrity, findExposedSecrets, findForms, findMixedContent, observeCookie, setCookieValues, splitSetCookieHeader } from "../lib/security-signals.ts";
 import { INDIRECT_CONTACT_KINDS, assessBusinessDetails, classifyContactAnchor, findBusinessContactDetails, findCompanyRegistration, findVisibleAddress, findVisibleEmail, findVisiblePhone, isContactForm } from "../lib/contact-evidence.ts";
 import { selectRepresentativePages } from "../lib/representative-pages.ts";
 import { clientIpFromHeaders, isInternalTester, retryAfterSeconds, scanRateLimitMessage, scanRateLimitPolicy } from "../lib/scan-access.ts";
@@ -1310,4 +1311,137 @@ test("finding 6: business details pass only with concrete details, not just abse
   assert.equal(findCompanyRegistration("Vul je KvK-nummer in"), null);
   assert.equal(findVisibleAddress("Vul je postcode in"), null);
   assert.equal(findBusinessContactDetails("", '<input type="email" name="email">').mailtoLink, false);
+});
+
+// --- Security Engine (now that its regexes actually match) ---
+
+test("security: mixed content counts loaded subresources, not plain links", () => {
+  const html = `
+    <a href="http://partner.example.org/">Partner</a>
+    <link rel="canonical" href="http://shop.nl/">
+    <link rel="alternate" hreflang="de" href="http://shop.de/">
+    <form action="http://forms.example.org/x"></form>
+    <svg xmlns="http://www.w3.org/2000/svg"></svg>
+    <img src="https://cdn.shop.nl/a.png">`;
+  assert.deepEqual(findMixedContent(html), []);
+  const mixed = `<img src="http://cdn.shop.nl/a.png"><script src='http://cdn.shop.nl/a.js'></script><link rel="stylesheet" href="http://cdn.shop.nl/a.css"><iframe src="http://video.example.org/e"></iframe><img srcset="http://cdn.shop.nl/b.png 2x">`;
+  assert.deepEqual(findMixedContent(mixed).sort(), ["http://cdn.shop.nl/a.css", "http://cdn.shop.nl/a.js", "http://cdn.shop.nl/a.png", "http://cdn.shop.nl/b.png", "http://video.example.org/e"]);
+});
+
+test("security: cookie flags are read per cookie, including Expires commas", () => {
+  const joined = "sid=abc; Path=/; Secure; HttpOnly; SameSite=Lax, theme=dark; Expires=Wed, 21 Oct 2026 07:28:00 GMT; Path=/, consent=1; secure; samesite=strict";
+  const cookies = splitSetCookieHeader(joined).map(observeCookie);
+  assert.deepEqual(cookies.map((c) => [c.name, c.secure, c.httpOnly, c.sameSite, c.sessionLike]), [
+    ["sid", true, true, "lax", true],
+    ["theme", false, false, "missing", false],
+    ["consent", true, false, "strict", false],
+  ]);
+  // A cookie value containing "secure" is not the Secure attribute.
+  assert.equal(observeCookie("pref=secure; Path=/").secure, false);
+  assert.equal(observeCookie("csrftoken=x; Secure").sessionLike, false);
+  const headers = new Headers();
+  headers.append("set-cookie", "a=1; Secure; HttpOnly");
+  headers.append("set-cookie", "b=2; Expires=Wed, 21 Oct 2026 07:28:00 GMT");
+  assert.deepEqual(setCookieValues(headers), ["a=1; Secure; HttpOnly", "b=2; Expires=Wed, 21 Oct 2026 07:28:00 GMT"]);
+});
+
+test("security: forms, password fields and insecure actions are detected", () => {
+  assert.deepEqual(findForms("<p>geen formulier</p>"), { count: 0, passwordForm: false, insecureActions: 0 });
+  assert.deepEqual(findForms('<form action="/login"><input type="password" name="p"></form><form action="http://old.example.org/post"><input name="q"></form>'), { count: 2, passwordForm: true, insecureActions: 1 });
+  // An http:// link inside an https form is not an insecure form action.
+  assert.equal(findForms('<form action="https://shop.nl/s"><a href="http://help.example.org">help</a></form>').insecureActions, 0);
+});
+
+test("security: real exposed secrets are found, documentation examples are not", () => {
+  const realAws = "AKIA" + "Q3EGRZ7LW5MNXK2P";
+  const realGh = "ghp_" + "Zx9Qm2Lr7Tb4Vn8Kc1Hs6Pd3Wf5Gy0Ja8Nu4E";
+  assert.deepEqual(findExposedSecrets(`<script>window.cfg={aws:"${realAws}"}</script>`), ["AWS access key"]);
+  assert.deepEqual(findExposedSecrets(`<script>const t="${realGh}"</script>`), ["GitHub token"]);
+  assert.deepEqual(findExposedSecrets(`<script>fetch(u,{headers:{Authorization:"Bearer ${"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0MiJ9.k3Lq9xPz"}"}})</script>`), ["generic bearer token"]);
+  const pem = "-----BEGIN RSA PRIVATE KEY-----\n" + "MIIEowIBAAKCAQEA7dQ3x9Lq2Vh8Pz4Kn6Tr1Ws5Yb0Ec3Gu7Jm9Na2Df4Hk6Lp8Qs".repeat(2);
+  assert.deepEqual(findExposedSecrets(`<script>var k="${pem}"</script>`), ["private key"]);
+  // Tutorials and docs:
+  assert.deepEqual(findExposedSecrets("<p>Use AKIAIOSFODNN7EXAMPLE as access key id.</p>"), []);
+  assert.deepEqual(findExposedSecrets(`<pre><code>export AWS_KEY=${realAws}</code></pre>`), []);
+  assert.deepEqual(findExposedSecrets("<p>Start your file with -----BEGIN PRIVATE KEY----- ... </p>"), []);
+  assert.deepEqual(findExposedSecrets("<p>Authorization: Bearer YOUR_API_TOKEN_GOES_HERE_123</p>"), []);
+  assert.deepEqual(findExposedSecrets("<p>ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</p>"), []);
+});
+
+test("security: SRI is only asked for versioned third-party files", () => {
+  const html = `
+    <script src="/app.js"></script>
+    <script src="https://www.googletagmanager.com/gtm.js?id=GTM-ABC"></script>
+    <script src="https://js.stripe.com/v3/"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha384-x" crossorigin="anonymous"></script>`;
+  const result = analyzeScriptIntegrity(html, "https://shop.nl/");
+  assert.equal(result.crossOrigin, 4);
+  assert.deepEqual(result.missingVersioned, ["https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"]);
+  assert.deepEqual(result.missingDynamic, ["https://www.googletagmanager.com/gtm.js?id=GTM-ABC", "https://js.stripe.com/v3/"]);
+});
+
+test("security route uses the tested signal helpers", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  for (const name of ["findMixedContent(html)", "setCookieValues(response.headers)", "findForms(html)", "findExposedSecrets(html)", "analyzeScriptIntegrity(html, finalUrl.toString())"]) assert.ok(route.includes(name), name);
+  assert.match(route, /securityCheck\("fail","security_https"/);
+});
+
+test("fix engine: AI-fix H1/title extraction and GitHub icon filter work on real markup", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const aiFix = await readFile(new URL("../app/api/ai-fix/route.ts", import.meta.url), "utf8");
+  // Evaluate the exact expressions from the source, so this fails if they regress.
+  const h1Source = aiFix.match(/type==="h1"\?new RegExp\(("[^"]+"),"i"\)/)[1];
+  const titleSource = aiFix.match(/type==="meta_title"\?new RegExp\(("[^"]+"),"i"\)/)[1];
+  const h1 = new RegExp(JSON.parse(h1Source), "i");
+  const title = new RegExp(JSON.parse(titleSource), "i");
+  assert.equal('<h1 class="x">Autoservice\nin Utrecht</h1>'.match(h1)?.[1], "Autoservice\nin Utrecht");
+  assert.equal("<title>Kwik Fit | APK</title>".match(title)?.[1], "Kwik Fit | APK");
+
+  const githubFix = await readFile(new URL("../app/api/github/fix/route.ts", import.meta.url), "utf8");
+  const iconBlock = githubFix.slice(githubFix.indexOf("const isIconAsset="), githubFix.indexOf("const trustedImage="));
+  const isIconAsset = new Function(`${iconBlock.replace(/:string\b/g, "")}; return isIconAsset;`)();
+  for (const icon of ["/favicon.ico", "/icons/icon-192x192.png", "/static/icon-512.png", "/apple-touch-icon.png"]) assert.equal(isIconAsset(icon), true, icon);
+  for (const image of ["/images/hero-1200x630.jpg", "/media/iconic-shoe.png", "/og/product.webp"]) assert.equal(isIconAsset(image), false, image);
+});
+
+test("sector signals recognise concrete evidence and ignore generic words", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const start = route.indexOf('if (sectorProfile.sector === "real_estate") {');
+  const sectors = route.slice(start, route.indexOf("const ", route.indexOf('} else if (sectorProfile.sector === "saas_b2b") {') + 600));
+  // First /regex/flags.test(text) on the "const <name> =" line inside the given sector block.
+  const signal = (sector, name) => {
+    const from = sectors.indexOf(`sectorProfile.sector === "${sector}"`);
+    const line = sectors.slice(from).split("\n").find((l) => l.includes(`const ${name} =`));
+    const m = line.match(/\/((?:\\.|\[(?:\\.|[^\]\\])*\]|[^/\\\n[])+)\/([a-z]*)\.test\(text\)/);
+    return new RegExp(m[1], m[2]);
+  };
+  const cases = [
+    ["automotive", "workshopSignal", ["APK-keuring en onderhoud", "Banden wisselen"], ["Welkom bij ons bedrijf"]],
+    ["automotive", "appointmentSignal", ["Plan je afspraak online", "Book a service"], ["Bel 020-1234567", "Maak een proefrit"]],
+    ["automotive", "inventorySignal", ["Bekijk onze occasions", "Auto's te koop"], ["APK-keuring"]],
+    ["home_services", "serviceSignal", ["Uw loodgieter voor verstopping", "Installatie van zonnepanelen"], ["Lees onze blog"]],
+    ["home_services", "quoteSignal", ["Vraag een offerte aan"], ["Over ons"]],
+    ["hospitality", "openingSignal", ["Openingstijden: ma-vr 9-17", "Opening hours"], ["Office hours for support", "Happy hours"]],
+    ["hospitality", "menuSignal", ["Bekijk de menukaart", "Lunch en diner", "View our menu"], ["Open menu", "Hoofdmenu sluiten"]],
+    ["hospitality", "reservationSignal", ["Reserveer een tafel"], ["Neem contact op"]],
+    ["health_wellness", "treatmentSignal", ["Fysiotherapie en behandelingen", "Tandartspraktijk"], ["Our services", "Customer services"]],
+    ["professional_services", "expertiseSignal", ["Uw notaris in Utrecht", "Ervaren accountant"], ["Welkom"]],
+    ["saas_b2b", "featureSignal", ["Bekijk alle features", "Integraties met je boekhouding"], ["Over ons team"]],
+    ["saas_b2b", "audienceSignal", ["Software voor bedrijven", "Built for teams"], ["Business news", "Ons team"]],
+  ];
+  for (const [sector, name, yes, no] of cases) {
+    const re = signal(sector, name);
+    for (const text of yes) assert.equal(re.test(text), true, `${sector}.${name} should match "${text}"`);
+    for (const text of no) assert.equal(re.test(text), false, `${sector}.${name} must not match "${text}"`);
+  }
+  // Author needs an explicit byline and a capitalised name; "door de" or "by Google" style text is not enough.
+  const author = sectors.split("\n").find((l) => l.includes("const authorSignal ="));
+  const authorRe = new RegExp(...author.match(/\/((?:\\.|\[(?:\\.|[^\]\\])*\]|[^/\\\n[])+)\/([a-z]*)\.test\(text\)/).slice(1));
+  assert.equal(authorRe.test("Geschreven door Anna de Vries"), true);
+  assert.equal(authorRe.test("Auteur: Mark Jansen"), true);
+  assert.equal(authorRe.test("Gemaakt door de klant"), false);
+  assert.equal(authorRe.test("Powered by Google"), false);
 });
