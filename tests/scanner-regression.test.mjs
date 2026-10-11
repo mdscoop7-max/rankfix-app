@@ -1041,3 +1041,12 @@ test("representative sample prefers template diversity before filling same-templ
   const filled = pick(seeds, [pageUrl("/p/2"), pageUrl("/p/3")], 4).map((page) => page.url);
   assert.deepEqual(filled, ["https://shop.nl/", "https://shop.nl/p/1", "https://shop.nl/about", "https://shop.nl/p/2"]);
 });
+
+test("representative sample can cap FAQ/help pages so they do not crowd out evidence", () => {
+  const faqCap = { matches: (url) => /\/(?:faq|help-center)(?:\/|$)/i.test(new URL(url).pathname), limit: 3 };
+  const ranked = [...Array.from({ length: 6 }, (_, i) => pageUrl(`/faq/q${i}`)), pageUrl("/p/1"), pageUrl("/about")];
+  const selected = selectRepresentativePages([pageUrl("/")], ranked, 30, normalizeTestUrl, templateOf, faqCap).map((page) => page.url);
+  assert.equal(selected.filter((url) => url.includes("/faq/")).length, 3);
+  assert.ok(selected.includes("https://shop.nl/p/1"));
+  assert.ok(selected.includes("https://shop.nl/about"));
+});
