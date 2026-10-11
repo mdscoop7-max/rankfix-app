@@ -818,3 +818,17 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
 @keyframes rfMotorTurn{to{transform:rotate(360deg)}}
 @keyframes rfMotorSweep{0%,100%{transform:rotate(-55deg);opacity:.45}50%{transform:rotate(55deg);opacity:1}}
 @media (prefers-reduced-motion:reduce){.rf-scan-meter-ring:after,.rf-scan-meter-sweep{animation:none!important}}
+
+
+/* Responsive dashboard navigation and overlay safety — shared correction */
+@media (max-width:650px){
+  .rf-page{padding-bottom:calc(112px + env(safe-area-inset-bottom))!important}
+  .rf-shell{padding-bottom:calc(112px + env(safe-area-inset-bottom))!important}
+  .rf-nav{bottom:max(8px,env(safe-area-inset-bottom))!important;overflow-x:visible!important;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important}
+  .rf-nav>a{min-width:0!important;min-height:60px!important}
+  .rf-nav .rf-nav-label{white-space:normal!important;overflow-wrap:anywhere;font-size:10px!important;line-height:1.2!important}
+  .rf-help-topic,.rf-more-card{min-width:0;overflow-wrap:anywhere}
+  .rf-help-grid,.rf-more-grid{min-width:0}
+  .rf-help-github-action{max-width:100%;white-space:normal;text-align:center}
+}
+@media (prefers-reduced-motion:reduce){.rf-nav a{transition:none!important}}
