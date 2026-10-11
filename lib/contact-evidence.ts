@@ -88,7 +88,7 @@ export function findVisibleAddress(text: string): string | null {
     const street = streetWords.length > 1 && /^[A-Z](?:\.[A-Z])?\.$/.test(streetWords[streetWords.length - 2])
       ? streetWords.slice(-2).join(" ")
       : streetWords[streetWords.length - 1];
-    const city = match[4].replace(/\s+(?:Tel|Telefoon|Toggle|Contact|Vestiging|Menu|WhatsApp).*$/i, "").trim();
+    const city = match[4].replace(/\s+(?:Nederland|Netherlands|België|Belgium|Duitsland|Germany|Tel|Telefoon|Toggle|Contact|Vestiging|Menu|WhatsApp).*$/i, "").trim();
     if (street && city) return `${street} ${match[2]}, ${match[3]} ${city}`;
   }
   // Conservative generic fallback: at most two street-name tokens; do not
