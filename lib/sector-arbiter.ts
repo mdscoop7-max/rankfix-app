@@ -198,10 +198,13 @@ function gradeStorefront(input: ArbiterInput) {
   // groups. Large retailers often show this on the homepage without Product schema or an
   // add-to-cart button (those live on product pages that may be blocked or JS-rendered).
   const catalogue = c.cartOrCheckout && c.productLinks >= 6 && c.priceCount >= 4;
+  // Add-to-cart actions on several priced product cards are a purchase flow even when
+  // the cart itself is only a JavaScript icon without a recognisable link.
+  const buyableGrid = c.addToCart && c.productLinks >= 3 && c.priceCount >= 3;
   const strong = c.previouslyConfirmed || c.siteSampleProduct ||
     (store && (productLevel || c.cartOrCheckout)) ||
     (c.addToCart && (c.cartOrCheckout || c.product)) ||
-    catalogue;
+    catalogue || buyableGrid;
   // Weak evidence (product schema + prices, a priced catalogue without cart, or only a
   // platform fingerprint) is a hint, never a confirmation.
   const weak = !strong && (Boolean(c.technologyOnly) || (productLevel && groups.length >= 2) || (c.productLinks >= 3 && c.priceCount >= 3));
@@ -348,6 +351,19 @@ export function arbitratePrimarySector(input: ArbiterInput): ArbiterDecision {
       role: "specialist_business", sector: current, key: input.current.key, label: input.current.label,
       status: "probable", confidenceScore: Math.min(75, Math.max(60, input.current.confidenceScore)), commerceConfirmed: false,
     });
+  }
+  // Earlier layers proposed a sector the page itself does not support, but the page's own
+  // title/h1/meta name exactly one specific (non-generic) sector: that identity is the better
+  // probable answer than "unknown" (e.g. a dental practice misread as a booking platform).
+  const specificIdentities = identityCompetitors.filter(item => !GENERIC_WORD_SECTORS.has(item.sector));
+  if (specificIdentities.length === 1 && identityCompetitors.length <= 2) {
+    const adopted = specificIdentities[0].sector;
+    reasons.push(`Eerder voorgestelde sector "${input.current.label}" wordt niet door titel/koppen/omschrijving ondersteund; die noemen ${labelOf(input, adopted)}. Geen structureel bewijs, dus waarschijnlijk.`);
+    const decision = build({ role: "specialist_business", sector: adopted, status: "probable", confidenceScore: 62, commerceConfirmed: false });
+    if (current && current !== "unknown" && current !== "ecommerce" && current !== adopted && !decision.secondaryActivities.some(item => item.sector === current)) {
+      decision.secondaryActivities.unshift({ sector: current, label: input.current.label, basis: "body_text", note: "Eerder voorgesteld, niet ondersteund door titel/koppen/omschrijving" });
+    }
+    return decision;
   }
   if (current === "general_business") {
     return build({ role: "corporate_website", sector: "general_business", key: input.current.key, label: input.current.label, status: "probable", confidenceScore: 65, commerceConfirmed: false });

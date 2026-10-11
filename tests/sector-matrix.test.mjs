@@ -202,3 +202,70 @@ test("evidence engine ignores words that merely contain cart/kasse/pago (cartoon
   assert.equal(real.commerce.cart.value, true);
   assert.equal(real.commerce.checkout.value, true);
 });
+
+test("electronics retailer with add-to-cart, delivery and repair-service text is a webshop", () => {
+  const html = `<html><head><title>Elektronica kopen? Laptops, tv's en telefoons</title></head><body>
+    <a href="/winkelmandje">Winkelmandje</a>
+    ${Array.from({ length: 10 }, (_, i) => `<a href="/product/laptop-${i}">Laptop ${i}</a> € ${599 + i},- <button>In winkelwagen</button>`).join("")}
+    Morgen gratis bezorgd. Reparatieservice en installatie aan huis.</body></html>`;
+  const decision = decide(html, { bodySectors: ["transport_travel", "home_services"], current: { sector: "home_services", key: "home_services", label: "Vakmensen", confidenceScore: 55 } });
+  assert.equal(decision.sector, "ecommerce");
+  assert.equal(decision.commerceConfirmed, true);
+});
+
+test("small webshop (few products, WooCommerce-style buttons) is still a webshop", () => {
+  const html = `<html><head><title>Handgemaakte kaarsen</title></head><body><a href="/cart/">Winkelwagen</a>
+    ${Array.from({ length: 3 }, (_, i) => `<a href="/product/kaars-${i}/">Kaars ${i}</a> €${i + 9},95 <button class="add_to_cart_button">Toevoegen aan winkelwagen</button>`).join("")}</body></html>`;
+  const decision = decide(html);
+  assert.equal(decision.sector, "ecommerce");
+  assert.equal(decision.commerceConfirmed, true);
+});
+
+test("hair salon with HairSalon schema and online booking is a beauty business, not a booking platform", () => {
+  const html = `<html><head><title>Kapsalon Knip & Kleur</title></head><body><a href="/afspraak-maken">Boek online</a> Knippen €32
+    ${ld({ "@type": "HairSalon", name: "Knip & Kleur" })}</body></html>`;
+  const decision = decide(html, { identity: ["beauty"], current: { sector: "service_marketplace", key: "service_marketplace", label: "Boekingsplatform", confidenceScore: 50 } });
+  assert.equal(decision.sector, "beauty");
+});
+
+test("dentist without schema but with its own title and a booking widget stays health care, not a booking platform", () => {
+  const html = `<html><head><title>Tandartspraktijk De Molen – afspraak maken</title></head><body>
+    <a href="/afspraak">Afspraak maken</a> <a href="/boeken">Boek direct online</a> Nieuwe patiënten welkom.</body></html>`;
+  const decision = decide(html, { identity: ["health_wellness"], bodySectors: ["service_marketplace"], current: { sector: "service_marketplace", key: "service_marketplace", label: "Boekingsplatform", confidenceScore: 52 } });
+  assert.equal(decision.sector, "health_wellness");
+  assert.equal(decision.status, "probable");
+});
+
+test("informative website (articles, no purchase flow) is never a webshop", () => {
+  const html = `<html><head><title>Alles over tuinieren – tips en artikelen</title></head><body>
+    ${Array.from({ length: 6 }, (_, i) => `<a href="/artikel/tip-${i}">Tip ${i}</a>`).join("")} Kosten van een schutting: ongeveer € 40 per meter.</body></html>`;
+  const decision = decide(html);
+  assert.notEqual(decision.sector, "ecommerce");
+  assert.equal(decision.commerceConfirmed, false);
+});
+
+test("multilingual storefront (language switcher, English UI) is a webshop", () => {
+  const html = `<html lang="en"><head><title>Design furniture online</title>
+    <link rel="alternate" hreflang="nl" href="/nl/"><link rel="alternate" hreflang="de" href="/de/"></head><body>
+    <a href="/en/basket">Basket</a>${Array.from({ length: 5 }, (_, i) => `<a href="/en/products/chair-${i}">Chair</a> €${i + 99} <button>Add to basket</button>`).join("")}</body></html>`;
+  assert.equal(decide(html, { url: "https://www.example.com/en/" }).sector, "ecommerce");
+});
+
+test("conflicting identity terms from three or more sectors stay uncertain", () => {
+  const html = `<html><head><title>Hotel, restaurant en autogarage De Kruising</title></head><body>Welkom.</body></html>`;
+  const decision = decide(html, { identity: ["hospitality", "automotive", "real_estate"], current: { sector: "hospitality", key: "hospitality", label: LABELS.hospitality, confidenceScore: 60 } });
+  assert.equal(decision.status, "uncertain");
+});
+
+test("a generic word in the title (transport) alone never replaces an unsupported earlier sector", () => {
+  const html = `<html><head><title>Snel transport van uw bestelling</title></head><body>Welkom.</body></html>`;
+  const decision = decide(html, { identity: ["transport_travel"], current: { sector: "service_marketplace", key: "service_marketplace", label: "Boekingsplatform", confidenceScore: 50 } });
+  assert.equal(decision.sector, "unknown");
+  assert.equal(decision.status, "uncertain");
+});
+
+test("evidence engine recognises Dutch cart variants (winkelmandje, winkelwagentje) and shopping bags", () => {
+  for (const html of [`<a href="/winkelmandje">Mandje</a>`, `<a href="/winkelwagentje">x</a>`, `<button class="shopping-bag-icon"></button>`]) {
+    assert.equal(buildScanEvidence({ url: "https://www.voorbeeld.nl/", html }).commerce.cart.value, true, html);
+  }
+});

@@ -102,7 +102,7 @@ export function buildScanEvidence(input: {
   const productLinkCount = hrefs.filter(h => /\/(?:product|products|p|artikel|artikelen|item|shop)\//i.test(h)).length;
 
   // Whole-token matches only: "cartoon", "descartes" or "Sparkasse" are not commerce structure.
-  const cart = has(html, /(?:href|action|id|class|aria-label|data-[\w-]+)\s*=\s*["'][^"']*?(?<![a-z])(?:shopping-?cart|shoppingcart|mini-?cart|cart|basket|winkelwagen|winkelmand|warenkorb|panier|carrello|carrito)(?:(?![a-z])|(?=(?:icon|count|link|button|btn|drawer|badge|items?|total|summary|page|wrapper|container|toggle|overlay|popup|preview)))[^"']*["']/i);
+  const cart = has(html, /(?:href|action|id|class|aria-label|data-[\w-]+)\s*=\s*["'][^"']*?(?<![a-z])(?:shopping-?cart|shoppingcart|mini-?cart|cart|basket|shopping-?bag|winkelwagen|winkelwagentje|winkelmandje|winkelmand|warenkorb|panier|carrello|carrito)(?:(?![a-z])|(?=(?:icon|count|link|button|btn|drawer|badge|items?|total|summary|page|wrapper|container|toggle|overlay|popup|preview)))[^"']*["']/i);
   const addToCart = has(text, /\b(add to cart|add to basket|in winkelwagen|toevoegen aan winkelwagen|in den warenkorb|ajouter au panier|aggiungi al carrello|añadir al carrito)\b/i);
   const checkout = has(html, /(?:href|action|id|class|aria-label|data-[\w-]+)\s*=\s*["'][^"']*?(?<![a-z])(?:checkout|afrekenen|kasse|paiement|pagamento|pago)(?:(?![a-z])|(?=(?:icon|count|link|button|btn|drawer|badge|items?|total|summary|page|wrapper|container|toggle|overlay|popup|preview)))[^"']*["']/i);
   // Offer is used by service businesses too; it must never be treated as a retail product page by itself.
