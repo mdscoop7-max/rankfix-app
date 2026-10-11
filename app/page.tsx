@@ -193,11 +193,20 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
   const [fixes, setFixes] = useState<Record<string, { title: string; content: string; reason: string }>>({});
   const [fixing, setFixing] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [auditShareMessage, setAuditShareMessage] = useState("");
   const [scanStep, setScanStep] = useState(0);
   const [auditMode, setAuditMode] = useState<"seo" | "geo" | "both">("both");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [language, setLanguage] = useState<Language>(initialLanguage);
   const t = translations[language];
+  const auditShareText = {
+    nl: {copy:"Volledige audit kopiëren",share:"Audit delen",copied:"De volledige audit is gekopieerd. Plak hem in ChatGPT of een bericht.",failed:"Kopiëren is niet gelukt. Probeer het opnieuw."},
+    en: {copy:"Copy full audit",share:"Share audit",copied:"Full audit copied. Paste it into ChatGPT or a message.",failed:"Could not copy the audit. Please try again."},
+    de: {copy:"Vollständiges Audit kopieren",share:"Audit teilen",copied:"Das vollständige Audit wurde kopiert.",failed:"Audit konnte nicht kopiert werden."},
+    fr: {copy:"Copier l'audit complet",share:"Partager l'audit",copied:"L'audit complet a été copié.",failed:"Impossible de copier l'audit."},
+    it: {copy:"Copia audit completo",share:"Condividi audit",copied:"Audit completo copiato.",failed:"Impossibile copiare l'audit."},
+    es: {copy:"Copiar auditoría completa",share:"Compartir auditoría",copied:"Auditoría completa copiada.",failed:"No se pudo copiar la auditoría."}
+  }[language];
   const renderingCopy = {
     nl:{source:"Bron",raw:"Raw HTML · JavaScript niet uitgevoerd",rendered:"JavaScript-gerenderd",tip:"Dynamische onderdelen zoals checkout, JavaScript-content en sommige voorraad- of prijssignalen kunnen hierdoor niet volledig worden bevestigd."},
     en:{source:"Source",raw:"Raw HTML · JavaScript not executed",rendered:"JavaScript-rendered",tip:"Dynamic parts such as checkout, JavaScript content and some stock or price signals may therefore not be fully confirmed."},
@@ -474,6 +483,113 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
     await navigator.clipboard.writeText(content);
     setCopied(key);
     setTimeout(() => setCopied(null), 1600);
+  }
+
+  // Export the scan data, not the visible tab/accordion DOM. This includes
+  // both SEO and GEO and the full sector evidence even when sections are closed.
+  function publicAuditText(): string {
+    if (!result) return "";
+    const lines: string[] = [
+      "RankFix — " + result.mode.toUpperCase() + " audit",
+      "URL: " + result.finalUrl,
+      "HTTP: " + result.httpStatus + " | " + result.responseTime + " ms",
+      "Score: " + result.overallScore + "/100 | Grade: " + result.grade
+    ];
+    if (result.rendering) {
+      lines.push("Source: " + result.rendering.mode + " | JavaScript executed: " + (result.rendering.javascriptExecuted ? "yes" : "no"));
+      if (result.rendering.note) lines.push(result.rendering.note);
+    }
+    if (result.pageTypeEvidence) {
+      lines.push("", "Page type: " + result.pageTypeEvidence.type + " (" + result.pageTypeEvidence.confidence + ")");
+      result.pageTypeEvidence.evidence?.forEach(item => lines.push("- " + item));
+    }
+    const tech = result.technologyProfile;
+    if (tech) {
+      lines.push("", "WEBSITE PROFILE", "Type: " + (tech.siteType || "Unknown"), "CMS: " + (tech.cms || "Not confirmed"),
+        "Platform: " + (tech.commercePlatform || "Not confirmed"), "Framework: " + (tech.framework || "Not confirmed"),
+        "Confidence: " + tech.confidence + "%");
+      tech.evidence?.forEach(item => lines.push("- " + item));
+    }
+    const sector = result.sectorProfile;
+    if (sector) {
+      lines.push("", "SECTOR: " + sector.label, "Confidence: " + (sector.confidenceScore ?? sector.confidence));
+      lines.push("Sector evidence:");
+      (sector.evidence || []).forEach(item => lines.push("- " + item));
+      lines.push("Applicable modules: " + (sector.applicableModules || []).join(", "));
+    }
+    if (result.summary) {
+      lines.push("", "SUMMARY", "Passed: " + result.summary.passed, "Issues: " + result.summary.issues,
+        "Not applicable: " + result.summary.notApplicable, "Unable to confirm: " + result.summary.unableToConfirm,
+        "Pending fixes: " + result.summary.pendingFixes);
+    }
+    const m = result.metrics;
+    if (m) {
+      lines.push("", "PAGE METRICS", "Title: " + m.title, "Meta description: " + m.description,
+        "Canonical: " + (m.canonical || "Not confirmed"), "Language: " + (m.lang || "Not confirmed"),
+        "H1: " + m.h1s.join(" | "), "Words: " + m.wordCount, "Images: " + m.imageCount,
+        "Images missing alt: " + m.imagesMissingAlt, "Internal links: " + m.internalLinks,
+        "Schema: " + m.schemaTypes.join(", "), "Robots: " + (m.robots || "Not confirmed"));
+    }
+    for (const [category, audit] of [["SEO", result.seo], ["GEO", result.geo]] as const) {
+      if (result.mode !== "both" && category.toLowerCase() !== result.mode) continue;
+      lines.push("", category + " — " + audit.score + "/100");
+      audit.checks.forEach((check, index) => {
+        lines.push("", (index + 1) + ". " + check.title + " [" + check.status + "]",
+          "Points: " + check.points + "/" + check.maxPoints,
+          check.message);
+        if (check.fix && check.status !== "pass") lines.push("Recommendation: " + check.fix);
+        if (check.evidence) {
+          if (check.evidence.url) lines.push("Evidence URL: " + check.evidence.url);
+          if (check.evidence.details) lines.push("Evidence: " + check.evidence.details);
+          if (check.evidence.found != null) {
+            const found = typeof check.evidence.found === "string" ? check.evidence.found : JSON.stringify(check.evidence.found);
+            if (found) lines.push("Found: " + found);
+          }
+        }
+        if (check.fix_status) lines.push("Fix status: " + check.fix_status);
+      });
+    }
+    lines.push("", "Scan snapshot. Not applicable/unable to confirm are not proven failures.");
+    return lines.join("\n");
+  }
+
+  async function copyPublicAudit() {
+    const value = publicAuditText();
+    if (!value) return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        const input = document.createElement("textarea");
+        input.value = value;
+        input.setAttribute("readonly", "");
+        input.style.position = "fixed";
+        input.style.opacity = "0";
+        document.body.appendChild(input);
+        input.select();
+        const successful = document.execCommand("copy");
+        input.remove();
+        if (!successful) throw new Error("Clipboard copy unavailable");
+      }
+      setAuditShareMessage(auditShareText.copied);
+    } catch {
+      setAuditShareMessage(auditShareText.failed);
+    }
+  }
+
+  async function sharePublicAudit() {
+    if (!result) return;
+    if (typeof navigator.share !== "function") {
+      await copyPublicAudit();
+      return;
+    }
+    try {
+      await navigator.share({title: "RankFix — " + result.finalUrl, text: publicAuditText()});
+      setAuditShareMessage("");
+    } catch (cause) {
+      if (cause instanceof Error && cause.name === "AbortError") return;
+      await copyPublicAudit();
+    }
   }
 
   async function handleScan(e: React.FormEvent) {
@@ -871,6 +987,12 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
             {result.sectorProfile&&<div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500"><span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-700">Sector: {result.sectorProfile.label}</span><span>Zekerheid {result.sectorProfile.confidenceScore??(result.sectorProfile.confidence==="high"?90:result.sectorProfile.confidence==="medium"?70:50)}%</span></div>}
           </div>
 
+          <div className="mb-5 flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => void copyPublicAudit()} className="rounded-xl bg-emerald-300 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-200">{auditShareText.copy}</button>
+            <button type="button" onClick={() => void sharePublicAudit()} className="rounded-xl border border-emerald-300/30 px-4 py-3 text-sm font-bold text-emerald-200 transition hover:bg-emerald-300/10">{auditShareText.share}</button>
+            {auditShareMessage && <p role="status" aria-live="polite" className="w-full text-sm text-emerald-200">{auditShareMessage}</p>}
+          </div>
+
           <div className="mb-6 rounded-[28px] border border-slate-200 bg-gradient-to-br from-white/[0.055] to-emerald-400/[0.025] p-5 shadow-2xl shadow-black/10 sm:p-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -1072,6 +1194,11 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                 <p className="mt-1 text-sm leading-5 text-slate-500">Bekijk per verbeterpunt of RankFix een concreet fixvoorstel kan maken. Een voorstel wijzigt je live website niet; scan opnieuw na het publiceren om het resultaat te controleren.</p>
               </div>
             </div>
+          </div>
+          <div className="mb-5 flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => void copyPublicAudit()} className="rounded-xl bg-emerald-300 px-4 py-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-200">{auditShareText.copy}</button>
+            <button type="button" onClick={() => void sharePublicAudit()} className="rounded-xl border border-emerald-300/30 px-4 py-3 text-sm font-bold text-emerald-200 transition hover:bg-emerald-300/10">{auditShareText.share}</button>
+            {auditShareMessage && <p role="status" aria-live="polite" className="w-full text-sm text-emerald-200">{auditShareMessage}</p>}
           </div>
         </section>
         )
