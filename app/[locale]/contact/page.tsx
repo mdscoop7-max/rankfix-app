@@ -3,6 +3,12 @@ import { notFound } from "next/navigation";
 import LocaleShell from "../shell";
 import { copy,isLocale } from "@/lib/locales";
 import ContactForm from "./contact-form";
+import { localeMetadata } from "@/lib/locale-metadata";
+
+export async function generateMetadata({params}:{params:Promise<{locale:string}>}){
+ const {locale}=await params;
+ return isLocale(locale)?localeMetadata(locale,"contact",{title:copy[locale].nav[4],description:copy[locale].contact}):{};
+}
 
 export default async function ContactPage({params}:{params:Promise<{locale:string}>}){
  const {locale:raw}=await params;

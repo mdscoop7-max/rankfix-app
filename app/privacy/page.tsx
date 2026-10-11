@@ -1,2 +1,2 @@
-import { redirect } from "next/navigation";
-export default function Privacy() { redirect("/nl/privacy"); }
+import { permanentRedirect } from "next/navigation";
+export default function Privacy() { permanentRedirect("/nl/privacy"); }
