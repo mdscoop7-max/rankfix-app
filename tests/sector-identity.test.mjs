@@ -102,3 +102,23 @@ test("scan route wires the central identity rules without brand exceptions", asy
   assert.match(source, /sectorProfile\.key !== "ecommerce" && masterEvidence\.businessModels\.some\(model => model === "appointments"/);
   assert.equal(/\bikea\b|zalando|coolblue|kwik-?fit|transheroes|housingnet|dekas/i.test(await readFile(new URL("../lib/sector-identity.ts", import.meta.url), "utf8")), false);
 });
+
+test("a blocked or empty browser render is never treated as website evidence", async () => {
+  const { isSubstantiveRender, renderImprovesEvidence, visibleWordCount } = await import("../lib/render-quality.ts");
+  // Shape of a bot-blocked render: HTTP 200, a brand <title>, almost no content.
+  const blocked = "<html><head><title>Coolblue</title></head><body><div>Coolblue - alles voor een glimlach</div><script>x()</script></body></html>";
+  const rich = `<html><head><title>Shop</title></head><body>${"<p>Productinformatie en levering</p>".repeat(60)}</body></html>`;
+  assert.equal(visibleWordCount(blocked), 7);
+  assert.equal(isSubstantiveRender(blocked), false);
+  assert.equal(isSubstantiveRender(rich), true);
+  assert.equal(isSubstantiveRender(null), false);
+  // Rich raw HTML (e.g. SSR Next.js) is kept when the render is poorer.
+  assert.equal(renderImprovesEvidence(visibleWordCount(rich), false, blocked), false);
+  assert.equal(renderImprovesEvidence(visibleWordCount(rich), false, rich), true);
+  // A thin client shell is still replaced by a meaningful render.
+  assert.equal(renderImprovesEvidence(5, true, rich), true);
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.equal(source.includes("html.length >= 20) {"), false, "no render is accepted on byte length alone");
+  assert.equal((source.match(/isSubstantiveRender\(/g) || []).length, 3);
+  assert.equal((source.match(/renderImprovesEvidence\(/g) || []).length, 2);
+});

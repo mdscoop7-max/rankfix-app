@@ -19,6 +19,7 @@ import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
 import { renderPublicPage } from "@/lib/headless-render";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
+import { isSubstantiveRender, renderImprovesEvidence } from "@/lib/render-quality";
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
@@ -573,7 +574,9 @@ export async function POST(request: Request) {
       recovery.attempted = true;
       try {
         const recovered = await renderPublicPage(finalUrl.toString(), 12000);
-        if (recovered.html && recovered.html.length >= 20) {
+        // A blocked render (challenge or empty shell with only a <title>) is not a recovery.
+        if (!isSubstantiveRender(recovered.html)) recovery.reason = "RECOVERY_RENDER_NOT_SUBSTANTIVE";
+        else {
           recoveredHtml = recovered.html;
           recoveredRenderElapsedMs = recovered.elapsedMs;
           recovery.browserRecovered = true;
@@ -618,9 +621,14 @@ export async function POST(request: Request) {
     if (javascriptCandidate) {
       try {
         const rendered = await renderPublicPage(finalUrl.toString(), 12000);
-        html = rendered.html;
-        javascriptExecuted = true;
-        renderElapsedMs = rendered.elapsedMs;
+        // Never replace richer raw evidence with a poorer (blocked or partial) render.
+        if (renderImprovesEvidence(rawVisibleWords, thinClientShell, rendered.html)) {
+          html = rendered.html;
+          javascriptExecuted = true;
+          renderElapsedMs = rendered.elapsedMs;
+        } else {
+          renderFallbackReason = "RENDER_DEGRADED";
+        }
       } catch (renderError) {
         renderFallbackReason = renderError instanceof Error ? renderError.message.slice(0, 120) : "RENDER_FAILED";
         console.info("RankFix headless fallback", { page: finalUrl.toString(), reason: renderFallbackReason });
@@ -639,7 +647,7 @@ export async function POST(request: Request) {
     if (preliminaryInterstitial && !javascriptExecuted) {
       try {
         const recovered = await renderPublicPage(finalUrl.toString(), 12000);
-        if (recovered.html && recovered.html.length >= 20) {
+        if (isSubstantiveRender(recovered.html)) {
           html = recovered.html;
           javascriptExecuted = true;
           renderElapsedMs = recovered.elapsedMs;
@@ -3555,7 +3563,7 @@ export async function POST(request: Request) {
         if (!r.ok && (r.status === 202 || r.status === 403 || r.status === 405)) {
           try {
             const recoveredPage = await renderPublicPage(finalCandidate.toString(), 10000);
-            if (recoveredPage.html && recoveredPage.html.length >= 20) { pageHtml = recoveredPage.html; representativeEvidenceSource = "rendered_html"; }
+            if (isSubstantiveRender(recoveredPage.html)) { pageHtml = recoveredPage.html; representativeEvidenceSource = "rendered_html"; }
           } catch {}
         }
         if (!pageHtml && (!r.ok || (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")))) {
@@ -3573,10 +3581,12 @@ export async function POST(request: Request) {
         if (representativeJsFramework || representativeThinShell) {
           try {
             const renderedPage = await renderPublicPage(finalCandidate.toString(), 10000);
-            if (renderedPage.html && renderedPage.html.length >= 20) {
+            if (renderImprovesEvidence(representativeVisibleWords, representativeThinShell, renderedPage.html)) {
               pageHtml = renderedPage.html;
               representativeEvidenceSource = "rendered_html";
               page.evidence.push("javascript-rendered representative page");
+            } else {
+              page.evidence.push("javascript render poorer than raw HTML; raw HTML retained");
             }
           } catch {
             page.evidence.push("javascript rendering unavailable; raw HTML retained");
