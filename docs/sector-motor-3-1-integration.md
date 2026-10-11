@@ -29,13 +29,25 @@ git ls-remote origin feat/sector-motor-3-1-universal-evidence-arbiter-20261010  
 Pas daarna de scannercorrecties toe met een merge (geen rebase of force-push), zodat
 de originele SHA's behouden blijven.
 
-## Verwachte overlap bij het samenvoegen
+## Samenvoegen met de scannercorrecties (proef op 3.0 uitgevoerd)
 
-| Bestand | Waarom | Aanpak |
+Een proefmerge van `f1293c1` in de correctiebranch gaf twee kleine conflicten.
+Na oplossing: 118/118 tests geslaagd, productiebuild geslaagd.
+
+| Bestand | Conflict | Oplossing |
 |---|---|---|
-| `tests/scanner-regression.test.mjs` | 3.0 wijzigde de paginalimiettest naar 30; de correcties vervangen de inline-controle door `selectRepresentativePages` | Versie van de correcties houden |
-| `app/api/scan/route.ts` | Beide wijzigen de scanner, in verschillende blokken | Per blok samenvoegen, daarna volledige testset |
-| `lib/sector-catalog.ts` | Alleen gewijzigd door Sector Motor | Niet aangeraakt door de correcties |
+| `app/api/scan/route.ts` | 3.0 voegde een FAQ-limiet (max. 3) toe aan de inline paginaselectie; de correcties verplaatsten die selectie naar `selectRepresentativePages` | Zie codeblok hieronder |
+| `tests/scanner-regression.test.mjs` | Beide zetten de limiettest op 30 | Versie van de correcties houden |
+| `lib/sector-catalog.ts` | Geen | Niet aangeraakt door de correcties |
+
+```ts
+// FAQ/help-center pages can dominate a crawl and crowd out product,
+// category, service and legal evidence. Preserve a small FAQ sample.
+const isFaqSample = (url: string) => /\/(?:faq|faqs|veelgestelde-vragen|help-center|helpcentrum|hilfe|ayuda|assistance)(?:\/|$)/i.test(new URL(url).pathname);
+const uniqueMultiPagePages = selectRepresentativePages([scannedPageSample, ...multiPagePages], rankedMultiPage, representativePageLimit, normalizeScanUrl, templateShapeKey, { matches: isFaqSample, limit: 3 });
+```
+
+Als 3.1 dezelfde blokken verder wijzigt, eerst opnieuw een proefmerge doen.
 
 ## Controle na herstel
 

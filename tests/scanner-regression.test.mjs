@@ -801,7 +801,7 @@ test("Scan Motor 3.0 audits a bounded diverse representative sample", async () =
   assert.match(scanner,/const representativePageLimit = 30;/);
   assert.match(scanner,/pickMultiPage\("product", 4\)/);
   assert.match(scanner,/pickMultiPage\("service", 5\)/);
-  assert.match(scanner,/selectRepresentativePages\(\[scannedPageSample, \.\.\.multiPagePages\], rankedMultiPage, representativePageLimit, normalizeScanUrl, templateShapeKey\)/);
+  assert.match(scanner,/selectRepresentativePages\(\[scannedPageSample, \.\.\.multiPagePages\], rankedMultiPage, representativePageLimit, normalizeScanUrl, templateShapeKey[,)]/);
   assert.match(scanner,/const representativeAuditConcurrency = 4;/);
 });
 
