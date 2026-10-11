@@ -162,6 +162,13 @@ test("sitewide: a shared title suffix is reported as one template fix", () => {
   ], "www.zalando.nl");
   assert.equal(zalando?.suffix.trim(), "| Gratis verzending voor de meeste bestellingen* | Zalando");
   assert.equal(titleTemplatePattern(["Over ons | Bakkerij", "Contact | Bakkerij", "Home | Bakkerij"], "bakkerij.nl"), null);
+  // A short brand suffix is not reported as a template problem (TransHeroes, 22:32 scan).
+  assert.equal(titleTemplatePattern([
+    "Internationaal transport, zeevracht, luchtvracht & douane | TransHeroes",
+    "Contact | Stel je vraag over internationaal transport | TransHeroes",
+    "Speciaal & exceptioneel transport | Zwaar en buitenmaats | TransHeroes",
+    "Transport Azië van/naar Nederland | TransHeroes",
+  ], "www.transheroes.com"), null);
 });
 
 test("report text helpers: short URLs and real entity types", () => {

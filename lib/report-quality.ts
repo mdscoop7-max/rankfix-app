@@ -244,7 +244,9 @@ export function titleTemplatePattern(titles: string[], host = ""): { suffix: str
   }
   const brand = normalizeSegment((host.toLowerCase().replace(/^www\./, "").split(".")[0]) || "");
   const candidates = [...counts]
-    .filter(([suffix, pages]) => pages >= 3 && suffix.trim().length >= 12)
+    // A plain brand suffix ("| TransHeroes") is normal practice and not a template
+    // problem; only long slogans or claims (20+ characters) are reported.
+    .filter(([suffix, pages]) => pages >= 3 && suffix.trim().length >= 20)
     .map(([suffix, pages]) => ({ suffix, pages, overLimit: valid.filter((title) => title.endsWith(suffix) && title.length > 60).length }))
     .filter((item) => item.overLimit >= 2);
   if (!candidates.length) return null;
