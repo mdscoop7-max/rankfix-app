@@ -70,6 +70,26 @@ type ScanResult = {
   };
 };
 
+type TestHistoryEntry = { url: string; status: "success" | "blocked" | "failed"; score?: number; lastTested?: string };
+const TEST_HISTORY_KEY = "rankfix-free-scan-test-sites-v1";
+const INITIAL_TEST_SITES: TestHistoryEntry[] = [
+  {url:"https://www.ikea.com/nl/nl/",status:"success",score:98},
+  {url:"https://www.spyderkoeriers.nl/",status:"success",score:96},
+  {url:"https://tandartsplantagemiddenlaan.nl/",status:"success",score:94},
+  {url:"https://www.housingnet.nl/",status:"success",score:89},
+  {url:"https://www.kwik-fit.nl/",status:"success",score:90},
+  {url:"https://www.funda.nl/",status:"blocked"},
+  {url:"https://www.dekas.com/",status:"failed"}
+];
+function canonicalTestUrl(raw: string): string {
+  try { const u = new URL(/^https?:\/\//i.test(raw.trim()) ? raw.trim() : "https://" + raw.trim()); return u.protocol + "//" + u.host.toLowerCase() + (u.pathname.replace(/\/+$/, "") || "/"); }
+  catch { return raw.trim(); }
+}
+function recordTestHistory(items: TestHistoryEntry[], entry: TestHistoryEntry): TestHistoryEntry[] {
+  const key = canonicalTestUrl(entry.url);
+  return [entry, ...items.filter(item => canonicalTestUrl(item.url) !== key)].slice(0, 30);
+}
+
 const statusIcon = { pass: "✓", warning: "!", fail: "×", not_applicable: "—", unable_to_confirm: "?" };
 
 const workflowCopy = {
@@ -186,6 +206,8 @@ type Language = keyof typeof translations;
 
 export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Language } = {}) {
   const [url, setUrl] = useState("");
+  const [testHistory, setTestHistory] = useState<TestHistoryEntry[]>(INITIAL_TEST_SITES);
+  const [historyReady, setHistoryReady] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -199,6 +221,26 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [language, setLanguage] = useState<Language>(initialLanguage);
   const t = translations[language];
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(TEST_HISTORY_KEY);
+      if (saved) {
+        const items = JSON.parse(saved);
+        if (Array.isArray(items)) {
+          const valid = items.filter((v): v is TestHistoryEntry =>
+            Boolean(v && typeof v.url === "string" && /^https?:\/\//.test(v.url) &&
+              ["success", "blocked", "failed"].includes(v.status))).slice(0, 30);
+          setTestHistory([...valid, ...INITIAL_TEST_SITES.filter(initial =>
+            !valid.some(v => canonicalTestUrl(v.url) === canonicalTestUrl(initial.url)))].slice(0, 30));
+        }
+      }
+    } catch { /* Storage unavailable: starter sites remain visible */ }
+    setHistoryReady(true);
+  }, []);
+  useEffect(() => {
+    if (!historyReady) return;
+    try { window.localStorage.setItem(TEST_HISTORY_KEY, JSON.stringify(testHistory)); } catch { /* Private browsing */ }
+  }, [testHistory, historyReady]);
   const auditShareText = {
     nl: {copy:"Volledige audit kopiëren",share:"Audit delen",copied:"De volledige audit is gekopieerd. Plak hem in ChatGPT of een bericht.",failed:"Kopiëren is niet gelukt. Probeer het opnieuw."},
     en: {copy:"Copy full audit",share:"Share audit",copied:"Full audit copied. Paste it into ChatGPT or a message.",failed:"Could not copy the audit. Please try again."},
@@ -622,10 +664,20 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         );
       }
       setResult(data);
+      setTestHistory(items => recordTestHistory(items, {
+        url: data.finalUrl || data.scannedUrl || url, status: "success",
+        score: typeof data.overallScore === "number" ? data.overallScore : undefined,
+        lastTested: new Date().toISOString()
+      }));
       setTab(auditMode === "geo" ? "geo" : "seo");
       setTimeout(() => document.getElementById("resultaat")?.scrollIntoView({ behavior: "smooth" }), 50);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Scan mislukt.");
+      const message = err instanceof Error ? err.message : "Scan mislukt.";
+      setError(message);
+      setTestHistory(items => recordTestHistory(items, {
+        url: url.trim(), status: /403|challenge|blocked|geblokkeerd|tussenpagina/i.test(message) ? "blocked" : "failed",
+        lastTested: new Date().toISOString()
+      }));
     } finally {
       setScanning(false);
     }
@@ -790,6 +842,26 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
               {scanning ? t.scanning : `${t.start} ${auditMode === "seo" ? "SEO" : auditMode === "geo" ? "GEO" : "SEO + GEO"} ${t.auditStart}`}
             </button>
           </form>
+          <div className="mt-4 text-left">
+            <details className="rounded-xl border border-slate-700/70 bg-slate-900/50 p-3">
+              <summary className="cursor-pointer text-sm font-semibold text-slate-100">
+                {language === "nl" ? "Testwebsites & scangeschiedenis" : language === "en" ? "Test sites & scan history" : language === "de" ? "Testwebsites & Scanverlauf" : language === "fr" ? "Sites de test et historique" : language === "it" ? "Siti di prova e cronologia" : "Sitios de prueba e historial"} ({testHistory.length})
+              </summary>
+              <p className="mt-2 text-xs text-slate-400">{language === "nl" ? "Klik op een website om de scanbalk te vullen en opnieuw te testen. Bewaard in deze browser; geen extra scans of credits." : "Choose a site to scan it again. Saved in this browser; no extra scans or credits."}</p>
+              <div className="mt-3 flex max-h-64 flex-col gap-2 overflow-y-auto">
+                {testHistory.map((site) => (
+                  <button key={canonicalTestUrl(site.url)} type="button" disabled={scanning}
+                    onClick={() => setUrl(site.url)}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-slate-700 bg-slate-800/80 px-3 py-2 text-left text-xs text-slate-100 transition hover:border-emerald-400 disabled:opacity-50">
+                    <span className="min-w-0 truncate">{site.url}</span>
+                    <span className={site.status === "success" ? "shrink-0 text-emerald-300" : "shrink-0 text-amber-300"}>
+                      {site.status === "success" ? (site.score !== undefined ? site.score + "/100" : "✓") : site.status === "blocked" ? "Geblokkeerd" : "Opnieuw proberen"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </details>
+          </div>
         </div>
         <div className="mx-auto mt-4 max-w-4xl px-2">
           <div className="flex flex-wrap justify-center gap-2 text-xs font-semibold text-emerald-100">
