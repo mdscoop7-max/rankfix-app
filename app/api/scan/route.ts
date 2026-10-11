@@ -16,7 +16,7 @@ import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
 import { applyEvidenceBasedScoreCap, SCORE_MODEL_VERSION, scoreApplicableChecks, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
 import { isPaidPlan, normalizePlan, planLimits } from "@/lib/plans";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
-import { internalTesterIds, isInternalTester, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
+import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
 import { renderPublicPage } from "@/lib/headless-render";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { confirmedFaqContent } from "@/lib/faq-evidence";
@@ -433,7 +433,14 @@ export async function POST(request: Request) {
     const planCode = usageUser
       ? normalizePlan((await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1", [usageUser.id])).rows[0]?.plan_code)
       : "free";
-    const internalTestAccount = Boolean(usageUser) && isInternalTester(usageUser?.id);
+    const configuredTestCustomer = Boolean(process.env.RANKFIX_INTERNAL_TEST_CUSTOMER_ID);
+    const customerIdRow = usageUser && configuredTestCustomer && !isInternalTester(usageUser.id)
+      ? await getDb().query("SELECT customer_id FROM users WHERE id=$1 LIMIT 1", [usageUser.id])
+      : null;
+    const internalTestAccount = Boolean(usageUser) && (
+      isInternalTester(usageUser.id) ||
+      isInternalTesterCustomerId(customerIdRow?.rows[0]?.customer_id)
+    );
     if (usageUser && !internalTestAccount && process.env.RANKFIX_INTERNAL_TEST_EMAIL && !internalTesterIds().size) {
       console.warn("RankFix internal test exemption needs RANKFIX_INTERNAL_TEST_USER_ID; an e-mail address alone no longer grants it.");
     }
