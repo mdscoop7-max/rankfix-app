@@ -6,6 +6,8 @@ import { ensureDatabase } from "@/lib/db-init";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { decodeHtmlEntities } from "@/lib/html-entities";
+import { selectRepresentativePages } from "@/lib/representative-pages";
+import { classifyContactAnchor, findVisibleEmail, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
@@ -2035,7 +2037,7 @@ export async function POST(request: Request) {
       .map((match) => {
         const attrs = (match[1] || "") + " " + (match[3] || "");
         const href = decode(match[2] || "");
-        const label = stripHtml(match[4] || "");
+        const label = decode(stripHtml(match[4] || ""));
         const aria = attrFromTag("<a " + attrs + ">", "aria-label");
         const titleAttr = attrFromTag("<a " + attrs + ">", "title");
         return { href, label, aria, title: titleAttr, haystack: normalizeLegalText([href, label, aria, titleAttr].join(" ")) };
@@ -2044,20 +2046,28 @@ export async function POST(request: Request) {
       privacy: /\b(?:privacy|privacybeleid|privacy policy|privacidade|privatnost\w*|zasebnost\w*|datenschutz|confidentialite|vie privee|privacidad|riservatezza)\b/i,
       cookies: /\b(?:cookie\w*|piskotk\w*|kolacic\w*|galleta\w*|biscott\w*)\b/i,
       terms: /\b(?:voorwaarden|terms|conditions|agb|cgv|condiciones|condizioni|termos|uvjet\w*|pogoj\w*|conditions generales)\b/i,
-      contact: /\b(?:contact\w*|kontakt\w*|contatt\w*|contacto\w*|klantenservice|customer service|support|helpdesk|help center|help centre|assistenza\w*|apoio ao cliente|pomoc\w*)\b/i,
     };
     const findLegalSignal = (pattern: RegExp) => legalAnchorEvidence.find((item) => pattern.test(item.haystack)) || null;
     const privacyEvidence = findLegalSignal(legalLexicon.privacy);
     const cookieEvidence = findLegalSignal(legalLexicon.cookies);
     const termsEvidence = findLegalSignal(legalLexicon.terms);
-    const contactEvidence = findLegalSignal(legalLexicon.contact);
+    const classifiedContactAnchors = legalAnchorEvidence.map((item) => ({ item, kind: classifyContactAnchor(item.href, item.haystack) }));
+    const contactChannelLabels: Record<ContactChannel, string> = { email: "e-mail", phone: "telefoon", contact_page: "contactpagina", contact_form: "contactformulier", customer_service: "klantenservice" };
+    const contactAnchor = (["contact_page", "email", "phone", "customer_service"] as const)
+      .map((kind) => classifiedContactAnchors.find((entry) => entry.kind === kind))
+      .find(Boolean) || null;
+    const contactEvidence = contactAnchor ? { ...contactAnchor.item, channel: contactAnchor.kind as ContactChannel } : null;
+    const contactFormFound = [...html.matchAll(/<form\b[\s\S]*?<\/form>/gi)].some((match) => isContactForm(match[0]));
+    const visibleContactEmail = findVisibleEmail(text);
+    // FAQ, help and support pages are not proof of a contact channel.
+    const helpOnlyContactAnchor = classifiedContactAnchors.find((entry) => entry.kind === "faq_help" || entry.kind === "support")?.item || null;
     const hasPrivacyLink = Boolean(privacyEvidence);
     const hasCookieLink = Boolean(cookieEvidence);
     const hasTermsLink = Boolean(termsEvidence);
-    const hasContactLink = Boolean(contactEvidence);
+    const hasContactLink = Boolean(contactEvidence || contactFormFound || visibleContactEmail);
     const legalLanguageCode = (lang || "").toLowerCase().split("-")[0];
     const legalLanguageSupported = new Set(["nl","en","it","pt","sl","hr","de","fr","es"]).has(legalLanguageCode);
-    const legalEvidenceSummary = [privacyEvidence && `privacy: "${decode(privacyEvidence.label || privacyEvidence.aria || privacyEvidence.title || "")}" → ${privacyEvidence.href}`, cookieEvidence && `cookies: "${decode(cookieEvidence.label || cookieEvidence.aria || cookieEvidence.title || "")}" → ${cookieEvidence.href}`, contactEvidence && `contact: "${decode(contactEvidence.label || contactEvidence.aria || contactEvidence.title || "")}" → ${contactEvidence.href}`].filter(Boolean).join(" · ");
+    const legalEvidenceSummary = [privacyEvidence && `privacy: "${privacyEvidence.label || privacyEvidence.aria || privacyEvidence.title}" → ${privacyEvidence.href}`, cookieEvidence && `cookies: "${cookieEvidence.label || cookieEvidence.aria || cookieEvidence.title}" → ${cookieEvidence.href}`, contactEvidence ? `contact (${contactChannelLabels[contactEvidence.channel]}): "${contactEvidence.label || contactEvidence.aria || contactEvidence.title}" → ${contactEvidence.href}` : contactFormFound ? "contact (contactformulier): formulier met berichtveld en e-mail/telefoonveld" : visibleContactEmail ? `contact (e-mail): ${visibleContactEmail}` : null].filter(Boolean).join(" · ");
     const formControls = [...html.matchAll(/<(input|select|textarea)\b([^>]*)>/gi)];
     const wrappingLabelRanges = [...html.matchAll(/<label\b[^>]*>[\s\S]*?<\/label>/gi)]
       .map((match) => ({ start: match.index ?? -1, end: (match.index ?? -1) + match[0].length }));
@@ -2663,6 +2673,8 @@ export async function POST(request: Request) {
         ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen","De raw HTML is een dunne JavaScript-shell. Privacy-, cookie- en contactlinks kunnen client-side worden toegevoegd en zijn daarom niet betrouwbaar als ontbrekend te beoordelen.","Controleer deze signalen opnieuw met geslaagde JavaScript-rendering.",0,5)
         : hasPrivacyLink && hasCookieLink && hasContactLink
         ? check("pass","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Links naar privacy, cookies en contact zijn in de opgehaalde HTML gevonden."+(legalEvidenceSummary ? " Bewijs: "+legalEvidenceSummary+"." : ""),"Houd deze informatie duidelijk vindbaar en actueel. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",5,5)
+        : hasPrivacyLink && hasCookieLink && helpOnlyContactAnchor
+        ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Links naar privacy en cookies zijn gevonden. Voor contact is alleen een FAQ-, help- of supportlink gevonden (\""+(helpOnlyContactAnchor.label || helpOnlyContactAnchor.aria || helpOnlyContactAnchor.title)+"\" → "+helpOnlyContactAnchor.href+"); dat bewijst geen directe contactmogelijkheid, maar ook niet dat die ontbreekt."+(legalEvidenceSummary ? " Bewijs: "+legalEvidenceSummary+"." : ""),"Controleer of de help- of supportpagina een contactpagina, contactformulier, e-mailadres of telefoonnummer aanbiedt.",0,5)
         : !legalLanguageSupported && Boolean(legalLanguageCode)
           ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen","De paginataal ("+legalLanguageCode+") valt buiten de geteste juridische woordenlijst en niet alle signalen zijn rechtstreeks bevestigd."+(legalEvidenceSummary ? " Wel gevonden: "+legalEvidenceSummary+"." : ""),"Controleer de footer en cookiebanner handmatig of breid de woordenlijst voor deze taal uit.",0,5)
           : check("warning","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Niet alle basissignalen zijn gevonden: "+[!hasPrivacyLink?"privacy":null,!hasCookieLink?"cookies":null,!hasContactLink?"contact":null].filter(Boolean).join(", ")+". "+(legalEvidenceSummary ? "Wel gevonden: "+legalEvidenceSummary+"." : ""),"Controleer of privacy-, cookie- en contactinformatie duidelijk bereikbaar is. RankFix beoordeelt hiermee geen wettelijke compliance.",Math.max(2, Number(hasPrivacyLink)+Number(hasCookieLink)+Number(hasContactLink)+2),5)
@@ -3520,32 +3532,7 @@ export async function POST(request: Request) {
         return index === 0 ? decoded : decoded.replace(/\d+/g,":n");
       }).join("/") || "/";
     };
-    // Prefer template diversity. Query-string variants and near-identical listing
-    // pages should not consume the limited representative sample twice.
-    const uniqueMultiPagePages: MultiPageCandidate[] = [];
-    const seenTemplates = new Set<string>();
-    for (const item of [scannedPageSample, ...multiPagePages]) {
-      const normalized = normalizeScanUrl(item.url);
-      const key = `${item.type}:${templateShapeKey(normalized)}`;
-      if (uniqueMultiPagePages.some((existing)=>normalizeScanUrl(existing.url)===normalized)) continue;
-      if (seenTemplates.has(key)) continue;
-      seenTemplates.add(key);
-      uniqueMultiPagePages.push(item);
-      if (uniqueMultiPagePages.length >= representativePageLimit) break;
-    }
-    // A site can have many important pages sharing one URL template.
-    // First choose structurally diverse pages, then fill remaining slots with
-    // distinct high-relevance URLs up to the cap. Small sites stay small.
-    if (uniqueMultiPagePages.length < representativePageLimit) {
-      const seenUrls = new Set(uniqueMultiPagePages.map((item)=>normalizeScanUrl(item.url)));
-      for (const item of rankedMultiPage) {
-        const normalized = normalizeScanUrl(item.url);
-        if (seenUrls.has(normalized)) continue;
-        seenUrls.add(normalized);
-        uniqueMultiPagePages.push(item);
-        if (uniqueMultiPagePages.length >= representativePageLimit) break;
-      }
-    }
+    const uniqueMultiPagePages = selectRepresentativePages([scannedPageSample, ...multiPagePages], rankedMultiPage, representativePageLimit, normalizeScanUrl, templateShapeKey);
     const auditMultiPage = async (page: MultiPageCandidate): Promise<MultiPageAudit> => {
       try {
         const fetched = await safePublicFetch(page.url, { timeoutMs: 8000, maxRedirects: 3, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml" });

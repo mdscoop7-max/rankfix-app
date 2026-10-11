@@ -78,9 +78,10 @@ export function isValidHreflangCode(code: string): boolean {
   return Boolean(match) && match?.[1] !== "uk";
 }
 
-// Ordered like the report: broken markup first, then self-reference, then
-// cross-host, conflicts and duplicates; anything else is syntactically sound
-// but reciprocity cannot be proven from a single page.
+// Only problems provable from this one page are warnings: broken markup, a
+// self-reference in the wrong language, conflicting or duplicate targets.
+// Separate country domains are legitimate and only mean reciprocity cannot be
+// confirmed here, so they never hide or replace a proven problem.
 export function assessHreflang(links: HreflangLink[], pageUrl: string, documentLanguage: string, normalizeUrl: (url: string) => string): HreflangAssessment {
   if (!links.length) return { kind: "none" };
   const page = new URL(pageUrl);
@@ -101,15 +102,14 @@ export function assessHreflang(links: HreflangLink[], pageUrl: string, documentL
   const selfLanguages = valid.filter((entry) => normalizeUrl(entry.target.toString()) === currentUrl).map((entry) => entry.language);
   if (hasSelfHreflangLanguageMismatch(selfLanguages, documentLanguage)) return { kind: "self_mismatch", documentLanguage: documentLanguage.trim().toLowerCase().replace("_", "-") };
 
-  const bareHost = (host: string) => host.replace(/^www\./i, "").toLowerCase();
-  const externalHosts = valid.filter((entry) => bareHost(entry.target.hostname) !== bareHost(page.hostname)).length;
-  if (externalHosts) return { kind: "external_hosts", count: externalHosts };
-
   const targetsByLanguage = new Map<string, string[]>();
   for (const entry of valid) targetsByLanguage.set(entry.language, [...(targetsByLanguage.get(entry.language) || []), normalizeUrl(entry.target.toString())]);
   const conflicts = [...targetsByLanguage.entries()].filter(([, urls]) => new Set(urls).size > 1).map(([language, urls]) => [language, [...new Set(urls)]] as [string, string[]]);
   if (conflicts.length) return { kind: "conflict", targets: conflicts };
   const duplicates = [...targetsByLanguage.entries()].filter(([, urls]) => urls.length > 1).map(([language, urls]) => [language, urls[0]] as [string, string]);
   if (duplicates.length) return { kind: "duplicate", targets: duplicates };
+  const bareHost = (host: string) => host.replace(/^www\./i, "").toLowerCase();
+  const externalHosts = valid.filter((entry) => bareHost(entry.target.hostname) !== bareHost(page.hostname)).length;
+  if (externalHosts) return { kind: "external_hosts", count: externalHosts };
   return { kind: "unconfirmed", total: valid.length };
 }

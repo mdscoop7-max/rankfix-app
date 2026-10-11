@@ -1,3 +1,6 @@
+// Explicit .ts extension so node --experimental-strip-types tests can load it.
+import { decodeHtmlEntities } from "./html-entities.ts";
+
 export type ImageMetrics = {
   elementCount: number;
   uniqueImageReferences: number;
@@ -8,12 +11,7 @@ export type ImageMetrics = {
 const IMAGE_EXT = /\.(avif|webp|jpe?g|png|gif|svg|bmp|ico)(?:[?#].*)?$/i;
 
 function decode(value: string): string {
-  return value
-    .replace(/&amp;/gi, "&")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/&#x2F;/gi, "/")
-    .trim();
+  return decodeHtmlEntities(value).trim();
 }
 
 function imageReference(value: string): string | null {

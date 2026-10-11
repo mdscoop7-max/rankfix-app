@@ -5,6 +5,8 @@ import { applyEvidenceBasedScoreCap, scoreApplicableChecks, summarizeAuditChecks
 import { isPrivateHost, validatePublicHttpUrl } from "../lib/safe-fetch.ts";
 import { assessHreflang, hasSelfHreflangLanguageMismatch, isValidHreflangCode, statusCode } from "../lib/seo-rules.ts";
 import { decodeHtmlEntities } from "../lib/html-entities.ts";
+import { classifyContactAnchor, findVisibleEmail, isContactForm } from "../lib/contact-evidence.ts";
+import { selectRepresentativePages } from "../lib/representative-pages.ts";
 
 test("decorative empty alt is valid; only a missing alt attribute is actionable", () => {
   const metrics = extractImageMetrics('<img src="/hero.jpg" alt=""><img src="/product.jpg" alt="Product"><img src="/broken.jpg">');
@@ -127,7 +129,10 @@ test("multilingual trust, social URL and auth redirect bundle stays evidence bas
   assert.match(source, /normalizeLegalText/);
   assert.match(source, /privatnost\\w\*\|zasebnost\\w\*/);
   assert.match(source, /piskotk\\w\*\|kolacic\\w\*/);
-  assert.match(source, /assistenza\\w\*\|apoio ao cliente\|pomoc\\w\*/);
+  const contactLexicon = await readFile(new URL("../lib/contact-evidence.ts", import.meta.url), "utf8");
+  assert.match(contactLexicon, /assistenza clienti/);
+  assert.match(contactLexicon, /apoio ao cliente/);
+  assert.match(contactLexicon, /assistenza\|pomoc\\w\*/);
   assert.match(source, /legalLanguageSupported/);
   assert.match(source, /og:image \(geen absolute http\(s\)-URL\)/);
   assert.match(source, /og:url \(geen absolute http\(s\)-URL\)/);
@@ -792,11 +797,12 @@ test("structural actions outrank plain text hints in scan evidence", async () =>
 test("Scan Motor 3.0 audits a bounded diverse representative sample", async () => {
   const { readFile } = await import("node:fs/promises");
   const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  assert.match(scanner,/const representativePageLimit = 20/);
+  // dfbe309 deliberately raised the cap from 20 to 30 distinct pages.
+  assert.match(scanner,/const representativePageLimit = 30;/);
   assert.match(scanner,/pickMultiPage\("product", 4\)/);
   assert.match(scanner,/pickMultiPage\("service", 5\)/);
-  assert.match(scanner,/uniqueMultiPagePages\.length >= representativePageLimit/);
-  assert.match(scanner,/seenTemplates\.has\(key\)/);
+  assert.match(scanner,/selectRepresentativePages\(\[scannedPageSample, \.\.\.multiPagePages\], rankedMultiPage, representativePageLimit, normalizeScanUrl, templateShapeKey\)/);
+  assert.match(scanner,/const representativeAuditConcurrency = 4;/);
 });
 
 
@@ -919,4 +925,119 @@ test("html entities: unknown names stay visible and bad code points never throw"
   assert.equal(decodeHtmlEntities("&foo; &constructor; &toString;"), "&foo; &constructor; &toString;");
   assert.equal(decodeHtmlEntities("&#x110000;&#xD800;&#0;&#99999999999;"), "\ufffd\ufffd\ufffd\ufffd");
   assert.equal(decodeHtmlEntities("R&D en AT&T"), "R&D en AT&T");
+});
+
+test("hreflang: separate country domains are never a warning on their own", () => {
+  const result = hreflang([
+    { language: "nl-nl", href: "https://www.ikea.nl/nl/" },
+    { language: "de-de", href: "https://www.ikea.de/de/" },
+    { language: "fr-be", href: "https://www.ikea.be/fr/" },
+    { language: "x-default", href: "https://www.ikea.com/" },
+  ], "https://www.ikea.nl/nl/", "nl");
+  assert.deepEqual(result, { kind: "external_hosts", count: 3 });
+});
+
+test("hreflang: proven conflicts and duplicates are reported even with country domains", () => {
+  assert.equal(hreflang([
+    { language: "nl-nl", href: "https://shop.nl/a" },
+    { language: "nl-nl", href: "https://shop.nl/b" },
+    { language: "de-de", href: "https://shop.de/" },
+  ], "https://shop.nl/a", "nl").kind, "conflict");
+  assert.equal(hreflang([
+    { language: "de-de", href: "https://shop.de/" },
+    { language: "de-de", href: "https://www.shop.de" },
+  ], "https://shop.nl/", "nl").kind, "duplicate");
+});
+
+test("hreflang: self reference matches across www, trailing slash and relative href", () => {
+  for (const href of ["https://www.shop.nl/nl/", "https://shop.nl/nl", "/nl/", "/nl#top"]) {
+    assert.equal(hreflang([{ language: "de-de", href }, { language: "nl-nl", href: "https://shop.nl/x" }], "https://shop.nl/nl/", "nl").kind, "self_mismatch", href);
+    assert.equal(hreflang([{ language: "nl-nl", href }, { language: "de-de", href: "https://shop.nl/de/" }], "https://shop.nl/nl/", "nl").kind, "unconfirmed", href);
+  }
+});
+
+test("hreflang: no warning without proof (missing document lang, non-http targets are invalid only)", () => {
+  assert.equal(hreflang([{ language: "de-de", href: "https://shop.nl/" }], "https://shop.nl/", "").kind, "unconfirmed");
+  assert.equal(hreflang([{ language: "nl", href: "javascript:void(0)" }], "https://shop.nl/", "nl").kind, "invalid");
+  assert.equal(hreflang([{ language: "nl", href: "mailto:info@shop.nl" }], "https://shop.nl/", "nl").kind, "invalid");
+});
+
+// Haystack format used by the scan route: lowercased, accent-free, "-"/"_" as spaces.
+const contactKind = (href, label = "") => classifyContactAnchor(href, [href, label].join(" ").toLowerCase().replace(/[_-]+/g, " "));
+
+test("contact: FAQ and help articles are never a contact channel", () => {
+  assert.equal(contactKind("https://www.ikea.com/global/en/support/faq/", "FAQs"), "faq_help");
+  assert.equal(contactKind("/klantenservice/veelgestelde-vragen", "Veelgestelde vragen"), "faq_help");
+  assert.equal(contactKind("/help-center", "Helpcentrum"), "faq_help");
+  assert.equal(contactKind("/support", "Support"), "support");
+});
+
+test("contact: real channels are recognised separately", () => {
+  assert.equal(contactKind("/contact", "Contact"), "contact_page");
+  assert.equal(contactKind("/support/contact-us", "Neem contact op"), "contact_page");
+  assert.equal(contactKind("/de/kontakt", "Kontakt"), "contact_page");
+  assert.equal(contactKind("/klantenservice", "Klantenservice"), "customer_service");
+  assert.equal(contactKind("mailto:info@tandarts.nl", "Mail ons"), "email");
+  assert.equal(contactKind("tel:+31201234567", "Bel ons"), "phone");
+});
+
+test("contact: look-alikes and broken channels are not contact evidence", () => {
+  assert.equal(contactKind("/contactlenzen", "Contactlenzen"), null);
+  assert.equal(contactKind("mailto:", "Mail"), null);
+  assert.equal(contactKind("tel:112", "Noodnummer"), null);
+});
+
+test("contact: contact forms need a message field and a reply field", () => {
+  assert.equal(isContactForm('<form><input type="email" name="email"><textarea name="message"></textarea></form>'), true);
+  assert.equal(isContactForm('<form><input name="telefoon"><textarea name="bericht"></textarea></form>'), true);
+  assert.equal(isContactForm('<form role="search"><input type="search" name="q"></form>'), false);
+  assert.equal(isContactForm('<form><input type="email" name="newsletter"><button>Aanmelden</button></form>'), false);
+});
+
+test("contact: visible e-mail addresses count, image asset names do not", () => {
+  assert.equal(findVisibleEmail("Mail ons via info@makelaar.nl of bel"), "info@makelaar.nl");
+  assert.equal(findVisibleEmail("logo@2x.png banner@3x.webp"), null);
+  assert.equal(findVisibleEmail("Geen adres hier"), null);
+});
+
+test("contact: multilingual customer service and support terms keep their meaning", () => {
+  assert.equal(contactKind("/assistenza-clienti", "Assistenza clienti"), "customer_service");
+  assert.equal(contactKind("/apoio-ao-cliente", "Apoio ao cliente"), "customer_service");
+  assert.equal(contactKind("/contacto", "Contacto"), "contact_page");
+  assert.equal(contactKind("/contatti", "Contatti"), "contact_page");
+  assert.equal(contactKind("/pomoc", "Pomoc"), "support");
+});
+
+test("image metrics decode entity-encoded src values with the shared decoder", () => {
+  // &amp; and &#38; are the same URL; the old decoder left &#38; encoded and counted it twice.
+  const metrics = extractImageMetrics('<img src="/media/a.jpg?w=1&amp;h=2"><source srcset="/media/a.jpg?w=1&#38;h=2"><source srcset="&#x2F;uploads&#x2F;b.png 2x">');
+  assert.equal(metrics.elementCount, 1);
+  assert.equal(metrics.uniqueImageReferences, 2);
+  assert.equal(metrics.missingAlt, 1);
+});
+
+const pageUrl = (path) => ({ url: `https://shop.nl${path}`, type: path.startsWith("/p/") ? "product" : "other" });
+const templateOf = (url) => new URL(url).pathname.replace(/\d+/g, ":n");
+const pick = (seeds, ranked, limit = 30) => selectRepresentativePages(seeds, ranked, limit, normalizeTestUrl, templateOf);
+
+test("representative sample never exceeds the 30-page cap", () => {
+  const many = Array.from({ length: 80 }, (_, i) => pageUrl(`/p/${i}`));
+  const seeds = Array.from({ length: 40 }, (_, i) => pageUrl(`/section-${String.fromCharCode(97 + (i % 26))}${i}`));
+  assert.equal(pick(seeds, many).length, 30);
+  assert.equal(pick([], many).length, 30);
+});
+
+test("representative sample keeps small sites small and never duplicates URLs", () => {
+  const ranked = [pageUrl("/p/1"), pageUrl("/p/2"), pageUrl("/contact"), pageUrl("/p/1/"), pageUrl("/contact")];
+  const selected = pick([pageUrl("/"), pageUrl("/contact")], ranked);
+  assert.deepEqual(selected.map((page) => page.url), ["https://shop.nl/", "https://shop.nl/contact", "https://shop.nl/p/1", "https://shop.nl/p/2"]);
+  assert.equal(pick([pageUrl("/")], []).length, 1);
+});
+
+test("representative sample prefers template diversity before filling same-template pages", () => {
+  const seeds = [pageUrl("/"), pageUrl("/p/1"), pageUrl("/p/2"), pageUrl("/about")];
+  const first = pick(seeds, [], 30).map((page) => page.url);
+  assert.deepEqual(first, ["https://shop.nl/", "https://shop.nl/p/1", "https://shop.nl/about"]);
+  const filled = pick(seeds, [pageUrl("/p/2"), pageUrl("/p/3")], 4).map((page) => page.url);
+  assert.deepEqual(filled, ["https://shop.nl/", "https://shop.nl/p/1", "https://shop.nl/about", "https://shop.nl/p/2"]);
 });
