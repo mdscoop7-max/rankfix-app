@@ -32,7 +32,7 @@ de originele SHA's behouden blijven.
 ## Samenvoegen met de scannercorrecties (proef op 3.0 uitgevoerd)
 
 Een proefmerge van `f1293c1` in de correctiebranch geeft drie conflicthunks (twee in
-`route.ts`, één in de tests). Laatste proef op `c8ebd61`: na oplossing 151/151 tests,
+`route.ts`, één in de tests). Laatste proef op `a282350`: na oplossing 156/156 tests,
 TypeScript 0 fouten, productiebuild geslaagd. Los elk conflict apart op: een
 automatische vervanging van alle hunks door hetzelfde blok is fout.
 
