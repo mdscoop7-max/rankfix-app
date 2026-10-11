@@ -73,3 +73,16 @@ test("empty documents are not reported as challenge pages", async () => {
   assert.match(route, /new Error\("JAVASCRIPT_NOT_RENDERED"\)/);
   assert.match(route, /new Error\("EMPTY_DOCUMENT"\)/);
 });
+
+test("checkout, merchant and EU-consumer checks become N/A without confirmed commerce, before the final score", async () => {
+  const route = await read("app/api/scan/route.ts");
+  const arbiter = route.indexOf("const sectorArbiter = arbitratePrimarySector(");
+  const reconcile = route.indexOf("if (!finalCommerceDecision.confirmed) {\n      for (const item of [...seoChecks,...geoChecks]) {\n        if (finalCommerceOnlyKeys.has(item.key))");
+  const rescore = route.indexOf("selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);", reconcile);
+  assert.ok(arbiter > 0 && reconcile > arbiter, "reconciliation follows the Sector Motor decision");
+  assert.ok(rescore > reconcile, "score is recomputed after commerce checks are neutralised");
+  const keys = route.slice(route.indexOf("const finalCommerceOnlyKeys = new Set(["), route.indexOf("const finalEuCommerceKeys"));
+  for (const key of ["checkout_trust", "checkout_funnel_static", "checkout_information_signal", "merchant_product_readiness", "merchant_feed_signal", "webshop_trust", "webshop_claims", "product_schema", "eu_consumer_information_signal", "eu_discount_reference_signal"]) {
+    assert.match(keys, new RegExp(`"${key}"`), key);
+  }
+});

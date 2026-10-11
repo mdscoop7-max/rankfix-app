@@ -18,11 +18,11 @@ const ld = (...items) => items.map(item => `<script type="application/ld+json">$
 const productCards = (count, path = "/p/") => Array.from({ length: count }, (_, i) =>
   `<a href="${path}artikel-${i}-${1000 + i}/"><span>Artikel ${i}</span><span class="price">€ ${19 + i},99</span></a>`).join("");
 
-function decide(html, { url = "https://www.voorbeeld.nl/", current = { sector: "unknown", key: "unknown", label: "Sector niet bevestigd", confidenceScore: 0 }, identity = [], bodySectors = [], siteSampleProduct = false } = {}) {
+function decide(html, { url = "https://www.voorbeeld.nl/", current = { sector: "unknown", key: "unknown", label: "Sector niet bevestigd", confidenceScore: 0 }, identity = [], bodySectors = [], siteSampleProduct = false, technologyOnly = false } = {}) {
   const evidence = buildScanEvidence({ url, html });
   return arbitratePrimarySector({
     current,
-    ...arbiterEvidenceFromScan(evidence, { siteSampleProduct, previouslyConfirmed: false }),
+    ...arbiterEvidenceFromScan(evidence, { siteSampleProduct, previouslyConfirmed: false, technologyOnly }),
     shortStayIdentity: Boolean(evidence.sectorDetails.lodging.shortStay.value && evidence.sectorDetails.lodging.shortStay.confidence === "high"),
     identity: identity.map(sector => ({ sector, sources: ["title"] })),
     bodySectors,
@@ -268,4 +268,14 @@ test("evidence engine recognises Dutch cart variants (winkelmandje, winkelwagent
   for (const html of [`<a href="/winkelmandje">Mandje</a>`, `<a href="/winkelwagentje">x</a>`, `<button class="shopping-bag-icon"></button>`]) {
     assert.equal(buildScanEvidence({ url: "https://www.voorbeeld.nl/", html }).commerce.cart.value, true, html);
   }
+});
+
+test("business website with only a WooCommerce fingerprint (no shop) never gets confirmed commerce", () => {
+  const html = `<html><head><title>Administratiekantoor Jansen</title><link rel="stylesheet" href="/wp-content/plugins/woocommerce/assets/css/woocommerce.css"></head><body>
+    Boekhouding voor ondernemers. <a href="/contact">Contact</a> Tarief vanaf € 95 per maand.</body></html>`;
+  const decision = decide(html, { technologyOnly: true, identity: ["professional_services"], current: { sector: "professional_services", key: "professional_services", label: LABELS.professional_services, confidenceScore: 66 } });
+  assert.equal(decision.commerceConfirmed, false);
+  assert.equal(decision.storefrontGrade, "weak");
+  assert.notEqual(decision.sector, "ecommerce");
+  assert.ok(decision.secondaryActivities.some(item => item.sector === "ecommerce" && /niet bevestigd/.test(item.label)), "shown only as an unconfirmed hint");
 });
