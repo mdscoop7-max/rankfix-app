@@ -13,7 +13,7 @@ import { legacyPassiveSecurity } from "./fixtures/security-legacy.mjs";
 import { pages as securityPages } from "./fixtures/security-pages.mjs";
 import { INDIRECT_CONTACT_KINDS, assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findVisibleAddress, findVisibleEmail, findVisiblePhone, isContactForm } from "../lib/contact-evidence.ts";
 import { selectRepresentativePages } from "../lib/representative-pages.ts";
-import { clientIpFromHeaders, isInternalTester, retryAfterSeconds, scanRateLimitMessage, scanRateLimitPolicy } from "../lib/scan-access.ts";
+import { clientIpFromHeaders, isInternalTester, isInternalTesterCustomerId, retryAfterSeconds, scanRateLimitMessage, scanRateLimitPolicy } from "../lib/scan-access.ts";
 
 test("decorative empty alt is valid; only a missing alt attribute is actionable", () => {
   const metrics = extractImageMetrics('<img src="/hero.jpg" alt=""><img src="/product.jpg" alt="Product"><img src="/broken.jpg">');
@@ -1623,4 +1623,12 @@ test("webshop delivery and returns claims are detected in marketing text", () =>
   assert.match(found, /morgen gratis bezorgd/i);
   assert.match(found, /gratis retourneren/i);
   assert.deepEqual(findWebshopClaims("Wij verkopen elektronica en accessoires."), []);
+});
+
+test("internal customer ID exemption requires exact server authorization", () => {
+  const customerId = "RF-70AD123D15B3453BA65FD8E21F4E2D2C";
+  assert.equal(isInternalTesterCustomerId(customerId, {}), false);
+  assert.equal(isInternalTesterCustomerId(customerId, { RANKFIX_INTERNAL_TEST_CUSTOMER_ID: customerId }), true);
+  assert.equal(isInternalTesterCustomerId("RF-00000000000000000000000000000000", { RANKFIX_INTERNAL_TEST_CUSTOMER_ID: customerId }), false);
+  assert.equal(isInternalTesterCustomerId(customerId, { RANKFIX_INTERNAL_TEST_CUSTOMER_ID: "invalid" }), false);
 });

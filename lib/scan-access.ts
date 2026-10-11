@@ -16,6 +16,16 @@ export function isInternalTester(userId: unknown, env: Env = process.env): boole
   return typeof userId === "string" && internalTesterIds(env).has(userId.trim().toLowerCase());
 }
 
+// Customer-facing IDs are randomly generated and different from the user UUID.
+// A server-configured customer ID only grants test access after authentication
+// and a database lookup scoped to the authenticated user's immutable UUID.
+export function isInternalTesterCustomerId(customerId: unknown, env: Env = process.env): boolean {
+  const configured = env.RANKFIX_INTERNAL_TEST_CUSTOMER_ID?.trim().toUpperCase() || "";
+  return typeof customerId === "string"
+    && /^RF-[0-9A-F]{32}$/.test(configured)
+    && customerId.trim().toUpperCase() === configured;
+}
+
 // Client IP for rate limiting. Vercel overwrites X-Forwarded-For and X-Real-IP
 // with the connecting client, so those are trusted there. Behind any other proxy
 // the client can prepend its own values, so only the right-most entry (added by
