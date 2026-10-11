@@ -1608,11 +1608,22 @@ export async function POST(request: Request) {
     // service provider or other clearly identified business may publish inventory
     // and prices without being an e-commerce storefront. Commerce becomes the
     // primary sector only when no stronger non-commerce identity is established.
-    const primaryNonCommerceIdentity = masterIdentityOverride
+    // A clearly identified retail storefront must not be overridden by incidental
+    // tourism, food, or local-service keywords on category/support pages.
+    // Require online purchase language AND physical retail assortment in the
+    // primary page identity, not merely a generic "shop" or a contact CTA.
+    const explicitRetailIdentity = /\\b(?:online (?:kopen|bestellen|shoppen|shopping)|webshop|webwinkel|online winkel|shop online|buy online|online store)\\b/i.test(sectorIdentitySource)
+      && /\\b(?:kleding|schoenen|accessoires|mode|fashion|elektronica|home.elektronica|apparaten|wasmachines|televisies|tv.s|laptops|meubels|furniture|interieur|woonartikelen|bouwmaterialen|dierenbenodigdheden|sportartikelen|producten|products)\\b/i.test(sectorIdentitySource);
+    const retailPurchaseEvidence = evidenceCommerceConfirmed || hasEcommerceSignal || explicitRetailIdentity;
+    const retailPrimaryIdentity = retailPurchaseEvidence
+      && !shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity
+      && !beautyServiceIdentity && !explicitMedicalIdentity && !transportBookingIdentity
+      && !/\\b(?:restaurant|hotel|reserveren|reserveer tafel|vakantieverhuur|transportdiensten|schoonmaakdienst)\\b/i.test(sectorIdentitySource);
+    const primaryNonCommerceIdentity = retailPrimaryIdentity ? null : (masterIdentityOverride
       || (strongSectorCandidate && sectorCandidates[0].sector !== "ecommerce"
         ? {sector:sectorCandidates[0].sector,key:sectorCandidates[0].sector,label:sectorCandidates[0].label,evidence:[`Primary identity: ${sectorCandidates[0].hits} independent sector signals`]}
-        : null);
-    const commerceAsPrimaryIdentity = evidenceCommerceConfirmed && !primaryNonCommerceIdentity;
+        : null));
+    const commerceAsPrimaryIdentity = retailPrimaryIdentity || (evidenceCommerceConfirmed && !primaryNonCommerceIdentity);
     const sectorProfile = commerceAsPrimaryIdentity
       ? {
           sector:"ecommerce" as SectorKey,
@@ -1620,7 +1631,7 @@ export async function POST(request: Request) {
           label:"Webshop / e-commerce",
           confidence:"high" as const,
           confidenceScore:Math.min(99, Math.round(86 + evidenceCommerceStrength * 2)),
-          evidence:[`Evidence Layer: ${evidenceCommerceStrength} onafhankelijke commerce-signalen`, ...(catalogTop?.key==="ecommerce" ? catalogTop.evidence : [])].slice(0,6),
+          evidence:[...(explicitRetailIdentity ? ["Primair retailbewijs: online aankooptaal en fysiek productassortiment in titel, beschrijving of H1"] : []), `Evidence Layer: ${evidenceCommerceStrength} onafhankelijke commerce-signalen`, ...(catalogTop?.key==="ecommerce" ? catalogTop.evidence : [])].slice(0,6),
           applicableModules:["core_seo","geo","technical","ecommerce","product","pricing_currency","merchant","checkout",...(euConsumerApplicable?["eu_consumer"]:[])],
         }
       : primaryNonCommerceIdentity
