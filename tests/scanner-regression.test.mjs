@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { extractImageMetrics } from "../lib/image-metrics.ts";
-import { applyEvidenceBasedScoreCap, scoreApplicableChecks, summarizeAuditChecks } from "../lib/audit-score.ts";
+import { applyEvidenceBasedScoreCap, scoreApplicableChecks, scoreRange, summarizeAuditChecks, weightedCoverage } from "../lib/audit-score.ts";
 import { isPrivateHost, validatePublicHttpUrl } from "../lib/safe-fetch.ts";
 import { assessHreflang, hasSelfHreflangLanguageMismatch, isMarketSelectorPage, isValidHreflangCode, statusCode } from "../lib/seo-rules.ts";
 import { COMMERCE_APPLICABILITY_COPY, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability } from "../lib/commerce-applicability.ts";
@@ -1169,4 +1169,34 @@ test("scan route uses the three-way commerce gate instead of blanket N/A", async
   assert.match(route, /finalCommerceApplicability\.state === "absent"/);
   assert.match(route, /finalCommerceApplicability\.state === "unconfirmed"/);
   assert.match(route, /commerceApplicability: commerceApplicabilityReport/);
+});
+
+test("score model: unconfirmed commerce checks keep the score but lower coverage and widen the range", () => {
+  // Current logic, recorded before any score change: only assessed checks score;
+  // N/A leaves coverage untouched; unable-to-confirm lowers coverage and the low end of the range.
+  const core = [
+    { issue_status: "PASS", points: 10, maxPoints: 10, confidence: "high" },
+    { issue_status: "WARNING", points: 5, maxPoints: 10, confidence: "high" },
+  ];
+  const commerce = (status) => Array.from({ length: 4 }, () => ({ issue_status: status, points: 0, maxPoints: 5 }));
+  const asNa = [...core, ...commerce("NOT_APPLICABLE")];
+  const asUnconfirmed = [...core, ...commerce("UNABLE_TO_CONFIRM")];
+  assert.equal(scoreApplicableChecks(asNa), 75);
+  assert.equal(scoreApplicableChecks(asUnconfirmed), 75);
+  assert.equal(weightedCoverage(asNa).coveragePercent, 100);
+  assert.equal(weightedCoverage(asUnconfirmed).coveragePercent, 50);
+  assert.equal(weightedCoverage(asUnconfirmed).unableToConfirm, 4);
+  assert.deepEqual([scoreRange(asNa).low, scoreRange(asNa).high], [75, 75]);
+  assert.deepEqual([scoreRange(asUnconfirmed).low, scoreRange(asUnconfirmed).high], [38, 88]);
+});
+
+test("report shows commerce applicability and raw-HTML limitations separately from sector", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const report = await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
+  assert.match(report, /Webshopfunctionaliteit:/);
+  assert.match(report, /Beperking scanbron:/);
+  assert.match(report, /r\.seo\?\.score/);
+  assert.match(report, /r\.geo\?\.score/);
+  assert.match(report, /r\.security\?\.score/);
+  assert.match(report, /toepasselijke controles/);
 });

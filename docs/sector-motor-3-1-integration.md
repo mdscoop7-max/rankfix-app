@@ -68,3 +68,18 @@ Als 3.1 dezelfde blokken verder wijzigt, eerst opnieuw een proefmerge doen.
 
 Echte scans alleen in een geïsoleerde testomgeving: geen productiedatabase,
 geen echte betalingen, geen productie-e-mails.
+
+## Wat al zonder bundle is opgelost (branch `ccr-32af646c-k71s9w`)
+
+- Webshopcontroles: drie uitkomsten via `lib/commerce-applicability.ts` (bevestigd,
+  aantoonbaar afwezig = N.v.t., niet te bevestigen). Landkeuzepagina's, JavaScript-shells
+  en zwakke webshopsignalen geven geen N.v.t. meer.
+- Landkeuzepagina's worden generiek herkend via hreflang (`isMarketSelectorPage`), zonder merkregels.
+- Het rapport toont webshopfunctionaliteit als aparte regel naast de sector.
+
+## Nog afhankelijk van Sector Motor 3.1
+
+- De sectorkeuze zelf (bijvoorbeeld IKEA/Zalando landversie als retail, zekerheid boven 35%).
+- Weging van tegenstrijdig sectorbewijs over meerdere pagina's (Universal Evidence Arbiter).
+- Na integratie: `commerceApplicability` moet de 3.1-beslissing als `confirmed` /
+  `primaryNonCommerceIdentity` blijven gebruiken; de proefmerge hierboven opnieuw uitvoeren.
