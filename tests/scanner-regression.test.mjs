@@ -1,3 +1,4 @@
+import { findWebshopClaims } from "../lib/commerce-claims.ts";
 import { confirmedFaqContent } from "../lib/faq-evidence.ts";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -1613,4 +1614,13 @@ test("FAQ evidence requires actual answers, not just generic accordions", () => 
   assert.equal(confirmedFaqContent('<details><summary>Instellingen</summary>Menu links</details>'), false);
   assert.equal(confirmedFaqContent('<details><summary>Hoe werkt retourneren?</summary><p>Stuur het product binnen 30 dagen terug.</p></details>'), true);
   assert.equal(confirmedFaqContent('<h2>Wanneer wordt mijn bestelling verzonden?</h2><p>De bestelling wordt de volgende werkdag verzonden.</p>'), true);
+});
+
+test("webshop delivery and returns claims are detected in marketing text", () => {
+  const coolblue = "Beste webwinkel. Voor 23.59u besteld? Morgen gratis bezorgd. Gratis retourneren.";
+  const found = findWebshopClaims(coolblue).join(" | ");
+  assert.match(found, /23\.59u besteld/i);
+  assert.match(found, /morgen gratis bezorgd/i);
+  assert.match(found, /gratis retourneren/i);
+  assert.deepEqual(findWebshopClaims("Wij verkopen elektronica en accessoires."), []);
 });
