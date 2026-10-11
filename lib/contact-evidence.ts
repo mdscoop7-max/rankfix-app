@@ -80,8 +80,18 @@ export function findVisiblePhone(text: string): string | null {
 
 // Street + number followed by a Dutch, Belgian or German style postcode and place.
 export function findVisibleAddress(text: string): string | null {
-  const match = text.match(/\b[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ.' -]{2,50}\s\d{1,5}[A-Za-z]?(?:[-\s]\d{1,4})?,?\s+(?:\d{4}\s?[A-Z]{2}|\d{4,5})\s+[A-ZÀ-Ý][A-Za-zÀ-ÿ' -]{1,40}/);
-  return match ? match[0].trim() : null;
+  // Anchor on the street number and postcode, rather than swallowing navigation
+  // labels ("Of chat Dutch", "Adres gegevens") in front of the street.
+  const dutchStreet = /\b((?:(?:[A-Z](?:\.[A-Z])?\.|[A-ZÀ-Ý][a-zà-ÿ'-]+)\s+){0,2}[A-ZÀ-Ý][A-Za-zÀ-ÿ.'-]*(?:straat|weg|laan|kade|plein|dreef|singel|gracht|steeg|dijk|hof))\s+(\d{1,5}[A-Za-z]?)\s*,?\s*(\d{4}\s?[A-Z]{2})\s+([A-ZÀ-Ý][a-zà-ÿ'-]+(?:\s+[A-ZÀ-Ý][a-zà-ÿ'-]+)?)/g;
+  for (const match of text.matchAll(dutchStreet)) {
+    const street = match[1].replace(/^(?:(?:Of|Dutch|Contact|Vestiging|Adres|gegevens|bij)\s+)+/i, "").trim();
+    const city = match[4].replace(/\s+(?:Tel|Telefoon|Toggle|Contact|Vestiging|Menu|WhatsApp).*$/i, "").trim();
+    if (street && city) return `${street} ${match[2]}, ${match[3]} ${city}`;
+  }
+  // Conservative generic fallback: at most two street-name tokens; do not
+  // infer a complete address from a long contact/navigation block.
+  const match = text.match(/\b([A-ZÀ-Ý][A-Za-zÀ-ÿ.'-]+(?:\s+[A-ZÀ-Ý][A-Za-zÀ-ÿ.'-]+)?)\s+(\d{1,5}[A-Za-z]?),?\s+(\d{4}\s?[A-Z]{2}|\d{5})\s+([A-ZÀ-Ý][a-zà-ÿ'-]+)/);
+  return match ? `${match[1]} ${match[2]}, ${match[3]} ${match[4]}` : null;
 }
 
 export type BusinessContactDetails = { phone: string | null; email: string | null; address: string | null; telLink: boolean; mailtoLink: boolean };
