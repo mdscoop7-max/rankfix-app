@@ -25,7 +25,10 @@ export async function runRankFixHealthChecks():Promise<HealthCheck[]>{
  checks.push({key:"email",label:"E-mail",level:process.env.RESEND_API_KEY&&(process.env.SCAN_REPORT_FROM||process.env.RESEND_FROM)?"green":"orange",message:process.env.RESEND_API_KEY&&(process.env.SCAN_REPORT_FROM||process.env.RESEND_FROM)?"Resend-configuratie aanwezig.":"E-mailconfiguratie is onvolledig."});
  checks.push({key:"github",label:"GitHub",level:process.env.GITHUB_CLIENT_ID&&process.env.GITHUB_CLIENT_SECRET?"green":"orange",message:process.env.GITHUB_CLIENT_ID&&process.env.GITHUB_CLIENT_SECRET?"GitHub OAuth-configuratie aanwezig.":"GitHub OAuth-configuratie is onvolledig; GitHub-fixes zijn dan niet beschikbaar."});
  checks.push({key:"google",label:"Search Console",level:process.env.GOOGLE_CLIENT_ID&&process.env.GOOGLE_CLIENT_SECRET?"green":"orange",message:process.env.GOOGLE_CLIENT_ID&&process.env.GOOGLE_CLIENT_SECRET?"Google OAuth-configuratie aanwezig.":"Google OAuth-configuratie is onvolledig; normale audits blijven beschikbaar."});
- checks.push({key:"deployment",label:"Deployment",level:process.env.RENDER?"green":"orange",message:process.env.RENDER?"Render-runtime actief.":"Render-runtime kon niet worden bevestigd."});
+ // Report the runtime that is actually serving this instance (Render production or a Vercel
+ // preview/production), so a Vercel test deployment does not show a false warning.
+ const runtime=process.env.RENDER?"Render":process.env.VERCEL?`Vercel (${process.env.VERCEL_ENV||"onbekende omgeving"})`:null;
+ checks.push({key:"deployment",label:"Deployment",level:runtime?"green":"orange",message:runtime?`${runtime}-runtime actief.`:"Runtime (Render of Vercel) kon niet worden bevestigd."});
  return checks;
 }
 export function overallHealth(checks:HealthCheck[]):HealthLevel{return checks.some(c=>c.level==="red")?"red":checks.some(c=>c.level==="orange")?"orange":"green"}
