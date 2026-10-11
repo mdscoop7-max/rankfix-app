@@ -6,7 +6,7 @@ import { ensureDatabase } from "@/lib/db-init";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang, isMarketSelectorPage } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { decodeHtmlEntities } from "@/lib/html-entities";
-import { analyzeScriptIntegrity, findExposedSecrets, findForms, findMixedContent, observeCookie, setCookieValues } from "@/lib/security-signals";
+import { assessPassiveSecurity, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
 import { assessBusinessDetails, classifyContactAnchor, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
@@ -1785,20 +1785,17 @@ export async function POST(request: Request) {
       ? securityCheck("pass","security_headers","Security headers",`Browser-securityheaders voldoen aan de huidige kernregel (${securityHeaderEvidence}).`,"Houd deze headers actief en test wijzigingen aan CSP/HSTS eerst tegen de applicatie.",6,6)
       : securityCheck("warning","security_headers","Security headers",`RankFix bevestigde ${presentSecurityHeaders.length} van 6 gecontroleerde securityheaders (${securityHeaderEvidence}). Dit is hardening-advies en op zichzelf geen bewijs van een kwetsbaarheid.`,"Controleer HSTS, CSP/frame-bescherming, X-Content-Type-Options, Referrer-Policy en Permissions-Policy op server/CDN-niveau.",Math.max(0, presentSecurityHeaders.length),6));
 
-    const mixedContentMatches = isHttps ? findMixedContent(html).slice(0,5) : [];
-    securityChecks.push(!isHttps
+    // Status decisions come from lib/security-signals.ts (tested); this block only adds wording.
+    const passiveSecurity = assessPassiveSecurity({ isHttps, html, pageUrl: finalUrl.toString(), setCookies: setCookieValues(response.headers) });
+    const mixedContentMatches = passiveSecurity.mixedContent.urls;
+    securityChecks.push(passiveSecurity.mixedContent.status === "not_applicable"
       ? securityCheck("not_applicable","security_mixed_content","Mixed content","Mixed-contentcontrole is alleen van toepassing op HTTPS-pagina's.","Activeer eerst HTTPS.",0,4)
-      : mixedContentMatches.length === 0
+      : passiveSecurity.mixedContent.status === "pass"
         ? securityCheck("pass","security_mixed_content","Mixed content","Geen via HTTP geladen afbeeldingen, scripts, stylesheets of frames gevonden in de gescande HTTPS-HTML. Gewone links naar HTTP-sites zijn geen mixed content.","Blijf assets via HTTPS of relatieve URL's laden.",4,4)
         : securityCheck("fail","security_mixed_content","Mixed content",`${mixedContentMatches.length} via HTTP geladen bron(nen) gevonden op een HTTPS-pagina: ${mixedContentMatches.slice(0,3).join(", ")}.`,"Vervang HTTP-asset-URL's door HTTPS of veilige relatieve URL's.",4,4));
 
-    const observedCookies = setCookieValues(response.headers);
-    const cookiePresent = observedCookies.length > 0;
-    const cookieObservations = observedCookies.map(observeCookie);
-    const cookiesMissingSecure = cookieObservations.filter((cookie)=>isHttps && !cookie.secure);
-    const cookiesMissingSameSite = cookieObservations.filter((cookie)=>cookie.sameSite === "missing");
-    const sessionCookiesMissingHttpOnly = cookieObservations.filter((cookie)=>cookie.sessionLike && !cookie.httpOnly);
-    const cookieIssueCount = cookiesMissingSecure.length + cookiesMissingSameSite.length + sessionCookiesMissingHttpOnly.length;
+    const cookieObservations = passiveSecurity.cookieFlags.cookies;
+    const cookieIssueCount = passiveSecurity.cookieFlags.issues;
     const cookieEvidenceSummary = cookieObservations.map((cookie)=>{
       const missing = [
         isHttps && !cookie.secure ? "Secure ontbreekt" : null,
@@ -1807,32 +1804,31 @@ export async function POST(request: Request) {
       ].filter(Boolean);
       return `${cookie.name}: ${missing.length ? missing.join(", ") : "relevante flags bevestigd"}`;
     }).join(" · ");
-    securityChecks.push(!cookiePresent
+    securityChecks.push(passiveSecurity.cookieFlags.status === "unable_to_confirm"
       ? securityCheck("unable_to_confirm","security_cookie_flags","Cookie-beveiliging","De hoofdresponse bevatte geen zichtbare Set-Cookie-header. RankFix kan daardoor cookieflags voor browser-, consent- of ingelogde flows niet bevestigen.","Controleer sessie-, consent- en authenticatiecookies in de relevante flows; ken zonder cookie-evidence geen veiligheidspunten toe.",0,5)
-      : cookieIssueCount === 0
+      : passiveSecurity.cookieFlags.status === "pass"
         ? securityCheck("pass","security_cookie_flags","Cookie-beveiliging",`De zichtbare Set-Cookie-response bevestigt passende relevante flags voor ${cookieObservations.length} cookie(s).`,"Houd gevoelige sessiecookies voorzien van passende beveiligingsflags.",5,5)
         : securityCheck("warning","security_cookie_flags","Cookie-beveiliging",`Per-cookie controle vond ${cookieIssueCount} ontbrekende relevante flag(s). ${cookieEvidenceSummary}. HttpOnly wordt alleen beoordeeld voor bevestigde sessie-/authenticatiecookies.`,"Controleer de genoemde cookies afzonderlijk: Secure op HTTPS, een passende SameSite-instelling en HttpOnly voor sessie-/authenticatiecookies.",Math.max(1,5-Math.min(4,cookieIssueCount)),5));
-    const formSignals = findForms(html);
-    const forms = { length: formSignals.count };
-    const passwordForm = formSignals.passwordForm;
-    const insecureFormActions = formSignals.insecureActions;
-    securityChecks.push(forms.length === 0
+    const forms = { length: passiveSecurity.forms.count };
+    const passwordForm = passiveSecurity.forms.passwordForm;
+    const insecureFormActions = passiveSecurity.forms.insecureActions;
+    securityChecks.push(passiveSecurity.forms.status === "not_applicable"
       ? securityCheck("not_applicable","security_forms","Formuliertransport","Geen HTML-formulier gevonden in de gescande pagina.","Geen actie nodig voor deze pagina.",0,5)
-      : insecureFormActions > 0
+      : passiveSecurity.forms.status === "fail"
         ? securityCheck("fail","security_forms","Formuliertransport",`${insecureFormActions} formulier(en) sturen expliciet naar een HTTP-endpoint.`,"Gebruik uitsluitend HTTPS voor formulieracties en gevoelige gegevens.",5,5)
-        : isHttps
+        : passiveSecurity.forms.status === "pass"
           ? securityCheck("pass","security_forms","Formuliertransport",`${forms.length} formulier(en) gevonden zonder expliciete onveilige HTTP-action${passwordForm ? "; wachtwoordveld aanwezig" : ""}.`,"Controleer server-side validatie, CSRF-bescherming en autorisatie aanvullend; die zijn niet uit statische HTML te bewijzen.",5,5)
           : securityCheck("warning","security_forms","Formuliertransport",`${forms.length} formulier(en) gevonden op een niet-HTTPS-pagina.`,"Bescherm formulieren met HTTPS; beoordeel server-side validatie en CSRF apart.",2,5));
 
-    const exposedSignals = findExposedSecrets(html);
-    securityChecks.push(exposedSignals.length
+    const exposedSignals = passiveSecurity.exposedSecrets.labels;
+    securityChecks.push(passiveSecurity.exposedSecrets.status === "fail"
       ? securityCheck("fail","security_exposed_secrets","Blootgestelde secrets",`Mogelijk gevoelig secretpatroon gevonden: ${exposedSignals.join(", ")}. Handmatige verificatie is vereist.`,"Verwijder secrets uit client-side HTML/bundles, roteer bevestigde gelekte credentials en gebruik server-side secretopslag.",8,8)
       : securityCheck("pass","security_exposed_secrets","Blootgestelde secrets","Geen bekende high-confidence secretpatronen gevonden in de opgehaalde HTML.","Bewaar API-sleutels en credentials uitsluitend server-side.",8,8));
 
-    const scriptIntegrity = analyzeScriptIntegrity(html, finalUrl.toString());
+    const scriptIntegrity = passiveSecurity.scriptIntegrity;
     securityChecks.push(scriptIntegrity.crossOrigin === 0
       ? securityCheck("pass","security_script_integrity","Externe scripts","Geen cross-origin scripts aangetroffen in de opgehaalde HTML.","Geen actie nodig; JavaScript kan runtime aanvullend scripts laden die buiten deze statische controle vallen.",4,4)
-      : scriptIntegrity.missingVersioned.length === 0
+      : passiveSecurity.scriptIntegrity.status === "pass"
         ? securityCheck("pass","security_script_integrity","Externe scripts",scriptIntegrity.missingDynamic.length
             ? `Geen versievaste cross-origin scripts zonder integrity-attribuut. ${scriptIntegrity.missingDynamic.length} dynamisch script(s) van derden (zoals tag managers of betaal-SDK's) kunnen geen SRI gebruiken; houd die beperkt.`
             : `Alle ${scriptIntegrity.crossOrigin} zichtbare cross-origin script(s) bevatten een integrity-attribuut.`,"Houd externe scripts beperkt en gebruik SRI waar versievaste assets dit ondersteunen.",4,4)

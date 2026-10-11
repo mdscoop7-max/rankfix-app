@@ -19,19 +19,18 @@ export function findMixedContent(html: string): string[] {
   return [...found];
 }
 
-// Commas inside Expires must stay inside the cookie; attributes are evaluated
-// only on their own cookie record.
+// A joined Set-Cookie header separates cookies with commas, but Expires dates
+// contain one too ("Wed, 21 Oct 2026 ..."). Split only on commas that start a new
+// name=value pair and do not follow a weekday name.
 export function splitSetCookieHeader(header: string): string[] {
   const out: string[] = [];
   let from = 0;
-  let inExpires = false;
   for (let i = 0; i < header.length; i++) {
-    if (header.slice(i, i + 8).toLowerCase() === "expires=") inExpires = true;
-    if (inExpires && header[i] === ";") inExpires = false;
-    if (!inExpires && header[i] === "," && /^\s*[^;,=\s]+=[^;,]*/.test(header.slice(i + 1))) {
-      out.push(header.slice(from, i).trim());
-      from = i + 1;
-    }
+    if (header[i] !== ",") continue;
+    if (/(?:mon|tue|wed|thu|fri|sat|sun)[a-z]*$/i.test(header.slice(Math.max(0, i - 9), i))) continue;
+    if (!/^\s*[^;,=\s]+=/.test(header.slice(i + 1))) continue;
+    out.push(header.slice(from, i).trim());
+    from = i + 1;
   }
   out.push(header.slice(from).trim());
   return out.filter(Boolean);
@@ -79,7 +78,7 @@ const SECRET_PATTERNS: Array<{ label: string; re: RegExp }> = [
   { label: "private key", re: /-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----\s*[A-Za-z0-9+/=\r\n]{64,}/ },
   { label: "AWS access key", re: /\bAKIA[0-9A-Z]{16}\b/g },
   { label: "GitHub token", re: /\bgh[pousr]_[A-Za-z0-9_]{36,}\b/g },
-  { label: "generic bearer token", re: /authorization\s*[:=]\s*["']?bearer\s+([A-Za-z0-9._~-]{20,})/gi },
+  { label: "generic bearer token", re: /authorization["']?\s*[:=]\s*["']?bearer\s+([A-Za-z0-9._~-]{20,})/gi },
 ];
 const PLACEHOLDER = /example|sample|dummy|placeholder|your[_-]?|x{6,}|0{8,}|1234567890|abcdef/i;
 
@@ -109,4 +108,57 @@ export function analyzeScriptIntegrity(html: string, pageUrl: string): { crossOr
     missingVersioned: missing.filter((item) => versioned(item.src)).map((item) => item.src),
     missingDynamic: missing.filter((item) => !versioned(item.src)).map((item) => item.src),
   };
+}
+
+export type SecurityStatus = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
+export type SecuritySignalResult = { status: SecurityStatus; points: number; maxPoints: number };
+export type PassiveSecurityAssessment = {
+  mixedContent: SecuritySignalResult & { urls: string[] };
+  cookieFlags: SecuritySignalResult & { cookies: CookieObservation[]; issues: number; missingSecure: string[]; missingSameSite: string[]; sessionMissingHttpOnly: string[] };
+  forms: SecuritySignalResult & ReturnType<typeof findForms>;
+  exposedSecrets: SecuritySignalResult & { labels: string[] };
+  scriptIntegrity: SecuritySignalResult & ReturnType<typeof analyzeScriptIntegrity>;
+};
+
+// Same awarding rule as the scan route's securityCheck: warnings get partial credit.
+function result(status: SecurityStatus, points: number, maxPoints: number): SecuritySignalResult {
+  const awarded = status === "pass" ? Math.min(points, maxPoints) : status === "warning" ? Math.min(points, Math.max(0, maxPoints - 1)) : 0;
+  return { status, points: awarded, maxPoints };
+}
+
+// The decision for each HTML/cookie-based security check. The scan route only adds wording.
+export function assessPassiveSecurity(input: { isHttps: boolean; html: string; pageUrl: string; setCookies: string[] }): PassiveSecurityAssessment {
+  const urls = input.isHttps ? findMixedContent(input.html).slice(0, 5) : [];
+  const mixedContent = { ...(!input.isHttps ? result("not_applicable", 0, 4) : urls.length === 0 ? result("pass", 4, 4) : result("fail", 4, 4)), urls };
+
+  const cookies = input.setCookies.map(observeCookie);
+  const missingSecure = cookies.filter((cookie) => input.isHttps && !cookie.secure).map((cookie) => cookie.name);
+  const missingSameSite = cookies.filter((cookie) => cookie.sameSite === "missing").map((cookie) => cookie.name);
+  const sessionMissingHttpOnly = cookies.filter((cookie) => cookie.sessionLike && !cookie.httpOnly).map((cookie) => cookie.name);
+  const issues = missingSecure.length + missingSameSite.length + sessionMissingHttpOnly.length;
+  const cookieFlags = {
+    ...(!cookies.length ? result("unable_to_confirm", 0, 5) : issues === 0 ? result("pass", 5, 5) : result("warning", Math.max(1, 5 - Math.min(4, issues)), 5)),
+    cookies, issues, missingSecure, missingSameSite, sessionMissingHttpOnly,
+  };
+
+  const formSignals = findForms(input.html);
+  const forms = {
+    ...(formSignals.count === 0 ? result("not_applicable", 0, 5) : formSignals.insecureActions > 0 ? result("fail", 5, 5) : input.isHttps ? result("pass", 5, 5) : result("warning", 2, 5)),
+    ...formSignals,
+  };
+
+  const labels = findExposedSecrets(input.html);
+  const exposedSecrets = { ...(labels.length ? result("fail", 8, 8) : result("pass", 8, 8)), labels };
+
+  const integrity = analyzeScriptIntegrity(input.html, input.pageUrl);
+  const scriptIntegrity = { ...(integrity.missingVersioned.length ? result("warning", 2, 4) : result("pass", 4, 4)), ...integrity };
+
+  return { mixedContent, cookieFlags, forms, exposedSecrets, scriptIntegrity };
+}
+
+// Security score over assessed checks only, as in the scan route.
+export function securityScore(results: SecuritySignalResult[]): number {
+  const applicable = results.filter((item) => item.status !== "not_applicable" && item.status !== "unable_to_confirm");
+  const max = applicable.reduce((sum, item) => sum + item.maxPoints, 0);
+  return max ? Math.round((applicable.reduce((sum, item) => sum + item.points, 0) / max) * 100) : 0;
 }

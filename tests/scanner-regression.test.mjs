@@ -6,7 +6,9 @@ import { isPrivateHost, validatePublicHttpUrl } from "../lib/safe-fetch.ts";
 import { assessHreflang, hasSelfHreflangLanguageMismatch, isMarketSelectorPage, isValidHreflangCode, statusCode } from "../lib/seo-rules.ts";
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, neutralizeShopWording, shopWordingApplies } from "../lib/commerce-applicability.ts";
 import { decodeHtmlEntities } from "../lib/html-entities.ts";
-import { analyzeScriptIntegrity, findExposedSecrets, findForms, findMixedContent, observeCookie, setCookieValues, splitSetCookieHeader } from "../lib/security-signals.ts";
+import { analyzeScriptIntegrity, assessPassiveSecurity, findExposedSecrets, findForms, findMixedContent, observeCookie, securityScore, setCookieValues, splitSetCookieHeader } from "../lib/security-signals.ts";
+import { legacyPassiveSecurity } from "./fixtures/security-legacy.mjs";
+import { pages as securityPages } from "./fixtures/security-pages.mjs";
 import { INDIRECT_CONTACT_KINDS, assessBusinessDetails, classifyContactAnchor, findBusinessContactDetails, findCompanyRegistration, findVisibleAddress, findVisibleEmail, findVisiblePhone, isContactForm } from "../lib/contact-evidence.ts";
 import { selectRepresentativePages } from "../lib/representative-pages.ts";
 import { clientIpFromHeaders, isInternalTester, retryAfterSeconds, scanRateLimitMessage, scanRateLimitPolicy } from "../lib/scan-access.ts";
@@ -395,10 +397,11 @@ test("customer audit UX is localized for every supported locale", async () => {
 test("cookie security is evaluated per observed Set-Cookie record", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  assert.match(source, /const cookieObservations = observedCookies\.map/);
-  assert.match(source, /cookiesMissingSecure/);
-  assert.match(source, /cookiesMissingSameSite/);
-  assert.match(source, /sessionCookiesMissingHttpOnly/);
+  // Per-cookie evaluation lives in lib/security-signals.ts (behaviour tested in "security FP/FN 4").
+  const signals = await readFile(new URL("../lib/security-signals.ts", import.meta.url), "utf8");
+  assert.match(source, /const cookieObservations = passiveSecurity\.cookieFlags\.cookies/);
+  assert.match(signals, /const cookies = input\.setCookies\.map\(observeCookie\)/);
+  for (const name of ["missingSecure", "missingSameSite", "sessionMissingHttpOnly"]) assert.match(signals, new RegExp(`const ${name} = cookies\\.filter`));
   assert.match(source, /HttpOnly wordt alleen beoordeeld voor bevestigde sessie-\/authenticatiecookies/);
   assert.doesNotMatch(source, /Cookie-flags zijn niet volledig bevestigd \(Secure=/);
 });
@@ -1381,10 +1384,15 @@ test("security: SRI is only asked for versioned third-party files", () => {
   assert.deepEqual(result.missingDynamic, ["https://www.googletagmanager.com/gtm.js?id=GTM-ABC", "https://js.stripe.com/v3/"]);
 });
 
-test("security route uses the tested signal helpers", async () => {
+test("security route takes every passive security status from assessPassiveSecurity", async () => {
   const { readFile } = await import("node:fs/promises");
   const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  for (const name of ["findMixedContent(html)", "setCookieValues(response.headers)", "findForms(html)", "findExposedSecrets(html)", "analyzeScriptIntegrity(html, finalUrl.toString())"]) assert.ok(route.includes(name), name);
+  assert.match(route, /const passiveSecurity = assessPassiveSecurity\(\{ isHttps, html, pageUrl: finalUrl\.toString\(\), setCookies: setCookieValues\(response\.headers\) \}\);/);
+  for (const [key, statuses] of [["mixedContent", ["not_applicable", "pass"]], ["cookieFlags", ["unable_to_confirm", "pass"]], ["forms", ["not_applicable", "fail", "pass"]], ["exposedSecrets", ["fail"]], ["scriptIntegrity", ["pass"]]]) {
+    for (const status of statuses) assert.ok(route.includes(`passiveSecurity.${key}.status === "${status}"`), `${key} ${status}`);
+  }
+  // No status may be decided from the raw signals any more.
+  assert.doesNotMatch(route, /securityChecks\.push\((?:!isHttps|!cookiePresent|forms\.length === 0|exposedSignals\.length)/);
   assert.match(route, /securityCheck\("fail","security_https"/);
 });
 
@@ -1444,4 +1452,128 @@ test("sector signals recognise concrete evidence and ignore generic words", asyn
   assert.equal(authorRe.test("Auteur: Mark Jansen"), true);
   assert.equal(authorRe.test("Gemaakt door de klant"), false);
   assert.equal(authorRe.test("Powered by Google"), false);
+});
+
+// --- Security Engine: false positives and false negatives per signal ---
+
+test("security FP/FN 1: real mixed content vs ordinary HTTP links", () => {
+  const realMixed = [
+    ['<IMG SRC = "http://cdn.example.nl/a.png">', "http://cdn.example.nl/a.png"],
+    ['<video poster="http://cdn.example.nl/p.jpg"></video>', "http://cdn.example.nl/p.jpg"],
+    ['<audio src="http://cdn.example.nl/a.mp3"></audio>', "http://cdn.example.nl/a.mp3"],
+    ['<object data="http://cdn.example.nl/x.swf"></object>', "http://cdn.example.nl/x.swf"],
+    ['<link href="http://cdn.example.nl/f.woff2" rel="preload" as="font">', "http://cdn.example.nl/f.woff2"],
+    ['<link rel="icon" href="http://cdn.example.nl/favicon.ico">', "http://cdn.example.nl/favicon.ico"],
+  ];
+  for (const [html, url] of realMixed) assert.deepEqual(findMixedContent(html), [url], html); // no false negatives
+  const notMixed = [
+    '<A HREF="http://partner.example.org">Partner</A>',
+    '<link rel="canonical" href="http://shop.nl/">',
+    '<link rel="alternate" hreflang="de" href="http://shop.de/">',
+    '<meta property="og:url" content="http://shop.nl/">',
+    '<form action="http://forms.example.org/x"></form>',
+    '<svg xmlns="http://www.w3.org/2000/svg"></svg>',
+    '<img src="https://cdn.example.nl/a.png" srcset="https://cdn.example.nl/b.png 2x">',
+    '<script>var u = "http://api.example.org/";</script>',
+  ];
+  for (const html of notMixed) assert.deepEqual(findMixedContent(html), [], html); // no false positives
+  assert.equal(assessPassiveSecurity({ isHttps: false, html: realMixed[0][0], pageUrl: "http://shop.nl/", setCookies: [] }).mixedContent.status, "not_applicable");
+});
+
+test("security FP/FN 2: versioned third-party scripts without SRI vs dynamic scripts", () => {
+  const page = "https://shop.nl/";
+  const versioned = [
+    "https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js",
+    "https://unpkg.com/htmx.org@1.9.12",
+    "https://cdn.example.com/wp-includes/js/jquery/jquery.min.js?ver=3.7.1",
+    "https://cdn.example.com/lib/v2.4.0/widget.js",
+  ];
+  for (const src of versioned) assert.deepEqual(analyzeScriptIntegrity(`<script src="${src}"></script>`, page).missingVersioned, [src], src);
+  const dynamic = [
+    "https://www.googletagmanager.com/gtag/js?id=G-ABC123",
+    "https://js.stripe.com/v3/",
+    "https://maps.googleapis.com/maps/api/js?key=AIzaSyA-example&v=weekly",
+    "https://connect.facebook.net/en_US/fbevents.js",
+  ];
+  for (const src of dynamic) {
+    const result = analyzeScriptIntegrity(`<script async src="${src}"></script>`, page);
+    assert.deepEqual([result.missingVersioned, result.missingDynamic], [[], [src]], src);
+  }
+  assert.equal(analyzeScriptIntegrity('<script src="/static/app.4f3a.js"></script>', page).crossOrigin, 0);
+  assert.deepEqual(analyzeScriptIntegrity(`<script src="${versioned[0]}" integrity="sha384-x" crossorigin="anonymous"></script>`, page).missingVersioned, []);
+  assert.equal(assessPassiveSecurity({ isHttps: true, html: dynamic.map((src) => `<script src="${src}"></script>`).join(""), pageUrl: page, setCookies: [] }).scriptIntegrity.status, "pass");
+  assert.equal(assessPassiveSecurity({ isHttps: true, html: `<script src="${versioned[1]}"></script>`, pageUrl: page, setCookies: [] }).scriptIntegrity.status, "warning");
+});
+
+test("security FP/FN 3: exposed secrets vs public identifiers and documentation", () => {
+  const aws = "AKIA" + "Q3EGRZ7LW5MNXK2P";
+  const gh = "ghp_" + "Zx9Qm2Lr7Tb4Vn8Kc1Hs6Pd3Wf5Gy0Ja8Nu4E";
+  const pemBody = "MIIEowIBAAKCAQEA7dQ3x9Lq2Vh8Pz4Kn6Tr1Ws5Yb0Ec3Gu7Jm9Na2Df4Hk6Lp8Qs".repeat(2);
+  const leaks = [
+    [`<script type="application/json">{"aws":"${aws}"}</script>`, "AWS access key"],
+    [`<script>const token = '${gh}';</script>`, "GitHub token"],
+    [`<script>var key = \`-----BEGIN PRIVATE KEY-----\n${pemBody}\`;</script>`, "private key"],
+    ['<script>fetch("/api",{headers:{"Authorization":"Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI5In0.Qm7Zr2Lx"}})</script>', "generic bearer token"],
+  ];
+  for (const [html, label] of leaks) assert.deepEqual(findExposedSecrets(html), [label], label); // no false negatives
+  const publicOrExample = [
+    '<script>firebase.initializeApp({apiKey:"AIzaSyD-public-browser-key-123456"})</script>', // public browser key by design
+    '<script>Stripe("pk_live_51H8xQ2EXAMPLEpublishable")</script>', // publishable key
+    '<script>gtag("config","G-1A2B3C4D5E")</script>', // measurement ID
+    '<script>mapboxgl.accessToken="pk.eyJ1IjoicmFua2ZpeCJ9.public"</script>', // public token
+    "<p>Use AKIAIOSFODNN7EXAMPLE in the tutorial.</p>",
+    `<pre><code>export AWS_ACCESS_KEY_ID=${aws}</code></pre>`,
+    "<p>The file begins with -----BEGIN RSA PRIVATE KEY----- and ends with the footer.</p>",
+    "<p>Send Authorization: Bearer YOUR_ACCESS_TOKEN_HERE in every request.</p>",
+    "<!-- old token ghp_" + "Zx9Qm2Lr7Tb4Vn8Kc1Hs6Pd3Wf5Gy0Ja8Nu4E -->",
+  ];
+  for (const html of publicOrExample) assert.deepEqual(findExposedSecrets(html), [], html); // no false positives
+});
+
+test("security FP/FN 4: multiple Set-Cookie headers and Secure/HttpOnly/SameSite", () => {
+  const headers = new Headers();
+  headers.append("set-cookie", "SID=a; Path=/; SECURE; HTTPONLY; SameSite=Strict");
+  headers.append("set-cookie", "prefs=dark,large; Expires=Wed, 21 Oct 2026 07:28:00 GMT; Path=/; Secure; SameSite=None");
+  headers.append("set-cookie", "auth_token=x; Path=/; Secure; SameSite=Lax");
+  headers.append("set-cookie", "theme=HttpOnly; Path=/; SameSite=bogus");
+  const values = setCookieValues(headers);
+  assert.equal(values.length, 4);
+  const result = assessPassiveSecurity({ isHttps: true, html: "", pageUrl: "https://shop.nl/", setCookies: values }).cookieFlags;
+  assert.deepEqual(result.cookies.map((c) => [c.name, c.secure, c.httpOnly, c.sameSite, c.sessionLike]), [
+    ["SID", true, true, "strict", true],
+    ["prefs", true, false, "none", false],
+    ["auth_token", true, false, "lax", true],
+    ["theme", false, false, "missing", false], // a value "HttpOnly" is not the attribute; invalid SameSite counts as missing
+  ]);
+  assert.deepEqual([result.missingSecure, result.missingSameSite, result.sessionMissingHttpOnly], [["theme"], ["theme"], ["auth_token"]]);
+  assert.deepEqual([result.status, result.issues, result.points, result.maxPoints], ["warning", 3, 2, 5]);
+  // HTTP pages do not require Secure; no cookies means unable to confirm, not pass.
+  assert.deepEqual(assessPassiveSecurity({ isHttps: false, html: "", pageUrl: "http://shop.nl/", setCookies: ["s=1; SameSite=Lax"] }).cookieFlags.status, "pass");
+  assert.equal(assessPassiveSecurity({ isHttps: true, html: "", pageUrl: "https://shop.nl/", setCookies: [] }).cookieFlags.status, "unable_to_confirm");
+  // Joined header fallback keeps Expires commas inside one cookie.
+  assert.deepEqual(splitSetCookieHeader("a=1; Expires=Wed, 21 Oct 2026 07:28:00 GMT, b=2; Secure").length, 2);
+});
+
+test("security 5: results and scores before (main) and after the fixes", () => {
+  const keys = ["mixedContent", "cookieFlags", "forms", "exposedSecrets", "scriptIntegrity"];
+  const expected = {
+    "modern shop": { before: ["pass", "warning", "not_applicable", "pass", "pass", 86], after: ["pass", "warning", "pass", "pass", "warning", 88] },
+    "documentation site": { before: ["pass", "unable_to_confirm", "not_applicable", "fail", "pass", 50], after: ["pass", "unable_to_confirm", "not_applicable", "pass", "pass", 100] },
+    "leaky site": { before: ["pass", "warning", "not_applicable", "pass", "pass", 86], after: ["fail", "warning", "fail", "fail", "pass", 23] },
+    "plain links only": { before: ["pass", "unable_to_confirm", "not_applicable", "pass", "pass", 100], after: ["pass", "unable_to_confirm", "not_applicable", "pass", "pass", 100] },
+  };
+  for (const page of securityPages) {
+    const before = legacyPassiveSecurity({ isHttps: true, html: page.html, pageUrl: page.url, joinedSetCookie: page.setCookies.join(", ") });
+    const after = assessPassiveSecurity({ isHttps: true, html: page.html, pageUrl: page.url, setCookies: page.setCookies });
+    assert.deepEqual([...keys.map((k) => before[k].status), securityScore(keys.map((k) => before[k]))], expected[page.name].before, `${page.name} before`);
+    assert.deepEqual([...keys.map((k) => after[k].status), securityScore(keys.map((k) => after[k]))], expected[page.name].after, `${page.name} after`);
+  }
+  // Evidence behind the leaky-site result.
+  const leaky = assessPassiveSecurity({ isHttps: true, html: securityPages[2].html, pageUrl: securityPages[2].url, setCookies: securityPages[2].setCookies });
+  assert.deepEqual(leaky.mixedContent.urls, ["http://cdn.leaky.example.nl/hero.jpg"]);
+  assert.deepEqual(leaky.exposedSecrets.labels, ["AWS access key"]);
+  assert.equal(leaky.forms.insecureActions, 1);
+  // main misread the modern shop's cookies: one cookie, no flags.
+  const legacyShop = legacyPassiveSecurity({ isHttps: true, html: "", pageUrl: securityPages[0].url, joinedSetCookie: securityPages[0].setCookies.join(", ") });
+  assert.deepEqual(legacyShop.detail.cookies.map((c) => [c.name, c.secure, c.httpOnly]), [["sid", false, false]]);
 });
