@@ -7,6 +7,7 @@ import { assessHreflang, hasSelfHreflangLanguageMismatch, isValidHreflangCode, s
 import { decodeHtmlEntities } from "../lib/html-entities.ts";
 import { classifyContactAnchor, findVisibleEmail, isContactForm } from "../lib/contact-evidence.ts";
 import { selectRepresentativePages } from "../lib/representative-pages.ts";
+import { clientIpFromHeaders, isInternalTester, retryAfterSeconds, scanRateLimitMessage, scanRateLimitPolicy } from "../lib/scan-access.ts";
 
 test("decorative empty alt is valid; only a missing alt attribute is actionable", () => {
   const metrics = extractImageMetrics('<img src="/hero.jpg" alt=""><img src="/product.jpg" alt="Product"><img src="/broken.jpg">');
@@ -571,7 +572,9 @@ test("anonymous public scans and contact mail have coarse abuse protection", asy
   const { readFile } = await import("node:fs/promises");
   const scan = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   const contact = await readFile(new URL("../app/api/contact/route.ts", import.meta.url), "utf8");
-  assert.match(scan, /consumeRateLimit\("public-scan",publicIp,8,3600\)/);
+  // Anonymous scans are limited before any fetch starts (limits: lib/scan-access.ts).
+  assert.match(scan, /if \(!dashboardScan\) \{\n\s+const limited = await enforceScanRateLimit\(\);\n\s+if \(limited\) return limited;/);
+  assert.ok(scan.indexOf("const limited = await enforceScanRateLimit();") < scan.indexOf("const started = Date.now();"));
   assert.match(contact, /consumeRateLimit\("contact",requestIp\(request\),5,3600\)/);
   assert.match(contact, /message\.length>5000/);
 });
@@ -1049,4 +1052,67 @@ test("representative sample can cap FAQ/help pages so they do not crowd out evid
   assert.equal(selected.filter((url) => url.includes("/faq/")).length, 3);
   assert.ok(selected.includes("https://shop.nl/p/1"));
   assert.ok(selected.includes("https://shop.nl/about"));
+});
+
+const TESTER_ID = "6f1c2b9e-1d2a-4c3b-8e4f-0a1b2c3d4e5f";
+const testerEnv = { RANKFIX_INTERNAL_TEST_USER_ID: TESTER_ID, RANKFIX_INTERNAL_TEST_EMAIL: "owner@rankfix.test" };
+
+test("scan access: anonymous visitors keep the per-network free limit", () => {
+  assert.deepEqual(scanRateLimitPolicy({ dashboardScan: false, userId: null, paidPlan: false, tester: false }), { scope: "public-scan", key: "ip", limit: 8, windowSeconds: 3600, code: "PUBLIC_SCAN_RATE_LIMIT" });
+});
+
+test("scan access: Free accounts share the network limit, so fake accounts add no capacity", () => {
+  assert.equal(scanRateLimitPolicy({ dashboardScan: false, userId: "u1", paidPlan: false, tester: false })?.key, "ip");
+  assert.deepEqual(scanRateLimitPolicy({ dashboardScan: true, userId: "u1", paidPlan: false, tester: false }), { scope: "free-scan", key: "ip", limit: 8, windowSeconds: 3600, code: "FREE_SCAN_RATE_LIMIT" });
+});
+
+test("scan access: paying customers are never held to the anonymous network limit", () => {
+  assert.equal(scanRateLimitPolicy({ dashboardScan: true, userId: "u2", paidPlan: true, tester: false }), null);
+  assert.deepEqual(scanRateLimitPolicy({ dashboardScan: false, userId: "u2", paidPlan: true, tester: false }), { scope: "paid-public-scan", key: "user", limit: 30, windowSeconds: 3600, code: "ACCOUNT_SCAN_RATE_LIMIT" });
+  // A paid flag without a signed-in account is just a visitor.
+  assert.equal(scanRateLimitPolicy({ dashboardScan: false, userId: null, paidPlan: true, tester: false })?.scope, "public-scan");
+});
+
+test("scan access: configured tester account IDs are exempt from hourly limits", () => {
+  assert.equal(isInternalTester(TESTER_ID, testerEnv), true);
+  assert.equal(isInternalTester(TESTER_ID.toUpperCase(), testerEnv), true);
+  assert.equal(scanRateLimitPolicy({ dashboardScan: true, userId: TESTER_ID, paidPlan: false, tester: true }), null);
+  assert.equal(scanRateLimitPolicy({ dashboardScan: false, userId: TESTER_ID, paidPlan: false, tester: true }), null);
+  assert.equal(isInternalTester("6f1c2b9e-0000-4c3b-8e4f-0a1b2c3d4e5f", { RANKFIX_INTERNAL_TEST_USER_IDS: `x, ${TESTER_ID.toUpperCase()}, "6f1c2b9e-0000-4c3b-8e4f-0a1b2c3d4e5f"` }), true);
+});
+
+test("scan access: e-mail alone, empty or malformed config never grants the exemption", () => {
+  assert.equal(isInternalTester("owner@rankfix.test", testerEnv), false);
+  assert.equal(isInternalTester("some-other-id", { RANKFIX_INTERNAL_TEST_EMAIL: "owner@rankfix.test" }), false);
+  assert.equal(isInternalTester("", { RANKFIX_INTERNAL_TEST_USER_ID: "" }), false);
+  assert.equal(isInternalTester(undefined, testerEnv), false);
+  assert.equal(isInternalTester("not-a-uuid", { RANKFIX_INTERNAL_TEST_USER_ID: "not-a-uuid" }), false);
+});
+
+test("scan access: spoofed forwarding headers cannot pick a fresh rate-limit bucket", () => {
+  const spoofed = new Headers({ "x-forwarded-for": "1.2.3.4, 203.0.113.9", "x-real-ip": "1.2.3.4" });
+  assert.equal(clientIpFromHeaders(spoofed, {}), "203.0.113.9");
+  // On Vercel the platform overwrites both headers with the real client.
+  assert.equal(clientIpFromHeaders(new Headers({ "x-forwarded-for": "198.51.100.7", "x-real-ip": "198.51.100.7" }), { VERCEL: "1" }), "198.51.100.7");
+  assert.equal(clientIpFromHeaders(new Headers(), {}), "unknown");
+});
+
+test("scan access: the message shows the real remaining wait", () => {
+  const start = new Date("2026-10-11T12:00:00Z");
+  assert.equal(retryAfterSeconds(start, 3600, Date.parse("2026-10-11T12:43:00Z")), 1020);
+  assert.equal(retryAfterSeconds(start, 3600, Date.parse("2026-10-11T13:30:00Z")), 1);
+  assert.equal(scanRateLimitMessage("nl", 1020, false), "Er zijn vanaf dit netwerk veel gratis scans uitgevoerd. Probeer het over ongeveer 17 minuten opnieuw.");
+  assert.equal(scanRateLimitMessage("en", 30, true), "Many scans were started from this account in a short time. Please try again in about 1 minute.");
+  assert.match(scanRateLimitMessage("xx", 120, false), /ongeveer 2 minuten/);
+});
+
+test("scan route applies the shared policy and never trusts e-mail for the tester exemption", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const competitor = await readFile(new URL("../app/api/competitor-scan/route.ts", import.meta.url), "utf8");
+  assert.match(route, /scanRateLimitPolicy\(\{ dashboardScan, userId: usageUser\?\.id \|\| null, paidPlan: isPaidPlan\(planCode\), tester: internalTestAccount \}\)/);
+  assert.match(route, /isInternalTester\(usageUser\?\.id\)/);
+  assert.doesNotMatch(route, /configuredTestEmail === signedInEmail/);
+  assert.doesNotMatch(competitor, /RANKFIX_INTERNAL_TEST_EMAIL/);
+  assert.match(route, /"Retry-After": String\(result\.retryAfterSeconds\)/);
 });

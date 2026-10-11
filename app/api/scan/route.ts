@@ -12,8 +12,9 @@ import { extractImageMetrics } from "@/lib/image-metrics";
 import { readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
 import { applyEvidenceBasedScoreCap, SCORE_MODEL_VERSION, scoreApplicableChecks, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
-import { normalizePlan, planLimits } from "@/lib/plans";
-import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
+import { isPaidPlan, normalizePlan, planLimits } from "@/lib/plans";
+import { checkRateLimit, requestIp } from "@/lib/rate-limit";
+import { internalTesterIds, isInternalTester, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
 import { renderPublicPage } from "@/lib/headless-render";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
@@ -417,49 +418,47 @@ export async function POST(request: Request) {
     }
 
     // Public scans are intentionally available without login, but the endpoint can
-    // trigger network fetches and bounded browser rendering. Apply a coarse per-network
-    // limit so anonymous automation cannot consume unbounded scan capacity.
+    // trigger network fetches and bounded browser rendering. Hourly limits come from
+    // scanRateLimitPolicy: per network for visitors and Free accounts, per account for
+    // paying customers, none for server-configured internal tester account IDs.
+    await ensureDatabase();
+    let usageUser: Awaited<ReturnType<typeof getCurrentUser>> = null;
+    try { usageUser = await getCurrentUser(); } catch {}
+    const usageWebsiteHost = target.hostname.toLowerCase().replace(/^www\./, "");
+    let usageIpHash: string | null = null;
+    const planCode = usageUser
+      ? normalizePlan((await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1", [usageUser.id])).rows[0]?.plan_code)
+      : "free";
+    const internalTestAccount = Boolean(usageUser) && isInternalTester(usageUser?.id);
+    if (usageUser && !internalTestAccount && process.env.RANKFIX_INTERNAL_TEST_EMAIL && !internalTesterIds().size) {
+      console.warn("RankFix internal test exemption needs RANKFIX_INTERNAL_TEST_USER_ID; an e-mail address alone no longer grants it.");
+    }
+    const scanRateLimit = scanRateLimitPolicy({ dashboardScan, userId: usageUser?.id || null, paidPlan: isPaidPlan(planCode), tester: internalTestAccount });
+    const enforceScanRateLimit = async () => {
+      if (!scanRateLimit) return null;
+      const identity = scanRateLimit.key === "user" ? String(usageUser?.id) : requestIp(request);
+      const result = await checkRateLimit(scanRateLimit.scope, identity, scanRateLimit.limit, scanRateLimit.windowSeconds);
+      if (result.allowed) return null;
+      return NextResponse.json(
+        { error: scanRateLimitMessage(scanLanguage, result.retryAfterSeconds, scanRateLimit.key === "user"), code: scanRateLimit.code, retryAfterSeconds: result.retryAfterSeconds },
+        { status: 429, headers: { "Retry-After": String(result.retryAfterSeconds) } }
+      );
+    };
     if (!dashboardScan) {
-      await ensureDatabase();
-      const publicIp=requestIp(request);
-      const publicAllowed=await consumeRateLimit("public-scan",publicIp,8,3600);
-      if(!publicAllowed){
-        const publicRateMessages:Record<string,string>={
-          nl:"Er zijn vanaf dit netwerk veel gratis scans uitgevoerd. Probeer het over ongeveer een uur opnieuw.",
-          en:"Many free scans have been run from this network. Please try again in about an hour.",
-          de:"Von diesem Netzwerk wurden viele kostenlose Scans ausgeführt. Bitte versuche es in etwa einer Stunde erneut.",
-          fr:"De nombreuses analyses gratuites ont été lancées depuis ce réseau. Réessayez dans environ une heure.",
-          it:"Da questa rete sono state eseguite molte scansioni gratuite. Riprova tra circa un’ora.",
-          es:"Se han realizado muchos análisis gratuitos desde esta red. Vuelve a intentarlo dentro de aproximadamente una hora."
-        };
-        return NextResponse.json({error:publicRateMessages[scanLanguage],code:"PUBLIC_SCAN_RATE_LIMIT"},{status:429,headers:{"Retry-After":"3600"}});
-      }
+      const limited = await enforceScanRateLimit();
+      if (limited) return limited;
     }
 
     // Dashboard allowances are enforced server-side before starting an expensive crawl.
     // Free keeps the cross-account per-domain allowance; paid plans use account-level monthly allowances.
-    let usageUser: Awaited<ReturnType<typeof getCurrentUser>> = null;
-    const usageWebsiteHost = target.hostname.toLowerCase().replace(/^www\./, "");
-    let usageIpHash: string | null = null;
     if (dashboardScan) {
-      try { usageUser = await getCurrentUser(); } catch {}
       if (!usageUser) return NextResponse.json({ error: scanError.session }, { status: 401 });
-      await ensureDatabase();
-      const planResult = await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1", [usageUser.id]);
-      const planCode = normalizePlan(planResult.rows[0]?.plan_code);
       const limits = planLimits(planCode);
       const accountHosts = await getDb().query(
         "SELECT DISTINCT lower(regexp_replace(split_part(split_part(COALESCE(final_url,scanned_url),'://',2),'/',1),'^www\\.','')) AS website_host FROM scans WHERE user_id=$1 ORDER BY website_host",
         [usageUser.id]
       );
       const existingHosts = accountHosts.rows.map(row=>String(row.website_host||"").split(":")[0]).filter(Boolean);
-      const configuredTestUserId = (process.env.RANKFIX_INTERNAL_TEST_USER_ID || "").trim();
-      const configuredTestEmail = (process.env.RANKFIX_INTERNAL_TEST_EMAIL || "").trim().replace(/^["']|["']$/g, "").trim().toLowerCase();
-      const signedInEmail = String(usageUser.email || "").trim().toLowerCase();
-      const internalTestAccount = (Boolean(configuredTestUserId) && configuredTestUserId === usageUser.id) || (Boolean(configuredTestEmail) && configuredTestEmail === signedInEmail);
-      if (!internalTestAccount && process.env.RANKFIX_INTERNAL_TEST_EMAIL) {
-        console.warn("RankFix internal test account mismatch", { configured: Boolean(configuredTestEmail), signedInEmailPresent: Boolean(signedInEmail), matchingEmail: configuredTestEmail === signedInEmail });
-      }
       if (!internalTestAccount && !existingHosts.includes(usageWebsiteHost) && existingHosts.length >= limits.websites) {
         const websiteMessages: Record<string,string> = {
           nl:`Je ${planCode} abonnement ondersteunt maximaal ${limits.websites} website(s). Upgrade je abonnement om meer websites te beheren.`,
@@ -492,14 +491,11 @@ export async function POST(request: Request) {
         const ip = requestIp(request);
         const salt = process.env.USAGE_HASH_SALT || process.env.SESSION_SECRET || "rankfix-usage";
         usageIpHash = createHash("sha256").update(salt + ":" + ip).digest("hex");
-        // Count attempts, not only completed scans, so repeated failed crawls cannot
-        // bypass the coarse Free-plan network protection.
-        const allowed = await consumeRateLimit("free-scan", ip, 8, 3600);
-        if (!allowed) {
-          const rateMessages: Record<string,string> = {nl:"Er zijn vanaf dit netwerk veel gratis scans uitgevoerd. Probeer het over ongeveer een uur opnieuw.",en:"Many free scans have been run from this network. Please try again in about an hour.",de:"Von diesem Netzwerk wurden viele kostenlose Scans ausgeführt. Bitte versuche es in etwa einer Stunde erneut.",fr:"De nombreuses analyses gratuites ont été lancées depuis ce réseau. Réessayez dans environ une heure.",it:"Da questa rete sono state eseguite molte scansioni gratuite. Riprova tra circa un’ora.",es:"Se han realizado muchos análisis gratuitos desde esta red. Vuelve a intentarlo dentro de aproximadamente una hora."};
-          return NextResponse.json({error:rateMessages[scanLanguage],code:"FREE_SCAN_RATE_LIMIT"},{status:429,headers:{"Retry-After":"3600"}});
-        }
       }
+      // Count attempts, not only completed scans, so repeated failed crawls cannot
+      // bypass the coarse Free-plan network protection.
+      const limited = await enforceScanRateLimit();
+      if (limited) return limited;
     }
 
     const started = Date.now();
