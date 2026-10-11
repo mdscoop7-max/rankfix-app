@@ -10,7 +10,7 @@ import { readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from 
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
 import { applyEvidenceBasedScoreCap, SCORE_MODEL_VERSION, scoreApplicableChecks, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
 import { normalizePlan, planLimits } from "@/lib/plans";
-import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
+import { consumeMemoryRateLimit, consumeRateLimit, isPreviewWithoutDatabase, requestIp } from "@/lib/rate-limit";
 import { renderPublicPage } from "@/lib/headless-render";
 import { apiStatusForFailure, classifyFetchError, classifyHttpStatus, inputFailure, retryDecision, scanFailurePayload } from "@/lib/scan-failure";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
@@ -441,9 +441,16 @@ export async function POST(request: Request) {
     // trigger network fetches and bounded browser rendering. Apply a coarse per-network
     // limit so anonymous automation cannot consume unbounded scan capacity.
     if (!dashboardScan) {
-      await ensureDatabase();
       const publicIp=requestIp(request);
-      const publicAllowed=await consumeRateLimit("public-scan",publicIp,8,3600);
+      // An isolated Vercel Preview without any database keeps the same per-network limit in
+      // memory instead of pointing the preview at a database. Production never takes this path.
+      let publicAllowed:boolean;
+      if (isPreviewWithoutDatabase()) {
+        publicAllowed=consumeMemoryRateLimit("public-scan",publicIp,8,3600);
+      } else {
+        await ensureDatabase();
+        publicAllowed=await consumeRateLimit("public-scan",publicIp,8,3600);
+      }
       if(!publicAllowed){
         const publicRateMessages:Record<string,string>={
           nl:"Er zijn vanaf dit netwerk veel gratis scans uitgevoerd. Probeer het over ongeveer een uur opnieuw.",
