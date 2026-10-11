@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes } from "../lib/sector-identity.ts";
+import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes } from "../lib/sector-identity.ts";
 import { buildScanEvidence } from "../lib/scan-evidence.ts";
 
 // Page identity (title, meta description, hostname, path) as served on 11 Oct 2026.
@@ -121,4 +121,51 @@ test("a blocked or empty browser render is never treated as website evidence", a
   assert.equal(source.includes("html.length >= 20) {"), false, "no render is accepted on byte length alone");
   assert.equal((source.match(/isSubstantiveRender\(/g) || []).length, 3);
   assert.equal((source.match(/renderImprovesEvidence\(/g) || []).length, 2);
+});
+
+test("schema.org Organization subtypes count as Organization identity", async () => {
+  for (const types of [["Organization"], ["OnlineStore", "FurnitureStore"], ["LocalBusiness"], ["Dentist"], ["Restaurant"], ["AutoRepair"], ["RealEstateAgent"], ["Corporation"]]) {
+    assert.equal(hasOrganizationSchema(types), true, types.join(","));
+  }
+  for (const types of [["WebSite"], ["WebPage", "BreadcrumbList"], ["Product", "Offer"], ["Person"], []]) {
+    assert.equal(hasOrganizationSchema(types), false, types.join(","));
+  }
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /const organizationSchemaPresent = hasOrganizationSchema\(schemaTypes\)/);
+  assert.match(source, /const hasOrg = hasOrganizationSchema\(homepageTypes\)/);
+  assert.equal(source.includes('homepageTypes.has("organization")'), false);
+});
+
+test("the scanned page is reused as its own representative sample, not refetched", async () => {
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /const isScannedPage = normalizeScanUrl\(page\.url\) === normalizeScanUrl\(finalUrl\.toString\(\)\)/);
+  assert.match(source, /isScannedPage\n\s+\? \{ response: new Response\(html,/);
+  // The scanned page already passed the 8 MB main-page limit; a large homepage is not "fetch failed".
+  assert.match(source, /isScannedPage \? html : await readResponseTextLimited\(r, 2_000_000\)/);
+});
+
+test("FAQ/help-center pages cannot crowd out the representative sample", async () => {
+  const { selectRepresentativePages } = await import("../lib/representative-pages.ts");
+  const isFaq = (url) => /\/(?:faq|faqs|veelgestelde-vragen|help-center|helpcentrum|hilfe|ayuda|assistance)(?:\/|$)/i.test(new URL(url).pathname);
+  const faq = Array.from({ length: 15 }, (_, i) => ({ url: `https://shop.example/faq/question-${i}.html`, type: "support" }));
+  const shop = Array.from({ length: 10 }, (_, i) => ({ url: `https://shop.example/brand-${i}/`, type: "other" }));
+  const picked = selectRepresentativePages([], [...faq, ...shop], 20, (u) => u, (u) => u, { matches: isFaq, limit: 3 });
+  assert.equal(picked.filter((p) => isFaq(p.url)).length, 3);
+  assert.equal(picked.filter((p) => !isFaq(p.url)).length, 10);
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /templateShapeKey, \{ matches: isFaqSample, limit: 3 \}\)/);
+});
+
+test("every module the scanner can activate has a report label in every locale", async () => {
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const { CAPABILITY_MODULE_MAP } = await import("../lib/sector-catalog.ts");
+  const modules = new Set(Object.values(CAPABILITY_MODULE_MAP).flat());
+  for (const match of source.matchAll(/modules:\[([^\]]*)\]/g)) for (const m of match[1].matchAll(/"([a-z_]+)"/g)) modules.add(m[1]);
+  for (const m of ["accommodation", "booking", "local", "eu_consumer"]) modules.add(m);
+  const report = await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
+  for (const locale of ["nl", "en", "de", "fr", "it", "es"]) {
+    const line = report.split("\n").find((l) => l.trimStart().startsWith(`${locale}:{`) && l.includes("core_seo:"));
+    assert.ok(line, `labels for ${locale}`);
+    for (const module of modules) assert.ok(line.includes(`${module}:"`), `${locale} label for ${module}`);
+  }
 });
