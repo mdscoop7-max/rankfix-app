@@ -27,6 +27,17 @@ function sameSite(a: string, b: string): boolean {
   return x === y || x.endsWith(`.${y}`) || y.endsWith(`.${x}`);
 }
 
+// Legal policies must belong to the scanned site; third-party embedded-service
+// policies cannot be presented as the business's own privacy/cookie/terms pages.
+export function isFirstPartyLegalLink(href: string, pageUrl: string): boolean {
+  try {
+    const target = new URL(href, pageUrl);
+    const page = new URL(pageUrl);
+    if (!["http:", "https:"].includes(target.protocol)) return false;
+    return sameSite(target.hostname, page.hostname);
+  } catch { return false; }
+}
+
 // text: the visible label plus aria-label/title. The URL path alone is weaker:
 // a "/customer-service/services" link labelled "Services" is not customer service.
 export function classifyContactAnchor(input: { href: string; text: string; pageUrl: string }): ContactAnchorKind | null {
