@@ -49,6 +49,12 @@ const uniqueMultiPagePages = selectRepresentativePages([scannedPageSample, ...mu
 
 Als 3.1 dezelfde blokken verder wijzigt, eerst opnieuw een proefmerge doen.
 
+Na de merge faalt de bewakingstest "no regex matches a literal backslash" op één regel
+die 3.0 zelf toevoegt: `app/dashboard/page.tsx` (`siteHost`, `/^www\\./` moet `/^www\./`
+zijn, twee keer). Herstel die in de merge; daarna slagen alle 143 tests en de build.
+Controleer bij 3.1 de uitvoer van die test opnieuw: elke regel die hij noemt is een
+regex die nooit matcht.
+
 ## Controle na herstel
 
 1. `npm ci`, `npm test`, `npx tsc --noEmit`, `npx next build`, `npx eslint .`
