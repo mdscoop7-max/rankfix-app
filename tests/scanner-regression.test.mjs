@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { extractImageMetrics } from "../lib/image-metrics.ts";
 import { applyEvidenceBasedScoreCap, scoreApplicableChecks, summarizeAuditChecks } from "../lib/audit-score.ts";
 import { isPrivateHost, validatePublicHttpUrl } from "../lib/safe-fetch.ts";
-import { statusCode } from "../lib/seo-rules.ts";
+import { hasSelfHreflangLanguageMismatch, statusCode } from "../lib/seo-rules.ts";
 
 test("decorative empty alt is valid; only a missing alt attribute is actionable", () => {
   const metrics = extractImageMetrics('<img src="/hero.jpg" alt=""><img src="/product.jpg" alt="Product"><img src="/broken.jpg">');
@@ -825,4 +825,14 @@ test("representative crawl uses bounded concurrency", async () => {
   assert.match(scanRoute, /const representativeAuditConcurrency = 4;/);
   assert.match(scanRoute, /Math\.min\(representativeAuditConcurrency, uniqueMultiPagePages\.length\)/);
   assert.doesNotMatch(scanRoute, /Promise\.all\(uniqueMultiPagePages\.map\(auditMultiPage\)\)/);
+});
+
+test("x-default self hreflang on a country picker is not a language mismatch", () => {
+  // ikea.com-style global portal: lang="en", self-reference only as x-default.
+  assert.equal(hasSelfHreflangLanguageMismatch(["x-default"], "en"), false);
+  assert.equal(hasSelfHreflangLanguageMismatch(["x-default", "en-gb"], "en"), false);
+  assert.equal(hasSelfHreflangLanguageMismatch(["nl-nl"], "nl"), false);
+  assert.equal(hasSelfHreflangLanguageMismatch(["de-de"], "en"), true);
+  assert.equal(hasSelfHreflangLanguageMismatch(["x-default", "de-de"], "en"), true);
+  assert.equal(hasSelfHreflangLanguageMismatch(["de-de"], ""), false);
 });

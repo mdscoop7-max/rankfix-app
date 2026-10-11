@@ -3,7 +3,7 @@ import { createHash } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
-import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode } from "@/lib/seo-rules";
+import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, hasSelfHreflangLanguageMismatch } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
@@ -2069,7 +2069,7 @@ export async function POST(request: Request) {
     const hasContactLink = Boolean(contactEvidence);
     const legalLanguageCode = (lang || "").toLowerCase().split("-")[0];
     const legalLanguageSupported = new Set(["nl","en","it","pt","sl","hr","de","fr","es"]).has(legalLanguageCode);
-    const legalEvidenceSummary = [privacyEvidence && `privacy: "${privacyEvidence.label || privacyEvidence.aria || privacyEvidence.title}" → ${privacyEvidence.href}`, cookieEvidence && `cookies: "${cookieEvidence.label || cookieEvidence.aria || cookieEvidence.title}" → ${cookieEvidence.href}`, contactEvidence && `contact: "${contactEvidence.label || contactEvidence.aria || contactEvidence.title}" → ${contactEvidence.href}`].filter(Boolean).join(" · ");
+    const legalEvidenceSummary = [privacyEvidence && `privacy: "${decode(privacyEvidence.label || privacyEvidence.aria || privacyEvidence.title || "")}" → ${privacyEvidence.href}`, cookieEvidence && `cookies: "${decode(cookieEvidence.label || cookieEvidence.aria || cookieEvidence.title || "")}" → ${cookieEvidence.href}`, contactEvidence && `contact: "${decode(contactEvidence.label || contactEvidence.aria || contactEvidence.title || "")}" → ${contactEvidence.href}`].filter(Boolean).join(" · ");
     const formControls = [...html.matchAll(/<(input|select|textarea)\b([^>]*)>/gi)];
     const wrappingLabelRanges = [...html.matchAll(/<label\b[^>]*>[\s\S]*?<\/label>/gi)]
       .map((match) => ({ start: match.index ?? -1, end: (match.index ?? -1) + match[0].length }));
@@ -2286,13 +2286,7 @@ export async function POST(request: Request) {
       try { return normalizeScanUrl(new URL(entry.href, finalUrl).toString()) === currentNormalizedUrl; } catch { return false; }
     });
     const documentLanguage = lang.trim().toLowerCase().replace("_", "-");
-    const documentLanguageBase = documentLanguage.split("-")[0] || "";
-    const hasMatchingSelfHreflang = selfHreflangEntries.some((entry) => {
-      if (entry.language === "x-default") return false;
-      const hreflangBase = entry.language.split("-")[0] || "";
-      return Boolean(documentLanguageBase && hreflangBase === documentLanguageBase);
-    });
-    const selfHreflangMismatch = Boolean(documentLanguage && selfHreflangEntries.length && !hasMatchingSelfHreflang);
+    const selfHreflangMismatch = hasSelfHreflangLanguageMismatch(selfHreflangEntries.map((entry) => entry.language), documentLanguage);
     const hreflangHostMismatches = hreflangEntries.filter((entry) => {
       if (!entry.validHref) return false;
       try {

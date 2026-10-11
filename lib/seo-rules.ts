@@ -49,3 +49,12 @@ export function statusCode(status: string): IssueStatus {
   if (normalized === "info") return "INFO";
   return "UNABLE_TO_CONFIRM";
 }
+
+// x-default marks a language/country picker, not a page language, so it never
+// counts as a mismatch against the document lang.
+export function hasSelfHreflangLanguageMismatch(selfHreflangLanguages: string[], documentLanguage: string): boolean {
+  const documentLanguageBase = documentLanguage.trim().toLowerCase().replace("_", "-").split("-")[0] || "";
+  const languageEntries = selfHreflangLanguages.map((language) => language.trim().toLowerCase()).filter((language) => language && language !== "x-default");
+  if (!documentLanguageBase || !languageEntries.length) return false;
+  return !languageEntries.some((language) => language.split("-")[0] === documentLanguageBase);
+}
