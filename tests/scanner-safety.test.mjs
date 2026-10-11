@@ -86,3 +86,18 @@ test("checkout, merchant and EU-consumer checks become N/A without confirmed com
     assert.match(keys, new RegExp(`"${key}"`), key);
   }
 });
+
+test("Fix Engine chain: scan evidence -> approved proposal hash -> PR -> manual merge -> fresh live rescan", async () => {
+  const fix = await read("app/api/github/fix/route.ts");
+  // No branch, commit or PR without an explicitly approved, unchanged proposal.
+  assert.match(fix, /if\(!proposalId \|\| !approvedHash\)\{/);
+  assert.match(fix, /loadedProposal\.proposal_hash!==approvedHash/);
+  assert.match(fix, /code:"PROPOSAL_HASH_MISMATCH"/);
+  assert.match(fix, /code:"COMMIT_MISMATCH"/, "GitHub must confirm the exact approved content");
+  assert.ok(fix.indexOf("if(!proposalId || !approvedHash){") < fix.indexOf("/pulls"), "approval is checked before any pull request call");
+  // Merged is not resolved: only a fresh scan with PASS + high confidence + evidence verifies the fix.
+  const route = await read("app/api/scan/route.ts");
+  assert.match(route, /const verified=liveStatus==="PASS" && liveConfidence==="high" && hasLiveEvidence;/);
+  assert.match(route, /pending\.status === "AWAITING_VERIFICATION" \|\| pending\.status === "STILL_PRESENT"/);
+  assert.doesNotMatch(route, /status='VERIFIED_RESOLVED'[^"]*WHERE[^"]*AWAITING_MERGE/, "an unmerged PR is never marked resolved");
+});
