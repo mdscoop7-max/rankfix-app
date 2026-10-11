@@ -1591,3 +1591,10 @@ test("retail sector evidence wins over incidental sector words without claiming 
   assert.match(source, /explicitRetailIdentity && !evidenceCommerceConfirmed \? 78/);
   assert.match(source, /!shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity/);
 });
+
+test("street addresses exclude adjacent navigation and contact labels", () => {
+  assert.equal(findVisibleAddress("Of chat Dutch Wegtersweg 1 7556 BP Hengelo Nederland"), "Wegtersweg 1, 7556 BP Hengelo");
+  assert.equal(findVisibleAddress("Adres gegevens Artiscent Wellness Kanaalkade 48 1811LS Alkmaar Tel"), "Kanaalkade 48, 1811LS Alkmaar");
+  assert.equal(findVisibleAddress("Contact Vestiging Aalsmeer F.A. Wentstraat 2b 1431 KZ Aalsmeer Vestiging Westland"), "F.A. Wentstraat 2b, 1431 KZ Aalsmeer");
+  assert.equal(findVisibleAddress("Menu Toggle About Contact"), null);
+});
