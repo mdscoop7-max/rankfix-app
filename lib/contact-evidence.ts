@@ -84,7 +84,10 @@ export function findVisibleAddress(text: string): string | null {
   // labels ("Of chat Dutch", "Adres gegevens") in front of the street.
   const dutchStreet = /\b((?:(?:[A-Z](?:\.[A-Z])?\.|[A-ZÀ-Ý][a-zà-ÿ'-]+)\s+){0,2}[A-ZÀ-Ý][A-Za-zÀ-ÿ.'-]*(?:straat|weg|laan|kade|plein|dreef|singel|gracht|steeg|dijk|hof))\s+(\d{1,5}[A-Za-z]?)\s*,?\s*(\d{4}\s?[A-Z]{2})\s+([A-ZÀ-Ý][a-zà-ÿ'-]+(?:\s+[A-ZÀ-Ý][a-zà-ÿ'-]+)?)/g;
   for (const match of text.matchAll(dutchStreet)) {
-    const street = match[1].replace(/^(?:(?:Of|Dutch|Contact|Vestiging|Adres|gegevens|bij)\s+)+/i, "").trim();
+    const streetWords = match[1].trim().split(/\s+/);
+    const street = streetWords.length > 1 && /^[A-Z](?:\.[A-Z])?\.$/.test(streetWords[streetWords.length - 2])
+      ? streetWords.slice(-2).join(" ")
+      : streetWords[streetWords.length - 1];
     const city = match[4].replace(/\s+(?:Tel|Telefoon|Toggle|Contact|Vestiging|Menu|WhatsApp).*$/i, "").trim();
     if (street && city) return `${street} ${match[2]}, ${match[3]} ${city}`;
   }
