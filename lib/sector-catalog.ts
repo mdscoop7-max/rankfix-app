@@ -24,7 +24,7 @@ export type SectorDefinition = {
 };
 
 export const SECTOR_CATALOG: SectorDefinition[] = [
-  {key:"ecommerce",label:"Webshop / e-commerce",keywords:/\b(webshop|online shop|shop online|winkelwagen|add to cart|warenkorb|panier|carrello)\b/i,schemaTypes:["Product","Offer","OnlineStore","Store"],evidenceFlags:["commerce.products","commerce.cart","commerce.checkout"],expectedCapabilities:["products","pricing","cart","checkout","merchant","consumer_rights"],optionalCapabilities:["appointments"]},
+  {key:"ecommerce",label:"Webshop / e-commerce",keywords:/\b(webshop|online shop|shop online|winkelwagen|add to cart|warenkorb|panier|carrello|online[- ]shop|onlineshop|online kaufen|online bestellen|jetzt kaufen|in den warenkorb|ajouter au panier|acheter en ligne|comprar online|añadir al carrito|aggiungi al carrello)\b/i,schemaTypes:["Product","Offer","OnlineStore","Store","FurnitureStore"],evidenceFlags:["commerce.products","commerce.cart","commerce.checkout"],expectedCapabilities:["products","pricing","cart","checkout","merchant","consumer_rights"],optionalCapabilities:["appointments"]},
   {key:"marketplace",label:"Marketplace",keywords:/\b(marketplace|verkopers|sellers|sell on|aanbieders|multiple sellers)\b/i,schemaTypes:["Product","Offer"],evidenceFlags:["commerce.products"],expectedCapabilities:["listings","pricing","seller_identity","consumer_rights"],optionalCapabilities:["cart","checkout"]},
   {key:"automotive",label:"Autodealer / automotive",keywords:/\b(autodealer|auto dealer|occasions?|proefrit|test drive|nieuwe auto's|used cars|fahrzeuge|autoverkoop|auto(?:'s)? te koop|voorraad auto's)\b/i,schemaTypes:["AutoDealer","AutomotiveBusiness","Vehicle","Car"],evidenceFlags:["inventory.vehicles"],expectedCapabilities:["vehicles","vehicle_details","pricing","test_drive","contact"],optionalCapabilities:["finance","appointments","parts_shop"],forbiddenAssumptions:["cart","checkout"]},
   {key:"car_rental",label:"Autoverhuur",keywords:/\b(autoverhuur|car rental|rent a car|mietwagen|location de voiture)\b/i,schemaTypes:["AutoRental"],expectedCapabilities:["vehicles","availability","booking","pricing"],forbiddenAssumptions:["cart"]},
@@ -44,7 +44,7 @@ export const SECTOR_CATALOG: SectorDefinition[] = [
   {key:"holiday_rental",label:"Vakantiehuis / vakantieverhuur",keywords:/\b(vakantiehuis|vakantiewoning|holiday home|holiday rental|vacation rental|ferienhaus|ferienwohnung|short[- ]term rental)\b/i,schemaTypes:["VacationRental"],evidenceFlags:["appointments.booking"],expectedCapabilities:["accommodation","availability","booking","pricing","guests","stay_dates"],forbiddenAssumptions:["property_sale","long_term_rental","product_stock"]},
   {key:"holiday_park",label:"Vakantiepark / resort",keywords:/\b(vakantiepark|holiday park|ferienpark|resort|bungalowpark|recreatiepark)\b/i,schemaTypes:["Resort"],evidenceFlags:["appointments.booking"],expectedCapabilities:["accommodations","availability","booking","pricing","facilities","local"],forbiddenAssumptions:["property_sale","product_stock"]},
   {key:"camping",label:"Camping / chaletpark",keywords:/\b(camping|campingplatz|campground|camperplaats|chaletpark|caravan park|glamping)\b/i,schemaTypes:["Campground"],evidenceFlags:["appointments.booking"],expectedCapabilities:["pitches_or_accommodation","availability","booking","pricing","facilities","local"],forbiddenAssumptions:["property_sale","product_stock"]},
-  {key:"travel",label:"Reizen / toerisme",keywords:/\b(reizen|travel|vakantie|holiday|tours|excursies)\b/i,schemaTypes:["TravelAgency","TouristTrip"],expectedCapabilities:["destinations_or_trips","availability","booking","pricing"]},
+  {key:"travel",label:"Reizen / toerisme",keywords:/\b(reisbureau|reisorganisatie|travel agency|tour operator|voyagiste|reiseveranstalter|excursies boeken|book a tour)\b/i,schemaTypes:["TravelAgency","TouristTrip"],expectedCapabilities:["destinations_or_trips","availability","booking","pricing"]},
   {key:"beauty_salon",label:"Beautysalon",keywords:/\b(beautysalon|beauty salon|schoonheidssalon|facial|beauty treatment)\b/i,schemaTypes:["BeautySalon"],expectedCapabilities:["services","pricing","appointment","local"],optionalCapabilities:["products"]},
   {key:"hair_salon",label:"Kapper / hair salon",keywords:/\b(kapper|hair salon|hairdresser|coiffeur|friseur)\b/i,schemaTypes:["HairSalon"],expectedCapabilities:["services","pricing","appointment","local"],optionalCapabilities:["products"]},
   {key:"fitness",label:"Fitness / sportschool",keywords:/\b(fitness|sportschool|gym|personal training|fitnessstudio)\b/i,schemaTypes:["HealthClub","ExerciseGym"],expectedCapabilities:["services","memberships","schedule","local"],optionalCapabilities:["booking"]},
@@ -62,7 +62,7 @@ export const SECTOR_CATALOG: SectorDefinition[] = [
   {key:"education",label:"Onderwijs",keywords:/\b(school|universiteit|university|college|onderwijs|opleiding)\b/i,schemaTypes:["EducationalOrganization","School","CollegeOrUniversity"],expectedCapabilities:["programs","admissions","contact","accessibility"]},
   {key:"course_training",label:"Cursus / training",keywords:/\b(cursus|course|training|workshop|opleiding volgen)\b/i,schemaTypes:["Course"],expectedCapabilities:["courses","schedule","enrollment","pricing"],optionalCapabilities:["booking"]},
   {key:"recruitment",label:"Recruitment / vacatures",keywords:/\b(recruitment|uitzendbureau|uitzendorganisatie|employment agency|staffing agency|staffing|werving en selectie|recruitmentbureau|recruitment agency)\b/i,schemaTypes:["EmploymentAgency"],evidenceFlags:["inventory.jobs"],expectedCapabilities:["jobs","job_details","application","organization"]},
-  {key:"news_media",label:"Nieuws / media",keywords:/\b(nieuws|news|breaking news|journalistiek|newspaper|redactie|journalist|verslaggever|headline|liveblog)\b/i,schemaTypes:["NewsMediaOrganization","NewsArticle","Article"],expectedCapabilities:["articles","authors","dates","publisher","sources"],forbiddenAssumptions:["commerce"]},
+  {key:"news_media",label:"Nieuws / media",keywords:/\b(nieuws|news|breaking news|journalistiek|newspaper|redactie|journalist|verslaggever|headline|liveblog)\b/i,schemaTypes:["NewsMediaOrganization","NewsArticle"],expectedCapabilities:["articles","authors","dates","publisher","sources"],forbiddenAssumptions:["commerce"]},
   {key:"publisher_blog",label:"Blog / publisher",keywords:/\b(blog|magazine|artikelen|articles|editorial)\b/i,schemaTypes:["Blog","BlogPosting","Article"],expectedCapabilities:["articles","authors","dates","publisher"]},
   {key:"events",label:"Events / tickets",keywords:/\b(events?|evenementen|tickets|concert|festival)\b/i,schemaTypes:["Event"],expectedCapabilities:["events","dates","venue","tickets_or_registration"]},
   {key:"entertainment",label:"Entertainment / leisure",keywords:/\b(bioscoop|cinema|theater|amusement|leisure|escape room)\b/i,schemaTypes:["EntertainmentBusiness"],expectedCapabilities:["activities_or_program","schedule","pricing"],optionalCapabilities:["booking","tickets"]},
@@ -126,13 +126,64 @@ export function rankSectorCandidates(evidence: ScanEvidence, searchableText: str
         /\b(?:gerechten|diner|lunch|ontbijt|eten|food|cuisine|chef|tafel reserveren|restaurant)\b/i.test(searchableText);
       if (!foodIdentity) evidenceHits = evidenceHits.filter(x=>x!=="inventory.menu");
     }
-    const score = (keywordHit?2:0) + schemaHits.length*3 + evidenceHits.length*2;
+    // Sector Motor 3.0: structured identity and independently verified capabilities
+    // outweigh isolated words. Shared generic schema (Product/Offer/Store) must
+    // not establish a marketplace or specialist identity on its own.
+    const genericSchema = new Set(["product","offer","store","organization","professionalservice","foodestablishment","article","blogposting","website"]);
+    const specificSchemaHits = schemaHits.filter(x=>!genericSchema.has(x.toLowerCase()));
+    const genericSchemaHits = schemaHits.filter(x=>genericSchema.has(x.toLowerCase()));
+    const schemaScore = specificSchemaHits.length * 5 + Math.min(genericSchemaHits.length, 1) * 2;
+    const evidenceScore = evidenceHits.length * 4;
+    // News links and generic articles appear on shops and other businesses.
+    // Require a dedicated publisher identity before classifying as news media.
+    if (def.key === "news_media" && specificSchemaHits.length === 0) {
+      return {key:def.key,label:def.label,score:0,evidence:[],
+        expectedCapabilities:def.expectedCapabilities,optionalCapabilities:def.optionalCapabilities||[],
+        forbiddenAssumptions:def.forbiddenAssumptions||[]};
+    }
+    if (def.key === "publisher_blog" && specificSchemaHits.length === 0 && !keywordHit) {
+      return {key:def.key,label:def.label,score:0,evidence:[],
+        expectedCapabilities:def.expectedCapabilities,optionalCapabilities:def.optionalCapabilities||[],
+        forbiddenAssumptions:def.forbiddenAssumptions||[]};
+    }
+    const score = (keywordHit ? 1 : 0) + schemaScore + evidenceScore;
+    // A catalog alone is not proof of a multi-seller marketplace.
+    if (def.key === "marketplace" && !keywordHit && specificSchemaHits.length === 0) {
+      return {key:def.key,label:def.label,score:0,evidence:[],
+        expectedCapabilities:def.expectedCapabilities,optionalCapabilities:def.optionalCapabilities||[],
+        forbiddenAssumptions:def.forbiddenAssumptions||[]};
+    }
     return {key:def.key,label:def.label,score,evidence:[
       ...(keywordHit?["Sectorspecifieke content gevonden"]:[]),
       ...schemaHits.map(x=>`Schema: ${x}`),
       ...evidenceHits.map(x=>`Evidence: ${x}`)
     ],expectedCapabilities:def.expectedCapabilities,optionalCapabilities:def.optionalCapabilities||[],forbiddenAssumptions:def.forbiddenAssumptions||[]};
   }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
+}
+
+
+/** Sector Motor 3.0 advisory confidence: no unsupported certainty from a single clue. */
+export function assessSectorConflict(candidates: ReturnType<typeof rankSectorCandidates>) {
+  const [first, second] = candidates;
+  if (!first) return { status: "unknown" as const, confidence: 0, sector: null, reason: "Geen sectorspecifiek bewijs" };
+  const schema = first.evidence.some(item => item.startsWith("Schema:"));
+  const verified = first.evidence.some(item => item.startsWith("Evidence:"));
+  const text = first.evidence.some(item => item === "Sectorspecifieke content gevonden");
+  const independentGroups = Number(schema) + Number(verified) + Number(text);
+  // A near tie or a conflicting independently supported identity is not
+  // evidence of a reliable primary sector.
+  const secondVerified = Boolean(second?.evidence.some(item => item.startsWith("Schema:") || item.startsWith("Evidence:")));
+  const close = Boolean(second && second.score > 0 &&
+    (secondVerified && (first.score - second.score <= 2 || second.score >= first.score * 0.8)));
+  const strong = schema && verified && !close;
+  const confidence = close ? 55 : strong ? 95 : independentGroups >= 2 ? 75 : 50;
+  return {
+    status: close ? "ambiguous" as const : confidence < 60 ? "uncertain" as const : "supported" as const,
+    confidence,
+    sector: close || confidence < 60 ? null : first.key,
+    reason: close ? "Concurrerende sectoren hebben vergelijkbaar bewijs" :
+      confidence < 60 ? "Onvoldoende onafhankelijke bewijsbronnen" : "Sector ondersteund door onafhankelijk bewijs",
+  };
 }
 
 

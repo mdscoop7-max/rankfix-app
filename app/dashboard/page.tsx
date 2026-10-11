@@ -23,6 +23,8 @@ const dashboardExtras: Record<Locale, {latest:string;scanned:string;newScan:stri
 
 
 export default function Dashboard() {
+  const [selectedSites,setSelectedSites]=useState<string[]>([]);
+  const [deletingSites,setDeletingSites]=useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [scans, setScans] = useState<Scan[]>([]);
   const [history, setHistory] = useState<Scan[]>([]);
@@ -75,6 +77,26 @@ export default function Dashboard() {
     finally { setBusy(null); }
   }
 
+  const siteHost=(url:string)=>{try{return new URL(url).hostname.replace(/^www\\./,"")}catch{return url.replace(/^www\\./,"")}};
+  async function removeSites(){
+    if(deletingSites||!selectedSites.length)return;
+    const targets=history.filter(scan=>selectedSites.includes(siteHost(scan.scanned_url)));
+    if(!window.confirm(language==="nl"?`Verwijder ${selectedSites.length} website(s) en ${targets.length} bijbehorende audit(s) definitief?`:`Permanently delete ${selectedSites.length} websites and ${targets.length} related audits?`))return;
+    setDeletingSites(true);setError("");
+    try{
+      for(const scan of targets){
+        const response=await fetch("/api/history/"+encodeURIComponent(scan.id),{method:"DELETE"});
+        if(!response.ok){const data=await response.json().catch(()=>({}));throw new Error(data.error||"Verwijderen mislukt.");}
+      }
+      window.localStorage.removeItem("rankfix:last-scan-url");
+      setSelectedSites([]);
+      await loadHistory();
+      setMessage(language==="nl"?"Geselecteerde websites en audits verwijderd.":"Selected websites and audits deleted.");
+    }catch(cause){
+      await loadHistory().catch(()=>{});
+      setError(cause instanceof Error?cause.message:"Verwijderen mislukt.");
+    }finally{setDeletingSites(false);}
+  }
   const steps = 1 + Number(scans.length > 0) + Number((fixes.DONE || 0) > 0);
   const checks = [...(selectedResult?.seo?.checks || []), ...(selectedResult?.geo?.checks || [])];
   const latest = history[0] || scans[0];
@@ -131,13 +153,17 @@ export default function Dashboard() {
         </section>
         <section className="rf-section rf-quick-actions-section"><div className="rf-section-head"><div><h2>{language==="nl"?"Snelle acties":language==="de"?"Schnellaktionen":language==="fr"?"Actions rapides":language==="it"?"Azioni rapide":language==="es"?"Acciones rápidas":"Quick actions"}</h2><p>{language==="nl"?"Alles wat je vaak gebruikt direct bij de hand.":language==="de"?"Deine wichtigsten Werkzeuge direkt zur Hand.":language==="fr"?"Vos outils les plus utilisés à portée de main.":language==="it"?"Gli strumenti più usati sempre a portata di mano.":language==="es"?"Tus herramientas más usadas siempre a mano.":"Your most-used tools in one place."}</p></div></div><div className="rf-quick-actions-grid">{latest&&<Link href={`/dashboard/audit/${latest.id}`}><span className="rf-quick-icon rf-quick-icon-health" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 13h4l2-6 3 10 2-4h5"/></svg></span><b>{language==="nl"?"Website Health":language==="de"?"Website Health":language==="fr"?"Santé du site":language==="it"?"Salute sito":language==="es"?"Salud web":"Website Health"}</b></Link>}<Link href="/dashboard/help"><span className="rf-quick-icon rf-quick-icon-ai" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l1.4 4.1L17.5 8.5l-4.1 1.4L12 14l-1.4-4.1-4.1-1.4 4.1-1.4L12 3z M18 14l.8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8L18 14z"/></svg></span><b>AI Assistant</b></Link><Link href="/dashboard/github"><span className="rf-quick-icon rf-quick-icon-github" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 8h8v8H8z M12 2v3 M12 19v3 M2 12h3 M19 12h3"/></svg></span><b>GitHub Fixes</b></Link>{latest?<Link href={`/dashboard/audit/${latest.id}/report`}><span className="rf-quick-icon rf-quick-icon-report" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6z M9 10h6 M9 14h6 M9 18h4"/></svg></span><b>{language==="nl"?"PDF rapport":language==="de"?"PDF-Bericht":language==="fr"?"Rapport PDF":language==="it"?"Report PDF":language==="es"?"Informe PDF":"PDF report"}</b></Link>:<Link href="/dashboard/history"><span className="rf-quick-icon rf-quick-icon-report" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6z M9 10h6 M9 14h6 M9 18h4"/></svg></span><b>{language==="nl"?"Rapporten":language==="de"?"Berichte":language==="fr"?"Rapports":language==="it"?"Report":language==="es"?"Informes":"Reports"}</b></Link>}</div></section><details id="websites" className="rf-section rf-websites-featured rf-websites-collapsible" open>
           <summary className="rf-websites-summary"><div><h2>{t.websites} <span>({scans.length})</span></h2><p>{x.latestReport} · {x.newControl}</p></div><span className="rf-websites-chevron" aria-hidden="true">⌄</span></summary>
+          <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center",justifyContent:"space-between",padding:"14px 10px"}}>
+            <label style={{display:"flex",alignItems:"center",gap:8,color:"#fff",fontWeight:700}}><input type="checkbox" style={{width:21,height:21,accentColor:"#19d4a1"}} checked={scans.length>0&&scans.every(scan=>selectedSites.includes(siteHost(scan.scanned_url)))} onChange={e=>setSelectedSites(e.target.checked?[...new Set(scans.map(scan=>siteHost(scan.scanned_url)))]:[])} disabled={deletingSites||!scans.length}/>{language==="nl"?"Selecteer alle websites":"Select all websites"}</label>
+            <button type="button" disabled={deletingSites||!selectedSites.length} onClick={removeSites} style={{padding:"12px 18px",borderRadius:12,background:"#b42318",color:"#fff",fontWeight:750,opacity:deletingSites||!selectedSites.length?.5:1}}>{deletingSites?"Verwijderen…":language==="nl"?`Verwijderen (${selectedSites.length})`:`Delete (${selectedSites.length})`}</button>
+          </div>
           <div className="rf-sites">
             {scans.map((scan) => {
               const hostname = (() => { try { return new URL(scan.scanned_url).hostname; } catch { return scan.scanned_url; } })();
               const status = scan.critical_issues ? t.critical : scan.open_issues ? t.warning : t.good;
               const tone = scan.critical_issues ? "critical" : scan.open_issues ? "warning" : "good";
               return <article key={scan.id} className="rf-site">
-                <div className="rf-site-main"><span className={`rf-dot ${tone}`} aria-hidden="true" /><div className="rf-site-copy"><h3>{hostname}</h3><p>{status} · {scan.open_issues} {scan.open_issues === 1 ? t.point : t.points} · {t.scanned} {new Date(scan.created_at).toLocaleDateString(language)}</p></div></div>
+                <div className="rf-site-main"><label style={{display:"flex",alignItems:"center",gap:8,color:"#fff",fontSize:13,fontWeight:700}}><input type="checkbox" aria-label={`Selecteer ${hostname}`} checked={selectedSites.includes(siteHost(scan.scanned_url))} onChange={e=>setSelectedSites(current=>e.target.checked?[...new Set([...current,siteHost(scan.scanned_url)])]:current.filter(h=>h!==siteHost(scan.scanned_url)))} disabled={deletingSites} style={{width:21,height:21,accentColor:"#19d4a1"}}/></label><span className={`rf-dot ${tone}`} aria-hidden="true" /><div className="rf-site-copy"><h3>{hostname}</h3><p>{status} · {scan.open_issues} {scan.open_issues === 1 ? t.point : t.points} · {t.scanned} {new Date(scan.created_at).toLocaleDateString(language)}</p></div></div>
                 <div className="rf-site-actions"><strong className="rf-site-score" aria-label={`${t.average} ${scan.overall_score}/100`}>{scan.overall_score}</strong><Link href={`/dashboard/audit/${scan.id}`}>{t.view}</Link><button onClick={() => rescan(scan)} disabled={busy === scan.id}>{busy === scan.id ? t.rescanning : t.rescan}</button><Link href={`/dashboard/audit/${scan.id}/report`}>PDF</Link></div>
               </article>;
             })}
