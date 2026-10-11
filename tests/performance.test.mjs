@@ -47,7 +47,9 @@ test("fixed route regexes stay linear-time on 2 MB adversarial input", async () 
     ["robots sitemap", literalAfter(route, "const declared = [...robotsTxt.matchAll("), " ".repeat(500_000) + "!"],
   ];
   for (const [label, re, input] of cases) {
-    const ms = timeIt(() => { re.lastIndex = 0; re.global ? [...input.matchAll(re)] : re.test(input); });
+    let matches = 0;
+    const ms = timeIt(() => { re.lastIndex = 0; matches = re.global ? [...input.matchAll(re)].length : Number(re.test(input)); });
+    assert.ok(matches >= 0);
     assert.ok(ms < 1500, `${label}: ${Math.round(ms)} ms`);
   }
 });
