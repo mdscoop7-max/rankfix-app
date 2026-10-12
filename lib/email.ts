@@ -55,3 +55,15 @@ export async function sendSystemHealthEmail(alert:SystemHealthEmail){
  if(!response.ok) throw new Error("System health email failed ("+response.status+")");
  return response.json();
 }
+
+// Internal regression pilot: one bundled e-mail per run, only for real regressions.
+export async function sendRegressionReportEmail(input:{to:string;runKey:string;markdown:string;regressions:number}){
+ const apiKey=process.env.RESEND_API_KEY;
+ const from=process.env.SCAN_REPORT_FROM||process.env.RESEND_FROM;
+ if(!apiKey||!from) throw new Error("Email configuration missing.");
+ const subject=`RankFix regressiepilot — ${input.regressions} echte regressie${input.regressions===1?"":"s"} (${input.runKey})`;
+ const html='<!doctype html><html><body style="font-family:Arial,sans-serif;background:#f8fafc;color:#0f172a"><div style="max-width:760px;margin:auto;padding:28px"><div style="background:#fff;border-radius:16px;padding:24px"><div style="font-size:12px;font-weight:800">RANKFIX REGRESSIEPILOT (INTERN)</div><h1 style="font-size:20px">'+escapeHtml(subject)+'</h1><pre style="white-space:pre-wrap;font-size:12px;line-height:1.5">'+escapeHtml(input.markdown)+'</pre></div></div></body></html>';
+ const response=await fetch("https://api.resend.com/emails",{method:"POST",headers:{Authorization:"Bearer "+apiKey,"Content-Type":"application/json"},body:JSON.stringify({from,to:[input.to],subject,html})});
+ if(!response.ok) throw new Error("Regression report email failed ("+response.status+")");
+ return response.json();
+}

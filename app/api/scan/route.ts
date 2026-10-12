@@ -25,6 +25,7 @@ import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDeta
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
+import { regressionScanContext } from "@/lib/regression/context";
 import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes } from "@/lib/sector-identity";
 
 // Vercel function limit for a full scan (fetches, representative pages and bounded
@@ -361,7 +362,10 @@ export async function POST(request: Request) {
     const body = await request.json();
     const rawUrl = typeof body?.url === "string" ? body.url.trim() : "";
     const mode: AuditMode = body?.mode === "seo" || body?.mode === "geo" || body?.mode === "both" ? body.mode : "both";
-    const dashboardScan = body?.dashboard === true;
+    // Internal read-only regression scan (server-only context, see lib/regression/context.ts):
+    // no session, no history, no usage, no dashboard features.
+    const regressionScan = regressionScanContext() !== null;
+    const dashboardScan = !regressionScan && body?.dashboard === true;
     // Every authenticated dashboard rescan automatically rechecks prepared fixes.
     // A fix is still marked DONE only by the strict fresh-evidence PASS gate below.
     const scanLanguage = ["nl","en","de","fr","it","es"].includes(body?.language) ? body.language : "nl";
@@ -435,7 +439,7 @@ export async function POST(request: Request) {
     // paying customers, none for server-configured internal tester account IDs.
     await ensureDatabase();
     let usageUser: Awaited<ReturnType<typeof getCurrentUser>> = null;
-    try { usageUser = await getCurrentUser(); } catch {}
+    if (!regressionScan) { try { usageUser = await getCurrentUser(); } catch {} }
     const usageWebsiteHost = target.hostname.toLowerCase().replace(/^www\./, "");
     let usageIpHash: string | null = null;
     const planCode = usageUser
@@ -454,7 +458,8 @@ export async function POST(request: Request) {
     }
     const scanRateLimit = scanRateLimitPolicy({ dashboardScan, userId: usageUser?.id || null, paidPlan: isPaidPlan(planCode), tester: internalTestAccount });
     const enforceScanRateLimit = async () => {
-      if (!scanRateLimit) return null;
+      // Regression runs are bounded by their own lease, batch size and budget.
+      if (!scanRateLimit || regressionScan) return null;
       const identity = scanRateLimit.key === "user" ? String(usageUser?.id) : requestIp(request);
       const result = await checkRateLimit(scanRateLimit.scope, identity, scanRateLimit.limit, scanRateLimit.windowSeconds);
       if (result.allowed) return null;
@@ -4682,7 +4687,7 @@ export async function POST(request: Request) {
     let user = null;
     let savedScanId: string | null = null;
     let pendingFixes = new Map<string, { status: string }>();
-    try { user = await getCurrentUser(); } catch {}
+    if (!regressionScan) { try { user = await getCurrentUser(); } catch {} }
     if (dashboardScan && !user) return NextResponse.json({ error: scanError.session }, { status: 401 });
     if (user) {
       try {

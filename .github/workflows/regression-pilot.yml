@@ -1,0 +1,48 @@
+name: RankFix regressiepilot (intern, read-only)
+
+# NOT ACTIVE: no schedule until the owner approves the final URL list and the
+# cost budget (issue #128). After approval, uncomment the schedule below and set
+# RANKFIX_REGRESSION_PILOT=1, REGRESSION_SECRET and REGRESSION_ALERT_EMAIL in
+# Vercel production plus the REGRESSION_SECRET repository secret.
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "RankFix-omgeving"
+        required: false
+        default: "https://rankfix-app.vercel.app"
+      run_key:
+        description: "Optionele run-sleutel (standaard nightly-YYYY-MM-DD)"
+        required: false
+        default: ""
+  # schedule:
+  #   # 02:41 UTC = 04:41 (zomertijd) / 03:41 (wintertijd) Nederlandse tijd.
+  #   - cron: "41 2 * * *"
+
+permissions:
+  contents: read
+
+# Never two runs at the same time; a late run waits instead of overlapping.
+concurrency:
+  group: rankfix-regression-pilot
+  cancel-in-progress: false
+
+jobs:
+  pilot:
+    name: Nachtelijke regressiescans (pilot)
+    runs-on: ubuntu-latest
+    # 7 sites × (≤ 300 s scan + 15 s pause) + retries stays well inside 75 min.
+    timeout-minutes: 75
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Run pilot
+        env:
+          REGRESSION_SECRET: ${{ secrets.REGRESSION_SECRET }}
+          RANKFIX_BASE_URL: ${{ inputs.base_url || 'https://rankfix-app.vercel.app' }}
+          RUN_KEY: ${{ inputs.run_key }}
+        run: node scripts/regression/run-pilot.mjs
