@@ -81,7 +81,7 @@ jobs:
       - name: Real scans, one at a time, measured
         run: |
           mkdir -p benchmark-results
-          SERVER_PID=$(cat server.pid) BASE_URL=http://127.0.0.1:3100 PAUSE_MS=15000 \
+          SERVER_PID=$(cat server.pid) BASE_URL=http://127.0.0.1:3100 PAUSE_MS=15000 DUMP_DIR=benchmark-results/raw-${PR127_SHA:0:7} \
             node --experimental-strip-types scripts/regression/local-scan-benchmark.mjs \
             scripts/regression/benchmark-sites.json benchmark-results/bench.json
       - name: Report
@@ -97,13 +97,7 @@ jobs:
         run: |
           git config user.name "rankfix-benchmark"
           git config user.email "noreply@github.com"
+          rm -f benchmark-results/bench-${PR127_SHA:0:7}.json; cp benchmark-results/bench.json benchmark-results/bench-${PR127_SHA:0:7}.json; cp benchmark-results/report.md benchmark-results/report-${PR127_SHA:0:7}.md
           git add -f benchmark-results
           git commit -m "Benchmark results ${GITHUB_RUN_ID}" || exit 0
           git push origin HEAD:ci/pr127-preview-smoke
-      - name: Post summary on PR #127
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          { echo "## Claude — echte scans met de code van PR #127 (GitHub-runner, read-only)"; echo; head -c 60000 benchmark-results/report.md 2>/dev/null || echo "Geen rapport."; echo; echo "_Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} · volledige JSON op branch \`ci/pr127-preview-smoke\` (benchmark-results/)._"; } > comment.md
-          gh api repos/${{ github.repository }}/issues/127/comments -F body=@comment.md >/dev/null

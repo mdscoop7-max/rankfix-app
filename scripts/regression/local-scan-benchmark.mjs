@@ -106,6 +106,12 @@ for (const [index, site] of sites.entries()) {
   const after = treeUsage(serverPid);
   const snapshot = snapshotFromScan({ httpStatus, body, durationMs: wallMs, timedOut: note === "TimeoutError" });
   const technology = body?.technologyProfile || null;
+  // Full scan body for diagnosis (no secrets; public page evidence only).
+  if (process.env.DUMP_DIR && body) {
+    const { mkdirSync, writeFileSync } = await import("node:fs");
+    mkdirSync(process.env.DUMP_DIR, { recursive: true });
+    writeFileSync(`${process.env.DUMP_DIR}/${String(index + 1).padStart(2, "0")}.json`, JSON.stringify({ url: site.url, body }, null, 1));
+  }
   const checks = Array.isArray(body?.checks) ? body.checks : [];
   results.push({
     ...site,
