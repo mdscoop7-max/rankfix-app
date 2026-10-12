@@ -144,7 +144,7 @@ export function primaryNonRetailRole(input:{
   // A retailer advertising hotel-room furniture or restaurant equipment is not
   // itself a hotel/restaurant. Evidence is about the primary business model.
   const retail=retailIdentityLanguage(identity);
-  if(retail.assortment&&retail.onlineSales)return {key:null,evidence:[]};
+  if((retail.assortment&&retail.onlineSales) || (hasRetailStoreSchema(schema) && /\b(?:buy|shop|add to cart|purchase|bestel|kopen|winkelwagen|webshop|online store)\b/i.test(identity)))return {key:null,evidence:[]};
   const rules=[
     {key:"lodging" as const,primary:/\b(?:hotel|hostel|guesthouse|guest house|bed and breakfast|resort|vakantiehuis|vacation rental|ferienhaus|pension|camping|campground)\b/i,
       support:/\b(?:rooms?|kamers?|suites?|stay|overnight|accommodation|lodging|book (?:a |your )?room|overnachten|overnachting|gasten|guests?)\b/i,
