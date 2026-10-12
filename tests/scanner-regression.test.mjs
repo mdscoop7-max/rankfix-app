@@ -1691,6 +1691,6 @@ test("international portal excludes shop-only page checks without pretending com
 test("final business detail evidence includes verified categories rather than 'found=none'",async()=>{
   const { readFile } = await import("node:fs/promises");
   const scanner=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
-  assert.match(scanner,/business_placeholders: `placeholders=\$\{placeholderMatches\.length\}; verifiedDetails=\$\{businessDetails\.found\.join/);
+  assert.match(scanner,/business_placeholders: `placeholders=\$\{placeholderMatches\.length\}; verifiedDetails=\$\{businessDetails\.status === "pass" \? businessDetails\.found\.join/);
   assert.doesNotMatch(scanner,/business_placeholders: `placeholders=\$\{placeholderMatches\.length\}; found=\$\{placeholderMatches/);
 });

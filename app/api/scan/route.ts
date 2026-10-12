@@ -3297,7 +3297,7 @@ export async function POST(request: Request) {
         // evidence. Include the actually verified contact categories here; an
         // empty placeholder list must not be displayed as "Found: none".
         // Never expose the raw e-mail address/phone number in this summary.
-        business_placeholders: `placeholders=${placeholderMatches.length}; verifiedDetails=${businessDetails.found.join(",") || "none"}; placeholderExamples=${placeholderMatches.slice(0,4).join(",") || "none"}`,
+        business_placeholders: `placeholders=${placeholderMatches.length}; verifiedDetails=${businessDetails.status === "pass" ? businessDetails.found.join(",") : "none"}; placeholderExamples=${placeholderMatches.slice(0,4).join(",") || "none"}`,
         price_format: hasEcommerceSignal ? `visiblePrices=${visiblePriceEvidence.count}; examples=${visiblePriceEvidence.examples.slice(0, 4).join(" | ") || "none"}; notation=${visiblePriceEvidence.notation}; referencePrices=${visiblePriceEvidence.referencePrices.slice(0, 3).join(" | ") || "none"}; dotDecimalPrices=${priceFormatMatches.length}` : null,
         price_currency_consistency: hasEcommerceSignal ? `visibleCurrencies=${visibleCurrencyCodes.join(",") || "none"}; structuredCurrencies=${structuredCurrencyCodes.join(",") || "none"}; conflict=${currencyConflict}; mixedVisible=${mixedVisibleCurrencies}` : null,
         eu_consumer_information_signal: hasEcommerceSignal ? `returns=${hasReturnsSignal}; businessIdentity=${hasVisibleBusinessIdentity}; businessContact=${hasBusinessContactDetails}; legalConclusion=false` : null,
