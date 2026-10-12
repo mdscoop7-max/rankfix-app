@@ -1,8 +1,8 @@
 "use client";
 import Link from "next/link";
 import WebsiteProfile from "@/components/website-profile";
-import { ScoreEvidenceLines, scoreHeadline } from "@/components/score-confidence";
-import type { ScorePresentation } from "@/lib/score-presentation";
+import { ScoreEvidenceLines, resolveScorePresentation, scoreHeadline } from "@/components/score-confidence";
+import { scorePresentationCopy, type ScorePresentation } from "@/lib/score-presentation";
 
 import { useEffect, useMemo, useState } from "react";
 import AiAssistant from "@/components/ai-assistant";
@@ -542,6 +542,13 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
       "HTTP: " + result.httpStatus + " | " + result.responseTime + " ms",
       "Score: " + result.overallScore + "/100 | Grade: " + result.grade
     ];
+    // The export carries the same score status as the screen: a provisional score
+    // is never copied as an unconditional 100/100.
+    const presentation = resolveScorePresentation(result);
+    if (presentation) {
+      const copy = scorePresentationCopy(language);
+      lines.push((presentation.status === "provisional" ? copy.provisional : copy.confirmed) + ": " + copy.coverage + " " + presentation.coveragePercent + "% | " + copy.reliability + " " + copy.levels[presentation.reliability] + " | " + presentation.unconfirmedChecks + " " + copy.unconfirmed + (presentation.range ? " | " + copy.range + " " + presentation.range.low + "–" + presentation.range.high : ""));
+    }
     if (result.rendering) {
       lines.push("Source: " + result.rendering.mode + " | JavaScript executed: " + (result.rendering.javascriptExecuted ? "yes" : "no"));
       if (result.rendering.note) lines.push(result.rendering.note);

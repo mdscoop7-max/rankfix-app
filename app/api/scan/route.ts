@@ -1423,8 +1423,12 @@ export async function POST(request: Request) {
     }));
     // A timeout/DNS/fetch failure is not proof of a broken link. Only an HTTP response
     // that proves the destination is gone or server-broken is actionable here.
-    const unconfirmedInternalLinks = linkAuditResults.filter((item) => item.error || item.status === null);
-    const brokenInternalLinks = linkAuditResults.filter((item) => item.status === 404 || item.status === 410 || (item.status !== null && item.status >= 500));
+    // 429, 502, 503 and 504 mean "busy, rate-limited or temporarily unavailable"
+    // (often bot throttling of the scanner itself), not a broken link. They stay
+    // unconfirmed; 404, 410 and other 5xx are proven failures.
+    const TRANSIENT_LINK_STATUSES = new Set([429, 502, 503, 504]);
+    const unconfirmedInternalLinks = linkAuditResults.filter((item) => item.error || item.status === null || TRANSIENT_LINK_STATUSES.has(item.status));
+    const brokenInternalLinks = linkAuditResults.filter((item) => item.status === 404 || item.status === 410 || (item.status !== null && item.status >= 500 && !TRANSIENT_LINK_STATUSES.has(item.status)));
     const isAuthUtilityRedirect = (item: LinkAuditResult) => {
       if (!item.redirected || item.error) return false;
       try {
@@ -2075,7 +2079,7 @@ export async function POST(request: Request) {
         : brokenInternalLinks.length > 0
           ? check("warning", "broken_links", "seo", "Broken links", `${brokenInternalLinks.length} van ${linkAuditResults.length} gecontroleerde interne link(s) gaf een bewezen foutstatus (${Math.round(brokenInternalLinkRatio * 100)}%). Voorbeeld: ${brokenInternalLinks[0]?.url} → HTTP ${brokenInternalLinks[0]?.status}.`, "Herstel de bestemming, verwijder de link of redirect een oude URL naar de juiste relevante pagina.", brokenLinkPoints, 5)
           : unconfirmedInternalLinks.length > 0
-            ? check("unable_to_confirm", "broken_links", "seo", "Broken links", `${unconfirmedInternalLinks.length} van ${linkAuditResults.length} interne link(s) kon tijdens deze scan niet betrouwbaar worden opgehaald. Er is geen 404/410/5xx bewezen.`, "Controleer deze links opnieuw; een fetchfout alleen is geen bewijs van een kapotte link.", 0, 5)
+            ? check("unable_to_confirm", "broken_links", "seo", "Broken links", `${unconfirmedInternalLinks.length} van ${linkAuditResults.length} interne link(s) kon tijdens deze scan niet betrouwbaar worden opgehaald (fetchfout of tijdelijke status${unconfirmedInternalLinks.some((item) => item.status) ? `, bijvoorbeeld ${unconfirmedInternalLinks.find((item) => item.status)?.url} → HTTP ${unconfirmedInternalLinks.find((item) => item.status)?.status}` : ""}). HTTP 429/502/503/504 betekent tijdelijk niet beschikbaar of rate-limited; er is geen 404, 410 of blijvende serverfout bewezen.`, "Controleer deze links opnieuw; een fetchfout alleen is geen bewijs van een kapotte link.", 0, 5)
             : check("pass", "broken_links", "seo", "Broken links", `${linkAuditResults.length} interne link(s) steekproefsgewijs gecontroleerd; geen 404, 410 of 5xx gevonden.`, "Blijf interne links controleren bij wijzigingen en verwijderde pagina's.", 5, 5)
     );
     seoChecks.push(
@@ -2386,7 +2390,9 @@ export async function POST(request: Request) {
     const googleAdsIds = [...new Set(html.match(/\bAW-[0-9-]+\b/gi) || [])];
     const gtmContainerIds = [...new Set(html.match(/\bGTM-[A-Z0-9]{4,}\b/gi) || [])];
     const hasGtagLoader = /googletagmanager\.com\/gtag\/js/i.test(html);
-    const hasGtmLoader = /googletagmanager\.com\/gtm\.js/i.test(html);
+    // Server-side / first-party GTM serves the same container from the site's own
+    // (sub)domain: /gtm.js?id=GTM-... or the /ns.html?id=GTM-... noscript iframe.
+    const hasGtmLoader = /googletagmanager\.com\/gtm\.js/i.test(html) || /\/(?:gtm\.js|ns\.html)\?id=GTM-[A-Z0-9]{4,}/i.test(html);
     const configuredGa4Ids = [...new Set(
       [...html.matchAll(/gtag\s*\(\s*["']config["']\s*,\s*["'](G-[A-Z0-9]{6,})["']/gi)].map((match) => match[1].toUpperCase())
     )];
