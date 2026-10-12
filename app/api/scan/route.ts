@@ -2386,9 +2386,12 @@ export async function POST(request: Request) {
     const organizationSchemaPresent = hasOrganizationSchema(schemaTypes);
     const websiteSchemaPresent = schemaSet.has("website");
     const productSchemaPresent = schemaSet.has("product");
-    const ga4MeasurementIds = [...new Set(html.match(/\bG-[A-Z0-9]{6,}\b/gi) || [])];
-    const googleAdsIds = [...new Set(html.match(/\bAW-[0-9-]+\b/gi) || [])];
-    const gtmContainerIds = [...new Set(html.match(/\bGTM-[A-Z0-9]{4,}\b/gi) || [])];
+    // Google tag IDs are upper case. Case-insensitive matching turned CSS
+    // classes such as "g-recaptcha" or "gtm-banner" into GA4/GTM IDs. A GA4
+    // measurement ID also contains at least one digit; IDs start the token.
+    const ga4MeasurementIds = [...new Set(html.match(/(?<![\w-])G-(?=[A-Z0-9]*\d)[A-Z0-9]{6,12}\b/g) || [])];
+    const googleAdsIds = [...new Set(html.match(/(?<![\w-])AW-\d[0-9-]*\b/g) || [])];
+    const gtmContainerIds = [...new Set(html.match(/(?<![\w-])GTM-[A-Z0-9]{4,10}\b/g) || [])];
     const hasGtagLoader = /googletagmanager\.com\/gtag\/js/i.test(html);
     // Server-side / first-party GTM serves the same container from the site's own
     // (sub)domain: /gtm.js?id=GTM-... or the /ns.html?id=GTM-... noscript iframe.
