@@ -107,4 +107,6 @@ jobs:
           rm -f benchmark-results/bench-${PR127_SHA:0:7}.json; cp benchmark-results/bench.json benchmark-results/bench-${PR127_SHA:0:7}.json; cp benchmark-results/report.md benchmark-results/report-${PR127_SHA:0:7}.md
           git add -f benchmark-results/raw-${PR127_SHA:0:7} benchmark-results/bench-${PR127_SHA:0:7}.json benchmark-results/report-${PR127_SHA:0:7}.md
           git commit -m "Benchmark results ${GITHUB_RUN_ID}" || exit 0
-          for i in 1 2 3; do git pull --rebase -q origin ci/pr127-preview-smoke && git push origin HEAD:ci/pr127-preview-smoke && break; sleep 5; done
+          git stash -u -q || true
+          ok=0; for i in 1 2 3; do git pull --rebase -q origin ci/pr127-preview-smoke && git push origin HEAD:ci/pr127-preview-smoke && ok=1 && break; sleep 5; done
+          [ "$ok" = 1 ] || { echo "::error::results push failed"; exit 1; }
