@@ -4,6 +4,7 @@ import WebsiteProfile from "@/components/website-profile";
 import { ScoreEvidenceLines, resolveScorePresentation, scoreHeadline } from "@/components/score-confidence";
 import { scorePresentationCopy, type ScorePresentation } from "@/lib/score-presentation";
 import { summaryFromChecks } from "@/lib/audit-score";
+import { redactReportText } from "@/lib/report-privacy";
 
 import { useEffect, useMemo, useState } from "react";
 import AiAssistant from "@/components/ai-assistant";
@@ -607,7 +608,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
       });
     }
     lines.push("", "Scan snapshot. Not applicable/unable to confirm are not proven failures.");
-    return lines.join("\n");
+    return redactReportText(lines.join("\n"));
   }
 
   async function copyPublicAudit() {

@@ -132,7 +132,9 @@ export function summarizeAuditChecks(items: ScorableAuditCheck[]) {
 export function summaryFromChecks(items: Array<{ status?: string; issue_status?: string; severity?: string; confidence?: string; fix_status?: string }>) {
   return summarizeAuditChecks(items.map((item) => ({
     ...item,
-    issue_status: String(item.issue_status || item.status || "").trim().toUpperCase() as AuditIssueStatus,
+    // The displayed lower-case status wins if an older scan kept a stale
+    // issue_status during late representative-page reconciliation.
+    issue_status: String(item.status || item.issue_status || "").trim().toUpperCase() as AuditIssueStatus,
     points: 0,
     maxPoints: 0,
   })) as ScorableAuditCheck[]);

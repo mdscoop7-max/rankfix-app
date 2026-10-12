@@ -1,0 +1,28 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { publicReportUrl, redactReportText } from "../lib/report-privacy.ts";
+
+test("strip all OAuth authentication and signed URL parameters from shared reports", () => {
+  const input="https://account.example.test/authentication/oauth/authorize?buyer_flags=eyJabc&client_id=abc&nonce=123&state=super-secret&redirect_uri=https%3A%2F%2Faccount.example.test%2Fcallback";
+  const redacted="https://account.example.test/authentication/oauth/authorize";
+  assert.equal(publicReportUrl(input),redacted);
+  assert.equal(redactReportText("URL: "+input),"URL: "+redacted);
+  for(const secret of ["buyer_flags","client_id","nonce","state","super-secret","redirect_uri"])assert.equal(redactReportText(input).includes(secret),false,secret);
+});
+
+test("regular product and root URLs remain usable; signed media URLs lose tokens", () => {
+  assert.equal(publicReportUrl("https://allbirds.de/"),"https://allbirds.de/");
+  assert.equal(publicReportUrl("https://allbirds.de/products/tree-runner?variant=123#detail"),"https://allbirds.de/products/tree-runner");
+  assert.equal(redactReportText("Foto https://allbirds.de/cdn/main.png?v=123&signature=secret. Klaar."),"Foto https://allbirds.de/cdn/main.png. Klaar.");
+});
+
+test("short and full report export paths both sanitize and use the check-level summary", async () => {
+  const publicPage=await readFile(new URL("../app/page.tsx",import.meta.url),"utf8");
+  const fullPage=await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx",import.meta.url),"utf8");
+  assert.match(publicPage,/return redactReportText\\(lines\\.join\\("\\\\n"\\)\\)/);
+  assert.match(publicPage,/const summary = summaryFromChecks\\(/);
+  assert.match(fullPage,/return redactReportText\\(\\[\\.\\.\\.root\\.children\\]/);
+  assert.match(fullPage,/publicReportUrl\\(page\\.url\\)/);
+  assert.match(fullPage,/HTTP-fouten in de paginasteekproef/);
+});

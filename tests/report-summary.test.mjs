@@ -79,3 +79,23 @@ test("public result and export derive counts from the displayed checks", async (
   assert.match(page, /const passedCount = summaryFromChecks\(summaryChecks\)\.passed;/);
   assert.doesNotMatch(page, /"Passed: " \+ result\.summary\.passed/);
 });
+
+test("short export uses visible statuses after reconciliation, even when issue_status is stale", () => {
+  const displayed = [
+    {status:"pass",issue_status:"NOT_APPLICABLE"},
+    {status:"unable_to_confirm",issue_status:"PASS"},
+    {status:"not_applicable",issue_status:"UNABLE_TO_CONFIRM"},
+    {status:"warning",issue_status:"WARNING"},
+  ];
+  const summary=summaryFromChecks(displayed);
+  assert.deepEqual([summary.passed,summary.issues,summary.notApplicable,summary.unableToConfirm],[1,1,1,1]);
+});
+
+test("Consent Mode and Ads readiness are not treated as failures without confirmed tracking", async () => {
+  const source=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
+  assert.match(source,/adsTrackingSignals===0\s*\? check\("not_applicable","consent_mode_readiness"/);
+  assert.match(source,/!adsApplicable\s*\? check\("not_applicable","ads_readiness"/);
+  assert.match(source,/hasAdsProfile && Boolean\(adsProfile\.campaignGoal/);
+  assert.match(source,/adsTrackingSignals > 0 \|\| hasConversionSignal \|\| hasExplicitAdsConversionSnippet/);
+  assert.match(source,/check\("unable_to_confirm","ads_readiness"/);
+});
