@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import WebsiteProfile from "@/components/website-profile";
-import ScoreConfidence, { scoreHeadline } from "@/components/score-confidence";
+import { ScoreEvidenceLines, scoreHeadline } from "@/components/score-confidence";
 import type { ScorePresentation } from "@/lib/score-presentation";
 
 import { useEffect, useMemo, useState } from "react";
@@ -1109,10 +1109,10 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
 
           <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
             <div className="rounded-3xl border border-slate-200 bg-white/[0.035] p-6">
-              <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">{scoreHeadline(result, language)}</div>
+              <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">{scoreHeadline(result, language, "Overall")}</div>
               <div className="mt-2 text-6xl font-black tracking-tighter text-emerald-300">{result.overallScore}</div>
               <div className="mt-1 text-sm text-slate-500">Grade {result.grade}</div>
-              <ScoreConfidence result={result} language={language} />
+              <ScoreEvidenceLines result={result} language={language} className="mt-1 text-xs leading-5 text-slate-500" />
               <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
                 <div className="h-full rounded-full bg-gradient-to-r from-emerald-300 to-blue-500" style={{ width: `${result.overallScore}%` }} />
               </div>

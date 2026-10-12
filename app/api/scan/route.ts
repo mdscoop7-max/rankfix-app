@@ -28,7 +28,8 @@ import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } fr
 import { articleSchemaPage, declaredIdentityGovernsPage, declaredPrimaryIdentity } from "@/lib/primary-identity";
 import { detectCookieInformation } from "@/lib/cookie-evidence";
 import { presentScore } from "@/lib/score-presentation";
-import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes } from "@/lib/sector-identity";
+const BOOKING_IDENTITY_PATTERN = /\b(?:reserveer|reserveren|reservering|boek(?:en)?|booking|book now|afspraak maken|maak een afspraak|online afspraak|plan (?:je|uw) afspraak|appointment|termin buchen|réserver|reservar|prenota)\b/i;
+import { FOOD_MENU_PATTERN, TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes } from "@/lib/sector-identity";
 
 // Vercel function limit for a full scan (fetches, representative pages and bounded
 // rendering). Rendering itself stops starting new pages well before this deadline.
@@ -939,7 +940,8 @@ export async function POST(request: Request) {
     const articleSchemaEvidence = articleSchemaPage(schemaTypes, isHomepage);
     const hasLocalBusinessSignal =
       schemaSet.has("localbusiness") ||
-      (!articleSchemaEvidence && localContactSignal && (localBusinessKeywordSignal || /\b(menu|menukaart|reserveren|reservation|openingstijden|opening hours)\b/i.test(text)));
+      // A bare "menu" is navigation vocabulary; only food-menu expressions count.
+      (!articleSchemaEvidence && localContactSignal && (localBusinessKeywordSignal || FOOD_MENU_PATTERN.test(text) || /\b(reserveren|reservation|openingstijden|opening hours)\b/i.test(text)));
     const hasVisibleBusinessIdentity = Boolean(
       organizationName ||
       (title && /\b(restaurant|salon|kapsalon|bakker|bakery|bar|cafe|café|dentist|tandarts|electrician|elektricien|plumber|loodgieter|aannemer|contractor|hairdresser|kapper|store|winkel)\b/i.test(title)) ||
@@ -2806,7 +2808,7 @@ export async function POST(request: Request) {
       (thinRawHtmlEvidence || (metadataMayBeClientRendered && !(hasPrivacyLink && hasCookieInfo && hasContactLink)))
         ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen",thinRawHtmlEvidence ? "De raw HTML is een dunne JavaScript-shell. Privacy-, cookie- en contactlinks kunnen client-side worden toegevoegd en zijn daarom niet betrouwbaar als ontbrekend te beoordelen." : "Deze pagina gebruikt een JavaScript-framework en browser-rendering was niet beschikbaar. Footerlinks naar privacy, cookies of contact kunnen client-side worden geladen en zijn daarom niet als ontbrekend te beoordelen.","Controleer deze signalen opnieuw met geslaagde JavaScript-rendering.",0,5)
         : hasPrivacyLink && hasCookieInfo && hasContactLink
-        ? check("pass","trust_legal_signals","seo","Privacy & vertrouwenssignalen",(hasCookieLink ? "Links naar privacy, cookies en contact zijn in de opgehaalde HTML gevonden." : "Privacy- en contactlinks en cookie-informatie ("+cookieInfo.detail+") zijn in de opgehaalde HTML gevonden.")+(legalEvidenceSummary ? " Bewijs: "+legalEvidenceSummary+"." : ""),"Houd deze informatie duidelijk vindbaar en actueel. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",5,5)
+        ? check("pass","trust_legal_signals","seo","Privacy & vertrouwenssignalen",(hasCookieLink ? "Links naar privacy, cookies en contact zijn in de opgehaalde HTML gevonden." : "Privacy- en contactlinks en cookie-informatie ("+cookieInfo.detail+") zijn in de opgehaalde HTML gevonden. Een consentplatform of cookiebanner laat alleen zien dat cookie-informatie aanwezig is; het is geen bewijs van juridische naleving.")+(legalEvidenceSummary ? " Bewijs: "+legalEvidenceSummary+"." : ""),"Houd deze informatie duidelijk vindbaar en actueel. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",5,5)
         : hasPrivacyLink && hasCookieInfo && helpOnlyContactAnchor
         ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Links naar privacy en cookies zijn gevonden. Voor contact is alleen een indirecte link gevonden (FAQ, help, support, klantenservice of een andere website) (\""+(helpOnlyContactAnchor.label || helpOnlyContactAnchor.aria || helpOnlyContactAnchor.title)+"\" → "+helpOnlyContactAnchor.href+"); dat bewijst geen directe contactmogelijkheid, maar ook niet dat die ontbreekt."+(legalEvidenceSummary ? " Bewijs: "+legalEvidenceSummary+"." : ""),"Controleer of de help- of supportpagina een contactpagina, contactformulier, e-mailadres of telefoonnummer aanbiedt.",0,5)
         : hasPrivacyLink && hasContactLink && !hasCookieInfo
@@ -4358,7 +4360,11 @@ export async function POST(request: Request) {
       : sectorProfile.key === "recruitment" && masterEvidence.businessModels.includes("recruitment")
         ? "Recruitmentwebsite"
         // Reserving or collecting in-store is a secondary retail capability, not a booking site.
+        // Booking is the website type only when it is the site's primary purpose:
+        // a booking-based sector, or booking intent in the page's own identity.
+        // A hospital or institution that also offers appointments is not a booking site.
         : sectorProfile.key !== "ecommerce" && masterEvidence.businessModels.some(model => model === "appointments" || model === "reservations" || model === "bookings")
+          && (["hospitality","beauty"].includes(sectorProfile.sector) || BOOKING_IDENTITY_PATTERN.test(sectorIdentitySource))
           ? "Boekings-/afsprakenwebsite"
           : technologyProfile.siteType === "Landingpage"
             ? "Website"
@@ -4490,7 +4496,7 @@ export async function POST(request: Request) {
       const contactOk = hasContactLink || Boolean(contactPage);
       const sampleProof = [privacyPage && `privacy: ${privacyPage.url}`, cookiePage && cookiePage !== privacyPage && `cookies: ${cookiePage.url}`, cookiePage && cookiePage === privacyPage && !hasCookieLink && "cookies: in de privacyverklaring", !cookiePage && hasCookieInfo && !hasCookieLink && `cookies: ${cookieInfo.detail}`, contactPage && `contact: ${contactPage.url}`].filter(Boolean).join(" · ");
       if (privacyOk && cookieOk && contactOk && (privacyPage || cookiePage || contactPage)) {
-        Object.assign(trustLegalCheck, check("pass","trust_legal_signals","seo",trustLegalCheck.title,`Privacy-, cookie- en contactinformatie is bevestigd via de gescande pagina en de representatieve steekproef (${sampleProof}).`,"Houd deze informatie duidelijk vindbaar en actueel. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",5,5));
+        Object.assign(trustLegalCheck, check("pass","trust_legal_signals","seo",trustLegalCheck.title,`Privacy-, cookie- en contactinformatie is bevestigd via de gescande pagina en de representatieve steekproef (${sampleProof}).${hasCookieInfo && !hasCookieLink ? " Een consentplatform of cookiebanner laat alleen zien dat cookie-informatie aanwezig is; het is geen bewijs van juridische naleving." : ""}`,"Houd deze informatie duidelijk vindbaar en actueel. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",5,5));
         trustLegalCheck.evidence = { url: finalUrl.toString(), found: true, details: trustLegalCheck.message };
       } else if (privacyOk && contactOk && !cookieOk && trustLegalCheck.status==="warning") {
         // Only cookie information remains undetected: unproven absence, not a defect.

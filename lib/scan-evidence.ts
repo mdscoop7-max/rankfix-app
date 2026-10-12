@@ -1,3 +1,5 @@
+import { FOOD_MENU_PATTERN } from "./sector-identity.ts";
+
 export type EvidenceConfidence = "high" | "medium" | "low";
 export type EvidenceSource = "raw_html" | "rendered_html" | "headers" | "url" | "structured_data" | "multi_page";
 
@@ -141,7 +143,8 @@ export function buildScanEvidence(input: {
   const roomText = has(text, /\b(kamers?|rooms?|overnachting|hotelzimmer|chambres?)\b/i);
   const rooms = roomSchema || roomText;
   const menuSchema = schemaHas("Restaurant", "Menu");
-  const menuText = has(text, /\b(menu|menukaart|gerechten|restaurant|speisekarte|carte des plats)\b/i);
+  // A bare "menu" is navigation vocabulary; only food-menu expressions count.
+  const menuText = has(text, FOOD_MENU_PATTERN) || has(text, /\b(?:gerechten|restaurant)\b/i);
   const menu = menuSchema || menuText;
 
   const contactLink = has(html, /(?:mailto:|tel:|href\s*=\s*["'][^"']*\/(?:contact|contact-us|kontakt|contacto)(?:\/|["'#?]))/i);

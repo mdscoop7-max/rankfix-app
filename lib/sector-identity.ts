@@ -66,6 +66,11 @@ export function retailIdentityLanguage(identitySource: string) {
 export const TOURISM_IDENTITY_PATTERN = /\b(?:toerisme|tourism|toeristisch(?:e)?|toeristische informatie|tourist information|tourist board|vvv|citymarketing|city marketing|stadspromotie|bezoekerscentrum|visitor (?:centre|center)|bezienswaardigheden|things to do|sightseeing)\b/i;
 export const TOURISM_ACTIVITY_PATTERN = /\b(?:agenda|evenementen|events|overnachten|activiteiten|uitjes|attracties|attractions|bezienswaardigheden|things to do|musea|museums)\b/i;
 
+// Food-menu evidence. A bare "menu" is site-navigation vocabulary (the
+// "Menu" button of almost every website) and is never hospitality evidence;
+// only expressions that name a food or drinks menu count.
+export const FOOD_MENU_PATTERN = /\b(?:menukaart|menu kaart|menu's|ons menu|onze menu|bekijk (?:het|ons|onze) menu|lunchmenu|dinermenu|dinnermenu|lunchkaart|dinerkaart|wijnkaart|drankenkaart|kinderkaart|food menu|our menu|view (?:the |our )?menu|speisekarte|carte des plats|carta del ristorante|menú del día)\b/i;
+
 export function isTourismBoardHost(hostname: string): boolean {
   return /^(?:www\.)?visit[a-z-]{3,}\.[a-z.]+$/i.test(hostname);
 }

@@ -1,5 +1,9 @@
 import { presentScore, scorePresentationCopy, type ScorePresentation } from "@/lib/score-presentation";
 
+// Score presentation for existing layouts. No own colours or boxes: every
+// variant renders with the class names of the surrounding design, so the
+// current look on desktop and mobile stays unchanged.
+
 type ResultLike = {
   scorePresentation?: ScorePresentation | null;
   coverage?: { coveragePercent?: number; highConfidencePercent?: number; unableToConfirm?: number } | null;
@@ -23,28 +27,38 @@ export function resolveScorePresentation(result: ResultLike | null | undefined):
   });
 }
 
-export function scoreHeadline(result: ResultLike | null | undefined, language: string): string {
+// Headline above the score: unchanged label for confirmed scores, the
+// localized "provisional score" label when the evidence is incomplete.
+export function scoreHeadline(result: ResultLike | null | undefined, language: string, confirmedLabel: string): string {
   const presentation = resolveScorePresentation(result);
-  const copy = scorePresentationCopy(language);
-  return presentation?.status === "provisional" ? copy.provisional : copy.confirmed;
+  return presentation?.status === "provisional" ? scorePresentationCopy(language).provisional : confirmedLabel;
 }
 
-const tone: Record<string, string> = {
-  high: "border-emerald-300/40 bg-emerald-50 text-emerald-800",
-  medium: "border-amber-300/50 bg-amber-50 text-amber-800",
-  low: "border-rose-300/50 bg-rose-50 text-rose-800",
-};
-
-export default function ScoreConfidence({ result, language, compact = false }: { result: ResultLike | null | undefined; language: string; compact?: boolean }) {
+// Public scan result: plain lines in the style of the existing "Grade" line.
+export function ScoreEvidenceLines({ result, language, className }: { result: ResultLike | null | undefined; language: string; className: string }) {
   const presentation = resolveScorePresentation(result);
-  if (!presentation) return null;
+  if (!presentation || presentation.status !== "provisional") return null;
   const copy = scorePresentationCopy(language);
   return (
-    <div className={`mt-3 rounded-xl border px-3 py-2 text-xs leading-5 ${tone[presentation.reliability]}`} data-score-status={presentation.status}>
-      <div className="font-bold">{presentation.status === "provisional" ? copy.provisional : copy.confirmed}</div>
-      <div>{copy.coverage}: <strong>{presentation.coveragePercent}%</strong> · {copy.reliability}: <strong>{copy.levels[presentation.reliability]}</strong></div>
-      <div><strong>{presentation.unconfirmedChecks}</strong> {copy.unconfirmed}{presentation.range ? <> · {copy.range}: <strong>{presentation.range.low}–{presentation.range.high}</strong></> : null}</div>
-      {!compact && presentation.status === "provisional" ? <p className="mt-1 opacity-80">{copy.note}</p> : null}
+    <div className={className} data-score-status="provisional" title={copy.note}>
+      <div>{copy.coverage} {presentation.coveragePercent}% · {copy.reliability} {copy.levels[presentation.reliability]}</div>
+      {presentation.range ? <div>{copy.range} {presentation.range.low}–{presentation.range.high}</div> : null}
     </div>
+  );
+}
+
+// Dashboard audit hero: extra pills inside the existing .rf-audit-score-facts
+// row (unconfirmed checks are already one of its pills).
+export function ScoreEvidenceFacts({ result, language }: { result: ResultLike | null | undefined; language: string }) {
+  const presentation = resolveScorePresentation(result);
+  if (!presentation || presentation.status !== "provisional") return null;
+  const copy = scorePresentationCopy(language);
+  return (
+    <>
+      <span data-score-status="provisional" title={copy.note}><strong>{copy.provisional}</strong></span>
+      <span>{copy.coverage} <strong>{presentation.coveragePercent}%</strong></span>
+      <span>{copy.reliability} <strong>{copy.levels[presentation.reliability]}</strong></span>
+      {presentation.range ? <span>{copy.range} <strong>{presentation.range.low}–{presentation.range.high}</strong></span> : null}
+    </>
   );
 }
