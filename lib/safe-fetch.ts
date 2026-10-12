@@ -1,7 +1,7 @@
 import { URL } from "node:url";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
-import { SCAN_HTTP_USER_AGENT } from "@/lib/scan-user-agents";
+import { SCAN_HTTP_USER_AGENT } from "./scan-user-agents.ts";
 
 export function isPrivateHost(hostname: string) {
   const h = hostname.toLowerCase().replace(/^\[|\]$/g, "");
