@@ -1,0 +1,14 @@
+provisional: login 200 · dashboard scan 200 · scanId ce829c94-ef2a-4f02-985f-05b8cec55401 · score 100 · presentation {"status":"provisional","reliability":"low","coveragePercent":52,"unconfirmedChecks":28,"range":{"low":52,"high":100},"reasons":["bot_reduced","low_coverage"]}
+public provisional desktop: ok · horizontal overflow 0px
+public provisional mobile: ok · horizontal overflow 0px
+audit provisional desktop: ok · horizontal overflow 0px
+report provisional desktop: ok
+audit provisional mobile: ok · horizontal overflow 0px
+report provisional mobile: ok
+confirmed: login 200 · dashboard scan 200 · scanId 9146e9f2-0695-4880-ab37-ed995cdaef23 · score 91 · presentation {"status":"confirmed","reliability":"high","coveragePercent":98,"unconfirmedChecks":1,"range":null,"reasons":[]}
+public confirmed desktop: ok · horizontal overflow 0px
+public confirmed mobile: ok · horizontal overflow 0px
+audit confirmed desktop: ok · horizontal overflow 0px
+report confirmed desktop: ok
+audit confirmed mobile: ok · horizontal overflow 0px
+report confirmed mobile: ok
