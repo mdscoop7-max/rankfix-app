@@ -133,3 +133,23 @@ export function isMarketSelectorPage(links: HreflangLink[], pageUrl: string, nor
   }
   return selfIsDefault && !selfHasLanguage && languages.size >= 3;
 }
+
+
+// Some international brand portals present a country list instead of hreflang
+// links. A short page with an explicit country-picker heading and multiple
+// named markets is not automatically a broken JavaScript storefront.
+export function isCountrySelectionPortal(input: { heading: string; html: string; pageUrl: string }): boolean {
+  let path: string;
+  try { path = new URL(input.pageUrl).pathname.replace(/\/+$/, "") || "/"; } catch { return false; }
+  if (!/^\/(?:|eu|global|international|countries|select-country)$/i.test(path)) return false;
+  const heading = input.heading.replace(/\s+/g, " ").trim();
+  const countrySelectionHeading = /(?:available in (?:the )?following countries|(?:choose|select) (?:your |a )?(?:country|market)|(?:kies|selecteer) (?:je |jouw |uw )?land|verfügbar in folgenden ländern|disponible dans les pays suivants|disponible en los siguientes países)/i.test(heading);
+  if (!countrySelectionHeading) return false;
+  const visibleText = input.html
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  const countryNames = /\b(?:austria|belgium|bulgaria|croatia|czechia|denmark|estonia|finland|france|germany|greece|hungary|ireland|italy|latvia|lithuania|luxembourg|netherlands|norway|poland|portugal|romania|slovakia|slovenia|spain|sweden|switzerland|united kingdom|nederland|belgië|duitsland|frankrijk|spanje|italië|zweden|oostenrijk|zwitserland|noorwegen|polen|verenigd koninkrijk)\b/gi;
+  const distinctMarkets = new Set([...visibleText.matchAll(countryNames)].map(match=>match[0].toLowerCase()));
+  return distinctMarkets.size >= 4;
+}

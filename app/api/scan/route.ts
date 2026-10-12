@@ -3,7 +3,7 @@ import { createHash } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
-import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang, isMarketSelectorPage } from "@/lib/seo-rules";
+import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang, isMarketSelectorPage, isCountrySelectionPortal } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { assessPassiveSecurity, setCookieValues } from "@/lib/security-signals";
@@ -188,7 +188,7 @@ function normalizeScanUrl(value: string) {
 }
 
 type TechnologyProfile = {
-  siteType: "Webshop" | "Landingpage" | "Website" | "Betaaldienstverlener";
+  siteType: "Webshop" | "Landingpage" | "Website" | "Betaaldienstverlener" | "Landkeuzeportaal";
   cms: string | null;
   commercePlatform: string | null;
   framework: string | null;
@@ -2332,7 +2332,8 @@ export async function POST(request: Request) {
     const hreflangEntries = hreflangTags.map((tag) => ({ language: attrFromTag(tag, "hreflang").toLowerCase(), href: attrFromTag(tag, "href") }));
     const documentLanguage = lang.trim().toLowerCase().replace("_", "-");
     const hreflangAssessment = assessHreflang(hreflangEntries, finalUrl.toString(), documentLanguage, normalizeScanUrl);
-    const marketSelectorPage = isMarketSelectorPage(hreflangEntries, finalUrl.toString(), normalizeScanUrl);
+    const countrySelectionPortal = isCountrySelectionPortal({ heading: h1s.join(" "), html, pageUrl: finalUrl.toString() });
+    const marketSelectorPage = isMarketSelectorPage(hreflangEntries, finalUrl.toString(), normalizeScanUrl) || countrySelectionPortal;
     // A language switch needs structural proof: same-host links into another locale
     // folder, anchors carrying hreflang, or a language <select>. Words such as
     // "Nederlands" or the "nl" in "Expert.nl" are not a language selector.
@@ -4304,7 +4305,13 @@ export async function POST(request: Request) {
       sectorProfile.label = "Internationaal merk- en landkeuzeportaal";
       sectorProfile.confidence = "high";
       sectorProfile.confidenceScore = 90;
-      sectorProfile.evidence = ["Hreflang: x-default verwijst naar deze pagina en minstens drie taal-/landversies", ...(retailAssortmentIdentity ? ["Merkidentiteit noemt een productassortiment; de webshop staat op de landversies"] : [])];
+      sectorProfile.evidence = [countrySelectionPortal
+        ? "Zichtbare landenkeuze-H1 en minstens vier verschillende landnamen bevestigd; dit is een internationaal portaal zonder landspecifieke retailaudit."
+        : "Hreflang: x-default verwijst naar deze pagina en minstens drie taal-/landversies",
+        ...(retailAssortmentIdentity ? ["Merkidentiteit noemt een productassortiment; de webshop staat op de landversies"] : [])];
+      technologyProfile.siteType = "Landkeuzeportaal";
+      technologyProfile.evidence = [...technologyProfile.evidence, "Internationale landenkeuze herkend; landspecifieke webshop wordt hier niet beoordeeld."].slice(0,8);
+      technologyProfile.confidence = Math.max(technologyProfile.confidence, 90);
     }
 
     if (!finalCommerceDecision.confirmed && multiPageCapabilities.transport && sectorProfile.key==="unknown") {
@@ -4713,6 +4720,23 @@ export async function POST(request: Request) {
       }
     }
 
+    // Country portals have a different page purpose than a product/storefront
+    // homepage. Keep real metadata advisories but do not invent broken JavaScript
+    // functionality or a need to write 150+ words just to list countries.
+    if (marketSelectorPage) {
+      for (const item of checks) {
+        if (item.status === "unable_to_confirm" && /(?:dunne JavaScript-shell|dun(?:ne)? raw HTML|zonder uitgevoerde rendering|deze JavaScript-pagina|JavaScript-rendering)/i.test(item.message)) {
+          item.message = "Dit is een beperkt internationaal landkeuzeportaal. Op deze pagina kan RankFix deze controle niet betrouwbaar bevestigen; beoordeel de relevante landversie afzonderlijk.";
+          item.fix = "Scan de landspecifieke URL voor webshop-, product-, navigatie- en contactcontroles.";
+          item.reasonCode = "type_uncertain";
+          if (item.evidence) item.evidence.details = item.message;
+        }
+      }
+      const contentRule = selectedSeoChecks.find(item=>item.key==="content");
+      if (contentRule) setFinalNotApplicable(contentRule,
+        "Dit is een landkeuzeportaal. Een algemene minimumwoordtelling voor een webshop-homepage is hier niet van toepassing.");
+    }
+
     // Final score is calculated only after representative evidence reconciliation.
     selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);
     selectedGeoScore = scoreApplicableChecks(selectedGeoChecks);
@@ -4724,7 +4748,8 @@ export async function POST(request: Request) {
     scoreModel.range = scoreRange(checks);
     scoreModel.seoRange = scoreRange(selectedSeoChecks);
     scoreModel.geoRange = scoreRange(selectedGeoChecks);
-    scoreModel.provisional = overallCoverage.coveragePercent < 90;
+    scoreModel.provisional = marketSelectorPage || overallCoverage.coveragePercent < 90;
+    if (marketSelectorPage) scoreModel.note += " Dit is uitsluitend een beoordeling van het internationale landkeuzeportaal, niet van de webshop in een land. Behandel de score en de letterbeoordeling als voorlopig en scan voor webshopcontrole een specifieke landversie.";
 
     const classification = {
       websiteType,
