@@ -1671,3 +1671,19 @@ test("only Vercel PR #132 review preview receives a bounded 40/hour QA rate limi
     scope:"paid-public-scan",key:"user",limit:30,windowSeconds:3600,code:"ACCOUNT_SCAN_RATE_LIMIT"
   });
 });
+
+test("international portal excludes shop-only page checks without pretending commerce is absent", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(scanner,/marketSelectorPage && finalCommerceApplicability\.state === "unconfirmed"/);
+  assert.match(scanner,/finalCommerceApplicability\.reason === "market_selector"/);
+  assert.match(scanner,/!finalCommerceOnlyKeys\.has\(item\.key\)/);
+  assert.match(scanner,/scopeMessage = "Deze controle hoort bij een landspecifieke webshop/);
+  assert.match(scanner,/item\.reasonCode = "type_uncertain"/);
+  assert.match(scanner,/for \(const key of \["content","headings","answer"\]\)/);
+  assert.match(scanner,/scoreRange: scoreModel\.range/);
+  assert.match(scanner,/scoredSamplePages\.some\(page => normalizeScanUrl\(page\.url\) !== normalizeScanUrl\(finalUrl\.toString\(\)\)\)/);
+  const commerce = await readFile(new URL("../lib/commerce-applicability.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(commerce,/Scan de landversie \(bijvoorbeeld \/nl\/nl\/\)/);
+  assert.match(commerce,/Open de passende landwebsite via de landenkeuze/);
+});

@@ -21,3 +21,15 @@ test("provisional warning is visible in free scan and saved audit views",async()
     assert.match(source,/provisionalScoreMessage\(/);
   }
 });
+
+test("country selection portal displays a scope-specific provisional warning",()=>{
+  const report={classification:{websiteType:"Landkeuzeportaal",sector:{key:"market_selector"}},
+    scoreModel:{provisional:true,range:{low:41,high:89}},
+    coverage:{coveragePercent:51},summary:{unableToConfirm:28}};
+  const dutch=provisionalScoreMessage(report,"nl");
+  assert.match(dutch,/landkeuzeportaal/);
+  assert.match(dutch,/niet de landspecifieke webshop/);
+  assert.match(dutch,/51%/);
+  assert.match(provisionalScoreMessage(report,"en"),/country selector/);
+  assert.doesNotMatch(provisionalScoreMessage({scoreModel:{provisional:true}},"nl"),/landkeuzeportaal/);
+});

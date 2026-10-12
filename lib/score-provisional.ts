@@ -2,6 +2,7 @@
 // This message accompanies the score in public and dashboard views; it never changes
 // the numeric score or guesses results for unverified checks.
 type Report = {
+  classification?: { websiteType?: string; sector?: { key?: string } };
   scoreModel?: { provisional?: boolean; range?: { low?: number; high?: number } };
   coverage?: { coveragePercent?: number };
   summary?: { unableToConfirm?: number };
@@ -27,5 +28,14 @@ export function provisionalScoreMessage(input: unknown, language: string): strin
     typeof unknown === "number" && unknown > 0 ? `${unknown} ${copy.unknown}` : null,
     typeof range?.low === "number" && typeof range?.high === "number" ? `${copy.range} ${range.low}–${range.high}` : null,
   ].filter(Boolean).join(" · ");
-  return `${copy.title}. ${details ? details + ". " : ""}${copy.disclaimer}`;
+  const isPortal = report.classification?.websiteType === "Landkeuzeportaal" || report.classification?.sector?.key === "market_selector";
+  const portalCopy: Record<string,string> = {
+    nl:"Dit cijfer beoordeelt uitsluitend het internationale landkeuzeportaal, niet de landspecifieke webshop. Scan de landwebsite afzonderlijk.",
+    en:"This score covers only the international country selector, not a country-specific storefront. Scan the country site separately.",
+    de:"Dieser Wert bewertet nur die internationale Länderauswahl, nicht den Ländershop. Prüfen Sie die Länderseite separat.",
+    fr:"Ce score concerne seulement le sélecteur de pays, pas la boutique nationale. Analysez le site national séparément.",
+    it:"Il punteggio riguarda solo il selettore dei Paesi, non il negozio nazionale. Analizza il sito nazionale separatamente.",
+    es:"La puntuación solo evalúa el selector internacional de países, no la tienda nacional. Analiza el sitio nacional por separado."
+  };
+  return `${copy.title}. ${details ? details + ". " : ""}${copy.disclaimer}${isPortal ? " " + (portalCopy[language] ?? portalCopy.en) : ""}`;
 }

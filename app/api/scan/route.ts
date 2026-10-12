@@ -1541,7 +1541,7 @@ export async function POST(request: Request) {
       note: "Evidence-first: ontbrekend bewijs is niet automatisch een fout. Sectoren en functies worden alleen bevestigd op gevonden signalen.",
     };
 
-    type SectorKey = "finance"|"ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"general_business"|"unknown";
+    type SectorKey = "finance"|"ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"general_business"|"market_selector"|"unknown";
     const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]}> = [
       {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\b/i,/\b(te koop|te huur|for sale|for rent|woningaanbod)\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
       {sector:"automotive",label:"Automotive",patterns:[/\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\b/i,/\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
@@ -4301,6 +4301,7 @@ export async function POST(request: Request) {
     // fallback can guess one from a single word on a corporate subpage (transport,
     // restaurant, booking). Commerce applicability stays "unconfirmed".
     if (marketSelectorPage && !finalCommerceDecision.confirmed && sectorProfile.key==="unknown") {
+      sectorProfile.sector = "market_selector";
       sectorProfile.key = "market_selector";
       sectorProfile.label = "Internationaal merk- en landkeuzeportaal";
       sectorProfile.confidence = "high";
@@ -4635,7 +4636,27 @@ export async function POST(request: Request) {
       item.reasonCode = finalCommerceApplicability.state === "unconfirmed" ? UNCONFIRMED_COMMERCE_REASON_CODE[finalCommerceApplicability.reason] : "weak_evidence";
       item.evidence = {url:finalUrl.toString(),found:null,details:item.message};
     };
-    if (finalCommerceApplicability.state === "absent") {
+    // A verified international country selector is not a product, checkout or
+    // Merchant Center page. Those rules do not apply to THIS page, even while
+    // commerce on a different country-specific domain remains unconfirmed.
+    // Keep the separate commerceApplicabilityReport "market_selector" state so
+    // the distinction between page scope and sitewide unknown is visible.
+    if (marketSelectorPage && finalCommerceApplicability.state === "unconfirmed" &&
+        finalCommerceApplicability.reason === "market_selector") {
+      const scopeMessage = "Deze controle hoort bij een landspecifieke webshop, niet bij het onderzochte internationale landkeuzeportaal. Dit zegt niets over de webshopfunctie op de landversies.";
+      for (const item of [...seoChecks,...geoChecks]) {
+        if (!finalCommerceOnlyKeys.has(item.key)) continue;
+        item.status = "not_applicable";
+        item.issue_status = "NOT_APPLICABLE";
+        item.points = 0;
+        item.confidence = "high";
+        item.message = scopeMessage;
+        item.fix = "Geen wijziging aan dit portaal nodig; scan de landspecifieke webshop voor deze controle.";
+        // Not a proven missing feature: excluded solely by page scope.
+        item.reasonCode = "type_uncertain";
+        item.evidence = {url:finalUrl.toString(),found:null,details:item.message};
+      }
+    } else if (finalCommerceApplicability.state === "absent") {
       for (const item of [...seoChecks,...geoChecks]) {
         if (finalCommerceOnlyKeys.has(item.key)) setFinalNotApplicable(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
       }
@@ -4732,9 +4753,21 @@ export async function POST(request: Request) {
           if (item.evidence) item.evidence.details = item.message;
         }
       }
-      const contentRule = selectedSeoChecks.find(item=>item.key==="content");
-      if (contentRule) setFinalNotApplicable(contentRule,
-        "Dit is een landkeuzeportaal. Een algemene minimumwoordtelling voor een webshop-homepage is hier niet van toepassing.");
+      // There is no minimum paragraph length or H2 hierarchy for a functional
+      // country picker. Such generic content requirements would create false
+      // quality warnings and a misleading GEO deficit.
+      for (const key of ["content","headings","answer"]) {
+        const item = checks.find(check=>check.key===key);
+        if (!item || item.status === "fail") continue;
+        item.status = "not_applicable";
+        item.issue_status = "NOT_APPLICABLE";
+        item.points = 0;
+        item.confidence = "high";
+        item.message = "Dit is een landkeuzeportaal. De algemene tekstlengte-, koppen- of samenvattingseis voor een inhoudelijke homepage past niet bij deze pagina.";
+        item.fix = "Geen extra tekst of koppen toevoegen puur voor een score; beoordeel of bezoekers het juiste land kunnen vinden.";
+        item.reasonCode = "type_uncertain";
+        item.evidence = {url:finalUrl.toString(),found:null,details:item.message};
+      }
     }
 
     // Final score is calculated only after representative evidence reconciliation.
@@ -4880,7 +4913,7 @@ export async function POST(request: Request) {
       item.impactClaim = item.status === "fail" ? "proven_impact" : "best_practice";
       item.fix_category = "C";
     }
-    if (mode !== "geo" && sampleChecks.length) {
+    if (mode !== "geo" && sampleChecks.length && scoredSamplePages.some(page => normalizeScanUrl(page.url) !== normalizeScanUrl(finalUrl.toString()))) {
       selectedSeoChecks.push(...sampleChecks);
       checks.push(...sampleChecks);
     }
@@ -4906,7 +4939,7 @@ export async function POST(request: Request) {
       javascriptExecuted,
       sample: { selected: multiPageAudits.length, checked: scoredSamplePages.length, broken: brokenSamplePages.length, unableToConfirm: multiPageAudits.length - scoredSamplePages.length, score: multiPage.siteSampleScore },
       coverage: { percent: overallCoverage.coveragePercent, assessedChecks: overallCoverage.confirmed, applicableChecks: overallCoverage.relevant },
-      scoreRange: overallScoreRange,
+      scoreRange: scoreModel.range,
       headline: { score: selectedOverallScore, pageScore: pageOnlyOverallScore, sampleWeight: headlineBlend.sampleWeight },
       limitations: rawHtmlLimitations,
     };
