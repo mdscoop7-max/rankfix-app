@@ -1,0 +1,901 @@
+{
+  "base": "http://127.0.0.1:3100",
+  "results": [
+    {
+      "kind": "artikel (nieuws)",
+      "url": "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-prijzen-in-supermarkt-na-it-incident-bij-albert-heijn",
+      "httpStatus": 200,
+      "note": "",
+      "error": null,
+      "wallSeconds": 22.7,
+      "cpuSeconds": 17.1,
+      "peakMemoryMb": 933,
+      "peakProcesses": 6,
+      "truth": {
+        "httpStatus": 200,
+        "bytes": 173579,
+        "markers": {
+          "woocommerce": false,
+          "wordpress": false,
+          "shopify": false,
+          "nextjs": true,
+          "nuxt": false,
+          "productSchema": false,
+          "articleSchema": true
+        }
+      },
+      "technology": {
+        "siteType": "Website",
+        "cms": null,
+        "commercePlatform": null,
+        "framework": "Next.js",
+        "confidence": 72
+      },
+      "rendering": {
+        "mode": "javascript_rendered",
+        "fallbackReason": null,
+        "elapsedMs": 4523,
+        "botProtection": null
+      },
+      "multiPage": {
+        "homepage": 1,
+        "category": 0,
+        "product": 7,
+        "form": 0,
+        "legal": 0,
+        "service": 0,
+        "listing": 0,
+        "support": 0,
+        "other": 12,
+        "audited": 20,
+        "unableToConfirm": 0
+      },
+      "scoreRange": {
+        "low": 92,
+        "high": 95
+      },
+      "commerceApplicability": "absent",
+      "snapshot": {
+        "outcome": "scanned",
+        "httpStatus": 200,
+        "errorCode": null,
+        "durationMs": 22713,
+        "finalUrl": "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-winkelprijzen-na-cyberveiligheidsincident-bij-albert-heijn",
+        "overallScore": 94,
+        "seoScore": 95,
+        "geoScore": 93,
+        "securityScore": 96,
+        "coveragePercent": 97,
+        "highConfidencePercent": 81,
+        "provisional": false,
+        "sector": {
+          "key": "news_media",
+          "label": "Nieuws & Media",
+          "confidenceScore": 88
+        },
+        "websiteType": "Nieuws-/mediasite",
+        "pageType": {
+          "type": "article",
+          "confidence": "medium"
+        },
+        "pageTypeContradictions": [],
+        "renderer": "javascript_rendered",
+        "renderFallbackReason": null,
+        "botProtection": false,
+        "recovery": {
+          "attempted": false,
+          "browserRecovered": false
+        },
+        "counts": {
+          "passed": 28,
+          "issues": 1,
+          "notApplicable": 26,
+          "unableToConfirm": 1
+        },
+        "findings": [
+          {
+            "rule": "META_TITLE_GUIDANCE",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "organization_website",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "geo"
+          }
+        ],
+        "fingerprint": "1c7da75c07d179e5",
+        "scanner": {
+          "crawler": null,
+          "rules": null,
+          "scoreModel": null,
+          "commit": null
+        }
+      },
+      "issues": [
+        {
+          "rule": "META_TITLE_GUIDANCE",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Meta title",
+          "message": "De title is 88 tekens. Richtwaarde: 30–60 tekens; de punten lopen geleidelijk af naarmate de lengte verder van deze band ligt.",
+          "found": "Geen bezorging en verkeerde winkelprijzen na 'cyberveiligheidsincident' bij Albert Heijn",
+          "url": "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-winkelprijzen-na-cyberveiligheidsincident-bij-albert-heijn"
+        },
+        {
+          "rule": "organization_website",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Organization + WebSite",
+          "message": "De representatieve homepage bevat geen bevestigd Organization- of WebSite-schema.",
+          "found": null,
+          "url": null
+        }
+      ],
+      "unconfirmed": [
+        "BUSINESS_PLACEHOLDER"
+      ]
+    },
+    {
+      "kind": "nieuwssite home",
+      "url": "https://www.nu.nl/",
+      "httpStatus": 200,
+      "note": "",
+      "error": null,
+      "wallSeconds": 3.9,
+      "cpuSeconds": 1,
+      "peakMemoryMb": 226,
+      "peakProcesses": 1,
+      "truth": {
+        "httpStatus": 200,
+        "bytes": 7859,
+        "markers": {
+          "woocommerce": false,
+          "wordpress": false,
+          "shopify": false,
+          "nextjs": false,
+          "nuxt": false,
+          "productSchema": false,
+          "articleSchema": false
+        }
+      },
+      "technology": {
+        "siteType": "Website",
+        "cms": null,
+        "commercePlatform": null,
+        "framework": null,
+        "confidence": 40
+      },
+      "rendering": {
+        "mode": "raw_html",
+        "fallbackReason": null,
+        "elapsedMs": null,
+        "botProtection": null
+      },
+      "multiPage": {
+        "homepage": 1,
+        "category": 0,
+        "product": 0,
+        "form": 0,
+        "legal": 0,
+        "service": 0,
+        "listing": 0,
+        "support": 0,
+        "other": 12,
+        "audited": 13,
+        "unableToConfirm": 0
+      },
+      "scoreRange": {
+        "low": 92,
+        "high": 92
+      },
+      "commerceApplicability": "absent",
+      "snapshot": {
+        "outcome": "scanned",
+        "httpStatus": 200,
+        "errorCode": null,
+        "durationMs": 3889,
+        "finalUrl": "https://www.nu.nl/",
+        "overallScore": 88,
+        "seoScore": 98,
+        "geoScore": 72,
+        "securityScore": 97,
+        "coveragePercent": 100,
+        "highConfidencePercent": 85,
+        "provisional": false,
+        "sector": {
+          "key": "news_media",
+          "label": "Nieuws & Media",
+          "confidenceScore": 88
+        },
+        "websiteType": "Nieuws-/mediasite",
+        "pageType": {
+          "type": "homepage",
+          "confidence": "high"
+        },
+        "pageTypeContradictions": [],
+        "renderer": "raw_html",
+        "renderFallbackReason": null,
+        "botProtection": false,
+        "recovery": {
+          "attempted": false,
+          "browserRecovered": false
+        },
+        "counts": {
+          "passed": 26,
+          "issues": 5,
+          "notApplicable": 25,
+          "unableToConfirm": 0
+        },
+        "findings": [
+          {
+            "rule": "IMAGE_ALT_MISSING",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "internal_redirects",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "ORGANIZATION_WEBSITE_SCHEMA",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "geo"
+          },
+          {
+            "rule": "SOCIAL_METADATA_INCOMPLETE",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "STRUCTURED_DATA_MISSING",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "geo"
+          }
+        ],
+        "fingerprint": "2e65d15065de94b7",
+        "scanner": {
+          "crawler": null,
+          "rules": null,
+          "scoreModel": null,
+          "commit": null
+        }
+      },
+      "issues": [
+        {
+          "rule": "internal_redirects",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Interne redirects",
+          "message": "1 van 16 gecontroleerde interne link(s) komt via een redirect op een andere URL uit (6%). Voorbeeld: https://www.nu.nl/voorpagina → https://www.nu.nl/.",
+          "found": "discovered=132; checked=16; redirected=1; sampleLimit=24; truncated=true",
+          "url": "https://www.nu.nl/"
+        },
+        {
+          "rule": "IMAGE_ALT_MISSING",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Afbeelding alt-teksten",
+          "message": "2 van 107 controleerbare <img>-elementen in de raw HTML missen alt (2%). JavaScript-geladen afbeeldingen zijn niet meegenomen.",
+          "found": 2,
+          "url": "https://www.nu.nl/"
+        },
+        {
+          "rule": "SOCIAL_METADATA_INCOMPLETE",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Social metadata",
+          "message": "Open Graph vraagt aandacht. Ontbrekend: og:image.",
+          "found": "og:title, og:description",
+          "url": "https://www.nu.nl/"
+        },
+        {
+          "rule": "STRUCTURED_DATA_MISSING",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Structured data",
+          "message": "Geen geldige JSON-LD structured data gevonden voor deze homepage. Dit is een machineleesbare optimalisatiekans; de zichtbare pagina kan zonder JSON-LD nog steeds inhoudelijk correct zijn.",
+          "found": "validJsonLdBlocks=0",
+          "url": "https://www.nu.nl/"
+        },
+        {
+          "rule": "ORGANIZATION_WEBSITE_SCHEMA",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Organization + WebSite",
+          "message": "De homepage bevat geen bevestigd Organization- of WebSite-schema. Dit is machineleesbaar identity-advies en geen bewijs dat de zichtbare organisatie-identiteit ontbreekt.",
+          "found": "organizationSchema=false; websiteSchema=false; schemaTypes=",
+          "url": "https://www.nu.nl/"
+        }
+      ],
+      "unconfirmed": []
+    },
+    {
+      "kind": "nieuwssite (WP)",
+      "url": "https://www.racesport.nl/",
+      "httpStatus": 200,
+      "note": "",
+      "error": null,
+      "wallSeconds": 7.6,
+      "cpuSeconds": 1.8,
+      "peakMemoryMb": 291,
+      "peakProcesses": 1,
+      "truth": {
+        "httpStatus": 200,
+        "bytes": 1565966,
+        "markers": {
+          "woocommerce": true,
+          "wordpress": true,
+          "shopify": false,
+          "nextjs": false,
+          "nuxt": false,
+          "productSchema": false,
+          "articleSchema": false
+        }
+      },
+      "technology": {
+        "siteType": "Website",
+        "cms": "WordPress",
+        "commercePlatform": "WooCommerce",
+        "framework": null,
+        "confidence": 97
+      },
+      "rendering": {
+        "mode": "raw_html",
+        "fallbackReason": null,
+        "elapsedMs": null,
+        "botProtection": null
+      },
+      "multiPage": {
+        "homepage": 1,
+        "category": 5,
+        "product": 1,
+        "form": 0,
+        "legal": 1,
+        "service": 0,
+        "listing": 0,
+        "support": 0,
+        "other": 12,
+        "audited": 25,
+        "unableToConfirm": 0
+      },
+      "scoreRange": {
+        "low": 93,
+        "high": 99
+      },
+      "commerceApplicability": "absent",
+      "snapshot": {
+        "outcome": "scanned",
+        "httpStatus": 200,
+        "errorCode": null,
+        "durationMs": 7587,
+        "finalUrl": "https://www.racesport.nl/",
+        "overallScore": 99,
+        "seoScore": 98,
+        "geoScore": 100,
+        "securityScore": 78,
+        "coveragePercent": 95,
+        "highConfidencePercent": 86,
+        "provisional": false,
+        "sector": {
+          "key": "news_media",
+          "label": "Nieuws & Media",
+          "confidenceScore": 95
+        },
+        "websiteType": "Nieuws-/mediasite",
+        "pageType": {
+          "type": "homepage",
+          "confidence": "high"
+        },
+        "pageTypeContradictions": [],
+        "renderer": "raw_html",
+        "renderFallbackReason": null,
+        "botProtection": false,
+        "recovery": {
+          "attempted": false,
+          "browserRecovered": false
+        },
+        "counts": {
+          "passed": 31,
+          "issues": 3,
+          "notApplicable": 12,
+          "unableToConfirm": 10
+        },
+        "findings": [
+          {
+            "rule": "IMAGE_ALT_MISSING",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "trust_legal_signals",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          }
+        ],
+        "fingerprint": "9fab3ac31560173a",
+        "scanner": {
+          "crawler": null,
+          "rules": null,
+          "scoreModel": null,
+          "commit": null
+        }
+      },
+      "issues": [
+        {
+          "rule": "IMAGE_ALT_MISSING",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Afbeelding alt-teksten",
+          "message": "6 van 86 controleerbare <img>-elementen in de raw HTML missen alt (7%). JavaScript-geladen afbeeldingen zijn niet meegenomen.",
+          "found": 6,
+          "url": "https://www.racesport.nl/"
+        },
+        {
+          "rule": "trust_legal_signals",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Privacy & vertrouwenssignalen",
+          "message": "Niet alle basissignalen zijn gevonden: privacy. Cookie-informatie: niet bevestigd (geen bewijs van ontbreken).",
+          "found": "privacy=false; cookies=false; contact=true",
+          "url": "https://www.racesport.nl/"
+        }
+      ],
+      "unconfirmed": [
+        "consent_mode_readiness",
+        "GOOGLE_ADS_READINESS"
+      ]
+    },
+    {
+      "kind": "Shopify product",
+      "url": "https://allbirds.de/products/w-tree-runner-freizeitschuhe-960tr3wkww0027",
+      "httpStatus": 200,
+      "note": "",
+      "error": null,
+      "wallSeconds": 17.1,
+      "cpuSeconds": 23.1,
+      "peakMemoryMb": 1046,
+      "peakProcesses": 6,
+      "truth": {
+        "httpStatus": 200,
+        "bytes": 637661,
+        "markers": {
+          "woocommerce": false,
+          "wordpress": false,
+          "shopify": true,
+          "nextjs": false,
+          "nuxt": false,
+          "productSchema": true,
+          "articleSchema": false
+        }
+      },
+      "technology": {
+        "siteType": "Webshop",
+        "cms": null,
+        "commercePlatform": "Shopify",
+        "framework": null,
+        "confidence": 97
+      },
+      "rendering": {
+        "mode": "javascript_rendered",
+        "fallbackReason": null,
+        "elapsedMs": 2606,
+        "botProtection": null
+      },
+      "multiPage": {
+        "homepage": 1,
+        "category": 5,
+        "product": 9,
+        "form": 1,
+        "legal": 1,
+        "service": 0,
+        "listing": 0,
+        "support": 1,
+        "other": 8,
+        "audited": 24,
+        "unableToConfirm": 2
+      },
+      "scoreRange": {
+        "low": 88,
+        "high": 97
+      },
+      "commerceApplicability": "confirmed",
+      "snapshot": {
+        "outcome": "scanned",
+        "httpStatus": 200,
+        "errorCode": null,
+        "durationMs": 17055,
+        "finalUrl": "https://allbirds.de/products/w-tree-runner-freizeitschuhe-960tr3wkww0027",
+        "overallScore": 97,
+        "seoScore": 95,
+        "geoScore": 100,
+        "securityScore": 86,
+        "coveragePercent": 91,
+        "highConfidencePercent": 81,
+        "provisional": false,
+        "sector": {
+          "key": "ecommerce",
+          "label": "Webshop / e-commerce",
+          "confidenceScore": 99
+        },
+        "websiteType": "Webshop",
+        "pageType": {
+          "type": "product",
+          "confidence": "high"
+        },
+        "pageTypeContradictions": [],
+        "renderer": "javascript_rendered",
+        "renderFallbackReason": null,
+        "botProtection": false,
+        "recovery": {
+          "attempted": false,
+          "browserRecovered": false
+        },
+        "counts": {
+          "passed": 41,
+          "issues": 2,
+          "notApplicable": 6,
+          "unableToConfirm": 7
+        },
+        "findings": [
+          {
+            "rule": "IMAGE_ALT_MISSING",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "META_DESCRIPTION_GUIDANCE",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          }
+        ],
+        "fingerprint": "4e20c53b16f29870",
+        "scanner": {
+          "crawler": null,
+          "rules": null,
+          "scoreModel": null,
+          "commit": null
+        }
+      },
+      "issues": [
+        {
+          "rule": "META_DESCRIPTION_GUIDANCE",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Meta description",
+          "message": "De description is 405 tekens en is uitzonderlijk lang. Dit is optimalisatieadvies, geen op zichzelf bewezen rankingfout; de punten lopen geleidelijk af naarmate de lengte extremer wordt.",
+          "found": "Mit unseren luftigen, seidig-weichen Sneakern aus verantwortungsvoll angebauten Eukalyptusfasern bist du im Alltag stets ein bisschen freundlicher zum Planeten; Ideal: zum Spazieren gehen, bei wärmerem Wetter, für deine Freizeitlooks; Temperaturregulierendes Material: Leichte, luftige Eukalyptusfasern bieten unvergleichlichen Komfort; Vielseitiges Design: Passt zu jedem Outfit und ist ideal zum Reisen.",
+          "url": "https://allbirds.de/products/w-tree-runner-freizeitschuhe-960tr3wkww0027"
+        },
+        {
+          "rule": "IMAGE_ALT_MISSING",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Afbeelding alt-teksten",
+          "message": "14 van 61 controleerbare <img>-elementen in de raw HTML missen alt (23%). JavaScript-geladen afbeeldingen zijn niet meegenomen.",
+          "found": 14,
+          "url": "https://allbirds.de/products/w-tree-runner-freizeitschuhe-960tr3wkww0027"
+        }
+      ],
+      "unconfirmed": [
+        "HREFLANG_MISSING",
+        "trust_legal_signals",
+        "merchant_feed_signal",
+        "eu_discount_reference_signal",
+        "eu_review_transparency_signal",
+        "PRODUCT_VARIANT_URL",
+        "CHECKOUT_TRUST_SIGNALS"
+      ]
+    },
+    {
+      "kind": "zorgpraktijk (WP)",
+      "url": "https://www.acupunctuurdijkstra.nl/",
+      "httpStatus": 200,
+      "note": "",
+      "error": null,
+      "wallSeconds": 3.8,
+      "cpuSeconds": 0.3,
+      "peakMemoryMb": 261,
+      "peakProcesses": 1,
+      "truth": {
+        "httpStatus": 200,
+        "bytes": 68896,
+        "markers": {
+          "woocommerce": false,
+          "wordpress": true,
+          "shopify": false,
+          "nextjs": false,
+          "nuxt": false,
+          "productSchema": false,
+          "articleSchema": false
+        }
+      },
+      "technology": {
+        "siteType": "Website",
+        "cms": "WordPress",
+        "commercePlatform": null,
+        "framework": null,
+        "confidence": 97
+      },
+      "rendering": {
+        "mode": "raw_html",
+        "fallbackReason": null,
+        "elapsedMs": null,
+        "botProtection": null
+      },
+      "multiPage": {
+        "homepage": 1,
+        "category": 0,
+        "product": 0,
+        "form": 1,
+        "legal": 0,
+        "service": 0,
+        "listing": 0,
+        "support": 0,
+        "other": 12,
+        "audited": 14,
+        "unableToConfirm": 0
+      },
+      "scoreRange": {
+        "low": 95,
+        "high": 95
+      },
+      "commerceApplicability": "absent",
+      "snapshot": {
+        "outcome": "scanned",
+        "httpStatus": 200,
+        "errorCode": null,
+        "durationMs": 3773,
+        "finalUrl": "https://www.acupunctuurdijkstra.nl/",
+        "overallScore": 92,
+        "seoScore": 98,
+        "geoScore": 83,
+        "securityScore": 86,
+        "coveragePercent": 100,
+        "highConfidencePercent": 83,
+        "provisional": false,
+        "sector": {
+          "key": "health_wellness",
+          "label": "Zorg & Gezondheid",
+          "confidenceScore": 95
+        },
+        "websiteType": "Website",
+        "pageType": {
+          "type": "homepage",
+          "confidence": "high"
+        },
+        "pageTypeContradictions": [],
+        "renderer": "raw_html",
+        "renderFallbackReason": null,
+        "botProtection": false,
+        "recovery": {
+          "attempted": false,
+          "browserRecovered": false
+        },
+        "counts": {
+          "passed": 30,
+          "issues": 4,
+          "notApplicable": 25,
+          "unableToConfirm": 0
+        },
+        "findings": [
+          {
+            "rule": "headings",
+            "status": "WARNING",
+            "confidence": "medium",
+            "category": "seo"
+          },
+          {
+            "rule": "ORGANIZATION_WEBSITE_SCHEMA",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "geo"
+          },
+          {
+            "rule": "STRUCTURED_DATA_MISSING",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "geo"
+          },
+          {
+            "rule": "trust_legal_signals",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          }
+        ],
+        "fingerprint": "e1b21c0133307631",
+        "scanner": {
+          "crawler": null,
+          "rules": null,
+          "scoreModel": null,
+          "commit": null
+        }
+      },
+      "issues": [
+        {
+          "rule": "headings",
+          "status": "WARNING",
+          "confidence": "medium",
+          "title": "Heading-structuur",
+          "message": "Er zijn 8 subheading(s) gevonden, maar geen duidelijke H2-laag. Dit is structuuradvies en geen bewezen rankingfout.",
+          "found": 8,
+          "url": "https://www.acupunctuurdijkstra.nl/"
+        },
+        {
+          "rule": "trust_legal_signals",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Privacy & vertrouwenssignalen",
+          "message": "Niet alle basissignalen zijn gevonden: privacy. Cookie-informatie: niet bevestigd (geen bewijs van ontbreken). Wel bevestigd via de steekproef: contact: https://www.acupunctuurdijkstra.nl/contact/.",
+          "found": "privacy=false; cookies=false; contact=true",
+          "url": "https://www.acupunctuurdijkstra.nl/"
+        },
+        {
+          "rule": "STRUCTURED_DATA_MISSING",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Structured data",
+          "message": "1 geldige JSON-LD block(s) gevonden, maar geen passend lokaal bedrijfsschema voor deze lokale bedrijfs-/dienstpagina.",
+          "found": "blocks=1; types=WebPage,ReadAction,BreadcrumbList,ListItem,WebSite,SearchAction,EntryPoint,PropertyValueSpecification; contextRelevant=false",
+          "url": "https://www.acupunctuurdijkstra.nl/"
+        },
+        {
+          "rule": "ORGANIZATION_WEBSITE_SCHEMA",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Organization + WebSite",
+          "message": "De homepage bevat één van de twee identity-schema's (Organization of WebSite); het aanvullende schema ontbreekt.",
+          "found": "organizationSchema=false; websiteSchema=true; schemaTypes=WebPage,ReadAction,BreadcrumbList,ListItem,WebSite,SearchAction,EntryPoint,PropertyValueSpecification",
+          "url": "https://www.acupunctuurdijkstra.nl/"
+        }
+      ],
+      "unconfirmed": []
+    },
+    {
+      "kind": "webshop home",
+      "url": "https://www.ikea.com/nl/nl/",
+      "httpStatus": 200,
+      "note": "",
+      "error": null,
+      "wallSeconds": 6.2,
+      "cpuSeconds": 2.1,
+      "peakMemoryMb": 312,
+      "peakProcesses": 1,
+      "truth": {
+        "httpStatus": 200,
+        "bytes": 2114926,
+        "markers": {
+          "woocommerce": false,
+          "wordpress": false,
+          "shopify": false,
+          "nextjs": false,
+          "nuxt": false,
+          "productSchema": false,
+          "articleSchema": false
+        }
+      },
+      "technology": {
+        "siteType": "Webshop",
+        "cms": null,
+        "commercePlatform": "Custom / niet bevestigd",
+        "framework": null,
+        "confidence": 55
+      },
+      "rendering": {
+        "mode": "raw_html",
+        "fallbackReason": null,
+        "elapsedMs": null,
+        "botProtection": null
+      },
+      "multiPage": {
+        "homepage": 1,
+        "category": 5,
+        "product": 12,
+        "form": 1,
+        "legal": 2,
+        "service": 0,
+        "listing": 0,
+        "support": 4,
+        "other": 5,
+        "audited": 30,
+        "unableToConfirm": 0
+      },
+      "scoreRange": {
+        "low": 85,
+        "high": 100
+      },
+      "commerceApplicability": "confirmed",
+      "snapshot": {
+        "outcome": "scanned",
+        "httpStatus": 200,
+        "errorCode": null,
+        "durationMs": 6241,
+        "finalUrl": "https://www.ikea.com/nl/nl/",
+        "overallScore": 99,
+        "seoScore": 99,
+        "geoScore": 100,
+        "securityScore": 92,
+        "coveragePercent": 85,
+        "highConfidencePercent": 87,
+        "provisional": true,
+        "sector": {
+          "key": "ecommerce",
+          "label": "Webshop / e-commerce",
+          "confidenceScore": 92
+        },
+        "websiteType": "Webshop",
+        "pageType": {
+          "type": "homepage",
+          "confidence": "high"
+        },
+        "pageTypeContradictions": [],
+        "renderer": "raw_html",
+        "renderFallbackReason": null,
+        "botProtection": false,
+        "recovery": {
+          "attempted": false,
+          "browserRecovered": false
+        },
+        "counts": {
+          "passed": 30,
+          "issues": 1,
+          "notApplicable": 14,
+          "unableToConfirm": 11
+        },
+        "findings": [
+          {
+            "rule": "IMAGE_ALT_MISSING",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          }
+        ],
+        "fingerprint": "cdc4bf8efe5f3221",
+        "scanner": {
+          "crawler": null,
+          "rules": null,
+          "scoreModel": null,
+          "commit": null
+        }
+      },
+      "issues": [
+        {
+          "rule": "IMAGE_ALT_MISSING",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Afbeelding alt-teksten",
+          "message": "1 van 105 controleerbare <img>-elementen in de raw HTML missen alt (1%). JavaScript-geladen afbeeldingen zijn niet meegenomen.",
+          "found": 1,
+          "url": "https://www.ikea.com/nl/nl/"
+        }
+      ],
+      "unconfirmed": [
+        "merchant_feed_signal",
+        "PRICE_FORMAT",
+        "checkout_funnel_static",
+        "checkout_information_signal",
+        "eu_discount_reference_signal",
+        "eu_review_transparency_signal",
+        "eu_consumer_information_signal",
+        "price_currency_consistency",
+        "WEBSHOP_TRUST_SIGNALS",
+        "PRODUCT_VARIANT_URL",
+        "PRODUCT_PRICE_CONSISTENCY",
+        "CHECKOUT_TRUST_SIGNALS"
+      ]
+    }
+  ]
+}
