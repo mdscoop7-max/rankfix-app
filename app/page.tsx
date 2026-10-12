@@ -43,7 +43,7 @@ type ScanResult = {
   responseTime: number;
   httpStatus: number;
   summary?: {passed:number;issues:number;notApplicable:number;unableToConfirm:number;pendingFixes:number};
-  rendering?: {mode:string;javascriptExecuted:boolean;note:string};
+  rendering?: {mode:string;javascriptExecuted:boolean;note:string;userAgents?:{httpFetch?:string|null;browserRender?:string|null}};
   pageTypeEvidence?: {type:string;confidence:string;evidence:string[]};
   technologyProfile?: {siteType?:"Webshop"|"Landingpage"|"Website";cms:string|null;commercePlatform:string|null;framework:string|null;isCommerce:boolean;confidence:number;confidenceLabel:"high"|"medium"|"low";evidence:string[]};
   sectorProfile?: {sector?:string;key?:string;label:string;confidence:"high"|"medium"|"low";confidenceScore?:number;evidence:string[];applicableModules:string[]};
@@ -554,6 +554,14 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
     if (result.rendering) {
       lines.push("Source: " + result.rendering.mode + " | JavaScript executed: " + (result.rendering.javascriptExecuted ? "yes" : "no"));
       if (result.rendering.note) lines.push(result.rendering.note);
+      // Keep the short/mobile clipboard export as transparent as the full report.
+      // Older scans can lack this field: never guess which agent was sent.
+      const agents = result.rendering.userAgents;
+      if (agents?.httpFetch) {
+        lines.push("HTTP user-agent (HTML fetch): " + agents.httpFetch);
+        if (agents.browserRender) lines.push("Browser user-agent (JavaScript rendering): " + agents.browserRender);
+        lines.push("Crawler note: RankFix is not Googlebot. Websites may serve Googlebot different HTML or access; matching Google's indexed content is not confirmed.");
+      }
     }
     if (result.pageTypeEvidence) {
       lines.push("", "Page type: " + result.pageTypeEvidence.type + " (" + result.pageTypeEvidence.confidence + ")");

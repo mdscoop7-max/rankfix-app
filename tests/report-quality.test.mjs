@@ -346,3 +346,15 @@ test("scan report shows the exact fetch and browser user-agents without imperson
   assert.ok(report.includes("geen Googlebot"));
   assert.ok(report.includes("RankFix gebruikt deze eigen herkenningen"));
 });
+
+test("webshop applicability wording does not describe commercial B2B sites as noncommercial", async () => {
+  const { COMMERCE_APPLICABILITY_COPY } = await import("../lib/commerce-applicability.ts");
+  assert.match(COMMERCE_APPLICABILITY_COPY.service_identity,/geen webshop als primaire activiteit/);
+  assert.doesNotMatch(COMMERCE_APPLICABILITY_COPY.service_identity,/niet-commerciële primaire identiteit/);
+});
+
+test("business contact evidence reports the confirmed detail types, not only placeholder counts", async () => {
+  const route=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
+  assert.ok(route.includes('confirmed=${businessDetails.status === "pass" ? businessDetails.found.join(", ") : "none"}'));
+  assert.ok(!route.includes('found=${placeholderMatches.slice(0,4)'));
+});

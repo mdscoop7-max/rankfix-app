@@ -59,3 +59,14 @@ test("report preserves privacy evidence and uses singular N/A labels", async () 
   assert.ok(fullPage.includes('group.items.length===1?"controle":"controles"'));
   assert.ok(fullPage.includes('group.items.length===1?"check skipped":"checks skipped"'));
 });
+
+test("short public scan export discloses actual HTTP and browser identities, never invents old metadata", async () => {
+  const source=await readFile(new URL("../app/page.tsx",import.meta.url),"utf8");
+  assert.match(source,/const agents = result\.rendering\.userAgents/);
+  assert.match(source,/if \(agents\?\.httpFetch\)/);
+  assert.match(source,/if \(agents\.browserRender\)/);
+  assert.match(source,/HTTP user-agent \(HTML fetch\)/);
+  assert.match(source,/Browser user-agent \(JavaScript rendering\)/);
+  assert.match(source,/RankFix is not Googlebot/);
+  assert.ok(source.indexOf('if (result.rendering.note)')<source.indexOf('const agents = result.rendering.userAgents'));
+});
