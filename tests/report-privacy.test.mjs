@@ -27,7 +27,7 @@ test("short and full report export paths both sanitize and use the check-level s
   assert.ok(fullPage.includes("HTTP-fouten in de paginasteekproef"));
   assert.ok(fullPage.includes("redactReportText(group.reason)"));
   assert.ok(fullPage.includes('if(c.status==="not_applicable")return c.message'));
-  assert.ok(fullPage.includes('["consent_mode_readiness","ads_readiness"].includes(c.key||"")'));
+  assert.ok(fullPage.includes('["consent_mode_readiness","ads_readiness","trust_legal_signals"].includes(c.key||"")'));
 });
 
 test("PDF and copy expand collapsed sections and restore their state", async () => {
