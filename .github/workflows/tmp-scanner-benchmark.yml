@@ -26,7 +26,7 @@ jobs:
       max-parallel: 1
       fail-fast: false
       matrix:
-        sha: [e549e3921b7daf853ac70d7a4e8c9c431c133e60]
+        sha: [2c1b1bdd1b160ccb155b333e42b8e26bee6821bb]
     env:
       PR127_SHA: ${{ matrix.sha }}
       DATABASE_URL: postgresql://rankfix:rankfix-bench@127.0.0.1:5432/rankfix_bench
