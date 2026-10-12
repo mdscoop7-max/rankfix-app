@@ -281,3 +281,16 @@ test("the scanner route uses the review rules end to end", async () => {
   }
   assert.match(route, /&& !fintechNonCommerce/);
 });
+
+test("H1 multiplicity in raw/rendered HTML is advisory, not proof of visible competing headings",()=>{
+  const s=assessH1Quality("<h1>Every payment</h1><h1>Platform for every payment</h1>",["example"]);
+  assert.equal(s.status,"warning");
+  assert.match(s.details,/tegelijk zichtbaar/);
+  assert.match(s.details,/niet automatisch een bewezen rankingfout/);
+});
+test("sample page title lengths are not stated as definite search result truncation",()=>{
+  const v=assessPageTitle("How to manage every business payment with a flexible financial platform", "example.com");
+  assert.equal(v.status,"WARNING");
+  assert.match(v.details,/niet bewezen/);
+  assert.doesNotMatch(v.details,/zoekmachines kappen hem af/);
+});

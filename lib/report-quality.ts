@@ -173,12 +173,13 @@ export function assessPageTitle(title: string, host: string, now: Date = new Dat
   }
   const duplicate = duplicateTitleSegment(value);
   const length = value.length;
-  // Review Oct 2026: a short, descriptive title is not an issue. Only titles longer
-  // than 60 characters (cut off in results) remain a length point.
+  // Review Oct 2026: a short, descriptive title is not an issue. Length
+  // greater than 60 is advisory: SERP truncation depends on pixel width,
+  // search device and Google rewriting the displayed title.
   const inRange = length <= 60;
   const lengthText = length < 30
     ? `Title gevonden (${length} tekens); kort maar beschrijvend, dat is geen probleem.`
-    : inRange ? `Title gevonden (${length} tekens); binnen richtwaarde 30–60.` : `Title gevonden (${length} tekens); langer dan 60 tekens, zoekmachines kappen hem af.`;
+    : inRange ? `Title gevonden (${length} tekens); binnen richtwaarde 30–60.` : `Title gevonden (${length} tekens); langer dan 60 tekens. Controleer de zoekpreview: mogelijke afkapping hangt af van pixelbreedte en is niet bewezen door de tekenlengte alleen.`;
   if (duplicate) {
     return { status: "WARNING", credit: Math.min(0.8, titleLengthCredit(length)), details: `${lengthText} "${duplicate}" staat dubbel in de title; waarschijnlijk voegt het template het merk een tweede keer toe.`, flag: "duplicate_segment" };
   }

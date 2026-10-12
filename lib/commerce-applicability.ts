@@ -26,7 +26,7 @@ export function commerceApplicability(input: {
 }
 
 export const COMMERCE_APPLICABILITY_COPY: Record<string, string> = {
-  service_identity: "Scanbewijs bevestigt een niet-commerciële primaire identiteit zonder harde product-/retailketen; deze commercecontrole is niet van toepassing.",
+  service_identity: "Scanbewijs bevestigt een primaire dienstverlening of ander niet-retail bedrijfsmodel, zonder harde keten van eigen winkelproducten en winkelwagen. Deze specifieke consumentenwebshopcontrole is niet van toepassing; dit betekent niet dat het bedrijf niet commercieel is.",
   no_commerce_evidence: "In de gescande pagina en de representatieve pagina's is geen product-, prijs-, winkelwagen- of checkoutbewijs gevonden; deze commercecontrole is niet van toepassing.",
   market_selector: "Dit is een internationale land-/taalkeuzepagina. De aanwezigheid van webshops op landversies kan op deze portaalpagina niet betrouwbaar worden beoordeeld. Open de passende landwebsite via de landenkeuze en scan die afzonderlijk.",
   thin_shell: "De opgehaalde HTML is een dunne JavaScript-shell zonder uitgevoerde rendering. Of hier een webshop is, kan niet betrouwbaar worden vastgesteld.",

@@ -127,7 +127,7 @@ export function assessH1Quality(html: string, brandTokens: string[] = []): H1Qua
     ...base,
     status: "warning",
     flag: genericOnes.length === unique.length ? "generic" : "multiple",
-    details: [`${unique.length} verschillende H1-teksten gevonden, bijvoorbeeld ${unique.slice(0, 3).map((value) => `"${value.slice(0, 60)}"`).join(", ")}. Eén duidelijke H1 maakt het onderwerp van de pagina eenduidig.`, ...notes].join(" "),
+    details: [`${unique.length} verschillende H1-teksten in de HTML gevonden, bijvoorbeeld ${unique.slice(0, 3).map((value) => `"${value.slice(0, 60)}"`).join(", ")}. Controleer of deze koppen tegelijk zichtbaar zijn: animaties en responsieve varianten kunnen extra H1-elementen toevoegen. Meerdere H1-elementen zijn niet automatisch een bewezen rankingfout.`, ...notes].join(" "),
   };
 }
 

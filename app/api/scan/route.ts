@@ -2590,7 +2590,7 @@ export async function POST(request: Request) {
           : check("warning", "h1", "seo", "H1-heading", h1Quality.flag === "only_consent" ? h1Quality.details : "Er is geen H1-heading gevonden. Dit is een structuur-/toegankelijkheidsaanbeveling en geen op zichzelf bewezen rankingfout.", h1Quality.flag === "only_consent" ? "Geef de pagina een eigen H1 met het onderwerp, en maak de kop in de cookiebanner een gewone tekst of een lager kopniveau." : "Voeg een duidelijke primaire H1 toe wanneer dat past bij de pagina-inhoud.", h1Quality.flag === "only_consent" ? 4 : 6, 8)
         : h1Quality.flag === "generic"
           ? check("warning", "h1", "seo", "H1-heading", h1Quality.details, "Gebruik een H1 die het onderwerp van de pagina benoemt (dienst, product, categorie of organisatie met kernboodschap), niet \"Home\" of alleen de merknaam.", 4, 8)
-          : check("warning", "h1", "seo", "H1-heading", h1Quality.details, "Kies één primaire H1 met het onderwerp van de pagina en maak de overige koppen H2/H3.", 6, 8)
+          : check("warning", "h1", "seo", "H1-heading", h1Quality.details, "Controleer welke H1-koppen echt zichtbaar zijn op desktop en mobiel. Animatie- of responsieve kopieën kunnen in de HTML voorkomen; vermijd meerdere concurrerende zichtbare paginatitels.", 6, 8)
     );
     const subheadingCount = headings.length;
     const hasH2 = headings.some((h) => h.level === 2);
@@ -4313,6 +4313,7 @@ export async function POST(request: Request) {
       technologyProfile.siteType = "Landkeuzeportaal";
       technologyProfile.evidence = [...technologyProfile.evidence, "Internationale landenkeuze herkend; landspecifieke webshop wordt hier niet beoordeeld."].slice(0,8);
       technologyProfile.confidence = Math.max(technologyProfile.confidence, 90);
+      technologyProfile.confidenceLabel = "high";
     }
 
     if (!finalCommerceDecision.confirmed && multiPageCapabilities.transport && sectorProfile.key==="unknown") {
@@ -4397,6 +4398,13 @@ export async function POST(request: Request) {
       sectorProfile.applicableModules = sectorProfile.applicableModules.filter(module=>!unrelatedModules.has(module));
       masterEvidence.activeModules = masterEvidence.activeModules.filter(module=>!unrelatedModules.has(module));
       technologyProfile.siteType = "Betaaldienstverlener";
+      // Technology platform/CMS certainty remains separate. Website TYPE can be
+      // confirmed from primary title/description/H1 identity even if CMS is unknown.
+      technologyProfile.confidence = Math.max(technologyProfile.confidence, sectorProfile.confidenceScore);
+      technologyProfile.confidenceLabel = technologyProfile.confidence >= 90 ? "high" : technologyProfile.confidence >= 70 ? "medium" : "low";
+      technologyProfile.evidence = [...new Set([...technologyProfile.evidence,
+        "Primaire betaalplatformidentiteit bevestigd in paginametadata of H1; CMS en framework zijn afzonderlijke, onbevestigde technologievelden."
+      ])].slice(0, 8);
     }
     const sectorDisplayPolicy = sectorProfile.confidenceScore >= 80 ? "confirmed" : sectorProfile.confidenceScore >= 60 ? "probable" : "unconfirmed";
     masterEvidence.primarySector = {
@@ -4884,8 +4892,8 @@ export async function POST(request: Request) {
     }
     const sampleTitles: Record<string, string> = { title: "Steekproef: meta titles", description: "Steekproef: meta descriptions", h1: "Steekproef: H1-headings", canonical: "Steekproef: canonicals", product_schema: "Steekproef: Product-structured data" };
     const sampleFixes: Record<string, string> = {
-      title: "Pas de title aan op de genoemde pagina's; zit het probleem in een gedeeld template (bijvoorbeeld dubbele merknaam), corrigeer dan het template.",
-      description: "Schrijf voor de genoemde pagina's een eigen description van één of twee zinnen.",
+      title: "Controleer zoekvoorbeeld, titelduidelijkheid en eventueel dubbele merksegmenten. Een lengte boven 60 tekens bewijst op zichzelf geen afkapping; pas titels alleen aan wanneer dat de zoekpresentatie verbetert.",
+      description: "Controleer op de genoemde pagina's of de description uniek, relevant en duidelijk is. Pas lengte alleen aan wanneer dat de zoekpreview of boodschap verbetert.",
       h1: "Geef de genoemde pagina's één inhoudelijke H1 met het onderwerp van de pagina.",
       canonical: "Laat de canonical van de genoemde pagina's naar hun eigen URL wijzen.",
       product_schema: "Voeg op de productpagina's een Offer met price en priceCurrency toe aan de Product-markup.",
