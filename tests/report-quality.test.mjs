@@ -259,3 +259,28 @@ test("the scan route rebuilds specialist checks after the final sector decision"
   assert.ok(source.includes("buildSpecialistChecks(sectorProfile.sector)"));
   assert.ok(source.includes("technologyProfile.commercePlatform = null"));
 });
+
+test("representative sector keywords cannot override an independently confirmed unrelated identity", async () => {
+  const { corroborateSpecialistCapability: cap }=await import("../lib/sector-capability-guard.ts");
+  const primary={primarySector:"government",primaryConfidence:95};
+  assert.equal(cap({...primary,keywordEvidence:true,specialistSector:"hospitality"}),false);
+  assert.equal(cap({...primary,keywordEvidence:true,specialistSector:"real_estate"}),false);
+  assert.equal(cap({...primary,keywordEvidence:true,specialistSector:"professional_services"}),false);
+  assert.equal(cap({...primary,keywordEvidence:true,specialistSector:"government"}),true);
+  assert.equal(cap({...primary,keywordEvidence:false,specialistSector:"government"}),false);
+});
+
+test("representative capabilities remain discoverable for their own sector or uncertain identities", async () => {
+  const { corroborateSpecialistCapability: cap }=await import("../lib/sector-capability-guard.ts");
+  assert.equal(cap({keywordEvidence:true,primarySector:"hospitality",primaryConfidence:95,specialistSector:"hospitality"}),true);
+  assert.equal(cap({keywordEvidence:true,primarySector:"unknown",primaryConfidence:40,specialistSector:"hospitality"}),true);
+  assert.equal(cap({keywordEvidence:true,primarySector:"recruitment",primaryConfidence:75,specialistSector:"hospitality"}),true);
+  assert.equal(cap({keywordEvidence:true,primarySector:"government",primaryConfidence:55,specialistSector:"real_estate"}),true);
+});
+
+test("representative capability guard is applied uniformly to sector-specific keyword heuristics", async () => {
+  const route=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
+  const body=route.slice(route.indexOf("const multiPageCapabilities = {"),route.indexOf("const addMasterCapability ="));
+  for (const sector of ["transport_travel","hospitality","health_wellness","automotive","real_estate","professional_services"])
+    assert.ok(body.includes('specialistSector: "'+sector+'"'),"missing specialist gate for "+sector);
+});

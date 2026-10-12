@@ -7,6 +7,7 @@ import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, 
 import { getFixPolicy } from "@/lib/fix-policy";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { replaceSpecialistChecks } from "@/lib/specialist-check-reconciliation";
+import { corroborateSpecialistCapability } from "@/lib/sector-capability-guard";
 import { assessPassiveSecurity, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
 import { assessPageDescription, assessPageTitle, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, isBrandOnlyTitle, isClientShell, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
@@ -4084,16 +4085,16 @@ export async function POST(request: Request) {
     // defect into a failure.
     const multiPageIdentityText = auditedMultiPages.map((item)=>`${item.url} ${item.identityText||item.title||""}`).join(" ").toLowerCase();
     const multiPageCapabilities = {
-      transport: /\b(transport|logistics?|logistiek|freight|vracht|forwarding|expeditie|wegtransport|road transport|warehousing|opslag|distribution|distributie|courier|koerier)\b/i.test(multiPageIdentityText),
-      hospitality: /\b(hotel|hotels|room|rooms|kamer|kamers|overnachten|booking|boeken|reserveren|restaurant)\b/i.test(multiPageIdentityText),
-      treatment: /\b(behandeling|behandelingen|treatment|specialisatie|tandarts|dentist|spoed|afspraak)\b/i.test(multiPageIdentityText),
+      transport: corroborateSpecialistCapability({keywordEvidence: (/\b(transport|logistics?|logistiek|freight|vracht|forwarding|expeditie|wegtransport|road transport|warehousing|opslag|distribution|distributie|courier|koerier)\b/i.test(multiPageIdentityText)), primarySector: sectorProfile.sector, primaryConfidence: sectorProfile.confidenceScore, specialistSector: "transport_travel"}),
+      hospitality: corroborateSpecialistCapability({keywordEvidence: (/\b(hotel|hotels|room|rooms|kamer|kamers|overnachten|booking|boeken|reserveren|restaurant)\b/i.test(multiPageIdentityText)), primarySector: sectorProfile.sector, primaryConfidence: sectorProfile.confidenceScore, specialistSector: "hospitality"}),
+      treatment: corroborateSpecialistCapability({keywordEvidence: (/\b(behandeling|behandelingen|treatment|specialisatie|tandarts|dentist|spoed|afspraak)\b/i.test(multiPageIdentityText),
       // Keep vehicle sales/inventory separate from garage/service capability.
       // A tyre or workshop site is automotive, but that alone is not evidence that it sells vehicles.
-      vehicleSales: /\b(occasion|occasions|vehicle inventory|voertuigvoorraad|autovoorraad|proefrit|test drive|auto kopen|cars for sale)\b/i.test(multiPageIdentityText)
-        || auditedMultiPages.some((item)=>/\/(?:voorraad|occasions?|vehicles?|autos?|cars)(?:\/|$)/i.test(new URL(item.url).pathname) && !/\b(werkplaats|service|banden|tyres?|uitlijnen|apk|onderhoud|repair)\b/i.test(`${item.url} ${item.title||""}`)),
-      automotiveService: /\b(werkplaats|garage|banden|tyres?|uitlijnen|apk|onderhoud|autoservice|car service|repair)\b/i.test(multiPageIdentityText),
-      properties: /\b(woning|woningen|huis|huizen|property|properties|makelaar|aanbod|koop|huur)\b/i.test(multiPageIdentityText),
-      professional: /\b(expert|experts|expertise|practice|rechtsgebied|people|professionals?|advocaat|advocaten|lawyer|law firm)\b/i.test(multiPageIdentityText),
+      vehicleSales: corroborateSpecialistCapability({keywordEvidence: (/\b(occasion|occasions|vehicle inventory|voertuigvoorraad|autovoorraad|proefrit|test drive|auto kopen|cars for sale)\b/i.test(multiPageIdentityText)
+        || auditedMultiPages.some((item)=>/\/(?:voorraad|occasions?|vehicles?|autos?|cars)(?:\/|$)/i.test(new URL(item.url).pathname) && !/\b(werkplaats|service|banden|tyres?|uitlijnen|apk|onderhoud|repair)\b/i.test(`${item.url} ${item.title||""}`))), primarySector: sectorProfile.sector, primaryConfidence: sectorProfile.confidenceScore, specialistSector: "health_wellness"})), primarySector: sectorProfile.sector, primaryConfidence: sectorProfile.confidenceScore, specialistSector: "automotive"}),
+      automotiveService: corroborateSpecialistCapability({keywordEvidence: (/\b(werkplaats|garage|banden|tyres?|uitlijnen|apk|onderhoud|autoservice|car service|repair)\b/i.test(multiPageIdentityText)), primarySector: sectorProfile.sector, primaryConfidence: sectorProfile.confidenceScore, specialistSector: "automotive"}),
+      properties: corroborateSpecialistCapability({keywordEvidence: (/\b(woning|woningen|huis|huizen|property|properties|makelaar|aanbod|koop|huur)\b/i.test(multiPageIdentityText)), primarySector: sectorProfile.sector, primaryConfidence: sectorProfile.confidenceScore, specialistSector: "real_estate"}),
+      professional: corroborateSpecialistCapability({keywordEvidence: (/\b(expert|experts|expertise|practice|rechtsgebied|people|professionals?|advocaat|advocaten|lawyer|law firm)\b/i.test(multiPageIdentityText)), primarySector: sectorProfile.sector, primaryConfidence: sectorProfile.confidenceScore, specialistSector: "professional_services"}),
       productSample: auditedMultiPages.some((item)=>item.type==="product"),
       categorySample: auditedMultiPages.some((item)=>item.type==="category"),
     };
