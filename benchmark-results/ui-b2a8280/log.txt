@@ -1,0 +1,14 @@
+provisional: login 200 · dashboard scan 200 · scanId 126afb78-cac8-408e-8653-b535f2d7d6f4 · score 100 · presentation null
+public provisional desktop: ok · horizontal overflow 0px
+public provisional mobile: ok · horizontal overflow 0px
+audit provisional desktop: ok · horizontal overflow 0px
+report provisional desktop: ok
+audit provisional mobile: ok · horizontal overflow 0px
+report provisional mobile: ok
+confirmed: login 200 · dashboard scan 200 · scanId 073facd8-8f9f-4bb7-84bf-798d788ab709 · score 92 · presentation null
+public confirmed desktop: ok · horizontal overflow 0px
+public confirmed mobile: ok · horizontal overflow 0px
+audit confirmed desktop: ok · horizontal overflow 0px
+report confirmed desktop: ok
+audit confirmed mobile: ok · horizontal overflow 0px
+report confirmed mobile: ok
