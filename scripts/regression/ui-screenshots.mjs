@@ -58,7 +58,9 @@ try {
     }
     for (const vp of viewports) {
       if (!publicOk) break;
-      await page.setViewport(vp);
+      // Changing isMobile/hasTouch reloads the page and would drop the scan result;
+      // width and pixel ratio alone drive the responsive CSS.
+      await page.setViewport({ width: vp.width, height: vp.height, deviceScaleFactor: vp.deviceScaleFactor || 1 });
       await new Promise((r) => setTimeout(r, 800));
       const card = await page.evaluateHandle(() => [...document.querySelectorAll("div")].find((el) => /^Grade [A-E]$/.test(el.textContent?.trim() || ""))?.closest(".rounded-3xl"));
       const el = card.asElement();
