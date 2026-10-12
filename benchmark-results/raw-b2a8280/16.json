@@ -6,8 +6,8 @@
   "mode": "both",
   "scannedUrl": "https://www.racesport.nl/",
   "finalUrl": "https://www.racesport.nl/",
-  "scannedAt": "2026-10-12T10:09:18.738Z",
-  "responseTime": 828,
+  "scannedAt": "2026-10-12T10:31:22.391Z",
+  "responseTime": 233,
   "httpStatus": 200,
   "overallScore": 98,
   "grade": "A",
@@ -6513,7 +6513,7 @@
      "category": "seo",
      "title": "Server response",
      "status": "pass",
-     "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 828 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
+     "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 233 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
      "fix": "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.",
      "points": 5,
      "maxPoints": 5,
@@ -6525,8 +6525,8 @@
      "impactClaim": "hygiene",
      "evidence": {
       "url": "https://www.racesport.nl/",
-      "found": 828,
-      "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 828 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
+      "found": 233,
+      "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 233 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
      },
      "fix_category": "C"
     },
@@ -7917,7 +7917,7 @@
     "category": "seo",
     "title": "Server response",
     "status": "pass",
-    "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 828 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
+    "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 233 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
     "fix": "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.",
     "points": 5,
     "maxPoints": 5,
@@ -7929,8 +7929,8 @@
     "impactClaim": "hygiene",
     "evidence": {
      "url": "https://www.racesport.nl/",
-     "found": 828,
-     "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 828 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
+     "found": 233,
+     "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 233 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
     },
     "fix_category": "C"
    },

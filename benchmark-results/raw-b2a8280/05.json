@@ -6,8 +6,8 @@
   "mode": "both",
   "scannedUrl": "https://www.expert.nl/",
   "finalUrl": "https://www.expert.nl/",
-  "scannedAt": "2026-10-12T10:03:23.986Z",
-  "responseTime": 421,
+  "scannedAt": "2026-10-12T10:25:41.509Z",
+  "responseTime": 522,
   "httpStatus": 200,
   "overallScore": 98,
   "grade": "A",
@@ -87,7 +87,7 @@
    "mode": "PAGE_SAMPLE",
    "javascriptExecuted": false,
    "internalLinks": {
-    "anchorsFound": 1350,
+    "anchorsFound": 1349,
     "uniqueInternal": 536,
     "checked": 16,
     "limit": 24,
@@ -5499,7 +5499,7 @@
      "category": "seo",
      "title": "Contentdekking",
      "status": "pass",
-     "message": "Ongeveer 3012 woorden gevonden op deze homepage. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld.",
+     "message": "Ongeveer 2980 woorden gevonden op deze homepage. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld.",
      "fix": "Behoud nuttige, unieke content die de zoekintentie en klantvragen beantwoordt.",
      "points": 7,
      "maxPoints": 7,
@@ -5511,8 +5511,8 @@
      "impactClaim": "hygiene",
      "evidence": {
       "url": "https://www.expert.nl/",
-      "found": "wordCount=3012; pageType=homepage; minimum=150; strong=250",
-      "details": "Ongeveer 3012 woorden gevonden op deze homepage. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld."
+      "found": "wordCount=2980; pageType=homepage; minimum=150; strong=250",
+      "details": "Ongeveer 2980 woorden gevonden op deze homepage. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld."
      },
      "fix_category": "C"
     },
@@ -5565,7 +5565,7 @@
      "category": "seo",
      "title": "Server response",
      "status": "pass",
-     "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 421 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
+     "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 522 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
      "fix": "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.",
      "points": 5,
      "maxPoints": 5,
@@ -5577,8 +5577,8 @@
      "impactClaim": "hygiene",
      "evidence": {
       "url": "https://www.expert.nl/",
-      "found": 421,
-      "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 421 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
+      "found": 522,
+      "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 522 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
      },
      "fix_category": "C"
     },
@@ -6476,7 +6476,7 @@
      "impactClaim": "hygiene",
      "evidence": {
       "url": "https://www.expert.nl/",
-      "found": "metaDescription=true; wordCount=3012; minimumVisibleWords=80; rendered=false",
+      "found": "metaDescription=true; wordCount=2980; minimumVisibleWords=80; rendered=false",
       "details": "Een meta description en voldoende zichtbare paginatekst geven samen een concrete samenvatting van de pagina."
      },
      "fix_category": "C"
@@ -6530,7 +6530,7 @@
    "imageCount": 27,
    "imageElementCount": 24,
    "imagesMissingAlt": 0,
-   "wordCount": 3012,
+   "wordCount": 2980,
    "headingsCount": 18,
    "linksCount": 1374,
    "internalLinks": 1359,
@@ -6883,7 +6883,7 @@
     "category": "seo",
     "title": "Contentdekking",
     "status": "pass",
-    "message": "Ongeveer 3012 woorden gevonden op deze homepage. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld.",
+    "message": "Ongeveer 2980 woorden gevonden op deze homepage. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld.",
     "fix": "Behoud nuttige, unieke content die de zoekintentie en klantvragen beantwoordt.",
     "points": 7,
     "maxPoints": 7,
@@ -6895,8 +6895,8 @@
     "impactClaim": "hygiene",
     "evidence": {
      "url": "https://www.expert.nl/",
-     "found": "wordCount=3012; pageType=homepage; minimum=150; strong=250",
-     "details": "Ongeveer 3012 woorden gevonden op deze homepage. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld."
+     "found": "wordCount=2980; pageType=homepage; minimum=150; strong=250",
+     "details": "Ongeveer 2980 woorden gevonden op deze homepage. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld."
     },
     "fix_category": "C"
    },
@@ -6949,7 +6949,7 @@
     "category": "seo",
     "title": "Server response",
     "status": "pass",
-    "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 421 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
+    "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 522 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
     "fix": "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.",
     "points": 5,
     "maxPoints": 5,
@@ -6961,8 +6961,8 @@
     "impactClaim": "hygiene",
     "evidence": {
      "url": "https://www.expert.nl/",
-     "found": 421,
-     "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 421 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
+     "found": 522,
+     "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 522 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
     },
     "fix_category": "C"
    },
@@ -7845,7 +7845,7 @@
     "impactClaim": "hygiene",
     "evidence": {
      "url": "https://www.expert.nl/",
-     "found": "metaDescription=true; wordCount=3012; minimumVisibleWords=80; rendered=false",
+     "found": "metaDescription=true; wordCount=2980; minimumVisibleWords=80; rendered=false",
      "details": "Een meta description en voldoende zichtbare paginatekst geven samen een concrete samenvatting van de pagina."
     },
     "fix_category": "C"

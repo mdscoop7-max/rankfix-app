@@ -6,8 +6,8 @@
   "mode": "both",
   "scannedUrl": "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-prijzen-in-supermarkt-na-it-incident-bij-albert-heijn",
   "finalUrl": "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-winkelprijzen-na-cyberveiligheidsincident-bij-albert-heijn",
-  "scannedAt": "2026-10-12T10:08:48.172Z",
-  "responseTime": 37,
+  "scannedAt": "2026-10-12T10:30:58.133Z",
+  "responseTime": 46,
   "httpStatus": 200,
   "overallScore": 89,
   "grade": "B",
@@ -68,7 +68,7 @@
    "mode": "javascript_rendered",
    "javascriptExecuted": true,
    "note": "RankFix heeft deze JavaScript-site in een begrensde browser gerenderd. Interactieve login-, winkelwagen- en betaalflows zijn niet uitgevoerd.",
-   "elapsedMs": 5194,
+   "elapsedMs": 4839,
    "fallbackReason": null,
    "warning": false,
    "evidenceSource": "rendered_html",
@@ -129,14 +129,6 @@
       ]
      },
      {
-      "url": "https://nos.nl/live",
-      "type": "other",
-      "evidence": [
-       "link-context: Live , er is op dit moment één livestream actief.",
-       "javascript-rendered representative page"
-      ]
-     },
-     {
       "url": "https://nos.nl/sport/formule-1",
       "type": "other",
       "evidence": [
@@ -172,6 +164,15 @@
       ]
      },
      {
+      "url": "https://nos.nl/artikel/2634668-oudste-overdekte-markt-van-parijs-verwoest-door-brand",
+      "type": "product",
+      "evidence": [
+       "product-like path",
+       "link-context: Oudste overdekte markt van Parijs verwoest door brand vandaag, 12:23",
+       "javascript-rendered representative page"
+      ]
+     },
+     {
       "url": "https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat",
       "type": "product",
       "evidence": [
@@ -190,19 +191,18 @@
       ]
      },
      {
-      "url": "https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis",
-      "type": "product",
-      "evidence": [
-       "product-like path",
-       "link-context: Litouwen en Polen bereiden zich met oefening voor op vluchtelingencrisis vandaag, 07:14",
-       "javascript rendering unavailable; raw HTML retained"
-      ]
-     },
-     {
       "url": "https://nos.nl/sport",
       "type": "other",
       "evidence": [
        "link-context: Voorpagina",
+       "javascript rendering unavailable; raw HTML retained"
+      ]
+     },
+     {
+      "url": "https://nos.nl/live",
+      "type": "other",
+      "evidence": [
+       "link-context: Live",
        "javascript rendering unavailable; raw HTML retained"
       ]
      },
@@ -288,7 +288,7 @@
       "structureKey": "h4|a6|img0|form0|article0|table0|li5|schema5",
       "evidenceSource": "rendered_html",
       "score": 92,
-      "identityText": "Geen bezorging en verkeerde winkelprijzen na 'cyberveiligheidsincident' bij Albert Heijn Dat komt volgens Albert Heijn door &quot;een IT-incident&quot;. Websites, apps en de klantenservice zijn hierdoor niet beschikbaar. Geen bezorging en verkeerde winkelprijzen na 'cyberveiligheidsincident' bij Albert Heijn Geen bezorging en verkeerde winkelprijzen na &#x27;cyberveiligheidsincident&#x27; bij Albert Heijn Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live , er is op dit moment één livestream actief. Zoeken Instellingen Teletekst NPO Start Menu NOS NOS Nieuws • vandaag, 07:56 • Aangepast vandaag, 11:38 Geen bezorging en verkeerde winkelprijzen na 'cyberveiligheidsincident' bij Albert Heijn Deel dit artikel Albert Heijn, Etos en Gall &amp; Gall kampen sinds zondagmiddag met een storing. Dat komt volgens Ahold Delhaize (opent in nieuw venster) , het moederbedrijf van Albert Heijn, door een \"cyberveiligheidsincident\". Albert Heijn schreef eerder in een eigen persbericht over \"een IT-incident\". Websites, apps en de klantenservice van Albert Heijn zijn door de technische problemen niet beschikbaar. Ook kunnen online bestelde boodschappen niet worden bezorgd en geven elektronische schapkaarten nog de actieprijzen van vorige week weer, in plaats van de huidige prijs. Ook de spaarsystemen werken niet. ANP Ook de app werkt niet Ook de Belgische supermarktketen Delhaize, onderdeel van hetzelfde bedrijf als Albert Heijn, ondervindt hinder, meldt VRT Nieuws (opent in nieuw venster) . Klanten kunnen daar geen nieuwe bestellingen doen voor deze week en ook is de klantenservice niet bereikbaar. In België zijn de app en website wel bereikbaar. Gegevens beschermen Wat er precies aan de hand is, is nog onduidelijk. Daarover wil Albert Heijn niets kwijt. \"We hebben direct maatregelen genomen om onze IT-omgeving te beschermen. Onderdeel daarvan is het preventief tijdelijk uitschakelen van een aantal systemen\", schrijft Albert Heijn in een verklaring. \"We onderzoeken het incident en werken aan het herstellen van onze diensten. De bescherming van de gegevens van onze klanten, medewerkers en partners staat daarbij voorop\", meldt de supermarktketen. De winkels van Albert Heijn zijn vanmorgen gewoon opengegaan. De supermarktketen zegt nog niet te weten wanneer de diensten weer beschikbaar zijn. Deze Albert Heijn-vestiging in Amsterdam informeert klanten met een briefje over de onjuiste prijzen in de winkel: NOS Een Albert Heijn-filiaal in Amsterdam informeert klanten over de storing Storing bij KPN opgelost, universitaire ziekenhuizen weer bereikbaar Bedrijven massaal gehackt, consument maakt het weinig uit: 'We zijn datalekmoe' Datalek bij webshop drogisterijketen DA raakt 236.000 klanten Economie Maak NOS jouw voorkeursbron in Google Met een nieuwe functie van Google bepaal je voortaan zelf welke bronnen je als eerste ziet wanneer je zoekt. Zo mis je nooit meer het laatste nieuws van de NOS. Voeg NOS toe aan Google (opent in nieuw venster) Meer informatie (opent in nieuw venster) Deel artikel: X (opent in nieuw venster) E-mail (opent in nieuw venster) Facebook (opent in nieuw venster) WhatsApp (opent in nieuw venster) Link gekopieerd! Het belangrijkste nieuws Litouwen en Polen bereiden zich met oefening voor op vluchtelingencrisis vandaag, 07:14 H",
+      "identityText": "Geen bezorging en verkeerde winkelprijzen na 'cyberveiligheidsincident' bij Albert Heijn Dat komt volgens Albert Heijn door &quot;een IT-incident&quot;. Websites, apps en de klantenservice zijn hierdoor niet beschikbaar. Geen bezorging en verkeerde winkelprijzen na 'cyberveiligheidsincident' bij Albert Heijn Geen bezorging en verkeerde winkelprijzen na &#x27;cyberveiligheidsincident&#x27; bij Albert Heijn Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live Zoeken Instellingen Teletekst NPO Start Menu NOS NOS Nieuws • vandaag, 07:56 • Aangepast vandaag, 11:38 Geen bezorging en verkeerde winkelprijzen na 'cyberveiligheidsincident' bij Albert Heijn Deel dit artikel Albert Heijn, Etos en Gall &amp; Gall kampen sinds zondagmiddag met een storing. Dat komt volgens Ahold Delhaize (opent in nieuw venster) , het moederbedrijf van Albert Heijn, door een \"cyberveiligheidsincident\". Albert Heijn schreef eerder in een eigen persbericht over \"een IT-incident\". Websites, apps en de klantenservice van Albert Heijn zijn door de technische problemen niet beschikbaar. Ook kunnen online bestelde boodschappen niet worden bezorgd en geven elektronische schapkaarten nog de actieprijzen van vorige week weer, in plaats van de huidige prijs. Ook de spaarsystemen werken niet. ANP Ook de app werkt niet Ook de Belgische supermarktketen Delhaize, onderdeel van hetzelfde bedrijf als Albert Heijn, ondervindt hinder, meldt VRT Nieuws (opent in nieuw venster) . Klanten kunnen daar geen nieuwe bestellingen doen voor deze week en ook is de klantenservice niet bereikbaar. In België zijn de app en website wel bereikbaar. Gegevens beschermen Wat er precies aan de hand is, is nog onduidelijk. Daarover wil Albert Heijn niets kwijt. \"We hebben direct maatregelen genomen om onze IT-omgeving te beschermen. Onderdeel daarvan is het preventief tijdelijk uitschakelen van een aantal systemen\", schrijft Albert Heijn in een verklaring. \"We onderzoeken het incident en werken aan het herstellen van onze diensten. De bescherming van de gegevens van onze klanten, medewerkers en partners staat daarbij voorop\", meldt de supermarktketen. De winkels van Albert Heijn zijn vanmorgen gewoon opengegaan. De supermarktketen zegt nog niet te weten wanneer de diensten weer beschikbaar zijn. Deze Albert Heijn-vestiging in Amsterdam informeert klanten met een briefje over de onjuiste prijzen in de winkel: NOS Een Albert Heijn-filiaal in Amsterdam informeert klanten over de storing Storing bij KPN opgelost, universitaire ziekenhuizen weer bereikbaar Bedrijven massaal gehackt, consument maakt het weinig uit: 'We zijn datalekmoe' Datalek bij webshop drogisterijketen DA raakt 236.000 klanten Economie Maak NOS jouw voorkeursbron in Google Met een nieuwe functie van Google bepaal je voortaan zelf welke bronnen je als eerste ziet wanneer je zoekt. Zo mis je nooit meer het laatste nieuws van de NOS. Voeg NOS toe aan Google (opent in nieuw venster) Meer informatie (opent in nieuw venster) Deel artikel: X (opent in nieuw venster) E-mail (opent in nieuw venster) Facebook (opent in nieuw venster) WhatsApp (opent in nieuw venster) Link gekopieerd! Het belangrijkste nieuws Litouwen en Polen bereiden zich met oefening voor op vluchtelingencrisis vandaag, 07:14 Hoe Rusland te verslaan? Topmilitair NAVO geef",
       "schemaTypes": [
        "webpage",
        "language",
@@ -319,7 +319,7 @@
        "https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis",
        "https://nos.nl/artikel/2634636-hoe-rusland-te-verslaan-topmilitair-navo-geeft-antwoord-in-zeldzame-toespraak",
        "https://nos.nl/artikel/2634629-strand-scheveningen-tijd-lang-afgezet-zeemijn-blijkt-ongevaarlijke-stalen-bal",
-       "https://nos.nl/artikel/2634656-bakstenen-zonder-gasovens-vol-stroomnet-zit-duurzamere-industrie-in-de-weg"
+       "https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat"
       ],
       "evidenceChecks": [
        {
@@ -365,7 +365,7 @@
       "structureKey": "h4|a9|img9|form0|article0|table0|li9|schema0",
       "evidenceSource": "rendered_html",
       "score": 92,
-      "identityText": "NOS.nl - Nieuws, Sport en Evenementen | Nederlandse Omroep Stichting NOS.nl - Nieuws, Sport en Evenementen op Radio, TV en Internet Blijf bij. NOS. NOS.nl - Nieuws, Sport en Evenementen | Nederlandse Omroep Stichting Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live , er is op dit moment één livestream actief. Zoeken Instellingen Teletekst NPO Start Menu Voorpagina Laatste nieuws Video's Binnenland Buitenland Regionaal nieuws Politiek Economie Koningshuis Tech Cultuur &amp; media Opmerkelijk Blijf bij. NOS. Het belangrijkste nieuws Geen bezorging en verkeerde winkelprijzen na 'cyberveiligheidsincident' bij Albert Heijn Litouwen en Polen bereiden zich met oefening voor op vluchtelingencrisis Hoe Rusland te verslaan? Topmilitair NAVO geeft antwoord in zeldzame toespraak Uitgelicht Strand Scheveningen tijd lang afgezet: 'zeemijn' blijkt ongevaarlijke stalen bal De metalen bal spoelde zondag rond 15.00 uur aan op het strand. Voorbijgangers waarschuwden de politie, die met meerdere eenheden het strand afzette. Bakstenen zonder gasovens? Vol stroomnet zit duurzamere industrie in de weg Energie-intensieve bedrijven zeggen dat ze zekerheid nodig hebben over wanneer ze een stroomaansluiting kunnen krijgen om te verduurzamen. Ze staan op lange wachtlijsten. Twee doden en twee gewonden bij verkeersongeluk Kesteren Een van de auto's kwam na het ongeluk op de kop in de berm terecht. Trump claimt staakt-het-vuren energiesector, Oekraïne weet van niks en wacht op details Rusland heeft nog niet gereageerd op het bericht van Trump op sociale media. Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt Er wordt gestaakt tegen de voorgenomen bezuinigingen van de regering-De Wever. Intussen is de State of the Union die de premier morgen zou houden uitgesteld. D66 wil drempel omlaag om kind te spreken bij vermoedens kindermishandeling D66 komt vandaag met een initiatiefwetsvoorstel, dat het voor hulpverleners makkelijker moet maken om kinderen zelf te spreken na signalen van ernstige mishandeling. Dode en elf gewonden bij nieuwe aanval op luchthaven Riyad De dode heeft de Pakistaanse nationaliteit. De gewonden zijn naar het ziekenhuis gebracht. Noord-Korea lanceert meerdere ballistische raketten richting zee De Zuid-Koreaanse legerleiding zegt dat de raketten werden gelanceerd vanuit een gebied rond de Noord-Koreaanse hoofdstad Pyongyang. Explosie bij kapper Vlaardingen, mogelijk verband met 'kappersoorlog' De oorzaak van de explosie is niet bekendgemaakt. Op foto's is een stuk zwaar vuurwerk en een losse baksteen te zien. Herten in Maasland dood nadat ze waren gevoerd met ongekookte rijst De vrijwilligers dachten in eerste instantie dat het om een virus ging, maar uit onderzoek bleek een andere doodsoorzaak. Man in Polen opgepakt voor het plannen van een aanslag op premier Tusk De Poolse autoriteiten willen niet in detail treden, maar de dreiging werd \"uiterst serieus\" genomen. Komende week rustig najaarsweer, opnieuw zonnig en warm met weinig regen Het wordt niet alleen bij ons warm en zonnig, maar in vrijwel heel Midden- en West-Europa. Sport Bekijk meer Sport Bij nieuwe club S",
+      "identityText": "NOS.nl - Nieuws, Sport en Evenementen | Nederlandse Omroep Stichting NOS.nl - Nieuws, Sport en Evenementen op Radio, TV en Internet Blijf bij. NOS. NOS.nl - Nieuws, Sport en Evenementen | Nederlandse Omroep Stichting Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live Zoeken Instellingen Teletekst NPO Start Menu Voorpagina Laatste nieuws Video's Binnenland Buitenland Regionaal nieuws Politiek Economie Koningshuis Tech Cultuur &amp; media Opmerkelijk Blijf bij. NOS. Het belangrijkste nieuws Geen bezorging en verkeerde winkelprijzen na 'cyberveiligheidsincident' bij Albert Heijn Litouwen en Polen bereiden zich met oefening voor op vluchtelingencrisis Hoe Rusland te verslaan? Topmilitair NAVO geeft antwoord in zeldzame toespraak Uitgelicht Strand Scheveningen tijd lang afgezet: 'zeemijn' blijkt ongevaarlijke stalen bal De metalen bal spoelde zondag rond 15.00 uur aan op het strand. Voorbijgangers waarschuwden de politie, die met meerdere eenheden het strand afzette. Centrumlinks schuift Raphaël Glucksmann naar voren als Franse presidentskandidaat De 46-jarige Europarlementariër moet als presidentskandidaat het versnipperde linkse kamp zien te verenigen. Bakstenen zonder gasovens? Vol stroomnet zit duurzamere industrie in de weg Energie-intensieve bedrijven zeggen dat ze zekerheid nodig hebben over wanneer ze een stroomaansluiting kunnen krijgen om te verduurzamen. Ze staan op lange wachtlijsten. Twee doden en twee gewonden bij verkeersongeluk Kesteren Een van de auto's kwam na het ongeluk op de kop in de berm terecht. Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt Er wordt gestaakt tegen de voorgenomen bezuinigingen van de regering-De Wever. Intussen is de State of the Union die de premier morgen zou houden uitgesteld. D66 wil drempel omlaag om kind te spreken bij vermoedens kindermishandeling D66 komt vandaag met een initiatiefwetsvoorstel, dat het voor hulpverleners makkelijker moet maken om kinderen zelf te spreken na signalen van ernstige mishandeling. Dode en elf gewonden bij nieuwe aanval op luchthaven Riyad De dode heeft de Pakistaanse nationaliteit. De gewonden zijn naar het ziekenhuis gebracht. Noord-Korea lanceert meerdere ballistische raketten richting zee De Zuid-Koreaanse legerleiding zegt dat de raketten werden gelanceerd vanuit een gebied rond de Noord-Koreaanse hoofdstad Pyongyang. Explosie bij kapper Vlaardingen, mogelijk verband met 'kappersoorlog' De oorzaak van de explosie is niet bekendgemaakt. Op foto's is een stuk zwaar vuurwerk en een losse baksteen te zien. Herten in Maasland dood nadat ze waren gevoerd met ongekookte rijst De vrijwilligers dachten in eerste instantie dat het om een virus ging, maar uit onderzoek bleek een andere doodsoorzaak. Man in Polen opgepakt voor het plannen van een aanslag op premier Tusk De Poolse autoriteiten willen niet in detail treden, maar de dreiging werd \"uiterst serieus\" genomen. Komende week rustig najaarsweer, opnieuw zonnig en warm met weinig regen Het wordt niet alleen bij ons warm en zonnig, maar in vrijwel heel Midden- en West-Europa. Sport Bekijk meer Sport Bij nieuwe club Seedorf moeten spele",
       "schemaTypes": [],
       "formEvidence": {
        "formCount": 0,
@@ -387,9 +387,9 @@
        "https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis",
        "https://nos.nl/artikel/2634636-hoe-rusland-te-verslaan-topmilitair-navo-geeft-antwoord-in-zeldzame-toespraak",
        "https://nos.nl/artikel/2634629-strand-scheveningen-tijd-lang-afgezet-zeemijn-blijkt-ongevaarlijke-stalen-bal",
+       "https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat",
        "https://nos.nl/artikel/2634656-bakstenen-zonder-gasovens-vol-stroomnet-zit-duurzamere-industrie-in-de-weg",
        "https://nos.nl/artikel/2634631-twee-doden-en-twee-gewonden-bij-verkeersongeluk-kesteren",
-       "https://nos.nl/artikel/2634610-trump-claimt-staakt-het-vuren-energiesector-oekraine-weet-van-niks-en-wacht-op-details",
        "https://nos.nl/artikel/2634660-staking-belgie-om-bezuinigingen-openbare-diensten-minder-treinen-ook-vrt-staakt"
       ],
       "evidenceChecks": [
@@ -437,7 +437,7 @@
       "structureKey": "h4|a6|img0|form0|article0|table0|li5|schema5",
       "evidenceSource": "rendered_html",
       "score": 92,
-      "identityText": "Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt Er wordt gestaakt tegen de voorgenomen bezuinigingen van de regering-De Wever. Intussen is de State of the Union die de premier morgen zou houden uitgesteld. Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live , er is op dit moment één livestream actief. Zoeken Instellingen Teletekst NPO Start Menu De staking voor de ingang van de Vlaamse omroep VRT BELGA NOS Nieuws • vandaag, 10:11 Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt Deel dit artikel In België protesteren vakbonden vandaag opnieuw tegen aangekondigde bezuinigingen van de regering. De stakingsdag zal gevolgen hebben voor scholen, het openbaar vervoer en het ophalen van afval. Ook medewerkers van de Vlaamse omroep VRT leggen het werk neer. De staking is een initiatief van de socialistische vakbond ACOD. Het protest is gericht op de bezuinigingen die de regering-De Wever heeft aangekondigd op openbare diensten. Morgen zou de premier de begrotingskeuzes toelichten in zijn State of the Union, maar vanwege het uitblijven van een begrotingsakkoord is die uitgesteld (opent in nieuw venster) . Zijn regering verkeert sinds dit weekend in crisis, omdat de coalitiepartijen het niet eens worden over die begroting. Spoor De staking bij de Belgische spoorwegmaatschappij NMBS begon gisteravond en tot vanavond 22.00 uur zullen er minder treinen rijden. Dat heeft ook gevolgen voor treinreizen van en naar Nederland, meldt de NS. Reizigers wordt geadviseerd voor vertrek de reisplanner te checken. Er rijden in België ook minder bussen, trams en metro's. Ook medewerkers van omroep VRT leggen het werk neer. De omroep moet nog eens 10 miljoen euro bezuinigen, boven op een al eerder aangekondigde bezuinigingsronde. Veel tv-uitzendingen worden geschrapt, journaals zijn ingekort en op de radio zal vooral muziek te horen zijn, meldt de omroep (opent in nieuw venster) . Op 9 november wordt een besluit genomen over verdere acties. Rellen Afgelopen vrijdag liep een staking in Brussel tegen de bezuinigingen op de sociale zekerheid uit op rellen , nadat honderden tot duizenden gemaskerde jongeren zich tussen de betogers hadden gemengd. Zij gooiden met stenen en vuurwerk naar de politie. De politie sprak tegen dat de ongeregeldheden verband hielden met de vakbondsactie. Zeker 110 mensen werden aangehouden. Een dag eerder werd een samenscholingsverbod afgekondigd in Luik , vanwege uit de hand gelopen onderwijsprotesten in die stad. Die protesten zijn deels overgewaaid uit Frankrijk , waar sinds vorige maand wordt gedemonstreerd tegen onder meer de gebrekkige staat van schoolgebouwen en het lerarentekort. Politie houdt 21 mensen aan bij vakbondsactie in Brussel 110 arrestaties op dag vol geweld in centrum Brussel Buitenland Maak NOS jouw voorkeursbron in Google Met een nieuwe functie van Google bepaal je voortaan zelf welke bronnen je als eerste ziet wanneer je zoekt. Zo mis je nooit meer het laatste nieuws van de NOS. Voeg NOS toe aan Google (opent in nieuw venster) Meer informatie (opent in nieuw venster) Deel artikel: X (opent in n",
+      "identityText": "Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt Er wordt gestaakt tegen de voorgenomen bezuinigingen van de regering-De Wever. Intussen is de State of the Union die de premier morgen zou houden uitgesteld. Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live Zoeken Instellingen Teletekst NPO Start Menu De staking voor de ingang van de Vlaamse omroep VRT BELGA NOS Nieuws • vandaag, 10:11 Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt Deel dit artikel In België protesteren vakbonden vandaag opnieuw tegen aangekondigde bezuinigingen van de regering. De stakingsdag zal gevolgen hebben voor scholen, het openbaar vervoer en het ophalen van afval. Ook medewerkers van de Vlaamse omroep VRT leggen het werk neer. De staking is een initiatief van de socialistische vakbond ACOD. Het protest is gericht op de bezuinigingen die de regering-De Wever heeft aangekondigd op openbare diensten. Morgen zou de premier de begrotingskeuzes toelichten in zijn State of the Union, maar vanwege het uitblijven van een begrotingsakkoord is die uitgesteld (opent in nieuw venster) . Zijn regering verkeert sinds dit weekend in crisis, omdat de coalitiepartijen het niet eens worden over die begroting. Spoor De staking bij de Belgische spoorwegmaatschappij NMBS begon gisteravond en tot vanavond 22.00 uur zullen er minder treinen rijden. Dat heeft ook gevolgen voor treinreizen van en naar Nederland, meldt de NS. Reizigers wordt geadviseerd voor vertrek de reisplanner te checken. Er rijden in België ook minder bussen, trams en metro's. Ook medewerkers van omroep VRT leggen het werk neer. De omroep moet nog eens 10 miljoen euro bezuinigen, boven op een al eerder aangekondigde bezuinigingsronde. Veel tv-uitzendingen worden geschrapt, journaals zijn ingekort en op de radio zal vooral muziek te horen zijn, meldt de omroep (opent in nieuw venster) . Op 9 november wordt een besluit genomen over verdere acties. Rellen Afgelopen vrijdag liep een staking in Brussel tegen de bezuinigingen op de sociale zekerheid uit op rellen , nadat honderden tot duizenden gemaskerde jongeren zich tussen de betogers hadden gemengd. Zij gooiden met stenen en vuurwerk naar de politie. De politie sprak tegen dat de ongeregeldheden verband hielden met de vakbondsactie. Zeker 110 mensen werden aangehouden. Een dag eerder werd een samenscholingsverbod afgekondigd in Luik , vanwege uit de hand gelopen onderwijsprotesten in die stad. Die protesten zijn deels overgewaaid uit Frankrijk , waar sinds vorige maand wordt gedemonstreerd tegen onder meer de gebrekkige staat van schoolgebouwen en het lerarentekort. Politie houdt 21 mensen aan bij vakbondsactie in Brussel 110 arrestaties op dag vol geweld in centrum Brussel Buitenland Maak NOS jouw voorkeursbron in Google Met een nieuwe functie van Google bepaal je voortaan zelf welke bronnen je als eerste ziet wanneer je zoekt. Zo mis je nooit meer het laatste nieuws van de NOS. Voeg NOS toe aan Google (opent in nieuw venster) Meer informatie (opent in nieuw venster) Deel artikel: X (opent in nieuw venster) E-mail (opent in nieuw venster)",
       "schemaTypes": [
        "webpage",
        "language",
@@ -496,68 +496,6 @@
       ]
      },
      {
-      "url": "https://nos.nl/live",
-      "type": "other",
-      "evidence": [
-       "link-context: Live , er is op dit moment één livestream actief.",
-       "javascript-rendered representative page"
-      ],
-      "status": "audited",
-      "httpStatus": 200,
-      "title": "NOS.nl - NOS Live",
-      "description": "Blijf bij. NOS. Bekijk actuele livestreams en de agenda van komende uitzendingen van nieuws, sport en evenementen.",
-      "h1Count": 1,
-      "canonical": "https://nos.nl/live",
-      "structureKey": "h4|a9|img5|form0|article0|table0|li9|schema0",
-      "evidenceSource": "rendered_html",
-      "score": 95,
-      "identityText": "NOS.nl - NOS Live Blijf bij. NOS. Bekijk actuele livestreams en de agenda van komende uitzendingen van nieuws, sport en evenementen. Live bij de NOS NOS.nl - NOS Live Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live , er is op dit moment één livestream actief. Zoeken Instellingen Teletekst NPO Start Menu Live bij de NOS live Amerikanen Hall en Woodford winnen de Nobelprijs voor Economie Binnenkort te zien Alles Nieuws Sport Sla sportfilters over Schaatsen Voetbal Turnen Baanwielrennen Wielrennen Shorttrack Futsal Korfbal Zwemmen Veldrijden Atletiek vandaag vandaag, 12:50 vandaag, 12:50 Hoogste NAVO-militair over hoe de NAVO een Russische aanval kan afslaan vandaag, 17:00 vandaag, 17:00 Persconferentie bondscoach Veurink morgen morgen, 20:45 morgen, 20:45 Voetbal: WK-kwalificatie Nederland - Hongarije (v) woensdag woensdag, 12:30 woensdag, 12:30 WK baanwielrennen donderdag donderdag, 11:00 donderdag, 11:00 WK baanwielrennen vrijdag vrijdag, 11:00 vrijdag, 11:00 WK baanwielrennen zaterdag zaterdag, 11:30 zaterdag, 11:30 WK baanwielrennen zondag zondag, 07:30 zondag, 07:30 WK baanwielrennen zondag, 09:00 zondag, 09:00 Marathon van Amsterdam dinsdag 20 oktober di 20 oktober, 19:30 di 20 oktober, 19:30 WK turnen: teamfinale (m) woensdag 21 oktober wo 21 oktober, 19:30 wo 21 oktober, 19:30 Futsal: WK-kwalificatie Nederland - Servië (m) wo 21 oktober, 19:30 wo 21 oktober, 19:30 WK turnen: teamfinale (v) donderdag 22 oktober do 22 oktober, 19:00 do 22 oktober, 19:00 EK korfbal: halve finale do 22 oktober, 19:30 do 22 oktober, 19:30 WK turnen: meerkampfinale (m) vrijdag 23 oktober vr 23 oktober, 19:30 vr 23 oktober, 19:30 WK turnen: meerkampfinale (v) zaterdag 24 oktober za 24 oktober, 14:00 za 24 oktober, 14:00 WK turnen: toestelfinales (m/v) za 24 oktober, 15:15 za 24 oktober, 15:15 EK korfbal: finale za 24 oktober, 19:00 za 24 oktober, 19:00 NK kortebaanzwemmen zo 25 oktober, 01:00 zo 25 oktober, 01:00 Shorttrack: World Tour Vancouver zondag 25 oktober zo 25 oktober, 14:00 zo 25 oktober, 14:00 WK turnen: toestelfinales (m/v) zo 25 oktober, 19:00 zo 25 oktober, 19:00 NK kortebaanzwemmen maandag 26 oktober ma 26 oktober, 01:00 ma 26 oktober, 01:00 Shorttrack: World Tour Vancouver donderdag 29 oktober do 29 oktober, 21:00 do 29 oktober, 21:00 Champions League: Manchester City - PSG (v) vrijdag 30 oktober vr 30 oktober, 18:00 vr 30 oktober, 18:00 Schaatsen: wereldbeker kwalificatietoernooi Heerenveen zaterdag 31 oktober za 31 oktober, 14:00 za 31 oktober, 14:00 Schaatsen: wereldbeker kwalificatietoernooi Heerenveen za 31 oktober, 18:30 za 31 oktober, 18:30 Shorttrack: World Tour Montreal zondag 1 november zo 1 november, 12:00 zo 1 november, 12:00 Schaatsen: wereldbeker kwalificatietoernooi Heerenveen zo 1 november, 18:30 zo 1 november, 18:30 Shorttrack: World Tour Montreal vrijdag 6 november vr 6 november, 20:00 vr 6 november, 20:00 Futsal: EK-kwalificatie Andorra - Nederland (m) zaterdag 7 november za 7 november, 15:00 za 7 november, 15:00 EK veldrijden (v) zondag 8 november zo 8 november, 15:00 zo 8 november, 15:00 EK veldrijden (m) woensdag 11 november wo 11 november, 18:45 wo 11 november, 18:4",
-      "schemaTypes": [],
-      "formEvidence": {
-       "formCount": 0,
-       "passwordForm": false,
-       "insecureFormActions": 0
-      },
-      "commerceEvidence": {
-       "productSchema": false,
-       "itemListSchema": false,
-       "storeSchema": false,
-       "strongCommerceAction": false,
-       "repeatedProductLinks": false,
-       "priceSignals": 0,
-       "product": null,
-       "confirmedRetailPage": false
-      },
-      "productLinks": [],
-      "evidenceChecks": [
-       {
-        "key": "http",
-        "status": "PASS",
-        "details": "HTTP 200"
-       },
-       {
-        "key": "title",
-        "status": "WARNING",
-        "details": "Title gevonden (17 tekens); buiten richtwaarde 30–60."
-       },
-       {
-        "key": "description",
-        "status": "PASS",
-        "details": "Meta description gevonden (114 tekens); bruikbare lengte."
-       },
-       {
-        "key": "h1",
-        "status": "PASS",
-        "details": "1 H1-heading(s) gevonden."
-       },
-       {
-        "key": "canonical",
-        "status": "PASS",
-        "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/live"
-       }
-      ]
-     },
-     {
       "url": "https://nos.nl/sport/formule-1",
       "type": "other",
       "evidence": [
@@ -573,7 +511,7 @@
       "structureKey": "h4|a8|img5|form0|article0|table0|li8|schema0",
       "evidenceSource": "rendered_html",
       "score": 100,
-      "identityText": "Formule 1 | Nederlandse Omroep Stichting Blijf bij. Met de NOS blijf je altijd en overal op de hoogte van het laatste nieuws in de categorie formule 1 NOS Sport formule 1 Formule 1 | Nederlandse Omroep Stichting Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live , er is op dit moment één livestream actief. Zoeken Instellingen Teletekst NPO Start Menu Voorpagina Laatste nieuws Video's Voetbal Formule 1 Wielrennen Schaatsen Tennis Atletiek Hockey NOS Sport formule 1 Programma &amp; Uitslagen WK-standen Overzicht Video's Verstappen en Red Bull terug aan F1-top: de lange weg naar succes in 2026 gisteren, 23:44 Het F1-seizoen van Max Verstappen en Red Bull Racing begon moeizaam, maar na een lange en zware weg is de combinatie terug aan de top. Verstappen doorbreekt zegeloze reeks in Singapore: 'Heeft even geduurd' gisteren, 17:02 Verstappen wint voor het eerst een Grand Prix op het stratencircuit in Singapore. In het verleden stond hij wel meerdere keren op het podium. Verstappen zet kroon op perfect weekend met eerste zege in Grand Prix van Singapore gisteren, 15:46 De Nederlander heeft nu twee Grands Prix op rij gewonnen, want vorige week schreef hij de Grand Prix van Bahrein in Maleisië op zijn naam. Formule 1 Verstappen boekt eerste-zege in Singapore: 'Heeft even geduurd' • Antonelli dicht bij titel gisteren, 12:13 In dit liveblog volgen we de Grand Prix van Singapore. Ontspannen Verstappen weet na poleposition in Singapore: 'Start is het belangrijkst' zaterdag, 17:59 Max Verstappen behaalt in Singapore ook poleposition voor de grand prix van zondag. Verstappen zet door en grijpt ook poleposition voor hoofdrace Singapore zaterdag, 16:40 Max Verstappen kent na zijn zege in de sprintrace ook een perfecte kwalificatie in Singapore. Verstappen wint ongebruikelijke en chaotische sprintrace in Singapore zaterdag, 12:18 De Nederlander van Red Bull blijft op het stratencircuit van de Zuid-Aziatische stad Lewis Hamilton en Charles Leclerc voor. Formule 1 Verstappen grijpt 'speciale' pole voor de hoofdrace Singapore • WK-leider Antonelli start als vierde zaterdag, 10:09 In dit liveblog volgen we de sprintrace en kwalificatie voor de Grand Prix van Singapore. Singapore was voor Verstappen nooit lekkere cocktail, maar eerste zege lonkt zaterdag, 06:00 Formule 1-coureur Max Verstappen won nog nooit de Grand Prix van Singapore. Komt daar zondag verandering in? \"Het vertrouwen is er bij het team, ook bij Max.\" Verstappen houdt pole sprintrace Singapore na onderzoek, Sainz woest na 'menselijke fout' vrijdag, 15:45 Verstappen werd onderzocht omdat hij in de eerste kwalificatiesessie Lewis Hamilton mogelijk inhaalde terwijl de gele vlag gezwaaid werd. Formule 1 Geen straf Verstappen na inhalen onder geel • Hij start vanaf poleposition in sprintrace vrijdag, 10:04 In dit liveblog blikken we vooruit op de GP van Singapore en volgen we de vrije training en sprintkwalificatie. Is Verstappen definitief terug? 'Niemand had zege in Maleisië kunnen voorspellen' maandag, 15:44 Coureurs Richard Verschoor en Jeroen Bleekemolen weten niet of Max Verstappen en Red Bull Racing nu weer elke week om de zege kunnen strijden. F1-coureur Bottas rei",
+      "identityText": "Formule 1 | Nederlandse Omroep Stichting Blijf bij. Met de NOS blijf je altijd en overal op de hoogte van het laatste nieuws in de categorie formule 1 NOS Sport formule 1 Formule 1 | Nederlandse Omroep Stichting Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live Zoeken Instellingen Teletekst NPO Start Menu Voorpagina Laatste nieuws Video's Voetbal Formule 1 Wielrennen Schaatsen Tennis Atletiek Hockey NOS Sport formule 1 Programma &amp; Uitslagen WK-standen Overzicht Video's Verstappen en Red Bull terug aan F1-top: de lange weg naar succes in 2026 gisteren, 23:44 Het F1-seizoen van Max Verstappen en Red Bull Racing begon moeizaam, maar na een lange en zware weg is de combinatie terug aan de top. Verstappen doorbreekt zegeloze reeks in Singapore: 'Heeft even geduurd' gisteren, 17:02 Verstappen wint voor het eerst een Grand Prix op het stratencircuit in Singapore. In het verleden stond hij wel meerdere keren op het podium. Verstappen zet kroon op perfect weekend met eerste zege in Grand Prix van Singapore gisteren, 15:46 De Nederlander heeft nu twee Grands Prix op rij gewonnen, want vorige week schreef hij de Grand Prix van Bahrein in Maleisië op zijn naam. Formule 1 Verstappen boekt eerste-zege in Singapore: 'Heeft even geduurd' • Antonelli dicht bij titel gisteren, 12:13 In dit liveblog volgen we de Grand Prix van Singapore. Ontspannen Verstappen weet na poleposition in Singapore: 'Start is het belangrijkst' zaterdag, 17:59 Max Verstappen behaalt in Singapore ook poleposition voor de grand prix van zondag. Verstappen zet door en grijpt ook poleposition voor hoofdrace Singapore zaterdag, 16:40 Max Verstappen kent na zijn zege in de sprintrace ook een perfecte kwalificatie in Singapore. Verstappen wint ongebruikelijke en chaotische sprintrace in Singapore zaterdag, 12:18 De Nederlander van Red Bull blijft op het stratencircuit van de Zuid-Aziatische stad Lewis Hamilton en Charles Leclerc voor. Formule 1 Verstappen grijpt 'speciale' pole voor de hoofdrace Singapore • WK-leider Antonelli start als vierde zaterdag, 10:09 In dit liveblog volgen we de sprintrace en kwalificatie voor de Grand Prix van Singapore. Singapore was voor Verstappen nooit lekkere cocktail, maar eerste zege lonkt zaterdag, 06:00 Formule 1-coureur Max Verstappen won nog nooit de Grand Prix van Singapore. Komt daar zondag verandering in? \"Het vertrouwen is er bij het team, ook bij Max.\" Verstappen houdt pole sprintrace Singapore na onderzoek, Sainz woest na 'menselijke fout' vrijdag, 15:45 Verstappen werd onderzocht omdat hij in de eerste kwalificatiesessie Lewis Hamilton mogelijk inhaalde terwijl de gele vlag gezwaaid werd. Formule 1 Geen straf Verstappen na inhalen onder geel • Hij start vanaf poleposition in sprintrace vrijdag, 10:04 In dit liveblog blikken we vooruit op de GP van Singapore en volgen we de vrije training en sprintkwalificatie. Is Verstappen definitief terug? 'Niemand had zege in Maleisië kunnen voorspellen' maandag, 15:44 Coureurs Richard Verschoor en Jeroen Bleekemolen weten niet of Max Verstappen en Red Bull Racing nu weer elke week om de zege kunnen strijden. F1-coureur Bottas reist per gravelfiets van Maleisië naar Singapor",
       "schemaTypes": [],
       "formEvidence": {
        "formCount": 0,
@@ -645,7 +583,7 @@
       "structureKey": "h4|a6|img0|form0|article0|table0|li5|schema5",
       "evidenceSource": "rendered_html",
       "score": 98,
-      "identityText": "Datalek bij webshop drogisterijketen DA raakt 236.000 klanten Het bedrijf heeft niet kunnen achterhalen of de klantgegevens alleen zijn bekeken of daadwerkelijk zijn buitgemaakt. Datalek bij webshop drogisterijketen DA raakt 236.000 klanten Datalek bij webshop drogisterijketen DA raakt 236.000 klanten Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live , er is op dit moment één livestream actief. Zoeken Instellingen Teletekst NPO Start Menu Een DA-drogisterij ANP NOS Nieuws • vrijdag 18 september, 20:07 Datalek bij webshop drogisterijketen DA raakt 236.000 klanten Deel dit artikel Drogisterijketen DA waarschuwt klanten van zijn webwinkel voor een datalek. Onbevoegden hebben begin deze maand toegang gekregen tot een database met klantgegevens. In het bestand staan onder meer namen, e-mailadressen, telefoonnummers, geboortedata, huisadressen en bestelinformatie. Een woordvoerder van de drogisterijketen zegt tegen de NOS dat het gaat om gegevens van 236.000 klanten, en dat alle betrokken klanten vandaag gemaild zijn over het datalek. Daarin wordt aangeraden extra alert te zijn op phishing. DA heeft niet kunnen achterhalen of de gegevens alleen zijn bekeken of daadwerkelijk zijn buitgemaakt. \"Er zijn geen aanwijzingen dat het bestand gedownload is, maar we kunnen het ook niet uitsluiten\", aldus de woordvoerder. Fysieke winkels niet betrokken De keten heeft het lek gemeld bij de Autoriteit Persoonsgegevens (AP). Volgens het bedrijf zijn er meteen maatregelen genomen toen het lek werd ontdekt om de ongeoorloofde toegang tot de gegevens te blokkeren. Klanten van de fysieke winkels van DA zijn niet betrokken bij het datalek, stelt het bedrijf. Hun gegevens stonden niet in de getroffen database van de webshop. Ook Ajax en brillenketen Ace &amp; Tate getroffen door datalek Bol en de Bijenkorf waarschuwen klanten voor mogelijk datalek Sterke toename van privacyklachten bij Autoriteit Persoonsgegevens Binnenland Maak NOS jouw voorkeursbron in Google Met een nieuwe functie van Google bepaal je voortaan zelf welke bronnen je als eerste ziet wanneer je zoekt. Zo mis je nooit meer het laatste nieuws van de NOS. Voeg NOS toe aan Google (opent in nieuw venster) Meer informatie (opent in nieuw venster) Deel artikel: X (opent in nieuw venster) E-mail (opent in nieuw venster) Facebook (opent in nieuw venster) WhatsApp (opent in nieuw venster) Link gekopieerd! Meer bekijken? Bedrijven massaal gehackt, consument maakt het weinig uit: 'We zijn datalekmoe' vrijdag 2 oktober, 18:49 Modesite Asos mogelijk gehackt, klanten ontvangen vreemde notificatie dinsdag, 13:25 Hackers persen klanten boodschappendienst Flink af: betalen of data gepubliceerd vrijdag 25 september, 14:07 Gegevens van bijna 9 miljoen Denen buitgemaakt bij hack bevolkingsregister maandag 5 oktober, 10:48 Advertentie via Ster.nl (opent in nieuw venster) Footer-navigatie Tip de redactie Geef je tips aan ons door (opent in nieuw venster) Publieksvoorlichting Voor vragen en reacties (opent in nieuw venster) NOS informatie Over de NOS Werken bij de NOS Contact Journalistieke verantwoording Herstelrubriek Ombudsman NOS Apps Privacy Toegankelijkheidsverklaring Melden zwakke ICT-plekken Nieuws Voorpagina Laatste nieuws Video",
+      "identityText": "Datalek bij webshop drogisterijketen DA raakt 236.000 klanten Het bedrijf heeft niet kunnen achterhalen of de klantgegevens alleen zijn bekeken of daadwerkelijk zijn buitgemaakt. Datalek bij webshop drogisterijketen DA raakt 236.000 klanten Datalek bij webshop drogisterijketen DA raakt 236.000 klanten Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live Zoeken Instellingen Teletekst NPO Start Menu Een DA-drogisterij ANP NOS Nieuws • vrijdag 18 september, 20:07 Datalek bij webshop drogisterijketen DA raakt 236.000 klanten Deel dit artikel Drogisterijketen DA waarschuwt klanten van zijn webwinkel voor een datalek. Onbevoegden hebben begin deze maand toegang gekregen tot een database met klantgegevens. In het bestand staan onder meer namen, e-mailadressen, telefoonnummers, geboortedata, huisadressen en bestelinformatie. Een woordvoerder van de drogisterijketen zegt tegen de NOS dat het gaat om gegevens van 236.000 klanten, en dat alle betrokken klanten vandaag gemaild zijn over het datalek. Daarin wordt aangeraden extra alert te zijn op phishing. DA heeft niet kunnen achterhalen of de gegevens alleen zijn bekeken of daadwerkelijk zijn buitgemaakt. \"Er zijn geen aanwijzingen dat het bestand gedownload is, maar we kunnen het ook niet uitsluiten\", aldus de woordvoerder. Fysieke winkels niet betrokken De keten heeft het lek gemeld bij de Autoriteit Persoonsgegevens (AP). Volgens het bedrijf zijn er meteen maatregelen genomen toen het lek werd ontdekt om de ongeoorloofde toegang tot de gegevens te blokkeren. Klanten van de fysieke winkels van DA zijn niet betrokken bij het datalek, stelt het bedrijf. Hun gegevens stonden niet in de getroffen database van de webshop. Ook Ajax en brillenketen Ace &amp; Tate getroffen door datalek Bol en de Bijenkorf waarschuwen klanten voor mogelijk datalek Sterke toename van privacyklachten bij Autoriteit Persoonsgegevens Binnenland Maak NOS jouw voorkeursbron in Google Met een nieuwe functie van Google bepaal je voortaan zelf welke bronnen je als eerste ziet wanneer je zoekt. Zo mis je nooit meer het laatste nieuws van de NOS. Voeg NOS toe aan Google (opent in nieuw venster) Meer informatie (opent in nieuw venster) Deel artikel: X (opent in nieuw venster) E-mail (opent in nieuw venster) Facebook (opent in nieuw venster) WhatsApp (opent in nieuw venster) Link gekopieerd! Het laatste nieuws Oudste overdekte markt van Parijs verwoest door brand vandaag, 12:23 Centrumlinks schuift Raphaël Glucksmann naar voren als Franse presidentskandidaat vandaag, 12:03 Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt vandaag, 10:11 Bakstenen zonder gasovens? Vol stroomnet zit duurzamere industrie in de weg vandaag, 09:37 Advertentie via Ster.nl (opent in nieuw venster) Footer-navigatie Tip de redactie Geef je tips aan ons door (opent in nieuw venster) Publieksvoorlichting Voor vragen en reacties (opent in nieuw venster) NOS informatie Over de NOS Werken bij de NOS Contact Journalistieke verantwoording Herstelrubriek Ombudsman NOS Apps Privacy Toegankelijkheidsverklaring Melden zwakke ICT-plekken Nieuws Voorpagina Laatste nieuws Video's Binnenland Buitenland Regionaal nieuws Politiek Economie Koningshuis Tech Cultuur &",
       "schemaTypes": [
        "webpage",
        "language",
@@ -673,10 +611,10 @@
        "https://nos.nl/artikel/2625880-ook-ajax-en-brillenketen-ace-and-tate-getroffen-door-datalek",
        "https://nos.nl/artikel/2625681-bol-en-de-bijenkorf-waarschuwen-klanten-voor-mogelijk-datalek",
        "https://nos.nl/artikel/2617671-sterke-toename-van-privacyklachten-bij-autoriteit-persoonsgegevens",
-       "https://nos.nl/artikel/2633445-bedrijven-massaal-gehackt-consument-maakt-het-weinig-uit-we-zijn-datalekmoe",
-       "https://nos.nl/artikel/2633862-modesite-asos-mogelijk-gehackt-klanten-ontvangen-vreemde-notificatie",
-       "https://nos.nl/artikel/2632473-hackers-persen-klanten-boodschappendienst-flink-af-betalen-of-data-gepubliceerd",
-       "https://nos.nl/artikel/2633725-gegevens-van-bijna-9-miljoen-denen-buitgemaakt-bij-hack-bevolkingsregister"
+       "https://nos.nl/artikel/2634668-oudste-overdekte-markt-van-parijs-verwoest-door-brand",
+       "https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat",
+       "https://nos.nl/artikel/2634660-staking-belgie-om-bezuinigingen-openbare-diensten-minder-treinen-ook-vrt-staakt",
+       "https://nos.nl/artikel/2634656-bakstenen-zonder-gasovens-vol-stroomnet-zit-duurzamere-industrie-in-de-weg"
       ],
       "evidenceChecks": [
        {
@@ -723,7 +661,7 @@
       "structureKey": "h4|a6|img0|form0|article0|table0|li5|schema5",
       "evidenceSource": "rendered_html",
       "score": 95,
-      "identityText": "Storing bij KPN opgelost, universitaire ziekenhuizen weer bereikbaar Volgens KPN was er een probleem met een koelinstallatie waardoor apparatuur oververhit dreigde te raken. Storing bij KPN opgelost, universitaire ziekenhuizen weer bereikbaar Storing bij KPN opgelost, universitaire ziekenhuizen weer bereikbaar Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live , er is op dit moment één livestream actief. Zoeken Instellingen Teletekst NPO Start Menu Het hoofdkantoor van KPN in Rotterdam ANP NOS Nieuws • zaterdag, 10:06 • Aangepast zaterdag, 14:42 Storing bij KPN opgelost, universitaire ziekenhuizen weer bereikbaar Deel dit artikel Door een storing bij telecomprovider KPN was een deel van de zakelijke klanten urenlang slecht bereikbaar via de vaste telefoon. Dat gold ook voor een groot aantal universitaire ziekenhuizen, zoals in Utrecht, Maastricht, Nijmegen, Rotterdam en Groningen. Rond 14.00 uur meldde KPN dat de storing die vannacht ontstond, is opgelost. KPN zegt dat de storing is veroorzaakt door een storing in het koelsysteem van een van de netwerklocaties. Daardoor kon een deel van de apparatuur niet meer worden gebruikt, omdat die te heet dreigde te worden. Hoe die storing kon ontstaan, wordt onderzocht. Op welke locatie de storing was, wil een woordvoerder van het KPN vanwege veiligheidsoverwegingen niet zeggen. Omvang onduidelijk Volgens het telecombedrijf had een kleine groep zakelijke klanten er last van. Vanwege de storing meldden het UMC Utrecht en Wilhelmina Kinderziekenhuis op hun site dat er een alternatief telefoonnummer was geopend voor dringende zaken. Ook het UMCG in Groningen had een alternatief nummer. Alarmnummer 112 was wel gewoon bereikbaar. In een uitleg voor patiënten schreef het Radboud UMC in Nijmegen dat bellers mogelijk wel verbinding kregen, maar dat ze dan de medewerker van het ziekenhuis niet hoorden. Binnenland Maak NOS jouw voorkeursbron in Google Met een nieuwe functie van Google bepaal je voortaan zelf welke bronnen je als eerste ziet wanneer je zoekt. Zo mis je nooit meer het laatste nieuws van de NOS. Voeg NOS toe aan Google (opent in nieuw venster) Meer informatie (opent in nieuw venster) Deel artikel: X (opent in nieuw venster) E-mail (opent in nieuw venster) Facebook (opent in nieuw venster) WhatsApp (opent in nieuw venster) Link gekopieerd! Het laatste nieuws Centrumlinks schuift Raphaël Glucksmann naar voren als Franse presidentskandidaat vandaag, 12:03 Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt vandaag, 10:11 Bakstenen zonder gasovens? Vol stroomnet zit duurzamere industrie in de weg vandaag, 09:37 Geen bezorging en verkeerde winkelprijzen na 'cyberveiligheidsincident' bij Albert Heijn vandaag, 07:56 Advertentie via Ster.nl (opent in nieuw venster) Footer-navigatie Tip de redactie Geef je tips aan ons door (opent in nieuw venster) Publieksvoorlichting Voor vragen en reacties (opent in nieuw venster) NOS informatie Over de NOS Werken bij de NOS Contact Journalistieke verantwoording Herstelrubriek Ombudsman NOS Apps Privacy Toegankelijkheidsverklaring Melden zwakke ICT-plekken Nieuws Voorpagina Laatste nieuws Video's Binnenland Buitenland Regionaal nieuws Politiek Economie Koni",
+      "identityText": "Storing bij KPN opgelost, universitaire ziekenhuizen weer bereikbaar Volgens KPN was er een probleem met een koelinstallatie waardoor apparatuur oververhit dreigde te raken. Storing bij KPN opgelost, universitaire ziekenhuizen weer bereikbaar Storing bij KPN opgelost, universitaire ziekenhuizen weer bereikbaar Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live Zoeken Instellingen Teletekst NPO Start Menu Het hoofdkantoor van KPN in Rotterdam ANP NOS Nieuws • zaterdag, 10:06 • Aangepast zaterdag, 14:42 Storing bij KPN opgelost, universitaire ziekenhuizen weer bereikbaar Deel dit artikel Door een storing bij telecomprovider KPN was een deel van de zakelijke klanten urenlang slecht bereikbaar via de vaste telefoon. Dat gold ook voor een groot aantal universitaire ziekenhuizen, zoals in Utrecht, Maastricht, Nijmegen, Rotterdam en Groningen. Rond 14.00 uur meldde KPN dat de storing die vannacht ontstond, is opgelost. KPN zegt dat de storing is veroorzaakt door een storing in het koelsysteem van een van de netwerklocaties. Daardoor kon een deel van de apparatuur niet meer worden gebruikt, omdat die te heet dreigde te worden. Hoe die storing kon ontstaan, wordt onderzocht. Op welke locatie de storing was, wil een woordvoerder van het KPN vanwege veiligheidsoverwegingen niet zeggen. Omvang onduidelijk Volgens het telecombedrijf had een kleine groep zakelijke klanten er last van. Vanwege de storing meldden het UMC Utrecht en Wilhelmina Kinderziekenhuis op hun site dat er een alternatief telefoonnummer was geopend voor dringende zaken. Ook het UMCG in Groningen had een alternatief nummer. Alarmnummer 112 was wel gewoon bereikbaar. In een uitleg voor patiënten schreef het Radboud UMC in Nijmegen dat bellers mogelijk wel verbinding kregen, maar dat ze dan de medewerker van het ziekenhuis niet hoorden. Binnenland Maak NOS jouw voorkeursbron in Google Met een nieuwe functie van Google bepaal je voortaan zelf welke bronnen je als eerste ziet wanneer je zoekt. Zo mis je nooit meer het laatste nieuws van de NOS. Voeg NOS toe aan Google (opent in nieuw venster) Meer informatie (opent in nieuw venster) Deel artikel: X (opent in nieuw venster) E-mail (opent in nieuw venster) Facebook (opent in nieuw venster) WhatsApp (opent in nieuw venster) Link gekopieerd! Meer bekijken? Storing bij zakelijke Ziggo-klanten, modem moet worden vervangen dinsdag 25 augustus, 21:17 Problemen bij ziekenhuizen met Citrix, patiënten kunnen dossier niet inzien zondag 27 september, 22:55 Kustwacht weer te bereiken met marifoon, storing voorbij zaterdag 12 september, 18:10 Storing bij noodkanaal kustwacht, wel telefonisch bereikbaar zaterdag 12 september, 10:29 Advertentie via Ster.nl (opent in nieuw venster) Footer-navigatie Tip de redactie Geef je tips aan ons door (opent in nieuw venster) Publieksvoorlichting Voor vragen en reacties (opent in nieuw venster) NOS informatie Over de NOS Werken bij de NOS Contact Journalistieke verantwoording Herstelrubriek Ombudsman NOS Apps Privacy Toegankelijkheidsverklaring Melden zwakke ICT-plekken Nieuws Voorpagina Laatste nieuws Video's Binnenland Buitenland Regionaal nieuws Politiek Economie Koningshuis Tech Cultuur &amp; media Opmerkelijk Sport Voorpagina Laats",
       "schemaTypes": [
        "webpage",
        "language",
@@ -748,10 +686,10 @@
       },
       "productLinks": [
        "https://nos.nl/artikel/2634396-storing-bij-kpn-opgelost-universitaire-ziekenhuizen-weer-bereikbaar",
-       "https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat",
-       "https://nos.nl/artikel/2634660-staking-belgie-om-bezuinigingen-openbare-diensten-minder-treinen-ook-vrt-staakt",
-       "https://nos.nl/artikel/2634656-bakstenen-zonder-gasovens-vol-stroomnet-zit-duurzamere-industrie-in-de-weg",
-       "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-winkelprijzen-na-cyberveiligheidsincident-bij-albert-heijn"
+       "https://nos.nl/artikel/2628308-storing-bij-zakelijke-ziggo-klanten-modem-moet-worden-vervangen",
+       "https://nos.nl/artikel/2632818-problemen-bij-ziekenhuizen-met-citrix-patienten-kunnen-dossier-niet-inzien",
+       "https://nos.nl/artikel/2630722-kustwacht-weer-te-bereiken-met-marifoon-storing-voorbij",
+       "https://nos.nl/artikel/2630677-storing-bij-noodkanaal-kustwacht-wel-telefonisch-bereikbaar"
       ],
       "evidenceChecks": [
        {
@@ -798,7 +736,7 @@
       "structureKey": "h4|a6|img1|form0|article0|table0|li5|schema5",
       "evidenceSource": "rendered_html",
       "score": 90,
-      "identityText": "Bedrijven massaal gehackt, consument maakt het weinig uit: 'We zijn datalekmoe' Bij de hack op Flink werd voor het eerst de consument zelf gevraagd losgeld te betalen. Dat deed niemand. Maakt het mensen wel uit of hun persoonsgegevens op het internet belanden? Bedrijven massaal gehackt, consument maakt het weinig uit: 'We zijn datalekmoe' Bedrijven massaal gehackt, consument maakt het weinig uit: &#x27;We zijn datalekmoe&#x27; Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live , er is op dit moment één livestream actief. Zoeken Instellingen Teletekst NPO Start Menu Op deze website kun je controleren of je gegevens zijn gelekt ANP NOS Nieuws • vrijdag 2 oktober, 18:49 Bedrijven massaal gehackt, consument maakt het weinig uit: 'We zijn datalekmoe' Deel dit artikel Sam Wouters redacteur Online De boodschap van de cybercriminelen die vorige week thuisbezorgdienst Flink hackten was helder: er moet worden betaald, anders worden alle buitgemaakte klantgegevens gepubliceerd op het dark web. Hoewel de hackers hoopten hiermee meer dan twee ton op te halen, maakte niemand de geëiste 10 tot 15 euro in cryptogeld over. Het roept de vraag op of mensen zich nog druk maken om hun persoonsgegevens die in de openbaarheid komen. Volgens cybersecurity-expert Paul Pols valt dat mee. Mensen zijn 'datalekmoe' en dat is begrijpelijk, zegt hij. \"We gaan er inmiddels van uit dat onze persoonsgegevens vroeg of laat ergens uitlekken, als dat al niet is gebeurd.\" Consumentenpsycholoog Patrick Wessels herkent dat gevoel. \"Mensen zien datalekken veelvuldig voorbijkomen, maar ondervinden daar zelf weinig problemen van. Daardoor voelen we de urgentie niet om er echt iets mee te moeten doen.\" Het is veel te gemakzuchtig dat we hier onze schouders over ophalen. Rejo Zenger, woordvoerder Bits of Freedom Dat de gevoelde urgentie afneemt, wil niet zeggen dat er geen gevaar is. \"Er zijn mensen die te maken hebben met bijvoorbeeld huiselijk geweld. Voor deze groep kan het serieuze gevolgen hebben als hun e-mailadres of telefoonnummer online te vinden is\", stelt Rejo Zenger. Hij is van Bits of Freedom, de organisatie die opkomt op voor digitale burgerrechten. Volgens hem is het dan ook \"veel te gemakzuchtig dat we hier onze schouders over ophalen.\" De hack bij Flink staat niet op zichzelf. Alleen dit jaar al werden tientallen grote organisaties gehackt waarbij honderdduizenden klantgegevens werden buitgemaakt. Onder meer drogisterijketen DA, reisapp Polarsteps en de logistieke partner van Bol en de Bijenkorf werden onlangs getroffen door een cyberaanval. Het geval van Flink is echter uniek: voor het eerst werden individuele klanten rechtstreeks door hackers benaderd. De hackers eisten bij de Flink-hack een relatief klein bedrag aan cryptovaluta per persoon. Toch raadden experts af te betalen. Zekerheid dat de hackers de gegevens na het betalen van het losgeld daadwerkelijk verwijderen, is er namelijk niet. Dat overkomt mij toch niet Nederlanders weten over het algemeen goed hoe ze zich online kunnen beschermen. Zodra daarvoor meer nodig is dan alleen opletten, neemt de motivatie om veilig gedrag te vertonen echter af. Dat blijkt uit het meest recente rapport van Alert Online, dat jaarlijks in opdracht van het ministerie van Economische Zaken de digitale weerbaarheid van Nederlanders in kaart br",
+      "identityText": "Bedrijven massaal gehackt, consument maakt het weinig uit: 'We zijn datalekmoe' Bij de hack op Flink werd voor het eerst de consument zelf gevraagd losgeld te betalen. Dat deed niemand. Maakt het mensen wel uit of hun persoonsgegevens op het internet belanden? Bedrijven massaal gehackt, consument maakt het weinig uit: 'We zijn datalekmoe' Bedrijven massaal gehackt, consument maakt het weinig uit: &#x27;We zijn datalekmoe&#x27; Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live Zoeken Instellingen Teletekst NPO Start Menu Op deze website kun je controleren of je gegevens zijn gelekt ANP NOS Nieuws • vrijdag 2 oktober, 18:49 Bedrijven massaal gehackt, consument maakt het weinig uit: 'We zijn datalekmoe' Deel dit artikel Sam Wouters redacteur Online De boodschap van de cybercriminelen die vorige week thuisbezorgdienst Flink hackten was helder: er moet worden betaald, anders worden alle buitgemaakte klantgegevens gepubliceerd op het dark web. Hoewel de hackers hoopten hiermee meer dan twee ton op te halen, maakte niemand de geëiste 10 tot 15 euro in cryptogeld over. Het roept de vraag op of mensen zich nog druk maken om hun persoonsgegevens die in de openbaarheid komen. Volgens cybersecurity-expert Paul Pols valt dat mee. Mensen zijn 'datalekmoe' en dat is begrijpelijk, zegt hij. \"We gaan er inmiddels van uit dat onze persoonsgegevens vroeg of laat ergens uitlekken, als dat al niet is gebeurd.\" Consumentenpsycholoog Patrick Wessels herkent dat gevoel. \"Mensen zien datalekken veelvuldig voorbijkomen, maar ondervinden daar zelf weinig problemen van. Daardoor voelen we de urgentie niet om er echt iets mee te moeten doen.\" Het is veel te gemakzuchtig dat we hier onze schouders over ophalen. Rejo Zenger, woordvoerder Bits of Freedom Dat de gevoelde urgentie afneemt, wil niet zeggen dat er geen gevaar is. \"Er zijn mensen die te maken hebben met bijvoorbeeld huiselijk geweld. Voor deze groep kan het serieuze gevolgen hebben als hun e-mailadres of telefoonnummer online te vinden is\", stelt Rejo Zenger. Hij is van Bits of Freedom, de organisatie die opkomt op voor digitale burgerrechten. Volgens hem is het dan ook \"veel te gemakzuchtig dat we hier onze schouders over ophalen.\" De hack bij Flink staat niet op zichzelf. Alleen dit jaar al werden tientallen grote organisaties gehackt waarbij honderdduizenden klantgegevens werden buitgemaakt. Onder meer drogisterijketen DA, reisapp Polarsteps en de logistieke partner van Bol en de Bijenkorf werden onlangs getroffen door een cyberaanval. Het geval van Flink is echter uniek: voor het eerst werden individuele klanten rechtstreeks door hackers benaderd. De hackers eisten bij de Flink-hack een relatief klein bedrag aan cryptovaluta per persoon. Toch raadden experts af te betalen. Zekerheid dat de hackers de gegevens na het betalen van het losgeld daadwerkelijk verwijderen, is er namelijk niet. Dat overkomt mij toch niet Nederlanders weten over het algemeen goed hoe ze zich online kunnen beschermen. Zodra daarvoor meer nodig is dan alleen opletten, neemt de motivatie om veilig gedrag te vertonen echter af. Dat blijkt uit het meest recente rapport van Alert Online, dat jaarlijks in opdracht van het ministerie van Economische Zaken de digitale weerbaarheid van Nederlanders in kaart brengt. Volgens consumentenpsycholoog Wessels i",
       "schemaTypes": [
        "webpage",
        "language",
@@ -826,10 +764,10 @@
        "https://nos.nl/artikel/2614162-wat-kun-je-doen-om-datadiefstal-te-voorkomen",
        "https://nos.nl/artikel/2633196-hackers-flink-kregen-ondanks-ultimatum-nog-geen-geld-van-slachtoffers",
        "https://nos.nl/artikel/2632473-hackers-persen-klanten-boodschappendienst-flink-af-betalen-of-data-gepubliceerd",
-       "https://nos.nl/artikel/2631561-datalek-bij-webshop-drogisterijketen-da-raakt-236-000-klanten",
-       "https://nos.nl/artikel/2633862-modesite-asos-mogelijk-gehackt-klanten-ontvangen-vreemde-notificatie",
-       "https://nos.nl/artikel/2629470-politie-en-om-zien-nieuwe-generatie-jonge-westerse-cybercriminelen-opkomen",
-       "https://nos.nl/artikel/2631573-gehackt-laboratorium-mag-weer-bevolkingsonderzoek-doen"
+       "https://nos.nl/artikel/2634668-oudste-overdekte-markt-van-parijs-verwoest-door-brand",
+       "https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat",
+       "https://nos.nl/artikel/2634660-staking-belgie-om-bezuinigingen-openbare-diensten-minder-treinen-ook-vrt-staakt",
+       "https://nos.nl/artikel/2634656-bakstenen-zonder-gasovens-vol-stroomnet-zit-duurzamere-industrie-in-de-weg"
       ],
       "evidenceChecks": [
        {
@@ -860,6 +798,80 @@
       ]
      },
      {
+      "url": "https://nos.nl/artikel/2634668-oudste-overdekte-markt-van-parijs-verwoest-door-brand",
+      "type": "product",
+      "evidence": [
+       "product-like path",
+       "link-context: Oudste overdekte markt van Parijs verwoest door brand vandaag, 12:23",
+       "javascript-rendered representative page"
+      ],
+      "status": "audited",
+      "httpStatus": 200,
+      "title": "Oudste overdekte markt van Parijs verwoest door brand",
+      "description": "De markt bestond sinds 1615 en was geliefd bij Parijzenaren en toeristen.",
+      "h1Count": 1,
+      "canonical": "https://nos.nl/artikel/2634668-oudste-overdekte-markt-van-parijs-verwoest-door-brand",
+      "structureKey": "h4|a6|img0|form0|article0|table0|li5|schema5",
+      "evidenceSource": "rendered_html",
+      "score": 100,
+      "identityText": "Oudste overdekte markt van Parijs verwoest door brand De markt bestond sinds 1615 en was geliefd bij Parijzenaren en toeristen. Oudste overdekte markt van Parijs verwoest door brand Oudste overdekte markt van Parijs verwoest door brand Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live Zoeken Instellingen Teletekst NPO Start Menu De brand van boven AFP NOS Nieuws • vandaag, 12:23 Oudste overdekte markt van Parijs verwoest door brand Deel dit artikel Een grote brand in het centrum van Parijs brand heeft de Marché des Enfants Rouges verwoest. De markt was de oudste overdekte markt van Parijs. Hoe de brand is ontstaan, is nog onduidelijk. De brand woedde vannacht. Voor het blussen werden 150 brandweerlieden ingezet en zo'n vijftig brandweervoertuigen. Brandweerlieden meldden aan de Parijse krant Le Parisien (opent in nieuw venster) dat 1000 vierkante meter door de brand is verwoest. Ook de metalen dakconstructie is vrijwel volledig ingestort. Van de overdekte markt is niets meer over. Geen doden of gewonden De markt in het derde arrondissement van Parijs was geliefd onder Parijzenaren en toeristen. De burgemeester van het arrondissement, Ariel Weil, was vanochtend vroeg op de plek waar de markt stond. \"De winkeliers zijn er kapot van. Het goede nieuws is dat er geen doden of gewonden zijn.\" Ook gebouwen in de omgeving zijn niet beschadigd geraakt. Volgens de directeur van de markt zijn ongeveer twintig ondernemers getroffen. Rode kinderen De Marché des Enfants Rouges werd in 1615 gebouwd op last van koning Lodewijk de 13de en was de oudste overdekte markt van Parijs die nog in bedrijf was. De markt moest in de 17de eeuw voorzien in de behoeftes van de snel groeiende wijk Le Marais. Sla de carrousel over besopha, CC BY 2.0, via Wikimedia Commons Entree van de Marché des Enfants Rouges, archiefbeeld uit 2016 Greg Whalin from Brooklyn, USA, CC BY 2.0, via Wikimedia Commons Archiefbeeld van de Marché des Enfants Rouges AFP Brandweer in de buurt van de markt in Parijs Slide 1 van 3 De naam van de markt betekent \"markt van de rode kinderen\", een verwijzing naar het nabijgelegen weeshuis Hospice des Enfants-Rouges waar de kinderen rode kleding droegen. Toen het weeshuis in 1772 zijn deuren sloot, werd de markt vernoemd naar de 'rode kinderen'. Protest tegen sluiting Toen de gemeente in 1994 plannen had om een ondergrondse parkeergarage en extra woningen te bouwen dreigde de markt te sneuvelen, maar door een actie van onder meer buurtbewoners en politici bleef de markt gespaard. Een eigenaar van een biologische groente- en fruitkraam op de markt reageert in Le Parisien verslagen. \"Ik ben daar opgegroeid. Het is heel moeilijk voor me om ongeveer 30 jaar geschiedenis in rook te zien opgaan.\" Met drie kloppen op de deur is de Notre-Dame in Parijs officieel heropend Interieur opgeknapte Notre-Dame voor het eerst te zien na enorme brand Brand in torenspits van beroemde kathedraal Rouen onder controle Buitenland Maak NOS jouw voorkeursbron in Google Met een nieuwe functie van Google bepaal je voortaan zelf welke bronnen je als eerste ziet wanneer je zoekt. Zo mis je nooit meer het laatste nieuws van de NOS. Voeg NO",
+      "schemaTypes": [
+       "webpage",
+       "language",
+       "imageobject",
+       "organization",
+       "newsarticle"
+      ],
+      "formEvidence": {
+       "formCount": 0,
+       "passwordForm": false,
+       "insecureFormActions": 0
+      },
+      "commerceEvidence": {
+       "productSchema": false,
+       "itemListSchema": false,
+       "storeSchema": false,
+       "strongCommerceAction": false,
+       "repeatedProductLinks": true,
+       "priceSignals": 0,
+       "product": null,
+       "confirmedRetailPage": false
+      },
+      "productLinks": [
+       "https://nos.nl/artikel/2634668-oudste-overdekte-markt-van-parijs-verwoest-door-brand",
+       "https://nos.nl/artikel/2547467-met-drie-kloppen-op-de-deur-is-de-notre-dame-in-parijs-officieel-heropend",
+       "https://nos.nl/artikel/2546378-interieur-opgeknapte-notre-dame-voor-het-eerst-te-zien-na-enorme-brand",
+       "https://nos.nl/artikel/2528447-brand-in-torenspits-van-beroemde-kathedraal-rouen-onder-controle"
+      ],
+      "evidenceChecks": [
+       {
+        "key": "http",
+        "status": "PASS",
+        "details": "HTTP 200"
+       },
+       {
+        "key": "title",
+        "status": "PASS",
+        "details": "Title gevonden (53 tekens); binnen richtwaarde 30–60."
+       },
+       {
+        "key": "description",
+        "status": "PASS",
+        "details": "Meta description gevonden (73 tekens); bruikbare lengte."
+       },
+       {
+        "key": "h1",
+        "status": "PASS",
+        "details": "1 H1-heading(s) gevonden."
+       },
+       {
+        "key": "canonical",
+        "status": "PASS",
+        "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/artikel/2634668-oudste-overdekte-markt-van-parijs-verwoest-door-brand"
+       }
+      ]
+     },
+     {
       "url": "https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat",
       "type": "product",
       "evidence": [
@@ -873,10 +885,10 @@
       "description": "De 46-jarige Europarlementariër moet als presidentskandidaat het versnipperde linkse kamp zien te verenigen.",
       "h1Count": 1,
       "canonical": "https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat",
-      "structureKey": "h4|a6|img0|form0|article0|table0|li5|schema5",
+      "structureKey": "h4|a7|img1|form0|article0|table0|li5|schema5",
       "evidenceSource": "rendered_html",
       "score": 92,
-      "identityText": "Centrumlinks schuift Raphaël Glucksmann naar voren als Franse presidentskandidaat De 46-jarige Europarlementariër moet als presidentskandidaat het versnipperde linkse kamp zien te verenigen. Centrumlinks schuift Raphaël Glucksmann naar voren als Franse presidentskandidaat Centrumlinks schuift Raphaël Glucksmann naar voren als Franse presidentskandidaat Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live , er is op dit moment één livestream actief. Zoeken Instellingen Teletekst NPO Start Menu Raphael Glucksmann geeft een speech EPA NOS Nieuws • vandaag, 12:03 Centrumlinks schuift Raphaël Glucksmann naar voren als Franse presidentskandidaat Deel dit artikel Met een ruime overwinning in de voorverkiezingen wordt Raphaël Glucksmann de kandidaat van het centrumlinkse blok bij de Franse verkiezingen volgend jaar. De 46-jarige Europarlementariër moet als presidentskandidaat het versnipperde linkse kamp zien te verenigen. Glucksmann won gisteravond 66 procent van de ruim 120.000 online stemmen, waardoor een tweede ronde niet nodig was. De leider van Place Publique (PP) eindigde ruim voor Olivier Faure van Parti Socialiste (PS), die slechts 14,5 procent van de stemmen behaalde. De kans dat Glucksmann, essayist en zoon van filosoof André Glucksmann , president wordt is klein. Dat komt doordat de radicaal-linkse politicus Jean-Luc Mélenchon van La France Insoumise (LFI) weigert zich achter een gezamenlijke linkse kandidaat te scharen en daarmee de verdeeldheid binnen links in stand houdt. Deelname Hollande Glucksmann richtte in 2018 zijn partij Place Publique op als een pro-Europees en sociaaldemocratisch alternatief voor de PS van oud-president François Hollande. In het Europees Parlement vertegenwoordigt hij zowel Place Publique als de PS. Daar maakte hij zich onder meer hard voor de positie van de Oeigoeren in China. Er zijn ook politici die niet deelnamen aan de centrumlinkse voorverkiezingen. De meest opvallende is de 72-jarige oud-president François Hollande, die mogelijk buiten de voorverkiezingen om opnieuw een gooi doet naar het presidentschap. Zak meel Glucksmann vierde zijn overwinning gisteren na afloop in een bar in Parijs. Toen hij na afloop naar een taxi liep, gooide iemand een zak meel over zijn hoofd heen, schrijven Franse media. (opent in nieuw venster) Een aanval met een zak meel overkwam ook Jordan Bardella, partijleider van de radicaal-rechtse partij Rassemblement National (RN), in november 2025. Hij sprak op X direct zijn steun uit aan Glucksmann en veroordeelde het incident als \"onaanvaardbaar geweld\". Volgens hem bestaat er niet zoiets als een kleine aanval. \"Elke fysieke aanval is ernstig.\" Op Franse televisie, na afloop van de voorverkiezingen, profileerde Glucksmann zich als de kandidaat die staat voor een \"breuk met het macronisme\", een \"breuk met de hegemonie van Mélenchon over links\" en als \"de kandidaat die onze jarenlange vijand, extreemrechts, kan verslaan\". Steun onder jongeren De radicaal-rechtse Marine Le Pen staat er momenteel het best voor in de peilingen. Volgens een recente peiling haalt zij in de eerste ronde van de presidentsverkiezingen tussen de 33 en 35 procent van de stemmen. Mélenchon geldt volgens diverse peilingen als een mogelijke kandidaat die het i",
+      "identityText": "Centrumlinks schuift Raphaël Glucksmann naar voren als Franse presidentskandidaat De 46-jarige Europarlementariër moet als presidentskandidaat het versnipperde linkse kamp zien te verenigen. Centrumlinks schuift Raphaël Glucksmann naar voren als Franse presidentskandidaat Centrumlinks schuift Raphaël Glucksmann naar voren als Franse presidentskandidaat Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live Zoeken Instellingen Teletekst NPO Start Menu Raphael Glucksmann geeft een speech EPA NOS Nieuws • vandaag, 12:03 Centrumlinks schuift Raphaël Glucksmann naar voren als Franse presidentskandidaat Deel dit artikel Met een ruime overwinning in de voorverkiezingen wordt Raphaël Glucksmann de kandidaat van het centrumlinkse blok bij de Franse verkiezingen volgend jaar. De 46-jarige Europarlementariër moet als presidentskandidaat het versnipperde linkse kamp zien te verenigen. Glucksmann won gisteravond 66 procent van de ruim 120.000 online stemmen, waardoor een tweede ronde niet nodig was. De leider van Place Publique (PP) eindigde ruim voor Olivier Faure van Parti Socialiste (PS), die slechts 14,5 procent van de stemmen behaalde. De kans dat Glucksmann, essayist en zoon van filosoof André Glucksmann , president wordt is klein. Dat komt doordat de radicaal-linkse politicus Jean-Luc Mélenchon van La France Insoumise (LFI) weigert zich achter een gezamenlijke linkse kandidaat te scharen en daarmee de verdeeldheid binnen links in stand houdt. Deelname Hollande Glucksmann richtte in 2018 zijn partij Place Publique op als een pro-Europees en sociaaldemocratisch alternatief voor de PS van oud-president François Hollande. In het Europees Parlement vertegenwoordigt hij zowel Place Publique als de PS. Daar maakte hij zich onder meer hard voor de positie van de Oeigoeren in China. Er zijn ook politici die niet deelnamen aan de centrumlinkse voorverkiezingen. De meest opvallende is de 72-jarige oud-president François Hollande, die mogelijk buiten de voorverkiezingen om opnieuw een gooi doet naar het presidentschap. Zak meel Glucksmann vierde zijn overwinning gisteren na afloop in een bar in Parijs. Toen hij na afloop naar een taxi liep, gooide iemand een zak meel over zijn hoofd heen, schrijven Franse media. (opent in nieuw venster) Een aanval met een zak meel overkwam ook Jordan Bardella, partijleider van de radicaal-rechtse partij Rassemblement National (RN), in november 2025. Hij sprak op X direct zijn steun uit aan Glucksmann en veroordeelde het incident als \"onaanvaardbaar geweld\". Volgens hem bestaat er niet zoiets als een kleine aanval. \"Elke fysieke aanval is ernstig.\" Op Franse televisie, na afloop van de voorverkiezingen, profileerde Glucksmann zich als de kandidaat die staat voor een \"breuk met het macronisme\", een \"breuk met de hegemonie van Mélenchon over links\" en als \"de kandidaat die onze jarenlange vijand, extreemrechts, kan verslaan\". Steun onder jongeren De radicaal-rechtse Marine Le Pen staat er momenteel het best voor in de peilingen. Volgens een recente peiling haalt zij in de eerste ronde van de presidentsverkiezingen tussen de 33 en 35 procent van de stemmen. Mélenchon geldt volgens diverse peilingen als een mogelijke kandidaat die het in de tweede ronde moet gaan opnemen tegen Le ",
       "schemaTypes": [
        "webpage",
        "language",
@@ -905,7 +917,9 @@
        "https://nos.nl/artikel/2612969-radicaal-linkse-melenchon-kandidaat-bij-franse-verkiezingen-volgend-jaar",
        "https://nos.nl/artikel/2633917-opnieuw-grote-protesten-en-geweld-in-frankrijk-wat-zit-erachter",
        "https://nos.nl/artikel/2615445-oud-premier-attal-37-kandidaat-bij-franse-presidentsverkiezingen-volgend-jaar",
-       "https://nos.nl/artikel/2634223-oplopende-franse-staatsschuld-en-rente-steeds-zorgelijker-voor-europa"
+       "https://nos.nl/artikel/2634223-oplopende-franse-staatsschuld-en-rente-steeds-zorgelijker-voor-europa",
+       "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-winkelprijzen-na-cyberveiligheidsincident-bij-albert-heijn",
+       "https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis"
       ],
       "evidenceChecks": [
        {
@@ -1014,82 +1028,6 @@
       ]
      },
      {
-      "url": "https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis",
-      "type": "product",
-      "evidence": [
-       "product-like path",
-       "link-context: Litouwen en Polen bereiden zich met oefening voor op vluchtelingencrisis vandaag, 07:14",
-       "javascript rendering unavailable; raw HTML retained"
-      ],
-      "status": "audited",
-      "httpStatus": 200,
-      "title": "Litouwen en Polen bereiden zich met oefening voor op vluchtelingencrisis",
-      "description": "In Litouwen wordt deze weken geoefend wat het leger en de bevolking moeten doen als het oorlog wordt.",
-      "h1Count": 1,
-      "canonical": "https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis",
-      "structureKey": "h4|a6|img1|form0|article0|table0|li5|schema5",
-      "evidenceSource": "raw_html",
-      "score": 95,
-      "identityText": "Litouwen en Polen bereiden zich met oefening voor op vluchtelingencrisis In Litouwen wordt deze weken geoefend wat het leger en de bevolking moeten doen als het oorlog wordt. Litouwen en Polen bereiden zich met oefening voor op vluchtelingencrisis Litouwen en Polen bereiden zich met oefening voor op vluchtelingencrisis Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live Zoeken Instellingen Teletekst NPO Start Menu NOS NOS Nieuws • vandaag, 07:14 • Aangepast vandaag, 07:30 Litouwen en Polen bereiden zich met oefening voor op vluchtelingencrisis Deel dit artikel Christiaan Paauwe correspondent Midden- en Oost-Europa Litouwen en Polen werken aan plannen voor massale evacuaties voor het geval een oorlog met Rusland uitbreekt. In dat scenario houden de landen er rekening mee dat een miljoen burgers van de Baltische landen via de Suwalki-corridor willen vluchten. Deze corridor is een smalle landverbinding tussen Polen en Litouwen. Hij wordt gezien als het kwetsbaarste punt van het NAVO-grondgebied. NOS De Suwalki-corridor tussen Polen en Litouwen De bekendmaking van de plannen valt samen met een grote mobilisatie-oefening die deze weken in Litouwen plaatsvindt. Niet alleen het leger, maar de hele samenleving moet weten wat er te doen staat als het oorlog wordt, is het idee. Wat als Rusland aanvalt? Hoe verslaat de NAVO Rusland als dat land het militaire bondgenootschap aanvalt? Generaal Alexus Grynkewich, de militair commandant van de alliantie, geeft vanmiddag het antwoord op een veiligheidstop in Warschau. De toespraak is vanaf 13.00 uur live te volgen via de NOS-app en NOS.nl. NOS-correspondenten Kysia Hekster (NAVO) en Christiaan Paauwe (Midden- en Oost-Europa) leggen in de stream uit wat de toespraak zo bijzonder maakt. &quot;Heeft u een plek om te logeren?&quot;, vraagt een hulpverlener. Op haar telefoon noteert ze de gegevens van Vidmantas (61), die tegenover haar zit in de witte ontvangsttent. &quot;Nee, ik kan nergens heen&quot;, antwoordt de &#x27;vluchteling&#x27;. Op het groene grasveld van de hippodroom van Lazdijai, een Litouws stadje vlak bij de grens met Polen, worden zogenaamd ontheemde Litouwers rondgeleid. Vidmantas is een van de honderden burgers die meedoen. Hij wil weten wat er gebeurt in een &quot;extreme situatie&quot;, zegt hij nadat hij is geregistreerd. &quot;Zodat je niet in de war raakt als het zover is.&quot; NOS Ook het Rode Kruis in Litouwen oefent mee Na de registratie kunnen deelnemers in andere tenten psychische of medische hulp krijgen, of wat te eten. Aan een hijskraan hangt een grote Litouwse vlag boven het &#x27;vluchtelingenkamp&#x27;. Verderop staan groene tenten met veldbedjes in rijen opgesteld. Zwakke punten Het scenario is dat het oostelijk grensgebied van Litouwen dreigt te worden binnengevallen en er een vluchtelingenstroom op gang komt. Kapitein Darius Indrisonis van de brandweer klinkt bijna enthousiast wanneer hij een rondleiding geeft. Ze kunnen volgens hem een hoop leren van de oefening en zien waar de zwakke punten zitten. Zo bleek dat de registratie te langzaam ging en veel mensen moesten wachten. We zien geen enkele aanwijzing dat we volgende maand of de maand erna al paraat moeten zijn Tomas Daukantas, kanselier van de Litouwse regering D",
-      "schemaTypes": [
-       "webpage",
-       "language",
-       "imageobject",
-       "organization",
-       "newsarticle"
-      ],
-      "formEvidence": {
-       "formCount": 0,
-       "passwordForm": false,
-       "insecureFormActions": 0
-      },
-      "commerceEvidence": {
-       "productSchema": false,
-       "itemListSchema": false,
-       "storeSchema": false,
-       "strongCommerceAction": false,
-       "repeatedProductLinks": true,
-       "priceSignals": 0,
-       "product": null,
-       "confirmedRetailPage": false
-      },
-      "productLinks": [
-       "https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis",
-       "https://nos.nl/artikel/2634636-hoe-rusland-te-verslaan-topmilitair-navo-geeft-antwoord-in-zeldzame-toespraak",
-       "https://nos.nl/artikel/2631110-navo-toestellen-halen-drone-neer-boven-litouwen-herkomst-nog-onduidelijk",
-       "https://nos.nl/artikel/2630975-zorgen-bij-navo-en-eu-over-verdere-escalatie-na-droneaanval-rusland-op-trein",
-       "https://nos.nl/artikel/2633764-duitse-inlichtingendienst-waarschuwt-voor-gewelddadig-conflict-met-rusland",
-       "https://nos.nl/artikel/2631014-polen-zet-zich-schrap-voor-verdere-escalatie-nu-russische-drones-de-grens-opzoeken"
-      ],
-      "evidenceChecks": [
-       {
-        "key": "http",
-        "status": "PASS",
-        "details": "HTTP 200"
-       },
-       {
-        "key": "title",
-        "status": "WARNING",
-        "details": "Title gevonden (72 tekens); buiten richtwaarde 30–60."
-       },
-       {
-        "key": "description",
-        "status": "PASS",
-        "details": "Meta description gevonden (101 tekens); bruikbare lengte."
-       },
-       {
-        "key": "h1",
-        "status": "PASS",
-        "details": "1 H1-heading(s) gevonden."
-       },
-       {
-        "key": "canonical",
-        "status": "PASS",
-        "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis"
-       }
-      ]
-     },
-     {
       "url": "https://nos.nl/sport",
       "type": "other",
       "evidence": [
@@ -1157,6 +1095,68 @@
         "key": "canonical",
         "status": "PASS",
         "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/sport"
+       }
+      ]
+     },
+     {
+      "url": "https://nos.nl/live",
+      "type": "other",
+      "evidence": [
+       "link-context: Live",
+       "javascript rendering unavailable; raw HTML retained"
+      ],
+      "status": "audited",
+      "httpStatus": 200,
+      "title": "NOS.nl - NOS Live",
+      "description": "Blijf bij. NOS. Bekijk actuele livestreams en de agenda van komende uitzendingen van nieuws, sport en evenementen.",
+      "h1Count": 1,
+      "canonical": "https://nos.nl/live",
+      "structureKey": "h4|a9|img8|form0|article0|table0|li9|schema0",
+      "evidenceSource": "raw_html",
+      "score": 95,
+      "identityText": "NOS.nl - NOS Live Blijf bij. NOS. Bekijk actuele livestreams en de agenda van komende uitzendingen van nieuws, sport en evenementen. Live bij de NOS NOS.nl - NOS Live Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live Zoeken Instellingen Teletekst NPO Start Menu Live bij de NOS Op dit moment zijn er geen livestreams Binnenkort te zien Alles Nieuws Sport Sla sportfilters over Schaatsen Voetbal Turnen Baanwielrennen Wielrennen Shorttrack Futsal Korfbal Zwemmen Veldrijden Atletiek vandaag vandaag, 12:50 vandaag, 12:50 Hoogste NAVO-militair over hoe de NAVO een Russische aanval kan afslaan vandaag, 17:00 vandaag, 17:00 Persconferentie bondscoach Veurink morgen morgen, 20:45 morgen, 20:45 Voetbal: WK-kwalificatie Nederland - Hongarije (v) woensdag woensdag, 12:30 woensdag, 12:30 WK baanwielrennen donderdag donderdag, 11:00 donderdag, 11:00 WK baanwielrennen vrijdag vrijdag, 11:00 vrijdag, 11:00 WK baanwielrennen zaterdag zaterdag, 11:30 zaterdag, 11:30 WK baanwielrennen zondag zondag, 07:30 zondag, 07:30 WK baanwielrennen zondag, 09:00 zondag, 09:00 Marathon van Amsterdam dinsdag 20 oktober di 20 oktober, 19:30 di 20 oktober, 19:30 WK turnen: teamfinale (m) woensdag 21 oktober wo 21 oktober, 19:30 wo 21 oktober, 19:30 Futsal: WK-kwalificatie Nederland - Servië (m) wo 21 oktober, 19:30 wo 21 oktober, 19:30 WK turnen: teamfinale (v) donderdag 22 oktober do 22 oktober, 19:00 do 22 oktober, 19:00 EK korfbal: halve finale do 22 oktober, 19:30 do 22 oktober, 19:30 WK turnen: meerkampfinale (m) vrijdag 23 oktober vr 23 oktober, 19:30 vr 23 oktober, 19:30 WK turnen: meerkampfinale (v) zaterdag 24 oktober za 24 oktober, 14:00 za 24 oktober, 14:00 WK turnen: toestelfinales (m/v) za 24 oktober, 15:15 za 24 oktober, 15:15 EK korfbal: finale za 24 oktober, 19:00 za 24 oktober, 19:00 NK kortebaanzwemmen zo 25 oktober, 01:00 zo 25 oktober, 01:00 Shorttrack: World Tour Vancouver zondag 25 oktober zo 25 oktober, 14:00 zo 25 oktober, 14:00 WK turnen: toestelfinales (m/v) zo 25 oktober, 19:00 zo 25 oktober, 19:00 NK kortebaanzwemmen maandag 26 oktober ma 26 oktober, 01:00 ma 26 oktober, 01:00 Shorttrack: World Tour Vancouver donderdag 29 oktober do 29 oktober, 21:00 do 29 oktober, 21:00 Champions League: Manchester City - PSG (v) vrijdag 30 oktober vr 30 oktober, 18:00 vr 30 oktober, 18:00 Schaatsen: wereldbeker kwalificatietoernooi Heerenveen zaterdag 31 oktober za 31 oktober, 14:00 za 31 oktober, 14:00 Schaatsen: wereldbeker kwalificatietoernooi Heerenveen za 31 oktober, 18:30 za 31 oktober, 18:30 Shorttrack: World Tour Montreal zondag 1 november zo 1 november, 12:00 zo 1 november, 12:00 Schaatsen: wereldbeker kwalificatietoernooi Heerenveen zo 1 november, 18:30 zo 1 november, 18:30 Shorttrack: World Tour Montreal vrijdag 6 november vr 6 november, 20:00 vr 6 november, 20:00 Futsal: EK-kwalificatie Andorra - Nederland (m) zaterdag 7 november za 7 november, 15:00 za 7 november, 15:00 EK veldrijden (v) zondag 8 november zo 8 november, 15:00 zo 8 november, 15:00 EK veldrijden (m) woensdag 11 november wo 11 november, 18:45 wo 11 november, 18:45 Champions League: FC Barcelona - Arsenal (v) wo 11 november, 19:30 wo 11",
+      "schemaTypes": [],
+      "formEvidence": {
+       "formCount": 0,
+       "passwordForm": false,
+       "insecureFormActions": 0
+      },
+      "commerceEvidence": {
+       "productSchema": false,
+       "itemListSchema": false,
+       "storeSchema": false,
+       "strongCommerceAction": false,
+       "repeatedProductLinks": false,
+       "priceSignals": 0,
+       "product": null,
+       "confirmedRetailPage": false
+      },
+      "productLinks": [],
+      "evidenceChecks": [
+       {
+        "key": "http",
+        "status": "PASS",
+        "details": "HTTP 200"
+       },
+       {
+        "key": "title",
+        "status": "WARNING",
+        "details": "Title gevonden (17 tekens); buiten richtwaarde 30–60."
+       },
+       {
+        "key": "description",
+        "status": "PASS",
+        "details": "Meta description gevonden (114 tekens); bruikbare lengte."
+       },
+       {
+        "key": "h1",
+        "status": "PASS",
+        "details": "1 H1-heading(s) gevonden."
+       },
+       {
+        "key": "canonical",
+        "status": "PASS",
+        "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/live"
        }
       ]
      },
@@ -1702,7 +1702,7 @@
       ]
      }
     ],
-    "siteSampleScore": 95,
+    "siteSampleScore": 96,
     "siteSampleCoverage": {
      "selected": 20,
      "checked": 20,
@@ -1723,20 +1723,20 @@
       "status": "WARNING",
       "checkedPages": 20,
       "provenPages": 20,
-      "affectedCount": 14,
+      "affectedCount": 13,
       "affectedUrls": [
        "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-winkelprijzen-na-cyberveiligheidsincident-bij-albert-heijn",
        "https://nos.nl/",
        "https://nos.nl/artikel/2634660-staking-belgie-om-bezuinigingen-openbare-diensten-minder-treinen-ook-vrt-staakt",
-       "https://nos.nl/live",
        "https://nos.nl/artikel/2631561-datalek-bij-webshop-drogisterijketen-da-raakt-236-000-klanten",
        "https://nos.nl/artikel/2634396-storing-bij-kpn-opgelost-universitaire-ziekenhuizen-weer-bereikbaar",
        "https://nos.nl/artikel/2633445-bedrijven-massaal-gehackt-consument-maakt-het-weinig-uit-we-zijn-datalekmoe",
        "https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat",
        "https://nos.nl/artikel/2634656-bakstenen-zonder-gasovens-vol-stroomnet-zit-duurzamere-industrie-in-de-weg",
-       "https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis",
        "https://nos.nl/sport",
-       "https://nos.nl/teletekst"
+       "https://nos.nl/live",
+       "https://nos.nl/teletekst",
+       "https://nos.nl/herstel"
       ],
       "evidence": [
        {
@@ -1753,11 +1753,6 @@
         "url": "https://nos.nl/artikel/2634660-staking-belgie-om-bezuinigingen-openbare-diensten-minder-treinen-ook-vrt-staakt",
         "status": "WARNING",
         "details": "Title gevonden (81 tekens); buiten richtwaarde 30–60."
-       },
-       {
-        "url": "https://nos.nl/live",
-        "status": "WARNING",
-        "details": "Title gevonden (17 tekens); buiten richtwaarde 30–60."
        },
        {
         "url": "https://nos.nl/artikel/2631561-datalek-bij-webshop-drogisterijketen-da-raakt-236-000-klanten",
@@ -1785,19 +1780,24 @@
         "details": "Title gevonden (75 tekens); buiten richtwaarde 30–60."
        },
        {
-        "url": "https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis",
-        "status": "WARNING",
-        "details": "Title gevonden (72 tekens); buiten richtwaarde 30–60."
-       },
-       {
         "url": "https://nos.nl/sport",
         "status": "WARNING",
         "details": "Title gevonden (88 tekens); buiten richtwaarde 30–60."
        },
        {
+        "url": "https://nos.nl/live",
+        "status": "WARNING",
+        "details": "Title gevonden (17 tekens); buiten richtwaarde 30–60."
+       },
+       {
         "url": "https://nos.nl/teletekst",
         "status": "WARNING",
         "details": "Title gevonden (22 tekens); buiten richtwaarde 30–60."
+       },
+       {
+        "url": "https://nos.nl/herstel",
+        "status": "WARNING",
+        "details": "Title gevonden (27 tekens); buiten richtwaarde 30–60."
        }
       ],
       "highlights": [],
@@ -1881,11 +1881,6 @@
         "details": "1 H1-heading(s) gevonden."
        },
        {
-        "url": "https://nos.nl/live",
-        "status": "PASS",
-        "details": "1 H1-heading(s) gevonden."
-       },
-       {
         "url": "https://nos.nl/sport/formule-1",
         "status": "PASS",
         "details": "1 H1-heading(s) gevonden."
@@ -1906,6 +1901,11 @@
         "details": "1 H1-heading(s) gevonden."
        },
        {
+        "url": "https://nos.nl/artikel/2634668-oudste-overdekte-markt-van-parijs-verwoest-door-brand",
+        "status": "PASS",
+        "details": "1 H1-heading(s) gevonden."
+       },
+       {
         "url": "https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat",
         "status": "PASS",
         "details": "1 H1-heading(s) gevonden."
@@ -1916,12 +1916,12 @@
         "details": "1 H1-heading(s) gevonden."
        },
        {
-        "url": "https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis",
+        "url": "https://nos.nl/sport",
         "status": "PASS",
         "details": "1 H1-heading(s) gevonden."
        },
        {
-        "url": "https://nos.nl/sport",
+        "url": "https://nos.nl/live",
         "status": "PASS",
         "details": "1 H1-heading(s) gevonden."
        }
@@ -1953,11 +1953,6 @@
         "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/artikel/2634660-staking-belgie-om-bezuinigingen-openbare-diensten-minder-treinen-ook-vrt-staakt"
        },
        {
-        "url": "https://nos.nl/live",
-        "status": "PASS",
-        "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/live"
-       },
-       {
         "url": "https://nos.nl/sport/formule-1",
         "status": "PASS",
         "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/sport/formule-1"
@@ -1978,6 +1973,11 @@
         "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/artikel/2633445-bedrijven-massaal-gehackt-consument-maakt-het-weinig-uit-we-zijn-datalekmoe"
        },
        {
+        "url": "https://nos.nl/artikel/2634668-oudste-overdekte-markt-van-parijs-verwoest-door-brand",
+        "status": "PASS",
+        "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/artikel/2634668-oudste-overdekte-markt-van-parijs-verwoest-door-brand"
+       },
+       {
         "url": "https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat",
         "status": "PASS",
         "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat"
@@ -1988,14 +1988,14 @@
         "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/artikel/2634656-bakstenen-zonder-gasovens-vol-stroomnet-zit-duurzamere-industrie-in-de-weg"
        },
        {
-        "url": "https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis",
-        "status": "PASS",
-        "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis"
-       },
-       {
         "url": "https://nos.nl/sport",
         "status": "PASS",
         "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/sport"
+       },
+       {
+        "url": "https://nos.nl/live",
+        "status": "PASS",
+        "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/live"
        }
       ],
       "highlights": [],
@@ -2061,14 +2061,6 @@
      ]
     },
     {
-     "url": "https://nos.nl/live",
-     "type": "other",
-     "evidence": [
-      "link-context: Live , er is op dit moment één livestream actief.",
-      "javascript-rendered representative page"
-     ]
-    },
-    {
      "url": "https://nos.nl/sport/formule-1",
      "type": "other",
      "evidence": [
@@ -2104,6 +2096,15 @@
      ]
     },
     {
+     "url": "https://nos.nl/artikel/2634668-oudste-overdekte-markt-van-parijs-verwoest-door-brand",
+     "type": "product",
+     "evidence": [
+      "product-like path",
+      "link-context: Oudste overdekte markt van Parijs verwoest door brand vandaag, 12:23",
+      "javascript-rendered representative page"
+     ]
+    },
+    {
      "url": "https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat",
      "type": "product",
      "evidence": [
@@ -2122,19 +2123,18 @@
      ]
     },
     {
-     "url": "https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis",
-     "type": "product",
-     "evidence": [
-      "product-like path",
-      "link-context: Litouwen en Polen bereiden zich met oefening voor op vluchtelingencrisis vandaag, 07:14",
-      "javascript rendering unavailable; raw HTML retained"
-     ]
-    },
-    {
      "url": "https://nos.nl/sport",
      "type": "other",
      "evidence": [
       "link-context: Voorpagina",
+      "javascript rendering unavailable; raw HTML retained"
+     ]
+    },
+    {
+     "url": "https://nos.nl/live",
+     "type": "other",
+     "evidence": [
+      "link-context: Live",
       "javascript rendering unavailable; raw HTML retained"
      ]
     },
@@ -2220,7 +2220,7 @@
      "structureKey": "h4|a6|img0|form0|article0|table0|li5|schema5",
      "evidenceSource": "rendered_html",
      "score": 92,
-     "identityText": "Geen bezorging en verkeerde winkelprijzen na 'cyberveiligheidsincident' bij Albert Heijn Dat komt volgens Albert Heijn door &quot;een IT-incident&quot;. Websites, apps en de klantenservice zijn hierdoor niet beschikbaar. Geen bezorging en verkeerde winkelprijzen na 'cyberveiligheidsincident' bij Albert Heijn Geen bezorging en verkeerde winkelprijzen na &#x27;cyberveiligheidsincident&#x27; bij Albert Heijn Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live , er is op dit moment één livestream actief. Zoeken Instellingen Teletekst NPO Start Menu NOS NOS Nieuws • vandaag, 07:56 • Aangepast vandaag, 11:38 Geen bezorging en verkeerde winkelprijzen na 'cyberveiligheidsincident' bij Albert Heijn Deel dit artikel Albert Heijn, Etos en Gall &amp; Gall kampen sinds zondagmiddag met een storing. Dat komt volgens Ahold Delhaize (opent in nieuw venster) , het moederbedrijf van Albert Heijn, door een \"cyberveiligheidsincident\". Albert Heijn schreef eerder in een eigen persbericht over \"een IT-incident\". Websites, apps en de klantenservice van Albert Heijn zijn door de technische problemen niet beschikbaar. Ook kunnen online bestelde boodschappen niet worden bezorgd en geven elektronische schapkaarten nog de actieprijzen van vorige week weer, in plaats van de huidige prijs. Ook de spaarsystemen werken niet. ANP Ook de app werkt niet Ook de Belgische supermarktketen Delhaize, onderdeel van hetzelfde bedrijf als Albert Heijn, ondervindt hinder, meldt VRT Nieuws (opent in nieuw venster) . Klanten kunnen daar geen nieuwe bestellingen doen voor deze week en ook is de klantenservice niet bereikbaar. In België zijn de app en website wel bereikbaar. Gegevens beschermen Wat er precies aan de hand is, is nog onduidelijk. Daarover wil Albert Heijn niets kwijt. \"We hebben direct maatregelen genomen om onze IT-omgeving te beschermen. Onderdeel daarvan is het preventief tijdelijk uitschakelen van een aantal systemen\", schrijft Albert Heijn in een verklaring. \"We onderzoeken het incident en werken aan het herstellen van onze diensten. De bescherming van de gegevens van onze klanten, medewerkers en partners staat daarbij voorop\", meldt de supermarktketen. De winkels van Albert Heijn zijn vanmorgen gewoon opengegaan. De supermarktketen zegt nog niet te weten wanneer de diensten weer beschikbaar zijn. Deze Albert Heijn-vestiging in Amsterdam informeert klanten met een briefje over de onjuiste prijzen in de winkel: NOS Een Albert Heijn-filiaal in Amsterdam informeert klanten over de storing Storing bij KPN opgelost, universitaire ziekenhuizen weer bereikbaar Bedrijven massaal gehackt, consument maakt het weinig uit: 'We zijn datalekmoe' Datalek bij webshop drogisterijketen DA raakt 236.000 klanten Economie Maak NOS jouw voorkeursbron in Google Met een nieuwe functie van Google bepaal je voortaan zelf welke bronnen je als eerste ziet wanneer je zoekt. Zo mis je nooit meer het laatste nieuws van de NOS. Voeg NOS toe aan Google (opent in nieuw venster) Meer informatie (opent in nieuw venster) Deel artikel: X (opent in nieuw venster) E-mail (opent in nieuw venster) Facebook (opent in nieuw venster) WhatsApp (opent in nieuw venster) Link gekopieerd! Het belangrijkste nieuws Litouwen en Polen bereiden zich met oefening voor op vluchtelingencrisis vandaag, 07:14 H",
+     "identityText": "Geen bezorging en verkeerde winkelprijzen na 'cyberveiligheidsincident' bij Albert Heijn Dat komt volgens Albert Heijn door &quot;een IT-incident&quot;. Websites, apps en de klantenservice zijn hierdoor niet beschikbaar. Geen bezorging en verkeerde winkelprijzen na 'cyberveiligheidsincident' bij Albert Heijn Geen bezorging en verkeerde winkelprijzen na &#x27;cyberveiligheidsincident&#x27; bij Albert Heijn Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live Zoeken Instellingen Teletekst NPO Start Menu NOS NOS Nieuws • vandaag, 07:56 • Aangepast vandaag, 11:38 Geen bezorging en verkeerde winkelprijzen na 'cyberveiligheidsincident' bij Albert Heijn Deel dit artikel Albert Heijn, Etos en Gall &amp; Gall kampen sinds zondagmiddag met een storing. Dat komt volgens Ahold Delhaize (opent in nieuw venster) , het moederbedrijf van Albert Heijn, door een \"cyberveiligheidsincident\". Albert Heijn schreef eerder in een eigen persbericht over \"een IT-incident\". Websites, apps en de klantenservice van Albert Heijn zijn door de technische problemen niet beschikbaar. Ook kunnen online bestelde boodschappen niet worden bezorgd en geven elektronische schapkaarten nog de actieprijzen van vorige week weer, in plaats van de huidige prijs. Ook de spaarsystemen werken niet. ANP Ook de app werkt niet Ook de Belgische supermarktketen Delhaize, onderdeel van hetzelfde bedrijf als Albert Heijn, ondervindt hinder, meldt VRT Nieuws (opent in nieuw venster) . Klanten kunnen daar geen nieuwe bestellingen doen voor deze week en ook is de klantenservice niet bereikbaar. In België zijn de app en website wel bereikbaar. Gegevens beschermen Wat er precies aan de hand is, is nog onduidelijk. Daarover wil Albert Heijn niets kwijt. \"We hebben direct maatregelen genomen om onze IT-omgeving te beschermen. Onderdeel daarvan is het preventief tijdelijk uitschakelen van een aantal systemen\", schrijft Albert Heijn in een verklaring. \"We onderzoeken het incident en werken aan het herstellen van onze diensten. De bescherming van de gegevens van onze klanten, medewerkers en partners staat daarbij voorop\", meldt de supermarktketen. De winkels van Albert Heijn zijn vanmorgen gewoon opengegaan. De supermarktketen zegt nog niet te weten wanneer de diensten weer beschikbaar zijn. Deze Albert Heijn-vestiging in Amsterdam informeert klanten met een briefje over de onjuiste prijzen in de winkel: NOS Een Albert Heijn-filiaal in Amsterdam informeert klanten over de storing Storing bij KPN opgelost, universitaire ziekenhuizen weer bereikbaar Bedrijven massaal gehackt, consument maakt het weinig uit: 'We zijn datalekmoe' Datalek bij webshop drogisterijketen DA raakt 236.000 klanten Economie Maak NOS jouw voorkeursbron in Google Met een nieuwe functie van Google bepaal je voortaan zelf welke bronnen je als eerste ziet wanneer je zoekt. Zo mis je nooit meer het laatste nieuws van de NOS. Voeg NOS toe aan Google (opent in nieuw venster) Meer informatie (opent in nieuw venster) Deel artikel: X (opent in nieuw venster) E-mail (opent in nieuw venster) Facebook (opent in nieuw venster) WhatsApp (opent in nieuw venster) Link gekopieerd! Het belangrijkste nieuws Litouwen en Polen bereiden zich met oefening voor op vluchtelingencrisis vandaag, 07:14 Hoe Rusland te verslaan? Topmilitair NAVO geef",
      "schemaTypes": [
       "webpage",
       "language",
@@ -2251,7 +2251,7 @@
       "https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis",
       "https://nos.nl/artikel/2634636-hoe-rusland-te-verslaan-topmilitair-navo-geeft-antwoord-in-zeldzame-toespraak",
       "https://nos.nl/artikel/2634629-strand-scheveningen-tijd-lang-afgezet-zeemijn-blijkt-ongevaarlijke-stalen-bal",
-      "https://nos.nl/artikel/2634656-bakstenen-zonder-gasovens-vol-stroomnet-zit-duurzamere-industrie-in-de-weg"
+      "https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat"
      ],
      "evidenceChecks": [
       {
@@ -2297,7 +2297,7 @@
      "structureKey": "h4|a9|img9|form0|article0|table0|li9|schema0",
      "evidenceSource": "rendered_html",
      "score": 92,
-     "identityText": "NOS.nl - Nieuws, Sport en Evenementen | Nederlandse Omroep Stichting NOS.nl - Nieuws, Sport en Evenementen op Radio, TV en Internet Blijf bij. NOS. NOS.nl - Nieuws, Sport en Evenementen | Nederlandse Omroep Stichting Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live , er is op dit moment één livestream actief. Zoeken Instellingen Teletekst NPO Start Menu Voorpagina Laatste nieuws Video's Binnenland Buitenland Regionaal nieuws Politiek Economie Koningshuis Tech Cultuur &amp; media Opmerkelijk Blijf bij. NOS. Het belangrijkste nieuws Geen bezorging en verkeerde winkelprijzen na 'cyberveiligheidsincident' bij Albert Heijn Litouwen en Polen bereiden zich met oefening voor op vluchtelingencrisis Hoe Rusland te verslaan? Topmilitair NAVO geeft antwoord in zeldzame toespraak Uitgelicht Strand Scheveningen tijd lang afgezet: 'zeemijn' blijkt ongevaarlijke stalen bal De metalen bal spoelde zondag rond 15.00 uur aan op het strand. Voorbijgangers waarschuwden de politie, die met meerdere eenheden het strand afzette. Bakstenen zonder gasovens? Vol stroomnet zit duurzamere industrie in de weg Energie-intensieve bedrijven zeggen dat ze zekerheid nodig hebben over wanneer ze een stroomaansluiting kunnen krijgen om te verduurzamen. Ze staan op lange wachtlijsten. Twee doden en twee gewonden bij verkeersongeluk Kesteren Een van de auto's kwam na het ongeluk op de kop in de berm terecht. Trump claimt staakt-het-vuren energiesector, Oekraïne weet van niks en wacht op details Rusland heeft nog niet gereageerd op het bericht van Trump op sociale media. Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt Er wordt gestaakt tegen de voorgenomen bezuinigingen van de regering-De Wever. Intussen is de State of the Union die de premier morgen zou houden uitgesteld. D66 wil drempel omlaag om kind te spreken bij vermoedens kindermishandeling D66 komt vandaag met een initiatiefwetsvoorstel, dat het voor hulpverleners makkelijker moet maken om kinderen zelf te spreken na signalen van ernstige mishandeling. Dode en elf gewonden bij nieuwe aanval op luchthaven Riyad De dode heeft de Pakistaanse nationaliteit. De gewonden zijn naar het ziekenhuis gebracht. Noord-Korea lanceert meerdere ballistische raketten richting zee De Zuid-Koreaanse legerleiding zegt dat de raketten werden gelanceerd vanuit een gebied rond de Noord-Koreaanse hoofdstad Pyongyang. Explosie bij kapper Vlaardingen, mogelijk verband met 'kappersoorlog' De oorzaak van de explosie is niet bekendgemaakt. Op foto's is een stuk zwaar vuurwerk en een losse baksteen te zien. Herten in Maasland dood nadat ze waren gevoerd met ongekookte rijst De vrijwilligers dachten in eerste instantie dat het om een virus ging, maar uit onderzoek bleek een andere doodsoorzaak. Man in Polen opgepakt voor het plannen van een aanslag op premier Tusk De Poolse autoriteiten willen niet in detail treden, maar de dreiging werd \"uiterst serieus\" genomen. Komende week rustig najaarsweer, opnieuw zonnig en warm met weinig regen Het wordt niet alleen bij ons warm en zonnig, maar in vrijwel heel Midden- en West-Europa. Sport Bekijk meer Sport Bij nieuwe club S",
+     "identityText": "NOS.nl - Nieuws, Sport en Evenementen | Nederlandse Omroep Stichting NOS.nl - Nieuws, Sport en Evenementen op Radio, TV en Internet Blijf bij. NOS. NOS.nl - Nieuws, Sport en Evenementen | Nederlandse Omroep Stichting Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live Zoeken Instellingen Teletekst NPO Start Menu Voorpagina Laatste nieuws Video's Binnenland Buitenland Regionaal nieuws Politiek Economie Koningshuis Tech Cultuur &amp; media Opmerkelijk Blijf bij. NOS. Het belangrijkste nieuws Geen bezorging en verkeerde winkelprijzen na 'cyberveiligheidsincident' bij Albert Heijn Litouwen en Polen bereiden zich met oefening voor op vluchtelingencrisis Hoe Rusland te verslaan? Topmilitair NAVO geeft antwoord in zeldzame toespraak Uitgelicht Strand Scheveningen tijd lang afgezet: 'zeemijn' blijkt ongevaarlijke stalen bal De metalen bal spoelde zondag rond 15.00 uur aan op het strand. Voorbijgangers waarschuwden de politie, die met meerdere eenheden het strand afzette. Centrumlinks schuift Raphaël Glucksmann naar voren als Franse presidentskandidaat De 46-jarige Europarlementariër moet als presidentskandidaat het versnipperde linkse kamp zien te verenigen. Bakstenen zonder gasovens? Vol stroomnet zit duurzamere industrie in de weg Energie-intensieve bedrijven zeggen dat ze zekerheid nodig hebben over wanneer ze een stroomaansluiting kunnen krijgen om te verduurzamen. Ze staan op lange wachtlijsten. Twee doden en twee gewonden bij verkeersongeluk Kesteren Een van de auto's kwam na het ongeluk op de kop in de berm terecht. Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt Er wordt gestaakt tegen de voorgenomen bezuinigingen van de regering-De Wever. Intussen is de State of the Union die de premier morgen zou houden uitgesteld. D66 wil drempel omlaag om kind te spreken bij vermoedens kindermishandeling D66 komt vandaag met een initiatiefwetsvoorstel, dat het voor hulpverleners makkelijker moet maken om kinderen zelf te spreken na signalen van ernstige mishandeling. Dode en elf gewonden bij nieuwe aanval op luchthaven Riyad De dode heeft de Pakistaanse nationaliteit. De gewonden zijn naar het ziekenhuis gebracht. Noord-Korea lanceert meerdere ballistische raketten richting zee De Zuid-Koreaanse legerleiding zegt dat de raketten werden gelanceerd vanuit een gebied rond de Noord-Koreaanse hoofdstad Pyongyang. Explosie bij kapper Vlaardingen, mogelijk verband met 'kappersoorlog' De oorzaak van de explosie is niet bekendgemaakt. Op foto's is een stuk zwaar vuurwerk en een losse baksteen te zien. Herten in Maasland dood nadat ze waren gevoerd met ongekookte rijst De vrijwilligers dachten in eerste instantie dat het om een virus ging, maar uit onderzoek bleek een andere doodsoorzaak. Man in Polen opgepakt voor het plannen van een aanslag op premier Tusk De Poolse autoriteiten willen niet in detail treden, maar de dreiging werd \"uiterst serieus\" genomen. Komende week rustig najaarsweer, opnieuw zonnig en warm met weinig regen Het wordt niet alleen bij ons warm en zonnig, maar in vrijwel heel Midden- en West-Europa. Sport Bekijk meer Sport Bij nieuwe club Seedorf moeten spele",
      "schemaTypes": [],
      "formEvidence": {
       "formCount": 0,
@@ -2319,9 +2319,9 @@
       "https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis",
       "https://nos.nl/artikel/2634636-hoe-rusland-te-verslaan-topmilitair-navo-geeft-antwoord-in-zeldzame-toespraak",
       "https://nos.nl/artikel/2634629-strand-scheveningen-tijd-lang-afgezet-zeemijn-blijkt-ongevaarlijke-stalen-bal",
+      "https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat",
       "https://nos.nl/artikel/2634656-bakstenen-zonder-gasovens-vol-stroomnet-zit-duurzamere-industrie-in-de-weg",
       "https://nos.nl/artikel/2634631-twee-doden-en-twee-gewonden-bij-verkeersongeluk-kesteren",
-      "https://nos.nl/artikel/2634610-trump-claimt-staakt-het-vuren-energiesector-oekraine-weet-van-niks-en-wacht-op-details",
       "https://nos.nl/artikel/2634660-staking-belgie-om-bezuinigingen-openbare-diensten-minder-treinen-ook-vrt-staakt"
      ],
      "evidenceChecks": [
@@ -2369,7 +2369,7 @@
      "structureKey": "h4|a6|img0|form0|article0|table0|li5|schema5",
      "evidenceSource": "rendered_html",
      "score": 92,
-     "identityText": "Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt Er wordt gestaakt tegen de voorgenomen bezuinigingen van de regering-De Wever. Intussen is de State of the Union die de premier morgen zou houden uitgesteld. Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live , er is op dit moment één livestream actief. Zoeken Instellingen Teletekst NPO Start Menu De staking voor de ingang van de Vlaamse omroep VRT BELGA NOS Nieuws • vandaag, 10:11 Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt Deel dit artikel In België protesteren vakbonden vandaag opnieuw tegen aangekondigde bezuinigingen van de regering. De stakingsdag zal gevolgen hebben voor scholen, het openbaar vervoer en het ophalen van afval. Ook medewerkers van de Vlaamse omroep VRT leggen het werk neer. De staking is een initiatief van de socialistische vakbond ACOD. Het protest is gericht op de bezuinigingen die de regering-De Wever heeft aangekondigd op openbare diensten. Morgen zou de premier de begrotingskeuzes toelichten in zijn State of the Union, maar vanwege het uitblijven van een begrotingsakkoord is die uitgesteld (opent in nieuw venster) . Zijn regering verkeert sinds dit weekend in crisis, omdat de coalitiepartijen het niet eens worden over die begroting. Spoor De staking bij de Belgische spoorwegmaatschappij NMBS begon gisteravond en tot vanavond 22.00 uur zullen er minder treinen rijden. Dat heeft ook gevolgen voor treinreizen van en naar Nederland, meldt de NS. Reizigers wordt geadviseerd voor vertrek de reisplanner te checken. Er rijden in België ook minder bussen, trams en metro's. Ook medewerkers van omroep VRT leggen het werk neer. De omroep moet nog eens 10 miljoen euro bezuinigen, boven op een al eerder aangekondigde bezuinigingsronde. Veel tv-uitzendingen worden geschrapt, journaals zijn ingekort en op de radio zal vooral muziek te horen zijn, meldt de omroep (opent in nieuw venster) . Op 9 november wordt een besluit genomen over verdere acties. Rellen Afgelopen vrijdag liep een staking in Brussel tegen de bezuinigingen op de sociale zekerheid uit op rellen , nadat honderden tot duizenden gemaskerde jongeren zich tussen de betogers hadden gemengd. Zij gooiden met stenen en vuurwerk naar de politie. De politie sprak tegen dat de ongeregeldheden verband hielden met de vakbondsactie. Zeker 110 mensen werden aangehouden. Een dag eerder werd een samenscholingsverbod afgekondigd in Luik , vanwege uit de hand gelopen onderwijsprotesten in die stad. Die protesten zijn deels overgewaaid uit Frankrijk , waar sinds vorige maand wordt gedemonstreerd tegen onder meer de gebrekkige staat van schoolgebouwen en het lerarentekort. Politie houdt 21 mensen aan bij vakbondsactie in Brussel 110 arrestaties op dag vol geweld in centrum Brussel Buitenland Maak NOS jouw voorkeursbron in Google Met een nieuwe functie van Google bepaal je voortaan zelf welke bronnen je als eerste ziet wanneer je zoekt. Zo mis je nooit meer het laatste nieuws van de NOS. Voeg NOS toe aan Google (opent in nieuw venster) Meer informatie (opent in nieuw venster) Deel artikel: X (opent in n",
+     "identityText": "Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt Er wordt gestaakt tegen de voorgenomen bezuinigingen van de regering-De Wever. Intussen is de State of the Union die de premier morgen zou houden uitgesteld. Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live Zoeken Instellingen Teletekst NPO Start Menu De staking voor de ingang van de Vlaamse omroep VRT BELGA NOS Nieuws • vandaag, 10:11 Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt Deel dit artikel In België protesteren vakbonden vandaag opnieuw tegen aangekondigde bezuinigingen van de regering. De stakingsdag zal gevolgen hebben voor scholen, het openbaar vervoer en het ophalen van afval. Ook medewerkers van de Vlaamse omroep VRT leggen het werk neer. De staking is een initiatief van de socialistische vakbond ACOD. Het protest is gericht op de bezuinigingen die de regering-De Wever heeft aangekondigd op openbare diensten. Morgen zou de premier de begrotingskeuzes toelichten in zijn State of the Union, maar vanwege het uitblijven van een begrotingsakkoord is die uitgesteld (opent in nieuw venster) . Zijn regering verkeert sinds dit weekend in crisis, omdat de coalitiepartijen het niet eens worden over die begroting. Spoor De staking bij de Belgische spoorwegmaatschappij NMBS begon gisteravond en tot vanavond 22.00 uur zullen er minder treinen rijden. Dat heeft ook gevolgen voor treinreizen van en naar Nederland, meldt de NS. Reizigers wordt geadviseerd voor vertrek de reisplanner te checken. Er rijden in België ook minder bussen, trams en metro's. Ook medewerkers van omroep VRT leggen het werk neer. De omroep moet nog eens 10 miljoen euro bezuinigen, boven op een al eerder aangekondigde bezuinigingsronde. Veel tv-uitzendingen worden geschrapt, journaals zijn ingekort en op de radio zal vooral muziek te horen zijn, meldt de omroep (opent in nieuw venster) . Op 9 november wordt een besluit genomen over verdere acties. Rellen Afgelopen vrijdag liep een staking in Brussel tegen de bezuinigingen op de sociale zekerheid uit op rellen , nadat honderden tot duizenden gemaskerde jongeren zich tussen de betogers hadden gemengd. Zij gooiden met stenen en vuurwerk naar de politie. De politie sprak tegen dat de ongeregeldheden verband hielden met de vakbondsactie. Zeker 110 mensen werden aangehouden. Een dag eerder werd een samenscholingsverbod afgekondigd in Luik , vanwege uit de hand gelopen onderwijsprotesten in die stad. Die protesten zijn deels overgewaaid uit Frankrijk , waar sinds vorige maand wordt gedemonstreerd tegen onder meer de gebrekkige staat van schoolgebouwen en het lerarentekort. Politie houdt 21 mensen aan bij vakbondsactie in Brussel 110 arrestaties op dag vol geweld in centrum Brussel Buitenland Maak NOS jouw voorkeursbron in Google Met een nieuwe functie van Google bepaal je voortaan zelf welke bronnen je als eerste ziet wanneer je zoekt. Zo mis je nooit meer het laatste nieuws van de NOS. Voeg NOS toe aan Google (opent in nieuw venster) Meer informatie (opent in nieuw venster) Deel artikel: X (opent in nieuw venster) E-mail (opent in nieuw venster)",
      "schemaTypes": [
       "webpage",
       "language",
@@ -2428,68 +2428,6 @@
      ]
     },
     {
-     "url": "https://nos.nl/live",
-     "type": "other",
-     "evidence": [
-      "link-context: Live , er is op dit moment één livestream actief.",
-      "javascript-rendered representative page"
-     ],
-     "status": "audited",
-     "httpStatus": 200,
-     "title": "NOS.nl - NOS Live",
-     "description": "Blijf bij. NOS. Bekijk actuele livestreams en de agenda van komende uitzendingen van nieuws, sport en evenementen.",
-     "h1Count": 1,
-     "canonical": "https://nos.nl/live",
-     "structureKey": "h4|a9|img5|form0|article0|table0|li9|schema0",
-     "evidenceSource": "rendered_html",
-     "score": 95,
-     "identityText": "NOS.nl - NOS Live Blijf bij. NOS. Bekijk actuele livestreams en de agenda van komende uitzendingen van nieuws, sport en evenementen. Live bij de NOS NOS.nl - NOS Live Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live , er is op dit moment één livestream actief. Zoeken Instellingen Teletekst NPO Start Menu Live bij de NOS live Amerikanen Hall en Woodford winnen de Nobelprijs voor Economie Binnenkort te zien Alles Nieuws Sport Sla sportfilters over Schaatsen Voetbal Turnen Baanwielrennen Wielrennen Shorttrack Futsal Korfbal Zwemmen Veldrijden Atletiek vandaag vandaag, 12:50 vandaag, 12:50 Hoogste NAVO-militair over hoe de NAVO een Russische aanval kan afslaan vandaag, 17:00 vandaag, 17:00 Persconferentie bondscoach Veurink morgen morgen, 20:45 morgen, 20:45 Voetbal: WK-kwalificatie Nederland - Hongarije (v) woensdag woensdag, 12:30 woensdag, 12:30 WK baanwielrennen donderdag donderdag, 11:00 donderdag, 11:00 WK baanwielrennen vrijdag vrijdag, 11:00 vrijdag, 11:00 WK baanwielrennen zaterdag zaterdag, 11:30 zaterdag, 11:30 WK baanwielrennen zondag zondag, 07:30 zondag, 07:30 WK baanwielrennen zondag, 09:00 zondag, 09:00 Marathon van Amsterdam dinsdag 20 oktober di 20 oktober, 19:30 di 20 oktober, 19:30 WK turnen: teamfinale (m) woensdag 21 oktober wo 21 oktober, 19:30 wo 21 oktober, 19:30 Futsal: WK-kwalificatie Nederland - Servië (m) wo 21 oktober, 19:30 wo 21 oktober, 19:30 WK turnen: teamfinale (v) donderdag 22 oktober do 22 oktober, 19:00 do 22 oktober, 19:00 EK korfbal: halve finale do 22 oktober, 19:30 do 22 oktober, 19:30 WK turnen: meerkampfinale (m) vrijdag 23 oktober vr 23 oktober, 19:30 vr 23 oktober, 19:30 WK turnen: meerkampfinale (v) zaterdag 24 oktober za 24 oktober, 14:00 za 24 oktober, 14:00 WK turnen: toestelfinales (m/v) za 24 oktober, 15:15 za 24 oktober, 15:15 EK korfbal: finale za 24 oktober, 19:00 za 24 oktober, 19:00 NK kortebaanzwemmen zo 25 oktober, 01:00 zo 25 oktober, 01:00 Shorttrack: World Tour Vancouver zondag 25 oktober zo 25 oktober, 14:00 zo 25 oktober, 14:00 WK turnen: toestelfinales (m/v) zo 25 oktober, 19:00 zo 25 oktober, 19:00 NK kortebaanzwemmen maandag 26 oktober ma 26 oktober, 01:00 ma 26 oktober, 01:00 Shorttrack: World Tour Vancouver donderdag 29 oktober do 29 oktober, 21:00 do 29 oktober, 21:00 Champions League: Manchester City - PSG (v) vrijdag 30 oktober vr 30 oktober, 18:00 vr 30 oktober, 18:00 Schaatsen: wereldbeker kwalificatietoernooi Heerenveen zaterdag 31 oktober za 31 oktober, 14:00 za 31 oktober, 14:00 Schaatsen: wereldbeker kwalificatietoernooi Heerenveen za 31 oktober, 18:30 za 31 oktober, 18:30 Shorttrack: World Tour Montreal zondag 1 november zo 1 november, 12:00 zo 1 november, 12:00 Schaatsen: wereldbeker kwalificatietoernooi Heerenveen zo 1 november, 18:30 zo 1 november, 18:30 Shorttrack: World Tour Montreal vrijdag 6 november vr 6 november, 20:00 vr 6 november, 20:00 Futsal: EK-kwalificatie Andorra - Nederland (m) zaterdag 7 november za 7 november, 15:00 za 7 november, 15:00 EK veldrijden (v) zondag 8 november zo 8 november, 15:00 zo 8 november, 15:00 EK veldrijden (m) woensdag 11 november wo 11 november, 18:45 wo 11 november, 18:4",
-     "schemaTypes": [],
-     "formEvidence": {
-      "formCount": 0,
-      "passwordForm": false,
-      "insecureFormActions": 0
-     },
-     "commerceEvidence": {
-      "productSchema": false,
-      "itemListSchema": false,
-      "storeSchema": false,
-      "strongCommerceAction": false,
-      "repeatedProductLinks": false,
-      "priceSignals": 0,
-      "product": null,
-      "confirmedRetailPage": false
-     },
-     "productLinks": [],
-     "evidenceChecks": [
-      {
-       "key": "http",
-       "status": "PASS",
-       "details": "HTTP 200"
-      },
-      {
-       "key": "title",
-       "status": "WARNING",
-       "details": "Title gevonden (17 tekens); buiten richtwaarde 30–60."
-      },
-      {
-       "key": "description",
-       "status": "PASS",
-       "details": "Meta description gevonden (114 tekens); bruikbare lengte."
-      },
-      {
-       "key": "h1",
-       "status": "PASS",
-       "details": "1 H1-heading(s) gevonden."
-      },
-      {
-       "key": "canonical",
-       "status": "PASS",
-       "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/live"
-      }
-     ]
-    },
-    {
      "url": "https://nos.nl/sport/formule-1",
      "type": "other",
      "evidence": [
@@ -2505,7 +2443,7 @@
      "structureKey": "h4|a8|img5|form0|article0|table0|li8|schema0",
      "evidenceSource": "rendered_html",
      "score": 100,
-     "identityText": "Formule 1 | Nederlandse Omroep Stichting Blijf bij. Met de NOS blijf je altijd en overal op de hoogte van het laatste nieuws in de categorie formule 1 NOS Sport formule 1 Formule 1 | Nederlandse Omroep Stichting Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live , er is op dit moment één livestream actief. Zoeken Instellingen Teletekst NPO Start Menu Voorpagina Laatste nieuws Video's Voetbal Formule 1 Wielrennen Schaatsen Tennis Atletiek Hockey NOS Sport formule 1 Programma &amp; Uitslagen WK-standen Overzicht Video's Verstappen en Red Bull terug aan F1-top: de lange weg naar succes in 2026 gisteren, 23:44 Het F1-seizoen van Max Verstappen en Red Bull Racing begon moeizaam, maar na een lange en zware weg is de combinatie terug aan de top. Verstappen doorbreekt zegeloze reeks in Singapore: 'Heeft even geduurd' gisteren, 17:02 Verstappen wint voor het eerst een Grand Prix op het stratencircuit in Singapore. In het verleden stond hij wel meerdere keren op het podium. Verstappen zet kroon op perfect weekend met eerste zege in Grand Prix van Singapore gisteren, 15:46 De Nederlander heeft nu twee Grands Prix op rij gewonnen, want vorige week schreef hij de Grand Prix van Bahrein in Maleisië op zijn naam. Formule 1 Verstappen boekt eerste-zege in Singapore: 'Heeft even geduurd' • Antonelli dicht bij titel gisteren, 12:13 In dit liveblog volgen we de Grand Prix van Singapore. Ontspannen Verstappen weet na poleposition in Singapore: 'Start is het belangrijkst' zaterdag, 17:59 Max Verstappen behaalt in Singapore ook poleposition voor de grand prix van zondag. Verstappen zet door en grijpt ook poleposition voor hoofdrace Singapore zaterdag, 16:40 Max Verstappen kent na zijn zege in de sprintrace ook een perfecte kwalificatie in Singapore. Verstappen wint ongebruikelijke en chaotische sprintrace in Singapore zaterdag, 12:18 De Nederlander van Red Bull blijft op het stratencircuit van de Zuid-Aziatische stad Lewis Hamilton en Charles Leclerc voor. Formule 1 Verstappen grijpt 'speciale' pole voor de hoofdrace Singapore • WK-leider Antonelli start als vierde zaterdag, 10:09 In dit liveblog volgen we de sprintrace en kwalificatie voor de Grand Prix van Singapore. Singapore was voor Verstappen nooit lekkere cocktail, maar eerste zege lonkt zaterdag, 06:00 Formule 1-coureur Max Verstappen won nog nooit de Grand Prix van Singapore. Komt daar zondag verandering in? \"Het vertrouwen is er bij het team, ook bij Max.\" Verstappen houdt pole sprintrace Singapore na onderzoek, Sainz woest na 'menselijke fout' vrijdag, 15:45 Verstappen werd onderzocht omdat hij in de eerste kwalificatiesessie Lewis Hamilton mogelijk inhaalde terwijl de gele vlag gezwaaid werd. Formule 1 Geen straf Verstappen na inhalen onder geel • Hij start vanaf poleposition in sprintrace vrijdag, 10:04 In dit liveblog blikken we vooruit op de GP van Singapore en volgen we de vrije training en sprintkwalificatie. Is Verstappen definitief terug? 'Niemand had zege in Maleisië kunnen voorspellen' maandag, 15:44 Coureurs Richard Verschoor en Jeroen Bleekemolen weten niet of Max Verstappen en Red Bull Racing nu weer elke week om de zege kunnen strijden. F1-coureur Bottas rei",
+     "identityText": "Formule 1 | Nederlandse Omroep Stichting Blijf bij. Met de NOS blijf je altijd en overal op de hoogte van het laatste nieuws in de categorie formule 1 NOS Sport formule 1 Formule 1 | Nederlandse Omroep Stichting Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live Zoeken Instellingen Teletekst NPO Start Menu Voorpagina Laatste nieuws Video's Voetbal Formule 1 Wielrennen Schaatsen Tennis Atletiek Hockey NOS Sport formule 1 Programma &amp; Uitslagen WK-standen Overzicht Video's Verstappen en Red Bull terug aan F1-top: de lange weg naar succes in 2026 gisteren, 23:44 Het F1-seizoen van Max Verstappen en Red Bull Racing begon moeizaam, maar na een lange en zware weg is de combinatie terug aan de top. Verstappen doorbreekt zegeloze reeks in Singapore: 'Heeft even geduurd' gisteren, 17:02 Verstappen wint voor het eerst een Grand Prix op het stratencircuit in Singapore. In het verleden stond hij wel meerdere keren op het podium. Verstappen zet kroon op perfect weekend met eerste zege in Grand Prix van Singapore gisteren, 15:46 De Nederlander heeft nu twee Grands Prix op rij gewonnen, want vorige week schreef hij de Grand Prix van Bahrein in Maleisië op zijn naam. Formule 1 Verstappen boekt eerste-zege in Singapore: 'Heeft even geduurd' • Antonelli dicht bij titel gisteren, 12:13 In dit liveblog volgen we de Grand Prix van Singapore. Ontspannen Verstappen weet na poleposition in Singapore: 'Start is het belangrijkst' zaterdag, 17:59 Max Verstappen behaalt in Singapore ook poleposition voor de grand prix van zondag. Verstappen zet door en grijpt ook poleposition voor hoofdrace Singapore zaterdag, 16:40 Max Verstappen kent na zijn zege in de sprintrace ook een perfecte kwalificatie in Singapore. Verstappen wint ongebruikelijke en chaotische sprintrace in Singapore zaterdag, 12:18 De Nederlander van Red Bull blijft op het stratencircuit van de Zuid-Aziatische stad Lewis Hamilton en Charles Leclerc voor. Formule 1 Verstappen grijpt 'speciale' pole voor de hoofdrace Singapore • WK-leider Antonelli start als vierde zaterdag, 10:09 In dit liveblog volgen we de sprintrace en kwalificatie voor de Grand Prix van Singapore. Singapore was voor Verstappen nooit lekkere cocktail, maar eerste zege lonkt zaterdag, 06:00 Formule 1-coureur Max Verstappen won nog nooit de Grand Prix van Singapore. Komt daar zondag verandering in? \"Het vertrouwen is er bij het team, ook bij Max.\" Verstappen houdt pole sprintrace Singapore na onderzoek, Sainz woest na 'menselijke fout' vrijdag, 15:45 Verstappen werd onderzocht omdat hij in de eerste kwalificatiesessie Lewis Hamilton mogelijk inhaalde terwijl de gele vlag gezwaaid werd. Formule 1 Geen straf Verstappen na inhalen onder geel • Hij start vanaf poleposition in sprintrace vrijdag, 10:04 In dit liveblog blikken we vooruit op de GP van Singapore en volgen we de vrije training en sprintkwalificatie. Is Verstappen definitief terug? 'Niemand had zege in Maleisië kunnen voorspellen' maandag, 15:44 Coureurs Richard Verschoor en Jeroen Bleekemolen weten niet of Max Verstappen en Red Bull Racing nu weer elke week om de zege kunnen strijden. F1-coureur Bottas reist per gravelfiets van Maleisië naar Singapor",
      "schemaTypes": [],
      "formEvidence": {
       "formCount": 0,
@@ -2577,7 +2515,7 @@
      "structureKey": "h4|a6|img0|form0|article0|table0|li5|schema5",
      "evidenceSource": "rendered_html",
      "score": 98,
-     "identityText": "Datalek bij webshop drogisterijketen DA raakt 236.000 klanten Het bedrijf heeft niet kunnen achterhalen of de klantgegevens alleen zijn bekeken of daadwerkelijk zijn buitgemaakt. Datalek bij webshop drogisterijketen DA raakt 236.000 klanten Datalek bij webshop drogisterijketen DA raakt 236.000 klanten Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live , er is op dit moment één livestream actief. Zoeken Instellingen Teletekst NPO Start Menu Een DA-drogisterij ANP NOS Nieuws • vrijdag 18 september, 20:07 Datalek bij webshop drogisterijketen DA raakt 236.000 klanten Deel dit artikel Drogisterijketen DA waarschuwt klanten van zijn webwinkel voor een datalek. Onbevoegden hebben begin deze maand toegang gekregen tot een database met klantgegevens. In het bestand staan onder meer namen, e-mailadressen, telefoonnummers, geboortedata, huisadressen en bestelinformatie. Een woordvoerder van de drogisterijketen zegt tegen de NOS dat het gaat om gegevens van 236.000 klanten, en dat alle betrokken klanten vandaag gemaild zijn over het datalek. Daarin wordt aangeraden extra alert te zijn op phishing. DA heeft niet kunnen achterhalen of de gegevens alleen zijn bekeken of daadwerkelijk zijn buitgemaakt. \"Er zijn geen aanwijzingen dat het bestand gedownload is, maar we kunnen het ook niet uitsluiten\", aldus de woordvoerder. Fysieke winkels niet betrokken De keten heeft het lek gemeld bij de Autoriteit Persoonsgegevens (AP). Volgens het bedrijf zijn er meteen maatregelen genomen toen het lek werd ontdekt om de ongeoorloofde toegang tot de gegevens te blokkeren. Klanten van de fysieke winkels van DA zijn niet betrokken bij het datalek, stelt het bedrijf. Hun gegevens stonden niet in de getroffen database van de webshop. Ook Ajax en brillenketen Ace &amp; Tate getroffen door datalek Bol en de Bijenkorf waarschuwen klanten voor mogelijk datalek Sterke toename van privacyklachten bij Autoriteit Persoonsgegevens Binnenland Maak NOS jouw voorkeursbron in Google Met een nieuwe functie van Google bepaal je voortaan zelf welke bronnen je als eerste ziet wanneer je zoekt. Zo mis je nooit meer het laatste nieuws van de NOS. Voeg NOS toe aan Google (opent in nieuw venster) Meer informatie (opent in nieuw venster) Deel artikel: X (opent in nieuw venster) E-mail (opent in nieuw venster) Facebook (opent in nieuw venster) WhatsApp (opent in nieuw venster) Link gekopieerd! Meer bekijken? Bedrijven massaal gehackt, consument maakt het weinig uit: 'We zijn datalekmoe' vrijdag 2 oktober, 18:49 Modesite Asos mogelijk gehackt, klanten ontvangen vreemde notificatie dinsdag, 13:25 Hackers persen klanten boodschappendienst Flink af: betalen of data gepubliceerd vrijdag 25 september, 14:07 Gegevens van bijna 9 miljoen Denen buitgemaakt bij hack bevolkingsregister maandag 5 oktober, 10:48 Advertentie via Ster.nl (opent in nieuw venster) Footer-navigatie Tip de redactie Geef je tips aan ons door (opent in nieuw venster) Publieksvoorlichting Voor vragen en reacties (opent in nieuw venster) NOS informatie Over de NOS Werken bij de NOS Contact Journalistieke verantwoording Herstelrubriek Ombudsman NOS Apps Privacy Toegankelijkheidsverklaring Melden zwakke ICT-plekken Nieuws Voorpagina Laatste nieuws Video",
+     "identityText": "Datalek bij webshop drogisterijketen DA raakt 236.000 klanten Het bedrijf heeft niet kunnen achterhalen of de klantgegevens alleen zijn bekeken of daadwerkelijk zijn buitgemaakt. Datalek bij webshop drogisterijketen DA raakt 236.000 klanten Datalek bij webshop drogisterijketen DA raakt 236.000 klanten Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live Zoeken Instellingen Teletekst NPO Start Menu Een DA-drogisterij ANP NOS Nieuws • vrijdag 18 september, 20:07 Datalek bij webshop drogisterijketen DA raakt 236.000 klanten Deel dit artikel Drogisterijketen DA waarschuwt klanten van zijn webwinkel voor een datalek. Onbevoegden hebben begin deze maand toegang gekregen tot een database met klantgegevens. In het bestand staan onder meer namen, e-mailadressen, telefoonnummers, geboortedata, huisadressen en bestelinformatie. Een woordvoerder van de drogisterijketen zegt tegen de NOS dat het gaat om gegevens van 236.000 klanten, en dat alle betrokken klanten vandaag gemaild zijn over het datalek. Daarin wordt aangeraden extra alert te zijn op phishing. DA heeft niet kunnen achterhalen of de gegevens alleen zijn bekeken of daadwerkelijk zijn buitgemaakt. \"Er zijn geen aanwijzingen dat het bestand gedownload is, maar we kunnen het ook niet uitsluiten\", aldus de woordvoerder. Fysieke winkels niet betrokken De keten heeft het lek gemeld bij de Autoriteit Persoonsgegevens (AP). Volgens het bedrijf zijn er meteen maatregelen genomen toen het lek werd ontdekt om de ongeoorloofde toegang tot de gegevens te blokkeren. Klanten van de fysieke winkels van DA zijn niet betrokken bij het datalek, stelt het bedrijf. Hun gegevens stonden niet in de getroffen database van de webshop. Ook Ajax en brillenketen Ace &amp; Tate getroffen door datalek Bol en de Bijenkorf waarschuwen klanten voor mogelijk datalek Sterke toename van privacyklachten bij Autoriteit Persoonsgegevens Binnenland Maak NOS jouw voorkeursbron in Google Met een nieuwe functie van Google bepaal je voortaan zelf welke bronnen je als eerste ziet wanneer je zoekt. Zo mis je nooit meer het laatste nieuws van de NOS. Voeg NOS toe aan Google (opent in nieuw venster) Meer informatie (opent in nieuw venster) Deel artikel: X (opent in nieuw venster) E-mail (opent in nieuw venster) Facebook (opent in nieuw venster) WhatsApp (opent in nieuw venster) Link gekopieerd! Het laatste nieuws Oudste overdekte markt van Parijs verwoest door brand vandaag, 12:23 Centrumlinks schuift Raphaël Glucksmann naar voren als Franse presidentskandidaat vandaag, 12:03 Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt vandaag, 10:11 Bakstenen zonder gasovens? Vol stroomnet zit duurzamere industrie in de weg vandaag, 09:37 Advertentie via Ster.nl (opent in nieuw venster) Footer-navigatie Tip de redactie Geef je tips aan ons door (opent in nieuw venster) Publieksvoorlichting Voor vragen en reacties (opent in nieuw venster) NOS informatie Over de NOS Werken bij de NOS Contact Journalistieke verantwoording Herstelrubriek Ombudsman NOS Apps Privacy Toegankelijkheidsverklaring Melden zwakke ICT-plekken Nieuws Voorpagina Laatste nieuws Video's Binnenland Buitenland Regionaal nieuws Politiek Economie Koningshuis Tech Cultuur &",
      "schemaTypes": [
       "webpage",
       "language",
@@ -2605,10 +2543,10 @@
       "https://nos.nl/artikel/2625880-ook-ajax-en-brillenketen-ace-and-tate-getroffen-door-datalek",
       "https://nos.nl/artikel/2625681-bol-en-de-bijenkorf-waarschuwen-klanten-voor-mogelijk-datalek",
       "https://nos.nl/artikel/2617671-sterke-toename-van-privacyklachten-bij-autoriteit-persoonsgegevens",
-      "https://nos.nl/artikel/2633445-bedrijven-massaal-gehackt-consument-maakt-het-weinig-uit-we-zijn-datalekmoe",
-      "https://nos.nl/artikel/2633862-modesite-asos-mogelijk-gehackt-klanten-ontvangen-vreemde-notificatie",
-      "https://nos.nl/artikel/2632473-hackers-persen-klanten-boodschappendienst-flink-af-betalen-of-data-gepubliceerd",
-      "https://nos.nl/artikel/2633725-gegevens-van-bijna-9-miljoen-denen-buitgemaakt-bij-hack-bevolkingsregister"
+      "https://nos.nl/artikel/2634668-oudste-overdekte-markt-van-parijs-verwoest-door-brand",
+      "https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat",
+      "https://nos.nl/artikel/2634660-staking-belgie-om-bezuinigingen-openbare-diensten-minder-treinen-ook-vrt-staakt",
+      "https://nos.nl/artikel/2634656-bakstenen-zonder-gasovens-vol-stroomnet-zit-duurzamere-industrie-in-de-weg"
      ],
      "evidenceChecks": [
       {
@@ -2655,7 +2593,7 @@
      "structureKey": "h4|a6|img0|form0|article0|table0|li5|schema5",
      "evidenceSource": "rendered_html",
      "score": 95,
-     "identityText": "Storing bij KPN opgelost, universitaire ziekenhuizen weer bereikbaar Volgens KPN was er een probleem met een koelinstallatie waardoor apparatuur oververhit dreigde te raken. Storing bij KPN opgelost, universitaire ziekenhuizen weer bereikbaar Storing bij KPN opgelost, universitaire ziekenhuizen weer bereikbaar Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live , er is op dit moment één livestream actief. Zoeken Instellingen Teletekst NPO Start Menu Het hoofdkantoor van KPN in Rotterdam ANP NOS Nieuws • zaterdag, 10:06 • Aangepast zaterdag, 14:42 Storing bij KPN opgelost, universitaire ziekenhuizen weer bereikbaar Deel dit artikel Door een storing bij telecomprovider KPN was een deel van de zakelijke klanten urenlang slecht bereikbaar via de vaste telefoon. Dat gold ook voor een groot aantal universitaire ziekenhuizen, zoals in Utrecht, Maastricht, Nijmegen, Rotterdam en Groningen. Rond 14.00 uur meldde KPN dat de storing die vannacht ontstond, is opgelost. KPN zegt dat de storing is veroorzaakt door een storing in het koelsysteem van een van de netwerklocaties. Daardoor kon een deel van de apparatuur niet meer worden gebruikt, omdat die te heet dreigde te worden. Hoe die storing kon ontstaan, wordt onderzocht. Op welke locatie de storing was, wil een woordvoerder van het KPN vanwege veiligheidsoverwegingen niet zeggen. Omvang onduidelijk Volgens het telecombedrijf had een kleine groep zakelijke klanten er last van. Vanwege de storing meldden het UMC Utrecht en Wilhelmina Kinderziekenhuis op hun site dat er een alternatief telefoonnummer was geopend voor dringende zaken. Ook het UMCG in Groningen had een alternatief nummer. Alarmnummer 112 was wel gewoon bereikbaar. In een uitleg voor patiënten schreef het Radboud UMC in Nijmegen dat bellers mogelijk wel verbinding kregen, maar dat ze dan de medewerker van het ziekenhuis niet hoorden. Binnenland Maak NOS jouw voorkeursbron in Google Met een nieuwe functie van Google bepaal je voortaan zelf welke bronnen je als eerste ziet wanneer je zoekt. Zo mis je nooit meer het laatste nieuws van de NOS. Voeg NOS toe aan Google (opent in nieuw venster) Meer informatie (opent in nieuw venster) Deel artikel: X (opent in nieuw venster) E-mail (opent in nieuw venster) Facebook (opent in nieuw venster) WhatsApp (opent in nieuw venster) Link gekopieerd! Het laatste nieuws Centrumlinks schuift Raphaël Glucksmann naar voren als Franse presidentskandidaat vandaag, 12:03 Staking België om bezuinigingen openbare diensten: minder treinen, ook VRT staakt vandaag, 10:11 Bakstenen zonder gasovens? Vol stroomnet zit duurzamere industrie in de weg vandaag, 09:37 Geen bezorging en verkeerde winkelprijzen na 'cyberveiligheidsincident' bij Albert Heijn vandaag, 07:56 Advertentie via Ster.nl (opent in nieuw venster) Footer-navigatie Tip de redactie Geef je tips aan ons door (opent in nieuw venster) Publieksvoorlichting Voor vragen en reacties (opent in nieuw venster) NOS informatie Over de NOS Werken bij de NOS Contact Journalistieke verantwoording Herstelrubriek Ombudsman NOS Apps Privacy Toegankelijkheidsverklaring Melden zwakke ICT-plekken Nieuws Voorpagina Laatste nieuws Video's Binnenland Buitenland Regionaal nieuws Politiek Economie Koni",
+     "identityText": "Storing bij KPN opgelost, universitaire ziekenhuizen weer bereikbaar Volgens KPN was er een probleem met een koelinstallatie waardoor apparatuur oververhit dreigde te raken. Storing bij KPN opgelost, universitaire ziekenhuizen weer bereikbaar Storing bij KPN opgelost, universitaire ziekenhuizen weer bereikbaar Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live Zoeken Instellingen Teletekst NPO Start Menu Het hoofdkantoor van KPN in Rotterdam ANP NOS Nieuws • zaterdag, 10:06 • Aangepast zaterdag, 14:42 Storing bij KPN opgelost, universitaire ziekenhuizen weer bereikbaar Deel dit artikel Door een storing bij telecomprovider KPN was een deel van de zakelijke klanten urenlang slecht bereikbaar via de vaste telefoon. Dat gold ook voor een groot aantal universitaire ziekenhuizen, zoals in Utrecht, Maastricht, Nijmegen, Rotterdam en Groningen. Rond 14.00 uur meldde KPN dat de storing die vannacht ontstond, is opgelost. KPN zegt dat de storing is veroorzaakt door een storing in het koelsysteem van een van de netwerklocaties. Daardoor kon een deel van de apparatuur niet meer worden gebruikt, omdat die te heet dreigde te worden. Hoe die storing kon ontstaan, wordt onderzocht. Op welke locatie de storing was, wil een woordvoerder van het KPN vanwege veiligheidsoverwegingen niet zeggen. Omvang onduidelijk Volgens het telecombedrijf had een kleine groep zakelijke klanten er last van. Vanwege de storing meldden het UMC Utrecht en Wilhelmina Kinderziekenhuis op hun site dat er een alternatief telefoonnummer was geopend voor dringende zaken. Ook het UMCG in Groningen had een alternatief nummer. Alarmnummer 112 was wel gewoon bereikbaar. In een uitleg voor patiënten schreef het Radboud UMC in Nijmegen dat bellers mogelijk wel verbinding kregen, maar dat ze dan de medewerker van het ziekenhuis niet hoorden. Binnenland Maak NOS jouw voorkeursbron in Google Met een nieuwe functie van Google bepaal je voortaan zelf welke bronnen je als eerste ziet wanneer je zoekt. Zo mis je nooit meer het laatste nieuws van de NOS. Voeg NOS toe aan Google (opent in nieuw venster) Meer informatie (opent in nieuw venster) Deel artikel: X (opent in nieuw venster) E-mail (opent in nieuw venster) Facebook (opent in nieuw venster) WhatsApp (opent in nieuw venster) Link gekopieerd! Meer bekijken? Storing bij zakelijke Ziggo-klanten, modem moet worden vervangen dinsdag 25 augustus, 21:17 Problemen bij ziekenhuizen met Citrix, patiënten kunnen dossier niet inzien zondag 27 september, 22:55 Kustwacht weer te bereiken met marifoon, storing voorbij zaterdag 12 september, 18:10 Storing bij noodkanaal kustwacht, wel telefonisch bereikbaar zaterdag 12 september, 10:29 Advertentie via Ster.nl (opent in nieuw venster) Footer-navigatie Tip de redactie Geef je tips aan ons door (opent in nieuw venster) Publieksvoorlichting Voor vragen en reacties (opent in nieuw venster) NOS informatie Over de NOS Werken bij de NOS Contact Journalistieke verantwoording Herstelrubriek Ombudsman NOS Apps Privacy Toegankelijkheidsverklaring Melden zwakke ICT-plekken Nieuws Voorpagina Laatste nieuws Video's Binnenland Buitenland Regionaal nieuws Politiek Economie Koningshuis Tech Cultuur &amp; media Opmerkelijk Sport Voorpagina Laats",
      "schemaTypes": [
       "webpage",
       "language",
@@ -2680,10 +2618,10 @@
      },
      "productLinks": [
       "https://nos.nl/artikel/2634396-storing-bij-kpn-opgelost-universitaire-ziekenhuizen-weer-bereikbaar",
-      "https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat",
-      "https://nos.nl/artikel/2634660-staking-belgie-om-bezuinigingen-openbare-diensten-minder-treinen-ook-vrt-staakt",
-      "https://nos.nl/artikel/2634656-bakstenen-zonder-gasovens-vol-stroomnet-zit-duurzamere-industrie-in-de-weg",
-      "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-winkelprijzen-na-cyberveiligheidsincident-bij-albert-heijn"
+      "https://nos.nl/artikel/2628308-storing-bij-zakelijke-ziggo-klanten-modem-moet-worden-vervangen",
+      "https://nos.nl/artikel/2632818-problemen-bij-ziekenhuizen-met-citrix-patienten-kunnen-dossier-niet-inzien",
+      "https://nos.nl/artikel/2630722-kustwacht-weer-te-bereiken-met-marifoon-storing-voorbij",
+      "https://nos.nl/artikel/2630677-storing-bij-noodkanaal-kustwacht-wel-telefonisch-bereikbaar"
      ],
      "evidenceChecks": [
       {
@@ -2730,7 +2668,7 @@
      "structureKey": "h4|a6|img1|form0|article0|table0|li5|schema5",
      "evidenceSource": "rendered_html",
      "score": 90,
-     "identityText": "Bedrijven massaal gehackt, consument maakt het weinig uit: 'We zijn datalekmoe' Bij de hack op Flink werd voor het eerst de consument zelf gevraagd losgeld te betalen. Dat deed niemand. Maakt het mensen wel uit of hun persoonsgegevens op het internet belanden? Bedrijven massaal gehackt, consument maakt het weinig uit: 'We zijn datalekmoe' Bedrijven massaal gehackt, consument maakt het weinig uit: &#x27;We zijn datalekmoe&#x27; Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live , er is op dit moment één livestream actief. Zoeken Instellingen Teletekst NPO Start Menu Op deze website kun je controleren of je gegevens zijn gelekt ANP NOS Nieuws • vrijdag 2 oktober, 18:49 Bedrijven massaal gehackt, consument maakt het weinig uit: 'We zijn datalekmoe' Deel dit artikel Sam Wouters redacteur Online De boodschap van de cybercriminelen die vorige week thuisbezorgdienst Flink hackten was helder: er moet worden betaald, anders worden alle buitgemaakte klantgegevens gepubliceerd op het dark web. Hoewel de hackers hoopten hiermee meer dan twee ton op te halen, maakte niemand de geëiste 10 tot 15 euro in cryptogeld over. Het roept de vraag op of mensen zich nog druk maken om hun persoonsgegevens die in de openbaarheid komen. Volgens cybersecurity-expert Paul Pols valt dat mee. Mensen zijn 'datalekmoe' en dat is begrijpelijk, zegt hij. \"We gaan er inmiddels van uit dat onze persoonsgegevens vroeg of laat ergens uitlekken, als dat al niet is gebeurd.\" Consumentenpsycholoog Patrick Wessels herkent dat gevoel. \"Mensen zien datalekken veelvuldig voorbijkomen, maar ondervinden daar zelf weinig problemen van. Daardoor voelen we de urgentie niet om er echt iets mee te moeten doen.\" Het is veel te gemakzuchtig dat we hier onze schouders over ophalen. Rejo Zenger, woordvoerder Bits of Freedom Dat de gevoelde urgentie afneemt, wil niet zeggen dat er geen gevaar is. \"Er zijn mensen die te maken hebben met bijvoorbeeld huiselijk geweld. Voor deze groep kan het serieuze gevolgen hebben als hun e-mailadres of telefoonnummer online te vinden is\", stelt Rejo Zenger. Hij is van Bits of Freedom, de organisatie die opkomt op voor digitale burgerrechten. Volgens hem is het dan ook \"veel te gemakzuchtig dat we hier onze schouders over ophalen.\" De hack bij Flink staat niet op zichzelf. Alleen dit jaar al werden tientallen grote organisaties gehackt waarbij honderdduizenden klantgegevens werden buitgemaakt. Onder meer drogisterijketen DA, reisapp Polarsteps en de logistieke partner van Bol en de Bijenkorf werden onlangs getroffen door een cyberaanval. Het geval van Flink is echter uniek: voor het eerst werden individuele klanten rechtstreeks door hackers benaderd. De hackers eisten bij de Flink-hack een relatief klein bedrag aan cryptovaluta per persoon. Toch raadden experts af te betalen. Zekerheid dat de hackers de gegevens na het betalen van het losgeld daadwerkelijk verwijderen, is er namelijk niet. Dat overkomt mij toch niet Nederlanders weten over het algemeen goed hoe ze zich online kunnen beschermen. Zodra daarvoor meer nodig is dan alleen opletten, neemt de motivatie om veilig gedrag te vertonen echter af. Dat blijkt uit het meest recente rapport van Alert Online, dat jaarlijks in opdracht van het ministerie van Economische Zaken de digitale weerbaarheid van Nederlanders in kaart br",
+     "identityText": "Bedrijven massaal gehackt, consument maakt het weinig uit: 'We zijn datalekmoe' Bij de hack op Flink werd voor het eerst de consument zelf gevraagd losgeld te betalen. Dat deed niemand. Maakt het mensen wel uit of hun persoonsgegevens op het internet belanden? Bedrijven massaal gehackt, consument maakt het weinig uit: 'We zijn datalekmoe' Bedrijven massaal gehackt, consument maakt het weinig uit: &#x27;We zijn datalekmoe&#x27; Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live Zoeken Instellingen Teletekst NPO Start Menu Op deze website kun je controleren of je gegevens zijn gelekt ANP NOS Nieuws • vrijdag 2 oktober, 18:49 Bedrijven massaal gehackt, consument maakt het weinig uit: 'We zijn datalekmoe' Deel dit artikel Sam Wouters redacteur Online De boodschap van de cybercriminelen die vorige week thuisbezorgdienst Flink hackten was helder: er moet worden betaald, anders worden alle buitgemaakte klantgegevens gepubliceerd op het dark web. Hoewel de hackers hoopten hiermee meer dan twee ton op te halen, maakte niemand de geëiste 10 tot 15 euro in cryptogeld over. Het roept de vraag op of mensen zich nog druk maken om hun persoonsgegevens die in de openbaarheid komen. Volgens cybersecurity-expert Paul Pols valt dat mee. Mensen zijn 'datalekmoe' en dat is begrijpelijk, zegt hij. \"We gaan er inmiddels van uit dat onze persoonsgegevens vroeg of laat ergens uitlekken, als dat al niet is gebeurd.\" Consumentenpsycholoog Patrick Wessels herkent dat gevoel. \"Mensen zien datalekken veelvuldig voorbijkomen, maar ondervinden daar zelf weinig problemen van. Daardoor voelen we de urgentie niet om er echt iets mee te moeten doen.\" Het is veel te gemakzuchtig dat we hier onze schouders over ophalen. Rejo Zenger, woordvoerder Bits of Freedom Dat de gevoelde urgentie afneemt, wil niet zeggen dat er geen gevaar is. \"Er zijn mensen die te maken hebben met bijvoorbeeld huiselijk geweld. Voor deze groep kan het serieuze gevolgen hebben als hun e-mailadres of telefoonnummer online te vinden is\", stelt Rejo Zenger. Hij is van Bits of Freedom, de organisatie die opkomt op voor digitale burgerrechten. Volgens hem is het dan ook \"veel te gemakzuchtig dat we hier onze schouders over ophalen.\" De hack bij Flink staat niet op zichzelf. Alleen dit jaar al werden tientallen grote organisaties gehackt waarbij honderdduizenden klantgegevens werden buitgemaakt. Onder meer drogisterijketen DA, reisapp Polarsteps en de logistieke partner van Bol en de Bijenkorf werden onlangs getroffen door een cyberaanval. Het geval van Flink is echter uniek: voor het eerst werden individuele klanten rechtstreeks door hackers benaderd. De hackers eisten bij de Flink-hack een relatief klein bedrag aan cryptovaluta per persoon. Toch raadden experts af te betalen. Zekerheid dat de hackers de gegevens na het betalen van het losgeld daadwerkelijk verwijderen, is er namelijk niet. Dat overkomt mij toch niet Nederlanders weten over het algemeen goed hoe ze zich online kunnen beschermen. Zodra daarvoor meer nodig is dan alleen opletten, neemt de motivatie om veilig gedrag te vertonen echter af. Dat blijkt uit het meest recente rapport van Alert Online, dat jaarlijks in opdracht van het ministerie van Economische Zaken de digitale weerbaarheid van Nederlanders in kaart brengt. Volgens consumentenpsycholoog Wessels i",
      "schemaTypes": [
       "webpage",
       "language",
@@ -2758,10 +2696,10 @@
       "https://nos.nl/artikel/2614162-wat-kun-je-doen-om-datadiefstal-te-voorkomen",
       "https://nos.nl/artikel/2633196-hackers-flink-kregen-ondanks-ultimatum-nog-geen-geld-van-slachtoffers",
       "https://nos.nl/artikel/2632473-hackers-persen-klanten-boodschappendienst-flink-af-betalen-of-data-gepubliceerd",
-      "https://nos.nl/artikel/2631561-datalek-bij-webshop-drogisterijketen-da-raakt-236-000-klanten",
-      "https://nos.nl/artikel/2633862-modesite-asos-mogelijk-gehackt-klanten-ontvangen-vreemde-notificatie",
-      "https://nos.nl/artikel/2629470-politie-en-om-zien-nieuwe-generatie-jonge-westerse-cybercriminelen-opkomen",
-      "https://nos.nl/artikel/2631573-gehackt-laboratorium-mag-weer-bevolkingsonderzoek-doen"
+      "https://nos.nl/artikel/2634668-oudste-overdekte-markt-van-parijs-verwoest-door-brand",
+      "https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat",
+      "https://nos.nl/artikel/2634660-staking-belgie-om-bezuinigingen-openbare-diensten-minder-treinen-ook-vrt-staakt",
+      "https://nos.nl/artikel/2634656-bakstenen-zonder-gasovens-vol-stroomnet-zit-duurzamere-industrie-in-de-weg"
      ],
      "evidenceChecks": [
       {
@@ -2792,6 +2730,80 @@
      ]
     },
     {
+     "url": "https://nos.nl/artikel/2634668-oudste-overdekte-markt-van-parijs-verwoest-door-brand",
+     "type": "product",
+     "evidence": [
+      "product-like path",
+      "link-context: Oudste overdekte markt van Parijs verwoest door brand vandaag, 12:23",
+      "javascript-rendered representative page"
+     ],
+     "status": "audited",
+     "httpStatus": 200,
+     "title": "Oudste overdekte markt van Parijs verwoest door brand",
+     "description": "De markt bestond sinds 1615 en was geliefd bij Parijzenaren en toeristen.",
+     "h1Count": 1,
+     "canonical": "https://nos.nl/artikel/2634668-oudste-overdekte-markt-van-parijs-verwoest-door-brand",
+     "structureKey": "h4|a6|img0|form0|article0|table0|li5|schema5",
+     "evidenceSource": "rendered_html",
+     "score": 100,
+     "identityText": "Oudste overdekte markt van Parijs verwoest door brand De markt bestond sinds 1615 en was geliefd bij Parijzenaren en toeristen. Oudste overdekte markt van Parijs verwoest door brand Oudste overdekte markt van Parijs verwoest door brand Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live Zoeken Instellingen Teletekst NPO Start Menu De brand van boven AFP NOS Nieuws • vandaag, 12:23 Oudste overdekte markt van Parijs verwoest door brand Deel dit artikel Een grote brand in het centrum van Parijs brand heeft de Marché des Enfants Rouges verwoest. De markt was de oudste overdekte markt van Parijs. Hoe de brand is ontstaan, is nog onduidelijk. De brand woedde vannacht. Voor het blussen werden 150 brandweerlieden ingezet en zo'n vijftig brandweervoertuigen. Brandweerlieden meldden aan de Parijse krant Le Parisien (opent in nieuw venster) dat 1000 vierkante meter door de brand is verwoest. Ook de metalen dakconstructie is vrijwel volledig ingestort. Van de overdekte markt is niets meer over. Geen doden of gewonden De markt in het derde arrondissement van Parijs was geliefd onder Parijzenaren en toeristen. De burgemeester van het arrondissement, Ariel Weil, was vanochtend vroeg op de plek waar de markt stond. \"De winkeliers zijn er kapot van. Het goede nieuws is dat er geen doden of gewonden zijn.\" Ook gebouwen in de omgeving zijn niet beschadigd geraakt. Volgens de directeur van de markt zijn ongeveer twintig ondernemers getroffen. Rode kinderen De Marché des Enfants Rouges werd in 1615 gebouwd op last van koning Lodewijk de 13de en was de oudste overdekte markt van Parijs die nog in bedrijf was. De markt moest in de 17de eeuw voorzien in de behoeftes van de snel groeiende wijk Le Marais. Sla de carrousel over besopha, CC BY 2.0, via Wikimedia Commons Entree van de Marché des Enfants Rouges, archiefbeeld uit 2016 Greg Whalin from Brooklyn, USA, CC BY 2.0, via Wikimedia Commons Archiefbeeld van de Marché des Enfants Rouges AFP Brandweer in de buurt van de markt in Parijs Slide 1 van 3 De naam van de markt betekent \"markt van de rode kinderen\", een verwijzing naar het nabijgelegen weeshuis Hospice des Enfants-Rouges waar de kinderen rode kleding droegen. Toen het weeshuis in 1772 zijn deuren sloot, werd de markt vernoemd naar de 'rode kinderen'. Protest tegen sluiting Toen de gemeente in 1994 plannen had om een ondergrondse parkeergarage en extra woningen te bouwen dreigde de markt te sneuvelen, maar door een actie van onder meer buurtbewoners en politici bleef de markt gespaard. Een eigenaar van een biologische groente- en fruitkraam op de markt reageert in Le Parisien verslagen. \"Ik ben daar opgegroeid. Het is heel moeilijk voor me om ongeveer 30 jaar geschiedenis in rook te zien opgaan.\" Met drie kloppen op de deur is de Notre-Dame in Parijs officieel heropend Interieur opgeknapte Notre-Dame voor het eerst te zien na enorme brand Brand in torenspits van beroemde kathedraal Rouen onder controle Buitenland Maak NOS jouw voorkeursbron in Google Met een nieuwe functie van Google bepaal je voortaan zelf welke bronnen je als eerste ziet wanneer je zoekt. Zo mis je nooit meer het laatste nieuws van de NOS. Voeg NO",
+     "schemaTypes": [
+      "webpage",
+      "language",
+      "imageobject",
+      "organization",
+      "newsarticle"
+     ],
+     "formEvidence": {
+      "formCount": 0,
+      "passwordForm": false,
+      "insecureFormActions": 0
+     },
+     "commerceEvidence": {
+      "productSchema": false,
+      "itemListSchema": false,
+      "storeSchema": false,
+      "strongCommerceAction": false,
+      "repeatedProductLinks": true,
+      "priceSignals": 0,
+      "product": null,
+      "confirmedRetailPage": false
+     },
+     "productLinks": [
+      "https://nos.nl/artikel/2634668-oudste-overdekte-markt-van-parijs-verwoest-door-brand",
+      "https://nos.nl/artikel/2547467-met-drie-kloppen-op-de-deur-is-de-notre-dame-in-parijs-officieel-heropend",
+      "https://nos.nl/artikel/2546378-interieur-opgeknapte-notre-dame-voor-het-eerst-te-zien-na-enorme-brand",
+      "https://nos.nl/artikel/2528447-brand-in-torenspits-van-beroemde-kathedraal-rouen-onder-controle"
+     ],
+     "evidenceChecks": [
+      {
+       "key": "http",
+       "status": "PASS",
+       "details": "HTTP 200"
+      },
+      {
+       "key": "title",
+       "status": "PASS",
+       "details": "Title gevonden (53 tekens); binnen richtwaarde 30–60."
+      },
+      {
+       "key": "description",
+       "status": "PASS",
+       "details": "Meta description gevonden (73 tekens); bruikbare lengte."
+      },
+      {
+       "key": "h1",
+       "status": "PASS",
+       "details": "1 H1-heading(s) gevonden."
+      },
+      {
+       "key": "canonical",
+       "status": "PASS",
+       "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/artikel/2634668-oudste-overdekte-markt-van-parijs-verwoest-door-brand"
+      }
+     ]
+    },
+    {
      "url": "https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat",
      "type": "product",
      "evidence": [
@@ -2805,10 +2817,10 @@
      "description": "De 46-jarige Europarlementariër moet als presidentskandidaat het versnipperde linkse kamp zien te verenigen.",
      "h1Count": 1,
      "canonical": "https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat",
-     "structureKey": "h4|a6|img0|form0|article0|table0|li5|schema5",
+     "structureKey": "h4|a7|img1|form0|article0|table0|li5|schema5",
      "evidenceSource": "rendered_html",
      "score": 92,
-     "identityText": "Centrumlinks schuift Raphaël Glucksmann naar voren als Franse presidentskandidaat De 46-jarige Europarlementariër moet als presidentskandidaat het versnipperde linkse kamp zien te verenigen. Centrumlinks schuift Raphaël Glucksmann naar voren als Franse presidentskandidaat Centrumlinks schuift Raphaël Glucksmann naar voren als Franse presidentskandidaat Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live , er is op dit moment één livestream actief. Zoeken Instellingen Teletekst NPO Start Menu Raphael Glucksmann geeft een speech EPA NOS Nieuws • vandaag, 12:03 Centrumlinks schuift Raphaël Glucksmann naar voren als Franse presidentskandidaat Deel dit artikel Met een ruime overwinning in de voorverkiezingen wordt Raphaël Glucksmann de kandidaat van het centrumlinkse blok bij de Franse verkiezingen volgend jaar. De 46-jarige Europarlementariër moet als presidentskandidaat het versnipperde linkse kamp zien te verenigen. Glucksmann won gisteravond 66 procent van de ruim 120.000 online stemmen, waardoor een tweede ronde niet nodig was. De leider van Place Publique (PP) eindigde ruim voor Olivier Faure van Parti Socialiste (PS), die slechts 14,5 procent van de stemmen behaalde. De kans dat Glucksmann, essayist en zoon van filosoof André Glucksmann , president wordt is klein. Dat komt doordat de radicaal-linkse politicus Jean-Luc Mélenchon van La France Insoumise (LFI) weigert zich achter een gezamenlijke linkse kandidaat te scharen en daarmee de verdeeldheid binnen links in stand houdt. Deelname Hollande Glucksmann richtte in 2018 zijn partij Place Publique op als een pro-Europees en sociaaldemocratisch alternatief voor de PS van oud-president François Hollande. In het Europees Parlement vertegenwoordigt hij zowel Place Publique als de PS. Daar maakte hij zich onder meer hard voor de positie van de Oeigoeren in China. Er zijn ook politici die niet deelnamen aan de centrumlinkse voorverkiezingen. De meest opvallende is de 72-jarige oud-president François Hollande, die mogelijk buiten de voorverkiezingen om opnieuw een gooi doet naar het presidentschap. Zak meel Glucksmann vierde zijn overwinning gisteren na afloop in een bar in Parijs. Toen hij na afloop naar een taxi liep, gooide iemand een zak meel over zijn hoofd heen, schrijven Franse media. (opent in nieuw venster) Een aanval met een zak meel overkwam ook Jordan Bardella, partijleider van de radicaal-rechtse partij Rassemblement National (RN), in november 2025. Hij sprak op X direct zijn steun uit aan Glucksmann en veroordeelde het incident als \"onaanvaardbaar geweld\". Volgens hem bestaat er niet zoiets als een kleine aanval. \"Elke fysieke aanval is ernstig.\" Op Franse televisie, na afloop van de voorverkiezingen, profileerde Glucksmann zich als de kandidaat die staat voor een \"breuk met het macronisme\", een \"breuk met de hegemonie van Mélenchon over links\" en als \"de kandidaat die onze jarenlange vijand, extreemrechts, kan verslaan\". Steun onder jongeren De radicaal-rechtse Marine Le Pen staat er momenteel het best voor in de peilingen. Volgens een recente peiling haalt zij in de eerste ronde van de presidentsverkiezingen tussen de 33 en 35 procent van de stemmen. Mélenchon geldt volgens diverse peilingen als een mogelijke kandidaat die het i",
+     "identityText": "Centrumlinks schuift Raphaël Glucksmann naar voren als Franse presidentskandidaat De 46-jarige Europarlementariër moet als presidentskandidaat het versnipperde linkse kamp zien te verenigen. Centrumlinks schuift Raphaël Glucksmann naar voren als Franse presidentskandidaat Centrumlinks schuift Raphaël Glucksmann naar voren als Franse presidentskandidaat Naar cookieinstellingen Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live Zoeken Instellingen Teletekst NPO Start Menu Raphael Glucksmann geeft een speech EPA NOS Nieuws • vandaag, 12:03 Centrumlinks schuift Raphaël Glucksmann naar voren als Franse presidentskandidaat Deel dit artikel Met een ruime overwinning in de voorverkiezingen wordt Raphaël Glucksmann de kandidaat van het centrumlinkse blok bij de Franse verkiezingen volgend jaar. De 46-jarige Europarlementariër moet als presidentskandidaat het versnipperde linkse kamp zien te verenigen. Glucksmann won gisteravond 66 procent van de ruim 120.000 online stemmen, waardoor een tweede ronde niet nodig was. De leider van Place Publique (PP) eindigde ruim voor Olivier Faure van Parti Socialiste (PS), die slechts 14,5 procent van de stemmen behaalde. De kans dat Glucksmann, essayist en zoon van filosoof André Glucksmann , president wordt is klein. Dat komt doordat de radicaal-linkse politicus Jean-Luc Mélenchon van La France Insoumise (LFI) weigert zich achter een gezamenlijke linkse kandidaat te scharen en daarmee de verdeeldheid binnen links in stand houdt. Deelname Hollande Glucksmann richtte in 2018 zijn partij Place Publique op als een pro-Europees en sociaaldemocratisch alternatief voor de PS van oud-president François Hollande. In het Europees Parlement vertegenwoordigt hij zowel Place Publique als de PS. Daar maakte hij zich onder meer hard voor de positie van de Oeigoeren in China. Er zijn ook politici die niet deelnamen aan de centrumlinkse voorverkiezingen. De meest opvallende is de 72-jarige oud-president François Hollande, die mogelijk buiten de voorverkiezingen om opnieuw een gooi doet naar het presidentschap. Zak meel Glucksmann vierde zijn overwinning gisteren na afloop in een bar in Parijs. Toen hij na afloop naar een taxi liep, gooide iemand een zak meel over zijn hoofd heen, schrijven Franse media. (opent in nieuw venster) Een aanval met een zak meel overkwam ook Jordan Bardella, partijleider van de radicaal-rechtse partij Rassemblement National (RN), in november 2025. Hij sprak op X direct zijn steun uit aan Glucksmann en veroordeelde het incident als \"onaanvaardbaar geweld\". Volgens hem bestaat er niet zoiets als een kleine aanval. \"Elke fysieke aanval is ernstig.\" Op Franse televisie, na afloop van de voorverkiezingen, profileerde Glucksmann zich als de kandidaat die staat voor een \"breuk met het macronisme\", een \"breuk met de hegemonie van Mélenchon over links\" en als \"de kandidaat die onze jarenlange vijand, extreemrechts, kan verslaan\". Steun onder jongeren De radicaal-rechtse Marine Le Pen staat er momenteel het best voor in de peilingen. Volgens een recente peiling haalt zij in de eerste ronde van de presidentsverkiezingen tussen de 33 en 35 procent van de stemmen. Mélenchon geldt volgens diverse peilingen als een mogelijke kandidaat die het in de tweede ronde moet gaan opnemen tegen Le ",
      "schemaTypes": [
       "webpage",
       "language",
@@ -2837,7 +2849,9 @@
       "https://nos.nl/artikel/2612969-radicaal-linkse-melenchon-kandidaat-bij-franse-verkiezingen-volgend-jaar",
       "https://nos.nl/artikel/2633917-opnieuw-grote-protesten-en-geweld-in-frankrijk-wat-zit-erachter",
       "https://nos.nl/artikel/2615445-oud-premier-attal-37-kandidaat-bij-franse-presidentsverkiezingen-volgend-jaar",
-      "https://nos.nl/artikel/2634223-oplopende-franse-staatsschuld-en-rente-steeds-zorgelijker-voor-europa"
+      "https://nos.nl/artikel/2634223-oplopende-franse-staatsschuld-en-rente-steeds-zorgelijker-voor-europa",
+      "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-winkelprijzen-na-cyberveiligheidsincident-bij-albert-heijn",
+      "https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis"
      ],
      "evidenceChecks": [
       {
@@ -2946,82 +2960,6 @@
      ]
     },
     {
-     "url": "https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis",
-     "type": "product",
-     "evidence": [
-      "product-like path",
-      "link-context: Litouwen en Polen bereiden zich met oefening voor op vluchtelingencrisis vandaag, 07:14",
-      "javascript rendering unavailable; raw HTML retained"
-     ],
-     "status": "audited",
-     "httpStatus": 200,
-     "title": "Litouwen en Polen bereiden zich met oefening voor op vluchtelingencrisis",
-     "description": "In Litouwen wordt deze weken geoefend wat het leger en de bevolking moeten doen als het oorlog wordt.",
-     "h1Count": 1,
-     "canonical": "https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis",
-     "structureKey": "h4|a6|img1|form0|article0|table0|li5|schema5",
-     "evidenceSource": "raw_html",
-     "score": 95,
-     "identityText": "Litouwen en Polen bereiden zich met oefening voor op vluchtelingencrisis In Litouwen wordt deze weken geoefend wat het leger en de bevolking moeten doen als het oorlog wordt. Litouwen en Polen bereiden zich met oefening voor op vluchtelingencrisis Litouwen en Polen bereiden zich met oefening voor op vluchtelingencrisis Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live Zoeken Instellingen Teletekst NPO Start Menu NOS NOS Nieuws • vandaag, 07:14 • Aangepast vandaag, 07:30 Litouwen en Polen bereiden zich met oefening voor op vluchtelingencrisis Deel dit artikel Christiaan Paauwe correspondent Midden- en Oost-Europa Litouwen en Polen werken aan plannen voor massale evacuaties voor het geval een oorlog met Rusland uitbreekt. In dat scenario houden de landen er rekening mee dat een miljoen burgers van de Baltische landen via de Suwalki-corridor willen vluchten. Deze corridor is een smalle landverbinding tussen Polen en Litouwen. Hij wordt gezien als het kwetsbaarste punt van het NAVO-grondgebied. NOS De Suwalki-corridor tussen Polen en Litouwen De bekendmaking van de plannen valt samen met een grote mobilisatie-oefening die deze weken in Litouwen plaatsvindt. Niet alleen het leger, maar de hele samenleving moet weten wat er te doen staat als het oorlog wordt, is het idee. Wat als Rusland aanvalt? Hoe verslaat de NAVO Rusland als dat land het militaire bondgenootschap aanvalt? Generaal Alexus Grynkewich, de militair commandant van de alliantie, geeft vanmiddag het antwoord op een veiligheidstop in Warschau. De toespraak is vanaf 13.00 uur live te volgen via de NOS-app en NOS.nl. NOS-correspondenten Kysia Hekster (NAVO) en Christiaan Paauwe (Midden- en Oost-Europa) leggen in de stream uit wat de toespraak zo bijzonder maakt. &quot;Heeft u een plek om te logeren?&quot;, vraagt een hulpverlener. Op haar telefoon noteert ze de gegevens van Vidmantas (61), die tegenover haar zit in de witte ontvangsttent. &quot;Nee, ik kan nergens heen&quot;, antwoordt de &#x27;vluchteling&#x27;. Op het groene grasveld van de hippodroom van Lazdijai, een Litouws stadje vlak bij de grens met Polen, worden zogenaamd ontheemde Litouwers rondgeleid. Vidmantas is een van de honderden burgers die meedoen. Hij wil weten wat er gebeurt in een &quot;extreme situatie&quot;, zegt hij nadat hij is geregistreerd. &quot;Zodat je niet in de war raakt als het zover is.&quot; NOS Ook het Rode Kruis in Litouwen oefent mee Na de registratie kunnen deelnemers in andere tenten psychische of medische hulp krijgen, of wat te eten. Aan een hijskraan hangt een grote Litouwse vlag boven het &#x27;vluchtelingenkamp&#x27;. Verderop staan groene tenten met veldbedjes in rijen opgesteld. Zwakke punten Het scenario is dat het oostelijk grensgebied van Litouwen dreigt te worden binnengevallen en er een vluchtelingenstroom op gang komt. Kapitein Darius Indrisonis van de brandweer klinkt bijna enthousiast wanneer hij een rondleiding geeft. Ze kunnen volgens hem een hoop leren van de oefening en zien waar de zwakke punten zitten. Zo bleek dat de registratie te langzaam ging en veel mensen moesten wachten. We zien geen enkele aanwijzing dat we volgende maand of de maand erna al paraat moeten zijn Tomas Daukantas, kanselier van de Litouwse regering D",
-     "schemaTypes": [
-      "webpage",
-      "language",
-      "imageobject",
-      "organization",
-      "newsarticle"
-     ],
-     "formEvidence": {
-      "formCount": 0,
-      "passwordForm": false,
-      "insecureFormActions": 0
-     },
-     "commerceEvidence": {
-      "productSchema": false,
-      "itemListSchema": false,
-      "storeSchema": false,
-      "strongCommerceAction": false,
-      "repeatedProductLinks": true,
-      "priceSignals": 0,
-      "product": null,
-      "confirmedRetailPage": false
-     },
-     "productLinks": [
-      "https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis",
-      "https://nos.nl/artikel/2634636-hoe-rusland-te-verslaan-topmilitair-navo-geeft-antwoord-in-zeldzame-toespraak",
-      "https://nos.nl/artikel/2631110-navo-toestellen-halen-drone-neer-boven-litouwen-herkomst-nog-onduidelijk",
-      "https://nos.nl/artikel/2630975-zorgen-bij-navo-en-eu-over-verdere-escalatie-na-droneaanval-rusland-op-trein",
-      "https://nos.nl/artikel/2633764-duitse-inlichtingendienst-waarschuwt-voor-gewelddadig-conflict-met-rusland",
-      "https://nos.nl/artikel/2631014-polen-zet-zich-schrap-voor-verdere-escalatie-nu-russische-drones-de-grens-opzoeken"
-     ],
-     "evidenceChecks": [
-      {
-       "key": "http",
-       "status": "PASS",
-       "details": "HTTP 200"
-      },
-      {
-       "key": "title",
-       "status": "WARNING",
-       "details": "Title gevonden (72 tekens); buiten richtwaarde 30–60."
-      },
-      {
-       "key": "description",
-       "status": "PASS",
-       "details": "Meta description gevonden (101 tekens); bruikbare lengte."
-      },
-      {
-       "key": "h1",
-       "status": "PASS",
-       "details": "1 H1-heading(s) gevonden."
-      },
-      {
-       "key": "canonical",
-       "status": "PASS",
-       "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis"
-      }
-     ]
-    },
-    {
      "url": "https://nos.nl/sport",
      "type": "other",
      "evidence": [
@@ -3089,6 +3027,68 @@
        "key": "canonical",
        "status": "PASS",
        "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/sport"
+      }
+     ]
+    },
+    {
+     "url": "https://nos.nl/live",
+     "type": "other",
+     "evidence": [
+      "link-context: Live",
+      "javascript rendering unavailable; raw HTML retained"
+     ],
+     "status": "audited",
+     "httpStatus": 200,
+     "title": "NOS.nl - NOS Live",
+     "description": "Blijf bij. NOS. Bekijk actuele livestreams en de agenda van komende uitzendingen van nieuws, sport en evenementen.",
+     "h1Count": 1,
+     "canonical": "https://nos.nl/live",
+     "structureKey": "h4|a9|img8|form0|article0|table0|li9|schema0",
+     "evidenceSource": "raw_html",
+     "score": 95,
+     "identityText": "NOS.nl - NOS Live Blijf bij. NOS. Bekijk actuele livestreams en de agenda van komende uitzendingen van nieuws, sport en evenementen. Live bij de NOS NOS.nl - NOS Live Ga naar de inhoud NOS.nl Voorpagina Nieuws Sport Live Zoeken Instellingen Teletekst NPO Start Menu Live bij de NOS Op dit moment zijn er geen livestreams Binnenkort te zien Alles Nieuws Sport Sla sportfilters over Schaatsen Voetbal Turnen Baanwielrennen Wielrennen Shorttrack Futsal Korfbal Zwemmen Veldrijden Atletiek vandaag vandaag, 12:50 vandaag, 12:50 Hoogste NAVO-militair over hoe de NAVO een Russische aanval kan afslaan vandaag, 17:00 vandaag, 17:00 Persconferentie bondscoach Veurink morgen morgen, 20:45 morgen, 20:45 Voetbal: WK-kwalificatie Nederland - Hongarije (v) woensdag woensdag, 12:30 woensdag, 12:30 WK baanwielrennen donderdag donderdag, 11:00 donderdag, 11:00 WK baanwielrennen vrijdag vrijdag, 11:00 vrijdag, 11:00 WK baanwielrennen zaterdag zaterdag, 11:30 zaterdag, 11:30 WK baanwielrennen zondag zondag, 07:30 zondag, 07:30 WK baanwielrennen zondag, 09:00 zondag, 09:00 Marathon van Amsterdam dinsdag 20 oktober di 20 oktober, 19:30 di 20 oktober, 19:30 WK turnen: teamfinale (m) woensdag 21 oktober wo 21 oktober, 19:30 wo 21 oktober, 19:30 Futsal: WK-kwalificatie Nederland - Servië (m) wo 21 oktober, 19:30 wo 21 oktober, 19:30 WK turnen: teamfinale (v) donderdag 22 oktober do 22 oktober, 19:00 do 22 oktober, 19:00 EK korfbal: halve finale do 22 oktober, 19:30 do 22 oktober, 19:30 WK turnen: meerkampfinale (m) vrijdag 23 oktober vr 23 oktober, 19:30 vr 23 oktober, 19:30 WK turnen: meerkampfinale (v) zaterdag 24 oktober za 24 oktober, 14:00 za 24 oktober, 14:00 WK turnen: toestelfinales (m/v) za 24 oktober, 15:15 za 24 oktober, 15:15 EK korfbal: finale za 24 oktober, 19:00 za 24 oktober, 19:00 NK kortebaanzwemmen zo 25 oktober, 01:00 zo 25 oktober, 01:00 Shorttrack: World Tour Vancouver zondag 25 oktober zo 25 oktober, 14:00 zo 25 oktober, 14:00 WK turnen: toestelfinales (m/v) zo 25 oktober, 19:00 zo 25 oktober, 19:00 NK kortebaanzwemmen maandag 26 oktober ma 26 oktober, 01:00 ma 26 oktober, 01:00 Shorttrack: World Tour Vancouver donderdag 29 oktober do 29 oktober, 21:00 do 29 oktober, 21:00 Champions League: Manchester City - PSG (v) vrijdag 30 oktober vr 30 oktober, 18:00 vr 30 oktober, 18:00 Schaatsen: wereldbeker kwalificatietoernooi Heerenveen zaterdag 31 oktober za 31 oktober, 14:00 za 31 oktober, 14:00 Schaatsen: wereldbeker kwalificatietoernooi Heerenveen za 31 oktober, 18:30 za 31 oktober, 18:30 Shorttrack: World Tour Montreal zondag 1 november zo 1 november, 12:00 zo 1 november, 12:00 Schaatsen: wereldbeker kwalificatietoernooi Heerenveen zo 1 november, 18:30 zo 1 november, 18:30 Shorttrack: World Tour Montreal vrijdag 6 november vr 6 november, 20:00 vr 6 november, 20:00 Futsal: EK-kwalificatie Andorra - Nederland (m) zaterdag 7 november za 7 november, 15:00 za 7 november, 15:00 EK veldrijden (v) zondag 8 november zo 8 november, 15:00 zo 8 november, 15:00 EK veldrijden (m) woensdag 11 november wo 11 november, 18:45 wo 11 november, 18:45 Champions League: FC Barcelona - Arsenal (v) wo 11 november, 19:30 wo 11",
+     "schemaTypes": [],
+     "formEvidence": {
+      "formCount": 0,
+      "passwordForm": false,
+      "insecureFormActions": 0
+     },
+     "commerceEvidence": {
+      "productSchema": false,
+      "itemListSchema": false,
+      "storeSchema": false,
+      "strongCommerceAction": false,
+      "repeatedProductLinks": false,
+      "priceSignals": 0,
+      "product": null,
+      "confirmedRetailPage": false
+     },
+     "productLinks": [],
+     "evidenceChecks": [
+      {
+       "key": "http",
+       "status": "PASS",
+       "details": "HTTP 200"
+      },
+      {
+       "key": "title",
+       "status": "WARNING",
+       "details": "Title gevonden (17 tekens); buiten richtwaarde 30–60."
+      },
+      {
+       "key": "description",
+       "status": "PASS",
+       "details": "Meta description gevonden (114 tekens); bruikbare lengte."
+      },
+      {
+       "key": "h1",
+       "status": "PASS",
+       "details": "1 H1-heading(s) gevonden."
+      },
+      {
+       "key": "canonical",
+       "status": "PASS",
+       "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/live"
       }
      ]
     },
@@ -3634,7 +3634,7 @@
      ]
     }
    ],
-   "siteSampleScore": 95,
+   "siteSampleScore": 96,
    "siteSampleCoverage": {
     "selected": 20,
     "checked": 20,
@@ -3655,20 +3655,20 @@
      "status": "WARNING",
      "checkedPages": 20,
      "provenPages": 20,
-     "affectedCount": 14,
+     "affectedCount": 13,
      "affectedUrls": [
       "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-winkelprijzen-na-cyberveiligheidsincident-bij-albert-heijn",
       "https://nos.nl/",
       "https://nos.nl/artikel/2634660-staking-belgie-om-bezuinigingen-openbare-diensten-minder-treinen-ook-vrt-staakt",
-      "https://nos.nl/live",
       "https://nos.nl/artikel/2631561-datalek-bij-webshop-drogisterijketen-da-raakt-236-000-klanten",
       "https://nos.nl/artikel/2634396-storing-bij-kpn-opgelost-universitaire-ziekenhuizen-weer-bereikbaar",
       "https://nos.nl/artikel/2633445-bedrijven-massaal-gehackt-consument-maakt-het-weinig-uit-we-zijn-datalekmoe",
       "https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat",
       "https://nos.nl/artikel/2634656-bakstenen-zonder-gasovens-vol-stroomnet-zit-duurzamere-industrie-in-de-weg",
-      "https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis",
       "https://nos.nl/sport",
-      "https://nos.nl/teletekst"
+      "https://nos.nl/live",
+      "https://nos.nl/teletekst",
+      "https://nos.nl/herstel"
      ],
      "evidence": [
       {
@@ -3685,11 +3685,6 @@
        "url": "https://nos.nl/artikel/2634660-staking-belgie-om-bezuinigingen-openbare-diensten-minder-treinen-ook-vrt-staakt",
        "status": "WARNING",
        "details": "Title gevonden (81 tekens); buiten richtwaarde 30–60."
-      },
-      {
-       "url": "https://nos.nl/live",
-       "status": "WARNING",
-       "details": "Title gevonden (17 tekens); buiten richtwaarde 30–60."
       },
       {
        "url": "https://nos.nl/artikel/2631561-datalek-bij-webshop-drogisterijketen-da-raakt-236-000-klanten",
@@ -3717,19 +3712,24 @@
        "details": "Title gevonden (75 tekens); buiten richtwaarde 30–60."
       },
       {
-       "url": "https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis",
-       "status": "WARNING",
-       "details": "Title gevonden (72 tekens); buiten richtwaarde 30–60."
-      },
-      {
        "url": "https://nos.nl/sport",
        "status": "WARNING",
        "details": "Title gevonden (88 tekens); buiten richtwaarde 30–60."
       },
       {
+       "url": "https://nos.nl/live",
+       "status": "WARNING",
+       "details": "Title gevonden (17 tekens); buiten richtwaarde 30–60."
+      },
+      {
        "url": "https://nos.nl/teletekst",
        "status": "WARNING",
        "details": "Title gevonden (22 tekens); buiten richtwaarde 30–60."
+      },
+      {
+       "url": "https://nos.nl/herstel",
+       "status": "WARNING",
+       "details": "Title gevonden (27 tekens); buiten richtwaarde 30–60."
       }
      ],
      "highlights": [],
@@ -3813,11 +3813,6 @@
        "details": "1 H1-heading(s) gevonden."
       },
       {
-       "url": "https://nos.nl/live",
-       "status": "PASS",
-       "details": "1 H1-heading(s) gevonden."
-      },
-      {
        "url": "https://nos.nl/sport/formule-1",
        "status": "PASS",
        "details": "1 H1-heading(s) gevonden."
@@ -3838,6 +3833,11 @@
        "details": "1 H1-heading(s) gevonden."
       },
       {
+       "url": "https://nos.nl/artikel/2634668-oudste-overdekte-markt-van-parijs-verwoest-door-brand",
+       "status": "PASS",
+       "details": "1 H1-heading(s) gevonden."
+      },
+      {
        "url": "https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat",
        "status": "PASS",
        "details": "1 H1-heading(s) gevonden."
@@ -3848,12 +3848,12 @@
        "details": "1 H1-heading(s) gevonden."
       },
       {
-       "url": "https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis",
+       "url": "https://nos.nl/sport",
        "status": "PASS",
        "details": "1 H1-heading(s) gevonden."
       },
       {
-       "url": "https://nos.nl/sport",
+       "url": "https://nos.nl/live",
        "status": "PASS",
        "details": "1 H1-heading(s) gevonden."
       }
@@ -3885,11 +3885,6 @@
        "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/artikel/2634660-staking-belgie-om-bezuinigingen-openbare-diensten-minder-treinen-ook-vrt-staakt"
       },
       {
-       "url": "https://nos.nl/live",
-       "status": "PASS",
-       "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/live"
-      },
-      {
        "url": "https://nos.nl/sport/formule-1",
        "status": "PASS",
        "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/sport/formule-1"
@@ -3910,6 +3905,11 @@
        "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/artikel/2633445-bedrijven-massaal-gehackt-consument-maakt-het-weinig-uit-we-zijn-datalekmoe"
       },
       {
+       "url": "https://nos.nl/artikel/2634668-oudste-overdekte-markt-van-parijs-verwoest-door-brand",
+       "status": "PASS",
+       "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/artikel/2634668-oudste-overdekte-markt-van-parijs-verwoest-door-brand"
+      },
+      {
        "url": "https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat",
        "status": "PASS",
        "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat"
@@ -3920,14 +3920,14 @@
        "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/artikel/2634656-bakstenen-zonder-gasovens-vol-stroomnet-zit-duurzamere-industrie-in-de-weg"
       },
       {
-       "url": "https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis",
-       "status": "PASS",
-       "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis"
-      },
-      {
        "url": "https://nos.nl/sport",
        "status": "PASS",
        "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/sport"
+      },
+      {
+       "url": "https://nos.nl/live",
+       "status": "PASS",
+       "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://nos.nl/live"
       }
      ],
      "highlights": [],
@@ -4020,7 +4020,7 @@
    "state": "absent",
    "reason": "service_identity",
    "marketSelector": false,
-   "representativePagesAudited": 9,
+   "representativePagesAudited": 10,
    "message": "Scanbewijs bevestigt een niet-commerciële primaire identiteit zonder harde product-/retailketen; deze commercecontrole is niet van toepassing."
   },
   "evidenceLayer": {
@@ -5386,7 +5386,7 @@
      "category": "seo",
      "title": "Contentdekking",
      "status": "pass",
-     "message": "Ongeveer 607 woorden gevonden op deze lokale bedrijfspagina. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld.",
+     "message": "Ongeveer 596 woorden gevonden op deze lokale bedrijfspagina. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld.",
      "fix": "Behoud nuttige, unieke content die de zoekintentie en klantvragen beantwoordt.",
      "points": 7,
      "maxPoints": 7,
@@ -5398,8 +5398,8 @@
      "impactClaim": "hygiene",
      "evidence": {
       "url": "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-winkelprijzen-na-cyberveiligheidsincident-bij-albert-heijn",
-      "found": "wordCount=607; pageType=lokale bedrijfspagina; minimum=150; strong=300",
-      "details": "Ongeveer 607 woorden gevonden op deze lokale bedrijfspagina. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld."
+      "found": "wordCount=596; pageType=lokale bedrijfspagina; minimum=150; strong=300",
+      "details": "Ongeveer 596 woorden gevonden op deze lokale bedrijfspagina. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld."
      },
      "fix_category": "C"
     },
@@ -5452,7 +5452,7 @@
      "category": "seo",
      "title": "Server response",
      "status": "pass",
-     "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 37 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
+     "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 46 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
      "fix": "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.",
      "points": 5,
      "maxPoints": 5,
@@ -5464,8 +5464,8 @@
      "impactClaim": "hygiene",
      "evidence": {
       "url": "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-winkelprijzen-na-cyberveiligheidsincident-bij-albert-heijn",
-      "found": 37,
-      "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 37 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
+      "found": 46,
+      "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 46 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
      },
      "fix_category": "C"
     },
@@ -6365,7 +6365,7 @@
      "impactClaim": "hygiene",
      "evidence": {
       "url": "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-winkelprijzen-na-cyberveiligheidsincident-bij-albert-heijn",
-      "found": "metaDescription=true; wordCount=607; minimumVisibleWords=80; rendered=true",
+      "found": "metaDescription=true; wordCount=596; minimumVisibleWords=80; rendered=true",
       "details": "Een meta description en voldoende zichtbare paginatekst geven samen een concrete samenvatting van de pagina."
      },
      "fix_category": "C"
@@ -6421,7 +6421,7 @@
    "imageCount": 177,
    "imageElementCount": 0,
    "imagesMissingAlt": 0,
-   "wordCount": 607,
+   "wordCount": 596,
    "headingsCount": 8,
    "linksCount": 68,
    "internalLinks": 41,
@@ -6766,7 +6766,7 @@
     "category": "seo",
     "title": "Contentdekking",
     "status": "pass",
-    "message": "Ongeveer 607 woorden gevonden op deze lokale bedrijfspagina. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld.",
+    "message": "Ongeveer 596 woorden gevonden op deze lokale bedrijfspagina. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld.",
     "fix": "Behoud nuttige, unieke content die de zoekintentie en klantvragen beantwoordt.",
     "points": 7,
     "maxPoints": 7,
@@ -6778,8 +6778,8 @@
     "impactClaim": "hygiene",
     "evidence": {
      "url": "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-winkelprijzen-na-cyberveiligheidsincident-bij-albert-heijn",
-     "found": "wordCount=607; pageType=lokale bedrijfspagina; minimum=150; strong=300",
-     "details": "Ongeveer 607 woorden gevonden op deze lokale bedrijfspagina. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld."
+     "found": "wordCount=596; pageType=lokale bedrijfspagina; minimum=150; strong=300",
+     "details": "Ongeveer 596 woorden gevonden op deze lokale bedrijfspagina. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld."
     },
     "fix_category": "C"
    },
@@ -6832,7 +6832,7 @@
     "category": "seo",
     "title": "Server response",
     "status": "pass",
-    "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 37 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
+    "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 46 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
     "fix": "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.",
     "points": 5,
     "maxPoints": 5,
@@ -6844,8 +6844,8 @@
     "impactClaim": "hygiene",
     "evidence": {
      "url": "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-winkelprijzen-na-cyberveiligheidsincident-bij-albert-heijn",
-     "found": 37,
-     "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 37 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
+     "found": 46,
+     "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 46 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
     },
     "fix_category": "C"
    },
@@ -7730,7 +7730,7 @@
     "impactClaim": "hygiene",
     "evidence": {
      "url": "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-winkelprijzen-na-cyberveiligheidsincident-bij-albert-heijn",
-     "found": "metaDescription=true; wordCount=607; minimumVisibleWords=80; rendered=true",
+     "found": "metaDescription=true; wordCount=596; minimumVisibleWords=80; rendered=true",
      "details": "Een meta description en voldoende zichtbare paginatekst geven samen een concrete samenvatting van de pagina."
     },
     "fix_category": "C"

@@ -6,8 +6,8 @@
   "mode": "both",
   "scannedUrl": "https://www.moneybird.nl/",
   "finalUrl": "https://www.moneybird.nl/",
-  "scannedAt": "2026-10-12T10:10:13.919Z",
-  "responseTime": 603,
+  "scannedAt": "2026-10-12T10:32:15.292Z",
+  "responseTime": 482,
   "httpStatus": 200,
   "overallScore": 99,
   "grade": "A",
@@ -6607,7 +6607,7 @@
      "category": "seo",
      "title": "Server response",
      "status": "pass",
-     "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 603 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
+     "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 482 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
      "fix": "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.",
      "points": 5,
      "maxPoints": 5,
@@ -6619,8 +6619,8 @@
      "impactClaim": "hygiene",
      "evidence": {
       "url": "https://www.moneybird.nl/",
-      "found": 603,
-      "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 603 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
+      "found": 482,
+      "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 482 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
      },
      "fix_category": "C"
     },
@@ -8000,7 +8000,7 @@
     "category": "seo",
     "title": "Server response",
     "status": "pass",
-    "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 603 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
+    "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 482 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
     "fix": "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.",
     "points": 5,
     "maxPoints": 5,
@@ -8012,8 +8012,8 @@
     "impactClaim": "hygiene",
     "evidence": {
      "url": "https://www.moneybird.nl/",
-     "found": 603,
-     "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 603 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
+     "found": 482,
+     "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 482 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
     },
     "fix_category": "C"
    },

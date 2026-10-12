@@ -6,8 +6,8 @@
   "mode": "both",
   "scannedUrl": "https://www.acupunctuurdijkstra.nl/",
   "finalUrl": "https://www.acupunctuurdijkstra.nl/",
-  "scannedAt": "2026-10-12T10:07:14.875Z",
-  "responseTime": 563,
+  "scannedAt": "2026-10-12T10:29:29.713Z",
+  "responseTime": 342,
   "httpStatus": 200,
   "overallScore": 92,
   "grade": "A",
@@ -4257,7 +4257,7 @@
      "category": "seo",
      "title": "Server response",
      "status": "pass",
-     "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 563 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
+     "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 342 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
      "fix": "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.",
      "points": 5,
      "maxPoints": 5,
@@ -4269,8 +4269,8 @@
      "impactClaim": "hygiene",
      "evidence": {
       "url": "https://www.acupunctuurdijkstra.nl/",
-      "found": 563,
-      "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 563 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
+      "found": 342,
+      "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 342 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
      },
      "fix_category": "C"
     },
@@ -5704,7 +5704,7 @@
     "category": "seo",
     "title": "Server response",
     "status": "pass",
-    "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 563 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
+    "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 342 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
     "fix": "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.",
     "points": 5,
     "maxPoints": 5,
@@ -5716,8 +5716,8 @@
     "impactClaim": "hygiene",
     "evidence": {
      "url": "https://www.acupunctuurdijkstra.nl/",
-     "found": 563,
-     "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 563 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
+     "found": 342,
+     "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 342 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
     },
     "fix_category": "C"
    },

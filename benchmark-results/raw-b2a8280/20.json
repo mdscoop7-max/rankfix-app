@@ -6,8 +6,8 @@
   "mode": "both",
   "scannedUrl": "https://www.efteling.com/nl",
   "finalUrl": "https://www.efteling.com/nl",
-  "scannedAt": "2026-10-12T10:11:11.690Z",
-  "responseTime": 852,
+  "scannedAt": "2026-10-12T10:33:12.027Z",
+  "responseTime": 507,
   "httpStatus": 200,
   "overallScore": 93,
   "grade": "A",
@@ -68,7 +68,7 @@
    "mode": "javascript_rendered",
    "javascriptExecuted": true,
    "note": "RankFix heeft deze JavaScript-site in een begrensde browser gerenderd. Interactieve login-, winkelwagen- en betaalflows zijn niet uitgevoerd.",
-   "elapsedMs": 2243,
+   "elapsedMs": 1941,
    "fallbackReason": null,
    "warning": false,
    "evidenceSource": "rendered_html",
@@ -237,7 +237,7 @@
       "description": "Efteling: een attractiepark met nieuwe, spannende attracties en sprookjes voor het leukste dagje uit! Reserveer online eenvoudig je bezoek aan de Efteling.",
       "h1Count": 1,
       "canonical": "https://www.efteling.com/nl",
-      "structureKey": "h4|a9|img6|form2|article3|table3|li9|schema4",
+      "structureKey": "h4|a9|img5|form2|article3|table3|li9|schema4",
       "evidenceSource": "rendered_html",
       "score": 100,
       "identityText": "Wereld vol Wonderen - Efteling Efteling: een attractiepark met nieuwe, spannende attracties en sprookjes voor het leukste dagje uit! Reserveer online eenvoudig je bezoek aan de Efteling. Efteling, Wereld vol Wonderen Wereld vol Wonderen - Efteling Deze website gebruikt cookies Efteling en onze 17 partners gebruiken cookies (en vergelijkbare technieken) om de website te analyseren, gebruiksvriendelijker te maken en om je op en buiten de website relevante aanbiedingen te tonen. Hiervoor gebruiken we unieke identificatoren zoals jouw IP adres. Met jouw toestemming verwerken we jouw persoonlijke informatie voor het verbeteren van de website en het aanbieden van gepersonaliseerde advertenties. Je kunt jouw toestemming op ieder moment aanpassen in onze cookieverklaring , die je ook kunt bereiken via de link onderaan de pagina. Lees in ons privacy statement hoe Efteling.com omgaat met je persoonsgegevens. Lees in onze cookieverklaring hoe Efteling.com omgaat met cookies. Alles accepteren Wijzigingen opslaan Alleen noodzakelijke cookies Cookie-instellingen wijzigen Cookieverklaring Over Noodzakelijk Voorkeuren Statistieken Marketing Niet geclassificeerd (1) Deze cookies zorgen er voor dat de basisfuncties zoals paginanavigatie of inloggen op de website mogelijk zijn. Zonder deze cookies wordt de website niet naar behoren. Naam Aanbieder Doel Maximale bewaartermijn Type ASP.NET_SessionId [x2] Efteling Houdt de sessiestatus van de bezoeker over paginavragen bij. Sessie HTTP-cookie CookieConsent [x5] Cookiebot Slaat de cookiestatus van de gebruiker op voor het huidige domein 1 jaar HTTP-cookie eftweb/datalayers-img/ collect.cloudninedigital.nl Deze tracker wordt gebruikt om te monitoren of de datalayer correct werkt. Sessie Pixeltracker _cs_c Contentsquare Bepaalt of de bezoeker de cookies heeft geaccepteerd. Dit zorgt ervoor dat het cookie-toestemmingsvenster niet opnieuw wordt weergegeven bij een volgend bezoek aan de website. 13 maanden HTTP-cookie __cf_bm [x5] Kameleoon LinkedIn sitecorecloud.io Vimeo Twitter Inc. Deze cookie wordt gebruikt om onderscheid te maken tussen mensen en bots. Dit is gunstig voor de website om juiste rapporten over het gebruik van de website te maken. 1 dag HTTP-cookie first_source_medium [x3] Efteling Deze cookie wordt gebruikt om de eerste source medium op te slaan. 1 jaar HTTP-cookie last_campaign [x3] Efteling Deze cookie wortd gebruikt om de laatste campaign op te slaan. 1 jaar HTTP-cookie last_source_medium [x3] Efteling Deze cookie wordt gebruikt om het laatste source medium op te slaan. 1 jaar HTTP-cookie lastCampaignSet [x3] Efteling Deze cookie wordt gebruikt om de laatste campagne op te slaan. Sessie Lokale HTML-opslag lastSourceSet [x3] Efteling Deze cookie wordt gebruikt om de laatste source van de gebruiker op te slaan. Sessie Lokale HTML-opslag cid Sojern Deze cookie is nodig voor het verrichten van creditcardtransacties op de website. De service wordt geleverd door Stripe.com waarmee online transacties kunnen worden uitgevoerd zonder dat creditcardinformatie wordt opgeslagen. 1 jaar HTTP-cookie af [x2] Efteling Deze cookie wordt gebruikt als anti-forgery token om te voorkomen dat kwaadwillenden sessies kapen of ongeautorise",
@@ -1549,7 +1549,7 @@
      "description": "Efteling: een attractiepark met nieuwe, spannende attracties en sprookjes voor het leukste dagje uit! Reserveer online eenvoudig je bezoek aan de Efteling.",
      "h1Count": 1,
      "canonical": "https://www.efteling.com/nl",
-     "structureKey": "h4|a9|img6|form2|article3|table3|li9|schema4",
+     "structureKey": "h4|a9|img5|form2|article3|table3|li9|schema4",
      "evidenceSource": "rendered_html",
      "score": 100,
      "identityText": "Wereld vol Wonderen - Efteling Efteling: een attractiepark met nieuwe, spannende attracties en sprookjes voor het leukste dagje uit! Reserveer online eenvoudig je bezoek aan de Efteling. Efteling, Wereld vol Wonderen Wereld vol Wonderen - Efteling Deze website gebruikt cookies Efteling en onze 17 partners gebruiken cookies (en vergelijkbare technieken) om de website te analyseren, gebruiksvriendelijker te maken en om je op en buiten de website relevante aanbiedingen te tonen. Hiervoor gebruiken we unieke identificatoren zoals jouw IP adres. Met jouw toestemming verwerken we jouw persoonlijke informatie voor het verbeteren van de website en het aanbieden van gepersonaliseerde advertenties. Je kunt jouw toestemming op ieder moment aanpassen in onze cookieverklaring , die je ook kunt bereiken via de link onderaan de pagina. Lees in ons privacy statement hoe Efteling.com omgaat met je persoonsgegevens. Lees in onze cookieverklaring hoe Efteling.com omgaat met cookies. Alles accepteren Wijzigingen opslaan Alleen noodzakelijke cookies Cookie-instellingen wijzigen Cookieverklaring Over Noodzakelijk Voorkeuren Statistieken Marketing Niet geclassificeerd (1) Deze cookies zorgen er voor dat de basisfuncties zoals paginanavigatie of inloggen op de website mogelijk zijn. Zonder deze cookies wordt de website niet naar behoren. Naam Aanbieder Doel Maximale bewaartermijn Type ASP.NET_SessionId [x2] Efteling Houdt de sessiestatus van de bezoeker over paginavragen bij. Sessie HTTP-cookie CookieConsent [x5] Cookiebot Slaat de cookiestatus van de gebruiker op voor het huidige domein 1 jaar HTTP-cookie eftweb/datalayers-img/ collect.cloudninedigital.nl Deze tracker wordt gebruikt om te monitoren of de datalayer correct werkt. Sessie Pixeltracker _cs_c Contentsquare Bepaalt of de bezoeker de cookies heeft geaccepteerd. Dit zorgt ervoor dat het cookie-toestemmingsvenster niet opnieuw wordt weergegeven bij een volgend bezoek aan de website. 13 maanden HTTP-cookie __cf_bm [x5] Kameleoon LinkedIn sitecorecloud.io Vimeo Twitter Inc. Deze cookie wordt gebruikt om onderscheid te maken tussen mensen en bots. Dit is gunstig voor de website om juiste rapporten over het gebruik van de website te maken. 1 dag HTTP-cookie first_source_medium [x3] Efteling Deze cookie wordt gebruikt om de eerste source medium op te slaan. 1 jaar HTTP-cookie last_campaign [x3] Efteling Deze cookie wortd gebruikt om de laatste campaign op te slaan. 1 jaar HTTP-cookie last_source_medium [x3] Efteling Deze cookie wordt gebruikt om het laatste source medium op te slaan. 1 jaar HTTP-cookie lastCampaignSet [x3] Efteling Deze cookie wordt gebruikt om de laatste campagne op te slaan. Sessie Lokale HTML-opslag lastSourceSet [x3] Efteling Deze cookie wordt gebruikt om de laatste source van de gebruiker op te slaan. Sessie Lokale HTML-opslag cid Sojern Deze cookie is nodig voor het verrichten van creditcardtransacties op de website. De service wordt geleverd door Stripe.com waarmee online transacties kunnen worden uitgevoerd zonder dat creditcardinformatie wordt opgeslagen. 1 jaar HTTP-cookie af [x2] Efteling Deze cookie wordt gebruikt als anti-forgery token om te voorkomen dat kwaadwillenden sessies kapen of ongeautorise",
@@ -2787,7 +2787,7 @@
    "state": "absent",
    "reason": "service_identity",
    "marketSelector": false,
-   "representativePagesAudited": 10,
+   "representativePagesAudited": 9,
    "message": "Scanbewijs bevestigt een niet-commerciële primaire identiteit zonder harde product-/retailketen; deze commercecontrole is niet van toepassing."
   },
   "evidenceLayer": {
@@ -4231,7 +4231,7 @@
      "category": "seo",
      "title": "Afbeelding alt-teksten",
      "status": "pass",
-     "message": "Alle 29 controleerbare <img>-elementen in de raw HTML hebben alt-attributen. JavaScript-geladen afbeeldingen zijn niet meegenomen.",
+     "message": "Alle 31 controleerbare <img>-elementen in de raw HTML hebben alt-attributen. JavaScript-geladen afbeeldingen zijn niet meegenomen.",
      "fix": "Schrijf beschrijvende alt-teksten voor informatieve afbeeldingen.",
      "points": 7,
      "maxPoints": 7,
@@ -4244,7 +4244,7 @@
      "evidence": {
       "url": "https://www.efteling.com/nl",
       "found": 0,
-      "details": "Alle 29 controleerbare <img>-elementen in de raw HTML hebben alt-attributen. JavaScript-geladen afbeeldingen zijn niet meegenomen."
+      "details": "Alle 31 controleerbare <img>-elementen in de raw HTML hebben alt-attributen. JavaScript-geladen afbeeldingen zijn niet meegenomen."
      },
      "fix_category": "B"
     },
@@ -4319,7 +4319,7 @@
      "category": "seo",
      "title": "Server response",
      "status": "pass",
-     "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 852 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
+     "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 507 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
      "fix": "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.",
      "points": 5,
      "maxPoints": 5,
@@ -4331,8 +4331,8 @@
      "impactClaim": "hygiene",
      "evidence": {
       "url": "https://www.efteling.com/nl",
-      "found": 852,
-      "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 852 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
+      "found": 507,
+      "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 507 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
      },
      "fix_category": "C"
     },
@@ -4509,7 +4509,7 @@
      "impactClaim": "hygiene",
      "evidence": {
       "url": "https://www.efteling.com/nl",
-      "found": "images=29; external=0; stockHosts=0",
+      "found": "images=31; external=0; stockHosts=0",
       "details": "Geen externe afbeeldingshosts gevonden in de statische HTML."
      },
      "fix_category": "C"
@@ -5284,7 +5284,7 @@
     "Efteling, Wereld vol Wonderen"
    ],
    "imageCount": 320,
-   "imageElementCount": 29,
+   "imageElementCount": 31,
    "imagesMissingAlt": 0,
    "wordCount": 8169,
    "headingsCount": 49,
@@ -5673,7 +5673,7 @@
     "category": "seo",
     "title": "Afbeelding alt-teksten",
     "status": "pass",
-    "message": "Alle 29 controleerbare <img>-elementen in de raw HTML hebben alt-attributen. JavaScript-geladen afbeeldingen zijn niet meegenomen.",
+    "message": "Alle 31 controleerbare <img>-elementen in de raw HTML hebben alt-attributen. JavaScript-geladen afbeeldingen zijn niet meegenomen.",
     "fix": "Schrijf beschrijvende alt-teksten voor informatieve afbeeldingen.",
     "points": 7,
     "maxPoints": 7,
@@ -5686,7 +5686,7 @@
     "evidence": {
      "url": "https://www.efteling.com/nl",
      "found": 0,
-     "details": "Alle 29 controleerbare <img>-elementen in de raw HTML hebben alt-attributen. JavaScript-geladen afbeeldingen zijn niet meegenomen."
+     "details": "Alle 31 controleerbare <img>-elementen in de raw HTML hebben alt-attributen. JavaScript-geladen afbeeldingen zijn niet meegenomen."
     },
     "fix_category": "B"
    },
@@ -5761,7 +5761,7 @@
     "category": "seo",
     "title": "Server response",
     "status": "pass",
-    "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 852 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
+    "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 507 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
     "fix": "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.",
     "points": 5,
     "maxPoints": 5,
@@ -5773,8 +5773,8 @@
     "impactClaim": "hygiene",
     "evidence": {
      "url": "https://www.efteling.com/nl",
-     "found": 852,
-     "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 852 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
+     "found": 507,
+     "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 507 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
     },
     "fix_category": "C"
    },
@@ -5951,7 +5951,7 @@
     "impactClaim": "hygiene",
     "evidence": {
      "url": "https://www.efteling.com/nl",
-     "found": "images=29; external=0; stockHosts=0",
+     "found": "images=31; external=0; stockHosts=0",
      "details": "Geen externe afbeeldingshosts gevonden in de statische HTML."
     },
     "fix_category": "C"

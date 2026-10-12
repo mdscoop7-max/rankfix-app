@@ -6,18 +6,18 @@
   "mode": "both",
   "scannedUrl": "https://www.transheroes.com/nl/",
   "finalUrl": "https://www.transheroes.com/nl/",
-  "scannedAt": "2026-10-12T10:07:45.908Z",
-  "responseTime": 88,
+  "scannedAt": "2026-10-12T10:29:56.621Z",
+  "responseTime": 116,
   "httpStatus": 200,
   "overallScore": 96,
   "grade": "A",
   "coverage": {
    "relevant": 34,
-   "confirmed": 32,
-   "unableToConfirm": 2,
+   "confirmed": 33,
+   "unableToConfirm": 1,
    "totalWeight": 213,
-   "assessedWeight": 203,
-   "coveragePercent": 95,
+   "assessedWeight": 208,
+   "coveragePercent": 98,
    "highConfidencePercent": 84
   },
   "scoreModel": {
@@ -31,17 +31,17 @@
    "securitySeparate": true,
    "coverageBasis": "assessed_weight / applicable_weight",
    "range": {
-    "low": 91,
+    "low": 93,
     "high": 96,
-    "assessedWeight": 203,
-    "unverifiedWeight": 10,
+    "assessedWeight": 208,
+    "unverifiedWeight": 5,
     "applicableWeight": 213
    },
    "seoRange": {
-    "low": 87,
+    "low": 91,
     "high": 94,
-    "assessedWeight": 138,
-    "unverifiedWeight": 10,
+    "assessedWeight": 143,
+    "unverifiedWeight": 5,
     "applicableWeight": 148
    },
    "geoRange": {
@@ -55,20 +55,20 @@
    "note": "Niet te bevestigen verlaagt de score niet, maar blijft toepasselijk gewicht in de dekking. N.v.t. is uitgesloten. Het bereik toont de conservatieve en optimistische grens voor nog onbevestigd bewijs."
   },
   "summary": {
-   "passed": 29,
+   "passed": 30,
    "issues": 3,
    "critical": 0,
    "important": 0,
    "advice": 3,
    "notApplicable": 22,
-   "unableToConfirm": 2,
+   "unableToConfirm": 1,
    "pendingFixes": 0
   },
   "rendering": {
    "mode": "javascript_rendered",
    "javascriptExecuted": true,
    "note": "RankFix heeft deze JavaScript-site in een begrensde browser gerenderd. Interactieve login-, winkelwagen- en betaalflows zijn niet uitgevoerd.",
-   "elapsedMs": 3277,
+   "elapsedMs": 1582,
    "fallbackReason": null,
    "warning": false,
    "evidenceSource": "rendered_html",
@@ -87,8 +87,8 @@
    "mode": "PAGE_SAMPLE",
    "javascriptExecuted": true,
    "internalLinks": {
-    "anchorsFound": 111,
-    "uniqueInternal": 51,
+    "anchorsFound": 116,
+    "uniqueInternal": 52,
     "checked": 16,
     "limit": 24,
     "truncated": true
@@ -101,7 +101,7 @@
     "mode": "REPRESENTATIVE_AUDIT",
     "currentPageScoredSeparately": true,
     "maxPages": 30,
-    "discoveredInternalUrls": 50,
+    "discoveredInternalUrls": 51,
     "selectedPages": [
      {
       "url": "https://www.transheroes.com/nl/",
@@ -330,10 +330,10 @@
       "description": "Wegtransport | Zeevracht | Luchtvracht | Koeriersdiensten | Railtransport | Douaneafhandeling | Transport | Logistiek expediteur",
       "h1Count": 2,
       "canonical": "https://www.transheroes.com/nl/",
-      "structureKey": "h4|a9|img4|form0|article0|table0|li8|schema5",
+      "structureKey": "h4|a9|img4|form0|article0|table0|li9|schema5",
       "evidenceSource": "rendered_html",
       "score": 95,
-      "identityText": "Internationaal transport, zeevracht, luchtvracht & douane | TransHeroes Wegtransport | Zeevracht | Luchtvracht | Koeriersdiensten | Railtransport | Douaneafhandeling | Transport | Logistiek expediteur Cookies voor een gebruiksvriendelijke ervaring TransHeroes voor slimme logistieke oplossingen Internationaal transport, zeevracht, luchtvracht &amp; douane | TransHeroes Cookies voor een gebruiksvriendelijke ervaring Wij gebruiken cookies om de website te verbeteren en te analyseren, voor social media en om ervoor tezorgen dat u relevante advertenties te zien krijgt. Bij akkoord geeft u ons toestemming voorhet gebruik van alle cookies op onze website. Wilt u een gebruiksvriendelijke ervaring? Instellingen Accepteren Menu Diensten Bestemmingen Wegtransport Luchtvracht Zeevracht Railtransport Douane Koeriersdiensten Speciaal transport Containertransport Koeltransport TransHeroes Over TransHeroes TransHeroes team Historie TransHeroes Vacatures Cases Kennisbank Nieuwsberichten Douane Tarieven Invoeraangifte Uitvoeraangifte Certificaat van Oorsprong EUR1/EUR-MED ATR document T1 document T2 document Inklaring Incoterms Douanedocumenten Incoterms Incoterms uitleg Incoterms 2020 TransPortal Over de TransPortal Inloggen TransPortal Offerte Diensten Bestemmingen Wegtransport Luchtvracht Zeevracht Railtransport Douane Koeriersdiensten Speciaal transport Containertransport Koeltransport TransHeroes Over TransHeroes TransHeroes team Historie TransHeroes Vacatures Cases Kennisbank Nieuwsberichten Douane Tarieven Invoeraangifte Uitvoeraangifte Certificaat van Oorsprong EUR1/EUR-MED ATR document T1 document T2 document Inklaring Incoterms Douanedocumenten Incoterms Incoterms uitleg Incoterms 2020 TransPortal Over de TransPortal Inloggen TransPortal Prijs Berekenen TransHeroes voor slimme logistieke oplossingen Wegtransport, zeevracht, luchtvracht en douane. Wereldwijd geregeld met persoonlijk contact en realtime inzicht via de TransPortal. Prijs Berekenen Vragen of hulp nodig? Neem contact op met Roan, een van onze specialisten Roan Bolier Commercial Manager Open de live chat +31 (0)88 5220 599 Handige links Wegtransport Luchtvracht Zeevracht Douaneafhandeling Douane tarieven Jouw partner voor slimme logistiek Bij TransHeroes geloven we dat internationaal transport meer is dan alleen het verplaatsen van goederen. Het draait om betrouwbaarheid, efficiëntie én persoonlijk contact. Daarom combineren we slimme technologie met de inzet van ervaren specialisten die jouw zending behandelen alsof het hun eigen is. Met onze jarenlange ervaring, een breed netwerk aan bestemmingen en een sterke focus op service maken we transport eenvoudig, snel en transparant. Of je nu regelmatig goederen vervoert of een eenmalige zending hebt, bij TransHeroes krijg je altijd een oplossing op maat. We denken proactief met je mee, houden je continu op de hoogte en zorgen ervoor dat alles tot in de puntjes geregeld is – van documenten tot douaneformaliteiten. Dankzij ons TransPortal heb je bovendien altijd en overal inzicht in jouw transporten. Kies je voor TransHeroes, dan kies je voor een partner die met je meegroeit, met oog voor jouw wensen én die van jouw klanten. 50 Gedreven specialisten 6000+ TransPortal gebruikers TransHeroes - internationaal transport Wij verzorgen slimme l",
+      "identityText": "Internationaal transport, zeevracht, luchtvracht & douane | TransHeroes Wegtransport | Zeevracht | Luchtvracht | Koeriersdiensten | Railtransport | Douaneafhandeling | Transport | Logistiek expediteur Cookies voor een gebruiksvriendelijke ervaring TransHeroes voor slimme logistieke oplossingen Internationaal transport, zeevracht, luchtvracht &amp; douane | TransHeroes Cookies voor een gebruiksvriendelijke ervaring Wij gebruiken cookies om de website te verbeteren en te analyseren, voor social media en om ervoor tezorgen dat u relevante advertenties te zien krijgt. Bij akkoord geeft u ons toestemming voorhet gebruik van alle cookies op onze website. Wilt u een gebruiksvriendelijke ervaring? Instellingen Accepteren Menu Diensten Bestemmingen Wegtransport Luchtvracht Zeevracht Railtransport Douane Koeriersdiensten Speciaal transport Containertransport Koeltransport TransHeroes Over TransHeroes TransHeroes team Historie TransHeroes Vacatures Cases Kennisbank Nieuwsberichten Douane Tarieven Invoeraangifte Uitvoeraangifte Certificaat van Oorsprong EUR1/EUR-MED ATR document T1 document T2 document Inklaring Incoterms Douanedocumenten Incoterms Incoterms uitleg Incoterms 2020 TransPortal Over de TransPortal Inloggen TransPortal Diensten Bestemmingen Wegtransport Luchtvracht Zeevracht Railtransport Douane Koeriersdiensten Speciaal transport Containertransport Koeltransport TransHeroes Over TransHeroes TransHeroes team Historie TransHeroes Vacatures Cases Kennisbank Nieuwsberichten Douane Tarieven Invoeraangifte Uitvoeraangifte Certificaat van Oorsprong EUR1/EUR-MED ATR document T1 document T2 document Inklaring Incoterms Douanedocumenten Incoterms Incoterms uitleg Incoterms 2020 TransPortal Over de TransPortal Inloggen TransPortal Offerte Diensten Bestemmingen Wegtransport Luchtvracht Zeevracht Railtransport Douane Koeriersdiensten Speciaal transport Containertransport Koeltransport TransHeroes Over TransHeroes TransHeroes team Historie TransHeroes Vacatures Cases Kennisbank Nieuwsberichten Douane Tarieven Invoeraangifte Uitvoeraangifte Certificaat van Oorsprong EUR1/EUR-MED ATR document T1 document T2 document Inklaring Incoterms Douanedocumenten Incoterms Incoterms uitleg Incoterms 2020 TransPortal Over de TransPortal Inloggen TransPortal Diensten Bestemmingen Wegtransport Luchtvracht Zeevracht Railtransport Douane Koeriersdiensten Speciaal transport Containertransport Koeltransport TransHeroes Over TransHeroes TransHeroes team Historie TransHeroes Vacatures Cases Kennisbank Nieuwsberichten Douane Tarieven Invoeraangifte Uitvoeraangifte Certificaat van Oorsprong EUR1/EUR-MED ATR document T1 document T2 document Inklaring Incoterms Douanedocumenten Incoterms Incoterms uitleg Incoterms 2020 TransPortal Over de TransPortal Inloggen TransPortal Prijs Berekenen TransHeroes voor slimme logistieke oplossingen Wegtransport, zeevracht, luchtvracht en douane. Wereldwijd geregeld met persoonlijk contact en realtime inzicht via de TransPortal. Prijs Berekenen Vragen of hulp nodig? Neem contact op met Roan, een van onze specialisten Roan Bolier Commercial Manager Open de live chat +31 (0)88 5220 599 Handige links Wegtransport Luchtvracht Zeevracht Douaneafhandeling Douane tarieven Jouw partner voor slimme logistiek Bij TransHeroes geloven we dat internati",
       "schemaTypes": [
        "website",
        "webpage",
@@ -357,7 +357,7 @@
        "storeSchema": false,
        "strongCommerceAction": false,
        "repeatedProductLinks": false,
-       "priceSignals": 2,
+       "priceSignals": 4,
        "product": null,
        "confirmedRetailPage": false
       },
@@ -2464,7 +2464,7 @@
    "mode": "REPRESENTATIVE_AUDIT",
    "currentPageScoredSeparately": true,
    "maxPages": 30,
-   "discoveredInternalUrls": 50,
+   "discoveredInternalUrls": 51,
    "selectedPages": [
     {
      "url": "https://www.transheroes.com/nl/",
@@ -2693,10 +2693,10 @@
      "description": "Wegtransport | Zeevracht | Luchtvracht | Koeriersdiensten | Railtransport | Douaneafhandeling | Transport | Logistiek expediteur",
      "h1Count": 2,
      "canonical": "https://www.transheroes.com/nl/",
-     "structureKey": "h4|a9|img4|form0|article0|table0|li8|schema5",
+     "structureKey": "h4|a9|img4|form0|article0|table0|li9|schema5",
      "evidenceSource": "rendered_html",
      "score": 95,
-     "identityText": "Internationaal transport, zeevracht, luchtvracht & douane | TransHeroes Wegtransport | Zeevracht | Luchtvracht | Koeriersdiensten | Railtransport | Douaneafhandeling | Transport | Logistiek expediteur Cookies voor een gebruiksvriendelijke ervaring TransHeroes voor slimme logistieke oplossingen Internationaal transport, zeevracht, luchtvracht &amp; douane | TransHeroes Cookies voor een gebruiksvriendelijke ervaring Wij gebruiken cookies om de website te verbeteren en te analyseren, voor social media en om ervoor tezorgen dat u relevante advertenties te zien krijgt. Bij akkoord geeft u ons toestemming voorhet gebruik van alle cookies op onze website. Wilt u een gebruiksvriendelijke ervaring? Instellingen Accepteren Menu Diensten Bestemmingen Wegtransport Luchtvracht Zeevracht Railtransport Douane Koeriersdiensten Speciaal transport Containertransport Koeltransport TransHeroes Over TransHeroes TransHeroes team Historie TransHeroes Vacatures Cases Kennisbank Nieuwsberichten Douane Tarieven Invoeraangifte Uitvoeraangifte Certificaat van Oorsprong EUR1/EUR-MED ATR document T1 document T2 document Inklaring Incoterms Douanedocumenten Incoterms Incoterms uitleg Incoterms 2020 TransPortal Over de TransPortal Inloggen TransPortal Offerte Diensten Bestemmingen Wegtransport Luchtvracht Zeevracht Railtransport Douane Koeriersdiensten Speciaal transport Containertransport Koeltransport TransHeroes Over TransHeroes TransHeroes team Historie TransHeroes Vacatures Cases Kennisbank Nieuwsberichten Douane Tarieven Invoeraangifte Uitvoeraangifte Certificaat van Oorsprong EUR1/EUR-MED ATR document T1 document T2 document Inklaring Incoterms Douanedocumenten Incoterms Incoterms uitleg Incoterms 2020 TransPortal Over de TransPortal Inloggen TransPortal Prijs Berekenen TransHeroes voor slimme logistieke oplossingen Wegtransport, zeevracht, luchtvracht en douane. Wereldwijd geregeld met persoonlijk contact en realtime inzicht via de TransPortal. Prijs Berekenen Vragen of hulp nodig? Neem contact op met Roan, een van onze specialisten Roan Bolier Commercial Manager Open de live chat +31 (0)88 5220 599 Handige links Wegtransport Luchtvracht Zeevracht Douaneafhandeling Douane tarieven Jouw partner voor slimme logistiek Bij TransHeroes geloven we dat internationaal transport meer is dan alleen het verplaatsen van goederen. Het draait om betrouwbaarheid, efficiëntie én persoonlijk contact. Daarom combineren we slimme technologie met de inzet van ervaren specialisten die jouw zending behandelen alsof het hun eigen is. Met onze jarenlange ervaring, een breed netwerk aan bestemmingen en een sterke focus op service maken we transport eenvoudig, snel en transparant. Of je nu regelmatig goederen vervoert of een eenmalige zending hebt, bij TransHeroes krijg je altijd een oplossing op maat. We denken proactief met je mee, houden je continu op de hoogte en zorgen ervoor dat alles tot in de puntjes geregeld is – van documenten tot douaneformaliteiten. Dankzij ons TransPortal heb je bovendien altijd en overal inzicht in jouw transporten. Kies je voor TransHeroes, dan kies je voor een partner die met je meegroeit, met oog voor jouw wensen én die van jouw klanten. 50 Gedreven specialisten 6000+ TransPortal gebruikers TransHeroes - internationaal transport Wij verzorgen slimme l",
+     "identityText": "Internationaal transport, zeevracht, luchtvracht & douane | TransHeroes Wegtransport | Zeevracht | Luchtvracht | Koeriersdiensten | Railtransport | Douaneafhandeling | Transport | Logistiek expediteur Cookies voor een gebruiksvriendelijke ervaring TransHeroes voor slimme logistieke oplossingen Internationaal transport, zeevracht, luchtvracht &amp; douane | TransHeroes Cookies voor een gebruiksvriendelijke ervaring Wij gebruiken cookies om de website te verbeteren en te analyseren, voor social media en om ervoor tezorgen dat u relevante advertenties te zien krijgt. Bij akkoord geeft u ons toestemming voorhet gebruik van alle cookies op onze website. Wilt u een gebruiksvriendelijke ervaring? Instellingen Accepteren Menu Diensten Bestemmingen Wegtransport Luchtvracht Zeevracht Railtransport Douane Koeriersdiensten Speciaal transport Containertransport Koeltransport TransHeroes Over TransHeroes TransHeroes team Historie TransHeroes Vacatures Cases Kennisbank Nieuwsberichten Douane Tarieven Invoeraangifte Uitvoeraangifte Certificaat van Oorsprong EUR1/EUR-MED ATR document T1 document T2 document Inklaring Incoterms Douanedocumenten Incoterms Incoterms uitleg Incoterms 2020 TransPortal Over de TransPortal Inloggen TransPortal Diensten Bestemmingen Wegtransport Luchtvracht Zeevracht Railtransport Douane Koeriersdiensten Speciaal transport Containertransport Koeltransport TransHeroes Over TransHeroes TransHeroes team Historie TransHeroes Vacatures Cases Kennisbank Nieuwsberichten Douane Tarieven Invoeraangifte Uitvoeraangifte Certificaat van Oorsprong EUR1/EUR-MED ATR document T1 document T2 document Inklaring Incoterms Douanedocumenten Incoterms Incoterms uitleg Incoterms 2020 TransPortal Over de TransPortal Inloggen TransPortal Offerte Diensten Bestemmingen Wegtransport Luchtvracht Zeevracht Railtransport Douane Koeriersdiensten Speciaal transport Containertransport Koeltransport TransHeroes Over TransHeroes TransHeroes team Historie TransHeroes Vacatures Cases Kennisbank Nieuwsberichten Douane Tarieven Invoeraangifte Uitvoeraangifte Certificaat van Oorsprong EUR1/EUR-MED ATR document T1 document T2 document Inklaring Incoterms Douanedocumenten Incoterms Incoterms uitleg Incoterms 2020 TransPortal Over de TransPortal Inloggen TransPortal Diensten Bestemmingen Wegtransport Luchtvracht Zeevracht Railtransport Douane Koeriersdiensten Speciaal transport Containertransport Koeltransport TransHeroes Over TransHeroes TransHeroes team Historie TransHeroes Vacatures Cases Kennisbank Nieuwsberichten Douane Tarieven Invoeraangifte Uitvoeraangifte Certificaat van Oorsprong EUR1/EUR-MED ATR document T1 document T2 document Inklaring Incoterms Douanedocumenten Incoterms Incoterms uitleg Incoterms 2020 TransPortal Over de TransPortal Inloggen TransPortal Prijs Berekenen TransHeroes voor slimme logistieke oplossingen Wegtransport, zeevracht, luchtvracht en douane. Wereldwijd geregeld met persoonlijk contact en realtime inzicht via de TransPortal. Prijs Berekenen Vragen of hulp nodig? Neem contact op met Roan, een van onze specialisten Roan Bolier Commercial Manager Open de live chat +31 (0)88 5220 599 Handige links Wegtransport Luchtvracht Zeevracht Douaneafhandeling Douane tarieven Jouw partner voor slimme logistiek Bij TransHeroes geloven we dat internati",
      "schemaTypes": [
       "website",
       "webpage",
@@ -2720,7 +2720,7 @@
       "storeSchema": false,
       "strongCommerceAction": false,
       "repeatedProductLinks": false,
-      "priceSignals": 2,
+      "priceSignals": 4,
       "product": null,
       "confirmedRetailPage": false
      },
@@ -5984,38 +5984,37 @@
    "customerProfile": null
   },
   "seo": {
-   "score": 93,
+   "score": 94,
    "grade": "A",
    "coverage": {
     "relevant": 26,
-    "confirmed": 24,
-    "unableToConfirm": 2,
+    "confirmed": 25,
+    "unableToConfirm": 1,
     "totalWeight": 148,
-    "assessedWeight": 138,
-    "coveragePercent": 93,
-    "highConfidencePercent": 83
+    "assessedWeight": 143,
+    "coveragePercent": 97,
+    "highConfidencePercent": 84
    },
    "checks": [
     {
      "key": "broken_links",
      "category": "seo",
      "title": "Broken links",
-     "status": "unable_to_confirm",
-     "message": "1 van 16 interne link(s) kon tijdens deze scan niet betrouwbaar worden opgehaald. Er is geen 404/410/5xx bewezen.",
-     "fix": "Controleer deze links opnieuw; een fetchfout alleen is geen bewijs van een kapotte link.",
-     "points": 0,
+     "status": "pass",
+     "message": "16 interne link(s) steekproefsgewijs gecontroleerd; geen 404, 410 of 5xx gevonden.",
+     "fix": "Blijf interne links controleren bij wijzigingen en verwijderde pagina's.",
+     "points": 5,
      "maxPoints": 5,
      "issue_id": "broken_links",
      "rule_id": "broken_links",
-     "issue_status": "UNABLE_TO_CONFIRM",
+     "issue_status": "PASS",
      "severity": "INFO",
-     "confidence": "low",
-     "reasonCode": "weak_evidence",
+     "confidence": "high",
      "impactClaim": "hygiene",
      "evidence": {
       "url": "https://www.transheroes.com/nl/",
-      "found": "discovered=51; checked=16; broken=0; sampleLimit=24; truncated=true",
-      "details": "1 van 16 interne link(s) kon tijdens deze scan niet betrouwbaar worden opgehaald. Er is geen 404/410/5xx bewezen."
+      "found": "discovered=52; checked=16; broken=0; sampleLimit=24; truncated=true",
+      "details": "16 interne link(s) steekproefsgewijs gecontroleerd; geen 404, 410 of 5xx gevonden."
      },
      "fix_category": "C"
     },
@@ -6036,7 +6035,7 @@
      "impactClaim": "hygiene",
      "evidence": {
       "url": "https://www.transheroes.com/nl/",
-      "found": "discovered=51; checked=16; redirected=0; sampleLimit=24; truncated=true",
+      "found": "discovered=52; checked=16; redirected=0; sampleLimit=24; truncated=true",
       "details": "16 interne link(s) gecontroleerd; geen doorgestuurde bestemmingen gevonden."
      },
      "fix_category": "C"
@@ -6267,7 +6266,7 @@
      "category": "seo",
      "title": "Contentdekking",
      "status": "pass",
-     "message": "Ongeveer 898 woorden gevonden op deze homepage. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld.",
+     "message": "Ongeveer 902 woorden gevonden op deze homepage. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld.",
      "fix": "Behoud nuttige, unieke content die de zoekintentie en klantvragen beantwoordt.",
      "points": 7,
      "maxPoints": 7,
@@ -6279,8 +6278,8 @@
      "impactClaim": "hygiene",
      "evidence": {
       "url": "https://www.transheroes.com/nl/",
-      "found": "wordCount=898; pageType=homepage; minimum=150; strong=250",
-      "details": "Ongeveer 898 woorden gevonden op deze homepage. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld."
+      "found": "wordCount=902; pageType=homepage; minimum=150; strong=250",
+      "details": "Ongeveer 902 woorden gevonden op deze homepage. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld."
      },
      "fix_category": "C"
     },
@@ -6333,7 +6332,7 @@
      "category": "seo",
      "title": "Server response",
      "status": "pass",
-     "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 88 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
+     "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 116 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
      "fix": "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.",
      "points": 5,
      "maxPoints": 5,
@@ -6345,8 +6344,8 @@
      "impactClaim": "hygiene",
      "evidence": {
       "url": "https://www.transheroes.com/nl/",
-      "found": 88,
-      "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 88 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
+      "found": 116,
+      "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 116 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
      },
      "fix_category": "C"
     },
@@ -7244,7 +7243,7 @@
      "impactClaim": "hygiene",
      "evidence": {
       "url": "https://www.transheroes.com/nl/",
-      "found": "metaDescription=true; wordCount=898; minimumVisibleWords=80; rendered=true",
+      "found": "metaDescription=true; wordCount=902; minimumVisibleWords=80; rendered=true",
       "details": "Een meta description en voldoende zichtbare paginatekst geven samen een concrete samenvatting van de pagina."
      },
      "fix_category": "C"
@@ -7301,10 +7300,10 @@
    "imageCount": 130,
    "imageElementCount": 22,
    "imagesMissingAlt": 2,
-   "wordCount": 898,
+   "wordCount": 902,
    "headingsCount": 41,
-   "linksCount": 115,
-   "internalLinks": 105,
+   "linksCount": 120,
+   "internalLinks": 110,
    "canonical": "https://www.transheroes.com/nl/",
    "lang": "nl-nl",
    "robots": "index, follow",
@@ -7391,22 +7390,21 @@
     "key": "broken_links",
     "category": "seo",
     "title": "Broken links",
-    "status": "unable_to_confirm",
-    "message": "1 van 16 interne link(s) kon tijdens deze scan niet betrouwbaar worden opgehaald. Er is geen 404/410/5xx bewezen.",
-    "fix": "Controleer deze links opnieuw; een fetchfout alleen is geen bewijs van een kapotte link.",
-    "points": 0,
+    "status": "pass",
+    "message": "16 interne link(s) steekproefsgewijs gecontroleerd; geen 404, 410 of 5xx gevonden.",
+    "fix": "Blijf interne links controleren bij wijzigingen en verwijderde pagina's.",
+    "points": 5,
     "maxPoints": 5,
     "issue_id": "broken_links",
     "rule_id": "broken_links",
-    "issue_status": "UNABLE_TO_CONFIRM",
+    "issue_status": "PASS",
     "severity": "INFO",
-    "confidence": "low",
-    "reasonCode": "weak_evidence",
+    "confidence": "high",
     "impactClaim": "hygiene",
     "evidence": {
      "url": "https://www.transheroes.com/nl/",
-     "found": "discovered=51; checked=16; broken=0; sampleLimit=24; truncated=true",
-     "details": "1 van 16 interne link(s) kon tijdens deze scan niet betrouwbaar worden opgehaald. Er is geen 404/410/5xx bewezen."
+     "found": "discovered=52; checked=16; broken=0; sampleLimit=24; truncated=true",
+     "details": "16 interne link(s) steekproefsgewijs gecontroleerd; geen 404, 410 of 5xx gevonden."
     },
     "fix_category": "C"
    },
@@ -7427,7 +7425,7 @@
     "impactClaim": "hygiene",
     "evidence": {
      "url": "https://www.transheroes.com/nl/",
-     "found": "discovered=51; checked=16; redirected=0; sampleLimit=24; truncated=true",
+     "found": "discovered=52; checked=16; redirected=0; sampleLimit=24; truncated=true",
      "details": "16 interne link(s) gecontroleerd; geen doorgestuurde bestemmingen gevonden."
     },
     "fix_category": "C"
@@ -7658,7 +7656,7 @@
     "category": "seo",
     "title": "Contentdekking",
     "status": "pass",
-    "message": "Ongeveer 898 woorden gevonden op deze homepage. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld.",
+    "message": "Ongeveer 902 woorden gevonden op deze homepage. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld.",
     "fix": "Behoud nuttige, unieke content die de zoekintentie en klantvragen beantwoordt.",
     "points": 7,
     "maxPoints": 7,
@@ -7670,8 +7668,8 @@
     "impactClaim": "hygiene",
     "evidence": {
      "url": "https://www.transheroes.com/nl/",
-     "found": "wordCount=898; pageType=homepage; minimum=150; strong=250",
-     "details": "Ongeveer 898 woorden gevonden op deze homepage. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld."
+     "found": "wordCount=902; pageType=homepage; minimum=150; strong=250",
+     "details": "Ongeveer 902 woorden gevonden op deze homepage. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld."
     },
     "fix_category": "C"
    },
@@ -7724,7 +7722,7 @@
     "category": "seo",
     "title": "Server response",
     "status": "pass",
-    "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 88 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
+    "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 116 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
     "fix": "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.",
     "points": 5,
     "maxPoints": 5,
@@ -7736,8 +7734,8 @@
     "impactClaim": "hygiene",
     "evidence": {
      "url": "https://www.transheroes.com/nl/",
-     "found": 88,
-     "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 88 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
+     "found": 116,
+     "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 116 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
     },
     "fix_category": "C"
    },
@@ -8620,7 +8618,7 @@
     "impactClaim": "hygiene",
     "evidence": {
      "url": "https://www.transheroes.com/nl/",
-     "found": "metaDescription=true; wordCount=898; minimumVisibleWords=80; rendered=true",
+     "found": "metaDescription=true; wordCount=902; minimumVisibleWords=80; rendered=true",
      "details": "Een meta description en voldoende zichtbare paginatekst geven samen een concrete samenvatting van de pagina."
     },
     "fix_category": "C"

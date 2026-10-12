@@ -6,8 +6,8 @@
   "mode": "both",
   "scannedUrl": "https://www.rijksoverheid.nl/",
   "finalUrl": "https://www.rijksoverheid.nl/",
-  "scannedAt": "2026-10-12T10:09:48.967Z",
-  "responseTime": 36,
+  "scannedAt": "2026-10-12T10:31:51.343Z",
+  "responseTime": 149,
   "httpStatus": 200,
   "overallScore": 100,
   "grade": "A",
@@ -68,7 +68,7 @@
    "mode": "javascript_rendered",
    "javascriptExecuted": true,
    "note": "RankFix heeft deze JavaScript-site in een begrensde browser gerenderd. Interactieve login-, winkelwagen- en betaalflows zijn niet uitgevoerd.",
-   "elapsedMs": 2257,
+   "elapsedMs": 2212,
    "fallbackReason": null,
    "warning": false,
    "evidenceSource": "rendered_html",
@@ -310,7 +310,7 @@
       "structureKey": "h4|a5|img2|form1|article0|table0|li5|schema5",
       "evidenceSource": "rendered_html",
       "score": 100,
-      "identityText": "Informatie van de Rijksoverheid | Rijksoverheid.nl Rijksoverheid.nl is de website van het Rijk met uitleg en nieuws over wet- en regelgeving van alle ministeries. Home Informatie van de Rijksoverheid | Rijksoverheid.nl Ga direct naar inhoud Naar de homepage van Rijksoverheid.nl Rijksoverheid Vul in wat u zoekt Home Beeld: © Hollandse Hoogte Veel bekeken Herfstvakantie scholen Formulier reizen met minderjarig kind naar het buitenland Eisen pasfoto voor paspoort of ID-kaart Aanpak schijnzelfstandigheid bij zzp'ers Bedragen minimumloon 2026 Menu Belastingen, uitkeringen en toeslagen AOW, Bijstand, WW-uitkering, WOZ-waarde, Inkomstenbelasting, WIA... Bouwen en wonen Woning huren, Huurwoning zoeken, Huis kopen, Energie thuis... Economie Financiële sector, Schulden, Koopkracht, Armoedebestrijding, Bescherming consument... Familie, zorg en gezondheid Kinderopvang, Scheiden of uit elkaar gaan, Ouderschapsverlof, Zorgverlof, Trouwen... Internationale samenwerking Oorlog in Oekraïne, Europese Unie, NAVO, Internationale sancties... Klimaat, milieu en natuur Stikstof, Duurzame energie, Klimaatverandering, Dierenwelzijn... Migratie en reizen Paspoort en identiteitskaart, Asielbeleid, Reizen met kinderen, Ambassades... Onderwijs Schoolvakanties, Hoger onderwijs, Schooladvies en doorstroomtoets... Overheid en democratie Privacy en persoonsgegevens, Grondwet, Prinsjesdag, Digitale overheid... Recht, veiligheid en defensie Dreiging in Nederland, Identiteitsfraude, Hulp bij juridisch probleem, Defensiepersoneel... Verkeer en vervoer Rijbewijs, Voertuigen op de weg, Verkeersveiligheid, Openbaar vervoer, Luchtvaart... Werk Minimumloon, Ontslag, Arbeidsovereenkomst en cao, Pensioen, Vakantiedagen en -geld... Onderwerpen A-Z Van ambassades tot zorgverzekering. Levensgebeurtenissen Regelzaken als er iets in uw leven verandert. Uitgelicht Actueel Nieuws, nieuwsbrieven en agenda. Lees verder Ministeries Informatie over alle ministeries. Lees verder Regering Bewindspersonen, ministerraad en regeerakkoord. Lees verder Direct naar Coronaprik krijgen Mensen die ernstig ziek kunnen worden van corona, kunnen tot en met 27 november een coronaprik halen. Beeld: © Ministerie van Algemene Zaken Lees verder Wie isoleert, profiteert Door je huis te isoleren bespaar je niet alleen energie, maar zit je er in de winter ook warmer bij. Lees hoe je dat aanpakt. Lees verder Laat je onderweg niet afleiden Zet je telefoon op 'Niet storen', 'Stil' of stop 'm weg. Hoe je ook vertrekt, vertrek MONO. Lees verder Nieuws De asielinstroom van week 41 bedroeg ongeveer 910 De asielinstroom van week 41, bestaande uit eerste asielaanvragen, herhaalde asielaanvragen, hervestiging, herplaatsing en ... 12-10-2026 10:43 Lees verder Kabinet zet werk centraal: in elke regio een Werkcentrum Wie werk zoekt, zijn baan dreigt te verliezen, wil bijscholen of personeel nodig heeft, hoeft niet meer langs allerlei loketten. ... 12-10-2026 9:35 Lees verder Nieuw stelsel maakt dierentuinen van deze tijd Het vergunningenstelsel voor dierentuinen gaat op de schop. Dierentuinen die vooroplopen moeten ruimte krijgen om te vernieuwen, ... 12-10-2026 9:30 Lees verder Nieuwe Denk vooruit ",
+      "identityText": "Informatie van de Rijksoverheid | Rijksoverheid.nl Rijksoverheid.nl is de website van het Rijk met uitleg en nieuws over wet- en regelgeving van alle ministeries. Home Informatie van de Rijksoverheid | Rijksoverheid.nl Ga direct naar inhoud Naar de homepage van Rijksoverheid.nl Rijksoverheid Vul in wat u zoekt Home Beeld: © Hollandse Hoogte Veel bekeken Herfstvakantie scholen Formulier reizen met minderjarig kind naar het buitenland Eisen pasfoto voor paspoort of ID-kaart Aanpak schijnzelfstandigheid bij zzp'ers Bedragen minimumloon 2026 Menu Belastingen, uitkeringen en toeslagen AOW, Bijstand, WW-uitkering, WOZ-waarde, Inkomstenbelasting, WIA... Bouwen en wonen Woning huren, Huurwoning zoeken, Huis kopen, Energie thuis... Economie Financiële sector, Schulden, Koopkracht, Armoedebestrijding, Bescherming consument... Familie, zorg en gezondheid Kinderopvang, Scheiden of uit elkaar gaan, Ouderschapsverlof, Zorgverlof, Trouwen... Internationale samenwerking Oorlog in Oekraïne, Europese Unie, NAVO, Internationale sancties... Klimaat, milieu en natuur Stikstof, Duurzame energie, Klimaatverandering, Dierenwelzijn... Migratie en reizen Paspoort en identiteitskaart, Asielbeleid, Reizen met kinderen, Ambassades... Onderwijs Schoolvakanties, Hoger onderwijs, Schooladvies en doorstroomtoets... Overheid en democratie Privacy en persoonsgegevens, Grondwet, Prinsjesdag, Digitale overheid... Recht, veiligheid en defensie Dreiging in Nederland, Identiteitsfraude, Hulp bij juridisch probleem, Defensiepersoneel... Verkeer en vervoer Rijbewijs, Voertuigen op de weg, Verkeersveiligheid, Openbaar vervoer, Luchtvaart... Werk Minimumloon, Ontslag, Arbeidsovereenkomst en cao, Pensioen, Vakantiedagen en -geld... Onderwerpen A-Z Van ambassades tot zorgverzekering. Levensgebeurtenissen Regelzaken als er iets in uw leven verandert. Uitgelicht Actueel Nieuws, nieuwsbrieven en agenda. Lees verder Ministeries Informatie over alle ministeries. Lees verder Regering Bewindspersonen, ministerraad en regeerakkoord. Lees verder Direct naar Coronaprik krijgen Mensen die ernstig ziek kunnen worden van corona, kunnen tot en met 27 november een coronaprik halen. Beeld: © Ministerie van Algemene Zaken Lees verder Wie isoleert, profiteert Door je huis te isoleren bespaar je niet alleen energie, maar zit je er in de winter ook warmer bij. Lees hoe je dat aanpakt. Lees verder Kies biologisch Biologisch voedsel is beter voor de bodem, het water en de biodiversiteit. En dat proef je. Kies daarom ook biologisch. Lees verder Nieuws De asielinstroom van week 41 bedroeg ongeveer 910 De asielinstroom van week 41, bestaande uit eerste asielaanvragen, herhaalde asielaanvragen, hervestiging, herplaatsing en ... 12-10-2026 10:43 Lees verder Kabinet zet werk centraal: in elke regio een Werkcentrum Wie werk zoekt, zijn baan dreigt te verliezen, wil bijscholen of personeel nodig heeft, hoeft niet meer langs allerlei loketten. ... 12-10-2026 9:35 Lees verder Nieuw stelsel maakt dierentuinen van deze tijd Het vergunningenstelsel voor dierentuinen gaat op de schop. Dierentuinen die vooroplopen moeten ruimte krijgen om te vernieuwen, ... 12-10-2026 9:30 Lees verder Nieuwe ",
       "schemaTypes": [
        "website",
        "governmentorganization",
@@ -2368,7 +2368,7 @@
      "structureKey": "h4|a5|img2|form1|article0|table0|li5|schema5",
      "evidenceSource": "rendered_html",
      "score": 100,
-     "identityText": "Informatie van de Rijksoverheid | Rijksoverheid.nl Rijksoverheid.nl is de website van het Rijk met uitleg en nieuws over wet- en regelgeving van alle ministeries. Home Informatie van de Rijksoverheid | Rijksoverheid.nl Ga direct naar inhoud Naar de homepage van Rijksoverheid.nl Rijksoverheid Vul in wat u zoekt Home Beeld: © Hollandse Hoogte Veel bekeken Herfstvakantie scholen Formulier reizen met minderjarig kind naar het buitenland Eisen pasfoto voor paspoort of ID-kaart Aanpak schijnzelfstandigheid bij zzp'ers Bedragen minimumloon 2026 Menu Belastingen, uitkeringen en toeslagen AOW, Bijstand, WW-uitkering, WOZ-waarde, Inkomstenbelasting, WIA... Bouwen en wonen Woning huren, Huurwoning zoeken, Huis kopen, Energie thuis... Economie Financiële sector, Schulden, Koopkracht, Armoedebestrijding, Bescherming consument... Familie, zorg en gezondheid Kinderopvang, Scheiden of uit elkaar gaan, Ouderschapsverlof, Zorgverlof, Trouwen... Internationale samenwerking Oorlog in Oekraïne, Europese Unie, NAVO, Internationale sancties... Klimaat, milieu en natuur Stikstof, Duurzame energie, Klimaatverandering, Dierenwelzijn... Migratie en reizen Paspoort en identiteitskaart, Asielbeleid, Reizen met kinderen, Ambassades... Onderwijs Schoolvakanties, Hoger onderwijs, Schooladvies en doorstroomtoets... Overheid en democratie Privacy en persoonsgegevens, Grondwet, Prinsjesdag, Digitale overheid... Recht, veiligheid en defensie Dreiging in Nederland, Identiteitsfraude, Hulp bij juridisch probleem, Defensiepersoneel... Verkeer en vervoer Rijbewijs, Voertuigen op de weg, Verkeersveiligheid, Openbaar vervoer, Luchtvaart... Werk Minimumloon, Ontslag, Arbeidsovereenkomst en cao, Pensioen, Vakantiedagen en -geld... Onderwerpen A-Z Van ambassades tot zorgverzekering. Levensgebeurtenissen Regelzaken als er iets in uw leven verandert. Uitgelicht Actueel Nieuws, nieuwsbrieven en agenda. Lees verder Ministeries Informatie over alle ministeries. Lees verder Regering Bewindspersonen, ministerraad en regeerakkoord. Lees verder Direct naar Coronaprik krijgen Mensen die ernstig ziek kunnen worden van corona, kunnen tot en met 27 november een coronaprik halen. Beeld: © Ministerie van Algemene Zaken Lees verder Wie isoleert, profiteert Door je huis te isoleren bespaar je niet alleen energie, maar zit je er in de winter ook warmer bij. Lees hoe je dat aanpakt. Lees verder Laat je onderweg niet afleiden Zet je telefoon op 'Niet storen', 'Stil' of stop 'm weg. Hoe je ook vertrekt, vertrek MONO. Lees verder Nieuws De asielinstroom van week 41 bedroeg ongeveer 910 De asielinstroom van week 41, bestaande uit eerste asielaanvragen, herhaalde asielaanvragen, hervestiging, herplaatsing en ... 12-10-2026 10:43 Lees verder Kabinet zet werk centraal: in elke regio een Werkcentrum Wie werk zoekt, zijn baan dreigt te verliezen, wil bijscholen of personeel nodig heeft, hoeft niet meer langs allerlei loketten. ... 12-10-2026 9:35 Lees verder Nieuw stelsel maakt dierentuinen van deze tijd Het vergunningenstelsel voor dierentuinen gaat op de schop. Dierentuinen die vooroplopen moeten ruimte krijgen om te vernieuwen, ... 12-10-2026 9:30 Lees verder Nieuwe Denk vooruit ",
+     "identityText": "Informatie van de Rijksoverheid | Rijksoverheid.nl Rijksoverheid.nl is de website van het Rijk met uitleg en nieuws over wet- en regelgeving van alle ministeries. Home Informatie van de Rijksoverheid | Rijksoverheid.nl Ga direct naar inhoud Naar de homepage van Rijksoverheid.nl Rijksoverheid Vul in wat u zoekt Home Beeld: © Hollandse Hoogte Veel bekeken Herfstvakantie scholen Formulier reizen met minderjarig kind naar het buitenland Eisen pasfoto voor paspoort of ID-kaart Aanpak schijnzelfstandigheid bij zzp'ers Bedragen minimumloon 2026 Menu Belastingen, uitkeringen en toeslagen AOW, Bijstand, WW-uitkering, WOZ-waarde, Inkomstenbelasting, WIA... Bouwen en wonen Woning huren, Huurwoning zoeken, Huis kopen, Energie thuis... Economie Financiële sector, Schulden, Koopkracht, Armoedebestrijding, Bescherming consument... Familie, zorg en gezondheid Kinderopvang, Scheiden of uit elkaar gaan, Ouderschapsverlof, Zorgverlof, Trouwen... Internationale samenwerking Oorlog in Oekraïne, Europese Unie, NAVO, Internationale sancties... Klimaat, milieu en natuur Stikstof, Duurzame energie, Klimaatverandering, Dierenwelzijn... Migratie en reizen Paspoort en identiteitskaart, Asielbeleid, Reizen met kinderen, Ambassades... Onderwijs Schoolvakanties, Hoger onderwijs, Schooladvies en doorstroomtoets... Overheid en democratie Privacy en persoonsgegevens, Grondwet, Prinsjesdag, Digitale overheid... Recht, veiligheid en defensie Dreiging in Nederland, Identiteitsfraude, Hulp bij juridisch probleem, Defensiepersoneel... Verkeer en vervoer Rijbewijs, Voertuigen op de weg, Verkeersveiligheid, Openbaar vervoer, Luchtvaart... Werk Minimumloon, Ontslag, Arbeidsovereenkomst en cao, Pensioen, Vakantiedagen en -geld... Onderwerpen A-Z Van ambassades tot zorgverzekering. Levensgebeurtenissen Regelzaken als er iets in uw leven verandert. Uitgelicht Actueel Nieuws, nieuwsbrieven en agenda. Lees verder Ministeries Informatie over alle ministeries. Lees verder Regering Bewindspersonen, ministerraad en regeerakkoord. Lees verder Direct naar Coronaprik krijgen Mensen die ernstig ziek kunnen worden van corona, kunnen tot en met 27 november een coronaprik halen. Beeld: © Ministerie van Algemene Zaken Lees verder Wie isoleert, profiteert Door je huis te isoleren bespaar je niet alleen energie, maar zit je er in de winter ook warmer bij. Lees hoe je dat aanpakt. Lees verder Kies biologisch Biologisch voedsel is beter voor de bodem, het water en de biodiversiteit. En dat proef je. Kies daarom ook biologisch. Lees verder Nieuws De asielinstroom van week 41 bedroeg ongeveer 910 De asielinstroom van week 41, bestaande uit eerste asielaanvragen, herhaalde asielaanvragen, hervestiging, herplaatsing en ... 12-10-2026 10:43 Lees verder Kabinet zet werk centraal: in elke regio een Werkcentrum Wie werk zoekt, zijn baan dreigt te verliezen, wil bijscholen of personeel nodig heeft, hoeft niet meer langs allerlei loketten. ... 12-10-2026 9:35 Lees verder Nieuw stelsel maakt dierentuinen van deze tijd Het vergunningenstelsel voor dierentuinen gaat op de schop. Dierentuinen die vooroplopen moeten ruimte krijgen om te vernieuwen, ... 12-10-2026 9:30 Lees verder Nieuwe ",
      "schemaTypes": [
       "website",
       "governmentorganization",
@@ -4567,14 +4567,12 @@
      },
      "lodging": {
       "shortStay": {
-       "value": true,
-       "confidence": "medium",
+       "value": false,
+       "confidence": "low",
        "sources": [
         "rendered_html"
        ],
-       "evidence": [
-        "Kort-verblijf tekstsignaal gevonden"
-       ]
+       "evidence": []
       },
       "bedBreakfast": {
        "value": false,
@@ -4609,14 +4607,12 @@
        "evidence": []
       },
       "stayDates": {
-       "value": true,
-       "confidence": "medium",
+       "value": false,
+       "confidence": "low",
        "sources": [
         "rendered_html"
        ],
-       "evidence": [
-        "Aankomst/vertrek gevonden"
-       ]
+       "evidence": []
       },
       "guests": {
        "value": true,
@@ -5222,8 +5218,8 @@
    "confirmationStatus": "unable_to_confirm",
    "language": "nl",
    "pageLanguage": "nl",
-   "intent": "commercial-transactional",
-   "campaignGoal": "leads",
+   "intent": "ambiguous",
+   "campaignGoal": null,
    "targetArea": null,
    "targetCountries": [],
    "adLanguages": [
@@ -5667,7 +5663,7 @@
      "category": "seo",
      "title": "Server response",
      "status": "pass",
-     "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 36 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
+     "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 149 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
      "fix": "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.",
      "points": 5,
      "maxPoints": 5,
@@ -5679,8 +5675,8 @@
      "impactClaim": "hygiene",
      "evidence": {
       "url": "https://www.rijksoverheid.nl/",
-      "found": 36,
-      "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 36 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
+      "found": 149,
+      "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 149 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
      },
      "fix_category": "C"
     },
@@ -6535,7 +6531,7 @@
      "impactClaim": "hygiene",
      "evidence": {
       "url": "https://www.rijksoverheid.nl/",
-      "found": "author=false; ecommerceExpertise=false; organizationExpertise=true; localServiceExpertise=true",
+      "found": "author=false; ecommerceExpertise=false; organizationExpertise=true; localServiceExpertise=false",
       "details": "Een individuele auteur is niet vereist op een organisatie-, dienst- of merkhomepage. Auteurschap en expertise horen vooral op informatieve artikelen en adviescontent te worden beoordeeld."
      },
      "fix_category": "C"
@@ -6674,7 +6670,7 @@
     "scarcityClaim": false,
     "scarcityExamples": [],
     "personalizedPricingDisclosure": false,
-    "businessIdentityVisible": true,
+    "businessIdentityVisible": false,
     "businessContactVisible": true,
     "legalConclusion": false
    },
@@ -7041,7 +7037,7 @@
     "category": "seo",
     "title": "Server response",
     "status": "pass",
-    "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 36 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
+    "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 149 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
     "fix": "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.",
     "points": 5,
     "maxPoints": 5,
@@ -7053,8 +7049,8 @@
     "impactClaim": "hygiene",
     "evidence": {
      "url": "https://www.rijksoverheid.nl/",
-     "found": 36,
-     "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 36 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
+     "found": 149,
+     "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 149 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
     },
     "fix_category": "C"
    },
@@ -7894,7 +7890,7 @@
     "impactClaim": "hygiene",
     "evidence": {
      "url": "https://www.rijksoverheid.nl/",
-     "found": "author=false; ecommerceExpertise=false; organizationExpertise=true; localServiceExpertise=true",
+     "found": "author=false; ecommerceExpertise=false; organizationExpertise=true; localServiceExpertise=false",
      "details": "Een individuele auteur is niet vereist op een organisatie-, dienst- of merkhomepage. Auteurschap en expertise horen vooral op informatieve artikelen en adviescontent te worden beoordeeld."
     },
     "fix_category": "C"
