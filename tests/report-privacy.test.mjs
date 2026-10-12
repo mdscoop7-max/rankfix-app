@@ -20,9 +20,9 @@ test("regular product and root URLs remain usable; signed media URLs lose tokens
 test("short and full report export paths both sanitize and use the check-level summary", async () => {
   const publicPage=await readFile(new URL("../app/page.tsx",import.meta.url),"utf8");
   const fullPage=await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx",import.meta.url),"utf8");
-  assert.match(publicPage,/return redactReportText\\(lines\\.join\\("\\\\n"\\)\\)/);
-  assert.match(publicPage,/const summary = summaryFromChecks\\(/);
-  assert.match(fullPage,/return redactReportText\\(\\[\\.\\.\\.root\\.children\\]/);
-  assert.match(fullPage,/publicReportUrl\\(page\\.url\\)/);
-  assert.match(fullPage,/HTTP-fouten in de paginasteekproef/);
+  assert.ok(publicPage.includes("return redactReportText(lines.join("));
+  assert.ok(publicPage.includes("const summary = summaryFromChecks("));
+  assert.ok(fullPage.includes("return redactReportText([...root.children]"));
+  assert.ok(fullPage.includes("publicReportUrl(page.url)"));
+  assert.ok(fullPage.includes("HTTP-fouten in de paginasteekproef"));
 });
