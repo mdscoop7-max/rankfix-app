@@ -28,6 +28,7 @@ import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } fr
 import { articleSchemaPage, declaredIdentityGovernsPage, declaredPrimaryIdentity } from "@/lib/primary-identity";
 import { detectCookieInformation } from "@/lib/cookie-evidence";
 import { presentScore } from "@/lib/score-presentation";
+import { extractGoogleTagIds } from "@/lib/google-tag-ids";
 const BOOKING_IDENTITY_PATTERN = /\b(?:reserveer|reserveren|reservering|boek(?:en)?|booking|book now|afspraak maken|maak een afspraak|online afspraak|plan (?:je|uw) afspraak|appointment|termin buchen|réserver|reservar|prenota)\b/i;
 import { FOOD_MENU_PATTERN, TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes } from "@/lib/sector-identity";
 
@@ -2386,22 +2387,14 @@ export async function POST(request: Request) {
     const organizationSchemaPresent = hasOrganizationSchema(schemaTypes);
     const websiteSchemaPresent = schemaSet.has("website");
     const productSchemaPresent = schemaSet.has("product");
-    // Google tag IDs are upper case. Case-insensitive matching turned CSS
-    // classes such as "g-recaptcha" or "gtm-banner" into GA4/GTM IDs. A GA4
-    // measurement ID also contains at least one digit; IDs start the token.
-    const ga4MeasurementIds = [...new Set(html.match(/(?<![\w-])G-(?=[A-Z0-9]*\d)[A-Z0-9]{6,12}\b/g) || [])];
-    const googleAdsIds = [...new Set(html.match(/(?<![\w-])AW-\d[0-9-]*\b/g) || [])];
-    const gtmContainerIds = [...new Set(html.match(/(?<![\w-])GTM-[A-Z0-9]{4,10}\b/g) || [])];
+    // Google tag IDs are recognised centrally (lib/google-tag-ids.ts): exact
+    // upper-case shape and a tag context only, so CSS classes such as
+    // "g-recaptcha" or body text can never become GA4/Ads/GTM IDs.
+    const { ga4MeasurementIds, googleAdsIds, gtmContainerIds, configuredGa4Ids, configuredAdsIds } = extractGoogleTagIds(html);
     const hasGtagLoader = /googletagmanager\.com\/gtag\/js/i.test(html);
     // Server-side / first-party GTM serves the same container from the site's own
     // (sub)domain: /gtm.js?id=GTM-... or the /ns.html?id=GTM-... noscript iframe.
     const hasGtmLoader = /googletagmanager\.com\/gtm\.js/i.test(html) || /\/(?:gtm\.js|ns\.html)\?id=GTM-[A-Z0-9]{4,}/i.test(html);
-    const configuredGa4Ids = [...new Set(
-      [...html.matchAll(/gtag\s*\(\s*["']config["']\s*,\s*["'](G-[A-Z0-9]{6,})["']/gi)].map((match) => match[1].toUpperCase())
-    )];
-    const configuredAdsIds = [...new Set(
-      [...html.matchAll(/gtag\s*\(\s*["']config["']\s*,\s*["'](AW-[0-9-]+)["']/gi)].map((match) => match[1].toUpperCase())
-    )];
     const hasGa4 = ga4MeasurementIds.length > 0 && (hasGtagLoader || configuredGa4Ids.length > 0 || hasGtmLoader);
     const hasGoogleAdsTag = googleAdsIds.length > 0 && (hasGtagLoader || configuredAdsIds.length > 0 || hasGtmLoader);
     const hasGtm = gtmContainerIds.length > 0 && hasGtmLoader;
@@ -3534,7 +3527,8 @@ export async function POST(request: Request) {
       provisional: overallCoverage.coveragePercent < 90,
       note: "Niet te bevestigen verlaagt de score niet, maar blijft toepasselijk gewicht in de dekking. N.v.t. is uitgesloten. Het bereik toont de conservatieve en optimistische grens voor nog onbevestigd bewijs.",
     };
-    const scanSummary = summarizeAuditChecks(checks);
+    // Provisional; recomputed below once every check is final.
+    let scanSummary = summarizeAuditChecks(checks);
     const propertyListingPage = sectorProfile.sector === "real_estate" && (/\/(?:woningaanbod|residential-listings)\/(?:koop|huur|sale|rent)\//i.test(pathname) || /\b(?:te koop|te huur|for sale|for rent)\b/i.test(title));
     // Generic resolved-URL page intent: service/detail paths are evidence even when
     // the original input was a short/share URL. This runs on finalUrl only.
@@ -4680,6 +4674,10 @@ export async function POST(request: Request) {
     scoreModel.seoRange = scoreRange(selectedSeoChecks);
     scoreModel.geoRange = scoreRange(selectedGeoChecks);
     scoreModel.provisional = overallCoverage.coveragePercent < 90;
+    // The report summary is counted only now, after every SEO/GEO check and all
+    // supplementary evidence reconciliation (representative product pages,
+    // transient link statuses, …) are final. It always equals the detailed checks.
+    scanSummary = summarizeAuditChecks(checks);
 
     const classification = {
       websiteType,

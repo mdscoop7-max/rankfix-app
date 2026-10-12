@@ -29,15 +29,4 @@ test("public export carries the score status, never a bare provisional 100/100",
   assert.match(page, /presentation\.status === "provisional" \? copy\.provisional : copy\.confirmed/);
 });
 
-test("Google tag IDs: upper-case IDs only, never CSS classes like g-recaptcha", async () => {
-  const source = await route();
-  const grab = (name) => new RegExp(source.match(new RegExp(`const ${name} = \\[\\.\\.\\.new Set\\(html\\.match\\(\\/(.+?)\\/g\\) \\|\\| \\[\\]\\)\\];`))[1], "g");
-  const ga4 = grab("ga4MeasurementIds"), gtm = grab("gtmContainerIds"), ads = grab("googleAdsIds");
-  // Real scan (allbirds.de): ga4Ids=g-recaptcha was reported as a GA4 measurement ID.
-  assert.deepEqual('<div class="g-recaptcha" data-sitekey="x"></div>'.match(ga4), null);
-  assert.deepEqual('<div class="gtm-banner"></div>'.match(gtm), null);
-  assert.deepEqual("gtag('config','G-AB12CD34EF')".match(ga4), ["G-AB12CD34EF"]);
-  assert.deepEqual("ns.html?id=GTM-NDSZXXKK".match(gtm), ["GTM-NDSZXXKK"]);
-  assert.deepEqual("gtag('config','AW-123456789')".match(ads), ["AW-123456789"]);
-  assert.deepEqual("my-G-ABCDEF12 token".match(ga4), null, "not inside another token");
-});
+// Google tag ID recognition moved to lib/google-tag-ids.ts: see tests/google-tag-ids.test.mjs.

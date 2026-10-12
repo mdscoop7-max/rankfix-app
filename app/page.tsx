@@ -3,6 +3,7 @@ import Link from "next/link";
 import WebsiteProfile from "@/components/website-profile";
 import { ScoreEvidenceLines, resolveScorePresentation, scoreHeadline } from "@/components/score-confidence";
 import { scorePresentationCopy, type ScorePresentation } from "@/lib/score-presentation";
+import { summaryFromChecks } from "@/lib/audit-score";
 
 import { useEffect, useMemo, useState } from "react";
 import AiAssistant from "@/components/ai-assistant";
@@ -572,9 +573,11 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
       lines.push("Applicable modules: " + (sector.applicableModules || []).join(", "));
     }
     if (result.summary) {
-      lines.push("", "SUMMARY", "Passed: " + result.summary.passed, "Issues: " + result.summary.issues,
-        "Not applicable: " + result.summary.notApplicable, "Unable to confirm: " + result.summary.unableToConfirm,
-        "Pending fixes: " + result.summary.pendingFixes);
+      // Counted from the exact checks exported below, never from a stored total.
+      const summary = summaryFromChecks(result.mode === "seo" ? result.seo.checks : result.mode === "geo" ? result.geo.checks : [...result.seo.checks, ...result.geo.checks]);
+      lines.push("", "SUMMARY", "Passed: " + summary.passed, "Issues: " + summary.issues,
+        "Not applicable: " + summary.notApplicable, "Unable to confirm: " + summary.unableToConfirm,
+        "Pending fixes: " + summary.pendingFixes);
     }
     const m = result.metrics;
     if (m) {
@@ -710,7 +713,8 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
     const key = item.issue_id || item.key;
     return (item.status === "fail" || item.status === "warning") && item.fix_status !== "WAITING" && !githubResults[key];
   }), [summaryChecks, githubResults]);
-  const passedCount = result?.summary?.passed ?? summaryChecks.filter((item) => item.status === "pass").length;
+  // Derived from the displayed checks so the headline count always matches the list.
+  const passedCount = summaryFromChecks(summaryChecks).passed;
   const preparedCount = summaryChecks.filter((item) => {
     const key = item.issue_id || item.key;
     return item.fix_status === "WAITING" || Boolean(githubResults[key]);
