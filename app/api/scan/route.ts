@@ -188,7 +188,7 @@ function normalizeScanUrl(value: string) {
 }
 
 type TechnologyProfile = {
-  siteType: "Webshop" | "Landingpage" | "Website";
+  siteType: "Webshop" | "Landingpage" | "Website" | "Betaaldienstverlener";
   cms: string | null;
   commercePlatform: string | null;
   framework: string | null;
