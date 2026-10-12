@@ -1,22 +1,114 @@
 [
-  {"kind": "webshop home (Next.js)", "url": "https://www.coolblue.nl/"},
-  {"kind": "productpagina", "url": "https://www.coolblue.nl/product/945890/bosch-wgg244flnl-i-dos.html"},
-  {"kind": "categoriepagina", "url": "https://www.coolblue.nl/wasmachines/bosch/bosch-serie-6/coolblues-keuze"},
-  {"kind": "webshop home (bot)", "url": "https://www.zalando.de/"},
-  {"kind": "webshop home", "url": "https://www.expert.nl/"},
-  {"kind": "webshop home", "url": "https://www.ikea.com/nl/nl/"},
-  {"kind": "productpagina", "url": "https://www.ikea.com/nl/nl/p/billy-boekenkast-wit-00263850/"},
-  {"kind": "Shopify home", "url": "https://allbirds.de/"},
-  {"kind": "Shopify product", "url": "https://allbirds.de/products/w-tree-runner-freizeitschuhe-960tr3wkww0027"},
-  {"kind": "WooCommerce? home", "url": "https://www.bksmeubelen.nl/"},
-  {"kind": "WooCommerce? product", "url": "https://www.bksmeubelen.nl/product/dressoir-2-deurs/"},
-  {"kind": "zorgpraktijk (WP)", "url": "https://www.acupunctuurdijkstra.nl/"},
-  {"kind": "dienstverlener (Nuxt)", "url": "https://www.transheroes.com/nl/"},
-  {"kind": "artikel (blog)", "url": "https://www.frankwatching.com/archive/2026/10/12/information-gain-content-toegevoegde-waarde/"},
-  {"kind": "artikel (nieuws)", "url": "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-prijzen-in-supermarkt-na-it-incident-bij-albert-heijn"},
-  {"kind": "nieuwssite (WP)", "url": "https://www.racesport.nl/"},
-  {"kind": "overheid", "url": "https://www.rijksoverheid.nl/"},
-  {"kind": "SaaS", "url": "https://www.moneybird.nl/"},
-  {"kind": "vacatures", "url": "https://www.nationalevacaturebank.nl/"},
-  {"kind": "recreatie", "url": "https://www.efteling.com/nl"}
+ {
+  "kind": "webshop home (Next.js)",
+  "url": "https://www.coolblue.nl/"
+ },
+ {
+  "kind": "productpagina",
+  "url": "https://www.coolblue.nl/product/945890/bosch-wgg244flnl-i-dos.html"
+ },
+ {
+  "kind": "categoriepagina",
+  "url": "https://www.coolblue.nl/wasmachines/bosch/bosch-serie-6/coolblues-keuze"
+ },
+ {
+  "kind": "webshop home (bot)",
+  "url": "https://www.zalando.de/"
+ },
+ {
+  "kind": "webshop home",
+  "url": "https://www.expert.nl/"
+ },
+ {
+  "kind": "webshop home",
+  "url": "https://www.ikea.com/nl/nl/"
+ },
+ {
+  "kind": "productpagina",
+  "url": "https://www.ikea.com/nl/nl/p/billy-boekenkast-wit-00263850/"
+ },
+ {
+  "kind": "Shopify home",
+  "url": "https://allbirds.de/"
+ },
+ {
+  "kind": "Shopify product",
+  "url": "https://allbirds.de/products/w-tree-runner-freizeitschuhe-960tr3wkww0027"
+ },
+ {
+  "kind": "WooCommerce? home",
+  "url": "https://www.bksmeubelen.nl/"
+ },
+ {
+  "kind": "WooCommerce? product",
+  "url": "https://www.bksmeubelen.nl/product/dressoir-2-deurs/"
+ },
+ {
+  "kind": "zorgpraktijk (WP)",
+  "url": "https://www.acupunctuurdijkstra.nl/"
+ },
+ {
+  "kind": "dienstverlener (Nuxt)",
+  "url": "https://www.transheroes.com/nl/"
+ },
+ {
+  "kind": "artikel (blog)",
+  "url": "https://www.frankwatching.com/archive/2026/10/12/information-gain-content-toegevoegde-waarde/"
+ },
+ {
+  "kind": "artikel (nieuws)",
+  "url": "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-prijzen-in-supermarkt-na-it-incident-bij-albert-heijn"
+ },
+ {
+  "kind": "nieuwssite (WP)",
+  "url": "https://www.racesport.nl/"
+ },
+ {
+  "kind": "overheid",
+  "url": "https://www.rijksoverheid.nl/"
+ },
+ {
+  "kind": "SaaS",
+  "url": "https://www.moneybird.nl/"
+ },
+ {
+  "kind": "vacatures",
+  "url": "https://www.nationalevacaturebank.nl/"
+ },
+ {
+  "kind": "recreatie",
+  "url": "https://www.efteling.com/nl"
+ },
+ {
+  "kind": "nieuwssite home",
+  "url": "https://www.nu.nl/"
+ },
+ {
+  "kind": "SaaS",
+  "url": "https://www.exact.com/nl"
+ },
+ {
+  "kind": "vacatures",
+  "url": "https://www.werkzoeken.nl/"
+ },
+ {
+  "kind": "museum",
+  "url": "https://www.rijksmuseum.nl/nl"
+ },
+ {
+  "kind": "dierentuin",
+  "url": "https://www.diergaardeblijdorp.nl/"
+ },
+ {
+  "kind": "gemeente",
+  "url": "https://www.amsterdam.nl/"
+ },
+ {
+  "kind": "ziekenhuis",
+  "url": "https://www.umcutrecht.nl/nl"
+ },
+ {
+  "kind": "transport/post",
+  "url": "https://www.postnl.nl/"
+ }
 ]

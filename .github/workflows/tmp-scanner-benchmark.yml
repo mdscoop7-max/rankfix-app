@@ -20,8 +20,15 @@ jobs:
   bench:
     runs-on: ubuntu-latest
     timeout-minutes: 150
+    # Before (PR #127) and after (fix branch), one at a time: never two scans
+    # of the same site in parallel.
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        sha: [b2a8280bd0a6c5c19bbbedd99b4762574239db0d, e549e3921b7daf853ac70d7a4e8c9c431c133e60]
     env:
-      PR127_SHA: b2a8280bd0a6c5c19bbbedd99b4762574239db0d
+      PR127_SHA: ${{ matrix.sha }}
       DATABASE_URL: postgresql://rankfix:rankfix-bench@127.0.0.1:5432/rankfix_bench
       SESSION_SECRET: benchmark-only-secret-not-used-anywhere-else
       APP_URL: http://127.0.0.1:3100
@@ -90,7 +97,7 @@ jobs:
           errors=$(grep -c "RankFix scan failed" server.log || true)
           renderfail=$(grep -ci "render failed\|BROWSER_UNAVAILABLE" server.log || true)
           node scripts/regression/benchmark-report.mjs benchmark-results/bench.json benchmark-results/report.md \
-            "Code onder test: PR #127 \`${PR127_SHA:0:7}\` · lokaal gestart op GitHub-runner (ubuntu, Node 24) met lege wegwerp-database · browser: ${BROWSER_SOURCE} · anonieme publieke scan, 1 tegelijk, 15 s pauze · serverlog: ${errors} interne scanfouten, ${renderfail} render-meldingen"
+            "Code onder test: \`${PR127_SHA:0:7}\` · lokaal gestart op GitHub-runner (ubuntu, Node 24) met lege wegwerp-database · browser: ${BROWSER_SOURCE} · anonieme publieke scan, 1 tegelijk, 15 s pauze · serverlog: ${errors} interne scanfouten, ${renderfail} render-meldingen"
           grep -iE "scan failed|render failed|BROWSER_UNAVAILABLE|error" server.log | head -60 > benchmark-results/server-errors.txt || true
       - name: Save results on this temporary branch
         if: always()
@@ -100,4 +107,4 @@ jobs:
           rm -f benchmark-results/bench-${PR127_SHA:0:7}.json; cp benchmark-results/bench.json benchmark-results/bench-${PR127_SHA:0:7}.json; cp benchmark-results/report.md benchmark-results/report-${PR127_SHA:0:7}.md
           git add -f benchmark-results
           git commit -m "Benchmark results ${GITHUB_RUN_ID}" || exit 0
-          git push origin HEAD:ci/pr127-preview-smoke
+          for i in 1 2 3; do git pull --rebase -q origin ci/pr127-preview-smoke && git push origin HEAD:ci/pr127-preview-smoke && break; sleep 5; done
