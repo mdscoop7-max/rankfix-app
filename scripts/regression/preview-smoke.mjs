@@ -40,7 +40,10 @@ for (const [index, url] of urls.entries()) {
   const durationMs = Date.now() - started;
   const s = snapshotFromScan({ httpStatus, body, durationMs, timedOut: note === "TimeoutError" });
   const failures = s.findings.filter((f) => f.status === "FAIL").map((f) => `${f.rule}${f.confidence === "low" ? "?" : ""}`);
-  rows.push({ url, httpStatus, s, failures, note, error: body?.error || body?.code || "" });
+  const rawError = body?.error ?? body?.code ?? "";
+  const error = typeof rawError === "string" ? rawError : rawError?.code || rawError?.message || JSON.stringify(rawError).slice(0, 80);
+  if (httpStatus === 401 && !note) note = "preview beveiligd (Vercel Deployment Protection)";
+  rows.push({ url, httpStatus, s, failures, note, error });
   console.log(`${url}: HTTP ${httpStatus} ${s.outcome} ${Math.round(durationMs / 1000)}s ${note}`);
   if (index < urls.length - 1) await new Promise((r) => setTimeout(r, pauseMs));
 }
