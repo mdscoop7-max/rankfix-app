@@ -1,5 +1,5 @@
-import { provisionalScoreMessage } from "@/lib/score-provisional";
 "use client";
+import { provisionalScoreMessage } from "@/lib/score-provisional";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";

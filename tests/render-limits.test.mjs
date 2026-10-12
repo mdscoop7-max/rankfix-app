@@ -37,5 +37,5 @@ test("scan routing enforces a bounded serverless browser",async()=>{
   assert.match(route,/const renderBudget = createRenderBudget\(\);/);
   const calls=[...route.matchAll(/renderPublicPage\(([^;]*)\);/g)].map(m=>m[1]);
   assert.equal(calls.length,6);
-  assert.ok(calls.every(args=>/renderBudget\)$/.test(args.trim())));
+  assert.ok(calls.every(args=>/renderBudget$/.test(args.trim())));
 });
