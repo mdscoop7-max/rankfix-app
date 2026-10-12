@@ -1,0 +1,8 @@
+npm test exit 0
+npm run lint exit 1
+/home/runner/work/rankfix-app/rankfix-app/app127/tests/sector-identity.test.mjs
+  171:10  error  Do not assign to the variable `module`. See: https://nextjs.org/docs/messages/no-assign-module-variable  @next/next/no-assign-module-variable
+
+✖ 110 problems (70 errors, 40 warnings)
+
+npm run build: success (step 'Install and build')
