@@ -26,7 +26,7 @@ jobs:
       max-parallel: 1
       fail-fast: false
       matrix:
-        sha: [b2a8280bd0a6c5c19bbbedd99b4762574239db0d, e549e3921b7daf853ac70d7a4e8c9c431c133e60]
+        sha: [e549e3921b7daf853ac70d7a4e8c9c431c133e60]
     env:
       PR127_SHA: ${{ matrix.sha }}
       DATABASE_URL: postgresql://rankfix:rankfix-bench@127.0.0.1:5432/rankfix_bench
@@ -105,6 +105,6 @@ jobs:
           git config user.name "rankfix-benchmark"
           git config user.email "noreply@github.com"
           rm -f benchmark-results/bench-${PR127_SHA:0:7}.json; cp benchmark-results/bench.json benchmark-results/bench-${PR127_SHA:0:7}.json; cp benchmark-results/report.md benchmark-results/report-${PR127_SHA:0:7}.md
-          git add -f benchmark-results
+          git add -f benchmark-results/raw-${PR127_SHA:0:7} benchmark-results/bench-${PR127_SHA:0:7}.json benchmark-results/report-${PR127_SHA:0:7}.md
           git commit -m "Benchmark results ${GITHUB_RUN_ID}" || exit 0
           for i in 1 2 3; do git pull --rebase -q origin ci/pr127-preview-smoke && git push origin HEAD:ci/pr127-preview-smoke && break; sleep 5; done
