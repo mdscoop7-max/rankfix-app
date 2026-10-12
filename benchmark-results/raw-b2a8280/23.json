@@ -1,7 +1,0 @@
-{
- "url": "https://www.werkzoeken.nl/",
- "body": {
-  "error": "Website kon niet betrouwbaar worden geanalyseerd. De server leverde een tussen-, challenge- of routingpagina in plaats van de verwachte website. Er is daarom geen score berekend.",
-  "charged": false
- }
-}

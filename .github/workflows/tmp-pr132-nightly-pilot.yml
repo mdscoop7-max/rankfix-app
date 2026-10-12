@@ -1,0 +1,102 @@
+name: TIJDELIJK nachtpilot PR #132 (read-only)
+
+# Temporary test branch only (ci/pr132-nightly-pilot), never merged.
+# Builds main (before) and PR #132 (after) one after the other, starts each
+# locally on the runner with an empty throwaway PostgreSQL, and runs real
+# anonymous public scans of the pilot + review sites one at a time.
+# No Vercel, no production database, no production change.
+on:
+  push:
+    branches: [ci/pr132-nightly-pilot]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tmp-pr132-nightly-pilot
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        include:
+          - label: before-main
+            sha: 82d47e3bdc2f000a2b1c9f1f2e9f859f24507b3e
+          - label: after-pr132
+            sha: 9c248c60b21146940d94f664333b6c642fa2e191
+    env:
+      SHA: ${{ matrix.sha }}
+      LABEL: ${{ matrix.label }}
+      DATABASE_URL: postgresql://rankfix:rankfix-pilot@127.0.0.1:5432/rankfix_pilot
+      SESSION_SECRET: pilot-only-secret-not-used-anywhere-else
+      APP_URL: http://127.0.0.1:3100
+      SITE_URL: http://127.0.0.1:3100
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Checkout tooling
+        uses: actions/checkout@v4
+      - name: Checkout code under test
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+          path: app
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Throwaway PostgreSQL
+        run: |
+          sudo systemctl start postgresql.service
+          sudo -u postgres psql -c "CREATE USER rankfix WITH PASSWORD 'rankfix-pilot';"
+          sudo -u postgres psql -c "CREATE DATABASE rankfix_pilot OWNER rankfix;"
+      - name: Install and build
+        working-directory: app
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "1"
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+      - name: Browser for JavaScript rendering (system Chrome)
+        run: |
+          echo "PUPPETEER_EXECUTABLE_PATH=$(which google-chrome)" >> "$GITHUB_ENV"
+          echo "RANKFIX_CHROME_NO_SANDBOX=1" >> "$GITHUB_ENV"
+      - name: Start server
+        working-directory: app
+        run: |
+          nohup node node_modules/next/dist/bin/next start -p 3100 > ../server.log 2>&1 &
+          echo $! > ../server.pid
+          for i in $(seq 1 60); do curl -fsS -o /dev/null http://127.0.0.1:3100/ && break; sleep 2; done
+          curl -sS -o /dev/null -w "home %{http_code}\n" http://127.0.0.1:3100/
+      - name: Unit tests of the code under test
+        working-directory: app
+        continue-on-error: true
+        run: |
+          mkdir -p ../pilot-results/${LABEL}
+          npm test > ../pilot-results/${LABEL}/test.txt 2>&1 || true
+          grep -E "^# (tests|pass|fail)" ../pilot-results/${LABEL}/test.txt || true
+      - name: Real scans, one at a time
+        run: |
+          mkdir -p pilot-results/${LABEL}
+          SERVER_PID=$(cat server.pid) BASE_URL=http://127.0.0.1:3100 PAUSE_MS=15000 DUMP_DIR=pilot-results/${LABEL}/raw \
+            node --experimental-strip-types scripts/regression/local-scan-benchmark.mjs \
+            scripts/regression/pilot-pr132-sites.json pilot-results/${LABEL}/bench.json
+      - name: Report
+        if: always()
+        run: |
+          errors=$(grep -c "RankFix scan failed" server.log || true)
+          node scripts/regression/benchmark-report.mjs pilot-results/${LABEL}/bench.json pilot-results/${LABEL}/report.md \
+            "Code onder test: \`${SHA:0:7}\` (${LABEL}) · lokaal op GitHub-runner met lege wegwerp-database · anonieme scan, 1 tegelijk, 15 s pauze · ${errors} interne scanfouten" || true
+          grep -iE "scan failed|render failed|BROWSER_UNAVAILABLE|error" server.log | head -80 > pilot-results/${LABEL}/server-errors.txt || true
+      - name: Save results on this temporary branch
+        if: always()
+        run: |
+          git config user.name "rankfix-pilot"
+          git config user.email "noreply@github.com"
+          git add -f pilot-results/${LABEL} || true
+          git commit -m "Nachtpilot resultaten ${LABEL} ${GITHUB_RUN_ID}" || exit 0
+          ok=0; for i in 1 2 3; do git pull --rebase -q origin ci/pr132-nightly-pilot && git push origin HEAD:ci/pr132-nightly-pilot && ok=1 && break; sleep 5; done
+          [ "$ok" = 1 ] || { echo "::error::results push failed"; exit 1; }
