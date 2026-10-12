@@ -1,0 +1,109 @@
+name: TIJDELIJK scanner-benchmark PR #127 (read-only)
+
+# Temporary test branch only (ci/pr127-preview-smoke), never merged.
+# Builds the exact PR #127 commit, starts it locally on the runner with a
+# throwaway PostgreSQL and the same serverless Chromium as Vercel, and runs
+# real anonymous scans one at a time while measuring time, CPU and memory.
+on:
+  push:
+    branches: [ci/pr127-preview-smoke]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: tmp-scanner-benchmark
+  cancel-in-progress: false
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      PR127_SHA: b2a8280bd0a6c5c19bbbedd99b4762574239db0d
+      DATABASE_URL: postgresql://rankfix:rankfix-bench@127.0.0.1:5432/rankfix_bench
+      SESSION_SECRET: benchmark-only-secret-not-used-anywhere-else
+      APP_URL: http://127.0.0.1:3100
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Checkout tooling
+        uses: actions/checkout@v4
+      - name: Checkout PR #127 (exact commit under test)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PR127_SHA }}
+          path: app127
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Throwaway PostgreSQL (runner's own, SSL on as in production config)
+        run: |
+          sudo systemctl start postgresql.service
+          sudo -u postgres psql -c "CREATE USER rankfix WITH PASSWORD 'rankfix-bench';"
+          sudo -u postgres psql -c "CREATE DATABASE rankfix_bench OWNER rankfix;"
+          sudo -u postgres psql -tc "SHOW ssl;"
+      - name: Install and build PR #127
+        working-directory: app127
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "1"
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+      - name: Chromium preflight (serverless Chromium as on Vercel, else system Chrome)
+        working-directory: app127
+        run: |
+          cat > preflight.mjs <<'EOF'
+          const chromium = (await import("@sparticuz/chromium")).default;
+          const puppeteer = (await import("puppeteer-core")).default;
+          chromium.setGraphicsMode = false;
+          const browser = await puppeteer.launch({ headless: true, executablePath: await chromium.executablePath(), args: chromium.args.filter((a) => a !== "--single-process") });
+          const page = await browser.newPage();
+          await page.setContent("<title>ok</title>");
+          console.log("serverless chromium:", await page.title(), await browser.version());
+          await browser.close();
+          EOF
+          if timeout 90 node preflight.mjs; then
+            echo "RANKFIX_SERVERLESS_CHROMIUM=1" >> "$GITHUB_ENV"
+            echo "BROWSER_SOURCE=@sparticuz/chromium (zelfde als Vercel)" >> "$GITHUB_ENV"
+          else
+            echo "PUPPETEER_EXECUTABLE_PATH=$(which google-chrome)" >> "$GITHUB_ENV"
+            echo "RANKFIX_CHROME_NO_SANDBOX=1" >> "$GITHUB_ENV"
+            echo "BROWSER_SOURCE=system Chrome (fallback: serverless Chromium startte niet)" >> "$GITHUB_ENV"
+          fi
+      - name: Start PR #127 server
+        working-directory: app127
+        run: |
+          nohup node node_modules/next/dist/bin/next start -p 3100 > ../server.log 2>&1 &
+          echo $! > ../server.pid
+          for i in $(seq 1 60); do curl -fsS -o /dev/null http://127.0.0.1:3100/ && break; sleep 2; done
+          curl -sS -o /dev/null -w "home %{http_code}\n" http://127.0.0.1:3100/
+      - name: Real scans, one at a time, measured
+        run: |
+          mkdir -p benchmark-results
+          SERVER_PID=$(cat server.pid) BASE_URL=http://127.0.0.1:3100 PAUSE_MS=15000 \
+            node --experimental-strip-types scripts/regression/local-scan-benchmark.mjs \
+            scripts/regression/benchmark-sites.json benchmark-results/bench.json
+      - name: Report
+        if: always()
+        run: |
+          errors=$(grep -c "RankFix scan failed" server.log || true)
+          renderfail=$(grep -ci "render failed\|BROWSER_UNAVAILABLE" server.log || true)
+          node scripts/regression/benchmark-report.mjs benchmark-results/bench.json benchmark-results/report.md \
+            "Code onder test: PR #127 \`${PR127_SHA:0:7}\` · lokaal gestart op GitHub-runner (ubuntu, Node 24) met lege wegwerp-database · browser: ${BROWSER_SOURCE} · anonieme publieke scan, 1 tegelijk, 15 s pauze · serverlog: ${errors} interne scanfouten, ${renderfail} render-meldingen"
+          grep -iE "scan failed|render failed|BROWSER_UNAVAILABLE|error" server.log | head -60 > benchmark-results/server-errors.txt || true
+      - name: Save results on this temporary branch
+        if: always()
+        run: |
+          git config user.name "rankfix-benchmark"
+          git config user.email "noreply@github.com"
+          git add -f benchmark-results
+          git commit -m "Benchmark results ${GITHUB_RUN_ID}" || exit 0
+          git push origin HEAD:ci/pr127-preview-smoke
+      - name: Post summary on PR #127
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          { echo "## Claude — echte scans met de code van PR #127 (GitHub-runner, read-only)"; echo; head -c 60000 benchmark-results/report.md 2>/dev/null || echo "Geen rapport."; echo; echo "_Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} · volledige JSON op branch \`ci/pr127-preview-smoke\` (benchmark-results/)._"; } > comment.md
+          gh api repos/${{ github.repository }}/issues/127/comments -F body=@comment.md >/dev/null
