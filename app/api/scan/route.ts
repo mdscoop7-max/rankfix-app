@@ -4284,7 +4284,7 @@ export async function POST(request: Request) {
     const reconciledTop = reconciledSectorCandidates[0];
     const reconciledRunnerUp = reconciledSectorCandidates[1];
     const reconciledIdentityStrong = Boolean(reconciledTop && reconciledTop.score >= 3 && (!reconciledRunnerUp || reconciledTop.score > reconciledRunnerUp.score));
-    if (!retailPrimaryIdentity && !finalCommerceDecision.confirmed && reconciledIdentityStrong && reconciledTop && sectorProfile.sector !== reconciledTop.sector) {
+    if (!paymentServicesPrimaryIdentity && !retailPrimaryIdentity && !finalCommerceDecision.confirmed && reconciledIdentityStrong && reconciledTop && sectorProfile.sector !== reconciledTop.sector) {
       sectorProfile.sector = reconciledTop.sector;
       sectorProfile.key = reconciledTop.sector;
       sectorProfile.label = reconciledTop.label;
@@ -4382,6 +4382,14 @@ export async function POST(request: Request) {
     // Final Master reconciliation: late technology/multi-page evidence may improve
     // the site-level decision after the initial Master object was created. Keep
     // one authoritative website type, sector and page type for every consumer.
+    if (paymentServicesPrimaryIdentity && sectorProfile.sector === "finance") {
+      // Payment checkout integration and customer stories do not establish the
+      // provider as an operator of lodging or consumer retail functions.
+      const unrelatedModules = new Set(["booking","accommodation","hospitality","ecommerce","product","merchant","checkout","eu_consumer"]);
+      sectorProfile.applicableModules = sectorProfile.applicableModules.filter(module=>!unrelatedModules.has(module));
+      masterEvidence.activeModules = masterEvidence.activeModules.filter(module=>!unrelatedModules.has(module));
+      technologyProfile.siteType = "Betaaldienstverlener";
+    }
     const sectorDisplayPolicy = sectorProfile.confidenceScore >= 80 ? "confirmed" : sectorProfile.confidenceScore >= 60 ? "probable" : "unconfirmed";
     masterEvidence.primarySector = {
       key: sectorProfile.key,
@@ -4409,6 +4417,8 @@ export async function POST(request: Request) {
     }
     const websiteType = finalCommerceDecision.confirmed
       ? "Webshop"
+      : sectorProfile.key === "finance" && paymentServicesPrimaryIdentity
+        ? "Betaaldienstverlener"
       : sectorProfile.key === "recruitment" && masterEvidence.businessModels.includes("recruitment")
         ? "Recruitmentwebsite"
         // Reserving or collecting in-store is a secondary retail capability, not a booking site.
