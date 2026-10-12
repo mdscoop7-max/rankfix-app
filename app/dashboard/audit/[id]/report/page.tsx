@@ -152,21 +152,55 @@ export default function FullAuditReport(){
   };
   // The printable report is fully expanded. Export only the report content:
   // never include toolbar buttons or account-only share URLs.
-  function reportPlainText(){
+  // Closed <details> are not included in innerText or printed pages. Expand them
+  // only for export, then restore exactly the customer's original open/closed state.
+  function openReportDetails(){
     const root=document.querySelector<HTMLElement>(".report-wrap");
-    if(!root)return "";
-    return redactReportText([...root.children]
-      .filter(node=>!node.classList.contains("report-actions")&&!node.classList.contains("report-share-message"))
-      .map(node=>(node as HTMLElement).innerText?.trim()||"")
-      .filter(Boolean).join("\n\n"));
+    const closed=root ? [...root.querySelectorAll<HTMLDetailsElement>("details:not([open])")] : [];
+    closed.forEach(detail=>{detail.open=true;});
+    return () => closed.forEach(detail=>{detail.open=false;});
+  }
+  function reportPlainText(){
+    const restore=openReportDetails();
+    try{
+      const root=document.querySelector<HTMLElement>(".report-wrap");
+      if(!root)return "";
+      return redactReportText([...root.children]
+        .filter(node=>!node.classList.contains("report-actions")&&!node.classList.contains("report-share-message"))
+        .map(node=>(node as HTMLElement).innerText?.trim()||"")
+        .filter(Boolean).join("\n\n"));
+    }finally{restore();}
+  }
+  async function copyText(text:string){
+    if(navigator.clipboard?.writeText){
+      try{await navigator.clipboard.writeText(text);return;}catch{/* Fallback below. */}
+    }
+    // Older browsers and mobile WebViews may not expose Clipboard API.
+    const field=document.createElement("textarea");
+    field.value=text;
+    field.readOnly=true;
+    field.style.cssText="position:fixed;top:0;left:-9999px;opacity:0";
+    document.body.appendChild(field);
+    field.focus();
+    field.select();
+    try{
+      if(!document.execCommand("copy"))throw new Error("Copy unavailable");
+    }finally{field.remove();}
   }
   async function copyAudit(){
     try{
       const content=reportPlainText();
-      if(!content||!navigator.clipboard?.writeText)throw new Error("Clipboard not available");
-      await navigator.clipboard.writeText(content);
+      if(!content)throw new Error("Empty report");
+      await copyText(content);
       setShareMessage(actionText[language].copied);
     }catch{setShareMessage(actionText[language].failed);}
+  }
+  function printAudit(){
+    const restore=openReportDetails();
+    // Keep sections expanded while the print/PDF dialog renders the document.
+    // The afterprint event fires when it closes in modern desktop/mobile browsers.
+    window.addEventListener("afterprint",restore,{once:true});
+    try{window.print();}catch{window.removeEventListener("afterprint",restore);restore();}
   }
   async function shareAudit(){
     const content=reportPlainText();
@@ -181,7 +215,7 @@ export default function FullAuditReport(){
     }
   }
   return <main className="report-wrap">
-    <div className="report-actions"><Link href={"/dashboard/audit/"+encodeURIComponent(id)} className="report-button">← {t.back}</Link><button type="button" className="report-button" onClick={()=>void copyAudit()}>{actionText[language].copy}</button><button type="button" className="report-button" onClick={()=>void shareAudit()}>{actionText[language].share}</button><button type="button" className="report-button primary" onClick={()=>window.print()}>{language==="nl"?"PDF downloaden":t.save}</button></div>
+    <div className="report-actions"><Link href={"/dashboard/audit/"+encodeURIComponent(id)} className="report-button">← {t.back}</Link><button type="button" className="report-button" onClick={()=>void copyAudit()}>{actionText[language].copy}</button><button type="button" className="report-button" onClick={()=>void shareAudit()}>{actionText[language].share}</button><button type="button" className="report-button primary" onClick={printAudit}>{language==="nl"?"PDF downloaden":t.save}</button></div>
     {shareMessage&&<p className="report-share-message" role="status" aria-live="polite">{shareMessage}</p>}
     <header className="report-header"><div><div className="report-brand">RankFix <span>AI</span></div><h1>{t.title}</h1><p className="muted">{t.subtitle}</p></div><div className="score"><b>{r.overallScore??"—"}</b><span>/ 100</span>{(()=>{const sp=resolveScorePresentation(r);if(!sp||sp.status!=="provisional")return null;const c=scorePresentationCopy(language);return <small style={{display:"block",flexBasis:"100%",marginTop:6,fontSize:12,fontWeight:600}}>{`${c.provisional} · ${c.coverage} ${sp.coveragePercent}% · ${c.reliability} ${c.levels[sp.reliability]} · ${sp.unconfirmedChecks} ${c.unconfirmed}${sp.range?` · ${c.range} ${sp.range.low}–${sp.range.high}`:""}`}</small>})()}</div></header>
     <div className="box score-explainer"><b>{language==="nl"?"Wat betekent deze score?":"What does this score mean?"}</b><p>{language==="nl"?"De score geldt voor de controles die RankFix tijdens deze scan betrouwbaar kon beoordelen. 100/100 betekent niet dat een website op ieder gebied perfect is, gegarandeerd hoog rankt of door AI-zoekmachines wordt genoemd. Niet te bevestigen en N.v.t. worden apart getoond en verlagen de score niet.":"The score applies to checks RankFix could reliably assess during this scan. 100/100 does not mean a website is perfect in every area, guaranteed to rank highly, or guaranteed to be cited by AI search. Unable-to-confirm and N/A checks are shown separately and do not lower the score."}</p><p><b>{language==="nl"?"Berekening:":"Calculation:"}</b> {r.scoreModel?.formula||"0.6 × SEO + 0.4 × GEO"} · Security {language==="nl"?"staat apart en telt niet mee in het totaal.":"is separate and is not included in the total."}</p>{(()=>{const c=assessedCounts(r);const rel=reliabilityOf(r);const pages=Number(r.multiPage?.counts?.audited||1);const relLabel=language==="nl"?(rel==="high"?"Hoog":rel==="medium"?"Gemiddeld":"Beperkt"):(rel==="high"?"High":rel==="medium"?"Medium":"Limited");return <><p><b>{language==="nl"?"Betrouwbaarheid:":"Reliability:"}</b> {relLabel}. {language==="nl"?`We beoordeelden ${c.assessed} van de ${c.applicable} toepasselijke controles op ${pages} pagina's van de website.`:`We assessed ${c.assessed} of ${c.applicable} applicable checks across ${pages} website pages.`}</p><p><b>{language==="nl"?"Geanalyseerde pagina's:":"Analysed pages:"}</b> {pages} ({ux.sample}). {ux.notFull}</p>{c.unconfirmed>0&&<p>{language==="nl"?`${c.unconfirmed} controles konden niet worden bevestigd; de score kan hierdoor afwijken.`:`${c.unconfirmed} checks could not be confirmed; this may affect the score.`}</p>}{(r.coverage?.coveragePercent??100)<70&&r.scoreModel?.range&&<p><b>{language==="nl"?"Voorlopige score:":"Provisional score:"}</b> {language==="nl"?`slechts ${r.coverage.coveragePercent}% van het controlegewicht kon worden beoordeeld. Als alle onbevestigde controles zouden falen, is de score ${r.scoreModel.range.low}; als ze allemaal slagen ${r.scoreModel.range.high}. Lees ${r.overallScore} dus niet als eindoordeel.`:`only ${r.coverage.coveragePercent}% of the check weight could be assessed. If every unconfirmed check failed the score would be ${r.scoreModel.range.low}; if all passed ${r.scoreModel.range.high}.`}</p>}</>})()}</div><section className="summary-grid"><div><span>{t.website}</span><strong>{publicReportUrl(auditedUrl)}</strong>{inputDiffers&&<small style={{display:"block",marginTop:4,opacity:.7}}>{language==="nl"?"Ingevoerde URL":"Input URL"}: {publicReportUrl(scan.scanned_url)}</small>}</div><div><span>{t.scanned}</span><strong>{new Date(scan.created_at).toLocaleString(language,{dateStyle:"long",timeStyle:"short"})}</strong></div><div><span>SEO</span><strong>{r.seo?.score??"—"} / 100</strong></div><div><span>GEO</span><strong>{r.geo?.score??"—"} / 100</strong></div>{r.multiPage?.siteSampleScore!=null&&<div><span>{language==="nl"?`Steekproef (${r.multiPage.counts?.audited??0} pagina's)`:`Sample (${r.multiPage.counts?.audited??0} pages)`}</span><strong>{r.multiPage.siteSampleScore} / 100</strong><small style={{display:"block",marginTop:4,opacity:.7}}>{language==="nl"?"Gemiddelde van title, description, H1 en canonical per pagina":"Average of title, description, H1 and canonical per page"}</small></div>}<div><span>{language==="nl"?"Beveiligingsinstellingen":"Security settings"}</span><strong>{r.security?.score??"—"} / 100</strong><small style={{display:"block",marginTop:4,opacity:.7}}>{language==="nl"?"Passieve controle · telt niet mee in totaalscore":"Passive check · excluded from total score"}</small></div><div><span>{language==="nl"?"Toegankelijkheid (basis)":"Accessibility (basic)"}</span><strong>{(r.accessibility?.coverage?.assessedWeight??0)>0?(r.accessibility?.score??"—")+" / 100":(r.accessibility?.checks?.length?(language==="nl"?"Niet te bevestigen":"Unable to confirm"):(language==="nl"?"Niet beoordeeld":"Not assessed"))}</strong></div></section>

@@ -29,3 +29,14 @@ test("short and full report export paths both sanitize and use the check-level s
   assert.ok(fullPage.includes('if(c.status==="not_applicable")return c.message'));
   assert.ok(fullPage.includes('["consent_mode_readiness","ads_readiness"].includes(c.key||"")'));
 });
+
+test("PDF and copy expand collapsed sections and restore their state", async () => {
+  const fullPage=await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx",import.meta.url),"utf8");
+  assert.ok(fullPage.includes('querySelectorAll<HTMLDetailsElement>("details:not([open])")'));
+  assert.ok(fullPage.includes('closed.forEach(detail=>{detail.open=true;})'));
+  assert.ok(fullPage.includes('closed.forEach(detail=>{detail.open=false;})'));
+  assert.ok(fullPage.includes('finally{restore();}'));
+  assert.ok(fullPage.includes('window.addEventListener("afterprint",restore,{once:true})'));
+  assert.ok(fullPage.includes('onClick={printAudit}'));
+  assert.ok(fullPage.includes('document.execCommand("copy")'),"mobile clipboard fallback exists");
+});
