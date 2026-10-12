@@ -355,7 +355,8 @@ test("GEO identity and trust advice preserve partial proven signals", async () =
   assert.match(source, /organizationWebsiteSignals = Number\(organizationSchemaPresent\) \+ Number\(websiteSchemaPresent\)/);
   assert.match(source, /organizationWebsiteSignals === 2 \? 8 : organizationWebsiteSignals === 1 \? 6 : 4/);
   assert.match(source, /machineleesbaar identity-advies en geen bewijs dat de zichtbare organisatie-identiteit ontbreekt/);
-  assert.match(source, /Math\.max\(2, Number\(hasPrivacyLink\)\+Number\(hasCookieLink\)\+Number\(hasContactLink\)\+2\),5/);
+  // Cookie information may come from a link, consent platform, banner or control (lib/cookie-evidence.ts).
+  assert.match(source, /Math\.max\(2, Number\(hasPrivacyLink\)\+Number\(hasCookieInfo\)\+Number\(hasContactLink\)\+2\),5/);
   assert.match(source, /rule_id: key/);
   assert.match(source, /issue_id: key/);
 });
@@ -1299,7 +1300,7 @@ test("findings 4 and 7: scan route applies the shop-wording gate before final sc
 test("finding 5: garage appointment and test drive are separate checks", async () => {
   const { readFile } = await import("node:fs/promises");
   const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  const block = route.slice(route.indexOf('} else if (sectorProfile.sector === "automotive") {'), route.indexOf('} else if (sectorProfile.sector === "home_services") {'));
+  const block = route.slice(route.indexOf('} else if (sector === "automotive") {'), route.indexOf('} else if (sector === "home_services") {'));
   const appointment = block.match(/const appointmentSignal = (.+);/)[1];
   assert.doesNotMatch(appointment, /hasContactChannelSignal|proefrit/);
   assert.match(block, /"sector_automotive_conversion","Werkplaatsafspraak"/);
@@ -1425,11 +1426,11 @@ test("fix engine: AI-fix H1/title extraction and GitHub icon filter work on real
 test("sector signals recognise concrete evidence and ignore generic words", async () => {
   const { readFile } = await import("node:fs/promises");
   const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  const start = route.indexOf('if (sectorProfile.sector === "real_estate") {');
-  const sectors = route.slice(start, route.indexOf("const ", route.indexOf('} else if (sectorProfile.sector === "saas_b2b") {') + 600));
+  const start = route.indexOf('if (sector === "real_estate") {');
+  const sectors = route.slice(start, route.indexOf("const ", route.indexOf('} else if (sector === "saas_b2b") {') + 600));
   // First /regex/flags.test(text) on the "const <name> =" line inside the given sector block.
   const signal = (sector, name) => {
-    const from = sectors.indexOf(`sectorProfile.sector === "${sector}"`);
+    const from = sectors.indexOf(`sector === "${sector}"`);
     const line = sectors.slice(from).split("\n").find((l) => l.includes(`const ${name} =`));
     const m = line.match(/\/((?:\\.|\[(?:\\.|[^\]\\])*\]|[^/\\\n[])+)\/([a-z]*)\.test\(text\)/);
     return new RegExp(m[1], m[2]);

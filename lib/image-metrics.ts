@@ -14,6 +14,20 @@ function decode(value: string): string {
   return decodeHtmlEntities(value).trim();
 }
 
+// One image, many URLs: responsive width variants (srcset, ?width=, Shopify
+// _400x, WordPress -300x200, @2x) and optimiser wrappers (/_next/image?url=)
+// all point to the same picture. The count is of pictures, not of variants.
+export function canonicalImageKey(value: string): string {
+  let v = value;
+  const nextImage = v.match(/\/_next\/image\?(?:[^#]*&)?url=([^&#]+)/i);
+  if (nextImage) {
+    try { v = decodeURIComponent(nextImage[1]); } catch { v = nextImage[1]; }
+  }
+  v = v.replace(/^https?:/i, "").replace(/[?#].*$/, "");
+  v = v.replace(/(?:_(?:\d+x\d*|\d*x\d+)(?:_crop_[a-z]+)?|-\d+x\d+|@\dx)(?=\.[a-z0-9]+$)/i, "");
+  return v.toLowerCase();
+}
+
 function imageReference(value: string): string | null {
   const v = decode(value);
   if (!v || v.startsWith("data:") || v.startsWith("blob:") || v.startsWith("#")) {
@@ -24,7 +38,7 @@ function imageReference(value: string): string | null {
     IMAGE_EXT.test(v) ||
     /(?:^|[/?])(?:_next\/image|image|images?|media|uploads?)(?:[/?]|$)/i.test(v);
 
-  return looksLikeImage ? v : null;
+  return looksLikeImage ? canonicalImageKey(v) : null;
 }
 
 function attr(tag: string, name: string): string {
@@ -81,13 +95,18 @@ export function extractImageMetrics(html: string): ImageMetrics {
     if (ref) refs.add(ref);
   }
 
-  // Next.js and other SSR frameworks can serialize image URLs into the HTML payload.
-  const serializedUrls =
-    html.match(/(?:https?:)?\/\/[^"'\s<>]+|\/_next\/image\?[^"'\s<>]+/gi) ?? [];
+  // A client-side shell without any image elements can still serialize its
+  // image URLs into the payload. On a page that does render image elements,
+  // payload URLs (product feeds, JSON state, preload lists) are not images on
+  // the page and are not counted.
+  if (images.length === 0 && sources.length === 0) {
+    const serializedUrls =
+      html.match(/(?:https?:)?\/\/[^"'\s<>]+|\/_next\/image\?[^"'\s<>]+/gi) ?? [];
 
-  for (const url of serializedUrls) {
-    const ref = imageReference(url);
-    if (ref) refs.add(ref);
+    for (const url of serializedUrls) {
+      const ref = imageReference(url);
+      if (ref) refs.add(ref);
+    }
   }
 
   return {

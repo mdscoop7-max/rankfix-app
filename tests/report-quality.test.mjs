@@ -158,10 +158,25 @@ test("sitewide: a shared title suffix is reported as one template fix", () => {
     "Adidas Originals online kopen | Gratis verzending voor de meeste bestellingen* | Zalando",
     "Antony Morato online kopen | Gratis verzending voor de meeste bestellingen* | Zalando",
     "Björn Borg online kopen | Gratis verzending voor de meeste bestellingen* | Zalando",
+    "Dr. Martens online kopen | Gratis verzending voor de meeste bestellingen* | Zalando",
     "Topshop online shop | Snelle verzending | Zalando",
   ], "www.zalando.nl");
   assert.equal(zalando?.suffix.trim(), "| Gratis verzending voor de meeste bestellingen* | Zalando");
   assert.equal(titleTemplatePattern(["Over ons | Bakkerij", "Contact | Bakkerij", "Home | Bakkerij"], "bakkerij.nl"), null);
+  // Three hand-written titles sharing a tail are not a template issue (TransHeroes, 23:06 scan).
+  assert.equal(titleTemplatePattern([
+    "Transport Europa van/naar Nederland | Internationaal vervoer | TransHeroes",
+    "Transport Zuid-Amerika | Internationaal vervoer | TransHeroes",
+    "Transport Canada | Internationaal vervoer | TransHeroes",
+    "Transport Azië van/naar Nederland | TransHeroes",
+  ], "www.transheroes.com"), null);
+  // A short brand suffix is not reported as a template problem (TransHeroes, 22:32 scan).
+  assert.equal(titleTemplatePattern([
+    "Internationaal transport, zeevracht, luchtvracht & douane | TransHeroes",
+    "Contact | Stel je vraag over internationaal transport | TransHeroes",
+    "Speciaal & exceptioneel transport | Zwaar en buitenmaats | TransHeroes",
+    "Transport Azië van/naar Nederland | TransHeroes",
+  ], "www.transheroes.com"), null);
 });
 
 test("report text helpers: short URLs and real entity types", () => {
@@ -197,4 +212,149 @@ test("scan route wires the report-quality fixes", async () => {
   assert.match(report, /diagnosticRows\(data\)/);
   const puppeteerConfig = await readFile(new URL("../.puppeteerrc.cjs", import.meta.url), "utf8");
   assert.match(puppeteerConfig, /cacheDirectory: join\(__dirname, "\.cache", "puppeteer"\)/);
+});
+
+test("Dutch and German privacy compounds count as a privacy link", async () => {
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = route.match(/privacy: (\/\\b\(\?:privacy\\w\*[^\n]*\/i),/)?.[1];
+  assert.ok(source, "privacy lexicon found");
+  const lexicon = new Function(`return ${source}`)();
+  for (const label of ["privacyverklaring", "privacystatement", "privacy policy", "privacybeleid", "datenschutzerklarung"]) assert.equal(lexicon.test(label), true, label);
+  assert.equal(lexicon.test("algemene voorwaarden"), false);
+});
+
+test("multilingual title segments do not create false duplicates when words use another script", () => {
+  const bulgarian="POS платежни системи и софтуер – POS устройства | Mollie";
+  assert.equal(duplicateTitleSegment(bulgarian),null,"different Cyrillic phrases must remain distinct");
+  assert.equal(assessPageTitle(bulgarian,"mollie.com").status,"PASS");
+  assert.equal(duplicateTitleSegment("Новини | Новини"),"Новини","real Cyrillic duplicates are still caught");
+  assert.equal(duplicateTitleSegment("Система за плащания | Система за плащания"),"Система за плащания");
+});
+
+test("late sector reconciliation replaces stale hospitality checks in both displayed results and scores", async () => {
+  const { replaceSpecialistChecks } = await import("../lib/specialist-check-reconciliation.ts");
+  const old=[{key:"sector_hospitality_hours",status:"unable_to_confirm"},{key:"sector_hospitality_menu",status:"unable_to_confirm"},{key:"sector_hospitality_reservation",status:"pass"}];
+  const main={key:"title",status:"pass"},geo={key:"faq",status:"not_applicable"};
+  const seo=[main,...old],checks=[...seo,geo];
+  const fresh=[{key:"sector_saas_features",status:"pass"},{key:"sector_saas_conversion",status:"pass"},{key:"sector_saas_audience",status:"unable_to_confirm"}];
+  replaceSpecialistChecks(seo,checks,old,fresh,true);
+  assert.deepEqual(seo.map(x=>x.key),["title","sector_saas_features","sector_saas_conversion","sector_saas_audience"]);
+  assert.deepEqual(checks.map(x=>x.key),["title","faq","sector_saas_features","sector_saas_conversion","sector_saas_audience"]);
+  assert.equal(checks.filter(x=>x.key.startsWith("sector_hospitality_")).length,0);
+  assert.equal(old[0].status,"unable_to_confirm","reconciliation must not rewrite historical evidence objects");
+});
+
+test("late sector reconciliation does not leak specialist SEO checks into GEO-only scans", async () => {
+  const { replaceSpecialistChecks } = await import("../lib/specialist-check-reconciliation.ts");
+  const old=[{key:"sector_hospitality_hours"}],seo=[...old],checks=[{key:"geo_check"}];
+  replaceSpecialistChecks(seo,checks,old,[{key:"sector_saas_features"}],false);
+  assert.deepEqual(checks.map(x=>x.key),["geo_check"]);
+  assert.deepEqual(seo.map(x=>x.key),["sector_saas_features"]);
+});
+
+test("the scan route rebuilds specialist checks after the final sector decision", async () => {
+  const source=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
+  assert.ok(source.includes("const initialSpecialistChecks = buildSpecialistChecks(initialSpecialistSector)"));
+  assert.ok(source.includes("if (sectorProfile.sector !== initialSpecialistSector)"));
+  assert.ok(source.includes("buildSpecialistChecks(sectorProfile.sector)"));
+  assert.ok(source.includes("technologyProfile.commercePlatform = null"));
+});
+
+test("representative sector keywords cannot override an independently confirmed unrelated identity", async () => {
+  const { corroborateSpecialistCapability: cap }=await import("../lib/sector-capability-guard.ts");
+  const primary={primarySector:"government",primaryConfidence:95};
+  assert.equal(cap({...primary,keywordEvidence:true,specialistSector:"hospitality"}),false);
+  assert.equal(cap({...primary,keywordEvidence:true,specialistSector:"real_estate"}),false);
+  assert.equal(cap({...primary,keywordEvidence:true,specialistSector:"professional_services"}),false);
+  assert.equal(cap({...primary,keywordEvidence:true,specialistSector:"government"}),true);
+  assert.equal(cap({...primary,keywordEvidence:false,specialistSector:"government"}),false);
+});
+
+test("representative capabilities remain discoverable for their own sector or uncertain identities", async () => {
+  const { corroborateSpecialistCapability: cap }=await import("../lib/sector-capability-guard.ts");
+  assert.equal(cap({keywordEvidence:true,primarySector:"hospitality",primaryConfidence:95,specialistSector:"hospitality"}),true);
+  assert.equal(cap({keywordEvidence:true,primarySector:"unknown",primaryConfidence:40,specialistSector:"hospitality"}),true);
+  assert.equal(cap({keywordEvidence:true,primarySector:"recruitment",primaryConfidence:75,specialistSector:"hospitality"}),true);
+  assert.equal(cap({keywordEvidence:true,primarySector:"government",primaryConfidence:55,specialistSector:"real_estate"}),true);
+});
+
+test("representative capability guard is applied uniformly to sector-specific keyword heuristics", async () => {
+  const route=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
+  const body=route.slice(route.indexOf("const multiPageCapabilities = {"),route.indexOf("const addMasterCapability ="));
+  for (const sector of ["transport_travel","hospitality","health_wellness","automotive","real_estate","professional_services"])
+    assert.ok(body.includes('specialistSector: "'+sector+'"'),"missing specialist gate for "+sector);
+});
+
+test("late sector reconciliation removes only specialist evidence inherited from an initial wrong sector", async () => {
+  const { reconcileRepresentativeSpecialistCapabilities: update } = await import("../lib/sector-capability-guard.ts");
+  const caps={transport:false,hospitality:true,treatment:false,vehicleSales:false,automotiveService:false,properties:true,professional:false};
+  const master=["contact","rooms","booking","properties"];
+  const result=update({capabilities:caps,sector:"saas_b2b",confidence:92,initialMasterCapabilities:["contact"],masterCapabilities:master});
+  assert.deepEqual(result.removedCapabilities.sort(),["booking","properties","rooms"]);
+  assert.equal(caps.hospitality,false);
+  assert.equal(caps.properties,false);
+  assert.deepEqual(master,["contact"]);
+});
+
+test("late specialist correction preserves real capabilities and independently established bookings", async () => {
+  const { reconcileRepresentativeSpecialistCapabilities: update }=await import("../lib/sector-capability-guard.ts");
+  const caps={transport:false,hospitality:true,treatment:false,vehicleSales:false,automotiveService:false,properties:false,professional:false};
+  const master=["booking","rooms","services"];
+  const result=update({capabilities:caps,sector:"hospitality",confidence:93,initialMasterCapabilities:["booking","services"],masterCapabilities:master});
+  assert.deepEqual(result.removedCapabilities,[]);
+  assert.equal(caps.hospitality,true);
+  assert.deepEqual(master,["booking","rooms","services"]);
+  update({capabilities:caps,sector:"saas_b2b",confidence:92,initialMasterCapabilities:["booking","services"],masterCapabilities:master});
+  assert.equal(caps.hospitality,false);
+  assert.deepEqual(master,["booking","services"],"independently confirmed booking is preserved");
+});
+
+test("late capability reconciliation does not retract overlapping surviving specialist signals", async () => {
+  const { reconcileRepresentativeSpecialistCapabilities: update }=await import("../lib/sector-capability-guard.ts");
+  const caps={transport:true,hospitality:false,treatment:true,vehicleSales:false,automotiveService:false,properties:false,professional:false};
+  const master=["services","service_area","quote_request","contact"];
+  const res=update({capabilities:caps,sector:"health_wellness",confidence:95,initialMasterCapabilities:[],masterCapabilities:master});
+  assert.equal(caps.transport,false);
+  assert.equal(caps.treatment,true);
+  assert.ok(master.includes("services"),"service evidence remains from the surviving treatment sector");
+  assert.deepEqual(res.removedCapabilities.sort(),["contact","quote_request","service_area"]);
+});
+
+test("scanner reevaluates specialist keyword flags after the final primary sector is confirmed", async () => {
+  const source=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
+  assert.match(source,/reconcileRepresentativeSpecialistCapabilities\(\{/);
+  assert.ok(source.indexOf("reconcileRepresentativeSpecialistCapabilities({")>source.indexOf("Final Master reconciliation"));
+});
+
+test("scan report shows the exact fetch and browser user-agents without impersonating Googlebot", async () => {
+  const { SCAN_HTTP_USER_AGENT, SCAN_BROWSER_USER_AGENT } = await import("../lib/scan-user-agents.ts");
+  assert.match(SCAN_HTTP_USER_AGENT, /^RankFixBot\/2\.1 /);
+  assert.match(SCAN_BROWSER_USER_AGENT, /RankFixBrowser\/1\.0/);
+  assert.doesNotMatch(SCAN_HTTP_USER_AGENT + SCAN_BROWSER_USER_AGENT, /Googlebot/i);
+  const [route, fetch, render, report] = await Promise.all([
+    readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/safe-fetch.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/headless-render.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.match(fetch, /"User-Agent": options\.userAgent \?\? SCAN_HTTP_USER_AGENT/);
+  assert.match(render, /setUserAgent\(\{ userAgent: SCAN_BROWSER_USER_AGENT \}\)/);
+  assert.match(route, /userAgents: \{ httpFetch: SCAN_HTTP_USER_AGENT, browserRender: javascriptExecuted \? SCAN_BROWSER_USER_AGENT : null \}/);
+  assert.ok(route.includes("userAgent: SCAN_HTTP_USER_AGENT"),"representative and homepage fetches must use the same UA");
+  assert.ok(report.includes("rendering?.userAgents?.httpFetch"));
+  assert.ok(report.includes("rendering.userAgents.browserRender"));
+  assert.ok(report.includes("geen Googlebot"));
+  assert.ok(report.includes("RankFix gebruikt deze eigen herkenningen"));
+});
+
+test("webshop applicability wording does not describe commercial B2B sites as noncommercial", async () => {
+  const { COMMERCE_APPLICABILITY_COPY } = await import("../lib/commerce-applicability.ts");
+  assert.match(COMMERCE_APPLICABILITY_COPY.service_identity,/geen webshop als primaire activiteit/);
+  assert.doesNotMatch(COMMERCE_APPLICABILITY_COPY.service_identity,/niet-commerciële primaire identiteit/);
+});
+
+test("business contact evidence reports the confirmed detail types, not only placeholder counts", async () => {
+  const route=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
+  assert.ok(route.includes('confirmed=${businessDetails.status === "pass" ? businessDetails.found.join(", ") : "none"}'));
+  assert.ok(!route.includes('found=${placeholderMatches.slice(0,4)'));
 });

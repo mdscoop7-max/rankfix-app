@@ -125,6 +125,21 @@ export function summarizeAuditChecks(items: ScorableAuditCheck[]) {
 }
 
 
+// Summary counts for checks as they are displayed (lower-case `status` and/or
+// upper-case `issue_status`). Used wherever a summary is shown or exported, so
+// the counts are always derived from the very checks listed below them, also
+// for scans saved before the server-side summary was counted last.
+export function summaryFromChecks(items: Array<{ status?: string; issue_status?: string; severity?: string; confidence?: string; fix_status?: string }>) {
+  return summarizeAuditChecks(items.map((item) => ({
+    ...item,
+    // The displayed lower-case status wins if an older scan kept a stale
+    // issue_status during late representative-page reconciliation.
+    issue_status: String(item.status || item.issue_status || "").trim().toUpperCase() as AuditIssueStatus,
+    points: 0,
+    maxPoints: 0,
+  })) as ScorableAuditCheck[]);
+}
+
 export type ScoreCapCheck = {
   issue_status: AuditIssueStatus;
   severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";

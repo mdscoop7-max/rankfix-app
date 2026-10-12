@@ -1,6 +1,10 @@
 "use client";
 import Link from "next/link";
 import WebsiteProfile from "@/components/website-profile";
+import { ScoreEvidenceLines, resolveScorePresentation, scoreHeadline } from "@/components/score-confidence";
+import { scorePresentationCopy, type ScorePresentation } from "@/lib/score-presentation";
+import { summaryFromChecks } from "@/lib/audit-score";
+import { redactReportText } from "@/lib/report-privacy";
 
 import { useEffect, useMemo, useState } from "react";
 import AiAssistant from "@/components/ai-assistant";
@@ -33,10 +37,13 @@ type ScanResult = {
   finalUrl: string;
   overallScore: number;
   grade: string;
+  coverage?: { coveragePercent?: number; highConfidencePercent?: number; unableToConfirm?: number };
+  scoreModel?: { range?: { low: number; high: number } | null };
+  scorePresentation?: ScorePresentation;
   responseTime: number;
   httpStatus: number;
   summary?: {passed:number;issues:number;notApplicable:number;unableToConfirm:number;pendingFixes:number};
-  rendering?: {mode:string;javascriptExecuted:boolean;note:string};
+  rendering?: {mode:string;javascriptExecuted:boolean;note:string;userAgents?:{httpFetch?:string|null;browserRender?:string|null}};
   pageTypeEvidence?: {type:string;confidence:string;evidence:string[]};
   technologyProfile?: {siteType?:"Webshop"|"Landingpage"|"Website";cms:string|null;commercePlatform:string|null;framework:string|null;isCommerce:boolean;confidence:number;confidenceLabel:"high"|"medium"|"low";evidence:string[]};
   sectorProfile?: {sector?:string;key?:string;label:string;confidence:"high"|"medium"|"low";confidenceScore?:number;evidence:string[];applicableModules:string[]};
@@ -537,9 +544,24 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
       "HTTP: " + result.httpStatus + " | " + result.responseTime + " ms",
       "Score: " + result.overallScore + "/100 | Grade: " + result.grade
     ];
+    // The export carries the same score status as the screen: a provisional score
+    // is never copied as an unconditional 100/100.
+    const presentation = resolveScorePresentation(result);
+    if (presentation) {
+      const copy = scorePresentationCopy(language);
+      lines.push((presentation.status === "provisional" ? copy.provisional : copy.confirmed) + ": " + copy.coverage + " " + presentation.coveragePercent + "% | " + copy.reliability + " " + copy.levels[presentation.reliability] + " | " + presentation.unconfirmedChecks + " " + copy.unconfirmed + (presentation.range ? " | " + copy.range + " " + presentation.range.low + "–" + presentation.range.high : ""));
+    }
     if (result.rendering) {
       lines.push("Source: " + result.rendering.mode + " | JavaScript executed: " + (result.rendering.javascriptExecuted ? "yes" : "no"));
       if (result.rendering.note) lines.push(result.rendering.note);
+      // Keep the short/mobile clipboard export as transparent as the full report.
+      // Older scans can lack this field: never guess which agent was sent.
+      const agents = result.rendering.userAgents;
+      if (agents?.httpFetch) {
+        lines.push("HTTP user-agent (HTML fetch): " + agents.httpFetch);
+        if (agents.browserRender) lines.push("Browser user-agent (JavaScript rendering): " + agents.browserRender);
+        lines.push("Crawler note: RankFix is not Googlebot. Websites may serve Googlebot different HTML or access; matching Google's indexed content is not confirmed.");
+      }
     }
     if (result.pageTypeEvidence) {
       lines.push("", "Page type: " + result.pageTypeEvidence.type + " (" + result.pageTypeEvidence.confidence + ")");
@@ -560,9 +582,11 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
       lines.push("Applicable modules: " + (sector.applicableModules || []).join(", "));
     }
     if (result.summary) {
-      lines.push("", "SUMMARY", "Passed: " + result.summary.passed, "Issues: " + result.summary.issues,
-        "Not applicable: " + result.summary.notApplicable, "Unable to confirm: " + result.summary.unableToConfirm,
-        "Pending fixes: " + result.summary.pendingFixes);
+      // Counted from the exact checks exported below, never from a stored total.
+      const summary = summaryFromChecks(result.mode === "seo" ? result.seo.checks : result.mode === "geo" ? result.geo.checks : [...result.seo.checks, ...result.geo.checks]);
+      lines.push("", "SUMMARY", "Passed: " + summary.passed, "Issues: " + summary.issues,
+        "Not applicable: " + summary.notApplicable, "Unable to confirm: " + summary.unableToConfirm,
+        "Pending fixes: " + summary.pendingFixes);
     }
     const m = result.metrics;
     if (m) {
@@ -592,7 +616,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
       });
     }
     lines.push("", "Scan snapshot. Not applicable/unable to confirm are not proven failures.");
-    return lines.join("\n");
+    return redactReportText(lines.join("\n"));
   }
 
   async function copyPublicAudit() {
@@ -698,7 +722,8 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
     const key = item.issue_id || item.key;
     return (item.status === "fail" || item.status === "warning") && item.fix_status !== "WAITING" && !githubResults[key];
   }), [summaryChecks, githubResults]);
-  const passedCount = result?.summary?.passed ?? summaryChecks.filter((item) => item.status === "pass").length;
+  // Derived from the displayed checks so the headline count always matches the list.
+  const passedCount = summaryFromChecks(summaryChecks).passed;
   const preparedCount = summaryChecks.filter((item) => {
     const key = item.issue_id || item.key;
     return item.fix_status === "WAITING" || Boolean(githubResults[key]);
@@ -1104,9 +1129,10 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
 
           <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
             <div className="rounded-3xl border border-slate-200 bg-white/[0.035] p-6">
-              <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">Overall</div>
+              <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">{scoreHeadline(result, language, "Overall")}</div>
               <div className="mt-2 text-6xl font-black tracking-tighter text-emerald-300">{result.overallScore}</div>
               <div className="mt-1 text-sm text-slate-500">Grade {result.grade}</div>
+              <ScoreEvidenceLines result={result} language={language} className="mt-1 text-xs leading-5 text-slate-500" />
               <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
                 <div className="h-full rounded-full bg-gradient-to-r from-emerald-300 to-blue-500" style={{ width: `${result.overallScore}%` }} />
               </div>
