@@ -355,7 +355,8 @@ test("GEO identity and trust advice preserve partial proven signals", async () =
   assert.match(source, /organizationWebsiteSignals = Number\(organizationSchemaPresent\) \+ Number\(websiteSchemaPresent\)/);
   assert.match(source, /organizationWebsiteSignals === 2 \? 8 : organizationWebsiteSignals === 1 \? 6 : 4/);
   assert.match(source, /machineleesbaar identity-advies en geen bewijs dat de zichtbare organisatie-identiteit ontbreekt/);
-  assert.match(source, /Math\.max\(2, Number\(hasPrivacyLink\)\+Number\(hasCookieLink\)\+Number\(hasContactLink\)\+2\),5/);
+  // Cookie information may come from a link, consent platform, banner or control (lib/cookie-evidence.ts).
+  assert.match(source, /Math\.max\(2, Number\(hasPrivacyLink\)\+Number\(hasCookieInfo\)\+Number\(hasContactLink\)\+2\),5/);
   assert.match(source, /rule_id: key/);
   assert.match(source, /issue_id: key/);
 });

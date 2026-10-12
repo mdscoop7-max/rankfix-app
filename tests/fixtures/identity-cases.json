@@ -1,0 +1,1221 @@
+{
+ "source": "20 real scans of PR #127 (b2a8280) on 2026-10-12; page metadata and sampled internal paths only",
+ "cases": [
+  {
+   "id": "01",
+   "url": "https://www.coolblue.nl/",
+   "isHomepage": true,
+   "title": "Coolblue - Alles voor een glimlach",
+   "description": "Beste webwinkel 2022. Voor 23.59u besteld? Morgen gratis bezorgd. Ook op zondag! Gratis retourneren.",
+   "h1s": [
+    "Coolblue"
+   ],
+   "schemaTypes": [
+    "WebSite",
+    "SearchAction",
+    "Organization",
+    "ImageObject",
+    "AggregateRating"
+   ],
+   "links": [
+    "/",
+    "/advies/alles-over-onze-wasmachine-reparatieservice.html",
+    "/cookies",
+    "/energiecontracten/bereken-maandbedrag",
+    "/geheugen-opslag",
+    "/klantenservice",
+    "/klantenservice/bezorg-en-ophaalopties",
+    "/klantenservice/bezorgen-en-ophalen",
+    "/klantenservice/bezorging-van-witgoed-en-keukenapparatuur",
+    "/klantenservice/garantie-en-reparatie",
+    "/klantenservice/retourneren-en-ruilen",
+    "/laadpalen/offerte-aanvragen",
+    "/laptops-desktops-monitoren",
+    "/laptops/laptops-voor-zakelijk-gebruik",
+    "/laptops/windows",
+    "/ons-assortiment",
+    "/product/788258/krups-nespresso-essenza-mini-xn1108-zwart.html",
+    "/product/928665/aeg-tr86cbc86-absolutecare.html",
+    "/product/945891/bosch-wgg244zonl-iron-assist.html",
+    "/product/946245/kobo-clara-bw-zwart.html",
+    "/product/954347/apple-airpods-4.html",
+    "/product/957622/wisberg-wbbc460fzf2.html",
+    "/product/960702/philips-oneup-5000-series-xv5113-01.html",
+    "/product/965150/samsung-dv90f09f4su3-bespoke-ai-home.html",
+    "/product/967394/miele-g-5664-sc-vi.html",
+    "/product/969421/apple-airpods-pro-3.html",
+    "/product/985354/bosch-spotless-2-bcr2s1w.html",
+    "/televisies/samengestelde-producten",
+    "/warmtepompen/advies-aanvragen",
+    "/wasmachines/samengestelde-producten"
+   ],
+   "catalog": [
+    {
+     "key": "energy",
+     "score": 5
+    },
+    {
+     "key": "association",
+     "score": 3
+    },
+    {
+     "key": "manufacturer",
+     "score": 3
+    },
+    {
+     "key": "wholesale",
+     "score": 3
+    },
+    {
+     "key": "logistics",
+     "score": 3
+    },
+    {
+     "key": "telecom",
+     "score": 3
+    }
+   ],
+   "expected": null
+  },
+  {
+   "id": "02",
+   "url": "https://www.coolblue.nl/product/945890/bosch-wgg244flnl-i-dos.html",
+   "isHomepage": false,
+   "title": "Bosch WGG244FLNL i-DOS | Coolblue | Wasmachines",
+   "description": "Bosch WGG244FLNL i-DOS kopen? Bezorging &amp; installatie ook op zondag en in de avond. Gratis bezorging &amp; retour.",
+   "h1s": [
+    "Bosch WGG244FLNL i-DOS"
+   ],
+   "schemaTypes": [
+    "Product",
+    "Offer",
+    "Brand",
+    "AggregateRating",
+    "BreadcrumbList",
+    "ListItem",
+    "Organization"
+   ],
+   "links": [
+    "/",
+    "/c/app.html",
+    "/c/zakelijk.html",
+    "/cookies",
+    "/en/product/945890/bosch-wgg244flnl-i-dos.html",
+    "/klantenservice",
+    "/klantenservice/betaalmogelijkheden",
+    "/klantenservice/bezorg-en-ophaalopties",
+    "/klantenservice/bezorgen-en-ophalen",
+    "/klantenservice/garantie-en-reparatie",
+    "/klantenservice/retourneren-en-ruilen",
+    "/mijn-coolblue-account/energie",
+    "/mijn-coolblue-account/gegevens-en-voorkeuren",
+    "/mijn-coolblue-account/orderoverzicht",
+    "/mijn-coolblue-account/retourenoverzicht",
+    "/mijn-coolblue-account/witgoed-abonnementen",
+    "/ons-assortiment",
+    "/product-tweedekans/945890",
+    "/product-tweedekans/945890/3073935",
+    "/product/945888/bosch-wgg244fnnl-i-dos.html",
+    "/product/945890/bosch-wgg244flnl-i-dos.html",
+    "/product/945891/bosch-wgg244zonl-iron-assist.html",
+    "/product/955001/bosch-wgh244a7nl-i-dos.html",
+    "/product/972636/bosch-wgg246zcnl-iron-assist.html",
+    "/support/product/945890/bosch-wgg244flnl-i-dos.html",
+    "/wasmachines",
+    "/wasmachines/bosch/samengestelde-producten",
+    "/winkels"
+   ],
+   "catalog": [
+    {
+     "key": "ecommerce",
+     "score": 12
+    },
+    {
+     "key": "marketplace",
+     "score": 8
+    },
+    {
+     "key": "energy",
+     "score": 5
+    },
+    {
+     "key": "association",
+     "score": 3
+    },
+    {
+     "key": "manufacturer",
+     "score": 3
+    },
+    {
+     "key": "wholesale",
+     "score": 3
+    }
+   ],
+   "expected": null
+  },
+  {
+   "id": "04",
+   "url": "https://www.zalando.de/",
+   "isHomepage": true,
+   "title": "Schuhe, Mode und Accessoires online bei ZALANDO",
+   "description": "Wähle dein persönliche Fashion-Welt und entdecke Schuhe, Mode und Accessoires der aktuellen Saison für Damen, Herren oder Kinder online bei Zalando",
+   "h1s": [],
+   "schemaTypes": [],
+   "links": [
+    "/",
+    "/beauty/",
+    "/calvin-klein/",
+    "/diane-von-furstenberg/",
+    "/dirndl-shop/",
+    "/faq",
+    "/faq/product-safety",
+    "/faq/where-is-my-parcel.html",
+    "/g-star/",
+    "/gina-tricot/",
+    "/hollister-co/",
+    "/jack-and-jones/",
+    "/jack-wolfskin/",
+    "/loreal-paris/",
+    "/michael-kors/",
+    "/new-balance/",
+    "/outlet/"
+   ],
+   "catalog": [
+    {
+     "key": "ecommerce",
+     "score": 2
+    }
+   ],
+   "expected": null
+  },
+  {
+   "id": "05",
+   "url": "https://www.expert.nl/",
+   "isHomepage": true,
+   "title": "Beste service, vertrouwd dichtbij | Expert.nl",
+   "description": "Expert is met 140 winkels door heel Nederland specialist in home-elektronica ✓ Beste Service ✓ Persoonlijk Advies ✓ Vertrouwd dichtbij.",
+   "h1s": [],
+   "schemaTypes": [
+    "WebSite",
+    "SearchAction"
+   ],
+   "links": [
+    "/",
+    "/advies/tv-kopen-waar-op-letten",
+    "/advies/wat-is-hdr-tv",
+    "/advies/wat-is-oled",
+    "/advies/welk-formaat-tv-en-hoe-groot-is-dat",
+    "/beko-ctb-6250-x-selective-line-372504664",
+    "/computers/opslag-en-geheugen",
+    "/disclaimer/",
+    "/keuzehulp",
+    "/keuzehulp/airfryers",
+    "/keuzehulp/laptops",
+    "/keuzehulp/soundbars",
+    "/keuzehulp/televisies",
+    "/keuzehulp/wasmachines",
+    "/medisana-bs-444-connect-372504304",
+    "/privacy",
+    "/service",
+    "/service/expert-service/algemene-voorwaarden-bezorging",
+    "/service/kopen-en-bestellen",
+    "/service/kopen-en-bestellen/betaalmogelijkheden-bij-expert",
+    "/service/kopen-en-reserveren/online-betaalmethodes",
+    "/service/ruilen-en-retourneren",
+    "/tefal-pf2101-wit-372504464",
+    "/televisies/televisie-accessoires/tv-beugels"
+   ],
+   "catalog": [
+    {
+     "key": "ecommerce",
+     "score": 4
+    },
+    {
+     "key": "restaurant",
+     "score": 2
+    },
+    {
+     "key": "software_app",
+     "score": 2
+    },
+    {
+     "key": "home_services",
+     "score": 2
+    },
+    {
+     "key": "publisher_blog",
+     "score": 2
+    },
+    {
+     "key": "entertainment",
+     "score": 2
+    }
+   ],
+   "expected": null
+  },
+  {
+   "id": "06",
+   "url": "https://www.ikea.com/nl/nl/",
+   "isHomepage": true,
+   "title": "Betaalbare meubels & accessories – Alles voor je huis - IKEA",
+   "description": "Welkom bij IKEA! · Ontdek onze meubels en inspiratie voor elk budget en elk huis · Bestel online of kom langs in een van onze woonwinkels.",
+   "h1s": [
+    "Welkom bij IKEA"
+   ],
+   "schemaTypes": [
+    "WebSite",
+    "OnlineStore",
+    "FurnitureStore",
+    "ImageObject",
+    "Country",
+    "ContactPoint",
+    "Person",
+    "Place"
+   ],
+   "links": [
+    "/nl/nl/",
+    "/nl/nl/cat/baby-kinderproducten-bc001/",
+    "/nl/nl/cat/badkamerproducten-ba001/",
+    "/nl/nl/cat/kleine-opbergers-st007/",
+    "/nl/nl/cat/producten-products/",
+    "/nl/nl/cat/tuin-balkon-producten-od001/",
+    "/nl/nl/customer-service/",
+    "/nl/nl/customer-service/contact-us/",
+    "/nl/nl/customer-service/cookie-policy/",
+    "/nl/nl/customer-service/privacy-policy/",
+    "/nl/nl/customer-service/product-support/",
+    "/nl/nl/customer-service/services/delivery/",
+    "/nl/nl/ikea-business/interieur-design-service-voor-je-bedrijf-pub64008730/",
+    "/nl/nl/new/ikea-catalogus-pub4c91e7d0/",
+    "/nl/nl/new/new-products/",
+    "/nl/nl/p/angslilja-dekbedovertrek-en-kussensloop-bleek-grijsgroen-70632453/",
+    "/nl/nl/p/angslilja-dekbedovertrek-en-kussensloop-donkerblauw-70636620/",
+    "/nl/nl/p/besta-kastcombinatie-wand-wit-bjorkoviken-eikenfineer-s59623214/",
+    "/nl/nl/p/besta-opberger-met-deuren-wit-bjorkoviken-eikenfineer-s99623146/",
+    "/nl/nl/p/besta-opberger-met-deuren-zwartbruin-hedeviken-bruin-gebeitst-eikenfineer-s79623147/",
+    "/nl/nl/p/besta-tv-meubel-met-deuren-wit-bjorkoviken-eikenfineer-s59622912/",
+    "/nl/nl/p/besta-tv-meubel-met-deuren-zwartbruin-bjorkoviken-eikenfineer-s29622904/",
+    "/nl/nl/p/hovet-spiegel-zwart-70515915/",
+    "/nl/nl/p/ortrask-salontafel-bruin-essenfineer-10635845/",
+    "/nl/nl/p/ortrask-salontafel-zwart-essenfineer-30635849/",
+    "/nl/nl/p/storklinta-bedframe-wit-00615541/",
+    "/nl/nl/p/strandmon-oorfauteuil-tommaboda-bruinrood-30613164/",
+    "/nl/nl/returns/",
+    "/nl/nl/stores/",
+    "/nl/nl/stores/events/"
+   ],
+   "catalog": [
+    {
+     "key": "ecommerce",
+     "score": 7
+    },
+    {
+     "key": "car_repair",
+     "score": 2
+    },
+    {
+     "key": "restaurant",
+     "score": 2
+    },
+    {
+     "key": "software_app",
+     "score": 2
+    },
+    {
+     "key": "news_media",
+     "score": 2
+    },
+    {
+     "key": "publisher_blog",
+     "score": 2
+    }
+   ],
+   "expected": null
+  },
+  {
+   "id": "07",
+   "url": "https://www.ikea.com/nl/nl/p/billy-boekenkast-wit-00263850/",
+   "isHomepage": false,
+   "title": "BILLY boekenkast, wit, 80x28x202 cm  - IKEA",
+   "description": "BILLY boekenkast, wit, 80x28x202 cm Elke 5 seconden wordt er ergens ter wereld een BILLY verkocht. Behoorlijk indrukwekkend als je bedenkt dat BILLY al in 1979 werd gelanceerd. Het is de favoriet van boekenliefhebbers, die altijd in stijl blijft. Verstelbare planken; naar behoefte aan te passen.",
+   "h1s": [
+    "BILLY Boekenkast, wit, 80x28x202 cm"
+   ],
+   "schemaTypes": [
+    "BreadcrumbList",
+    "ListItem",
+    "Product",
+    "AggregateRating",
+    "Brand",
+    "ImageObject",
+    "Offer",
+    "Organization",
+    "OfferShippingDetails",
+    "DefinedRegion",
+    "Review",
+    "Person"
+   ],
+   "links": [
+    "/nl/nl/",
+    "/nl/nl/business-profile/register-network/",
+    "/nl/nl/cat/billy-serie-28102/",
+    "/nl/nl/cat/boekenkasten-10382/",
+    "/nl/nl/cat/producten-products/",
+    "/nl/nl/cat/vakkenkasten-55012/",
+    "/nl/nl/cat/wandkasten-st002/",
+    "/nl/nl/circular/repair/",
+    "/nl/nl/customer-service/",
+    "/nl/nl/customer-service/cookie-policy/",
+    "/nl/nl/customer-service/mobile-apps/",
+    "/nl/nl/customer-service/privacy-policy/",
+    "/nl/nl/customer-service/product-support/recalls/",
+    "/nl/nl/customer-service/services/delivery/",
+    "/nl/nl/ikea-business/",
+    "/nl/nl/ikea-business/interieur-design-service-voor-je-bedrijf-pub64008730/",
+    "/nl/nl/ikea-business/network/",
+    "/nl/nl/ikea-family/",
+    "/nl/nl/new/ikea-catalogus-pub4c91e7d0/",
+    "/nl/nl/p/billy-boekenkast-bruin-walnootpatroon-50508652/",
+    "/nl/nl/p/billy-boekenkast-eikenpatroon-10508932/",
+    "/nl/nl/p/billy-boekenkast-wit-00263850/",
+    "/nl/nl/p/billy-boekenkast-zwart-eikenpatroon-40477340/",
+    "/nl/nl/returns/",
+    "/nl/nl/shoppingcart/",
+    "/nl/nl/stores/",
+    "/nl/nl/stores/events/",
+    "/nl/nl/this-is-ikea/",
+    "/nl/nl/this-is-ikea/small-changes-everyday/"
+   ],
+   "catalog": [
+    {
+     "key": "ecommerce",
+     "score": 12
+    },
+    {
+     "key": "marketplace",
+     "score": 8
+    },
+    {
+     "key": "logistics",
+     "score": 5
+    },
+    {
+     "key": "association",
+     "score": 3
+    },
+    {
+     "key": "manufacturer",
+     "score": 3
+    },
+    {
+     "key": "wholesale",
+     "score": 3
+    }
+   ],
+   "expected": null
+  },
+  {
+   "id": "08",
+   "url": "https://allbirds.de/",
+   "isHomepage": true,
+   "title": "Schuhe & Sneaker für Damen & Herren | Allbirds",
+   "description": "Entdecke Schuhe und Sneaker von Allbirds – bequem, modern und mit langer Lebensdauer. Für Damen &amp; Herren ✓ Kauf auf Rechnung",
+   "h1s": [],
+   "schemaTypes": [
+    "BreadcrumbList",
+    "ListItem",
+    "WebSite",
+    "SearchAction",
+    "Organization"
+   ],
+   "links": [
+    "/",
+    "/apps/widerruf",
+    "/collections/dasher-nz-herren",
+    "/collections/tree-runner-herren",
+    "/collections/tree-runner-nz-herren",
+    "/collections/wasserdichte-schuhe-herren",
+    "/collections/wool-runner-herren",
+    "/customer_authentication/redirect?locale=de&region_country=DE",
+    "/pages/bezahloptionen",
+    "/pages/faq",
+    "/pages/kontakt",
+    "/pages/materialien-wool",
+    "/pages/reviews",
+    "/policies/legal-notice",
+    "/policies/privacy-policy",
+    "/policies/shipping-policy",
+    "/policies/terms-of-service",
+    "/products/w-breezer-point-ballerinas-9600a126630014",
+    "/products/w-tree-breezer-ballerinas-9600a113000050",
+    "/products/w-tree-breezer-ballerinas-9600a123360118",
+    "/products/w-tree-breezer-ballerinas-9600a123550105",
+    "/products/w-tree-breezer-ballerinas-960tb1wjbk0026",
+    "/products/w-tree-breezer-ballerinas-960tb1wnnt0051",
+    "/products/w-tree-runner-freizeitschuhe-960tr3wjbk0026",
+    "/products/w-tree-runner-freizeitschuhe-960tr3wkww0027",
+    "/products/w-tree-runner-freizeitschuhe-960tr3wmst0028",
+    "/products/w-tree-runner-freizeitschuhe-960tr3wwhe0030",
+    "/products/w-wool-dasher-2-mizzle-freizeitschuhe-9600aa00310065",
+    "/products/w-wool-runner-nz-waterproof-freizeitschuhe-9600a120060014"
+   ],
+   "catalog": [
+    {
+     "key": "ecommerce",
+     "score": 6
+    },
+    {
+     "key": "association",
+     "score": 3
+    },
+    {
+     "key": "manufacturer",
+     "score": 3
+    },
+    {
+     "key": "wholesale",
+     "score": 3
+    },
+    {
+     "key": "logistics",
+     "score": 3
+    },
+    {
+     "key": "telecom",
+     "score": 3
+    }
+   ],
+   "expected": null
+  },
+  {
+   "id": "09",
+   "url": "https://allbirds.de/products/w-tree-runner-freizeitschuhe-960tr3wkww0027",
+   "isHomepage": false,
+   "title": "W Tree Runner Freizeitschuhe kaikoura white (white)",
+   "description": "Mit unseren luftigen, seidig-weichen Sneakern aus verantwortungsvoll angebauten Eukalyptusfasern bist du im Alltag stets ein bisschen freundlicher zum Planeten; Ideal: zum Spazieren gehen, bei wärmerem Wetter, für deine Freizeitlooks; Temperaturregulierendes Material: Leichte, luftige Eukalyptusfasern bieten unvergleichlichen Komfort; Vielseitiges Design: Passt zu jedem Outfit und ist ideal zum Reisen.",
+   "h1s": [
+    "W Tree Runner Freizeitschuhe"
+   ],
+   "schemaTypes": [
+    "ProductGroup",
+    "Brand",
+    "Product",
+    "Offer",
+    "BreadcrumbList",
+    "ListItem"
+   ],
+   "links": [
+    "/",
+    "/apps/widerruf",
+    "/collections/dasher-nz-herren",
+    "/collections/tree-runner-herren",
+    "/collections/tree-runner-nz-herren",
+    "/collections/wasserdichte-schuhe-herren",
+    "/collections/wool-runner-herren",
+    "/customer_authentication/redirect?locale=de&region_country=DE",
+    "/pages/bezahloptionen",
+    "/pages/faq",
+    "/pages/kontakt",
+    "/pages/materialien-wool",
+    "/pages/reviews",
+    "/policies/legal-notice",
+    "/policies/privacy-policy",
+    "/policies/shipping-policy",
+    "/policies/terms-of-service",
+    "/products/allbirds-geschenkgutschein",
+    "/products/w-tree-runner-freizeitschuhe-9600a113720023",
+    "/products/w-tree-runner-freizeitschuhe-9600a113810025",
+    "/products/w-tree-runner-freizeitschuhe-960tr3wjbk0026",
+    "/products/w-tree-runner-freizeitschuhe-960tr3wjbw0134",
+    "/products/w-tree-runner-freizeitschuhe-960tr3wkww0027",
+    "/products/w-tree-runner-freizeitschuhe-960tr3wmst0028",
+    "/products/w-tree-runner-freizeitschuhe-960tr3wnnw0029",
+    "/products/w-tree-runner-freizeitschuhe-960tr3wwhe0030"
+   ],
+   "catalog": [
+    {
+     "key": "ecommerce",
+     "score": 14
+    },
+    {
+     "key": "marketplace",
+     "score": 8
+    }
+   ],
+   "expected": null
+  },
+  {
+   "id": "10",
+   "url": "https://www.bksmeubelen.nl/",
+   "isHomepage": true,
+   "title": "BKS Meubelen - Home",
+   "description": "BKS Meubelen is al meer dan 40 jaar leverancier van massief eiken meubelen. We hebben een uitgebreid assortiment met heel veel mogelijkheden.",
+   "h1s": [
+    "BKS Meubelen"
+   ],
+   "schemaTypes": [
+    "WebPage",
+    "ReadAction",
+    "ImageObject",
+    "BreadcrumbList",
+    "ListItem",
+    "WebSite",
+    "SearchAction",
+    "EntryPoint",
+    "PropertyValueSpecification"
+   ],
+   "links": [
+    "/",
+    "/3d-configurator/",
+    "/adviesverkoopprijzen-bks-meubelen/",
+    "/algemene-voorwaarden/",
+    "/collectie/",
+    "/contact/",
+    "/contact/over/",
+    "/contact/vacatures/",
+    "/haarden/",
+    "/privacybeleid/",
+    "/product-categorie/dressoirs/dressoirs-hoge-dressoirs/",
+    "/product-categorie/dressoirs/dressoirs-lage-dressoirs/",
+    "/product-categorie/dressoirs/dressoirs-middelhoge-dressoirs/",
+    "/product-categorie/kasten/kasten-open-kasten/",
+    "/product-categorie/producten/",
+    "/product/5221-f-070-steel-salontafel/",
+    "/product/koffietafeltje/",
+    "/product/salontafel-steel-rond-o-50-cm-x-h-35-cm-dicht/",
+    "/producten/",
+    "/tableliff/",
+    "/vind-een-winkel/"
+   ],
+   "catalog": [
+    {
+     "key": "ecommerce",
+     "score": 2
+    },
+    {
+     "key": "healthcare",
+     "score": 2
+    },
+    {
+     "key": "general_business",
+     "score": 2
+    }
+   ],
+   "expected": null
+  },
+  {
+   "id": "11",
+   "url": "https://www.bksmeubelen.nl/product/dressoir-2-deurs/",
+   "isHomepage": false,
+   "title": "5820 - Sheffield dressoir - BKS Meubelen",
+   "description": "",
+   "h1s": [
+    "5820 – Sheffield dressoir"
+   ],
+   "schemaTypes": [
+    "WebPage",
+    "ReadAction",
+    "ImageObject",
+    "BreadcrumbList",
+    "ListItem",
+    "WebSite",
+    "SearchAction",
+    "EntryPoint",
+    "PropertyValueSpecification",
+    "Product",
+    "Offer",
+    "UnitPriceSpecification"
+   ],
+   "links": [
+    "/",
+    "/3d-configurator/",
+    "/adviesverkoopprijzen-bks-meubelen/",
+    "/algemene-voorwaarden/",
+    "/collectie/",
+    "/contact/",
+    "/contact/over/",
+    "/contact/vacatures/",
+    "/haarden/",
+    "/privacybeleid/",
+    "/product-categorie/dressoirs/dressoirs-hoge-dressoirs/",
+    "/product-categorie/dressoirs/dressoirs-lage-dressoirs/",
+    "/product-categorie/dressoirs/dressoirs-middelhoge-dressoirs/",
+    "/product-categorie/kasten/kasten-open-kasten/",
+    "/product-categorie/producten/",
+    "/product/5842-sheffield-dressoir/",
+    "/product/dressoir-2-deuren-2-laden/",
+    "/product/dressoir-2-deurs/",
+    "/product/dressoir-2-deurs/%3C%=%20url%20%%3E",
+    "/product/dressoir-4-deuren-2-laden/",
+    "/product/dressoir-4-deuren-4-laden/",
+    "/producten/",
+    "/tableliff/",
+    "/vind-een-winkel/"
+   ],
+   "catalog": [
+    {
+     "key": "ecommerce",
+     "score": 10
+    },
+    {
+     "key": "marketplace",
+     "score": 8
+    },
+    {
+     "key": "general_business",
+     "score": 5
+    },
+    {
+     "key": "association",
+     "score": 3
+    },
+    {
+     "key": "manufacturer",
+     "score": 3
+    },
+    {
+     "key": "wholesale",
+     "score": 3
+    }
+   ],
+   "expected": null
+  },
+  {
+   "id": "12",
+   "url": "https://www.acupunctuurdijkstra.nl/",
+   "isHomepage": true,
+   "title": "Acupunctuur Alkmaar | Acupunctuur Praktijk Gerda Dijkstra",
+   "description": "Acupunctuur Alkmaar, Chinese Acupunctuur praktijk in Alkmaar. Ervaring met veel klachten. Erkend acupuncturist.",
+   "h1s": [
+    "Acupunctuur Alkmaar",
+    "Acupunctuur Praktijk Gerda Dijkstra"
+   ],
+   "schemaTypes": [
+    "WebPage",
+    "ReadAction",
+    "BreadcrumbList",
+    "ListItem",
+    "WebSite",
+    "SearchAction",
+    "EntryPoint",
+    "PropertyValueSpecification"
+   ],
+   "links": [
+    "/",
+    "/aanvullende-technieken/",
+    "/acupunctuur-alkmaar/acupuncturist-gerda-dijkstra/",
+    "/acupunctuur-alkmaar/het-consult/",
+    "/acupunctuur/",
+    "/behandelmethodes/acupunctuur/",
+    "/behandelmethodes/tuina/",
+    "/contact",
+    "/contact/",
+    "/de-praktijk/tarieven-en-vergoedingen/",
+    "/kinderen-2/",
+    "/master-tung-acupunctuur/",
+    "/motorpunt-stimulatie/",
+    "/tarieven-en-vergoedingen/",
+    "/tuina/",
+    "/voeding-voor-babys-volgens-tcm/",
+    "/voeding/warm-water-drinken-gezond/",
+    "/vruchtbaarheidsproblemen-begeleiding-iui-ivf-icsi-onvruchtbaarheid-man/"
+   ],
+   "catalog": [
+    {
+     "key": "association",
+     "score": 2
+    }
+   ],
+   "expected": null
+  },
+  {
+   "id": "13",
+   "url": "https://www.transheroes.com/nl/",
+   "isHomepage": true,
+   "title": "Internationaal transport, zeevracht, luchtvracht & douane | TransHeroes",
+   "description": "Wegtransport | Zeevracht | Luchtvracht | Koeriersdiensten | Railtransport | Douaneafhandeling | Transport | Logistiek expediteur",
+   "h1s": [
+    "Cookies voor een gebruiksvriendelijke ervaring",
+    "TransHeroes voor slimme logistieke oplossingen"
+   ],
+   "schemaTypes": [
+    "WebSite",
+    "WebPage",
+    "ReadAction",
+    "Service",
+    "OpeningHoursSpecification",
+    "Organization",
+    "BreadcrumbList",
+    "ListItem",
+    "AggregateRating",
+    "ImageObject"
+   ],
+   "links": [
+    "/nl/",
+    "/nl/cases/",
+    "/nl/cases/beurstransport-europa/",
+    "/nl/cases/cacao-transport-bigbags/",
+    "/nl/cases/tegels-transport-spanje/",
+    "/nl/cases/wijn-transport-portugal/",
+    "/nl/contact/",
+    "/nl/diensten/luchtvracht/",
+    "/nl/diensten/railtransport/",
+    "/nl/diensten/speciaal-transport/",
+    "/nl/diensten/wegtransport/",
+    "/nl/diensten/zeevracht/",
+    "/nl/douane/atr-document/",
+    "/nl/douane/certificaat-van-oorsprong/",
+    "/nl/douane/t1-document/",
+    "/nl/douane/tarieven/",
+    "/nl/offerte-aanvragen/",
+    "/nl/ons-team/",
+    "/nl/transport/",
+    "/nl/transport/azie/",
+    "/nl/transport/canada/",
+    "/nl/transport/europa/",
+    "/nl/transport/verenigde-staten/",
+    "/nl/transport/zuid-amerika/",
+    "/nl/transportal/"
+   ],
+   "catalog": [
+    {
+     "key": "logistics",
+     "score": 5
+    },
+    {
+     "key": "association",
+     "score": 3
+    },
+    {
+     "key": "manufacturer",
+     "score": 3
+    },
+    {
+     "key": "wholesale",
+     "score": 3
+    },
+    {
+     "key": "telecom",
+     "score": 3
+    },
+    {
+     "key": "energy",
+     "score": 3
+    }
+   ],
+   "expected": null
+  },
+  {
+   "id": "15",
+   "url": "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-prijzen-in-supermarkt-na-it-incident-bij-albert-heijn",
+   "isHomepage": false,
+   "title": "Geen bezorging en verkeerde winkelprijzen na 'cyberveiligheidsincident' bij Albert Heijn",
+   "description": "Dat komt volgens Albert Heijn door &quot;een IT-incident&quot;. Websites, apps en de klantenservice zijn hierdoor niet beschikbaar.",
+   "h1s": [
+    "Geen bezorging en verkeerde winkelprijzen na 'cyberveiligheidsincident' bij Albert Heijn"
+   ],
+   "schemaTypes": [
+    "WebPage",
+    "Language",
+    "ImageObject",
+    "Organization",
+    "NewsArticle"
+   ],
+   "links": [
+    "/",
+    "/artikel/2631561-datalek-bij-webshop-drogisterijketen-da-raakt-236-000-klanten",
+    "/artikel/2633445-bedrijven-massaal-gehackt-consument-maakt-het-weinig-uit-we-zijn-datalekmoe",
+    "/artikel/2634396-storing-bij-kpn-opgelost-universitaire-ziekenhuizen-weer-bereikbaar",
+    "/artikel/2634640-litouwen-en-polen-bereiden-zich-met-oefening-voor-op-vluchtelingencrisis",
+    "/artikel/2634644-geen-bezorging-en-verkeerde-winkelprijzen-na-cyberveiligheidsincident-bij-albert-heijn",
+    "/artikel/2634656-bakstenen-zonder-gasovens-vol-stroomnet-zit-duurzamere-industrie-in-de-weg",
+    "/artikel/2634660-staking-belgie-om-bezuinigingen-openbare-diensten-minder-treinen-ook-vrt-staakt",
+    "/artikel/2634664-centrumlinks-schuift-raphael-glucksmann-naar-voren-als-franse-presidentskandidaat",
+    "/herstel",
+    "/live",
+    "/nieuws/cultuur-en-media",
+    "/sport",
+    "/sport/formule-1",
+    "/sport/laatste/videos",
+    "/sport/schaatsen",
+    "/sport/voetbal",
+    "/sport/wielrennen",
+    "/teletekst",
+    "/toegankelijkheid/verklaring"
+   ],
+   "catalog": [
+    {
+     "key": "news_media",
+     "score": 5
+    },
+    {
+     "key": "general_business",
+     "score": 5
+    },
+    {
+     "key": "association",
+     "score": 3
+    },
+    {
+     "key": "manufacturer",
+     "score": 3
+    },
+    {
+     "key": "wholesale",
+     "score": 3
+    },
+    {
+     "key": "logistics",
+     "score": 3
+    }
+   ],
+   "expected": "news_publisher"
+  },
+  {
+   "id": "16",
+   "url": "https://www.racesport.nl/",
+   "isHomepage": true,
+   "title": "Racesport.nl, de snelste motorsportsite van Nederland",
+   "description": "Blijf op de hoogte van het laatste motorsport nieuws via Racesport.nl! Lees artikelen en updates over de motogp, moto2, wk superbike en meer.",
+   "h1s": [
+    "Racesport.nl De snelste motorsportsite van Nederland"
+   ],
+   "schemaTypes": [
+    "WebPage",
+    "ReadAction",
+    "BreadcrumbList",
+    "ListItem",
+    "WebSite",
+    "SearchAction",
+    "EntryPoint",
+    "PropertyValueSpecification",
+    "Organization",
+    "ImageObject",
+    "NewsMediaOrganization",
+    "PostalAddress"
+   ],
+   "links": [
+    "/",
+    "/category/internationaal/moto4-northern-cup/",
+    "/category/internationaal/motojunior-world-championship/",
+    "/category/motogp/motogp-2026/",
+    "/category/motogp/red-bull-motogp-rookies-cup/",
+    "/category/product/",
+    "/category/product/page/2/",
+    "/category/product/page/3/",
+    "/category/product/page/38/",
+    "/category/worldsbk/yamaha-blucru/",
+    "/disclaimer/",
+    "/item/premium-jaar/",
+    "/item/premium-maand/",
+    "/kalender",
+    "/kalender/",
+    "/uitslagen/?frommonth=01&fromyear=2016&tilmonth=12&tilyear=2016",
+    "/uitslagen/?frommonth=01&fromyear=2017&tilmonth=12&tilyear=2017",
+    "/uitslagen/?frommonth=01&fromyear=2018&tilmonth=12&tilyear=2018",
+    "/uitslagen/?frommonth=01&fromyear=2019&tilmonth=12&tilyear=2019",
+    "/uitslagen/?frommonth=01&fromyear=2020&tilmonth=12&tilyear=2020",
+    "/uitslagen/?frommonth=01&fromyear=2021&tilmonth=12&tilyear=2021",
+    "/uitslagen/?frommonth=01&fromyear=2022&tilmonth=12&tilyear=2022",
+    "/uitslagen/?frommonth=01&fromyear=2023&tilmonth=12&tilyear=2023",
+    "/uitslagen/?frommonth=01&fromyear=2024&tilmonth=12&tilyear=2024",
+    "/uitslagen/?frommonth=01&fromyear=2025&tilmonth=12&tilyear=2025",
+    "/uitslagen/?frommonth=01&fromyear=2026&tilmonth=12&tilyear=2026"
+   ],
+   "catalog": [
+    {
+     "key": "news_media",
+     "score": 5
+    },
+    {
+     "key": "association",
+     "score": 3
+    },
+    {
+     "key": "manufacturer",
+     "score": 3
+    },
+    {
+     "key": "wholesale",
+     "score": 3
+    },
+    {
+     "key": "logistics",
+     "score": 3
+    },
+    {
+     "key": "telecom",
+     "score": 3
+    }
+   ],
+   "expected": "news_publisher"
+  },
+  {
+   "id": "17",
+   "url": "https://www.rijksoverheid.nl/",
+   "isHomepage": true,
+   "title": "Informatie van de Rijksoverheid | Rijksoverheid.nl",
+   "description": "Rijksoverheid.nl is de website van het Rijk met uitleg en nieuws over wet- en regelgeving van alle ministeries.",
+   "h1s": [
+    "Home"
+   ],
+   "schemaTypes": [
+    "WebSite",
+    "GovernmentOrganization",
+    "ImageObject"
+   ],
+   "links": [
+    "/",
+    "/abonneren",
+    "/documenten",
+    "/documenten/2014/02/06/formulier-toestemming-reizen-met-minderjarige-naar-het-buitenland",
+    "/ministeries",
+    "/opendata",
+    "/over-rijksoverheid-nl",
+    "/regering",
+    "/service/archief",
+    "/service/contact",
+    "/service/contact/informatie-rijksoverheid",
+    "/service/cookies",
+    "/service/copyright",
+    "/service/kwetsbaarheid-melden",
+    "/service/privacy",
+    "/service/rss",
+    "/service/vacatures",
+    "/themas/bouwen-en-wonen",
+    "/themas/migratie-en-reizen/paspoort-en-identiteitskaart/eisen-pasfoto-paspoort-id-kaart",
+    "/themas/onderwijs/schoolvakanties/herfstvakantie/herfstvakantie-2026",
+    "/themas/werk/minimumloon/bedragen-minimumloon/bedragen-minimumloon-2026",
+    "/themas/werk/zelfstandigen-zonder-personeel-zzp/aanpak-schijnzelfstandigheid"
+   ],
+   "catalog": [
+    {
+     "key": "government",
+     "score": 5
+    },
+    {
+     "key": "real_estate",
+     "score": 2
+    },
+    {
+     "key": "property_rental",
+     "score": 2
+    },
+    {
+     "key": "healthcare",
+     "score": 2
+    },
+    {
+     "key": "travel",
+     "score": 2
+    },
+    {
+     "key": "legal",
+     "score": 2
+    }
+   ],
+   "expected": null
+  },
+  {
+   "id": "18",
+   "url": "https://www.moneybird.nl/",
+   "isHomepage": true,
+   "title": "Het boekhoudpakket van ruim 400.000 ondernemers. | Moneybird",
+   "description": "Al je financiële zaken slim in één pakket. Grip op je boekhouding. Rust in je hoofd. Zo gebeurd, met Moneybird.",
+   "h1s": [
+    "Boekhoudsoftware die slim voor je werkt ."
+   ],
+   "schemaTypes": [
+    "Organization",
+    "ContactPoint",
+    "Language",
+    "WebSite",
+    "SoftwareApplication",
+    "AggregateRating",
+    "AggregateOffer",
+    "WebPage",
+    "VideoObject",
+    "Review",
+    "Person",
+    "Rating"
+   ],
+   "links": [
+    "/",
+    "/aanmelden",
+    "/aanmelden/",
+    "/accountants/moneybird-experts/",
+    "/agents/",
+    "/cookies/",
+    "/ervaringen/",
+    "/functies/",
+    "/helpcentrum/",
+    "/moneybird-en-ik/",
+    "/prijzen/",
+    "/privacy/",
+    "/product/koppelingen/",
+    "/product/koppelingen/bouw/",
+    "/product/koppelingen/bouwportaal/",
+    "/product/koppelingen/hoorayhr/",
+    "/product/koppelingen/psps/",
+    "/product/koppelingen/salarisadministratie/",
+    "/product/koppelingen/urenregistratie/",
+    "/product/koppelingen/webshops/",
+    "/product/koppelingen/woocommerce/",
+    "/product/productvisie/",
+    "/terms/",
+    "/vacatures/",
+    "/video/",
+    "/voor-wie/sectoren/webshops-en-e-commerce/",
+    "/werken-bij/"
+   ],
+   "catalog": [
+    {
+     "key": "saas_b2b",
+     "score": 5
+    },
+    {
+     "key": "software_app",
+     "score": 5
+    },
+    {
+     "key": "general_business",
+     "score": 5
+    },
+    {
+     "key": "association",
+     "score": 3
+    },
+    {
+     "key": "manufacturer",
+     "score": 3
+    },
+    {
+     "key": "wholesale",
+     "score": 3
+    }
+   ],
+   "expected": "software_saas"
+  },
+  {
+   "id": "19",
+   "url": "https://www.nationalevacaturebank.nl/",
+   "isHomepage": true,
+   "title": "De vacaturesite met vacatures, banen, stages en bijbanen | Nationale Vacaturebank",
+   "description": "De vacaturesite met vacatures, banen, stages en bijbanen | Nationale Vacaturebank",
+   "h1s": [],
+   "schemaTypes": [
+    "Organization",
+    "PostalAddress",
+    "Country",
+    "ImageObject",
+    "QuantitativeValue",
+    "Place"
+   ],
+   "links": [
+    "/",
+    "/carriere/actueel",
+    "/carriere/salaris",
+    "/carriere/salaris/salaris-berekenen/bruto-naar-netto",
+    "/carriere/salaris/salaris-berekenen/welk-salaris-vragen",
+    "/carriere/salaris/salarisschalen/5-goed-betaalde-banen-jongeren-vaak-over-hoofd-zien",
+    "/info/veelgestelde-vragen",
+    "/salaris",
+    "/vacatures",
+    "/vacatures/branche/transport-logistiek",
+    "/vacatures/functie/administratief-medewerker",
+    "/vacatures/functie/medewerker-klantenservice",
+    "/vacatures/functie/pedagogisch-medewerker-kinderopvang",
+    "/vacatures/werkgever/belastingdienst"
+   ],
+   "catalog": [
+    {
+     "key": "logistics",
+     "score": 5
+    },
+    {
+     "key": "association",
+     "score": 3
+    },
+    {
+     "key": "manufacturer",
+     "score": 3
+    },
+    {
+     "key": "wholesale",
+     "score": 3
+    },
+    {
+     "key": "telecom",
+     "score": 3
+    },
+    {
+     "key": "energy",
+     "score": 3
+    }
+   ],
+   "expected": "job_board"
+  },
+  {
+   "id": "20",
+   "url": "https://www.efteling.com/nl",
+   "isHomepage": true,
+   "title": "Wereld vol Wonderen - Efteling",
+   "description": "Efteling: een attractiepark met nieuwe, spannende attracties en sprookjes voor het leukste dagje uit! Reserveer online eenvoudig je bezoek aan de Efteling.",
+   "h1s": [
+    "Efteling, Wereld vol Wonderen"
+   ],
+   "schemaTypes": [
+    "Organization",
+    "PostalAddress",
+    "ContactPoint",
+    "ImageObject"
+   ],
+   "links": [
+    "/",
+    "/en",
+    "/nl",
+    "/nl/algemene-voorwaarden",
+    "/nl/contact-route",
+    "/nl/meer-efteling",
+    "/nl/nieuw-in-de-efteling",
+    "/nl/park",
+    "/nl/park/informatie/bezoekers-met-een-beperking/ontdek-het-park",
+    "/nl/park/informatie/veelgestelde-vragen",
+    "/nl/park/restaurants",
+    "/nl/park/seizoenen",
+    "/nl/park/shows",
+    "/nl/specials/reserveerlijst-verblijf",
+    "/nl/theater",
+    "/nl/theater/caro",
+    "/nl/werken-bij"
+   ],
+   "catalog": [
+    {
+     "key": "restaurant",
+     "score": 4
+    },
+    {
+     "key": "hotel",
+     "score": 4
+    },
+    {
+     "key": "association",
+     "score": 3
+    },
+    {
+     "key": "manufacturer",
+     "score": 3
+    },
+    {
+     "key": "wholesale",
+     "score": 3
+    },
+    {
+     "key": "logistics",
+     "score": 3
+    }
+   ],
+   "expected": "attraction_recreation"
+  }
+ ]
+}

@@ -25,6 +25,9 @@ import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDeta
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
+import { articleSchemaPage, declaredIdentityGovernsPage, declaredPrimaryIdentity } from "@/lib/primary-identity";
+import { detectCookieInformation } from "@/lib/cookie-evidence";
+import { presentScore } from "@/lib/score-presentation";
 import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes } from "@/lib/sector-identity";
 
 // Vercel function limit for a full scan (fetches, representative pages and bounded
@@ -931,9 +934,12 @@ export async function POST(request: Request) {
     const localBusinessKeywordSignal = /\b(restaurant|eetcafé|eetgelegenheid|brasserie|bistro|menukaart|kapsalon|kapper|hairdresser|salon|coiffeur|barbier|bakker|bakery|bar|café|cafe|dentist|tandarts|tandheelkunde|mondzorg|orthodontist|electrician|elektricien|elektro|elektrotechniek|installatietechniek|plumber|loodgieter|loodgieters|cv-installateur|installateur|aannemer|contractor|bouwbedrijf|bouwservice|verbouwing|renovatie|dakdekker|dakbedekking|dakwerken|beautysalon|beauty salon|schoonheidssalon|winkel|store|shop|boetiek|retail|garage|autogarage|autoservice|autobedrijf|autodealer|makelaar|makelaars|vastgoedmakelaar|real estate agent|realtor|woningmakelaar|advocaat|advocatenkantoor|law firm|jurist|notaris|notariskantoor|accountant|accountantskantoor|boekhouder|boekhoudkantoor|administratiekantoor|reisbureau|reisorganisatie|travel agency|tour operator|reisagent|hotel|bed and breakfast|b&b|pension)\b/i.test([title, description, ...h1s, finalUrl.hostname, finalUrl.pathname].join(" "));
     const localContactSignal = /\b(opening hours|openingstijden|adres|address|telephone|telefoon|phone|contact)\b/i.test(text) &&
       /\b(address|adres|phone|telefoon|telephone|\+?31|0\d{1,3}[\s-]?\d)\b/i.test(text);
+    // Article structured data on a non-homepage is page evidence; keyword-only
+    // hints (e.g. "menu" in site navigation) cannot turn it into a local business page.
+    const articleSchemaEvidence = articleSchemaPage(schemaTypes, isHomepage);
     const hasLocalBusinessSignal =
       schemaSet.has("localbusiness") ||
-      (localContactSignal && (localBusinessKeywordSignal || /\b(menu|menukaart|reserveren|reservation|openingstijden|opening hours)\b/i.test(text)));
+      (!articleSchemaEvidence && localContactSignal && (localBusinessKeywordSignal || /\b(menu|menukaart|reserveren|reservation|openingstijden|opening hours)\b/i.test(text)));
     const hasVisibleBusinessIdentity = Boolean(
       organizationName ||
       (title && /\b(restaurant|salon|kapsalon|bakker|bakery|bar|cafe|café|dentist|tandarts|electrician|elektricien|plumber|loodgieter|aannemer|contractor|hairdresser|kapper|store|winkel)\b/i.test(title)) ||
@@ -1657,6 +1663,30 @@ export async function POST(request: Request) {
     // tourism, food, or local-service keywords on category/support pages.
     // Require online purchase language AND physical retail assortment in the
     // primary page identity, not merely a generic "shop" or a contact CTA.
+    // Declared primary identity (news publisher, software/SaaS, job board,
+    // attraction/recreation): what the site says it primarily is, proven by at
+    // least two independent evidence families (schema, own identity text, site
+    // structure). Commerce, lodging or booking capabilities then stay secondary.
+    // Regulated/local identities already proven above are never overridden.
+    const siteHostForIdentity = finalUrl.hostname.toLowerCase().replace(/^www\./, "");
+    const identityLinkPaths = links.flatMap((href) => {
+      try {
+        const resolved = new URL(href, finalUrl);
+        return resolved.hostname.toLowerCase().replace(/^www\./, "") === siteHostForIdentity ? [resolved.pathname + resolved.search] : [];
+      } catch { return []; }
+    });
+    const declaredIdentityCandidate = declaredPrimaryIdentity({
+      schemaTypes,
+      identityText: [title, description, h1s.join(" ")].join(" "),
+      links: identityLinkPaths,
+      catalog: evidenceSectorCandidates.map((candidate) => ({ key: candidate.key, score: candidate.score })),
+    });
+    const protectedIdentitySectors = new Set<SectorKey>(["government","health_wellness","real_estate","automotive","transport_travel","beauty","home_services"]);
+    const protectedIdentitySector = (masterIdentityOverride && masterIdentityOverride.sector !== "hospitality" ? masterIdentityOverride.sector : null)
+      || (strongSectorCandidate && protectedIdentitySectors.has(sectorCandidates[0].sector) ? sectorCandidates[0].sector : null);
+    const declaredIdentity = declaredIdentityCandidate && (!protectedIdentitySector || protectedIdentitySector === declaredIdentityCandidate.sector) ? declaredIdentityCandidate : null;
+    const declaredGoverns = declaredIdentityGovernsPage(declaredIdentity, { isProductPage, isCategoryPage: hasCategorySignal });
+    const declaredSectorKey = declaredIdentity ? ({ news_publisher: "news_media", software_saas: "saas_b2b", job_board: "job_board", attraction_recreation: "attraction_park" } as const)[declaredIdentity.key] : null;
     const retailLanguage = retailIdentityLanguage(sectorIdentitySource);
     const retailAssortmentIdentity = retailLanguage.assortment;
     const onlineRetailCallout = retailLanguage.onlineSales;
@@ -1671,10 +1701,13 @@ export async function POST(request: Request) {
       (onlineRetailCallout || (retailStoreIdentity && commerceNavigationSignal)));
     const retailPurchaseEvidence = evidenceCommerceConfirmed || hasEcommerceSignal || explicitRetailIdentity;
     const retailPrimaryIdentity = retailPurchaseEvidence
+      && !declaredGoverns
       && !shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity
       && !beautyServiceIdentity && !explicitMedicalIdentity && !transportBookingIdentity
       && !/\b(?:restaurant|hotel|reserveren|reserveer tafel|vakantieverhuur|transportdiensten|schoonmaakdienst)\b/i.test(sectorIdentitySource);
-    const primaryNonCommerceIdentity = retailPrimaryIdentity ? null : (masterIdentityOverride
+    const primaryNonCommerceIdentity = retailPrimaryIdentity ? null : declaredGoverns && declaredIdentity && declaredSectorKey
+      ? {sector:declaredIdentity.sector as SectorKey,key:declaredSectorKey as string,label:declaredIdentity.label,evidence:[`Primaire identiteit: ${declaredIdentity.label} (${declaredIdentity.families.length} onafhankelijke bewijsfamilies)`, ...declaredIdentity.evidence]}
+      : (masterIdentityOverride
       || (strongSectorCandidate && sectorCandidates[0].sector !== "ecommerce"
         ? {sector:sectorCandidates[0].sector,key:sectorCandidates[0].sector,label:sectorCandidates[0].label,evidence:[`Primaire identiteit: ${sectorCandidates[0].hits} onafhankelijke ${sectorCandidates[0].hits===1?"sectorsignaal":"sectorsignalen"}`]}
         : null));
@@ -2104,11 +2137,19 @@ export async function POST(request: Request) {
     const helpOnlyContactAnchor = classifiedContactAnchors.find((entry) => entry.kind !== null && INDIRECT_CONTACT_KINDS.has(entry.kind))?.item || null;
     const hasPrivacyLink = Boolean(privacyEvidence);
     const hasCookieLink = Boolean(cookieEvidence);
+    // Cookie information can also come from a consent platform, banner or
+    // cookie-settings control; a missing footer link alone proves nothing.
+    const cookieInfo = detectCookieInformation({
+      html: rawHtml && rawHtml !== html ? `${html}\n${rawHtml}` : html,
+      hasCookieLink,
+      cookieLinkDetail: cookieEvidence ? `"${cookieEvidence.label || cookieEvidence.aria || cookieEvidence.title}" → ${cookieEvidence.href}` : null,
+    });
+    const hasCookieInfo = cookieInfo.found;
     const hasTermsLink = Boolean(termsEvidence);
     const hasContactLink = Boolean(contactEvidence || contactFormFound || visibleContactEmail);
     const legalLanguageCode = (lang || "").toLowerCase().split("-")[0];
     const legalLanguageSupported = new Set(["nl","en","it","pt","sl","hr","de","fr","es"]).has(legalLanguageCode);
-    const legalEvidenceSummary = [privacyEvidence && `privacy: "${privacyEvidence.label || privacyEvidence.aria || privacyEvidence.title}" → ${privacyEvidence.href}`, cookieEvidence && `cookies: "${cookieEvidence.label || cookieEvidence.aria || cookieEvidence.title}" → ${cookieEvidence.href}`, contactEvidence ? `contact (${contactChannelLabels[contactEvidence.channel]}): "${contactEvidence.label || contactEvidence.aria || contactEvidence.title}" → ${contactEvidence.href}` : contactFormFound ? "contact (contactformulier): formulier met berichtveld en e-mail/telefoonveld" : visibleContactEmail ? `contact (e-mail): ${visibleContactEmail}` : null].filter(Boolean).join(" · ");
+    const legalEvidenceSummary = [privacyEvidence && `privacy: "${privacyEvidence.label || privacyEvidence.aria || privacyEvidence.title}" → ${privacyEvidence.href}`, cookieEvidence ? `cookies: "${cookieEvidence.label || cookieEvidence.aria || cookieEvidence.title}" → ${cookieEvidence.href}` : cookieInfo.found ? `cookies: ${cookieInfo.detail}` : null, contactEvidence ? `contact (${contactChannelLabels[contactEvidence.channel]}): "${contactEvidence.label || contactEvidence.aria || contactEvidence.title}" → ${contactEvidence.href}` : contactFormFound ? "contact (contactformulier): formulier met berichtveld en e-mail/telefoonveld" : visibleContactEmail ? `contact (e-mail): ${visibleContactEmail}` : null].filter(Boolean).join(" · ");
     const formControls = [...html.matchAll(/<(input|select|textarea)\b([^>]*)>/gi)];
     const wrappingLabelRanges = [...html.matchAll(/<label\b[^>]*>[\s\S]*?<\/label>/gi)]
       .map((match) => ({ start: match.index ?? -1, end: (match.index ?? -1) + match[0].length }));
@@ -2758,15 +2799,20 @@ export async function POST(request: Request) {
     );
 
     seoChecks.push(
-      (thinRawHtmlEvidence || (metadataMayBeClientRendered && !(hasPrivacyLink && hasCookieLink && hasContactLink)))
+      (thinRawHtmlEvidence || (metadataMayBeClientRendered && !(hasPrivacyLink && hasCookieInfo && hasContactLink)))
         ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen",thinRawHtmlEvidence ? "De raw HTML is een dunne JavaScript-shell. Privacy-, cookie- en contactlinks kunnen client-side worden toegevoegd en zijn daarom niet betrouwbaar als ontbrekend te beoordelen." : "Deze pagina gebruikt een JavaScript-framework en browser-rendering was niet beschikbaar. Footerlinks naar privacy, cookies of contact kunnen client-side worden geladen en zijn daarom niet als ontbrekend te beoordelen.","Controleer deze signalen opnieuw met geslaagde JavaScript-rendering.",0,5)
-        : hasPrivacyLink && hasCookieLink && hasContactLink
-        ? check("pass","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Links naar privacy, cookies en contact zijn in de opgehaalde HTML gevonden."+(legalEvidenceSummary ? " Bewijs: "+legalEvidenceSummary+"." : ""),"Houd deze informatie duidelijk vindbaar en actueel. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",5,5)
-        : hasPrivacyLink && hasCookieLink && helpOnlyContactAnchor
+        : hasPrivacyLink && hasCookieInfo && hasContactLink
+        ? check("pass","trust_legal_signals","seo","Privacy & vertrouwenssignalen",(hasCookieLink ? "Links naar privacy, cookies en contact zijn in de opgehaalde HTML gevonden." : "Privacy- en contactlinks en cookie-informatie ("+cookieInfo.detail+") zijn in de opgehaalde HTML gevonden.")+(legalEvidenceSummary ? " Bewijs: "+legalEvidenceSummary+"." : ""),"Houd deze informatie duidelijk vindbaar en actueel. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",5,5)
+        : hasPrivacyLink && hasCookieInfo && helpOnlyContactAnchor
         ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Links naar privacy en cookies zijn gevonden. Voor contact is alleen een indirecte link gevonden (FAQ, help, support, klantenservice of een andere website) (\""+(helpOnlyContactAnchor.label || helpOnlyContactAnchor.aria || helpOnlyContactAnchor.title)+"\" → "+helpOnlyContactAnchor.href+"); dat bewijst geen directe contactmogelijkheid, maar ook niet dat die ontbreekt."+(legalEvidenceSummary ? " Bewijs: "+legalEvidenceSummary+"." : ""),"Controleer of de help- of supportpagina een contactpagina, contactformulier, e-mailadres of telefoonnummer aanbiedt.",0,5)
+        : hasPrivacyLink && hasContactLink && !hasCookieInfo
+        // Only cookie information is not detected. Consent banners are often loaded
+        // client-side or only for EU visitors, and cookie details often live inside
+        // the privacy statement: absence is not proven, so this is not a defect.
+        ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Privacy- en contactinformatie zijn gevonden."+(legalEvidenceSummary ? " Bewijs: "+legalEvidenceSummary+"." : "")+" Cookie-informatie is niet bevestigd: er is geen cookielink, consentplatform, cookiebanner of cookie-instellingenknop in de opgehaalde HTML gedetecteerd. Dat bewijst niet dat cookie-informatie ontbreekt (banners worden vaak client-side of alleen voor EU-bezoekers geladen). Dit is geen juridisch oordeel.","Controleer of cookie-informatie bereikbaar is via een cookiebanner, cookieverklaring of de privacyverklaring.",0,5)
         : !legalLanguageSupported && Boolean(legalLanguageCode)
           ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen","De paginataal ("+legalLanguageCode+") valt buiten de geteste juridische woordenlijst en niet alle signalen zijn rechtstreeks bevestigd."+(legalEvidenceSummary ? " Wel gevonden: "+legalEvidenceSummary+"." : ""),"Controleer de footer en cookiebanner handmatig of breid de woordenlijst voor deze taal uit.",0,5)
-          : check("warning","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Niet alle basissignalen zijn gevonden: "+[!hasPrivacyLink?"privacy":null,!hasCookieLink?"cookies":null,!hasContactLink?"contact":null].filter(Boolean).join(", ")+". "+(legalEvidenceSummary ? "Wel gevonden: "+legalEvidenceSummary+"." : ""),"Controleer of privacy-, cookie- en contactinformatie duidelijk bereikbaar is. RankFix beoordeelt hiermee geen wettelijke compliance.",Math.max(2, Number(hasPrivacyLink)+Number(hasCookieLink)+Number(hasContactLink)+2),5)
+          : check("warning","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Niet alle basissignalen zijn gevonden: "+[!hasPrivacyLink?"privacy":null,!hasContactLink?"contact":null].filter(Boolean).join(", ")+". "+(!hasCookieInfo ? "Cookie-informatie: niet bevestigd (geen bewijs van ontbreken). " : "")+(legalEvidenceSummary ? "Wel gevonden: "+legalEvidenceSummary+"." : ""),"Controleer of privacy-, cookie- en contactinformatie duidelijk bereikbaar is. RankFix beoordeelt hiermee geen wettelijke compliance.",Math.max(2, Number(hasPrivacyLink)+Number(hasCookieInfo)+Number(hasContactLink)+2),5)
     );
     seoChecks.push(
       thinRawHtmlEvidence && hasEcommerceSignal
@@ -3170,7 +3216,7 @@ export async function POST(request: Request) {
         security_headers: presentSecurityHeaders.length ? `present=${presentSecurityHeaders.map(([name])=>name).join(",")}; core=${coreSecurityHeadersPresent}` : "present=none; core=false",
         faq: (hasFaqContent || hasFaqSchema) ? `content=${hasFaqContent}; schema=${hasFaqSchema}` : (item.key === "faq" ? "faqContent=false; faqSchema=false" : null),
         breadcrumbs: (hasBreadcrumb || visibleBreadcrumbSignal) ? `schema=${hasBreadcrumb}; visible=${visibleBreadcrumbSignal}` : null,
-        trust_legal_signals: item.key === "trust_legal_signals" ? `privacy=${hasPrivacyLink}; cookies=${hasCookieLink}; contact=${hasContactLink}` : null,
+        trust_legal_signals: item.key === "trust_legal_signals" ? `privacy=${hasPrivacyLink}; cookies=${hasCookieInfo}${hasCookieInfo && !hasCookieLink ? ` (${cookieInfo.source})` : ""}; contact=${hasContactLink}` : null,
         social: [ogTitle ? "og:title" : "", ogDescription ? "og:description" : "", ogImage ? "og:image" : ""].filter(Boolean).join(", ") || (item.key === "social" ? "Open Graph core fields missing" : null),
         product_schema: isProductPage && hasProductSchema ? JSON.stringify(productOfferSummary.slice(0, 3)) : null,
         webshop_claims: hasWebshopClaims ? webshopClaimMatches.slice(0, 3).join(", ") : null,
@@ -3354,9 +3400,10 @@ export async function POST(request: Request) {
       }
       if(item.key==="trust_legal_signals"){
         const labels=localizedMissingLabels[scanLanguage]||localizedMissingLabels.en;
-        const missing=[!hasPrivacyLink?labels.privacy:null,!hasCookieLink?labels.cookies:null,!hasContactLink?labels.contact:null].filter(Boolean).join(", ");
+        const missing=[!hasPrivacyLink?labels.privacy:null,!hasContactLink?labels.contact:null].filter(Boolean).join(", ");
+        const cookieNote=!hasCookieInfo?(({nl:" Cookie-informatie: niet bevestigd (geen bewijs van ontbreken).",en:" Cookie information: not confirmed (no proof that it is missing).",de:" Cookie-Informationen: nicht bestätigt (kein Nachweis, dass sie fehlen).",fr:" Informations sur les cookies : non confirmées (aucune preuve d’absence).",it:" Informazioni sui cookie: non confermate (nessuna prova di assenza).",es:" Información de cookies: no confirmada (sin prueba de que falte)."} as Record<string,string>)[scanLanguage]||""):"";
         item.title=({nl:"Privacy & vertrouwenssignalen",en:"Privacy & trust signals",de:"Datenschutz- & Vertrauenssignale",fr:"Signaux de confidentialité et de confiance",it:"Segnali di privacy e fiducia",es:"Señales de privacidad y confianza"} as Record<string,string>)[scanLanguage]||"Privacy & trust signals";
-        item.message=concreteCopy.trust(missing);
+        item.message=concreteCopy.trust(missing)+cookieNote;
         item.fix=concreteCopy.trustFix;
         item.evidence.details=item.message;
       }
@@ -3478,7 +3525,8 @@ export async function POST(request: Request) {
     // the original input was a short/share URL. This runs on finalUrl only.
     const servicePathSignal = /\/(?:dienst|diensten|service|services|oplossing|oplossingen|solution|solutions|expertise|behandeling|behandelingen|treatment|practice|werkplaats)(?:\/|$)/i.test(pathname);
     const serviceContentSignal = /\b(?:onze diensten|our services|dienstverlening|service|services|expertise|oplossingen|solutions)\b/i.test([title, description, h1s.join(" ")].join(" "));
-    const resolvedServicePage = !isHomepage && !isProductPage && !hasCategorySignal && (servicePathSignal || serviceContentSignal);
+    // Article schema on this page outranks a generic "service" word in its title.
+    const resolvedServicePage = !isHomepage && !isProductPage && !hasCategorySignal && !articleSchemaEvidence && (servicePathSignal || serviceContentSignal);
     const pageTypeEvidence = {
       type: isHomepage ? "homepage" : propertyListingPage ? "property_listing" : isProductPage ? "product" : hasCategorySignal ? "category" : (effectiveLocalBusinessPage || resolvedServicePage) ? "service" : effectiveArticlePage ? "article" : "unknown",
       confidence: isHomepage ? "high" : propertyListingPage ? "high" : isProductPage && (hasProductSchema || hasSkuSignal) ? "high" : isProductPage ? "medium" : hasCategorySignal && (hasItemListSignal || repeatedProductCardSignal) ? "high" : resolvedServicePage && servicePathSignal ? "high" : effectiveLocalBusinessPage || resolvedServicePage || hasCategorySignal || effectiveArticlePage ? "medium" : "low",
@@ -4124,9 +4172,12 @@ export async function POST(request: Request) {
       corroboratedProductAndPrice
     );
     const technologyOnlyCommerce = technologyProfile.isCommerce && !hardCommerceEvidence;
-    const secondaryCommerceOnly = Boolean(primaryNonCommerceIdentity && !hardCommerceEvidence);
+    // A declared primary identity (news, software, job board, attraction) keeps
+    // proven shop functionality secondary on its non-product pages.
+    const declaredSecondaryCommerce = declaredGoverns && (hardCommerceEvidence || technologyProfile.isCommerce);
+    const secondaryCommerceOnly = Boolean(primaryNonCommerceIdentity && !hardCommerceEvidence) || declaredSecondaryCommerce;
     const finalCommerceDecision = {
-      confirmed: hardCommerceEvidence || (technologyOnlyCommerce && !primaryNonCommerceIdentity),
+      confirmed: !declaredGoverns && (hardCommerceEvidence || (technologyOnlyCommerce && !primaryNonCommerceIdentity)),
       currentPageEvidence: hardCommerceEvidence && masterEvidence.commerce.confirmed,
       technologyProfile: technologyProfile.isCommerce,
       technologyOnly: technologyOnlyCommerce,
@@ -4137,6 +4188,7 @@ export async function POST(request: Request) {
     const finalCommerceApplicability = commerceApplicability({
       confirmed: finalCommerceDecision.confirmed,
       primaryNonCommerceIdentity: Boolean(primaryNonCommerceIdentity),
+      secondaryCommerce: declaredSecondaryCommerce && hardCommerceEvidence,
       commerceHints: Boolean(retailPrimaryIdentity || technologyProfile.isCommerce || hasEcommerceSignal || masterEvidence.commerce.strength > 0 || secondaryCommerceOnly),
       thinShell: thinRawHtmlEvidence,
       marketSelector: marketSelectorPage,
@@ -4147,7 +4199,9 @@ export async function POST(request: Request) {
       masterEvidence.businessModels = masterEvidence.businessModels.filter((model)=>model!=="commerce");
       technologyProfile.isCommerce = false;
       technologyProfile.siteType = technologyProfile.siteType === "Webshop" ? "Website" : technologyProfile.siteType;
-      technologyProfile.evidence = [...technologyProfile.evidence, "Secundaire commerce-navigatie gevonden; geen harde product-/retailketen bevestigd."].slice(0,8);
+      technologyProfile.evidence = [...technologyProfile.evidence, declaredSecondaryCommerce && hardCommerceEvidence && declaredIdentity
+        ? `Secundaire webshopfunctie bevestigd (bijvoorbeeld abonnementen, tickets of licenties); primaire identiteit: ${declaredIdentity.label}.`
+        : "Secundaire commerce-navigatie gevonden; geen harde product-/retailketen bevestigd."].slice(0,8);
       for (const capability of ["ecommerce","merchant","consumer_rights"]) {
         masterEvidence.capabilities = masterEvidence.capabilities.filter((item)=>item!==capability);
       }
@@ -4163,7 +4217,7 @@ export async function POST(request: Request) {
     const reconciledTop = reconciledSectorCandidates[0];
     const reconciledRunnerUp = reconciledSectorCandidates[1];
     const reconciledIdentityStrong = Boolean(reconciledTop && reconciledTop.score >= 3 && (!reconciledRunnerUp || reconciledTop.score > reconciledRunnerUp.score));
-    if (!retailPrimaryIdentity && !finalCommerceDecision.confirmed && reconciledIdentityStrong && reconciledTop && sectorProfile.sector !== reconciledTop.sector) {
+    if (!declaredGoverns && !retailPrimaryIdentity && !finalCommerceDecision.confirmed && reconciledIdentityStrong && reconciledTop && sectorProfile.sector !== reconciledTop.sector) {
       sectorProfile.sector = reconciledTop.sector;
       sectorProfile.key = reconciledTop.sector;
       sectorProfile.label = reconciledTop.label;
@@ -4186,7 +4240,7 @@ export async function POST(request: Request) {
       sectorProfile.evidence = ["Hreflang: x-default verwijst naar deze pagina en minstens drie taal-/landversies", ...(retailAssortmentIdentity ? ["Merkidentiteit noemt een productassortiment; de webshop staat op de landversies"] : [])];
     }
 
-    if (!finalCommerceDecision.confirmed && multiPageCapabilities.transport && sectorProfile.key==="unknown") {
+    if (!declaredGoverns && !finalCommerceDecision.confirmed && multiPageCapabilities.transport && sectorProfile.key==="unknown") {
       sectorProfile.sector = "transport_travel";
       sectorProfile.key = "transport_travel";
       sectorProfile.label = "Transport & Logistiek";
@@ -4221,7 +4275,7 @@ export async function POST(request: Request) {
     // Re-run only clearly contradicted/underspecified primary identity decisions
     // with representative evidence. Secondary topics can never override a strong
     // primary sector. This fixes recruitment text on hotel sites without hardcoding brands.
-    if (!finalCommerceDecision.confirmed && multiPageCapabilities.hospitality && (sectorProfile.key==="recruitment" || sectorProfile.key==="unknown")) {
+    if (!declaredGoverns && !finalCommerceDecision.confirmed && multiPageCapabilities.hospitality && (sectorProfile.key==="recruitment" || sectorProfile.key==="unknown")) {
       sectorProfile.sector = "hospitality";
       sectorProfile.key = "hospitality";
       sectorProfile.label = "Hotels & hospitality";
@@ -4261,6 +4315,13 @@ export async function POST(request: Request) {
     // Final Master reconciliation: late technology/multi-page evidence may improve
     // the site-level decision after the initial Master object was created. Keep
     // one authoritative website type, sector and page type for every consumer.
+    // Declared identity confidence follows its number of independent evidence families.
+    if (declaredGoverns && declaredIdentity && sectorProfile.key === declaredSectorKey) {
+      sectorProfile.confidence = "high";
+      sectorProfile.confidenceScore = declaredIdentity.families.length >= 3 ? 95 : 88;
+      if (declaredSecondaryCommerce) sectorProfile.evidence = [...sectorProfile.evidence, "Webshopfunctie aanwezig als secundaire dienst; webshopcontroles gelden alleen voor product- en categoriepagina's"].slice(0,6);
+      if (masterEvidence.businessModels.some((model) => model === "bookings" || model === "reservations")) sectorProfile.evidence = [...sectorProfile.evidence, "Reserveren/verblijf aanwezig als aanvullende dienstverlening"].slice(0,6);
+    }
     const sectorDisplayPolicy = sectorProfile.confidenceScore >= 80 ? "confirmed" : sectorProfile.confidenceScore >= 60 ? "probable" : "unconfirmed";
     masterEvidence.primarySector = {
       key: sectorProfile.key,
@@ -4286,7 +4347,9 @@ export async function POST(request: Request) {
       masterEvidence.primarySector.confidenceScore = sectorProfile.confidenceScore;
       masterEvidence.primarySector.displayPolicy = "confirmed";
     }
-    const websiteType = finalCommerceDecision.confirmed
+    const websiteType = declaredGoverns && declaredIdentity
+      ? declaredIdentity.websiteType
+      : finalCommerceDecision.confirmed
       ? "Webshop"
       : sectorProfile.key === "recruitment" && masterEvidence.businessModels.includes("recruitment")
         ? "Recruitmentwebsite"
@@ -4419,15 +4482,19 @@ export async function POST(request: Request) {
       const cookiePage = sampled.find((item)=>/cookie/.test(item.path)) || (privacyPage && /cookie/.test(privacyPage.text) ? privacyPage : undefined);
       const contactPage = sampled.find((item)=>/(?:^|\/)(?:contact|contact-us|contactgegevens|kontakt|contacto|contatti)(?:\/|$)/.test(item.path));
       const privacyOk = hasPrivacyLink || Boolean(privacyPage);
-      const cookieOk = hasCookieLink || Boolean(cookiePage);
+      const cookieOk = hasCookieInfo || Boolean(cookiePage);
       const contactOk = hasContactLink || Boolean(contactPage);
-      const sampleProof = [privacyPage && `privacy: ${privacyPage.url}`, cookiePage && cookiePage !== privacyPage && `cookies: ${cookiePage.url}`, cookiePage && cookiePage === privacyPage && !hasCookieLink && "cookies: in de privacyverklaring", contactPage && `contact: ${contactPage.url}`].filter(Boolean).join(" · ");
+      const sampleProof = [privacyPage && `privacy: ${privacyPage.url}`, cookiePage && cookiePage !== privacyPage && `cookies: ${cookiePage.url}`, cookiePage && cookiePage === privacyPage && !hasCookieLink && "cookies: in de privacyverklaring", !cookiePage && hasCookieInfo && !hasCookieLink && `cookies: ${cookieInfo.detail}`, contactPage && `contact: ${contactPage.url}`].filter(Boolean).join(" · ");
       if (privacyOk && cookieOk && contactOk && (privacyPage || cookiePage || contactPage)) {
         Object.assign(trustLegalCheck, check("pass","trust_legal_signals","seo",trustLegalCheck.title,`Privacy-, cookie- en contactinformatie is bevestigd via de gescande pagina en de representatieve steekproef (${sampleProof}).`,"Houd deze informatie duidelijk vindbaar en actueel. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",5,5));
         trustLegalCheck.evidence = { url: finalUrl.toString(), found: true, details: trustLegalCheck.message };
+      } else if (privacyOk && contactOk && !cookieOk && trustLegalCheck.status==="warning") {
+        // Only cookie information remains undetected: unproven absence, not a defect.
+        Object.assign(trustLegalCheck, check("unable_to_confirm","trust_legal_signals","seo",trustLegalCheck.title,`Privacy- en contactinformatie is bevestigd${sampleProof ? ` (${sampleProof})` : ""}. Cookie-informatie is niet bevestigd: geen cookielink, consentplatform, cookiebanner of cookie-instellingenknop gedetecteerd. Dat bewijst niet dat cookie-informatie ontbreekt. Dit is geen juridisch oordeel.`,"Controleer of cookie-informatie bereikbaar is via een cookiebanner, cookieverklaring of de privacyverklaring.",0,5));
+        trustLegalCheck.evidence = { url: finalUrl.toString(), found: `privacy=true; cookies=unconfirmed; contact=true`, details: trustLegalCheck.message };
       } else if (trustLegalCheck.status==="warning" && (privacyPage || cookiePage || contactPage)) {
-        const missing = [!privacyOk?"privacy":null,!cookieOk?"cookies":null,!contactOk?"contact":null].filter(Boolean).join(", ");
-        trustLegalCheck.message = `Niet alle basissignalen zijn gevonden: ${missing}. Wel bevestigd via de steekproef: ${sampleProof}.`;
+        const missing = [!privacyOk?"privacy":null,!contactOk?"contact":null].filter(Boolean).join(", ");
+        trustLegalCheck.message = `Niet alle basissignalen zijn gevonden: ${missing}.${!cookieOk ? " Cookie-informatie: niet bevestigd (geen bewijs van ontbreken)." : ""} Wel bevestigd via de steekproef: ${sampleProof}.`;
         trustLegalCheck.points = Math.max(trustLegalCheck.points, Number(privacyOk)+Number(cookieOk)+Number(contactOk)+2);
         if (trustLegalCheck.evidence) trustLegalCheck.evidence.details = trustLegalCheck.message;
       }
@@ -4679,6 +4746,18 @@ export async function POST(request: Request) {
       note:"Representative same-host pages are fetched with bounded checks. Their sample score is separate from the explicitly scanned page score; site-level evidence may strengthen identity/capabilities, but page-specific failures still require direct proof.",
     };
 
+    // Presentation only; the score itself is unchanged. Thin evidence (low
+    // coverage or a bot-reduced page) is shown as a provisional score with its
+    // coverage, reliability, unconfirmed checks and conservative/optimistic range.
+    const scorePresentation = presentScore({
+      coveragePercent: overallCoverage.coveragePercent,
+      highConfidencePercent: overallCoverage.highConfidencePercent,
+      // Final, applicable checks only (computed after the last reconciliation).
+      unableToConfirm: overallCoverage.unableToConfirm,
+      range: scoreModel.range ? { low: scoreModel.range.low, high: scoreModel.range.high } : null,
+      botReduced: Boolean(rendering.botProtection),
+    });
+
     let user = null;
     let savedScanId: string | null = null;
     let pendingFixes = new Map<string, { status: string }>();
@@ -4756,7 +4835,7 @@ export async function POST(request: Request) {
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             language: scanLanguage,
-            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, summary: scanSummary, rendering, recovery, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, multiPage,
+            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, scorePresentation, summary: scanSummary, rendering, recovery, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -4973,6 +5052,7 @@ export async function POST(request: Request) {
       grade: grade(selectedOverallScore),
       coverage: overallCoverage,
       scoreModel,
+      scorePresentation,
       summary: scanSummary,
       rendering,
       recovery,

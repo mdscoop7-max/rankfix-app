@@ -4,12 +4,15 @@
 // shell or a thin sample cannot prove that a shop does not exist.
 export type CommerceApplicability =
   | { state: "confirmed" }
-  | { state: "absent"; reason: "service_identity" | "no_commerce_evidence" }
+  | { state: "absent"; reason: "service_identity" | "secondary_commerce" | "no_commerce_evidence" }
   | { state: "unconfirmed"; reason: "market_selector" | "thin_shell" | "weak_commerce_signals" | "low_coverage" };
 
 export function commerceApplicability(input: {
   confirmed: boolean;
   primaryNonCommerceIdentity: boolean;
+  // Proven shop functionality under a declared non-retail primary identity
+  // (subscriptions on a news site, licences on a software site, tickets).
+  secondaryCommerce?: boolean;
   commerceHints: boolean;
   thinShell: boolean;
   marketSelector: boolean;
@@ -19,6 +22,7 @@ export function commerceApplicability(input: {
   if (input.marketSelector) return { state: "unconfirmed", reason: "market_selector" };
   if (input.thinShell) return { state: "unconfirmed", reason: "thin_shell" };
   // A proven service, hotel, dealer or similar identity outranks secondary shop navigation.
+  if (input.primaryNonCommerceIdentity && input.secondaryCommerce) return { state: "absent", reason: "secondary_commerce" };
   if (input.primaryNonCommerceIdentity) return { state: "absent", reason: "service_identity" };
   if (input.commerceHints) return { state: "unconfirmed", reason: "weak_commerce_signals" };
   if (input.auditedRepresentativePages < 2) return { state: "unconfirmed", reason: "low_coverage" };
@@ -27,6 +31,7 @@ export function commerceApplicability(input: {
 
 export const COMMERCE_APPLICABILITY_COPY: Record<string, string> = {
   service_identity: "Scanbewijs bevestigt een niet-commerciële primaire identiteit zonder harde product-/retailketen; deze commercecontrole is niet van toepassing.",
+  secondary_commerce: "De website heeft een webshopfunctie als secundaire dienst (bijvoorbeeld abonnementen, tickets of licenties), maar de primaire identiteit is geen webshop. Webshopcontroles gelden voor de product- en categoriepagina's, niet voor deze pagina.",
   no_commerce_evidence: "In de gescande pagina en de representatieve pagina's is geen product-, prijs-, winkelwagen- of checkoutbewijs gevonden; deze commercecontrole is niet van toepassing.",
   market_selector: "Dit is een internationale land-/taalkeuzepagina. Webshopfunctionaliteit staat op de landversies en kan vanaf deze pagina niet worden beoordeeld. Scan de landversie (bijvoorbeeld /nl/nl/) voor een webshopbeoordeling.",
   thin_shell: "De opgehaalde HTML is een dunne JavaScript-shell zonder uitgevoerde rendering. Of hier een webshop is, kan niet betrouwbaar worden vastgesteld.",
