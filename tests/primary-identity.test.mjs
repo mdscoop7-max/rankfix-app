@@ -116,3 +116,11 @@ test("recreation: zoo and museum identities, also as compound words", () => {
 test("a municipality with a 'Nieuws' heading is not declared a news publisher without structure", () => {
   assert.equal(identity({ title: "Home | Gemeente Stad", h1s: ["Direct naar", "Nieuws"], links: ["/nieuws/", "/vergunningen/"] }), null);
 });
+
+test("article content coverage: 400+ words is sufficient, 250 the advisory minimum", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  // Real scan: a 553-word news article was flagged "beperkt" under the old 600-word bar.
+  assert.match(source, /effectiveArticlePage \? 250 : 200;/);
+  assert.match(source, /effectiveArticlePage \? 400 : 350;/);
+});

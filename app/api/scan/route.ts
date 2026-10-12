@@ -2671,8 +2671,10 @@ export async function POST(request: Request) {
     const effectiveLocalBusinessPage = !isProductPage && !hasCategorySignal && effectiveLocalSchemaSignal;
     const effectiveArticlePage = hasArticleSignal && !effectiveLocalBusinessPage;
     const contentContext = isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "categorie-/lijstpagina" : effectiveLocalBusinessPage ? "lokale bedrijfspagina" : effectiveArticlePage ? "artikelpagina" : "contentpagina";
-    const contentMinimumSignal = isHomepage ? 150 : isProductPage ? 80 : hasCategorySignal ? 120 : effectiveLocalBusinessPage ? 150 : effectiveArticlePage ? 300 : 200;
-    const contentStrongSignal = isHomepage ? 250 : isProductPage ? 180 : hasCategorySignal ? 220 : effectiveLocalBusinessPage ? 300 : effectiveArticlePage ? 600 : 350;
+    // News reports are routinely 250–600 words; there is no proven minimum length.
+    // An article of 400+ words is sufficient coverage as a quantitative signal.
+    const contentMinimumSignal = isHomepage ? 150 : isProductPage ? 80 : hasCategorySignal ? 120 : effectiveLocalBusinessPage ? 150 : effectiveArticlePage ? 250 : 200;
+    const contentStrongSignal = isHomepage ? 250 : isProductPage ? 180 : hasCategorySignal ? 220 : effectiveLocalBusinessPage ? 300 : effectiveArticlePage ? 400 : 350;
     seoChecks.push(thinRawHtmlEvidence
       ? check("unable_to_confirm", "content", "seo", "Contentdekking", "De raw HTML is een dunne JavaScript-shell. RankFix kan de zichtbare contentdekking daarom niet betrouwbaar beoordelen zonder geslaagde rendering.", "Voer de controle opnieuw uit met renderbare JavaScript-evidence; behandel een lage raw-HTML woordtelling niet als contentfout.", 0, 7)
       : wordCount >= contentStrongSignal
