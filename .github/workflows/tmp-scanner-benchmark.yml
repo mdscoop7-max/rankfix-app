@@ -26,7 +26,7 @@ jobs:
       max-parallel: 1
       fail-fast: false
       matrix:
-        sha: [b2a8280bd0a6c5c19bbbedd99b4762574239db0d, 20378c1d204b04441fb5affa29d8edb5c881a7bb]
+        sha: [20378c1d204b04441fb5affa29d8edb5c881a7bb]
     env:
       PR127_SHA: ${{ matrix.sha }}
       DATABASE_URL: postgresql://rankfix:rankfix-bench@127.0.0.1:5432/rankfix_bench
@@ -89,6 +89,7 @@ jobs:
         if: ${{ !startsWith(matrix.sha, 'b2a8280') }}
         working-directory: app127
         run: |
+          set +e
           mkdir -p ../benchmark-results/quality-${PR127_SHA:0:7}
           npm test > ../benchmark-results/quality-${PR127_SHA:0:7}/test.txt 2>&1; echo "npm test exit $?" >> ../benchmark-results/quality-${PR127_SHA:0:7}/summary.txt
           npm run lint > ../benchmark-results/quality-${PR127_SHA:0:7}/lint.txt 2>&1; echo "npm run lint exit $?" >> ../benchmark-results/quality-${PR127_SHA:0:7}/summary.txt
