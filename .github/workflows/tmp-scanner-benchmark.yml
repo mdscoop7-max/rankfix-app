@@ -26,10 +26,9 @@ jobs:
       max-parallel: 1
       fail-fast: false
       matrix:
-        sha: [779050f2b2e412c4097025b65941c8aeeeb2e488]
+        sha: [b2a8280bd0a6c5c19bbbedd99b4762574239db0d, 20378c1d204b04441fb5affa29d8edb5c881a7bb]
     env:
       PR127_SHA: ${{ matrix.sha }}
-      SITES_FILE: scripts/regression/benchmark-sites-final.json
       DATABASE_URL: postgresql://rankfix:rankfix-bench@127.0.0.1:5432/rankfix_bench
       SESSION_SECRET: benchmark-only-secret-not-used-anywhere-else
       APP_URL: http://127.0.0.1:3100
@@ -86,14 +85,31 @@ jobs:
           echo $! > ../server.pid
           for i in $(seq 1 60); do curl -fsS -o /dev/null http://127.0.0.1:3100/ && break; sleep 2; done
           curl -sS -o /dev/null -w "home %{http_code}\n" http://127.0.0.1:3100/
+      - name: Quality gates (tests, lint, build already done)
+        if: ${{ !startsWith(matrix.sha, 'b2a8280') }}
+        working-directory: app127
+        run: |
+          mkdir -p ../benchmark-results/quality-${PR127_SHA:0:7}
+          npm test > ../benchmark-results/quality-${PR127_SHA:0:7}/test.txt 2>&1; echo "npm test exit $?" >> ../benchmark-results/quality-${PR127_SHA:0:7}/summary.txt
+          npm run lint > ../benchmark-results/quality-${PR127_SHA:0:7}/lint.txt 2>&1; echo "npm run lint exit $?" >> ../benchmark-results/quality-${PR127_SHA:0:7}/summary.txt
+          tail -5 ../benchmark-results/quality-${PR127_SHA:0:7}/lint.txt >> ../benchmark-results/quality-${PR127_SHA:0:7}/summary.txt
+          grep -E "^# (tests|pass|fail)" ../benchmark-results/quality-${PR127_SHA:0:7}/test.txt >> ../benchmark-results/quality-${PR127_SHA:0:7}/summary.txt || true
+          echo "npm run build: success (step 'Install and build')" >> ../benchmark-results/quality-${PR127_SHA:0:7}/summary.txt
+      - name: UI screenshots desktop + mobile
+        continue-on-error: true
+        run: |
+          CHROME_PATH=$(which google-chrome) APP_DIR=app127 BASE_URL=http://127.0.0.1:3100 OUT_DIR=benchmark-results/ui-${PR127_SHA:0:7} \
+            node scripts/regression/ui-screenshots.mjs
       - name: Real scans, one at a time, measured
+        if: ${{ !startsWith(matrix.sha, 'b2a8280') }}
         run: |
           mkdir -p benchmark-results
           SERVER_PID=$(cat server.pid) BASE_URL=http://127.0.0.1:3100 PAUSE_MS=15000 DUMP_DIR=benchmark-results/raw-${PR127_SHA:0:7} \
             node --experimental-strip-types scripts/regression/local-scan-benchmark.mjs \
             ${SITES_FILE:-scripts/regression/benchmark-sites.json} benchmark-results/bench.json
+          touch benchmark-results/.ran-bench
       - name: Report
-        if: always()
+        if: ${{ always() && !startsWith(matrix.sha, 'b2a8280') }}
         run: |
           errors=$(grep -c "RankFix scan failed" server.log || true)
           renderfail=$(grep -ci "render failed\|BROWSER_UNAVAILABLE" server.log || true)
@@ -105,8 +121,12 @@ jobs:
         run: |
           git config user.name "rankfix-benchmark"
           git config user.email "noreply@github.com"
-          rm -f benchmark-results/bench-${PR127_SHA:0:7}.json; cp benchmark-results/bench.json benchmark-results/bench-${PR127_SHA:0:7}.json; cp benchmark-results/report.md benchmark-results/report-${PR127_SHA:0:7}.md
-          git add -f benchmark-results/raw-${PR127_SHA:0:7} benchmark-results/bench-${PR127_SHA:0:7}.json benchmark-results/report-${PR127_SHA:0:7}.md
+          git add -f benchmark-results/ui-${PR127_SHA:0:7} || true
+          if [ -f benchmark-results/.ran-bench ]; then
+            cp benchmark-results/bench.json benchmark-results/bench-${PR127_SHA:0:7}.json; cp benchmark-results/report.md benchmark-results/report-${PR127_SHA:0:7}.md
+            git add -f benchmark-results/raw-${PR127_SHA:0:7} benchmark-results/bench-${PR127_SHA:0:7}.json benchmark-results/report-${PR127_SHA:0:7}.md
+          fi
+          git add -f benchmark-results/quality-${PR127_SHA:0:7} 2>/dev/null || true
           git commit -m "Benchmark results ${GITHUB_RUN_ID}" || exit 0
           git stash -u -q || true
           ok=0; for i in 1 2 3; do git pull --rebase -q origin ci/pr127-preview-smoke && git push origin HEAD:ci/pr127-preview-smoke && ok=1 && break; sleep 5; done
