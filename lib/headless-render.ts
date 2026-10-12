@@ -1,4 +1,5 @@
 import { assertPublicDns, validatePublicHttpUrl } from "@/lib/safe-fetch";
+import { SCAN_BROWSER_USER_AGENT } from "@/lib/scan-user-agents";
 import type { Browser } from "puppeteer-core";
 import { BROWSER_IDLE_MS, LAUNCH_FAILURE_COOLDOWN_MS, MAX_CONCURRENT_PAGES, claimRender, hardenedServerlessArgs, launchSourceFor, type RenderBudget } from "@/lib/render-limits";
 
@@ -141,7 +142,7 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
       await cdp.detach().catch(() => {});
     }
     try {
-      await page.setUserAgent({ userAgent: "Mozilla/5.0 (compatible; RankFixBrowser/1.0; +https://rankfix-app.vercel.app)" });
+      await page.setUserAgent({ userAgent: SCAN_BROWSER_USER_AGENT });
       await page.setRequestInterception(true);
       page.on("request", (req) => {
         void (async () => {

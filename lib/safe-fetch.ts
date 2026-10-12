@@ -1,6 +1,7 @@
 import { URL } from "node:url";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
+import { SCAN_HTTP_USER_AGENT } from "@/lib/scan-user-agents";
 
 export function isPrivateHost(hostname: string) {
   const h = hostname.toLowerCase().replace(/^\[|\]$/g, "");
@@ -65,7 +66,7 @@ export async function safePublicFetch(value: string | URL, options: { timeoutMs?
         redirect: "manual",
         cache: "no-store",
         headers: {
-          "User-Agent": options.userAgent ?? "RankFixBot/2.1 (+https://rankfix-app.onrender.com)",
+          "User-Agent": options.userAgent ?? SCAN_HTTP_USER_AGENT,
           Accept: options.accept ?? "text/html,application/xhtml+xml",
         },
       });

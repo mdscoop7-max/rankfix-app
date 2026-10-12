@@ -325,3 +325,24 @@ test("scanner reevaluates specialist keyword flags after the final primary secto
   assert.match(source,/reconcileRepresentativeSpecialistCapabilities\(\{/);
   assert.ok(source.indexOf("reconcileRepresentativeSpecialistCapabilities({")>source.indexOf("Final Master reconciliation"));
 });
+
+test("scan report shows the exact fetch and browser user-agents without impersonating Googlebot", async () => {
+  const { SCAN_HTTP_USER_AGENT, SCAN_BROWSER_USER_AGENT } = await import("../lib/scan-user-agents.ts");
+  assert.match(SCAN_HTTP_USER_AGENT, /^RankFixBot\/2\.1 /);
+  assert.match(SCAN_BROWSER_USER_AGENT, /RankFixBrowser\/1\.0/);
+  assert.doesNotMatch(SCAN_HTTP_USER_AGENT + SCAN_BROWSER_USER_AGENT, /Googlebot/i);
+  const [route, fetch, render, report] = await Promise.all([
+    readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/safe-fetch.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/headless-render.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.match(fetch, /"User-Agent": options\.userAgent \?\? SCAN_HTTP_USER_AGENT/);
+  assert.match(render, /setUserAgent\(\{ userAgent: SCAN_BROWSER_USER_AGENT \}\)/);
+  assert.match(route, /userAgents: \{ httpFetch: SCAN_HTTP_USER_AGENT, browserRender: javascriptExecuted \? SCAN_BROWSER_USER_AGENT : null \}/);
+  assert.ok(route.includes("userAgent: SCAN_HTTP_USER_AGENT"),"representative and homepage fetches must use the same UA");
+  assert.ok(report.includes("rendering?.userAgents?.httpFetch"));
+  assert.ok(report.includes("rendering.userAgents.browserRender"));
+  assert.ok(report.includes("geen Googlebot"));
+  assert.ok(report.includes("RankFix gebruikt deze eigen herkenningen"));
+});
