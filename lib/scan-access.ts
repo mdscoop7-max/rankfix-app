@@ -38,17 +38,33 @@ export function clientIpFromHeaders(headers: Headers, env: Env = process.env): s
 
 export type ScanRateLimit = { scope: string; key: "ip" | "user"; limit: number; windowSeconds: number; code: string };
 
+// The draft PR #132 preview is Vercel-auth protected and used for repeated
+// scanner QA. Widen ONLY its per-IP test budget. Client-supplied URLs, Host and
+// headers cannot enable this mode; the branch/environment come from Vercel.
+// Production, other previews, monthly plan quotas and account protections stay
+// on their original policies. Never make the preview budget unlimited.
+export function isRankfixReviewPreview(env: Env = process.env): boolean {
+  return env.VERCEL === "1" &&
+    env.VERCEL_ENV === "preview" &&
+    env.VERCEL_GIT_COMMIT_REF === "fix/review-12-punten-20261012";
+}
+
 // null means no hourly network limit applies (monthly plan quotas still do).
-export function scanRateLimitPolicy(input: { dashboardScan: boolean; userId: string | null; paidPlan: boolean; tester: boolean }): ScanRateLimit | null {
+export function scanRateLimitPolicy(input: { dashboardScan: boolean; userId: string | null; paidPlan: boolean; tester: boolean }, env: Env = process.env): ScanRateLimit | null {
   if (input.tester) return null;
+  const reviewPreview = isRankfixReviewPreview(env);
+  const freeNetworkLimit = reviewPreview ? 40 : 8;
+  // Keep an independent capped Preview bucket. Old guest usage (which reached
+  // the 8/h limit during QA) should not block testing in this isolated preview.
+  const previewScope = reviewPreview ? "pr132-preview-" : "";
   if (!input.dashboardScan) {
     // A signed-in paying customer is limited per account, not per shared network.
     if (input.userId && input.paidPlan) return { scope: "paid-public-scan", key: "user", limit: 30, windowSeconds: 3600, code: "ACCOUNT_SCAN_RATE_LIMIT" };
     // Visitors and Free accounts share the per-network limit, so extra Free
     // accounts do not add capacity.
-    return { scope: "public-scan", key: "ip", limit: 8, windowSeconds: 3600, code: "PUBLIC_SCAN_RATE_LIMIT" };
+    return { scope: previewScope + "public-scan", key: "ip", limit: freeNetworkLimit, windowSeconds: 3600, code: "PUBLIC_SCAN_RATE_LIMIT" };
   }
-  if (!input.paidPlan) return { scope: "free-scan", key: "ip", limit: 8, windowSeconds: 3600, code: "FREE_SCAN_RATE_LIMIT" };
+  if (!input.paidPlan) return { scope: previewScope + "free-scan", key: "ip", limit: freeNetworkLimit, windowSeconds: 3600, code: "FREE_SCAN_RATE_LIMIT" };
   return null;
 }
 

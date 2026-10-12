@@ -13,7 +13,7 @@ import { legacyPassiveSecurity } from "./fixtures/security-legacy.mjs";
 import { pages as securityPages } from "./fixtures/security-pages.mjs";
 import { INDIRECT_CONTACT_KINDS, assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findVisibleAddress, findVisibleEmail, findVisiblePhone, isContactForm } from "../lib/contact-evidence.ts";
 import { selectRepresentativePages } from "../lib/representative-pages.ts";
-import { clientIpFromHeaders, isInternalTester, isInternalTesterCustomerId, retryAfterSeconds, scanRateLimitMessage, scanRateLimitPolicy } from "../lib/scan-access.ts";
+import { clientIpFromHeaders, isInternalTester, isInternalTesterCustomerId, isRankfixReviewPreview, retryAfterSeconds, scanRateLimitMessage, scanRateLimitPolicy } from "../lib/scan-access.ts";
 
 test("decorative empty alt is valid; only a missing alt attribute is actionable", () => {
   const metrics = extractImageMetrics('<img src="/hero.jpg" alt=""><img src="/product.jpg" alt="Product"><img src="/broken.jpg">');
@@ -1641,4 +1641,33 @@ test("internal customer ID exemption requires exact server authorization", () =>
   assert.equal(isInternalTesterCustomerId(customerId, { RANKFIX_INTERNAL_TEST_CUSTOMER_ID: customerId }), true);
   assert.equal(isInternalTesterCustomerId("RF-00000000000000000000000000000000", { RANKFIX_INTERNAL_TEST_CUSTOMER_ID: customerId }), false);
   assert.equal(isInternalTesterCustomerId(customerId, { RANKFIX_INTERNAL_TEST_CUSTOMER_ID: "invalid" }), false);
+});
+
+test("only Vercel PR #132 review preview receives a bounded 40/hour QA rate limit", () => {
+  const input = { dashboardScan:false, userId:null, paidPlan:false, tester:false };
+  const preview = { VERCEL:"1", VERCEL_ENV:"preview", VERCEL_GIT_COMMIT_REF:"fix/review-12-punten-20261012" };
+  assert.equal(isRankfixReviewPreview(preview),true);
+  assert.deepEqual(scanRateLimitPolicy(input,preview),{
+    scope:"pr132-preview-public-scan", key:"ip",limit:40,windowSeconds:3600,code:"PUBLIC_SCAN_RATE_LIMIT"
+  });
+  assert.deepEqual(scanRateLimitPolicy({...input,dashboardScan:true,userId:"free-tester"},preview),{
+    scope:"pr132-preview-free-scan",key:"ip",limit:40,windowSeconds:3600,code:"FREE_SCAN_RATE_LIMIT"
+  });
+  for(const env of [
+    { ...preview, VERCEL_ENV:"production" },
+    { ...preview, VERCEL_ENV:"development" },
+    { ...preview, VERCEL_GIT_COMMIT_REF:"main" },
+    { ...preview, VERCEL_GIT_COMMIT_REF:"fix/some-other-pr" },
+    { ...preview, VERCEL:"0" },
+    { VERCEL_ENV:"preview", VERCEL_GIT_COMMIT_REF:"fix/review-12-punten-20261012" },
+  ]){
+    assert.equal(isRankfixReviewPreview(env),false);
+    assert.deepEqual(scanRateLimitPolicy(input,env),{
+      scope:"public-scan",key:"ip",limit:8,windowSeconds:3600,code:"PUBLIC_SCAN_RATE_LIMIT"
+    });
+  }
+  assert.equal(scanRateLimitPolicy({...input,tester:true},preview),null);
+  assert.deepEqual(scanRateLimitPolicy({...input,userId:"paid-user",paidPlan:true},preview),{
+    scope:"paid-public-scan",key:"user",limit:30,windowSeconds:3600,code:"ACCOUNT_SCAN_RATE_LIMIT"
+  });
 });
