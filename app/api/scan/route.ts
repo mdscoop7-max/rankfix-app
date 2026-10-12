@@ -3824,7 +3824,9 @@ export async function POST(request: Request) {
         const pageDescriptionTag = pageHtml.match(/<meta\b[^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] ||
           pageHtml.match(/<meta\b[^>]*content\s*=\s*["'][^"']*["'][^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] || "";
         const pageDescriptionContent = pageDescriptionTag.match(/\bcontent\s*=\s*(["'])([\s\S]*?)\1/i);
-        const pageQualityDescription = pageDescriptionContent ? stripHtml(pageDescriptionContent[2]).trim() : "";
+        // Use the same one-pass HTML entity decoding as the main scanned page.
+        // Raw "&amp;" represents one visible "&" and must count as one character.
+        const pageQualityDescription = pageDescriptionContent ? decode(stripHtml(pageDescriptionContent[2])) : "";
         const pageQualityText = stripHtml(pageHtml).slice(0, 12000);
         const pageQualityWords = pageQualityText.split(/\s+/).filter(Boolean).length;
         // Structural fingerprint: language-independent DOM evidence used to detect

@@ -40,3 +40,22 @@ test("PDF and copy expand collapsed sections and restore their state", async () 
   assert.ok(fullPage.includes('onClick={printAudit}'));
   assert.ok(fullPage.includes('document.execCommand("copy")'),"mobile clipboard fallback exists");
 });
+
+test("representative-page metadata uses the same single-pass entity decoding as the main scan", async () => {
+  const source=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
+  assert.ok(source.includes("const pageQualityDescription = pageDescriptionContent ? decode(stripHtml(pageDescriptionContent[2])) : \"\";"));
+  const { decodeHtmlEntities } = await import("../lib/html-entities.ts");
+  const raw="Entdecke Schuhe für Damen &amp; Herren";
+  const expected="Entdecke Schuhe für Damen & Herren";
+  assert.equal(decodeHtmlEntities(raw),expected);
+  assert.equal(decodeHtmlEntities(raw).length,raw.length-4);
+  assert.equal(decodeHtmlEntities("Damen &amp;amp; Herren"),"Damen &amp; Herren","double escaping remains visible after one decoding pass");
+});
+
+test("report preserves privacy evidence and uses singular N/A labels", async () => {
+  const fullPage=await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx",import.meta.url),"utf8");
+  assert.ok(fullPage.includes('"trust_legal_signals"].includes(c.key||"")'));
+  assert.ok(fullPage.includes('group.items.length===1?"controle overgeslagen":"controles overgeslagen"'));
+  assert.ok(fullPage.includes('group.items.length===1?"controle":"controles"'));
+  assert.ok(fullPage.includes('group.items.length===1?"check skipped":"checks skipped"'));
+});
