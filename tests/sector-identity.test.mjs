@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes } from "../lib/sector-identity.ts";
+import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, financialServicePrimaryIdentity, isLocalizedHomePath } from "../lib/sector-identity.ts";
 import { buildScanEvidence } from "../lib/scan-evidence.ts";
 
 // Page identity (title, meta description, hostname, path) as served on 11 Oct 2026.
@@ -256,4 +256,36 @@ test("a confirmed shop never shows shop checks as 'not applicable' because one p
   // Page-level "no shop signals" N/A becomes unable-to-confirm once the shop is confirmed site-wide.
   assert.match(source, /finalCommerceOnlyKeys\.has\(item\.key\) && item\.status === "not_applicable" && \/webshop\|product/);
   assert.match(source, /De webshop is sitebreed bevestigd, maar deze controle kon op de gescande pagina niet worden beoordeeld\./);
+});
+
+
+test("primary financial identity is generic across wallets, PSPs and banking, not marketing checkout keywords",()=>{
+  const cases=[
+    {name:"wallet",title:"Pay, Send and Save Money with our app",description:"Paying friends, saving money and cashback with our app.",headings:["Pay, send, and save smarter"],schemaTypes:["Organization","WebSite","FinancialProduct","PaymentCard"],identified:true,provider:false},
+    {name:"provider",title:"Platform for every payment",description:"One platform to accept payments and manage money.",headings:["Accept every payment"],schemaTypes:["Organization"],identified:true,provider:true},
+    {name:"credit union",title:"Manage your money and savings account",description:"Financial services for your everyday banking.",headings:["Banking made simple"],schemaTypes:["BankOrCreditUnion"],identified:true,provider:false},
+    {name:"transfer",title:"Send money abroad",description:"Money transfer service for families.",headings:["Transfer money worldwide"],schemaTypes:["FinancialService"],identified:true,provider:false},
+    {name:"retail shop",title:"Shop designer shoes online",description:"Save money on shoes. Checkout with a debit card and earn rewards.",headings:["Shoes and fashion"],schemaTypes:["Product","OnlineStore","Offer"],identified:false},
+    {name:"shop with card schema",title:"Online electronics store",description:"Buy laptops, pay with credit card or debit card.",headings:["Discover computers"],schemaTypes:["Store","PaymentCard"],identified:false},
+    {name:"SaaS",title:"Project management software",description:"Start for free and enter credit card for paid access.",headings:["Manage projects"],schemaTypes:["SoftwareApplication"],identified:false},
+    {name:"hotel",title:"City Hotel",description:"Book a room and pay online.",headings:["Rooms and suites"],schemaTypes:["Hotel"],identified:false},
+    {name:"government",title:"Public services",description:"Apply for permits and pay fees online.",headings:["Government services"],schemaTypes:["GovernmentOrganization"],identified:false},
+    {name:"shop blog",title:"Money-saving tips",description:"Save money shopping online with vouchers.",headings:["Budget shopping guide"],schemaTypes:["Article"],identified:false}
+  ];
+  for(const c of cases){const result=financialServicePrimaryIdentity(c);assert.equal(result.identified,c.identified,c.name);if(c.identified){assert.equal(result.provider,c.provider,c.name);assert.ok(result.evidence.length,c.name);}}
+});
+
+test("region and language homepage routes avoid accidental product classification",()=>{
+  for(const p of ["/us/home","/gb/home/","/en/home","/nl/home","/en-us/home","/nl/homepage"])assert.equal(isLocalizedHomePath(p),true,p);
+  for(const p of ["/us/products","/us/home/deals","/shop/home","/xy/home","/us/checkout","/products/home","/nl/nl/","/"])assert.equal(isLocalizedHomePath(p),false,p);
+});
+
+test("primary finance identity gates retailer checks across early and late scan phases",async()=>{
+  const src=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
+  assert.match(src,/const isHomepage = pathname === "\/" \|\| isLocalizedHomepage \|\| isLocalizedHomePath\(pathname\)/);
+  assert.match(src,/const isProductPage = !isHomepage && !financialIdentity\.identified/);
+  assert.match(src,/const hasCategorySignal = !isProductPage && !financialIdentity\.identified/);
+  assert.match(src,/!financialIdentity\.identified \|\| independentRetailChain/);
+  assert.match(src,/const paymentServicesPrimaryIdentity = financialIdentity\.identified/);
+  assert.match(src,/confirmed: Boolean\(!paymentServicesPrimaryIdentity &&/);
 });

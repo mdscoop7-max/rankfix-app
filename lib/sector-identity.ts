@@ -90,3 +90,45 @@ export function primaryLodgingIdentity(identityText: string, schemaTypes: Iterab
   return /\b(?:hotel|hotels|hotelkamers?|hotelsuites?|accommodation|lodging|guesthouse|guest house|bed (?:and|&) breakfast|overnachten|overnachting|vakantiehuis|vakantiewoning|holiday (?:home|rental|park)|vacation rental|resort|camping|glamping|chambres d.hôtes|ferienhaus|ferienwohnung)\b/i.test(source)
     || /\b(?:book|reserve|reserveer|boek) (?:a |your |een |je )?(?:room|hotelkamer|kamer|overnight stay|overnachting)\b/i.test(source);
 }
+
+
+/**
+ * A primary financial service is not a consumer retail shop merely because it
+ * uses prices, checkout vocabulary or card/reward offers. Require independent
+ * signals in primary page identity (title/description/H1) and financial schema,
+ * or an explicit provider role. No brand or domain special cases.
+ */
+export function financialServicePrimaryIdentity(input: {
+  title: string;
+  description: string;
+  headings: string[];
+  schemaTypes: Iterable<string>;
+}): { identified: boolean; provider: boolean; evidence: string[] } {
+  const identity = [input.title, input.description, ...input.headings].filter(Boolean).join(" ").replace(/\s+/g, " ").slice(0, 3500);
+  const provider = paymentProviderPrimaryIdentity(identity);
+  const financeTypes = new Set(["financialproduct","financialservice","paymentcard","creditcard","loanorcredit","bankaccount","depositaccount","bankorcreditunion","insuranceagency"]);
+  const financialSchemas = [...new Set([...input.schemaTypes].map(type=>String(type).toLowerCase()))].filter(type=>financeTypes.has(type));
+  const moneyActivity = /\b(?:send(?:ing)?(?:\s+(?:and|&)\s+(?:save|receive|transfer))?\s+money|(?:receive|request|transfer|move|save|manage)\s+(?:your\s+)?money|money transfers?|digital wallet|payment accounts?|savings? accounts?|banking services?|betalingen (?:versturen|ontvangen)|geld (?:versturen|overmaken|ontvangen|sparen|beheren)|digitale portemonnee|geld overmaken)\b/i.test(identity);
+  const explicitFinancialRole = /\b(?:financial (?:technology|services?|platform)|fintech|digital wallet|money transfer (?:service|app|platform)|payment (?:service provider|provider|platform|processor)|banking (?:services?|platform|app)|financial app|payment app|betaalplatform|financieel platform|bankdiensten|financi[eë]le dienstverlening)\b/i.test(identity);
+  const identified = provider || (moneyActivity && (financialSchemas.length > 0 || explicitFinancialRole));
+  return { identified, provider, evidence: [
+    ...(provider ? ["Primair betalingsplatform of betaaldienstverlener in titel/description/H1"] : []),
+    ...(moneyActivity && !provider ? ["Primair aanbod voor geldbeheer/betalingen/wallet in titel/description/H1"] : []),
+    ...(financialSchemas.length ? ["Financieel schema: "+financialSchemas.slice(0,4).join(", ")] : []),
+    ...(explicitFinancialRole ? ["Expliciete financiële platform- of dienstverlenersidentiteit"] : []),
+  ]};
+}
+
+// Locale/market-prefixed root routes such as /us/home and /en-gb/home.
+// Deep pages never qualify; arbitrary short path segments are insufficient.
+const MARKET_REGIONS = new Set(["us","uk","gb","ca","au","nz","in","ie","br","mx","ar","cl","co","pe","nl","be","de","at","ch","fr","es","pt","it","dk","se","no","fi","pl","cz","sk","hu","ro","bg","hr","gr","ee","lv","lt","si","lu","mt","cy","tr","il","ae","sa","za","sg","hk","jp","kr","tw","my","th","id","ph"]);
+const MARKET_LANGUAGES = new Set(["en","nl","de","fr","es","it","pt","da","sv","no","fi","pl","cs","sk","hu","ro","bg","el","hr","et","lv","lt","sl","tr","ar","he","ja","ko","zh"]);
+export function isLocalizedHomePath(pathname: string): boolean {
+  const parts = pathname.toLowerCase().split("/").filter(Boolean);
+  if (parts.length !== 2 || !/^(?:home|homepage|index)$/.test(parts[1])) return false;
+  const locale = parts[0].replace("_", "-");
+  const codes = locale.split("-");
+  return codes.length === 1
+    ? MARKET_REGIONS.has(locale) || MARKET_LANGUAGES.has(locale)
+    : codes.length === 2 && MARKET_LANGUAGES.has(codes[0]) && MARKET_REGIONS.has(codes[1]);
+}
