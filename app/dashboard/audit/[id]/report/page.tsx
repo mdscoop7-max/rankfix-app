@@ -69,8 +69,12 @@ const reasonFor=(c:Check,language:Locale)=>{
   const js=code==="needs_js"||/javascript|client-side|render/.test(msg);
   const weak=code==="weak_evidence"||/onvoldoende|insufficient|niet.*bevestig|unable/.test(msg);
   if(language!=="nl") return c.message||"Evidence was insufficient for a definitive result.";
+  // An N/A reason concerns this check on this page, not a site's entire industry.
+  if(c.status==="not_applicable")return c.message||"Niet van toepassing op deze gescande pagina.";
+  // Preserve why Consent Mode or Google Ads cannot be verified at runtime.
+  if(["consent_mode_readiness","ads_readiness"].includes(c.key||""))return c.message||"Niet te bevestigen met deze scan.";
   if(js)return "Niet te bevestigen: dit signaal kan buiten de opgehaalde bron of tijdens een andere browsersessie zichtbaar worden. Ook een uitgevoerde JavaScript-render bewijst geen volledige tracking- of consentconfiguratie.";
-  if(code==="cap_absent"||c.status==="not_applicable")return "Deze controle geldt niet voor dit type website.";
+  if(code==="cap_absent")return c.message||"Vereiste functie niet aangetoond.";
   if(code==="insufficient_pages")return "We analyseerden geen representatieve pagina waarop dit betrouwbaar zichtbaar was.";
   if(code==="type_uncertain")return "Het type bedrijf is niet zeker genoeg om te bepalen of deze controle geldt.";
   if(weak)return "Er zijn aanwijzingen gevonden, maar de beschikbare evidence is te zwak voor een betrouwbare conclusie.";

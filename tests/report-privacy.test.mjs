@@ -25,4 +25,6 @@ test("short and full report export paths both sanitize and use the check-level s
   assert.ok(fullPage.includes("return redactReportText([...root.children]"));
   assert.ok(fullPage.includes("publicReportUrl(page.url)"));
   assert.ok(fullPage.includes("HTTP-fouten in de paginasteekproef"));
+  assert.ok(fullPage.includes('if(c.status==="not_applicable")return c.message'));
+  assert.ok(fullPage.includes('["consent_mode_readiness","ads_readiness"].includes(c.key||"")'));
 });
