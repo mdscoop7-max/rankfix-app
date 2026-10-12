@@ -178,7 +178,7 @@ test("multi-page retail evidence can strengthen site profile without activating 
   assert.match(source, /pageCommerceEvidence/);
   assert.match(source, /confirmedRetailPage: pageProductSchema/);
   assert.match(source, /sitewideCommerceEvidence/);
-  assert.match(source, /!transportBookingIdentity && sitewideCommerceEvidence\.confirmed/);
+  assert.match(source, /!transportBookingIdentity && !paymentServicesPrimaryIdentity && sitewideCommerceEvidence\.confirmed/);
   assert.match(source, /technologyProfile\.siteType = "Webshop"/);
   assert.match(source, /never silently[\s\S]*activates page-specific webshop checks/);
 });
@@ -799,8 +799,8 @@ test("commerce identity requires confirmed high-confidence signals", async () =>
 test("sector identity ignores low-confidence accommodation and property evidence", async () => {
   const { readFile } = await import("node:fs/promises");
   const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  assert.match(scanner,/lodgingDetail\.shortStay\.confidence !== "low"/);
-  assert.match(scanner,/scanEvidence\.appointments\.booking\.confidence !== "low"/);
+  assert.match(scanner,/!paymentServicesPrimaryIdentity && primaryLodgingIdentity\(sectorIdentitySource, schemaTypes\)/);
+  assert.match(scanner,/paymentProviderPrimaryIdentity\(\[title, description, h1s/);
   assert.match(scanner,/scanEvidence\.inventory\.properties\.confidence !== "low"/);
 });
 
