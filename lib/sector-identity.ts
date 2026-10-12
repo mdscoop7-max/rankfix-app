@@ -132,3 +132,41 @@ export function isLocalizedHomePath(pathname: string): boolean {
     ? MARKET_REGIONS.has(locale) || MARKET_LANGUAGES.has(locale)
     : codes.length === 2 && MARKET_LANGUAGES.has(codes[0]) && MARKET_REGIONS.has(codes[1]);
 }
+
+
+/** Generic primary non-retail role evidence from page identity and corroboration. */
+export function primaryNonRetailRole(input:{
+  title:string;description:string;headings:string[];schemaTypes:Iterable<string>;
+}):{key:"lodging"|"restaurant"|"healthcare"|"public_sector"|"software"|null;evidence:string[]}{
+  const main=[input.title,...input.headings].filter(Boolean).join(" ").slice(0,1500);
+  const identity=[main,input.description].join(" ").slice(0,3000);
+  const schema=new Set([...input.schemaTypes].map(type=>String(type).toLowerCase()));
+  // A retailer advertising hotel-room furniture or restaurant equipment is not
+  // itself a hotel/restaurant. Evidence is about the primary business model.
+  const retail=retailIdentityLanguage(identity);
+  if(retail.assortment&&retail.onlineSales)return {key:null,evidence:[]};
+  const rules=[
+    {key:"lodging" as const,primary:/\b(?:hotel|hostel|guesthouse|guest house|bed and breakfast|resort|vakantiehuis|vacation rental|ferienhaus|pension|camping|campground)\b/i,
+      support:/\b(?:rooms?|kamers?|suites?|stay|overnight|accommodation|lodging|book (?:a |your )?room|overnachten|overnachting|gasten|guests?)\b/i,
+      schemas:["hotel","lodgingbusiness","bedandbreakfast","hostel","resort","vacationrental","campground"]},
+    {key:"restaurant" as const,primary:/\b(?:restaurant|bistro|brasserie|cafe|café|pizzeria|eetcafé|dining room)\b/i,
+      support:/\b(?:menu|menukaart|cuisine|dining|dinner|lunch|reserve a table|tafel reserveren|food|keuken|gerechten)\b/i,
+      schemas:["restaurant","foodestablishment","cafeorcoffeeshop"]},
+    {key:"healthcare" as const,primary:/\b(?:dentist|dental (?:clinic|practice)|tandarts|medical clinic|medical practice|healthcare clinic|huisartsenpraktijk|fysiotherapie|orthodontist)\b/i,
+      support:/\b(?:patient|patiënt|appointment|afspraak|treatment|behandeling|zorg|medical|healthcare|mondzorg|praktijk)\b/i,
+      schemas:["dentist","medicalclinic","physician","hospital"]},
+    {key:"public_sector" as const,primary:/\b(?:government|municipality|ministry|minist[eè]re|gemeente|rijksoverheid|city council|public authority|public services)\b/i,
+      support:/\b(?:permits?|vergunning|citizens?|inwoners?|public service|burgerzaken|overheid|beleid|policy|paspoort)\b/i,
+      schemas:["governmentorganization","governmentoffice"]},
+    {key:"software" as const,primary:/\b(?:software|saas|software platform|business software|software-as-a-service|project management platform|crm platform)\b/i,
+      support:/\b(?:features?|integrations?|dashboard|workflow|subscription|software|saas|developers?|api|automatisering|applicatie)\b/i,
+      schemas:["softwareapplication","webapplication"]}
+  ];
+  for(const rule of rules){
+    if(!rule.primary.test(main))continue;
+    const structured=rule.schemas.some(type=>schema.has(type));
+    if(!structured&&!rule.support.test(identity))continue;
+    return {key:rule.key,evidence:["Primaire "+rule.key+"-identiteit in title/H1",structured?"Passend structured data-type":"Passende activiteit in paginametadata"]};
+  }
+  return {key:null,evidence:[]};
+}

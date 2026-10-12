@@ -26,7 +26,7 @@ import { SITE_URL } from "@/lib/site-url";
 import { assessDescriptionQuality, assessH1Quality, assessProductSchemaCompleteness, blendHeadlineScore, blockedScanMessage, canonicalCrossDomainRisk, classifyLegalLink, findAudienceEvidence, findConsentEvidence, findFaqEvidence, findFormEvidence, findPaymentMethods, findRegulatoryEvidence, findReviewEvidence, findTagManagerEvidence, findVisiblePrices, fintechIdentity, isBlockingStatus, isBrokenStatus, isGenericTitle, LEGAL_LEXICON, rankfixUserAgents, sameRegistrableSite } from "@/lib/evidence-quality";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
-import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, financialServicePrimaryIdentity, isLocalizedHomePath, paymentProviderPrimaryIdentity, primaryLodgingIdentity } from "@/lib/sector-identity";
+import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, financialServicePrimaryIdentity, isLocalizedHomePath, primaryNonRetailRole, paymentProviderPrimaryIdentity, primaryLodgingIdentity } from "@/lib/sector-identity";
 
 export const maxDuration = 300;
 
@@ -935,6 +935,8 @@ export async function POST(request: Request) {
       pathSegmentsForType.every((segment) => localeSegmentPattern.test(segment) && knownLanguageSegments.has(segment.split("-")[0]));
     const isHomepage = pathname === "/" || isLocalizedHomepage || isLocalizedHomePath(pathname);
     const financialIdentity = financialServicePrimaryIdentity({title,description,headings:h1s,schemaTypes});
+    const siteRole = primaryNonRetailRole({title,description,headings:h1s,schemaTypes});
+    const nonRetailIdentityEarly = financialIdentity.identified || siteRole.key !== null;
     const localBusinessKeywordSignal = /\b(restaurant|eetcafé|eetgelegenheid|brasserie|bistro|menukaart|kapsalon|kapper|hairdresser|salon|coiffeur|barbier|bakker|bakery|bar|café|cafe|dentist|tandarts|tandheelkunde|mondzorg|orthodontist|electrician|elektricien|elektro|elektrotechniek|installatietechniek|plumber|loodgieter|loodgieters|cv-installateur|installateur|aannemer|contractor|bouwbedrijf|bouwservice|verbouwing|renovatie|dakdekker|dakbedekking|dakwerken|beautysalon|beauty salon|schoonheidssalon|winkel|store|shop|boetiek|retail|garage|autogarage|autoservice|autobedrijf|autodealer|makelaar|makelaars|vastgoedmakelaar|real estate agent|realtor|woningmakelaar|advocaat|advocatenkantoor|law firm|jurist|notaris|notariskantoor|accountant|accountantskantoor|boekhouder|boekhoudkantoor|administratiekantoor|reisbureau|reisorganisatie|travel agency|tour operator|reisagent|hotel|bed and breakfast|b&b|pension)\b/i.test([title, description, ...h1s, finalUrl.hostname, finalUrl.pathname].join(" "));
     const localContactSignal = /\b(opening hours|openingstijden|adres|address|telephone|telefoon|phone|contact)\b/i.test(text) &&
       /\b(address|adres|phone|telefoon|telephone|\+?31|0\d{1,3}[\s-]?\d)\b/i.test(text);
@@ -976,7 +978,7 @@ export async function POST(request: Request) {
     const propertyDetailPathEarly = !isHomepage && /\/(?:woningaanbod|residential-listings)\/(?:koop|huur|sale|rent)\//i.test(pathname);
     // Some real-estate platforms publish Product schema for a property object. That
     // schema describes an offer, but must not activate retail product/stock/copy checks.
-    const isProductPage = !isHomepage && !financialIdentity.identified && !transportBookingIdentityEarly && !propertyDetailPathEarly && (hasProductSignal || (specialistDetailPathSignal && (hasExplicitPriceSignal || hasSkuSignal || hasStockSignal)));
+    const isProductPage = !isHomepage && !nonRetailIdentityEarly && !transportBookingIdentityEarly && !propertyDetailPathEarly && (hasProductSignal || (specialistDetailPathSignal && (hasExplicitPriceSignal || hasSkuSignal || hasStockSignal)));
     const strongArticleMarkupSignal = /<article\b/i.test(html) && (/<time\b[^>]*(?:datetime|pubdate)/i.test(html) || /\b(?:author|byline|published|publication date|auteur|geschreven door)\b/i.test(text));
     const rawArticleSignal = !isHomepage && (schemaSet.has("article") || schemaSet.has("newsarticle") || schemaSet.has("blogposting") || strongArticleMarkupSignal);
     // A page can contain editorial markup around a retail template. Strong product
@@ -998,7 +1000,7 @@ export async function POST(request: Request) {
       visiblePriceCount >= 2 &&
       !hasSkuSignal &&
       !hasStockSignal;
-    const hasCategorySignal = !isProductPage && !financialIdentity.identified && (
+    const hasCategorySignal = !isProductPage && !nonRetailIdentityEarly && (
       hasItemListSignal ||
       genericCategoryPathSignal ||
       repeatedProductCardSignal ||
@@ -1065,7 +1067,7 @@ export async function POST(request: Request) {
     // evidence before applying any consumer-storefront controls.
     const independentRetailChain = hasStoreSchema && (hasConfirmedCommercePlatform || (repeatedProductLinkSignal && hardPurchaseFlowSignal));
     const hasEcommerceSignal = (transportBookingIdentity ? transportRetailStoreEvidence : retailCommerceSignal)
-      && (!financialIdentity.identified || independentRetailChain);
+      && (!nonRetailIdentityEarly || independentRetailChain);
     // EU consumer/Omnibus checks are jurisdiction-sensitive. A non-EU country
     // storefront (for example .com.au) must not receive EU compliance signals
     // merely because it is an e-commerce site.
@@ -1147,7 +1149,7 @@ export async function POST(request: Request) {
     // store from getting LocalBusiness advice before shop functionality is proven.
     const earlyRetailLanguage = retailIdentityLanguage([title, description, h1s.join(" "), finalUrl.hostname, finalUrl.pathname].join(" "));
     const earlyRetailIdentity = hasRetailStoreSchema(schemaTypes) || (earlyRetailLanguage.assortment && (earlyRetailLanguage.onlineSales || (earlyRetailLanguage.store && commerceNavigationSignal)));
-    const ecommerceSchemaContext = hasEcommerceSignal || earlyRetailIdentity || schemaSet.has("onlinestore") || schemaSet.has("product");
+    const ecommerceSchemaContext = hasEcommerceSignal || earlyRetailIdentity || schemaSet.has("onlinestore") || (schemaSet.has("product") && !nonRetailIdentityEarly);
     // Government, international transport/logistics and e-commerce identities
     // override generic LocalBusiness hints so advice follows the actual business model.
     const effectiveLocalSchemaSignal = hasLocalBusinessSignal && !governmentIdentitySignal && !governmentSchemaPresent && !transportLogisticsSchemaContext && !ecommerceSchemaContext;
@@ -4252,7 +4254,7 @@ export async function POST(request: Request) {
       scanEvidence.commerce.products.confidence === "high" &&
       scanEvidence.commerce.prices.value.count > 0 &&
       scanEvidence.commerce.prices.confidence !== "low";
-    const hardCommerceEvidence = (!paymentServicesPrimaryIdentity || explicitRetailIdentity) && (sitewideCommerceEvidence.confirmed || representativeRetailProduct || Boolean(
+    const hardCommerceEvidence = (!primaryNonCommerceIdentity || (explicitRetailIdentity && independentRetailChain)) && (sitewideCommerceEvidence.confirmed || representativeRetailProduct || Boolean(
       confirmedCurrentProduct ||
       confirmedAddToCart ||
       corroboratedProductAndPrice
@@ -4260,7 +4262,7 @@ export async function POST(request: Request) {
     const technologyOnlyCommerce = technologyProfile.isCommerce && !hardCommerceEvidence;
     const secondaryCommerceOnly = Boolean(primaryNonCommerceIdentity && !hardCommerceEvidence);
     const finalCommerceDecision = {
-      confirmed: Boolean(!paymentServicesPrimaryIdentity && (hardCommerceEvidence || (technologyOnlyCommerce && !primaryNonCommerceIdentity))),
+      confirmed: Boolean(!primaryNonCommerceIdentity && (hardCommerceEvidence || technologyOnlyCommerce)),
       currentPageEvidence: hardCommerceEvidence && masterEvidence.commerce.confirmed,
       technologyProfile: technologyProfile.isCommerce,
       technologyOnly: technologyOnlyCommerce,

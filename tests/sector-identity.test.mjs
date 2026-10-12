@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, financialServicePrimaryIdentity, isLocalizedHomePath } from "../lib/sector-identity.ts";
+import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, financialServicePrimaryIdentity, isLocalizedHomePath, primaryNonRetailRole } from "../lib/sector-identity.ts";
 import { buildScanEvidence } from "../lib/scan-evidence.ts";
 
 // Page identity (title, meta description, hostname, path) as served on 11 Oct 2026.
@@ -283,9 +283,30 @@ test("region and language homepage routes avoid accidental product classificatio
 test("primary finance identity gates retailer checks across early and late scan phases",async()=>{
   const src=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
   assert.match(src,/const isHomepage = pathname === "\/" \|\| isLocalizedHomepage \|\| isLocalizedHomePath\(pathname\)/);
-  assert.match(src,/const isProductPage = !isHomepage && !financialIdentity\.identified/);
-  assert.match(src,/const hasCategorySignal = !isProductPage && !financialIdentity\.identified/);
-  assert.match(src,/!financialIdentity\.identified \|\| independentRetailChain/);
+  assert.match(src,/const isProductPage = !isHomepage && !nonRetailIdentityEarly/);
+  assert.match(src,/const hasCategorySignal = !isProductPage && !nonRetailIdentityEarly/);
+  assert.match(src,/!nonRetailIdentityEarly \|\| independentRetailChain/);
   assert.match(src,/const paymentServicesPrimaryIdentity = financialIdentity\.identified/);
-  assert.match(src,/confirmed: Boolean\(!paymentServicesPrimaryIdentity &&/);
+  assert.match(src,/confirmed: Boolean\(!primaryNonCommerceIdentity &&/);
+});
+
+
+test("generic role gates protect hotels, restaurants, healthcare, government, SaaS and ecommerce",()=>{
+  const cases=[
+    {title:"Hotel Canal rooms and suites",description:"Stay in our rooms. Book a room.",headings:["Boutique Hotel"],schemaTypes:["Hotel"],expected:"lodging"},
+    {title:"Mountain guesthouse",description:"Overnight lodging with guest rooms.",headings:["Guesthouse"],schemaTypes:[],expected:"lodging"},
+    {title:"Restaurant de Markt",description:"Fresh menu and dinner reservations.",headings:["Restaurant"],schemaTypes:["Restaurant"],expected:"restaurant"},
+    {title:"Local bistro dining",description:"Enjoy our menu and reserve a table.",headings:["Bistro"],schemaTypes:[],expected:"restaurant"},
+    {title:"Dentist in Utrecht",description:"Book a dental appointment.",headings:["Dental clinic"],schemaTypes:["Dentist"],expected:"healthcare"},
+    {title:"Huisartsenpraktijk Centrum",description:"Maak een afspraak voor zorg.",headings:["Huisartsenpraktijk"],schemaTypes:[],expected:"healthcare"},
+    {title:"Municipality of Westland",description:"Public services, permits for citizens.",headings:["Government services"],schemaTypes:["GovernmentOrganization"],expected:"public_sector"},
+    {title:"Ministry of Infrastructure",description:"Apply for permits and read public policy.",headings:["Government"],schemaTypes:[],expected:"public_sector"},
+    {title:"CRM software for businesses",description:"Manage your dashboard and workflow.",headings:["Business software"],schemaTypes:["SoftwareApplication"],expected:"software"},
+    {title:"SaaS project management platform",description:"Integrate workflows and automate projects.",headings:["SaaS"],schemaTypes:[],expected:"software"},
+    {title:"Shop restaurant kitchen furniture online",description:"Buy furniture and tables for restaurant businesses.",headings:["Furniture offers"],schemaTypes:["Store","Product"],expected:null},
+    {title:"Book hotel-inspired furniture online",description:"Shop hotel room decoration products.",headings:["Home decor webshop"],schemaTypes:["OnlineStore","Product"],expected:null},
+    {title:"Buy project software licences",description:"Add to cart and purchase digital items.",headings:["Online store"],schemaTypes:["Store","Product"],expected:null},
+    {title:"Financial services explained in a blog",description:"Articles about payment cards.",headings:["Latest news"],schemaTypes:["Article"],expected:null}
+  ];
+  for(const c of cases){const r=primaryNonRetailRole(c);assert.equal(r.key,c.expected,c.title);if(c.expected)assert.ok(r.evidence.length,c.title);}
 });
