@@ -99,3 +99,20 @@ test("real scans: news article, news site with subscriptions and SaaS are recogn
     assert.equal(identity(c)?.key, c.expected, c.url);
   }
 });
+
+test("news structure: numeric article ids count, product ids never", () => {
+  const articles = Array.from({ length: 8 }, (_, i) => `/economie/64128${i}0/kop-${i}`);
+  assert.equal(identity({ title: "Het laatste nieuws het eerst", links: articles })?.key, "news_publisher");
+  const products = Array.from({ length: 8 }, (_, i) => `/product/94589${i}/wasmachine-${i}.html`);
+  assert.equal(identity({ title: "Het laatste nieuws over onze aanbiedingen", links: products }), null);
+});
+
+test("recreation: zoo and museum identities, also as compound words", () => {
+  assert.equal(identity({ title: "Beleef de natuur in Diergaarde Stad", links: ["/nl/bezoek/tickets", "/nl/bezoek", "/nl/ontdek/dieren"] })?.key, "attraction_recreation");
+  assert.equal(identity({ title: "Stadsmuseum, het museum van de stad", links: ["/nl/bezoek", "/nl/tickets", "/nl/zien-en-doen"] })?.key, "attraction_recreation");
+  assert.equal(identity({ title: "Stadsmuseum", links: ["/nl/winkel"] }), null, "identity text alone is not enough");
+});
+
+test("a municipality with a 'Nieuws' heading is not declared a news publisher without structure", () => {
+  assert.equal(identity({ title: "Home | Gemeente Stad", h1s: ["Direct naar", "Nieuws"], links: ["/nieuws/", "/vergunningen/"] }), null);
+});

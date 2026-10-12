@@ -1544,7 +1544,7 @@ export async function POST(request: Request) {
       {sector:"home_services",label:"Lokale vakdienst",patterns:[/\b(loodgieter|plumber|aannemer|installateur|elektricien|schilder|dakdekker|klus(?:sen)?bedrijf|bouwbedrijf|bouwservice|general contractor|electrician|contractor|riool(?:service|specialist)?|rioolprobleem|ontstopping|ontstoppen|afvoer|schoonmaak(?:bedrijf|dienst(?:en)?)?|kantoorschoonmaak|cleaning service|cleaning company)\b/i,/\b(offerte|werkgebied|servicegebied|installatie|reparatie|renovatie|verbouwing|bouw|verstopping|riolering|riooldienst(?:en)?|schoonmaak|cleaning)\b/i],modules:["core_seo","geo","local","lead_conversion","home_services"]},
       {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\b(advocaat|accountant|boekhouder|consultant|notaris|law firm|legalservice|legal services|accounting|consultancy)\b/i,/\b(diensten|expertise|advies|consult)\b/i],modules:["core_seo","geo","local","lead_conversion","professional_services"]},
       {sector:"hospitality",label:"Horeca",patterns:[/\b(restaurant|cafe|café|hotel|brasserie|bistro|reserveren|reservation|restaurantmenu|menukaart)\b/i,/\b(openingstijden|opening hours|tafel reserveren)\b/i],modules:["core_seo","geo","local","lead_conversion","hospitality"]},
-      {sector:"health_wellness",label:"Zorg & Gezondheid",patterns:[/\b(kliniek|clinic|fysiotherap|tandarts|dentist|medicalclinic|physician|mondzorg|acupunctuur|acupuncture|acupuncturist|therapeut|therapist|therapie|therapy|tuina)\b/i,/\b(afspraak|appointment|behandeling|behandelingen|treatment|treatments|patient|patiënt|praktijk|practice)\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
+      {sector:"health_wellness",label:"Zorg & Gezondheid",patterns:[/\b(ziekenhuis|ziekenhuizen|hospital|krankenhaus|hôpital|hospital universitario|ospedale|medisch centrum|medical center|medical centre|umc|kliniek|clinic|fysiotherap|tandarts|dentist|medicalclinic|physician|mondzorg|acupunctuur|acupuncture|acupuncturist|therapeut|therapist|therapie|therapy|tuina)\b/i,/\b(afspraak|appointment|behandeling|behandelingen|treatment|treatments|patient|patiënt|praktijk|practice)\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
       {sector:"beauty",label:"Beauty & Verzorging",patterns:[/\b(kapper|hairdresser|hairsalon|hair salon|hairstyling|beauty salon|beautysalon|schoonheidssalon|nagelsalon|nail salon|barber|day spa|dayspa|city spa|wellness|manicure|pedicure|facial|gezichtsbehandeling)\b/i,/\b(afspraak|appointment|salons?|knippen|haar|hair|spa|wellness|manicure|pedicure|beauty treatment|beauty treatments)\b/i],modules:["core_seo","geo","local","lead_conversion","beauty"]},
       {sector:"recruitment",label:"Recruitment & Werk",patterns:[/\b(recruitment|uitzendbureau|uitzendorganisatie|employment agency|staffing agency|staffing|werving en selectie|recruitmentbureau|recruitment agency)\b/i,/\b(werkgevers?|kandidaten?|talent acquisition|detachering|interim professionals?|recruiter)\b/i],modules:["core_seo","geo","lead_conversion","recruitment"]},
       {sector:"government",label:"Overheid & Publieke sector",patterns:[/\b(gemeente|municipality|overheid|government|rijksoverheid|ministry|ministerie|public service|stadhuis|burgerzaken)\b/i,/\b(digid|vergunning|paspoort|loket|inwoners|wetgeving|beleid|minister|cabinet)\b/i],modules:["core_seo","geo","government"]},
@@ -1646,7 +1646,7 @@ export async function POST(request: Request) {
     // Long-term housing remains real estate; guest/night/date/booking evidence is hospitality.
     const realEstateIdentity = Boolean(!shortStayIdentity && scanEvidence.inventory.properties.value && scanEvidence.inventory.properties.confidence !== "low" && (/\/(?:woningaanbod|residential-listings|properties?|real-estate)(?:\/|$)/i.test(finalUrl.pathname) || /\b(?:makelaar|woningaanbod|te koop|te huur|for sale|for rent|real estate)\b/i.test(sectorIdentitySource)));
     const automotiveServiceIdentity = Boolean(/\b(?:apk|autobanden|banden|uitlijnen|werkplaats|autoservice|auto-onderhoud|car repair|tyres?)\b/i.test(sectorIdentitySource) || schemaSet.has("autorepair"));
-    const explicitMedicalIdentity = /\b(?:tandarts|dentist|kliniek|clinic|medical|medicalclinic|fysiotherap|mondzorg|patient|patiënt|physician|huisarts|doctor)\b/i.test(sectorIdentitySource) || schemaSet.has("dentist") || schemaSet.has("medicalclinic");
+    const explicitMedicalIdentity = /\b(?:ziekenhuis|hospital|medisch centrum|umc|tandarts|dentist|kliniek|clinic|medical|medicalclinic|fysiotherap|mondzorg|patient|patiënt|physician|huisarts|doctor)\b/i.test(sectorIdentitySource) || schemaSet.has("dentist") || schemaSet.has("medicalclinic");
     const beautyServiceIdentity = /\b(?:beauty salon|beautysalon|schoonheidssalon|day spa|dayspa|city spa|wellness|manicure|pedicure|nail salon|nagelsalon|facial|gezichtsbehandeling)\b/i.test(sectorIdentitySource) || schemaSet.has("beautysalon") || schemaSet.has("dayspa");
     const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[]} | null = shortStayIdentity
       ? {sector:"hospitality",key:lodgingSubtype.key,label:lodgingSubtype.label,evidence:["Scanbewijs: kort verblijf/accommodatie bevestigd", ...lodgingDetail.shortStay.evidence, ...lodgingDetail.stayDates.evidence, ...lodgingDetail.guests.evidence]}
@@ -1683,10 +1683,12 @@ export async function POST(request: Request) {
     });
     const protectedIdentitySectors = new Set<SectorKey>(["government","health_wellness","real_estate","automotive","transport_travel","beauty","home_services"]);
     const protectedIdentitySector = (masterIdentityOverride && masterIdentityOverride.sector !== "hospitality" ? masterIdentityOverride.sector : null)
-      || (strongSectorCandidate && protectedIdentitySectors.has(sectorCandidates[0].sector) ? sectorCandidates[0].sector : null);
+      // Body-text keyword hits alone (e.g. "behandeling" in news) do not protect a sector:
+      // its identity pattern must match the page's own title/description/H1.
+      || (strongSectorCandidate && protectedIdentitySectors.has(sectorCandidates[0].sector) && sectorSignals.find((item) => item.sector === sectorCandidates[0].sector)?.patterns[0]?.test(sectorIdentitySource) ? sectorCandidates[0].sector : null);
     const declaredIdentity = declaredIdentityCandidate && (!protectedIdentitySector || protectedIdentitySector === declaredIdentityCandidate.sector) ? declaredIdentityCandidate : null;
     const declaredGoverns = declaredIdentityGovernsPage(declaredIdentity, { isProductPage, isCategoryPage: hasCategorySignal });
-    const declaredSectorKey = declaredIdentity ? ({ news_publisher: "news_media", software_saas: "saas_b2b", job_board: "job_board", attraction_recreation: "attraction_park" } as const)[declaredIdentity.key] : null;
+    const declaredSectorKey = declaredIdentity ? ({ news_publisher: "news_media", software_saas: "saas_b2b", job_board: "job_board", attraction_recreation: "recreation_attraction" } as const)[declaredIdentity.key] : null;
     const retailLanguage = retailIdentityLanguage(sectorIdentitySource);
     const retailAssortmentIdentity = retailLanguage.assortment;
     const onlineRetailCallout = retailLanguage.onlineSales;
@@ -4286,13 +4288,13 @@ export async function POST(request: Request) {
     }
     // Preserve broad engine families internally, but show a more useful specific
     // label when the catalog and representative evidence independently agree.
-    if (!finalCommerceDecision.confirmed && catalogTop?.key==="dentist" && multiPageCapabilities.treatment) {
+    if (!declaredGoverns && !finalCommerceDecision.confirmed && catalogTop?.key==="dentist" && multiPageCapabilities.treatment) {
       sectorProfile.key = "dentist";
       sectorProfile.label = "Tandarts / Dentist";
       sectorProfile.confidence = "high";
       sectorProfile.confidenceScore = Math.max(92, sectorProfile.confidenceScore);
     }
-    if (!finalCommerceDecision.confirmed && catalogTop?.key==="legal" && multiPageCapabilities.professional) {
+    if (!declaredGoverns && !finalCommerceDecision.confirmed && catalogTop?.key==="legal" && multiPageCapabilities.professional) {
       sectorProfile.key = "legal";
       sectorProfile.label = "Juridisch / Advocatuur";
       sectorProfile.confidence = "high";

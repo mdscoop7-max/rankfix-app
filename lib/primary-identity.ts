@@ -61,7 +61,9 @@ const DEFINITIONS: Definition[] = [
     schema: ["newsmediaorganization", "newsarticle", "reportagenewsarticle", "analysisnewsarticle", "opinionnewsarticle", "backgroundnewsarticle", "liveblogposting"],
     // "nieuwsbrief"/"newsletter" is a mailing list, not news identity.
     identity: /(?:\b|(?<=\p{L}))(?:nieuws(?!brief)|news(?!letter)|nachrichten|actualit[eé]s?|noticias|notizie|journaal|krant|newspaper|zeitung|journal(?:isme|ism|istiek))\b/iu,
-    linkPattern: /\/(artikel|article|articles|nieuws|news|nachrichten|actualites?|noticias?|notizie|liveblog|20\d{2}\/\d{2})\//i,
+    // Article sections, dated paths, or section/<numeric article id>/slug
+    // (never product paths, which also carry numeric ids).
+    linkPattern: /\/(artikel|article|articles|nieuws|news|nachrichten|actualites?|noticias?|notizie|liveblog|20\d{2}\/\d{2})\/|\/(?!(?:product|producten|products|p|item|artikelnummer)\/)[a-z][a-z0-9-]*\/(\d{5,})(?:\/|-|\.html)/i,
     minLinks: 6,
     minKinds: 1,
     catalogKeys: ["news_media"],
@@ -73,7 +75,7 @@ const DEFINITIONS: Definition[] = [
     websiteType: "Software-/SaaS-website",
     schema: ["softwareapplication", "webapplication", "mobileapplication"],
     identity: /\b(?:saas|software(?:pakket)?|\p{L}*software|boekhoudpakket|boekhoudprogramma|facturatieprogramma|crm|erp|cloudsoftware|online (?:boekhouding|facturatie|administratie)|web ?app(?:licatie)?|business software|buchhaltungssoftware|logiciel)\b/iu,
-    linkPattern: /\/(features?|functies|functionaliteiten|integraties|integrations?|prijzen|pricing|tarieven|demo|aanmelden|signup|sign-up|registreren|probeer|trial|app|login|inloggen)(?:\/|$|\?)/i,
+    linkPattern: /\/(features?|functies|functionaliteiten|integraties|integrations?|koppelingen|prijzen|pricing|tarieven|demo|aanmelden|signup|sign-up|registreren|probeer|trial|app|app-store|login|inloggen|software)(?:\/|$|\?|-)/i,
     minLinks: 4,
     minKinds: 3,
     catalogKeys: ["saas_b2b", "software_app"],
@@ -93,11 +95,12 @@ const DEFINITIONS: Definition[] = [
   {
     key: "attraction_recreation",
     sector: "tourism_recreation",
-    label: "Attractiepark / recreatie",
+    label: "Recreatie & attracties",
     websiteType: "Recreatie-/attractiewebsite",
-    schema: ["amusementpark", "touristattraction", "zoo", "aquarium", "themepark", "waterpark"],
-    identity: /\b(?:attractiepark|pretpark|themapark|amusementpark|amusement park|theme park|dierentuin|dierenpark|zoo|safaripark|waterpark|freizeitpark|vergnügungspark|parc d['’]attractions|parque de atracciones|parco divertimenti|dagje uit|dagjes uit)\b/iu,
-    linkPattern: /\/(attracties?|attractions?|park(?:plattegrond|map)?|openingstijden|opening-?hours|tickets?|kaartjes|plattegrond|shows?|dieren|animals)(?:\/|$|\?)/i,
+    schema: ["amusementpark", "touristattraction", "zoo", "aquarium", "themepark", "waterpark", "museum"],
+    // Compounds count ("Rijksmuseum", "Diergaarde ..."): (?<=\p{L}) allows a prefix.
+    identity: /(?:\b|(?<=\p{L}))(?:attractiepark|pretpark|themapark|amusementpark|amusement park|theme park|dierentuin|diergaarde|dierenpark|zoo|safaripark|waterpark|freizeitpark|vergnügungspark|parc d['’]attractions|parque de atracciones|parco divertimenti|museum|musée|museo|dagje uit|dagjes uit)\b/iu,
+    linkPattern: /\/(attracties?|attractions?|park(?:plattegrond|map)?|openingstijden|opening-?hours|tickets?|kaartjes|plattegrond|shows?|dieren|animals|bezoek|plan-je-bezoek|visit|zien-en-doen|tentoonstellingen?|exhibitions?|collectie|collection)(?:\/|$|\?|-)/i,
     minLinks: 3,
     minKinds: 2,
     catalogKeys: ["entertainment", "events", "museum_culture"],
@@ -117,7 +120,7 @@ export function declaredPrimaryIdentity(input: IdentityInput): DeclaredIdentity 
     if (identityHit) { families.push("identity"); evidence.push(`Paginaidentiteit (title/description/H1): "${identityHit}"`); }
     const matched = [...new Set(input.links)].map((href) => href.match(def.linkPattern)).filter(Boolean) as RegExpMatchArray[];
     const linkHits = matched.length;
-    const linkKinds = new Set(matched.map((m) => (m[1] || "").toLowerCase())).size;
+    const linkKinds = new Set(matched.map((m) => (m[1] ? m[1].toLowerCase() : "id"))).size;
     const catalogHit = input.catalog.find((item) => def.catalogKeys.includes(item.key) && item.score >= 4);
     const structural = linkHits >= def.minLinks && linkKinds >= def.minKinds;
     if (structural || catalogHit) {
