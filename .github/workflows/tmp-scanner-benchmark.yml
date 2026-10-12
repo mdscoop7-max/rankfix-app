@@ -26,9 +26,10 @@ jobs:
       max-parallel: 1
       fail-fast: false
       matrix:
-        sha: [2c1b1bdd1b160ccb155b333e42b8e26bee6821bb]
+        sha: [779050f2b2e412c4097025b65941c8aeeeb2e488]
     env:
       PR127_SHA: ${{ matrix.sha }}
+      SITES_FILE: scripts/regression/benchmark-sites-final.json
       DATABASE_URL: postgresql://rankfix:rankfix-bench@127.0.0.1:5432/rankfix_bench
       SESSION_SECRET: benchmark-only-secret-not-used-anywhere-else
       APP_URL: http://127.0.0.1:3100
@@ -90,7 +91,7 @@ jobs:
           mkdir -p benchmark-results
           SERVER_PID=$(cat server.pid) BASE_URL=http://127.0.0.1:3100 PAUSE_MS=15000 DUMP_DIR=benchmark-results/raw-${PR127_SHA:0:7} \
             node --experimental-strip-types scripts/regression/local-scan-benchmark.mjs \
-            scripts/regression/benchmark-sites.json benchmark-results/bench.json
+            ${SITES_FILE:-scripts/regression/benchmark-sites.json} benchmark-results/bench.json
       - name: Report
         if: always()
         run: |
