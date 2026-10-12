@@ -284,3 +284,44 @@ test("representative capability guard is applied uniformly to sector-specific ke
   for (const sector of ["transport_travel","hospitality","health_wellness","automotive","real_estate","professional_services"])
     assert.ok(body.includes('specialistSector: "'+sector+'"'),"missing specialist gate for "+sector);
 });
+
+test("late sector reconciliation removes only specialist evidence inherited from an initial wrong sector", async () => {
+  const { reconcileRepresentativeSpecialistCapabilities: update } = await import("../lib/sector-capability-guard.ts");
+  const caps={transport:false,hospitality:true,treatment:false,vehicleSales:false,automotiveService:false,properties:true,professional:false};
+  const master=["contact","rooms","booking","properties"];
+  const result=update({capabilities:caps,sector:"saas_b2b",confidence:92,initialMasterCapabilities:["contact"],masterCapabilities:master});
+  assert.deepEqual(result.removedCapabilities.sort(),["booking","properties","rooms"]);
+  assert.equal(caps.hospitality,false);
+  assert.equal(caps.properties,false);
+  assert.deepEqual(master,["contact"]);
+});
+
+test("late specialist correction preserves real capabilities and independently established bookings", async () => {
+  const { reconcileRepresentativeSpecialistCapabilities: update }=await import("../lib/sector-capability-guard.ts");
+  const caps={transport:false,hospitality:true,treatment:false,vehicleSales:false,automotiveService:false,properties:false,professional:false};
+  const master=["booking","rooms","services"];
+  const result=update({capabilities:caps,sector:"hospitality",confidence:93,initialMasterCapabilities:["booking","services"],masterCapabilities:master});
+  assert.deepEqual(result.removedCapabilities,[]);
+  assert.equal(caps.hospitality,true);
+  assert.deepEqual(master,["booking","rooms","services"]);
+  update({capabilities:caps,sector:"saas_b2b",confidence:92,initialMasterCapabilities:["booking","services"],masterCapabilities:master});
+  assert.equal(caps.hospitality,false);
+  assert.deepEqual(master,["booking","services"],"independently confirmed booking is preserved");
+});
+
+test("late capability reconciliation does not retract overlapping surviving specialist signals", async () => {
+  const { reconcileRepresentativeSpecialistCapabilities: update }=await import("../lib/sector-capability-guard.ts");
+  const caps={transport:true,hospitality:false,treatment:true,vehicleSales:false,automotiveService:false,properties:false,professional:false};
+  const master=["services","service_area","quote_request","contact"];
+  const res=update({capabilities:caps,sector:"health_wellness",confidence:95,initialMasterCapabilities:[],masterCapabilities:master});
+  assert.equal(caps.transport,false);
+  assert.equal(caps.treatment,true);
+  assert.ok(master.includes("services"),"service evidence remains from the surviving treatment sector");
+  assert.deepEqual(res.removedCapabilities.sort(),["contact","quote_request","service_area"]);
+});
+
+test("scanner reevaluates specialist keyword flags after the final primary sector is confirmed", async () => {
+  const source=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
+  assert.match(source,/reconcileRepresentativeSpecialistCapabilities\(\{/);
+  assert.ok(source.indexOf("reconcileRepresentativeSpecialistCapabilities({")>source.indexOf("Final Master reconciliation"));
+});

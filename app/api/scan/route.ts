@@ -7,7 +7,7 @@ import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, 
 import { getFixPolicy } from "@/lib/fix-policy";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { replaceSpecialistChecks } from "@/lib/specialist-check-reconciliation";
-import { corroborateSpecialistCapability } from "@/lib/sector-capability-guard";
+import { corroborateSpecialistCapability, reconcileRepresentativeSpecialistCapabilities } from "@/lib/sector-capability-guard";
 import { assessPassiveSecurity, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
 import { assessPageDescription, assessPageTitle, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, isBrandOnlyTitle, isClientShell, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
@@ -4084,6 +4084,7 @@ export async function POST(request: Request) {
     // confirm capabilities/identity, but they never turn an unverified page-specific
     // defect into a failure.
     const multiPageIdentityText = auditedMultiPages.map((item)=>`${item.url} ${item.identityText||item.title||""}`).join(" ").toLowerCase();
+    const preRepresentativeCapabilities = [...masterEvidence.capabilities];
     const multiPageCapabilities = {
       transport: corroborateSpecialistCapability({keywordEvidence: (/\b(transport|logistics?|logistiek|freight|vracht|forwarding|expeditie|wegtransport|road transport|warehousing|opslag|distribution|distributie|courier|koerier)\b/i.test(multiPageIdentityText)), primarySector: sectorProfile.sector, primaryConfidence: sectorProfile.confidenceScore, specialistSector: "transport_travel"}),
       hospitality: corroborateSpecialistCapability({keywordEvidence: (/\b(hotel|hotels|room|rooms|kamer|kamers|overnachten|booking|boeken|reserveren|restaurant)\b/i.test(multiPageIdentityText)), primarySector: sectorProfile.sector, primaryConfidence: sectorProfile.confidenceScore, specialistSector: "hospitality"}),
@@ -4370,6 +4371,37 @@ export async function POST(request: Request) {
       sectorProfile.confidenceScore = declaredIdentity.families.length >= 3 ? 95 : 88;
       if (declaredSecondaryCommerce) sectorProfile.evidence = [...sectorProfile.evidence, "Webshopfunctie aanwezig als secundaire dienst; webshopcontroles gelden alleen voor product- en categoriepagina's"].slice(0,6);
       if (masterEvidence.businessModels.some((model) => model === "bookings" || model === "reservations")) sectorProfile.evidence = [...sectorProfile.evidence, "Reserveren/verblijf aanwezig als aanvullende dienstverlening"].slice(0,6);
+    }
+    // Reconcile *capabilities* as well as the sector after the representative
+    // sample. A temporary homepage guess (e.g. hospitality) must not leave
+    // unrelated room/booking or property capabilities in the final evidence.
+    const specialistReconciliation = reconcileRepresentativeSpecialistCapabilities({
+      capabilities: multiPageCapabilities,
+      sector: sectorProfile.sector,
+      confidence: sectorProfile.confidenceScore,
+      initialMasterCapabilities: preRepresentativeCapabilities,
+      masterCapabilities: masterEvidence.capabilities,
+    });
+    if (specialistReconciliation.removedCapabilities.length) {
+      // Capability states were built before late sector reconciliation.
+      // Refresh only those whose weak-hint provenance depended on discarded
+      // specialist keywords (independently proven forms remain untouched).
+      weakCapabilityHints.lists_inventory = (
+        masterEvidence.capabilities.includes("properties") || masterEvidence.capabilities.includes("vehicles")
+      ) && !capabilityProofs.lists_inventory.length
+        ? ["Inventory-signaal gevonden zonder representatieve listingpagina"] : [];
+      weakCapabilityHints.offers_bookable_services = (
+        masterEvidence.capabilities.includes("booking") ||
+        masterEvidence.capabilities.includes("appointment") ||
+        masterEvidence.capabilities.includes("reservation")
+      ) && !capabilityProofs.offers_bookable_services.length
+        ? ["Boekings-/afspraaksignaal gevonden zonder representatief boekingsformulier"] : [];
+      for (const id of ["lists_inventory", "offers_bookable_services"]) {
+        const index = capabilityStates.findIndex((item)=>item.id===id);
+        if (index>=0) capabilityStates[index] = buildCapabilityState(
+          id, capabilityProofs[id], capabilityCoverage, 0.95, {weakProof:weakCapabilityHints[id]||[]}
+        );
+      }
     }
     const sectorDisplayPolicy = sectorProfile.confidenceScore >= 80 ? "confirmed" : sectorProfile.confidenceScore >= 60 ? "probable" : "unconfirmed";
     masterEvidence.primarySector = {
