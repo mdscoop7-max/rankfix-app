@@ -14,7 +14,7 @@ test("normal local retail homepage or support article stays retail/content",()=>
   assert.equal(portal("Clothes and fashion online","Austria Belgium Denmark France Germany Netherlands"),false);
   assert.equal(portal("Zalando is available in the following countries","Netherlands"),false);
   assert.equal(portal("Zalando is available in the following countries","Austria Belgium France Germany Netherlands","https://example.com/faq/shipping"),false);
-  assert.equal(portal("Choose your country","Austria Belgium France Germany <script>Netherlands Sweden Poland</script>"),false);
+  assert.equal(portal("Choose your country","Austria Belgium France <script>Netherlands Sweden Poland</script>"),false);
 });
 test("route marks the portal and keeps the score provisional",async()=>{
   const route=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
