@@ -142,7 +142,13 @@ export function titleLengthCredit(length: number): number {
   return 0.45;
 }
 
-export type MetaAssessment = { status: "PASS" | "WARNING"; credit: number; details: string; flag?: "missing" | "empty" | "brand_only" | "duplicate_segment" | "outdated_year" };
+export type MetaAssessment = { status: "PASS" | "WARNING"; credit: number; details: string; flag?: "missing" | "empty" | "brand_only" | "duplicate_segment" | "outdated_year" | "generic" | "too_long" };
+
+// "Home", "Homepage", "Untitled": a title that names no topic at all.
+const GENERIC_TITLE_TEXT = /^(?:home|homepage|home page|hoofdpagina|startpagina|startseite|accueil|inicio|index|untitled|untitled document|nieuwe pagina|new page|page|pagina|document|welkom|welcome)$/i;
+export function isGenericTitleText(title: string): boolean {
+  return GENERIC_TITLE_TEXT.test(normalizeSegment(title));
+}
 
 // "Tarieven en vergoedingen 2017": a year at least three years old in a title
 // signals outdated content to searchers.
@@ -159,10 +165,17 @@ export function assessPageTitle(title: string, host: string, now: Date = new Dat
   if (isBrandOnlyTitle(value, host)) {
     return { status: "WARNING", credit: 0.25, details: `Title bevat alleen de merknaam ("${value}"); het onderwerp van de pagina ontbreekt.`, flag: "brand_only" };
   }
+  if (isGenericTitleText(value)) {
+    return { status: "WARNING", credit: 0.25, details: `Title "${value}" is generiek en noemt geen onderwerp.`, flag: "generic" };
+  }
   const duplicate = duplicateTitleSegment(value);
   const length = value.length;
-  const inRange = titleLengthDistance(length) === 0;
-  const lengthText = inRange ? `Title gevonden (${length} tekens); binnen richtwaarde 30–60.` : `Title gevonden (${length} tekens); buiten richtwaarde 30–60.`;
+  // Review Oct 2026: a short, descriptive title is not an issue. Only titles longer
+  // than 60 characters (cut off in results) remain a length point.
+  const inRange = length <= 60;
+  const lengthText = length < 30
+    ? `Title gevonden (${length} tekens); kort maar beschrijvend, dat is geen probleem.`
+    : inRange ? `Title gevonden (${length} tekens); binnen richtwaarde 30–60.` : `Title gevonden (${length} tekens); langer dan 60 tekens, zoekmachines kappen hem af.`;
   if (duplicate) {
     return { status: "WARNING", credit: Math.min(0.8, titleLengthCredit(length)), details: `${lengthText} "${duplicate}" staat dubbel in de title; waarschijnlijk voegt het template het merk een tweede keer toe.`, flag: "duplicate_segment" };
   }
@@ -172,7 +185,7 @@ export function assessPageTitle(title: string, host: string, now: Date = new Dat
   }
   return inRange
     ? { status: "PASS", credit: 1, details: lengthText }
-    : { status: "WARNING", credit: titleLengthCredit(length), details: lengthText };
+    : { status: "WARNING", credit: titleLengthCredit(length), details: lengthText, flag: "too_long" };
 }
 
 export function assessPageDescription(description: string, tagPresent: boolean): MetaAssessment {

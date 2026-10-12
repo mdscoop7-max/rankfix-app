@@ -1,4 +1,6 @@
 import { assertPublicDns, validatePublicHttpUrl } from "@/lib/safe-fetch";
+import { SITE_URL } from "@/lib/site-url";
+import { rankfixUserAgents } from "@/lib/evidence-quality";
 
 export type HeadlessMode = "raw_html" | "javascript_rendered";
 export type RenderedPage = { html: string; finalUrl: string; elapsedMs: number; requests: number };
@@ -19,7 +21,7 @@ export async function renderPublicPage(value: string, timeoutMs = 12000): Promis
   let requests = 0;
   try {
     const page = await browser.newPage();
-    await page.setUserAgent("RankFixBrowser/1.0");
+    await page.setUserAgent(rankfixUserAgents(SITE_URL).browser);
     await page.setRequestInterception(true);
     page.on("request", (req) => {
       void (async () => {

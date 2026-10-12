@@ -65,7 +65,9 @@ export async function safePublicFetch(value: string | URL, options: { timeoutMs?
         redirect: "manual",
         cache: "no-store",
         headers: {
-          "User-Agent": options.userAgent ?? "RankFixBot/2.1 (+https://rankfix-app.onrender.com)",
+          // Same identity as lib/evidence-quality.ts rankfixUserAgents(); kept literal so this
+          // module stays import-free for the tests.
+          "User-Agent": options.userAgent ?? "RankFixBot/2.1 (+https://rankfix-app.vercel.app/bot)",
           Accept: options.accept ?? "text/html,application/xhtml+xml",
         },
       });

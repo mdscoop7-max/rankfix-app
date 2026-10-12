@@ -90,7 +90,8 @@ test("scanner regression source keeps evidence-only classification safeguards", 
   assert.match(source, /Een individuele auteur is niet vereist op een organisatie-, dienst- of merkhomepage/);
   // Representative-page meta wording lives in lib/report-quality.ts.
   const quality = await readFile(new URL("../lib/report-quality.ts", import.meta.url), "utf8");
-  assert.match(quality, /buiten richtwaarde 30–60/);
+  // Review Oct 2026 (point 10): short titles pass; only >60 characters is a length point.
+  assert.match(quality, /langer dan 60 tekens/);
   assert.match(quality, /uitzonderlijk kort/);
   assert.match(quality, /uitzonderlijk lang/);
   assert.match(source, /assessPageTitle\(pageTitle, finalCandidate\.hostname\)/);
@@ -138,8 +139,11 @@ test("multilingual trust, social URL and auth redirect bundle stays evidence bas
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   assert.match(source, /normalizeLegalText/);
-  assert.match(source, /privatnost\\w\*\|zasebnost\\w\*/);
-  assert.match(source, /piskotk\\w\*\|kolacic\\w\*/);
+  // The legal lexicon moved to lib/evidence-quality.ts (review Oct 2026, point 2).
+  assert.match(source, /legalLexicon = LEGAL_LEXICON/);
+  const legal = await readFile(new URL("../lib/evidence-quality.ts", import.meta.url), "utf8");
+  assert.match(legal, /privatnost\\w\*\|\\bzasebnost\\w\*/);
+  assert.match(legal, /piskotk\\w\*\|kolacic\\w\*/);
   const contactLexicon = await readFile(new URL("../lib/contact-evidence.ts", import.meta.url), "utf8");
   assert.match(contactLexicon, /assistenza clienti/);
   assert.match(contactLexicon, /apoio ao cliente/);

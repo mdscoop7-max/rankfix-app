@@ -1,7 +1,10 @@
 import { URL } from "node:url";
+import { SITE_URL } from "@/lib/site-url";
+import { rankfixUserAgents } from "@/lib/evidence-quality";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
+const RANKFIX_BOT_AGENT = rankfixUserAgents(SITE_URL).bot;
 
 export const CRAWLER_ENGINE_VERSION = "2.6.0";
 
@@ -93,7 +96,7 @@ function first(v:string,re:RegExp){const m=v.match(re);return m?.[1]?decode(m[1]
 function attr(tag:string,name:string){return tag.match(new RegExp(name+"\\s*=\\s*[\"']([^\"']*)[\"']","i"))?.[1]||"";}
 function validate(url:string){ return validatePublicHttpUrl(url); }
 async function fetchSafe(url:URL, timeoutMs=8000){
-  return safePublicFetch(url,{timeoutMs,maxRedirects:4,userAgent:"RankFixBot/2.1 (+https://rankfix-app.onrender.com)",accept:"text/html,application/xhtml+xml,application/xml,text/xml"});
+  return safePublicFetch(url,{timeoutMs,maxRedirects:4,userAgent:RANKFIX_BOT_AGENT,accept:"text/html,application/xhtml+xml,application/xml,text/xml"});
 }
 function classify(url:string,html:string,jsonTypes:string[]):PageType{
   const p=new URL(url).pathname.toLowerCase();
