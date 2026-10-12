@@ -8,7 +8,7 @@ import { getFixPolicy } from "@/lib/fix-policy";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { assessPassiveSecurity, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
-import { assessPageDescription, assessPageTitle, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, isBrandOnlyTitle, isClientShell, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
+import { assessPageDescription, assessPageTitle, sampleEvidenceExcerpt, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, isBrandOnlyTitle, isClientShell, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
 import { assessBusinessDetails, classifyContactAnchor, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
@@ -2693,11 +2693,15 @@ export async function POST(request: Request) {
           : missingAltRatio <= 0.50
             ? 3
             : 1;
+    const imageEvidenceOrigin = javascriptExecuted ? "de gerenderde HTML" : "de opgehaalde HTML";
+    const imageEvidenceLimit = javascriptExecuted
+      ? "Afbeeldingen die pas na de rendersnapshot verschijnen zijn niet meegenomen."
+      : "Afbeeldingen die uitsluitend na JavaScript-uitvoering verschijnen zijn niet meegenomen.";
     seoChecks.push(imageElementCount === 0
-      ? check("not_applicable", "alt", "seo", "Afbeelding alt-teksten", "Geen <img>-elementen gevonden in de opgehaalde HTML; deze controle telt daarom niet mee.", "Controleer dynamisch geladen afbeeldingen afzonderlijk wanneer die voor de pagina belangrijk zijn.", 0, 7)
+      ? check("not_applicable", "alt", "seo", "Afbeelding alt-teksten",  `Geen <img>-elementen gevonden in ${imageEvidenceOrigin}; deze controle telt daarom niet mee.`, "Controleer dynamisch geladen afbeeldingen afzonderlijk wanneer die voor de pagina belangrijk zijn.", 0, 7)
       : imagesMissingAlt === 0
-      ? check("pass", "alt", "seo", "Afbeelding alt-teksten", `Alle ${imageElementCount} controleerbare <img>-elementen in de raw HTML hebben alt-attributen. JavaScript-geladen afbeeldingen zijn niet meegenomen.`, "Schrijf beschrijvende alt-teksten voor informatieve afbeeldingen.", 7, 7)
-      : check("warning", "alt", "seo", "Afbeelding alt-teksten", `${imagesMissingAlt} van ${imageElementCount} controleerbare <img>-elementen in de raw HTML missen alt (${Math.round(missingAltRatio * 100)}%). JavaScript-geladen afbeeldingen zijn niet meegenomen.`, "Voeg beschrijvende alt-teksten toe waar ze betekenis toevoegen.", altPoints, 7)
+      ? check("pass", "alt", "seo", "Afbeelding alt-teksten", `Alle ${imageElementCount} controleerbare <img>-elementen in ${imageEvidenceOrigin} hebben alt-attributen. ${imageEvidenceLimit}`, "Schrijf beschrijvende alt-teksten voor informatieve afbeeldingen.", 7, 7)
+      : check("warning", "alt", "seo", "Afbeelding alt-teksten", `${imagesMissingAlt} van ${imageElementCount} controleerbare <img>-elementen in ${imageEvidenceOrigin} missen alt (${Math.round(missingAltRatio * 100)}%). ${imageEvidenceLimit}`, "Voeg beschrijvende alt-teksten toe waar ze betekenis toevoegen.", altPoints, 7)
     );
     const effectiveLocalBusinessPage = !isProductPage && !hasCategorySignal && effectiveLocalSchemaSignal;
     const effectiveArticlePage = hasArticleSignal && !effectiveLocalBusinessPage;
@@ -2933,6 +2937,12 @@ export async function POST(request: Request) {
         ? check("pass", "business_placeholders", "seo", "Bedrijfsgegevens", `Geen placeholders gevonden en concrete bedrijfsgegevens bevestigd: ${businessDetails.found.join(", ")}.`, "Houd bedrijfs- en contactgegevens actueel en consistent.", 6, 6)
         : check("unable_to_confirm", "business_placeholders", "seo", "Bedrijfsgegevens", businessDetails.reason === "thin_shell" ? "Geen placeholders in de raw HTML, maar dit is een dunne JavaScript-shell; bedrijfsgegevens kunnen niet worden bevestigd." : "Geen placeholders gevonden, maar ook geen concrete bedrijfsgegevens (adres, telefoon, e-mail of KvK/BTW) op deze pagina. Dat bewijst niet dat ze ontbreken; ze kunnen op een contact- of over-onspagina staan.", "Toon bedrijfsnaam, adres, telefoon of e-mail en KvK/BTW waar klanten die verwachten, bijvoorbeeld in de footer of op de contactpagina.", 0, 6)
     );
+    // A successful business-identity check must not display "Found: none".
+    // Expose verified evidence categories only, never raw email addresses/phones.
+    const businessContactCheck = seoChecks.find(item => item.key === "business_placeholders");
+    if (businessContactCheck && businessDetails.status === "pass") {
+      businessContactCheck.evidence.found = `placeholders=${placeholderMatches.length}; verified=${businessDetails.found.join(", ")}`;
+    }
 
     seoChecks.push(!hasEcommerceSignal
       ? check("not_applicable", "price_format", "seo", "Prijsnotatie", "Geen duidelijke webshop/product-signalen gevonden; prijsnotatie is niet beoordeeld.", "Gebruik deze controle op echte product- en e-commercepagina's.", 0, 5)
@@ -4883,7 +4893,7 @@ export async function POST(request: Request) {
     // Review Oct 2026 (point 6): problems proven in the representative sample belong
     // in the action list (zero weight; they count through the blended headline).
     const sampleChecks: Check[] = [];
-    const samplePageList = (items: Array<{ url: string; details: string }>) => items.slice(0, 4).map((item) => `${shortUrl(item.url, 70)} (${item.details.slice(0, 110)})`).join("; ");
+    const samplePageList = (items: Array<{ url: string; details: string }>) => items.slice(0, 4).map((item) => `${shortUrl(item.url, 70)} (${sampleEvidenceExcerpt(item.details)})`).join("; ");
     if (brokenSamplePages.length) {
       const item = check("fail", "sample_broken_pages", "seo", "Steekproef: niet-werkende pagina's", `${brokenSamplePages.length} van ${multiPageAudits.length} geselecteerde interne pagina('s) werkt niet: ${brokenSamplePages.slice(0, 4).map((page) => `${shortUrl(page.url, 70)} → HTTP ${page.httpStatus}`).join(", ")}.`, "Herstel deze pagina's of laat interne links en de sitemap naar een werkende pagina verwijzen (met een 301-redirect als de pagina verhuisd is).", 0, 0);
       item.severity = "MEDIUM";
@@ -4894,7 +4904,7 @@ export async function POST(request: Request) {
     const sampleFixes: Record<string, string> = {
       title: "Controleer zoekvoorbeeld, titelduidelijkheid en eventueel dubbele merksegmenten. Een lengte boven 60 tekens bewijst op zichzelf geen afkapping; pas titels alleen aan wanneer dat de zoekpresentatie verbetert.",
       description: "Controleer op de genoemde pagina's of de description uniek, relevant en duidelijk is. Pas lengte alleen aan wanneer dat de zoekpreview of boodschap verbetert.",
-      h1: "Geef de genoemde pagina's één inhoudelijke H1 met het onderwerp van de pagina.",
+      h1: "Controleer of de H1-koppen op de genoemde pagina's daadwerkelijk tegelijk zichtbaar zijn. Animaties en responsieve varianten kunnen meerdere H1-elementen in de HTML veroorzaken zonder bewezen SEO-fout.",
       canonical: "Laat de canonical van de genoemde pagina's naar hun eigen URL wijzen.",
       product_schema: "Voeg op de productpagina's een Offer met price en priceCurrency toe aan de Product-markup.",
     };

@@ -290,3 +290,17 @@ const NON_ENTITY_TYPES = /^(?:\w*action|listitem|itemlist|breadcrumblist|imageob
 export function entityTypesForDisplay(types: string[]): string[] {
   return [...new Set(types.filter((type) => !NON_ENTITY_TYPES.test(type.trim())))];
 }
+
+
+/** One readable finding per sampled page, never a mid-word, dangling quote or clause. */
+export function sampleEvidenceExcerpt(value: string, maxLength = 190): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) return normalized;
+  // Prefer a complete first sentence: a sample excerpt is not a full audit.
+  const firstSentence = normalized.match(/^(.+?[.!?])(?:\s|$)/)?.[1];
+  if (firstSentence && firstSentence.length <= maxLength) return firstSentence;
+  const boundary = normalized.lastIndexOf(" ", maxLength - 1);
+  const excerpt = normalized.slice(0, boundary > maxLength * 0.55 ? boundary : maxLength)
+    .replace(/[\s;,:(\-"“‘]+$/g, "");
+  return excerpt + "…";
+}

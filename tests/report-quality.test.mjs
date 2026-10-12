@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
-  assessPageDescription, assessPageTitle, botManagerCookies, duplicateTitleSegment, entityTypesForDisplay,
+  assessPageDescription, assessPageTitle, sampleEvidenceExcerpt, botManagerCookies, duplicateTitleSegment, entityTypesForDisplay,
   isBrandOnlyTitle, isClientShell, isNonContentUrl, isReducedBotResponse, outdatedTitleYear, renderFailureCode,
   renderFailureText, sectionKey, shortUrl, stripTrackingParams, titleLengthCredit, titleTemplatePattern,
 } from "../lib/report-quality.ts";
@@ -197,4 +197,16 @@ test("scan route wires the report-quality fixes", async () => {
   assert.match(report, /diagnosticRows\(data\)/);
   const puppeteerConfig = await readFile(new URL("../.puppeteerrc.cjs", import.meta.url), "utf8");
   assert.match(puppeteerConfig, /cacheDirectory: join\(__dirname, "\.cache", "puppeteer"\)/);
+});
+
+
+test("site sample evidence excerpts never cut explanatory phrases without a truncation marker", () => {
+  const title = "Title gevonden (62 tekens); langer dan 60 tekens. Controleer de zoekpreview: mogelijke afkapping hangt af van pixelbreedte en is niet bewezen door de tekenlengte alleen.";
+  assert.equal(sampleEvidenceExcerpt(title, 110), "Title gevonden (62 tekens); langer dan 60 tekens.");
+  const heading = '3 verschillende H1-teksten in de HTML gevonden, bijvoorbeeld "Every payment", "The platform for". Controleer of deze koppen tegelijk zichtbaar zijn.';
+  assert.equal(sampleEvidenceExcerpt(heading, 125), '3 verschillende H1-teksten in de HTML gevonden, bijvoorbeeld "Every payment", "The platform for".');
+  const truncated = sampleEvidenceExcerpt("Een uitzonderlijk lange toelichting die zeker geen volledige zin vormt en doorloopt zonder duidelijke afsluiting totdat de maximumbreedte wordt overschreden", 48);
+  assert.match(truncated, /…$/);
+  assert.doesNotMatch(truncated, /(?:\s|[,;:(-])…$/);
+  assert.equal(sampleEvidenceExcerpt("Gevonden."), "Gevonden.");
 });
