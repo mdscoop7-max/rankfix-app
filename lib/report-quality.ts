@@ -12,13 +12,15 @@ export type RenderFailureCode =
   | "RENDER_BLOCKED"
   | "RENDER_DEGRADED"
   | "RENDER_NOT_SUBSTANTIVE"
+  | "RENDER_LIMIT_REACHED"
   | "RENDER_FAILED";
 
 export function renderFailureCode(error: unknown): RenderFailureCode {
   const message = error instanceof Error ? error.message : String(error ?? "");
-  if (/could not find (?:chrome|chromium|expected browser)|failed to launch|browser was not found|executable doesn'?t exist|no usable sandbox|ENOENT.*chrom/i.test(message)) return "BROWSER_UNAVAILABLE";
+  if (/BROWSER_UNAVAILABLE|could not find (?:chrome|chromium|expected browser)|failed to launch|browser was not found|executable doesn'?t exist|no usable sandbox|ENOENT.*chrom/i.test(message)) return "BROWSER_UNAVAILABLE";
   if (/timeout|timed out|navigation.*exceeded/i.test(message)) return "RENDER_TIMEOUT";
   if (/URL_HOST_BLOCKED|URL_PROTOCOL_BLOCKED|DNS|ERR_BLOCKED|net::ERR_ACCESS_DENIED|403/i.test(message)) return "RENDER_BLOCKED";
+  if (/RENDER_BUDGET_EXHAUSTED|RENDER_DEADLINE_REACHED|RENDER_LIMIT_REACHED/.test(message)) return "RENDER_LIMIT_REACHED";
   if (/RENDER_DEGRADED/.test(message)) return "RENDER_DEGRADED";
   if (/NOT_SUBSTANTIVE/.test(message)) return "RENDER_NOT_SUBSTANTIVE";
   return "RENDER_FAILED";
@@ -30,6 +32,7 @@ const RENDER_FAILURE_COPY: Record<RenderFailureCode, string> = {
   RENDER_BLOCKED: "de website blokkeerde de browser-rendering",
   RENDER_DEGRADED: "de browserversie bevatte minder inhoud dan de HTML-versie",
   RENDER_NOT_SUBSTANTIVE: "de browserversie bevatte geen bruikbare pagina-inhoud",
+  RENDER_LIMIT_REACHED: "de browser-rendering is overgeslagen om de scan binnen de tijds- en geheugenlimiet te houden",
   RENDER_FAILED: "de browser-rendering kon niet worden voltooid",
 };
 
@@ -241,9 +244,13 @@ export function titleTemplatePattern(titles: string[], host = ""): { suffix: str
   }
   const brand = normalizeSegment((host.toLowerCase().replace(/^www\./, "").split(".")[0]) || "");
   const candidates = [...counts]
-    .filter(([suffix, pages]) => pages >= 3 && suffix.trim().length >= 12)
+    // A plain brand suffix ("| TransHeroes") is normal practice and not a template
+    // problem; only long slogans or claims (20+ characters) are reported.
+    .filter(([suffix, pages]) => pages >= 3 && suffix.trim().length >= 20)
     .map(([suffix, pages]) => ({ suffix, pages, overLimit: valid.filter((title) => title.endsWith(suffix) && title.length > 60).length }))
-    .filter((item) => item.overLimit >= 2);
+    // Only a pattern shared by at least four titles and responsible for at least three
+    // over-long ones is a real template issue, not a few hand-written titles.
+    .filter((item) => item.pages >= 4 && item.overLimit >= 3);
   if (!candidates.length) return null;
   // Prefer the tail that carries the brand, then the one that explains the most
   // over-long titles, then the most pages, then the shortest (the template itself).
