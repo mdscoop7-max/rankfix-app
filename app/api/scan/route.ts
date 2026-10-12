@@ -6,6 +6,7 @@ import { ensureDatabase } from "@/lib/db-init";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang, isMarketSelectorPage } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { decodeHtmlEntities } from "@/lib/html-entities";
+import { replaceSpecialistChecks } from "@/lib/specialist-check-reconciliation";
 import { assessPassiveSecurity, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
 import { assessPageDescription, assessPageTitle, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, isBrandOnlyTitle, isClientShell, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
@@ -1992,16 +1993,21 @@ export async function POST(request: Request) {
       item.evidence = { url: finalUrl.toString(), found: found ? true : null, details: found ? foundMessage : missingMessage };
       return item;
     };
-    if (sectorProfile.sector === "real_estate") {
+    // Build specialist checks from the current sector. The final sector can be
+    // upgraded after representative pages have been audited, so this factory is
+    // used both before and after the evidence reconciliation.
+    const buildSpecialistChecks = (sector:SectorKey): Check[] => {
+      const specialistChecks: Check[] = [];
+    if (sector === "real_estate") {
       const listingSignal = (scanEvidence.sectorDetails.realEstate.listing.value && scanEvidence.sectorDetails.realEstate.listing.confidence !== "low") || /\b(te koop|te huur|koopwoning|huurwoning|woningaanbod|objecten|properties|for sale|for rent)\b/i.test(text) || schemaSet.has("realestatelisting");
       const leadSignal = hasContactChannelSignal || /\b(bezichtiging|waardebepaling|verkoopadvies|plan een afspraak|contact opnemen)\b/i.test(text);
       const areaSignal = /\b(werkgebied|regio|buurt|wijk|plaats|gemeente|service area|area served)\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.areaServed));
-      seoChecks.push(
+      specialistChecks.push(
         sectorCheck("sector_real_estate_listings","Vastgoedaanbod",listingSignal,"Vastgoed-/woningsignalen zijn in de pagina bevestigd.","RankFix kon in de raw HTML geen vastgoedaanbod betrouwbaar bevestigen.","Maak woningaanbod en de bijbehorende bestemming duidelijk vindbaar wanneer dit voor deze pagina relevant is."),
         sectorCheck("sector_real_estate_leads","Makelaar conversie",leadSignal,"Een contact-, bezichtigings- of waardebepalingssignaal is bevestigd.","Een duidelijke makelaar-CTA kon in de raw HTML niet betrouwbaar worden bevestigd.","Maak de belangrijkste vervolgstap, zoals contact, bezichtiging of waardebepaling, duidelijk zichtbaar."),
         sectorCheck("sector_real_estate_area","Werkgebied makelaar",areaSignal,"Een lokaal werkgebied-/regiosignaal is bevestigd.","Het werkgebied kon in de raw HTML niet betrouwbaar worden bevestigd.","Beschrijf relevante plaatsen of regio's wanneer lokale vindbaarheid belangrijk is.")
       );
-    } else if (sectorProfile.sector === "automotive") {
+    } else if (sector === "automotive") {
       const workshopSignal = /\b(apk|onderhoud|reparatie|werkplaats|autoservice|banden|diagnose)\b/i.test(text);
       // A workshop appointment and a test drive are different customer actions; a
       // contact detail is neither. Test drives only apply when vehicle sales are proven.
@@ -2011,7 +2017,7 @@ export async function POST(request: Request) {
       const inventoryCheck = automotiveServiceIdentity && !inventorySignal
         ? check("not_applicable","sector_automotive_inventory","seo","Voertuigaanbod","Deze site is als garage/autoservice herkend zonder bewijs van autoverkoop; voertuigvoorraad is daarom niet van toepassing.","Geen actie nodig tenzij de onderneming ook voertuigen verkoopt.",0,4)
         : sectorCheck("sector_automotive_inventory","Voertuigaanbod",inventorySignal,"Voertuig-/occasionaanbod is in de pagina bevestigd.","RankFix kon voertuigaanbod niet betrouwbaar bevestigen; dit kan ook niet van toepassing zijn.","Toon voertuigaanbod duidelijk wanneer de onderneming auto's verkoopt; anders is geen actie nodig.");
-      seoChecks.push(
+      specialistChecks.push(
         sectorCheck("sector_automotive_services","Garage diensten",workshopSignal,"Garage-/werkplaatsdiensten zijn in de pagina bevestigd.","Garage-/werkplaatsdiensten konden in de raw HTML niet betrouwbaar worden bevestigd.","Maak de belangrijkste garage- en werkplaatsdiensten duidelijk vindbaar."),
         sectorCheck("sector_automotive_conversion","Werkplaatsafspraak",appointmentSignal,"Een afspraakactie (werkplaats, APK of onderhoud) is bevestigd.","Een duidelijke afspraakactie kon niet betrouwbaar worden bevestigd. Een contactgegeven alleen is geen afspraakmogelijkheid.","Maak afspraak maken voor werkplaats, APK of onderhoud duidelijk zichtbaar."),
         automotiveServiceIdentity && !inventorySignal
@@ -2019,52 +2025,58 @@ export async function POST(request: Request) {
           : sectorCheck("sector_automotive_test_drive","Proefrit",testDriveSignal,"Een proefritactie is bevestigd.","Een proefritactie kon niet betrouwbaar worden bevestigd.","Maak een proefrit aanvragen duidelijk zichtbaar bij het voertuigaanbod."),
         inventoryCheck
       );
-    } else if (sectorProfile.sector === "home_services") {
+    } else if (sector === "home_services") {
       const serviceSignal = /\b(loodgieter|elektricien|installateur|aannemer|dakdekker|schilder|renovatie|reparatie|installatie|onderhoud|riool|riolering|verstopping|ontstoppen|ontstopping|afvoer)\b/i.test(text);
       const quoteSignal = /\b(offerte|prijsopgave|aanvraag|bel ons|contact opnemen|request a quote|get a quote)\b/i.test(text) || hasContactChannelSignal;
       const areaSignal = /\b(werkgebied|servicegebied|regio|gemeente|in en rondom|omgeving|area served|service area)\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.areaServed));
-      seoChecks.push(
+      specialistChecks.push(
         sectorCheck("sector_home_services_offer","Vakdiensten",serviceSignal,"De belangrijkste vak-/servicediensten zijn in de pagina bevestigd.","De aangeboden vakdiensten konden niet betrouwbaar worden bevestigd.","Maak concreet welke werkzaamheden en diensten worden uitgevoerd."),
         sectorCheck("sector_home_services_quote","Offerte / contact",quoteSignal,"Een offerte- of contactactie is bevestigd.","Een duidelijke offerte- of contactactie kon niet betrouwbaar worden bevestigd.","Maak offerte aanvragen of contact opnemen eenvoudig en duidelijk."),
         sectorCheck("sector_home_services_area","Servicegebied",areaSignal,"Een servicegebied-/regiosignaal is bevestigd.","Het servicegebied kon in de raw HTML niet betrouwbaar worden bevestigd.","Noem relevante plaatsen of regio's wanneer het bedrijf lokaal werkt.")
       );
-    } else if (sectorProfile.sector === "professional_services") {
+    } else if (sector === "professional_services") {
       const expertiseSignal = /\b(expertise|specialis(?:t|atie)|advocaat|accountant|boekhouder|consultant|notaris|lawyer|attorney|accounting|consultancy|diensten|services)\b/i.test(text) || hasServiceExpertiseSignal;
       const contactSignal = hasContactChannelSignal || hasContactFormSignal || /\b(afspraak|kennismaking|consult|adviesgesprek|contact|plan a call|book a consultation)\b/i.test(text);
       const authorSignal = schemaSet.has("person") || /\b(?:[Aa]uteur|[Aa]uthor|[Gg]eschreven door|[Ww]ritten by)\s*:?\s+[A-ZÀ-Ý][\p{L}.'-]+/u.test(text);
-      seoChecks.push(
+      specialistChecks.push(
         sectorCheck("sector_professional_expertise","Expertise & diensten",expertiseSignal,"Diensten of expertise zijn in de pagina bevestigd.","Diensten of expertise konden in de raw HTML niet betrouwbaar worden bevestigd.","Maak specialisaties en concrete diensten duidelijk zichtbaar zonder niet-bewezen kwalificaties toe te voegen."),
         sectorCheck("sector_professional_contact","Zakelijk contact",contactSignal,"Een contact- of adviesactie is bevestigd.","Een duidelijke contact- of adviesactie kon niet betrouwbaar worden bevestigd.","Maak de belangrijkste vervolgstap, zoals contact of een kennismaking, duidelijk zichtbaar."),
         sectorCheck("sector_professional_authorship","Expertise-auteurschap",authorSignal,"Een auteurs-/persoonsignaal is in de pagina bevestigd.","Auteurschap of een verantwoordelijke expert kon in de raw HTML niet betrouwbaar worden bevestigd.","Koppel inhoud aan een echte auteur of expert wanneer dat feitelijk juist en relevant is.")
       );
-    } else if (sectorProfile.sector === "hospitality") {
+    } else if (sector === "hospitality") {
       const openingSignal = /\b(openingstijden|openingsuren|opening hours|opening times|geopend van|open today|vandaag geopend)\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.openingHours || item?.openingHoursSpecification));
       const menuSignal = /\b(menukaart|onze menu's|ons menu|bekijk (?:het|ons) menu|our menu|view (?:the |our )?menu|lunchkaart|dinerkaart|wijnkaart|drankenkaart|ontbijt|lunch|diner|dinner|gerechten|dishes)\b/i.test(text) || links.some((href)=>/\/(?:menu|menukaart|kaart|lunchkaart|dinerkaart)(?:[/.?#-]|$)/i.test(href));
       const reservationSignal = hasContactChannelSignal || /\b(reserveren|reserveer|reservation|book a table|boek een tafel|kamer boeken|book a room)\b/i.test(text);
-      seoChecks.push(
+      specialistChecks.push(
         sectorCheck("sector_hospitality_hours","Openingstijden",openingSignal,"Openingstijden of opening-hours structured data zijn bevestigd.","Openingstijden konden in de raw HTML niet betrouwbaar worden bevestigd.","Maak actuele openingstijden duidelijk vindbaar wanneer die voor deze locatie relevant zijn."),
         sectorCheck("sector_hospitality_menu","Menu / aanbod",menuSignal,"Menu- of aanbodsignalen zijn bevestigd.","Een menu of concreet horeca-aanbod kon niet betrouwbaar worden bevestigd.","Maak menu of aanbod duidelijk bereikbaar wanneer dit voor deze onderneming relevant is."),
         sectorCheck("sector_hospitality_reservation","Reserveren / contact",reservationSignal,"Een reserverings- of contactactie is bevestigd.","Een duidelijke reserverings- of contactactie kon niet betrouwbaar worden bevestigd.","Maak reserveren of contact opnemen duidelijk en eenvoudig.")
       );
-    } else if (sectorProfile.sector === "health_wellness") {
+    } else if (sector === "health_wellness") {
       const treatmentSignal = /\b(behandeling|behandelingen|therapie|fysiotherap\w*|tandarts\w*|dentist\w*|kliniek|clinic|wellness|salon|treatments?)\b/i.test(text);
       const appointmentSignal = hasContactChannelSignal || /\b(afspraak|appointment|boek afspraak|plan afspraak|book now|consult)\b/i.test(text);
       const trustSignal = hasAboutSignal || hasServiceExpertiseSignal || schemaSet.has("person") || /\b(team|specialist|behandelaar|therapeut|practitioner)\b/i.test(text);
-      seoChecks.push(
+      specialistChecks.push(
         sectorCheck("sector_health_services","Behandelingen & diensten",treatmentSignal,"Behandelingen of diensten zijn in de pagina bevestigd.","Behandelingen of diensten konden in de raw HTML niet betrouwbaar worden bevestigd.","Beschrijf feitelijk welke diensten of behandelingen worden aangeboden; voeg geen medische werkzaamheidsclaims toe zonder bewijs."),
         sectorCheck("sector_health_appointment","Afspraak maken",appointmentSignal,"Een afspraak- of contactactie is bevestigd.","Een duidelijke afspraak- of contactactie kon niet betrouwbaar worden bevestigd.","Maak de route naar afspraak of contact duidelijk zichtbaar."),
         sectorCheck("sector_health_trust","Team & expertise",trustSignal,"Een team-, expertise- of behandelaarssignaal is bevestigd.","Team of expertise kon in de raw HTML niet betrouwbaar worden bevestigd.","Toon echte team- en expertise-informatie wanneer die beschikbaar en verifieerbaar is.")
       );
-    } else if (sectorProfile.sector === "saas_b2b") {
+    } else if (sector === "saas_b2b") {
       const featureSignal = /\b(features?|functies|mogelijkheden|platform|software|integrations?|integraties|api)\b/i.test(text);
       const leadSignal = hasContactChannelSignal || /\b(demo|start gratis|free trial|try free|get started|contact sales|plan gesprek|boek demo)\b/i.test(text);
       const audienceSignal = /\b(voor bedrijven|voor teams|voor organisaties|for businesses|for teams|for enterprises?|enterprise plan|b2b)\b/i.test(text);
-      seoChecks.push(
+      specialistChecks.push(
         sectorCheck("sector_saas_features","Product & functies",featureSignal,"Software-/functiesignalen zijn in de pagina bevestigd.","Product- of functiesignalen konden in de raw HTML niet betrouwbaar worden bevestigd.","Maak duidelijk welk probleem het product oplost en welke functies werkelijk beschikbaar zijn."),
         sectorCheck("sector_saas_conversion","Demo / conversie",leadSignal,"Een demo-, trial- of contactactie is bevestigd.","Een duidelijke demo-, trial- of contactactie kon niet betrouwbaar worden bevestigd.","Maak de primaire zakelijke vervolgstap duidelijk zichtbaar."),
         sectorCheck("sector_saas_audience","Doelgroep",audienceSignal,"Een zakelijke doelgroep is in de pagina bevestigd.","De zakelijke doelgroep kon in de raw HTML niet betrouwbaar worden bevestigd.","Beschrijf voor welke echte klantgroepen of teams het product bedoeld is.")
       );
     }
+
+      return specialistChecks;
+    };
+    const initialSpecialistSector = sectorProfile.sector;
+    const initialSpecialistChecks = buildSpecialistChecks(initialSpecialistSector);
+    seoChecks.push(...initialSpecialistChecks);
 
     const checkedInternalLinkCount = linkAuditResults.length;
     // Keep this local evidence gate independent of the later shared content gate.
@@ -4221,6 +4233,12 @@ export async function POST(request: Request) {
       masterEvidence.businessModels = masterEvidence.businessModels.filter((model)=>model!=="commerce");
       technologyProfile.isCommerce = false;
       technologyProfile.siteType = technologyProfile.siteType === "Webshop" ? "Website" : technologyProfile.siteType;
+      if (!(declaredSecondaryCommerce && hardCommerceEvidence)) {
+        // Incidental commerce words and payment integration mentions must not
+        // leave a webshop-platform label in a proven non-retail sector.
+        technologyProfile.commercePlatform = null;
+        technologyProfile.evidence = technologyProfile.evidence.filter((item)=>item!=="Commerce-signalen bevestigd; platform niet eenduidig");
+      }
       technologyProfile.evidence = [...technologyProfile.evidence, declaredSecondaryCommerce && hardCommerceEvidence && declaredIdentity
         ? `Secundaire webshopfunctie bevestigd (bijvoorbeeld abonnementen, tickets of licenties); primaire identiteit: ${declaredIdentity.label}.`
         : hadCommerceHints
@@ -4387,6 +4405,19 @@ export async function POST(request: Request) {
           : technologyProfile.siteType === "Landingpage"
             ? "Website"
             : technologyProfile.siteType;
+    // The final primary sector can differ from the preliminary homepage guess.
+    // Never report old hospitality, automotive or other specialist controls under
+    // an unrelated sector. Replace them with checks for the final sector and
+    // synchronize the array of checks that drives scoring and report totals.
+    if (sectorProfile.sector !== initialSpecialistSector) {
+      replaceSpecialistChecks(
+        seoChecks,
+        checks,
+        initialSpecialistChecks,
+        buildSpecialistChecks(sectorProfile.sector),
+        mode !== "geo",
+      );
+    }
     // Late representative evidence is reconciled before the final score. Checks remain
     // page-specific unless their rule is explicitly a site/capability check.
     if (sectorProfile.sector === "automotive") {

@@ -97,7 +97,7 @@ export function sectionKey(value: string): string {
 const TITLE_SEPARATOR = /\s+[|\-–—·•:]\s+|\s*[|]\s*/;
 
 function normalizeSegment(value: string): string {
-  return value.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9.]+/g, " ").trim();
+  return value.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^\p{L}\p{N}.]+/gu, " ").trim();
 }
 
 export function titleSegments(title: string): string[] {

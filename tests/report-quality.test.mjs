@@ -222,3 +222,40 @@ test("Dutch and German privacy compounds count as a privacy link", async () => {
   for (const label of ["privacyverklaring", "privacystatement", "privacy policy", "privacybeleid", "datenschutzerklarung"]) assert.equal(lexicon.test(label), true, label);
   assert.equal(lexicon.test("algemene voorwaarden"), false);
 });
+
+test("multilingual title segments do not create false duplicates when words use another script", () => {
+  const bulgarian="POS платежни системи и софтуер – POS устройства | Mollie";
+  assert.equal(duplicateTitleSegment(bulgarian),null,"different Cyrillic phrases must remain distinct");
+  assert.equal(assessPageTitle(bulgarian,"mollie.com").status,"PASS");
+  assert.equal(duplicateTitleSegment("Новини | Новини"),"Новини","real Cyrillic duplicates are still caught");
+  assert.equal(duplicateTitleSegment("Система за плащания | Система за плащания"),"Система за плащания");
+});
+
+test("late sector reconciliation replaces stale hospitality checks in both displayed results and scores", async () => {
+  const { replaceSpecialistChecks } = await import("../lib/specialist-check-reconciliation.ts");
+  const old=[{key:"sector_hospitality_hours",status:"unable_to_confirm"},{key:"sector_hospitality_menu",status:"unable_to_confirm"},{key:"sector_hospitality_reservation",status:"pass"}];
+  const main={key:"title",status:"pass"},geo={key:"faq",status:"not_applicable"};
+  const seo=[main,...old],checks=[...seo,geo];
+  const fresh=[{key:"sector_saas_features",status:"pass"},{key:"sector_saas_conversion",status:"pass"},{key:"sector_saas_audience",status:"unable_to_confirm"}];
+  replaceSpecialistChecks(seo,checks,old,fresh,true);
+  assert.deepEqual(seo.map(x=>x.key),["title","sector_saas_features","sector_saas_conversion","sector_saas_audience"]);
+  assert.deepEqual(checks.map(x=>x.key),["title","faq","sector_saas_features","sector_saas_conversion","sector_saas_audience"]);
+  assert.equal(checks.filter(x=>x.key.startsWith("sector_hospitality_")).length,0);
+  assert.equal(old[0].status,"unable_to_confirm","reconciliation must not rewrite historical evidence objects");
+});
+
+test("late sector reconciliation does not leak specialist SEO checks into GEO-only scans", async () => {
+  const { replaceSpecialistChecks } = await import("../lib/specialist-check-reconciliation.ts");
+  const old=[{key:"sector_hospitality_hours"}],seo=[...old],checks=[{key:"geo_check"}];
+  replaceSpecialistChecks(seo,checks,old,[{key:"sector_saas_features"}],false);
+  assert.deepEqual(checks.map(x=>x.key),["geo_check"]);
+  assert.deepEqual(seo.map(x=>x.key),["sector_saas_features"]);
+});
+
+test("the scan route rebuilds specialist checks after the final sector decision", async () => {
+  const source=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
+  assert.ok(source.includes("const initialSpecialistChecks = buildSpecialistChecks(initialSpecialistSector)"));
+  assert.ok(source.includes("if (sectorProfile.sector !== initialSpecialistSector)"));
+  assert.ok(source.includes("buildSpecialistChecks(sectorProfile.sector)"));
+  assert.ok(source.includes("technologyProfile.commercePlatform = null"));
+});
