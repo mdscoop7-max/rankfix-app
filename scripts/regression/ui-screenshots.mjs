@@ -63,6 +63,7 @@ try {
       const card = await page.evaluateHandle(() => [...document.querySelectorAll("div")].find((el) => /^Grade [A-E]$/.test(el.textContent?.trim() || ""))?.closest(".rounded-3xl"));
       const el = card.asElement();
       if (el) { await el.scrollIntoView(); await el.screenshot({ path: `${out}/public-${site.id}-${vp.id}-card.png` }); }
+      else await page.evaluate(() => [...document.querySelectorAll("div")].find((node) => /^Grade [A-E]$/.test(node.textContent?.trim() || ""))?.scrollIntoView({ block: "center" }));
       await page.screenshot({ path: `${out}/public-${site.id}-${vp.id}-viewport.png` });
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       note(`public ${site.id} ${vp.id}: ok · horizontal overflow ${overflow}px`);

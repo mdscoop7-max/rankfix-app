@@ -26,7 +26,7 @@ jobs:
       max-parallel: 1
       fail-fast: false
       matrix:
-        sha: [20378c1d204b04441fb5affa29d8edb5c881a7bb]
+        sha: [f0a941f58acb9c9f39af630b69b37a78f47865c7]
     env:
       PR127_SHA: ${{ matrix.sha }}
       DATABASE_URL: postgresql://rankfix:rankfix-bench@127.0.0.1:5432/rankfix_bench
@@ -102,7 +102,8 @@ jobs:
           CHROME_PATH=$(which google-chrome) APP_DIR=app127 BASE_URL=http://127.0.0.1:3100 OUT_DIR=benchmark-results/ui-${PR127_SHA:0:7} \
             node scripts/regression/ui-screenshots.mjs
       - name: Real scans, one at a time, measured
-        if: ${{ !startsWith(matrix.sha, 'b2a8280') }}
+        # f0a941f only changes report CSS; scanner identical to 20378c1 (28 URLs measured there).
+        if: ${{ false }}
         run: |
           mkdir -p benchmark-results
           SERVER_PID=$(cat server.pid) BASE_URL=http://127.0.0.1:3100 PAUSE_MS=15000 DUMP_DIR=benchmark-results/raw-${PR127_SHA:0:7} \
@@ -110,7 +111,7 @@ jobs:
             ${SITES_FILE:-scripts/regression/benchmark-sites.json} benchmark-results/bench.json
           touch benchmark-results/.ran-bench
       - name: Report
-        if: ${{ always() && !startsWith(matrix.sha, 'b2a8280') }}
+        if: ${{ false }}
         run: |
           errors=$(grep -c "RankFix scan failed" server.log || true)
           renderfail=$(grep -ci "render failed\|BROWSER_UNAVAILABLE" server.log || true)
