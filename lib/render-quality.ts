@@ -21,11 +21,33 @@ export function isSubstantiveRender(html: string | null | undefined): boolean {
   return Boolean(html) && visibleWordCount(html as string) >= MIN_RECOVERED_WORDS;
 }
 
+// Structural evidence a render must keep. A degraded render (consent wall,
+// bot variant, broken hydration) can keep plenty of words while losing the
+// site's navigation and structured data; such a render is not the website.
+export function linkCount(html: string): number {
+  return (html.match(/<a\b[^>]*\bhref\s*=\s*["'][^"'#][^"']*["']/gi) || []).length;
+}
+export function jsonLdCount(html: string): number {
+  return (html.match(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["']/gi) || []).length;
+}
+// Raw pages with at least this many links must keep a quarter of them.
+export const MIN_RAW_LINKS_FOR_STRUCTURE = 20;
+
+export function renderLosesStructure(rawHtml: string, renderedHtml: string): boolean {
+  if (!rawHtml) return false;
+  const rawLinks = linkCount(rawHtml);
+  if (rawLinks >= MIN_RAW_LINKS_FOR_STRUCTURE && linkCount(renderedHtml) < rawLinks * 0.25) return true;
+  const rawJsonLd = jsonLdCount(rawHtml);
+  if (rawJsonLd > 0 && jsonLdCount(renderedHtml) === 0) return true;
+  return false;
+}
+
 // A render replaces the raw HTML only when the raw HTML was a thin client shell or
-// the render keeps at least half of the raw visible content.
-export function renderImprovesEvidence(rawWords: number, rawThinShell: boolean, renderedHtml: string): boolean {
+// the render keeps at least half of the raw visible content and its structure.
+export function renderImprovesEvidence(rawWords: number, rawThinShell: boolean, renderedHtml: string, rawHtml = ""): boolean {
   const renderedWords = visibleWordCount(renderedHtml);
   if (rawThinShell) return renderedWords >= Math.min(MIN_RECOVERED_WORDS, rawWords + 1);
+  if (renderLosesStructure(rawHtml, renderedHtml)) return false;
   return renderedWords >= rawWords * 0.5;
 }
 

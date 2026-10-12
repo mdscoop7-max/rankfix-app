@@ -29,6 +29,7 @@ import { articleSchemaPage, declaredIdentityGovernsPage, declaredPrimaryIdentity
 import { detectCookieInformation } from "@/lib/cookie-evidence";
 import { presentScore } from "@/lib/score-presentation";
 import { extractGoogleTagIds } from "@/lib/google-tag-ids";
+import { detectSocialProfiles } from "@/lib/social-profiles";
 const BOOKING_IDENTITY_PATTERN = /\b(?:reserveer|reserveren|reservering|boek(?:en)?|booking|book now|afspraak maken|maak een afspraak|online afspraak|plan (?:je|uw) afspraak|appointment|termin buchen|réserver|reservar|prenota)\b/i;
 import { FOOD_MENU_PATTERN, TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes } from "@/lib/sector-identity";
 
@@ -647,7 +648,7 @@ export async function POST(request: Request) {
         if (renderIsErrorState(rawHtml, rendered.html)) {
           // The JavaScript app ended in an error/noindex state; the server page stays.
           renderFallbackReason = "RENDER_DEGRADED";
-        } else if (renderImprovesEvidence(rawVisibleWords, thinClientShell, rendered.html)) {
+        } else if (renderImprovesEvidence(rawVisibleWords, thinClientShell, withServerHead(rawHtml, rendered.html, thinClientShell), rawHtml)) {
           html = withServerHead(rawHtml, rendered.html, thinClientShell);
           javascriptExecuted = true;
           renderElapsedMs = rendered.elapsedMs;
@@ -718,7 +719,8 @@ export async function POST(request: Request) {
     const descriptionMetaTag = html.match(/<meta\b[^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] ||
       html.match(/<meta\b[^>]*content\s*=\s*["'][^"']*["'][^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] || "";
     const descriptionContentMatch = descriptionMetaTag.match(/\bcontent\s*=\s*(["'])([\s\S]*?)\1/i);
-    const description = descriptionContentMatch ? stripHtml(descriptionContentMatch[2]).trim() : "";
+    // Attribute values are entity-encoded in HTML; "&amp;" is shown as "&".
+    const description = descriptionContentMatch ? decode(stripHtml(descriptionContentMatch[2])) : "";
     const descriptionState: "missing" | "empty" | "present" = !descriptionMetaTag ? "missing" : !description ? "empty" : "present";
     const h1s = allMatches(html, /<h1[^>]*>([\s\S]*?)<\/h1>/gi).map(stripHtml).filter(Boolean);
     const headingTags = [...html.matchAll(/<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/gi)];
@@ -953,7 +955,10 @@ export async function POST(request: Request) {
     // such as "postcode" or an e-mail input are not contact details.
     const businessContactDetails = findBusinessContactDetails(text, html);
     const hasBusinessContactDetails = hasBusinessContactDetailsFn(businessContactDetails);
-    const hasSocialOrReviewSignal = /\b(instagram|facebook|linkedin|google reviews|reviews|tripadvisor|trustpilot)\b/i.test(text) || sameAsCount > 0;
+    // Profiles are usually linked with icons only: the link target is the evidence.
+    const organizationSameAsValues: string[] = Array.isArray(organizationSchema?.sameAs) ? organizationSchema.sameAs.filter((value: unknown): value is string => typeof value === "string") : typeof organizationSchema?.sameAs === "string" ? [organizationSchema.sameAs] : [];
+    const socialProfiles = detectSocialProfiles(html, organizationSameAsValues);
+    const hasSocialOrReviewSignal = socialProfiles.length > 0 || /\b(instagram|facebook|linkedin|google reviews|reviews|tripadvisor|trustpilot)\b/i.test(text) || sameAsCount > 0;
     const hasContactChannelSignal = hasBusinessContactDetails || (hasContactSignal && (hasContactFormSignal || hasContactActionSignal));
     const hasServiceExpertiseSignal = /\b(diensten|services|service|specialist|specialisten|expert|expertise|seo|geo|structured data|schema\.org|technical seo|technische seo|ai[- ]search|search readiness|auditsoftware|auditing|behandeling|behandelingen|hair|haar|knippen|kleur|color|styling|restaurant|keuken|cuisine|tandarts|elektricien|loodgieter|aannemer|dakdekker)\b/i.test(text);
     const hasStrongCommerceAction = /\b(add to cart|add-to-cart|add to basket|buy now|in winkelwagen|toevoegen(?: aan winkelwagen)?|koop nu|jetzt kaufen|in den warenkorb|ajouter au panier|acheter maintenant|añadir al carrito|comprar ahora|aggiungi al carrello|acquista ora)\b/i.test(text);
@@ -2338,7 +2343,11 @@ export async function POST(request: Request) {
     // stripHtml keeps entities encoded, so decode the visible text before checking rendering.
     // A normal "&amp;" in source HTML renders as "&" and is not a visible escape defect.
     const decodedVisibleText = decode(text);
-    const hasVisibleHtmlEscape = /&(?:amp|quot|lt|gt|#(?:x[0-9a-f]+|\d+));/i.test(decodedVisibleText);
+    const visibleEscapePattern = /&(?:amp|quot|lt|gt|#(?:x[0-9a-f]+|\d+));/i;
+    // Title and description are already decoded once; an entity that is still
+    // there was escaped twice by the site and is shown literally in search results.
+    const doubleEscapedMeta = [visibleEscapePattern.test(title) ? "title" : "", visibleEscapePattern.test(description) ? "meta description" : ""].filter(Boolean);
+    const hasVisibleHtmlEscape = visibleEscapePattern.test(decodedVisibleText) || doubleEscapedMeta.length > 0;
     const hreflangTags = [...html.matchAll(/<link\b[^>]*>/gi)].map((m) => m[0]).filter((tag) => /\brel\s*=\s*["']alternate["']/i.test(tag) && /\bhreflang\s*=/i.test(tag));
     const hreflangEntries = hreflangTags.map((tag) => ({ language: attrFromTag(tag, "hreflang").toLowerCase(), href: attrFromTag(tag, "href") }));
     const documentLanguage = lang.trim().toLowerCase().replace("_", "-");
@@ -2793,7 +2802,7 @@ export async function POST(request: Request) {
     );
 
     seoChecks.push(hasVisibleHtmlEscape
-      ? check("warning", "html_escape", "seo", "Tekstweergave", "Mogelijk HTML-escaped tekst zoals &amp; lijkt zichtbaar in de inhoud.", "Controleer rendering en encoding zodat bezoekers gewone leestekens zien.", 2, 4)
+      ? check("warning", "html_escape", "seo", "Tekstweergave", doubleEscapedMeta.length ? `De ${doubleEscapedMeta.join(" en ")} bevat dubbel ge-escapete tekst (bijvoorbeeld "&amp;amp;"), die in zoekresultaten letterlijk als "&amp;" verschijnt.` : "Mogelijk HTML-escaped tekst zoals &amp; lijkt zichtbaar in de inhoud.", "Controleer rendering en encoding zodat bezoekers gewone leestekens zien.", 2, 4)
       : check("pass", "html_escape", "seo", "Tekstweergave", "Geen duidelijke zichtbare HTML-escape-fout gevonden.", "Behoud correcte HTML-encoding.", 4, 4)
     );
 
@@ -3147,7 +3156,7 @@ export async function POST(request: Request) {
       { label: "merknaam/branding", found: visibleBrandNameSignal },
       { label: "logo", found: visibleBrandLogoSignal },
       { label: "bedrijfs-/contactgegevens", found: hasContactChannelSignal },
-      { label: "officieel social/review-profiel", found: hasSocialOrReviewSignal },
+      { label: socialProfiles.length ? `officieel social/review-profiel (${socialProfiles.slice(0, 4).join(", ")})` : "officieel social/review-profiel", found: hasSocialOrReviewSignal },
     ];
     const visibleBrandSignals = visibleBrandSignalChecks.filter((signal) => signal.found).length;
     const foundBrandSignals = visibleBrandSignalChecks.filter((signal) => signal.found).map((signal) => signal.label);
@@ -3238,7 +3247,7 @@ export async function POST(request: Request) {
         internal_redirects: allUniqueInternalAnchors.length ? `discovered=${allUniqueInternalAnchors.length}; checked=${linkAuditResults.length}; redirected=${redirectedInternalLinks.length}; sampleLimit=24; truncated=${allUniqueInternalAnchors.length > linkAuditResults.length}` : null,
         semantic_link_destination: uniqueInternalAnchors.length ? `links=${uniqueInternalAnchors.length}; semanticMismatches=${semanticLinkMismatches.length}; cardMismatches=${productCardMismatches.length}; featuredMismatches=${featuredProductMismatches.length}` : null,
         duplicate_path: `duplicateSegments=${hasDuplicatePathSegments}; found=${[...new Set(actionableDuplicatePathSegments)].join(",") || "none"}`,
-        html_escape: `visibleEscape=${hasVisibleHtmlEscape}`,
+        html_escape: `visibleEscape=${hasVisibleHtmlEscape}${doubleEscapedMeta.length ? `; doubleEscaped=${doubleEscapedMeta.join(",")}` : ""}`,
         image_sources: `images=${imageElementCount}; external=${externalImageUrls.length}; stockHosts=${stockImageUrls.length}`,
         commercial_terms_signal: hasEcommerceSignal ? `termsLink=${hasTermsLink}` : null,
         merchant_product_readiness: hasEcommerceSignal && isProductPage ? `ready=${merchantProductReadiness}; productSchema=${hasProductSchema}; offers=${productOfferSummary.length}` : null,
@@ -3259,7 +3268,7 @@ export async function POST(request: Request) {
         organization_website: isHomepage ? `organizationSchema=${organizationSchemaPresent}; websiteSchema=${websiteSchemaPresent}; schemaTypes=${schemaTypes.slice(0,12).join(",")}` : null,
         entity: hasEntitySchema ? `schemaTypes=${schemaTypes.slice(0,12).join(",")}` : (hasVisibleBusinessIdentity ? `visibleIdentity=true; contact=${hasBusinessContactDetails}; externalProfile=${hasSocialOrReviewSignal}` : null),
         author: (hasAuthorSignal || ecommerceExpertiseSignal || organizationExpertiseSignal || (hasLocalBusinessSignal && hasServiceExpertiseSignal)) ? `author=${hasAuthorSignal}; ecommerceExpertise=${ecommerceExpertiseSignal}; organizationExpertise=${organizationExpertiseSignal}; localServiceExpertise=${hasLocalBusinessSignal && hasServiceExpertiseSignal}` : null,
-        trust: (hasContactChannelSignal || hasAboutSignal || hasSocialOrReviewSignal) ? `contact=${hasContactChannelSignal}; about=${hasAboutSignal}; socialOrReview=${hasSocialOrReviewSignal}` : null,
+        trust: (hasContactChannelSignal || hasAboutSignal || hasSocialOrReviewSignal) ? `contact=${hasContactChannelSignal}; about=${hasAboutSignal}; socialOrReview=${hasSocialOrReviewSignal}${socialProfiles.length ? `; profiles=${socialProfiles.join(",")}` : ""}` : null,
         answer: `metaDescription=${Boolean(description)}; wordCount=${wordCount}; minimumVisibleWords=${isProductPage ? 40 : 80}; rendered=${javascriptExecuted}`,
         sector_real_estate_listings: sectorProfile.sector==="real_estate" ? "sector=real_estate; listing evidence evaluated" : null,
         sector_real_estate_leads: sectorProfile.sector==="real_estate" ? `sector=real_estate; contact=${hasContactChannelSignal}` : null,
@@ -3800,7 +3809,7 @@ export async function POST(request: Request) {
             const renderedPage = await renderPublicPage(finalCandidate.toString(), 10000, renderBudget);
             if (renderIsErrorState(representativeRawHtml, renderedPage.html)) {
               page.evidence.push("javascript render ended in an error state; server HTML retained");
-            } else if (renderImprovesEvidence(representativeVisibleWords, representativeThinShell, renderedPage.html)) {
+            } else if (renderImprovesEvidence(representativeVisibleWords, representativeThinShell, withServerHead(representativeRawHtml, renderedPage.html, representativeThinShell), representativeRawHtml)) {
               pageHtml = withServerHead(representativeRawHtml, renderedPage.html, representativeThinShell);
               representativeEvidenceSource = "rendered_html";
               page.evidence.push("javascript-rendered representative page");
@@ -4204,13 +4213,17 @@ export async function POST(request: Request) {
       auditedRepresentativePages: representativeAuditedPageCount,
     });
     if (!finalCommerceDecision.confirmed && primaryNonCommerceIdentity) {
+      // Only mention commerce signals that were actually seen.
+      const hadCommerceHints = Boolean(technologyProfile.isCommerce || hasEcommerceSignal || masterEvidence.commerce.strength > 0);
       masterEvidence.commerce.confirmed = false;
       masterEvidence.businessModels = masterEvidence.businessModels.filter((model)=>model!=="commerce");
       technologyProfile.isCommerce = false;
       technologyProfile.siteType = technologyProfile.siteType === "Webshop" ? "Website" : technologyProfile.siteType;
       technologyProfile.evidence = [...technologyProfile.evidence, declaredSecondaryCommerce && hardCommerceEvidence && declaredIdentity
         ? `Secundaire webshopfunctie bevestigd (bijvoorbeeld abonnementen, tickets of licenties); primaire identiteit: ${declaredIdentity.label}.`
-        : "Secundaire commerce-navigatie gevonden; geen harde product-/retailketen bevestigd."].slice(0,8);
+        : hadCommerceHints
+          ? "Enkele commercesignalen gevonden, maar geen webshop- of product-/retailketen bevestigd."
+          : "Geen webshop- of product-/retailketen gevonden; commercecontroles zijn niet van toepassing."].slice(0,8);
       for (const capability of ["ecommerce","merchant","consumer_rights"]) {
         masterEvidence.capabilities = masterEvidence.capabilities.filter((item)=>item!==capability);
       }
