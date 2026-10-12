@@ -2937,13 +2937,6 @@ export async function POST(request: Request) {
         ? check("pass", "business_placeholders", "seo", "Bedrijfsgegevens", `Geen placeholders gevonden en concrete bedrijfsgegevens bevestigd: ${businessDetails.found.join(", ")}.`, "Houd bedrijfs- en contactgegevens actueel en consistent.", 6, 6)
         : check("unable_to_confirm", "business_placeholders", "seo", "Bedrijfsgegevens", businessDetails.reason === "thin_shell" ? "Geen placeholders in de raw HTML, maar dit is een dunne JavaScript-shell; bedrijfsgegevens kunnen niet worden bevestigd." : "Geen placeholders gevonden, maar ook geen concrete bedrijfsgegevens (adres, telefoon, e-mail of KvK/BTW) op deze pagina. Dat bewijst niet dat ze ontbreken; ze kunnen op een contact- of over-onspagina staan.", "Toon bedrijfsnaam, adres, telefoon of e-mail en KvK/BTW waar klanten die verwachten, bijvoorbeeld in de footer of op de contactpagina.", 0, 6)
     );
-    // A successful business-identity check must not display "Found: none".
-    // Expose verified evidence categories only, never raw email addresses/phones.
-    const businessContactCheck = seoChecks.find(item => item.key === "business_placeholders");
-    if (businessContactCheck && businessDetails.status === "pass") {
-      businessContactCheck.evidence.found = `placeholders=${placeholderMatches.length}; verified=${businessDetails.found.join(", ")}`;
-    }
-
     seoChecks.push(!hasEcommerceSignal
       ? check("not_applicable", "price_format", "seo", "Prijsnotatie", "Geen duidelijke webshop/product-signalen gevonden; prijsnotatie is niet beoordeeld.", "Gebruik deze controle op echte product- en e-commercepagina's.", 0, 5)
       : visiblePriceCount === 0 && visiblePriceEvidence.count === 0
@@ -3300,7 +3293,11 @@ export async function POST(request: Request) {
         consent_mode_readiness: adsTrackingSignals > 0 ? `trackingSignals=${adsTrackingSignals}; explicitConsentSignal=${hasConsentModeSignal}; runtimeNotExecuted=true` : null,
         merchant_feed_signal: hasEcommerceSignal ? `feedHint=${hasMerchantFeedHint}; productReadiness=${merchantProductReadiness}; websiteSignalsOnly=true` : null,
         content: `wordCount=${wordCount}; pageType=${contentContext}; minimum=${contentMinimumSignal}; strong=${contentStrongSignal}`,
-        business_placeholders: `placeholders=${placeholderMatches.length}; found=${placeholderMatches.slice(0,4).join(",") || "none"}`,
+        // The final evidence-enrichment pass overwrites the check's initial
+        // evidence. Include the actually verified contact categories here; an
+        // empty placeholder list must not be displayed as "Found: none".
+        // Never expose the raw e-mail address/phone number in this summary.
+        business_placeholders: `placeholders=${placeholderMatches.length}; verifiedDetails=${businessDetails.found.join(",") || "none"}; placeholderExamples=${placeholderMatches.slice(0,4).join(",") || "none"}`,
         price_format: hasEcommerceSignal ? `visiblePrices=${visiblePriceEvidence.count}; examples=${visiblePriceEvidence.examples.slice(0, 4).join(" | ") || "none"}; notation=${visiblePriceEvidence.notation}; referencePrices=${visiblePriceEvidence.referencePrices.slice(0, 3).join(" | ") || "none"}; dotDecimalPrices=${priceFormatMatches.length}` : null,
         price_currency_consistency: hasEcommerceSignal ? `visibleCurrencies=${visibleCurrencyCodes.join(",") || "none"}; structuredCurrencies=${structuredCurrencyCodes.join(",") || "none"}; conflict=${currencyConflict}; mixedVisible=${mixedVisibleCurrencies}` : null,
         eu_consumer_information_signal: hasEcommerceSignal ? `returns=${hasReturnsSignal}; businessIdentity=${hasVisibleBusinessIdentity}; businessContact=${hasBusinessContactDetails}; legalConclusion=false` : null,
