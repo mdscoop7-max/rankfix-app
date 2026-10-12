@@ -7,13 +7,13 @@
       "httpStatus": 200,
       "note": "",
       "error": null,
-      "wallSeconds": 18.6,
-      "cpuSeconds": 16.7,
-      "peakMemoryMb": 1093,
+      "wallSeconds": 19.1,
+      "cpuSeconds": 23.3,
+      "peakMemoryMb": 1099,
       "peakProcesses": 7,
       "truth": {
         "httpStatus": 200,
-        "bytes": 1288189,
+        "bytes": 1286237,
         "markers": {
           "woocommerce": false,
           "wordpress": false,
@@ -59,7 +59,7 @@
         "outcome": "scanned",
         "httpStatus": 200,
         "errorCode": null,
-        "durationMs": 18573,
+        "durationMs": 19091,
         "finalUrl": "https://www.coolblue.nl/",
         "overallScore": 99,
         "seoScore": 99,
@@ -139,13 +139,13 @@
       "httpStatus": 200,
       "note": "",
       "error": null,
-      "wallSeconds": 14.7,
-      "cpuSeconds": 7.2,
-      "peakMemoryMb": 960,
+      "wallSeconds": 14.1,
+      "cpuSeconds": 10,
+      "peakMemoryMb": 934,
       "peakProcesses": 7,
       "truth": {
         "httpStatus": 200,
-        "bytes": 1739772,
+        "bytes": 1727039,
         "markers": {
           "woocommerce": false,
           "wordpress": false,
@@ -166,7 +166,7 @@
       "rendering": {
         "mode": "javascript_rendered",
         "fallbackReason": null,
-        "elapsedMs": 2431,
+        "elapsedMs": 1619,
         "botProtection": null
       },
       "multiPage": {
@@ -191,7 +191,7 @@
         "outcome": "scanned",
         "httpStatus": 200,
         "errorCode": null,
-        "durationMs": 14655,
+        "durationMs": 14101,
         "finalUrl": "https://www.coolblue.nl/product/945890/bosch-wgg244flnl-i-dos.html",
         "overallScore": 99,
         "seoScore": 99,
@@ -288,8 +288,8 @@
       "note": "",
       "error": "Scan geblokkeerd door website (HTTP 403). RankFix kon deze website niet betrouwbaar analyseren. Er is daarom geen score berekend.",
       "wallSeconds": 0.8,
-      "cpuSeconds": 0.2,
-      "peakMemoryMb": 616,
+      "cpuSeconds": 0.3,
+      "peakMemoryMb": 624,
       "peakProcesses": 5,
       "truth": {
         "httpStatus": 403,
@@ -313,7 +313,7 @@
         "outcome": "blocked",
         "httpStatus": 403,
         "errorCode": "SITE_HTTP_403",
-        "durationMs": 754,
+        "durationMs": 843,
         "finalUrl": null,
         "overallScore": null,
         "seoScore": null,
@@ -349,13 +349,13 @@
       "httpStatus": 200,
       "note": "",
       "error": null,
-      "wallSeconds": 9.9,
-      "cpuSeconds": 7.4,
-      "peakMemoryMb": 1181,
+      "wallSeconds": 16.1,
+      "cpuSeconds": 10.8,
+      "peakMemoryMb": 1142,
       "peakProcesses": 7,
       "truth": {
         "httpStatus": 200,
-        "bytes": 571370,
+        "bytes": 574100,
         "markers": {
           "woocommerce": false,
           "wordpress": false,
@@ -397,7 +397,7 @@
         "unableToConfirm": 0
       },
       "scoreRange": {
-        "low": 52,
+        "low": 50,
         "high": 100
       },
       "commerceApplicability": "unconfirmed",
@@ -405,14 +405,14 @@
         "outcome": "scanned",
         "httpStatus": 200,
         "errorCode": null,
-        "durationMs": 9864,
+        "durationMs": 16053,
         "finalUrl": "https://www.zalando.de/",
         "overallScore": 100,
         "seoScore": 100,
         "geoScore": 100,
         "securityScore": 78,
-        "coveragePercent": 52,
-        "highConfidencePercent": 73,
+        "coveragePercent": 50,
+        "highConfidencePercent": 72,
         "provisional": true,
         "sector": {
           "key": "unknown",
@@ -433,10 +433,10 @@
           "browserRecovered": false
         },
         "counts": {
-          "passed": 23,
+          "passed": 22,
           "issues": 0,
           "notApplicable": 24,
-          "unableToConfirm": 9
+          "unableToConfirm": 10
         },
         "findings": [],
         "fingerprint": "c49a8ffa710b956d",
@@ -449,6 +449,7 @@
       },
       "issues": [],
       "unconfirmed": [
+        "broken_links",
         "H1_MISSING",
         "SOCIAL_METADATA_INCOMPLETE",
         "sitemap",
@@ -485,13 +486,13 @@
       "httpStatus": 200,
       "note": "",
       "error": null,
-      "wallSeconds": 9.5,
-      "cpuSeconds": 0.9,
-      "peakMemoryMb": 290,
+      "wallSeconds": 12.2,
+      "cpuSeconds": 1.2,
+      "peakMemoryMb": 311,
       "peakProcesses": 1,
       "truth": {
         "httpStatus": 200,
-        "bytes": 465700,
+        "bytes": 466030,
         "markers": {
           "woocommerce": false,
           "wordpress": false,
@@ -537,7 +538,7 @@
         "outcome": "scanned",
         "httpStatus": 200,
         "errorCode": null,
-        "durationMs": 9542,
+        "durationMs": 12244,
         "finalUrl": "https://www.expert.nl/",
         "overallScore": 98,
         "seoScore": 98,
@@ -654,13 +655,13 @@
       "httpStatus": 200,
       "note": "",
       "error": null,
-      "wallSeconds": 8.6,
-      "cpuSeconds": 1.6,
-      "peakMemoryMb": 328,
-      "peakProcesses": 1,
+      "wallSeconds": 11,
+      "cpuSeconds": 3.2,
+      "peakMemoryMb": 815,
+      "peakProcesses": 5,
       "truth": {
         "httpStatus": 200,
-        "bytes": 2105469,
+        "bytes": 2123308,
         "markers": {
           "woocommerce": false,
           "wordpress": false,
@@ -698,7 +699,7 @@
         "unableToConfirm": 0
       },
       "scoreRange": {
-        "low": 85,
+        "low": 87,
         "high": 100
       },
       "commerceApplicability": "confirmed",
@@ -706,14 +707,14 @@
         "outcome": "scanned",
         "httpStatus": 200,
         "errorCode": null,
-        "durationMs": 8625,
+        "durationMs": 10988,
         "finalUrl": "https://www.ikea.com/nl/nl/",
         "overallScore": 99,
         "seoScore": 99,
         "geoScore": 100,
         "securityScore": 92,
-        "coveragePercent": 85,
-        "highConfidencePercent": 87,
+        "coveragePercent": 88,
+        "highConfidencePercent": 84,
         "provisional": true,
         "sector": {
           "key": "ecommerce",
@@ -734,10 +735,10 @@
           "browserRecovered": false
         },
         "counts": {
-          "passed": 30,
+          "passed": 31,
           "issues": 1,
           "notApplicable": 14,
-          "unableToConfirm": 11
+          "unableToConfirm": 10
         },
         "findings": [
           {
@@ -775,7 +776,6 @@
         "eu_review_transparency_signal",
         "eu_consumer_information_signal",
         "price_currency_consistency",
-        "WEBSHOP_TRUST_SIGNALS",
         "PRODUCT_VARIANT_URL",
         "PRODUCT_PRICE_CONSISTENCY",
         "CHECKOUT_TRUST_SIGNALS"
@@ -787,13 +787,13 @@
       "httpStatus": 200,
       "note": "",
       "error": null,
-      "wallSeconds": 9.5,
-      "cpuSeconds": 4.3,
-      "peakMemoryMb": 1024,
-      "peakProcesses": 6,
+      "wallSeconds": 10,
+      "cpuSeconds": 5.8,
+      "peakMemoryMb": 1027,
+      "peakProcesses": 5,
       "truth": {
         "httpStatus": 200,
-        "bytes": 1134718,
+        "bytes": 1134611,
         "markers": {
           "woocommerce": false,
           "wordpress": false,
@@ -839,7 +839,7 @@
         "outcome": "scanned",
         "httpStatus": 200,
         "errorCode": null,
-        "durationMs": 9456,
+        "durationMs": 9954,
         "finalUrl": "https://www.ikea.com/nl/nl/p/billy-boekenkast-wit-00263850/",
         "overallScore": 96,
         "seoScore": 94,
@@ -948,13 +948,13 @@
       "httpStatus": 200,
       "note": "",
       "error": null,
-      "wallSeconds": 18.4,
-      "cpuSeconds": 14.4,
-      "peakMemoryMb": 1082,
+      "wallSeconds": 17.2,
+      "cpuSeconds": 22.3,
+      "peakMemoryMb": 1140,
       "peakProcesses": 6,
       "truth": {
         "httpStatus": 200,
-        "bytes": 702026,
+        "bytes": 702023,
         "markers": {
           "woocommerce": false,
           "wordpress": false,
@@ -975,7 +975,7 @@
       "rendering": {
         "mode": "javascript_rendered",
         "fallbackReason": null,
-        "elapsedMs": 2384,
+        "elapsedMs": 2551,
         "botProtection": null
       },
       "multiPage": {
@@ -1000,12 +1000,12 @@
         "outcome": "scanned",
         "httpStatus": 200,
         "errorCode": null,
-        "durationMs": 18404,
+        "durationMs": 17165,
         "finalUrl": "https://allbirds.de/",
         "overallScore": 98,
         "seoScore": 96,
         "geoScore": 100,
-        "securityScore": 92,
+        "securityScore": 86,
         "coveragePercent": 84,
         "highConfidencePercent": 88,
         "provisional": true,
@@ -1124,13 +1124,13 @@
       "httpStatus": 200,
       "note": "",
       "error": null,
-      "wallSeconds": 17.3,
-      "cpuSeconds": 14.8,
-      "peakMemoryMb": 1184,
+      "wallSeconds": 16.6,
+      "cpuSeconds": 23.3,
+      "peakMemoryMb": 1215,
       "peakProcesses": 6,
       "truth": {
         "httpStatus": 200,
-        "bytes": 637661,
+        "bytes": 637658,
         "markers": {
           "woocommerce": false,
           "wordpress": false,
@@ -1151,7 +1151,7 @@
       "rendering": {
         "mode": "javascript_rendered",
         "fallbackReason": null,
-        "elapsedMs": 2706,
+        "elapsedMs": 2497,
         "botProtection": null
       },
       "multiPage": {
@@ -1176,12 +1176,12 @@
         "outcome": "scanned",
         "httpStatus": 200,
         "errorCode": null,
-        "durationMs": 17324,
+        "durationMs": 16616,
         "finalUrl": "https://allbirds.de/products/w-tree-runner-freizeitschuhe-960tr3wkww0027",
         "overallScore": 97,
         "seoScore": 95,
         "geoScore": 100,
-        "securityScore": 92,
+        "securityScore": 86,
         "coveragePercent": 93,
         "highConfidencePercent": 81,
         "provisional": false,
@@ -1281,9 +1281,9 @@
       "httpStatus": 200,
       "note": "",
       "error": null,
-      "wallSeconds": 23.7,
-      "cpuSeconds": 0.2,
-      "peakMemoryMb": 444,
+      "wallSeconds": 23.3,
+      "cpuSeconds": 0.3,
+      "peakMemoryMb": 437,
       "peakProcesses": 1,
       "truth": {
         "httpStatus": 200,
@@ -1333,7 +1333,7 @@
         "outcome": "scanned",
         "httpStatus": 200,
         "errorCode": null,
-        "durationMs": 23686,
+        "durationMs": 23339,
         "finalUrl": "https://www.bksmeubelen.nl/",
         "overallScore": 95,
         "seoScore": 94,
@@ -1430,8 +1430,8 @@
           "status": "WARNING",
           "confidence": "high",
           "title": "Server response",
-          "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 1903 ms vanuit de scanomgeving. Dit is geen browser-TTFB en bewijst de oorzaak van de vertraging niet.",
-          "found": 1903,
+          "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 2026 ms vanuit de scanomgeving. Dit is geen browser-TTFB en bewijst de oorzaak van de vertraging niet.",
+          "found": 2026,
           "url": "https://www.bksmeubelen.nl/"
         },
         {
@@ -1474,13 +1474,13 @@
       "httpStatus": 200,
       "note": "",
       "error": null,
-      "wallSeconds": 21.8,
-      "cpuSeconds": 0.3,
-      "peakMemoryMb": 446,
+      "wallSeconds": 20.1,
+      "cpuSeconds": 0.4,
+      "peakMemoryMb": 438,
       "peakProcesses": 1,
       "truth": {
         "httpStatus": 200,
-        "bytes": 126430,
+        "bytes": 126421,
         "markers": {
           "woocommerce": true,
           "wordpress": true,
@@ -1526,7 +1526,7 @@
         "outcome": "scanned",
         "httpStatus": 200,
         "errorCode": null,
-        "durationMs": 21751,
+        "durationMs": 20050,
         "finalUrl": "https://www.bksmeubelen.nl/product/dressoir-2-deurs/",
         "overallScore": 88,
         "seoScore": 91,
@@ -1629,8 +1629,8 @@
           "status": "WARNING",
           "confidence": "high",
           "title": "Server response",
-          "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 2367 ms vanuit de scanomgeving. Dit is geen browser-TTFB en bewijst de oorzaak van de vertraging niet.",
-          "found": 2367,
+          "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 1914 ms vanuit de scanomgeving. Dit is geen browser-TTFB en bewijst de oorzaak van de vertraging niet.",
+          "found": 1914,
           "url": "https://www.bksmeubelen.nl/product/dressoir-2-deurs/"
         },
         {
@@ -1681,9 +1681,9 @@
       "httpStatus": 200,
       "note": "",
       "error": null,
-      "wallSeconds": 6.6,
-      "cpuSeconds": 0.2,
-      "peakMemoryMb": 404,
+      "wallSeconds": 6.2,
+      "cpuSeconds": 0.3,
+      "peakMemoryMb": 396,
       "peakProcesses": 1,
       "truth": {
         "httpStatus": 200,
@@ -1733,7 +1733,7 @@
         "outcome": "scanned",
         "httpStatus": 200,
         "errorCode": null,
-        "durationMs": 6597,
+        "durationMs": 6156,
         "finalUrl": "https://www.acupunctuurdijkstra.nl/",
         "overallScore": 92,
         "seoScore": 98,
@@ -1846,9 +1846,9 @@
       "httpStatus": 200,
       "note": "",
       "error": null,
-      "wallSeconds": 10.7,
-      "cpuSeconds": 11.2,
-      "peakMemoryMb": 1213,
+      "wallSeconds": 14.1,
+      "cpuSeconds": 18.3,
+      "peakMemoryMb": 1183,
       "peakProcesses": 6,
       "truth": {
         "httpStatus": 200,
@@ -1873,7 +1873,7 @@
       "rendering": {
         "mode": "javascript_rendered",
         "fallbackReason": null,
-        "elapsedMs": 1674,
+        "elapsedMs": 3277,
         "botProtection": null
       },
       "multiPage": {
@@ -1890,7 +1890,7 @@
         "unableToConfirm": 0
       },
       "scoreRange": {
-        "low": 93,
+        "low": 91,
         "high": 96
       },
       "commerceApplicability": "absent",
@@ -1898,13 +1898,13 @@
         "outcome": "scanned",
         "httpStatus": 200,
         "errorCode": null,
-        "durationMs": 10667,
+        "durationMs": 14074,
         "finalUrl": "https://www.transheroes.com/nl/",
         "overallScore": 96,
-        "seoScore": 94,
+        "seoScore": 93,
         "geoScore": 100,
         "securityScore": 81,
-        "coveragePercent": 98,
+        "coveragePercent": 95,
         "highConfidencePercent": 84,
         "provisional": false,
         "sector": {
@@ -1926,10 +1926,10 @@
           "browserRecovered": false
         },
         "counts": {
-          "passed": 30,
+          "passed": 29,
           "issues": 3,
           "notApplicable": 22,
-          "unableToConfirm": 1
+          "unableToConfirm": 2
         },
         "findings": [
           {
@@ -1989,6 +1989,7 @@
         }
       ],
       "unconfirmed": [
+        "broken_links",
         "EXTERNAL_IMAGE_SOURCE"
       ]
     },
@@ -1999,8 +2000,8 @@
       "note": "",
       "error": "Website kon niet betrouwbaar worden geanalyseerd. De server leverde een tussen-, challenge- of routingpagina in plaats van de verwachte website. Er is daarom geen score berekend.",
       "wallSeconds": 2.9,
-      "cpuSeconds": 2.2,
-      "peakMemoryMb": 1064,
+      "cpuSeconds": 3.2,
+      "peakMemoryMb": 1029,
       "peakProcesses": 5,
       "truth": {
         "httpStatus": 403,
@@ -2024,7 +2025,7 @@
         "outcome": "blocked",
         "httpStatus": null,
         "errorCode": "SITE_CHALLENGE_PAGE",
-        "durationMs": 2871,
+        "durationMs": 2947,
         "finalUrl": null,
         "overallScore": null,
         "seoScore": null,
@@ -2060,13 +2061,13 @@
       "httpStatus": 200,
       "note": "",
       "error": null,
-      "wallSeconds": 22.8,
-      "cpuSeconds": 12.2,
-      "peakMemoryMb": 1111,
+      "wallSeconds": 26,
+      "cpuSeconds": 15.4,
+      "peakMemoryMb": 1115,
       "peakProcesses": 6,
       "truth": {
         "httpStatus": 200,
-        "bytes": 173440,
+        "bytes": 173579,
         "markers": {
           "woocommerce": false,
           "wordpress": false,
@@ -2087,20 +2088,20 @@
       "rendering": {
         "mode": "javascript_rendered",
         "fallbackReason": null,
-        "elapsedMs": 4495,
+        "elapsedMs": 5194,
         "botProtection": null
       },
       "multiPage": {
         "homepage": 1,
         "category": 0,
-        "product": 3,
+        "product": 7,
         "form": 0,
         "legal": 0,
         "service": 0,
         "listing": 0,
         "support": 0,
         "other": 12,
-        "audited": 16,
+        "audited": 20,
         "unableToConfirm": 0
       },
       "scoreRange": {
@@ -2112,8 +2113,8 @@
         "outcome": "scanned",
         "httpStatus": 200,
         "errorCode": null,
-        "durationMs": 22803,
-        "finalUrl": "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-winkelprijzen-na-veiligheidsincident-bij-albert-heijn",
+        "durationMs": 25991,
+        "finalUrl": "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-winkelprijzen-na-cyberveiligheidsincident-bij-albert-heijn",
         "overallScore": 89,
         "seoScore": 95,
         "geoScore": 80,
@@ -2165,7 +2166,7 @@
             "category": "geo"
           }
         ],
-        "fingerprint": "1d1b94912a61c33c",
+        "fingerprint": "1c7da75c07d179e5",
         "scanner": {
           "crawler": null,
           "rules": null,
@@ -2179,9 +2180,9 @@
           "status": "WARNING",
           "confidence": "high",
           "title": "Meta title",
-          "message": "De title is 83 tekens. Richtwaarde: 30–60 tekens; de punten lopen geleidelijk af naarmate de lengte verder van deze band ligt.",
-          "found": "Geen bezorging en verkeerde winkelprijzen na 'veiligheidsincident' bij Albert Heijn",
-          "url": "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-winkelprijzen-na-veiligheidsincident-bij-albert-heijn"
+          "message": "De title is 88 tekens. Richtwaarde: 30–60 tekens; de punten lopen geleidelijk af naarmate de lengte verder van deze band ligt.",
+          "found": "Geen bezorging en verkeerde winkelprijzen na 'cyberveiligheidsincident' bij Albert Heijn",
+          "url": "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-winkelprijzen-na-cyberveiligheidsincident-bij-albert-heijn"
         },
         {
           "rule": "STRUCTURED_DATA_MISSING",
@@ -2190,7 +2191,7 @@
           "title": "Structured data",
           "message": "1 geldige JSON-LD block(s) gevonden, maar geen passend lokaal bedrijfsschema voor deze lokale bedrijfs-/dienstpagina.",
           "found": "blocks=1; types=WebPage,Language,ImageObject,Organization,NewsArticle; contextRelevant=false",
-          "url": "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-winkelprijzen-na-veiligheidsincident-bij-albert-heijn"
+          "url": "https://nos.nl/artikel/2634644-geen-bezorging-en-verkeerde-winkelprijzen-na-cyberveiligheidsincident-bij-albert-heijn"
         },
         {
           "rule": "organization_website",
@@ -2212,13 +2213,13 @@
       "httpStatus": 200,
       "note": "",
       "error": null,
-      "wallSeconds": 15.9,
+      "wallSeconds": 12.8,
       "cpuSeconds": 1.3,
-      "peakMemoryMb": 444,
+      "peakMemoryMb": 455,
       "peakProcesses": 1,
       "truth": {
         "httpStatus": 200,
-        "bytes": 1569598,
+        "bytes": 1565966,
         "markers": {
           "woocommerce": true,
           "wordpress": true,
@@ -2264,7 +2265,7 @@
         "outcome": "scanned",
         "httpStatus": 200,
         "errorCode": null,
-        "durationMs": 15870,
+        "durationMs": 12846,
         "finalUrl": "https://www.racesport.nl/",
         "overallScore": 98,
         "seoScore": 97,
@@ -2375,13 +2376,13 @@
       "httpStatus": 200,
       "note": "",
       "error": null,
-      "wallSeconds": 12.3,
-      "cpuSeconds": 7.3,
-      "peakMemoryMb": 1072,
+      "wallSeconds": 13.3,
+      "cpuSeconds": 9.6,
+      "peakMemoryMb": 1093,
       "peakProcesses": 7,
       "truth": {
         "httpStatus": 200,
-        "bytes": 324534,
+        "bytes": 324271,
         "markers": {
           "woocommerce": false,
           "wordpress": false,
@@ -2402,7 +2403,7 @@
       "rendering": {
         "mode": "javascript_rendered",
         "fallbackReason": null,
-        "elapsedMs": 2052,
+        "elapsedMs": 2257,
         "botProtection": null
       },
       "multiPage": {
@@ -2427,7 +2428,7 @@
         "outcome": "scanned",
         "httpStatus": 200,
         "errorCode": null,
-        "durationMs": 12252,
+        "durationMs": 13340,
         "finalUrl": "https://www.rijksoverheid.nl/",
         "overallScore": 100,
         "seoScore": 100,
@@ -2478,9 +2479,9 @@
       "httpStatus": 200,
       "note": "",
       "error": null,
-      "wallSeconds": 5.8,
-      "cpuSeconds": 4.5,
-      "peakMemoryMb": 1251,
+      "wallSeconds": 7.4,
+      "cpuSeconds": 6.1,
+      "peakMemoryMb": 1292,
       "peakProcesses": 6,
       "truth": {
         "httpStatus": 200,
@@ -2530,7 +2531,7 @@
         "outcome": "scanned",
         "httpStatus": 200,
         "errorCode": null,
-        "durationMs": 5836,
+        "durationMs": 7438,
         "finalUrl": "https://www.moneybird.nl/",
         "overallScore": 99,
         "seoScore": 99,
@@ -2615,9 +2616,9 @@
       "httpStatus": 200,
       "note": "",
       "error": null,
-      "wallSeconds": 9.5,
-      "cpuSeconds": 4.3,
-      "peakMemoryMb": 1007,
+      "wallSeconds": 8.2,
+      "cpuSeconds": 5.9,
+      "peakMemoryMb": 1035,
       "peakProcesses": 6,
       "truth": {
         "httpStatus": 200,
@@ -2667,7 +2668,7 @@
         "outcome": "scanned",
         "httpStatus": 200,
         "errorCode": null,
-        "durationMs": 9489,
+        "durationMs": 8173,
         "finalUrl": "https://www.nationalevacaturebank.nl/",
         "overallScore": 95,
         "seoScore": 95,
@@ -2773,13 +2774,13 @@
       "httpStatus": 200,
       "note": "",
       "error": null,
-      "wallSeconds": 11.6,
-      "cpuSeconds": 9,
-      "peakMemoryMb": 1194,
+      "wallSeconds": 15.2,
+      "cpuSeconds": 14.2,
+      "peakMemoryMb": 1232,
       "peakProcesses": 6,
       "truth": {
         "httpStatus": 200,
-        "bytes": 282057,
+        "bytes": 308880,
         "markers": {
           "woocommerce": false,
           "wordpress": false,
@@ -2800,7 +2801,7 @@
       "rendering": {
         "mode": "javascript_rendered",
         "fallbackReason": null,
-        "elapsedMs": 1801,
+        "elapsedMs": 2243,
         "botProtection": null
       },
       "multiPage": {
@@ -2825,7 +2826,7 @@
         "outcome": "scanned",
         "httpStatus": 200,
         "errorCode": null,
-        "durationMs": 11558,
+        "durationMs": 15182,
         "finalUrl": "https://www.efteling.com/nl",
         "overallScore": 93,
         "seoScore": 99,
