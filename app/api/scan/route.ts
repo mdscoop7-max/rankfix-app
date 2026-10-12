@@ -26,7 +26,7 @@ import { SITE_URL } from "@/lib/site-url";
 import { assessDescriptionQuality, assessH1Quality, assessProductSchemaCompleteness, blendHeadlineScore, blockedScanMessage, canonicalCrossDomainRisk, classifyLegalLink, findAudienceEvidence, findConsentEvidence, findFaqEvidence, findFormEvidence, findPaymentMethods, findRegulatoryEvidence, findReviewEvidence, findTagManagerEvidence, findVisiblePrices, fintechIdentity, isBlockingStatus, isBrokenStatus, isGenericTitle, LEGAL_LEXICON, rankfixUserAgents, sameRegistrableSite } from "@/lib/evidence-quality";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
-import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes } from "@/lib/sector-identity";
+import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, paymentProviderPrimaryIdentity, primaryLodgingIdentity } from "@/lib/sector-identity";
 
 export const maxDuration = 300;
 
@@ -1541,7 +1541,7 @@ export async function POST(request: Request) {
       note: "Evidence-first: ontbrekend bewijs is niet automatisch een fout. Sectoren en functies worden alleen bevestigd op gevonden signalen.",
     };
 
-    type SectorKey = "ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"general_business"|"unknown";
+    type SectorKey = "finance"|"ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"general_business"|"unknown";
     const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]}> = [
       {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\b/i,/\b(te koop|te huur|for sale|for rent|woningaanbod)\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
       {sector:"automotive",label:"Automotive",patterns:[/\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\b/i,/\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
@@ -1629,14 +1629,10 @@ export async function POST(request: Request) {
     };
     const mappedCatalogSector = catalogTop ? catalogLegacyMap[catalogTop.key] : undefined;
     const lodgingDetail = scanEvidence.sectorDetails.lodging;
-    const shortStayIdentity = Boolean(
-      (lodgingDetail.bedBreakfast.value && lodgingDetail.bedBreakfast.confidence !== "low") ||
-      (lodgingDetail.holidayRental.value && lodgingDetail.holidayRental.confidence !== "low") ||
-      (lodgingDetail.holidayPark.value && lodgingDetail.holidayPark.confidence !== "low") ||
-      (lodgingDetail.camping.value && lodgingDetail.camping.confidence !== "low") ||
-      (lodgingDetail.shortStay.value && lodgingDetail.shortStay.confidence !== "low" &&
-        scanEvidence.appointments.booking.value && scanEvidence.appointments.booking.confidence !== "low")
-    );
+    // Customer stories about hotels, payment checkout or booking integrations
+    // cannot turn a financial technology provider into a lodging operator.
+    const paymentServicesPrimaryIdentity = paymentProviderPrimaryIdentity([title, description, h1s.join(" ")].join(" "));
+    const shortStayIdentity = !paymentServicesPrimaryIdentity && primaryLodgingIdentity(sectorIdentitySource, schemaTypes);
     const lodgingSubtype = lodgingDetail.bedBreakfast.value
       ? {key:"bed_breakfast",label:"B&B / guesthouse"}
       : lodgingDetail.holidayPark.value
@@ -1652,7 +1648,9 @@ export async function POST(request: Request) {
     const automotiveServiceIdentity = Boolean(/\b(?:apk|autobanden|banden|uitlijnen|werkplaats|autoservice|auto-onderhoud|car repair|tyres?)\b/i.test(sectorIdentitySource) || schemaSet.has("autorepair"));
     const explicitMedicalIdentity = /\b(?:tandarts|dentist|kliniek|clinic|medical|medicalclinic|fysiotherap|mondzorg|patient|patiënt|physician|huisarts|doctor)\b/i.test(sectorIdentitySource) || schemaSet.has("dentist") || schemaSet.has("medicalclinic");
     const beautyServiceIdentity = /\b(?:beauty salon|beautysalon|schoonheidssalon|day spa|dayspa|city spa|wellness|manicure|pedicure|nail salon|nagelsalon|facial|gezichtsbehandeling)\b/i.test(sectorIdentitySource) || schemaSet.has("beautysalon") || schemaSet.has("dayspa");
-    const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[]} | null = shortStayIdentity
+    const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[]} | null = paymentServicesPrimaryIdentity
+      ? {sector:"finance",key:"finance",label:"Betaalplatform / financiële dienstverlening",evidence:["Primaire paginabewijs: betaalplatform/betaaldienstverlener in title, description of H1", ...fintechIdentity([title, description, h1s.join(" ")].join(" ")).hits.map(hit=>`Betaaldienst: ${hit}`)]}
+      : shortStayIdentity
       ? {sector:"hospitality",key:lodgingSubtype.key,label:lodgingSubtype.label,evidence:["Scanbewijs: kort verblijf/accommodatie bevestigd", ...lodgingDetail.shortStay.evidence, ...lodgingDetail.stayDates.evidence, ...lodgingDetail.guests.evidence]}
       : realEstateIdentity
         ? {sector:"real_estate",key:"real_estate",label:"Vastgoed & Makelaardij",evidence:["Scanbewijs: vastgoed/woningidentiteit bevestigd", ...scanEvidence.inventory.properties.evidence]}
@@ -1681,7 +1679,7 @@ export async function POST(request: Request) {
       (onlineRetailCallout || (retailStoreIdentity && commerceNavigationSignal)));
     const retailPurchaseEvidence = evidenceCommerceConfirmed || hasEcommerceSignal || explicitRetailIdentity;
     const retailPrimaryIdentity = retailPurchaseEvidence
-      && !shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity
+      && !paymentServicesPrimaryIdentity && !shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity
       && !beautyServiceIdentity && !explicitMedicalIdentity && !transportBookingIdentity
       && !/\b(?:restaurant|hotel|reserveren|reserveer tafel|vakantieverhuur|transportdiensten|schoonmaakdienst)\b/i.test(sectorIdentitySource);
     const primaryNonCommerceIdentity = retailPrimaryIdentity ? null : (masterIdentityOverride
@@ -1740,6 +1738,7 @@ export async function POST(request: Request) {
     const lodgingSectorKeys = new Set(["bed_breakfast","holiday_rental","holiday_park","camping","hotel"]);
     const isLodgingSector = sectorProfile.sector === "hospitality" && lodgingSectorKeys.has(sectorProfile.key);
     const primarySectorModules: Partial<Record<string,string[]>> = {
+      finance:["lead_conversion","business_identity","quality_trust"],
       ecommerce:["ecommerce","product","pricing_currency","merchant","checkout"],
       automotive:["automotive"],
       real_estate:["real_estate"],
@@ -4109,14 +4108,24 @@ export async function POST(request: Request) {
       seenStructures.add(key);
       auditedMultiPages.push(item);
     }
-    const confirmedRetailSamples = auditedMultiPages.filter((item)=>item.commerceEvidence?.confirmedRetailPage);
+    const confirmedRetailSamples = auditedMultiPages.filter((item)=>{
+      if (!item.commerceEvidence?.confirmedRetailPage) return false;
+      if (!paymentServicesPrimaryIdentity || explicitRetailIdentity) return true;
+      // A payment platform may have "products", "checkout" and prices for its
+      // own integration services. Those are not evidence of consumer retail.
+      const product = item.commerceEvidence.product;
+      return Boolean(product?.name && product?.price && product?.currency && item.commerceEvidence.strongCommerceAction);
+    });
     // Motor v2.1: representative pages are site-level evidence partners. They may
     // confirm capabilities/identity, but they never turn an unverified page-specific
     // defect into a failure.
     const multiPageIdentityText = auditedMultiPages.map((item)=>`${item.url} ${item.identityText||item.title||""}`).join(" ").toLowerCase();
     const multiPageCapabilities = {
       transport: /\b(transport|logistics?|logistiek|freight|vracht|forwarding|expeditie|wegtransport|road transport|warehousing|opslag|distribution|distributie|courier|koerier)\b/i.test(multiPageIdentityText),
-      hospitality: /\b(hotel|hotels|room|rooms|kamer|kamers|overnachten|booking|boeken|reserveren|restaurant)\b/i.test(multiPageIdentityText),
+      hospitality: !paymentServicesPrimaryIdentity && auditedMultiPages.some(item =>
+        primaryLodgingIdentity([item.title,item.description,new URL(item.url).pathname].filter(Boolean).join(" "), item.schemaTypes || [])
+        || /\b(?:restaurant|eetcafe|eetcafé|brasserie|bistro)\b/i.test([item.title,item.description].filter(Boolean).join(" "))
+      ),
       treatment: /\b(behandeling|behandelingen|treatment|specialisatie|tandarts|dentist|spoed|afspraak)\b/i.test(multiPageIdentityText),
       // Keep vehicle sales/inventory separate from garage/service capability.
       // A tyre or workshop site is automotive, but that alone is not evidence that it sells vehicles.
@@ -4187,7 +4196,7 @@ export async function POST(request: Request) {
     };
     // Multi-page evidence may strengthen the site profile, but never silently
     // activates page-specific webshop checks for the page the customer scanned.
-    if (!transportBookingIdentity && sitewideCommerceEvidence.confirmed && !technologyProfile.isCommerce) {
+    if (!transportBookingIdentity && !paymentServicesPrimaryIdentity && sitewideCommerceEvidence.confirmed && !technologyProfile.isCommerce) {
       technologyProfile.isCommerce = true;
       technologyProfile.siteType = "Webshop";
       technologyProfile.commercePlatform = technologyProfile.commercePlatform === "Niet bevestigd" ? "Webshop bevestigd via site-sample" : technologyProfile.commercePlatform;
@@ -4229,15 +4238,15 @@ export async function POST(request: Request) {
       scanEvidence.commerce.products.confidence === "high" &&
       scanEvidence.commerce.prices.value.count > 0 &&
       scanEvidence.commerce.prices.confidence !== "low";
-    const hardCommerceEvidence = sitewideCommerceEvidence.confirmed || representativeRetailProduct || Boolean(
+    const hardCommerceEvidence = (!paymentServicesPrimaryIdentity || explicitRetailIdentity) && (sitewideCommerceEvidence.confirmed || representativeRetailProduct || Boolean(
       confirmedCurrentProduct ||
       confirmedAddToCart ||
       corroboratedProductAndPrice
-    );
+    ));
     const technologyOnlyCommerce = technologyProfile.isCommerce && !hardCommerceEvidence;
     const secondaryCommerceOnly = Boolean(primaryNonCommerceIdentity && !hardCommerceEvidence);
     const finalCommerceDecision = {
-      confirmed: hardCommerceEvidence || (technologyOnlyCommerce && !primaryNonCommerceIdentity),
+      confirmed: Boolean(hardCommerceEvidence || (technologyOnlyCommerce && !primaryNonCommerceIdentity)),
       currentPageEvidence: hardCommerceEvidence && masterEvidence.commerce.confirmed,
       technologyProfile: technologyProfile.isCommerce,
       technologyOnly: technologyOnlyCommerce,
@@ -4258,6 +4267,7 @@ export async function POST(request: Request) {
       masterEvidence.businessModels = masterEvidence.businessModels.filter((model)=>model!=="commerce");
       technologyProfile.isCommerce = false;
       technologyProfile.siteType = technologyProfile.siteType === "Webshop" ? "Website" : technologyProfile.siteType;
+      if (technologyProfile.commercePlatform === "Webshop bevestigd via site-sample") technologyProfile.commercePlatform = "Niet bevestigd";
       technologyProfile.evidence = [...technologyProfile.evidence, "Secundaire commerce-navigatie gevonden; geen harde product-/retailketen bevestigd."].slice(0,8);
       for (const capability of ["ecommerce","merchant","consumer_rights"]) {
         masterEvidence.capabilities = masterEvidence.capabilities.filter((item)=>item!==capability);

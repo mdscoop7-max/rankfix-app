@@ -69,3 +69,24 @@ export const TOURISM_ACTIVITY_PATTERN = /\b(?:agenda|evenementen|events|overnach
 export function isTourismBoardHost(hostname: string): boolean {
   return /^(?:www\.)?visit[a-z-]{3,}\.[a-z.]+$/i.test(hostname);
 }
+
+// Page identity outranks incidental references in testimonials, customer cases and
+// payment checkout copy. These checks are generic; no domain or brand allowlist.
+export function paymentProviderPrimaryIdentity(identityText: string): boolean {
+  const identity = identityText.replace(/\s+/g, " ").slice(0, 3500);
+  // Strong role declarations distinguish a payment processor from a shop that
+  // simply accepts cards or advertises a payment integration.
+  return /\b(?:payment service provider|payment provider|payment gateway|payment processing|payment solutions?|payments? platform|platform for (?:online|in.person|every|all|your) payments?|electronic.money institution|e.money institution|betaalprovider|betaalplatform|betalingsplatform|betaaloplossingen|betaaldienstverlener|betaalinstelling|elektronischgeldinstelling|zahlungsanbieter|prestataire de paiement)\b/i.test(identity)
+    || /\b(?:platform|provider|gateway)\b.{0,85}\b(?:online (?:and|&|or) in.person payments|online en fysieke betalingen|betalingen ontvangen|accept payments|payment methods?)\b/i.test(identity)
+    || /\b(?:online (?:and|&|or) in.person payments|online en fysieke betalingen|payments? processing)\b.{0,85}\b(?:platform|provider|gateway)\b/i.test(identity);
+}
+
+export function primaryLodgingIdentity(identityText: string, schemaTypes: Iterable<string>): boolean {
+  const types = [...schemaTypes].map(type => String(type).toLowerCase());
+  if (types.some(type => ["hotel","hotelroom","lodgingbusiness","bedandbreakfast","vacationrental","resort","campground"].includes(type))) return true;
+  // Generic body text such as guest, arrival, departure, checkout, booking
+  // and a case study about hotels does NOT establish accommodation identity.
+  const source = identityText.replace(/\s+/g, " ").slice(0, 3500);
+  return /\b(?:hotel|hotels|hotelkamers?|hotelsuites?|accommodation|lodging|guesthouse|guest house|bed (?:and|&) breakfast|overnachten|overnachting|vakantiehuis|vakantiewoning|holiday (?:home|rental|park)|vacation rental|resort|camping|glamping|chambres d.hôtes|ferienhaus|ferienwohnung)\b/i.test(source)
+    || /\b(?:book|reserve|reserveer|boek) (?:a |your |een |je )?(?:room|hotelkamer|kamer|overnight stay|overnachting)\b/i.test(source);
+}
