@@ -19,6 +19,15 @@ test("H1 'Home' is not a passing page heading (rijksoverheid.nl)", () => {
   assert.equal(result.flag, "generic");
 });
 
+test("CNN unrendered template expression is not a valid H1", () => {
+  const bad = '<h1>\\n\'+(null!=(t=p(e,"if").call(r,(p(e,"compare")||l&&p(l,"compare")||c).call(r,null!=l?p(l,"componentVariation"):l,"===","headline_underscored",{name:"compare"}))?t:"")+"</h1>';
+  const result = assessH1Quality(bad, ["cnn"], "https://www.cnn.com/");
+  assert.equal(result.status, "warning");
+  assert.equal(result.flag, "generic");
+  assert.notEqual(result.status, "pass");
+  assert.equal(assessH1Quality("<h1>Breaking News</h1>", ["cnn"], "https://www.cnn.com/").status, "pass");
+});
+
 test("a brand-only H1 is generic on a subpage, normal on the homepage", () => {
   assert.equal(assessH1Quality(`<h1>Sneakers.nl</h1>`, ["sneakers", "sneakers.nl"]).flag, "generic");
   assert.equal(assessH1Quality(`<h1>Sneakers.nl</h1>`, ["sneakers", "sneakers.nl"], "https://www.sneakers.nl/dames").flag, "generic");
