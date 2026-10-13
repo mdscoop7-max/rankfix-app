@@ -8,7 +8,7 @@ import { getFixPolicy } from "@/lib/fix-policy";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { assessPassiveSecurity, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
-import { assessPageDescription, assessPageTitle, sampleEvidenceExcerpt, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, isBrandOnlyTitle, isClientShell, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
+import { assessPageDescription, assessPageTitle, sampleEvidenceExcerpt, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, isBrandOnlyTitle, isClientShell, sampledMissingH1Unconfirmed, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
 import { assessBusinessDetails, classifyContactAnchor, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
@@ -4076,7 +4076,12 @@ export async function POST(request: Request) {
         // Main-page and representative-page H1 checks must agree when a JS runtime
         // is present but rendering failed. Substantive raw copy does not prove a
         // client-rendered H1 is absent (BBC home, October 2026 pilot).
-        const sampleH1Unconfirmed = pageH1Quality.flag === "missing" && (pageClientShell || (representativeJsFramework && representativeEvidenceSource !== "rendered_html"));
+        const sampleH1Unconfirmed = sampledMissingH1Unconfirmed({
+          missing: pageH1Quality.flag === "missing",
+          clientShell: pageClientShell,
+          jsFramework: representativeJsFramework,
+          rendered: representativeEvidenceSource === "rendered_html",
+        });
         // A page that asks search engines not to index it does not represent the
         // website in search results and is not scored.
         const pageNoindex = /<meta\b[^>]*name\s*=\s*["'](?:robots|googlebot)["'][^>]*content\s*=\s*["'][^"']*\bnoindex\b/i.test(pageHtml)
