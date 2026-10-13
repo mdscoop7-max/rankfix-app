@@ -43,16 +43,26 @@ export async function runHealthGuard(){
  // Every critical subsystem owns its own incident. A database outage can no
  // longer accidentally increment or resolve an unrelated app incident.
  for(const check of alertChecks){
+   const threshold=check.key==="qa_pilot"?1:FAILURE_THRESHOLD;
    const incidentKey=`rankfix-production:${check.key}`;
    const current=await db.query("SELECT * FROM rankfix_health_incidents WHERE incident_key=$1 LIMIT 1",[incidentKey]);
    const incident=current.rows[0];
    if(!incident){
      await db.query("INSERT INTO rankfix_health_incidents (incident_key,status,failure_count,details) VALUES ($1,'open',1,$2)",[incidentKey,JSON.stringify({check})]);
+     // A failed QA pilot is a confirmed test failure, not a transient production check.
+     // Alert immediately once, then deduplicate via alerted_at until recovery.
+     if(threshold===1){
+       const to=alertRecipient();
+       if(to){
+         try{await sendSystemHealthEmail({to,checks:[check]});await db.query("UPDATE rankfix_health_incidents SET alerted_at=NOW() WHERE incident_key=$1",[incidentKey]);alertSent=true}
+         catch(error){console.error("QA pilot alert delivery failed",error instanceof Error?error.message:"EMAIL_FAILED")}
+       }
+     }
      continue;
    }
    const nextCount=incident.status==="open"?Number(incident.failure_count||0)+1:1;
    await db.query("UPDATE rankfix_health_incidents SET status='open',failure_count=$2,last_seen_at=NOW(),resolved_at=NULL,recovery_alerted_at=NULL,alerted_at=CASE WHEN status='open' THEN alerted_at ELSE NULL END,first_seen_at=CASE WHEN status='open' THEN first_seen_at ELSE NOW() END,details=$3 WHERE incident_key=$1",[incidentKey,nextCount,JSON.stringify({check})]);
-   if(nextCount>=FAILURE_THRESHOLD&&!incident.alerted_at){
+   if(nextCount>=threshold&&!incident.alerted_at){
      const to=alertRecipient();
      if(to){
        try{await sendSystemHealthEmail({to,checks:[check]});await db.query("UPDATE rankfix_health_incidents SET alerted_at=NOW() WHERE incident_key=$1",[incidentKey]);alertSent=true}
