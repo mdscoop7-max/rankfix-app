@@ -7,7 +7,7 @@
 // a webshop, a job board as logistics). No brand names: category words only.
 // Pure, import-free and regression-tested in tests/site-identity.test.mjs.
 
-export type DeclaredSector = "government" | "news_media" | "saas_b2b" | "recruitment" | "finance" | "health_wellness";
+export type DeclaredSector = "government" | "news_media" | "saas_b2b" | "recruitment" | "finance" | "health_wellness" | "telecom_technology" | "energy" | "coworking" | "travel" | "manufacturer";
 
 export type DeclaredIdentity = { sector: DeclaredSector; label: string; evidence: string[] } | null;
 
@@ -27,6 +27,11 @@ const LABELS: Record<DeclaredSector, string> = {
   recruitment: "Recruitment & Werk",
   finance: "Financieel platform / betaaldiensten",
   health_wellness: "Zorg & Gezondheid",
+  telecom_technology: "Telecom & Technologie",
+  energy: "Energie / nutsbedrijf",
+  coworking: "Coworking / flexwerk",
+  travel: "Reizen / reisorganisatie",
+  manufacturer: "Fabrikant / producent",
 };
 
 const GOV_HOST = /(?:\.gov(?:\.[a-z]{2})?|\.gouv\.[a-z]{2}|\.gob\.[a-z]{2}|\.overheid\.nl|\.bund\.de|\.gc\.ca|\.europa\.eu|\.admin\.ch|\.gv\.at|\.belgium\.be|\.fgov\.be)$/i;
@@ -45,6 +50,18 @@ const JOB_WORDS = /\b(?:vacatures?|vacaturebank|banen|jobs? (?:board|site)|werk 
 
 const FINANCE_SCHEMA = /^(?:financialservice|paymentservice|bankorcreditunion|paymentcard|creditcard)$/i;
 const FINANCE_WORDS = /\b(?:(?:online|fysieke|internationale|al je)(?: en fysieke)? betalingen|platform voor (?:al je )?(?:online )?betalingen|geld overmaken|geld (?:versturen|sturen)|betalingen beheren|send money|money transfer|betaalplatform|betaaloplossingen?|betaaldienst(?:verlener)?|payment (?:platform|provider|processing|solutions?)|online payments|accept payments|betalingen (?:ontvangen|accepteren|verwerken)|financial technology|fintech|acquiring|zahlungsl[öo]sungen?|zahlungsanbieter|solutions? de paiement|plateforme de paiement)\b/i;
+
+// These are identities of the operator, not evidence that an online checkout exists.
+// Require a business-model phrase in title/description/main H1, corroborated by
+// another service term; never infer a sector from prices, menu links or body copy.
+const TELECOM_ROLE = /\b(?:telecom(?:munications?)?|telekom|telecommunicatie|mobiele? abonnementen?|mobile (?:plans?|subscriptions?)|internet(?:-| )provider|broadband provider|mobile network|glasvezel(?:netwerk)?)\b/i;
+const TELECOM_SERVICE = /\b(?:mobiel|mobile|internet|glasvezel|fiber|fibre|netwerk|network|abonnementen?|5g|4g|tv|televisie|broadband|telefonie)\b/i;
+const ENERGY_ROLE = /\b(?:energieleverancier|energiebedrijf|energielevering|energiecontracten?|energy (?:supplier|provider|utility)|electricity supplier|gas en stroom|stroom en gas)\b/i;
+const ENERGY_SERVICE = /\b(?:energie|gas|stroom|elektriciteit|energiecontract|energieprijzen|duurzame energie|tarieven|energy|electricity|power supply)\b/i;
+const COWORK_ROLE = /\b(?:coworking|co-working|flexwerkplekken|flexibele (?:werkplekken|kantoorruimte)|shared (?:workspaces|offices)|flexible (?:workspaces|offices)|serviced offices|office space for rent)\b/i;
+const TRAVEL_ROLE = /\b(?:reisbureau|reisorganisatie|travel agency|tour operator|vakanties boeken|holiday packages)\b|(?:biuro podróży|wycieczki|wakacje|wczasy|podróże)/iu;
+const TRAVEL_SERVICE = /\b(?:vakantie|reizen|reisbestemming|hotels?|vluchten|holidays?|flights?|travel|all inclusive)\b|(?:wycieczki|wakacje|hotele|loty|wczasy|podróże)/iu;
+const MANUFACTURER_ROLE = /\b(?:fabrikant|producent|manufacturer|manufacturing company|industrial manufacturer)\b/i;
 
 const HEALTH_SCHEMA = /^(?:medicalorganization|hospital|physician|dentist|medicalclinic|pharmacy|medicalwebpage)$/i;
 const HEALTH_WORDS = /\b(?:gezondheid|huisarts(?:en)?|ziekte|ziekenhuis|zorgverlener|medische informatie|pati[eë]nten|health information|hospital|gesundheit|krankenhaus|sant[ée]|salute)\b/i;
@@ -89,6 +106,20 @@ export function declaredSiteIdentity(input: DeclaredIdentityInput): DeclaredIden
   const newsHead = head.match(NEWS_WORDS);
   if (newsHead) return found("news_media", [`Nieuwsidentiteit in title/sitenaam: "${newsHead[0]}"`]);
   if (newsSchema) return found("news_media", [`Schema: ${newsSchema}`]);
+
+  // Strong utility, travel and workspace operator identities outrank optional
+  // storefront/cart navigation. Retailers with Store schema retain retail typing.
+  const retailSchema = types.some((type) => /^(?:onlinestore|electronicsstore|mobilephonestore|departmentstore|clothingstore|furniturestore)$/i.test(type));
+  if (!retailSchema && TELECOM_ROLE.test(text) && TELECOM_SERVICE.test(text))
+    return found("telecom_technology", ["Primaire telecomdienst in title/description/H1; netwerk- of abonnementensignaal bevestigd"]);
+  if (!retailSchema && ENERGY_ROLE.test(text) && ENERGY_SERVICE.test(text))
+    return found("energy", ["Energieleverancier/nutsbedrijf in paginabeschrijving bevestigd"]);
+  if (!retailSchema && COWORK_ROLE.test(text))
+    return found("coworking", ["Flexwerkplek- of coworkingdienst in paginabeschrijving bevestigd"]);
+  if (!retailSchema && TRAVEL_ROLE.test(text) && TRAVEL_SERVICE.test(text))
+    return found("travel", ["Reisorganisatie en reisaanbod in title/description/H1 bevestigd"]);
+  if (!retailSchema && MANUFACTURER_ROLE.test(text))
+    return found("manufacturer", ["Fabrikant-/producentidentiteit in paginabeschrijving bevestigd"]);
 
   // Software: software words in title/description, plus a trial/demo offer or app schema.
   const softwareSchema = types.find((type) => SOFTWARE_SCHEMA.test(type));
