@@ -54,8 +54,13 @@ const FINANCE_WORDS = /\b(?:(?:online|fysieke|internationale|al je)(?: en fysiek
 // These are identities of the operator, not evidence that an online checkout exists.
 // Require a business-model phrase in title/description/main H1, corroborated by
 // another service term; never infer a sector from prices, menu links or body copy.
-const TELECOM_ROLE = /\b(?:telecom(?:munications?)?|telekom|telecommunicatie|mobiele? abonnementen?|mobile (?:plans?|subscriptions?)|internet(?:-| )provider|broadband provider|mobile network|glasvezel(?:netwerk)?)\b/i;
-const TELECOM_SERVICE = /\b(?:mobiel|mobile|internet|glasvezel|fiber|fibre|netwerk|network|abonnementen?|5g|4g|tv|televisie|broadband|telefonie)\b/i;
+const TELECOM_ROLE = /\b(?:telecom(?:munications?)?|telekom|telecommunicatie|mobiele? abonnementen?|mobile (?:plans?|subscriptions?)|internet(?:-| )provider|broadband provider|mobile network|(?:internet|glasvezel|fiber|fibre)\s*abonnementen?|sim[\s-]*only|e-?sim(?:[\s-]*abonnementen?)?|glasvezelnetwerk)\b/i;
+const TELECOM_SERVICE = /\b(?:mobiel|mobile|internet|glasvezel|fiber|fibre|netwerk|network|abonnementen?|bundels?|simkaart|5g|4g|tv|televisie|broadband|telefonie|bellen|sms)\b/i;
+const TELECOM_NETWORK = /\b(?:internet|glasvezel|fiber|fibre|netwerk|network|broadband)\b/i;
+const TELECOM_MOBILE = /\b(?:mobiel|mobile|sim[\s-]*only|e-?sim|simkaart|bellen)\b/i;
+const TELECOM_PLAN = /\b(?:abonnementen?|bundels?|plans?|subscriptions?|provider)\b/i;
+const TELECOM_COMPARISON = /\b(?:vergelijker|vergelijk (?:providers|aanbieders)|compare (?:plans|providers)|tarieven vergelijken)\b/i;
+
 const ENERGY_ROLE = /\b(?:energieleverancier|energiebedrijf|energielevering|energiecontracten?|energy (?:supplier|provider|utility)|electricity supplier|gas en stroom|stroom en gas)\b/i;
 const ENERGY_SERVICE = /\b(?:energie|gas|stroom|elektriciteit|energiecontract|energieprijzen|duurzame energie|tarieven|energy|electricity|power supply)\b/i;
 const COWORK_ROLE = /\b(?:coworking|co-working|flexwerkplekken|flexibele (?:werkplekken|kantoorruimte)|shared (?:workspaces|offices)|flexible (?:workspaces|offices)|serviced offices|office space for rent)\b/i;
@@ -110,8 +115,19 @@ export function declaredSiteIdentity(input: DeclaredIdentityInput): DeclaredIden
   // Strong utility, travel and workspace operator identities outrank optional
   // storefront/cart navigation. Retailers with Store schema retain retail typing.
   const retailSchema = types.some((type) => /^(?:onlinestore|electronicsstore|mobilephonestore|departmentstore|clothingstore|furniturestore)$/i.test(type));
-  if (!retailSchema && TELECOM_ROLE.test(text) && TELECOM_SERVICE.test(text))
-    return found("telecom_technology", ["Primaire telecomdienst in title/description/H1; netwerk- of abonnementensignaal bevestigd"]);
+  // Telecom operators may sell devices and even publish OnlineStore schema.
+  // A secondary storefront must not conceal network and subscription services.
+  // At the same time, a handset retailer mentioning 5G/phone plans is not
+  // automatically a telecom provider; require independent network evidence.
+  const telecomRole = text.match(TELECOM_ROLE);
+  const telecomNetwork = TELECOM_NETWORK.test(text);
+  const telecomBundle = TELECOM_MOBILE.test(text) && telecomNetwork && TELECOM_PLAN.test(text);
+  const telecomProvider = !TELECOM_COMPARISON.test(text) &&
+    ((Boolean(telecomRole) && TELECOM_SERVICE.test(text) && (!retailSchema || telecomNetwork)) || telecomBundle);
+  if (telecomProvider)
+    return found("telecom_technology", [telecomRole
+      ? `Telecomdienst in title/description/H1: "${telecomRole[0]}"; netwerk-/abonnementscontext bevestigd`
+      : "Mobiele dienst, netwerk en abonnementen samen bevestigd in de primaire paginabeschrijving"]);
   if (!retailSchema && ENERGY_ROLE.test(text) && ENERGY_SERVICE.test(text))
     return found("energy", ["Energieleverancier/nutsbedrijf in paginabeschrijving bevestigd"]);
   if (!retailSchema && COWORK_ROLE.test(text))
