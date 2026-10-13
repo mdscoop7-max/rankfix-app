@@ -19,16 +19,16 @@ concurrency:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 180
     strategy:
       max-parallel: 1
       fail-fast: false
       matrix:
         include:
-          - label: before-main
-            sha: 82d47e3bdc2f000a2b1c9f1f2e9f859f24507b3e
-          - label: after-pr132
-            sha: 9c248c60b21146940d94f664333b6c642fa2e191
+          - label: r2-before
+            sha: 7d5ce8f34414586965584f2fb9b09dd07df18068
+          - label: r2-after
+            sha: b5082eb064226fe26b3fc8db9a6b60110ec5ec35
     env:
       SHA: ${{ matrix.sha }}
       LABEL: ${{ matrix.label }}
@@ -83,7 +83,7 @@ jobs:
           mkdir -p pilot-results/${LABEL}
           SERVER_PID=$(cat server.pid) BASE_URL=http://127.0.0.1:3100 PAUSE_MS=15000 DUMP_DIR=pilot-results/${LABEL}/raw \
             node --experimental-strip-types scripts/regression/local-scan-benchmark.mjs \
-            scripts/regression/pilot-pr132-sites.json pilot-results/${LABEL}/bench.json
+            scripts/regression/sector-sites.json pilot-results/${LABEL}/bench.json
       - name: Report
         if: always()
         run: |
