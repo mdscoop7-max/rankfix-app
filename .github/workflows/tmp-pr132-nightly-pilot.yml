@@ -94,9 +94,25 @@ jobs:
       - name: Save results on this temporary branch
         if: always()
         run: |
+          # Commit from a clean, separate clone so untracked build output (app/,
+          # server.log) can never block the rebase or the push.
+          set -x
+          rm -rf /tmp/save && mkdir -p /tmp/save
+          cp -r pilot-results /tmp/save/ || true
+          git status --short | head -20 || true
+          git clone -q --depth 5 --branch ci/pr132-nightly-pilot "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" /tmp/repo
+          cd /tmp/repo
           git config user.name "rankfix-pilot"
           git config user.email "noreply@github.com"
-          git add -f pilot-results/${LABEL} || true
-          git commit -m "Nachtpilot resultaten ${LABEL} ${GITHUB_RUN_ID}" || exit 0
-          ok=0; for i in 1 2 3; do git pull --rebase -q origin ci/pr132-nightly-pilot && git push origin HEAD:ci/pr132-nightly-pilot && ok=1 && break; sleep 5; done
+          ok=0
+          for i in 1 2 3 4 5; do
+            git fetch -q origin ci/pr132-nightly-pilot && git reset -q --hard origin/ci/pr132-nightly-pilot
+            mkdir -p pilot-results && cp -r /tmp/save/pilot-results/${LABEL} pilot-results/ || true
+            git add -f pilot-results/${LABEL}
+            git commit -q -m "Nachtpilot resultaten ${LABEL} ${GITHUB_RUN_ID}" || { ok=1; break; }
+            if git push origin HEAD:ci/pr132-nightly-pilot; then ok=1; break; fi
+            sleep $((i*5))
+          done
           [ "$ok" = 1 ] || { echo "::error::results push failed"; exit 1; }
+        env:
+          GH_TOKEN: ${{ github.token }}
