@@ -25,10 +25,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - label: r2-before
-            sha: 7d5ce8f34414586965584f2fb9b09dd07df18068
-          - label: r2-after
-            sha: b5082eb064226fe26b3fc8db9a6b60110ec5ec35
+          - label: r3-after
+            sha: b83869310bb9be63563a1c53633bd33b24e8978a
     env:
       SHA: ${{ matrix.sha }}
       LABEL: ${{ matrix.label }}
