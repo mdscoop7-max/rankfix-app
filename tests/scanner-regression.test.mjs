@@ -189,7 +189,7 @@ test("government identity overrides generic LocalBusiness schema advice", async 
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   assert.match(source, /governmentIdentitySignal/);
   assert.match(source, /GovernmentOrganization \+ WebSite/);
-  assert.match(source, /effectiveLocalSchemaSignal = hasLocalBusinessSignal && !governmentIdentitySignal/);
+  assert.match(source, /effectiveLocalSchemaSignal = hasLocalBusinessSignal && !declaredNonLocalIdentity && !governmentIdentitySignal/);
   assert.match(source, /effectiveLocalBusinessPage = !isProductPage && !hasCategorySignal && effectiveLocalSchemaSignal/);
   assert.match(source, /localBusinessDetails = effectiveLocalSchemaSignal/);
 });

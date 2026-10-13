@@ -25,9 +25,9 @@ test("scan ties hotel and commerce to primary business identity, not stray words
   const route=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
   assert.match(route,/financialServicePrimaryIdentity\(\{title,description,headings:h1s,schemaTypes\}\)/);
   assert.match(route,/!paymentServicesPrimaryIdentity && siteRole\.key !== "software" && primaryLodgingIdentity/);
-  assert.match(route,/!paymentServicesPrimaryIdentity && !shortStayIdentity/);
+  assert.match(route,/!paymentServicesPrimaryIdentity && !declaredIdentity && !shortStayIdentity/);
   assert.match(route,/confirmedRetailSamples = auditedMultiPages.filter/);
   assert.match(route,/!paymentServicesPrimaryIdentity \|\| explicitRetailIdentity/);
-  assert.match(route,/!masterIdentityOverride && !retailPrimaryIdentity && !finalCommerceDecision.confirmed/);
-  assert.match(route,/sectorProfile.key === "finance" && paymentServicesPrimaryIdentity/);
+  assert.match(route,/!masterIdentityOverride && !declaredIdentity && currentSectorWeak && !retailPrimaryIdentity && !finalCommerceDecision.confirmed/);
+  assert.match(route,/sectorProfile.key === "finance" && \(paymentServicesPrimaryIdentity \|\| declaredIdentity\?\.sector === "finance"\)/);
 });

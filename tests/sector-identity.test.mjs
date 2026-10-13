@@ -99,7 +99,9 @@ test("scan route wires the central identity rules without brand exceptions", asy
   // Retail identity without confirmed shop functionality is labelled as such, and
   // in-store reservations never turn a retailer into a booking website.
   assert.match(source, /sectorProfile\.key === "ecommerce" && !finalCommerceDecision\.confirmed\) \{\n\s+sectorProfile\.label = "Retail · webshopfunctionaliteit niet bevestigd"/);
-  assert.match(source, /sectorProfile\.key !== "ecommerce" && masterEvidence\.businessModels\.some\(model => model === "appointments"/);
+  // Booking type only for sectors whose business is booking (never retail, software or payments).
+  assert.match(source, /\["hospitality","health_wellness","beauty","automotive","home_services","tourism_recreation","transport_travel"\]\.includes\(String\(sectorProfile\.sector\)\) && masterEvidence\.businessModels\.some\(model => model === "appointments"/);
+  assert.equal(/\bikea\b|zalando|coolblue|mollie|paypal|moneybird|adyen|stripe|teamleader/i.test(await readFile(new URL("../lib/site-identity.ts", import.meta.url), "utf8")), false);
   assert.equal(/\bikea\b|zalando|coolblue|kwik-?fit|transheroes|housingnet|dekas/i.test(await readFile(new URL("../lib/sector-identity.ts", import.meta.url), "utf8")), false);
 });
 
@@ -336,5 +338,5 @@ test("primary SaaS in metadata wins over incidental logistics/customer case stud
 
 test("representative-page content cannot overwrite independently established primary site role",async()=>{
   const source=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
-  assert.match(source,/if \(!masterIdentityOverride && !retailPrimaryIdentity && !finalCommerceDecision\.confirmed && reconciledIdentityStrong/);
+  assert.match(source,/if \(!masterIdentityOverride && !declaredIdentity && currentSectorWeak && !retailPrimaryIdentity && !finalCommerceDecision\.confirmed && reconciledIdentityStrong/);
 });

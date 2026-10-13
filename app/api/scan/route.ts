@@ -23,6 +23,7 @@ import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence"
 import { isSubstantiveRender, renderImprovesEvidence } from "@/lib/render-quality";
 import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDetailPath, productUrlsFromSitemap } from "@/lib/product-links";
 import { SITE_URL } from "@/lib/site-url";
+import { declaredSiteIdentity } from "@/lib/site-identity";
 import { assessDescriptionQuality, assessH1Quality, assessProductSchemaCompleteness, blendHeadlineScore, blockedScanMessage, canonicalCrossDomainRisk, classifyLegalLink, findAudienceEvidence, findConsentEvidence, findFaqEvidence, findFormEvidence, findPaymentMethods, findRegulatoryEvidence, findReviewEvidence, findTagManagerEvidence, findVisiblePrices, fintechIdentity, isBlockingStatus, isBrokenStatus, isGenericTitle, LEGAL_LEXICON, rankfixUserAgents, sameRegistrableSite, isPlaceholderHref, htmlWithoutScripts, offerPriceAndCurrency } from "@/lib/evidence-quality";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
@@ -881,6 +882,7 @@ export async function POST(request: Request) {
       return {
         name: typeof product?.name === "string" ? product.name.trim() : "",
         hasImage: Boolean(product?.image),
+        hasRating: Boolean(product?.aggregateRating || product?.review),
         imageUrl,
         sku: typeof product?.sku === "string" ? product.sku.trim() : "",
         offers: normalizedOffers,
@@ -1152,7 +1154,12 @@ export async function POST(request: Request) {
     const ecommerceSchemaContext = hasEcommerceSignal || earlyRetailIdentity || schemaSet.has("onlinestore") || (schemaSet.has("product") && !nonRetailIdentityEarly);
     // Government, international transport/logistics and e-commerce identities
     // override generic LocalBusiness hints so advice follows the actual business model.
-    const effectiveLocalSchemaSignal = hasLocalBusinessSignal && !governmentIdentitySignal && !governmentSchemaPresent && !transportLogisticsSchemaContext && !ecommerceSchemaContext;
+    // A site that declares a non-local identity (payments, software, news, jobs,
+    // government) is not asked for LocalBusiness schema because it lists an office
+    // address (round 2: PayPal, Buckaroo, Exact, NOS).
+    const declaredIdentity = declaredSiteIdentity({ title, description, siteName: stripHtml(ogSiteName || ""), h1s, schemaTypes, hostname: finalUrl.hostname });
+    const declaredNonLocalIdentity = Boolean(declaredIdentity && declaredIdentity.sector !== "health_wellness");
+    const effectiveLocalSchemaSignal = hasLocalBusinessSignal && !declaredNonLocalIdentity && !governmentIdentitySignal && !governmentSchemaPresent && !transportLogisticsSchemaContext && !ecommerceSchemaContext;
     const recommendedSchema = governmentIdentitySignal || governmentSchemaPresent
       ? (isHomepage ? "GovernmentOrganization + WebSite" : "GovernmentOrganization / WebPage")
       : transportLogisticsSchemaContext
@@ -1244,7 +1251,11 @@ export async function POST(request: Request) {
         if (rule && groups.length) groups[groups.length - 1].rules.push({ kind: rule[1].toLowerCase() as "allow" | "disallow", path: rule[2].trim() });
         return groups;
       }, []);
-    const applicableRobotsGroups = robotsGroups.filter((group) => group.agents.includes("*") || group.agents.some((agent) => /rankfixbot|googlebot/.test(agent)));
+    // A crawler obeys only its most specific group (robots.txt standard, RFC 9309):
+    // the Googlebot group when there is one, otherwise "*". Mixing both reported
+    // "Disallow: /" for "*" on sites that explicitly allow Google (round 2).
+    const googlebotGroups = robotsGroups.filter((group) => group.agents.some((agent) => agent === "googlebot"));
+    const applicableRobotsGroups = googlebotGroups.length ? googlebotGroups : robotsGroups.filter((group) => group.agents.includes("*"));
     const robotsRuleMatches = (rulePath: string, candidatePath: string) => {
       if (!rulePath) return false;
       const anchored = rulePath.endsWith("$");
@@ -1346,12 +1357,14 @@ export async function POST(request: Request) {
           let childSitemapMatchesSite = false;
           if (sitemapKind === "sitemapindex" && sameOriginLocValues.length === 0 && validLocValues.length > 0 && (candidate.source === "robots" || candidate.source === "html")) {
             try {
-              const child = (await safePublicFetch(new URL(validLocValues[0]), { timeoutMs: 5000, maxRedirects: 2, userAgent: RANKFIX_AGENTS.bot, accept: "application/xml,text/xml,text/plain" })).response;
-              if (child.ok) {
-                const childBody = await readResponseTextLimited(child, 2_000_000);
+              for (const childUrl of validLocValues.slice(0, 3)) {
+                const child = (await safePublicFetch(new URL(childUrl), { timeoutMs: 5000, maxRedirects: 2, userAgent: RANKFIX_AGENTS.bot, accept: "application/xml,text/xml,text/plain,application/gzip" })).response;
+                if (!child.ok) continue;
+                const childBody = await readResponseTextLimited(child, 4_000_000);
                 childSitemapMatchesSite = [...childBody.matchAll(/<(?:(?:[a-z0-9_-]+):)?loc\b[^>]*>([\s\S]*?)<\/(?:(?:[a-z0-9_-]+):)?loc>/gi)]
                   .slice(0, 200)
                   .some((match) => { try { return sameRegistrableSite(new URL(decode(String(match[1] || "").trim())).hostname, finalUrl.hostname); } catch { return false; } });
+                if (childSitemapMatchesSite) break;
               }
             } catch {}
           }
@@ -1585,7 +1598,12 @@ export async function POST(request: Request) {
     ];
     // Tourist boards branded as "visit<place>" are recognised by hostname, never by
     // the generic phrase "visit our ..." in page text.
-    const sectorIdentitySource = [title, description, h1s.join(" "), finalUrl.hostname, finalUrl.pathname, isTourismBoardHost(finalUrl.hostname) ? "toerisme" : ""].join(" ");
+    // Identity comes from the main heading only: a page with many H1s (news teasers,
+    // product tiles) lists topics, not what the site is (nu.nl as "transport").
+    const identityH1s = (() => { const unique = [...new Set(h1s.map((value) => value.trim()).filter(Boolean))]; return unique.length <= 2 ? unique : unique.slice(0, 1); })();
+    const sectorIdentitySource = [title, description, identityH1s.join(" "), finalUrl.hostname, finalUrl.pathname, isTourismBoardHost(finalUrl.hostname) ? "toerisme" : ""].join(" ");
+    // declaredIdentity (computed above): what the site declares itself to be (title,
+    // description, site name, main H1, schema, official host). Decides before body text.
     const sectorSource = [sectorIdentitySource, text.slice(0,120000), schemaTypes.join(" ")].join(" ");
     // Strong page/site identity must beat incidental words elsewhere in long pages.
     // In particular, sewer/drain services often mention generic "reparatie", which is not automotive evidence.
@@ -1686,6 +1704,8 @@ export async function POST(request: Request) {
     const beautyServiceIdentity = /\b(?:beauty salon|beautysalon|schoonheidssalon|day spa|dayspa|city spa|wellness|manicure|pedicure|nail salon|nagelsalon|facial|gezichtsbehandeling)\b/i.test(sectorIdentitySource) || schemaSet.has("beautysalon") || schemaSet.has("dayspa");
     const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[]} | null = paymentServicesPrimaryIdentity
       ? {sector:"finance",key:"finance",label:financialIdentity.provider ? "Betaalplatform / financiële dienstverlening" : "Financieel platform / betaaldiensten",evidence:[...financialIdentity.evidence, ...fintechIdentity([title, description, h1s.join(" ")].join(" ")).hits.map(hit=>`Betaaldienst: ${hit}`)]}
+      : declaredIdentity
+      ? {sector:declaredIdentity.sector as SectorKey,key:declaredIdentity.sector,label:declaredIdentity.label,evidence:["Verklaarde identiteit (title, description, sitenaam, hoofd-H1 of schema)", ...declaredIdentity.evidence]}
       : siteRole.key === "software"
       ? {sector:"saas_b2b",key:"saas_b2b",label:"SaaS / B2B",evidence:siteRole.evidence}
       : shortStayIdentity
@@ -1717,7 +1737,7 @@ export async function POST(request: Request) {
       (onlineRetailCallout || (retailStoreIdentity && commerceNavigationSignal)));
     const retailPurchaseEvidence = evidenceCommerceConfirmed || hasEcommerceSignal || explicitRetailIdentity;
     const retailPrimaryIdentity = retailPurchaseEvidence
-      && !paymentServicesPrimaryIdentity && !shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity
+      && !paymentServicesPrimaryIdentity && !declaredIdentity && !shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity
       && !beautyServiceIdentity && !explicitMedicalIdentity && !transportBookingIdentity
       && !/\b(?:restaurant|hotel|reserveren|reserveer tafel|vakantieverhuur|transportdiensten|schoonmaakdienst)\b/i.test(sectorIdentitySource);
     const primaryNonCommerceIdentity = retailPrimaryIdentity ? null : (masterIdentityOverride
@@ -4040,7 +4060,10 @@ export async function POST(request: Request) {
         const pageHost = normalizeHost(finalCandidate.hostname);
         const pageH1Quality = assessH1Quality(pageHtml, [pageHost, pageHost.split(".")[0]], finalCandidate.toString());
         const pageCanonicalRisk = pageCanonical ? canonicalCrossDomainRisk(pageCanonical, finalCandidate.toString()) : { crossDomain: false, canonicalHost: null };
-        const pageProductMissing = pageProductEvidence ? [!pageProductEvidence.price ? "prijs" : null, !pageProductEvidence.currency ? "valuta" : null].filter(Boolean) as string[] : [];
+        // Product markup with a rating but no offer is valid for software/services;
+        // only an offer without price or currency is incomplete.
+        const pageProductHasRatingOnly = Boolean(pageProductJson && !pageOfferList.length && (pageProductJson.aggregateRating || pageProductJson.review));
+        const pageProductMissing = pageProductEvidence && !pageProductHasRatingOnly ? [!pageProductEvidence.price ? "prijs" : null, !pageProductEvidence.currency ? "valuta" : null].filter(Boolean) as string[] : [];
         // A JavaScript application shell that could not be rendered cannot prove a
         // missing title, description, H1 or canonical; those stay unconfirmed.
         const pageClientShell = isClientShell({ visibleWords: pageQualityWords, scriptCount: (pageHtml.match(/<script\b/gi) || []).length, jsFramework: representativeJsFramework, h1Count: pageH1s.length, rendered: representativeEvidenceSource === "rendered_html" });
@@ -4387,7 +4410,11 @@ export async function POST(request: Request) {
     const reconciledTop = reconciledSectorCandidates[0];
     const reconciledRunnerUp = reconciledSectorCandidates[1];
     const reconciledIdentityStrong = Boolean(reconciledTop && reconciledTop.score >= 3 && (!reconciledRunnerUp || reconciledTop.score > reconciledRunnerUp.score));
-    if (!masterIdentityOverride && !retailPrimaryIdentity && !finalCommerceDecision.confirmed && reconciledIdentityStrong && reconciledTop && sectorProfile.sector !== reconciledTop.sector) {
+    // Sample pages describe topics (customer cases, news, services); they may only
+    // fill in a sector that the page itself left weak, never replace a declared or
+    // confident one (Adyen as "beauty", Belastingdienst as "news", round 2).
+    const currentSectorWeak = sectorProfile.key === "unknown" || (sectorProfile.confidenceScore ?? 0) < 80;
+    if (!masterIdentityOverride && !declaredIdentity && currentSectorWeak && !retailPrimaryIdentity && !finalCommerceDecision.confirmed && reconciledIdentityStrong && reconciledTop && sectorProfile.sector !== reconciledTop.sector) {
       sectorProfile.sector = reconciledTop.sector;
       sectorProfile.key = reconciledTop.sector;
       sectorProfile.label = reconciledTop.label;
@@ -4535,12 +4562,14 @@ export async function POST(request: Request) {
     }
     const websiteType = finalCommerceDecision.confirmed
       ? "Webshop"
-      : sectorProfile.key === "finance" && paymentServicesPrimaryIdentity
+      : sectorProfile.key === "finance" && (paymentServicesPrimaryIdentity || declaredIdentity?.sector === "finance")
         ? financialIdentity.provider ? "Betaaldienstverlener" : "Financieel platform"
       : sectorProfile.key === "recruitment" && masterEvidence.businessModels.includes("recruitment")
         ? "Recruitmentwebsite"
         // Reserving or collecting in-store is a secondary retail capability, not a booking site.
-        : sectorProfile.key !== "ecommerce" && masterEvidence.businessModels.some(model => model === "appointments" || model === "reservations" || model === "bookings")
+        // Only where booking is the business (care, beauty, hospitality, garages,
+        // trades, recreation); a software or payment "book a demo" is not.
+        : ["hospitality","health_wellness","beauty","automotive","home_services","tourism_recreation","transport_travel"].includes(String(sectorProfile.sector)) && masterEvidence.businessModels.some(model => model === "appointments" || model === "reservations" || model === "bookings")
           ? "Boekings-/afsprakenwebsite"
           : technologyProfile.siteType === "Landingpage"
             ? "Website"

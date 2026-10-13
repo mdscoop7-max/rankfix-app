@@ -19,8 +19,11 @@ test("H1 'Home' is not a passing page heading (rijksoverheid.nl)", () => {
   assert.equal(result.flag, "generic");
 });
 
-test("a brand-only H1 is generic", () => {
+test("a brand-only H1 is generic on a subpage, normal on the homepage", () => {
   assert.equal(assessH1Quality(`<h1>Sneakers.nl</h1>`, ["sneakers", "sneakers.nl"]).flag, "generic");
+  assert.equal(assessH1Quality(`<h1>Sneakers.nl</h1>`, ["sneakers", "sneakers.nl"], "https://www.sneakers.nl/dames").flag, "generic");
+  assert.equal(assessH1Quality(`<h1>Belastingdienst</h1>`, ["belastingdienst"], "https://www.belastingdienst.nl/").status, "pass");
+  assert.equal(assessH1Quality(`<h1>Home</h1>`, ["rijksoverheid"], "https://www.rijksoverheid.nl/").flag, "generic");
 });
 
 test("a cookie-banner H1 is not counted as the page heading (transheroes.com/nl)", () => {
@@ -369,4 +372,9 @@ test("FAQ needs an FAQ heading; account prompts are not questions (DiscountOffic
 test("an empty review widget is not a review signal (Allbirds '0 Bewertungen')", () => {
   assert.equal(findReviewEvidence("", "0 Bewertungen", []).ratingText, null);
   assert.ok(findReviewEvidence("", "4,6/5 op basis van 2.310 beoordelingen", []).ratingText);
+});
+
+test("software Product markup with a rating but no offer is valid (Teamleader)", () => {
+  assert.equal(assessProductSchemaCompleteness([{ name: "Teamleader Focus", hasImage: true, hasRating: true, offers: [] }]).complete, true);
+  assert.equal(assessProductSchemaCompleteness([{ name: "Bureaustoel", hasImage: true, offers: [] }]).complete, false);
 });

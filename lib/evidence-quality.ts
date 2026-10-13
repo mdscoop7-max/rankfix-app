@@ -97,7 +97,12 @@ export type H1Quality = {
 export function assessH1Quality(html: string, brandTokens: string[] = [], pageUrl = ""): H1Quality {
   // On a cookie or privacy policy page, a cookie heading IS the page heading.
   let policyPage = false;
-  try { policyPage = Boolean(pageUrl) && POLICY_PATH.test(new URL(pageUrl).pathname); } catch {}
+  let homePage = false;
+  try {
+    const path = new URL(pageUrl).pathname.replace(/\/+$/, "");
+    policyPage = Boolean(pageUrl) && POLICY_PATH.test(new URL(pageUrl).pathname);
+    homePage = Boolean(pageUrl) && (path === "" || /^\/[a-z]{2}(?:[-_][a-z]{2})?(?:\/[a-z]{2})?$/i.test(path) || /\/home$/i.test(path));
+  } catch {}
   const found: Array<{ text: string; consent: boolean }> = [];
   for (const match of html.matchAll(/<h1\b([^>]*)>([\s\S]*?)<\/h1>/gi)) {
     const text = stripTags(match[2] || "");
@@ -132,7 +137,9 @@ export function assessH1Quality(html: string, brandTokens: string[] = [], pageUr
   const brands = new Set(brandTokens.map(normalizeText).filter(Boolean));
   const isGeneric = (value: string) => {
     const key = normalizeText(value);
-    return GENERIC_H1.test(key) || brands.has(key) || brands.has(key.replace(/\s+/g, ""));
+    // The brand as H1 is normal on a homepage (the organisation IS the topic);
+    // on a subpage it says nothing about the page.
+    return GENERIC_H1.test(key) || (!homePage && (brands.has(key) || brands.has(key.replace(/\s+/g, ""))));
   };
   if (unique.length === 1) {
     if (isGeneric(unique[0])) {
@@ -180,6 +187,8 @@ export function assessDescriptionQuality(description: string): DescriptionQualit
 export type ProductOfferInput = {
   name: string;
   hasImage: boolean;
+  /** aggregateRating or review: valid Product markup for software/services without offers. */
+  hasRating?: boolean;
   offers: Array<{ price: unknown; currency: string; availability: string }>;
 };
 
@@ -187,11 +196,11 @@ export function assessProductSchemaCompleteness(products: ProductOfferInput[]): 
   if (!products.length) return { complete: false, missing: ["Product"], products: 0 };
   const hasPrice = (value: unknown) => value !== null && value !== undefined && value !== "" && Number.isFinite(Number(String(value).replace(",", ".")));
   const best = products.map((product) => {
-    const offerOk = product.offers.some((offer) => hasPrice(offer.price) && /^[A-Z]{3}$/.test(offer.currency));
+    const offerOk = product.offers.some((offer) => hasPrice(offer.price) && /^[A-Z]{3}$/.test(offer.currency)) || (!product.offers.length && Boolean(product.hasRating));
     const missing = [
       !product.name ? "naam" : null,
       !product.hasImage ? "afbeelding" : null,
-      !product.offers.length ? "offers" : null,
+      !product.offers.length && !product.hasRating ? "offers" : null,
       product.offers.length && !product.offers.some((offer) => hasPrice(offer.price)) ? "prijs" : null,
       product.offers.length && !product.offers.some((offer) => /^[A-Z]{3}$/.test(offer.currency)) ? "valuta" : null,
       product.offers.length && !product.offers.some((offer) => offer.availability) ? "beschikbaarheid" : null,
