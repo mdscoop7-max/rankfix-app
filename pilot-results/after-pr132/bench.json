@@ -1,0 +1,2372 @@
+{
+  "base": "http://127.0.0.1:3100",
+  "results": [
+    {
+      "kind": "pilot · webshop (Next.js)",
+      "url": "https://www.coolblue.nl/",
+      "httpStatus": 200,
+      "note": "",
+      "error": null,
+      "wallSeconds": 18.9,
+      "cpuSeconds": 3.8,
+      "peakMemoryMb": 1328,
+      "peakProcesses": 13,
+      "truth": {
+        "httpStatus": 200,
+        "bytes": 1281314,
+        "markers": {
+          "woocommerce": false,
+          "wordpress": false,
+          "shopify": false,
+          "nextjs": true,
+          "nuxt": false,
+          "productSchema": false,
+          "articleSchema": false
+        }
+      },
+      "technology": {
+        "siteType": "Website",
+        "cms": null,
+        "commercePlatform": null,
+        "framework": "Next.js",
+        "confidence": 72
+      },
+      "rendering": {
+        "mode": "javascript_rendered",
+        "fallbackReason": null,
+        "elapsedMs": 13775,
+        "botProtection": null
+      },
+      "multiPage": {
+        "homepage": 1,
+        "category": 0,
+        "product": 0,
+        "form": 0,
+        "legal": 0,
+        "service": 0,
+        "listing": 0,
+        "support": 0,
+        "other": 0,
+        "audited": 1,
+        "broken": 0,
+        "unableToConfirm": 0
+      },
+      "scoreRange": {
+        "low": 62,
+        "high": 94
+      },
+      "commerceApplicability": "unconfirmed",
+      "snapshot": {
+        "outcome": "scanned",
+        "httpStatus": 200,
+        "errorCode": null,
+        "durationMs": 18930,
+        "finalUrl": "https://www.coolblue.nl/",
+        "overallScore": 84,
+        "seoScore": 97,
+        "geoScore": 65,
+        "securityScore": 78,
+        "coveragePercent": 68,
+        "highConfidencePercent": 85,
+        "provisional": true,
+        "sector": {
+          "key": "unknown",
+          "label": "Sector niet bevestigd",
+          "confidenceScore": 35
+        },
+        "websiteType": "Website",
+        "pageType": {
+          "type": "homepage",
+          "confidence": "high"
+        },
+        "pageTypeContradictions": [],
+        "renderer": "javascript_rendered",
+        "renderFallbackReason": null,
+        "botProtection": false,
+        "recovery": {
+          "attempted": false,
+          "browserRecovered": false
+        },
+        "counts": {
+          "passed": 25,
+          "issues": 6,
+          "notApplicable": 5,
+          "unableToConfirm": 21
+        },
+        "findings": [
+          {
+            "rule": "H1_MISSING",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "headings",
+            "status": "WARNING",
+            "confidence": "medium",
+            "category": "seo"
+          },
+          {
+            "rule": "ORGANIZATION_WEBSITE_SCHEMA",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "geo"
+          },
+          {
+            "rule": "sample_h1",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "SOCIAL_METADATA_INCOMPLETE",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "STRUCTURED_DATA_MISSING",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "geo"
+          }
+        ],
+        "fingerprint": "fbd24a5cf300d0fc",
+        "scanner": {
+          "crawler": null,
+          "rules": null,
+          "scoreModel": null,
+          "commit": null
+        }
+      },
+      "issues": [
+        {
+          "rule": "H1_MISSING",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "H1-heading",
+          "message": "Er is geen H1-heading gevonden. Dit is een structuur-/toegankelijkheidsaanbeveling en geen op zichzelf bewezen rankingfout.",
+          "found": "h1Count=0; consentExcluded=0",
+          "url": "https://www.coolblue.nl/"
+        },
+        {
+          "rule": "headings",
+          "status": "WARNING",
+          "confidence": "medium",
+          "title": "Heading-structuur",
+          "message": "Er zijn 54 subheading(s) gevonden, maar geen duidelijke H2-laag. Dit is structuuradvies en geen bewezen rankingfout.",
+          "found": 54,
+          "url": "https://www.coolblue.nl/"
+        },
+        {
+          "rule": "SOCIAL_METADATA_INCOMPLETE",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Social metadata",
+          "message": "Open Graph vraagt aandacht. Ontbrekend: og:image.",
+          "found": "og:title, og:description",
+          "url": "https://www.coolblue.nl/"
+        },
+        {
+          "rule": "STRUCTURED_DATA_MISSING",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Structured data",
+          "message": "Geen geldige JSON-LD structured data gevonden voor deze homepage. Dit is een machineleesbare optimalisatiekans; de zichtbare pagina kan zonder JSON-LD nog steeds inhoudelijk correct zijn.",
+          "found": "validJsonLdBlocks=0",
+          "url": "https://www.coolblue.nl/"
+        },
+        {
+          "rule": "ORGANIZATION_WEBSITE_SCHEMA",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Organization + WebSite",
+          "message": "De homepage bevat geen bevestigd Organization- of WebSite-schema. Dit is machineleesbaar identity-advies en geen bewijs dat de zichtbare organisatie-identiteit ontbreekt.",
+          "found": "organizationSchema=false; websiteSchema=false; schemaTypes=",
+          "url": "https://www.coolblue.nl/"
+        },
+        {
+          "rule": "sample_h1",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: H1-headings",
+          "message": "1 van 1 gecontroleerde pagina('s) vraagt aandacht: https://www.coolblue.nl/ (Er is geen H1-heading gevonden.).",
+          "found": "https://www.coolblue.nl/",
+          "url": "https://www.coolblue.nl/"
+        }
+      ],
+      "unconfirmed": [
+        "HREFLANG_MISSING",
+        "commercial_terms_signal",
+        "merchant_product_readiness",
+        "merchant_feed_signal",
+        "PRICE_FORMAT",
+        "checkout_funnel_static",
+        "checkout_information_signal",
+        "eu_discount_reference_signal",
+        "eu_review_transparency_signal",
+        "eu_scarcity_signal",
+        "eu_consumer_information_signal",
+        "price_currency_consistency",
+        "WEBSHOP_TRUST_SIGNALS",
+        "PRODUCT_VARIANT_URL",
+        "PRODUCT_PRICE_CONSISTENCY",
+        "PRODUCT_AVAILABILITY",
+        "WEBSHOP_CLAIM_VERIFICATION",
+        "CHECKOUT_TRUST_SIGNALS",
+        "PRODUCT_COPY_OPTIMIZER",
+        "PRODUCT_SCHEMA_MISSING",
+        "entity"
+      ]
+    },
+    {
+      "kind": "pilot · webshop (bot-beveiliging)",
+      "url": "https://www.zalando.de/",
+      "httpStatus": 200,
+      "note": "",
+      "error": null,
+      "wallSeconds": 18.7,
+      "cpuSeconds": 7,
+      "peakMemoryMb": 4187,
+      "peakProcesses": 40,
+      "truth": {
+        "httpStatus": 200,
+        "bytes": 571352,
+        "markers": {
+          "woocommerce": false,
+          "wordpress": false,
+          "shopify": false,
+          "nextjs": false,
+          "nuxt": false,
+          "productSchema": false,
+          "articleSchema": false
+        }
+      },
+      "technology": {
+        "siteType": "Website",
+        "cms": null,
+        "commercePlatform": null,
+        "framework": null,
+        "confidence": 40
+      },
+      "rendering": {
+        "mode": "raw_html",
+        "fallbackReason": null,
+        "elapsedMs": null,
+        "botProtection": [
+          "bm_s",
+          "bm_so",
+          "bm_sz"
+        ]
+      },
+      "multiPage": {
+        "homepage": 1,
+        "category": 1,
+        "product": 0,
+        "form": 0,
+        "legal": 0,
+        "service": 0,
+        "listing": 0,
+        "support": 3,
+        "other": 12,
+        "audited": 6,
+        "broken": 0,
+        "unableToConfirm": 11
+      },
+      "scoreRange": {
+        "low": 48,
+        "high": 100
+      },
+      "commerceApplicability": "unconfirmed",
+      "snapshot": {
+        "outcome": "scanned",
+        "httpStatus": 200,
+        "errorCode": null,
+        "durationMs": 18674,
+        "finalUrl": "https://www.zalando.de/",
+        "overallScore": 93,
+        "seoScore": 100,
+        "geoScore": 100,
+        "securityScore": 78,
+        "coveragePercent": 48,
+        "highConfidencePercent": 78,
+        "provisional": true,
+        "sector": {
+          "key": "unknown",
+          "label": "Sector niet bevestigd",
+          "confidenceScore": 35
+        },
+        "websiteType": "Website",
+        "pageType": {
+          "type": "homepage",
+          "confidence": "high"
+        },
+        "pageTypeContradictions": [],
+        "renderer": "raw_html",
+        "renderFallbackReason": null,
+        "botProtection": true,
+        "recovery": {
+          "attempted": false,
+          "browserRecovered": false
+        },
+        "counts": {
+          "passed": 21,
+          "issues": 4,
+          "notApplicable": 6,
+          "unableToConfirm": 29
+        },
+        "findings": [
+          {
+            "rule": "sample_canonical",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_description",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_h1",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_title",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          }
+        ],
+        "fingerprint": "c49a8ffa710b956d",
+        "scanner": {
+          "crawler": null,
+          "rules": null,
+          "scoreModel": null,
+          "commit": null
+        }
+      },
+      "issues": [
+        {
+          "rule": "sample_title",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: meta titles",
+          "message": "3 van 6 gecontroleerde pagina('s) vraagt aandacht: https://www.zalando.de/faq/product-safety (Title bevat alleen de merknaam (\"Zalando\"); het onderwerp van de pagina ontbreekt.); https://www.zalando.de/faq (Title bevat alleen de merknaam (\"Zalando\"); het onderwerp van de pagina ontbreekt.); https://",
+          "found": "https://www.zalando.de/faq/product-safety | https://www.zalando.de/faq | https://www.zalando.de/faq/where-is-my-parcel.html",
+          "url": "https://www.zalando.de/"
+        },
+        {
+          "rule": "sample_description",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: meta descriptions",
+          "message": "3 van 6 gecontroleerde pagina('s) vraagt aandacht: https://www.zalando.de/faq/product-safety (Geen meta description-tag gevonden in raw HTML.); https://www.zalando.de/faq (Geen meta description-tag gevonden in raw HTML.); https://www.zalando.de/faq/where-is-my-parcel.html (Geen meta description-tag ",
+          "found": "https://www.zalando.de/faq/product-safety | https://www.zalando.de/faq | https://www.zalando.de/faq/where-is-my-parcel.html",
+          "url": "https://www.zalando.de/"
+        },
+        {
+          "rule": "sample_h1",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: H1-headings",
+          "message": "4 van 6 gecontroleerde pagina('s) vraagt aandacht: https://www.zalando.de/ (Er is geen H1-heading gevonden.); https://www.zalando.de/faq/product-safety (Er is geen H1-heading gevonden.); https://www.zalando.de/faq (Er is geen H1-heading gevonden.); https://www.zalando.de/faq/where-is-my-parcel.html ",
+          "found": "https://www.zalando.de/ | https://www.zalando.de/faq/product-safety | https://www.zalando.de/faq | https://www.zalando.de/faq/where-is-my-parcel.html",
+          "url": "https://www.zalando.de/"
+        },
+        {
+          "rule": "sample_canonical",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: canonicals",
+          "message": "3 van 6 gecontroleerde pagina('s) vraagt aandacht: https://www.zalando.de/faq/product-safety (Geen canonical-linkelement gevonden in de gecontroleerde raw HTML. Dit is hetzelfde afwezigheidssignaal als in); https://www.zalando.de/faq (Geen canonical-linkelement gevonden in de gecontroleerde raw HTML",
+          "found": "https://www.zalando.de/faq/product-safety | https://www.zalando.de/faq | https://www.zalando.de/faq/where-is-my-parcel.html",
+          "url": "https://www.zalando.de/"
+        }
+      ],
+      "unconfirmed": [
+        "broken_links",
+        "H1_MISSING",
+        "SOCIAL_METADATA_INCOMPLETE",
+        "sitemap",
+        "HREFLANG_MISSING",
+        "trust_legal_signals",
+        "commercial_terms_signal",
+        "merchant_product_readiness",
+        "merchant_feed_signal",
+        "BUSINESS_PLACEHOLDER",
+        "PRICE_FORMAT",
+        "checkout_funnel_static",
+        "checkout_information_signal",
+        "eu_discount_reference_signal",
+        "eu_review_transparency_signal",
+        "eu_scarcity_signal",
+        "eu_consumer_information_signal",
+        "price_currency_consistency",
+        "WEBSHOP_TRUST_SIGNALS",
+        "PRODUCT_VARIANT_URL",
+        "PRODUCT_PRICE_CONSISTENCY",
+        "PRODUCT_AVAILABILITY",
+        "WEBSHOP_CLAIM_VERIFICATION",
+        "CHECKOUT_TRUST_SIGNALS",
+        "STRUCTURED_DATA_MISSING",
+        "ORGANIZATION_WEBSITE_SCHEMA",
+        "PRODUCT_COPY_OPTIMIZER",
+        "PRODUCT_SCHEMA_MISSING",
+        "entity"
+      ]
+    },
+    {
+      "kind": "pilot · webshop",
+      "url": "https://www.expert.nl/",
+      "httpStatus": 200,
+      "note": "",
+      "error": null,
+      "wallSeconds": 8.9,
+      "cpuSeconds": 1.2,
+      "peakMemoryMb": 274,
+      "peakProcesses": 1,
+      "truth": {
+        "httpStatus": 200,
+        "bytes": 466237,
+        "markers": {
+          "woocommerce": false,
+          "wordpress": false,
+          "shopify": false,
+          "nextjs": false,
+          "nuxt": false,
+          "productSchema": false,
+          "articleSchema": false
+        }
+      },
+      "technology": {
+        "siteType": "Webshop",
+        "cms": null,
+        "commercePlatform": null,
+        "framework": null,
+        "confidence": 82
+      },
+      "rendering": {
+        "mode": "raw_html",
+        "fallbackReason": null,
+        "elapsedMs": null,
+        "botProtection": null
+      },
+      "multiPage": {
+        "homepage": 1,
+        "category": 0,
+        "product": 0,
+        "form": 0,
+        "legal": 2,
+        "service": 6,
+        "listing": 0,
+        "support": 0,
+        "other": 12,
+        "audited": 24,
+        "broken": 0,
+        "unableToConfirm": 0
+      },
+      "scoreRange": {
+        "low": 73,
+        "high": 98
+      },
+      "commerceApplicability": "confirmed",
+      "snapshot": {
+        "outcome": "scanned",
+        "httpStatus": 200,
+        "errorCode": null,
+        "durationMs": 8878,
+        "finalUrl": "https://www.expert.nl/",
+        "overallScore": 97,
+        "seoScore": 98,
+        "geoScore": 97,
+        "securityScore": 78,
+        "coveragePercent": 75,
+        "highConfidencePercent": 86,
+        "provisional": true,
+        "sector": {
+          "key": "ecommerce",
+          "label": "Webshop / e-commerce",
+          "confidenceScore": 88
+        },
+        "websiteType": "Webshop",
+        "pageType": {
+          "type": "homepage",
+          "confidence": "high"
+        },
+        "pageTypeContradictions": [],
+        "renderer": "raw_html",
+        "renderFallbackReason": null,
+        "botProtection": false,
+        "recovery": {
+          "attempted": false,
+          "browserRecovered": false
+        },
+        "counts": {
+          "passed": 29,
+          "issues": 6,
+          "notApplicable": 6,
+          "unableToConfirm": 18
+        },
+        "findings": [
+          {
+            "rule": "H1_MISSING",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "ORGANIZATION_WEBSITE_SCHEMA",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "geo"
+          },
+          {
+            "rule": "sample_description",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_h1",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_title",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "trust_legal_signals",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          }
+        ],
+        "fingerprint": "ab8ad8a30e534e71",
+        "scanner": {
+          "crawler": null,
+          "rules": null,
+          "scoreModel": null,
+          "commit": null
+        }
+      },
+      "issues": [
+        {
+          "rule": "H1_MISSING",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "H1-heading",
+          "message": "Er is geen H1-heading gevonden. Dit is een structuur-/toegankelijkheidsaanbeveling en geen op zichzelf bewezen rankingfout.",
+          "found": "h1Count=0; consentExcluded=0",
+          "url": "https://www.expert.nl/"
+        },
+        {
+          "rule": "trust_legal_signals",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Privacy & vertrouwenssignalen",
+          "message": "Niet alle basissignalen zijn gevonden: cookies.",
+          "found": "privacy=true (/privacy); terms=true (/service/expert-service/algemene-voorwaarden-bezorging); cookies=false; contact=true",
+          "url": "https://www.expert.nl/"
+        },
+        {
+          "rule": "ORGANIZATION_WEBSITE_SCHEMA",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Organization + WebSite",
+          "message": "De homepage bevat één van de twee identity-schema's (Organization of WebSite); het aanvullende schema ontbreekt.",
+          "found": "organizationSchema=false; websiteSchema=true; schemaTypes=WebSite,SearchAction",
+          "url": "https://www.expert.nl/"
+        },
+        {
+          "rule": "sample_title",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: meta titles",
+          "message": "7 van 24 gecontroleerde pagina('s) vraagt aandacht: https://www.expert.nl/service/kopen-en-reserveren/online-betaalmethod… (Title bevat alleen de merknaam (\"| Expert.nl\"); het onderwerp van de pagina ontbreekt.); https://www.expert.nl/disclaimer/ (Title bevat alleen de merknaam (\"| Expert.nl\"); het ",
+          "found": "https://www.expert.nl/service/kopen-en-reserveren/online-betaalmethodes | https://www.expert.nl/disclaimer/ | https://www.expert.nl/privacy | https://www.expert.nl/computers/opslag-en-geheugen | https://www.expert.nl/keuzehulp | https://www.expert.nl/televisies/televisie-accessoires/tv-beugels | https://www.expert.nl/beko-ctb-6250-x-selective-line-372504664",
+          "url": "https://www.expert.nl/"
+        },
+        {
+          "rule": "sample_description",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: meta descriptions",
+          "message": "8 van 24 gecontroleerde pagina('s) vraagt aandacht: https://www.expert.nl/service/expert-service/algemene-voorwaarden-bez… (Meta description gevonden (59 tekens); kort.); https://www.expert.nl/service/kopen-en-reserveren/online-betaalmethod… (Meta description-tag aanwezig maar content is leeg.); htt",
+          "found": "https://www.expert.nl/service/expert-service/algemene-voorwaarden-bezorging | https://www.expert.nl/service/kopen-en-reserveren/online-betaalmethodes | https://www.expert.nl/disclaimer/ | https://www.expert.nl/keuzehulp | https://www.expert.nl/keuzehulp/televisies | https://www.expert.nl/keuzehulp/laptops | https://www.expert.nl/advies/tv-kopen-waar-op-letten | https://www.expert.nl/advies/welk-formaat-tv-en-hoe-groot-is-dat",
+          "url": "https://www.expert.nl/"
+        },
+        {
+          "rule": "sample_h1",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: H1-headings",
+          "message": "5 van 24 gecontroleerde pagina('s) vraagt aandacht: https://www.expert.nl/ (Er is geen H1-heading gevonden.); https://www.expert.nl/service/expert-service/algemene-voorwaarden-bez… (Er is geen H1-heading gevonden.); https://www.expert.nl/keuzehulp (2 verschillende H1-teksten gevonden, bijvoorbeeld \"",
+          "found": "https://www.expert.nl/ | https://www.expert.nl/service/expert-service/algemene-voorwaarden-bezorging | https://www.expert.nl/keuzehulp | https://www.expert.nl/service/ruilen-en-retourneren | https://www.expert.nl/advies/welk-formaat-tv-en-hoe-groot-is-dat",
+          "url": "https://www.expert.nl/"
+        }
+      ],
+      "unconfirmed": [
+        "sitemap",
+        "commercial_terms_signal",
+        "merchant_feed_signal",
+        "consent_mode_readiness",
+        "BUSINESS_PLACEHOLDER",
+        "PRICE_FORMAT",
+        "checkout_funnel_static",
+        "checkout_information_signal",
+        "eu_discount_reference_signal",
+        "eu_review_transparency_signal",
+        "eu_consumer_information_signal",
+        "price_currency_consistency",
+        "WEBSHOP_TRUST_SIGNALS",
+        "PRODUCT_VARIANT_URL",
+        "PRODUCT_PRICE_CONSISTENCY",
+        "WEBSHOP_CLAIM_VERIFICATION",
+        "CHECKOUT_TRUST_SIGNALS",
+        "GOOGLE_ADS_READINESS"
+      ]
+    },
+    {
+      "kind": "pilot · zorgpraktijk (WP)",
+      "url": "https://www.acupunctuurdijkstra.nl/",
+      "httpStatus": 200,
+      "note": "",
+      "error": null,
+      "wallSeconds": 4.3,
+      "cpuSeconds": 0.4,
+      "peakMemoryMb": 209,
+      "peakProcesses": 1,
+      "truth": {
+        "httpStatus": 200,
+        "bytes": 68896,
+        "markers": {
+          "woocommerce": false,
+          "wordpress": true,
+          "shopify": false,
+          "nextjs": false,
+          "nuxt": false,
+          "productSchema": false,
+          "articleSchema": false
+        }
+      },
+      "technology": {
+        "siteType": "Website",
+        "cms": "WordPress",
+        "commercePlatform": null,
+        "framework": null,
+        "confidence": 97
+      },
+      "rendering": {
+        "mode": "raw_html",
+        "fallbackReason": null,
+        "elapsedMs": null,
+        "botProtection": null
+      },
+      "multiPage": {
+        "homepage": 1,
+        "category": 0,
+        "product": 0,
+        "form": 1,
+        "legal": 0,
+        "service": 0,
+        "listing": 0,
+        "support": 0,
+        "other": 12,
+        "audited": 14,
+        "broken": 0,
+        "unableToConfirm": 0
+      },
+      "scoreRange": {
+        "low": 93,
+        "high": 93
+      },
+      "commerceApplicability": "absent",
+      "snapshot": {
+        "outcome": "scanned",
+        "httpStatus": 200,
+        "errorCode": null,
+        "durationMs": 4295,
+        "finalUrl": "https://www.acupunctuurdijkstra.nl/",
+        "overallScore": 91,
+        "seoScore": 95,
+        "geoScore": 83,
+        "securityScore": 86,
+        "coveragePercent": 100,
+        "highConfidencePercent": 83,
+        "provisional": false,
+        "sector": {
+          "key": "health_wellness",
+          "label": "Zorg & Gezondheid",
+          "confidenceScore": 95
+        },
+        "websiteType": "Website",
+        "pageType": {
+          "type": "homepage",
+          "confidence": "high"
+        },
+        "pageTypeContradictions": [],
+        "renderer": "raw_html",
+        "renderFallbackReason": null,
+        "botProtection": false,
+        "recovery": {
+          "attempted": false,
+          "browserRecovered": false
+        },
+        "counts": {
+          "passed": 29,
+          "issues": 8,
+          "notApplicable": 25,
+          "unableToConfirm": 0
+        },
+        "findings": [
+          {
+            "rule": "H1_MULTIPLE",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "headings",
+            "status": "WARNING",
+            "confidence": "medium",
+            "category": "seo"
+          },
+          {
+            "rule": "ORGANIZATION_WEBSITE_SCHEMA",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "geo"
+          },
+          {
+            "rule": "sample_description",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_h1",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_title",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "STRUCTURED_DATA_MISSING",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "geo"
+          },
+          {
+            "rule": "trust_legal_signals",
+            "status": "FAIL",
+            "confidence": "high",
+            "category": "seo"
+          }
+        ],
+        "fingerprint": "e1b21c0133307631",
+        "scanner": {
+          "crawler": null,
+          "rules": null,
+          "scoreModel": null,
+          "commit": null
+        }
+      },
+      "issues": [
+        {
+          "rule": "H1_MULTIPLE",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "H1-heading",
+          "message": "2 verschillende H1-teksten gevonden, bijvoorbeeld \"Acupunctuur Alkmaar\", \"Acupunctuur Praktijk Gerda Dijkstra\". Eén duidelijke H1 maakt het onderwerp van de pagina eenduidig.",
+          "found": "h1=\"Acupunctuur Alkmaar\" | \"Acupunctuur Praktijk Gerda Dijkstra\"; raw=2; duplicatesCollapsed=0; consentExcluded=0",
+          "url": "https://www.acupunctuurdijkstra.nl/"
+        },
+        {
+          "rule": "headings",
+          "status": "WARNING",
+          "confidence": "medium",
+          "title": "Heading-structuur",
+          "message": "Er zijn 8 subheading(s) gevonden, maar geen duidelijke H2-laag. Dit is structuuradvies en geen bewezen rankingfout.",
+          "found": 8,
+          "url": "https://www.acupunctuurdijkstra.nl/"
+        },
+        {
+          "rule": "trust_legal_signals",
+          "status": "FAIL",
+          "confidence": "high",
+          "title": "Privacy & vertrouwenssignalen",
+          "message": "Er is geen link naar een privacyverklaring gevonden (ook niet als PDF of op een ander eigen domein). Ook niet gevonden: cookies. Wel gevonden: voorwaarden: \"Algemene voorwaarden\" → https://www.acupunctuurdijkstra.nl/algemenevoorwaarden/ · contact (contactpagina): \"Contact\" → https://www.acupunctuurd",
+          "found": "privacy=false; terms=true (https://www.acupunctuurdijkstra.nl/algemenevoorwaarden/); cookies=false; contact=true",
+          "url": "https://www.acupunctuurdijkstra.nl/"
+        },
+        {
+          "rule": "STRUCTURED_DATA_MISSING",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Structured data",
+          "message": "1 geldige JSON-LD block(s) gevonden, maar geen passend lokaal bedrijfsschema voor deze lokale bedrijfs-/dienstpagina.",
+          "found": "blocks=1; types=WebPage,ReadAction,BreadcrumbList,ListItem,WebSite,SearchAction,EntryPoint,PropertyValueSpecification; contextRelevant=false",
+          "url": "https://www.acupunctuurdijkstra.nl/"
+        },
+        {
+          "rule": "ORGANIZATION_WEBSITE_SCHEMA",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Organization + WebSite",
+          "message": "De homepage bevat één van de twee identity-schema's (Organization of WebSite); het aanvullende schema ontbreekt.",
+          "found": "organizationSchema=false; websiteSchema=true; schemaTypes=WebPage,ReadAction,BreadcrumbList,ListItem,WebSite,SearchAction,EntryPoint,PropertyValueSpecification",
+          "url": "https://www.acupunctuurdijkstra.nl/"
+        },
+        {
+          "rule": "sample_title",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: meta titles",
+          "message": "5 van 14 gecontroleerde pagina('s) vraagt aandacht: https://www.acupunctuurdijkstra.nl/kinderen-2/ (Title gevonden (61 tekens); langer dan 60 tekens, zoekmachines kappen hem af.); https://www.acupunctuurdijkstra.nl/voeding/warm-water-drinken-gezond/ (Title gevonden (67 tekens); langer dan 60 tekens,",
+          "found": "https://www.acupunctuurdijkstra.nl/kinderen-2/ | https://www.acupunctuurdijkstra.nl/voeding/warm-water-drinken-gezond/ | https://www.acupunctuurdijkstra.nl/master-tung-acupunctuur/ | https://www.acupunctuurdijkstra.nl/vruchtbaarheidsproblemen-begeleiding-iui-ivf-icsi-onvruchtbaarheid-man/ | https://www.acupunctuurdijkstra.nl/tarieven-en-vergoedingen/",
+          "url": "https://www.acupunctuurdijkstra.nl/"
+        },
+        {
+          "rule": "sample_description",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: meta descriptions",
+          "message": "5 van 14 gecontroleerde pagina('s) vraagt aandacht: https://www.acupunctuurdijkstra.nl/kinderen-2/ (Geen meta description-tag gevonden in raw HTML.); https://www.acupunctuurdijkstra.nl/voeding/warm-water-drinken-gezond/ (Geen meta description-tag gevonden in raw HTML.); https://www.acupunctuurdijkst",
+          "found": "https://www.acupunctuurdijkstra.nl/kinderen-2/ | https://www.acupunctuurdijkstra.nl/voeding/warm-water-drinken-gezond/ | https://www.acupunctuurdijkstra.nl/master-tung-acupunctuur/ | https://www.acupunctuurdijkstra.nl/aanvullende-technieken/ | https://www.acupunctuurdijkstra.nl/vruchtbaarheidsproblemen-begeleiding-iui-ivf-icsi-onvruchtbaarheid-man/",
+          "url": "https://www.acupunctuurdijkstra.nl/"
+        },
+        {
+          "rule": "sample_h1",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: H1-headings",
+          "message": "1 van 14 gecontroleerde pagina('s) vraagt aandacht: https://www.acupunctuurdijkstra.nl/ (2 verschillende H1-teksten gevonden, bijvoorbeeld \"Acupunctuur Alkmaar\", \"Acupunctuur Praktijk Gerda Dijkstra\").",
+          "found": "https://www.acupunctuurdijkstra.nl/",
+          "url": "https://www.acupunctuurdijkstra.nl/"
+        }
+      ],
+      "unconfirmed": []
+    },
+    {
+      "kind": "pilot + review · dienstverlener (Nuxt)",
+      "url": "https://www.transheroes.com/nl/",
+      "httpStatus": 200,
+      "note": "",
+      "error": null,
+      "wallSeconds": 35.2,
+      "cpuSeconds": 29.8,
+      "peakMemoryMb": 4412,
+      "peakProcesses": 45,
+      "truth": {
+        "httpStatus": 200,
+        "bytes": 203339,
+        "markers": {
+          "woocommerce": false,
+          "wordpress": false,
+          "shopify": false,
+          "nextjs": false,
+          "nuxt": true,
+          "productSchema": false,
+          "articleSchema": false
+        }
+      },
+      "technology": {
+        "siteType": "Website",
+        "cms": null,
+        "commercePlatform": null,
+        "framework": "Nuxt",
+        "confidence": 72
+      },
+      "rendering": {
+        "mode": "javascript_rendered",
+        "fallbackReason": null,
+        "elapsedMs": 2146,
+        "botProtection": null
+      },
+      "multiPage": {
+        "homepage": 1,
+        "category": 0,
+        "product": 0,
+        "form": 1,
+        "legal": 0,
+        "service": 11,
+        "listing": 0,
+        "support": 0,
+        "other": 12,
+        "audited": 22,
+        "broken": 0,
+        "unableToConfirm": 3
+      },
+      "scoreRange": {
+        "low": 90,
+        "high": 95
+      },
+      "commerceApplicability": "absent",
+      "snapshot": {
+        "outcome": "scanned",
+        "httpStatus": 200,
+        "errorCode": null,
+        "durationMs": 35175,
+        "finalUrl": "https://www.transheroes.com/nl/",
+        "overallScore": 97,
+        "seoScore": 93,
+        "geoScore": 100,
+        "securityScore": 81,
+        "coveragePercent": 95,
+        "highConfidencePercent": 88,
+        "provisional": false,
+        "sector": {
+          "key": "transport_travel",
+          "label": "Transport & Logistiek",
+          "confidenceScore": 95
+        },
+        "websiteType": "Website",
+        "pageType": {
+          "type": "homepage",
+          "confidence": "high"
+        },
+        "pageTypeContradictions": [],
+        "renderer": "javascript_rendered",
+        "renderFallbackReason": null,
+        "botProtection": false,
+        "recovery": {
+          "attempted": false,
+          "browserRecovered": false
+        },
+        "counts": {
+          "passed": 28,
+          "issues": 6,
+          "notApplicable": 23,
+          "unableToConfirm": 2
+        },
+        "findings": [
+          {
+            "rule": "IMAGE_ALT_MISSING",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "META_DESCRIPTION_GUIDANCE",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_description",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_h1",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_title",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "trust_legal_signals",
+            "status": "FAIL",
+            "confidence": "high",
+            "category": "seo"
+          }
+        ],
+        "fingerprint": "e00d02f8e83a2b30",
+        "scanner": {
+          "crawler": null,
+          "rules": null,
+          "scoreModel": null,
+          "commit": null
+        }
+      },
+      "issues": [
+        {
+          "rule": "META_DESCRIPTION_GUIDANCE",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Meta description",
+          "message": "De description is een opsomming van 8 losse termen (\"Wegtransport, Zeevracht, Luchtvracht, Koeriersdiensten…\") in plaats van een zin die de pagina samenvat. (128 tekens)",
+          "found": "Wegtransport | Zeevracht | Luchtvracht | Koeriersdiensten | Railtransport | Douaneafhandeling | Transport | Logistiek expediteur",
+          "url": "https://www.transheroes.com/nl/"
+        },
+        {
+          "rule": "IMAGE_ALT_MISSING",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Afbeelding alt-teksten",
+          "message": "2 van 22 controleerbare <img>-elementen in de raw HTML missen alt (9%). JavaScript-geladen afbeeldingen zijn niet meegenomen.",
+          "found": 2,
+          "url": "https://www.transheroes.com/nl/"
+        },
+        {
+          "rule": "trust_legal_signals",
+          "status": "FAIL",
+          "confidence": "high",
+          "title": "Privacy & vertrouwenssignalen",
+          "message": "Er is geen link naar een privacyverklaring gevonden (ook niet als PDF of op een ander eigen domein). Ook niet gevonden: cookies. Wel gevonden: contact (contactpagina): \"Contact opnemen\" → /nl/contact/.",
+          "found": "privacy=false; terms=false; cookies=false; contact=true",
+          "url": "https://www.transheroes.com/nl/"
+        },
+        {
+          "rule": "sample_title",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: meta titles",
+          "message": "6 van 22 gecontroleerde pagina('s) vraagt aandacht: https://www.transheroes.com/nl/contact/ (Title gevonden (67 tekens); langer dan 60 tekens, zoekmachines kappen hem af.); https://www.transheroes.com/nl/diensten/speciaal-transport/ (Title gevonden (70 tekens); langer dan 60 tekens, zoekmachines kap",
+          "found": "https://www.transheroes.com/nl/contact/ | https://www.transheroes.com/nl/diensten/speciaal-transport/ | https://www.transheroes.com/nl/offerte-aanvragen/ | https://www.transheroes.com/nl/transportal/ | https://www.transheroes.com/nl/douane/tarieven/ | https://www.transheroes.com/nl/douane/certificaat-van-oorsprong/",
+          "url": "https://www.transheroes.com/nl/"
+        },
+        {
+          "rule": "sample_description",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: meta descriptions",
+          "message": "4 van 22 gecontroleerde pagina('s) vraagt aandacht: https://www.transheroes.com/nl/ (Meta description gevonden (128 tekens); bruikbare lengte. De description is een opsomming van 8 losse termen (); https://www.transheroes.com/nl/diensten/speciaal-transport/ (Meta description gevonden (174 tekens); a",
+          "found": "https://www.transheroes.com/nl/ | https://www.transheroes.com/nl/diensten/speciaal-transport/ | https://www.transheroes.com/nl/transport/ | https://www.transheroes.com/nl/transportal/",
+          "url": "https://www.transheroes.com/nl/"
+        },
+        {
+          "rule": "sample_h1",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: H1-headings",
+          "message": "2 van 22 gecontroleerde pagina('s) vraagt aandacht: https://www.transheroes.com/nl/transport/ (De enige H1 hoort bij de cookiebanner (\"Cookies voor een gebruiksvriendelijke ervaring\"); de pagina zelf heeft); https://www.transheroes.com/nl/cases/ (De enige H1 hoort bij de cookiebanner (\"Cookies voor ",
+          "found": "https://www.transheroes.com/nl/transport/ | https://www.transheroes.com/nl/cases/",
+          "url": "https://www.transheroes.com/nl/"
+        }
+      ],
+      "unconfirmed": [
+        "broken_links",
+        "EXTERNAL_IMAGE_SOURCE"
+      ]
+    },
+    {
+      "kind": "pilot · webshop",
+      "url": "https://www.ikea.com/nl/nl/",
+      "httpStatus": 200,
+      "note": "",
+      "error": null,
+      "wallSeconds": 11,
+      "cpuSeconds": 2.2,
+      "peakMemoryMb": 354,
+      "peakProcesses": 1,
+      "truth": {
+        "httpStatus": 200,
+        "bytes": 2111374,
+        "markers": {
+          "woocommerce": false,
+          "wordpress": false,
+          "shopify": false,
+          "nextjs": false,
+          "nuxt": false,
+          "productSchema": false,
+          "articleSchema": false
+        }
+      },
+      "technology": {
+        "siteType": "Webshop",
+        "cms": null,
+        "commercePlatform": "Custom / niet bevestigd",
+        "framework": null,
+        "confidence": 55
+      },
+      "rendering": {
+        "mode": "raw_html",
+        "fallbackReason": null,
+        "elapsedMs": null,
+        "botProtection": null
+      },
+      "multiPage": {
+        "homepage": 1,
+        "category": 5,
+        "product": 12,
+        "form": 1,
+        "legal": 2,
+        "service": 0,
+        "listing": 0,
+        "support": 4,
+        "other": 5,
+        "audited": 30,
+        "broken": 0,
+        "unableToConfirm": 0
+      },
+      "scoreRange": {
+        "low": 87,
+        "high": 100
+      },
+      "commerceApplicability": "confirmed",
+      "snapshot": {
+        "outcome": "scanned",
+        "httpStatus": 200,
+        "errorCode": null,
+        "durationMs": 10979,
+        "finalUrl": "https://www.ikea.com/nl/nl/",
+        "overallScore": 97,
+        "seoScore": 99,
+        "geoScore": 100,
+        "securityScore": 92,
+        "coveragePercent": 88,
+        "highConfidencePercent": 84,
+        "provisional": true,
+        "sector": {
+          "key": "ecommerce",
+          "label": "Webshop / e-commerce",
+          "confidenceScore": 92
+        },
+        "websiteType": "Webshop",
+        "pageType": {
+          "type": "homepage",
+          "confidence": "high"
+        },
+        "pageTypeContradictions": [],
+        "renderer": "raw_html",
+        "renderFallbackReason": null,
+        "botProtection": false,
+        "recovery": {
+          "attempted": false,
+          "browserRecovered": false
+        },
+        "counts": {
+          "passed": 36,
+          "issues": 5,
+          "notApplicable": 10,
+          "unableToConfirm": 9
+        },
+        "findings": [
+          {
+            "rule": "IMAGE_ALT_MISSING",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_description",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_h1",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_product_schema",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_title",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          }
+        ],
+        "fingerprint": "cdc4bf8efe5f3221",
+        "scanner": {
+          "crawler": null,
+          "rules": null,
+          "scoreModel": null,
+          "commit": null
+        }
+      },
+      "issues": [
+        {
+          "rule": "IMAGE_ALT_MISSING",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Afbeelding alt-teksten",
+          "message": "1 van 103 controleerbare <img>-elementen in de raw HTML missen alt (1%). JavaScript-geladen afbeeldingen zijn niet meegenomen.",
+          "found": 1,
+          "url": "https://www.ikea.com/nl/nl/"
+        },
+        {
+          "rule": "sample_title",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: meta titles",
+          "message": "8 van 30 gecontroleerde pagina('s) vraagt aandacht: https://www.ikea.com/nl/nl/cat/tuin-balkon-producten-od001/ (Title gevonden (62 tekens); langer dan 60 tekens, zoekmachines kappen hem af.); https://www.ikea.com/nl/nl/p/angslilja-dekbedovertrek-en-kussensloop-… (Title gevonden (83 tekens); langer ",
+          "found": "https://www.ikea.com/nl/nl/cat/tuin-balkon-producten-od001/ | https://www.ikea.com/nl/nl/p/angslilja-dekbedovertrek-en-kussensloop-bleek-grijsgroen-70632453/ | https://www.ikea.com/nl/nl/p/besta-tv-meubel-met-deuren-wit-bjorkoviken-eikenfineer-s59622912/ | https://www.ikea.com/nl/nl/p/besta-opberger-met-deuren-zwartbruin-hedeviken-bruin-gebeitst-eikenfineer-s79623147/ | https://www.ikea.com/nl/nl/p/besta-kastcombinatie-wand-wit-bjorkoviken-eikenfineer-s59623214/ | https://www.ikea.com/nl/nl/p/angslilja-dekbedovertrek-en-kussensloop-donkerblauw-70636620/ | https://www.ikea.com/nl/nl/p/besta-tv-meubel-met-deuren-zwartbruin-bjorkoviken-eikenfineer-s29622904/ | https://www.ikea.com/nl/nl/p/besta-opberger-met-deuren-wit-bjorkoviken-eikenfineer-s99623146/",
+          "url": "https://www.ikea.com/nl/nl/"
+        },
+        {
+          "rule": "sample_description",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: meta descriptions",
+          "message": "12 van 30 gecontroleerde pagina('s) vraagt aandacht: https://www.ikea.com/nl/nl/p/angslilja-dekbedovertrek-en-kussensloop-… (Meta description gevonden (298 tekens); uitzonderlijk lang.); https://www.ikea.com/nl/nl/customer-service/cookie-policy/ (Meta description gevonden (193 tekens); aan de lange ",
+          "found": "https://www.ikea.com/nl/nl/p/angslilja-dekbedovertrek-en-kussensloop-bleek-grijsgroen-70632453/ | https://www.ikea.com/nl/nl/customer-service/cookie-policy/ | https://www.ikea.com/nl/nl/ideas/kleine-kamer-inrichten-pub1a05ea50/ | https://www.ikea.com/nl/nl/cat/winkelaanbieding-700859/ | https://www.ikea.com/nl/nl/returns/ | https://www.ikea.com/nl/nl/p/besta-tv-meubel-met-deuren-wit-bjorkoviken-eikenfineer-s59622912/ | https://www.ikea.com/nl/nl/p/besta-opberger-met-deuren-zwartbruin-hedeviken-bruin-gebeitst-eikenfineer-s79623147/ | https://www.ikea.com/nl/nl/p/ortrask-salontafel-bruin-essenfineer-10635845/ | https://www.ikea.com/nl/nl/p/ortrask-salontafel-zwart-essenfineer-30635849/ | https://www.ikea.com/nl/nl/p/strandmon-oorfauteuil-tommaboda-bruinrood-30613164/ | https://www.ikea.com/nl/nl/p/storklinta-bedframe-wit-00615541/ | https://www.ikea.com/nl/nl/p/besta-kastcombinatie-wand-wit-bjorkoviken-eikenfineer-s59623214/",
+          "url": "https://www.ikea.com/nl/nl/"
+        },
+        {
+          "rule": "sample_h1",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: H1-headings",
+          "message": "2 van 30 gecontroleerde pagina('s) vraagt aandacht: https://www.ikea.com/nl/nl/customer-service/cookie-policy/ (De enige H1 hoort bij de cookiebanner (\"Cookieverklaring IKEA Nederland\"); de pagina zelf heeft geen inhoudeli); https://www.ikea.com/nl/nl/returns/ (Er is geen H1-heading gevonden.).",
+          "found": "https://www.ikea.com/nl/nl/customer-service/cookie-policy/ | https://www.ikea.com/nl/nl/returns/",
+          "url": "https://www.ikea.com/nl/nl/"
+        },
+        {
+          "rule": "sample_product_schema",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: Product-structured data",
+          "message": "5 van 5 gecontroleerde pagina('s) vraagt aandacht: https://www.ikea.com/nl/nl/p/besta-tv-meubel-met-deuren-wit-bjorkovik… (Product JSON-LD zonder prijs en valuta (\"BESTÅ Tv-meubel met deuren - wit Björköviken/eikenfineer 180\").); https://www.ikea.com/nl/nl/p/besta-opberger-met-deuren-zwartbruin-hed…",
+          "found": "https://www.ikea.com/nl/nl/p/besta-tv-meubel-met-deuren-wit-bjorkoviken-eikenfineer-s59622912/ | https://www.ikea.com/nl/nl/p/besta-opberger-met-deuren-zwartbruin-hedeviken-bruin-gebeitst-eikenfineer-s79623147/ | https://www.ikea.com/nl/nl/p/besta-kastcombinatie-wand-wit-bjorkoviken-eikenfineer-s59623214/ | https://www.ikea.com/nl/nl/p/besta-tv-meubel-met-deuren-zwartbruin-bjorkoviken-eikenfineer-s29622904/ | https://www.ikea.com/nl/nl/p/besta-opberger-met-deuren-wit-bjorkoviken-eikenfineer-s99623146/",
+          "url": "https://www.ikea.com/nl/nl/"
+        }
+      ],
+      "unconfirmed": [
+        "merchant_feed_signal",
+        "PRICE_FORMAT",
+        "checkout_funnel_static",
+        "eu_review_transparency_signal",
+        "eu_consumer_information_signal",
+        "price_currency_consistency",
+        "PRODUCT_VARIANT_URL",
+        "PRODUCT_PRICE_CONSISTENCY",
+        "CHECKOUT_TRUST_SIGNALS"
+      ]
+    },
+    {
+      "kind": "review · Shopify webshop (DE)",
+      "url": "https://allbirds.de/",
+      "httpStatus": 200,
+      "note": "",
+      "error": null,
+      "wallSeconds": 44.6,
+      "cpuSeconds": 56,
+      "peakMemoryMb": 4787,
+      "peakProcesses": 45,
+      "truth": {
+        "httpStatus": 200,
+        "bytes": 702023,
+        "markers": {
+          "woocommerce": false,
+          "wordpress": false,
+          "shopify": true,
+          "nextjs": false,
+          "nuxt": false,
+          "productSchema": false,
+          "articleSchema": false
+        }
+      },
+      "technology": {
+        "siteType": "Webshop",
+        "cms": null,
+        "commercePlatform": "Shopify",
+        "framework": null,
+        "confidence": 97
+      },
+      "rendering": {
+        "mode": "javascript_rendered",
+        "fallbackReason": null,
+        "elapsedMs": 2605,
+        "botProtection": null
+      },
+      "multiPage": {
+        "homepage": 1,
+        "category": 5,
+        "product": 12,
+        "form": 1,
+        "legal": 1,
+        "service": 0,
+        "listing": 0,
+        "support": 1,
+        "other": 8,
+        "audited": 27,
+        "broken": 1,
+        "unableToConfirm": 1
+      },
+      "scoreRange": {
+        "low": 86,
+        "high": 98
+      },
+      "commerceApplicability": "confirmed",
+      "snapshot": {
+        "outcome": "scanned",
+        "httpStatus": 200,
+        "errorCode": null,
+        "durationMs": 44559,
+        "finalUrl": "https://allbirds.de/",
+        "overallScore": 95,
+        "seoScore": 96,
+        "geoScore": 100,
+        "securityScore": 92,
+        "coveragePercent": 88,
+        "highConfidencePercent": 83,
+        "provisional": true,
+        "sector": {
+          "key": "ecommerce",
+          "label": "Webshop / e-commerce",
+          "confidenceScore": 96
+        },
+        "websiteType": "Webshop",
+        "pageType": {
+          "type": "homepage",
+          "confidence": "high"
+        },
+        "pageTypeContradictions": [],
+        "renderer": "javascript_rendered",
+        "renderFallbackReason": null,
+        "botProtection": false,
+        "recovery": {
+          "attempted": false,
+          "browserRecovered": false
+        },
+        "counts": {
+          "passed": 38,
+          "issues": 8,
+          "notApplicable": 7,
+          "unableToConfirm": 7
+        },
+        "findings": [
+          {
+            "rule": "H1_MISSING",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "headings",
+            "status": "WARNING",
+            "confidence": "medium",
+            "category": "seo"
+          },
+          {
+            "rule": "IMAGE_ALT_MISSING",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_broken_pages",
+            "status": "FAIL",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_description",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_h1",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_title",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "trust_legal_signals",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          }
+        ],
+        "fingerprint": "0168ddfa05752529",
+        "scanner": {
+          "crawler": null,
+          "rules": null,
+          "scoreModel": null,
+          "commit": null
+        }
+      },
+      "issues": [
+        {
+          "rule": "H1_MISSING",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "H1-heading",
+          "message": "Er is geen H1-heading gevonden. Dit is een structuur-/toegankelijkheidsaanbeveling en geen op zichzelf bewezen rankingfout.",
+          "found": "h1Count=0; consentExcluded=0",
+          "url": "https://allbirds.de/"
+        },
+        {
+          "rule": "headings",
+          "status": "WARNING",
+          "confidence": "medium",
+          "title": "Heading-structuur",
+          "message": "Er zijn 1 subheading(s) gevonden, maar geen duidelijke H2-laag. Dit is structuuradvies en geen bewezen rankingfout.",
+          "found": 1,
+          "url": "https://allbirds.de/"
+        },
+        {
+          "rule": "IMAGE_ALT_MISSING",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Afbeelding alt-teksten",
+          "message": "16 van 254 controleerbare <img>-elementen in de raw HTML missen alt (6%). JavaScript-geladen afbeeldingen zijn niet meegenomen.",
+          "found": 16,
+          "url": "https://allbirds.de/"
+        },
+        {
+          "rule": "trust_legal_signals",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Privacy & vertrouwenssignalen",
+          "message": "Niet alle basissignalen zijn gevonden: cookies. Wel bevestigd via de steekproef: privacy: https://allbirds.de/policies/privacy-policy · contact: https://allbirds.de/pages/kontakt.",
+          "found": "privacy=true (/policies/privacy-policy); terms=true (/policies/terms-of-service); cookies=false; contact=true",
+          "url": "https://allbirds.de/"
+        },
+        {
+          "rule": "sample_broken_pages",
+          "status": "FAIL",
+          "confidence": "high",
+          "title": "Steekproef: niet-werkende pagina's",
+          "message": "1 van 29 geselecteerde interne pagina('s) werkt niet: https://allbirds.de/pages/reviews → HTTP 404.",
+          "found": "https://allbirds.de/pages/reviews=404",
+          "url": "https://allbirds.de/"
+        },
+        {
+          "rule": "sample_title",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: meta titles",
+          "message": "3 van 27 gecontroleerde pagina('s) vraagt aandacht: https://allbirds.de/products/w-wool-dasher-2-mizzle-freizeitschuhe-96… (Title gevonden (66 tekens); langer dan 60 tekens, zoekmachines kappen hem af.); https://allbirds.de/products/w-wool-runner-nz-waterproof-freizeitschu… (Title gevonden (72 teken",
+          "found": "https://allbirds.de/products/w-wool-dasher-2-mizzle-freizeitschuhe-9600aa00310065 | https://allbirds.de/products/w-wool-runner-nz-waterproof-freizeitschuhe-9600a120060014 | https://allbirds.de/apps/widerruf",
+          "url": "https://allbirds.de/"
+        },
+        {
+          "rule": "sample_description",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: meta descriptions",
+          "message": "12 van 27 gecontroleerde pagina('s) vraagt aandacht: https://allbirds.de/policies/privacy-policy (Geen meta description-tag gevonden in raw HTML.); https://allbirds.de/pages/faq (Meta description gevonden (58 tekens); kort.); https://allbirds.de/policies/terms-of-service (Geen meta description-tag g",
+          "found": "https://allbirds.de/policies/privacy-policy | https://allbirds.de/pages/faq | https://allbirds.de/policies/terms-of-service | https://allbirds.de/products/w-tree-runner-freizeitschuhe-960tr3wkww0027 | https://allbirds.de/products/w-tree-runner-freizeitschuhe-960tr3wjbk0026 | https://allbirds.de/products/w-wool-dasher-2-mizzle-freizeitschuhe-9600aa00310065 | https://allbirds.de/products/w-tree-runner-freizeitschuhe-960tr3wwhe0030 | https://allbirds.de/products/w-tree-runner-freizeitschuhe-960tr3wmst0028 | https://allbirds.de/products/w-wool-runner-nz-waterproof-freizeitschuhe-9600a120060014 | https://allbirds.de/policies/shipping-policy | https://allbirds.de/apps/widerruf | https://allbirds.de/pages/bezahloptionen",
+          "url": "https://allbirds.de/"
+        },
+        {
+          "rule": "sample_h1",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: H1-headings",
+          "message": "9 van 27 gecontroleerde pagina('s) vraagt aandacht: https://allbirds.de/ (Er is geen H1-heading gevonden.); https://allbirds.de/collections/wasserdichte-schuhe-herren (Er is geen H1-heading gevonden.); https://allbirds.de/pages/faq (Er is geen H1-heading gevonden.); https://allbirds.de/collections/t",
+          "found": "https://allbirds.de/ | https://allbirds.de/collections/wasserdichte-schuhe-herren | https://allbirds.de/pages/faq | https://allbirds.de/collections/tree-runner-nz-herren | https://allbirds.de/collections/tree-runner-herren | https://allbirds.de/collections/wool-runner-herren | https://allbirds.de/collections/dasher-nz-herren | https://allbirds.de/apps/widerruf | https://allbirds.de/pages/materialien-wool",
+          "url": "https://allbirds.de/"
+        }
+      ],
+      "unconfirmed": [
+        "HREFLANG_MISSING",
+        "merchant_feed_signal",
+        "eu_review_transparency_signal",
+        "price_currency_consistency",
+        "PRODUCT_VARIANT_URL",
+        "PRODUCT_PRICE_CONSISTENCY",
+        "CHECKOUT_TRUST_SIGNALS"
+      ]
+    },
+    {
+      "kind": "review · overheid",
+      "url": "https://www.rijksoverheid.nl/",
+      "httpStatus": 200,
+      "note": "",
+      "error": null,
+      "wallSeconds": 24.5,
+      "cpuSeconds": 22.9,
+      "peakMemoryMb": 4579,
+      "peakProcesses": 47,
+      "truth": {
+        "httpStatus": 200,
+        "bytes": 324688,
+        "markers": {
+          "woocommerce": false,
+          "wordpress": false,
+          "shopify": false,
+          "nextjs": true,
+          "nuxt": false,
+          "productSchema": false,
+          "articleSchema": false
+        }
+      },
+      "technology": {
+        "siteType": "Website",
+        "cms": null,
+        "commercePlatform": null,
+        "framework": "Next.js",
+        "confidence": 72
+      },
+      "rendering": {
+        "mode": "javascript_rendered",
+        "fallbackReason": null,
+        "elapsedMs": 2695,
+        "botProtection": null
+      },
+      "multiPage": {
+        "homepage": 1,
+        "category": 0,
+        "product": 0,
+        "form": 2,
+        "legal": 2,
+        "service": 5,
+        "listing": 0,
+        "support": 0,
+        "other": 12,
+        "audited": 22,
+        "broken": 0,
+        "unableToConfirm": 0
+      },
+      "scoreRange": {
+        "low": 98,
+        "high": 98
+      },
+      "commerceApplicability": "absent",
+      "snapshot": {
+        "outcome": "scanned",
+        "httpStatus": 200,
+        "errorCode": null,
+        "durationMs": 24539,
+        "finalUrl": "https://www.rijksoverheid.nl/",
+        "overallScore": 97,
+        "seoScore": 97,
+        "geoScore": 100,
+        "securityScore": 100,
+        "coveragePercent": 100,
+        "highConfidencePercent": 85,
+        "provisional": false,
+        "sector": {
+          "key": "government",
+          "label": "Overheid & Publieke sector",
+          "confidenceScore": 95
+        },
+        "websiteType": "Website",
+        "pageType": {
+          "type": "homepage",
+          "confidence": "high"
+        },
+        "pageTypeContradictions": [],
+        "renderer": "javascript_rendered",
+        "renderFallbackReason": null,
+        "botProtection": false,
+        "recovery": {
+          "attempted": false,
+          "browserRecovered": false
+        },
+        "counts": {
+          "passed": 30,
+          "issues": 4,
+          "notApplicable": 25,
+          "unableToConfirm": 0
+        },
+        "findings": [
+          {
+            "rule": "H1_GENERIC",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_description",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_h1",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_title",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          }
+        ],
+        "fingerprint": "88380e25661565af",
+        "scanner": {
+          "crawler": null,
+          "rules": null,
+          "scoreModel": null,
+          "commit": null
+        }
+      },
+      "issues": [
+        {
+          "rule": "H1_GENERIC",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "H1-heading",
+          "message": "De H1 is \"Home\"; dat beschrijft het onderwerp van de pagina niet.",
+          "found": "h1=\"Home\"; raw=1; duplicatesCollapsed=0; consentExcluded=0",
+          "url": "https://www.rijksoverheid.nl/"
+        },
+        {
+          "rule": "sample_title",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: meta titles",
+          "message": "2 van 22 gecontroleerde pagina('s) vraagt aandacht: https://www.rijksoverheid.nl/documenten/2014/02/06/formulier-toestemm… (Title gevonden (88 tekens); langer dan 60 tekens, zoekmachines kappen hem af.); https://www.rijksoverheid.nl/themas/migratie-en-reizen/paspoort-en-id… (Title gevonden (65 teken",
+          "found": "https://www.rijksoverheid.nl/documenten/2014/02/06/formulier-toestemming-reizen-met-minderjarige-naar-het-buitenland | https://www.rijksoverheid.nl/themas/migratie-en-reizen/paspoort-en-identiteitskaart/eisen-pasfoto-paspoort-id-kaart",
+          "url": "https://www.rijksoverheid.nl/"
+        },
+        {
+          "rule": "sample_description",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: meta descriptions",
+          "message": "12 van 22 gecontroleerde pagina('s) vraagt aandacht: https://www.rijksoverheid.nl/service/copyright (Meta description gevonden (176 tekens); aan de lange kant, Google kort descriptions boven ongeveer 160 tekens ); https://www.rijksoverheid.nl/service/cookies (Meta description gevonden (243 tekens); ",
+          "found": "https://www.rijksoverheid.nl/service/copyright | https://www.rijksoverheid.nl/service/cookies | https://www.rijksoverheid.nl/service/privacy | https://www.rijksoverheid.nl/themas/bouwen-en-wonen | https://www.rijksoverheid.nl/themas/onderwijs/schoolvakanties/herfstvakantie/herfstvakantie-2026 | https://www.rijksoverheid.nl/documenten/2014/02/06/formulier-toestemming-reizen-met-minderjarige-naar-het-buitenland | https://www.rijksoverheid.nl/themas/migratie-en-reizen/paspoort-en-identiteitskaart/eisen-pasfoto-paspoort-id-kaart | https://www.rijksoverheid.nl/themas/werk/zelfstandigen-zonder-personeel-zzp/aanpak-schijnzelfstandigheid | https://www.rijksoverheid.nl/themas/werk/minimumloon/bedragen-minimumloon/bedragen-minimumloon-2026 | https://www.rijksoverheid.nl/ministeries | https://www.rijksoverheid.nl/regering | https://www.rijksoverheid.nl/abonneren",
+          "url": "https://www.rijksoverheid.nl/"
+        },
+        {
+          "rule": "sample_h1",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: H1-headings",
+          "message": "3 van 22 gecontroleerde pagina('s) vraagt aandacht: https://www.rijksoverheid.nl/ (De H1 is \"Home\"; dat beschrijft het onderwerp van de pagina niet.); https://www.rijksoverheid.nl/service/cookies (De enige H1 hoort bij de cookiebanner (\"Cookies\"); de pagina zelf heeft geen inhoudelijke H1.); https:/",
+          "found": "https://www.rijksoverheid.nl/ | https://www.rijksoverheid.nl/service/cookies | https://www.rijksoverheid.nl/documenten/2014/02/06/formulier-toestemming-reizen-met-minderjarige-naar-het-buitenland",
+          "url": "https://www.rijksoverheid.nl/"
+        }
+      ],
+      "unconfirmed": []
+    },
+    {
+      "kind": "review · webshop (418-blokkade)",
+      "url": "https://www.discountoffice.nl/",
+      "httpStatus": 200,
+      "note": "",
+      "error": null,
+      "wallSeconds": 22.5,
+      "cpuSeconds": 0.9,
+      "peakMemoryMb": 481,
+      "peakProcesses": 1,
+      "truth": {
+        "httpStatus": 200,
+        "bytes": 102001,
+        "markers": {
+          "woocommerce": false,
+          "wordpress": false,
+          "shopify": false,
+          "nextjs": false,
+          "nuxt": false,
+          "productSchema": false,
+          "articleSchema": false
+        }
+      },
+      "technology": {
+        "siteType": "Webshop",
+        "cms": null,
+        "commercePlatform": "Custom / niet bevestigd",
+        "framework": null,
+        "confidence": 55
+      },
+      "rendering": {
+        "mode": "raw_html",
+        "fallbackReason": null,
+        "elapsedMs": null,
+        "botProtection": null
+      },
+      "multiPage": {
+        "homepage": 1,
+        "category": 5,
+        "product": 9,
+        "form": 1,
+        "legal": 2,
+        "service": 0,
+        "listing": 0,
+        "support": 2,
+        "other": 10,
+        "audited": 29,
+        "broken": 1,
+        "unableToConfirm": 0
+      },
+      "scoreRange": {
+        "low": 84,
+        "high": 98
+      },
+      "commerceApplicability": "confirmed",
+      "snapshot": {
+        "outcome": "scanned",
+        "httpStatus": 200,
+        "errorCode": null,
+        "durationMs": 22476,
+        "finalUrl": "https://discountoffice.nl/",
+        "overallScore": 95,
+        "seoScore": 97,
+        "geoScore": 100,
+        "securityScore": 86,
+        "coveragePercent": 85,
+        "highConfidencePercent": 77,
+        "provisional": true,
+        "sector": {
+          "key": "ecommerce",
+          "label": "Webshop / e-commerce",
+          "confidenceScore": 92
+        },
+        "websiteType": "Webshop",
+        "pageType": {
+          "type": "homepage",
+          "confidence": "high"
+        },
+        "pageTypeContradictions": [],
+        "renderer": "raw_html",
+        "renderFallbackReason": null,
+        "botProtection": false,
+        "recovery": {
+          "attempted": false,
+          "browserRecovered": false
+        },
+        "counts": {
+          "passed": 38,
+          "issues": 8,
+          "notApplicable": 6,
+          "unableToConfirm": 10
+        },
+        "findings": [
+          {
+            "rule": "H1_MISSING",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_broken_pages",
+            "status": "FAIL",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_canonical",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_description",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_h1",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_product_schema",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_title",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "SOCIAL_METADATA_INCOMPLETE",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          }
+        ],
+        "fingerprint": "83841236cc06bbfb",
+        "scanner": {
+          "crawler": null,
+          "rules": null,
+          "scoreModel": null,
+          "commit": null
+        }
+      },
+      "issues": [
+        {
+          "rule": "H1_MISSING",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "H1-heading",
+          "message": "Er is geen H1-heading gevonden. Dit is een structuur-/toegankelijkheidsaanbeveling en geen op zichzelf bewezen rankingfout.",
+          "found": "h1Count=0; consentExcluded=0",
+          "url": "https://discountoffice.nl/"
+        },
+        {
+          "rule": "SOCIAL_METADATA_INCOMPLETE",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Social metadata",
+          "message": "Open Graph vraagt aandacht. Ontbrekend: og:title, og:description, og:image.",
+          "found": "Open Graph core fields missing",
+          "url": "https://discountoffice.nl/"
+        },
+        {
+          "rule": "sample_broken_pages",
+          "status": "FAIL",
+          "confidence": "high",
+          "title": "Steekproef: niet-werkende pagina's",
+          "message": "1 van 30 geselecteerde interne pagina('s) werkt niet: https://discountoffice.nl/m/double-a-paper/ → HTTP 404.",
+          "found": "https://discountoffice.nl/m/double-a-paper/=404",
+          "url": "https://discountoffice.nl/"
+        },
+        {
+          "rule": "sample_title",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: meta titles",
+          "message": "4 van 29 gecontroleerde pagina('s) vraagt aandacht: https://discountoffice.nl/p/ergoclean-559518-stoffer-blik-comb-met-la… (Title gevonden (69 tekens); langer dan 60 tekens, zoekmachines kappen hem af.); https://discountoffice.nl/p/leitz-papiervernietiger-leitz-iq-optimax-… (Title gevonden (69 teken",
+          "found": "https://discountoffice.nl/p/ergoclean-559518-stoffer-blik-comb-met-lange-steel-lichtgrij/ | https://discountoffice.nl/p/leitz-papiervernietiger-leitz-iq-optimax-225-home-office/ | https://discountoffice.nl/p/vepa-bins-smartsort-recyclingstation-3-stroom/ | https://discountoffice.nl/p/brepols-agenda-timing-13-maanden-7dag2pagina/",
+          "url": "https://discountoffice.nl/"
+        },
+        {
+          "rule": "sample_description",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: meta descriptions",
+          "message": "12 van 29 gecontroleerde pagina('s) vraagt aandacht: https://discountoffice.nl/shop/brands/ (Meta description gevonden (47 tekens); uitzonderlijk kort.); https://discountoffice.nl/shop/outlet/ (Meta description gevonden (160 tekens); bruikbare lengte. De description lijkt afgekapt: \"…prijzen wegens ",
+          "found": "https://discountoffice.nl/shop/brands/ | https://discountoffice.nl/shop/outlet/ | https://discountoffice.nl/shop/new/ | https://discountoffice.nl/p/desq-schrijfmap-desq-met-rits-leder-bruin/ | https://discountoffice.nl/contact/ | https://discountoffice.nl/privacy/ | https://discountoffice.nl/voorwaarden/ | https://discountoffice.nl/shop/faq/ | https://discountoffice.nl/onestop/ | https://discountoffice.nl/vacatures/ | https://discountoffice.nl/p/leitz-papiervernietiger-leitz-iq-optimax-225-home-office/ | https://discountoffice.nl/p/vepa-bins-smartsort-recyclingstation-3-stroom/",
+          "url": "https://discountoffice.nl/"
+        },
+        {
+          "rule": "sample_h1",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: H1-headings",
+          "message": "1 van 29 gecontroleerde pagina('s) vraagt aandacht: https://discountoffice.nl/ (Er is geen H1-heading gevonden.).",
+          "found": "https://discountoffice.nl/",
+          "url": "https://discountoffice.nl/"
+        },
+        {
+          "rule": "sample_canonical",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: canonicals",
+          "message": "2 van 29 gecontroleerde pagina('s) vraagt aandacht: https://discountoffice.nl/shop/video/ (Geen canonical-linkelement gevonden in de gecontroleerde raw HTML. Dit is hetzelfde afwezigheidssignaal als in); https://discountoffice.nl/shop/retour/ (Geen canonical-linkelement gevonden in de gecontroleerde",
+          "found": "https://discountoffice.nl/shop/video/ | https://discountoffice.nl/shop/retour/",
+          "url": "https://discountoffice.nl/"
+        },
+        {
+          "rule": "sample_product_schema",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: Product-structured data",
+          "message": "9 van 9 gecontroleerde pagina('s) vraagt aandacht: https://discountoffice.nl/p/desq-schrijfmap-desq-met-rits-leder-bruin/ (Product JSON-LD zonder prijs en valuta (\"Schrijfmap DESQ A4 met rits leder bruin\").); https://discountoffice.nl/p/desq-lamineermachine-desq-business-classy… (Product JSON-LD zon",
+          "found": "https://discountoffice.nl/p/desq-schrijfmap-desq-met-rits-leder-bruin/ | https://discountoffice.nl/p/desq-lamineermachine-desq-business-classy-high-speed-a3/ | https://discountoffice.nl/p/gelschrijver-bic-gelocity-quick-dry-0-3mm-blauw/ | https://discountoffice.nl/p/ergoclean-559518-stoffer-blik-comb-met-lange-steel-lichtgrij/ | https://discountoffice.nl/p/leitz-papiervernietiger-leitz-iq-optimax-225-home-office/ | https://discountoffice.nl/p/loctite-secondenlijm-loctite-all-plastic-2gr-plus-4-ml/ | https://discountoffice.nl/p/europel-kaarthouder-europel-zwart-metaal-met-acryl-bord-a5/ | https://discountoffice.nl/p/vepa-bins-smartsort-recyclingstation-3-stroom/ | https://discountoffice.nl/p/brepols-agenda-timing-13-maanden-7dag2pagina/",
+          "url": "https://discountoffice.nl/"
+        }
+      ],
+      "unconfirmed": [
+        "broken_links",
+        "sitemap",
+        "merchant_feed_signal",
+        "checkout_funnel_static",
+        "eu_review_transparency_signal",
+        "price_currency_consistency",
+        "PRODUCT_VARIANT_URL",
+        "PRODUCT_PRICE_CONSISTENCY",
+        "CHECKOUT_TRUST_SIGNALS",
+        "GOOGLE_ADS_READINESS"
+      ]
+    },
+    {
+      "kind": "review · betaalprovider (fintech)",
+      "url": "https://www.mollie.com/nl",
+      "httpStatus": 200,
+      "note": "",
+      "error": null,
+      "wallSeconds": 13.8,
+      "cpuSeconds": 11,
+      "peakMemoryMb": 2843,
+      "peakProcesses": 31,
+      "truth": {
+        "httpStatus": 200,
+        "bytes": 2628493,
+        "markers": {
+          "woocommerce": false,
+          "wordpress": true,
+          "shopify": false,
+          "nextjs": false,
+          "nuxt": false,
+          "productSchema": false,
+          "articleSchema": false
+        }
+      },
+      "technology": {
+        "siteType": "Website",
+        "cms": null,
+        "commercePlatform": "Custom / niet bevestigd",
+        "framework": null,
+        "confidence": 55
+      },
+      "rendering": {
+        "mode": "javascript_rendered",
+        "fallbackReason": null,
+        "elapsedMs": 1729,
+        "botProtection": null
+      },
+      "multiPage": {
+        "homepage": 1,
+        "category": 0,
+        "product": 10,
+        "form": 2,
+        "legal": 5,
+        "service": 5,
+        "listing": 0,
+        "support": 0,
+        "other": 7,
+        "audited": 32,
+        "broken": 0,
+        "unableToConfirm": 4
+      },
+      "scoreRange": {
+        "low": 89,
+        "high": 98
+      },
+      "commerceApplicability": "absent",
+      "snapshot": {
+        "outcome": "scanned",
+        "httpStatus": 200,
+        "errorCode": null,
+        "durationMs": 13818,
+        "finalUrl": "https://www.mollie.com/nl/",
+        "overallScore": 97,
+        "seoScore": 96,
+        "geoScore": 100,
+        "securityScore": 88,
+        "coveragePercent": 91,
+        "highConfidencePercent": 83,
+        "provisional": false,
+        "sector": {
+          "key": "saas_b2b",
+          "label": "SaaS / B2B",
+          "confidenceScore": 92
+        },
+        "websiteType": "Boekings-/afsprakenwebsite",
+        "pageType": {
+          "type": "homepage",
+          "confidence": "high"
+        },
+        "pageTypeContradictions": [],
+        "renderer": "javascript_rendered",
+        "renderFallbackReason": null,
+        "botProtection": false,
+        "recovery": {
+          "attempted": false,
+          "browserRecovered": false
+        },
+        "counts": {
+          "passed": 28,
+          "issues": 6,
+          "notApplicable": 24,
+          "unableToConfirm": 4
+        },
+        "findings": [
+          {
+            "rule": "H1_MULTIPLE",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "META_DESCRIPTION_GUIDANCE",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "META_TITLE_GUIDANCE",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_description",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_h1",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_title",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          }
+        ],
+        "fingerprint": "531bbf2a6439feff",
+        "scanner": {
+          "crawler": null,
+          "rules": null,
+          "scoreModel": null,
+          "commit": null
+        }
+      },
+      "issues": [
+        {
+          "rule": "META_TITLE_GUIDANCE",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Meta title",
+          "message": "De title is 61 tekens; boven ongeveer 60 tekens kappen zoekmachines de title af. De punten lopen geleidelijk af naarmate de title langer is.",
+          "found": "Mollie – hét platform voor al je online en fysieke betalingen",
+          "url": "https://www.mollie.com/nl/"
+        },
+        {
+          "rule": "META_DESCRIPTION_GUIDANCE",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Meta description",
+          "message": "De description is 165 tekens. Google kort descriptions boven ongeveer 160 tekens vaak in, waardoor het einde van de boodschap wegvalt. Dit is optimalisatieadvies, geen rankingfout.",
+          "found": "Eén platform om betalingen te accepteren, geld te beheren en toegang te krijgen tot financiering. Neem financiële drempels weg en laat je bedrijf groeien met Mollie.",
+          "url": "https://www.mollie.com/nl/"
+        },
+        {
+          "rule": "H1_MULTIPLE",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "H1-heading",
+          "message": "4 verschillende H1-teksten gevonden, bijvoorbeeld \"al je betalingen\", \"Mollie – Hét platform voor elke betaling\", \"Het platform voor\". Eén duidelijke H1 maakt het onderwerp van de pagina eenduidig. 7 H1-elementen met 4 unieke tekst(en); identieke kopieën tellen als één.",
+          "found": "h1=\"al je betalingen\" | \"Mollie – Hét platform voor elke betaling\" | \"Het platform voor\"; raw=7; duplicatesCollapsed=3; consentExcluded=0",
+          "url": "https://www.mollie.com/nl/"
+        },
+        {
+          "rule": "sample_title",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: meta titles",
+          "message": "8 van 32 gecontroleerde pagina('s) vraagt aandacht: https://www.mollie.com/nl/ (Title gevonden (61 tekens); langer dan 60 tekens, zoekmachines kappen hem af.); https://www.mollie.com/nl/products/payment-links (Title gevonden (64 tekens); langer dan 60 tekens, zoekmachines kappen hem af.); https://ww",
+          "found": "https://www.mollie.com/nl/ | https://www.mollie.com/nl/products/payment-links | https://www.mollie.com/nl/products/invoicing | https://www.mollie.com/nl/success-stories/maisons-du-monde | https://www.mollie.com/nl/products/capital | https://www.mollie.com/nl/success-stories/just-russel | https://www.mollie.com/bg/products/pos-payments | https://www.mollie.com/products/recurring",
+          "url": "https://www.mollie.com/nl/"
+        },
+        {
+          "rule": "sample_description",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: meta descriptions",
+          "message": "12 van 32 gecontroleerde pagina('s) vraagt aandacht: https://www.mollie.com/nl/ (Meta description gevonden (165 tekens); aan de lange kant, Google kort descriptions boven ongeveer 160 tekens ); https://www.mollie.com/nl/legal/responsible-disclosure (Meta description gevonden (165 tekens); aan de lan",
+          "found": "https://www.mollie.com/nl/ | https://www.mollie.com/nl/legal/responsible-disclosure | https://www.mollie.com/nl/solutions/embedded-payments-for-saas-platforms | https://www.mollie.com/nl/success-stories/maisons-du-monde | https://www.mollie.com/nl/products/pos-payments/tap-to-pay-on-iphone | https://www.mollie.com/nl/solutions/embedded-business-accounts | https://www.mollie.com/nl/solutions/embedded-capital-financing | https://www.mollie.com/nl/solutions/payments-for-franchises | https://www.mollie.com/nl/legal/privacy | https://www.mollie.com/nl/legal/whistleblower-policy | https://www.mollie.com/nl/legal/impressum | https://www.mollie.com/nl/payments/outbound-payments",
+          "url": "https://www.mollie.com/nl/"
+        },
+        {
+          "rule": "sample_h1",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: H1-headings",
+          "message": "8 van 32 gecontroleerde pagina('s) vraagt aandacht: https://www.mollie.com/nl/ (4 verschillende H1-teksten gevonden, bijvoorbeeld \"al je betalingen\", \"Mollie – Hét platform voor elke betalin); https://www.mollie.com/nl/products/pos-payments (2 verschillende H1-teksten gevonden, bijvoorbeeld \"Snelle,",
+          "found": "https://www.mollie.com/nl/ | https://www.mollie.com/nl/products/pos-payments | https://www.mollie.com/nl/products/payment-links | https://www.mollie.com/nl/contact/merchants | https://www.mollie.com/nl/solutions/embedded-payments-for-saas-platforms | https://www.mollie.com/nl/products/pos-payments/tap-app | https://www.mollie.com/nl/solutions/payments-for-ecommerce | https://www.mollie.com/nl/solutions/payments-for-franchises",
+          "url": "https://www.mollie.com/nl/"
+        }
+      ],
+      "unconfirmed": [
+        "sector_hospitality_hours",
+        "sector_hospitality_menu",
+        "semantic_link_destination",
+        "HREFLANG_MISSING"
+      ]
+    },
+    {
+      "kind": "review · webshop",
+      "url": "https://www.sneakers.nl/",
+      "httpStatus": 200,
+      "note": "",
+      "error": null,
+      "wallSeconds": 7.6,
+      "cpuSeconds": 1,
+      "peakMemoryMb": 467,
+      "peakProcesses": 1,
+      "truth": {
+        "httpStatus": 200,
+        "bytes": 212468,
+        "markers": {
+          "woocommerce": false,
+          "wordpress": false,
+          "shopify": false,
+          "nextjs": false,
+          "nuxt": false,
+          "productSchema": false,
+          "articleSchema": false
+        }
+      },
+      "technology": {
+        "siteType": "Webshop",
+        "cms": null,
+        "commercePlatform": "Custom / niet bevestigd",
+        "framework": null,
+        "confidence": 55
+      },
+      "rendering": {
+        "mode": "raw_html",
+        "fallbackReason": null,
+        "elapsedMs": null,
+        "botProtection": null
+      },
+      "multiPage": {
+        "homepage": 1,
+        "category": 8,
+        "product": 0,
+        "form": 1,
+        "legal": 0,
+        "service": 0,
+        "listing": 0,
+        "support": 0,
+        "other": 12,
+        "audited": 24,
+        "broken": 1,
+        "unableToConfirm": 0
+      },
+      "scoreRange": {
+        "low": 82,
+        "high": 93
+      },
+      "commerceApplicability": "confirmed",
+      "snapshot": {
+        "outcome": "scanned",
+        "httpStatus": 200,
+        "errorCode": null,
+        "durationMs": 7557,
+        "finalUrl": "https://www.sneakers.nl/",
+        "overallScore": 88,
+        "seoScore": 91,
+        "geoScore": 97,
+        "securityScore": 100,
+        "coveragePercent": 89,
+        "highConfidencePercent": 81,
+        "provisional": true,
+        "sector": {
+          "key": "ecommerce",
+          "label": "Webshop / e-commerce",
+          "confidenceScore": 92
+        },
+        "websiteType": "Webshop",
+        "pageType": {
+          "type": "homepage",
+          "confidence": "high"
+        },
+        "pageTypeContradictions": [],
+        "renderer": "raw_html",
+        "renderFallbackReason": null,
+        "botProtection": false,
+        "recovery": {
+          "attempted": false,
+          "browserRecovered": false
+        },
+        "counts": {
+          "passed": 37,
+          "issues": 11,
+          "notApplicable": 6,
+          "unableToConfirm": 8
+        },
+        "findings": [
+          {
+            "rule": "broken_links",
+            "status": "FAIL",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "H1_GENERIC",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "META_DESCRIPTION_GUIDANCE",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "META_TITLE_GUIDANCE",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "ORGANIZATION_WEBSITE_SCHEMA",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "geo"
+          },
+          {
+            "rule": "sample_broken_pages",
+            "status": "FAIL",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_canonical",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_canonical_cross_domain",
+            "status": "FAIL",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_description",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_h1",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          },
+          {
+            "rule": "sample_title",
+            "status": "WARNING",
+            "confidence": "high",
+            "category": "seo"
+          }
+        ],
+        "fingerprint": "ab232dd86a764e99",
+        "scanner": {
+          "crawler": null,
+          "rules": null,
+          "scoreModel": null,
+          "commit": null
+        }
+      },
+      "issues": [
+        {
+          "rule": "broken_links",
+          "status": "FAIL",
+          "confidence": "high",
+          "title": "Broken links",
+          "message": "1 van 16 gecontroleerde interne link(s) gaf een bewezen foutstatus (6%). Voorbeeld: https://www.sneakers.nl/product.uri → HTTP 404.",
+          "found": "discovered=97; checked=16; broken=1; sampleLimit=24; truncated=true",
+          "url": "https://www.sneakers.nl/"
+        },
+        {
+          "rule": "META_TITLE_GUIDANCE",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Meta title",
+          "message": "De title bevat alleen de merknaam (\"Sneakers.nl | Sneakers.nl\"); het onderwerp van de pagina ontbreekt.",
+          "found": "Sneakers.nl | Sneakers.nl",
+          "url": "https://www.sneakers.nl/"
+        },
+        {
+          "rule": "META_DESCRIPTION_GUIDANCE",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Meta description",
+          "message": "De description is een opsomming van 8 losse termen (\"Bij ons vind je een ruim assortiment aan sportmerken en fashionmerken zoals: ADIDAS, ANTONY MORATO, ASICS, CONVERSE…\") in plaats van een zin die de pagina samenvat. (154 tekens)",
+          "found": "Bij ons vind je een ruim assortiment aan sportmerken en fashionmerken zoals: ADIDAS, ANTONY MORATO, ASICS, CONVERSE, CRUYFF, DIADORA, FILA, FILLING PIECES",
+          "url": "https://www.sneakers.nl/"
+        },
+        {
+          "rule": "H1_GENERIC",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "H1-heading",
+          "message": "De H1 is \"SNEAKERS\"; dat beschrijft het onderwerp van de pagina niet.",
+          "found": "h1=\"SNEAKERS\"; raw=1; duplicatesCollapsed=0; consentExcluded=0",
+          "url": "https://www.sneakers.nl/"
+        },
+        {
+          "rule": "ORGANIZATION_WEBSITE_SCHEMA",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Organization + WebSite",
+          "message": "De homepage bevat één van de twee identity-schema's (Organization of WebSite); het aanvullende schema ontbreekt.",
+          "found": "organizationSchema=true; websiteSchema=false; schemaTypes=Organization,AggregateRating,BreadcrumbList,ListItem,Thing",
+          "url": "https://www.sneakers.nl/"
+        },
+        {
+          "rule": "sample_broken_pages",
+          "status": "FAIL",
+          "confidence": "high",
+          "title": "Steekproef: niet-werkende pagina's",
+          "message": "1 van 25 geselecteerde interne pagina('s) werkt niet: https://www.sneakers.nl/product.uri → HTTP 404.",
+          "found": "https://www.sneakers.nl/product.uri=404",
+          "url": "https://www.sneakers.nl/"
+        },
+        {
+          "rule": "sample_title",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: meta titles",
+          "message": "4 van 24 gecontroleerde pagina('s) vraagt aandacht: https://www.sneakers.nl/ (Title bevat alleen de merknaam (\"Sneakers.nl | Sneakers.nl\"); het onderwerp van de pagina ontbreekt.); https://www.sneakers.nl/dames (Title gevonden (62 tekens); langer dan 60 tekens, zoekmachines kappen hem af.); https://",
+          "found": "https://www.sneakers.nl/ | https://www.sneakers.nl/dames | https://www.sneakers.nl/dames/new-balance | https://www.sneakers.nl/heren/filling-pieces",
+          "url": "https://www.sneakers.nl/"
+        },
+        {
+          "rule": "sample_description",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: meta descriptions",
+          "message": "9 van 24 gecontroleerde pagina('s) vraagt aandacht: https://www.sneakers.nl/ (Meta description gevonden (154 tekens); bruikbare lengte. De description is een opsomming van 8 losse termen (); https://www.sneakers.nl/over-etrias/winkel (Geen meta description-tag gevonden in raw HTML.); https://www.sne",
+          "found": "https://www.sneakers.nl/ | https://www.sneakers.nl/over-etrias/winkel | https://www.sneakers.nl/shop/sitemap | https://www.sneakers.nl/veelgesteldevragen/contact | https://www.sneakers.nl/over-etrias/webshops | https://www.sneakers.nl/sale/kinderen/meisjes | https://www.sneakers.nl/veelgesteldevragen/wat-zijn-de-verzendkosten | https://www.sneakers.nl/veelgesteldevragen | https://www.sneakers.nl/heren/filling-pieces",
+          "url": "https://www.sneakers.nl/"
+        },
+        {
+          "rule": "sample_h1",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: H1-headings",
+          "message": "1 van 24 gecontroleerde pagina('s) vraagt aandacht: https://www.sneakers.nl/ (De H1 is \"SNEAKERS\"; dat beschrijft het onderwerp van de pagina niet.).",
+          "found": "https://www.sneakers.nl/",
+          "url": "https://www.sneakers.nl/"
+        },
+        {
+          "rule": "sample_canonical_cross_domain",
+          "status": "FAIL",
+          "confidence": "high",
+          "title": "Steekproef: canonical naar ander domein",
+          "message": "Hoog risico: 3 van 24 gecontroleerde pagina('s) heeft een canonical naar een ander domein; die pagina's zullen waarschijnlijk niet zelf ranken. https://www.sneakers.nl/new-balance-unisex-u574lggd-grey (Hoog risico: canonical wijst naar een ander domein (www.deschoenenfabriek.nl): https://www.deschoe",
+          "found": "https://www.sneakers.nl/new-balance-unisex-u574lggd-grey | https://www.sneakers.nl/new-balance-unisex-u9060sra-taro | https://www.sneakers.nl/new-balance-kids-pc574evg-grey",
+          "url": "https://www.sneakers.nl/"
+        },
+        {
+          "rule": "sample_canonical",
+          "status": "WARNING",
+          "confidence": "high",
+          "title": "Steekproef: canonicals",
+          "message": "6 van 24 gecontroleerde pagina('s) vraagt aandacht: https://www.sneakers.nl/over-etrias/winkel (Geen canonical-linkelement gevonden in de gecontroleerde raw HTML. Dit is hetzelfde afwezigheidssignaal als in); https://www.sneakers.nl/shop/sitemap (Geen canonical-linkelement gevonden in de gecontrolee",
+          "found": "https://www.sneakers.nl/over-etrias/winkel | https://www.sneakers.nl/shop/sitemap | https://www.sneakers.nl/veelgesteldevragen/contact | https://www.sneakers.nl/over-etrias/webshops | https://www.sneakers.nl/veelgesteldevragen/wat-zijn-de-verzendkosten | https://www.sneakers.nl/veelgesteldevragen",
+          "url": "https://www.sneakers.nl/"
+        }
+      ],
+      "unconfirmed": [
+        "sitemap",
+        "merchant_feed_signal",
+        "checkout_funnel_static",
+        "eu_review_transparency_signal",
+        "price_currency_consistency",
+        "PRODUCT_VARIANT_URL",
+        "PRODUCT_PRICE_CONSISTENCY",
+        "CHECKOUT_TRUST_SIGNALS"
+      ]
+    }
+  ]
+}
