@@ -1,0 +1,20 @@
+{
+ "url": "https://www.bol.com/nl/nl/",
+ "body": {
+  "error": "De website weigert de scan (HTTP 403, toegang geweigerd). Er is daarom geen score berekend; dit is geen SEO-fout van de website. RankFix scant als RankFixBot/2.1 (+http://127.0.0.1:3100/bot). Vraag de beheerder deze user-agent toe te staan (uitleg: http://127.0.0.1:3100/bot) en scan opnieuw.",
+  "recovery": {
+   "attempted": true,
+   "originalHttpStatus": 403,
+   "browserRecovered": false,
+   "limitedScope": false,
+   "reason": "RENDER_TIMEOUT",
+   "evidenceSource": null
+  },
+  "httpStatus": 403,
+  "blocked": true,
+  "userAgent": "RankFixBot/2.1 (+http://127.0.0.1:3100/bot)",
+  "browserUserAgent": "RankFixBrowser/1.0 (+http://127.0.0.1:3100/bot)",
+  "infoUrl": "http://127.0.0.1:3100/bot",
+  "charged": false
+ }
+}
