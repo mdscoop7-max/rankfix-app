@@ -5120,6 +5120,13 @@ export async function POST(request: Request) {
     }
     // The headline blends the page with the sample (SEO sample, so not in GEO-only mode).
     const pageOnlyOverallScore = selectedOverallScore;
+    // Publish why an evidence-based high/critical cap lowers the headline.
+    // Otherwise a total below both SEO and GEO looks mathematically impossible.
+    const pageFormulaScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
+    const capReason = (before: number, after: number) => after >= before ? null :
+      checks.some((item) => item.issue_status === "FAIL" && item.severity === "CRITICAL" && item.confidence === "high") ? "Bewezen kritieke fout: score maximaal 70." :
+      checks.some((item) => item.issue_status === "FAIL" && item.severity === "HIGH" && item.confidence !== "low") ? "Bewezen fout met hoge ernst: score maximaal 88." :
+      "Scoreverlaging vereist nader onderzoek.";
     const otherSampledPages = scoredSamplePages.filter((page) => normalizeScanUrl(page.url) !== normalizeScanUrl(finalUrl.toString())).length;
     const headlineBlend = mode === "geo" ? { score: selectedOverallScore, sampleWeight: 0 } : blendHeadlineScore(selectedOverallScore, multiPage.siteSampleScore, otherSampledPages);
     selectedOverallScore = applyEvidenceBasedScoreCap(headlineBlend.score, checks);
@@ -5135,7 +5142,14 @@ export async function POST(request: Request) {
     }
     Object.assign(scoreModel, {
       formula: headlineBlend.sampleWeight ? `${scoreModel.formula}, gemengd met de steekproef (${Math.round((1 - headlineBlend.sampleWeight) * 100)}% pagina / ${Math.round(headlineBlend.sampleWeight * 100)}% steekproef)` : scoreModel.formula,
-      headline: { score: selectedOverallScore, pageScore: pageOnlyOverallScore, sampleScore: multiPage.siteSampleScore, sampleWeight: headlineBlend.sampleWeight, sampledPages: otherSampledPages },
+      headline: {
+        score: selectedOverallScore, pageScore: pageOnlyOverallScore, pageFormulaScore,
+        pageCapReason: capReason(pageFormulaScore, pageOnlyOverallScore),
+        preFinalCapScore: headlineBlend.score,
+        finalCapReason: capReason(headlineBlend.score, selectedOverallScore),
+        sampleScore: multiPage.siteSampleScore,
+        sampleWeight: headlineBlend.sampleWeight, sampledPages: otherSampledPages
+      },
     });
     // Review Oct 2026 (point 9): the same metadata block in every report.
     const reportMeta = {
