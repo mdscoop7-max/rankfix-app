@@ -222,6 +222,18 @@ export function isClientShell(input: { visibleWords: number; scriptCount: number
   return input.jsFramework && input.h1Count === 0 && input.visibleWords < 200;
 }
 
+/** Missing H1 in a JS site is not proven when the representative render failed.
+ * This also applies to content-rich raw HTML, which may omit client-only headings.
+ */
+export function sampledMissingH1Unconfirmed(input: {
+  missing: boolean;
+  clientShell: boolean;
+  jsFramework: boolean;
+  rendered: boolean;
+}): boolean {
+  return input.missing && (input.clientShell || (input.jsFramework && !input.rendered));
+}
+
 const BOT_MANAGER_COOKIE = /^(?:bm_sz|bm_sv|bm_s|bm_so|bm_mi|_abck|ak_bmsc|__cf_bm|cf_clearance|datadome|_px\w*|incap_ses_\w*|visid_incap_\w*|reese84|x-kpsdk-\w+)$/i;
 
 export function botManagerCookies(cookieNames: string[]): string[] {
