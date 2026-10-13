@@ -45,3 +45,23 @@ test("news headlines in body H1s never make a news site a transport company", ()
   const h1s = ["NS-storing legt treinverkeer plat", "Vrachtwagen kantelt op A12", "Kabinet valt"];
   assert.equal(id("NU - Het laatste nieuws het eerst op NU.nl", "", "www.nu.nl", [], h1s), "news_media");
 });
+
+test("telecom subscriptions outrank incidental device/shop navigation (KPN regression)", () => {
+  assert.equal(id("Welkom bij KPN: het netwerk van Nederland | KPN",
+    "Met KPN Combivoordeel stel je al jouw thuis en mobiele abonnementen zelf samen. Internet, mobiel, TV, entertainment en meer. Via het netwerk van Nederland.",
+    "www.kpn.com", [], ["Het beste van KPN"]), "telecom_technology");
+  assert.equal(id("Internetprovider voor glasvezel en mobiele abonnementen", "Internet en 5G voor thuis en onderweg", "example.net"), "telecom_technology");
+});
+
+test("utility, coworking, producer and Polish travel operator keep their primary service identity", () => {
+  assert.equal(id("Energieleverancier | Vattenfall", "Bekijk onze tarieven voor gas en stroom", "www.vattenfall.nl"), "energy");
+  assert.equal(id("Flexibele werkplekken en coworking", "Ontdek serviced offices en kantoorruimte", "example.org"), "coworking");
+  assert.equal(id("Wakacje i wycieczki | Biuro podróży", "Wybierz hotele, loty i wakacje na świecie", "example.pl"), "travel");
+  assert.equal(id("Fabrikant van huishoudelijke apparaten", "Ontwerp en ontwikkeling van producten", "example.com"), "manufacturer");
+});
+
+test("a real shop stays a shop and passing topics do not become site identities", () => {
+  assert.equal(id("Mobiele abonnementen en smartphones online", "Bestel 5G toestellen", "example-shop.nl", ["OnlineStore"]), null);
+  assert.equal(id("Energie, internet en kantoorartikelen bij de webshop", "Shop online", "shop.example"), null);
+  assert.equal(id("Welkom | Nieuws en actualiteiten", "Deze week: een energieleverancier en de arbeidsmarkt", "news.example", ["NewsMediaOrganization"]), "news_media");
+});
