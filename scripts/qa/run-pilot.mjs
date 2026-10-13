@@ -43,7 +43,7 @@ for(const [index,site] of sites.entries()){
   const checks=Array.isArray(body?.checks)?body.checks:[];
   const headingEvidence=checks.filter(c=>/h1|heading/i.test(String(c.rule_id||c.key||'')))
     .map(c=>JSON.stringify(c)).join(' ').slice(0,4000);
-  const suspiciousHeading=scanned && (/componentVariation|headline_underscored|\\bnull!=|p\\(e,/.test(headingEvidence));
+  const suspiciousHeading=scanned && (/componentVariation|headline_underscored|null\s*!=|p\(e,/.test(headingEvidence));
   const row={
     ...site,scanned,httpStatus,error:error??(scanned?null:body?.code??'SCAN_UNAVAILABLE'),
     actualSector:sector,sectorMatches:scanned&&sector===site.expectedSector,
