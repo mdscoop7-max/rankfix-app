@@ -80,7 +80,7 @@ export async function runHealthGuard(){
    if(incident.alerted_at&&!incident.recovery_alerted_at){
      const to=alertRecipient();
      if(to){
-       try{await sendSystemHealthEmail({to,recovered:true,checks});await db.query("UPDATE rankfix_health_incidents SET recovery_alerted_at=NOW() WHERE incident_key=$1",[incident.incident_key]);recoverySent=true}
+       try{const recoveryChecks=String(incident.incident_key)==="rankfix-production:qa_pilot"?checks.filter(c=>c.key==="qa_pilot"):checks;await sendSystemHealthEmail({to,recovered:true,checks:recoveryChecks});await db.query("UPDATE rankfix_health_incidents SET recovery_alerted_at=NOW() WHERE incident_key=$1",[incident.incident_key]);recoverySent=true}
        catch(error){console.error("Health Guard recovery email failed",error instanceof Error?error.message:"EMAIL_FAILED")}
      }
    }
