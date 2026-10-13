@@ -799,7 +799,7 @@ test("commerce identity requires confirmed high-confidence signals", async () =>
 test("sector identity ignores low-confidence accommodation and property evidence", async () => {
   const { readFile } = await import("node:fs/promises");
   const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  assert.match(scanner,/!paymentServicesPrimaryIdentity && primaryLodgingIdentity\(sectorIdentitySource, schemaTypes\)/);
+  assert.match(scanner,/!paymentServicesPrimaryIdentity && siteRole\.key !== "software" && primaryLodgingIdentity\(sectorIdentitySource, schemaTypes\)/);
   assert.match(scanner,/financialServicePrimaryIdentity\(\{title,description,headings:h1s,schemaTypes\}\)/);
   assert.match(scanner,/scanEvidence\.inventory\.properties\.confidence !== "low"/);
 });

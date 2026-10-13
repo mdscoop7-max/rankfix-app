@@ -149,7 +149,7 @@ export function primaryNonRetailRole(input:{
     {key:"software" as const,primary:/\b(?:software|saas|software platform|business software|software-as-a-service|project management platform|crm platform)\b/i,
       support:/\b(?:features?|integrations?|dashboard|workflows?|subscription|software|saas|developers?|api|automatisering|applicatie)\b/i,
       schemas:["softwareapplication","webapplication"]},
-    {key:"lodging" as const,primary:/\b(?:hotel|hostel|guesthouse|guest house|bed and breakfast|resort|vakantiehuis|vacation rental|ferienhaus|pension|camping|campground)\b/i,
+    {key:"lodging" as const,primary:/\b(?:hotel|hostel|guesthouse|guest house|bed (?:and|&) breakfast|b&b|resort|vakantiehuis|vacation rental|ferienhaus|pension|camping|campground)\b/i,
       support:/\b(?:rooms?|kamers?|suites?|stay|overnight|accommodation|lodging|book (?:a |your )?room|overnachten|overnachting|gasten|guests?)\b/i,
       schemas:["hotel","lodgingbusiness","bedandbreakfast","hostel","resort","vacationrental","campground"]},
     {key:"restaurant" as const,primary:/\b(?:restaurant|bistro|brasserie|cafe|café|pizzeria|eetcafé|dining room)\b/i,
@@ -182,7 +182,7 @@ export function lodgingBusinessSubtype(input:{
 }):"hotel"|"bed_breakfast"|"holiday_park"|"holiday_rental"|"camping"|null{
   const identity=[input.title,...input.headings].filter(Boolean).join(" ").slice(0,1600);
   const types=new Set([...input.schemaTypes].map(x=>String(x).toLowerCase()));
-  if(/\b(?:bed and breakfast|b\s*&\s*b|guesthouse|guest house|pension)\b/i.test(identity)||types.has("bedandbreakfast"))return "bed_breakfast";
+  if(/\b(?:bed (?:and|&) breakfast|b\s*&\s*b|guesthouse|guest house|pension)\b/i.test(identity)||types.has("bedandbreakfast"))return "bed_breakfast";
   if(/\b(?:holiday park|vakantiepark|holiday resort)\b/i.test(identity))return "holiday_park";
   if(/\b(?:vacation rental|holiday rental|holiday home|vakantiehuis|vakantiewoning|ferienhaus|ferienwohnung)\b/i.test(identity)||types.has("vacationrental"))return "holiday_rental";
   if(/\b(?:campground|camping|campsite|glamping)\b/i.test(identity)||types.has("campground"))return "camping";
