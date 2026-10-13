@@ -8,7 +8,7 @@ import { getFixPolicy } from "@/lib/fix-policy";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { assessPassiveSecurity, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
-import { assessPageDescription, assessPageTitle, sampleEvidenceExcerpt, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, isBrandOnlyTitle, isClientShell, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
+import { assessPageDescription, assessPageTitle, sampleEvidenceExcerpt, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, isBrandOnlyTitle, isClientShell, sampledMissingH1Unconfirmed, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
 import { assessBusinessDetails, classifyContactAnchor, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
@@ -1578,7 +1578,7 @@ export async function POST(request: Request) {
       note: "Evidence-first: ontbrekend bewijs is niet automatisch een fout. Sectoren en functies worden alleen bevestigd op gevonden signalen.",
     };
 
-    type SectorKey = "finance"|"ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"general_business"|"market_selector"|"unknown";
+    type SectorKey = "finance"|"ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"energy"|"coworking"|"travel"|"manufacturer"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"general_business"|"market_selector"|"unknown";
     const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]}> = [
       {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\b/i,/\b(te koop|te huur|for sale|for rent|woningaanbod)\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
       {sector:"automotive",label:"Automotive",patterns:[/\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\b/i,/\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
@@ -1798,6 +1798,10 @@ export async function POST(request: Request) {
     const isLodgingSector = sectorProfile.sector === "hospitality" && lodgingSectorKeys.has(sectorProfile.key);
     const primarySectorModules: Partial<Record<string,string[]>> = {
       finance:["lead_conversion","business_identity","quality_trust"],
+      energy:["lead_conversion","business_identity","quality_trust"],
+      coworking:["lead_conversion","booking","business_identity","local"],
+      travel:["booking","lead_conversion","business_identity"],
+      manufacturer:["business_identity","quality_trust"],
       ecommerce:["ecommerce","product","pricing_currency","merchant","checkout"],
       automotive:["automotive"],
       real_estate:["real_estate"],
@@ -2666,7 +2670,7 @@ export async function POST(request: Request) {
           ? check("warning", "h1", "seo", "H1-heading", h1Quality.details, "Gebruik een H1 die het onderwerp van de pagina benoemt (dienst, product, categorie of organisatie met kernboodschap), niet \"Home\" of alleen de merknaam.", 4, 8)
           : check("warning", "h1", "seo", "H1-heading", h1Quality.details, "Controleer welke H1-koppen echt zichtbaar zijn op desktop en mobiel. Animatie- of responsieve kopieën kunnen in de HTML voorkomen; vermijd meerdere concurrerende zichtbare paginatitels.", 6, 8)
     );
-    const subheadingCount = headings.length;
+    const subheadingCount = headings.filter((heading) => heading.level >= 2).length;
     const hasH2 = headings.some((h) => h.level === 2);
     const headingStructurePoints = hasH2 ? 7 : subheadingCount >= 3 ? 6 : subheadingCount >= 1 ? 5 : 4;
     seoChecks.push(subheadingCount > 0 && hasH2
@@ -3028,7 +3032,7 @@ export async function POST(request: Request) {
         ? check("unable_to_confirm","checkout_funnel_static","seo","Checkout & funnel","Dit is een productpagina, maar RankFix kon in raw HTML geen duidelijke toevoegen-aan-winkelwagen actie bevestigen. De actie kan client-side via JavaScript worden gerenderd.","Controleer de koopactie later met de browser/headless-audit. Raw HTML alleen is onvoldoende bewijs voor een checkoutfout.",0,0)
         : (cartHrefSignal || checkoutHrefSignal) && addToCartMarkupSignal
           ? check("pass","checkout_funnel_static","seo","Checkout & funnel","Statische funnel-signalen zijn aanwezig: koopactie en een winkelwagen- of checkoutpad zijn gevonden.","Dit bewijst niet dat de interactieve funnel werkt; runtime add-to-cart en checkout worden later met browser/headless getest.",0,0)
-          : check("unable_to_confirm","checkout_funnel_static","seo","Checkout & funnel","RankFix vond webshop-signalen, maar kan vanuit deze losse raw-HTML pagina de volledige product → winkelwagen → checkout-flow niet bevestigen.","Gebruik de toekomstige browser/headless-controle om klikken, winkelwagenstatus en checkout runtime te testen.",0,0)
+          : check("unable_to_confirm","checkout_funnel_static","seo","Checkout & funnel","RankFix vond webshop-signalen, maar kan vanuit deze losse paginascan de volledige product → winkelwagen → checkout-flow niet bevestigen.","Gebruik de toekomstige browser/headless-controle om klikken, winkelwagenstatus en checkout runtime te testen.",0,0)
     );
     seoChecks.push(!hasEcommerceSignal
       ? check("not_applicable","checkout_information_signal","seo","Checkout informatie",euConsumerApplicable ? "Geen consumenteninformatie beoordeeld." : "EU-Omnibus & Consumer Rights is voor deze scan niet aantoonbaar van toepassing op deze markt/pagina.","Gebruik deze controle op relevante EU-webshops.",0,0)
@@ -3378,8 +3382,8 @@ export async function POST(request: Request) {
         eu_discount_reference_signal: hasEcommerceSignal ? `discountClaim=${hasDiscountClaim}; referencePrice=${hasReferencePriceSignal}; historicalPriceNotVerified=true` : null,
         eu_review_transparency_signal: hasEcommerceSignal ? `reviewContent=${reviewContentSignal}; transparencySignal=${reviewTransparencySignal}` : null,
         eu_scarcity_signal: hasEcommerceSignal ? `scarcityClaim=${hasScarcityClaim}; runtimeTruthNotVerified=true` : null,
-        checkout_funnel_static: hasEcommerceSignal ? `productPage=${isProductPage}; addToCart=${addToCartMarkupSignal}; cartLink=${cartHrefSignal}; checkoutLink=${checkoutHrefSignal}; staticHtmlOnly=true` : null,
-        checkout_information_signal: hasEcommerceSignal ? `shipping=${hasShippingSignal}; shippingCost=${shippingCostSignal}; paymentMethods=${paymentMethodSignal}; staticHtmlOnly=true` : null,
+        checkout_funnel_static: hasEcommerceSignal ? `productPage=${isProductPage}; addToCart=${addToCartMarkupSignal}; cartLink=${cartHrefSignal}; checkoutLink=${checkoutHrefSignal}; staticHtmlOnly=${!javascriptExecuted}; javascriptRendered=${javascriptExecuted}; interactiveFlowExecuted=false` : null,
+        checkout_information_signal: hasEcommerceSignal ? `shipping=${hasShippingSignal}; shippingCost=${shippingCostSignal}; paymentMethods=${paymentMethodSignal}; staticHtmlOnly=${!javascriptExecuted}; javascriptRendered=${javascriptExecuted}; interactiveFlowExecuted=false` : null,
         webshop_trust: hasEcommerceSignal ? `shipping=${hasShippingSignal}; returns=${hasReturnsSignal}; reviewPlatform=${hasReviewPlatformSignal}${reviewEvidence.platforms.length ? ` (${reviewEvidence.platforms.join(",")})` : ""}; rating=${reviewEvidence.ratingText || "none"}; checkoutSignal=${hasCheckoutTrustSignal}; paymentMethods=${paymentMethodsFound.join(",") || "none"}` : null,
         organization_website: isHomepage ? `organizationSchema=${organizationSchemaPresent}; websiteSchema=${websiteSchemaPresent}; schemaTypes=${schemaTypes.slice(0,12).join(",")}` : null,
         entity: hasEntitySchema ? `schemaTypes=${schemaTypes.slice(0,12).join(",")}` : (hasVisibleBusinessIdentity ? `visibleIdentity=true; contact=${hasBusinessContactDetails}; externalProfile=${hasSocialOrReviewSignal}` : null),
@@ -4069,6 +4073,15 @@ export async function POST(request: Request) {
         // missing title, description, H1 or canonical; those stay unconfirmed.
         const pageClientShell = isClientShell({ visibleWords: pageQualityWords, scriptCount: (pageHtml.match(/<script\b/gi) || []).length, jsFramework: representativeJsFramework, h1Count: pageH1s.length, rendered: representativeEvidenceSource === "rendered_html" });
         const clientShellNote = "De pagina laadt haar inhoud via JavaScript en browser-rendering was niet beschikbaar; dit wordt daarom niet als ontbrekend beoordeeld.";
+        // Main-page and representative-page H1 checks must agree when a JS runtime
+        // is present but rendering failed. Substantive raw copy does not prove a
+        // client-rendered H1 is absent (BBC home, October 2026 pilot).
+        const sampleH1Unconfirmed = sampledMissingH1Unconfirmed({
+          missing: pageH1Quality.flag === "missing",
+          clientShell: pageClientShell,
+          jsFramework: representativeJsFramework,
+          rendered: representativeEvidenceSource === "rendered_html",
+        });
         // A page that asks search engines not to index it does not represent the
         // website in search results and is not scored.
         const pageNoindex = /<meta\b[^>]*name\s*=\s*["'](?:robots|googlebot)["'][^>]*content\s*=\s*["'][^"']*\bnoindex\b/i.test(pageHtml)
@@ -4092,7 +4105,7 @@ export async function POST(request: Request) {
           {key:"http",status:"PASS",details:`HTTP ${r.status}`},
           {key:"title",status:pageTitleAssessment.status==="PASS"?"PASS":pageClientShell?"UNABLE_TO_CONFIRM":"WARNING",details:pageTitleAssessment.status!=="PASS"&&pageClientShell?`${pageTitleAssessment.details} ${clientShellNote}`:pageTitleAssessment.details},
           {key:"description",status:pageDescriptionAssessment.status==="PASS"&&!pageDescriptionQuality.flag?"PASS":pageClientShell&&pageDescriptionAssessment.status!=="PASS"?"UNABLE_TO_CONFIRM":"WARNING",details:pageDescriptionAssessment.status!=="PASS"&&pageClientShell?`${pageDescriptionAssessment.details} ${clientShellNote}`:pageDescriptionQuality.flag?`${pageDescriptionAssessment.details} ${pageDescriptionQuality.details}`:pageDescriptionAssessment.details},
-          {key:"h1",status:pageH1Quality.status==="pass"?"PASS":pageH1Quality.flag==="missing"&&pageClientShell?"UNABLE_TO_CONFIRM":"WARNING",details:pageH1Quality.flag==="missing"&&pageClientShell?`0 H1-heading(s) gevonden in de raw HTML. ${clientShellNote}`:pageH1Quality.details},
+          {key:"h1",status:pageH1Quality.status==="pass"?"PASS":sampleH1Unconfirmed?"UNABLE_TO_CONFIRM":"WARNING",details:sampleH1Unconfirmed?`0 H1-heading(s) gevonden in de raw HTML. ${clientShellNote}`:pageH1Quality.details},
           ...(pageProductEvidence && pageProductMissing.length ? [{key:"product_schema",status:"WARNING" as const,details:`Product JSON-LD zonder ${pageProductMissing.join(" en ")}${pageProductEvidence.name ? ` ("${pageProductEvidence.name.slice(0,60)}")` : ""}.`}] : []),
           {key:"canonical",status:pageCanonical
             ? pageCanonicalRisk.crossDomain ? "FAIL" : (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); if(!/^https?:$/.test(resolved.protocol)) return "WARNING"; return normalizeScanUrl(resolved.toString())===normalizeScanUrl(finalCandidate.toString()) || sampleCanonicalConsolidates(resolved, finalCandidate)?"PASS":"WARNING"; } catch { return "WARNING"; } })()
@@ -4570,6 +4583,8 @@ export async function POST(request: Request) {
     }
     const websiteType = finalCommerceDecision.confirmed
       ? "Webshop"
+      : sectorProfile.key === "telecom_technology" && declaredIdentity?.sector === "telecom_technology"
+        ? "Telecomprovider"
       : sectorProfile.key === "finance" && (paymentServicesPrimaryIdentity || declaredIdentity?.sector === "finance")
         ? financialIdentity.provider ? "Betaaldienstverlener" : "Financieel platform"
       : sectorProfile.key === "recruitment" && masterEvidence.businessModels.includes("recruitment")

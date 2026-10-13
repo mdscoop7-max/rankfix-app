@@ -7,5 +7,5 @@ export function generateStaticParams() { return locales.map(locale => ({ locale 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) { const { locale } = await params; return isLocale(locale) ? localeMetadata(locale, "scan") : {}; }
 export default async function LocalizedScan({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params; if (!isLocale(locale)) notFound();
-  return <LocaleShell locale={locale} page="scan"><ScanClient locale={locale} /></LocaleShell>;
+  return <LocaleShell locale={locale} page="scan"><ScanClient locale={locale} qaPreview={process.env.VERCEL_ENV === "preview"} /></LocaleShell>;
 }
