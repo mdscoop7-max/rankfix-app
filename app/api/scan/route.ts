@@ -24,6 +24,7 @@ import { isSubstantiveRender, renderImprovesEvidence } from "@/lib/render-qualit
 import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDetailPath, productUrlsFromSitemap } from "@/lib/product-links";
 import { SITE_URL } from "@/lib/site-url";
 import { declaredSiteIdentity } from "@/lib/site-identity";
+import { canPromoteSectorSubtype } from "@/lib/sector-subtype";
 import { assessDescriptionQuality, assessH1Quality, assessProductSchemaCompleteness, blendHeadlineScore, blockedScanMessage, canonicalCrossDomainRisk, classifyLegalLink, findAudienceEvidence, findConsentEvidence, findFaqEvidence, findFormEvidence, findPaymentMethods, findRegulatoryEvidence, findReviewEvidence, findTagManagerEvidence, findVisiblePrices, fintechIdentity, isBlockingStatus, isBrokenStatus, isGenericTitle, LEGAL_LEXICON, rankfixUserAgents, sameRegistrableSite, isPlaceholderHref, htmlWithoutScripts, offerPriceAndCurrency } from "@/lib/evidence-quality";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
@@ -4491,13 +4492,20 @@ export async function POST(request: Request) {
     }
     // Preserve broad engine families internally, but show a more useful specific
     // label when the catalog and representative evidence independently agree.
-    if (!finalCommerceDecision.confirmed && catalogTop?.key==="dentist" && multiPageCapabilities.treatment) {
+    const subtypePrimaryIdentity = {
+      primarySector: sectorProfile.sector,
+      declaredSector: declaredIdentity?.sector ?? null,
+      title, description, siteName: stripHtml(ogSiteName || ""), h1s, schemaTypes,
+    };
+    // A news story about dental treatment or lawyers cannot relabel its publisher.
+    // Both the primary family and the page's own declared identity must agree.
+    if (!finalCommerceDecision.confirmed && catalogTop?.key==="dentist" && multiPageCapabilities.treatment && canPromoteSectorSubtype({...subtypePrimaryIdentity, subtype:"dentist"})) {
       sectorProfile.key = "dentist";
       sectorProfile.label = "Tandarts / Dentist";
       sectorProfile.confidence = "high";
       sectorProfile.confidenceScore = Math.max(92, sectorProfile.confidenceScore);
     }
-    if (!finalCommerceDecision.confirmed && catalogTop?.key==="legal" && multiPageCapabilities.professional) {
+    if (!finalCommerceDecision.confirmed && catalogTop?.key==="legal" && multiPageCapabilities.professional && canPromoteSectorSubtype({...subtypePrimaryIdentity, subtype:"legal"})) {
       sectorProfile.key = "legal";
       sectorProfile.label = "Juridisch / Advocatuur";
       sectorProfile.confidence = "high";
