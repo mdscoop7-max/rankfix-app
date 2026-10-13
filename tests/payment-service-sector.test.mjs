@@ -28,6 +28,6 @@ test("scan ties hotel and commerce to primary business identity, not stray words
   assert.match(route,/!paymentServicesPrimaryIdentity && !shortStayIdentity/);
   assert.match(route,/confirmedRetailSamples = auditedMultiPages.filter/);
   assert.match(route,/!paymentServicesPrimaryIdentity \|\| explicitRetailIdentity/);
-  assert.match(route,/!paymentServicesPrimaryIdentity && !retailPrimaryIdentity && !finalCommerceDecision.confirmed/);
+  assert.match(route,/!masterIdentityOverride && !retailPrimaryIdentity && !finalCommerceDecision.confirmed/);
   assert.match(route,/sectorProfile.key === "finance" && paymentServicesPrimaryIdentity/);
 });
