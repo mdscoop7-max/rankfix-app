@@ -139,7 +139,7 @@ export function assessH1Quality(html: string, brandTokens: string[] = [], pageUr
     const key = normalizeText(value);
     // The brand as H1 is normal on a homepage (the organisation IS the topic);
     // on a subpage it says nothing about the page.
-    return GENERIC_H1.test(key) || (!homePage && (brands.has(key) || brands.has(key.replace(/\s+/g, ""))));
+    return GENERIC_H1.test(key) || /(?:componentVariation|headline_underscored|\bnull\s*!=|\bp\(e,|\bfunction\s*\(|\{\{[#/]?\s*(?:if|each|compare)\b)/i.test(value) || (!homePage && (brands.has(key) || brands.has(key.replace(/\s+/g, ""))));
   };
   if (unique.length === 1) {
     if (isGeneric(unique[0])) {
