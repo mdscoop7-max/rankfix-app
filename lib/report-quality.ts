@@ -63,7 +63,9 @@ export function stripTrackingParams(value: string): string {
 // Account, login, order, withdrawal and filter/facet URLs are application screens,
 // not content that represents the website in search. They never enter the sample.
 const ACCOUNT_SEGMENT = /^(?:my-?account|mijn-?account|account|accounts|myprofile|my-profile|profile|profiel|mijn-profiel|mijn-gegevens|login|log-in|logout|log-out|uitloggen|inloggen|signin|sign-in|signout|sign-out|signup|sign-up|register|registreren|auth|oauth2?|sso|authorize|password|wachtwoord|reset-password|wishlist|verlanglijst|favorites?|favourites?|favorieten|cart|basket|winkelwagen|winkelmand|checkout|afrekenen|kassa|purchases?|orders?|order-history|bestellingen|mijn-bestellingen|withdrawal|herroeping|herroepen|returns-portal|search|zoeken)$/i;
-const NON_CONTENT_QUERY = /^(?:q|query|search|zoek|sort|order|filter|filters|f|facet|page|session|sessionid|token|withdrawal|returnurl|return_url|redirect|redirect_uri|next|callback)$/i;
+const NON_CONTENT_QUERY = /^(?:q|query|search|zoek|sort|order|filter|filters|f|facet|page|session|sessionid|token|withdrawal|returnurl|return_url|redirect|redirect_uri|next|callback|code|state|client_id|response_type|scope|nonce|access_token|id_token|ui_locales|login_hint|prompt)$/i;
+// Login and identity hosts (account.allbirds.de, auth.example.com) are application screens.
+const ACCOUNT_HOST = /^(?:account|accounts|auth|login|signin|sso|id|identity|secure|my|mijn|mein|checkout|pay)\./i;
 
 export function isNonContentUrl(value: string): boolean {
   let url: URL;
@@ -71,6 +73,7 @@ export function isNonContentUrl(value: string): boolean {
   const segments = url.pathname.split("/").filter(Boolean).map((segment) => {
     try { return decodeURIComponent(segment).toLowerCase(); } catch { return segment.toLowerCase(); }
   });
+  if (ACCOUNT_HOST.test(url.hostname)) return true;
   if (segments.some((segment) => ACCOUNT_SEGMENT.test(segment))) return true;
   // Facet/filter paths: "_product-awards-Alle-Awards", "/f/merk-x", "/filter/…".
   if (segments.some((segment) => segment.startsWith("_") || segment === "f" || segment === "filter" || segment === "filters" || segment === "facet")) return true;
@@ -125,7 +128,9 @@ function brandTokens(host: string): string[] {
 // "| Expert.nl" or "Zalando": the title names only the brand, not the page.
 export function isBrandOnlyTitle(title: string, host: string): boolean {
   const tokens = new Set(brandTokens(host).map(normalizeSegment));
-  const content = titleSegments(title).map(normalizeSegment).filter(Boolean);
+  // A locale code or "Home" next to the brand adds no topic ("Nl | TransHeroes").
+  const content = titleSegments(title).map(normalizeSegment).filter(Boolean)
+    .filter((segment) => !/^(?:[a-z]{2}(?:[ -][a-z]{2})?|home|homepage|start|startpagina|welkom|welcome|accueil|startseite|inicio)$/.test(segment));
   if (!content.length) return true;
   return content.every((segment) => tokens.has(segment) || tokens.has(segment.replace(/\s+/g, "")));
 }

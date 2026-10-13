@@ -23,7 +23,7 @@ import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence"
 import { isSubstantiveRender, renderImprovesEvidence } from "@/lib/render-quality";
 import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDetailPath, productUrlsFromSitemap } from "@/lib/product-links";
 import { SITE_URL } from "@/lib/site-url";
-import { assessDescriptionQuality, assessH1Quality, assessProductSchemaCompleteness, blendHeadlineScore, blockedScanMessage, canonicalCrossDomainRisk, classifyLegalLink, findAudienceEvidence, findConsentEvidence, findFaqEvidence, findFormEvidence, findPaymentMethods, findRegulatoryEvidence, findReviewEvidence, findTagManagerEvidence, findVisiblePrices, fintechIdentity, isBlockingStatus, isBrokenStatus, isGenericTitle, LEGAL_LEXICON, rankfixUserAgents, sameRegistrableSite } from "@/lib/evidence-quality";
+import { assessDescriptionQuality, assessH1Quality, assessProductSchemaCompleteness, blendHeadlineScore, blockedScanMessage, canonicalCrossDomainRisk, classifyLegalLink, findAudienceEvidence, findConsentEvidence, findFaqEvidence, findFormEvidence, findPaymentMethods, findRegulatoryEvidence, findReviewEvidence, findTagManagerEvidence, findVisiblePrices, fintechIdentity, isBlockingStatus, isBrokenStatus, isGenericTitle, LEGAL_LEXICON, rankfixUserAgents, sameRegistrableSite, isPlaceholderHref, htmlWithoutScripts, offerPriceAndCurrency } from "@/lib/evidence-quality";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
 import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, financialServicePrimaryIdentity, isLocalizedHomePath, primaryNonRetailRole, lodgingBusinessSubtype, paymentProviderPrimaryIdentity, primaryLodgingIdentity } from "@/lib/sector-identity";
@@ -863,9 +863,9 @@ export async function POST(request: Request) {
       const offers = Array.isArray(product?.offers) ? product.offers : product?.offers ? [product.offers] : [];
       const normalizedOffers: ProductOfferEvidence[] = offers.map((offer: any) => ({
         type: Array.isArray(offer?.["@type"]) ? offer["@type"].map(String).join(",") : String(offer?.["@type"] || ""),
-        price: offer?.price ?? offer?.lowPrice ?? null,
+        price: offerPriceAndCurrency(offer).price,
         highPrice: offer?.highPrice ?? null,
-        currency: typeof offer?.priceCurrency === "string" ? offer.priceCurrency.trim().toUpperCase() : "",
+        currency: offerPriceAndCurrency(offer).currency || "",
         availability: typeof offer?.availability === "string" ? offer.availability.trim() : "",
         shippingDetails: Boolean(offer?.shippingDetails),
         returnPolicy: Boolean(offer?.hasMerchantReturnPolicy),
@@ -1340,9 +1340,22 @@ export async function POST(request: Request) {
             try { const loc = new URL(value); return loc.origin === sitemapOrigin || sameRegistrableSite(loc.hostname, finalUrl.hostname); } catch { return false; }
           });
           const structurallyValid = hasSitemapRoot && validLocValues.length > 0;
-          const sitemapEntriesMatchSite = sitemapKind === "sitemapindex"
-            ? sameOriginLocValues.length > 0
-            : sameOriginLocValues.length > 0;
+          // A sitemap index declared by the site itself may list child sitemaps on a
+          // CDN host (PayPal). Then the child's own entries decide: fetch one child
+          // (bounded) and check that it lists pages of the scanned site.
+          let childSitemapMatchesSite = false;
+          if (sitemapKind === "sitemapindex" && sameOriginLocValues.length === 0 && validLocValues.length > 0 && (candidate.source === "robots" || candidate.source === "html")) {
+            try {
+              const child = (await safePublicFetch(new URL(validLocValues[0]), { timeoutMs: 5000, maxRedirects: 2, userAgent: RANKFIX_AGENTS.bot, accept: "application/xml,text/xml,text/plain" })).response;
+              if (child.ok) {
+                const childBody = await readResponseTextLimited(child, 2_000_000);
+                childSitemapMatchesSite = [...childBody.matchAll(/<(?:(?:[a-z0-9_-]+):)?loc\b[^>]*>([\s\S]*?)<\/(?:(?:[a-z0-9_-]+):)?loc>/gi)]
+                  .slice(0, 200)
+                  .some((match) => { try { return sameRegistrableSite(new URL(decode(String(match[1] || "").trim())).hostname, finalUrl.hostname); } catch { return false; } });
+              }
+            } catch {}
+          }
+          const sitemapEntriesMatchSite = sameOriginLocValues.length > 0 || childSitemapMatchesSite;
           if (structurallyValid && sitemapEntriesMatchSite) {
             sitemapFound = true;
             sitemapStatus = "PASS";
@@ -1399,7 +1412,9 @@ export async function POST(request: Request) {
     // Lightweight internal-link audit. Keep this bounded so one page cannot turn a scan
     // into an unbounded crawler. HTTP evidence and semantic evidence stay separate.
     type LinkAuditResult = { sourceHref: string; url: string; status: number | null; finalUrl: string | null; redirected: boolean; error: boolean; context: string };
-    const anchorTags = [...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)]
+    // Links inside <script>/<template> and template tokens (product.uri, {{url}})
+    // are not links a visitor can follow; they are never audited as broken.
+    const anchorTags = [...htmlWithoutScripts(html).matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)]
       .map((match) => {
         const sourceHref = decode(match[1] || "");
         const body = match[2] || "";
@@ -1407,7 +1422,7 @@ export async function POST(request: Request) {
         const imageAlt = [...body.matchAll(/<img\b[^>]*\balt\s*=\s*["']([^"']+)["'][^>]*>/gi)].map((m) => decode(m[1] || "")).filter(Boolean).join(" ");
         return { sourceHref, context: [anchorText, imageAlt].filter(Boolean).join(" ").trim().slice(0, 220) };
       })
-      .filter((item) => item.sourceHref && !/^(?:#|mailto:|tel:|javascript:)/i.test(item.sourceHref));
+      .filter((item) => item.sourceHref && !/^(?:#|mailto:|tel:|javascript:)/i.test(item.sourceHref) && !isPlaceholderHref(item.sourceHref));
     const allUniqueInternalAnchors = [...new Map(anchorTags.flatMap((item) => {
       try {
         const parsed = new URL(item.sourceHref, finalUrl);
@@ -2143,8 +2158,23 @@ export async function POST(request: Request) {
       const candidates = legalAnchorEvidence
         .map((item) => ({ ...item, legalKind: classifyLegalLink(item.href, finalUrl.toString()) }))
         .filter((item) => item.legalKind && pattern.test(item.haystack));
-      // Prefer the business's own page over a PDF or another host.
-      return candidates.find((item) => item.legalKind === "first_party") || candidates[0] || null;
+      // Prefer a short link whose label IS the legal document ("Privacyverklaring",
+      // "User Agreement") over a long navigation label that merely mentions it
+      // ("Overheid en democratie Privacy en persoonsgegevens, Grondwet…") or a promo
+      // condition ("Terms and exclusions apply"); then the business's own page.
+      const labelOf = (item: { label: string; aria: string; title: string }) => (item.label || item.aria || item.title || "").trim();
+      const score = (item: typeof candidates[number]) => {
+        const label = labelOf(item);
+        const words = label.split(/\s+/).filter(Boolean).length;
+        let value = 0;
+        if (words > 0 && words <= 5 && pattern.test(normalizeLegalText(label))) value += 4;
+        if (/\b(?:apply|applies|gelden|van toepassing|exclusions|uitsluitingen|actievoorwaarden|rewards?|promo|campagne)\b/i.test(label)) value -= 3;
+        if (words > 8) value -= 2;
+        if (item.legalKind === "first_party") value += 2;
+        else if (item.legalKind === "first_party_pdf") value += 1;
+        return value;
+      };
+      return [...candidates].sort((a, b) => score(b) - score(a))[0] || null;
     };
     const privacyEvidence = findLegalSignal(legalLexicon.privacy);
     const cookieEvidence = findLegalSignal(legalLexicon.cookies);
@@ -2604,7 +2634,7 @@ export async function POST(request: Request) {
     // Review Oct 2026 (point 1): quality, not presence. "Home" or a cookie-banner
     // heading is not a page H1; identical copies count as one.
     const h1Host = finalUrl.hostname.toLowerCase().replace(/^www\./, "");
-    const h1Quality = assessH1Quality(html, [h1Host, h1Host.split(".")[0], stripHtml(ogSiteName || ""), organizationSchemaName, organizationName].filter(Boolean));
+    const h1Quality = assessH1Quality(html, [h1Host, h1Host.split(".")[0], stripHtml(ogSiteName || ""), organizationSchemaName, organizationName].filter(Boolean), finalUrl.toString());
     seoChecks.push(h1Quality.status === "pass"
       ? check("pass", "h1", "seo", "H1-heading", h1Quality.details, "Behoud één duidelijke primaire H1.", 8, 8)
       : h1Quality.status === "missing"
@@ -3691,6 +3721,22 @@ export async function POST(request: Request) {
       hasEcommerceSignal && !cartFormSignal && !cartHrefSignal ? "De winkelwagen wordt via JavaScript opgebouwd; de koopflow is niet beoordeeld." : null,
       /<script\b[^>]*\bsrc\s*=/i.test(html) ? "Scripts die pas na JavaScript laden (tag managers, pixels, chatwidgets) zijn niet gezien en daarom niet als ontbrekend beoordeeld." : null,
     ].filter((value): value is string => Boolean(value));
+    // A page of real size with almost no internal links is a partial render or a
+    // stripped response; say so instead of presenting a 1-link check as complete
+    // (Coolblue, review round 2).
+    if (allUniqueInternalAnchors.length <= 2 && wordCount >= 300) {
+      rawHtmlLimitations.push(`De opgehaalde pagina bevatte maar ${allUniqueInternalAnchors.length} interne link(s) bij ${wordCount} woorden; navigatie en footer zijn waarschijnlijk niet (volledig) geladen. Linkcontrole, juridische links en de steekproef zijn daardoor beperkt.`);
+      const sparseLinkKeys = new Set(["broken_links", "internal_redirects", "semantic_link_destination"]);
+      for (const item of seoChecks) {
+        if (!sparseLinkKeys.has(item.key) || item.status !== "pass") continue;
+        item.status = "unable_to_confirm";
+        item.issue_status = "UNABLE_TO_CONFIRM";
+        item.points = 0;
+        item.confidence = "low";
+        item.message = `Maar ${allUniqueInternalAnchors.length} interne link(s) gevonden op een pagina van ${wordCount} woorden; dat is te weinig om deze controle te bevestigen.`;
+        item.evidence = { url: finalUrl.toString(), found: null, details: item.message };
+      }
+    }
     const rendering = {
       mode: javascriptExecuted ? "javascript_rendered" as const : "raw_html" as const,
       limitations: rawHtmlLimitations,
@@ -3964,15 +4010,17 @@ export async function POST(request: Request) {
           }
           return null;
         })();
-        const pageOffer:any = pageProductJson ? (Array.isArray(pageProductJson.offers) ? pageProductJson.offers[0] : pageProductJson.offers) : null;
+        const pageOfferList:any[] = pageProductJson ? ([] as any[]).concat(pageProductJson.offers ?? []) : [];
+        // Prefer the first offer that actually carries a price (offers[0] may be a seller stub).
+        const pageOffer:any = pageOfferList.find((offer)=>offerPriceAndCurrency(offer).price) || pageOfferList[0] || null;
         const pageImageValue = pageProductJson?.image;
         const pageProductEvidence = pageProductJson ? {
           name: typeof pageProductJson.name==="string" ? pageProductJson.name.trim() || null : null,
           // image may be a URL, an ImageObject ({url|contentUrl}) or an array of either.
           image: (()=>{ const first = Array.isArray(pageImageValue) ? pageImageValue[0] : pageImageValue; if (typeof first==="string") return first || null; if (first && typeof first==="object") { const imageObject = first as Record<string, unknown>; const url = imageObject.url ?? imageObject.contentUrl; return typeof url==="string" && url ? url : null; } return null; })(),
           sku: typeof pageProductJson.sku==="string" ? pageProductJson.sku : null,
-          price: pageOffer?.price != null ? String(pageOffer.price) : null,
-          currency: typeof pageOffer?.priceCurrency==="string" ? pageOffer.priceCurrency : null,
+          price: offerPriceAndCurrency(pageOffer).price,
+          currency: offerPriceAndCurrency(pageOffer).currency,
           availability: typeof pageOffer?.availability==="string" ? pageOffer.availability : null,
         } : null;
         const pageCommerceEvidence = {
@@ -3990,7 +4038,7 @@ export async function POST(request: Request) {
         const pageDescriptionAssessment = assessPageDescription(pageDescription, Boolean(pageDescriptionTag));
         const pageDescriptionQuality = assessDescriptionQuality(pageDescription);
         const pageHost = normalizeHost(finalCandidate.hostname);
-        const pageH1Quality = assessH1Quality(pageHtml, [pageHost, pageHost.split(".")[0]]);
+        const pageH1Quality = assessH1Quality(pageHtml, [pageHost, pageHost.split(".")[0]], finalCandidate.toString());
         const pageCanonicalRisk = pageCanonical ? canonicalCrossDomainRisk(pageCanonical, finalCandidate.toString()) : { crossDomain: false, canonicalHost: null };
         const pageProductMissing = pageProductEvidence ? [!pageProductEvidence.price ? "prijs" : null, !pageProductEvidence.currency ? "valuta" : null].filter(Boolean) as string[] : [];
         // A JavaScript application shell that could not be rendered cannot prove a
@@ -4005,6 +4053,17 @@ export async function POST(request: Request) {
         if (pageNoindex && !isScannedPage) {
           return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"noindex",status:"UNABLE_TO_CONFIRM",details:"Pagina staat op noindex en telt daarom niet mee in de steekproefscore."}] };
         }
+        // A link that lands on a login or identity screen is not a content page.
+        if (!isScannedPage && isNonContentUrl(finalCandidate.toString())) {
+          return { ...page, url:shortUrl(stripTrackingParams(finalCandidate.origin + finalCandidate.pathname)), status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"quality",status:"UNABLE_TO_CONFIRM",details:"De link komt uit op een inlog- of accountscherm; dat is geen inhoudspagina en telt niet mee."}] };
+        }
+        // Bot protection often serves sample pages as a bare shell: brand-only or no
+        // title and no description, H1 or canonical at all (Zalando FAQ, Oct 2026).
+        // Such a response proves nothing about the real page, so it is not scored.
+        const pageLooksReduced = !isScannedPage && !pageDescription && pageH1s.length === 0 && !pageCanonical && (!pageTitle || pageTitleAssessment.flag === "brand_only");
+        if (pageLooksReduced) {
+          return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, title:pageTitle||null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"quality",status:"UNABLE_TO_CONFIRM",details:"De website gaf deze pagina als uitgeklede versie terug (alleen de merknaam als title, geen description, H1 of canonical), vermoedelijk door bot-beveiliging. Dat bewijst niets over de echte pagina; ze telt niet mee."}] };
+        }
         const evidenceChecks: MultiPageAudit["evidenceChecks"] = [
           {key:"http",status:"PASS",details:`HTTP ${r.status}`},
           {key:"title",status:pageTitleAssessment.status==="PASS"?"PASS":pageClientShell?"UNABLE_TO_CONFIRM":"WARNING",details:pageTitleAssessment.status!=="PASS"&&pageClientShell?`${pageTitleAssessment.details} ${clientShellNote}`:pageTitleAssessment.details},
@@ -4012,10 +4071,10 @@ export async function POST(request: Request) {
           {key:"h1",status:pageH1Quality.status==="pass"?"PASS":pageH1Quality.flag==="missing"&&pageClientShell?"UNABLE_TO_CONFIRM":"WARNING",details:pageH1Quality.flag==="missing"&&pageClientShell?`0 H1-heading(s) gevonden in de raw HTML. ${clientShellNote}`:pageH1Quality.details},
           ...(pageProductEvidence && pageProductMissing.length ? [{key:"product_schema",status:"WARNING" as const,details:`Product JSON-LD zonder ${pageProductMissing.join(" en ")}${pageProductEvidence.name ? ` ("${pageProductEvidence.name.slice(0,60)}")` : ""}.`}] : []),
           {key:"canonical",status:pageCanonical
-            ? pageCanonicalRisk.crossDomain ? "FAIL" : (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); if(!/^https?:$/.test(resolved.protocol)) return "WARNING"; return normalizeScanUrl(resolved.toString())===normalizeScanUrl(finalCandidate.toString())?"PASS":"WARNING"; } catch { return "WARNING"; } })()
+            ? pageCanonicalRisk.crossDomain ? "FAIL" : (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); if(!/^https?:$/.test(resolved.protocol)) return "WARNING"; return normalizeScanUrl(resolved.toString())===normalizeScanUrl(finalCandidate.toString()) || sampleCanonicalConsolidates(resolved, finalCandidate)?"PASS":"WARNING"; } catch { return "WARNING"; } })()
             : pageClientShell ? "UNABLE_TO_CONFIRM" : "WARNING",
             details:pageCanonical
-              ? pageCanonicalRisk.crossDomain ? `Hoog risico: canonical wijst naar een ander domein (${pageCanonicalRisk.canonicalHost}): ${pageCanonical}. Deze pagina zal waarschijnlijk niet zelf ranken.` : (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); if(!/^https?:$/.test(resolved.protocol)) return `Canonical gebruikt een ongeldig protocol of schema: ${pageCanonical}.`; const samePage=normalizeScanUrl(resolved.toString())===normalizeScanUrl(finalCandidate.toString()); if (samePage) return `Self-canonical/equivalente voorkeurs-URL bevestigd: ${resolved.toString()}`; const httpOnly = resolved.protocol==="http:" && finalCandidate.protocol==="https:" && normalizeScanUrl(resolved.toString().replace(/^http:/,"https:"))===normalizeScanUrl(finalCandidate.toString()); return httpOnly?`Canonical wijst naar de onbeveiligde HTTP-versie van deze pagina (${resolved.toString()}); gebruik de HTTPS-URL.`:`Canonical wijst naar ${resolved.toString()}; controleer of deze afwijking bewust is.`; } catch { return "Canonical is aanwezig maar kon niet betrouwbaar als URL worden geïnterpreteerd."; } })()
+              ? pageCanonicalRisk.crossDomain ? `Hoog risico: canonical wijst naar een ander domein (${pageCanonicalRisk.canonicalHost}): ${pageCanonical}. Deze pagina zal waarschijnlijk niet zelf ranken.` : (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); if(!/^https?:$/.test(resolved.protocol)) return `Canonical gebruikt een ongeldig protocol of schema: ${pageCanonical}.`; const samePage=normalizeScanUrl(resolved.toString())===normalizeScanUrl(finalCandidate.toString()); if (samePage) return `Self-canonical/equivalente voorkeurs-URL bevestigd: ${resolved.toString()}`; if (sampleCanonicalConsolidates(resolved, finalCandidate)) return `Canonical bundelt deze variant (parameters of oude URL) naar de voorkeurs-URL ${resolved.toString()}; dat is correct.`; const httpOnly = resolved.protocol==="http:" && finalCandidate.protocol==="https:" && normalizeScanUrl(resolved.toString().replace(/^http:/,"https:"))===normalizeScanUrl(finalCandidate.toString()); return httpOnly?`Canonical wijst naar de onbeveiligde HTTP-versie van deze pagina (${resolved.toString()}); gebruik de HTTPS-URL.`:`Canonical wijst naar ${resolved.toString()}; controleer of deze afwijking bewust is.`; } catch { return "Canonical is aanwezig maar kon niet betrouwbaar als URL worden geïnterpreteerd."; } })()
               : pageClientShell ? `Geen canonical-linkelement gevonden in de raw HTML. ${clientShellNote}` : "Geen canonical-linkelement gevonden in de gecontroleerde raw HTML. Dit is hetzelfde afwezigheidssignaal als in de hoofdscan; controleer alleen apart wanneer de site canonical-tags uitsluitend via JavaScript toevoegt."},
         ];
         const confirmed = evidenceChecks.filter((x)=>x.status!=="UNABLE_TO_CONFIRM");
@@ -4053,6 +4112,19 @@ export async function POST(request: Request) {
     // representative pages are selected, but only four network/browser audits run
     // concurrently. This prevents a JavaScript-heavy site from spawning 20
     // simultaneous Puppeteer recoveries and exhausting memory/CPU.
+    // A sampled link often carries parameters (?locale.x=en_US, ?ref=nav) or is an old
+    // URL. A canonical that bundles it to the same path without parameters, or to the
+    // page the customer scanned, is correct consolidation, not a defect (PayPal, Oct 2026).
+    function sampleCanonicalConsolidates(canonical: URL, sampled: URL): boolean {
+      if (!sameRegistrableSite(canonical.hostname, sampled.hostname)) return false;
+      const path = (value: URL) => value.pathname.replace(/\/+$/, "").toLowerCase() || "/";
+      if (path(canonical) === path(sampled) && !canonical.search) return true;
+      if (normalizeScanUrl(canonical.toString()) === normalizeScanUrl(finalUrl.toString())) return true;
+      // Same page with only a locale prefix added or removed (/advertiser/about → /us/advertiser/about).
+      const withoutLocale = (value: string) => value.replace(/^\/[a-z]{2}(?:[-_][a-z]{2})?(?=\/)/i, "");
+      if (!canonical.search && withoutLocale(path(canonical)) === withoutLocale(path(sampled))) return true;
+      return false;
+    }
     const representativeAuditConcurrency = 4;
     const multiPageAudits: MultiPageAudit[] = new Array(uniqueMultiPagePages.length);
     let nextRepresentativePageIndex = 0;
@@ -4590,9 +4662,13 @@ export async function POST(request: Request) {
     // Privacy, cookie and contact information often lives on its own page. When the
     // homepage alone did not prove a signal, the representative sample may.
     const trustLegalCheck = seoChecks.find((item)=>item.key==="trust_legal_signals");
-    if (trustLegalCheck && (trustLegalCheck.status==="warning" || trustLegalCheck.status==="unable_to_confirm")) {
+    if (trustLegalCheck && (trustLegalCheck.status==="fail" || trustLegalCheck.status==="warning" || trustLegalCheck.status==="unable_to_confirm")) {
       const sampled = auditedMultiPages.map((item)=>{ let path = ""; try { path = safeDecodeURIComponent(new URL(item.url).pathname).toLowerCase(); } catch {} return { url:item.url, path, text:String(item.identityText||"").toLowerCase() }; });
-      const privacyPage = sampled.find((item)=>/privacy|datenschutz|confidentialit|privacidad|riservatezza/.test(item.path));
+      // Also any discovered same-site URL whose path is a privacy page: the link
+      // exists somewhere on the site even when this page's copy did not name it.
+      const discoveredPrivacyUrl = [...allUniqueInternalAnchors.map((item)=>item.url), ...discoveredMultiPage.map((item)=>item.url)]
+        .find((url)=>{ try { return /\/(?:[a-z-]*privacy[a-z-]*|datenschutz[a-z-]*|privacyverklaring|privacybeleid|confidentialite|privacidad|riservatezza)(?:\/|$|\.)/i.test(safeDecodeURIComponent(new URL(url).pathname)); } catch { return false; } });
+      const privacyPage = sampled.find((item)=>/privacy|datenschutz|confidentialit|privacidad|riservatezza/.test(item.path)) || (discoveredPrivacyUrl ? { url: discoveredPrivacyUrl, path: "", text: "" } : undefined);
       const cookiePage = sampled.find((item)=>/cookie/.test(item.path)) || (privacyPage && /cookie/.test(privacyPage.text) ? privacyPage : undefined);
       const contactPage = sampled.find((item)=>/(?:^|\/)(?:contact|contact-us|contactgegevens|kontakt|contacto|contatti)(?:\/|$)/.test(item.path));
       const privacyOk = hasPrivacyLink || Boolean(privacyPage);
@@ -4602,11 +4678,26 @@ export async function POST(request: Request) {
       if (privacyOk && cookieOk && contactOk && (privacyPage || cookiePage || contactPage)) {
         Object.assign(trustLegalCheck, check("pass","trust_legal_signals","seo",trustLegalCheck.title,`Privacy-, cookie- en contactinformatie is bevestigd via de gescande pagina en de representatieve steekproef (${sampleProof}).`,"Houd deze informatie duidelijk vindbaar en actueel. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",5,5));
         trustLegalCheck.evidence = { url: finalUrl.toString(), found: true, details: trustLegalCheck.message };
-      } else if (trustLegalCheck.status==="warning" && (privacyPage || cookiePage || contactPage)) {
+      } else if ((trustLegalCheck.status==="warning" || (trustLegalCheck.status==="fail" && privacyPage)) && (privacyPage || cookiePage || contactPage)) {
+        if (trustLegalCheck.status==="fail") { trustLegalCheck.status = "warning"; trustLegalCheck.issue_status = "WARNING"; trustLegalCheck.severity = "LOW"; }
         const missing = [!privacyOk?"privacy":null,!cookieOk?"cookies":null,!contactOk?"contact":null].filter(Boolean).join(", ");
         trustLegalCheck.message = `Niet alle basissignalen zijn gevonden: ${missing}. Wel bevestigd via de steekproef: ${sampleProof}.`;
         trustLegalCheck.points = Math.max(trustLegalCheck.points, Number(privacyOk)+Number(cookieOk)+Number(contactOk)+2);
         if (trustLegalCheck.evidence) trustLegalCheck.evidence.details = trustLegalCheck.message;
+      }
+    }
+
+    // A remaining "no privacy statement" FAIL needs a page whose footer was actually
+    // loaded; otherwise the absence is not proven (TransHeroes, Acupunctuur, round 2).
+    if (trustLegalCheck && trustLegalCheck.status==="fail") {
+      const footerLoaded = /<footer\b/i.test(html) || allUniqueInternalAnchors.length >= 30;
+      if (!footerLoaded) {
+        trustLegalCheck.status = "unable_to_confirm";
+        trustLegalCheck.issue_status = "UNABLE_TO_CONFIRM";
+        trustLegalCheck.points = 0;
+        trustLegalCheck.confidence = "low";
+        trustLegalCheck.message = "Op deze pagina is geen link naar een privacyverklaring gevonden, maar de footer is niet (volledig) geladen; daarmee is niet bewezen dat de link ontbreekt.";
+        trustLegalCheck.evidence = { url: finalUrl.toString(), found: null, details: trustLegalCheck.message };
       }
     }
 
@@ -4914,7 +5005,41 @@ export async function POST(request: Request) {
     // in the action list (zero weight; they count through the blended headline).
     const sampleChecks: Check[] = [];
     const samplePageList = (items: Array<{ url: string; details: string }>) => items.slice(0, 4).map((item) => `${shortUrl(item.url, 70)} (${sampleEvidenceExcerpt(item.details)})`).join("; ");
-    if (brokenSamplePages.length) {
+    // One truth per check (review round 2): when the sample proves what the page
+    // check could not see, the page check takes over that proof instead of a second,
+    // contradicting line ("kapotte links: geslaagd" next to "steekproef: 404").
+    let mainChecksChanged = false;
+    const mainBrokenLinks = selectedSeoChecks.find((item) => item.key === "broken_links");
+    const brokenSampleUrls = brokenSamplePages.map((page) => `${shortUrl(page.url, 70)} → HTTP ${page.httpStatus}`);
+    if (mainBrokenLinks && brokenSamplePages.length && mainBrokenLinks.status !== "fail") {
+      mainBrokenLinks.status = "fail";
+      mainBrokenLinks.issue_status = "FAIL";
+      mainBrokenLinks.severity = "MEDIUM";
+      mainBrokenLinks.confidence = "high";
+      mainBrokenLinks.points = Math.min(mainBrokenLinks.points, Math.max(0, mainBrokenLinks.maxPoints - 2));
+      mainBrokenLinks.message = `${brokenSamplePages.length} interne pagina('s) waar de website naar linkt, werkt niet: ${brokenSampleUrls.slice(0, 4).join(", ")}. Gevonden in de steekproef van ${multiPageAudits.length} pagina's; de ${linkAuditResults.length} links op de gescande pagina zelf werkten.`;
+      mainBrokenLinks.fix = "Herstel deze pagina's of laat de links en de sitemap naar een werkende pagina verwijzen (met een 301-redirect als de pagina verhuisd is).";
+      mainBrokenLinks.evidence = { url: finalUrl.toString(), found: brokenSamplePages.map((page) => `${page.url}=${page.httpStatus}`).join(" | "), details: mainBrokenLinks.message };
+      mainChecksChanged = true;
+    }
+    const sampleProductAggregate = sitewideCheckAggregation.find((item) => item.key === "product_schema" && (item.status === "WARNING" || item.status === "FAIL"));
+    const mainProductSchema = selectedGeoChecks.find((item) => item.key === "product_schema");
+    if (mainProductSchema && sampleProductAggregate && mainProductSchema.status === "pass") {
+      mainProductSchema.status = "warning";
+      mainProductSchema.issue_status = "WARNING";
+      mainProductSchema.severity = "MEDIUM";
+      mainProductSchema.points = Math.min(mainProductSchema.points, Math.round(mainProductSchema.maxPoints / 2));
+      mainProductSchema.message = `${sampleProductAggregate.affectedCount} van de gecontroleerde productpagina's publiceert Product JSON-LD zonder prijs of valuta: ${samplePageList(sampleProductAggregate.evidence)}.`;
+      mainProductSchema.fix = "Voeg per product een Offer met price en priceCurrency toe (of een priceSpecification), zodat het product als aanbod getoond kan worden.";
+      mainProductSchema.evidence = { url: finalUrl.toString(), found: sampleProductAggregate.evidence.map((entry) => entry.url).join(" | "), details: mainProductSchema.message };
+      mainChecksChanged = true;
+    }
+    if (mainChecksChanged) {
+      selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);
+      selectedGeoScore = scoreApplicableChecks(selectedGeoChecks);
+      selectedOverallScore = applyEvidenceBasedScoreCap(mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4), checks);
+    }
+    if (brokenSamplePages.length && !mainBrokenLinks) {
       const item = check("fail", "sample_broken_pages", "seo", "Steekproef: niet-werkende pagina's", `${brokenSamplePages.length} van ${multiPageAudits.length} geselecteerde interne pagina('s) werkt niet: ${brokenSamplePages.slice(0, 4).map((page) => `${shortUrl(page.url, 70)} → HTTP ${page.httpStatus}`).join(", ")}.`, "Herstel deze pagina's of laat interne links en de sitemap naar een werkende pagina verwijzen (met een 301-redirect als de pagina verhuisd is).", 0, 0);
       item.severity = "MEDIUM";
       item.evidence = { url: finalUrl.toString(), found: brokenSamplePages.map((page) => `${page.url}=${page.httpStatus}`).join(" | "), details: item.message };
@@ -4930,6 +5055,7 @@ export async function POST(request: Request) {
     };
     for (const aggregate of sitewideCheckAggregation) {
       if (aggregate.status !== "WARNING" && aggregate.status !== "FAIL") continue;
+      if (aggregate.key === "product_schema" && mainProductSchema && mainProductSchema.status === "warning" && mainChecksChanged) continue;
       const failures = aggregate.evidence.filter((item) => item.status === "FAIL");
       const warningsOnly = aggregate.evidence.filter((item) => item.status === "WARNING");
       if (aggregate.key === "canonical" && failures.length) {
@@ -4961,6 +5087,15 @@ export async function POST(request: Request) {
     const headlineBlend = mode === "geo" ? { score: selectedOverallScore, sampleWeight: 0 } : blendHeadlineScore(selectedOverallScore, multiPage.siteSampleScore, otherSampledPages);
     selectedOverallScore = applyEvidenceBasedScoreCap(headlineBlend.score, checks);
     scanSummary = summarizeAuditChecks(checks);
+    // The published range must contain the published score: blend the range the
+    // same way as the headline (review round 2: "97 tegen een bereik van 98–98").
+    {
+      const range = scoreRange(checks);
+      const blend = (value: number) => headlineBlend.sampleWeight && multiPage.siteSampleScore !== null ? Math.round(value * (1 - headlineBlend.sampleWeight) + multiPage.siteSampleScore * headlineBlend.sampleWeight) : value;
+      const low = Math.min(blend(range.low), selectedOverallScore);
+      const high = Math.max(blend(range.high), selectedOverallScore);
+      Object.assign(scoreModel, { range: { ...range, low, high } });
+    }
     Object.assign(scoreModel, {
       formula: headlineBlend.sampleWeight ? `${scoreModel.formula}, gemengd met de steekproef (${Math.round((1 - headlineBlend.sampleWeight) * 100)}% pagina / ${Math.round(headlineBlend.sampleWeight * 100)}% steekproef)` : scoreModel.formula,
       headline: { score: selectedOverallScore, pageScore: pageOnlyOverallScore, sampleScore: multiPage.siteSampleScore, sampleWeight: headlineBlend.sampleWeight, sampledPages: otherSampledPages },

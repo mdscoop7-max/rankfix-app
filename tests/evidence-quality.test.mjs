@@ -294,3 +294,79 @@ test("sample page title lengths are not stated as definite search result truncat
   assert.match(v.details,/niet bewezen/);
   assert.doesNotMatch(v.details,/zoekmachines kappen hem af/);
 });
+
+// ---------------------------------------------------------------- review round 2 (13 Oct 2026)
+import { htmlWithoutScripts, isPlaceholderHref, offerPriceAndCurrency } from "../lib/evidence-quality.ts";
+import { findVisibleAddress } from "../lib/contact-evidence.ts";
+import { isBrandOnlyTitle, isNonContentUrl } from "../lib/report-quality.ts";
+
+test("a cookie POLICY page heading is the page heading, not a banner (IKEA, Rijksoverheid)", () => {
+  assert.equal(assessH1Quality(`<main class="cookie-policy"><h1>Cookieverklaring IKEA Nederland</h1><p>Wij gebruiken cookies om…</p></main>`, ["ikea"], "https://www.ikea.com/nl/nl/customer-service/cookie-policy/").status, "pass");
+  assert.equal(assessH1Quality(`<main><h1>Cookies</h1><p>Rijksoverheid.nl gebruikt cookies.</p></main>`, ["rijksoverheid"], "https://www.rijksoverheid.nl/service/cookies").status, "pass");
+  // "toestemming" in a normal heading is not consent copy.
+  assert.equal(assessH1Quality(`<h1>Formulier toestemming reizen met minderjarig kind</h1>`, ["rijksoverheid"], "https://www.rijksoverheid.nl/documenten/2014/02/06/formulier").status, "pass");
+  // A class that merely contains "cookie" without an overlay is not a banner.
+  assert.equal(assessH1Quality(`<section class="cookie-info"><h1>Over cookies</h1></section>`, [], "https://x.nl/info").status, "pass");
+});
+
+test("real consent banners are still excluded on every platform", () => {
+  for (const html of [
+    `<div id="onetrust-banner-sdk"><h1>Wij gebruiken cookies</h1></div><main><h1>Wollen sneakers</h1></main>`,
+    `<div class="cookie-notice" role="dialog"><h1>Cookies</h1><button>Accepteren</button></div><main><h1>Vacatures</h1></main>`,
+    `<div id="CybotCookiebotDialog"><h1>Deze website gebruikt cookies</h1></div><main><h1>Transport</h1></main>`,
+    `<h1>Cookies voor een gebruiksvriendelijke ervaring</h1><button>Alles accepteren</button><button>Weigeren</button><main><h1>Logistiek</h1></main>`,
+  ]) {
+    const result = assessH1Quality(html, [], "https://x.nl/");
+    assert.equal(result.excludedConsentH1s.length, 1, html);
+    assert.equal(result.contentH1s.length, 1, html);
+  }
+});
+
+test("a privacy link on a provider's host is not the site's own (Coolblue: Calendly, Awin)", () => {
+  assert.equal(classifyLegalLink("https://calendly.com/legal/privacy-notice", "https://www.coolblue.nl/"), null);
+  assert.equal(classifyLegalLink("https://success.awin.com/s/article/cookies", "https://www.coolblue.nl/"), null);
+  assert.equal(classifyLegalLink("https://legal.coolblue-group.com/privacy", "https://www.coolblue.nl/"), "external_host");
+  assert.equal(classifyLegalLink("https://documents.cdn.etrias.nl/nl/privacy/privacy-nl.pdf", "https://www.sneakers.nl/"), "external_pdf");
+});
+
+test("template tokens and script links are not links (sneakers.nl product.uri)", () => {
+  for (const href of ["product.uri", "item.url", "{{ product.url }}", "${link}", "#{href}", "%7B%7Burl%7D%7D"]) assert.equal(isPlaceholderHref(href), true, href);
+  for (const href of ["/product/123", "contact.html", "https://x.nl/a", "../about", "page.php?id=1"]) assert.equal(isPlaceholderHref(href), false, href);
+  assert.equal(/product\.uri/.test(htmlWithoutScripts(`<script>var t='<a href="product.uri">x</a>'</script><a href="/ok">ok</a>`)), false);
+});
+
+test("offer prices in priceSpecification and AggregateOffer count (IKEA, DiscountOffice)", () => {
+  assert.deepEqual(offerPriceAndCurrency({ "@type": "Offer", priceSpecification: { "@type": "UnitPriceSpecification", price: 199, priceCurrency: "EUR" } }), { price: "199", currency: "EUR" });
+  assert.deepEqual(offerPriceAndCurrency({ "@type": "AggregateOffer", lowPrice: "17.99", priceCurrency: "eur" }), { price: "17.99", currency: "EUR" });
+  assert.deepEqual(offerPriceAndCurrency({ price: "", availability: "InStock" }), { price: null, currency: null });
+  assert.deepEqual(offerPriceAndCurrency({ priceSpecification: [{ price: 5.5, priceCurrency: "USD" }] }), { price: "5.5", currency: "USD" });
+});
+
+test("business addresses are recognised in NL, US and UK format (PayPal)", () => {
+  assert.match(findVisibleAddress("PayPal, Inc. is located at 2211 N 1st St. San Jose, CA 95131 and licensed") || "", /San Jose, CA 95131/);
+  assert.match(findVisibleAddress("Visit 10 Downing Street, London SW1A 2AA") || "", /SW1A 2AA/);
+  assert.match(findVisibleAddress("Damrak 1, 1012 LG Amsterdam") || "", /1012 LG Amsterdam/);
+});
+
+test("a locale code or 'Home' next to the brand is a brand-only title (TransHeroes)", () => {
+  assert.equal(isBrandOnlyTitle("Nl | TransHeroes", "www.transheroes.com"), true);
+  assert.equal(isBrandOnlyTitle("Home | Zalando", "www.zalando.de"), true);
+  assert.equal(isBrandOnlyTitle("Wollen sneakers | Allbirds", "allbirds.de"), false);
+});
+
+test("login and identity screens never enter the sample (Allbirds OAuth URL)", () => {
+  assert.equal(isNonContentUrl("https://account.allbirds.de/authentication/oauth/authorize?client_id=x&state=y&code=z"), true);
+  assert.equal(isNonContentUrl("https://allbirds.de/pages/kontakt"), false);
+});
+
+test("FAQ needs an FAQ heading; account prompts are not questions (DiscountOffice)", () => {
+  const footerLinkOnly = `<h3>Nog geen klant?</h3><p>Maak eenvoudig een account aan en bestel sneller.</p><footer><a href="/faq">Veelgestelde vragen</a></footer>`;
+  assert.equal(findFaqEvidence(footerLinkOnly).found, false);
+  const real = `<h2>Veelgestelde vragen</h2><details><summary>Wat zijn de verzendkosten</summary><p>Boven 50 euro gratis verzending.</p></details>`;
+  assert.equal(findFaqEvidence(real).found, true);
+});
+
+test("an empty review widget is not a review signal (Allbirds '0 Bewertungen')", () => {
+  assert.equal(findReviewEvidence("", "0 Bewertungen", []).ratingText, null);
+  assert.ok(findReviewEvidence("", "4,6/5 op basis van 2.310 beoordelingen", []).ratingText);
+});

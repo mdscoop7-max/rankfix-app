@@ -44,8 +44,21 @@ export function evidenceSnippet(text: string, pattern: RegExp, radius = 60): str
 // 1. H1 quality
 // ---------------------------------------------------------------------------
 
-const COOKIE_TEXT = /\b(?:cookie\w*|we use cookies|wij gebruiken cookies|deze website gebruikt cookies|wir verwenden cookies|nous utilisons des cookies|utilizziamo i cookie|utilizamos cookies|privacy[- ]?(?:instellingen|settings|voorkeuren|preferences)|datenschutz[- ]?einstellungen|consent|toestemming|your privacy|uw privacy|jouw privacy|ihre privatsph\w*|manage (?:your )?preferences|gegevensbescherming)\b/i;
+// Banner copy, not the word "cookie" alone: a page titled "Cookies" or
+// "Cookieverklaring" is a policy page with a real heading (IKEA, Rijksoverheid).
+const COOKIE_TEXT = /\b(?:we use cookies|we gebruiken cookies|wij gebruiken cookies|deze (?:web)?site gebruikt cookies|wir verwenden cookies|diese website (?:verwendet|nutzt) cookies|nous utilisons des cookies|ce site utilise des cookies|utilizziamo i cookie|questo sito utilizza (?:i )?cookie|utilizamos cookies|este sitio (?:web )?utiliza cookies|cookies voor een \w+|cookie(?:s)? (?:instellingen|settings|voorkeuren|preferences|toestemming)|privacy[- ]?(?:instellingen|settings|voorkeuren|preferences)|datenschutz[- ]?einstellungen|manage (?:your )?(?:cookie )?preferences|your privacy choices|jouw privacy(?:keuzes)?|uw privacy(?:keuzes)?)\b/i;
+// Consent-management platforms that only ever render the consent layer.
+const CMP_MARKER = /(?:onetrust|ot-sdk|optanon|cookiebot|cybot|didomi|usercentrics|uc-banner|cookieyes|cky-consent|cmplz|complianz|iubenda|qc-cmp|trustarc|truste|termly|osano|klaro|axeptio|sp_message|cc-window|cc-banner|cookie-?law|cookie-?notice|cookie-?banner|cookie-?bar|cookie-?popup|cookie-?modal|cookie-?consent|cookie-?dialog|cookie-?wall|consent-?banner|consent-?modal|consent-?dialog|consent-?popup|gdpr-?banner|privacy-?banner|cmp-container|cmp-banner)/i;
+// A generic "cookie"/"consent" class counts only on an overlay-like element.
+const OVERLAY_MARKER = /(?:role\s*=\s*["'](?:dialog|alertdialog|banner)["']|aria-modal\s*=\s*["']true["']|(?:class|id)\s*=\s*["'][^"']*(?:banner|modal|popup|overlay|dialog|notice|drawer|toast|layer)[^"']*["'])/i;
 const CONSENT_CONTAINER = /(?:id|class|data-[a-z-]+|aria-label)\s*=\s*["'][^"']*(?:cookie|consent|onetrust|ot-sdk|cookiebot|cybot|didomi|usercentrics|uc-banner|cookieyes|cky-|cmplz|complianz|iubenda|quantcast|qc-cmp|trustarc|truste|termly|osano|klaro|axeptio|sp_message|gdpr|cmp-|cc-window|cc-banner|cookie-law|cookie-notice|privacy-banner)[^"']*["']/i;
+const CONSENT_BUTTONS = /\b(?:accept(?:eren|eer|eer alle|ieren)?|alle(?:s)? (?:cookies )?accepteren|akkoord|allow all|alle zulassen|alles akzeptieren|weigeren|reject(?: all)?|ablehnen|refuser|tout accepter|accetta|rifiuta|aceptar|rechazar|instellingen aanpassen|customi[sz]e|manage (?:settings|preferences))\b/i;
+const POLICY_PATH = /\/(?:[a-z-]*cookie[a-z-]*|cookies?|privacy[a-z-]*|datenschutz[a-z-]*|confidentialite|privacidad|privacy-policy|legal[a-z-]*)(?:\/|$|\?|#|\.html?)/i;
+
+function isConsentOpener(tag: string): boolean {
+  if (CMP_MARKER.test(tag)) return true;
+  return CONSENT_CONTAINER.test(tag) && OVERLAY_MARKER.test(tag);
+}
 const GENERIC_H1 = /^(?:home|homepage|home page|hoofdpagina|startpagina|start|startseite|accueil|inicio|pagina iniziale|welkom|welcome|willkommen|bienvenue|benvenuti|bienvenido|index|menu|navigatie|navigation|main|untitled|titel|title|page|pagina|seite|logo|header)$/i;
 
 // True when the element at `index` sits inside a still-open consent wrapper that
@@ -53,9 +66,9 @@ const GENERIC_H1 = /^(?:home|homepage|home page|hoofdpagina|startpagina|start|st
 function insideConsentContainer(html: string, index: number): boolean {
   const windowStart = Math.max(0, index - 4000);
   const before = html.slice(windowStart, index);
-  const opener = new RegExp("<(div|section|aside|dialog|form|nav|header|footer)\\b[^>]*" + CONSENT_CONTAINER.source + "[^>]*>", "gi");
+  const opener = /<(div|section|aside|dialog|form|nav|header|footer)\b[^>]*>/gi;
   let last: RegExpExecArray | null = null;
-  for (let found = opener.exec(before); found; found = opener.exec(before)) last = found;
+  for (let found = opener.exec(before); found; found = opener.exec(before)) if (isConsentOpener(found[0])) last = found;
   if (!last) return false;
   const tag = last[1].toLowerCase();
   const segment = before.slice(last.index);
@@ -81,7 +94,10 @@ export type H1Quality = {
  * Extract H1s with enough context to tell a page heading from a cookie banner.
  * `brandTokens` are lower-case brand names (hostname label, og:site_name).
  */
-export function assessH1Quality(html: string, brandTokens: string[] = []): H1Quality {
+export function assessH1Quality(html: string, brandTokens: string[] = [], pageUrl = ""): H1Quality {
+  // On a cookie or privacy policy page, a cookie heading IS the page heading.
+  let policyPage = false;
+  try { policyPage = Boolean(pageUrl) && POLICY_PATH.test(new URL(pageUrl).pathname); } catch {}
   const found: Array<{ text: string; consent: boolean }> = [];
   for (const match of html.matchAll(/<h1\b([^>]*)>([\s\S]*?)<\/h1>/gi)) {
     const text = stripTags(match[2] || "");
@@ -90,7 +106,9 @@ export function assessH1Quality(html: string, brandTokens: string[] = []): H1Qua
     const ownAttrs = match[1] || "";
     // Inside a consent container: the heading carries a consent class, an open
     // consent wrapper precedes it, or it is short cookie copy.
-    const consent = CONSENT_CONTAINER.test(ownAttrs) || insideConsentContainer(html, index) || (COOKIE_TEXT.test(text) && text.split(/\s+/).length <= 14);
+    // Banner copy alone needs consent buttons right after it (Accept / Weigeren).
+    const followedByButtons = CONSENT_BUTTONS.test(stripTags(html.slice(index, index + 2500)));
+    const consent = !policyPage && (isConsentOpener("<h1 " + ownAttrs + ">") || insideConsentContainer(html, index) || (COOKIE_TEXT.test(text) && text.split(/\s+/).length <= 14 && followedByButtons));
     found.push({ text, consent });
   }
   const excludedConsentH1s = found.filter((item) => item.consent).map((item) => item.text);
@@ -298,7 +316,8 @@ export function findReviewEvidence(html: string, text: string, schemaTypes: stri
   const types = new Set(schemaTypes.map((type) => type.toLowerCase()));
   const aggregateRating = types.has("aggregaterating") || /"aggregateRating"\s*:/i.test(html);
   const ratingMatch = text.match(/\b(?:[1-5](?:[.,]\d)?\s?(?:\/|van|von|sur|su|de|out of)\s?(?:5|10)\b|[1-9](?:[.,]\d)?\s?(?:sterren|stars|sterne|étoiles|stelle|estrellas)\b|\d[\d.]*\s+(?:reviews|beoordelingen|bewertungen|avis|recensioni|reseñas)\b)/i);
-  const ratingText = ratingMatch ? ratingMatch[0] : null;
+  // "0 Bewertungen" / "0 reviews" is an empty widget, not evidence of reviews.
+  const ratingText = ratingMatch && !/^0(?:[.,]0)?\s/.test(ratingMatch[0].trim()) ? ratingMatch[0] : null;
   return { platforms, aggregateRating, ratingText, found: Boolean(platforms.length || aggregateRating || ratingText) };
 }
 
@@ -429,7 +448,13 @@ export function classifyLegalLink(href: string, pageUrl: string): LegalLinkKind 
     // A PDF hosted on a CDN (cdn.shopify.com, …) is still the shop's own document.
     return isPdf && /cdn|files|assets|static|storage|blob/i.test(target.hostname) ? "external_pdf" : null;
   }
-  return isPdf ? "external_pdf" : "external_host";
+  if (isPdf) return "external_pdf";
+  // Another host counts only when it visibly belongs to the same brand
+  // (legal.sneakersgroup.com for sneakers.nl). A Calendly or Awin policy is the
+  // provider's own document, not the scanned business's (Coolblue, Oct 2026).
+  const brand = registrableHost(page.hostname).split(".")[0].replace(/-/g, "");
+  const targetHost = target.hostname.toLowerCase().replace(/-/g, "");
+  return brand.length >= 4 && targetHost.includes(brand) ? "external_host" : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -476,22 +501,27 @@ const FAQ_CONTEXT = /\b(?:faq|f\.a\.q|veelgestelde vragen|veel gestelde vragen|v
  * overheid") counts only inside an FAQ section. One pair alone is not an FAQ
  * unless it sits under an explicit FAQ heading.
  */
+// Login/registration prompts look like questions but are not FAQ content.
+const ACCOUNT_PROMPT = /^(?:nog geen (?:klant|account)|al (?:een )?(?:klant|account)|wachtwoord vergeten|bent u (?:al )?klant|heb je (?:al )?een account|new (?:customer|here)|already (?:a customer|have an account|registered)|not a member|forgot (?:your )?password|noch kein kunde|schon kunde|passwort vergessen|pas encore client|déjà client|mot de passe oublié|non sei (?:ancora )?cliente|¿?(?:aún )?no eres cliente|¿?ya eres cliente)/i;
+
 export function findFaqEvidence(html: string, hasFaqSchema = false): FaqEvidence {
   const visible = (value: string) => stripTags(value);
-  const faqContext = FAQ_CONTEXT.test(stripTags(html).slice(0, 400000));
+  // FAQ context = an FAQ heading on the page, not a footer link to an FAQ page
+  // ("Nog geen klant?" on DiscountOffice sat next to a "Veelgestelde vragen" link).
+  const faqContext = [...html.matchAll(/<(h[1-6]|summary|legend)\b[^>]*>([\s\S]*?)<\/\1>/gi)].some((match) => FAQ_CONTEXT.test(stripTags(match[2] || "")));
   const pairs: Array<{ question: string; answer: string }> = [];
   for (const match of html.matchAll(/<details\b[^>]*>\s*<summary\b[^>]*>([\s\S]*?)<\/summary>([\s\S]*?)<\/details>/gi)) {
     const question = visible(match[1] || "");
     const answer = visible(match[2] || "");
     const isQuestion = /\?\s*$/.test(question) || (faqContext && QUESTION_WORD.test(question));
-    if (isQuestion && answer.length >= 12) pairs.push({ question: question.slice(0, 140), answer: answer.slice(0, 120) });
+    if (isQuestion && !ACCOUNT_PROMPT.test(question) && answer.length >= 12) pairs.push({ question: question.slice(0, 140), answer: answer.slice(0, 120) });
   }
   const detailsPairs = pairs.length;
   for (const match of html.matchAll(/<h[2-6]\b[^>]*>([\s\S]*?)<\/h[2-6]>\s*(?:<div[^>]*>\s*)?<(?:p|div)\b[^>]*>([\s\S]*?)<\/(?:p|div)>/gi)) {
     const question = visible(match[1] || "");
     const answer = visible(match[2] || "");
     const isQuestion = /\?\s*$/.test(question) || (faqContext && QUESTION_WORD.test(question));
-    if (isQuestion && answer.length >= 12) pairs.push({ question: question.slice(0, 140), answer: answer.slice(0, 120) });
+    if (isQuestion && !ACCOUNT_PROMPT.test(question) && answer.length >= 12) pairs.push({ question: question.slice(0, 140), answer: answer.slice(0, 120) });
   }
   const unique = [...new Map(pairs.map((pair) => [pair.question.toLowerCase(), pair])).values()];
   const enough = unique.length >= 2 || (unique.length === 1 && faqContext);
@@ -582,4 +612,49 @@ const GENERIC_TITLE = /^(?:home|homepage|home page|hoofdpagina|startpagina|start
 
 export function isGenericTitle(title: string): boolean {
   return GENERIC_TITLE.test(normalizeText(title));
+}
+
+
+// ---------------------------------------------------------------------------
+// Links that are not links: template placeholders and script/template markup
+// ---------------------------------------------------------------------------
+
+/** "product.uri", "{{ url }}", "${link}", "#{href}" are template tokens, not URLs visitors see. */
+export function isPlaceholderHref(href: string): boolean {
+  const value = href.trim();
+  if (!value) return true;
+  if (/\{\{|\}\}|\$\{|#\{|\[\[|<%|%7B%7B|%24%7B|__\w+__|\bundefined\b|\bnull\b$/i.test(value)) return true;
+  // A bare relative "word.word" such as product.uri / item.url / data.link: a
+  // JavaScript property path, not a file. Real relative files end in a web extension.
+  if (/^[a-z_][\w-]*\.(?:uri|url|link|href|path|slug|permalink)$/i.test(value)) return true;
+  return false;
+}
+
+/** HTML without script, template and noscript bodies, for link extraction. */
+export function htmlWithoutScripts(html: string): string {
+  return html
+    .replace(/<script\b[\s\S]*?<\/script>/gi, " ")
+    .replace(/<template\b[\s\S]*?<\/template>/gi, " ")
+    .replace(/<noscript\b[\s\S]*?<\/noscript>/gi, " ");
+}
+
+
+// ---------------------------------------------------------------------------
+// Offer price: price, lowPrice/highPrice or a (Unit)PriceSpecification
+// ---------------------------------------------------------------------------
+
+type OfferLike = Record<string, unknown> | null | undefined;
+
+/**
+ * Offer prices appear as `price`, as `lowPrice` (AggregateOffer) or inside
+ * `priceSpecification` (IKEA, DiscountOffice). Reading only `price` reported
+ * complete offers as "zonder prijs en valuta" (Oct 2026).
+ */
+export function offerPriceAndCurrency(offer: OfferLike): { price: string | null; currency: string | null } {
+  if (!offer || typeof offer !== "object") return { price: null, currency: null };
+  const pick = (value: unknown) => value === null || value === undefined || value === "" ? null : String(value);
+  const specs = ([] as unknown[]).concat((offer as Record<string, unknown>).priceSpecification ?? []).filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object");
+  const price = pick(offer.price) ?? pick(offer.lowPrice) ?? pick(offer.highPrice) ?? specs.map((spec) => pick(spec.price) ?? pick(spec.minPrice)).find(Boolean) ?? null;
+  const currencyRaw = pick(offer.priceCurrency) ?? specs.map((spec) => pick(spec.priceCurrency)).find(Boolean) ?? null;
+  return { price, currency: currencyRaw ? currencyRaw.trim().toUpperCase() : null };
 }
