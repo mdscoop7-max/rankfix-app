@@ -26,7 +26,7 @@ import { SITE_URL } from "@/lib/site-url";
 import { assessDescriptionQuality, assessH1Quality, assessProductSchemaCompleteness, blendHeadlineScore, blockedScanMessage, canonicalCrossDomainRisk, classifyLegalLink, findAudienceEvidence, findConsentEvidence, findFaqEvidence, findFormEvidence, findPaymentMethods, findRegulatoryEvidence, findReviewEvidence, findTagManagerEvidence, findVisiblePrices, fintechIdentity, isBlockingStatus, isBrokenStatus, isGenericTitle, LEGAL_LEXICON, rankfixUserAgents, sameRegistrableSite } from "@/lib/evidence-quality";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
-import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, financialServicePrimaryIdentity, isLocalizedHomePath, primaryNonRetailRole, paymentProviderPrimaryIdentity, primaryLodgingIdentity } from "@/lib/sector-identity";
+import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, financialServicePrimaryIdentity, isLocalizedHomePath, primaryNonRetailRole, lodgingBusinessSubtype, paymentProviderPrimaryIdentity, primaryLodgingIdentity } from "@/lib/sector-identity";
 
 export const maxDuration = 300;
 
@@ -1640,16 +1640,29 @@ export async function POST(request: Request) {
     // Customer stories about hotels, payment checkout or booking integrations
     // cannot turn a financial technology provider into a lodging operator.
     const paymentServicesPrimaryIdentity = financialIdentity.identified;
-    const shortStayIdentity = !paymentServicesPrimaryIdentity && primaryLodgingIdentity(sectorIdentitySource, schemaTypes);
-    const lodgingSubtype = lodgingDetail.bedBreakfast.value
-      ? {key:"bed_breakfast",label:"B&B / guesthouse"}
-      : lodgingDetail.holidayPark.value
-        ? {key:"holiday_park",label:"Vakantiepark / resort"}
-        : lodgingDetail.camping.value
-          ? {key:"camping",label:"Camping / chaletpark"}
-          : lodgingDetail.holidayRental.value
-            ? {key:"holiday_rental",label:"Vakantiehuis / vakantieverhuur"}
-            : {key:"hotel",label:"Hotel / accommodatie"};
+    const shortStayIdentity = !paymentServicesPrimaryIdentity && siteRole.key !== "software" && primaryLodgingIdentity(sectorIdentitySource, schemaTypes);
+    // The primary hotel/lodging subtype from title/H1 is more authoritative
+    // than incidental holiday-rental or camping links in page/footer text.
+    const primaryLodgingSubtype = lodgingBusinessSubtype({title,description,headings:h1s,schemaTypes});
+    const lodgingSubtype = primaryLodgingSubtype === "hotel"
+      ? {key:"hotel",label:"Hotel / accommodatie"}
+      : primaryLodgingSubtype === "bed_breakfast"
+        ? {key:"bed_breakfast",label:"B&B / guesthouse"}
+        : primaryLodgingSubtype === "holiday_park"
+          ? {key:"holiday_park",label:"Vakantiepark / resort"}
+          : primaryLodgingSubtype === "camping"
+            ? {key:"camping",label:"Camping / chaletpark"}
+            : primaryLodgingSubtype === "holiday_rental"
+              ? {key:"holiday_rental",label:"Vakantiehuis / vakantieverhuur"}
+              : lodgingDetail.bedBreakfast.value
+                ? {key:"bed_breakfast",label:"B&B / guesthouse"}
+                : lodgingDetail.holidayPark.value
+                  ? {key:"holiday_park",label:"Vakantiepark / resort"}
+                  : lodgingDetail.camping.value
+                    ? {key:"camping",label:"Camping / chaletpark"}
+                    : lodgingDetail.holidayRental.value
+                      ? {key:"holiday_rental",label:"Vakantiehuis / vakantieverhuur"}
+                      : {key:"hotel",label:"Hotel / accommodatie"};
     // Short-stay accommodation must outrank generic words such as "te huur".
     // Long-term housing remains real estate; guest/night/date/booking evidence is hospitality.
     const realEstateIdentity = Boolean(!shortStayIdentity && scanEvidence.inventory.properties.value && scanEvidence.inventory.properties.confidence !== "low" && (/\/(?:woningaanbod|residential-listings|properties?|real-estate)(?:\/|$)/i.test(finalUrl.pathname) || /\b(?:makelaar|woningaanbod|te koop|te huur|for sale|for rent|real estate)\b/i.test(sectorIdentitySource)));
@@ -1658,6 +1671,8 @@ export async function POST(request: Request) {
     const beautyServiceIdentity = /\b(?:beauty salon|beautysalon|schoonheidssalon|day spa|dayspa|city spa|wellness|manicure|pedicure|nail salon|nagelsalon|facial|gezichtsbehandeling)\b/i.test(sectorIdentitySource) || schemaSet.has("beautysalon") || schemaSet.has("dayspa");
     const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[]} | null = paymentServicesPrimaryIdentity
       ? {sector:"finance",key:"finance",label:financialIdentity.provider ? "Betaalplatform / financiële dienstverlening" : "Financieel platform / betaaldiensten",evidence:[...financialIdentity.evidence, ...fintechIdentity([title, description, h1s.join(" ")].join(" ")).hits.map(hit=>`Betaaldienst: ${hit}`)]}
+      : siteRole.key === "software"
+      ? {sector:"saas_b2b",key:"saas_b2b",label:"SaaS / B2B",evidence:siteRole.evidence}
       : shortStayIdentity
       ? {sector:"hospitality",key:lodgingSubtype.key,label:lodgingSubtype.label,evidence:["Scanbewijs: kort verblijf/accommodatie bevestigd", ...lodgingDetail.shortStay.evidence, ...lodgingDetail.stayDates.evidence, ...lodgingDetail.guests.evidence]}
       : realEstateIdentity

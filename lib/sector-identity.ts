@@ -146,6 +146,9 @@ export function primaryNonRetailRole(input:{
   const retail=retailIdentityLanguage(identity);
   if((retail.assortment&&retail.onlineSales) || (hasRetailStoreSchema(schema) && /\b(?:buy|shop|add to cart|purchase|bestel|kopen|winkelwagen|webshop|online store)\b/i.test(identity)))return {key:null,evidence:[]};
   const rules=[
+    {key:"software" as const,primary:/\b(?:software|saas|software platform|business software|software-as-a-service|project management platform|crm platform)\b/i,
+      support:/\b(?:features?|integrations?|dashboard|workflows?|subscription|software|saas|developers?|api|automatisering|applicatie)\b/i,
+      schemas:["softwareapplication","webapplication"]},
     {key:"lodging" as const,primary:/\b(?:hotel|hostel|guesthouse|guest house|bed and breakfast|resort|vakantiehuis|vacation rental|ferienhaus|pension|camping|campground)\b/i,
       support:/\b(?:rooms?|kamers?|suites?|stay|overnight|accommodation|lodging|book (?:a |your )?room|overnachten|overnachting|gasten|guests?)\b/i,
       schemas:["hotel","lodgingbusiness","bedandbreakfast","hostel","resort","vacationrental","campground"]},
@@ -158,9 +161,6 @@ export function primaryNonRetailRole(input:{
     {key:"public_sector" as const,primary:/\b(?:government|municipality|ministry|minist[eè]re|gemeente|rijksoverheid|city council|public authority|public services)\b/i,
       support:/\b(?:permits?|vergunning|citizens?|inwoners?|public service|burgerzaken|overheid|beleid|policy|paspoort)\b/i,
       schemas:["governmentorganization","governmentoffice"]},
-    {key:"software" as const,primary:/\b(?:software|saas|software platform|business software|software-as-a-service|project management platform|crm platform)\b/i,
-      support:/\b(?:features?|integrations?|dashboard|workflow|subscription|software|saas|developers?|api|automatisering|applicatie)\b/i,
-      schemas:["softwareapplication","webapplication"]}
   ];
   for(const rule of rules){
     if(!rule.primary.test(main))continue;
@@ -169,4 +169,23 @@ export function primaryNonRetailRole(input:{
     return {key:rule.key,evidence:["Primaire "+rule.key+"-identiteit in title/H1",structured?"Passend structured data-type":"Passende activiteit in paginametadata"]};
   }
   return {key:null,evidence:[]};
+}
+
+
+/**
+ * Primary lodging subtype from page identity, not ancillary room/holiday links.
+ * Hotel chains can list restaurants, holiday stays and rooms without becoming
+ * holiday-rental businesses; equally a rental near hotels is still a rental.
+ */
+export function lodgingBusinessSubtype(input:{
+  title:string;description:string;headings:string[];schemaTypes:Iterable<string>;
+}):"hotel"|"bed_breakfast"|"holiday_park"|"holiday_rental"|"camping"|null{
+  const identity=[input.title,...input.headings].filter(Boolean).join(" ").slice(0,1600);
+  const types=new Set([...input.schemaTypes].map(x=>String(x).toLowerCase()));
+  if(/\b(?:bed and breakfast|b\s*&\s*b|guesthouse|guest house|pension)\b/i.test(identity)||types.has("bedandbreakfast"))return "bed_breakfast";
+  if(/\b(?:holiday park|vakantiepark|holiday resort)\b/i.test(identity))return "holiday_park";
+  if(/\b(?:vacation rental|holiday rental|holiday home|vakantiehuis|vakantiewoning|ferienhaus|ferienwohnung)\b/i.test(identity)||types.has("vacationrental"))return "holiday_rental";
+  if(/\b(?:campground|camping|campsite|glamping)\b/i.test(identity)||types.has("campground"))return "camping";
+  if(/\bhotels?\b/i.test(identity)||types.has("hotel")||types.has("lodgingbusiness"))return "hotel";
+  return null;
 }

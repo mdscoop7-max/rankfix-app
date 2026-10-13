@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, financialServicePrimaryIdentity, isLocalizedHomePath, primaryNonRetailRole } from "../lib/sector-identity.ts";
+import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, financialServicePrimaryIdentity, isLocalizedHomePath, primaryNonRetailRole, lodgingBusinessSubtype } from "../lib/sector-identity.ts";
 import { buildScanEvidence } from "../lib/scan-evidence.ts";
 
 // Page identity (title, meta description, hostname, path) as served on 11 Oct 2026.
@@ -309,4 +309,26 @@ test("generic role gates protect hotels, restaurants, healthcare, government, Sa
     {title:"Financial services explained in a blog",description:"Articles about payment cards.",headings:["Latest news"],schemaTypes:["Article"],expected:null}
   ];
   for(const c of cases){const r=primaryNonRetailRole(c);assert.equal(r.key,c.expected,c.title);if(c.expected)assert.ok(r.evidence.length,c.title);}
+});
+
+
+test("lodging subtype is determined by primary business, never incidental accommodations mentioned in site text",()=>{
+  const cases=[
+    {title:"Hotels & Restaurants Group",description:"Arrangements, holiday rentals and restaurants across our hotel group",headings:["Find your stay"],schemaTypes:[],expected:"hotel"},
+    {title:"City Hotel - book a room",description:"Suites and restaurant",headings:["Hotel"],schemaTypes:["Hotel"],expected:"hotel"},
+    {title:"Riverside holiday rental near hotels",description:"Private holiday home and offers",headings:["Holiday home"],schemaTypes:["VacationRental"],expected:"holiday_rental"},
+    {title:"Bed & Breakfast beside the sea",description:"Guest rooms",headings:["Welcome"],schemaTypes:[],expected:"bed_breakfast"},
+    {title:"Family holiday park",description:"Stay at our park",headings:["Holiday Park"],schemaTypes:[],expected:"holiday_park"},
+    {title:"Nature camping site",description:"Camping pitches",headings:["Campground"],schemaTypes:[],expected:"camping"},
+    {title:"News about resorts",description:"Business news",headings:["Latest"],schemaTypes:["Article"],expected:null}
+  ];
+  for(const c of cases)assert.equal(lodgingBusinessSubtype(c),c.expected,c.title);
+});
+
+test("primary SaaS in metadata wins over incidental logistics/customer case studies",async()=>{
+  const sample=primaryNonRetailRole({title:"Customer platform | CRM Software & Business Tools",description:"Our customer platform includes sales, service and CRM software.",headings:["Build demand and win deals"],schemaTypes:["SoftwareApplication"]});
+  assert.equal(sample.key,"software");
+  const source=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
+  assert.match(source,/siteRole\.key === "software"\s*\? \{sector:"saas_b2b"/);
+  assert.match(source,/primaryLodgingSubtype = lodgingBusinessSubtype/);
 });
