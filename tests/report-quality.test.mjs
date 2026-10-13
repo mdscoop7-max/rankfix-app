@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
   assessPageDescription, assessPageTitle, sampleEvidenceExcerpt, botManagerCookies, duplicateTitleSegment, entityTypesForDisplay,
-  isBrandOnlyTitle, isClientShell, isNonContentUrl, isReducedBotResponse, outdatedTitleYear, renderFailureCode,
+  isBrandOnlyTitle, isClientShell, sampledMissingH1Unconfirmed, isNonContentUrl, isReducedBotResponse, outdatedTitleYear, renderFailureCode,
   renderFailureText, sectionKey, shortUrl, stripTrackingParams, titleLengthCredit, titleTemplatePattern,
 } from "../lib/report-quality.ts";
 import { analyzeScriptIntegrity, assessPassiveSecurity, findMixedContent } from "../lib/security-signals.ts";
@@ -209,4 +209,20 @@ test("site sample evidence excerpts never cut explanatory phrases without a trun
   assert.match(truncated, /…$/);
   assert.doesNotMatch(truncated, /(?:\s|[,;:(-])…$/);
   assert.equal(sampleEvidenceExcerpt("Gevonden."), "Gevonden.");
+});
+
+test("BBC regression: sample H1 cannot contradict failed JS-rendered main-page H1", () => {
+  assert.equal(sampledMissingH1Unconfirmed({missing:true,clientShell:false,jsFramework:true,rendered:false}), true);
+  assert.equal(sampledMissingH1Unconfirmed({missing:true,clientShell:true,jsFramework:false,rendered:false}), true);
+  assert.equal(sampledMissingH1Unconfirmed({missing:true,clientShell:false,jsFramework:true,rendered:true}), false);
+  assert.equal(sampledMissingH1Unconfirmed({missing:true,clientShell:false,jsFramework:false,rendered:false}), false);
+  assert.equal(sampledMissingH1Unconfirmed({missing:false,clientShell:true,jsFramework:true,rendered:false}), false);
+});
+
+test("render provenance in checkout diagnostic must reflect actual JS execution", async () => {
+  const route = await readFile("app/api/scan/route.ts", "utf8");
+  assert.doesNotMatch(route, /staticHtmlOnly=true/);
+  assert.match(route, /staticHtmlOnly=\$\{!javascriptExecuted\}/);
+  assert.match(route, /javascriptRendered=\$\{javascriptExecuted\}/);
+  assert.match(route, /const subheadingCount = headings\.filter\(\(heading\) => heading\.level >= 2\)\.length/);
 });
