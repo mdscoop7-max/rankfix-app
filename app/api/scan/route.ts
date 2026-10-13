@@ -4583,6 +4583,8 @@ export async function POST(request: Request) {
     }
     const websiteType = finalCommerceDecision.confirmed
       ? "Webshop"
+      : sectorProfile.key === "telecom_technology" && declaredIdentity?.sector === "telecom_technology"
+        ? "Telecomprovider"
       : sectorProfile.key === "finance" && (paymentServicesPrimaryIdentity || declaredIdentity?.sector === "finance")
         ? financialIdentity.provider ? "Betaaldienstverlener" : "Financieel platform"
       : sectorProfile.key === "recruitment" && masterEvidence.businessModels.includes("recruitment")
