@@ -332,3 +332,9 @@ test("primary SaaS in metadata wins over incidental logistics/customer case stud
   assert.match(source,/siteRole\.key === "software"\s*\? \{sector:"saas_b2b"/);
   assert.match(source,/primaryLodgingSubtype = lodgingBusinessSubtype/);
 });
+
+
+test("representative-page content cannot overwrite independently established primary site role",async()=>{
+  const source=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
+  assert.match(source,/if \(!masterIdentityOverride && !retailPrimaryIdentity && !finalCommerceDecision\.confirmed && reconciledIdentityStrong/);
+});
