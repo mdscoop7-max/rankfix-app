@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Runs ONLY a disposable localhost RankFix instance. No git writes or client data.
-import {mkdir,writeFile,readFile} from 'node:fs/promises';
+import {mkdir,writeFile,readFile,appendFile} from 'node:fs/promises';
 import {SHIFTS,pickSites,validateMatrix} from './sector-matrix.mjs';
+import {assessPilotResult} from './quality-gate.mjs';
 const shift=process.argv[2];
 if(!SHIFTS[shift])throw Error('Use: run-pilot.mjs night|day|evening');
 const BASE='http://127.0.0.1:3100';
@@ -44,17 +45,21 @@ for(const [index,site] of sites.entries()){
   const headingEvidence=checks.filter(c=>/h1|heading/i.test(String(c.rule_id||c.key||'')))
     .map(c=>JSON.stringify(c)).join(' ').slice(0,4000);
   const suspiciousHeading=scanned && (/componentVariation|headline_underscored|null\s*!=|p\(e,/.test(headingEvidence));
+  const verdict=assessPilotResult({site,httpStatus,body,error:error??body?.code});
   const row={
     ...site,scanned,httpStatus,error:error??(scanned?null:body?.code??'SCAN_UNAVAILABLE'),
     actualSector:sector,sectorMatches:scanned&&sector===site.expectedSector,
     overallScore:scanned?body.overallScore:null,coveragePercent:coverage,
     provisional:scanned?(body?.scoreModel?.provisional ?? (coverage !== null && coverage < 70)):null,
     pageType:scanned?(body?.classification?.pageType?.type??null):null,
-    issues,suspiciousHeading,durationSeconds:Math.round((Date.now()-started)/1000)
+    issues,suspiciousHeading,pilotVerdict:verdict.state,qaBlockers:verdict.blockers,qaNotices:verdict.notices,
+    scoreExplanation:scanned?body?.scoreModel?.headline??null:null,
+    durationSeconds:Math.round((Date.now()-started)/1000)
   };
   results.push(row);
   await writeFile(output+'/results.json',JSON.stringify({shift,runAt:at,sha:process.env.GITHUB_SHA||null,results},null,2));
-  console.log(shift+' '+(index+1)+'/'+sites.length+' '+site.expectedSector+' HTTP '+httpStatus+' '+(scanned?'scanned':'blocked/error')+' '+row.durationSeconds+'s');
+  console.log(shift+' '+(index+1)+'/'+sites.length+' '+site.expectedSector+' HTTP '+httpStatus+' '+verdict.state.toUpperCase()+' '+row.durationSeconds+'s');
+  for(const blocker of verdict.blockers) console.error('QA BLOCKER '+site.url+' '+blocker.code+': '+blocker.details);
   if(index<sites.length-1)await new Promise(r=>setTimeout(r,15000));
 }
 const lines=['# RankFix '+shift+' pilot — '+at,'',
@@ -62,12 +67,13 @@ const lines=['# RankFix '+shift+' pilot — '+at,'',
   '| Expected sector | URL | Result | Detected | Score | Coverage |',
   '|---|---|---|---|---:|---:|'];
 for(const r of results){
-  lines.push('| '+r.expectedSector+' | '+r.url+' | '+(r.scanned?(r.sectorMatches?'OK':'REVIEW MISMATCH'):'UNAVAILABLE')+
+  lines.push('| '+r.expectedSector+' | '+r.url+' | '+r.pilotVerdict.toUpperCase() +
     ' | '+(r.actualSector||'—')+' | '+(r.overallScore??'—')+' | '+(r.coveragePercent===null?'—':r.coveragePercent+'%')+' |');
 }
 lines.push('','## Findings and proposed generic fixes');
 for(const r of results){
-  if(!r.scanned){lines.push('- '+r.url+': not scanned (HTTP '+r.httpStatus+', '+r.error+'); do not assign an SEO grade.');continue}
+  for(const blocker of r.qaBlockers)lines.push('- **QA BLOCKER** '+r.url+': '+blocker.code+' — '+blocker.details);
+  if(!r.scanned){lines.push('- '+r.url+': not scanned (HTTP '+r.httpStatus+', '+r.error+'); do not assign an SEO grade or release approval.');continue}
   if(r.suspiciousHeading)lines.push('- '+r.url+': suspect JavaScript/template source was present in heading checks. Proposed fix: reject template code as a valid H1; add a CNN regression test.');
   if(!r.sectorMatches)lines.push('- '+r.url+': expected '+r.expectedSector+', got '+(r.actualSector||'unknown')+
     '. Proposed fix: review declared site identity priority and independent sector evidence; add regression fixture.');
@@ -85,5 +91,14 @@ lines.push('','## International news regression checklist',
   '- Mark missing/blocked/partially rendered evidence unable-to-confirm rather than pass/fail; report coverage and provisional scores.',
   '- Fail a future release gate on confirmed sector regression or false-positive QA assertions, but never automatically patch code or deploy.',
   '','No git commits, code fixes, merges or production deployments. Artifacts expire on the workflow retention schedule.');
+const passed=results.filter(r=>r.pilotVerdict==='pass').length;
+const unavailable=results.filter(r=>r.pilotVerdict==='unavailable').length;
+const review=results.filter(r=>r.pilotVerdict==='review').length;
+lines.push('','## Strict release decision','',
+  '**'+(passed===results.length?'READY':'NOT READY')+'** — '+passed+'/'+results.length+' validated, '+review+' need correction, '+unavailable+' unavailable.',
+  'An unavailable site is not a RankFix defect, but it cannot count as passing. QA stays red until all selected scans meet the gate.',
+  'Each shift covers 3 of its 19 sector fixtures. The 57-sector matrix rotates over seven days: a single green run never certifies all 57 sectors.');
 await writeFile(output+'/report.md',lines.join('\n')+'\n');
-console.log('Completed '+shift+': '+results.filter(r=>r.scanned).length+'/'+results.length+' successful scans');
+if(process.env.GITHUB_STEP_SUMMARY)await appendFile(process.env.GITHUB_STEP_SUMMARY,lines.join('\n')+'\n');
+console.log('Completed '+shift+': '+passed+'/'+results.length+' QA PASS; '+review+' REVIEW; '+unavailable+' UNAVAILABLE');
+if(passed!==results.length)process.exitCode=1;
