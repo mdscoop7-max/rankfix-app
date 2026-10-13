@@ -53,6 +53,28 @@ test("telecom subscriptions outrank incidental device/shop navigation (KPN regre
   assert.equal(id("Internetprovider voor glasvezel en mobiele abonnementen", "Internet en 5G voor thuis en onderweg", "example.net"), "telecom_technology");
 });
 
+test("mobile and fiber operators stay telecom even when they also sell online", () => {
+  assert.equal(id(
+    "Sim Only en Glasvezel | Simpel",
+    "Kies jouw sim only abonnement, onbeperkt bellen, mobiele databundels en glasvezel internet",
+    "www.simpel.nl"), "telecom_technology");
+  assert.equal(id(
+    "Telfort bij KPN - Diensten en abonnementen",
+    "Bekijk informatie over mobiele abonnementen, bellen en internet voor bestaande klanten",
+    "www.kpn.com", [], ["Telfort bij KPN"]), "telecom_technology");
+  assert.equal(id(
+    "Welkom bij KPN: het netwerk van Nederland | KPN",
+    "Met KPN Combivoordeel stel je al jouw thuis en mobiele abonnementen zelf samen. Internet, mobiel, TV, entertainment en meer.",
+    "www.kpn.com", ["OnlineStore"]), "telecom_technology");
+  assert.equal(id("Sim Only aanbiedingen", "Scherpe abonnementen voor internet en mobiel", "example.net", ["OnlineStore"]), "telecom_technology");
+});
+
+test("online handset retailers and telecom comparisons do not inherit operator identity", () => {
+  assert.equal(id("Mobiele abonnementen en smartphones online", "Bestel 5G toestellen en accessoires", "webshop.example", ["OnlineStore"]), null);
+  assert.equal(id("Telecom vergelijken", "Vergelijk aanbieders, tarieven en mobiele abonnementen voor internet", "vergelijker.example"), null);
+  assert.equal(id("Glasvezelrouter bestellen", "Shop online modems met 5G en fiber ondersteuning", "modems.example", ["OnlineStore"]), null);
+});
+
 test("utility, coworking, producer and Polish travel operator keep their primary service identity", () => {
   assert.equal(id("Energieleverancier | Vattenfall", "Bekijk onze tarieven voor gas en stroom", "www.vattenfall.nl"), "energy");
   assert.equal(id("Flexibele werkplekken en coworking", "Ontdek serviced offices en kantoorruimte", "example.org"), "coworking");
