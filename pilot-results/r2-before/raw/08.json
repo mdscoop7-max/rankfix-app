@@ -1,0 +1,4160 @@
+{
+ "url": "https://www.bol.com/nl/nl/",
+ "body": {
+  "success": true,
+  "scanId": null,
+  "mode": "both",
+  "scannedUrl": "https://www.bol.com/nl/nl/",
+  "finalUrl": "https://www.bol.com/nl/nl/",
+  "scannedAt": "2026-10-13T08:31:27.718Z",
+  "responseTime": 172,
+  "httpStatus": 403,
+  "overallScore": 64,
+  "grade": "C",
+  "coverage": {
+   "relevant": 45,
+   "confirmed": 25,
+   "unableToConfirm": 20,
+   "totalWeight": 239,
+   "assessedWeight": 158,
+   "coveragePercent": 66,
+   "highConfidencePercent": 80
+  },
+  "scoreModel": {
+   "version": "3.0-evidence-strict",
+   "formula": "0.6 × SEO + 0.4 × GEO",
+   "weights": {
+    "seo": 0.6,
+    "geo": 0.4,
+    "security": 0
+   },
+   "securitySeparate": true,
+   "coverageBasis": "assessed_weight / applicable_weight",
+   "range": {
+    "low": 44,
+    "high": 78,
+    "assessedWeight": 158,
+    "unverifiedWeight": 81,
+    "applicableWeight": 239
+   },
+   "seoRange": {
+    "low": 47,
+    "high": 80,
+    "assessedWeight": 119,
+    "unverifiedWeight": 58,
+    "applicableWeight": 177
+   },
+   "geoRange": {
+    "low": 37,
+    "high": 74,
+    "assessedWeight": 39,
+    "unverifiedWeight": 23,
+    "applicableWeight": 62
+   },
+   "provisional": true,
+   "note": "Niet te bevestigen verlaagt de score niet, maar blijft toepasselijk gewicht in de dekking. N.v.t. is uitgesloten. Het bereik toont de conservatieve en optimistische grens voor nog onbevestigd bewijs.",
+   "headline": {
+    "score": 64,
+    "pageScore": 64,
+    "sampleScore": 49,
+    "sampleWeight": 0,
+    "sampledPages": 0
+   }
+  },
+  "reportMeta": {
+   "format": "rankfix-report-2026-10",
+   "userAgent": "RankFixBot/2.1 (+http://127.0.0.1:3100/bot)",
+   "browserUserAgent": "RankFixBrowser/1.0 (+http://127.0.0.1:3100/bot)",
+   "infoUrl": "http://127.0.0.1:3100/bot",
+   "httpStatus": 403,
+   "recoveredFromBlock": true,
+   "evidenceSource": "rendered_html",
+   "javascriptExecuted": true,
+   "sample": {
+    "selected": 1,
+    "checked": 1,
+    "broken": 0,
+    "unableToConfirm": 0,
+    "score": 49
+   },
+   "coverage": {
+    "percent": 66,
+    "assessedChecks": 25,
+    "applicableChecks": 45
+   },
+   "scoreRange": {
+    "low": 44,
+    "high": 78,
+    "assessedWeight": 158,
+    "unverifiedWeight": 81,
+    "applicableWeight": 239
+   },
+   "headline": {
+    "score": 64,
+    "pageScore": 64,
+    "sampleWeight": 0
+   },
+   "limitations": []
+  },
+  "summary": {
+   "passed": 12,
+   "issues": 13,
+   "critical": 0,
+   "important": 1,
+   "advice": 12,
+   "notApplicable": 11,
+   "unableToConfirm": 20,
+   "pendingFixes": 0
+  },
+  "rendering": {
+   "mode": "javascript_rendered",
+   "limitations": [],
+   "consentProviders": [],
+   "formProviders": [],
+   "javascriptExecuted": true,
+   "note": "RankFix heeft deze JavaScript-site in een begrensde browser gerenderd. Interactieve login-, winkelwagen- en betaalflows zijn niet uitgevoerd.",
+   "elapsedMs": 960,
+   "fallbackReason": null,
+   "warning": false,
+   "evidenceSource": "rendered_html",
+   "botProtection": null
+  },
+  "recovery": {
+   "attempted": true,
+   "originalHttpStatus": 403,
+   "browserRecovered": true,
+   "limitedScope": true,
+   "reason": null,
+   "evidenceSource": "rendered_html"
+  },
+  "scope": {
+   "page": "https://www.bol.com/nl/nl/",
+   "mode": "PAGE_SAMPLE",
+   "javascriptExecuted": true,
+   "internalLinks": {
+    "anchorsFound": 4,
+    "uniqueInternal": 0,
+    "checked": 0,
+    "limit": 24,
+    "truncated": false
+   },
+   "accessibility": "STATIC_HTML_SIGNALS",
+   "consentMode": "STATIC_HTML_SIGNAL",
+   "merchant": "WEBSITE_SIGNALS_ONLY",
+   "multiPage": {
+    "enabled": true,
+    "mode": "REPRESENTATIVE_AUDIT",
+    "currentPageScoredSeparately": true,
+    "maxPages": 30,
+    "discoveredInternalUrls": 0,
+    "selectedPages": [
+     {
+      "url": "https://www.bol.com/nl/nl/",
+      "type": "homepage",
+      "evidence": [
+       "scanned page"
+      ]
+     }
+    ],
+    "pageAudits": [
+     {
+      "url": "https://www.bol.com/nl/nl/",
+      "type": "homepage",
+      "evidence": [
+       "scanned page"
+      ],
+      "status": "audited",
+      "httpStatus": 200,
+      "title": "bol",
+      "description": null,
+      "h1Count": 3,
+      "canonical": null,
+      "structureKey": "h3|a0|img0|form0|article0|table0|li0|schema0",
+      "evidenceSource": "raw_html",
+      "score": 49,
+      "identityText": "bol IP address is blocked IP adres is geblokkeerd L'adresse IP est bloquée bol IP address is blocked Your access to bol has been temporarily blocked due to possible abuse from this IP address. This may be caused by several factors, including: Use of a VPN: Please turn off your VPN and try accessing the site again. Outdated browser or browser extensions: Make sure you're using the latest version of a browser such as Safari, Chrome, Firefox, or Microsoft Edge. Also, disable any unnecessary plugins. Automated scripts: If you're using a script that collects data automatically from bol.com, please refer to our Developer Guide for more information. Additionally, the block may be caused by malicious software on your device. We recommend installing up-to-date antivirus or anti-spyware software and running a full scan of your device. For more information, you can contact our customer service by email at: customerservice@bol.com Please always mention your IP address so we can assist you more effectively. If you're a developer and are interested in interfacing with bol, check out our developer guides on developers.bol.com for information about our Open API program.",
+      "schemaTypes": [],
+      "formEvidence": {
+       "formCount": 0,
+       "passwordForm": false,
+       "insecureFormActions": 0
+      },
+      "commerceEvidence": {
+       "productSchema": false,
+       "itemListSchema": false,
+       "storeSchema": false,
+       "strongCommerceAction": false,
+       "repeatedProductLinks": false,
+       "priceSignals": 0,
+       "product": null,
+       "confirmedRetailPage": false
+      },
+      "productLinks": [],
+      "evidenceChecks": [
+       {
+        "key": "http",
+        "status": "PASS",
+        "details": "HTTP 200"
+       },
+       {
+        "key": "title",
+        "status": "WARNING",
+        "details": "Title bevat alleen de merknaam (\"bol\"); het onderwerp van de pagina ontbreekt."
+       },
+       {
+        "key": "description",
+        "status": "WARNING",
+        "details": "Geen meta description-tag gevonden in raw HTML."
+       },
+       {
+        "key": "h1",
+        "status": "WARNING",
+        "details": "3 verschillende H1-teksten in de HTML gevonden, bijvoorbeeld \"IP address is blocked\", \"IP adres is geblokkeerd\", \"L'adresse IP est bloquée\". Controleer of deze koppen tegelijk zichtbaar zijn: animaties en responsieve varianten kunnen extra H1-elementen toevoegen. Meerdere H1-elementen zijn niet automatisch een bewezen rankingfout."
+       },
+       {
+        "key": "canonical",
+        "status": "WARNING",
+        "details": "Geen canonical-linkelement gevonden in de gecontroleerde raw HTML. Dit is hetzelfde afwezigheidssignaal als in de hoofdscan; controleer alleen apart wanneer de site canonical-tags uitsluitend via JavaScript toevoegt."
+       }
+      ]
+     }
+    ],
+    "siteSampleScore": 49,
+    "siteSampleCoverage": {
+     "selected": 1,
+     "checked": 1,
+     "broken": 0,
+     "unableToConfirm": 0,
+     "coveragePercent": 100,
+     "provisional": false
+    },
+    "siteSampleLabel": "Site-samplescore",
+    "sitewideCommerceEvidence": {
+     "confirmed": false,
+     "sampleCount": 0,
+     "urls": [],
+     "evidence": []
+    },
+    "sitewideCheckAggregation": [
+     {
+      "key": "title",
+      "status": "WARNING",
+      "failedCount": 0,
+      "checkedPages": 1,
+      "provenPages": 1,
+      "affectedCount": 1,
+      "affectedUrls": [
+       "https://www.bol.com/nl/nl/"
+      ],
+      "evidence": [
+       {
+        "url": "https://www.bol.com/nl/nl/",
+        "status": "WARNING",
+        "details": "Title bevat alleen de merknaam (\"bol\"); het onderwerp van de pagina ontbreekt."
+       }
+      ],
+      "highlights": [
+       "https://www.bol.com/nl/nl/: Title bevat alleen de merknaam (\"bol\"); het onderwerp van de pagina ontbreekt."
+      ],
+      "reason": null
+     },
+     {
+      "key": "description",
+      "status": "WARNING",
+      "failedCount": 0,
+      "checkedPages": 1,
+      "provenPages": 1,
+      "affectedCount": 1,
+      "affectedUrls": [
+       "https://www.bol.com/nl/nl/"
+      ],
+      "evidence": [
+       {
+        "url": "https://www.bol.com/nl/nl/",
+        "status": "WARNING",
+        "details": "Geen meta description-tag gevonden in raw HTML."
+       }
+      ],
+      "highlights": [],
+      "reason": null
+     },
+     {
+      "key": "h1",
+      "status": "WARNING",
+      "failedCount": 0,
+      "checkedPages": 1,
+      "provenPages": 1,
+      "affectedCount": 1,
+      "affectedUrls": [
+       "https://www.bol.com/nl/nl/"
+      ],
+      "evidence": [
+       {
+        "url": "https://www.bol.com/nl/nl/",
+        "status": "WARNING",
+        "details": "3 verschillende H1-teksten in de HTML gevonden, bijvoorbeeld \"IP address is blocked\", \"IP adres is geblokkeerd\", \"L'adresse IP est bloquée\". Controleer of deze koppen tegelijk zichtbaar zijn: animaties en responsieve varianten kunnen extra H1-elementen toevoegen. Meerdere H1-elementen zijn niet automatisch een bewezen rankingfout."
+       }
+      ],
+      "highlights": [],
+      "reason": null
+     },
+     {
+      "key": "canonical",
+      "status": "WARNING",
+      "failedCount": 0,
+      "checkedPages": 1,
+      "provenPages": 1,
+      "affectedCount": 1,
+      "affectedUrls": [
+       "https://www.bol.com/nl/nl/"
+      ],
+      "evidence": [
+       {
+        "url": "https://www.bol.com/nl/nl/",
+        "status": "WARNING",
+        "details": "Geen canonical-linkelement gevonden in de gecontroleerde raw HTML. Dit is hetzelfde afwezigheidssignaal als in de hoofdscan; controleer alleen apart wanneer de site canonical-tags uitsluitend via JavaScript toevoegt."
+       }
+      ],
+      "highlights": [],
+      "reason": null
+     },
+     {
+      "key": "product_schema",
+      "status": "UNABLE_TO_CONFIRM",
+      "failedCount": 0,
+      "checkedPages": 0,
+      "provenPages": 0,
+      "affectedCount": 0,
+      "affectedUrls": [],
+      "evidence": [],
+      "highlights": [],
+      "reason": "Geen representatieve pagina leverde voldoende bewijs voor deze sitebrede samenvatting."
+     }
+    ],
+    "capabilities": {
+     "hospitality": false,
+     "treatment": false,
+     "vehicleSales": false,
+     "automotiveService": false,
+     "properties": false,
+     "professional": false,
+     "productSample": false,
+     "categorySample": false
+    },
+    "counts": {
+     "homepage": 1,
+     "category": 0,
+     "product": 0,
+     "form": 0,
+     "legal": 0,
+     "service": 0,
+     "listing": 0,
+     "support": 0,
+     "other": 0,
+     "audited": 1,
+     "broken": 0,
+     "unableToConfirm": 0
+    },
+    "note": "Representative same-host pages are fetched with bounded checks. Their sample score is separate from the explicitly scanned page score; site-level evidence may strengthen identity/capabilities, but page-specific failures still require direct proof."
+   }
+  },
+  "multiPage": {
+   "enabled": true,
+   "mode": "REPRESENTATIVE_AUDIT",
+   "currentPageScoredSeparately": true,
+   "maxPages": 30,
+   "discoveredInternalUrls": 0,
+   "selectedPages": [
+    {
+     "url": "https://www.bol.com/nl/nl/",
+     "type": "homepage",
+     "evidence": [
+      "scanned page"
+     ]
+    }
+   ],
+   "pageAudits": [
+    {
+     "url": "https://www.bol.com/nl/nl/",
+     "type": "homepage",
+     "evidence": [
+      "scanned page"
+     ],
+     "status": "audited",
+     "httpStatus": 200,
+     "title": "bol",
+     "description": null,
+     "h1Count": 3,
+     "canonical": null,
+     "structureKey": "h3|a0|img0|form0|article0|table0|li0|schema0",
+     "evidenceSource": "raw_html",
+     "score": 49,
+     "identityText": "bol IP address is blocked IP adres is geblokkeerd L'adresse IP est bloquée bol IP address is blocked Your access to bol has been temporarily blocked due to possible abuse from this IP address. This may be caused by several factors, including: Use of a VPN: Please turn off your VPN and try accessing the site again. Outdated browser or browser extensions: Make sure you're using the latest version of a browser such as Safari, Chrome, Firefox, or Microsoft Edge. Also, disable any unnecessary plugins. Automated scripts: If you're using a script that collects data automatically from bol.com, please refer to our Developer Guide for more information. Additionally, the block may be caused by malicious software on your device. We recommend installing up-to-date antivirus or anti-spyware software and running a full scan of your device. For more information, you can contact our customer service by email at: customerservice@bol.com Please always mention your IP address so we can assist you more effectively. If you're a developer and are interested in interfacing with bol, check out our developer guides on developers.bol.com for information about our Open API program.",
+     "schemaTypes": [],
+     "formEvidence": {
+      "formCount": 0,
+      "passwordForm": false,
+      "insecureFormActions": 0
+     },
+     "commerceEvidence": {
+      "productSchema": false,
+      "itemListSchema": false,
+      "storeSchema": false,
+      "strongCommerceAction": false,
+      "repeatedProductLinks": false,
+      "priceSignals": 0,
+      "product": null,
+      "confirmedRetailPage": false
+     },
+     "productLinks": [],
+     "evidenceChecks": [
+      {
+       "key": "http",
+       "status": "PASS",
+       "details": "HTTP 200"
+      },
+      {
+       "key": "title",
+       "status": "WARNING",
+       "details": "Title bevat alleen de merknaam (\"bol\"); het onderwerp van de pagina ontbreekt."
+      },
+      {
+       "key": "description",
+       "status": "WARNING",
+       "details": "Geen meta description-tag gevonden in raw HTML."
+      },
+      {
+       "key": "h1",
+       "status": "WARNING",
+       "details": "3 verschillende H1-teksten in de HTML gevonden, bijvoorbeeld \"IP address is blocked\", \"IP adres is geblokkeerd\", \"L'adresse IP est bloquée\". Controleer of deze koppen tegelijk zichtbaar zijn: animaties en responsieve varianten kunnen extra H1-elementen toevoegen. Meerdere H1-elementen zijn niet automatisch een bewezen rankingfout."
+      },
+      {
+       "key": "canonical",
+       "status": "WARNING",
+       "details": "Geen canonical-linkelement gevonden in de gecontroleerde raw HTML. Dit is hetzelfde afwezigheidssignaal als in de hoofdscan; controleer alleen apart wanneer de site canonical-tags uitsluitend via JavaScript toevoegt."
+      }
+     ]
+    }
+   ],
+   "siteSampleScore": 49,
+   "siteSampleCoverage": {
+    "selected": 1,
+    "checked": 1,
+    "broken": 0,
+    "unableToConfirm": 0,
+    "coveragePercent": 100,
+    "provisional": false
+   },
+   "siteSampleLabel": "Site-samplescore",
+   "sitewideCommerceEvidence": {
+    "confirmed": false,
+    "sampleCount": 0,
+    "urls": [],
+    "evidence": []
+   },
+   "sitewideCheckAggregation": [
+    {
+     "key": "title",
+     "status": "WARNING",
+     "failedCount": 0,
+     "checkedPages": 1,
+     "provenPages": 1,
+     "affectedCount": 1,
+     "affectedUrls": [
+      "https://www.bol.com/nl/nl/"
+     ],
+     "evidence": [
+      {
+       "url": "https://www.bol.com/nl/nl/",
+       "status": "WARNING",
+       "details": "Title bevat alleen de merknaam (\"bol\"); het onderwerp van de pagina ontbreekt."
+      }
+     ],
+     "highlights": [
+      "https://www.bol.com/nl/nl/: Title bevat alleen de merknaam (\"bol\"); het onderwerp van de pagina ontbreekt."
+     ],
+     "reason": null
+    },
+    {
+     "key": "description",
+     "status": "WARNING",
+     "failedCount": 0,
+     "checkedPages": 1,
+     "provenPages": 1,
+     "affectedCount": 1,
+     "affectedUrls": [
+      "https://www.bol.com/nl/nl/"
+     ],
+     "evidence": [
+      {
+       "url": "https://www.bol.com/nl/nl/",
+       "status": "WARNING",
+       "details": "Geen meta description-tag gevonden in raw HTML."
+      }
+     ],
+     "highlights": [],
+     "reason": null
+    },
+    {
+     "key": "h1",
+     "status": "WARNING",
+     "failedCount": 0,
+     "checkedPages": 1,
+     "provenPages": 1,
+     "affectedCount": 1,
+     "affectedUrls": [
+      "https://www.bol.com/nl/nl/"
+     ],
+     "evidence": [
+      {
+       "url": "https://www.bol.com/nl/nl/",
+       "status": "WARNING",
+       "details": "3 verschillende H1-teksten in de HTML gevonden, bijvoorbeeld \"IP address is blocked\", \"IP adres is geblokkeerd\", \"L'adresse IP est bloquée\". Controleer of deze koppen tegelijk zichtbaar zijn: animaties en responsieve varianten kunnen extra H1-elementen toevoegen. Meerdere H1-elementen zijn niet automatisch een bewezen rankingfout."
+      }
+     ],
+     "highlights": [],
+     "reason": null
+    },
+    {
+     "key": "canonical",
+     "status": "WARNING",
+     "failedCount": 0,
+     "checkedPages": 1,
+     "provenPages": 1,
+     "affectedCount": 1,
+     "affectedUrls": [
+      "https://www.bol.com/nl/nl/"
+     ],
+     "evidence": [
+      {
+       "url": "https://www.bol.com/nl/nl/",
+       "status": "WARNING",
+       "details": "Geen canonical-linkelement gevonden in de gecontroleerde raw HTML. Dit is hetzelfde afwezigheidssignaal als in de hoofdscan; controleer alleen apart wanneer de site canonical-tags uitsluitend via JavaScript toevoegt."
+      }
+     ],
+     "highlights": [],
+     "reason": null
+    },
+    {
+     "key": "product_schema",
+     "status": "UNABLE_TO_CONFIRM",
+     "failedCount": 0,
+     "checkedPages": 0,
+     "provenPages": 0,
+     "affectedCount": 0,
+     "affectedUrls": [],
+     "evidence": [],
+     "highlights": [],
+     "reason": "Geen representatieve pagina leverde voldoende bewijs voor deze sitebrede samenvatting."
+    }
+   ],
+   "capabilities": {
+    "hospitality": false,
+    "treatment": false,
+    "vehicleSales": false,
+    "automotiveService": false,
+    "properties": false,
+    "professional": false,
+    "productSample": false,
+    "categorySample": false
+   },
+   "counts": {
+    "homepage": 1,
+    "category": 0,
+    "product": 0,
+    "form": 0,
+    "legal": 0,
+    "service": 0,
+    "listing": 0,
+    "support": 0,
+    "other": 0,
+    "audited": 1,
+    "broken": 0,
+    "unableToConfirm": 0
+   },
+   "note": "Representative same-host pages are fetched with bounded checks. Their sample score is separate from the explicitly scanned page score; site-level evidence may strengthen identity/capabilities, but page-specific failures still require direct proof."
+  },
+  "classification": {
+   "websiteType": "Website",
+   "sector": {
+    "key": "unknown",
+    "label": "Sector niet bevestigd",
+    "confidence": "low",
+    "confidenceScore": 0,
+    "displayPolicy": "unconfirmed"
+   },
+   "pageType": {
+    "type": "homepage",
+    "confidence": "high",
+    "commercialLandingPage": false
+   },
+   "policy": "Website type, sector en paginatype zijn afzonderlijke beslissingen. Een commerciële landingpage is nooit automatisch het type van de volledige website."
+  },
+  "pageTypeEvidence": {
+   "type": "homepage",
+   "confidence": "high",
+   "evidence": [
+    "localized/root path: /nl/nl"
+   ]
+  },
+  "pageTypeInvariant": {
+   "valid": true,
+   "contradictions": []
+  },
+  "technologyProfile": {
+   "siteType": "Website",
+   "cms": null,
+   "commercePlatform": null,
+   "framework": null,
+   "isCommerce": false,
+   "confidence": 40,
+   "confidenceLabel": "low",
+   "evidence": []
+  },
+  "sectorProfile": {
+   "sector": "unknown",
+   "label": "Sector niet bevestigd",
+   "confidence": "low",
+   "confidenceScore": 0,
+   "evidence": [],
+   "applicableModules": [
+    "core_seo",
+    "geo",
+    "technical",
+    "business_identity",
+    "local"
+   ],
+   "key": "unknown"
+  },
+  "commerceApplicability": {
+   "state": "unconfirmed",
+   "reason": "low_coverage",
+   "marketSelector": false,
+   "representativePagesAudited": 0,
+   "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+  },
+  "evidenceLayer": {
+   "version": "1.2",
+   "evidence": {
+    "version": "1.2",
+    "page": {
+     "url": "https://www.bol.com/nl/nl/",
+     "rendered": true,
+     "language": null,
+     "title": "bol"
+    },
+    "commerce": {
+     "cart": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "addToCart": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "checkout": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "prices": {
+      "value": {
+       "count": 0,
+       "currencies": []
+      },
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "products": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "productPage": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "productLinks": {
+      "value": 0,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     }
+    },
+    "appointments": {
+     "appointment": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "reservation": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "booking": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "quoteRequest": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     }
+    },
+    "inventory": {
+     "vehicles": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "properties": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "jobs": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "rooms": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "menu": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     }
+    },
+    "organization": {
+     "contact": {
+      "value": true,
+      "confidence": "high",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": [
+       "Structurele contactlink of telefoon/e-mailactie gevonden"
+      ]
+     },
+     "address": {
+      "value": true,
+      "confidence": "medium",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": [
+       "Adres-tekstsignaal gevonden"
+      ]
+     },
+     "openingHours": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "reviews": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     }
+    },
+    "sectorDetails": {
+     "realEstate": {
+      "listing": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      },
+      "sale": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      },
+      "rental": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      }
+     },
+     "automotive": {
+      "service": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      },
+      "dealer": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      }
+     },
+     "media": {
+      "article": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      },
+      "author": {
+       "value": true,
+       "confidence": "medium",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": [
+        "Auteurssignaal gevonden"
+       ]
+      },
+      "publishedDate": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      }
+     },
+     "sports": {
+      "event": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      },
+      "teamOrPlayer": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      },
+      "resultsOrStandings": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      }
+     },
+     "lodging": {
+      "shortStay": {
+       "value": true,
+       "confidence": "medium",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": [
+        "Kort-verblijf tekstsignaal gevonden"
+       ]
+      },
+      "bedBreakfast": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      },
+      "holidayRental": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      },
+      "holidayPark": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      },
+      "camping": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      },
+      "stayDates": {
+       "value": true,
+       "confidence": "medium",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": [
+        "Aankomst/vertrek gevonden"
+       ]
+      },
+      "guests": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      }
+     }
+    },
+    "schema": {
+     "types": [],
+     "organization": false,
+     "website": false,
+     "product": false,
+     "localBusiness": false,
+     "vehicle": false,
+     "realEstate": false,
+     "jobPosting": false,
+     "restaurant": false,
+     "hotel": false
+    }
+   },
+   "sectorCandidates": [
+    {
+     "key": "software_app",
+     "label": "Software / app",
+     "score": 2,
+     "evidence": [
+      "Sectorspecifieke content gevonden"
+     ],
+     "expectedCapabilities": [
+      "features",
+      "download_or_signup",
+      "support"
+     ],
+     "optionalCapabilities": [],
+     "forbiddenAssumptions": []
+    }
+   ],
+   "catalogSize": 57,
+   "note": "Evidence-first: ontbrekend bewijs is niet automatisch een fout. Sectoren en functies worden alleen bevestigd op gevonden signalen.",
+   "master": {
+    "version": "1.0",
+    "primarySector": {
+     "key": "unknown",
+     "label": "Sector niet bevestigd",
+     "confidence": "low",
+     "confidenceScore": 0,
+     "displayPolicy": "unconfirmed"
+    },
+    "partners": [
+     {
+      "partner": "core",
+      "status": "partial",
+      "confidence": "medium",
+      "capabilities": [
+       "title"
+      ],
+      "sources": [
+       "url",
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     {
+      "partner": "commerce",
+      "status": "unconfirmed",
+      "confidence": "low",
+      "capabilities": [],
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     {
+      "partner": "business",
+      "status": "unconfirmed",
+      "confidence": "low",
+      "capabilities": [],
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     {
+      "partner": "local_booking",
+      "status": "confirmed",
+      "confidence": "high",
+      "capabilities": [
+       "contact",
+       "local"
+      ],
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": [
+       "Structurele contactlink of telefoon/e-mailactie gevonden",
+       "Adres-tekstsignaal gevonden"
+      ]
+     }
+    ],
+    "partnerSummary": {
+     "total": 4,
+     "confirmed": 1,
+     "partial": 1,
+     "unconfirmed": 2
+    },
+    "capabilities": [
+     "contact",
+     "local",
+     "title"
+    ],
+    "activeModules": [
+     "core_seo",
+     "geo",
+     "technical",
+     "business_identity",
+     "local"
+    ],
+    "businessModels": [
+     "local_business"
+    ],
+    "secondarySectorCandidates": [],
+    "commerce": {
+     "confirmed": false,
+     "strength": 0
+    },
+    "coverage": {
+     "confirmedCapabilities": 3,
+     "evidenceSources": [
+      "url",
+      "rendered_html",
+      "multi_page"
+     ],
+     "partnerCoverage": 38
+    },
+    "conflicts": [],
+    "policy": "Evidence-first: ontbrekend bewijs blijft onbevestigd en wordt niet automatisch als defect beoordeeld.",
+    "capabilityStates": [
+     {
+      "id": "sells_products_online",
+      "state": "unknown",
+      "confidence": 0,
+      "proof": [],
+      "reason": "insufficient_coverage"
+     },
+     {
+      "id": "lists_inventory",
+      "state": "unknown",
+      "confidence": 0,
+      "proof": [],
+      "reason": "insufficient_coverage"
+     },
+     {
+      "id": "offers_bookable_services",
+      "state": "unknown",
+      "confidence": 0,
+      "proof": [],
+      "reason": "insufficient_coverage"
+     },
+     {
+      "id": "collects_leads",
+      "state": "likely",
+      "confidence": 0.7,
+      "proof": [
+       "Contact-/offertesignaal gevonden zonder representatief leadformulier"
+      ],
+      "reason": "weak_evidence"
+     },
+     {
+      "id": "serves_local_customers",
+      "state": "detected",
+      "confidence": 0.95,
+      "proof": [
+       "https://www.bol.com/nl/nl/"
+      ]
+     }
+    ],
+    "finalDecisions": {
+     "commerce": {
+      "confirmed": false,
+      "currentPageEvidence": false,
+      "technologyProfile": false,
+      "technologyOnly": false,
+      "secondaryCommerceOnly": false,
+      "multiPageEvidence": false
+     }
+    },
+    "classification": {
+     "websiteType": "Website",
+     "sector": {
+      "key": "unknown",
+      "label": "Sector niet bevestigd",
+      "confidence": "low",
+      "confidenceScore": 0,
+      "displayPolicy": "unconfirmed"
+     },
+     "pageType": {
+      "type": "homepage",
+      "confidence": "high",
+      "commercialLandingPage": false
+     },
+     "policy": "Website type, sector en paginatype zijn afzonderlijke beslissingen. Een commerciële landingpage is nooit automatisch het type van de volledige website."
+    }
+   }
+  },
+  "security": {
+   "version": "1.1-passive",
+   "mode": "PASSIVE_STATIC_EVIDENCE",
+   "score": 78,
+   "grade": "B",
+   "summary": {
+    "passed": 4,
+    "issues": 1,
+    "critical": 0,
+    "important": 0,
+    "advice": 1,
+    "notApplicable": 1,
+    "unableToConfirm": 1,
+    "pendingFixes": 0
+   },
+   "checks": [
+    {
+     "key": "security_https",
+     "category": "security",
+     "title": "HTTPS",
+     "status": "pass",
+     "message": "De gescande pagina gebruikt HTTPS.",
+     "fix": "Houd HTTPS verplicht en stuur HTTP-verkeer permanent door naar HTTPS.",
+     "points": 5,
+     "maxPoints": 5,
+     "issue_id": "security_https",
+     "rule_id": "security_https",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": true,
+      "details": "De gescande pagina gebruikt HTTPS."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "security_headers",
+     "category": "security",
+     "title": "Security headers",
+     "status": "warning",
+     "message": "RankFix bevestigde 0 van 6 gecontroleerde securityheaders (aanwezig: geen; niet aangetroffen in de response: hsts, csp, contentTypeOptions, frameOptions, referrerPolicy, permissionsPolicy); niet alle kernheaders zijn aanwezig (kernregel: HSTS, X-Content-Type-Options en CSP of X-Frame-Options). Dit is hardening-advies en op zichzelf geen bewijs van een kwetsbaarheid.",
+     "fix": "Controleer HSTS, CSP/frame-bescherming, X-Content-Type-Options, Referrer-Policy en Permissions-Policy op server/CDN-niveau.",
+     "points": 0,
+     "maxPoints": 6,
+     "issue_id": "security_headers",
+     "rule_id": "security_headers",
+     "issue_status": "WARNING",
+     "severity": "MEDIUM",
+     "confidence": "high",
+     "impactClaim": "best_practice",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "RankFix bevestigde 0 van 6 gecontroleerde securityheaders (aanwezig: geen; niet aangetroffen in de response: hsts, csp, contentTypeOptions, frameOptions, referrerPolicy, permissionsPolicy); niet alle kernheaders zijn aanwezig (kernregel: HSTS, X-Content-Type-Options en CSP of X-Frame-Options). Dit is hardening-advies en op zichzelf geen bewijs van een kwetsbaarheid."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "security_mixed_content",
+     "category": "security",
+     "title": "Mixed content",
+     "status": "pass",
+     "message": "Geen via HTTP geladen afbeeldingen, scripts, stylesheets of frames gevonden in de gescande HTTPS-HTML. Gewone links naar HTTP-sites zijn geen mixed content.",
+     "fix": "Blijf assets via HTTPS of relatieve URL's laden.",
+     "points": 4,
+     "maxPoints": 4,
+     "issue_id": "security_mixed_content",
+     "rule_id": "security_mixed_content",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": true,
+      "details": "Geen via HTTP geladen afbeeldingen, scripts, stylesheets of frames gevonden in de gescande HTTPS-HTML. Gewone links naar HTTP-sites zijn geen mixed content."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "security_cookie_flags",
+     "category": "security",
+     "title": "Cookie-beveiliging",
+     "status": "unable_to_confirm",
+     "message": "De hoofdresponse bevatte geen zichtbare Set-Cookie-header. RankFix kan daardoor cookieflags voor browser-, consent- of ingelogde flows niet bevestigen.",
+     "fix": "Controleer sessie-, consent- en authenticatiecookies in de relevante flows; ken zonder cookie-evidence geen veiligheidspunten toe.",
+     "points": 0,
+     "maxPoints": 5,
+     "issue_id": "security_cookie_flags",
+     "rule_id": "security_cookie_flags",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "De hoofdresponse bevatte geen zichtbare Set-Cookie-header. RankFix kan daardoor cookieflags voor browser-, consent- of ingelogde flows niet bevestigen."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "security_forms",
+     "category": "security",
+     "title": "Formuliertransport",
+     "status": "not_applicable",
+     "message": "Geen representatieve contact-, aanvraag- of afspraakpagina met betrouwbaar formulierbewijs geselecteerd. Globale zoek-, login- en footerformulieren tellen niet als bewijs voor deze controle.",
+     "fix": "Geen actie nodig op basis van deze statische steekproef.",
+     "points": 0,
+     "maxPoints": 5,
+     "issue_id": "security_forms",
+     "rule_id": "security_forms",
+     "issue_status": "NOT_APPLICABLE",
+     "severity": "INFO",
+     "confidence": "medium",
+     "reasonCode": "cap_absent",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Geen representatieve contact-, aanvraag- of afspraakpagina met betrouwbaar formulierbewijs geselecteerd. Globale zoek-, login- en footerformulieren tellen niet als bewijs voor deze controle."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "security_exposed_secrets",
+     "category": "security",
+     "title": "Blootgestelde secrets",
+     "status": "pass",
+     "message": "Geen bekende high-confidence secretpatronen gevonden in de opgehaalde HTML.",
+     "fix": "Bewaar API-sleutels en credentials uitsluitend server-side.",
+     "points": 8,
+     "maxPoints": 8,
+     "issue_id": "security_exposed_secrets",
+     "rule_id": "security_exposed_secrets",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": true,
+      "details": "Geen bekende high-confidence secretpatronen gevonden in de opgehaalde HTML."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "security_script_integrity",
+     "category": "security",
+     "title": "Externe scripts",
+     "status": "pass",
+     "message": "Geen cross-origin scripts aangetroffen in de opgehaalde HTML.",
+     "fix": "Geen actie nodig; JavaScript kan runtime aanvullend scripts laden die buiten deze statische controle vallen.",
+     "points": 4,
+     "maxPoints": 4,
+     "issue_id": "security_script_integrity",
+     "rule_id": "security_script_integrity",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": true,
+      "details": "Geen cross-origin scripts aangetroffen in de opgehaalde HTML."
+     },
+     "fix_category": "C"
+    }
+   ],
+   "note": "Passieve security-audit op responseheaders en opgehaalde HTML. Geen exploit-, brute-force-, login- of actieve kwetsbaarheidstests uitgevoerd."
+  },
+  "accessibility": {
+   "version": "1.1-static-basics",
+   "elementsChecked": {
+    "total": 0,
+    "formControls": 0,
+    "buttons": 0,
+    "smallSample": false
+   },
+   "score": 33,
+   "grade": "E",
+   "coverage": {
+    "relevant": 1,
+    "confirmed": 1,
+    "unableToConfirm": 0,
+    "totalWeight": 3,
+    "assessedWeight": 3,
+    "coveragePercent": 100,
+    "highConfidencePercent": 100
+   },
+   "summary": {
+    "passed": 0,
+    "issues": 1,
+    "critical": 0,
+    "important": 0,
+    "advice": 1,
+    "notApplicable": 1,
+    "unableToConfirm": 0,
+    "pendingFixes": 0
+   },
+   "checks": [
+    {
+     "key": "accessibility_basics",
+     "category": "accessibility",
+     "title": "Toegankelijkheid basis",
+     "status": "not_applicable",
+     "message": "Geen formuliervelden of knoppen op deze pagina gevonden (0 elementen gecontroleerd); er is niets om te beoordelen, dus ook geen score.",
+     "fix": "Controleer formulieren op de pagina's waar ze staan.",
+     "points": 0,
+     "maxPoints": 5,
+     "issue_id": "accessibility_basics",
+     "rule_id": "accessibility_basics",
+     "issue_status": "NOT_APPLICABLE",
+     "severity": "INFO",
+     "confidence": "medium",
+     "reasonCode": "cap_absent",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "",
+      "found": null,
+      "details": "Geen formuliervelden of knoppen op deze pagina gevonden (0 elementen gecontroleerd); er is niets om te beoordelen, dus ook geen score."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "viewport_zoom_blocked",
+     "category": "accessibility",
+     "title": "Browserzoom",
+     "status": "warning",
+     "message": "De viewport beperkt browserzoom: \"width=device-width, initial-scale=1 user-scalable=no\".",
+     "fix": "Laat gebruikers zoomen; vermijd user-scalable=no en onnodig beperkende maximum-scale.",
+     "points": 1,
+     "maxPoints": 3,
+     "issue_id": "viewport_zoom_blocked",
+     "rule_id": "viewport_zoom_blocked",
+     "issue_status": "WARNING",
+     "severity": "MEDIUM",
+     "confidence": "high",
+     "impactClaim": "best_practice",
+     "evidence": {
+      "url": "",
+      "found": null,
+      "details": "De viewport beperkt browserzoom: \"width=device-width, initial-scale=1 user-scalable=no\"."
+     },
+     "fix_category": "C"
+    }
+   ],
+   "note": "Technische HTML-basiscontrole voor toegankelijkheid. Dit is geen volledige WCAG- of EAA-conformiteitsbeoordeling en verandert de SEO/GEO-totaalscore niet."
+  },
+  "adsKeywordIntelligence": {
+   "evidenceLevel": "insufficient",
+   "confirmationStatus": "unable_to_confirm",
+   "language": null,
+   "pageLanguage": null,
+   "intent": "ambiguous",
+   "campaignGoal": null,
+   "targetArea": null,
+   "targetCountries": [],
+   "adLanguages": [],
+   "markets": [
+    {
+     "country": null,
+     "language": null,
+     "countrySource": "unknown",
+     "languageSource": "unknown"
+    }
+   ],
+   "localIntentConfirmed": false,
+   "landingPage": "https://www.bol.com/nl/nl/",
+   "seedTerms": [],
+   "keywordCandidates": [],
+   "keywordGroups": [],
+   "marketKeywordGroups": [],
+   "negativeKeywordCandidates": [
+    {
+     "term": "free",
+     "source": "suggested",
+     "requiresReview": true,
+     "reason": "Suggestie op basis van veelvoorkomende afwijkende intentie; controleer vóór campagne-uitsluiting."
+    },
+    {
+     "term": "jobs",
+     "source": "suggested",
+     "requiresReview": true,
+     "reason": "Suggestie op basis van veelvoorkomende afwijkende intentie; controleer vóór campagne-uitsluiting."
+    },
+    {
+     "term": "manual",
+     "source": "suggested",
+     "requiresReview": true,
+     "reason": "Suggestie op basis van veelvoorkomende afwijkende intentie; controleer vóór campagne-uitsluiting."
+    },
+    {
+     "term": "used",
+     "source": "suggested",
+     "requiresReview": true,
+     "reason": "Suggestie op basis van veelvoorkomende afwijkende intentie; controleer vóór campagne-uitsluiting."
+    }
+   ],
+   "metrics": {
+    "searchVolume": "unknown_not_confirmed",
+    "cpc": "unknown_not_confirmed",
+    "competition": "unknown_not_confirmed",
+    "source": null
+   },
+   "disclaimer": "Keywordkandidaten zijn gebaseerd op getypeerd pagina- of klantbewijs. Doelmarkten worden niet afgeleid uit alleen de paginataal. Zoekvolume, CPC en Google Ads-concurrentie vereisen een actuele externe databron.",
+   "customerProfile": null
+  },
+  "seo": {
+   "score": 70,
+   "grade": "C",
+   "coverage": {
+    "relevant": 37,
+    "confirmed": 20,
+    "unableToConfirm": 17,
+    "totalWeight": 177,
+    "assessedWeight": 119,
+    "coveragePercent": 67,
+    "highConfidencePercent": 73
+   },
+   "checks": [
+    {
+     "key": "broken_links",
+     "category": "seo",
+     "title": "Broken links",
+     "status": "not_applicable",
+     "message": "Geen controleerbare interne links gevonden op deze pagina.",
+     "fix": "Controleer links opnieuw wanneer de pagina interne navigatie bevat.",
+     "points": 0,
+     "maxPoints": 5,
+     "issue_id": "broken_links",
+     "rule_id": "broken_links",
+     "issue_status": "NOT_APPLICABLE",
+     "severity": "INFO",
+     "confidence": "medium",
+     "reasonCode": "cap_absent",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Geen controleerbare interne links gevonden op deze pagina."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "internal_redirects",
+     "category": "seo",
+     "title": "Interne redirects",
+     "status": "not_applicable",
+     "message": "Geen controleerbare interne links gevonden op deze pagina.",
+     "fix": "Gebruik directe interne links zodra er navigatie aanwezig is.",
+     "points": 0,
+     "maxPoints": 4,
+     "issue_id": "internal_redirects",
+     "rule_id": "internal_redirects",
+     "issue_status": "NOT_APPLICABLE",
+     "severity": "INFO",
+     "confidence": "medium",
+     "reasonCode": "cap_absent",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Geen controleerbare interne links gevonden op deze pagina."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "semantic_link_destination",
+     "category": "seo",
+     "title": "Verkeerde linkbestemming",
+     "status": "not_applicable",
+     "message": "Geen controleerbare interne links gevonden.",
+     "fix": "Controleer belangrijke interne links zodra ze op de pagina aanwezig zijn.",
+     "points": 0,
+     "maxPoints": 5,
+     "issue_id": "semantic_link_destination",
+     "rule_id": "semantic_link_destination",
+     "issue_status": "NOT_APPLICABLE",
+     "severity": "INFO",
+     "confidence": "medium",
+     "reasonCode": "cap_absent",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Geen controleerbare interne links gevonden."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "title",
+     "category": "seo",
+     "title": "Meta title",
+     "status": "warning",
+     "message": "De title bevat alleen de merknaam (\"bol\"); het onderwerp van de pagina ontbreekt.",
+     "fix": "Zet het onderwerp van de pagina vóór de merknaam, bijvoorbeeld \"Onderwerp | Merk\".",
+     "points": 5,
+     "maxPoints": 10,
+     "issue_id": "META_TITLE_GUIDANCE",
+     "rule_id": "META_TITLE_GUIDANCE",
+     "issue_status": "WARNING",
+     "severity": "MEDIUM",
+     "confidence": "high",
+     "impactClaim": "best_practice",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": "bol",
+      "details": "De title bevat alleen de merknaam (\"bol\"); het onderwerp van de pagina ontbreekt."
+     },
+     "fix_category": "B"
+    },
+    {
+     "key": "description",
+     "category": "seo",
+     "title": "Meta description",
+     "status": "fail",
+     "message": "Er is geen meta description-tag gevonden.",
+     "fix": "Laat RankFix AI een nieuwe meta description maken op basis van de pagina.",
+     "points": 0,
+     "maxPoints": 10,
+     "issue_id": "META_DESCRIPTION_MISSING",
+     "rule_id": "META_DESCRIPTION_MISSING",
+     "issue_status": "FAIL",
+     "severity": "HIGH",
+     "confidence": "high",
+     "impactClaim": "proven_impact",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": "metaDescriptionPresent=false",
+      "details": "Er is geen meta description-tag gevonden."
+     },
+     "fix_category": "B",
+     "rootCause": "meta_description"
+    },
+    {
+     "key": "h1",
+     "category": "seo",
+     "title": "H1-heading",
+     "status": "warning",
+     "message": "3 verschillende H1-teksten in de HTML gevonden, bijvoorbeeld \"IP address is blocked\", \"IP adres is geblokkeerd\", \"L'adresse IP est bloquée\". Controleer of deze koppen tegelijk zichtbaar zijn: animaties en responsieve varianten kunnen extra H1-elementen toevoegen. Meerdere H1-elementen zijn niet automatisch een bewezen rankingfout.",
+     "fix": "Controleer welke H1-koppen echt zichtbaar zijn op desktop en mobiel. Animatie- of responsieve kopieën kunnen in de HTML voorkomen; vermijd meerdere concurrerende zichtbare paginatitels.",
+     "points": 6,
+     "maxPoints": 8,
+     "issue_id": "H1_MULTIPLE",
+     "rule_id": "H1_MULTIPLE",
+     "issue_status": "WARNING",
+     "severity": "MEDIUM",
+     "confidence": "high",
+     "impactClaim": "best_practice",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": "h1=\"IP address is blocked\" | \"IP adres is geblokkeerd\" | \"L'adresse IP est bloquée\"; raw=3; duplicatesCollapsed=0; consentExcluded=0",
+      "details": "3 verschillende H1-teksten in de HTML gevonden, bijvoorbeeld \"IP address is blocked\", \"IP adres is geblokkeerd\", \"L'adresse IP est bloquée\". Controleer of deze koppen tegelijk zichtbaar zijn: animaties en responsieve varianten kunnen extra H1-elementen toevoegen. Meerdere H1-elementen zijn niet automatisch een bewezen rankingfout."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "headings",
+     "category": "seo",
+     "title": "Heading-structuur",
+     "status": "warning",
+     "message": "Er zijn 3 subheading(s) gevonden, maar geen duidelijke H2-laag. Dit is structuuradvies en geen bewezen rankingfout.",
+     "fix": "Gebruik H2/H3-secties wanneer die de inhoud logisch groeperen; voeg geen headings toe puur voor de score.",
+     "points": 6,
+     "maxPoints": 7,
+     "issue_id": "headings",
+     "rule_id": "headings",
+     "issue_status": "WARNING",
+     "severity": "MEDIUM",
+     "confidence": "medium",
+     "impactClaim": "best_practice",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": 3,
+      "details": "Er zijn 3 subheading(s) gevonden, maar geen duidelijke H2-laag. Dit is structuuradvies en geen bewezen rankingfout."
+     },
+     "fix_category": "B"
+    },
+    {
+     "key": "canonical",
+     "category": "seo",
+     "title": "Canonical URL",
+     "status": "warning",
+     "message": "Geen canonical URL gevonden.",
+     "fix": "Controleer of de canonical bewust naar de juiste voorkeurs-URL verwijst; voeg anders een passende self-referencing canonical toe.",
+     "points": 3,
+     "maxPoints": 7,
+     "issue_id": "canonical",
+     "rule_id": "canonical",
+     "issue_status": "WARNING",
+     "severity": "MEDIUM",
+     "confidence": "high",
+     "impactClaim": "best_practice",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": "canonicalPresent=false",
+      "details": "Geen canonical URL gevonden."
+     },
+     "fix_category": "B"
+    },
+    {
+     "key": "viewport",
+     "category": "seo",
+     "title": "Mobiele viewport",
+     "status": "pass",
+     "message": "De viewport bevat een responsive width=device-width-instelling: \"width=device-width, initial-scale=1 user-scalable=no\".",
+     "fix": "Test daarnaast de echte mobiele layout, tapdoelen en Core Web Vitals.",
+     "points": 5,
+     "maxPoints": 5,
+     "issue_id": "viewport",
+     "rule_id": "viewport",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": "width=device-width, initial-scale=1 user-scalable=no",
+      "details": "De viewport bevat een responsive width=device-width-instelling: \"width=device-width, initial-scale=1 user-scalable=no\"."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "lang",
+     "category": "seo",
+     "title": "HTML-taal",
+     "status": "warning",
+     "message": "Geen HTML lang-attribuut gevonden.",
+     "fix": "Voeg het juiste lang-attribuut toe aan <html>.",
+     "points": 1,
+     "maxPoints": 4,
+     "issue_id": "lang",
+     "rule_id": "lang",
+     "issue_status": "WARNING",
+     "severity": "MEDIUM",
+     "confidence": "low",
+     "impactClaim": "best_practice",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Geen HTML lang-attribuut gevonden."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "indexability",
+     "category": "seo",
+     "title": "Indexeerbaarheid",
+     "status": "pass",
+     "message": "Geen noindex gevonden en geen robots.txt-regel blokkeert dit pad.",
+     "fix": "Externe zoekmachine-indexstatus blijft een aparte controle.",
+     "points": 6,
+     "maxPoints": 6,
+     "issue_id": "indexability",
+     "rule_id": "indexability",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": "no noindex or applicable robots block found",
+      "details": "Geen noindex gevonden en geen robots.txt-regel blokkeert dit pad."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "alt",
+     "category": "seo",
+     "title": "Afbeelding alt-teksten",
+     "status": "not_applicable",
+     "message": "Geen <img>-elementen gevonden in de gerenderde HTML; deze controle telt daarom niet mee.",
+     "fix": "Controleer dynamisch geladen afbeeldingen afzonderlijk wanneer die voor de pagina belangrijk zijn.",
+     "points": 0,
+     "maxPoints": 7,
+     "issue_id": "IMAGE_ALT_MISSING",
+     "rule_id": "IMAGE_ALT_MISSING",
+     "issue_status": "NOT_APPLICABLE",
+     "severity": "LOW",
+     "confidence": "medium",
+     "reasonCode": "cap_absent",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Geen <img>-elementen gevonden in de gerenderde HTML; deze controle telt daarom niet mee."
+     },
+     "fix_category": "B"
+    },
+    {
+     "key": "content",
+     "category": "seo",
+     "title": "Contentdekking",
+     "status": "warning",
+     "message": "Ongeveer 173 woorden gevonden op deze homepage. Dat is geen bewijs van slechte content, maar de tekstuele dekking is beperkt voor dit paginatype.",
+     "fix": "Breid alleen uit waar extra context, dienst-/onderwerpinformatie of antwoorden de bezoeker daadwerkelijk helpen.",
+     "points": 5,
+     "maxPoints": 7,
+     "issue_id": "content",
+     "rule_id": "content",
+     "issue_status": "WARNING",
+     "severity": "MEDIUM",
+     "confidence": "medium",
+     "impactClaim": "best_practice",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": "wordCount=173; pageType=homepage; minimum=150; strong=250",
+      "details": "Ongeveer 173 woorden gevonden op deze homepage. Dat is geen bewijs van slechte content, maar de tekstuele dekking is beperkt voor dit paginatype."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "https",
+     "category": "seo",
+     "title": "HTTPS",
+     "status": "pass",
+     "message": "De uiteindelijke URL gebruikt HTTPS.",
+     "fix": "Behoud HTTPS op alle publieke pagina's en redirects.",
+     "points": 7,
+     "maxPoints": 7,
+     "issue_id": "https",
+     "rule_id": "https",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": true,
+      "details": "De uiteindelijke URL gebruikt HTTPS."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "status",
+     "category": "seo",
+     "title": "HTTP-status",
+     "status": "warning",
+     "message": "De pagina gaf HTTP 403 terug.",
+     "fix": "Controleer redirects, 404's en serverfouten.",
+     "points": 2,
+     "maxPoints": 6,
+     "issue_id": "status",
+     "rule_id": "status",
+     "issue_status": "WARNING",
+     "severity": "MEDIUM",
+     "confidence": "high",
+     "impactClaim": "best_practice",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": 403,
+      "details": "De pagina gaf HTTP 403 terug."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "response",
+     "category": "seo",
+     "title": "Server response",
+     "status": "pass",
+     "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 172 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
+     "fix": "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.",
+     "points": 5,
+     "maxPoints": 5,
+     "issue_id": "response",
+     "rule_id": "response",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": 172,
+      "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 172 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "social",
+     "category": "seo",
+     "title": "Social metadata",
+     "status": "warning",
+     "message": "Open Graph vraagt aandacht. Ontbrekend: og:title, og:description, og:image.",
+     "fix": "Vul ontbrekende velden aan en gebruik voor og:image en og:url absolute http(s)-URL's.",
+     "points": 1,
+     "maxPoints": 4,
+     "issue_id": "SOCIAL_METADATA_INCOMPLETE",
+     "rule_id": "SOCIAL_METADATA_INCOMPLETE",
+     "issue_status": "WARNING",
+     "severity": "LOW",
+     "confidence": "high",
+     "impactClaim": "best_practice",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": "Open Graph core fields missing",
+      "details": "Open Graph vraagt aandacht. Ontbrekend: og:title, og:description, og:image."
+     },
+     "fix_category": "B",
+     "rootCause": "social_metadata"
+    },
+    {
+     "key": "robots_txt",
+     "category": "seo",
+     "title": "robots.txt",
+     "status": "pass",
+     "message": "robots.txt is bereikbaar en bevat geen toepasselijke blokkade voor het gescande pad.",
+     "fix": "Houd crawlregels bewust en controleer belangrijke publieke pagina's.",
+     "points": 4,
+     "maxPoints": 4,
+     "issue_id": "robots_txt",
+     "rule_id": "robots_txt",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": "https://www.bol.com/robots.txt; pathBlocked=false; rule=allow:/",
+      "details": "robots.txt is bereikbaar en bevat geen toepasselijke blokkade voor het gescande pad."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "sitemap",
+     "category": "seo",
+     "title": "Sitemap-signaal",
+     "status": "pass",
+     "message": "Een bereikbare XML sitemap is gevonden: https://www.bol.com/sitemap/nl-nl/",
+     "fix": "Controleer of de sitemap alleen canonieke, indexeerbare URL's bevat.",
+     "points": 4,
+     "maxPoints": 4,
+     "issue_id": "sitemap",
+     "rule_id": "sitemap",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": "https://www.bol.com/sitemap/nl-nl/",
+      "details": "Een bereikbare XML sitemap is gevonden: https://www.bol.com/sitemap/nl-nl/"
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "twitter_card",
+     "category": "seo",
+     "title": "Twitter Card",
+     "status": "not_applicable",
+     "message": "Geen twitter:card gevonden. Dit is een optionele social-previewtag en wordt niet als SEO-fout of rankingprobleem bestraft.",
+     "fix": "Voeg alleen Twitter/X Card metadata toe wanneer je een specifieke preview op X wilt beheren.",
+     "points": 0,
+     "maxPoints": 3,
+     "issue_id": "TWITTER_CARD_MISSING",
+     "rule_id": "TWITTER_CARD_MISSING",
+     "issue_status": "NOT_APPLICABLE",
+     "severity": "LOW",
+     "confidence": "medium",
+     "reasonCode": "cap_absent",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Geen twitter:card gevonden. Dit is een optionele social-previewtag en wordt niet als SEO-fout of rankingprobleem bestraft."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "hreflang",
+     "category": "seo",
+     "title": "Meertalige SEO",
+     "status": "not_applicable",
+     "message": "Geen bewezen alternatieve taal-URL's gevonden; RankFix telt hreflang daarom niet mee in de score.",
+     "fix": "Gebruik hreflang wanneer dezelfde content aantoonbaar in meerdere talen/URL's beschikbaar is.",
+     "points": 0,
+     "maxPoints": 5,
+     "issue_id": "HREFLANG_MISSING",
+     "rule_id": "HREFLANG_MISSING",
+     "issue_status": "NOT_APPLICABLE",
+     "severity": "MEDIUM",
+     "confidence": "medium",
+     "reasonCode": "cap_absent",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Geen bewezen alternatieve taal-URL's gevonden; RankFix telt hreflang daarom niet mee in de score."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "duplicate_path",
+     "category": "seo",
+     "title": "URL-structuur",
+     "status": "pass",
+     "message": "Geen direct dubbele opeenvolgende padsegmenten gevonden.",
+     "fix": "Houd URL's kort, logisch en stabiel.",
+     "points": 5,
+     "maxPoints": 5,
+     "issue_id": "DUPLICATE_URL_PATH",
+     "rule_id": "DUPLICATE_URL_PATH",
+     "issue_status": "PASS",
+     "severity": "MEDIUM",
+     "confidence": "medium",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": "duplicateSegments=false; found=none",
+      "details": "Geen direct dubbele opeenvolgende padsegmenten gevonden."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "html_escape",
+     "category": "seo",
+     "title": "Tekstweergave",
+     "status": "pass",
+     "message": "Geen duidelijke zichtbare HTML-escape-fout gevonden.",
+     "fix": "Behoud correcte HTML-encoding.",
+     "points": 4,
+     "maxPoints": 4,
+     "issue_id": "HTML_ESCAPE_VISIBLE",
+     "rule_id": "HTML_ESCAPE_VISIBLE",
+     "issue_status": "PASS",
+     "severity": "LOW",
+     "confidence": "medium",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": "visibleEscape=false",
+      "details": "Geen duidelijke zichtbare HTML-escape-fout gevonden."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "image_sources",
+     "category": "seo",
+     "title": "Afbeeldingsbronnen",
+     "status": "pass",
+     "message": "Geen externe afbeeldingshosts gevonden in de statische HTML.",
+     "fix": "Blijf belangrijke afbeeldingen optimaliseren.",
+     "points": 5,
+     "maxPoints": 5,
+     "issue_id": "EXTERNAL_IMAGE_SOURCE",
+     "rule_id": "EXTERNAL_IMAGE_SOURCE",
+     "issue_status": "PASS",
+     "severity": "LOW",
+     "confidence": "medium",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": "images=0; external=0; stockHosts=0",
+      "details": "Geen externe afbeeldingshosts gevonden in de statische HTML."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "trust_legal_signals",
+     "category": "seo",
+     "title": "Privacy & vertrouwenssignalen",
+     "status": "warning",
+     "message": "Niet alle basissignalen zijn gevonden: privacy, cookies.",
+     "fix": "Maak privacy-, cookie- en contactinformatie duidelijk bereikbaar. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",
+     "points": 3,
+     "maxPoints": 5,
+     "issue_id": "trust_legal_signals",
+     "rule_id": "trust_legal_signals",
+     "issue_status": "WARNING",
+     "severity": "MEDIUM",
+     "confidence": "high",
+     "impactClaim": "best_practice",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": "privacy=false; terms=false; cookies=false; contact=true",
+      "details": "Niet alle basissignalen zijn gevonden: privacy, cookies."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "commercial_terms_signal",
+     "category": "seo",
+     "title": "Commerciële voorwaarden",
+     "status": "unable_to_confirm",
+     "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 4,
+     "issue_id": "commercial_terms_signal",
+     "rule_id": "commercial_terms_signal",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "insufficient_pages",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "merchant_product_readiness",
+     "category": "seo",
+     "title": "Merchant Center productbasis",
+     "status": "unable_to_confirm",
+     "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 6,
+     "issue_id": "merchant_product_readiness",
+     "rule_id": "merchant_product_readiness",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "insufficient_pages",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "merchant_feed_signal",
+     "category": "seo",
+     "title": "Merchant Center feed-signaal",
+     "status": "unable_to_confirm",
+     "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 4,
+     "issue_id": "merchant_feed_signal",
+     "rule_id": "merchant_feed_signal",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "insufficient_pages",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "consent_mode_readiness",
+     "category": "seo",
+     "title": "Consent Mode signaal",
+     "status": "not_applicable",
+     "message": "Geen GA4-, Google Ads- of GTM-signaal gevonden waarop deze Consent Mode-controle kan worden toegepast.",
+     "fix": "Controleer consentconfiguratie zodra Google-meet- of advertentietags worden gebruikt.",
+     "points": 0,
+     "maxPoints": 5,
+     "issue_id": "consent_mode_readiness",
+     "rule_id": "consent_mode_readiness",
+     "issue_status": "NOT_APPLICABLE",
+     "severity": "INFO",
+     "confidence": "medium",
+     "reasonCode": "cap_absent",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Geen GA4-, Google Ads- of GTM-signaal gevonden waarop deze Consent Mode-controle kan worden toegepast."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "business_placeholders",
+     "category": "seo",
+     "title": "Bedrijfsgegevens",
+     "status": "pass",
+     "message": "Geen placeholders gevonden en concrete bedrijfsgegevens bevestigd: e-mailadres.",
+     "fix": "Houd bedrijfs- en contactgegevens actueel en consistent.",
+     "points": 6,
+     "maxPoints": 6,
+     "issue_id": "BUSINESS_PLACEHOLDER",
+     "rule_id": "BUSINESS_PLACEHOLDER",
+     "issue_status": "PASS",
+     "severity": "HIGH",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": "placeholders=0; verifiedDetails=e-mailadres; placeholderExamples=none",
+      "details": "Geen placeholders gevonden en concrete bedrijfsgegevens bevestigd: e-mailadres."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "price_format",
+     "category": "seo",
+     "title": "Prijsnotatie",
+     "status": "unable_to_confirm",
+     "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 5,
+     "issue_id": "PRICE_FORMAT",
+     "rule_id": "PRICE_FORMAT",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "LOW",
+     "confidence": "low",
+     "reasonCode": "insufficient_pages",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "checkout_funnel_static",
+     "category": "seo",
+     "title": "Checkout & funnel",
+     "status": "unable_to_confirm",
+     "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 0,
+     "issue_id": "checkout_funnel_static",
+     "rule_id": "checkout_funnel_static",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "insufficient_pages",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "checkout_information_signal",
+     "category": "seo",
+     "title": "Checkout informatie",
+     "status": "unable_to_confirm",
+     "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 0,
+     "issue_id": "checkout_information_signal",
+     "rule_id": "checkout_information_signal",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "insufficient_pages",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "eu_discount_reference_signal",
+     "category": "seo",
+     "title": "EU korting & referentieprijs",
+     "status": "unable_to_confirm",
+     "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 0,
+     "issue_id": "eu_discount_reference_signal",
+     "rule_id": "eu_discount_reference_signal",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "insufficient_pages",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "eu_review_transparency_signal",
+     "category": "seo",
+     "title": "EU reviewtransparantie",
+     "status": "unable_to_confirm",
+     "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 0,
+     "issue_id": "eu_review_transparency_signal",
+     "rule_id": "eu_review_transparency_signal",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "insufficient_pages",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "eu_scarcity_signal",
+     "category": "seo",
+     "title": "EU schaarsteclaim",
+     "status": "unable_to_confirm",
+     "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 0,
+     "issue_id": "eu_scarcity_signal",
+     "rule_id": "eu_scarcity_signal",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "insufficient_pages",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "eu_consumer_information_signal",
+     "category": "seo",
+     "title": "EU consumenteninformatie",
+     "status": "unable_to_confirm",
+     "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 0,
+     "issue_id": "eu_consumer_information_signal",
+     "rule_id": "eu_consumer_information_signal",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "insufficient_pages",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "price_currency_consistency",
+     "category": "seo",
+     "title": "Prijs & valuta consistentie",
+     "status": "unable_to_confirm",
+     "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 6,
+     "issue_id": "price_currency_consistency",
+     "rule_id": "price_currency_consistency",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "insufficient_pages",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "webshop_trust",
+     "category": "seo",
+     "title": "Webshop vertrouwen",
+     "status": "unable_to_confirm",
+     "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 7,
+     "issue_id": "WEBSHOP_TRUST_SIGNALS",
+     "rule_id": "WEBSHOP_TRUST_SIGNALS",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "HIGH",
+     "confidence": "low",
+     "reasonCode": "insufficient_pages",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "variant_url",
+     "category": "seo",
+     "title": "Productvariant-URL",
+     "status": "unable_to_confirm",
+     "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 5,
+     "issue_id": "PRODUCT_VARIANT_URL",
+     "rule_id": "PRODUCT_VARIANT_URL",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "MEDIUM",
+     "confidence": "low",
+     "reasonCode": "insufficient_pages",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "product_price_consistency",
+     "category": "seo",
+     "title": "Productprijs consistentie",
+     "status": "unable_to_confirm",
+     "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 6,
+     "issue_id": "PRODUCT_PRICE_CONSISTENCY",
+     "rule_id": "PRODUCT_PRICE_CONSISTENCY",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "HIGH",
+     "confidence": "low",
+     "reasonCode": "insufficient_pages",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "product_availability",
+     "category": "seo",
+     "title": "Productvoorraad",
+     "status": "unable_to_confirm",
+     "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 5,
+     "issue_id": "PRODUCT_AVAILABILITY",
+     "rule_id": "PRODUCT_AVAILABILITY",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "MEDIUM",
+     "confidence": "low",
+     "reasonCode": "insufficient_pages",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "webshop_claims",
+     "category": "seo",
+     "title": "Webshop-beloftes",
+     "status": "unable_to_confirm",
+     "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 5,
+     "issue_id": "WEBSHOP_CLAIM_VERIFICATION",
+     "rule_id": "WEBSHOP_CLAIM_VERIFICATION",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "MEDIUM",
+     "confidence": "low",
+     "reasonCode": "insufficient_pages",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "checkout_trust",
+     "category": "seo",
+     "title": "Checkout- en betaalvertrouwen",
+     "status": "unable_to_confirm",
+     "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 5,
+     "issue_id": "CHECKOUT_TRUST_SIGNALS",
+     "rule_id": "CHECKOUT_TRUST_SIGNALS",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "MEDIUM",
+     "confidence": "low",
+     "reasonCode": "insufficient_pages",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "ads_readiness",
+     "category": "seo",
+     "title": "Google Ads readiness",
+     "status": "not_applicable",
+     "message": "Geen Ads-doel of publieke advertentietracking aangetoond; deze controle telt daarom niet mee in de score.",
+     "fix": "Vul het Google Ads-profiel in wanneer Ads voor deze website relevant is.",
+     "points": 0,
+     "maxPoints": 6,
+     "issue_id": "GOOGLE_ADS_READINESS",
+     "rule_id": "GOOGLE_ADS_READINESS",
+     "issue_status": "NOT_APPLICABLE",
+     "severity": "MEDIUM",
+     "confidence": "medium",
+     "reasonCode": "cap_absent",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Geen Ads-doel of publieke advertentietracking aangetoond; deze controle telt daarom niet mee in de score."
+     },
+     "fix_category": "C"
+    }
+   ]
+  },
+  "geo": {
+   "score": 55,
+   "grade": "D",
+   "coverage": {
+    "relevant": 8,
+    "confirmed": 5,
+    "unableToConfirm": 3,
+    "totalWeight": 62,
+    "assessedWeight": 39,
+    "coveragePercent": 63,
+    "highConfidencePercent": 100
+   },
+   "checks": [
+    {
+     "key": "schema",
+     "category": "geo",
+     "title": "Structured data",
+     "status": "warning",
+     "message": "Geen geldige JSON-LD structured data gevonden voor deze homepage. Dit is een machineleesbare optimalisatiekans; de zichtbare pagina kan zonder JSON-LD nog steeds inhoudelijk correct zijn.",
+     "fix": "Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is Organization + WebSite de belangrijkste richting.",
+     "points": 4,
+     "maxPoints": 12,
+     "issue_id": "STRUCTURED_DATA_MISSING",
+     "rule_id": "STRUCTURED_DATA_MISSING",
+     "issue_status": "WARNING",
+     "severity": "MEDIUM",
+     "confidence": "high",
+     "impactClaim": "best_practice",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": "validJsonLdBlocks=0",
+      "details": "Geen geldige JSON-LD structured data gevonden voor deze homepage. Dit is een machineleesbare optimalisatiekans; de zichtbare pagina kan zonder JSON-LD nog steeds inhoudelijk correct zijn."
+     },
+     "fix_category": "B",
+     "rootCause": "structured_data_context"
+    },
+    {
+     "key": "organization_website",
+     "category": "geo",
+     "title": "Organization + WebSite",
+     "status": "warning",
+     "message": "De homepage bevat geen bevestigd Organization- of WebSite-schema. Dit is machineleesbaar identity-advies en geen bewijs dat de zichtbare organisatie-identiteit ontbreekt.",
+     "fix": "Voeg alleen passende Organization- en/of WebSite JSON-LD toe met aantoonbare gegevens.",
+     "points": 4,
+     "maxPoints": 8,
+     "issue_id": "ORGANIZATION_WEBSITE_SCHEMA",
+     "rule_id": "ORGANIZATION_WEBSITE_SCHEMA",
+     "issue_status": "WARNING",
+     "severity": "MEDIUM",
+     "confidence": "high",
+     "impactClaim": "best_practice",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": "organizationSchema=false; websiteSchema=false; schemaTypes=",
+      "details": "De homepage bevat geen bevestigd Organization- of WebSite-schema. Dit is machineleesbaar identity-advies en geen bewijs dat de zichtbare organisatie-identiteit ontbreekt."
+     },
+     "fix_category": "B"
+    },
+    {
+     "key": "product_copy_optimizer",
+     "category": "geo",
+     "title": "AI Product Copy & Metadata",
+     "status": "unable_to_confirm",
+     "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 5,
+     "issue_id": "PRODUCT_COPY_OPTIMIZER",
+     "rule_id": "PRODUCT_COPY_OPTIMIZER",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "LOW",
+     "confidence": "low",
+     "reasonCode": "insufficient_pages",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+     },
+     "fix_category": "B"
+    },
+    {
+     "key": "product_schema",
+     "category": "geo",
+     "title": "Product structured data",
+     "status": "unable_to_confirm",
+     "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 8,
+     "issue_id": "PRODUCT_SCHEMA_MISSING",
+     "rule_id": "PRODUCT_SCHEMA_MISSING",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "MEDIUM",
+     "confidence": "low",
+     "reasonCode": "insufficient_pages",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "entity",
+     "category": "geo",
+     "title": "Entity-signalen",
+     "status": "unable_to_confirm",
+     "message": "De beschikbare pagina bevat te weinig onafhankelijk bewijs om entity-signalen betrouwbaar te beoordelen.",
+     "fix": "Bevestig organisatie- of merknaam, contactcontext en officiële profielen met aanvullende pagina- of sitebrede evidence.",
+     "points": 0,
+     "maxPoints": 10,
+     "issue_id": "entity",
+     "rule_id": "entity",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "De beschikbare pagina bevat te weinig onafhankelijk bewijs om entity-signalen betrouwbaar te beoordelen."
+     },
+     "fix_category": "C",
+     "rootCause": "structured_data_context"
+    },
+    {
+     "key": "breadcrumbs",
+     "category": "geo",
+     "title": "Breadcrumbs",
+     "status": "not_applicable",
+     "message": "Op de homepage is BreadcrumbList normaal niet nodig wanneer er geen breadcrumb-hiërarchie is; deze controle telt daarom niet mee.",
+     "fix": "Gebruik BreadcrumbList vooral op diepe content-, categorie- en productpagina's.",
+     "points": 0,
+     "maxPoints": 6,
+     "issue_id": "breadcrumbs",
+     "rule_id": "breadcrumbs",
+     "issue_status": "NOT_APPLICABLE",
+     "severity": "INFO",
+     "confidence": "medium",
+     "reasonCode": "cap_absent",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Op de homepage is BreadcrumbList normaal niet nodig wanneer er geen breadcrumb-hiërarchie is; deze controle telt daarom niet mee."
+     },
+     "fix_category": "B"
+    },
+    {
+     "key": "faq",
+     "category": "geo",
+     "title": "Vraag & antwoord content",
+     "status": "not_applicable",
+     "message": "Geen FAQ/Q&A-sectie gevonden (Geen vraag-en-antwoordparen gevonden.). Een FAQ is niet verplicht voor iedere pagina en wordt daarom niet als GEO-fout bestraft.",
+     "fix": "Voeg alleen relevante vragen en directe antwoorden toe wanneer dit de gebruiker inhoudelijk helpt.",
+     "points": 0,
+     "maxPoints": 10,
+     "issue_id": "faq",
+     "rule_id": "faq",
+     "issue_status": "NOT_APPLICABLE",
+     "severity": "INFO",
+     "confidence": "medium",
+     "reasonCode": "cap_absent",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": "faqContent=false; faqSchema=false",
+      "details": "Geen FAQ/Q&A-sectie gevonden (Geen vraag-en-antwoordparen gevonden.). Een FAQ is niet verplicht voor iedere pagina en wordt daarom niet als GEO-fout bestraft."
+     },
+     "fix_category": "B"
+    },
+    {
+     "key": "author",
+     "category": "geo",
+     "title": "Expertise-signalen",
+     "status": "not_applicable",
+     "message": "Een individuele auteur is niet vereist op een organisatie-, dienst- of merkhomepage. Auteurschap en expertise horen vooral op informatieve artikelen en adviescontent te worden beoordeeld.",
+     "fix": "Controleer auteur, expertise, publicatiedatum en broncontext op pagina's waar auteurschap inhoudelijk relevant is.",
+     "points": 0,
+     "maxPoints": 8,
+     "issue_id": "author",
+     "rule_id": "author",
+     "issue_status": "NOT_APPLICABLE",
+     "severity": "INFO",
+     "confidence": "medium",
+     "reasonCode": "cap_absent",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": null,
+      "details": "Een individuele auteur is niet vereist op een organisatie-, dienst- of merkhomepage. Auteurschap en expertise horen vooral op informatieve artikelen en adviescontent te worden beoordeeld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "trust",
+     "category": "geo",
+     "title": "Trust & context",
+     "status": "pass",
+     "message": "Contact- en organisatiecontext zijn zichtbaar.",
+     "fix": "Houd bedrijfsnaam, contactgegevens, locatie, verantwoordelijkheden en officiële profielen consistent.",
+     "points": 8,
+     "maxPoints": 8,
+     "issue_id": "trust",
+     "rule_id": "trust",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": "contact=true; about=true; socialOrReview=false",
+      "details": "Contact- en organisatiecontext zijn zichtbaar."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "answer",
+     "category": "geo",
+     "title": "Expliciete paginasamenvatting",
+     "status": "warning",
+     "message": "RankFix vond onvoldoende combinatie van een beschrijvende meta description en zichtbare paginatekst om een expliciete paginasamenvatting te bevestigen.",
+     "fix": "Voeg een concrete meta description en duidelijke zichtbare introductie toe; dit is een readiness-signaal en geen garantie op zichtbaarheid in AI-zoekmachines.",
+     "points": 2,
+     "maxPoints": 6,
+     "issue_id": "answer",
+     "rule_id": "answer",
+     "issue_status": "WARNING",
+     "severity": "MEDIUM",
+     "confidence": "high",
+     "impactClaim": "best_practice",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": "metaDescription=false; wordCount=173; minimumVisibleWords=80; rendered=true",
+      "details": "RankFix vond onvoldoende combinatie van een beschrijvende meta description en zichtbare paginatekst om een expliciete paginasamenvatting te bevestigen."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "identity",
+     "category": "geo",
+     "title": "Brand identity",
+     "status": "pass",
+     "message": "3/4 merksignalen gevonden. Gevonden: merknaam/branding, logo, bedrijfs-/contactgegevens. Ontbrekend: officieel social/review-profiel.",
+     "fix": "Maak de ontbrekende merksignalen duidelijk en consistent zichtbaar: officieel social/review-profiel. Structured data wordt apart beoordeeld.",
+     "points": 5,
+     "maxPoints": 5,
+     "issue_id": "identity",
+     "rule_id": "identity",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.bol.com/nl/nl/",
+      "found": "brandSignals=3/4; found=merknaam/branding,logo,bedrijfs-/contactgegevens; missing=officieel social/review-profiel",
+      "details": "3/4 merksignalen gevonden. Gevonden: merknaam/branding, logo, bedrijfs-/contactgegevens. Ontbrekend: officieel social/review-profiel."
+     },
+     "fix_category": "C"
+    }
+   ]
+  },
+  "metrics": {
+   "siteType": "WEBSITE",
+   "websiteType": "Website",
+   "sector": {
+    "key": "unknown",
+    "label": "Sector niet bevestigd",
+    "confidence": "low",
+    "confidenceScore": 0,
+    "displayPolicy": "unconfirmed"
+   },
+   "pageTypeClassification": {
+    "type": "homepage",
+    "confidence": "high",
+    "commercialLandingPage": false
+   },
+   "title": "bol",
+   "titleLength": 3,
+   "description": "",
+   "descriptionLength": 0,
+   "descriptionState": "missing",
+   "h1Count": 3,
+   "h1s": [
+    "IP address is blocked",
+    "IP adres is geblokkeerd",
+    "L'adresse IP est bloquée"
+   ],
+   "imageCount": 0,
+   "imageElementCount": 0,
+   "imagesMissingAlt": 0,
+   "wordCount": 173,
+   "headingsCount": 3,
+   "linksCount": 7,
+   "internalLinks": 0,
+   "canonical": null,
+   "lang": null,
+   "robots": null,
+   "openGraph": {
+    "title": null,
+    "description": null,
+    "image": null
+   },
+   "imageAltCandidates": [],
+   "productOptimizer": {
+    "eligible": false,
+    "sourceCount": 0,
+    "product": null,
+    "provenance": "no_product_sample"
+   },
+   "pricingCurrency": {
+    "visibleCurrencies": [],
+    "structuredCurrencies": [],
+    "visiblePriceCount": 0,
+    "visiblePriceEvidenceStrength": "none",
+    "structuredPriceCount": 0,
+    "currencyConflict": false,
+    "mixedVisibleCurrencies": false
+   },
+   "euConsumerSignals": {
+    "discountClaim": false,
+    "referencePriceVisible": false,
+    "discountExamples": [],
+    "referencePriceExamples": [],
+    "reviewPlatforms": [],
+    "reviewRating": null,
+    "returnsVisible": false,
+    "reviewContent": false,
+    "reviewTransparency": false,
+    "scarcityClaim": false,
+    "scarcityExamples": [],
+    "personalizedPricingDisclosure": false,
+    "businessIdentityVisible": false,
+    "businessContactVisible": true,
+    "legalConclusion": false
+   },
+   "checkoutFunnel": {
+    "productPage": false,
+    "addToCart": false,
+    "cartLink": false,
+    "checkoutLink": false,
+    "shippingInformation": false,
+    "shippingInformationVisible": false,
+    "shippingInformationStructured": false,
+    "returnsInformationVisible": false,
+    "returnsInformationStructured": false,
+    "shippingCostVisible": false,
+    "paymentMethodsVisible": false,
+    "paymentMethods": [],
+    "visiblePrices": [],
+    "priceNotation": "none",
+    "referencePrices": [],
+    "staticHtmlOnly": false,
+    "javascriptRendered": true,
+    "interactiveFlowExecuted": false
+   },
+   "twitterCard": null,
+   "schemaTypes": [],
+   "jsonLdBlocks": 0,
+   "sitemapFound": true,
+   "robotsMentionsSitemap": true
+  },
+  "checks": [
+   {
+    "key": "broken_links",
+    "category": "seo",
+    "title": "Broken links",
+    "status": "not_applicable",
+    "message": "Geen controleerbare interne links gevonden op deze pagina.",
+    "fix": "Controleer links opnieuw wanneer de pagina interne navigatie bevat.",
+    "points": 0,
+    "maxPoints": 5,
+    "issue_id": "broken_links",
+    "rule_id": "broken_links",
+    "issue_status": "NOT_APPLICABLE",
+    "severity": "INFO",
+    "confidence": "medium",
+    "reasonCode": "cap_absent",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Geen controleerbare interne links gevonden op deze pagina."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "internal_redirects",
+    "category": "seo",
+    "title": "Interne redirects",
+    "status": "not_applicable",
+    "message": "Geen controleerbare interne links gevonden op deze pagina.",
+    "fix": "Gebruik directe interne links zodra er navigatie aanwezig is.",
+    "points": 0,
+    "maxPoints": 4,
+    "issue_id": "internal_redirects",
+    "rule_id": "internal_redirects",
+    "issue_status": "NOT_APPLICABLE",
+    "severity": "INFO",
+    "confidence": "medium",
+    "reasonCode": "cap_absent",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Geen controleerbare interne links gevonden op deze pagina."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "semantic_link_destination",
+    "category": "seo",
+    "title": "Verkeerde linkbestemming",
+    "status": "not_applicable",
+    "message": "Geen controleerbare interne links gevonden.",
+    "fix": "Controleer belangrijke interne links zodra ze op de pagina aanwezig zijn.",
+    "points": 0,
+    "maxPoints": 5,
+    "issue_id": "semantic_link_destination",
+    "rule_id": "semantic_link_destination",
+    "issue_status": "NOT_APPLICABLE",
+    "severity": "INFO",
+    "confidence": "medium",
+    "reasonCode": "cap_absent",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Geen controleerbare interne links gevonden."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "title",
+    "category": "seo",
+    "title": "Meta title",
+    "status": "warning",
+    "message": "De title bevat alleen de merknaam (\"bol\"); het onderwerp van de pagina ontbreekt.",
+    "fix": "Zet het onderwerp van de pagina vóór de merknaam, bijvoorbeeld \"Onderwerp | Merk\".",
+    "points": 5,
+    "maxPoints": 10,
+    "issue_id": "META_TITLE_GUIDANCE",
+    "rule_id": "META_TITLE_GUIDANCE",
+    "issue_status": "WARNING",
+    "severity": "MEDIUM",
+    "confidence": "high",
+    "impactClaim": "best_practice",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": "bol",
+     "details": "De title bevat alleen de merknaam (\"bol\"); het onderwerp van de pagina ontbreekt."
+    },
+    "fix_category": "B"
+   },
+   {
+    "key": "description",
+    "category": "seo",
+    "title": "Meta description",
+    "status": "fail",
+    "message": "Er is geen meta description-tag gevonden.",
+    "fix": "Laat RankFix AI een nieuwe meta description maken op basis van de pagina.",
+    "points": 0,
+    "maxPoints": 10,
+    "issue_id": "META_DESCRIPTION_MISSING",
+    "rule_id": "META_DESCRIPTION_MISSING",
+    "issue_status": "FAIL",
+    "severity": "HIGH",
+    "confidence": "high",
+    "impactClaim": "proven_impact",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": "metaDescriptionPresent=false",
+     "details": "Er is geen meta description-tag gevonden."
+    },
+    "fix_category": "B",
+    "rootCause": "meta_description"
+   },
+   {
+    "key": "h1",
+    "category": "seo",
+    "title": "H1-heading",
+    "status": "warning",
+    "message": "3 verschillende H1-teksten in de HTML gevonden, bijvoorbeeld \"IP address is blocked\", \"IP adres is geblokkeerd\", \"L'adresse IP est bloquée\". Controleer of deze koppen tegelijk zichtbaar zijn: animaties en responsieve varianten kunnen extra H1-elementen toevoegen. Meerdere H1-elementen zijn niet automatisch een bewezen rankingfout.",
+    "fix": "Controleer welke H1-koppen echt zichtbaar zijn op desktop en mobiel. Animatie- of responsieve kopieën kunnen in de HTML voorkomen; vermijd meerdere concurrerende zichtbare paginatitels.",
+    "points": 6,
+    "maxPoints": 8,
+    "issue_id": "H1_MULTIPLE",
+    "rule_id": "H1_MULTIPLE",
+    "issue_status": "WARNING",
+    "severity": "MEDIUM",
+    "confidence": "high",
+    "impactClaim": "best_practice",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": "h1=\"IP address is blocked\" | \"IP adres is geblokkeerd\" | \"L'adresse IP est bloquée\"; raw=3; duplicatesCollapsed=0; consentExcluded=0",
+     "details": "3 verschillende H1-teksten in de HTML gevonden, bijvoorbeeld \"IP address is blocked\", \"IP adres is geblokkeerd\", \"L'adresse IP est bloquée\". Controleer of deze koppen tegelijk zichtbaar zijn: animaties en responsieve varianten kunnen extra H1-elementen toevoegen. Meerdere H1-elementen zijn niet automatisch een bewezen rankingfout."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "headings",
+    "category": "seo",
+    "title": "Heading-structuur",
+    "status": "warning",
+    "message": "Er zijn 3 subheading(s) gevonden, maar geen duidelijke H2-laag. Dit is structuuradvies en geen bewezen rankingfout.",
+    "fix": "Gebruik H2/H3-secties wanneer die de inhoud logisch groeperen; voeg geen headings toe puur voor de score.",
+    "points": 6,
+    "maxPoints": 7,
+    "issue_id": "headings",
+    "rule_id": "headings",
+    "issue_status": "WARNING",
+    "severity": "MEDIUM",
+    "confidence": "medium",
+    "impactClaim": "best_practice",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": 3,
+     "details": "Er zijn 3 subheading(s) gevonden, maar geen duidelijke H2-laag. Dit is structuuradvies en geen bewezen rankingfout."
+    },
+    "fix_category": "B"
+   },
+   {
+    "key": "canonical",
+    "category": "seo",
+    "title": "Canonical URL",
+    "status": "warning",
+    "message": "Geen canonical URL gevonden.",
+    "fix": "Controleer of de canonical bewust naar de juiste voorkeurs-URL verwijst; voeg anders een passende self-referencing canonical toe.",
+    "points": 3,
+    "maxPoints": 7,
+    "issue_id": "canonical",
+    "rule_id": "canonical",
+    "issue_status": "WARNING",
+    "severity": "MEDIUM",
+    "confidence": "high",
+    "impactClaim": "best_practice",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": "canonicalPresent=false",
+     "details": "Geen canonical URL gevonden."
+    },
+    "fix_category": "B"
+   },
+   {
+    "key": "viewport",
+    "category": "seo",
+    "title": "Mobiele viewport",
+    "status": "pass",
+    "message": "De viewport bevat een responsive width=device-width-instelling: \"width=device-width, initial-scale=1 user-scalable=no\".",
+    "fix": "Test daarnaast de echte mobiele layout, tapdoelen en Core Web Vitals.",
+    "points": 5,
+    "maxPoints": 5,
+    "issue_id": "viewport",
+    "rule_id": "viewport",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": "width=device-width, initial-scale=1 user-scalable=no",
+     "details": "De viewport bevat een responsive width=device-width-instelling: \"width=device-width, initial-scale=1 user-scalable=no\"."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "lang",
+    "category": "seo",
+    "title": "HTML-taal",
+    "status": "warning",
+    "message": "Geen HTML lang-attribuut gevonden.",
+    "fix": "Voeg het juiste lang-attribuut toe aan <html>.",
+    "points": 1,
+    "maxPoints": 4,
+    "issue_id": "lang",
+    "rule_id": "lang",
+    "issue_status": "WARNING",
+    "severity": "MEDIUM",
+    "confidence": "low",
+    "impactClaim": "best_practice",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Geen HTML lang-attribuut gevonden."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "indexability",
+    "category": "seo",
+    "title": "Indexeerbaarheid",
+    "status": "pass",
+    "message": "Geen noindex gevonden en geen robots.txt-regel blokkeert dit pad.",
+    "fix": "Externe zoekmachine-indexstatus blijft een aparte controle.",
+    "points": 6,
+    "maxPoints": 6,
+    "issue_id": "indexability",
+    "rule_id": "indexability",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": "no noindex or applicable robots block found",
+     "details": "Geen noindex gevonden en geen robots.txt-regel blokkeert dit pad."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "alt",
+    "category": "seo",
+    "title": "Afbeelding alt-teksten",
+    "status": "not_applicable",
+    "message": "Geen <img>-elementen gevonden in de gerenderde HTML; deze controle telt daarom niet mee.",
+    "fix": "Controleer dynamisch geladen afbeeldingen afzonderlijk wanneer die voor de pagina belangrijk zijn.",
+    "points": 0,
+    "maxPoints": 7,
+    "issue_id": "IMAGE_ALT_MISSING",
+    "rule_id": "IMAGE_ALT_MISSING",
+    "issue_status": "NOT_APPLICABLE",
+    "severity": "LOW",
+    "confidence": "medium",
+    "reasonCode": "cap_absent",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Geen <img>-elementen gevonden in de gerenderde HTML; deze controle telt daarom niet mee."
+    },
+    "fix_category": "B"
+   },
+   {
+    "key": "content",
+    "category": "seo",
+    "title": "Contentdekking",
+    "status": "warning",
+    "message": "Ongeveer 173 woorden gevonden op deze homepage. Dat is geen bewijs van slechte content, maar de tekstuele dekking is beperkt voor dit paginatype.",
+    "fix": "Breid alleen uit waar extra context, dienst-/onderwerpinformatie of antwoorden de bezoeker daadwerkelijk helpen.",
+    "points": 5,
+    "maxPoints": 7,
+    "issue_id": "content",
+    "rule_id": "content",
+    "issue_status": "WARNING",
+    "severity": "MEDIUM",
+    "confidence": "medium",
+    "impactClaim": "best_practice",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": "wordCount=173; pageType=homepage; minimum=150; strong=250",
+     "details": "Ongeveer 173 woorden gevonden op deze homepage. Dat is geen bewijs van slechte content, maar de tekstuele dekking is beperkt voor dit paginatype."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "https",
+    "category": "seo",
+    "title": "HTTPS",
+    "status": "pass",
+    "message": "De uiteindelijke URL gebruikt HTTPS.",
+    "fix": "Behoud HTTPS op alle publieke pagina's en redirects.",
+    "points": 7,
+    "maxPoints": 7,
+    "issue_id": "https",
+    "rule_id": "https",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": true,
+     "details": "De uiteindelijke URL gebruikt HTTPS."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "status",
+    "category": "seo",
+    "title": "HTTP-status",
+    "status": "warning",
+    "message": "De pagina gaf HTTP 403 terug.",
+    "fix": "Controleer redirects, 404's en serverfouten.",
+    "points": 2,
+    "maxPoints": 6,
+    "issue_id": "status",
+    "rule_id": "status",
+    "issue_status": "WARNING",
+    "severity": "MEDIUM",
+    "confidence": "high",
+    "impactClaim": "best_practice",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": 403,
+     "details": "De pagina gaf HTTP 403 terug."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "response",
+    "category": "seo",
+    "title": "Server response",
+    "status": "pass",
+    "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 172 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
+    "fix": "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.",
+    "points": 5,
+    "maxPoints": 5,
+    "issue_id": "response",
+    "rule_id": "response",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": 172,
+     "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 172 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "social",
+    "category": "seo",
+    "title": "Social metadata",
+    "status": "warning",
+    "message": "Open Graph vraagt aandacht. Ontbrekend: og:title, og:description, og:image.",
+    "fix": "Vul ontbrekende velden aan en gebruik voor og:image en og:url absolute http(s)-URL's.",
+    "points": 1,
+    "maxPoints": 4,
+    "issue_id": "SOCIAL_METADATA_INCOMPLETE",
+    "rule_id": "SOCIAL_METADATA_INCOMPLETE",
+    "issue_status": "WARNING",
+    "severity": "LOW",
+    "confidence": "high",
+    "impactClaim": "best_practice",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": "Open Graph core fields missing",
+     "details": "Open Graph vraagt aandacht. Ontbrekend: og:title, og:description, og:image."
+    },
+    "fix_category": "B",
+    "rootCause": "social_metadata"
+   },
+   {
+    "key": "robots_txt",
+    "category": "seo",
+    "title": "robots.txt",
+    "status": "pass",
+    "message": "robots.txt is bereikbaar en bevat geen toepasselijke blokkade voor het gescande pad.",
+    "fix": "Houd crawlregels bewust en controleer belangrijke publieke pagina's.",
+    "points": 4,
+    "maxPoints": 4,
+    "issue_id": "robots_txt",
+    "rule_id": "robots_txt",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": "https://www.bol.com/robots.txt; pathBlocked=false; rule=allow:/",
+     "details": "robots.txt is bereikbaar en bevat geen toepasselijke blokkade voor het gescande pad."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "sitemap",
+    "category": "seo",
+    "title": "Sitemap-signaal",
+    "status": "pass",
+    "message": "Een bereikbare XML sitemap is gevonden: https://www.bol.com/sitemap/nl-nl/",
+    "fix": "Controleer of de sitemap alleen canonieke, indexeerbare URL's bevat.",
+    "points": 4,
+    "maxPoints": 4,
+    "issue_id": "sitemap",
+    "rule_id": "sitemap",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": "https://www.bol.com/sitemap/nl-nl/",
+     "details": "Een bereikbare XML sitemap is gevonden: https://www.bol.com/sitemap/nl-nl/"
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "twitter_card",
+    "category": "seo",
+    "title": "Twitter Card",
+    "status": "not_applicable",
+    "message": "Geen twitter:card gevonden. Dit is een optionele social-previewtag en wordt niet als SEO-fout of rankingprobleem bestraft.",
+    "fix": "Voeg alleen Twitter/X Card metadata toe wanneer je een specifieke preview op X wilt beheren.",
+    "points": 0,
+    "maxPoints": 3,
+    "issue_id": "TWITTER_CARD_MISSING",
+    "rule_id": "TWITTER_CARD_MISSING",
+    "issue_status": "NOT_APPLICABLE",
+    "severity": "LOW",
+    "confidence": "medium",
+    "reasonCode": "cap_absent",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Geen twitter:card gevonden. Dit is een optionele social-previewtag en wordt niet als SEO-fout of rankingprobleem bestraft."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "hreflang",
+    "category": "seo",
+    "title": "Meertalige SEO",
+    "status": "not_applicable",
+    "message": "Geen bewezen alternatieve taal-URL's gevonden; RankFix telt hreflang daarom niet mee in de score.",
+    "fix": "Gebruik hreflang wanneer dezelfde content aantoonbaar in meerdere talen/URL's beschikbaar is.",
+    "points": 0,
+    "maxPoints": 5,
+    "issue_id": "HREFLANG_MISSING",
+    "rule_id": "HREFLANG_MISSING",
+    "issue_status": "NOT_APPLICABLE",
+    "severity": "MEDIUM",
+    "confidence": "medium",
+    "reasonCode": "cap_absent",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Geen bewezen alternatieve taal-URL's gevonden; RankFix telt hreflang daarom niet mee in de score."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "duplicate_path",
+    "category": "seo",
+    "title": "URL-structuur",
+    "status": "pass",
+    "message": "Geen direct dubbele opeenvolgende padsegmenten gevonden.",
+    "fix": "Houd URL's kort, logisch en stabiel.",
+    "points": 5,
+    "maxPoints": 5,
+    "issue_id": "DUPLICATE_URL_PATH",
+    "rule_id": "DUPLICATE_URL_PATH",
+    "issue_status": "PASS",
+    "severity": "MEDIUM",
+    "confidence": "medium",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": "duplicateSegments=false; found=none",
+     "details": "Geen direct dubbele opeenvolgende padsegmenten gevonden."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "html_escape",
+    "category": "seo",
+    "title": "Tekstweergave",
+    "status": "pass",
+    "message": "Geen duidelijke zichtbare HTML-escape-fout gevonden.",
+    "fix": "Behoud correcte HTML-encoding.",
+    "points": 4,
+    "maxPoints": 4,
+    "issue_id": "HTML_ESCAPE_VISIBLE",
+    "rule_id": "HTML_ESCAPE_VISIBLE",
+    "issue_status": "PASS",
+    "severity": "LOW",
+    "confidence": "medium",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": "visibleEscape=false",
+     "details": "Geen duidelijke zichtbare HTML-escape-fout gevonden."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "image_sources",
+    "category": "seo",
+    "title": "Afbeeldingsbronnen",
+    "status": "pass",
+    "message": "Geen externe afbeeldingshosts gevonden in de statische HTML.",
+    "fix": "Blijf belangrijke afbeeldingen optimaliseren.",
+    "points": 5,
+    "maxPoints": 5,
+    "issue_id": "EXTERNAL_IMAGE_SOURCE",
+    "rule_id": "EXTERNAL_IMAGE_SOURCE",
+    "issue_status": "PASS",
+    "severity": "LOW",
+    "confidence": "medium",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": "images=0; external=0; stockHosts=0",
+     "details": "Geen externe afbeeldingshosts gevonden in de statische HTML."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "trust_legal_signals",
+    "category": "seo",
+    "title": "Privacy & vertrouwenssignalen",
+    "status": "warning",
+    "message": "Niet alle basissignalen zijn gevonden: privacy, cookies.",
+    "fix": "Maak privacy-, cookie- en contactinformatie duidelijk bereikbaar. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",
+    "points": 3,
+    "maxPoints": 5,
+    "issue_id": "trust_legal_signals",
+    "rule_id": "trust_legal_signals",
+    "issue_status": "WARNING",
+    "severity": "MEDIUM",
+    "confidence": "high",
+    "impactClaim": "best_practice",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": "privacy=false; terms=false; cookies=false; contact=true",
+     "details": "Niet alle basissignalen zijn gevonden: privacy, cookies."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "commercial_terms_signal",
+    "category": "seo",
+    "title": "Commerciële voorwaarden",
+    "status": "unable_to_confirm",
+    "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 4,
+    "issue_id": "commercial_terms_signal",
+    "rule_id": "commercial_terms_signal",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "INFO",
+    "confidence": "low",
+    "reasonCode": "insufficient_pages",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "merchant_product_readiness",
+    "category": "seo",
+    "title": "Merchant Center productbasis",
+    "status": "unable_to_confirm",
+    "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 6,
+    "issue_id": "merchant_product_readiness",
+    "rule_id": "merchant_product_readiness",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "INFO",
+    "confidence": "low",
+    "reasonCode": "insufficient_pages",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "merchant_feed_signal",
+    "category": "seo",
+    "title": "Merchant Center feed-signaal",
+    "status": "unable_to_confirm",
+    "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 4,
+    "issue_id": "merchant_feed_signal",
+    "rule_id": "merchant_feed_signal",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "INFO",
+    "confidence": "low",
+    "reasonCode": "insufficient_pages",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "consent_mode_readiness",
+    "category": "seo",
+    "title": "Consent Mode signaal",
+    "status": "not_applicable",
+    "message": "Geen GA4-, Google Ads- of GTM-signaal gevonden waarop deze Consent Mode-controle kan worden toegepast.",
+    "fix": "Controleer consentconfiguratie zodra Google-meet- of advertentietags worden gebruikt.",
+    "points": 0,
+    "maxPoints": 5,
+    "issue_id": "consent_mode_readiness",
+    "rule_id": "consent_mode_readiness",
+    "issue_status": "NOT_APPLICABLE",
+    "severity": "INFO",
+    "confidence": "medium",
+    "reasonCode": "cap_absent",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Geen GA4-, Google Ads- of GTM-signaal gevonden waarop deze Consent Mode-controle kan worden toegepast."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "business_placeholders",
+    "category": "seo",
+    "title": "Bedrijfsgegevens",
+    "status": "pass",
+    "message": "Geen placeholders gevonden en concrete bedrijfsgegevens bevestigd: e-mailadres.",
+    "fix": "Houd bedrijfs- en contactgegevens actueel en consistent.",
+    "points": 6,
+    "maxPoints": 6,
+    "issue_id": "BUSINESS_PLACEHOLDER",
+    "rule_id": "BUSINESS_PLACEHOLDER",
+    "issue_status": "PASS",
+    "severity": "HIGH",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": "placeholders=0; verifiedDetails=e-mailadres; placeholderExamples=none",
+     "details": "Geen placeholders gevonden en concrete bedrijfsgegevens bevestigd: e-mailadres."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "price_format",
+    "category": "seo",
+    "title": "Prijsnotatie",
+    "status": "unable_to_confirm",
+    "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 5,
+    "issue_id": "PRICE_FORMAT",
+    "rule_id": "PRICE_FORMAT",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "LOW",
+    "confidence": "low",
+    "reasonCode": "insufficient_pages",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "checkout_funnel_static",
+    "category": "seo",
+    "title": "Checkout & funnel",
+    "status": "unable_to_confirm",
+    "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 0,
+    "issue_id": "checkout_funnel_static",
+    "rule_id": "checkout_funnel_static",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "INFO",
+    "confidence": "low",
+    "reasonCode": "insufficient_pages",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "checkout_information_signal",
+    "category": "seo",
+    "title": "Checkout informatie",
+    "status": "unable_to_confirm",
+    "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 0,
+    "issue_id": "checkout_information_signal",
+    "rule_id": "checkout_information_signal",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "INFO",
+    "confidence": "low",
+    "reasonCode": "insufficient_pages",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "eu_discount_reference_signal",
+    "category": "seo",
+    "title": "EU korting & referentieprijs",
+    "status": "unable_to_confirm",
+    "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 0,
+    "issue_id": "eu_discount_reference_signal",
+    "rule_id": "eu_discount_reference_signal",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "INFO",
+    "confidence": "low",
+    "reasonCode": "insufficient_pages",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "eu_review_transparency_signal",
+    "category": "seo",
+    "title": "EU reviewtransparantie",
+    "status": "unable_to_confirm",
+    "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 0,
+    "issue_id": "eu_review_transparency_signal",
+    "rule_id": "eu_review_transparency_signal",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "INFO",
+    "confidence": "low",
+    "reasonCode": "insufficient_pages",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "eu_scarcity_signal",
+    "category": "seo",
+    "title": "EU schaarsteclaim",
+    "status": "unable_to_confirm",
+    "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 0,
+    "issue_id": "eu_scarcity_signal",
+    "rule_id": "eu_scarcity_signal",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "INFO",
+    "confidence": "low",
+    "reasonCode": "insufficient_pages",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "eu_consumer_information_signal",
+    "category": "seo",
+    "title": "EU consumenteninformatie",
+    "status": "unable_to_confirm",
+    "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 0,
+    "issue_id": "eu_consumer_information_signal",
+    "rule_id": "eu_consumer_information_signal",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "INFO",
+    "confidence": "low",
+    "reasonCode": "insufficient_pages",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "price_currency_consistency",
+    "category": "seo",
+    "title": "Prijs & valuta consistentie",
+    "status": "unable_to_confirm",
+    "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 6,
+    "issue_id": "price_currency_consistency",
+    "rule_id": "price_currency_consistency",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "INFO",
+    "confidence": "low",
+    "reasonCode": "insufficient_pages",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "webshop_trust",
+    "category": "seo",
+    "title": "Webshop vertrouwen",
+    "status": "unable_to_confirm",
+    "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 7,
+    "issue_id": "WEBSHOP_TRUST_SIGNALS",
+    "rule_id": "WEBSHOP_TRUST_SIGNALS",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "HIGH",
+    "confidence": "low",
+    "reasonCode": "insufficient_pages",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "variant_url",
+    "category": "seo",
+    "title": "Productvariant-URL",
+    "status": "unable_to_confirm",
+    "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 5,
+    "issue_id": "PRODUCT_VARIANT_URL",
+    "rule_id": "PRODUCT_VARIANT_URL",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "MEDIUM",
+    "confidence": "low",
+    "reasonCode": "insufficient_pages",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "product_price_consistency",
+    "category": "seo",
+    "title": "Productprijs consistentie",
+    "status": "unable_to_confirm",
+    "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 6,
+    "issue_id": "PRODUCT_PRICE_CONSISTENCY",
+    "rule_id": "PRODUCT_PRICE_CONSISTENCY",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "HIGH",
+    "confidence": "low",
+    "reasonCode": "insufficient_pages",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "product_availability",
+    "category": "seo",
+    "title": "Productvoorraad",
+    "status": "unable_to_confirm",
+    "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 5,
+    "issue_id": "PRODUCT_AVAILABILITY",
+    "rule_id": "PRODUCT_AVAILABILITY",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "MEDIUM",
+    "confidence": "low",
+    "reasonCode": "insufficient_pages",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "webshop_claims",
+    "category": "seo",
+    "title": "Webshop-beloftes",
+    "status": "unable_to_confirm",
+    "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 5,
+    "issue_id": "WEBSHOP_CLAIM_VERIFICATION",
+    "rule_id": "WEBSHOP_CLAIM_VERIFICATION",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "MEDIUM",
+    "confidence": "low",
+    "reasonCode": "insufficient_pages",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "checkout_trust",
+    "category": "seo",
+    "title": "Checkout- en betaalvertrouwen",
+    "status": "unable_to_confirm",
+    "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 5,
+    "issue_id": "CHECKOUT_TRUST_SIGNALS",
+    "rule_id": "CHECKOUT_TRUST_SIGNALS",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "MEDIUM",
+    "confidence": "low",
+    "reasonCode": "insufficient_pages",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "ads_readiness",
+    "category": "seo",
+    "title": "Google Ads readiness",
+    "status": "not_applicable",
+    "message": "Geen Ads-doel of publieke advertentietracking aangetoond; deze controle telt daarom niet mee in de score.",
+    "fix": "Vul het Google Ads-profiel in wanneer Ads voor deze website relevant is.",
+    "points": 0,
+    "maxPoints": 6,
+    "issue_id": "GOOGLE_ADS_READINESS",
+    "rule_id": "GOOGLE_ADS_READINESS",
+    "issue_status": "NOT_APPLICABLE",
+    "severity": "MEDIUM",
+    "confidence": "medium",
+    "reasonCode": "cap_absent",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Geen Ads-doel of publieke advertentietracking aangetoond; deze controle telt daarom niet mee in de score."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "schema",
+    "category": "geo",
+    "title": "Structured data",
+    "status": "warning",
+    "message": "Geen geldige JSON-LD structured data gevonden voor deze homepage. Dit is een machineleesbare optimalisatiekans; de zichtbare pagina kan zonder JSON-LD nog steeds inhoudelijk correct zijn.",
+    "fix": "Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is Organization + WebSite de belangrijkste richting.",
+    "points": 4,
+    "maxPoints": 12,
+    "issue_id": "STRUCTURED_DATA_MISSING",
+    "rule_id": "STRUCTURED_DATA_MISSING",
+    "issue_status": "WARNING",
+    "severity": "MEDIUM",
+    "confidence": "high",
+    "impactClaim": "best_practice",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": "validJsonLdBlocks=0",
+     "details": "Geen geldige JSON-LD structured data gevonden voor deze homepage. Dit is een machineleesbare optimalisatiekans; de zichtbare pagina kan zonder JSON-LD nog steeds inhoudelijk correct zijn."
+    },
+    "fix_category": "B",
+    "rootCause": "structured_data_context"
+   },
+   {
+    "key": "organization_website",
+    "category": "geo",
+    "title": "Organization + WebSite",
+    "status": "warning",
+    "message": "De homepage bevat geen bevestigd Organization- of WebSite-schema. Dit is machineleesbaar identity-advies en geen bewijs dat de zichtbare organisatie-identiteit ontbreekt.",
+    "fix": "Voeg alleen passende Organization- en/of WebSite JSON-LD toe met aantoonbare gegevens.",
+    "points": 4,
+    "maxPoints": 8,
+    "issue_id": "ORGANIZATION_WEBSITE_SCHEMA",
+    "rule_id": "ORGANIZATION_WEBSITE_SCHEMA",
+    "issue_status": "WARNING",
+    "severity": "MEDIUM",
+    "confidence": "high",
+    "impactClaim": "best_practice",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": "organizationSchema=false; websiteSchema=false; schemaTypes=",
+     "details": "De homepage bevat geen bevestigd Organization- of WebSite-schema. Dit is machineleesbaar identity-advies en geen bewijs dat de zichtbare organisatie-identiteit ontbreekt."
+    },
+    "fix_category": "B"
+   },
+   {
+    "key": "product_copy_optimizer",
+    "category": "geo",
+    "title": "AI Product Copy & Metadata",
+    "status": "unable_to_confirm",
+    "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 5,
+    "issue_id": "PRODUCT_COPY_OPTIMIZER",
+    "rule_id": "PRODUCT_COPY_OPTIMIZER",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "LOW",
+    "confidence": "low",
+    "reasonCode": "insufficient_pages",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+    },
+    "fix_category": "B"
+   },
+   {
+    "key": "product_schema",
+    "category": "geo",
+    "title": "Product structured data",
+    "status": "unable_to_confirm",
+    "message": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 8,
+    "issue_id": "PRODUCT_SCHEMA_MISSING",
+    "rule_id": "PRODUCT_SCHEMA_MISSING",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "MEDIUM",
+    "confidence": "low",
+    "reasonCode": "insufficient_pages",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "entity",
+    "category": "geo",
+    "title": "Entity-signalen",
+    "status": "unable_to_confirm",
+    "message": "De beschikbare pagina bevat te weinig onafhankelijk bewijs om entity-signalen betrouwbaar te beoordelen.",
+    "fix": "Bevestig organisatie- of merknaam, contactcontext en officiële profielen met aanvullende pagina- of sitebrede evidence.",
+    "points": 0,
+    "maxPoints": 10,
+    "issue_id": "entity",
+    "rule_id": "entity",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "INFO",
+    "confidence": "low",
+    "reasonCode": "weak_evidence",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "De beschikbare pagina bevat te weinig onafhankelijk bewijs om entity-signalen betrouwbaar te beoordelen."
+    },
+    "fix_category": "C",
+    "rootCause": "structured_data_context"
+   },
+   {
+    "key": "breadcrumbs",
+    "category": "geo",
+    "title": "Breadcrumbs",
+    "status": "not_applicable",
+    "message": "Op de homepage is BreadcrumbList normaal niet nodig wanneer er geen breadcrumb-hiërarchie is; deze controle telt daarom niet mee.",
+    "fix": "Gebruik BreadcrumbList vooral op diepe content-, categorie- en productpagina's.",
+    "points": 0,
+    "maxPoints": 6,
+    "issue_id": "breadcrumbs",
+    "rule_id": "breadcrumbs",
+    "issue_status": "NOT_APPLICABLE",
+    "severity": "INFO",
+    "confidence": "medium",
+    "reasonCode": "cap_absent",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Op de homepage is BreadcrumbList normaal niet nodig wanneer er geen breadcrumb-hiërarchie is; deze controle telt daarom niet mee."
+    },
+    "fix_category": "B"
+   },
+   {
+    "key": "faq",
+    "category": "geo",
+    "title": "Vraag & antwoord content",
+    "status": "not_applicable",
+    "message": "Geen FAQ/Q&A-sectie gevonden (Geen vraag-en-antwoordparen gevonden.). Een FAQ is niet verplicht voor iedere pagina en wordt daarom niet als GEO-fout bestraft.",
+    "fix": "Voeg alleen relevante vragen en directe antwoorden toe wanneer dit de gebruiker inhoudelijk helpt.",
+    "points": 0,
+    "maxPoints": 10,
+    "issue_id": "faq",
+    "rule_id": "faq",
+    "issue_status": "NOT_APPLICABLE",
+    "severity": "INFO",
+    "confidence": "medium",
+    "reasonCode": "cap_absent",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": "faqContent=false; faqSchema=false",
+     "details": "Geen FAQ/Q&A-sectie gevonden (Geen vraag-en-antwoordparen gevonden.). Een FAQ is niet verplicht voor iedere pagina en wordt daarom niet als GEO-fout bestraft."
+    },
+    "fix_category": "B"
+   },
+   {
+    "key": "author",
+    "category": "geo",
+    "title": "Expertise-signalen",
+    "status": "not_applicable",
+    "message": "Een individuele auteur is niet vereist op een organisatie-, dienst- of merkhomepage. Auteurschap en expertise horen vooral op informatieve artikelen en adviescontent te worden beoordeeld.",
+    "fix": "Controleer auteur, expertise, publicatiedatum en broncontext op pagina's waar auteurschap inhoudelijk relevant is.",
+    "points": 0,
+    "maxPoints": 8,
+    "issue_id": "author",
+    "rule_id": "author",
+    "issue_status": "NOT_APPLICABLE",
+    "severity": "INFO",
+    "confidence": "medium",
+    "reasonCode": "cap_absent",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": null,
+     "details": "Een individuele auteur is niet vereist op een organisatie-, dienst- of merkhomepage. Auteurschap en expertise horen vooral op informatieve artikelen en adviescontent te worden beoordeeld."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "trust",
+    "category": "geo",
+    "title": "Trust & context",
+    "status": "pass",
+    "message": "Contact- en organisatiecontext zijn zichtbaar.",
+    "fix": "Houd bedrijfsnaam, contactgegevens, locatie, verantwoordelijkheden en officiële profielen consistent.",
+    "points": 8,
+    "maxPoints": 8,
+    "issue_id": "trust",
+    "rule_id": "trust",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": "contact=true; about=true; socialOrReview=false",
+     "details": "Contact- en organisatiecontext zijn zichtbaar."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "answer",
+    "category": "geo",
+    "title": "Expliciete paginasamenvatting",
+    "status": "warning",
+    "message": "RankFix vond onvoldoende combinatie van een beschrijvende meta description en zichtbare paginatekst om een expliciete paginasamenvatting te bevestigen.",
+    "fix": "Voeg een concrete meta description en duidelijke zichtbare introductie toe; dit is een readiness-signaal en geen garantie op zichtbaarheid in AI-zoekmachines.",
+    "points": 2,
+    "maxPoints": 6,
+    "issue_id": "answer",
+    "rule_id": "answer",
+    "issue_status": "WARNING",
+    "severity": "MEDIUM",
+    "confidence": "high",
+    "impactClaim": "best_practice",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": "metaDescription=false; wordCount=173; minimumVisibleWords=80; rendered=true",
+     "details": "RankFix vond onvoldoende combinatie van een beschrijvende meta description en zichtbare paginatekst om een expliciete paginasamenvatting te bevestigen."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "identity",
+    "category": "geo",
+    "title": "Brand identity",
+    "status": "pass",
+    "message": "3/4 merksignalen gevonden. Gevonden: merknaam/branding, logo, bedrijfs-/contactgegevens. Ontbrekend: officieel social/review-profiel.",
+    "fix": "Maak de ontbrekende merksignalen duidelijk en consistent zichtbaar: officieel social/review-profiel. Structured data wordt apart beoordeeld.",
+    "points": 5,
+    "maxPoints": 5,
+    "issue_id": "identity",
+    "rule_id": "identity",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.bol.com/nl/nl/",
+     "found": "brandSignals=3/4; found=merknaam/branding,logo,bedrijfs-/contactgegevens; missing=officieel social/review-profiel",
+     "details": "3/4 merksignalen gevonden. Gevonden: merknaam/branding, logo, bedrijfs-/contactgegevens. Ontbrekend: officieel social/review-profiel."
+    },
+    "fix_category": "C"
+   }
+  ],
+  "pendingFixes": []
+ }
+}

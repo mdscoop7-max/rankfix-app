@@ -1,0 +1,4195 @@
+{
+ "url": "https://www.coolblue.nl/",
+ "body": {
+  "success": true,
+  "scanId": null,
+  "mode": "both",
+  "scannedUrl": "https://www.coolblue.nl/",
+  "finalUrl": "https://www.coolblue.nl/",
+  "scannedAt": "2026-10-13T08:31:09.516Z",
+  "responseTime": 369,
+  "httpStatus": 200,
+  "overallScore": 84,
+  "grade": "B",
+  "coverage": {
+   "relevant": 51,
+   "confirmed": 30,
+   "unableToConfirm": 21,
+   "totalWeight": 268,
+   "assessedWeight": 182,
+   "coveragePercent": 68,
+   "highConfidencePercent": 85
+  },
+  "scoreModel": {
+   "version": "3.0-evidence-strict",
+   "formula": "0.6 × SEO + 0.4 × GEO",
+   "weights": {
+    "seo": 0.6,
+    "geo": 0.4,
+    "security": 0
+   },
+   "securitySeparate": true,
+   "coverageBasis": "assessed_weight / applicable_weight",
+   "range": {
+    "low": 62,
+    "high": 94,
+    "assessedWeight": 182,
+    "unverifiedWeight": 86,
+    "applicableWeight": 268
+   },
+   "seoRange": {
+    "low": 67,
+    "high": 98,
+    "assessedWeight": 143,
+    "unverifiedWeight": 63,
+    "applicableWeight": 206
+   },
+   "geoRange": {
+    "low": 44,
+    "high": 81,
+    "assessedWeight": 39,
+    "unverifiedWeight": 23,
+    "applicableWeight": 62
+   },
+   "provisional": true,
+   "note": "Niet te bevestigen verlaagt de score niet, maar blijft toepasselijk gewicht in de dekking. N.v.t. is uitgesloten. Het bereik toont de conservatieve en optimistische grens voor nog onbevestigd bewijs.",
+   "headline": {
+    "score": 84,
+    "pageScore": 84,
+    "sampleScore": 92,
+    "sampleWeight": 0,
+    "sampledPages": 0
+   }
+  },
+  "reportMeta": {
+   "format": "rankfix-report-2026-10",
+   "userAgent": "RankFixBot/2.1 (+http://127.0.0.1:3100/bot)",
+   "browserUserAgent": "RankFixBrowser/1.0 (+http://127.0.0.1:3100/bot)",
+   "infoUrl": "http://127.0.0.1:3100/bot",
+   "httpStatus": 200,
+   "recoveredFromBlock": false,
+   "evidenceSource": "rendered_html",
+   "javascriptExecuted": true,
+   "sample": {
+    "selected": 1,
+    "checked": 1,
+    "broken": 0,
+    "unableToConfirm": 0,
+    "score": 92
+   },
+   "coverage": {
+    "percent": 68,
+    "assessedChecks": 30,
+    "applicableChecks": 51
+   },
+   "scoreRange": {
+    "low": 62,
+    "high": 94,
+    "assessedWeight": 182,
+    "unverifiedWeight": 86,
+    "applicableWeight": 268
+   },
+   "headline": {
+    "score": 84,
+    "pageScore": 84,
+    "sampleWeight": 0
+   },
+   "limitations": []
+  },
+  "summary": {
+   "passed": 25,
+   "issues": 5,
+   "critical": 0,
+   "important": 1,
+   "advice": 4,
+   "notApplicable": 5,
+   "unableToConfirm": 21,
+   "pendingFixes": 0
+  },
+  "rendering": {
+   "mode": "javascript_rendered",
+   "limitations": [],
+   "consentProviders": [],
+   "formProviders": [
+    "Calendly"
+   ],
+   "javascriptExecuted": true,
+   "note": "RankFix heeft deze JavaScript-site in een begrensde browser gerenderd. Interactieve login-, winkelwagen- en betaalflows zijn niet uitgevoerd.",
+   "elapsedMs": 2741,
+   "fallbackReason": null,
+   "warning": false,
+   "evidenceSource": "rendered_html",
+   "botProtection": null
+  },
+  "recovery": {
+   "attempted": false,
+   "originalHttpStatus": 200,
+   "browserRecovered": false,
+   "limitedScope": false,
+   "reason": null,
+   "evidenceSource": null
+  },
+  "scope": {
+   "page": "https://www.coolblue.nl/",
+   "mode": "PAGE_SAMPLE",
+   "javascriptExecuted": true,
+   "internalLinks": {
+    "anchorsFound": 21,
+    "uniqueInternal": 1,
+    "checked": 1,
+    "limit": 24,
+    "truncated": false
+   },
+   "accessibility": "STATIC_HTML_SIGNALS",
+   "consentMode": "STATIC_HTML_SIGNAL",
+   "merchant": "WEBSITE_SIGNALS_ONLY",
+   "multiPage": {
+    "enabled": true,
+    "mode": "REPRESENTATIVE_AUDIT",
+    "currentPageScoredSeparately": true,
+    "maxPages": 30,
+    "discoveredInternalUrls": 0,
+    "selectedPages": [
+     {
+      "url": "https://www.coolblue.nl/",
+      "type": "homepage",
+      "evidence": [
+       "scanned page",
+       "javascript-rendered representative page"
+      ]
+     }
+    ],
+    "pageAudits": [
+     {
+      "url": "https://www.coolblue.nl/",
+      "type": "homepage",
+      "evidence": [
+       "scanned page",
+       "javascript-rendered representative page"
+      ],
+      "status": "audited",
+      "httpStatus": 200,
+      "title": "Coolblue - Alles voor een glimlach",
+      "description": "Beste webwinkel 2022. Voor 23.59u besteld? Morgen gratis bezorgd. Ook op zondag! Gratis retourneren.",
+      "h1Count": 0,
+      "canonical": "https://www.coolblue.nl",
+      "structureKey": "h0|a2|img0|form1|article0|table0|li0|schema0",
+      "evidenceSource": "rendered_html",
+      "score": 92,
+      "identityText": "Coolblue - Alles voor een glimlach Beste webwinkel 2022. Voor 23.59u besteld? Morgen gratis bezorgd. Ook op zondag! Gratis retourneren. Coolblue - Alles voor een glimlach Oeps . Naar de knoppen. Sorry, onze website is offline. We gaan meteen op een heleboel knopjes drukken om zo snel mogelijk weer in de lucht te zijn. In de tussentijd kun je de pagina opnieuw proberen te laden, of contact met ons opnemen via Twitter of Facebook. Pagina opnieuw laden of bel 010 7988999 Onze klantenservice is tot 23.59 uur geopend Kies welke cookies je accepteert om verder te gaan. Cookies . Smaakmakers. Nederlands Coolblue gebruikt cookies en vergelijkbare technieken wanneer je de website bezoekt. Geen gevulde koeken, maar kleine (tijdelijke) tekstbestanden en scripts. Zo hoef je niet steeds dezelfde informatie in te vullen of opnieuw te downloaden. Handig! Denk aan het onthouden van je winkelwagen of je eerder bekeken producten. Naast functionele cookies, waardoor de website goed werkt, gebruiken we ook analytische cookies om te begrijpen hoe je onze website gebruikt. Zo maken we ’m beter en klantvriendelijker. We gebruiken ook marketing cookies voor persoonlijke advertenties die passen bij jouw interesses. Daarvoor delen we soms gegevens met onze partners. Meer weten? Lees hier alles over onze cookie- en privacyverklaring Lees hier alles over onze cookie- en privacyverklaring . Hieronder kun je aangeven of je alles accepteert, weigert of je kunt je cookies zelf instellen. Verander je later van gedachten? Geen probleem! Hier kun je je voorkeuren eenvoudig later aanpassen Hier kun je je voorkeuren eenvoudig later aanpassen . Standaard Dit pakket staat altijd aan. Zo werkt de basis van onze website goed, zoals producten toevoegen aan je winkelwagen. Calendly Doel Maakt het plannen van afspraken (bijv. zakelijk advies) vanuit onze site mogelijk. Eigenschappen Cookies/identifiers afkomstig van Calendly en wordt na maximaal drie weken verwijderd. Delen Calendly deelt geen anonieme data met derden. Privacy statement Google Analytics Doel Met behulp van Google Analytics krijgen we inzicht in hoe je de Coolblue website gebruikt en met Firebase in de Coolblue app. Deze informatie stelt ons in staat om je te voorzien van een productkeuze die perfect aansluit bij jouw behoeften en om de website en app te verbeteren. Ook kunnen we je zo aanbiedingen tonen die speciaal voor jou zijn geselecteerd op onze website, in onze nieuwsbrief en via e-mails met tips op maat. Eigenschappen Deze cookie komt van Google en wordt na maximaal twee jaar verwijderd. Delen Google deelt anonieme data met derden. Privacy statement CrazyEgg Doel CrazyEgg houdt bij waar je op klikt op onze website. Hierdoor kunnen we onze pagina's optimaliseren, zodat we de meest relevante informatie tonen op de beste plekken. De cookie die CrazyEgg plaatst is om te kijken of je een nieuwe bezoeker of een terugkerende bezoeker bent. Eigenschappen Deze cookie komt van CrazyEgg en wordt na uiterlijk vijf jaar verwijderd. Delen CrazyEgg deelt geen informatie met derden. Privacy statement Awin Doel Deze cookie gebruiken we om onze Affiliate partners te ",
+      "schemaTypes": [],
+      "formEvidence": {
+       "formCount": 1,
+       "passwordForm": false,
+       "insecureFormActions": 0
+      },
+      "commerceEvidence": {
+       "productSchema": false,
+       "itemListSchema": false,
+       "storeSchema": false,
+       "strongCommerceAction": false,
+       "repeatedProductLinks": false,
+       "priceSignals": 0,
+       "product": null,
+       "confirmedRetailPage": false
+      },
+      "productLinks": [],
+      "evidenceChecks": [
+       {
+        "key": "http",
+        "status": "PASS",
+        "details": "HTTP 200"
+       },
+       {
+        "key": "title",
+        "status": "PASS",
+        "details": "Title gevonden (34 tekens); binnen richtwaarde 30–60."
+       },
+       {
+        "key": "description",
+        "status": "PASS",
+        "details": "Meta description gevonden (100 tekens); bruikbare lengte."
+       },
+       {
+        "key": "h1",
+        "status": "WARNING",
+        "details": "Er is geen H1-heading gevonden."
+       },
+       {
+        "key": "canonical",
+        "status": "PASS",
+        "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://www.coolblue.nl/"
+       }
+      ]
+     }
+    ],
+    "siteSampleScore": 92,
+    "siteSampleCoverage": {
+     "selected": 1,
+     "checked": 1,
+     "broken": 0,
+     "unableToConfirm": 0,
+     "coveragePercent": 100,
+     "provisional": false
+    },
+    "siteSampleLabel": "Site-samplescore",
+    "sitewideCommerceEvidence": {
+     "confirmed": false,
+     "sampleCount": 0,
+     "urls": [],
+     "evidence": []
+    },
+    "sitewideCheckAggregation": [
+     {
+      "key": "title",
+      "status": "PASS",
+      "failedCount": 0,
+      "checkedPages": 1,
+      "provenPages": 1,
+      "affectedCount": 0,
+      "affectedUrls": [],
+      "evidence": [
+       {
+        "url": "https://www.coolblue.nl/",
+        "status": "PASS",
+        "details": "Title gevonden (34 tekens); binnen richtwaarde 30–60."
+       }
+      ],
+      "highlights": [],
+      "reason": null
+     },
+     {
+      "key": "description",
+      "status": "PASS",
+      "failedCount": 0,
+      "checkedPages": 1,
+      "provenPages": 1,
+      "affectedCount": 0,
+      "affectedUrls": [],
+      "evidence": [
+       {
+        "url": "https://www.coolblue.nl/",
+        "status": "PASS",
+        "details": "Meta description gevonden (100 tekens); bruikbare lengte."
+       }
+      ],
+      "highlights": [],
+      "reason": null
+     },
+     {
+      "key": "h1",
+      "status": "WARNING",
+      "failedCount": 0,
+      "checkedPages": 1,
+      "provenPages": 1,
+      "affectedCount": 1,
+      "affectedUrls": [
+       "https://www.coolblue.nl/"
+      ],
+      "evidence": [
+       {
+        "url": "https://www.coolblue.nl/",
+        "status": "WARNING",
+        "details": "Er is geen H1-heading gevonden."
+       }
+      ],
+      "highlights": [],
+      "reason": null
+     },
+     {
+      "key": "canonical",
+      "status": "PASS",
+      "failedCount": 0,
+      "checkedPages": 1,
+      "provenPages": 1,
+      "affectedCount": 0,
+      "affectedUrls": [],
+      "evidence": [
+       {
+        "url": "https://www.coolblue.nl/",
+        "status": "PASS",
+        "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://www.coolblue.nl/"
+       }
+      ],
+      "highlights": [],
+      "reason": null
+     },
+     {
+      "key": "product_schema",
+      "status": "UNABLE_TO_CONFIRM",
+      "failedCount": 0,
+      "checkedPages": 0,
+      "provenPages": 0,
+      "affectedCount": 0,
+      "affectedUrls": [],
+      "evidence": [],
+      "highlights": [],
+      "reason": "Geen representatieve pagina leverde voldoende bewijs voor deze sitebrede samenvatting."
+     }
+    ],
+    "capabilities": {
+     "hospitality": false,
+     "treatment": false,
+     "vehicleSales": false,
+     "automotiveService": false,
+     "properties": false,
+     "professional": false,
+     "productSample": false,
+     "categorySample": false
+    },
+    "counts": {
+     "homepage": 1,
+     "category": 0,
+     "product": 0,
+     "form": 0,
+     "legal": 0,
+     "service": 0,
+     "listing": 0,
+     "support": 0,
+     "other": 0,
+     "audited": 1,
+     "broken": 0,
+     "unableToConfirm": 0
+    },
+    "note": "Representative same-host pages are fetched with bounded checks. Their sample score is separate from the explicitly scanned page score; site-level evidence may strengthen identity/capabilities, but page-specific failures still require direct proof."
+   }
+  },
+  "multiPage": {
+   "enabled": true,
+   "mode": "REPRESENTATIVE_AUDIT",
+   "currentPageScoredSeparately": true,
+   "maxPages": 30,
+   "discoveredInternalUrls": 0,
+   "selectedPages": [
+    {
+     "url": "https://www.coolblue.nl/",
+     "type": "homepage",
+     "evidence": [
+      "scanned page",
+      "javascript-rendered representative page"
+     ]
+    }
+   ],
+   "pageAudits": [
+    {
+     "url": "https://www.coolblue.nl/",
+     "type": "homepage",
+     "evidence": [
+      "scanned page",
+      "javascript-rendered representative page"
+     ],
+     "status": "audited",
+     "httpStatus": 200,
+     "title": "Coolblue - Alles voor een glimlach",
+     "description": "Beste webwinkel 2022. Voor 23.59u besteld? Morgen gratis bezorgd. Ook op zondag! Gratis retourneren.",
+     "h1Count": 0,
+     "canonical": "https://www.coolblue.nl",
+     "structureKey": "h0|a2|img0|form1|article0|table0|li0|schema0",
+     "evidenceSource": "rendered_html",
+     "score": 92,
+     "identityText": "Coolblue - Alles voor een glimlach Beste webwinkel 2022. Voor 23.59u besteld? Morgen gratis bezorgd. Ook op zondag! Gratis retourneren. Coolblue - Alles voor een glimlach Oeps . Naar de knoppen. Sorry, onze website is offline. We gaan meteen op een heleboel knopjes drukken om zo snel mogelijk weer in de lucht te zijn. In de tussentijd kun je de pagina opnieuw proberen te laden, of contact met ons opnemen via Twitter of Facebook. Pagina opnieuw laden of bel 010 7988999 Onze klantenservice is tot 23.59 uur geopend Kies welke cookies je accepteert om verder te gaan. Cookies . Smaakmakers. Nederlands Coolblue gebruikt cookies en vergelijkbare technieken wanneer je de website bezoekt. Geen gevulde koeken, maar kleine (tijdelijke) tekstbestanden en scripts. Zo hoef je niet steeds dezelfde informatie in te vullen of opnieuw te downloaden. Handig! Denk aan het onthouden van je winkelwagen of je eerder bekeken producten. Naast functionele cookies, waardoor de website goed werkt, gebruiken we ook analytische cookies om te begrijpen hoe je onze website gebruikt. Zo maken we ’m beter en klantvriendelijker. We gebruiken ook marketing cookies voor persoonlijke advertenties die passen bij jouw interesses. Daarvoor delen we soms gegevens met onze partners. Meer weten? Lees hier alles over onze cookie- en privacyverklaring Lees hier alles over onze cookie- en privacyverklaring . Hieronder kun je aangeven of je alles accepteert, weigert of je kunt je cookies zelf instellen. Verander je later van gedachten? Geen probleem! Hier kun je je voorkeuren eenvoudig later aanpassen Hier kun je je voorkeuren eenvoudig later aanpassen . Standaard Dit pakket staat altijd aan. Zo werkt de basis van onze website goed, zoals producten toevoegen aan je winkelwagen. Calendly Doel Maakt het plannen van afspraken (bijv. zakelijk advies) vanuit onze site mogelijk. Eigenschappen Cookies/identifiers afkomstig van Calendly en wordt na maximaal drie weken verwijderd. Delen Calendly deelt geen anonieme data met derden. Privacy statement Google Analytics Doel Met behulp van Google Analytics krijgen we inzicht in hoe je de Coolblue website gebruikt en met Firebase in de Coolblue app. Deze informatie stelt ons in staat om je te voorzien van een productkeuze die perfect aansluit bij jouw behoeften en om de website en app te verbeteren. Ook kunnen we je zo aanbiedingen tonen die speciaal voor jou zijn geselecteerd op onze website, in onze nieuwsbrief en via e-mails met tips op maat. Eigenschappen Deze cookie komt van Google en wordt na maximaal twee jaar verwijderd. Delen Google deelt anonieme data met derden. Privacy statement CrazyEgg Doel CrazyEgg houdt bij waar je op klikt op onze website. Hierdoor kunnen we onze pagina's optimaliseren, zodat we de meest relevante informatie tonen op de beste plekken. De cookie die CrazyEgg plaatst is om te kijken of je een nieuwe bezoeker of een terugkerende bezoeker bent. Eigenschappen Deze cookie komt van CrazyEgg en wordt na uiterlijk vijf jaar verwijderd. Delen CrazyEgg deelt geen informatie met derden. Privacy statement Awin Doel Deze cookie gebruiken we om onze Affiliate partners te ",
+     "schemaTypes": [],
+     "formEvidence": {
+      "formCount": 1,
+      "passwordForm": false,
+      "insecureFormActions": 0
+     },
+     "commerceEvidence": {
+      "productSchema": false,
+      "itemListSchema": false,
+      "storeSchema": false,
+      "strongCommerceAction": false,
+      "repeatedProductLinks": false,
+      "priceSignals": 0,
+      "product": null,
+      "confirmedRetailPage": false
+     },
+     "productLinks": [],
+     "evidenceChecks": [
+      {
+       "key": "http",
+       "status": "PASS",
+       "details": "HTTP 200"
+      },
+      {
+       "key": "title",
+       "status": "PASS",
+       "details": "Title gevonden (34 tekens); binnen richtwaarde 30–60."
+      },
+      {
+       "key": "description",
+       "status": "PASS",
+       "details": "Meta description gevonden (100 tekens); bruikbare lengte."
+      },
+      {
+       "key": "h1",
+       "status": "WARNING",
+       "details": "Er is geen H1-heading gevonden."
+      },
+      {
+       "key": "canonical",
+       "status": "PASS",
+       "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://www.coolblue.nl/"
+      }
+     ]
+    }
+   ],
+   "siteSampleScore": 92,
+   "siteSampleCoverage": {
+    "selected": 1,
+    "checked": 1,
+    "broken": 0,
+    "unableToConfirm": 0,
+    "coveragePercent": 100,
+    "provisional": false
+   },
+   "siteSampleLabel": "Site-samplescore",
+   "sitewideCommerceEvidence": {
+    "confirmed": false,
+    "sampleCount": 0,
+    "urls": [],
+    "evidence": []
+   },
+   "sitewideCheckAggregation": [
+    {
+     "key": "title",
+     "status": "PASS",
+     "failedCount": 0,
+     "checkedPages": 1,
+     "provenPages": 1,
+     "affectedCount": 0,
+     "affectedUrls": [],
+     "evidence": [
+      {
+       "url": "https://www.coolblue.nl/",
+       "status": "PASS",
+       "details": "Title gevonden (34 tekens); binnen richtwaarde 30–60."
+      }
+     ],
+     "highlights": [],
+     "reason": null
+    },
+    {
+     "key": "description",
+     "status": "PASS",
+     "failedCount": 0,
+     "checkedPages": 1,
+     "provenPages": 1,
+     "affectedCount": 0,
+     "affectedUrls": [],
+     "evidence": [
+      {
+       "url": "https://www.coolblue.nl/",
+       "status": "PASS",
+       "details": "Meta description gevonden (100 tekens); bruikbare lengte."
+      }
+     ],
+     "highlights": [],
+     "reason": null
+    },
+    {
+     "key": "h1",
+     "status": "WARNING",
+     "failedCount": 0,
+     "checkedPages": 1,
+     "provenPages": 1,
+     "affectedCount": 1,
+     "affectedUrls": [
+      "https://www.coolblue.nl/"
+     ],
+     "evidence": [
+      {
+       "url": "https://www.coolblue.nl/",
+       "status": "WARNING",
+       "details": "Er is geen H1-heading gevonden."
+      }
+     ],
+     "highlights": [],
+     "reason": null
+    },
+    {
+     "key": "canonical",
+     "status": "PASS",
+     "failedCount": 0,
+     "checkedPages": 1,
+     "provenPages": 1,
+     "affectedCount": 0,
+     "affectedUrls": [],
+     "evidence": [
+      {
+       "url": "https://www.coolblue.nl/",
+       "status": "PASS",
+       "details": "Self-canonical/equivalente voorkeurs-URL bevestigd: https://www.coolblue.nl/"
+      }
+     ],
+     "highlights": [],
+     "reason": null
+    },
+    {
+     "key": "product_schema",
+     "status": "UNABLE_TO_CONFIRM",
+     "failedCount": 0,
+     "checkedPages": 0,
+     "provenPages": 0,
+     "affectedCount": 0,
+     "affectedUrls": [],
+     "evidence": [],
+     "highlights": [],
+     "reason": "Geen representatieve pagina leverde voldoende bewijs voor deze sitebrede samenvatting."
+    }
+   ],
+   "capabilities": {
+    "hospitality": false,
+    "treatment": false,
+    "vehicleSales": false,
+    "automotiveService": false,
+    "properties": false,
+    "professional": false,
+    "productSample": false,
+    "categorySample": false
+   },
+   "counts": {
+    "homepage": 1,
+    "category": 0,
+    "product": 0,
+    "form": 0,
+    "legal": 0,
+    "service": 0,
+    "listing": 0,
+    "support": 0,
+    "other": 0,
+    "audited": 1,
+    "broken": 0,
+    "unableToConfirm": 0
+   },
+   "note": "Representative same-host pages are fetched with bounded checks. Their sample score is separate from the explicitly scanned page score; site-level evidence may strengthen identity/capabilities, but page-specific failures still require direct proof."
+  },
+  "classification": {
+   "websiteType": "Website",
+   "sector": {
+    "key": "unknown",
+    "label": "Sector niet bevestigd",
+    "confidence": "low",
+    "confidenceScore": 35,
+    "displayPolicy": "unconfirmed"
+   },
+   "pageType": {
+    "type": "homepage",
+    "confidence": "high",
+    "commercialLandingPage": false
+   },
+   "policy": "Website type, sector en paginatype zijn afzonderlijke beslissingen. Een commerciële landingpage is nooit automatisch het type van de volledige website."
+  },
+  "pageTypeEvidence": {
+   "type": "homepage",
+   "confidence": "high",
+   "evidence": [
+    "localized/root path: /",
+    "commerce action present"
+   ]
+  },
+  "pageTypeInvariant": {
+   "valid": true,
+   "contradictions": []
+  },
+  "technologyProfile": {
+   "siteType": "Website",
+   "cms": null,
+   "commercePlatform": null,
+   "framework": "Next.js",
+   "isCommerce": false,
+   "confidence": 72,
+   "confidenceLabel": "medium",
+   "evidence": [
+    "Next.js runtime"
+   ]
+  },
+  "sectorProfile": {
+   "sector": "unknown",
+   "label": "Sector niet bevestigd",
+   "confidence": "low",
+   "confidenceScore": 35,
+   "evidence": [
+    "Zakelijke dienstverlening: 1 signaal/signalen",
+    "Recruitment & Werk: 1 signaal/signalen"
+   ],
+   "applicableModules": [
+    "core_seo",
+    "geo",
+    "technical",
+    "business_identity"
+   ],
+   "key": "unknown"
+  },
+  "commerceApplicability": {
+   "state": "unconfirmed",
+   "reason": "weak_commerce_signals",
+   "marketSelector": false,
+   "representativePagesAudited": 0,
+   "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+  },
+  "evidenceLayer": {
+   "version": "1.2",
+   "evidence": {
+    "version": "1.2",
+    "page": {
+     "url": "https://www.coolblue.nl/",
+     "rendered": true,
+     "language": "nl",
+     "title": "Coolblue - Alles voor een glimlach"
+    },
+    "commerce": {
+     "cart": {
+      "value": true,
+      "confidence": "high",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": [
+       "Cart/winkelwagen-signaal gevonden",
+       "JavaScript-rendering leverde aanvullende DOM-evidence op"
+      ]
+     },
+     "addToCart": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "checkout": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "prices": {
+      "value": {
+       "count": 0,
+       "currencies": []
+      },
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "products": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "productPage": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "productLinks": {
+      "value": 0,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     }
+    },
+    "appointments": {
+     "appointment": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "reservation": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "booking": {
+      "value": false,
+      "confidence": "high",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "quoteRequest": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     }
+    },
+    "inventory": {
+     "vehicles": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "properties": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "jobs": {
+      "value": true,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": [
+       "Vacature-/carrièrevermelding gevonden; dit is geen bewijs dat recruitment de primaire sector is"
+      ]
+     },
+     "rooms": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "menu": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     }
+    },
+    "organization": {
+     "contact": {
+      "value": true,
+      "confidence": "high",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": [
+       "Structurele contactlink of telefoon/e-mailactie gevonden"
+      ]
+     },
+     "address": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "openingHours": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     "reviews": {
+      "value": false,
+      "confidence": "low",
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": []
+     }
+    },
+    "sectorDetails": {
+     "realEstate": {
+      "listing": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      },
+      "sale": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      },
+      "rental": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      }
+     },
+     "automotive": {
+      "service": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      },
+      "dealer": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      }
+     },
+     "media": {
+      "article": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      },
+      "author": {
+       "value": true,
+       "confidence": "medium",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": [
+        "Auteurssignaal gevonden"
+       ]
+      },
+      "publishedDate": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      }
+     },
+     "sports": {
+      "event": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      },
+      "teamOrPlayer": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      },
+      "resultsOrStandings": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      }
+     },
+     "lodging": {
+      "shortStay": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      },
+      "bedBreakfast": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      },
+      "holidayRental": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      },
+      "holidayPark": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      },
+      "camping": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      },
+      "stayDates": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      },
+      "guests": {
+       "value": false,
+       "confidence": "low",
+       "sources": [
+        "rendered_html"
+       ],
+       "evidence": []
+      }
+     }
+    },
+    "schema": {
+     "types": [],
+     "organization": false,
+     "website": false,
+     "product": false,
+     "localBusiness": false,
+     "vehicle": false,
+     "realEstate": false,
+     "jobPosting": false,
+     "restaurant": false,
+     "hotel": false
+    }
+   },
+   "sectorCandidates": [
+    {
+     "key": "ecommerce",
+     "label": "Webshop / e-commerce",
+     "score": 4,
+     "evidence": [
+      "Sectorspecifieke content gevonden",
+      "Evidence: commerce.cart"
+     ],
+     "expectedCapabilities": [
+      "products",
+      "pricing",
+      "cart",
+      "checkout",
+      "merchant",
+      "consumer_rights"
+     ],
+     "optionalCapabilities": [
+      "appointments"
+     ],
+     "forbiddenAssumptions": []
+    },
+    {
+     "key": "software_app",
+     "label": "Software / app",
+     "score": 2,
+     "evidence": [
+      "Sectorspecifieke content gevonden"
+     ],
+     "expectedCapabilities": [
+      "features",
+      "download_or_signup",
+      "support"
+     ],
+     "optionalCapabilities": [],
+     "forbiddenAssumptions": []
+    },
+    {
+     "key": "recruitment",
+     "label": "Recruitment / vacatures",
+     "score": 2,
+     "evidence": [
+      "Sectorspecifieke content gevonden"
+     ],
+     "expectedCapabilities": [
+      "jobs",
+      "job_details",
+      "application",
+      "organization"
+     ],
+     "optionalCapabilities": [],
+     "forbiddenAssumptions": []
+    }
+   ],
+   "catalogSize": 57,
+   "note": "Evidence-first: ontbrekend bewijs is niet automatisch een fout. Sectoren en functies worden alleen bevestigd op gevonden signalen.",
+   "master": {
+    "version": "1.0",
+    "primarySector": {
+     "key": "unknown",
+     "label": "Sector niet bevestigd",
+     "confidence": "low",
+     "confidenceScore": 35,
+     "displayPolicy": "unconfirmed"
+    },
+    "partners": [
+     {
+      "partner": "core",
+      "status": "confirmed",
+      "confidence": "high",
+      "capabilities": [
+       "title",
+       "language"
+      ],
+      "sources": [
+       "url",
+       "rendered_html"
+      ],
+      "evidence": []
+     },
+     {
+      "partner": "commerce",
+      "status": "partial",
+      "confidence": "medium",
+      "capabilities": [
+       "cart"
+      ],
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": [
+       "Cart/winkelwagen-signaal gevonden",
+       "JavaScript-rendering leverde aanvullende DOM-evidence op"
+      ]
+     },
+     {
+      "partner": "business",
+      "status": "unconfirmed",
+      "confidence": "low",
+      "capabilities": [],
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": [
+       "Vacature-/carrièrevermelding gevonden; dit is geen bewijs dat recruitment de primaire sector is"
+      ]
+     },
+     {
+      "partner": "local_booking",
+      "status": "partial",
+      "confidence": "medium",
+      "capabilities": [
+       "contact"
+      ],
+      "sources": [
+       "rendered_html"
+      ],
+      "evidence": [
+       "Structurele contactlink of telefoon/e-mailactie gevonden"
+      ]
+     }
+    ],
+    "partnerSummary": {
+     "total": 4,
+     "confirmed": 1,
+     "partial": 2,
+     "unconfirmed": 1
+    },
+    "capabilities": [
+     "cart",
+     "contact",
+     "title",
+     "language"
+    ],
+    "activeModules": [
+     "core_seo",
+     "geo",
+     "technical",
+     "business_identity"
+    ],
+    "businessModels": [],
+    "secondarySectorCandidates": [
+     {
+      "key": "ecommerce",
+      "label": "Webshop / e-commerce",
+      "score": 4,
+      "evidence": [
+       "Sectorspecifieke content gevonden",
+       "Evidence: commerce.cart"
+      ]
+     }
+    ],
+    "commerce": {
+     "confirmed": false,
+     "strength": 1
+    },
+    "coverage": {
+     "confirmedCapabilities": 4,
+     "evidenceSources": [
+      "url",
+      "rendered_html",
+      "multi_page"
+     ],
+     "partnerCoverage": 50
+    },
+    "conflicts": [],
+    "policy": "Evidence-first: ontbrekend bewijs blijft onbevestigd en wordt niet automatisch als defect beoordeeld.",
+    "capabilityStates": [
+     {
+      "id": "sells_products_online",
+      "state": "unknown",
+      "confidence": 0,
+      "proof": [],
+      "reason": "insufficient_coverage"
+     },
+     {
+      "id": "lists_inventory",
+      "state": "unknown",
+      "confidence": 0,
+      "proof": [],
+      "reason": "insufficient_coverage"
+     },
+     {
+      "id": "offers_bookable_services",
+      "state": "unknown",
+      "confidence": 0,
+      "proof": [],
+      "reason": "insufficient_coverage"
+     },
+     {
+      "id": "collects_leads",
+      "state": "likely",
+      "confidence": 0.7,
+      "proof": [
+       "Contact-/offertesignaal gevonden zonder representatief leadformulier"
+      ],
+      "reason": "weak_evidence"
+     },
+     {
+      "id": "serves_local_customers",
+      "state": "unknown",
+      "confidence": 0,
+      "proof": [],
+      "reason": "insufficient_coverage"
+     }
+    ],
+    "finalDecisions": {
+     "commerce": {
+      "confirmed": false,
+      "currentPageEvidence": false,
+      "technologyProfile": false,
+      "technologyOnly": false,
+      "secondaryCommerceOnly": false,
+      "multiPageEvidence": false
+     }
+    },
+    "classification": {
+     "websiteType": "Website",
+     "sector": {
+      "key": "unknown",
+      "label": "Sector niet bevestigd",
+      "confidence": "low",
+      "confidenceScore": 35,
+      "displayPolicy": "unconfirmed"
+     },
+     "pageType": {
+      "type": "homepage",
+      "confidence": "high",
+      "commercialLandingPage": false
+     },
+     "policy": "Website type, sector en paginatype zijn afzonderlijke beslissingen. Een commerciële landingpage is nooit automatisch het type van de volledige website."
+    }
+   }
+  },
+  "security": {
+   "version": "1.1-passive",
+   "mode": "PASSIVE_STATIC_EVIDENCE",
+   "score": 78,
+   "grade": "B",
+   "summary": {
+    "passed": 4,
+    "issues": 2,
+    "critical": 0,
+    "important": 0,
+    "advice": 2,
+    "notApplicable": 1,
+    "unableToConfirm": 0,
+    "pendingFixes": 0
+   },
+   "checks": [
+    {
+     "key": "security_https",
+     "category": "security",
+     "title": "HTTPS",
+     "status": "pass",
+     "message": "De gescande pagina gebruikt HTTPS.",
+     "fix": "Houd HTTPS verplicht en stuur HTTP-verkeer permanent door naar HTTPS.",
+     "points": 5,
+     "maxPoints": 5,
+     "issue_id": "security_https",
+     "rule_id": "security_https",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": true,
+      "details": "De gescande pagina gebruikt HTTPS."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "security_headers",
+     "category": "security",
+     "title": "Security headers",
+     "status": "warning",
+     "message": "RankFix bevestigde 3 van 6 gecontroleerde securityheaders (aanwezig: hsts, csp, referrerPolicy; niet aangetroffen in de response: contentTypeOptions, frameOptions, permissionsPolicy); niet alle kernheaders zijn aanwezig (kernregel: HSTS, X-Content-Type-Options en CSP of X-Frame-Options). Dit is hardening-advies en op zichzelf geen bewijs van een kwetsbaarheid.",
+     "fix": "Controleer HSTS, CSP/frame-bescherming, X-Content-Type-Options, Referrer-Policy en Permissions-Policy op server/CDN-niveau.",
+     "points": 3,
+     "maxPoints": 6,
+     "issue_id": "security_headers",
+     "rule_id": "security_headers",
+     "issue_status": "WARNING",
+     "severity": "MEDIUM",
+     "confidence": "high",
+     "impactClaim": "best_practice",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "RankFix bevestigde 3 van 6 gecontroleerde securityheaders (aanwezig: hsts, csp, referrerPolicy; niet aangetroffen in de response: contentTypeOptions, frameOptions, permissionsPolicy); niet alle kernheaders zijn aanwezig (kernregel: HSTS, X-Content-Type-Options en CSP of X-Frame-Options). Dit is hardening-advies en op zichzelf geen bewijs van een kwetsbaarheid."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "security_mixed_content",
+     "category": "security",
+     "title": "Mixed content",
+     "status": "pass",
+     "message": "Geen via HTTP geladen afbeeldingen, scripts, stylesheets of frames gevonden in de gescande HTTPS-HTML. Gewone links naar HTTP-sites zijn geen mixed content.",
+     "fix": "Blijf assets via HTTPS of relatieve URL's laden.",
+     "points": 4,
+     "maxPoints": 4,
+     "issue_id": "security_mixed_content",
+     "rule_id": "security_mixed_content",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": true,
+      "details": "Geen via HTTP geladen afbeeldingen, scripts, stylesheets of frames gevonden in de gescande HTTPS-HTML. Gewone links naar HTTP-sites zijn geen mixed content."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "security_cookie_flags",
+     "category": "security",
+     "title": "Cookie-beveiliging",
+     "status": "warning",
+     "message": "Per-cookie controle vond 4 ontbrekende relevante flag(s). Coolblue-Session: SameSite ontbreekt · Secure-Coolblue: SameSite ontbreekt · assignedVariations: SameSite ontbreekt · cbvid: SameSite ontbreekt · _csrfSecret: relevante flags bevestigd. HttpOnly wordt alleen beoordeeld voor bevestigde sessie-/authenticatiecookies.",
+     "fix": "Controleer de genoemde cookies afzonderlijk: Secure op HTTPS, een passende SameSite-instelling en HttpOnly voor sessie-/authenticatiecookies.",
+     "points": 1,
+     "maxPoints": 5,
+     "issue_id": "security_cookie_flags",
+     "rule_id": "security_cookie_flags",
+     "issue_status": "WARNING",
+     "severity": "MEDIUM",
+     "confidence": "high",
+     "impactClaim": "best_practice",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Per-cookie controle vond 4 ontbrekende relevante flag(s). Coolblue-Session: SameSite ontbreekt · Secure-Coolblue: SameSite ontbreekt · assignedVariations: SameSite ontbreekt · cbvid: SameSite ontbreekt · _csrfSecret: relevante flags bevestigd. HttpOnly wordt alleen beoordeeld voor bevestigde sessie-/authenticatiecookies."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "security_forms",
+     "category": "security",
+     "title": "Formuliertransport",
+     "status": "not_applicable",
+     "message": "Geen representatieve contact-, aanvraag- of afspraakpagina met betrouwbaar formulierbewijs geselecteerd. Globale zoek-, login- en footerformulieren tellen niet als bewijs voor deze controle.",
+     "fix": "Geen actie nodig op basis van deze statische steekproef.",
+     "points": 0,
+     "maxPoints": 5,
+     "issue_id": "security_forms",
+     "rule_id": "security_forms",
+     "issue_status": "NOT_APPLICABLE",
+     "severity": "INFO",
+     "confidence": "medium",
+     "reasonCode": "cap_absent",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Geen representatieve contact-, aanvraag- of afspraakpagina met betrouwbaar formulierbewijs geselecteerd. Globale zoek-, login- en footerformulieren tellen niet als bewijs voor deze controle."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "security_exposed_secrets",
+     "category": "security",
+     "title": "Blootgestelde secrets",
+     "status": "pass",
+     "message": "Geen bekende high-confidence secretpatronen gevonden in de opgehaalde HTML.",
+     "fix": "Bewaar API-sleutels en credentials uitsluitend server-side.",
+     "points": 8,
+     "maxPoints": 8,
+     "issue_id": "security_exposed_secrets",
+     "rule_id": "security_exposed_secrets",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": true,
+      "details": "Geen bekende high-confidence secretpatronen gevonden in de opgehaalde HTML."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "security_script_integrity",
+     "category": "security",
+     "title": "Externe scripts",
+     "status": "pass",
+     "message": "Geen versievaste cross-origin scripts zonder integrity-attribuut. 49 dynamisch script(s) van derden (zoals tag managers of betaal-SDK's) kunnen geen SRI gebruiken; houd die beperkt.",
+     "fix": "Houd externe scripts beperkt en gebruik SRI waar versievaste assets dit ondersteunen.",
+     "points": 4,
+     "maxPoints": 4,
+     "issue_id": "security_script_integrity",
+     "rule_id": "security_script_integrity",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": true,
+      "details": "Geen versievaste cross-origin scripts zonder integrity-attribuut. 49 dynamisch script(s) van derden (zoals tag managers of betaal-SDK's) kunnen geen SRI gebruiken; houd die beperkt."
+     },
+     "fix_category": "C"
+    }
+   ],
+   "note": "Passieve security-audit op responseheaders en opgehaalde HTML. Geen exploit-, brute-force-, login- of actieve kwetsbaarheidstests uitgevoerd."
+  },
+  "accessibility": {
+   "version": "1.1-static-basics",
+   "elementsChecked": {
+    "total": 26,
+    "formControls": 20,
+    "buttons": 6,
+    "smallSample": false
+   },
+   "score": 100,
+   "grade": "A",
+   "coverage": {
+    "relevant": 2,
+    "confirmed": 2,
+    "unableToConfirm": 0,
+    "totalWeight": 8,
+    "assessedWeight": 8,
+    "coveragePercent": 100,
+    "highConfidencePercent": 100
+   },
+   "summary": {
+    "passed": 2,
+    "issues": 0,
+    "critical": 0,
+    "important": 0,
+    "advice": 0,
+    "notApplicable": 0,
+    "unableToConfirm": 0,
+    "pendingFixes": 0
+   },
+   "checks": [
+    {
+     "key": "accessibility_basics",
+     "category": "accessibility",
+     "title": "Toegankelijkheid basis",
+     "status": "pass",
+     "message": "Geen basisproblemen bij formulierlabels of lege knoppen (26 element(en) gecontroleerd: 20 formulierveld(en) en 6 knop(pen)). Afbeelding-alt wordt afzonderlijk binnen SEO beoordeeld.",
+     "fix": "Blijf toetsenbordbediening, focus, contrast en dynamische content afzonderlijk testen. Dit is geen volledige WCAG/EAA-audit.",
+     "points": 5,
+     "maxPoints": 5,
+     "issue_id": "accessibility_basics",
+     "rule_id": "accessibility_basics",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "",
+      "found": null,
+      "details": "Geen basisproblemen bij formulierlabels of lege knoppen (26 element(en) gecontroleerd: 20 formulierveld(en) en 6 knop(pen)). Afbeelding-alt wordt afzonderlijk binnen SEO beoordeeld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "viewport_zoom_blocked",
+     "category": "accessibility",
+     "title": "Browserzoom",
+     "status": "pass",
+     "message": "Geen statische viewport-instelling gevonden die browserzoom blokkeert.",
+     "fix": "Test zoom en schaalbaarheid ook interactief op mobiele apparaten.",
+     "points": 3,
+     "maxPoints": 3,
+     "issue_id": "viewport_zoom_blocked",
+     "rule_id": "viewport_zoom_blocked",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "",
+      "found": null,
+      "details": "Geen statische viewport-instelling gevonden die browserzoom blokkeert."
+     },
+     "fix_category": "C"
+    }
+   ],
+   "note": "Technische HTML-basiscontrole voor toegankelijkheid. Dit is geen volledige WCAG- of EAA-conformiteitsbeoordeling en verandert de SEO/GEO-totaalscore niet."
+  },
+  "adsKeywordIntelligence": {
+   "evidenceLevel": "insufficient",
+   "confirmationStatus": "unable_to_confirm",
+   "language": "nl",
+   "pageLanguage": "nl",
+   "intent": "ambiguous",
+   "campaignGoal": null,
+   "targetArea": null,
+   "targetCountries": [],
+   "adLanguages": [
+    "nl"
+   ],
+   "markets": [
+    {
+     "country": null,
+     "language": "nl",
+     "countrySource": "unknown",
+     "languageSource": "html-lang"
+    }
+   ],
+   "localIntentConfirmed": false,
+   "landingPage": "https://www.coolblue.nl/",
+   "seedTerms": [],
+   "keywordCandidates": [],
+   "keywordGroups": [],
+   "marketKeywordGroups": [],
+   "negativeKeywordCandidates": [
+    {
+     "term": "gratis",
+     "source": "suggested",
+     "requiresReview": true,
+     "reason": "Suggestie op basis van veelvoorkomende afwijkende intentie; controleer vóór campagne-uitsluiting."
+    },
+    {
+     "term": "vacature",
+     "source": "suggested",
+     "requiresReview": true,
+     "reason": "Suggestie op basis van veelvoorkomende afwijkende intentie; controleer vóór campagne-uitsluiting."
+    },
+    {
+     "term": "handleiding",
+     "source": "suggested",
+     "requiresReview": true,
+     "reason": "Suggestie op basis van veelvoorkomende afwijkende intentie; controleer vóór campagne-uitsluiting."
+    },
+    {
+     "term": "tweedehands",
+     "source": "suggested",
+     "requiresReview": true,
+     "reason": "Suggestie op basis van veelvoorkomende afwijkende intentie; controleer vóór campagne-uitsluiting."
+    }
+   ],
+   "metrics": {
+    "searchVolume": "unknown_not_confirmed",
+    "cpc": "unknown_not_confirmed",
+    "competition": "unknown_not_confirmed",
+    "source": null
+   },
+   "disclaimer": "Keywordkandidaten zijn gebaseerd op getypeerd pagina- of klantbewijs. Doelmarkten worden niet afgeleid uit alleen de paginataal. Zoekvolume, CPC en Google Ads-concurrentie vereisen een actuele externe databron.",
+   "customerProfile": null
+  },
+  "seo": {
+   "score": 97,
+   "grade": "A",
+   "coverage": {
+    "relevant": 43,
+    "confirmed": 25,
+    "unableToConfirm": 18,
+    "totalWeight": 206,
+    "assessedWeight": 143,
+    "coveragePercent": 69,
+    "highConfidencePercent": 80
+   },
+   "checks": [
+    {
+     "key": "broken_links",
+     "category": "seo",
+     "title": "Broken links",
+     "status": "pass",
+     "message": "1 interne link(s) steekproefsgewijs gecontroleerd; geen 404, 410 of 5xx gevonden.",
+     "fix": "Blijf interne links controleren bij wijzigingen en verwijderde pagina's.",
+     "points": 5,
+     "maxPoints": 5,
+     "issue_id": "broken_links",
+     "rule_id": "broken_links",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "discovered=1; checked=1; broken=0; sampleLimit=24; truncated=false",
+      "details": "1 interne link(s) steekproefsgewijs gecontroleerd; geen 404, 410 of 5xx gevonden."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "internal_redirects",
+     "category": "seo",
+     "title": "Interne redirects",
+     "status": "pass",
+     "message": "1 interne link(s) gecontroleerd; geen doorgestuurde bestemmingen gevonden.",
+     "fix": "Link intern bij voorkeur direct naar de definitieve URL.",
+     "points": 4,
+     "maxPoints": 4,
+     "issue_id": "internal_redirects",
+     "rule_id": "internal_redirects",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "discovered=1; checked=1; redirected=0; sampleLimit=24; truncated=false",
+      "details": "1 interne link(s) gecontroleerd; geen doorgestuurde bestemmingen gevonden."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "semantic_link_destination",
+     "category": "seo",
+     "title": "Verkeerde linkbestemming",
+     "status": "pass",
+     "message": "Geen sterke semantische mismatch gevonden tussen benoemde interne links en hun bestemming.",
+     "fix": "Houd linktekst en bestemming inhoudelijk consistent.",
+     "points": 5,
+     "maxPoints": 5,
+     "issue_id": "semantic_link_destination",
+     "rule_id": "semantic_link_destination",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "links=1; semanticMismatches=0; cardMismatches=0; featuredMismatches=0",
+      "details": "Geen sterke semantische mismatch gevonden tussen benoemde interne links en hun bestemming."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "title",
+     "category": "seo",
+     "title": "Meta title",
+     "status": "pass",
+     "message": "De title is 34 tekens en valt binnen de aanbevolen lengte.",
+     "fix": "Maak de title uniek, duidelijk en relevant voor de zoekintentie.",
+     "points": 10,
+     "maxPoints": 10,
+     "issue_id": "META_TITLE_GUIDANCE",
+     "rule_id": "META_TITLE_GUIDANCE",
+     "issue_status": "PASS",
+     "severity": "MEDIUM",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "Coolblue - Alles voor een glimlach",
+      "details": "De title is 34 tekens en valt binnen de aanbevolen lengte."
+     },
+     "fix_category": "B"
+    },
+    {
+     "key": "description",
+     "category": "seo",
+     "title": "Meta description",
+     "status": "pass",
+     "message": "De description is 100 tekens. De klassieke 120–160 tekens is een optimalisatierichtlijn, geen technische SEO-eis; deze aanwezige description wordt daarom niet als fout bestraft.",
+     "fix": "Houd de description concreet, uniek en passend bij de zoekintentie; optimaliseer lengte alleen wanneer dat de zoekpreview en boodschap verbetert.",
+     "points": 10,
+     "maxPoints": 10,
+     "issue_id": "META_DESCRIPTION_GUIDANCE",
+     "rule_id": "META_DESCRIPTION_GUIDANCE",
+     "issue_status": "PASS",
+     "severity": "LOW",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "Beste webwinkel 2022. Voor 23.59u besteld? Morgen gratis bezorgd. Ook op zondag! Gratis retourneren.",
+      "details": "De description is 100 tekens. De klassieke 120–160 tekens is een optimalisatierichtlijn, geen technische SEO-eis; deze aanwezige description wordt daarom niet als fout bestraft."
+     },
+     "fix_category": "B",
+     "rootCause": "meta_description"
+    },
+    {
+     "key": "h1",
+     "category": "seo",
+     "title": "H1-heading",
+     "status": "warning",
+     "message": "Er is geen H1-heading gevonden. Dit is een structuur-/toegankelijkheidsaanbeveling en geen op zichzelf bewezen rankingfout.",
+     "fix": "Voeg een duidelijke primaire H1 toe wanneer dat past bij de pagina-inhoud.",
+     "points": 6,
+     "maxPoints": 8,
+     "issue_id": "H1_MISSING",
+     "rule_id": "H1_MISSING",
+     "issue_status": "WARNING",
+     "severity": "HIGH",
+     "confidence": "high",
+     "impactClaim": "best_practice",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "h1Count=0; consentExcluded=0",
+      "details": "Er is geen H1-heading gevonden. Dit is een structuur-/toegankelijkheidsaanbeveling en geen op zichzelf bewezen rankingfout."
+     },
+     "fix_category": "B"
+    },
+    {
+     "key": "headings",
+     "category": "seo",
+     "title": "Heading-structuur",
+     "status": "warning",
+     "message": "Er zijn 54 subheading(s) gevonden, maar geen duidelijke H2-laag. Dit is structuuradvies en geen bewezen rankingfout.",
+     "fix": "Gebruik H2/H3-secties wanneer die de inhoud logisch groeperen; voeg geen headings toe puur voor de score.",
+     "points": 6,
+     "maxPoints": 7,
+     "issue_id": "headings",
+     "rule_id": "headings",
+     "issue_status": "WARNING",
+     "severity": "MEDIUM",
+     "confidence": "medium",
+     "impactClaim": "best_practice",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": 54,
+      "details": "Er zijn 54 subheading(s) gevonden, maar geen duidelijke H2-laag. Dit is structuuradvies en geen bewezen rankingfout."
+     },
+     "fix_category": "B"
+    },
+    {
+     "key": "canonical",
+     "category": "seo",
+     "title": "Canonical URL",
+     "status": "pass",
+     "message": "De canonical verwijst naar dezelfde URL als de gescande pagina.",
+     "fix": "Behoud een duidelijke canonical die overeenkomt met de voorkeurs- en taalstructuur van de site.",
+     "points": 7,
+     "maxPoints": 7,
+     "issue_id": "canonical",
+     "rule_id": "canonical",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "https://www.coolblue.nl",
+      "details": "De canonical verwijst naar dezelfde URL als de gescande pagina."
+     },
+     "fix_category": "B"
+    },
+    {
+     "key": "viewport",
+     "category": "seo",
+     "title": "Mobiele viewport",
+     "status": "pass",
+     "message": "De viewport bevat een responsive width=device-width-instelling: \"width=device-width, initial-scale=1\".",
+     "fix": "Test daarnaast de echte mobiele layout, tapdoelen en Core Web Vitals.",
+     "points": 5,
+     "maxPoints": 5,
+     "issue_id": "viewport",
+     "rule_id": "viewport",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "width=device-width, initial-scale=1",
+      "details": "De viewport bevat een responsive width=device-width-instelling: \"width=device-width, initial-scale=1\"."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "lang",
+     "category": "seo",
+     "title": "HTML-taal",
+     "status": "pass",
+     "message": "De pagina heeft een syntactisch geldige lang-code: \"nl\".",
+     "fix": "Controleer afzonderlijk of deze code overeenkomt met de werkelijk gebruikte paginataal.",
+     "points": 4,
+     "maxPoints": 4,
+     "issue_id": "lang",
+     "rule_id": "lang",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "nl",
+      "details": "De pagina heeft een syntactisch geldige lang-code: \"nl\"."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "indexability",
+     "category": "seo",
+     "title": "Indexeerbaarheid",
+     "status": "pass",
+     "message": "Geen noindex gevonden en geen robots.txt-regel blokkeert dit pad; meta robots: \"index, follow\".",
+     "fix": "Externe zoekmachine-indexstatus blijft een aparte controle.",
+     "points": 6,
+     "maxPoints": 6,
+     "issue_id": "indexability",
+     "rule_id": "indexability",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "no noindex or applicable robots block found",
+      "details": "Geen noindex gevonden en geen robots.txt-regel blokkeert dit pad; meta robots: \"index, follow\"."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "alt",
+     "category": "seo",
+     "title": "Afbeelding alt-teksten",
+     "status": "pass",
+     "message": "Alle 2 controleerbare <img>-elementen in de gerenderde HTML hebben alt-attributen. Afbeeldingen die pas na de rendersnapshot verschijnen zijn niet meegenomen.",
+     "fix": "Schrijf beschrijvende alt-teksten voor informatieve afbeeldingen.",
+     "points": 7,
+     "maxPoints": 7,
+     "issue_id": "IMAGE_ALT_MISSING",
+     "rule_id": "IMAGE_ALT_MISSING",
+     "issue_status": "PASS",
+     "severity": "LOW",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": 0,
+      "details": "Alle 2 controleerbare <img>-elementen in de gerenderde HTML hebben alt-attributen. Afbeeldingen die pas na de rendersnapshot verschijnen zijn niet meegenomen."
+     },
+     "fix_category": "B"
+    },
+    {
+     "key": "content",
+     "category": "seo",
+     "title": "Contentdekking",
+     "status": "pass",
+     "message": "Ongeveer 1321 woorden gevonden op deze homepage. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld.",
+     "fix": "Behoud nuttige, unieke content die de zoekintentie en klantvragen beantwoordt.",
+     "points": 7,
+     "maxPoints": 7,
+     "issue_id": "content",
+     "rule_id": "content",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "medium",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "wordCount=1321; pageType=homepage; minimum=150; strong=250",
+      "details": "Ongeveer 1321 woorden gevonden op deze homepage. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "https",
+     "category": "seo",
+     "title": "HTTPS",
+     "status": "pass",
+     "message": "De uiteindelijke URL gebruikt HTTPS.",
+     "fix": "Behoud HTTPS op alle publieke pagina's en redirects.",
+     "points": 7,
+     "maxPoints": 7,
+     "issue_id": "https",
+     "rule_id": "https",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": true,
+      "details": "De uiteindelijke URL gebruikt HTTPS."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "status",
+     "category": "seo",
+     "title": "HTTP-status",
+     "status": "pass",
+     "message": "De pagina gaf HTTP 200 terug.",
+     "fix": "Behoud HTTP 200 voor normale indexeerbare pagina's.",
+     "points": 6,
+     "maxPoints": 6,
+     "issue_id": "status",
+     "rule_id": "status",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": 200,
+      "details": "De pagina gaf HTTP 200 terug."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "response",
+     "category": "seo",
+     "title": "Server response",
+     "status": "pass",
+     "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 369 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
+     "fix": "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.",
+     "points": 5,
+     "maxPoints": 5,
+     "issue_id": "response",
+     "rule_id": "response",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": 369,
+      "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 369 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "social",
+     "category": "seo",
+     "title": "Social metadata",
+     "status": "warning",
+     "message": "Open Graph vraagt aandacht. Ontbrekend: og:image.",
+     "fix": "Vul ontbrekende velden aan en gebruik voor og:image en og:url absolute http(s)-URL's.",
+     "points": 3,
+     "maxPoints": 4,
+     "issue_id": "SOCIAL_METADATA_INCOMPLETE",
+     "rule_id": "SOCIAL_METADATA_INCOMPLETE",
+     "issue_status": "WARNING",
+     "severity": "LOW",
+     "confidence": "high",
+     "impactClaim": "best_practice",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "og:title, og:description",
+      "details": "Open Graph vraagt aandacht. Ontbrekend: og:image."
+     },
+     "fix_category": "B",
+     "rootCause": "social_metadata"
+    },
+    {
+     "key": "robots_txt",
+     "category": "seo",
+     "title": "robots.txt",
+     "status": "pass",
+     "message": "robots.txt is bereikbaar en bevat geen toepasselijke blokkade voor het gescande pad.",
+     "fix": "Houd crawlregels bewust en controleer belangrijke publieke pagina's.",
+     "points": 4,
+     "maxPoints": 4,
+     "issue_id": "robots_txt",
+     "rule_id": "robots_txt",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "https://www.coolblue.nl/robots.txt; pathBlocked=false",
+      "details": "robots.txt is bereikbaar en bevat geen toepasselijke blokkade voor het gescande pad."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "sitemap",
+     "category": "seo",
+     "title": "Sitemap-signaal",
+     "status": "pass",
+     "message": "Een bereikbare XML sitemap is gevonden: https://sitemaps.coolblue.nl/www.coolblue.nl/nl/products_1.xml",
+     "fix": "Controleer of de sitemap alleen canonieke, indexeerbare URL's bevat.",
+     "points": 4,
+     "maxPoints": 4,
+     "issue_id": "sitemap",
+     "rule_id": "sitemap",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "https://sitemaps.coolblue.nl/www.coolblue.nl/nl/products_1.xml",
+      "details": "Een bereikbare XML sitemap is gevonden: https://sitemaps.coolblue.nl/www.coolblue.nl/nl/products_1.xml"
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "twitter_card",
+     "category": "seo",
+     "title": "Twitter Card",
+     "status": "pass",
+     "message": "Geldige Twitter/X Card ingesteld: \"summary\".",
+     "fix": "Behoud dit type zolang de social preview past bij de pagina.",
+     "points": 3,
+     "maxPoints": 3,
+     "issue_id": "TWITTER_CARD_MISSING",
+     "rule_id": "TWITTER_CARD_MISSING",
+     "issue_status": "PASS",
+     "severity": "LOW",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "summary",
+      "details": "Geldige Twitter/X Card ingesteld: \"summary\"."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "hreflang",
+     "category": "seo",
+     "title": "Meertalige SEO",
+     "status": "unable_to_confirm",
+     "message": "5 hreflang-doel(en) verwijzen naar een ander hostdomein. Dit kan geldig zijn voor internationale domeinen, maar RankFix kan de relatie vanuit deze ene pagina niet bewijzen.",
+     "fix": "Controleer de externe taalhosts en hun wederkerige hreflang/canonical-relaties in een sitebrede crawl voordat dit als fout wordt beoordeeld.",
+     "points": 0,
+     "maxPoints": 5,
+     "issue_id": "HREFLANG_MISSING",
+     "rule_id": "HREFLANG_MISSING",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "MEDIUM",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "nl-nl=>https://www.coolblue.nl | en-nl=>https://www.coolblue.nl/en | nl-be=>https://www.coolblue.be/nl | fr-be=>https://www.coolblue.be/fr | en-be=>https://www.coolblue.be/en | de-de=>https://www.coolblue.de | en-de=>https://www.coolblue.de/en",
+      "details": "5 hreflang-doel(en) verwijzen naar een ander hostdomein. Dit kan geldig zijn voor internationale domeinen, maar RankFix kan de relatie vanuit deze ene pagina niet bewijzen."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "duplicate_path",
+     "category": "seo",
+     "title": "URL-structuur",
+     "status": "pass",
+     "message": "Geen direct dubbele opeenvolgende padsegmenten gevonden.",
+     "fix": "Houd URL's kort, logisch en stabiel.",
+     "points": 5,
+     "maxPoints": 5,
+     "issue_id": "DUPLICATE_URL_PATH",
+     "rule_id": "DUPLICATE_URL_PATH",
+     "issue_status": "PASS",
+     "severity": "MEDIUM",
+     "confidence": "medium",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "duplicateSegments=false; found=none",
+      "details": "Geen direct dubbele opeenvolgende padsegmenten gevonden."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "html_escape",
+     "category": "seo",
+     "title": "Tekstweergave",
+     "status": "pass",
+     "message": "Geen duidelijke zichtbare HTML-escape-fout gevonden.",
+     "fix": "Behoud correcte HTML-encoding.",
+     "points": 4,
+     "maxPoints": 4,
+     "issue_id": "HTML_ESCAPE_VISIBLE",
+     "rule_id": "HTML_ESCAPE_VISIBLE",
+     "issue_status": "PASS",
+     "severity": "LOW",
+     "confidence": "medium",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "visibleEscape=false",
+      "details": "Geen duidelijke zichtbare HTML-escape-fout gevonden."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "image_sources",
+     "category": "seo",
+     "title": "Afbeeldingsbronnen",
+     "status": "pass",
+     "message": "2 afbeelding(en) worden via een externe host/CDN geladen; de bronnen zijn in de opgehaalde HTML bevestigd. Dit is op zichzelf geen probleem.",
+     "fix": "Beoordeel afbeeldingsperformance alleen afzonderlijk wanneer runtime-metingen daar aanleiding toe geven.",
+     "points": 5,
+     "maxPoints": 5,
+     "issue_id": "EXTERNAL_IMAGE_SOURCE",
+     "rule_id": "EXTERNAL_IMAGE_SOURCE",
+     "issue_status": "PASS",
+     "severity": "LOW",
+     "confidence": "medium",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "images=2; external=2; stockHosts=0",
+      "details": "2 afbeelding(en) worden via een externe host/CDN geladen; de bronnen zijn in de opgehaalde HTML bevestigd. Dit is op zichzelf geen probleem."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "trust_legal_signals",
+     "category": "seo",
+     "title": "Privacy & vertrouwenssignalen",
+     "status": "pass",
+     "message": "Links naar privacy, cookies en contact zijn in de opgehaalde HTML gevonden. Bewijs: privacy: \"Privacy statement\" → https://calendly.com/legal/privacy-notice (ander domein) · cookies: \"Privacy statement\" → https://success.awin.com/s/article/Cookie-Consent-Publisher-FAQs?language=en_US (ander domein) · contact (contactformulier): formulier met berichtveld en e-mail/telefoonveld.",
+     "fix": "Houd deze informatie duidelijk vindbaar en actueel. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",
+     "points": 5,
+     "maxPoints": 5,
+     "issue_id": "trust_legal_signals",
+     "rule_id": "trust_legal_signals",
+     "issue_status": "PASS",
+     "severity": "LOW",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "privacy=true (https://calendly.com/legal/privacy-notice); terms=false; cookies=true; contact=true",
+      "details": "Links naar privacy, cookies en contact zijn in de opgehaalde HTML gevonden. Bewijs: privacy: \"Privacy statement\" → https://calendly.com/legal/privacy-notice (ander domein) · cookies: \"Privacy statement\" → https://success.awin.com/s/article/Cookie-Consent-Publisher-FAQs?language=en_US (ander domein) · contact (contactformulier): formulier met berichtveld en e-mail/telefoonveld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "commercial_terms_signal",
+     "category": "seo",
+     "title": "Commerciële voorwaarden",
+     "status": "unable_to_confirm",
+     "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 4,
+     "issue_id": "commercial_terms_signal",
+     "rule_id": "commercial_terms_signal",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "merchant_product_readiness",
+     "category": "seo",
+     "title": "Merchant Center productbasis",
+     "status": "unable_to_confirm",
+     "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 6,
+     "issue_id": "merchant_product_readiness",
+     "rule_id": "merchant_product_readiness",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "merchant_feed_signal",
+     "category": "seo",
+     "title": "Merchant Center feed-signaal",
+     "status": "unable_to_confirm",
+     "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 4,
+     "issue_id": "merchant_feed_signal",
+     "rule_id": "merchant_feed_signal",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "consent_mode_readiness",
+     "category": "seo",
+     "title": "Consent Mode signaal",
+     "status": "not_applicable",
+     "message": "Geen GA4-, Google Ads- of GTM-signaal gevonden waarop deze Consent Mode-controle kan worden toegepast.",
+     "fix": "Controleer consentconfiguratie zodra Google-meet- of advertentietags worden gebruikt.",
+     "points": 0,
+     "maxPoints": 5,
+     "issue_id": "consent_mode_readiness",
+     "rule_id": "consent_mode_readiness",
+     "issue_status": "NOT_APPLICABLE",
+     "severity": "INFO",
+     "confidence": "medium",
+     "reasonCode": "cap_absent",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Geen GA4-, Google Ads- of GTM-signaal gevonden waarop deze Consent Mode-controle kan worden toegepast."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "business_placeholders",
+     "category": "seo",
+     "title": "Bedrijfsgegevens",
+     "status": "pass",
+     "message": "Geen placeholders gevonden en concrete bedrijfsgegevens bevestigd: telefoonnummer.",
+     "fix": "Houd bedrijfs- en contactgegevens actueel en consistent.",
+     "points": 6,
+     "maxPoints": 6,
+     "issue_id": "BUSINESS_PLACEHOLDER",
+     "rule_id": "BUSINESS_PLACEHOLDER",
+     "issue_status": "PASS",
+     "severity": "HIGH",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "placeholders=0; verifiedDetails=telefoonnummer; placeholderExamples=none",
+      "details": "Geen placeholders gevonden en concrete bedrijfsgegevens bevestigd: telefoonnummer."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "price_format",
+     "category": "seo",
+     "title": "Prijsnotatie",
+     "status": "unable_to_confirm",
+     "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 5,
+     "issue_id": "PRICE_FORMAT",
+     "rule_id": "PRICE_FORMAT",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "LOW",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "checkout_funnel_static",
+     "category": "seo",
+     "title": "Checkout & funnel",
+     "status": "unable_to_confirm",
+     "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 0,
+     "issue_id": "checkout_funnel_static",
+     "rule_id": "checkout_funnel_static",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "checkout_information_signal",
+     "category": "seo",
+     "title": "Checkout informatie",
+     "status": "unable_to_confirm",
+     "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 0,
+     "issue_id": "checkout_information_signal",
+     "rule_id": "checkout_information_signal",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "eu_discount_reference_signal",
+     "category": "seo",
+     "title": "EU korting & referentieprijs",
+     "status": "unable_to_confirm",
+     "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 0,
+     "issue_id": "eu_discount_reference_signal",
+     "rule_id": "eu_discount_reference_signal",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "eu_review_transparency_signal",
+     "category": "seo",
+     "title": "EU reviewtransparantie",
+     "status": "unable_to_confirm",
+     "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 0,
+     "issue_id": "eu_review_transparency_signal",
+     "rule_id": "eu_review_transparency_signal",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "eu_scarcity_signal",
+     "category": "seo",
+     "title": "EU schaarsteclaim",
+     "status": "unable_to_confirm",
+     "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 0,
+     "issue_id": "eu_scarcity_signal",
+     "rule_id": "eu_scarcity_signal",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "eu_consumer_information_signal",
+     "category": "seo",
+     "title": "EU consumenteninformatie",
+     "status": "unable_to_confirm",
+     "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 0,
+     "issue_id": "eu_consumer_information_signal",
+     "rule_id": "eu_consumer_information_signal",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "price_currency_consistency",
+     "category": "seo",
+     "title": "Prijs & valuta consistentie",
+     "status": "unable_to_confirm",
+     "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 6,
+     "issue_id": "price_currency_consistency",
+     "rule_id": "price_currency_consistency",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "webshop_trust",
+     "category": "seo",
+     "title": "Webshop vertrouwen",
+     "status": "unable_to_confirm",
+     "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 7,
+     "issue_id": "WEBSHOP_TRUST_SIGNALS",
+     "rule_id": "WEBSHOP_TRUST_SIGNALS",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "HIGH",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "variant_url",
+     "category": "seo",
+     "title": "Productvariant-URL",
+     "status": "unable_to_confirm",
+     "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 5,
+     "issue_id": "PRODUCT_VARIANT_URL",
+     "rule_id": "PRODUCT_VARIANT_URL",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "MEDIUM",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "product_price_consistency",
+     "category": "seo",
+     "title": "Productprijs consistentie",
+     "status": "unable_to_confirm",
+     "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 6,
+     "issue_id": "PRODUCT_PRICE_CONSISTENCY",
+     "rule_id": "PRODUCT_PRICE_CONSISTENCY",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "HIGH",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "product_availability",
+     "category": "seo",
+     "title": "Productvoorraad",
+     "status": "unable_to_confirm",
+     "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 5,
+     "issue_id": "PRODUCT_AVAILABILITY",
+     "rule_id": "PRODUCT_AVAILABILITY",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "MEDIUM",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "webshop_claims",
+     "category": "seo",
+     "title": "Webshop-beloftes",
+     "status": "unable_to_confirm",
+     "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 5,
+     "issue_id": "WEBSHOP_CLAIM_VERIFICATION",
+     "rule_id": "WEBSHOP_CLAIM_VERIFICATION",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "MEDIUM",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "checkout_trust",
+     "category": "seo",
+     "title": "Checkout- en betaalvertrouwen",
+     "status": "unable_to_confirm",
+     "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 5,
+     "issue_id": "CHECKOUT_TRUST_SIGNALS",
+     "rule_id": "CHECKOUT_TRUST_SIGNALS",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "MEDIUM",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "ads_readiness",
+     "category": "seo",
+     "title": "Google Ads readiness",
+     "status": "not_applicable",
+     "message": "Geen Ads-doel of publieke advertentietracking aangetoond; deze controle telt daarom niet mee in de score.",
+     "fix": "Vul het Google Ads-profiel in wanneer Ads voor deze website relevant is.",
+     "points": 0,
+     "maxPoints": 6,
+     "issue_id": "GOOGLE_ADS_READINESS",
+     "rule_id": "GOOGLE_ADS_READINESS",
+     "issue_status": "NOT_APPLICABLE",
+     "severity": "MEDIUM",
+     "confidence": "medium",
+     "reasonCode": "cap_absent",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Geen Ads-doel of publieke advertentietracking aangetoond; deze controle telt daarom niet mee in de score."
+     },
+     "fix_category": "C"
+    }
+   ]
+  },
+  "geo": {
+   "score": 65,
+   "grade": "C",
+   "coverage": {
+    "relevant": 8,
+    "confirmed": 5,
+    "unableToConfirm": 3,
+    "totalWeight": 62,
+    "assessedWeight": 39,
+    "coveragePercent": 63,
+    "highConfidencePercent": 100
+   },
+   "checks": [
+    {
+     "key": "schema",
+     "category": "geo",
+     "title": "Structured data",
+     "status": "warning",
+     "message": "Geen geldige JSON-LD structured data gevonden voor deze homepage. Dit is een machineleesbare optimalisatiekans; de zichtbare pagina kan zonder JSON-LD nog steeds inhoudelijk correct zijn.",
+     "fix": "Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is Organization + WebSite de belangrijkste richting.",
+     "points": 4,
+     "maxPoints": 12,
+     "issue_id": "STRUCTURED_DATA_MISSING",
+     "rule_id": "STRUCTURED_DATA_MISSING",
+     "issue_status": "WARNING",
+     "severity": "MEDIUM",
+     "confidence": "high",
+     "impactClaim": "best_practice",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "validJsonLdBlocks=0",
+      "details": "Geen geldige JSON-LD structured data gevonden voor deze homepage. Dit is een machineleesbare optimalisatiekans; de zichtbare pagina kan zonder JSON-LD nog steeds inhoudelijk correct zijn."
+     },
+     "fix_category": "B",
+     "rootCause": "structured_data_context"
+    },
+    {
+     "key": "organization_website",
+     "category": "geo",
+     "title": "Organization + WebSite",
+     "status": "warning",
+     "message": "De homepage bevat geen bevestigd Organization- of WebSite-schema. Dit is machineleesbaar identity-advies en geen bewijs dat de zichtbare organisatie-identiteit ontbreekt.",
+     "fix": "Voeg alleen passende Organization- en/of WebSite JSON-LD toe met aantoonbare gegevens.",
+     "points": 4,
+     "maxPoints": 8,
+     "issue_id": "ORGANIZATION_WEBSITE_SCHEMA",
+     "rule_id": "ORGANIZATION_WEBSITE_SCHEMA",
+     "issue_status": "WARNING",
+     "severity": "MEDIUM",
+     "confidence": "high",
+     "impactClaim": "best_practice",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "organizationSchema=false; websiteSchema=false; schemaTypes=",
+      "details": "De homepage bevat geen bevestigd Organization- of WebSite-schema. Dit is machineleesbaar identity-advies en geen bewijs dat de zichtbare organisatie-identiteit ontbreekt."
+     },
+     "fix_category": "B"
+    },
+    {
+     "key": "product_copy_optimizer",
+     "category": "geo",
+     "title": "AI Product Copy & Metadata",
+     "status": "unable_to_confirm",
+     "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 5,
+     "issue_id": "PRODUCT_COPY_OPTIMIZER",
+     "rule_id": "PRODUCT_COPY_OPTIMIZER",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "LOW",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+     },
+     "fix_category": "B"
+    },
+    {
+     "key": "product_schema",
+     "category": "geo",
+     "title": "Product structured data",
+     "status": "unable_to_confirm",
+     "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+     "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+     "points": 0,
+     "maxPoints": 8,
+     "issue_id": "PRODUCT_SCHEMA_MISSING",
+     "rule_id": "PRODUCT_SCHEMA_MISSING",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "MEDIUM",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "entity",
+     "category": "geo",
+     "title": "Entity-signalen",
+     "status": "unable_to_confirm",
+     "message": "De beschikbare pagina bevat te weinig onafhankelijk bewijs om entity-signalen betrouwbaar te beoordelen.",
+     "fix": "Bevestig organisatie- of merknaam, contactcontext en officiële profielen met aanvullende pagina- of sitebrede evidence.",
+     "points": 0,
+     "maxPoints": 10,
+     "issue_id": "entity",
+     "rule_id": "entity",
+     "issue_status": "UNABLE_TO_CONFIRM",
+     "severity": "INFO",
+     "confidence": "low",
+     "reasonCode": "weak_evidence",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "De beschikbare pagina bevat te weinig onafhankelijk bewijs om entity-signalen betrouwbaar te beoordelen."
+     },
+     "fix_category": "C",
+     "rootCause": "structured_data_context"
+    },
+    {
+     "key": "breadcrumbs",
+     "category": "geo",
+     "title": "Breadcrumbs",
+     "status": "not_applicable",
+     "message": "Op de homepage is BreadcrumbList normaal niet nodig wanneer er geen breadcrumb-hiërarchie is; deze controle telt daarom niet mee.",
+     "fix": "Gebruik BreadcrumbList vooral op diepe content-, categorie- en productpagina's.",
+     "points": 0,
+     "maxPoints": 6,
+     "issue_id": "breadcrumbs",
+     "rule_id": "breadcrumbs",
+     "issue_status": "NOT_APPLICABLE",
+     "severity": "INFO",
+     "confidence": "medium",
+     "reasonCode": "cap_absent",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Op de homepage is BreadcrumbList normaal niet nodig wanneer er geen breadcrumb-hiërarchie is; deze controle telt daarom niet mee."
+     },
+     "fix_category": "B"
+    },
+    {
+     "key": "faq",
+     "category": "geo",
+     "title": "Vraag & antwoord content",
+     "status": "not_applicable",
+     "message": "Geen FAQ/Q&A-sectie gevonden (Geen vraag-en-antwoordparen gevonden.). Een FAQ is niet verplicht voor iedere pagina en wordt daarom niet als GEO-fout bestraft.",
+     "fix": "Voeg alleen relevante vragen en directe antwoorden toe wanneer dit de gebruiker inhoudelijk helpt.",
+     "points": 0,
+     "maxPoints": 10,
+     "issue_id": "faq",
+     "rule_id": "faq",
+     "issue_status": "NOT_APPLICABLE",
+     "severity": "INFO",
+     "confidence": "medium",
+     "reasonCode": "cap_absent",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "faqContent=false; faqSchema=false",
+      "details": "Geen FAQ/Q&A-sectie gevonden (Geen vraag-en-antwoordparen gevonden.). Een FAQ is niet verplicht voor iedere pagina en wordt daarom niet als GEO-fout bestraft."
+     },
+     "fix_category": "B"
+    },
+    {
+     "key": "author",
+     "category": "geo",
+     "title": "Expertise-signalen",
+     "status": "not_applicable",
+     "message": "Een individuele auteur is niet vereist op een organisatie-, dienst- of merkhomepage. Auteurschap en expertise horen vooral op informatieve artikelen en adviescontent te worden beoordeeld.",
+     "fix": "Controleer auteur, expertise, publicatiedatum en broncontext op pagina's waar auteurschap inhoudelijk relevant is.",
+     "points": 0,
+     "maxPoints": 8,
+     "issue_id": "author",
+     "rule_id": "author",
+     "issue_status": "NOT_APPLICABLE",
+     "severity": "INFO",
+     "confidence": "medium",
+     "reasonCode": "cap_absent",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": null,
+      "details": "Een individuele auteur is niet vereist op een organisatie-, dienst- of merkhomepage. Auteurschap en expertise horen vooral op informatieve artikelen en adviescontent te worden beoordeeld."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "trust",
+     "category": "geo",
+     "title": "Trust & context",
+     "status": "pass",
+     "message": "Contact- en organisatiecontext zijn zichtbaar.",
+     "fix": "Houd bedrijfsnaam, contactgegevens, locatie, verantwoordelijkheden en officiële profielen consistent.",
+     "points": 8,
+     "maxPoints": 8,
+     "issue_id": "trust",
+     "rule_id": "trust",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "contact=true; about=true; socialOrReview=true",
+      "details": "Contact- en organisatiecontext zijn zichtbaar."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "answer",
+     "category": "geo",
+     "title": "Expliciete paginasamenvatting",
+     "status": "pass",
+     "message": "Een meta description en voldoende zichtbare paginatekst geven samen een concrete samenvatting van de pagina.",
+     "fix": "Houd de meta description en zichtbare introductie inhoudelijk consistent.",
+     "points": 6,
+     "maxPoints": 6,
+     "issue_id": "answer",
+     "rule_id": "answer",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "metaDescription=true; wordCount=1321; minimumVisibleWords=80; rendered=true",
+      "details": "Een meta description en voldoende zichtbare paginatekst geven samen een concrete samenvatting van de pagina."
+     },
+     "fix_category": "C"
+    },
+    {
+     "key": "identity",
+     "category": "geo",
+     "title": "Brand identity",
+     "status": "pass",
+     "message": "3/4 merksignalen gevonden. Gevonden: merknaam/branding, bedrijfs-/contactgegevens, officieel social/review-profiel. Ontbrekend: logo.",
+     "fix": "Maak de ontbrekende merksignalen duidelijk en consistent zichtbaar: logo. Structured data wordt apart beoordeeld.",
+     "points": 5,
+     "maxPoints": 5,
+     "issue_id": "identity",
+     "rule_id": "identity",
+     "issue_status": "PASS",
+     "severity": "INFO",
+     "confidence": "high",
+     "impactClaim": "hygiene",
+     "evidence": {
+      "url": "https://www.coolblue.nl/",
+      "found": "brandSignals=3/4; found=merknaam/branding,bedrijfs-/contactgegevens,officieel social/review-profiel; missing=logo",
+      "details": "3/4 merksignalen gevonden. Gevonden: merknaam/branding, bedrijfs-/contactgegevens, officieel social/review-profiel. Ontbrekend: logo."
+     },
+     "fix_category": "C"
+    }
+   ]
+  },
+  "metrics": {
+   "siteType": "WEBSITE",
+   "websiteType": "Website",
+   "sector": {
+    "key": "unknown",
+    "label": "Sector niet bevestigd",
+    "confidence": "low",
+    "confidenceScore": 35,
+    "displayPolicy": "unconfirmed"
+   },
+   "pageTypeClassification": {
+    "type": "homepage",
+    "confidence": "high",
+    "commercialLandingPage": false
+   },
+   "title": "Coolblue - Alles voor een glimlach",
+   "titleLength": 34,
+   "description": "Beste webwinkel 2022. Voor 23.59u besteld? Morgen gratis bezorgd. Ook op zondag! Gratis retourneren.",
+   "descriptionLength": 100,
+   "descriptionState": "present",
+   "h1Count": 0,
+   "h1s": [],
+   "imageCount": 16,
+   "imageElementCount": 2,
+   "imagesMissingAlt": 0,
+   "wordCount": 1321,
+   "headingsCount": 54,
+   "linksCount": 21,
+   "internalLinks": 1,
+   "canonical": "https://www.coolblue.nl",
+   "lang": "nl",
+   "robots": "index, follow",
+   "openGraph": {
+    "title": "Coolblue - Alles voor een glimlach",
+    "description": "Beste webwinkel 2022. Voor 23.59u besteld? Morgen gratis bezorgd. Ook op zondag! Gratis retourneren.",
+    "image": null
+   },
+   "imageAltCandidates": [],
+   "productOptimizer": {
+    "eligible": false,
+    "sourceCount": 0,
+    "product": null,
+    "provenance": "no_product_sample"
+   },
+   "pricingCurrency": {
+    "visibleCurrencies": [],
+    "structuredCurrencies": [],
+    "visiblePriceCount": 0,
+    "visiblePriceEvidenceStrength": "none",
+    "structuredPriceCount": 0,
+    "currencyConflict": false,
+    "mixedVisibleCurrencies": false
+   },
+   "euConsumerSignals": {
+    "discountClaim": false,
+    "referencePriceVisible": false,
+    "discountExamples": [],
+    "referencePriceExamples": [],
+    "reviewPlatforms": [
+     "Trustpilot",
+     "Kiyoh",
+     "Trusted Shops",
+     "Thuiswinkel Waarborg"
+    ],
+    "reviewRating": null,
+    "returnsVisible": false,
+    "reviewContent": true,
+    "reviewTransparency": false,
+    "scarcityClaim": false,
+    "scarcityExamples": [],
+    "personalizedPricingDisclosure": false,
+    "businessIdentityVisible": false,
+    "businessContactVisible": true,
+    "legalConclusion": false
+   },
+   "checkoutFunnel": {
+    "productPage": false,
+    "addToCart": true,
+    "cartLink": false,
+    "checkoutLink": false,
+    "shippingInformation": false,
+    "shippingInformationVisible": false,
+    "shippingInformationStructured": false,
+    "returnsInformationVisible": false,
+    "returnsInformationStructured": false,
+    "shippingCostVisible": false,
+    "paymentMethodsVisible": false,
+    "paymentMethods": [],
+    "visiblePrices": [],
+    "priceNotation": "none",
+    "referencePrices": [],
+    "staticHtmlOnly": false,
+    "javascriptRendered": true,
+    "interactiveFlowExecuted": false
+   },
+   "twitterCard": "summary",
+   "schemaTypes": [],
+   "jsonLdBlocks": 0,
+   "sitemapFound": true,
+   "robotsMentionsSitemap": true
+  },
+  "checks": [
+   {
+    "key": "broken_links",
+    "category": "seo",
+    "title": "Broken links",
+    "status": "pass",
+    "message": "1 interne link(s) steekproefsgewijs gecontroleerd; geen 404, 410 of 5xx gevonden.",
+    "fix": "Blijf interne links controleren bij wijzigingen en verwijderde pagina's.",
+    "points": 5,
+    "maxPoints": 5,
+    "issue_id": "broken_links",
+    "rule_id": "broken_links",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "discovered=1; checked=1; broken=0; sampleLimit=24; truncated=false",
+     "details": "1 interne link(s) steekproefsgewijs gecontroleerd; geen 404, 410 of 5xx gevonden."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "internal_redirects",
+    "category": "seo",
+    "title": "Interne redirects",
+    "status": "pass",
+    "message": "1 interne link(s) gecontroleerd; geen doorgestuurde bestemmingen gevonden.",
+    "fix": "Link intern bij voorkeur direct naar de definitieve URL.",
+    "points": 4,
+    "maxPoints": 4,
+    "issue_id": "internal_redirects",
+    "rule_id": "internal_redirects",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "discovered=1; checked=1; redirected=0; sampleLimit=24; truncated=false",
+     "details": "1 interne link(s) gecontroleerd; geen doorgestuurde bestemmingen gevonden."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "semantic_link_destination",
+    "category": "seo",
+    "title": "Verkeerde linkbestemming",
+    "status": "pass",
+    "message": "Geen sterke semantische mismatch gevonden tussen benoemde interne links en hun bestemming.",
+    "fix": "Houd linktekst en bestemming inhoudelijk consistent.",
+    "points": 5,
+    "maxPoints": 5,
+    "issue_id": "semantic_link_destination",
+    "rule_id": "semantic_link_destination",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "links=1; semanticMismatches=0; cardMismatches=0; featuredMismatches=0",
+     "details": "Geen sterke semantische mismatch gevonden tussen benoemde interne links en hun bestemming."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "title",
+    "category": "seo",
+    "title": "Meta title",
+    "status": "pass",
+    "message": "De title is 34 tekens en valt binnen de aanbevolen lengte.",
+    "fix": "Maak de title uniek, duidelijk en relevant voor de zoekintentie.",
+    "points": 10,
+    "maxPoints": 10,
+    "issue_id": "META_TITLE_GUIDANCE",
+    "rule_id": "META_TITLE_GUIDANCE",
+    "issue_status": "PASS",
+    "severity": "MEDIUM",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "Coolblue - Alles voor een glimlach",
+     "details": "De title is 34 tekens en valt binnen de aanbevolen lengte."
+    },
+    "fix_category": "B"
+   },
+   {
+    "key": "description",
+    "category": "seo",
+    "title": "Meta description",
+    "status": "pass",
+    "message": "De description is 100 tekens. De klassieke 120–160 tekens is een optimalisatierichtlijn, geen technische SEO-eis; deze aanwezige description wordt daarom niet als fout bestraft.",
+    "fix": "Houd de description concreet, uniek en passend bij de zoekintentie; optimaliseer lengte alleen wanneer dat de zoekpreview en boodschap verbetert.",
+    "points": 10,
+    "maxPoints": 10,
+    "issue_id": "META_DESCRIPTION_GUIDANCE",
+    "rule_id": "META_DESCRIPTION_GUIDANCE",
+    "issue_status": "PASS",
+    "severity": "LOW",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "Beste webwinkel 2022. Voor 23.59u besteld? Morgen gratis bezorgd. Ook op zondag! Gratis retourneren.",
+     "details": "De description is 100 tekens. De klassieke 120–160 tekens is een optimalisatierichtlijn, geen technische SEO-eis; deze aanwezige description wordt daarom niet als fout bestraft."
+    },
+    "fix_category": "B",
+    "rootCause": "meta_description"
+   },
+   {
+    "key": "h1",
+    "category": "seo",
+    "title": "H1-heading",
+    "status": "warning",
+    "message": "Er is geen H1-heading gevonden. Dit is een structuur-/toegankelijkheidsaanbeveling en geen op zichzelf bewezen rankingfout.",
+    "fix": "Voeg een duidelijke primaire H1 toe wanneer dat past bij de pagina-inhoud.",
+    "points": 6,
+    "maxPoints": 8,
+    "issue_id": "H1_MISSING",
+    "rule_id": "H1_MISSING",
+    "issue_status": "WARNING",
+    "severity": "HIGH",
+    "confidence": "high",
+    "impactClaim": "best_practice",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "h1Count=0; consentExcluded=0",
+     "details": "Er is geen H1-heading gevonden. Dit is een structuur-/toegankelijkheidsaanbeveling en geen op zichzelf bewezen rankingfout."
+    },
+    "fix_category": "B"
+   },
+   {
+    "key": "headings",
+    "category": "seo",
+    "title": "Heading-structuur",
+    "status": "warning",
+    "message": "Er zijn 54 subheading(s) gevonden, maar geen duidelijke H2-laag. Dit is structuuradvies en geen bewezen rankingfout.",
+    "fix": "Gebruik H2/H3-secties wanneer die de inhoud logisch groeperen; voeg geen headings toe puur voor de score.",
+    "points": 6,
+    "maxPoints": 7,
+    "issue_id": "headings",
+    "rule_id": "headings",
+    "issue_status": "WARNING",
+    "severity": "MEDIUM",
+    "confidence": "medium",
+    "impactClaim": "best_practice",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": 54,
+     "details": "Er zijn 54 subheading(s) gevonden, maar geen duidelijke H2-laag. Dit is structuuradvies en geen bewezen rankingfout."
+    },
+    "fix_category": "B"
+   },
+   {
+    "key": "canonical",
+    "category": "seo",
+    "title": "Canonical URL",
+    "status": "pass",
+    "message": "De canonical verwijst naar dezelfde URL als de gescande pagina.",
+    "fix": "Behoud een duidelijke canonical die overeenkomt met de voorkeurs- en taalstructuur van de site.",
+    "points": 7,
+    "maxPoints": 7,
+    "issue_id": "canonical",
+    "rule_id": "canonical",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "https://www.coolblue.nl",
+     "details": "De canonical verwijst naar dezelfde URL als de gescande pagina."
+    },
+    "fix_category": "B"
+   },
+   {
+    "key": "viewport",
+    "category": "seo",
+    "title": "Mobiele viewport",
+    "status": "pass",
+    "message": "De viewport bevat een responsive width=device-width-instelling: \"width=device-width, initial-scale=1\".",
+    "fix": "Test daarnaast de echte mobiele layout, tapdoelen en Core Web Vitals.",
+    "points": 5,
+    "maxPoints": 5,
+    "issue_id": "viewport",
+    "rule_id": "viewport",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "width=device-width, initial-scale=1",
+     "details": "De viewport bevat een responsive width=device-width-instelling: \"width=device-width, initial-scale=1\"."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "lang",
+    "category": "seo",
+    "title": "HTML-taal",
+    "status": "pass",
+    "message": "De pagina heeft een syntactisch geldige lang-code: \"nl\".",
+    "fix": "Controleer afzonderlijk of deze code overeenkomt met de werkelijk gebruikte paginataal.",
+    "points": 4,
+    "maxPoints": 4,
+    "issue_id": "lang",
+    "rule_id": "lang",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "nl",
+     "details": "De pagina heeft een syntactisch geldige lang-code: \"nl\"."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "indexability",
+    "category": "seo",
+    "title": "Indexeerbaarheid",
+    "status": "pass",
+    "message": "Geen noindex gevonden en geen robots.txt-regel blokkeert dit pad; meta robots: \"index, follow\".",
+    "fix": "Externe zoekmachine-indexstatus blijft een aparte controle.",
+    "points": 6,
+    "maxPoints": 6,
+    "issue_id": "indexability",
+    "rule_id": "indexability",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "no noindex or applicable robots block found",
+     "details": "Geen noindex gevonden en geen robots.txt-regel blokkeert dit pad; meta robots: \"index, follow\"."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "alt",
+    "category": "seo",
+    "title": "Afbeelding alt-teksten",
+    "status": "pass",
+    "message": "Alle 2 controleerbare <img>-elementen in de gerenderde HTML hebben alt-attributen. Afbeeldingen die pas na de rendersnapshot verschijnen zijn niet meegenomen.",
+    "fix": "Schrijf beschrijvende alt-teksten voor informatieve afbeeldingen.",
+    "points": 7,
+    "maxPoints": 7,
+    "issue_id": "IMAGE_ALT_MISSING",
+    "rule_id": "IMAGE_ALT_MISSING",
+    "issue_status": "PASS",
+    "severity": "LOW",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": 0,
+     "details": "Alle 2 controleerbare <img>-elementen in de gerenderde HTML hebben alt-attributen. Afbeeldingen die pas na de rendersnapshot verschijnen zijn niet meegenomen."
+    },
+    "fix_category": "B"
+   },
+   {
+    "key": "content",
+    "category": "seo",
+    "title": "Contentdekking",
+    "status": "pass",
+    "message": "Ongeveer 1321 woorden gevonden op deze homepage. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld.",
+    "fix": "Behoud nuttige, unieke content die de zoekintentie en klantvragen beantwoordt.",
+    "points": 7,
+    "maxPoints": 7,
+    "issue_id": "content",
+    "rule_id": "content",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "medium",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "wordCount=1321; pageType=homepage; minimum=150; strong=250",
+     "details": "Ongeveer 1321 woorden gevonden op deze homepage. Dat is voldoende tekstuele dekking als kwantitatief signaal; relevantie en kwaliteit moeten afzonderlijk worden beoordeeld."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "https",
+    "category": "seo",
+    "title": "HTTPS",
+    "status": "pass",
+    "message": "De uiteindelijke URL gebruikt HTTPS.",
+    "fix": "Behoud HTTPS op alle publieke pagina's en redirects.",
+    "points": 7,
+    "maxPoints": 7,
+    "issue_id": "https",
+    "rule_id": "https",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": true,
+     "details": "De uiteindelijke URL gebruikt HTTPS."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "status",
+    "category": "seo",
+    "title": "HTTP-status",
+    "status": "pass",
+    "message": "De pagina gaf HTTP 200 terug.",
+    "fix": "Behoud HTTP 200 voor normale indexeerbare pagina's.",
+    "points": 6,
+    "maxPoints": 6,
+    "issue_id": "status",
+    "rule_id": "status",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": 200,
+     "details": "De pagina gaf HTTP 200 terug."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "response",
+    "category": "seo",
+    "title": "Server response",
+    "status": "pass",
+    "message": "RankFix ontving de eerste volledige HTTP-response in ongeveer 369 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.",
+    "fix": "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.",
+    "points": 5,
+    "maxPoints": 5,
+    "issue_id": "response",
+    "rule_id": "response",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": 369,
+     "details": "RankFix ontving de eerste volledige HTTP-response in ongeveer 369 ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "social",
+    "category": "seo",
+    "title": "Social metadata",
+    "status": "warning",
+    "message": "Open Graph vraagt aandacht. Ontbrekend: og:image.",
+    "fix": "Vul ontbrekende velden aan en gebruik voor og:image en og:url absolute http(s)-URL's.",
+    "points": 3,
+    "maxPoints": 4,
+    "issue_id": "SOCIAL_METADATA_INCOMPLETE",
+    "rule_id": "SOCIAL_METADATA_INCOMPLETE",
+    "issue_status": "WARNING",
+    "severity": "LOW",
+    "confidence": "high",
+    "impactClaim": "best_practice",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "og:title, og:description",
+     "details": "Open Graph vraagt aandacht. Ontbrekend: og:image."
+    },
+    "fix_category": "B",
+    "rootCause": "social_metadata"
+   },
+   {
+    "key": "robots_txt",
+    "category": "seo",
+    "title": "robots.txt",
+    "status": "pass",
+    "message": "robots.txt is bereikbaar en bevat geen toepasselijke blokkade voor het gescande pad.",
+    "fix": "Houd crawlregels bewust en controleer belangrijke publieke pagina's.",
+    "points": 4,
+    "maxPoints": 4,
+    "issue_id": "robots_txt",
+    "rule_id": "robots_txt",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "https://www.coolblue.nl/robots.txt; pathBlocked=false",
+     "details": "robots.txt is bereikbaar en bevat geen toepasselijke blokkade voor het gescande pad."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "sitemap",
+    "category": "seo",
+    "title": "Sitemap-signaal",
+    "status": "pass",
+    "message": "Een bereikbare XML sitemap is gevonden: https://sitemaps.coolblue.nl/www.coolblue.nl/nl/products_1.xml",
+    "fix": "Controleer of de sitemap alleen canonieke, indexeerbare URL's bevat.",
+    "points": 4,
+    "maxPoints": 4,
+    "issue_id": "sitemap",
+    "rule_id": "sitemap",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "https://sitemaps.coolblue.nl/www.coolblue.nl/nl/products_1.xml",
+     "details": "Een bereikbare XML sitemap is gevonden: https://sitemaps.coolblue.nl/www.coolblue.nl/nl/products_1.xml"
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "twitter_card",
+    "category": "seo",
+    "title": "Twitter Card",
+    "status": "pass",
+    "message": "Geldige Twitter/X Card ingesteld: \"summary\".",
+    "fix": "Behoud dit type zolang de social preview past bij de pagina.",
+    "points": 3,
+    "maxPoints": 3,
+    "issue_id": "TWITTER_CARD_MISSING",
+    "rule_id": "TWITTER_CARD_MISSING",
+    "issue_status": "PASS",
+    "severity": "LOW",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "summary",
+     "details": "Geldige Twitter/X Card ingesteld: \"summary\"."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "hreflang",
+    "category": "seo",
+    "title": "Meertalige SEO",
+    "status": "unable_to_confirm",
+    "message": "5 hreflang-doel(en) verwijzen naar een ander hostdomein. Dit kan geldig zijn voor internationale domeinen, maar RankFix kan de relatie vanuit deze ene pagina niet bewijzen.",
+    "fix": "Controleer de externe taalhosts en hun wederkerige hreflang/canonical-relaties in een sitebrede crawl voordat dit als fout wordt beoordeeld.",
+    "points": 0,
+    "maxPoints": 5,
+    "issue_id": "HREFLANG_MISSING",
+    "rule_id": "HREFLANG_MISSING",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "MEDIUM",
+    "confidence": "low",
+    "reasonCode": "weak_evidence",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "nl-nl=>https://www.coolblue.nl | en-nl=>https://www.coolblue.nl/en | nl-be=>https://www.coolblue.be/nl | fr-be=>https://www.coolblue.be/fr | en-be=>https://www.coolblue.be/en | de-de=>https://www.coolblue.de | en-de=>https://www.coolblue.de/en",
+     "details": "5 hreflang-doel(en) verwijzen naar een ander hostdomein. Dit kan geldig zijn voor internationale domeinen, maar RankFix kan de relatie vanuit deze ene pagina niet bewijzen."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "duplicate_path",
+    "category": "seo",
+    "title": "URL-structuur",
+    "status": "pass",
+    "message": "Geen direct dubbele opeenvolgende padsegmenten gevonden.",
+    "fix": "Houd URL's kort, logisch en stabiel.",
+    "points": 5,
+    "maxPoints": 5,
+    "issue_id": "DUPLICATE_URL_PATH",
+    "rule_id": "DUPLICATE_URL_PATH",
+    "issue_status": "PASS",
+    "severity": "MEDIUM",
+    "confidence": "medium",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "duplicateSegments=false; found=none",
+     "details": "Geen direct dubbele opeenvolgende padsegmenten gevonden."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "html_escape",
+    "category": "seo",
+    "title": "Tekstweergave",
+    "status": "pass",
+    "message": "Geen duidelijke zichtbare HTML-escape-fout gevonden.",
+    "fix": "Behoud correcte HTML-encoding.",
+    "points": 4,
+    "maxPoints": 4,
+    "issue_id": "HTML_ESCAPE_VISIBLE",
+    "rule_id": "HTML_ESCAPE_VISIBLE",
+    "issue_status": "PASS",
+    "severity": "LOW",
+    "confidence": "medium",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "visibleEscape=false",
+     "details": "Geen duidelijke zichtbare HTML-escape-fout gevonden."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "image_sources",
+    "category": "seo",
+    "title": "Afbeeldingsbronnen",
+    "status": "pass",
+    "message": "2 afbeelding(en) worden via een externe host/CDN geladen; de bronnen zijn in de opgehaalde HTML bevestigd. Dit is op zichzelf geen probleem.",
+    "fix": "Beoordeel afbeeldingsperformance alleen afzonderlijk wanneer runtime-metingen daar aanleiding toe geven.",
+    "points": 5,
+    "maxPoints": 5,
+    "issue_id": "EXTERNAL_IMAGE_SOURCE",
+    "rule_id": "EXTERNAL_IMAGE_SOURCE",
+    "issue_status": "PASS",
+    "severity": "LOW",
+    "confidence": "medium",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "images=2; external=2; stockHosts=0",
+     "details": "2 afbeelding(en) worden via een externe host/CDN geladen; de bronnen zijn in de opgehaalde HTML bevestigd. Dit is op zichzelf geen probleem."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "trust_legal_signals",
+    "category": "seo",
+    "title": "Privacy & vertrouwenssignalen",
+    "status": "pass",
+    "message": "Links naar privacy, cookies en contact zijn in de opgehaalde HTML gevonden. Bewijs: privacy: \"Privacy statement\" → https://calendly.com/legal/privacy-notice (ander domein) · cookies: \"Privacy statement\" → https://success.awin.com/s/article/Cookie-Consent-Publisher-FAQs?language=en_US (ander domein) · contact (contactformulier): formulier met berichtveld en e-mail/telefoonveld.",
+    "fix": "Houd deze informatie duidelijk vindbaar en actueel. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",
+    "points": 5,
+    "maxPoints": 5,
+    "issue_id": "trust_legal_signals",
+    "rule_id": "trust_legal_signals",
+    "issue_status": "PASS",
+    "severity": "LOW",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "privacy=true (https://calendly.com/legal/privacy-notice); terms=false; cookies=true; contact=true",
+     "details": "Links naar privacy, cookies en contact zijn in de opgehaalde HTML gevonden. Bewijs: privacy: \"Privacy statement\" → https://calendly.com/legal/privacy-notice (ander domein) · cookies: \"Privacy statement\" → https://success.awin.com/s/article/Cookie-Consent-Publisher-FAQs?language=en_US (ander domein) · contact (contactformulier): formulier met berichtveld en e-mail/telefoonveld."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "commercial_terms_signal",
+    "category": "seo",
+    "title": "Commerciële voorwaarden",
+    "status": "unable_to_confirm",
+    "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 4,
+    "issue_id": "commercial_terms_signal",
+    "rule_id": "commercial_terms_signal",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "INFO",
+    "confidence": "low",
+    "reasonCode": "weak_evidence",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "merchant_product_readiness",
+    "category": "seo",
+    "title": "Merchant Center productbasis",
+    "status": "unable_to_confirm",
+    "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 6,
+    "issue_id": "merchant_product_readiness",
+    "rule_id": "merchant_product_readiness",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "INFO",
+    "confidence": "low",
+    "reasonCode": "weak_evidence",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "merchant_feed_signal",
+    "category": "seo",
+    "title": "Merchant Center feed-signaal",
+    "status": "unable_to_confirm",
+    "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 4,
+    "issue_id": "merchant_feed_signal",
+    "rule_id": "merchant_feed_signal",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "INFO",
+    "confidence": "low",
+    "reasonCode": "weak_evidence",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "consent_mode_readiness",
+    "category": "seo",
+    "title": "Consent Mode signaal",
+    "status": "not_applicable",
+    "message": "Geen GA4-, Google Ads- of GTM-signaal gevonden waarop deze Consent Mode-controle kan worden toegepast.",
+    "fix": "Controleer consentconfiguratie zodra Google-meet- of advertentietags worden gebruikt.",
+    "points": 0,
+    "maxPoints": 5,
+    "issue_id": "consent_mode_readiness",
+    "rule_id": "consent_mode_readiness",
+    "issue_status": "NOT_APPLICABLE",
+    "severity": "INFO",
+    "confidence": "medium",
+    "reasonCode": "cap_absent",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Geen GA4-, Google Ads- of GTM-signaal gevonden waarop deze Consent Mode-controle kan worden toegepast."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "business_placeholders",
+    "category": "seo",
+    "title": "Bedrijfsgegevens",
+    "status": "pass",
+    "message": "Geen placeholders gevonden en concrete bedrijfsgegevens bevestigd: telefoonnummer.",
+    "fix": "Houd bedrijfs- en contactgegevens actueel en consistent.",
+    "points": 6,
+    "maxPoints": 6,
+    "issue_id": "BUSINESS_PLACEHOLDER",
+    "rule_id": "BUSINESS_PLACEHOLDER",
+    "issue_status": "PASS",
+    "severity": "HIGH",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "placeholders=0; verifiedDetails=telefoonnummer; placeholderExamples=none",
+     "details": "Geen placeholders gevonden en concrete bedrijfsgegevens bevestigd: telefoonnummer."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "price_format",
+    "category": "seo",
+    "title": "Prijsnotatie",
+    "status": "unable_to_confirm",
+    "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 5,
+    "issue_id": "PRICE_FORMAT",
+    "rule_id": "PRICE_FORMAT",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "LOW",
+    "confidence": "low",
+    "reasonCode": "weak_evidence",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "checkout_funnel_static",
+    "category": "seo",
+    "title": "Checkout & funnel",
+    "status": "unable_to_confirm",
+    "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 0,
+    "issue_id": "checkout_funnel_static",
+    "rule_id": "checkout_funnel_static",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "INFO",
+    "confidence": "low",
+    "reasonCode": "weak_evidence",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "checkout_information_signal",
+    "category": "seo",
+    "title": "Checkout informatie",
+    "status": "unable_to_confirm",
+    "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 0,
+    "issue_id": "checkout_information_signal",
+    "rule_id": "checkout_information_signal",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "INFO",
+    "confidence": "low",
+    "reasonCode": "weak_evidence",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "eu_discount_reference_signal",
+    "category": "seo",
+    "title": "EU korting & referentieprijs",
+    "status": "unable_to_confirm",
+    "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 0,
+    "issue_id": "eu_discount_reference_signal",
+    "rule_id": "eu_discount_reference_signal",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "INFO",
+    "confidence": "low",
+    "reasonCode": "weak_evidence",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "eu_review_transparency_signal",
+    "category": "seo",
+    "title": "EU reviewtransparantie",
+    "status": "unable_to_confirm",
+    "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 0,
+    "issue_id": "eu_review_transparency_signal",
+    "rule_id": "eu_review_transparency_signal",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "INFO",
+    "confidence": "low",
+    "reasonCode": "weak_evidence",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "eu_scarcity_signal",
+    "category": "seo",
+    "title": "EU schaarsteclaim",
+    "status": "unable_to_confirm",
+    "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 0,
+    "issue_id": "eu_scarcity_signal",
+    "rule_id": "eu_scarcity_signal",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "INFO",
+    "confidence": "low",
+    "reasonCode": "weak_evidence",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "eu_consumer_information_signal",
+    "category": "seo",
+    "title": "EU consumenteninformatie",
+    "status": "unable_to_confirm",
+    "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 0,
+    "issue_id": "eu_consumer_information_signal",
+    "rule_id": "eu_consumer_information_signal",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "INFO",
+    "confidence": "low",
+    "reasonCode": "weak_evidence",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "price_currency_consistency",
+    "category": "seo",
+    "title": "Prijs & valuta consistentie",
+    "status": "unable_to_confirm",
+    "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 6,
+    "issue_id": "price_currency_consistency",
+    "rule_id": "price_currency_consistency",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "INFO",
+    "confidence": "low",
+    "reasonCode": "weak_evidence",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "webshop_trust",
+    "category": "seo",
+    "title": "Webshop vertrouwen",
+    "status": "unable_to_confirm",
+    "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 7,
+    "issue_id": "WEBSHOP_TRUST_SIGNALS",
+    "rule_id": "WEBSHOP_TRUST_SIGNALS",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "HIGH",
+    "confidence": "low",
+    "reasonCode": "weak_evidence",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "variant_url",
+    "category": "seo",
+    "title": "Productvariant-URL",
+    "status": "unable_to_confirm",
+    "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 5,
+    "issue_id": "PRODUCT_VARIANT_URL",
+    "rule_id": "PRODUCT_VARIANT_URL",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "MEDIUM",
+    "confidence": "low",
+    "reasonCode": "weak_evidence",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "product_price_consistency",
+    "category": "seo",
+    "title": "Productprijs consistentie",
+    "status": "unable_to_confirm",
+    "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 6,
+    "issue_id": "PRODUCT_PRICE_CONSISTENCY",
+    "rule_id": "PRODUCT_PRICE_CONSISTENCY",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "HIGH",
+    "confidence": "low",
+    "reasonCode": "weak_evidence",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "product_availability",
+    "category": "seo",
+    "title": "Productvoorraad",
+    "status": "unable_to_confirm",
+    "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 5,
+    "issue_id": "PRODUCT_AVAILABILITY",
+    "rule_id": "PRODUCT_AVAILABILITY",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "MEDIUM",
+    "confidence": "low",
+    "reasonCode": "weak_evidence",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "webshop_claims",
+    "category": "seo",
+    "title": "Webshop-beloftes",
+    "status": "unable_to_confirm",
+    "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 5,
+    "issue_id": "WEBSHOP_CLAIM_VERIFICATION",
+    "rule_id": "WEBSHOP_CLAIM_VERIFICATION",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "MEDIUM",
+    "confidence": "low",
+    "reasonCode": "weak_evidence",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "checkout_trust",
+    "category": "seo",
+    "title": "Checkout- en betaalvertrouwen",
+    "status": "unable_to_confirm",
+    "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 5,
+    "issue_id": "CHECKOUT_TRUST_SIGNALS",
+    "rule_id": "CHECKOUT_TRUST_SIGNALS",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "MEDIUM",
+    "confidence": "low",
+    "reasonCode": "weak_evidence",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "ads_readiness",
+    "category": "seo",
+    "title": "Google Ads readiness",
+    "status": "not_applicable",
+    "message": "Geen Ads-doel of publieke advertentietracking aangetoond; deze controle telt daarom niet mee in de score.",
+    "fix": "Vul het Google Ads-profiel in wanneer Ads voor deze website relevant is.",
+    "points": 0,
+    "maxPoints": 6,
+    "issue_id": "GOOGLE_ADS_READINESS",
+    "rule_id": "GOOGLE_ADS_READINESS",
+    "issue_status": "NOT_APPLICABLE",
+    "severity": "MEDIUM",
+    "confidence": "medium",
+    "reasonCode": "cap_absent",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Geen Ads-doel of publieke advertentietracking aangetoond; deze controle telt daarom niet mee in de score."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "schema",
+    "category": "geo",
+    "title": "Structured data",
+    "status": "warning",
+    "message": "Geen geldige JSON-LD structured data gevonden voor deze homepage. Dit is een machineleesbare optimalisatiekans; de zichtbare pagina kan zonder JSON-LD nog steeds inhoudelijk correct zijn.",
+    "fix": "Voeg relevante schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Voor dit paginatype is Organization + WebSite de belangrijkste richting.",
+    "points": 4,
+    "maxPoints": 12,
+    "issue_id": "STRUCTURED_DATA_MISSING",
+    "rule_id": "STRUCTURED_DATA_MISSING",
+    "issue_status": "WARNING",
+    "severity": "MEDIUM",
+    "confidence": "high",
+    "impactClaim": "best_practice",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "validJsonLdBlocks=0",
+     "details": "Geen geldige JSON-LD structured data gevonden voor deze homepage. Dit is een machineleesbare optimalisatiekans; de zichtbare pagina kan zonder JSON-LD nog steeds inhoudelijk correct zijn."
+    },
+    "fix_category": "B",
+    "rootCause": "structured_data_context"
+   },
+   {
+    "key": "organization_website",
+    "category": "geo",
+    "title": "Organization + WebSite",
+    "status": "warning",
+    "message": "De homepage bevat geen bevestigd Organization- of WebSite-schema. Dit is machineleesbaar identity-advies en geen bewijs dat de zichtbare organisatie-identiteit ontbreekt.",
+    "fix": "Voeg alleen passende Organization- en/of WebSite JSON-LD toe met aantoonbare gegevens.",
+    "points": 4,
+    "maxPoints": 8,
+    "issue_id": "ORGANIZATION_WEBSITE_SCHEMA",
+    "rule_id": "ORGANIZATION_WEBSITE_SCHEMA",
+    "issue_status": "WARNING",
+    "severity": "MEDIUM",
+    "confidence": "high",
+    "impactClaim": "best_practice",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "organizationSchema=false; websiteSchema=false; schemaTypes=",
+     "details": "De homepage bevat geen bevestigd Organization- of WebSite-schema. Dit is machineleesbaar identity-advies en geen bewijs dat de zichtbare organisatie-identiteit ontbreekt."
+    },
+    "fix_category": "B"
+   },
+   {
+    "key": "product_copy_optimizer",
+    "category": "geo",
+    "title": "AI Product Copy & Metadata",
+    "status": "unable_to_confirm",
+    "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 5,
+    "issue_id": "PRODUCT_COPY_OPTIMIZER",
+    "rule_id": "PRODUCT_COPY_OPTIMIZER",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "LOW",
+    "confidence": "low",
+    "reasonCode": "weak_evidence",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+    },
+    "fix_category": "B"
+   },
+   {
+    "key": "product_schema",
+    "category": "geo",
+    "title": "Product structured data",
+    "status": "unable_to_confirm",
+    "message": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+    "fix": "Geen bewezen defect. Scan een pagina met zichtbare producten of de landversie van de website om deze controle te beoordelen.",
+    "points": 0,
+    "maxPoints": 8,
+    "issue_id": "PRODUCT_SCHEMA_MISSING",
+    "rule_id": "PRODUCT_SCHEMA_MISSING",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "MEDIUM",
+    "confidence": "low",
+    "reasonCode": "weak_evidence",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "entity",
+    "category": "geo",
+    "title": "Entity-signalen",
+    "status": "unable_to_confirm",
+    "message": "De beschikbare pagina bevat te weinig onafhankelijk bewijs om entity-signalen betrouwbaar te beoordelen.",
+    "fix": "Bevestig organisatie- of merknaam, contactcontext en officiële profielen met aanvullende pagina- of sitebrede evidence.",
+    "points": 0,
+    "maxPoints": 10,
+    "issue_id": "entity",
+    "rule_id": "entity",
+    "issue_status": "UNABLE_TO_CONFIRM",
+    "severity": "INFO",
+    "confidence": "low",
+    "reasonCode": "weak_evidence",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "De beschikbare pagina bevat te weinig onafhankelijk bewijs om entity-signalen betrouwbaar te beoordelen."
+    },
+    "fix_category": "C",
+    "rootCause": "structured_data_context"
+   },
+   {
+    "key": "breadcrumbs",
+    "category": "geo",
+    "title": "Breadcrumbs",
+    "status": "not_applicable",
+    "message": "Op de homepage is BreadcrumbList normaal niet nodig wanneer er geen breadcrumb-hiërarchie is; deze controle telt daarom niet mee.",
+    "fix": "Gebruik BreadcrumbList vooral op diepe content-, categorie- en productpagina's.",
+    "points": 0,
+    "maxPoints": 6,
+    "issue_id": "breadcrumbs",
+    "rule_id": "breadcrumbs",
+    "issue_status": "NOT_APPLICABLE",
+    "severity": "INFO",
+    "confidence": "medium",
+    "reasonCode": "cap_absent",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Op de homepage is BreadcrumbList normaal niet nodig wanneer er geen breadcrumb-hiërarchie is; deze controle telt daarom niet mee."
+    },
+    "fix_category": "B"
+   },
+   {
+    "key": "faq",
+    "category": "geo",
+    "title": "Vraag & antwoord content",
+    "status": "not_applicable",
+    "message": "Geen FAQ/Q&A-sectie gevonden (Geen vraag-en-antwoordparen gevonden.). Een FAQ is niet verplicht voor iedere pagina en wordt daarom niet als GEO-fout bestraft.",
+    "fix": "Voeg alleen relevante vragen en directe antwoorden toe wanneer dit de gebruiker inhoudelijk helpt.",
+    "points": 0,
+    "maxPoints": 10,
+    "issue_id": "faq",
+    "rule_id": "faq",
+    "issue_status": "NOT_APPLICABLE",
+    "severity": "INFO",
+    "confidence": "medium",
+    "reasonCode": "cap_absent",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "faqContent=false; faqSchema=false",
+     "details": "Geen FAQ/Q&A-sectie gevonden (Geen vraag-en-antwoordparen gevonden.). Een FAQ is niet verplicht voor iedere pagina en wordt daarom niet als GEO-fout bestraft."
+    },
+    "fix_category": "B"
+   },
+   {
+    "key": "author",
+    "category": "geo",
+    "title": "Expertise-signalen",
+    "status": "not_applicable",
+    "message": "Een individuele auteur is niet vereist op een organisatie-, dienst- of merkhomepage. Auteurschap en expertise horen vooral op informatieve artikelen en adviescontent te worden beoordeeld.",
+    "fix": "Controleer auteur, expertise, publicatiedatum en broncontext op pagina's waar auteurschap inhoudelijk relevant is.",
+    "points": 0,
+    "maxPoints": 8,
+    "issue_id": "author",
+    "rule_id": "author",
+    "issue_status": "NOT_APPLICABLE",
+    "severity": "INFO",
+    "confidence": "medium",
+    "reasonCode": "cap_absent",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": null,
+     "details": "Een individuele auteur is niet vereist op een organisatie-, dienst- of merkhomepage. Auteurschap en expertise horen vooral op informatieve artikelen en adviescontent te worden beoordeeld."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "trust",
+    "category": "geo",
+    "title": "Trust & context",
+    "status": "pass",
+    "message": "Contact- en organisatiecontext zijn zichtbaar.",
+    "fix": "Houd bedrijfsnaam, contactgegevens, locatie, verantwoordelijkheden en officiële profielen consistent.",
+    "points": 8,
+    "maxPoints": 8,
+    "issue_id": "trust",
+    "rule_id": "trust",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "contact=true; about=true; socialOrReview=true",
+     "details": "Contact- en organisatiecontext zijn zichtbaar."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "answer",
+    "category": "geo",
+    "title": "Expliciete paginasamenvatting",
+    "status": "pass",
+    "message": "Een meta description en voldoende zichtbare paginatekst geven samen een concrete samenvatting van de pagina.",
+    "fix": "Houd de meta description en zichtbare introductie inhoudelijk consistent.",
+    "points": 6,
+    "maxPoints": 6,
+    "issue_id": "answer",
+    "rule_id": "answer",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "metaDescription=true; wordCount=1321; minimumVisibleWords=80; rendered=true",
+     "details": "Een meta description en voldoende zichtbare paginatekst geven samen een concrete samenvatting van de pagina."
+    },
+    "fix_category": "C"
+   },
+   {
+    "key": "identity",
+    "category": "geo",
+    "title": "Brand identity",
+    "status": "pass",
+    "message": "3/4 merksignalen gevonden. Gevonden: merknaam/branding, bedrijfs-/contactgegevens, officieel social/review-profiel. Ontbrekend: logo.",
+    "fix": "Maak de ontbrekende merksignalen duidelijk en consistent zichtbaar: logo. Structured data wordt apart beoordeeld.",
+    "points": 5,
+    "maxPoints": 5,
+    "issue_id": "identity",
+    "rule_id": "identity",
+    "issue_status": "PASS",
+    "severity": "INFO",
+    "confidence": "high",
+    "impactClaim": "hygiene",
+    "evidence": {
+     "url": "https://www.coolblue.nl/",
+     "found": "brandSignals=3/4; found=merknaam/branding,bedrijfs-/contactgegevens,officieel social/review-profiel; missing=logo",
+     "details": "3/4 merksignalen gevonden. Gevonden: merknaam/branding, bedrijfs-/contactgegevens, officieel social/review-profiel. Ontbrekend: logo."
+    },
+    "fix_category": "C"
+   }
+  ],
+  "pendingFixes": []
+ }
+}
