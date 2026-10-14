@@ -25,7 +25,7 @@ import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDeta
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
-import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes } from "@/lib/sector-identity";
+import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, telecomSubscriptionIdentity } from "@/lib/sector-identity";
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -1659,12 +1659,19 @@ export async function POST(request: Request) {
       (onlineRetailCallout || evidenceCommerceStrength >= 1 || hasEcommerceSignal);
     const explicitRetailIdentity = storeSchemaRetailIdentity || (retailAssortmentIdentity &&
       (onlineRetailCallout || (retailStoreIdentity && commerceNavigationSignal)));
+    const telecomIdentity = telecomSubscriptionIdentity(sectorIdentitySource);
+    // Provider identity in title/description/H1 beats incidental pricing and
+    // /internet/product/ configuration URLs. A declared retail store remains retail.
+    const telecomPrimaryIdentity = telecomIdentity.primary && !explicitRetailIdentity && !hasRetailStoreSchema(schemaTypes);
     const retailPurchaseEvidence = evidenceCommerceConfirmed || hasEcommerceSignal || explicitRetailIdentity;
     const retailPrimaryIdentity = retailPurchaseEvidence
-      && !shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity
+      && !telecomPrimaryIdentity && !shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity
       && !beautyServiceIdentity && !explicitMedicalIdentity && !transportBookingIdentity
       && !/\b(?:restaurant|hotel|reserveren|reserveer tafel|vakantieverhuur|transportdiensten|schoonmaakdienst)\b/i.test(sectorIdentitySource);
     const primaryNonCommerceIdentity = retailPrimaryIdentity ? null : (masterIdentityOverride
+      || (telecomPrimaryIdentity
+        ? {sector:"telecom_technology" as SectorKey,key:"telecom_technology",label:"Telecom & Technologie",evidence:["Primaire identiteit: netwerk-/internetdienst met abonnementen bevestigd in paginametadata"]}
+        : null)
       || (strongSectorCandidate && sectorCandidates[0].sector !== "ecommerce"
         ? {sector:sectorCandidates[0].sector,key:sectorCandidates[0].sector,label:sectorCandidates[0].label,evidence:[`Primaire identiteit: ${sectorCandidates[0].hits} onafhankelijke ${sectorCandidates[0].hits===1?"sectorsignaal":"sectorsignalen"}`]}
         : null));
@@ -4083,10 +4090,14 @@ export async function POST(request: Request) {
       corroboratedProductAndPrice
     );
     const technologyOnlyCommerce = technologyProfile.isCommerce && !hardCommerceEvidence;
+    // A provider's plan configurator can look like a product page and display
+    // prices. Only an independent stocked retail purchase flow enables shop rules.
+    const telecomRetailFlow = confirmedAddToCart && corroboratedProductAndPrice && (hasSkuSignal || hasStockSignal);
+    const commerceAllowedForIdentity = !telecomPrimaryIdentity || telecomRetailFlow;
     const secondaryCommerceOnly = Boolean(primaryNonCommerceIdentity && !hardCommerceEvidence);
     const finalCommerceDecision = {
-      confirmed: hardCommerceEvidence || (technologyOnlyCommerce && !primaryNonCommerceIdentity),
-      currentPageEvidence: hardCommerceEvidence && masterEvidence.commerce.confirmed,
+      confirmed: commerceAllowedForIdentity && (hardCommerceEvidence || (technologyOnlyCommerce && !primaryNonCommerceIdentity)),
+      currentPageEvidence: commerceAllowedForIdentity && hardCommerceEvidence && masterEvidence.commerce.confirmed,
       technologyProfile: technologyProfile.isCommerce,
       technologyOnly: technologyOnlyCommerce,
       secondaryCommerceOnly,
@@ -4122,7 +4133,7 @@ export async function POST(request: Request) {
     const reconciledTop = reconciledSectorCandidates[0];
     const reconciledRunnerUp = reconciledSectorCandidates[1];
     const reconciledIdentityStrong = Boolean(reconciledTop && reconciledTop.score >= 3 && (!reconciledRunnerUp || reconciledTop.score > reconciledRunnerUp.score));
-    if (!retailPrimaryIdentity && !finalCommerceDecision.confirmed && reconciledIdentityStrong && reconciledTop && sectorProfile.sector !== reconciledTop.sector) {
+    if (!retailPrimaryIdentity && !telecomPrimaryIdentity && !finalCommerceDecision.confirmed && reconciledIdentityStrong && reconciledTop && sectorProfile.sector !== reconciledTop.sector) {
       sectorProfile.sector = reconciledTop.sector;
       sectorProfile.key = reconciledTop.sector;
       sectorProfile.label = reconciledTop.label;
