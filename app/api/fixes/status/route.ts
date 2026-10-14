@@ -33,7 +33,7 @@ export async function GET(request:Request){
     [user.id,scannedUrl]
   );
 
-  const needsGithub=pending.rows.some((row:any)=>row.status==="AWAITING_MERGE"&&row.repository&&row.pr_number);
+  const needsGithub=pending.rows.some((row: { status: string; repository?: string | null; pr_number?: number | null; issue_id?: string; pr_url?: string | null; branch?: string | null; merged_at?: string | null; verified_at?: string | null; verification_scan_id?: string | null })=>row.status==="AWAITING_MERGE"&&row.repository&&row.pr_number);
   let token="";
   if(needsGithub){
     const connection=await db.query("SELECT access_token_encrypted FROM github_connections WHERE user_id=$1 LIMIT 1",[user.id]);
@@ -62,7 +62,7 @@ export async function GET(request:Request){
     }
   }
 
-  return NextResponse.json({fixes:pending.rows.map((row:any)=>({
+  return NextResponse.json({fixes:pending.rows.map((row: { status: string; repository?: string | null; pr_number?: number | null; issue_id?: string; pr_url?: string | null; branch?: string | null; merged_at?: string | null; verified_at?: string | null; verification_scan_id?: string | null })=>({
     issue_id:String(row.issue_id),
     status:String(row.status),
     pr_number:row.pr_number?Number(row.pr_number):null,
