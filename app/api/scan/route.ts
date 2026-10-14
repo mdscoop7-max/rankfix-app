@@ -3781,6 +3781,7 @@ export async function POST(request: Request) {
             (pageQualityWords < 15 && !pageQualityTitle && !pageQualityDescription)) {
           return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"quality",status:"UNABLE_TO_CONFIRM",details:`HTTP ${r.status}; response bevat onvoldoende betrouwbare pagina-inhoud voor scoring.`}] };
         }
+        const representativeJsUnconfirmed = (representativeJsFramework || representativeThinShell) && representativeEvidenceSource === "raw_html";
         const pageTitle = pageQualityTitle;
         const pageDescription = pageQualityDescription;
         const pageH1s = [...pageHtml.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gi)].map((m)=>stripHtml(m[1])).filter(Boolean);
@@ -3847,16 +3848,17 @@ export async function POST(request: Request) {
           : page.type;
         const evidenceChecks: MultiPageAudit["evidenceChecks"] = [
           {key:"http",status:"PASS",details:`HTTP ${r.status}`},
-          {key:"title",status:!pageTitle?"WARNING":pageTitle.length>=30&&pageTitle.length<=60?"PASS":"WARNING",details:!pageTitle?"Geen title gevonden in raw HTML.":pageTitle.length>=30&&pageTitle.length<=60?`Title gevonden (${pageTitle.length} tekens); binnen richtwaarde 30–60.`:`Title gevonden (${pageTitle.length} tekens); buiten richtwaarde 30–60.`},
-          {key:"description",status:!pageDescription?"WARNING":pageDescription.length>=70&&pageDescription.length<=200?"PASS":"WARNING",details:!pageDescription?(pageDescriptionTag?"Meta description-tag aanwezig maar content is leeg.":"Geen meta description-tag gevonden in raw HTML."):pageDescription.length>=70&&pageDescription.length<=200?`Meta description gevonden (${pageDescription.length} tekens); bruikbare lengte.`:`Meta description gevonden (${pageDescription.length} tekens); uitzonderlijk ${pageDescription.length<70?"kort":"lang"}.`},
-          {key:"h1",status:pageH1s.length>0?"PASS":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:`${pageH1s.length} H1-heading(s) gevonden.`},
-          {key:"canonical",status:pageCanonical
+          {key:"title",status:!pageTitle && representativeJsUnconfirmed?"UNABLE_TO_CONFIRM":!pageTitle?"WARNING":pageTitle.length>=30&&pageTitle.length<=60?"PASS":"WARNING",details:!pageTitle?"Geen title gevonden in raw HTML.":pageTitle.length>=30&&pageTitle.length<=60?`Title gevonden (${pageTitle.length} tekens); binnen richtwaarde 30–60.`:`Title gevonden (${pageTitle.length} tekens); buiten richtwaarde 30–60.`},
+          {key:"description",status:!pageDescription && representativeJsUnconfirmed?"UNABLE_TO_CONFIRM":!pageDescription?"WARNING":pageDescription.length>=70&&pageDescription.length<=200?"PASS":"WARNING",details:!pageDescription?(pageDescriptionTag?"Meta description-tag aanwezig maar content is leeg.":"Geen meta description-tag gevonden in raw HTML."):pageDescription.length>=70&&pageDescription.length<=200?`Meta description gevonden (${pageDescription.length} tekens); bruikbare lengte.`:`Meta description gevonden (${pageDescription.length} tekens); uitzonderlijk ${pageDescription.length<70?"kort":"lang"}.`},
+          {key:"h1",status:pageH1s.length>0?"PASS":representativeJsUnconfirmed?"UNABLE_TO_CONFIRM":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:`${pageH1s.length} H1-heading(s) gevonden.`},
+          {key:"canonical",status:!pageCanonical && representativeJsUnconfirmed?"UNABLE_TO_CONFIRM":pageCanonical
             ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); if(!/^https?:$/.test(resolved.protocol)) return "WARNING"; return normalizeScanUrl(resolved.toString())===normalizeScanUrl(finalCandidate.toString())?"PASS":"WARNING"; } catch { return "WARNING"; } })()
             : "WARNING",
             details:pageCanonical
               ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); if(!/^https?:$/.test(resolved.protocol)) return `Canonical gebruikt een ongeldig protocol of schema: ${pageCanonical}.`; const samePage=normalizeScanUrl(resolved.toString())===normalizeScanUrl(finalCandidate.toString()); return samePage?`Self-canonical/equivalente voorkeurs-URL bevestigd: ${resolved.toString()}`:`Canonical wijst naar ${resolved.toString()}; controleer of deze afwijking bewust is.`; } catch { return "Canonical is aanwezig maar kon niet betrouwbaar als URL worden geïnterpreteerd."; } })()
               : "Geen canonical-linkelement gevonden in de gecontroleerde raw HTML. Dit is hetzelfde afwezigheidssignaal als in de hoofdscan; controleer alleen apart wanneer de site canonical-tags uitsluitend via JavaScript toevoegt."},
         ];
+        // Unrendered JavaScript shells cannot prove that missing DOM elements are defects.
         const confirmed = evidenceChecks.filter((x)=>x.status!=="UNABLE_TO_CONFIRM");
         const evidenceCredit = (item: MultiPageAudit["evidenceChecks"][number]) => {
           if (item.status === "PASS") return 1;
