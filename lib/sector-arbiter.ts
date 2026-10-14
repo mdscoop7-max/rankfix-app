@@ -352,6 +352,22 @@ export function arbitratePrimarySector(input: ArbiterInput): ArbiterDecision {
   }
   const current = input.current.sector;
   const identityCompetitors = input.identity.filter(item => item.sector !== "ecommerce" && reliableIdentity(input, item.sector));
+  // When a generic sector and exactly one specific specialist both appear in
+  // reliable identity fields, do not blindly preserve the earlier generic guess.
+  // A dental practice mentioning travel directions is still a dental practice.
+  // Ambiguous competing specialists remain uncertain rather than arbitrarily chosen.
+  const specificIdentityCompetitors = identityCompetitors.filter(item => !GENERIC_WORD_SECTORS.has(item.sector));
+  if (GENERIC_WORD_SECTORS.has(current) &&
+      specificIdentityCompetitors.length === 1 &&
+      identityCompetitors.length <= 2 &&
+      specificIdentityCompetitors[0].sector !== current) {
+    const adopted = specificIdentityCompetitors[0].sector;
+    reasons.push(`Specifieke sectoridentiteit ${labelOf(input, adopted)} krijgt voorrang boven de algemene eerdere sector ${input.current.label}; geen structureel bewijs, dus waarschijnlijk.`);
+    return build({
+      role: "specialist_business", sector: adopted, status: "probable",
+      confidenceScore: 62, commerceConfirmed: false,
+    });
+  }
   if (current && current !== "unknown" && current !== "ecommerce" && reliableIdentity(input, current)) {
     if (identityCompetitors.length >= 3) {
       reasons.push("Titel/koppen/omschrijving bevatten termen van drie of meer sectoren; geen betrouwbare hoofdsector.");
