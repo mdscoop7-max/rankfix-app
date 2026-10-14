@@ -4195,7 +4195,7 @@ export async function POST(request: Request) {
     // booking/travel vocabulary, including on JavaScript-rendered Wix websites.
     // Require explicit dental identity in primary page metadata (or Dentist schema)
     // plus independent treatment evidence; generic clinics remain health/wellness.
-    const explicitDentalIdentity = /\\b(?:tandarts(?:praktijk|en)?|tandheelkund\\w*|mondzorg|mondhygi[eë]n\\w*|dentist|dental\\s+clinic|dental\\s+practice|orthodontist)\\b/i.test(sectorIdentitySource) || schemaSet.has("dentist");
+    const explicitDentalIdentity = /\b(?:tandarts(?:praktijk|en)?|tandheelkund\w*|mondzorg|mondhygi[eë]n\w*|dentist|dental\s+clinic|dental\s+practice|orthodontist)\b/i.test(sectorIdentitySource) || schemaSet.has("dentist");
     if (!finalCommerceDecision.confirmed && explicitDentalIdentity && (multiPageCapabilities.treatment || catalogTop?.key==="dentist" || schemaSet.has("dentist"))) {
       sectorProfile.sector = "health_wellness";
       sectorProfile.key = "dentist";
