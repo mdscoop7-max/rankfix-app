@@ -147,9 +147,17 @@ export type MetaAssessment = { status: "PASS" | "WARNING"; credit: number; detai
 // "Tarieven en vergoedingen 2017": a year at least three years old in a title
 // signals outdated content to searchers.
 export function outdatedTitleYear(title: string, now: Date = new Date()): number | null {
-  const years = [...title.matchAll(/\b(20\d{2})\b/g)].map((match) => Number(match[1]));
+  const matches = [...title.matchAll(/\b(20\d{2})\b/g)];
+  const years = matches.map((match) => Number(match[1]));
   const current = now.getFullYear();
-  const old = years.filter((year) => year <= current - 3 && year >= 2000);
+  // A founding year ("sinds 2007", "founded in 2010") describes company
+  // history, not a stale tariff, offer, or time-sensitive article.
+  const old = matches.filter((match) => {
+    const year = Number(match[1]);
+    const context = title.slice(Math.max(0, (match.index || 0) - 40), match.index);
+    const isFoundingYear = /\b(?:sinds|sedert|since|seit|depuis|opgericht(?: in)?|founded(?: in)?|established(?: in)?)\s*$/i.test(context);
+    return year <= current - 3 && year >= 2000 && !isFoundingYear;
+  }).map((match) => Number(match[1]));
   return old.length && !years.some((year) => year >= current - 1) ? Math.max(...old) : null;
 }
 
