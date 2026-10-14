@@ -3450,6 +3450,9 @@ export async function POST(request: Request) {
     const overallScoreRange = scoreRange(checks);
     const scoreModel = {
       version: SCORE_MODEL_VERSION,
+      uncappedOverallScore: selectedOverallScore,
+      evidenceCapApplied: false,
+      evidenceCapReason: null as string | null,
       formula: mode === "both" ? "0.6 × SEO + 0.4 × GEO" : mode === "seo" ? "SEO" : "GEO",
       weights: mode === "both" ? { seo: 0.6, geo: 0.4, security: 0 } : mode === "seo" ? { seo: 1, geo: 0, security: 0 } : { seo: 0, geo: 1, security: 0 },
       securitySeparate: true,
@@ -4484,7 +4487,15 @@ export async function POST(request: Request) {
     selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);
     selectedGeoScore = scoreApplicableChecks(selectedGeoChecks);
     selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
+    const uncappedFinalOverallScore = selectedOverallScore;
     selectedOverallScore = applyEvidenceBasedScoreCap(selectedOverallScore, checks);
+    scoreModel.uncappedOverallScore = uncappedFinalOverallScore;
+    scoreModel.evidenceCapApplied = selectedOverallScore < uncappedFinalOverallScore;
+    scoreModel.evidenceCapReason = scoreModel.evidenceCapApplied
+      ? checks.some(item => item.issue_status === "FAIL" && item.severity === "CRITICAL" && item.confidence === "high")
+        ? "Bevestigde kritieke fout: totaalscore maximaal 70."
+        : "Bevestigde ernstige fout: totaalscore maximaal 88."
+      : null;
     seoCoverage = weightedCoverage(selectedSeoChecks);
     geoCoverage = weightedCoverage(selectedGeoChecks);
     overallCoverage = weightedCoverage(checks);
