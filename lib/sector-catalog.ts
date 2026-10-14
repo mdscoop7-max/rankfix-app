@@ -126,7 +126,15 @@ export function rankSectorCandidates(evidence: ScanEvidence, searchableText: str
         /\b(?:gerechten|diner|lunch|ontbijt|eten|food|cuisine|chef|tafel reserveren|restaurant)\b/i.test(searchableText);
       if (!foodIdentity) evidenceHits = evidenceHits.filter(x=>x!=="inventory.menu");
     }
-    const score = (keywordHit?2:0) + schemaHits.length*3 + evidenceHits.length*2;
+    // Subscription/network identity is stronger than incidental shopping links.
+    // Preserve independently verified product + cart/checkout evidence for hybrid stores.
+    const subscriptionIdentity = /\b(?:sim[ -]?only|data[ -]?only|mobiele? abonnementen?|internetabonnement|abonnement(?:en)? met toestel|mobile plans?|maandelijks opzegbaar)\b/i.test(searchableText);
+    const networkIdentity = /\b(?:telecom|provider|glasvezel|netwerkdekking|dekkingskaart|5g[ -]?internet|mobiel netwerk|broadband)\b/i.test(searchableText);
+    const telecomPrimary = subscriptionIdentity && networkIdentity;
+    const verifiedCommerce = flags["commerce.products"] && (flags["commerce.cart"] || flags["commerce.checkout"]);
+    const telecomBoost = def.key === "telecom" && telecomPrimary ? 14 : 0;
+    const incidentalCommercePenalty = def.key === "ecommerce" && telecomPrimary && !verifiedCommerce ? 12 : 0;
+    const score = Math.max(0, (keywordHit?2:0) + schemaHits.length*3 + evidenceHits.length*2 + telecomBoost - incidentalCommercePenalty);
     return {key:def.key,label:def.label,score,evidence:[
       ...(keywordHit?["Sectorspecifieke content gevonden"]:[]),
       ...schemaHits.map(x=>`Schema: ${x}`),
