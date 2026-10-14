@@ -302,6 +302,17 @@ export function arbitratePrimarySector(input: ArbiterInput): ArbiterDecision {
 
   // A. Verified storefront.
   if (storefront.grade === "strong") {
+    // Subscription providers may expose prices, catalogues and a cart for devices.
+    // Without an independently verified retail product/purchase flow, those signals
+    // must not override a primary telecom identity in title/H1/description.
+    const telecomIdentity = reliableIdentity(input, "telecom_technology");
+    const retailPurchaseVerified = input.commerce.product || input.commerce.addToCart ||
+      input.commerce.siteSampleProduct || input.commerce.previouslyConfirmed || storefront.store;
+    if (telecomIdentity && !retailPurchaseVerified) {
+      reasons.push("Telecomidentiteit in titel/koppen/omschrijving; losse winkelwagen-, catalogus- en prijssignalen bevestigen geen primaire retailwebshop.");
+      return build({ role: "specialist_business", sector: "telecom_technology", status: "probable",
+        confidenceScore: 75, commerceConfirmed: false });
+    }
     // Generic-word sectors only lose to a storefront when their "proof" could be words.
     // A dedicated schema type PLUS an independent structural capability (menu+reservation,
     // rooms+booking) is not a word match; with a small shop (e.g. gift cards) the
