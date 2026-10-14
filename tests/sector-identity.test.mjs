@@ -257,3 +257,36 @@ test("a confirmed shop never shows shop checks as 'not applicable' because one p
   assert.match(source, /finalCommerceOnlyKeys\.has\(item\.key\) && item\.status === "not_applicable" && \/webshop\|product/);
   assert.match(source, /De webshop is sitebreed bevestigd, maar deze controle kon op de gescande pagina niet worden beoordeeld\./);
 });
+
+
+test("provider subscriptions outrank incidental commerce links on identity metadata", async () => {
+  const { telecomSubscriptionIdentity } = await import("../lib/sector-identity.ts");
+  const examples = [
+    "Sim Only en Glasvezel | Simpel Mobiele abonnementen en internet",
+    "Mobiele abonnementen en 5G netwerk | Provider",
+    "Internetprovider met glasvezel en internetabonnementen",
+    "Mobile plans and broadband coverage | Network operator",
+  ];
+  for (const identity of examples) {
+    assert.equal(telecomSubscriptionIdentity(identity).primary, true, identity);
+  }
+  for (const identity of [
+    "Online elektronicawinkel: smartphones, accessoires en laptops bestellen",
+    "Koop een losse simkaart online in onze webshop",
+    "Mobiele aanbiedingen, telefoonhoesjes, telefoonreparatie",
+    "SIM only aanbiedingen zonder netwerkcontext",
+    "Glasvezel internet zonder bewijs voor een abonnementsaanbod",
+  ]) {
+    assert.equal(telecomSubscriptionIdentity(identity).primary, false, identity);
+  }
+});
+
+test("scan route protects subscription identity at primary, retail, and late reconciliation gates", async () => {
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(route, /const telecomIdentity = telecomSubscriptionIdentity\(sectorIdentitySource\)/);
+  assert.match(route, /const telecomPrimaryIdentity = telecomIdentity\.primary && !explicitRetailIdentity && !hasRetailStoreSchema\(schemaTypes\)/);
+  assert.match(route, /retailPurchaseEvidence\s*\n\s*&& !telecomPrimaryIdentity && !shortStayIdentity/);
+  assert.match(route, /primaryNonCommerceIdentity = retailPrimaryIdentity \? null : \(masterIdentityOverride\s*\n\s*\|\| \(telecomPrimaryIdentity/);
+  assert.match(route, /const commerceAllowedForIdentity = !telecomPrimaryIdentity \|\| telecomRetailFlow/);
+  assert.match(route, /if \(!retailPrimaryIdentity && !telecomPrimaryIdentity && !finalCommerceDecision\.confirmed && reconciledIdentityStrong/);
+});

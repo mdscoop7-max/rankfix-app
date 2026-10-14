@@ -1595,7 +1595,7 @@ test("retail sector evidence wins over incidental sector words without claiming 
   assert.match(source, /const primaryNonCommerceIdentity = retailPrimaryIdentity \? null/);
   assert.match(source, /commerceAsPrimaryIdentity = retailPrimaryIdentity/);
   assert.match(source, /commerceHints: Boolean\(retailPrimaryIdentity/);
-  assert.match(source, /!retailPrimaryIdentity && !finalCommerceDecision\.confirmed && reconciledIdentityStrong/);
+  assert.match(source, /!retailPrimaryIdentity && !telecomPrimaryIdentity && !finalCommerceDecision\.confirmed && reconciledIdentityStrong/);
   assert.match(source, /explicitRetailIdentity && !evidenceCommerceConfirmed \? 78/);
   assert.match(source, /!shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity/);
 });
