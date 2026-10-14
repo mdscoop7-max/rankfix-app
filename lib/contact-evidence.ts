@@ -105,7 +105,13 @@ export function findVisibleAddress(text: string): string | null {
   // Conservative generic fallback: at most two street-name tokens; do not
   // infer a complete address from a long contact/navigation block.
   const match = text.match(/\b([A-ZÀ-Ý][A-Za-zÀ-ÿ.'-]+(?:\s+[A-ZÀ-Ý][A-Za-zÀ-ÿ.'-]+)?)\s+(\d{1,5}[A-Za-z]?),?\s+(\d{4}\s?[A-Z]{2}|\d{5})\s+([A-ZÀ-Ý][a-zà-ÿ'-]+)/);
-  return match ? `${match[1]} ${match[2]}, ${match[3]} ${match[4]}` : null;
+  if (match) return `${match[1]} ${match[2]}, ${match[3]} ${match[4]}`;
+  // US/CA: "2211 N 1st St. San Jose, CA 95131" (number first, two-letter state, ZIP).
+  const us = text.match(/\b(\d{1,6}\s+(?:[NSEW]\.?\s+)?[A-Z0-9][A-Za-z0-9.'-]*(?:\s+[A-Z][A-Za-z.'-]*){0,3}\s+(?:St|Street|Ave|Avenue|Blvd|Boulevard|Rd|Road|Dr|Drive|Way|Ln|Lane|Pkwy|Parkway|Pl|Place|Ct|Court|Sq|Square|Hwy|Highway)\.?)\s*,?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2}),\s*([A-Z]{2})\s+(\d{5}(?:-\d{4})?)\b/);
+  if (us) return `${us[1]}, ${us[2]}, ${us[3]} ${us[4]}`;
+  // UK: street with number and a full postcode ("SW1A 2AA").
+  const uk = text.match(/\b(\d{1,5}[A-Za-z]?\s+[A-Z][A-Za-z'-]+(?:\s+[A-Z][A-Za-z'-]+){0,2}\s+(?:Street|Road|Lane|Avenue|Square|Place|Row|Way|Court|Gardens|Terrace|Close|Hill))\s*,\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s*,?\s*([A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2})\b/);
+  return uk ? `${uk[1]}, ${uk[2]} ${uk[3]}` : null;
 }
 
 export type BusinessContactDetails = { phone: string | null; email: string | null; address: string | null; telLink: boolean; mailtoLink: boolean };

@@ -18,6 +18,9 @@ const POLICY: Record<string, FixPolicy> = {
   META_DESCRIPTION_GUIDANCE: { category: "B", safe_type: "meta_description" },
   H1_MISSING: { category: "B", safe_type: "h1" },
   H1_MULTIPLE: { category: "C", safe_type: null, action: "ai_advice" },
+  // Review Oct 2026: a generic H1 ("Home") needs a content rewrite, so advice only.
+  H1_GENERIC: { category: "C", safe_type: null, action: "ai_advice" },
+  trust_legal_signals: { category: "C", safe_type: null, action: "manual" },
   IMAGE_ALT_MISSING: { category: "B", safe_type: "alt_text" },
   SOCIAL_METADATA_INCOMPLETE: { category: "B", safe_type: "social_metadata" },
   social: { category: "B", safe_type: "social_metadata" },

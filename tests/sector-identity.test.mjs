@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes } from "../lib/sector-identity.ts";
+import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, financialServicePrimaryIdentity, isLocalizedHomePath, primaryNonRetailRole, lodgingBusinessSubtype } from "../lib/sector-identity.ts";
 import { buildScanEvidence } from "../lib/scan-evidence.ts";
 
 // Page identity (title, meta description, hostname, path) as served on 11 Oct 2026.
@@ -94,12 +94,14 @@ test("scan route wires the central identity rules without brand exceptions", asy
   // Market selectors are labelled as a portal and never fall back to a guessed sector.
   const selector = source.indexOf('marketSelectorPage && !finalCommerceDecision.confirmed && sectorProfile.key==="unknown"');
   assert.ok(selector > 0);
-  assert.ok(selector < source.indexOf('multiPageCapabilities.transport && sectorProfile.key==="unknown"'), "selector before transport fallback");
+  assert.ok(selector < source.indexOf('multiPageCapabilities.transport && transportBookingIdentity && sectorProfile.key==="unknown"'), "selector before transport fallback");
   assert.ok(selector < source.indexOf('multiPageCapabilities.hospitality && (sectorProfile.key==="recruitment" || sectorProfile.key==="unknown")'), "selector before hospitality fallback");
   // Retail identity without confirmed shop functionality is labelled as such, and
   // in-store reservations never turn a retailer into a booking website.
   assert.match(source, /sectorProfile\.key === "ecommerce" && !finalCommerceDecision\.confirmed\) \{\n\s+sectorProfile\.label = "Retail · webshopfunctionaliteit niet bevestigd"/);
-  assert.match(source, /sectorProfile\.key !== "ecommerce" && masterEvidence\.businessModels\.some\(model => model === "appointments"/);
+  // Booking type only for sectors whose business is booking (never retail, software or payments).
+  assert.match(source, /\["hospitality","health_wellness","beauty","automotive","home_services","tourism_recreation","transport_travel"\]\.includes\(String\(sectorProfile\.sector\)\) && masterEvidence\.businessModels\.some\(model => model === "appointments"/);
+  assert.equal(/\bikea\b|zalando|coolblue|mollie|paypal|moneybird|adyen|stripe|teamleader/i.test(await readFile(new URL("../lib/site-identity.ts", import.meta.url), "utf8")), false);
   assert.equal(/\bikea\b|zalando|coolblue|kwik-?fit|transheroes|housingnet|dekas/i.test(await readFile(new URL("../lib/sector-identity.ts", import.meta.url), "utf8")), false);
 });
 
@@ -256,4 +258,85 @@ test("a confirmed shop never shows shop checks as 'not applicable' because one p
   // Page-level "no shop signals" N/A becomes unable-to-confirm once the shop is confirmed site-wide.
   assert.match(source, /finalCommerceOnlyKeys\.has\(item\.key\) && item\.status === "not_applicable" && \/webshop\|product/);
   assert.match(source, /De webshop is sitebreed bevestigd, maar deze controle kon op de gescande pagina niet worden beoordeeld\./);
+});
+
+
+test("primary financial identity is generic across wallets, PSPs and banking, not marketing checkout keywords",()=>{
+  const cases=[
+    {name:"wallet",title:"Pay, Send and Save Money with our app",description:"Paying friends, saving money and cashback with our app.",headings:["Pay, send, and save smarter"],schemaTypes:["Organization","WebSite","FinancialProduct","PaymentCard"],identified:true,provider:false},
+    {name:"provider",title:"Platform for every payment",description:"One platform to accept payments and manage money.",headings:["Accept every payment"],schemaTypes:["Organization"],identified:true,provider:true},
+    {name:"credit union",title:"Manage your money and savings account",description:"Financial services for your everyday banking.",headings:["Banking made simple"],schemaTypes:["BankOrCreditUnion"],identified:true,provider:false},
+    {name:"transfer",title:"Send money abroad",description:"Money transfer service for families.",headings:["Transfer money worldwide"],schemaTypes:["FinancialService"],identified:true,provider:false},
+    {name:"retail shop",title:"Shop designer shoes online",description:"Save money on shoes. Checkout with a debit card and earn rewards.",headings:["Shoes and fashion"],schemaTypes:["Product","OnlineStore","Offer"],identified:false},
+    {name:"shop with card schema",title:"Online electronics store",description:"Buy laptops, pay with credit card or debit card.",headings:["Discover computers"],schemaTypes:["Store","PaymentCard"],identified:false},
+    {name:"SaaS",title:"Project management software",description:"Start for free and enter credit card for paid access.",headings:["Manage projects"],schemaTypes:["SoftwareApplication"],identified:false},
+    {name:"hotel",title:"City Hotel",description:"Book a room and pay online.",headings:["Rooms and suites"],schemaTypes:["Hotel"],identified:false},
+    {name:"government",title:"Public services",description:"Apply for permits and pay fees online.",headings:["Government services"],schemaTypes:["GovernmentOrganization"],identified:false},
+    {name:"shop blog",title:"Money-saving tips",description:"Save money shopping online with vouchers.",headings:["Budget shopping guide"],schemaTypes:["Article"],identified:false}
+  ];
+  for(const c of cases){const result=financialServicePrimaryIdentity(c);assert.equal(result.identified,c.identified,c.name);if(c.identified){assert.equal(result.provider,c.provider,c.name);assert.ok(result.evidence.length,c.name);}}
+});
+
+test("region and language homepage routes avoid accidental product classification",()=>{
+  for(const p of ["/us/home","/gb/home/","/en/home","/nl/home","/en-us/home","/nl/homepage"])assert.equal(isLocalizedHomePath(p),true,p);
+  for(const p of ["/us/products","/us/home/deals","/shop/home","/xy/home","/us/checkout","/products/home","/nl/nl/","/"])assert.equal(isLocalizedHomePath(p),false,p);
+});
+
+test("primary finance identity gates retailer checks across early and late scan phases",async()=>{
+  const src=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
+  assert.match(src,/const isHomepage = pathname === "\/" \|\| isLocalizedHomepage \|\| isLocalizedHomePath\(pathname\)/);
+  assert.match(src,/const isProductPage = !isHomepage && !nonRetailIdentityEarly/);
+  assert.match(src,/const hasCategorySignal = !isProductPage && !nonRetailIdentityEarly/);
+  assert.match(src,/!nonRetailIdentityEarly \|\| independentRetailChain/);
+  assert.match(src,/const paymentServicesPrimaryIdentity = financialIdentity\.identified/);
+  assert.match(src,/confirmed: Boolean\(!telecomPrimaryIdentity && !primaryNonCommerceIdentity &&/);
+});
+
+
+test("generic role gates protect hotels, restaurants, healthcare, government, SaaS and ecommerce",()=>{
+  const cases=[
+    {title:"Hotel Canal rooms and suites",description:"Stay in our rooms. Book a room.",headings:["Boutique Hotel"],schemaTypes:["Hotel"],expected:"lodging"},
+    {title:"Mountain guesthouse",description:"Overnight lodging with guest rooms.",headings:["Guesthouse"],schemaTypes:[],expected:"lodging"},
+    {title:"Restaurant de Markt",description:"Fresh menu and dinner reservations.",headings:["Restaurant"],schemaTypes:["Restaurant"],expected:"restaurant"},
+    {title:"Local bistro dining",description:"Enjoy our menu and reserve a table.",headings:["Bistro"],schemaTypes:[],expected:"restaurant"},
+    {title:"Dentist in Utrecht",description:"Book a dental appointment.",headings:["Dental clinic"],schemaTypes:["Dentist"],expected:"healthcare"},
+    {title:"Huisartsenpraktijk Centrum",description:"Maak een afspraak voor zorg.",headings:["Huisartsenpraktijk"],schemaTypes:[],expected:"healthcare"},
+    {title:"Municipality of Westland",description:"Public services, permits for citizens.",headings:["Government services"],schemaTypes:["GovernmentOrganization"],expected:"public_sector"},
+    {title:"Ministry of Infrastructure",description:"Apply for permits and read public policy.",headings:["Government"],schemaTypes:[],expected:"public_sector"},
+    {title:"CRM software for businesses",description:"Manage your dashboard and workflow.",headings:["Business software"],schemaTypes:["SoftwareApplication"],expected:"software"},
+    {title:"SaaS project management platform",description:"Integrate workflows and automate projects.",headings:["SaaS"],schemaTypes:[],expected:"software"},
+    {title:"Shop restaurant kitchen furniture online",description:"Buy furniture and tables for restaurant businesses.",headings:["Furniture offers"],schemaTypes:["Store","Product"],expected:null},
+    {title:"Book hotel-inspired furniture online",description:"Shop hotel room decoration products.",headings:["Home decor webshop"],schemaTypes:["OnlineStore","Product"],expected:null},
+    {title:"Buy project software licences",description:"Add to cart and purchase digital items.",headings:["Online store"],schemaTypes:["Store","Product"],expected:null},
+    {title:"Financial services explained in a blog",description:"Articles about payment cards.",headings:["Latest news"],schemaTypes:["Article"],expected:null}
+  ];
+  for(const c of cases){const r=primaryNonRetailRole(c);assert.equal(r.key,c.expected,c.title);if(c.expected)assert.ok(r.evidence.length,c.title);}
+});
+
+
+test("lodging subtype is determined by primary business, never incidental accommodations mentioned in site text",()=>{
+  const cases=[
+    {title:"Hotels & Restaurants Group",description:"Arrangements, holiday rentals and restaurants across our hotel group",headings:["Find your stay"],schemaTypes:[],expected:"hotel"},
+    {title:"City Hotel - book a room",description:"Suites and restaurant",headings:["Hotel"],schemaTypes:["Hotel"],expected:"hotel"},
+    {title:"Riverside holiday rental near hotels",description:"Private holiday home and offers",headings:["Holiday home"],schemaTypes:["VacationRental"],expected:"holiday_rental"},
+    {title:"Bed & Breakfast beside the sea",description:"Guest rooms",headings:["Welcome"],schemaTypes:[],expected:"bed_breakfast"},
+    {title:"Family holiday park",description:"Stay at our park",headings:["Holiday Park"],schemaTypes:[],expected:"holiday_park"},
+    {title:"Nature camping site",description:"Camping pitches",headings:["Campground"],schemaTypes:[],expected:"camping"},
+    {title:"News about resorts",description:"Business news",headings:["Latest"],schemaTypes:["Article"],expected:null}
+  ];
+  for(const c of cases)assert.equal(lodgingBusinessSubtype(c),c.expected,c.title);
+});
+
+test("primary SaaS in metadata wins over incidental logistics/customer case studies",async()=>{
+  const sample=primaryNonRetailRole({title:"Customer platform | CRM Software & Business Tools",description:"Our customer platform includes sales, service and CRM software.",headings:["Build demand and win deals"],schemaTypes:["SoftwareApplication"]});
+  assert.equal(sample.key,"software");
+  const source=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
+  assert.match(source,/siteRole\.key === "software"\s*\? \{sector:"saas_b2b"/);
+  assert.match(source,/primaryLodgingSubtype = lodgingBusinessSubtype/);
+});
+
+
+test("representative-page content cannot overwrite independently established primary site role",async()=>{
+  const source=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
+  assert.match(source,/if \(!masterIdentityOverride && !declaredIdentity && currentSectorWeak && !retailPrimaryIdentity && !finalCommerceDecision\.confirmed && reconciledIdentityStrong/);
 });

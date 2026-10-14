@@ -69,3 +69,123 @@ export const TOURISM_ACTIVITY_PATTERN = /\b(?:agenda|evenementen|events|overnach
 export function isTourismBoardHost(hostname: string): boolean {
   return /^(?:www\.)?visit[a-z-]{3,}\.[a-z.]+$/i.test(hostname);
 }
+
+// Page identity outranks incidental references in testimonials, customer cases and
+// payment checkout copy. These checks are generic; no domain or brand allowlist.
+export function paymentProviderPrimaryIdentity(identityText: string): boolean {
+  const identity = identityText.replace(/\s+/g, " ").slice(0, 3500);
+  // Strong role declarations distinguish a payment processor from a shop that
+  // simply accepts cards or advertises a payment integration.
+  return /\b(?:payment service provider|payment provider|payment gateway|payment processing|payment solutions?|payments? platform|platform for (?:online|in.person|every|all|your) payments?|electronic.money institution|e.money institution|betaalprovider|betaalplatform|betalingsplatform|betaaloplossingen|betaaldienstverlener|betaalinstelling|elektronischgeldinstelling|zahlungsanbieter|prestataire de paiement)\b/i.test(identity)
+    || /\b(?:platform|provider|gateway)\b.{0,85}\b(?:online (?:and|&|or) in.person payments|online en fysieke betalingen|betalingen ontvangen|accept payments|payment methods?)\b/i.test(identity)
+    || /\b(?:online (?:and|&|or) in.person payments|online en fysieke betalingen|payments? processing)\b.{0,85}\b(?:platform|provider|gateway)\b/i.test(identity);
+}
+
+export function primaryLodgingIdentity(identityText: string, schemaTypes: Iterable<string>): boolean {
+  const types = [...schemaTypes].map(type => String(type).toLowerCase());
+  if (types.some(type => ["hotel","hotelroom","lodgingbusiness","bedandbreakfast","vacationrental","resort","campground"].includes(type))) return true;
+  // Generic body text such as guest, arrival, departure, checkout, booking
+  // and a case study about hotels does NOT establish accommodation identity.
+  const source = identityText.replace(/\s+/g, " ").slice(0, 3500);
+  return /\b(?:hotel|hotels|hotelkamers?|hotelsuites?|accommodation|lodging|guesthouse|guest house|bed (?:and|&) breakfast|overnachten|overnachting|vakantiehuis|vakantiewoning|holiday (?:home|rental|park)|vacation rental|resort|camping|glamping|chambres d.hôtes|ferienhaus|ferienwohnung)\b/i.test(source)
+    || /\b(?:book|reserve|reserveer|boek) (?:a |your |een |je )?(?:room|hotelkamer|kamer|overnight stay|overnachting)\b/i.test(source);
+}
+
+
+/**
+ * A primary financial service is not a consumer retail shop merely because it
+ * uses prices, checkout vocabulary or card/reward offers. Require independent
+ * signals in primary page identity (title/description/H1) and financial schema,
+ * or an explicit provider role. No brand or domain special cases.
+ */
+export function financialServicePrimaryIdentity(input: {
+  title: string;
+  description: string;
+  headings: string[];
+  schemaTypes: Iterable<string>;
+}): { identified: boolean; provider: boolean; evidence: string[] } {
+  const identity = [input.title, input.description, ...input.headings].filter(Boolean).join(" ").replace(/\s+/g, " ").slice(0, 3500);
+  const provider = paymentProviderPrimaryIdentity(identity);
+  const financeTypes = new Set(["financialproduct","financialservice","paymentcard","creditcard","loanorcredit","bankaccount","depositaccount","bankorcreditunion","insuranceagency"]);
+  const financialSchemas = [...new Set([...input.schemaTypes].map(type=>String(type).toLowerCase()))].filter(type=>financeTypes.has(type));
+  const moneyActivity = /\b(?:send(?:ing)?(?:\s+(?:and|&)\s+(?:save|receive|transfer))?\s+money|(?:receive|request|transfer|move|save|manage)\s+(?:your\s+)?money|money transfers?|digital wallet|payment accounts?|savings? accounts?|banking services?|betalingen (?:versturen|ontvangen)|geld (?:versturen|overmaken|ontvangen|sparen|beheren)|digitale portemonnee|geld overmaken)\b/i.test(identity);
+  const explicitFinancialRole = /\b(?:financial (?:technology|services?|platform)|fintech|digital wallet|money transfer (?:service|app|platform)|payment (?:service provider|provider|platform|processor)|banking (?:services?|platform|app)|financial app|payment app|betaalplatform|financieel platform|bankdiensten|financi[eë]le dienstverlening)\b/i.test(identity);
+  const identified = provider || (moneyActivity && (financialSchemas.length > 0 || explicitFinancialRole));
+  return { identified, provider, evidence: [
+    ...(provider ? ["Primair betalingsplatform of betaaldienstverlener in titel/description/H1"] : []),
+    ...(moneyActivity && !provider ? ["Primair aanbod voor geldbeheer/betalingen/wallet in titel/description/H1"] : []),
+    ...(financialSchemas.length ? ["Financieel schema: "+financialSchemas.slice(0,4).join(", ")] : []),
+    ...(explicitFinancialRole ? ["Expliciete financiële platform- of dienstverlenersidentiteit"] : []),
+  ]};
+}
+
+// Locale/market-prefixed root routes such as /us/home and /en-gb/home.
+// Deep pages never qualify; arbitrary short path segments are insufficient.
+const MARKET_REGIONS = new Set(["us","uk","gb","ca","au","nz","in","ie","br","mx","ar","cl","co","pe","nl","be","de","at","ch","fr","es","pt","it","dk","se","no","fi","pl","cz","sk","hu","ro","bg","hr","gr","ee","lv","lt","si","lu","mt","cy","tr","il","ae","sa","za","sg","hk","jp","kr","tw","my","th","id","ph"]);
+const MARKET_LANGUAGES = new Set(["en","nl","de","fr","es","it","pt","da","sv","no","fi","pl","cs","sk","hu","ro","bg","el","hr","et","lv","lt","sl","tr","ar","he","ja","ko","zh"]);
+export function isLocalizedHomePath(pathname: string): boolean {
+  const parts = pathname.toLowerCase().split("/").filter(Boolean);
+  if (parts.length !== 2 || !/^(?:home|homepage|index)$/.test(parts[1])) return false;
+  const locale = parts[0].replace("_", "-");
+  const codes = locale.split("-");
+  return codes.length === 1
+    ? MARKET_REGIONS.has(locale) || MARKET_LANGUAGES.has(locale)
+    : codes.length === 2 && MARKET_LANGUAGES.has(codes[0]) && MARKET_REGIONS.has(codes[1]);
+}
+
+
+/** Generic primary non-retail role evidence from page identity and corroboration. */
+export function primaryNonRetailRole(input:{
+  title:string;description:string;headings:string[];schemaTypes:Iterable<string>;
+}):{key:"lodging"|"restaurant"|"healthcare"|"public_sector"|"software"|null;evidence:string[]}{
+  const main=[input.title,...input.headings].filter(Boolean).join(" ").slice(0,1500);
+  const identity=[main,input.description].join(" ").slice(0,3000);
+  const schema=new Set([...input.schemaTypes].map(type=>String(type).toLowerCase()));
+  // A retailer advertising hotel-room furniture or restaurant equipment is not
+  // itself a hotel/restaurant. Evidence is about the primary business model.
+  const retail=retailIdentityLanguage(identity);
+  if((retail.assortment&&retail.onlineSales) || (hasRetailStoreSchema(schema) && /\b(?:buy|shop|add to cart|purchase|bestel|kopen|winkelwagen|webshop|online store)\b/i.test(identity)))return {key:null,evidence:[]};
+  const rules=[
+    {key:"software" as const,primary:/\b(?:software|saas|software platform|business software|software-as-a-service|project management platform|crm platform)\b/i,
+      support:/\b(?:features?|integrations?|dashboard|workflows?|subscription|software|saas|developers?|api|automatisering|applicatie)\b/i,
+      schemas:["softwareapplication","webapplication"]},
+    {key:"lodging" as const,primary:/\b(?:hotel|hostel|guesthouse|guest house|bed (?:and|&) breakfast|b&b|resort|vakantiehuis|vacation rental|ferienhaus|pension|camping|campground)\b/i,
+      support:/\b(?:rooms?|kamers?|suites?|stay|overnight|accommodation|lodging|book (?:a |your )?room|overnachten|overnachting|gasten|guests?)\b/i,
+      schemas:["hotel","lodgingbusiness","bedandbreakfast","hostel","resort","vacationrental","campground"]},
+    {key:"restaurant" as const,primary:/\b(?:restaurant|bistro|brasserie|cafe|café|pizzeria|eetcafé|dining room)\b/i,
+      support:/\b(?:menu|menukaart|cuisine|dining|dinner|lunch|reserve a table|tafel reserveren|food|keuken|gerechten)\b/i,
+      schemas:["restaurant","foodestablishment","cafeorcoffeeshop"]},
+    {key:"healthcare" as const,primary:/\b(?:dentist|dental (?:clinic|practice)|tandarts|medical clinic|medical practice|healthcare clinic|huisartsenpraktijk|fysiotherapie|orthodontist)\b/i,
+      support:/\b(?:patient|patiënt|appointment|afspraak|treatment|behandeling|zorg|medical|healthcare|mondzorg|praktijk)\b/i,
+      schemas:["dentist","medicalclinic","physician","hospital"]},
+    {key:"public_sector" as const,primary:/\b(?:government|municipality|ministry|minist[eè]re|gemeente|rijksoverheid|city council|public authority|public services)\b/i,
+      support:/\b(?:permits?|vergunning|citizens?|inwoners?|public service|burgerzaken|overheid|beleid|policy|paspoort)\b/i,
+      schemas:["governmentorganization","governmentoffice"]},
+  ];
+  for(const rule of rules){
+    if(!rule.primary.test(main))continue;
+    const structured=rule.schemas.some(type=>schema.has(type));
+    if(!structured&&!rule.support.test(identity))continue;
+    return {key:rule.key,evidence:["Primaire "+rule.key+"-identiteit in title/H1",structured?"Passend structured data-type":"Passende activiteit in paginametadata"]};
+  }
+  return {key:null,evidence:[]};
+}
+
+
+/**
+ * Primary lodging subtype from page identity, not ancillary room/holiday links.
+ * Hotel chains can list restaurants, holiday stays and rooms without becoming
+ * holiday-rental businesses; equally a rental near hotels is still a rental.
+ */
+export function lodgingBusinessSubtype(input:{
+  title:string;description:string;headings:string[];schemaTypes:Iterable<string>;
+}):"hotel"|"bed_breakfast"|"holiday_park"|"holiday_rental"|"camping"|null{
+  const identity=[input.title,...input.headings].filter(Boolean).join(" ").slice(0,1600);
+  const types=new Set([...input.schemaTypes].map(x=>String(x).toLowerCase()));
+  if(/\b(?:bed (?:and|&) breakfast|b\s*&\s*b|guesthouse|guest house|pension)\b/i.test(identity)||types.has("bedandbreakfast"))return "bed_breakfast";
+  if(/\b(?:holiday park|vakantiepark|holiday resort)\b/i.test(identity))return "holiday_park";
+  if(/\b(?:vacation rental|holiday rental|holiday home|vakantiehuis|vakantiewoning|ferienhaus|ferienwohnung)\b/i.test(identity)||types.has("vacationrental"))return "holiday_rental";
+  if(/\b(?:campground|camping|campsite|glamping)\b/i.test(identity)||types.has("campground"))return "camping";
+  if(/\bhotels?\b/i.test(identity)||types.has("hotel")||types.has("lodgingbusiness"))return "hotel";
+  return null;
+}

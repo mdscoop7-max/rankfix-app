@@ -1,3 +1,4 @@
+import { gunzipSync } from "node:zlib";
 import { URL } from "node:url";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
@@ -65,7 +66,9 @@ export async function safePublicFetch(value: string | URL, options: { timeoutMs?
         redirect: "manual",
         cache: "no-store",
         headers: {
-          "User-Agent": options.userAgent ?? "RankFixBot/2.1 (+https://rankfix-app.onrender.com)",
+          // Same identity as lib/evidence-quality.ts rankfixUserAgents(); kept literal so this
+          // module stays import-free for the tests.
+          "User-Agent": options.userAgent ?? "RankFixBot/2.1 (+https://rankfix-app.vercel.app/bot)",
           Accept: options.accept ?? "text/html,application/xhtml+xml",
         },
       });
@@ -105,11 +108,17 @@ export async function readResponseTextLimited(response: Response, maxBytes = 2_0
       }
       chunks.push(value);
     }
-    const bytes = new Uint8Array(total);
+    let bytes = new Uint8Array(total);
     let offset = 0;
     for (const chunk of chunks) {
       bytes.set(chunk, offset);
       offset += chunk.byteLength;
+    }
+    // Gzipped files served without Content-Encoding (sitemap.xml.gz) are
+    // unpacked here, bounded by the same limit.
+    if (bytes.length > 2 && bytes[0] === 0x1f && bytes[1] === 0x8b) {
+      try { bytes = new Uint8Array(gunzipSync(bytes, { maxOutputLength: maxBytes })); }
+      catch { throw new Error("RESPONSE_TOO_LARGE"); }
     }
     const declaredCharset = response.headers.get("content-type")?.match(/charset\s*=\s*["']?([^;"'\s]+)/i)?.[1]?.toLowerCase() || "";
     const charset = /^(?:iso-8859-1|latin1|latin-1|windows-1252|cp1252)$/.test(declaredCharset) ? "windows-1252" : declaredCharset || "utf-8";

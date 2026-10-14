@@ -40,12 +40,14 @@ export default function HealthPage(){
     {title:"Queue & Workers",items:guards.filter(g=>g.key==="queue_worker_guard")},
     {title:"External APIs",items:group(["ai","github","google","email"])},
     {title:"RankFix app & Scanner",items:group(["app","scanner"])},
+    {title:"Testpilot QA",items:group(["qa_pilot"])},
     {title:"Deployment",items:group(["deployment"])},
     {title:"Backup & Recovery",items:recovery},
     {title:"Security & Abuse",items:guards.filter(g=>g.key==="security_abuse")},
     {title:"Usage & Growth",items:guards.filter(g=>g.key==="usage"||g.key==="growth_upgrade")}
    ].map(component=>{const level=component.items.reduce<Level>((worst,item)=>levelRank[item.level]>levelRank[worst]?item.level:worst,"green");return <details className={"rf-health-component-detail "+(component.items.length?level:"unknown")} key={component.title}><summary><div><div className="rf-health-component-title"><strong>{component.title}</strong><span className={"rf-health-state "+(component.items.length?level:"unknown")}>{component.items.length?labels[level]:"Geen meting"}</span></div><p>{component.items.length?component.items.map(i=>i.message||i.label).slice(0,1).join(" · "):"Nog geen controlegegevens beschikbaar."}</p></div><span className="rf-health-chevron" aria-hidden="true">⌄</span></summary><div className="rf-health-component-body">{component.items.length?component.items.map(item=><div className="rf-health-component-check" key={item.key}><b className={"rf-health-state "+item.level}>{labels[item.level]}</b><strong>{item.label}</strong><p>{item.message}</p>{"latencyMs" in item&&typeof item.latencyMs==="number"&&<small>Reactietijd: {item.latencyMs} ms</small>}{"metrics" in item&&item.metrics&&Object.keys(item.metrics).length>0&&<small>{Object.entries(item.metrics).map(([k,v])=>k+": "+v).join(" · ")}</small>}{"details" in item&&item.details&&Object.keys(item.details).length>0&&<small>{Object.entries(item.details).map(([k,v])=>k+": "+String(v)).join(" · ")}</small>}</div>):<p>Voor dit onderdeel zijn momenteel geen aanvullende meetgegevens beschikbaar.</p>}</div></details>})}
   </div>
+  <p className="rf-health-components-intro">Testpilot QA bewaakt apart de GitHub-tests (dag, avond en nacht). Een rode QA-status betekent niet dat de live website offline is. <a href="https://github.com/mdscoop7-max/rankfix-app/actions/workflows/qa-sector-pilots.yml" target="_blank" rel="noopener noreferrer">Open de testpilot op GitHub ↗</a></p>
   <section className="rf-health-info"><strong>Wat betekent deze status?</strong><p>Systeemstatus geeft aan hoe belangrijke onderdelen van RankFix werken. “Aandacht” betekent dat één of meer controles extra aandacht nodig hebben, maar dat er geen storing is.</p></section>
  </div><AiAssistant dashboard /></div></main>
 }

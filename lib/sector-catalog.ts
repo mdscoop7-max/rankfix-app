@@ -108,7 +108,9 @@ export function rankSectorCandidates(evidence: ScanEvidence, searchableText: str
     "appointments.booking": high(evidence.appointments.booking),
   };
   return SECTOR_CATALOG.map(def=>{
-    const keywordHit = def.keywords.test(searchableText);
+    const keywordHit = def.key === "ecommerce"
+      ? /\b(?:webshop|online shop|shop online|online winkel|online store|retailer|retail shop)\b/i.test(searchableText)
+      : def.keywords.test(searchableText);
     const schemaHits = (def.schemaTypes||[]).filter(x=>schema.has(x.toLowerCase()));
     let evidenceHits = (def.evidenceFlags||[]).filter(x=>flags[x]);
     // A vacancy is a capability of many businesses, not proof that recruitment is
@@ -125,6 +127,13 @@ export function rankSectorCandidates(evidence: ScanEvidence, searchableText: str
         flags["appointments.reservation"] ||
         /\b(?:gerechten|diner|lunch|ontbijt|eten|food|cuisine|chef|tafel reserveren|restaurant)\b/i.test(searchableText);
       if (!foodIdentity) evidenceHits = evidenceHits.filter(x=>x!=="inventory.menu");
+    }
+    // Commerce is a cross-sector capability. A cart, checkout or product feed
+    // cannot by itself establish that the company's primary sector is retail.
+    // Retain commerce evidence in the report, but require an independent retail
+    // identity signal before it can contribute to the ecommerce sector ranking.
+    if (def.key === "ecommerce" && !keywordHit && !schemaHits.some(x => /^(?:OnlineStore|Store)$/i.test(x))) {
+      evidenceHits = [];
     }
     const score = (keywordHit?2:0) + schemaHits.length*3 + evidenceHits.length*2;
     return {key:def.key,label:def.label,score,evidence:[

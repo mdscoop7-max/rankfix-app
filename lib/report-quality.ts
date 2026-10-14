@@ -12,13 +12,15 @@ export type RenderFailureCode =
   | "RENDER_BLOCKED"
   | "RENDER_DEGRADED"
   | "RENDER_NOT_SUBSTANTIVE"
+  | "RENDER_LIMIT_REACHED"
   | "RENDER_FAILED";
 
 export function renderFailureCode(error: unknown): RenderFailureCode {
   const message = error instanceof Error ? error.message : String(error ?? "");
-  if (/could not find (?:chrome|chromium|expected browser)|failed to launch|browser was not found|executable doesn'?t exist|no usable sandbox|ENOENT.*chrom/i.test(message)) return "BROWSER_UNAVAILABLE";
+  if (/BROWSER_UNAVAILABLE|could not find (?:chrome|chromium|expected browser)|failed to launch|browser was not found|executable doesn'?t exist|no usable sandbox|ENOENT.*chrom/i.test(message)) return "BROWSER_UNAVAILABLE";
   if (/timeout|timed out|navigation.*exceeded/i.test(message)) return "RENDER_TIMEOUT";
   if (/URL_HOST_BLOCKED|URL_PROTOCOL_BLOCKED|DNS|ERR_BLOCKED|net::ERR_ACCESS_DENIED|403/i.test(message)) return "RENDER_BLOCKED";
+  if (/RENDER_BUDGET_EXHAUSTED|RENDER_DEADLINE_REACHED|RENDER_LIMIT_REACHED/.test(message)) return "RENDER_LIMIT_REACHED";
   if (/RENDER_DEGRADED/.test(message)) return "RENDER_DEGRADED";
   if (/NOT_SUBSTANTIVE/.test(message)) return "RENDER_NOT_SUBSTANTIVE";
   return "RENDER_FAILED";
@@ -30,6 +32,7 @@ const RENDER_FAILURE_COPY: Record<RenderFailureCode, string> = {
   RENDER_BLOCKED: "de website blokkeerde de browser-rendering",
   RENDER_DEGRADED: "de browserversie bevatte minder inhoud dan de HTML-versie",
   RENDER_NOT_SUBSTANTIVE: "de browserversie bevatte geen bruikbare pagina-inhoud",
+  RENDER_LIMIT_REACHED: "de browser-rendering is overgeslagen om de scan binnen de tijds- en geheugenlimiet te houden",
   RENDER_FAILED: "de browser-rendering kon niet worden voltooid",
 };
 
@@ -60,7 +63,9 @@ export function stripTrackingParams(value: string): string {
 // Account, login, order, withdrawal and filter/facet URLs are application screens,
 // not content that represents the website in search. They never enter the sample.
 const ACCOUNT_SEGMENT = /^(?:my-?account|mijn-?account|account|accounts|myprofile|my-profile|profile|profiel|mijn-profiel|mijn-gegevens|login|log-in|logout|log-out|uitloggen|inloggen|signin|sign-in|signout|sign-out|signup|sign-up|register|registreren|auth|oauth2?|sso|authorize|password|wachtwoord|reset-password|wishlist|verlanglijst|favorites?|favourites?|favorieten|cart|basket|winkelwagen|winkelmand|checkout|afrekenen|kassa|purchases?|orders?|order-history|bestellingen|mijn-bestellingen|withdrawal|herroeping|herroepen|returns-portal|search|zoeken)$/i;
-const NON_CONTENT_QUERY = /^(?:q|query|search|zoek|sort|order|filter|filters|f|facet|page|session|sessionid|token|withdrawal|returnurl|return_url|redirect|redirect_uri|next|callback)$/i;
+const NON_CONTENT_QUERY = /^(?:q|query|search|zoek|sort|order|filter|filters|f|facet|page|session|sessionid|token|withdrawal|returnurl|return_url|redirect|redirect_uri|next|callback|code|state|client_id|response_type|scope|nonce|access_token|id_token|ui_locales|login_hint|prompt)$/i;
+// Login and identity hosts (account.allbirds.de, auth.example.com) are application screens.
+const ACCOUNT_HOST = /^(?:account|accounts|auth|login|signin|sso|id|identity|secure|my|mijn|mein|checkout|pay)\./i;
 
 export function isNonContentUrl(value: string): boolean {
   let url: URL;
@@ -68,6 +73,7 @@ export function isNonContentUrl(value: string): boolean {
   const segments = url.pathname.split("/").filter(Boolean).map((segment) => {
     try { return decodeURIComponent(segment).toLowerCase(); } catch { return segment.toLowerCase(); }
   });
+  if (ACCOUNT_HOST.test(url.hostname)) return true;
   if (segments.some((segment) => ACCOUNT_SEGMENT.test(segment))) return true;
   // Facet/filter paths: "_product-awards-Alle-Awards", "/f/merk-x", "/filter/…".
   if (segments.some((segment) => segment.startsWith("_") || segment === "f" || segment === "filter" || segment === "filters" || segment === "facet")) return true;
@@ -122,7 +128,9 @@ function brandTokens(host: string): string[] {
 // "| Expert.nl" or "Zalando": the title names only the brand, not the page.
 export function isBrandOnlyTitle(title: string, host: string): boolean {
   const tokens = new Set(brandTokens(host).map(normalizeSegment));
-  const content = titleSegments(title).map(normalizeSegment).filter(Boolean);
+  // A locale code or "Home" next to the brand adds no topic ("Nl | TransHeroes").
+  const content = titleSegments(title).map(normalizeSegment).filter(Boolean)
+    .filter((segment) => !/^(?:[a-z]{2}(?:[ -][a-z]{2})?|home|homepage|start|startpagina|welkom|welcome|accueil|startseite|inicio)$/.test(segment));
   if (!content.length) return true;
   return content.every((segment) => tokens.has(segment) || tokens.has(segment.replace(/\s+/g, "")));
 }
@@ -142,7 +150,13 @@ export function titleLengthCredit(length: number): number {
   return 0.45;
 }
 
-export type MetaAssessment = { status: "PASS" | "WARNING"; credit: number; details: string; flag?: "missing" | "empty" | "brand_only" | "duplicate_segment" | "outdated_year" };
+export type MetaAssessment = { status: "PASS" | "WARNING"; credit: number; details: string; flag?: "missing" | "empty" | "brand_only" | "duplicate_segment" | "outdated_year" | "generic" | "too_long" };
+
+// "Home", "Homepage", "Untitled": a title that names no topic at all.
+const GENERIC_TITLE_TEXT = /^(?:home|homepage|home page|hoofdpagina|startpagina|startseite|accueil|inicio|index|untitled|untitled document|nieuwe pagina|new page|page|pagina|document|welkom|welcome)$/i;
+export function isGenericTitleText(title: string): boolean {
+  return GENERIC_TITLE_TEXT.test(normalizeSegment(title));
+}
 
 // "Tarieven en vergoedingen 2017": a year at least three years old in a title
 // signals outdated content to searchers.
@@ -159,10 +173,18 @@ export function assessPageTitle(title: string, host: string, now: Date = new Dat
   if (isBrandOnlyTitle(value, host)) {
     return { status: "WARNING", credit: 0.25, details: `Title bevat alleen de merknaam ("${value}"); het onderwerp van de pagina ontbreekt.`, flag: "brand_only" };
   }
+  if (isGenericTitleText(value)) {
+    return { status: "WARNING", credit: 0.25, details: `Title "${value}" is generiek en noemt geen onderwerp.`, flag: "generic" };
+  }
   const duplicate = duplicateTitleSegment(value);
   const length = value.length;
-  const inRange = titleLengthDistance(length) === 0;
-  const lengthText = inRange ? `Title gevonden (${length} tekens); binnen richtwaarde 30–60.` : `Title gevonden (${length} tekens); buiten richtwaarde 30–60.`;
+  // Review Oct 2026: a short, descriptive title is not an issue. Length
+  // greater than 60 is advisory: SERP truncation depends on pixel width,
+  // search device and Google rewriting the displayed title.
+  const inRange = length <= 60;
+  const lengthText = length < 30
+    ? `Title gevonden (${length} tekens); kort maar beschrijvend, dat is geen probleem.`
+    : inRange ? `Title gevonden (${length} tekens); binnen richtwaarde 30–60.` : `Title gevonden (${length} tekens); langer dan 60 tekens. Controleer de zoekpreview: mogelijke afkapping hangt af van pixelbreedte en is niet bewezen door de tekenlengte alleen.`;
   if (duplicate) {
     return { status: "WARNING", credit: Math.min(0.8, titleLengthCredit(length)), details: `${lengthText} "${duplicate}" staat dubbel in de title; waarschijnlijk voegt het template het merk een tweede keer toe.`, flag: "duplicate_segment" };
   }
@@ -172,7 +194,7 @@ export function assessPageTitle(title: string, host: string, now: Date = new Dat
   }
   return inRange
     ? { status: "PASS", credit: 1, details: lengthText }
-    : { status: "WARNING", credit: titleLengthCredit(length), details: lengthText };
+    : { status: "WARNING", credit: titleLengthCredit(length), details: lengthText, flag: "too_long" };
 }
 
 export function assessPageDescription(description: string, tagPresent: boolean): MetaAssessment {
@@ -272,4 +294,18 @@ const NON_ENTITY_TYPES = /^(?:\w*action|listitem|itemlist|breadcrumblist|imageob
 
 export function entityTypesForDisplay(types: string[]): string[] {
   return [...new Set(types.filter((type) => !NON_ENTITY_TYPES.test(type.trim())))];
+}
+
+
+/** One readable finding per sampled page, never a mid-word, dangling quote or clause. */
+export function sampleEvidenceExcerpt(value: string, maxLength = 190): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) return normalized;
+  // Prefer a complete first sentence: a sample excerpt is not a full audit.
+  const firstSentence = normalized.match(/^(.+?[.!?])(?:\s|$)/)?.[1];
+  if (firstSentence && firstSentence.length <= maxLength) return firstSentence;
+  const boundary = normalized.lastIndexOf(" ", maxLength - 1);
+  const excerpt = normalized.slice(0, boundary > maxLength * 0.55 ? boundary : maxLength)
+    .replace(/[\s;,:(\-"“‘]+$/g, "");
+  return excerpt + "…";
 }

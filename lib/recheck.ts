@@ -38,8 +38,9 @@ export function runRuleForUrl(issue: Pick<NormalizedIssue, "rule_id">, page: Pag
       try {
         const expected=new URL(url); const actual=new URL(page.canonical,url);
         expected.hash=""; actual.hash="";
+        if (!["http:", "https:"].includes(actual.protocol)) return {success:true,status:"UNABLE_TO_CONFIRM",evidence:{url,details:"Canonical gebruikt geen controleerbare HTTP(S)-URL.",found:page.canonical}};
         const same=expected.toString().replace(/\/$/,"")===actual.toString().replace(/\/$/,"");
-        return same ? {success:true,status:"PASS",evidence:{url,details:"Self-referencing canonical is live bevestigd.",found:actual.toString()}} : {success:true,status:"FAIL",evidence:{url,details:"Canonical wijst nog niet naar de gecontroleerde URL.",found:actual.toString()}};
+        return {success:true,status:"PASS",evidence:{url,details:same ? "Self-referencing canonical is aanwezig." : "Een afwijkende canonical is aanwezig. Controleer de voorkeurs-URL en eventuele duplicaten afzonderlijk; een afwijkende canonical is niet automatisch fout.",found:actual.toString()}};
       } catch { return {success:true,status:"UNABLE_TO_CONFIRM",evidence:{url,details:"Canonical kon niet betrouwbaar worden geïnterpreteerd.",found:page.canonical}}; }
     }
     default: return {success:false,status:"UNABLE_TO_CONFIRM",evidence:{url,details:"Geen deterministische recheck voor deze rule."}};

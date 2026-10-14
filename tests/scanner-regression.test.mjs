@@ -13,7 +13,7 @@ import { legacyPassiveSecurity } from "./fixtures/security-legacy.mjs";
 import { pages as securityPages } from "./fixtures/security-pages.mjs";
 import { INDIRECT_CONTACT_KINDS, assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findVisibleAddress, findVisibleEmail, findVisiblePhone, isContactForm } from "../lib/contact-evidence.ts";
 import { selectRepresentativePages } from "../lib/representative-pages.ts";
-import { clientIpFromHeaders, isInternalTester, isInternalTesterCustomerId, retryAfterSeconds, scanRateLimitMessage, scanRateLimitPolicy } from "../lib/scan-access.ts";
+import { clientIpFromHeaders, isInternalTester, isInternalTesterCustomerId, isRankfixReviewPreview, retryAfterSeconds, scanRateLimitMessage, scanRateLimitPolicy } from "../lib/scan-access.ts";
 
 test("decorative empty alt is valid; only a missing alt attribute is actionable", () => {
   const metrics = extractImageMetrics('<img src="/hero.jpg" alt=""><img src="/product.jpg" alt="Product"><img src="/broken.jpg">');
@@ -90,7 +90,8 @@ test("scanner regression source keeps evidence-only classification safeguards", 
   assert.match(source, /Een individuele auteur is niet vereist op een organisatie-, dienst- of merkhomepage/);
   // Representative-page meta wording lives in lib/report-quality.ts.
   const quality = await readFile(new URL("../lib/report-quality.ts", import.meta.url), "utf8");
-  assert.match(quality, /buiten richtwaarde 30–60/);
+  // Review Oct 2026 (point 10): short titles pass; only >60 characters is a length point.
+  assert.match(quality, /langer dan 60 tekens/);
   assert.match(quality, /uitzonderlijk kort/);
   assert.match(quality, /uitzonderlijk lang/);
   assert.match(source, /assessPageTitle\(pageTitle, finalCandidate\.hostname\)/);
@@ -138,8 +139,11 @@ test("multilingual trust, social URL and auth redirect bundle stays evidence bas
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   assert.match(source, /normalizeLegalText/);
-  assert.match(source, /privatnost\\w\*\|zasebnost\\w\*/);
-  assert.match(source, /piskotk\\w\*\|kolacic\\w\*/);
+  // The legal lexicon moved to lib/evidence-quality.ts (review Oct 2026, point 2).
+  assert.match(source, /legalLexicon = LEGAL_LEXICON/);
+  const legal = await readFile(new URL("../lib/evidence-quality.ts", import.meta.url), "utf8");
+  assert.match(legal, /privatnost\\w\*\|\\bzasebnost\\w\*/);
+  assert.match(legal, /piskotk\\w\*\|kolacic\\w\*/);
   const contactLexicon = await readFile(new URL("../lib/contact-evidence.ts", import.meta.url), "utf8");
   assert.match(contactLexicon, /assistenza clienti/);
   assert.match(contactLexicon, /apoio ao cliente/);
@@ -174,7 +178,7 @@ test("multi-page retail evidence can strengthen site profile without activating 
   assert.match(source, /pageCommerceEvidence/);
   assert.match(source, /confirmedRetailPage: pageProductSchema/);
   assert.match(source, /sitewideCommerceEvidence/);
-  assert.match(source, /!transportBookingIdentity && sitewideCommerceEvidence\.confirmed/);
+  assert.match(source, /!transportBookingIdentity && !paymentServicesPrimaryIdentity && sitewideCommerceEvidence\.confirmed/);
   assert.match(source, /technologyProfile\.siteType = "Webshop"/);
   assert.match(source, /never silently[\s\S]*activates page-specific webshop checks/);
 });
@@ -185,7 +189,7 @@ test("government identity overrides generic LocalBusiness schema advice", async 
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   assert.match(source, /governmentIdentitySignal/);
   assert.match(source, /GovernmentOrganization \+ WebSite/);
-  assert.match(source, /effectiveLocalSchemaSignal = hasLocalBusinessSignal && !governmentIdentitySignal/);
+  assert.match(source, /effectiveLocalSchemaSignal = hasLocalBusinessSignal && !declaredNonLocalIdentity && !governmentIdentitySignal/);
   assert.match(source, /effectiveLocalBusinessPage = !isProductPage && !hasCategorySignal && effectiveLocalSchemaSignal/);
   assert.match(source, /localBusinessDetails = effectiveLocalSchemaSignal/);
 });
@@ -795,8 +799,8 @@ test("commerce identity requires confirmed high-confidence signals", async () =>
 test("sector identity ignores low-confidence accommodation and property evidence", async () => {
   const { readFile } = await import("node:fs/promises");
   const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  assert.match(scanner,/lodgingDetail\.shortStay\.confidence !== "low"/);
-  assert.match(scanner,/scanEvidence\.appointments\.booking\.confidence !== "low"/);
+  assert.match(scanner,/!paymentServicesPrimaryIdentity && siteRole\.key !== "software" && primaryLodgingIdentity\(sectorIdentitySource, schemaTypes\)/);
+  assert.match(scanner,/financialServicePrimaryIdentity\(\{title,description,headings:h1s,schemaTypes\}\)/);
   assert.match(scanner,/scanEvidence\.inventory\.properties\.confidence !== "low"/);
 });
 
@@ -1637,4 +1641,56 @@ test("internal customer ID exemption requires exact server authorization", () =>
   assert.equal(isInternalTesterCustomerId(customerId, { RANKFIX_INTERNAL_TEST_CUSTOMER_ID: customerId }), true);
   assert.equal(isInternalTesterCustomerId("RF-00000000000000000000000000000000", { RANKFIX_INTERNAL_TEST_CUSTOMER_ID: customerId }), false);
   assert.equal(isInternalTesterCustomerId(customerId, { RANKFIX_INTERNAL_TEST_CUSTOMER_ID: "invalid" }), false);
+});
+
+test("only Vercel PR #132 review preview receives a bounded 40/hour QA rate limit", () => {
+  const input = { dashboardScan:false, userId:null, paidPlan:false, tester:false };
+  const preview = { VERCEL:"1", VERCEL_ENV:"preview", VERCEL_GIT_COMMIT_REF:"fix/review-12-punten-20261012" };
+  assert.equal(isRankfixReviewPreview(preview),true);
+  assert.deepEqual(scanRateLimitPolicy(input,preview),{
+    scope:"pr132-preview-public-scan", key:"ip",limit:40,windowSeconds:3600,code:"PUBLIC_SCAN_RATE_LIMIT"
+  });
+  assert.deepEqual(scanRateLimitPolicy({...input,dashboardScan:true,userId:"free-tester"},preview),{
+    scope:"pr132-preview-free-scan",key:"ip",limit:40,windowSeconds:3600,code:"FREE_SCAN_RATE_LIMIT"
+  });
+  for(const env of [
+    { ...preview, VERCEL_ENV:"production" },
+    { ...preview, VERCEL_ENV:"development" },
+    { ...preview, VERCEL_GIT_COMMIT_REF:"main" },
+    { ...preview, VERCEL_GIT_COMMIT_REF:"fix/some-other-pr" },
+    { ...preview, VERCEL:"0" },
+    { VERCEL_ENV:"preview", VERCEL_GIT_COMMIT_REF:"fix/review-12-punten-20261012" },
+  ]){
+    assert.equal(isRankfixReviewPreview(env),false);
+    assert.deepEqual(scanRateLimitPolicy(input,env),{
+      scope:"public-scan",key:"ip",limit:8,windowSeconds:3600,code:"PUBLIC_SCAN_RATE_LIMIT"
+    });
+  }
+  assert.equal(scanRateLimitPolicy({...input,tester:true},preview),null);
+  assert.deepEqual(scanRateLimitPolicy({...input,userId:"paid-user",paidPlan:true},preview),{
+    scope:"paid-public-scan",key:"user",limit:30,windowSeconds:3600,code:"ACCOUNT_SCAN_RATE_LIMIT"
+  });
+});
+
+test("international portal excludes shop-only page checks without pretending commerce is absent", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(scanner,/marketSelectorPage && finalCommerceApplicability\.state === "unconfirmed"/);
+  assert.match(scanner,/finalCommerceApplicability\.reason === "market_selector"/);
+  assert.match(scanner,/!finalCommerceOnlyKeys\.has\(item\.key\)/);
+  assert.match(scanner,/scopeMessage = "Deze controle hoort bij een landspecifieke webshop/);
+  assert.match(scanner,/item\.reasonCode = "type_uncertain"/);
+  assert.match(scanner,/for \(const key of \["content","headings","answer"\]\)/);
+  assert.match(scanner,/scoreRange: scoreModel\.range/);
+  assert.match(scanner,/scoredSamplePages\.some\(page => normalizeScanUrl\(page\.url\) !== normalizeScanUrl\(finalUrl\.toString\(\)\)\)/);
+  const commerce = await readFile(new URL("../lib/commerce-applicability.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(commerce,/Scan de landversie \(bijvoorbeeld \/nl\/nl\/\)/);
+  assert.match(commerce,/Open de passende landwebsite via de landenkeuze/);
+});
+
+test("final business detail evidence includes verified categories rather than 'found=none'",async()=>{
+  const { readFile } = await import("node:fs/promises");
+  const scanner=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
+  assert.match(scanner,/business_placeholders: `placeholders=\$\{placeholderMatches\.length\}; verifiedDetails=\$\{businessDetails\.status === "pass" \? businessDetails\.found\.join/);
+  assert.doesNotMatch(scanner,/business_placeholders: `placeholders=\$\{placeholderMatches\.length\}; found=\$\{placeholderMatches/);
 });

@@ -1,0 +1,123 @@
+name: RankFix Sector QA - three isolated shifts
+# Push on the PR branch starts one real pilot run. Schedule events run only
+# on the default branch after separately approved merge/configuration.
+on:
+  push:
+    branches: [fix/review-12-punten-20261012]
+    paths:
+      - '.github/workflows/qa-sector-pilots.yml'
+      - 'scripts/qa/**'
+      - 'app/api/scan/route.ts'
+      - 'lib/sector-subtype.ts'
+      - 'lib/sector-identity.ts'
+      - 'lib/evidence-quality.ts'
+      - 'lib/audit-score.ts'
+      - 'lib/sector-catalog.ts'
+      - 'lib/commerce-applicability.ts'
+      - 'tests/payment-service-sector.test.mjs'
+      - 'tests/sector-identity.test.mjs'
+      - 'tests/scanner-regression.test.mjs'
+      - 'tests/sector-subtype.test.mjs'
+      - 'tests/evidence-quality.test.mjs'
+      - 'tests/qa-quality-gate.test.mjs'
+  schedule:
+    - cron: '0 22,23 * * *' # Amsterdam midnight (summer/winter candidates)
+    - cron: '0 6,7 * * *'   # Amsterdam 08:00
+    - cron: '0 14,15 * * *' # Amsterdam 16:00
+  workflow_dispatch:
+    inputs:
+      shift:
+        description: 'Choose one shift or all'
+        required: true
+        default: all
+        type: choice
+        options: [all, night, day, evening]
+permissions:
+  contents: read
+concurrency:
+  group: rankfix-sector-qa-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        shift: [night, day, evening]
+    env:
+      DATABASE_URL: postgresql://rankfix:rankfix-pilot@127.0.0.1:5432/rankfix_pilot
+      SESSION_SECRET: disposable-qa-only-session-secret
+      APP_URL: http://127.0.0.1:3100
+      SITE_URL: http://127.0.0.1:3100
+      NEXT_TELEMETRY_DISABLED: '1'
+      PILOT_BASE_URL: http://127.0.0.1:3100
+    steps:
+      - name: Select shift
+        id: choose
+        env:
+          EVENT: ${{ github.event_name }}
+          CRON: ${{ github.event.schedule }}
+          REQUESTED: ${{ inputs.shift }}
+          SHIFT: ${{ matrix.shift }}
+        run: |
+          selected=false
+          if [ "$EVENT" = push ]; then selected=true; fi
+          if [ "$EVENT" = workflow_dispatch ] && { [ "$REQUESTED" = all ] || [ "$REQUESTED" = "$SHIFT" ]; }; then selected=true; fi
+          HOUR="$(TZ=Europe/Amsterdam date +%H)"
+          case "$CRON:$SHIFT:$HOUR" in
+            '0 22,23 * * *:night:00'|'0 6,7 * * *:day:08'|'0 14,15 * * *:evening:16') selected=true ;;
+          esac
+          echo "selected=$selected" >> "$GITHUB_OUTPUT"
+      - name: Checkout code without write token
+        if: steps.choose.outputs.selected == 'true'
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Node 24
+        if: steps.choose.outputs.selected == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Create throwaway Postgres
+        if: steps.choose.outputs.selected == 'true'
+        run: |
+          sudo systemctl start postgresql.service
+          sudo -u postgres psql -c "CREATE USER rankfix WITH PASSWORD 'rankfix-pilot';"
+          sudo -u postgres psql -c 'CREATE DATABASE rankfix_pilot OWNER rankfix;'
+      - name: Test and build QA scanner
+        if: steps.choose.outputs.selected == 'true'
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: '1'
+        run: |
+          npm ci --no-audit --no-fund
+          npm test
+          npm run build
+      - name: Use system Chrome for JS rendering
+        if: steps.choose.outputs.selected == 'true'
+        run: |
+          echo "PUPPETEER_EXECUTABLE_PATH=$(which google-chrome)" >> "$GITHUB_ENV"
+          echo "RANKFIX_CHROME_NO_SANDBOX=1" >> "$GITHUB_ENV"
+      - name: Start isolated RankFix server
+        if: steps.choose.outputs.selected == 'true'
+        run: |
+          nohup npm run start -- -p 3100 > qa-server.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl --silent --fail --output /dev/null http://127.0.0.1:3100/; then exit 0; fi
+            sleep 2
+          done
+          tail -60 qa-server.log
+          exit 1
+      - name: Run real sector scans
+        if: steps.choose.outputs.selected == 'true'
+        run: node scripts/qa/run-pilot.mjs "${{ matrix.shift }}"
+      - name: Upload reports without git commits
+        if: always() && steps.choose.outputs.selected == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rankfix-${{ matrix.shift }}-${{ github.run_id }}
+          path: qa-results/${{ matrix.shift }}/
+          retention-days: 30
+          if-no-files-found: error

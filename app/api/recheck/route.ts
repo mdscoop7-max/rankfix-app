@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { SITE_URL } from "@/lib/site-url";
+import { rankfixUserAgents } from "@/lib/evidence-quality";
 import { runRuleForUrl, isRecheckSupported } from "@/lib/recheck";
 import { CRAWLER_VERSION, RULES_VERSION } from "@/lib/seo-rules";
 import { safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
@@ -34,7 +36,7 @@ export async function POST(request: Request) {
     let url: URL;
     try { url = validatePublicHttpUrl(urlValue); } catch { return NextResponse.json({ success:false, error:"unable_to_confirm" }, {status:422}); }
     let response: Response;
-    try { ({ response } = await safePublicFetch(url, { timeoutMs: 10000, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)" })); } catch { return NextResponse.json({ success:true, status:"UNABLE_TO_CONFIRM", evidence:{url:url.toString(),details:"De pagina kon door een netwerk-/timeoutprobleem niet betrouwbaar worden gecontroleerd."}, crawler_version:CRAWLER_VERSION, rules_version:RULES_VERSION }); }
+    try { ({ response } = await safePublicFetch(url, { timeoutMs: 10000, userAgent: rankfixUserAgents(SITE_URL).bot })); } catch { return NextResponse.json({ success:true, status:"UNABLE_TO_CONFIRM", evidence:{url:url.toString(),details:"De pagina kon door een netwerk-/timeoutprobleem niet betrouwbaar worden gecontroleerd."}, crawler_version:CRAWLER_VERSION, rules_version:RULES_VERSION }); }
     if (!response.ok) return NextResponse.json({ success:true, status:"UNABLE_TO_CONFIRM", evidence:{url:url.toString(),details:`HTTP ${response.status}; recheck kan de oorspronkelijke SEO-status niet betrouwbaar vaststellen.`}, crawler_version:CRAWLER_VERSION, rules_version:RULES_VERSION });
     const html = await response.text();
     const title = first(html, /<title[^>]*>([\s\S]*?)<\/title>/i);

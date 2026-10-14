@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db";
+import { checkQaPilot } from "@/lib/qa-pilot-health";
 
 export type HealthLevel="green"|"orange"|"red";
 export type HealthCheck={key:string;label:string;level:HealthLevel;message:string;latencyMs?:number};
@@ -26,6 +27,8 @@ export async function runRankFixHealthChecks():Promise<HealthCheck[]>{
  checks.push({key:"github",label:"GitHub",level:process.env.GITHUB_CLIENT_ID&&process.env.GITHUB_CLIENT_SECRET?"green":"orange",message:process.env.GITHUB_CLIENT_ID&&process.env.GITHUB_CLIENT_SECRET?"GitHub OAuth-configuratie aanwezig.":"GitHub OAuth-configuratie is onvolledig; GitHub-fixes zijn dan niet beschikbaar."});
  checks.push({key:"google",label:"Search Console",level:process.env.GOOGLE_CLIENT_ID&&process.env.GOOGLE_CLIENT_SECRET?"green":"orange",message:process.env.GOOGLE_CLIENT_ID&&process.env.GOOGLE_CLIENT_SECRET?"Google OAuth-configuratie aanwezig.":"Google OAuth-configuratie is onvolledig; normale audits blijven beschikbaar."});
  checks.push({key:"deployment",label:"Deployment",level:process.env.RENDER?"green":"orange",message:process.env.RENDER?"Render-runtime actief.":"Render-runtime kon niet worden bevestigd."});
+ const qa=await checkQaPilot();
+ checks.push({key:qa.key,label:qa.label,level:qa.level,message:qa.message});
  return checks;
 }
 export function overallHealth(checks:HealthCheck[]):HealthLevel{return checks.some(c=>c.level==="red")?"red":checks.some(c=>c.level==="orange")?"orange":"green"}
