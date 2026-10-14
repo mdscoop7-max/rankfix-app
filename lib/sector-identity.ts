@@ -69,3 +69,18 @@ export const TOURISM_ACTIVITY_PATTERN = /\b(?:agenda|evenementen|events|overnach
 export function isTourismBoardHost(hostname: string): boolean {
   return /^(?:www\.)?visit[a-z-]{3,}\.[a-z.]+$/i.test(hostname);
 }
+
+
+// A telecom provider sells recurring connectivity subscriptions. A price,
+// contract button or URL containing /product/ is not evidence of a retail store.
+// Only identity metadata is passed here, not arbitrary footer/body mentions.
+const TELECOM_PLAN = /\b(?:sim[ -]?only|data[ -]?only|mobiele? abonnementen?|internetabonnementen?|abonnement(?:en)? met toestel|mobile plans?|mobile subscriptions?|broadband plans?|mobiel abonnement)\b/i;
+const TELECOM_NETWORK = /\b(?:glasvezel|fiber|fibre|netwerk(?:dekking)?|dekkingskaart|dekking|5g|4g|internet|broadband|mobiel netwerk|mobile network)\b/i;
+const TELECOM_PROVIDER = /\b(?:telecom(?:provider)?|telecommunications?|telefoonprovider|internetprovider|mobiele? provider|mobile operator|network operator|broadband provider)\b/i;
+
+export function telecomSubscriptionIdentity(identitySource: string) {
+  const subscription = TELECOM_PLAN.test(identitySource);
+  const network = TELECOM_NETWORK.test(identitySource);
+  const provider = TELECOM_PROVIDER.test(identitySource);
+  return { subscription, network, provider, primary: (subscription && network) || (provider && (subscription || network)) };
+}
