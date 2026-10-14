@@ -517,7 +517,7 @@ export async function POST(request: Request) {
         };
         return NextResponse.json({error:limitMessages[scanLanguage],code:"SCAN_LIMIT",usage:{plan:planCode,used,limit:limits.scans}},{status:429});
       }
-      if(planCode==="free"){
+      if(planCode==="free" && !internalTestAccount){
         const ip = requestIp(request);
         const salt = process.env.USAGE_HASH_SALT || process.env.SESSION_SECRET || "rankfix-usage";
         usageIpHash = createHash("sha256").update(salt + ":" + ip).digest("hex");
