@@ -149,11 +149,14 @@ export function rankSectorCandidates(evidence: ScanEvidence, searchableText: str
     // Primary business identity takes precedence over incidental shopping widgets.
     // Require telecom terminology from TWO distinct evidence families: subscription
     // and network/coverage. Neither a cart nor a price alone is sector identity.
-    const subscriptionIdentity = /\\b(?:sim[ -]?only|data[ -]?only|mobiele? abonnementen?|internetabonnement|abonnement(?:en)? met toestel|mobile plans?|maandelijks opzegbaar)\\b/i.test(searchableText);
-    const networkIdentity = /\\b(?:telecom|provider|glasvezel|netwerkdekking|dekkingskaart|5g[ -]?internet|mobiel netwerk|broadband)\\b/i.test(searchableText);
+    const subscriptionIdentity = /\b(?:sim[ -]?only|data[ -]?only|mobiele? abonnementen?|internetabonnement|abonnement(?:en)? met toestel|mobile plans?|maandelijks opzegbaar)\b/i.test(searchableText);
+    const networkIdentity = /\b(?:telecom|provider|glasvezel|netwerkdekking|dekkingskaart|5g[ -]?internet|mobiel netwerk|broadband)\b/i.test(searchableText);
     const telecomPrimary = subscriptionIdentity && networkIdentity;
+    const verifiedCommerce = flags["commerce.products"] && (flags["commerce.cart"] || flags["commerce.checkout"]);
     const telecomBoost = def.key === "telecom" && telecomPrimary ? 14 : 0;
-    const incidentalCommercePenalty = def.key === "ecommerce" && telecomPrimary ? 12 : 0;
+    // Keep genuine stores and hybrid device sellers in contention when independently
+    // verified product + cart/checkout evidence exists.
+    const incidentalCommercePenalty = def.key === "ecommerce" && telecomPrimary && !verifiedCommerce ? 12 : 0;
     const score = Math.max(0, (keywordHit ? 1 : 0) + schemaScore + evidenceScore + telecomBoost - incidentalCommercePenalty);
     // A catalog alone is not proof of a multi-seller marketplace.
     if (def.key === "marketplace" && !keywordHit && specificSchemaHits.length === 0) {
