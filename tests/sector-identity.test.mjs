@@ -289,7 +289,7 @@ test("primary finance identity gates retailer checks across early and late scan 
   assert.match(src,/const hasCategorySignal = !isProductPage && !nonRetailIdentityEarly/);
   assert.match(src,/!nonRetailIdentityEarly \|\| independentRetailChain/);
   assert.match(src,/const paymentServicesPrimaryIdentity = financialIdentity\.identified/);
-  assert.match(src,/confirmed: Boolean\(!primaryNonCommerceIdentity &&/);
+  assert.match(src,/confirmed: Boolean\(!telecomPrimaryIdentity && !primaryNonCommerceIdentity &&/);
 });
 
 
