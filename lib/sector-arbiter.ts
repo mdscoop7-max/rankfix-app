@@ -224,7 +224,8 @@ export function arbitratePrimarySector(input: ArbiterInput): ArbiterDecision {
     .map(sector => ({ sector, proof: structuralEvidenceFor(sector, input) }))
     .filter(item => item.proof.length > 0)
     .sort((a, b) => b.proof.length - a.proof.length ||
-      (SECTOR_PRIORITY.indexOf(a.sector) + 1 || 99) - (SECTOR_PRIORITY.indexOf(b.sector) + 1 || 99));
+      (SECTOR_PRIORITY.indexOf(a.sector) < 0 ? 99 : SECTOR_PRIORITY.indexOf(a.sector)) -
+      (SECTOR_PRIORITY.indexOf(b.sector) < 0 ? 99 : SECTOR_PRIORITY.indexOf(b.sector)));
   const top = structural[0];
   // Contradictory structural proof: a second, different sector must trail the leader by at least two
   // independent proof groups, otherwise there is no reliable primary sector (regardless of earlier layers).
