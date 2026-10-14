@@ -108,7 +108,9 @@ export function rankSectorCandidates(evidence: ScanEvidence, searchableText: str
     "appointments.booking": high(evidence.appointments.booking),
   };
   return SECTOR_CATALOG.map(def=>{
-    const keywordHit = def.keywords.test(searchableText);
+    const keywordHit = def.key === "ecommerce"
+      ? /\b(?:webshop|online shop|shop online|online winkel|online store|retailer|retail shop)\b/i.test(searchableText)
+      : def.keywords.test(searchableText);
     const schemaHits = (def.schemaTypes||[]).filter(x=>schema.has(x.toLowerCase()));
     let evidenceHits = (def.evidenceFlags||[]).filter(x=>flags[x]);
     // A vacancy is a capability of many businesses, not proof that recruitment is
