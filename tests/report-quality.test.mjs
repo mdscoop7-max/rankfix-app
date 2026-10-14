@@ -79,6 +79,9 @@ test("titles: an old year in a title is flagged as outdated", () => {
   assert.equal(outdatedTitleYear("Tarieven en vergoedingen 2017 Acupunctuur Praktijk Gerda Dijkstra.", now), 2017);
   assert.equal(outdatedTitleYear("Black Friday 2025 deals", now), null);
   assert.equal(outdatedTitleYear("Sinds 2005 actief, prijzen 2026", now), null);
+  assert.equal(outdatedTitleYear("Over Simpel: voor iedereen, sinds 2007 | Simpel", now), null);
+  assert.equal(outdatedTitleYear("Founded in 2007, our history and values", now), null);
+  assert.equal(assessPageTitle("Over Simpel: voor iedereen, sinds 2007 | Simpel", "www.simpel.nl", now).status, "PASS");
   assert.equal(assessPageTitle("Tarieven en vergoedingen 2017 Acupunctuur Praktijk Gerda Dijkstra.", "www.acupunctuurdijkstra.nl", now).flag, "outdated_year");
 });
 
