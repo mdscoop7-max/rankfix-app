@@ -4191,7 +4191,13 @@ export async function POST(request: Request) {
     }
     // Preserve broad engine families internally, but show a more useful specific
     // label when the catalog and representative evidence independently agree.
-    if (!finalCommerceDecision.confirmed && catalogTop?.key==="dentist" && multiPageCapabilities.treatment) {
+    // Specific dental identity must outrank generic health/wellness and incidental
+    // booking/travel vocabulary, including on JavaScript-rendered Wix websites.
+    // Require explicit dental identity in primary page metadata (or Dentist schema)
+    // plus independent treatment evidence; generic clinics remain health/wellness.
+    const explicitDentalIdentity = /\\b(?:tandarts(?:praktijk|en)?|tandheelkund\\w*|mondzorg|mondhygi[eë]n\\w*|dentist|dental\\s+clinic|dental\\s+practice|orthodontist)\\b/i.test(sectorIdentitySource) || schemaSet.has("dentist");
+    if (!finalCommerceDecision.confirmed && explicitDentalIdentity && (multiPageCapabilities.treatment || catalogTop?.key==="dentist" || schemaSet.has("dentist"))) {
+      sectorProfile.sector = "health_wellness";
       sectorProfile.key = "dentist";
       sectorProfile.label = "Tandarts / Dentist";
       sectorProfile.confidence = "high";
