@@ -73,7 +73,7 @@ export const SECTOR_CATALOG: SectorDefinition[] = [
   {key:"manufacturer",label:"Fabrikant / producent",keywords:/\b(fabrikant|manufacturer|producent|manufacturing|factory)\b/i,schemaTypes:["Organization"],expectedCapabilities:["products","company","distributors_or_contact"],optionalCapabilities:["commerce"]},
   {key:"wholesale",label:"Groothandel / B2B handel",keywords:/\b(groothandel|wholesale|distributor|b2b supplier)\b/i,schemaTypes:["Organization"],expectedCapabilities:["catalog","business_customers","quote_or_order"],optionalCapabilities:["commerce"]},
   {key:"logistics",label:"Logistiek / transport",keywords:/\b(logistiek|logistics|transport|freight|koerier|courier)\b/i,schemaTypes:["Organization"],expectedCapabilities:["services","service_area","quote_request","contact"]},
-  {key:"telecom",label:"Telecom",keywords:/\b(telecom|mobiel abonnement|mobile plan|internet provider|broadband)\b/i,schemaTypes:["Organization"],expectedCapabilities:["plans","pricing","coverage","signup"]},
+  {key:"telecom",label:"Telecom / abonnementen",keywords:/\b(telecom|mobiele? abonnementen?|sim[ -]?only|data[ -]?only|mobile plans?|internet provider|internetabonnement|glasvezel(?:internet)?|broadband|netwerkdekking|dekkingskaart|5g[ -]?internet)\b/i,schemaTypes:["Organization"],expectedCapabilities:["plans","subscription_pricing","contract_terms","coverage","signup"],optionalCapabilities:["devices","device_sales"],forbiddenAssumptions:["physical_stock","merchant_feed","shipping","returns","cart","checkout"]},
   {key:"energy",label:"Energie / nutsbedrijf",keywords:/\b(energie|energy supplier|energieleverancier|gas en stroom|electricity supplier)\b/i,schemaTypes:["Organization"],expectedCapabilities:["plans_or_rates","service_area","signup","support"]},
   {key:"photography",label:"Fotografie",keywords:/\b(fotograaf|photographer|photography|fotoshoot)\b/i,schemaTypes:["ProfessionalService"],expectedCapabilities:["portfolio","services","booking_or_contact","pricing"]},
   {key:"childcare",label:"Kinderopvang",keywords:/\b(kinderopvang|daycare|childcare|kinderdagverblijf)\b/i,schemaTypes:["ChildCare"],expectedCapabilities:["services","locations","availability_or_registration","contact"]},
@@ -146,7 +146,15 @@ export function rankSectorCandidates(evidence: ScanEvidence, searchableText: str
         expectedCapabilities:def.expectedCapabilities,optionalCapabilities:def.optionalCapabilities||[],
         forbiddenAssumptions:def.forbiddenAssumptions||[]};
     }
-    const score = (keywordHit ? 1 : 0) + schemaScore + evidenceScore;
+    // Primary business identity takes precedence over incidental shopping widgets.
+    // Require telecom terminology from TWO distinct evidence families: subscription
+    // and network/coverage. Neither a cart nor a price alone is sector identity.
+    const subscriptionIdentity = /\\b(?:sim[ -]?only|data[ -]?only|mobiele? abonnementen?|internetabonnement|abonnement(?:en)? met toestel|mobile plans?|maandelijks opzegbaar)\\b/i.test(searchableText);
+    const networkIdentity = /\\b(?:telecom|provider|glasvezel|netwerkdekking|dekkingskaart|5g[ -]?internet|mobiel netwerk|broadband)\\b/i.test(searchableText);
+    const telecomPrimary = subscriptionIdentity && networkIdentity;
+    const telecomBoost = def.key === "telecom" && telecomPrimary ? 14 : 0;
+    const incidentalCommercePenalty = def.key === "ecommerce" && telecomPrimary ? 12 : 0;
+    const score = Math.max(0, (keywordHit ? 1 : 0) + schemaScore + evidenceScore + telecomBoost - incidentalCommercePenalty);
     // A catalog alone is not proof of a multi-seller marketplace.
     if (def.key === "marketplace" && !keywordHit && specificSchemaHits.length === 0) {
       return {key:def.key,label:def.label,score:0,evidence:[],
