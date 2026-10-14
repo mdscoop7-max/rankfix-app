@@ -9,6 +9,7 @@ export default function Account() {
   const [name,setName]=useState("");
   const [email,setEmail]=useState("");
   const [password,setPassword]=useState("");
+  const [activationCode,setActivationCode]=useState("");
   const [confirmPassword,setConfirmPassword]=useState("");
   const [error,setError]=useState("");
   const [busy,setBusy]=useState(false);
@@ -57,7 +58,7 @@ export default function Account() {
     }
 
     const endpoint=mode==="login"?"/api/auth/login":"/api/auth/register";
-    const body=mode==="login"?{email,password,rememberMe,language}:{name,email,password,language};
+    const body=mode==="login"?{email,password,rememberMe,language,activationCode}:{name,email,password,language};
 
     try {
       const r=await fetch(endpoint,{
@@ -101,6 +102,13 @@ export default function Account() {
             <input required aria-label={t.password} minLength={8} type="password" value={password} onChange={e=>setPassword(e.target.value)} name="password" placeholder={t.password} autoComplete={mode==="register"?"new-password":"current-password"} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-950 outline-none placeholder:text-slate-500"/>
 
             {mode==="register"&&<p className="text-xs text-slate-400">{language==="nl"?"Minimaal 8 tekens: letters + 1 cijfer + 1 speciaal teken.":language==="de"?"Mindestens 8 Zeichen: Buchstaben + 1 Zahl + 1 Sonderzeichen.":language==="fr"?"Au moins 8 caractères : lettres + 1 chiffre + 1 caractère spécial.":language==="it"?"Almeno 8 caratteri: lettere + 1 numero + 1 carattere speciale.":language==="es"?"Mínimo 8 caracteres: letras + 1 número + 1 carácter especial.":"At least 8 characters: letters + 1 number + 1 special character."}</p>}
+
+            {mode==="login"&&(
+              <div>
+                <label htmlFor="agency-activation" className="mb-2 block text-sm text-slate-300">Agency-activatiecode (optioneel, alleen eigenaar)</label>
+                <input id="agency-activation" type="password" autoComplete="off" value={activationCode} onChange={e=>setActivationCode(e.target.value)} placeholder="Voer je activatiecode in" className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-950 outline-none placeholder:text-slate-500" />
+              </div>
+            )}
 
             {mode==="login"&&(
               <div className="flex items-center justify-between gap-4">

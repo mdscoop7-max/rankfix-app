@@ -7,7 +7,7 @@ import LanguageSelect from "./language-select";
 const dashboard:Record<Locale,string>={nl:"Dashboard",en:"Dashboard",fr:"Tableau de bord",es:"Panel",it:"Dashboard",de:"Dashboard"};
 
 export default function PublicHeader({locale,page}:{locale:Locale;page:string}){
- const t=copy[locale]; const [user,setUser]=useState<any>(null); const [ready,setReady]=useState(false);
+ const t=copy[locale]; const [user,setUser]=useState<unknown>(null); const [ready,setReady]=useState(false);
  useEffect(()=>{fetch("/api/auth/me",{cache:"no-store"}).then(r=>r.json()).then(d=>{setUser(d?.user||null);setReady(true)}).catch(()=>setReady(true))},[]);
  return <header className="lc-header"><div className="lc-container">
    <Link className="lc-brand" href={"/"+locale}><span className="lc-brand-mark">RF</span><b>RankFix <em>AI</em></b></Link>

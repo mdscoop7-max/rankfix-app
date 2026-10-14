@@ -27,7 +27,7 @@ export async function generateMetadata():Promise<Metadata>{
   twitter:{card:"summary_large_image",title:m.title,description:m.description,images:["/opengraph-image"]}
  };
 }
-export default async function RootLayout({children}:LayoutProps<"/">){
+export default async function RootLayout({children}:{children:React.ReactNode}){
  const raw=(await headers()).get("x-rankfix-language")||"nl";const language=/^(nl|en|fr|es|it|de)$/.test(raw)?raw:"nl";
  return <html lang={language} className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}><body className="min-h-full flex flex-col"><script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify({"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://rankfix-app.onrender.com/#organization",name:"RankFix AI",url:"https://rankfix-app.onrender.com/"},{"@type":"WebSite","@id":"https://rankfix-app.onrender.com/#website",url:"https://rankfix-app.onrender.com/",name:"RankFix AI",publisher:{"@id":"https://rankfix-app.onrender.com/#organization"},inLanguage:["nl","en","de","fr","es","it"]}]})}}/>{children}</body></html>;
 }

@@ -224,7 +224,8 @@ export function arbitratePrimarySector(input: ArbiterInput): ArbiterDecision {
     .map(sector => ({ sector, proof: structuralEvidenceFor(sector, input) }))
     .filter(item => item.proof.length > 0)
     .sort((a, b) => b.proof.length - a.proof.length ||
-      (SECTOR_PRIORITY.indexOf(a.sector) + 1 || 99) - (SECTOR_PRIORITY.indexOf(b.sector) + 1 || 99));
+      (SECTOR_PRIORITY.indexOf(a.sector) < 0 ? 99 : SECTOR_PRIORITY.indexOf(a.sector)) -
+      (SECTOR_PRIORITY.indexOf(b.sector) < 0 ? 99 : SECTOR_PRIORITY.indexOf(b.sector)));
   const top = structural[0];
   // Contradictory structural proof: a second, different sector must trail the leader by at least two
   // independent proof groups, otherwise there is no reliable primary sector (regardless of earlier layers).
@@ -302,6 +303,17 @@ export function arbitratePrimarySector(input: ArbiterInput): ArbiterDecision {
 
   // A. Verified storefront.
   if (storefront.grade === "strong") {
+    // Subscription providers may expose prices, catalogues and a cart for devices.
+    // Without an independently verified retail product/purchase flow, those signals
+    // must not override a primary telecom identity in title/H1/description.
+    const telecomIdentity = reliableIdentity(input, "telecom_technology");
+    const retailPurchaseVerified = input.commerce.product || input.commerce.addToCart ||
+      input.commerce.siteSampleProduct || input.commerce.previouslyConfirmed || storefront.store;
+    if (telecomIdentity && !retailPurchaseVerified) {
+      reasons.push("Telecomidentiteit in titel/koppen/omschrijving; losse winkelwagen-, catalogus- en prijssignalen bevestigen geen primaire retailwebshop.");
+      return build({ role: "specialist_business", sector: "telecom_technology", status: "probable",
+        confidenceScore: 75, commerceConfirmed: false });
+    }
     // Generic-word sectors only lose to a storefront when their "proof" could be words.
     // A dedicated schema type PLUS an independent structural capability (menu+reservation,
     // rooms+booking) is not a word match; with a small shop (e.g. gift cards) the
@@ -352,6 +364,22 @@ export function arbitratePrimarySector(input: ArbiterInput): ArbiterDecision {
   }
   const current = input.current.sector;
   const identityCompetitors = input.identity.filter(item => item.sector !== "ecommerce" && reliableIdentity(input, item.sector));
+  // When a generic sector and exactly one specific specialist both appear in
+  // reliable identity fields, do not blindly preserve the earlier generic guess.
+  // A dental practice mentioning travel directions is still a dental practice.
+  // Ambiguous competing specialists remain uncertain rather than arbitrarily chosen.
+  const specificIdentityCompetitors = identityCompetitors.filter(item => !GENERIC_WORD_SECTORS.has(item.sector));
+  if (GENERIC_WORD_SECTORS.has(current) &&
+      specificIdentityCompetitors.length === 1 &&
+      identityCompetitors.length <= 2 &&
+      specificIdentityCompetitors[0].sector !== current) {
+    const adopted = specificIdentityCompetitors[0].sector;
+    reasons.push(`Specifieke sectoridentiteit ${labelOf(input, adopted)} krijgt voorrang boven de algemene eerdere sector ${input.current.label}; geen structureel bewijs, dus waarschijnlijk.`);
+    return build({
+      role: "specialist_business", sector: adopted, status: "probable",
+      confidenceScore: 62, commerceConfirmed: false,
+    });
+  }
   if (current && current !== "unknown" && current !== "ecommerce" && reliableIdentity(input, current)) {
     if (identityCompetitors.length >= 3) {
       reasons.push("Titel/koppen/omschrijving bevatten termen van drie of meer sectoren; geen betrouwbare hoofdsector.");

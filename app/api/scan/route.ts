@@ -517,7 +517,7 @@ export async function POST(request: Request) {
         };
         return NextResponse.json({error:limitMessages[scanLanguage],code:"SCAN_LIMIT",usage:{plan:planCode,used,limit:limits.scans}},{status:429});
       }
-      if(planCode==="free"){
+      if(planCode==="free" && !internalTestAccount){
         const ip = requestIp(request);
         const salt = process.env.USAGE_HASH_SALT || process.env.SESSION_SECRET || "rankfix-usage";
         usageIpHash = createHash("sha256").update(salt + ":" + ip).digest("hex");
@@ -1658,7 +1658,13 @@ export async function POST(request: Request) {
     const automotiveServiceIdentity = Boolean(/\b(?:apk|autobanden|banden|uitlijnen|werkplaats|autoservice|auto-onderhoud|car repair|tyres?)\b/i.test(sectorIdentitySource) || schemaSet.has("autorepair"));
     const explicitMedicalIdentity = /\b(?:tandarts|dentist|kliniek|clinic|medical|medicalclinic|fysiotherap|mondzorg|patient|patiënt|physician|huisarts|doctor)\b/i.test(sectorIdentitySource) || schemaSet.has("dentist") || schemaSet.has("medicalclinic");
     const beautyServiceIdentity = /\b(?:beauty salon|beautysalon|schoonheidssalon|day spa|dayspa|city spa|wellness|manicure|pedicure|nail salon|nagelsalon|facial|gezichtsbehandeling)\b/i.test(sectorIdentitySource) || schemaSet.has("beautysalon") || schemaSet.has("dayspa");
-    const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[]} | null = shortStayIdentity
+    // A telecom provider can also sell handsets: accessory/cart evidence must not
+    // replace an explicit subscriptions/network identity with generic ecommerce.
+    const telecomProviderIdentity = /\\b(?:telecom|telecommunications?|telekom|internet provider|mobiele? abonnementen?|sim.only|glasvezel|mobiel netwerk|mobile network|broadband provider|internet en tv|telefonie)\\b/i.test(sectorIdentitySource)
+      && /\\b(?:abonnementen?|sim.only|glasvezel|internet|mobiel|mobile|netwerk|network|telefonie|5g|4g)\\b/i.test(sectorSource);
+    const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[]} | null = telecomProviderIdentity
+      ? {sector:"telecom_technology",key:"telecom_technology",label:"Telecom & Technologie",evidence:["Primaire identiteit: telecomabonnementen en netwerkdiensten; verkoop van toestellen is ondersteunend"]}
+      : shortStayIdentity
       ? {sector:"hospitality",key:lodgingSubtype.key,label:lodgingSubtype.label,evidence:["Scanbewijs: kort verblijf/accommodatie bevestigd", ...lodgingDetail.shortStay.evidence, ...lodgingDetail.stayDates.evidence, ...lodgingDetail.guests.evidence]}
       : realEstateIdentity
         ? {sector:"real_estate",key:"real_estate",label:"Vastgoed & Makelaardij",evidence:["Scanbewijs: vastgoed/woningidentiteit bevestigd", ...scanEvidence.inventory.properties.evidence]}
@@ -2560,7 +2566,7 @@ export async function POST(request: Request) {
           : check("warning", "h1", "seo", "H1-heading", "Er is geen H1-heading gevonden. Dit is een structuur-/toegankelijkheidsaanbeveling en geen op zichzelf bewezen rankingfout.", "Voeg een duidelijke primaire H1 toe wanneer dat past bij de pagina-inhoud.", 6, 8)
         : check("pass", "h1", "seo", "H1-heading", `Er zijn ${h1s.length} H1-headings gevonden. Meerdere H1-elementen zijn technisch toegestaan; RankFix behandelt dit daarom als structuuradvies en niet als bewezen SEO-probleem.`, "Overweeg één duidelijke primaire H1 en gebruik H2/H3 voor secties wanneer dat de documentstructuur begrijpelijker maakt.", 8, 8)
     );
-    const subheadingCount = headings.length;
+    const subheadingCount = headings.filter((heading) => heading.level >= 2).length;
     const hasH2 = headings.some((h) => h.level === 2);
     const headingStructurePoints = hasH2 ? 7 : subheadingCount >= 3 ? 6 : subheadingCount >= 1 ? 5 : 4;
     seoChecks.push(subheadingCount > 0 && hasH2
@@ -3450,6 +3456,9 @@ export async function POST(request: Request) {
     const overallScoreRange = scoreRange(checks);
     const scoreModel = {
       version: SCORE_MODEL_VERSION,
+      uncappedOverallScore: selectedOverallScore,
+      evidenceCapApplied: false,
+      evidenceCapReason: null as string | null,
       formula: mode === "both" ? "0.6 × SEO + 0.4 × GEO" : mode === "seo" ? "SEO" : "GEO",
       weights: mode === "both" ? { seo: 0.6, geo: 0.4, security: 0 } : mode === "seo" ? { seo: 1, geo: 0, security: 0 } : { seo: 0, geo: 1, security: 0 },
       securitySeparate: true,
@@ -3781,6 +3790,7 @@ export async function POST(request: Request) {
             (pageQualityWords < 15 && !pageQualityTitle && !pageQualityDescription)) {
           return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"quality",status:"UNABLE_TO_CONFIRM",details:`HTTP ${r.status}; response bevat onvoldoende betrouwbare pagina-inhoud voor scoring.`}] };
         }
+        const representativeJsUnconfirmed = (representativeJsFramework || representativeThinShell) && representativeEvidenceSource === "raw_html";
         const pageTitle = pageQualityTitle;
         const pageDescription = pageQualityDescription;
         const pageH1s = [...pageHtml.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gi)].map((m)=>stripHtml(m[1])).filter(Boolean);
@@ -3847,16 +3857,17 @@ export async function POST(request: Request) {
           : page.type;
         const evidenceChecks: MultiPageAudit["evidenceChecks"] = [
           {key:"http",status:"PASS",details:`HTTP ${r.status}`},
-          {key:"title",status:!pageTitle?"WARNING":pageTitle.length>=30&&pageTitle.length<=60?"PASS":"WARNING",details:!pageTitle?"Geen title gevonden in raw HTML.":pageTitle.length>=30&&pageTitle.length<=60?`Title gevonden (${pageTitle.length} tekens); binnen richtwaarde 30–60.`:`Title gevonden (${pageTitle.length} tekens); buiten richtwaarde 30–60.`},
-          {key:"description",status:!pageDescription?"WARNING":pageDescription.length>=70&&pageDescription.length<=200?"PASS":"WARNING",details:!pageDescription?(pageDescriptionTag?"Meta description-tag aanwezig maar content is leeg.":"Geen meta description-tag gevonden in raw HTML."):pageDescription.length>=70&&pageDescription.length<=200?`Meta description gevonden (${pageDescription.length} tekens); bruikbare lengte.`:`Meta description gevonden (${pageDescription.length} tekens); uitzonderlijk ${pageDescription.length<70?"kort":"lang"}.`},
-          {key:"h1",status:pageH1s.length>0?"PASS":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:`${pageH1s.length} H1-heading(s) gevonden.`},
-          {key:"canonical",status:pageCanonical
+          {key:"title",status:!pageTitle && representativeJsUnconfirmed?"UNABLE_TO_CONFIRM":!pageTitle?"WARNING":pageTitle.length>=30&&pageTitle.length<=60?"PASS":"WARNING",details:!pageTitle?"Geen title gevonden in raw HTML.":pageTitle.length>=30&&pageTitle.length<=60?`Title gevonden (${pageTitle.length} tekens); binnen richtwaarde 30–60.`:`Title gevonden (${pageTitle.length} tekens); buiten richtwaarde 30–60.`},
+          {key:"description",status:!pageDescription && representativeJsUnconfirmed?"UNABLE_TO_CONFIRM":!pageDescription?"WARNING":pageDescription.length>=70&&pageDescription.length<=200?"PASS":"WARNING",details:!pageDescription?(pageDescriptionTag?"Meta description-tag aanwezig maar content is leeg.":"Geen meta description-tag gevonden in raw HTML."):pageDescription.length>=70&&pageDescription.length<=200?`Meta description gevonden (${pageDescription.length} tekens); bruikbare lengte.`:`Meta description gevonden (${pageDescription.length} tekens); uitzonderlijk ${pageDescription.length<70?"kort":"lang"}.`},
+          {key:"h1",status:pageH1s.length>0?"PASS":representativeJsUnconfirmed?"UNABLE_TO_CONFIRM":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:`${pageH1s.length} H1-heading(s) gevonden.`},
+          {key:"canonical",status:!pageCanonical && representativeJsUnconfirmed?"UNABLE_TO_CONFIRM":pageCanonical
             ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); if(!/^https?:$/.test(resolved.protocol)) return "WARNING"; return normalizeScanUrl(resolved.toString())===normalizeScanUrl(finalCandidate.toString())?"PASS":"WARNING"; } catch { return "WARNING"; } })()
             : "WARNING",
             details:pageCanonical
               ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); if(!/^https?:$/.test(resolved.protocol)) return `Canonical gebruikt een ongeldig protocol of schema: ${pageCanonical}.`; const samePage=normalizeScanUrl(resolved.toString())===normalizeScanUrl(finalCandidate.toString()); return samePage?`Self-canonical/equivalente voorkeurs-URL bevestigd: ${resolved.toString()}`:`Canonical wijst naar ${resolved.toString()}; controleer of deze afwijking bewust is.`; } catch { return "Canonical is aanwezig maar kon niet betrouwbaar als URL worden geïnterpreteerd."; } })()
               : "Geen canonical-linkelement gevonden in de gecontroleerde raw HTML. Dit is hetzelfde afwezigheidssignaal als in de hoofdscan; controleer alleen apart wanneer de site canonical-tags uitsluitend via JavaScript toevoegt."},
         ];
+        // Unrendered JavaScript shells cannot prove that missing DOM elements are defects.
         const confirmed = evidenceChecks.filter((x)=>x.status!=="UNABLE_TO_CONFIRM");
         const evidenceCredit = (item: MultiPageAudit["evidenceChecks"][number]) => {
           if (item.status === "PASS") return 1;
@@ -4482,7 +4493,15 @@ export async function POST(request: Request) {
     selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);
     selectedGeoScore = scoreApplicableChecks(selectedGeoChecks);
     selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
+    const uncappedFinalOverallScore = selectedOverallScore;
     selectedOverallScore = applyEvidenceBasedScoreCap(selectedOverallScore, checks);
+    scoreModel.uncappedOverallScore = uncappedFinalOverallScore;
+    scoreModel.evidenceCapApplied = selectedOverallScore < uncappedFinalOverallScore;
+    scoreModel.evidenceCapReason = scoreModel.evidenceCapApplied
+      ? checks.some(item => item.issue_status === "FAIL" && item.severity === "CRITICAL" && item.confidence === "high")
+        ? "Bevestigde kritieke fout: totaalscore maximaal 70."
+        : "Bevestigde ernstige fout: totaalscore maximaal 88."
+      : null;
     seoCoverage = weightedCoverage(selectedSeoChecks);
     geoCoverage = weightedCoverage(selectedGeoChecks);
     overallCoverage = weightedCoverage(checks);
