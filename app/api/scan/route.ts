@@ -1737,12 +1737,16 @@ export async function POST(request: Request) {
       (onlineRetailCallout || evidenceCommerceStrength >= 1 || hasEcommerceSignal);
     const explicitRetailIdentity = storeSchemaRetailIdentity || (retailAssortmentIdentity &&
       (onlineRetailCallout || (retailStoreIdentity && commerceNavigationSignal)));
+    // Telecom is a service-led primary identity even when devices are sold online.
+    // Match service/contract language in declared metadata, not brand names.
+    const telecomPrimaryIdentity = /\\b(?:telecom(?:municatie)?|mobiele?\\s+(?:abonnementen?|telefonie)|sim[- ]?only|internet(?:abonnementen?|\\s+en\\s+tv|\\s+voor\\s+thuis)|breedband|glasvezel|fiber\\s+broadband|mobile\\s+(?:plans?|contracts?|network)|broadband\\s+(?:plans?|internet)|tv[- ]?abonnementen?)\\b/i.test(sectorIdentitySource)
+      && /\\b(?:abonnementen?|providers?|netwerk|internet|mobiel|telefonie|telecom|sim[- ]?only|broadband|fiber|connectivity|plans?|contracts?)\\b/i.test(sectorIdentitySource);
     const retailPurchaseEvidence = evidenceCommerceConfirmed || hasEcommerceSignal || explicitRetailIdentity;
     const retailPrimaryIdentity = retailPurchaseEvidence
-      && !paymentServicesPrimaryIdentity && !declaredIdentity && !shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity
+      && !paymentServicesPrimaryIdentity && !telecomPrimaryIdentity && !declaredIdentity && !shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity
       && !beautyServiceIdentity && !explicitMedicalIdentity && !transportBookingIdentity
       && !/\b(?:restaurant|hotel|reserveren|reserveer tafel|vakantieverhuur|transportdiensten|schoonmaakdienst)\b/i.test(sectorIdentitySource);
-    const primaryNonCommerceIdentity = retailPrimaryIdentity ? null : (masterIdentityOverride
+    const primaryNonCommerceIdentity = retailPrimaryIdentity ? null : (telecomPrimaryIdentity ? {sector:"telecom_technology" as SectorKey,key:"telecom_technology",label:"Telecom & abonnementen",evidence:["Telecomdiensten en abonnementen bevestigd in primaire paginametadata"]} : null) || masterIdentityOverride
       || (strongSectorCandidate && sectorCandidates[0].sector !== "ecommerce"
         ? {sector:sectorCandidates[0].sector,key:sectorCandidates[0].sector,label:sectorCandidates[0].label,evidence:[`Primaire identiteit: ${sectorCandidates[0].hits} onafhankelijke ${sectorCandidates[0].hits===1?"sectorsignaal":"sectorsignalen"}`]}
         : null));
@@ -4379,7 +4383,7 @@ export async function POST(request: Request) {
     const technologyOnlyCommerce = technologyProfile.isCommerce && !hardCommerceEvidence;
     const secondaryCommerceOnly = Boolean(primaryNonCommerceIdentity && !hardCommerceEvidence);
     const finalCommerceDecision = {
-      confirmed: Boolean(!primaryNonCommerceIdentity && (hardCommerceEvidence || technologyOnlyCommerce)),
+      confirmed: Boolean(!telecomPrimaryIdentity && !primaryNonCommerceIdentity && (hardCommerceEvidence || technologyOnlyCommerce)),
       currentPageEvidence: hardCommerceEvidence && masterEvidence.commerce.confirmed,
       technologyProfile: technologyProfile.isCommerce,
       technologyOnly: technologyOnlyCommerce,
@@ -4483,6 +4487,21 @@ export async function POST(request: Request) {
     } else {
       sectorProfile.applicableModules = sectorProfile.applicableModules.filter((module)=>!allCommerceModules.has(module));
       masterEvidence.activeModules = masterEvidence.activeModules.filter((module)=>!allCommerceModules.has(module));
+    }
+    // Final authority: evidence-gated commerce modules cannot be reintroduced by
+    // legacy sitewide commerce detection or by a sector label.
+    const approvedCommerceModules = new Set(evidenceModuleReport.enabledModules);
+    sectorProfile.applicableModules = sectorProfile.applicableModules.filter((module) => !commerceModules.has(module) || approvedCommerceModules.has(module));
+    masterEvidence.activeModules = masterEvidence.activeModules.filter((module) => !commerceModules.has(module) || approvedCommerceModules.has(module));
+    if (telecomPrimaryIdentity) {
+      sectorProfile.sector = "telecom_technology";
+      sectorProfile.key = "telecom_technology";
+      sectorProfile.label = "Telecom & abonnementen";
+      sectorProfile.confidence = "high";
+      sectorProfile.confidenceScore = 90;
+      sectorProfile.evidence = ["Telecomdiensten en abonnementen bevestigd in primaire paginametadata"];
+      sectorProfile.applicableModules = sectorProfile.applicableModules.filter((module) => !commerceModules.has(module));
+      masterEvidence.activeModules = masterEvidence.activeModules.filter((module) => !commerceModules.has(module));
     }
     // Re-run only clearly contradicted/underspecified primary identity decisions
     // with representative evidence. Secondary topics can never override a strong
