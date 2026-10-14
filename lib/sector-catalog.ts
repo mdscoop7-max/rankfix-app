@@ -208,7 +208,7 @@ export const CAPABILITY_MODULE_MAP: Record<string,string[]> = {
 export function modulesForCapabilities(capabilities: Iterable<string>) {
   const modules = new Set<string>();
   for (const capability of capabilities) {
-    for (const module of CAPABILITY_MODULE_MAP[capability] || []) modules.add(module);
+    for (const moduleName of CAPABILITY_MODULE_MAP[capability] || []) modules.add(moduleName);
   }
   return [...modules];
 }
