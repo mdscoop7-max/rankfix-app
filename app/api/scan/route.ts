@@ -1746,7 +1746,10 @@ export async function POST(request: Request) {
       && !paymentServicesPrimaryIdentity && !telecomPrimaryIdentity && !declaredIdentity && !shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity
       && !beautyServiceIdentity && !explicitMedicalIdentity && !transportBookingIdentity
       && !/\b(?:restaurant|hotel|reserveren|reserveer tafel|vakantieverhuur|transportdiensten|schoonmaakdienst)\b/i.test(sectorIdentitySource);
-    const primaryNonCommerceIdentity = retailPrimaryIdentity ? null : (telecomPrimaryIdentity ? {sector:"telecom_technology" as SectorKey,key:"telecom_technology",label:"Telecom & abonnementen",evidence:["Telecomdiensten en abonnementen bevestigd in primaire paginametadata"]} : null) || masterIdentityOverride
+    const confirmedDentistIdentity = /\b(?:tandarts|tandartspraktijk|dentist|dental practice|zahnarzt|dentiste|dentista)\b/i.test(title || "") && /\b(?:tandarts|tandartspraktijk|dentist|zahnarzt|dentiste|dentista)\b/i.test(h1s.join(" "));
+    const dentistPrimaryIdentity = confirmedDentistIdentity && !paymentServicesPrimaryIdentity && !retailPrimaryIdentity && (!declaredIdentity || declaredIdentity.sector === "health_wellness")
+      ? {sector:"health_wellness" as SectorKey,key:"dentist",label:"Tandarts / Dentist",evidence:["Tandartsidentiteit bevestigd in zowel title als H1"]} : null;
+    const primaryNonCommerceIdentity = retailPrimaryIdentity ? null : dentistPrimaryIdentity || (telecomPrimaryIdentity ? {sector:"telecom_technology" as SectorKey,key:"telecom_technology",label:"Telecom & abonnementen",evidence:["Telecomdiensten en abonnementen bevestigd in primaire paginametadata"]} : null) || masterIdentityOverride
       || (strongSectorCandidate && sectorCandidates[0].sector !== "ecommerce"
         ? {sector:sectorCandidates[0].sector,key:sectorCandidates[0].sector,label:sectorCandidates[0].label,evidence:[`Primaire identiteit: ${sectorCandidates[0].hits} onafhankelijke ${sectorCandidates[0].hits===1?"sectorsignaal":"sectorsignalen"}`]}
         : null);
