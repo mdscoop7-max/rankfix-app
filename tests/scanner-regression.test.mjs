@@ -826,3 +826,15 @@ test("representative crawl uses bounded concurrency", async () => {
   assert.match(scanRoute, /Math\.min\(representativeAuditConcurrency, uniqueMultiPagePages\.length\)/);
   assert.doesNotMatch(scanRoute, /Promise\.all\(uniqueMultiPagePages\.map\(auditMultiPage\)\)/);
 });
+
+
+test("representative JavaScript shell does not invent missing metadata or H1 defects", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const scanner = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(scanner, /representativeJsUnconfirmed = \(representativeJsFramework \|\| representativeThinShell\) && representativeEvidenceSource === "raw_html"/);
+  assert.match(scanner, /key:"h1",status:pageH1s\.length>0\?"PASS":representativeJsUnconfirmed\?"UNABLE_TO_CONFIRM":"WARNING"/);
+  for (const key of ["title", "description", "canonical"]) {
+    assert.ok(scanner.includes('key:"' + key + '",status:'), "missing representative check: " + key);
+  }
+  assert.match(scanner, /confirmed = evidenceChecks\.filter\(\(x\)=>x\.status!=="UNABLE_TO_CONFIRM"\)/);
+});
