@@ -39,3 +39,21 @@ test("Motor 3.1: generic identity alone remains a provisional generic sector", (
   assert.equal(decision.sector, "transport_travel");
   assert.equal(decision.status, "probable");
 });
+
+
+test("Motor 3.1: telecom identity wins over cart, prices and catalogue without retail purchase proof", () => {
+  const input = {
+    current: { sector: "ecommerce", key: "ecommerce", label: "Webshop", confidenceScore: 92 },
+    schemaTypes: [],
+    commerce: { product: false, addToCart: false, cartOrCheckout: true, productLinks: 8, priceCount: 6, siteSampleProduct: false, previouslyConfirmed: false },
+    inventory: { vehicles: false, properties: false, jobs: false, rooms: false, menu: false, booking: false, reservation: false },
+    shortStayIdentity: false,
+    identity: [{ sector: "telecom_technology", sources: ["meta_description"] }],
+    bodySectors: [], labels: { telecom_technology: "Telecom & Technologie" },
+  };
+  const telecom = arbitratePrimarySector(input);
+  assert.equal(telecom.sector, "telecom_technology");
+  assert.equal(telecom.commerceConfirmed, false);
+  const retail = arbitratePrimarySector({ ...input, commerce: { ...input.commerce, addToCart: true } });
+  assert.equal(retail.sector, "ecommerce");
+});
