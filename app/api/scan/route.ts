@@ -20,6 +20,7 @@ import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
 import { createRenderBudget, renderPublicPage } from "@/lib/headless-render";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
+import { detectAuditCapabilities } from "@/lib/capability-modules";
 import { isSubstantiveRender, renderImprovesEvidence } from "@/lib/render-quality";
 import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDetailPath, productUrlsFromSitemap } from "@/lib/product-links";
 import { SITE_URL } from "@/lib/site-url";
@@ -1813,11 +1814,16 @@ export async function POST(request: Request) {
     // Motor v2: sector modules come only from the primary identity decision.
     // Capabilities may add generic functional modules (lead conversion, booking,
     // local, trust) but may never turn an incidental topic into another sector.
+    const evidenceModuleReport = detectAuditCapabilities(scanEvidence);
+    // Capability gates override labels for commerce and other functional modules.
+    // Never enable retail modules merely because a sector was named ecommerce.
+    const gatedModules = new Set(["ecommerce","product","merchant","checkout","booking_flow","local_seo","content_quality","author_signals","freshness"]);
     const sectorDefiningModules = new Set(["automotive","real_estate","recruitment","hospitality","accommodation","marketplace"]);
     sectorProfile.applicableModules = [...new Set([
-      ...sectorProfile.applicableModules.filter((module)=>!sectorDefiningModules.has(module)),
-      ...(primarySectorModules[sectorProfile.sector] || []),
-      ...capabilityModules.filter((module)=>!sectorDefiningModules.has(module)),
+      ...sectorProfile.applicableModules.filter((module)=>!sectorDefiningModules.has(module) && !gatedModules.has(module)),
+      ...(primarySectorModules[sectorProfile.sector] || []).filter((module)=>!gatedModules.has(module)),
+      ...capabilityModules.filter((module)=>!sectorDefiningModules.has(module) && !gatedModules.has(module)),
+      ...evidenceModuleReport.enabledModules,
     ])];
 
     const masterEvidence = {
