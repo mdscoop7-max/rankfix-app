@@ -1739,7 +1739,7 @@ export async function POST(request: Request) {
       (onlineRetailCallout || (retailStoreIdentity && commerceNavigationSignal)));
     // Telecom is a service-led primary identity even when devices are sold online.
     // Match service/contract language in declared metadata, not brand names.
-    const telecomPrimaryIdentity = /\b(?:telecom(?:municatie)?|mobiele?\s+(?:abonnementen?|telefonie)|sim[- ]?only|internet(?:abonnementen?|\s+en\s+tv|\s+voor\s+thuis)|breedband|glasvezel|fiber\s+broadband|mobile\s+(?:plans?|contracts?|network)|broadband\s+(?:plans?|internet)|tv[- ]?abonnementen?|5g|prepaid|mobiel(?:e)?\s+netwerk|mobile\s+subscriptions?)\b/i.test(sectorIdentitySource)
+    const telecomPrimaryIdentity = /\b(?:telecom(?:municatie)?|mobiele?\s+(?:abonnementen?|telefonie)|sim[- ]?only|internet(?:abonnementen?|\s+en\s+tv|\s+voor\s+thuis)|breedband|glasvezel|fiber\s+broadband|mobile\s+(?:plans?|contracts?|network)|wireless\s+(?:service|plans?|network|internet)|internet\s+(?:service|plans?|provider)|broadband\s+(?:plans?|internet)|tv[- ]?abonnementen?|5g|prepaid|mobiel(?:e)?\s+netwerk|mobile\s+subscriptions?)\b/i.test(sectorIdentitySource)
       && /\b(?:abonnementen?|providers?|netwerk|internet|mobiel|telefonie|telecom|sim[- ]?only|broadband|fiber|connectivity|plans?|contracts?|prepaid|verlengen|smartphones?|5g)\b/i.test(sectorIdentitySource);
     const retailPurchaseEvidence = evidenceCommerceConfirmed || hasEcommerceSignal || explicitRetailIdentity;
     const retailPrimaryIdentity = retailPurchaseEvidence
