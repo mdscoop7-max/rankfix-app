@@ -1658,7 +1658,13 @@ export async function POST(request: Request) {
     const automotiveServiceIdentity = Boolean(/\b(?:apk|autobanden|banden|uitlijnen|werkplaats|autoservice|auto-onderhoud|car repair|tyres?)\b/i.test(sectorIdentitySource) || schemaSet.has("autorepair"));
     const explicitMedicalIdentity = /\b(?:tandarts|dentist|kliniek|clinic|medical|medicalclinic|fysiotherap|mondzorg|patient|patiënt|physician|huisarts|doctor)\b/i.test(sectorIdentitySource) || schemaSet.has("dentist") || schemaSet.has("medicalclinic");
     const beautyServiceIdentity = /\b(?:beauty salon|beautysalon|schoonheidssalon|day spa|dayspa|city spa|wellness|manicure|pedicure|nail salon|nagelsalon|facial|gezichtsbehandeling)\b/i.test(sectorIdentitySource) || schemaSet.has("beautysalon") || schemaSet.has("dayspa");
-    const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[]} | null = shortStayIdentity
+    // A telecom provider can also sell handsets: accessory/cart evidence must not
+    // replace an explicit subscriptions/network identity with generic ecommerce.
+    const telecomProviderIdentity = /\\b(?:telecom|telecommunications?|telekom|internet provider|mobiele? abonnementen?|sim.only|glasvezel|mobiel netwerk|mobile network|broadband provider|internet en tv|telefonie)\\b/i.test(sectorIdentitySource)
+      && /\\b(?:abonnementen?|sim.only|glasvezel|internet|mobiel|mobile|netwerk|network|telefonie|5g|4g)\\b/i.test(sectorSource);
+    const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[]} | null = telecomProviderIdentity
+      ? {sector:"telecom_technology",key:"telecom_technology",label:"Telecom & Technologie",evidence:["Primaire identiteit: telecomabonnementen en netwerkdiensten; verkoop van toestellen is ondersteunend"]}
+      : shortStayIdentity
       ? {sector:"hospitality",key:lodgingSubtype.key,label:lodgingSubtype.label,evidence:["Scanbewijs: kort verblijf/accommodatie bevestigd", ...lodgingDetail.shortStay.evidence, ...lodgingDetail.stayDates.evidence, ...lodgingDetail.guests.evidence]}
       : realEstateIdentity
         ? {sector:"real_estate",key:"real_estate",label:"Vastgoed & Makelaardij",evidence:["Scanbewijs: vastgoed/woningidentiteit bevestigd", ...scanEvidence.inventory.properties.evidence]}
