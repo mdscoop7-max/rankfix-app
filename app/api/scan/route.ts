@@ -1749,7 +1749,7 @@ export async function POST(request: Request) {
     const primaryNonCommerceIdentity = retailPrimaryIdentity ? null : (telecomPrimaryIdentity ? {sector:"telecom_technology" as SectorKey,key:"telecom_technology",label:"Telecom & abonnementen",evidence:["Telecomdiensten en abonnementen bevestigd in primaire paginametadata"]} : null) || masterIdentityOverride
       || (strongSectorCandidate && sectorCandidates[0].sector !== "ecommerce"
         ? {sector:sectorCandidates[0].sector,key:sectorCandidates[0].sector,label:sectorCandidates[0].label,evidence:[`Primaire identiteit: ${sectorCandidates[0].hits} onafhankelijke ${sectorCandidates[0].hits===1?"sectorsignaal":"sectorsignalen"}`]}
-        : null));
+        : null);
     const commerceAsPrimaryIdentity = retailPrimaryIdentity || (evidenceCommerceConfirmed && !primaryNonCommerceIdentity);
     const sectorProfile = commerceAsPrimaryIdentity
       ? {
