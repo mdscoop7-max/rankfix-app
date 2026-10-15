@@ -6,7 +6,7 @@ import { extractImageMetrics } from "../lib/image-metrics.ts";
 import { applyEvidenceBasedScoreCap, scoreApplicableChecks, scoreRange, summarizeAuditChecks, weightedCoverage } from "../lib/audit-score.ts";
 import { isPrivateHost, validatePublicHttpUrl } from "../lib/safe-fetch.ts";
 import { assessHreflang, hasSelfHreflangLanguageMismatch, isMarketSelectorPage, isValidHreflangCode, statusCode } from "../lib/seo-rules.ts";
-import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, neutralizeShopWording, shopWordingApplies } from "../lib/commerce-applicability.ts";
+import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, isStorefrontOnlyForService, neutralizeShopWording, shopWordingApplies } from "../lib/commerce-applicability.ts";
 import { decodeHtmlEntities } from "../lib/html-entities.ts";
 import { analyzeScriptIntegrity, assessPassiveSecurity, findExposedSecrets, findForms, findMixedContent, observeCookie, securityScore, setCookieValues, splitSetCookieHeader } from "../lib/security-signals.ts";
 import { legacyPassiveSecurity } from "./fixtures/security-legacy.mjs";
@@ -1637,4 +1637,27 @@ test("internal customer ID exemption requires exact server authorization", () =>
   assert.equal(isInternalTesterCustomerId(customerId, { RANKFIX_INTERNAL_TEST_CUSTOMER_ID: customerId }), true);
   assert.equal(isInternalTesterCustomerId("RF-00000000000000000000000000000000", { RANKFIX_INTERNAL_TEST_CUSTOMER_ID: customerId }), false);
   assert.equal(isInternalTesterCustomerId(customerId, { RANKFIX_INTERNAL_TEST_CUSTOMER_ID: "invalid" }), false);
+});
+
+test("KPN-like telecom provider: storefront-wide checks do not masquerade as primary audit gaps", async () => {
+  // Concrete regression: a telecom homepage with subscription prices and a
+  // sampled phone product URL, but without proven separate retail checkout.
+  const storeOnly = [
+    "merchant_feed_signal", "webshop_trust", "checkout_funnel_static",
+    "checkout_trust", "eu_review_transparency_signal", "eu_consumer_information_signal",
+    "webshop_claims", "commercial_terms_signal",
+  ];
+  for (const key of storeOnly) {
+    assert.equal(isStorefrontOnlyForService(key, true, false), true, key);
+    assert.equal(isStorefrontOnlyForService(key, false, false), false, key);
+    assert.equal(isStorefrontOnlyForService(key, true, true), false, key);
+  }
+  // A provider can also sell phones: product detail, pricing and subscription
+  // evidence must still be evaluated (or honestly marked unconfirmed).
+  for (const key of ["merchant_product_readiness", "product_schema", "product_availability", "product_price_consistency", "price_format", "subscription_price_visibility"]) {
+    assert.equal(isStorefrontOnlyForService(key, true, false), false, key);
+  }
+  const route = await import("node:fs/promises").then(({readFile})=>readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8"));
+  assert.match(route, /isStorefrontOnlyForService\(item\.key, Boolean\(primaryNonCommerceIdentity\), finalCommerceDecision\.confirmed\)/);
+  assert.match(route, /De primaire activiteit is dienstverlening zonder onafhankelijk bevestigde retailcheckout/);
 });
