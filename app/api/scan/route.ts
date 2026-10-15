@@ -1,3 +1,4 @@
+import { decideCommerceModules } from "@/lib/sector-motor-decisions";
 import { NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
@@ -4175,21 +4176,32 @@ export async function POST(request: Request) {
     }
     // Motor v2.1: module applicability follows the final Master commerce decision,
     // not an early incidental capability. Page-specific checks still require proof.
+    // Central Sector Motor: retail modules require independent, module-specific evidence.
+    // A service business can have transactional capabilities without becoming a webshop.
     const commerceModules = new Set(["ecommerce","product","pricing_currency","merchant","checkout"]);
     const allCommerceModules = new Set([...commerceModules, "eu_consumer"]);
+    const motorCommerceModules = decideCommerceModules({
+      primarySector: sectorProfile.sector,
+      primaryBusinessModel: retailPrimaryIdentity ? "retail" : primaryNonCommerceIdentity ? "service" : "unknown",
+      retailProduct: Boolean(confirmedCurrentProduct || representativeRetailProduct),
+      productPrice: Boolean(corroboratedProductAndPrice),
+      cart: Boolean(confirmedAddToCart || (scanEvidence.commerce.cart.value && scanEvidence.commerce.cart.confidence === "high")),
+      checkout: Boolean(scanEvidence.commerce.checkout.value && scanEvidence.commerce.checkout.confidence === "high"),
+      merchantFeed: false, // No merchant feed may be inferred from generic commerce signals.
+      euMarket: Boolean(euMarketEligible),
+    });
+    const allowedCommerceModules = new Set(motorCommerceModules);
+    sectorProfile.applicableModules = sectorProfile.applicableModules.filter((module)=>!allCommerceModules.has(module) || allowedCommerceModules.has(module));
+    masterEvidence.activeModules = masterEvidence.activeModules.filter((module)=>!allCommerceModules.has(module) || allowedCommerceModules.has(module));
     if (finalCommerceDecision.confirmed) {
       for (const module of commerceModules) {
+        if (!allowedCommerceModules.has(module)) continue;
         if (!sectorProfile.applicableModules.includes(module)) sectorProfile.applicableModules.push(module);
         if (!masterEvidence.activeModules.includes(module)) masterEvidence.activeModules.push(module);
       }
-      // EU consumer-readiness is jurisdiction-sensitive. Commerce identity alone
-      // must never activate EU checks for clearly non-EU storefronts.
-      if (euMarketEligible) {
+      if (allowedCommerceModules.has("eu_consumer")) {
         if (!sectorProfile.applicableModules.includes("eu_consumer")) sectorProfile.applicableModules.push("eu_consumer");
         if (!masterEvidence.activeModules.includes("eu_consumer")) masterEvidence.activeModules.push("eu_consumer");
-      } else {
-        sectorProfile.applicableModules = sectorProfile.applicableModules.filter((module)=>module!=="eu_consumer");
-        masterEvidence.activeModules = masterEvidence.activeModules.filter((module)=>module!=="eu_consumer");
       }
     } else {
       sectorProfile.applicableModules = sectorProfile.applicableModules.filter((module)=>!allCommerceModules.has(module));
