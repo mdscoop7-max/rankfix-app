@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes } from "../lib/sector-identity.ts";
+import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, telecomOperatorIdentity } from "../lib/sector-identity.ts";
 import { buildScanEvidence } from "../lib/scan-evidence.ts";
 
 // Page identity (title, meta description, hostname, path) as served on 11 Oct 2026.
@@ -256,4 +256,30 @@ test("a confirmed shop never shows shop checks as 'not applicable' because one p
   // Page-level "no shop signals" N/A becomes unable-to-confirm once the shop is confirmed site-wide.
   assert.match(source, /finalCommerceOnlyKeys\.has\(item\.key\) && item\.status === "not_applicable" && \/webshop\|product/);
   assert.match(source, /De webshop is sitebreed bevestigd, maar deze controle kon op de gescande pagina niet worden beoordeeld\./);
+});
+
+test("telecom operator detection needs independent network and subscription evidence", () => {
+  // Provider names/domains are intentionally not hardcoded.
+  const positive = [
+    "Mobiele abonnementen met 5G-dekking en sim only",
+    "Internetprovider met glasvezel en breedband",
+    "Mobile subscriptions and mobile network coverage",
+    "Data-only mobiele abonnementen met 4G bereik",
+  ];
+  for (const identity of positive) assert.equal(telecomOperatorIdentity(identity).primary, true, identity);
+  const negative = [
+    "Software as a service met maandelijkse abonnementen",
+    "Webshop voor telefoons en accessoires met online prijzen",
+    "Producten voor wifi en internet kopen in onze winkel",
+    "Een provider voor uw boekhoudsoftware",
+    "Mobiele abonnementen voor personeel zonder netwerkbewijs",
+  ];
+  for (const identity of negative) assert.equal(telecomOperatorIdentity(identity).primary, false, identity);
+});
+
+test("primary telecom identity is a separate decision from verified physical-store evidence", async () => {
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(route, /telecomOperatorIdentity\(sectorIdentitySource\)/);
+  assert.match(route, /hasRetailStoreSchema\(schemaTypes\) && evidenceCommerceConfirmed/);
+  assert.match(route, /const commerceAsPrimaryIdentity = !telecomProviderIdentity &&/);
 });
