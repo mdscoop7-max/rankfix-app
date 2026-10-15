@@ -20,8 +20,8 @@ test("a missing Chrome binary never reaches the customer report as a stack messa
   // Old reports stored the truncated raw message; it is translated, never echoed.
   const text = renderFailureText("Could not find Chrome (ver. 154.0.8037.57). This can occur if either 1. you did");
   assert.equal(/chrome|ver\./i.test(text), false);
-  assert.match(text, /niet beschikbaar/);
-  assert.match(renderFailureText("BROWSER_UNAVAILABLE"), /niet beschikbaar/);
+  assert.match(text, /niet worden gestart/);
+  assert.match(renderFailureText("BROWSER_UNAVAILABLE"), /niet worden gestart/);
 });
 
 test("legacy IE conditional comments are not mixed content or SRI findings", () => {
