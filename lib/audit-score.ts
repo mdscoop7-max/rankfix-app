@@ -140,5 +140,13 @@ export function applyEvidenceBasedScoreCap(score: number, items: ScoreCapCheck[]
   const provenHigh = items.some(
     (item) => item.issue_status === "FAIL" && item.severity === "HIGH" && item.confidence !== "low"
   );
-  return provenHigh ? Math.min(score, 88) : score;
+  if (provenHigh) return Math.min(score, 88);
+  // An incomplete audit must not present near-perfect scores as fully verified.
+  // The cap is based on applicable evidence weight, not the number of checks:
+  // N/A checks are excluded and unresolved checks are never counted as failures.
+  const coverage = weightedCoverage(items);
+  if (coverage.totalWeight > 0 && coverage.coveragePercent < 50) return Math.min(score, 79);
+  if (coverage.totalWeight > 0 && coverage.coveragePercent < 70) return Math.min(score, 89);
+  if (coverage.totalWeight > 0 && coverage.coveragePercent < 90) return Math.min(score, 95);
+  return score;
 }
