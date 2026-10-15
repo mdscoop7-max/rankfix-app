@@ -3472,7 +3472,7 @@ export async function POST(request: Request) {
       seoRange: seoScoreRange,
       geoRange: geoScoreRange,
       provisional: overallCoverage.coveragePercent < 90,
-      note: "Niet te bevestigen verlaagt de score niet, maar blijft toepasselijk gewicht in de dekking. N.v.t. is uitgesloten. Het bereik toont de conservatieve en optimistische grens voor nog onbevestigd bewijs.",
+      note: "Niet te bevestigen telt niet als bewezen fout, maar beperkte bewijsdekking kan de getoonde score begrenzen. N.v.t. is uitgesloten. Het bereik toont de conservatieve en optimistische grens voor nog onbevestigd bewijs.",
     };
     const scanSummary = summarizeAuditChecks(checks);
     const propertyListingPage = sectorProfile.sector === "real_estate" && (/\/(?:woningaanbod|residential-listings)\/(?:koop|huur|sale|rent)\//i.test(pathname) || /\b(?:te koop|te huur|for sale|for rent)\b/i.test(title));
