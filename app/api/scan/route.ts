@@ -1637,7 +1637,9 @@ export async function POST(request: Request) {
     // not a lone generic price, product, or shopping navigation link.
     const telecomSubscriptionIdentity = /\b(?:sim[ -]?only|data[ -]?only|mobiele? abonnementen?|internetabonnement(?:en)?|mobiel(?:e)? abonnement(?:en)?|mobile plans?)\b/i.test(sectorIdentitySource);
     const telecomNetworkIdentity = /\b(?:netwerk|network|provider|glasvezel|internet|mobiel|mobile|telecom|5g|4g)\b/i.test(sectorIdentitySource);
-    const telecomProviderIdentity = telecomSubscriptionIdentity && telecomNetworkIdentity;
+    const telecomServiceIdentity = /\b(?:internet(?:abonnementen?|provider)?|glasvezel|breedband|broadband|dsl|adsl)\b/i.test(sectorIdentitySource)
+      && /\b(?:tv|televisie|bellen|telefonie|pakketten|abonnementen?|wifi|provider|netwerk)\b/i.test(sectorIdentitySource);
+    const telecomProviderIdentity = (telecomSubscriptionIdentity && telecomNetworkIdentity) || telecomServiceIdentity;
     const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[]} | null = telecomProviderIdentity
       ? {sector:"telecom_technology",key:"telecom_technology",label:"Telecom & Technologie",evidence:["Primaire identiteit: telecomabonnementen en netwerkdiensten"]}
       : shortStayIdentity
@@ -4138,7 +4140,7 @@ export async function POST(request: Request) {
     const reconciledTop = reconciledSectorCandidates[0];
     const reconciledRunnerUp = reconciledSectorCandidates[1];
     const reconciledIdentityStrong = Boolean(reconciledTop && reconciledTop.score >= 3 && (!reconciledRunnerUp || reconciledTop.score > reconciledRunnerUp.score));
-    if (!retailPrimaryIdentity && !finalCommerceDecision.confirmed && reconciledIdentityStrong && reconciledTop && sectorProfile.sector !== reconciledTop.sector) {
+    if (!masterIdentityOverride && sectorProfile.sector==="unknown" && !retailPrimaryIdentity && !finalCommerceDecision.confirmed && reconciledIdentityStrong && reconciledTop && sectorProfile.sector !== reconciledTop.sector) {
       sectorProfile.sector = reconciledTop.sector;
       sectorProfile.key = reconciledTop.sector;
       sectorProfile.label = reconciledTop.label;
@@ -4196,7 +4198,7 @@ export async function POST(request: Request) {
     // Re-run only clearly contradicted/underspecified primary identity decisions
     // with representative evidence. Secondary topics can never override a strong
     // primary sector. This fixes recruitment text on hotel sites without hardcoding brands.
-    if (!finalCommerceDecision.confirmed && multiPageCapabilities.hospitality && (sectorProfile.key==="recruitment" || sectorProfile.key==="unknown")) {
+    if (!masterIdentityOverride && !finalCommerceDecision.confirmed && multiPageCapabilities.hospitality && (sectorProfile.key==="recruitment" || sectorProfile.key==="unknown") && /\b(?:hotel|accommodatie|overnachten|overnachting|kamers|lodging)\b/i.test(sectorIdentitySource)) {
       sectorProfile.sector = "hospitality";
       sectorProfile.key = "hospitality";
       sectorProfile.label = "Hotels & hospitality";
