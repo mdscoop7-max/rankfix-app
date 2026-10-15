@@ -91,13 +91,16 @@ export function isSiteHomepagePath(path: string): boolean {
   const normalized = (path || "/").split("?")[0].replace(/\/+$/, "") || "/";
   if (normalized === "/" || /^\/(?:home|index(?:\.html?)?)$/i.test(normalized)) return true;
   const pieces = normalized.split("/").filter(Boolean).map((p) => p.toLowerCase());
-  if (pieces.length < 2 || pieces.length > 3 || !/^(?:home|index(?:\.html?)?)$/.test(pieces[pieces.length - 1])) return false;
+  if (!pieces.length || pieces.length > 3) return false;
+  const isHomeSuffix = /^(?:home|index(?:\.html?)?)$/.test(pieces[pieces.length - 1]);
+  const marketPieces = isHomeSuffix ? pieces.slice(0, -1) : pieces;
+  if (!marketPieces.length || marketPieces.length > 2) return false;
   const markets = new Set([
     "us","uk","gb","au","ca","nz","nl","be","de","at","ch","fr","es","it","pt",
     "ie","pl","se","no","dk","fi","cz","sk","hu","ro","bg","gr","hr","lu","lv",
     "lt","ee","si","cy","mt","jp","br","mx","in","sg","en","cs","el","sv","da",
   ]);
-  return pieces.slice(0, -1).every((p) => (
+  return marketPieces.every((p) => (
     markets.has(p) || /^[a-z]{2}[-_][a-z]{2}$/.test(p) && markets.has(p.slice(0, 2))
   ));
 }
