@@ -30,6 +30,7 @@ import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
 import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, telecomOperatorIdentity } from "@/lib/sector-identity";
+import { detectPrimaryBusinessIdentity, isSiteHomepagePath } from "@/lib/primary-business-identity";
 
 export const maxDuration = 300;
 
@@ -947,7 +948,7 @@ export async function POST(request: Request) {
     // Do not treat arbitrary short slugs as locale roots.
     const isLocalizedHomepage = pathSegmentsForType.length > 0 && pathSegmentsForType.length <= 2 &&
       pathSegmentsForType.every((segment) => localeSegmentPattern.test(segment) && knownLanguageSegments.has(segment.split("-")[0]));
-    const isHomepage = pathname === "/" || isLocalizedHomepage;
+    const isHomepage = isLocalizedHomepage || isSiteHomepagePath(pathname);
     const localBusinessKeywordSignal = /\b(restaurant|eetcafé|eetgelegenheid|brasserie|bistro|menukaart|kapsalon|kapper|hairdresser|salon|coiffeur|barbier|bakker|bakery|bar|café|cafe|dentist|tandarts|tandheelkunde|mondzorg|orthodontist|electrician|elektricien|elektro|elektrotechniek|installatietechniek|plumber|loodgieter|loodgieters|cv-installateur|installateur|aannemer|contractor|bouwbedrijf|bouwservice|verbouwing|renovatie|dakdekker|dakbedekking|dakwerken|beautysalon|beauty salon|schoonheidssalon|winkel|store|shop|boetiek|retail|garage|autogarage|autoservice|autobedrijf|autodealer|makelaar|makelaars|vastgoedmakelaar|real estate agent|realtor|woningmakelaar|advocaat|advocatenkantoor|law firm|jurist|notaris|notariskantoor|accountant|accountantskantoor|boekhouder|boekhoudkantoor|administratiekantoor|reisbureau|reisorganisatie|travel agency|tour operator|reisagent|hotel|bed and breakfast|b&b|pension)\b/i.test([title, description, ...h1s, finalUrl.hostname, finalUrl.pathname].join(" "));
     const localContactSignal = /\b(opening hours|openingstijden|adres|address|telephone|telefoon|phone|contact)\b/i.test(text) &&
       /\b(address|adres|phone|telefoon|telephone|\+?31|0\d{1,3}[\s-]?\d)\b/i.test(text);
@@ -1551,7 +1552,7 @@ export async function POST(request: Request) {
       note: "Evidence-first: ontbrekend bewijs is niet automatisch een fout. Sectoren en functies worden alleen bevestigd op gevonden signalen.",
     };
 
-    type SectorKey = "ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"general_business"|"unknown";
+    type SectorKey = "financial_services"|"ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"general_business"|"unknown";
     const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]}> = [
       {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\b/i,/\b(te koop|te huur|for sale|for rent|woningaanbod)\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
       {sector:"automotive",label:"Automotive",patterns:[/\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\b/i,/\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
@@ -1574,6 +1575,9 @@ export async function POST(request: Request) {
     // the generic phrase "visit our ..." in page text.
     const sectorIdentitySource = [title, description, h1s.join(" "), finalUrl.hostname, finalUrl.pathname, isTourismBoardHost(finalUrl.hostname) ? "toerisme" : ""].join(" ");
     const sectorSource = [sectorIdentitySource, text.slice(0,120000), schemaTypes.join(" ")].join(" ");
+    // Primary identity comes from title, description, H1 and typed schema only;
+    // marketing examples, visitors and customer sectors in body text are secondary.
+    const primaryBusinessEvidence = detectPrimaryBusinessIdentity({title,description,headings:h1s,schemaTypes});
     // Strong page/site identity must beat incidental words elsewhere in long pages.
     // In particular, sewer/drain services often mention generic "reparatie", which is not automotive evidence.
     const sewerIdentity = /\b(riool|riolering|verstopping|ontstoppen|ontstopping|afvoer)\b/i.test(sectorIdentitySource);
@@ -1639,7 +1643,7 @@ export async function POST(request: Request) {
     };
     const mappedCatalogSector = catalogTop ? catalogLegacyMap[catalogTop.key] : undefined;
     const lodgingDetail = scanEvidence.sectorDetails.lodging;
-    const shortStayIdentity = Boolean(
+    const shortStayIdentity = primaryBusinessEvidence.sector === "hospitality" && Boolean(
       (lodgingDetail.bedBreakfast.value && lodgingDetail.bedBreakfast.confidence !== "low") ||
       (lodgingDetail.holidayRental.value && lodgingDetail.holidayRental.confidence !== "low") ||
       (lodgingDetail.holidayPark.value && lodgingDetail.holidayPark.confidence !== "low") ||
@@ -1679,6 +1683,8 @@ export async function POST(request: Request) {
     ) && !(hasRetailStoreSchema(schemaTypes) && evidenceCommerceConfirmed);
     const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[]} | null = telecomProviderIdentity
       ? {sector:"telecom_technology",key:"telecom_technology",label:"Telecom & Technologie",evidence:["Primaire identiteit: telecomabonnementen en netwerkdiensten"]}
+      : primaryBusinessEvidence.sector === "financial_services"
+      ? {sector:"financial_services",key:"financial_services",label:"Financiële diensten & betaaldiensten",evidence:primaryBusinessEvidence.evidence}
       : shortStayIdentity
       ? {sector:"hospitality",key:lodgingSubtype.key,label:lodgingSubtype.label,evidence:["Scanbewijs: kort verblijf/accommodatie bevestigd", ...lodgingDetail.shortStay.evidence, ...lodgingDetail.stayDates.evidence, ...lodgingDetail.guests.evidence]}
       : realEstateIdentity
@@ -1708,6 +1714,7 @@ export async function POST(request: Request) {
       (onlineRetailCallout || (retailStoreIdentity && commerceNavigationSignal)));
     const retailPurchaseEvidence = evidenceCommerceConfirmed || hasEcommerceSignal || explicitRetailIdentity;
     const retailPrimaryIdentity = retailPurchaseEvidence
+      && primaryBusinessEvidence.sector !== "financial_services"
       && !telecomProviderIdentity && !shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity
       && !beautyServiceIdentity && !explicitMedicalIdentity && !transportBookingIdentity
       && !/\b(?:restaurant|hotel|reserveren|reserveer tafel|vakantieverhuur|transportdiensten|schoonmaakdienst)\b/i.test(sectorIdentitySource);
@@ -1739,6 +1746,20 @@ export async function POST(request: Request) {
             applicableModules:[...new Set(["core_seo","geo","technical",...(sectorSignals.find(x=>x.sector===mappedCatalogSector)?.modules||[])])],
           }
         : {...legacyProfile,key:legacyProfile.sector};
+
+    // The sector engine must abstain rather than invent a lodging business from
+    // incidental guest/booking language on a payment, service or retailer site.
+    const restaurantIdentityEvidence = /\\b(?:restaurant|brasserie|bistro|café|cafe|eetcafé|food establishment|dining restaurant)\\b/i.test(sectorIdentitySource)
+      || schemaSet.has("restaurant") || schemaSet.has("foodestablishment");
+    if (sectorProfile.sector === "hospitality" && primaryBusinessEvidence.sector !== "hospitality" && !restaurantIdentityEvidence) {
+      sectorProfile.sector = "unknown";
+      sectorProfile.key = "unknown";
+      sectorProfile.label = "Sector niet betrouwbaar vastgesteld";
+      sectorProfile.confidence = "low";
+      sectorProfile.confidenceScore = 35;
+      sectorProfile.evidence = ["Horeca- of verblijfssignalen waren niet onafhankelijk bevestigd in de bedrijfsidentiteit"];
+      sectorProfile.applicableModules = ["core_seo","geo","technical","business_identity"];
+    }
 
     const evidenceCapabilities = [
       (scanEvidence.commerce.products.value && scanEvidence.commerce.products.confidence === "high") && "products",
@@ -4218,7 +4239,7 @@ export async function POST(request: Request) {
     const verifiedRetailPurchase = confirmedAddToCart ||
       (confirmedCurrentProduct && scanEvidence.commerce.checkout.value && scanEvidence.commerce.checkout.confidence === "high") ||
       (representativeRetailProduct && scanEvidence.commerce.cart.value && scanEvidence.commerce.cart.confidence === "high");
-    const hardCommerceEvidence = telecomProviderIdentity
+    const hardCommerceEvidence = (telecomProviderIdentity || primaryBusinessEvidence.sector === "financial_services")
       ? Boolean(verifiedRetailPurchase || verifiedRepresentativePurchase)
       : sitewideCommerceEvidence.confirmed || representativeRetailProduct || Boolean(
           confirmedCurrentProduct ||
