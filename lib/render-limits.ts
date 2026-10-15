@@ -13,10 +13,10 @@ const envNumber = (name: string, fallback: number, min: number, max: number) => 
 // Simultaneous pages in one browser. Each Chromium tab costs ~100–200 MB.
 export const MAX_CONCURRENT_PAGES = envNumber("RANKFIX_RENDER_CONCURRENCY", 2, 1, 4);
 // Renders allowed in one scan (main page + representative pages + listings).
-const DEFAULT_RENDERS_PER_SCAN = envNumber("RANKFIX_MAX_RENDERS_PER_SCAN", 10, 0, 40);
+const DEFAULT_RENDERS_PER_SCAN = envNumber("RANKFIX_MAX_RENDERS_PER_SCAN", 35, 0, 40);
 // After this much scan time no new render starts, so the function finishes
 // well inside Vercel's duration limit.
-const DEFAULT_RENDER_DEADLINE_MS = envNumber("RANKFIX_RENDER_DEADLINE_MS", 150_000, 10_000, 280_000);
+const DEFAULT_RENDER_DEADLINE_MS = envNumber("RANKFIX_RENDER_DEADLINE_MS", 240_000, 10_000, 280_000);
 // Close an idle browser so a warm function instance does not keep ~300 MB.
 export const BROWSER_IDLE_MS = 15_000;
 // After a failed launch, do not retry (slow) launches for this long.
