@@ -10,7 +10,7 @@ import { decodeHtmlEntities } from "@/lib/html-entities";
 import { assessPassiveSecurity, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
 import { assessPageDescription, assessPageTitle, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, isBrandOnlyTitle, isClientShell, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
-import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, isStorefrontOnlyForService, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
+import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, confirmedRetailEvidenceForService, isStorefrontOnlyForService, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
 import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readHtmlSampleHeadFirst, readResponsePrefix, readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
@@ -4244,11 +4244,16 @@ export async function POST(request: Request) {
     // Subscription prices and plan cards are not retail products. For a proven
     // telecom provider require an actual product detail + purchase action before
     // activating merchant, inventory and checkout modules.
-    const verifiedRetailPurchase = confirmedAddToCart ||
-      (confirmedCurrentProduct && scanEvidence.commerce.checkout.value && scanEvidence.commerce.checkout.confidence === "high") ||
-      (representativeRetailProduct && scanEvidence.commerce.cart.value && scanEvidence.commerce.cart.confidence === "high");
-    const hardCommerceEvidence = (telecomProviderIdentity || primaryBusinessEvidence.sector === "financial_services")
-      ? Boolean(verifiedRetailPurchase || verifiedRepresentativePurchase)
+    // This applies to ALL independently recognized service providers, not
+    // only one industry. Payment/booking/checkout widgets are a capability,
+    // not proof that the provider is itself a retail webshop.
+    const hardCommerceEvidence = primaryNonCommerceIdentity
+      ? confirmedRetailEvidenceForService({
+          representativePurchase: verifiedRepresentativePurchase,
+          productDetailSchema: confirmedCurrentProduct,
+          addToCart: confirmedAddToCart,
+          productAndPrice: corroboratedProductAndPrice,
+        })
       : sitewideCommerceEvidence.confirmed || representativeRetailProduct || Boolean(
           confirmedCurrentProduct ||
           confirmedAddToCart ||
