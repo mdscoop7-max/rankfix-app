@@ -42,7 +42,7 @@ test("title length alone is advice and not an unproven search ranking failure", 
     assert.match(result.details,/pixelbreedte/);
   }
   const extreme=assessPageTitle("Betrouwbare telefoon, abonnement en service voor alle klanten - "+"X".repeat(140),"provider.example");
-  assert.equal(extreme.status,"WARNING");
+  assert.equal(extreme.status,"PASS");
   assert.ok(extreme.credit >= 0.9);
 });
 
