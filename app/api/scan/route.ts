@@ -4851,8 +4851,8 @@ export async function POST(request: Request) {
           }
         }
         const previousScan = await getDb().query(
-          "SELECT id,result FROM scans WHERE user_id=$1 AND lower(regexp_replace(split_part(split_part(final_url, '://', 2), '/', 1), '^www\\.', ''))=$2 ORDER BY created_at DESC LIMIT 1",
-          [user.id, websiteHost]
+          "SELECT id,result FROM scans WHERE user_id=$1 AND (final_url=$2 OR scanned_url=$3) AND result->>'mode'=$4 ORDER BY created_at DESC LIMIT 1",
+          [user.id, finalUrl.toString(), target.toString(), mode]
         );
         const priorReport = previousScan.rows[0]?.result;
         if (priorReport && Number.isFinite(Number(priorReport.overallScore))) {
