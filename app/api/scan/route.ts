@@ -21,6 +21,7 @@ import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
 import { renderPublicPage } from "@/lib/headless-render";
 import { renderOnce, representativeNeedsJavaScriptRendering } from "@/lib/render-strategy";
+import { missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore } from "@/lib/sample-quality";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { isSubstantiveRender, renderImprovesEvidence } from "@/lib/render-quality";
 import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDetailPath, productUrlsFromSitemap } from "@/lib/product-links";
@@ -2471,12 +2472,9 @@ export async function POST(request: Request) {
       /<div\b[^>]*\bid\s*=\s*["'](?:root|app|__next|__nuxt)["'][^>]*>\s*<\/div>/i.test(rawHtml)
     );
 
-    const titleLengthPoints = (length: number) => {
-      if (length >= 30 && length <= 60) return 10;
-      if (length >= 25 && length <= 65) return 8;
-      if (length >= 20 && length <= 70) return 6;
-      return 4;
-    };
+    // Search snippets truncate in pixels, not at an exact number of characters.
+    // Length alone cannot justify a material ranking penalty.
+    const titleLengthPoints = (length: number) => length >= 15 && length <= 110 ? 10 : 9;
 
     const descriptionLengthPoints = (length: number) => {
       if (length >= 70 && length <= 160) return 10;
@@ -2497,9 +2495,9 @@ export async function POST(request: Request) {
           ? check("warning", "title", "seo", "Meta title", `De title is ${title.length} tekens en "${duplicateTitleSegment(title)}" staat er twee keer in; waarschijnlijk voegt het template het merk een tweede keer toe.`, "Laat het merk maar één keer in de title staan; controleer de title-instelling van het template of de SEO-plugin.", Math.min(8, titleLengthPoints(title.length)), 10)
         : titleQualityIssue
           ? check("warning", "title", "seo", "Meta title", `De title is ${title.length} tekens, maar bevat relatief veel herhaalde woorden.`, "Herschrijf de title natuurlijker en voorkom keyword stuffing.", 6, 10)
-          : title.length >= 30 && title.length <= 60
-            ? check("pass", "title", "seo", "Meta title", `De title is ${title.length} tekens en valt binnen de aanbevolen lengte.`, "Maak de title uniek, duidelijk en relevant voor de zoekintentie.", 10, 10)
-            : check("warning", "title", "seo", "Meta title", `De title is ${title.length} tekens. Richtwaarde: 30–60 tekens; de punten lopen geleidelijk af naarmate de lengte verder van deze band ligt.`, "Herschrijf de title zodat onderwerp, merk en zoekintentie direct duidelijk zijn.", titleLengthPoints(title.length), 10)
+          : title.length >= 15 && title.length <= 110
+            ? check("pass", "title", "seo", "Meta title", `De title telt ${title.length} tekens. De uiteindelijke zoekpreview wordt bepaald door de pixelbreedte; 30–60 tekens is geen harde SEO-eis.`, "Controleer de zichtbare titel in een zoekpreview en houd onderwerp en merk herkenbaar.", 10, 10)
+            : check("warning", "title", "seo", "Meta title", `De title telt ${title.length} tekens en is uitzonderlijk kort of lang; beoordeel de werkelijke pixelbreedte voordat je deze inkort.`, "Controleer de zoekpreview en herschrijf alleen wanneer relevante inhoud wegvalt.", titleLengthPoints(title.length), 10)
     );
     seoChecks.push(
       !description
@@ -2583,7 +2581,7 @@ export async function POST(request: Request) {
         : !canonicalUrl
           ? metadataMayBeClientRendered
             ? check("unable_to_confirm", "canonical", "seo", "Canonical URL", "De canonical kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de canonical opnieuw met een volledige render voordat je een wijziging maakt.", 0, 7)
-            : check("warning", "canonical", "seo", "Canonical URL", "Geen canonical URL gevonden in de opgehaalde pagina.", "Voeg een self-referencing canonical toe wanneer passend.", 3, 7)
+            : check("warning", "canonical", "seo", "Canonical URL", "Geen expliciete canonical URL aangetroffen. Zoekmachines kunnen ook zonder canonical een voorkeurs-URL bepalen; dit is geen bewezen indexeringsfout.", "Controleer of duplicaten of alternatieve URL-varianten een expliciete canonical nodig maken.", 6, 7)
         : canonicalIsSelf || canonicalIsLocalePreferred || canonicalDropsKnownListingParams
           ? check("pass", "canonical", "seo", "Canonical URL", canonicalIsLocalePreferred ? "De rootpagina verwijst bewust naar de equivalente taalvoorkeurs-URL." : canonicalDropsQuery ? "De canonical wijst naar dezelfde inhoud zonder queryparameters." : "De canonical verwijst naar dezelfde URL als de gescande pagina.", "Behoud een duidelijke canonical die overeenkomt met de voorkeurs- en taalstructuur van de site.", 7, 7)
           : canonicalIsCrossDomain
@@ -2811,7 +2809,9 @@ export async function POST(request: Request) {
     const accessibilityIssueRatio = accessibilityScopeCount ? accessibilityAffectedCount / accessibilityScopeCount : 0;
     const accessibilityPoints = accessibilityIssueCount === 0 ? 5 : accessibilityIssueRatio <= 0.05 ? 4 : accessibilityIssueRatio <= 0.20 ? 3 : accessibilityIssueRatio <= 0.50 ? 2 : 1;
     accessibilityChecks.push(
-      accessibilityIssueCount===0
+      metadataMayBeClientRendered
+        ? check("unable_to_confirm","accessibility_basics","accessibility","Toegankelijkheid basis","Deze JavaScript-pagina kon niet betrouwbaar worden gehydrateerd. Mogelijk vult Vue toegankelijke knoppen en labels pas na rendering aan.","Beoordeel labels, knoppen en toegankelijke namen in de werkelijk gerenderde DOM.",0,5)
+        : accessibilityIssueCount===0
         ? check("pass","accessibility_basics","accessibility","Toegankelijkheid basis","Geen duidelijke basisproblemen gevonden bij formulierlabels of lege knoppen in de statische HTML. Afbeelding-alt wordt afzonderlijk binnen SEO beoordeeld.","Blijf toetsenbordbediening, focus, contrast en dynamische content afzonderlijk testen. Dit is geen volledige WCAG/EAA-audit.",5,5)
         : check("warning","accessibility_basics","accessibility","Toegankelijkheid basis","Basiscontrole vond "+accessibilityIssueCount+" onafhankelijk(e) aandachtspunt(en): "+unlabeledFormControls+" formuliercontrol(s) zonder aantoonbaar label en "+emptyButtons+" lege knop(pen) zonder toegankelijke naam. Dat raakt "+Math.round(accessibilityIssueRatio*100)+"% van de controleerbare formuliercontrols en knoppen.","Corrigeer de aantoonbare HTML-signalen en voer daarna een uitgebreidere toegankelijkheidstest uit. RankFix claimt hiermee geen WCAG/EAA-conformiteit.",accessibilityPoints,5),
       !viewportContent
@@ -3835,6 +3835,11 @@ export async function POST(request: Request) {
         // A JavaScript application shell that could not be rendered cannot prove a
         // missing title, description, H1 or canonical; those stay unconfirmed.
         const pageClientShell = isClientShell({ visibleWords: pageQualityWords, scriptCount: (pageHtml.match(/<script\b/gi) || []).length, jsFramework: representativeJsFramework, h1Count: pageH1s.length, rendered: representativeEvidenceSource === "rendered_html" });
+        const pageMissingEvidenceUnverified = missingJsHeadEvidenceUnverified({
+          frameworkSignal: representativeJsFramework,
+          rendered: representativeEvidenceSource === "rendered_html",
+          clientShell: pageClientShell,
+        });
         const clientShellNote = "De pagina laadt haar inhoud via JavaScript en browser-rendering was niet beschikbaar; dit wordt daarom niet als ontbrekend beoordeeld.";
         // A page that asks search engines not to index it does not represent the
         // website in search results and is not scored.
@@ -3846,28 +3851,38 @@ export async function POST(request: Request) {
         }
         const evidenceChecks: MultiPageAudit["evidenceChecks"] = [
           {key:"http",status:"PASS",details:`HTTP ${r.status}`},
-          {key:"title",status:pageTitleAssessment.status==="PASS"?"PASS":pageClientShell?"UNABLE_TO_CONFIRM":"WARNING",details:pageTitleAssessment.status!=="PASS"&&pageClientShell?`${pageTitleAssessment.details} ${clientShellNote}`:pageTitleAssessment.details},
-          {key:"description",status:pageDescriptionAssessment.status==="PASS"?"PASS":pageClientShell?"UNABLE_TO_CONFIRM":"WARNING",details:pageDescriptionAssessment.status!=="PASS"&&pageClientShell?`${pageDescriptionAssessment.details} ${clientShellNote}`:pageDescriptionAssessment.details},
-          {key:"h1",status:pageH1s.length>0?"PASS":pageClientShell?"UNABLE_TO_CONFIRM":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:pageH1s.length===0&&pageClientShell?`0 H1-heading(s) gevonden in de raw HTML. ${clientShellNote}`:`${pageH1s.length} H1-heading(s) gevonden.`},
+          {key:"title",status:!pageTitle && pageMissingEvidenceUnverified?"UNABLE_TO_CONFIRM":pageTitleAssessment.status==="PASS"?"PASS":"WARNING",details:!pageTitle && pageMissingEvidenceUnverified?`${pageTitleAssessment.details} ${clientShellNote}`:pageTitleAssessment.details},
+          {key:"description",status:!pageDescription && pageMissingEvidenceUnverified?"UNABLE_TO_CONFIRM":pageDescriptionAssessment.status==="PASS"?"PASS":"WARNING",details:!pageDescription && pageMissingEvidenceUnverified?`${pageDescriptionAssessment.details} ${clientShellNote}`:pageDescriptionAssessment.details},
+          {key:"h1",status:pageH1s.length>0?"PASS":pageMissingEvidenceUnverified?"UNABLE_TO_CONFIRM":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:pageH1s.length===0&&pageMissingEvidenceUnverified?`0 H1-heading(s) gevonden in de raw HTML. ${clientShellNote}`:`${pageH1s.length} H1-heading(s) gevonden.`},
           {key:"canonical",status:pageCanonical
             ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); if(!/^https?:$/.test(resolved.protocol)) return "WARNING"; return normalizeScanUrl(resolved.toString())===normalizeScanUrl(finalCandidate.toString())?"PASS":"WARNING"; } catch { return "WARNING"; } })()
-            : pageClientShell ? "UNABLE_TO_CONFIRM" : "WARNING",
+            : pageMissingEvidenceUnverified ? "UNABLE_TO_CONFIRM" : "WARNING",
             details:pageCanonical
               ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); if(!/^https?:$/.test(resolved.protocol)) return `Canonical gebruikt een ongeldig protocol of schema: ${pageCanonical}.`; const samePage=normalizeScanUrl(resolved.toString())===normalizeScanUrl(finalCandidate.toString()); if (samePage) return `Self-canonical/equivalente voorkeurs-URL bevestigd: ${resolved.toString()}`; const httpOnly = resolved.protocol==="http:" && finalCandidate.protocol==="https:" && normalizeScanUrl(resolved.toString().replace(/^http:/,"https:"))===normalizeScanUrl(finalCandidate.toString()); return httpOnly?`Canonical wijst naar de onbeveiligde HTTP-versie van deze pagina (${resolved.toString()}); gebruik de HTTPS-URL.`:`Canonical wijst naar ${resolved.toString()}; controleer of deze afwijking bewust is.`; } catch { return "Canonical is aanwezig maar kon niet betrouwbaar als URL worden geïnterpreteerd."; } })()
-              : pageClientShell ? `Geen canonical-linkelement gevonden in de raw HTML. ${clientShellNote}` : "Geen canonical-linkelement gevonden in de gecontroleerde raw HTML. Dit is hetzelfde afwezigheidssignaal als in de hoofdscan; controleer alleen apart wanneer de site canonical-tags uitsluitend via JavaScript toevoegt."},
+              : pageMissingEvidenceUnverified ? `Geen canonical-linkelement gevonden in de raw HTML. ${clientShellNote}` : "Geen expliciete canonical gevonden; dit is niet automatisch een indexeringsprobleem."},
         ];
-        const confirmed = evidenceChecks.filter((x)=>x.status!=="UNABLE_TO_CONFIRM");
-        const evidenceCredit = (item: MultiPageAudit["evidenceChecks"][number]) => {
+         const evidenceCredit = (item: MultiPageAudit["evidenceChecks"][number]) => {
           if (item.status === "PASS") return 1;
           if (item.status !== "WARNING") return 0;
           if (item.key === "title") return pageTitleAssessment.credit;
           if (item.key === "description") return pageDescriptionAssessment.credit;
           if (item.key === "h1") return 0.6;
-          if (item.key === "canonical") return pageCanonical ? 0.7 : 0.35;
+          if (item.key === "canonical") return pageCanonical ? 0.85 : 0.9;
           return 0.5;
         };
-        const earned = confirmed.reduce((sum,item)=>sum+evidenceCredit(item),0);
-        return { ...page, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:confirmed.length?Math.round((earned/confirmed.length)*100):null, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), schemaTypes:[...new Set(pageSchemaTypes)], formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, productLinks:extractProductDetailLinks(pageHtml, finalCandidate.toString(), siteHost, 8), evidenceChecks };
+        const refinedType = refineSamplePageType({
+          proposed: page.type,
+          productSchema: pageProductSchema,
+          itemListSchema: pageItemListSchema,
+          repeatedProductLinks: pageCommerceEvidence.repeatedProductLinks,
+          productOffer: Boolean(pageProductEvidence?.price && pageProductEvidence?.currency),
+          purchaseAction: pageStrongCommerceAction,
+          visiblePrices: pagePriceSignals,
+          uniqueH1: pageH1s.length === 1,
+          detailIdentity: Boolean(/\b(?:sku|artikelnummer|modelnummer|ean|gtin)\b/i.test(pageHtml.slice(0,250000)) || /\b(?:iphone|galaxy|pixel|smartphone)\b/i.test(pageTitle)),
+        });
+        const pageSampleScore = sampleEvidenceScore(evidenceChecks, (key) => evidenceCredit(evidenceChecks.find((item)=>item.key===key)!));
+        return { ...page, type:refinedType, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:pageSampleScore, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), schemaTypes:[...new Set(pageSchemaTypes)], formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, productLinks:extractProductDetailLinks(pageHtml, finalCandidate.toString(), siteHost, 8), evidenceChecks };
       } catch (multiPageError) {
         const rawReason = multiPageError instanceof Error ? multiPageError.message : "FETCH_FAILED";
         const reason = /timeout|abort/i.test(rawReason)
