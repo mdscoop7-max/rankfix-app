@@ -24,7 +24,7 @@ import { renderOnce, renderWithRetry, representativeNeedsJavaScriptRendering } f
 import { missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore } from "@/lib/sample-quality";
 import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, commerceServiceSignals, compareScoreVersions } from "@/lib/scan-feedback";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
-import { isSubstantiveRender, renderImprovesEvidence } from "@/lib/render-quality";
+import { isSubstantiveRender, renderImprovesEvidence, preserveRawHeadEvidence, renderIsErrorState } from "@/lib/render-quality";
 import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDetailPath, productUrlsFromSitemap } from "@/lib/product-links";
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
@@ -647,8 +647,10 @@ export async function POST(request: Request) {
       try {
         const rendered = await renderPrimaryOnce();
         // Never replace richer raw evidence with a poorer (blocked or partial) render.
-        if (renderImprovesEvidence(rawVisibleWords, thinClientShell, rendered.html)) {
-          html = rendered.html;
+        if (renderIsErrorState(rawHtml, rendered.html)) {
+          renderFallbackReason = "RENDER_DEGRADED";
+        } else if (renderImprovesEvidence(rawVisibleWords, thinClientShell, rendered.html)) {
+          html = preserveRawHeadEvidence(rawHtml, rendered.html);
           renderedDocument = rendered;
           javascriptExecuted = true;
           renderElapsedMs = rendered.elapsedMs;
@@ -3802,8 +3804,10 @@ export async function POST(request: Request) {
         if (representativeNeedsJavaScriptRendering({ visibleWords: representativeVisibleWords, scriptCount: representativeScriptCount, frameworkSignal: representativeJsFramework, dynamicEvidenceRelevant: ["form", "product", "listing", "category", "service"].includes(page.type) }) && representativeEvidenceSource !== "rendered_html") {
           try {
             const renderedPage = await renderRepresentativeOnce();
-            if (renderImprovesEvidence(representativeVisibleWords, representativeThinShell, renderedPage.html)) {
-              pageHtml = renderedPage.html;
+            if (renderIsErrorState(representativeRawHtml, renderedPage.html)) {
+              page.evidence.push("javascript render ended in an error or noindex state; raw HTML retained");
+            } else if (renderImprovesEvidence(representativeVisibleWords, representativeThinShell, renderedPage.html)) {
+              pageHtml = preserveRawHeadEvidence(representativeRawHtml, renderedPage.html);
               partialHeadOnly = false;
               representativeEvidenceSource = "rendered_html";
               representativeTitlePixelWidth = renderedPage.titlePixelWidth;
