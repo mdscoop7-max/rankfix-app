@@ -126,6 +126,7 @@ export function summarizeAuditChecks(items: ScorableAuditCheck[]) {
 
 
 export type ScoreCapCheck = {
+  maxPoints: number;
   issue_status: AuditIssueStatus;
   severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
   confidence: "high" | "medium" | "low";
@@ -144,7 +145,11 @@ export function applyEvidenceBasedScoreCap(score: number, items: ScoreCapCheck[]
   // An incomplete audit must not present near-perfect scores as fully verified.
   // The cap is based on applicable evidence weight, not the number of checks:
   // N/A checks are excluded and unresolved checks are never counted as failures.
-  const coverage = weightedCoverage(items);
+  const relevant = items.filter((item) => item.issue_status !== "NOT_APPLICABLE");
+  const totalWeight = relevant.reduce((sum, item) => sum + Math.max(0, item.maxPoints), 0);
+  const assessedWeight = relevant.filter((item) => item.issue_status !== "UNABLE_TO_CONFIRM").reduce((sum, item) => sum + Math.max(0, item.maxPoints), 0);
+  const coveragePercent = totalWeight ? Math.round(assessedWeight / totalWeight * 100) : 0;
+  const coverage = {totalWeight, coveragePercent};
   if (coverage.totalWeight > 0 && coverage.coveragePercent < 50) return Math.min(score, 79);
   if (coverage.totalWeight > 0 && coverage.coveragePercent < 70) return Math.min(score, 89);
   if (coverage.totalWeight > 0 && coverage.coveragePercent < 90) return Math.min(score, 95);
