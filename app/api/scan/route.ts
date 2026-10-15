@@ -3745,12 +3745,13 @@ export async function POST(request: Request) {
         const contentType = r.headers.get("content-type") || "";
         let pageHtml: string | null = null;
         let representativeEvidenceSource: "raw_html" | "rendered_html" = "raw_html";
+        let representativeTitlePixelWidth: number | null = null;
         // Motor v2.1: representative pages get the same single bounded recovery
         // opportunity as the primary page. A failed render remains UNABLE, never PASS.
         if (!r.ok && (r.status === 202 || r.status === 403 || r.status === 405)) {
           try {
             const recoveredPage = await renderRepresentativeOnce();
-            if (isSubstantiveRender(recoveredPage.html)) { pageHtml = recoveredPage.html; representativeEvidenceSource = "rendered_html"; }
+            if (isSubstantiveRender(recoveredPage.html)) { pageHtml = recoveredPage.html; representativeEvidenceSource = "rendered_html"; representativeTitlePixelWidth = recoveredPage.titlePixelWidth; }
           } catch {}
         }
         if (!pageHtml && (!r.ok || (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")))) {
@@ -3777,6 +3778,7 @@ export async function POST(request: Request) {
               pageHtml = renderedPage.html;
               partialHeadOnly = false;
               representativeEvidenceSource = "rendered_html";
+              representativeTitlePixelWidth = renderedPage.titlePixelWidth;
               page.evidence.push("javascript-rendered representative page");
             } else {
               page.evidence.push("javascript render poorer than raw HTML; raw HTML retained");
@@ -3871,7 +3873,7 @@ export async function POST(request: Request) {
           confirmedRetailPage: pageProductSchema || (pageStrongCommerceAction && pagePriceSignals >= 1) || (pageItemListSchema && new Set(pageProductLinks).size >= 3) || (pageStoreSchema && pagePriceSignals >= 2),
         };
         // Meta rules are shared with the main page (lib/report-quality.ts).
-        const pageTitleAssessment = assessPageTitle(pageTitle, finalCandidate.hostname);
+        const pageTitleAssessment = assessPageTitle(pageTitle, finalCandidate.hostname, new Date(), representativeTitlePixelWidth);
         const pageDescriptionAssessment = assessPageDescription(pageDescription, Boolean(pageDescriptionTag));
         // A JavaScript application shell that could not be rendered cannot prove a
         // missing title, description, H1 or canonical; those stay unconfirmed.
