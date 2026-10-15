@@ -1,6 +1,8 @@
-import type { Browser } from "puppeteer";
+import type { Browser } from "puppeteer-core";
+import { claimRender, launchSourceFor, hardenedServerlessArgs, type RenderBudget } from "@/lib/render-limits";
 import { assertPublicDns, validatePublicHttpUrl } from "@/lib/safe-fetch";
 
+export { createRenderBudget } from "@/lib/render-limits";
 export type HeadlessMode = "raw_html" | "javascript_rendered";
 export type AxeSummary = {
   violations: {id:string;impact:string;nodes:number}[];
@@ -68,9 +70,10 @@ async function withinTimeout<T>(work: Promise<T>, timeoutMs: number): Promise<T>
   }
 }
 
-export async function renderPublicPage(value: string, timeoutMs = 12000): Promise<RenderedPage> {
+export async function renderPublicPage(value: string, timeoutMs = 12000, budget?: RenderBudget): Promise<RenderedPage> {
   const target = validatePublicHttpUrl(value);
   await assertPublicDns(target.hostname);
+  claimRender(budget);
   await acquireBrowserSlot();
 
   let browser: Browser | undefined;
@@ -84,24 +87,33 @@ export async function renderPublicPage(value: string, timeoutMs = 12000): Promis
   };
 
   try {
-    const puppeteer = await import("puppeteer");
-    // /dev/shm is small on container hosts. Leave the sandbox enabled by default.
-    const args = ["--disable-dev-shm-usage"];
-    if (process.env.RANKFIX_CHROME_NO_SANDBOX === "1") args.push("--no-sandbox", "--disable-setuid-sandbox");
+    // Vercel has no Puppeteer-managed Chrome cache. Ship and trace a
+    // Lambda-compatible Chromium instead; keep locally installed Chrome for dev.
+    const source = launchSourceFor(process.env);
     let executablePath: string;
+    let args = ["--disable-dev-shm-usage"];
+    if (source === "serverless") {
+      const chromium = (await import("@sparticuz/chromium")).default;
+      chromium.setGraphicsMode = false;
+      executablePath = await chromium.executablePath();
+      args = [...hardenedServerlessArgs(chromium.args, false), ...args];
+    } else if (source === "executable") {
+      executablePath = (process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_EXECUTABLE_PATH || "").trim();
+      if (process.env.RANKFIX_CHROME_NO_SANDBOX === "1") args.push("--no-sandbox", "--disable-setuid-sandbox");
+    } else {
+      const local = (await import("puppeteer")).default;
+      executablePath = local.executablePath();
+    }
     try {
-      executablePath = process.env.RANKFIX_CHROME_EXECUTABLE_PATH?.trim() || await puppeteer.default.executablePath();
       const { access } = await import("node:fs/promises");
       await access(executablePath);
     } catch {
       throw new Error("RENDER_CHROME_NOT_INSTALLED");
     }
-
-    browser = await puppeteer.default.launch({
-      headless: true,
-      args,
-      executablePath,
-      timeout: Math.min(8000, remaining()),
+    const puppeteer = (await import("puppeteer-core")).default;
+    browser = await puppeteer.launch({
+      headless: true, args, executablePath,
+      timeout: Math.min(8000, remaining()), protocolTimeout: 20000,
     });
     const page = await browser.newPage();
     // A bare custom UA breaks sites expecting browser capabilities. Keep Chrome's
