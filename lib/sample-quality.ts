@@ -1,6 +1,6 @@
 // Representative pages must be typed from their own DOM, not just their URL.
 // In particular a telecom product detail can live below a category-like /winkel path.
-export type SamplePageType = "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "other";
+export type SamplePageType = "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "contact" | "other";
 
 export function refineSamplePageType(input: {
   proposed: SamplePageType;
@@ -12,17 +12,24 @@ export function refineSamplePageType(input: {
   visiblePrices: number;
   uniqueH1: boolean;
   detailIdentity: boolean;
+  articleSchema?: boolean;
+  breadcrumbDepth?: number;
+  path?: string;
 }): SamplePageType {
   const { proposed } = input;
-  if (["homepage", "legal", "support", "form"].includes(proposed)) return proposed;
+  if (["homepage", "legal", "support", "form", "contact"].includes(proposed)) return proposed;
+  const path = input.path || "";
+  if (/\/(?:contact|contact-us|contacteer|kontakt)\/?$/i.test(path)) return "contact";
+  if (input.articleSchema || (/\/(?:blog|news|nieuws|artikelen|articles)\//i.test(path) && !input.productSchema)) return "article";
   // Product schema is direct on-page evidence; an ItemList indicates a collection
   // unless there is also confirmed product detail evidence.
   if (input.productSchema) return "product";
   if (!input.itemListSchema && input.purchaseAction && input.visiblePrices > 0 &&
       input.uniqueH1 && (input.productOffer || input.detailIdentity) &&
       !input.repeatedProductLinks) return "product";
-  if ((proposed === "other" || proposed === "product") && (input.itemListSchema || input.repeatedProductLinks))
+  if ((proposed === "other" || proposed === "product") && (input.itemListSchema || input.repeatedProductLinks || (input.breadcrumbDepth || 0) >= 3 && input.visiblePrices > 1))
     return "category";
+  if (proposed === "other" && /\/(?:diensten?|services?|solutions?|oplossingen?|behandelingen?)\//i.test(path)) return "service";
   return proposed;
 }
 
