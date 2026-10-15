@@ -172,5 +172,8 @@ export async function readHtmlSampleHeadFirst(response: Response, maxBytes = 2_0
   const end = prefix.search(/<\/head\s*>/i);
   if (end < 0) throw new Error("RESPONSE_TOO_LARGE_NO_HEAD");
   const endTag = prefix.slice(end).match(/^<\/head\s*>/i)?.[0] || "</head>";
-  return {html:prefix.slice(0,end+endTag.length),partial:true,headComplete:true};
+  // Retain the complete head AND the first body bytes. This permits positive
+  // evidence from early H1/prices/forms without claiming that absent body
+  // elements are defects; callers receive partial=true for that distinction.
+  return {html:prefix,partial:true,headComplete:true};
 }
