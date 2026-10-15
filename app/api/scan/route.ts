@@ -3547,7 +3547,8 @@ export async function POST(request: Request) {
       stableCore: {seo:stableCoreChecks(selectedSeoChecks,"seo").length,geo:stableCoreChecks(selectedGeoChecks,"geo").length},
       coverageAdjustment: 0,
     };
-    const scanSummary = summarizeAuditChecks(checks);
+    // Preliminary summary; final evidence and sector applicability can change statuses.
+    let scanSummary = summarizeAuditChecks(checks);
     const propertyListingPage = sectorProfile.sector === "real_estate" && (/\/(?:woningaanbod|residential-listings)\/(?:koop|huur|sale|rent)\//i.test(pathname) || /\b(?:te koop|te huur|for sale|for rent)\b/i.test(title));
     // Generic resolved-URL page intent: service/detail paths are evidence even when
     // the original input was a short/share URL. This runs on finalUrl only.
@@ -4728,6 +4729,9 @@ export async function POST(request: Request) {
     scoreModel.provisional = overallCoverage.coveragePercent < 90;
     scoreModel.coverageAdjustment = 0;
     scoreModel.breakdown = scoreBreakdown(checks);
+    // Keep summary, check list, coverage and score based on the exact same final
+    // evidence statuses. Previously this stayed frozen before the commerce gate.
+    scanSummary = summarizeAuditChecks(checks);
 
     const classification = {
       websiteType,
