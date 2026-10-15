@@ -4873,10 +4873,25 @@ export async function POST(request: Request) {
         );
         const priorReport = previousScan.rows[0]?.result;
         if (priorReport && Number.isFinite(Number(priorReport.overallScore))) {
+          const previousBreakdown = Array.isArray(priorReport.scoreModel?.breakdown) ? priorReport.scoreModel.breakdown : [];
+          const previousByCheck = new Map<string,string>(previousBreakdown.map((item:{key:string;category:string;status:string}) =>
+            [(item.category||"seo")+":"+(item.key||""),item.status||""]));
+          const changedChecks = scoreModel.breakdown.flatMap((item) => {
+            const key = item.category+":"+item.key;
+            const before = previousByCheck.get(key);
+            return before && before!==item.status ? [key+" ("+before+" → "+item.status+")"] : [];
+          });
           scoreModel.comparison = compareScoreVersions(
             Number(priorReport.overallScore), selectedOverallScore,
             typeof priorReport.scoreModel?.version === "string" ? priorReport.scoreModel.version : null,
-            SCORE_MODEL_VERSION,
+            SCORE_MODEL_VERSION, 3, {
+              previousRendering:priorReport.rendering?.mode||null,
+              currentRendering:rendering.mode,
+              previousCoverage:Number.isFinite(Number(priorReport.coverage?.coveragePercent))
+                ? Number(priorReport.coverage.coveragePercent) : null,
+              currentCoverage:overallCoverage.coveragePercent,
+              changedChecks,
+            },
           );
         }
         console.info("RankFix scan phase", { phase: "history_write_start", page: finalUrl.toString(), isProductPage, productOptimizerSourceCount });
