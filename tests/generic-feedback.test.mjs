@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, commerceServiceSignals } from "../lib/scan-feedback.ts";
+import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, commerceServiceSignals, compareScoreVersions } from "../lib/scan-feedback.ts";
 import { renderWithRetry, representativeNeedsJavaScriptRendering } from "../lib/render-strategy.ts";
 import { readHtmlSampleHeadFirst } from "../lib/safe-fetch.ts";
 import { assessPageTitle } from "../lib/report-quality.ts";
@@ -99,6 +99,22 @@ test("score deductions are transparent and unverified checks have no deduction",
  assert.deepEqual(rows.map(x=>x.earnedPoints),[9,null,null]);
 });
 
+test("score differences above three points explain changed evidence, not ranking",()=>{
+ const same=compareScoreVersions(95,98,"3.0","3.0");
+ assert.equal(same.requiresExplanation,false);
+ const changed=compareScoreVersions(95,89,"3.0","3.1",3,{
+  previousRendering:"raw_html",currentRendering:"javascript_rendered",
+  previousCoverage:84,currentCoverage:96,
+  changedChecks:["seo:title (PASS → WARNING)"],
+ });
+ assert.equal(changed.requiresExplanation,true);
+ assert.equal(changed.delta,-6);
+ assert.equal(changed.modelChanged,true);
+ assert.match(changed.explanation,/12%|84% → 96%/);
+ assert.match(changed.explanation,/raw_html/);
+ assert.match(changed.explanation,/seo:title/);
+ assert.equal(changed.factors.length,4);
+});
 test("a JS page missing canonical has no misleading perfect four-metadata score",()=>{
  const checks=[
   {key:"http",status:"PASS"}, {key:"title",status:"PASS"},
@@ -134,6 +150,10 @@ test("scanner integrates all feedback policies and the report explains limitatio
  assert.match(route,/!hydratedAccessibility/);
  assert.match(browser,/ctx\.measureText\(t\)/);
  assert.match(browser,/domAccessibility/);
+ assert.match(browser,/axeCore\.source/);
+ assert.match(browser,/wcag21aa/);
+ assert.match(route,/axeViolations/);
+ assert.match(route,/AND result->>\'mode\'=\$4/);
  assert.match(report,/Scoreweging en puntenaftrek/);
  assert.match(report,/Gedeeltelijke HTML/);
  assert.match(report,/INDICATIVE_RAW_HTML|Indicatief \(raw HTML\)/);
