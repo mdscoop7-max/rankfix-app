@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, sampleSummary, compareScoreVersions, commerceServiceSignals } from "../lib/scan-feedback.ts";
+import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, sampleSummary, compareScoreVersions, commerceServiceSignals, trustedLocalBusinessEvidence, sufficientIdentitySchema, hasUnresolvedClientTemplateBindings } from "../lib/scan-feedback.ts";
 import { stableCoreChecks, scoreApplicableChecks, applyEvidenceBasedScoreCap, weightedCoverage, scoreRange } from "../lib/audit-score.ts";
 import { renderWithRetry, representativeNeedsJavaScriptRendering } from "../lib/render-strategy.ts";
 import { renderFailureCode, renderFailureText } from "../lib/report-quality.ts";
@@ -183,4 +183,67 @@ test("extra sector modules never cap the SEO/GEO headline even when severe, whil
  const core=[{key:"title",issue_status:"PASS",maxPoints:10,points:10,confidence:"high",severity:"LOW"}];
  const sector={key:"merchant_feed_signal",issue_status:"FAIL",maxPoints:10,points:0,confidence:"high",severity:"CRITICAL"};
  assert.equal(applyEvidenceBasedScoreCap(scoreApplicableChecks(stableCoreChecks([...core,sector],"seo")),stableCoreChecks([...core,sector],"seo")),100);
+});
+
+test("telecom provider navigation and generic contact do not imply LocalBusiness", async () => {
+  // Country-wide telecom service homepage: support contact + navigation menu.
+  assert.equal(trustedLocalBusinessEvidence({
+    explicitLocalSchema:false, localIdentityEvidence:false, contactEvidence:true,
+  }),false);
+  // A confirmed local business identity with contact details is applicable.
+  assert.equal(trustedLocalBusinessEvidence({
+    explicitLocalSchema:false, localIdentityEvidence:true, contactEvidence:true,
+  }),true);
+  assert.equal(trustedLocalBusinessEvidence({
+    explicitLocalSchema:true, localIdentityEvidence:false, contactEvidence:false,
+  }),true);
+  assert.equal(trustedLocalBusinessEvidence({
+    explicitLocalSchema:false, localIdentityEvidence:true, contactEvidence:false,
+  }),false);
+  const route=await source("app/api/scan/route.ts");
+  assert.match(route,/trustedLocalBusinessEvidence\(/);
+  assert.doesNotMatch(route,/localBusinessKeywordSignal \|\| \/\\b\(menu\|menukaart/);
+});
+
+test("Organization alone or WebSite alone is enough for homepage identity evidence", async () => {
+  assert.equal(sufficientIdentitySchema(true,false),true);
+  assert.equal(sufficientIdentitySchema(false,true),true);
+  assert.equal(sufficientIdentitySchema(true,true),true);
+  assert.equal(sufficientIdentitySchema(false,false),false);
+  const route=await source("app/api/scan/route.ts");
+  assert.match(route,/sufficientIdentitySchema\(organizationSchemaPresent, websiteSchemaPresent\)/);
+  assert.match(route,/sufficientIdentitySchema\(hasOrg, hasWebSite\)/);
+});
+
+test("visible unresolved client-template bindings require a render even on SSR pages", async () => {
+  const hydratedButIncomplete = '<html><body><h1>Internet & TV</h1><div>{{ itemsInCategory("Sport") }}</div><p>{{ genre }}</p><script src="/assets/app.js"></script></body></html>';
+  assert.equal(hasUnresolvedClientTemplateBindings(hydratedButIncomplete), true);
+  assert.equal(hasUnresolvedClientTemplateBindings('<html><body><p>{{ sample }}</p><pre>{{ another }}</pre><script src="/a.js"></script></body></html>'),false);
+  assert.equal(hasUnresolvedClientTemplateBindings('<html><body><p>{{ x }}</p><p>{{ y }}</p></body></html>'),false);
+  const route = await source("app/api/scan/route.ts");
+  assert.match(route,/javascriptFrameworkSignal = isJavaScriptFramework\(rawHtml\) \|\| unresolvedClientBindings/);
+});
+
+test("nationwide telecom services retain subscription price formatting without retail checks", async () => {
+  const route = await source("app/api/scan/route.ts");
+  assert.match(route,/!hasEcommerceSignal && !telecomProviderIdentity/);
+  assert.match(route,/item.key==="price_format" && telecomProviderIdentity/);
+  assert.match(route,/subscription: telecomProviderIdentity \|\|/);
+  assert.match(route,/business_placeholders: `placeholders=\$\{placeholderMatches.length\}; verifiedDetails=/);
+});
+
+test("regression: unresolved template matcher distinguishes visible UI from code samples", () => {
+  const html = (body, scripts = '<script src="/assets/app.js"></script>') =>
+    `<html><body>${body}${scripts}</body></html>`;
+
+  // Two real unresolved client bindings must trigger browser rendering.
+  assert.equal(hasUnresolvedClientTemplateBindings(html('<main><p>{{ serviceName }}</p><p>{{ monthlyPrice }}</p></main>')), true);
+  // Literal examples in script, code, pre and textarea are not visible UI bindings.
+  const hidden = '<script>const tpl="{{ script1 }} {{ script2 }}";</script><code>{{ code }}</code><pre>{{ pre }}</pre><textarea>{{ textarea }}</textarea>';
+  assert.equal(hasUnresolvedClientTemplateBindings(html(hidden)), false);
+  assert.equal(hasUnresolvedClientTemplateBindings(html(hidden + '<p>{{ singleVisible }}</p>')), false);
+  assert.equal(hasUnresolvedClientTemplateBindings(html(hidden + '<p>{{ realOne }}</p><p>{{ realTwo }}</p>')), true);
+  // A page without an external JS asset or with only one visible binding should not force rendering.
+  assert.equal(hasUnresolvedClientTemplateBindings(html('<p>{{ one }}</p><p>{{ two }}</p>', '')), false);
+  assert.equal(hasUnresolvedClientTemplateBindings(html('<p>{{ onlyOne }}</p>')), false);
 });
