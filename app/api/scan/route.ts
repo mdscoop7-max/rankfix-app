@@ -20,6 +20,7 @@ import { isPaidPlan, normalizePlan, planLimits } from "@/lib/plans";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
 import { renderPublicPage } from "@/lib/headless-render";
+import { renderOnce, representativeNeedsJavaScriptRendering } from "@/lib/render-strategy";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { isSubstantiveRender, renderImprovesEvidence } from "@/lib/render-quality";
 import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDetailPath, productUrlsFromSitemap } from "@/lib/product-links";
@@ -559,6 +560,8 @@ export async function POST(request: Request) {
     // returned by safePublicFetch so share/short links are classified from the actual site.
     const finalUrl = fetchedFinalUrl ?? new URL(response.url || target.toString());
     console.info("RankFix redirect resolution", { requested: target.toString(), final: finalUrl.toString(), hops: redirectChain.length });
+    // Primary recovery, JS hydration and quality-gate fallback share one browser attempt.
+    const renderPrimaryOnce = renderOnce(() => renderPublicPage(finalUrl.toString(), 12000));
 
     if (response.status === 429) {
       return NextResponse.json(
@@ -583,7 +586,7 @@ export async function POST(request: Request) {
     if (!response.ok && (response.status === 202 || response.status === 403 || response.status === 405)) {
       recovery.attempted = true;
       try {
-        const recovered = await renderPublicPage(finalUrl.toString(), 12000);
+        const recovered = await renderPrimaryOnce();
         // A blocked render (challenge or empty shell with only a <title>) is not a recovery.
         if (!isSubstantiveRender(recovered.html)) recovery.reason = "RECOVERY_RENDER_NOT_SUBSTANTIVE";
         else {
@@ -631,7 +634,7 @@ export async function POST(request: Request) {
     let renderFallbackReason: string | null = recovery.reason;
     if (javascriptCandidate) {
       try {
-        const rendered = await renderPublicPage(finalUrl.toString(), 12000);
+        const rendered = await renderPrimaryOnce();
         // Never replace richer raw evidence with a poorer (blocked or partial) render.
         if (renderImprovesEvidence(rawVisibleWords, thinClientShell, rendered.html)) {
           html = rendered.html;
@@ -658,7 +661,7 @@ export async function POST(request: Request) {
       || /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform|radware|incapsula|imperva|akamai bot manager|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test(preliminaryQualityText);
     if (preliminaryInterstitial && !javascriptExecuted) {
       try {
-        const recovered = await renderPublicPage(finalUrl.toString(), 12000);
+        const recovered = await renderPrimaryOnce();
         if (isSubstantiveRender(recovered.html)) {
           html = recovered.html;
           javascriptExecuted = true;
@@ -3697,6 +3700,7 @@ export async function POST(request: Request) {
           : await safePublicFetch(page.url, { timeoutMs: 8000, maxRedirects: 3, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml" });
         const r = fetched.response;
         const finalCandidate = new URL(fetched.finalUrl.toString());
+        const renderRepresentativeOnce = renderOnce(() => renderPublicPage(finalCandidate.toString(), 10000));
         const finalCandidateHost = normalizeHost(finalCandidate.hostname);
         const sameRegistrableSite = finalCandidateHost === siteHost
           || finalCandidateHost.endsWith(`.${siteHost}`)
@@ -3709,7 +3713,7 @@ export async function POST(request: Request) {
         // opportunity as the primary page. A failed render remains UNABLE, never PASS.
         if (!r.ok && (r.status === 202 || r.status === 403 || r.status === 405)) {
           try {
-            const recoveredPage = await renderPublicPage(finalCandidate.toString(), 10000);
+            const recoveredPage = await renderRepresentativeOnce();
             if (isSubstantiveRender(recoveredPage.html)) { pageHtml = recoveredPage.html; representativeEvidenceSource = "rendered_html"; }
           } catch {}
         }
@@ -3726,9 +3730,9 @@ export async function POST(request: Request) {
         const representativeScriptCount = (representativeRawHtml.match(/<script\b/gi) || []).length;
         const representativeJsFramework = /(?:__NEXT_DATA__|\/_next\/|__NUXT__|\/_nuxt\/|data-reactroot|data-react-helmet|shopify|webpackJsonp|__APOLLO_STATE__)/i.test(representativeRawHtml);
         const representativeThinShell = representativeVisibleWords < 80 && representativeScriptCount >= 4;
-        if (representativeJsFramework || representativeThinShell) {
+        if (representativeNeedsJavaScriptRendering({ visibleWords: representativeVisibleWords, scriptCount: representativeScriptCount, frameworkSignal: representativeJsFramework }) && representativeEvidenceSource !== "rendered_html") {
           try {
-            const renderedPage = await renderPublicPage(finalCandidate.toString(), 10000);
+            const renderedPage = await renderRepresentativeOnce();
             if (renderImprovesEvidence(representativeVisibleWords, representativeThinShell, renderedPage.html)) {
               pageHtml = renderedPage.html;
               representativeEvidenceSource = "rendered_html";
