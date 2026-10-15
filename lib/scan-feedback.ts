@@ -91,20 +91,41 @@ export function commerceServiceSignals(input:{subscription:boolean;booking:boole
   };
 }
 
+export type ScoreComparisonEvidence = {
+  previousRendering?: string | null;
+  currentRendering?: string | null;
+  previousCoverage?: number | null;
+  currentCoverage?: number | null;
+  changedChecks?: string[];
+};
+
+// Score changes must be compared only for the exact URL and scan mode, enforced
+// by the history query. These factors report observed evidence differences;
+// they deliberately never claim to prove why the website's SEO changed.
 export function compareScoreVersions(
   previousScore:number, currentScore:number,
   previousModel:string | null, currentModel:string, threshold=3,
+  evidence:ScoreComparisonEvidence={},
 ) {
   const delta=currentScore-previousScore;
   const requiresExplanation=Math.abs(delta)>threshold;
   const modelChanged=Boolean(previousModel && previousModel!==currentModel);
+  const factors:string[]=[];
+  if(modelChanged) factors.push("Scoremodelversie gewijzigd: "+previousModel+" → "+currentModel);
+  if(evidence.previousRendering && evidence.currentRendering && evidence.previousRendering!==evidence.currentRendering)
+    factors.push("Scanbewijs wisselde van "+evidence.previousRendering+" naar "+evidence.currentRendering);
+  if(evidence.previousCoverage!=null && evidence.currentCoverage!=null
+     && Number.isFinite(evidence.previousCoverage) && Number.isFinite(evidence.currentCoverage)
+     && Math.abs(evidence.previousCoverage-evidence.currentCoverage)>=1)
+    factors.push("Gewogen bewijsdekking "+Math.round(evidence.previousCoverage)+"% → "+Math.round(evidence.currentCoverage)+"%");
+  if(evidence.changedChecks?.length) factors.push("Veranderde controlestatus: "+evidence.changedChecks.slice(0,6).join(", "));
   return {
     previousScore,currentScore,delta,previousModel,currentModel,
-    requiresExplanation,modelChanged,
+    requiresExplanation,modelChanged,factors,
     explanation:requiresExplanation
-      ? modelChanged
-        ? "De score is meer dan 3 punten veranderd en de scoremodelversie is gewijzigd. Hercontroleer de controleweging en de brondata; de modelwijziging is niet automatisch bewezen als enige oorzaak."
-        : "De score verschilt meer dan 3 punten bij dezelfde scoremodelversie. Controleer gewijzigde inhoud, JavaScript-bewijs, steekproefdekking en bevestigde fouten voordat je de verandering verklaart."
+      ? "Scoreverschil van "+(delta>0?"+":"")+delta+" punten ten opzichte van de vorige scan van deze exacte URL en modus. "
+        +(factors.length ? "Waargenomen verschillen: "+factors.join("; ")+". " : "Geen specifieke verschilfactor in het beschikbare bewijs vastgesteld. ")
+        +"Dit zijn aanwijzingen en geen bewezen oorzaken. Controleer websitewijzigingen, JavaScript-rendering en scoreweging voordat je een SEO-effect concludeert."
       : null,
   };
 }
