@@ -151,8 +151,6 @@ const statements = [
   `ALTER TABLE fix_proposals ADD COLUMN IF NOT EXISTS failure JSONB`,
   `ALTER TABLE fix_proposals ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '2 hours')`,
   `ALTER TABLE fix_proposals ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`,
-  `ALTER TABLE fix_proposals DROP CONSTRAINT IF EXISTS fix_proposals_status_check`,
-  `ALTER TABLE fix_proposals ADD CONSTRAINT fix_proposals_status_check CHECK (status IN ('PREVIEW_READY','APPROVED','PUBLISHED','FAILED','EXPIRED','INVALIDATED'))`,
   `CREATE UNIQUE INDEX IF NOT EXISTS fix_proposals_hash_idx ON fix_proposals(user_id,proposal_hash)`,
   `CREATE TABLE IF NOT EXISTS fix_events (
     id BIGSERIAL PRIMARY KEY,
@@ -328,18 +326,30 @@ export async function ensureDatabase() {
   if (initialized) return;
   if (!initializing) {
     initializing = (async () => {
-      const db = getDb();
-      for (const statement of statements) await db.query(statement);
+      const client = await getDb().connect();
+      try {
+        await client.query("BEGIN");
+        // Serverless instances can initialize at the same time. Serialize schema
+        // upgrades on a single connection to avoid duplicate constraint errors.
+        await client.query("SELECT pg_advisory_xact_lock(hashtext('rankfix_schema_init'), 1)");
 
-      // Production may still have a legacy check constraint from an older
-      // Fix Engine schema. Reconcile it after all columns exist so preview
-      // proposals use the same lifecycle on upgraded and fresh databases.
-      await db.query("ALTER TABLE fix_proposals DROP CONSTRAINT IF EXISTS fix_proposals_status_check");
-      await db.query("ALTER TABLE fix_proposals ALTER COLUMN status SET DEFAULT 'PREVIEW_READY'");
-      await db.query("UPDATE fix_proposals SET status = 'PREVIEW_READY' WHERE status = 'PREVIEWED'");
-      await db.query("ALTER TABLE fix_proposals ADD CONSTRAINT fix_proposals_status_check CHECK (status IN ('PREVIEW_READY','APPROVED','PUBLISHED','FAILED','EXPIRED','INVALIDATED'))");
+        for (const statement of statements) await client.query(statement);
 
-      initialized = true;
+        // Reconcile the legacy Fix Engine lifecycle only once, after the data
+        // is normalized, while holding the same advisory lock.
+        await client.query("ALTER TABLE fix_proposals DROP CONSTRAINT IF EXISTS fix_proposals_status_check");
+        await client.query("ALTER TABLE fix_proposals ALTER COLUMN status SET DEFAULT 'PREVIEW_READY'");
+        await client.query("UPDATE fix_proposals SET status = 'PREVIEW_READY' WHERE status = 'PREVIEWED'");
+        await client.query("ALTER TABLE fix_proposals ADD CONSTRAINT fix_proposals_status_check CHECK (status IN ('PREVIEW_READY','APPROVED','PUBLISHED','FAILED','EXPIRED','INVALIDATED'))");
+
+        await client.query("COMMIT");
+        initialized = true;
+      } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+      } finally {
+        client.release();
+      }
     })().finally(() => {
       initializing = null;
     });
