@@ -1596,7 +1596,11 @@ export async function POST(request: Request) {
       const identityBoost = item.patterns[0]?.test(sectorIdentitySource) ? 1 : 0;
       const identityPriorityBoost = item.patterns[0]?.test(sectorIdentitySource) && item.patterns[1]?.test(sectorSource) ? 1 : 0;
       const transportContextBoost = item.sector === "transport_travel" && transportBookingIdentity ? 2 : 0;
-      const suppressedHits = item.sector === "automotive" && sewerIdentity && !(schemaSectorBoost.automotive || item.patterns[0]?.test(sectorIdentitySource)) ? 0 : contentHits + identityBoost + identityPriorityBoost + transportContextBoost + (schemaSectorBoost[item.sector] || 0);
+      // Content/navigation is only supporting evidence. Never promote an
+      // industry solely from terms in FAQ, pricing examples or customer stories.
+      const anchoredToBusinessIdentity = Boolean(item.patterns[0]?.test(sectorIdentitySource) || schemaSectorBoost[item.sector]);
+      const suppressedHits = !anchoredToBusinessIdentity || (item.sector === "automotive" && sewerIdentity && !(schemaSectorBoost.automotive || item.patterns[0]?.test(sectorIdentitySource)))
+        ? 0 : contentHits + identityBoost + identityPriorityBoost + transportContextBoost + (schemaSectorBoost[item.sector] || 0);
       return {sector:item.sector,label:item.label,hits:suppressedHits,modules:item.modules,priority:sectorPriority[item.sector] || 0};
     }).filter(item=>item.hits>0).sort((a,b)=>b.hits-a.hits || b.priority-a.priority);
     const strongSectorCandidate = sectorCandidates[0] && sectorCandidates[0].hits>=2 && (!sectorCandidates[1] || sectorCandidates[0].hits>sectorCandidates[1].hits || (sectorCandidates[0].hits===sectorCandidates[1].hits && sectorCandidates[0].priority>sectorCandidates[1].priority));
@@ -1642,6 +1646,10 @@ export async function POST(request: Request) {
       beauty_salon:"beauty", hair_salon:"beauty",
     };
     const mappedCatalogSector = catalogTop ? catalogLegacyMap[catalogTop.key] : undefined;
+    // Even a high-scoring catalog sector requires independent primary evidence;
+    // repeated incidental topic words alone are not proof of the company's sector.
+    const catalogIdentityAnchored = Boolean(mappedCatalogSector &&
+      sectorCandidates.some((candidate)=>candidate.sector===mappedCatalogSector));
     const lodgingDetail = scanEvidence.sectorDetails.lodging;
     const shortStayIdentity = primaryBusinessEvidence.sector === "hospitality" && Boolean(
       (lodgingDetail.bedBreakfast.value && lodgingDetail.bedBreakfast.confidence !== "low") ||
@@ -1735,7 +1743,7 @@ export async function POST(request: Request) {
         }
       : primaryNonCommerceIdentity
         ? {sector:primaryNonCommerceIdentity.sector,key:primaryNonCommerceIdentity.key,label:primaryNonCommerceIdentity.label,confidence:"high" as const,confidenceScore:Math.max(90, strongSectorCandidate && sectorCandidates[0].sector===primaryNonCommerceIdentity.sector ? (sectorCandidates[0].hits>=3?95:90) : 96),evidence:primaryNonCommerceIdentity.evidence.slice(0,6),applicableModules:[...new Set(["core_seo","geo","technical",...(sectorSignals.find(x=>x.sector===primaryNonCommerceIdentity.sector)?.modules||[])])]}
-      : legacyProfile.sector==="unknown" && catalogSectorStrong && mappedCatalogSector
+      : legacyProfile.sector==="unknown" && catalogSectorStrong && mappedCatalogSector && catalogIdentityAnchored
         ? {
             sector:mappedCatalogSector,
             key:catalogTop.key,
