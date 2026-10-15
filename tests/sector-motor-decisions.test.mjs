@@ -35,7 +35,7 @@ test("unknown identity needs independent retail evidence",()=>{
 });
 
 test("checkout or cart alone does not activate webshop checks",()=>{
- assert.deepEqual(decideCommerceModules({...base,primaryBusinessModel:"retail",cart:true,checkout:true}),["checkout"]);
+ assert.deepEqual(decideCommerceModules({...base,primaryBusinessModel:"retail",cart:true,checkout:true}),[]);
  assert.deepEqual(decideCommerceModules({...base,primaryBusinessModel:"retail",checkout:true}),[]);
 });
 
