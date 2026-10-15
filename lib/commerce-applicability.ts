@@ -14,11 +14,15 @@ export function commerceApplicability(input: {
   thinShell: boolean;
   marketSelector: boolean;
   auditedRepresentativePages: number;
+  verifiedSecondaryCommerce?: boolean;
 }): CommerceApplicability {
   if (input.confirmed) return { state: "confirmed" };
   if (input.marketSelector) return { state: "unconfirmed", reason: "market_selector" };
   if (input.thinShell) return { state: "unconfirmed", reason: "thin_shell" };
-  // A proven service, hotel, dealer or similar identity outranks secondary shop navigation.
+  // A primary service identity may also sell real products (e.g. phones at a
+  // telecom provider). Never label observed product commerce as absent solely
+  // because checkout/cart evidence is still missing.
+  if (input.verifiedSecondaryCommerce) return { state: "unconfirmed", reason: "weak_commerce_signals" };
   if (input.primaryNonCommerceIdentity) return { state: "absent", reason: "service_identity" };
   if (input.commerceHints) return { state: "unconfirmed", reason: "weak_commerce_signals" };
   if (input.auditedRepresentativePages < 2) return { state: "unconfirmed", reason: "low_coverage" };
@@ -30,7 +34,7 @@ export const COMMERCE_APPLICABILITY_COPY: Record<string, string> = {
   no_commerce_evidence: "In de gescande pagina en de representatieve pagina's is geen product-, prijs-, winkelwagen- of checkoutbewijs gevonden; deze commercecontrole is niet van toepassing.",
   market_selector: "Dit is een internationale land-/taalkeuzepagina. Webshopfunctionaliteit staat op de landversies en kan vanaf deze pagina niet worden beoordeeld. Scan de landversie (bijvoorbeeld /nl/nl/) voor een webshopbeoordeling.",
   thin_shell: "De opgehaalde HTML is een dunne JavaScript-shell zonder uitgevoerde rendering. Of hier een webshop is, kan niet betrouwbaar worden vastgesteld.",
-  weak_commerce_signals: "Er zijn webshopsignalen gevonden (zoals platform of winkelnavigatie), maar geen bevestigde product-, prijs- of winkelwagenketen. Toepasselijkheid kan niet betrouwbaar worden vastgesteld.",
+  weak_commerce_signals: "Er zijn product- of webshopsignalen gevonden, maar niet alle betaal-, winkelwagen- en retailfuncties zijn onafhankelijk bevestigd. Relevante productcontroles blijven mogelijk; onbevestigde shopfuncties zijn niet automatisch afwezig.",
   low_coverage: "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
 };
 
