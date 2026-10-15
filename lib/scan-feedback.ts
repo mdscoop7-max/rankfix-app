@@ -143,3 +143,17 @@ export function trustedLocalBusinessEvidence(input: {
 export function sufficientIdentitySchema(organization: boolean, website: boolean): boolean {
   return organization || website;
 }
+
+/**
+ * Substantive server HTML can still contain client templates that only Vue,
+ * Angular or a similar runtime resolves. Require multiple expressions and a
+ * script asset: a single literal "{{ example }}" in an article is not enough.
+ * Ignore code samples, scripts and textareas before checking body markup.
+ */
+export function hasUnresolvedClientTemplateBindings(html: string): boolean {
+  if (!/<script\\b[^>]*\\bsrc\\s*=\\s*["'][^"']+["']/i.test(html)) return false;
+  const body = html.split(/<body\\b[^>]*>/i)[1] ?? html;
+  const visibleBody = body.replace(/<(script|style|code|pre|textarea)\\b[^>]*>[\\s\\S]*?<\\/\\1>/gi, " ");
+  const bindings = visibleBody.match(/\\{\\{\\s*[^{}]{1,110}?\\s*\\}\\}/g) ?? [];
+  return bindings.length >= 2;
+}

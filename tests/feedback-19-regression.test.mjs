@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, sampleSummary, compareScoreVersions, commerceServiceSignals, trustedLocalBusinessEvidence, sufficientIdentitySchema } from "../lib/scan-feedback.ts";
+import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, sampleSummary, compareScoreVersions, commerceServiceSignals, trustedLocalBusinessEvidence, sufficientIdentitySchema, hasUnresolvedClientTemplateBindings } from "../lib/scan-feedback.ts";
 import { stableCoreChecks, scoreApplicableChecks, applyEvidenceBasedScoreCap, weightedCoverage, scoreRange } from "../lib/audit-score.ts";
 import { renderWithRetry, representativeNeedsJavaScriptRendering } from "../lib/render-strategy.ts";
 import { renderFailureCode, renderFailureText } from "../lib/report-quality.ts";
@@ -213,4 +213,21 @@ test("Organization alone or WebSite alone is enough for homepage identity eviden
   const route=await source("app/api/scan/route.ts");
   assert.match(route,/sufficientIdentitySchema\(organizationSchemaPresent, websiteSchemaPresent\)/);
   assert.match(route,/sufficientIdentitySchema\(hasOrg, hasWebSite\)/);
+});
+
+test("visible unresolved client-template bindings require a render even on SSR pages", async () => {
+  const hydratedButIncomplete = '<html><body><h1>Internet & TV</h1><div>{{ itemsInCategory("Sport") }}</div><p>{{ genre }}</p><script src="/assets/app.js"></script></body></html>';
+  assert.equal(hasUnresolvedClientTemplateBindings(hydratedButIncomplete), true);
+  assert.equal(hasUnresolvedClientTemplateBindings('<html><body><p>{{ sample }}</p><pre>{{ another }}</pre><script src="/a.js"></script></body></html>'),false);
+  assert.equal(hasUnresolvedClientTemplateBindings('<html><body><p>{{ x }}</p><p>{{ y }}</p></body></html>'),false);
+  const route = await source("app/api/scan/route.ts");
+  assert.match(route,/javascriptFrameworkSignal = isJavaScriptFramework\(rawHtml\) \|\| unresolvedClientBindings/);
+});
+
+test("nationwide telecom services retain subscription price formatting without retail checks", async () => {
+  const route = await source("app/api/scan/route.ts");
+  assert.match(route,/!hasEcommerceSignal && !telecomProviderIdentity/);
+  assert.match(route,/item.key==="price_format" && telecomProviderIdentity/);
+  assert.match(route,/subscription: telecomProviderIdentity \|\|/);
+  assert.match(route,/business_placeholders: `placeholders=\$\{placeholderMatches.length\}; verifiedDetails=/);
 });

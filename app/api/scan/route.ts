@@ -22,7 +22,7 @@ import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRa
 import { createRenderBudget, renderPublicPage } from "@/lib/headless-render";
 import { renderOnce, renderWithRetry, representativeNeedsJavaScriptRendering } from "@/lib/render-strategy";
 import { missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore } from "@/lib/sample-quality";
-import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, commerceServiceSignals, compareScoreVersions, trustedLocalBusinessEvidence, sufficientIdentitySchema } from "@/lib/scan-feedback";
+import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, commerceServiceSignals, compareScoreVersions, trustedLocalBusinessEvidence, sufficientIdentitySchema, hasUnresolvedClientTemplateBindings } from "@/lib/scan-feedback";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { isSubstantiveRender, renderImprovesEvidence, preserveRawHeadEvidence, renderIsErrorState } from "@/lib/render-quality";
 import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDetailPath, productUrlsFromSitemap } from "@/lib/product-links";
@@ -635,7 +635,10 @@ export async function POST(request: Request) {
     const rawVisibleWords = rawVisibleText.split(/\s+/).filter(Boolean).length;
     const rawScriptCount = (rawHtml.match(/<script\b/gi) || []).length;
     const thinClientShell = rawVisibleWords < 80 && rawScriptCount >= 4;
-    const javascriptFrameworkSignal = isJavaScriptFramework(rawHtml);
+    // Unrendered Vue/Angular-style bindings inside an otherwise substantive SSR
+    // homepage also require hydration checks. Never infer full rendering from word count.
+    const unresolvedClientBindings = hasUnresolvedClientTemplateBindings(rawHtml);
+    const javascriptFrameworkSignal = isJavaScriptFramework(rawHtml) || unresolvedClientBindings;
     // Bounded render: framework evidence alone is useful, but a thin client shell
     // is also a strong reason to render once. This improves Shopify/Next/Nuxt sites
     // without rendering every SSR page or retrying indefinitely.
@@ -2887,7 +2890,7 @@ export async function POST(request: Request) {
         : check("unable_to_confirm", "business_placeholders", "seo", "Bedrijfsgegevens", businessDetails.reason === "thin_shell" ? "Geen placeholders in de raw HTML, maar dit is een dunne JavaScript-shell; bedrijfsgegevens kunnen niet worden bevestigd." : "Geen placeholders gevonden, maar ook geen concrete bedrijfsgegevens (adres, telefoon, e-mail of KvK/BTW) op deze pagina. Dat bewijst niet dat ze ontbreken; ze kunnen op een contact- of over-onspagina staan.", "Toon bedrijfsnaam, adres, telefoon of e-mail en KvK/BTW waar klanten die verwachten, bijvoorbeeld in de footer of op de contactpagina.", 0, 6)
     );
 
-    seoChecks.push(!hasEcommerceSignal && !telecomSubscriptionIdentity
+    seoChecks.push(!hasEcommerceSignal && !telecomProviderIdentity
       ? check("not_applicable", "price_format", "seo", "Prijsnotatie", "Geen duidelijke webshop/product-signalen gevonden; prijsnotatie is niet beoordeeld.", "Gebruik deze controle op echte product- en e-commercepagina's.", 0, 5)
       : visiblePriceCount === 0
       ? check("unable_to_confirm", "price_format", "seo", "Prijsnotatie", "RankFix vond geen betrouwbaar zichtbaar prijsbewijs om de notatie te beoordelen.", "Controleer prijsnotatie op een pagina waar prijzen aantoonbaar zichtbaar zijn.", 0, 5)
@@ -3235,7 +3238,7 @@ export async function POST(request: Request) {
         consent_mode_readiness: adsTrackingSignals > 0 ? `trackingSignals=${adsTrackingSignals}; explicitConsentSignal=${hasConsentModeSignal}; runtimeNotExecuted=true` : null,
         merchant_feed_signal: hasEcommerceSignal ? `feedHint=${hasMerchantFeedHint}; productReadiness=${merchantProductReadiness}; websiteSignalsOnly=true` : null,
         content: `wordCount=${wordCount}; pageType=${contentContext}; minimum=${contentMinimumSignal}; strong=${contentStrongSignal}`,
-        business_placeholders: `placeholders=${placeholderMatches.length}; found=${placeholderMatches.slice(0,4).join(",") || "none"}`,
+        business_placeholders: `placeholders=${placeholderMatches.length}; verifiedDetails=${businessDetails.status === "pass" ? businessDetails.found.join(" | ") : "none"}`,
         price_format: hasEcommerceSignal ? `dotDecimalPrices=${priceFormatMatches.length}; sample=${priceFormatMatches[0] || "none"}` : null,
         price_currency_consistency: hasEcommerceSignal ? `visibleCurrencies=${visibleCurrencyCodes.join(",") || "none"}; structuredCurrencies=${structuredCurrencyCodes.join(",") || "none"}; conflict=${currencyConflict}; mixedVisible=${mixedVisibleCurrencies}` : null,
         eu_consumer_information_signal: hasEcommerceSignal ? `returns=${hasReturnsSignal}; businessIdentity=${hasVisibleBusinessIdentity}; businessContact=${hasBusinessContactDetails}; legalConclusion=false` : null,
@@ -3421,7 +3424,7 @@ export async function POST(request: Request) {
     const commerceModuleActive = sectorProfile.applicableModules.includes("ecommerce") || masterEvidence.commerce.confirmed;
     if (!commerceModuleActive) {
       for (const item of [...seoChecks, ...geoChecks]) {
-        if (!commerceOnlyKeys.has(item.key) || (item.key==="price_format" && telecomSubscriptionIdentity)) continue;
+        if (!commerceOnlyKeys.has(item.key) || (item.key==="price_format" && telecomProviderIdentity)) continue;
         item.status = "not_applicable";
         item.issue_status = "NOT_APPLICABLE";
         item.points = 0;
@@ -3493,7 +3496,7 @@ export async function POST(request: Request) {
     // Services can sell subscriptions, accept bookings or collect paid leads
     // without being retail stores. Evaluate these capabilities independently.
     const serviceCommerceSignals = commerceServiceSignals({
-      subscription: telecomSubscriptionIdentity || /\b(?:abonnement(?:en)?|subscription(?:s)?|sim.only|maandbundel|monthly plan)\b/i.test([title,description,h1s.join(" ")].join(" ")),
+      subscription: telecomProviderIdentity || /\b(?:abonnement(?:en)?|subscription(?:s)?|sim.only|maandbundel|monthly plan)\b/i.test([title,description,h1s.join(" ")].join(" ")),
       booking: /\b(?:reserveren|boek nu|book now|make a booking|online afspraak|plan afspraak)\b/i.test(text),
       lead: /<form\b/i.test(html) && /\b(?:offerte|aanvraag|contact|quote|consultation|adviesgesprek)\b/i.test(text),
       price: visiblePriceCount > 0,
