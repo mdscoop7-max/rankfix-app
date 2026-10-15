@@ -1291,7 +1291,7 @@ test("findings 4 and 7: scan route applies the shop-wording gate before final sc
   const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   const gate = route.indexOf("if (!shopWordingApplies(finalCommerceApplicability, Boolean(primaryNonCommerceIdentity)))");
   assert.ok(gate > 0);
-  assert.ok(gate < route.lastIndexOf("selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);"));
+  assert.ok(gate < route.lastIndexOf("selectedSeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(selectedSeoChecks)"));
   assert.match(route.slice(gate, gate + 2000), /item\.key === "schema"/);
   assert.match(route.slice(gate, gate + 2000), /item\.key === "semantic_link_destination"/);
 });
@@ -1593,7 +1593,7 @@ test("retail sector evidence wins over incidental sector words without claiming 
   assert.match(source, /const explicitRetailIdentity = storeSchemaRetailIdentity \|\| \(retailAssortmentIdentity/);
   assert.match(source, /const retailPrimaryIdentity = retailPurchaseEvidence/);
   assert.match(source, /const primaryNonCommerceIdentity = retailPrimaryIdentity \? null/);
-  assert.match(source, /commerceAsPrimaryIdentity = retailPrimaryIdentity/);
+  assert.match(source, /commerceAsPrimaryIdentity = !telecomProviderIdentity && \(retailPrimaryIdentity/);
   assert.match(source, /commerceHints: Boolean\(retailPrimaryIdentity/);
   assert.match(source, /!retailPrimaryIdentity && !finalCommerceDecision\.confirmed && reconciledIdentityStrong/);
   assert.match(source, /explicitRetailIdentity && !evidenceCommerceConfirmed \? 78/);
