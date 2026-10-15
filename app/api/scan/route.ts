@@ -3451,6 +3451,8 @@ export async function POST(request: Request) {
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
     let selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);
     let selectedGeoScore = scoreApplicableChecks(selectedGeoChecks);
+    selectedSeoScore = applyEvidenceBasedScoreCap(selectedSeoScore, selectedSeoChecks);
+    selectedGeoScore = applyEvidenceBasedScoreCap(selectedGeoScore, selectedGeoChecks);
     let selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
     selectedOverallScore = applyEvidenceBasedScoreCap(selectedOverallScore, [...selectedSeoChecks, ...selectedGeoChecks]);
     const checks = [...selectedSeoChecks, ...selectedGeoChecks];
