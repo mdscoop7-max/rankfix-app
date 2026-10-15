@@ -1937,13 +1937,14 @@ export async function POST(request: Request) {
     const accessibilityPointsTotal = accessibilityApplicable.reduce((sum,item)=>sum+item.points,0);
     const accessibilityScore = accessibilityMax ? Math.round((accessibilityPointsTotal/accessibilityMax)*100) : 0;
     const accessibilityEngine = {
-      version:"1.0-static-basics",
+      version:"1.1-hydrated-dom",
+      mode: javascriptExecuted && renderedDocument?.domAccessibility ? "RENDERED_DOM" as const : "INDICATIVE_RAW_HTML" as const,
       score:accessibilityScore,
       grade:grade(accessibilityScore),
       coverage:weightedCoverage(accessibilityChecks),
       summary:summarizeAuditChecks(accessibilityChecks),
       checks:accessibilityChecks,
-      note:"Technische HTML-basiscontrole voor toegankelijkheid. Dit is geen volledige WCAG- of EAA-conformiteitsbeoordeling en verandert de SEO/GEO-totaalscore niet."
+      note:javascriptExecuted && renderedDocument?.domAccessibility ? "Basiscontrole op toegankelijke namen in de gerenderde DOM. Geen volledige axe-core/WCAG/EAA-audit." : "Indicatief: de gerenderde DOM is niet beschikbaar. Er wordt geen betrouwbare toegankelijkheidsscore getoond."
     };
     // Security remains a separate engine and must never change SEO scoring/counts.
 
@@ -2810,17 +2811,20 @@ export async function POST(request: Request) {
           : check("unable_to_confirm","consent_mode_readiness","seo","Consent Mode signaal","Google tracking is gevonden, maar de statische HTML bewijst niet of Consent Mode runtime via GTM of een CMP wordt ingesteld. Afwezigheid van een expliciet consent-signaal in raw HTML is daarom geen bewezen configuratiefout.","Verifieer Consent Mode runtime met GTM Preview/Tag Assistant of in de CMP-configuratie. RankFix beoordeelt hiermee geen wettelijke compliance.",0,5)
     );
 
-    const accessibilityAffectedCount = unlabeledFormControls + emptyButtons;
-    const accessibilityScopeCount = formControls.length + buttonTags.length;
+    const hydratedAccessibility = javascriptExecuted ? renderedDocument?.domAccessibility : null;
+    const assessedUnlabeledControls = hydratedAccessibility?.unlabeledControls ?? unlabeledFormControls;
+    const assessedEmptyButtons = hydratedAccessibility?.unnamedButtons ?? emptyButtons;
+    const accessibilityAffectedCount = assessedUnlabeledControls + assessedEmptyButtons;
+    const accessibilityScopeCount = hydratedAccessibility?.controls ?? (formControls.length + buttonTags.length);
     const accessibilityIssueRatio = accessibilityScopeCount ? accessibilityAffectedCount / accessibilityScopeCount : 0;
-    const accessibilityPoints = accessibilityIssueCount === 0 ? 5 : accessibilityIssueRatio <= 0.05 ? 4 : accessibilityIssueRatio <= 0.20 ? 3 : accessibilityIssueRatio <= 0.50 ? 2 : 1;
+    const accessibilityPoints = accessibilityAffectedCount === 0 ? 5 : accessibilityIssueRatio <= 0.05 ? 4 : accessibilityIssueRatio <= 0.20 ? 3 : accessibilityIssueRatio <= 0.50 ? 2 : 1;
     accessibilityChecks.push(
-      metadataMayBeClientRendered
-        ? check("unable_to_confirm","accessibility_basics","accessibility","Toegankelijkheid basis","Deze JavaScript-pagina kon niet betrouwbaar worden gehydrateerd. Mogelijk vult Vue toegankelijke knoppen en labels pas na rendering aan.","Beoordeel labels, knoppen en toegankelijke namen in de werkelijk gerenderde DOM.",0,5)
-        : accessibilityIssueCount===0
-        ? check("pass","accessibility_basics","accessibility","Toegankelijkheid basis","Geen duidelijke basisproblemen gevonden bij formulierlabels of lege knoppen in de statische HTML. Afbeelding-alt wordt afzonderlijk binnen SEO beoordeeld.","Blijf toetsenbordbediening, focus, contrast en dynamische content afzonderlijk testen. Dit is geen volledige WCAG/EAA-audit.",5,5)
-        : check("warning","accessibility_basics","accessibility","Toegankelijkheid basis","Basiscontrole vond "+accessibilityIssueCount+" onafhankelijk(e) aandachtspunt(en): "+unlabeledFormControls+" formuliercontrol(s) zonder aantoonbaar label en "+emptyButtons+" lege knop(pen) zonder toegankelijke naam. Dat raakt "+Math.round(accessibilityIssueRatio*100)+"% van de controleerbare formuliercontrols en knoppen.","Corrigeer de aantoonbare HTML-signalen en voer daarna een uitgebreidere toegankelijkheidstest uit. RankFix claimt hiermee geen WCAG/EAA-conformiteit.",accessibilityPoints,5),
-      !viewportContent
+      !hydratedAccessibility
+        ? check("unable_to_confirm","accessibility_basics","accessibility","Toegankelijkheid basis","Niet betrouwbaar op raw HTML: namen en labels kunnen pas na hydratatie zichtbaar worden.","Voer de toegankelijkheidscontrole op de gerenderde DOM uit.",0,5)
+        : accessibilityAffectedCount===0
+        ? check("pass","accessibility_basics","accessibility","Toegankelijkheid basis","Geen ontbrekende namen van knoppen of formuliercontrols gevonden in de gerenderde DOM. Afbeelding-alt wordt afzonderlijk binnen SEO beoordeeld.","Blijf toetsenbordbediening, focus, contrast en dynamische content afzonderlijk testen. Dit is geen volledige WCAG/EAA-audit.",5,5)
+        : check("warning","accessibility_basics","accessibility","Toegankelijkheid basis","Basiscontrole op de gerenderde DOM vond "+accessibilityAffectedCount+" onafhankelijk(e) aandachtspunt(en): "+assessedUnlabeledControls+" formuliercontrol(s) zonder aantoonbaar label en "+assessedEmptyButtons+" lege knop(pen) zonder toegankelijke naam. Dat raakt "+Math.round(accessibilityIssueRatio*100)+"% van de controleerbare formuliercontrols en knoppen.","Corrigeer de aantoonbare HTML-signalen en voer daarna een uitgebreidere toegankelijkheidstest uit. RankFix claimt hiermee geen WCAG/EAA-conformiteit.",accessibilityPoints,5),
+      !hydratedAccessibility || !viewportContent
         ? check("unable_to_confirm","viewport_zoom_blocked","accessibility","Browserzoom","Zonder viewport meta tag kan RankFix de zoominstelling niet afzonderlijk beoordelen.","Voeg eerst een geldige responsive viewport toe en controleer daarna zoomgedrag.",0,3)
         : viewportBlocksZoom
           ? check("warning","viewport_zoom_blocked","accessibility","Browserzoom",`De viewport beperkt browserzoom: "${viewportContent}".`,"Laat gebruikers zoomen; vermijd user-scalable=no en onnodig beperkende maximum-scale.",1,3)
@@ -5011,7 +5015,7 @@ export async function POST(request: Request) {
         limit: 24,
         truncated: allUniqueInternalAnchors.length > linkAuditResults.length,
       },
-      accessibility: "STATIC_HTML_SIGNALS" as const,
+      accessibility: javascriptExecuted && renderedDocument?.domAccessibility ? "HYDRATED_DOM_BASICS" as const : "INDICATIVE_ONLY" as const,
       consentMode: "STATIC_HTML_SIGNAL" as const,
       merchant: "WEBSITE_SIGNALS_ONLY" as const,
       multiPage,
