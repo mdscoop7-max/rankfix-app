@@ -13,26 +13,29 @@ export type RenderFailureCode =
   | "RENDER_BLOCKED"
   | "RENDER_DEGRADED"
   | "RENDER_NOT_SUBSTANTIVE"
+  | "RENDER_LIMIT_REACHED"
   | "RENDER_FAILED";
 
 export function renderFailureCode(error: unknown): RenderFailureCode {
   const message = error instanceof Error ? error.message : String(error ?? "");
-  if (/RENDER_CHROME_NOT_INSTALLED|could not find (?:chrome|chromium|expected browser)|failed to launch|browser was not found|executable doesn'?t exist|no usable sandbox|ENOENT.*chrom/i.test(message)) return "BROWSER_UNAVAILABLE";
+  if (/BROWSER_UNAVAILABLE|RENDER_CHROME_NOT_INSTALLED|could not find (?:chrome|chromium|expected browser)|failed to launch|browser was not found|executable doesn'?t exist|no usable sandbox|ENOENT.*chrom/i.test(message)) return "BROWSER_UNAVAILABLE";
   if (/RENDER_BUSY/.test(message)) return "RENDER_BUSY";
   if (/timeout|timed out|navigation.*exceeded/i.test(message)) return "RENDER_TIMEOUT";
   if (/URL_HOST_BLOCKED|URL_PROTOCOL_BLOCKED|DNS|ERR_BLOCKED|net::ERR_ACCESS_DENIED|403/i.test(message)) return "RENDER_BLOCKED";
+  if (/RENDER_BUDGET_EXHAUSTED|RENDER_DEADLINE_REACHED|RENDER_LIMIT_REACHED/.test(message)) return "RENDER_LIMIT_REACHED";
   if (/RENDER_DEGRADED/.test(message)) return "RENDER_DEGRADED";
   if (/NOT_SUBSTANTIVE/.test(message)) return "RENDER_NOT_SUBSTANTIVE";
   return "RENDER_FAILED";
 }
 
 const RENDER_FAILURE_COPY: Record<RenderFailureCode, string> = {
-  BROWSER_UNAVAILABLE: "de browser-rendering was tijdens deze scan tijdelijk niet beschikbaar",
+  BROWSER_UNAVAILABLE: "Chromium kon in de scanomgeving niet worden gestart",
   RENDER_BUSY: "de browser-rendering had tijdelijk onvoldoende capaciteit",
   RENDER_TIMEOUT: "de pagina laadde niet binnen de tijdslimiet van de browser-rendering",
   RENDER_BLOCKED: "de website blokkeerde de browser-rendering",
   RENDER_DEGRADED: "de browserversie bevatte minder inhoud dan de HTML-versie",
   RENDER_NOT_SUBSTANTIVE: "de browserversie bevatte geen bruikbare pagina-inhoud",
+  RENDER_LIMIT_REACHED: "het maximum aantal browserpogingen of de scandeadline is bereikt",
   RENDER_FAILED: "de browser-rendering kon niet worden voltooid",
 };
 
