@@ -44,8 +44,10 @@ jobs:
         run: npm test
 
       - name: Lint (legacy debt report)
+        if: ${{ !cancelled() }}
         continue-on-error: true
         run: npm run lint
 
       - name: Production build
+        if: ${{ !cancelled() }}
         run: npm run build
