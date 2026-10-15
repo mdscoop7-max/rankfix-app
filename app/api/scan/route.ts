@@ -10,7 +10,7 @@ import { decodeHtmlEntities } from "@/lib/html-entities";
 import { assessPassiveSecurity, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
 import { assessPageDescription, assessPageTitle, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, isBrandOnlyTitle, isClientShell, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
-import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
+import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, isStorefrontOnlyForService, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
 import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readHtmlSampleHeadFirst, readResponsePrefix, readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
@@ -29,7 +29,7 @@ import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDeta
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
-import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes } from "@/lib/sector-identity";
+import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, telecomOperatorIdentity } from "@/lib/sector-identity";
 
 export const maxDuration = 300;
 
@@ -1659,7 +1659,14 @@ export async function POST(request: Request) {
     const telecomNetworkIdentity = /\b(?:netwerk|network|provider|glasvezel|internet|mobiel|mobile|telecom|5g|4g)\b/i.test(sectorIdentitySource);
     const telecomServiceIdentity = /\b(?:internet(?:abonnementen?|provider)?|glasvezel|breedband|broadband|dsl|adsl)\b/i.test(sectorIdentitySource)
       && /\b(?:tv|televisie|bellen|telefonie|pakketten|abonnementen?|wifi|provider|netwerk)\b/i.test(sectorIdentitySource);
-    const telecomProviderIdentity = (telecomSubscriptionIdentity && telecomNetworkIdentity) || telecomServiceIdentity;
+    // A retailer can also advertise SIM plans: confirmed physical-store evidence
+    // plus an independently established retail flow must not become telecom.
+    const telecomIndependentIdentity = telecomOperatorIdentity(sectorIdentitySource);
+    const telecomProviderIdentity = (
+      (telecomSubscriptionIdentity && telecomNetworkIdentity) ||
+      telecomServiceIdentity ||
+      telecomIndependentIdentity.primary
+    ) && !(hasRetailStoreSchema(schemaTypes) && evidenceCommerceConfirmed);
     const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[]} | null = telecomProviderIdentity
       ? {sector:"telecom_technology",key:"telecom_technology",label:"Telecom & Technologie",evidence:["Primaire identiteit: telecomabonnementen en netwerkdiensten"]}
       : shortStayIdentity
@@ -4620,7 +4627,12 @@ export async function POST(request: Request) {
       }
     } else if (finalCommerceApplicability.state === "unconfirmed") {
       for (const item of [...seoChecks,...geoChecks]) {
-        if (finalCommerceOnlyKeys.has(item.key) && !(item.key==="price_format" && serviceCommerceSignals.subscription)) setFinalUnableToConfirm(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
+        if (!finalCommerceOnlyKeys.has(item.key) || (item.key==="price_format" && serviceCommerceSignals.subscription)) continue;
+        if (isStorefrontOnlyForService(item.key, Boolean(primaryNonCommerceIdentity), finalCommerceDecision.confirmed)) {
+          setFinalNotApplicable(item, "De primaire activiteit is dienstverlening zonder onafhankelijk bevestigde retailcheckout. Deze webshopbrede controle hoort bij een aparte productverkoopscreening, niet bij de hoofdscan van deze dienstverlener. Dit zegt niets over wettelijke verplichtingen bij eventuele productverkoop.");
+        } else {
+          setFinalUnableToConfirm(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
+        }
       }
     } else {
       // Shop confirmed site-wide: a page-level "not applicable" (e.g. a homepage
