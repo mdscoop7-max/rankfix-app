@@ -21,7 +21,6 @@ async function acquireBrowserSlot(): Promise<void> {
   }
   if (queuedBrowsers.length >= MAX_QUEUED_BROWSERS) throw new Error("RENDER_BUSY");
   await new Promise<void>((resolve, reject) => {
-    let timer: ReturnType<typeof setTimeout>;
     const waiter = {
       grant: () => {
         clearTimeout(timer);
@@ -29,7 +28,7 @@ async function acquireBrowserSlot(): Promise<void> {
       },
     };
     queuedBrowsers.push(waiter);
-    timer = setTimeout(() => {
+    const timer = setTimeout(() => {
       const index = queuedBrowsers.indexOf(waiter);
       if (index >= 0) {
         queuedBrowsers.splice(index, 1);
@@ -81,7 +80,7 @@ export async function renderPublicPage(value: string, timeoutMs = 12000): Promis
     if (process.env.RANKFIX_CHROME_NO_SANDBOX === "1") args.push("--no-sandbox", "--disable-setuid-sandbox");
     let executablePath: string;
     try {
-      executablePath = process.env.RANKFIX_CHROME_EXECUTABLE_PATH?.trim() || puppeteer.default.executablePath();
+      executablePath = process.env.RANKFIX_CHROME_EXECUTABLE_PATH?.trim() || await puppeteer.default.executablePath();
       const { access } = await import("node:fs/promises");
       await access(executablePath);
     } catch {
