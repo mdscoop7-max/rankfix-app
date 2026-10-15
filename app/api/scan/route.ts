@@ -3730,7 +3730,7 @@ export async function POST(request: Request) {
         const representativeScriptCount = (representativeRawHtml.match(/<script\b/gi) || []).length;
         const representativeJsFramework = /(?:__NEXT_DATA__|\/_next\/|__NUXT__|\/_nuxt\/|data-reactroot|data-react-helmet|shopify|webpackJsonp|__APOLLO_STATE__)/i.test(representativeRawHtml);
         const representativeThinShell = representativeVisibleWords < 80 && representativeScriptCount >= 4;
-        if (representativeNeedsJavaScriptRendering({ visibleWords: representativeVisibleWords, scriptCount: representativeScriptCount, frameworkSignal: representativeJsFramework }) && representativeEvidenceSource !== "rendered_html") {
+        if (representativeNeedsJavaScriptRendering({ visibleWords: representativeVisibleWords, scriptCount: representativeScriptCount, frameworkSignal: representativeJsFramework, dynamicEvidenceRelevant: ["form", "product", "listing", "category", "service"].includes(page.type) }) && representativeEvidenceSource !== "rendered_html") {
           try {
             const renderedPage = await renderRepresentativeOnce();
             if (renderImprovesEvidence(representativeVisibleWords, representativeThinShell, renderedPage.html)) {
