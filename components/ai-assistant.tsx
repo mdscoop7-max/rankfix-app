@@ -141,9 +141,10 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`fixed right-3 z-[110] rounded-full border border-emerald-300/30 bg-[#0F3B30]/95 px-2.5 py-2 text-[11px] font-bold text-emerald-100 shadow-xl shadow-emerald-950/25 backdrop-blur sm:right-5 sm:px-4 sm:py-3 sm:text-sm ${dashboard ? "bottom-[calc(104px+env(safe-area-inset-bottom))] sm:bottom-5" : "bottom-[calc(104px+env(safe-area-inset-bottom))] sm:bottom-5"} ${open ? "pointer-events-none opacity-0" : "opacity-100"}`}
+        aria-label={tx.button}
+        className={`rf-ai-fab fixed right-3 z-[110] rounded-full border border-emerald-300/30 bg-[#0F3B30]/95 px-2.5 py-2 text-[11px] font-bold text-emerald-100 shadow-xl shadow-emerald-950/25 backdrop-blur sm:right-5 sm:px-4 sm:py-3 sm:text-sm ${dashboard ? "bottom-[calc(104px+env(safe-area-inset-bottom))] sm:bottom-5" : "bottom-[calc(104px+env(safe-area-inset-bottom))] sm:bottom-5"} ${open ? "pointer-events-none opacity-0" : "opacity-100"}`}
       >
-        ✦ {tx.button}
+        <span aria-hidden="true">✦</span><span className="rf-ai-fab-label"> {tx.button}</span>
       </button>
 
       {open && (
