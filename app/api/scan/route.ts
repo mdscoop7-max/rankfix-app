@@ -2857,7 +2857,7 @@ export async function POST(request: Request) {
         : check("unable_to_confirm", "business_placeholders", "seo", "Bedrijfsgegevens", businessDetails.reason === "thin_shell" ? "Geen placeholders in de raw HTML, maar dit is een dunne JavaScript-shell; bedrijfsgegevens kunnen niet worden bevestigd." : "Geen placeholders gevonden, maar ook geen concrete bedrijfsgegevens (adres, telefoon, e-mail of KvK/BTW) op deze pagina. Dat bewijst niet dat ze ontbreken; ze kunnen op een contact- of over-onspagina staan.", "Toon bedrijfsnaam, adres, telefoon of e-mail en KvK/BTW waar klanten die verwachten, bijvoorbeeld in de footer of op de contactpagina.", 0, 6)
     );
 
-    seoChecks.push(!hasEcommerceSignal
+    seoChecks.push(!hasEcommerceSignal && !telecomSubscriptionIdentity
       ? check("not_applicable", "price_format", "seo", "Prijsnotatie", "Geen duidelijke webshop/product-signalen gevonden; prijsnotatie is niet beoordeeld.", "Gebruik deze controle op echte product- en e-commercepagina's.", 0, 5)
       : visiblePriceCount === 0
       ? check("unable_to_confirm", "price_format", "seo", "Prijsnotatie", "RankFix vond geen betrouwbaar zichtbaar prijsbewijs om de notatie te beoordelen.", "Controleer prijsnotatie op een pagina waar prijzen aantoonbaar zichtbaar zijn.", 0, 5)
@@ -3391,7 +3391,7 @@ export async function POST(request: Request) {
     const commerceModuleActive = sectorProfile.applicableModules.includes("ecommerce") || masterEvidence.commerce.confirmed;
     if (!commerceModuleActive) {
       for (const item of [...seoChecks, ...geoChecks]) {
-        if (!commerceOnlyKeys.has(item.key)) continue;
+        if (!commerceOnlyKeys.has(item.key) || (item.key==="price_format" && telecomSubscriptionIdentity)) continue;
         item.status = "not_applicable";
         item.issue_status = "NOT_APPLICABLE";
         item.points = 0;
@@ -3460,6 +3460,28 @@ export async function POST(request: Request) {
       }
     }
 
+    // Services can sell subscriptions, accept bookings or collect paid leads
+    // without being retail stores. Evaluate these capabilities independently.
+    const serviceCommerceSignals = commerceServiceSignals({
+      subscription: telecomSubscriptionIdentity || /\b(?:abonnement(?:en)?|subscription(?:s)?|sim.only|maandbundel|monthly plan)\b/i.test([title,description,h1s.join(" ")].join(" ")),
+      booking: /\b(?:reserveren|boek nu|book now|make a booking|online afspraak|plan afspraak)\b/i.test(text),
+      lead: /<form\b/i.test(html) && /\b(?:offerte|aanvraag|contact|quote|consultation|adviesgesprek)\b/i.test(text),
+      price: visiblePriceCount > 0,
+    });
+    if (serviceCommerceSignals.subscription) {
+      seoChecks.push(serviceCommerceSignals.price
+        ? check("pass","subscription_price_visibility","seo","Abonnement & prijs","Abonnementen en zichtbare prijzen zijn op deze pagina bevestigd; een echte besteltransactie is niet uitgevoerd.","Controleer prijs, looptijd en voorwaarden op de abonneerpagina.",5,5)
+        : check("unable_to_confirm","subscription_price_visibility","seo","Abonnement & prijs","Abonnementen zijn zichtbaar maar de prijsweergave is op deze pagina niet betrouwbaar bevestigd.","Controleer de abonnements- en prijsinformatie in de gerenderde pagina.",0,5));
+      if (!sectorProfile.applicableModules.includes("subscription_pricing")) sectorProfile.applicableModules.push("subscription_pricing");
+    }
+    if (serviceCommerceSignals.booking) {
+      seoChecks.push(check("unable_to_confirm","booking_transaction","seo","Boekingsflow","Een boekings- of afspraaksignaal is zichtbaar; de daadwerkelijke boeking is niet interactief uitgevoerd.","Verifieer beschikbaarheid, bevestiging en betaal- of afspraakflow.",0,5));
+      if (!sectorProfile.applicableModules.includes("booking_conversion")) sectorProfile.applicableModules.push("booking_conversion");
+    }
+    if (serviceCommerceSignals.lead) {
+      seoChecks.push(check("pass","lead_form_presence","seo","Lead-/contactformulier","Een relevant formulier voor offerte, contact of advies is op de pagina aangetroffen. Verzenden is niet getest.","Test validatie en bevestigingsbericht afzonderlijk.",4,4));
+      if (!sectorProfile.applicableModules.includes("lead_conversion")) sectorProfile.applicableModules.push("lead_conversion");
+    }
     applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate, rendered:javascriptExecuted, url:finalUrl.toString() });
     const selectedSeoChecks = mode === "geo" ? [] : seoChecks;
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
@@ -4553,11 +4575,11 @@ export async function POST(request: Request) {
     };
     if (finalCommerceApplicability.state === "absent") {
       for (const item of [...seoChecks,...geoChecks]) {
-        if (finalCommerceOnlyKeys.has(item.key)) setFinalNotApplicable(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
+        if (finalCommerceOnlyKeys.has(item.key) && !(item.key==="price_format" && serviceCommerceSignals.subscription)) setFinalNotApplicable(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
       }
     } else if (finalCommerceApplicability.state === "unconfirmed") {
       for (const item of [...seoChecks,...geoChecks]) {
-        if (finalCommerceOnlyKeys.has(item.key)) setFinalUnableToConfirm(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
+        if (finalCommerceOnlyKeys.has(item.key) && !(item.key==="price_format" && serviceCommerceSignals.subscription)) setFinalUnableToConfirm(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
       }
     } else {
       // Shop confirmed site-wide: a page-level "not applicable" (e.g. a homepage
@@ -4602,6 +4624,7 @@ export async function POST(request: Request) {
       ...finalCommerceApplicability,
       marketSelector: marketSelectorPage,
       representativePagesAudited: representativeAuditedPageCount,
+      serviceCommerce: serviceCommerceSignals,
       message: finalCommerceApplicability.state === "confirmed" ? "Product-, prijs- of winkelwagenbewijs bevestigd." : COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason],
     };
     const representativeProductPage = auditedMultiPages.find((item)=>item.type==="product" && item.commerceEvidence?.product);
