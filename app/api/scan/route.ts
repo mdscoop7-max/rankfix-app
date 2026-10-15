@@ -4745,9 +4745,10 @@ export async function POST(request: Request) {
       const passes = proven.filter((item)=>item.status==="PASS");
       return {
         key,
-        status: warnings.length ? "WARNING" as const : passes.length ? "PASS" as const : "UNABLE_TO_CONFIRM" as const,
-        checkedPages: observations.length,
+        status: warnings.length ? "WARNING" as const : observations.length > 0 && passes.length===observations.length ? "PASS" as const : "UNABLE_TO_CONFIRM" as const,
+        checkedPages: auditedRawPages.length,
         provenPages: proven.length,
+        unconfirmedPages: auditedRawPages.length - proven.length,
         // Real totals: the report states "X van Y pagina's", never a silent cap.
         affectedCount: warnings.length,
         affectedUrls: warnings.map((item)=>item.url).slice(0,12),
@@ -4797,6 +4798,15 @@ export async function POST(request: Request) {
         : "Site-sample niet te bevestigen",
       sitewideCommerceEvidence,
       sitewideCheckAggregation,
+      templateSummary: Object.entries(reportedMultiPageAudits.reduce((acc, page) => {
+        const type = page.type || "other";
+        const current = acc[type] || {type,selected:0,scored:0,reason:""};
+        current.selected++;
+        if (page.score !== null && page.status === "audited") current.scored++;
+        if (!current.reason) current.reason = page.evidence?.slice(0,2).join(" · ") || "URL-structuur, paginaschema en inhoud";
+        acc[type] = current;
+        return acc;
+      }, {} as Record<string,{type:string;selected:number;scored:number;reason:string}>)).map(([,item])=>item),
       capabilities: {
         hospitality: multiPageCapabilities.hospitality,
         treatment: multiPageCapabilities.treatment,
@@ -4807,7 +4817,7 @@ export async function POST(request: Request) {
         productSample: multiPageCapabilities.productSample,
         categorySample: multiPageCapabilities.categorySample,
       },
-      counts:{ selected:multiPageAudits.length, scored:scoredSamplePages.length, unscoredMetadata:unscoredMetadataPages, headOnly:partialHeadPages, excludedNoindex:excludedNoindexPages, fetchFailed:unableToFetchPages, contact:uniqueMultiPagePages.filter((x)=>x.type==="contact").length, article:uniqueMultiPagePages.filter((x)=>x.type==="article").length, homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, form:uniqueMultiPagePages.filter((x)=>x.type==="form").length, legal:uniqueMultiPagePages.filter((x)=>x.type==="legal").length, service:uniqueMultiPagePages.filter((x)=>x.type==="service").length, listing:uniqueMultiPagePages.filter((x)=>x.type==="listing").length, support:uniqueMultiPagePages.filter((x)=>x.type==="support").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
+      counts:{ selected:multiPageAudits.length, fetched:auditedRawPages.length+excludedNoindexPages, scored:scoredSamplePages.length, unscoredMetadata:unscoredMetadataPages, headOnly:partialHeadPages, excludedNoindex:excludedNoindexPages, fetchFailed:unableToFetchPages, contact:uniqueMultiPagePages.filter((x)=>x.type==="contact").length, article:uniqueMultiPagePages.filter((x)=>x.type==="article").length, homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, form:uniqueMultiPagePages.filter((x)=>x.type==="form").length, legal:uniqueMultiPagePages.filter((x)=>x.type==="legal").length, service:uniqueMultiPagePages.filter((x)=>x.type==="service").length, listing:uniqueMultiPagePages.filter((x)=>x.type==="listing").length, support:uniqueMultiPagePages.filter((x)=>x.type==="support").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
       note:"Steekproefscore telt alleen pagina's met vier beoordeelde metadata-controles (title, description, H1 en canonical). Pagina's met onbevestigd JavaScript-bewijs worden apart geteld en niet als 100/100 voorgesteld. Dit is geen volledige site-audit.",
     };
 
