@@ -22,7 +22,7 @@ import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRa
 import { createRenderBudget, renderPublicPage } from "@/lib/headless-render";
 import { renderOnce, renderWithRetry, representativeNeedsJavaScriptRendering } from "@/lib/render-strategy";
 import { missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore } from "@/lib/sample-quality";
-import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, commerceServiceSignals, compareScoreVersions } from "@/lib/scan-feedback";
+import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, commerceServiceSignals, compareScoreVersions, trustedLocalBusinessEvidence, sufficientIdentitySchema } from "@/lib/scan-feedback";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { isSubstantiveRender, renderImprovesEvidence, preserveRawHeadEvidence, renderIsErrorState } from "@/lib/render-quality";
 import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDetailPath, productUrlsFromSitemap } from "@/lib/product-links";
@@ -941,9 +941,13 @@ export async function POST(request: Request) {
     const localBusinessKeywordSignal = /\b(restaurant|eetcafé|eetgelegenheid|brasserie|bistro|menukaart|kapsalon|kapper|hairdresser|salon|coiffeur|barbier|bakker|bakery|bar|café|cafe|dentist|tandarts|tandheelkunde|mondzorg|orthodontist|electrician|elektricien|elektro|elektrotechniek|installatietechniek|plumber|loodgieter|loodgieters|cv-installateur|installateur|aannemer|contractor|bouwbedrijf|bouwservice|verbouwing|renovatie|dakdekker|dakbedekking|dakwerken|beautysalon|beauty salon|schoonheidssalon|winkel|store|shop|boetiek|retail|garage|autogarage|autoservice|autobedrijf|autodealer|makelaar|makelaars|vastgoedmakelaar|real estate agent|realtor|woningmakelaar|advocaat|advocatenkantoor|law firm|jurist|notaris|notariskantoor|accountant|accountantskantoor|boekhouder|boekhoudkantoor|administratiekantoor|reisbureau|reisorganisatie|travel agency|tour operator|reisagent|hotel|bed and breakfast|b&b|pension)\b/i.test([title, description, ...h1s, finalUrl.hostname, finalUrl.pathname].join(" "));
     const localContactSignal = /\b(opening hours|openingstijden|adres|address|telephone|telefoon|phone|contact)\b/i.test(text) &&
       /\b(address|adres|phone|telefoon|telephone|\+?31|0\d{1,3}[\s-]?\d)\b/i.test(text);
-    const hasLocalBusinessSignal =
-      schemaSet.has("localbusiness") ||
-      (localContactSignal && (localBusinessKeywordSignal || /\b(menu|menukaart|reserveren|reservation|openingstijden|opening hours)\b/i.test(text)));
+    // A generic navigation "menu", contact block or customer-service address
+    // does not prove that a nationwide service provider is a local business.
+    const hasLocalBusinessSignal = trustedLocalBusinessEvidence({
+      explicitLocalSchema: schemaSet.has("localbusiness"),
+      localIdentityEvidence: localBusinessKeywordSignal,
+      contactEvidence: localContactSignal,
+    });
     const hasVisibleBusinessIdentity = Boolean(
       organizationName ||
       (title && /\b(restaurant|salon|kapsalon|bakker|bakery|bar|cafe|café|dentist|tandarts|electrician|elektricien|plumber|loodgieter|aannemer|contractor|hairdresser|kapper|store|winkel)\b/i.test(title)) ||
@@ -3008,14 +3012,14 @@ export async function POST(request: Request) {
         : adsTrackingSignals > 0 || hasConversionSignal || hasExplicitAdsConversionSnippet
           ? check("unable_to_confirm","ads_readiness","seo","Google Ads readiness",`Trackingcode is gedeeltelijk aangetroffen. Ads-ID's: ${googleAdsIds.length}; GA4-ID's: ${ga4MeasurementIds.length}; GTM-containers: ${gtmContainerIds.length}; expliciete events: ${uniqueConversionEventNames.length}; Ads conversion labels: ${googleAdsSendToLabels.length}; consent-signaal: ${hasConsentModeSignal ? "gevonden" : "niet aangetoond"}.`,"Maak de meetketen compleet en verifieer Google tag, GA4, Ads-conversies en consent runtime.",0,6)
           : check("unable_to_confirm","ads_readiness","seo","Google Ads readiness","Google Ads is volgens de opgegeven scancontext relevant, maar in de publieke HTML zijn geen Google Ads/GA4-signalen bevestigd. Client-side of via GTM geladen tracking kan met deze broncontrole gemist worden.","Controleer de runtime meetketen met Tag Assistant/Preview voordat je concludeert dat tracking ontbreekt.",0,6));
-    const organizationWebsiteSignals = Number(organizationSchemaPresent) + Number(websiteSchemaPresent);
-    const organizationWebsitePoints = organizationWebsiteSignals === 2 ? 8 : organizationWebsiteSignals === 1 ? 6 : 4;
+    // Organization and WebSite are helpful identity schema types, but the
+    // absence of the second type is not by itself a proven SEO defect.
     geoChecks.push(isHomepage
-      ? organizationSchemaPresent && websiteSchemaPresent
-        ? check("pass", "organization_website", "geo", "Organization + WebSite", "Organization en WebSite structured data zijn aanwezig op de homepage.", "Houd naam, URL en logo consistent met de zichtbare site-identiteit.", 8, 8)
+      ? sufficientIdentitySchema(organizationSchemaPresent, websiteSchemaPresent)
+        ? check("pass", "organization_website", "geo", "Organization + WebSite", "Ten minste één passend identity-schema (Organization of WebSite) is bevestigd op de homepage.", "Gebruik alleen aanvullend schema wanneer de zichtbare gegevens dit ondersteunen.", 8, 8)
         : metadataMayBeClientRendered && validJsonLd === 0
           ? check("unable_to_confirm", "organization_website", "geo", "Organization + WebSite", "Organization/WebSite structured data kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de homepage opnieuw met een volledige render voordat je Organization of WebSite schema toevoegt.", 0, 8)
-          : check("warning", "organization_website", "geo", "Organization + WebSite", organizationWebsiteSignals === 1 ? "De homepage bevat één van de twee identity-schema's (Organization of WebSite); het aanvullende schema ontbreekt." : "De homepage bevat geen bevestigd Organization- of WebSite-schema. Dit is machineleesbaar identity-advies en geen bewijs dat de zichtbare organisatie-identiteit ontbreekt.", "Voeg alleen passende Organization- en/of WebSite JSON-LD toe met aantoonbare gegevens.", organizationWebsitePoints, 8)
+          : check("warning", "organization_website", "geo", "Organization + WebSite", "De homepage bevat geen bevestigd Organization- of WebSite-schema. Dit is machineleesbaar identity-advies en geen bewijs dat de zichtbare organisatie-identiteit ontbreekt.", "Voeg alleen passende Organization- en/of WebSite JSON-LD toe met aantoonbare gegevens.", 4, 8)
       : check("not_applicable", "organization_website", "geo", "Organization + WebSite", "Homepage-specifieke Organization/WebSite-controle is niet vereist op deze URL.", "Controleer de homepage afzonderlijk voor organisatie- en website-identiteit.", 0, 8)
     );
 
@@ -4567,10 +4571,9 @@ export async function POST(request: Request) {
       const homepageTypes = new Set((homepageSample.schemaTypes||[]).map((value)=>value.toLowerCase()));
       const hasOrg = hasOrganizationSchema(homepageTypes);
       const hasWebSite = homepageTypes.has("website");
-      const signals = Number(hasOrg)+Number(hasWebSite);
-      const replacement = hasOrg && hasWebSite
-        ? check("pass","organization_website","geo","Organization + WebSite","Organization en WebSite structured data zijn bevestigd op de representatieve homepage.","Houd naam, URL en logo consistent met de zichtbare site-identiteit.",8,8)
-        : check("warning","organization_website","geo","Organization + WebSite",signals===1?"De representatieve homepage bevat één van Organization of WebSite; het aanvullende identity-schema ontbreekt.":"De representatieve homepage bevat geen bevestigd Organization- of WebSite-schema.","Voeg alleen passende Organization- en/of WebSite JSON-LD toe met aantoonbare gegevens.",signals===1?6:4,8);
+      const replacement = sufficientIdentitySchema(hasOrg, hasWebSite)
+        ? check("pass","organization_website","geo","Organization + WebSite","Minimaal één passend Organization- of WebSite-schema is bevestigd op de representatieve homepage.","Voeg alleen aanvullend schema toe wanneer de zichtbare gegevens dit ondersteunen.",8,8)
+        : check("warning","organization_website","geo","Organization + WebSite","De representatieve homepage bevat geen bevestigd Organization- of WebSite-schema.","Voeg alleen passende Organization- en/of WebSite JSON-LD toe met aantoonbare gegevens.",4,8);
       Object.assign(orgWebsiteCheck,replacement);
     }
 

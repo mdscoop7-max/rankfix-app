@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, sampleSummary, compareScoreVersions, commerceServiceSignals } from "../lib/scan-feedback.ts";
+import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, sampleSummary, compareScoreVersions, commerceServiceSignals, trustedLocalBusinessEvidence, sufficientIdentitySchema } from "../lib/scan-feedback.ts";
 import { stableCoreChecks, scoreApplicableChecks, applyEvidenceBasedScoreCap, weightedCoverage, scoreRange } from "../lib/audit-score.ts";
 import { renderWithRetry, representativeNeedsJavaScriptRendering } from "../lib/render-strategy.ts";
 import { renderFailureCode, renderFailureText } from "../lib/report-quality.ts";
@@ -183,4 +183,34 @@ test("extra sector modules never cap the SEO/GEO headline even when severe, whil
  const core=[{key:"title",issue_status:"PASS",maxPoints:10,points:10,confidence:"high",severity:"LOW"}];
  const sector={key:"merchant_feed_signal",issue_status:"FAIL",maxPoints:10,points:0,confidence:"high",severity:"CRITICAL"};
  assert.equal(applyEvidenceBasedScoreCap(scoreApplicableChecks(stableCoreChecks([...core,sector],"seo")),stableCoreChecks([...core,sector],"seo")),100);
+});
+
+test("telecom provider navigation and generic contact do not imply LocalBusiness", async () => {
+  // Country-wide telecom service homepage: support contact + navigation menu.
+  assert.equal(trustedLocalBusinessEvidence({
+    explicitLocalSchema:false, localIdentityEvidence:false, contactEvidence:true,
+  }),false);
+  // A confirmed local business identity with contact details is applicable.
+  assert.equal(trustedLocalBusinessEvidence({
+    explicitLocalSchema:false, localIdentityEvidence:true, contactEvidence:true,
+  }),true);
+  assert.equal(trustedLocalBusinessEvidence({
+    explicitLocalSchema:true, localIdentityEvidence:false, contactEvidence:false,
+  }),true);
+  assert.equal(trustedLocalBusinessEvidence({
+    explicitLocalSchema:false, localIdentityEvidence:true, contactEvidence:false,
+  }),false);
+  const route=await source("app/api/scan/route.ts");
+  assert.match(route,/trustedLocalBusinessEvidence\(/);
+  assert.doesNotMatch(route,/localBusinessKeywordSignal \|\| \/\\b\(menu\|menukaart/);
+});
+
+test("Organization alone or WebSite alone is enough for homepage identity evidence", async () => {
+  assert.equal(sufficientIdentitySchema(true,false),true);
+  assert.equal(sufficientIdentitySchema(false,true),true);
+  assert.equal(sufficientIdentitySchema(true,true),true);
+  assert.equal(sufficientIdentitySchema(false,false),false);
+  const route=await source("app/api/scan/route.ts");
+  assert.match(route,/sufficientIdentitySchema\(organizationSchemaPresent, websiteSchemaPresent\)/);
+  assert.match(route,/sufficientIdentitySchema\(hasOrg, hasWebSite\)/);
 });

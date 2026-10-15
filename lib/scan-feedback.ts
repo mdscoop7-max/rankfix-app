@@ -129,3 +129,17 @@ export function compareScoreVersions(
       : null,
   };
 }
+
+/** Local classification requires trusted identity evidence, not a menu link. */
+export function trustedLocalBusinessEvidence(input: {
+  explicitLocalSchema: boolean;
+  localIdentityEvidence: boolean;
+  contactEvidence: boolean;
+}): boolean {
+  return input.explicitLocalSchema || (input.localIdentityEvidence && input.contactEvidence);
+}
+
+/** Both identity schema types can be useful; either one is sufficient evidence. */
+export function sufficientIdentitySchema(organization: boolean, website: boolean): boolean {
+  return organization || website;
+}
