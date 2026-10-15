@@ -13,15 +13,16 @@ import { assessPageDescription, assessPageTitle, BOT_SENSITIVE_CHECKS, botManage
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
 import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
-import { readResponsePrefix, readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
+import { readHtmlSampleHeadFirst, readResponsePrefix, readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
 import { applyEvidenceBasedScoreCap, SCORE_MODEL_VERSION, scoreApplicableChecks, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
 import { isPaidPlan, normalizePlan, planLimits } from "@/lib/plans";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
 import { renderPublicPage } from "@/lib/headless-render";
-import { renderOnce, representativeNeedsJavaScriptRendering } from "@/lib/render-strategy";
+import { renderOnce, renderWithRetry, representativeNeedsJavaScriptRendering } from "@/lib/render-strategy";
 import { missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore } from "@/lib/sample-quality";
+import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, commerceServiceSignals, compareScoreVersions } from "@/lib/scan-feedback";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { isSubstantiveRender, renderImprovesEvidence } from "@/lib/render-quality";
 import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDetailPath, productUrlsFromSitemap } from "@/lib/product-links";
@@ -562,7 +563,8 @@ export async function POST(request: Request) {
     const finalUrl = fetchedFinalUrl ?? new URL(response.url || target.toString());
     console.info("RankFix redirect resolution", { requested: target.toString(), final: finalUrl.toString(), hops: redirectChain.length });
     // Primary recovery, JS hydration and quality-gate fallback share one browser attempt.
-    const renderPrimaryOnce = renderOnce(() => renderPublicPage(finalUrl.toString(), 12000));
+    const renderPrimaryOnce = renderOnce(() => renderWithRetry((ms) => renderPublicPage(finalUrl.toString(), ms), 12000, 7000));
+    let renderedDocument: Awaited<ReturnType<typeof renderPublicPage>> | null = null;
 
     if (response.status === 429) {
       return NextResponse.json(
@@ -592,6 +594,7 @@ export async function POST(request: Request) {
         if (!isSubstantiveRender(recovered.html)) recovery.reason = "RECOVERY_RENDER_NOT_SUBSTANTIVE";
         else {
           recoveredHtml = recovered.html;
+          renderedDocument = recovered;
           recoveredRenderElapsedMs = recovered.elapsedMs;
           recovery.browserRecovered = true;
           recovery.limitedScope = true;
@@ -625,7 +628,7 @@ export async function POST(request: Request) {
     const rawVisibleWords = rawVisibleText.split(/\s+/).filter(Boolean).length;
     const rawScriptCount = (rawHtml.match(/<script\b/gi) || []).length;
     const thinClientShell = rawVisibleWords < 80 && rawScriptCount >= 4;
-    const javascriptFrameworkSignal = /(?:__NEXT_DATA__|\/_next\/|__NUXT__|\/_nuxt\/|data-reactroot|data-react-helmet|shopify|webpackJsonp|__APOLLO_STATE__)/i.test(rawHtml);
+    const javascriptFrameworkSignal = isJavaScriptFramework(rawHtml);
     // Bounded render: framework evidence alone is useful, but a thin client shell
     // is also a strong reason to render once. This improves Shopify/Next/Nuxt sites
     // without rendering every SSR page or retrying indefinitely.
@@ -639,6 +642,7 @@ export async function POST(request: Request) {
         // Never replace richer raw evidence with a poorer (blocked or partial) render.
         if (renderImprovesEvidence(rawVisibleWords, thinClientShell, rendered.html)) {
           html = rendered.html;
+          renderedDocument = rendered;
           javascriptExecuted = true;
           renderElapsedMs = rendered.elapsedMs;
         } else {
@@ -665,6 +669,7 @@ export async function POST(request: Request) {
         const recovered = await renderPrimaryOnce();
         if (isSubstantiveRender(recovered.html)) {
           html = recovered.html;
+          renderedDocument = recovered;
           javascriptExecuted = true;
           renderElapsedMs = recovered.elapsedMs;
           recovery.attempted = true;
@@ -704,6 +709,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: qualityMessages[scanLanguage], charged: false }, { status: 422 });
     }
 
+    const titlePixelEstimate = titlePixelAdvice(renderedDocument?.titlePixelWidth);
     const title = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
     const descriptionMetaTag = html.match(/<meta\b[^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] ||
       html.match(/<meta\b[^>]*content\s*=\s*["'][^"']*["'][^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] || "";
@@ -1931,13 +1937,19 @@ export async function POST(request: Request) {
     const accessibilityPointsTotal = accessibilityApplicable.reduce((sum,item)=>sum+item.points,0);
     const accessibilityScore = accessibilityMax ? Math.round((accessibilityPointsTotal/accessibilityMax)*100) : 0;
     const accessibilityEngine = {
-      version:"1.0-static-basics",
+      version:"1.2-axe-hydrated-dom",
+      mode: javascriptExecuted && renderedDocument?.domAccessibility ? "RENDERED_DOM" as const : "INDICATIVE_RAW_HTML" as const,
+      axe: javascriptExecuted ? renderedDocument?.axeReport || null : null,
       score:accessibilityScore,
       grade:grade(accessibilityScore),
       coverage:weightedCoverage(accessibilityChecks),
       summary:summarizeAuditChecks(accessibilityChecks),
       checks:accessibilityChecks,
-      note:"Technische HTML-basiscontrole voor toegankelijkheid. Dit is geen volledige WCAG- of EAA-conformiteitsbeoordeling en verandert de SEO/GEO-totaalscore niet."
+      note:javascriptExecuted && renderedDocument?.axeReport
+        ? "axe-core: automatisch toetsbare WCAG A/AA-regels op de gerenderde DOM. Dit is geen volledige WCAG/EAA-conformiteitsbeoordeling."
+        : javascriptExecuted && renderedDocument?.domAccessibility
+          ? "Gerenderde DOM: beperkte naam- en labelcontrole; axe-core kon niet worden voltooid. Geen volledige WCAG/EAA-audit."
+          : "Indicatief: de gerenderde DOM is niet beschikbaar. Er wordt geen betrouwbare toegankelijkheidsscore getoond.",
     };
     // Security remains a separate engine and must never change SEO scoring/counts.
 
@@ -2495,9 +2507,9 @@ export async function POST(request: Request) {
           ? check("warning", "title", "seo", "Meta title", `De title is ${title.length} tekens en "${duplicateTitleSegment(title)}" staat er twee keer in; waarschijnlijk voegt het template het merk een tweede keer toe.`, "Laat het merk maar één keer in de title staan; controleer de title-instelling van het template of de SEO-plugin.", Math.min(8, titleLengthPoints(title.length)), 10)
         : titleQualityIssue
           ? check("warning", "title", "seo", "Meta title", `De title is ${title.length} tekens, maar bevat relatief veel herhaalde woorden.`, "Herschrijf de title natuurlijker en voorkom keyword stuffing.", 6, 10)
-          : title.length >= 15 && title.length <= 110
-            ? check("pass", "title", "seo", "Meta title", `De title telt ${title.length} tekens. De uiteindelijke zoekpreview wordt bepaald door de pixelbreedte; 30–60 tekens is geen harde SEO-eis.`, "Controleer de zichtbare titel in een zoekpreview en houd onderwerp en merk herkenbaar.", 10, 10)
-            : check("warning", "title", "seo", "Meta title", `De title telt ${title.length} tekens en is uitzonderlijk kort of lang; beoordeel de werkelijke pixelbreedte voordat je deze inkort.`, "Controleer de zoekpreview en herschrijf alleen wanneer relevante inhoud wegvalt.", titleLengthPoints(title.length), 10)
+          : titlePixelEstimate.warning
+            ? check("warning", "title", "seo", "Meta title", titlePixelEstimate.message, "Controleer de daadwerkelijke zoekpreview. Kort alleen in als de relevante informatie wegvalt.", 9, 10)
+            : check("pass", "title", "seo", "Meta title", `${titlePixelEstimate.message} De titel telt ${title.length} tekens; lengte in tekens is geen harde SEO-eis.`, "Houd onderwerp, zoekintentie en merk herkenbaar.", 10, 10)
     );
     seoChecks.push(
       !description
@@ -2804,17 +2816,32 @@ export async function POST(request: Request) {
           : check("unable_to_confirm","consent_mode_readiness","seo","Consent Mode signaal","Google tracking is gevonden, maar de statische HTML bewijst niet of Consent Mode runtime via GTM of een CMP wordt ingesteld. Afwezigheid van een expliciet consent-signaal in raw HTML is daarom geen bewezen configuratiefout.","Verifieer Consent Mode runtime met GTM Preview/Tag Assistant of in de CMP-configuratie. RankFix beoordeelt hiermee geen wettelijke compliance.",0,5)
     );
 
-    const accessibilityAffectedCount = unlabeledFormControls + emptyButtons;
-    const accessibilityScopeCount = formControls.length + buttonTags.length;
+    const hydratedAccessibility = javascriptExecuted ? renderedDocument?.domAccessibility : null;
+    const assessedUnlabeledControls = hydratedAccessibility?.unlabeledControls ?? unlabeledFormControls;
+    const assessedEmptyButtons = hydratedAccessibility?.unnamedButtons ?? emptyButtons;
+    const accessibilityAffectedCount = assessedUnlabeledControls + assessedEmptyButtons;
+    const accessibilityScopeCount = hydratedAccessibility?.controls ?? (formControls.length + buttonTags.length);
     const accessibilityIssueRatio = accessibilityScopeCount ? accessibilityAffectedCount / accessibilityScopeCount : 0;
-    const accessibilityPoints = accessibilityIssueCount === 0 ? 5 : accessibilityIssueRatio <= 0.05 ? 4 : accessibilityIssueRatio <= 0.20 ? 3 : accessibilityIssueRatio <= 0.50 ? 2 : 1;
+    const axeViolations = javascriptExecuted ? (renderedDocument?.axeReport?.violations || []) : [];
+    const axeViolationNodes = axeViolations.reduce((total,item)=>total+item.nodes,0);
+    const axeIssuePoints = axeViolations.length === 0 ? 5
+      : axeViolations.some(item=>item.impact==="critical") ? 1
+      : axeViolations.some(item=>item.impact==="serious") ? 2
+      : axeViolations.some(item=>item.impact==="moderate") ? 3 : 4;
+    const heuristicAccessibilityPoints = accessibilityAffectedCount === 0 ? 5 : accessibilityIssueRatio <= 0.05 ? 4 : accessibilityIssueRatio <= 0.20 ? 3 : accessibilityIssueRatio <= 0.50 ? 2 : 1;
+    const accessibilityPoints = Math.min(heuristicAccessibilityPoints,axeIssuePoints);
+    const accessibilityAxeEvidence = axeViolations.length
+      ? " axe-core vond "+axeViolations.length+" WCAG-regel(s) met "+axeViolationNodes+" geraakt(e) element(en): "+axeViolations.slice(0,6).map(x=>x.id+" ("+x.impact+")").join(", ")+"."
+      : "";
     accessibilityChecks.push(
-      metadataMayBeClientRendered
-        ? check("unable_to_confirm","accessibility_basics","accessibility","Toegankelijkheid basis","Deze JavaScript-pagina kon niet betrouwbaar worden gehydrateerd. Mogelijk vult Vue toegankelijke knoppen en labels pas na rendering aan.","Beoordeel labels, knoppen en toegankelijke namen in de werkelijk gerenderde DOM.",0,5)
-        : accessibilityIssueCount===0
-        ? check("pass","accessibility_basics","accessibility","Toegankelijkheid basis","Geen duidelijke basisproblemen gevonden bij formulierlabels of lege knoppen in de statische HTML. Afbeelding-alt wordt afzonderlijk binnen SEO beoordeeld.","Blijf toetsenbordbediening, focus, contrast en dynamische content afzonderlijk testen. Dit is geen volledige WCAG/EAA-audit.",5,5)
-        : check("warning","accessibility_basics","accessibility","Toegankelijkheid basis","Basiscontrole vond "+accessibilityIssueCount+" onafhankelijk(e) aandachtspunt(en): "+unlabeledFormControls+" formuliercontrol(s) zonder aantoonbaar label en "+emptyButtons+" lege knop(pen) zonder toegankelijke naam. Dat raakt "+Math.round(accessibilityIssueRatio*100)+"% van de controleerbare formuliercontrols en knoppen.","Corrigeer de aantoonbare HTML-signalen en voer daarna een uitgebreidere toegankelijkheidstest uit. RankFix claimt hiermee geen WCAG/EAA-conformiteit.",accessibilityPoints,5),
-      !viewportContent
+      !hydratedAccessibility
+        ? check("unable_to_confirm","accessibility_basics","accessibility","Toegankelijkheid basis","Niet betrouwbaar op raw HTML: namen en labels kunnen pas na hydratatie zichtbaar worden.","Voer de toegankelijkheidscontrole op de gerenderde DOM uit.",0,5)
+        : accessibilityAffectedCount===0 && axeViolations.length===0
+        ? check("pass","accessibility_basics","accessibility","Toegankelijkheid basis",renderedDocument?.axeReport
+          ? "axe-core vond in de uitgevoerde automatisch toetsbare WCAG A/AA-regels geen overtredingen; ook geen ontbrekende knopnamen of veldlabels gevonden. Dit bewijst geen volledige toegankelijkheid."
+          : "Geen ontbrekende namen van knoppen of formuliercontrols gevonden in de gerenderde DOM. axe-core was niet beschikbaar; dit is een beperkte basiscontrole.","Blijf toetsenbordbediening, focus, contrast en dynamische content afzonderlijk testen. Dit is geen volledige WCAG/EAA-audit.",5,5)
+        : check("warning","accessibility_basics","accessibility","Toegankelijkheid basis","Gerenderde DOM: "+accessibilityAffectedCount+" mogelijke naam-/labelproblemen ("+assessedUnlabeledControls+" formuliervelden, "+assessedEmptyButtons+" knoppen)."+accessibilityAxeEvidence,"Herstel de concrete axe-core regelovertredingen en bevestig handmatig toetsenbord, focus en contrast; dit bewijst geen volledige WCAG/EAA-conformiteit.",accessibilityPoints,5),
+      !hydratedAccessibility || !viewportContent
         ? check("unable_to_confirm","viewport_zoom_blocked","accessibility","Browserzoom","Zonder viewport meta tag kan RankFix de zoominstelling niet afzonderlijk beoordelen.","Voeg eerst een geldige responsive viewport toe en controleer daarna zoomgedrag.",0,3)
         : viewportBlocksZoom
           ? check("warning","viewport_zoom_blocked","accessibility","Browserzoom",`De viewport beperkt browserzoom: "${viewportContent}".`,"Laat gebruikers zoomen; vermijd user-scalable=no en onnodig beperkende maximum-scale.",1,3)
@@ -2847,7 +2874,7 @@ export async function POST(request: Request) {
         : check("unable_to_confirm", "business_placeholders", "seo", "Bedrijfsgegevens", businessDetails.reason === "thin_shell" ? "Geen placeholders in de raw HTML, maar dit is een dunne JavaScript-shell; bedrijfsgegevens kunnen niet worden bevestigd." : "Geen placeholders gevonden, maar ook geen concrete bedrijfsgegevens (adres, telefoon, e-mail of KvK/BTW) op deze pagina. Dat bewijst niet dat ze ontbreken; ze kunnen op een contact- of over-onspagina staan.", "Toon bedrijfsnaam, adres, telefoon of e-mail en KvK/BTW waar klanten die verwachten, bijvoorbeeld in de footer of op de contactpagina.", 0, 6)
     );
 
-    seoChecks.push(!hasEcommerceSignal
+    seoChecks.push(!hasEcommerceSignal && !telecomSubscriptionIdentity
       ? check("not_applicable", "price_format", "seo", "Prijsnotatie", "Geen duidelijke webshop/product-signalen gevonden; prijsnotatie is niet beoordeeld.", "Gebruik deze controle op echte product- en e-commercepagina's.", 0, 5)
       : visiblePriceCount === 0
       ? check("unable_to_confirm", "price_format", "seo", "Prijsnotatie", "RankFix vond geen betrouwbaar zichtbaar prijsbewijs om de notatie te beoordelen.", "Controleer prijsnotatie op een pagina waar prijzen aantoonbaar zichtbaar zijn.", 0, 5)
@@ -3381,7 +3408,7 @@ export async function POST(request: Request) {
     const commerceModuleActive = sectorProfile.applicableModules.includes("ecommerce") || masterEvidence.commerce.confirmed;
     if (!commerceModuleActive) {
       for (const item of [...seoChecks, ...geoChecks]) {
-        if (!commerceOnlyKeys.has(item.key)) continue;
+        if (!commerceOnlyKeys.has(item.key) || (item.key==="price_format" && telecomSubscriptionIdentity)) continue;
         item.status = "not_applicable";
         item.issue_status = "NOT_APPLICABLE";
         item.points = 0;
@@ -3450,6 +3477,29 @@ export async function POST(request: Request) {
       }
     }
 
+    // Services can sell subscriptions, accept bookings or collect paid leads
+    // without being retail stores. Evaluate these capabilities independently.
+    const serviceCommerceSignals = commerceServiceSignals({
+      subscription: telecomSubscriptionIdentity || /\b(?:abonnement(?:en)?|subscription(?:s)?|sim.only|maandbundel|monthly plan)\b/i.test([title,description,h1s.join(" ")].join(" ")),
+      booking: /\b(?:reserveren|boek nu|book now|make a booking|online afspraak|plan afspraak)\b/i.test(text),
+      lead: /<form\b/i.test(html) && /\b(?:offerte|aanvraag|contact|quote|consultation|adviesgesprek)\b/i.test(text),
+      price: visiblePriceCount > 0,
+    });
+    if (serviceCommerceSignals.subscription) {
+      seoChecks.push(serviceCommerceSignals.price
+        ? check("pass","subscription_price_visibility","seo","Abonnement & prijs","Abonnementen en zichtbare prijzen zijn op deze pagina bevestigd; een echte besteltransactie is niet uitgevoerd.","Controleer prijs, looptijd en voorwaarden op de abonneerpagina.",5,5)
+        : check("unable_to_confirm","subscription_price_visibility","seo","Abonnement & prijs","Abonnementen zijn zichtbaar maar de prijsweergave is op deze pagina niet betrouwbaar bevestigd.","Controleer de abonnements- en prijsinformatie in de gerenderde pagina.",0,5));
+      if (!sectorProfile.applicableModules.includes("subscription_pricing")) sectorProfile.applicableModules.push("subscription_pricing");
+    }
+    if (serviceCommerceSignals.booking) {
+      seoChecks.push(check("unable_to_confirm","booking_transaction","seo","Boekingsflow","Een boekings- of afspraaksignaal is zichtbaar; de daadwerkelijke boeking is niet interactief uitgevoerd.","Verifieer beschikbaarheid, bevestiging en betaal- of afspraakflow.",0,5));
+      if (!sectorProfile.applicableModules.includes("booking_conversion")) sectorProfile.applicableModules.push("booking_conversion");
+    }
+    if (serviceCommerceSignals.lead) {
+      seoChecks.push(check("pass","lead_form_presence","seo","Lead-/contactformulier","Een relevant formulier voor offerte, contact of advies is op de pagina aangetroffen. Verzenden is niet getest.","Test validatie en bevestigingsbericht afzonderlijk.",4,4));
+      if (!sectorProfile.applicableModules.includes("lead_conversion")) sectorProfile.applicableModules.push("lead_conversion");
+    }
+    applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate, rendered:javascriptExecuted, url:finalUrl.toString() });
     const selectedSeoChecks = mode === "geo" ? [] : seoChecks;
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
     let selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);
@@ -3467,6 +3517,8 @@ export async function POST(request: Request) {
     const overallScoreRange = scoreRange(checks);
     const scoreModel = {
       version: SCORE_MODEL_VERSION,
+      breakdown: scoreBreakdown(checks),
+      comparison:null as ReturnType<typeof compareScoreVersions> | null,
       formula: mode === "both" ? "0.6 × SEO + 0.4 × GEO" : mode === "seo" ? "SEO" : "GEO",
       weights: mode === "both" ? { seo: 0.6, geo: 0.4, security: 0 } : mode === "seo" ? { seo: 1, geo: 0, security: 0 } : { seo: 0, geo: 1, security: 0 },
       securitySeparate: true,
@@ -3560,8 +3612,8 @@ export async function POST(request: Request) {
     // Multi-page evidence audit: select a bounded same-host sample and fetch it
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
-    type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; schemaTypes?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "contact" | "other"; evidence: string[] };
+    type MultiPageAudit = MultiPageCandidate & { partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; schemaTypes?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -3588,6 +3640,8 @@ export async function POST(request: Request) {
         const categoryPath = /\/(?:category|categories|categorie|categorieen|cat|collection|collections|shop|store|winkel|catalog|catalogue|outlet|sale|aanbod|voorraad|huizen|woningen|cars|autos)(?:\/|$)/i.test(path);
         const legalPath = pathSegments.some((segment) => legalUtilitySegment.test(segment));
         const formPath = /(?:^|\/)(?:contact|contact-us|contacteer|kontakt|offerte|quote|request-quote|afspraak|appointment|booking|book|reserve|reservation|reserveren)(?:\/|$)/i.test(path);
+        const contactPath = /(?:^|\/)(?:contact|contact-us|contacteer|kontakt)(?:\/|$)/i.test(path);
+        const articlePath = /(?:^|\/)(?:news|nieuws|blog|blogs|articles|artikelen|stories|verhalen)(?:\/[^/]+){1,}/i.test(path);
         const supportPath = /(?:^|\/)(?:faq|veelgestelde-vragen|help|support|customer-service|klantenservice|retour|retouren|returns?|refunds?|shipping|levering|bezorging)(?:\/|$)/i.test(path);
         const servicePath = /(?:^|\/)(?:dienst|diensten|service|services|oplossing|oplossingen|solution|solutions|expertise|behandeling|behandelingen|treatment|practice|werkplaats)(?:\/|$)/i.test(path)
           || (/transport|logist/i.test(String(sectorProfile.label||"")) && /(?:^|\/)transport(?:\/|$)/i.test(path));
@@ -3599,7 +3653,7 @@ export async function POST(request: Request) {
         if (supportPath) evidence.push("support/faq-like path");
         if (servicePath) evidence.push("service-like path");
         if (listingPath) evidence.push("listing-like path");
-        const type: MultiPageCandidate["type"] = formPath ? "form" : legalPath ? "legal" : supportPath ? "support" : listingPath ? "listing" : productPath ? "product" : servicePath ? "service" : categoryPath ? "category" : "other";
+        const type: MultiPageCandidate["type"] = contactPath ? "contact" : formPath ? "form" : legalPath ? "legal" : supportPath ? "support" : listingPath ? "listing" : productPath ? "product" : servicePath ? "service" : categoryPath ? "category" : articlePath ? "article" : "other";
         return { url: candidate.toString(), type, evidence };
       } catch { return null; }
     };
@@ -3625,7 +3679,7 @@ export async function POST(request: Request) {
       const utilityContext = /\b(privacy|cookie|voorwaarden|terms|login|account|vacature|career|jobs|nieuws|news|blog|geschiedenis|history|impressie|gallery|over ons|about us)\b/i.test(context);
       const capabilityContext = /\b(product|producten|shop|winkel|aanbod|voorraad|woning|woningen|occasion|service|diensten|dienstverlening|transport|logistiek|freight|warehouse|opslag|behandeling|treatment|afspraak|booking|reserver|offerte|quote|kamer|rooms?)\b/i.test(context);
       const contextWords = context.split(/\s+/).filter(Boolean).length;
-      let score = item.type === "product" ? 34 : item.type === "form" ? 32 : item.type === "service" ? 30 : item.type === "listing" ? 30 : item.type === "category" ? 28 : item.type === "support" ? 16 : item.type === "legal" || isLegal ? 18 : 8;
+      let score = item.type === "product" ? 34 : item.type === "contact" ? 32 : item.type === "article" ? 14 : item.type === "form" ? 32 : item.type === "service" ? 30 : item.type === "listing" ? 30 : item.type === "category" ? 28 : item.type === "support" ? 16 : item.type === "legal" || isLegal ? 18 : 8;
       if (preferredLocale && candidateLocale === preferredLocale) score += 12;
       else if (preferredLocale && candidateLocale && candidateLocale !== preferredLocale) score -= 24;
       else if (preferredLocale && !candidateLocale) score += 2;
@@ -3656,12 +3710,12 @@ export async function POST(request: Request) {
       ? [
           { url: representativeHomeUrl, type: "homepage", evidence: [localePathMatch ? "locale root" : "site root"] },
           ...pickMultiPage("category", 4), ...pickMultiPage("product", 4),
-          ...pickMultiPage("form", 3), ...pickMultiPage("legal", 2), ...pickMultiPage("support", 2),
+          ...pickMultiPage("form", 3), ...pickMultiPage("contact", 2), ...pickMultiPage("legal", 2), ...pickMultiPage("support", 2), ...pickMultiPage("article", 2),
           ...pickMultiPage("service", 3), ...pickMultiPage("listing", 2), ...pickMultiPage("other", 2),
         ]
       : [
           { url: representativeHomeUrl, type: "homepage", evidence: [localePathMatch ? "locale root" : "site root"] },
-          ...pickMultiPage("form", 4), ...pickMultiPage("service", 5), ...pickMultiPage("listing", 4), ...pickMultiPage("legal", 2), ...pickMultiPage("support", 2), ...pickMultiPage("category", 2), ...pickMultiPage("product", 2), ...pickMultiPage("other", 2),
+          ...pickMultiPage("form", 3), ...pickMultiPage("contact", 2), ...pickMultiPage("article", 2), ...pickMultiPage("service", 5), ...pickMultiPage("listing", 4), ...pickMultiPage("legal", 2), ...pickMultiPage("support", 2), ...pickMultiPage("category", 2), ...pickMultiPage("product", 2), ...pickMultiPage("other", 2),
         ];
     // Always include the exact page the customer scanned as the first sample.
     // This prevents a product scan from being represented only by a sibling product
@@ -3700,7 +3754,7 @@ export async function POST(request: Request) {
           : await safePublicFetch(page.url, { timeoutMs: 8000, maxRedirects: 3, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml" });
         const r = fetched.response;
         const finalCandidate = new URL(fetched.finalUrl.toString());
-        const renderRepresentativeOnce = renderOnce(() => renderPublicPage(finalCandidate.toString(), 10000));
+        const renderRepresentativeOnce = renderOnce(() => renderWithRetry((ms) => renderPublicPage(finalCandidate.toString(), ms), 10000, 6000));
         const finalCandidateHost = normalizeHost(finalCandidate.hostname);
         const sameRegistrableSite = finalCandidateHost === siteHost
           || finalCandidateHost.endsWith(`.${siteHost}`)
@@ -3709,33 +3763,40 @@ export async function POST(request: Request) {
         const contentType = r.headers.get("content-type") || "";
         let pageHtml: string | null = null;
         let representativeEvidenceSource: "raw_html" | "rendered_html" = "raw_html";
+        let representativeTitlePixelWidth: number | null = null;
         // Motor v2.1: representative pages get the same single bounded recovery
         // opportunity as the primary page. A failed render remains UNABLE, never PASS.
         if (!r.ok && (r.status === 202 || r.status === 403 || r.status === 405)) {
           try {
             const recoveredPage = await renderRepresentativeOnce();
-            if (isSubstantiveRender(recoveredPage.html)) { pageHtml = recoveredPage.html; representativeEvidenceSource = "rendered_html"; }
+            if (isSubstantiveRender(recoveredPage.html)) { pageHtml = recoveredPage.html; representativeEvidenceSource = "rendered_html"; representativeTitlePixelWidth = recoveredPage.titlePixelWidth; }
           } catch {}
         }
         if (!pageHtml && (!r.ok || (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")))) {
           return { ...page, status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"http",status:"UNABLE_TO_CONFIRM",details:`HTTP ${r.status}; pagina kon niet betrouwbaar als HTML worden beoordeeld na begrensde recovery.`}] };
         }
         // The scanned page already passed the main-page size limit.
-        pageHtml = pageHtml || (isScannedPage ? html : await readResponseTextLimited(r, 2_000_000));
+        const htmlSample = pageHtml
+          ? {html:pageHtml,partial:false,headComplete:true}
+          : isScannedPage ? {html,partial:false,headComplete:true} : await readHtmlSampleHeadFirst(r, 2_000_000);
+        pageHtml = htmlSample.html;
+        let partialHeadOnly = htmlSample.partial;
         // Representative pages need the same JS evidence opportunity as the primary
         // page. Otherwise a Nuxt/Next contact or booking page can look form-less in
         // raw HTML and incorrectly keep site-level capabilities unconfirmed.
         const representativeRawHtml = pageHtml;
         const representativeVisibleWords = stripHtml(representativeRawHtml).split(/\s+/).filter(Boolean).length;
         const representativeScriptCount = (representativeRawHtml.match(/<script\b/gi) || []).length;
-        const representativeJsFramework = /(?:__NEXT_DATA__|\/_next\/|__NUXT__|\/_nuxt\/|data-reactroot|data-react-helmet|shopify|webpackJsonp|__APOLLO_STATE__)/i.test(representativeRawHtml);
+        const representativeJsFramework = isJavaScriptFramework(representativeRawHtml);
         const representativeThinShell = representativeVisibleWords < 80 && representativeScriptCount >= 4;
         if (representativeNeedsJavaScriptRendering({ visibleWords: representativeVisibleWords, scriptCount: representativeScriptCount, frameworkSignal: representativeJsFramework, dynamicEvidenceRelevant: ["form", "product", "listing", "category", "service"].includes(page.type) }) && representativeEvidenceSource !== "rendered_html") {
           try {
             const renderedPage = await renderRepresentativeOnce();
             if (renderImprovesEvidence(representativeVisibleWords, representativeThinShell, renderedPage.html)) {
               pageHtml = renderedPage.html;
+              partialHeadOnly = false;
               representativeEvidenceSource = "rendered_html";
+              representativeTitlePixelWidth = renderedPage.titlePixelWidth;
               page.evidence.push("javascript-rendered representative page");
             } else {
               page.evidence.push("javascript render poorer than raw HTML; raw HTML retained");
@@ -3830,12 +3891,12 @@ export async function POST(request: Request) {
           confirmedRetailPage: pageProductSchema || (pageStrongCommerceAction && pagePriceSignals >= 1) || (pageItemListSchema && new Set(pageProductLinks).size >= 3) || (pageStoreSchema && pagePriceSignals >= 2),
         };
         // Meta rules are shared with the main page (lib/report-quality.ts).
-        const pageTitleAssessment = assessPageTitle(pageTitle, finalCandidate.hostname);
+        const pageTitleAssessment = assessPageTitle(pageTitle, finalCandidate.hostname, new Date(), representativeTitlePixelWidth);
         const pageDescriptionAssessment = assessPageDescription(pageDescription, Boolean(pageDescriptionTag));
         // A JavaScript application shell that could not be rendered cannot prove a
         // missing title, description, H1 or canonical; those stay unconfirmed.
         const pageClientShell = isClientShell({ visibleWords: pageQualityWords, scriptCount: (pageHtml.match(/<script\b/gi) || []).length, jsFramework: representativeJsFramework, h1Count: pageH1s.length, rendered: representativeEvidenceSource === "rendered_html" });
-        const pageMissingEvidenceUnverified = missingJsHeadEvidenceUnverified({
+        const pageMissingEvidenceUnverified = partialHeadOnly || missingJsHeadEvidenceUnverified({
           frameworkSignal: representativeJsFramework,
           rendered: representativeEvidenceSource === "rendered_html",
           clientShell: pageClientShell,
@@ -3872,6 +3933,10 @@ export async function POST(request: Request) {
         };
         const refinedType = refineSamplePageType({
           proposed: page.type,
+          path: finalCandidate.pathname,
+          serviceOffer: /\b(?:abonnement(?:en)?|subscription(?:s)?|internet(?:pakket|abonnement)?|glasvezel|servicepakket|consult(?:atie)?|afspraak|booking)\b/i.test([pageTitle,pageDescription,pageH1s.join(" ")].join(" ")),
+          articleSchema: pageSchemaTypes.some((type)=>/^(?:article|newsarticle|blogposting|reportage)$/i.test(type)),
+          breadcrumbDepth: (pageHtml.match(/"@type"\s*:\s*"ListItem"/gi)||[]).length,
           productSchema: pageProductSchema,
           itemListSchema: pageItemListSchema,
           repeatedProductLinks: pageCommerceEvidence.repeatedProductLinks,
@@ -3882,7 +3947,7 @@ export async function POST(request: Request) {
           detailIdentity: Boolean(/\b(?:sku|artikelnummer|modelnummer|ean|gtin)\b/i.test(pageHtml.slice(0,250000)) || /\b(?:iphone|galaxy|pixel|smartphone)\b/i.test(pageTitle)),
         });
         const pageSampleScore = sampleEvidenceScore(evidenceChecks, (key) => evidenceCredit(evidenceChecks.find((item)=>item.key===key)!));
-        return { ...page, type:refinedType, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:pageSampleScore, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), schemaTypes:[...new Set(pageSchemaTypes)], formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, productLinks:extractProductDetailLinks(pageHtml, finalCandidate.toString(), siteHost, 8), evidenceChecks };
+        return { ...page, type:refinedType, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:pageSampleScore, partialHead:partialHeadOnly, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), schemaTypes:[...new Set(pageSchemaTypes)], formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, productLinks:extractProductDetailLinks(pageHtml, finalCandidate.toString(), siteHost, 8), evidenceChecks };
       } catch (multiPageError) {
         const rawReason = multiPageError instanceof Error ? multiPageError.message : "FETCH_FAILED";
         const reason = /timeout|abort/i.test(rawReason)
@@ -4138,6 +4203,12 @@ export async function POST(request: Request) {
       multiPageEvidence: sitewideCommerceEvidence.confirmed,
     };
     const representativeAuditedPageCount = auditedMultiPages.filter((item)=>item.status==="audited" && normalizeScanUrl(item.url)!==normalizeScanUrl(finalUrl.toString())).length;
+    // A fully fetched product-detail page with a model-specific URL establishes
+    // a secondary commerce opportunity, even if SSR omits Product/Offer schema.
+    // This is evidence of product intent, NOT of a working retail checkout.
+    const representativeCommercialProductIntent = auditedMultiPages.some((item)=>item.status==="audited"
+      && item.type==="product"
+      && /\/(?:shop|winkel|store|products?)(?:\/|$)/i.test(new URL(item.url).pathname));
     const finalCommerceApplicability = commerceApplicability({
       confirmed: finalCommerceDecision.confirmed,
       primaryNonCommerceIdentity: Boolean(primaryNonCommerceIdentity),
@@ -4145,7 +4216,7 @@ export async function POST(request: Request) {
       thinShell: thinRawHtmlEvidence,
       marketSelector: marketSelectorPage,
       auditedRepresentativePages: representativeAuditedPageCount,
-      verifiedSecondaryCommerce: Boolean(sitewideCommerceEvidence.confirmed || verifiedRepresentativeProductDetail),
+      verifiedSecondaryCommerce: Boolean(sitewideCommerceEvidence.confirmed || verifiedRepresentativeProductDetail || representativeCommercialProductIntent),
     });
     if (!finalCommerceDecision.confirmed && primaryNonCommerceIdentity) {
       masterEvidence.commerce.confirmed = false;
@@ -4531,11 +4602,11 @@ export async function POST(request: Request) {
     };
     if (finalCommerceApplicability.state === "absent") {
       for (const item of [...seoChecks,...geoChecks]) {
-        if (finalCommerceOnlyKeys.has(item.key)) setFinalNotApplicable(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
+        if (finalCommerceOnlyKeys.has(item.key) && !(item.key==="price_format" && serviceCommerceSignals.subscription)) setFinalNotApplicable(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
       }
     } else if (finalCommerceApplicability.state === "unconfirmed") {
       for (const item of [...seoChecks,...geoChecks]) {
-        if (finalCommerceOnlyKeys.has(item.key)) setFinalUnableToConfirm(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
+        if (finalCommerceOnlyKeys.has(item.key) && !(item.key==="price_format" && serviceCommerceSignals.subscription)) setFinalUnableToConfirm(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
       }
     } else {
       // Shop confirmed site-wide: a page-level "not applicable" (e.g. a homepage
@@ -4580,6 +4651,7 @@ export async function POST(request: Request) {
       ...finalCommerceApplicability,
       marketSelector: marketSelectorPage,
       representativePagesAudited: representativeAuditedPageCount,
+      serviceCommerce: serviceCommerceSignals,
       message: finalCommerceApplicability.state === "confirmed" ? "Product-, prijs- of winkelwagenbewijs bevestigd." : COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason],
     };
     const representativeProductPage = auditedMultiPages.find((item)=>item.type==="product" && item.commerceEvidence?.product);
@@ -4614,6 +4686,7 @@ export async function POST(request: Request) {
       }
     }
 
+    applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate, rendered:javascriptExecuted, url:finalUrl.toString() });
     // Final score is calculated only after representative evidence reconciliation.
     // Reapply evidence coverage caps: this second scoring pass must not erase them.
     selectedSeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(selectedSeoChecks), selectedSeoChecks);
@@ -4627,6 +4700,7 @@ export async function POST(request: Request) {
     scoreModel.seoRange = scoreRange(selectedSeoChecks);
     scoreModel.geoRange = scoreRange(selectedGeoChecks);
     scoreModel.provisional = overallCoverage.coveragePercent < 90;
+    scoreModel.breakdown = scoreBreakdown(checks);
 
     const classification = {
       websiteType,
@@ -4683,14 +4757,22 @@ export async function POST(request: Request) {
     }
 
     const scoredSamplePages = auditedRawPages.filter((item)=>item.score!==null);
+    // Audited pages with incomplete JS-dependent metadata are still listed,
+    // but do not contribute an artificially perfect sample score.
+    const unscoredMetadataPages = auditedRawPages.length - scoredSamplePages.length;
+    const partialHeadPages = auditedRawPages.filter((item)=>item.partialHead).length;
     const excludedNoindexPages = multiPageAudits.filter((item)=>item.evidenceChecks?.some((e)=>e.key==="noindex")).length;
     const unableToFetchPages = multiPageAudits.length - auditedRawPages.length - excludedNoindexPages;
+    const sampleAccounting = sampleSummary(multiPageAudits.length, scoredSamplePages.length, excludedNoindexPages, unableToFetchPages, partialHeadPages);
     const multiPage = {
+      accounting:sampleAccounting,
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:representativePageLimit,
       discoveredInternalUrls:discoveredMultiPage.length, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,
       siteSampleScore: scoredSamplePages.length ? Math.round(scoredSamplePages.reduce((sum,item)=>sum+(item.score||0),0)/scoredSamplePages.length) : null,
       siteSampleCoverage: {
         selected: multiPageAudits.length,
+        unscoredMetadata: unscoredMetadataPages,
+        headOnly: partialHeadPages,
         checked: auditedRawPages.length,
         scored: scoredSamplePages.length,
         excludedNoindex: excludedNoindexPages,
@@ -4714,8 +4796,8 @@ export async function POST(request: Request) {
         productSample: multiPageCapabilities.productSample,
         categorySample: multiPageCapabilities.categorySample,
       },
-      counts:{ selected:multiPageAudits.length, scored:scoredSamplePages.length, excludedNoindex:excludedNoindexPages, fetchFailed:unableToFetchPages, homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, form:uniqueMultiPagePages.filter((x)=>x.type==="form").length, legal:uniqueMultiPagePages.filter((x)=>x.type==="legal").length, service:uniqueMultiPagePages.filter((x)=>x.type==="service").length, listing:uniqueMultiPagePages.filter((x)=>x.type==="listing").length, support:uniqueMultiPagePages.filter((x)=>x.type==="support").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
-      note:"Representative same-host pages are fetched with bounded checks. Their sample score is separate from the explicitly scanned page score; site-level evidence may strengthen identity/capabilities, but page-specific failures still require direct proof.",
+      counts:{ selected:multiPageAudits.length, scored:scoredSamplePages.length, unscoredMetadata:unscoredMetadataPages, headOnly:partialHeadPages, excludedNoindex:excludedNoindexPages, fetchFailed:unableToFetchPages, contact:uniqueMultiPagePages.filter((x)=>x.type==="contact").length, article:uniqueMultiPagePages.filter((x)=>x.type==="article").length, homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, form:uniqueMultiPagePages.filter((x)=>x.type==="form").length, legal:uniqueMultiPagePages.filter((x)=>x.type==="legal").length, service:uniqueMultiPagePages.filter((x)=>x.type==="service").length, listing:uniqueMultiPagePages.filter((x)=>x.type==="listing").length, support:uniqueMultiPagePages.filter((x)=>x.type==="support").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
+      note:"Steekproefscore telt alleen pagina's met vier beoordeelde metadata-controles (title, description, H1 en canonical). Pagina's met onbevestigd JavaScript-bewijs worden apart geteld en niet als 100/100 voorgesteld. Dit is geen volledige site-audit.",
     };
 
     let user = null;
@@ -4786,9 +4868,32 @@ export async function POST(request: Request) {
           }
         }
         const previousScan = await getDb().query(
-          "SELECT id,result FROM scans WHERE user_id=$1 AND lower(regexp_replace(split_part(split_part(final_url, '://', 2), '/', 1), '^www\\.', ''))=$2 ORDER BY created_at DESC LIMIT 1",
-          [user.id, websiteHost]
+          "SELECT id,result FROM scans WHERE user_id=$1 AND (final_url=$2 OR scanned_url=$3) AND result->>'mode'=$4 ORDER BY created_at DESC LIMIT 1",
+          [user.id, finalUrl.toString(), target.toString(), mode]
         );
+        const priorReport = previousScan.rows[0]?.result;
+        if (priorReport && Number.isFinite(Number(priorReport.overallScore))) {
+          const previousBreakdown = Array.isArray(priorReport.scoreModel?.breakdown) ? priorReport.scoreModel.breakdown : [];
+          const previousByCheck = new Map<string,string>(previousBreakdown.map((item:{key:string;category:string;status:string}) =>
+            [(item.category||"seo")+":"+(item.key||""),item.status||""]));
+          const changedChecks = scoreModel.breakdown.flatMap((item) => {
+            const key = item.category+":"+item.key;
+            const before = previousByCheck.get(key);
+            return before && before!==item.status ? [key+" ("+before+" → "+item.status+")"] : [];
+          });
+          scoreModel.comparison = compareScoreVersions(
+            Number(priorReport.overallScore), selectedOverallScore,
+            typeof priorReport.scoreModel?.version === "string" ? priorReport.scoreModel.version : null,
+            SCORE_MODEL_VERSION, 3, {
+              previousRendering:priorReport.rendering?.mode||null,
+              currentRendering:rendering.mode,
+              previousCoverage:Number.isFinite(Number(priorReport.coverage?.coveragePercent))
+                ? Number(priorReport.coverage.coveragePercent) : null,
+              currentCoverage:overallCoverage.coveragePercent,
+              changedChecks,
+            },
+          );
+        }
         console.info("RankFix scan phase", { phase: "history_write_start", page: finalUrl.toString(), isProductPage, productOptimizerSourceCount });
         const insertedScan = await getDb().query(
           "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id",
@@ -4992,7 +5097,7 @@ export async function POST(request: Request) {
         limit: 24,
         truncated: allUniqueInternalAnchors.length > linkAuditResults.length,
       },
-      accessibility: "STATIC_HTML_SIGNALS" as const,
+      accessibility: javascriptExecuted && renderedDocument?.domAccessibility ? "HYDRATED_DOM_BASICS" as const : "INDICATIVE_ONLY" as const,
       consentMode: "STATIC_HTML_SIGNAL" as const,
       merchant: "WEBSITE_SIGNALS_ONLY" as const,
       multiPage,

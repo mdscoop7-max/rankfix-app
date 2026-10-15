@@ -2,7 +2,17 @@ import type { Browser } from "puppeteer";
 import { assertPublicDns, validatePublicHttpUrl } from "@/lib/safe-fetch";
 
 export type HeadlessMode = "raw_html" | "javascript_rendered";
-export type RenderedPage = { html: string; finalUrl: string; elapsedMs: number; requests: number };
+export type AxeSummary = {
+  violations: {id:string;impact:string;nodes:number}[];
+  passes: number;
+  incomplete: number;
+  scope: "hydrated_wcag_a_aa";
+};
+export type RenderedPage = { html: string; finalUrl: string; elapsedMs: number; requests: number;
+  titlePixelWidth: number | null;
+  domAccessibility: {controls:number;unnamedButtons:number;unlabeledControls:number} | null;
+  axeReport: AxeSummary | null;
+};
 
 const ALLOWED = new Set(["document", "script", "stylesheet", "xhr", "fetch"]);
 const MAX_REQUESTS = 90;
@@ -127,7 +137,69 @@ export async function renderPublicPage(value: string, timeoutMs = 12000): Promis
     await assertPublicDns(finalUrl.hostname);
     const html = await withinTimeout(page.content(), remaining());
     if (!html || html.length < 20 || html.length > 8000000) throw new Error("RENDERED_HTML_INVALID");
-    return { html, finalUrl: finalUrl.toString(), elapsedMs: Date.now() - started, requests };
+    // Only inspect the actually hydrated DOM; this is a bounded basic accessible
+    // name inspection, not a WCAG/axe-core certification.
+    const domDetails = await withinTimeout(page.evaluate(() => {
+      const t = document.title || "";
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (ctx) ctx.font = "20px Arial";
+      const titlePixelWidth = ctx && t ? ctx.measureText(t).width : null;
+      const controls = [...document.querySelectorAll("button,input:not([type=hidden]),select,textarea")];
+      let unnamedButtons = 0;
+      let unlabeledControls = 0;
+      for (const el of controls) {
+        const element = el as HTMLElement;
+        if (element.closest("[hidden],[aria-hidden='true']")) continue;
+        const labelledBy = (element.getAttribute("aria-labelledby") || "").split(/\s+/).filter(Boolean)
+          .map(id => document.getElementById(id)?.textContent?.trim() || "").join(" ").trim();
+        const labelText = element.getAttribute("aria-label")?.trim() || labelledBy
+          || element.getAttribute("title")?.trim()
+          || ("labels" in element && element.labels ? [...element.labels as NodeListOf<HTMLLabelElement>].map(label => label.textContent?.trim() || "").join(" ").trim() : "")
+          || element.textContent?.trim() || "";
+        if (element.tagName === "BUTTON") {
+          const iconImage = element.querySelector("img[alt]:not([alt=''])");
+          if (!labelText && !iconImage) unnamedButtons++;
+        } else if (!labelText) unlabeledControls++;
+      }
+      return {titlePixelWidth,domAccessibility:{controls:controls.length,unnamedButtons,unlabeledControls}};
+    }), remaining());
+    // axe-core runs locally inside the already hydrated DOM. It is optional:
+    // a slow rule run must not turn an otherwise good rendered page into a
+    // failed crawl. In that case the report explicitly falls back to the
+    // limited accessible-name inspection, not a WCAG conformance claim.
+    let axeReport: AxeSummary | null = null;
+    try {
+      const axeCore = (await import("axe-core")).default;
+      await withinTimeout(page.evaluate(axeCore.source), Math.min(2500, remaining()));
+      axeReport = await withinTimeout(page.evaluate(async () => {
+        const axe = (window as typeof window & { axe?: {
+          run: (root: Document, options: object) => Promise<{
+            violations: Array<{id:string;impact:string|null;nodes:unknown[]}>;
+            passes: unknown[]; incomplete: unknown[];
+          }>;
+        } }).axe;
+        if (!axe) throw new Error("AXE_NOT_INJECTED");
+        const result = await axe.run(document, {
+          runOnly: {type:"tag",values:["wcag2a","wcag2aa","wcag21a","wcag21aa"]},
+        });
+        return {
+          violations: result.violations.slice(0,30).map(rule=>({
+            id:rule.id,
+            impact:rule.impact||"moderate",
+            nodes:rule.nodes.length,
+          })),
+          passes:result.passes.length,
+          incomplete:result.incomplete.length,
+          scope:"hydrated_wcag_a_aa" as const,
+        };
+      }), Math.min(3500, remaining()));
+    } catch (error) {
+      console.info("RankFix axe-core fallback", {
+        reason:error instanceof Error ? error.message.slice(0,80) : "AXE_UNAVAILABLE",
+      });
+    }
+    return { html, finalUrl: finalUrl.toString(), elapsedMs: Date.now() - started, requests, ...domDetails, axeReport };
   } finally {
     if (browser) {
       try { await withinTimeout(browser.close(), 2000); }

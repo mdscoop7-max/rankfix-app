@@ -18,5 +18,20 @@ export function representativeNeedsJavaScriptRendering(input: {
   dynamicEvidenceRelevant?: boolean;
 }): boolean {
   const thinClientShell = input.visibleWords < 80 && input.scriptCount >= 4;
-  return thinClientShell || (input.frameworkSignal && (input.visibleWords < 180 || Boolean(input.dynamicEvidenceRelevant)));
+  // Nuxt/Next/Vue/Angular/React pages are rendered even with rich SSR:
+  // hydration may add canonical, metadata, labels, prices or structured data.
+  return input.frameworkSignal || thinClientShell;
+}
+
+// Retry a transient browser timeout once, centrally and within a bounded
+// second attempt. Never retry SSRF blocks, WAF/CAPTCHA or missing Chromium.
+export async function renderWithRetry<T>(render: (timeoutMs: number)=>Promise<T>,
+  firstTimeoutMs = 12000, retryTimeoutMs = 7000): Promise<T> {
+  try { return await render(firstTimeoutMs); }
+  catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/RENDER_TIMEOUT|Navigation timeout|Target closed|net::ERR_CONNECTION_RESET|net::ERR_CONNECTION_CLOSED/i.test(message)
+      || /URL_|DNS|CHROME_NOT_INSTALLED|RENDER_BUSY|BLOCKED/i.test(message)) throw error;
+    return render(retryTimeoutMs);
+  }
 }

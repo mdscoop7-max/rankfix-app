@@ -141,7 +141,7 @@ test("the scanned page is reused as its own representative sample, not refetched
   assert.match(source, /const isScannedPage = normalizeScanUrl\(page\.url\) === normalizeScanUrl\(finalUrl\.toString\(\)\)/);
   assert.match(source, /isScannedPage\n\s+\? \{ response: new Response\(html,/);
   // The scanned page already passed the 8 MB main-page limit; a large homepage is not "fetch failed".
-  assert.match(source, /isScannedPage \? html : await readResponseTextLimited\(r, 2_000_000\)/);
+  assert.match(source, /isScannedPage \? \{html,partial:false,headComplete:true\} : await readHtmlSampleHeadFirst\(r, 2_000_000\)/);
 });
 
 test("FAQ/help-center pages cannot crowd out the representative sample", async () => {

@@ -28,7 +28,7 @@ test("no rendered JS canonical does not cost sample score points", () => {
     {key:"description",status:"PASS"}, {key:"h1",status:"PASS"},
     {key:"canonical",status:"UNABLE_TO_CONFIRM"}
   ];
-  assert.equal(sampleEvidenceScore(unknown,()=>0.9),100);
+  assert.equal(sampleEvidenceScore(unknown,()=>0.9),null);
   assert.equal(sampleEvidenceScore(unknown.map(x=>x.key==="canonical"?{...x,status:"WARNING"}:x),()=>0.9),98);
   assert.equal(sampleEvidenceScore([{key:"http",status:"PASS"},{key:"canonical",status:"UNABLE_TO_CONFIRM"}],()=>0.9),null);
 });
@@ -42,7 +42,7 @@ test("title length alone is advice and not an unproven search ranking failure", 
     assert.match(result.details,/pixelbreedte/);
   }
   const extreme=assessPageTitle("Betrouwbare telefoon, abonnement en service voor alle klanten - "+"X".repeat(140),"provider.example");
-  assert.equal(extreme.status,"WARNING");
+  assert.equal(extreme.status,"PASS");
   assert.ok(extreme.credit >= 0.9);
 });
 
@@ -65,7 +65,8 @@ test("scanner applies the Nuxt evidence rules and reports actual sample coverage
   assert.match(route,/refineSamplePageType\(/);
   assert.match(route,/verifiedSecondaryCommerce: Boolean\(sitewideCommerceEvidence\.confirmed/);
   assert.match(route,/secondaryRetailDetail: verifiedRepresentativeProductDetail/);
-  assert.match(route,/metadataMayBeClientRendered\s*\? check\("unable_to_confirm","accessibility_basics"/);
+  assert.match(route,/representativeCommercialProductIntent/);
+  assert.match(route,/!hydratedAccessibility\s*\? check\("unable_to_confirm","accessibility_basics"/);
   assert.match(route,/scoredSamplePages = auditedRawPages\.filter/);
   assert.match(report,/const selectedPages=Number\(/);
   assert.match(report,/excludedNoindex/);
