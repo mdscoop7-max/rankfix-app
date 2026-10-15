@@ -1757,7 +1757,7 @@ export async function POST(request: Request) {
 
     // The sector engine must abstain rather than invent a lodging business from
     // incidental guest/booking language on a payment, service or retailer site.
-    const restaurantIdentityEvidence = /\\b(?:restaurant|brasserie|bistro|café|cafe|eetcafé|food establishment|dining restaurant)\\b/i.test(sectorIdentitySource)
+    const restaurantIdentityEvidence = /\b(?:restaurant|brasserie|bistro|café|cafe|eetcafé|food establishment|dining restaurant)\b/i.test(sectorIdentitySource)
       || schemaSet.has("restaurant") || schemaSet.has("foodestablishment");
     if (sectorProfile.sector === "hospitality" && primaryBusinessEvidence.sector !== "hospitality" && !restaurantIdentityEvidence) {
       sectorProfile.sector = "unknown";
