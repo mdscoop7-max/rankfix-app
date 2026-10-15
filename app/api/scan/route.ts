@@ -566,7 +566,11 @@ export async function POST(request: Request) {
     const finalUrl = fetchedFinalUrl ?? new URL(response.url || target.toString());
     console.info("RankFix redirect resolution", { requested: target.toString(), final: finalUrl.toString(), hops: redirectChain.length });
     // Primary recovery, JS hydration and quality-gate fallback share one browser attempt.
-    const renderPrimaryOnce = renderOnce(() => renderWithRetry((ms) => renderPublicPage(finalUrl.toString(), ms, renderBudget), 12000, 7000));
+    let primaryRenderAttempts = 0;
+    const renderPrimaryOnce = renderOnce(() => renderWithRetry((ms) => {
+      primaryRenderAttempts++;
+      return renderPublicPage(finalUrl.toString(), ms, renderBudget);
+    }, 12000, 7000));
     let renderedDocument: Awaited<ReturnType<typeof renderPublicPage>> | null = null;
 
     if (response.status === 429) {
@@ -2606,7 +2610,7 @@ export async function POST(request: Request) {
     const viewportBlocksZoom = /(?:^|[,;\s])user-scalable\s*=\s*no(?:$|[,;\s])/i.test(viewportContent) ||
       /(?:^|[,;\s])maximum-scale\s*=\s*(?:0(?:\.\d+)?|1(?:\.0+)?)(?:$|[,;\s])/i.test(viewportContent);
     seoChecks.push(!viewportContent
-      ? check("fail", "viewport", "seo", "Mobiele viewport", "Geen viewport meta tag met content gevonden.", "Voeg content=\"width=device-width, initial-scale=1\" toe aan de viewport meta tag.", 0, 5)
+      ? check("unable_to_confirm", "viewport", "seo", "Mobiele viewport", "Een viewport meta tag met content kon niet worden bevestigd in de beschikbare HTML.", "Bevestig de viewport in de gerenderde pagina; ontbrekende raw HTML alleen bewijst geen afwezigheid.", 0, 5)
       : !viewportIsResponsive
         ? check("warning", "viewport", "seo", "Mobiele viewport", `Een viewport meta tag is aanwezig, maar width=device-width is niet gevonden: "${viewportContent}".`, "Gebruik een responsive viewport met width=device-width.", 2, 5)
         : check("pass", "viewport", "seo", "Mobiele viewport", `De viewport bevat een responsive width=device-width-instelling: "${viewportContent}".`, "Test daarnaast de echte mobiele layout, tapdoelen en Core Web Vitals.", 5, 5)
@@ -2844,8 +2848,8 @@ export async function POST(request: Request) {
           ? "axe-core vond in de uitgevoerde automatisch toetsbare WCAG A/AA-regels geen overtredingen; ook geen ontbrekende knopnamen of veldlabels gevonden. Dit bewijst geen volledige toegankelijkheid."
           : "Geen ontbrekende namen van knoppen of formuliercontrols gevonden in de gerenderde DOM. axe-core was niet beschikbaar; dit is een beperkte basiscontrole.","Blijf toetsenbordbediening, focus, contrast en dynamische content afzonderlijk testen. Dit is geen volledige WCAG/EAA-audit.",5,5)
         : check("warning","accessibility_basics","accessibility","Toegankelijkheid basis","Gerenderde DOM: "+accessibilityAffectedCount+" mogelijke naam-/labelproblemen ("+assessedUnlabeledControls+" formuliervelden, "+assessedEmptyButtons+" knoppen)."+accessibilityAxeEvidence,"Herstel de concrete axe-core regelovertredingen en bevestig handmatig toetsenbord, focus en contrast; dit bewijst geen volledige WCAG/EAA-conformiteit.",accessibilityPoints,5),
-      !hydratedAccessibility || !viewportContent
-        ? check("unable_to_confirm","viewport_zoom_blocked","accessibility","Browserzoom","Zonder viewport meta tag kan RankFix de zoominstelling niet afzonderlijk beoordelen.","Voeg eerst een geldige responsive viewport toe en controleer daarna zoomgedrag.",0,3)
+      !viewportContent
+        ? check("unable_to_confirm","viewport_zoom_blocked","accessibility","Browserzoom","Een viewport meta tag met content kon niet worden bevestigd in de beschikbare HTML; dezelfde bron wordt gebruikt voor Mobiele viewport.","Controleer de viewport na browser-rendering.",0,3)
         : viewportBlocksZoom
           ? check("warning","viewport_zoom_blocked","accessibility","Browserzoom",`De viewport beperkt browserzoom: "${viewportContent}".`,"Laat gebruikers zoomen; vermijd user-scalable=no en onnodig beperkende maximum-scale.",1,3)
           : check("pass","viewport_zoom_blocked","accessibility","Browserzoom","Geen statische viewport-instelling gevonden die browserzoom blokkeert.","Test zoom en schaalbaarheid ook interactief op mobiele apparaten.",3,3)
@@ -3608,7 +3612,7 @@ export async function POST(request: Request) {
       note: javascriptExecuted ? (jsRenderingNotes[scanLanguage] || jsRenderingNotes.en) : (rawRenderingNotes[scanLanguage] || rawRenderingNotes.en),
       elapsedMs: renderElapsedMs,
       fallbackReason: javascriptCandidate && !javascriptExecuted ? (renderFallbackReason || "RENDER_FAILED") : null,
-      attempts: javascriptCandidate ? (renderFallbackReason === "RENDER_TIMEOUT" ? 2 : 1) : 0,
+      attempts: primaryRenderAttempts,
       warning: javascriptCandidate && !javascriptExecuted,
       evidenceSource: javascriptExecuted ? "rendered_html" as const : "raw_html" as const,
       // Bot manager that served a reduced page; dependent checks stayed unconfirmed.
