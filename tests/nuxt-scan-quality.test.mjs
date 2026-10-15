@@ -65,6 +65,7 @@ test("scanner applies the Nuxt evidence rules and reports actual sample coverage
   assert.match(route,/refineSamplePageType\(/);
   assert.match(route,/verifiedSecondaryCommerce: Boolean\(sitewideCommerceEvidence\.confirmed/);
   assert.match(route,/secondaryRetailDetail: verifiedRepresentativeProductDetail/);
+  assert.match(route,/representativeCommercialProductIntent/);
   assert.match(route,/!hydratedAccessibility\s*\? check\("unable_to_confirm","accessibility_basics"/);
   assert.match(route,/scoredSamplePages = auditedRawPages\.filter/);
   assert.match(report,/const selectedPages=Number\(/);
