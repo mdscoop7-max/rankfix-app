@@ -15,7 +15,7 @@ export type PrimaryBusinessIdentity = {
   evidence: string[];
 };
 
-const paymentPurpose = /\b(?:payments? (?:platform|processing|processor|provider|gateway|services?|solutions?|infrastructure|technology)|(?:online|in[- ]person|digital) payments?|payment orchestration|accept (?:online |card |digital |in[- ]person )?payments?|process (?:online |card |digital )?payments?|payment service provider|merchant acquiring|fintech|financial services?|digital wallet|mobile wallet|send money|transfer money|money transfers?|manage money|manage your money|banking services?|bank account|betaalplatform|betaaldienst(?:verlener)?|betaaloplossingen|betalingen (?:accepteren|verwerken)|betaalverwerking|betaalprovider|geld overmaken|betalingsverkeer)\b/i;
+const paymentPurpose = /\b(?:payments? (?:platform|processing|processor|provider|gateway|services?|solutions?|infrastructure|technology)|(?:online|in[- ]person|digital) payments?|payment orchestration|accept (?:online |card |digital |in[- ]person )?payments?|process (?:online |card |digital )?payments?|payment service provider|merchant acquiring|fintech|financial services?|digital wallet|mobile wallet|send money|send and save money|pay[, ]+send and save money|paying friends|saving money|transfer money|money transfers?|manage money|manage your money|banking services?|bank account|betaalplatform|betaaldienst(?:verlener)?|betaaloplossingen|betalingen (?:accepteren|verwerken)|betaalverwerking|betaalprovider|geld overmaken|betalingsverkeer)\b/i;
 const contextualFinancialSchema = new Set([
   "financialservice", "bankorcreditunion", "paymentservice",
   "paymentcard", "creditcard", "loanorcredit", "financialproduct",
