@@ -1291,7 +1291,7 @@ test("findings 4 and 7: scan route applies the shop-wording gate before final sc
   const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   const gate = route.indexOf("if (!shopWordingApplies(finalCommerceApplicability, Boolean(primaryNonCommerceIdentity)))");
   assert.ok(gate > 0);
-  assert.ok(gate < route.lastIndexOf("selectedSeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(stableCoreChecks(selectedSeoChecks,"seo"))"));
+  assert.ok(gate < route.lastIndexOf('selectedSeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(stableCoreChecks(selectedSeoChecks,"seo"))'));
   assert.match(route.slice(gate, gate + 2000), /item\.key === "schema"/);
   assert.match(route.slice(gate, gate + 2000), /item\.key === "semantic_link_destination"/);
 });
