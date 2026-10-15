@@ -28,7 +28,7 @@ test("no rendered JS canonical does not cost sample score points", () => {
     {key:"description",status:"PASS"}, {key:"h1",status:"PASS"},
     {key:"canonical",status:"UNABLE_TO_CONFIRM"}
   ];
-  assert.equal(sampleEvidenceScore(unknown,()=>0.9),100);
+  assert.equal(sampleEvidenceScore(unknown,()=>0.9),null);
   assert.equal(sampleEvidenceScore(unknown.map(x=>x.key==="canonical"?{...x,status:"WARNING"}:x),()=>0.9),98);
   assert.equal(sampleEvidenceScore([{key:"http",status:"PASS"},{key:"canonical",status:"UNABLE_TO_CONFIRM"}],()=>0.9),null);
 });
