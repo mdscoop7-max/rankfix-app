@@ -153,3 +153,24 @@ export async function readResponsePrefix(response: Response, maxBytes = 1_500_00
   for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
   return new TextDecoder("utf-8").decode(bytes);
 }
+
+// For huge representative pages, keep their complete HTML head instead of
+// dropping the whole URL. Body-dependent checks must remain unconfirmed when
+// partial=true; this helper never claims to have fetched the entire document.
+export async function readHtmlSampleHeadFirst(response: Response, maxBytes = 2_000_000): Promise<{
+  html:string; partial:boolean; headComplete:boolean;
+}> {
+  const declared = Number(response.headers.get("content-length") || 0);
+  if (declared > 0 && declared <= maxBytes) {
+    const html = await readResponseTextLimited(response, maxBytes);
+    return {html,partial:false,headComplete:/<\/head\s*>/i.test(html)};
+  }
+  // Prefix sampling is intentionally byte-bounded even without Content-Length.
+  const prefix = await readResponsePrefix(response, maxBytes);
+  const partial = declared > maxBytes || Buffer.byteLength(prefix, "utf8") >= maxBytes - 4;
+  if (!partial) return {html:prefix,partial:false,headComplete:/<\/head\s*>/i.test(prefix)};
+  const end = prefix.search(/<\/head\s*>/i);
+  if (end < 0) throw new Error("RESPONSE_TOO_LARGE_NO_HEAD");
+  const endTag = prefix.slice(end).match(/^<\/head\s*>/i)?.[0] || "</head>";
+  return {html:prefix.slice(0,end+endTag.length),partial:true,headComplete:true};
+}
