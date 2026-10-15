@@ -15,7 +15,7 @@ import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, fi
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readHtmlSampleHeadFirst, readResponsePrefix, readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
-import { applyEvidenceBasedScoreCap, SCORE_MODEL_VERSION, scoreApplicableChecks, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
+import { applyEvidenceBasedScoreCap, stableCoreChecks, SCORE_MODEL_VERSION, scoreApplicableChecks, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
 import { isPaidPlan, normalizePlan, planLimits } from "@/lib/plans";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
@@ -3505,8 +3505,8 @@ export async function POST(request: Request) {
     applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate, rendered:javascriptExecuted, url:finalUrl.toString() });
     const selectedSeoChecks = mode === "geo" ? [] : seoChecks;
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
-    let selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);
-    let selectedGeoScore = scoreApplicableChecks(selectedGeoChecks);
+    let selectedSeoScore = scoreApplicableChecks(stableCoreChecks(selectedSeoChecks,"seo"));
+    let selectedGeoScore = scoreApplicableChecks(stableCoreChecks(selectedGeoChecks,"geo"));
     selectedSeoScore = applyEvidenceBasedScoreCap(selectedSeoScore, selectedSeoChecks);
     selectedGeoScore = applyEvidenceBasedScoreCap(selectedGeoScore, selectedGeoChecks);
     let selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
@@ -3530,7 +3530,9 @@ export async function POST(request: Request) {
       seoRange: seoScoreRange,
       geoRange: geoScoreRange,
       provisional: overallCoverage.coveragePercent < 90,
-      note: "Niet te bevestigen telt niet als bewezen fout, maar beperkte bewijsdekking kan de getoonde score begrenzen. N.v.t. is uitgesloten. Het bereik toont de conservatieve en optimistische grens voor nog onbevestigd bewijs.",
+      note: "De totaalscore gebruikt een vaste kernset. Aanvullende sectorcontroles worden apart getoond. Onbevestigd bewijs veroorzaakt geen verborgen puntenaftrek; dekking en voorlopig scorebereik staan ernaast.",
+      stableCore: {seo:stableCoreChecks(selectedSeoChecks,"seo").length,geo:stableCoreChecks(selectedGeoChecks,"geo").length},
+      coverageAdjustment: 0,
     };
     const scanSummary = summarizeAuditChecks(checks);
     const propertyListingPage = sectorProfile.sector === "real_estate" && (/\/(?:woningaanbod|residential-listings)\/(?:koop|huur|sale|rent)\//i.test(pathname) || /\b(?:te koop|te huur|for sale|for rent)\b/i.test(title));
@@ -4693,8 +4695,8 @@ export async function POST(request: Request) {
     applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate, rendered:javascriptExecuted, url:finalUrl.toString() });
     // Final score is calculated only after representative evidence reconciliation.
     // Reapply evidence coverage caps: this second scoring pass must not erase them.
-    selectedSeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(selectedSeoChecks), selectedSeoChecks);
-    selectedGeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(selectedGeoChecks), selectedGeoChecks);
+    selectedSeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(stableCoreChecks(selectedSeoChecks,"seo")), stableCoreChecks(selectedSeoChecks,"seo"));
+    selectedGeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(stableCoreChecks(selectedGeoChecks,"geo")), stableCoreChecks(selectedGeoChecks,"geo"));
     selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
     selectedOverallScore = applyEvidenceBasedScoreCap(selectedOverallScore, checks);
     seoCoverage = weightedCoverage(selectedSeoChecks);
@@ -4704,6 +4706,7 @@ export async function POST(request: Request) {
     scoreModel.seoRange = scoreRange(selectedSeoChecks);
     scoreModel.geoRange = scoreRange(selectedGeoChecks);
     scoreModel.provisional = overallCoverage.coveragePercent < 90;
+    scoreModel.coverageAdjustment = 0;
     scoreModel.breakdown = scoreBreakdown(checks);
 
     const classification = {
