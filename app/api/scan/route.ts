@@ -4581,8 +4581,9 @@ export async function POST(request: Request) {
     }
 
     // Final score is calculated only after representative evidence reconciliation.
-    selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);
-    selectedGeoScore = scoreApplicableChecks(selectedGeoChecks);
+    // Reapply evidence coverage caps: this second scoring pass must not erase them.
+    selectedSeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(selectedSeoChecks), selectedSeoChecks);
+    selectedGeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(selectedGeoChecks), selectedGeoChecks);
     selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
     selectedOverallScore = applyEvidenceBasedScoreCap(selectedOverallScore, checks);
     seoCoverage = weightedCoverage(selectedSeoChecks);
