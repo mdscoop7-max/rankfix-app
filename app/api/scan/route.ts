@@ -4099,6 +4099,11 @@ export async function POST(request: Request) {
     // Commerce can be secondary to a proven service identity. Cart/checkout
     // navigation or a shop shell alone is not hard retail evidence.
     const representativeRetailProduct = auditedMultiPages.some((item)=>item.type==="product" && Boolean(item.commerceEvidence?.product));
+    const verifiedRepresentativeProductDetail = auditedMultiPages.some((item)=>item.type==="product" &&
+      Boolean(item.commerceEvidence?.productSchema && item.commerceEvidence?.product));
+    const verifiedRepresentativePurchase = auditedMultiPages.some((item)=>item.type==="product" &&
+      Boolean(item.commerceEvidence?.productSchema && item.commerceEvidence?.strongCommerceAction &&
+        item.commerceEvidence?.product?.price && item.commerceEvidence?.product?.currency));
     // Hard commerce requires confirmed evidence. A product-looking URL is only
     // a medium-confidence hint and must never activate retail modules by itself.
     const confirmedCurrentProduct = scanEvidence.commerce.productPage.value &&
@@ -4116,7 +4121,7 @@ export async function POST(request: Request) {
       (confirmedCurrentProduct && scanEvidence.commerce.checkout.value && scanEvidence.commerce.checkout.confidence === "high") ||
       (representativeRetailProduct && scanEvidence.commerce.cart.value && scanEvidence.commerce.cart.confidence === "high");
     const hardCommerceEvidence = telecomProviderIdentity
-      ? Boolean(verifiedRetailPurchase)
+      ? Boolean(verifiedRetailPurchase || verifiedRepresentativePurchase)
       : sitewideCommerceEvidence.confirmed || representativeRetailProduct || Boolean(
           confirmedCurrentProduct ||
           confirmedAddToCart ||
@@ -4140,6 +4145,7 @@ export async function POST(request: Request) {
       thinShell: thinRawHtmlEvidence,
       marketSelector: marketSelectorPage,
       auditedRepresentativePages: representativeAuditedPageCount,
+      verifiedSecondaryCommerce: Boolean(sitewideCommerceEvidence.confirmed || verifiedRepresentativeProductDetail),
     });
     if (!finalCommerceDecision.confirmed && primaryNonCommerceIdentity) {
       masterEvidence.commerce.confirmed = false;
@@ -4210,6 +4216,7 @@ export async function POST(request: Request) {
       checkout: Boolean(scanEvidence.commerce.checkout.value && scanEvidence.commerce.checkout.confidence === "high"),
       merchantFeed: false, // No merchant feed may be inferred from generic commerce signals.
       euMarket: Boolean(euMarketEligible),
+      secondaryRetailDetail: verifiedRepresentativeProductDetail,
     });
     const allowedCommerceModules = new Set(motorCommerceModules);
     // A transaction on a secondary page does not redefine the site's primary type.
@@ -4234,6 +4241,14 @@ export async function POST(request: Request) {
     } else {
       sectorProfile.applicableModules = sectorProfile.applicableModules.filter((module)=>!allCommerceModules.has(module));
       masterEvidence.activeModules = masterEvidence.activeModules.filter((module)=>!allCommerceModules.has(module));
+      // A telecom/service identity does not erase independently proven Product
+      // metadata; it only prevents claims about an unverified retail checkout.
+      if (verifiedRepresentativeProductDetail) {
+        for (const module of motorCommerceModules.filter((value)=>value==="product" || value==="pricing_currency")) {
+          if (!sectorProfile.applicableModules.includes(module)) sectorProfile.applicableModules.push(module);
+          if (!masterEvidence.activeModules.includes(module)) masterEvidence.activeModules.push(module);
+        }
+      }
     }
     // Re-run only clearly contradicted/underspecified primary identity decisions
     // with representative evidence. Secondary topics can never override a strong
@@ -4568,7 +4583,7 @@ export async function POST(request: Request) {
       message: finalCommerceApplicability.state === "confirmed" ? "Product-, prijs- of winkelwagenbewijs bevestigd." : COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason],
     };
     const representativeProductPage = auditedMultiPages.find((item)=>item.type==="product" && item.commerceEvidence?.product);
-    if (finalCommerceDecision.confirmed && representativeProductPage?.commerceEvidence?.product) {
+    if ((finalCommerceDecision.confirmed || verifiedRepresentativeProductDetail) && representativeProductPage?.commerceEvidence?.product) {
       const product = representativeProductPage.commerceEvidence.product;
       const sourceCount = [product.name,product.image,product.sku,product.price&&product.currency,product.availability].filter(Boolean).length;
       // Diagnostics are consumers of Scanbewijs too. A representative product
@@ -4593,7 +4608,7 @@ export async function POST(request: Request) {
         if ((item.key==="product_availability" || item.key==="product_availability_consistency") && product.availability) {
           Object.assign(item, check("pass",item.key,item.category==="geo"?"geo":"seo","Productvoorraad",`Een representatieve productpagina bevat een expliciet structured availability-signaal: ${product.availability}.`,"Houd zichtbare voorraad en Product/Offer structured data consistent.",item.maxPoints,item.maxPoints));
         }
-        if (item.key==="merchant_product_readiness" && sourceCount>=4) {
+        if (item.key==="merchant_product_readiness" && finalCommerceDecision.confirmed && sourceCount>=4) {
           Object.assign(item, check("pass","merchant_product_readiness",item.category==="geo"?"geo":"seo","Merchant Center productbasis","Representatieve product-evidence bevestigt naam, afbeelding en meerdere machineleesbare Product/Offer-velden.","Houd productpagina en eventuele Merchant-feed consistent; RankFix bevestigt hiermee geen Merchant Center-goedkeuring.",item.maxPoints,item.maxPoints));
         }
       }
@@ -4667,13 +4682,17 @@ export async function POST(request: Request) {
       (titleAggregation as typeof titleAggregation & { templatePattern?: unknown }).templatePattern = sitewideTitlePattern;
     }
 
+    const scoredSamplePages = auditedRawPages.filter((item)=>item.score!==null);
+    const excludedNoindexPages = multiPageAudits.filter((item)=>item.evidenceChecks?.some((e)=>e.key==="noindex")).length;
     const multiPage = {
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:representativePageLimit,
       discoveredInternalUrls:discoveredMultiPage.length, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,
-      siteSampleScore: auditedRawPages.length ? Math.round(auditedRawPages.reduce((sum,item)=>sum+(item.score||0),0)/auditedRawPages.length) : null,
+      siteSampleScore: scoredSamplePages.length ? Math.round(scoredSamplePages.reduce((sum,item)=>sum+(item.score||0),0)/scoredSamplePages.length) : null,
       siteSampleCoverage: {
         selected: multiPageAudits.length,
         checked: auditedRawPages.length,
+        scored: scoredSamplePages.length,
+        excludedNoindex: excludedNoindexPages,
         unableToConfirm: multiPageAudits.length-auditedRawPages.length,
         coveragePercent: multiPageAudits.length ? Math.round((auditedRawPages.length/multiPageAudits.length)*100) : 0,
         provisional: multiPageAudits.length > 0 && auditedRawPages.length < multiPageAudits.length,
@@ -4693,7 +4712,7 @@ export async function POST(request: Request) {
         productSample: multiPageCapabilities.productSample,
         categorySample: multiPageCapabilities.categorySample,
       },
-      counts:{ homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, form:uniqueMultiPagePages.filter((x)=>x.type==="form").length, legal:uniqueMultiPagePages.filter((x)=>x.type==="legal").length, service:uniqueMultiPagePages.filter((x)=>x.type==="service").length, listing:uniqueMultiPagePages.filter((x)=>x.type==="listing").length, support:uniqueMultiPagePages.filter((x)=>x.type==="support").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
+      counts:{ selected:multiPageAudits.length, scored:scoredSamplePages.length, excludedNoindex:excludedNoindexPages, homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, form:uniqueMultiPagePages.filter((x)=>x.type==="form").length, legal:uniqueMultiPagePages.filter((x)=>x.type==="legal").length, service:uniqueMultiPagePages.filter((x)=>x.type==="service").length, listing:uniqueMultiPagePages.filter((x)=>x.type==="listing").length, support:uniqueMultiPagePages.filter((x)=>x.type==="support").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
       note:"Representative same-host pages are fetched with bounded checks. Their sample score is separate from the explicitly scanned page score; site-level evidence may strengthen identity/capabilities, but page-specific failures still require direct proof.",
     };
 
