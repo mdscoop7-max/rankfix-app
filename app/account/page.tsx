@@ -138,6 +138,8 @@ export default function Account() {
             )}
 
             {error&&<div role="alert" className="rounded-xl bg-red-500/10 p-3 text-sm text-red-200">{error}</div>}
+            {mode==="login"&&<div className="rounded-xl border border-slate-700/70 p-3 text-sm text-slate-300"><p className="font-semibold">{({nl:"Hulp nodig bij inloggen?",en:"Need help signing in?",de:"Hilfe bei der Anmeldung?",fr:"Besoin d’aide pour vous connecter ?",it:"Hai bisogno di aiuto per accedere?",es:"¿Necesitas ayuda para iniciar sesión?"} as Record<Locale,string>)[language]}</p><div className="mt-2 flex flex-wrap gap-x-4 gap-y-2"><a className="text-emerald-300 underline" href={`/account/forgot-password?lang=${language}`}>{({nl:"Wachtwoord herstellen",en:"Reset your password",de:"Passwort zurücksetzen",fr:"Réinitialiser le mot de passe",it:"Reimposta password",es:"Restablecer contraseña"} as Record<Locale,string>)[language]}</a><a className="text-emerald-300 underline" href={`/${language}/contact`}>{({nl:"Stuur een bericht naar support",en:"Contact support",de:"Support kontaktieren",fr:"Contacter l’assistance",it:"Contatta l’assistenza",es:"Contactar soporte"} as Record<Locale,string>)[language]}</a></div></div>}
+
 
             <button disabled={busy} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-4 py-3 font-bold text-[#04342C] disabled:opacity-50">
               {busy?t.busy:mode==="register"?t.submitRegister:t.submitLogin}
