@@ -8,6 +8,7 @@
 
 export type RenderFailureCode =
   | "BROWSER_UNAVAILABLE"
+  | "RENDER_BUSY"
   | "RENDER_TIMEOUT"
   | "RENDER_BLOCKED"
   | "RENDER_DEGRADED"
@@ -16,7 +17,8 @@ export type RenderFailureCode =
 
 export function renderFailureCode(error: unknown): RenderFailureCode {
   const message = error instanceof Error ? error.message : String(error ?? "");
-  if (/could not find (?:chrome|chromium|expected browser)|failed to launch|browser was not found|executable doesn'?t exist|no usable sandbox|ENOENT.*chrom/i.test(message)) return "BROWSER_UNAVAILABLE";
+  if (/RENDER_CHROME_NOT_INSTALLED|could not find (?:chrome|chromium|expected browser)|failed to launch|browser was not found|executable doesn'?t exist|no usable sandbox|ENOENT.*chrom/i.test(message)) return "BROWSER_UNAVAILABLE";
+  if (/RENDER_BUSY/.test(message)) return "RENDER_BUSY";
   if (/timeout|timed out|navigation.*exceeded/i.test(message)) return "RENDER_TIMEOUT";
   if (/URL_HOST_BLOCKED|URL_PROTOCOL_BLOCKED|DNS|ERR_BLOCKED|net::ERR_ACCESS_DENIED|403/i.test(message)) return "RENDER_BLOCKED";
   if (/RENDER_DEGRADED/.test(message)) return "RENDER_DEGRADED";
@@ -26,6 +28,7 @@ export function renderFailureCode(error: unknown): RenderFailureCode {
 
 const RENDER_FAILURE_COPY: Record<RenderFailureCode, string> = {
   BROWSER_UNAVAILABLE: "de browser-rendering was tijdens deze scan tijdelijk niet beschikbaar",
+  RENDER_BUSY: "de browser-rendering had tijdelijk onvoldoende capaciteit",
   RENDER_TIMEOUT: "de pagina laadde niet binnen de tijdslimiet van de browser-rendering",
   RENDER_BLOCKED: "de website blokkeerde de browser-rendering",
   RENDER_DEGRADED: "de browserversie bevatte minder inhoud dan de HTML-versie",
@@ -161,8 +164,10 @@ export function assessPageTitle(title: string, host: string, now: Date = new Dat
   }
   const duplicate = duplicateTitleSegment(value);
   const length = value.length;
-  const inRange = titleLengthDistance(length) === 0;
-  const lengthText = inRange ? `Title gevonden (${length} tekens); binnen richtwaarde 30–60.` : `Title gevonden (${length} tekens); buiten richtwaarde 30–60.`;
+  // Google truncates by rendered pixel width, not by a fixed character count.
+  // Treat length alone as advice, not a demonstrated ranking defect.
+  const extremeLength = length < 15 || length > 110;
+  const lengthText = `Title gevonden (${length} tekens). De weergave in zoekresultaten hangt af van de pixelbreedte, niet van een harde tekengrens.`;
   if (duplicate) {
     return { status: "WARNING", credit: Math.min(0.8, titleLengthCredit(length)), details: `${lengthText} "${duplicate}" staat dubbel in de title; waarschijnlijk voegt het template het merk een tweede keer toe.`, flag: "duplicate_segment" };
   }
@@ -170,9 +175,9 @@ export function assessPageTitle(title: string, host: string, now: Date = new Dat
   if (oldYear) {
     return { status: "WARNING", credit: Math.min(0.85, titleLengthCredit(length)), details: `${lengthText} De title noemt het jaar ${oldYear}; dat oogt verouderd in zoekresultaten.`, flag: "outdated_year" };
   }
-  return inRange
-    ? { status: "PASS", credit: 1, details: lengthText }
-    : { status: "WARNING", credit: titleLengthCredit(length), details: lengthText };
+  return extremeLength
+    ? { status: "WARNING", credit: 0.95, details: `${lengthText} Controleer de daadwerkelijke zoekpreview.` }
+    : { status: "PASS", credit: 1, details: lengthText };
 }
 
 export function assessPageDescription(description: string, tagPresent: boolean): MetaAssessment {
