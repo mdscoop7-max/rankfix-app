@@ -4191,6 +4191,13 @@ export async function POST(request: Request) {
       euMarket: Boolean(euMarketEligible),
     });
     const allowedCommerceModules = new Set(motorCommerceModules);
+    // A transaction on a secondary page does not redefine the site's primary type.
+    // Keep site type consistent with the central sector motor, for every service sector.
+    if (primaryNonCommerceIdentity && technologyProfile.siteType === "Webshop") {
+      technologyProfile.siteType = "Website";
+      technologyProfile.isCommerce = false;
+      technologyProfile.evidence = [...technologyProfile.evidence, "Secundaire transactiefuncties wijzigen de primaire dienstverlenersidentiteit niet."].slice(0,8);
+    }
     sectorProfile.applicableModules = sectorProfile.applicableModules.filter((module)=>!allCommerceModules.has(module) || allowedCommerceModules.has(module));
     masterEvidence.activeModules = masterEvidence.activeModules.filter((module)=>!allCommerceModules.has(module) || allowedCommerceModules.has(module));
     if (finalCommerceDecision.confirmed) {
