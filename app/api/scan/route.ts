@@ -3513,17 +3513,17 @@ export async function POST(request: Request) {
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
     let selectedSeoScore = scoreApplicableChecks(stableCoreChecks(selectedSeoChecks,"seo"));
     let selectedGeoScore = scoreApplicableChecks(stableCoreChecks(selectedGeoChecks,"geo"));
-    selectedSeoScore = applyEvidenceBasedScoreCap(selectedSeoScore, selectedSeoChecks);
-    selectedGeoScore = applyEvidenceBasedScoreCap(selectedGeoScore, selectedGeoChecks);
+    selectedSeoScore = applyEvidenceBasedScoreCap(selectedSeoScore, stableCoreChecks(selectedSeoChecks,"seo"));
+    selectedGeoScore = applyEvidenceBasedScoreCap(selectedGeoScore, stableCoreChecks(selectedGeoChecks,"geo"));
     let selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
-    selectedOverallScore = applyEvidenceBasedScoreCap(selectedOverallScore, [...selectedSeoChecks, ...selectedGeoChecks]);
+    selectedOverallScore = applyEvidenceBasedScoreCap(selectedOverallScore, [...stableCoreChecks(selectedSeoChecks,"seo"),...stableCoreChecks(selectedGeoChecks,"geo")]);
     const checks = [...selectedSeoChecks, ...selectedGeoChecks];
     let seoCoverage = weightedCoverage(selectedSeoChecks);
     let geoCoverage = weightedCoverage(selectedGeoChecks);
     let overallCoverage = weightedCoverage(checks);
-    const seoScoreRange = scoreRange(selectedSeoChecks);
-    const geoScoreRange = scoreRange(selectedGeoChecks);
-    const overallScoreRange = scoreRange(checks);
+    const seoScoreRange = scoreRange(stableCoreChecks(selectedSeoChecks,"seo"));
+    const geoScoreRange = scoreRange(stableCoreChecks(selectedGeoChecks,"geo"));
+    const overallScoreRange = scoreRange([...stableCoreChecks(selectedSeoChecks,"seo"),...stableCoreChecks(selectedGeoChecks,"geo")]);
     const scoreModel = {
       version: SCORE_MODEL_VERSION,
       breakdown: scoreBreakdown(checks),
@@ -4706,13 +4706,13 @@ export async function POST(request: Request) {
     selectedSeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(stableCoreChecks(selectedSeoChecks,"seo")), stableCoreChecks(selectedSeoChecks,"seo"));
     selectedGeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(stableCoreChecks(selectedGeoChecks,"geo")), stableCoreChecks(selectedGeoChecks,"geo"));
     selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
-    selectedOverallScore = applyEvidenceBasedScoreCap(selectedOverallScore, checks);
+    selectedOverallScore = applyEvidenceBasedScoreCap(selectedOverallScore, [...stableCoreChecks(selectedSeoChecks,"seo"),...stableCoreChecks(selectedGeoChecks,"geo")]);
     seoCoverage = weightedCoverage(selectedSeoChecks);
     geoCoverage = weightedCoverage(selectedGeoChecks);
     overallCoverage = weightedCoverage(checks);
-    scoreModel.range = scoreRange(checks);
-    scoreModel.seoRange = scoreRange(selectedSeoChecks);
-    scoreModel.geoRange = scoreRange(selectedGeoChecks);
+    scoreModel.range = scoreRange([...stableCoreChecks(selectedSeoChecks,"seo"),...stableCoreChecks(selectedGeoChecks,"geo")]);
+    scoreModel.seoRange = scoreRange(stableCoreChecks(selectedSeoChecks,"seo"));
+    scoreModel.geoRange = scoreRange(stableCoreChecks(selectedGeoChecks,"geo"));
     scoreModel.provisional = overallCoverage.coveragePercent < 90;
     scoreModel.coverageAdjustment = 0;
     scoreModel.breakdown = scoreBreakdown(checks);
@@ -4749,7 +4749,7 @@ export async function POST(request: Request) {
       const passes = proven.filter((item)=>item.status==="PASS");
       return {
         key,
-        status: warnings.length ? "WARNING" as const : observations.length > 0 && passes.length===observations.length ? "PASS" as const : "UNABLE_TO_CONFIRM" as const,
+        status: warnings.length ? "WARNING" as const : auditedRawPages.length > 0 && passes.length===auditedRawPages.length ? "PASS" as const : "UNABLE_TO_CONFIRM" as const,
         checkedPages: auditedRawPages.length,
         provenPages: proven.length,
         unconfirmedPages: auditedRawPages.length - proven.length,
