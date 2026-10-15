@@ -15,6 +15,7 @@ export function refineSamplePageType(input: {
   articleSchema?: boolean;
   breadcrumbDepth?: number;
   path?: string;
+  serviceOffer?: boolean;
 }): SamplePageType {
   const { proposed } = input;
   if (["homepage", "legal", "support", "form", "contact"].includes(proposed)) return proposed;
@@ -35,7 +36,7 @@ export function refineSamplePageType(input: {
       !input.repeatedProductLinks) return "product";
   if ((proposed === "other" || proposed === "product") && (input.itemListSchema || input.repeatedProductLinks || (input.breadcrumbDepth || 0) >= 3 && input.visiblePrices > 1))
     return "category";
-  if (proposed === "other" && /\/(?:diensten?|services?|solutions?|oplossingen?|behandelingen?)\//i.test(path)) return "service";
+  if (proposed === "other" && (input.serviceOffer || /\/(?:diensten?|services?|solutions?|oplossingen?|behandelingen?)\//i.test(path))) return "service";
   return proposed;
 }
 
