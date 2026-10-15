@@ -150,7 +150,7 @@ export function applyEvidenceBasedScoreCap(score: number, items: ScoreCapCheck[]
   const assessedWeight = relevant.filter((item) => item.issue_status !== "UNABLE_TO_CONFIRM").reduce((sum, item) => sum + Math.max(0, item.maxPoints), 0);
   const coveragePercent = totalWeight ? Math.round(assessedWeight / totalWeight * 100) : 0;
   const coverage = {totalWeight, coveragePercent};
-  if (coverage.totalWeight > 0 && coverage.coveragePercent < 50) return Math.min(score, 79);
+  if (coverage.totalWeight > 0 && coverage.coveragePercent <= 50) return Math.min(score, 79);
   if (coverage.totalWeight > 0 && coverage.coveragePercent < 70) return Math.min(score, 89);
   if (coverage.totalWeight > 0 && coverage.coveragePercent < 90) return Math.min(score, 95);
   return score;
