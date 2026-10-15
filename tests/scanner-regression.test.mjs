@@ -90,7 +90,7 @@ test("scanner regression source keeps evidence-only classification safeguards", 
   assert.match(source, /Een individuele auteur is niet vereist op een organisatie-, dienst- of merkhomepage/);
   // Representative-page meta wording lives in lib/report-quality.ts.
   const quality = await readFile(new URL("../lib/report-quality.ts", import.meta.url), "utf8");
-  assert.match(quality, /buiten richtwaarde 30–60/);
+  assert.match(quality, /pixelbreedte, niet van een harde tekengrens/);
   assert.match(quality, /uitzonderlijk kort/);
   assert.match(quality, /uitzonderlijk lang/);
   assert.match(source, /assessPageTitle\(pageTitle, finalCandidate\.hostname\)/);
@@ -207,9 +207,9 @@ test("multi-page canonical absence uses the same evidence semantics as the main 
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   assert.match(source, /key:"canonical",status:pageCanonical[\s\S]*?: "WARNING"/);
-  assert.match(source, /Geen canonical-linkelement gevonden in de gecontroleerde raw HTML/);
+  assert.match(source, /Geen expliciete canonical gevonden; dit is niet automatisch een indexeringsprobleem/);
   assert.doesNotMatch(source, /afwezigheid wordt hier niet als bewezen fout gescoord/);
-  assert.match(source, /item\.key === "canonical"\) return pageCanonical \? 0\.7 : 0\.35/);
+  assert.match(source, /item\.key === "canonical"\) return pageCanonical \? 0\.85 : 0\.9/);
 });
 
 
@@ -288,8 +288,8 @@ test("measurable metadata defects use gradual penalties", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   assert.match(source, /const titleLengthPoints = \(length: number\) =>/);
-  assert.match(source, /length >= 25 && length <= 65\) return 8/);
-  assert.match(source, /length >= 20 && length <= 70\) return 6/);
+  assert.match(source, /length >= 15 && length <= 110 \? 10 : 9/);
+  assert.match(source, /pixelbreedte; 30–60 tekens is geen harde SEO-eis/);
   assert.match(source, /titleLengthPoints\(title\.length\), 10/);
   assert.match(source, /Math\.max\(1, 4 - Math\.min\(3, missingOpenGraphFields\.length \+ invalidOpenGraphFields\.length\)\), 4/);
   assert.match(source, /title: \{ rule_id: title \? "META_TITLE_GUIDANCE" : "META_TITLE_MISSING"/);
