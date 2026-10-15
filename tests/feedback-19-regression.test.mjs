@@ -159,3 +159,21 @@ test("limited audits explain a rescan action, render attempt count, typed sample
  assert.match(route,/templateSummary:/);
  assert.match(route,/attempts: primaryRenderAttempts/);
 });
+
+
+test("raw SSR head metadata remains provable after JS navigation, while client-added metadata is retained",async()=>{
+ const {preserveRawHeadEvidence,renderIsErrorState}=await import("../lib/render-quality.ts");
+ const raw='<html><head><title>SSR</title><link rel="canonical" href="https://site.example/"><meta name="description" content="Server"><script type="application/ld+json">{"@type":"WebSite"}</script></head><body><h1>Original</h1></body></html>';
+ const rendered='<html><head><title>Hydrated</title><meta property="og:title" content="OG Client"></head><body><h1>Hydrated</h1></body></html>';
+ const combined=preserveRawHeadEvidence(raw,rendered);
+ assert.match(combined,/canonical/);
+ assert.match(combined,/description/);
+ assert.match(combined,/application\/ld\+json/);
+ assert.match(combined,/og:title/);
+ assert.match(combined,/<title>Hydrated<\/title>/);
+ assert.equal(renderIsErrorState(raw,rendered),false);
+ assert.equal(renderIsErrorState(raw,rendered.replace("Hydrated</title>","Error</title>")),true);
+ const jsOnlyCanonical='<html><head><title>Client</title><link rel="canonical" href="https://site.example/dynamic"></head><body>client</body></html>';
+ assert.match(preserveRawHeadEvidence('<html><head></head><body>shell</body></html>',jsOnlyCanonical),/canonical/);
+ assert.equal((preserveRawHeadEvidence(raw,jsOnlyCanonical).match(/rel="canonical"/g)||[]).length,1);
+});
