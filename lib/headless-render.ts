@@ -102,7 +102,7 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
       if (process.env.RANKFIX_CHROME_NO_SANDBOX === "1") args.push("--no-sandbox", "--disable-setuid-sandbox");
     } else {
       const local = (await import("puppeteer")).default;
-      executablePath = local.executablePath();
+      executablePath = await local.executablePath();
     }
     try {
       const { access } = await import("node:fs/promises");
