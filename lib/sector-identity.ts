@@ -69,3 +69,19 @@ export const TOURISM_ACTIVITY_PATTERN = /\b(?:agenda|evenementen|events|overnach
 export function isTourismBoardHost(hostname: string): boolean {
   return /^(?:www\.)?visit[a-z-]{3,}\.[a-z.]+$/i.test(hostname);
 }
+
+/**
+ * Independent subscription/provider identity evidence. A generic "internet"
+ * or incidental product price alone is not enough to classify a company as
+ * telecom. This operates on title, description, heading and URL identity, not
+ * the full navigation/footer text; retail schema is checked by the caller.
+ */
+const TELECOM_PLAN_IDENTITY = /\b(?:sim[ -]?only|data[ -]?only|mobiele? abonnementen?|mobiel(?:e)? abonnement(?:en)?|internetabonnement(?:en)?|mobile plans?|mobile subscriptions?|broadband plans?|subscription plans?)\b/i;
+const TELECOM_NETWORK_IDENTITY = /\b(?:glasvezel|fiber|fibre|network coverage|netwerk(?:dekking)?|dekkingskaart|dekking|5g|4g|broadband|mobiel netwerk|mobile network|internetverbinding)\b/i;
+const TELECOM_OPERATOR_IDENTITY = /\b(?:telecom(?:provider)?|telecommunications?|telefoonprovider|internetprovider|mobiele? provider|mobile operator|network operator|broadband provider)\b/i;
+export function telecomOperatorIdentity(identitySource: string) {
+  const subscription = TELECOM_PLAN_IDENTITY.test(identitySource);
+  const network = TELECOM_NETWORK_IDENTITY.test(identitySource);
+  const provider = TELECOM_OPERATOR_IDENTITY.test(identitySource);
+  return { subscription, network, provider, primary: (subscription && network) || (provider && (subscription || network)) };
+}
