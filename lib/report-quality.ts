@@ -166,14 +166,13 @@ export function assessPageTitle(title: string, host: string, now: Date = new Dat
   const length = value.length;
   // Google truncates by rendered pixel width, not by a fixed character count.
   // Treat length alone as advice, not a demonstrated ranking defect.
-  const extremeLength = length < 15 || length > 110;
   const lengthText = `Title gevonden (${length} tekens). De weergave in zoekresultaten hangt af van de pixelbreedte, niet van een harde tekengrens.`;
   if (duplicate) {
-    return { status: "WARNING", credit: Math.min(0.8, titleLengthCredit(length)), details: `${lengthText} "${duplicate}" staat dubbel in de title; waarschijnlijk voegt het template het merk een tweede keer toe.`, flag: "duplicate_segment" };
+    return { status: "WARNING", credit: 0.8, details: `${lengthText} "${duplicate}" staat dubbel in de title; waarschijnlijk voegt het template het merk een tweede keer toe.`, flag: "duplicate_segment" };
   }
   const oldYear = outdatedTitleYear(value, now);
   if (oldYear) {
-    return { status: "WARNING", credit: Math.min(0.85, titleLengthCredit(length)), details: `${lengthText} De title noemt het jaar ${oldYear}; dat oogt verouderd in zoekresultaten.`, flag: "outdated_year" };
+    return { status: "WARNING", credit: 0.85, details: `${lengthText} De title noemt het jaar ${oldYear}; dat oogt verouderd in zoekresultaten.`, flag: "outdated_year" };
   }
   // Only a rendered-browser measurement can justify a length-related score deduction.
   // Approximate SERP font width is not a guarantee of Google's actual snippet.
