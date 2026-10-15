@@ -35,6 +35,7 @@ test("representative JS pages render only when raw HTML lacks substantial conten
   assert.equal(needs({ visibleWords: 30, scriptCount: 9, frameworkSignal: false }), true);
   assert.equal(needs({ visibleWords: 110, scriptCount: 5, frameworkSignal: true }), true);
   assert.equal(needs({ visibleWords: 1100, scriptCount: 20, frameworkSignal: true }), false);
+  assert.equal(needs({ visibleWords: 1100, scriptCount: 20, frameworkSignal: true, dynamicEvidenceRelevant: true }), true);
   assert.equal(needs({ visibleWords: 600, scriptCount: 2, frameworkSignal: false }), false);
   assert.equal(needs({ visibleWords: 35, scriptCount: 1, frameworkSignal: false }), false);
 });
