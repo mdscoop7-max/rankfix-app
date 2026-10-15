@@ -164,8 +164,10 @@ export function assessPageTitle(title: string, host: string, now: Date = new Dat
   }
   const duplicate = duplicateTitleSegment(value);
   const length = value.length;
-  const inRange = titleLengthDistance(length) === 0;
-  const lengthText = inRange ? `Title gevonden (${length} tekens); binnen richtwaarde 30–60.` : `Title gevonden (${length} tekens); buiten richtwaarde 30–60.`;
+  // Google truncates by rendered pixel width, not by a fixed character count.
+  // Treat length alone as advice, not a demonstrated ranking defect.
+  const extremeLength = length < 15 || length > 110;
+  const lengthText = `Title gevonden (${length} tekens). De weergave in zoekresultaten hangt af van de pixelbreedte, niet van een harde tekengrens.`;
   if (duplicate) {
     return { status: "WARNING", credit: Math.min(0.8, titleLengthCredit(length)), details: `${lengthText} "${duplicate}" staat dubbel in de title; waarschijnlijk voegt het template het merk een tweede keer toe.`, flag: "duplicate_segment" };
   }
@@ -173,9 +175,9 @@ export function assessPageTitle(title: string, host: string, now: Date = new Dat
   if (oldYear) {
     return { status: "WARNING", credit: Math.min(0.85, titleLengthCredit(length)), details: `${lengthText} De title noemt het jaar ${oldYear}; dat oogt verouderd in zoekresultaten.`, flag: "outdated_year" };
   }
-  return inRange
-    ? { status: "PASS", credit: 1, details: lengthText }
-    : { status: "WARNING", credit: titleLengthCredit(length), details: lengthText };
+  return extremeLength
+    ? { status: "WARNING", credit: 0.95, details: `${lengthText} Controleer de daadwerkelijke zoekpreview.` }
+    : { status: "PASS", credit: 1, details: lengthText };
 }
 
 export function assessPageDescription(description: string, tagPresent: boolean): MetaAssessment {
