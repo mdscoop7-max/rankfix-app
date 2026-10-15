@@ -3569,7 +3569,7 @@ export async function POST(request: Request) {
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
     type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; schemaTypes?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageAudit = MultiPageCandidate & { partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; schemaTypes?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -3708,7 +3708,7 @@ export async function POST(request: Request) {
           : await safePublicFetch(page.url, { timeoutMs: 8000, maxRedirects: 3, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml" });
         const r = fetched.response;
         const finalCandidate = new URL(fetched.finalUrl.toString());
-        const renderRepresentativeOnce = renderOnce(() => renderPublicPage(finalCandidate.toString(), 10000));
+        const renderRepresentativeOnce = renderOnce(() => renderWithRetry((ms) => renderPublicPage(finalCandidate.toString(), ms), 10000, 6000));
         const finalCandidateHost = normalizeHost(finalCandidate.hostname);
         const sameRegistrableSite = finalCandidateHost === siteHost
           || finalCandidateHost.endsWith(`.${siteHost}`)
@@ -3729,20 +3729,25 @@ export async function POST(request: Request) {
           return { ...page, status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"http",status:"UNABLE_TO_CONFIRM",details:`HTTP ${r.status}; pagina kon niet betrouwbaar als HTML worden beoordeeld na begrensde recovery.`}] };
         }
         // The scanned page already passed the main-page size limit.
-        pageHtml = pageHtml || (isScannedPage ? html : await readResponseTextLimited(r, 2_000_000));
+        const htmlSample = pageHtml
+          ? {html:pageHtml,partial:false,headComplete:true}
+          : isScannedPage ? {html,partial:false,headComplete:true} : await readHtmlSampleHeadFirst(r, 2_000_000);
+        pageHtml = htmlSample.html;
+        let partialHeadOnly = htmlSample.partial;
         // Representative pages need the same JS evidence opportunity as the primary
         // page. Otherwise a Nuxt/Next contact or booking page can look form-less in
         // raw HTML and incorrectly keep site-level capabilities unconfirmed.
         const representativeRawHtml = pageHtml;
         const representativeVisibleWords = stripHtml(representativeRawHtml).split(/\s+/).filter(Boolean).length;
         const representativeScriptCount = (representativeRawHtml.match(/<script\b/gi) || []).length;
-        const representativeJsFramework = /(?:__NEXT_DATA__|\/_next\/|__NUXT__|\/_nuxt\/|data-reactroot|data-react-helmet|shopify|webpackJsonp|__APOLLO_STATE__)/i.test(representativeRawHtml);
+        const representativeJsFramework = isJavaScriptFramework(representativeRawHtml);
         const representativeThinShell = representativeVisibleWords < 80 && representativeScriptCount >= 4;
         if (representativeNeedsJavaScriptRendering({ visibleWords: representativeVisibleWords, scriptCount: representativeScriptCount, frameworkSignal: representativeJsFramework, dynamicEvidenceRelevant: ["form", "product", "listing", "category", "service"].includes(page.type) }) && representativeEvidenceSource !== "rendered_html") {
           try {
             const renderedPage = await renderRepresentativeOnce();
             if (renderImprovesEvidence(representativeVisibleWords, representativeThinShell, renderedPage.html)) {
               pageHtml = renderedPage.html;
+              partialHeadOnly = false;
               representativeEvidenceSource = "rendered_html";
               page.evidence.push("javascript-rendered representative page");
             } else {
@@ -3843,7 +3848,7 @@ export async function POST(request: Request) {
         // A JavaScript application shell that could not be rendered cannot prove a
         // missing title, description, H1 or canonical; those stay unconfirmed.
         const pageClientShell = isClientShell({ visibleWords: pageQualityWords, scriptCount: (pageHtml.match(/<script\b/gi) || []).length, jsFramework: representativeJsFramework, h1Count: pageH1s.length, rendered: representativeEvidenceSource === "rendered_html" });
-        const pageMissingEvidenceUnverified = missingJsHeadEvidenceUnverified({
+        const pageMissingEvidenceUnverified = partialHeadOnly || missingJsHeadEvidenceUnverified({
           frameworkSignal: representativeJsFramework,
           rendered: representativeEvidenceSource === "rendered_html",
           clientShell: pageClientShell,
@@ -3890,7 +3895,7 @@ export async function POST(request: Request) {
           detailIdentity: Boolean(/\b(?:sku|artikelnummer|modelnummer|ean|gtin)\b/i.test(pageHtml.slice(0,250000)) || /\b(?:iphone|galaxy|pixel|smartphone)\b/i.test(pageTitle)),
         });
         const pageSampleScore = sampleEvidenceScore(evidenceChecks, (key) => evidenceCredit(evidenceChecks.find((item)=>item.key===key)!));
-        return { ...page, type:refinedType, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:pageSampleScore, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), schemaTypes:[...new Set(pageSchemaTypes)], formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, productLinks:extractProductDetailLinks(pageHtml, finalCandidate.toString(), siteHost, 8), evidenceChecks };
+        return { ...page, type:refinedType, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:pageSampleScore, partialHead:partialHeadOnly, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), schemaTypes:[...new Set(pageSchemaTypes)], formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, productLinks:extractProductDetailLinks(pageHtml, finalCandidate.toString(), siteHost, 8), evidenceChecks };
       } catch (multiPageError) {
         const rawReason = multiPageError instanceof Error ? multiPageError.message : "FETCH_FAILED";
         const reason = /timeout|abort/i.test(rawReason)
@@ -4693,14 +4698,18 @@ export async function POST(request: Request) {
     }
 
     const scoredSamplePages = auditedRawPages.filter((item)=>item.score!==null);
+    const partialHeadPages = auditedRawPages.filter((item)=>item.partialHead).length;
     const excludedNoindexPages = multiPageAudits.filter((item)=>item.evidenceChecks?.some((e)=>e.key==="noindex")).length;
     const unableToFetchPages = multiPageAudits.length - auditedRawPages.length - excludedNoindexPages;
+    const sampleAccounting = sampleSummary(multiPageAudits.length, scoredSamplePages.length, excludedNoindexPages, unableToFetchPages, partialHeadPages);
     const multiPage = {
+      accounting:sampleAccounting,
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:representativePageLimit,
       discoveredInternalUrls:discoveredMultiPage.length, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,
       siteSampleScore: scoredSamplePages.length ? Math.round(scoredSamplePages.reduce((sum,item)=>sum+(item.score||0),0)/scoredSamplePages.length) : null,
       siteSampleCoverage: {
         selected: multiPageAudits.length,
+        headOnly: partialHeadPages,
         checked: auditedRawPages.length,
         scored: scoredSamplePages.length,
         excludedNoindex: excludedNoindexPages,
@@ -4724,7 +4733,7 @@ export async function POST(request: Request) {
         productSample: multiPageCapabilities.productSample,
         categorySample: multiPageCapabilities.categorySample,
       },
-      counts:{ selected:multiPageAudits.length, scored:scoredSamplePages.length, excludedNoindex:excludedNoindexPages, fetchFailed:unableToFetchPages, homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, form:uniqueMultiPagePages.filter((x)=>x.type==="form").length, legal:uniqueMultiPagePages.filter((x)=>x.type==="legal").length, service:uniqueMultiPagePages.filter((x)=>x.type==="service").length, listing:uniqueMultiPagePages.filter((x)=>x.type==="listing").length, support:uniqueMultiPagePages.filter((x)=>x.type==="support").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
+      counts:{ selected:multiPageAudits.length, scored:scoredSamplePages.length, headOnly:partialHeadPages, excludedNoindex:excludedNoindexPages, fetchFailed:unableToFetchPages, homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, form:uniqueMultiPagePages.filter((x)=>x.type==="form").length, legal:uniqueMultiPagePages.filter((x)=>x.type==="legal").length, service:uniqueMultiPagePages.filter((x)=>x.type==="service").length, listing:uniqueMultiPagePages.filter((x)=>x.type==="listing").length, support:uniqueMultiPagePages.filter((x)=>x.type==="support").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
       note:"Representative same-host pages are fetched with bounded checks. Their sample score is separate from the explicitly scanned page score; site-level evidence may strengthen identity/capabilities, but page-specific failures still require direct proof.",
     };
 
