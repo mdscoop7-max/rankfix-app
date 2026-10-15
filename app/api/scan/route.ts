@@ -15,21 +15,23 @@ import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, fi
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readHtmlSampleHeadFirst, readResponsePrefix, readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
-import { applyEvidenceBasedScoreCap, SCORE_MODEL_VERSION, scoreApplicableChecks, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
+import { applyEvidenceBasedScoreCap, stableCoreChecks, SCORE_MODEL_VERSION, scoreApplicableChecks, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
 import { isPaidPlan, normalizePlan, planLimits } from "@/lib/plans";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
-import { renderPublicPage } from "@/lib/headless-render";
+import { createRenderBudget, renderPublicPage } from "@/lib/headless-render";
 import { renderOnce, renderWithRetry, representativeNeedsJavaScriptRendering } from "@/lib/render-strategy";
 import { missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore } from "@/lib/sample-quality";
 import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, commerceServiceSignals, compareScoreVersions } from "@/lib/scan-feedback";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
-import { isSubstantiveRender, renderImprovesEvidence } from "@/lib/render-quality";
+import { isSubstantiveRender, renderImprovesEvidence, preserveRawHeadEvidence, renderIsErrorState } from "@/lib/render-quality";
 import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDetailPath, productUrlsFromSitemap } from "@/lib/product-links";
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
 import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes } from "@/lib/sector-identity";
+
+export const maxDuration = 300;
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -415,7 +417,7 @@ export async function POST(request: Request) {
         const resolvedShare = await safePublicFetch(target.toString(), {
           timeoutMs: 8000,
           maxRedirects: 6,
-          userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)",
+          userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)",
           accept: "text/html,application/xhtml+xml",
         });
         const resolvedHost = resolvedShare.finalUrl.hostname.toLowerCase().replace(/^www\./, "");
@@ -518,12 +520,13 @@ export async function POST(request: Request) {
     }
 
     const started = Date.now();
+    const renderBudget = createRenderBudget();
     let response: Response;
     let fetchedFinalUrl: URL | null = null;
     let redirectChain: Array<{ from: string; to: string; status: number }> = [];
     try {
       let activeTarget = target;
-      const fetchTarget = () => safePublicFetch(activeTarget, { timeoutMs: 12000, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml,text/plain,application/xml" });
+      const fetchTarget = () => safePublicFetch(activeTarget, { timeoutMs: 12000, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain,application/xml" });
       try {
         ({ response, finalUrl: fetchedFinalUrl, redirectChain } = await fetchTarget());
       } catch (httpsError) {
@@ -563,7 +566,11 @@ export async function POST(request: Request) {
     const finalUrl = fetchedFinalUrl ?? new URL(response.url || target.toString());
     console.info("RankFix redirect resolution", { requested: target.toString(), final: finalUrl.toString(), hops: redirectChain.length });
     // Primary recovery, JS hydration and quality-gate fallback share one browser attempt.
-    const renderPrimaryOnce = renderOnce(() => renderWithRetry((ms) => renderPublicPage(finalUrl.toString(), ms), 12000, 7000));
+    let primaryRenderAttempts = 0;
+    const renderPrimaryOnce = renderOnce(() => renderWithRetry((ms) => {
+      primaryRenderAttempts++;
+      return renderPublicPage(finalUrl.toString(), ms, renderBudget);
+    }, 12000, 7000));
     let renderedDocument: Awaited<ReturnType<typeof renderPublicPage>> | null = null;
 
     if (response.status === 429) {
@@ -640,8 +647,10 @@ export async function POST(request: Request) {
       try {
         const rendered = await renderPrimaryOnce();
         // Never replace richer raw evidence with a poorer (blocked or partial) render.
-        if (renderImprovesEvidence(rawVisibleWords, thinClientShell, rendered.html)) {
-          html = rendered.html;
+        if (renderIsErrorState(rawHtml, rendered.html)) {
+          renderFallbackReason = "RENDER_DEGRADED";
+        } else if (renderImprovesEvidence(rawVisibleWords, thinClientShell, rendered.html)) {
+          html = preserveRawHeadEvidence(rawHtml, rendered.html);
           renderedDocument = rendered;
           javascriptExecuted = true;
           renderElapsedMs = rendered.elapsedMs;
@@ -1200,7 +1209,7 @@ export async function POST(request: Request) {
     let confirmedSitemapUrl: string | null = null;
     let sitemapDiagnostic = "";
     try {
-      const r = (await safePublicFetch(robotsUrl, { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/plain,application/xml,text/xml" })).response;
+      const r = (await safePublicFetch(robotsUrl, { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/plain,application/xml,text/xml" })).response;
       if (r.ok) {
         robotsTxt = await readResponseTextLimited(r, 512_000);
         robotsStatus = "PASS";
@@ -1306,7 +1315,7 @@ export async function POST(request: Request) {
     const declaredSitemapHttpFailures: Array<{ url: string; status: number }> = [];
     for (const candidate of sitemapCandidates) {
       try {
-        const r = (await safePublicFetch(new URL(candidate.url), { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/plain,application/xml,text/xml" })).response;
+        const r = (await safePublicFetch(new URL(candidate.url), { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/plain,application/xml,text/xml" })).response;
         sitemapFetchCompleted = true;
         if (r.ok) {
           const contentType = r.headers.get("content-type") || "onbekend";
@@ -1406,7 +1415,7 @@ export async function POST(request: Request) {
     const uniqueInternalAnchors = allUniqueInternalAnchors.slice(0, 16);
     const linkAuditResults: LinkAuditResult[] = await Promise.all(uniqueInternalAnchors.map(async (item) => {
       try {
-        const result = await safePublicFetch(new URL(item.url), { timeoutMs: 4500, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml,text/plain" });
+        const result = await safePublicFetch(new URL(item.url), { timeoutMs: 4500, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain" });
         const res = result.response;
         const destination = res.url || item.url;
         return { sourceHref: item.sourceHref, url: item.url, status: res.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context };
@@ -2334,7 +2343,7 @@ export async function POST(request: Request) {
         .filter((url) => url && normalizeScanUrl(url) !== selfNormalized))].slice(0, 3);
       await Promise.all(alternates.map(async (alternate) => {
         try {
-          const fetched = await safePublicFetch(alternate, { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml" });
+          const fetched = await safePublicFetch(alternate, { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml" });
           if (!fetched.response.ok) { hreflangReciprocity.failed++; return; }
           const alternateHtml = await readResponseTextLimited(fetched.response, 1_500_000);
           const backLinks = [...alternateHtml.matchAll(/<link\b[^>]*>/gi)].map((m) => m[0])
@@ -2603,7 +2612,7 @@ export async function POST(request: Request) {
     const viewportBlocksZoom = /(?:^|[,;\s])user-scalable\s*=\s*no(?:$|[,;\s])/i.test(viewportContent) ||
       /(?:^|[,;\s])maximum-scale\s*=\s*(?:0(?:\.\d+)?|1(?:\.0+)?)(?:$|[,;\s])/i.test(viewportContent);
     seoChecks.push(!viewportContent
-      ? check("fail", "viewport", "seo", "Mobiele viewport", "Geen viewport meta tag met content gevonden.", "Voeg content=\"width=device-width, initial-scale=1\" toe aan de viewport meta tag.", 0, 5)
+      ? check("unable_to_confirm", "viewport", "seo", "Mobiele viewport", "Een viewport meta tag met content kon niet worden bevestigd in de beschikbare HTML.", "Bevestig de viewport in de gerenderde pagina; ontbrekende raw HTML alleen bewijst geen afwezigheid.", 0, 5)
       : !viewportIsResponsive
         ? check("warning", "viewport", "seo", "Mobiele viewport", `Een viewport meta tag is aanwezig, maar width=device-width is niet gevonden: "${viewportContent}".`, "Gebruik een responsive viewport met width=device-width.", 2, 5)
         : check("pass", "viewport", "seo", "Mobiele viewport", `De viewport bevat een responsive width=device-width-instelling: "${viewportContent}".`, "Test daarnaast de echte mobiele layout, tapdoelen en Core Web Vitals.", 5, 5)
@@ -2841,8 +2850,8 @@ export async function POST(request: Request) {
           ? "axe-core vond in de uitgevoerde automatisch toetsbare WCAG A/AA-regels geen overtredingen; ook geen ontbrekende knopnamen of veldlabels gevonden. Dit bewijst geen volledige toegankelijkheid."
           : "Geen ontbrekende namen van knoppen of formuliercontrols gevonden in de gerenderde DOM. axe-core was niet beschikbaar; dit is een beperkte basiscontrole.","Blijf toetsenbordbediening, focus, contrast en dynamische content afzonderlijk testen. Dit is geen volledige WCAG/EAA-audit.",5,5)
         : check("warning","accessibility_basics","accessibility","Toegankelijkheid basis","Gerenderde DOM: "+accessibilityAffectedCount+" mogelijke naam-/labelproblemen ("+assessedUnlabeledControls+" formuliervelden, "+assessedEmptyButtons+" knoppen)."+accessibilityAxeEvidence,"Herstel de concrete axe-core regelovertredingen en bevestig handmatig toetsenbord, focus en contrast; dit bewijst geen volledige WCAG/EAA-conformiteit.",accessibilityPoints,5),
-      !hydratedAccessibility || !viewportContent
-        ? check("unable_to_confirm","viewport_zoom_blocked","accessibility","Browserzoom","Zonder viewport meta tag kan RankFix de zoominstelling niet afzonderlijk beoordelen.","Voeg eerst een geldige responsive viewport toe en controleer daarna zoomgedrag.",0,3)
+      !viewportContent
+        ? check("unable_to_confirm","viewport_zoom_blocked","accessibility","Browserzoom","Een viewport meta tag met content kon niet worden bevestigd in de beschikbare HTML; dezelfde bron wordt gebruikt voor Mobiele viewport.","Controleer de viewport na browser-rendering.",0,3)
         : viewportBlocksZoom
           ? check("warning","viewport_zoom_blocked","accessibility","Browserzoom",`De viewport beperkt browserzoom: "${viewportContent}".`,"Laat gebruikers zoomen; vermijd user-scalable=no en onnodig beperkende maximum-scale.",1,3)
           : check("pass","viewport_zoom_blocked","accessibility","Browserzoom","Geen statische viewport-instelling gevonden die browserzoom blokkeert.","Test zoom en schaalbaarheid ook interactief op mobiele apparaten.",3,3)
@@ -3502,19 +3511,19 @@ export async function POST(request: Request) {
     applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate, rendered:javascriptExecuted, url:finalUrl.toString() });
     const selectedSeoChecks = mode === "geo" ? [] : seoChecks;
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
-    let selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);
-    let selectedGeoScore = scoreApplicableChecks(selectedGeoChecks);
-    selectedSeoScore = applyEvidenceBasedScoreCap(selectedSeoScore, selectedSeoChecks);
-    selectedGeoScore = applyEvidenceBasedScoreCap(selectedGeoScore, selectedGeoChecks);
+    let selectedSeoScore = scoreApplicableChecks(stableCoreChecks(selectedSeoChecks,"seo"));
+    let selectedGeoScore = scoreApplicableChecks(stableCoreChecks(selectedGeoChecks,"geo"));
+    selectedSeoScore = applyEvidenceBasedScoreCap(selectedSeoScore, stableCoreChecks(selectedSeoChecks,"seo"));
+    selectedGeoScore = applyEvidenceBasedScoreCap(selectedGeoScore, stableCoreChecks(selectedGeoChecks,"geo"));
     let selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
-    selectedOverallScore = applyEvidenceBasedScoreCap(selectedOverallScore, [...selectedSeoChecks, ...selectedGeoChecks]);
+    selectedOverallScore = applyEvidenceBasedScoreCap(selectedOverallScore, [...stableCoreChecks(selectedSeoChecks,"seo"),...stableCoreChecks(selectedGeoChecks,"geo")]);
     const checks = [...selectedSeoChecks, ...selectedGeoChecks];
     let seoCoverage = weightedCoverage(selectedSeoChecks);
     let geoCoverage = weightedCoverage(selectedGeoChecks);
     let overallCoverage = weightedCoverage(checks);
-    const seoScoreRange = scoreRange(selectedSeoChecks);
-    const geoScoreRange = scoreRange(selectedGeoChecks);
-    const overallScoreRange = scoreRange(checks);
+    const seoScoreRange = scoreRange(stableCoreChecks(selectedSeoChecks,"seo"));
+    const geoScoreRange = scoreRange(stableCoreChecks(selectedGeoChecks,"geo"));
+    const overallScoreRange = scoreRange([...stableCoreChecks(selectedSeoChecks,"seo"),...stableCoreChecks(selectedGeoChecks,"geo")]);
     const scoreModel = {
       version: SCORE_MODEL_VERSION,
       breakdown: scoreBreakdown(checks),
@@ -3527,7 +3536,9 @@ export async function POST(request: Request) {
       seoRange: seoScoreRange,
       geoRange: geoScoreRange,
       provisional: overallCoverage.coveragePercent < 90,
-      note: "Niet te bevestigen telt niet als bewezen fout, maar beperkte bewijsdekking kan de getoonde score begrenzen. N.v.t. is uitgesloten. Het bereik toont de conservatieve en optimistische grens voor nog onbevestigd bewijs.",
+      note: "De totaalscore gebruikt een vaste kernset. Aanvullende sectorcontroles worden apart getoond. Onbevestigd bewijs veroorzaakt geen verborgen puntenaftrek; dekking en voorlopig scorebereik staan ernaast.",
+      stableCore: {seo:stableCoreChecks(selectedSeoChecks,"seo").length,geo:stableCoreChecks(selectedGeoChecks,"geo").length},
+      coverageAdjustment: 0,
     };
     const scanSummary = summarizeAuditChecks(checks);
     const propertyListingPage = sectorProfile.sector === "real_estate" && (/\/(?:woningaanbod|residential-listings)\/(?:koop|huur|sale|rent)\//i.test(pathname) || /\b(?:te koop|te huur|for sale|for rent)\b/i.test(title));
@@ -3602,7 +3613,8 @@ export async function POST(request: Request) {
       javascriptExecuted,
       note: javascriptExecuted ? (jsRenderingNotes[scanLanguage] || jsRenderingNotes.en) : (rawRenderingNotes[scanLanguage] || rawRenderingNotes.en),
       elapsedMs: renderElapsedMs,
-      fallbackReason: javascriptCandidate && !javascriptExecuted ? (renderFallbackReason || "JAVASCRIPT_RENDER_UNAVAILABLE") : null,
+      fallbackReason: javascriptCandidate && !javascriptExecuted ? (renderFallbackReason || "RENDER_FAILED") : null,
+      attempts: primaryRenderAttempts,
       warning: javascriptCandidate && !javascriptExecuted,
       evidenceSource: javascriptExecuted ? "rendered_html" as const : "raw_html" as const,
       // Bot manager that served a reduced page; dependent checks stayed unconfirmed.
@@ -3751,10 +3763,10 @@ export async function POST(request: Request) {
         const isScannedPage = normalizeScanUrl(page.url) === normalizeScanUrl(finalUrl.toString());
         const fetched = isScannedPage
           ? { response: new Response(html, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }), finalUrl }
-          : await safePublicFetch(page.url, { timeoutMs: 8000, maxRedirects: 3, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml" });
+          : await safePublicFetch(page.url, { timeoutMs: 8000, maxRedirects: 3, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml" });
         const r = fetched.response;
         const finalCandidate = new URL(fetched.finalUrl.toString());
-        const renderRepresentativeOnce = renderOnce(() => renderWithRetry((ms) => renderPublicPage(finalCandidate.toString(), ms), 10000, 6000));
+        const renderRepresentativeOnce = renderOnce(() => renderWithRetry((ms) => renderPublicPage(finalCandidate.toString(), ms, renderBudget), 10000, 6000));
         const finalCandidateHost = normalizeHost(finalCandidate.hostname);
         const sameRegistrableSite = finalCandidateHost === siteHost
           || finalCandidateHost.endsWith(`.${siteHost}`)
@@ -3792,8 +3804,10 @@ export async function POST(request: Request) {
         if (representativeNeedsJavaScriptRendering({ visibleWords: representativeVisibleWords, scriptCount: representativeScriptCount, frameworkSignal: representativeJsFramework, dynamicEvidenceRelevant: ["form", "product", "listing", "category", "service"].includes(page.type) }) && representativeEvidenceSource !== "rendered_html") {
           try {
             const renderedPage = await renderRepresentativeOnce();
-            if (renderImprovesEvidence(representativeVisibleWords, representativeThinShell, renderedPage.html)) {
-              pageHtml = renderedPage.html;
+            if (renderIsErrorState(representativeRawHtml, renderedPage.html)) {
+              page.evidence.push("javascript render ended in an error or noindex state; raw HTML retained");
+            } else if (renderImprovesEvidence(representativeVisibleWords, representativeThinShell, renderedPage.html)) {
+              pageHtml = preserveRawHeadEvidence(representativeRawHtml, renderedPage.html);
               partialHeadOnly = false;
               representativeEvidenceSource = "rendered_html";
               representativeTitlePixelWidth = renderedPage.titlePixelWidth;
@@ -4005,7 +4019,7 @@ export async function POST(request: Request) {
       // three declared sitemaps (1.5 MB each, one child of an index, no .gz).
       if (!productConfirmed) {
         const readSitemap = async (url: string) => {
-          const fetchedSitemap = await safePublicFetch(url, { timeoutMs: 6000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "application/xml,text/xml" });
+          const fetchedSitemap = await safePublicFetch(url, { timeoutMs: 6000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "application/xml,text/xml" });
           return fetchedSitemap.response.ok ? readResponsePrefix(fetchedSitemap.response, 1_500_000) : "";
         };
         const sitemapSources = [...new Set([...robotsDeclaredSitemapUrls, ...(confirmedSitemapUrl ? [confirmedSitemapUrl] : [])])].filter((url)=>!/\.gz(?:$|\?)/i.test(url)).slice(0,3);
@@ -4023,7 +4037,7 @@ export async function POST(request: Request) {
         const listingPages = multiPageAudits.filter((item)=>item?.status==="audited" && (item.type==="category" || item.type==="other") && item.evidenceSource!=="rendered_html").slice(0,2);
         for (const listing of listingPages) {
           try {
-            const renderedListing = await renderPublicPage(listing.url, 10000);
+            const renderedListing = await renderPublicPage(listing.url, 10000, renderBudget);
             if (isSubstantiveRender(renderedListing.html)) productConfirmed = await auditProductCandidates(extractProductDetailLinks(renderedListing.html, listing.url, siteHost, 8));
           } catch {}
           if (productConfirmed) break;
@@ -4689,17 +4703,18 @@ export async function POST(request: Request) {
     applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate, rendered:javascriptExecuted, url:finalUrl.toString() });
     // Final score is calculated only after representative evidence reconciliation.
     // Reapply evidence coverage caps: this second scoring pass must not erase them.
-    selectedSeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(selectedSeoChecks), selectedSeoChecks);
-    selectedGeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(selectedGeoChecks), selectedGeoChecks);
+    selectedSeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(stableCoreChecks(selectedSeoChecks,"seo")), stableCoreChecks(selectedSeoChecks,"seo"));
+    selectedGeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(stableCoreChecks(selectedGeoChecks,"geo")), stableCoreChecks(selectedGeoChecks,"geo"));
     selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
-    selectedOverallScore = applyEvidenceBasedScoreCap(selectedOverallScore, checks);
+    selectedOverallScore = applyEvidenceBasedScoreCap(selectedOverallScore, [...stableCoreChecks(selectedSeoChecks,"seo"),...stableCoreChecks(selectedGeoChecks,"geo")]);
     seoCoverage = weightedCoverage(selectedSeoChecks);
     geoCoverage = weightedCoverage(selectedGeoChecks);
     overallCoverage = weightedCoverage(checks);
-    scoreModel.range = scoreRange(checks);
-    scoreModel.seoRange = scoreRange(selectedSeoChecks);
-    scoreModel.geoRange = scoreRange(selectedGeoChecks);
+    scoreModel.range = scoreRange([...stableCoreChecks(selectedSeoChecks,"seo"),...stableCoreChecks(selectedGeoChecks,"geo")]);
+    scoreModel.seoRange = scoreRange(stableCoreChecks(selectedSeoChecks,"seo"));
+    scoreModel.geoRange = scoreRange(stableCoreChecks(selectedGeoChecks,"geo"));
     scoreModel.provisional = overallCoverage.coveragePercent < 90;
+    scoreModel.coverageAdjustment = 0;
     scoreModel.breakdown = scoreBreakdown(checks);
 
     const classification = {
@@ -4734,9 +4749,10 @@ export async function POST(request: Request) {
       const passes = proven.filter((item)=>item.status==="PASS");
       return {
         key,
-        status: warnings.length ? "WARNING" as const : passes.length ? "PASS" as const : "UNABLE_TO_CONFIRM" as const,
-        checkedPages: observations.length,
+        status: warnings.length ? "WARNING" as const : auditedRawPages.length > 0 && passes.length===auditedRawPages.length ? "PASS" as const : "UNABLE_TO_CONFIRM" as const,
+        checkedPages: auditedRawPages.length,
         provenPages: proven.length,
+        unconfirmedPages: auditedRawPages.length - proven.length,
         // Real totals: the report states "X van Y pagina's", never a silent cap.
         affectedCount: warnings.length,
         affectedUrls: warnings.map((item)=>item.url).slice(0,12),
@@ -4786,6 +4802,15 @@ export async function POST(request: Request) {
         : "Site-sample niet te bevestigen",
       sitewideCommerceEvidence,
       sitewideCheckAggregation,
+      templateSummary: Object.entries(reportedMultiPageAudits.reduce((acc, page) => {
+        const type = page.type || "other";
+        const current = acc[type] || {type,selected:0,scored:0,reason:""};
+        current.selected++;
+        if (page.score !== null && page.status === "audited") current.scored++;
+        if (!current.reason) current.reason = page.evidence?.slice(0,2).join(" · ") || "URL-structuur, paginaschema en inhoud";
+        acc[type] = current;
+        return acc;
+      }, {} as Record<string,{type:string;selected:number;scored:number;reason:string}>)).map(([,item])=>item),
       capabilities: {
         hospitality: multiPageCapabilities.hospitality,
         treatment: multiPageCapabilities.treatment,
@@ -4796,7 +4821,7 @@ export async function POST(request: Request) {
         productSample: multiPageCapabilities.productSample,
         categorySample: multiPageCapabilities.categorySample,
       },
-      counts:{ selected:multiPageAudits.length, scored:scoredSamplePages.length, unscoredMetadata:unscoredMetadataPages, headOnly:partialHeadPages, excludedNoindex:excludedNoindexPages, fetchFailed:unableToFetchPages, contact:uniqueMultiPagePages.filter((x)=>x.type==="contact").length, article:uniqueMultiPagePages.filter((x)=>x.type==="article").length, homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, form:uniqueMultiPagePages.filter((x)=>x.type==="form").length, legal:uniqueMultiPagePages.filter((x)=>x.type==="legal").length, service:uniqueMultiPagePages.filter((x)=>x.type==="service").length, listing:uniqueMultiPagePages.filter((x)=>x.type==="listing").length, support:uniqueMultiPagePages.filter((x)=>x.type==="support").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
+      counts:{ selected:multiPageAudits.length, fetched:auditedRawPages.length+excludedNoindexPages, scored:scoredSamplePages.length, unscoredMetadata:unscoredMetadataPages, headOnly:partialHeadPages, excludedNoindex:excludedNoindexPages, fetchFailed:unableToFetchPages, contact:uniqueMultiPagePages.filter((x)=>x.type==="contact").length, article:uniqueMultiPagePages.filter((x)=>x.type==="article").length, homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, form:uniqueMultiPagePages.filter((x)=>x.type==="form").length, legal:uniqueMultiPagePages.filter((x)=>x.type==="legal").length, service:uniqueMultiPagePages.filter((x)=>x.type==="service").length, listing:uniqueMultiPagePages.filter((x)=>x.type==="listing").length, support:uniqueMultiPagePages.filter((x)=>x.type==="support").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
       note:"Steekproefscore telt alleen pagina's met vier beoordeelde metadata-controles (title, description, H1 en canonical). Pagina's met onbevestigd JavaScript-bewijs worden apart geteld en niet als 100/100 voorgesteld. Dit is geen volledige site-audit.",
     };
 

@@ -12,6 +12,9 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Ship serverless Chromium only to the scan function; never deploy local Chrome cache.
+  outputFileTracingIncludes: { "/api/scan": ["./node_modules/@sparticuz/chromium/bin/**"] },
+  outputFileTracingExcludes: { "/*": ["./.cache/**", "./node_modules/puppeteer/**"] },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

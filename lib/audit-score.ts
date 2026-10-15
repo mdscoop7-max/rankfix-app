@@ -16,7 +16,17 @@ export type ScorableAuditCheck = {
   fix_status?: "WAITING" | "AWAITING_MERGE" | "STILL_PRESENT" | "DONE";
 };
 
-export const SCORE_MODEL_VERSION = "3.0-evidence-strict";
+export const SCORE_MODEL_VERSION = "3.1-stable-core-evidence";
+
+// Fixed SEO/GEO core: adding sector-specific checks may increase report coverage
+// without silently changing the headline score on the same website.
+const CORE_SEO = new Set(["broken_links","internal_redirects","semantic_link_destination","title","description","h1","headings","canonical","viewport","lang","indexability","alt","content","https","status","response","social","robots_txt","sitemap","twitter_card","hreflang","duplicate_path","html_escape","image_sources"]);
+const CORE_GEO = new Set(["schema","organization_website","entity","breadcrumbs","faq","author","trust","answer","identity"]);
+export function stableCoreChecks<T extends ScorableAuditCheck & {key?:string}>(checks:T[], group:"seo"|"geo"):T[] {
+  const keys = group==="seo" ? CORE_SEO : CORE_GEO;
+  return checks.filter(item=>keys.has(item.key||""));
+}
+
 
 export function weightedCoverage(items: ScorableAuditCheck[]) {
   const relevant = items.filter((item) => item.issue_status !== "NOT_APPLICABLE");
@@ -142,16 +152,8 @@ export function applyEvidenceBasedScoreCap(score: number, items: ScoreCapCheck[]
     (item) => item.issue_status === "FAIL" && item.severity === "HIGH" && item.confidence !== "low"
   );
   if (provenHigh) return Math.min(score, 88);
-  // An incomplete audit must not present near-perfect scores as fully verified.
-  // The cap is based on applicable evidence weight, not the number of checks:
-  // N/A checks are excluded and unresolved checks are never counted as failures.
-  const relevant = items.filter((item) => item.issue_status !== "NOT_APPLICABLE");
-  const totalWeight = relevant.reduce((sum, item) => sum + Math.max(0, item.maxPoints), 0);
-  const assessedWeight = relevant.filter((item) => item.issue_status !== "UNABLE_TO_CONFIRM").reduce((sum, item) => sum + Math.max(0, item.maxPoints), 0);
-  const coveragePercent = totalWeight ? Math.round(assessedWeight / totalWeight * 100) : 0;
-  const coverage = {totalWeight, coveragePercent};
-  if (coverage.totalWeight > 0 && coverage.coveragePercent <= 50) return Math.min(score, 79);
-  if (coverage.totalWeight > 0 && coverage.coveragePercent < 70) return Math.min(score, 89);
-  if (coverage.totalWeight > 0 && coverage.coveragePercent < 90) return Math.min(score, 95);
+  // Unknown signals must never be an invisible numeric penalty. The fixed
+  // core result is stable when additional modules become unconfirmed. Missing
+  // evidence is shown through coverage and a provisional score range instead.
   return score;
 }
