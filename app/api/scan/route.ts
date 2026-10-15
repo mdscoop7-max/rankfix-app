@@ -1937,14 +1937,19 @@ export async function POST(request: Request) {
     const accessibilityPointsTotal = accessibilityApplicable.reduce((sum,item)=>sum+item.points,0);
     const accessibilityScore = accessibilityMax ? Math.round((accessibilityPointsTotal/accessibilityMax)*100) : 0;
     const accessibilityEngine = {
-      version:"1.1-hydrated-dom",
+      version:"1.2-axe-hydrated-dom",
       mode: javascriptExecuted && renderedDocument?.domAccessibility ? "RENDERED_DOM" as const : "INDICATIVE_RAW_HTML" as const,
+      axe: javascriptExecuted ? renderedDocument?.axeReport || null : null,
       score:accessibilityScore,
       grade:grade(accessibilityScore),
       coverage:weightedCoverage(accessibilityChecks),
       summary:summarizeAuditChecks(accessibilityChecks),
       checks:accessibilityChecks,
-      note:javascriptExecuted && renderedDocument?.domAccessibility ? "Basiscontrole op toegankelijke namen in de gerenderde DOM. Geen volledige axe-core/WCAG/EAA-audit." : "Indicatief: de gerenderde DOM is niet beschikbaar. Er wordt geen betrouwbare toegankelijkheidsscore getoond."
+      note:javascriptExecuted && renderedDocument?.axeReport
+        ? "axe-core: automatisch toetsbare WCAG A/AA-regels op de gerenderde DOM. Dit is geen volledige WCAG/EAA-conformiteitsbeoordeling."
+        : javascriptExecuted && renderedDocument?.domAccessibility
+          ? "Gerenderde DOM: beperkte naam- en labelcontrole; axe-core kon niet worden voltooid. Geen volledige WCAG/EAA-audit."
+          : "Indicatief: de gerenderde DOM is niet beschikbaar. Er wordt geen betrouwbare toegankelijkheidsscore getoond.",
     };
     // Security remains a separate engine and must never change SEO scoring/counts.
 
@@ -2817,13 +2822,25 @@ export async function POST(request: Request) {
     const accessibilityAffectedCount = assessedUnlabeledControls + assessedEmptyButtons;
     const accessibilityScopeCount = hydratedAccessibility?.controls ?? (formControls.length + buttonTags.length);
     const accessibilityIssueRatio = accessibilityScopeCount ? accessibilityAffectedCount / accessibilityScopeCount : 0;
-    const accessibilityPoints = accessibilityAffectedCount === 0 ? 5 : accessibilityIssueRatio <= 0.05 ? 4 : accessibilityIssueRatio <= 0.20 ? 3 : accessibilityIssueRatio <= 0.50 ? 2 : 1;
+    const axeViolations = javascriptExecuted ? (renderedDocument?.axeReport?.violations || []) : [];
+    const axeViolationNodes = axeViolations.reduce((total,item)=>total+item.nodes,0);
+    const axeIssuePoints = axeViolations.length === 0 ? 5
+      : axeViolations.some(item=>item.impact==="critical") ? 1
+      : axeViolations.some(item=>item.impact==="serious") ? 2
+      : axeViolations.some(item=>item.impact==="moderate") ? 3 : 4;
+    const heuristicAccessibilityPoints = accessibilityAffectedCount === 0 ? 5 : accessibilityIssueRatio <= 0.05 ? 4 : accessibilityIssueRatio <= 0.20 ? 3 : accessibilityIssueRatio <= 0.50 ? 2 : 1;
+    const accessibilityPoints = Math.min(heuristicAccessibilityPoints,axeIssuePoints);
+    const accessibilityAxeEvidence = axeViolations.length
+      ? " axe-core vond "+axeViolations.length+" WCAG-regel(s) met "+axeViolationNodes+" geraakt(e) element(en): "+axeViolations.slice(0,6).map(x=>x.id+" ("+x.impact+")").join(", ")+"."
+      : "";
     accessibilityChecks.push(
       !hydratedAccessibility
         ? check("unable_to_confirm","accessibility_basics","accessibility","Toegankelijkheid basis","Niet betrouwbaar op raw HTML: namen en labels kunnen pas na hydratatie zichtbaar worden.","Voer de toegankelijkheidscontrole op de gerenderde DOM uit.",0,5)
-        : accessibilityAffectedCount===0
-        ? check("pass","accessibility_basics","accessibility","Toegankelijkheid basis","Geen ontbrekende namen van knoppen of formuliercontrols gevonden in de gerenderde DOM. Afbeelding-alt wordt afzonderlijk binnen SEO beoordeeld.","Blijf toetsenbordbediening, focus, contrast en dynamische content afzonderlijk testen. Dit is geen volledige WCAG/EAA-audit.",5,5)
-        : check("warning","accessibility_basics","accessibility","Toegankelijkheid basis","Basiscontrole op de gerenderde DOM vond "+accessibilityAffectedCount+" onafhankelijk(e) aandachtspunt(en): "+assessedUnlabeledControls+" formuliercontrol(s) zonder aantoonbaar label en "+assessedEmptyButtons+" lege knop(pen) zonder toegankelijke naam. Dat raakt "+Math.round(accessibilityIssueRatio*100)+"% van de controleerbare formuliercontrols en knoppen.","Corrigeer de aantoonbare HTML-signalen en voer daarna een uitgebreidere toegankelijkheidstest uit. RankFix claimt hiermee geen WCAG/EAA-conformiteit.",accessibilityPoints,5),
+        : accessibilityAffectedCount===0 && axeViolations.length===0
+        ? check("pass","accessibility_basics","accessibility","Toegankelijkheid basis",renderedDocument?.axeReport
+          ? "axe-core vond in de uitgevoerde automatisch toetsbare WCAG A/AA-regels geen overtredingen; ook geen ontbrekende knopnamen of veldlabels gevonden. Dit bewijst geen volledige toegankelijkheid."
+          : "Geen ontbrekende namen van knoppen of formuliercontrols gevonden in de gerenderde DOM. axe-core was niet beschikbaar; dit is een beperkte basiscontrole.","Blijf toetsenbordbediening, focus, contrast en dynamische content afzonderlijk testen. Dit is geen volledige WCAG/EAA-audit.",5,5)
+        : check("warning","accessibility_basics","accessibility","Toegankelijkheid basis","Gerenderde DOM: "+accessibilityAffectedCount+" mogelijke naam-/labelproblemen ("+assessedUnlabeledControls+" formuliervelden, "+assessedEmptyButtons+" knoppen)."+accessibilityAxeEvidence,"Herstel de concrete axe-core regelovertredingen en bevestig handmatig toetsenbord, focus en contrast; dit bewijst geen volledige WCAG/EAA-conformiteit.",accessibilityPoints,5),
       !hydratedAccessibility || !viewportContent
         ? check("unable_to_confirm","viewport_zoom_blocked","accessibility","Browserzoom","Zonder viewport meta tag kan RankFix de zoominstelling niet afzonderlijk beoordelen.","Voeg eerst een geldige responsive viewport toe en controleer daarna zoomgedrag.",0,3)
         : viewportBlocksZoom
