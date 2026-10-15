@@ -15,7 +15,17 @@ export async function renderPublicPage(value: string, timeoutMs = 12000): Promis
   // The sandbox stays on unless the host explicitly cannot provide one.
   const args = ["--disable-dev-shm-usage"];
   if (process.env.RANKFIX_CHROME_NO_SANDBOX === "1") args.push("--no-sandbox", "--disable-setuid-sandbox");
-  const browser = await puppeteer.default.launch({ headless: true, args });
+  // Fail with an actionable stable code when Chromium was not installed during
+  // deployment (for example when package install scripts are disabled).
+  let executablePath: string;
+  try {
+    executablePath = process.env.RANKFIX_CHROME_EXECUTABLE_PATH?.trim() || puppeteer.default.executablePath();
+    const { access } = await import("node:fs/promises");
+    await access(executablePath);
+  } catch {
+    throw new Error("RENDER_CHROME_NOT_INSTALLED");
+  }
+  const browser = await puppeteer.default.launch({ headless: true, args, executablePath });
   let requests = 0;
   try {
     const page = await browser.newPage();
