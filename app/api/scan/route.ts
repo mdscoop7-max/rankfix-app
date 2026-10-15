@@ -24,7 +24,7 @@ import { renderOnce, renderWithRetry, representativeNeedsJavaScriptRendering } f
 import { missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore } from "@/lib/sample-quality";
 import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, commerceServiceSignals, compareScoreVersions } from "@/lib/scan-feedback";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
-import { isSubstantiveRender, renderImprovesEvidence, preserveRawHeadEvidence, renderIsErrorState } from "@/lib/render-quality";
+import { isSubstantiveRender, renderImprovesEvidence, preserveRawHeadEvidence, renderIsErrorState, visibleWordCount } from "@/lib/render-quality";
 import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDetailPath, productUrlsFromSitemap } from "@/lib/product-links";
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
@@ -643,19 +643,29 @@ export async function POST(request: Request) {
     let javascriptExecuted = Boolean(recoveredHtml);
     let renderElapsedMs: number | null = recoveredRenderElapsedMs;
     let renderFallbackReason: string | null = recovery.reason;
+    let rejectedBrowserSnapshot: {rawWords:number;renderedWords:number;reason:string} | null = null;
     if (javascriptCandidate) {
       try {
         const rendered = await renderPrimaryOnce();
-        // Never replace richer raw evidence with a poorer (blocked or partial) render.
-        if (renderIsErrorState(rawHtml, rendered.html)) {
-          renderFallbackReason = "RENDER_DEGRADED";
-        } else if (renderImprovesEvidence(rawVisibleWords, thinClientShell, rendered.html)) {
+        // A completed Chromium visit is not necessarily trustworthy evidence:
+        // reject challenge/error states and snapshots with materially less content.
+        const browserErrorState = renderIsErrorState(rawHtml, rendered.html);
+        const browserEvidenceUsable = !browserErrorState && renderImprovesEvidence(rawVisibleWords, thinClientShell, rendered.html);
+        if (browserEvidenceUsable) {
           html = preserveRawHeadEvidence(rawHtml, rendered.html);
           renderedDocument = rendered;
           javascriptExecuted = true;
           renderElapsedMs = rendered.elapsedMs;
         } else {
           renderFallbackReason = "RENDER_DEGRADED";
+          rejectedBrowserSnapshot = {
+            rawWords: rawVisibleWords,
+            renderedWords: visibleWordCount(rendered.html),
+            reason: browserErrorState ? "error_or_noindex" : "less_content",
+          };
+          console.info("RankFix browser evidence rejected", {
+            page: finalUrl.toString(), ...rejectedBrowserSnapshot,
+          });
         }
       } catch (renderError) {
         // Store a stable code; the raw runtime message stays in the server log only.
@@ -3623,6 +3633,7 @@ export async function POST(request: Request) {
       elapsedMs: renderElapsedMs,
       fallbackReason: javascriptCandidate && !javascriptExecuted ? (renderFallbackReason || "RENDER_FAILED") : null,
       attempts: primaryRenderAttempts,
+      rejectedBrowserSnapshot,
       warning: javascriptCandidate && !javascriptExecuted,
       evidenceSource: javascriptExecuted ? "rendered_html" as const : "raw_html" as const,
       // Bot manager that served a reduced page; dependent checks stayed unconfirmed.
