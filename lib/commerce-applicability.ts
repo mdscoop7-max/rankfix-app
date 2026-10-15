@@ -94,3 +94,18 @@ export function isStorefrontOnlyForService(
 ): boolean {
   return primaryServiceIdentity && !verifiedRetailCheckout && SERVICE_STOREFRONT_ONLY_CHECKS.has(key);
 }
+
+/**
+ * Distinguish a service provider using cart/payment technology from operating
+ * a separate consumer product shop. Website text, a generic checkout URL or a
+ * subscription price alone is not proof of retail inventory and purchase.
+ */
+export function confirmedRetailEvidenceForService(input: {
+  representativePurchase: boolean;
+  productDetailSchema: boolean;
+  addToCart: boolean;
+  productAndPrice: boolean;
+}): boolean {
+  return input.representativePurchase ||
+    (input.productDetailSchema && input.addToCart && input.productAndPrice);
+}
