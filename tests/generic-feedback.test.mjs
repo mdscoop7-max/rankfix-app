@@ -135,6 +135,6 @@ test("scanner integrates all feedback policies and the report explains limitatio
  assert.match(browser,/ctx\.measureText\(t\)/);
  assert.match(browser,/domAccessibility/);
  assert.match(report,/Scoreweging en puntenaftrek/);
- assert.match(report,/Alleen HTML-head/);
+ assert.match(report,/Gedeeltelijke HTML/);
  assert.match(report,/INDICATIVE_RAW_HTML|Indicatief \(raw HTML\)/);
 });
