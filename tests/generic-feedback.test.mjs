@@ -87,6 +87,7 @@ test("page type uses product schema, breadcrumbs, article schema and contact pat
  assert.equal(refineSamplePageType({...base,path:"/contact"}),"contact");
  assert.equal(refineSamplePageType({...base,itemListSchema:true,breadcrumbDepth:3}),"category");
  assert.equal(refineSamplePageType({...base,path:"/diensten/onderhoud/"}),"service");
+ assert.equal(refineSamplePageType({...base,path:"/internet/glasvezel",serviceOffer:true}),"service");
 });
 
 test("score deductions are transparent and unverified checks have no deduction",()=>{
