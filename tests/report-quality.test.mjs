@@ -49,8 +49,9 @@ test("titles: graduated length credit instead of a flat penalty", () => {
   assert.equal(titleLengthCredit(88), 0.6);
   assert.equal(titleLengthCredit(110), 0.45);
   assert.equal(titleLengthCredit(14), 0.6);
-  assert.ok(assessPageTitle("Transport Zuid-Amerika | Internationaal vervoer | TransHeroes", "www.transheroes.com").credit
-    > assessPageTitle("Garantie, reparatie en verzekeringen - Klantenservice | Coolblue - Alles voor een glimlach", "www.coolblue.nl").credit);
+  assert.equal(assessPageTitle("Transport Zuid-Amerika | Internationaal vervoer | TransHeroes", "www.transheroes.com").credit, 1);
+  assert.equal(assessPageTitle("Garantie, reparatie en verzekeringen - Klantenservice | Coolblue - Alles voor een glimlach", "www.coolblue.nl").credit, 1);
+  // Character length is not the rendered pixel width of the Google result.
 });
 
 test("titles: brand-only and duplicated brand are named, not hidden in a length warning", () => {
