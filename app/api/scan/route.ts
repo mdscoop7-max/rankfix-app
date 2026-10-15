@@ -417,7 +417,7 @@ export async function POST(request: Request) {
         const resolvedShare = await safePublicFetch(target.toString(), {
           timeoutMs: 8000,
           maxRedirects: 6,
-          userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)",
+          userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)",
           accept: "text/html,application/xhtml+xml",
         });
         const resolvedHost = resolvedShare.finalUrl.hostname.toLowerCase().replace(/^www\./, "");
@@ -526,7 +526,7 @@ export async function POST(request: Request) {
     let redirectChain: Array<{ from: string; to: string; status: number }> = [];
     try {
       let activeTarget = target;
-      const fetchTarget = () => safePublicFetch(activeTarget, { timeoutMs: 12000, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml,text/plain,application/xml" });
+      const fetchTarget = () => safePublicFetch(activeTarget, { timeoutMs: 12000, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain,application/xml" });
       try {
         ({ response, finalUrl: fetchedFinalUrl, redirectChain } = await fetchTarget());
       } catch (httpsError) {
@@ -1203,7 +1203,7 @@ export async function POST(request: Request) {
     let confirmedSitemapUrl: string | null = null;
     let sitemapDiagnostic = "";
     try {
-      const r = (await safePublicFetch(robotsUrl, { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/plain,application/xml,text/xml" })).response;
+      const r = (await safePublicFetch(robotsUrl, { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/plain,application/xml,text/xml" })).response;
       if (r.ok) {
         robotsTxt = await readResponseTextLimited(r, 512_000);
         robotsStatus = "PASS";
@@ -1309,7 +1309,7 @@ export async function POST(request: Request) {
     const declaredSitemapHttpFailures: Array<{ url: string; status: number }> = [];
     for (const candidate of sitemapCandidates) {
       try {
-        const r = (await safePublicFetch(new URL(candidate.url), { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/plain,application/xml,text/xml" })).response;
+        const r = (await safePublicFetch(new URL(candidate.url), { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/plain,application/xml,text/xml" })).response;
         sitemapFetchCompleted = true;
         if (r.ok) {
           const contentType = r.headers.get("content-type") || "onbekend";
@@ -1409,7 +1409,7 @@ export async function POST(request: Request) {
     const uniqueInternalAnchors = allUniqueInternalAnchors.slice(0, 16);
     const linkAuditResults: LinkAuditResult[] = await Promise.all(uniqueInternalAnchors.map(async (item) => {
       try {
-        const result = await safePublicFetch(new URL(item.url), { timeoutMs: 4500, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml,text/plain" });
+        const result = await safePublicFetch(new URL(item.url), { timeoutMs: 4500, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain" });
         const res = result.response;
         const destination = res.url || item.url;
         return { sourceHref: item.sourceHref, url: item.url, status: res.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context };
@@ -2337,7 +2337,7 @@ export async function POST(request: Request) {
         .filter((url) => url && normalizeScanUrl(url) !== selfNormalized))].slice(0, 3);
       await Promise.all(alternates.map(async (alternate) => {
         try {
-          const fetched = await safePublicFetch(alternate, { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml" });
+          const fetched = await safePublicFetch(alternate, { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml" });
           if (!fetched.response.ok) { hreflangReciprocity.failed++; return; }
           const alternateHtml = await readResponseTextLimited(fetched.response, 1_500_000);
           const backLinks = [...alternateHtml.matchAll(/<link\b[^>]*>/gi)].map((m) => m[0])
@@ -3605,7 +3605,8 @@ export async function POST(request: Request) {
       javascriptExecuted,
       note: javascriptExecuted ? (jsRenderingNotes[scanLanguage] || jsRenderingNotes.en) : (rawRenderingNotes[scanLanguage] || rawRenderingNotes.en),
       elapsedMs: renderElapsedMs,
-      fallbackReason: javascriptCandidate && !javascriptExecuted ? (renderFallbackReason || "JAVASCRIPT_RENDER_UNAVAILABLE") : null,
+      fallbackReason: javascriptCandidate && !javascriptExecuted ? (renderFallbackReason || "RENDER_FAILED") : null,
+      attempts: javascriptCandidate ? (renderFallbackReason === "RENDER_TIMEOUT" ? 2 : 1) : 0,
       warning: javascriptCandidate && !javascriptExecuted,
       evidenceSource: javascriptExecuted ? "rendered_html" as const : "raw_html" as const,
       // Bot manager that served a reduced page; dependent checks stayed unconfirmed.
@@ -3754,10 +3755,10 @@ export async function POST(request: Request) {
         const isScannedPage = normalizeScanUrl(page.url) === normalizeScanUrl(finalUrl.toString());
         const fetched = isScannedPage
           ? { response: new Response(html, { status: 200, headers: { "content-type": "text/html; charset=utf-8" } }), finalUrl }
-          : await safePublicFetch(page.url, { timeoutMs: 8000, maxRedirects: 3, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "text/html,application/xhtml+xml" });
+          : await safePublicFetch(page.url, { timeoutMs: 8000, maxRedirects: 3, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml" });
         const r = fetched.response;
         const finalCandidate = new URL(fetched.finalUrl.toString());
-        const renderRepresentativeOnce = renderOnce(() => renderWithRetry((ms) => renderPublicPage(finalCandidate.toString(), ms), 10000, 6000));
+        const renderRepresentativeOnce = renderOnce(() => renderWithRetry((ms) => renderPublicPage(finalCandidate.toString(), ms, renderBudget), 10000, 6000));
         const finalCandidateHost = normalizeHost(finalCandidate.hostname);
         const sameRegistrableSite = finalCandidateHost === siteHost
           || finalCandidateHost.endsWith(`.${siteHost}`)
@@ -4008,7 +4009,7 @@ export async function POST(request: Request) {
       // three declared sitemaps (1.5 MB each, one child of an index, no .gz).
       if (!productConfirmed) {
         const readSitemap = async (url: string) => {
-          const fetchedSitemap = await safePublicFetch(url, { timeoutMs: 6000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.onrender.com)", accept: "application/xml,text/xml" });
+          const fetchedSitemap = await safePublicFetch(url, { timeoutMs: 6000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "application/xml,text/xml" });
           return fetchedSitemap.response.ok ? readResponsePrefix(fetchedSitemap.response, 1_500_000) : "";
         };
         const sitemapSources = [...new Set([...robotsDeclaredSitemapUrls, ...(confirmedSitemapUrl ? [confirmedSitemapUrl] : [])])].filter((url)=>!/\.gz(?:$|\?)/i.test(url)).slice(0,3);
@@ -4026,7 +4027,7 @@ export async function POST(request: Request) {
         const listingPages = multiPageAudits.filter((item)=>item?.status==="audited" && (item.type==="category" || item.type==="other") && item.evidenceSource!=="rendered_html").slice(0,2);
         for (const listing of listingPages) {
           try {
-            const renderedListing = await renderPublicPage(listing.url, 10000);
+            const renderedListing = await renderPublicPage(listing.url, 10000, renderBudget);
             if (isSubstantiveRender(renderedListing.html)) productConfirmed = await auditProductCandidates(extractProductDetailLinks(renderedListing.html, listing.url, siteHost, 8));
           } catch {}
           if (productConfirmed) break;
