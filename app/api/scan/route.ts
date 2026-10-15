@@ -4085,11 +4085,19 @@ export async function POST(request: Request) {
       scanEvidence.commerce.products.confidence === "high" &&
       scanEvidence.commerce.prices.value.count > 0 &&
       scanEvidence.commerce.prices.confidence !== "low";
-    const hardCommerceEvidence = sitewideCommerceEvidence.confirmed || representativeRetailProduct || Boolean(
-      confirmedCurrentProduct ||
-      confirmedAddToCart ||
-      corroboratedProductAndPrice
-    );
+    // Subscription prices and plan cards are not retail products. For a proven
+    // telecom provider require an actual product detail + purchase action before
+    // activating merchant, inventory and checkout modules.
+    const verifiedRetailPurchase = confirmedAddToCart ||
+      (confirmedCurrentProduct && scanEvidence.commerce.checkout.value && scanEvidence.commerce.checkout.confidence === "high") ||
+      (representativeRetailProduct && scanEvidence.commerce.cart.value && scanEvidence.commerce.cart.confidence === "high");
+    const hardCommerceEvidence = telecomProviderIdentity
+      ? Boolean(verifiedRetailPurchase)
+      : sitewideCommerceEvidence.confirmed || representativeRetailProduct || Boolean(
+          confirmedCurrentProduct ||
+          confirmedAddToCart ||
+          corroboratedProductAndPrice
+        );
     const technologyOnlyCommerce = technologyProfile.isCommerce && !hardCommerceEvidence;
     const secondaryCommerceOnly = Boolean(primaryNonCommerceIdentity && !hardCommerceEvidence);
     const finalCommerceDecision = {
