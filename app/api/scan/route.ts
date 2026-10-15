@@ -22,7 +22,7 @@ import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRa
 import { renderPublicPage } from "@/lib/headless-render";
 import { renderOnce, renderWithRetry, representativeNeedsJavaScriptRendering } from "@/lib/render-strategy";
 import { missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore } from "@/lib/sample-quality";
-import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, commerceServiceSignals } from "@/lib/scan-feedback";
+import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, commerceServiceSignals, compareScoreVersions } from "@/lib/scan-feedback";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { isSubstantiveRender, renderImprovesEvidence } from "@/lib/render-quality";
 import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDetailPath, productUrlsFromSitemap } from "@/lib/product-links";
@@ -3501,6 +3501,7 @@ export async function POST(request: Request) {
     const scoreModel = {
       version: SCORE_MODEL_VERSION,
       breakdown: scoreBreakdown(checks),
+      comparison:null as ReturnType<typeof compareScoreVersions> | null,
       formula: mode === "both" ? "0.6 × SEO + 0.4 × GEO" : mode === "seo" ? "SEO" : "GEO",
       weights: mode === "both" ? { seo: 0.6, geo: 0.4, security: 0 } : mode === "seo" ? { seo: 1, geo: 0, security: 0 } : { seo: 0, geo: 1, security: 0 },
       securitySeparate: true,
@@ -4842,6 +4843,14 @@ export async function POST(request: Request) {
           "SELECT id,result FROM scans WHERE user_id=$1 AND lower(regexp_replace(split_part(split_part(final_url, '://', 2), '/', 1), '^www\\.', ''))=$2 ORDER BY created_at DESC LIMIT 1",
           [user.id, websiteHost]
         );
+        const priorReport = previousScan.rows[0]?.result;
+        if (priorReport && Number.isFinite(Number(priorReport.overallScore))) {
+          scoreModel.comparison = compareScoreVersions(
+            Number(priorReport.overallScore), selectedOverallScore,
+            typeof priorReport.scoreModel?.version === "string" ? priorReport.scoreModel.version : null,
+            SCORE_MODEL_VERSION,
+          );
+        }
         console.info("RankFix scan phase", { phase: "history_write_start", page: finalUrl.toString(), isProductPage, productOptimizerSourceCount });
         const insertedScan = await getDb().query(
           "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id",
