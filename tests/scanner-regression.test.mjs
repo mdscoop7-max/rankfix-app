@@ -1661,3 +1661,32 @@ test("KPN-like telecom provider: storefront-wide checks do not masquerade as pri
   assert.match(route, /isStorefrontOnlyForService\(item\.key, Boolean\(primaryNonCommerceIdentity\), finalCommerceDecision\.confirmed\)/);
   assert.match(route, /De primaire activiteit is dienstverlening zonder onafhankelijk bevestigde retailcheckout/);
 });
+
+test("scan summary matches final check statuses after commerce and sector reconciliation", async () => {
+  const data = [
+    {key:"title",issue_status:"PASS",points:10,maxPoints:10},
+    {key:"merchant_feed_signal",issue_status:"NOT_APPLICABLE",points:0,maxPoints:4},
+    {key:"checkout_trust",issue_status:"NOT_APPLICABLE",points:0,maxPoints:5},
+    {key:"schema",issue_status:"UNABLE_TO_CONFIRM",points:0,maxPoints:12},
+  ];
+  const early = summarizeAuditChecks(data);
+  // When representative commerce evidence changes the final applicability,
+  // pre-reconciliation counts MUST NOT be written into the final report.
+  data[1].issue_status = "UNABLE_TO_CONFIRM";
+  data[2].issue_status = "UNABLE_TO_CONFIRM";
+  const final = summarizeAuditChecks(data);
+  assert.equal(early.notApplicable, 2);
+  assert.equal(final.notApplicable, 0);
+  assert.equal(final.unableToConfirm, 3);
+  assert.equal(final.unableToConfirm, data.filter(item=>item.issue_status==="UNABLE_TO_CONFIRM").length);
+  assert.equal(final.notApplicable, data.filter(item=>item.issue_status==="NOT_APPLICABLE").length);
+
+  const {readFile} = await import("node:fs/promises");
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const applicabilityEnd = route.indexOf("if (!shopWordingApplies(finalCommerceApplicability");
+  const finalSummary = route.lastIndexOf("scanSummary = summarizeAuditChecks(checks);");
+  const firstSave = route.indexOf("INSERT INTO scans (user_id");
+  assert.ok(applicabilityEnd > 0 && finalSummary > applicabilityEnd, "summary must be recalculated after final commerce gate");
+  assert.ok(firstSave > finalSummary, "the final counts must be available before saving report to history");
+  assert.match(route, /summary: scanSummary/);
+});
