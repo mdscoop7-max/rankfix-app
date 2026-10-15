@@ -290,7 +290,7 @@ test("measurable metadata defects use gradual penalties", async () => {
   assert.match(source, /const titleLengthPoints = \(length: number\) =>/);
   assert.match(source, /length >= 15 && length <= 110 \? 10 : 9/);
   assert.match(source, /titlePixelEstimate\.warning/);
-  assert.match(source, /titleLengthPoints\(title\.length\), 10/);
+  assert.match(source, /titlePixelEstimate\.warning[\s\S]*?check\("warning", "title"/);
   assert.match(source, /Math\.max\(1, 4 - Math\.min\(3, missingOpenGraphFields\.length \+ invalidOpenGraphFields\.length\)\), 4/);
   assert.match(source, /title: \{ rule_id: title \? "META_TITLE_GUIDANCE" : "META_TITLE_MISSING"/);
   assert.match(source, /social: \{ rule_id: "SOCIAL_METADATA_INCOMPLETE"/);
