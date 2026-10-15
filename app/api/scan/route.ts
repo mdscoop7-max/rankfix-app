@@ -3917,6 +3917,7 @@ export async function POST(request: Request) {
         const refinedType = refineSamplePageType({
           proposed: page.type,
           path: finalCandidate.pathname,
+          serviceOffer: /\b(?:abonnement(?:en)?|subscription(?:s)?|internet(?:pakket|abonnement)?|glasvezel|servicepakket|consult(?:atie)?|afspraak|booking)\b/i.test([pageTitle,pageDescription,pageH1s.join(" ")].join(" ")),
           articleSchema: pageSchemaTypes.some((type)=>/^(?:article|newsarticle|blogposting|reportage)$/i.test(type)),
           breadcrumbDepth: (pageHtml.match(/"@type"\s*:\s*"ListItem"/gi)||[]).length,
           productSchema: pageProductSchema,
@@ -4185,6 +4186,12 @@ export async function POST(request: Request) {
       multiPageEvidence: sitewideCommerceEvidence.confirmed,
     };
     const representativeAuditedPageCount = auditedMultiPages.filter((item)=>item.status==="audited" && normalizeScanUrl(item.url)!==normalizeScanUrl(finalUrl.toString())).length;
+    // A fully fetched product-detail page with a model-specific URL establishes
+    // a secondary commerce opportunity, even if SSR omits Product/Offer schema.
+    // This is evidence of product intent, NOT of a working retail checkout.
+    const representativeCommercialProductIntent = auditedMultiPages.some((item)=>item.status==="audited"
+      && item.type==="product"
+      && /\/(?:shop|winkel|store|products?)(?:\/|$)/i.test(new URL(item.url).pathname));
     const finalCommerceApplicability = commerceApplicability({
       confirmed: finalCommerceDecision.confirmed,
       primaryNonCommerceIdentity: Boolean(primaryNonCommerceIdentity),
@@ -4192,7 +4199,7 @@ export async function POST(request: Request) {
       thinShell: thinRawHtmlEvidence,
       marketSelector: marketSelectorPage,
       auditedRepresentativePages: representativeAuditedPageCount,
-      verifiedSecondaryCommerce: Boolean(sitewideCommerceEvidence.confirmed || verifiedRepresentativeProductDetail),
+      verifiedSecondaryCommerce: Boolean(sitewideCommerceEvidence.confirmed || verifiedRepresentativeProductDetail || representativeCommercialProductIntent),
     });
     if (!finalCommerceDecision.confirmed && primaryNonCommerceIdentity) {
       masterEvidence.commerce.confirmed = false;
