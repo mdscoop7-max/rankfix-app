@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { detectPrimaryBusinessIdentity, isSiteHomepagePath } from "../lib/primary-business-identity.ts";
+import { confirmedRetailEvidenceForService } from "../lib/commerce-applicability.ts";
 
 const sector = (title, description, headings = [], schemaTypes = []) =>
   detectPrimaryBusinessIdentity({title,description,headings,schemaTypes});
@@ -71,5 +72,19 @@ test("primary-sector and page classification are wired into RankFix before comme
   assert.match(route,/const shortStayIdentity = primaryBusinessEvidence\.sector === "hospitality" && Boolean/);
   assert.match(route,/primaryBusinessEvidence\.sector === "financial_services"/);
   assert.match(route,/retailPurchaseEvidence\s*&& primaryBusinessEvidence\.sector !== "financial_services"/);
-  assert.match(route,/const hardCommerceEvidence = \(telecomProviderIdentity \|\| primaryBusinessEvidence\.sector === "financial_services"\)/);
+  assert.match(route,/const hardCommerceEvidence = primaryNonCommerceIdentity/);
+  assert.match(route,/confirmedRetailEvidenceForService\(\{/);
+});
+
+test("service vs retail eligibility is capability-based for every sector, not one domain", () => {
+  const none = {representativePurchase:false,productDetailSchema:false,addToCart:false,productAndPrice:false};
+  for (const options of [
+    none,
+    {...none,addToCart:true},
+    {...none,productAndPrice:true},
+    {...none,productDetailSchema:true,addToCart:true},
+    {...none,productDetailSchema:true,productAndPrice:true},
+  ]) assert.equal(confirmedRetailEvidenceForService(options),false);
+  assert.equal(confirmedRetailEvidenceForService({...none,representativePurchase:true}),true);
+  assert.equal(confirmedRetailEvidenceForService({...none,productDetailSchema:true,addToCart:true,productAndPrice:true}),true);
 });
