@@ -13,15 +13,16 @@ import { assessPageDescription, assessPageTitle, BOT_SENSITIVE_CHECKS, botManage
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
 import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
-import { readResponsePrefix, readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
+import { readHtmlSampleHeadFirst, readResponsePrefix, readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
 import { applyEvidenceBasedScoreCap, SCORE_MODEL_VERSION, scoreApplicableChecks, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
 import { isPaidPlan, normalizePlan, planLimits } from "@/lib/plans";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
 import { renderPublicPage } from "@/lib/headless-render";
-import { renderOnce, representativeNeedsJavaScriptRendering } from "@/lib/render-strategy";
+import { renderOnce, renderWithRetry, representativeNeedsJavaScriptRendering } from "@/lib/render-strategy";
 import { missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore } from "@/lib/sample-quality";
+import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, commerceServiceSignals } from "@/lib/scan-feedback";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { isSubstantiveRender, renderImprovesEvidence } from "@/lib/render-quality";
 import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDetailPath, productUrlsFromSitemap } from "@/lib/product-links";
@@ -562,7 +563,8 @@ export async function POST(request: Request) {
     const finalUrl = fetchedFinalUrl ?? new URL(response.url || target.toString());
     console.info("RankFix redirect resolution", { requested: target.toString(), final: finalUrl.toString(), hops: redirectChain.length });
     // Primary recovery, JS hydration and quality-gate fallback share one browser attempt.
-    const renderPrimaryOnce = renderOnce(() => renderPublicPage(finalUrl.toString(), 12000));
+    const renderPrimaryOnce = renderOnce(() => renderWithRetry((ms) => renderPublicPage(finalUrl.toString(), ms), 12000, 7000));
+    let renderedDocument: Awaited<ReturnType<typeof renderPublicPage>> | null = null;
 
     if (response.status === 429) {
       return NextResponse.json(
@@ -592,6 +594,7 @@ export async function POST(request: Request) {
         if (!isSubstantiveRender(recovered.html)) recovery.reason = "RECOVERY_RENDER_NOT_SUBSTANTIVE";
         else {
           recoveredHtml = recovered.html;
+          renderedDocument = recovered;
           recoveredRenderElapsedMs = recovered.elapsedMs;
           recovery.browserRecovered = true;
           recovery.limitedScope = true;
@@ -625,7 +628,7 @@ export async function POST(request: Request) {
     const rawVisibleWords = rawVisibleText.split(/\s+/).filter(Boolean).length;
     const rawScriptCount = (rawHtml.match(/<script\b/gi) || []).length;
     const thinClientShell = rawVisibleWords < 80 && rawScriptCount >= 4;
-    const javascriptFrameworkSignal = /(?:__NEXT_DATA__|\/_next\/|__NUXT__|\/_nuxt\/|data-reactroot|data-react-helmet|shopify|webpackJsonp|__APOLLO_STATE__)/i.test(rawHtml);
+    const javascriptFrameworkSignal = isJavaScriptFramework(rawHtml);
     // Bounded render: framework evidence alone is useful, but a thin client shell
     // is also a strong reason to render once. This improves Shopify/Next/Nuxt sites
     // without rendering every SSR page or retrying indefinitely.
@@ -639,6 +642,7 @@ export async function POST(request: Request) {
         // Never replace richer raw evidence with a poorer (blocked or partial) render.
         if (renderImprovesEvidence(rawVisibleWords, thinClientShell, rendered.html)) {
           html = rendered.html;
+          renderedDocument = rendered;
           javascriptExecuted = true;
           renderElapsedMs = rendered.elapsedMs;
         } else {
@@ -665,6 +669,7 @@ export async function POST(request: Request) {
         const recovered = await renderPrimaryOnce();
         if (isSubstantiveRender(recovered.html)) {
           html = recovered.html;
+          renderedDocument = recovered;
           javascriptExecuted = true;
           renderElapsedMs = recovered.elapsedMs;
           recovery.attempted = true;
@@ -704,6 +709,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: qualityMessages[scanLanguage], charged: false }, { status: 422 });
     }
 
+    const titlePixelEstimate = titlePixelAdvice(renderedDocument?.titlePixelWidth);
     const title = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
     const descriptionMetaTag = html.match(/<meta\b[^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] ||
       html.match(/<meta\b[^>]*content\s*=\s*["'][^"']*["'][^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] || "";
@@ -2495,9 +2501,9 @@ export async function POST(request: Request) {
           ? check("warning", "title", "seo", "Meta title", `De title is ${title.length} tekens en "${duplicateTitleSegment(title)}" staat er twee keer in; waarschijnlijk voegt het template het merk een tweede keer toe.`, "Laat het merk maar één keer in de title staan; controleer de title-instelling van het template of de SEO-plugin.", Math.min(8, titleLengthPoints(title.length)), 10)
         : titleQualityIssue
           ? check("warning", "title", "seo", "Meta title", `De title is ${title.length} tekens, maar bevat relatief veel herhaalde woorden.`, "Herschrijf de title natuurlijker en voorkom keyword stuffing.", 6, 10)
-          : title.length >= 15 && title.length <= 110
-            ? check("pass", "title", "seo", "Meta title", `De title telt ${title.length} tekens. De uiteindelijke zoekpreview wordt bepaald door de pixelbreedte; 30–60 tekens is geen harde SEO-eis.`, "Controleer de zichtbare titel in een zoekpreview en houd onderwerp en merk herkenbaar.", 10, 10)
-            : check("warning", "title", "seo", "Meta title", `De title telt ${title.length} tekens en is uitzonderlijk kort of lang; beoordeel de werkelijke pixelbreedte voordat je deze inkort.`, "Controleer de zoekpreview en herschrijf alleen wanneer relevante inhoud wegvalt.", titleLengthPoints(title.length), 10)
+          : titlePixelEstimate.warning
+            ? check("warning", "title", "seo", "Meta title", titlePixelEstimate.message, "Controleer de daadwerkelijke zoekpreview. Kort alleen in als de relevante informatie wegvalt.", 9, 10)
+            : check("pass", "title", "seo", "Meta title", `${titlePixelEstimate.message} De titel telt ${title.length} tekens; lengte in tekens is geen harde SEO-eis.`, "Houd onderwerp, zoekintentie en merk herkenbaar.", 10, 10)
     );
     seoChecks.push(
       !description
@@ -3450,6 +3456,7 @@ export async function POST(request: Request) {
       }
     }
 
+    applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate, rendered:javascriptExecuted, url:finalUrl.toString() });
     const selectedSeoChecks = mode === "geo" ? [] : seoChecks;
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
     let selectedSeoScore = scoreApplicableChecks(selectedSeoChecks);
@@ -3467,6 +3474,7 @@ export async function POST(request: Request) {
     const overallScoreRange = scoreRange(checks);
     const scoreModel = {
       version: SCORE_MODEL_VERSION,
+      breakdown: scoreBreakdown(checks),
       formula: mode === "both" ? "0.6 × SEO + 0.4 × GEO" : mode === "seo" ? "SEO" : "GEO",
       weights: mode === "both" ? { seo: 0.6, geo: 0.4, security: 0 } : mode === "seo" ? { seo: 1, geo: 0, security: 0 } : { seo: 0, geo: 1, security: 0 },
       securitySeparate: true,
@@ -4614,6 +4622,7 @@ export async function POST(request: Request) {
       }
     }
 
+    applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate, rendered:javascriptExecuted, url:finalUrl.toString() });
     // Final score is calculated only after representative evidence reconciliation.
     // Reapply evidence coverage caps: this second scoring pass must not erase them.
     selectedSeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(selectedSeoChecks), selectedSeoChecks);
@@ -4627,6 +4636,7 @@ export async function POST(request: Request) {
     scoreModel.seoRange = scoreRange(selectedSeoChecks);
     scoreModel.geoRange = scoreRange(selectedGeoChecks);
     scoreModel.provisional = overallCoverage.coveragePercent < 90;
+    scoreModel.breakdown = scoreBreakdown(checks);
 
     const classification = {
       websiteType,
