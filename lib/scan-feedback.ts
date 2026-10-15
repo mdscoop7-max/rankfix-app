@@ -24,14 +24,14 @@ export type EvidenceCheck = {
   reasonCode?: string;
   message: string;
   fix: string;
-  evidence?: {url?: string;found?: boolean | null;details?: string};
+  evidence?: {url: string;found: string | number | boolean | null;details: string;expected?: string};
 };
 
 // A failure to execute a site's JS may not turn a missing DOM signal into a
 // scoring issue. Confirmed positive evidence remains valid; HTTP/headers are
 // independent of hydration and never demoted.
-export function applyJsEvidenceUncertainty<T extends EvidenceCheck>(
-  checks: T[], input: { framework: boolean; rendered: boolean; url: string },
+export function applyJsEvidenceUncertainty(
+  checks: EvidenceCheck[], input: { framework: boolean; rendered: boolean; url: string },
 ): number {
   if (!input.framework || input.rendered) return 0;
   let changed = 0;
