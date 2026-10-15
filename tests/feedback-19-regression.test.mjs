@@ -231,3 +231,19 @@ test("nationwide telecom services retain subscription price formatting without r
   assert.match(route,/subscription: telecomProviderIdentity \|\|/);
   assert.match(route,/business_placeholders: `placeholders=\$\{placeholderMatches.length\}; verifiedDetails=/);
 });
+
+test("regression: unresolved template matcher distinguishes visible UI from code samples", () => {
+  const html = (body, scripts = '<script src="/assets/app.js"></script>') =>
+    `<html><body>${body}${scripts}</body></html>`;
+
+  // Two real unresolved client bindings must trigger browser rendering.
+  assert.equal(hasUnresolvedClientTemplateBindings(html('<main><p>{{ serviceName }}</p><p>{{ monthlyPrice }}</p></main>')), true);
+  // Literal examples in script, code, pre and textarea are not visible UI bindings.
+  const hidden = '<script>const tpl="{{ script1 }} {{ script2 }}";</script><code>{{ code }}</code><pre>{{ pre }}</pre><textarea>{{ textarea }}</textarea>';
+  assert.equal(hasUnresolvedClientTemplateBindings(html(hidden)), false);
+  assert.equal(hasUnresolvedClientTemplateBindings(html(hidden + '<p>{{ singleVisible }}</p>')), false);
+  assert.equal(hasUnresolvedClientTemplateBindings(html(hidden + '<p>{{ realOne }}</p><p>{{ realTwo }}</p>')), true);
+  // A page without an external JS asset or with only one visible binding should not force rendering.
+  assert.equal(hasUnresolvedClientTemplateBindings(html('<p>{{ one }}</p><p>{{ two }}</p>', '')), false);
+  assert.equal(hasUnresolvedClientTemplateBindings(html('<p>{{ onlyOne }}</p>')), false);
+});
