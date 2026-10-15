@@ -121,7 +121,9 @@ test("oversized HTML keeps a complete head without claiming full document covera
  assert.equal(sample.headComplete,true);
  assert.match(sample.html,/<title>Grote pagina<\/title>/);
  assert.match(sample.html,/canonical/);
- assert.doesNotMatch(sample.html,/<body>/);
+ assert.match(sample.html,/<body>/);
+ assert.ok(Buffer.byteLength(sample.html,"utf8")<=2_000_000);
+ assert.ok(sample.html.endsWith("x"));
 });
 
 test("scanner integrates all feedback policies and the report explains limitations",async()=>{
