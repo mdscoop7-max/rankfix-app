@@ -22,3 +22,28 @@ test("strong primary sector cannot be overwritten by unrelated secondary signals
  assert.deepEqual(reconcilePrimarySector({sector:"unknown",confidence:0},{sector:"hospitality",confidence:90,independentEvidence:true}),{sector:"hospitality",confidence:90});
  assert.deepEqual(reconcilePrimarySector({sector:"unknown",confidence:0},{sector:"hospitality",confidence:90,independentEvidence:false}),{sector:"unknown",confidence:0});
 });
+
+test("service sectors never inherit retail merchant or checkout from secondary features",()=>{
+ for (const primarySector of ["telecom_technology","hospitality","healthcare","education","finance","transport_travel","real_estate","recruitment","government","tourism","automotive","professional_services","media","nonprofit","food_service","fitness","construction","software","local_services"]) {
+   assert.deepEqual(decideCommerceModules({...base,primarySector,retailProduct:true,productPrice:true,cart:true,checkout:true,merchantFeed:true}),[]);
+ }
+});
+
+test("unknown identity needs independent retail evidence",()=>{
+ assert.deepEqual(decideCommerceModules({...base,primaryBusinessModel:"unknown",retailProduct:true}),[]);
+ assert.deepEqual(decideCommerceModules({...base,primaryBusinessModel:"unknown",retailProduct:true,cart:true}),["ecommerce","product","eu_consumer"]);
+});
+
+test("checkout or cart alone does not activate webshop checks",()=>{
+ assert.deepEqual(decideCommerceModules({...base,primaryBusinessModel:"retail",cart:true,checkout:true}),["checkout"]);
+ assert.deepEqual(decideCommerceModules({...base,primaryBusinessModel:"retail",checkout:true}),[]);
+});
+
+test("scanner imports central motor and preserves service site identity",async()=>{
+ const {readFile}=await import("node:fs/promises");
+ const source=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
+ assert.match(source,/import \{ decideCommerceModules \} from "@\/lib\/sector-motor-decisions"/);
+ assert.match(source,/const motorCommerceModules = decideCommerceModules\(/);
+ assert.match(source,/primaryNonCommerceIdentity && technologyProfile\.siteType === "Webshop"/);
+ assert.match(source,/allowedCommerceModules\.has\(module\)/);
+});
