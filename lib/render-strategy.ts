@@ -15,7 +15,8 @@ export function representativeNeedsJavaScriptRendering(input: {
   visibleWords: number;
   scriptCount: number;
   frameworkSignal: boolean;
+  dynamicEvidenceRelevant?: boolean;
 }): boolean {
   const thinClientShell = input.visibleWords < 80 && input.scriptCount >= 4;
-  return thinClientShell || (input.frameworkSignal && input.visibleWords < 180);
+  return thinClientShell || (input.frameworkSignal && (input.visibleWords < 180 || Boolean(input.dynamicEvidenceRelevant)));
 }
