@@ -19,7 +19,7 @@ export function decideCommerceModules(e: MotorEvidence): string[] {
   if (e.retailProduct) modules.push("product");
   if (e.retailProduct && e.productPrice) modules.push("pricing_currency");
   if (e.merchantFeed && e.retailProduct) modules.push("merchant");
-  if (e.cart && e.checkout) modules.push("checkout");
+  if (e.retailProduct && e.cart && e.checkout) modules.push("checkout");
   if (e.euMarket && e.retailProduct && (e.cart || e.checkout)) modules.push("eu_consumer");
   return modules;
 }
