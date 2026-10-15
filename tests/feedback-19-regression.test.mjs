@@ -126,7 +126,7 @@ test("oversized HTML retains its complete head and an honest partial flag",async
 test("site-wide PASS requires proof on every audited page, not just the homepage",async()=>{
  const route=await source("app/api/scan/route.ts");
  const report=await source("app/dashboard/audit/[id]/report/page.tsx");
- assert.match(route,/passes.length===observations.length/);
+ assert.match(route,/passes.length===auditedRawPages.length/);
  assert.match(route,/unconfirmedPages: auditedRawPages.length - proven.length/);
  assert.match(report,/Gedeeltelijk bevestigde controles/);
  assert.match(report,/sitewideNotFullyConfirmed/);
@@ -176,4 +176,11 @@ test("raw SSR head metadata remains provable after JS navigation, while client-a
  const jsOnlyCanonical='<html><head><title>Client</title><link rel="canonical" href="https://site.example/dynamic"></head><body>client</body></html>';
  assert.match(preserveRawHeadEvidence('<html><head></head><body>shell</body></html>',jsOnlyCanonical),/canonical/);
  assert.equal((preserveRawHeadEvidence(raw,jsOnlyCanonical).match(/rel="canonical"/g)||[]).length,1);
+});
+
+
+test("extra sector modules never cap the SEO/GEO headline even when severe, while proven core issues still do",()=>{
+ const core=[{key:"title",issue_status:"PASS",maxPoints:10,points:10,confidence:"high",severity:"LOW"}];
+ const sector={key:"merchant_feed_signal",issue_status:"FAIL",maxPoints:10,points:0,confidence:"high",severity:"CRITICAL"};
+ assert.equal(applyEvidenceBasedScoreCap(scoreApplicableChecks(stableCoreChecks([...core,sector],"seo")),stableCoreChecks([...core,sector],"seo")),100);
 });
