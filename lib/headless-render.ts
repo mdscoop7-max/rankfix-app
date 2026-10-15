@@ -2,7 +2,10 @@ import type { Browser } from "puppeteer";
 import { assertPublicDns, validatePublicHttpUrl } from "@/lib/safe-fetch";
 
 export type HeadlessMode = "raw_html" | "javascript_rendered";
-export type RenderedPage = { html: string; finalUrl: string; elapsedMs: number; requests: number };
+export type RenderedPage = { html: string; finalUrl: string; elapsedMs: number; requests: number;
+  titlePixelWidth: number | null;
+  domAccessibility: {controls:number;unnamedButtons:number;unlabeledControls:number} | null;
+};
 
 const ALLOWED = new Set(["document", "script", "stylesheet", "xhr", "fetch"]);
 const MAX_REQUESTS = 90;
@@ -127,7 +130,34 @@ export async function renderPublicPage(value: string, timeoutMs = 12000): Promis
     await assertPublicDns(finalUrl.hostname);
     const html = await withinTimeout(page.content(), remaining());
     if (!html || html.length < 20 || html.length > 8000000) throw new Error("RENDERED_HTML_INVALID");
-    return { html, finalUrl: finalUrl.toString(), elapsedMs: Date.now() - started, requests };
+    // Only inspect the actually hydrated DOM; this is a bounded basic accessible
+    // name inspection, not a WCAG/axe-core certification.
+    const domDetails = await withinTimeout(page.evaluate(() => {
+      const t = document.title || "";
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (ctx) ctx.font = "20px Arial";
+      const titlePixelWidth = ctx && t ? ctx.measureText(t).width : null;
+      const controls = [...document.querySelectorAll("button,input:not([type=hidden]),select,textarea")];
+      let unnamedButtons = 0;
+      let unlabeledControls = 0;
+      for (const el of controls) {
+        const element = el as HTMLElement;
+        if (element.closest("[hidden],[aria-hidden='true']")) continue;
+        const labelledBy = (element.getAttribute("aria-labelledby") || "").split(/\s+/).filter(Boolean)
+          .map(id => document.getElementById(id)?.textContent?.trim() || "").join(" ").trim();
+        const labelText = element.getAttribute("aria-label")?.trim() || labelledBy
+          || element.getAttribute("title")?.trim()
+          || ("labels" in element && element.labels ? [...element.labels as NodeListOf<HTMLLabelElement>].map(label => label.textContent?.trim() || "").join(" ").trim() : "")
+          || element.textContent?.trim() || "";
+        if (element.tagName === "BUTTON") {
+          const iconImage = element.querySelector("img[alt]:not([alt=''])");
+          if (!labelText && !iconImage) unnamedButtons++;
+        } else if (!labelText) unlabeledControls++;
+      }
+      return {titlePixelWidth,domAccessibility:{controls:controls.length,unnamedButtons,unlabeledControls}};
+    }), remaining());
+    return { html, finalUrl: finalUrl.toString(), elapsedMs: Date.now() - started, requests, ...domDetails };
   } finally {
     if (browser) {
       try { await withinTimeout(browser.close(), 2000); }
