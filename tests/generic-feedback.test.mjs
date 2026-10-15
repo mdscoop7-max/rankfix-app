@@ -5,7 +5,7 @@ import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, sc
 import { renderWithRetry, representativeNeedsJavaScriptRendering } from "../lib/render-strategy.ts";
 import { readHtmlSampleHeadFirst } from "../lib/safe-fetch.ts";
 import { assessPageTitle } from "../lib/report-quality.ts";
-import { refineSamplePageType } from "../lib/sample-quality.ts";
+import { refineSamplePageType, sampleEvidenceScore } from "../lib/sample-quality.ts";
 
 // Stable HTML reference fixtures, not live dependencies or claims that a
 // third-party website was actually scanned in CI.
@@ -81,6 +81,8 @@ test("subscription, booking and lead commerce are not conflated with checkout",(
 test("page type uses product schema, breadcrumbs, article schema and contact paths",()=>{
  const base={proposed:"other",productSchema:false,itemListSchema:false,repeatedProductLinks:false,productOffer:false,purchaseAction:false,visiblePrices:0,uniqueH1:false,detailIdentity:false};
  assert.equal(refineSamplePageType({...base,proposed:"category",productSchema:true,path:"/shop/phones/iphone"}),"product");
+ assert.equal(refineSamplePageType({...base,proposed:"category",path:"/shop/mobiel/apple/iphone-18-pro-5g/burgundy-256gb",uniqueH1:true,detailIdentity:true}),"product");
+ assert.equal(refineSamplePageType({...base,proposed:"category",path:"/shop/mobiel/telefoons",uniqueH1:true,detailIdentity:true}),"category");
  assert.equal(refineSamplePageType({...base,articleSchema:true,path:"/blog/how-to"}),"article");
  assert.equal(refineSamplePageType({...base,path:"/contact"}),"contact");
  assert.equal(refineSamplePageType({...base,itemListSchema:true,breadcrumbDepth:3}),"category");
@@ -96,6 +98,15 @@ test("score deductions are transparent and unverified checks have no deduction",
  assert.deepEqual(rows.map(x=>x.earnedPoints),[9,null,null]);
 });
 
+test("a JS page missing canonical has no misleading perfect four-metadata score",()=>{
+ const checks=[
+  {key:"http",status:"PASS"}, {key:"title",status:"PASS"},
+  {key:"description",status:"PASS"}, {key:"h1",status:"PASS"},
+  {key:"canonical",status:"UNABLE_TO_CONFIRM"},
+ ];
+ assert.equal(sampleEvidenceScore(checks,()=>0.9),null);
+ assert.equal(sampleEvidenceScore(checks.map(x=>x.key==="canonical"?{...x,status:"PASS"}:x),()=>0.9),100);
+});
 test("25 selected, 23 scored, one noindex and one fetch error stay accounted for",()=>{
  assert.deepEqual(sampleSummary(25,23,1,1,0),{selected:25,scored:23,noindex:1,fetchFailed:1,headOnly:0,excluded:2,consistent:true});
 });
