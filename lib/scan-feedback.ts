@@ -90,3 +90,21 @@ export function commerceServiceSignals(input:{subscription:boolean;booking:boole
     hasCommercialActivity:input.subscription||input.booking||input.lead,
   };
 }
+
+export function compareScoreVersions(
+  previousScore:number, currentScore:number,
+  previousModel:string | null, currentModel:string, threshold=3,
+) {
+  const delta=currentScore-previousScore;
+  const requiresExplanation=Math.abs(delta)>threshold;
+  const modelChanged=Boolean(previousModel && previousModel!==currentModel);
+  return {
+    previousScore,currentScore,delta,previousModel,currentModel,
+    requiresExplanation,modelChanged,
+    explanation:requiresExplanation
+      ? modelChanged
+        ? "De score is meer dan 3 punten veranderd en de scoremodelversie is gewijzigd. Hercontroleer de controleweging en de brondata; de modelwijziging is niet automatisch bewezen als enige oorzaak."
+        : "De score verschilt meer dan 3 punten bij dezelfde scoremodelversie. Controleer gewijzigde inhoud, JavaScript-bewijs, steekproefdekking en bevestigde fouten voordat je de verandering verklaart."
+      : null,
+  };
+}
