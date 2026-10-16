@@ -59,6 +59,12 @@
    "scannedOn": "2026-10-16",
    "finding": "Sector juist 96%; controle financiële producten vs. webshop (owner-scan 16-10)",
    "rescan": "16-10 23:26/23:27: sector juist, retailcontroles N.v.t., rekeningpagina's als dienst; 'raw HTML'-tekst na rendering"
+  },
+  {
+   "host": "simple.nl",
+   "expected": "parked",
+   "scannedOn": "2026-10-16",
+   "finding": "Geparkeerd/gereserveerd domein kreeg een volledige SEO-score (37–84); korte statische pagina als 'JavaScript-shell' behandeld"
   }
  ],
  "planned": [

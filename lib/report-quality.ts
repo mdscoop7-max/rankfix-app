@@ -311,3 +311,12 @@ const NON_ENTITY_TYPES = /^(?:\w*action|listitem|itemlist|breadcrumblist|imageob
 export function entityTypesForDisplay(types: string[]): string[] {
   return [...new Set(types.filter((type) => !NON_ENTITY_TYPES.test(type.trim())))];
 }
+
+// A registrar's placeholder for a reserved, parked or for-sale domain is not a website:
+// there is no organisation, content or SEO to audit. Read from the title, or from the
+// body of a short page only (hosting providers mention "domain names" on real sites).
+const PARKED_PHRASES = /(?<![\p{L}])(?:domeinnaam (?:is )?gereserveerd|domein (?:is )?gereserveerd|deze domeinnaam is (?:geregistreerd|te koop|gereserveerd)|deze domeinnaam is geregistreerd door|this domain (?:is|has been|may be) (?:for sale|parked|registered|reserved)|this domain name is (?:for sale|parked|reserved)|domain (?:name )?(?:is )?(?:parked|reserved)|parked (?:domain|free)|buy this domain|the domain [\p{L}\p{N}.-]+ is for sale|diese domain (?:ist|wurde) (?:registriert|reserviert|geparkt|zu verkaufen)|domain (?:ist )?reserviert|ce (?:nom de )?domaine (?:est|a été) (?:à vendre|réservé|enregistré|parqué)|domaine réservé|questo dominio è (?:in vendita|stato registrato|riservato)|dominio (?:riservato|in vendita|parcheggiato)|este dominio (?:está a la venta|ha sido registrado|está reservado)|dominio reservado|ta domena (?:je naprodaj|je rezervirana)|ta domena jest na sprzedaż|domena (?:zarezerwowana|na sprzedaż)|doména je (?:na prodej|rezervována)|denne domæne er (?:til salg|reserveret)|denna domän är (?:till salu|reserverad)|sedoparking|parkingcrew|bodis\.com)(?![\p{L}])/iu;
+export function isParkedDomainPage(input: { title: string; text: string; words: number }): boolean {
+  if (PARKED_PHRASES.test(String(input.title || ""))) return true;
+  return input.words < 300 && PARKED_PHRASES.test(String(input.text || "").slice(0, 4000));
+}

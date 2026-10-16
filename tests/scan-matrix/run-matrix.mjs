@@ -21,6 +21,7 @@ for (const p of PROFILES) {
   catch (e) { j = { thrown: String(e?.stack || e) }; }
   const ms = Date.now() - t0; const errs = restore();
   const problems = [];
+  if (p.expectCode && j.code !== p.expectCode) problems.push(`code ${j.code} (expected ${p.expectCode})`);
   if (p.expectHttp) { if (!p.expectHttp.includes(status)) problems.push(`HTTP ${status} not in ${p.expectHttp} ${j.error || j.thrown || ""} ${JSON.stringify(errs.find(e => /scan failed/i.test(String(e[0])))?.[1] || "").slice(0, 500)}`); if (status !== 200) { rows.push({ id: p.id, status, sector: "-", key: (j.error||"").slice(0,60), conf: "", page: "", score: "", ms, problems }); continue; } }
   if (status !== 200) problems.push(`HTTP ${status} ${j.error || j.thrown || ""} ${JSON.stringify(errs.find(e => /scan failed/i.test(String(e[0])))?.[1] || "").slice(0, 400)}`);
   else {

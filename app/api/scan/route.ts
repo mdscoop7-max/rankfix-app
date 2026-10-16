@@ -11,7 +11,7 @@ import { getFixPolicy } from "@/lib/fix-policy";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { assessPassiveSecurity, formBlocks, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
-import { assessPageDescription, assessPageTitle, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isClientShell, isPlaceholderTitle, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
+import { assessPageDescription, assessPageTitle, isParkedDomainPage, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isClientShell, isPlaceholderTitle, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, confirmedRetailEvidenceForService, isStorefrontOnlyForService, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
 import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
@@ -843,6 +843,19 @@ async function runScan(request: Request) {
         es:"El sitio no pudo analizarse de forma fiable. El servidor devolvió una página intermedia, de verificación o de enrutamiento en lugar del sitio esperado. Por eso no se calculó ninguna puntuación."
       };
       return NextResponse.json({ error: qualityMessages[scanLanguage], code: "CHALLENGE_OR_INTERSTITIAL", charged: false }, { status: 422 });
+    }
+    // A reserved, parked or for-sale domain placeholder has no organisation or content to
+    // audit: no score (scoring its missing description or HTTPS would describe the registrar).
+    if (isParkedDomainPage({ title: qualityTitle, text: qualityText, words: qualityWords })) {
+      const parkedMessages: Record<string,string> = {
+        nl:"Dit domein toont alleen een plaatshouderpagina (gereserveerd, geparkeerd of te koop). Er is geen website om te analyseren; er is daarom geen score berekend.",
+        en:"This domain only shows a placeholder page (reserved, parked or for sale). There is no website to analyse, so no score was calculated.",
+        de:"Diese Domain zeigt nur eine Platzhalterseite (reserviert, geparkt oder zu verkaufen). Es gibt keine Website zu analysieren; daher wurde keine Bewertung berechnet.",
+        fr:"Ce domaine n’affiche qu’une page d’attente (réservé, parqué ou à vendre). Il n’y a pas de site à analyser ; aucun score n’a donc été calculé.",
+        it:"Questo dominio mostra solo una pagina segnaposto (riservato, parcheggiato o in vendita). Non c’è un sito da analizzare; non è stato quindi calcolato alcun punteggio.",
+        es:"Este dominio solo muestra una página provisional (reservado, aparcado o en venta). No hay un sitio que analizar; por eso no se calculó ninguna puntuación."
+      };
+      return NextResponse.json({ error: parkedMessages[scanLanguage] || parkedMessages.en, code: "PARKED_DOMAIN", charged: false }, { status: 422 });
     }
 
     const titlePixelEstimate = titlePixelAdvice(renderedDocument?.titlePixelWidth);
@@ -1853,7 +1866,7 @@ async function runScan(request: Request) {
     // Short-stay accommodation must outrank generic words such as "te huur".
     // Long-term housing remains real estate; guest/night/date/booking evidence is hospitality.
     const realEstateIdentity = Boolean(!shortStayIdentity && scanEvidence.inventory.properties.value && scanEvidence.inventory.properties.confidence !== "low" && (/\/(?:woningaanbod|residential-listings|properties?|real-estate)(?:\/|$)/i.test(finalUrl.pathname) || /\b(?:makelaar|woningaanbod|te koop|te huur|for sale|for rent|real estate)\b/i.test(sectorIdentitySource)));
-    const automotiveServiceIdentity = Boolean(/\b(?:apk|autobanden|banden|uitlijnen|werkplaats|autoservice|auto-onderhoud|car repair|tyres?)\b/i.test(sectorIdentitySource) || schemaSet.has("autorepair"));
+    const automotiveServiceIdentity = Boolean(/\b(?:apk|autobanden|banden|uitlijnen|autowerkplaats|autoservice|auto-onderhoud|car repair|tyres?)\b/i.test(sectorIdentitySource) || schemaSet.has("autorepair"));
     const explicitMedicalIdentity = /\b(?:tandarts|dentist|kliniek|clinic|medical|medicalclinic|(?:fysio|physio)therap\w*|osteopa\w*|chiropract\w*|huisarts\w*|psycholo\w*|logoped\w*|podotherap\w*|verloskund\w*|orthodont\w*|mondhygi\w*|mondzorg|patient|patiënt|physician|huisarts|doctor)\b/i.test(sectorIdentitySource) || schemaSet.has("dentist") || schemaSet.has("medicalclinic");
     const beautyServiceIdentity = /\b(?:beauty salon|beautysalon|schoonheidssalon|day spa|dayspa|city spa|wellness|manicure|pedicure|nail salon|nagelsalon|facial|gezichtsbehandeling)\b/i.test(sectorIdentitySource) || schemaSet.has("beautysalon") || schemaSet.has("dayspa");
     // Primary telecom subscription identity outranks incidental commerce widgets.
@@ -2794,8 +2807,9 @@ async function runScan(request: Request) {
     const bodyStructureMayBeClientRendered = metadataMayBeClientRendered && !rawSubstantiveDocument;
     // One shared rule for text/link evidence. A thin client shell is insufficient
     // evidence for negative content, trust or commercial-link conclusions.
+    // A short page without any script is complete static HTML, not a JavaScript shell.
     const thinRawHtmlEvidence = !javascriptExecuted && (
-      rawVisibleWords < 60 ||
+      (rawVisibleWords < 60 && rawScriptCount >= 1) ||
       (rawVisibleWords < 100 && rawScriptCount >= 4) ||
       /<div\b[^>]*\bid\s*=\s*["'](?:root|app|__next|__nuxt)["'][^>]*>\s*<\/div>/i.test(rawHtml)
     );

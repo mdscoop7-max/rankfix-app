@@ -214,3 +214,15 @@ test("report main action: a sector-only provisional score does not ask to review
   assert.match(page, /Hoofdactie: hoofdsector controleren/);
   assert.ok(page.indexOf("Hoofdactie: hoofdsector controleren") < page.indexOf("Hoofdactie: onbevestigde controles bekijken"));
 });
+
+test("reserved, parked and for-sale domain placeholders are recognised in EU languages, real sites are not", async () => {
+  const { isParkedDomainPage: p } = await import("../lib/report-quality.ts");
+  assert.ok(p({ title: "Nedreg - Domeinnaam gereserveerd", text: "", words: 20 }));
+  assert.ok(p({ title: "example.de", text: "Diese Domain ist zu verkaufen. Jetzt anfragen.", words: 12 }));
+  assert.ok(p({ title: "", text: "Ce nom de domaine est à vendre.", words: 7 }));
+  assert.ok(p({ title: "dominio.it", text: "Questo dominio è in vendita", words: 5 }));
+  assert.ok(p({ title: "This domain is for sale", text: "", words: 5 }));
+  assert.equal(p({ title: "Domeinnaam registreren en webhosting | Hosting NL", text: "Is jouw domeinnaam nog vrij? Registreer direct.", words: 40 }), false);
+  // A long article that mentions a parked domain is not a placeholder.
+  assert.equal(p({ title: "Wat te doen met een oud domein", text: "Dit domein is geparkeerd ... " + "woord ".repeat(400), words: 405 }), false);
+});
