@@ -28,3 +28,9 @@ test("Currency labels and unrelated words alone are not proof of a price", () =>
   const actual=evidence("<p>Accepted: PLN, SEK, CZK, EUR. Kraken software.</p>").commerce.prices.value;
   assert.equal(actual.count,0);
 });
+test("Huge digit runs are not mistaken for prices and finish quickly", () => {
+  const started = performance.now();
+  const actual = evidence("<p>" + "9".repeat(50000) + " PLN</p>").commerce.prices.value;
+  assert.equal(actual.count,0);
+  assert.ok(performance.now() - started < 2000, "Price extraction took too long");
+});
