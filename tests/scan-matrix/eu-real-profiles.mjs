@@ -84,3 +84,14 @@ const SYN = [
 export function euSyntheticProfiles() {
   return SYN.map((x) => ({ id: x.id, host: x.host, path: "/", page: "homepage", expect: x.expect, ...(x.notExpect ? { notExpect: x.notExpect } : {}), commerce: Boolean(x.commerce), raw: build(x.f, { widgets: x.widgets }) }));
 }
+
+// Blind hold-out (tests/fixtures/eu-holdout): measured by the benchmark, not
+// part of the CI pass/fail matrix, so it can never be "made to pass" silently.
+export function euHoldoutProfiles() {
+  const doc = JSON.parse(readFileSync(new URL("../fixtures/eu-holdout/holdout.json", import.meta.url), "utf8"));
+  return doc.sites.map((x) => ({
+    id: x.id, host: x.host || `${x.id}.test`, path: "/", holdout: true,
+    expect: [x.expected, ...(x.alsoOk || []), ...(x.acceptUnknown ? ["unknown"] : [])], commerce: Boolean(x.commerce),
+    raw: build({ lang: x.lang, title: x.title, desc: x.desc, h1: x.h1, h2: x.h2, nav: x.nav, types: x.types }, { widgets: x.widgets }),
+  }));
+}

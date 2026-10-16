@@ -7,7 +7,7 @@ import type { Locale } from "@/lib/locales";
 export type QualifiableResult = {
   overallScore?: number;
   coverage?: { coveragePercent?: number } | null;
-  scoreModel?: { evidenceLevel?: "complete" | "provisional" | "insufficient"; provisional?: boolean; range?: { low: number; high: number } | null } | null;
+  scoreModel?: { evidenceLevel?: "complete" | "provisional" | "insufficient"; provisional?: boolean; range?: { low: number; high: number } | null; headline?: { kind: "score" | "range"; display: string } | null } | null;
   selfCheck?: { reliability?: "high" | "medium" | "low" } | null;
   multiPage?: { sitewideSummary?: { scoredPageIsHomepage?: boolean; checkedPages?: number; pagesWithIssues?: number; topIssues?: Array<{ key: string; affected: number; checked: number }>; sampleScore?: number | null } } | null;
 };
@@ -31,13 +31,13 @@ export function scoreScope(result: QualifiableResult | null | undefined, locale:
   return `${head} · ${t.sample(s.pagesWithIssues || 0, s.checkedPages)}${top ? ` (${top})` : ""}${s.sampleScore != null ? ` · ${t.sampleScore} ${s.sampleScore}` : ""}`;
 }
 
-const TEXT: Record<Locale, { complete: string; provisional: string; insufficient: string; coverage: string; range: string; reliability: string; levels: Record<"high" | "medium" | "low", string>; perfect: string }> = {
-  nl: { complete: "Definitief: volledig bewijs", provisional: "Voorlopig: niet alles kon worden bevestigd", insufficient: "Indicatie: onvoldoende bewijs voor een definitieve score", coverage: "bewijsdekking", range: "mogelijk bereik", reliability: "betrouwbaarheid", levels: { high: "hoog", medium: "gemiddeld", low: "laag" }, perfect: "100/100 wordt alleen gegeven als alle toepasselijke controles bevestigd zijn." },
-  en: { complete: "Final: complete evidence", provisional: "Provisional: not everything could be confirmed", insufficient: "Indication only: not enough evidence for a final score", coverage: "evidence coverage", range: "possible range", reliability: "reliability", levels: { high: "high", medium: "medium", low: "low" }, perfect: "100/100 is only given when every applicable check is confirmed." },
-  de: { complete: "Endgültig: vollständige Belege", provisional: "Vorläufig: nicht alles konnte bestätigt werden", insufficient: "Nur Indikation: zu wenig Belege für eine endgültige Bewertung", coverage: "Belegabdeckung", range: "möglicher Bereich", reliability: "Zuverlässigkeit", levels: { high: "hoch", medium: "mittel", low: "niedrig" }, perfect: "100/100 gibt es nur, wenn alle zutreffenden Prüfungen bestätigt sind." },
-  fr: { complete: "Définitif : preuves complètes", provisional: "Provisoire : tout n'a pas pu être confirmé", insufficient: "Indication : preuves insuffisantes pour un score définitif", coverage: "couverture des preuves", range: "plage possible", reliability: "fiabilité", levels: { high: "élevée", medium: "moyenne", low: "faible" }, perfect: "100/100 n'est attribué que si tous les contrôles applicables sont confirmés." },
-  it: { complete: "Definitivo: prove complete", provisional: "Provvisorio: non tutto è stato confermato", insufficient: "Indicazione: prove insufficienti per un punteggio definitivo", coverage: "copertura delle prove", range: "intervallo possibile", reliability: "affidabilità", levels: { high: "alta", medium: "media", low: "bassa" }, perfect: "100/100 viene assegnato solo se tutti i controlli applicabili sono confermati." },
-  es: { complete: "Definitivo: evidencia completa", provisional: "Provisional: no todo pudo confirmarse", insufficient: "Indicación: evidencia insuficiente para una puntuación definitiva", coverage: "cobertura de evidencia", range: "rango posible", reliability: "fiabilidad", levels: { high: "alta", medium: "media", low: "baja" }, perfect: "100/100 solo se da cuando todos los controles aplicables están confirmados." },
+const TEXT: Record<Locale, { complete: string; provisional: string; insufficient: string; coverage: string; range: string; reliability: string; levels: Record<"high" | "medium" | "low", string>; perfect: string; point: string }> = {
+  nl: { complete: "Definitief: volledig bewijs", provisional: "Voorlopig: niet alles kon worden bevestigd", insufficient: "Indicatie: onvoldoende bewijs voor een definitieve score", coverage: "bewijsdekking", range: "mogelijk bereik", reliability: "betrouwbaarheid", levels: { high: "hoog", medium: "gemiddeld", low: "laag" }, perfect: "100/100 wordt alleen gegeven als alle toepasselijke controles bevestigd zijn." , point: "score op bevestigd bewijs" },
+  en: { complete: "Final: complete evidence", provisional: "Provisional: not everything could be confirmed", insufficient: "Indication only: not enough evidence for a final score", coverage: "evidence coverage", range: "possible range", reliability: "reliability", levels: { high: "high", medium: "medium", low: "low" }, perfect: "100/100 is only given when every applicable check is confirmed." , point: "score on confirmed evidence" },
+  de: { complete: "Endgültig: vollständige Belege", provisional: "Vorläufig: nicht alles konnte bestätigt werden", insufficient: "Nur Indikation: zu wenig Belege für eine endgültige Bewertung", coverage: "Belegabdeckung", range: "möglicher Bereich", reliability: "Zuverlässigkeit", levels: { high: "hoch", medium: "mittel", low: "niedrig" }, perfect: "100/100 gibt es nur, wenn alle zutreffenden Prüfungen bestätigt sind." , point: "Score auf bestätigten Belegen" },
+  fr: { complete: "Définitif : preuves complètes", provisional: "Provisoire : tout n'a pas pu être confirmé", insufficient: "Indication : preuves insuffisantes pour un score définitif", coverage: "couverture des preuves", range: "plage possible", reliability: "fiabilité", levels: { high: "élevée", medium: "moyenne", low: "faible" }, perfect: "100/100 n'est attribué que si tous les contrôles applicables sont confirmés." , point: "score sur preuves confirmées" },
+  it: { complete: "Definitivo: prove complete", provisional: "Provvisorio: non tutto è stato confermato", insufficient: "Indicazione: prove insufficienti per un punteggio definitivo", coverage: "copertura delle prove", range: "intervallo possibile", reliability: "affidabilità", levels: { high: "alta", medium: "media", low: "bassa" }, perfect: "100/100 viene assegnato solo se tutti i controlli applicabili sono confermati." , point: "punteggio su prove confermate" },
+  es: { complete: "Definitivo: evidencia completa", provisional: "Provisional: no todo pudo confirmarse", insufficient: "Indicación: evidencia insuficiente para una puntuación definitiva", coverage: "cobertura de evidencia", range: "rango posible", reliability: "fiabilidad", levels: { high: "alta", medium: "media", low: "baja" }, perfect: "100/100 solo se da cuando todos los controles aplicables están confirmados." , point: "puntuación sobre evidencia confirmada" },
 };
 
 export function scoreQualifier(result: QualifiableResult | null | undefined, locale: Locale) {
@@ -46,9 +46,17 @@ export function scoreQualifier(result: QualifiableResult | null | undefined, loc
   const level = model.evidenceLevel || (model.provisional ? "provisional" : "complete");
   const coverage = result?.coverage?.coveragePercent;
   const parts = [
+    model.headline?.kind === "range" && typeof result?.overallScore === "number" ? `${t.point} ${result.overallScore}` : "",
     typeof coverage === "number" ? `${t.coverage} ${coverage}%` : "",
     model.range && level !== "complete" ? `${t.range} ${model.range.low}–${model.range.high}` : "",
     result?.selfCheck?.reliability ? `${t.reliability} ${t.levels[result.selfCheck.reliability]}` : "",
   ].filter(Boolean);
   return { level, label: t[level], detail: parts.join(" · "), note: level === "complete" ? "" : t.perfect };
+}
+
+/** The big headline: a range ("64–99") when evidence is below 70%, else the score. */
+export function headlineDisplay(result: QualifiableResult | null | undefined): string {
+  const h = result?.scoreModel?.headline;
+  if (h?.kind === "range" && h.display) return h.display;
+  return result?.overallScore == null ? "—" : String(result.overallScore);
 }

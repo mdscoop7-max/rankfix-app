@@ -8,6 +8,7 @@ import RootMobileNav from "./root-mobile-nav";
 import PublicReviews from "@/components/public-reviews";
 import "./root-mobile-nav.css";
 import { ScoreQualifier } from "@/components/score-qualifier";
+import { headlineDisplay } from "@/lib/score-qualifier";
 
 type Check = {
   key: string;
@@ -1122,7 +1123,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
           <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
             <div className="rounded-3xl border border-slate-200 bg-white/[0.035] p-6">
               <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">Overall</div>
-              <div className="mt-2 text-6xl font-black tracking-tighter text-emerald-300">{result.overallScore}</div>
+              <div className="mt-2 text-6xl font-black tracking-tighter text-emerald-300">{headlineDisplay(result as never)}</div>
               <div className="mt-1 text-sm text-slate-500">Grade {result.grade}</div><ScoreQualifier result={result as never} locale="nl"/>
               <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
                 <div className="h-full rounded-full bg-gradient-to-r from-emerald-300 to-blue-500" style={{ width: `${result.overallScore}%` }} />

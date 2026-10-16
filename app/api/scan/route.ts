@@ -15,7 +15,7 @@ import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, fi
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readHtmlSampleHeadFirst, readResponsePrefix, readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
-import { applyEvidenceBasedScoreCap, capPerfectScore, evidenceLevel, evidenceRange, requireCompleteEvidenceForPerfect, stableCoreChecks, SCORE_MODEL_VERSION, scoreApplicableChecks, combinedScoreRange, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
+import { applyEvidenceBasedScoreCap, capPerfectScore, evidenceLevel, evidenceRange, headlineScore, requireCompleteEvidenceForPerfect, stableCoreChecks, SCORE_MODEL_VERSION, scoreApplicableChecks, combinedScoreRange, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
 import { isPaidPlan, normalizePlan, planLimits } from "@/lib/plans";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
@@ -1673,7 +1673,11 @@ export async function POST(request: Request) {
       // Content/navigation is only supporting evidence. Never promote an
       // industry solely from terms in FAQ, pricing examples or customer stories.
       const anchoredToBusinessIdentity = Boolean(item.patterns[0]?.test(sectorIdentitySource) || schemaSectorBoost[item.sector]);
-      const suppressedHits = !anchoredToBusinessIdentity || (item.sector === "automotive" && sewerIdentity && !(schemaSectorBoost.automotive || item.patterns[0]?.test(sectorIdentitySource)))
+      // The word "news/nieuws" alone (a company's own news page) is not publisher
+      // identity: news needs the same proof as the master news rule.
+      const newsWithoutPublisherIdentity = item.sector === "news_media" && !schemaSet.has("newsmediaorganization") && !schemaSet.has("newsarticle")
+        && !newsMediaIdentity({ title, description, h1: identityH1s.join(" "), homepage: isSiteHomepagePath(finalUrl.pathname) }) && !(euPrimaryIdentity?.sector === "news_media");
+      const suppressedHits = !anchoredToBusinessIdentity || newsWithoutPublisherIdentity || (item.sector === "automotive" && sewerIdentity && !(schemaSectorBoost.automotive || item.patterns[0]?.test(sectorIdentitySource)))
         ? 0 : contentHits + identityBoost + identityPriorityBoost + transportContextBoost + (schemaSectorBoost[item.sector] || 0);
       return {sector:item.sector,label:item.label,hits:suppressedHits,modules:item.modules,priority:sectorPriority[item.sector] || 0};
     }).filter(item=>item.hits>0).sort((a,b)=>b.hits-a.hits || b.priority-a.priority);
@@ -5017,6 +5021,7 @@ export async function POST(request: Request) {
     selectedOverallScore = consistency.scores.overall;
     // Self-check corrections can only lower scores; keep each score inside its band.
     scoreModel.range = { ...scoreModel.range, low: Math.min(scoreModel.range.low, selectedOverallScore) };
+    Object.assign(scoreModel, { headline: headlineScore(selectedOverallScore, scoreModel.range, overallCoverage.coveragePercent, scoreEvidence.level) });
     const selfCheck = consistency.selfCheck;
     masterEvidence.primarySector.label = sectorProfile.label;
     masterEvidence.activeModules = sectorProfile.applicableModules;

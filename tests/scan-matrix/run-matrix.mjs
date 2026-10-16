@@ -2,8 +2,10 @@
 // sites (no network, no DB) and checks sector, page type and report invariants.
 // Run: node --experimental-strip-types --import ./tests/scan-matrix/register.mjs tests/scan-matrix/run-matrix.mjs
 import { PROFILES, installMatrixFetch2 } from "./profiles.mjs";
-import { euRealProfiles, euSyntheticProfiles } from "./eu-real-profiles.mjs";
+import { euRealProfiles, euSyntheticProfiles, euHoldoutProfiles } from "./eu-real-profiles.mjs";
 PROFILES.push(...euRealProfiles(), ...euSyntheticProfiles());
+// HOLDOUT=only runs just the blind hold-out set (benchmark), never in CI.
+if (process.env.HOLDOUT === "only") PROFILES.splice(0, PROFILES.length, ...euHoldoutProfiles());
 installMatrixFetch2();
 const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const { POST } = await import(ROOT + "/app/api/scan/route.ts");
@@ -95,6 +97,7 @@ for (const p of PROFILES) {
       if (!["complete", "provisional", "insufficient"].includes(j.scoreModel.evidenceLevel)) problems.push("evidenceLevel missing");
       if (j.coverage?.coveragePercent < 60 && j.scoreModel.evidenceLevel !== "insufficient") problems.push(`coverage ${j.coverage.coveragePercent}% but evidenceLevel ${j.scoreModel.evidenceLevel}`);
       if (j.scoreModel.evidenceLevel !== "complete" && !j.scoreModel.provisional) problems.push("non-complete evidence not provisional");
+      if (j.coverage?.coveragePercent < 70 && j.overallScore >= 90 && j.scoreModel.headline?.kind !== "range") problems.push(`headline ${j.overallScore} shown as a bare number at ${j.coverage.coveragePercent}% coverage`);
     }
     // Homepage score and site sample must be reported side by side and agree.
     { const sw = j.multiPage?.sitewideSummary;
@@ -107,11 +110,14 @@ for (const p of PROFILES) {
     // Global invariant: a report with any warning/fail never shows 100.
     if ((process.env.MODE || "both") === "both" && checks.some((c) => c.status === "warning" || c.status === "fail") && j.overallScore >= 100) problems.push("100/100 with open issues");
   }
-  rows.push({ id: p.id, status, sector: j.sectorProfile?.sector, key: j.sectorProfile?.key, conf: j.sectorProfile?.confidenceScore, page: j.pageTypeEvidence?.type, score: j.overallScore, ms, problems });
+  rows.push({ id: p.id, status, sector: j.sectorProfile?.sector, key: j.sectorProfile?.key, conf: j.sectorProfile?.confidenceScore, page: j.pageTypeEvidence?.type, score: j.overallScore, ms, problems,
+    // Benchmark fields (scripts/engine-benchmark): expectation and evidence quality.
+    bench: { holdout: Boolean(p.holdout), expected: p.expect || null, acceptUnknown: Boolean(p.expect?.includes("unknown")), expectHttp: p.expectHttp || null, coverage: j.coverage?.coveragePercent, reliability: j.selfCheck?.reliability, evidenceLevel: j.scoreModel?.evidenceLevel, headlineKind: j.scoreModel?.headline?.kind, unconfirmed: (j.checks || []).filter((c) => c.status === "unable_to_confirm").length, real: Boolean(p.real), eu: /^eu-/.test(p.id) } });
   if (process.env.SCAN_MATRIX_OUT) fs.writeFileSync(`${process.env.SCAN_MATRIX_OUT}/out-${p.id}.json`, JSON.stringify(j, null, 1));
 }
 let bad = 0;
 for (const r of rows) { if (r.problems.length) bad++; console.log(`${r.problems.length ? "✗" : "✓"} ${r.id.padEnd(30)} ${String(r.sector).padEnd(20)} ${String(r.key).padEnd(22)} ${String(r.conf).padStart(3)} ${String(r.page).padEnd(10)} ${String(r.score).padStart(3)} ${String(r.ms).padStart(5)}ms`); for (const pr of r.problems) console.log("     - " + pr); }
 console.log(`\n${rows.length - bad}/${rows.length} zonder problemen`);
+if (process.env.BENCH_OUT) fs.writeFileSync(process.env.BENCH_OUT, JSON.stringify(rows));
 console.log("SCAN_MATRIX_RESULT " + JSON.stringify({ total: rows.length, failed: bad }));
 process.exit(0);
