@@ -32,6 +32,8 @@ export type EuIdentity = {
   confidence: "high" | "medium";
   confidenceScore: number;
   evidence: string[];
+  /** Important activities that do not define the organisation (a university hospital also teaches). */
+  secondary?: Array<{ sector: EuSector; label: string; evidence: string[] }>;
 };
 
 export type EuIdentityInput = {
@@ -191,6 +193,22 @@ const UNIVERSITY = stems([
 const EDU_SUPPORT = stems(["fakult", "faculty", "facoltà", "facultad", "faculdade", "faculté", "studium", "študij", "štúdi", "studi", "students", "studenten", "studenti", "estudiant", "étudiant", "estudant", "studerend", "opiskelij", "üliõpilas", "studentai", "studenci", "hallgató", "φοιτητ", "студент", "opleiding", "studiengang", "corsi di laurea", "grado", "licenciatur", "bachelor", "master", "výskum", "výzkum", "research", "forschung", "recherche", "ricerca", "investigación"]);
 
 // ---------------------------------------------------------------- health
+// Academic medical centres name themselves as hospitals, often inside a
+// university name ("Universitätsmedizin", "UMC", "CHU"). Care is their primary
+// activity; teaching and research are secondary.
+const MEDICAL_CENTRE = words([
+  "universitätsmedizin", "hochschulmedizin", "universitätsklinikum", "universitätsklinik\\p{L}*", "uniklinik\\p{L}*", "klinikum",
+  "university hospitals?", "university medical cent(?:er|re)", "academic medical cent(?:er|re)", "university clinic",
+  "medisch centrum", "academisch ziekenhuis", "universitair ziekenhuis", "universitair medisch centrum", "universitaire ziekenhuizen",
+  "centre hospitalier(?: universitaire| régional)?", "hôpital universitaire", "hôpitaux universitaires", "cliniques universitaires",
+  "azienda ospedaliera(?: universitaria)?", "policlinico", "ospedale universitario",
+  "hospital universitari[oa]?", "hospital clínic", "complejo hospitalario", "centro hospitalar(?: universitário)?",
+  "universitetssjukhus\\p{L}*", "universitetshospital\\p{L}*", "universitetssygehus\\p{L}*", "yliopistollinen sairaala", "yliopistosairaala",
+  "fakultní nemocnice", "fakultná nemocnica", "szpital uniwersytecki", "szpital kliniczny", "uniwersytecki szpital kliniczny",
+  "klinički bolnički centar", "univerzitetni klinični center", "spitalul clinic", "egyetemi klinik\\p{L}*", "ülikooli kliinikum", "πανεπιστημιακό νοσοκομείο",
+]);
+/** Acronyms are only medical names next to a care concept ("UMC Utrecht", "CHU de Lille"). */
+const MEDICAL_CENTRE_ACRONYM = words(["umc", "chu", "chru", "aphp", "ap-hp", "uz", "ukm", "uke"]);
 const HEALTH_CONCEPTS: Array<[string, RegExp]> = [
   ["health", stems(["gezondheid", "health", "gesundheit", "santé", "salute", "salud", "saúde", "hälsa", "sundhed", "helse", "terveys", "tervis", "veselīb", "sveikat", "zdrow", "zdraví", "zdravie", "egészség", "sănătat", "υγεί", "здрав", "zdravlj", "zdravj"])],
   ["care", stems(["zorgverlen", "zorgaanbied", "gezondheidszorg", "thuiszorg", "ouderenzorg", "jeugdzorg", "vård", "pleje", "hoito", "ravi ", "ravile", "medical care", "healthcare", "gesundheitsversorg", "soins", "cure mediche", "atención sanitaria", "cuidados de saúde", "opieka zdrowotn", "péče", "starostliv", "ellátás", "îngrijir", "περίθαλψ"])],
@@ -315,6 +333,17 @@ export function detectEuPrimaryIdentity(input: EuIdentityInput): EuIdentity | nu
 
   // 4. Education: a university/college names itself.
   const eduSchema = schema.has("collegeoruniversity") || schema.has("educationalorganization") || schema.has("school");
+
+  // 4a. An academic medical centre is primarily care, even inside a university name.
+  const careConcepts = distinct(own, HEALTH_CONCEPTS);
+  const hospitalSchema = ["hospital", "medicalorganization", "medicalclinic"].some((t) => schema.has(t));
+  const medicalName = MEDICAL_CENTRE.test(own) || (MEDICAL_CENTRE_ACRONYM.test(own) && careConcepts.length >= 1);
+  if (!retailer && (medicalName || (hospitalSchema && (eduSchema || UNIVERSITY.test(own))))) {
+    const teaches = eduSchema || UNIVERSITY.test(own) || EDU_SUPPORT.test(own);
+    return { sector: "health_wellness", key: "healthcare_academic", label: "Zorg & Gezondheid · universitair medisch centrum", confidence: "high", confidenceScore: hospitalSchema ? 95 : 92,
+      evidence: evidence([medicalName && "Eigen identiteit noemt een (universitair) ziekenhuis of medisch centrum", hospitalSchema && "Structured data: ziekenhuis/zorgorganisatie", careConcepts.length > 0 && `Eigen identiteit noemt zorgconcepten (${careConcepts.join(", ")})`]),
+      ...(teaches ? { secondary: [{ sector: "education" as EuSector, label: "Onderwijs & onderzoek", evidence: evidence([UNIVERSITY.test(own) && "Naam of omschrijving noemt universiteit", EDU_SUPPORT.test(own) && "Omschrijving noemt studie/onderzoek", eduSchema && "Structured data: onderwijsinstelling"]) }] } : {}) };
+  }
   if (!retailer && (eduSchema || UNIVERSITY.test(title) || (UNIVERSITY.test(own) && EDU_SUPPORT.test(own)))) {
     return { sector: "education", key: "education", label: "Onderwijs & Opleiding", confidence: "high", confidenceScore: eduSchema || UNIVERSITY.test(title) ? 93 : 90,
       evidence: evidence([UNIVERSITY.test(title) && "Titel noemt universiteit/hogeschool", eduSchema && "Structured data: onderwijsinstelling", EDU_SUPPORT.test(own) && "Omschrijving noemt studie/faculteiten/onderzoek"]) };

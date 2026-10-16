@@ -362,5 +362,12 @@
    ],
    "expected": "real_estate"
   }
+ ],
+ "seenAfterFreeze": [
+  {
+   "host": "charite.de",
+   "date": "2026-10-16",
+   "why": "Owner scan showed education instead of health; generic academic-medical-centre rule added. Report pilot-2 accuracy with and without this site."
+  }
  ]
 }

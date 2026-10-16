@@ -103,3 +103,25 @@ test("further EU languages: PL airline, FI bank, EE telecom, LV news, LT rail, H
   // "a lot of", "parking lot" are not flights.
   assert.equal(detectEuPrimaryIdentity({ title: "Parking lot cleaning – a lot of experience", description: "We clean parking lots and garages.", homepage: true }), null);
 });
+
+test("academic medical centres: care is primary, teaching and research secondary", async () => {
+  const { detectEuPrimaryIdentity: d } = await import("../lib/eu-identity.ts");
+  const cases = [
+    { title: "Musterstadt – Universitätsmedizin", description: "Krankenversorgung, Forschung und Lehre an einem der größten Universitätsklinika.", schemaTypes: ["CollegeOrUniversity"] },
+    { title: "UMC Noordstad – ziekenhuis, onderzoek en onderwijs", description: "Universitair medisch centrum voor patiëntenzorg." },
+    { title: "CHU de Villeneuve", description: "Centre hospitalier universitaire : soins, urgences, recherche." },
+    { title: "Policlinico Universitario Esempio", description: "Assistenza sanitaria, ricerca e didattica." },
+    { title: "Hospital Universitario Ejemplo", description: "Atención sanitaria, investigación y docencia." },
+  ];
+  for (const c of cases) {
+    const r = d({ ...c, homepage: true });
+    assert.equal(r?.sector, "health_wellness", c.title);
+    assert.ok((r?.secondary || []).some((x) => x.sector === "education") || !/univers/i.test(c.title + c.description), `${c.title}: education secondary`);
+  }
+  // Universities (also medical universities) stay education.
+  for (const title of ["Universiteit Noordstad", "Medizinische Universität Musterstadt", "University of Exampletown"]) {
+    assert.equal(d({ title, description: "Studium, Forschung und Lehre; faculties and students.", homepage: true })?.sector, "education", title);
+  }
+  // A bare acronym without any care concept is not a hospital.
+  assert.notEqual(d({ title: "UKM Holding", description: "Investments and consulting.", homepage: true })?.sector, "health_wellness");
+});

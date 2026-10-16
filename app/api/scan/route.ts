@@ -1941,6 +1941,15 @@ async function runScan(request: Request) {
           }
         : {...legacyProfile,key:legacyProfile.sector};
 
+    // Primary vs secondary activities: a university hospital is care first, with
+    // teaching and research as secondary activities (shown, never the identity).
+    if (euPrimaryIdentity?.secondary?.length && sectorProfile.sector === euPrimaryIdentity.sector) {
+      Object.assign(sectorProfile, {
+        // Shown in the report only: modules follow the primary sector (self-check rule).
+        secondaryActivities: euPrimaryIdentity.secondary.map((item) => ({ sector: item.sector, label: item.label, evidence: item.evidence })),
+      });
+    }
+
     // The sector engine must abstain rather than invent a lodging business from
     // incidental guest/booking language on a payment, service or retailer site.
     const restaurantIdentityEvidence = /\b(?:restaurant|brasserie|bistro|café|cafe|eetcafé|food establishment|dining restaurant)\b/i.test(sectorIdentitySource)
