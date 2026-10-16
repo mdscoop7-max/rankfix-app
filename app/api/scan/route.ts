@@ -31,6 +31,7 @@ import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
 import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, telecomOperatorIdentity, newsMediaIdentity } from "@/lib/sector-identity";
 import { detectPrimaryBusinessIdentity, isSiteHomepagePath } from "@/lib/primary-business-identity";
+import { detectEuPrimaryIdentity, isConsentHeading, retailSelfDescription } from "@/lib/eu-identity";
 import { enforceReportConsistency } from "@/lib/report-consistency";
 
 export const maxDuration = 300;
@@ -873,7 +874,10 @@ export async function POST(request: Request) {
     const hasBreadcrumb = schemaSet.has("breadcrumblist");
     const hasFaqSchema = schemaSet.has("faqpage");
     console.info("RankFix scan phase", { phase: "schema_parsed", page: finalUrl.toString(), schemaObjects: schemaObjects.length });
-    const hasProductSchema = schemaSet.has("product");
+    // schema.org Product next to FinancialProduct/LoanOrCredit/BankAccount types
+    // describes a bank's or insurer's offer (accounts, loans, cards), not merchandise.
+    const financialOfferSchema = ["financialproduct","loanorcredit","bankaccount","depositaccount","paymentcard","creditcard","mortgageloan","investmentordeposit","insuranceagency","bankorcreditunion"].some((type)=>schemaSet.has(type));
+    const hasProductSchema = schemaSet.has("product") && !financialOfferSchema;
     const productSchemaObjects = schemaObjects.filter((item) => {
       const types = Array.isArray(item?.["@type"]) ? item["@type"] : [item?.["@type"]];
       return types.some((type: unknown) => String(type || "").toLowerCase() === "product");
@@ -958,7 +962,12 @@ export async function POST(request: Request) {
     // Do not treat arbitrary short slugs as locale roots.
     const isLocalizedHomepage = pathSegmentsForType.length > 0 && pathSegmentsForType.length <= 2 &&
       pathSegmentsForType.every((segment) => localeSegmentPattern.test(segment) && knownLanguageSegments.has(segment.split("-")[0]));
-    const isHomepage = isLocalizedHomepage || isSiteHomepagePath(pathname);
+    // The page a site's root ("/") redirects to is that site's homepage, whatever
+    // its path (/online/, /ro/persoane-fizice, /portal). Only shallow targets count.
+    const requestedSiteRoot = (target.pathname.replace(/\/+$/, "") || "/") === "/" && !target.search;
+    const rootRedirectLanding = requestedSiteRoot && pathname !== "/" && pathSegmentsForType.length <= 2
+      && finalUrl.hostname.replace(/^www\./, "") === target.hostname.replace(/^www\./, "");
+    const isHomepage = isLocalizedHomepage || isSiteHomepagePath(pathname) || rootRedirectLanding;
     const localBusinessKeywordSignal = /\b(restaurant|eetcafé|eetgelegenheid|brasserie|bistro|menukaart|kapsalon|kapper|hairdresser|salon|coiffeur|barbier|bakker|bakery|bar|café|cafe|dentist|tandarts|tandheelkunde|mondzorg|orthodontist|electrician|elektricien|elektro|elektrotechniek|installatietechniek|plumber|loodgieter|loodgieters|cv-installateur|installateur|aannemer|contractor|bouwbedrijf|bouwservice|verbouwing|renovatie|dakdekker|dakbedekking|dakwerken|beautysalon|beauty salon|schoonheidssalon|winkel|store|shop|boetiek|retail|garage|autogarage|autoservice|autobedrijf|autodealer|makelaar|makelaars|vastgoedmakelaar|real estate agent|realtor|woningmakelaar|advocaat|advocatenkantoor|law firm|jurist|notaris|notariskantoor|accountant|accountantskantoor|boekhouder|boekhoudkantoor|administratiekantoor|reisbureau|reisorganisatie|travel agency|tour operator|reisagent|hotel|bed and breakfast|b&b|pension)\b/i.test([title, description, ...h1s, finalUrl.hostname, finalUrl.pathname].join(" "));
     const localContactSignal = /\b(opening hours|openingstijden|adres|address|telephone|telefoon|phone|contact)\b/i.test(text) &&
       /\b(address|adres|phone|telefoon|telephone|\+?31|0\d{1,3}[\s-]?\d)\b/i.test(text);
@@ -1613,6 +1622,29 @@ export async function POST(request: Request) {
     // Primary identity comes from title, description, H1 and typed schema only;
     // marketing examples, visitors and customer sectors in body text are secondary.
     const primaryBusinessEvidence = detectPrimaryBusinessIdentity({title,description,headings:h1s,schemaTypes});
+    // Multilingual primary identity (EU languages, typed schema, government host
+    // label, navigation as a medium-confidence fallback). Cookie/consent dialog
+    // headings are removed first: they describe the banner, not the organisation.
+    const identityH1s = h1s.filter((value)=>!isConsentHeading(value));
+    const identityH2s = headings.filter((h)=>h.level===2).map((h)=>h.text).filter((value)=>!isConsentHeading(value)).slice(0,12);
+    const identityNavLabels: string[] = [];
+    {
+      const navSource = html.slice(0, 600000);
+      const blockRe = /<(nav|header)\b[^>]*>([\s\S]{0,60000}?)<\/\1>/gi;
+      let block: RegExpExecArray | null;
+      while ((block = blockRe.exec(navSource)) && identityNavLabels.length < 80) {
+        for (const anchor of block[2].matchAll(/<a\b[^>]*>([\s\S]{0,400}?)<\/a>/gi)) {
+          const label = stripHtml(anchor[1]).replace(/\s+/g, " ").trim();
+          if (label && label.length < 40) identityNavLabels.push(label);
+          if (identityNavLabels.length >= 80) break;
+        }
+      }
+    }
+    const euPrimaryIdentity = detectEuPrimaryIdentity({
+      title, description, h1s: identityH1s, h2s: identityH2s, ogSiteName: decode(ogSiteName || ""), navLabels: identityNavLabels,
+      schemaTypes, hostname: finalUrl.hostname, homepage: isSiteHomepagePath(finalUrl.pathname) || isHomepage,
+    });
+    const euRetailSelfDescription = retailSelfDescription([title, description, identityH1s.join(" ")].join(" "));
     // Strong page/site identity must beat incidental words elsewhere in long pages.
     // In particular, sewer/drain services often mention generic "reparatie", which is not automotive evidence.
     const sewerIdentity = /\b(riool|riolering|verstopping|ontstoppen|ontstopping|afvoer)\b/i.test(sectorIdentitySource);
@@ -1731,7 +1763,7 @@ export async function POST(request: Request) {
     // Publishers/broadcasters name themselves in title, description or H1.
     // That self-description outranks incidental telecom words, unless the page
     // itself sells subscriptions/SIM plans.
-    const newsMediaPrimaryIdentity = (schemaSet.has("newsmediaorganization") || newsMediaIdentity({ title, description, h1: h1s.join(" "), homepage: isSiteHomepagePath(finalUrl.pathname) }))
+    const newsMediaPrimaryIdentity = (schemaSet.has("newsmediaorganization") || newsMediaIdentity({ title, description, h1: identityH1s.join(" "), homepage: isSiteHomepagePath(finalUrl.pathname) }) || (euPrimaryIdentity?.sector === "news_media" && euPrimaryIdentity.confidence === "high"))
       && !telecomSubscriptionIdentity && !telecomIndependentIdentity.subscription && !evidenceCommerceConfirmed
       && primaryBusinessEvidence.sector !== "financial_services";
     const telecomProviderIdentity = (
@@ -1739,19 +1771,30 @@ export async function POST(request: Request) {
       telecomServiceIdentity ||
       telecomIndependentIdentity.primary
     ) && !(hasRetailStoreSchema(schemaTypes) && evidenceCommerceConfirmed) && !newsMediaPrimaryIdentity;
-    const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[]} | null = newsMediaPrimaryIdentity
+    const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[];confidence?:"high"|"medium";confidenceScore?:number} | null = newsMediaPrimaryIdentity
       ? {sector:"news_media",key:"news_media",label:"Nieuws & Media",evidence:["Primaire identiteit: nieuws-/mediaorganisatie in titel, omschrijving of H1"]}
       : telecomProviderIdentity
       ? {sector:"telecom_technology",key:"telecom_technology",label:"Telecom & Technologie",evidence:["Primaire identiteit: telecomabonnementen en netwerkdiensten"]}
       : primaryBusinessEvidence.sector === "financial_services"
       ? {sector:"financial_services",key:primaryBusinessEvidence.financialKind ? `financial_${primaryBusinessEvidence.financialKind}` : "financial_services",label:primaryBusinessEvidence.financialKind==="banking" ? "Bank & financiële producten" : primaryBusinessEvidence.financialKind==="insurance" ? "Verzekeringen" : "Financiële diensten & betaaldiensten",evidence:primaryBusinessEvidence.evidence}
+      : euPrimaryIdentity?.sector === "financial_services" && euPrimaryIdentity.confidence === "high"
+      ? {sector:"financial_services",key:euPrimaryIdentity.key,label:euPrimaryIdentity.label,evidence:euPrimaryIdentity.evidence.map((line)=>`Primaire identiteit: ${line}`)}
       : shortStayIdentity
       ? {sector:"hospitality",key:lodgingSubtype.key,label:lodgingSubtype.label,evidence:["Scanbewijs: kort verblijf/accommodatie bevestigd", ...lodgingDetail.shortStay.evidence, ...lodgingDetail.stayDates.evidence, ...lodgingDetail.guests.evidence]}
       : realEstateIdentity
         ? {sector:"real_estate",key:"real_estate",label:"Vastgoed & Makelaardij",evidence:["Scanbewijs: vastgoed/woningidentiteit bevestigd", ...scanEvidence.inventory.properties.evidence]}
         : beautyServiceIdentity && !explicitMedicalIdentity
           ? {sector:"beauty",key:"beauty_salon",label:"Beauty & Wellness",evidence:["Scanbewijs: beauty-/wellnessidentiteit bevestigd"]}
-          : automotiveServiceIdentity ? {sector:"automotive",key:"car_repair",label:"Automotive · garage / autoservice",evidence:["Scanbewijs: garage-/autoservice-identiteit bevestigd"]} : null;
+          : automotiveServiceIdentity ? {sector:"automotive",key:"car_repair",label:"Automotive · garage / autoservice",evidence:["Scanbewijs: garage-/autoservice-identiteit bevestigd"]}
+          // Multilingual EU identity (government, education, care, carriers, post,
+          // telecom, energy). A navigation-only (medium) identity never outranks a
+          // strong legacy sector candidate; it only fills an otherwise empty decision.
+          : euPrimaryIdentity && euPrimaryIdentity.sector !== "news_media" && euPrimaryIdentity.sector !== "financial_services"
+            && (euPrimaryIdentity.confidence === "high" || !strongSectorCandidate)
+            ? {sector:euPrimaryIdentity.sector as SectorKey,key:euPrimaryIdentity.key,label:euPrimaryIdentity.label,evidence:euPrimaryIdentity.evidence.map((line)=>`Primaire identiteit: ${line}`),confidence:euPrimaryIdentity.confidence,confidenceScore:euPrimaryIdentity.confidenceScore}
+            : euPrimaryIdentity?.sector === "news_media" && !telecomSubscriptionIdentity && !evidenceCommerceConfirmed && !strongSectorCandidate
+              ? {sector:"news_media",key:"news_media",label:"Nieuws & Media",evidence:euPrimaryIdentity.evidence.map((line)=>`Primaire identiteit: ${line}`),confidence:euPrimaryIdentity.confidence,confidenceScore:euPrimaryIdentity.confidenceScore}
+              : null;
     // Primary identity outranks generic commerce capability. A dealer, hotel,
     // service provider or other clearly identified business may publish inventory
     // and prices without being an e-commerce storefront. Commerce becomes the
@@ -1777,6 +1820,9 @@ export async function POST(request: Request) {
       && primaryBusinessEvidence.sector !== "financial_services"
       && !telecomProviderIdentity && !shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity
       && !beautyServiceIdentity && !explicitMedicalIdentity && !transportBookingIdentity
+      // A multilingual non-retail identity (bank, carrier, post, government...)
+      // means a cart, voucher shop or ticket checkout is a capability, not the sector.
+      && !(euPrimaryIdentity && euPrimaryIdentity.confidence === "high")
       // Hospitality/service words only veto retail when they name the business in
       // the title or H1; "met restaurant" in a store description is a facility.
       && !(/\b(?:restaurant|hotel|reserveren|reserveer tafel|vakantieverhuur|transportdiensten|schoonmaakdienst)\b/i.test([title, h1s.join(" ")].join(" ")) && !storeSchemaRetailIdentity);
@@ -1796,7 +1842,7 @@ export async function POST(request: Request) {
           applicableModules:["core_seo","geo","technical","ecommerce","product","pricing_currency","merchant","checkout",...(euConsumerApplicable?["eu_consumer"]:[])],
         }
       : primaryNonCommerceIdentity
-        ? {sector:primaryNonCommerceIdentity.sector,key:primaryNonCommerceIdentity.key,label:primaryNonCommerceIdentity.label,confidence:"high" as const,confidenceScore:Math.max(90, strongSectorCandidate && sectorCandidates[0].sector===primaryNonCommerceIdentity.sector ? (sectorCandidates[0].hits>=3?95:90) : 96),evidence:primaryNonCommerceIdentity.evidence.slice(0,6),applicableModules:[...new Set(["core_seo","geo","technical",...(sectorSignals.find(x=>x.sector===primaryNonCommerceIdentity.sector)?.modules||[])])]}
+        ? {sector:primaryNonCommerceIdentity.sector,key:primaryNonCommerceIdentity.key,label:primaryNonCommerceIdentity.label,confidence:(("confidence" in primaryNonCommerceIdentity && primaryNonCommerceIdentity.confidence) || "high") as "high"|"medium",confidenceScore:("confidenceScore" in primaryNonCommerceIdentity && typeof primaryNonCommerceIdentity.confidenceScore === "number") ? primaryNonCommerceIdentity.confidenceScore : Math.max(90, strongSectorCandidate && sectorCandidates[0].sector===primaryNonCommerceIdentity.sector ? (sectorCandidates[0].hits>=3?95:90) : 96),evidence:primaryNonCommerceIdentity.evidence.slice(0,6),applicableModules:[...new Set(["core_seo","geo","technical",...(sectorSignals.find(x=>x.sector===primaryNonCommerceIdentity.sector)?.modules||[])])]}
       : legacyProfile.sector==="unknown" && catalogSectorStrong && mappedCatalogSector && catalogIdentityAnchored
         ? {
             sector:mappedCatalogSector,
@@ -3782,7 +3828,7 @@ export async function POST(request: Request) {
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
     type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "contact" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; schemaTypes?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageAudit = MultiPageCandidate & { partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; schemaTypes?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -4118,7 +4164,7 @@ export async function POST(request: Request) {
           detailIdentity: Boolean(/\b(?:sku|artikelnummer|modelnummer|ean|gtin)\b/i.test(pageHtml.slice(0,250000)) || /\b(?:iphone|galaxy|pixel|smartphone)\b/i.test(pageTitle)),
         });
         const pageSampleScore = sampleEvidenceScore(evidenceChecks, (key) => evidenceCredit(evidenceChecks.find((item)=>item.key===key)!));
-        return { ...page, type:refinedType, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:pageSampleScore, partialHead:partialHeadOnly, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), schemaTypes:[...new Set(pageSchemaTypes)], formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, productLinks:extractProductDetailLinks(pageHtml, finalCandidate.toString(), siteHost, 8), evidenceChecks };
+        return { ...page, type:refinedType, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:pageSampleScore, partialHead:partialHeadOnly, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), ownIdentityText:[pageTitle,pageDescription,pageH1s.filter((value: string)=>!isConsentHeading(value)).join(" ")].filter(Boolean).join(" "), schemaTypes:[...new Set(pageSchemaTypes)], formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, productLinks:extractProductDetailLinks(pageHtml, finalCandidate.toString(), siteHost, 8), evidenceChecks };
       } catch (multiPageError) {
         const rawReason = multiPageError instanceof Error ? multiPageError.message : "FETCH_FAILED";
         const reason = /timeout|abort/i.test(rawReason)
@@ -4230,6 +4276,11 @@ export async function POST(request: Request) {
     // confirm capabilities/identity, but they never turn an unverified page-specific
     // defect into a failure.
     const multiPageIdentityText = auditedMultiPages.map((item)=>`${item.url} ${item.identityText||item.title||""}`).join(" ").toLowerCase();
+    // Sector decisions may only use what sampled pages say about themselves
+    // (title, description, H1). Body text of a news article about traffic or a
+    // footer link to "Transport" is not the organisation's identity.
+    const multiPageOwnIdentityText = auditedMultiPages.map((item)=>item.ownIdentityText||item.title||"").join(" · ");
+    const pagesWithOwnIdentity = (pattern: RegExp) => auditedMultiPages.filter((item)=>pattern.test(item.ownIdentityText||item.title||"")).length;
     const multiPageCapabilities = {
       transport: /\b(transport|logistics?|logistiek|freight|vracht|forwarding|expeditie|wegtransport|road transport|warehousing|opslag|distribution|distributie|courier|koerier)\b/i.test(multiPageIdentityText),
       hospitality: /\b(hotel|hotels|room|rooms|kamer|kamers|overnachten|booking|boeken|reserveren|restaurant)\b/i.test(multiPageIdentityText),
@@ -4405,7 +4456,7 @@ export async function POST(request: Request) {
       }
     }
     // Evidence Engine v2: reconcile primary identity after representative evidence.
-    const reconciledIdentitySource = [sectorIdentitySource, multiPageIdentityText].filter(Boolean).join(" ");
+    const reconciledIdentitySource = [sectorIdentitySource, multiPageOwnIdentityText].filter(Boolean).join(" ");
     const reconciledSectorCandidates = sectorSignals.map((item) => {
       const primaryIdentityHit = item.patterns[0]?.test(reconciledIdentitySource) ? 2 : 0;
       const activityHit = item.patterns[1]?.test(reconciledIdentitySource) ? 1 : 0;
@@ -4414,14 +4465,18 @@ export async function POST(request: Request) {
     }).filter((item)=>item.score>0).sort((a,b)=>b.score-a.score || (sectorPriority[b.sector]||0)-(sectorPriority[a.sector]||0));
     const reconciledTop = reconciledSectorCandidates[0];
     const reconciledRunnerUp = reconciledSectorCandidates[1];
-    const reconciledIdentityStrong = Boolean(reconciledTop && reconciledTop.score >= 3 && (!reconciledRunnerUp || reconciledTop.score > reconciledRunnerUp.score));
+    // The homepage itself did not establish this sector, so sampled pages must
+    // agree independently: at least two pages name it in their own identity.
+    const reconciledPages = reconciledTop ? pagesWithOwnIdentity(sectorSignals.find((item)=>item.sector===reconciledTop.sector)?.patterns[0] || /$^/) : 0;
+    const reconciledIdentityStrong = Boolean(reconciledTop && reconciledTop.score >= 3 && reconciledPages >= 2 && (!reconciledRunnerUp || reconciledTop.score > reconciledRunnerUp.score));
     if (!masterIdentityOverride && sectorProfile.sector==="unknown" && !retailPrimaryIdentity && !finalCommerceDecision.confirmed && reconciledIdentityStrong && reconciledTop && sectorProfile.sector !== reconciledTop.sector) {
       sectorProfile.sector = reconciledTop.sector;
       sectorProfile.key = reconciledTop.sector;
       sectorProfile.label = reconciledTop.label;
-      sectorProfile.confidence = "high";
-      sectorProfile.confidenceScore = Math.min(96, 86 + reconciledTop.score * 2);
-      sectorProfile.evidence = ["Scanbewijs: primaire activiteit bevestigd over representatieve pagina's"];
+      // Corroborated by sampled pages only, not by the homepage identity: medium.
+      sectorProfile.confidence = "medium";
+      sectorProfile.confidenceScore = Math.min(78, 66 + reconciledTop.score * 2);
+      sectorProfile.evidence = [`Scanbewijs: ${reconciledPages} representatieve pagina's noemen deze activiteit in hun eigen titel/omschrijving/H1; de homepage zelf bevestigt de sector niet`];
       sectorProfile.applicableModules = [...new Set(["core_seo","geo","technical",...reconciledTop.modules])];
       masterEvidence.activeModules = sectorProfile.applicableModules;
     }
@@ -4438,13 +4493,17 @@ export async function POST(request: Request) {
       sectorProfile.evidence = ["Hreflang: x-default verwijst naar deze pagina en minstens drie taal-/landversies", ...(retailAssortmentIdentity ? ["Merkidentiteit noemt een productassortiment; de webshop staat op de landversies"] : [])];
     }
 
-    if (!finalCommerceDecision.confirmed && multiPageCapabilities.transport && sectorProfile.key==="unknown") {
+    // Only when at least two sampled pages call themselves a transport/logistics
+    // business, and never at high confidence: one word in a subpage body (a
+    // traffic report, an "airport" news section) is not a sector.
+    const transportOwnPages = pagesWithOwnIdentity(/\b(?:transport(?:bedrijf|onderneming| company)?|logistics?|logistiek|freight|vrachtvervoer|forwarding|expeditie|wegtransport|road transport|warehousing|koerier|courier)\b/i);
+    if (!masterIdentityOverride && !finalCommerceDecision.confirmed && transportOwnPages >= 2 && sectorProfile.key==="unknown") {
       sectorProfile.sector = "transport_travel";
       sectorProfile.key = "transport_travel";
       sectorProfile.label = "Transport & Logistiek";
-      sectorProfile.confidence = "high";
-      sectorProfile.confidenceScore = Math.max(88, sectorProfile.confidenceScore);
-      sectorProfile.evidence = [...sectorProfile.evidence, "Representatieve sitepagina's bevestigen transport/logistieke hoofdactiviteit"].slice(0,6);
+      sectorProfile.confidence = "medium";
+      sectorProfile.confidenceScore = Math.min(76, Math.max(70, sectorProfile.confidenceScore));
+      sectorProfile.evidence = [...sectorProfile.evidence, `${transportOwnPages} representatieve sitepagina's noemen transport/logistiek in hun eigen titel of omschrijving; de homepage bevestigt dit niet zelf`].slice(0,6);
       sectorProfile.applicableModules = [...new Set([...sectorProfile.applicableModules, "transport_travel", "lead_conversion", "local"])];
       for (const module of ["transport_travel","lead_conversion","local"]) if (!masterEvidence.activeModules.includes(module)) masterEvidence.activeModules.push(module);
     }

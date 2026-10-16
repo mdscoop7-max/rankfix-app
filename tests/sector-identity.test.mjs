@@ -94,7 +94,7 @@ test("scan route wires the central identity rules without brand exceptions", asy
   // Market selectors are labelled as a portal and never fall back to a guessed sector.
   const selector = source.indexOf('marketSelectorPage && !finalCommerceDecision.confirmed && sectorProfile.key==="unknown"');
   assert.ok(selector > 0);
-  assert.ok(selector < source.indexOf('multiPageCapabilities.transport && sectorProfile.key==="unknown"'), "selector before transport fallback");
+  assert.ok(selector < source.indexOf('transportOwnPages >= 2 && sectorProfile.key==="unknown"'), "selector before transport fallback");
   assert.ok(selector < source.indexOf('multiPageCapabilities.hospitality && (sectorProfile.key==="recruitment" || sectorProfile.key==="unknown")'), "selector before hospitality fallback");
   // Retail identity without confirmed shop functionality is labelled as such, and
   // in-store reservations never turn a retailer into a booking website.

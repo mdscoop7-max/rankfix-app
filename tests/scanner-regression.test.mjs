@@ -365,7 +365,11 @@ test("Evidence Engine reconciles representative identity and capabilities before
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   assert.match(source, /reconciledIdentitySource/);
-  assert.match(source, /Scanbewijs: primaire activiteit bevestigd over representatieve pagina's/);
+  // Late reconciliation uses the sampled pages' own identity (title/description/H1),
+  // needs two agreeing pages and never claims high confidence (issue #151).
+  assert.match(source, /representatieve pagina's noemen deze activiteit in hun eigen titel\/omschrijving\/H1/);
+  assert.match(source, /reconciledPages >= 2/);
+  assert.doesNotMatch(source, /reconciledIdentitySource = \[sectorIdentitySource, multiPageIdentityText\]/);
   assert.match(source, /multiPageCapabilities\.treatment && sectorProfile\.sector === "health_wellness"/);
   assert.match(source, /representativeProduct/);
   assert.match(source, /selectedSeoScore = applyEvidenceBasedScoreCap\(scoreApplicableChecks\(stableCoreChecks\(selectedSeoChecks,"seo"\)\)/);

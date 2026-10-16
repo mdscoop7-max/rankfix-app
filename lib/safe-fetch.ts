@@ -111,7 +111,11 @@ export async function readResponseTextLimited(response: Response, maxBytes = 2_0
       bytes.set(chunk, offset);
       offset += chunk.byteLength;
     }
-    const declaredCharset = response.headers.get("content-type")?.match(/charset\s*=\s*["']?([^;"'\s]+)/i)?.[1]?.toLowerCase() || "";
+    // Header first, then the document's own <meta charset> / http-equiv in the
+    // first bytes. Many EU sites still serve windows-1250/-1257/-1253 or
+    // ISO-8859-2; reading those as UTF-8 breaks every accented identity word.
+    const declaredCharset = response.headers.get("content-type")?.match(/charset\s*=\s*["']?([^;"'\s]+)/i)?.[1]?.toLowerCase()
+      || sniffMetaCharset(bytes) || "";
     const charset = /^(?:iso-8859-1|latin1|latin-1|windows-1252|cp1252)$/.test(declaredCharset) ? "windows-1252" : declaredCharset || "utf-8";
     const decode = (label: string) => {
       try { return new TextDecoder(label).decode(bytes); }
@@ -127,6 +131,14 @@ export async function readResponseTextLimited(response: Response, maxBytes = 2_0
   } finally {
     reader.releaseLock();
   }
+}
+
+/** <meta charset="..."> or <meta http-equiv="content-type" content="...charset=..."> in the first 4 kB. */
+export function sniffMetaCharset(bytes: Uint8Array): string {
+  const head = new TextDecoder("latin1").decode(bytes.subarray(0, 4096));
+  const label = head.match(/<meta[^>]+charset\s*=\s*["']?\s*([a-z0-9_:.-]{2,40})/i)?.[1]?.toLowerCase() || "";
+  if (!label) return "";
+  try { new TextDecoder(label); return label; } catch { return ""; }
 }
 
 // Reads at most maxBytes of a response body and stops there instead of failing.

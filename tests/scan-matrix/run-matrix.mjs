@@ -2,6 +2,8 @@
 // sites (no network, no DB) and checks sector, page type and report invariants.
 // Run: node --experimental-strip-types --import ./tests/scan-matrix/register.mjs tests/scan-matrix/run-matrix.mjs
 import { PROFILES, installMatrixFetch2 } from "./profiles.mjs";
+import { euRealProfiles } from "./eu-real-profiles.mjs";
+PROFILES.push(...euRealProfiles());
 installMatrixFetch2();
 const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const { POST } = await import(ROOT + "/app/api/scan/route.ts");
@@ -11,7 +13,7 @@ const rows = []; const fs = await import("node:fs");
 const quiet = () => { const s = [console.info, console.warn, console.log, console.error]; const errs = []; console.info = () => {}; console.warn = () => {}; console.error = (...a) => errs.push(a); return () => { [console.info, console.warn, console.log, console.error] = s; return errs; }; };
 for (const p of PROFILES) {
   if (only && !only.includes(p.id)) continue;
-  const url = `https://${p.host}${p.path || "/"}`;
+  const url = `https://${p.host}${p.scanPath || p.path || "/"}`;
   const restore = quiet(); const t0 = Date.now(); let j, status;
   try { const res = await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url, mode: process.env.MODE || "both", language: process.env.LANG_RF || "nl" }) })); status = res.status; j = await res.json(); }
   catch (e) { j = { thrown: String(e?.stack || e) }; }
