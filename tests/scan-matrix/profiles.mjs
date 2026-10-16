@@ -126,6 +126,17 @@ export const PROFILES = [
       "/produkty/konto-osobiste": { body: page({ lang: "pl", title: "Konto osobiste za 0 zł – Bank", desc: "Otwórz konto osobiste online w 10 minut.", h1: "Konto osobiste", body: "<p>Prowadzenie konta 0 zł. <a href='/wniosek/konto'>Otwórz konto</a></p>", lds: [{ "@type": ["Product", "FinancialProduct"], name: "Konto osobiste", image: "https://__HOST__/img/konto.png", offers: { "@type": "Offer", price: "0", priceCurrency: "PLN" } }] }) },
       "/produkty/karta-kredytowa": { body: page({ lang: "pl", title: "Karta kredytowa – Bank", desc: "Karta kredytowa z limitem do 50 000 zł.", h1: "Karta kredytowa", body: "<p>RRSO 19,8%. <a href='/wniosek/karta'>Złóż wniosek</a></p>", lds: [{ "@type": "CreditCard", name: "Karta kredytowa", annualPercentageRate: 19.8 }] }) },
     } },
+  // CMS that puts Article schema on every page, homepage included: service pages are not
+  // articles; a dated news item still is (field scan 16-10, FR).
+  { id: "template-article-schema-fr", host: "poste-fr.test", expect: ["transport_travel"], notExpect: ["news_media"],
+    sampleTypes: { "/outils/suivre-vos-envois": ["other", "service"], "/lettre-recommandee-en-ligne": ["other", "service"], "/actualites/nouveaux-tarifs": ["article"] },
+    home: { lang: "fr", title: "Achetez des timbres, envoyez courrier et colis - Poste FR", desc: "Timbres, lettres recommandées, envoi de colis et suivi de vos envois.", h1: "La Poste en ligne",
+      body: "<nav><a href='/outils/suivre-vos-envois'>Suivre un colis</a> <a href='/lettre-recommandee-en-ligne'>Lettre recommandée</a> <a href='/actualites/nouveaux-tarifs'>Actualités</a></nav><p>Envoyer un colis, acheter des timbres, bureau de poste.</p>", lds: [{ "@type": "Article", headline: "Accueil" }, org("Poste FR")] },
+    files: {
+      "/outils/suivre-vos-envois": { body: page({ lang: "fr", title: "Suivre une lettre ou un colis - Poste FR", desc: "Suivez votre envoi avec votre numéro de suivi.", h1: "Suivre un envoi", body: "<form><input name='numero'></form>", lds: [{ "@type": "Article", headline: "Suivre un envoi" }] }) },
+      "/lettre-recommandee-en-ligne": { body: page({ lang: "fr", title: "Envoyez une lettre recommandée en ligne - Poste FR", desc: "Lettre recommandée en ligne, sans vous déplacer.", h1: "Lettre recommandée en ligne", body: "<p>Envoi le jour même.</p>", lds: [{ "@type": "Article", headline: "Lettre recommandée" }] }) },
+      "/actualites/nouveaux-tarifs": { body: page({ lang: "fr", title: "Nouveaux tarifs 2027 - Poste FR", desc: "Les tarifs postaux changent au 1er janvier.", h1: "Nouveaux tarifs", body: "<p>Publié le 10 octobre 2026.</p>", lds: [{ "@type": "NewsArticle", headline: "Nouveaux tarifs", datePublished: "2026-10-10" }] }) },
+    } },
   // A long homepage description is advice without deduction (report text and points agree).
   { id: "long-description-home", host: "langdesc.test", expect: ["professional_services", "unknown", "general_business"], checkStatus: { description: ["pass"] },
     home: { title: "Adviesbureau Noord – advies voor ondernemers", desc: "Wij zijn een adviesbureau voor ondernemers in Noord-Nederland en helpen met financiering, strategie, groei en overname, met een vast team van adviseurs die uw sector kennen en snel schakelen bij elke vraag.", h1: "Advies voor ondernemers", body: "<p>Ons team helpt met strategie en financiering. <a href='/contact'>Contact</a></p>" } },

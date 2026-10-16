@@ -197,7 +197,7 @@ test("meta description diagnostics distinguish missing from empty", async () => 
   assert.match(source, /descriptionState: "missing" \| "empty" \| "present"/);
   assert.match(source, /descriptionState === "empty" \? "De meta description-tag is aanwezig, maar de content is leeg\."/);
   assert.match(source, /descriptionState,/);
-  assert.match(source, /assessPageDescription\(pageDescription, Boolean\(pageDescriptionTag\)\)/);
+  assert.match(source, /assessPageDescription\(pageDescription, Boolean\(pageDescriptionTag\), representativeEvidenceSource === "rendered_html" \? "rendered" : "raw"\)/);
   const quality = await readFile(new URL("../lib/report-quality.ts", import.meta.url), "utf8");
   assert.match(quality, /"Meta description-tag aanwezig maar content is leeg\."/);
 });

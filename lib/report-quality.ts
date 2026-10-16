@@ -211,11 +211,11 @@ export function assessPageTitle(title: string, host: string, now: Date = new Dat
   return { status: "PASS", credit: 1, details: lengthText };
 }
 
-export function assessPageDescription(description: string, tagPresent: boolean): MetaAssessment {
+export function assessPageDescription(description: string, tagPresent: boolean, source: "raw" | "rendered" = "raw"): MetaAssessment {
   const value = description.trim();
   if (!value) return tagPresent
     ? { status: "WARNING", credit: 0.25, details: "Meta description-tag aanwezig maar content is leeg.", flag: "empty" }
-    : { status: "WARNING", credit: 0.25, details: "Geen meta description-tag gevonden in raw HTML.", flag: "missing" };
+    : { status: "WARNING", credit: 0.25, details: source === "rendered" ? "Geen meta description-tag gevonden, ook niet na JavaScript-rendering." : "Geen meta description-tag gevonden in raw HTML.", flag: "missing" };
   const length = value.length;
   if (length >= 70 && length <= 160) return { status: "PASS", credit: 1, details: `Meta description gevonden (${length} tekens); bruikbare lengte.` };
   // Like titles: Google truncates long descriptions in the snippet; length alone

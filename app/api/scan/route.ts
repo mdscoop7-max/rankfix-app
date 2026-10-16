@@ -4146,6 +4146,9 @@ async function runScan(request: Request) {
     // fill-phase slots, so the sample keeps covering categories, products and services.
     // Product detail pages keep their own per-type ceiling.
     const uniqueMultiPagePages = selectRepresentativePages([scannedPageSample, ...multiPagePages], rankedMultiPage, representativePageLimit, (url)=>normalizeScanUrl(stripTrackingParams(url)), templateShapeKey, { matches: isFaqSample, limit: 3 }, Math.ceil(representativePageLimit * 0.4), { key: sectionKey, limit: 5, exemptTypes: ["product"] });
+    // A non-news homepage with Article/BlogPosting schema: the CMS adds it to every page.
+    const homepageArticleTemplate = (isSiteHomepagePath(finalUrl.pathname) || isHomepage) && sectorProfile.sector !== "news_media"
+      && ["article","newsarticle","blogposting"].some((type)=>schemaSet.has(type));
     const auditMultiPage = async (page: MultiPageCandidate): Promise<MultiPageAudit> => {
       if (Date.now() - started > SAMPLE_DEADLINE_MS) {
         return { ...page, status:"unable_to_confirm", httpStatus:null, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"fetch",status:"UNABLE_TO_CONFIRM",details:"Niet opgehaald: de tijdslimiet van de scan was bereikt. Deze pagina telt niet mee in de steekproef."}] };
@@ -4315,7 +4318,7 @@ async function runScan(request: Request) {
         };
         // Meta rules are shared with the main page (lib/report-quality.ts).
         const pageTitleAssessment = assessPageTitle(pageTitle, finalCandidate.hostname, new Date(), representativeTitlePixelWidth);
-        const pageDescriptionAssessment = assessPageDescription(pageDescription, Boolean(pageDescriptionTag));
+        const pageDescriptionAssessment = assessPageDescription(pageDescription, Boolean(pageDescriptionTag), representativeEvidenceSource === "rendered_html" ? "rendered" : "raw");
         // A JavaScript application shell that could not be rendered cannot prove a
         // missing title, description, H1 or canonical; those stay unconfirmed.
         const pageClientShell = isClientShell({ visibleWords: pageQualityWords, scriptCount: (pageHtml.match(/<script\b/gi) || []).length, jsFramework: representativeJsFramework, h1Count: pageH1s.length, rendered: representativeEvidenceSource === "rendered_html" });
@@ -4358,7 +4361,10 @@ async function runScan(request: Request) {
           proposed: page.type,
           path: finalCandidate.pathname,
           serviceOffer: /\b(?:abonnement(?:en)?|subscription(?:s)?|internet(?:pakket|abonnement)?|glasvezel|servicepakket|consult(?:atie)?|afspraak|booking)\b/i.test([pageTitle,pageDescription,pageH1s.join(" ")].join(" ")),
-          articleSchema: pageSchemaTypes.some((type)=>/^(?:article|newsarticle|blogposting|reportage)$/i.test(type)),
+          // Article schema that the homepage itself also carries is a site-wide template
+          // (service pages of a CMS get it too): it makes an article only with a publish date.
+          articleSchema: pageSchemaTypes.some((type)=>/^(?:article|newsarticle|blogposting|reportage)$/i.test(type))
+            && (!homepageArticleTemplate || /"datePublished"\s*:/i.test(pageHtml)),
           breadcrumbDepth: (pageHtml.match(/"@type"\s*:\s*"ListItem"/gi)||[]).length,
           productSchema: pageProductSchema,
           financialOffer: pageFinancialOffer,
