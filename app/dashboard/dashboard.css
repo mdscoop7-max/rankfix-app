@@ -818,3 +818,26 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
 @keyframes rfMotorTurn{to{transform:rotate(360deg)}}
 @keyframes rfMotorSweep{0%,100%{transform:rotate(-55deg);opacity:.45}50%{transform:rotate(55deg);opacity:1}}
 @media (prefers-reduced-motion:reduce){.rf-scan-meter-ring:after,.rf-scan-meter-sweep{animation:none!important}}
+
+/* Navigation clarity pass (separate UI branch): one primary scan action, secondary actions on demand. */
+.rf-disclosure{display:block}
+.rf-disclosure-summary{display:flex;align-items:center;justify-content:space-between;gap:16px;list-style:none;cursor:pointer;min-height:64px;padding:16px 18px;border:1px solid var(--border-subtle);border-radius:14px;background:var(--bg-card);color:var(--text-primary)}
+.rf-disclosure-summary::-webkit-details-marker{display:none}
+.rf-disclosure-summary h2{margin:0}
+.rf-disclosure-summary p{margin-top:3px}
+.rf-disclosure-chevron{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:9px;border:1px solid var(--border-muted);color:var(--brand-light);font-size:21px;transition:transform .18s ease}
+.rf-disclosure[open] .rf-disclosure-chevron{transform:rotate(180deg)}
+.rf-disclosure .rf-quick-actions-grid{margin-top:12px}
+.rf-disclosure-summary:focus-visible{outline:3px solid #2784ff;outline-offset:3px}
+.rf-page .rf-page-back,.rf-page .rf-help-back,.rf-page .rf-back-link,.rf-page .rf-back{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:42px;padding:8px 12px;margin-bottom:16px;border:1px solid #b7d4f6;border-radius:10px;background:#eaf3ff;color:#145ab7!important;font-size:14px;font-weight:750;text-decoration:none}
+.rf-page .rf-page-back:hover,.rf-page .rf-help-back:hover,.rf-page .rf-back-link:hover,.rf-page .rf-back:hover{background:#dbeaff;color:#104a99!important}
+@media(min-width:651px){
+ .rf-disclosure-summary{background:#fff;color:#172033;border-color:#dce5ef}
+ .rf-disclosure-chevron{color:#1769d2;border-color:#c9d9ea}
+}
+@media(max-width:650px){
+ .rf-page .rf-page-back,.rf-page .rf-help-back,.rf-page .rf-back-link,.rf-page .rf-back{display:inline-flex!important;background:#17324f;border-color:#3a678d;color:#d2ebff!important;min-height:44px}
+ .rf-page .rf-page-back:hover,.rf-page .rf-help-back:hover,.rf-page .rf-back-link:hover,.rf-page .rf-back:hover{background:#1d4369;color:#fff!important}
+ .rf-disclosure-summary{background:#162c46;color:#f1f5f9;border-color:#36506d}
+ .rf-disclosure-chevron{border-color:#496582;color:#b9e6ff}
+}
