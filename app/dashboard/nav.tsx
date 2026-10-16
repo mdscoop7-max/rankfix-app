@@ -16,7 +16,8 @@ const languageLabels:Record<Locale,string>={nl:"Taal kiezen",en:"Choose language
 const flagCodes:Record<Locale,string>={nl:"nl",en:"gb",de:"de",fr:"fr",it:"it",es:"es"};
 const languageOrder:Locale[]=["nl","en","de","fr","it","es"];
 const desktop=["/dashboard","/dashboard#websites","/dashboard/scan","/dashboard/github","/dashboard/history","/dashboard/more"];
-const mobileIndexes=[0,1,2,3,5];
+// Put the user's five primary destinations directly in reach on phones.
+const mobileIndexes=[0,2,3,4,5];
 const paths=[
  "M4 13h5l2-8 3 14 2-6h4",
  "M4 5h16v14H4z M8 9h8 M8 13h5 M17 3v4 M7 17v4",
