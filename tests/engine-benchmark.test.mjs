@@ -106,6 +106,11 @@ test("independent set 3 is disjoint from every set and exploratory site seen so 
   const h = (x) => x.replace(/^www\./, "");
   const seen = new Set([...load("./fixtures/eu81/plan.json"), ...load("./fixtures/eu-pilot2/plan.json")].flatMap((s) => s.hosts.map(h)));
   for (const x of JSON.parse(readFileSync(new URL("./fixtures/evaluation/exposures.json", import.meta.url), "utf8")).exposures) seen.add(h(x.host));
+  const explo = JSON.parse(readFileSync(new URL("./fixtures/evaluation/exploratory.json", import.meta.url), "utf8"));
+  // Exploratory sites must never overlap a frozen set either.
+  for (const x of [...explo.tested, ...explo.planned]) assert.ok(!seen.has(h(x.host)), `exploratory ${x.host} is in a frozen set`);
+  const s3hosts = new Set(JSON.parse(readFileSync(new URL("./fixtures/eu-independent3/plan.json", import.meta.url), "utf8")).sites.flatMap((s) => s.hosts.map(h)));
+  for (const x of [...explo.tested, ...explo.planned]) assert.ok(!s3hosts.has(h(x.host)), `exploratory ${x.host} is in independent set 3`);
   // Exploratory sites from QA issue #154 and the owner's field tests.
   for (const x of ["belastingdienst.nl", "postnl.nl", "rabobank.nl", "tweakers.net", "dw.com", "ameli.fr", "elpais.com", "kela.fi", "poczta-polska.pl", "aade.gr", "bnb.bg", "publico.pt", "poste.it", "suspilne.media", "nhk.or.jp", "aljazeera.net", "nhs.uk", "utoronto.ca", "stanford.edu", "kuleuven.be", "asml.com", "arganwinkel.nl", "intersport.nl", "decathlon.nl"]) seen.add(x);
   const s3 = load("./fixtures/eu-independent3/plan.json");

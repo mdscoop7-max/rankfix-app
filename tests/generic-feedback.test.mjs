@@ -87,7 +87,9 @@ test("page type uses product schema, breadcrumbs, article schema and contact pat
  assert.equal(refineSamplePageType({...base,proposed:"category",path:"/shop/mobiel/telefoons",uniqueH1:true,detailIdentity:true}),"category");
  assert.equal(refineSamplePageType({...base,articleSchema:true,path:"/blog/how-to"}),"article");
  assert.equal(refineSamplePageType({...base,path:"/contact"}),"contact");
- assert.equal(refineSamplePageType({...base,itemListSchema:true,breadcrumbDepth:3}),"category");
+ // An ItemList is a product collection only with commerce on the page (prices or purchase action).
+ assert.equal(refineSamplePageType({...base,itemListSchema:true,breadcrumbDepth:3,visiblePrices:4}),"category");
+ assert.equal(refineSamplePageType({...base,itemListSchema:true,breadcrumbDepth:3}),"other");
  assert.equal(refineSamplePageType({...base,path:"/diensten/onderhoud/"}),"service");
  assert.equal(refineSamplePageType({...base,path:"/internet/glasvezel",serviceOffer:true}),"service");
 });

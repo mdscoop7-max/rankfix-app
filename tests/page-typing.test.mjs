@@ -55,3 +55,10 @@ test("a bare product base (/producten/, /products) is the shop archive, not a pr
   }
   assert.equal(looksLikeProductDetailPath("/producten/jojoba-olie/"), true);
 });
+
+test("an ItemList of articles or topics without prices is not a product category", () => {
+  const info = { ...base, proposed: "other", productSchema: false, purchaseAction: false, visiblePrices: 0, itemListSchema: true, repeatedProductLinks: true, productSchemaCount: 0 };
+  assert.equal(refineSamplePageType({ ...info, path: "/en/technology/all-about-microchips/microchip-basics" }), "other");
+  // A real collection (ItemList + prices) stays a category.
+  assert.equal(refineSamplePageType({ ...info, visiblePrices: 6, path: "/collections/hardloopschoenen" }), "category");
+});

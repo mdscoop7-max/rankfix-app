@@ -37,7 +37,10 @@ export function refineSamplePageType(input: {
   // A category archive, store finder or a page listing several Products is a
   // collection even when it carries Product schema and add-to-cart buttons.
   if (looksLikeStorePage(path)) return proposed === "product" || proposed === "category" ? "other" : proposed;
-  const collection = looksLikeCategoryPath(path) || (input.productSchemaCount || 0) >= 2 || (input.itemListSchema && input.repeatedProductLinks);
+  // An ItemList of articles or topics is not a product range: a collection also
+  // shows prices, a purchase action or Product objects.
+  const commerceOnPage = input.visiblePrices > 0 || input.purchaseAction || (input.productSchemaCount || 0) > 0;
+  const collection = looksLikeCategoryPath(path) || (input.productSchemaCount || 0) >= 2 || (input.itemListSchema && input.repeatedProductLinks && commerceOnPage);
   if (collection) return "category";
   if (input.productSchema) return "product";
   // A deeply nested product/variant route with a concrete model number and
@@ -51,7 +54,7 @@ export function refineSamplePageType(input: {
       !input.repeatedProductLinks) return "product";
   // Repeated product links alone are often global navigation (an industrial
   // "Products" menu); a collection also shows prices or purchase actions.
-  if ((proposed === "other" || proposed === "product") && (input.itemListSchema || (input.repeatedProductLinks && (input.visiblePrices > 0 || input.purchaseAction)) || (input.breadcrumbDepth || 0) >= 3 && input.visiblePrices > 1))
+  if ((proposed === "other" || proposed === "product") && ((input.itemListSchema && commerceOnPage) || (input.repeatedProductLinks && (input.visiblePrices > 0 || input.purchaseAction)) || (input.breadcrumbDepth || 0) >= 3 && input.visiblePrices > 1))
     return "category";
   // Standalone topic/category hubs and commerce/shop indexes are collections,
   // not miscellaneous pages. Preserve "other" for genuinely unclassified pages.

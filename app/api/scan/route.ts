@@ -26,6 +26,7 @@ import { renderOnce, renderWithRetry, representativeNeedsJavaScriptRendering } f
 import { missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore } from "@/lib/sample-quality";
 import { parseStructuredPrice, offerPrice } from "@/lib/price";
 import { detectBusinessModel } from "@/lib/business-model";
+import { indexJsonLdIds, resolveSchemaImage } from "@/lib/schema-image";
 import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, commerceServiceSignals, compareScoreVersions } from "@/lib/scan-feedback";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { isSubstantiveRender, renderImprovesEvidence, preserveRawHeadEvidence, renderIsErrorState, visibleWordCount } from "@/lib/render-quality";
@@ -995,6 +996,7 @@ async function runScan(request: Request) {
       shippingDetails: boolean;
       returnPolicy: boolean;
     };
+    const schemaIdIndex = indexJsonLdIds(schemaObjects);
     const productOfferEvidence = productSchemaObjects.map((product) => {
       const offers = Array.isArray(product?.offers) ? product.offers : product?.offers ? [product.offers] : [];
       const normalizedOffers: ProductOfferEvidence[] = offers.map((offer: any) => ({
@@ -1007,17 +1009,12 @@ async function runScan(request: Request) {
         shippingDetails: Boolean(offer?.shippingDetails),
         returnPolicy: Boolean(offer?.hasMerchantReturnPolicy),
       }));
-      const rawImage = Array.isArray(product?.image) ? product.image[0] : product?.image;
-      const imageUrl = typeof rawImage === "string"
-        ? rawImage.trim()
-        : typeof rawImage?.url === "string"
-          ? rawImage.url.trim()
-          : typeof rawImage?.contentUrl === "string"
-            ? rawImage.contentUrl.trim()
-            : "";
+      // URL, ImageObject, array or an @id reference elsewhere in the @graph.
+      const imageUrl = resolveSchemaImage(product?.image, schemaIdIndex) || "";
       return {
         name: typeof product?.name === "string" ? product.name.trim() : "",
-        hasImage: Boolean(product?.image),
+        // An image counts only when a URL can be resolved (a bare reference proves nothing).
+        hasImage: Boolean(imageUrl),
         imageUrl,
         sku: typeof product?.sku === "string" ? product.sku.trim() : "",
         offers: normalizedOffers,
@@ -3342,6 +3339,13 @@ async function runScan(request: Request) {
     );
 
     const primaryProductEvidence = productOfferEvidence.find((product) => Boolean(product.name)) || productOfferEvidence[0] || null;
+    // "Bevestigde productvelden" means the same five product fields everywhere
+    // (name, image, SKU, price + currency, availability); copy sources are counted apart.
+    const primaryProductFieldCount = primaryProductEvidence ? [
+      primaryProductEvidence.name, primaryProductEvidence.imageUrl, primaryProductEvidence.sku,
+      primaryProductEvidence.offers?.some((offer) => parseStructuredPrice(offer.price) !== null && offer.currency),
+      primaryProductEvidence.offers?.some((offer) => offer.availability),
+    ].filter(Boolean).length : 0;
     const productOptimizerSourceFields = [
       primaryProductEvidence?.name && "productnaam", description && "meta description", title && "titel", primaryProductEvidence?.sku && "SKU",
       primaryProductEvidence?.offers?.some((offer) => parseStructuredPrice(offer.price) !== null && offer.currency) && "prijs + valuta",
@@ -3916,7 +3920,7 @@ async function runScan(request: Request) {
     const pageTypeEvidence = {
       type: isHomepage ? "homepage" : propertyListingPage ? "property_listing" : isProductPage ? "product" : hasCategorySignal ? "category" : (effectiveLocalBusinessPage || resolvedServicePage) ? "service" : effectiveArticlePage ? "article" : "unknown",
       confidence: isHomepage ? "high" : propertyListingPage ? "high" : isProductPage && (hasProductSchema || hasSkuSignal) ? "high" : isProductPage ? "medium" : hasCategorySignal && (hasItemListSignal || repeatedProductCardSignal) ? "high" : resolvedServicePage && servicePathSignal ? "high" : effectiveLocalBusinessPage || resolvedServicePage || hasCategorySignal || effectiveArticlePage ? "medium" : "low",
-      evidence: [isHomepage ? `localized/root path: ${pathname}` : "", propertyListingPage ? "Scanbewijs: vastgoedobject/listing" : "", servicePathSignal ? `resolved service path: ${pathname}` : "", resolvedServicePage && serviceContentSignal ? "service intent in resolved page metadata/headings" : "", hasProductSchema ? "Product schema present" : "", hasStoreSchema ? "Store schema present" : "", hasItemListSignal ? "ItemList schema present" : "", genericCategoryPathSignal ? `generic commerce category path: ${pathname}` : "", repeatedProductCardSignal ? "repeated product-card commerce signals" : "", commercialNavigationEvidence ? "commercial navigation + shop/support links" : "", hasSkuSignal ? "SKU signal present" : "", hasStrongCommerceAction ? "commerce action present" : "", articleSuppressedByCommerce ? "article signal suppressed by stronger product evidence" : ""].filter(Boolean),
+      evidence: [isHomepage ? `localized/root path: ${pathname}` : "", propertyListingPage ? "Scanbewijs: vastgoedobject/listing" : "", servicePathSignal ? `resolved service path: ${pathname}` : "", resolvedServicePage && serviceContentSignal ? "service intent in resolved page metadata/headings" : "", hasProductSchema ? "Product schema present" : "", hasStoreSchema ? "Store schema present" : "", hasItemListSignal ? "ItemList schema present" : "", genericCategoryPathSignal && !isProductPage ? `generic commerce category path: ${pathname}` : genericCategoryPathSignal ? `shop path: ${pathname}` : "", repeatedProductCardSignal ? "repeated product-card commerce signals" : "", commercialNavigationEvidence ? "commercial navigation + shop/support links" : "", hasSkuSignal ? "SKU signal present" : "", hasStrongCommerceAction ? "commerce action present" : "", articleSuppressedByCommerce ? "article signal suppressed by stronger product evidence" : ""].filter(Boolean),
     };
     const pageTypeContradictions = [
       pageTypeEvidence.type === "article" && isProductPage ? "article_vs_product" : null,
@@ -4255,10 +4259,12 @@ async function runScan(request: Request) {
           .map((m)=>safeDecodeURIComponent(m[1]||""))
           .filter((href)=>/(?:^|\/)(?:product|products|product-page|p)(?:\/|$)|\/(?:dp|artikel|prodotto|produto)\//i.test(href));
         const pagePriceSignals = (pageQualityText.match(/(?:€|EUR\b|\bEUR\s*)\s*\d{1,5}(?:[.,]\d{2})?|\d{1,5}(?:[.,]\d{2})?\s*(?:€|EUR\b)/gi)||[]).length;
+        const pageJsonLdRoots: unknown[] = [];
         const pageProductJson = (() => {
           for (const raw of [...pageHtml.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)].map((m)=>m[1])) {
             try {
               const parsed = JSON.parse(raw);
+              pageJsonLdRoots.push(parsed);
               const queue:any[] = Array.isArray(parsed) ? [...parsed] : [parsed];
               while (queue.length) {
                 const value = queue.shift();
@@ -4278,8 +4284,8 @@ async function runScan(request: Request) {
         const pageImageValue = pageProductJson?.image;
         const pageProductEvidence = pageProductJson ? {
           name: typeof pageProductJson.name==="string" ? pageProductJson.name.trim() || null : null,
-          // image may be a URL, an ImageObject ({url|contentUrl}) or an array of either.
-          image: (()=>{ const first = Array.isArray(pageImageValue) ? pageImageValue[0] : pageImageValue; if (typeof first==="string") return first || null; if (first && typeof first==="object") { const imageObject = first as Record<string, unknown>; const url = imageObject.url ?? imageObject.contentUrl; return typeof url==="string" && url ? url : null; } return null; })(),
+          // image may be a URL, an ImageObject, an array or an @id reference in the @graph.
+          image: resolveSchemaImage(pageImageValue, indexJsonLdIds(pageJsonLdRoots)),
           sku: typeof pageProductJson.sku==="string" ? pageProductJson.sku : null,
           price: offerPrice(pageOffer).price != null ? String(offerPrice(pageOffer).price) : null,
           currency: offerPrice(pageOffer).currency || null,
@@ -4874,7 +4880,8 @@ async function runScan(request: Request) {
       const availabilityCheck = seoChecks.find((item)=>item.key==="product_availability_consistency");
       if (availabilityCheck && representativeProduct.availability) Object.assign(availabilityCheck, check("pass","product_availability_consistency","seo","Productvoorraad",`Een representatieve productpagina bevat een expliciet beschikbaarheidssignaal: ${representativeProduct.availability}.`,"Houd zichtbare voorraad en structured data consistent.",4,4));
       const merchantCheck = seoChecks.find((item)=>item.key==="merchant_product_readiness");
-      if (merchantCheck && productEvidenceCount>=4) Object.assign(merchantCheck, check("pass","merchant_product_readiness","seo","Merchant Center productbasis","Een representatieve productpagina bevestigt naam, afbeelding en meerdere machineleesbare product-/aanbodvelden.","Houd productpagina en eventuele Merchant-feed consistent; RankFix bevestigt hiermee geen Merchant Center-goedkeuring.",6,6));
+      // Merchant Center needs an image: no merchant pass without a resolvable product image.
+      if (merchantCheck && productEvidenceCount>=4 && representativeProduct.image) Object.assign(merchantCheck, check("pass","merchant_product_readiness","seo","Merchant Center productbasis","Een representatieve productpagina bevestigt naam, afbeelding en meerdere machineleesbare product-/aanbodvelden.","Houd productpagina en eventuele Merchant-feed consistent; RankFix bevestigt hiermee geen Merchant Center-goedkeuring.",6,6));
       // Each promoted product check points at the product page that proved it.
       for (const item of [productSchemaCheck, optimizerCheck, availabilityCheck, merchantCheck]) {
         if (item && item.status === "pass" && productSamplePage) item.evidence = { url: productSamplePage.url, found: true, details: item.message };
@@ -5143,7 +5150,7 @@ async function runScan(request: Request) {
         if ((item.key==="product_availability" || item.key==="product_availability_consistency") && product.availability) {
           Object.assign(item, check("pass",item.key,item.category==="geo"?"geo":"seo","Productvoorraad",`Een representatieve productpagina bevat een expliciet structured availability-signaal: ${product.availability}.`,"Houd zichtbare voorraad en Product/Offer structured data consistent.",item.maxPoints,item.maxPoints));
         }
-        if (item.key==="merchant_product_readiness" && finalCommerceDecision.confirmed && sourceCount>=4) {
+        if (item.key==="merchant_product_readiness" && finalCommerceDecision.confirmed && sourceCount>=4 && product.image) {
           Object.assign(item, check("pass","merchant_product_readiness",item.category==="geo"?"geo":"seo","Merchant Center productbasis","Representatieve product-evidence bevestigt naam, afbeelding en meerdere machineleesbare Product/Offer-velden.","Houd productpagina en eventuele Merchant-feed consistent; RankFix bevestigt hiermee geen Merchant Center-goedkeuring.",item.maxPoints,item.maxPoints));
         }
         // Promoted from the representative product page: that page is the evidence.
@@ -5456,7 +5463,7 @@ async function runScan(request: Request) {
               internalLinks, canonical: canonical || null, lang: lang || null, robots: robots || null,
               openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null }, imageAltCandidates,
               productOptimizer: isProductPage
-                ? { eligible: productOptimizerSourceCount >= 3 && [...seoChecks,...geoChecks].some((c)=>c.key==="product_copy_optimizer" && c.status==="pass"), sourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page" }
+                ? { eligible: productOptimizerSourceCount >= 3 && [...seoChecks,...geoChecks].some((c)=>c.key==="product_copy_optimizer" && c.status==="pass"), sourceCount: primaryProductFieldCount, copySourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page" }
                 : (() => {
                     // The same best-evidenced product page as the product checks (never the first match).
                     const sample = productSamplePage || auditedMultiPages.find((item)=>item.type==="product");
@@ -5710,7 +5717,7 @@ async function runScan(request: Request) {
         openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null },
         imageAltCandidates,
         productOptimizer: isProductPage
-                ? { eligible: productOptimizerSourceCount >= 3, sourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page" }
+                ? { eligible: productOptimizerSourceCount >= 3 && [...seoChecks,...geoChecks].some((c)=>c.key==="product_copy_optimizer" && c.status==="pass"), sourceCount: primaryProductFieldCount, copySourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page" }
                 : (() => {
                     // The same best-evidenced product page as the product checks (never the first match).
                     const sample = productSamplePage || auditedMultiPages.find((item)=>item.type==="product");

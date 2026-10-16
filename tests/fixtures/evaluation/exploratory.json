@@ -1,0 +1,184 @@
+{
+ "purpose": "Exploratory register: real sites scanned (or chosen to be scanned) OUTSIDE the frozen evaluation sets. They may be used to find and fix generic errors, so they are never part of an independent measurement. Future independent sets must be disjoint from this list.",
+ "tested": [
+  {
+   "host": "utoronto.ca",
+   "expected": "education"
+  },
+  {
+   "host": "stanford.edu",
+   "expected": "education"
+  },
+  {
+   "host": "kuleuven.be",
+   "expected": "education"
+  },
+  {
+   "host": "nhs.uk",
+   "expected": "health_wellness"
+  },
+  {
+   "host": "poste.it",
+   "expected": "transport_travel"
+  },
+  {
+   "host": "asml.com",
+   "expected": "manufacturing_industrial"
+  },
+  {
+   "host": "arganwinkel.nl",
+   "expected": "ecommerce"
+  },
+  {
+   "host": "intersport.nl",
+   "expected": "ecommerce"
+  },
+  {
+   "host": "decathlon.nl",
+   "expected": "ecommerce"
+  }
+ ],
+ "planned": [
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "HEMA",
+   "host": "hema.nl",
+   "expected": "ecommerce",
+   "why": "Retailketen met winkels en webshop",
+   "chosenOn": "2026-10-16"
+  },
+  {
+   "country": "BE",
+   "language": "en",
+   "name": "Brussels Airlines",
+   "host": "brusselsairlines.com",
+   "expected": "transport_travel",
+   "why": "Luchtvaartmaatschappij",
+   "chosenOn": "2026-10-16"
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "Sparkasse",
+   "host": "sparkasse.de",
+   "expected": "financial_services",
+   "why": "Bankennetwerk",
+   "chosenOn": "2026-10-16"
+  },
+  {
+   "country": "FR",
+   "language": "fr",
+   "name": "La Poste",
+   "host": "laposte.fr",
+   "expected": [
+    "transport_travel",
+    "financial_services"
+   ],
+   "why": "Post + bank: tweede multi-activiteitstest",
+   "chosenOn": "2026-10-16"
+  },
+  {
+   "country": "ES",
+   "language": "es",
+   "name": "Mercadona",
+   "host": "mercadona.es",
+   "expected": [
+    "ecommerce",
+    "food_local_retail"
+   ],
+   "why": "Supermarkt, fysieke winkels",
+   "chosenOn": "2026-10-16"
+  },
+  {
+   "country": "IT",
+   "language": "it",
+   "name": "Brembo",
+   "host": "brembo.com",
+   "expected": "manufacturing_industrial",
+   "why": "Fabrikant remsystemen (B2B/automotive)",
+   "chosenOn": "2026-10-16"
+  },
+  {
+   "country": "PL",
+   "language": "pl",
+   "name": "mBank",
+   "host": "mbank.pl",
+   "expected": "financial_services",
+   "why": "Bank, Pools",
+   "chosenOn": "2026-10-16"
+  },
+  {
+   "country": "AT",
+   "language": "de",
+   "name": "Stadt Wien",
+   "host": "wien.gv.at",
+   "expected": "government",
+   "why": "Gemeente/stad",
+   "chosenOn": "2026-10-16"
+  },
+  {
+   "country": "PT",
+   "language": "pt",
+   "name": "Universidade de Lisboa",
+   "host": "ulisboa.pt",
+   "expected": "education",
+   "why": "Universiteit, Portugees",
+   "chosenOn": "2026-10-16"
+  },
+  {
+   "country": "DK",
+   "language": "da",
+   "name": "VisitCopenhagen",
+   "host": "visitcopenhagen.com",
+   "expected": "tourism_recreation",
+   "why": "Toerisme",
+   "chosenOn": "2026-10-16"
+  },
+  {
+   "country": "FI",
+   "language": "fi",
+   "name": "HSL",
+   "host": "hsl.fi",
+   "expected": "transport_travel",
+   "why": "Openbaar vervoer Helsinki",
+   "chosenOn": "2026-10-16"
+  },
+  {
+   "country": "IE",
+   "language": "en",
+   "name": "The Irish Times",
+   "host": "irishtimes.com",
+   "expected": "news_media",
+   "why": "Nieuws, Engels",
+   "chosenOn": "2026-10-16"
+  },
+  {
+   "country": "GR",
+   "language": "el",
+   "name": "COSMOTE",
+   "host": "cosmote.gr",
+   "expected": "telecom_technology",
+   "why": "Telecom, Grieks alfabet",
+   "chosenOn": "2026-10-16"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "KiKa",
+   "host": "kika.nl",
+   "expected": "nonprofit",
+   "why": "Goed doel",
+   "chosenOn": "2026-10-16"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "Pulitzer Amsterdam",
+   "host": "pulitzeramsterdam.com",
+   "expected": "hospitality",
+   "why": "Hotel",
+   "chosenOn": "2026-10-16"
+  }
+ ]
+}

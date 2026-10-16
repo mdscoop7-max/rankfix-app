@@ -35,3 +35,12 @@ test("'complete evidence' wording only at 100% coverage", async () => {
   assert.match(at97.detail, /bewijsdekking 97%/);
   assert.equal(scoreQualifier({ coverage: { coveragePercent: 100 }, scoreModel: { evidenceLevel: "complete" } }, "nl").label, "Definitief: volledig bewijs");
 });
+
+test("provisional only because of an ambiguous sector says so, and a one-value range is hidden", async () => {
+  const { scoreQualifier } = await import("../lib/score-qualifier.ts");
+  const q = scoreQualifier({ coverage: { coveragePercent: 100 }, scoreModel: { evidenceLevel: "provisional", evidenceReasons: ["Hoofdsector niet eenduidig (zekerheid 72%)"], range: { low: 97, high: 97 } } }, "nl");
+  assert.equal(q.label, "Voorlopig: alle controles bevestigd, hoofdsector niet eenduidig");
+  assert.doesNotMatch(q.detail, /97–97/);
+  const r = scoreQualifier({ coverage: { coveragePercent: 86 }, scoreModel: { evidenceLevel: "provisional", evidenceReasons: ["Bewijsdekking 86% (onder 90%)"], range: { low: 84, high: 99 } } }, "nl");
+  assert.match(r.detail, /84–99/);
+});
