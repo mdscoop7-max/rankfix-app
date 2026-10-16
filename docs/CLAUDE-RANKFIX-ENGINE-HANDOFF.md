@@ -162,3 +162,9 @@ Generic root causes found and fixed (no domain rules; fixtures use neutral `.tes
 Tests: 14 real EU homepage identities (`tests/fixtures/eu-real-identity/`, read from live pages 16 Oct 2026) and 11 synthetic EU-language profiles through the real route; multilingual positive/negative controls; score property tests; RTL-like and Orange-like rendering scenarios. 341/341 tests, CI + Vercel preview green.
 
 Not done / open: no Neon access from Claude (dossier only); no new live scans (owner asked to wait; owner runs the international pilot next). VRT corporate homepage ("Homepage | VRT") honestly abstains. Unieuro→"Evenementen" not reproducible from the homepage identity alone; it is now protected by the multilingual retail identity and the body-text fallback fix, to be confirmed in the pilot.
+
+## Status 16 Oct 2026, sixth pass (Claude) — measurable quality
+- `scripts/engine-benchmark/` (metrics, scorecard, EU-81 baseline/export, offline runner) and `tests/engine-benchmark.test.mjs` (CI gate). Results and method: `docs/ENGINE-QUALITY-REPORT.md`.
+- Blind hold-outs `tests/fixtures/eu-holdout/holdout.json` (64) and `holdout2.json` (36) were measured once before tuning (85.9% / 86.1%); now frozen regression sets. Write a NEW hold-out before claiming out-of-sample accuracy.
+- `scan_attempts` table logs every logged-in scan attempt; `scanDurationMs` in results. Headline shows a range under 70% evidence (`scoreModel.headline`).
+- Owner declined live identity reads; next real measurement = owner's EU-81 pilot on the preview.
