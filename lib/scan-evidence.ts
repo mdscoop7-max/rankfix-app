@@ -112,9 +112,25 @@ export function buildScanEvidence(input: {
   const productPathHint = /\/(?:product|products|p|artikel|item)\//i.test(url);
   const productPage = productSchema || productPathHint;
 
-  const currencyMatches = [...text.matchAll(/(?:€|eur\b|\$|usd\b|£|gbp\b)/gi)].map(m => m[0].toUpperCase());
-  const currencies = uniq(currencyMatches.map(v => v === "€" ? "EUR" : v === "$" ? "USD" : v === "£" ? "GBP" : v));
-  const priceCount = [...text.matchAll(/(?:€\s*\d|(?<![\d.,])\d[\d.,]*\s*(?:€|eur\b)|\$\s*\d|£\s*\d)/gi)].length;
+  // Price evidence must be adjacent to an amount; a currency mentioned in a footer
+  // or exchange-rate table alone is not proof of a retail price. Plain "kr"
+  // is deliberately kept ambiguous rather than assigned to SEK/DKK/NOK.
+  const moneyToken = String.raw`(?:€|eur\b|\$|usd\b|£|gbp\b|pln\b|zł|czk\b|kč|sek\b|dkk\b|nok\b|kr\b|huf\b|ft\b|ron\b|lei\b|bgn\b|лв)`;
+  const amount = String.raw`\d{1,3}(?:[ .,'’]\d{3})*(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?`;
+  const pricePattern = new RegExp(String.raw`(?:${moneyToken}\s*(?:${amount})|(?:${amount})\s*${moneyToken})`, "gi");
+  const priceMatches = [...text.matchAll(pricePattern)];
+  const currencyAliases: Record<string,string> = {
+    "€":"EUR","eur":"EUR","$":"USD","usd":"USD","£":"GBP","gbp":"GBP",
+    "pln":"PLN","zł":"PLN","czk":"CZK","kč":"CZK",
+    "sek":"SEK","dkk":"DKK","nok":"NOK","huf":"HUF","ft":"HUF",
+    "ron":"RON","lei":"RON","bgn":"BGN","лв":"BGN",
+  };
+  const currencies = uniq(priceMatches.flatMap(m =>
+    [...m[0].toLowerCase().matchAll(new RegExp(moneyToken, "gi"))]
+      .map(x => currencyAliases[x[0].toLowerCase()])
+      .filter((code): code is string => Boolean(code))
+  ));
+  const priceCount = priceMatches.length;
 
   const appointment = has(text, /\b(afspraak|appointment|termin|rendez-vous|appuntamento|cita)\b/i);
   const appointmentAction = has(html, /(?:href|action|aria-label)\s*=\s*["'][^"']*(?:afspraak|appointment|termin|rendez-vous|appuntamento|cita)[^"']*["']/i);
