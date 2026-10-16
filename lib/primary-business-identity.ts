@@ -50,7 +50,10 @@ export function detectPrimaryBusinessIdentity(input: {
   const heading = (input.headings || []).slice(0, 3).join(" ").slice(0, 400);
   const schema = new Set((input.schemaTypes || []).map((v) => v.toLowerCase()));
   const identityText = [title, description, heading].join(" ");
-  const retailSeller = retailSalesLanguage.test(identityText);
+  // "voor webshops" / "for online stores" names the provider's customers, not
+  // something the provider sells itself; remove such audience phrases first.
+  const ownOffer = identityText.replace(/\b(?:(?:voor|for|für|pour|per|para)\s+(?:je |jouw |uw |your |ihre |votre |online |alle |every |all )?|(?:in|op|met|on|into|with|dans)\s+(?:je|jouw|uw|your|ihrem|votre)\s+)(?:webshops?|webwinkels?|online[- ]?(?:stores?|shops?|winkels?)|onlineshops?|e-?commerce(?:[- ](?:businesses|bedrijven|merchants))?|merchants?|retailers?|winkels?|ondernemers|businesses|bedrijven)\b/gi, " ");
+  const retailSeller = retailSalesLanguage.test(ownOffer);
   const paymentTitle = paymentPurpose.test(title);
   const paymentDescription = paymentPurpose.test(description);
   const paymentHeading = paymentPurpose.test(heading);

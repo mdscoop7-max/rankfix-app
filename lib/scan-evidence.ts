@@ -114,7 +114,7 @@ export function buildScanEvidence(input: {
 
   const currencyMatches = [...text.matchAll(/(?:€|eur\b|\$|usd\b|£|gbp\b)/gi)].map(m => m[0].toUpperCase());
   const currencies = uniq(currencyMatches.map(v => v === "€" ? "EUR" : v === "$" ? "USD" : v === "£" ? "GBP" : v));
-  const priceCount = [...text.matchAll(/(?:€\s*\d|\d[\d.,]*\s*(?:€|eur\b)|\$\s*\d|£\s*\d)/gi)].length;
+  const priceCount = [...text.matchAll(/(?:€\s*\d|(?<![\d.,])\d[\d.,]*\s*(?:€|eur\b)|\$\s*\d|£\s*\d)/gi)].length;
 
   const appointment = has(text, /\b(afspraak|appointment|termin|rendez-vous|appuntamento|cita)\b/i);
   const appointmentAction = has(html, /(?:href|action|aria-label)\s*=\s*["'][^"']*(?:afspraak|appointment|termin|rendez-vous|appuntamento|cita)[^"']*["']/i);

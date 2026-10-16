@@ -133,6 +133,17 @@ export function isBrandOnlyTitle(title: string, host: string): boolean {
   return content.every((segment) => tokens.has(segment) || tokens.has(segment.replace(/\s+/g, "")));
 }
 
+// Framework/CMS defaults and one-word greetings describe no page topic.
+const PLACEHOLDER_TITLES = new Set([
+  "app", "react app", "vite + react", "vite + react + ts", "vite app", "vue app", "angular", "nuxt", "next.js", "create next app",
+  "document", "untitled", "untitled document", "new page", "home", "homepage", "home page", "index", "default", "test",
+  "welcome", "welkom", "willkommen", "bienvenue", "benvenuto", "bienvenido", "startpagina", "startseite", "accueil", "inicio",
+  "my site", "my website", "mijn website", "website", "site", "loading", "loading...", "laden...",
+]);
+export function isPlaceholderTitle(title: string): boolean {
+  return PLACEHOLDER_TITLES.has(title.trim().toLowerCase().replace(/\s+/g, " "));
+}
+
 export function titleLengthDistance(length: number): number {
   return length < 30 ? 30 - length : length > 60 ? length - 60 : 0;
 }
@@ -148,7 +159,7 @@ export function titleLengthCredit(length: number): number {
   return 0.45;
 }
 
-export type MetaAssessment = { status: "PASS" | "WARNING"; credit: number; details: string; flag?: "missing" | "empty" | "brand_only" | "duplicate_segment" | "outdated_year" };
+export type MetaAssessment = { status: "PASS" | "WARNING"; credit: number; details: string; flag?: "missing" | "empty" | "placeholder" | "brand_only" | "duplicate_segment" | "outdated_year" };
 
 // "Tarieven en vergoedingen 2017": a year at least three years old in a title
 // signals outdated content to searchers.
@@ -162,6 +173,9 @@ export function outdatedTitleYear(title: string, now: Date = new Date()): number
 export function assessPageTitle(title: string, host: string, now: Date = new Date(), pixelWidth: number | null = null): MetaAssessment {
   const value = title.trim();
   if (!value) return { status: "WARNING", credit: 0.25, details: "Geen title gevonden in raw HTML.", flag: "missing" };
+  if (isPlaceholderTitle(value)) {
+    return { status: "WARNING", credit: 0.3, details: `Title is een algemene standaardtitel ("${value}") zonder onderwerp.`, flag: "placeholder" };
+  }
   if (isBrandOnlyTitle(value, host)) {
     return { status: "WARNING", credit: 0.25, details: `Title bevat alleen de merknaam ("${value}"); het onderwerp van de pagina ontbreekt.`, flag: "brand_only" };
   }

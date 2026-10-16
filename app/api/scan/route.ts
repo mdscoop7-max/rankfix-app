@@ -7,9 +7,9 @@ import { ensureDatabase } from "@/lib/db-init";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang, isMarketSelectorPage } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { decodeHtmlEntities } from "@/lib/html-entities";
-import { assessPassiveSecurity, setCookieValues } from "@/lib/security-signals";
+import { assessPassiveSecurity, formBlocks, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
-import { assessPageDescription, assessPageTitle, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, isBrandOnlyTitle, isClientShell, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
+import { assessPageDescription, assessPageTitle, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, isBrandOnlyTitle, isClientShell, isPlaceholderTitle, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, confirmedRetailEvidenceForService, isStorefrontOnlyForService, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
 import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
@@ -615,7 +615,13 @@ export async function POST(request: Request) {
     }
     if (!response.ok && !recoveredHtml) {
       const httpMessages: Record<string,string> = {
-        nl:`Scan geblokkeerd door website (HTTP ${response.status}). RankFix kon deze website niet betrouwbaar analyseren. Er is daarom geen score berekend.`,
+        // Only 401/403/429 are access blocks; 404/410 mean the page does not exist
+        // and 5xx is a server error on the website itself.
+        nl:[404,410].includes(response.status)
+          ? `Deze pagina bestaat niet (HTTP ${response.status}). Controleer de URL; er is daarom geen score berekend.`
+          : response.status >= 500
+            ? `De website gaf een serverfout (HTTP ${response.status}). Probeer het later opnieuw; er is daarom geen score berekend.`
+            : `Scan geblokkeerd door website (HTTP ${response.status}). RankFix kon deze website niet betrouwbaar analyseren. Er is daarom geen score berekend.`,
         en:`The website returned HTTP ${response.status} and cannot be analysed reliably.`,
         de:`Die Website hat HTTP ${response.status} zurückgegeben und kann nicht zuverlässig analysiert werden.`,
         fr:`Le site a renvoyé HTTP ${response.status} et ne peut pas être analysé de manière fiable.`,
@@ -935,7 +941,7 @@ export async function POST(request: Request) {
 
     const hasFaqContent = confirmedFaqContent(html);
     const hasContactSignal = /\b(contact|contacteer|e-mail|email|telefoon|phone|adres|address|kontakt|contatti|contacto)\b/i.test(text);
-    const hasContactFormSignal = /<form\b[\s\S]*?(?:name\s*=\s*["'](?:email|message|name)["']|type\s*=\s*["']email["'])[\s\S]*?<\/form>/i.test(html);
+    const hasContactFormSignal = formBlocks(html).some((form) => /(?:name\s*=\s*["'](?:email|message|name)["']|type\s*=\s*["']email["'])/i.test(form));
     const hasContactActionSignal = /<(?:a|button)\b[^>]*(?:href\s*=\s*["'][^"']*(?:#contact|\/contact)|aria-label\s*=\s*["'][^"']*contact)[^>]*>|<(?:a|button)\b[^>]*>\s*(?:contact|kontakt|contatti|contacto)\s*<\/(?:a|button)>/i.test(html);
     const hasAboutSignal = /\b(over ons|over [a-z0-9][a-z0-9 .&-]{1,40}|about us|about [a-z0-9][a-z0-9 .&-]{1,40}|über [a-z0-9][a-z0-9 .&-]{1,40}|à propos|chi è|sobre [a-z0-9][a-z0-9 .&-]{1,40})\b/i.test(text);
     const organizationName = firstMatch(html, /<meta[^>]+(?:property|name)\s*=\s*["'](?:og:site_name|application-name)["'][^>]+content\s*=\s*["']([^"']+)["']/i);
@@ -971,7 +977,7 @@ export async function POST(request: Request) {
     const hasStrongCommerceAction = /\b(add to cart|add-to-cart|add to basket|buy now|in winkelwagen|toevoegen(?: aan winkelwagen)?|koop nu|jetzt kaufen|in den warenkorb|ajouter au panier|acheter maintenant|añadir al carrito|comprar ahora|aggiungi al carrello|acquista ora)\b/i.test(text);
     const hasSkuSignal = /\b(sku|artikelnummer|productcode|référence produit|referencia del producto|codice prodotto)\b/i.test(text);
     const hasStockSignal = /\b(in stock|out of stock|op voorraad|niet op voorraad|uitverkocht|auf lager|nicht auf lager|en stock|rupture de stock|agotado|disponible|esaurito|disponibile|pre-?order|backorder)\b/i.test(text);
-    const hasExplicitPriceSignal = /(?:€|£|\$)\s*\d|\d[\d.,]*\s*(?:€|EUR|GBP|USD)\b|\b(?:prijs|price|preis|prix|precio|prezzo)\s*[:€£$]?\s*\d/i.test(text);
+    const hasExplicitPriceSignal = /(?:€|£|\$)\s*\d|(?<![\d.,])\d[\d.,]*\s*(?:€|EUR|GBP|USD)\b|\b(?:prijs|price|preis|prix|precio|prezzo)\s*[:€£$]?\s*\d/i.test(text);
     const productOgType = firstMatch(html, /<meta[^>]+(?:property|name)\s*=\s*["']og:type["'][^>]+content\s*=\s*["']([^"']+)["']/i) || firstMatch(html, /<meta[^>]+content\s*=\s*["']([^"']+)["'][^>]+(?:property|name)\s*=\s*["']og:type["']/i);
     const hasProductMetaSignal = /(?:^|[.:_-])product(?:$|[.:_-])/i.test(productOgType) || /(?:product|sku|price|availability)[.:_-]/i.test(html.match(/<meta\b[^>]*(?:property|name)\s*=\s*["'][^"']+["'][^>]*>/gi)?.join(" ") || "");
     const hasProductSignal = hasProductSchema || (hasStrongCommerceAction && (hasExplicitPriceSignal || hasStockSignal || hasSkuSignal)) || (hasSkuSignal && hasExplicitPriceSignal && hasStockSignal) || (hasProductMetaSignal && hasExplicitPriceSignal);
@@ -1000,7 +1006,7 @@ export async function POST(request: Request) {
     const hasArticleSignal = rawArticleSignal && !isProductPage;
     const hasItemListSignal = schemaSet.has("itemlist");
     const commerceNavigationSignal = /\b(winkelwagen|cart|checkout|afrekenen|shop|webshop|producten|products)\b/i.test(text);
-    const visiblePriceCount = (text.match(/(?:€|£|\$)\s*\d|\d[\d.,]*\s*(?:€|EUR|GBP|USD)\b/gi) || []).length;
+    const visiblePriceCount = (text.match(/(?:€|£|\$)\s*\d|(?<![\d.,])\d[\d.,]*\s*(?:€|EUR|GBP|USD)\b/gi) || []).length;
     // Category detection must be portable across customer sites: use generic taxonomy paths
     // plus repeated commerce evidence, never customer-specific category slugs.
     const genericCategoryPathSignal = !isHomepage && pathSegmentsForType.some((segment) =>
@@ -1032,7 +1038,7 @@ export async function POST(request: Request) {
     // prices plus a real cart form/action is stronger evidence than URL shape alone.
     // Requiring both independent signals prevents ordinary SaaS pricing cards from becoming shops.
     const pricedProductCardCount = (html.match(/<(?:article|div)[^>]+(?:data-product-card|class\s*=\s*["'][^"']*product-card[^"']*["'])[^>]*(?:data-price\s*=\s*["'][^"']+["'])?/gi) || []).length;
-    const cartFormSignal = /<form[^>]+(?:action\s*=\s*["'][^"']*(?:cart|winkelwagen|checkout)[^"']*["']|class\s*=\s*["'][^"']*(?:cart|basket)[^"']*["'])/i.test(html);
+    const cartFormSignal = /<form[^>]{1,2000}?(?:action\s*=\s*["'][^"']*(?:cart|winkelwagen|checkout)[^"']*["']|class\s*=\s*["'][^"']*(?:cart|basket)[^"']*["'])/i.test(html);
     // Store subtypes (FurnitureStore, ElectronicsStore, ...) are retail schema too.
     const hasStoreSchema = hasRetailStoreSchema(schemaTypes);
     const storefrontMarkupSignal = pricedProductCardCount >= 2 && visiblePriceCount >= 2 && (cartFormSignal || hasStrongCommerceAction) && commerceNavigationSignal;
@@ -1197,7 +1203,10 @@ export async function POST(request: Request) {
                   : schemaSet.has("webpage") || schemaSet.has("article") || schemaSet.has("organization") || schemaSet.has("website");
     const businessName = organizationName || (title.split(/[|–—-]/)[0] || "").trim();
     const phoneMatch = text.match(/(?:\+31\s?6|0)[\d\s().-]{8,}/);
-    const emailMatch = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+    // Word-boundary anchored matcher: an unanchored "[A-Z0-9._%+-]+@" pattern is
+    // quadratic on long tokens (inline base64, minified JSON) and stalled scans ~60s.
+    const visibleEmail = findVisibleEmail(text);
+    const emailMatch = visibleEmail ? [visibleEmail] : null;
     const addressMatch = text.match(/\b([^,]{3,60}\s+\d+[A-Za-z]?)\s+(\d{4}\s?[A-Z]{2})\s+([A-Za-zÀ-ÿ' -]{2,40})\b/);
     const localBusinessDetails = effectiveLocalSchemaSignal ? {
       name: businessName || null,
@@ -1559,7 +1568,7 @@ export async function POST(request: Request) {
       {sector:"home_services",label:"Lokale vakdienst",patterns:[/\b(loodgieter|plumber|aannemer|installateur|elektricien|schilder|dakdekker|klus(?:sen)?bedrijf|bouwbedrijf|bouwservice|general contractor|electrician|contractor|riool(?:service|specialist)?|rioolprobleem|ontstopping|ontstoppen|afvoer|schoonmaak(?:bedrijf|dienst(?:en)?)?|kantoorschoonmaak|cleaning service|cleaning company)\b/i,/\b(offerte|werkgebied|servicegebied|installatie|reparatie|renovatie|verbouwing|bouw|verstopping|riolering|riooldienst(?:en)?|schoonmaak|cleaning)\b/i],modules:["core_seo","geo","local","lead_conversion","home_services"]},
       {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\b(advocaat|accountant|boekhouder|consultant|notaris|law firm|legalservice|legal services|accounting|consultancy)\b/i,/\b(diensten|expertise|advies|consult)\b/i],modules:["core_seo","geo","local","lead_conversion","professional_services"]},
       {sector:"hospitality",label:"Horeca",patterns:[/\b(restaurant|cafe|café|hotel|brasserie|bistro|reserveren|reservation|restaurantmenu|menukaart)\b/i,/\b(openingstijden|opening hours|tafel reserveren)\b/i],modules:["core_seo","geo","local","lead_conversion","hospitality"]},
-      {sector:"health_wellness",label:"Zorg & Gezondheid",patterns:[/\b(kliniek|clinic|fysiotherap|tandarts|dentist|medicalclinic|physician|mondzorg|acupunctuur|acupuncture|acupuncturist|therapeut|therapist|therapie|therapy|tuina)\b/i,/\b(afspraak|appointment|behandeling|behandelingen|treatment|treatments|patient|patiënt|praktijk|practice)\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
+      {sector:"health_wellness",label:"Zorg & Gezondheid",patterns:[/\b(kliniek|clinic|(?:fysio|physio)therap\w*|osteopa\w*|chiropract\w*|huisarts\w*|psycholo\w*|logoped\w*|podotherap\w*|verloskund\w*|orthodont\w*|mondhygi\w*|tandarts|dentist|medicalclinic|physician|mondzorg|acupunctuur|acupuncture|acupuncturist|therapeut|therapist|therapie|therapy|tuina)\b/i,/\b(afspraak|appointment|behandeling|behandelingen|treatment|treatments|patient|patiënt|praktijk|practice)\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
       {sector:"beauty",label:"Beauty & Verzorging",patterns:[/\b(kapper|hairdresser|hairsalon|hair salon|hairstyling|beauty salon|beautysalon|schoonheidssalon|nagelsalon|nail salon|barber|day spa|dayspa|city spa|wellness|manicure|pedicure|facial|gezichtsbehandeling)\b/i,/\b(afspraak|appointment|salons?|knippen|haar|hair|spa|wellness|manicure|pedicure|beauty treatment|beauty treatments)\b/i],modules:["core_seo","geo","local","lead_conversion","beauty"]},
       {sector:"recruitment",label:"Recruitment & Werk",patterns:[/\b(recruitment|uitzendbureau|uitzendorganisatie|employment agency|staffing agency|staffing|werving en selectie|recruitmentbureau|recruitment agency)\b/i,/\b(werkgevers?|kandidaten?|talent acquisition|detachering|interim professionals?|recruiter)\b/i],modules:["core_seo","geo","lead_conversion","recruitment"]},
       {sector:"government",label:"Overheid & Publieke sector",patterns:[/\b(gemeente|municipality|overheid|government|rijksoverheid|ministry|ministerie|public service|stadhuis|burgerzaken)\b/i,/\b(digid|vergunning|paspoort|loket|inwoners|wetgeving|beleid|minister|cabinet)\b/i],modules:["core_seo","geo","government"]},
@@ -1686,7 +1695,7 @@ export async function POST(request: Request) {
     // Long-term housing remains real estate; guest/night/date/booking evidence is hospitality.
     const realEstateIdentity = Boolean(!shortStayIdentity && scanEvidence.inventory.properties.value && scanEvidence.inventory.properties.confidence !== "low" && (/\/(?:woningaanbod|residential-listings|properties?|real-estate)(?:\/|$)/i.test(finalUrl.pathname) || /\b(?:makelaar|woningaanbod|te koop|te huur|for sale|for rent|real estate)\b/i.test(sectorIdentitySource)));
     const automotiveServiceIdentity = Boolean(/\b(?:apk|autobanden|banden|uitlijnen|werkplaats|autoservice|auto-onderhoud|car repair|tyres?)\b/i.test(sectorIdentitySource) || schemaSet.has("autorepair"));
-    const explicitMedicalIdentity = /\b(?:tandarts|dentist|kliniek|clinic|medical|medicalclinic|fysiotherap|mondzorg|patient|patiënt|physician|huisarts|doctor)\b/i.test(sectorIdentitySource) || schemaSet.has("dentist") || schemaSet.has("medicalclinic");
+    const explicitMedicalIdentity = /\b(?:tandarts|dentist|kliniek|clinic|medical|medicalclinic|(?:fysio|physio)therap\w*|osteopa\w*|chiropract\w*|huisarts\w*|psycholo\w*|logoped\w*|podotherap\w*|verloskund\w*|orthodont\w*|mondhygi\w*|mondzorg|patient|patiënt|physician|huisarts|doctor)\b/i.test(sectorIdentitySource) || schemaSet.has("dentist") || schemaSet.has("medicalclinic");
     const beautyServiceIdentity = /\b(?:beauty salon|beautysalon|schoonheidssalon|day spa|dayspa|city spa|wellness|manicure|pedicure|nail salon|nagelsalon|facial|gezichtsbehandeling)\b/i.test(sectorIdentitySource) || schemaSet.has("beautysalon") || schemaSet.has("dayspa");
     // Primary telecom subscription identity outranks incidental commerce widgets.
     // Require subscription and network/provider terminology in page identity,
@@ -1739,7 +1748,9 @@ export async function POST(request: Request) {
       && primaryBusinessEvidence.sector !== "financial_services"
       && !telecomProviderIdentity && !shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity
       && !beautyServiceIdentity && !explicitMedicalIdentity && !transportBookingIdentity
-      && !/\b(?:restaurant|hotel|reserveren|reserveer tafel|vakantieverhuur|transportdiensten|schoonmaakdienst)\b/i.test(sectorIdentitySource);
+      // Hospitality/service words only veto retail when they name the business in
+      // the title or H1; "met restaurant" in a store description is a facility.
+      && !(/\b(?:restaurant|hotel|reserveren|reserveer tafel|vakantieverhuur|transportdiensten|schoonmaakdienst)\b/i.test([title, h1s.join(" ")].join(" ")) && !storeSchemaRetailIdentity);
     const primaryNonCommerceIdentity = retailPrimaryIdentity ? null : (masterIdentityOverride
       || (strongSectorCandidate && sectorCandidates[0].sector !== "ecommerce"
         ? {sector:sectorCandidates[0].sector,key:sectorCandidates[0].sector,label:sectorCandidates[0].label,evidence:[`Primaire identiteit: ${sectorCandidates[0].hits} onafhankelijke ${sectorCandidates[0].hits===1?"sectorsignaal":"sectorsignalen"}`]}
@@ -2188,7 +2199,7 @@ export async function POST(request: Request) {
       .map((kind) => classifiedContactAnchors.find((entry) => entry.kind === kind))
       .find(Boolean) || null;
     const contactEvidence = contactAnchor ? { ...contactAnchor.item, channel: contactAnchor.kind as ContactChannel } : null;
-    const contactFormFound = [...html.matchAll(/<form\b[\s\S]*?<\/form>/gi)].some((match) => isContactForm(match[0]));
+    const contactFormFound = formBlocks(html).some((form) => isContactForm(form));
     const visibleContactEmail = findVisibleEmail(text);
     // FAQ, help and support pages are not proof of a contact channel.
     const helpOnlyContactAnchor = classifiedContactAnchors.find((entry) => entry.kind !== null && INDIRECT_CONTACT_KINDS.has(entry.kind))?.item || null;
@@ -2575,6 +2586,10 @@ export async function POST(request: Request) {
         ? metadataMayBeClientRendered
           ? check("unable_to_confirm", "title", "seo", "Meta title", "De meta title kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de title opnieuw met een volledige render voordat je een wijziging maakt.", 0, 10)
           : check("fail", "title", "seo", "Meta title", "Er is geen meta title gevonden.", "Voeg een unieke, beschrijvende title toe.", 0, 10)
+        : isPlaceholderTitle(title)
+          ? metadataMayBeClientRendered
+            ? check("unable_to_confirm", "title", "seo", "Meta title", `De raw HTML bevat alleen een standaardtitel ("${title}"); deze JavaScript-pagina kon niet volledig worden gerenderd, dus de echte title is niet bevestigd.`, "Controleer de title opnieuw met een volledige render voordat je een wijziging maakt.", 0, 10)
+            : check("warning", "title", "seo", "Meta title", `De title is een algemene standaardtitel ("${title}") en beschrijft het onderwerp van de pagina niet.`, "Gebruik een unieke title met onderwerp en merk, bijvoorbeeld \"Onderwerp | Merk\".", isHomepage ? 4 : 3, 10)
         : isBrandOnlyTitle(title, finalUrl.hostname)
           ? check("warning", "title", "seo", "Meta title", `De title bevat alleen de merknaam ("${title}"); het onderwerp van de pagina ontbreekt.`, "Zet het onderwerp van de pagina vóór de merknaam, bijvoorbeeld \"Onderwerp | Merk\".", isHomepage ? 5 : 3, 10)
         : duplicateTitleSegment(title)
@@ -3350,6 +3365,11 @@ export async function POST(request: Request) {
       if (item.status === "pass" && foundEvidence === null) {
         item.status = "unable_to_confirm";
         item.confidence = "low";
+        // Unconfirmed checks earn no points and must not read as a pass.
+        item.points = 0;
+        item.reasonCode = "weak_evidence";
+        item.message = `Niet bevestigd: er is geen concreet meetbaar bewijs gevonden voor deze controle. ${item.message}`;
+        item.evidence = { ...(item.evidence || {}), found: null, details: item.message };
       }
       item.issue_status = item.status === "not_applicable"
         ? "NOT_APPLICABLE"
@@ -3919,7 +3939,7 @@ export async function POST(request: Request) {
         const pageDescription = pageQualityDescription;
         const pageH1s = [...pageHtml.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gi)].map((m)=>stripHtml(m[1])).filter(Boolean);
         const pageCanonical = firstMatch(pageHtml, /<link[^>]+rel\s*=\s*["'][^"']*canonical[^"']*["'][^>]+href\s*=\s*["']([^"']+)["'][^>]*>/i) || firstMatch(pageHtml, /<link[^>]+href\s*=\s*["']([^"']+)["'][^>]+rel\s*=\s*["'][^"']*canonical[^"']*["'][^>]*>/i);
-        const pageForms = [...pageHtml.matchAll(new RegExp("<form\\b[\\s\\S]*?</form>", "gi"))].map((m)=>m[0]);
+        const pageForms = formBlocks(pageHtml);
         const pagePasswordForm = pageForms.some((form)=>new RegExp("<input[^>]+type\\s*=\\s*[\"\']password[\"\']", "i").test(form));
         const pageInsecureFormActions = pageForms.filter((form)=>new RegExp("action\\s*=\\s*[\"\']http://", "i").test(form)).length;
         const pageSchemaTypes = [...pageHtml.matchAll(/"@type"\s*:\s*"([^"]+)"/gi)].map((m)=>String(m[1]||"").toLowerCase());

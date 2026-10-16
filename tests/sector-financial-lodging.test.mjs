@@ -68,3 +68,36 @@ test("route labels financial sub-types and maps every catalog sector", async () 
   const unmapped = SECTOR_CATALOG.map((s) => s.key).filter((key) => key !== "ecommerce" && key !== "general_business" && !new RegExp(`\\b${key}:`).test(mapBlock));
   assert.deepEqual(unmapped, [], `catalog sectors without a scan sector: ${unmapped.join(", ")}`);
 });
+
+test("payment providers naming their customers (webshops) stay payment providers", () => {
+  const p = id("PayNL – betaalplatform voor webshops", "Online betalingen accepteren in je webshop met iDEAL, creditcard en Klarna.", ["Betalingen voor webshops"], ["Organization"]);
+  assert.equal(p.financialKind, "payments");
+  assert.equal(id("Payment gateway for online stores", "Accept online payments in your online store.").financialKind, "payments");
+  // A retailer's own shop wording still wins.
+  assert.equal(id("Onze webshop – geld besparen op elektronica", "Online bestellen in onze webshop. Send money? Nee: koop online.").sector, "unknown");
+});
+
+test("placeholder titles are flagged, real titles are not", async () => {
+  const { isPlaceholderTitle, assessPageTitle } = await import("../lib/report-quality.ts");
+  for (const t of ["App", "React App", "Vite + React", "Home", "Welkom", "Untitled", "Document", "  welcome  "]) assert.equal(isPlaceholderTitle(t), true, t);
+  for (const t of ["Home | Bakkerij Brood", "Welkom bij KPN: het netwerk van Nederland", "App Store", "Appartementen te huur"]) assert.equal(isPlaceholderTitle(t), false, t);
+  assert.equal(assessPageTitle("React App", "example.com").flag, "placeholder");
+});
+
+test("route: unconfirmed checks earn no points, placeholder titles respect JS rendering, honest HTTP errors", async () => {
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(route, /if \(item\.status === "pass" && foundEvidence === null\) \{\s*item\.status = "unable_to_confirm";\s*item\.confidence = "low";[\s\S]{0,120}item\.points = 0;/);
+  assert.match(route, /isPlaceholderTitle\(title\)\s*\? metadataMayBeClientRendered\s*\? check\("unable_to_confirm", "title"/);
+  assert.match(route, /\[404,410\]\.includes\(response\.status\)/);
+  // A facility ("met restaurant") in a store description must not veto retail identity.
+  assert.match(route, /test\(\[title, h1s\.join\(" "\)\]\.join\(" "\)\) && !storeSchemaRetailIdentity\)/);
+});
+
+test("route: health identity matches full profession words, not only truncated stems", async () => {
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const line = route.split("\n").find((l) => l.includes('{sector:"health_wellness"'));
+  const literal = line.match(/patterns:\[(\/.*?\/i),/)[1];
+  const pattern = new Function(`return ${literal}`)();
+  for (const word of ["Fysiotherapie Utrecht", "Physiotherapy clinic", "Osteopaat", "Huisartsenpraktijk", "Psycholoog", "Tandarts"]) assert.equal(pattern.test(word), true, word);
+  assert.equal(pattern.test("Kaasboerderij"), false);
+});

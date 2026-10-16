@@ -80,3 +80,19 @@ Consolidated draft PR #148 into this branch; #148, #144 (in #145) and #146 (in #
 - `app/api/scan/route.ts`: financial sub-type key/label; identity-anchored sectors education, nonprofit, energy_utilities, events_culture, fitness_sports; every catalog sector maps to a scan sector.
 - Report module labels in 6 locales; `tests/sector-financial-lodging.test.mjs`.
 - Checks: 260/260 tests, tsc 0, ESLint unchanged vs main (31 legacy). Live scans not run from Claude's workspace (outbound web blocked). PR #145 conflicts with this branch only in `tests/feedback-19-regression.test.mjs`.
+
+## Status 2026-10-16, second pass (Claude) — full engine QA
+
+Offline end-to-end matrix added: `tests/scan-matrix/` runs the real `/api/scan` route with module hooks (DB/auth stubs, no DNS, controllable headless browser). `npm test` now covers 57 synthetic sites × 3 modes, EN/DE reports, 4 rendering outcomes and 23 pathological inputs, asserting sector, page type and report invariants (status totals = details, breakdown = checks, no points for N.v.t./unconfirmed, no retail warnings on non-shops, provisional flag). On `main` the same matrix passes 5/57.
+
+Fixed in this pass:
+- Performance (also present on `main`/production): quadratic regexes stalled scans for 60 s to several minutes on long tokens (inline base64, minified JSON, digit runs, unclosed forms): email extraction, three price patterns, `<form>` block extraction, cart-form pattern. Now linear; 1.7 MB page ≈ 0.8 s, worst pathological 200 kB input ≈ 0.25 s.
+- A PASS without measured evidence became `unable_to_confirm` but kept its points and pass wording; now 0 points and labelled.
+- Placeholder titles ("App", "React App", "Home", "Welkom", …): warning, or unconfirmed when the JS page was not rendered.
+- Health identity used truncated stems inside `\b…\b` ("fysiotherap") that never matched; physiotherapy, osteopathy, GP, psychology etc. now recognised.
+- Payment providers "voor webshops" / "in je webshop" no longer read as retailers; a store "met restaurant" stays retail (facility, not identity).
+- HTTP 404/410 and 5xx no longer reported as "blocked by website".
+
+Verified locally against PostgreSQL 18: schema init (3× parallel, idempotent, 25 tables), `/api/health/db`, logged-in scan persistence, usage events, rescan comparison (delta 0, deterministic), history APIs, free-scan rate limit (8/network/hour → 429). Production build passes (webpack, Google Fonts mocked offline).
+
+Open: preview URL is behind Vercel Authentication and the Vercel connector cannot open it; owner verifies `/api/health/db` and live scans in the preview. Provisional 100/100 at low coverage is shown as "Voorlopig" with range (owner policy: unconfirmed never lowers the score) — keep or gate is an owner decision.
