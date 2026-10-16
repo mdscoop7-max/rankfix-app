@@ -47,3 +47,11 @@ test("corporate pages are not categories even with a global Products menu", () =
   }
   assert.equal(refineSamplePageType({ ...base, proposed: "other", productSchema: false, purchaseAction: false, visiblePrices: 0, repeatedProductLinks: true, itemListSchema: false, uniqueH1: true, detailIdentity: false, path: "/en/technology/overview" }), "other");
 });
+
+test("a bare product base (/producten/, /products) is the shop archive, not a product", () => {
+  for (const p of ["/producten/", "/products", "/nl/producten/", "/shop/"]) {
+    assert.equal(looksLikeCategoryPath(p), true, p);
+    assert.equal(looksLikeProductDetailPath(p), false, p);
+  }
+  assert.equal(looksLikeProductDetailPath("/producten/jojoba-olie/"), true);
+});

@@ -12,8 +12,12 @@ const CATEGORY_SEGMENT = /\/(?:(?:product|produkt|produit|prodotto|producto|prod
 // Store finders, branch and franchise pages describe the organisation, not a product range.
 const STORE_PAGE = /\/(?:winkels|winkelzoeker|winkel-zoeken|winkels-zoeken|filialen|filiale|vestigingen|stores?|store-?locator|storefinder|shops?-?finder|magasins?|negozi|tiendas|lojas|sklepy|prodejny|liikkeet|butiker|franchise\p{L}*|franchisenemer\p{L}*|ondernemer-worden|word-ondernemer|partner-worden|become-a-partner)(?:\/|$)/iu;
 
+// A bare product base without a product slug (/producten/, /products, /shop/) is the shop archive.
+const PRODUCT_BASE_ONLY = /^(?:\/[a-z]{2}(?:-[a-z]{2})?)?\/(?:product|products|producten|produkte?|produits?|prodotti|productos?|produtos?|produkty|tuotteet|shop|winkel|webshop|store|assortiment)\/?$/i;
+
 export function looksLikeCategoryPath(pathname: string): boolean {
   const path = pathname.toLowerCase();
+  if (PRODUCT_BASE_ONLY.test(path)) return true;
   if (/\/products?\/[^/]+/.test(path) && /\/collections?\//.test(path)) return false;
   return CATEGORY_SEGMENT.test(path);
 }

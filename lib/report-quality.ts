@@ -205,7 +205,8 @@ export function assessPageTitle(title: string, host: string, now: Date = new Dat
   // Only a rendered-browser measurement can justify a length-related score deduction.
   // Approximate SERP font width is not a guarantee of Google's actual snippet.
   if (pixelWidth !== null && Number.isFinite(pixelWidth) && pixelWidth > 580) {
-    return { status:"WARNING", credit:0.95, details:`${lengthText} Geschatte zichtbare titelbreedte ${Math.round(pixelWidth)}px boven circa 580px: licht previewadvies, geen bewezen rankingfout.` };
+    // Like long descriptions: a truncated preview is advice, not a deduction.
+    return { status:"PASS", credit:1, details:`${lengthText} Geschatte zichtbare titelbreedte ${Math.round(pixelWidth)}px boven circa 580px: previewadvies, geen aftrek.` };
   }
   return { status: "PASS", credit: 1, details: lengthText };
 }

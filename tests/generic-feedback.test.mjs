@@ -65,8 +65,10 @@ test("title width in pixels, not length: small width passes and wide width is so
   const title="iPhone informatie voor alle klanten met een abonnement";
   assert.equal(assessPageTitle(title,"provider.example",new Date("2026-10-15"),480).status,"PASS");
   const wide=assessPageTitle(title,"provider.example",new Date("2026-10-15"),610);
-  assert.equal(wide.status,"WARNING");
-  assert.ok(wide.credit>=0.95);
+  // Wide titles are preview advice without deduction (same policy as long descriptions).
+  assert.equal(wide.status,"PASS");
+  assert.equal(wide.credit,1);
+  assert.match(wide.details,/geen aftrek/);
 });
 
 test("subscription, booking and lead commerce are not conflated with checkout",()=>{

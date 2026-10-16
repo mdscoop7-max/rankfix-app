@@ -85,6 +85,7 @@ for (const p of PROFILES) {
       }
       const po = j.metrics?.productOptimizer || j.productOptimizer;
       const poCheck = all.find((c) => c.key === "product_copy_optimizer");
+      if (po?.sampleUrl && j.multiPage?.representativeProduct && po.sampleUrl !== j.multiPage.representativeProduct.url) problems.push(`product diagnostics use ${po.sampleUrl}, product checks use ${j.multiPage.representativeProduct.url}`);
       if (po?.eligible && poCheck && poCheck.status !== "pass") problems.push(`Product Optimizer eligible while AI Product Copy is ${poCheck.status}`);
       const opt = all.find((c) => /product_(?:copy_)?optimizer/.test(c.key) && c.status === "pass");
       if (opt && !j.multiPage?.representativeProduct && !all.some((c) => c.key === "product_schema" && c.status === "pass")) problems.push("product optimizer pass without product fields");

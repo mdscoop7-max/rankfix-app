@@ -2832,7 +2832,7 @@ async function runScan(request: Request) {
         : titleQualityIssue
           ? check("warning", "title", "seo", "Meta title", `De title is ${title.length} tekens, maar bevat relatief veel herhaalde woorden.`, "Herschrijf de title natuurlijker en voorkom keyword stuffing.", 6, 10)
           : titlePixelEstimate.warning
-            ? check("warning", "title", "seo", "Meta title", titlePixelEstimate.message, "Controleer de daadwerkelijke zoekpreview. Kort alleen in als de relevante informatie wegvalt.", 9, 10)
+            ? check("pass", "title", "seo", "Meta title", `${titlePixelEstimate.message} Advies, geen aftrek.`, "Controleer de daadwerkelijke zoekpreview. Kort alleen in als de relevante informatie wegvalt.", 10, 10)
             : check("pass", "title", "seo", "Meta title", titlePixelEstimate.measured ? `Meta title gevonden (${title.length} tekens). ${titlePixelEstimate.message}` : `Meta title gevonden (${title.length} tekens). Lengte in tekens is geen harde SEO-eis; zonder pixelmeting geen aftrek.`, "Houd onderwerp, zoekintentie en merk herkenbaar.", 10, 10)
     );
     seoChecks.push(
@@ -5181,7 +5181,8 @@ async function runScan(request: Request) {
       unconfirmed: overallCoverage.unableToConfirm,
       // Heavy checks (8+ points: title, description, H1, structured data, entity, …)
       // that stayed unconfirmed make a 98/99 provisional, never "definitief".
-      importantUnconfirmed: [...seoChecks,...geoChecks].filter((c)=>c.status==="unable_to_confirm" && c.maxPoints>=8).map((c)=>c.title),
+      // Organization + WebSite is a homepage concern; on a product or article URL it is not decisive.
+      importantUnconfirmed: [...seoChecks,...geoChecks].filter((c)=>c.status==="unable_to_confirm" && c.maxPoints>=8 && !(c.key==="organization_website" && !isHomepage)).map((c)=>c.title),
       sectorConfidence: sectorProfile.sector === "unknown" ? undefined : sectorProfile.confidenceScore,
     });
     scoreModel.provisional = scoreEvidence.level !== "complete";
@@ -5450,7 +5451,8 @@ async function runScan(request: Request) {
               productOptimizer: isProductPage
                 ? { eligible: productOptimizerSourceCount >= 3 && [...seoChecks,...geoChecks].some((c)=>c.key==="product_copy_optimizer" && c.status==="pass"), sourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page" }
                 : (() => {
-                    const sample = auditedMultiPages.find((item)=>item.type==="product");
+                    // The same best-evidenced product page as the product checks (never the first match).
+                    const sample = productSamplePage || auditedMultiPages.find((item)=>item.type==="product");
                     const product = sample?.commerceEvidence?.product || null;
                     const sourceCount = product ? [
                       Boolean(product.name), Boolean(product.image), Boolean(product.sku),
@@ -5703,7 +5705,8 @@ async function runScan(request: Request) {
         productOptimizer: isProductPage
                 ? { eligible: productOptimizerSourceCount >= 3, sourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page" }
                 : (() => {
-                    const sample = auditedMultiPages.find((item)=>item.type==="product");
+                    // The same best-evidenced product page as the product checks (never the first match).
+                    const sample = productSamplePage || auditedMultiPages.find((item)=>item.type==="product");
                     const product = sample?.commerceEvidence?.product || null;
                     const sourceCount = product ? [
                       Boolean(product.name), Boolean(product.image), Boolean(product.sku),
