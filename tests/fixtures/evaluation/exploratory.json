@@ -36,6 +36,27 @@
   {
    "host": "decathlon.nl",
    "expected": "ecommerce"
+  },
+  {
+   "host": "laposte.fr",
+   "expected": [
+    "transport_travel",
+    "financial_services"
+   ],
+   "scannedOn": "2026-10-16",
+   "finding": "Sector juist; rendering mislukt, bewijsdekking 72% (owner-scan 16-10)"
+  },
+  {
+   "host": "brembo.com",
+   "expected": "manufacturing_industrial",
+   "scannedOn": "2026-10-16",
+   "finding": "Sector onbekend 0% en toch 'Definitief' (owner-scan 16-10)"
+  },
+  {
+   "host": "mbank.pl",
+   "expected": "financial_services",
+   "scannedOn": "2026-10-16",
+   "finding": "Sector juist 96%; controle financiële producten vs. webshop (owner-scan 16-10)"
   }
  ],
  "planned": [
@@ -67,18 +88,6 @@
    "chosenOn": "2026-10-16"
   },
   {
-   "country": "FR",
-   "language": "fr",
-   "name": "La Poste",
-   "host": "laposte.fr",
-   "expected": [
-    "transport_travel",
-    "financial_services"
-   ],
-   "why": "Post + bank: tweede multi-activiteitstest",
-   "chosenOn": "2026-10-16"
-  },
-  {
    "country": "ES",
    "language": "es",
    "name": "Mercadona",
@@ -88,24 +97,6 @@
     "food_local_retail"
    ],
    "why": "Supermarkt, fysieke winkels",
-   "chosenOn": "2026-10-16"
-  },
-  {
-   "country": "IT",
-   "language": "it",
-   "name": "Brembo",
-   "host": "brembo.com",
-   "expected": "manufacturing_industrial",
-   "why": "Fabrikant remsystemen (B2B/automotive)",
-   "chosenOn": "2026-10-16"
-  },
-  {
-   "country": "PL",
-   "language": "pl",
-   "name": "mBank",
-   "host": "mbank.pl",
-   "expected": "financial_services",
-   "why": "Bank, Pools",
    "chosenOn": "2026-10-16"
   },
   {

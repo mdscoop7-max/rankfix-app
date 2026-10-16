@@ -11,13 +11,20 @@ export type AxeSummary = {
   scope: "hydrated_wcag_a_aa";
 };
 export type RenderedPage = { html: string; finalUrl: string; elapsedMs: number; requests: number;
+  /** Navigation did not reach DOMContentLoaded in time; the DOM was snapshotted as it was. The evidence gate decides if it is usable. */
+  partialNavigation?: boolean;
   titlePixelWidth: number | null;
   domAccessibility: {controls:number;unnamedButtons:number;unlabeledControls:number} | null;
   axeReport: AxeSummary | null;
 };
 
 const ALLOWED = new Set(["document", "script", "stylesheet", "xhr", "fetch"]);
+// Cap on requests that are actually loaded (document, script, stylesheet, xhr, fetch).
+// Blocked images, fonts and media do not count: on image-heavy pages they used to use
+// up the cap, after which the page's own scripts were aborted and hydration failed.
 const MAX_REQUESTS = 90;
+// Time kept back from navigation so a slow page can still be snapshotted.
+const SNAPSHOT_RESERVE_MS = 2500;
 const MAX_CONCURRENT_BROWSERS = 2;
 const MAX_QUEUED_BROWSERS = 8;
 const MAX_QUEUE_WAIT_MS = 15000;
@@ -121,16 +128,28 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
     await page.setUserAgent(`${await browser.userAgent()} RankFixBot/2.1`);
     await page.setRequestInterception(true);
     let requests = 0;
+    // One DNS check per host per render (same public-address check, not repeated for
+    // every script and XHR of that host, which serialised and slowed heavy pages).
+    const dnsChecks = new Map<string, Promise<void>>();
+    const checkHost = (hostname: string) => {
+      let pending = dnsChecks.get(hostname);
+      if (!pending) { pending = assertPublicDns(hostname); dnsChecks.set(hostname, pending); }
+      return pending;
+    };
     page.on("request", (req) => {
       void (async () => {
         try {
+          if (!ALLOWED.has(req.resourceType())) {
+            await req.abort();
+            return;
+          }
           requests++;
-          if (requests > MAX_REQUESTS || !ALLOWED.has(req.resourceType())) {
+          if (requests > MAX_REQUESTS) {
             await req.abort();
             return;
           }
           const requestUrl = validatePublicHttpUrl(req.url());
-          await assertPublicDns(requestUrl.hostname);
+          await checkHost(requestUrl.hostname);
           await req.continue();
         } catch {
           try { await req.abort(); } catch {}
@@ -139,17 +158,27 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
     });
 
     page.setDefaultNavigationTimeout(remaining());
-    await page.goto(target.toString(), { waitUntil: "domcontentloaded", timeout: remaining() });
+    // A heavy page can miss DOMContentLoaded within the budget while its content is
+    // already in the DOM. Keep time for one snapshot instead of failing outright;
+    // renderImprovesEvidence/isSubstantiveRender still decide whether it is usable.
+    let partialNavigation = false;
+    try {
+      await page.goto(target.toString(), { waitUntil: "domcontentloaded", timeout: Math.max(1000, remaining() - SNAPSHOT_RESERVE_MS) });
+    } catch (navigationError) {
+      const message = navigationError instanceof Error ? navigationError.message : String(navigationError);
+      if (!/timeout|timed out|exceeded/i.test(message) || page.url() === "about:blank") throw navigationError;
+      partialNavigation = true;
+    }
     // Let common hydration/XHR finish, but do not consume several extra seconds
     // per page on sites that continuously poll analytics or APIs.
-    if (remaining() > 300) {
+    if (!partialNavigation && remaining() > 300) {
       try { await page.waitForNetworkIdle({ idleTime: 350, timeout: Math.min(1200, remaining()) }); } catch {}
     }
     // Nuxt/Next hydrate shortly after DOMContentLoaded and can still be updating
     // after a brief network-idle interval. Take a bounded, observable snapshot
     // after the app root settles; never wait indefinitely for polling scripts.
     // This does not bypass site protections or mark a degraded page as valid.
-    if (remaining() > 1700) {
+    if (!partialNavigation && remaining() > 1700) {
       try {
         await withinTimeout(page.evaluate(() => new Promise<void>((resolve) => {
           const appRoot = document.querySelector("#__nuxt, #__next, [ng-version], [data-reactroot]");
@@ -214,7 +243,8 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
     // failed crawl. In that case the report explicitly falls back to the
     // limited accessible-name inspection, not a WCAG conformance claim.
     let axeReport: AxeSummary | null = null;
-    try {
+    // A partially loaded page is not a basis for an accessibility rule run.
+    if (!partialNavigation) try {
       const axeCore = (await import("axe-core")).default;
       await withinTimeout(page.evaluate(axeCore.source), Math.min(2500, remaining()));
       axeReport = await withinTimeout(page.evaluate(async () => {
@@ -244,7 +274,7 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
         reason:error instanceof Error ? error.message.slice(0,80) : "AXE_UNAVAILABLE",
       });
     }
-    return { html, finalUrl: finalUrl.toString(), elapsedMs: Date.now() - started, requests, ...domDetails, axeReport };
+    return { html, finalUrl: finalUrl.toString(), elapsedMs: Date.now() - started, requests, ...(partialNavigation ? { partialNavigation } : {}), ...domDetails, axeReport };
   } finally {
     if (browser) {
       try { await withinTimeout(browser.close(), 2000); }

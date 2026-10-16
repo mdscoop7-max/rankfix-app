@@ -44,3 +44,20 @@ test("provisional only because of an ambiguous sector says so, and a one-value r
   const r = scoreQualifier({ coverage: { coveragePercent: 86 }, scoreModel: { evidenceLevel: "provisional", evidenceReasons: ["Bewijsdekking 86% (onder 90%)"], range: { low: 84, high: 99 } } }, "nl");
   assert.match(r.detail, /84–99/);
 });
+
+test("an unknown primary sector is provisional, never 'Definitief' (field scan 16-10)", async () => {
+  const { evidenceLevel } = await import("../lib/audit-score.ts");
+  const lvl = evidenceLevel({ coveragePercent: 100, javascriptRequiredButNotRendered: false, unconfirmed: 0, sectorUnknown: true });
+  assert.equal(lvl.level, "provisional");
+  assert.ok(lvl.reasons.some((r) => /^Hoofdsector niet vastgesteld/.test(r)));
+  for (const l of ["nl", "en", "de", "fr", "it", "es"]) {
+    const q = scoreQualifier({ overallScore: 96, coverage: { coveragePercent: 100 }, scoreModel: { evidenceLevel: lvl.level, evidenceReasons: lvl.reasons } }, l);
+    assert.equal(q.level, "provisional");
+    assert.doesNotMatch(q.label, /Definitief|Final|Endgültig|Définitif|Definitivo/, l);
+  }
+  assert.match(scoreQualifier({ coverage: { coveragePercent: 100 }, scoreModel: { evidenceLevel: "provisional", evidenceReasons: lvl.reasons } }, "nl").label, /hoofdsector niet vastgesteld/);
+  // A known sector with complete evidence stays complete.
+  assert.equal(evidenceLevel({ coveragePercent: 100, javascriptRequiredButNotRendered: false, unconfirmed: 0, sectorConfidence: 90 }).level, "complete");
+  // A browser snapshot of a page that did not finish loading is provisional too.
+  assert.equal(evidenceLevel({ coveragePercent: 100, javascriptRequiredButNotRendered: false, unconfirmed: 0, sectorConfidence: 90, renderPartial: true }).level, "provisional");
+});

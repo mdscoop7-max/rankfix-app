@@ -62,3 +62,23 @@ test("an ItemList of articles or topics without prices is not a product category
   // A real collection (ItemList + prices) stays a category.
   assert.equal(refineSamplePageType({ ...info, visiblePrices: 6, path: "/collections/hardloopschoenen" }), "category");
 });
+
+test("bank, card and insurance pages are services, never retail products (field scan 16-10)", async () => {
+  const { isFinancialOfferSchema } = await import("../lib/sample-quality.ts");
+  assert.equal(isFinancialOfferSchema(["product", "financialproduct"]), true);
+  assert.equal(isFinancialOfferSchema(["CreditCard"]), true);
+  assert.equal(isFinancialOfferSchema(["product", "offer"]), false);
+  const base = { itemListSchema: false, repeatedProductLinks: false, productOffer: true, purchaseAction: false, visiblePrices: 1, uniqueH1: true, detailIdentity: false };
+  assert.equal(refineSamplePageType({ ...base, proposed: "product", path: "/produkty/konto-osobiste", productSchema: false, financialOffer: true }), "service");
+  assert.equal(refineSamplePageType({ ...base, proposed: "other", path: "/karty/karta-kredytowa", productSchema: false, financialOffer: true }), "service");
+  // A real add-to-cart keeps retail typing (a bank merchandise shop is still a shop page).
+  assert.equal(refineSamplePageType({ ...base, proposed: "product", path: "/shop/mok", productSchema: true, purchaseAction: true, financialOffer: false }), "product");
+});
+
+test("sample pages read array-valued @type and pass their schema counts into page typing", async () => {
+  const route = await (await import("node:fs/promises")).readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(route, /"@type"\\s\*:\\s\*\(\?:"\(\[\^"\]\+\)"\|\\\[/);
+  assert.match(route, /const pageProductSchema = !pageFinancialOffer &&/);
+  assert.match(route, /productSchemaCount: pageCommerceEvidence\.productSchemaCount,\s*eventSchema: pageCommerceEvidence\.eventSchema,/);
+  assert.match(route, /const pageProductEvidence = pageProductJson && !pageFinancialOffer/);
+});

@@ -157,3 +157,26 @@ test("multi-activity groups: certainty is capped and the other activities stay v
   // A single-activity insurer or bank keeps its certainty.
   assert.ok(d({ title: "Versicherer Nord – Versicherung und Vorsorge", description: "Autoversicherung, Hausratversicherung", homepage: true }).confidenceScore >= 90);
 });
+
+test("component makers that name the systems they build are industrial, without a maker word (field scan 16-10)", async () => {
+  const { detectEuPrimaryIdentity: d } = await import("../lib/eu-identity.ts");
+  const nav = ["Car", "First Equipment: Success Stories", "Motorcycle", "Original Equipment: Success Stories", "Motorsport", "Formula 1"];
+  const yes = [
+    { title: "Innovation and Safety in Braking Systems for Cars and Bikes | Frena EN", description: "Discover the latest innovations in braking systems and mobility. Explore our products.", navLabels: nav },
+    { title: "Bremssysteme für Pkw und Nutzfahrzeuge | Muster AG", description: "Wir liefern Bremssysteme in Erstausrüstung an Fahrzeughersteller." },
+    { title: "Sistemi frenanti per auto e moto | Freni Nord", description: "Sistemi frenanti e componenti per il primo equipaggiamento." },
+  ];
+  for (const c of yes) {
+    const r = d({ ...c, homepage: true });
+    assert.equal(r?.sector, "manufacturing_industrial", c.title);
+    // No maker word: medium certainty, never a confidently claimed identity.
+    assert.ok(r.confidence === "medium" && r.confidenceScore < 85 && r.confidenceScore >= 75, JSON.stringify(r));
+  }
+  const no = [
+    { title: "Autogarage De Vries – APK, onderhoud, remmen en banden", description: "Uw garage in Utrecht voor APK, onderhoud en reparatie." },
+    { title: "Remschijven en remblokken kopen | AutoParts webshop", description: "Remschijven in OEM-kwaliteit, snel geleverd." },
+    { title: "Best brake systems of 2026 reviewed", description: "Our guide to brake pads and discs." },
+    { title: "Fleet software for braking systems monitoring", description: "SaaS platform for brake wear analytics. Book a demo." },
+  ];
+  for (const c of no) assert.notEqual(d({ ...c, homepage: true })?.sector, "manufacturing_industrial", c.title);
+});

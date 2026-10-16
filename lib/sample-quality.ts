@@ -1,6 +1,15 @@
 import { looksLikeCategoryPath, looksLikeCorporatePath, looksLikeEditorialPath, looksLikeEventPath, looksLikeStorePage } from "./product-links.ts";
 // Representative pages must be typed from their own DOM, not just their URL.
 // In particular a telecom product detail can live below a category-like /winkel path.
+/**
+ * schema.org types for a bank's, insurer's or card issuer's offer (accounts, loans,
+ * cards, insurance). A Product next to one of these describes a financial service,
+ * not merchandise: no retail product page, no product sample, no Merchant checks.
+ */
+export const FINANCIAL_OFFER_SCHEMA_TYPES: ReadonlySet<string> = new Set(["financialproduct", "loanorcredit", "bankaccount", "depositaccount", "paymentcard", "creditcard", "mortgageloan", "investmentordeposit", "insuranceagency", "bankorcreditunion", "paymentservice", "currencyconversionservice", "brokerageaccount", "investmentfund"]);
+export function isFinancialOfferSchema(types: string[]): boolean {
+  return types.some((type) => FINANCIAL_OFFER_SCHEMA_TYPES.has(String(type).toLowerCase()));
+}
 export type SamplePageType = "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "event" | "corporate" | "contact" | "other";
 
 export function refineSamplePageType(input: {
@@ -20,6 +29,8 @@ export function refineSamplePageType(input: {
   eventSchema?: boolean;
   /** Number of Product objects in the page's structured data (category grids often carry many). */
   productSchemaCount?: number;
+  /** The page describes a financial offer (account, loan, card, insurance) in its structured data. */
+  financialOffer?: boolean;
 }): SamplePageType {
   const { proposed } = input;
   if (["homepage", "legal", "support", "form", "contact"].includes(proposed)) return proposed;
@@ -32,6 +43,9 @@ export function refineSamplePageType(input: {
   if (input.articleSchema || (editorial && !(input.productSchema && input.purchaseAction))) return "article";
   if (input.eventSchema || (looksLikeEventPath(path) && !input.purchaseAction)) return "event";
   if (looksLikeCorporatePath(path) && !input.productSchema && !input.purchaseAction) return "corporate";
+  // An account, loan, card or insurance page is a service page, even below /produkty/ or
+  // with Product schema; only a real purchase action (add to cart) makes it retail.
+  if (input.financialOffer && !input.purchaseAction) return "service";
   // Product schema is direct on-page evidence; an ItemList indicates a collection
   // unless there is also confirmed product detail evidence.
   // A category archive, store finder or a page listing several Products is a

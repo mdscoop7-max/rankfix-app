@@ -59,3 +59,16 @@ test("scan route reuses a single primary and representative render attempt", asy
   assert.match(headless, /withinTimeout\(page\.content\(\), remaining\(\)\)/);
   assert.doesNotMatch(headless, /setUserAgent\("RankFixBrowser\/1\.0"\)/);
 });
+
+test("rendering: blocked images/fonts do not use up the request cap; slow pages are snapshotted; retry gets equal time", async () => {
+  const renderer = await readFile(new URL("../lib/headless-render.ts", import.meta.url), "utf8");
+  // The resource-type filter runs before the counter: only loaded requests count.
+  const handler = renderer.slice(renderer.indexOf('page.on("request"'), renderer.indexOf("page.setDefaultNavigationTimeout"));
+  assert.ok(handler.indexOf("!ALLOWED.has(req.resourceType())") < handler.indexOf("requests++"), "filter before count");
+  assert.match(handler, /checkHost\(requestUrl\.hostname\)/, "one cached DNS check per host");
+  assert.match(renderer, /partialNavigation = true/);
+  assert.match(renderer, /remaining\(\) - SNAPSHOT_RESERVE_MS/);
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(route, /\}, 12000, 12000\)\);/);
+  assert.match(route, /renderPartial: Boolean\(javascriptExecuted && renderedDocument\?\.partialNavigation\)/);
+});
