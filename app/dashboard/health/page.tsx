@@ -19,7 +19,22 @@ export default function HealthPage(){
  const [runs,setRuns]=useState<Run[]>([]),[capacity,setCapacity]=useState<CapacityRun[]>([]),[incidents,setIncidents]=useState<Incident[]>([]),[guards,setGuards]=useState<Guard[]>([]),[recovery,setRecovery]=useState<Guard[]>([]),[error,setError]=useState(""),[checking,setChecking]=useState(false),[checkMessage,setCheckMessage]=useState("");
  async function load(){const r=await fetch("/api/health/system",{cache:"no-store"});const d=await r.json();if(!r.ok)throw new Error(d.error||"Control Center laden mislukt.");setRuns(d.runs||[]);setCapacity(d.capacity||[]);setIncidents(d.incidents||[]);setGuards([...(d.operationalGuards||[]),...(d.securityUsageGrowth||[])]);setRecovery(d.recoveryGuards||[])}
  useEffect(()=>{load().catch(e=>setError(e.message))},[]);
- async function runNow(){setChecking(true);setError("");setCheckMessage("");try{const r=await fetch("/api/health/run-now",{method:"POST"});const d=await r.json();if(!r.ok)throw new Error(d.error||"Health-controle mislukt.");await load();setCheckMessage("Controle voltooid.")}catch(e){const message=e instanceof Error?e.message:"Health-controle mislukt.";setError(message);setCheckMessage("Controle mislukt – probeer opnieuw.")}finally{setChecking(false)}}
+ async function runNow(){
+  setChecking(true);setError("");setCheckMessage("");
+  try{
+    const r=await fetch("/api/health/run-now",{method:"POST"});
+    const d: {error?:string}=await r.json().catch(()=>({}));
+    if(!r.ok){
+      if(r.status===401)throw new Error("Je sessie is verlopen. Log opnieuw in bij RankFix en probeer het daarna opnieuw.");
+      if(r.status===403)throw new Error("Dit account heeft geen toegang om systeemcontroles uit te voeren. Controleer de beheerderstoegang voor deze omgeving.");
+      if(r.status===429)throw new Error("Je hebt de limiet van zes handmatige controles per uur bereikt. Wacht tot de limiet opnieuw beschikbaar is.");
+      throw new Error(d.error||`Health-controle mislukt (HTTP ${r.status}). Bekijk de Vercel-foutlogs voor dit verzoek.`);
+    }
+    await load();setCheckMessage("Controle voltooid.");
+  }catch(e){
+    setError(e instanceof Error?e.message:"Health-controle mislukt. Controleer je verbinding.");
+  }finally{setChecking(false)}
+}
  const latest=runs[0],cap=capacity[0],open=incidents.filter(i=>i.status==="open");
  const levelRank:Record<Level,number>={green:0,orange:1,red:2};
  const systemLevel:Level=([latest?.overall_level,cap?.overall_level,...guards.map(g=>g.level),...recovery.map(g=>g.level),...(open.length?["red" as Level]:[])].filter(Boolean) as Level[]).reduce((worst,current)=>levelRank[current]>levelRank[worst]?current:worst,"green");
