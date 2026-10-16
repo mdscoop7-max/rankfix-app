@@ -1718,3 +1718,13 @@ test("canonical to the same page without query parameters is equivalent, not a w
   // Long homepage descriptions: advice, no deduction.
   assert.match(source, /description\.length > 160\n\s+\? check\("pass", "description"/);
 });
+
+test("a sampled link that redirects to an account or personal page leaves the sample", async () => {
+  const { readFile: rf } = await import("node:fs/promises");
+  const source = await rf(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /if \(isNonContentUrl\(finalCandidate\.toString\(\)\)\) \{\n\s+return \{ \.\.\.page, url:finalCandidate\.toString\(\), excludedUtility:true/);
+  assert.match(source, /if \(multiPageAudits\[i\]\?\.excludedUtility\) multiPageAudits\.splice\(i, 1\);/);
+  const { isNonContentUrl } = await import("../lib/report-quality.ts");
+  for (const u of ["https://x.it/recupero-credenziali/", "https://x.pl/plus/kontynuuj-odtwarzanie", "https://x.pl/plus/preferencje-tresci", "https://x.de/passwort-vergessen"]) assert.equal(isNonContentUrl(u), true, u);
+  assert.equal(isNonContentUrl("https://x.it/servizi-online-area-personale"), false, "a content page about the personal area stays");
+});

@@ -3999,7 +3999,7 @@ async function runScan(request: Request) {
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
     type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "event" | "corporate" | "contact" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; schemaTypes?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageAudit = MultiPageCandidate & { excludedUtility?: boolean; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; schemaTypes?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -4158,6 +4158,11 @@ async function runScan(request: Request) {
           || finalCandidateHost.endsWith(`.${siteHost}`)
           || siteHost.endsWith(`.${finalCandidateHost}`);
         if (!sameRegistrableSite) throw new Error("CROSS_HOST_REDIRECT");
+        // A link that redirects to a login, credential-recovery or personal page is
+        // not representative content: drop it from the sample (not a fetch failure).
+        if (isNonContentUrl(finalCandidate.toString())) {
+          return { ...page, url:finalCandidate.toString(), excludedUtility:true, status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"excluded",status:"UNABLE_TO_CONFIRM",details:"Doorverwezen naar een account- of persoonlijke pagina; niet representatief."}] };
+        }
         const contentType = r.headers.get("content-type") || "";
         let pageHtml: string | null = null;
         let representativeEvidenceSource: "raw_html" | "rendered_html" = "raw_html";
@@ -4386,6 +4391,8 @@ async function runScan(request: Request) {
       },
     );
     await Promise.all(representativeWorkers);
+    // Utility pages reached via redirects leave the sample entirely.
+    for (let i = multiPageAudits.length - 1; i >= 0; i--) if (multiPageAudits[i]?.excludedUtility) multiPageAudits.splice(i, 1);
     // Second hop for retail sites: product links often appear only on category or
     // brand pages, not on the scanned homepage. Nominate a few product-detail links
     // from audited listing pages (rendering at most two listings that load products
