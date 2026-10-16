@@ -1,6 +1,7 @@
 // EU-81 benchmark entry point.
 //   node scripts/engine-benchmark/eu81.mjs baseline            → metrics of the stored audits in issue #151
 //   node scripts/engine-benchmark/eu81.mjs export scans.json   → metrics of a read-only Neon export (pilot)
+//   RF_PLAN=tests/fixtures/eu-pilot2/plan.json node … export …  → same for the blind pilot 2 set
 // Export (read-only): SELECT scanned_url, final_url, overall_score, created_at, result FROM scans ORDER BY created_at;
 // Optional 2nd file: SELECT requested_url, http_status, outcome, error, duration_ms, created_at FROM scan_attempts;
 // Save the rows as JSON arrays. Nothing is written to any database.
@@ -8,7 +9,8 @@ import { readFileSync } from "node:fs";
 import { evaluate } from "./metrics.mjs";
 import { effectiveCategory } from "../../lib/scan-attempts.ts";
 
-const plan = JSON.parse(readFileSync(new URL("../../tests/fixtures/eu81/plan.json", import.meta.url), "utf8")).sites;
+const planPath = process.env.RF_PLAN ? new URL(process.env.RF_PLAN, `file://${process.cwd()}/`) : new URL("../../tests/fixtures/eu81/plan.json", import.meta.url);
+const plan = JSON.parse(readFileSync(planPath, "utf8")).sites;
 const norm = (u) => { try { return new URL(/^https?:/i.test(u) ? u : `https://${u}`).hostname.toLowerCase().replace(/^www\./, ""); } catch { return String(u || "").toLowerCase(); } };
 
 export function baselineRows() {

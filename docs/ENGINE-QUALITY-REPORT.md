@@ -38,3 +38,9 @@ Benchmark corrected: an unknown sector is never counted as correct (strict accur
 Unseen first measurements so far: 85.9% → 86.1% → 72.7% (weak, navigation-only homepages are the hard case). Every scored check now carries a source URL and a recorded finding, or it is "niet te bevestigen" and leaves the score (matrix invariant, 0 violations on 243 reports).
 
 Scan success: every logged-in attempt is stored in `scan_attempts` (inserted as "running" before the scan, completed with HTTP status, error code and category; a row left "running" = platform timeout). Verified end to end against a real PostgreSQL 16 database, including the upgrade of the first table version (`RF_PG_TEST_URL=… npm test`). Structural fixes: whole-scan time budget (renders stop at 180 s, sampling at 170 s, platform limit 300 s), body read timeout, one retry on transient network errors and 502/503/504, cookie jar across redirect chains, Accept-Language header, redirect limit 6. Not bypassed: WAF/CAPTCHA blocks are reported as `site_blocked`.
+
+## Pilot protocol (ready, not yet run)
+1. Pilot 1 (EU-81): `RF_BASE_URL=<preview> RF_SESSION=<own rankfix_session cookie> [VERCEL_BYPASS=…] node --experimental-strip-types scripts/engine-benchmark/run-pilot.mjs tests/fixtures/eu81/plan.json pilot1` (resumable, one site at a time, 5 s apart; credentials stay in the environment).
+2. Measure: `node --experimental-strip-types scripts/engine-benchmark/eu81.mjs export pilot1.scans.json pilot1.attempts.json` (or a read-only Neon export of `scans` + `scan_attempts`).
+3. Fix generic causes only; no per-domain rules.
+4. Pilot 2 (blind): `tests/fixtures/eu-pilot2/plan.json`, 40 real EU sites in all 10 families, frozen 16 Oct 2026 before any pilot-1 fix and disjoint from EU-81. Same commands with `RF_PLAN=tests/fixtures/eu-pilot2/plan.json` for the measurement. Its first measurement is the proof; do not tune on it beforehand.

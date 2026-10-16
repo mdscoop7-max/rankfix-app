@@ -1,0 +1,366 @@
+{
+ "source": "Pilot 2 (blind), frozen 16 Oct 2026 before any pilot-1 fixes. 40 real EU sites, none in EU-81; expected = the sector the site was chosen for. Do not tune the engine on these sites before the first measurement.",
+ "frozenAt": "2026-10-16",
+ "sites": [
+  {
+   "country": "AT",
+   "name": "Der Standard",
+   "hosts": [
+    "derstandard.at",
+    "www.derstandard.at"
+   ],
+   "expected": "news_media"
+  },
+  {
+   "country": "BE",
+   "name": "Le Soir",
+   "hosts": [
+    "lesoir.be",
+    "www.lesoir.be"
+   ],
+   "expected": "news_media"
+  },
+  {
+   "country": "IT",
+   "name": "Corriere della Sera",
+   "hosts": [
+    "corriere.it",
+    "www.corriere.it"
+   ],
+   "expected": "news_media"
+  },
+  {
+   "country": "FI",
+   "name": "Helsingin Sanomat",
+   "hosts": [
+    "hs.fi",
+    "www.hs.fi"
+   ],
+   "expected": "news_media"
+  },
+  {
+   "country": "NL",
+   "name": "Coolblue",
+   "hosts": [
+    "coolblue.nl",
+    "www.coolblue.nl"
+   ],
+   "expected": "ecommerce"
+  },
+  {
+   "country": "DE",
+   "name": "Zalando",
+   "hosts": [
+    "zalando.de",
+    "www.zalando.de"
+   ],
+   "expected": "ecommerce"
+  },
+  {
+   "country": "FR",
+   "name": "Cdiscount",
+   "hosts": [
+    "cdiscount.com",
+    "www.cdiscount.com"
+   ],
+   "expected": "ecommerce"
+  },
+  {
+   "country": "DK",
+   "name": "Elgiganten",
+   "hosts": [
+    "elgiganten.dk",
+    "www.elgiganten.dk"
+   ],
+   "expected": "ecommerce"
+  },
+  {
+   "country": "NL",
+   "name": "NS",
+   "hosts": [
+    "ns.nl",
+    "www.ns.nl"
+   ],
+   "expected": "transport_travel"
+  },
+  {
+   "country": "FR",
+   "name": "SNCF Connect",
+   "hosts": [
+    "sncf-connect.com",
+    "www.sncf-connect.com"
+   ],
+   "expected": "transport_travel"
+  },
+  {
+   "country": "ES",
+   "name": "Renfe",
+   "hosts": [
+    "renfe.com",
+    "www.renfe.com"
+   ],
+   "expected": "transport_travel"
+  },
+  {
+   "country": "IE",
+   "name": "Ryanair",
+   "hosts": [
+    "ryanair.com",
+    "www.ryanair.com"
+   ],
+   "expected": "transport_travel"
+  },
+  {
+   "country": "NL",
+   "name": "Rijksoverheid",
+   "hosts": [
+    "rijksoverheid.nl",
+    "www.rijksoverheid.nl"
+   ],
+   "expected": "government"
+  },
+  {
+   "country": "DE",
+   "name": "Bundesregierung",
+   "hosts": [
+    "bundesregierung.de",
+    "www.bundesregierung.de"
+   ],
+   "expected": "government"
+  },
+  {
+   "country": "PL",
+   "name": "Gov.pl",
+   "hosts": [
+    "gov.pl",
+    "www.gov.pl"
+   ],
+   "expected": "government"
+  },
+  {
+   "country": "IE",
+   "name": "Gov.ie",
+   "hosts": [
+    "gov.ie",
+    "www.gov.ie"
+   ],
+   "expected": "government"
+  },
+  {
+   "country": "NL",
+   "name": "Universiteit van Amsterdam",
+   "hosts": [
+    "uva.nl",
+    "www.uva.nl"
+   ],
+   "expected": "education"
+  },
+  {
+   "country": "FR",
+   "name": "Sorbonne Université",
+   "hosts": [
+    "sorbonne-universite.fr",
+    "www.sorbonne-universite.fr"
+   ],
+   "expected": "education"
+  },
+  {
+   "country": "IT",
+   "name": "Università di Bologna",
+   "hosts": [
+    "unibo.it",
+    "www.unibo.it"
+   ],
+   "expected": "education"
+  },
+  {
+   "country": "DK",
+   "name": "Københavns Universitet",
+   "hosts": [
+    "ku.dk",
+    "www.ku.dk"
+   ],
+   "expected": "education"
+  },
+  {
+   "country": "NL",
+   "name": "ING",
+   "hosts": [
+    "ing.nl",
+    "www.ing.nl"
+   ],
+   "expected": "financial_services"
+  },
+  {
+   "country": "DE",
+   "name": "Deutsche Bank",
+   "hosts": [
+    "deutsche-bank.de",
+    "www.deutsche-bank.de"
+   ],
+   "expected": "financial_services"
+  },
+  {
+   "country": "IT",
+   "name": "Intesa Sanpaolo",
+   "hosts": [
+    "intesasanpaolo.com",
+    "www.intesasanpaolo.com"
+   ],
+   "expected": "financial_services"
+  },
+  {
+   "country": "BE",
+   "name": "KBC",
+   "hosts": [
+    "kbc.be",
+    "www.kbc.be"
+   ],
+   "expected": "financial_services"
+  },
+  {
+   "country": "NL",
+   "name": "KPN",
+   "hosts": [
+    "kpn.com",
+    "www.kpn.com"
+   ],
+   "expected": "telecom_technology"
+  },
+  {
+   "country": "FR",
+   "name": "Orange",
+   "hosts": [
+    "orange.fr",
+    "www.orange.fr"
+   ],
+   "expected": "telecom_technology"
+  },
+  {
+   "country": "DE",
+   "name": "Telekom",
+   "hosts": [
+    "telekom.de",
+    "www.telekom.de"
+   ],
+   "expected": "telecom_technology"
+  },
+  {
+   "country": "BE",
+   "name": "Proximus",
+   "hosts": [
+    "proximus.be",
+    "www.proximus.be"
+   ],
+   "expected": "telecom_technology"
+  },
+  {
+   "country": "NL",
+   "name": "Vattenfall",
+   "hosts": [
+    "vattenfall.nl",
+    "www.vattenfall.nl"
+   ],
+   "expected": "energy_utilities"
+  },
+  {
+   "country": "DE",
+   "name": "E.ON",
+   "hosts": [
+    "eon.de",
+    "www.eon.de"
+   ],
+   "expected": "energy_utilities"
+  },
+  {
+   "country": "IT",
+   "name": "Enel",
+   "hosts": [
+    "enel.it",
+    "www.enel.it"
+   ],
+   "expected": "energy_utilities"
+  },
+  {
+   "country": "ES",
+   "name": "Iberdrola",
+   "hosts": [
+    "iberdrola.es",
+    "www.iberdrola.es"
+   ],
+   "expected": "energy_utilities"
+  },
+  {
+   "country": "NL",
+   "name": "Amsterdam UMC",
+   "hosts": [
+    "amsterdamumc.org",
+    "www.amsterdamumc.org"
+   ],
+   "expected": "health_wellness"
+  },
+  {
+   "country": "DE",
+   "name": "Charité",
+   "hosts": [
+    "charite.de",
+    "www.charite.de"
+   ],
+   "expected": "health_wellness"
+  },
+  {
+   "country": "SE",
+   "name": "Karolinska Universitetssjukhuset",
+   "hosts": [
+    "karolinska.se",
+    "www.karolinska.se"
+   ],
+   "expected": "health_wellness"
+  },
+  {
+   "country": "FI",
+   "name": "HUS",
+   "hosts": [
+    "hus.fi",
+    "www.hus.fi"
+   ],
+   "expected": "health_wellness"
+  },
+  {
+   "country": "DE",
+   "name": "ImmobilienScout24",
+   "hosts": [
+    "immobilienscout24.de",
+    "www.immobilienscout24.de"
+   ],
+   "expected": "real_estate"
+  },
+  {
+   "country": "ES",
+   "name": "Idealista",
+   "hosts": [
+    "idealista.com",
+    "www.idealista.com"
+   ],
+   "expected": "real_estate"
+  },
+  {
+   "country": "FR",
+   "name": "SeLoger",
+   "hosts": [
+    "seloger.com",
+    "www.seloger.com"
+   ],
+   "expected": "real_estate"
+  },
+  {
+   "country": "SE",
+   "name": "Hemnet",
+   "hosts": [
+    "hemnet.se",
+    "www.hemnet.se"
+   ],
+   "expected": "real_estate"
+  }
+ ]
+}
