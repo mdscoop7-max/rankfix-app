@@ -43,7 +43,7 @@ export default function GithubPage(){
   const [proposalId,setProposalId]=useState("");
   const [proposalHash,setProposalHash]=useState("");
   const [language,setLanguage]=useState<Locale>("nl");
-  const [plan,setPlan]=useState("free");
+  const [plan,setPlan]=useState("loading");
   const [scanData,setScanData]=useState<any>(null);
   const [selectedCheck,setSelectedCheck]=useState<any>(null);
   const [proposal,setProposal]=useState<AiProposal|null>(null);
@@ -63,7 +63,7 @@ export default function GithubPage(){
 
   useEffect(()=>{
     fetch("/api/account/language").then(r=>r.ok?readJsonSafe(r):null).then(d=>{if(d?.language&&d.language in ui)setLanguage(d.language)}).catch(()=>{});
-    fetch("/api/history",{cache:"no-store"}).then(r=>r.ok?readJsonSafe(r):null).then(d=>{if(d?.usage?.plan)setPlan(d.usage.plan)}).catch(()=>{});
+    fetch("/api/history",{cache:"no-store"}).then(r=>r.ok?readJsonSafe(r):null).then(d=>setPlan(d?.usage?.plan||"free")).catch(()=>setPlan("free"));
     const params=new URLSearchParams(searchParams.toString());
     setIssue(params.get("issue")||"");
     setContext(params.get("context")||"");
@@ -247,9 +247,9 @@ export default function GithubPage(){
         {proposalError&&<div className="mt-3 rounded-xl bg-red-500/10 p-4 text-sm text-red-200"><strong>{language==="nl"?"Voorstel kon niet automatisch worden gevalideerd.":"Proposal could not be validated automatically."}</strong><div className="mt-1">{proposalError}</div>{selectedCheck?.fix&&<div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3 text-slate-100">{selectedCheck.fix}</div>}</div>}
         {proposal&&<><h2 className="mt-3 text-xl font-bold text-white">{proposal.title}</h2><p className="mt-2 text-sm text-slate-400">{proposal.reason}</p>{String(selectedCheck?.issue_id||selectedCheck?.rule_id||"").toUpperCase()==="PRODUCT_COPY_OPTIMIZER"?<div className="mt-4 grid gap-3">{proposal.content.split(/\n+/).filter(Boolean).map((line:string,index:number)=>{const split=line.indexOf(":");const label=split>0?line.slice(0,split).trim():"";const value=split>0?line.slice(split+1).trim():line.trim();return <div key={index} className="rounded-xl border border-white/10 bg-black/25 p-4"><div className="text-xs font-bold uppercase tracking-wider text-cyan-300">{label||(language==="nl"?"Voorstel":"Proposal")}</div><div className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-100">{value}</div></div>})}</div>:<pre className="mt-4 max-h-96 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/25 p-4 text-sm text-slate-100">{proposal.content}</pre>}<button type="button" onClick={()=>navigator.clipboard.writeText(proposal.content)} className="mt-4 rounded-xl border border-cyan-300/20 px-4 py-2 text-sm font-bold text-cyan-100">{language==="nl"?"Kopieer voorstel":"Copy proposal"}</button></>}
       </div>}
-      {plan==="free"&&proposal&&<p className="mt-4 text-sm text-slate-400">{language==="nl"?"Je kunt dit voorstel handmatig gebruiken. GitHub is optioneel.":"You can use this proposal manually. GitHub is optional."}</p>}
+      {plan==="free"&&proposal&&<p className="mt-4 text-sm text-slate-400">{language==="nl"?"Kopieer dit voorstel voor handmatig gebruik. Voor GitHub-fixes is een betaald abonnement nodig.":"Copy this proposal for manual use. GitHub fixes require a paid plan."}</p>}
       {scanId&&<Link href={`/dashboard/audit/${encodeURIComponent(scanId)}`} className="mt-4 inline-flex rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-slate-200">← {language==="nl"?"Terug naar audit":"Back to audit"}</Link>}
-      {plan==="free" ? null : !connected ? <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-7">
+      {plan==="loading" ? <p className="mt-8 text-sm text-slate-400">{language==="nl"?"Abonnement controleren…":"Checking subscription…"}</p> : plan==="free" ? <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-7"><h2 className="text-xl font-bold">{language==="nl"?"GitHub Fix vereist een betaald abonnement.":"GitHub Fix requires a paid plan."}</h2><p className="mt-2 text-sm text-slate-400">{language==="nl"?"Je scan en kopieerbare voorstel blijven beschikbaar. Upgrade voor een code-preview en pull request.":"Your scan and copyable proposal remain available. Upgrade for a code preview and pull request."}</p><Link href="/pricing" className="mt-5 inline-flex rounded-xl bg-white px-5 py-3 font-bold text-slate-950">{language==="nl"?"Bekijk abonnementen →":"View plans →"}</Link></div> : !connected ? <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-7">
         <h2 className="text-xl font-bold">{t.connect}</h2>
         <p className="mt-2 text-sm text-slate-500">{t.connectInfo}</p>
         <Link href="/api/github/connect" className="mt-5 inline-flex rounded-xl bg-white px-5 py-3 font-bold text-slate-950">{t.connectCta} →</Link>
