@@ -1,7 +1,7 @@
-import { looksLikeCategoryPath, looksLikeStorePage } from "./product-links.ts";
+import { looksLikeCategoryPath, looksLikeCorporatePath, looksLikeEditorialPath, looksLikeEventPath, looksLikeStorePage } from "./product-links.ts";
 // Representative pages must be typed from their own DOM, not just their URL.
 // In particular a telecom product detail can live below a category-like /winkel path.
-export type SamplePageType = "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "contact" | "other";
+export type SamplePageType = "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "event" | "corporate" | "contact" | "other";
 
 export function refineSamplePageType(input: {
   proposed: SamplePageType;
@@ -17,6 +17,7 @@ export function refineSamplePageType(input: {
   breadcrumbDepth?: number;
   path?: string;
   serviceOffer?: boolean;
+  eventSchema?: boolean;
   /** Number of Product objects in the page's structured data (category grids often carry many). */
   productSchemaCount?: number;
 }): SamplePageType {
@@ -24,7 +25,13 @@ export function refineSamplePageType(input: {
   if (["homepage", "legal", "support", "form", "contact"].includes(proposed)) return proposed;
   const path = input.path || "";
   if (/\/(?:contact|contact-us|contacteer|kontakt)\/?$/i.test(path)) return "contact";
-  if (input.articleSchema || (/\/(?:blog|news|nieuws|artikelen|articles)\//i.test(path) && !input.productSchema)) return "article";
+  // Press releases, news and blog posts are articles, whatever links or a shop
+  // elsewhere on the site suggest; a purchase action on the page itself is needed
+  // before an editorial URL can be a product.
+  const editorial = looksLikeEditorialPath(path) || /\/(?:blog|news|nieuws|artikelen|articles)\//i.test(path);
+  if (input.articleSchema || (editorial && !(input.productSchema && input.purchaseAction))) return "article";
+  if (input.eventSchema || (looksLikeEventPath(path) && !input.purchaseAction)) return "event";
+  if (looksLikeCorporatePath(path) && !input.productSchema && !input.purchaseAction) return "corporate";
   // Product schema is direct on-page evidence; an ItemList indicates a collection
   // unless there is also confirmed product detail evidence.
   // A category archive, store finder or a page listing several Products is a
@@ -42,7 +49,9 @@ export function refineSamplePageType(input: {
   if (!input.itemListSchema && input.purchaseAction && input.visiblePrices > 0 &&
       input.uniqueH1 && (input.productOffer || input.detailIdentity) &&
       !input.repeatedProductLinks) return "product";
-  if ((proposed === "other" || proposed === "product") && (input.itemListSchema || input.repeatedProductLinks || (input.breadcrumbDepth || 0) >= 3 && input.visiblePrices > 1))
+  // Repeated product links alone are often global navigation (an industrial
+  // "Products" menu); a collection also shows prices or purchase actions.
+  if ((proposed === "other" || proposed === "product") && (input.itemListSchema || (input.repeatedProductLinks && (input.visiblePrices > 0 || input.purchaseAction)) || (input.breadcrumbDepth || 0) >= 3 && input.visiblePrices > 1))
     return "category";
   // Standalone topic/category hubs and commerce/shop indexes are collections,
   // not miscellaneous pages. Preserve "other" for genuinely unclassified pages.

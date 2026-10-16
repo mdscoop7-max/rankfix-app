@@ -145,3 +145,12 @@ test("manufacturers and industrial suppliers are recognised in EU languages, sof
   ];
   for (const c of not) assert.notEqual(d({ ...c, homepage: true })?.sector, "manufacturing_industrial", c.title);
 });
+
+test("multi-activity groups: certainty is capped and the other activities stay visible", async () => {
+  const { detectEuPrimaryIdentity: d } = await import("../lib/eu-identity.ts");
+  const r = d({ title: "Gruppo Nazionale - Servizi postali, finanziari e assicurativi", description: "Spedizioni, pacchi, conti, carte, assicurazioni e pagamenti.", homepage: true });
+  assert.ok(r && r.confidenceScore <= 72 && r.confidence === "medium", JSON.stringify(r));
+  assert.ok((r.secondary || []).some((x) => x.sector === "transport_travel"));
+  // A single-activity insurer or bank keeps its certainty.
+  assert.ok(d({ title: "Versicherer Nord – Versicherung und Vorsorge", description: "Autoversicherung, Hausratversicherung", homepage: true }).confidenceScore >= 90);
+});

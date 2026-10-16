@@ -29,3 +29,21 @@ test("refined page type: a grid of Products is a category; one Product is a prod
   assert.equal(refineSamplePageType({ ...base, path: "/producten/kleimasker/", productSchemaCount: 1 }), "product");
   assert.equal(refineSamplePageType({ ...base, path: "/winkels/", productSchemaCount: 0, productSchema: false }), "other");
 });
+
+test("press releases, news and events are never products or categories", () => {
+  const press = ["/service/pressemitteilung/artikel/detail/vier_pflegekraefte_vier_stationen_ein_neuer_start/", "/nieuws/2026/10/nieuwe-afdeling", "/press-releases/q3-results", "/communiques-de-presse/2026-nouvel-hopital", "/notizie/nuovo-reparto", "/sala-de-prensa/nota", "/pressmeddelanden/ny-klinik", "/aktuality/nove-oddeleni"];
+  for (const p of press) {
+    assert.equal(looksLikeProductDetailPath(p), false, p);
+    assert.equal(refineSamplePageType({ ...base, proposed: "product", productSchema: false, purchaseAction: false, path: p }), "article", p);
+  }
+  assert.equal(refineSamplePageType({ ...base, proposed: "service", productSchema: false, purchaseAction: false, path: "/service/veranstaltung/veranstaltung/details/vortrag/" }), "event");
+  // German/Dutch product bases still work when the page proves a product.
+  assert.equal(refineSamplePageType({ ...base, path: "/artikel/12345-bohrmaschine", productSchemaCount: 1 }), "product");
+});
+
+test("corporate pages are not categories even with a global Products menu", () => {
+  for (const p of ["/en/careers/working-at-acme/united-states", "/en/company", "/en/company/governance", "/en/careers/find-your-job", "/over-ons/", "/unternehmen/vorstand"]) {
+    assert.equal(refineSamplePageType({ ...base, proposed: "other", productSchema: false, purchaseAction: false, visiblePrices: 0, repeatedProductLinks: true, path: p }), "corporate", p);
+  }
+  assert.equal(refineSamplePageType({ ...base, proposed: "other", productSchema: false, purchaseAction: false, visiblePrices: 0, repeatedProductLinks: true, itemListSchema: false, uniqueH1: true, detailIdentity: false, path: "/en/technology/overview" }), "other");
+});

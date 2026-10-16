@@ -515,7 +515,7 @@ test("representative page typing includes service listing and support intents", 
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   assert.match(source, /"service" \| "listing" \| "support"/);
-  assert.match(source, /supportPath \? "support" : listingPath \? "listing"/);
+  assert.match(source, /supportPath \? "support" : \(articlePath \|\| editorialPage\) \? "article" : eventPage \? "event" : corporatePage \? "corporate" : listingPath \? "listing"/);
   assert.match(source, /resolvedServicePage \? "service"/);
 });
 
@@ -1708,4 +1708,13 @@ test("cart/checkout signals never confirm a working checkout", async () => {
   const source = await rf(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   assert.doesNotMatch(source, /check\("pass","checkout_funnel_static"/);
   assert.doesNotMatch(source, /check\("pass","checkout_trust"/);
+});
+
+test("canonical to the same page without query parameters is equivalent, not a warning", async () => {
+  const { readFile: rf } = await import("node:fs/promises");
+  const source = await rf(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.match(source, /function canonicalEquivalent\(canonical: URL, page: URL\): boolean/);
+  assert.match(source, /canonicalEquivalent\(resolved, finalCandidate\)\?"PASS":"WARNING"/);
+  // Long homepage descriptions: advice, no deduction.
+  assert.match(source, /description\.length > 160\n\s+\? check\("pass", "description"/);
 });

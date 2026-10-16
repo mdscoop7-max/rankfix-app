@@ -58,3 +58,26 @@ Generic fixes for the owner's real-site findings (no domain rules):
 Offline after this pass: matrix 95.5% (0 wrong, abstentions counted against), hold-out 1 98.4%, hold-out 2 100%, hold-out 3 100%, 0 confident-wrong everywhere. These sets are seen data, so they show regressions, not real-world quality.
 
 **Evaluation register:** `tests/fixtures/evaluation/exposures.json` lists cases exposed after a plan was frozen (Charité: originally education 93%, wrong). The plans themselves are unchanged; `eu81.mjs export` reports `independent` metrics without exposed cases next to the overall figure.
+
+## 3.5 pass 3 (16 Oct 2026, night) — QA dossier #154
+Scorecard v2 and independent set 3 were committed first (`164d233`, docs/SCORECARD-3.5.md), before these changes and before any measurement.
+
+Generic fixes:
+- **Page types:** press releases, news and blog posts in EU languages (incl. `/pressemitteilung/`, `/artikel/detail/`, `/persberichten/`, `/communiques-de-presse/`, `/notizie/`, …) are articles; events are `event`; about/company/governance/investors/careers are `corporate`. A global "Products" menu no longer turns corporate pages into categories (a collection needs prices or purchase actions). A manufacturer's `/products/` page without price, cart or Offer is not commerce, so retail checks are N.v.t. on an industrial site.
+- **Product sample:** the product diagnostics and the promoted product checks use the same best-evidenced product page; partial Product JSON-LD keeps its evidence when JavaScript was not rendered; Product Optimizer "eligible" follows the AI Product Copy check, with the source fields listed.
+- **Score and wording:** long homepage descriptions are advice without deduction; short ones keep a small deduction with matching text; a brand-only homepage title is light advice (1 point); a canonical to the same page without query parameters is equivalent; render advice only when rendering actually failed, otherwise "onbevestigde controles bekijken" with the reasons; one reliability verdict per report; SRI examples shortened to host/path; header points vs header count spelled out; accessibility score labelled as basic check.
+- **Multi-activity groups:** a title naming several primary activities (post, finance, insurance, …) caps sector certainty at 72% and lists the other activities as secondary.
+- **First-party login redirects** (`securelogin.`, `/fcc-authentication`, `my-*`/`dashboard` sources) are not internal-redirect debt.
+- **Pilot runner:** bounded retries for transient failures only (network, timeout, 5xx), never for blocked sites, quota or input; stops on quota; records deployment SHA, plan and run times; refuses to mix deployments in one output; stores no raw HTML, cookies or headers.
+
+Same offline inputs, four engine versions (current tests and fixtures):
+
+| Set | 6581cca | 4562a37 | 47b0aa1 | now |
+|---|---|---|---|---|
+| Matrix (sector accuracy) | 76.5% (5 confident-wrong) | 91.3% (1) | 95.7% (0) | 95.7% (0) |
+| Hold-out 1 | 57.8% | 98.4% | 98.4% | 98.4% |
+| Hold-out 2 | 44.4% | 100% | 100% | 100% |
+| Hold-out 3 | 33.3% | 100% | 100% | 100% |
+| Matrix cases without any problem (current, stricter invariants) | 5/123 | 5/123 | 120/123 | 123/123 |
+
+These sets are seen data: they show regressions and fixed failure classes, not real-world quality. **The 9/10 is not established.** Live scans are not possible from the development container (outbound proxy blocks public sites); the independent measurement is EU-40 (minus Charité) and independent set 3 on the preview, scored with scorecard v2 including the manual review.

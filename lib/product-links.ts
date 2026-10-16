@@ -24,12 +24,21 @@ export function looksLikeStorePage(pathname: string): boolean {
 // Last path segment: a descriptive slug (3+ words) ending in a product identifier,
 // e.g. "...-zwart-372526317", "...-10627553/" or "...-c1182o0bj-q12.html".
 const SLUG_WITH_ID = /(?:^|\/)[a-z0-9]+(?:-[a-z0-9]+){2,}-(?:\d{6,}|(?=[a-z0-9]*\d)[a-z0-9]{6,}-[a-z0-9]{2,4})(?:\.html?)?\/?$/i;
-// Editorial and date-based URLs often carry numeric IDs too.
-const EDITORIAL = /\/(?:news|nieuws|blog|blogs|magazine|stories|inspiratie|inspiration|ideas|ideeen|reviews?|pers|press|vacatures?|jobs|careers?)(?:\/|$)|\/(?:19|20)\d{2}\/\d{1,2}\//i;
+// Editorial and date-based URLs often carry numeric IDs too. Press releases and
+// news in EU languages (German "artikel" is an article, not a product).
+const EDITORIAL = /\/(?:news|nieuws|blog|blogs|magazine|stories|inspiratie|inspiration|ideas|ideeen|reviews?|pers|press|persberichten?|press-?releases?|pressemitteilung(?:en)?|presse|pressroom|newsroom|media-?centre|mediacenter|aktuelles|aktuell|neuigkeiten|nachrichten|actualites?|communiques?(?:-de-presse)?|comunicat[io](?:-stampa)?|notizie|noticias|sala-de-prensa|notas?-de-prensa|uutiset|tiedotteet|nyheter|pressmeddelanden|nyheder|wiadomosci|aktualnosci|aktuality|novinky|hirek|stiri|naujienos|jaunumi|uudised|vesti|novice|vijesti)(?:\/|$)|\/(?:artikel|article|articolo|articulo)\/(?:detail|details|view)\/|\/(?:19|20)\d{2}\/\d{1,2}\//i;
+// Events and lectures.
+const EVENT = /\/(?:events?|evenementen|evenement|veranstaltung(?:en)?|termine|agenda|eventi|eventos|tapahtumat|evenemang|begivenheder|wydarzenia|akce|rendezvenyek|evenimente|lezingen|kalender|calendar)(?:\/|$)/i;
+// Corporate information: about, governance, investors, careers, sustainability.
+const CORPORATE = /\/(?:about(?:-us)?|over-ons|over|wie-zijn-wij|company|unternehmen|ueber-uns|uber-uns|entreprise|qui-sommes-nous|azienda|chi-siamo|empresa|quienes-somos|sobre-nosotros|om-oss|om-os|yritys|o-nas|o-firmie|governance|corporate-governance|investors?|investor-relations|ir|board|leadership|management|sustainability|duurzaamheid|nachhaltigkeit|careers?|jobs|vacatures|werken-bij|karriere|carrieres?|lavora-con-noi|trabaja-con-nosotros|working-at-[\w-]+|find-your-job)(?:\/|$)/i;
+
+export function looksLikeEditorialPath(pathname: string): boolean { return EDITORIAL.test(pathname.toLowerCase()); }
+export function looksLikeEventPath(pathname: string): boolean { return EVENT.test(pathname.toLowerCase()); }
+export function looksLikeCorporatePath(pathname: string): boolean { return CORPORATE.test(pathname.toLowerCase()); }
 
 export function looksLikeProductDetailPath(pathname: string): boolean {
   const path = pathname.toLowerCase();
-  if (EDITORIAL.test(path) || STORE_PAGE.test(path)) return false;
+  if (EDITORIAL.test(path) || STORE_PAGE.test(path) || CORPORATE.test(path)) return false;
   if (looksLikeCategoryPath(path)) return false;
   return PRODUCT_SEGMENT.test(path) || SLUG_WITH_ID.test(path);
 }

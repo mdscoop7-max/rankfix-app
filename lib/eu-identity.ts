@@ -298,7 +298,41 @@ export function governmentHostname(hostname = ""): boolean {
   return (labels.length >= 2 && GOV_HOST_LABEL.test(labels[labels.length - 2])) || labels[labels.length - 1] === "gov";
 }
 
+// Conglomerates name several primary activities in their own title
+// ("Servizi postali, finanziari e assicurativi"). Then no single family may claim
+// high certainty: the first decision stays, capped, with the others as secondary.
+const TITLE_FAMILIES: Array<{ sector: EuSector; label: string; re: RegExp }> = [
+  { sector: "transport_travel", label: "Post & logistiek", re: stems(["postal", "postali", "postale", "postaux", "postales", "postais", "post- en", "postdienst", "postdienste", "pocztow", "poštov", "postipalvel", "logistic", "logistiek", "logistik", "logistique", "logistica"]) },
+  { sector: "financial_services", label: "Financiële diensten", re: stems(["financial services", "finanziari", "finanzdienst", "services financiers", "servicios financieros", "serviços financeiros", "financiële diensten", "banking", "bancari", "bancaires", "bancarios", "bankdienst"]) },
+  { sector: "financial_services", label: "Verzekeringen", re: stems(["insurance", "assicurativ", "versicherung", "assurances", "seguros", "verzekering"]) },
+  { sector: "telecom_technology", label: "Telecom", re: stems(["telecom", "telecomunicazion", "telekommunikation", "télécommunications", "telecomunicaciones", "mobile and broadband", "fibra e mobile"]) },
+  { sector: "energy_utilities", label: "Energie", re: stems(["energy", "energia", "energie", "énergie", "energía"]) },
+];
+
 export function detectEuPrimaryIdentity(input: EuIdentityInput): EuIdentity | null {
+  const result = detectEuPrimaryIdentityCore(input);
+  if (!result) return result;
+  const title = stripAudience((input.title || "").slice(0, 300));
+  const named = TITLE_FAMILIES.filter((f) => f.re.test(title));
+  const otherSectors = named.filter((f) => f.sector !== result.sector);
+  if (named.length >= 2 && otherSectors.length >= 1) {
+    const ownLabels = named.filter((f) => f.sector === result.sector).map((f) => f.label);
+    return {
+      ...result,
+      label: ownLabels.length > 1 ? ownLabels.join(" & ") : result.label,
+      confidence: "medium",
+      confidenceScore: Math.min(result.confidenceScore, 72),
+      evidence: [...result.evidence, `Titel noemt meerdere hoofdactiviteiten (${named.map((f) => f.label).join(", ")}): zekerheid begrensd`],
+      secondary: [...(result.secondary || []), ...otherSectors.filter((f, i, a) => a.findIndex((x) => x.sector === f.sector) === i).map((f) => ({ sector: f.sector, label: f.label, evidence: ["Genoemd in de eigen titel"] }))],
+    };
+  }
+  if (named.length >= 2 && named.every((f) => f.sector === result.sector) && result.key === "financial_insurance") {
+    return { ...result, key: "financial_services", label: named.map((f) => f.label).join(" & ") };
+  }
+  return result;
+}
+
+function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null {
   const title = stripAudience((input.title || "").slice(0, 300));
   const description = stripAudience((input.description || "").slice(0, 700));
   const h1 = stripAudience((input.h1s || []).slice(0, 4).join(" · ").slice(0, 500));

@@ -126,3 +126,23 @@ test("scorecard v2 is frozen: weights sum to 10, unmeasured criteria block accep
   const wrong = scorecardV2([...perfectRows, { id: "w", expected: "health_wellness", predicted: "education", confidence: 93, scanned: true, country: "DE" }], null, null);
   assert.deepEqual(wrong.sectorFailures, ["health_wellness"], "one confident wrong sector fails the sector gate");
 });
+
+test("pilot runner retries only transient failures, never blocked sites or quota", async () => {
+  const { pendingSites, attemptCategory, sanitizeResult } = await import("../scripts/engine-benchmark/run-pilot.mjs");
+  const sites = ["a.test", "b.test", "c.test", "d.test", "e.test"].map((h) => ({ hosts: [h], expected: "news_media" }));
+  const att = [
+    { requested_url: "https://a.test/", outcome: "failed", category: "network", http_status: 502 },
+    { requested_url: "https://b.test/", outcome: "failed", category: "site_blocked", http_status: 422 },
+    { requested_url: "https://c.test/", outcome: "success", category: "success", http_status: 200 },
+    { requested_url: "https://d.test/", outcome: "failed", category: "function_timeout", http_status: 0 },
+    { requested_url: "https://d.test/", outcome: "failed", category: "function_timeout", http_status: 0 },
+  ];
+  assert.deepEqual(pendingSites(sites, att, 2).map((s) => s.hosts[0]), ["a.test", "e.test"]);
+  assert.equal(attemptCategory(0, "CLIENT_TIMEOUT"), "function_timeout");
+  assert.equal(attemptCategory(429, "SITE_RATE_LIMITED"), "site_blocked");
+  assert.equal(attemptCategory(429, "SCAN_LIMIT"), "quota");
+  assert.deepEqual(Object.keys(sanitizeResult({ rawHtml: "<html>", cookies: ["x"], sectorProfile: {} })), ["sectorProfile"]);
+  const src = readFileSync(new URL("../scripts/engine-benchmark/run-pilot.mjs", import.meta.url), "utf8");
+  assert.doesNotMatch(src, /writeFileSync\([^)]*session[^0]/i, "credentials are never written");
+  assert.match(src, /deploymentSha/);
+});

@@ -49,7 +49,7 @@ export function scoreQualifier(result: QualifiableResult | null | undefined, loc
     model.headline?.kind === "range" && typeof result?.overallScore === "number" ? `${t.point} ${result.overallScore}` : "",
     typeof coverage === "number" ? `${t.coverage} ${coverage}%` : "",
     model.range && level !== "complete" ? `${t.range} ${model.range.low}–${model.range.high}` : "",
-    result?.selfCheck?.reliability ? `${t.reliability} ${t.levels[result.selfCheck.reliability]}` : "",
+    // Reliability is shown once, in the score explainer (one verdict per report).
   ].filter(Boolean);
   // "Complete evidence" only when every applicable check was confirmed.
   const fully = typeof coverage === "number" && coverage >= 100;
