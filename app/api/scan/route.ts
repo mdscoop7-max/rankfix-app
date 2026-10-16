@@ -5247,6 +5247,8 @@ export async function POST(request: Request) {
           "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id",
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
+            // End-to-end scan duration (fetch, render, sample, scoring) for speed benchmarks.
+            scanDurationMs: Date.now() - started,
             language: scanLanguage,
             mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, selfCheck, summary: scanSummary, rendering, recovery, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
@@ -5460,6 +5462,7 @@ export async function POST(request: Request) {
       finalUrl: finalUrl.toString(),
       scannedAt: new Date().toISOString(),
       responseTime,
+      scanDurationMs: Date.now() - started,
       httpStatus: response.status,
       overallScore: selectedOverallScore,
       grade: grade(selectedOverallScore),

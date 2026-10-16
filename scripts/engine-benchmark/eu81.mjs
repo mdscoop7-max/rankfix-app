@@ -36,6 +36,7 @@ export function exportRows(scans) {
       score: scan?.overall_score ?? r.overallScore, coverage: r.coverage?.coveragePercent, reliability: r.selfCheck?.reliability,
       evidenceLevel: r.scoreModel?.evidenceLevel, headlineKind: r.scoreModel?.headline?.kind, unconfirmed: checks.filter((c) => c.status === "unable_to_confirm").length,
       invariantViolations: r.selfCheck ? r.selfCheck.corrections?.length ?? 0 : undefined,
+      ms: typeof r.scanDurationMs === "number" ? r.scanDurationMs : undefined,
     };
   });
 }

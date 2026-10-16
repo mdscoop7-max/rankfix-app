@@ -39,15 +39,19 @@ const accommodationSchema = new Set([
   "vacationrental", "resort", "campground", "hostel",
 ]);
 
+import { stripAudience } from "./eu-identity.ts";
+
 export function detectPrimaryBusinessIdentity(input: {
   title?: string;
   description?: string;
   headings?: string[];
   schemaTypes?: string[];
 }): PrimaryBusinessIdentity {
-  const title = (input.title || "").slice(0, 300);
-  const description = (input.description || "").slice(0, 600);
-  const heading = (input.headings || []).slice(0, 3).join(" ").slice(0, 400);
+  // Audience clauses ("IT-Dienstleister für Banken und Versicherungen") name
+  // customers, not the company's own financial or lodging business.
+  const title = stripAudience((input.title || "").slice(0, 300));
+  const description = stripAudience((input.description || "").slice(0, 600));
+  const heading = stripAudience((input.headings || []).slice(0, 3).join(" ").slice(0, 400));
   const schema = new Set((input.schemaTypes || []).map((v) => v.toLowerCase()));
   const identityText = [title, description, heading].join(" ");
   // "voor webshops" / "for online stores" names the provider's customers, not

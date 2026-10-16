@@ -26,7 +26,7 @@ export function runOffline(root = fileURLToPath(new URL("../..", import.meta.url
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const result = runOffline(undefined, process.argv.includes("--holdout") ? { HOLDOUT: "only" } : {});
+  const result = runOffline(undefined, process.argv.includes("--holdout") ? { HOLDOUT: "only", HOLDOUT_FILE: process.argv[process.argv.indexOf("--holdout") + 1]?.endsWith(".json") ? process.argv[process.argv.indexOf("--holdout") + 1] : "holdout.json" } : {});
   const i = process.argv.indexOf("--json");
   if (i > 0) writeFileSync(process.argv[i + 1], JSON.stringify(result, null, 1));
   const brief = (m) => ({ sites: m.sector.scanned, accuracyPct: m.sector.accuracyPct, wrong: m.sector.wrong, abstained: m.sector.abstained, highConfidenceWrong: m.sector.highConfidenceWrong, macroF1: m.sector.macroF1, honesty: m.honesty.perfectWithIncompleteEvidence + m.honesty.score98PlusAtLowCoverage, consistencyViolations: m.consistency.reportsWithViolations, p95Ms: m.performance.p95Ms, scorecard: m.scorecard.score });

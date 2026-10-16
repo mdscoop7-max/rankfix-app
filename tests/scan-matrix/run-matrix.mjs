@@ -5,7 +5,7 @@ import { PROFILES, installMatrixFetch2 } from "./profiles.mjs";
 import { euRealProfiles, euSyntheticProfiles, euHoldoutProfiles } from "./eu-real-profiles.mjs";
 PROFILES.push(...euRealProfiles(), ...euSyntheticProfiles());
 // HOLDOUT=only runs just the blind hold-out set (benchmark), never in CI.
-if (process.env.HOLDOUT === "only") PROFILES.splice(0, PROFILES.length, ...euHoldoutProfiles());
+if (process.env.HOLDOUT === "only") PROFILES.splice(0, PROFILES.length, ...euHoldoutProfiles(process.env.HOLDOUT_FILE || "holdout.json"));
 installMatrixFetch2();
 const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const { POST } = await import(ROOT + "/app/api/scan/route.ts");
