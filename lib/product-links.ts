@@ -2,7 +2,25 @@
 // a candidate counts as product evidence only after the fetched page itself proves
 // it (Product schema, or a commerce action with a price). No platform or brand rules.
 
-const PRODUCT_SEGMENT = /\/(?:product|products|product-page|p|artikel|item)\/[^/]+/i;
+const PRODUCT_SEGMENT = /\/(?:product|products|product-page|p|artikel|item|producten|produkte?|produits?|prodotti|prodotto|productos?|produtos?|produkty|tuotteet|termekek|produse)\/[^/]+/i;
+// Category/collection archives on every major platform and language:
+// WooCommerce product-category bases (product-categorie, produkt-kategorie,
+// categorie-produit, categoria-prodotto, …), Shopify /collections/x, plain
+// /category/ archives. A Shopify product inside a collection (/collections/x/products/y)
+// is a product, not a category.
+const CATEGORY_SEGMENT = /\/(?:(?:product|produkt|produit|prodotto|producto|produto|produkty?)[-_]?(?:categor\p{L}*|kategor\p{L}*|cat|tag|merk|brand)|(?:categor\p{L}*|kategor\p{L}*)[-_](?:produits?|prodott[io]|productos?|produtos?|products?|produkte?)|categor\p{L}*|kategor\p{L}*|categoria|collections?|collectie|kollektion|assortiment|catalog\p{L}*|katalog|c)(?:\/|$)/iu;
+// Store finders, branch and franchise pages describe the organisation, not a product range.
+const STORE_PAGE = /\/(?:winkels|winkelzoeker|winkel-zoeken|winkels-zoeken|filialen|filiale|vestigingen|stores?|store-?locator|storefinder|shops?-?finder|magasins?|negozi|tiendas|lojas|sklepy|prodejny|liikkeet|butiker|franchise\p{L}*|franchisenemer\p{L}*|ondernemer-worden|word-ondernemer|partner-worden|become-a-partner)(?:\/|$)/iu;
+
+export function looksLikeCategoryPath(pathname: string): boolean {
+  const path = pathname.toLowerCase();
+  if (/\/products?\/[^/]+/.test(path) && /\/collections?\//.test(path)) return false;
+  return CATEGORY_SEGMENT.test(path);
+}
+
+export function looksLikeStorePage(pathname: string): boolean {
+  return STORE_PAGE.test(pathname.toLowerCase());
+}
 // Last path segment: a descriptive slug (3+ words) ending in a product identifier,
 // e.g. "...-zwart-372526317", "...-10627553/" or "...-c1182o0bj-q12.html".
 const SLUG_WITH_ID = /(?:^|\/)[a-z0-9]+(?:-[a-z0-9]+){2,}-(?:\d{6,}|(?=[a-z0-9]*\d)[a-z0-9]{6,}-[a-z0-9]{2,4})(?:\.html?)?\/?$/i;
@@ -11,7 +29,8 @@ const EDITORIAL = /\/(?:news|nieuws|blog|blogs|magazine|stories|inspiratie|inspi
 
 export function looksLikeProductDetailPath(pathname: string): boolean {
   const path = pathname.toLowerCase();
-  if (EDITORIAL.test(path)) return false;
+  if (EDITORIAL.test(path) || STORE_PAGE.test(path)) return false;
+  if (looksLikeCategoryPath(path)) return false;
   return PRODUCT_SEGMENT.test(path) || SLUG_WITH_ID.test(path);
 }
 

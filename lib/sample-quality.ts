@@ -1,3 +1,4 @@
+import { looksLikeCategoryPath, looksLikeStorePage } from "./product-links.ts";
 // Representative pages must be typed from their own DOM, not just their URL.
 // In particular a telecom product detail can live below a category-like /winkel path.
 export type SamplePageType = "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "contact" | "other";
@@ -16,6 +17,8 @@ export function refineSamplePageType(input: {
   breadcrumbDepth?: number;
   path?: string;
   serviceOffer?: boolean;
+  /** Number of Product objects in the page's structured data (category grids often carry many). */
+  productSchemaCount?: number;
 }): SamplePageType {
   const { proposed } = input;
   if (["homepage", "legal", "support", "form", "contact"].includes(proposed)) return proposed;
@@ -24,6 +27,11 @@ export function refineSamplePageType(input: {
   if (input.articleSchema || (/\/(?:blog|news|nieuws|artikelen|articles)\//i.test(path) && !input.productSchema)) return "article";
   // Product schema is direct on-page evidence; an ItemList indicates a collection
   // unless there is also confirmed product detail evidence.
+  // A category archive, store finder or a page listing several Products is a
+  // collection even when it carries Product schema and add-to-cart buttons.
+  if (looksLikeStorePage(path)) return proposed === "product" || proposed === "category" ? "other" : proposed;
+  const collection = looksLikeCategoryPath(path) || (input.productSchemaCount || 0) >= 2 || (input.itemListSchema && input.repeatedProductLinks);
+  if (collection) return "category";
   if (input.productSchema) return "product";
   // A deeply nested product/variant route with a concrete model number and
   // a single detail heading is stronger than its generic parent /shop category.

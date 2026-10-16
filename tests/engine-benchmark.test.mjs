@@ -80,3 +80,23 @@ test("pilot runner output is measurable by the export pipeline", async () => {
   const runner = readFileSync(new URL("../scripts/engine-benchmark/run-pilot.mjs", import.meta.url), "utf8");
   assert.doesNotMatch(runner, /writeFileSync\([^)]*session/i, "credentials are never written to output");
 });
+
+test("frozen plans stay unchanged; exposed cases are reported apart from blind results", async () => {
+  const p2 = JSON.parse(readFileSync(new URL("./fixtures/eu-pilot2/plan.json", import.meta.url), "utf8"));
+  assert.equal(p2.seenAfterFreeze, undefined, "plan file is not an evaluation log");
+  const reg = JSON.parse(readFileSync(new URL("./fixtures/evaluation/exposures.json", import.meta.url), "utf8")).exposures;
+  assert.ok(reg.some((x) => x.host === "charite.de" && x.originalVerdict.startsWith("wrong")));
+  const { spawnSync } = await import("node:child_process");
+  const { writeFileSync, mkdtempSync } = await import("node:fs");
+  const dir = mkdtempSync("/tmp/rf-exp-");
+  writeFileSync(`${dir}/s.json`, JSON.stringify([
+    { scanned_url: "https://www.charite.de/", created_at: "2026-10-17T10:00:00Z", result: { sectorProfile: { sector: "health_wellness", confidenceScore: 92 } } },
+    { scanned_url: "https://hus.fi/", created_at: "2026-10-17T10:00:00Z", result: { sectorProfile: { sector: "education", confidenceScore: 90 } } },
+  ]));
+  const r = spawnSync(process.execPath, ["--experimental-strip-types", "scripts/engine-benchmark/eu81.mjs", "export", `${dir}/s.json`], { env: { ...process.env, RF_PLAN: "tests/fixtures/eu-pilot2/plan.json" }, encoding: "utf8" });
+  const m = JSON.parse(r.stdout);
+  assert.equal(m.sector.correct, 1);
+  assert.equal(m.independent.sector.correct, 0, "the exposed Charité result does not count as blind evidence");
+  assert.equal(m.independent.sector.scanned, 1);
+  assert.equal(m.exposedCases.length, 1);
+});

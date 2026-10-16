@@ -1702,3 +1702,10 @@ test("cookie link is only required when cookies or trackers are observed", async
   assert.match(source, /!cookieSignalOk\?"cookies":null/);
   assert.doesNotMatch(source, /!hasCookieLink\?"cookies":null/);
 });
+
+test("cart/checkout signals never confirm a working checkout", async () => {
+  const { readFile: rf } = await import("node:fs/promises");
+  const source = await rf(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /check\("pass","checkout_funnel_static"/);
+  assert.doesNotMatch(source, /check\("pass","checkout_trust"/);
+});

@@ -23,7 +23,7 @@
 
 export type EuSector =
   | "news_media" | "financial_services" | "transport_travel" | "government"
-  | "education" | "health_wellness" | "telecom_technology" | "energy_utilities" | "events_culture" | "professional_services" | "saas_b2b" | "fitness_sports" | "tourism_recreation";
+  | "education" | "health_wellness" | "telecom_technology" | "energy_utilities" | "events_culture" | "professional_services" | "saas_b2b" | "fitness_sports" | "tourism_recreation" | "manufacturing_industrial";
 
 export type EuIdentity = {
   sector: EuSector;
@@ -58,6 +58,11 @@ function words(list: string[]): RegExp {
 /** Word stems: must start a word, may continue with letters ("univerzit" → univerzita, univerzity). */
 function stems(list: string[]): RegExp {
   return new RegExp(`${B}(?:${list.join("|")})\\p{L}*`, "iu");
+}
+/** The distinct words of one lexicon that occur in a text (for evidence lines). */
+function distinct2(text: string, re: RegExp): string[] {
+  const g = new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g");
+  return [...new Set([...text.matchAll(g)].map((m) => m[0].toLowerCase()))];
 }
 function any(...res: RegExp[]) {
   return (text: string) => res.some((re) => re.test(text));
@@ -112,6 +117,23 @@ const AGENCY_SERVICE = stems(["webdesign", "website", "websites", "apps", "marke
 
 const TRAVEL_AGENCY = stems(["reisebüro", "reisbureau", "reisorganisatie", "agence de voyage", "agenzia viaggi", "agenzia di viaggi", "agencia de viajes", "agência de viagens", "biuro podróży", "cestovní kancelář", "cestovná kancelária", "utazási iroda", "agenție de turism", "matkatoimisto", "reisibüroo", "ceļojumu aģentūra", "kelionių agentūra", "resebyrå", "rejsebureau", "ταξιδιωτικό γραφείο", "туристическа агенция", "pauschalreise", "package holiday", "last minute", "kreuzfahrt", "cruises", "tour operator", "touroperator"]);
 const COURIER = stems(["mensajería", "mensajeria", "koerier", "kurier", "courier", "coursier", "corriere espresso", "kurýr", "futárszolgálat", "curierat", "kuriiri", "kullerteenus", "kurjer", "kurjerių", "pakketdienst", "paketdienst", "express delivery", "pakkebud"]);
+// ---------------------------------------------------------------- industry / manufacturing
+// Who makes or supplies industrial goods: a maker/supplier word plus an industrial
+// object, in the organisation's own title, description, H1 or site name.
+const MAKER = stems(["manufactur", "fabrikant", "fabricant", "fabricage", "producent", "productiebedrijf", "hersteller", "herstellung", "fertigung", "fabrication", "produttor", "produzion", "fabbricant", "fabricante", "fabricación", "fabricação", "producător", "valmistaja", "valmista", "tillverk", "fabrikant", "výrobc", "výrob", "gyárt", "κατασκευαστ", "производител", "proizvođač", "proizvajal", "tootja", "ražotāj", "gamintoj", "wytwórc", "producent", "maker of", "makers of", "we make", "we build", "builder of", "machinefabriek", "fabriek", "fabrik", "usine", "fabbrica", "fábrica", "tehdas", "fabryk", "továrn", "wij bouwen", "we bouwen", "ontwerpen en bouwen", "entwickeln und bauen", "concevons et fabriquons", "progettiamo e costruiamo"]);
+const SUPPLIER = stems(["supplier", "leverancier", "zulieferer", "ausrüster", "fournisseur", "équipementier", "fornitor", "proveedor", "fornecedor", "dostawc", "toimittaj", "leverantör", "dodavatel", "beszállító", "furnizor", "доставчик", "dobavitelj", "dobavljač", "tarnija", "piegādātāj", "tiekėj"]);
+const INDUSTRIAL = stems([
+  "semiconductor", "halfgeleider", "halbleiter", "semi-conducteur", "semiconducteur", "semicondutt", "semiconductor", "półprzewodnik", "puolijohde", "halvledar", "polovodič", "félvezető",
+  "lithograph", "lithografi", "litograf", "chipmaker", "chip industry", "wafer",
+  "machinebouw", "maschinenbau", "werktuigbouw", "machine builder", "machinery", "machines", "maschinen", "machine tools", "werkzeugmaschin", "machines-outils", "macchine", "maquinaria", "máquinas", "maszyn", "koneet", "maskiner", "stroj", "gépgyárt",
+  "industrial equipment", "industriële", "industrial", "industry", "industries", "industrie", "industriel", "industriale", "industria", "industrial", "przemysł", "teollisuu", "industri", "průmysl", "ipari",
+  "automation", "automatiser", "automatisierung", "automazione", "automatización", "robotics", "robotica", "robotik",
+  "components", "componenten", "komponenten", "composants", "componenti", "componentes", "bearings", "lager", "pumps", "pompen", "pumpen", "valves", "kleppen", "ventile", "compressors", "turbines", "turbinen", "generators", "generatoren", "engines", "motoren", "verpakkingsmachine", "voedingsindustrie", "lasers", "laser",
+  "steel", "staal", "stahl", "acier", "acciaio", "acero", "chemicals", "chemie", "chimie", "chimica", "química", "plastics", "kunststof", "kunststoff", "packaging machines", "verpakkingsmachines", "electronics manufactur", "precision", "precisie", "präzision",
+  "aerospace", "lucht- en ruimtevaart", "luft- und raumfahrt", "aéronautique", "aerospaziale", "aeroespacial",
+]);
+const HARDWARE = stems(["hardware", "systems", "systemen", "systeme", "systèmes", "sistemi", "sistemas", "equipment", "apparatuur", "anlagen", "équipements", "attrezzature", "equipos", "equipamentos", "installations", "installaties", "products", "producten", "produkte", "produits", "prodotti", "productos"]);
+
 const SOFTWARE = stems(["software", "saas", "platform", "plattform", "plateforme", "piattaforma", "plataforma", "logiciel", "app for", "regtech", "fintech platform"]);
 const SOFTWARE_FUNNEL = stems(["book a demo", "free trial", "start trial", "request a demo", "demo aanvragen", "demo anfragen", "gratis proberen", "kostenlos testen", "essai gratuit", "prova gratuita", "prueba gratis", "pricing", "prijzen", "preise", "tarifs", "features", "functies", "funktionen", "integrations", "integraties", "login", "inloggen", "anmelden"]);
 const FITNESS = stems(["sportschool", "fitnessstudio", "fitness-studio", "fitnesscenter", "gimnasio", "ginásio", "palestra", "salle de sport", "siłownia", "posilovna", "posilňovňa", "edzőterem", "sală de fitness", "kuntosali", "jõusaal", "sporto klubas", "trenažieru zāle", "γυμναστήριο", "фитнес", "gym", "crossfit", "yoga studio", "pilates"]);
@@ -385,6 +407,21 @@ export function detectEuPrimaryIdentity(input: EuIdentityInput): EuIdentity | nu
   }
   if (!retailer && (POWER_AND_GAS.test(own) || ENERGY.test(own) && (GAS.test(own) || /\b(?:tarie|tarif|contract|vertrag|contrat|contratt|contrat|leverancier|supplier|anbieter|fournisseur|fornitor|proveedor|fornecedor)/i.test(own)))) {
     return { sector: "energy_utilities", key: "energy_utilities", label: "Energie & Nutsvoorzieningen", confidence: "high", confidenceScore: 90, evidence: ["Eigen identiteit noemt stroom/gas en leveringsvoorwaarden"] };
+  }
+
+  // 7b. Manufacturers and industrial suppliers (B2B). A software company that serves
+  // industry stays software: it needs a maker word, or a supplier word with hardware.
+  const industrial = distinct2(own, INDUSTRIAL);
+  const makes = MAKER.test(own);
+  const supplies = SUPPLIER.test(own) && (HARDWARE.test(own) || industrial.length >= 2 || /semicond|halfgeleid|halbleit|lithograph|chip/i.test(own));
+  const softwareOnly = SOFTWARE.test(own) && !HARDWARE.test(own);
+  if (!retailer && !softwareOnly && industrial.length >= 3 && !makes && !supplies && !SOFTWARE.test(own)) {
+    return { sector: "manufacturing_industrial", key: "manufacturing_industrial", label: "Industrie & Productie (B2B)", confidence: "medium", confidenceScore: 78,
+      evidence: [`Eigen identiteit noemt ${industrial.length} industriële producten/systemen (${industrial.slice(0, 3).join(", ")})`] };
+  }
+  if (!retailer && !softwareOnly && industrial.length >= 1 && (makes || supplies)) {
+    return { sector: "manufacturing_industrial", key: "manufacturing_industrial", label: "Industrie & Productie (B2B)", confidence: "high", confidenceScore: makes && industrial.length >= 2 ? 90 : 86,
+      evidence: evidence([makes && "Eigen identiteit: fabrikant/producent", supplies && "Eigen identiteit: leverancier van industriële systemen of componenten", `Industriële sector/producten: ${industrial.slice(0, 3).join(", ")}`]) };
   }
 
   // 7a. Pharmacies, gyms, travel agencies, couriers, software companies.

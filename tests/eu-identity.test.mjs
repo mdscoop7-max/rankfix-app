@@ -125,3 +125,23 @@ test("academic medical centres: care is primary, teaching and research secondary
   // A bare acronym without any care concept is not a hospital.
   assert.notEqual(d({ title: "UKM Holding", description: "Investments and consulting.", homepage: true })?.sector, "health_wellness");
 });
+
+test("manufacturers and industrial suppliers are recognised in EU languages, software stays software", async () => {
+  const { detectEuPrimaryIdentity: d } = await import("../lib/eu-identity.ts");
+  const ind = [
+    { title: "Lumetrix | Supplier to the semiconductor industry", description: "We provide chipmakers with hardware, software and services for lithography." },
+    { title: "Machinefabriek Noord – machinebouw op maat", description: "Wij ontwerpen en bouwen verpakkingsmachines voor de voedingsindustrie." },
+    { title: "Brenner – Werkzeugmaschinen", description: "Hersteller von Werkzeugmaschinen für die industrielle Fertigung." },
+    { title: "Fonderie Martin", description: "Fabricant de pièces en acier pour l'industrie aéronautique." },
+    { title: "Rossi Valvole", description: "Produttore di valvole e pompe industriali." },
+    { title: "Componentes Ibéricos", description: "Fabricante de componentes y maquinaria industrial." },
+  ];
+  for (const c of ind) assert.equal(d({ ...c, homepage: true })?.sector, "manufacturing_industrial", c.title);
+  const not = [
+    { title: "Acme – planning software for manufacturing", description: "SaaS platform for production planning in the manufacturing industry. Book a demo." },
+    { title: "Fabriek Bar & Restaurant", description: "Lunch, diner en borrel in een oude fabriek." },
+    { title: "Laserkliniek Amsterdam", description: "Laserbehandeling tegen pigmentvlekken. Maak een afspraak." },
+    { title: "Advies voor de industrie | Bureau X", description: "Strategisch advies en interim management voor industriële bedrijven." },
+  ];
+  for (const c of not) assert.notEqual(d({ ...c, homepage: true })?.sector, "manufacturing_industrial", c.title);
+});

@@ -1,0 +1,15 @@
+{
+ "purpose": "Evaluation register: test cases that were seen or used for tuning after a plan was frozen. The plans themselves (eu81/plan.json, eu-pilot2/plan.json) stay unchanged. Exposed cases are reported separately from independent (blind) results.",
+ "exposures": [
+  {
+   "host": "charite.de",
+   "plan": "eu-pilot2",
+   "seenOn": "2026-10-16",
+   "source": "owner scan on the 3.5 preview",
+   "originalResult": { "sector": "education", "label": "Onderwijs & Opleiding", "confidence": 93, "score": 91 },
+   "expected": "health_wellness",
+   "originalVerdict": "wrong (confident)",
+   "change": "548b8d5: generic academic-medical-centre rule (care primary, teaching/research secondary)"
+  }
+ ]
+}

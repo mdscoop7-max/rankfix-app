@@ -70,6 +70,27 @@ for (const p of PROFILES) {
     }
     for (const [k, re] of Object.entries(p.message || {})) { const c = byKey(k); if (c && !re.test(c.message)) problems.push(`${k} message lacks ${re}: ${c.message.slice(0, 140)}`); }
     for (const [k, re] of Object.entries(p.noMessage || {})) { const c = byKey(k); if (c && re.test(c.message)) problems.push(`${k} message has ${re}: ${c.message.slice(0, 140)}`); }
+    for (const [path, types] of Object.entries(p.sampleTypes || {})) { const a = (j.multiPage?.pageAudits || []).find((x) => new URL(x.url).pathname === path); if (!a) problems.push(`sample ${path} not audited`); else if (!types.includes(a.type)) problems.push(`sample ${path} typed ${a.type} (expected ${types})`); }
+    if (p.tech) for (const [k, v] of Object.entries(p.tech)) { if ((j.technologyProfile?.[k] ?? null) !== v) problems.push(`technology ${k}=${j.technologyProfile?.[k]} (expected ${v})`); }
+    if (p.notTech) for (const [k, v] of Object.entries(p.notTech)) { if ((j.technologyProfile?.[k] ?? null) === v) problems.push(`technology ${k} must not be ${v}`); }
+    if (j.technologyProfile && !Array.isArray(j.technologyProfile.technologies)) problems.push("technologyProfile.technologies missing");
+    for (const t of j.technologyProfile?.technologies || []) if (!t.evidence?.length || !(t.confidence > 0)) problems.push(`technology ${t.name} without evidence/confidence`);
+    // Report consistency invariants (3.5).
+    { const all = [...(j.seo?.checks || []), ...(j.geo?.checks || [])];
+      for (const c of all) {
+        if ((c.status === "warning" || c.status === "fail") && c.maxPoints > 0 && !(c.points < c.maxPoints)) problems.push(`${c.key}: ${c.status} without deduction (${c.points}/${c.maxPoints})`);
+        if (c.status === "pass" && c.maxPoints > 0 && c.points !== c.maxPoints) problems.push(`${c.key}: pass with deduction (${c.points}/${c.maxPoints})`);
+        if (c.status === "unable_to_confirm" && c.points > 0) problems.push(`${c.key}: unconfirmed with points`);
+        if (j.rendering?.javascriptExecuted && /opnieuw met geslaagde JavaScript-rendering|browser-rendering was niet beschikbaar/i.test(`${c.message} ${c.fix || ""}`)) problems.push(`${c.key}: re-render advice although JavaScript was rendered`);
+      }
+      const opt = all.find((c) => /product_(?:copy_)?optimizer/.test(c.key) && c.status === "pass");
+      if (opt && !j.multiPage?.representativeProduct && !all.some((c) => c.key === "product_schema" && c.status === "pass")) problems.push("product optimizer pass without product fields");
+      const ps = all.find((c) => c.key === "product_schema" && c.status === "pass");
+      if (ps && !j.multiPage?.representativeProduct && !(j.evidenceLayer?.productOffers?.length || j.productOffers?.length || /productpagina|Product structured data/i.test(ps.message))) problems.push("product_schema pass without Product/Offer evidence");
+      const importantOpen = all.filter((c) => c.status === "unable_to_confirm" && c.maxPoints >= 8);
+      if (j.overallScore >= 98 && importantOpen.length && j.scoreModel?.evidenceLevel === "complete") problems.push(`score ${j.overallScore} shown as complete with ${importantOpen.length} important unconfirmed check(s): ${importantOpen.map((c) => c.key).join(",")}`);
+    }
+    if (p.productSample) { const rp = j.multiPage?.representativeProduct; if (!rp || !p.productSample.test(new URL(rp.url).pathname)) problems.push(`representative product ${rp?.url || "none"} (expected ${p.productSample})`); }
     if (p.maxScore != null && (process.env.MODE || "both") === "both" && j.overallScore > p.maxScore) problems.push(`score ${j.overallScore} > ${p.maxScore} despite issues`);
     for (const m of p.noModules || []) if (j.sectorProfile.applicableModules.includes(m)) problems.push(`module ${m} should not be active`);
     if (p.sitemap && byKey("sitemap")) { const c = byKey("sitemap"); if (!c?.message.includes(p.sitemap)) problems.push(`sitemap chose: ${c?.message.slice(0, 120)}`); }

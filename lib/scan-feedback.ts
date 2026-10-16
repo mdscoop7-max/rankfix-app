@@ -168,7 +168,9 @@ export function requireEvidenceForScoredChecks(checks: EvidenceCheck[], pageUrl:
     c.points = 0;
     c.confidence = "low";
     c.reasonCode = "weak_evidence";
-    c.evidence = { url: pageUrl, found: null, details: "Geen controleerbaar bewijs vastgelegd voor deze controle; daarom telt ze niet mee in de score." };
+    // The message must match the status: an unproven "bevestigd" text never stays.
+    c.evidence = { url: pageUrl, found: null, details: `Ongecontroleerd signaal: ${c.message}` };
+    c.message = "Niet te bevestigen: RankFix heeft hiervoor geen controleerbaar bewijs vastgelegd, daarom telt deze controle niet mee in de score.";
     demoted++;
   }
   return demoted;

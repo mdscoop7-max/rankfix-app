@@ -11,6 +11,7 @@ import { effectiveCategory } from "../../lib/scan-attempts.ts";
 
 const planPath = process.env.RF_PLAN ? new URL(process.env.RF_PLAN, `file://${process.cwd()}/`) : new URL("../../tests/fixtures/eu81/plan.json", import.meta.url);
 const plan = JSON.parse(readFileSync(planPath, "utf8")).sites;
+const exposures = JSON.parse(readFileSync(new URL("../../tests/fixtures/evaluation/exposures.json", import.meta.url), "utf8")).exposures;
 const norm = (u) => { try { return new URL(/^https?:/i.test(u) ? u : `https://${u}`).hostname.toLowerCase().replace(/^www\./, ""); } catch { return String(u || "").toLowerCase(); } };
 
 export function baselineRows() {
@@ -48,6 +49,7 @@ export function exportRows(scans) {
     const checks = r.checks?.length ? r.checks : [...(r.seo?.checks || []), ...(r.geo?.checks || [])];
     return {
       id: `${s.country} ${s.name}`, expected: s.expected, scanned: Boolean(scan),
+      exposure: exposures.find((x) => s.hosts.some((h) => norm(h) === norm(x.host))) || null,
       predicted: r.sectorProfile?.sector ?? r.metrics?.sector?.sector, confidence: r.sectorProfile?.confidenceScore,
       score: scan?.overall_score ?? r.overallScore, coverage: r.coverage?.coveragePercent, reliability: r.selfCheck?.reliability,
       evidenceLevel: r.scoreModel?.evidenceLevel, headlineKind: r.scoreModel?.headline?.kind, unconfirmed: checks.filter((c) => c.status === "unable_to_confirm").length,
@@ -61,6 +63,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const [mode, file, attemptsFile] = process.argv.slice(2);
   const rows = mode === "export" ? exportRows(JSON.parse(readFileSync(file, "utf8"))) : baselineRows();
   const result = evaluate(rows);
+  // Exposed cases (seen or tuned after the plan was frozen) never count as blind evidence.
+  if (rows.some((r) => r.exposure)) {
+    result.independent = evaluate(rows.filter((r) => !r.exposure));
+    result.exposedCases = rows.filter((r) => r.exposure).map((r) => ({ id: r.id, expected: r.expected, predictedNow: r.predicted, original: r.exposure.originalResult, originalVerdict: r.exposure.originalVerdict }));
+  }
   if (attemptsFile) result.attempts = attemptSummary(JSON.parse(readFileSync(attemptsFile, "utf8")));
   console.log(JSON.stringify(result, null, 1));
 }

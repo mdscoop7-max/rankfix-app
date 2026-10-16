@@ -44,3 +44,17 @@ Scan success: every logged-in attempt is stored in `scan_attempts` (inserted as 
 2. Measure: `node --experimental-strip-types scripts/engine-benchmark/eu81.mjs export pilot1.scans.json pilot1.attempts.json` (or a read-only Neon export of `scans` + `scan_attempts`).
 3. Fix generic causes only; no per-domain rules.
 4. Pilot 2 (blind): `tests/fixtures/eu-pilot2/plan.json`, 40 real EU sites in all 10 families, frozen 16 Oct 2026 before any pilot-1 fix and disjoint from EU-81. Same commands with `RF_PLAN=tests/fixtures/eu-pilot2/plan.json` for the measurement. Its first measurement is the proof; do not tune on it beforehand.
+
+## 3.5 pass 2 (16 Oct 2026, evening) — owner field tests
+Generic fixes for the owner's real-site findings (no domain rules):
+- **Primary vs secondary activity:** academic medical centres (Universitätsmedizin, UMC, CHU, policlinico, hospital universitario, universitetssjukhus, …) are care first; teaching/research is a secondary activity (`sectorProfile.secondaryActivities`). Universities, incl. medical universities, stay education.
+- **New sector `manufacturing_industrial`:** maker/supplier word + industrial object in the organisation's own identity, in EU languages; software for industry stays software. Separate `sectorProfile.businessModel` (B2C, B2B, B2C + B2B, public, non-profit), evidence-first, sector default labelled as such.
+- **Price bug:** a missing structured price (`null`, `""`, text) is no longer read as €0 (`lib/price.ts`); WooCommerce `priceSpecification` prices are read; a real 0 still counts. Nested WooCommerce/Shopify price markup is read as the visible product price.
+- **Page typing:** category archives (WooCommerce product-category bases in EU languages, Shopify `/collections/x`, `/category/`), store finders and franchise pages are never product pages; a page with several Product objects is a collection. The representative product is the best-evidenced real product page (`multiPage.representativeProduct`).
+- **Technology:** per-technology evidence and confidence (`technologyProfile.technologies`); plain WordPress without a shop, a Shopify Buy Button on WordPress, and headless Shopify/WooCommerce are told apart.
+- **Checkout:** cart/checkout signals are "niet te bevestigen" (0 points), never a confirmed working checkout. Promoted product checks carry the product page as evidence; a check demoted by the evidence gate gets a matching message.
+- **Score honesty:** an unconfirmed heavy check (8+ points) makes a 98/99 "voorlopig". New matrix invariants: warning ⇒ deduction, pass ⇒ full points, no re-render advice after a successful render, Product Optimizer/Product schema only with product evidence.
+
+Offline after this pass: matrix 95.5% (0 wrong, abstentions counted against), hold-out 1 98.4%, hold-out 2 100%, hold-out 3 100%, 0 confident-wrong everywhere. These sets are seen data, so they show regressions, not real-world quality.
+
+**Evaluation register:** `tests/fixtures/evaluation/exposures.json` lists cases exposed after a plan was frozen (Charité: originally education 93%, wrong). The plans themselves are unchanged; `eu81.mjs export` reports `independent` metrics without exposed cases next to the overall figure.
