@@ -10,17 +10,30 @@
 
 export type PrimaryBusinessIdentity = {
   sector: "financial_services" | "hospitality" | "unknown";
+  /** Sub-type of a financial-services identity; absent for other sectors. */
+  financialKind?: "payments" | "banking" | "insurance";
   confidence: "high" | "medium" | "low";
   confidenceScore: number;
   evidence: string[];
 };
 
-const paymentPurpose = /\b(?:payments? (?:platform|processing|processor|provider|gateway|services?|solutions?|infrastructure|technology)|(?:online|in[- ]person|digital) payments?|payment orchestration|accept (?:online |card |digital |in[- ]person )?payments?|process (?:online |card |digital )?payments?|payment service provider|merchant acquiring|fintech|financial services?|digital wallet|mobile wallet|send money|send and save money|pay[, ]+send and save money|paying friends|saving money|transfer money|money transfers?|manage money|manage your money|banking services?|bank account|betaalplatform|betaaldienst(?:verlener)?|betaaloplossingen|betalingen (?:accepteren|verwerken)|betaalverwerking|betaalprovider|geld overmaken|betalingsverkeer)\b/i;
+const paymentPurpose = /\b(?:payments? (?:platform|processing|processor|provider|gateway|services?|solutions?|infrastructure|technology)|(?:online|in[- ]person|digital|mobile|contactless) payments?|payment orchestration|accept (?:online |card |digital |in[- ]person )?payments?|process (?:online |card |digital )?payments?|payment service provider|merchant acquiring|merchant accounts?|fintech|financial services?|financial (?:infrastructure|platform|technology)|digital wallet|mobile wallet|(?:send|receive|transfer)(?:,? (?:and )?(?:send|receive|save|spend))* money|money transfers?|manage (?:your )?money|banking services?|betaalplatform|betaaldienst(?:verlener)?|betaaloplossingen|betalingen (?:accepteren|ontvangen|verwerken)|betaalverwerking|betaalprovider|geld (?:overmaken|versturen|sturen)|betalingsverkeer|zahlungs(?:anbieter|dienstleister|lösung(?:en)?|plattform)|paiements? en ligne|solutions? de paiement|pagos (?:online|en línea)|pagamenti (?:online|digitali))\b/i;
+// Banks and insurers. Deliberately no bare "bank" (Dutch for sofa) or "savings".
+const bankingPurpose = /\b(?:bankieren|online banking|mobiel bankieren|bankrekening|betaalrekening|spaarrekening|bank accounts?|savings accounts?|current accounts?|hypothe(?:ek|ken|cair)|mortgages?|persoonlijke lening|personal loans?|business loans?|zakelijke financiering|credit cards?|creditcards?|beleggen|vermogensbeheer|wealth management|girokonto|sparkonto|baufinanzierung|compte bancaire|conto corrente|cuenta bancaria)\b/i;
+const insurancePurpose = /\b(?:verzekering(?:en)?|verzekeraar|zorgverzekering|autoverzekering|insurance|insurer|versicherung(?:en)?|assurances?|assicurazion[ei]|seguros?)\b/i;
+// Online-sales language in the identity: such a site sells goods, so ambiguous
+// words in its title ("camping", "saving", "insurance included") describe the
+// assortment, not the company's own business.
+const retailSalesLanguage = /\b(?:webshop|webwinkel|online winkel|online store|online shop|shop online|onlineshop|online (?:kopen|bestellen|shoppen)|bestel(?:len)? (?:direct |eenvoudig |snel )?online|koop (?:direct )?online|buy online|order online|gratis verzending|free shipping|kopen\b|bestellen\b|winkelwagen|in de winkel|shop now)\b/i;
 const contextualFinancialSchema = new Set([
   "financialservice", "bankorcreditunion", "paymentservice",
   "paymentcard", "creditcard", "loanorcredit", "financialproduct",
 ]);
-const lodgingPurpose = /\b(?:hotel(?:s)?|hostel(?:s)?|guesthouse|guest house|bed and breakfast|b&b|accommodation|lodging|overnight stays?|overnachten|overnachtingen|hotelkamers?|kamers boeken|book (?:a |your )?(?:room|stay)|book rooms?|room reservations?|vakantiehuizen?|vakantiewoningen?|holiday rental|vacation rental|holiday home|camping|campground|resort|overnight accommodation)\b/i;
+// Unambiguous lodging words. "camping", "campground" and "resort" are also
+// product categories (tents, resort wear), so they only count with stay wording.
+const lodgingPurpose = /\b(?:hotel(?:s)?|hostel(?:s)?|guesthouse|guest house|bed and breakfast|b&b|accommodation|accommodatie|lodging|overnight stays?|overnachten|overnachtingen|hotelkamers?|kamers (?:boeken|reserveren)|book (?:a |your )?(?:room|stay)|book rooms?|room reservations?|vakantiehuizen?|vakantiewoningen?|vakantiepark|bungalowpark|holiday rental|vacation rental|holiday home|holiday park|overnight accommodation|ferienwohnung(?:en)?|ferienhaus|unterkunft|hébergement|alloggio|alojamiento)\b/i;
+const ambiguousLodging = /\b(?:camping|campground|campsite|glamping|resort|chaletpark)\b/i;
+const stayWording = /\b(?:overnacht(?:en|ing(?:en)?)|kampeerplaats(?:en)?|kampeerplek(?:ken)?|staanplaats(?:en)?|pitch(?:es)?|plaatsen boeken|chalets?|bungalows?|stacaravans?|accommodaties?|accommodation|book (?:a |your )?(?:pitch|stay)|reserveer|reserveren|boek (?:je|uw) (?:plek|verblijf)|verblijf|stay|nights?|nachten)\b/i;
 const accommodationSchema = new Set([
   "hotel", "hotelroom", "lodgingbusiness", "bedandbreakfast",
   "vacationrental", "resort", "campground", "hostel",
@@ -36,33 +49,54 @@ export function detectPrimaryBusinessIdentity(input: {
   const description = (input.description || "").slice(0, 600);
   const heading = (input.headings || []).slice(0, 3).join(" ").slice(0, 400);
   const schema = new Set((input.schemaTypes || []).map((v) => v.toLowerCase()));
+  const identityText = [title, description, heading].join(" ");
+  const retailSeller = retailSalesLanguage.test(identityText);
   const paymentTitle = paymentPurpose.test(title);
   const paymentDescription = paymentPurpose.test(description);
   const paymentHeading = paymentPurpose.test(heading);
   const financeSchema = [...schema].some((t) => contextualFinancialSchema.has(t));
   const financeTextSources = Number(paymentTitle) + Number(paymentDescription) + Number(paymentHeading);
-  const financeProven = (paymentTitle && paymentDescription)
-    || (financeTextSources >= 2 && financeSchema)
-    || (financeTextSources >= 2 && (paymentTitle || paymentDescription));
-  const lodgingTitle = lodgingPurpose.test(title);
-  const lodgingDescription = lodgingPurpose.test(description);
-  const lodgingHeading = lodgingPurpose.test(heading);
+  // Two independent identity sources, or one plus typed financial schema.
+  // A retailer's own sales language overrides generic money wording.
+  const paymentsProven = !retailSeller && (
+    (paymentTitle && paymentDescription)
+    || financeTextSources >= 2
+    || (financeTextSources >= 1 && financeSchema));
+  const bankingTerms = new Set((identityText.match(new RegExp(bankingPurpose.source, "gi")) || []).map((term) => term.toLowerCase()));
+  const insuranceProven = !retailSeller && (schema.has("insuranceagency") || insurancePurpose.test(title));
+  const bankingProven = !retailSeller && (bankingTerms.size >= 2 || (bankingTerms.size >= 1 && financeSchema));
+  // A full-service bank also sells insurance: two banking terms decide first.
+  const financialKind: PrimaryBusinessIdentity["financialKind"] = paymentsProven ? "payments"
+    : bankingTerms.size >= 2 && bankingProven ? "banking"
+    : insuranceProven ? "insurance"
+    : bankingProven ? "banking" : undefined;
+  const financeProven = Boolean(financialKind);
+  const lodgingTitle = lodgingPurpose.test(title) || (ambiguousLodging.test(title) && !retailSeller && stayWording.test(identityText));
+  // Once the title names lodging, stay wording (pitches, chalets, "reserveer je
+  // verblijf") in the description or heading is an independent second source.
+  const stayBacked = (text: string) => lodgingTitle && !retailSeller && stayWording.test(text);
+  const lodgingDescription = lodgingPurpose.test(description) || (ambiguousLodging.test(description) && !retailSeller && stayWording.test(identityText)) || stayBacked(description);
+  const lodgingHeading = lodgingPurpose.test(heading) || (ambiguousLodging.test(heading) && !retailSeller && stayWording.test(identityText)) || stayBacked(heading);
   const lodgingSchema = [...schema].some((t) => accommodationSchema.has(t));
   const lodgingTextSources = Number(lodgingTitle) + Number(lodgingDescription) + Number(lodgingHeading);
   // Lodging MUST be supported by the company's own identity or typed schema.
   // 'arrival', 'departure', 'guests', and generic booking/checkout terms in
-  // page body alone are never enough for hotel classification.
-  const lodgingProven = lodgingSchema || (lodgingTitle && (lodgingDescription || lodgingHeading));
+  // page body alone are never enough for hotel classification. A shop that
+  // sells camping gear or resort wear is retail, not accommodation.
+  const lodgingProven = lodgingSchema || (!retailSeller && lodgingTitle && (lodgingDescription || lodgingHeading));
 
   if (financeProven && !lodgingSchema) {
     return {
       sector: "financial_services",
+      financialKind,
       confidence: "high",
       confidenceScore: financeSchema ? 96 : 92,
       evidence: [
-        paymentTitle ? "Bedrijfsidentiteit in titel bevestigt financiële/betaaldiensten" : "",
-        paymentDescription ? "Bedrijfsomschrijving bevestigt financiële/betaaldiensten" : "",
-        paymentHeading ? "Hoofdkop bevestigt financiële/betaaldiensten" : "",
+        financialKind === "banking" ? "Bedrijfsidentiteit bevestigt bank-/financiële producten" : "",
+        financialKind === "insurance" ? "Bedrijfsidentiteit bevestigt verzekeringen" : "",
+        paymentTitle && financialKind === "payments" ? "Bedrijfsidentiteit in titel bevestigt financiële/betaaldiensten" : "",
+        paymentDescription && financialKind === "payments" ? "Bedrijfsomschrijving bevestigt financiële/betaaldiensten" : "",
+        paymentHeading && financialKind === "payments" ? "Hoofdkop bevestigt financiële/betaaldiensten" : "",
         financeSchema ? "Aanvullend financieel structured-data-signaal" : "",
       ].filter(Boolean),
     };
@@ -99,6 +133,7 @@ export function isSiteHomepagePath(path: string): boolean {
     "us","uk","gb","au","ca","nz","nl","be","de","at","ch","fr","es","it","pt",
     "ie","pl","se","no","dk","fi","cz","sk","hu","ro","bg","gr","hr","lu","lv",
     "lt","ee","si","cy","mt","jp","br","mx","in","sg","en","cs","el","sv","da",
+    "int","intl","global","eu",
   ]);
   return marketPieces.every((p) => (
     markets.has(p) || /^[a-z]{2}[-_][a-z]{2}$/.test(p) && markets.has(p.slice(0, 2))

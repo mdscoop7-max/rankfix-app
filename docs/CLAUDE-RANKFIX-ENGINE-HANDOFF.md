@@ -69,3 +69,14 @@ Inspect `app/api/scan/route.ts` in detail; it is large and contains both prelimi
 ## Communication and access
 
 The user explicitly requested that work continue without repetitive questions or requests for individual website examples. They may run extra website tests voluntarily. Share clear milestone updates only when meaningful and never claim done based solely on CI. Claude must have authenticated GitHub repository access in its own environment; ChatGPT cannot grant it, log into Claude, or guarantee a future Claude session automatically loads the repository.
+
+## Status 2026-10-16 (Claude)
+
+Consolidated draft PR #148 into this branch; #148, #144 (in #145) and #146 (in #147) are closed as duplicates.
+
+- `lib/primary-business-identity.ts`: retailer sales language in the identity blocks financial and lodging identity (camping-gear shops, "saving money" deal shops, sofa "bank" shops stayed retail). Removed brand-shaped literals ("pay, send and save money", "saving money", "paying friends"); generic money-movement wording instead. Title + typed financial schema now proves payments. Added banking and insurance (`financialKind`). Ambiguous lodging words (camping, resort) need stay wording.
+- `lib/scan-evidence.ts`: "checkout" (one word) and bare arrival/departure are no longer short-stay evidence; "pension" alone is no longer B&B.
+- `lib/sector-catalog.ts`: payments entry; hotel/B&B keywords tightened.
+- `app/api/scan/route.ts`: financial sub-type key/label; identity-anchored sectors education, nonprofit, energy_utilities, events_culture, fitness_sports; every catalog sector maps to a scan sector.
+- Report module labels in 6 locales; `tests/sector-financial-lodging.test.mjs`.
+- Checks: 260/260 tests, tsc 0, ESLint unchanged vs main (31 legacy). Live scans not run from Claude's workspace (outbound web blocked). PR #145 conflicts with this branch only in `tests/feedback-19-regression.test.mjs`.
