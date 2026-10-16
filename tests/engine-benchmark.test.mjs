@@ -100,3 +100,29 @@ test("frozen plans stay unchanged; exposed cases are reported apart from blind r
   assert.equal(m.independent.sector.scanned, 1);
   assert.equal(m.exposedCases.length, 1);
 });
+
+test("independent set 3 is disjoint from every set and exploratory site seen so far", () => {
+  const load = (p) => JSON.parse(readFileSync(new URL(p, import.meta.url), "utf8")).sites;
+  const h = (x) => x.replace(/^www\./, "");
+  const seen = new Set([...load("./fixtures/eu81/plan.json"), ...load("./fixtures/eu-pilot2/plan.json")].flatMap((s) => s.hosts.map(h)));
+  for (const x of JSON.parse(readFileSync(new URL("./fixtures/evaluation/exposures.json", import.meta.url), "utf8")).exposures) seen.add(h(x.host));
+  // Exploratory sites from QA issue #154 and the owner's field tests.
+  for (const x of ["belastingdienst.nl", "postnl.nl", "rabobank.nl", "tweakers.net", "dw.com", "ameli.fr", "elpais.com", "kela.fi", "poczta-polska.pl", "aade.gr", "bnb.bg", "publico.pt", "poste.it", "suspilne.media", "nhk.or.jp", "aljazeera.net", "nhs.uk", "utoronto.ca", "stanford.edu", "kuleuven.be", "asml.com", "arganwinkel.nl", "intersport.nl", "decathlon.nl"]) seen.add(x);
+  const s3 = load("./fixtures/eu-independent3/plan.json");
+  assert.ok(s3.length >= 60);
+  assert.deepEqual(s3.filter((s) => s.hosts.some((x) => seen.has(h(x)))).map((s) => s.name), []);
+  assert.ok(new Set(s3.map((s) => s.language)).size >= 10, "at least 10 languages");
+  assert.ok(new Set(s3.flatMap((s) => [].concat(s.expected))).size >= 15, "at least 15 sector families");
+});
+
+test("scorecard v2 is frozen: weights sum to 10, unmeasured criteria block acceptance", async () => {
+  const { SCORECARD_V2, scorecardV2 } = await import("../scripts/engine-benchmark/scorecard-v2.mjs");
+  assert.equal(SCORECARD_V2.criteria.reduce((a, c) => a + c.weight, 0), 10);
+  assert.equal(SCORECARD_V2.criteria.length, 10);
+  const perfectRows = Array.from({ length: 10 }, (_, i) => ({ id: `s${i}`, expected: "education", predicted: "education", confidence: 92, scanned: true, country: "NL" }));
+  const sc = scorecardV2(perfectRows, { attemptedSites: 10, sitesWithSuccess: 10 }, null);
+  assert.equal(sc.accepted, false, "without the manual review the scorecard is incomplete");
+  assert.ok(sc.unmeasured.includes("page_type") && sc.unmeasured.includes("seo_geo"));
+  const wrong = scorecardV2([...perfectRows, { id: "w", expected: "health_wellness", predicted: "education", confidence: 93, scanned: true, country: "DE" }], null, null);
+  assert.deepEqual(wrong.sectorFailures, ["health_wellness"], "one confident wrong sector fails the sector gate");
+});

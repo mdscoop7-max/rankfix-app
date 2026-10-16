@@ -1,0 +1,693 @@
+{
+ "source": "Independent test set 3 (eu-independent3), PRE-REGISTERED 16 Oct 2026 before the 3.5 field-test pass 3 changes and before any scan of these sites. Labels are the sector each organisation was chosen for, from general knowledge; the owner reviews labels before the run and may mark a site 'ambiguous' (excluded from sector accuracy, not removed). Not to be used for tuning before its first measurement. Disjoint from EU-81, pilot-2, the exposure register and the exploratory sites in issue #154.",
+ "frozenAt": "2026-10-16",
+ "status": "pre-registered, labels pending owner review",
+ "sites": [
+  {
+   "country": "IT",
+   "language": "it",
+   "name": "Il Sole 24 Ore",
+   "hosts": [
+    "ilsole24ore.com",
+    "www.ilsole24ore.com"
+   ],
+   "expected": "news_media"
+  },
+  {
+   "country": "ES",
+   "language": "es",
+   "name": "La Vanguardia",
+   "hosts": [
+    "lavanguardia.com",
+    "www.lavanguardia.com"
+   ],
+   "expected": "news_media"
+  },
+  {
+   "country": "SE",
+   "language": "sv",
+   "name": "Aftonbladet",
+   "hosts": [
+    "aftonbladet.se",
+    "www.aftonbladet.se"
+   ],
+   "expected": "news_media"
+  },
+  {
+   "country": "CZ",
+   "language": "cs",
+   "name": "Novinky.cz",
+   "hosts": [
+    "novinky.cz",
+    "www.novinky.cz"
+   ],
+   "expected": "news_media"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "Wehkamp",
+   "hosts": [
+    "wehkamp.nl",
+    "www.wehkamp.nl"
+   ],
+   "expected": "ecommerce"
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "Zooplus",
+   "hosts": [
+    "zooplus.de",
+    "www.zooplus.de"
+   ],
+   "expected": "ecommerce"
+  },
+  {
+   "country": "FR",
+   "language": "fr",
+   "name": "LDLC",
+   "hosts": [
+    "ldlc.com",
+    "www.ldlc.com"
+   ],
+   "expected": "ecommerce"
+  },
+  {
+   "country": "ES",
+   "language": "es",
+   "name": "PcComponentes",
+   "hosts": [
+    "pccomponentes.com",
+    "www.pccomponentes.com"
+   ],
+   "expected": "ecommerce"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "ABN AMRO",
+   "hosts": [
+    "abnamro.nl",
+    "www.abnamro.nl"
+   ],
+   "expected": "financial_services"
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "Commerzbank",
+   "hosts": [
+    "commerzbank.de",
+    "www.commerzbank.de"
+   ],
+   "expected": "financial_services"
+  },
+  {
+   "country": "NL",
+   "language": "en",
+   "name": "Adyen",
+   "hosts": [
+    "adyen.com",
+    "www.adyen.com"
+   ],
+   "expected": "financial_services"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "Mollie",
+   "hosts": [
+    "mollie.com",
+    "www.mollie.com"
+   ],
+   "expected": "financial_services"
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "Allianz Deutschland",
+   "hosts": [
+    "allianz.de",
+    "www.allianz.de"
+   ],
+   "expected": "financial_services"
+  },
+  {
+   "country": "ES",
+   "language": "es",
+   "name": "CaixaBank",
+   "hosts": [
+    "caixabank.es",
+    "www.caixabank.es"
+   ],
+   "expected": "financial_services"
+  },
+  {
+   "country": "NL",
+   "language": "en",
+   "name": "KLM",
+   "hosts": [
+    "klm.com",
+    "www.klm.com"
+   ],
+   "expected": "transport_travel"
+  },
+  {
+   "country": "IT",
+   "language": "it",
+   "name": "Trenitalia",
+   "hosts": [
+    "trenitalia.com",
+    "www.trenitalia.com"
+   ],
+   "expected": "transport_travel"
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "DHL Deutschland",
+   "hosts": [
+    "dhl.de",
+    "www.dhl.de"
+   ],
+   "expected": "transport_travel"
+  },
+  {
+   "country": "FI",
+   "language": "fi",
+   "name": "VR",
+   "hosts": [
+    "vr.fi",
+    "www.vr.fi"
+   ],
+   "expected": "transport_travel"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "Gemeente Amsterdam",
+   "hosts": [
+    "amsterdam.nl",
+    "www.amsterdam.nl"
+   ],
+   "expected": "government"
+  },
+  {
+   "country": "FR",
+   "language": "fr",
+   "name": "Gouvernement",
+   "hosts": [
+    "gouvernement.fr",
+    "www.gouvernement.fr"
+   ],
+   "expected": "government"
+  },
+  {
+   "country": "SI",
+   "language": "sl",
+   "name": "Gov.si",
+   "hosts": [
+    "gov.si",
+    "www.gov.si"
+   ],
+   "expected": "government"
+  },
+  {
+   "country": "FI",
+   "language": "fi",
+   "name": "Valtioneuvosto",
+   "hosts": [
+    "valtioneuvosto.fi",
+    "www.valtioneuvosto.fi"
+   ],
+   "expected": "government"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "TU Delft",
+   "hosts": [
+    "tudelft.nl",
+    "www.tudelft.nl"
+   ],
+   "expected": "education"
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "LMU München",
+   "hosts": [
+    "lmu.de",
+    "www.lmu.de"
+   ],
+   "expected": "education"
+  },
+  {
+   "country": "IT",
+   "language": "it",
+   "name": "Università degli Studi di Milano",
+   "hosts": [
+    "unimi.it",
+    "www.unimi.it"
+   ],
+   "expected": "education"
+  },
+  {
+   "country": "ES",
+   "language": "es",
+   "name": "Universidad Complutense de Madrid",
+   "hosts": [
+    "ucm.es",
+    "www.ucm.es"
+   ],
+   "expected": "education"
+  },
+  {
+   "country": "SE",
+   "language": "sv",
+   "name": "Uppsala universitet",
+   "hosts": [
+    "uu.se",
+    "www.uu.se"
+   ],
+   "expected": "education"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "Erasmus MC",
+   "hosts": [
+    "erasmusmc.nl",
+    "www.erasmusmc.nl"
+   ],
+   "expected": "health_wellness"
+  },
+  {
+   "country": "FR",
+   "language": "fr",
+   "name": "Hospices Civils de Lyon",
+   "hosts": [
+    "chu-lyon.fr",
+    "www.chu-lyon.fr"
+   ],
+   "expected": "health_wellness"
+  },
+  {
+   "country": "IT",
+   "language": "it",
+   "name": "Ospedale Niguarda",
+   "hosts": [
+    "ospedaleniguarda.it",
+    "www.ospedaleniguarda.it"
+   ],
+   "expected": "health_wellness"
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "Helios Kliniken",
+   "hosts": [
+    "helios-gesundheit.de",
+    "www.helios-gesundheit.de"
+   ],
+   "expected": "health_wellness"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "Thuisarts.nl",
+   "hosts": [
+    "thuisarts.nl",
+    "www.thuisarts.nl"
+   ],
+   "expected": "health_wellness"
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "Vodafone Deutschland",
+   "hosts": [
+    "vodafone.de",
+    "www.vodafone.de"
+   ],
+   "expected": "telecom_technology"
+  },
+  {
+   "country": "DK",
+   "language": "da",
+   "name": "Telenor Danmark",
+   "hosts": [
+    "telenor.dk",
+    "www.telenor.dk"
+   ],
+   "expected": "telecom_technology"
+  },
+  {
+   "country": "CZ",
+   "language": "cs",
+   "name": "T-Mobile Czech",
+   "hosts": [
+    "t-mobile.cz",
+    "www.t-mobile.cz"
+   ],
+   "expected": "telecom_technology"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "Ziggo",
+   "hosts": [
+    "ziggo.nl",
+    "www.ziggo.nl"
+   ],
+   "expected": "telecom_technology"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "Eneco",
+   "hosts": [
+    "eneco.nl",
+    "www.eneco.nl"
+   ],
+   "expected": "energy_utilities"
+  },
+  {
+   "country": "FR",
+   "language": "fr",
+   "name": "EDF",
+   "hosts": [
+    "edf.fr",
+    "www.edf.fr"
+   ],
+   "expected": "energy_utilities"
+  },
+  {
+   "country": "ES",
+   "language": "es",
+   "name": "Endesa",
+   "hosts": [
+    "endesa.com",
+    "www.endesa.com"
+   ],
+   "expected": "energy_utilities"
+  },
+  {
+   "country": "FI",
+   "language": "fi",
+   "name": "Fortum",
+   "hosts": [
+    "fortum.fi",
+    "www.fortum.fi"
+   ],
+   "expected": "energy_utilities"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "Pararius",
+   "hosts": [
+    "pararius.nl",
+    "www.pararius.nl"
+   ],
+   "expected": "real_estate"
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "Immowelt",
+   "hosts": [
+    "immowelt.de",
+    "www.immowelt.de"
+   ],
+   "expected": "real_estate"
+  },
+  {
+   "country": "ES",
+   "language": "es",
+   "name": "Fotocasa",
+   "hosts": [
+    "fotocasa.es",
+    "www.fotocasa.es"
+   ],
+   "expected": "real_estate"
+  },
+  {
+   "country": "SE",
+   "language": "sv",
+   "name": "Booli",
+   "hosts": [
+    "booli.se",
+    "www.booli.se"
+   ],
+   "expected": "real_estate"
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "TRUMPF",
+   "hosts": [
+    "trumpf.com",
+    "www.trumpf.com"
+   ],
+   "expected": "manufacturing_industrial"
+  },
+  {
+   "country": "SE",
+   "language": "en",
+   "name": "Sandvik",
+   "hosts": [
+    "sandvik.com",
+    "www.sandvik.com"
+   ],
+   "expected": "manufacturing_industrial"
+  },
+  {
+   "country": "FI",
+   "language": "en",
+   "name": "KONE",
+   "hosts": [
+    "kone.com",
+    "www.kone.com"
+   ],
+   "expected": "manufacturing_industrial"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "VDL Groep",
+   "hosts": [
+    "vdlgroep.com",
+    "www.vdlgroep.com"
+   ],
+   "expected": "manufacturing_industrial"
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "Festo",
+   "hosts": [
+    "festo.com",
+    "www.festo.com"
+   ],
+   "expected": "manufacturing_industrial"
+  },
+  {
+   "country": "ES",
+   "language": "es",
+   "name": "NH Hotels",
+   "hosts": [
+    "nh-hotels.com",
+    "www.nh-hotels.com"
+   ],
+   "expected": "hospitality"
+  },
+  {
+   "country": "NL",
+   "language": "en",
+   "name": "citizenM",
+   "hosts": [
+    "citizenm.com",
+    "www.citizenm.com"
+   ],
+   "expected": "hospitality"
+  },
+  {
+   "country": "SE",
+   "language": "sv",
+   "name": "Scandic Hotels",
+   "hosts": [
+    "scandichotels.se",
+    "www.scandichotels.se"
+   ],
+   "expected": "hospitality"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "Efteling",
+   "hosts": [
+    "efteling.com",
+    "www.efteling.com"
+   ],
+   "expected": [
+    "tourism_recreation",
+    "events_culture"
+   ]
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "visitBerlin",
+   "hosts": [
+    "visitberlin.de",
+    "www.visitberlin.de"
+   ],
+   "expected": "tourism_recreation"
+  },
+  {
+   "country": "DK",
+   "language": "da",
+   "name": "Tivoli",
+   "hosts": [
+    "tivoli.dk",
+    "www.tivoli.dk"
+   ],
+   "expected": [
+    "tourism_recreation",
+    "events_culture"
+   ]
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "Rode Kruis",
+   "hosts": [
+    "rodekruis.nl",
+    "www.rodekruis.nl"
+   ],
+   "expected": "nonprofit"
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "WWF Deutschland",
+   "hosts": [
+    "wwf.de",
+    "www.wwf.de"
+   ],
+   "expected": "nonprofit"
+  },
+  {
+   "country": "IT",
+   "language": "it",
+   "name": "Caritas Italiana",
+   "hosts": [
+    "caritas.it",
+    "www.caritas.it"
+   ],
+   "expected": "nonprofit"
+  },
+  {
+   "country": "FR",
+   "language": "fr",
+   "name": "Amnesty International France",
+   "hosts": [
+    "amnesty.fr",
+    "www.amnesty.fr"
+   ],
+   "expected": "nonprofit"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "Rijksmuseum",
+   "hosts": [
+    "rijksmuseum.nl",
+    "www.rijksmuseum.nl"
+   ],
+   "expected": "events_culture"
+  },
+  {
+   "country": "FR",
+   "language": "fr",
+   "name": "Musée du Louvre",
+   "hosts": [
+    "louvre.fr",
+    "www.louvre.fr"
+   ],
+   "expected": "events_culture"
+  },
+  {
+   "country": "IT",
+   "language": "it",
+   "name": "Gallerie degli Uffizi",
+   "hosts": [
+    "uffizi.it",
+    "www.uffizi.it"
+   ],
+   "expected": "events_culture"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "Het Concertgebouw",
+   "hosts": [
+    "concertgebouw.nl",
+    "www.concertgebouw.nl"
+   ],
+   "expected": "events_culture"
+  },
+  {
+   "country": "BE",
+   "language": "en",
+   "name": "Teamleader",
+   "hosts": [
+    "teamleader.eu",
+    "www.teamleader.eu"
+   ],
+   "expected": "saas_b2b"
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "Personio",
+   "hosts": [
+    "personio.de",
+    "www.personio.de"
+   ],
+   "expected": "saas_b2b"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "Exact",
+   "hosts": [
+    "exact.com",
+    "www.exact.com"
+   ],
+   "expected": "saas_b2b"
+  },
+  {
+   "country": "NL",
+   "language": "en",
+   "name": "Loyens & Loeff",
+   "hosts": [
+    "loyensloeff.com",
+    "www.loyensloeff.com"
+   ],
+   "expected": "professional_services"
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "Hengeler Mueller",
+   "hosts": [
+    "hengeler.com",
+    "www.hengeler.com"
+   ],
+   "expected": "professional_services"
+  }
+ ]
+}
