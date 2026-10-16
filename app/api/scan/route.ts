@@ -5111,6 +5111,15 @@ export async function POST(request: Request) {
         : "Site-sample niet te bevestigen",
       sitewideCommerceEvidence,
       sitewideCheckAggregation,
+      // Headline companion (issue #151): the main score is for the scanned page;
+      // this says how the sampled site pages did, next to that score.
+      sitewideSummary: {
+        scoredPageIsHomepage: isHomepage,
+        checkedPages: auditedRawPages.length,
+        pagesWithIssues: auditedRawPages.filter((page)=>page.evidenceChecks.some((item)=>["title","description","h1","canonical"].includes(item.key) && item.status==="WARNING")).length,
+        topIssues: sitewideCheckAggregation.filter((item)=>item.affectedCount>0).sort((a,b)=>b.affectedCount-a.affectedCount).map((item)=>({key:item.key,affected:item.affectedCount,checked:item.checkedPages})),
+        sampleScore: scoredSamplePages.length ? Math.round(scoredSamplePages.reduce((sum,item)=>sum+(item.score||0),0)/scoredSamplePages.length) : null,
+      },
       templateSummary: Object.entries(reportedMultiPageAudits.reduce((acc, page) => {
         const type = page.type || "other";
         const current = acc[type] || {type,selected:0,scored:0,reason:""};

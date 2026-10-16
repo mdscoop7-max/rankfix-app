@@ -96,6 +96,14 @@ for (const p of PROFILES) {
       if (j.coverage?.coveragePercent < 60 && j.scoreModel.evidenceLevel !== "insufficient") problems.push(`coverage ${j.coverage.coveragePercent}% but evidenceLevel ${j.scoreModel.evidenceLevel}`);
       if (j.scoreModel.evidenceLevel !== "complete" && !j.scoreModel.provisional) problems.push("non-complete evidence not provisional");
     }
+    // Homepage score and site sample must be reported side by side and agree.
+    { const sw = j.multiPage?.sitewideSummary;
+      if (j.multiPage && !sw) problems.push("multiPage.sitewideSummary missing");
+      if (sw) {
+        if (sw.pagesWithIssues > sw.checkedPages) problems.push(`sitewide ${sw.pagesWithIssues} > ${sw.checkedPages}`);
+        for (const t of sw.topIssues) { const a = j.multiPage.sitewideCheckAggregation.find((x) => x.key === t.key); if (!a || a.affectedCount !== t.affected) problems.push(`sitewide topIssue ${t.key} disagrees with aggregation`); }
+        if (sw.scoredPageIsHomepage !== (j.pageTypeEvidence.type === "homepage")) problems.push("sitewide scope disagrees with page type");
+      } }
     // Global invariant: a report with any warning/fail never shows 100.
     if ((process.env.MODE || "both") === "both" && checks.some((c) => c.status === "warning" || c.status === "fail") && j.overallScore >= 100) problems.push("100/100 with open issues");
   }

@@ -9,7 +9,27 @@ export type QualifiableResult = {
   coverage?: { coveragePercent?: number } | null;
   scoreModel?: { evidenceLevel?: "complete" | "provisional" | "insufficient"; provisional?: boolean; range?: { low: number; high: number } | null } | null;
   selfCheck?: { reliability?: "high" | "medium" | "low" } | null;
+  multiPage?: { sitewideSummary?: { scoredPageIsHomepage?: boolean; checkedPages?: number; pagesWithIssues?: number; topIssues?: Array<{ key: string; affected: number; checked: number }>; sampleScore?: number | null } } | null;
 };
+
+const SCOPE: Record<Locale, { home: string; page: string; sample: (issues: number, checked: number) => string; sampleScore: string; keys: Record<string, string> }> = {
+  nl: { home: "Score van de homepage", page: "Score van deze pagina", sample: (i, c) => `Steekproef: ${i} van ${c} pagina's met aandachtspunten`, sampleScore: "steekproefscore", keys: { title: "title", description: "meta description", h1: "H1", canonical: "canonical" } },
+  en: { home: "Homepage score", page: "Score for this page", sample: (i, c) => `Site sample: ${i} of ${c} pages need attention`, sampleScore: "sample score", keys: { title: "title", description: "meta description", h1: "H1", canonical: "canonical" } },
+  de: { home: "Score der Startseite", page: "Score dieser Seite", sample: (i, c) => `Stichprobe: ${i} von ${c} Seiten mit Handlungsbedarf`, sampleScore: "Stichprobenscore", keys: { title: "Title", description: "Meta-Description", h1: "H1", canonical: "Canonical" } },
+  fr: { home: "Score de la page d'accueil", page: "Score de cette page", sample: (i, c) => `Échantillon : ${i} pages sur ${c} à améliorer`, sampleScore: "score de l'échantillon", keys: { title: "title", description: "meta description", h1: "H1", canonical: "canonical" } },
+  it: { home: "Punteggio della homepage", page: "Punteggio di questa pagina", sample: (i, c) => `Campione: ${i} pagine su ${c} da migliorare`, sampleScore: "punteggio del campione", keys: { title: "title", description: "meta description", h1: "H1", canonical: "canonical" } },
+  es: { home: "Puntuación de la página de inicio", page: "Puntuación de esta página", sample: (i, c) => `Muestra: ${i} de ${c} páginas con aspectos a mejorar`, sampleScore: "puntuación de la muestra", keys: { title: "title", description: "meta description", h1: "H1", canonical: "canonical" } },
+};
+
+/** "Homepage score · site sample: 16 of 30 pages need attention (meta description 16)". */
+export function scoreScope(result: QualifiableResult | null | undefined, locale: Locale): string {
+  const t = SCOPE[locale] || SCOPE.nl;
+  const s = result?.multiPage?.sitewideSummary;
+  const head = s?.scoredPageIsHomepage === false ? t.page : t.home;
+  if (!s || !s.checkedPages) return head;
+  const top = (s.topIssues || []).slice(0, 3).map((item) => `${t.keys[item.key] || item.key} ${item.affected}`).join(", ");
+  return `${head} · ${t.sample(s.pagesWithIssues || 0, s.checkedPages)}${top ? ` (${top})` : ""}${s.sampleScore != null ? ` · ${t.sampleScore} ${s.sampleScore}` : ""}`;
+}
 
 const TEXT: Record<Locale, { complete: string; provisional: string; insufficient: string; coverage: string; range: string; reliability: string; levels: Record<"high" | "medium" | "low", string>; perfect: string }> = {
   nl: { complete: "Definitief: volledig bewijs", provisional: "Voorlopig: niet alles kon worden bevestigd", insufficient: "Indicatie: onvoldoende bewijs voor een definitieve score", coverage: "bewijsdekking", range: "mogelijk bereik", reliability: "betrouwbaarheid", levels: { high: "hoog", medium: "gemiddeld", low: "laag" }, perfect: "100/100 wordt alleen gegeven als alle toepasselijke controles bevestigd zijn." },
