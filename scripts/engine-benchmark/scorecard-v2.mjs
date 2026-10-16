@@ -79,8 +79,10 @@ export function scorecardV2(rows, attempts = null, review = null) {
   if (truthRows.length) {
     const confidentWrong = truthRows.filter((r) => classify(r) === "wrong" && (r.confidence ?? 100) >= confAt).length;
     const top = truthRows.filter((r) => (r.confidence ?? 0) >= 90 && classify(r) !== "abstain");
-    const topAcc = top.length >= 5 ? pct(top.filter((r) => classify(r) === "correct").length, top.length) : 100;
-    values.calibration = Math.min(100 - pct(confidentWrong, truthRows.length), topAcc);
+    // The frozen protocol requires at least five high-confidence predictions.
+    // With fewer than five, calibration is unmeasured — never assume 100%.
+    const topAcc = top.length >= 5 ? pct(top.filter((r) => classify(r) === "correct").length, top.length) : null;
+    values.calibration = topAcc == null ? null : Math.min(100 - pct(confidentWrong, truthRows.length), topAcc);
   } else values.calibration = null;
   // 8. International: worst country/language group with at least 3 sites.
   const groups = {};
@@ -91,7 +93,9 @@ export function scorecardV2(rows, attempts = null, review = null) {
   const inv = rows.filter((r) => r.result).map((r) => reportInvariantViolations(r.result));
   values.consistency = inv.length ? pct(inv.filter((v) => v.length === 0).length, inv.length) : null;
   // 10. Stability: sites with a stored report / attempted sites (blocked = failed).
-  values.stability = attempts?.attemptedSites ? pct(attempts.sitesWithSuccess, attempts.attemptedSites) : (rows.length ? pct(rows.filter((r) => r.scanned).length, rows.length) : null);
+  // Planned sites are not scan attempts. Without attempt logs the stability
+  // denominator is unknown; do not infer a successful run from stored reports.
+  values.stability = attempts?.attemptedSites ? pct(attempts.sitesWithSuccess, attempts.attemptedSites) : null;
 
   const criteria = SCORECARD_V2.criteria.map((c) => {
     const value = values[c.key];
