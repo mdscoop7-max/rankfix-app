@@ -77,6 +77,13 @@ for (const p of PROFILES) {
       for (const c of j.selfCheck.corrections) problems.push(`self-check had to correct: ${c.code} ${c.detail.slice(0, 120)}`);
       if (!["high", "medium", "low"].includes(j.selfCheck.reliability)) problems.push("reliability missing");
     }
+    // Cross-check consistency: brand identity may not claim business details
+    // that the Bedrijfsgegevens check could not confirm; alt wording follows the source.
+    { const bd = checks.find((c) => c.key === "business_placeholders"); const idc = checks.find((c) => c.key === "identity");
+      if (bd && bd.status !== "pass" && idc && /Gevonden:[^.]*bedrijfs-\/contactgegevens/.test(idc.message)) problems.push("brand identity claims business details that were not confirmed");
+      const alt = checks.find((c) => c.key === "alt"); if (alt && j.rendering?.javascriptExecuted && /raw HTML/.test(alt.message)) problems.push("alt message says raw HTML on a rendered page");
+      const sd = checks.find((c) => c.key === "schema"); const ow = checks.find((c) => c.key === "organization_website");
+      if (sd && ow && sd.rootCause !== ow.rootCause) problems.push("schema and organization_website must share one root cause"); }
     // Global invariant: a report with any warning/fail never shows 100.
     if ((process.env.MODE || "both") === "both" && checks.some((c) => c.status === "warning" || c.status === "fail") && j.overallScore >= 100) problems.push("100/100 with open issues");
   }

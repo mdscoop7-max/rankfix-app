@@ -53,6 +53,7 @@ type ScanResult = {
     h1Count: number;
     h1s: string[];
     imageCount: number;
+    imageElementCount?: number;
     imagesMissingAlt: number;
     wordCount: number;
     headingsCount: number;
@@ -582,7 +583,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
     if (m) {
       lines.push("", "PAGE METRICS", "Title: " + m.title, "Meta description: " + m.description,
         "Canonical: " + (m.canonical || "Not confirmed"), "Language: " + (m.lang || "Not confirmed"),
-        "H1: " + m.h1s.join(" | "), "Words: " + m.wordCount, "Images: " + m.imageCount,
+        "H1: " + m.h1s.join(" | "), "Words: " + m.wordCount, "Images: " + (m.imageElementCount ?? m.imageCount) + (m.imageElementCount != null && m.imageCount !== m.imageElementCount ? " <img>-elementen (" + m.imageCount + " unieke bronnen incl. srcset)" : ""),
         "Images missing alt: " + m.imagesMissingAlt, "Internal links: " + m.internalLinks,
         "Schema: " + m.schemaTypes.join(", "), "Robots: " + (m.robots || "Not confirmed"));
     }

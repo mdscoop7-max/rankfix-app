@@ -162,6 +162,9 @@ function check(
       geo_description: "meta_description",
       schema: "structured_data_context",
       entity: "structured_data_context",
+      // No JSON-LD at all is one root cause: it may not be deducted twice
+      // (Structured data and Organization + WebSite).
+      organization_website: "structured_data_context",
       social: "social_metadata",
       twitter: "social_metadata",
     } as Record<string,string>)[key],
@@ -2757,8 +2760,8 @@ export async function POST(request: Request) {
     seoChecks.push(imageElementCount === 0
       ? check("not_applicable", "alt", "seo", "Afbeelding alt-teksten", "Geen <img>-elementen gevonden in de opgehaalde HTML; deze controle telt daarom niet mee.", "Controleer dynamisch geladen afbeeldingen afzonderlijk wanneer die voor de pagina belangrijk zijn.", 0, 7)
       : imagesMissingAlt === 0
-      ? check("pass", "alt", "seo", "Afbeelding alt-teksten", `Alle ${imageElementCount} controleerbare <img>-elementen in de raw HTML hebben alt-attributen. JavaScript-geladen afbeeldingen zijn niet meegenomen.`, "Schrijf beschrijvende alt-teksten voor informatieve afbeeldingen.", 7, 7)
-      : check("warning", "alt", "seo", "Afbeelding alt-teksten", `${imagesMissingAlt} van ${imageElementCount} controleerbare <img>-elementen in de raw HTML missen alt (${Math.round(missingAltRatio * 100)}%). JavaScript-geladen afbeeldingen zijn niet meegenomen.`, "Voeg beschrijvende alt-teksten toe waar ze betekenis toevoegen.", altPoints, 7)
+      ? check("pass", "alt", "seo", "Afbeelding alt-teksten", `Alle ${imageElementCount} controleerbare <img>-elementen in de ${javascriptExecuted ? "gerenderde" : "raw"} HTML hebben alt-attributen.${javascriptExecuted ? "" : " JavaScript-geladen afbeeldingen zijn niet meegenomen."}`, "Schrijf beschrijvende alt-teksten voor informatieve afbeeldingen.", 7, 7)
+      : check("warning", "alt", "seo", "Afbeelding alt-teksten", `${imagesMissingAlt} van ${imageElementCount} controleerbare <img>-elementen in de ${javascriptExecuted ? "gerenderde" : "raw"} HTML missen alt (${Math.round(missingAltRatio * 100)}%).${javascriptExecuted ? "" : " JavaScript-geladen afbeeldingen zijn niet meegenomen."}`, "Voeg beschrijvende alt-teksten toe waar ze betekenis toevoegen.", altPoints, 7)
     );
     const effectiveLocalBusinessPage = !isProductPage && !hasCategorySignal && effectiveLocalSchemaSignal;
     const effectiveArticlePage = hasArticleSignal && !effectiveLocalBusinessPage;
@@ -3253,7 +3256,9 @@ export async function POST(request: Request) {
     const visibleBrandSignalChecks = [
       { label: "merknaam/branding", found: visibleBrandNameSignal },
       { label: "logo", found: visibleBrandLogoSignal },
-      { label: "bedrijfs-/contactgegevens", found: hasContactChannelSignal },
+      // Only concrete address/phone/e-mail/KvK count as "bedrijfsgegevens"; a
+      // contact page link is a contact option (same facts as "Bedrijfsgegevens").
+      { label: businessDetails.status === "pass" || !hasContactChannelSignal ? "bedrijfs-/contactgegevens" : "contactmogelijkheid", found: hasContactChannelSignal },
       { label: "officieel social/review-profiel", found: hasSocialOrReviewSignal },
     ];
     const visibleBrandSignals = visibleBrandSignalChecks.filter((signal) => signal.found).length;
