@@ -147,3 +147,18 @@ The matrix treats every correction as a failure. A correction means an upstream 
 - A company /nieuws page must not become a publisher.
 - `run-concurrency.mjs`: 12 different sites are scanned in parallel bursts. Evidence must never cross sites, and results must equal single scans.
 - `tests/report-self-check.test.mjs`: unit tests plus a property test of 3000 random contradictory reports, checking that the result is consistent and idempotent.
+
+## Status 16 Oct 2026, fifth pass (Claude) — EU-81 QA (issue #151)
+
+Generic root causes found and fixed (no domain rules; fixtures use neutral `.test` hosts):
+- **Identity was NL/EN-only.** `lib/eu-identity.ts` adds multilingual primary identity (news/broadcast, bank/insurance, passenger transport, freight, post, government via structural host label, education, care, telecom, energy) plus typed schema (Airline, BankOrCreditUnion, NewsMediaOrganization, CollegeOrUniversity…). Navigation-only evidence gives medium confidence (≤78) at most; retail self-description in any EU language vetoes non-retail identities.
+- **Late fallbacks read subpage body text** (one "transport" word in a traffic article → "Transport & Logistiek" 88%). They now use only the sampled pages' own title/description/H1, need two agreeing pages, and stay medium confidence.
+- **Consent-dialog H1/H2** ("Maacht äre Choix", "…använder kakor") no longer count as identity.
+- **Root-redirect landing** (/online/, /ro/persoane-fizice) is the homepage; Product schema next to FinancialProduct is a bank offer, not a product page.
+- **Legacy charsets** declared only in `<meta charset>` are decoded (windows-1250, ISO-8859-x).
+- **100/100 at 53–55% coverage**: failing body checks on SSR pages with a poorer browser snapshot were demoted to "unconfirmed", removing all deductions. Substantive SSR HTML (≥250 words) now proves body structure; only client-injectable head metadata stays unconfirmed. 100 requires complete evidence (else ≤99). Ranges cover all applicable checks (no "100–100" next to unconfirmed sector checks). `scoreModel.evidenceLevel` = complete/provisional/insufficient, shown under every headline score with homepage-vs-site-sample summary (`multiPage.sitewideSummary`).
+- `rendering.completeness` = complete / ssr_without_render / render_incomplete.
+
+Tests: 14 real EU homepage identities (`tests/fixtures/eu-real-identity/`, read from live pages 16 Oct 2026) and 11 synthetic EU-language profiles through the real route; multilingual positive/negative controls; score property tests; RTL-like and Orange-like rendering scenarios. 341/341 tests, CI + Vercel preview green.
+
+Not done / open: no Neon access from Claude (dossier only); no new live scans (owner asked to wait; owner runs the international pilot next). VRT corporate homepage ("Homepage | VRT") honestly abstains. Unieuro→"Evenementen" not reproducible from the homepage identity alone; it is now protected by the multilingual retail identity and the body-text fallback fix, to be confirmed in the pilot.
