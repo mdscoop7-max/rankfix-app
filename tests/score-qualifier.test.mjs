@@ -27,3 +27,11 @@ test("homepage score and site sample are named together", () => {
   assert.match(scoreScope(r, "en"), /16 of 30 pages/);
   assert.equal(scoreScope({}, "nl"), "Score van de homepage");
 });
+
+test("'complete evidence' wording only at 100% coverage", async () => {
+  const { scoreQualifier } = await import("../lib/score-qualifier.ts");
+  const at97 = scoreQualifier({ coverage: { coveragePercent: 97 }, scoreModel: { evidenceLevel: "complete" } }, "nl");
+  assert.equal(at97.label, "Definitief");
+  assert.match(at97.detail, /bewijsdekking 97%/);
+  assert.equal(scoreQualifier({ coverage: { coveragePercent: 100 }, scoreModel: { evidenceLevel: "complete" } }, "nl").label, "Definitief: volledig bewijs");
+});

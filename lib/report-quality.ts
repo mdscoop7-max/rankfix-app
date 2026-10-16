@@ -213,8 +213,10 @@ export function assessPageDescription(description: string, tagPresent: boolean):
     : { status: "WARNING", credit: 0.25, details: "Geen meta description-tag gevonden in raw HTML.", flag: "missing" };
   const length = value.length;
   if (length >= 70 && length <= 160) return { status: "PASS", credit: 1, details: `Meta description gevonden (${length} tekens); bruikbare lengte.` };
-  if (length > 160 && length <= 200) return { status: "WARNING", credit: 0.9, details: `Meta description gevonden (${length} tekens); aan de lange kant, Google kort descriptions boven ongeveer 160 tekens vaak in.` };
-  if (length > 200) return { status: "WARNING", credit: 0.7, details: `Meta description gevonden (${length} tekens); uitzonderlijk lang.` };
+  // Like titles: Google truncates long descriptions in the snippet; length alone
+  // is advice, not a demonstrated defect, so it costs no points.
+  if (length > 160 && length <= 200) return { status: "PASS", credit: 1, details: `Meta description gevonden (${length} tekens); aan de lange kant, Google kort descriptions boven ongeveer 160 tekens vaak in (advies, geen aftrek).` };
+  if (length > 200) return { status: "PASS", credit: 1, details: `Meta description gevonden (${length} tekens); uitzonderlijk lang, wordt in zoekresultaten ingekort (advies, geen aftrek).` };
   if (length >= 50) return { status: "WARNING", credit: 0.85, details: `Meta description gevonden (${length} tekens); kort.` };
   return { status: "WARNING", credit: 0.65, details: `Meta description gevonden (${length} tekens); uitzonderlijk kort.` };
 }

@@ -16,7 +16,7 @@ export type ScorableAuditCheck = {
   fix_status?: "WAITING" | "AWAITING_MERGE" | "STILL_PRESENT" | "DONE";
 };
 
-export const SCORE_MODEL_VERSION = "3.1-stable-core-evidence";
+export const SCORE_MODEL_VERSION = "3.5-evidence-gated";
 
 // Fixed SEO/GEO core: adding sector-specific checks may increase report coverage
 // without silently changing the headline score on the same website.

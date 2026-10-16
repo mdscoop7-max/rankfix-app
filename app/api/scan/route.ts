@@ -2371,6 +2371,11 @@ async function runScan(request: Request) {
     const helpOnlyContactAnchor = classifiedContactAnchors.find((entry) => entry.kind !== null && INDIRECT_CONTACT_KINDS.has(entry.kind))?.item || null;
     const hasPrivacyLink = Boolean(privacyEvidence);
     const hasCookieLink = Boolean(cookieEvidence);
+    // A missing cookie link only counts when the site demonstrably uses cookies
+    // or tracking: no Set-Cookie and no known tracker means there is nothing to disclose that RankFix can prove.
+    const cookieUseObserved = cookieObservations.length > 0 || /googletagmanager\.com|google-analytics\.com|gtag\(|connect\.facebook\.net|fbq\(|hotjar|clarity\.ms|matomo|piwik|doubleclick\.net|snap\.licdn\.com|analytics\.tiktok\.com|cookiebot|onetrust|cookielaw|usercentrics|didomi|iubenda/i.test(html);
+    const cookieSignalOk = hasCookieLink || !cookieUseObserved;
+    const cookieNotRequiredNote = !hasCookieLink && !cookieUseObserved ? " Geen cookies of trackers waargenomen; een cookielink is daarom niet als ontbrekend beoordeeld." : "";
     const hasTermsLink = Boolean(termsEvidence);
     const hasContactLink = Boolean(contactEvidence || contactFormFound || visibleContactEmail);
     const legalLanguageCode = (lang || "").toLowerCase().split("-")[0];
@@ -2769,7 +2774,7 @@ async function runScan(request: Request) {
           ? check("warning", "title", "seo", "Meta title", `De title is ${title.length} tekens, maar bevat relatief veel herhaalde woorden.`, "Herschrijf de title natuurlijker en voorkom keyword stuffing.", 6, 10)
           : titlePixelEstimate.warning
             ? check("warning", "title", "seo", "Meta title", titlePixelEstimate.message, "Controleer de daadwerkelijke zoekpreview. Kort alleen in als de relevante informatie wegvalt.", 9, 10)
-            : check("pass", "title", "seo", "Meta title", `${titlePixelEstimate.message} De titel telt ${title.length} tekens; lengte in tekens is geen harde SEO-eis.`, "Houd onderwerp, zoekintentie en merk herkenbaar.", 10, 10)
+            : check("pass", "title", "seo", "Meta title", titlePixelEstimate.measured ? `Meta title gevonden (${title.length} tekens). ${titlePixelEstimate.message}` : `Meta title gevonden (${title.length} tekens). Lengte in tekens is geen harde SEO-eis; zonder pixelmeting geen aftrek.`, "Houd onderwerp, zoekintentie en merk herkenbaar.", 10, 10)
     );
     seoChecks.push(
       !description
@@ -3034,15 +3039,15 @@ async function runScan(request: Request) {
     );
 
     seoChecks.push(
-      (thinRawHtmlEvidence || (metadataMayBeClientRendered && !(hasPrivacyLink && hasCookieLink && hasContactLink)))
+      (thinRawHtmlEvidence || (metadataMayBeClientRendered && !(hasPrivacyLink && cookieSignalOk && hasContactLink)))
         ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen",thinRawHtmlEvidence ? "De raw HTML is een dunne JavaScript-shell. Privacy-, cookie- en contactlinks kunnen client-side worden toegevoegd en zijn daarom niet betrouwbaar als ontbrekend te beoordelen." : "Deze pagina gebruikt een JavaScript-framework en browser-rendering was niet beschikbaar. Footerlinks naar privacy, cookies of contact kunnen client-side worden geladen en zijn daarom niet als ontbrekend te beoordelen.","Controleer deze signalen opnieuw met geslaagde JavaScript-rendering.",0,5)
-        : hasPrivacyLink && hasCookieLink && hasContactLink
-        ? check("pass","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Links naar privacy, cookies en contact zijn in de opgehaalde HTML gevonden."+(legalEvidenceSummary ? " Bewijs: "+legalEvidenceSummary+"." : ""),"Houd deze informatie duidelijk vindbaar en actueel. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",5,5)
-        : hasPrivacyLink && hasCookieLink && helpOnlyContactAnchor
+        : hasPrivacyLink && cookieSignalOk && hasContactLink
+        ? check("pass","trust_legal_signals","seo","Privacy & vertrouwenssignalen",(hasCookieLink ? "Links naar privacy, cookies en contact zijn in de opgehaalde HTML gevonden." : "Links naar privacy en contact zijn in de opgehaalde HTML gevonden."+cookieNotRequiredNote)+(legalEvidenceSummary ? " Bewijs: "+legalEvidenceSummary+"." : ""),"Houd deze informatie duidelijk vindbaar en actueel. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",5,5)
+        : hasPrivacyLink && cookieSignalOk && helpOnlyContactAnchor
         ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Links naar privacy en cookies zijn gevonden. Voor contact is alleen een indirecte link gevonden (FAQ, help, support, klantenservice of een andere website) (\""+(helpOnlyContactAnchor.label || helpOnlyContactAnchor.aria || helpOnlyContactAnchor.title)+"\" → "+helpOnlyContactAnchor.href+"); dat bewijst geen directe contactmogelijkheid, maar ook niet dat die ontbreekt."+(legalEvidenceSummary ? " Bewijs: "+legalEvidenceSummary+"." : ""),"Controleer of de help- of supportpagina een contactpagina, contactformulier, e-mailadres of telefoonnummer aanbiedt.",0,5)
         : !legalLanguageSupported && Boolean(legalLanguageCode)
           ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen","De paginataal ("+legalLanguageCode+") valt buiten de geteste juridische woordenlijst en niet alle signalen zijn rechtstreeks bevestigd."+(legalEvidenceSummary ? " Wel gevonden: "+legalEvidenceSummary+"." : ""),"Controleer de footer en cookiebanner handmatig of breid de woordenlijst voor deze taal uit.",0,5)
-          : check("warning","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Niet alle basissignalen zijn gevonden: "+[!hasPrivacyLink?"privacy":null,!hasCookieLink?"cookies":null,!hasContactLink?"contact":null].filter(Boolean).join(", ")+". "+(legalEvidenceSummary ? "Wel gevonden: "+legalEvidenceSummary+"." : ""),"Controleer of privacy-, cookie- en contactinformatie duidelijk bereikbaar is. RankFix beoordeelt hiermee geen wettelijke compliance.",Math.max(2, Number(hasPrivacyLink)+Number(hasCookieLink)+Number(hasContactLink)+2),5)
+          : check("warning","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Niet alle basissignalen zijn gevonden: "+[!hasPrivacyLink?"privacy":null,!cookieSignalOk?"cookies":null,!hasContactLink?"contact":null].filter(Boolean).join(", ")+". "+(legalEvidenceSummary ? "Wel gevonden: "+legalEvidenceSummary+"." : ""),"Controleer of privacy-, cookie- en contactinformatie duidelijk bereikbaar is. RankFix beoordeelt hiermee geen wettelijke compliance.",Math.max(2, Number(hasPrivacyLink)+Number(cookieSignalOk)+Number(hasContactLink)+2),5)
     );
     seoChecks.push(
       thinRawHtmlEvidence && hasEcommerceSignal
@@ -3660,7 +3665,7 @@ async function runScan(request: Request) {
       }
       if(item.key==="trust_legal_signals"){
         const labels=localizedMissingLabels[scanLanguage]||localizedMissingLabels.en;
-        const missing=[!hasPrivacyLink?labels.privacy:null,!hasCookieLink?labels.cookies:null,!hasContactLink?labels.contact:null].filter(Boolean).join(", ");
+        const missing=[!hasPrivacyLink?labels.privacy:null,!cookieSignalOk?labels.cookies:null,!hasContactLink?labels.contact:null].filter(Boolean).join(", ");
         item.title=({nl:"Privacy & vertrouwenssignalen",en:"Privacy & trust signals",de:"Datenschutz- & Vertrauenssignale",fr:"Signaux de confidentialité et de confiance",it:"Segnali di privacy e fiducia",es:"Señales de privacidad y confianza"} as Record<string,string>)[scanLanguage]||"Privacy & trust signals";
         item.message=concreteCopy.trust(missing);
         item.fix=concreteCopy.trustFix;
@@ -3973,7 +3978,7 @@ async function runScan(request: Request) {
       const candidate = classifyMultiPageCandidate(item.url);
       if (!candidate) return [];
       const context = (item.context || "").trim();
-      if (context) candidate.evidence.push(`link-context: ${context.slice(0,120)}`);
+      if (context) { const cleanContext = context.replace(/\s*(?:""|“”|''|«\s*»)\s*$/,"").trim(); if (cleanContext) candidate.evidence.push(`link-context: ${cleanContext.slice(0,120)}`); }
       return [[normalizeScanUrl(candidate.url), candidate] as const];
     })).values()];
     // Evidence-first representative selection. URL shape is only a weak fallback;
@@ -4865,7 +4870,7 @@ async function runScan(request: Request) {
       const cookiePage = sampled.find((item)=>/cookie/.test(item.path)) || (privacyPage && /cookie/.test(privacyPage.text) ? privacyPage : undefined);
       const contactPage = sampled.find((item)=>/(?:^|\/)(?:contact|contact-us|contactgegevens|kontakt|contacto|contatti)(?:\/|$)/.test(item.path));
       const privacyOk = hasPrivacyLink || Boolean(privacyPage);
-      const cookieOk = hasCookieLink || Boolean(cookiePage);
+      const cookieOk = cookieSignalOk || Boolean(cookiePage);
       const contactOk = hasContactLink || Boolean(contactPage);
       const sampleProof = [privacyPage && `privacy: ${privacyPage.url}`, cookiePage && cookiePage !== privacyPage && `cookies: ${cookiePage.url}`, cookiePage && cookiePage === privacyPage && !hasCookieLink && "cookies: in de privacyverklaring", contactPage && `contact: ${contactPage.url}`].filter(Boolean).join(" · ");
       if (privacyOk && cookieOk && contactOk && (privacyPage || cookiePage || contactPage)) {
