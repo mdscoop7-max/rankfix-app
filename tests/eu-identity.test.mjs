@@ -88,3 +88,18 @@ test("government hostname uses only the label before the TLD", () => {
   for (const h of ["portal.gov.cz", "www.gov.pl", "www.service.gouv.fr", "www.bmf.gv.at", "www.admin.ch", "www.gob.es", "agency.gov"]) assert.ok(governmentHostname(h), h);
   for (const h of ["admin.shop.com", "gov.example.com", "govshop.nl", "mygov.test", "bund-shop.de"]) assert.ok(!governmentHostname(h), h);
 });
+
+test("further EU languages: PL airline, FI bank, EE telecom, LV news, LT rail, HU post, DK rail", () => {
+  const cases = [
+    ["passenger_transport", { title: "Tanie loty i bilety lotnicze | Polskie Linie Lotnicze", description: "Zarezerwuj lot online." }],
+    ["financial_banking", { title: "Pankki – lainat, säästäminen ja pankkitili", description: "Avaa pankkitili, hae lainaa ja luottokortti." }],
+    ["telecom_technology", { title: "Mobiilside, kiudoptiline internet ja TV", description: "Mobiilside paketid ja kiire internet." }],
+    ["news_media", { title: "Ziņas | Latvijas sabiedriskie mediji", description: "Jaunākās ziņas no Latvijas un pasaules." }],
+    ["passenger_transport", { title: "Traukinių bilietai ir tvarkaraštis", description: "Pirkite traukinio bilietus internetu." }],
+    ["postal_logistics", { title: "Posta – levél- és csomagküldés, bélyeg", description: "Csomagfeladás, levélküldés és postai szolgáltatások." }],
+    ["passenger_transport", { title: "Tog, billetter og rejseplan", description: "Køb billetter til tog i hele Danmark." }],
+  ];
+  for (const [key, v] of cases) assert.equal(detectEuPrimaryIdentity({ ...v, homepage: true })?.key, key, v.title);
+  // "a lot of", "parking lot" are not flights.
+  assert.equal(detectEuPrimaryIdentity({ title: "Parking lot cleaning – a lot of experience", description: "We clean parking lots and garages.", homepage: true }), null);
+});

@@ -2,8 +2,8 @@
 // sites (no network, no DB) and checks sector, page type and report invariants.
 // Run: node --experimental-strip-types --import ./tests/scan-matrix/register.mjs tests/scan-matrix/run-matrix.mjs
 import { PROFILES, installMatrixFetch2 } from "./profiles.mjs";
-import { euRealProfiles } from "./eu-real-profiles.mjs";
-PROFILES.push(...euRealProfiles());
+import { euRealProfiles, euSyntheticProfiles } from "./eu-real-profiles.mjs";
+PROFILES.push(...euRealProfiles(), ...euSyntheticProfiles());
 installMatrixFetch2();
 const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const { POST } = await import(ROOT + "/app/api/scan/route.ts");
@@ -86,6 +86,16 @@ for (const p of PROFILES) {
       const alt = checks.find((c) => c.key === "alt"); if (alt && j.rendering?.javascriptExecuted && /raw HTML/.test(alt.message)) problems.push("alt message says raw HTML on a rendered page");
       const sd = checks.find((c) => c.key === "schema"); const ow = checks.find((c) => c.key === "organization_website");
       if (sd && ow && sd.rootCause !== ow.rootCause) problems.push("schema and organization_website must share one root cause"); }
+    // Issue #151: 100/100 needs complete evidence, and unconfirmed checks must
+    // widen the range (no "100–100" next to unconfirmed sector checks).
+    if ((process.env.MODE || "both") === "both") {
+      const unconfirmed = checks.filter((c) => c.status === "unable_to_confirm" && c.maxPoints > 0).length;
+      if (unconfirmed && j.overallScore >= 100) problems.push(`100/100 with ${unconfirmed} unconfirmed checks`);
+      if (unconfirmed && r && j.overallScore > 0 && r.low >= r.high) problems.push(`range ${r.low}-${r.high} hides ${unconfirmed} unconfirmed checks`);
+      if (!["complete", "provisional", "insufficient"].includes(j.scoreModel.evidenceLevel)) problems.push("evidenceLevel missing");
+      if (j.coverage?.coveragePercent < 60 && j.scoreModel.evidenceLevel !== "insufficient") problems.push(`coverage ${j.coverage.coveragePercent}% but evidenceLevel ${j.scoreModel.evidenceLevel}`);
+      if (j.scoreModel.evidenceLevel !== "complete" && !j.scoreModel.provisional) problems.push("non-complete evidence not provisional");
+    }
     // Global invariant: a report with any warning/fail never shows 100.
     if ((process.env.MODE || "both") === "both" && checks.some((c) => c.status === "warning" || c.status === "fail") && j.overallScore >= 100) problems.push("100/100 with open issues");
   }

@@ -15,7 +15,7 @@ import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, fi
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readHtmlSampleHeadFirst, readResponsePrefix, readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
-import { applyEvidenceBasedScoreCap, capPerfectScore, stableCoreChecks, SCORE_MODEL_VERSION, scoreApplicableChecks, combinedScoreRange, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
+import { applyEvidenceBasedScoreCap, capPerfectScore, evidenceLevel, evidenceRange, requireCompleteEvidenceForPerfect, stableCoreChecks, SCORE_MODEL_VERSION, scoreApplicableChecks, combinedScoreRange, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
 import { isPaidPlan, normalizePlan, planLimits } from "@/lib/plans";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
@@ -652,6 +652,12 @@ export async function POST(request: Request) {
     // is also a strong reason to render once. This improves Shopify/Next/Nuxt sites
     // without rendering every SSR page or retrying indefinitely.
     const javascriptCandidate = !recoveredHtml && (javascriptFrameworkSignal || thinClientShell);
+    // A thin raw document with scripts (fewer than 80 visible words) is incomplete
+    // evidence when no browser render succeeded: missing metadata there is not a
+    // proven website defect. A substantive server-rendered body (250+ words, not a
+    // shell) is real evidence for body structure (H1, headings, content, alt).
+    const thinRawDocument = !recoveredHtml && rawVisibleWords < 80 && rawScriptCount >= 1;
+    const rawSubstantiveDocument = !recoveredHtml && !thinClientShell && rawVisibleWords >= 250;
     let javascriptExecuted = Boolean(recoveredHtml);
     let renderElapsedMs: number | null = recoveredRenderElapsedMs;
     let renderFallbackReason: string | null = recovery.reason;
@@ -741,7 +747,8 @@ export async function POST(request: Request) {
     }
 
     const titlePixelEstimate = titlePixelAdvice(renderedDocument?.titlePixelWidth);
-    const title = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
+    // Invisible characters (zero-width space/joiners, BOM) are not a title.
+    const title = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i).replace(/[\u200B-\u200D\u2060\uFEFF]/g, "").trim();
     const descriptionMetaTag = html.match(/<meta\b[^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] ||
       html.match(/<meta\b[^>]*content\s*=\s*["'][^"']*["'][^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] || "";
     const descriptionContentMatch = descriptionMetaTag.match(/\bcontent\s*=\s*(["'])([\s\S]*?)\1/i);
@@ -1814,7 +1821,10 @@ export async function POST(request: Request) {
     const storeSchemaRetailIdentity = storeSchemaTypes.length > 0 &&
       (onlineRetailCallout || evidenceCommerceStrength >= 1 || hasEcommerceSignal);
     const explicitRetailIdentity = storeSchemaRetailIdentity || (retailAssortmentIdentity &&
-      (onlineRetailCallout || (retailStoreIdentity && commerceNavigationSignal)));
+      (onlineRetailCallout || (retailStoreIdentity && commerceNavigationSignal)))
+      // Online-shop self-description in any EU language ("negozio online",
+      // "e-pood", "sklep internetowy", ...) plus at least one commerce signal.
+      || (euRetailSelfDescription && (evidenceCommerceStrength >= 1 || commerceNavigationSignal));
     const retailPurchaseEvidence = evidenceCommerceConfirmed || hasEcommerceSignal || explicitRetailIdentity;
     const retailPrimaryIdentity = retailPurchaseEvidence
       && primaryBusinessEvidence.sector !== "financial_services"
@@ -2641,6 +2651,9 @@ export async function POST(request: Request) {
 
     // If rendering failed on a JS-driven page, raw HTML absence is not proof of absence.
     const metadataMayBeClientRendered = javascriptCandidate && !javascriptExecuted;
+    // A substantive server-rendered body proves heading structure on its own;
+    // only a thin script shell leaves H1/headings unconfirmed without a render.
+    const bodyStructureMayBeClientRendered = metadataMayBeClientRendered && !rawSubstantiveDocument;
     // One shared rule for text/link evidence. A thin client shell is insufficient
     // evidence for negative content, trust or commercial-link conclusions.
     const thinRawHtmlEvidence = !javascriptExecuted && (
@@ -2700,7 +2713,7 @@ export async function POST(request: Request) {
     seoChecks.push(h1s.length === 1
       ? check("pass", "h1", "seo", "H1-heading", "Er is precies één H1-heading gevonden.", "Behoud één duidelijke primaire H1.", 8, 8)
       : h1s.length === 0
-        ? metadataMayBeClientRendered
+        ? bodyStructureMayBeClientRendered
           ? check("unable_to_confirm", "h1", "seo", "H1-heading", "De H1 kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de headingstructuur opnieuw met een volledige render.", 0, 8)
           : check("warning", "h1", "seo", "H1-heading", "Er is geen H1-heading gevonden. Dit is een structuur-/toegankelijkheidsaanbeveling en geen op zichzelf bewezen rankingfout.", "Voeg een duidelijke primaire H1 toe wanneer dat past bij de pagina-inhoud.", 6, 8)
         : check("pass", "h1", "seo", "H1-heading", `Er zijn ${h1s.length} H1-headings gevonden. Meerdere H1-elementen zijn technisch toegestaan; RankFix behandelt dit daarom als structuuradvies en niet als bewezen SEO-probleem.`, "Overweeg één duidelijke primaire H1 en gebruik H2/H3 voor secties wanneer dat de documentstructuur begrijpelijker maakt.", 8, 8)
@@ -2711,11 +2724,11 @@ export async function POST(request: Request) {
     seoChecks.push(subheadingCount > 0 && hasH2
       ? check("pass", "headings", "seo", "Heading-structuur", h1s.length > 0
           ? `Er zijn ${subheadingCount} H2–H6 headings gevonden naast de H1.`
-          : metadataMayBeClientRendered
+          : bodyStructureMayBeClientRendered
             ? `Er zijn ${subheadingCount} H2–H6 headings gevonden. De H1 wordt afzonderlijk gecontroleerd en kon op deze JavaScript-pagina niet betrouwbaar worden bevestigd.`
             : `Er zijn ${subheadingCount} H2–H6 headings gevonden. Er is geen H1 gevonden; de H1 wordt afzonderlijk beoordeeld.`,
         "Gebruik headings om onderwerpen en subonderwerpen logisch te groeperen.", 7, 7)
-      : metadataMayBeClientRendered && subheadingCount === 0
+      : bodyStructureMayBeClientRendered && subheadingCount === 0
         ? check("unable_to_confirm", "headings", "seo", "Heading-structuur", "De headingstructuur kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de headingstructuur opnieuw met een volledige render voordat je headings toevoegt of wijzigt.", 0, 7)
         : check("warning", "headings", "seo", "Heading-structuur", subheadingCount
             ? `Er zijn ${subheadingCount} subheading(s) gevonden, maar geen duidelijke H2-laag. Dit is structuuradvies en geen bewezen rankingfout.`
@@ -3694,7 +3707,7 @@ export async function POST(request: Request) {
     for (const item of seoChecks) {
       if (["subscription_price_visibility","booking_transaction","lead_form_presence"].includes(item.key) && item.evidence && !item.evidence.url) item.evidence = { ...item.evidence, url: finalUrl.toString() };
     }
-    applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate, rendered:javascriptExecuted, url:finalUrl.toString() });
+    applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate || thinRawDocument, rendered:javascriptExecuted, url:finalUrl.toString(), rawSubstantive:rawSubstantiveDocument });
     const selectedSeoChecks = mode === "geo" ? [] : seoChecks;
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
     let selectedSeoScore = scoreApplicableChecks(stableCoreChecks(selectedSeoChecks,"seo"));
@@ -3822,6 +3835,13 @@ export async function POST(request: Request) {
       evidenceSource: javascriptExecuted ? "rendered_html" as const : "raw_html" as const,
       // Bot manager that served a reduced page; dependent checks stayed unconfirmed.
       botProtection: reducedBotResponse ? botCookieNames : null,
+      // How complete the analysed document is, separately from any website defect:
+      // complete | ssr_without_render (server HTML is substantive, browser step failed
+      // or was poorer) | render_incomplete (a thin script page could not be rendered).
+      completeness: javascriptExecuted || (!javascriptCandidate && !thinRawDocument)
+        ? "complete" as const
+        : rawSubstantiveDocument ? "ssr_without_render" as const : "render_incomplete" as const,
+      rawVisibleWords,
     };
 
     // Multi-page evidence audit: select a bounded same-host sample and fetch it
@@ -4943,7 +4963,7 @@ export async function POST(request: Request) {
       }
     }
 
-    applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate, rendered:javascriptExecuted, url:finalUrl.toString() });
+    applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate || thinRawDocument, rendered:javascriptExecuted, url:finalUrl.toString(), rawSubstantive:rawSubstantiveDocument });
     // Final score is calculated only after representative evidence reconciliation.
     // Reapply evidence coverage caps: this second scoring pass must not erase them.
     selectedSeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(stableCoreChecks(selectedSeoChecks,"seo")), stableCoreChecks(selectedSeoChecks,"seo"));
@@ -4953,14 +4973,32 @@ export async function POST(request: Request) {
     selectedSeoScore = capPerfectScore(selectedSeoScore, selectedSeoChecks);
     selectedGeoScore = capPerfectScore(selectedGeoScore, selectedGeoChecks);
     selectedOverallScore = capPerfectScore(selectedOverallScore, [...selectedSeoChecks,...selectedGeoChecks]);
+    // 100/100 requires complete evidence (no unconfirmed applicable check).
+    selectedSeoScore = requireCompleteEvidenceForPerfect(selectedSeoScore, selectedSeoChecks);
+    selectedGeoScore = requireCompleteEvidenceForPerfect(selectedGeoScore, selectedGeoChecks);
+    selectedOverallScore = requireCompleteEvidenceForPerfect(selectedOverallScore, [...selectedSeoChecks,...selectedGeoChecks]);
+    if (mode === "both") selectedOverallScore = Math.min(selectedOverallScore, Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4));
     seoCoverage = weightedCoverage(selectedSeoChecks);
     geoCoverage = weightedCoverage(selectedGeoChecks);
     overallCoverage = weightedCoverage(checks);
     const finalRanges = reportRanges();
-    scoreModel.range = finalRanges.overall;
-    scoreModel.seoRange = finalRanges.seoR;
-    scoreModel.geoRange = finalRanges.geoR;
-    scoreModel.provisional = overallCoverage.coveragePercent < 90;
+    // Ranges cover every applicable check, so sector-module checks that could not
+    // be confirmed widen the band instead of hiding behind a "100–100" range.
+    scoreModel.range = { ...finalRanges.overall, ...evidenceRange(selectedOverallScore, finalRanges.overall, [...selectedSeoChecks,...selectedGeoChecks]) };
+    scoreModel.seoRange = { ...finalRanges.seoR, ...evidenceRange(selectedSeoScore, finalRanges.seoR, selectedSeoChecks) };
+    scoreModel.geoRange = { ...finalRanges.geoR, ...evidenceRange(selectedGeoScore, finalRanges.geoR, selectedGeoChecks) };
+    const scoreEvidence = evidenceLevel({
+      coveragePercent: overallCoverage.coveragePercent,
+      javascriptRequiredButNotRendered: Boolean(javascriptCandidate) && !javascriptExecuted,
+      renderDegraded: Boolean(rejectedBrowserSnapshot),
+      unconfirmed: overallCoverage.unableToConfirm,
+    });
+    scoreModel.provisional = scoreEvidence.level !== "complete";
+    Object.assign(scoreModel, {
+      evidenceLevel: scoreEvidence.level,
+      evidenceReasons: scoreEvidence.reasons,
+      perfectScoreRule: "100/100 alleen bij volledig bevestigd bewijs; bij onbevestigde controles maximaal 99.",
+    });
     scoreModel.coverageAdjustment = 0;
     // Central self-check: sector label, sector evidence, modules, advice,
     // points, evidence URLs and scores must describe the same facts before the
@@ -4977,6 +5015,8 @@ export async function POST(request: Request) {
     selectedSeoScore = consistency.scores.seo;
     selectedGeoScore = consistency.scores.geo;
     selectedOverallScore = consistency.scores.overall;
+    // Self-check corrections can only lower scores; keep each score inside its band.
+    scoreModel.range = { ...scoreModel.range, low: Math.min(scoreModel.range.low, selectedOverallScore) };
     const selfCheck = consistency.selfCheck;
     masterEvidence.primarySector.label = sectorProfile.label;
     masterEvidence.activeModules = sectorProfile.applicableModules;

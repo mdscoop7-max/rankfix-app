@@ -185,3 +185,51 @@ export function applyEvidenceBasedScoreCap(score: number, items: ScoreCapCheck[]
 export function capPerfectScore(score: number, items: Array<Pick<ScoreCapCheck, "issue_status" | "maxPoints">>): number {
   return items.some((item) => item.maxPoints > 0 && (item.issue_status === "WARNING" || item.issue_status === "FAIL")) ? Math.min(score, 99) : score;
 }
+
+/**
+ * 100/100 is a claim that nothing is left to improve. That claim needs complete
+ * evidence: with any applicable check still unconfirmed, the score stays at
+ * most 99 and the report says why (issue #151: 100/100 at 53-55% coverage).
+ * Unconfirmed checks still never cost more than that single point.
+ */
+export function requireCompleteEvidenceForPerfect(score: number, items: Array<Pick<ScorableAuditCheck, "issue_status" | "maxPoints">>): number {
+  return score >= 100 && items.some((item) => item.maxPoints > 0 && item.issue_status === "UNABLE_TO_CONFIRM") ? 99 : score;
+}
+
+/**
+ * Uncertainty range over EVERY applicable check (core and sector modules), not
+ * only the stable core. Previously a report could show "mogelijk bereik
+ * 100-100" next to twelve unconfirmed sector checks because those checks were
+ * outside the core set. low = every unconfirmed check fails, high = every one
+ * passes; the range always contains the displayed score.
+ */
+export function evidenceRange(score: number, coreRange: { low: number; high: number }, allItems: ScorableAuditCheck[]) {
+  const full = scoreRange(allItems);
+  const hasUnverified = full.unverifiedWeight > 0;
+  // Each unconfirmed weight point can move the headline at most its share of the
+  // applicable weight; this keeps the band interpretable for core-based scores.
+  const share = full.applicableWeight ? full.unverifiedWeight / full.applicableWeight : 0;
+  const lowFromShare = Math.round(score * (1 - share));
+  const low = Math.min(score, coreRange.low, hasUnverified ? Math.min(full.low, lowFromShare) : coreRange.low);
+  const high = Math.max(score, coreRange.high, hasUnverified ? Math.min(100, Math.max(full.high, score + Math.round((100 - score) * share))) : coreRange.high);
+  return { low: Math.max(0, low), high: Math.min(100, high), unverifiedWeight: full.unverifiedWeight, applicableWeight: full.applicableWeight, assessedWeight: full.assessedWeight, basis: "all_applicable_checks" as const };
+}
+
+export type EvidenceLevel = "complete" | "provisional" | "insufficient";
+
+/**
+ * One qualifier for the headline score, from coverage, rendering and sector
+ * certainty. "insufficient" means the number describes only part of the site
+ * evidence and must be presented as an indication, never as a final grade.
+ */
+export function evidenceLevel(input: { coveragePercent: number; javascriptRequiredButNotRendered: boolean; renderDegraded?: boolean; sectorConfidence?: number; unconfirmed: number }): { level: EvidenceLevel; reasons: string[] } {
+  const reasons: string[] = [];
+  if (input.coveragePercent < 60) reasons.push(`Bewijsdekking ${input.coveragePercent}% (onder 60%)`);
+  else if (input.coveragePercent < 90) reasons.push(`Bewijsdekking ${input.coveragePercent}% (onder 90%)`);
+  if (input.javascriptRequiredButNotRendered) reasons.push("JavaScript-pagina niet volledig gerenderd");
+  if (input.renderDegraded) reasons.push("Browser-rendering leverde minder inhoud dan de ruwe HTML");
+  if (input.unconfirmed > 0) reasons.push(`${input.unconfirmed} toepasselijke controle(s) niet te bevestigen`);
+  const insufficient = input.coveragePercent < 60 || (input.javascriptRequiredButNotRendered && input.coveragePercent < 75);
+  const level: EvidenceLevel = insufficient ? "insufficient" : input.coveragePercent < 90 || input.javascriptRequiredButNotRendered || input.renderDegraded ? "provisional" : "complete";
+  return { level, reasons };
+}

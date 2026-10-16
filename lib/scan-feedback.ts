@@ -30,13 +30,29 @@ export type EvidenceCheck = {
 // A failure to execute a site's JS may not turn a missing DOM signal into a
 // scoring issue. Confirmed positive evidence remains valid; HTTP/headers are
 // independent of hydration and never demoted.
+// Head metadata can be injected client-side even when the server HTML has a
+// full body, so its absence stays unconfirmed without a successful render.
+export const CLIENT_INJECTABLE_HEAD_CHECKS = new Set([
+  "title","description","canonical","social","twitter_card","schema","organization_website",
+  "breadcrumbs","faq","product_schema",
+]);
+
+/**
+ * Evidence completeness of the analysed document (issue #151). Four honest
+ * outcomes per check: proven issue, unable to confirm, not applicable, and
+ * "rendering incomplete" (reasonCode needs_js) when the page needs JavaScript
+ * that could not be executed. A substantive server-rendered body (SSR) is
+ * real evidence for body structure even when the browser step failed; only
+ * client-injectable head metadata stays unconfirmed then.
+ */
 export function applyJsEvidenceUncertainty(
-  checks: EvidenceCheck[], input: { framework: boolean; rendered: boolean; url: string },
+  checks: EvidenceCheck[], input: { framework: boolean; rendered: boolean; url: string; rawSubstantive?: boolean },
 ): number {
   if (!input.framework || input.rendered) return 0;
   let changed = 0;
   for (const c of checks) {
     if (!DOM_DEPENDENT_CHECKS.has(c.key) || !["warning","fail"].includes(c.status)) continue;
+    if (input.rawSubstantive && !CLIENT_INJECTABLE_HEAD_CHECKS.has(c.key)) continue;
     if (c.evidence?.found === true) continue;
     c.status = "unable_to_confirm";
     c.issue_status = "UNABLE_TO_CONFIRM";

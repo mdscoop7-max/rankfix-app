@@ -63,3 +63,24 @@ export function euRealProfiles() {
   }
   return out;
 }
+
+// Synthetic, brand-free EU profiles for languages and sectors that were "Sector
+// niet bevestigd" in the EU-81 round, plus negative controls (shops that sell
+// tickets, travel goods or financing). Same builder as the real fixtures.
+const SYN = [
+  { id: "eu-syn-ee-marketplace", host: "ee-pood.test", expect: ["ecommerce"], commerce: true, widgets: ["products"], f: { lang: "et", title: "Suurim e-pood Eestis – elektroonika ja kodumasinad", desc: "Telli elektroonikat, kodumasinaid ja mänguasju meie e-poest. Kiire tarne.", h1: ["E-pood"], h2: ["Pakkumised", "Uued tooted"], nav: ["Elektroonika", "Kodumasinad", "Mänguasjad", "Ostukorv"], types: ["Organization"] } },
+  { id: "eu-syn-lt-marketplace", host: "lt-parduotuve.test", expect: ["ecommerce"], commerce: true, widgets: ["products"], f: { lang: "lt", title: "Internetinė parduotuvė – buitinė technika ir elektronika", desc: "Didžiausia internetinė parduotuvė Lietuvoje. Pristatymas į namus.", h1: ["Pasiūlymai"], h2: ["Populiariausi"], nav: ["Elektronika", "Buitinė technika", "Krepšelis"], types: [] } },
+  { id: "eu-syn-pl-shop-tickets", host: "pl-sklep.test", expect: ["ecommerce"], notExpect: ["transport_travel", "events_culture"], commerce: true, widgets: ["products"], f: { lang: "pl", title: "Sklep internetowy z elektroniką – laptopy i smartfony", desc: "Kup online laptopy, smartfony i bilety upominkowe. Raty 0%, karta kredytowa, darmowa dostawa.", h1: ["Promocje"], h2: ["Bestsellery"], nav: ["Laptopy", "Smartfony", "Bilety upominkowe", "Koszyk"], types: [] } },
+  { id: "eu-syn-pl-airline", host: "pl-linie.test", expect: ["transport_travel"], widgets: ["fares"], f: { lang: "pl", title: "Tanie loty i bilety lotnicze | Polskie Linie Lotnicze", desc: "Zarezerwuj lot online do ponad 80 miejsc docelowych.", h1: ["Zarezerwuj lot"], h2: ["Kierunki"], nav: ["Rezerwacja", "Odprawa", "Moja rezerwacja"], types: [] } },
+  { id: "eu-syn-fi-bank", host: "fi-pankki.test", expect: ["financial_services"], widgets: ["bankshop"], f: { lang: "fi", title: "Pankki – lainat, säästäminen ja pankkitili", desc: "Avaa pankkitili, hae lainaa ja luottokortti verkossa.", h1: ["Tervetuloa pankkiin"], h2: ["Asuntolaina", "Säästäminen"], nav: ["Henkilöasiakkaat", "Yritykset", "Verkkopankki"], types: ["Organization"] } },
+  { id: "eu-syn-ee-telecom", host: "ee-side.test", expect: ["telecom_technology"], widgets: ["products"], f: { lang: "et", title: "Mobiilside, kiudoptiline internet ja TV", desc: "Mobiilside paketid, kiire internet ja TV koju.", h1: ["Paketid"], h2: ["Mobiilside", "Internet"], nav: ["Mobiil", "Internet", "TV", "E-pood"], types: [] } },
+  { id: "eu-syn-pt-energy", host: "pt-energia.test", expect: ["energy_utilities"], f: { lang: "pt", title: "Eletricidade e gás natural para a sua casa", desc: "Contrate eletricidade e gás com o tarifário certo. Fornecedor de energia.", h1: ["Energia para casa"], h2: ["Tarifários"], nav: ["Casa", "Empresas", "Área de cliente"], types: [] } },
+  { id: "eu-syn-hu-post", host: "hu-posta.test", expect: ["transport_travel"], widgets: ["stamps"], f: { lang: "hu", title: "Posta – levél- és csomagküldés, bélyeg", desc: "Csomagfeladás, levélküldés és postai szolgáltatások egy helyen.", h1: ["Posta"], h2: ["Csomagkövetés"], nav: ["Csomagküldés", "Levélküldés", "Bélyegek"], types: [] } },
+  { id: "eu-syn-lv-news", host: "lv-zinas.test", expect: ["news_media"], f: { lang: "lv", title: "Ziņas | Latvijas sabiedriskie mediji", desc: "Jaunākās ziņas no Latvijas un pasaules.", h1: ["Ziņas"], h2: ["Latvijā", "Pasaulē", "Sports"], nav: ["Ziņas", "Sports", "Kultūra"], types: [] } },
+  { id: "eu-syn-de-travelshop", host: "de-koffer.test", expect: ["ecommerce"], notExpect: ["transport_travel"], commerce: true, widgets: ["products"], f: { lang: "de", title: "Reisegepäck online kaufen | Koffer-Shop", desc: "Koffer, Reiserucksäcke und Zugbegleiter-Taschen im Onlineshop. Versandkostenfrei.", h1: ["Koffer"], h2: ["Neuheiten"], nav: ["Koffer", "Rucksäcke", "Warenkorb"], types: [] } },
+  { id: "eu-syn-nl-news-traffic", host: "nl-krant.test", expect: ["news_media"], notExpect: ["transport_travel"], f: { lang: "nl", title: "Het laatste nieuws uit de regio | Dagblad", desc: "Regionaal nieuws, verkeer, sport en het weer van de redactie.", h1: ["Nieuws"], h2: ["Verkeer: file op de A2", "Luchthaven: nieuwe vluchten", "Transport en logistiek"], nav: ["Nieuws", "Verkeer", "Luchthaven", "Sport"], types: [] } },
+];
+
+export function euSyntheticProfiles() {
+  return SYN.map((x) => ({ id: x.id, host: x.host, path: "/", page: "homepage", expect: x.expect, ...(x.notExpect ? { notExpect: x.notExpect } : {}), commerce: Boolean(x.commerce), raw: build(x.f, { widgets: x.widgets }) }));
+}
