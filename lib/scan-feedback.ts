@@ -145,3 +145,31 @@ export function compareScoreVersions(
       : null,
   };
 }
+
+/**
+ * Evidence gate: every scored check (pass, warning, fail with points at stake)
+ * must name where it was observed and what was found. A check measured on the
+ * scanned page without a URL gets that page's URL; a check without any recorded
+ * finding is not proven and becomes UNABLE_TO_CONFIRM with 0 points.
+ * Returns how many checks were demoted.
+ */
+export function requireEvidenceForScoredChecks(checks: EvidenceCheck[], pageUrl: string): number {
+  let demoted = 0;
+  for (const c of checks) {
+    if (!["pass", "warning", "fail"].includes(c.status) || !(c.maxPoints > 0)) continue;
+    const ev = c.evidence;
+    const recorded = Boolean(ev) && ev!.found !== null && ev!.found !== undefined;
+    if (recorded) {
+      if (!ev?.url) c.evidence = { ...(ev || { found: null, details: c.message }), url: pageUrl };
+      continue;
+    }
+    c.status = "unable_to_confirm";
+    c.issue_status = "UNABLE_TO_CONFIRM";
+    c.points = 0;
+    c.confidence = "low";
+    c.reasonCode = "weak_evidence";
+    c.evidence = { url: pageUrl, found: null, details: "Geen controleerbaar bewijs vastgelegd voor deze controle; daarom telt ze niet mee in de score." };
+    demoted++;
+  }
+  return demoted;
+}

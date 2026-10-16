@@ -15,41 +15,53 @@ const asList = (v) => (Array.isArray(v) ? v : [v]);
 const pct = (n, d) => (d ? Math.round((n / d) * 1000) / 10 : null);
 const quantile = (xs, q) => { if (!xs.length) return null; const s = [...xs].sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(q * s.length))]; };
 
+// A row has ground truth when it names a real sector. "unknown" is never a
+// correct answer for such a row (not even when abstaining was acceptable), so
+// strict accuracy = correct sector / scanned rows with ground truth.
+const truthOf = (row) => asList(row.expected).filter((x) => !UNKNOWN.has(x));
+export const hasTruth = (row) => truthOf(row).length > 0;
+
 export function classify(row) {
   if (!row.scanned) return "not_scanned";
-  if (UNKNOWN.has(row.predicted)) return row.acceptUnknown ? "abstain_ok" : "abstain";
-  return asList(row.expected).includes(row.predicted) ? "correct" : "wrong";
+  if (!hasTruth(row)) return UNKNOWN.has(row.predicted) ? "no_truth_abstained" : "no_truth_guessed";
+  if (UNKNOWN.has(row.predicted)) return "abstain";
+  return truthOf(row).includes(row.predicted) ? "correct" : "wrong";
 }
 
 export function sectorMetrics(rows) {
-  const scanned = rows.filter((r) => r.scanned);
-  const out = { planned: rows.length, scanned: scanned.length, scanSuccessPct: pct(scanned.length, rows.length) };
-  const k = { correct: 0, wrong: 0, abstain: 0, abstain_ok: 0 };
-  for (const r of scanned) k[classify(r)]++;
+  const scannedAll = rows.filter((r) => r.scanned);
+  const scanned = scannedAll.filter(hasTruth);
+  const out = { planned: rows.length, scannedAll: scannedAll.length, scanned: scanned.length, scanSuccessPct: pct(scannedAll.length, rows.length) };
+  const k = { correct: 0, wrong: 0, abstain: 0, no_truth_abstained: 0, no_truth_guessed: 0 };
+  for (const r of scannedAll) k[classify(r)]++;
   const decided = k.correct + k.wrong;
   Object.assign(out, {
-    correct: k.correct, wrong: k.wrong, abstained: k.abstain + k.abstain_ok,
-    // Strict accuracy over every scanned site (abstention counts as not correct).
-    accuracyPct: pct(k.correct + k.abstain_ok, scanned.length),
+    correct: k.correct, wrong: k.wrong, abstained: k.abstain,
+    // Strict: only a correct sector counts; an abstention never does.
+    accuracyPct: pct(k.correct, scanned.length),
     // Precision of the sector decisions that were actually made.
     decisionPrecisionPct: pct(k.correct, decided),
-    abstentionPct: pct(k.abstain + k.abstain_ok, scanned.length),
+    abstentionPct: pct(k.abstain, scanned.length),
     wrongSectorPct: pct(k.wrong, scanned.length),
     highConfidenceWrong: scanned.filter((r) => classify(r) === "wrong" && (r.confidence ?? 100) >= 80).length,
+    // Sites without a determinable sector (empty shells, ambiguous pages):
+    // abstaining is the honest outcome there, a guess is reported separately.
+    noTruthRows: k.no_truth_abstained + k.no_truth_guessed,
+    noTruthGuessed: k.no_truth_guessed,
   });
   // Per expected sector: recall, precision, F1 (macro over sectors present).
-  const sectors = [...new Set(scanned.flatMap((r) => asList(r.expected)[0]))].sort();
+  const sectors = [...new Set(scanned.map((r) => truthOf(r)[0]))].sort();
   out.perSector = sectors.map((s) => {
-    const tp = scanned.filter((r) => asList(r.expected)[0] === s && r.predicted === s).length;
-    const fn = scanned.filter((r) => asList(r.expected)[0] === s && r.predicted !== s).length;
-    const fp = scanned.filter((r) => r.predicted === s && !asList(r.expected).includes(s)).length;
+    const tp = scanned.filter((r) => truthOf(r)[0] === s && truthOf(r).includes(r.predicted)).length;
+    const fn = scanned.filter((r) => truthOf(r)[0] === s && !truthOf(r).includes(r.predicted)).length;
+    const fp = scanned.filter((r) => r.predicted === s && !truthOf(r).includes(s)).length;
     const precision = tp + fp ? tp / (tp + fp) : null;
     const recall = tp + fn ? tp / (tp + fn) : null;
     const f1 = precision != null && recall != null && precision + recall ? (2 * precision * recall) / (precision + recall) : 0;
     return { sector: s, support: tp + fn, tp, fp, fn, precisionPct: precision == null ? null : Math.round(precision * 1000) / 10, recallPct: recall == null ? null : Math.round(recall * 1000) / 10, f1: Math.round(f1 * 1000) / 1000 };
   });
   out.macroF1 = out.perSector.length ? Math.round((out.perSector.reduce((a, b) => a + b.f1, 0) / out.perSector.length) * 1000) / 1000 : null;
-  out.confusion = scanned.filter((r) => classify(r) === "wrong" || classify(r) === "abstain").map((r) => ({ id: r.id, expected: asList(r.expected)[0], predicted: r.predicted ?? "unknown", confidence: r.confidence ?? null }));
+  out.confusion = scannedAll.filter((r) => ["wrong", "abstain", "no_truth_guessed"].includes(classify(r))).map((r) => ({ id: r.id, expected: truthOf(r)[0] ?? "(geen sector bepaalbaar)", predicted: r.predicted ?? "unknown", confidence: r.confidence ?? null, outcome: classify(r) }));
   return out;
 }
 

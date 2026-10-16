@@ -107,6 +107,8 @@ for (const p of PROFILES) {
         for (const t of sw.topIssues) { const a = j.multiPage.sitewideCheckAggregation.find((x) => x.key === t.key); if (!a || a.affectedCount !== t.affected) problems.push(`sitewide topIssue ${t.key} disagrees with aggregation`); }
         if (sw.scoredPageIsHomepage !== (j.pageTypeEvidence.type === "homepage")) problems.push("sitewide scope disagrees with page type");
       } }
+    // 3.5 evidence gate: every scored check names where it was observed and what was found.
+    for (const c of checks) if (["pass", "warning", "fail"].includes(c.status) && c.maxPoints > 0 && (!c.evidence?.url || c.evidence.found === null || c.evidence.found === undefined)) problems.push(`scored check ${c.key}=${c.status} without evidence`);
     // Global invariant: a report with any warning/fail never shows 100.
     if ((process.env.MODE || "both") === "both" && checks.some((c) => c.status === "warning" || c.status === "fail") && j.overallScore >= 100) problems.push("100/100 with open issues");
   }

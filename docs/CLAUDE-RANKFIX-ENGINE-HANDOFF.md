@@ -168,3 +168,13 @@ Not done / open: no Neon access from Claude (dossier only); no new live scans (o
 - Blind hold-outs `tests/fixtures/eu-holdout/holdout.json` (64) and `holdout2.json` (36) were measured once before tuning (85.9% / 86.1%); now frozen regression sets. Write a NEW hold-out before claiming out-of-sample accuracy.
 - `scan_attempts` table logs every logged-in scan attempt; `scanDurationMs` in results. Headline shows a range under 70% evidence (`scoreModel.headline`).
 - Owner declined live identity reads; next real measurement = owner's EU-81 pilot on the preview.
+
+
+## Status 16 Oct 2026, seventh pass (Claude) — 3.5 hardening
+- Strict benchmark (unknown never correct); hold-out 3 (`holdout3.json`, weak homepages) frozen before changes, first result 72.7%.
+- `lib/eu-identity.ts`: navigation/section-structure tier (news sections, civic sections, bank products, stations/disruptions), publications (blogs/magazines), agencies, pharmacies, gyms, travel agencies, couriers, SaaS.
+- `lib/scan-attempts.ts` + `scan_attempts` table (running → finished, category, error_code, scan_id); every error response carries a `code`.
+- Evidence gate `requireEvidenceForScoredChecks` (lib/scan-feedback.ts).
+- Scan budget: renders ≤180 s, sample ≤170 s, body read timeouts, retry, cookie jar.
+- Real PostgreSQL integration test: `tests/scan-matrix/run-attempts-pg.mjs` (opt-in via RF_PG_TEST_URL).
+- Hypothesis to verify on the preview: if RANKFIX_INTERNAL_TEST_USER_ID is not set for the QA account, the Agency limit of 50 websites blocks new hosts (WEBSITE_LIMIT) — scan_attempts will show category "quota".

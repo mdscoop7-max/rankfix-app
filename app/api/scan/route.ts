@@ -4,6 +4,8 @@ import { createHash } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
+import { fetchFailureCode, finishScanAttempt, startScanAttempt } from "@/lib/scan-attempts";
+import { requireEvidenceForScoredChecks } from "@/lib/scan-feedback";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang, isMarketSelectorPage } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { decodeHtmlEntities } from "@/lib/html-entities";
@@ -364,25 +366,41 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
 }
 
 /**
- * Records every logged-in scan attempt (success or failure) in scan_attempts so
- * scan success rates can be measured; failed scans are never stored in scans.
- * Best effort: a logging failure never changes the scan response.
+ * Records every logged-in scan attempt in scan_attempts: inserted as "running"
+ * BEFORE the scan, completed afterwards with HTTP status, error code and
+ * category. A row that stays "running" means the platform killed the function
+ * (timeout). Best effort: logging never changes the scan response.
  */
 export async function POST(request: Request) {
   const attemptStarted = Date.now();
   let requestedUrl = "";
   try { const peek = await request.clone().json(); requestedUrl = typeof peek?.url === "string" ? peek.url.trim().slice(0, 500) : ""; } catch {}
-  const response = await runScan(request);
+  let attemptId: string | null = null;
   try {
-    const user = await getCurrentUser();
-    if (user && requestedUrl) {
-      const error = response.status === 200 ? null : String((await response.clone().json().catch(() => ({})))?.error || "").slice(0, 300);
-      await getDb().query(
-        "INSERT INTO scan_attempts (user_id, requested_url, http_status, outcome, error, duration_ms) VALUES ($1,$2,$3,$4,$5,$6)",
-        [user.id, requestedUrl, response.status, response.status === 200 ? "success" : "failed", error, Date.now() - attemptStarted],
-      );
+    const user = requestedUrl ? await getCurrentUser() : null;
+    if (user) {
+      await ensureDatabase();
+      attemptId = await startScanAttempt(getDb(), user.id, requestedUrl);
     }
-  } catch {}
+  } catch (error) {
+    console.warn("RankFix scan attempt log unavailable", { message: error instanceof Error ? error.message.slice(0, 160) : "unknown" });
+  }
+  const response = await runScan(request);
+  if (attemptId) {
+    try {
+      const body = await response.clone().json().catch(() => ({} as Record<string, unknown>));
+      await finishScanAttempt(getDb(), attemptId, {
+        httpStatus: response.status,
+        code: response.status === 200 ? null : (typeof body?.code === "string" ? body.code : null),
+        error: response.status === 200 ? null : String(body?.error || "").slice(0, 300),
+        durationMs: Date.now() - attemptStarted,
+        finalUrl: typeof body?.finalUrl === "string" ? body.finalUrl : null,
+        scanId: typeof body?.scanId === "string" ? body.scanId : null,
+      });
+    } catch (error) {
+      console.warn("RankFix scan attempt finish failed", { message: error instanceof Error ? error.message.slice(0, 160) : "unknown" });
+    }
+  }
   return response;
 }
 
@@ -420,7 +438,7 @@ async function runScan(request: Request) {
     const hasAdsProfile = Object.values(adsProfile).some(Boolean);
 
     if (!rawUrl) {
-      return NextResponse.json({ error: scanError.url }, { status: 400 });
+      return NextResponse.json({ error: scanError.url, code: "INVALID_URL" }, { status: 400 });
     }
 
     let target: URL;
@@ -435,7 +453,7 @@ async function runScan(request: Request) {
       // Reject obvious non-host input early instead of turning it into a confusing fetch error.
       if (!host.includes(".") && !/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) throw new Error("URL_HOST_INVALID");
     } catch {
-      return NextResponse.json({ error: scanError.unsafe }, { status: 400 });
+      return NextResponse.json({ error: scanError.unsafe, code: "UNSAFE_URL" }, { status: 400 });
     }
 
     // share.google is only a redirect resolver, never a scan target or evidence source.
@@ -456,7 +474,7 @@ async function runScan(request: Request) {
         }
         target = validatePublicHttpUrl(normalizeScanUrl(resolvedShare.finalUrl.toString()));
       } catch {
-        return NextResponse.json({ error: scanError.fetch }, { status: 502 });
+        return NextResponse.json({ error: scanError.fetch, code: "SHARE_LINK_UNRESOLVED" }, { status: 502 });
       }
     }
 
@@ -502,7 +520,7 @@ async function runScan(request: Request) {
     // Dashboard allowances are enforced server-side before starting an expensive crawl.
     // Free keeps the cross-account per-domain allowance; paid plans use account-level monthly allowances.
     if (dashboardScan) {
-      if (!usageUser) return NextResponse.json({ error: scanError.session }, { status: 401 });
+      if (!usageUser) return NextResponse.json({ error: scanError.session, code: "SESSION_EXPIRED" }, { status: 401 });
       const limits = planLimits(planCode);
       const accountHosts = await getDb().query(
         "SELECT DISTINCT lower(regexp_replace(split_part(split_part(COALESCE(final_url,scanned_url),'://',2),'/',1),'^www\\.','')) AS website_host FROM scans WHERE user_id=$1 ORDER BY website_host",
@@ -549,13 +567,30 @@ async function runScan(request: Request) {
     }
 
     const started = Date.now();
-    const renderBudget = createRenderBudget();
+    // Whole-scan time budget (maxDuration = 300 s): no new browser render after
+    // 180 s and no new sample page after 170 s, so every scan returns a report in
+    // time instead of being killed by the platform with nothing stored.
+    const renderBudget = createRenderBudget(undefined, 180_000);
+    const SAMPLE_DEADLINE_MS = 170_000;
     let response: Response;
     let fetchedFinalUrl: URL | null = null;
     let redirectChain: Array<{ from: string; to: string; status: number }> = [];
     try {
       let activeTarget = target;
-      const fetchTarget = () => safePublicFetch(activeTarget, { timeoutMs: 12000, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain,application/xml" });
+      const fetchOnce = () => safePublicFetch(activeTarget, { timeoutMs: 15000, maxRedirects: 6, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain,application/xml", acceptLanguage: `${scanLanguage};q=1,en;q=0.8,*;q=0.5` });
+      // One retry for transient failures (timeout, reset connection, 502/503/504),
+      // so a single slow response does not cost the whole scan.
+      const fetchTarget = async () => {
+        try {
+          const first = await fetchOnce();
+          if (![502, 503, 504].includes(first.response.status)) return first;
+          try { await first.response.body?.cancel(); } catch {}
+        } catch (error) {
+          if (!["FETCH_TIMEOUT", "FETCH_CONNECTION"].includes(fetchFailureCode(error))) throw error;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        return fetchOnce();
+      };
       try {
         ({ response, finalUrl: fetchedFinalUrl, redirectChain } = await fetchTarget());
       } catch (httpsError) {
@@ -581,9 +616,13 @@ async function runScan(request: Request) {
         await new Promise((resolve) => setTimeout(resolve, delayMs));
         ({ response, finalUrl: fetchedFinalUrl, redirectChain } = await fetchTarget());
       }
-    } catch {
+    } catch (fetchError) {
+      // A stable cause code (timeout, DNS, TLS, connection, redirect loop) so failed
+      // scans can be counted and explained; the raw message stays in the log only.
+      const code = fetchFailureCode(fetchError);
+      console.info("RankFix primary fetch failed", { url: target.toString(), code, message: fetchError instanceof Error ? fetchError.message.slice(0, 200) : String(fetchError) });
       return NextResponse.json(
-        { error: scanError.fetch },
+        { error: scanError.fetch, code },
         { status: 502 }
       );
     }
@@ -604,7 +643,7 @@ async function runScan(request: Request) {
 
     if (response.status === 429) {
       return NextResponse.json(
-        { error: scanError.rate, retryable: true, charged: false },
+        { error: scanError.rate, code: "SITE_RATE_LIMITED", retryable: true, charged: false },
         { status: 429 }
       );
     }
@@ -656,13 +695,19 @@ async function runScan(request: Request) {
         it:`Il sito ha restituito HTTP ${response.status} e non può essere analizzato in modo affidabile.`,
         es:`El sitio devolvió HTTP ${response.status} y no se puede analizar de forma fiable.`
       };
-      return NextResponse.json({ error: httpMessages[scanLanguage], recovery }, { status: 422 });
+      return NextResponse.json({ error: httpMessages[scanLanguage], code: [404, 410].includes(response.status) ? "HTTP_NOT_FOUND" : response.status >= 500 ? "HTTP_SERVER_ERROR" : "HTTP_BLOCKED", httpStatus: response.status, recovery }, { status: 422 });
     }
 
     // Modern commerce/product pages can contain large SSR payloads and JSON-LD. Keep a strict cap, but allow enough room to audit them safely.
-    let html = recoveredHtml ?? await readResponseTextLimited(response, 8_000_000);
+    let html: string;
+    try {
+      html = recoveredHtml ?? await readResponseTextLimited(response, 8_000_000, 25_000);
+    } catch (bodyError) {
+      const code = fetchFailureCode(bodyError);
+      return NextResponse.json({ error: scanError.fetch, code, recovery }, { status: 502 });
+    }
     if (!html || html.length < 20) {
-      return NextResponse.json({ error: scanError.html, recovery }, { status: 422 });
+      return NextResponse.json({ error: scanError.html, code: "EMPTY_HTML", recovery }, { status: 422 });
     }
 
     const rawHtml = recoveredHtml ? "" : html;
@@ -766,7 +811,7 @@ async function runScan(request: Request) {
         it:"Il sito non ha potuto essere analizzato in modo affidabile. Il server ha restituito una pagina intermedia, di verifica o di routing invece del sito previsto. Non è stato quindi calcolato alcun punteggio.",
         es:"El sitio no pudo analizarse de forma fiable. El servidor devolvió una página intermedia, de verificación o de enrutamiento en lugar del sitio esperado. Por eso no se calculó ninguna puntuación."
       };
-      return NextResponse.json({ error: qualityMessages[scanLanguage], charged: false }, { status: 422 });
+      return NextResponse.json({ error: qualityMessages[scanLanguage], code: "CHALLENGE_OR_INTERSTITIAL", charged: false }, { status: 422 });
     }
 
     const titlePixelEstimate = titlePixelAdvice(renderedDocument?.titlePixelWidth);
@@ -1823,7 +1868,9 @@ async function runScan(request: Request) {
           // Multilingual EU identity (government, education, care, carriers, post,
           // telecom, energy). A navigation-only (medium) identity never outranks a
           // strong legacy sector candidate; it only fills an otherwise empty decision.
-          : euPrimaryIdentity && euPrimaryIdentity.sector !== "news_media" && euPrimaryIdentity.sector !== "financial_services"
+          // Medium (navigation-only) identities of every sector, and high ones of the
+          // sectors not handled by a dedicated rule above.
+          : euPrimaryIdentity && (euPrimaryIdentity.confidence === "medium" || (euPrimaryIdentity.sector !== "news_media" && euPrimaryIdentity.sector !== "financial_services"))
             && (euPrimaryIdentity.confidence === "high" || !strongSectorCandidate)
             ? {sector:euPrimaryIdentity.sector as SectorKey,key:euPrimaryIdentity.key,label:euPrimaryIdentity.label,evidence:euPrimaryIdentity.evidence.map((line)=>`Primaire identiteit: ${line}`),confidence:euPrimaryIdentity.confidence,confidenceScore:euPrimaryIdentity.confidenceScore}
             : euPrimaryIdentity?.sector === "news_media" && !telecomSubscriptionIdentity && !evidenceCommerceConfirmed && !strongSectorCandidate
@@ -1859,7 +1906,9 @@ async function runScan(request: Request) {
       && !beautyServiceIdentity && !explicitMedicalIdentity && !transportBookingIdentity
       // A multilingual non-retail identity (bank, carrier, post, government...)
       // means a cart, voucher shop or ticket checkout is a capability, not the sector.
-      && !(euPrimaryIdentity && euPrimaryIdentity.confidence === "high")
+      // A navigation-only (medium) identity also wins over a cart, unless the page
+      // itself says it is a shop.
+      && !(euPrimaryIdentity && (euPrimaryIdentity.confidence === "high" || !explicitRetailIdentity))
       // Hospitality/service words only veto retail when they name the business in
       // the title or H1; "met restaurant" in a store description is a facility.
       && !(/\b(?:restaurant|hotel|reserveren|reserveer tafel|vakantieverhuur|transportdiensten|schoonmaakdienst)\b/i.test([title, h1s.join(" ")].join(" ")) && !storeSchemaRetailIdentity);
@@ -3732,7 +3781,7 @@ async function runScan(request: Request) {
     // Late service checks are page-level observations: give them the same
     // evidence URL as every other check so exports stay complete.
     for (const item of seoChecks) {
-      if (["subscription_price_visibility","booking_transaction","lead_form_presence"].includes(item.key) && item.evidence && !item.evidence.url) item.evidence = { ...item.evidence, url: finalUrl.toString() };
+      if (["subscription_price_visibility","booking_transaction","lead_form_presence"].includes(item.key) && item.evidence && !item.evidence.url) item.evidence = { ...item.evidence, url: finalUrl.toString(), found: item.status === "pass" ? true : item.evidence.found };
     }
     applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate || thinRawDocument, rendered:javascriptExecuted, url:finalUrl.toString(), rawSubstantive:rawSubstantiveDocument });
     const selectedSeoChecks = mode === "geo" ? [] : seoChecks;
@@ -4007,6 +4056,9 @@ async function runScan(request: Request) {
     // Product detail pages keep their own per-type ceiling.
     const uniqueMultiPagePages = selectRepresentativePages([scannedPageSample, ...multiPagePages], rankedMultiPage, representativePageLimit, (url)=>normalizeScanUrl(stripTrackingParams(url)), templateShapeKey, { matches: isFaqSample, limit: 3 }, Math.ceil(representativePageLimit * 0.4), { key: sectionKey, limit: 5, exemptTypes: ["product"] });
     const auditMultiPage = async (page: MultiPageCandidate): Promise<MultiPageAudit> => {
+      if (Date.now() - started > SAMPLE_DEADLINE_MS) {
+        return { ...page, status:"unable_to_confirm", httpStatus:null, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"fetch",status:"UNABLE_TO_CONFIRM",details:"Niet opgehaald: de tijdslimiet van de scan was bereikt. Deze pagina telt niet mee in de steekproef."}] };
+      }
       try {
         // The scanned page itself was already fetched; reuse that evidence instead of
         // a second request that can be rate-limited and contradict the main scan.
@@ -4690,11 +4742,11 @@ async function runScan(request: Request) {
     if (sectorProfile.sector === "automotive") {
       const serviceCheck = seoChecks.find((item)=>item.key==="sector_automotive_services");
       if (serviceCheck && multiPageCapabilities.automotiveService) {
-        Object.assign(serviceCheck, check("pass","sector_automotive_services","seo","Garage diensten","Representatieve same-site pagina's bevestigen garage-/werkplaatsdiensten.","Houd de belangrijkste garage- en werkplaatsdiensten duidelijk vindbaar.",4,4));
+        Object.assign(serviceCheck, check("pass","sector_automotive_services","seo","Garage diensten","Representatieve same-site pagina's bevestigen garage-/werkplaatsdiensten.","Houd de belangrijkste garage- en werkplaatsdiensten duidelijk vindbaar.",4,4)); if (serviceCheck.status==="pass") serviceCheck.evidence = { url: auditedMultiPages.find((page)=>/\b(werkplaats|garage|banden|tyres?|apk|onderhoud|autoservice|repair)\b/i.test(page.identityText||""))?.url || finalUrl.toString(), found: true, details: serviceCheck.message };
       }
       const inventoryCheck = seoChecks.find((item)=>item.key==="sector_automotive_inventory");
       if (inventoryCheck && multiPageCapabilities.vehicleSales) {
-        Object.assign(inventoryCheck, check("pass","sector_automotive_inventory","seo","Voertuigaanbod","Representatieve same-site pagina's bevestigen voertuig-/occasionaanbod.","Houd voertuigaanbod en detailpagina's duidelijk vindbaar.",4,4));
+        Object.assign(inventoryCheck, check("pass","sector_automotive_inventory","seo","Voertuigaanbod","Representatieve same-site pagina's bevestigen voertuig-/occasionaanbod.","Houd voertuigaanbod en detailpagina's duidelijk vindbaar.",4,4)); if (inventoryCheck.status==="pass") inventoryCheck.evidence = { url: auditedMultiPages.find((page)=>/\b(occasion|occasions|vehicle inventory|voertuigvoorraad|autovoorraad|cars for sale)\b/i.test(page.identityText||""))?.url || finalUrl.toString(), found: true, details: inventoryCheck.message };
       }
       // Proven vehicle sales make a test drive applicable again; absence is unconfirmed, not N/A.
       const testDriveCheck = seoChecks.find((item)=>item.key==="sector_automotive_test_drive");
@@ -4708,9 +4760,10 @@ async function runScan(request: Request) {
     // earlier N/A/UNABLE result; absence never creates a failure.
     if (multiPageCapabilities.treatment && sectorProfile.sector === "health_wellness") {
       const treatmentCheck = seoChecks.find((item)=>item.key==="sector_health_services");
-      if (treatmentCheck) Object.assign(treatmentCheck, check("pass","sector_health_services","seo","Behandelingen & diensten","Representatieve same-site pagina's bevestigen behandelingen of therapeutische diensten.","Houd behandelingen en diensten feitelijk en duidelijk vindbaar.",4,4));
+      if (treatmentCheck) Object.assign(treatmentCheck, check("pass","sector_health_services","seo","Behandelingen & diensten","Representatieve same-site pagina's bevestigen behandelingen of therapeutische diensten.","Houd behandelingen en diensten feitelijk en duidelijk vindbaar.",4,4)); if (treatmentCheck?.status==="pass") treatmentCheck.evidence = { url: auditedMultiPages.find((page)=>/\b(behandeling|behandelingen|treatment|specialisatie|tandarts|dentist|spoed|afspraak)\b/i.test(page.identityText||""))?.url || finalUrl.toString(), found: true, details: treatmentCheck.message };
     }
-    const representativeProduct = auditedMultiPages.find((item)=>item.type==="product" && item.commerceEvidence?.product)?.commerceEvidence?.product;
+    const productSamplePage = auditedMultiPages.find((item)=>item.type==="product" && item.commerceEvidence?.product);
+    const representativeProduct = productSamplePage?.commerceEvidence?.product;
     if (finalCommerceDecision.confirmed && representativeProduct) {
       const productEvidenceCount = [representativeProduct.name,representativeProduct.image,representativeProduct.sku,representativeProduct.price&&representativeProduct.currency,representativeProduct.availability].filter(Boolean).length;
       const productSchemaCheck = seoChecks.find((item)=>item.key==="product_schema");
@@ -4721,6 +4774,10 @@ async function runScan(request: Request) {
       if (availabilityCheck && representativeProduct.availability) Object.assign(availabilityCheck, check("pass","product_availability_consistency","seo","Productvoorraad",`Een representatieve productpagina bevat een expliciet beschikbaarheidssignaal: ${representativeProduct.availability}.`,"Houd zichtbare voorraad en structured data consistent.",4,4));
       const merchantCheck = seoChecks.find((item)=>item.key==="merchant_product_readiness");
       if (merchantCheck && productEvidenceCount>=4) Object.assign(merchantCheck, check("pass","merchant_product_readiness","seo","Merchant Center productbasis","Een representatieve productpagina bevestigt naam, afbeelding en meerdere machineleesbare product-/aanbodvelden.","Houd productpagina en eventuele Merchant-feed consistent; RankFix bevestigt hiermee geen Merchant Center-goedkeuring.",6,6));
+      // Each promoted product check points at the product page that proved it.
+      for (const item of [productSchemaCheck, optimizerCheck, availabilityCheck, merchantCheck]) {
+        if (item && item.status === "pass" && productSamplePage) item.evidence = { url: productSamplePage.url, found: true, details: item.message };
+      }
     }
     // Capability-to-check propagation: representative pages are first-class site
     // evidence. Specialist checks consume the same Scanbewijs instead of staying
@@ -4991,6 +5048,10 @@ async function runScan(request: Request) {
     }
 
     applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate || thinRawDocument, rendered:javascriptExecuted, url:finalUrl.toString(), rawSubstantive:rawSubstantiveDocument });
+    // Evidence gate (3.5): a check only carries points or a deduction when it has
+    // demonstrable evidence (a source URL and a recorded finding). Without both it
+    // becomes "niet te bevestigen" and leaves the score.
+    requireEvidenceForScoredChecks([...seoChecks,...geoChecks], finalUrl.toString());
     // Final score is calculated only after representative evidence reconciliation.
     // Reapply evidence coverage caps: this second scoring pass must not erase them.
     selectedSeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(stableCoreChecks(selectedSeoChecks,"seo")), stableCoreChecks(selectedSeoChecks,"seo"));
@@ -5175,7 +5236,7 @@ async function runScan(request: Request) {
     let savedScanId: string | null = null;
     let pendingFixes = new Map<string, { status: string }>();
     try { user = await getCurrentUser(); } catch {}
-    if (dashboardScan && !user) return NextResponse.json({ error: scanError.session }, { status: 401 });
+    if (dashboardScan && !user) return NextResponse.json({ error: scanError.session, code: "SESSION_EXPIRED" }, { status: 401 });
     if (user) {
       try {
         await ensureDatabase();

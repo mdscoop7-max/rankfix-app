@@ -47,11 +47,20 @@ export function validatePublicHttpUrl(value: string) {
   return url;
 }
 
-export async function safePublicFetch(value: string | URL, options: { timeoutMs?: number; maxRedirects?: number; userAgent?: string; accept?: string } = {}) {
+// Cookies set during a redirect chain (consent or session redirects) are sent back
+// on the next hop to the same site, as any browser or standard HTTP client does.
+// Without this, sites that redirect "set cookie → come back" loop until
+// REDIRECT_LIMIT. The jar lives only for one safePublicFetch call.
+function registrableTail(hostname: string): string {
+  return hostname.toLowerCase().replace(/^www\./, "").split(".").slice(-2).join(".");
+}
+
+export async function safePublicFetch(value: string | URL, options: { timeoutMs?: number; maxRedirects?: number; userAgent?: string; accept?: string; acceptLanguage?: string } = {}) {
   const timeoutMs = options.timeoutMs ?? 10000;
   const maxRedirects = options.maxRedirects ?? 4;
   let current = validatePublicHttpUrl(typeof value === "string" ? value : value.toString());
   const redirectChain: Array<{ from: string; to: string; status: number }> = [];
+  const cookieJar = new Map<string, string>();
 
   for (let redirect = 0; redirect <= maxRedirects; redirect++) {
     validatePublicHttpUrl(current.toString());
@@ -67,15 +76,27 @@ export async function safePublicFetch(value: string | URL, options: { timeoutMs?
         headers: {
           "User-Agent": options.userAgent ?? "RankFixBot/2.1 (+https://rankfix-app.onrender.com)",
           Accept: options.accept ?? "text/html,application/xhtml+xml",
+          // Standard request headers; a request without a language preference is
+          // treated as suspicious by several European CDNs.
+          "Accept-Language": options.acceptLanguage ?? "en;q=0.9,nl;q=0.8,de;q=0.7,fr;q=0.6,*;q=0.5",
+          ...(cookieJar.size && [...cookieJar.keys()].length ? { Cookie: [...cookieJar.entries()].map(([k, v]) => `${k}=${v}`).join("; ") } : {}),
         },
       });
     } finally {
       clearTimeout(timer);
     }
     if (response.status >= 300 && response.status < 400) {
+      const setCookies = typeof (response.headers as Headers & { getSetCookie?: () => string[] }).getSetCookie === "function"
+        ? (response.headers as Headers & { getSetCookie: () => string[] }).getSetCookie() : [];
+      for (const raw of setCookies.slice(0, 20)) {
+        const pair = raw.split(";")[0]; const eq = pair.indexOf("=");
+        if (eq > 0 && pair.length < 4096) cookieJar.set(pair.slice(0, eq).trim(), pair.slice(eq + 1).trim());
+      }
       const location = response.headers.get("location");
       if (!location) return { response, finalUrl: current, redirectChain };
       const next = validatePublicHttpUrl(new URL(location, current).toString());
+      // Never carry cookies to another site.
+      if (registrableTail(next.hostname) !== registrableTail(current.hostname)) cookieJar.clear();
       redirectChain.push({ from: current.toString(), to: next.toString(), status: response.status });
       current = next;
       continue;
@@ -86,7 +107,7 @@ export async function safePublicFetch(value: string | URL, options: { timeoutMs?
 }
 
 
-export async function readResponseTextLimited(response: Response, maxBytes = 2_000_000) {
+export async function readResponseTextLimited(response: Response, maxBytes = 2_000_000, bodyTimeoutMs = 20_000) {
   if (!Number.isFinite(maxBytes) || maxBytes <= 0) throw new Error("RESPONSE_LIMIT_INVALID");
   const declared = Number(response.headers.get("content-length") || 0);
   if (declared > maxBytes) throw new Error("RESPONSE_TOO_LARGE");
@@ -95,8 +116,16 @@ export async function readResponseTextLimited(response: Response, maxBytes = 2_0
   const chunks: Uint8Array[] = [];
   let total = 0;
   try {
+    // A body that trickles in must not hold the scan until the platform kills it.
+    const deadline = Date.now() + bodyTimeoutMs;
     while (true) {
-      const { done, value } = await reader.read();
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) { await reader.cancel().catch(() => {}); throw new Error("BODY_TIMEOUT"); }
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const { done, value } = await Promise.race([
+        reader.read(),
+        new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("BODY_TIMEOUT")), remaining); }),
+      ]).finally(() => clearTimeout(timer)).catch(async (error) => { if (String(error?.message) === "BODY_TIMEOUT") await reader.cancel().catch(() => {}); throw error; });
       if (done) break;
       total += value.byteLength;
       if (total > maxBytes) {

@@ -16,7 +16,7 @@ export function runOffline(root = fileURLToPath(new URL("../..", import.meta.url
   const raw = JSON.parse(readFileSync(out, "utf8"));
   // Only sites that expect a scored report take part (HTTP-failure fixtures test error handling).
   const rows = raw.filter((r) => r.bench && r.bench.expected && !(r.bench.expectHttp && r.status !== 200)).map((r) => ({
-    id: r.id, expected: r.bench.expected.filter((x) => x !== "unknown" && x !== "general_business").length ? r.bench.expected.filter((x) => x !== "unknown" && x !== "general_business") : ["unknown"],
+    id: r.id, expected: r.bench.expected.filter((x) => x !== "unknown" && x !== "general_business"),
     acceptUnknown: r.bench.acceptUnknown, scanned: r.status === 200, predicted: r.sector, confidence: r.conf, score: r.score,
     coverage: r.bench.coverage, reliability: r.bench.reliability, evidenceLevel: r.bench.evidenceLevel, headlineKind: r.bench.headlineKind, unconfirmed: r.bench.unconfirmed,
     // Expectation mismatches (sector/label/page) are measured by the sector metrics, not as report inconsistencies.

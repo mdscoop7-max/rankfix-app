@@ -21,6 +21,8 @@ test("benchmark gate: synthetic matrix + real EU identities", () => assertGates(
 test("benchmark gate: hold-out 1 (64 sites, 20 languages)", () => assertGates("holdout1", runOffline(undefined, { HOLDOUT: "only", HOLDOUT_FILE: "holdout.json" }).all));
 test("benchmark gate: hold-out 2 (36 sites, incl. bg/sk/sl/et/da/lv/lb)", () => assertGates("holdout2", runOffline(undefined, { HOLDOUT: "only", HOLDOUT_FILE: "holdout2.json" }).all));
 
+test("benchmark gate: hold-out 3 (33 weak real-world-like homepages, 21 languages)", () => assertGates("holdout3", runOffline(undefined, { HOLDOUT: "only", HOLDOUT_FILE: "holdout3.json" }).all));
+
 test("EU-81 baseline from issue #151 is reproducible", () => {
   const m = evaluate(baselineRows());
   assert.equal(m.sector.planned, 81);

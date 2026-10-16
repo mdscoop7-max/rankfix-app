@@ -6,7 +6,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve as resolvePath } from "node:path";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolvePath(HERE, "../..");
-const stubs = { "/lib/db.ts": "stubs-db.mjs", "/lib/db-init.ts": "stubs-dbinit.mjs", "/lib/auth.ts": "stubs-auth.mjs" };
+// RF_REAL_DB=1 keeps the real PostgreSQL modules (integration tests with a local database).
+const stubs = process.env.RF_REAL_DB === "1" ? { "/lib/auth.ts": "stubs-auth.mjs" } : { "/lib/db.ts": "stubs-db.mjs", "/lib/db-init.ts": "stubs-dbinit.mjs", "/lib/auth.ts": "stubs-auth.mjs" };
 const fileFor = (base) => [base + ".ts", base + ".tsx", base + "/index.ts", base].find((c) => existsSync(c) && /\.\w+$/.test(c));
 async function inner(spec, ctx, next) {
   if (spec.startsWith("@/")) { const f = fileFor(ROOT + "/" + spec.slice(2)); if (f) return { url: pathToFileURL(f).href, shortCircuit: true }; }

@@ -22,3 +22,19 @@ Now on all sets: 0 confident-wrong sectors, 0 × 100/100 with unconfirmed checks
 
 ## Competitor comparison (published facts only)
 RankFix: ~66 SEO/GEO + 7 security checks, homepage + ≤30 representative pages, Chromium raw-vs-rendered with rejection of poorer renders, evidence level + range, "unable to confirm" status, sector modules in EU languages. Semrush: 140+ checks, Chromium JS rendering + JS Impact report, Site Health weighted by errors/warnings. Ahrefs: Health Score = % internal URLs without errors. Screaming Frog: Chromium rendering, Schema.org + rich-result validation, extensive hreflang, 500 URLs free / unlimited paid, £199/yr. Sitebulb: 300+ issues, Response vs Render report, prioritised hints. SE Ranking: health score weighted by severity and share of pages, optional client-side rendering. None of the consulted pages mentions score uncertainty. RankFix trails on breadth (full crawls, number of checks, CWV field data, full schema/hreflang validation).
+
+
+## 3.5 pass (16 Oct 2026, evening) — strict metrics
+Benchmark corrected: an unknown sector is never counted as correct (strict accuracy = correct sector / scanned sites with a known sector). Same inputs, three engine versions:
+
+| Set | Start of day (6581cca) | 3.1 pass (3061a10) | 3.5 pass |
+|---|---|---|---|
+| Hold-out 1 (64) | 57.8% | 92.2% | 98.4% |
+| Hold-out 2 (36) | 44.4% | 86.1% | 100% |
+| Hold-out 3 (33 weak homepages, frozen before 3.5) | 33.3% | **72.7% (first unseen measurement, 3 confident-wrong)** | 100% (now seen) |
+| Matrix (101 with a known sector) | 80.2% | 95.0% | 96.0% |
+| 14 real EU homepage identities | 28.6% | 92.9% | 92.9% (VRT abstains) |
+
+Unseen first measurements so far: 85.9% → 86.1% → 72.7% (weak, navigation-only homepages are the hard case). Every scored check now carries a source URL and a recorded finding, or it is "niet te bevestigen" and leaves the score (matrix invariant, 0 violations on 243 reports).
+
+Scan success: every logged-in attempt is stored in `scan_attempts` (inserted as "running" before the scan, completed with HTTP status, error code and category; a row left "running" = platform timeout). Verified end to end against a real PostgreSQL 16 database, including the upgrade of the first table version (`RF_PG_TEST_URL=… npm test`). Structural fixes: whole-scan time budget (renders stop at 180 s, sampling at 170 s, platform limit 300 s), body read timeout, one retry on transient network errors and 502/503/504, cookie jar across redirect chains, Accept-Language header, redirect limit 6. Not bypassed: WAF/CAPTCHA blocks are reported as `site_blocked`.

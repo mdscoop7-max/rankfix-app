@@ -326,13 +326,21 @@ const statements = [
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     requested_url TEXT NOT NULL,
-    http_status INTEGER NOT NULL,
+    http_status INTEGER,
     outcome TEXT NOT NULL,
     error TEXT,
     duration_ms INTEGER,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`,
-  `CREATE INDEX IF NOT EXISTS scan_attempts_user_idx ON scan_attempts(user_id, created_at DESC)`
+  `CREATE INDEX IF NOT EXISTS scan_attempts_user_idx ON scan_attempts(user_id, created_at DESC)`,
+  // Upgrade an earlier scan_attempts table in place (idempotent).
+  `ALTER TABLE scan_attempts ALTER COLUMN http_status DROP NOT NULL`,
+  `ALTER TABLE scan_attempts ADD COLUMN IF NOT EXISTS category TEXT`,
+  `ALTER TABLE scan_attempts ADD COLUMN IF NOT EXISTS error_code TEXT`,
+  `ALTER TABLE scan_attempts ADD COLUMN IF NOT EXISTS final_url TEXT`,
+  `ALTER TABLE scan_attempts ADD COLUMN IF NOT EXISTS scan_id UUID`,
+  `ALTER TABLE scan_attempts ADD COLUMN IF NOT EXISTS finished_at TIMESTAMPTZ`,
+  `CREATE INDEX IF NOT EXISTS scan_attempts_category_idx ON scan_attempts(category, created_at DESC)`
 ];
 
 export async function ensureDatabase() {

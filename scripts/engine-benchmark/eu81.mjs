@@ -6,6 +6,7 @@
 // Save the rows as JSON arrays. Nothing is written to any database.
 import { readFileSync } from "node:fs";
 import { evaluate } from "./metrics.mjs";
+import { effectiveCategory } from "../../lib/scan-attempts.ts";
 
 const plan = JSON.parse(readFileSync(new URL("../../tests/fixtures/eu81/plan.json", import.meta.url), "utf8")).sites;
 const norm = (u) => { try { return new URL(/^https?:/i.test(u) ? u : `https://${u}`).hostname.toLowerCase().replace(/^www\./, ""); } catch { return String(u || "").toLowerCase(); } };
@@ -20,11 +21,15 @@ export function baselineRows() {
 }
 
 export function attemptSummary(attempts = []) {
+  const withCat = attempts.map((a) => ({ ...a, cat: effectiveCategory(a) }));
   const bySite = plan.map((s) => {
-    const mine = attempts.filter((a) => s.hosts.some((h) => norm(h) === norm(a.requested_url)));
-    return { site: `${s.country} ${s.name}`, attempts: mine.length, successes: mine.filter((a) => a.outcome === "success").length, lastError: mine.filter((a) => a.outcome !== "success").at(-1)?.error || null };
+    const mine = withCat.filter((a) => s.hosts.some((h) => norm(h) === norm(a.requested_url)));
+    const last = mine.filter((a) => a.cat !== "success").at(-1);
+    return { site: `${s.country} ${s.name}`, attempts: mine.length, successes: mine.filter((a) => a.cat === "success").length, lastCategory: last?.cat || null, lastCode: last?.error_code || null, lastError: last?.error || null };
   });
-  return { attemptedSites: bySite.filter((x) => x.attempts).length, sitesWithSuccess: bySite.filter((x) => x.successes).length, failedSites: bySite.filter((x) => x.attempts && !x.successes) };
+  const failedSites = bySite.filter((x) => x.attempts && !x.successes);
+  const byCategory = failedSites.reduce((acc, x) => { acc[x.lastCategory || "unknown"] = (acc[x.lastCategory || "unknown"] || 0) + 1; return acc; }, {});
+  return { attemptedSites: bySite.filter((x) => x.attempts).length, sitesWithSuccess: bySite.filter((x) => x.successes).length, notAttempted: bySite.filter((x) => !x.attempts).map((x) => x.site), failedByCategory: byCategory, failedSites };
 }
 
 export function exportRows(scans) {

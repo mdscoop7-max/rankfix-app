@@ -23,7 +23,7 @@
 
 export type EuSector =
   | "news_media" | "financial_services" | "transport_travel" | "government"
-  | "education" | "health_wellness" | "telecom_technology" | "energy_utilities" | "events_culture";
+  | "education" | "health_wellness" | "telecom_technology" | "energy_utilities" | "events_culture" | "professional_services" | "saas_b2b" | "fitness_sports" | "tourism_recreation";
 
 export type EuIdentity = {
   sector: EuSector;
@@ -70,6 +70,7 @@ const NEWS = stems([
 ]);
 // Self-described publishers, broadcasters and editorial offices.
 const PUBLISHER = stems([
+  "tagblatt", "tageblatt", "rundschau", "anzeiger", "dagblad", "avisen", "lehti", "noviny",
   "omroep", "broadcast", "rundfunk", "journal", "dagblad", "krant", "newspaper", "zeitung", "giornal",
   "periódic", "periodic", "jornal", "tidning", "dagblad", "sanomaleh", "ajaleh", "laikrakst", "laikraš",
   "gazet", "noviny", "noviny", "újság", "ziar", "εφημερίδ", "вестник", "novine", "časopis", "redaktion",
@@ -80,12 +81,46 @@ const PUBLISHER = stems([
 const TELEVISION = stems(["televis", "televiz", "televíz", "televīz", "telewiz", "télévis", "fernseh", "τηλεόρασ", "телевиз", "tv"]);
 const RADIO = stems(["radio", "rádio", "rádió", "rozhlas", "radij", "ράδιο", "радио", "rundfunk", "raadio", "radijas"]);
 
+// Newspaper section names. A homepage whose navigation runs politics + world +
+// economy/sport/culture is laid out as a news publication, whatever its title.
+const NEWS_SECTIONS: Array<[string, RegExp]> = [
+  ["politics", stems(["politiek", "politik", "politique", "politica", "política", "polityka", "politika", "politiikka", "poliitika", "politică", "πολιτική", "политика", "inland", "binnenland", "domácí", "domov", "kraj", "polska", "österreich"])],
+  ["world", stems(["buitenland", "ausland", "welt", "monde", "international", "esteri", "mondo", "mundo", "internacional", "świat", "svět", "svet", "zahraničí", "världen", "verden", "ulkomaat", "maailm", "pasaul", "pasaulyje", "világ", "lume", "κόσμος", "свят"])],
+  ["economy", stems(["economie", "wirtschaft", "économie", "economia", "economía", "gospodarka", "biznes", "business", "ekonomika", "ekonomi", "talous", "majandus", "ekonomika", "gazdaság", "economie", "οικονομία", "икономика", "verslas", "finanzen"])],
+  ["sport", stems(["sport", "sports", "deportes", "desporto", "sportas", "šport", "urheilu", "αθλητισμ", "спорт", "spordi"])],
+  ["culture", stems(["cultuur", "kultur", "culture", "cultura", "kultura", "kulttuuri", "kultuur", "kultūra", "kultúra", "πολιτισμ", "култура"])],
+  ["local", stems(["regio", "region", "région", "cronaca", "lokaal", "lokales", "local", "comarca", "lokalt", "lokalne", "regionální"])],
+  ["opinion", stems(["opinie", "meinung", "opinion", "opinioni", "opinión", "opinia", "názory", "åsikt", "debatt", "mielipide", "arvamus"])],
+  ["edition", stems(["epaper", "e-paper", "abo", "abonneren", "abonnement", "abbonati", "abbonamento", "suscríbete", "prenumerata", "předplatné", "prenumerera", "tilaa", "liveblog", "live"])],
+];
+
+// Municipality/government structure: residents, governance, documents, waste, permits, counter.
+const CIVIC_SECTIONS: Array<[string, RegExp]> = [
+  ["residents", stems(["inwoners", "bewoners", "bürger", "einwohner", "citoyens", "habitants", "cittadini", "ciudadanos", "vecinos", "munícipes", "mieszkańcy", "občané", "obyvatelia", "lakosok", "locuitori", "asukkaat", "elanikud", "iedzīvotāj", "gyventoj", "invånare", "borgere", "δημότες", "граждани", "residents", "citizens"])],
+  ["governance", stems(["bestuur", "gemeenteraad", "gemeinderat", "stadtrat", "conseil municipal", "consiglio comunale", "pleno", "rada miasta", "zastupitelstvo", "zastupiteľstvo", "képviselő-testület", "consiliul local", "valtuusto", "volikogu", "dome", "taryba", "kommunfullmäktige", "byråd", "δημοτικό συμβούλιο", "общински съвет", "council"])],
+  ["documents", stems(["paspoort", "id-kaart", "identiteitskaart", "reisepass", "personalausweis", "passeport", "carte d'identité", "passaporto", "carta d'identità", "pasaporte", "dni", "passaporte", "paszport", "dowód osobisty", "cestovní pas", "občanský průkaz", "útlevél", "személyi igazolvány", "pașaport", "carte de identitate", "passport", "id card"])],
+  ["waste", stems(["afval", "abfall", "müll", "déchets", "rifiuti", "residuos", "resíduos", "odpady", "odpad", "hulladék", "deșeuri", "jäte", "jäätme", "atkritum", "atliek", "avfall", "affald", "απορρίμματ", "отпадъц", "waste"])],
+  ["permits", stems(["vergunning", "genehmigung", "baugenehmigung", "permis", "permesso", "licencia", "licença", "pozwolen", "povolení", "povolen", "engedély", "autorizați", "lupa", "luba", "atļauj", "leidim", "bygglov", "tilladelse", "άδει", "разрешени", "permit"])],
+  ["counter", stems(["loket", "bürgerbüro", "bürgerservice", "guichet", "sportello", "ventanilla", "balcão", "okienko", "podatelna", "ügyfélszolgálat", "ghișeu", "asiointi", "teenindus", "medborgarservice", "borgerservice", "κεπ", "e-loket", "digid"])],
+];
+
+// Agencies, consultancies and service firms.
+const AGENCY = stems(["dienstleister", "dienstverlener", "service provider", "prestataire", "fornitore di servizi", "proveedor de servicios", "webagentur", "agentur", "werbeagentur", "digitalagentur", "agency", "agence", "agenzia", "agencia", "agência", "bureau", "adviesbureau", "byrå", "toimisto", "agentuur", "aģentūra", "agentūra", "agencja", "agentura", "ügynökség", "agenție", "consultancy", "beratung", "unternehmensberatung", "conseil", "consulenza", "consultoría", "consultoria", "advies", "rådgivning", "konsult"]);
+const AGENCY_SERVICE = stems(["webdesign", "website", "websites", "apps", "marketing", "seo", "branding", "software", "it-dienst", "it services", "kommunikation", "communicatie", "communication", "comunicazione", "comunicación", "strategie", "strategy", "leistungen", "services", "diensten", "servizi", "servicios", "referenzen", "cases"]);
+
+const TRAVEL_AGENCY = stems(["reisebüro", "reisbureau", "reisorganisatie", "agence de voyage", "agenzia viaggi", "agenzia di viaggi", "agencia de viajes", "agência de viagens", "biuro podróży", "cestovní kancelář", "cestovná kancelária", "utazási iroda", "agenție de turism", "matkatoimisto", "reisibüroo", "ceļojumu aģentūra", "kelionių agentūra", "resebyrå", "rejsebureau", "ταξιδιωτικό γραφείο", "туристическа агенция", "pauschalreise", "package holiday", "last minute", "kreuzfahrt", "cruises", "tour operator", "touroperator"]);
+const COURIER = stems(["mensajería", "mensajeria", "koerier", "kurier", "courier", "coursier", "corriere espresso", "kurýr", "futárszolgálat", "curierat", "kuriiri", "kullerteenus", "kurjer", "kurjerių", "pakketdienst", "paketdienst", "express delivery", "pakkebud"]);
+const SOFTWARE = stems(["software", "saas", "platform", "plattform", "plateforme", "piattaforma", "plataforma", "logiciel", "app for", "regtech", "fintech platform"]);
+const SOFTWARE_FUNNEL = stems(["book a demo", "free trial", "start trial", "request a demo", "demo aanvragen", "demo anfragen", "gratis proberen", "kostenlos testen", "essai gratuit", "prova gratuita", "prueba gratis", "pricing", "prijzen", "preise", "tarifs", "features", "functies", "funktionen", "integrations", "integraties", "login", "inloggen", "anmelden"]);
+const FITNESS = stems(["sportschool", "fitnessstudio", "fitness-studio", "fitnesscenter", "gimnasio", "ginásio", "palestra", "salle de sport", "siłownia", "posilovna", "posilňovňa", "edzőterem", "sală de fitness", "kuntosali", "jõusaal", "sporto klubas", "trenažieru zāle", "γυμναστήριο", "фитнес", "gym", "crossfit", "yoga studio", "pilates"]);
+const PHARMACY = stems(["apotheke", "apotheek", "pharmacie", "farmacia", "farmácia", "apteka", "lékárna", "lekáreň", "gyógyszertár", "farmacie", "apteekki", "apteek", "aptieka", "vaistinė", "apotek", "φαρμακείο", "аптека", "ljekarna", "lekarna", "pharmacy"]);
+
 // ---------------------------------------------------------------- finance
 // Distinct banking concepts. A bank's own identity names several of them; a
 // shop that offers "financing" or "gift cards" names one at most.
 const BANK_CONCEPTS: Array<[string, RegExp]> = [
-  ["accounts", stems(["bankrekening", "betaalrekening", "spaarrekening", "girokonto", "sparkonto", "bankkonto", "konto", "compte bancaire", "compte courant", "conto corrente", "conti corrent", "cuenta corriente", "cuentas", "conta corrente", "cont curent", "cont online", "conturi", "rachun", "pankkitili", "účet", "účt", "számla", "λογαριασμ", "сметк", "račun", "bank account", "current account", "savings account"])],
-  ["loans", stems(["mutuo", "mutui", "hypothe", "hypoth", "ipotec", "mortgage", "kredit", "credit", "crédit", "crédito", "credite", "crediti", "lening", "darlehen", "prestit", "préstam", "empréstim", "lån", "laina", "laen", "aizdev", "paskol", "kredyt", "pożycz", "úvěr", "úver", "hitel", "kölcsön", "δάνει", "кредит", "zajam", "posojil", "imobiliar"])],
+  ["accounts", stems(["bankrekening", "betaalrekening", "spaarrekening", "girokonto", "sparkonto", "bankkonto", "konto", "konten", "comptes", "conti", "cuentas corrientes", "konta", "compte bancaire", "compte courant", "conto corrente", "conti corrent", "cuenta corriente", "cuentas", "conta corrente", "cont curent", "cont online", "conturi", "rachun", "pankkitili", "účet", "účt", "számla", "λογαριασμ", "сметк", "račun", "bank account", "current account", "savings account"])],
+  ["loans", stems(["baufinanzierung", "immobilienfinanzierung", "prêt immobilier", "mutuo", "mutui", "hypothe", "hypoth", "ipotec", "mortgage", "kredit", "credit", "crédit", "crédito", "credite", "crediti", "lening", "darlehen", "prestit", "préstam", "empréstim", "lån", "laina", "laen", "aizdev", "paskol", "kredyt", "pożycz", "úvěr", "úver", "hitel", "kölcsön", "δάνει", "кредит", "zajam", "posojil", "imobiliar"])],
   ["cards", stems(["creditcard", "credit card", "debit card", "carte bancaire", "carta di credito", "tarjeta", "cartão", "carduri", "card de credit", "kreditkarte", "debitkarte", "kreditkort", "luottokort", "pangakaart", "kredītkart", "kredito kortel", "pankkikort", "karta kredyt", "platební kart", "platobn", "bankkártya", "κάρτ", "карт"])],
   ["savings", stems(["sparen", "spaar", "epargne", "épargne", "risparm", "ahorro", "poupan", "economii", "säästö", "hoius", "sparande", "opsparing", "uzkrāj", "taupym", "oszczędz", "spoř", "megtakar", "αποταμίευσ", "спестяв", "štednj", "varčev", "depozit", "deposit", "termijndeposito", "festgeld"])],
   ["investing", stems(["beleggen", "beleggingen", "investment", "investiț", "investiti", "investimen", "inversi", "sijoit", "investeer", "investēš", "investic", "befektet", "επενδύσ", "инвестиц", "ulaganj", "naložb", "vermogensbeheer", "wealth management", "private banking"])],
@@ -111,9 +146,11 @@ const RAIL_WORDS = words(["rail", "rails", "zug", "züge", "train", "trains", "t
 const RAIL = { test: (s: string) => RAIL_STEMS.test(s) || RAIL_WORDS.test(s) };
 const BUS = words(["bus", "buses", "autobus", "autobuses", "autocarro", "linja-auto", "buss", "bussid", "autobusai", "autobusy", "busz", "λεωφορεί", "автобус", "public transport", "openbaar vervoer", "joukkoliikenne", "bussit", "bussien", "öffentlicher verkehr", "nahverkehr", "trasporto pubblico", "transporte público", "kollektivtrafik", "julkinen liikenne", "ühistransport", "sabiedriskais transports", "viešasis transportas", "transport publiczny", "veřejná doprava", "tömegközlekedés", "transport public", "ferry", "ferries", "fähre", "veerboot"]);
 const FERRY = stems(["traghett", "ferri", "ferry", "fähr", "veerdienst", "färj", "færge", "ferje", "lautta", "praam", "keltuv", "trajekt", "ferribot", "πλοί", "фериб"]);
-const TICKETS = stems(["liput", "lipun", "ticket", "billet", "bigliett", "billete", "bilhete", "biljett", "biljet", "lippu", "lipu", "pilet", "biļet", "bilieta", "bilet", "jízdenk", "lístok", "lístk", "jegy", "εισιτήρ", "билет", "karta", "karte", "fahrkart", "vozovnic", "vozni"]);
-const TIMETABLE = stems(["fahrplan", "timetable", "dienstregeling", "orari", "horario", "horário", "tidtabell", "køreplan", "aikataul", "sõiduplaan", "kustības saraksts", "tvarkarašt", "rozkład jazdy", "jízdní řád", "cestovný poriadok", "menetrend", "mersul", "δρομολόγ", "разписание", "vozni red", "departures", "abfahrt", "vertrek"]);
+const TICKETS = stems(["kaartje", "ov-chipkaart", "liput", "lipun", "ticket", "billet", "bigliett", "billete", "bilhete", "biljett", "biljet", "lippu", "lipu", "pilet", "biļet", "bilieta", "bilet", "jízdenk", "lístok", "lístk", "jegy", "εισιτήρ", "билет", "karta", "karte", "fahrkart", "vozovnic", "vozni"]);
+const TIMETABLE = stems(["horaire", "reisplanner", "journey planner", "fahrplanauskunft", "red plovidbe", "kustības sarakst", "fahrplan", "timetable", "dienstregeling", "orari", "horario", "horário", "tidtabell", "køreplan", "aikataul", "sõiduplaan", "kustības saraksts", "tvarkarašt", "rozkład jazdy", "jízdní řád", "cestovný poriadok", "menetrend", "mersul", "δρομολόγ", "разписание", "vozni red", "departures", "abfahrt", "vertrek"]);
 const JOURNEY = stems(["reise", "reiz", "travel", "voyage", "viaggi", "viaje", "viagem", "resa", "rejse", "reise", "matka", "reis", "ceļojum", "kelion", "podróż", "cest", "utaz", "călători", "ταξίδ", "пътуван", "putovan", "potovan", "fahrt", "journey", "trips ", "check in", "check-in", "boarding", "destinations", "destinazioni", "destinos"]);
+const STATIONS = stems(["gare", "gares", "bahnhof", "bahnhöfe", "station", "stations", "estación", "estaciones", "stazione", "stazioni", "stacja", "nádraží", "stanica", "pályaudvar", "gară", "σταθμ", "гара", "kolodvor", "postaj", "asema", "jaam", "stotis", "airport", "aéroport", "flughafen", "aeroporto", "aeropuerto", "luchthaven"]);
+const DISRUPTIONS = stems(["info trafic", "verkeersinformatie", "reisinformatie", "storingen", "störungen", "verkehrsinformation", "infomobilità", "estado del servicio", "service status", "travel updates", "häiriöt", "liikennetiedote", "výluky", "utasinformáció", "info trafic"]);
 const FARES = stems(["ermäßig", "fares", "fare ", "tarif", "sparschien", "vorteilscard", "railcard", "season ticket", "zeitkart", "abonnement de transport", "klimaticket", "verbund"]);
 // Postal operators: postal-specific concepts plus parcel/shipping concepts.
 const POSTAL_SPECIFIC = any(
@@ -178,7 +215,7 @@ const GAS = words(["gas", "gás", "erdgas", "gaz", "gaz naturel", "kaasu", "maag
 // describe the assortment and never the company.
 const RETAIL_SELF = stems([
   "webshop", "webwinkel", "online winkel", "onlineshop", "online shop", "online-shop", "online store", "shop online", "online kopen", "online bestellen", "online kaufen", "online bestellen",
-  "negozio online", "negozio di", "vendita online", "acquista online", "boutique en ligne", "achat en ligne", "achetez", "tienda online", "tienda en línea", "compra online", "loja online", "compras online",
+  "negozio online", "negozio di", "vendita online", "acquista online", "boutique en ligne", "achat en ligne", "tienda online", "tienda en línea", "compra online", "loja online", "compras online",
   "nettbutikk", "nettbutik", "webbutik", "webbshop", "verkkokaup", "e-pood", "interneta veikal", "internetinė parduotuv", "el. parduotuv", "sklep internetow", "sklep online", "internetový obchod", "internetový obchod", "e-shop", "webáruház", "online áruház", "magazin online", "ηλεκτρονικό κατάστημ", "онлайн магазин", "internetska trgovin", "spletna trgovin", "lebensmittel online", "supermarkt online", "supermercato online", "supermarché en ligne",
 ]);
 
@@ -196,6 +233,12 @@ const ORG_PLURAL = "(?:versicherungen|versicherer|insurance companies|assurances
 const AUDIENCE = new RegExp(`(?<![\\p{L}])(?:for|voor|für|pour|per|para|dla|pro|för|til|για|за)\\s+[^.|–—:;!?]{0,40}?(?<![\\p{L}])${ORG_PLURAL}(?![\\p{L}])[^.|–—:;!?]{0,60}`, "giu");
 export function stripAudience(text: string): string {
   return String(text || "").replace(AUDIENCE, " ");
+}
+
+/** Blogs, magazines, guides and comparison sites write ABOUT a sector. */
+export function isPublication(identity: string, schemaTypes: string[] = []): boolean {
+  return /(?<![\p{L}])\p{L}*(?:blog|vlog)(?![\p{L}])|(?<![\p{L}])(?:magazine|magazin|tijdschrift|revista|rivista|zeitschrift|reisgids|travel guide|guide de voyage|vergelijk|vergleich|comparateur|comparador|review|reviews)(?![\p{L}])/iu.test(identity)
+    || schemaTypes.some((t) => ["blog", "blogposting"].includes(String(t).toLowerCase()));
 }
 
 export function retailSelfDescription(text: string): boolean {
@@ -228,7 +271,7 @@ export function detectEuPrimaryIdentity(input: EuIdentityInput): EuIdentity | nu
   const countSources = (test: (s: string) => boolean) => Object.values(sources).filter((s) => s && test(s)).length;
   // A blog, magazine, guide or comparison site writes ABOUT trains, banks or
   // hospitals; it is not the operator. Operator sectors then abstain.
-  const publication = /(?<![\p{L}])(?:blog|reisblog|vlog|magazine|magazin|tijdschrift|revista|rivista|zeitschrift|reisgids|travel guide|guide de voyage|vergelijk|vergleich|comparateur|comparador|review|reviews)(?![\p{L}])/iu.test(title + " " + site) || ["blog", "blogposting"].some((t) => schema.has(t));
+  const publication = isPublication(title + " " + site, [...schema]);
   const retailer = retailSelfDescription(own) || [...schema].some((t) => /store$|^store$|^onlinestore$/.test(t));
   const evidence = (lines: Array<string | false>) => lines.filter(Boolean) as string[];
 
@@ -254,7 +297,10 @@ export function detectEuPrimaryIdentity(input: EuIdentityInput): EuIdentity | nu
       evidence: evidence([newsSchema && "Structured data: nieuws-/omroeporganisatie", broadcaster && "Eigen identiteit: televisie- en radio-omroep", publisherOwn && "Eigen identiteit: uitgever/redactie", newsSources >= 1 && `Nieuws in ${newsSources} identiteitsbron(nen) (titel/omschrijving/H1/sitenaam)`]) };
   }
 
-  if (publication) return null;
+  if (publication) {
+    return { sector: "news_media", key: "publisher_blog", label: "Blog & publicaties", confidence: "medium", confidenceScore: 76,
+      evidence: ["Eigen identiteit: blog, magazine, gids of vergelijkingssite (schrijft over een onderwerp, is geen aanbieder ervan)"] };
+  }
 
   // 3. Financial services (banks, insurers). Payments stay in primary-business-identity.ts.
   const bankConcepts = distinct(own, BANK_CONCEPTS);
@@ -312,6 +358,23 @@ export function detectEuPrimaryIdentity(input: EuIdentityInput): EuIdentity | nu
     return { sector: "energy_utilities", key: "energy_utilities", label: "Energie & Nutsvoorzieningen", confidence: "high", confidenceScore: 90, evidence: ["Eigen identiteit noemt stroom/gas en leveringsvoorwaarden"] };
   }
 
+  // 7a. Pharmacies, gyms, travel agencies, couriers, software companies.
+  if (!retailer && (schema.has("pharmacy") || PHARMACY.test(title) || countSources((s) => PHARMACY.test(s)) >= 2)) {
+    return { sector: "health_wellness", key: "pharmacy", label: "Zorg & Gezondheid · apotheek", confidence: "high", confidenceScore: schema.has("pharmacy") ? 93 : 90, evidence: ["Eigen identiteit: apotheek"] };
+  }
+  if (!retailer && (schema.has("exercisegym") || schema.has("healthclub") || FITNESS.test(title) || countSources((s) => FITNESS.test(s)) >= 2)) {
+    return { sector: "fitness_sports", key: "fitness_sports", label: "Sport & Fitness", confidence: "high", confidenceScore: 90, evidence: ["Eigen identiteit: sportschool/fitness"] };
+  }
+  if (!retailer && (schema.has("travelagency") || TRAVEL_AGENCY.test(title) || countSources((s) => TRAVEL_AGENCY.test(s)) >= 2)) {
+    return { sector: "tourism_recreation", key: "travel_agency", label: "Toerisme & Recreatie · reisorganisatie", confidence: "high", confidenceScore: 88, evidence: ["Eigen identiteit: toeristische reisorganisatie (vakanties, pakketreizen)"] };
+  }
+  if (!retailer && COURIER.test(own) && PARCEL.test(own)) {
+    return { sector: "transport_travel", key: "postal_logistics", label: "Post- & pakketvervoer", confidence: "high", confidenceScore: 88, evidence: ["Eigen identiteit: koerier- of pakketdienst"] };
+  }
+  if (!retailer && SOFTWARE.test(title) && (SOFTWARE_FUNNEL.test(nav + " " + h2 + " " + own) || schema.has("softwareapplication") || schema.has("webapplication"))) {
+    return { sector: "saas_b2b", key: "saas_b2b", label: "SaaS / B2B software", confidence: "medium", confidenceScore: 78, evidence: ["Eigen identiteit: softwareproduct met demo-, prijs- of loginfunnel"] };
+  }
+
   // 7b. Museums, theatres, concert halls and festivals.
   const cultureSchema = ["museum", "performingartstheater", "eventvenue", "musicvenue", "artgallery", "theaterevent", "festival"].some((t) => schema.has(t));
   if (!retailer && (cultureSchema && (CULTURE.test(own) || CULTURE_SUPPORT.test(own)) || (CULTURE.test(title) && CULTURE_SUPPORT.test(own)) || countSources((s) => CULTURE.test(s)) >= 2)) {
@@ -326,16 +389,38 @@ export function detectEuPrimaryIdentity(input: EuIdentityInput): EuIdentity | nu
   const transportStructure = [
     TICKETS.test(structure) && "vervoersbewijzen", TIMETABLE.test(structure) && "dienstregeling",
     (AIR.test(structure) || RAIL.test(structure) || BUS.test(structure) || FERRY.test(structure)) && "vervoerswijze",
-    FARES.test(structure) && "tarieven/kortingskaarten", JOURNEY.test(structure + " " + site) && "reizen",
+    FARES.test(structure) && "tarieven/kortingskaarten", JOURNEY.test(structure + " " + site + " " + h1) && "reizen",
+    STATIONS.test(structure) && "stations", DISRUPTIONS.test(structure) && "reisinformatie/storingen",
+    (AIR.test(title) || RAIL.test(title) || BUS.test(title) || FERRY.test(title)) && "vervoerswijze in titel",
   ].filter(Boolean) as string[];
-  if (transportStructure.length >= 3 && (transportStructure.includes("vervoersbewijzen") || transportStructure.includes("vervoerswijze"))) {
+  if (transportStructure.length >= 3 && (transportStructure.includes("vervoersbewijzen") || transportStructure.includes("vervoerswijze") || transportStructure.includes("vervoerswijze in titel"))) {
     return { sector: "transport_travel", key: "passenger_transport", label: "Personenvervoer (spoor, luchtvaart, openbaar vervoer)", confidence: "medium", confidenceScore: 74,
       evidence: [`Navigatie en koppen beschrijven personenvervoer (${transportStructure.join(", ")}); de titel en omschrijving noemen dit niet zelf`] };
   }
-  const structureNews = NEWS.test(structure) && (PUBLISHER.test(structure) || (TELEVISION.test(structure) && RADIO.test(structure)));
+  const newsSections = distinct(structure, NEWS_SECTIONS);
+  const sectionNews = newsSections.includes("politics") && newsSections.length >= 4 && (NEWS.test(structure + " " + own) || newsSections.includes("world") || newsSections.includes("edition"));
+  const structureNews = sectionNews || (NEWS.test(structure) && (PUBLISHER.test(structure) || (TELEVISION.test(structure) && RADIO.test(structure))));
   if (structureNews) {
     return { sector: "news_media", key: "news_media", label: "Nieuws & Media", confidence: "medium", confidenceScore: 72,
-      evidence: ["Navigatie en koppen beschrijven nieuws en omroep/redactie; de titel en omschrijving noemen dit niet zelf"] };
+      evidence: [sectionNews ? `Navigatie volgt een nieuwsindeling (${newsSections.join(", ")}); de titel noemt dit niet zelf` : "Navigatie en koppen beschrijven nieuws en omroep/redactie; de titel en omschrijving noemen dit niet zelf"] };
+  }
+  const bankStructure = distinct(structure + " " + own, BANK_CONCEPTS);
+  if (bankStructure.length >= 3 && (bankStructure.includes("banking") || bankStructure.includes("accounts") || bankStructure.includes("institution"))) {
+    return { sector: "financial_services", key: "financial_banking", label: "Bank & financiële producten", confidence: "medium", confidenceScore: 75,
+      evidence: [`Navigatie en koppen beschrijven bankproducten (${bankStructure.join(", ")}); de titel noemt dit niet zelf`] };
+  }
+  const civic = distinct(structure + " " + own, CIVIC_SECTIONS);
+  if (civic.length >= 3 && (civic.includes("documents") || civic.includes("governance") || civic.includes("counter"))) {
+    return { sector: "government", key: "government", label: "Overheid & Publieke sector", confidence: "medium", confidenceScore: 74,
+      evidence: [`Navigatie en koppen beschrijven gemeentelijke/publieke dienstverlening (${civic.join(", ")})`] };
+  }
+  if (UNIVERSITY.test(structure + " " + site) && EDU_SUPPORT.test(structure + " " + own)) {
+    return { sector: "education", key: "education", label: "Onderwijs & Opleiding", confidence: "medium", confidenceScore: 74,
+      evidence: ["Navigatie en koppen beschrijven studie en onderzoek aan een onderwijsinstelling"] };
+  }
+  if (AGENCY.test(title + " " + h1) && AGENCY_SERVICE.test(own + " " + structure)) {
+    return { sector: "professional_services", key: "professional_services", label: "Zakelijke dienstverlening", confidence: "medium", confidenceScore: 76,
+      evidence: ["Eigen identiteit: bureau/agentschap met zakelijke diensten"] };
   }
   if (POSTAL_SPECIFIC(structure) && PARCEL.test(structure) && PARCEL.test(own)) {
     return { sector: "transport_travel", key: "postal_logistics", label: "Post- & pakketvervoer", confidence: "medium", confidenceScore: 74,

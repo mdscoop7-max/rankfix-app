@@ -39,7 +39,7 @@ const accommodationSchema = new Set([
   "vacationrental", "resort", "campground", "hostel",
 ]);
 
-import { stripAudience } from "./eu-identity.ts";
+import { isPublication, stripAudience } from "./eu-identity.ts";
 
 export function detectPrimaryBusinessIdentity(input: {
   title?: string;
@@ -53,6 +53,8 @@ export function detectPrimaryBusinessIdentity(input: {
   const description = stripAudience((input.description || "").slice(0, 600));
   const heading = stripAudience((input.headings || []).slice(0, 3).join(" ").slice(0, 400));
   const schema = new Set((input.schemaTypes || []).map((v) => v.toLowerCase()));
+  // A blog or magazine about money or travel is a publication, not a bank or hotel.
+  if (isPublication(title, input.schemaTypes || [])) return { sector: "unknown", confidence: "low", confidenceScore: 0, evidence: [] };
   const identityText = [title, description, heading].join(" ");
   // "voor webshops" / "for online stores" names the provider's customers, not
   // something the provider sells itself; remove such audience phrases first.

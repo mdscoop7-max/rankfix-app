@@ -50,3 +50,11 @@ test("isolation under load: parallel scans of different sites never mix evidence
   assert.ok(r.total >= 40);
   assert.equal(r.failed, 0, r.log);
 });
+
+// Real PostgreSQL (opt-in: RF_PG_TEST_URL=postgres://...): every scan attempt,
+// success or failure, is stored in scan_attempts with code and category, and an
+// earlier scan_attempts table is upgraded in place.
+test("scan_attempts on real PostgreSQL: success, 404, block, timeout, invalid input, cookie redirect", { skip: !process.env.RF_PG_TEST_URL && "RF_PG_TEST_URL not set" }, () => {
+  const r = run("run-attempts-pg.mjs", { RF_REAL_DB: "1", DATABASE_URL: process.env.RF_PG_TEST_URL });
+  assert.equal(r.failed, 0, r.log);
+});
