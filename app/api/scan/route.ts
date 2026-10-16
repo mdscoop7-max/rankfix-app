@@ -363,7 +363,30 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
   };
 }
 
+/**
+ * Records every logged-in scan attempt (success or failure) in scan_attempts so
+ * scan success rates can be measured; failed scans are never stored in scans.
+ * Best effort: a logging failure never changes the scan response.
+ */
 export async function POST(request: Request) {
+  const attemptStarted = Date.now();
+  let requestedUrl = "";
+  try { const peek = await request.clone().json(); requestedUrl = typeof peek?.url === "string" ? peek.url.trim().slice(0, 500) : ""; } catch {}
+  const response = await runScan(request);
+  try {
+    const user = await getCurrentUser();
+    if (user && requestedUrl) {
+      const error = response.status === 200 ? null : String((await response.clone().json().catch(() => ({})))?.error || "").slice(0, 300);
+      await getDb().query(
+        "INSERT INTO scan_attempts (user_id, requested_url, http_status, outcome, error, duration_ms) VALUES ($1,$2,$3,$4,$5,$6)",
+        [user.id, requestedUrl, response.status, response.status === 200 ? "success" : "failed", error, Date.now() - attemptStarted],
+      );
+    }
+  } catch {}
+  return response;
+}
+
+async function runScan(request: Request) {
   let fallbackLanguage = "nl";
   try {
     const body = await request.json();

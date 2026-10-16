@@ -319,7 +319,20 @@ const statements = [
   )`,
   `CREATE INDEX IF NOT EXISTS background_jobs_claim_idx ON background_jobs(status,available_at,priority,created_at) WHERE status IN ('QUEUED','RETRY')`,
   `CREATE INDEX IF NOT EXISTS background_jobs_user_idx ON background_jobs(user_id,created_at DESC)`,
-  `CREATE UNIQUE INDEX IF NOT EXISTS background_jobs_dedupe_idx ON background_jobs(job_type,dedupe_key) WHERE dedupe_key IS NOT NULL AND status IN ('QUEUED','RUNNING','RETRY')`
+  `CREATE UNIQUE INDEX IF NOT EXISTS background_jobs_dedupe_idx ON background_jobs(job_type,dedupe_key) WHERE dedupe_key IS NOT NULL AND status IN ('QUEUED','RUNNING','RETRY')`,
+  // Every logged-in scan attempt, successful or not, so scan success can be
+  // measured (a failed scan never reaches the scans table).
+  `CREATE TABLE IF NOT EXISTS scan_attempts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    requested_url TEXT NOT NULL,
+    http_status INTEGER NOT NULL,
+    outcome TEXT NOT NULL,
+    error TEXT,
+    duration_ms INTEGER,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`,
+  `CREATE INDEX IF NOT EXISTS scan_attempts_user_idx ON scan_attempts(user_id, created_at DESC)`
 ];
 
 export async function ensureDatabase() {
