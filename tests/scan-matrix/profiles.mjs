@@ -111,6 +111,21 @@ export const PROFILES = [
       "/en/careers/working-at-machines/united-states": { body: page({ lang: "en", title: "Working at Macro Systems in the United States", desc: "Careers and locations in the US.", h1: "Working in the US", body: "<nav><a href='/en/products/euv-systems'>EUV</a> <a href='/en/products/duv-systems'>DUV</a></nav><p>Open positions in San Diego and Wilton.</p>" }) },
       "/en/company/governance": { body: page({ lang: "en", title: "Corporate governance – Macro Systems", desc: "Board of management and supervisory board.", h1: "Governance", body: "<nav><a href='/en/products/euv-systems'>EUV</a> <a href='/en/products/duv-systems'>DUV</a></nav><p>Our two-tier board structure.</p>" }) },
     } },
+  // Component maker that names the systems it builds but never says "manufacturer";
+  // first-equipment supply in the navigation. Not a shop, not unknown (field scan 16-10, IT).
+  { id: "component-maker-brakes-en", host: "frena.test", expect: ["manufacturing_industrial"], notExpect: ["ecommerce", "unknown"], retailNA: true,
+    home: { lang: "en", title: "Innovation and Safety in Braking Systems for Cars and Bikes | Frena EN", desc: "Discover the latest innovations in braking systems and mobility. Safety, performance and sustainability: explore our products.", h1: "When the car drives itself, the brakes are up to us",
+      body: "<nav><a href='/en/solutions/car'>Car</a> <a href='/en/solutions/car/first-equipment'>First Equipment: Success Stories</a> <a href='/en/solutions/motorcycle'>Motorcycle</a> <a href='/en/solutions/motorcycle/original-equipment'>Original Equipment: Success Stories</a> <a href='/en/motorsport'>Motorsport</a> <a href='/en/motorsport/formula-1'>Formula 1</a></nav><p>Frena N.V., Bergamo, Italy. <a href='/en/contact'>Contact us</a></p>" } },
+  // Bank whose account and card pages carry Product + FinancialProduct schema with a
+  // 0 PLN offer below /produkty/: financial services, never retail products (field scan 16-10, PL).
+  { id: "bank-financial-products-pl", host: "bank-pl.test", expect: ["financial_services"], notExpect: ["ecommerce"], retailNA: true, noProductSample: true,
+    sampleTypes: { "/produkty/konto-osobiste": ["service"], "/produkty/karta-kredytowa": ["service"] },
+    home: { lang: "pl", title: "Bank – konto osobiste, kredyty, karty i lokaty", desc: "Załóż konto osobiste, weź kredyt gotówkowy, zamów kartę kredytową. Bankowość internetowa i mobilna.", h1: "Bank dla Ciebie",
+      body: "<nav><a href='/produkty/konto-osobiste'>Konto osobiste</a> <a href='/produkty/karta-kredytowa'>Karta kredytowa</a> <a href='/kredyty'>Kredyty</a> <a href='/lokaty'>Lokaty</a> <a href='/bankowosc-internetowa'>Bankowość internetowa</a></nav><p>Konto za 0 zł, karta i aplikacja mobilna.</p>", lds: [org("Bank", "BankOrCreditUnion"), site] },
+    files: {
+      "/produkty/konto-osobiste": { body: page({ lang: "pl", title: "Konto osobiste za 0 zł – Bank", desc: "Otwórz konto osobiste online w 10 minut.", h1: "Konto osobiste", body: "<p>Prowadzenie konta 0 zł. <a href='/wniosek/konto'>Otwórz konto</a></p>", lds: [{ "@type": ["Product", "FinancialProduct"], name: "Konto osobiste", image: "https://__HOST__/img/konto.png", offers: { "@type": "Offer", price: "0", priceCurrency: "PLN" } }] }) },
+      "/produkty/karta-kredytowa": { body: page({ lang: "pl", title: "Karta kredytowa – Bank", desc: "Karta kredytowa z limitem do 50 000 zł.", h1: "Karta kredytowa", body: "<p>RRSO 19,8%. <a href='/wniosek/karta'>Złóż wniosek</a></p>", lds: [{ "@type": "CreditCard", name: "Karta kredytowa", annualPercentageRate: 19.8 }] }) },
+    } },
   // A long homepage description is advice without deduction (report text and points agree).
   { id: "long-description-home", host: "langdesc.test", expect: ["professional_services", "unknown", "general_business"], checkStatus: { description: ["pass"] },
     home: { title: "Adviesbureau Noord – advies voor ondernemers", desc: "Wij zijn een adviesbureau voor ondernemers in Noord-Nederland en helpen met financiering, strategie, groei en overname, met een vast team van adviseurs die uw sector kennen en snel schakelen bij elke vraag.", h1: "Advies voor ondernemers", body: "<p>Ons team helpt met strategie en financiering. <a href='/contact'>Contact</a></p>" } },

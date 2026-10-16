@@ -98,6 +98,7 @@ for (const p of PROFILES) {
     if (p.maxSectorConfidence != null && (j.sectorProfile?.confidenceScore ?? 0) > p.maxSectorConfidence) problems.push(`sector confidence ${j.sectorProfile?.confidenceScore} > ${p.maxSectorConfidence}`);
     if (p.evidenceLevel && !p.evidenceLevel.includes(j.scoreModel?.evidenceLevel)) problems.push(`evidenceLevel ${j.scoreModel?.evidenceLevel} (expected ${p.evidenceLevel})`);
     if (p.retailNA) { const retailOpen = [...(j.seo?.checks || []), ...(j.geo?.checks || [])].filter((c) => /^(?:merchant_|product_|checkout_|webshop_|eu_(?:discount|review|scarcity|consumer)|price_currency|price_format|ads_readiness|consent_mode)/.test(c.key) && c.status !== "not_applicable"); if (retailOpen.length) problems.push(`retail checks not N/A on a non-retail site: ${retailOpen.map((c) => c.key + "=" + c.status).join(", ")}`); }
+    if (p.noProductSample && j.multiPage?.representativeProduct) problems.push(`representative product ${j.multiPage.representativeProduct.url} on a site without retail products`);
     if (p.productSample) { const rp = j.multiPage?.representativeProduct; if (!rp || !p.productSample.test(new URL(rp.url).pathname)) problems.push(`representative product ${rp?.url || "none"} (expected ${p.productSample})`); }
     if (p.maxScore != null && (process.env.MODE || "both") === "both" && j.overallScore > p.maxScore) problems.push(`score ${j.overallScore} > ${p.maxScore} despite issues`);
     for (const m of p.noModules || []) if (j.sectorProfile.applicableModules.includes(m)) problems.push(`module ${m} should not be active`);
@@ -126,6 +127,8 @@ for (const p of PROFILES) {
       if (!["complete", "provisional", "insufficient"].includes(j.scoreModel.evidenceLevel)) problems.push("evidenceLevel missing");
       if (j.coverage?.coveragePercent < 60 && j.scoreModel.evidenceLevel !== "insufficient") problems.push(`coverage ${j.coverage.coveragePercent}% but evidenceLevel ${j.scoreModel.evidenceLevel}`);
       if (j.scoreModel.evidenceLevel !== "complete" && !j.scoreModel.provisional) problems.push("non-complete evidence not provisional");
+      // Without a primary sector the sector modules were never chosen: never "definitief".
+      if (j.sectorProfile?.sector === "unknown" && j.scoreModel.evidenceLevel === "complete") problems.push("unknown primary sector shown as complete evidence");
       if (j.coverage?.coveragePercent < 70 && j.overallScore >= 90 && j.scoreModel.headline?.kind !== "range") problems.push(`headline ${j.overallScore} shown as a bare number at ${j.coverage.coveragePercent}% coverage`);
     }
     // Homepage score and site sample must be reported side by side and agree.

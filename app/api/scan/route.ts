@@ -23,7 +23,7 @@ import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
 import { createRenderBudget, renderPublicPage } from "@/lib/headless-render";
 import { renderOnce, renderWithRetry, representativeNeedsJavaScriptRendering } from "@/lib/render-strategy";
-import { missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore } from "@/lib/sample-quality";
+import { isFinancialOfferSchema, missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore } from "@/lib/sample-quality";
 import { parseStructuredPrice, offerPrice } from "@/lib/price";
 import { detectBusinessModel } from "@/lib/business-model";
 import { indexJsonLdIds, resolveSchemaImage } from "@/lib/schema-image";
@@ -668,7 +668,8 @@ async function runScan(request: Request) {
     const renderPrimaryOnce = renderOnce(() => renderWithRetry((ms) => {
       primaryRenderAttempts++;
       return renderPublicPage(finalUrl.toString(), ms, renderBudget);
-    }, 12000, 7000));
+    // The retry gets the same time as the first try: a page that missed 12 s will not load in 7 s.
+    }, 12000, 12000));
     let renderedDocument: Awaited<ReturnType<typeof renderPublicPage>> | null = null;
 
     if (response.status === 429) {
@@ -981,7 +982,7 @@ async function runScan(request: Request) {
     console.info("RankFix scan phase", { phase: "schema_parsed", page: finalUrl.toString(), schemaObjects: schemaObjects.length });
     // schema.org Product next to FinancialProduct/LoanOrCredit/BankAccount types
     // describes a bank's or insurer's offer (accounts, loans, cards), not merchandise.
-    const financialOfferSchema = ["financialproduct","loanorcredit","bankaccount","depositaccount","paymentcard","creditcard","mortgageloan","investmentordeposit","insuranceagency","bankorcreditunion"].some((type)=>schemaSet.has(type));
+    const financialOfferSchema = isFinancialOfferSchema([...schemaSet]);
     const hasProductSchema = schemaSet.has("product") && !financialOfferSchema;
     const productSchemaObjects = schemaObjects.filter((item) => {
       const types = Array.isArray(item?.["@type"]) ? item["@type"] : [item?.["@type"]];
@@ -3986,6 +3987,8 @@ async function runScan(request: Request) {
       fallbackReason: javascriptCandidate && !javascriptExecuted ? (renderFallbackReason || "RENDER_FAILED") : null,
       attempts: primaryRenderAttempts,
       rejectedBrowserSnapshot,
+      // The page missed DOMContentLoaded within the budget; its DOM snapshot passed the evidence gate.
+      partialNavigation: Boolean(javascriptExecuted && renderedDocument?.partialNavigation),
       warning: javascriptCandidate && !javascriptExecuted,
       evidenceSource: javascriptExecuted ? "rendered_html" as const : "raw_html" as const,
       // Bot manager that served a reduced page; dependent checks stayed unconfirmed.
@@ -4250,8 +4253,14 @@ async function runScan(request: Request) {
         const pageForms = formBlocks(pageHtml);
         const pagePasswordForm = pageForms.some((form)=>new RegExp("<input[^>]+type\\s*=\\s*[\"\']password[\"\']", "i").test(form));
         const pageInsecureFormActions = pageForms.filter((form)=>new RegExp("action\\s*=\\s*[\"\']http://", "i").test(form)).length;
-        const pageSchemaTypes = [...pageHtml.matchAll(/"@type"\s*:\s*"([^"]+)"/gi)].map((m)=>String(m[1]||"").toLowerCase());
-        const pageProductSchema = pageSchemaTypes.some((type)=>type==="product" || type.endsWith("product"));
+        // "@type" may be a string or an array (["Product","FinancialProduct"], ["WebPage","ItemPage"]).
+        const pageSchemaTypes = [...pageHtml.matchAll(/"@type"\s*:\s*(?:"([^"]+)"|\[([^\]]{0,400})\])/gi)]
+          .flatMap((m)=>m[1] ? [m[1]] : [...String(m[2]||"").matchAll(/"([^"]+)"/g)].map((x)=>x[1]))
+          .map((type)=>String(type||"").toLowerCase());
+        // FinancialProduct ends in "product" but is a bank's offer; Product next to a
+        // financial type is the same offer (same rule as the scanned page).
+        const pageFinancialOffer = isFinancialOfferSchema(pageSchemaTypes);
+        const pageProductSchema = !pageFinancialOffer && pageSchemaTypes.some((type)=>type==="product" || type.endsWith("product"));
         const pageItemListSchema = pageSchemaTypes.some((type)=>type==="itemlist");
         const pageStoreSchema = pageSchemaTypes.some((type)=>/^(?:store|onlinestore|departmentstore|wholesalestore)$/.test(type));
         const pageStrongCommerceAction = /\b(?:add to cart|add to basket|buy now|shop now|toevoegen aan winkelwagen|in winkelwagen|acquista ora|aggiungi al carrello|comprar ahora|adicionar ao carrinho|ajouter au panier|in den warenkorb)\b/i.test(pageQualityText);
@@ -4282,7 +4291,7 @@ async function runScan(request: Request) {
         })();
         const pageOffer:any = pageProductJson ? (Array.isArray(pageProductJson.offers) ? pageProductJson.offers[0] : pageProductJson.offers) : null;
         const pageImageValue = pageProductJson?.image;
-        const pageProductEvidence = pageProductJson ? {
+        const pageProductEvidence = pageProductJson && !pageFinancialOffer ? {
           name: typeof pageProductJson.name==="string" ? pageProductJson.name.trim() || null : null,
           // image may be a URL, an ImageObject, an array or an @id reference in the @graph.
           image: resolveSchemaImage(pageImageValue, indexJsonLdIds(pageJsonLdRoots)),
@@ -4293,7 +4302,8 @@ async function runScan(request: Request) {
         } : null;
         const pageCommerceEvidence = {
           productSchema: pageProductSchema,
-          productSchemaCount: (pageHtml.match(/"@type"\s*:\s*"Product"/g)||[]).length,
+          productSchemaCount: pageFinancialOffer ? 0 : (pageHtml.match(/"@type"\s*:\s*"Product"/g)||[]).length,
+          financialOffer: pageFinancialOffer,
           eventSchema: pageSchemaTypes.some((type)=>/^(?:event|educationevent|businessevent|socialevent|exhibitionevent|musicevent|theaterevent)$/i.test(type)),
           itemListSchema: pageItemListSchema,
           storeSchema: pageStoreSchema,
@@ -4351,6 +4361,10 @@ async function runScan(request: Request) {
           articleSchema: pageSchemaTypes.some((type)=>/^(?:article|newsarticle|blogposting|reportage)$/i.test(type)),
           breadcrumbDepth: (pageHtml.match(/"@type"\s*:\s*"ListItem"/gi)||[]).length,
           productSchema: pageProductSchema,
+          financialOffer: pageFinancialOffer,
+          // Wired from the page's own evidence (these inputs were defined but never passed).
+          productSchemaCount: pageCommerceEvidence.productSchemaCount,
+          eventSchema: pageCommerceEvidence.eventSchema,
           itemListSchema: pageItemListSchema,
           repeatedProductLinks: pageCommerceEvidence.repeatedProductLinks,
           productOffer: Boolean(pageProductEvidence?.price && pageProductEvidence?.currency),
@@ -5192,12 +5206,14 @@ async function runScan(request: Request) {
       coveragePercent: overallCoverage.coveragePercent,
       javascriptRequiredButNotRendered: Boolean(javascriptCandidate) && !javascriptExecuted,
       renderDegraded: Boolean(rejectedBrowserSnapshot),
+      renderPartial: Boolean(javascriptExecuted && renderedDocument?.partialNavigation),
       unconfirmed: overallCoverage.unableToConfirm,
       // Heavy checks (8+ points: title, description, H1, structured data, entity, …)
       // that stayed unconfirmed make a 98/99 provisional, never "definitief".
       // Organization + WebSite is a homepage concern; on a product or article URL it is not decisive.
       importantUnconfirmed: [...seoChecks,...geoChecks].filter((c)=>c.status==="unable_to_confirm" && c.maxPoints>=8 && !(c.key==="organization_website" && !isHomepage)).map((c)=>c.title),
       sectorConfidence: sectorProfile.sector === "unknown" ? undefined : sectorProfile.confidenceScore,
+      sectorUnknown: sectorProfile.sector === "unknown",
     });
     scoreModel.provisional = scoreEvidence.level !== "complete";
     Object.assign(scoreModel, {

@@ -131,7 +131,13 @@ const INDUSTRIAL = stems([
   "components", "componenten", "komponenten", "composants", "componenti", "componentes", "bearings", "lager", "pumps", "pompen", "pumpen", "valves", "kleppen", "ventile", "compressors", "turbines", "turbinen", "generators", "generatoren", "engines", "motoren", "verpakkingsmachine", "voedingsindustrie", "lasers", "laser",
   "steel", "staal", "stahl", "acier", "acciaio", "acero", "chemicals", "chemie", "chimie", "chimica", "química", "plastics", "kunststof", "kunststoff", "packaging machines", "verpakkingsmachines", "electronics manufactur", "precision", "precisie", "präzision",
   "aerospace", "lucht- en ruimtevaart", "luft- und raumfahrt", "aéronautique", "aerospaziale", "aeroespacial",
+  // Engineered vehicle components (what component makers name in their own title).
+  "braking", "brake", "bremssystem", "bremsanlage", "bremsscheib", "freinage", "freins", "impianti frenanti", "sistemi frenanti", "sistema frenante", "frenado", "sistemas de travagem", "remsystem", "remschijv", "hamulc", "układy hamulcowe", "brzdov", "fékrendszer", "sisteme de frânare", "jarrujärjestelm", "bromssystem", "φρένων",
+  "gearbox", "transmissions", "getriebe", "powertrain", "drivetrain", "antriebsstrang", "shock absorbers", "stoßdämpfer", "ammortizzatori", "amortisseurs", "schokdempers", "axles", "achsen",
 ]);
+// Supplying vehicle or machine makers (B2B): "original equipment", "Erstausrüstung", "première monte".
+// Only the phrases, never bare "OEM" (aftermarket parts shops say "OEM-kwaliteit").
+const OEM_SUPPLY = stems(["original equipment", "first equipment", "erstausrüst", "erstausstatt", "première monte", "premiere monte", "primo equipaggiamento", "primo impianto", "equipo original", "equipamento original", "eerste montage", "pierwszy montaż", "pierwsze wyposażenie", "prvovýbav", "ensiasennus", "originalutrustning"]);
 const HARDWARE = stems(["hardware", "systems", "systemen", "systeme", "systèmes", "sistemi", "sistemas", "equipment", "apparatuur", "anlagen", "équipements", "attrezzature", "equipos", "equipamentos", "installations", "installaties", "products", "producten", "produkte", "produits", "prodotti", "productos"]);
 
 const SOFTWARE = stems(["software", "saas", "platform", "plattform", "plateforme", "piattaforma", "plataforma", "logiciel", "app for", "regtech", "fintech platform"]);
@@ -470,6 +476,23 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   if (!retailer && !softwareOnly && industrial.length >= 1 && (makes || supplies)) {
     return { sector: "manufacturing_industrial", key: "manufacturing_industrial", label: "Industrie & Productie (B2B)", confidence: "high", confidenceScore: makes && industrial.length >= 2 ? 90 : 86,
       evidence: evidence([makes && "Eigen identiteit: fabrikant/producent", supplies && "Eigen identiteit: leverancier van industriële systemen of componenten", `Industriële sector/producten: ${industrial.slice(0, 3).join(", ")}`]) };
+  }
+
+  // 7c. Component makers that name the systems they build, without a maker word
+  //     ("Braking systems for cars and bikes"). The title names an industrial object
+  //     together with systems/products, and a second own source names it again, or
+  //     the site supplies original equipment to vehicle/machine makers.
+  //     Medium certainty: no maker word, so the evidence is weaker than 7b.
+  const titleIndustrial = distinct2(title, INDUSTRIAL);
+  const oemSupply = OEM_SUPPLY.test([own, nav, h2].join(" · "));
+  const repeated = distinct2([description, h1, site].join(" · "), INDUSTRIAL).length >= 1;
+  // German/Dutch compounds carry the system word inside ("Bremssysteme", "remsystemen").
+  const namesSystems = HARDWARE.test(own) || titleIndustrial.some((w) => /syst[eé]m|anlag|rendszer|järjestelm|układ/i.test(w));
+  // Buyer guides and tests write about components; they do not make them.
+  const aboutComponents = /(?<![\p{L}])(?:best|top \d+|beste|besten|meilleurs?|migliori|mejores|najlepsze|test|tests|tested|reviewed|review|guide|gids|ratgeber|kaufberatung|vergelijk\p{L}*|vergleich\p{L}*|how to|hoe )(?![\p{L}])/iu.test(title);
+  if (!retailer && !softwareOnly && !aboutComponents && !SOFTWARE.test(own) && titleIndustrial.length >= 1 && namesSystems && (repeated || oemSupply)) {
+    return { sector: "manufacturing_industrial", key: "manufacturing_industrial", label: "Industrie & Productie (B2B)", confidence: "medium", confidenceScore: oemSupply && repeated ? 82 : 78,
+      evidence: evidence([`Titel noemt industriële systemen/producten (${titleIndustrial.slice(0, 3).join(", ")})`, repeated && "Omschrijving of H1 noemt deze producten opnieuw", oemSupply && "Navigatie of identiteit noemt levering als eerste montage (original equipment) aan fabrikanten"]) };
   }
 
   // 7a. Pharmacies, gyms, travel agencies, couriers, software companies.
