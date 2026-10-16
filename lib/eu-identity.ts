@@ -427,11 +427,16 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
 
   // 5. Passenger transport and postal/parcel operators.
   const airlineSchema = schema.has("airline") || schema.has("busorcoachstop") || schema.has("trainstation") || schema.has("airport");
+  // A self-described airline with operational flight booking/navigation is an operator,
+  // even if a challenged homepage omits description and structured data.
+  // Never infer this from hostname alone or from a travel blog mentioning flights.
+  const flightBookingNavigation = /(?<![\\p{L}])(?:book|booking|boek|boeken|réserver|réservez|reservar|prenota|buchen|flight|flights|vlucht|vluchten|vols|flüge|vuelo|voli|destinations|bestemmingen)(?![\\p{L}])/iu.test(nav + " " + h2);
+  const airlineOperatorEvidence = !publication && !retailer && AIR.test(title + " " + site) && flightBookingNavigation;
   const modes = [AIR.test(own) && "luchtvaart", RAIL.test(own) && "spoor", (BUS.test(own) || FERRY.test(own)) && "openbaar vervoer/veer"].filter(Boolean) as string[];
   const travelOwn = [TICKETS.test(own) && "vervoersbewijzen", TIMETABLE.test(own) && "dienstregeling", JOURNEY.test(own) && "reis/boeking"].filter(Boolean) as string[];
-  if (!retailer && (airlineSchema || (modes.length >= 1 && (travelOwn.length >= 1 || countSources((s) => AIR.test(s) || RAIL.test(s) || BUS.test(s) || FERRY.test(s)) >= 2)))) {
-    return { sector: "transport_travel", key: "passenger_transport", label: "Personenvervoer (spoor, luchtvaart, openbaar vervoer)", confidence: "high", confidenceScore: airlineSchema ? 95 : 90,
-      evidence: evidence([airlineSchema && "Structured data: vervoerder (Airline/station)", modes.length > 0 && `Eigen identiteit noemt vervoerswijze: ${modes.join(", ")}`, travelOwn.length > 0 && `Eigen identiteit noemt ${travelOwn.join(", ")}`]) };
+  if (!retailer && !publication && (airlineSchema || airlineOperatorEvidence || (modes.length >= 1 && (travelOwn.length >= 1 || countSources((s) => AIR.test(s) || RAIL.test(s) || BUS.test(s) || FERRY.test(s)) >= 2)))) {
+    return { sector: "transport_travel", key: "passenger_transport", label: "Personenvervoer (spoor, luchtvaart, openbaar vervoer)", confidence: "high", confidenceScore: airlineSchema ? 95 : airlineOperatorEvidence ? 90 : 90,
+      evidence: evidence([airlineSchema && "Structured data: vervoerder (Airline/station)", airlineOperatorEvidence && "Eigen titel/site-identiteit noemt luchtvaart en navigatie toont operationele vlucht-/boekingsinformatie", modes.length > 0 && `Eigen identiteit noemt vervoerswijze: ${modes.join(", ")}`, travelOwn.length > 0 && `Eigen identiteit noemt ${travelOwn.join(", ")}`]) };
   }
   const freightSources = countSources((s) => FREIGHT.test(s));
   if (!retailer && freightSources >= 1 && (freightSources >= 2 || FREIGHT_SUPPORT.test(own))) {
