@@ -1,6 +1,8 @@
 "use client";
 import Link from "next/link";
 import WebsiteProfile from "@/components/website-profile";
+import { getFixPolicy } from "@/lib/fix-policy";
+import { publicFixProposalType,canOfferPublicFixProposal } from "@/lib/public-fix-actions";
 
 import { useEffect, useMemo, useState } from "react";
 import AiAssistant from "@/components/ai-assistant";
@@ -270,12 +272,6 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
   const [contactSending, setContactSending] = useState(false);
   const [contactSent, setContactSent] = useState(false);
   const [contactError, setContactError] = useState("");
-  const [githubFixing, setGithubFixing] = useState<string | null>(null);
-  const [githubProgress, setGithubProgress] = useState(0);
-  const [githubResult, setGithubResult] = useState<{url:string;title:string;number:number} | null>(null);
-  const [githubAlreadyApplied, setGithubAlreadyApplied] = useState(false);
-  const [githubResults, setGithubResults] = useState<Record<string, {url:string;title:string;number:number}>>({});
-  const [githubError, setGithubError] = useState("");
   const [authUser, setAuthUser] = useState<{ name?: string; email?: string } | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
@@ -372,27 +368,8 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
     setFixing(item.issue_id || item.key);
     try {
       const issueId = item.issue_id || item.rule_id || item.key;
-      const type = issueId === "META_TITLE_MISSING" || issueId === "META_TITLE_GUIDANCE" || item.key === "title"
-        ? "meta_title"
-        : issueId === "META_DESCRIPTION_MISSING" || issueId === "META_DESCRIPTION_GUIDANCE" || item.key === "description"
-          ? "meta_description"
-          : issueId === "H1_MISSING" || issueId === "H1_MULTIPLE" || item.key === "h1"
-            ? "h1"
-            : issueId === "faq" || item.key === "faq"
-              ? "faq"
-              : issueId === "breadcrumbs" || item.key === "breadcrumbs"
-                ? "breadcrumb"
-                : issueId === "author" || item.key === "author"
-                  ? "expertise"
-                  : issueId === "SOCIAL_METADATA_INCOMPLETE" || item.key === "social"
-                    ? "social_metadata"
-                    : issueId === "headings" || item.key === "headings" || item.key === "heading_structure"
-                      ? "heading_structure"
-                      : issueId === "canonical" || item.key === "canonical" || item.key === "canonical_url"
-                        ? "canonical"
-                        : issueId === "IMAGE_ALT_MISSING" || item.key === "alt" || item.key === "IMAGE_ALT_MISSING"
-                          ? "alt_text"
-                          : "structured_data";
+      const type = publicFixProposalType(issueId,item.key);
+      if (!type) throw new Error("Voor dit verbeterpunt is geen veilig automatisch fixvoorstel beschikbaar. Bekijk de aanbeveling of handmatige stappen.");
       // Structural fixes are deterministic scan data; render them immediately.
       // Keep this logic in the production dashboard bundle so stale AI-fix APIs cannot change the fix type.
       // This is intentionally independent from the /api/ai-fix response.
@@ -478,52 +455,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
     finally { setFixing(null); }
   }
 
-  async function createGithubFix(item: Check) {
-    if (!result) return;
-    const key = item.issue_id || item.key;
-    setGithubFixing(key); setGithubProgress(8); setGithubResult(null); setGithubAlreadyApplied(false); setGithubError("");
-    try {
-      const issueId = item.issue_id || item.rule_id || item.key;
-      const context = ["URL: " + result.finalUrl, "Scan URL: " + result.scannedUrl, "Issue: " + item.title, "Recommendation: " + item.fix, "Current title: " + cleanFixContextValue(result.metrics.title), "Current description: " + cleanFixContextValue(result.metrics.description), "H1: " + cleanFixContextValue(result.metrics.h1s[0] || ""), "Canonical: " + cleanFixContextValue(result.metrics.canonical || ""), "OG title: " + cleanFixContextValue(result.metrics.openGraph.title || ""), "OG description: " + cleanFixContextValue(result.metrics.openGraph.description || ""), "OG image: " + cleanFixContextValue(result.metrics.openGraph.image || ""), "Existing page image candidate: " + cleanFixContextValue(result.metrics.imageAltCandidates?.[0]?.src || ""), "Image alt candidates: " + JSON.stringify(result.metrics.imageAltCandidates || [])].join("\n");
-      setGithubProgress(30);
-      const response = await fetch("/api/github/fix", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ issue:item.title + ": " + item.fix, context, url:result.finalUrl, issue_id:issueId }) });
-      setGithubProgress(72);
-      const contentType = response.headers.get("content-type") || "";
-      const raw = await response.text();
-      let data: any = null;
-      if (contentType.includes("application/json")) {
-        try { data = JSON.parse(raw); } catch {}
-      }
-      if (!response.ok) {
-        throw new Error(
-          data?.error ||
-          `RankFix kon de verbetering niet uitvoeren (HTTP ${response.status}). Controleer of de nieuwste Render-deploy actief is.`
-        );
-      }
-      if (!data) {
-        throw new Error(
-          `RankFix kreeg geen JSON terug van /api/github/fix (content-type: ${contentType || "onbekend"}).`
-        );
-      }
-      setGithubProgress(100);
-      if (data.alreadyApplied) {
-        setGithubAlreadyApplied(true);
-        return;
-      }
-      if (!data.pr?.url || !data.pr?.number) throw new Error("RankFix kon de technische wijziging niet veilig afronden.");
-      const prResult = {url:data.pr.url,title:data.pr.title,number:data.pr.number};
-      setGithubResult(prResult);
-      setGithubResults((prev) => ({ ...prev, [key]: prResult }));
-      setResult((prev) => {
-        if (!prev) return prev;
-        const markWaiting = (checks: Check[]) => checks.map((check) => (
-          (check.issue_id || check.key) === key ? { ...check, fix_status: "WAITING" as const } : check
-        ));
-        return { ...prev, seo: { ...prev.seo, checks: markWaiting(prev.seo.checks) }, geo: { ...prev.geo, checks: markWaiting(prev.geo.checks) } };
-      });
-    } catch (err) { setGithubError(err instanceof Error ? err.message : "GitHub fix mislukt."); }
-    finally { setTimeout(() => setGithubFixing(null), 500); }
-  }
+
   async function copyFix(key: string) {
     const content = fixes[key]?.content;
     if (!content) return;
@@ -712,13 +644,11 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
     : [];
   const waitingIssues = useMemo(() => summaryChecks.filter((item) => item.fix_status === "WAITING"), [summaryChecks]);
   const issues = useMemo(() => summaryChecks.filter((item) => {
-    const key = item.issue_id || item.key;
-    return (item.status === "fail" || item.status === "warning") && item.fix_status !== "WAITING" && !githubResults[key];
-  }), [summaryChecks, githubResults]);
+    return (item.status === "fail" || item.status === "warning") && item.fix_status !== "WAITING";
+  }), [summaryChecks]);
   const passedCount = result?.summary?.passed ?? summaryChecks.filter((item) => item.status === "pass").length;
   const preparedCount = summaryChecks.filter((item) => {
-    const key = item.issue_id || item.key;
-    return item.fix_status === "WAITING" || Boolean(githubResults[key]);
+    return item.fix_status === "WAITING";
   }).length;
   const remainingCount = issues.length;
   const totalIssueCount = remainingCount + preparedCount;
@@ -991,67 +921,6 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         </div>
       )}
 
-      {githubFixing && (
-        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-[#0B1220]/85 px-4 py-6 backdrop-blur-xl">
-          <div className="w-full max-w-lg rounded-[28px] border border-slate-200 bg-[#101B2D] p-6 shadow-2xl sm:p-8">
-            <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-emerald-300 to-teal-600 text-sm font-black text-slate-950">RF</span><div><div className="font-bold">{wf.preparing}</div><div className="text-xs text-slate-600">{wf.liveSafe}</div></div></div>
-            <div className="mt-6 rounded-2xl border border-slate-200 bg-black/20 p-5">
-              <div className="flex items-center justify-center">
-                <div className="relative h-20 w-20">
-                  <div className="absolute inset-0 rounded-full border border-emerald-300/10"></div>
-                  <div className="absolute inset-1 animate-spin rounded-full border-2 border-transparent border-t-emerald-300 border-r-blue-400"></div>
-                  <div className="absolute inset-4 grid place-items-center rounded-full bg-emerald-300/10 shadow-[0_0_35px_rgba(103,232,249,0.12)]">
-                    <span className="text-lg">✦</span>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-5 text-center text-base font-bold text-slate-900">{githubProgress < 30 ? wf.collecting : githubProgress < 70 ? wf.validating : githubProgress < 100 ? wf.staging : wf.almost}</div>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-                <div className="h-full rounded-full bg-gradient-to-r from-emerald-300 via-blue-400 to-violet-400 transition-all duration-700" style={{width: githubProgress + "%"}} />
-              </div>
-              <div className="mt-2 flex justify-between text-[10px] font-semibold uppercase tracking-widest text-slate-600"><span>Analyseren</span><span>Controleren</span><span>Klaar</span></div>
-              <p className="mt-4 text-center text-xs leading-5 text-slate-600">Dit kan even duren. Controleer daarna de wijziging in de pull request voordat je die publiceert.</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {githubAlreadyApplied && !githubFixing && (
-        <div className="fixed inset-0 z-[125] flex items-center justify-center bg-[#0B1220]/80 px-4 py-6 backdrop-blur-xl">
-          <div className="w-full max-w-lg rounded-[28px] border border-emerald-400/20 bg-[#101B2D] p-6 shadow-2xl sm:p-8">
-            <div className="text-4xl">🟢</div>
-            <div className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{wf.already}</div>
-            <h2 className="mt-2 text-2xl font-black">{wf.alreadyTitle}</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-600">{wf.alreadyText}</p>
-            <div className="mt-5 rounded-2xl border border-emerald-400/10 bg-emerald-400/[0.035] p-4 text-sm leading-6 text-slate-300">
-              <span className="font-bold text-emerald-200">{wf.nothing}</span>
-              <div className="mt-1 text-slate-500">{wf.noChange}</div>
-            </div>
-            <button type="button" onClick={() => setGithubAlreadyApplied(false)} className="mt-6 w-full rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-950">{wf.backResult}</button>
-          </div>
-        </div>
-      )}
-
-      {githubResult && !githubFixing && (
-        <div className="fixed inset-0 z-[125] flex items-center justify-center bg-[#0B1220]/80 px-4 py-6 backdrop-blur-xl">
-          <div className="w-full max-w-lg rounded-[28px] border border-emerald-400/20 bg-[#101B2D] p-6 shadow-2xl sm:p-8">
-            <div className="text-4xl">🔵</div>
-            <div className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">{wf.proposal}</div>
-            <h2 className="mt-2 text-2xl font-black">{wf.proposalTitle}</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-600">{wf.proposalText}</p>
-            <div className="mt-5 rounded-2xl border border-emerald-400/10 bg-emerald-400/[0.035] p-4 text-sm leading-6 text-slate-300">
-              <span className="font-bold text-emerald-200">{wf.publish}</span>
-              <div className="mt-1 text-slate-600">{wf.publishText}</div>
-            </div>
-            <Link href={githubResult.url} target="_blank" rel="noopener noreferrer" className="mt-4 block rounded-xl border border-emerald-300/30 px-5 py-3 text-center text-sm font-bold text-emerald-200">{wf.viewPr}</Link>
-            <button type="button" onClick={() => setGithubResult(null)} className="mt-6 w-full rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-950">{wf.backResult}</button>
-          </div>
-        </div>
-      )}
-
-      {githubError && !githubFixing && (
-        <div className="fixed bottom-5 right-5 z-[125] max-w-md rounded-2xl border border-red-400/20 bg-[#12080b] p-4 text-sm text-red-200 shadow-2xl">{githubError}<button type="button" onClick={() => setGithubError("")} className="ml-3 text-red-300 underline">{language==="nl"?"Sluiten":language==="de"?"Schließen":language==="fr"?"Fermer":language==="it"?"Chiudi":language==="es"?"Cerrar":"Close"}</button></div>
-      )}
 
       {result && (
         stopContentAudit ? (
@@ -1217,10 +1086,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                 </summary>
                 <div className="border-t border-slate-200 px-5 py-4">
                   <div className="grid gap-2 sm:grid-cols-2">
-                    {activeChecks.filter((item) => {
-                      const key = item.issue_id || item.key;
-                      return item.status === "pass" || (item.fix_status !== "WAITING" && !githubResults[key]);
-                    }).map((item) => (
+                    {activeChecks.filter((item) => item.status === "pass" || item.fix_status !== "WAITING").map((item) => (
                       <div key={item.issue_id || item.key} className="rounded-2xl border border-slate-200 bg-black/10 p-3">
                         <div className="flex items-center gap-2">
                           <span className={`text-xs font-bold ${item.status === "pass" ? "text-emerald-300" : item.status === "warning" ? "text-amber-300" : item.status === "fail" ? "text-red-300" : "text-cyan-300"}`}>{statusIcon[item.status]}</span>
@@ -1232,7 +1098,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                           <div className="mt-3 rounded-xl border border-emerald-400/10 bg-emerald-400/[0.04] p-3">
                             <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">{ar.recommendation}</div>
                             <p className="mt-1 text-xs leading-5 text-slate-300">{item.fix}</p>
-                            {item.issue_status !== "NOT_APPLICABLE" && item.issue_status !== "UNABLE_TO_CONFIRM" && (
+                            {canOfferPublicFixProposal(item) && (
                               <button type="button" onClick={() => generateFix(item)} disabled={fixing === (item.issue_id || item.key)} className="mt-2 rounded-lg border border-emerald-400/20 bg-emerald-400/5 px-3 py-2 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-400/10 disabled:opacity-50">
                                 {fixing === (item.issue_id || item.key) ? ar.analyzing : ar.fixProposal}
                               </button>
@@ -1244,7 +1110,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                                 <p className="mt-2 text-xs text-slate-500">{fixes[item.issue_id || item.key].reason}</p>
                                 <div className="mt-3 flex flex-wrap gap-2">
                                   <button type="button" onClick={() => copyFix(item.issue_id || item.key)} className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-950">{copied === (item.issue_id || item.key) ? "Gekopieerd ✓" : "Gebruik deze tekst"}</button>
-                                  <button type="button" onClick={() => createGithubFix(item)} disabled={githubFixing === (item.issue_id || item.key)} className="rounded-lg border border-emerald-400/20 bg-emerald-400/5 px-3 py-2 text-xs font-bold text-emerald-200 disabled:opacity-50">{githubFixing === (item.issue_id || item.key) ? "Bezig…" : "Fix veilig klaarzetten →"}</button>
+                                  {getFixPolicy(item.issue_id || item.rule_id || item.key).action === "github_fix" && item.fix_category !== "C" && item.confidence !== "low" && item.evidence?.found != null && <Link href={`/dashboard/scan?url=${encodeURIComponent(result.finalUrl)}`} className="rounded-lg border border-emerald-400/20 bg-emerald-400/5 px-3 py-2 text-xs font-bold text-emerald-200 hover:bg-emerald-400/10">{language==="nl"?"Via dashboard veilige GitHub-fix →":"Open dashboard for safe GitHub fix →"}</Link>}
                                 </div>
                               </div>
                             )}
