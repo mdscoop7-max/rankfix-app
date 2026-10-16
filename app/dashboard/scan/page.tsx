@@ -7,6 +7,8 @@ import DashboardNav from "../nav";
 import AiAssistant from "@/components/ai-assistant";
 import type { Locale } from "@/lib/locales";
 import "../dashboard.css";
+import { ScoreQualifier } from "@/components/score-qualifier";
+import { headlineDisplay } from "@/lib/score-qualifier";
 
 type Check = { status: string };
 type Result = {
@@ -80,7 +82,7 @@ export default function DashboardScan() {
         <div className="rf-scan-progress-copy"><span className="rf-eyebrow">RankFix Motor</span><strong>{t.running}</strong><p>{language==="nl"?"We controleren je website stap voor stap. Je rapport opent automatisch zodra de scan klaar is.":language==="de"?"Wir prüfen deine Website Schritt für Schritt. Der Bericht öffnet sich automatisch, sobald der Scan fertig ist.":language==="fr"?"Nous vérifions votre site étape par étape. Le rapport s’ouvre automatiquement dès que l’analyse est terminée.":language==="it"?"Controlliamo il sito passo dopo passo. Il report si apre automaticamente al termine.":language==="es"?"Comprobamos tu web paso a paso. El informe se abrirá automáticamente al terminar.":"We check your website step by step. Your report opens automatically when the scan is complete."}</p>
         <div className="rf-scan-stage-track"><span/><span/><span/><span/><span/><span/></div><div className="rf-scan-stage-labels"><span>SEO</span><span>GEO</span><span>Security</span><span>{t.technical}</span><span>{t.shop}</span><span>{t.ads}</span></div></div>
       </section>}
-      {result&&<section className="rf-report rf-shared-result" aria-live="polite"><div className="rf-shared-score" style={{"--rf-score":result.overallScore} as React.CSSProperties}><strong>{result.overallScore}</strong><span>/100</span></div><div><span className="rf-eyebrow">{t.score}</span><h2>SEO {result.seo?.score??"—"} · GEO {result.geo?.score??"—"} · Security {result.security?.score??"—"}</h2><p>{passed} {t.passed} · {issues} {t.issues}</p><p>{t.next}</p><div className="rf-shared-actions"><Link className="rf-primary-link" href="/dashboard/history">{t.history}</Link><Link className="rf-back" href="/dashboard">← {t.dashboard}</Link></div></div></section>}
+      {result&&<section className="rf-report rf-shared-result" aria-live="polite"><div className="rf-shared-score" style={{"--rf-score":result.overallScore} as React.CSSProperties}><strong>{headlineDisplay(result as never)}</strong><span>/100</span></div><div><span className="rf-eyebrow">{t.score}</span><h2>SEO {result.seo?.score??"—"} · GEO {result.geo?.score??"—"} · Security {result.security?.score??"—"}</h2><p>{passed} {t.passed} · {issues} {t.issues}</p><ScoreQualifier result={result as never} locale={language}/><p>{t.next}</p><div className="rf-shared-actions"><Link className="rf-primary-link" href="/dashboard/history">{t.history}</Link><Link className="rf-back" href="/dashboard">← {t.dashboard}</Link></div></div></section>}
     </div>
   </div><AiAssistant dashboard/></main>;
 }

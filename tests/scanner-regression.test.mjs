@@ -6,7 +6,7 @@ import { extractImageMetrics } from "../lib/image-metrics.ts";
 import { applyEvidenceBasedScoreCap, scoreApplicableChecks, scoreRange, summarizeAuditChecks, weightedCoverage } from "../lib/audit-score.ts";
 import { isPrivateHost, validatePublicHttpUrl } from "../lib/safe-fetch.ts";
 import { assessHreflang, hasSelfHreflangLanguageMismatch, isMarketSelectorPage, isValidHreflangCode, statusCode } from "../lib/seo-rules.ts";
-import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, neutralizeShopWording, shopWordingApplies } from "../lib/commerce-applicability.ts";
+import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, isStorefrontOnlyForService, neutralizeShopWording, shopWordingApplies } from "../lib/commerce-applicability.ts";
 import { decodeHtmlEntities } from "../lib/html-entities.ts";
 import { analyzeScriptIntegrity, assessPassiveSecurity, findExposedSecrets, findForms, findMixedContent, observeCookie, securityScore, setCookieValues, splitSetCookieHeader } from "../lib/security-signals.ts";
 import { legacyPassiveSecurity } from "./fixtures/security-legacy.mjs";
@@ -365,7 +365,11 @@ test("Evidence Engine reconciles representative identity and capabilities before
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   assert.match(source, /reconciledIdentitySource/);
-  assert.match(source, /Scanbewijs: primaire activiteit bevestigd over representatieve pagina's/);
+  // Late reconciliation uses the sampled pages' own identity (title/description/H1),
+  // needs two agreeing pages and never claims high confidence (issue #151).
+  assert.match(source, /representatieve pagina's noemen deze activiteit in hun eigen titel\/omschrijving\/H1/);
+  assert.match(source, /reconciledPages >= 2/);
+  assert.doesNotMatch(source, /reconciledIdentitySource = \[sectorIdentitySource, multiPageIdentityText\]/);
   assert.match(source, /multiPageCapabilities\.treatment && sectorProfile\.sector === "health_wellness"/);
   assert.match(source, /representativeProduct/);
   assert.match(source, /selectedSeoScore = applyEvidenceBasedScoreCap\(scoreApplicableChecks\(stableCoreChecks\(selectedSeoChecks,"seo"\)\)/);
@@ -1637,4 +1641,56 @@ test("internal customer ID exemption requires exact server authorization", () =>
   assert.equal(isInternalTesterCustomerId(customerId, { RANKFIX_INTERNAL_TEST_CUSTOMER_ID: customerId }), true);
   assert.equal(isInternalTesterCustomerId("RF-00000000000000000000000000000000", { RANKFIX_INTERNAL_TEST_CUSTOMER_ID: customerId }), false);
   assert.equal(isInternalTesterCustomerId(customerId, { RANKFIX_INTERNAL_TEST_CUSTOMER_ID: "invalid" }), false);
+});
+
+test("KPN-like telecom provider: storefront-wide checks do not masquerade as primary audit gaps", async () => {
+  // Concrete regression: a telecom homepage with subscription prices and a
+  // sampled phone product URL, but without proven separate retail checkout.
+  const storeOnly = [
+    "merchant_feed_signal", "webshop_trust", "checkout_funnel_static",
+    "checkout_trust", "eu_review_transparency_signal", "eu_consumer_information_signal",
+    "webshop_claims", "commercial_terms_signal",
+  ];
+  for (const key of storeOnly) {
+    assert.equal(isStorefrontOnlyForService(key, true, false), true, key);
+    assert.equal(isStorefrontOnlyForService(key, false, false), false, key);
+    assert.equal(isStorefrontOnlyForService(key, true, true), false, key);
+  }
+  // A provider can also sell phones: product detail, pricing and subscription
+  // evidence must still be evaluated (or honestly marked unconfirmed).
+  for (const key of ["merchant_product_readiness", "product_schema", "product_availability", "product_price_consistency", "price_format", "subscription_price_visibility"]) {
+    assert.equal(isStorefrontOnlyForService(key, true, false), false, key);
+  }
+  const route = await import("node:fs/promises").then(({readFile})=>readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8"));
+  assert.match(route, /isStorefrontOnlyForService\(item\.key, Boolean\(primaryNonCommerceIdentity\), finalCommerceDecision\.confirmed\)/);
+  assert.match(route, /De primaire activiteit is dienstverlening zonder onafhankelijk bevestigde retailcheckout/);
+});
+
+test("scan summary matches final check statuses after commerce and sector reconciliation", async () => {
+  const data = [
+    {key:"title",issue_status:"PASS",points:10,maxPoints:10},
+    {key:"merchant_feed_signal",issue_status:"NOT_APPLICABLE",points:0,maxPoints:4},
+    {key:"checkout_trust",issue_status:"NOT_APPLICABLE",points:0,maxPoints:5},
+    {key:"schema",issue_status:"UNABLE_TO_CONFIRM",points:0,maxPoints:12},
+  ];
+  const early = summarizeAuditChecks(data);
+  // When representative commerce evidence changes the final applicability,
+  // pre-reconciliation counts MUST NOT be written into the final report.
+  data[1].issue_status = "UNABLE_TO_CONFIRM";
+  data[2].issue_status = "UNABLE_TO_CONFIRM";
+  const final = summarizeAuditChecks(data);
+  assert.equal(early.notApplicable, 2);
+  assert.equal(final.notApplicable, 0);
+  assert.equal(final.unableToConfirm, 3);
+  assert.equal(final.unableToConfirm, data.filter(item=>item.issue_status==="UNABLE_TO_CONFIRM").length);
+  assert.equal(final.notApplicable, data.filter(item=>item.issue_status==="NOT_APPLICABLE").length);
+
+  const {readFile} = await import("node:fs/promises");
+  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const applicabilityEnd = route.indexOf("if (!shopWordingApplies(finalCommerceApplicability");
+  const finalSummary = route.lastIndexOf("scanSummary = summarizeAuditChecks(checks);");
+  const firstSave = route.indexOf("INSERT INTO scans (user_id");
+  assert.ok(applicabilityEnd > 0 && finalSummary > applicabilityEnd, "summary must be recalculated after final commerce gate");
+  assert.ok(firstSave > finalSummary, "the final counts must be available before saving report to history");
+  assert.match(route, /summary: scanSummary/);
 });

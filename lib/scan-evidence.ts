@@ -114,14 +114,16 @@ export function buildScanEvidence(input: {
 
   const currencyMatches = [...text.matchAll(/(?:€|eur\b|\$|usd\b|£|gbp\b)/gi)].map(m => m[0].toUpperCase());
   const currencies = uniq(currencyMatches.map(v => v === "€" ? "EUR" : v === "$" ? "USD" : v === "£" ? "GBP" : v));
-  const priceCount = [...text.matchAll(/(?:€\s*\d|\d[\d.,]*\s*(?:€|eur\b)|\$\s*\d|£\s*\d)/gi)].length;
+  const priceCount = [...text.matchAll(/(?:€\s*\d|(?<![\d.,])\d[\d.,]*\s*(?:€|eur\b)|\$\s*\d|£\s*\d)/gi)].length;
 
   const appointment = has(text, /\b(afspraak|appointment|termin|rendez-vous|appuntamento|cita)\b/i);
   const appointmentAction = has(html, /(?:href|action|aria-label)\s*=\s*["'][^"']*(?:afspraak|appointment|termin|rendez-vous|appuntamento|cita)[^"']*["']/i);
   const reservation = has(text, /\b(reserveren|reservation|reserve a table|tisch reservieren|réserver|prenota|reservar)\b/i);
   const reservationAction = has(html, /(?:href|action|aria-label)\s*=\s*["'][^"']*(?:reserv|réserv|prenota)[^"']*["']/i);
-  const booking = has(text, /\b(boeken|book now|booking|buchen|réserver|prenota|reservar)\b/i);
-  const bookingAction = has(html, /(?:href|action|aria-label)\s*=\s*["'][^"']*(?:book|boeken|buchen|réserv|prenota)[^"']*["']/i);
+  // "Book a demo/call/meeting" is a sales lead, not a booking/reservation business.
+  const bookingText = text.replace(/\b(?:book|boek|plan|schedule|request|vraag|reserve|reserveer)\s+(?:a |an |een |your |je |jouw |uw )?(?:free |gratis |personal |persoonlijke? )?(?:demo|call|meeting|gesprek|consult(?:ation)?|kennismaking(?:sgesprek)?|sales ?call|afspraak met (?:sales|een adviseur))\b/gi, " ");
+  const booking = has(bookingText, /\b(boeken|book now|booking|buchen|réserver|prenota|reservar)\b/i);
+  const bookingAction = has(html, /(?:href|action|aria-label)\s*=\s*["'][^"']*(?:(?<![a-z])book(?![-_ ]?(?:a[-_ ])?(?:demo|call|meeting))(?!keep|mark|let|s?hop|store|s\b)|boeken|buchen|réserv|prenota)[^"']*["']/i);
   const quoteRequest = has(text, /\b(offerte|quote request|request a quote|angebot anfordern|devis|preventivo|presupuesto)\b/i);
   const quoteAction = has(html, /(?:href|action|aria-label)\s*=\s*["'][^"']*(?:offerte|quote|angebot|devis|preventivo|presupuesto)[^"']*["']/i);
 
@@ -161,13 +163,16 @@ export function buildScanEvidence(input: {
   const propertySale = propertyListing && (has(text, /\b(te koop|for sale|koopprijs)\b/i) || /\/(?:koop|sale)\//i.test(url));
   const propertyRental = propertyListing && (has(text, /\b(te huur|for rent|huurprijs)\b/i) || /\/(?:huur|rent)\//i.test(url));
   const shortStaySchema = schemaHas("Hotel","HotelRoom","LodgingBusiness","BedAndBreakfast","VacationRental","Resort","Campground");
-  const shortStayText = has(text, /\b(overnachting|overnachten|per nacht|nightly|check[- ]?in|check[- ]?out|arrival|departure|aankomst|vertrek|short[- ]term stay)\b/i);
+  // "checkout" (one word) is a payment/cart step and "arrival/departure" is also
+  // transport wording; neither is short-stay evidence on its own.
+  const shortStayText = has(text, /\b(overnachting(?:en)?|overnachten|per nacht|per night|nightly|check[- ]in|check[- ]out|short[- ]term stay)\b/i);
   const shortStay = shortStaySchema || shortStayText;
-  const bedBreakfast = has(text, /\b(b&b|bed and breakfast|bed & breakfast|guesthouse|guest house|pension)\b/i) || schemaHas("BedAndBreakfast");
+  // "pension" alone is also a retirement pension; it only counts in lodging wording.
+  const bedBreakfast = has(text, /\b(b&b|bed and breakfast|bed & breakfast|guesthouse|guest house|pension (?:met|with|mit) (?:ontbijt|breakfast|frühstück)|gästehaus)\b/i) || schemaHas("BedAndBreakfast");
   const holidayRental = has(text, /\b(vakantiehuis|vakantiewoning|holiday home|holiday rental|vacation rental|ferienhaus|ferienwohnung|short[- ]term rental)\b/i) || schemaHas("VacationRental");
   const holidayPark = has(text, /\b(vakantiepark|holiday park|ferienpark|resort|bungalowpark|recreatiepark)\b/i) || schemaHas("Resort");
   const camping = has(text, /\b(camping|campingplatz|campground|camperplaats|chaletpark|caravan park|glamping)\b/i) || schemaHas("Campground");
-  const stayDates = has(text, /\b(aankomst|vertrek|check[- ]?in|check[- ]?out|arrival|departure|verblijfsdata|stay dates?)\b/i);
+  const stayDates = has(text, /\b(aankomst|vertrek|check[- ]in|check[- ]out|arrival|departure|verblijfsdata|stay dates?)\b/i);
   const guests = has(text, /\b(gasten?|guests?|personen|persons?|adults?|volwassenen|children|kinderen)\b/i);
   const automotiveServiceSchema = schemaHas("AutomotiveBusiness", "AutoRepair");
   const automotiveServiceText = has(text, /\b(apk|onderhoud|werkplaats|autoservice|banden|tyres?|uitlijnen|car repair|reparatie)\b/i);

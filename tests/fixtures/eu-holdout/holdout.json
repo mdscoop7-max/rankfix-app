@@ -1,0 +1,1417 @@
+{
+ "about": "Blind hold-out set, frozen 16 Oct 2026 BEFORE any engine change in this pass. Homepage identity written the way such EU organisations typically describe themselves (title, meta description, H1, H2, navigation, JSON-LD types), in 20 languages, with invented brand names and neutral hosts. Not used to tune the engine: measured once, results reported as-is. 'widgets' adds the capability features such sites expose. acceptUnknown marks homepages that are genuinely ambiguous.",
+ "sites": [
+  {
+   "id": "ho-de-news",
+   "lang": "de",
+   "expected": "news_media",
+   "title": "Nachrichten aus Bayern und der Welt | Abendblatt",
+   "desc": "Aktuelle Nachrichten, Politik, Wirtschaft und Sport aus der Region. Die Redaktion berichtet rund um die Uhr.",
+   "h1": [
+    "Nachrichten"
+   ],
+   "h2": [
+    "Politik",
+    "Wirtschaft",
+    "Sport",
+    "Kultur"
+   ],
+   "nav": [
+    "Region",
+    "Politik",
+    "Wirtschaft",
+    "Sport",
+    "Abo",
+    "E-Paper"
+   ],
+   "types": [
+    "NewsMediaOrganization",
+    "WebSite"
+   ]
+  },
+  {
+   "id": "ho-fr-news-regional",
+   "lang": "fr",
+   "expected": "news_media",
+   "title": "L'Écho du Sud – actualités et infos régionales",
+   "desc": "Toute l'actualité de votre région : politique, faits divers, sport et culture.",
+   "h1": [
+    "À la une"
+   ],
+   "h2": [
+    "Faits divers",
+    "Politique",
+    "Sport"
+   ],
+   "nav": [
+    "Actualités",
+    "Sport",
+    "Abonnement",
+    "Météo"
+   ],
+   "types": [
+    "WebSite"
+   ]
+  },
+  {
+   "id": "ho-es-tv",
+   "lang": "es",
+   "expected": "news_media",
+   "title": "Canal Sur – Televisión y Radio",
+   "desc": "Programas de televisión y radio en directo, informativos y noticias de Andalucía.",
+   "h1": [
+    "En directo"
+   ],
+   "h2": [
+    "Informativos",
+    "Programas"
+   ],
+   "nav": [
+    "Televisión",
+    "Radio",
+    "Noticias",
+    "A la carta"
+   ],
+   "types": [
+    "Organization"
+   ]
+  },
+  {
+   "id": "ho-it-quotidiano",
+   "lang": "it",
+   "expected": "news_media",
+   "title": "Il Corriere del Nord – quotidiano online",
+   "desc": "Notizie di cronaca, politica, economia e sport. Il giornale della tua città.",
+   "h1": [
+    "Ultime notizie"
+   ],
+   "h2": [
+    "Cronaca",
+    "Politica",
+    "Sport"
+   ],
+   "nav": [
+    "Cronaca",
+    "Politica",
+    "Economia",
+    "Abbonati"
+   ],
+   "types": [
+    "NewsMediaOrganization"
+   ]
+  },
+  {
+   "id": "ho-pl-portal",
+   "lang": "pl",
+   "expected": "news_media",
+   "title": "Gazeta Miejska – wiadomości z regionu",
+   "desc": "Najnowsze wiadomości z miasta i regionu. Wydarzenia, sport i kultura.",
+   "h1": [
+    "Wiadomości"
+   ],
+   "h2": [
+    "Region",
+    "Sport",
+    "Kultura"
+   ],
+   "nav": [
+    "Wiadomości",
+    "Sport",
+    "Kultura",
+    "Prenumerata"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-cs-news",
+   "lang": "cs",
+   "expected": "news_media",
+   "title": "Zprávy dne | Denik Morava",
+   "desc": "Aktuální zprávy z domova i ze světa, sport a kultura.",
+   "h1": [
+    "Zprávy"
+   ],
+   "h2": [
+    "Domácí",
+    "Zahraničí",
+    "Sport"
+   ],
+   "nav": [
+    "Zprávy",
+    "Sport",
+    "Kultura",
+    "Předplatné"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-ro-news",
+   "lang": "ro",
+   "expected": "news_media",
+   "title": "Știri de ultimă oră | Gazeta de Vest",
+   "desc": "Cele mai noi știri din Timișoara și din țară: politică, economie, sport.",
+   "h1": [
+    "Știri"
+   ],
+   "h2": [
+    "Politică",
+    "Economie",
+    "Sport"
+   ],
+   "nav": [
+    "Știri",
+    "Sport",
+    "Opinii"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-nl-omroep",
+   "lang": "nl",
+   "expected": "news_media",
+   "title": "Omroep Gelderland – nieuws, radio en tv uit de regio",
+   "desc": "Het laatste nieuws, radio en televisie uit Gelderland.",
+   "h1": [
+    "Nieuws"
+   ],
+   "h2": [
+    "Regio",
+    "Sport"
+   ],
+   "nav": [
+    "Nieuws",
+    "Radio",
+    "TV",
+    "Sport"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-el-news",
+   "lang": "el",
+   "expected": "news_media",
+   "title": "Ειδήσεις από την Κρήτη | Νέα Κρήτη",
+   "desc": "Οι τελευταίες ειδήσεις από την Κρήτη και την Ελλάδα.",
+   "h1": [
+    "Ειδήσεις"
+   ],
+   "h2": [
+    "Πολιτική",
+    "Αθλητισμός"
+   ],
+   "nav": [
+    "Ειδήσεις",
+    "Αθλητισμός",
+    "Πολιτισμός"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-hr-news",
+   "lang": "hr",
+   "expected": "news_media",
+   "title": "Vijesti iz Dalmacije | Slobodni list",
+   "desc": "Najnovije vijesti iz Splita, Dalmacije i svijeta.",
+   "h1": [
+    "Vijesti"
+   ],
+   "h2": [
+    "Split",
+    "Sport"
+   ],
+   "nav": [
+    "Vijesti",
+    "Sport",
+    "Kultura"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-de-shop",
+   "lang": "de",
+   "expected": "ecommerce",
+   "commerce": true,
+   "widgets": [
+    "products"
+   ],
+   "title": "Gartenmöbel online kaufen | Gartenwelt Onlineshop",
+   "desc": "Gartenmöbel, Grills und Pflanzen im Onlineshop bestellen. Kostenloser Versand ab 50 €.",
+   "h1": [
+    "Gartenmöbel"
+   ],
+   "h2": [
+    "Angebote",
+    "Neu eingetroffen"
+   ],
+   "nav": [
+    "Gartenmöbel",
+    "Grills",
+    "Pflanzen",
+    "Warenkorb"
+   ],
+   "types": [
+    "Organization"
+   ]
+  },
+  {
+   "id": "ho-fr-shop",
+   "lang": "fr",
+   "expected": "ecommerce",
+   "commerce": true,
+   "widgets": [
+    "products"
+   ],
+   "title": "Maison Clair – boutique en ligne de luminaires",
+   "desc": "Achetez vos lampes et luminaires en ligne. Livraison gratuite dès 49 €.",
+   "h1": [
+    "Luminaires"
+   ],
+   "h2": [
+    "Nouveautés",
+    "Promotions"
+   ],
+   "nav": [
+    "Lampes",
+    "Suspensions",
+    "Panier"
+   ],
+   "types": [
+    "Store"
+   ]
+  },
+  {
+   "id": "ho-es-shop",
+   "lang": "es",
+   "expected": "ecommerce",
+   "commerce": true,
+   "widgets": [
+    "products"
+   ],
+   "title": "Tienda online de electrodomésticos | ElectroHogar",
+   "desc": "Compra online lavadoras, frigoríficos y televisores. Envío gratis y financiación.",
+   "h1": [
+    "Ofertas"
+   ],
+   "h2": [
+    "Más vendidos"
+   ],
+   "nav": [
+    "Lavadoras",
+    "Frigoríficos",
+    "Televisores",
+    "Carrito"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-it-shop-viaggio",
+   "lang": "it",
+   "expected": "ecommerce",
+   "commerce": true,
+   "widgets": [
+    "products"
+   ],
+   "title": "Valigie e zaini da viaggio – negozio online | ViaggiaLeggero",
+   "desc": "Acquista online valigie, trolley e zaini. Spedizione gratuita, reso facile.",
+   "h1": [
+    "Valigie"
+   ],
+   "h2": [
+    "Trolley",
+    "Zaini"
+   ],
+   "nav": [
+    "Valigie",
+    "Zaini",
+    "Accessori",
+    "Carrello"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-pl-shop",
+   "lang": "pl",
+   "expected": "ecommerce",
+   "commerce": true,
+   "widgets": [
+    "products"
+   ],
+   "title": "Sklep internetowy z zabawkami | Zabawkowo",
+   "desc": "Zabawki, gry i klocki w sklepie internetowym. Darmowa dostawa od 99 zł.",
+   "h1": [
+    "Zabawki"
+   ],
+   "h2": [
+    "Nowości",
+    "Promocje"
+   ],
+   "nav": [
+    "Klocki",
+    "Gry",
+    "Lalki",
+    "Koszyk"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-sv-shop",
+   "lang": "sv",
+   "expected": "ecommerce",
+   "commerce": true,
+   "widgets": [
+    "products"
+   ],
+   "title": "Webbutik för friluftsliv – tält och kläder | Fjällbutiken",
+   "desc": "Köp tält, sovsäckar och friluftskläder i vår webbutik. Fri frakt.",
+   "h1": [
+    "Friluftsliv"
+   ],
+   "h2": [
+    "Tält",
+    "Kläder"
+   ],
+   "nav": [
+    "Tält",
+    "Kläder",
+    "Varukorg"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-fi-shop",
+   "lang": "fi",
+   "expected": "ecommerce",
+   "commerce": true,
+   "widgets": [
+    "products"
+   ],
+   "title": "Verkkokauppa – kodinkoneet ja elektroniikka | Kotikone",
+   "desc": "Osta kodinkoneet ja elektroniikka verkkokaupasta. Nopea toimitus.",
+   "h1": [
+    "Tarjoukset"
+   ],
+   "h2": [
+    "Uutuudet"
+   ],
+   "nav": [
+    "Kodinkoneet",
+    "Elektroniikka",
+    "Ostoskori"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-nl-shop-fiets",
+   "lang": "nl",
+   "expected": "ecommerce",
+   "commerce": true,
+   "widgets": [
+    "products"
+   ],
+   "title": "Fietsen online kopen | Fietsenwinkel De Spaak",
+   "desc": "Stadsfietsen en e-bikes online bestellen. Gratis thuisbezorgd en onderhoud.",
+   "h1": [
+    "E-bikes"
+   ],
+   "h2": [
+    "Aanbiedingen"
+   ],
+   "nav": [
+    "E-bikes",
+    "Stadsfietsen",
+    "Winkelwagen"
+   ],
+   "types": [
+    "BikeStore"
+   ]
+  },
+  {
+   "id": "ho-hu-shop",
+   "lang": "hu",
+   "expected": "ecommerce",
+   "commerce": true,
+   "widgets": [
+    "products"
+   ],
+   "title": "Műszaki webáruház – laptopok és telefonok | TechPont",
+   "desc": "Laptopok, telefonok és tévék online rendelése. Ingyenes szállítás.",
+   "h1": [
+    "Akciók"
+   ],
+   "h2": [
+    "Újdonságok"
+   ],
+   "nav": [
+    "Laptopok",
+    "Telefonok",
+    "Kosár"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-pt-supermercado",
+   "lang": "pt",
+   "expected": "ecommerce",
+   "commerce": true,
+   "widgets": [
+    "products"
+   ],
+   "title": "Supermercado online – compras com entrega em casa | Mercearia Viva",
+   "desc": "Faça as suas compras online de mercearia, frescos e bebidas com entrega em casa.",
+   "h1": [
+    "Promoções da semana"
+   ],
+   "h2": [
+    "Frescos",
+    "Bebidas"
+   ],
+   "nav": [
+    "Frescos",
+    "Mercearia",
+    "Carrinho"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-de-bank",
+   "lang": "de",
+   "expected": "financial_services",
+   "widgets": [
+    "bankshop"
+   ],
+   "title": "Sparkasse Musterstadt – Girokonto, Kredit und Baufinanzierung",
+   "desc": "Ihr Girokonto, Kredite, Baufinanzierung und Geldanlage bei Ihrer Sparkasse vor Ort.",
+   "h1": [
+    "Willkommen bei Ihrer Sparkasse"
+   ],
+   "h2": [
+    "Girokonto",
+    "Baufinanzierung"
+   ],
+   "nav": [
+    "Privatkunden",
+    "Firmenkunden",
+    "Online-Banking"
+   ],
+   "types": [
+    "BankOrCreditUnion"
+   ]
+  },
+  {
+   "id": "ho-fr-banque",
+   "lang": "fr",
+   "expected": "financial_services",
+   "title": "Banque Populaire du Littoral – compte, crédit et épargne",
+   "desc": "Ouvrez un compte bancaire, demandez un crédit immobilier ou placez votre épargne.",
+   "h1": [
+    "Votre banque"
+   ],
+   "h2": [
+    "Crédit immobilier",
+    "Épargne"
+   ],
+   "nav": [
+    "Particuliers",
+    "Professionnels",
+    "Espace client"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-it-banca",
+   "lang": "it",
+   "expected": "financial_services",
+   "title": "Banca Alpina – conto corrente, mutui e prestiti",
+   "desc": "Apri il conto corrente online, scopri i mutui e i prestiti personali.",
+   "h1": [
+    "La tua banca"
+   ],
+   "h2": [
+    "Mutui",
+    "Prestiti"
+   ],
+   "nav": [
+    "Privati",
+    "Imprese",
+    "Home banking"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-nl-verzekeraar",
+   "lang": "nl",
+   "expected": "financial_services",
+   "title": "Autoverzekering en woonverzekering | Verzekeraar Hollandia",
+   "desc": "Sluit je autoverzekering, woonverzekering of reisverzekering direct online af.",
+   "h1": [
+    "Verzekeringen"
+   ],
+   "h2": [
+    "Auto",
+    "Wonen"
+   ],
+   "nav": [
+    "Verzekeringen",
+    "Schade melden",
+    "Mijn polis"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-sl-zavarovalnica",
+   "lang": "sl",
+   "expected": "financial_services",
+   "title": "Zavarovalnica Sava – avtomobilsko in zdravstveno zavarovanje",
+   "desc": "Sklenite avtomobilsko, nepremičninsko ali zdravstveno zavarovanje.",
+   "h1": [
+    "Zavarovanja"
+   ],
+   "h2": [
+    "Avto",
+    "Dom"
+   ],
+   "nav": [
+    "Zavarovanja",
+    "Prijava škode"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-sv-bank",
+   "lang": "sv",
+   "expected": "financial_services",
+   "title": "Sparbanken Nord – konton, lån och sparande",
+   "desc": "Öppna bankkonto, ansök om bolån och börja spara hos oss.",
+   "h1": [
+    "Välkommen"
+   ],
+   "h2": [
+    "Bolån",
+    "Sparande"
+   ],
+   "nav": [
+    "Privat",
+    "Företag",
+    "Internetbanken"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-de-bus",
+   "lang": "de",
+   "expected": "transport_travel",
+   "widgets": [
+    "fares"
+   ],
+   "title": "Verkehrsverbund Rhein – Fahrplan, Tickets und Nahverkehr",
+   "desc": "Fahrplanauskunft, Tickets und Abos für Bus und Bahn im öffentlichen Nahverkehr.",
+   "h1": [
+    "Fahrplanauskunft"
+   ],
+   "h2": [
+    "Tickets",
+    "Störungen"
+   ],
+   "nav": [
+    "Fahrplan",
+    "Tickets",
+    "Abo"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-it-traghetti",
+   "lang": "it",
+   "expected": "transport_travel",
+   "widgets": [
+    "fares"
+   ],
+   "title": "Traghetti per la Sardegna – prenota online | Navi Tirreno",
+   "desc": "Prenota il tuo traghetto per Sardegna e Corsica. Orari, biglietti e offerte.",
+   "h1": [
+    "Prenota il traghetto"
+   ],
+   "h2": [
+    "Orari",
+    "Offerte"
+   ],
+   "nav": [
+    "Destinazioni",
+    "Orari",
+    "Biglietti"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-fr-airline",
+   "lang": "fr",
+   "expected": "transport_travel",
+   "widgets": [
+    "fares"
+   ],
+   "title": "Air Atlantique – vols pas chers vers l'Europe",
+   "desc": "Réservez vos vols au meilleur prix. Billets d'avion vers 60 destinations.",
+   "h1": [
+    "Réservez votre vol"
+   ],
+   "h2": [
+    "Destinations"
+   ],
+   "nav": [
+    "Réserver",
+    "Enregistrement",
+    "Mes réservations"
+   ],
+   "types": [
+    "Airline"
+   ]
+  },
+  {
+   "id": "ho-cs-rail",
+   "lang": "cs",
+   "expected": "transport_travel",
+   "widgets": [
+    "fares"
+   ],
+   "title": "Jízdenky na vlak a jízdní řád | České dráhy regionální",
+   "desc": "Kupte si jízdenku na vlak online a vyhledejte spojení v jízdním řádu.",
+   "h1": [
+    "Vyhledat spojení"
+   ],
+   "h2": [
+    "Jízdenky"
+   ],
+   "nav": [
+    "Jízdenky",
+    "Jízdní řád",
+    "Výluky"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-nl-logistiek",
+   "lang": "nl",
+   "expected": "transport_travel",
+   "title": "Van Dam Transport – wegtransport en warehousing",
+   "desc": "Internationaal wegtransport, opslag en distributie van pallets en containers.",
+   "h1": [
+    "Transport & logistiek"
+   ],
+   "h2": [
+    "Wegtransport",
+    "Warehousing"
+   ],
+   "nav": [
+    "Diensten",
+    "Over ons",
+    "Vacatures"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-es-mensajeria",
+   "lang": "es",
+   "expected": "transport_travel",
+   "title": "Envíos de paquetes nacionales | MensaExpress",
+   "desc": "Mensajería y envío de paquetes en 24 horas. Seguimiento de envíos y recogida a domicilio.",
+   "h1": [
+    "Envía tu paquete"
+   ],
+   "h2": [
+    "Seguimiento",
+    "Tarifas"
+   ],
+   "nav": [
+    "Enviar",
+    "Seguimiento",
+    "Oficinas de correos"
+   ],
+   "types": [],
+   "acceptUnknown": true
+  },
+  {
+   "id": "ho-de-gemeinde",
+   "lang": "de",
+   "expected": "government",
+   "title": "Stadt Neuburg – Bürgerservice und Rathaus",
+   "desc": "Offizielle Website der Stadt Neuburg: Bürgerservice, Termine im Rathaus und Online-Dienste.",
+   "h1": [
+    "Stadt Neuburg"
+   ],
+   "h2": [
+    "Bürgerservice",
+    "Aktuelles"
+   ],
+   "nav": [
+    "Bürgerservice",
+    "Rathaus",
+    "Leben"
+   ],
+   "types": [
+    "GovernmentOrganization"
+   ]
+  },
+  {
+   "id": "ho-fr-ministere",
+   "lang": "fr",
+   "expected": "government",
+   "title": "Ministère de la Transition – site officiel",
+   "desc": "Le site officiel du ministère : actualités, démarches et publications.",
+   "h1": [
+    "Ministère"
+   ],
+   "h2": [
+    "Actualités",
+    "Démarches"
+   ],
+   "nav": [
+    "Le ministère",
+    "Démarches",
+    "Presse"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-pl-gmina",
+   "lang": "pl",
+   "expected": "government",
+   "host": "gmina.gov.test",
+   "title": "Urząd Miasta Kalisz – sprawy urzędowe",
+   "desc": "Urząd miasta: sprawy obywatelskie, podatki i zezwolenia online.",
+   "h1": [
+    "Urząd Miasta"
+   ],
+   "h2": [
+    "Dla mieszkańców"
+   ],
+   "nav": [
+    "Urząd",
+    "Mieszkańcy",
+    "BIP"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-nl-gemeente",
+   "lang": "nl",
+   "expected": "government",
+   "title": "Gemeente Westerveld – inwoners en ondernemers",
+   "desc": "Vraag online een paspoort, vergunning of uittreksel aan bij de gemeente.",
+   "h1": [
+    "Welkom bij de gemeente"
+   ],
+   "h2": [
+    "Direct regelen"
+   ],
+   "nav": [
+    "Inwoners",
+    "Ondernemers",
+    "Bestuur"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-sv-myndighet",
+   "lang": "sv",
+   "expected": "government",
+   "host": "skatt.gov.test",
+   "title": "Skattekontoret – deklaration och skatt",
+   "desc": "Myndigheten för skatter: deklarera, folkbokföring och e-tjänster för medborgare.",
+   "h1": [
+    "Deklarera"
+   ],
+   "h2": [
+    "E-tjänster"
+   ],
+   "nav": [
+    "Privat",
+    "Företag",
+    "E-tjänster"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-de-uni",
+   "lang": "de",
+   "expected": "education",
+   "title": "Universität Rheintal – Studium, Forschung und Lehre",
+   "desc": "Studiengänge, Forschung und Bewerbung an der Universität Rheintal.",
+   "h1": [
+    "Studium"
+   ],
+   "h2": [
+    "Studiengänge",
+    "Forschung"
+   ],
+   "nav": [
+    "Studium",
+    "Forschung",
+    "Universität"
+   ],
+   "types": [
+    "CollegeOrUniversity"
+   ]
+  },
+  {
+   "id": "ho-es-universidad",
+   "lang": "es",
+   "expected": "education",
+   "title": "Universidad del Norte – grados y másteres",
+   "desc": "Estudia en la Universidad del Norte: grados, másteres e investigación.",
+   "h1": [
+    "Estudia con nosotros"
+   ],
+   "h2": [
+    "Grados",
+    "Investigación"
+   ],
+   "nav": [
+    "Estudios",
+    "Investigación",
+    "Campus"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-lt-universitetas",
+   "lang": "lt",
+   "expected": "education",
+   "title": "Kauno universitetas – studijos ir mokslas",
+   "desc": "Studijų programos, priėmimas ir moksliniai tyrimai.",
+   "h1": [
+    "Studijos"
+   ],
+   "h2": [
+    "Priėmimas"
+   ],
+   "nav": [
+    "Studijos",
+    "Mokslas",
+    "Apie universitetą"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-nl-hogeschool",
+   "lang": "nl",
+   "expected": "education",
+   "title": "Hogeschool Rijnland – hbo-opleidingen",
+   "desc": "Ontdek onze bachelor- en masteropleidingen en kom naar de open dag.",
+   "h1": [
+    "Kies je opleiding"
+   ],
+   "h2": [
+    "Open dag"
+   ],
+   "nav": [
+    "Opleidingen",
+    "Studeren",
+    "Onderzoek"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-de-klinik",
+   "lang": "de",
+   "expected": "health_wellness",
+   "title": "Klinikum Nordstadt – Krankenhaus und Notaufnahme",
+   "desc": "Unser Krankenhaus: Fachabteilungen, Notaufnahme, Patienteninformation und Besuchszeiten.",
+   "h1": [
+    "Klinikum Nordstadt"
+   ],
+   "h2": [
+    "Fachabteilungen",
+    "Notaufnahme"
+   ],
+   "nav": [
+    "Patienten",
+    "Fachabteilungen",
+    "Karriere"
+   ],
+   "types": [
+    "Hospital"
+   ]
+  },
+  {
+   "id": "ho-fr-sante",
+   "lang": "fr",
+   "expected": "health_wellness",
+   "title": "Santé Info – maladies, symptômes et soins",
+   "desc": "Informations fiables sur la santé, les maladies et les soins. Trouvez un médecin.",
+   "h1": [
+    "Votre santé"
+   ],
+   "h2": [
+    "Maladies",
+    "Prévention"
+   ],
+   "nav": [
+    "Maladies",
+    "Prévention",
+    "Trouver un médecin"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-it-ospedale",
+   "lang": "it",
+   "expected": "health_wellness",
+   "title": "Ospedale San Marco – prenotazioni e reparti",
+   "desc": "Ospedale pubblico: reparti, pronto soccorso, prenotazione visite e referti.",
+   "h1": [
+    "Ospedale San Marco"
+   ],
+   "h2": [
+    "Reparti",
+    "Pronto soccorso"
+   ],
+   "nav": [
+    "Reparti",
+    "Prenotazioni",
+    "Referti"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-nl-fysio",
+   "lang": "nl",
+   "expected": "health_wellness",
+   "title": "Fysiotherapie Centrum Oost – behandeling en afspraak",
+   "desc": "Fysiotherapeut voor rug-, nek- en sportblessures. Maak online een afspraak.",
+   "h1": [
+    "Fysiotherapie"
+   ],
+   "h2": [
+    "Behandelingen"
+   ],
+   "nav": [
+    "Behandelingen",
+    "Afspraak",
+    "Contact"
+   ],
+   "types": [
+    "Physician"
+   ]
+  },
+  {
+   "id": "ho-de-telekom",
+   "lang": "de",
+   "expected": "telecom_technology",
+   "widgets": [
+    "products"
+   ],
+   "title": "NetzPlus – Glasfaser, Mobilfunk und TV",
+   "desc": "Glasfaser-Internet, Handytarife und TV für zuhause. Jetzt Verfügbarkeit prüfen.",
+   "h1": [
+    "Schnelles Internet"
+   ],
+   "h2": [
+    "Glasfaser",
+    "Mobilfunk"
+   ],
+   "nav": [
+    "Internet",
+    "Mobilfunk",
+    "TV",
+    "Shop"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-es-teleco",
+   "lang": "es",
+   "expected": "telecom_technology",
+   "widgets": [
+    "products"
+   ],
+   "title": "Fibra y móvil – tarifas | Telnova",
+   "desc": "Fibra óptica, tarifas móviles y TV. Contrata online.",
+   "h1": [
+    "Fibra + móvil"
+   ],
+   "h2": [
+    "Tarifas"
+   ],
+   "nav": [
+    "Fibra",
+    "Móvil",
+    "TV",
+    "Tienda"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-pl-telecom",
+   "lang": "pl",
+   "expected": "telecom_technology",
+   "widgets": [
+    "products"
+   ],
+   "title": "Internet światłowodowy i telefonia komórkowa | Netia Plus",
+   "desc": "Szybki internet światłowodowy, abonament komórkowy i telewizja.",
+   "h1": [
+    "Internet i telefon"
+   ],
+   "h2": [
+    "Światłowód"
+   ],
+   "nav": [
+    "Internet",
+    "Abonament",
+    "Telewizja"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-de-energie",
+   "lang": "de",
+   "expected": "energy_utilities",
+   "title": "Stadtwerke Lindau – Strom, Gas und Wasser",
+   "desc": "Ihr Energieversorger für Strom und Gas. Tarife vergleichen und Vertrag online abschließen.",
+   "h1": [
+    "Stadtwerke Lindau"
+   ],
+   "h2": [
+    "Strom",
+    "Gas"
+   ],
+   "nav": [
+    "Strom",
+    "Gas",
+    "Wasser",
+    "Kundenportal"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-fr-energie",
+   "lang": "fr",
+   "expected": "energy_utilities",
+   "title": "Énergie Verte – fournisseur d'électricité et de gaz",
+   "desc": "Souscrivez une offre d'électricité verte et de gaz naturel. Contrat sans engagement.",
+   "h1": [
+    "Électricité verte"
+   ],
+   "h2": [
+    "Offres"
+   ],
+   "nav": [
+    "Électricité",
+    "Gaz",
+    "Espace client"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-nl-makelaar",
+   "lang": "nl",
+   "expected": "real_estate",
+   "title": "Makelaardij Vonk – huizen te koop in Utrecht",
+   "desc": "Bekijk ons woningaanbod: huizen te koop en te huur. Gratis waardebepaling.",
+   "h1": [
+    "Woningaanbod"
+   ],
+   "h2": [
+    "Te koop",
+    "Te huur"
+   ],
+   "nav": [
+    "Aanbod",
+    "Verkopen",
+    "Contact"
+   ],
+   "types": [
+    "RealEstateAgent"
+   ]
+  },
+  {
+   "id": "ho-de-hotel",
+   "lang": "de",
+   "expected": "hospitality",
+   "title": "Hotel Alpenblick – Zimmer buchen in Garmisch",
+   "desc": "Unser Hotel in Garmisch: Zimmer, Wellness und Restaurant. Jetzt direkt buchen.",
+   "h1": [
+    "Hotel Alpenblick"
+   ],
+   "h2": [
+    "Zimmer",
+    "Restaurant"
+   ],
+   "nav": [
+    "Zimmer",
+    "Angebote",
+    "Buchen"
+   ],
+   "types": [
+    "Hotel"
+   ]
+  },
+  {
+   "id": "ho-it-ristorante",
+   "lang": "it",
+   "expected": "hospitality",
+   "title": "Ristorante Da Gino – cucina toscana a Firenze",
+   "desc": "Cucina tradizionale toscana. Prenota il tuo tavolo online.",
+   "h1": [
+    "Da Gino"
+   ],
+   "h2": [
+    "Menù"
+   ],
+   "nav": [
+    "Menù",
+    "Prenota",
+    "Contatti"
+   ],
+   "types": [
+    "Restaurant"
+   ]
+  },
+  {
+   "id": "ho-fr-musee",
+   "lang": "fr",
+   "expected": "events_culture",
+   "title": "Musée des Beaux-Arts – expositions et billetterie",
+   "desc": "Découvrez les expositions du musée et réservez vos billets en ligne.",
+   "h1": [
+    "Musée des Beaux-Arts"
+   ],
+   "h2": [
+    "Expositions"
+   ],
+   "nav": [
+    "Expositions",
+    "Billetterie",
+    "Visiter"
+   ],
+   "types": [
+    "Museum"
+   ]
+  },
+  {
+   "id": "ho-nl-uitzend",
+   "lang": "nl",
+   "expected": "recruitment",
+   "title": "Uitzendbureau Flex – vacatures en personeel",
+   "desc": "Vind een baan via ons uitzendbureau of vraag personeel aan.",
+   "h1": [
+    "Vacatures"
+   ],
+   "h2": [
+    "Werkgevers"
+   ],
+   "nav": [
+    "Vacatures",
+    "Werkgevers",
+    "Inschrijven"
+   ],
+   "types": [
+    "EmploymentAgency"
+   ]
+  },
+  {
+   "id": "ho-en-saas",
+   "lang": "en",
+   "expected": "saas_b2b",
+   "title": "Ledgerly – accounting software for small businesses",
+   "desc": "Cloud accounting software with invoicing, bank feeds and integrations. Start a free trial.",
+   "h1": [
+    "Accounting made easy"
+   ],
+   "h2": [
+    "Features",
+    "Integrations"
+   ],
+   "nav": [
+    "Features",
+    "Pricing",
+    "Login"
+   ],
+   "types": [
+    "SoftwareApplication"
+   ]
+  },
+  {
+   "id": "ho-nl-goeddoel",
+   "lang": "nl",
+   "expected": "nonprofit",
+   "title": "Stichting Zeehond – doneer voor de zeehonden",
+   "desc": "Steun ons werk voor zeehonden. Doneer of word vrijwilliger.",
+   "h1": [
+    "Help de zeehonden"
+   ],
+   "h2": [
+    "Doneren"
+   ],
+   "nav": [
+    "Doneren",
+    "Vrijwilliger",
+    "Over ons"
+   ],
+   "types": [
+    "NGO"
+   ]
+  },
+  {
+   "id": "ho-neg-it-elettronica-credito",
+   "lang": "it",
+   "expected": "ecommerce",
+   "commerce": true,
+   "widgets": [
+    "products"
+   ],
+   "title": "Elettronica online – smartphone e TV | MegaTech negozio online",
+   "desc": "Acquista online smartphone, TV e PC. Pagamento a rate con credito al consumo e carta di credito.",
+   "h1": [
+    "Offerte"
+   ],
+   "h2": [
+    "Smartphone",
+    "TV"
+   ],
+   "nav": [
+    "Smartphone",
+    "TV",
+    "Carrello"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-neg-de-reisebuero",
+   "lang": "de",
+   "expected": "tourism_recreation",
+   "acceptUnknown": true,
+   "title": "Reisebüro Sonnenschein – Pauschalreisen und Last Minute",
+   "desc": "Pauschalreisen, Kreuzfahrten und Last-Minute-Angebote. Beratung im Reisebüro.",
+   "h1": [
+    "Urlaub buchen"
+   ],
+   "h2": [
+    "Angebote"
+   ],
+   "nav": [
+    "Reisen",
+    "Angebote",
+    "Reisebüro"
+   ],
+   "types": [
+    "TravelAgency"
+   ],
+   "alsoOk": [
+    "transport_travel"
+   ]
+  },
+  {
+   "id": "ho-neg-nl-bedrijfsnieuws",
+   "lang": "nl",
+   "expected": "professional_services",
+   "acceptUnknown": true,
+   "title": "Nieuws | Adviesbureau Kompas",
+   "desc": "Het laatste nieuws van Adviesbureau Kompas over onze projecten en advies.",
+   "h1": [
+    "Nieuws"
+   ],
+   "h2": [
+    "Projecten"
+   ],
+   "nav": [
+    "Diensten",
+    "Nieuws",
+    "Contact"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-neg-fr-banc-meuble",
+   "lang": "fr",
+   "expected": "ecommerce",
+   "commerce": true,
+   "widgets": [
+    "products"
+   ],
+   "title": "Bancs et tables de jardin – boutique en ligne | JardinDéco",
+   "desc": "Achetez bancs de jardin, tables et chaises en ligne. Livraison offerte.",
+   "h1": [
+    "Bancs de jardin"
+   ],
+   "h2": [
+    "Nouveautés"
+   ],
+   "nav": [
+    "Bancs",
+    "Tables",
+    "Panier"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-neg-en-parking",
+   "lang": "en",
+   "expected": "home_services",
+   "acceptUnknown": true,
+   "title": "Parking lot line painting and cleaning | StripeRight",
+   "desc": "We paint and clean parking lots for businesses. Request a free quote.",
+   "h1": [
+    "Parking lot services"
+   ],
+   "h2": [
+    "Line painting"
+   ],
+   "nav": [
+    "Services",
+    "Quote",
+    "Contact"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-neg-es-agencia-marketing",
+   "lang": "es",
+   "expected": "professional_services",
+   "acceptUnknown": true,
+   "title": "Agencia de marketing para hoteles y aerolíneas | Impulsa",
+   "desc": "Marketing digital para hoteles, aerolíneas y bancos. Pide presupuesto.",
+   "h1": [
+    "Marketing que funciona"
+   ],
+   "h2": [
+    "Clientes"
+   ],
+   "nav": [
+    "Servicios",
+    "Casos",
+    "Contacto"
+   ],
+   "types": []
+  },
+  {
+   "id": "ho-neg-de-apotheke-shop",
+   "lang": "de",
+   "expected": "ecommerce",
+   "acceptUnknown": true,
+   "commerce": true,
+   "widgets": [
+    "products"
+   ],
+   "title": "Online-Apotheke – Medikamente günstig online bestellen",
+   "desc": "Rezeptfreie Medikamente und Gesundheitsprodukte im Onlineshop bestellen. E-Rezept einlösen.",
+   "h1": [
+    "Online-Apotheke"
+   ],
+   "h2": [
+    "Angebote"
+   ],
+   "nav": [
+    "Medikamente",
+    "Gesundheit",
+    "Warenkorb"
+   ],
+   "types": [
+    "Pharmacy"
+   ],
+   "alsoOk": [
+    "health_wellness"
+   ]
+  }
+ ]
+}

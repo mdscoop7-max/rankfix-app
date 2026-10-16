@@ -1,0 +1,1214 @@
+{
+ "source": "GitHub issue #151, Dossier A (Neon rankfix-sector-3-1-test, snapshot 16 Oct 2026 ~14:43 NL). Expected sector = the category the site was chosen for in the EU-81 test plan; hosts are the normalised input hosts to match against scans.scanned_url.",
+ "sectorFamilies": "engine sectorProfile.sector values",
+ "sites": [
+  {
+   "country": "AT",
+   "name": "ORF",
+   "hosts": [
+    "orf.at"
+   ],
+   "expected": "news_media",
+   "baseline": {
+    "overall": 91,
+    "seo": 98,
+    "geo": 80,
+    "security": 96,
+    "coverage": 95,
+    "reliability": "high",
+    "sectorLabel": "Nieuws & Media",
+    "sector": "news_media"
+   }
+  },
+  {
+   "country": "AT",
+   "name": "BILLA Online Shop",
+   "hosts": [
+    "shop.billa.at",
+    "billa.at"
+   ],
+   "expected": "ecommerce",
+   "baseline": {
+    "overall": 100,
+    "seo": 100,
+    "geo": 100,
+    "security": 100,
+    "coverage": 55,
+    "reliability": "low",
+    "sectorLabel": "Retail — webshopfunctionaliteit niet bevestigd",
+    "sector": "ecommerce"
+   }
+  },
+  {
+   "country": "AT",
+   "name": "ÖBB",
+   "hosts": [
+    "oebb.at"
+   ],
+   "expected": "transport_travel",
+   "baseline": {
+    "overall": 82,
+    "seo": 88,
+    "geo": 72,
+    "security": 88,
+    "coverage": 72,
+    "reliability": "medium",
+    "sectorLabel": "Webshop / e-commerce",
+    "sector": "ecommerce"
+   }
+  },
+  {
+   "country": "BE",
+   "name": "VRT",
+   "hosts": [
+    "vrt.be"
+   ],
+   "expected": "news_media",
+   "baseline": {
+    "overall": 88,
+    "seo": 88,
+    "geo": 92,
+    "security": 89,
+    "coverage": 97,
+    "reliability": "medium",
+    "sectorLabel": "Sector niet bevestigd",
+    "sector": "unknown"
+   }
+  },
+  {
+   "country": "BE",
+   "name": "Colruyt",
+   "hosts": [
+    "colruyt.be"
+   ],
+   "expected": "ecommerce",
+   "baseline": {
+    "overall": 61,
+    "seo": 70,
+    "geo": 47,
+    "security": 78,
+    "coverage": 65,
+    "reliability": "low",
+    "sectorLabel": "Sector niet bevestigd",
+    "sector": "unknown"
+   }
+  },
+  {
+   "country": "BE",
+   "name": "bpost",
+   "hosts": [
+    "bpost.be"
+   ],
+   "expected": "transport_travel",
+   "baseline": {
+    "overall": 97,
+    "seo": 96,
+    "geo": 98,
+    "security": 84,
+    "coverage": 73,
+    "reliability": "medium",
+    "sectorLabel": "Webshop / e-commerce",
+    "sector": "ecommerce"
+   }
+  },
+  {
+   "country": "BG",
+   "name": "bTV Novinite",
+   "hosts": [
+    "btvnovinite.bg"
+   ],
+   "expected": "news_media",
+   "baseline": null
+  },
+  {
+   "country": "BG",
+   "name": "Technopolis",
+   "hosts": [
+    "technopolis.bg"
+   ],
+   "expected": "ecommerce",
+   "baseline": null
+  },
+  {
+   "country": "BG",
+   "name": "BDZ",
+   "hosts": [
+    "bdz.bg"
+   ],
+   "expected": "transport_travel",
+   "baseline": null
+  },
+  {
+   "country": "HR",
+   "name": "HRT",
+   "hosts": [
+    "hrt.hr"
+   ],
+   "expected": "news_media",
+   "baseline": {
+    "overall": 96,
+    "seo": 96,
+    "geo": 95,
+    "security": 96,
+    "coverage": 92,
+    "reliability": "high",
+    "sectorLabel": "Nieuws & Media",
+    "sector": "news_media"
+   }
+  },
+  {
+   "country": "HR",
+   "name": "Konzum",
+   "hosts": [
+    "konzum.hr"
+   ],
+   "expected": "ecommerce",
+   "baseline": {
+    "overall": 96,
+    "seo": 93,
+    "geo": 100,
+    "security": 78,
+    "coverage": 82,
+    "reliability": "medium",
+    "sectorLabel": "Webshop / e-commerce",
+    "sector": "ecommerce"
+   }
+  },
+  {
+   "country": "HR",
+   "name": "Croatia Airlines",
+   "hosts": [
+    "croatiaairlines.com"
+   ],
+   "expected": "transport_travel",
+   "baseline": {
+    "overall": 85,
+    "seo": 92,
+    "geo": 75,
+    "security": 97,
+    "coverage": 82,
+    "reliability": "medium",
+    "sectorLabel": "Transport & Logistiek",
+    "sector": "transport_travel"
+   }
+  },
+  {
+   "country": "CY",
+   "name": "Cyprus Mail",
+   "hosts": [
+    "cyprus-mail.com"
+   ],
+   "expected": "news_media",
+   "baseline": {
+    "overall": 98,
+    "seo": 97,
+    "geo": 100,
+    "security": 96,
+    "coverage": 95,
+    "reliability": "high",
+    "sectorLabel": "Nieuws & Media",
+    "sector": "news_media"
+   }
+  },
+  {
+   "country": "CY",
+   "name": "Stephanis",
+   "hosts": [
+    "stephanis.com.cy"
+   ],
+   "expected": "ecommerce",
+   "baseline": null
+  },
+  {
+   "country": "CY",
+   "name": "Cyprus Airways",
+   "hosts": [
+    "cyprusairways.com"
+   ],
+   "expected": "transport_travel",
+   "baseline": null
+  },
+  {
+   "country": "CZ",
+   "name": "Česká televize",
+   "hosts": [
+    "ceskatelevize.cz",
+    "ct24.ceskatelevize.cz"
+   ],
+   "expected": "news_media",
+   "baseline": null
+  },
+  {
+   "country": "CZ",
+   "name": "Alza",
+   "hosts": [
+    "alza.cz"
+   ],
+   "expected": "ecommerce",
+   "baseline": null
+  },
+  {
+   "country": "CZ",
+   "name": "Portál veřejné správy",
+   "hosts": [
+    "portal.gov.cz"
+   ],
+   "expected": "government",
+   "baseline": {
+    "overall": 82,
+    "seo": 86,
+    "geo": 77,
+    "security": 100,
+    "coverage": 93,
+    "reliability": "medium",
+    "sectorLabel": "Sector niet bevestigd",
+    "sector": "unknown"
+   }
+  },
+  {
+   "country": "DK",
+   "name": "DR",
+   "hosts": [
+    "dr.dk"
+   ],
+   "expected": "news_media",
+   "baseline": {
+    "overall": 100,
+    "seo": 100,
+    "geo": 100,
+    "security": 96,
+    "coverage": 95,
+    "reliability": "high",
+    "sectorLabel": "Nieuws & Media",
+    "sector": "news_media"
+   }
+  },
+  {
+   "country": "DK",
+   "name": "Bilka",
+   "hosts": [
+    "bilka.dk"
+   ],
+   "expected": "ecommerce",
+   "baseline": {
+    "overall": 87,
+    "seo": 92,
+    "geo": 80,
+    "security": 78,
+    "coverage": 64,
+    "reliability": "low",
+    "sectorLabel": "Sector niet bevestigd",
+    "sector": "unknown"
+   }
+  },
+  {
+   "country": "DK",
+   "name": "DSB",
+   "hosts": [
+    "dsb.dk"
+   ],
+   "expected": "transport_travel",
+   "baseline": {
+    "overall": 75,
+    "seo": 78,
+    "geo": 70,
+    "security": 78,
+    "coverage": 63,
+    "reliability": "low",
+    "sectorLabel": "Sector niet bevestigd",
+    "sector": "unknown"
+   }
+  },
+  {
+   "country": "EE",
+   "name": "ERR",
+   "hosts": [
+    "err.ee"
+   ],
+   "expected": "news_media",
+   "baseline": {
+    "overall": 93,
+    "seo": 89,
+    "geo": 100,
+    "security": 88,
+    "coverage": 71,
+    "reliability": "medium",
+    "sectorLabel": "Nieuws & Media",
+    "sector": "news_media"
+   }
+  },
+  {
+   "country": "EE",
+   "name": "Kaup24",
+   "hosts": [
+    "kaup24.ee"
+   ],
+   "expected": "ecommerce",
+   "baseline": {
+    "overall": 93,
+    "seo": 97,
+    "geo": 88,
+    "security": 81,
+    "coverage": 67,
+    "reliability": "low",
+    "sectorLabel": "Sector niet bevestigd",
+    "sector": "unknown"
+   }
+  },
+  {
+   "country": "EE",
+   "name": "Elisa Eesti",
+   "hosts": [
+    "elisa.ee"
+   ],
+   "expected": "telecom_technology",
+   "baseline": {
+    "overall": 96,
+    "seo": 96,
+    "geo": 95,
+    "security": 96,
+    "coverage": 70,
+    "reliability": "medium",
+    "sectorLabel": "Sector niet bevestigd",
+    "sector": "unknown"
+   }
+  },
+  {
+   "country": "FI",
+   "name": "Yle",
+   "hosts": [
+    "yle.fi"
+   ],
+   "expected": "news_media",
+   "baseline": {
+    "overall": 99,
+    "seo": 99,
+    "geo": 100,
+    "security": 96,
+    "coverage": 95,
+    "reliability": "high",
+    "sectorLabel": "Nieuws & Media",
+    "sector": "news_media"
+   }
+  },
+  {
+   "country": "FI",
+   "name": "Verkkokauppa.com",
+   "hosts": [
+    "verkkokauppa.com"
+   ],
+   "expected": "ecommerce",
+   "baseline": {
+    "overall": 99,
+    "seo": 99,
+    "geo": 100,
+    "security": 91,
+    "coverage": 80,
+    "reliability": "medium",
+    "sectorLabel": "Webshop / e-commerce",
+    "sector": "ecommerce"
+   }
+  },
+  {
+   "country": "FI",
+   "name": "Nordea Finland",
+   "hosts": [
+    "nordea.fi"
+   ],
+   "expected": "financial_services",
+   "baseline": {
+    "overall": 89,
+    "seo": 99,
+    "geo": 75,
+    "security": 94,
+    "coverage": 89,
+    "reliability": "medium",
+    "sectorLabel": "Sector niet bevestigd",
+    "sector": "unknown"
+   }
+  },
+  {
+   "country": "FR",
+   "name": "Franceinfo",
+   "hosts": [
+    "francetvinfo.fr"
+   ],
+   "expected": "news_media",
+   "baseline": {
+    "overall": 98,
+    "seo": 96,
+    "geo": 100,
+    "security": 85,
+    "coverage": 97,
+    "reliability": "high",
+    "sectorLabel": "Nieuws & Media",
+    "sector": "news_media"
+   }
+  },
+  {
+   "country": "FR",
+   "name": "Fnac",
+   "hosts": [
+    "fnac.com"
+   ],
+   "expected": "ecommerce",
+   "baseline": null
+  },
+  {
+   "country": "FR",
+   "name": "Service-Public",
+   "hosts": [
+    "service-public.fr"
+   ],
+   "expected": "government",
+   "baseline": {
+    "overall": 91,
+    "seo": 98,
+    "geo": 80,
+    "security": 94,
+    "coverage": 90,
+    "reliability": "high",
+    "sectorLabel": "Overheid & Publieke sector",
+    "sector": "government"
+   }
+  },
+  {
+   "country": "DE",
+   "name": "Tagesschau",
+   "hosts": [
+    "tagesschau.de"
+   ],
+   "expected": "news_media",
+   "baseline": {
+    "overall": 94,
+    "seo": 98,
+    "geo": 89,
+    "security": 96,
+    "coverage": 95,
+    "reliability": "high",
+    "sectorLabel": "Nieuws & Media",
+    "sector": "news_media"
+   }
+  },
+  {
+   "country": "DE",
+   "name": "OTTO",
+   "hosts": [
+    "otto.de"
+   ],
+   "expected": "ecommerce",
+   "baseline": {
+    "overall": 96,
+    "seo": 96,
+    "geo": 95,
+    "security": 84,
+    "coverage": 82,
+    "reliability": "medium",
+    "sectorLabel": "Webshop / e-commerce",
+    "sector": "ecommerce"
+   }
+  },
+  {
+   "country": "DE",
+   "name": "Deutsche Bahn",
+   "hosts": [
+    "bahn.de"
+   ],
+   "expected": "transport_travel",
+   "baseline": {
+    "overall": 83,
+    "seo": 98,
+    "geo": 60,
+    "security": 91,
+    "coverage": 87,
+    "reliability": "medium",
+    "sectorLabel": "Transport & Logistiek",
+    "sector": "transport_travel"
+   }
+  },
+  {
+   "country": "GR",
+   "name": "ERT News",
+   "hosts": [
+    "ertnews.gr"
+   ],
+   "expected": "news_media",
+   "baseline": {
+    "overall": 95,
+    "seo": 92,
+    "geo": 100,
+    "security": 70,
+    "coverage": 92,
+    "reliability": "high",
+    "sectorLabel": "Nieuws & Media",
+    "sector": "news_media"
+   }
+  },
+  {
+   "country": "GR",
+   "name": "Plaisio",
+   "hosts": [
+    "plaisio.gr"
+   ],
+   "expected": "ecommerce",
+   "baseline": null
+  },
+  {
+   "country": "GR",
+   "name": "Hellenic Train",
+   "hosts": [
+    "hellenictrain.gr"
+   ],
+   "expected": "transport_travel",
+   "baseline": {
+    "overall": 95,
+    "seo": 91,
+    "geo": 100,
+    "security": 100,
+    "coverage": 95,
+    "reliability": "high",
+    "sectorLabel": "Transport & Logistiek",
+    "sector": "transport_travel"
+   }
+  },
+  {
+   "country": "HU",
+   "name": "Telex",
+   "hosts": [
+    "telex.hu"
+   ],
+   "expected": "news_media",
+   "baseline": null
+  },
+  {
+   "country": "HU",
+   "name": "eMAG Hungary",
+   "hosts": [
+    "emag.hu"
+   ],
+   "expected": "ecommerce",
+   "baseline": null
+  },
+  {
+   "country": "HU",
+   "name": "Magyar Posta",
+   "hosts": [
+    "posta.hu"
+   ],
+   "expected": "transport_travel",
+   "baseline": {
+    "overall": 89,
+    "seo": 95,
+    "geo": 80,
+    "security": 66,
+    "coverage": 66,
+    "reliability": "low",
+    "sectorLabel": "Sector niet bevestigd",
+    "sector": "unknown"
+   }
+  },
+  {
+   "country": "IE",
+   "name": "RTÉ",
+   "hosts": [
+    "rte.ie"
+   ],
+   "expected": "news_media",
+   "baseline": {
+    "overall": 95,
+    "seo": 95,
+    "geo": 95,
+    "security": 96,
+    "coverage": 97,
+    "reliability": "high",
+    "sectorLabel": "Nieuws & Media",
+    "sector": "news_media"
+   }
+  },
+  {
+   "country": "IE",
+   "name": "Harvey Norman Ireland",
+   "hosts": [
+    "harveynorman.ie"
+   ],
+   "expected": "ecommerce",
+   "baseline": null
+  },
+  {
+   "country": "IE",
+   "name": "Trinity College Dublin",
+   "hosts": [
+    "tcd.ie"
+   ],
+   "expected": "education",
+   "baseline": {
+    "overall": 82,
+    "seo": 88,
+    "geo": 72,
+    "security": 85,
+    "coverage": 90,
+    "reliability": "high",
+    "sectorLabel": "Onderwijs & Opleiding",
+    "sector": "education"
+   }
+  },
+  {
+   "country": "IT",
+   "name": "Rai News",
+   "hosts": [
+    "rainews.it"
+   ],
+   "expected": "news_media",
+   "baseline": {
+    "overall": 97,
+    "seo": 98,
+    "geo": 95,
+    "security": 89,
+    "coverage": 97,
+    "reliability": "high",
+    "sectorLabel": "Nieuws & Media",
+    "sector": "news_media"
+   }
+  },
+  {
+   "country": "IT",
+   "name": "Unieuro",
+   "hosts": [
+    "unieuro.it"
+   ],
+   "expected": "ecommerce",
+   "baseline": {
+    "overall": 99,
+    "seo": 98,
+    "geo": 100,
+    "security": 78,
+    "coverage": 66,
+    "reliability": "low",
+    "sectorLabel": "Evenementen & Cultuur",
+    "sector": "events_culture"
+   }
+  },
+  {
+   "country": "IT",
+   "name": "TIM",
+   "hosts": [
+    "tim.it"
+   ],
+   "expected": "telecom_technology",
+   "baseline": {
+    "overall": 97,
+    "seo": 98,
+    "geo": 96,
+    "security": 84,
+    "coverage": 91,
+    "reliability": "high",
+    "sectorLabel": "Telecom & Technologie",
+    "sector": "telecom_technology"
+   }
+  },
+  {
+   "country": "LV",
+   "name": "LSM",
+   "hosts": [
+    "lsm.lv"
+   ],
+   "expected": "news_media",
+   "baseline": {
+    "overall": 82,
+    "seo": 96,
+    "geo": 60,
+    "security": 81,
+    "coverage": 63,
+    "reliability": "low",
+    "sectorLabel": "Sector niet bevestigd",
+    "sector": "unknown"
+   }
+  },
+  {
+   "country": "LV",
+   "name": "220.lv",
+   "hosts": [
+    "220.lv"
+   ],
+   "expected": "ecommerce",
+   "baseline": {
+    "overall": 93,
+    "seo": 97,
+    "geo": 86,
+    "security": 81,
+    "coverage": 68,
+    "reliability": "low",
+    "sectorLabel": "Sector niet bevestigd",
+    "sector": "unknown"
+   }
+  },
+  {
+   "country": "LV",
+   "name": "airBaltic",
+   "hosts": [
+    "airbaltic.com"
+   ],
+   "expected": "transport_travel",
+   "baseline": {
+    "overall": 99,
+    "seo": 99,
+    "geo": 100,
+    "security": 88,
+    "coverage": 67,
+    "reliability": "low",
+    "sectorLabel": "Webshop / e-commerce",
+    "sector": "ecommerce"
+   }
+  },
+  {
+   "country": "LT",
+   "name": "LRT",
+   "hosts": [
+    "lrt.lt"
+   ],
+   "expected": "news_media",
+   "baseline": {
+    "overall": 98,
+    "seo": 98,
+    "geo": 98,
+    "security": 78,
+    "coverage": 87,
+    "reliability": "medium",
+    "sectorLabel": "Nieuws & Media",
+    "sector": "news_media"
+   }
+  },
+  {
+   "country": "LT",
+   "name": "Pigu.lt",
+   "hosts": [
+    "pigu.lt"
+   ],
+   "expected": "ecommerce",
+   "baseline": {
+    "overall": 91,
+    "seo": 97,
+    "geo": 83,
+    "security": 81,
+    "coverage": 67,
+    "reliability": "low",
+    "sectorLabel": "Sector niet bevestigd",
+    "sector": "unknown"
+   }
+  },
+  {
+   "country": "LT",
+   "name": "LTG Link",
+   "hosts": [
+    "ltglink.lt"
+   ],
+   "expected": "transport_travel",
+   "baseline": {
+    "overall": 61,
+    "seo": 71,
+    "geo": 47,
+    "security": 78,
+    "coverage": 56,
+    "reliability": "low",
+    "sectorLabel": "Sector niet bevestigd",
+    "sector": "unknown"
+   }
+  },
+  {
+   "country": "LU",
+   "name": "RTL Lëtzebuerg",
+   "hosts": [
+    "rtl.lu"
+   ],
+   "expected": "news_media",
+   "baseline": {
+    "overall": 100,
+    "seo": 100,
+    "geo": 100,
+    "security": 85,
+    "coverage": 53,
+    "reliability": "low",
+    "sectorLabel": "Transport & Logistiek",
+    "sector": "transport_travel"
+   }
+  },
+  {
+   "country": "LU",
+   "name": "Letzshop",
+   "hosts": [
+    "letzshop.lu"
+   ],
+   "expected": "ecommerce",
+   "baseline": {
+    "overall": 89,
+    "seo": 99,
+    "geo": 75,
+    "security": 89,
+    "coverage": 79,
+    "reliability": "medium",
+    "sectorLabel": "Webshop / e-commerce",
+    "sector": "ecommerce"
+   }
+  },
+  {
+   "country": "LU",
+   "name": "BGL BNP Paribas",
+   "hosts": [
+    "bgl.lu"
+   ],
+   "expected": "financial_services",
+   "baseline": null
+  },
+  {
+   "country": "MT",
+   "name": "Times of Malta",
+   "hosts": [
+    "timesofmalta.com"
+   ],
+   "expected": "news_media",
+   "baseline": null
+  },
+  {
+   "country": "MT",
+   "name": "SCAN Malta",
+   "hosts": [
+    "scanmalta.com"
+   ],
+   "expected": "ecommerce",
+   "baseline": null
+  },
+  {
+   "country": "MT",
+   "name": "Malta Public Transport",
+   "hosts": [
+    "publictransport.com.mt"
+   ],
+   "expected": "transport_travel",
+   "baseline": {
+    "overall": 99,
+    "seo": 98,
+    "geo": 100,
+    "security": 75,
+    "coverage": 94,
+    "reliability": "high",
+    "sectorLabel": "Transport & Logistiek",
+    "sector": "transport_travel"
+   }
+  },
+  {
+   "country": "NL",
+   "name": "NOS",
+   "hosts": [
+    "nos.nl"
+   ],
+   "expected": "news_media",
+   "baseline": {
+    "overall": 89,
+    "seo": 98,
+    "geo": 75,
+    "security": 96,
+    "coverage": 89,
+    "reliability": "medium",
+    "sectorLabel": "Nieuws & Media",
+    "sector": "news_media"
+   }
+  },
+  {
+   "country": "NL",
+   "name": "bol",
+   "hosts": [
+    "bol.com"
+   ],
+   "expected": "ecommerce",
+   "baseline": null
+  },
+  {
+   "country": "NL",
+   "name": "Funda",
+   "hosts": [
+    "funda.nl"
+   ],
+   "expected": "real_estate",
+   "baseline": null
+  },
+  {
+   "country": "PL",
+   "name": "TVN24",
+   "hosts": [
+    "tvn24.pl"
+   ],
+   "expected": "news_media",
+   "baseline": {
+    "overall": 87,
+    "seo": 95,
+    "geo": 75,
+    "security": 84,
+    "coverage": 80,
+    "reliability": "medium",
+    "sectorLabel": "Nieuws & Media",
+    "sector": "news_media"
+   }
+  },
+  {
+   "country": "PL",
+   "name": "Allegro",
+   "hosts": [
+    "allegro.pl"
+   ],
+   "expected": "ecommerce",
+   "baseline": null
+  },
+  {
+   "country": "PL",
+   "name": "LOT Polish Airlines",
+   "hosts": [
+    "lot.com"
+   ],
+   "expected": "transport_travel",
+   "baseline": {
+    "overall": 66,
+    "seo": 64,
+    "geo": 68,
+    "security": 96,
+    "coverage": 67,
+    "reliability": "low",
+    "sectorLabel": "Sector niet bevestigd",
+    "sector": "unknown"
+   }
+  },
+  {
+   "country": "PT",
+   "name": "RTP",
+   "hosts": [
+    "rtp.pt"
+   ],
+   "expected": "news_media",
+   "baseline": {
+    "overall": 87,
+    "seo": 95,
+    "geo": 75,
+    "security": 100,
+    "coverage": 82,
+    "reliability": "medium",
+    "sectorLabel": "Sector niet bevestigd",
+    "sector": "unknown"
+   }
+  },
+  {
+   "country": "PT",
+   "name": "Worten",
+   "hosts": [
+    "worten.pt"
+   ],
+   "expected": "ecommerce",
+   "baseline": null
+  },
+  {
+   "country": "PT",
+   "name": "EDP",
+   "hosts": [
+    "edp.pt"
+   ],
+   "expected": "energy_utilities",
+   "baseline": {
+    "overall": 91,
+    "seo": 93,
+    "geo": 88,
+    "security": 78,
+    "coverage": 65,
+    "reliability": "low",
+    "sectorLabel": "Sector niet bevestigd",
+    "sector": "unknown"
+   }
+  },
+  {
+   "country": "RO",
+   "name": "TVR",
+   "hosts": [
+    "tvr.ro"
+   ],
+   "expected": "news_media",
+   "baseline": null
+  },
+  {
+   "country": "RO",
+   "name": "eMAG Romania",
+   "hosts": [
+    "emag.ro"
+   ],
+   "expected": "ecommerce",
+   "baseline": null
+  },
+  {
+   "country": "RO",
+   "name": "BCR",
+   "hosts": [
+    "bcr.ro"
+   ],
+   "expected": "financial_services",
+   "baseline": {
+    "overall": 98,
+    "seo": 98,
+    "geo": 98,
+    "security": 96,
+    "coverage": 78,
+    "reliability": "medium",
+    "sectorLabel": "Webshop / e-commerce",
+    "sector": "ecommerce"
+   }
+  },
+  {
+   "country": "SK",
+   "name": "STVR",
+   "hosts": [
+    "stvr.sk"
+   ],
+   "expected": "news_media",
+   "baseline": {
+    "overall": 91,
+    "seo": 95,
+    "geo": 86,
+    "security": 96,
+    "coverage": 90,
+    "reliability": "medium",
+    "sectorLabel": "Sector niet bevestigd",
+    "sector": "unknown"
+   }
+  },
+  {
+   "country": "SK",
+   "name": "Alza Slovakia",
+   "hosts": [
+    "alza.sk"
+   ],
+   "expected": "ecommerce",
+   "baseline": null
+  },
+  {
+   "country": "SK",
+   "name": "Comenius University",
+   "hosts": [
+    "uniba.sk"
+   ],
+   "expected": "education",
+   "baseline": {
+    "overall": 88,
+    "seo": 93,
+    "geo": 80,
+    "security": 69,
+    "coverage": 95,
+    "reliability": "medium",
+    "sectorLabel": "Sector niet bevestigd",
+    "sector": "unknown"
+   }
+  },
+  {
+   "country": "SI",
+   "name": "24ur",
+   "hosts": [
+    "24ur.com"
+   ],
+   "expected": "news_media",
+   "baseline": null
+  },
+  {
+   "country": "SI",
+   "name": "Big Bang",
+   "hosts": [
+    "bigbang.si"
+   ],
+   "expected": "ecommerce",
+   "baseline": null
+  },
+  {
+   "country": "SI",
+   "name": "Triglav",
+   "hosts": [
+    "triglav.si"
+   ],
+   "expected": "financial_services",
+   "baseline": null
+  },
+  {
+   "country": "ES",
+   "name": "RTVE",
+   "hosts": [
+    "rtve.es"
+   ],
+   "expected": "news_media",
+   "baseline": {
+    "overall": 95,
+    "seo": 95,
+    "geo": 95,
+    "security": 70,
+    "coverage": 100,
+    "reliability": "high",
+    "sectorLabel": "Nieuws & Media",
+    "sector": "news_media"
+   }
+  },
+  {
+   "country": "ES",
+   "name": "El Corte Inglés",
+   "hosts": [
+    "elcorteingles.es"
+   ],
+   "expected": "ecommerce",
+   "baseline": null
+  },
+  {
+   "country": "ES",
+   "name": "BBVA",
+   "hosts": [
+    "bbva.es"
+   ],
+   "expected": "financial_services",
+   "baseline": null
+  },
+  {
+   "country": "SE",
+   "name": "SVT",
+   "hosts": [
+    "svt.se"
+   ],
+   "expected": "news_media",
+   "baseline": {
+    "overall": 92,
+    "seo": 100,
+    "geo": 80,
+    "security": 96,
+    "coverage": 97,
+    "reliability": "medium",
+    "sectorLabel": "Sector niet bevestigd",
+    "sector": "unknown"
+   }
+  },
+  {
+   "country": "SE",
+   "name": "Inet",
+   "hosts": [
+    "inet.se"
+   ],
+   "expected": "ecommerce",
+   "baseline": null
+  },
+  {
+   "country": "SE",
+   "name": "1177",
+   "hosts": [
+    "1177.se"
+   ],
+   "expected": "health_wellness",
+   "baseline": {
+    "overall": 90,
+    "seo": 94,
+    "geo": 83,
+    "security": 97,
+    "coverage": 92,
+    "reliability": "medium",
+    "sectorLabel": "Sector niet bevestigd",
+    "sector": "unknown"
+   }
+  }
+ ]
+}

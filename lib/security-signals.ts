@@ -71,8 +71,24 @@ export function observeCookie(raw: string): CookieObservation {
   };
 }
 
+
+// Each <form ...>...</form> block, like /<form\b[\s\S]*?<\/form>/gi but linear:
+// that regex rescans to the end of the page for every unclosed <form.
+export function formBlocks(html: string, max = 500): string[] {
+  const lower = html.toLowerCase();
+  const blocks: string[] = [];
+  for (let i = lower.indexOf("<form"); i !== -1 && blocks.length < max; ) {
+    if (/\w/.test(lower[i + 5] || "")) { i = lower.indexOf("<form", i + 5); continue; }
+    const end = lower.indexOf("</form>", i);
+    if (end === -1) break;
+    blocks.push(html.slice(i, end + 7));
+    i = lower.indexOf("<form", end + 7);
+  }
+  return blocks;
+}
+
 export function findForms(html: string): { count: number; passwordForm: boolean; insecureActions: number } {
-  const forms = [...html.matchAll(/<form\b[\s\S]*?<\/form>/gi)].map((match) => match[0]);
+  const forms = formBlocks(html);
   return {
     count: forms.length,
     passwordForm: forms.some((form) => /<input[^>]+type\s*=\s*["']?password\b/i.test(form)),

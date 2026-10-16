@@ -1,0 +1,29 @@
+name: RankFix AutoPilot (QA only, manual)
+# workflow_dispatch needs to exist on main before this NEW workflow is directly runnable.
+# Until approved, use the EXISTING RankFix CI workflow on main and choose QA branch.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+      - name: Save public baseline
+        run: |
+          mkdir -p pilot-output
+          node scripts/engine-benchmark/eu81.mjs baseline > pilot-output/baseline.json
+          echo "This is baseline only. New scan audits require separate authorized pilot." > pilot-output/readme.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rankfix-autopilot-baseline
+          path: pilot-output/
+          retention-days: 3

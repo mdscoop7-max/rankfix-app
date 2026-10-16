@@ -69,9 +69,18 @@ export function isContactForm(formHtml: string): boolean {
 }
 
 // Visible addresses only; asset names like logo@2x.png are not contact details.
+// Linear: only text around each "@" is examined (local part ≤ 64, domain ≤ 255
+// characters, the RFC limits). A whole-text regex was quadratic on long runs
+// such as "a.a.a." or base64 and could stall a scan for minutes.
+const EMAIL_LOCAL_CHAR = /[a-z0-9._%+-]/i;
+const EMAIL_AT_START = /^[a-z0-9._%+-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}\b/i;
 export function findVisibleEmail(text: string): string | null {
-  for (const match of text.matchAll(/\b[a-z0-9._%+-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}\b/gi)) {
-    if (!/\.(?:png|jpe?g|gif|webp|avif|svg|ico)$/i.test(match[0])) return match[0];
+  for (let at = text.indexOf("@"); at !== -1; at = text.indexOf("@", at + 1)) {
+    let start = at;
+    while (start > 0 && at - start < 64 && EMAIL_LOCAL_CHAR.test(text[start - 1])) start--;
+    if (start === at || (start > 0 && /\w/.test(text[start - 1]))) continue;
+    const match = text.slice(start, at + 256).match(EMAIL_AT_START);
+    if (match && !/\.(?:png|jpe?g|gif|webp|avif|svg|ico)$/i.test(match[0])) return match[0];
   }
   return null;
 }

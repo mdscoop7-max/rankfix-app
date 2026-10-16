@@ -184,3 +184,20 @@ test("extra sector modules never cap the SEO/GEO headline even when severe, whil
  const sector={key:"merchant_feed_signal",issue_status:"FAIL",maxPoints:10,points:0,confidence:"high",severity:"CRITICAL"};
  assert.equal(applyEvidenceBasedScoreCap(scoreApplicableChecks(stableCoreChecks([...core,sector],"seo")),stableCoreChecks([...core,sector],"seo")),100);
 });
+
+test("rendering: Nuxt/Next hydration wait is bounded and rejected snapshots are visible", async () => {
+  const renderer = await source("lib/headless-render.ts");
+  const route = await source("app/api/scan/route.ts");
+  const report = await source("app/dashboard/audit/[id]/report/page.tsx");
+  // Hydration stabilization is optional, bounded and never bypasses DNS guards.
+  assert.match(renderer, /MutationObserver/);
+  assert.match(renderer, /#__nuxt, #__next/);
+  assert.match(renderer, /maxTimer = window\.setTimeout\(done, 1250\)/);
+  assert.match(renderer, /Math\.min\(1600, remaining\(\)\)/);
+  assert.match(renderer, /assertPublicDns\(finalUrl\.hostname\)/);
+  // A poorer browser response is not accepted as more authoritative than SSR.
+  assert.match(route, /renderImprovesEvidence\(rawVisibleWords, thinClientShell, rendered\.html\)/);
+  assert.match(route, /rejectedBrowserSnapshot = \{/);
+  assert.match(route, /renderedWords: visibleWordCount\(rendered\.html\)/);
+  assert.match(report, /Browserbewijs:/);
+});

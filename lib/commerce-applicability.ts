@@ -72,3 +72,40 @@ export const PRODUCT_LINK_CHECK_UNCONFIRMED = {
   message: "De mogelijke afwijking is gevonden met de productkaartcontrole, maar voor deze website is geen webshop bevestigd. Of linktekst en bestemming niet bij elkaar passen, kan daarom niet betrouwbaar worden vastgesteld.",
   fix: "Controleer handmatig of belangrijke links naar de bestemming gaan die hun tekst belooft.",
 };
+
+/**
+ * Storefront-wide diagnostics cannot be assumed for a service provider simply
+ * because its site links to products or subscriptions. They belong in a
+ * separate, evidence-backed retail flow audit. Product-detail evidence checks
+ * remain assessable independently on hybrid service/retail websites.
+ */
+const SERVICE_STOREFRONT_ONLY_CHECKS = new Set([
+  "commercial_terms_signal", "merchant_feed_signal", "webshop_claims", "webshop_trust",
+  "checkout_funnel_static", "checkout_information_signal", "checkout_trust",
+  "eu_discount_signal", "eu_discount_reference_signal", "eu_reference_price_signal",
+  "eu_review_signal", "eu_review_transparency_signal", "eu_scarcity_signal",
+  "eu_consumer_information_signal",
+]);
+
+export function isStorefrontOnlyForService(
+  key: string,
+  primaryServiceIdentity: boolean,
+  verifiedRetailCheckout: boolean,
+): boolean {
+  return primaryServiceIdentity && !verifiedRetailCheckout && SERVICE_STOREFRONT_ONLY_CHECKS.has(key);
+}
+
+/**
+ * Distinguish a service provider using cart/payment technology from operating
+ * a separate consumer product shop. Website text, a generic checkout URL or a
+ * subscription price alone is not proof of retail inventory and purchase.
+ */
+export function confirmedRetailEvidenceForService(input: {
+  representativePurchase: boolean;
+  productDetailSchema: boolean;
+  addToCart: boolean;
+  productAndPrice: boolean;
+}): boolean {
+  return input.representativePurchase ||
+    (input.productDetailSchema && input.addToCart && input.productAndPrice);
+}

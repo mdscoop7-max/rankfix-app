@@ -145,6 +145,39 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
     if (remaining() > 300) {
       try { await page.waitForNetworkIdle({ idleTime: 350, timeout: Math.min(1200, remaining()) }); } catch {}
     }
+    // Nuxt/Next hydrate shortly after DOMContentLoaded and can still be updating
+    // after a brief network-idle interval. Take a bounded, observable snapshot
+    // after the app root settles; never wait indefinitely for polling scripts.
+    // This does not bypass site protections or mark a degraded page as valid.
+    if (remaining() > 1700) {
+      try {
+        await withinTimeout(page.evaluate(() => new Promise<void>((resolve) => {
+          const appRoot = document.querySelector("#__nuxt, #__next, [ng-version], [data-reactroot]");
+          if (!appRoot || typeof MutationObserver === "undefined") { resolve(); return; }
+          let quietTimer = 0;
+          let maxTimer = 0;
+          let finished = false;
+          const observer = new MutationObserver(() => {
+            if (quietTimer) window.clearTimeout(quietTimer);
+            quietTimer = window.setTimeout(done, 350);
+          });
+          function done() {
+            if (finished) return;
+            finished = true;
+            observer.disconnect();
+            if (quietTimer) window.clearTimeout(quietTimer);
+            if (maxTimer) window.clearTimeout(maxTimer);
+            resolve();
+          }
+          observer.observe(appRoot, {subtree:true, childList:true, characterData:true});
+          quietTimer = window.setTimeout(done, 350);
+          maxTimer = window.setTimeout(done, 1250);
+        })), Math.min(1600, remaining()));
+      } catch {
+        // Browser snapshot remains best-effort. The evidence-quality gate below
+        // still decides whether hydrated markup can replace raw HTML.
+      }
+    }
     const finalUrl = validatePublicHttpUrl(page.url());
     await assertPublicDns(finalUrl.hostname);
     const html = await withinTimeout(page.content(), remaining());

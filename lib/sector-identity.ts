@@ -69,3 +69,36 @@ export const TOURISM_ACTIVITY_PATTERN = /\b(?:agenda|evenementen|events|overnach
 export function isTourismBoardHost(hostname: string): boolean {
   return /^(?:www\.)?visit[a-z-]{3,}\.[a-z.]+$/i.test(hostname);
 }
+
+/**
+ * Independent subscription/provider identity evidence. A generic "internet"
+ * or incidental product price alone is not enough to classify a company as
+ * telecom. This operates on title, description, heading and URL identity, not
+ * the full navigation/footer text; retail schema is checked by the caller.
+ */
+const TELECOM_PLAN_IDENTITY = /\b(?:sim[ -]?only|data[ -]?only|mobiele? abonnementen?|mobiel(?:e)? abonnement(?:en)?|internetabonnement(?:en)?|mobile plans?|mobile subscriptions?|broadband plans?|subscription plans?)\b/i;
+const TELECOM_NETWORK_IDENTITY = /\b(?:glasvezel|fiber|fibre|network coverage|netwerk(?:dekking)?|dekkingskaart|dekking|5g|4g|broadband|mobiel netwerk|mobile network|internetverbinding)\b/i;
+const TELECOM_OPERATOR_IDENTITY = /\b(?:telecom(?:provider)?|telecommunications?|telefoonprovider|internetprovider|mobiele? provider|mobile operator|network operator|broadband provider)\b/i;
+export function telecomOperatorIdentity(identitySource: string) {
+  const subscription = TELECOM_PLAN_IDENTITY.test(identitySource);
+  const network = TELECOM_NETWORK_IDENTITY.test(identitySource);
+  const provider = TELECOM_OPERATOR_IDENTITY.test(identitySource);
+  return { subscription, network, provider, primary: (subscription && network) || (provider && (subscription || network)) };
+}
+
+// A news publisher or broadcaster names itself as such. Strong publisher terms
+// (omroep, broadcaster, krant, newspaper...) are enough on their own; a plain
+// "nieuws/news" only counts on a homepage where both title and description use
+// it, so a company's own /nieuws page never turns the company into a publisher.
+// Listing channels like "Radio, TV en Internet" describes distribution, not a
+// telecom subscription business.
+const NEWS_PUBLISHER_STRONG = /\b(?:omroep(?:vereniging|stichting)?|publieke omroep|broadcast(?:er|ing)|public broadcaster|journaal|journalistiek|journalism|dagblad|krant|newspaper|news ?agency|persbureau|nieuwssite|news ?site|zeitung|rundfunk|periódico|giornale|quotidiano)\b/i;
+const NEWS_WEAK = /\b(?:nieuws|news|breaking news|latest news|het laatste nieuws|nachrichten|actualités|noticias|notizie)\b/i;
+// "Nieuws van <bedrijf>", "news from <company>": a company's own news, not a publisher.
+const COMPANY_NEWS = /\b(?:nieuws van|news from|news of|nachrichten von|nachrichten der|actualités de|notizie di|noticias de)\s+(?:het |de |the |der |die |la |le |il |el )?\p{Lu}/u;
+
+export function newsMediaIdentity(input: { title: string; description: string; h1: string; homepage: boolean }) {
+  const own = [input.title, input.description, input.h1].join(" ");
+  if (NEWS_PUBLISHER_STRONG.test(own)) return true;
+  return input.homepage && NEWS_WEAK.test(input.title) && NEWS_WEAK.test(input.description) && !COMPANY_NEWS.test(`${input.title} ${input.description}`);
+}
