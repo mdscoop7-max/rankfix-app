@@ -1,11 +1,6 @@
 // These signals identify the hosting environment; app availability is checked separately.
-export type HealthEnvironment = {
-  APP_URL?: string;
-  VERCEL?: string;
-  VERCEL_ENV?: string;
-  VERCEL_PROJECT_PRODUCTION_URL?: string;
-  RENDER?: string;
-};
+// ProcessEnv has a string index signature, so keep this type compatible with it.
+export type HealthEnvironment = Record<string, string | undefined>;
 
 export type DeploymentStatus = {
   key: "deployment";
