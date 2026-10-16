@@ -56,7 +56,10 @@ const reliabilityOf=(r:any)=>{
   const scoreCov=c.applicable?c.assessed/c.applicable:0;
   const pages=Number(r?.multiPage?.counts?.audited||1);
   const jsLimited=Boolean(r?.rendering?.warning)||Boolean(r?.rendering?.botProtection?.length);
-  if(scoreCov>=.9&&pages>=3&&!jsLimited)return "high";
+  // The engine's own self-check can only lower reliability, never raise it.
+  const self=r?.selfCheck?.reliability;
+  if(self==="low")return "limited";
+  if(scoreCov>=.9&&pages>=3&&!jsLimited&&self!=="medium")return "high";
   if(scoreCov>=.7&&pages>=2)return "medium";
   return "limited";
 };

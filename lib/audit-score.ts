@@ -175,3 +175,13 @@ export function applyEvidenceBasedScoreCap(score: number, items: ScoreCapCheck[]
   // evidence is shown through coverage and a provisional score range instead.
   return score;
 }
+
+/**
+ * 100/100 means "nothing left to improve". The numeric score uses the stable
+ * core checks, but sector/trust checks outside the core can still report a
+ * confirmed issue; any scored WARNING/FAIL in the full report keeps the
+ * rounded score at most 99 so the headline never contradicts the issue list.
+ */
+export function capPerfectScore(score: number, items: Array<Pick<ScoreCapCheck, "issue_status" | "maxPoints">>): number {
+  return items.some((item) => item.maxPoints > 0 && (item.issue_status === "WARNING" || item.issue_status === "FAIL")) ? Math.min(score, 99) : score;
+}

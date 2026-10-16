@@ -15,7 +15,7 @@ import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, fi
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readHtmlSampleHeadFirst, readResponsePrefix, readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
-import { applyEvidenceBasedScoreCap, stableCoreChecks, SCORE_MODEL_VERSION, scoreApplicableChecks, combinedScoreRange, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
+import { applyEvidenceBasedScoreCap, capPerfectScore, stableCoreChecks, SCORE_MODEL_VERSION, scoreApplicableChecks, combinedScoreRange, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
 import { isPaidPlan, normalizePlan, planLimits } from "@/lib/plans";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
@@ -29,8 +29,9 @@ import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDeta
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
-import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, telecomOperatorIdentity } from "@/lib/sector-identity";
+import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, telecomOperatorIdentity, newsMediaIdentity } from "@/lib/sector-identity";
 import { detectPrimaryBusinessIdentity, isSiteHomepagePath } from "@/lib/primary-business-identity";
+import { enforceReportConsistency } from "@/lib/report-consistency";
 
 export const maxDuration = 300;
 
@@ -1165,9 +1166,17 @@ export async function POST(request: Request) {
     const ecommerceSchemaContext = hasEcommerceSignal || earlyRetailIdentity || schemaSet.has("onlinestore") || schemaSet.has("product");
     // Government, international transport/logistics and e-commerce identities
     // override generic LocalBusiness hints so advice follows the actual business model.
-    const effectiveLocalSchemaSignal = hasLocalBusinessSignal && !governmentIdentitySignal && !governmentSchemaPresent && !transportLogisticsSchemaContext && !ecommerceSchemaContext;
+    // A news/media publisher identifies itself in title/description/H1 or schema.
+    // Its machine-readable identity is NewsMediaOrganization, never LocalBusiness.
+    const newsMediaSchemaContext = !ecommerceSchemaContext && !governmentIdentitySignal && !governmentSchemaPresent && (
+      schemaSet.has("newsmediaorganization") ||
+      newsMediaIdentity({ title, description, h1: h1s.join(" "), homepage: isHomepage })
+    );
+    const effectiveLocalSchemaSignal = hasLocalBusinessSignal && !governmentIdentitySignal && !governmentSchemaPresent && !transportLogisticsSchemaContext && !ecommerceSchemaContext && !newsMediaSchemaContext;
     const recommendedSchema = governmentIdentitySignal || governmentSchemaPresent
       ? (isHomepage ? "GovernmentOrganization + WebSite" : "GovernmentOrganization / WebPage")
+      : newsMediaSchemaContext
+      ? (isHomepage ? "NewsMediaOrganization + WebSite" : hasArticleSignal ? "NewsArticle" : "NewsMediaOrganization / WebPage")
       : transportLogisticsSchemaContext
         ? (isHomepage ? "Organization + WebSite" : transportServicePath ? "Service + Organization" : "Organization / WebPage")
         : ecommerceSchemaContext
@@ -1175,9 +1184,11 @@ export async function POST(request: Request) {
           : effectiveLocalSchemaSignal
             ? specificLocalSchema || "LocalBusiness"
             : isHomepage ? "Organization + WebSite" : isProductPage ? "Product" : hasCategorySignal ? "ItemList / CollectionPage" : hasArticleSignal ? "Article" : "WebPage";
-    const schemaContextLabel = governmentIdentitySignal || governmentSchemaPresent ? "overheids-/publieke pagina" : transportLogisticsSchemaContext ? (isHomepage ? "transport-/logistiekhomepage" : "transport-/dienstpagina") : ecommerceSchemaContext ? (isProductPage ? "productpagina" : isHomepage ? "webshophomepage" : hasCategorySignal ? "webshopcategorie" : "webshoppagina") : effectiveLocalSchemaSignal ? "lokale bedrijfs-/dienstpagina" : isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "lijst-/categoriepagina" : hasArticleSignal ? "artikel-/nieuwspagina" : "contentpagina";
+    const schemaContextLabel = governmentIdentitySignal || governmentSchemaPresent ? "overheids-/publieke pagina" : newsMediaSchemaContext ? (isHomepage ? "nieuws-/mediahomepage" : hasArticleSignal ? "nieuwsartikel" : "nieuws-/mediapagina") : transportLogisticsSchemaContext ? (isHomepage ? "transport-/logistiekhomepage" : "transport-/dienstpagina") : ecommerceSchemaContext ? (isProductPage ? "productpagina" : isHomepage ? "webshophomepage" : hasCategorySignal ? "webshopcategorie" : "webshoppagina") : effectiveLocalSchemaSignal ? "lokale bedrijfs-/dienstpagina" : isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "lijst-/categoriepagina" : hasArticleSignal ? "artikel-/nieuwspagina" : "contentpagina";
     const hasRelevantContextSchema = governmentIdentitySignal || governmentSchemaPresent
       ? governmentSchemaPresent || schemaSet.has("organization") || schemaSet.has("website") || schemaSet.has("webpage")
+      : newsMediaSchemaContext
+      ? schemaSet.has("newsmediaorganization") || schemaSet.has("organization") || schemaSet.has("website") || schemaSet.has("newsarticle") || schemaSet.has("article")
       : transportLogisticsSchemaContext
         ? (isHomepage
             ? schemaSet.has("organization") || schemaSet.has("website") || schemaSet.has("service")
@@ -1707,17 +1718,27 @@ export async function POST(request: Request) {
     // not a lone generic price, product, or shopping navigation link.
     const telecomSubscriptionIdentity = /\b(?:sim[ -]?only|data[ -]?only|mobiele? abonnementen?|internetabonnement(?:en)?|mobiel(?:e)? abonnement(?:en)?|mobile plans?)\b/i.test(sectorIdentitySource);
     const telecomNetworkIdentity = /\b(?:netwerk|network|provider|glasvezel|internet|mobiel|mobile|telecom|5g|4g)\b/i.test(sectorIdentitySource);
-    const telecomServiceIdentity = /\b(?:internet(?:abonnementen?|provider)?|glasvezel|breedband|broadband|dsl|adsl)\b/i.test(sectorIdentitySource)
+    // A bare "internet" is a distribution channel ("Radio, TV en Internet"), not
+    // an internet-access product; require an access/connection term.
+    const telecomServiceIdentity = /\b(?:internet(?:abonnementen?|provider|aansluiting|pakket(?:ten)?)|glasvezel|breedband|broadband|dsl|adsl)\b/i.test(sectorIdentitySource)
       && /\b(?:tv|televisie|bellen|telefonie|pakketten|abonnementen?|wifi|provider|netwerk)\b/i.test(sectorIdentitySource);
     // A retailer can also advertise SIM plans: confirmed physical-store evidence
     // plus an independently established retail flow must not become telecom.
     const telecomIndependentIdentity = telecomOperatorIdentity(sectorIdentitySource);
+    // Publishers/broadcasters name themselves in title, description or H1.
+    // That self-description outranks incidental telecom words, unless the page
+    // itself sells subscriptions/SIM plans.
+    const newsMediaPrimaryIdentity = (schemaSet.has("newsmediaorganization") || newsMediaIdentity({ title, description, h1: h1s.join(" "), homepage: isSiteHomepagePath(finalUrl.pathname) }))
+      && !telecomSubscriptionIdentity && !telecomIndependentIdentity.subscription && !evidenceCommerceConfirmed
+      && primaryBusinessEvidence.sector !== "financial_services";
     const telecomProviderIdentity = (
       (telecomSubscriptionIdentity && telecomNetworkIdentity) ||
       telecomServiceIdentity ||
       telecomIndependentIdentity.primary
-    ) && !(hasRetailStoreSchema(schemaTypes) && evidenceCommerceConfirmed);
-    const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[]} | null = telecomProviderIdentity
+    ) && !(hasRetailStoreSchema(schemaTypes) && evidenceCommerceConfirmed) && !newsMediaPrimaryIdentity;
+    const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[]} | null = newsMediaPrimaryIdentity
+      ? {sector:"news_media",key:"news_media",label:"Nieuws & Media",evidence:["Primaire identiteit: nieuws-/mediaorganisatie in titel, omschrijving of H1"]}
+      : telecomProviderIdentity
       ? {sector:"telecom_technology",key:"telecom_technology",label:"Telecom & Technologie",evidence:["Primaire identiteit: telecomabonnementen en netwerkdiensten"]}
       : primaryBusinessEvidence.sector === "financial_services"
       ? {sector:"financial_services",key:primaryBusinessEvidence.financialKind ? `financial_${primaryBusinessEvidence.financialKind}` : "financial_services",label:primaryBusinessEvidence.financialKind==="banking" ? "Bank & financiële producten" : primaryBusinessEvidence.financialKind==="insurance" ? "Verzekeringen" : "Financiële diensten & betaaldiensten",evidence:primaryBusinessEvidence.evidence}
@@ -1799,6 +1820,7 @@ export async function POST(request: Request) {
       sectorProfile.applicableModules = ["core_seo","geo","technical","business_identity"];
     }
 
+    const nonBookingPrimarySectors = new Set<string>(["financial_services","telecom_technology","news_media","saas_b2b","government","energy_utilities","recruitment","ecommerce"]);
     const evidenceCapabilities = [
       (scanEvidence.commerce.products.value && scanEvidence.commerce.products.confidence === "high") && "products",
       (scanEvidence.commerce.prices.value.count > 0 && scanEvidence.commerce.prices.confidence === "high") && "pricing",
@@ -1807,7 +1829,9 @@ export async function POST(request: Request) {
       (scanEvidence.commerce.checkout.value && scanEvidence.commerce.checkout.confidence === "high") && "checkout",
       (scanEvidence.appointments.appointment.value && scanEvidence.appointments.appointment.confidence !== "low") && "appointment",
       (scanEvidence.appointments.reservation.value && scanEvidence.appointments.reservation.confidence !== "low") && "reservation",
-      (scanEvidence.appointments.booking.value && scanEvidence.appointments.booking.confidence !== "low") && "booking",
+      // Text-only "booking" on a payments/telecom/news/SaaS site describes customers
+      // or industries; those sectors need a structural booking action.
+      (scanEvidence.appointments.booking.value && (scanEvidence.appointments.booking.confidence === "high" || (scanEvidence.appointments.booking.confidence !== "low" && !nonBookingPrimarySectors.has(sectorProfile.sector)))) && "booking",
       (scanEvidence.appointments.quoteRequest.value && scanEvidence.appointments.quoteRequest.confidence !== "low") && "quote_request",
       (scanEvidence.inventory.vehicles.value && scanEvidence.inventory.vehicles.confidence !== "low") && "vehicles",
       (scanEvidence.inventory.properties.value && scanEvidence.inventory.properties.confidence !== "low") && "properties",
@@ -1842,6 +1866,8 @@ export async function POST(request: Request) {
       energy_utilities:["energy_utilities"],
       events_culture:["events_culture"],
       fitness_sports:["fitness_sports"],
+      news_media:["news_media"],
+      telecom_technology:["telecom_technology"],
     };
     // Motor v2: sector modules come only from the primary identity decision.
     // Capabilities may add generic functional modules (lead conversion, booking,
@@ -2793,7 +2819,10 @@ export async function POST(request: Request) {
         ? check("pass", "sitemap", "seo", "Sitemap-signaal", `Een bereikbare XML sitemap is gevonden${confirmedSitemapUrl ? `: ${confirmedSitemapUrl}` : "."}`, "Controleer of de sitemap alleen canonieke, indexeerbare URL's bevat.", 4, 4)
       : sitemapStatus === "FAIL"
         ? check("warning", "sitemap", "seo", "Sitemap-signaal", robotsMentionsSitemap ? `robots.txt verwijst naar een sitemap, maar RankFix kon geen geldige bereikbare XML sitemap bevestigen.${sitemapDiagnostic ? " Technisch: " + sitemapDiagnostic : ""}` : `Geen geldige bereikbare XML sitemap gevonden.${sitemapDiagnostic ? " Technisch: " + sitemapDiagnostic : ""}`, "Controleer de sitemap-URL, HTTP-status en XML content-type.", 1, 4)
-        : check("unable_to_confirm", "sitemap", "seo", "Sitemap-signaal", robotsMentionsSitemap ? `robots.txt bevat een sitemapverwijzing, maar RankFix kon de sitemap tijdens deze scan niet betrouwbaar ophalen.${sitemapDiagnostic ? " Technisch: " + sitemapDiagnostic : ""}` : `RankFix kon tijdens deze scan niet betrouwbaar bevestigen of een sitemap beschikbaar is.${sitemapDiagnostic ? " Technisch: " + sitemapDiagnostic : ""}`, "Controleer de sitemap opnieuw wanneer de server bereikbaar is.", 0, 4)
+        : check("unable_to_confirm", "sitemap", "seo", "Sitemap-signaal", robotsMentionsSitemap ? `robots.txt bevat een sitemapverwijzing, maar RankFix kon de sitemap tijdens deze scan niet betrouwbaar ophalen.${sitemapDiagnostic ? " Technisch: " + sitemapDiagnostic : ""}` : !sitemapFetchFailed && robotsStatus !== "UNABLE_TO_CONFIRM"
+            ? `robots.txt noemt geen sitemap en op de standaardlocaties is geen XML sitemap gevonden (${sitemapCandidates.slice(0,3).map((c)=>shortUrl(c.url)).join(", ")}). De sitemap kan op een andere URL staan, dus dit telt niet als fout.${sitemapDiagnostic ? " Technisch: " + sitemapDiagnostic : ""}`
+            : `RankFix kon tijdens deze scan niet betrouwbaar bevestigen of een sitemap beschikbaar is.${sitemapDiagnostic ? " Technisch: " + sitemapDiagnostic : ""}`,
+          !sitemapFetchFailed && robotsStatus !== "UNABLE_TO_CONFIRM" ? "Publiceer een XML sitemap en vermeld de URL in robots.txt (Sitemap: https://…/sitemap.xml), zodat zoekmachines en AI-crawlers hem vinden." : "Controleer de sitemap opnieuw wanneer de server bereikbaar is.", 0, 4)
     );
 
     geoChecks.push(
@@ -3140,7 +3169,7 @@ export async function POST(request: Request) {
       ? check("pass", "entity", "geo", "Entity-signalen", `Entity schema gevonden: ${(entityTypesForDisplay(schemaTypes).length ? entityTypesForDisplay(schemaTypes) : schemaTypes).slice(0, 5).join(", ")}.`, "Maak organisatie, product, persoon of publicatie nog duidelijker met consistente gegevens.", 10, 10)
       : businessDetails.status === "pass"
         ? check("pass", "entity", "geo", "Entity-signalen", `Concrete bedrijfsgegevens bevestigen de identiteit: ${businessDetails.found.join(", ")}.`, "Maak de identiteit ook machineleesbaar met passende Organization/LocalBusiness structured data.", 10, 10)
-      : hasVisibleBusinessIdentity && (hasBusinessContactDetails || hasSocialOrReviewSignal)
+      : hasVisibleBusinessIdentity && (hasBusinessContactDetails || hasContactChannelSignal || hasSocialOrReviewSignal)
         ? check("pass", "entity", "geo", "Entity-signalen", "Duidelijke bedrijfsidentiteit en externe/contactsignalen zijn zichtbaar op de pagina.", "Maak de identiteit ook machineleesbaar met passende Organization/LocalBusiness structured data.", 10, 10)
         : hasVisibleBusinessIdentity
           ? check("warning", "entity", "geo", "Entity-signalen", "Een bedrijfsidentiteit is zichtbaar, maar aanvullende contact- of externe profielsignalen zijn beperkt.", "Maak de organisatie-identiteit concreter met contactgegevens, officiële profielen en passende schema.org data.", 6, 10)
@@ -3324,7 +3353,7 @@ export async function POST(request: Request) {
         consent_mode_readiness: adsTrackingSignals > 0 ? `trackingSignals=${adsTrackingSignals}; explicitConsentSignal=${hasConsentModeSignal}; runtimeNotExecuted=true` : null,
         merchant_feed_signal: hasEcommerceSignal ? `feedHint=${hasMerchantFeedHint}; productReadiness=${merchantProductReadiness}; websiteSignalsOnly=true` : null,
         content: `wordCount=${wordCount}; pageType=${contentContext}; minimum=${contentMinimumSignal}; strong=${contentStrongSignal}`,
-        business_placeholders: `placeholders=${placeholderMatches.length}; found=${placeholderMatches.slice(0,4).join(",") || "none"}`,
+        business_placeholders: `placeholders=${placeholderMatches.length}; placeholderSamples=${placeholderMatches.slice(0,4).join(",") || "none"}; businessDetails=${"found" in businessDetails ? businessDetails.found.join(",") || "none" : "none"}`,
         price_format: hasEcommerceSignal ? `dotDecimalPrices=${priceFormatMatches.length}; sample=${priceFormatMatches[0] || "none"}` : null,
         price_currency_consistency: hasEcommerceSignal ? `visibleCurrencies=${visibleCurrencyCodes.join(",") || "none"}; structuredCurrencies=${structuredCurrencyCodes.join(",") || "none"}; conflict=${currencyConflict}; mixedVisible=${mixedVisibleCurrencies}` : null,
         eu_consumer_information_signal: hasEcommerceSignal ? `returns=${hasReturnsSignal}; businessIdentity=${hasVisibleBusinessIdentity}; businessContact=${hasBusinessContactDetails}; legalConclusion=false` : null,
@@ -3335,7 +3364,7 @@ export async function POST(request: Request) {
         checkout_information_signal: hasEcommerceSignal ? `shipping=${hasShippingSignal}; shippingCost=${shippingCostSignal}; paymentMethods=${paymentMethodSignal}; staticHtmlOnly=true` : null,
         webshop_trust: hasEcommerceSignal ? `shipping=${hasShippingSignal}; returns=${hasReturnsSignal}; reviewPlatform=${hasReviewPlatformSignal}; checkoutSignal=${hasCheckoutTrustSignal}` : null,
         organization_website: isHomepage ? `organizationSchema=${organizationSchemaPresent}; websiteSchema=${websiteSchemaPresent}; schemaTypes=${schemaTypes.slice(0,12).join(",")}` : null,
-        entity: hasEntitySchema ? `schemaTypes=${schemaTypes.slice(0,12).join(",")}` : businessDetails.status === "pass" ? `businessDetails=${businessDetails.found.join(",")}` : (hasVisibleBusinessIdentity ? `visibleIdentity=true; contact=${hasBusinessContactDetails}; externalProfile=${hasSocialOrReviewSignal}` : null),
+        entity: hasEntitySchema ? `schemaTypes=${schemaTypes.slice(0,12).join(",")}` : businessDetails.status === "pass" ? `businessDetails=${businessDetails.found.join(",")}` : (hasVisibleBusinessIdentity ? `visibleIdentity=true; contact=${hasBusinessContactDetails || hasContactChannelSignal}; externalProfile=${hasSocialOrReviewSignal}` : null),
         author: (hasAuthorSignal || ecommerceExpertiseSignal || organizationExpertiseSignal || (hasLocalBusinessSignal && hasServiceExpertiseSignal)) ? `author=${hasAuthorSignal}; ecommerceExpertise=${ecommerceExpertiseSignal}; organizationExpertise=${organizationExpertiseSignal}; localServiceExpertise=${hasLocalBusinessSignal && hasServiceExpertiseSignal}` : null,
         trust: (hasContactChannelSignal || hasAboutSignal || hasSocialOrReviewSignal) ? `contact=${hasContactChannelSignal}; about=${hasAboutSignal}; socialOrReview=${hasSocialOrReviewSignal}` : null,
         answer: `metaDescription=${Boolean(description)}; wordCount=${wordCount}; minimumVisibleWords=${isProductPage ? 40 : 80}; rendered=${javascriptExecuted}`,
@@ -3609,6 +3638,11 @@ export async function POST(request: Request) {
       seoChecks.push(check("pass","lead_form_presence","seo","Lead-/contactformulier","Een relevant formulier voor offerte, contact of advies is op de pagina aangetroffen. Verzenden is niet getest.","Test validatie en bevestigingsbericht afzonderlijk.",4,4));
       if (!sectorProfile.applicableModules.includes("lead_conversion")) sectorProfile.applicableModules.push("lead_conversion");
     }
+    // Late service checks are page-level observations: give them the same
+    // evidence URL as every other check so exports stay complete.
+    for (const item of seoChecks) {
+      if (["subscription_price_visibility","booking_transaction","lead_form_presence"].includes(item.key) && item.evidence && !item.evidence.url) item.evidence = { ...item.evidence, url: finalUrl.toString() };
+    }
     applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate, rendered:javascriptExecuted, url:finalUrl.toString() });
     const selectedSeoChecks = mode === "geo" ? [] : seoChecks;
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
@@ -3616,21 +3650,24 @@ export async function POST(request: Request) {
     let selectedGeoScore = scoreApplicableChecks(stableCoreChecks(selectedGeoChecks,"geo"));
     selectedSeoScore = applyEvidenceBasedScoreCap(selectedSeoScore, stableCoreChecks(selectedSeoChecks,"seo"));
     selectedGeoScore = applyEvidenceBasedScoreCap(selectedGeoScore, stableCoreChecks(selectedGeoChecks,"geo"));
+    selectedSeoScore = capPerfectScore(selectedSeoScore, selectedSeoChecks);
+    selectedGeoScore = capPerfectScore(selectedGeoScore, selectedGeoChecks);
     let selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
-    selectedOverallScore = applyEvidenceBasedScoreCap(selectedOverallScore, [...stableCoreChecks(selectedSeoChecks,"seo"),...stableCoreChecks(selectedGeoChecks,"geo")]);
+    selectedOverallScore = capPerfectScore(applyEvidenceBasedScoreCap(selectedOverallScore, [...stableCoreChecks(selectedSeoChecks,"seo"),...stableCoreChecks(selectedGeoChecks,"geo")]), [...selectedSeoChecks,...selectedGeoChecks]);
     const checks = [...selectedSeoChecks, ...selectedGeoChecks];
     let seoCoverage = weightedCoverage(selectedSeoChecks);
     let geoCoverage = weightedCoverage(selectedGeoChecks);
     let overallCoverage = weightedCoverage(checks);
     // Ranges use the score's own formula, caps and 0.6/0.4 weighting, so the
     // displayed score always lies inside the displayed "mogelijk bereik".
-    const cappedRange = (items: Check[]) => { const r = scoreRange(items); return { ...r, low: applyEvidenceBasedScoreCap(r.low, items), high: applyEvidenceBasedScoreCap(r.high, items) }; };
+    const cappedRange = (items: Check[], full: Check[]) => { const r = scoreRange(items); return { ...r, low: capPerfectScore(applyEvidenceBasedScoreCap(r.low, items), full), high: capPerfectScore(applyEvidenceBasedScoreCap(r.high, items), full) }; };
     const reportRanges = () => {
       const seoCore = stableCoreChecks(selectedSeoChecks,"seo"); const geoCore = stableCoreChecks(selectedGeoChecks,"geo");
-      const seoR = cappedRange(seoCore); const geoR = cappedRange(geoCore);
+      const seoR = cappedRange(seoCore, selectedSeoChecks); const geoR = cappedRange(geoCore, selectedGeoChecks);
       const combined = combinedScoreRange(seoR, geoR);
       const all = [...seoCore, ...geoCore];
-      const overall = mode === "seo" ? seoR : mode === "geo" ? geoR : { ...combined, low: applyEvidenceBasedScoreCap(combined.low, all), high: applyEvidenceBasedScoreCap(combined.high, all) };
+      const fullAll = [...selectedSeoChecks, ...selectedGeoChecks];
+      const overall = mode === "seo" ? seoR : mode === "geo" ? geoR : { ...combined, low: capPerfectScore(applyEvidenceBasedScoreCap(combined.low, all), fullAll), high: capPerfectScore(applyEvidenceBasedScoreCap(combined.high, all), fullAll) };
       return { seoR, geoR, overall };
     };
     const initialRanges = reportRanges();
@@ -4469,13 +4506,17 @@ export async function POST(request: Request) {
     }
     // Preserve broad engine families internally, but show a more useful specific
     // label when the catalog and representative evidence independently agree.
-    if (!finalCommerceDecision.confirmed && catalogTop?.key==="dentist" && multiPageCapabilities.treatment) {
+    // Specific labels only refine a compatible primary sector; they never relabel
+    // a master identity (news, telecom, finance...) with another sector's name.
+    if (!masterIdentityOverride && ["health_wellness","unknown","general_business"].includes(sectorProfile.sector) && !finalCommerceDecision.confirmed && catalogTop?.key==="dentist" && multiPageCapabilities.treatment) {
+      sectorProfile.sector = "health_wellness";
       sectorProfile.key = "dentist";
       sectorProfile.label = "Tandarts / Dentist";
       sectorProfile.confidence = "high";
       sectorProfile.confidenceScore = Math.max(92, sectorProfile.confidenceScore);
     }
-    if (!finalCommerceDecision.confirmed && catalogTop?.key==="legal" && multiPageCapabilities.professional) {
+    if (!masterIdentityOverride && ["professional_services","unknown","general_business"].includes(sectorProfile.sector) && !finalCommerceDecision.confirmed && catalogTop?.key==="legal" && multiPageCapabilities.professional) {
+      sectorProfile.sector = "professional_services";
       sectorProfile.key = "legal";
       sectorProfile.label = "Juridisch / Advocatuur";
       sectorProfile.confidence = "high";
@@ -4741,13 +4782,19 @@ export async function POST(request: Request) {
     } else if (finalCommerceApplicability.state === "unconfirmed") {
       // A service provider (payments, SaaS, agency...) whose pages show no product
       // detail, product sample or product links: product checks do not apply.
+      // Payments, banking, SaaS, news or public-sector "products" are services
+      // (e.g. /products/checkout on a payment provider), so links named
+      // "product" do not make retail product checks applicable there.
+      const intangibleOfferSector = new Set<string>(["financial_services","saas_b2b","news_media","government","education","nonprofit","recruitment","professional_services"]).has(sectorProfile.sector);
       const serviceWithoutProductEvidence = Boolean(primaryNonCommerceIdentity) && !finalCommerceDecision.confirmed &&
-        !representativeCommercialProductIntent && !isProductPage && !hasProductSchema &&
-        !(scanEvidence.commerce.productLinks.value >= 2);
+        !isProductPage && !hasProductSchema &&
+        (intangibleOfferSector || (!representativeCommercialProductIntent && !(scanEvidence.commerce.productLinks.value >= 2)));
       for (const item of [...seoChecks,...geoChecks]) {
         if (!finalCommerceOnlyKeys.has(item.key) || (item.key==="price_format" && serviceCommerceSignals.subscription)) continue;
         if (serviceWithoutProductEvidence) {
-          setFinalNotApplicable(item, "De primaire activiteit is dienstverlening en er zijn geen producten of productpagina's gevonden die deze productcontrole nodig maken. Dit zegt niets over eventuele productverkoop elders.");
+          setFinalNotApplicable(item, intangibleOfferSector && (representativeCommercialProductIntent || scanEvidence.commerce.productLinks.value >= 2)
+            ? "De primaire activiteit is een dienst (bijvoorbeeld betaal-, financiële, software- of mediadienst). Pagina's die 'producten' heten beschrijven diensten, geen fysieke retailproducten; retailproductcontroles zijn daarom niet van toepassing."
+            : "De primaire activiteit is dienstverlening en er zijn geen producten of productpagina's gevonden die deze productcontrole nodig maken. Dit zegt niets over eventuele productverkoop elders.");
         } else if (isStorefrontOnlyForService(item.key, Boolean(primaryNonCommerceIdentity), finalCommerceDecision.confirmed)) {
           setFinalNotApplicable(item, "De primaire activiteit is dienstverlening zonder onafhankelijk bevestigde retailcheckout. Deze webshopbrede controle hoort bij een aparte productverkoopscreening, niet bij de hoofdscan van deze dienstverlener. Dit zegt niets over wettelijke verplichtingen bij eventuele productverkoop.");
         } else {
@@ -4839,6 +4886,9 @@ export async function POST(request: Request) {
     selectedGeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(stableCoreChecks(selectedGeoChecks,"geo")), stableCoreChecks(selectedGeoChecks,"geo"));
     selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
     selectedOverallScore = applyEvidenceBasedScoreCap(selectedOverallScore, [...stableCoreChecks(selectedSeoChecks,"seo"),...stableCoreChecks(selectedGeoChecks,"geo")]);
+    selectedSeoScore = capPerfectScore(selectedSeoScore, selectedSeoChecks);
+    selectedGeoScore = capPerfectScore(selectedGeoScore, selectedGeoChecks);
+    selectedOverallScore = capPerfectScore(selectedOverallScore, [...selectedSeoChecks,...selectedGeoChecks]);
     seoCoverage = weightedCoverage(selectedSeoChecks);
     geoCoverage = weightedCoverage(selectedGeoChecks);
     overallCoverage = weightedCoverage(checks);
@@ -4848,6 +4898,25 @@ export async function POST(request: Request) {
     scoreModel.geoRange = finalRanges.geoR;
     scoreModel.provisional = overallCoverage.coveragePercent < 90;
     scoreModel.coverageAdjustment = 0;
+    // Central self-check: sector label, sector evidence, modules, advice,
+    // points, evidence URLs and scores must describe the same facts before the
+    // report is stored or shown. Contradictions are corrected and recorded.
+    const consistency = enforceReportConsistency({
+      sector: sectorProfile,
+      checks,
+      scannedUrl: finalUrl.toString(),
+      scores: { seo: selectedSeoScore, geo: selectedGeoScore, overall: selectedOverallScore, mode },
+      range: scoreModel.range,
+      coveragePercent: overallCoverage.coveragePercent,
+      javascriptRequiredButNotRendered: Boolean(javascriptCandidate) && !javascriptExecuted,
+    });
+    selectedSeoScore = consistency.scores.seo;
+    selectedGeoScore = consistency.scores.geo;
+    selectedOverallScore = consistency.scores.overall;
+    const selfCheck = consistency.selfCheck;
+    masterEvidence.primarySector.label = sectorProfile.label;
+    masterEvidence.activeModules = sectorProfile.applicableModules;
+    if (selfCheck.corrections.length || selfCheck.flags.length) console.info("RankFix self-check", { page: finalUrl.toString(), corrections: selfCheck.corrections, flags: selfCheck.flags });
     scoreModel.breakdown = scoreBreakdown(checks);
     // Keep summary, check list, coverage and score based on the exact same final
     // evidence statuses. Previously this stayed frozen before the commerce gate.
@@ -5061,7 +5130,7 @@ export async function POST(request: Request) {
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             language: scanLanguage,
-            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, summary: scanSummary, rendering, recovery, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, multiPage,
+            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, selfCheck, summary: scanSummary, rendering, recovery, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -5278,6 +5347,7 @@ export async function POST(request: Request) {
       grade: grade(selectedOverallScore),
       coverage: overallCoverage,
       scoreModel,
+      selfCheck,
       summary: scanSummary,
       rendering,
       recovery,

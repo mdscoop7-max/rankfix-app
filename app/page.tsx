@@ -38,6 +38,7 @@ type ScanResult = {
   summary?: {passed:number;issues:number;notApplicable:number;unableToConfirm:number;pendingFixes:number};
   coverage?: {coveragePercent:number};
   scoreModel?: {provisional?:boolean;range?:{low:number;high:number}};
+  selfCheck?: {consistent:boolean;reliability:"high"|"medium"|"low";reliabilityReasons:string[];corrections:{code:string;detail:string}[];flags:{code:string;detail:string}[]};
   rendering?: {mode:string;javascriptExecuted:boolean;note:string};
   pageTypeEvidence?: {type:string;confidence:string;evidence:string[]};
   technologyProfile?: {siteType?:"Webshop"|"Landingpage"|"Website";cms:string|null;commercePlatform:string|null;framework:string|null;isCommerce:boolean;confidence:number;confidenceLabel:"high"|"medium"|"low";evidence:string[]};
@@ -542,6 +543,13 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
     // A provisional score must be qualified wherever it is shown, also in exports.
     if (result.scoreModel?.provisional) {
       lines.push("Voorlopige score: dekking " + (result.coverage?.coveragePercent ?? "?") + "%" + (result.scoreModel.range ? " · mogelijk bereik " + result.scoreModel.range.low + "–" + result.scoreModel.range.high : "") + ". Niet te bevestigen controles tellen niet mee.");
+    }
+    // Self-check: how reliable the conclusions are and whether RankFix had to
+    // correct its own contradictions before showing this report.
+    if (result.selfCheck) {
+      const rel = result.selfCheck.reliability === "high" ? "hoog" : result.selfCheck.reliability === "medium" ? "gemiddeld" : "laag";
+      lines.push("Betrouwbaarheid: " + rel + (result.selfCheck.reliabilityReasons.length ? " — " + result.selfCheck.reliabilityReasons.join(" ") : ""));
+      if (result.selfCheck.corrections.length) lines.push("Zelfcontrole: " + result.selfCheck.corrections.length + " tegenstrijdigheid/tegenstrijdigheden automatisch gecorrigeerd (" + [...new Set(result.selfCheck.corrections.map((c) => c.code))].join(", ") + ").");
     }
     if (result.rendering) {
       lines.push("Source: " + result.rendering.mode + " | JavaScript executed: " + (result.rendering.javascriptExecuted ? "yes" : "no"));

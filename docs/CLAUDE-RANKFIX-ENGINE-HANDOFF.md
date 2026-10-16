@@ -110,3 +110,40 @@ From owner scans of KPN, Mollie, Coolblue, PayPal and Time Trans:
 - Lead form = real enquiry form (message box or quote/callback form with e-mail/phone), not search/newsletter.
 - Title starting/ending with a separator is a warning (brand-only still takes precedence).
 Matrix: 62 sites incl. 5 reproductions of the live reports with per-check status/message expectations. 275/275 tests.
+
+## Status 16 Oct 2026 (fourth pass): central self-check and generic stress tests
+
+Source: live preview reports for KPN, Mollie, NOS and Time Trans, plus the owner's brief "repair the engine, not individual sites".
+
+**Central self-check (`lib/report-consistency.ts`).** `enforceReportConsistency` runs once before a report is stored or returned. The result is exposed as `selfCheck` in the response, the stored scan and the export. It enforces the following:
+- The sector label belongs to the primary sector's family.
+- "Primaire identiteit" evidence does not name another sector.
+- Sector-defining modules belong to the primary sector or an allowed hybrid.
+- N.v.t. and unconfirmed checks have 0 points, and points stay within bounds.
+- Non-local sectors get no LocalBusiness advice.
+- Every evidence URL belongs to the scanned site; subdomains of the same site are allowed.
+- 100 is impossible next to any scored warning or fail.
+- The overall score is never above 0.6 × SEO + 0.4 × GEO.
+
+It also reports reliability (high, medium or low) with reasons: coverage, JavaScript not rendered, and sector certainty.
+
+The matrix treats every correction as a failure. A correction means an upstream detector contradicted itself, so the root cause must be fixed rather than hidden by the self-check.
+
+**Root causes fixed in this pass**
+- **News and media identity.** `newsMediaIdentity` in lib/sector-identity.ts matches strong publisher words (omroep, broadcaster, krant, …). Plain "nieuws/news" counts only when it appears in both the title and the description of a homepage. This identity is a master override that outranks incidental telecom words.
+- **Telecom.** A bare "internet" no longer counts as telecom; "Radio, TV en Internet" is a distribution channel.
+- **Dentist/legal label refinements.** They no longer relabel a master identity and only apply within a compatible sector.
+- **Booking.** Structural booking hrefs no longer match facebook, notebook, ebook, bookkeeping or bookstore. Booking text without a structural action does not activate the booking module for payments, telecom, news, SaaS, government, energy, recruitment or ecommerce.
+- **Intangible sectors** (financial, SaaS, news, government, education, nonprofit, recruitment, professional): links named "products" are services, so retail product checks are N.v.t.
+- **Entity** uses the same contact signal as Trust.
+- **Business-details evidence** shows the details that were actually found.
+- **Late service checks** get an evidence URL.
+- **Sitemap wording.** When no sitemap is found on the standard locations and none is declared in robots.txt, the text says so and recommends declaring one; it no longer says "server unreachable".
+- **Schema advice** for news is NewsMediaOrganization + WebSite.
+- **`capPerfectScore`.** Any scored warning or fail anywhere in the report caps the score at 99, and the same cap applies to ranges.
+
+**Generic tests**
+- 18 contradictory-signal profiles: every seed sector gets a body full of other sectors as clients or news topics.
+- A company /nieuws page must not become a publisher.
+- `run-concurrency.mjs`: 12 different sites are scanned in parallel bursts. Evidence must never cross sites, and results must equal single scans.
+- `tests/report-self-check.test.mjs`: unit tests plus a property test of 3000 random contradictory reports, checking that the result is consistent and idempotent.

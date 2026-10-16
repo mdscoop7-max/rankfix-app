@@ -85,3 +85,18 @@ export function telecomOperatorIdentity(identitySource: string) {
   const provider = TELECOM_OPERATOR_IDENTITY.test(identitySource);
   return { subscription, network, provider, primary: (subscription && network) || (provider && (subscription || network)) };
 }
+
+// A news publisher or broadcaster names itself as such. Strong publisher terms
+// (omroep, broadcaster, krant, newspaper...) are enough on their own; a plain
+// "nieuws/news" only counts on a homepage where both title and description use
+// it, so a company's own /nieuws page never turns the company into a publisher.
+// Listing channels like "Radio, TV en Internet" describes distribution, not a
+// telecom subscription business.
+const NEWS_PUBLISHER_STRONG = /\b(?:omroep(?:vereniging|stichting)?|publieke omroep|broadcast(?:er|ing)|public broadcaster|journaal|journalistiek|journalism|dagblad|krant|newspaper|news ?agency|persbureau|nieuwssite|news ?site|nachrichten|zeitung|rundfunk|actualités|noticias|periódico|notizie|giornale)\b/i;
+const NEWS_WEAK = /\b(?:nieuws|news|breaking news|latest news|het laatste nieuws)\b/i;
+
+export function newsMediaIdentity(input: { title: string; description: string; h1: string; homepage: boolean }) {
+  const own = [input.title, input.description, input.h1].join(" ");
+  if (NEWS_PUBLISHER_STRONG.test(own)) return true;
+  return input.homepage && NEWS_WEAK.test(input.title) && NEWS_WEAK.test(input.description);
+}

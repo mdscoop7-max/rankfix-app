@@ -5,6 +5,7 @@ import { PROFILES, installMatrixFetch2 } from "./profiles.mjs";
 installMatrixFetch2();
 const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const { POST } = await import(ROOT + "/app/api/scan/route.ts");
+const { labelFitsSector } = await import(ROOT + "/lib/report-consistency.ts");
 const only = process.env.ONLY ? process.env.ONLY.split(",") : null;
 const rows = []; const fs = await import("node:fs");
 const quiet = () => { const s = [console.info, console.warn, console.log, console.error]; const errs = []; console.info = () => {}; console.warn = () => {}; console.error = (...a) => errs.push(a); return () => { [console.info, console.warn, console.log, console.error] = s; return errs; }; };
@@ -50,6 +51,7 @@ for (const p of PROFILES) {
     if (sp.sector === "unknown" && sp.confidenceScore >= 60) problems.push(`unknown with confidence ${sp.confidenceScore}`);
     if (sp.sector !== "unknown" && sp.confidenceScore < 60) problems.push(`sector ${sp.sector} with low confidence ${sp.confidenceScore}`);
     if (p.expect && !p.expect.includes(sp.sector)) problems.push(`SECTOR ${sp.sector}/${sp.key} not in ${p.expect.join("|")}`);
+    if (p.labelLike && !p.labelLike.test(sp.label)) problems.push(`LABEL "${sp.label}" does not match ${p.labelLike}`);
     if (p.notExpect?.includes(sp.sector)) problems.push(`SECTOR forbidden ${sp.sector}`);
     if (p.page && j.pageTypeEvidence.type !== p.page) problems.push(`PAGE ${j.pageTypeEvidence.type} != ${p.page}`);
     const retailKeys = ["product_schema", "merchant_product_readiness", "checkout_funnel_static", "checkout_trust", "webshop_trust", "commercial_terms_signal", "merchant_feed_signal", "product_stock", "product_price_consistency"];
@@ -67,6 +69,14 @@ for (const p of PROFILES) {
     if (p.maxScore != null && (process.env.MODE || "both") === "both" && j.overallScore > p.maxScore) problems.push(`score ${j.overallScore} > ${p.maxScore} despite issues`);
     for (const m of p.noModules || []) if (j.sectorProfile.applicableModules.includes(m)) problems.push(`module ${m} should not be active`);
     if (p.sitemap && byKey("sitemap")) { const c = byKey("sitemap"); if (!c?.message.includes(p.sitemap)) problems.push(`sitemap chose: ${c?.message.slice(0, 120)}`); }
+    // Central self-check: present, label consistent, and the engine itself
+    // should not need corrections (a correction means an upstream contradiction).
+    if (!j.selfCheck) problems.push("selfCheck missing");
+    else {
+      if (!labelFitsSector(sp.sector, sp.label)) problems.push(`label "${sp.label}" contradicts sector ${sp.sector}`);
+      for (const c of j.selfCheck.corrections) problems.push(`self-check had to correct: ${c.code} ${c.detail.slice(0, 120)}`);
+      if (!["high", "medium", "low"].includes(j.selfCheck.reliability)) problems.push("reliability missing");
+    }
     // Global invariant: a report with any warning/fail never shows 100.
     if ((process.env.MODE || "both") === "both" && checks.some((c) => c.status === "warning" || c.status === "fail") && j.overallScore >= 100) problems.push("100/100 with open issues");
   }

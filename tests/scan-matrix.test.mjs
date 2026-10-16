@@ -21,7 +21,7 @@ function run(script, env = {}) {
 for (const mode of ["both", "seo", "geo"]) {
   test(`scan matrix (${mode}): every synthetic site gets the right sector, page type and consistent report`, () => {
     const r = run("run-matrix.mjs", { MODE: mode });
-    assert.ok(r.total >= 55, `matrix too small: ${r.total}`);
+    assert.ok(r.total >= 80, `matrix too small: ${r.total}`);
     assert.equal(r.failed, 0, r.log.split("\n").filter((l) => /✗|^\s+-/.test(l)).join("\n"));
   });
 }
@@ -42,5 +42,11 @@ test("rendering: rich render is used, failed/poorer renders fall back honestly, 
 test("performance: pathological page content never makes a scan quadratic", () => {
   const r = run("run-redos.mjs");
   assert.ok(r.total >= 20);
+  assert.equal(r.failed, 0, r.log);
+});
+
+test("isolation under load: parallel scans of different sites never mix evidence and match single scans", () => {
+  const r = run("run-concurrency.mjs");
+  assert.ok(r.total >= 40);
   assert.equal(r.failed, 0, r.log);
 });
