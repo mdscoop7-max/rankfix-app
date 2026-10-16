@@ -161,13 +161,16 @@ export function buildScanEvidence(input: {
   const propertySale = propertyListing && (has(text, /\b(te koop|for sale|koopprijs)\b/i) || /\/(?:koop|sale)\//i.test(url));
   const propertyRental = propertyListing && (has(text, /\b(te huur|for rent|huurprijs)\b/i) || /\/(?:huur|rent)\//i.test(url));
   const shortStaySchema = schemaHas("Hotel","HotelRoom","LodgingBusiness","BedAndBreakfast","VacationRental","Resort","Campground");
-  const shortStayText = has(text, /\b(overnachting|overnachten|per nacht|nightly|check[- ]?in|check[- ]?out|arrival|departure|aankomst|vertrek|short[- ]term stay)\b/i);
+  // "checkout" (one word) is a payment/cart step and "arrival/departure" is also
+  // transport wording; neither is short-stay evidence on its own.
+  const shortStayText = has(text, /\b(overnachting(?:en)?|overnachten|per nacht|per night|nightly|check[- ]in|check[- ]out|short[- ]term stay)\b/i);
   const shortStay = shortStaySchema || shortStayText;
-  const bedBreakfast = has(text, /\b(b&b|bed and breakfast|bed & breakfast|guesthouse|guest house|pension)\b/i) || schemaHas("BedAndBreakfast");
+  // "pension" alone is also a retirement pension; it only counts in lodging wording.
+  const bedBreakfast = has(text, /\b(b&b|bed and breakfast|bed & breakfast|guesthouse|guest house|pension (?:met|with|mit) (?:ontbijt|breakfast|frühstück)|gästehaus)\b/i) || schemaHas("BedAndBreakfast");
   const holidayRental = has(text, /\b(vakantiehuis|vakantiewoning|holiday home|holiday rental|vacation rental|ferienhaus|ferienwohnung|short[- ]term rental)\b/i) || schemaHas("VacationRental");
   const holidayPark = has(text, /\b(vakantiepark|holiday park|ferienpark|resort|bungalowpark|recreatiepark)\b/i) || schemaHas("Resort");
   const camping = has(text, /\b(camping|campingplatz|campground|camperplaats|chaletpark|caravan park|glamping)\b/i) || schemaHas("Campground");
-  const stayDates = has(text, /\b(aankomst|vertrek|check[- ]?in|check[- ]?out|arrival|departure|verblijfsdata|stay dates?)\b/i);
+  const stayDates = has(text, /\b(aankomst|vertrek|check[- ]in|check[- ]out|arrival|departure|verblijfsdata|stay dates?)\b/i);
   const guests = has(text, /\b(gasten?|guests?|personen|persons?|adults?|volwassenen|children|kinderen)\b/i);
   const automotiveServiceSchema = schemaHas("AutomotiveBusiness", "AutoRepair");
   const automotiveServiceText = has(text, /\b(apk|onderhoud|werkplaats|autoservice|banden|tyres?|uitlijnen|car repair|reparatie)\b/i);

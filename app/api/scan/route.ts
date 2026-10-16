@@ -29,7 +29,7 @@ import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDeta
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
-import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes } from "@/lib/sector-identity";
+import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, financialServicesIdentity, hasOrganizationSchema, hasRetailStoreSchema, isLocalizedHomepagePath, isTourismBoardHost, lodgingIdentity, retailIdentityLanguage, retailStoreSchemaTypes } from "@/lib/sector-identity";
 
 export const maxDuration = 300;
 
@@ -937,7 +937,7 @@ export async function POST(request: Request) {
     // Do not treat arbitrary short slugs as locale roots.
     const isLocalizedHomepage = pathSegmentsForType.length > 0 && pathSegmentsForType.length <= 2 &&
       pathSegmentsForType.every((segment) => localeSegmentPattern.test(segment) && knownLanguageSegments.has(segment.split("-")[0]));
-    const isHomepage = pathname === "/" || isLocalizedHomepage;
+    const isHomepage = pathname === "/" || isLocalizedHomepage || isLocalizedHomepagePath(pathSegmentsForType);
     const localBusinessKeywordSignal = /\b(restaurant|eetcafé|eetgelegenheid|brasserie|bistro|menukaart|kapsalon|kapper|hairdresser|salon|coiffeur|barbier|bakker|bakery|bar|café|cafe|dentist|tandarts|tandheelkunde|mondzorg|orthodontist|electrician|elektricien|elektro|elektrotechniek|installatietechniek|plumber|loodgieter|loodgieters|cv-installateur|installateur|aannemer|contractor|bouwbedrijf|bouwservice|verbouwing|renovatie|dakdekker|dakbedekking|dakwerken|beautysalon|beauty salon|schoonheidssalon|winkel|store|shop|boetiek|retail|garage|autogarage|autoservice|autobedrijf|autodealer|makelaar|makelaars|vastgoedmakelaar|real estate agent|realtor|woningmakelaar|advocaat|advocatenkantoor|law firm|jurist|notaris|notariskantoor|accountant|accountantskantoor|boekhouder|boekhoudkantoor|administratiekantoor|reisbureau|reisorganisatie|travel agency|tour operator|reisagent|hotel|bed and breakfast|b&b|pension)\b/i.test([title, description, ...h1s, finalUrl.hostname, finalUrl.pathname].join(" "));
     const localContactSignal = /\b(opening hours|openingstijden|adres|address|telephone|telefoon|phone|contact)\b/i.test(text) &&
       /\b(address|adres|phone|telefoon|telephone|\+?31|0\d{1,3}[\s-]?\d)\b/i.test(text);
@@ -1063,7 +1063,12 @@ export async function POST(request: Request) {
     );
     const retailCommerceSignal = hasConfirmedCommercePlatform || productSchemaCommerceSignal || repeatedProductLinkSignal || storefrontMarkupSignal || homepageStorefrontSignal || siteLevelCommerceSignal || catalogStorefrontSignal || hardPurchaseFlowSignal;
     const transportRetailStoreEvidence = hasConfirmedCommercePlatform && (repeatedProductLinkSignal || storefrontMarkupSignal || hasStoreSchema);
-    const hasEcommerceSignal = transportBookingIdentity ? transportRetailStoreEvidence : retailCommerceSignal;
+    // Payment providers, banks and insurers publish "checkout", "cart" and price
+    // widgets as product features. They are services, not storefronts, unless
+    // independent store/catalog evidence exists (same rule as transport bookings).
+    const financialIdentityEarly = financialServicesIdentity([title, description, h1s.join(" "), finalUrl.hostname, finalUrl.pathname].join(" "), schemaTypes);
+    const financialServiceIdentityEarly = Boolean(financialIdentityEarly && (financialIdentityEarly.kind === "payments" || financialIdentityEarly.schema || !retailIdentityLanguage([title, description, h1s.join(" ")].join(" ")).onlineSales));
+    const hasEcommerceSignal = (transportBookingIdentity || financialServiceIdentityEarly) ? transportRetailStoreEvidence : retailCommerceSignal;
     // EU consumer/Omnibus checks are jurisdiction-sensitive. A non-EU country
     // storefront (for example .com.au) must not receive EU compliance signals
     // merely because it is an e-commerce site.
@@ -1541,8 +1546,8 @@ export async function POST(request: Request) {
       note: "Evidence-first: ontbrekend bewijs is niet automatisch een fout. Sectoren en functies worden alleen bevestigd op gevonden signalen.",
     };
 
-    type SectorKey = "ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"general_business"|"unknown";
-    const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]}> = [
+    type SectorKey = "ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"finance"|"education"|"nonprofit"|"energy_utilities"|"events_culture"|"fitness_sports"|"general_business"|"unknown";
+    const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]; identityOnly?:boolean}> = [
       {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\b/i,/\b(te koop|te huur|for sale|for rent|woningaanbod)\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
       {sector:"automotive",label:"Automotive",patterns:[/\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\b/i,/\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
       {sector:"home_services",label:"Lokale vakdienst",patterns:[/\b(loodgieter|plumber|aannemer|installateur|elektricien|schilder|dakdekker|klus(?:sen)?bedrijf|bouwbedrijf|bouwservice|general contractor|electrician|contractor|riool(?:service|specialist)?|rioolprobleem|ontstopping|ontstoppen|afvoer|schoonmaak(?:bedrijf|dienst(?:en)?)?|kantoorschoonmaak|cleaning service|cleaning company)\b/i,/\b(offerte|werkgebied|servicegebied|installatie|reparatie|renovatie|verbouwing|bouw|verstopping|riolering|riooldienst(?:en)?|schoonmaak|cleaning)\b/i],modules:["core_seo","geo","local","lead_conversion","home_services"]},
@@ -1559,6 +1564,14 @@ export async function POST(request: Request) {
       {sector:"food_local_retail",label:"Voeding & lokale retail",patterns:[/\b(bakkerij|bakker|bakery|baker|patisserie|pastry|brood|bread|banket|artisan bakery)\b/i,/\b(gebak|taart|cakes?|croissant|sourdough|zuurdesem|vers brood|fresh bread)\b/i],modules:["core_seo","geo","local","lead_conversion","food_local_retail"]},
       {sector:"service_marketplace",label:"Dienstenplatform",patterns:[/\b(vind (?:de )?beste bedrijven|vergelijk (?:bedrijven|specialisten|dienstverleners)|dienstverleners vergelijken|professionals vergelijken|bedrijven vergelijken)\b/i,/\b(top 10|reviews?|beoordelingen|offertes? vergelijken|bedrijven voor jou|specialisten in jouw regio)\b/i],modules:["core_seo","geo","technical","structured_data","links","service_marketplace"]},
       {sector:"saas_b2b",label:"SaaS / B2B",patterns:[/\b(saas|software platform|software-as-a-service|api platform|business software|auditsoftware|seo software|geo software|website audit|seo audit|geo audit)\b/i,/\b(demo|features|integrations|integraties|dashboard|website scan|website scannen|website analyseren|audit platform)\b/i],modules:["core_seo","geo","technical","security","structured_data","links","accessibility","lead_conversion","saas_b2b"]},
+      // Identity-only sectors: the first pattern must appear in title/description/H1/host,
+      // so a passing mention in body text never moves a site into these sectors.
+      {sector:"finance",label:"Financiële dienstverlening",identityOnly:true,patterns:[/\b(payments? (?:platform|provider|solutions?|gateway)|online payments|betaalprovider|betaaldienstverlener|bankieren|online banking|hypothe(?:ek|ken)|mortgages?|verzekering(?:en)?|verzekeraar|insurance|versicherung|beleggen|vermogensbeheer|financial services|financiële dienstverlening|kredietverstrekker|creditcards?)\b/i,/\b(rekening|account|rente|interest|premie|premium|lening|loan|betalen|payments?|tarieven|fees|polis|policy|klantenservice)\b/i],modules:["core_seo","geo","technical","structured_data","lead_conversion","finance"]},
+      {sector:"education",label:"Onderwijs & Opleiding",identityOnly:true,patterns:[/\b(basisschool|middelbare school|hogeschool|universiteit|university|college|mbo|hbo|onderwijs|opleidingen|opleidingscentrum|cursussen|online cursus|courses|academy|academie|school voor|schule|universität|école|scuola|escuela)\b/i,/\b(studenten|students|leerlingen|aanmelden|inschrijven|enrol|enroll|open dag|open day|studiegids|opleiding|curriculum|docenten|lesrooster)\b/i],modules:["core_seo","geo","local","lead_conversion","education"]},
+      {sector:"nonprofit",label:"Goede doelen & Non-profit",identityOnly:true,patterns:[/\b(stichting|goed doel|goede doelen|charity|non-?profit|ngo|fundraising|vereniging|foundation|hilfsorganisation|association caritative)\b/i,/\b(doneer|doneren|donate|donatie|donation|vrijwilliger|volunteer|steun ons|support us|lid worden|anbi|missie|mission)\b/i],modules:["core_seo","geo","lead_conversion","nonprofit"]},
+      {sector:"energy_utilities",label:"Energie & Nutsvoorzieningen",identityOnly:true,patterns:[/\b(energieleverancier|energiecontract|stroom en gas|gas en stroom|groene stroom|energy supplier|electricity supplier|netbeheerder|drinkwaterbedrijf|waterbedrijf|stromanbieter|zonnepanelen|warmtepomp|laadpaal|solar panels|heat pumps?)\b/i,/\b(tarieven|rates|contract|aanvragen|offerte|terugleveren|meterstand|kwh|installatie|besparen)\b/i],modules:["core_seo","geo","technical","lead_conversion","energy_utilities"]},
+      {sector:"events_culture",label:"Evenementen & Cultuur",identityOnly:true,patterns:[/\b(festival|concertzaal|concerten|theater|theatre|schouwburg|museum|musea|bioscoop|cinema|poppodium|evenementenlocatie|event venue|expo|tentoonstelling|exhibition|dierentuin|zoo|pretpark|attractiepark|theme park)\b/i,/\b(tickets?|kaarten|programma|programme|agenda|line-?up|voorstelling|openingstijden|opening hours|exposities?|events?)\b/i],modules:["core_seo","geo","local","lead_conversion","events_culture"]},
+      {sector:"fitness_sports",label:"Sport & Fitness",identityOnly:true,patterns:[/\b(sportschool|fitness(?:club|centrum|studio)?|gym|crossfit|yoga ?studio|pilates|personal training|sportvereniging|voetbalclub|tennisclub|hockeyclub|golfclub|zwembad|sportclub|football club|sports club|sportverein)\b/i,/\b(lidmaatschap|membership|lid worden|proefles|trial class|rooster|schedule|lessen|classes|trainingen|abonnement|teams?|competitie|wedstrijden)\b/i],modules:["core_seo","geo","local","lead_conversion","fitness_sports"]},
     ];
     // Tourist boards branded as "visit<place>" are recognised by hostname, never by
     // the generic phrase "visit our ..." in page text.
@@ -1576,9 +1589,10 @@ export async function POST(request: Request) {
     if (schemaSet.has("realestateagent")) schemaSectorBoost.real_estate = 3;
     if (schemaSet.has("newsarticle")) schemaSectorBoost.news_media = 3;
     // Scanbewijs priority: domain identity outranks incidental generic words.
-    const sectorPriority: Partial<Record<SectorKey, number>> = { government: 30, real_estate: 28, automotive: 27, transport_travel: 20, telecom_technology: 20, news_media: 10 };
+    const sectorPriority: Partial<Record<SectorKey, number>> = { government: 30, finance: 29, real_estate: 28, automotive: 27, transport_travel: 20, telecom_technology: 20, education: 15, energy_utilities: 15, news_media: 10, nonprofit: 8, events_culture: 6, fitness_sports: 6 };
     const sectorCandidates = sectorSignals.map(item=>{
-      const contentHits = item.patterns.filter(pattern=>pattern.test(sectorSource)).length;
+      const identityMissing = item.identityOnly && !item.patterns[0]?.test(sectorIdentitySource);
+      const contentHits = identityMissing ? 0 : item.patterns.filter(pattern=>pattern.test(sectorSource)).length;
       const identityBoost = item.patterns[0]?.test(sectorIdentitySource) ? 1 : 0;
       const identityPriorityBoost = item.patterns[0]?.test(sectorIdentitySource) && item.patterns[1]?.test(sectorSource) ? 1 : 0;
       const transportContextBoost = item.sector === "transport_travel" && transportBookingIdentity ? 2 : 0;
@@ -1626,10 +1640,22 @@ export async function POST(request: Request) {
       restaurant:"hospitality", cafe_bar:"hospitality", hotel:"hospitality", bed_breakfast:"hospitality", holiday_rental:"hospitality", holiday_park:"hospitality", camping:"hospitality",
       dentist:"health_wellness", healthcare:"health_wellness", medical_clinic:"health_wellness",
       beauty_salon:"beauty", hair_salon:"beauty",
+      payments:"finance", finance:"finance", insurance:"finance", accounting:"professional_services", agency:"professional_services", photography:"professional_services",
+      construction:"home_services", pharmacy:"health_wellness", veterinary:"health_wellness", senior_care:"health_wellness",
+      education:"education", course_training:"education", childcare:"education",
+      nonprofit:"nonprofit", association:"nonprofit", energy:"energy_utilities", telecom:"telecom_technology", software_app:"saas_b2b",
+      events:"events_culture", entertainment:"events_culture", museum_culture:"events_culture", fitness:"fitness_sports", sports_club:"fitness_sports",
+      publisher_blog:"news_media", food_delivery:"hospitality", parking:"transport_travel", coworking:"professional_services",
+      manufacturer:"general_business", wholesale:"general_business", marketplace:"service_marketplace",
     };
     const mappedCatalogSector = catalogTop ? catalogLegacyMap[catalogTop.key] : undefined;
     const lodgingDetail = scanEvidence.sectorDetails.lodging;
-    const shortStayIdentity = Boolean(
+    // Accommodation must be named in the page identity or declared in schema.
+    // Body words like "checkout", "guests" or "arrival" also occur on payment,
+    // airline and event sites and never create lodging identity on their own.
+    const lodgingIdentityConfirmed = lodgingIdentity(sectorIdentitySource, schemaTypes);
+    const financialPrimaryIdentity = financialServiceIdentityEarly && financialIdentityEarly ? financialIdentityEarly : null;
+    const shortStayIdentity = !financialPrimaryIdentity && lodgingIdentityConfirmed && Boolean(
       (lodgingDetail.bedBreakfast.value && lodgingDetail.bedBreakfast.confidence !== "low") ||
       (lodgingDetail.holidayRental.value && lodgingDetail.holidayRental.confidence !== "low") ||
       (lodgingDetail.holidayPark.value && lodgingDetail.holidayPark.confidence !== "low") ||
@@ -1660,7 +1686,10 @@ export async function POST(request: Request) {
     const telecomServiceIdentity = /\b(?:internet(?:abonnementen?|provider)?|glasvezel|breedband|broadband|dsl|adsl)\b/i.test(sectorIdentitySource)
       && /\b(?:tv|televisie|bellen|telefonie|pakketten|abonnementen?|wifi|provider|netwerk)\b/i.test(sectorIdentitySource);
     const telecomProviderIdentity = (telecomSubscriptionIdentity && telecomNetworkIdentity) || telecomServiceIdentity;
-    const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[]} | null = telecomProviderIdentity
+    const financialLabels = { payments:"Betaaldienstverlener / fintech", banking:"Bank & financiële producten", insurance:"Verzekeringen" } as const;
+    const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[]} | null = financialPrimaryIdentity
+      ? {sector:"finance",key:`finance_${financialPrimaryIdentity.kind}`,label:financialLabels[financialPrimaryIdentity.kind],evidence:financialPrimaryIdentity.evidence}
+      : telecomProviderIdentity
       ? {sector:"telecom_technology",key:"telecom_technology",label:"Telecom & Technologie",evidence:["Primaire identiteit: telecomabonnementen en netwerkdiensten"]}
       : shortStayIdentity
       ? {sector:"hospitality",key:lodgingSubtype.key,label:lodgingSubtype.label,evidence:["Scanbewijs: kort verblijf/accommodatie bevestigd", ...lodgingDetail.shortStay.evidence, ...lodgingDetail.stayDates.evidence, ...lodgingDetail.guests.evidence]}
@@ -1691,14 +1720,14 @@ export async function POST(request: Request) {
       (onlineRetailCallout || (retailStoreIdentity && commerceNavigationSignal)));
     const retailPurchaseEvidence = evidenceCommerceConfirmed || hasEcommerceSignal || explicitRetailIdentity;
     const retailPrimaryIdentity = retailPurchaseEvidence
-      && !telecomProviderIdentity && !shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity
+      && !financialPrimaryIdentity && !telecomProviderIdentity && !shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity
       && !beautyServiceIdentity && !explicitMedicalIdentity && !transportBookingIdentity
       && !/\b(?:restaurant|hotel|reserveren|reserveer tafel|vakantieverhuur|transportdiensten|schoonmaakdienst)\b/i.test(sectorIdentitySource);
     const primaryNonCommerceIdentity = retailPrimaryIdentity ? null : (masterIdentityOverride
       || (strongSectorCandidate && sectorCandidates[0].sector !== "ecommerce"
         ? {sector:sectorCandidates[0].sector,key:sectorCandidates[0].sector,label:sectorCandidates[0].label,evidence:[`Primaire identiteit: ${sectorCandidates[0].hits} onafhankelijke ${sectorCandidates[0].hits===1?"sectorsignaal":"sectorsignalen"}`]}
         : null));
-    const commerceAsPrimaryIdentity = !telecomProviderIdentity && (retailPrimaryIdentity || (evidenceCommerceConfirmed && !primaryNonCommerceIdentity));
+    const commerceAsPrimaryIdentity = !financialPrimaryIdentity && !telecomProviderIdentity && (retailPrimaryIdentity || (evidenceCommerceConfirmed && !primaryNonCommerceIdentity));
     const sectorProfile = commerceAsPrimaryIdentity
       ? {
           sector:"ecommerce" as SectorKey,
@@ -1761,6 +1790,12 @@ export async function POST(request: Request) {
       beauty:["beauty"],
       transport_travel:["transport_travel"],
       saas_b2b:["saas_b2b"],
+      finance:["finance"],
+      education:["education"],
+      nonprofit:["nonprofit"],
+      energy_utilities:["energy_utilities"],
+      events_culture:["events_culture"],
+      fitness_sports:["fitness_sports"],
     };
     // Motor v2: sector modules come only from the primary identity decision.
     // Capabilities may add generic functional modules (lead conversion, booking,
@@ -4199,7 +4234,7 @@ export async function POST(request: Request) {
     const verifiedRetailPurchase = confirmedAddToCart ||
       (confirmedCurrentProduct && scanEvidence.commerce.checkout.value && scanEvidence.commerce.checkout.confidence === "high") ||
       (representativeRetailProduct && scanEvidence.commerce.cart.value && scanEvidence.commerce.cart.confidence === "high");
-    const hardCommerceEvidence = telecomProviderIdentity
+    const hardCommerceEvidence = (telecomProviderIdentity || financialPrimaryIdentity)
       ? Boolean(verifiedRetailPurchase || verifiedRepresentativePurchase)
       : sitewideCommerceEvidence.confirmed || representativeRetailProduct || Boolean(
           confirmedCurrentProduct ||

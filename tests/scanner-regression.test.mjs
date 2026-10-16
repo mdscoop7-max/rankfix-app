@@ -1593,7 +1593,7 @@ test("retail sector evidence wins over incidental sector words without claiming 
   assert.match(source, /const explicitRetailIdentity = storeSchemaRetailIdentity \|\| \(retailAssortmentIdentity/);
   assert.match(source, /const retailPrimaryIdentity = retailPurchaseEvidence/);
   assert.match(source, /const primaryNonCommerceIdentity = retailPrimaryIdentity \? null/);
-  assert.match(source, /commerceAsPrimaryIdentity = !telecomProviderIdentity && \(retailPrimaryIdentity/);
+  assert.match(source, /commerceAsPrimaryIdentity = !financialPrimaryIdentity && !telecomProviderIdentity && \(retailPrimaryIdentity/);
   assert.match(source, /commerceHints: Boolean\(retailPrimaryIdentity/);
   assert.match(source, /!retailPrimaryIdentity && !finalCommerceDecision\.confirmed && reconciledIdentityStrong/);
   assert.match(source, /explicitRetailIdentity && !evidenceCommerceConfirmed \? 78/);
