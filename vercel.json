@@ -1,6 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
-    "deploymentEnabled": false
+    "deploymentEnabled": {
+      "qa/*": false,
+      "fix/restore-vercel-main-deploy-20261016": false
+    }
   }
 }
