@@ -1,14 +1,19 @@
 // EU-81 benchmark entry point.
 //   node scripts/engine-benchmark/eu81.mjs baseline            → metrics of the stored audits in issue #151
 //   node scripts/engine-benchmark/eu81.mjs export scans.json   → metrics of a read-only Neon export (pilot)
+//   RF_PLAN=tests/fixtures/eu-pilot2/plan.json node … export …  → same for the blind pilot 2 set
 // Export (read-only): SELECT scanned_url, final_url, overall_score, created_at, result FROM scans ORDER BY created_at;
 // Optional 2nd file: SELECT requested_url, http_status, outcome, error, duration_ms, created_at FROM scan_attempts;
 // Save the rows as JSON arrays. Nothing is written to any database.
 import { readFileSync } from "node:fs";
 import { evaluate } from "./metrics.mjs";
 import { effectiveCategory } from "../../lib/scan-attempts.ts";
+import { scorecardV2 } from "./scorecard-v2.mjs";
+import { summarizeReview } from "./review.mjs";
 
-const plan = JSON.parse(readFileSync(new URL("../../tests/fixtures/eu81/plan.json", import.meta.url), "utf8")).sites;
+const planPath = process.env.RF_PLAN ? new URL(process.env.RF_PLAN, `file://${process.cwd()}/`) : new URL("../../tests/fixtures/eu81/plan.json", import.meta.url);
+const plan = JSON.parse(readFileSync(planPath, "utf8")).sites;
+const exposures = JSON.parse(readFileSync(new URL("../../tests/fixtures/evaluation/exposures.json", import.meta.url), "utf8")).exposures;
 const norm = (u) => { try { return new URL(/^https?:/i.test(u) ? u : `https://${u}`).hostname.toLowerCase().replace(/^www\./, ""); } catch { return String(u || "").toLowerCase(); } };
 
 export function baselineRows() {
@@ -45,7 +50,8 @@ export function exportRows(scans) {
     const scan = latest.get(s.name); const r = scan?.result || {};
     const checks = r.checks?.length ? r.checks : [...(r.seo?.checks || []), ...(r.geo?.checks || [])];
     return {
-      id: `${s.country} ${s.name}`, expected: s.expected, scanned: Boolean(scan),
+      id: `${s.country} ${s.name}`, expected: s.expected, scanned: Boolean(scan), country: s.country, language: s.language, host: norm(s.hosts[0]), result: scan ? r : null,
+      exposure: exposures.find((x) => s.hosts.some((h) => norm(h) === norm(x.host))) || null,
       predicted: r.sectorProfile?.sector ?? r.metrics?.sector?.sector, confidence: r.sectorProfile?.confidenceScore,
       score: scan?.overall_score ?? r.overallScore, coverage: r.coverage?.coveragePercent, reliability: r.selfCheck?.reliability,
       evidenceLevel: r.scoreModel?.evidenceLevel, headlineKind: r.scoreModel?.headline?.kind, unconfirmed: checks.filter((c) => c.status === "unable_to_confirm").length,
@@ -57,8 +63,24 @@ export function exportRows(scans) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const [mode, file, attemptsFile] = process.argv.slice(2);
+  if (mode === "v2") {
+    // Scorecard v2 (frozen, docs/SCORECARD-3.5.md): independent rows only; exposed cases listed apart.
+    const [, , , reviewFile] = process.argv.slice(2);
+    const rows = exportRows(JSON.parse(readFileSync(file, "utf8")));
+    const attempts = attemptsFile ? attemptSummary(JSON.parse(readFileSync(attemptsFile, "utf8"))) : null;
+    const review = reviewFile ? summarizeReview(JSON.parse(readFileSync(reviewFile, "utf8"))) : null;
+    const byHost = review ? { sites: Object.fromEntries(rows.filter((r) => review.sites[r.host]).map((r) => [r.id, review.sites[r.host]])) } : null;
+    const independent = rows.filter((r) => !r.exposure);
+    console.log(JSON.stringify({ plan: planPath.pathname.split("/").slice(-2).join("/"), independent: scorecardV2(independent, attempts, byHost), exposedCases: rows.filter((r) => r.exposure).map((r) => ({ id: r.id, expected: r.expected, predictedNow: r.predicted, original: r.exposure.originalResult })) }, null, 1));
+    process.exit(0);
+  }
   const rows = mode === "export" ? exportRows(JSON.parse(readFileSync(file, "utf8"))) : baselineRows();
   const result = evaluate(rows);
+  // Exposed cases (seen or tuned after the plan was frozen) never count as blind evidence.
+  if (rows.some((r) => r.exposure)) {
+    result.independent = evaluate(rows.filter((r) => !r.exposure));
+    result.exposedCases = rows.filter((r) => r.exposure).map((r) => ({ id: r.id, expected: r.expected, predictedNow: r.predicted, original: r.exposure.originalResult, originalVerdict: r.exposure.originalVerdict }));
+  }
   if (attemptsFile) result.attempts = attemptSummary(JSON.parse(readFileSync(attemptsFile, "utf8")));
   console.log(JSON.stringify(result, null, 1));
 }

@@ -16,7 +16,7 @@ export type ScorableAuditCheck = {
   fix_status?: "WAITING" | "AWAITING_MERGE" | "STILL_PRESENT" | "DONE";
 };
 
-export const SCORE_MODEL_VERSION = "3.1-stable-core-evidence";
+export const SCORE_MODEL_VERSION = "3.5-evidence-gated";
 
 // Fixed SEO/GEO core: adding sector-specific checks may increase report coverage
 // without silently changing the headline score on the same website.
@@ -222,7 +222,7 @@ export type EvidenceLevel = "complete" | "provisional" | "insufficient";
  * certainty. "insufficient" means the number describes only part of the site
  * evidence and must be presented as an indication, never as a final grade.
  */
-export function evidenceLevel(input: { coveragePercent: number; javascriptRequiredButNotRendered: boolean; renderDegraded?: boolean; sectorConfidence?: number; unconfirmed: number }): { level: EvidenceLevel; reasons: string[] } {
+export function evidenceLevel(input: { coveragePercent: number; javascriptRequiredButNotRendered: boolean; renderDegraded?: boolean; sectorConfidence?: number; unconfirmed: number; importantUnconfirmed?: string[] }): { level: EvidenceLevel; reasons: string[] } {
   const reasons: string[] = [];
   if (input.coveragePercent < 60) reasons.push(`Bewijsdekking ${input.coveragePercent}% (onder 60%)`);
   else if (input.coveragePercent < 90) reasons.push(`Bewijsdekking ${input.coveragePercent}% (onder 90%)`);
@@ -230,7 +230,12 @@ export function evidenceLevel(input: { coveragePercent: number; javascriptRequir
   if (input.renderDegraded) reasons.push("Browser-rendering leverde minder inhoud dan de ruwe HTML");
   if (input.unconfirmed > 0) reasons.push(`${input.unconfirmed} toepasselijke controle(s) niet te bevestigen`);
   const insufficient = input.coveragePercent < 60 || (input.javascriptRequiredButNotRendered && input.coveragePercent < 75);
-  const level: EvidenceLevel = insufficient ? "insufficient" : input.coveragePercent < 90 || input.javascriptRequiredButNotRendered || input.renderDegraded ? "provisional" : "complete";
+  // An ambiguous primary sector changes which modules apply: never "definitief".
+  const sectorAmbiguous = typeof input.sectorConfidence === "number" && input.sectorConfidence > 0 && input.sectorConfidence < 75;
+  if (sectorAmbiguous) reasons.push(`Hoofdsector niet eenduidig (zekerheid ${input.sectorConfidence}%)`);
+  const important = input.importantUnconfirmed || [];
+  if (important.length) reasons.push(`Belangrijke controle(s) niet bevestigd: ${important.slice(0, 3).join(", ")}`);
+  const level: EvidenceLevel = insufficient ? "insufficient" : input.coveragePercent < 90 || input.javascriptRequiredButNotRendered || input.renderDegraded || important.length > 0 || sectorAmbiguous ? "provisional" : "complete";
   return { level, reasons };
 }
 

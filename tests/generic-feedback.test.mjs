@@ -65,8 +65,10 @@ test("title width in pixels, not length: small width passes and wide width is so
   const title="iPhone informatie voor alle klanten met een abonnement";
   assert.equal(assessPageTitle(title,"provider.example",new Date("2026-10-15"),480).status,"PASS");
   const wide=assessPageTitle(title,"provider.example",new Date("2026-10-15"),610);
-  assert.equal(wide.status,"WARNING");
-  assert.ok(wide.credit>=0.95);
+  // Wide titles are preview advice without deduction (same policy as long descriptions).
+  assert.equal(wide.status,"PASS");
+  assert.equal(wide.credit,1);
+  assert.match(wide.details,/geen aftrek/);
 });
 
 test("subscription, booking and lead commerce are not conflated with checkout",()=>{
@@ -85,7 +87,9 @@ test("page type uses product schema, breadcrumbs, article schema and contact pat
  assert.equal(refineSamplePageType({...base,proposed:"category",path:"/shop/mobiel/telefoons",uniqueH1:true,detailIdentity:true}),"category");
  assert.equal(refineSamplePageType({...base,articleSchema:true,path:"/blog/how-to"}),"article");
  assert.equal(refineSamplePageType({...base,path:"/contact"}),"contact");
- assert.equal(refineSamplePageType({...base,itemListSchema:true,breadcrumbDepth:3}),"category");
+ // An ItemList is a product collection only with commerce on the page (prices or purchase action).
+ assert.equal(refineSamplePageType({...base,itemListSchema:true,breadcrumbDepth:3,visiblePrices:4}),"category");
+ assert.equal(refineSamplePageType({...base,itemListSchema:true,breadcrumbDepth:3}),"other");
  assert.equal(refineSamplePageType({...base,path:"/diensten/onderhoud/"}),"service");
  assert.equal(refineSamplePageType({...base,path:"/internet/glasvezel",serviceOffer:true}),"service");
 });

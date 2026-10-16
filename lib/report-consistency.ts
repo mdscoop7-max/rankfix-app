@@ -71,6 +71,7 @@ export const SECTOR_FAMILY_LABEL: Record<string, string> = {
   energy_utilities: "Energie & nutsvoorzieningen",
   events_culture: "Evenementen & cultuur",
   fitness_sports: "Sport & fitness",
+  manufacturing_industrial: "Industrie & Productie",
 };
 
 /**
@@ -99,6 +100,7 @@ const FAMILY_LABEL_WORDS: Record<string, RegExp> = {
   energy_utilities: /energie|energy|nuts|utilit|stroom|gas/i,
   events_culture: /event|evenement|cultuur|culture|museum|theater|ticket|festival/i,
   fitness_sports: /sport|fitness|gym|club/i,
+  manufacturing_industrial: /industri|productie|fabrik|manufactur|b2b/i,
 };
 
 /** Sector-defining modules and the primary sector each one belongs to. */
@@ -122,6 +124,7 @@ const SECTOR_MODULE_OWNER: Record<string, string> = {
   energy_utilities: "energy_utilities",
   events_culture: "events_culture",
   fitness_sports: "fitness_sports",
+  manufacturing_industrial: "manufacturing_industrial",
 };
 
 /** Legitimate hybrids: a primary sector may keep these secondary sector modules. */

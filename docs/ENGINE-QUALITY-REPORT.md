@@ -38,3 +38,46 @@ Benchmark corrected: an unknown sector is never counted as correct (strict accur
 Unseen first measurements so far: 85.9% → 86.1% → 72.7% (weak, navigation-only homepages are the hard case). Every scored check now carries a source URL and a recorded finding, or it is "niet te bevestigen" and leaves the score (matrix invariant, 0 violations on 243 reports).
 
 Scan success: every logged-in attempt is stored in `scan_attempts` (inserted as "running" before the scan, completed with HTTP status, error code and category; a row left "running" = platform timeout). Verified end to end against a real PostgreSQL 16 database, including the upgrade of the first table version (`RF_PG_TEST_URL=… npm test`). Structural fixes: whole-scan time budget (renders stop at 180 s, sampling at 170 s, platform limit 300 s), body read timeout, one retry on transient network errors and 502/503/504, cookie jar across redirect chains, Accept-Language header, redirect limit 6. Not bypassed: WAF/CAPTCHA blocks are reported as `site_blocked`.
+
+## Pilot protocol (ready, not yet run)
+1. Pilot 1 (EU-81): `RF_BASE_URL=<preview> RF_SESSION=<own rankfix_session cookie> [VERCEL_BYPASS=…] node --experimental-strip-types scripts/engine-benchmark/run-pilot.mjs tests/fixtures/eu81/plan.json pilot1` (resumable, one site at a time, 5 s apart; credentials stay in the environment).
+2. Measure: `node --experimental-strip-types scripts/engine-benchmark/eu81.mjs export pilot1.scans.json pilot1.attempts.json` (or a read-only Neon export of `scans` + `scan_attempts`).
+3. Fix generic causes only; no per-domain rules.
+4. Pilot 2 (blind): `tests/fixtures/eu-pilot2/plan.json`, 40 real EU sites in all 10 families, frozen 16 Oct 2026 before any pilot-1 fix and disjoint from EU-81. Same commands with `RF_PLAN=tests/fixtures/eu-pilot2/plan.json` for the measurement. Its first measurement is the proof; do not tune on it beforehand.
+
+## 3.5 pass 2 (16 Oct 2026, evening) — owner field tests
+Generic fixes for the owner's real-site findings (no domain rules):
+- **Primary vs secondary activity:** academic medical centres (Universitätsmedizin, UMC, CHU, policlinico, hospital universitario, universitetssjukhus, …) are care first; teaching/research is a secondary activity (`sectorProfile.secondaryActivities`). Universities, incl. medical universities, stay education.
+- **New sector `manufacturing_industrial`:** maker/supplier word + industrial object in the organisation's own identity, in EU languages; software for industry stays software. Separate `sectorProfile.businessModel` (B2C, B2B, B2C + B2B, public, non-profit), evidence-first, sector default labelled as such.
+- **Price bug:** a missing structured price (`null`, `""`, text) is no longer read as €0 (`lib/price.ts`); WooCommerce `priceSpecification` prices are read; a real 0 still counts. Nested WooCommerce/Shopify price markup is read as the visible product price.
+- **Page typing:** category archives (WooCommerce product-category bases in EU languages, Shopify `/collections/x`, `/category/`), store finders and franchise pages are never product pages; a page with several Product objects is a collection. The representative product is the best-evidenced real product page (`multiPage.representativeProduct`).
+- **Technology:** per-technology evidence and confidence (`technologyProfile.technologies`); plain WordPress without a shop, a Shopify Buy Button on WordPress, and headless Shopify/WooCommerce are told apart.
+- **Checkout:** cart/checkout signals are "niet te bevestigen" (0 points), never a confirmed working checkout. Promoted product checks carry the product page as evidence; a check demoted by the evidence gate gets a matching message.
+- **Score honesty:** an unconfirmed heavy check (8+ points) makes a 98/99 "voorlopig". New matrix invariants: warning ⇒ deduction, pass ⇒ full points, no re-render advice after a successful render, Product Optimizer/Product schema only with product evidence.
+
+Offline after this pass: matrix 95.5% (0 wrong, abstentions counted against), hold-out 1 98.4%, hold-out 2 100%, hold-out 3 100%, 0 confident-wrong everywhere. These sets are seen data, so they show regressions, not real-world quality.
+
+**Evaluation register:** `tests/fixtures/evaluation/exposures.json` lists cases exposed after a plan was frozen (Charité: originally education 93%, wrong). The plans themselves are unchanged; `eu81.mjs export` reports `independent` metrics without exposed cases next to the overall figure.
+
+## 3.5 pass 3 (16 Oct 2026, night) — QA dossier #154
+Scorecard v2 and independent set 3 were committed first (`164d233`, docs/SCORECARD-3.5.md), before these changes and before any measurement.
+
+Generic fixes:
+- **Page types:** press releases, news and blog posts in EU languages (incl. `/pressemitteilung/`, `/artikel/detail/`, `/persberichten/`, `/communiques-de-presse/`, `/notizie/`, …) are articles; events are `event`; about/company/governance/investors/careers are `corporate`. A global "Products" menu no longer turns corporate pages into categories (a collection needs prices or purchase actions). A manufacturer's `/products/` page without price, cart or Offer is not commerce, so retail checks are N.v.t. on an industrial site.
+- **Product sample:** the product diagnostics and the promoted product checks use the same best-evidenced product page; partial Product JSON-LD keeps its evidence when JavaScript was not rendered; Product Optimizer "eligible" follows the AI Product Copy check, with the source fields listed.
+- **Score and wording:** long homepage descriptions are advice without deduction; short ones keep a small deduction with matching text; a brand-only homepage title is light advice (1 point); a canonical to the same page without query parameters is equivalent; render advice only when rendering actually failed, otherwise "onbevestigde controles bekijken" with the reasons; one reliability verdict per report; SRI examples shortened to host/path; header points vs header count spelled out; accessibility score labelled as basic check.
+- **Multi-activity groups:** a title naming several primary activities (post, finance, insurance, …) caps sector certainty at 72% and lists the other activities as secondary.
+- **First-party login redirects** (`securelogin.`, `/fcc-authentication`, `my-*`/`dashboard` sources) are not internal-redirect debt.
+- **Pilot runner:** bounded retries for transient failures only (network, timeout, 5xx), never for blocked sites, quota or input; stops on quota; records deployment SHA, plan and run times; refuses to mix deployments in one output; stores no raw HTML, cookies or headers.
+
+Same offline inputs, four engine versions (current tests and fixtures):
+
+| Set | 6581cca | 4562a37 | 47b0aa1 | now |
+|---|---|---|---|---|
+| Matrix (sector accuracy) | 76.5% (5 confident-wrong) | 91.3% (1) | 95.7% (0) | 95.7% (0) |
+| Hold-out 1 | 57.8% | 98.4% | 98.4% | 98.4% |
+| Hold-out 2 | 44.4% | 100% | 100% | 100% |
+| Hold-out 3 | 33.3% | 100% | 100% | 100% |
+| Matrix cases without any problem (current, stricter invariants) | 5/123 | 5/123 | 120/123 | 123/123 |
+
+These sets are seen data: they show regressions and fixed failure classes, not real-world quality. **The 9/10 is not established.** Live scans are not possible from the development container (outbound proxy blocks public sites); the independent measurement is EU-40 (minus Charité) and independent set 3 on the preview, scored with scorecard v2 including the manual review.

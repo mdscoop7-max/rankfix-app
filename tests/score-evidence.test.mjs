@@ -48,3 +48,9 @@ test("property: range always contains the score and widens with unconfirmed weig
     if (r.unverifiedWeight > 0 && score >= 20 && score <= 95) assert.ok(r.low < r.high, `unverified weight but flat range at ${score}`);
   }
 });
+
+test("an unconfirmed heavy check makes a high score provisional", async () => {
+  const { evidenceLevel } = await import("../lib/audit-score.ts");
+  assert.equal(evidenceLevel({ coveragePercent: 95, javascriptRequiredButNotRendered: false, unconfirmed: 1, importantUnconfirmed: ["Structured data"] }).level, "provisional");
+  assert.equal(evidenceLevel({ coveragePercent: 95, javascriptRequiredButNotRendered: false, unconfirmed: 1, importantUnconfirmed: [] }).level, "complete");
+});

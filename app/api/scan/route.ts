@@ -24,10 +24,13 @@ import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRa
 import { createRenderBudget, renderPublicPage } from "@/lib/headless-render";
 import { renderOnce, renderWithRetry, representativeNeedsJavaScriptRendering } from "@/lib/render-strategy";
 import { missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore } from "@/lib/sample-quality";
+import { parseStructuredPrice, offerPrice } from "@/lib/price";
+import { detectBusinessModel } from "@/lib/business-model";
+import { indexJsonLdIds, resolveSchemaImage } from "@/lib/schema-image";
 import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, commerceServiceSignals, compareScoreVersions } from "@/lib/scan-feedback";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { isSubstantiveRender, renderImprovesEvidence, preserveRawHeadEvidence, renderIsErrorState, visibleWordCount } from "@/lib/render-quality";
-import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeProductDetailPath, productUrlsFromSitemap } from "@/lib/product-links";
+import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeCategoryPath, looksLikeCorporatePath, looksLikeEditorialPath, looksLikeEventPath, looksLikeProductDetailPath, looksLikeStorePage, productUrlsFromSitemap } from "@/lib/product-links";
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
@@ -178,6 +181,18 @@ function grade(score: number) {
   return score >= 90 ? "A" : score >= 75 ? "B" : score >= 60 ? "C" : score >= 45 ? "D" : "E";
 }
 
+/**
+ * A canonical is equivalent to the fetched page when it is the same URL, or the
+ * same page without query parameters (a sampled URL with ?filter=… or a CMS
+ * cHash canonicalised to its clean path is intended, not an SEO error).
+ */
+function canonicalEquivalent(canonical: URL, page: URL): boolean {
+  if (normalizeScanUrl(canonical.toString()) === normalizeScanUrl(page.toString())) return true;
+  if (canonical.search) return false;
+  const clean = new URL(page.toString()); clean.search = "";
+  return normalizeScanUrl(canonical.toString()) === normalizeScanUrl(clean.toString());
+}
+
 function normalizeScanUrl(value: string) {
   try {
     const url = new URL(value);
@@ -203,6 +218,8 @@ type TechnologyProfile = {
   confidence: number;
   confidenceLabel: "high" | "medium" | "low";
   evidence: string[];
+  /** One entry per detected technology, each with its own evidence and confidence. */
+  technologies: Array<{ name: string; role: "cms" | "commerce_platform" | "framework"; confidence: number; evidence: string[] }>;
 };
 
 function detectTechnologyProfile(html: string, headers: Headers, commerceSignal: boolean): TechnologyProfile {
@@ -228,11 +245,14 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
     hit(/(?:wc-ajax|woocommerce-cart|woocommerce-checkout|woocommerce-page)/i, "WooCommerce storefront"),
     hit(/(?:add_to_cart|add-to-cart)[^a-z]/i, "WooCommerce add-to-cart"),
   ].filter(Boolean).length;
-  const shopifySignals = [
-    hit(/(?:cdn\.shopify\.com|\/cdn\/shop\/)/i, "Shopify CDN"),
-    hit(/(?:shopify\.theme|shopify-section|shopify-payment-button)/i, "Shopify storefront"),
-    hit(/\.myshopify\.com/i, "Shopify domain reference"),
-  ].filter(Boolean).length;
+  const shopifyThemeMarker = hit(/(?:shopify\.theme|shopify-section|shopify-payment-button|window\.shopify\s*=|shopify\.shop\s*=)/i, "Shopify storefront");
+  const shopifyCdn = hit(/(?:cdn\.shopify\.com|\/cdn\/shop\/)/i, "Shopify CDN");
+  const shopifyDomain = hit(/\.myshopify\.com/i, "Shopify domain reference");
+  // Headless Shopify (Hydrogen / Storefront API) and embedded Buy Buttons are not a Shopify theme.
+  const shopifyHeadless = hit(/(?:\/api\/\d{4}-\d{2}\/graphql\.json|storefront-?access-?token|x-shopify-storefront|@shopify\/hydrogen|shopify-hydrogen|oxygen-v\d)/i, "Shopify Storefront API (headless)");
+  const shopifyBuyButton = hit(/(?:buy-button-storefront|shopifybuy|sdks\.shopifycdn\.com\/buy-button)/i, "Shopify Buy Button embed");
+  const shopifySignals = [shopifyThemeMarker, shopifyCdn, shopifyDomain].filter(Boolean).length;
+  const wooHeadless = hit(/(?:\/wp-json\/wc\/store\/v\d|\/wp-json\/wc\/v\d|wc\/store\/v1)/i, "WooCommerce Store API (headless)");
   const magentoMageCookies = hit(/mage\/cookies/i, "Magento mage/cookies marker");
   const magentoNamedMarker = hit(/magento_/i, "Magento named marker");
   const magentoResponseHeader = hit(/x-magento/i, "Magento response header");
@@ -274,7 +294,8 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
     strongest = Math.max(strongest, wordpressSignals);
   }
 
-  const strongShopify = shopifySignals >= 2;
+  // A theme marker proves a Shopify storefront; CDN + domain alone may be an embed.
+  const strongShopify = shopifySignals >= 2 && (shopifyThemeMarker || !(wordpressSignals >= 2 || shopifyBuyButton || shopifyHeadless));
   const strongMagento = magentoMageCookies || magentoNamedMarker || magentoResponseHeader || magentoVersionedStatic;
   const platformCandidates: Array<{ name: string; strength: number }> = [];
   const strongWoo = /wp-content\/plugins\/woocommerce/i.test(source) || (wordpressSignals >= 2 && wooSignals >= 2);
@@ -285,6 +306,8 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
   // Require either multiple independent markers or one platform-specific asset/runtime marker.
   const strongPrestaShop = prestashopSignals >= 2 || /\/modules\/(?:ps_|blockcart|blockreassurance)/i.test(source);
   const strongBigCommerce = bigCommerceSignals >= 1 && /(?:cdn\d*\.bigcommerce\.com|stencil-utils)/i.test(source);
+  if (!strongShopify && shopifyHeadless && (shopifyCdn || shopifyDomain)) platformCandidates.push({ name: "Shopify (headless)", strength: 1.5 });
+  if (!strongWoo && wooHeadless) platformCandidates.push({ name: "WooCommerce (headless)", strength: 1.5 });
   if (strongPrestaShop) platformCandidates.push({ name: "PrestaShop", strength: Math.max(2, prestashopSignals) });
   if (strongBigCommerce) platformCandidates.push({ name: "BigCommerce", strength: Math.max(2, bigCommerceSignals) });
 
@@ -319,7 +342,8 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
   const cmsStrength = cms === "WordPress" ? wordpressSignals
     : cms === "Wix" || cms === "Squarespace" || cms === "Webflow" ? 2
     : 0;
-  const commerceStrength = commercePlatform === "WooCommerce" ? Math.max(2, wooSignals + Math.min(wordpressSignals, 1))
+  const commerceStrength = /headless/.test(commercePlatform || "") ? 1.5
+    : commercePlatform === "WooCommerce" ? Math.max(2, wooSignals + Math.min(wordpressSignals, 1))
     : commercePlatform === "Shopify" ? shopifySignals
     : commercePlatform === "Magento / Adobe Commerce" ? magentoSignals
     : commercePlatform === "PrestaShop" ? Math.max(2, prestashopSignals)
@@ -333,14 +357,20 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
     cmsStrength,
     Math.min(frameworkStrength, 2),
   );
-  const confidence = confirmedLabelStrength >= 3 ? 97
-    : confirmedLabelStrength === 2 ? 90
-    : confirmedLabelStrength === 1 ? 72
+  const strengthToConfidence = (strength: number) => strength >= 3 ? 97 : strength >= 2 ? 90 : strength >= 1.5 ? 80 : strength >= 1 ? 72 : 0;
+  const confidence = confirmedLabelStrength >= 1 ? strengthToConfidence(confirmedLabelStrength)
     : isCommerce ? 55
     : 40;
   const confidenceLabel = confidence >= 90 ? "high" : confidence >= 70 ? "medium" : "low";
 
+  const labelEvidence = (prefix: string) => [...new Set(evidence)].filter((label) => label.startsWith(prefix));
+  const technologies: TechnologyProfile["technologies"] = [
+    ...(cms ? [{ name: cms, role: "cms" as const, confidence: strengthToConfidence(Math.max(cmsStrength, 1)), evidence: labelEvidence(cms) }] : []),
+    ...(commercePlatform && commercePlatform !== "Custom / niet bevestigd" ? [{ name: commercePlatform, role: "commerce_platform" as const, confidence: strengthToConfidence(commerceStrength), evidence: labelEvidence(commercePlatform.split(" ")[0]) }] : []),
+    ...(framework ? [{ name: framework, role: "framework" as const, confidence: strengthToConfidence(Math.min(frameworkStrength, 2)), evidence: labelEvidence(framework) }] : []),
+  ];
   return {
+    technologies,
     siteType: isCommerce ? "Webshop" : "Website",
     cms,
     commercePlatform,
@@ -350,9 +380,9 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
     confidenceLabel,
     evidence: [...new Set(evidence)].filter((label) => {
       if (label.startsWith("WordPress") && cms !== "WordPress") return false;
-      if (label.startsWith("WooCommerce") && commercePlatform !== "WooCommerce") return false;
+      if (label.startsWith("WooCommerce") && !String(commercePlatform || "").startsWith("WooCommerce")) return false;
       if (label.startsWith("Magento") && commercePlatform !== "Magento / Adobe Commerce") return false;
-      if (label.startsWith("Shopify") && commercePlatform !== "Shopify") return false;
+      if (label.startsWith("Shopify") && !String(commercePlatform || "").startsWith("Shopify")) return false;
       if (label.startsWith("PrestaShop") && commercePlatform !== "PrestaShop") return false;
       if (label.startsWith("BigCommerce") && commercePlatform !== "BigCommerce") return false;
       if (label.startsWith("Wix") && cms !== "Wix") return false;
@@ -966,28 +996,25 @@ async function runScan(request: Request) {
       shippingDetails: boolean;
       returnPolicy: boolean;
     };
+    const schemaIdIndex = indexJsonLdIds(schemaObjects);
     const productOfferEvidence = productSchemaObjects.map((product) => {
       const offers = Array.isArray(product?.offers) ? product.offers : product?.offers ? [product.offers] : [];
       const normalizedOffers: ProductOfferEvidence[] = offers.map((offer: any) => ({
         type: Array.isArray(offer?.["@type"]) ? offer["@type"].map(String).join(",") : String(offer?.["@type"] || ""),
-        price: offer?.price ?? offer?.lowPrice ?? null,
-        highPrice: offer?.highPrice ?? null,
-        currency: typeof offer?.priceCurrency === "string" ? offer.priceCurrency.trim().toUpperCase() : "",
+        // Missing price stays null (never 0); WooCommerce may only fill priceSpecification.
+        price: offerPrice(offer).price,
+        highPrice: offerPrice(offer).highPrice,
+        currency: offerPrice(offer).currency,
         availability: typeof offer?.availability === "string" ? offer.availability.trim() : "",
         shippingDetails: Boolean(offer?.shippingDetails),
         returnPolicy: Boolean(offer?.hasMerchantReturnPolicy),
       }));
-      const rawImage = Array.isArray(product?.image) ? product.image[0] : product?.image;
-      const imageUrl = typeof rawImage === "string"
-        ? rawImage.trim()
-        : typeof rawImage?.url === "string"
-          ? rawImage.url.trim()
-          : typeof rawImage?.contentUrl === "string"
-            ? rawImage.contentUrl.trim()
-            : "";
+      // URL, ImageObject, array or an @id reference elsewhere in the @graph.
+      const imageUrl = resolveSchemaImage(product?.image, schemaIdIndex) || "";
       return {
         name: typeof product?.name === "string" ? product.name.trim() : "",
-        hasImage: Boolean(product?.image),
+        // An image counts only when a URL can be resolved (a bare reference proves nothing).
+        hasImage: Boolean(imageUrl),
         imageUrl,
         sku: typeof product?.sku === "string" ? product.sku.trim() : "",
         offers: normalizedOffers,
@@ -995,9 +1022,7 @@ async function runScan(request: Request) {
     });
     console.info("RankFix scan phase", { phase: "product_evidence_built", page: finalUrl.toString(), hasProductSchema, productSchemaObjects: productSchemaObjects.length, productEvidence: productOfferEvidence.length });
     const offerHasPrice = (offer: { price: unknown }) => {
-      if (offer.price === null || offer.price === undefined || offer.price === "") return false;
-      const numeric = typeof offer.price === "number" ? offer.price : Number(String(offer.price).replace(",", "."));
-      return Number.isFinite(numeric) && numeric >= 0;
+      return parseStructuredPrice(offer.price) !== null;
     };
     const offerHasValidCurrency = (offer: { currency: string }) => /^[A-Z]{3}$/.test(offer.currency);
     const offerHasAvailability = (offer: { availability: string }) => Boolean(offer.availability && /(?:InStock|OutOfStock|PreOrder|BackOrder|LimitedAvailability|SoldOut|OnlineOnly|InStoreOnly|Discontinued)/i.test(offer.availability));
@@ -1555,12 +1580,15 @@ async function runScan(request: Request) {
       try {
         const source = new URL(item.url);
         const destination = item.finalUrl ? new URL(item.finalUrl) : null;
-        const sourceAuthPath = /(?:^|\/)(?:myaccount|my-account|account|mijn-account|login|signin|sign-in|register|auth|sso)(?:\/|$)/i.test(source.pathname) ||
+        const sourceAuthPath = /(?:^|\/)(?:myaccount|my-account|account|mijn-account|login|signin|sign-in|register|auth|sso|dashboard|my-[a-z0-9-]+|mijn-[a-z0-9-]+|mein-[a-z0-9-]+|mon-[a-z0-9-]+|mio-[a-z0-9-]+|mi-[a-z0-9-]+)(?:\/|$)/i.test(source.pathname) ||
           /(?:^|\/)(?:sales\/order\/history|customer\/account|orders?|order-history)(?:\/|$)/i.test(source.pathname);
         const sourcePersonalizationPath = /(?:^|\/)(?:recomendacoes|recomendacoes-personalizadas|recommendations|preferences|profile|favorites|favourites|wishlist|personalization|personalisatie)(?:\/|$)/i.test(source.pathname);
         const destinationAuth = Boolean(destination && (
           /(?:^|\.)(?:accounts?|auth|login|sso)\./i.test(destination.hostname) ||
-          /(?:^|\/)(?:oauth|oauth2|authorize|auth|login|signin|sign-in|sso)(?:\/|$)/i.test(destination.pathname)
+          // First-party identity hosts such as securelogin.example.com, idp., identity.
+          /^[a-z0-9-]*(?:login|auth|sso|signin|identity|idp)[a-z0-9-]*\./i.test(destination.hostname) ||
+          /(?:^|\/)(?:oauth|oauth2|authorize|auth|login|signin|sign-in|sso)(?:\/|$)/i.test(destination.pathname) ||
+          /(?:^|[\/_-])(?:authentication|authenticate|login|signin|sso)(?:[._\/-]|$)/i.test(destination.pathname)
         ));
         // A link that ends in a login/OAuth flow (accounts.example.com/authorize,
         // /login) is an account gate, never an SEO redirect to "fix". The source
@@ -1664,7 +1692,7 @@ async function runScan(request: Request) {
       note: "Evidence-first: ontbrekend bewijs is niet automatisch een fout. Sectoren en functies worden alleen bevestigd op gevonden signalen.",
     };
 
-    type SectorKey = "financial_services"|"ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"education"|"nonprofit"|"energy_utilities"|"events_culture"|"fitness_sports"|"general_business"|"unknown";
+    type SectorKey = "financial_services"|"ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"education"|"nonprofit"|"energy_utilities"|"events_culture"|"fitness_sports"|"manufacturing_industrial"|"general_business"|"unknown";
     const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]}> = [
       {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\b/i,/\b(te koop|te huur|for sale|for rent|woningaanbod)\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
       {sector:"automotive",label:"Automotive",patterns:[/\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\b/i,/\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
@@ -1796,7 +1824,7 @@ async function runScan(request: Request) {
       nonprofit:"nonprofit", association:"nonprofit", energy:"energy_utilities", telecom:"telecom_technology", software_app:"saas_b2b",
       events:"events_culture", entertainment:"events_culture", museum_culture:"events_culture", fitness:"fitness_sports", sports_club:"fitness_sports",
       publisher_blog:"news_media", food_delivery:"hospitality", parking:"transport_travel", coworking:"professional_services",
-      manufacturer:"general_business", wholesale:"general_business", marketplace:"service_marketplace",
+      manufacturer:"manufacturing_industrial", wholesale:"general_business", marketplace:"service_marketplace",
     };
     const mappedCatalogSector = catalogTop ? catalogLegacyMap[catalogTop.key] : undefined;
     // Even a high-scoring catalog sector requires independent primary evidence;
@@ -1941,6 +1969,17 @@ async function runScan(request: Request) {
           }
         : {...legacyProfile,key:legacyProfile.sector};
 
+    // Primary vs secondary activities: a university hospital is care first, with
+    // teaching and research as secondary activities (shown, never the identity).
+    if (euPrimaryIdentity?.secondary?.length && sectorProfile.sector === euPrimaryIdentity.sector) {
+      Object.assign(sectorProfile, {
+        // Shown in the report only: modules follow the primary sector (self-check rule).
+        secondaryActivities: euPrimaryIdentity.secondary.map((item) => ({ sector: item.sector, label: item.label, evidence: item.evidence })),
+      });
+    }
+
+    Object.assign(sectorProfile, { businessModel: detectBusinessModel({ sector: sectorProfile.sector, navLabels: identityNavLabels, ownText: [title, description, identityH1s.join(" ")].join(" ") }) });
+
     // The sector engine must abstain rather than invent a lodging business from
     // incidental guest/booking language on a payment, service or retailer site.
     const restaurantIdentityEvidence = /\b(?:restaurant|brasserie|bistro|café|cafe|eetcafé|food establishment|dining restaurant)\b/i.test(sectorIdentitySource)
@@ -2001,6 +2040,7 @@ async function runScan(request: Request) {
       energy_utilities:["energy_utilities"],
       events_culture:["events_culture"],
       fitness_sports:["fitness_sports"],
+      manufacturing_industrial:["manufacturing_industrial"],
       news_media:["news_media"],
       telecom_technology:["telecom_technology"],
     };
@@ -2117,7 +2157,7 @@ async function runScan(request: Request) {
       ? (presentSecurityHeaders.length === 6 ? 6 : 5)
       : Math.min(4, presentSecurityHeaders.length);
     securityChecks.push(coreSecurityHeadersPresent
-      ? securityCheck("pass","security_headers","Security headers",`De kernheaders zijn aanwezig (${securityCoreRule}). ${presentSecurityHeaders.length} van 6 gecontroleerde headers bevestigd (${securityHeaderEvidence}).`,"Houd deze headers actief en test wijzigingen aan CSP/HSTS eerst tegen de applicatie.",securityHeaderPoints,6)
+      ? securityCheck("pass","security_headers","Security headers",`De kernheaders zijn aanwezig (${securityCoreRule}). ${presentSecurityHeaders.length} van de 6 gecontroleerde headers aangetroffen (${securityHeaderEvidence}); punten ${securityHeaderPoints}/6 (de kernregel weegt zwaarder dan de aanvullende headers).`,"Houd deze headers actief en test wijzigingen aan CSP/HSTS eerst tegen de applicatie.",securityHeaderPoints,6)
       : securityCheck("warning","security_headers","Security headers",`RankFix bevestigde ${presentSecurityHeaders.length} van 6 gecontroleerde securityheaders (${securityHeaderEvidence}); niet alle kernheaders zijn aanwezig (${securityCoreRule}). Dit is hardening-advies en op zichzelf geen bewijs van een kwetsbaarheid.`,"Controleer HSTS, CSP/frame-bescherming, X-Content-Type-Options, Referrer-Policy en Permissions-Policy op server/CDN-niveau.",securityHeaderPoints,6));
 
     // Status decisions come from lib/security-signals.ts (tested); this block only adds wording.
@@ -2167,7 +2207,7 @@ async function runScan(request: Request) {
         ? securityCheck("pass","security_script_integrity","Externe scripts",scriptIntegrity.missingDynamic.length
             ? `Geen versievaste cross-origin scripts zonder integrity-attribuut. ${scriptIntegrity.missingDynamic.length} dynamisch script(s) van derden (zoals tag managers of betaal-SDK's) kunnen geen SRI gebruiken; houd die beperkt.`
             : `Alle ${scriptIntegrity.crossOrigin} zichtbare cross-origin script(s) bevatten een integrity-attribuut.`,"Houd externe scripts beperkt en gebruik SRI waar versievaste assets dit ondersteunen.",4,4)
-        : securityCheck("warning","security_script_integrity","Externe scripts",`${scriptIntegrity.missingVersioned.length} versievast cross-origin script(s) zonder integrity-attribuut: ${scriptIntegrity.missingVersioned.slice(0,3).join(", ")}. Voor zulke vaste bestanden is Subresource Integrity toepasbaar.`,"Voeg een integrity- en crossorigin-attribuut toe aan versievaste externe scripts, of host ze zelf.",2,4));
+        : securityCheck("warning","security_script_integrity","Externe scripts",`${scriptIntegrity.missingVersioned.length} versievast cross-origin script(s) zonder integrity-attribuut: ${scriptIntegrity.missingVersioned.slice(0,3).map((u: string)=>{ try { const x=new URL(u, finalUrl); return x.host + (x.pathname.length > 60 ? x.pathname.slice(0,57)+"…" : x.pathname); } catch { return String(u).slice(0,80); } }).join(", ")}. Voor zulke vaste bestanden is Subresource Integrity toepasbaar.`,"Voeg een integrity- en crossorigin-attribuut toe aan versievaste externe scripts, of host ze zelf.",2,4));
 
     const securityApplicable = securityChecks.filter((item)=>item.issue_status !== "NOT_APPLICABLE" && item.issue_status !== "UNABLE_TO_CONFIRM");
     const securityMax = securityApplicable.reduce((sum,item)=>sum+item.maxPoints,0);
@@ -2371,6 +2411,11 @@ async function runScan(request: Request) {
     const helpOnlyContactAnchor = classifiedContactAnchors.find((entry) => entry.kind !== null && INDIRECT_CONTACT_KINDS.has(entry.kind))?.item || null;
     const hasPrivacyLink = Boolean(privacyEvidence);
     const hasCookieLink = Boolean(cookieEvidence);
+    // A missing cookie link only counts when the site demonstrably uses cookies
+    // or tracking: no Set-Cookie and no known tracker means there is nothing to disclose that RankFix can prove.
+    const cookieUseObserved = cookieObservations.length > 0 || /googletagmanager\.com|google-analytics\.com|gtag\(|connect\.facebook\.net|fbq\(|hotjar|clarity\.ms|matomo|piwik|doubleclick\.net|snap\.licdn\.com|analytics\.tiktok\.com|cookiebot|onetrust|cookielaw|usercentrics|didomi|iubenda/i.test(html);
+    const cookieSignalOk = hasCookieLink || !cookieUseObserved;
+    const cookieNotRequiredNote = !hasCookieLink && !cookieUseObserved ? " Geen cookies of trackers waargenomen; een cookielink is daarom niet als ontbrekend beoordeeld." : "";
     const hasTermsLink = Boolean(termsEvidence);
     const hasContactLink = Boolean(contactEvidence || contactFormFound || visibleContactEmail);
     const legalLanguageCode = (lang || "").toLowerCase().split("-")[0];
@@ -2458,12 +2503,28 @@ async function runScan(request: Request) {
           return parsed === null ? [] : [parsed];
         })
     )].slice(0, 20);
-    const visiblePriceCandidates = explicitProductPriceCandidates.length ? explicitProductPriceCandidates : broadVisiblePriceCandidates;
-    const visiblePriceEvidenceStrength = explicitProductPriceCandidates.length ? "explicit_product_markup" : broadVisiblePriceCandidates.length ? "broad_page_text" : "none";
+    // Platform price markup nests the amount (WooCommerce: <p class="price"><span
+    // class="woocommerce-Price-amount"><bdi><span>&euro;</span>&nbsp;13,95</bdi>;
+    // Shopify: <span class="price-item price-item--regular">€13,95</span>). Read
+    // the text right after a price-classed element, with a currency in it.
+    const nestedPriceSnippets: string[] = [];
+    const nestedProductPriceCandidates = explicitProductPriceCandidates.length ? [] : [...new Set(
+      [...html.matchAll(/<(?:p|span|div|ins|bdi|strong)\b[^>]*class\s*=\s*["'][^"']*(?:woocommerce-Price-amount|price-item|price__regular|price__sale|product[-_ ]?price|\bprice\b)[^"']*["'][^>]*>([\s\S]{0,260})/gi)]
+        .flatMap((match) => {
+          const snippet = decodeHtmlEntities(String(match[1] || "").replace(/<(?:del|s)\b[\s\S]*?<\/(?:del|s)>/gi, " ").replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim().slice(0, 60);
+          const m = snippet.match(/^(?:(?:€|£|\$|EUR|GBP|USD)\s*(\d{1,6}(?:[.,]\d{3})*(?:[.,]\d{2})?)|(\d{1,6}(?:[.,]\d{3})*(?:[.,]\d{2})?)\s*(?:€|£|\$|EUR|GBP|USD))/i);
+          const parsed = m ? parseVisiblePrice(m[1] || m[2]) : null;
+          if (parsed !== null && m) nestedPriceSnippets.push(m[0]);
+          return parsed === null ? [] : [parsed];
+        })
+    )].slice(0, 20);
+    const markedProductPriceCandidates = explicitProductPriceCandidates.length ? explicitProductPriceCandidates : nestedProductPriceCandidates;
+    const visiblePriceCandidates = markedProductPriceCandidates.length ? markedProductPriceCandidates : broadVisiblePriceCandidates;
+    const visiblePriceEvidenceStrength = markedProductPriceCandidates.length ? "explicit_product_markup" : broadVisiblePriceCandidates.length ? "broad_page_text" : "none";
     const explicitPriceMarkupText = explicitProductPriceCandidates.length
       ? [...html.matchAll(/<(?:meta|span|div|p)[^>]*(?:itemprop\s*=\s*["']price["']|property\s*=\s*["']product:price:(?:amount|currency)["']|class\s*=\s*["'][^"']*(?:product[-_ ]?price|price)[^"']*["'])[^>]*?(?:content\s*=\s*["']([^"']+)["']|>([^<]{0,80}))/gi)]
           .map((match) => String(match[0] || "")).join(" ")
-      : "";
+      : nestedPriceSnippets.join(" ");
     const explicitVisibleCurrencyCodes = [...new Set([
       ...(explicitPriceMarkupText.match(/\b(?:EUR|GBP|USD)\b/gi) || []).map((value) => value.toUpperCase()),
       ...(explicitPriceMarkupText.includes("€") ? ["EUR"] : []),
@@ -2495,8 +2556,8 @@ async function runScan(request: Request) {
     const structuredPriceCandidates = [...new Set(
       productOfferEvidence
         .flatMap((product) => product.offers.map((offer) => offer.price))
-        .map((value) => typeof value === "number" ? value : Number(String(value ?? "").replace(",", ".")))
-        .filter((value): value is number => Number.isFinite(value))
+        .map((value) => parseStructuredPrice(value))
+        .filter((value): value is number => value !== null)
     )].slice(0, 20);
     const canCompareVisibleAndStructuredPrice = hasProductSignal && visiblePriceCandidates.length > 0 && structuredPriceCandidates.length > 0;
     const hasMatchingVisibleStructuredPrice = canCompareVisibleAndStructuredPrice && structuredPriceCandidates.some((schemaPrice) =>
@@ -2760,7 +2821,7 @@ async function runScan(request: Request) {
             ? check("unable_to_confirm", "title", "seo", "Meta title", `De raw HTML bevat alleen een standaardtitel ("${title}"); deze JavaScript-pagina kon niet volledig worden gerenderd, dus de echte title is niet bevestigd.`, "Controleer de title opnieuw met een volledige render voordat je een wijziging maakt.", 0, 10)
             : check("warning", "title", "seo", "Meta title", `De title is een algemene standaardtitel ("${title}") en beschrijft het onderwerp van de pagina niet.`, "Gebruik een unieke title met onderwerp en merk, bijvoorbeeld \"Onderwerp | Merk\".", isHomepage ? 4 : 3, 10)
         : isBrandOnlyTitle(title, finalUrl.hostname)
-          ? check("warning", "title", "seo", "Meta title", `De title bevat alleen de merknaam ("${title}"); het onderwerp van de pagina ontbreekt.`, "Zet het onderwerp van de pagina vóór de merknaam, bijvoorbeeld \"Onderwerp | Merk\".", isHomepage ? 5 : 3, 10)
+          ? check("warning", "title", "seo", "Meta title", isHomepage ? `De title bevat alleen de merknaam ("${title}"). Voor de homepage van een bekende organisatie is dat gebruikelijk; een korte omschrijving van wat de organisatie doet kan de zoekpreview verduidelijken. Licht advies.` : `De title bevat alleen de merknaam ("${title}"); het onderwerp van deze pagina ontbreekt.`, "Zet het onderwerp van de pagina vóór de merknaam, bijvoorbeeld \"Onderwerp | Merk\".", isHomepage ? 9 : 5, 10)
         : hasDanglingTitleSeparator(title)
           ? check("warning", "title", "seo", "Meta title", `De title begint of eindigt met een scheidingsteken ("${title}"); waarschijnlijk vult het template een paginanaam niet in.`, "Vul het ontbrekende deel van de title in of verwijder het losse scheidingsteken, bijvoorbeeld \"Onderwerp | Merk\".", 7, 10)
         : duplicateTitleSegment(title)
@@ -2768,8 +2829,8 @@ async function runScan(request: Request) {
         : titleQualityIssue
           ? check("warning", "title", "seo", "Meta title", `De title is ${title.length} tekens, maar bevat relatief veel herhaalde woorden.`, "Herschrijf de title natuurlijker en voorkom keyword stuffing.", 6, 10)
           : titlePixelEstimate.warning
-            ? check("warning", "title", "seo", "Meta title", titlePixelEstimate.message, "Controleer de daadwerkelijke zoekpreview. Kort alleen in als de relevante informatie wegvalt.", 9, 10)
-            : check("pass", "title", "seo", "Meta title", `${titlePixelEstimate.message} De titel telt ${title.length} tekens; lengte in tekens is geen harde SEO-eis.`, "Houd onderwerp, zoekintentie en merk herkenbaar.", 10, 10)
+            ? check("pass", "title", "seo", "Meta title", `${titlePixelEstimate.message} Advies, geen aftrek.`, "Controleer de daadwerkelijke zoekpreview. Kort alleen in als de relevante informatie wegvalt.", 10, 10)
+            : check("pass", "title", "seo", "Meta title", titlePixelEstimate.measured ? `Meta title gevonden (${title.length} tekens). ${titlePixelEstimate.message}` : `Meta title gevonden (${title.length} tekens). Lengte in tekens is geen harde SEO-eis; zonder pixelmeting geen aftrek.`, "Houd onderwerp, zoekintentie en merk herkenbaar.", 10, 10)
     );
     seoChecks.push(
       !description
@@ -2778,13 +2839,15 @@ async function runScan(request: Request) {
           : check("fail", "description", "seo", "Meta description", descriptionState === "empty" ? "De meta description-tag is aanwezig, maar de content is leeg." : "Er is geen meta description-tag gevonden.", "Laat RankFix AI een nieuwe meta description maken op basis van de pagina.", 0, 10)
         : descriptionQualityIssue
           ? check("warning", "description", "seo", "Meta description", `De description is ${description.length} tekens, maar bevat relatief veel herhaalde woorden.`, "Maak de description natuurlijker en voorkom keyword stuffing.", 6, 10)
-          : description.length > 160 && description.length <= 200
-            ? check("warning", "description", "seo", "Meta description", `De description is ${description.length} tekens. Google kort descriptions boven ongeveer 160 tekens vaak in, waardoor het einde van de boodschap wegvalt. Dit is optimalisatieadvies, geen rankingfout.`, "Zet de kern van de boodschap in de eerste 150 tekens of kort de description in tot maximaal 160 tekens.", descriptionLengthPoints(description.length), 10)
+          // A long description is truncated in the snippet, not a defect: advice
+          // without deduction (same rule as titles and as the sampled pages).
+          : description.length > 160
+            ? check("pass", "description", "seo", "Meta description", `De description is ${description.length} tekens. Google kort descriptions boven ongeveer 160 tekens in de zoekpreview in; zet de kern vooraan. Advies, geen aftrek.`, "Zet de kern van de boodschap in de eerste 150 tekens; inkorten is optioneel.", 10, 10)
           : description.length >= 70 && description.length <= 160
             ? check("pass", "description", "seo", "Meta description", description.length >= 120 && description.length <= 160
                 ? `De description is ${description.length} tekens en goed gevuld.`
                 : `De description is ${description.length} tekens. De klassieke 120–160 tekens is een optimalisatierichtlijn, geen technische SEO-eis; deze aanwezige description wordt daarom niet als fout bestraft.`, "Houd de description concreet, uniek en passend bij de zoekintentie; optimaliseer lengte alleen wanneer dat de zoekpreview en boodschap verbetert.", 10, 10)
-            : check("warning", "description", "seo", "Meta description", `De description is ${description.length} tekens en is uitzonderlijk ${description.length < 70 ? "kort" : "lang"}. Dit is optimalisatieadvies, geen op zichzelf bewezen rankingfout; de punten lopen geleidelijk af naarmate de lengte extremer wordt.`, "Controleer of de description de pagina duidelijk samenvat en herschrijf alleen wanneer de zoekpreview of boodschap daar aantoonbaar van profiteert.", descriptionLengthPoints(description.length), 10)
+            : check("warning", "description", "seo", "Meta description", `De description is ${description.length} tekens en daarmee kort: een zoekmachine krijgt weinig context over de pagina. Daarom een beperkte aftrek; hoe korter, hoe groter.`, "Controleer of de description de pagina duidelijk samenvat en herschrijf alleen wanneer de zoekpreview of boodschap daar aantoonbaar van profiteert.", descriptionLengthPoints(description.length), 10)
     );
     seoChecks.push(h1s.length === 1
       ? check("pass", "h1", "seo", "H1-heading", "Er is precies één H1-heading gevonden.", "Behoud één duidelijke primaire H1.", 8, 8)
@@ -3034,15 +3097,15 @@ async function runScan(request: Request) {
     );
 
     seoChecks.push(
-      (thinRawHtmlEvidence || (metadataMayBeClientRendered && !(hasPrivacyLink && hasCookieLink && hasContactLink)))
+      (thinRawHtmlEvidence || (metadataMayBeClientRendered && !(hasPrivacyLink && cookieSignalOk && hasContactLink)))
         ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen",thinRawHtmlEvidence ? "De raw HTML is een dunne JavaScript-shell. Privacy-, cookie- en contactlinks kunnen client-side worden toegevoegd en zijn daarom niet betrouwbaar als ontbrekend te beoordelen." : "Deze pagina gebruikt een JavaScript-framework en browser-rendering was niet beschikbaar. Footerlinks naar privacy, cookies of contact kunnen client-side worden geladen en zijn daarom niet als ontbrekend te beoordelen.","Controleer deze signalen opnieuw met geslaagde JavaScript-rendering.",0,5)
-        : hasPrivacyLink && hasCookieLink && hasContactLink
-        ? check("pass","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Links naar privacy, cookies en contact zijn in de opgehaalde HTML gevonden."+(legalEvidenceSummary ? " Bewijs: "+legalEvidenceSummary+"." : ""),"Houd deze informatie duidelijk vindbaar en actueel. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",5,5)
-        : hasPrivacyLink && hasCookieLink && helpOnlyContactAnchor
+        : hasPrivacyLink && cookieSignalOk && hasContactLink
+        ? check("pass","trust_legal_signals","seo","Privacy & vertrouwenssignalen",(hasCookieLink ? "Links naar privacy, cookies en contact zijn in de opgehaalde HTML gevonden." : "Links naar privacy en contact zijn in de opgehaalde HTML gevonden."+cookieNotRequiredNote)+(legalEvidenceSummary ? " Bewijs: "+legalEvidenceSummary+"." : ""),"Houd deze informatie duidelijk vindbaar en actueel. Dit is een technische aanwezigheidstest, geen juridisch oordeel.",5,5)
+        : hasPrivacyLink && cookieSignalOk && helpOnlyContactAnchor
         ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Links naar privacy en cookies zijn gevonden. Voor contact is alleen een indirecte link gevonden (FAQ, help, support, klantenservice of een andere website) (\""+(helpOnlyContactAnchor.label || helpOnlyContactAnchor.aria || helpOnlyContactAnchor.title)+"\" → "+helpOnlyContactAnchor.href+"); dat bewijst geen directe contactmogelijkheid, maar ook niet dat die ontbreekt."+(legalEvidenceSummary ? " Bewijs: "+legalEvidenceSummary+"." : ""),"Controleer of de help- of supportpagina een contactpagina, contactformulier, e-mailadres of telefoonnummer aanbiedt.",0,5)
         : !legalLanguageSupported && Boolean(legalLanguageCode)
           ? check("unable_to_confirm","trust_legal_signals","seo","Privacy & vertrouwenssignalen","De paginataal ("+legalLanguageCode+") valt buiten de geteste juridische woordenlijst en niet alle signalen zijn rechtstreeks bevestigd."+(legalEvidenceSummary ? " Wel gevonden: "+legalEvidenceSummary+"." : ""),"Controleer de footer en cookiebanner handmatig of breid de woordenlijst voor deze taal uit.",0,5)
-          : check("warning","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Niet alle basissignalen zijn gevonden: "+[!hasPrivacyLink?"privacy":null,!hasCookieLink?"cookies":null,!hasContactLink?"contact":null].filter(Boolean).join(", ")+". "+(legalEvidenceSummary ? "Wel gevonden: "+legalEvidenceSummary+"." : ""),"Controleer of privacy-, cookie- en contactinformatie duidelijk bereikbaar is. RankFix beoordeelt hiermee geen wettelijke compliance.",Math.max(2, Number(hasPrivacyLink)+Number(hasCookieLink)+Number(hasContactLink)+2),5)
+          : check("warning","trust_legal_signals","seo","Privacy & vertrouwenssignalen","Niet alle basissignalen zijn gevonden: "+[!hasPrivacyLink?"privacy":null,!cookieSignalOk?"cookies":null,!hasContactLink?"contact":null].filter(Boolean).join(", ")+". "+(legalEvidenceSummary ? "Wel gevonden: "+legalEvidenceSummary+"." : ""),"Controleer of privacy-, cookie- en contactinformatie duidelijk bereikbaar is. RankFix beoordeelt hiermee geen wettelijke compliance.",Math.max(2, Number(hasPrivacyLink)+Number(cookieSignalOk)+Number(hasContactLink)+2),5)
     );
     seoChecks.push(
       thinRawHtmlEvidence && hasEcommerceSignal
@@ -3153,7 +3216,9 @@ async function runScan(request: Request) {
       : isProductPage && !addToCartMarkupSignal
         ? check("unable_to_confirm","checkout_funnel_static","seo","Checkout & funnel","Dit is een productpagina, maar RankFix kon in raw HTML geen duidelijke toevoegen-aan-winkelwagen actie bevestigen. De actie kan client-side via JavaScript worden gerenderd.","Controleer de koopactie later met de browser/headless-audit. Raw HTML alleen is onvoldoende bewijs voor een checkoutfout.",0,0)
         : (cartHrefSignal || checkoutHrefSignal) && addToCartMarkupSignal
-          ? check("pass","checkout_funnel_static","seo","Checkout & funnel","Statische funnel-signalen zijn aanwezig: koopactie en een winkelwagen- of checkoutpad zijn gevonden.","Dit bewijst niet dat de interactieve funnel werkt; runtime add-to-cart en checkout worden later met browser/headless getest.",0,0)
+          // Signals are not a working checkout: RankFix never runs the cart/checkout,
+          // so presence stays "niet te bevestigen" (0 points, never "geslaagd").
+          ? check("unable_to_confirm","checkout_funnel_static","seo","Checkout & funnel","Koopactie en een winkelwagen- of checkoutpad zijn gevonden (statische signalen). Of de checkout werkt, is daarmee niet bewezen.","Dit bewijst niet dat de interactieve funnel werkt; runtime add-to-cart en checkout worden later met browser/headless getest.",0,0)
           : check("unable_to_confirm","checkout_funnel_static","seo","Checkout & funnel",javascriptExecuted ? "RankFix vond webshop-signalen in de gerenderde pagina, maar heeft de volledige product → winkelwagen → checkout-flow niet doorlopen; klikken en betalen worden bewust niet uitgevoerd." : "RankFix vond webshop-signalen, maar kan vanuit deze losse raw-HTML pagina de volledige product → winkelwagen → checkout-flow niet bevestigen.","Gebruik de toekomstige browser/headless-controle om klikken, winkelwagenstatus en checkout runtime te testen.",0,0)
     );
     seoChecks.push(!hasEcommerceSignal
@@ -3274,18 +3339,30 @@ async function runScan(request: Request) {
     );
 
     const primaryProductEvidence = productOfferEvidence.find((product) => Boolean(product.name)) || productOfferEvidence[0] || null;
+    // "Bevestigde productvelden" means the same five product fields everywhere
+    // (name, image, SKU, price + currency, availability); copy sources are counted apart.
+    const primaryProductFieldCount = primaryProductEvidence ? [
+      primaryProductEvidence.name, primaryProductEvidence.imageUrl, primaryProductEvidence.sku,
+      primaryProductEvidence.offers?.some((offer) => parseStructuredPrice(offer.price) !== null && offer.currency),
+      primaryProductEvidence.offers?.some((offer) => offer.availability),
+    ].filter(Boolean).length : 0;
+    const productOptimizerSourceFields = [
+      primaryProductEvidence?.name && "productnaam", description && "meta description", title && "titel", primaryProductEvidence?.sku && "SKU",
+      primaryProductEvidence?.offers?.some((offer) => parseStructuredPrice(offer.price) !== null && offer.currency) && "prijs + valuta",
+      primaryProductEvidence?.offers?.some((offer) => offer.availability) && "beschikbaarheid",
+    ].filter(Boolean) as string[];
     const productOptimizerSourceCount = [
       Boolean(primaryProductEvidence?.name),
       Boolean(description),
       Boolean(title),
       Boolean(primaryProductEvidence?.sku),
-      Boolean(primaryProductEvidence?.offers?.some((offer) => offer.price && offer.currency)),
+      Boolean(primaryProductEvidence?.offers?.some((offer) => parseStructuredPrice(offer.price) !== null && offer.currency)),
       Boolean(primaryProductEvidence?.offers?.some((offer) => offer.availability)),
     ].filter(Boolean).length;
     console.info("RankFix scan phase", { phase: "product_optimizer_ready", page: finalUrl.toString(), isProductPage, productOptimizerSourceCount, hasPrimaryProduct: Boolean(primaryProductEvidence) });
     geoChecks.push(isProductPage
       ? productOptimizerSourceCount >= 3
-        ? check("pass", "product_copy_optimizer", "geo", "AI Product Copy & Metadata", `Deze productpagina heeft ${productOptimizerSourceCount} controleerbare bronvelden voor veilige AI-optimalisatie. RankFix kan hiermee een voorstel maken zonder producteigenschappen te verzinnen.`, "Gebruik Product Optimizer voor een preview van productcopy en metadata. Controleer het voorstel vóór publicatie.", 5, 5)
+        ? { ...check("pass", "product_copy_optimizer", "geo", "AI Product Copy & Metadata", `Deze productpagina heeft ${productOptimizerSourceCount} controleerbare bronvelden voor productcopy (${productOptimizerSourceFields.join(", ")}). Dit gaat over brongegevens voor tekst, niet over volledige Merchant-productdata. RankFix kan hiermee een voorstel maken zonder producteigenschappen te verzinnen.`, "Gebruik Product Optimizer voor een preview van productcopy en metadata. Controleer het voorstel vóór publicatie.", 5, 5), evidence: { url: finalUrl.toString(), found: true, details: `Bronvelden: ${productOptimizerSourceFields.join(", ")}` } }
         : check("unable_to_confirm", "product_copy_optimizer", "geo", "AI Product Copy & Metadata", "Deze productpagina heeft te weinig controleerbare brongegevens om veilig productcopy te genereren.", "Voeg eerst betrouwbare productnaam, beschrijving en Product/Offer-data toe voordat AI-optimalisatie wordt gebruikt.", 0, 5)
       : check("not_applicable", "product_copy_optimizer", "geo", "AI Product Copy & Metadata", "Geen bewezen productdetailpagina; Product Optimizer is hier niet van toepassing.", "Scan een echte productdetailpagina om Product Optimizer te gebruiken.", 0, 5)
     );
@@ -3294,7 +3371,9 @@ async function runScan(request: Request) {
       ? productSchemaPresent
         ? hasCompleteProductOffer
           ? check("pass", "product_schema", "geo", "Product structured data", "Product JSON-LD bevat aantoonbaar productnaam, afbeelding en Offer-data met prijs, valuta en beschikbaarheid.", "Houd structured data gelijk aan de zichtbare productinformatie en controleer wijzigingen opnieuw.", 8, 8)
-          : check("warning", "product_schema", "geo", "Product structured data", "Product JSON-LD is aanwezig, maar RankFix vindt geen compleet Product/Offer-bewijs met productnaam, afbeelding, prijs, valuta en beschikbaarheid.", "Vul alleen aantoonbare Product/Offer-velden aan en laat structured data overeenkomen met de zichtbare productpagina.", 4, 8)
+          // Product JSON-LD in the raw HTML is a proven partial fact; a missing JS
+          // render cannot erase it, so the warning keeps its evidence.
+          : { ...check("warning", "product_schema", "geo", "Product structured data", "Product JSON-LD is aanwezig, maar RankFix vindt geen compleet Product/Offer-bewijs met productnaam, afbeelding, prijs, valuta en beschikbaarheid.", "Vul alleen aantoonbare Product/Offer-velden aan en laat structured data overeenkomen met de zichtbare productpagina.", 4, 8), evidence: { url: finalUrl.toString(), found: true, details: "Product JSON-LD aanwezig in de opgehaalde HTML, maar onvolledig." } }
         : metadataMayBeClientRendered
           ? check("unable_to_confirm", "product_schema", "geo", "Product structured data", "Deze URL heeft productpagina-signalen, maar de JavaScript-pagina kon niet volledig worden gerenderd. Afwezig Product JSON-LD in de beschikbare HTML bewijst daarom niet dat Product structured data live ontbreekt.", "Controleer de productpagina opnieuw met een volledige render voordat structured data wordt toegevoegd.", 0, 8)
           : check("warning", "product_schema", "geo", "Product structured data", "Deze pagina is als productpagina herkend, maar Product JSON-LD ontbreekt.", "Voeg Product structured data toe met alleen gegevens die zichtbaar en aantoonbaar zijn.", 3, 8)
@@ -3660,7 +3739,7 @@ async function runScan(request: Request) {
       }
       if(item.key==="trust_legal_signals"){
         const labels=localizedMissingLabels[scanLanguage]||localizedMissingLabels.en;
-        const missing=[!hasPrivacyLink?labels.privacy:null,!hasCookieLink?labels.cookies:null,!hasContactLink?labels.contact:null].filter(Boolean).join(", ");
+        const missing=[!hasPrivacyLink?labels.privacy:null,!cookieSignalOk?labels.cookies:null,!hasContactLink?labels.contact:null].filter(Boolean).join(", ");
         item.title=({nl:"Privacy & vertrouwenssignalen",en:"Privacy & trust signals",de:"Datenschutz- & Vertrauenssignale",fr:"Signaux de confidentialité et de confiance",it:"Segnali di privacy e fiducia",es:"Señales de privacidad y confianza"} as Record<string,string>)[scanLanguage]||"Privacy & trust signals";
         item.message=concreteCopy.trust(missing);
         item.fix=concreteCopy.trustFix;
@@ -3841,7 +3920,7 @@ async function runScan(request: Request) {
     const pageTypeEvidence = {
       type: isHomepage ? "homepage" : propertyListingPage ? "property_listing" : isProductPage ? "product" : hasCategorySignal ? "category" : (effectiveLocalBusinessPage || resolvedServicePage) ? "service" : effectiveArticlePage ? "article" : "unknown",
       confidence: isHomepage ? "high" : propertyListingPage ? "high" : isProductPage && (hasProductSchema || hasSkuSignal) ? "high" : isProductPage ? "medium" : hasCategorySignal && (hasItemListSignal || repeatedProductCardSignal) ? "high" : resolvedServicePage && servicePathSignal ? "high" : effectiveLocalBusinessPage || resolvedServicePage || hasCategorySignal || effectiveArticlePage ? "medium" : "low",
-      evidence: [isHomepage ? `localized/root path: ${pathname}` : "", propertyListingPage ? "Scanbewijs: vastgoedobject/listing" : "", servicePathSignal ? `resolved service path: ${pathname}` : "", resolvedServicePage && serviceContentSignal ? "service intent in resolved page metadata/headings" : "", hasProductSchema ? "Product schema present" : "", hasStoreSchema ? "Store schema present" : "", hasItemListSignal ? "ItemList schema present" : "", genericCategoryPathSignal ? `generic commerce category path: ${pathname}` : "", repeatedProductCardSignal ? "repeated product-card commerce signals" : "", commercialNavigationEvidence ? "commercial navigation + shop/support links" : "", hasSkuSignal ? "SKU signal present" : "", hasStrongCommerceAction ? "commerce action present" : "", articleSuppressedByCommerce ? "article signal suppressed by stronger product evidence" : ""].filter(Boolean),
+      evidence: [isHomepage ? `localized/root path: ${pathname}` : "", propertyListingPage ? "Scanbewijs: vastgoedobject/listing" : "", servicePathSignal ? `resolved service path: ${pathname}` : "", resolvedServicePage && serviceContentSignal ? "service intent in resolved page metadata/headings" : "", hasProductSchema ? "Product schema present" : "", hasStoreSchema ? "Store schema present" : "", hasItemListSignal ? "ItemList schema present" : "", genericCategoryPathSignal && !isProductPage ? `generic commerce category path: ${pathname}` : genericCategoryPathSignal ? `shop path: ${pathname}` : "", repeatedProductCardSignal ? "repeated product-card commerce signals" : "", commercialNavigationEvidence ? "commercial navigation + shop/support links" : "", hasSkuSignal ? "SKU signal present" : "", hasStrongCommerceAction ? "commerce action present" : "", articleSuppressedByCommerce ? "article signal suppressed by stronger product evidence" : ""].filter(Boolean),
     };
     const pageTypeContradictions = [
       pageTypeEvidence.type === "article" && isProductPage ? "article_vs_product" : null,
@@ -3923,8 +4002,8 @@ async function runScan(request: Request) {
     // Multi-page evidence audit: select a bounded same-host sample and fetch it
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
-    type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "contact" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; schemaTypes?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "event" | "corporate" | "contact" | "other"; evidence: string[] };
+    type MultiPageAudit = MultiPageCandidate & { excludedUtility?: boolean; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; schemaTypes?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -3946,9 +4025,14 @@ async function runScan(request: Request) {
         const evidence: string[] = [];
         // On retail sites, product-detail URL shapes (slug ending in a product id) are
         // nominated too; the fetched page must still prove itself as product evidence.
-        const productPath = /\/(?:product|products|product-page|p|artikel|item|vehicle|voertuig|woning|property|properties|occasion|occasions)\//i.test(path)
-          || ((sectorProfile.key === "ecommerce" || explicitRetailIdentity || hasEcommerceSignal) && looksLikeProductDetailPath(path));
-        const categoryPath = /\/(?:category|categories|categorie|categorieen|cat|collection|collections|shop|store|winkel|catalog|catalogue|outlet|sale|aanbod|voorraad|huizen|woningen|cars|autos)(?:\/|$)/i.test(path);
+        const storePage = looksLikeStorePage(path);
+        const editorialPage = looksLikeEditorialPath(path);
+        const eventPage = !editorialPage && looksLikeEventPath(path);
+        const corporatePage = !editorialPage && !eventPage && looksLikeCorporatePath(path);
+        const categoryArchive = looksLikeCategoryPath(path);
+        const productPath = !storePage && !categoryArchive && !editorialPage && !eventPage && !corporatePage && (/\/(?:product|products|product-page|p|artikel|item|producten|vehicle|voertuig|woning|property|properties|occasion|occasions)\//i.test(path)
+          || ((sectorProfile.key === "ecommerce" || explicitRetailIdentity || hasEcommerceSignal) && looksLikeProductDetailPath(path)));
+        const categoryPath = !storePage && !editorialPage && !eventPage && !corporatePage && (categoryArchive || /\/(?:category|categories|categorie|categorieen|cat|collection|collections|shop|store|winkel|catalog|catalogue|outlet|sale|aanbod|voorraad|huizen|woningen|cars|autos)(?:\/|$)/i.test(path));
         const legalPath = pathSegments.some((segment) => legalUtilitySegment.test(segment));
         const formPath = /(?:^|\/)(?:contact|contact-us|contacteer|kontakt|offerte|quote|request-quote|afspraak|appointment|booking|book|reserve|reservation|reserveren)(?:\/|$)/i.test(path);
         const contactPath = /(?:^|\/)(?:contact|contact-us|contacteer|kontakt)(?:\/|$)/i.test(path);
@@ -3964,7 +4048,11 @@ async function runScan(request: Request) {
         if (supportPath) evidence.push("support/faq-like path");
         if (servicePath) evidence.push("service-like path");
         if (listingPath) evidence.push("listing-like path");
-        const type: MultiPageCandidate["type"] = contactPath ? "contact" : formPath ? "form" : legalPath ? "legal" : supportPath ? "support" : listingPath ? "listing" : productPath ? "product" : servicePath ? "service" : categoryPath ? "category" : articlePath ? "article" : "other";
+        if (storePage) evidence.push("store finder / franchise path (not a product range)");
+        if (editorialPage) evidence.push("press/news/article path");
+        if (eventPage) evidence.push("event path");
+        if (corporatePage) evidence.push("corporate information path");
+        const type: MultiPageCandidate["type"] = contactPath ? "contact" : formPath ? "form" : legalPath ? "legal" : supportPath ? "support" : (articlePath || editorialPage) ? "article" : eventPage ? "event" : corporatePage ? "corporate" : listingPath ? "listing" : productPath ? "product" : servicePath ? "service" : categoryPath ? "category" : "other";
         return { url: candidate.toString(), type, evidence };
       } catch { return null; }
     };
@@ -3973,7 +4061,7 @@ async function runScan(request: Request) {
       const candidate = classifyMultiPageCandidate(item.url);
       if (!candidate) return [];
       const context = (item.context || "").trim();
-      if (context) candidate.evidence.push(`link-context: ${context.slice(0,120)}`);
+      if (context) { const cleanContext = context.replace(/\s*(?:""|“”|''|«\s*»)\s*$/,"").trim(); if (cleanContext) candidate.evidence.push(`link-context: ${cleanContext.slice(0,120)}`); }
       return [[normalizeScanUrl(candidate.url), candidate] as const];
     })).values()];
     // Evidence-first representative selection. URL shape is only a weak fallback;
@@ -4022,11 +4110,11 @@ async function runScan(request: Request) {
           { url: representativeHomeUrl, type: "homepage", evidence: [localePathMatch ? "locale root" : "site root"] },
           ...pickMultiPage("category", 4), ...pickMultiPage("product", 4),
           ...pickMultiPage("form", 3), ...pickMultiPage("contact", 2), ...pickMultiPage("legal", 2), ...pickMultiPage("support", 2), ...pickMultiPage("article", 2),
-          ...pickMultiPage("service", 3), ...pickMultiPage("listing", 2), ...pickMultiPage("other", 2),
+          ...pickMultiPage("service", 3), ...pickMultiPage("listing", 2), ...pickMultiPage("corporate", 1), ...pickMultiPage("event", 1), ...pickMultiPage("other", 2),
         ]
       : [
           { url: representativeHomeUrl, type: "homepage", evidence: [localePathMatch ? "locale root" : "site root"] },
-          ...pickMultiPage("form", 3), ...pickMultiPage("contact", 2), ...pickMultiPage("article", 2), ...pickMultiPage("service", 5), ...pickMultiPage("listing", 4), ...pickMultiPage("legal", 2), ...pickMultiPage("support", 2), ...pickMultiPage("category", 2), ...pickMultiPage("product", 2), ...pickMultiPage("other", 2),
+          ...pickMultiPage("form", 3), ...pickMultiPage("contact", 2), ...pickMultiPage("article", 2), ...pickMultiPage("service", 5), ...pickMultiPage("listing", 4), ...pickMultiPage("legal", 2), ...pickMultiPage("support", 2), ...pickMultiPage("category", 2), ...pickMultiPage("product", 2), ...pickMultiPage("corporate", 2), ...pickMultiPage("event", 1), ...pickMultiPage("other", 2),
         ];
     // Always include the exact page the customer scanned as the first sample.
     // This prevents a product scan from being represented only by a sibling product
@@ -4074,6 +4162,11 @@ async function runScan(request: Request) {
           || finalCandidateHost.endsWith(`.${siteHost}`)
           || siteHost.endsWith(`.${finalCandidateHost}`);
         if (!sameRegistrableSite) throw new Error("CROSS_HOST_REDIRECT");
+        // A link that redirects to a login, credential-recovery or personal page is
+        // not representative content: drop it from the sample (not a fetch failure).
+        if (isNonContentUrl(finalCandidate.toString())) {
+          return { ...page, url:finalCandidate.toString(), excludedUtility:true, status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"excluded",status:"UNABLE_TO_CONFIRM",details:"Doorverwezen naar een account- of persoonlijke pagina; niet representatief."}] };
+        }
         const contentType = r.headers.get("content-type") || "";
         let pageHtml: string | null = null;
         let representativeEvidenceSource: "raw_html" | "rendered_html" = "raw_html";
@@ -4166,10 +4259,12 @@ async function runScan(request: Request) {
           .map((m)=>safeDecodeURIComponent(m[1]||""))
           .filter((href)=>/(?:^|\/)(?:product|products|product-page|p)(?:\/|$)|\/(?:dp|artikel|prodotto|produto)\//i.test(href));
         const pagePriceSignals = (pageQualityText.match(/(?:€|EUR\b|\bEUR\s*)\s*\d{1,5}(?:[.,]\d{2})?|\d{1,5}(?:[.,]\d{2})?\s*(?:€|EUR\b)/gi)||[]).length;
+        const pageJsonLdRoots: unknown[] = [];
         const pageProductJson = (() => {
           for (const raw of [...pageHtml.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)].map((m)=>m[1])) {
             try {
               const parsed = JSON.parse(raw);
+              pageJsonLdRoots.push(parsed);
               const queue:any[] = Array.isArray(parsed) ? [...parsed] : [parsed];
               while (queue.length) {
                 const value = queue.shift();
@@ -4189,15 +4284,17 @@ async function runScan(request: Request) {
         const pageImageValue = pageProductJson?.image;
         const pageProductEvidence = pageProductJson ? {
           name: typeof pageProductJson.name==="string" ? pageProductJson.name.trim() || null : null,
-          // image may be a URL, an ImageObject ({url|contentUrl}) or an array of either.
-          image: (()=>{ const first = Array.isArray(pageImageValue) ? pageImageValue[0] : pageImageValue; if (typeof first==="string") return first || null; if (first && typeof first==="object") { const imageObject = first as Record<string, unknown>; const url = imageObject.url ?? imageObject.contentUrl; return typeof url==="string" && url ? url : null; } return null; })(),
+          // image may be a URL, an ImageObject, an array or an @id reference in the @graph.
+          image: resolveSchemaImage(pageImageValue, indexJsonLdIds(pageJsonLdRoots)),
           sku: typeof pageProductJson.sku==="string" ? pageProductJson.sku : null,
-          price: pageOffer?.price != null ? String(pageOffer.price) : null,
-          currency: typeof pageOffer?.priceCurrency==="string" ? pageOffer.priceCurrency : null,
+          price: offerPrice(pageOffer).price != null ? String(offerPrice(pageOffer).price) : null,
+          currency: offerPrice(pageOffer).currency || null,
           availability: typeof pageOffer?.availability==="string" ? pageOffer.availability : null,
         } : null;
         const pageCommerceEvidence = {
           productSchema: pageProductSchema,
+          productSchemaCount: (pageHtml.match(/"@type"\s*:\s*"Product"/g)||[]).length,
+          eventSchema: pageSchemaTypes.some((type)=>/^(?:event|educationevent|businessevent|socialevent|exhibitionevent|musicevent|theaterevent)$/i.test(type)),
           itemListSchema: pageItemListSchema,
           storeSchema: pageStoreSchema,
           strongCommerceAction: pageStrongCommerceAction,
@@ -4232,10 +4329,10 @@ async function runScan(request: Request) {
           {key:"description",status:!pageDescription && pageMissingEvidenceUnverified?"UNABLE_TO_CONFIRM":pageDescriptionAssessment.status==="PASS"?"PASS":"WARNING",details:!pageDescription && pageMissingEvidenceUnverified?`${pageDescriptionAssessment.details} ${clientShellNote}`:pageDescriptionAssessment.details},
           {key:"h1",status:pageH1s.length>0?"PASS":pageMissingEvidenceUnverified?"UNABLE_TO_CONFIRM":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:pageH1s.length===0&&pageMissingEvidenceUnverified?`0 H1-heading(s) gevonden in de raw HTML. ${clientShellNote}`:`${pageH1s.length} H1-heading(s) gevonden.`},
           {key:"canonical",status:pageCanonical
-            ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); if(!/^https?:$/.test(resolved.protocol)) return "WARNING"; return normalizeScanUrl(resolved.toString())===normalizeScanUrl(finalCandidate.toString())?"PASS":"WARNING"; } catch { return "WARNING"; } })()
+            ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); if(!/^https?:$/.test(resolved.protocol)) return "WARNING"; return canonicalEquivalent(resolved, finalCandidate)?"PASS":"WARNING"; } catch { return "WARNING"; } })()
             : pageMissingEvidenceUnverified ? "UNABLE_TO_CONFIRM" : "WARNING",
             details:pageCanonical
-              ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); if(!/^https?:$/.test(resolved.protocol)) return `Canonical gebruikt een ongeldig protocol of schema: ${pageCanonical}.`; const samePage=normalizeScanUrl(resolved.toString())===normalizeScanUrl(finalCandidate.toString()); if (samePage) return `Self-canonical/equivalente voorkeurs-URL bevestigd: ${resolved.toString()}`; const httpOnly = resolved.protocol==="http:" && finalCandidate.protocol==="https:" && normalizeScanUrl(resolved.toString().replace(/^http:/,"https:"))===normalizeScanUrl(finalCandidate.toString()); return httpOnly?`Canonical wijst naar de onbeveiligde HTTP-versie van deze pagina (${resolved.toString()}); gebruik de HTTPS-URL.`:`Canonical wijst naar ${resolved.toString()}; controleer of deze afwijking bewust is.`; } catch { return "Canonical is aanwezig maar kon niet betrouwbaar als URL worden geïnterpreteerd."; } })()
+              ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); if(!/^https?:$/.test(resolved.protocol)) return `Canonical gebruikt een ongeldig protocol of schema: ${pageCanonical}.`; const samePage=canonicalEquivalent(resolved, finalCandidate); if (samePage) return normalizeScanUrl(resolved.toString())===normalizeScanUrl(finalCandidate.toString()) ? `Self-canonical/equivalente voorkeurs-URL bevestigd: ${resolved.toString()}` : `Canonical wijst naar dezelfde pagina zonder queryparameters (${resolved.toString()}); dat is bewuste canonicalisering, geen fout.`; const httpOnly = resolved.protocol==="http:" && finalCandidate.protocol==="https:" && normalizeScanUrl(resolved.toString().replace(/^http:/,"https:"))===normalizeScanUrl(finalCandidate.toString()); return httpOnly?`Canonical wijst naar de onbeveiligde HTTP-versie van deze pagina (${resolved.toString()}); gebruik de HTTPS-URL.`:`Canonical wijst naar ${resolved.toString()}; controleer of deze afwijking bewust is.`; } catch { return "Canonical is aanwezig maar kon niet betrouwbaar als URL worden geïnterpreteerd."; } })()
               : pageMissingEvidenceUnverified ? `Geen canonical-linkelement gevonden in de raw HTML. ${clientShellNote}` : "Geen expliciete canonical gevonden; dit is niet automatisch een indexeringsprobleem."},
         ];
          const evidenceCredit = (item: MultiPageAudit["evidenceChecks"][number]) => {
@@ -4300,6 +4397,8 @@ async function runScan(request: Request) {
       },
     );
     await Promise.all(representativeWorkers);
+    // Utility pages reached via redirects leave the sample entirely.
+    for (let i = multiPageAudits.length - 1; i >= 0; i--) if (multiPageAudits[i]?.excludedUtility) multiPageAudits.splice(i, 1);
     // Second hop for retail sites: product links often appear only on category or
     // brand pages, not on the scanned homepage. Nominate a few product-detail links
     // from audited listing pages (rendering at most two listings that load products
@@ -4532,9 +4631,12 @@ async function runScan(request: Request) {
     // A fully fetched product-detail page with a model-specific URL establishes
     // a secondary commerce opportunity, even if SSR omits Product/Offer schema.
     // This is evidence of product intent, NOT of a working retail checkout.
+    // A /products/ page of a manufacturer or service company is product
+    // information, not commerce: it needs a purchase action, a price or an Offer.
     const representativeCommercialProductIntent = auditedMultiPages.some((item)=>item.status==="audited"
       && item.type==="product"
-      && /\/(?:shop|winkel|store|products?)(?:\/|$)/i.test(new URL(item.url).pathname));
+      && /\/(?:shop|winkel|store|products?)(?:\/|$)/i.test(new URL(item.url).pathname)
+      && Boolean(item.commerceEvidence?.strongCommerceAction || (item.commerceEvidence?.priceSignals||0) > 0 || (item.commerceEvidence?.product?.price && item.commerceEvidence?.product?.currency)));
     const finalCommerceApplicability = commerceApplicability({
       confirmed: finalCommerceDecision.confirmed,
       primaryNonCommerceIdentity: Boolean(primaryNonCommerceIdentity),
@@ -4762,7 +4864,12 @@ async function runScan(request: Request) {
       const treatmentCheck = seoChecks.find((item)=>item.key==="sector_health_services");
       if (treatmentCheck) Object.assign(treatmentCheck, check("pass","sector_health_services","seo","Behandelingen & diensten","Representatieve same-site pagina's bevestigen behandelingen of therapeutische diensten.","Houd behandelingen en diensten feitelijk en duidelijk vindbaar.",4,4)); if (treatmentCheck?.status==="pass") treatmentCheck.evidence = { url: auditedMultiPages.find((page)=>/\b(behandeling|behandelingen|treatment|specialisatie|tandarts|dentist|spoed|afspraak)\b/i.test(page.identityText||""))?.url || finalUrl.toString(), found: true, details: treatmentCheck.message };
     }
-    const productSamplePage = auditedMultiPages.find((item)=>item.type==="product" && item.commerceEvidence?.product);
+    // The best-evidenced real product page represents the shop: most product
+    // fields, a confirmed retail page, never a category or store page.
+    const productFieldCount = (p?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null) => p ? [p.name, p.image, p.sku, p.price && p.currency, p.availability].filter(Boolean).length : 0;
+    const productSamplePage = auditedMultiPages
+      .filter((item)=>item.type==="product" && item.commerceEvidence?.product)
+      .sort((a,b)=>(Number(Boolean(b.commerceEvidence?.confirmedRetailPage))-Number(Boolean(a.commerceEvidence?.confirmedRetailPage))) || (productFieldCount(b.commerceEvidence?.product)-productFieldCount(a.commerceEvidence?.product)))[0];
     const representativeProduct = productSamplePage?.commerceEvidence?.product;
     if (finalCommerceDecision.confirmed && representativeProduct) {
       const productEvidenceCount = [representativeProduct.name,representativeProduct.image,representativeProduct.sku,representativeProduct.price&&representativeProduct.currency,representativeProduct.availability].filter(Boolean).length;
@@ -4773,7 +4880,8 @@ async function runScan(request: Request) {
       const availabilityCheck = seoChecks.find((item)=>item.key==="product_availability_consistency");
       if (availabilityCheck && representativeProduct.availability) Object.assign(availabilityCheck, check("pass","product_availability_consistency","seo","Productvoorraad",`Een representatieve productpagina bevat een expliciet beschikbaarheidssignaal: ${representativeProduct.availability}.`,"Houd zichtbare voorraad en structured data consistent.",4,4));
       const merchantCheck = seoChecks.find((item)=>item.key==="merchant_product_readiness");
-      if (merchantCheck && productEvidenceCount>=4) Object.assign(merchantCheck, check("pass","merchant_product_readiness","seo","Merchant Center productbasis","Een representatieve productpagina bevestigt naam, afbeelding en meerdere machineleesbare product-/aanbodvelden.","Houd productpagina en eventuele Merchant-feed consistent; RankFix bevestigt hiermee geen Merchant Center-goedkeuring.",6,6));
+      // Merchant Center needs an image: no merchant pass without a resolvable product image.
+      if (merchantCheck && productEvidenceCount>=4 && representativeProduct.image) Object.assign(merchantCheck, check("pass","merchant_product_readiness","seo","Merchant Center productbasis","Een representatieve productpagina bevestigt naam, afbeelding en meerdere machineleesbare product-/aanbodvelden.","Houd productpagina en eventuele Merchant-feed consistent; RankFix bevestigt hiermee geen Merchant Center-goedkeuring.",6,6));
       // Each promoted product check points at the product page that proved it.
       for (const item of [productSchemaCheck, optimizerCheck, availabilityCheck, merchantCheck]) {
         if (item && item.status === "pass" && productSamplePage) item.evidence = { url: productSamplePage.url, found: true, details: item.message };
@@ -4865,7 +4973,7 @@ async function runScan(request: Request) {
       const cookiePage = sampled.find((item)=>/cookie/.test(item.path)) || (privacyPage && /cookie/.test(privacyPage.text) ? privacyPage : undefined);
       const contactPage = sampled.find((item)=>/(?:^|\/)(?:contact|contact-us|contactgegevens|kontakt|contacto|contatti)(?:\/|$)/.test(item.path));
       const privacyOk = hasPrivacyLink || Boolean(privacyPage);
-      const cookieOk = hasCookieLink || Boolean(cookiePage);
+      const cookieOk = cookieSignalOk || Boolean(cookiePage);
       const contactOk = hasContactLink || Boolean(contactPage);
       const sampleProof = [privacyPage && `privacy: ${privacyPage.url}`, cookiePage && cookiePage !== privacyPage && `cookies: ${cookiePage.url}`, cookiePage && cookiePage === privacyPage && !hasCookieLink && "cookies: in de privacyverklaring", contactPage && `contact: ${contactPage.url}`].filter(Boolean).join(" · ");
       if (privacyOk && cookieOk && contactOk && (privacyPage || cookiePage || contactPage)) {
@@ -5015,7 +5123,8 @@ async function runScan(request: Request) {
       serviceCommerce: serviceCommerceSignals,
       message: finalCommerceApplicability.state === "confirmed" ? "Product-, prijs- of winkelwagenbewijs bevestigd." : COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason],
     };
-    const representativeProductPage = auditedMultiPages.find((item)=>item.type==="product" && item.commerceEvidence?.product);
+    // Same ranked choice as the product diagnostics: the best-evidenced real product page.
+    const representativeProductPage = productSamplePage;
     if ((finalCommerceDecision.confirmed || verifiedRepresentativeProductDetail) && representativeProductPage?.commerceEvidence?.product) {
       const product = representativeProductPage.commerceEvidence.product;
       const sourceCount = [product.name,product.image,product.sku,product.price&&product.currency,product.availability].filter(Boolean).length;
@@ -5041,8 +5150,12 @@ async function runScan(request: Request) {
         if ((item.key==="product_availability" || item.key==="product_availability_consistency") && product.availability) {
           Object.assign(item, check("pass",item.key,item.category==="geo"?"geo":"seo","Productvoorraad",`Een representatieve productpagina bevat een expliciet structured availability-signaal: ${product.availability}.`,"Houd zichtbare voorraad en Product/Offer structured data consistent.",item.maxPoints,item.maxPoints));
         }
-        if (item.key==="merchant_product_readiness" && finalCommerceDecision.confirmed && sourceCount>=4) {
+        if (item.key==="merchant_product_readiness" && finalCommerceDecision.confirmed && sourceCount>=4 && product.image) {
           Object.assign(item, check("pass","merchant_product_readiness",item.category==="geo"?"geo":"seo","Merchant Center productbasis","Representatieve product-evidence bevestigt naam, afbeelding en meerdere machineleesbare Product/Offer-velden.","Houd productpagina en eventuele Merchant-feed consistent; RankFix bevestigt hiermee geen Merchant Center-goedkeuring.",item.maxPoints,item.maxPoints));
+        }
+        // Promoted from the representative product page: that page is the evidence.
+        if (item.status==="pass" && ["product_schema","product_optimizer","product_copy_optimizer","product_availability","product_availability_consistency","merchant_product_readiness"].includes(item.key) && (item.evidence?.found===null || item.evidence?.found===undefined)) {
+          item.evidence = { url: representativeProductPage.url, found: true, details: item.message };
         }
       }
     }
@@ -5080,6 +5193,11 @@ async function runScan(request: Request) {
       javascriptRequiredButNotRendered: Boolean(javascriptCandidate) && !javascriptExecuted,
       renderDegraded: Boolean(rejectedBrowserSnapshot),
       unconfirmed: overallCoverage.unableToConfirm,
+      // Heavy checks (8+ points: title, description, H1, structured data, entity, …)
+      // that stayed unconfirmed make a 98/99 provisional, never "definitief".
+      // Organization + WebSite is a homepage concern; on a product or article URL it is not decisive.
+      importantUnconfirmed: [...seoChecks,...geoChecks].filter((c)=>c.status==="unable_to_confirm" && c.maxPoints>=8 && !(c.key==="organization_website" && !isHomepage)).map((c)=>c.title),
+      sectorConfidence: sectorProfile.sector === "unknown" ? undefined : sectorProfile.confidenceScore,
     });
     scoreModel.provisional = scoreEvidence.level !== "complete";
     Object.assign(scoreModel, {
@@ -5182,6 +5300,8 @@ async function runScan(request: Request) {
       accounting:sampleAccounting,
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:representativePageLimit,
       discoveredInternalUrls:discoveredMultiPage.length, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,
+      // Which sampled page proved the product fields (null = none was proven).
+      representativeProduct: productSamplePage ? { url: productSamplePage.url, fields: productFieldCount(productSamplePage.commerceEvidence?.product) } : null,
       siteSampleScore: scoredSamplePages.length ? Math.round(scoredSamplePages.reduce((sum,item)=>sum+(item.score||0),0)/scoredSamplePages.length) : null,
       siteSampleCoverage: {
         selected: multiPageAudits.length,
@@ -5343,16 +5463,18 @@ async function runScan(request: Request) {
               internalLinks, canonical: canonical || null, lang: lang || null, robots: robots || null,
               openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null }, imageAltCandidates,
               productOptimizer: isProductPage
-                ? { eligible: productOptimizerSourceCount >= 3, sourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page" }
+                ? { eligible: productOptimizerSourceCount >= 3 && [...seoChecks,...geoChecks].some((c)=>c.key==="product_copy_optimizer" && c.status==="pass"), sourceCount: primaryProductFieldCount, copySourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page" }
                 : (() => {
-                    const sample = auditedMultiPages.find((item)=>item.type==="product");
+                    // The same best-evidenced product page as the product checks (never the first match).
+                    const sample = productSamplePage || auditedMultiPages.find((item)=>item.type==="product");
                     const product = sample?.commerceEvidence?.product || null;
                     const sourceCount = product ? [
                       Boolean(product.name), Boolean(product.image), Boolean(product.sku),
                       Boolean(product.price && product.currency), Boolean(product.availability),
                     ].filter(Boolean).length : 0;
                     if (sample) return {
-                      eligible: sourceCount >= 3,
+                      // Same verdict as the AI Product Copy check, never a separate "Ja".
+                      eligible: sourceCount >= 3 && [...seoChecks,...geoChecks].some((c)=>c.key==="product_copy_optimizer" && c.status==="pass"),
                       sourceCount,
                       product,
                       provenance: "representative_product_sample",
@@ -5595,9 +5717,10 @@ async function runScan(request: Request) {
         openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null },
         imageAltCandidates,
         productOptimizer: isProductPage
-                ? { eligible: productOptimizerSourceCount >= 3, sourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page" }
+                ? { eligible: productOptimizerSourceCount >= 3 && [...seoChecks,...geoChecks].some((c)=>c.key==="product_copy_optimizer" && c.status==="pass"), sourceCount: primaryProductFieldCount, copySourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page" }
                 : (() => {
-                    const sample = auditedMultiPages.find((item)=>item.type==="product");
+                    // The same best-evidenced product page as the product checks (never the first match).
+                    const sample = productSamplePage || auditedMultiPages.find((item)=>item.type==="product");
                     const product = sample?.commerceEvidence?.product || null;
                     const sourceCount = product ? [
                       Boolean(product.name), Boolean(product.image), Boolean(product.sku),

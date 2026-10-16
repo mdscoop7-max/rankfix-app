@@ -83,11 +83,13 @@ test("titles: an old year in a title is flagged as outdated", () => {
   assert.equal(assessPageTitle("Tarieven en vergoedingen 2017 Acupunctuur Praktijk Gerda Dijkstra.", "www.acupunctuurdijkstra.nl", now).flag, "outdated_year");
 });
 
-test("descriptions: 160–200 is a light warning, above 200 exceptionally long", () => {
+test("descriptions: long descriptions are advice without deduction; missing or short ones still count", () => {
   assert.equal(assessPageDescription("x".repeat(128), true).status, "PASS");
   const long = assessPageDescription("x".repeat(181), true);
-  assert.equal(long.status, "WARNING");
-  assert.equal(long.credit, 0.9);
+  assert.equal(long.status, "PASS");
+  assert.equal(long.credit, 1);
+  assert.equal(assessPageDescription("x".repeat(457), true).credit, 1);
+  assert.equal(assessPageDescription("", false).status, "WARNING");
   assert.match(long.details, /lange kant/);
   assert.match(assessPageDescription("x".repeat(274), true).details, /uitzonderlijk lang/);
   assert.match(assessPageDescription("x".repeat(51), true).details, /kort/);

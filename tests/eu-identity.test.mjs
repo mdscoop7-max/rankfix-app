@@ -103,3 +103,57 @@ test("further EU languages: PL airline, FI bank, EE telecom, LV news, LT rail, H
   // "a lot of", "parking lot" are not flights.
   assert.equal(detectEuPrimaryIdentity({ title: "Parking lot cleaning – a lot of experience", description: "We clean parking lots and garages.", homepage: true }), null);
 });
+
+test("academic medical centres: care is primary, teaching and research secondary", async () => {
+  const { detectEuPrimaryIdentity: d } = await import("../lib/eu-identity.ts");
+  const cases = [
+    { title: "Musterstadt – Universitätsmedizin", description: "Krankenversorgung, Forschung und Lehre an einem der größten Universitätsklinika.", schemaTypes: ["CollegeOrUniversity"] },
+    { title: "UMC Noordstad – ziekenhuis, onderzoek en onderwijs", description: "Universitair medisch centrum voor patiëntenzorg." },
+    { title: "CHU de Villeneuve", description: "Centre hospitalier universitaire : soins, urgences, recherche." },
+    { title: "Policlinico Universitario Esempio", description: "Assistenza sanitaria, ricerca e didattica." },
+    { title: "Hospital Universitario Ejemplo", description: "Atención sanitaria, investigación y docencia." },
+  ];
+  for (const c of cases) {
+    const r = d({ ...c, homepage: true });
+    assert.equal(r?.sector, "health_wellness", c.title);
+    assert.ok((r?.secondary || []).some((x) => x.sector === "education") || !/univers/i.test(c.title + c.description), `${c.title}: education secondary`);
+  }
+  // Universities (also medical universities) stay education.
+  for (const title of ["Universiteit Noordstad", "Medizinische Universität Musterstadt", "University of Exampletown"]) {
+    assert.equal(d({ title, description: "Studium, Forschung und Lehre; faculties and students.", homepage: true })?.sector, "education", title);
+  }
+  // A bare acronym without any care concept is not a hospital.
+  assert.notEqual(d({ title: "UKM Holding", description: "Investments and consulting.", homepage: true })?.sector, "health_wellness");
+});
+
+test("manufacturers and industrial suppliers are recognised in EU languages, software stays software", async () => {
+  const { detectEuPrimaryIdentity: d } = await import("../lib/eu-identity.ts");
+  const ind = [
+    { title: "Lumetrix | Supplier to the semiconductor industry", description: "We provide chipmakers with hardware, software and services for lithography." },
+    { title: "Machinefabriek Noord – machinebouw op maat", description: "Wij ontwerpen en bouwen verpakkingsmachines voor de voedingsindustrie." },
+    { title: "Brenner – Werkzeugmaschinen", description: "Hersteller von Werkzeugmaschinen für die industrielle Fertigung." },
+    { title: "Fonderie Martin", description: "Fabricant de pièces en acier pour l'industrie aéronautique." },
+    { title: "Rossi Valvole", description: "Produttore di valvole e pompe industriali." },
+    { title: "Componentes Ibéricos", description: "Fabricante de componentes y maquinaria industrial." },
+  ];
+  for (const c of ind) assert.equal(d({ ...c, homepage: true })?.sector, "manufacturing_industrial", c.title);
+  const not = [
+    { title: "Acme – planning software for manufacturing", description: "SaaS platform for production planning in the manufacturing industry. Book a demo." },
+    { title: "Fabriek Bar & Restaurant", description: "Lunch, diner en borrel in een oude fabriek." },
+    { title: "Laserkliniek Amsterdam", description: "Laserbehandeling tegen pigmentvlekken. Maak een afspraak." },
+    { title: "Advies voor de industrie | Bureau X", description: "Strategisch advies en interim management voor industriële bedrijven." },
+  ];
+  for (const c of not) assert.notEqual(d({ ...c, homepage: true })?.sector, "manufacturing_industrial", c.title);
+});
+
+test("multi-activity groups: certainty is capped and the other activities stay visible", async () => {
+  const { detectEuPrimaryIdentity: d } = await import("../lib/eu-identity.ts");
+  const r = d({ title: "Gruppo Nazionale - Servizi postali, finanziari e assicurativi", description: "Spedizioni, pacchi, conti, carte, assicurazioni e pagamenti.", homepage: true });
+  assert.ok(r && r.confidenceScore <= 72 && r.confidence === "medium", JSON.stringify(r));
+  // The activity named first in the organisation's own title is primary.
+  assert.equal(r.sector, "transport_travel");
+  assert.ok((r.secondary || []).some((x) => x.sector === "financial_services"));
+  assert.equal(d({ title: "Gruppo Y - Servizi assicurativi, finanziari e postali", homepage: true }).sector, "financial_services");
+  // A single-activity insurer or bank keeps its certainty.
+  assert.ok(d({ title: "Versicherer Nord – Versicherung und Vorsorge", description: "Autoversicherung, Hausratversicherung", homepage: true }).confidenceScore >= 90);
+});

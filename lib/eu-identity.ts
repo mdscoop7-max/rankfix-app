@@ -23,7 +23,7 @@
 
 export type EuSector =
   | "news_media" | "financial_services" | "transport_travel" | "government"
-  | "education" | "health_wellness" | "telecom_technology" | "energy_utilities" | "events_culture" | "professional_services" | "saas_b2b" | "fitness_sports" | "tourism_recreation";
+  | "education" | "health_wellness" | "telecom_technology" | "energy_utilities" | "events_culture" | "professional_services" | "saas_b2b" | "fitness_sports" | "tourism_recreation" | "manufacturing_industrial";
 
 export type EuIdentity = {
   sector: EuSector;
@@ -32,6 +32,8 @@ export type EuIdentity = {
   confidence: "high" | "medium";
   confidenceScore: number;
   evidence: string[];
+  /** Important activities that do not define the organisation (a university hospital also teaches). */
+  secondary?: Array<{ sector: EuSector; label: string; evidence: string[] }>;
 };
 
 export type EuIdentityInput = {
@@ -56,6 +58,11 @@ function words(list: string[]): RegExp {
 /** Word stems: must start a word, may continue with letters ("univerzit" → univerzita, univerzity). */
 function stems(list: string[]): RegExp {
   return new RegExp(`${B}(?:${list.join("|")})\\p{L}*`, "iu");
+}
+/** The distinct words of one lexicon that occur in a text (for evidence lines). */
+function distinct2(text: string, re: RegExp): string[] {
+  const g = new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g");
+  return [...new Set([...text.matchAll(g)].map((m) => m[0].toLowerCase()))];
 }
 function any(...res: RegExp[]) {
   return (text: string) => res.some((re) => re.test(text));
@@ -110,6 +117,23 @@ const AGENCY_SERVICE = stems(["webdesign", "website", "websites", "apps", "marke
 
 const TRAVEL_AGENCY = stems(["reisebüro", "reisbureau", "reisorganisatie", "agence de voyage", "agenzia viaggi", "agenzia di viaggi", "agencia de viajes", "agência de viagens", "biuro podróży", "cestovní kancelář", "cestovná kancelária", "utazási iroda", "agenție de turism", "matkatoimisto", "reisibüroo", "ceļojumu aģentūra", "kelionių agentūra", "resebyrå", "rejsebureau", "ταξιδιωτικό γραφείο", "туристическа агенция", "pauschalreise", "package holiday", "last minute", "kreuzfahrt", "cruises", "tour operator", "touroperator"]);
 const COURIER = stems(["mensajería", "mensajeria", "koerier", "kurier", "courier", "coursier", "corriere espresso", "kurýr", "futárszolgálat", "curierat", "kuriiri", "kullerteenus", "kurjer", "kurjerių", "pakketdienst", "paketdienst", "express delivery", "pakkebud"]);
+// ---------------------------------------------------------------- industry / manufacturing
+// Who makes or supplies industrial goods: a maker/supplier word plus an industrial
+// object, in the organisation's own title, description, H1 or site name.
+const MAKER = stems(["manufactur", "fabrikant", "fabricant", "fabricage", "producent", "productiebedrijf", "hersteller", "herstellung", "fertigung", "fabrication", "produttor", "produzion", "fabbricant", "fabricante", "fabricación", "fabricação", "producător", "valmistaja", "valmista", "tillverk", "fabrikant", "výrobc", "výrob", "gyárt", "κατασκευαστ", "производител", "proizvođač", "proizvajal", "tootja", "ražotāj", "gamintoj", "wytwórc", "producent", "maker of", "makers of", "we make", "we build", "builder of", "machinefabriek", "fabriek", "fabrik", "usine", "fabbrica", "fábrica", "tehdas", "fabryk", "továrn", "wij bouwen", "we bouwen", "ontwerpen en bouwen", "entwickeln und bauen", "concevons et fabriquons", "progettiamo e costruiamo"]);
+const SUPPLIER = stems(["supplier", "leverancier", "zulieferer", "ausrüster", "fournisseur", "équipementier", "fornitor", "proveedor", "fornecedor", "dostawc", "toimittaj", "leverantör", "dodavatel", "beszállító", "furnizor", "доставчик", "dobavitelj", "dobavljač", "tarnija", "piegādātāj", "tiekėj"]);
+const INDUSTRIAL = stems([
+  "semiconductor", "halfgeleider", "halbleiter", "semi-conducteur", "semiconducteur", "semicondutt", "semiconductor", "półprzewodnik", "puolijohde", "halvledar", "polovodič", "félvezető",
+  "lithograph", "lithografi", "litograf", "chipmaker", "chip industry", "wafer",
+  "machinebouw", "maschinenbau", "werktuigbouw", "machine builder", "machinery", "machines", "maschinen", "machine tools", "werkzeugmaschin", "machines-outils", "macchine", "maquinaria", "máquinas", "maszyn", "koneet", "maskiner", "stroj", "gépgyárt",
+  "industrial equipment", "industriële", "industrial", "industry", "industries", "industrie", "industriel", "industriale", "industria", "industrial", "przemysł", "teollisuu", "industri", "průmysl", "ipari",
+  "automation", "automatiser", "automatisierung", "automazione", "automatización", "robotics", "robotica", "robotik",
+  "components", "componenten", "komponenten", "composants", "componenti", "componentes", "bearings", "lager", "pumps", "pompen", "pumpen", "valves", "kleppen", "ventile", "compressors", "turbines", "turbinen", "generators", "generatoren", "engines", "motoren", "verpakkingsmachine", "voedingsindustrie", "lasers", "laser",
+  "steel", "staal", "stahl", "acier", "acciaio", "acero", "chemicals", "chemie", "chimie", "chimica", "química", "plastics", "kunststof", "kunststoff", "packaging machines", "verpakkingsmachines", "electronics manufactur", "precision", "precisie", "präzision",
+  "aerospace", "lucht- en ruimtevaart", "luft- und raumfahrt", "aéronautique", "aerospaziale", "aeroespacial",
+]);
+const HARDWARE = stems(["hardware", "systems", "systemen", "systeme", "systèmes", "sistemi", "sistemas", "equipment", "apparatuur", "anlagen", "équipements", "attrezzature", "equipos", "equipamentos", "installations", "installaties", "products", "producten", "produkte", "produits", "prodotti", "productos"]);
+
 const SOFTWARE = stems(["software", "saas", "platform", "plattform", "plateforme", "piattaforma", "plataforma", "logiciel", "app for", "regtech", "fintech platform"]);
 const SOFTWARE_FUNNEL = stems(["book a demo", "free trial", "start trial", "request a demo", "demo aanvragen", "demo anfragen", "gratis proberen", "kostenlos testen", "essai gratuit", "prova gratuita", "prueba gratis", "pricing", "prijzen", "preise", "tarifs", "features", "functies", "funktionen", "integrations", "integraties", "login", "inloggen", "anmelden"]);
 const FITNESS = stems(["sportschool", "fitnessstudio", "fitness-studio", "fitnesscenter", "gimnasio", "ginásio", "palestra", "salle de sport", "siłownia", "posilovna", "posilňovňa", "edzőterem", "sală de fitness", "kuntosali", "jõusaal", "sporto klubas", "trenažieru zāle", "γυμναστήριο", "фитнес", "gym", "crossfit", "yoga studio", "pilates"]);
@@ -191,6 +215,22 @@ const UNIVERSITY = stems([
 const EDU_SUPPORT = stems(["fakult", "faculty", "facoltà", "facultad", "faculdade", "faculté", "studium", "študij", "štúdi", "studi", "students", "studenten", "studenti", "estudiant", "étudiant", "estudant", "studerend", "opiskelij", "üliõpilas", "studentai", "studenci", "hallgató", "φοιτητ", "студент", "opleiding", "studiengang", "corsi di laurea", "grado", "licenciatur", "bachelor", "master", "výskum", "výzkum", "research", "forschung", "recherche", "ricerca", "investigación"]);
 
 // ---------------------------------------------------------------- health
+// Academic medical centres name themselves as hospitals, often inside a
+// university name ("Universitätsmedizin", "UMC", "CHU"). Care is their primary
+// activity; teaching and research are secondary.
+const MEDICAL_CENTRE = words([
+  "universitätsmedizin", "hochschulmedizin", "universitätsklinikum", "universitätsklinik\\p{L}*", "uniklinik\\p{L}*", "klinikum",
+  "university hospitals?", "university medical cent(?:er|re)", "academic medical cent(?:er|re)", "university clinic",
+  "medisch centrum", "academisch ziekenhuis", "universitair ziekenhuis", "universitair medisch centrum", "universitaire ziekenhuizen",
+  "centre hospitalier(?: universitaire| régional)?", "hôpital universitaire", "hôpitaux universitaires", "cliniques universitaires",
+  "azienda ospedaliera(?: universitaria)?", "policlinico", "ospedale universitario",
+  "hospital universitari[oa]?", "hospital clínic", "complejo hospitalario", "centro hospitalar(?: universitário)?",
+  "universitetssjukhus\\p{L}*", "universitetshospital\\p{L}*", "universitetssygehus\\p{L}*", "yliopistollinen sairaala", "yliopistosairaala",
+  "fakultní nemocnice", "fakultná nemocnica", "szpital uniwersytecki", "szpital kliniczny", "uniwersytecki szpital kliniczny",
+  "klinički bolnički centar", "univerzitetni klinični center", "spitalul clinic", "egyetemi klinik\\p{L}*", "ülikooli kliinikum", "πανεπιστημιακό νοσοκομείο",
+]);
+/** Acronyms are only medical names next to a care concept ("UMC Utrecht", "CHU de Lille"). */
+const MEDICAL_CENTRE_ACRONYM = words(["umc", "chu", "chru", "aphp", "ap-hp", "uz", "ukm", "uke"]);
 const HEALTH_CONCEPTS: Array<[string, RegExp]> = [
   ["health", stems(["gezondheid", "health", "gesundheit", "santé", "salute", "salud", "saúde", "hälsa", "sundhed", "helse", "terveys", "tervis", "veselīb", "sveikat", "zdrow", "zdraví", "zdravie", "egészség", "sănătat", "υγεί", "здрав", "zdravlj", "zdravj"])],
   ["care", stems(["zorgverlen", "zorgaanbied", "gezondheidszorg", "thuiszorg", "ouderenzorg", "jeugdzorg", "vård", "pleje", "hoito", "ravi ", "ravile", "medical care", "healthcare", "gesundheitsversorg", "soins", "cure mediche", "atención sanitaria", "cuidados de saúde", "opieka zdrowotn", "péče", "starostliv", "ellátás", "îngrijir", "περίθαλψ"])],
@@ -258,7 +298,55 @@ export function governmentHostname(hostname = ""): boolean {
   return (labels.length >= 2 && GOV_HOST_LABEL.test(labels[labels.length - 2])) || labels[labels.length - 1] === "gov";
 }
 
+const TITLE_FAMILIES: Array<{ sector: EuSector; key: string; label: string; primaryLabel: string; re: RegExp }> = [
+  { sector: "transport_travel", key: "postal_logistics", label: "Post & logistiek", primaryLabel: "Post- & pakketvervoer", re: stems(["postal", "postali", "postale", "postaux", "postales", "postais", "post- en", "postdienst", "postdienste", "pocztow", "poštov", "postipalvel", "logistic", "logistiek", "logistik", "logistique", "logistica"]) },
+  { sector: "financial_services", key: "financial_services", label: "Financiële diensten", primaryLabel: "Financiële diensten", re: stems(["financial services", "finanziari", "finanzdienst", "services financiers", "servicios financieros", "serviços financeiros", "financiële diensten", "banking", "bancari", "bancaires", "bancarios", "bankdienst"]) },
+  { sector: "financial_services", key: "financial_insurance", label: "Verzekeringen", primaryLabel: "Verzekeringen", re: stems(["insurance", "assicurativ", "versicherung", "assurances", "seguros", "verzekering"]) },
+  { sector: "telecom_technology", key: "telecom_technology", label: "Telecom", primaryLabel: "Telecom & Technologie", re: stems(["telecom", "telecomunicazion", "telekommunikation", "télécommunications", "telecomunicaciones", "mobile and broadband", "fibra e mobile"]) },
+  { sector: "energy_utilities", key: "energy_utilities", label: "Energie", primaryLabel: "Energie & Nutsvoorzieningen", re: stems(["energy", "energia", "energie", "énergie", "energía"]) },
+];
+
+/**
+ * Conglomerates name several primary activities in their own title
+ * ("Poste Italiane - Servizi postali, finanziari e assicurativi"). An
+ * organisation lists its core activity first, so the FIRST named activity is
+ * the primary sector; the others are secondary, and certainty is capped
+ * because the site legitimately serves several sectors.
+ */
 export function detectEuPrimaryIdentity(input: EuIdentityInput): EuIdentity | null {
+  const result = detectEuPrimaryIdentityCore(input);
+  const title = stripAudience((input.title || "").slice(0, 300));
+  const named = TITLE_FAMILIES
+    .map((f) => ({ ...f, at: title.search(new RegExp(f.re.source, f.re.flags.replace("g", ""))) }))
+    .filter((f) => f.at >= 0)
+    .sort((a, b) => a.at - b.at);
+  const sectors = [...new Set(named.map((f) => f.sector))];
+  if (sectors.length >= 2 && !(result && ["government", "news_media", "education", "health_wellness"].includes(result.sector))) {
+    const first = named[0];
+    const sameSector = named.filter((f) => f.sector === first.sector);
+    const secondary = sectors.slice(1).map((sector) => {
+      const items = named.filter((f) => f.sector === sector);
+      return { sector, label: items.map((f) => f.label).join(" & "), evidence: ["Genoemd in de eigen titel"] };
+    });
+    return {
+      sector: first.sector,
+      key: sameSector.length > 1 ? first.sector : first.key,
+      label: sameSector.length > 1 ? sameSector.map((f) => f.label).join(" & ") : first.primaryLabel,
+      confidence: "medium",
+      confidenceScore: 72,
+      // Evidence names only the primary activity; the others are listed as
+      // secondary activities (the report self-check rejects foreign-sector words).
+      evidence: [`Titel noemt ${sectors.length} hoofdactiviteiten; de eerstgenoemde (${first.label}) is de hoofdsector, de overige staan als nevenactiviteit; zekerheid begrensd`],
+      secondary: [...secondary, ...((result?.secondary || []).filter((x) => !sectors.includes(x.sector)))],
+    };
+  }
+  if (result && named.length >= 2 && sectors.length === 1 && sectors[0] === result.sector && result.key === "financial_insurance") {
+    return { ...result, key: "financial_services", label: named.map((f) => f.label).join(" & ") };
+  }
+  return result;
+}
+
+function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null {
   const title = stripAudience((input.title || "").slice(0, 300));
   const description = stripAudience((input.description || "").slice(0, 700));
   const h1 = stripAudience((input.h1s || []).slice(0, 4).join(" · ").slice(0, 500));
@@ -315,6 +403,17 @@ export function detectEuPrimaryIdentity(input: EuIdentityInput): EuIdentity | nu
 
   // 4. Education: a university/college names itself.
   const eduSchema = schema.has("collegeoruniversity") || schema.has("educationalorganization") || schema.has("school");
+
+  // 4a. An academic medical centre is primarily care, even inside a university name.
+  const careConcepts = distinct(own, HEALTH_CONCEPTS);
+  const hospitalSchema = ["hospital", "medicalorganization", "medicalclinic"].some((t) => schema.has(t));
+  const medicalName = MEDICAL_CENTRE.test(own) || (MEDICAL_CENTRE_ACRONYM.test(own) && careConcepts.length >= 1);
+  if (!retailer && (medicalName || (hospitalSchema && (eduSchema || UNIVERSITY.test(own))))) {
+    const teaches = eduSchema || UNIVERSITY.test(own) || EDU_SUPPORT.test(own);
+    return { sector: "health_wellness", key: "healthcare_academic", label: "Zorg & Gezondheid · universitair medisch centrum", confidence: "high", confidenceScore: hospitalSchema ? 95 : 92,
+      evidence: evidence([medicalName && "Eigen identiteit noemt een (universitair) ziekenhuis of medisch centrum", hospitalSchema && "Structured data: ziekenhuis/zorgorganisatie", careConcepts.length > 0 && `Eigen identiteit noemt zorgconcepten (${careConcepts.join(", ")})`]),
+      ...(teaches ? { secondary: [{ sector: "education" as EuSector, label: "Onderwijs & onderzoek", evidence: evidence([UNIVERSITY.test(own) && "Naam of omschrijving noemt universiteit", EDU_SUPPORT.test(own) && "Omschrijving noemt studie/onderzoek", eduSchema && "Structured data: onderwijsinstelling"]) }] } : {}) };
+  }
   if (!retailer && (eduSchema || UNIVERSITY.test(title) || (UNIVERSITY.test(own) && EDU_SUPPORT.test(own)))) {
     return { sector: "education", key: "education", label: "Onderwijs & Opleiding", confidence: "high", confidenceScore: eduSchema || UNIVERSITY.test(title) ? 93 : 90,
       evidence: evidence([UNIVERSITY.test(title) && "Titel noemt universiteit/hogeschool", eduSchema && "Structured data: onderwijsinstelling", EDU_SUPPORT.test(own) && "Omschrijving noemt studie/faculteiten/onderzoek"]) };
@@ -356,6 +455,21 @@ export function detectEuPrimaryIdentity(input: EuIdentityInput): EuIdentity | nu
   }
   if (!retailer && (POWER_AND_GAS.test(own) || ENERGY.test(own) && (GAS.test(own) || /\b(?:tarie|tarif|contract|vertrag|contrat|contratt|contrat|leverancier|supplier|anbieter|fournisseur|fornitor|proveedor|fornecedor)/i.test(own)))) {
     return { sector: "energy_utilities", key: "energy_utilities", label: "Energie & Nutsvoorzieningen", confidence: "high", confidenceScore: 90, evidence: ["Eigen identiteit noemt stroom/gas en leveringsvoorwaarden"] };
+  }
+
+  // 7b. Manufacturers and industrial suppliers (B2B). A software company that serves
+  // industry stays software: it needs a maker word, or a supplier word with hardware.
+  const industrial = distinct2(own, INDUSTRIAL);
+  const makes = MAKER.test(own);
+  const supplies = SUPPLIER.test(own) && (HARDWARE.test(own) || industrial.length >= 2 || /semicond|halfgeleid|halbleit|lithograph|chip/i.test(own));
+  const softwareOnly = SOFTWARE.test(own) && !HARDWARE.test(own);
+  if (!retailer && !softwareOnly && industrial.length >= 3 && !makes && !supplies && !SOFTWARE.test(own)) {
+    return { sector: "manufacturing_industrial", key: "manufacturing_industrial", label: "Industrie & Productie (B2B)", confidence: "medium", confidenceScore: 78,
+      evidence: [`Eigen identiteit noemt ${industrial.length} industriële producten/systemen (${industrial.slice(0, 3).join(", ")})`] };
+  }
+  if (!retailer && !softwareOnly && industrial.length >= 1 && (makes || supplies)) {
+    return { sector: "manufacturing_industrial", key: "manufacturing_industrial", label: "Industrie & Productie (B2B)", confidence: "high", confidenceScore: makes && industrial.length >= 2 ? 90 : 86,
+      evidence: evidence([makes && "Eigen identiteit: fabrikant/producent", supplies && "Eigen identiteit: leverancier van industriële systemen of componenten", `Industriële sector/producten: ${industrial.slice(0, 3).join(", ")}`]) };
   }
 
   // 7a. Pharmacies, gyms, travel agencies, couriers, software companies.

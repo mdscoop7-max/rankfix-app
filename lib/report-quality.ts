@@ -68,13 +68,17 @@ export function stripTrackingParams(value: string): string {
 const ACCOUNT_SEGMENT = /^(?:my-?account|mijn-?account|account|accounts|myprofile|my-profile|profile|profiel|mijn-profiel|mijn-gegevens|login|log-in|logout|log-out|uitloggen|inloggen|signin|sign-in|signout|sign-out|signup|sign-up|register|registreren|auth|oauth2?|sso|authorize|password|wachtwoord|reset-password|wishlist|verlanglijst|favorites?|favourites?|favorieten|cart|basket|winkelwagen|winkelmand|checkout|afrekenen|kassa|purchases?|orders?|order-history|bestellingen|mijn-bestellingen|withdrawal|herroeping|herroepen|returns-portal|search|zoeken)$/i;
 const NON_CONTENT_QUERY = /^(?:q|query|search|zoek|sort|order|filter|filters|f|facet|page|session|sessionid|token|withdrawal|returnurl|return_url|redirect|redirect_uri|next|callback)$/i;
 
+// Personal utility screens (credential recovery, preferences, continue watching,
+// watch lists) in EU languages: per-user pages, never representative content.
+const PERSONAL_SEGMENT = /^(?:recupero-credenziali|recupero-password|recuperar-(?:contrasena|contraseña|clave)|mot-de-passe-oublie|passwort-vergessen|wachtwoord-vergeten|forgot-password|reset|preferences|preferencje(?:-tresci)?|preferenze|preferencias|preferenties|voorkeuren|einstellungen|settings|instellingen|kontynuuj-odtwarzanie|continue-watching|verder-kijken|weiterschauen|watchlist|mijn-lijst|moja-lista|my-list|historia-ogladania|watch-history)$/i;
+
 export function isNonContentUrl(value: string): boolean {
   let url: URL;
   try { url = new URL(value); } catch { return true; }
   const segments = url.pathname.split("/").filter(Boolean).map((segment) => {
     try { return decodeURIComponent(segment).toLowerCase(); } catch { return segment.toLowerCase(); }
   });
-  if (segments.some((segment) => ACCOUNT_SEGMENT.test(segment))) return true;
+  if (segments.some((segment) => ACCOUNT_SEGMENT.test(segment) || PERSONAL_SEGMENT.test(segment))) return true;
   // Facet/filter paths: "_product-awards-Alle-Awards", "/f/merk-x", "/filter/…".
   if (segments.some((segment) => segment.startsWith("_") || segment === "f" || segment === "filter" || segment === "filters" || segment === "facet")) return true;
   for (const key of url.searchParams.keys()) if (NON_CONTENT_QUERY.test(key)) return true;
@@ -201,7 +205,8 @@ export function assessPageTitle(title: string, host: string, now: Date = new Dat
   // Only a rendered-browser measurement can justify a length-related score deduction.
   // Approximate SERP font width is not a guarantee of Google's actual snippet.
   if (pixelWidth !== null && Number.isFinite(pixelWidth) && pixelWidth > 580) {
-    return { status:"WARNING", credit:0.95, details:`${lengthText} Geschatte zichtbare titelbreedte ${Math.round(pixelWidth)}px boven circa 580px: licht previewadvies, geen bewezen rankingfout.` };
+    // Like long descriptions: a truncated preview is advice, not a deduction.
+    return { status:"PASS", credit:1, details:`${lengthText} Geschatte zichtbare titelbreedte ${Math.round(pixelWidth)}px boven circa 580px: previewadvies, geen aftrek.` };
   }
   return { status: "PASS", credit: 1, details: lengthText };
 }
@@ -213,8 +218,10 @@ export function assessPageDescription(description: string, tagPresent: boolean):
     : { status: "WARNING", credit: 0.25, details: "Geen meta description-tag gevonden in raw HTML.", flag: "missing" };
   const length = value.length;
   if (length >= 70 && length <= 160) return { status: "PASS", credit: 1, details: `Meta description gevonden (${length} tekens); bruikbare lengte.` };
-  if (length > 160 && length <= 200) return { status: "WARNING", credit: 0.9, details: `Meta description gevonden (${length} tekens); aan de lange kant, Google kort descriptions boven ongeveer 160 tekens vaak in.` };
-  if (length > 200) return { status: "WARNING", credit: 0.7, details: `Meta description gevonden (${length} tekens); uitzonderlijk lang.` };
+  // Like titles: Google truncates long descriptions in the snippet; length alone
+  // is advice, not a demonstrated defect, so it costs no points.
+  if (length > 160 && length <= 200) return { status: "PASS", credit: 1, details: `Meta description gevonden (${length} tekens); aan de lange kant, Google kort descriptions boven ongeveer 160 tekens vaak in (advies, geen aftrek).` };
+  if (length > 200) return { status: "PASS", credit: 1, details: `Meta description gevonden (${length} tekens); uitzonderlijk lang, wordt in zoekresultaten ingekort (advies, geen aftrek).` };
   if (length >= 50) return { status: "WARNING", credit: 0.85, details: `Meta description gevonden (${length} tekens); kort.` };
   return { status: "WARNING", credit: 0.65, details: `Meta description gevonden (${length} tekens); uitzonderlijk kort.` };
 }
