@@ -56,6 +56,19 @@ for (const p of PROFILES) {
     if (!p.commerce && sp.sector !== "ecommerce") for (const c of checks) if (retailKeys.includes(c.key) && (c.status === "warning" || c.status === "fail")) problems.push(`retail check on non-shop: ${c.key}=${c.status}`);
     if (p.jsShell) { for (const c of checks) if (["title", "meta_description", "h1", "canonical"].includes(c.key) && c.status === "fail" && !j.rendering.javascriptExecuted) problems.push(`JS shell hard fail ${c.key}`); }
     if (ms > 20000) problems.push(`slow ${ms}ms`);
+    const byKey = (k) => checks.find((c) => c.key === k);
+    for (const [k, allowed] of Object.entries(p.checkStatus || {})) {
+      const c = byKey(k);
+      if (allowed.includes("__absent__")) { if (c && c.status === "pass") problems.push(`${k} should not pass (${c.message.slice(0, 80)})`); continue; }
+      if (!c) { if ((process.env.MODE || "both") === "both") problems.push(`check ${k} missing`); } else if (!allowed.includes(c.status)) problems.push(`${k}=${c.status} not in ${allowed}: ${c.message.slice(0, 140)}`);
+    }
+    for (const [k, re] of Object.entries(p.message || {})) { const c = byKey(k); if (c && !re.test(c.message)) problems.push(`${k} message lacks ${re}: ${c.message.slice(0, 140)}`); }
+    for (const [k, re] of Object.entries(p.noMessage || {})) { const c = byKey(k); if (c && re.test(c.message)) problems.push(`${k} message has ${re}: ${c.message.slice(0, 140)}`); }
+    if (p.maxScore != null && (process.env.MODE || "both") === "both" && j.overallScore > p.maxScore) problems.push(`score ${j.overallScore} > ${p.maxScore} despite issues`);
+    for (const m of p.noModules || []) if (j.sectorProfile.applicableModules.includes(m)) problems.push(`module ${m} should not be active`);
+    if (p.sitemap && byKey("sitemap")) { const c = byKey("sitemap"); if (!c?.message.includes(p.sitemap)) problems.push(`sitemap chose: ${c?.message.slice(0, 120)}`); }
+    // Global invariant: a report with any warning/fail never shows 100.
+    if ((process.env.MODE || "both") === "both" && checks.some((c) => c.status === "warning" || c.status === "fail") && j.overallScore >= 100) problems.push("100/100 with open issues");
   }
   rows.push({ id: p.id, status, sector: j.sectorProfile?.sector, key: j.sectorProfile?.key, conf: j.sectorProfile?.confidenceScore, page: j.pageTypeEvidence?.type, score: j.overallScore, ms, problems });
   if (process.env.SCAN_MATRIX_OUT) fs.writeFileSync(`${process.env.SCAN_MATRIX_OUT}/out-${p.id}.json`, JSON.stringify(j, null, 1));

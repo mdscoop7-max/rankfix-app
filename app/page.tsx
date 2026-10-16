@@ -36,6 +36,8 @@ type ScanResult = {
   responseTime: number;
   httpStatus: number;
   summary?: {passed:number;issues:number;notApplicable:number;unableToConfirm:number;pendingFixes:number};
+  coverage?: {coveragePercent:number};
+  scoreModel?: {provisional?:boolean;range?:{low:number;high:number}};
   rendering?: {mode:string;javascriptExecuted:boolean;note:string};
   pageTypeEvidence?: {type:string;confidence:string;evidence:string[]};
   technologyProfile?: {siteType?:"Webshop"|"Landingpage"|"Website";cms:string|null;commercePlatform:string|null;framework:string|null;isCommerce:boolean;confidence:number;confidenceLabel:"high"|"medium"|"low";evidence:string[]};
@@ -537,6 +539,10 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
       "HTTP: " + result.httpStatus + " | " + result.responseTime + " ms",
       "Score: " + result.overallScore + "/100 | Grade: " + result.grade
     ];
+    // A provisional score must be qualified wherever it is shown, also in exports.
+    if (result.scoreModel?.provisional) {
+      lines.push("Voorlopige score: dekking " + (result.coverage?.coveragePercent ?? "?") + "%" + (result.scoreModel.range ? " · mogelijk bereik " + result.scoreModel.range.low + "–" + result.scoreModel.range.high : "") + ". Niet te bevestigen controles tellen niet mee.");
+    }
     if (result.rendering) {
       lines.push("Source: " + result.rendering.mode + " | JavaScript executed: " + (result.rendering.javascriptExecuted ? "yes" : "no"));
       if (result.rendering.note) lines.push(result.rendering.note);

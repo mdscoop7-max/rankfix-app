@@ -54,13 +54,28 @@ export function scoreRange(items: ScorableAuditCheck[]) {
   const assessedWeight = assessed.reduce((sum, item) => sum + Math.max(0, item.maxPoints), 0);
   const unverifiedWeight = unverified.reduce((sum, item) => sum + Math.max(0, item.maxPoints), 0);
   const applicableWeight = assessedWeight + unverifiedWeight;
-  const earned = assessed.reduce((sum, item) => sum + Math.max(0, Math.min(item.maxPoints, item.points)), 0);
+  // Same formula as the score itself (severity weighting, root-cause dedupe):
+  // low = every unconfirmed check would fail, high = every one would pass.
+  // The score, which leaves unconfirmed checks out, therefore always lies in range.
+  const asOutcome = (pass: boolean) => applicable.map((item) => item.issue_status !== "UNABLE_TO_CONFIRM" ? item
+    : { ...item, issue_status: pass ? "PASS" as const : "WARNING" as const, points: pass ? item.maxPoints : 0, rootCause: undefined, severity: "LOW" as const, confidence: "high" as const });
   return {
-    low: applicableWeight ? Math.round((earned / applicableWeight) * 100) : 0,
-    high: applicableWeight ? Math.round(((earned + unverifiedWeight) / applicableWeight) * 100) : 0,
+    low: applicableWeight ? scoreApplicableChecks(asOutcome(false)) : 0,
+    high: applicableWeight ? scoreApplicableChecks(asOutcome(true)) : 0,
     assessedWeight,
     unverifiedWeight,
     applicableWeight,
+  };
+}
+
+/** Overall range on the same 0.6 × SEO + 0.4 × GEO basis as the overall score. */
+export function combinedScoreRange(seo: ReturnType<typeof scoreRange>, geo: ReturnType<typeof scoreRange>, weights = { seo: 0.6, geo: 0.4 }) {
+  return {
+    low: Math.round(seo.low * weights.seo + geo.low * weights.geo),
+    high: Math.round(seo.high * weights.seo + geo.high * weights.geo),
+    assessedWeight: seo.assessedWeight + geo.assessedWeight,
+    unverifiedWeight: seo.unverifiedWeight + geo.unverifiedWeight,
+    applicableWeight: seo.applicableWeight + geo.applicableWeight,
   };
 }
 
@@ -152,6 +167,9 @@ export function applyEvidenceBasedScoreCap(score: number, items: ScoreCapCheck[]
     (item) => item.issue_status === "FAIL" && item.severity === "HIGH" && item.confidence !== "low"
   );
   if (provenHigh) return Math.min(score, 88);
+  // 100 means "nothing to improve": any confirmed warning or failure caps the
+  // rounded score at 99 so a report never shows 100/100 next to an open issue.
+  if (items.some((item) => item.issue_status === "WARNING" || item.issue_status === "FAIL")) return Math.min(score, 99);
   // Unknown signals must never be an invisible numeric penalty. The fixed
   // core result is stable when additional modules become unconfirmed. Missing
   // evidence is shown through coverage and a provisional score range instead.

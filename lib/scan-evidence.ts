@@ -120,8 +120,10 @@ export function buildScanEvidence(input: {
   const appointmentAction = has(html, /(?:href|action|aria-label)\s*=\s*["'][^"']*(?:afspraak|appointment|termin|rendez-vous|appuntamento|cita)[^"']*["']/i);
   const reservation = has(text, /\b(reserveren|reservation|reserve a table|tisch reservieren|réserver|prenota|reservar)\b/i);
   const reservationAction = has(html, /(?:href|action|aria-label)\s*=\s*["'][^"']*(?:reserv|réserv|prenota)[^"']*["']/i);
-  const booking = has(text, /\b(boeken|book now|booking|buchen|réserver|prenota|reservar)\b/i);
-  const bookingAction = has(html, /(?:href|action|aria-label)\s*=\s*["'][^"']*(?:book|boeken|buchen|réserv|prenota)[^"']*["']/i);
+  // "Book a demo/call/meeting" is a sales lead, not a booking/reservation business.
+  const bookingText = text.replace(/\b(?:book|boek|plan|schedule|request|vraag|reserve|reserveer)\s+(?:a |an |een |your |je |jouw |uw )?(?:free |gratis |personal |persoonlijke? )?(?:demo|call|meeting|gesprek|consult(?:ation)?|kennismaking(?:sgesprek)?|sales ?call|afspraak met (?:sales|een adviseur))\b/gi, " ");
+  const booking = has(bookingText, /\b(boeken|book now|booking|buchen|réserver|prenota|reservar)\b/i);
+  const bookingAction = has(html, /(?:href|action|aria-label)\s*=\s*["'][^"']*(?:book(?![-_ ]?(?:a[-_ ])?(?:demo|call|meeting))|boeken|buchen|réserv|prenota)[^"']*["']/i);
   const quoteRequest = has(text, /\b(offerte|quote request|request a quote|angebot anfordern|devis|preventivo|presupuesto)\b/i);
   const quoteAction = has(html, /(?:href|action|aria-label)\s*=\s*["'][^"']*(?:offerte|quote|angebot|devis|preventivo|presupuesto)[^"']*["']/i);
 

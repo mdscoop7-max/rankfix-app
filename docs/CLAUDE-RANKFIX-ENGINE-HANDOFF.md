@@ -96,3 +96,17 @@ Fixed in this pass:
 Verified locally against PostgreSQL 18: schema init (3× parallel, idempotent, 25 tables), `/api/health/db`, logged-in scan persistence, usage events, rescan comparison (delta 0, deterministic), history APIs, free-scan rate limit (8/network/hour → 429). Production build passes (webpack, Google Fonts mocked offline).
 
 Open: preview URL is behind Vercel Authentication and the Vercel connector cannot open it; owner verifies `/api/health/db` and live scans in the preview. Provisional 100/100 at low coverage is shown as "Voorlopig" with range (owner policy: unconfirmed never lowers the score) — keep or gate is an owner decision.
+
+## Status 2026-10-16, third pass (Claude) — report consistency from live preview scans
+
+From owner scans of KPN, Mollie, Coolblue, PayPal and Time Trans:
+- Score never 100 with an open warning/fail (cap 99); provisional label also in the text export.
+- `scoreRange` now uses the score's own formula (severity weighting, root-cause dedupe) and the overall range uses 0.6 × SEO + 0.4 × GEO with the same caps; previously a score could fall outside its own "mogelijk bereik" (83 vs 85–88). Property test over 2000 random reports.
+- Trust & context wording follows the actual flags (no "contact zichtbaar" with contact=false); Entity passes on confirmed business details (KvK/address/phone/e-mail); brand name read from the first non-empty title segment or the hostname brand (titles like "| Brand | topic").
+- Service providers without product evidence: product checks are N.v.t. instead of "webshopsignalen gevonden".
+- "Book a demo / schedule a call" is a lead, not booking evidence (no booking module).
+- Checkout & funnel wording matches rendered vs raw HTML.
+- Sitemap: root-level sitemap preferred over section sitemaps; a robots-declared sitemap index whose children live on another host is valid.
+- Lead form = real enquiry form (message box or quote/callback form with e-mail/phone), not search/newsletter.
+- Title starting/ending with a separator is a warning (brand-only still takes precedence).
+Matrix: 62 sites incl. 5 reproductions of the live reports with per-check status/message expectations. 275/275 tests.

@@ -140,6 +140,10 @@ const PLACEHOLDER_TITLES = new Set([
   "welcome", "welkom", "willkommen", "bienvenue", "benvenuto", "bienvenido", "startpagina", "startseite", "accueil", "inicio",
   "my site", "my website", "mijn website", "website", "site", "loading", "loading...", "laden...",
 ]);
+// "| Brand | topic" or "Topic | ": a template left one title part empty.
+export function hasDanglingTitleSeparator(title: string): boolean {
+  return /^\s*[|–—:·•]/.test(title) || /[|–—:·•-]\s*$/.test(title) || /[|–—]\s*[|–—]/.test(title);
+}
 export function isPlaceholderTitle(title: string): boolean {
   return PLACEHOLDER_TITLES.has(title.trim().toLowerCase().replace(/\s+/g, " "));
 }
@@ -159,7 +163,7 @@ export function titleLengthCredit(length: number): number {
   return 0.45;
 }
 
-export type MetaAssessment = { status: "PASS" | "WARNING"; credit: number; details: string; flag?: "missing" | "empty" | "placeholder" | "brand_only" | "duplicate_segment" | "outdated_year" };
+export type MetaAssessment = { status: "PASS" | "WARNING"; credit: number; details: string; flag?: "missing" | "empty" | "placeholder" | "dangling_separator" | "brand_only" | "duplicate_segment" | "outdated_year" };
 
 // "Tarieven en vergoedingen 2017": a year at least three years old in a title
 // signals outdated content to searchers.
@@ -178,6 +182,9 @@ export function assessPageTitle(title: string, host: string, now: Date = new Dat
   }
   if (isBrandOnlyTitle(value, host)) {
     return { status: "WARNING", credit: 0.25, details: `Title bevat alleen de merknaam ("${value}"); het onderwerp van de pagina ontbreekt.`, flag: "brand_only" };
+  }
+  if (hasDanglingTitleSeparator(value)) {
+    return { status: "WARNING", credit: 0.7, details: `Title begint of eindigt met een scheidingsteken ("${value}"); een titeldeel ontbreekt waarschijnlijk.`, flag: "dangling_separator" };
   }
   const duplicate = duplicateTitleSegment(value);
   const length = value.length;

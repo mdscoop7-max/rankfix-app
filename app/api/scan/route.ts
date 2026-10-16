@@ -9,13 +9,13 @@ import { getFixPolicy } from "@/lib/fix-policy";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { assessPassiveSecurity, formBlocks, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
-import { assessPageDescription, assessPageTitle, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, isBrandOnlyTitle, isClientShell, isPlaceholderTitle, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
+import { assessPageDescription, assessPageTitle, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isClientShell, isPlaceholderTitle, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, confirmedRetailEvidenceForService, isStorefrontOnlyForService, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
 import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readHtmlSampleHeadFirst, readResponsePrefix, readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
-import { applyEvidenceBasedScoreCap, stableCoreChecks, SCORE_MODEL_VERSION, scoreApplicableChecks, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
+import { applyEvidenceBasedScoreCap, stableCoreChecks, SCORE_MODEL_VERSION, scoreApplicableChecks, combinedScoreRange, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
 import { isPaidPlan, normalizePlan, planLimits } from "@/lib/plans";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
@@ -1326,8 +1326,11 @@ export async function POST(request: Request) {
     // Only probe a small fallback set when the site did not declare a sitemap.
     const declaredSitemapCandidates = [...candidateMap.values()].filter((candidate) => candidate.source !== "fallback");
     const fallbackSitemapCandidates = [...candidateMap.values()].filter((candidate) => candidate.source === "fallback");
+    // Prefer the site-wide sitemap: root-level files (/sitemap.xml,
+    // /sitemap_index.xml) before section sitemaps such as /vacatures/sitemap.xml.
+    const sitemapDepth = (url: string) => { try { return new URL(url).pathname.split("/").filter(Boolean).length; } catch { return 99; } };
     const sitemapCandidates = declaredSitemapCandidates.length
-      ? declaredSitemapCandidates.slice(0, 8)
+      ? [...declaredSitemapCandidates].sort((a, b) => sitemapDepth(a.url) - sitemapDepth(b.url) || Number(/index/i.test(b.url)) - Number(/index/i.test(a.url))).slice(0, 8)
       : fallbackSitemapCandidates.slice(0, 4);
     let sitemapFetchFailed = false;
     let declaredSitemapFetchFailed = false;
@@ -1354,8 +1357,10 @@ export async function POST(request: Request) {
             try { return new URL(value).origin === sitemapOrigin; } catch { return false; }
           });
           const structurallyValid = hasSitemapRoot && validLocValues.length > 0;
+          // A robots.txt-declared sitemap index may list child sitemaps on another
+          // host (sitemaps.org cross-submission); that is valid, not a broken sitemap.
           const sitemapEntriesMatchSite = sitemapKind === "sitemapindex"
-            ? sameOriginLocValues.length > 0
+            ? sameOriginLocValues.length > 0 || (candidate.source === "robots" && validLocValues.length > 0)
             : sameOriginLocValues.length > 0;
           if (structurallyValid && sitemapEntriesMatchSite) {
             sitemapFound = true;
@@ -2592,6 +2597,8 @@ export async function POST(request: Request) {
             : check("warning", "title", "seo", "Meta title", `De title is een algemene standaardtitel ("${title}") en beschrijft het onderwerp van de pagina niet.`, "Gebruik een unieke title met onderwerp en merk, bijvoorbeeld \"Onderwerp | Merk\".", isHomepage ? 4 : 3, 10)
         : isBrandOnlyTitle(title, finalUrl.hostname)
           ? check("warning", "title", "seo", "Meta title", `De title bevat alleen de merknaam ("${title}"); het onderwerp van de pagina ontbreekt.`, "Zet het onderwerp van de pagina vóór de merknaam, bijvoorbeeld \"Onderwerp | Merk\".", isHomepage ? 5 : 3, 10)
+        : hasDanglingTitleSeparator(title)
+          ? check("warning", "title", "seo", "Meta title", `De title begint of eindigt met een scheidingsteken ("${title}"); waarschijnlijk vult het template een paginanaam niet in.`, "Vul het ontbrekende deel van de title in of verwijder het losse scheidingsteken, bijvoorbeeld \"Onderwerp | Merk\".", 7, 10)
         : duplicateTitleSegment(title)
           ? check("warning", "title", "seo", "Meta title", `De title is ${title.length} tekens en "${duplicateTitleSegment(title)}" staat er twee keer in; waarschijnlijk voegt het template het merk een tweede keer toe.`, "Laat het merk maar één keer in de title staan; controleer de title-instelling van het template of de SEO-plugin.", Math.min(8, titleLengthPoints(title.length)), 10)
         : titleQualityIssue
@@ -2980,7 +2987,7 @@ export async function POST(request: Request) {
         ? check("unable_to_confirm","checkout_funnel_static","seo","Checkout & funnel","Dit is een productpagina, maar RankFix kon in raw HTML geen duidelijke toevoegen-aan-winkelwagen actie bevestigen. De actie kan client-side via JavaScript worden gerenderd.","Controleer de koopactie later met de browser/headless-audit. Raw HTML alleen is onvoldoende bewijs voor een checkoutfout.",0,0)
         : (cartHrefSignal || checkoutHrefSignal) && addToCartMarkupSignal
           ? check("pass","checkout_funnel_static","seo","Checkout & funnel","Statische funnel-signalen zijn aanwezig: koopactie en een winkelwagen- of checkoutpad zijn gevonden.","Dit bewijst niet dat de interactieve funnel werkt; runtime add-to-cart en checkout worden later met browser/headless getest.",0,0)
-          : check("unable_to_confirm","checkout_funnel_static","seo","Checkout & funnel","RankFix vond webshop-signalen, maar kan vanuit deze losse raw-HTML pagina de volledige product → winkelwagen → checkout-flow niet bevestigen.","Gebruik de toekomstige browser/headless-controle om klikken, winkelwagenstatus en checkout runtime te testen.",0,0)
+          : check("unable_to_confirm","checkout_funnel_static","seo","Checkout & funnel",javascriptExecuted ? "RankFix vond webshop-signalen in de gerenderde pagina, maar heeft de volledige product → winkelwagen → checkout-flow niet doorlopen; klikken en betalen worden bewust niet uitgevoerd." : "RankFix vond webshop-signalen, maar kan vanuit deze losse raw-HTML pagina de volledige product → winkelwagen → checkout-flow niet bevestigen.","Gebruik de toekomstige browser/headless-controle om klikken, winkelwagenstatus en checkout runtime te testen.",0,0)
     );
     seoChecks.push(!hasEcommerceSignal
       ? check("not_applicable","checkout_information_signal","seo","Checkout informatie",euConsumerApplicable ? "Geen consumenteninformatie beoordeeld." : "EU-Omnibus & Consumer Rights is voor deze scan niet aantoonbaar van toepassing op deze markt/pagina.","Gebruik deze controle op relevante EU-webshops.",0,0)
@@ -3131,6 +3138,8 @@ export async function POST(request: Request) {
 
     geoChecks.push(hasEntitySchema
       ? check("pass", "entity", "geo", "Entity-signalen", `Entity schema gevonden: ${(entityTypesForDisplay(schemaTypes).length ? entityTypesForDisplay(schemaTypes) : schemaTypes).slice(0, 5).join(", ")}.`, "Maak organisatie, product, persoon of publicatie nog duidelijker met consistente gegevens.", 10, 10)
+      : businessDetails.status === "pass"
+        ? check("pass", "entity", "geo", "Entity-signalen", `Concrete bedrijfsgegevens bevestigen de identiteit: ${businessDetails.found.join(", ")}.`, "Maak de identiteit ook machineleesbaar met passende Organization/LocalBusiness structured data.", 10, 10)
       : hasVisibleBusinessIdentity && (hasBusinessContactDetails || hasSocialOrReviewSignal)
         ? check("pass", "entity", "geo", "Entity-signalen", "Duidelijke bedrijfsidentiteit en externe/contactsignalen zijn zichtbaar op de pagina.", "Maak de identiteit ook machineleesbaar met passende Organization/LocalBusiness structured data.", 10, 10)
         : hasVisibleBusinessIdentity
@@ -3174,7 +3183,7 @@ export async function POST(request: Request) {
             : check("not_applicable", "author", "geo", "Expertise-signalen", "Een individuele auteur is niet vereist voor deze dienst-, organisatie- of conversiepagina.", "Maak organisatie en vakgebied duidelijk; voeg auteurschap alleen toe waar informatieve content dat inhoudelijk vereist.", 0, 8)
     );
     geoChecks.push(hasContactChannelSignal || hasAboutSignal || hasSocialOrReviewSignal
-      ? check("pass", "trust", "geo", "Trust & context", hasAboutSignal ? "Contact- en organisatiecontext zijn zichtbaar." : "Concrete contact-, locatie- of externe profielsignalen zijn zichtbaar.", "Houd bedrijfsnaam, contactgegevens, locatie, verantwoordelijkheden en officiële profielen consistent.", 8, 8)
+      ? check("pass", "trust", "geo", "Trust & context", `Zichtbaar: ${[hasContactChannelSignal && "contactmogelijkheid", hasAboutSignal && "organisatie-/over-ons-context", hasSocialOrReviewSignal && "officiële profielen of reviews"].filter(Boolean).join(", ")}.${hasContactChannelSignal ? "" : " Directe contactgegevens zijn op deze pagina niet bevestigd."}`, "Houd bedrijfsnaam, contactgegevens, locatie, verantwoordelijkheden en officiële profielen consistent.", 8, 8)
       : thinRawHtmlEvidence
         ? check("unable_to_confirm", "trust", "geo", "Trust & context", "De beschikbare raw HTML bevat onvoldoende betrouwbare zichtbare organisatie-/contactcontext en deze JavaScript-pagina kon niet volledig worden beoordeeld.", "Controleer trust- en contactcontext opnieuw met een volledige render voordat dit als tekortkoming wordt aangemerkt.", 0, 8)
         : check("warning", "trust", "geo", "Trust & context", "Contact- of organisatiecontext is beperkt gevonden.", "Maak organisatie, contact, locatie en verantwoordelijkheden duidelijk.", 3, 8)
@@ -3192,10 +3201,14 @@ export async function POST(request: Request) {
     );
     // Brand identity is a visible-consistency check. Structured data quality is scored separately above,
     // so missing Organization JSON-LD must not create a second schema penalty here.
-    const titleBrandCandidate = (title.split(/[|–—-]/)[0] || "").trim();
-    const escapedTitleBrand = titleBrandCandidate.replace(/[.*+?^{}()|[\]\\]/g, "\\$&");
-    const visibleTitleBrandSignal = titleBrandCandidate.length >= 3 &&
-      new RegExp(`\\b${escapedTitleBrand}\\b`, "i").test(text);
+    // A title can start with a separator ("| Brand | topic"): use the first
+    // non-empty segment, and accept the hostname brand when the title names it.
+    const titleSegmentsForBrand = title.split(/[|–—-]/).map((segment) => segment.trim()).filter(Boolean);
+    const hostBrandToken = finalUrl.hostname.replace(/^www\./i, "").split(".")[0].replace(/[^a-z0-9]/gi, "").toLowerCase();
+    const firstTitleSegment = titleSegmentsForBrand[0] || "";
+    const visibleTitleBrandSignal = (firstTitleSegment.length >= 3 &&
+      new RegExp(`\\b${firstTitleSegment.replace(/[.*+?^{}()|[\]\\]/g, "\\$&")}\\b`, "i").test(text)) ||
+      (hostBrandToken.length >= 4 && title.replace(/[^a-z0-9]/gi, "").toLowerCase().includes(hostBrandToken) && text.replace(/[^a-z0-9]/gi, "").toLowerCase().includes(hostBrandToken));
     const visibleBrandNameSignal = Boolean(
       organizationName ||
       firstMatch(html, /<meta[^>]+name\s*=\s*["']application-name["'][^>]+content\s*=\s*["']([^"']+)["']/i) ||
@@ -3322,7 +3335,7 @@ export async function POST(request: Request) {
         checkout_information_signal: hasEcommerceSignal ? `shipping=${hasShippingSignal}; shippingCost=${shippingCostSignal}; paymentMethods=${paymentMethodSignal}; staticHtmlOnly=true` : null,
         webshop_trust: hasEcommerceSignal ? `shipping=${hasShippingSignal}; returns=${hasReturnsSignal}; reviewPlatform=${hasReviewPlatformSignal}; checkoutSignal=${hasCheckoutTrustSignal}` : null,
         organization_website: isHomepage ? `organizationSchema=${organizationSchemaPresent}; websiteSchema=${websiteSchemaPresent}; schemaTypes=${schemaTypes.slice(0,12).join(",")}` : null,
-        entity: hasEntitySchema ? `schemaTypes=${schemaTypes.slice(0,12).join(",")}` : (hasVisibleBusinessIdentity ? `visibleIdentity=true; contact=${hasBusinessContactDetails}; externalProfile=${hasSocialOrReviewSignal}` : null),
+        entity: hasEntitySchema ? `schemaTypes=${schemaTypes.slice(0,12).join(",")}` : businessDetails.status === "pass" ? `businessDetails=${businessDetails.found.join(",")}` : (hasVisibleBusinessIdentity ? `visibleIdentity=true; contact=${hasBusinessContactDetails}; externalProfile=${hasSocialOrReviewSignal}` : null),
         author: (hasAuthorSignal || ecommerceExpertiseSignal || organizationExpertiseSignal || (hasLocalBusinessSignal && hasServiceExpertiseSignal)) ? `author=${hasAuthorSignal}; ecommerceExpertise=${ecommerceExpertiseSignal}; organizationExpertise=${organizationExpertiseSignal}; localServiceExpertise=${hasLocalBusinessSignal && hasServiceExpertiseSignal}` : null,
         trust: (hasContactChannelSignal || hasAboutSignal || hasSocialOrReviewSignal) ? `contact=${hasContactChannelSignal}; about=${hasAboutSignal}; socialOrReview=${hasSocialOrReviewSignal}` : null,
         answer: `metaDescription=${Boolean(description)}; wordCount=${wordCount}; minimumVisibleWords=${isProductPage ? 40 : 80}; rendered=${javascriptExecuted}`,
@@ -3576,7 +3589,10 @@ export async function POST(request: Request) {
     const serviceCommerceSignals = commerceServiceSignals({
       subscription: telecomSubscriptionIdentity || /\b(?:abonnement(?:en)?|subscription(?:s)?|sim.only|maandbundel|monthly plan)\b/i.test([title,description,h1s.join(" ")].join(" ")),
       booking: /\b(?:reserveren|boek nu|book now|make a booking|online afspraak|plan afspraak)\b/i.test(text),
-      lead: /<form\b/i.test(html) && /\b(?:offerte|aanvraag|contact|quote|consultation|adviesgesprek)\b/i.test(text),
+      // A lead form is a real enquiry form (message box, or quote/callback wording
+      // inside the form with an e-mail/phone field), not a search or newsletter box.
+      lead: formBlocks(html).some((form) => isContactForm(form) ||
+        (/\b(?:offerte|aanvraag|quote|consultation|adviesgesprek|terugbel(?:verzoek)?|callback|demo)\b/i.test(form) && /<input\b[^>]*\btype\s*=\s*["']?(?:email|tel)\b/i.test(form))),
       price: visiblePriceCount > 0,
     });
     if (serviceCommerceSignals.subscription) {
@@ -3606,9 +3622,21 @@ export async function POST(request: Request) {
     let seoCoverage = weightedCoverage(selectedSeoChecks);
     let geoCoverage = weightedCoverage(selectedGeoChecks);
     let overallCoverage = weightedCoverage(checks);
-    const seoScoreRange = scoreRange(stableCoreChecks(selectedSeoChecks,"seo"));
-    const geoScoreRange = scoreRange(stableCoreChecks(selectedGeoChecks,"geo"));
-    const overallScoreRange = scoreRange([...stableCoreChecks(selectedSeoChecks,"seo"),...stableCoreChecks(selectedGeoChecks,"geo")]);
+    // Ranges use the score's own formula, caps and 0.6/0.4 weighting, so the
+    // displayed score always lies inside the displayed "mogelijk bereik".
+    const cappedRange = (items: Check[]) => { const r = scoreRange(items); return { ...r, low: applyEvidenceBasedScoreCap(r.low, items), high: applyEvidenceBasedScoreCap(r.high, items) }; };
+    const reportRanges = () => {
+      const seoCore = stableCoreChecks(selectedSeoChecks,"seo"); const geoCore = stableCoreChecks(selectedGeoChecks,"geo");
+      const seoR = cappedRange(seoCore); const geoR = cappedRange(geoCore);
+      const combined = combinedScoreRange(seoR, geoR);
+      const all = [...seoCore, ...geoCore];
+      const overall = mode === "seo" ? seoR : mode === "geo" ? geoR : { ...combined, low: applyEvidenceBasedScoreCap(combined.low, all), high: applyEvidenceBasedScoreCap(combined.high, all) };
+      return { seoR, geoR, overall };
+    };
+    const initialRanges = reportRanges();
+    const seoScoreRange = initialRanges.seoR;
+    const geoScoreRange = initialRanges.geoR;
+    const overallScoreRange = initialRanges.overall;
     const scoreModel = {
       version: SCORE_MODEL_VERSION,
       breakdown: scoreBreakdown(checks),
@@ -4711,9 +4739,16 @@ export async function POST(request: Request) {
         if (finalCommerceOnlyKeys.has(item.key) && !(item.key==="price_format" && serviceCommerceSignals.subscription)) setFinalNotApplicable(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
       }
     } else if (finalCommerceApplicability.state === "unconfirmed") {
+      // A service provider (payments, SaaS, agency...) whose pages show no product
+      // detail, product sample or product links: product checks do not apply.
+      const serviceWithoutProductEvidence = Boolean(primaryNonCommerceIdentity) && !finalCommerceDecision.confirmed &&
+        !representativeCommercialProductIntent && !isProductPage && !hasProductSchema &&
+        !(scanEvidence.commerce.productLinks.value >= 2);
       for (const item of [...seoChecks,...geoChecks]) {
         if (!finalCommerceOnlyKeys.has(item.key) || (item.key==="price_format" && serviceCommerceSignals.subscription)) continue;
-        if (isStorefrontOnlyForService(item.key, Boolean(primaryNonCommerceIdentity), finalCommerceDecision.confirmed)) {
+        if (serviceWithoutProductEvidence) {
+          setFinalNotApplicable(item, "De primaire activiteit is dienstverlening en er zijn geen producten of productpagina's gevonden die deze productcontrole nodig maken. Dit zegt niets over eventuele productverkoop elders.");
+        } else if (isStorefrontOnlyForService(item.key, Boolean(primaryNonCommerceIdentity), finalCommerceDecision.confirmed)) {
           setFinalNotApplicable(item, "De primaire activiteit is dienstverlening zonder onafhankelijk bevestigde retailcheckout. Deze webshopbrede controle hoort bij een aparte productverkoopscreening, niet bij de hoofdscan van deze dienstverlener. Dit zegt niets over wettelijke verplichtingen bij eventuele productverkoop.");
         } else {
           setFinalUnableToConfirm(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
@@ -4807,9 +4842,10 @@ export async function POST(request: Request) {
     seoCoverage = weightedCoverage(selectedSeoChecks);
     geoCoverage = weightedCoverage(selectedGeoChecks);
     overallCoverage = weightedCoverage(checks);
-    scoreModel.range = scoreRange([...stableCoreChecks(selectedSeoChecks,"seo"),...stableCoreChecks(selectedGeoChecks,"geo")]);
-    scoreModel.seoRange = scoreRange(stableCoreChecks(selectedSeoChecks,"seo"));
-    scoreModel.geoRange = scoreRange(stableCoreChecks(selectedGeoChecks,"geo"));
+    const finalRanges = reportRanges();
+    scoreModel.range = finalRanges.overall;
+    scoreModel.seoRange = finalRanges.seoR;
+    scoreModel.geoRange = finalRanges.geoR;
     scoreModel.provisional = overallCoverage.coveragePercent < 90;
     scoreModel.coverageAdjustment = 0;
     scoreModel.breakdown = scoreBreakdown(checks);

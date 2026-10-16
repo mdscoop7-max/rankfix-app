@@ -85,6 +85,8 @@ export function installMatrixFetch() {
     const u = new URL(typeof input === "string" ? input : input.url);
     const fill = (h) => h.replaceAll("__URL__", u.origin + u.pathname).replaceAll("__HOST__", u.host);
     const html = (body, status = 200) => new Response(fill(body), { status, headers: { "content-type": "text/html; charset=utf-8" } });
+    const own = hostProfiles.get(u.host)?.files?.[u.pathname];
+    if (own) return new Response(fill(own.body), { status: own.status || 200, headers: { "content-type": own.type || "text/html; charset=utf-8" } });
     if (u.pathname === "/robots.txt") return new Response(`User-agent: *\nAllow: /\nSitemap: https://${u.host}/sitemap.xml\n`, { status: 200, headers: { "content-type": "text/plain" } });
     if (u.pathname === "/sitemap.xml") return new Response(`<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://${u.host}/</loc></url><url><loc>https://${u.host}/contact</loc></url></urlset>`, { status: 200, headers: { "content-type": "application/xml" } });
     if (/\.(jpg|png|svg|js|css|ico)$/.test(u.pathname)) return new Response("x", { status: 200, headers: { "content-type": /\.js$/.test(u.pathname) ? "application/javascript" : "image/jpeg", "content-length": "1" } });
@@ -132,3 +134,38 @@ export function installMatrixFetch2() {
     return inner(input, init);
   };
 }
+
+// Reproductions of real report defects (16 Oct 2026) with per-check expectations.
+const REPORT_CASES = [
+  { id: "report-payments-demo-cookies", host: "paymentsdemo.test", expect: ["financial_services"], maxScore: 99, noModules: ["booking"],
+    checkStatus: { product_schema: ["not_applicable"], merchant_product_readiness: ["not_applicable"], product_availability: ["not_applicable"] },
+    noMessage: { product_schema: /webshopsignalen gevonden/i },
+    home: { lang: "en", title: "PayCo – the platform for online and in-person payments", desc: "One platform to accept payments, manage money and access funding for your business.", h1: "Every payment",
+      body: "<p>Book a demo with our sales team. Hosted checkout, payment links and terminals. Hotels and restaurants use PayCo.</p><a href='/book-a-demo'>Book a demo</a>", lds: [org("PayCo"), site] },
+    files: { "/cookies": { body: "nf", status: 404 } } },
+  { id: "report-shop-newsletter-sitemaps", host: "shopsitemap.test", expect: ["ecommerce"], commerce: true,
+    checkStatus: { lead_form_presence: ["__absent__"] }, sitemap: "/sitemap_index.xml",
+    home: { title: "Elektronica online kopen | ShopSitemap", desc: "Elektronica online bestellen. Morgen gratis bezorgd en gratis retourneren.", h1: "Elektronica",
+      body: "<form action='/zoeken'><input type='search' name='q'><button>Zoek</button></form><form action='/nieuwsbrief'><label>Nieuwsbrief</label><input type='email' name='email'><button>Aanmelden</button></form><div class='product-card'>TV <span>€ 499,00</span><form action='/cart/add'><button>In winkelwagen</button></form></div><div class='product-card'>Laptop <span>€ 899,00</span><form action='/cart/add'><button>In winkelwagen</button></form></div><a href='/winkelwagen'>Winkelwagen</a> <a href='/product/tv'>TV</a> <a href='/product/laptop'>Laptop</a> <a href='/klantenservice'>Klantenservice</a>", lds: [org("ShopSitemap", "ElectronicsStore"), site] },
+    files: {
+      "/robots.txt": { type: "text/plain", body: "User-agent: *\nAllow: /\nSitemap: https://__HOST__/vacatures/sitemap.xml\nSitemap: https://__HOST__/sitemap_index.xml\n" },
+      "/vacatures/sitemap.xml": { type: "application/xml", body: "<?xml version='1.0'?><urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'><url><loc>https://__HOST__/vacatures/1</loc></url></urlset>" },
+      "/sitemap_index.xml": { type: "application/xml", body: "<?xml version='1.0'?><sitemapindex xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'><sitemap><loc>https://__HOST__/sitemap-products.xml</loc></sitemap></sitemapindex>" },
+    } },
+  { id: "report-leading-separator-title", host: "timetrans.test", expect: ["transport_travel"],
+    checkStatus: { title: ["warning"], entity: ["pass"], identity: ["pass", "warning"] }, noMessage: { identity: /Ontbrekend: merknaam/ },
+    home: { title: "| Time Trans | specialist in bloemen en planten naar de regio Rhône-Alpes", desc: "Time Trans is gespecialiseerd in het geconditioneerd vervoer van sierteeltproducten. Voor groepage en volle vrachten.", h1: "Welkom Specialist in bloemen en planten",
+      body: "<p>Time Trans verzorgt wegtransport en logistiek, groupage en volle vrachten naar Frankrijk.</p><img class='logo' src='/logo.png' alt='Time Trans'>" } },
+  { id: "report-about-no-contact", host: "overons.test", expect: ["unknown", "general_business", "professional_services"],
+    checkStatus: { trust: ["pass", "warning", "unable_to_confirm"] }, message: { trust: /niet bevestigd|beperkt|onvoldoende/i },
+    raw: "<!doctype html><html lang='nl'><head><meta charset='utf-8'><title>Over ons – Studio Licht</title><meta name='description' content='Over Studio Licht: wie we zijn, onze missie en ons verhaal sinds 2010 in Utrecht.'></head><body><h1>Over ons</h1><p>Over ons: Studio Licht is opgericht in 2010. Ons verhaal en onze missie.</p></body></html>" },
+  { id: "report-wallet-sitemap-index-cdn", host: "walletcdn.test", path: "/us/home", expect: ["financial_services"], page: "homepage",
+    checkStatus: { sitemap: ["pass"], product_schema: ["not_applicable"] },
+    home: { lang: "en", title: "Pay, Send and Save Money | WalletCDN US", desc: "The faster, safer way to send money, make an online payment and receive money.", h1: "Pay, send and save smarter",
+      body: "<div class='product-card'>Deals <span>$19.99</span><button>Add to cart</button></div><div class='product-card'>Gift cards <span>$25.00</span><button>Add to cart</button></div><a href='/checkout'>Checkout</a> <a href='/shipping'>Shipping</a>", lds: [org("WalletCDN", "Corporation"), site, { "@type": "PaymentCard", name: "Debit" }, { "@type": "LoanOrCredit", name: "Credit" }] },
+    files: {
+      "/robots.txt": { type: "text/plain", body: "User-agent: *\nAllow: /\nSitemap: https://__HOST__/wallet-sitemap-index.xml\n" },
+      "/wallet-sitemap-index.xml": { type: "text/xml", body: "<?xml version='1.0'?><sitemapindex xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'><sitemap><loc>https://cdn.walletobjects.test/sitemaps/us.xml</loc></sitemap></sitemapindex>" },
+    } },
+];
+for (const p of REPORT_CASES) PROFILES.push(p);
