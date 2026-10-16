@@ -116,8 +116,9 @@ export function buildScanEvidence(input: {
   // or exchange-rate table alone is not proof of a retail price. Plain "kr"
   // is deliberately kept ambiguous rather than assigned to SEK/DKK/NOK.
   const moneyToken = String.raw`(?:€|eur\b|\$|usd\b|£|gbp\b|pln\b|zł|czk\b|kč|sek\b|dkk\b|nok\b|kr\b|huf\b|ft\b|ron\b|lei\b|bgn\b|лв)`;
-  const amount = String.raw`\d{1,3}(?:[ .,'’]\d{3})*(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?`;
-  const pricePattern = new RegExp(String.raw`(?:${moneyToken}\s*(?:${amount})|(?:${amount})\s*${moneyToken})`, "gi");
+  // Bounded amounts prevent quadratic scanning of adversarial digit-only pages.
+  const amount = String.raw`(?:\d{1,3}(?:[ .,'’]\d{3}){1,4}(?:[.,]\d{1,2})?|\d{1,12}(?:[.,]\d{1,2})?)`;
+  const pricePattern = new RegExp(String.raw`(?:${moneyToken}\s*${amount}(?![\d.,])|(?<![\d.,])${amount}\s*${moneyToken})`, "gi");
   const priceMatches = [...text.matchAll(pricePattern)];
   const currencyAliases: Record<string,string> = {
     "€":"EUR","eur":"EUR","$":"USD","usd":"USD","£":"GBP","gbp":"GBP",
