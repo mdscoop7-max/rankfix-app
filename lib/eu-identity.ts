@@ -298,35 +298,49 @@ export function governmentHostname(hostname = ""): boolean {
   return (labels.length >= 2 && GOV_HOST_LABEL.test(labels[labels.length - 2])) || labels[labels.length - 1] === "gov";
 }
 
-// Conglomerates name several primary activities in their own title
-// ("Servizi postali, finanziari e assicurativi"). Then no single family may claim
-// high certainty: the first decision stays, capped, with the others as secondary.
-const TITLE_FAMILIES: Array<{ sector: EuSector; label: string; re: RegExp }> = [
-  { sector: "transport_travel", label: "Post & logistiek", re: stems(["postal", "postali", "postale", "postaux", "postales", "postais", "post- en", "postdienst", "postdienste", "pocztow", "poštov", "postipalvel", "logistic", "logistiek", "logistik", "logistique", "logistica"]) },
-  { sector: "financial_services", label: "Financiële diensten", re: stems(["financial services", "finanziari", "finanzdienst", "services financiers", "servicios financieros", "serviços financeiros", "financiële diensten", "banking", "bancari", "bancaires", "bancarios", "bankdienst"]) },
-  { sector: "financial_services", label: "Verzekeringen", re: stems(["insurance", "assicurativ", "versicherung", "assurances", "seguros", "verzekering"]) },
-  { sector: "telecom_technology", label: "Telecom", re: stems(["telecom", "telecomunicazion", "telekommunikation", "télécommunications", "telecomunicaciones", "mobile and broadband", "fibra e mobile"]) },
-  { sector: "energy_utilities", label: "Energie", re: stems(["energy", "energia", "energie", "énergie", "energía"]) },
+const TITLE_FAMILIES: Array<{ sector: EuSector; key: string; label: string; primaryLabel: string; re: RegExp }> = [
+  { sector: "transport_travel", key: "postal_logistics", label: "Post & logistiek", primaryLabel: "Post- & pakketvervoer", re: stems(["postal", "postali", "postale", "postaux", "postales", "postais", "post- en", "postdienst", "postdienste", "pocztow", "poštov", "postipalvel", "logistic", "logistiek", "logistik", "logistique", "logistica"]) },
+  { sector: "financial_services", key: "financial_services", label: "Financiële diensten", primaryLabel: "Financiële diensten", re: stems(["financial services", "finanziari", "finanzdienst", "services financiers", "servicios financieros", "serviços financeiros", "financiële diensten", "banking", "bancari", "bancaires", "bancarios", "bankdienst"]) },
+  { sector: "financial_services", key: "financial_insurance", label: "Verzekeringen", primaryLabel: "Verzekeringen", re: stems(["insurance", "assicurativ", "versicherung", "assurances", "seguros", "verzekering"]) },
+  { sector: "telecom_technology", key: "telecom_technology", label: "Telecom", primaryLabel: "Telecom & Technologie", re: stems(["telecom", "telecomunicazion", "telekommunikation", "télécommunications", "telecomunicaciones", "mobile and broadband", "fibra e mobile"]) },
+  { sector: "energy_utilities", key: "energy_utilities", label: "Energie", primaryLabel: "Energie & Nutsvoorzieningen", re: stems(["energy", "energia", "energie", "énergie", "energía"]) },
 ];
 
+/**
+ * Conglomerates name several primary activities in their own title
+ * ("Poste Italiane - Servizi postali, finanziari e assicurativi"). An
+ * organisation lists its core activity first, so the FIRST named activity is
+ * the primary sector; the others are secondary, and certainty is capped
+ * because the site legitimately serves several sectors.
+ */
 export function detectEuPrimaryIdentity(input: EuIdentityInput): EuIdentity | null {
   const result = detectEuPrimaryIdentityCore(input);
-  if (!result) return result;
   const title = stripAudience((input.title || "").slice(0, 300));
-  const named = TITLE_FAMILIES.filter((f) => f.re.test(title));
-  const otherSectors = named.filter((f) => f.sector !== result.sector);
-  if (named.length >= 2 && otherSectors.length >= 1) {
-    const ownLabels = named.filter((f) => f.sector === result.sector).map((f) => f.label);
+  const named = TITLE_FAMILIES
+    .map((f) => ({ ...f, at: title.search(new RegExp(f.re.source, f.re.flags.replace("g", ""))) }))
+    .filter((f) => f.at >= 0)
+    .sort((a, b) => a.at - b.at);
+  const sectors = [...new Set(named.map((f) => f.sector))];
+  if (sectors.length >= 2 && !(result && ["government", "news_media", "education", "health_wellness"].includes(result.sector))) {
+    const first = named[0];
+    const sameSector = named.filter((f) => f.sector === first.sector);
+    const secondary = sectors.slice(1).map((sector) => {
+      const items = named.filter((f) => f.sector === sector);
+      return { sector, label: items.map((f) => f.label).join(" & "), evidence: ["Genoemd in de eigen titel"] };
+    });
     return {
-      ...result,
-      label: ownLabels.length > 1 ? ownLabels.join(" & ") : result.label,
+      sector: first.sector,
+      key: sameSector.length > 1 ? first.sector : first.key,
+      label: sameSector.length > 1 ? sameSector.map((f) => f.label).join(" & ") : first.primaryLabel,
       confidence: "medium",
-      confidenceScore: Math.min(result.confidenceScore, 72),
-      evidence: [...result.evidence, `Titel noemt meerdere hoofdactiviteiten (${named.map((f) => f.label).join(", ")}): zekerheid begrensd`],
-      secondary: [...(result.secondary || []), ...otherSectors.filter((f, i, a) => a.findIndex((x) => x.sector === f.sector) === i).map((f) => ({ sector: f.sector, label: f.label, evidence: ["Genoemd in de eigen titel"] }))],
+      confidenceScore: 72,
+      // Evidence names only the primary activity; the others are listed as
+      // secondary activities (the report self-check rejects foreign-sector words).
+      evidence: [`Titel noemt ${sectors.length} hoofdactiviteiten; de eerstgenoemde (${first.label}) is de hoofdsector, de overige staan als nevenactiviteit; zekerheid begrensd`],
+      secondary: [...secondary, ...((result?.secondary || []).filter((x) => !sectors.includes(x.sector)))],
     };
   }
-  if (named.length >= 2 && named.every((f) => f.sector === result.sector) && result.key === "financial_insurance") {
+  if (result && named.length >= 2 && sectors.length === 1 && sectors[0] === result.sector && result.key === "financial_insurance") {
     return { ...result, key: "financial_services", label: named.map((f) => f.label).join(" & ") };
   }
   return result;

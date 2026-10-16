@@ -150,7 +150,10 @@ test("multi-activity groups: certainty is capped and the other activities stay v
   const { detectEuPrimaryIdentity: d } = await import("../lib/eu-identity.ts");
   const r = d({ title: "Gruppo Nazionale - Servizi postali, finanziari e assicurativi", description: "Spedizioni, pacchi, conti, carte, assicurazioni e pagamenti.", homepage: true });
   assert.ok(r && r.confidenceScore <= 72 && r.confidence === "medium", JSON.stringify(r));
-  assert.ok((r.secondary || []).some((x) => x.sector === "transport_travel"));
+  // The activity named first in the organisation's own title is primary.
+  assert.equal(r.sector, "transport_travel");
+  assert.ok((r.secondary || []).some((x) => x.sector === "financial_services"));
+  assert.equal(d({ title: "Gruppo Y - Servizi assicurativi, finanziari e postali", homepage: true }).sector, "financial_services");
   // A single-activity insurer or bank keeps its certainty.
   assert.ok(d({ title: "Versicherer Nord – Versicherung und Vorsorge", description: "Autoversicherung, Hausratversicherung", homepage: true }).confidenceScore >= 90);
 });

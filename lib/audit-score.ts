@@ -230,9 +230,12 @@ export function evidenceLevel(input: { coveragePercent: number; javascriptRequir
   if (input.renderDegraded) reasons.push("Browser-rendering leverde minder inhoud dan de ruwe HTML");
   if (input.unconfirmed > 0) reasons.push(`${input.unconfirmed} toepasselijke controle(s) niet te bevestigen`);
   const insufficient = input.coveragePercent < 60 || (input.javascriptRequiredButNotRendered && input.coveragePercent < 75);
+  // An ambiguous primary sector changes which modules apply: never "definitief".
+  const sectorAmbiguous = typeof input.sectorConfidence === "number" && input.sectorConfidence > 0 && input.sectorConfidence < 75;
+  if (sectorAmbiguous) reasons.push(`Hoofdsector niet eenduidig (zekerheid ${input.sectorConfidence}%)`);
   const important = input.importantUnconfirmed || [];
   if (important.length) reasons.push(`Belangrijke controle(s) niet bevestigd: ${important.slice(0, 3).join(", ")}`);
-  const level: EvidenceLevel = insufficient ? "insufficient" : input.coveragePercent < 90 || input.javascriptRequiredButNotRendered || input.renderDegraded || important.length > 0 ? "provisional" : "complete";
+  const level: EvidenceLevel = insufficient ? "insufficient" : input.coveragePercent < 90 || input.javascriptRequiredButNotRendered || input.renderDegraded || important.length > 0 || sectorAmbiguous ? "provisional" : "complete";
   return { level, reasons };
 }
 

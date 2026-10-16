@@ -70,7 +70,7 @@ for (const p of PROFILES) {
     }
     for (const [k, re] of Object.entries(p.message || {})) { const c = byKey(k); if (c && !re.test(c.message)) problems.push(`${k} message lacks ${re}: ${c.message.slice(0, 140)}`); }
     for (const [k, re] of Object.entries(p.noMessage || {})) { const c = byKey(k); if (c && re.test(c.message)) problems.push(`${k} message has ${re}: ${c.message.slice(0, 140)}`); }
-    for (const [path, types] of Object.entries(p.sampleTypes || {})) { const a = (j.multiPage?.pageAudits || []).find((x) => new URL(x.url).pathname === path); if (!a) problems.push(`sample ${path} not audited`); else if (!types.includes(a.type)) problems.push(`sample ${path} typed ${a.type} (expected ${types})`); }
+    for (const [path, types] of Object.entries(p.sampleTypes || {})) { const a = (j.multiPage?.pageAudits || []).find((x) => new URL(x.url).pathname === path); if (!types.length) { if (a) problems.push(`sample ${path} must not be sampled (personal utility page)`); continue; } if (!a) problems.push(`sample ${path} not audited`); else if (!types.includes(a.type)) problems.push(`sample ${path} typed ${a.type} (expected ${types})`); }
     if (p.tech) for (const [k, v] of Object.entries(p.tech)) { if ((j.technologyProfile?.[k] ?? null) !== v) problems.push(`technology ${k}=${j.technologyProfile?.[k]} (expected ${v})`); }
     if (p.notTech) for (const [k, v] of Object.entries(p.notTech)) { if ((j.technologyProfile?.[k] ?? null) === v) problems.push(`technology ${k} must not be ${v}`); }
     if (j.technologyProfile && !Array.isArray(j.technologyProfile.technologies)) problems.push("technologyProfile.technologies missing");
@@ -93,6 +93,9 @@ for (const p of PROFILES) {
       const importantOpen = all.filter((c) => c.status === "unable_to_confirm" && c.maxPoints >= 8);
       if (j.overallScore >= 98 && importantOpen.length && j.scoreModel?.evidenceLevel === "complete") problems.push(`score ${j.overallScore} shown as complete with ${importantOpen.length} important unconfirmed check(s): ${importantOpen.map((c) => c.key).join(",")}`);
     }
+    if (p.secondary) for (const sec of p.secondary) if (!(j.sectorProfile?.secondaryActivities || []).some((x) => x.sector === sec)) problems.push(`secondary activity ${sec} missing`);
+    if (p.maxSectorConfidence != null && (j.sectorProfile?.confidenceScore ?? 0) > p.maxSectorConfidence) problems.push(`sector confidence ${j.sectorProfile?.confidenceScore} > ${p.maxSectorConfidence}`);
+    if (p.evidenceLevel && !p.evidenceLevel.includes(j.scoreModel?.evidenceLevel)) problems.push(`evidenceLevel ${j.scoreModel?.evidenceLevel} (expected ${p.evidenceLevel})`);
     if (p.retailNA) { const retailOpen = [...(j.seo?.checks || []), ...(j.geo?.checks || [])].filter((c) => /^(?:merchant_|product_|checkout_|webshop_|eu_(?:discount|review|scarcity|consumer)|price_currency|price_format|ads_readiness|consent_mode)/.test(c.key) && c.status !== "not_applicable"); if (retailOpen.length) problems.push(`retail checks not N/A on a non-retail site: ${retailOpen.map((c) => c.key + "=" + c.status).join(", ")}`); }
     if (p.productSample) { const rp = j.multiPage?.representativeProduct; if (!rp || !p.productSample.test(new URL(rp.url).pathname)) problems.push(`representative product ${rp?.url || "none"} (expected ${p.productSample})`); }
     if (p.maxScore != null && (process.env.MODE || "both") === "both" && j.overallScore > p.maxScore) problems.push(`score ${j.overallScore} > ${p.maxScore} despite issues`);

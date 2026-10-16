@@ -5182,6 +5182,7 @@ async function runScan(request: Request) {
       // Heavy checks (8+ points: title, description, H1, structured data, entity, …)
       // that stayed unconfirmed make a 98/99 provisional, never "definitief".
       importantUnconfirmed: [...seoChecks,...geoChecks].filter((c)=>c.status==="unable_to_confirm" && c.maxPoints>=8).map((c)=>c.title),
+      sectorConfidence: sectorProfile.sector === "unknown" ? undefined : sectorProfile.confidenceScore,
     });
     scoreModel.provisional = scoreEvidence.level !== "complete";
     Object.assign(scoreModel, {
