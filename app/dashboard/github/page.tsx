@@ -53,7 +53,7 @@ export default function GithubPage(){
   const [proposalId,setProposalId]=useState("");
   const [proposalHash,setProposalHash]=useState("");
   const [language,setLanguage]=useState<Locale>("nl");
-  const [plan,setPlan]=useState("free");
+  const [plan,setPlan]=useState("");
   const [upgradeOpen,setUpgradeOpen]=useState(false);
   const upgradeDialogRef=useRef<HTMLDialogElement>(null);
   const [scanData,setScanData]=useState<any>(null);
@@ -83,7 +83,7 @@ export default function GithubPage(){
 
   useEffect(()=>{
     fetch("/api/account/language").then(r=>r.ok?readJsonSafe(r):null).then(d=>{if(d?.language&&d.language in ui)setLanguage(d.language)}).catch(()=>{});
-    fetch("/api/history",{cache:"no-store"}).then(r=>r.ok?readJsonSafe(r):null).then(d=>{if(d?.usage?.plan)setPlan(d.usage.plan)}).catch(()=>{});
+    fetch("/api/auth/me",{cache:"no-store"}).then(r=>r.ok?readJsonSafe(r):null).then(d=>{if(d?.user?.plan_code)setPlan(d.user.plan_code)}).catch(()=>{});
     const params=new URLSearchParams(searchParams.toString());
     setIssue(params.get("issue")||"");
     setContext(params.get("context")||"");
