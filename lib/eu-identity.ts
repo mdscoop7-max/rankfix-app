@@ -570,7 +570,7 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   // company-type noun; two independent sources give a confirmed sector, one source a
   // probable one. Never on retailers or publications (checked above).
   const trade = brandTradeNoun(title, site, input.hostname || "");
-  if (trade && !retailer) {
+  if (trade && !retailer && !transportIntermediary && !publication) {
     const confirmed = trade.sources.length >= 2;
     return { sector: trade.sector, key: trade.key, label: trade.label, confidence: confirmed ? "high" : "medium", confidenceScore: confirmed ? 82 : 72,
       evidence: [`De organisatienaam noemt het soort bedrijf ("${trade.noun}") in ${trade.sources.join(" en ")}; de pagina beschrijft de dienst zelf niet`] };
