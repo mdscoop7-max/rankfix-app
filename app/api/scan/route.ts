@@ -11,7 +11,7 @@ import { getFixPolicy } from "@/lib/fix-policy";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { assessPassiveSecurity, formBlocks, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
-import { assessPageDescription, assessPageTitle, isParkedDomainPage, BOT_SENSITIVE_CHECKS, botManagerCookies, botManagerHeaders, BOT_SENSITIVE_WHEN_ABSENT, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isClientShell, isPlaceholderTitle, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
+import { assessPageDescription, assessPageTitle, isParkedDomainPage, BOT_SENSITIVE_CHECKS, botManagerCookies, botManagerHeaders, BOT_SENSITIVE_WHEN_ABSENT, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isClientShell, isPlaceholderTitle, templateFieldLeak, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, confirmedRetailEvidenceForService, isStorefrontOnlyForService, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
 import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findPlaceholderRegistration, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
@@ -809,8 +809,8 @@ async function runScan(request: Request) {
     // document. This never bypasses CAPTCHA/WAF controls; failed recovery still stops safely.
     const preliminaryQualityTitle = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
     const preliminaryQualityText = stripHtml(html).slice(0, 12000);
-    const preliminaryInterstitial = /\b(hang tight|routing to checkout|checking your browser|just a moment|please wait|verify (?:you are|that you are) human|access denied|security check|attention required|radware page|incapsula incident|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test(preliminaryQualityTitle)
-      || /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform|radware|incapsula|imperva|akamai bot manager|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test(preliminaryQualityText);
+    const preliminaryInterstitial = /\b(hang tight|routing to checkout|checking your browser|just a moment|please wait|verify (?:you are|that you are) human|access denied|security check|attention required|radware page|incapsula incident|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for|pardon our interruption|request rejected|robot or human|are you a robot|access to this page has been denied|please verify you are a human)\b/i.test(preliminaryQualityTitle)
+      || /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform|radware|incapsula|imperva|akamai bot manager|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for|pardon our interruption|request rejected|robot or human|are you a robot|access to this page has been denied|please verify you are a human)\b/i.test(preliminaryQualityText);
     if (preliminaryInterstitial && !javascriptExecuted) {
       try {
         const recovered = await renderPrimaryOnce();
@@ -837,8 +837,8 @@ async function runScan(request: Request) {
     const qualityDescription =
       firstMatch(html, /<meta[^>]+(?:name|property)\s*=\s*["']description["'][^>]+content\s*=\s*["']([\s\S]*?)["'][^>]*>/i) ||
       firstMatch(html, /<meta[^>]+content\s*=\s*["']([\s\S]*?)["'][^>]+(?:name|property)\s*=\s*["']description["'][^>]*>/i);
-    const strongInterstitialTitle = /\b(hang tight|routing to checkout|checking your browser|just a moment|please wait|verify (?:you are|that you are) human|access denied|security check|attention required|radware page|incapsula incident|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test(qualityTitle);
-    const strongInterstitialBody = /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform|radware|incapsula|imperva|akamai bot manager|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test(qualityText);
+    const strongInterstitialTitle = /\b(hang tight|routing to checkout|checking your browser|just a moment|please wait|verify (?:you are|that you are) human|access denied|security check|attention required|radware page|incapsula incident|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for|pardon our interruption|request rejected|robot or human|are you a robot|access to this page has been denied|please verify you are a human)\b/i.test(qualityTitle);
+    const strongInterstitialBody = /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform|radware|incapsula|imperva|akamai bot manager|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for|pardon our interruption|request rejected|robot or human|are you a robot|access to this page has been denied|please verify you are a human)\b/i.test(qualityText);
     // A 2xx status other than 200 can represent asynchronous routing rather than the
     // requested indexable document. Only stop when the response is also materially
     // empty, so legitimate 202 endpoints are not rejected on status alone.
@@ -1379,6 +1379,8 @@ async function runScan(request: Request) {
     let robotsDeclaredSitemapUrls: string[] = [];
     let confirmedSitemapUrl: string | null = null;
     let sitemapDiagnostic = "";
+    // HTTP statuses with which the site refused RankFix's sitemap requests (for the sample explanation).
+    const sitemapRefusals: number[] = [];
     try {
       const r = (await safePublicFetch(robotsUrl, { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/plain,application/xml,text/xml" })).response;
       if (r.ok) {
@@ -1535,6 +1537,7 @@ async function runScan(request: Request) {
           // 401/403/429 (or a 503 challenge) refuses RankFix, it does not prove a
           // broken sitemap: search engines may well receive it. Unconfirmed, not a fault.
           if ([401, 403, 405, 429, 503].includes(r.status)) {
+            sitemapRefusals.push(r.status);
             sitemapFetchFailed = true;
             if (candidate.source === "robots") declaredSitemapFetchFailed = true;
             sitemapDiagnostic += " De server weigerde het verzoek van RankFix; dat bewijst niet dat de sitemap voor zoekmachines onbereikbaar is.";
@@ -2871,6 +2874,8 @@ async function runScan(request: Request) {
             : check("warning", "title", "seo", "Meta title", `De title is een algemene standaardtitel ("${title}") en beschrijft het onderwerp van de pagina niet.`, "Gebruik een unieke title met onderwerp en merk, bijvoorbeeld \"Onderwerp | Merk\".", isHomepage ? 4 : 3, 10)
         : isBrandOnlyTitle(title, finalUrl.hostname)
           ? check("warning", "title", "seo", "Meta title", isHomepage ? `De title bevat alleen de merknaam ("${title}"). Voor de homepage van een bekende organisatie is dat gebruikelijk; een korte omschrijving van wat de organisatie doet kan de zoekpreview verduidelijken. Licht advies.` : `De title bevat alleen de merknaam ("${title}"); het onderwerp van deze pagina ontbreekt.`, "Zet het onderwerp van de pagina vóór de merknaam, bijvoorbeeld \"Onderwerp | Merk\".", isHomepage ? 9 : 5, 10)
+        : templateFieldLeak(title, finalUrl.hostname, finalUrl.pathname)
+          ? check("warning", "title", "seo", "Meta title", `De title bevat een sjabloonveld ("${templateFieldLeak(title, finalUrl.hostname, finalUrl.pathname)}"); het CMS print waarschijnlijk een veldnaam in plaats van een waarde.`, "Controleer het title-sjabloon en vervang de veldnaam door de bedoelde tekst.", 7, 10)
         : hasDanglingTitleSeparator(title)
           ? check("warning", "title", "seo", "Meta title", `De title begint of eindigt met een scheidingsteken ("${title}"); waarschijnlijk vult het template een paginanaam niet in.`, "Vul het ontbrekende deel van de title in of verwijder het losse scheidingsteken, bijvoorbeeld \"Onderwerp | Merk\".", 7, 10)
         : duplicateTitleSegment(title)
@@ -4083,7 +4088,7 @@ async function runScan(request: Request) {
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
     type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "event" | "corporate" | "contact" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { excludedUtility?: boolean; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; schemaTypes?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; productSchemaCount?: number; financialOffer?: boolean; eventSchema?: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageAudit = MultiPageCandidate & { excludedUtility?: boolean; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; schemaTypes?: string[]; businessDetails?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; productSchemaCount?: number; financialOffer?: boolean; eventSchema?: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -4352,7 +4357,7 @@ async function runScan(request: Request) {
           "li"+Math.min(9,Math.floor(countTag("li")/10)),
           "schema"+Math.min(5,(pageHtml!.match(/"@type"\s*:/gi)||[]).length),
         ].join("|");
-        const pageChallenge = /\b(radware page|checking your browser|just a moment|verify (?:you are|that you are) human|request unsuccessful|incapsula|imperva|challenge-platform|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test([pageQualityTitle,pageQualityText].join(" "));
+        const pageChallenge = /\b(radware page|checking your browser|just a moment|verify (?:you are|that you are) human|request unsuccessful|incapsula|imperva|challenge-platform|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for|pardon our interruption|request rejected|robot or human|are you a robot|access to this page has been denied|please verify you are a human)\b/i.test([pageQualityTitle,pageQualityText].join(" "));
         if (pageChallenge) {
           return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, title:pageQualityTitle||null, description:pageQualityDescription||null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"quality",status:"UNABLE_TO_CONFIRM",details:"HTTP-response lijkt een bot-/securitychallenge in plaats van de bedoelde pagina; deze sample wordt niet gescoord."}] };
         }
@@ -4430,7 +4435,7 @@ async function runScan(request: Request) {
           confirmedRetailPage: pageProductSchema || (pageStrongCommerceAction && pagePriceSignals >= 1) || (pageItemListSchema && new Set(pageProductLinks).size >= 3) || (pageStoreSchema && pagePriceSignals >= 2),
         };
         // Meta rules are shared with the main page (lib/report-quality.ts).
-        const pageTitleAssessment = assessPageTitle(pageTitle, finalCandidate.hostname, new Date(), representativeTitlePixelWidth);
+        const pageTitleAssessment = assessPageTitle(pageTitle, finalCandidate.hostname, new Date(), representativeTitlePixelWidth, finalCandidate.pathname);
         const pageDescriptionAssessment = assessPageDescription(pageDescription, Boolean(pageDescriptionTag), representativeEvidenceSource === "rendered_html" ? "rendered" : "raw");
         // A JavaScript application shell that could not be rendered cannot prove a
         // missing title, description, H1 or canonical; those stay unconfirmed.
@@ -4501,8 +4506,10 @@ async function runScan(request: Request) {
           uniqueH1: pageH1s.length === 1,
           detailIdentity: Boolean(/\b(?:sku|artikelnummer|modelnummer|ean|gtin)\b/i.test(pageHtml.slice(0,250000)) || /\b(?:iphone|galaxy|pixel|smartphone)\b/i.test(pageTitle)),
         });
+        // Concrete business details on this sampled page (address, phone, e-mail, registration).
+        const pageBusinessDetails = (() => { const d = findBusinessContactDetails(pageQualityText, pageHtml, finalCandidate.hostname); const reg = findCompanyRegistration(pageQualityText); const found = [reg, d.address && `adres (${d.address})`, (d.phone || d.telLink) && "telefoonnummer", (d.email || d.mailtoLink) && "e-mailadres"].filter(Boolean) as string[]; return found; })();
         const pageSampleScore = sampleEvidenceScore(evidenceChecks, (key) => evidenceCredit(evidenceChecks.find((item)=>item.key===key)!));
-        return { ...page, type:refinedType, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:pageSampleScore, partialHead:partialHeadOnly, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), ownIdentityText:[pageTitle,pageDescription,pageH1s.filter((value: string)=>!isConsentHeading(value)).join(" ")].filter(Boolean).join(" "), schemaTypes:[...new Set(pageSchemaTypes)], formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, productLinks:extractProductDetailLinks(pageHtml, finalCandidate.toString(), siteHost, 8), evidenceChecks };
+        return { ...page, type:refinedType, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:pageSampleScore, partialHead:partialHeadOnly, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), ownIdentityText:[pageTitle,pageDescription,pageH1s.filter((value: string)=>!isConsentHeading(value)).join(" ")].filter(Boolean).join(" "), schemaTypes:[...new Set(pageSchemaTypes)], businessDetails:pageBusinessDetails, formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, productLinks:extractProductDetailLinks(pageHtml, finalCandidate.toString(), siteHost, 8), evidenceChecks };
       } catch (multiPageError) {
         const rawReason = multiPageError instanceof Error ? multiPageError.message : "FETCH_FAILED";
         const reason = /timeout|abort/i.test(rawReason)
@@ -4643,6 +4650,30 @@ async function runScan(request: Request) {
       seenStructures.add(key);
       auditedMultiPages.push(item);
     }
+    // Why a sample stayed small (3.5.1): the report names each source RankFix tried
+    // instead of silently showing "1 / 1". Descriptive only; never changes a score.
+    const extraAuditedPages = reportedMultiPageAudits.filter((item)=>item.status==="audited").filter((item)=>normalizeScanUrl(item.url)!==normalizeScanUrl(finalUrl.toString())).length;
+    const sampleLimitation = extraAuditedPages >= 2 ? null : (() => {
+      const reasons: Array<{ nl: string; en: string }> = [];
+      const pageLinks = allUniqueInternalAnchors.length;
+      reasons.push(pageLinks === 0
+        ? { nl: "de gescande pagina bevatte geen interne links (navigatie en footer niet geladen)", en: "the scanned page contained no internal links (navigation and footer not loaded)" }
+        : { nl: `de gescande pagina bevatte maar ${pageLinks} interne link(s)`, en: `the scanned page contained only ${pageLinks} internal link(s)` });
+      if (sampleLinkSource === "fallback") {
+        if (scannerAccessBlocked) reasons.push({ nl: `de ruwe HTML was een geweigerde response (HTTP ${recovery.originalHttpStatus}) zonder links`, en: `the raw HTML was a refused response (HTTP ${recovery.originalHttpStatus}) without links` });
+        if (sitemapRefusals.length) { const codes = [...new Set(sitemapRefusals)].join("/"); reasons.push({ nl: `de sitemap weigerde RankFix (HTTP ${codes})`, en: `the sitemap refused RankFix (HTTP ${codes})` }); }
+        else if (!sitemapPageUrls.length) reasons.push(sitemapFound ? { nl: "de sitemap is een index zonder direct bruikbare pagina-URL's", en: "the sitemap is an index without directly usable page URLs" } : { nl: "er is geen bruikbare sitemap gevonden", en: "no usable sitemap was found" });
+        if (!fallbackSources.length) reasons.push({ nl: "er was geen andere bron met pagina-URL's", en: "no other source of page URLs was available" });
+      }
+      const failed = reportedMultiPageAudits.filter((item)=>item.status!=="audited" && !item.excludedUtility).length;
+      if (failed) reasons.push({ nl: `${failed} geselecteerde pagina('s) konden niet betrouwbaar worden opgehaald`, en: `${failed} selected page(s) could not be fetched reliably` });
+      return {
+        extraPagesAudited: extraAuditedPages,
+        reasons: reasons.map((r) => r.nl),
+        note: `De steekproef bleef klein omdat ${reasons.map((r) => r.nl).join("; ")}. Sitebrede conclusies rusten daarom vooral op de gescande pagina.`,
+        noteEn: `The sample stayed small because ${reasons.map((r) => r.en).join("; ")}. Site-wide conclusions therefore rest mainly on the scanned page.`,
+      };
+    })();
     const confirmedRetailSamples = auditedMultiPages.filter((item)=>item.commerceEvidence?.confirmedRetailPage);
     // Motor v2.1: representative pages are site-level evidence partners. They may
     // confirm capabilities/identity, but they never turn an unverified page-specific
@@ -5140,6 +5171,17 @@ async function runScan(request: Request) {
       }
     }
 
+    // Business details (address, phone, e-mail, registration) usually live on the contact
+    // or legal page. When the scanned page did not show them, a sampled page that does is
+    // site-level evidence; its URL becomes the evidence. Absence never becomes a failure.
+    const businessDetailsCheck = seoChecks.find((item)=>item.key==="business_placeholders");
+    if (businessDetailsCheck && businessDetailsCheck.status==="unable_to_confirm") {
+      const source = auditedMultiPages.find((item)=>(item.businessDetails||[]).length>=2) || auditedMultiPages.find((item)=>(item.businessDetails||[]).length===1);
+      if (source) {
+        Object.assign(businessDetailsCheck, check("pass","business_placeholders","seo","Bedrijfsgegevens",`Concrete bedrijfsgegevens bevestigd op een representatieve pagina (${shortUrl(source.url)}): ${(source.businessDetails||[]).join(", ")}.`,"Houd bedrijfs- en contactgegevens actueel en consistent.",6,6));
+        businessDetailsCheck.evidence = { url: source.url, found: true, details: businessDetailsCheck.message, source: "representative_sample" };
+      }
+    }
     // Privacy, cookie and contact information often lives on its own page. When the
     // homepage alone did not prove a signal, the representative sample may.
     const trustLegalCheck = seoChecks.find((item)=>item.key==="trust_legal_signals");
@@ -5205,6 +5247,24 @@ async function runScan(request: Request) {
       const financialPages = auditedMultiPages.filter((item) => item.commerceEvidence?.financialOffer);
       if (sectorProfile.sector !== "financial_services" && sectorProfile.sector !== "unknown" && financialPages.length > 0) {
         addSecondary("financial_services", "Financiële producten", `${financialPages.length} pagina('s) met financieel productschema (rekening, lening, kaart of verzekering): ${financialPages.slice(0, 2).map((item) => shortUrl(item.url)).join(", ")}`);
+      }
+      // Other independent activities: two or more sampled offer pages (service,
+      // product, category, listing, other) whose OWN title/description name another
+      // sector with high certainty. Editorial, corporate, legal, contact and support
+      // pages describe topics or the organisation, not an activity.
+      if (sectorProfile.sector !== "unknown") {
+        const votes = new Map<string, { label: string; pages: string[] }>();
+        // All fetched pages (not the template-deduplicated set): two offer pages of
+        // the same template are exactly the repeated evidence this rule needs.
+        for (const item of reportedMultiPageAudits.filter((page)=>page.status==="audited")) {
+          if (!["service","product","category","listing","other"].includes(item.type) || normalizeScanUrl(item.url)===normalizeScanUrl(finalUrl.toString())) continue;
+          const id = detectEuPrimaryIdentity({ title: item.title || "", description: item.description || "", h1s: [], hostname: "", homepage: false });
+          if (!id || id.confidence !== "high" || id.sector === sectorProfile.sector) continue;
+          const entry = votes.get(id.sector) || { label: id.label, pages: [] };
+          entry.pages.push(item.url);
+          votes.set(id.sector, entry);
+        }
+        for (const [sector, entry] of votes) if (entry.pages.length >= 2) addSecondary(sector, entry.label, `${entry.pages.length} representatieve aanbodpagina's noemen deze activiteit in hun eigen titel of omschrijving: ${entry.pages.slice(0, 2).map((url) => shortUrl(url)).join(", ")}`);
       }
       Object.assign(sectorProfile, {
         secondaryActivities: secondary,
@@ -5524,7 +5584,7 @@ async function runScan(request: Request) {
     const multiPage = {
       accounting:sampleAccounting,
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:representativePageLimit,
-      discoveredInternalUrls:discoveredMultiPage.length, sampleLinkSource, fallbackSources, duplicateSamplesRemoved, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,
+      discoveredInternalUrls:discoveredMultiPage.length, sampleLinkSource, fallbackSources, sampleLimitation, duplicateSamplesRemoved, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,
       // Which sampled page proved the product fields (null = none was proven).
       representativeProduct: productSamplePage ? { url: productSamplePage.url, fields: productFieldCount(productSamplePage.commerceEvidence?.product) } : null,
       siteSampleScore: scoredSamplePages.length ? Math.round(scoredSamplePages.reduce((sum,item)=>sum+(item.score||0),0)/scoredSamplePages.length) : null,

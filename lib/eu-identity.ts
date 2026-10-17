@@ -160,11 +160,15 @@ const BANK_CONCEPTS: Array<[string, RegExp]> = [
 // a bank still needs two more (accounts, loans, cards...). Dutch "bank" = sofa,
 // which the retail veto and the 3-concept rule keep out.
 BANK_CONCEPTS.push(["institution", words(["bank", "banka", "bankas", "banca", "banco", "banque", "banken", "pankki", "pank", "sparkasse", "sparbanken", "sparekasse", "sparebank", "raiffeisenbank", "volksbank", "τράπεζα", "банка"])]);
-const INSURANCE = stems([
+// Germanic compounds put the insurance noun last ("reisverzekering",
+// "Krankenversicherung", "hemförsäkring"); a word-start stem misses them.
+const INSURANCE_COMPOUND = /\p{L}+(?:verzekering(?:en)?|versicherung(?:en)?|försäkring(?:ar|en)?|forsikring(?:er|en)?|vakuutus)(?![\p{L}])/iu;
+const INSURANCE_STEMS = stems([
   "verzeker", "versicher", "assuranc", "assicura", "seguro", "forsikr", "försäkr", "vakuut", "kindlust",
   "apdrošin", "draudim", "ubezpiecz", "pojišť", "pojist", "poisten", "poistn", "biztosít", "asigur", "ασφαλισ", "ασφάλισ",
   "застрахов", "osiguran", "zavarovan", "insurance", "insurer",
 ]);
+const INSURANCE = { test: (value: string) => INSURANCE_STEMS.test(value) || INSURANCE_COMPOUND.test(value) };
 const FINANCE_SCHEMA = new Set(["bankorcreditunion", "financialservice", "financialproduct", "loanorcredit", "bankaccount", "depositaccount", "mortgageloan", "paymentcard", "creditcard", "investmentorDeposit".toLowerCase()]);
 
 // ---------------------------------------------------------------- transport
@@ -453,7 +457,7 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   const healthSchema = ["hospital", "medicalorganization", "medicalclinic", "physician"].some((t) => schema.has(t));
   const hospitalTitle = (HEALTH_CONCEPTS.find(([n]) => n === "clinic")?.[1] as RegExp).test(title) && healthConcepts.length >= 2;
   if (!retailer && (healthSchema || hospitalTitle || healthConcepts.length >= 3 || (healthConcepts.length >= 2 && countSources((s) => distinct(s, HEALTH_CONCEPTS).length > 0) >= 2))) {
-    return { sector: "health_wellness", key: "healthcare", label: "Zorg & Gezondheid", confidence: "high", confidenceScore: healthSchema ? 94 : 90,
+    return { sector: "health_wellness", key: "health_wellness", label: "Zorg & Gezondheid", confidence: "high", confidenceScore: healthSchema ? 94 : 90,
       evidence: [`Eigen identiteit noemt ${healthConcepts.length} zorgconcepten (${healthConcepts.join(", ")})`, ...(healthSchema ? ["Structured data: zorgorganisatie"] : [])] };
   }
 
@@ -573,7 +577,7 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   if (trade && !retailer && !transportIntermediary && !publication) {
     const confirmed = trade.sources.length >= 2;
     return { sector: trade.sector, key: trade.key, label: trade.label, confidence: confirmed ? "high" : "medium", confidenceScore: confirmed ? 82 : 72,
-      evidence: [`De organisatienaam noemt het soort bedrijf ("${trade.noun}") in ${trade.sources.join(" en ")}; de pagina beschrijft de dienst zelf niet`] };
+      evidence: [`${trade.label}: de organisatienaam noemt het soort organisatie ("${trade.noun}") in ${trade.sources.join(" en ")}; de pagina beschrijft het aanbod zelf niet`] };
   }
   return null;
 }
@@ -585,6 +589,10 @@ const TRADE_NOUNS: Array<{ re: RegExp; host: RegExp; sector: EuSector; key: stri
   { re: words(["railways", "railway", "spoorwegen", "eisenbahn", "ferrovie", "ferrocarriles", "chemins de fer", "koleje"]), host: /(?:railways?|spoorwegen|bahn)$/, sector: "transport_travel", key: "passenger_transport", label: "Personenvervoer (spoor, luchtvaart, openbaar vervoer)" },
   { re: words(["bank", "banque", "banca", "banco", "bancă", "banka", "pankki", "sparkasse", "sparbank", "sparebank", "bankas"]), host: /bank$|^bank|sparkasse$/, sector: "financial_services", key: "financial_banking", label: "Bank & financiële producten" },
   { re: words(["telecom", "telekom", "telecomunicazioni", "telecomunicaciones", "télécom"]), host: /telecom$|telekom$/, sector: "telecom_technology", key: "telecom_technology", label: "Telecom & Technologie" },
+  { re: words(["ziekenhuis", "hospital", "krankenhaus", "klinikum", "hôpital", "ospedale", "szpital", "sjukhus", "sygehus", "sairaala", "nemocnice"]), host: /(?:ziekenhuis|hospital|klinikum|krankenhaus)$/, sector: "health_wellness", key: "health_wellness", label: "Zorg & Gezondheid" },
+  { re: words(["energie", "énergie", "energia", "energía", "stadtwerke", "elektriciteit"]), host: /(?:energie|energia|stadtwerke)$/, sector: "energy_utilities", key: "energy_utilities", label: "Energie & nutsvoorzieningen" },
+  { re: words(["zeitung", "krant", "dagblad", "gazzetta", "gazeta", "tidning", "tidende", "sanomat", "noviny", "dagbladet"]), host: /(?:zeitung|krant|dagblad|gazzetta|gazeta|tidning)$/, sector: "news_media", key: "news_media", label: "Nieuws & Media" },
+  { re: words(["ferries", "ferry", "veerdienst", "fähre", "traghetti", "färjor", "busreisen", "autocares"]), host: /(?:ferries|ferry|traghetti)$/, sector: "transport_travel", key: "passenger_transport", label: "Personenvervoer (spoor, luchtvaart, openbaar vervoer)" },
 ];
 
 /** The trade noun in a short brand name (title or site name) and/or the hostname. */

@@ -150,3 +150,28 @@ test("5c. organisation name states the trade: name + hostname, never hostname or
   const single = detectEuPrimaryIdentity({ title: "Nord Airlines", h1s: ["Welcome"], hostname: "nord.test", homepage: true });
   assert.ok(single && single.confidenceScore < 75, "one source is only probable");
 });
+
+test("3.5.1: a CMS field label in a title is flagged only with brand/section evidence", async () => {
+  const { templateFieldLeak } = await import("../lib/report-quality.ts");
+  assert.equal(templateFieldLeak("Working at X | Careers Description", "www.x.test", "/en/careers/working"), "Careers Description");
+  assert.equal(templateFieldLeak("How chips are made | Acme Description", "acme.test", "/tech/chips"), "Acme Description");
+  assert.equal(templateFieldLeak("{{ page.title }} | Acme", "acme.test", "/"), "{{ page.title }} | Acme");
+  assert.equal(templateFieldLeak("undefined", "acme.test", "/"), "undefined");
+  // Real titles stay untouched.
+  assert.equal(templateFieldLeak("Software engineer job description | Acme", "acme.test", "/vacancies"), null);
+  assert.equal(templateFieldLeak("Product description guide | Acme", "acme.test", "/blog/x"), null);
+  assert.equal(templateFieldLeak("Acme | Precision systems", "acme.test", "/"), null);
+});
+
+test("3.5.1: test contact data in more EU languages; organisation-name nouns with negative controls", async () => {
+  const { isPlaceholderEmail, isPlaceholderAddress } = await import("../lib/contact-evidence.ts");
+  for (const e of ["info@exempel.se", "kontakt@eksempel.dk", "info@esimerkki.fi", "info@exemplu.ro"]) assert.ok(isPlaceholderEmail(e, "real.eu"), e);
+  for (const a of ["Exempelgatan 1, 123 45 Exempelstad", "Eksempelvej 2, 2100 København"]) assert.ok(isPlaceholderAddress(a), a);
+  assert.ok(!isPlaceholderAddress("Drottninggatan 10, 111 51 Stockholm"));
+  const { brandTradeNoun } = await import("../lib/eu-identity.ts");
+  assert.equal(brandTradeNoun("Klinikum Nord", "", "x.test")?.sector, "health_wellness");
+  assert.equal(brandTradeNoun("Stadtwerke Süd", "", "stadtwerke-sued.test")?.sector, "energy_utilities");
+  assert.equal(brandTradeNoun("Noord Dagblad", "", "x.test")?.sector, "news_media");
+  assert.equal(brandTradeNoun("Energy Gym", "", "energygym.test"), null, "'energy' alone is not a utility");
+  assert.equal(brandTradeNoun("Avis Autoverhuur", "", "x.test"), null, "'avis' is not a newspaper noun");
+});
