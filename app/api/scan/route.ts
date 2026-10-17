@@ -1371,6 +1371,9 @@ async function runScan(request: Request) {
     let robotsTxt = "";
     let robotsStatus: "PASS" | "FAIL" | "UNABLE_TO_CONFIRM" = "UNABLE_TO_CONFIRM";
     let sitemapFound = false;
+    // Same-site page URLs listed in a valid sitemap: an alternative source for the
+    // representative sample when the scanned document exposes too few links.
+    const sitemapPageUrls: string[] = [];
     let sitemapStatus: "PASS" | "FAIL" | "UNABLE_TO_CONFIRM" = "UNABLE_TO_CONFIRM";
     let sitemapFetchCompleted = false;
     let robotsDeclaredSitemapUrls: string[] = [];
@@ -1510,6 +1513,7 @@ async function runScan(request: Request) {
           const sitemapEntriesMatchSite = sitemapKind === "sitemapindex"
             ? sameOriginLocValues.length > 0 || (candidate.source === "robots" && validLocValues.length > 0)
             : sameOriginLocValues.length > 0;
+          if (structurallyValid && sitemapKind === "urlset" && sitemapPageUrls.length < 200) sitemapPageUrls.push(...sameOriginLocValues.slice(0, 200 - sitemapPageUrls.length));
           if (structurallyValid && sitemapEntriesMatchSite) {
             sitemapFound = true;
             sitemapStatus = "PASS";
@@ -1585,7 +1589,8 @@ async function runScan(request: Request) {
     const allUniqueInternalAnchors = [...new Map(anchorTags.flatMap((item) => {
       try {
         const parsed = new URL(item.sourceHref, finalUrl);
-        if (!/^https?:$/.test(parsed.protocol) || parsed.hostname !== finalUrl.hostname) return [];
+        // www and the bare domain are the same site (links often omit or add "www.").
+        if (!/^https?:$/.test(parsed.protocol) || parsed.hostname.toLowerCase().replace(/^www\./, "") !== finalUrl.hostname.toLowerCase().replace(/^www\./, "")) return [];
         parsed.hash = "";
         return [[parsed.toString(), { ...item, url: parsed.toString() }] as const];
       } catch { return []; }
@@ -4132,7 +4137,39 @@ async function runScan(request: Request) {
       } catch { return null; }
     };
     const anchorContextByUrl = new Map(allUniqueInternalAnchors.map((item)=>[normalizeScanUrl(item.url), item.context || ""] as const));
-    const discoveredMultiPage = [...new Map(allUniqueInternalAnchors.flatMap((item) => {
+    // Alternative link sources (3.5): a document with fewer than 3 same-site links
+    // (blocked or partially hydrated render, consent wall, app shell) cannot drive the
+    // sample. Then use, in order: links in the raw server HTML, SiteNavigationElement
+    // URLs in structured data, and the sitemap. These only nominate pages; every
+    // candidate is fetched and judged on its own evidence. No site or path rules.
+    const sampleLinkSource: "page_links" | "fallback" = allUniqueInternalAnchors.length >= 3 ? "page_links" : "fallback";
+    const fallbackSources: string[] = [];
+    const fallbackAnchors: Array<{ url: string; context: string; sourceHref: string }> = [];
+    if (sampleLinkSource === "fallback") {
+      const addFallback = (urls: string[], source: string) => {
+        let added = 0;
+        for (const raw of urls) {
+          try {
+            const parsed = new URL(raw, finalUrl);
+            if (!/^https?:$/.test(parsed.protocol) || normalizeHost(parsed.hostname) !== siteHost) continue;
+            parsed.hash = "";
+            const key = normalizeScanUrl(parsed.toString());
+            if (key === normalizeScanUrl(finalUrl.toString()) || fallbackAnchors.some((item) => normalizeScanUrl(item.url) === key) || allUniqueInternalAnchors.some((item) => normalizeScanUrl(item.url) === key)) continue;
+            fallbackAnchors.push({ url: parsed.toString(), context: "", sourceHref: raw });
+            added++;
+            if (fallbackAnchors.length >= 60) break;
+          } catch { /* not a URL */ }
+        }
+        if (added) fallbackSources.push(`${source} (${added})`);
+      };
+      if (rawHtml && rawHtml !== html) addFallback([...rawHtml.matchAll(/<a\b[^>]*href\s*=\s*["']([^"'#]+)["']/gi)].map((m) => decode(m[1] || "")), "links in de ruwe HTML");
+      addFallback(schemaObjects.flatMap((item) => {
+        const types = Array.isArray(item?.["@type"]) ? item["@type"] : [item?.["@type"]];
+        return types.some((type: unknown) => /^sitenavigationelement$/i.test(String(type || ""))) ? [item?.url].flat().filter((value: unknown): value is string => typeof value === "string") : [];
+      }), "navigatie in structured data");
+      addFallback(sitemapPageUrls, "sitemap");
+    }
+    const discoveredMultiPage = [...new Map([...allUniqueInternalAnchors, ...fallbackAnchors].flatMap((item) => {
       const candidate = classifyMultiPageCandidate(item.url);
       if (!candidate) return [];
       const context = (item.context || "").trim();
@@ -5487,7 +5524,7 @@ async function runScan(request: Request) {
     const multiPage = {
       accounting:sampleAccounting,
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:representativePageLimit,
-      discoveredInternalUrls:discoveredMultiPage.length, duplicateSamplesRemoved, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,
+      discoveredInternalUrls:discoveredMultiPage.length, sampleLinkSource, fallbackSources, duplicateSamplesRemoved, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,
       // Which sampled page proved the product fields (null = none was proven).
       representativeProduct: productSamplePage ? { url: productSamplePage.url, fields: productFieldCount(productSamplePage.commerceEvidence?.product) } : null,
       siteSampleScore: scoredSamplePages.length ? Math.round(scoredSamplePages.reduce((sum,item)=>sum+(item.score||0),0)/scoredSamplePages.length) : null,

@@ -107,6 +107,43 @@ const S = [];
   mk("name-rule-bank-name", "noordbank.test", "Noord Bank", null, ["financial_services"]);
 }
 
+// 8b. Sample sources when the scanned document has (almost) no same-site links.
+{
+  const sub = (lang, t) => page({ lang, title: `${t} | VervoerVoorbeeld`, desc: `${t}: informatie, tarieven en voorwaarden.`, h1: t, body: filler(lang, 25) });
+  const sitemap = (host, paths) => `<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map((p) => `<url><loc>${p.startsWith("http") ? p : `https://${host}${p}`}</loc></url>`).join("")}</urlset>`;
+  const bare = (title, h1) => `<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>${title}</title><meta name="description" content="Reizen met de trein en bus door het hele land."></head><body><main><h1>${h1}</h1><p>${"Plan je reis met trein en bus. ".repeat(25)}</p></main></body></html>`;
+  // (a) Blocked + rendered without links; valid sitemap lists pages (and one foreign URL).
+  S.push({ id: "sample-from-sitemap-when-no-links", host: "reisvoorbeeld.test", lang: "nl",
+    route: (u) => {
+      if (u.pathname === "/") return { status: 403, body: "denied" };
+      if (u.pathname === "/sitemap.xml") return { body: sitemap("reisvoorbeeld.test", ["/", "/tickets", "/dienstregeling", "/reisinformatie", "/contact-en-service", "/over-ons", "https://ander.test/externe-pagina"]) };
+      if (["/tickets", "/dienstregeling", "/reisinformatie", "/contact-en-service", "/over-ons"].includes(u.pathname)) return { body: sub("nl", u.pathname.slice(1).replace(/-/g, " ")) };
+    },
+    render: (u) => u.pathname === "/" ? bare("Spoorvoorbeeld – treinreizen en dienstregeling", "Plan je treinreis") : null,
+    expect: (j, P) => {
+      const audited = (j.multiPage?.pageAudits || []).filter((a) => a.status === "audited" && new URL(a.url).pathname !== "/");
+      if (audited.length < 3) P(`only ${audited.length} extra page(s) sampled although the sitemap lists 5 (${JSON.stringify(j.multiPage?.fallbackSources)})`);
+      if (j.multiPage?.sampleLinkSource !== "fallback" || !(j.multiPage?.fallbackSources || []).some((x) => /sitemap/.test(x))) P(`fallback source not reported: ${j.multiPage?.sampleLinkSource} ${JSON.stringify(j.multiPage?.fallbackSources)}`);
+      if ((j.multiPage?.pageAudits || []).some((a) => /ander\.test/.test(a.url))) P("a foreign sitemap URL entered the sample");
+    } });
+  // (b) Links point to the bare domain while the page lives on www.: same site.
+  const wwwHome = page({ lang: "nl", title: "Busvervoer en dienstregeling | BusVoorbeeld", desc: "Busreizen, tickets en dienstregeling.", h1: "Reizen met de bus", body: filler("nl", 30) + ["/tickets", "/dienstregeling", "/abonnementen", "/reisinformatie"].map((p) => `<a href="https://busvoorbeeld.test${p}">${p.slice(1)}</a>`).join(" ") });
+  S.push({ id: "sample-links-to-bare-domain", host: "www.busvoorbeeld.test", lang: "nl",
+    route: (u) => u.pathname === "/" ? { body: wwwHome } : ["/tickets", "/dienstregeling", "/abonnementen", "/reisinformatie"].includes(u.pathname) ? { body: sub("nl", u.pathname.slice(1)) } : null,
+    expect: (j, P) => { const n = (j.multiPage?.pageAudits || []).filter((a) => a.status === "audited" && /tickets|dienstregeling|abonnementen|reisinformatie/.test(a.url)).length; if (n < 3) P(`links to the bare domain ignored (${n} sampled)`); } });
+  // (c) Rendered DOM lost its navigation; the server HTML has it.
+  const rawWithNav = page({ lang: "nl", title: "Veerdienst en overtochten | VeerVoorbeeld", desc: "Overtochten, tarieven en vertrektijden.", h1: "Overtochten", body: filler("nl", 30), links: [["/overtochten", "Overtochten"], ["/tarieven", "Tarieven"], ["/vertrektijden", "Vertrektijden"]], scripts: 6, head: '<script id="__NEXT_DATA__" type="application/json">{"props":{}}</script>' });
+  S.push({ id: "sample-from-raw-html-links", host: "veervoorbeeld.test", lang: "nl",
+    route: (u) => u.pathname === "/" ? { body: rawWithNav } : ["/overtochten", "/tarieven", "/vertrektijden"].includes(u.pathname) ? { body: sub("nl", u.pathname.slice(1)) } : null,
+    render: (u) => u.pathname === "/" ? bare("Veerdienst en overtochten | VeerVoorbeeld", "Overtochten") + `<p>${"Veerdienst naar de eilanden met dagelijkse afvaarten. ".repeat(40)}</p>` : null,
+    expect: (j, P) => { const n = (j.multiPage?.pageAudits || []).filter((a) => a.status === "audited" && /overtochten|tarieven|vertrektijden/.test(a.url)).length; if (n < 2) P(`server-HTML navigation not used (${n} sampled, render=${j.rendering?.javascriptExecuted})`); } });
+  // (d) Control: enough page links → sitemap-only pages are not pulled in.
+  const linked = page({ lang: "nl", title: "Taxi en vervoer op maat | TaxiVoorbeeld", desc: "Taxi bestellen, tarieven en zakelijk vervoer.", h1: "Taxi bestellen", body: filler("nl", 30), links: [["/tarieven", "Tarieven"], ["/zakelijk", "Zakelijk"], ["/luchthavenvervoer", "Luchthavenvervoer"]] });
+  S.push({ id: "sample-control-page-links-win", host: "taxivoorbeeld.test", lang: "nl",
+    route: (u) => u.pathname === "/" ? { body: linked } : u.pathname === "/sitemap.xml" ? { body: sitemap("taxivoorbeeld.test", ["/alleen-in-sitemap"]) } : ["/tarieven", "/zakelijk", "/luchthavenvervoer", "/alleen-in-sitemap"].includes(u.pathname) ? { body: sub("nl", u.pathname.slice(1)) } : null,
+    expect: (j, P) => { if (j.multiPage?.sampleLinkSource !== "page_links") P(`source ${j.multiPage?.sampleLinkSource}`); if ((j.multiPage?.pageAudits || []).some((a) => /alleen-in-sitemap/.test(a.url))) P("sitemap used although the page had enough links"); } });
+}
+
 // 3. Reduced bot response without bot cookies (header-only bot manager): head
 // metadata stripped. Missing description / social / structured data is not proven.
 {
@@ -350,7 +387,7 @@ function invariants(j, P) {
 const robots = "User-agent: *\nAllow: /\nSitemap: https://__HOST__/sitemap.xml\n";
 globalThis.fetch = async (input) => {
   const u = new URL(typeof input === "string" ? input : input.url);
-  const sc = S.find((s) => s.host === u.host);
+  const sc = S.find((s) => s.host === u.host) || S.find((s) => s.host.replace(/^www\./, "") === u.host.replace(/^www\./, ""));
   const fill = (b) => String(b).replaceAll("__URL__", u.origin + u.pathname).replaceAll("__HOST__", u.host);
   if (!sc) return new Response("nf", { status: 404, headers: { "content-type": "text/html" } });
   const own = (u.pathname === "/robots.txt" || /sitemap/.test(u.pathname)) ? sc.route(u) : null;
@@ -363,7 +400,7 @@ globalThis.fetch = async (input) => {
   return new Response(fill(r.body), { status: r.status || 200, headers: { "content-type": "text/html; charset=utf-8", ...(r.headers || {}) } });
 };
 globalThis.__RF_RENDER = async (url) => {
-  const u = new URL(url); const sc = S.find((s) => s.host === u.host);
+  const u = new URL(url); const sc = S.find((s) => s.host === u.host) || S.find((s) => s.host.replace(/^www\./, "") === u.host.replace(/^www\./, ""));
   const html = sc?.render?.(u);
   if (!html) throw new Error("TimeoutError: Navigation timeout of 12000 ms exceeded");
   return { html: html.replaceAll("__URL__", u.origin + u.pathname).replaceAll("__HOST__", u.host), finalUrl: url, elapsedMs: 700, requests: 10, titlePixelWidth: 420, domAccessibility: { controls: 3, unnamedButtons: 0, unlabeledControls: 0 }, axeReport: null };
