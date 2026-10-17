@@ -228,12 +228,15 @@ function buildVerifiedWebsiteSchemaFix(filePath:string,current:string,issueId:st
   if(!["STRUCTURED_DATA_MISSING","ORGANIZATION_WEBSITE_SCHEMA","SITE_STRUCTURED_DATA_MISSING"].includes(issueId)) return null;
   if(!/\.html?$/i.test(filePath) || !/<\/head\s*>/i.test(current)) return null;
   if(/<script\b[^>]*type=["']application\/ld\+json["']/i.test(current)) return null;
-  let websiteUrl="";
+  // Validate the scanned homepage, but never hard-code its temporary preview host
+  // into the repository: use the page's existing host-derived canonical instead.
   try {
     const u=new URL(targetUrl);
     if(!["https:","http:"].includes(u.protocol) || u.pathname!=="/" || u.search) return null;
-    websiteUrl=u.origin+"/";
   } catch { return null; }
+  const canonical=current.match(/<link\b[^>]*\brel=(["'])canonical\1[^>]*\bhref=(["'])(.*?)\2/i)?.[3]?.trim()||"";
+  const websiteUrl="{{ request.url_root.rstrip('/') }}/";
+  if(canonical!==websiteUrl) return null;
   const pageTitle=(current.match(/<title\b[^>]*>([^<>]{2,200})<\/title>/i)?.[1]||"").trim();
   const brand=pageTitle.split(/\s*[|·–—]\s*/)[0].trim();
   const markHtml=current.match(/<a\b[^>]*class=["'][^"']*\bwordmark\b[^"']*["'][^>]*>([\s\S]*?)<\/a>/i)?.[1]||"";
