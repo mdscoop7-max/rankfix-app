@@ -137,3 +137,16 @@ test("engine 3.5 scenarios through the real scan route: all generic failure clas
   assert.ok(r.total >= 17);
   assert.equal(r.failed, 0, out.stdout);
 });
+
+test("5c. organisation name states the trade: name + hostname, never hostname or audience alone", async () => {
+  const { brandTradeNoun, detectEuPrimaryIdentity } = await import("../lib/eu-identity.ts");
+  assert.equal(brandTradeNoun("Nord Airlines", "", "www.nordairlines.test")?.sources.length, 2);
+  assert.equal(brandTradeNoun("Noord Bank", "", "example.test")?.sector, "financial_services");
+  assert.equal(brandTradeNoun("Welkom", "", "voedselbank.test"), null, "domain label alone is not evidence");
+  assert.equal(brandTradeNoun("Software voor airlines, hotels en banken in heel Europa", "", "x.test"), null, "long topic title is not a name");
+  const id = detectEuPrimaryIdentity({ title: "Nord Airlines", h1s: ["Welcome", "Special offers"], hostname: "www.nordairlines.test", homepage: true });
+  assert.equal(id?.sector, "transport_travel");
+  assert.ok(id.confidenceScore >= 75);
+  const single = detectEuPrimaryIdentity({ title: "Nord Airlines", h1s: ["Welcome"], hostname: "nord.test", homepage: true });
+  assert.ok(single && single.confidenceScore < 75, "one source is only probable");
+});

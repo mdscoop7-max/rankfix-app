@@ -1528,6 +1528,13 @@ async function runScan(request: Request) {
           }
         } else {
           sitemapDiagnostic = `${candidate.url} gaf HTTP ${r.status}; content-type: ${r.headers.get("content-type") || "onbekend"}.`;
+          // 401/403/429 (or a 503 challenge) refuses RankFix, it does not prove a
+          // broken sitemap: search engines may well receive it. Unconfirmed, not a fault.
+          if ([401, 403, 405, 429, 503].includes(r.status)) {
+            sitemapFetchFailed = true;
+            if (candidate.source === "robots") declaredSitemapFetchFailed = true;
+            sitemapDiagnostic += " De server weigerde het verzoek van RankFix; dat bewijst niet dat de sitemap voor zoekmachines onbereikbaar is.";
+          }
           if ((r.status === 404 || r.status === 410) && candidate.source === "robots") {
             sitemapStatus = "FAIL";
             brokenDeclaredSitemaps.push(candidate.url);

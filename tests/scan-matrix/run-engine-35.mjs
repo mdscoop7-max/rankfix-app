@@ -67,6 +67,38 @@ const S = [];
     } });
 }
 
+// 2b. Field report 17-10 (13:28) pattern: RankFix gets 403 on the page and the
+// declared sitemap; the browser-rendered page has a brand-only title whose NAME
+// states the trade ("… Airlines"), no description, no JSON-LD, generic H1s.
+// Sector must follow the organisation name (+ hostname), the 403s are not faults.
+{
+  const host = "nordairlines.test";
+  const home = `<!doctype html><html><head><meta charset="utf-8"><title>Nord Airlines</title><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"></head><body><header><img src="/logo.svg"></header><main><h1>Welcome</h1><h1>Special offers</h1><h1>Need help?</h1><h1>Get our app</h1><p>${"Discover our offers and manage everything in one place. ".repeat(20)}</p><img src="/a.jpg"></main></body></html>`;
+  S.push({ id: "brand-only-title-blocked-sitemap", host, lang: "en",
+    route: (u) => {
+      if (u.pathname === "/") return { status: 403, body: "<html><head><title>Access Denied</title></head><body>Access Denied</body></html>" };
+      if (u.pathname === "/robots.txt") return { body: "User-agent: *\nAllow: /\nSitemap: https://__HOST__/sitemaps/sitemap-index.xml\n" };
+      if (u.pathname === "/sitemaps/sitemap-index.xml") return { status: 403, body: "<html>denied</html>" };
+    },
+    render: (u) => u.pathname === "/" ? home : null,
+    expect: (j, P) => {
+      if (j.sectorProfile.sector !== "transport_travel") P(`sector ${j.sectorProfile.sector}/${j.sectorProfile.confidenceScore} (organisation name says airline)`);
+      const sm = j.checks.find((c) => c.key === "sitemap");
+      if (["warning", "fail"].includes(sm?.status)) P(`sitemap ${sm.status} although RankFix was refused (403): ${sm.message.slice(0, 100)}`);
+      const st = j.checks.find((c) => c.key === "status");
+      if (["warning", "fail"].includes(st?.status)) P(`status ${st.status}: ${st.message.slice(0, 80)}`);
+      for (const c of j.checks) if (/^(?:merchant_|checkout_|webshop_|product_)/.test(c.key) && c.status === "unable_to_confirm" && j.sectorProfile.sector === "transport_travel" && !j.multiPage?.representativeProduct) P(`${c.key} unconfirmed on a carrier without product evidence`);
+    } });
+}
+// 2c. Negative controls for the organisation-name rule.
+{
+  const mk = (id, host, title, expectNot, expectIn) => S.push({ id, host, lang: "nl", route: (u) => u.pathname === "/" && { body: page({ lang: "nl", title, desc: "", h1: "Welkom", body: filler("nl", 30) }) },
+    expect: (j, P) => { const s = j.sectorProfile.sector; if (expectNot && s === expectNot) P(`sector ${s} from a domain label or audience`); if (expectIn && !expectIn.includes(s)) P(`sector ${s} (expected ${expectIn})`); } });
+  mk("name-rule-hostname-only", "voedselbank.test", "Welkom", "financial_services");
+  mk("name-rule-audience", "airsoft.test", "Software voor airlines en hotels", "transport_travel");
+  mk("name-rule-bank-name", "noordbank.test", "Noord Bank", null, ["financial_services"]);
+}
+
 // 3. Reduced bot response without bot cookies (header-only bot manager): head
 // metadata stripped. Missing description / social / structured data is not proven.
 {
@@ -313,6 +345,8 @@ globalThis.fetch = async (input) => {
   const sc = S.find((s) => s.host === u.host);
   const fill = (b) => String(b).replaceAll("__URL__", u.origin + u.pathname).replaceAll("__HOST__", u.host);
   if (!sc) return new Response("nf", { status: 404, headers: { "content-type": "text/html" } });
+  const own = (u.pathname === "/robots.txt" || /sitemap/.test(u.pathname)) ? sc.route(u) : null;
+  if (own) return new Response(fill(own.body), { status: own.status || 200, headers: { "content-type": u.pathname.endsWith(".txt") ? "text/plain" : own.status ? "text/html" : "application/xml" } });
   if (u.pathname === "/robots.txt") return new Response(fill(robots), { status: 200, headers: { "content-type": "text/plain" } });
   if (u.pathname === "/sitemap.xml") return new Response(`<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://${u.host}/</loc></url></urlset>`, { status: 200, headers: { "content-type": "application/xml" } });
   if (/\.(js|jpg|png|css|ico)$/.test(u.pathname)) return new Response("x", { status: 200, headers: { "content-type": /\.js$/.test(u.pathname) ? "application/javascript" : "image/jpeg", "content-length": "1" } });
