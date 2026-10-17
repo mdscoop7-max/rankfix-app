@@ -1320,9 +1320,10 @@ test("finding 6: business details pass only with concrete details, not just abse
   assert.deepEqual(assessBusinessDetails({ placeholders: [], details: none, registration: null, schemaContact: false, thinShell: false }), { status: "unable_to_confirm", reason: "no_details" });
   assert.deepEqual(assessBusinessDetails({ placeholders: [], details: none, registration: null, schemaContact: false, thinShell: true }), { status: "unable_to_confirm", reason: "thin_shell" });
   assert.equal(assessBusinessDetails({ placeholders: ["[kvk]"], details: none, registration: null, schemaContact: false, thinShell: false }).status, "fail");
-  const details = findBusinessContactDetails("Damrak 1, 1012 LG Amsterdam · bel 020-123 45 67", '<a href="mailto:info@bedrijf.nl">mail</a>');
-  assert.deepEqual(assessBusinessDetails({ placeholders: [], details, registration: findCompanyRegistration("KvK-nummer: 12345678"), schemaContact: false, thinShell: false }),
-    { status: "pass", found: ["KvK 12345678", "adres (Damrak 1, 1012 LG Amsterdam)", "telefoonnummer", "e-mailadres"] });
+  // 3.5: realistic values (a counting run such as 020-123 45 67 or KvK 12345678 is template data, see below).
+  const details = findBusinessContactDetails("Damrak 1, 1012 LG Amsterdam · bel 020-547 88 12", '<a href="mailto:info@bedrijf.nl">mail</a>');
+  assert.deepEqual(assessBusinessDetails({ placeholders: [], details, registration: findCompanyRegistration("KvK-nummer: 34098712"), schemaContact: false, thinShell: false }),
+    { status: "pass", found: ["KvK 34098712", "adres (Damrak 1, 1012 LG Amsterdam)", "telefoonnummer", "e-mailadres"] });
   assert.equal(findCompanyRegistration("Vul je KvK-nummer in"), null);
   assert.equal(findVisibleAddress("Vul je postcode in"), null);
   assert.equal(findBusinessContactDetails("", '<input type="email" name="email">').mailtoLink, false);

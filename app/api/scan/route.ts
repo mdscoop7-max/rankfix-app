@@ -11,9 +11,9 @@ import { getFixPolicy } from "@/lib/fix-policy";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { assessPassiveSecurity, formBlocks, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
-import { assessPageDescription, assessPageTitle, isParkedDomainPage, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isClientShell, isPlaceholderTitle, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
+import { assessPageDescription, assessPageTitle, isParkedDomainPage, BOT_SENSITIVE_CHECKS, botManagerCookies, botManagerHeaders, BOT_SENSITIVE_WHEN_ABSENT, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isClientShell, isPlaceholderTitle, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, confirmedRetailEvidenceForService, isStorefrontOnlyForService, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
-import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
+import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findPlaceholderRegistration, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readHtmlSampleHeadFirst, readResponsePrefix, readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
@@ -23,7 +23,8 @@ import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
 import { createRenderBudget, renderPublicPage } from "@/lib/headless-render";
 import { renderOnce, renderWithRetry, representativeNeedsJavaScriptRendering } from "@/lib/render-strategy";
-import { isFinancialOfferSchema, missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore } from "@/lib/sample-quality";
+import { annotateEvidenceSources, type EvidenceSource } from "@/lib/evidence-source";
+import { countIndependentProducts, isFinancialOfferSchema, missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore, SERVICE_INTENT, SERVICE_SCHEMA_TYPES } from "@/lib/sample-quality";
 import { parseStructuredPrice, offerPrice } from "@/lib/price";
 import { detectBusinessModel } from "@/lib/business-model";
 import { indexJsonLdIds, resolveSchemaImage } from "@/lib/schema-image";
@@ -104,7 +105,7 @@ type Check = {
   reasonCode?: "cap_absent" | "needs_js" | "insufficient_pages" | "weak_evidence" | "type_uncertain";
   impactClaim: "proven_impact" | "best_practice" | "hygiene";
   formKind?: "contact" | "appointment" | "booking" | "quote" | "checkout" | "newsletter" | "login" | "search";
-  evidence: { url: string; found: string | number | boolean | null; expected?: string; details: string };
+  evidence: { url: string; found: string | number | boolean | null; expected?: string; details: string; source?: EvidenceSource };
   fix_category: "A" | "B" | "C";
 };
 
@@ -195,7 +196,8 @@ function canonicalEquivalent(canonical: URL, page: URL): boolean {
 
 function normalizeScanUrl(value: string) {
   try {
-    const url = new URL(value);
+    // One tracking-parameter list for selection, dedupe and canonical comparison.
+    const url = new URL(stripTrackingParams(value));
     url.hash = "";
     url.hostname = url.hostname.toLowerCase().replace(/^www\./, "");
     url.pathname = url.pathname.replace(/\/+$/, "") || "/";
@@ -729,6 +731,15 @@ async function runScan(request: Request) {
       return NextResponse.json({ error: httpMessages[scanLanguage], code: [404, 410].includes(response.status) ? "HTTP_NOT_FOUND" : response.status >= 500 ? "HTTP_SERVER_ERROR" : "HTTP_BLOCKED", httpStatus: response.status, recovery }, { status: 422 });
     }
 
+    // The website answered RankFix itself with an access refusal, but a real browser
+    // received the page: a crawler block aimed at the scanner, not a website error.
+    const scannerAccessBlocked = Boolean(recoveredHtml) && !response.ok;
+    const access = {
+      rankfixBlocked: scannerAccessBlocked,
+      originalStatus: scannerAccessBlocked ? recovery.originalHttpStatus : null,
+      attribution: scannerAccessBlocked ? "crawler_block" as const : null,
+      note: scannerAccessBlocked ? `De website weigerde het verzoek van RankFix (HTTP ${recovery.originalHttpStatus}); een browser kreeg de pagina wel. Statuscode en responstijd zijn daarom niet beoordeeld; de inhoud komt uit de browserweergave.` : null,
+    };
     // Modern commerce/product pages can contain large SSR payloads and JSON-LD. Keep a strict cap, but allow enough room to audit them safely.
     let html: string;
     try {
@@ -1096,7 +1107,7 @@ async function runScan(request: Request) {
     // Concrete details only: a dialable number, an address with postcode, a visible
     // e-mail address or tel:/mailto: links. Counts, prices, dates and form labels
     // such as "postcode" or an e-mail input are not contact details.
-    const businessContactDetails = findBusinessContactDetails(text, html);
+    const businessContactDetails = findBusinessContactDetails(text, html, finalUrl.hostname);
     const hasBusinessContactDetails = hasBusinessContactDetailsFn(businessContactDetails);
     const hasSocialOrReviewSignal = /\b(instagram|facebook|linkedin|google reviews|reviews|tripadvisor|trustpilot)\b/i.test(text) || sameAsCount > 0;
     const hasContactChannelSignal = hasBusinessContactDetails || (hasContactSignal && (hasContactFormSignal || hasContactActionSignal));
@@ -1342,7 +1353,7 @@ async function runScan(request: Request) {
     const phoneMatch = text.match(/(?:\+31\s?6|0)[\d\s().-]{8,}/);
     // Word-boundary anchored matcher: an unanchored "[A-Z0-9._%+-]+@" pattern is
     // quadratic on long tokens (inline base64, minified JSON) and stalled scans ~60s.
-    const visibleEmail = findVisibleEmail(text);
+    const visibleEmail = businessContactDetails.email; // example/test addresses are not contact evidence
     const emailMatch = visibleEmail ? [visibleEmail] : null;
     const addressMatch = text.match(/\b([^,]{3,60}\s+\d+[A-Za-z]?)\s+(\d{4}\s?[A-Z]{2})\s+([A-Za-zÀ-ÿ' -]{2,40})\b/);
     const localBusinessDetails = effectiveLocalSchemaSignal ? {
@@ -1710,8 +1721,8 @@ async function runScan(request: Request) {
     const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]}> = [
       {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\b/i,/\b(te koop|te huur|for sale|for rent|woningaanbod)\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
       {sector:"automotive",label:"Automotive",patterns:[/\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\b/i,/\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
-      {sector:"home_services",label:"Lokale vakdienst",patterns:[/\b(loodgieter|plumber|aannemer|installateur|elektricien|schilder|dakdekker|klus(?:sen)?bedrijf|bouwbedrijf|bouwservice|general contractor|electrician|contractor|riool(?:service|specialist)?|rioolprobleem|ontstopping|ontstoppen|afvoer|schoonmaak(?:bedrijf|dienst(?:en)?)?|kantoorschoonmaak|cleaning service|cleaning company)\b/i,/\b(offerte|werkgebied|servicegebied|installatie|reparatie|renovatie|verbouwing|bouw|verstopping|riolering|riooldienst(?:en)?|schoonmaak|cleaning)\b/i],modules:["core_seo","geo","local","lead_conversion","home_services"]},
-      {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\b(advocaat|accountant|boekhouder|consultant|notaris|law firm|legalservice|legal services|accounting|consultancy)\b/i,/\b(diensten|expertise|advies|consult)\b/i],modules:["core_seo","geo","local","lead_conversion","professional_services"]},
+      {sector:"home_services",label:"Lokale vakdienst",patterns:[/\b(loodgieter|plumber|aannemer|installateur|elektricien|schilder|schilders(?:bedrijf|werk(?:en|zaamheden)?)|schilderwerk(?:en|zaamheden)?|stukadoor(?:sbedrijf)?|timmer(?:man|bedrijf)|glazenwasser|hoveniers?(?:bedrijf)?|dakdekker|klus(?:sen)?bedrijf|bouwbedrijf|bouwservice|general contractor|electrician|contractor|riool(?:service|specialist)?|rioolprobleem|ontstopping|ontstoppen|afvoer|schoonmaak(?:bedrijf|dienst(?:en)?)?|kantoorschoonmaak|cleaning service|cleaning company)\b/i,/\b(offerte|werkgebied|servicegebied|installatie|reparatie|renovatie|verbouwing|bouw|verstopping|riolering|riooldienst(?:en)?|schoonmaak|cleaning)\b/i],modules:["core_seo","geo","local","lead_conversion","home_services"]},
+      {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\b(advocaat|advocaten(?:kantoor)?|accountant|accountants(?:kantoor)?|boekhouder|boekhouding|belastingadvi(?:es|seur|seurs)|administratiekantoor|consultant|notaris|law firm|legalservice|legal services|accounting|consultancy|tax advi(?:ce|sor)|steuerberat(?:er|ung)|expert-comptable|commercialista)\b/i,/\b(diensten|expertise|advies|consult)\b/i],modules:["core_seo","geo","local","lead_conversion","professional_services"]},
       {sector:"hospitality",label:"Horeca",patterns:[/\b(restaurant|cafe|café|hotel|brasserie|bistro|reserveren|reservation|restaurantmenu|menukaart)\b/i,/\b(openingstijden|opening hours|tafel reserveren)\b/i],modules:["core_seo","geo","local","lead_conversion","hospitality"]},
       {sector:"health_wellness",label:"Zorg & Gezondheid",patterns:[/\b(kliniek|clinic|(?:fysio|physio)therap\w*|osteopa\w*|chiropract\w*|huisarts\w*|psycholo\w*|logoped\w*|podotherap\w*|verloskund\w*|orthodont\w*|mondhygi\w*|tandarts|dentist|medicalclinic|physician|mondzorg|acupunctuur|acupuncture|acupuncturist|therapeut|therapist|therapie|therapy|tuina)\b/i,/\b(afspraak|appointment|behandeling|behandelingen|treatment|treatments|patient|patiënt|praktijk|practice)\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
       {sector:"beauty",label:"Beauty & Verzorging",patterns:[/\b(kapper|hairdresser|hairsalon|hair salon|hairstyling|beauty salon|beautysalon|schoonheidssalon|nagelsalon|nail salon|barber|day spa|dayspa|city spa|wellness|manicure|pedicure|facial|gezichtsbehandeling)\b/i,/\b(afspraak|appointment|salons?|knippen|haar|hair|spa|wellness|manicure|pedicure|beauty treatment|beauty treatments)\b/i],modules:["core_seo","geo","local","lead_conversion","beauty"]},
@@ -1772,6 +1783,9 @@ async function runScan(request: Request) {
     if (schemaSet.has("hairsalon") || schemaSet.has("beautysalon")) schemaSectorBoost.beauty = 3;
     if (schemaSet.has("automotivebusiness") || schemaSet.has("autodealer") || schemaSet.has("autorepair")) schemaSectorBoost.automotive = 3;
     if (schemaSet.has("realestateagent")) schemaSectorBoost.real_estate = 3;
+    // Self-declared schema.org business types are primary identity evidence.
+    if (["accountingservice","legalservice","attorney","notary","professionalservice"].some((type)=>schemaSet.has(type))) schemaSectorBoost.professional_services = 3;
+    if (["housepainter","roofingcontractor","generalcontractor","locksmith","hvacbusiness","movingcompany"].some((type)=>schemaSet.has(type))) schemaSectorBoost.home_services = 3;
     if (schemaSet.has("newsarticle")) schemaSectorBoost.news_media = 3;
     // Scanbewijs priority: domain identity outranks incidental generic words.
     const sectorPriority: Partial<Record<SectorKey, number>> = { government: 30, real_estate: 28, automotive: 27, transport_travel: 20, telecom_technology: 20, education: 15, energy_utilities: 15, news_media: 10, nonprofit: 8, events_culture: 6, fitness_sports: 6 };
@@ -2235,7 +2249,11 @@ async function runScan(request: Request) {
       grade:grade(securityScore),
       summary:securitySummary,
       checks:securityChecks,
-      note:"Passieve security-audit op responseheaders en opgehaalde HTML. Geen exploit-, brute-force-, login- of actieve kwetsbaarheidstests uitgevoerd."
+      note:"Passieve security-audit op responseheaders en opgehaalde HTML. Geen exploit-, brute-force-, login- of actieve kwetsbaarheidstests uitgevoerd.",
+      // A passive scan of one response cannot establish that a website is secure.
+      limitedScope: true,
+      scope: "passive_response_headers_and_html" as const,
+      claimPolicy: "Een hoge score betekent alleen dat de gecontroleerde headers en HTML-signalen in orde zijn; het is geen veiligheidsoordeel over de website.",
     };
     const accessibilityApplicable = accessibilityChecks.filter((item)=>item.issue_status !== "NOT_APPLICABLE" && item.issue_status !== "UNABLE_TO_CONFIRM");
     const accessibilityMax = accessibilityApplicable.reduce((sum,item)=>sum+item.maxPoints,0);
@@ -2244,6 +2262,10 @@ async function runScan(request: Request) {
     const accessibilityEngine = {
       version:"1.2-axe-hydrated-dom",
       mode: javascriptExecuted && renderedDocument?.domAccessibility ? "RENDERED_DOM" as const : "INDICATIVE_RAW_HTML" as const,
+      // Without a rendered DOM the number is indicative only and must not be shown as a score.
+      scoreShown: Boolean(javascriptExecuted && renderedDocument?.domAccessibility),
+      limitedScope: true,
+      claimPolicy: "Automatisch toetsbare regels; nooit een volledige WCAG-/EAA-conformiteitsbeoordeling.",
       axe: javascriptExecuted ? renderedDocument?.axeReport || null : null,
       score:accessibilityScore,
       grade:grade(accessibilityScore),
@@ -2420,7 +2442,7 @@ async function runScan(request: Request) {
       .find(Boolean) || null;
     const contactEvidence = contactAnchor ? { ...contactAnchor.item, channel: contactAnchor.kind as ContactChannel } : null;
     const contactFormFound = formBlocks(html).some((form) => isContactForm(form));
-    const visibleContactEmail = findVisibleEmail(text);
+    const visibleContactEmail = businessContactDetails.email;
     // FAQ, help and support pages are not proof of a contact channel.
     const helpOnlyContactAnchor = classifiedContactAnchors.find((entry) => entry.kind !== null && INDIRECT_CONTACT_KINDS.has(entry.kind))?.item || null;
     const hasPrivacyLink = Boolean(privacyEvidence);
@@ -2993,7 +3015,14 @@ async function runScan(request: Request) {
       ? check("pass", "https", "seo", "HTTPS", "De uiteindelijke URL gebruikt HTTPS.", "Behoud HTTPS op alle publieke pagina's en redirects.", 7, 7)
       : check("fail", "https", "seo", "HTTPS", "De uiteindelijke URL gebruikt geen HTTPS.", "Zet de site volledig achter HTTPS.", 0, 7)
     );
-    seoChecks.push(response.status === 200
+    // Crawler block: the website refused RankFix's own request (401/403/405/202 or a
+    // challenge) while a real browser received the page. That is a decision about
+    // the scanner, not a website error: the status and RankFix's response time are
+    // unconfirmed and never scored (field report 16-10: HTTP 200 in the sample,
+    // HTTP 403 as a website warning in the same report).
+    seoChecks.push(scannerAccessBlocked
+      ? check("unable_to_confirm", "status", "seo", "HTTP-status", `Het verzoek van RankFix werd geweigerd (HTTP ${recovery.originalHttpStatus}), maar een browser kreeg de pagina wel te zien. Dit wijst op bot- of crawlerbeveiliging tegenover RankFix en is geen bewezen fout van de website. Of gewone bezoekers en zoekmachines HTTP 200 krijgen, kan RankFix niet bevestigen.`, "Geen actie nodig voor bezoekers. Controleer in Google Search Console of Googlebot de pagina zonder blokkade kan ophalen.", 0, 6)
+      : response.status === 200
       ? check("pass", "status", "seo", "HTTP-status", "De pagina gaf HTTP 200 terug.", "Behoud HTTP 200 voor normale indexeerbare pagina's.", 6, 6)
       : response.ok
         ? check("warning", "status", "seo", "HTTP-status", `De pagina gaf HTTP ${response.status} terug. Dat is succesvol op HTTP-niveau, maar niet de normale 200-response voor een indexeerbare HTML-pagina.`, "Controleer waarom deze URL geen HTTP 200 teruggeeft.", 3, 6)
@@ -3002,7 +3031,9 @@ async function runScan(request: Request) {
     // responseTime is RankFix's own end-to-end fetch duration from its scan environment.
     // It is useful as a server-response signal, but it is not browser TTFB and must never
     // be presented as measured Core Web Vitals (LCP/CLS/INP).
-    seoChecks.push(responseTime < 1500
+    seoChecks.push(scannerAccessBlocked
+      ? check("unable_to_confirm", "response", "seo", "Server response", `De gemeten responstijd hoort bij een geweigerd verzoek van RankFix (HTTP ${recovery.originalHttpStatus}), niet bij de pagina die bezoekers krijgen; daarom niet beoordeeld.`, "Meet serverrespons en Core Web Vitals met browser- of velddata.", 0, 5)
+      : responseTime < 1500
       ? check("pass", "response", "seo", "Server response", `RankFix ontving de eerste volledige HTTP-response in ongeveer ${responseTime} ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.`, "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.", 5, 5)
       : responseTime < 3000
         ? check("warning", "response", "seo", "Server response", `RankFix ontving de eerste volledige HTTP-response in ongeveer ${responseTime} ms vanuit de scanomgeving. Dit is geen browser-TTFB en bewijst de oorzaak van de vertraging niet.`, "Onderzoek server, caching, database en SSR als mogelijke oorzaken; bevestig prestaties afzonderlijk met browser- of veldmetingen.", 3, 5)
@@ -3205,13 +3236,16 @@ async function runScan(request: Request) {
       placeholders: placeholderMatches,
       details: businessContactDetails,
       registration: findCompanyRegistration(text),
+      testRegistration: findPlaceholderRegistration(text),
       schemaContact: schemaObjects.some((item)=>Boolean(item?.address || item?.telephone || item?.email)),
       thinShell: thinRawHtmlEvidence,
     });
     seoChecks.push(businessDetails.status === "fail"
       ? check("fail", "business_placeholders", "seo", "Bedrijfsgegevens", `Er staan nog ${placeholderMatches.length} placeholder(s) zoals ${placeholderMatches.slice(0, 4).join(", ")} op de pagina.`, "Vervang placeholders door echte bedrijfs- en contactgegevens voordat de site live gaat.", 0, 6)
       : businessDetails.status === "pass"
-        ? check("pass", "business_placeholders", "seo", "Bedrijfsgegevens", `Geen placeholders gevonden en concrete bedrijfsgegevens bevestigd: ${businessDetails.found.join(", ")}.`, "Houd bedrijfs- en contactgegevens actueel en consistent.", 6, 6)
+        ? check("pass", "business_placeholders", "seo", "Bedrijfsgegevens", `Geen placeholders gevonden en concrete bedrijfsgegevens bevestigd: ${businessDetails.found.join(", ")}.${businessContactDetails.suspectedTestData?.length ? ` Daarnaast staan er voorbeeldgegevens in de tekst (${businessContactDetails.suspectedTestData.slice(0,3).join(", ")}); die tellen niet als bewijs.` : ""}`, "Houd bedrijfs- en contactgegevens actueel en consistent.", 6, 6)
+      : businessDetails.status === "warning"
+        ? check("warning", "business_placeholders", "seo", "Bedrijfsgegevens", `De zichtbare contactgegevens lijken voorbeeld- of testgegevens (${businessDetails.testData.slice(0,4).join(", ")}). Die identificeren geen echt bedrijf en tellen niet als bedrijfsbewijs.`, "Vervang voorbeeldgegevens (zoals example.com-adressen, 1234 AB-postcodes of oplopende nummers) door de echte bedrijfs- en contactgegevens.", 2, 6)
         : check("unable_to_confirm", "business_placeholders", "seo", "Bedrijfsgegevens", businessDetails.reason === "thin_shell" ? "Geen placeholders in de raw HTML, maar dit is een dunne JavaScript-shell; bedrijfsgegevens kunnen niet worden bevestigd." : "Geen placeholders gevonden, maar ook geen concrete bedrijfsgegevens (adres, telefoon, e-mail of KvK/BTW) op deze pagina. Dat bewijst niet dat ze ontbreken; ze kunnen op een contact- of over-onspagina staan.", "Toon bedrijfsnaam, adres, telefoon of e-mail en KvK/BTW waar klanten die verwachten, bijvoorbeeld in de footer of op de contactpagina.", 0, 6)
     );
 
@@ -3794,16 +3828,22 @@ async function runScan(request: Request) {
     // Absences in such a response prove nothing about the website, so negative
     // results that depend on them stay unconfirmed instead of becoming advice.
     const botCookieNames = botManagerCookies(passiveSecurity.cookieFlags.cookies.map((cookie)=>cookie.name));
+    const botHeaderNames = botManagerHeaders(response.headers);
     const reducedBotResponse = !javascriptExecuted && isReducedBotResponse({
       botCookies: botCookieNames,
+      botHeaders: botHeaderNames,
       jsonLdBlocks: (html.match(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["']/gi) || []).length,
       ogTags: (html.match(/<meta\b[^>]*property\s*=\s*["']og:/gi) || []).length,
       h1Count: h1s.length,
+      visibleWords: rawVisibleWords,
+      descriptionPresent: Boolean(description),
     });
+    const absentHead: Record<string, boolean> = { description: !description, geo_description: !description, canonical: !canonical, lang: !lang, hreflang: true };
     if (reducedBotResponse) {
-      const botNote = `De website beantwoordde deze scan via bot-beveiliging (${botCookieNames.slice(0,3).join(", ")}) met een uitgeklede pagina zonder structured data, Open Graph of H1. Ontbrekende onderdelen in zo'n response bewijzen niet dat ze op de echte website ontbreken.`;
+      const botNote = `De website beantwoordde deze scan via bot-beveiliging (${[...botCookieNames, ...botHeaderNames].slice(0,3).join(", ")}) met een uitgeklede pagina zonder structured data of Open Graph. Ontbrekende onderdelen in zo'n response bewijzen niet dat ze op de echte website ontbreken.`;
       for (const item of [...seoChecks, ...geoChecks]) {
-        if (!BOT_SENSITIVE_CHECKS.has(item.key) || (item.status !== "warning" && item.status !== "fail")) continue;
+        const sensitive = BOT_SENSITIVE_CHECKS.has(item.key) || (BOT_SENSITIVE_WHEN_ABSENT.has(item.key) && absentHead[item.key]);
+        if (!sensitive || (item.status !== "warning" && item.status !== "fail")) continue;
         item.status = "unable_to_confirm";
         item.issue_status = "UNABLE_TO_CONFIRM";
         item.points = 0;
@@ -4020,7 +4060,7 @@ async function runScan(request: Request) {
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
     type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "event" | "corporate" | "contact" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { excludedUtility?: boolean; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; schemaTypes?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageAudit = MultiPageCandidate & { excludedUtility?: boolean; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; schemaTypes?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; productSchemaCount?: number; financialOffer?: boolean; eventSchema?: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -4319,7 +4359,9 @@ async function runScan(request: Request) {
         } : null;
         const pageCommerceEvidence = {
           productSchema: pageProductSchema,
-          productSchemaCount: pageFinancialOffer ? 0 : (pageHtml.match(/"@type"\s*:\s*"Product"/g)||[]).length,
+          // Product objects that are not nested in another Product: related or
+          // accessory products inside a product's own data do not make a grid.
+          productSchemaCount: pageFinancialOffer ? 0 : countIndependentProducts(pageHtml),
           financialOffer: pageFinancialOffer,
           eventSchema: pageSchemaTypes.some((type)=>/^(?:event|educationevent|businessevent|socialevent|exhibitionevent|musicevent|theaterevent)$/i.test(type)),
           itemListSchema: pageItemListSchema,
@@ -4375,6 +4417,12 @@ async function runScan(request: Request) {
           proposed: page.type,
           path: finalCandidate.pathname,
           serviceOffer: /\b(?:abonnement(?:en)?|subscription(?:s)?|internet(?:pakket|abonnement)?|glasvezel|servicepakket|consult(?:atie)?|afspraak|booking)\b/i.test([pageTitle,pageDescription,pageH1s.join(" ")].join(" ")),
+          // Content evidence in any EU language: the page's own identity describes a
+          // service, or its structured data types it as a Service.
+          serviceEvidence: SERVICE_INTENT.test([pageTitle,pageDescription,pageH1s.join(" ")].join(" ")) || pageSchemaTypes.some((type)=>SERVICE_SCHEMA_TYPES.has(type)),
+          datedArticle: /"datePublished"\s*:/i.test(pageHtml) && pageSchemaTypes.some((type)=>/^(?:article|newsarticle|blogposting|reportage|report|pressrelease)$/i.test(type))
+            || /<meta\b[^>]*property\s*=\s*["']article:published_time["']/i.test(pageHtml)
+            || /<article\b[\s\S]{0,4000}?<time\b[^>]*datetime\s*=/i.test(pageHtml),
           // Article schema that the homepage itself also carries is a site-wide template
           // (service pages of a CMS get it too): it makes an article only with a publish date.
           articleSchema: pageSchemaTypes.some((type)=>/^(?:article|newsarticle|blogposting|reportage)$/i.test(type))
@@ -4479,19 +4527,51 @@ async function runScan(request: Request) {
         }
       }
     }
+    // The scanned page's sample reuses the main response body. Report the status the
+    // website really gave RankFix (and that a browser recovered it), never a
+    // synthetic 200 that contradicts the HTTP-status check of the same report.
+    for (const item of multiPageAudits) {
+      if (item.status === "audited" && normalizeScanUrl(item.url) === normalizeScanUrl(finalUrl.toString())) {
+        item.httpStatus = response.status;
+        if (scannerAccessBlocked) { item.evidenceSource = "rendered_html"; (item as MultiPageAudit & { accessRecoveredByBrowser?: boolean }).accessRecoveredByBrowser = true; }
+      }
+    }
     // Redirects can make two distinct candidates resolve to the same final URL.
     // Deduplicate after fetching as well as before selection, so the customer
     // never sees the same successfully audited page counted twice.
+    // The same page reached via tracking-parameter variants, or a page whose
+    // same-site canonical names a page already in the sample, is counted once.
     const reportedMultiPageAudits: MultiPageAudit[] = [];
     const seenFinalAuditUrls = new Set<string>();
-    for (const item of multiPageAudits) {
+    let duplicateSamplesRemoved = 0;
+    const canonicalKeyOf = (item: MultiPageAudit) => {
+      if (!item.canonical) return null;
+      try {
+        const resolved = new URL(item.canonical, item.url);
+        return /^https?:$/.test(resolved.protocol) && normalizeHost(resolved.hostname) === normalizeHost(new URL(item.url).hostname) ? normalizeScanUrl(resolved.toString()) : null;
+      } catch { return null; }
+    };
+    // A canonical that points many pages (or the homepage) at one URL is a site
+    // defect the sample must show, not a duplicate to hide.
+    const canonicalTargets = new Map<string, number>();
+    for (const item of multiPageAudits) { const key = item.status === "audited" ? canonicalKeyOf(item) : null; if (key && key !== normalizeScanUrl(item.url)) canonicalTargets.set(key, (canonicalTargets.get(key) || 0) + 1); }
+    const rootKeys = new Set([normalizeScanUrl(new URL("/", finalUrl).toString()), normalizeScanUrl(representativeHomeUrl)]);
+    const usableCanonicalKey = (item: MultiPageAudit) => { const key = canonicalKeyOf(item); return key && !rootKeys.has(key) && (canonicalTargets.get(key) || 0) <= 2 ? key : null; };
+    // Pages that are their own canonical first, so a duplicate never displaces the original.
+    const auditOrder = [...multiPageAudits].sort((a, b) => Number(canonicalKeyOf(b) === normalizeScanUrl(b.url)) - Number(canonicalKeyOf(a) === normalizeScanUrl(a.url)));
+    for (const item of auditOrder) {
       if (item.status === "audited") {
+        item.url = stripTrackingParams(item.url);
         const finalKey = normalizeScanUrl(item.url);
-        if (seenFinalAuditUrls.has(finalKey)) continue;
+        const canonicalKey = usableCanonicalKey(item);
+        if (seenFinalAuditUrls.has(finalKey) || (canonicalKey && seenFinalAuditUrls.has(canonicalKey))) { duplicateSamplesRemoved++; continue; }
         seenFinalAuditUrls.add(finalKey);
+        if (canonicalKey) seenFinalAuditUrls.add(canonicalKey);
       }
       reportedMultiPageAudits.push(item);
     }
+    // Keep the original sample order for the report.
+    reportedMultiPageAudits.sort((a, b) => multiPageAudits.indexOf(a) - multiPageAudits.indexOf(b));
     // Keep the scanned page, then prefer structurally different DOM templates.
     // This second-stage dedupe is universal: no sector or path vocabulary is used.
     const auditedRawPages = reportedMultiPageAudits.filter((item)=>item.status==="audited");
@@ -4667,9 +4747,11 @@ async function runScan(request: Request) {
     // This is evidence of product intent, NOT of a working retail checkout.
     // A /products/ page of a manufacturer or service company is product
     // information, not commerce: it needs a purchase action, a price or an Offer.
+    // Evidence comes from the fetched page, never from URL vocabulary: product paths
+    // are named in every EU language (/prodotti/, /negozio/, /produkty/, /boutique/).
     const representativeCommercialProductIntent = auditedMultiPages.some((item)=>item.status==="audited"
       && item.type==="product"
-      && /\/(?:shop|winkel|store|products?)(?:\/|$)/i.test(new URL(item.url).pathname)
+      && !item.commerceEvidence?.financialOffer
       && Boolean(item.commerceEvidence?.strongCommerceAction || (item.commerceEvidence?.priceSignals||0) > 0 || (item.commerceEvidence?.product?.price && item.commerceEvidence?.product?.currency)));
     const finalCommerceApplicability = commerceApplicability({
       confirmed: finalCommerceDecision.confirmed,
@@ -5045,6 +5127,33 @@ async function runScan(request: Request) {
       Object.assign(orgWebsiteCheck,replacement);
     }
 
+    // Primary sector vs secondary activities (3.5): independent, typed evidence from
+    // the sampled pages adds secondary activities without changing the primary
+    // sector: confirmed product pages (Product schema with an Offer, or a purchase
+    // action with a price) are online retail; FinancialProduct/BankAccount/… pages
+    // are financial products. A mixed business model is reported, never guessed.
+    {
+      const secondary: Array<{ sector: string; label: string; evidence: string[] }> = [...(((sectorProfile as typeof sectorProfile & { secondaryActivities?: Array<{ sector: string; label: string; evidence: string[] }> }).secondaryActivities) || [])];
+      const addSecondary = (sector: string, label: string, evidence: string) => {
+        if (sector === sectorProfile.sector || secondary.some((item) => item.sector === sector)) return;
+        secondary.push({ sector, label, evidence: [evidence] });
+      };
+      const retailProductPages = auditedMultiPages.filter((item) => item.type === "product" && item.commerceEvidence?.confirmedRetailPage && !item.commerceEvidence?.financialOffer);
+      if (sectorProfile.sector !== "ecommerce" && sectorProfile.sector !== "unknown" && retailProductPages.length > 0) {
+        addSecondary("ecommerce", "Online verkoop van producten", `${retailProductPages.length} representatieve productpagina('s) met Product-schema of aankoopactie: ${retailProductPages.slice(0, 2).map((item) => shortUrl(item.url)).join(", ")}`);
+      }
+      const financialPages = auditedMultiPages.filter((item) => item.commerceEvidence?.financialOffer);
+      if (sectorProfile.sector !== "financial_services" && sectorProfile.sector !== "unknown" && financialPages.length > 0) {
+        addSecondary("financial_services", "Financiële producten", `${financialPages.length} pagina('s) met financieel productschema (rekening, lening, kaart of verzekering): ${financialPages.slice(0, 2).map((item) => shortUrl(item.url)).join(", ")}`);
+      }
+      Object.assign(sectorProfile, {
+        secondaryActivities: secondary,
+        businessModelMix: secondary.length ? "mixed" : "single",
+        // Honest status of the primary decision: "confirmed" needs high certainty.
+        decisionStatus: sectorProfile.sector === "unknown" ? "unconfirmed" : sectorProfile.confidenceScore >= 75 ? "confirmed" : "probable",
+      });
+    }
+
     // Evidence Engine final applicability gate.
     // All collection/classification decisions above are now complete. From this point
     // onwards, specialist checks must follow the final Scanbewijs decision rather
@@ -5085,9 +5194,13 @@ async function runScan(request: Request) {
       item.reasonCode = finalCommerceApplicability.state === "unconfirmed" ? UNCONFIRMED_COMMERCE_REASON_CODE[finalCommerceApplicability.reason] : "weak_evidence";
       item.evidence = {url:finalUrl.toString(),found:null,details:item.message};
     };
+    // One shared product-evidence summary for every N.v.t. reason, so a check never
+    // says "no products" next to sampled product or financial-product pages.
+    const sampledFinancialProductPages = auditedMultiPages.filter((item)=>item.commerceEvidence?.financialOffer).length + (financialOfferSchema ? 1 : 0);
+    const FINANCIAL_PRODUCTS_NOT_RETAIL = "De gevonden productpagina's beschrijven financiële producten (rekening, lening, kaart of verzekering), geen fysieke retailproducten; deze retailcontrole is daarom niet van toepassing.";
     if (finalCommerceApplicability.state === "absent") {
       for (const item of [...seoChecks,...geoChecks]) {
-        if (finalCommerceOnlyKeys.has(item.key) && !(item.key==="price_format" && serviceCommerceSignals.subscription)) setFinalNotApplicable(item, COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
+        if (finalCommerceOnlyKeys.has(item.key) && !(item.key==="price_format" && serviceCommerceSignals.subscription)) setFinalNotApplicable(item, sampledFinancialProductPages > 0 ? FINANCIAL_PRODUCTS_NOT_RETAIL : COMMERCE_APPLICABILITY_COPY[finalCommerceApplicability.reason]);
       }
     } else if (finalCommerceApplicability.state === "unconfirmed") {
       // A service provider (payments, SaaS, agency...) whose pages show no product
@@ -5097,12 +5210,12 @@ async function runScan(request: Request) {
       // "product" do not make retail product checks applicable there.
       const intangibleOfferSector = new Set<string>(["financial_services","saas_b2b","news_media","government","education","nonprofit","recruitment","professional_services"]).has(sectorProfile.sector);
       const serviceWithoutProductEvidence = Boolean(primaryNonCommerceIdentity) && !finalCommerceDecision.confirmed &&
-        !isProductPage && !hasProductSchema &&
+        !isProductPage && !hasProductSchema && !verifiedRepresentativeProductDetail && !representativeCommercialProductIntent &&
         (intangibleOfferSector || (!representativeCommercialProductIntent && !(scanEvidence.commerce.productLinks.value >= 2)));
       for (const item of [...seoChecks,...geoChecks]) {
         if (!finalCommerceOnlyKeys.has(item.key) || (item.key==="price_format" && serviceCommerceSignals.subscription)) continue;
         if (serviceWithoutProductEvidence) {
-          setFinalNotApplicable(item, intangibleOfferSector && (representativeCommercialProductIntent || scanEvidence.commerce.productLinks.value >= 2)
+          setFinalNotApplicable(item, sampledFinancialProductPages > 0 ? FINANCIAL_PRODUCTS_NOT_RETAIL : intangibleOfferSector && (representativeCommercialProductIntent || scanEvidence.commerce.productLinks.value >= 2)
             ? "De primaire activiteit is een dienst (bijvoorbeeld betaal-, financiële, software- of mediadienst). Pagina's die 'producten' heten beschrijven diensten, geen fysieke retailproducten; retailproductcontroles zijn daarom niet van toepassing."
             : "De primaire activiteit is dienstverlening en er zijn geen producten of productpagina's gevonden die deze productcontrole nodig maken. Dit zegt niets over eventuele productverkoop elders.");
         } else if (isStorefrontOnlyForService(item.key, Boolean(primaryNonCommerceIdentity), finalCommerceDecision.confirmed)) {
@@ -5119,7 +5232,9 @@ async function runScan(request: Request) {
         if (finalEuCommerceKeys.has(item.key) && !euMarketEligible) {
           setFinalNotApplicable(item,"Commerce is bevestigd, maar EU-consumentenapplicability is voor deze storefront niet betrouwbaar bevestigd.");
         } else if (finalCommerceOnlyKeys.has(item.key) && item.status === "not_applicable" && /webshop|product(?:pagina)?[- ]signalen|EU-consumentenapplicability|niet aantoonbaar van toepassing op deze markt/i.test(item.message)) {
-          setFinalUnableToConfirm(item, "De webshop is sitebreed bevestigd, maar deze controle kon op de gescande pagina niet worden beoordeeld.");
+          setFinalUnableToConfirm(item, primaryNonCommerceIdentity
+            ? "Naast de hoofdactiviteit is online productverkoop bevestigd op representatieve productpagina's, maar deze controle kon op de gescande pagina niet worden beoordeeld."
+            : "De webshop is sitebreed bevestigd, maar deze controle kon op de gescande pagina niet worden beoordeeld.");
         }
       }
     }
@@ -5199,6 +5314,9 @@ async function runScan(request: Request) {
     // demonstrable evidence (a source URL and a recorded finding). Without both it
     // becomes "niet te bevestigen" and leaves the score.
     requireEvidenceForScoredChecks([...seoChecks,...geoChecks], finalUrl.toString());
+    // Provenance per check: raw HTML, rendered DOM, HTTP response, robots.txt,
+    // sitemap, link probes or a sampled page (bookkeeping only, never a status).
+    annotateEvidenceSources([...seoChecks,...geoChecks,...securityChecks,...accessibilityChecks], finalUrl.toString(), javascriptExecuted ? "rendered_html" : "raw_html");
     // Final score is calculated only after representative evidence reconciliation.
     // Reapply evidence coverage caps: this second scoring pass must not erase them.
     selectedSeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(stableCoreChecks(selectedSeoChecks,"seo")), stableCoreChecks(selectedSeoChecks,"seo"));
@@ -5253,7 +5371,18 @@ async function runScan(request: Request) {
       range: scoreModel.range,
       coveragePercent: overallCoverage.coveragePercent,
       javascriptRequiredButNotRendered: Boolean(javascriptCandidate) && !javascriptExecuted,
+      evidenceLevel: scoreEvidence.level,
+      sampledProductPages: auditedMultiPages.filter((item)=>item.type==="product" && item.commerceEvidence?.confirmedRetailPage && !item.commerceEvidence?.financialOffer).length,
+      sampledFinancialProductPages: auditedMultiPages.filter((item)=>item.commerceEvidence?.financialOffer).length,
+      scannedPageSampleStatus: reportedMultiPageAudits.find((item)=>item.status==="audited" && normalizeScanUrl(item.url)===normalizeScanUrl(finalUrl.toString()))?.httpStatus ?? null,
+      scannerBlocked: scannerAccessBlocked,
+      limitedChecks: [...securityChecks, ...accessibilityChecks],
     });
+    if (consistency.evidenceLevel && consistency.evidenceLevel !== scoreEvidence.level) {
+      scoreEvidence.level = consistency.evidenceLevel;
+      scoreModel.provisional = true;
+      Object.assign(scoreModel, { evidenceLevel: consistency.evidenceLevel });
+    }
     selectedSeoScore = consistency.scores.seo;
     selectedGeoScore = consistency.scores.geo;
     selectedOverallScore = consistency.scores.overall;
@@ -5335,7 +5464,7 @@ async function runScan(request: Request) {
     const multiPage = {
       accounting:sampleAccounting,
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:representativePageLimit,
-      discoveredInternalUrls:discoveredMultiPage.length, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,
+      discoveredInternalUrls:discoveredMultiPage.length, duplicateSamplesRemoved, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,
       // Which sampled page proved the product fields (null = none was proven).
       representativeProduct: productSamplePage ? { url: productSamplePage.url, fields: productFieldCount(productSamplePage.commerceEvidence?.product) } : null,
       siteSampleScore: scoredSamplePages.length ? Math.round(scoredSamplePages.reduce((sum,item)=>sum+(item.score||0),0)/scoredSamplePages.length) : null,
@@ -5490,7 +5619,7 @@ async function runScan(request: Request) {
             // End-to-end scan duration (fetch, render, sample, scoring) for speed benchmarks.
             scanDurationMs: Date.now() - started,
             language: scanLanguage,
-            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, selfCheck, summary: scanSummary, rendering, recovery, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, multiPage,
+            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, selfCheck, summary: scanSummary, rendering, recovery, access, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -5714,6 +5843,7 @@ async function runScan(request: Request) {
       summary: scanSummary,
       rendering,
       recovery,
+      access,
       scope: scanScope,
       multiPage,
       classification,

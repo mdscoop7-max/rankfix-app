@@ -50,7 +50,10 @@ export function renderFailureText(stored: unknown): string {
 // Page sampling: which URLs may represent a website.
 // ---------------------------------------------------------------------------
 
-const TRACKING_PARAM = /^(?:utm_[a-z]+|gclid|gbraid|wbraid|fbclid|msclkid|dclid|yclid|twclid|ttclid|li_fat_id|mc_cid|mc_eid|_ga|_gl|_ke|_hsenc|_hsmi|gad_[a-z]+|camp|campaign|cmp|cid|icid|intcmp|int_cmp|ref|referrer|source|src|trk|tracking|sc_[a-z]+|s_kwcid|ef_id|from_srp|prevent-auto-open-privacy-settings)$/i;
+// Marketing and analytics parameters of the common EU/US tools (Google, Meta,
+// Microsoft, AT Internet/Piano, Matomo, Webtrends, Adobe, HubSpot, Mailchimp,
+// Marketo, affiliate networks). They never identify a different page.
+const TRACKING_PARAM = /^(?:utm_[a-z_]+|xtor|at_[a-z_]+|srsltid|pk_[a-z_]+|mtm_[a-z_]+|matomo_[a-z_]+|piwik_[a-z_]+|wt_mc|wt\.mc_id|wt\.[a-z_]+|ito|ns_[a-z_]+|spm|scid|igshid|mkt_tok|hsctatracking|oly_[a-z_]+|vero_[a-z_]+|rb_clickid|epik|s_cid|sscid|irclickid|awc|zanpid|tduid|ranmid|ransiteid|ranEAID|gclid|gbraid|wbraid|fbclid|msclkid|dclid|yclid|twclid|ttclid|li_fat_id|mc_cid|mc_eid|_ga|_gl|_ke|_hsenc|_hsmi|gad_[a-z]+|camp|campaign|cmp|cid|icid|intcmp|int_cmp|ref|referrer|source|src|trk|tracking|sc_[a-z]+|s_kwcid|ef_id|from_srp|prevent-auto-open-privacy-settings)$/i;
 
 export function stripTrackingParams(value: string): string {
   try {
@@ -244,11 +247,29 @@ export function botManagerCookies(cookieNames: string[]): string[] {
   return [...new Set(cookieNames.filter((name) => BOT_MANAGER_COOKIE.test(name)))];
 }
 
+// Bot managers also announce themselves in response headers without setting a
+// cookie (DataDome, Cloudflare challenge, Imperva, Sucuri, PerimeterX, Kasada).
+// Plain CDN headers (Akamai, Cloudflare) are not bot-manager evidence on their own.
+const BOT_MANAGER_HEADER = /^(?:x-datadome(?:-cid)?|cf-mitigated|x-iinfo|x-sucuri-id|x-sucuri-block|x-px-[\w-]+|x-kpsdk-[\w-]+)$/i;
+export function botManagerHeaders(headers: Headers | Array<[string, string]>): string[] {
+  const names: string[] = [];
+  const entries = Array.isArray(headers) ? headers : [...headers.entries()];
+  for (const [name, value] of entries) {
+    if (BOT_MANAGER_HEADER.test(name)) names.push(name.toLowerCase());
+    if (/^server$/i.test(name) && /datadome|imperva|incapsula|sucuri/i.test(value)) names.push(`server: ${value}`);
+  }
+  return [...new Set(names)];
+}
+
 // A bot manager on its own is common and harmless (IKEA, Coolblue). Only when the
-// response also lacks the head metadata a real storefront ships do we treat it as
-// a reduced bot response whose absences prove nothing.
-export function isReducedBotResponse(input: { botCookies: string[]; jsonLdBlocks: number; ogTags: number; h1Count: number }): boolean {
-  return input.botCookies.length > 0 && input.jsonLdBlocks === 0 && input.ogTags === 0 && input.h1Count === 0;
+// response also lacks the head metadata a real page ships do we treat it as a
+// reduced bot response whose absences prove nothing. The H1 rule is relaxed to
+// "no H1 or a short page" so a stripped page with a stray heading still counts.
+export function isReducedBotResponse(input: { botCookies: string[]; botHeaders?: string[]; jsonLdBlocks: number; ogTags: number; h1Count: number; visibleWords?: number; descriptionPresent?: boolean }): boolean {
+  const botManager = input.botCookies.length > 0 || (input.botHeaders || []).length > 0;
+  if (!botManager || input.jsonLdBlocks > 0 || input.ogTags > 0) return false;
+  if (input.h1Count === 0) return true;
+  return input.descriptionPresent === false && typeof input.visibleWords === "number" && input.visibleWords < 150;
 }
 
 // Checks whose negative result depends on the page body or head metadata that a
@@ -256,7 +277,11 @@ export function isReducedBotResponse(input: { botCookies: string[]; jsonLdBlocks
 export const BOT_SENSITIVE_CHECKS = new Set([
   "schema", "organization_website", "entity", "social", "twitter_card", "h1", "headings",
   "trust_legal_signals", "faq", "answer", "breadcrumbs", "alt", "content", "identity", "trust",
+  "author", "business_placeholders",
 ]);
+// Head elements that a stripped response may omit: only their ABSENCE is unproven
+// (a present but too long description is still evidence about the real page).
+export const BOT_SENSITIVE_WHEN_ABSENT = new Set(["description", "geo_description", "canonical", "lang", "hreflang"]);
 
 // ---------------------------------------------------------------------------
 // Sitewide aggregation: real counts and template patterns.

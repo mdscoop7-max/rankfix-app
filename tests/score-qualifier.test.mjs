@@ -15,7 +15,7 @@ test("headline qualifier: insufficient evidence is never presented as final, in 
 });
 
 test("complete evidence shows no range and no caveat", () => {
-  const q = scoreQualifier({ coverage: { coveragePercent: 97 }, scoreModel: { evidenceLevel: "complete", range: { low: 98, high: 99 } } }, "nl");
+  const q = scoreQualifier({ coverage: { coveragePercent: 100 }, scoreModel: { evidenceLevel: "complete", range: { low: 98, high: 98 } } }, "nl");
   assert.equal(q.level, "complete");
   assert.doesNotMatch(q.detail, /bereik/);
   assert.equal(q.note, "");
@@ -30,9 +30,13 @@ test("homepage score and site sample are named together", () => {
 
 test("'complete evidence' wording only at 100% coverage", async () => {
   const { scoreQualifier } = await import("../lib/score-qualifier.ts");
-  const at97 = scoreQualifier({ coverage: { coveragePercent: 97 }, scoreModel: { evidenceLevel: "complete" } }, "nl");
-  assert.equal(at97.label, "Definitief");
+  // A report stored before 3.5 as "complete" at 97% coverage is shown as provisional
+  // with its range: "Definitief" next to unconfirmed checks contradicts itself.
+  const at97 = scoreQualifier({ coverage: { coveragePercent: 97 }, scoreModel: { evidenceLevel: "complete", range: { low: 92, high: 99 } } }, "nl");
+  assert.equal(at97.level, "provisional");
+  assert.match(at97.label, /^Voorlopig/);
   assert.match(at97.detail, /bewijsdekking 97%/);
+  assert.match(at97.detail, /mogelijk bereik 92–99/);
   assert.equal(scoreQualifier({ coverage: { coveragePercent: 100 }, scoreModel: { evidenceLevel: "complete" } }, "nl").label, "Definitief: volledig bewijs");
 });
 
