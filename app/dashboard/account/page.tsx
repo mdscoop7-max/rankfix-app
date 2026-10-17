@@ -19,11 +19,22 @@ export default function AccountSettings() {
  const router=useRouter();
  const [user,setUser] = useState<User|null>(null), [language,setLanguage] = useState<Locale>("nl"), [busy,setBusy] = useState(false), [message,setMessage] = useState("");
  const [usage,setUsage]=useState<{plan:string;used:number;limit:number|null;websiteHost:string|null}>({plan:"",used:0,limit:null,websiteHost:null});
- useEffect(() => { Promise.all([fetch("/api/auth/me").then(r => r.json()),fetch("/api/account/language").then(r => r.ok ? r.json() : null),fetch("/api/history",{cache:"no-store"}).then(r=>r.ok?r.json():null)]).then(([account,preferences,history]) => { if(!account.user){ router.push("/account"); return; } setUser(account.user); if(preferences?.language in ui) setLanguage(preferences.language); if(history?.usage)setUsage(history.usage); }) .catch(() => setMessage(ui[language].loadError)); },[]);
+ useEffect(() => {
+  let active=true;
+  // Account identity is independent from heavier history/usage calls.
+  fetch("/api/auth/me",{cache:"no-store"}).then(async r=>{if(!r.ok)throw new Error("account unavailable");return r.json();}).then(account=>{
+    if(!active)return;
+    if(!account.user){router.push("/account");return;}
+    setUser(account.user);
+  }).catch(()=>{if(active)setMessage(ui.nl.loadError);});
+  fetch("/api/account/language").then(r=>r.ok?r.json():null).then(preferences=>{if(active&&preferences?.language in ui)setLanguage(preferences.language)}).catch(()=>{});
+  fetch("/api/history",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(history=>{if(active&&history?.usage)setUsage(history.usage)}).catch(()=>{});
+  return ()=>{active=false;};
+ },[router]);
  async function save() { setBusy(true);setMessage("");try { const response=await fetch("/api/account/language",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({language})});if(!response.ok) throw new Error();setMessage(ui[language].saved); }catch{setMessage(ui[language].saveError);}finally{setBusy(false);} }
  async function logout() { await fetch("/api/auth/logout",{method:"POST"});router.push("/"); }
  const t=ui[language];
- const activePlan=user?.plan_code||usage.plan;
+ const activePlan=user?(user.plan_code||usage.plan):"";
  const planName=!activePlan?"—":activePlan==="free"?"Free · €0":activePlan.charAt(0).toUpperCase()+activePlan.slice(1)+(user?.subscription_status==="test"?" · test":"");
  const resetDate=new Intl.DateTimeFormat(language==="nl"?"nl-NL":language==="de"?"de-DE":language==="fr"?"fr-FR":language==="it"?"it-IT":language==="es"?"es-ES":"en-GB",{day:"numeric",month:"long",timeZone:"UTC"}).format(new Date(Date.UTC(new Date().getUTCFullYear(),new Date().getUTCMonth()+1,1)));
  return <main className="rf-page" lang={language}><div className="rf-shell"><header className="rf-header"><Link href="/" className="rf-brand" aria-label="RankFix AI home">RankFix <span>AI</span></Link><Link href="/dashboard" className="rf-back">← {t.dashboard}</Link></header><DashboardNav current={6}/><div className="rf-body"><Link href="/dashboard" className="rf-page-back">← {language==="nl"?"Terug naar Overzicht":language==="de"?"Zurück zur Übersicht":language==="fr"?"Retour à l’aperçu":language==="it"?"Torna alla panoramica":language==="es"?"Volver al resumen":"Back to Overview"}</Link><div className="rf-heading"><h1>{t.title}</h1><p>{t.description}</p></div><div className="rf-account-grid"><section className="rf-card"><span className="rf-eyebrow">{t.subscription}</span><h2>{planName}</h2><p>{usage.limit!==null?`${usage.used} / ${usage.limit} ${t.scansMonth}`:"—"}</p>{usage.websiteHost&&<p>{t.website}: <strong>{usage.websiteHost}</strong></p>}{activePlan==="free"&&<><p>{t.aiFixes}: {t.notIncluded}</p><p>{t.resets}: <strong>{resetDate}</strong></p><Link href={`/${language}#pricing`}>{t.viewPlans} →</Link></>}</section><section className="rf-card"><h2>{user?.name || "…"}</h2><p>{t.email}: {user?.email || "—"}</p><p>{t.customerId}: <strong>{user?.customer_id || "—"}</strong></p></section><section className="rf-card"><label htmlFor="dashboard-language">{t.language}</label><select id="dashboard-language" value={language} onChange={e => setLanguage(e.target.value as Locale)}>{Object.entries(languageNames).map(([code,name]) => <option key={code} value={code}>{name}</option>)}</select><button onClick={save} disabled={busy}>{busy ? t.saving : t.save}</button>{message && <p role="status">{message}</p>}</section><section className="rf-card"><h2>{t.security}</h2><Link href={`/account/forgot-password?lang=${language}`}>{t.password} →</Link><button onClick={logout}>{t.logout}</button></section></div></div></div></main>;

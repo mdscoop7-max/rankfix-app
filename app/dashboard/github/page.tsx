@@ -55,6 +55,7 @@ export default function GithubPage(){
   const [language,setLanguage]=useState<Locale>("nl");
   const [plan,setPlan]=useState("");
   const [upgradeOpen,setUpgradeOpen]=useState(false);
+  const [githubSetupRequired,setGithubSetupRequired]=useState(false);
   const upgradeDialogRef=useRef<HTMLDialogElement>(null);
   const [scanData,setScanData]=useState<any>(null);
   const [selectedCheck,setSelectedCheck]=useState<any>(null);
@@ -85,6 +86,7 @@ export default function GithubPage(){
     fetch("/api/account/language").then(r=>r.ok?readJsonSafe(r):null).then(d=>{if(d?.language&&d.language in ui)setLanguage(d.language)}).catch(()=>{});
     fetch("/api/auth/me",{cache:"no-store"}).then(r=>r.ok?readJsonSafe(r):null).then(d=>{if(d?.user?.plan_code)setPlan(d.user.plan_code)}).catch(()=>{});
     const params=new URLSearchParams(searchParams.toString());
+    if(params.get("github")==="setup") setGithubSetupRequired(true);
     setIssue(params.get("issue")||"");
     setContext(params.get("context")||"");
     const incomingScanId=params.get("scan_id")||""; setScanId(incomingScanId); setIssueId(params.get("issue_id")||"");
@@ -103,6 +105,8 @@ export default function GithubPage(){
         const rr=await fetch("/api/github/repos"); const rd=await readJsonSafe(rr);
         if(rr.ok){setRepos(rd.repos); if(incomingUrl){ const mr=await fetch("/api/github/site-repository?url="+encodeURIComponent(incomingUrl)); const md=await readJsonSafe(mr); if(mr.ok&&md.mapped){setRepo(md.repository);setBaseBranch(md.baseBranch||"main");setMapped(true);} } }
         else if(/bad credentials|authenticatie|verbinden/i.test(rd.error||"")) { setConnected(false); setError(t.invalidLink); }
+      } else if(d.setupRequired) {
+        setGithubSetupRequired(true);
       } else if(d.reauthorize || d.error) {
         setConnected(false);
         setError(d.error || t.verifyFail);
@@ -277,7 +281,7 @@ export default function GithubPage(){
       </div> : !connected ? <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-7">
         <h2 className="text-xl font-bold">{t.connect}</h2>
         <p className="mt-2 text-sm text-slate-500">{t.connectInfo}</p>
-        <Link href="/api/github/connect" className="mt-5 inline-flex rounded-xl bg-white px-5 py-3 font-bold text-slate-950">{t.connectCta} →</Link>
+        {githubSetupRequired ? <p role="status" className="mt-5 rounded-xl border border-amber-300/30 bg-amber-300/10 p-4 text-sm text-amber-100">{language==="nl"?"GitHub koppelen is in deze vaste testomgeving nog niet geconfigureerd. De ontwikkelaars moeten eerst een geldige GitHub OAuth-callback voor deze testlink instellen. Je account en Pro-testabonnement zijn niet het probleem.":language==="de"?"GitHub ist für diese Testumgebung noch nicht eingerichtet. Zuerst muss ein OAuth-Callback für diese Testadresse konfiguriert werden.":language==="fr"?"GitHub n’est pas encore configuré pour cet environnement de test. Il faut d’abord configurer le rappel OAuth pour cette adresse.":language==="it"?"GitHub non è ancora configurato per questo ambiente di test. È necessario configurare prima il callback OAuth.":language==="es"?"GitHub aún no está configurado para este entorno de pruebas. Primero se debe configurar el callback OAuth.":"GitHub is not yet configured for this test environment. A GitHub OAuth callback for this preview URL must be set up first."}</p> : <Link href="/api/github/connect" className="mt-5 inline-flex rounded-xl bg-white px-5 py-3 font-bold text-slate-950">{t.connectCta} →</Link>}
       </div> : <form noValidate onSubmit={createFix} className="mt-8 space-y-5 rounded-3xl border border-[#334155] bg-[#101B2D] p-4 sm:p-7">
         <div className="flex flex-col gap-3 rounded-xl border border-emerald-400/15 bg-emerald-400/5 p-4 text-sm text-emerald-200 sm:flex-row sm:items-center sm:justify-between">
           <span>{t.connected} <b>{login}</b>.</span>
