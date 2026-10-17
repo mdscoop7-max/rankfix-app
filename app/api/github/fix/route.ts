@@ -221,6 +221,39 @@ function buildDeterministicOgFix(filePath:string,current:string,issue:string,con
   } else return null;
   return {content,summary:"RankFix heeft de ontbrekende Open Graph-metadata veilig toegevoegd met bestaande scanwaarden."};
 }
+// Strict, evidence-bounded schema preview for an HTML homepage.
+// Never invent addresses, reviews or credentials, and never change existing JSON-LD.
+// Only an explicitly approved diff can create a PR; this never merges it.
+function buildVerifiedWebsiteSchemaFix(filePath:string,current:string,issueId:string,targetUrl:string): {content:string;summary:string}|null {
+  if(!["STRUCTURED_DATA_MISSING","ORGANIZATION_WEBSITE_SCHEMA","SITE_STRUCTURED_DATA_MISSING"].includes(issueId)) return null;
+  if(!/\.html?$/i.test(filePath) || !/<\/head\s*>/i.test(current)) return null;
+  if(/<script\b[^>]*type=["']application\/ld\+json["']/i.test(current)) return null;
+  let websiteUrl="";
+  try {
+    const u=new URL(targetUrl);
+    if(!["https:","http:"].includes(u.protocol) || u.pathname!=="/" || u.search) return null;
+    websiteUrl=u.origin+"/";
+  } catch { return null; }
+  const pageTitle=(current.match(/<title\b[^>]*>([^<>]{2,200})<\/title>/i)?.[1]||"").trim();
+  const brand=pageTitle.split(/\s*[|·–—]\s*/)[0].trim();
+  const markHtml=current.match(/<a\b[^>]*class=["'][^"']*\bwordmark\b[^"']*["'][^>]*>([\s\S]*?)<\/a>/i)?.[1]||"";
+  const visibleBrand=markHtml.replace(/<[^>]*>/g,"").replace(/\s+/g," ").trim();
+  // Require independent agreement between <title> and the visible brand.
+  if(!brand || brand.length>80 || !/^[\p{L}\p{N}][\p{L}\p{N} .&'-]*$/u.test(brand) || visibleBrand!==brand) return null;
+  const schema={
+    "@context":"https://schema.org",
+    "@graph":[
+      {"@type":"Organization","@id":websiteUrl+"#organization","name":brand,"url":websiteUrl},
+      {"@type":"WebSite","@id":websiteUrl+"#website","name":brand,"url":websiteUrl,"publisher":{"@id":websiteUrl+"#organization"}}
+    ]
+  };
+  const safeJson=JSON.stringify(schema).replace(/</g,"\\u003c");
+  const tag='<script type="application/ld+json">'+safeJson+'</script>';
+  const content=current.replace(/<\/head\s*>/i,tag+"\n</head>");
+  if(content===current) return null;
+  return {content,summary:"RankFix stelt Organization- en WebSite-schema voor op basis van bevestigde pagina- en merkgegevens (regelgebaseerd, zonder externe AI)."};
+}
+
 class FixProviderError extends Error {
   constructor(public readonly code:"AI_UNAVAILABLE"|"AI_PROVIDER_ERROR"|"AI_INVALID_OUTPUT",message:string){
     super(message);
@@ -581,7 +614,8 @@ export async function POST(request:Request){
       current=Buffer.from(file.content.replace(/\n/g,""),"base64").toString("utf8");
       if(current.length>120000) return NextResponse.json({error:msg("Bestand is te groot voor een veilige AI-codefix.","The file is too large for a safe AI code fix.","Die Datei ist zu groß für einen sicheren AI-Codefix.","Le fichier est trop volumineux pour une correction de code AI sûre.","Il file è troppo grande per una correzione di codice AI sicura.","El archivo es demasiado grande para una corrección de código AI segura.")},{status:413});
       const deterministicOgFix=buildDeterministicOgFix(path,current,issue,context,issueId);
-      generated=deterministicOgFix || await generateCodeFix(path,current,issue,context,issueId);
+      const verifiedSchemaFix=buildVerifiedWebsiteSchemaFix(path,current,issueId,trustedUrl);
+      generated=deterministicOgFix || verifiedSchemaFix || await generateCodeFix(path,current,issue,context,issueId);
       generated={...generated,content:minimizeGeneratedFix(current,generated.content,issueId,path,trustedUrl)};
     }
     if(generated.content.length>180000) return NextResponse.json({error:msg("AI-output is te groot voor een veilige wijziging.","AI output is too large for a safe change.","Die AI-Ausgabe ist zu groß für eine sichere Änderung.","La sortie AI est trop volumineuse pour une modification sûre.","L’output AI è troppo grande per una modifica sicura.","La salida de AI es demasiado grande para un cambio seguro.")},{status:422});
