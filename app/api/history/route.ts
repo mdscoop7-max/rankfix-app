@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
 import { cookies } from "next/headers";
 import { normalizePlan, planLimits } from "@/lib/plans";
+import { isInternalTester, isInternalTesterCustomerId } from "@/lib/scan-access";
 
 type AuditCheck={status?:string;severity?:string;category?:string;rule_id?:string;issue_id?:string;key?:string;title?:string};
 type Row={id:string;scanned_url:string;final_url?:string;overall_score:number;seo_score:number;geo_score:number;created_at:string;result:{technologyProfile?:{siteType?:string;cms?:string;platform?:string;framework?:string;confidence?:number;evidence?:string[]};seo?:{checks?:AuditCheck[]};geo?:{checks?:AuditCheck[]};security?:{score?:number}}};
@@ -33,6 +34,8 @@ export async function GET(){
  const planResult=await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1",[user.id]);
  const plan=normalizePlan(planResult.rows[0]?.plan_code);
  const limits=planLimits(plan);
+ // The scan endpoint applies the identical authenticated, server-scoped QA exemption.
+ const qaTester=isInternalTester(user.id)||isInternalTesterCustomerId(user.customer_id);
  const monthStart=new Date();monthStart.setUTCDate(1);monthStart.setUTCHours(0,0,0,0);
  let used=0;
  let websiteHost:string|null=null;
@@ -49,6 +52,6 @@ export async function GET(){
  const searchConsole={connected:Boolean(gscProperty),siteUrl:gscProperty?.site_url||null,lastSyncAt:gscProperty?.last_sync_at||null,synced:Boolean(gscProperty?.last_sync_at)};
  const actionUsageResult=await getDb().query("SELECT event_type,COUNT(*)::int AS count FROM usage_events WHERE user_id=$1 AND created_at >= $2 AND event_type IN ('AI_FIX','COMPETITOR_SCAN','LOCAL_SEO') GROUP BY event_type",[user.id,monthStart.toISOString()]);
  const actionCounts=Object.fromEntries(actionUsageResult.rows.map((row:{event_type:unknown;count:unknown})=>[String(row.event_type),Number(row.count||0)]));
- const usage={plan,used,limit:limits.scans,websiteHost,websites:limits.websites,actions:{aiFixes:{used:actionCounts.AI_FIX||0,limit:limits.aiFixes},competitorScans:{used:actionCounts.COMPETITOR_SCAN||0,limit:limits.competitorScans},localSeo:{used:actionCounts.LOCAL_SEO||0,limit:limits.localSeo}}};
+ const usage={plan,used,limit:limits.scans,qaTester,websiteHost,websites:limits.websites,actions:{aiFixes:{used:actionCounts.AI_FIX||0,limit:limits.aiFixes},competitorScans:{used:actionCounts.COMPETITOR_SCAN||0,limit:limits.competitorScans},localSeo:{used:actionCounts.LOCAL_SEO||0,limit:limits.localSeo}}};
  return NextResponse.json({scans,history:allScans,fixes:Object.fromEntries(pending.rows.map(row=>[row.status,row.count])),usage,searchConsole});
 }
