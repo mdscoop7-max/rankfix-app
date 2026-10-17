@@ -26,3 +26,12 @@ Exploratory field scan 17-10 21:27 (B2B manufacturer from the exploratory regist
 - business details shown only on the sampled contact page are now site-level evidence (evidence URL = that page);
 - support and portal pages below a "products" section are typed as service (multilingual service intent);
 - a CMS field label printed into a title ("… | Careers Description") is flagged when the label follows the brand or a URL section; real titles such as "job description" stay untouched.
+
+Weak points fixed on this branch (17-10 evening):
+- Organisation-name nouns extended (hospital, energy utility, newspaper, ferry operator) with ambiguity guards ("Energy Gym", "Avis" not matched); evidence line names the sector.
+- Secondary activities also from two or more sampled offer pages whose own title/description name another sector with high certainty (editorial/corporate/legal pages excluded); never activates a sector module.
+- Germanic compound insurance nouns ("reisverzekering", "Krankenversicherung", "hemförsäkring").
+- More bot-challenge pages recognised ("Pardon Our Interruption", "Request Rejected", "Robot or human?", PerimeterX denial).
+- Test contact data in Swedish, Danish, Finnish, Romanian, Polish, Czech, Portuguese.
+- English explanation of a small sample.
+Not changed (honest limits): a sitemap refused to RankFix is not fetched through the browser (a browser shows XML as a viewer, not reliable evidence); axe-core availability depends on the runtime.

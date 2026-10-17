@@ -162,3 +162,16 @@ test("3.5.1: a CMS field label in a title is flagged only with brand/section evi
   assert.equal(templateFieldLeak("Product description guide | Acme", "acme.test", "/blog/x"), null);
   assert.equal(templateFieldLeak("Acme | Precision systems", "acme.test", "/"), null);
 });
+
+test("3.5.1: test contact data in more EU languages; organisation-name nouns with negative controls", async () => {
+  const { isPlaceholderEmail, isPlaceholderAddress } = await import("../lib/contact-evidence.ts");
+  for (const e of ["info@exempel.se", "kontakt@eksempel.dk", "info@esimerkki.fi", "info@exemplu.ro"]) assert.ok(isPlaceholderEmail(e, "real.eu"), e);
+  for (const a of ["Exempelgatan 1, 123 45 Exempelstad", "Eksempelvej 2, 2100 København"]) assert.ok(isPlaceholderAddress(a), a);
+  assert.ok(!isPlaceholderAddress("Drottninggatan 10, 111 51 Stockholm"));
+  const { brandTradeNoun } = await import("../lib/eu-identity.ts");
+  assert.equal(brandTradeNoun("Klinikum Nord", "", "x.test")?.sector, "health_wellness");
+  assert.equal(brandTradeNoun("Stadtwerke Süd", "", "stadtwerke-sued.test")?.sector, "energy_utilities");
+  assert.equal(brandTradeNoun("Noord Dagblad", "", "x.test")?.sector, "news_media");
+  assert.equal(brandTradeNoun("Energy Gym", "", "energygym.test"), null, "'energy' alone is not a utility");
+  assert.equal(brandTradeNoun("Avis Autoverhuur", "", "x.test"), null, "'avis' is not a newspaper noun");
+});

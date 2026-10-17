@@ -97,6 +97,7 @@ const S = [];
       // 3.5.1: a small sample says why (sitemap refused, no links, refused raw HTML).
       const lim = j.multiPage?.sampleLimitation;
       if (!lim || !/sitemap weigerde RankFix \(HTTP 403\)/.test(lim.note) || !/geen interne links/.test(lim.note)) P(`small sample not explained: ${JSON.stringify(lim)}`);
+      if (lim && !/sitemap refused RankFix \(HTTP 403\)/.test(lim.noteEn || "")) P(`English small-sample note missing or generic: ${lim.noteEn}`);
       const trust = j.checks.find((c) => c.key === "trust_legal_signals");
       if (["warning", "fail"].includes(trust?.status)) P(`trust_legal_signals ${trust.status} on a page without any internal link`);
     } });
@@ -174,6 +175,40 @@ const S = [];
       const job = (j.multiPage?.pageAudits || []).find((a) => /vacancies/.test(a.url))?.evidenceChecks?.find((e) => e.key === "title");
       if (job && /sjabloonveld/.test(job.details)) P("a real 'job description' title was flagged as a template field");
     } });
+}
+
+// 3.5.1 (b) — organisation-name nouns beyond carriers/banks, secondary activities from
+// sampled offer pages, more bot-challenge pages. Synthetic, brand-free.
+{
+  const mk = (id, host, lang, title, expectIn, notExpect) => S.push({ id, host, lang, route: (u) => u.pathname === "/" && { body: page({ lang, title, desc: "", h1: "Welkom", body: filler(lang, 30) }) },
+    expect: (j, P) => { const sct = j.sectorProfile.sector; if (expectIn && !expectIn.includes(sct)) P(`sector ${sct}/${j.sectorProfile.confidenceScore} (expected ${expectIn})`); if (notExpect && sct === notExpect) P(`sector ${sct} from an ambiguous word`); } });
+  mk("name-noun-hospital", "klinikumnord.test", "de", "Klinikum Nord", ["health_wellness"]);
+  mk("name-noun-energy", "stadtwerkesued.test", "de", "Stadtwerke Süd", ["energy_utilities"]);
+  mk("name-noun-newspaper", "noorddagblad.test", "nl", "Noord Dagblad", ["news_media"]);
+  mk("name-noun-ferries", "nordferries.test", "en", "Nord Ferries", ["transport_travel"]);
+  mk("name-noun-negative-gym", "energygym.test", "en", "Energy Gym", null, "energy_utilities");
+
+  const host = "veermaatschappij.test"; const lang = "nl";
+  const sub = (title, desc) => page({ lang, title, desc, h1: title.split("|")[0].trim(), body: filler(lang, 20) });
+  const pages = {
+    "/": page({ lang, title: "Veerdienst naar de eilanden – overtochten en tickets | Veerlijn", desc: "Boek je overtocht met de veerboot. Dienstregeling, tickets en tarieven.", h1: "Overtochten naar de eilanden", body: filler(lang, 30),
+      links: [["/overtochten", "Overtochten"], ["/verzekering/reisverzekering", "Reisverzekering"], ["/verzekering/annuleringsverzekering", "Annuleringsverzekering"], ["/nieuws/nieuwe-boot", "Nieuwe boot"]] }),
+    "/overtochten": sub("Overtochten en dienstregeling | Veerlijn", "Alle vertrektijden van de veerboot."),
+    "/verzekering/reisverzekering": sub("Reisverzekering afsluiten | Veerlijn", "Sluit een reisverzekering af voor je overtocht en vakantie."),
+    "/verzekering/annuleringsverzekering": sub("Annuleringsverzekering afsluiten | Veerlijn", "Verzeker je ticket tegen annulering."),
+    "/nieuws/nieuwe-boot": page({ lang, title: "Bank opent kantoor in de haven | Veerlijn nieuws", desc: "Een bank opent een kantoor naast de terminal.", h1: "Bank in de haven", body: "<article><time datetime='2026-10-01'>1 oktober</time>" + filler(lang, 10) + "</article>" }),
+  };
+  S.push({ id: "secondary-from-offer-pages", host, lang, route: (u) => pages[u.pathname] && { body: pages[u.pathname] },
+    expect: (j, P) => {
+      if (j.sectorProfile.sector !== "transport_travel") P(`primary ${j.sectorProfile.sector}`);
+      const sec = (j.sectorProfile.secondaryActivities || []).map((x) => x.sector);
+      if (!sec.includes("financial_services")) P(`insurance offer pages not a secondary activity (${sec.join(",") || "none"})`);
+      if (j.sectorProfile.applicableModules.includes("financial_services")) P("secondary activity activated a sector module");
+    } });
+
+  S.push({ id: "bot-challenge-title-variants", host: "uitdaging.test", lang: "en",
+    route: (u) => u.pathname === "/" && { body: "<html><head><title>Pardon Our Interruption</title></head><body><p>As you were browsing something about your browser made us think you were a bot.</p></body></html>" },
+    expect: () => {}, expectStatusNot200: true });
 }
 
 // 3. Reduced bot response without bot cookies (header-only bot manager): head
@@ -451,8 +486,9 @@ for (const sc of S) {
   catch (e) { j = { thrown: String(e?.stack || e) }; }
   console.error = ce;
   const p = []; const P = (m) => p.push(m);
-  if (status !== 200) P(`HTTP ${status} ${j.error || j.thrown || ""} ${JSON.stringify(errs.find((e) => /scan failed/i.test(String(e[0])))?.[1] || "").slice(0, 600)}`);
-  else {
+  if (sc.expectStatusNot200) { if (status === 200) P(`a bot challenge page was scored as the website (score ${j.overallScore})`); }
+  else if (status !== 200) P(`HTTP ${status} ${j.error || j.thrown || ""} ${JSON.stringify(errs.find((e) => /scan failed/i.test(String(e[0])))?.[1] || "").slice(0, 600)}`);
+  else if (status === 200 && !sc.expectStatusNot200) {
     // DUMP=1 prints the commerce-related decisions for debugging a scenario.
     if (process.env.DUMP) console.log(JSON.stringify({ checks: j.checks.filter((c) => /product|merchant|checkout|webshop|eu_|price|status|response/.test(c.key)).map((c) => [c.key, c.status, c.message.slice(0, 110)]), commerce: j.commerceApplicability && { state: j.commerceApplicability.state, reason: j.commerceApplicability.reason }, modules: j.sectorProfile.applicableModules, pages: (j.multiPage?.pageAudits || []).map((a) => [new URL(a.url).pathname + new URL(a.url).search, a.type, a.status, a.httpStatus]) }, null, 1));
     try { sc.expect(j, P); invariants(j, P); } catch (e) { P(`assertion crashed: ${e?.stack || e}`); } }

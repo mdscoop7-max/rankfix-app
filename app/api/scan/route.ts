@@ -809,8 +809,8 @@ async function runScan(request: Request) {
     // document. This never bypasses CAPTCHA/WAF controls; failed recovery still stops safely.
     const preliminaryQualityTitle = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
     const preliminaryQualityText = stripHtml(html).slice(0, 12000);
-    const preliminaryInterstitial = /\b(hang tight|routing to checkout|checking your browser|just a moment|please wait|verify (?:you are|that you are) human|access denied|security check|attention required|radware page|incapsula incident|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test(preliminaryQualityTitle)
-      || /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform|radware|incapsula|imperva|akamai bot manager|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test(preliminaryQualityText);
+    const preliminaryInterstitial = /\b(hang tight|routing to checkout|checking your browser|just a moment|please wait|verify (?:you are|that you are) human|access denied|security check|attention required|radware page|incapsula incident|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for|pardon our interruption|request rejected|robot or human|are you a robot|access to this page has been denied|please verify you are a human)\b/i.test(preliminaryQualityTitle)
+      || /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform|radware|incapsula|imperva|akamai bot manager|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for|pardon our interruption|request rejected|robot or human|are you a robot|access to this page has been denied|please verify you are a human)\b/i.test(preliminaryQualityText);
     if (preliminaryInterstitial && !javascriptExecuted) {
       try {
         const recovered = await renderPrimaryOnce();
@@ -837,8 +837,8 @@ async function runScan(request: Request) {
     const qualityDescription =
       firstMatch(html, /<meta[^>]+(?:name|property)\s*=\s*["']description["'][^>]+content\s*=\s*["']([\s\S]*?)["'][^>]*>/i) ||
       firstMatch(html, /<meta[^>]+content\s*=\s*["']([\s\S]*?)["'][^>]+(?:name|property)\s*=\s*["']description["'][^>]*>/i);
-    const strongInterstitialTitle = /\b(hang tight|routing to checkout|checking your browser|just a moment|please wait|verify (?:you are|that you are) human|access denied|security check|attention required|radware page|incapsula incident|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test(qualityTitle);
-    const strongInterstitialBody = /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform|radware|incapsula|imperva|akamai bot manager|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test(qualityText);
+    const strongInterstitialTitle = /\b(hang tight|routing to checkout|checking your browser|just a moment|please wait|verify (?:you are|that you are) human|access denied|security check|attention required|radware page|incapsula incident|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for|pardon our interruption|request rejected|robot or human|are you a robot|access to this page has been denied|please verify you are a human)\b/i.test(qualityTitle);
+    const strongInterstitialBody = /\b(checking your browser|verify (?:you are|that you are) human|enable javascript and cookies to continue|performing security verification|routing to checkout|challenge-platform|radware|incapsula|imperva|akamai bot manager|request unsuccessful|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for|pardon our interruption|request rejected|robot or human|are you a robot|access to this page has been denied|please verify you are a human)\b/i.test(qualityText);
     // A 2xx status other than 200 can represent asynchronous routing rather than the
     // requested indexable document. Only stop when the response is also materially
     // empty, so legitimate 202 endpoints are not rejected on status alone.
@@ -4357,7 +4357,7 @@ async function runScan(request: Request) {
           "li"+Math.min(9,Math.floor(countTag("li")/10)),
           "schema"+Math.min(5,(pageHtml!.match(/"@type"\s*:/gi)||[]).length),
         ].join("|");
-        const pageChallenge = /\b(radware page|checking your browser|just a moment|verify (?:you are|that you are) human|request unsuccessful|incapsula|imperva|challenge-platform|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for)\b/i.test([pageQualityTitle,pageQualityText].join(" "));
+        const pageChallenge = /\b(radware page|checking your browser|just a moment|verify (?:you are|that you are) human|request unsuccessful|incapsula|imperva|challenge-platform|je bent bijna op de pagina die je zoekt|you(?:'|’)re almost at the page you(?:'|’)re looking for|pardon our interruption|request rejected|robot or human|are you a robot|access to this page has been denied|please verify you are a human)\b/i.test([pageQualityTitle,pageQualityText].join(" "));
         if (pageChallenge) {
           return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, title:pageQualityTitle||null, description:pageQualityDescription||null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"quality",status:"UNABLE_TO_CONFIRM",details:"HTTP-response lijkt een bot-/securitychallenge in plaats van de bedoelde pagina; deze sample wordt niet gescoord."}] };
         }
@@ -4654,18 +4654,25 @@ async function runScan(request: Request) {
     // instead of silently showing "1 / 1". Descriptive only; never changes a score.
     const extraAuditedPages = reportedMultiPageAudits.filter((item)=>item.status==="audited").filter((item)=>normalizeScanUrl(item.url)!==normalizeScanUrl(finalUrl.toString())).length;
     const sampleLimitation = extraAuditedPages >= 2 ? null : (() => {
-      const reasons: string[] = [];
+      const reasons: Array<{ nl: string; en: string }> = [];
       const pageLinks = allUniqueInternalAnchors.length;
-      reasons.push(pageLinks === 0 ? "de gescande pagina bevatte geen interne links (navigatie en footer niet geladen)" : `de gescande pagina bevatte maar ${pageLinks} interne link(s)`);
+      reasons.push(pageLinks === 0
+        ? { nl: "de gescande pagina bevatte geen interne links (navigatie en footer niet geladen)", en: "the scanned page contained no internal links (navigation and footer not loaded)" }
+        : { nl: `de gescande pagina bevatte maar ${pageLinks} interne link(s)`, en: `the scanned page contained only ${pageLinks} internal link(s)` });
       if (sampleLinkSource === "fallback") {
-        if (scannerAccessBlocked) reasons.push(`de ruwe HTML was een geweigerde response (HTTP ${recovery.originalHttpStatus}) zonder links`);
-        if (sitemapRefusals.length) reasons.push(`de sitemap weigerde RankFix (HTTP ${[...new Set(sitemapRefusals)].join("/")})`);
-        else if (!sitemapPageUrls.length) reasons.push(sitemapFound ? "de sitemap is een index zonder direct bruikbare pagina-URL's" : "er is geen bruikbare sitemap gevonden");
-        if (!fallbackSources.length) reasons.push("er was geen andere bron met pagina-URL's");
+        if (scannerAccessBlocked) reasons.push({ nl: `de ruwe HTML was een geweigerde response (HTTP ${recovery.originalHttpStatus}) zonder links`, en: `the raw HTML was a refused response (HTTP ${recovery.originalHttpStatus}) without links` });
+        if (sitemapRefusals.length) { const codes = [...new Set(sitemapRefusals)].join("/"); reasons.push({ nl: `de sitemap weigerde RankFix (HTTP ${codes})`, en: `the sitemap refused RankFix (HTTP ${codes})` }); }
+        else if (!sitemapPageUrls.length) reasons.push(sitemapFound ? { nl: "de sitemap is een index zonder direct bruikbare pagina-URL's", en: "the sitemap is an index without directly usable page URLs" } : { nl: "er is geen bruikbare sitemap gevonden", en: "no usable sitemap was found" });
+        if (!fallbackSources.length) reasons.push({ nl: "er was geen andere bron met pagina-URL's", en: "no other source of page URLs was available" });
       }
       const failed = reportedMultiPageAudits.filter((item)=>item.status!=="audited" && !item.excludedUtility).length;
-      if (failed) reasons.push(`${failed} geselecteerde pagina('s) konden niet betrouwbaar worden opgehaald`);
-      return { extraPagesAudited: extraAuditedPages, reasons, note: `De steekproef bleef klein omdat ${reasons.join("; ")}. Sitebrede conclusies rusten daarom vooral op de gescande pagina.` };
+      if (failed) reasons.push({ nl: `${failed} geselecteerde pagina('s) konden niet betrouwbaar worden opgehaald`, en: `${failed} selected page(s) could not be fetched reliably` });
+      return {
+        extraPagesAudited: extraAuditedPages,
+        reasons: reasons.map((r) => r.nl),
+        note: `De steekproef bleef klein omdat ${reasons.map((r) => r.nl).join("; ")}. Sitebrede conclusies rusten daarom vooral op de gescande pagina.`,
+        noteEn: `The sample stayed small because ${reasons.map((r) => r.en).join("; ")}. Site-wide conclusions therefore rest mainly on the scanned page.`,
+      };
     })();
     const confirmedRetailSamples = auditedMultiPages.filter((item)=>item.commerceEvidence?.confirmedRetailPage);
     // Motor v2.1: representative pages are site-level evidence partners. They may
@@ -5240,6 +5247,24 @@ async function runScan(request: Request) {
       const financialPages = auditedMultiPages.filter((item) => item.commerceEvidence?.financialOffer);
       if (sectorProfile.sector !== "financial_services" && sectorProfile.sector !== "unknown" && financialPages.length > 0) {
         addSecondary("financial_services", "Financiële producten", `${financialPages.length} pagina('s) met financieel productschema (rekening, lening, kaart of verzekering): ${financialPages.slice(0, 2).map((item) => shortUrl(item.url)).join(", ")}`);
+      }
+      // Other independent activities: two or more sampled offer pages (service,
+      // product, category, listing, other) whose OWN title/description name another
+      // sector with high certainty. Editorial, corporate, legal, contact and support
+      // pages describe topics or the organisation, not an activity.
+      if (sectorProfile.sector !== "unknown") {
+        const votes = new Map<string, { label: string; pages: string[] }>();
+        // All fetched pages (not the template-deduplicated set): two offer pages of
+        // the same template are exactly the repeated evidence this rule needs.
+        for (const item of reportedMultiPageAudits.filter((page)=>page.status==="audited")) {
+          if (!["service","product","category","listing","other"].includes(item.type) || normalizeScanUrl(item.url)===normalizeScanUrl(finalUrl.toString())) continue;
+          const id = detectEuPrimaryIdentity({ title: item.title || "", description: item.description || "", h1s: [], hostname: "", homepage: false });
+          if (!id || id.confidence !== "high" || id.sector === sectorProfile.sector) continue;
+          const entry = votes.get(id.sector) || { label: id.label, pages: [] };
+          entry.pages.push(item.url);
+          votes.set(id.sector, entry);
+        }
+        for (const [sector, entry] of votes) if (entry.pages.length >= 2) addSecondary(sector, entry.label, `${entry.pages.length} representatieve aanbodpagina's noemen deze activiteit in hun eigen titel of omschrijving: ${entry.pages.slice(0, 2).map((url) => shortUrl(url)).join(", ")}`);
       }
       Object.assign(sectorProfile, {
         secondaryActivities: secondary,
