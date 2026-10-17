@@ -1379,6 +1379,8 @@ async function runScan(request: Request) {
     let robotsDeclaredSitemapUrls: string[] = [];
     let confirmedSitemapUrl: string | null = null;
     let sitemapDiagnostic = "";
+    // HTTP statuses with which the site refused RankFix's sitemap requests (for the sample explanation).
+    const sitemapRefusals: number[] = [];
     try {
       const r = (await safePublicFetch(robotsUrl, { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/plain,application/xml,text/xml" })).response;
       if (r.ok) {
@@ -1535,6 +1537,7 @@ async function runScan(request: Request) {
           // 401/403/429 (or a 503 challenge) refuses RankFix, it does not prove a
           // broken sitemap: search engines may well receive it. Unconfirmed, not a fault.
           if ([401, 403, 405, 429, 503].includes(r.status)) {
+            sitemapRefusals.push(r.status);
             sitemapFetchFailed = true;
             if (candidate.source === "robots") declaredSitemapFetchFailed = true;
             sitemapDiagnostic += " De server weigerde het verzoek van RankFix; dat bewijst niet dat de sitemap voor zoekmachines onbereikbaar is.";
@@ -4643,6 +4646,23 @@ async function runScan(request: Request) {
       seenStructures.add(key);
       auditedMultiPages.push(item);
     }
+    // Why a sample stayed small (3.5.1): the report names each source RankFix tried
+    // instead of silently showing "1 / 1". Descriptive only; never changes a score.
+    const extraAuditedPages = reportedMultiPageAudits.filter((item)=>item.status==="audited").filter((item)=>normalizeScanUrl(item.url)!==normalizeScanUrl(finalUrl.toString())).length;
+    const sampleLimitation = extraAuditedPages >= 2 ? null : (() => {
+      const reasons: string[] = [];
+      const pageLinks = allUniqueInternalAnchors.length;
+      reasons.push(pageLinks === 0 ? "de gescande pagina bevatte geen interne links (navigatie en footer niet geladen)" : `de gescande pagina bevatte maar ${pageLinks} interne link(s)`);
+      if (sampleLinkSource === "fallback") {
+        if (scannerAccessBlocked) reasons.push(`de ruwe HTML was een geweigerde response (HTTP ${recovery.originalHttpStatus}) zonder links`);
+        if (sitemapRefusals.length) reasons.push(`de sitemap weigerde RankFix (HTTP ${[...new Set(sitemapRefusals)].join("/")})`);
+        else if (!sitemapPageUrls.length) reasons.push(sitemapFound ? "de sitemap is een index zonder direct bruikbare pagina-URL's" : "er is geen bruikbare sitemap gevonden");
+        if (!fallbackSources.length) reasons.push("er was geen andere bron met pagina-URL's");
+      }
+      const failed = reportedMultiPageAudits.filter((item)=>item.status!=="audited" && !item.excludedUtility).length;
+      if (failed) reasons.push(`${failed} geselecteerde pagina('s) konden niet betrouwbaar worden opgehaald`);
+      return { extraPagesAudited: extraAuditedPages, reasons, note: `De steekproef bleef klein omdat ${reasons.join("; ")}. Sitebrede conclusies rusten daarom vooral op de gescande pagina.` };
+    })();
     const confirmedRetailSamples = auditedMultiPages.filter((item)=>item.commerceEvidence?.confirmedRetailPage);
     // Motor v2.1: representative pages are site-level evidence partners. They may
     // confirm capabilities/identity, but they never turn an unverified page-specific
@@ -5524,7 +5544,7 @@ async function runScan(request: Request) {
     const multiPage = {
       accounting:sampleAccounting,
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:representativePageLimit,
-      discoveredInternalUrls:discoveredMultiPage.length, sampleLinkSource, fallbackSources, duplicateSamplesRemoved, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,
+      discoveredInternalUrls:discoveredMultiPage.length, sampleLinkSource, fallbackSources, sampleLimitation, duplicateSamplesRemoved, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,
       // Which sampled page proved the product fields (null = none was proven).
       representativeProduct: productSamplePage ? { url: productSamplePage.url, fields: productFieldCount(productSamplePage.commerceEvidence?.product) } : null,
       siteSampleScore: scoredSamplePages.length ? Math.round(scoredSamplePages.reduce((sum,item)=>sum+(item.score||0),0)/scoredSamplePages.length) : null,

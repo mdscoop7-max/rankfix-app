@@ -94,6 +94,9 @@ const S = [];
       if (httpLine && /HTTP 200/.test(httpLine.details)) P(`sample evidence says "${httpLine.details}" next to HTTP ${home.httpStatus}`);
       if ((home?.evidenceChecks || []).some((e) => /raw HTML/.test(e.details)) && j.rendering?.javascriptExecuted) P("sample says 'raw HTML' although the page was rendered");
       // A homepage without any internal link has no navigation/footer loaded: missing privacy/contact links are unproven.
+      // 3.5.1: a small sample says why (sitemap refused, no links, refused raw HTML).
+      const lim = j.multiPage?.sampleLimitation;
+      if (!lim || !/sitemap weigerde RankFix \(HTTP 403\)/.test(lim.note) || !/geen interne links/.test(lim.note)) P(`small sample not explained: ${JSON.stringify(lim)}`);
       const trust = j.checks.find((c) => c.key === "trust_legal_signals");
       if (["warning", "fail"].includes(trust?.status)) P(`trust_legal_signals ${trust.status} on a page without any internal link`);
     } });
@@ -141,7 +144,7 @@ const S = [];
   const linked = page({ lang: "nl", title: "Taxi en vervoer op maat | TaxiVoorbeeld", desc: "Taxi bestellen, tarieven en zakelijk vervoer.", h1: "Taxi bestellen", body: filler("nl", 30), links: [["/tarieven", "Tarieven"], ["/zakelijk", "Zakelijk"], ["/luchthavenvervoer", "Luchthavenvervoer"]] });
   S.push({ id: "sample-control-page-links-win", host: "taxivoorbeeld.test", lang: "nl",
     route: (u) => u.pathname === "/" ? { body: linked } : u.pathname === "/sitemap.xml" ? { body: sitemap("taxivoorbeeld.test", ["/alleen-in-sitemap"]) } : ["/tarieven", "/zakelijk", "/luchthavenvervoer", "/alleen-in-sitemap"].includes(u.pathname) ? { body: sub("nl", u.pathname.slice(1)) } : null,
-    expect: (j, P) => { if (j.multiPage?.sampleLinkSource !== "page_links") P(`source ${j.multiPage?.sampleLinkSource}`); if ((j.multiPage?.pageAudits || []).some((a) => /alleen-in-sitemap/.test(a.url))) P("sitemap used although the page had enough links"); } });
+    expect: (j, P) => { if (j.multiPage?.sampleLimitation) P("sample limitation reported although the sample is complete"); if (j.multiPage?.sampleLinkSource !== "page_links") P(`source ${j.multiPage?.sampleLinkSource}`); if ((j.multiPage?.pageAudits || []).some((a) => /alleen-in-sitemap/.test(a.url))) P("sitemap used although the page had enough links"); } });
 }
 
 // 3. Reduced bot response without bot cookies (header-only bot manager): head
