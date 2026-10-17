@@ -9,7 +9,7 @@ export async function GET() {
   if(!user) return NextResponse.json({connected:false},{status:401});
   await ensureDatabase();
   const r=await getDb().query("SELECT github_login,scopes,connected_at,access_token_encrypted FROM github_connections WHERE user_id=$1",[user.id]);
-  if(!r.rowCount) return NextResponse.json({connected:false});
+  if(!r.rowCount) return NextResponse.json({connected:false,setupRequired:!process.env.GITHUB_CLIENT_ID||!process.env.GITHUB_CLIENT_SECRET});
   let token="";
   try {
     token=decryptToken(r.rows[0].access_token_encrypted);

@@ -201,3 +201,28 @@ test("scan route wires the report-quality fixes", async () => {
   const puppeteerConfig = await readFile(new URL("../.puppeteerrc.cjs", import.meta.url), "utf8");
   assert.match(puppeteerConfig, /cacheDirectory: join\(__dirname, "\.cache", "puppeteer"\)/);
 });
+
+test("a description missing after rendering is not described as a raw-HTML finding (field scan 16-10)", async () => {
+  const { assessPageDescription } = await import("../lib/report-quality.ts");
+  assert.match(assessPageDescription("", false).details, /raw HTML/);
+  assert.match(assessPageDescription("", false, "rendered").details, /na JavaScript-rendering/);
+  assert.doesNotMatch(assessPageDescription("", false, "rendered").details, /raw HTML/);
+});
+
+test("report main action: a sector-only provisional score does not ask to review unconfirmed checks", async () => {
+  const page = await (await import("node:fs/promises")).readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
+  assert.match(page, /Hoofdactie: hoofdsector controleren/);
+  assert.ok(page.indexOf("Hoofdactie: hoofdsector controleren") < page.indexOf("Hoofdactie: onbevestigde controles bekijken"));
+});
+
+test("reserved, parked and for-sale domain placeholders are recognised in EU languages, real sites are not", async () => {
+  const { isParkedDomainPage: p } = await import("../lib/report-quality.ts");
+  assert.ok(p({ title: "Nedreg - Domeinnaam gereserveerd", text: "", words: 20 }));
+  assert.ok(p({ title: "example.de", text: "Diese Domain ist zu verkaufen. Jetzt anfragen.", words: 12 }));
+  assert.ok(p({ title: "", text: "Ce nom de domaine est à vendre.", words: 7 }));
+  assert.ok(p({ title: "dominio.it", text: "Questo dominio è in vendita", words: 5 }));
+  assert.ok(p({ title: "This domain is for sale", text: "", words: 5 }));
+  assert.equal(p({ title: "Domeinnaam registreren en webhosting | Hosting NL", text: "Is jouw domeinnaam nog vrij? Registreer direct.", words: 40 }), false);
+  // A long article that mentions a parked domain is not a placeholder.
+  assert.equal(p({ title: "Wat te doen met een oud domein", text: "Dit domein is geparkeerd ... " + "woord ".repeat(400), words: 405 }), false);
+});
