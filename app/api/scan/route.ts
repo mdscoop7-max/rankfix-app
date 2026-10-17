@@ -3845,6 +3845,17 @@ async function runScan(request: Request) {
       visibleWords: rawVisibleWords,
       descriptionPresent: Boolean(description),
     });
+    // A homepage document without a single same-site link has no navigation or footer
+    // loaded (consent wall, partial hydration, blocked render): links it lacks are not
+    // proven missing from the website.
+    const noInternalLinksOnHomepage = isHomepage && allUniqueInternalAnchors.length === 0;
+    if (noInternalLinksOnHomepage) {
+      const note = "De opgehaalde pagina bevat geen enkele interne link: navigatie en footer zijn niet geladen. Ontbrekende privacy-, cookie-, contact- of merklinks zijn daarom niet bewezen.";
+      for (const item of [...seoChecks, ...geoChecks]) {
+        if (!["trust_legal_signals","identity","trust","entity"].includes(item.key) || (item.status !== "warning" && item.status !== "fail")) continue;
+        Object.assign(item, { status: "unable_to_confirm", issue_status: "UNABLE_TO_CONFIRM", points: 0, confidence: "low", reasonCode: "weak_evidence", message: note, fix: "Controleer dit opnieuw wanneer de volledige pagina met navigatie en footer kan worden opgehaald.", evidence: { url: finalUrl.toString(), found: null, details: note } });
+      }
+    }
     const absentHead: Record<string, boolean> = { description: !description, geo_description: !description, canonical: !canonical, lang: !lang, hreflang: true };
     if (reducedBotResponse) {
       const botNote = `De website beantwoordde deze scan via bot-beveiliging (${[...botCookieNames, ...botHeaderNames].slice(0,3).join(", ")}) met een uitgeklede pagina zonder structured data of Open Graph. Ontbrekende onderdelen in zo'n response bewijzen niet dat ze op de echte website ontbreken.`;
@@ -4236,7 +4247,9 @@ async function runScan(request: Request) {
         }
         const contentType = r.headers.get("content-type") || "";
         let pageHtml: string | null = null;
+        // The scanned page reuses the main document, which is the browser DOM when JavaScript ran.
         let representativeEvidenceSource: "raw_html" | "rendered_html" = "raw_html";
+        if (isScannedPage && javascriptExecuted) representativeEvidenceSource = "rendered_html";
         let representativeTitlePixelWidth: number | null = null;
         // Motor v2.1: representative pages get the same single bounded recovery
         // opportunity as the primary page. A failed render remains UNABLE, never PASS.
@@ -4400,7 +4413,10 @@ async function runScan(request: Request) {
           return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"noindex",status:"UNABLE_TO_CONFIRM",details:"Pagina staat op noindex en telt daarom niet mee in de steekproefscore."}] };
         }
         const evidenceChecks: MultiPageAudit["evidenceChecks"] = [
-          {key:"http",status:"PASS",details:`HTTP ${r.status}`},
+          // The scanned page's real status (a refusal to RankFix is not a website 200 or error).
+          isScannedPage && scannerAccessBlocked
+            ? {key:"http",status:"UNABLE_TO_CONFIRM",details:`HTTP ${response.status} voor RankFix; de pagina is via een browser opgehaald (crawlerblokkade, geen bewezen websitefout).`}
+            : {key:"http",status:"PASS",details:`HTTP ${isScannedPage ? response.status : r.status}`},
           {key:"title",status:!pageTitle && pageMissingEvidenceUnverified?"UNABLE_TO_CONFIRM":pageTitleAssessment.status==="PASS"?"PASS":"WARNING",details:!pageTitle && pageMissingEvidenceUnverified?`${pageTitleAssessment.details} ${clientShellNote}`:pageTitleAssessment.details},
           {key:"description",status:!pageDescription && pageMissingEvidenceUnverified?"UNABLE_TO_CONFIRM":pageDescriptionAssessment.status==="PASS"?"PASS":"WARNING",details:!pageDescription && pageMissingEvidenceUnverified?`${pageDescriptionAssessment.details} ${clientShellNote}`:pageDescriptionAssessment.details},
           {key:"h1",status:pageH1s.length>0?"PASS":pageMissingEvidenceUnverified?"UNABLE_TO_CONFIRM":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:pageH1s.length===0&&pageMissingEvidenceUnverified?`0 H1-heading(s) gevonden in de raw HTML. ${clientShellNote}`:`${pageH1s.length} H1-heading(s) gevonden.`},

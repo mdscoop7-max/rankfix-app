@@ -88,6 +88,14 @@ const S = [];
       const st = j.checks.find((c) => c.key === "status");
       if (["warning", "fail"].includes(st?.status)) P(`status ${st.status}: ${st.message.slice(0, 80)}`);
       for (const c of j.checks) if (/^(?:merchant_|checkout_|webshop_|product_)/.test(c.key) && c.status === "unable_to_confirm" && j.sectorProfile.sector === "transport_travel" && !j.multiPage?.representativeProduct) P(`${c.key} unconfirmed on a carrier without product evidence`);
+      // Field report 14:03: sample row said "HTTP: 403 … http: HTTP 200" and "in raw HTML" on a rendered page.
+      const home = (j.multiPage?.pageAudits || []).find((a) => new URL(a.url).pathname === "/");
+      const httpLine = home?.evidenceChecks?.find((e) => e.key === "http");
+      if (httpLine && /HTTP 200/.test(httpLine.details)) P(`sample evidence says "${httpLine.details}" next to HTTP ${home.httpStatus}`);
+      if ((home?.evidenceChecks || []).some((e) => /raw HTML/.test(e.details)) && j.rendering?.javascriptExecuted) P("sample says 'raw HTML' although the page was rendered");
+      // A homepage without any internal link has no navigation/footer loaded: missing privacy/contact links are unproven.
+      const trust = j.checks.find((c) => c.key === "trust_legal_signals");
+      if (["warning", "fail"].includes(trust?.status)) P(`trust_legal_signals ${trust.status} on a page without any internal link`);
     } });
 }
 // 2c. Negative controls for the organisation-name rule.
