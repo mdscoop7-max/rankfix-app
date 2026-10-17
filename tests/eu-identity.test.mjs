@@ -180,3 +180,32 @@ test("component makers that name the systems they build are industrial, without 
   ];
   for (const c of no) assert.notEqual(d({ ...c, homepage: true })?.sector, "manufacturing_industrial", c.title);
 });
+
+test("carrier sector from own mode label and independent booking/search heading", () => {
+  const examples = [
+    { title: "Northline Airlines", h2s: ["Flight search", "Explore our destinations"], hostname: "neutral-en.test" },
+    { title: "Skybridge Airlines", h2s: ["Find flights", "Our highlight"], hostname: "neutral2-en.test" },
+    { title: "Noordelijke Luchtvaart", h2s: ["Vluchten zoeken", "Bestemmingen"], hostname: "neutral-nl.test" },
+    { title: "Compagnie aérienne du Nord", h2s: ["Rechercher des vols", "Nos destinations"], hostname: "neutral-fr.test" },
+  ];
+  for (const value of examples) {
+    const id = detectEuPrimaryIdentity({ homepage: true, ...value });
+    assert.equal(id?.sector, "transport_travel", JSON.stringify({ value, id }));
+    assert.equal(id?.confidence, "medium", JSON.stringify(id));
+    assert.ok(id?.confidenceScore < 80, JSON.stringify(id));
+  }
+});
+
+test("booking widgets and transport commentary are not sufficient for operator identity", () => {
+  const negatives = [
+    { title: "Airlines Comparison | Ticket Finder", h2s: ["Flight search", "Find flights"] },
+    { title: "Compare Airlines & Flights", description: "Find and compare available flights.", h2s: ["Flight search"] },
+    { title: "Airline Reviews Blog", h2s: ["Flight search", "Guide to flights"] },
+    { title: "TechCo | Travel Booking Software", h2s: ["Flight search", "Book flights"] },
+    { title: "Holiday Travel Agency", h2s: ["Flight search", "Book flights"] },
+  ];
+  for (const value of negatives) {
+    const id = detectEuPrimaryIdentity({ homepage: true, hostname: "neutral.test", ...value });
+    assert.notEqual(id?.key, "passenger_transport", JSON.stringify({ value, id }));
+  }
+});

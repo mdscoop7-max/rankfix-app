@@ -169,7 +169,7 @@ const FINANCE_SCHEMA = new Set(["bankorcreditunion", "financialservice", "financ
 
 // ---------------------------------------------------------------- transport
 const AIR_WORDS = words(["loty", "lotów", "lety", "letenky", "lennud", "lidojumi", "skrydžiai", "flyrejser", "flyg", "lentoja"]);
-const AIR_STEMS = stems(["flight", "flug", "vols ", "voli ", "vuelo", "voos", "vlucht", "lentoliput", "lennot", "lennu", "lidojum", "skrydž", "skryd", "loty ", "letenk", "repülőj", "zbor", "πτήσ", "полет", "airline", "luchtvaart", "fluggesellschaft", "compagnie aérienne", "compagnia aerea", "aerolínea", "companhia aérea", "flygbolag", "lentoyhti", "aviokompan", "linie lotnicze", "letecká", "légitársas"]);
+const AIR_STEMS = stems(["flight", "flug", "flüg", "vols", "voli", "vuelo", "voos", "vlucht", "lentoliput", "lennot", "lennu", "lidojum", "skrydž", "skryd", "loty ", "letenk", "repülőj", "zbor", "πτήσ", "полет", "airline", "luchtvaart", "fluggesellschaft", "compagnie aérienne", "compagnia aerea", "aerolínea", "companhia aérea", "flygbolag", "lentoyhti", "aviokompan", "linie lotnicze", "letecká", "légitársas"]);
 const AIR = { test: (s: string) => AIR_STEMS.test(s) || AIR_WORDS.test(s) };
 const RAIL_STEMS = stems(["junaliput", "junien", "railway", "rail ", "spoorweg", "trein", "bahn", "treno", "trenitalia", "comboio", "vilcien", "traukin", "pociąg", "koleje", "vonat", "vasút", "τρέν", "σιδηρόδρομ", "влак", "железниц", "željezn", "železn", "dráhy", "ferrovi", "chemin de fer", "nightjet", "intercity"]);
 const RAIL_WORDS = words(["rail", "rails", "zug", "züge", "train", "trains", "tren", "trenes", "trenuri", "tåg", "tog", "juna", "junat", "rong", "rongid", "vlak", "vlaky", "vlakov", "sncf", "cfr"]);
@@ -178,7 +178,7 @@ const BUS = words(["bus", "buses", "autobus", "autobuses", "autocarro", "linja-a
 const FERRY = stems(["traghett", "ferri", "ferry", "fähr", "veerdienst", "färj", "færge", "ferje", "lautta", "praam", "keltuv", "trajekt", "ferribot", "πλοί", "фериб"]);
 const TICKETS = stems(["kaartje", "ov-chipkaart", "liput", "lipun", "ticket", "billet", "bigliett", "billete", "bilhete", "biljett", "biljet", "lippu", "lipu", "pilet", "biļet", "bilieta", "bilet", "jízdenk", "lístok", "lístk", "jegy", "εισιτήρ", "билет", "karta", "karte", "fahrkart", "vozovnic", "vozni"]);
 const TIMETABLE = stems(["horaire", "reisplanner", "journey planner", "fahrplanauskunft", "red plovidbe", "kustības sarakst", "fahrplan", "timetable", "dienstregeling", "orari", "horario", "horário", "tidtabell", "køreplan", "aikataul", "sõiduplaan", "kustības saraksts", "tvarkarašt", "rozkład jazdy", "jízdní řád", "cestovný poriadok", "menetrend", "mersul", "δρομολόγ", "разписание", "vozni red", "departures", "abfahrt", "vertrek"]);
-const JOURNEY = stems(["reise", "reiz", "travel", "voyage", "viaggi", "viaje", "viagem", "resa", "rejse", "reise", "matka", "reis", "ceļojum", "kelion", "podróż", "cest", "utaz", "călători", "ταξίδ", "пътуван", "putovan", "potovan", "fahrt", "journey", "trips ", "check in", "check-in", "boarding", "destinations", "destinazioni", "destinos"]);
+const JOURNEY = stems(["flight search", "find flights", "book a flight", "book flights", "vluchten zoeken", "vlucht zoeken", "flüge suchen", "flug suchen", "rechercher des vols", "recherche de vols", "cerca voli", "cercare voli", "buscar vuelos", "pesquisar voos", "wyszukaj loty", "szukaj lotów", "reise", "reiz", "travel", "voyage", "viaggi", "viaje", "viagem", "resa", "rejse", "reise", "matka", "reis", "ceļojum", "kelion", "podróż", "cest", "utaz", "călători", "ταξίδ", "пътуван", "putovan", "potovan", "fahrt", "journey", "trips ", "check in", "check-in", "boarding", "destinations", "destinazioni", "destinos"]);
 const STATIONS = stems(["gare", "gares", "bahnhof", "bahnhöfe", "station", "stations", "estación", "estaciones", "stazione", "stazioni", "stacja", "nádraží", "stanica", "pályaudvar", "gară", "σταθμ", "гара", "kolodvor", "postaj", "asema", "jaam", "stotis", "airport", "aéroport", "flughafen", "aeroporto", "aeropuerto", "luchthaven"]);
 const DISRUPTIONS = stems(["info trafic", "verkeersinformatie", "reisinformatie", "storingen", "störungen", "verkehrsinformation", "infomobilità", "estado del servicio", "service status", "travel updates", "häiriöt", "liikennetiedote", "výluky", "utasinformáció", "info trafic"]);
 const FARES = stems(["ermäßig", "fares", "fare ", "tarif", "sparschien", "vorteilscard", "railcard", "season ticket", "zeitkart", "abonnement de transport", "klimaticket", "verbund"]);
@@ -366,6 +366,8 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   // A blog, magazine, guide or comparison site writes ABOUT trains, banks or
   // hospitals; it is not the operator. Operator sectors then abstain.
   const publication = isPublication(title + " " + site, [...schema]);
+  // Search widgets, reviews and meta-search content are not evidence of operating a carrier.
+  const transportIntermediary = /(?:compare|comparison|comparateur|comparador|vergleich|vergelijk|porównyw|confronta|metasearch|aggregator|flight reviews?|airline reviews?|travel blog|reisblog)/iu.test(title);
   const retailer = retailSelfDescription(own) || [...schema].some((t) => /store$|^store$|^onlinestore$/.test(t));
   const evidence = (lines: Array<string | false>) => lines.filter(Boolean) as string[];
 
@@ -429,7 +431,7 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   const airlineSchema = schema.has("airline") || schema.has("busorcoachstop") || schema.has("trainstation") || schema.has("airport");
   const modes = [AIR.test(own) && "luchtvaart", RAIL.test(own) && "spoor", (BUS.test(own) || FERRY.test(own)) && "openbaar vervoer/veer"].filter(Boolean) as string[];
   const travelOwn = [TICKETS.test(own) && "vervoersbewijzen", TIMETABLE.test(own) && "dienstregeling", JOURNEY.test(own) && "reis/boeking"].filter(Boolean) as string[];
-  if (!retailer && (airlineSchema || (modes.length >= 1 && (travelOwn.length >= 1 || countSources((s) => AIR.test(s) || RAIL.test(s) || BUS.test(s) || FERRY.test(s)) >= 2)))) {
+  if (!retailer && !publication && !transportIntermediary && (airlineSchema || (modes.length >= 1 && (travelOwn.length >= 1 || countSources((s) => AIR.test(s) || RAIL.test(s) || BUS.test(s) || FERRY.test(s)) >= 2)))) {
     return { sector: "transport_travel", key: "passenger_transport", label: "Personenvervoer (spoor, luchtvaart, openbaar vervoer)", confidence: "high", confidenceScore: airlineSchema ? 95 : 90,
       evidence: evidence([airlineSchema && "Structured data: vervoerder (Airline/station)", modes.length > 0 && `Eigen identiteit noemt vervoerswijze: ${modes.join(", ")}`, travelOwn.length > 0 && `Eigen identiteit noemt ${travelOwn.join(", ")}`]) };
   }
@@ -530,7 +532,7 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
     STATIONS.test(structure) && "stations", DISRUPTIONS.test(structure) && "reisinformatie/storingen",
     (AIR.test(title) || RAIL.test(title) || BUS.test(title) || FERRY.test(title)) && "vervoerswijze in titel",
   ].filter(Boolean) as string[];
-  if (transportStructure.length >= 3 && (transportStructure.includes("vervoersbewijzen") || transportStructure.includes("vervoerswijze") || transportStructure.includes("vervoerswijze in titel"))) {
+  if (!publication && !transportIntermediary && transportStructure.length >= 3 && (transportStructure.includes("vervoersbewijzen") || transportStructure.includes("vervoerswijze") || transportStructure.includes("vervoerswijze in titel"))) {
     return { sector: "transport_travel", key: "passenger_transport", label: "Personenvervoer (spoor, luchtvaart, openbaar vervoer)", confidence: "medium", confidenceScore: 74,
       evidence: [`Navigatie en koppen beschrijven personenvervoer (${transportStructure.join(", ")}); de titel en omschrijving noemen dit niet zelf`] };
   }
@@ -562,6 +564,45 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   if (POSTAL_SPECIFIC(structure) && PARCEL.test(structure) && PARCEL.test(own)) {
     return { sector: "transport_travel", key: "postal_logistics", label: "Post- & pakketvervoer", confidence: "medium", confidenceScore: 74,
       evidence: ["Navigatie en koppen beschrijven post- en pakketdiensten"] };
+  }
+  // Last tier: the organisation's NAME states its trade ("X Airlines", "Y Bank",
+  // "Hotel Z"). A brand-only title, the og:site_name and the hostname are read for a
+  // company-type noun; two independent sources give a confirmed sector, one source a
+  // probable one. Never on retailers or publications (checked above).
+  const trade = brandTradeNoun(title, site, input.hostname || "");
+  if (trade && !retailer && !transportIntermediary && !publication) {
+    const confirmed = trade.sources.length >= 2;
+    return { sector: trade.sector, key: trade.key, label: trade.label, confidence: confirmed ? "high" : "medium", confidenceScore: confirmed ? 82 : 72,
+      evidence: [`De organisatienaam noemt het soort bedrijf ("${trade.noun}") in ${trade.sources.join(" en ")}; de pagina beschrijft de dienst zelf niet`] };
+  }
+  return null;
+}
+
+// Company-type nouns that only occur in an organisation's own name: carriers,
+// banks, railways, telecom operators (lodging has its own stay-evidence rules). Listed per EU language; no brands.
+const TRADE_NOUNS: Array<{ re: RegExp; host: RegExp; sector: EuSector; key: string; label: string }> = [
+  { re: words(["airlines", "airline", "airways", "aerolíneas", "aerolineas", "linhas aéreas", "linee aeree", "fluggesellschaft", "luchtvaartmaatschappij", "compagnie aérienne", "linie lotnicze"]), host: /(?:airlines?|airways)$/, sector: "transport_travel", key: "passenger_transport", label: "Personenvervoer (spoor, luchtvaart, openbaar vervoer)" },
+  { re: words(["railways", "railway", "spoorwegen", "eisenbahn", "ferrovie", "ferrocarriles", "chemins de fer", "koleje"]), host: /(?:railways?|spoorwegen|bahn)$/, sector: "transport_travel", key: "passenger_transport", label: "Personenvervoer (spoor, luchtvaart, openbaar vervoer)" },
+  { re: words(["bank", "banque", "banca", "banco", "bancă", "banka", "pankki", "sparkasse", "sparbank", "sparebank", "bankas"]), host: /bank$|^bank|sparkasse$/, sector: "financial_services", key: "financial_banking", label: "Bank & financiële producten" },
+  { re: words(["telecom", "telekom", "telecomunicazioni", "telecomunicaciones", "télécom"]), host: /telecom$|telekom$/, sector: "telecom_technology", key: "telecom_technology", label: "Telecom & Technologie" },
+];
+
+/** The trade noun in a short brand name (title or site name) and/or the hostname. */
+export function brandTradeNoun(title: string, siteName: string, hostname: string): { sector: EuSector; key: string; label: string; noun: string; sources: string[] } | null {
+  // Only short, name-like strings: a long title describes topics, not the company type.
+  const nameLike = (value: string) => value && value.split(/\s+/).filter(Boolean).length <= 5 ? value : "";
+  const titleName = nameLike((title || "").split(/\s*[|–—:]\s*|\s+-\s+/).map((part) => part.trim()).filter(Boolean)[0] || "");
+  const site = nameLike(siteName || "");
+  const label = (hostname || "").toLowerCase().replace(/^www\./, "").split(".")[0] || "";
+  for (const noun of TRADE_NOUNS) {
+    const sources: string[] = [];
+    const hit = noun.re.exec(titleName) || noun.re.exec(site);
+    if (noun.re.test(titleName)) sources.push("de titel");
+    else if (noun.re.test(site)) sources.push("de sitenaam");
+    if (label.split("-").some((part) => noun.host.test(part) && part.length >= 4)) sources.push("de domeinnaam");
+    // The hostname only corroborates: a domain label alone ("voedselbank", "databank")
+    // never establishes a sector.
+    if (sources.length && sources[0] !== "de domeinnaam") return { sector: noun.sector, key: noun.key, label: noun.label, noun: hit?.[0] || label, sources };
   }
   return null;
 }

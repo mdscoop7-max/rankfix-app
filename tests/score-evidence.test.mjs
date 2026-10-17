@@ -29,7 +29,9 @@ test("RTL/BILLA pattern: 53–55% coverage is 'insufficient', never presented as
   const lvl = evidenceLevel({ coveragePercent: 53, javascriptRequiredButNotRendered: true, renderDegraded: true, unconfirmed: 20 });
   assert.equal(lvl.level, "insufficient");
   assert.ok(lvl.reasons.some((x) => /53%/.test(x)));
-  assert.equal(evidenceLevel({ coveragePercent: 97, javascriptRequiredButNotRendered: false, unconfirmed: 1 }).level, "complete");
+  // 3.5 (17-10): one unconfirmed check leaves a real range, so it is never "complete".
+  assert.equal(evidenceLevel({ coveragePercent: 97, javascriptRequiredButNotRendered: false, unconfirmed: 1 }).level, "provisional");
+  assert.equal(evidenceLevel({ coveragePercent: 100, javascriptRequiredButNotRendered: false, unconfirmed: 0 }).level, "complete");
   assert.equal(evidenceLevel({ coveragePercent: 85, javascriptRequiredButNotRendered: false, unconfirmed: 12 }).level, "provisional");
   assert.equal(evidenceLevel({ coveragePercent: 92, javascriptRequiredButNotRendered: false, renderDegraded: true, unconfirmed: 2 }).level, "provisional");
 });
@@ -52,5 +54,6 @@ test("property: range always contains the score and widens with unconfirmed weig
 test("an unconfirmed heavy check makes a high score provisional", async () => {
   const { evidenceLevel } = await import("../lib/audit-score.ts");
   assert.equal(evidenceLevel({ coveragePercent: 95, javascriptRequiredButNotRendered: false, unconfirmed: 1, importantUnconfirmed: ["Structured data"] }).level, "provisional");
-  assert.equal(evidenceLevel({ coveragePercent: 95, javascriptRequiredButNotRendered: false, unconfirmed: 1, importantUnconfirmed: [] }).level, "complete");
+  assert.equal(evidenceLevel({ coveragePercent: 95, javascriptRequiredButNotRendered: false, unconfirmed: 1, importantUnconfirmed: [] }).level, "provisional");
+  assert.equal(evidenceLevel({ coveragePercent: 92, javascriptRequiredButNotRendered: false, unconfirmed: 3, importantUnconfirmed: [] }).level, "provisional", "98/100 with 3 light unconfirmed checks is not final");
 });
