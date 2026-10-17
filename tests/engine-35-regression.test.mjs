@@ -150,3 +150,15 @@ test("5c. organisation name states the trade: name + hostname, never hostname or
   const single = detectEuPrimaryIdentity({ title: "Nord Airlines", h1s: ["Welcome"], hostname: "nord.test", homepage: true });
   assert.ok(single && single.confidenceScore < 75, "one source is only probable");
 });
+
+test("3.5.1: a CMS field label in a title is flagged only with brand/section evidence", async () => {
+  const { templateFieldLeak } = await import("../lib/report-quality.ts");
+  assert.equal(templateFieldLeak("Working at X | Careers Description", "www.x.test", "/en/careers/working"), "Careers Description");
+  assert.equal(templateFieldLeak("How chips are made | Acme Description", "acme.test", "/tech/chips"), "Acme Description");
+  assert.equal(templateFieldLeak("{{ page.title }} | Acme", "acme.test", "/"), "{{ page.title }} | Acme");
+  assert.equal(templateFieldLeak("undefined", "acme.test", "/"), "undefined");
+  // Real titles stay untouched.
+  assert.equal(templateFieldLeak("Software engineer job description | Acme", "acme.test", "/vacancies"), null);
+  assert.equal(templateFieldLeak("Product description guide | Acme", "acme.test", "/blog/x"), null);
+  assert.equal(templateFieldLeak("Acme | Precision systems", "acme.test", "/"), null);
+});

@@ -181,9 +181,34 @@ export function outdatedTitleYear(title: string, now: Date = new Date()): number
   return old.length && !years.some((year) => year >= current - 1) ? Math.max(...old) : null;
 }
 
-export function assessPageTitle(title: string, host: string, now: Date = new Date(), pixelWidth: number | null = null): MetaAssessment {
+/**
+ * A CMS template that prints a field label into the title: "… | Careers Description",
+ * "Product | ASML Title", "Page title", "undefined", "{{ title }}", "%title%". Only the
+ * last segment is read, and a trailing label word ("Description", "Title") counts only
+ * when the rest of that segment is the site's brand or a section of the page's own URL,
+ * so real titles such as "Software engineer job description" are untouched.
+ */
+const FIELD_LABEL = /\b(?:description|beschrijving|omschrijving|beschreibung|descripción|descrizione|title|titel|titre|titolo|título|meta[- ]?title|seo[- ]?title)$/i;
+export function templateFieldLeak(title: string, host = "", path = ""): string | null {
+  const value = title.trim();
+  if (/\{\{[^}]*\}\}|%[a-z_]+%|\$\{[^}]*\}|^(?:undefined|null|nan|page title|seo title|meta title)$|\b(?:undefined|null)\s*$/i.test(value)) return value;
+  const segments = value.split(/\s+[|–—-]\s+|\s*\|\s*/).map((part) => part.trim()).filter(Boolean);
+  if (segments.length < 2) return null;
+  const last = segments[segments.length - 1];
+  const label = last.match(FIELD_LABEL)?.[0];
+  if (!label) return null;
+  const rest = last.slice(0, last.length - label.length).trim().toLowerCase();
+  if (!rest || rest.split(/\s+/).length > 2) return null;
+  const brand = host.toLowerCase().replace(/^www\./, "").split(".")[0] || "";
+  const sections = path.toLowerCase().split("/").filter(Boolean);
+  return rest === brand || sections.includes(rest) || sections.includes(rest.replace(/\s+/g, "-")) ? last : null;
+}
+
+export function assessPageTitle(title: string, host: string, now: Date = new Date(), pixelWidth: number | null = null, path = ""): MetaAssessment {
   const value = title.trim();
   if (!value) return { status: "WARNING", credit: 0.25, details: "Geen title gevonden in raw HTML.", flag: "missing" };
+  const leak = templateFieldLeak(value, host, path);
+  if (leak) return { status: "WARNING", credit: 0.7, details: `Title bevat een sjabloonveld ("${leak}"); het CMS print waarschijnlijk een veldnaam in plaats van een waarde.`, flag: "placeholder" };
   if (isPlaceholderTitle(value)) {
     return { status: "WARNING", credit: 0.3, details: `Title is een algemene standaardtitel ("${value}") zonder onderwerp.`, flag: "placeholder" };
   }

@@ -21,3 +21,8 @@ Open after the freeze (fix branch `fix/engine-3.5.1-post-pilot`, not used by the
 - A small sample is now explained in the report (`multiPage.sampleLimitation`: no internal links, refused raw HTML, sitemap refused with HTTP status, failed fetches).
 
 Not verifiable from Claude's environment: whether the 68-site pilot runs, on which deployment and database (no Neon or Vercel deployment access). The frozen preview `rankfix-6057tbhog-scoop5.vercel.app` = `5776f92` per GitHub deployment status.
+
+Exploratory field scan 17-10 21:27 (B2B manufacturer from the exploratory register, not in the independent set): sector and sample (28 pages) correct; three generic gaps reproduced synthetically and fixed on this branch:
+- business details shown only on the sampled contact page are now site-level evidence (evidence URL = that page);
+- support and portal pages below a "products" section are typed as service (multilingual service intent);
+- a CMS field label printed into a title ("… | Careers Description") is flagged when the label follows the brand or a URL section; real titles such as "job description" stay untouched.

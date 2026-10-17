@@ -147,6 +147,35 @@ const S = [];
     expect: (j, P) => { if (j.multiPage?.sampleLimitation) P("sample limitation reported although the sample is complete"); if (j.multiPage?.sampleLinkSource !== "page_links") P(`source ${j.multiPage?.sampleLinkSource}`); if ((j.multiPage?.pageAudits || []).some((a) => /alleen-in-sitemap/.test(a.url))) P("sitemap used although the page had enough links"); } });
 }
 
+// 3.5.1 — B2B manufacturer pattern (exploratory field scan 17-10 21:27): details only on
+// the contact page, support/portal pages under /products/, and a CMS printing a field
+// label into sample titles. All synthetic and brand-free.
+{
+  const host = "machinebouw.test"; const lang = "en";
+  const pages = {
+    "/": page({ lang, title: "Machinebouw | Supplier of precision manufacturing systems", desc: "We design and build precision manufacturing systems for the industry.", h1: "Precision manufacturing systems", body: filler(lang, 30), footer: "© Machinebouw", lds: [org("Machinebouw"), { "@type": "WebSite", name: "Machinebouw", url: "https://__HOST__/" }],
+      links: [["/contact-us", "Contact information"], ["/products/press-systems", "Press systems"], ["/products/customer-support", "Customer support"], ["/products/supplier-portal", "Supplier portal"], ["/careers/working-here", "Working here"], ["/careers/vacancies", "Vacancies"]] }),
+    "/contact-us": page({ lang, title: "Contact information | Machinebouw", desc: "Visit or call our headquarters.", h1: "Contact information", body: filler(lang, 15) + "<p>Machinebouw B.V., Industrieweg 12, 5651 AB Eindhoven. Phone +31 40 268 3000. info@machinebouw.test</p>", footer: "© Machinebouw" }),
+    "/products/press-systems": page({ lang, title: "Press systems – Products | Machinebouw", desc: "High-precision press systems for automotive and aerospace production lines.", h1: "Press systems", body: filler(lang, 25), footer: "© Machinebouw" }),
+    "/products/customer-support": page({ lang, title: "Customer support | Machinebouw", desc: "24/7 customer support for installed systems worldwide.", h1: "Customer support", body: filler(lang, 20), footer: "© Machinebouw" }),
+    "/products/supplier-portal": page({ lang, title: "Supplier portal | Machinebouw", desc: "Log in to the supplier portal to manage orders and documents.", h1: "Supplier portal", body: filler(lang, 20), footer: "© Machinebouw" }),
+    "/careers/working-here": page({ lang, title: "Working at Machinebouw | Careers Description", desc: "Discover what it is like to work at Machinebouw.", h1: "Working here", body: filler(lang, 20), footer: "© Machinebouw" }),
+    "/careers/vacancies": page({ lang, title: "Software engineer job description | Machinebouw", desc: "Read the job description and apply.", h1: "Vacancies", body: filler(lang, 20), footer: "© Machinebouw" }),
+  };
+  S.push({ id: "b2b-details-portal-template-title", host, lang, route: (u) => pages[u.pathname] && { body: pages[u.pathname] },
+    expect: (j, P) => {
+      const bd = j.checks.find((c) => c.key === "business_placeholders");
+      if (bd?.status !== "pass" || !/contact-us/.test(bd.evidence?.url || "")) P(`business details on the contact page not used: ${bd?.status} ${bd?.evidence?.url}`);
+      const typeOf = (p) => (j.multiPage?.pageAudits || []).find((a) => new URL(a.url).pathname === p)?.type;
+      for (const p of ["/products/customer-support", "/products/supplier-portal"]) { const t = typeOf(p); if (t && t !== "service") P(`${p} typed ${t} (support/portal is a service)`); }
+      const careers = (j.multiPage?.pageAudits || []).find((a) => /working-here/.test(a.url));
+      const tline = careers?.evidenceChecks?.find((e) => e.key === "title");
+      if (careers && tline?.status !== "WARNING") P(`template field in title not flagged: ${tline?.details}`);
+      const job = (j.multiPage?.pageAudits || []).find((a) => /vacancies/.test(a.url))?.evidenceChecks?.find((e) => e.key === "title");
+      if (job && /sjabloonveld/.test(job.details)) P("a real 'job description' title was flagged as a template field");
+    } });
+}
+
 // 3. Reduced bot response without bot cookies (header-only bot manager): head
 // metadata stripped. Missing description / social / structured data is not proven.
 {
