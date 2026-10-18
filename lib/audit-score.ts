@@ -16,12 +16,30 @@ export type ScorableAuditCheck = {
   fix_status?: "WAITING" | "AWAITING_MERGE" | "STILL_PRESENT" | "DONE";
 };
 
-export const SCORE_MODEL_VERSION = "3.5-evidence-gated";
+// 3.6: a category without any assessed check is excluded from the total (not 0).
+export const SCORE_MODEL_VERSION = "3.6-unassessed-excluded";
 
 // Fixed SEO/GEO core: adding sector-specific checks may increase report coverage
 // without silently changing the headline score on the same website.
 const CORE_SEO = new Set(["broken_links","internal_redirects","semantic_link_destination","title","description","h1","headings","canonical","viewport","lang","indexability","alt","content","https","status","response","social","robots_txt","sitemap","twitter_card","hreflang","duplicate_path","html_escape","image_sources"]);
 const CORE_GEO = new Set(["schema","organization_website","entity","breadcrumbs","faq","author","trust","answer","identity"]);
+/**
+ * 3.6 (G11): a score category counts only when at least one of its checks was
+ * actually assessed. A category whose checks are all "unable to confirm" or not
+ * applicable has no score: it is reported as "not assessed", never as 0.
+ */
+export function categoryAssessed(items: ScorableAuditCheck[]): boolean {
+  return items.some((item) => item.maxPoints > 0 && item.issue_status !== "NOT_APPLICABLE" && item.issue_status !== "UNABLE_TO_CONFIRM");
+}
+
+/** The weighting actually used for the total: an unassessed category drops out instead of counting as 0. */
+export function effectiveScoreMode(mode: "both" | "seo" | "geo", seoAssessed: boolean, geoAssessed: boolean): "both" | "seo" | "geo" {
+  if (mode !== "both") return mode;
+  if (seoAssessed && !geoAssessed) return "seo";
+  if (geoAssessed && !seoAssessed) return "geo";
+  return "both";
+}
+
 export function stableCoreChecks<T extends ScorableAuditCheck & {key?:string}>(checks:T[], group:"seo"|"geo"):T[] {
   const keys = group==="seo" ? CORE_SEO : CORE_GEO;
   return checks.filter(item=>keys.has(item.key||""));

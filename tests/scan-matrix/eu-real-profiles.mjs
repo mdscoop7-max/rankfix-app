@@ -81,8 +81,23 @@ const SYN = [
   { id: "eu-syn-nl-news-traffic", host: "nl-krant.test", expect: ["news_media"], notExpect: ["transport_travel"], f: { lang: "nl", title: "Het laatste nieuws uit de regio | Dagblad", desc: "Regionaal nieuws, verkeer, sport en het weer van de redactie.", h1: ["Nieuws"], h2: ["Verkeer: file op de A2", "Luchthaven: nieuwe vluchten", "Transport en logistiek"], nav: ["Nieuws", "Verkeer", "Luchthaven", "Sport"], types: [] } },
 ];
 
+// 3.6 (pilot-68 root causes G1–G5): service businesses that expose a shop
+// capability (phones with a cart, tariff checkout, listings with prices, a
+// donation/gift shop, a pricing checkout, room rates) keep their own sector.
+// Own wording, neutral hosts; not copies of pilot sites. Plus a real shop that
+// never calls itself a shop: still a webshop, but never "confident" (G1).
+const SYN36 = [
+  { id: "eu36-da-telecom-shop", host: "dk-tele.test", expect: ["telecom_technology"], notExpect: ["ecommerce"], widgets: ["products"], f: { lang: "da", title: "Køb mobiler, mobilt bredbånd og fibernet | Teleselskab", desc: "Mobilabonnementer, bredbånd og tv til hele familien. Billige familieabonnementer.", h1: ["Abonnementer"], h2: ["Mobil", "Bredbånd", "TV"], nav: ["Mobil", "Bredbånd", "TV", "Kurv"], types: ["Organization"] } },
+  { id: "eu36-fi-energy-shop", host: "fi-sahko.test", expect: ["energy_utilities"], notExpect: ["ecommerce"], widgets: ["products"], f: { lang: "fi", title: "Sähköyhtiö kotiin ja yrityksille", desc: "Olemme energiayhtiö. Valitse sähkösopimus ja tilaa aurinkopaneelit.", h1: ["Sähkösopimukset"], h2: ["Kodin sähkö", "Aurinkopaneelit"], nav: ["Koti", "Yritykset", "Ostoskori"], types: ["Organization"] } },
+  { id: "eu36-es-realestate-portal", host: "es-pisos.test", expect: ["real_estate"], notExpect: ["ecommerce"], widgets: ["products"], f: { lang: "es", title: "Pisos en venta y alquiler | Portal inmobiliario", desc: "Busca casas y pisos de obra nueva o de segunda mano.", h1: ["Encuentra tu casa"], h2: ["Comprar", "Alquilar"], nav: ["Comprar", "Alquilar", "Obra nueva", "Hipotecas"], types: ["Organization"] } },
+  { id: "eu36-nl-charity-shop", host: "nl-hulp.test", expect: ["nonprofit"], notExpect: ["ecommerce"], widgets: ["products"], f: { lang: "nl", title: "Hulporganisatie voor mensen in nood", desc: "Wij bieden noodhulp bij rampen en conflicten. Help je mee? Bekijk ook onze webwinkel.", h1: ["Noodhulp"], h2: ["Doneer", "Word vrijwilliger"], nav: ["Over ons", "Doneren", "Vrijwilligers", "Webwinkel"], types: ["NGO"] } },
+  { id: "eu36-en-saas-checkout", host: "en-crm.test", expect: ["saas_b2b"], notExpect: ["ecommerce"], widgets: ["products"], f: { lang: "en", title: "CRM, invoicing and projects in one tool", desc: "Business software that small teams use every day. Start a free trial.", h1: ["Run your business in one tool"], h2: ["Pricing", "Integrations"], nav: ["Product", "Pricing", "Integrations", "Log in"], types: ["SoftwareApplication"] } },
+  { id: "eu36-de-hotel-chain", host: "de-hotels.test", expect: ["hospitality"], notExpect: ["unknown", "ecommerce"], f: { lang: "de", title: "Hotels in Berlin und Hamburg", desc: "Moderne Zimmer im Stadtzentrum – jetzt direkt buchen.", h1: ["Unsere Hotels"], h2: ["Zimmer", "Angebote"], nav: ["Hotels", "Zimmer", "Angebote", "Buchen"], types: ["Hotel"] } },
+  { id: "eu36-nl-shop-without-shop-words", host: "nl-merk.test", expect: ["ecommerce", "unknown"], maxConf: 84, commerce: true, widgets: ["products"], f: { lang: "nl", title: "Merknaam | Design voor thuis", desc: "Ontdek de nieuwe collectie.", h1: ["Nieuwe collectie"], h2: ["Populair"], nav: ["Wonen", "Keuken", "Sale"], types: ["Organization"] } },
+];
+
 export function euSyntheticProfiles() {
-  return SYN.map((x) => ({ id: x.id, host: x.host, path: "/", page: "homepage", expect: x.expect, ...(x.notExpect ? { notExpect: x.notExpect } : {}), commerce: Boolean(x.commerce), raw: build(x.f, { widgets: x.widgets }) }));
+  return [...SYN, ...SYN36].map((x) => ({ id: x.id, host: x.host, path: "/", page: "homepage", expect: x.expect, ...(x.notExpect ? { notExpect: x.notExpect } : {}), ...(x.maxConf != null ? { maxConf: x.maxConf } : {}), commerce: Boolean(x.commerce), raw: build(x.f, { widgets: x.widgets }) }));
 }
 
 // Blind hold-out (tests/fixtures/eu-holdout): measured by the benchmark, not

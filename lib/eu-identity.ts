@@ -23,7 +23,8 @@
 
 export type EuSector =
   | "news_media" | "financial_services" | "transport_travel" | "government"
-  | "education" | "health_wellness" | "telecom_technology" | "energy_utilities" | "events_culture" | "professional_services" | "saas_b2b" | "fitness_sports" | "tourism_recreation" | "manufacturing_industrial";
+  | "education" | "health_wellness" | "telecom_technology" | "energy_utilities" | "events_culture" | "professional_services" | "saas_b2b" | "fitness_sports" | "tourism_recreation" | "manufacturing_industrial"
+  | "real_estate" | "nonprofit" | "hospitality";
 
 export type EuIdentity = {
   sector: EuSector;
@@ -66,6 +67,10 @@ function distinct2(text: string, re: RegExp): string[] {
 }
 function any(...res: RegExp[]) {
   return (text: string) => res.some((re) => re.test(text));
+}
+/** Like any(), but usable wherever a RegExp-like { test } is expected. */
+function either(...res: Array<{ test: (text: string) => boolean }>) {
+  return { test: (text: string) => res.some((re) => re.test(text)) };
 }
 
 // ---------------------------------------------------------------- news/media
@@ -120,7 +125,7 @@ const COURIER = stems(["mensajería", "mensajeria", "koerier", "kurier", "courie
 // ---------------------------------------------------------------- industry / manufacturing
 // Who makes or supplies industrial goods: a maker/supplier word plus an industrial
 // object, in the organisation's own title, description, H1 or site name.
-const MAKER = stems(["manufactur", "fabrikant", "fabricant", "fabricage", "producent", "productiebedrijf", "hersteller", "herstellung", "fertigung", "fabrication", "produttor", "produzion", "fabbricant", "fabricante", "fabricación", "fabricação", "producător", "valmistaja", "valmista", "tillverk", "fabrikant", "výrobc", "výrob", "gyárt", "κατασκευαστ", "производител", "proizvođač", "proizvajal", "tootja", "ražotāj", "gamintoj", "wytwórc", "producent", "maker of", "makers of", "we make", "we build", "builder of", "machinefabriek", "fabriek", "fabrik", "usine", "fabbrica", "fábrica", "tehdas", "fabryk", "továrn", "wij bouwen", "we bouwen", "ontwerpen en bouwen", "entwickeln und bauen", "concevons et fabriquons", "progettiamo e costruiamo"]);
+const MAKER = stems(["manufactur", "fabrikant", "fabricant", "fabricage", "producent", "productiebedrijf", "hersteller", "herstellung", "fertigung", "fabrication", "produttor", "produzion", "fabbricant", "fabricante", "fabricación", "fabricação", "producător", "valmistaja", "valmista", "tillverk", "fabrikant", "výrobc", "výrob", "gyárt", "κατασκευαστ", "производител", "proizvođač", "proizvajal", "tootja", "ražotāj", "gamintoj", "wytwórc", "producent", "maker of", "makers of", "we make", "we build", "builder of", "engineering group", "engineering company", "engineering firm", "industrial group", "maschinenbauunternehmen", "machinefabriek", "fabriek", "fabrik", "usine", "fabbrica", "fábrica", "tehdas", "fabryk", "továrn", "wij bouwen", "we bouwen", "ontwerpen en bouwen", "entwickeln und bauen", "concevons et fabriquons", "progettiamo e costruiamo"]);
 const SUPPLIER = stems(["supplier", "leverancier", "zulieferer", "ausrüster", "fournisseur", "équipementier", "fornitor", "proveedor", "fornecedor", "dostawc", "toimittaj", "leverantör", "dodavatel", "beszállító", "furnizor", "доставчик", "dobavitelj", "dobavljač", "tarnija", "piegādātāj", "tiekėj"]);
 const INDUSTRIAL = stems([
   "semiconductor", "halfgeleider", "halbleiter", "semi-conducteur", "semiconducteur", "semicondutt", "semiconductor", "półprzewodnik", "puolijohde", "halvledar", "polovodič", "félvezető",
@@ -131,6 +136,8 @@ const INDUSTRIAL = stems([
   "components", "componenten", "komponenten", "composants", "componenti", "componentes", "bearings", "lager", "pumps", "pompen", "pumpen", "valves", "kleppen", "ventile", "compressors", "turbines", "turbinen", "generators", "generatoren", "engines", "motoren", "verpakkingsmachine", "voedingsindustrie", "lasers", "laser",
   "steel", "staal", "stahl", "acier", "acciaio", "acero", "chemicals", "chemie", "chimie", "chimica", "química", "plastics", "kunststof", "kunststoff", "packaging machines", "verpakkingsmachines", "electronics manufactur", "precision", "precisie", "präzision",
   "aerospace", "lucht- en ruimtevaart", "luft- und raumfahrt", "aéronautique", "aerospaziale", "aeroespacial",
+  // 3.6: mining and metal-working equipment.
+  "mining", "mijnbouw", "bergbau", "minería", "mineração", "rock excavation", "rock processing", "metal cutting", "metal-cutting", "metaalbewerking", "metallbearbeitung", "zerspanung", "usinage",
   // Engineered vehicle components (what component makers name in their own title).
   "braking", "brake", "bremssystem", "bremsanlage", "bremsscheib", "freinage", "freins", "impianti frenanti", "sistemi frenanti", "sistema frenante", "frenado", "sistemas de travagem", "remsystem", "remschijv", "hamulc", "układy hamulcowe", "brzdov", "fékrendszer", "sisteme de frânare", "jarrujärjestelm", "bromssystem", "φρένων",
   "gearbox", "transmissions", "getriebe", "powertrain", "drivetrain", "antriebsstrang", "shock absorbers", "stoßdämpfer", "ammortizzatori", "amortisseurs", "schokdempers", "axles", "achsen",
@@ -212,7 +219,9 @@ const GOV_TERMS = stems([
   "közigazgat", "administrație publică", "δημόσια διοίκηση", "държавна администрация", "javna uprava", "javne uprave",
   "ministerie", "ministerium", "ministère", "ministero", "ministerio", "ministério", "ministeriet", "ministeriö", "ministeerium", "ministrij", "ministerij", "ministerstw", "ministerstv", "minisztérium", "ministerul", "υπουργεί", "министерств",
   "gemeente", "municipality", "gemeinde", "commune de", "comune di", "ayuntamiento", "câmara municipal", "kommune ", "kommunen", "kunta", "pašvaldīb", "savivaldyb", "gmina", "urząd miasta", "magistrát", "önkormányzat", "primăria", "δήμος", "община", "općina", "občina",
-  "myndighet", "myndigheten", "behörde", "bundesamt", "landesamt", "virasto", "úřad", "urząd", "úrad", "hivatal", "e-tjänster", "e-government", "rathaus", "stadhuis", "town hall", "hôtel de ville", "municipio", "site officiel", "offizielle website", "sito ufficiale", "sitio oficial",
+  "myndighet", "myndigheten", "behörde", "bundesamt", "landesamt", "virasto", "úřad", "urząd", "úrad", "hivatal", "e-tjänster", "e-government", "rathaus", "stadhuis", "town hall", "hôtel de ville", "municipio",
+  // 3.6 (G6): "site officiel", "sito ufficiale", "sitio oficial", "offizielle website" were removed:
+  // every museum, brand or club calls its own website "official"; it says nothing about government.
   "portál občana", "portal obywatela", "citizen portal", "bürgerservice", "services publics", "service public", "servizi pubblici", "servicios públicos", "serviços públicos", "e-government", "rijksoverheid", "overheid", "government", "regierung", "gouvernement", "governo", "gobierno", "vláda", "rząd", "kormány", "guvernul", "κυβέρνησ", "правителств", "vlada",
 ]);
 const CITIZEN_SERVICES = stems(["služby občan", "služby podnikat", "životní událost", "občan", "citizen", "bürger", "citoyen", "cittadin", "ciudadan", "cidadão", "medborgar", "borger", "kansalai", "kodanik", "pilsoņ", "piliet", "obywatel", "občan", "állampolgár", "cetățe", "πολίτ", "гражд", "građan", "državljan", "inwoner", "loket", "digid"]);
@@ -222,7 +231,7 @@ const UNIVERSITY = stems([
   "universit", "univerzit", "univerza", "universidad", "universidade", "università", "université", "uniwersytet", "yliopist", "ülikool", "egyetem",
   "πανεπιστήμ", "университет", "sveučiliš", "hogeschool", "hochschule", "fachhochschule", "politecnic", "polytechn", "technische universität", "academy of", "akademi",
 ]);
-const EDU_SUPPORT = stems(["fakult", "faculty", "facoltà", "facultad", "faculdade", "faculté", "studium", "študij", "štúdi", "studi", "students", "studenten", "studenti", "estudiant", "étudiant", "estudant", "studerend", "opiskelij", "üliõpilas", "studentai", "studenci", "hallgató", "φοιτητ", "студент", "opleiding", "studiengang", "corsi di laurea", "grado", "licenciatur", "bachelor", "master", "výskum", "výzkum", "research", "forschung", "recherche", "ricerca", "investigación"]);
+const EDU_SUPPORT = stems(["fakult", "faculty", "facoltà", "facultad", "faculdade", "faculté", "studium", "študij", "štúdi", "studi", "students", "studenten", "studenti", "estudiant", "étudiant", "estudant", "studerend", "opiskelij", "üliõpilas", "studentai", "studenci", "hallgató", "φοιτητ", "студент", "opleiding", "onderwijs", "onderzoek", "studiengang", "corsi di laurea", "grado", "licenciatur", "bachelor", "master", "výskum", "výzkum", "research", "forschung", "recherche", "ricerca", "investigación"]);
 
 // ---------------------------------------------------------------- health
 // Academic medical centres name themselves as hospitals, often inside a
@@ -240,10 +249,10 @@ const MEDICAL_CENTRE = words([
   "klinički bolnički centar", "univerzitetni klinični center", "spitalul clinic", "egyetemi klinik\\p{L}*", "ülikooli kliinikum", "πανεπιστημιακό νοσοκομείο",
 ]);
 /** Acronyms are only medical names next to a care concept ("UMC Utrecht", "CHU de Lille"). */
-const MEDICAL_CENTRE_ACRONYM = words(["umc", "chu", "chru", "aphp", "ap-hp", "uz", "ukm", "uke"]);
+const MEDICAL_CENTRE_ACRONYM = words(["umc", "mc", "chu", "chru", "aphp", "ap-hp", "uz", "ukm", "uke"]);
 const HEALTH_CONCEPTS: Array<[string, RegExp]> = [
-  ["health", stems(["gezondheid", "health", "gesundheit", "santé", "salute", "salud", "saúde", "hälsa", "sundhed", "helse", "terveys", "tervis", "veselīb", "sveikat", "zdrow", "zdraví", "zdravie", "egészség", "sănătat", "υγεί", "здрав", "zdravlj", "zdravj"])],
-  ["care", stems(["zorgverlen", "zorgaanbied", "gezondheidszorg", "thuiszorg", "ouderenzorg", "jeugdzorg", "vård", "pleje", "hoito", "ravi ", "ravile", "medical care", "healthcare", "gesundheitsversorg", "soins", "cure mediche", "atención sanitaria", "cuidados de saúde", "opieka zdrowotn", "péče", "starostliv", "ellátás", "îngrijir", "περίθαλψ"])],
+  ["health", stems(["gezondheid", "gezond", "health", "gesundheit", "santé", "salute", "salud", "saúde", "hälsa", "sundhed", "helse", "terveys", "tervis", "veselīb", "sveikat", "zdrow", "zdraví", "zdravie", "egészség", "sănătat", "υγεί", "здрав", "zdravlj", "zdravj"])],
+  ["care", stems(["patiëntenzorg", "patiëntzorg", "patientenzorg", "patient care", "patientenversorgung", "soins aux patients", "assistenza ai pazienti", "atención al paciente", "excellente zorg", "zorg voor patiënten", "zorgverlen", "zorgaanbied", "gezondheidszorg", "thuiszorg", "ouderenzorg", "jeugdzorg", "vård", "pleje", "hoito", "ravi ", "ravile", "medical care", "healthcare", "gesundheitsversorg", "soins", "cure mediche", "atención sanitaria", "cuidados de saúde", "opieka zdrowotn", "péče", "starostliv", "ellátás", "îngrijir", "περίθαλψ"])],
   ["disease", stems(["ziekte", "krankheit", "maladie", "malatti", "enfermedad", "doença", "sjukdom", "sygdom", "sairau", "haigus", "slimīb", "ligos", "chorob", "nemoc", "choroby", "betegség", "boal", "ασθέν", "болест", "bolest", "symptom", "symptôm", "sintom", "síntoma", "besvär"])],
   ["clinic", stems(["ziekenhuis", "krankenhaus", "hôpital", "ospedal", "hospital", "sjukhus", "sygehus", "sairaal", "haigla", "slimnīc", "ligonin", "szpital", "nemocnic", "kórház", "spital", "νοσοκομ", "болниц", "bolnic", "kliniek", "klinik", "clinic", "huisarts", "hausarzt", "médecin", "medico di base", "vårdcentral", "lægen", "lääkär", "arst", "ārst", "gydytoj", "lekar", "lékař", "orvos", "medic"])],
   ["emergency", stems(["notaufnahme", "pronto soccorso", "urgences", "urgencias", "urgência", "serviço de urgência", "spoedeisende", "spoedeisende hulp", "spoedpost", "emergency department", "akutmottagning", "päivystys", "erakorralise", "neatliekamās", "skubios pagalbos", "szpitalny oddział ratunkowy", "pohotovost", "sürgősségi", "urgență", "επειγόντων"])],
@@ -258,6 +267,77 @@ const TELECOM_TV = stems(["tv", "televis", "internet"]);
 const ENERGY = stems(["energieleverancier", "stroom", "strom", "électricité", "elettricit", "electricidad", "eletricidade", "elektricitet", "sähkö", "elekter", "elektroenerģ", "elektros energ", "prąd", "elektřin", "elektrin", "áram", "energie electr", "ηλεκτρικ ρεύμ", "struj", "energy supplier", "energiaszolg", "energia elétrica"]);
 const POWER_AND_GAS = stems(["luce e gas", "gas e luce", "luz y gas", "luz e gás", "luz e gas", "strom und gas", "gas und strom", "stroom en gas", "gas en stroom", "électricité et gaz", "gaz et électricité", "el og gas", "el och gas", "sähkö ja kaasu", "prąd i gaz", "elektřina a plyn", "áram és gáz", "energie electrică și gaz"]);
 const GAS = words(["gas", "gás", "erdgas", "gaz", "gaz naturel", "kaasu", "maagaas", "gāze", "dujos", "plyn", "φυσικό αέριο", "газ", "plin"]);
+
+
+// ---------------------------------------------------------------- 3.6 lexicons
+// Telecom operators describe several service families at once: mobile, home
+// internet, TV, calling, plans/tariffs and their own network. An electronics
+// shop names devices ("smartphones, TV"), a web agency names "internet"; neither
+// names three families including plans, an operator or calling (G2).
+const TEL_MOBILE = either(
+  stems(["mobilfunk", "handytarif", "mobilabonnement", "mobilabonnemang", "mobiilili", "mobiel abonnement", "mobiele telefonie", "mobile plan", "mobile phone plan", "forfait mobile", "forfaits mobile", "offerte mobile", "tarifa móvil", "tarifas móvil", "telefonia mobile", "telefonía móvil", "telefonia móvel", "komórkow", "sim only", "sim-only", "esim"]),
+  words(["mobilt", "mobilní", "mobilný", "mobilné", "5g", "4g", "lte"]),
+);
+const TEL_INTERNET = either(TELECOM_ACCESS, words(["internet", "wifi", "wi-fi", "dsl", "vdsl", "internetu", "internetem", "internetin", "box internet", "fibernet"]));
+const TEL_TV = either(words(["tv"]), stems(["televis", "televiz", "telewiz", "televíz", "fernseh", "télévis", "tv-pakket", "tv-pakete", "streaming"]));
+const TEL_CALLING = stems(["bellen", "vaste telefonie", "telefonie", "telefonía", "telefonia", "festnetz", "volání", "rozmow", "appels illimités", "appels", "chiamate", "llamadas", "anrufe", "telefonieren", "unlimited calls", "calling", "puhelut", "samtal"]);
+// Germanic compounds ("familieabonnementer", "Mobilfunkabonnement") carry the
+// plan word inside the word, so that one stem may also match mid-word.
+const TEL_PLANS_COMPOUND = /\p{L}(?:abonnement|abonnemang|abonament)/iu;
+const TEL_PLANS_BASE = stems(["abonnement","abonament", "abbonament", "tarif", "tarief", "forfait", "liittymä", "abonnemang", "předplatn", "plány", "pakket", "pakete", "tv-pakket", "plans", "bundles", "bundel"]);
+const TEL_PLANS = either(TEL_PLANS_BASE, TEL_PLANS_COMPOUND);
+const TEL_OPERATOR = stems(["operátor", "operator", "opérateur", "operatore", "operador", "operaattori", "provider", "anbieter", "netzanbieter", "netz", "netwerk", "network", "réseau", "rete mobile", "red móvil", "sieć", "síť", "teleselskab", "teleoperatør", "teleföretag", "telekom", "telecom"]);
+const TELECOM_FAMILIES: Array<[string, { test: (s: string) => boolean }]> = [
+  ["mobiel", TEL_MOBILE], ["internet", TEL_INTERNET], ["tv", TEL_TV], ["bellen", TEL_CALLING], ["abonnementen/tarieven", TEL_PLANS], ["netwerk/operator", TEL_OPERATOR],
+];
+// An energy or electricity company that names itself as such (G3).
+const ENERGY_COMPANY = stems([
+  "energiayhtiö", "sähköyhtiö", "energieversorger", "stromanbieter", "stromversorger", "energiebedrijf", "energieleverancier", "energy company", "energy supplier",
+  "utility company", "electricity supplier", "electricity company", "elbolag", "elselskab", "energiselskab", "strømleverandør", "kraftselskap", "energibolag",
+  "compañía de luz", "compañía eléctrica", "comercializadora de luz", "comercializadora eléctrica", "fournisseur d'énergie", "fournisseur d'électricité", "fournisseur d’énergie", "fournisseur d’électricité",
+  "fornitore di energia", "fornitore di luce", "fornecedor de energia", "comercializador de energia", "dostawca energii", "spółka energetyczn", "dodavatel energie", "energetická společnost",
+  "áramszolgáltató", "energiaszolgáltató", "furnizor de energie", "furnizor de electricitate", "energiaettevõte", "energoapgād",
+]);
+// Real-estate portals and agencies name homes for sale/rent (G4).
+const REAL_ESTATE = stems([
+  "inmobiliari", "portal inmobiliario", "pisos en venta", "pisos en alquiler", "alquiler de pisos", "venta de pisos", "casas en venta", "pisos y casas",
+  "immobilien", "immobilienangebot", "immobilienportal", "wohnungen mieten", "wohnungen kaufen", "häuser kaufen", "häuser mieten", "makler",
+  "immobilier", "immobilière", "annonces immobili", "appartements à louer", "appartements à vendre", "maisons à vendre", "maisons à louer",
+  "immobiliar", "annunci immobiliari", "case in vendita", "appartamenti in vendita", "appartamenti in affitto", "case in affitto",
+  "imóveis", "imobiliári", "apartamentos à venda", "casas à venda", "nieruchomości", "mieszkania na sprzedaż", "mieszkania na wynajem",
+  "nemovitost", "byty k pronájmu", "byty na prodej", "ingatlan", "imobiliare", "asunnot", "myytävät asunnot", "vuokra-asunnot", "kiinteistö",
+  "bostäder", "lägenheter till salu", "villor till salu", "bostadspriser", "boliger til salg", "boliger til leje", "woningaanbod", "huurwoningen", "koopwoningen", "makelaar",
+  "real estate", "homes for sale", "property for sale", "properties for sale", "property portal", "houses for sale", "flats to rent", "apartments for rent",
+]);
+const SALE_OR_RENT = stems(["en venta", "en alquiler", "kaufen", "mieten", "à louer", "à vendre", "in vendita", "in affitto", "à venda", "para alugar", "na sprzedaż", "na wynajem", "na prodej", "k pronájmu", "till salu", "uthyres", "til salg", "til leje", "te koop", "te huur", "for sale", "for rent", "to rent", "myytävät", "vuokra"]);
+// Non-profit organisations (G4). Strong terms name the organisation type or
+// its cause; a need + support call is the humanitarian pattern.
+const NGO_STRONG = either(
+  words(["ngo", "ngos", "ong", "ongs", "onlus", "ngo's"]),
+  stems(["non-profit", "nonprofit", "non profit", "goede doel", "goed doel", "liefdadig", "charity", "charitable", "wohltätig", "gemeinnützig", "hilfsorganisation", "hulporganisatie",
+    "association humanitaire", "organisation humanitaire", "organizzazione umanitaria", "organización humanitaria", "organização humanitária", "humanitarian organi", "humanitaire organisatie",
+    "human rights", "mensenrechten", "menschenrechte", "droits humains", "droits de l'homme", "droits de l’homme", "diritti umani", "derechos humanos", "direitos humanos", "prawa człowieka",
+    "naturschutz", "artenschutz", "umweltschutz", "tierschutz", "natuurbescherming", "nature conservation", "wildlife conservation", "protection de la nature", "tutela della natura"]),
+);
+const NGO_NEED = stems(["mensen in nood", "people in need", "menschen in not", "personnes dans le besoin", "persone in difficoltà", "personas necesitadas", "noodhulp", "disaster relief", "katastrophenhilfe", "aide humanitaire", "aiuti umanitari", "ayuda humanitaria", "humanit", "umanitari"]);
+const NGO_SUPPORT_CALL = stems(["doneer", "doneren", "donate", "donation", "spenden", "spende", "faire un don", "faites un don", "dona ora", "donare", "haz un donativo", "hazte socio", "help je mee", "help mee", "hilf mit", "aidez-nous", "aiutaci", "ayúdanos", "become a member", "word lid", "word donateur"]);
+// Hotels name themselves in the title and describe rooms or booking a stay (G5).
+const HOTEL_TITLE = words(["hotel", "hotels", "hôtel", "hôtels", "albergo", "alberghi", "hostal", "hostales", "hostel", "hostels", "pousada", "boutique hotel", "boutique hotels"]);
+const HOTEL_STAY = stems(["rooms", "kamers", "zimmer", "chambres", "camere", "habitaciones", "quartos", "pokoje", "huoneet", "rum ", "book your stay", "boek je verblijf", "jetzt buchen", "buchen", "réservez", "prenota", "reserva", "overnacht", "overnight", "stay", "beds", "nights"]);
+// Amusement and theme parks (tourism & recreation).
+const AMUSEMENT = stems([
+  "forlystelse", "pretpark", "attractiepark", "amusement park", "theme park", "freizeitpark", "vergnügungspark", "erlebnispark", "parc d'attractions", "parc d’attractions", "parc à thème",
+  "parco divertimenti", "parco a tema", "parque de atracciones", "parque temático", "nöjespark", "fornøyelsespark", "huvipuisto", "lunapark", "zábavní park", "vidámpark", "park rozrywki",
+  "achterbahn", "achtbaan", "roller coaster", "rutsjebane", "berg-och-dalbana",
+]);
+// SaaS products named by their category, not by the word "software" (G9).
+const SAAS_PRODUCT = stems([
+  "crm", "erp", "invoicing", "facturatie", "facturation", "fatturazione", "facturación", "faturação", "rechnungsprogramm", "buchhaltungssoftware", "boekhoudsoftware", "boekhoudprogramma",
+  "accounting software", "hr-software", "hr software", "personalsoftware", "payroll", "salarisadministratie", "lohnabrechnung", "project management software", "projectmanagement",
+  "business software", "bedrijfssoftware", "unternehmenssoftware", "logiciel de gestion", "gestionale", "helpdesk software", "ticketing software", "marketing automation", "in one tool", "all-in-one software", "cloud software",
+]);
+// A first title part that only says "home" carries no organisation name (G8).
+const GENERIC_TITLE_PART = /^(?:home|home ?page|homepage|start|startseite|startsida|startside|accueil|inicio|início|welkom|welcome|willkommen|bienvenue|benvenuti|bienvenido|etusivu|strona główna|úvod|kezdőlap|forside|pagina iniziale|página principal)$/i;
 
 // ---------------------------------------------------------------- retail veto
 // Retail self-description in the main EU languages. When a page's own identity
@@ -274,12 +354,16 @@ const CULTURE = stems([
   "museum", "musée", "museo", "museu", "muzeum", "múzeum", "muzej", "muusem", "muziej", "μουσεί", "музей", "museet", "museo",
   "theater", "theatre", "théâtre", "teatro", "teatr", "divadl", "színház", "teater", "teatteri", "θέατρ", "театър", "kazalište", "gledališ",
   "schouwburg", "concertgebouw", "philharmon", "filharmon", "opéra", "opera", "konzerthaus", "festival", "galerie", "galleria", "galería", "kunsthal",
+  // 3.6: plural/other forms (Gallerie, gallerier, musei, muzea).
+  "gallerie", "galleri", "musei", "muzea", "museos", "museus",
 ]);
-const CULTURE_SUPPORT = stems(["exposit", "exhibit", "ausstellung", "mostr", "exposici", "exposiç", "utställning", "udstilling", "näyttely", "näitus", "izstād", "paroda", "wystaw", "výstav", "kiállítás", "expoziț", "έκθεσ", "изложб", "izložb", "razstav", "tentoonstel", "billetterie", "biglietteria", "taquilla", "bilheteira", "programma", "programme", "spielplan", "agenda", "voorstelling", "concert", "konzert", "collectie", "collection", "sammlung", "collezione"]);
+const CULTURE_SUPPORT = stems(["exposit", "exhibit", "ausstellung", "mostr", "exposici", "exposiç", "utställning", "udstilling", "näyttely", "näitus", "izstād", "paroda", "wystaw", "výstav", "kiállítás", "expoziț", "έκθεσ", "изложб", "izložb", "razstav", "tentoonstel", "billetterie", "biglietteria", "taquilla", "bilheteira", "programma", "programme", "spielplan", "agenda", "voorstelling", "concert", "konzert", "collectie", "collection", "sammlung", "collezione",
+  // 3.6: visitor information that museums and venues name in their own description.
+  "biglietti", "orari", "mostre", "opening hours", "openingstijden", "öffnungszeiten", "horaires", "horarios", "entradas", "tickets"]);
 
 // Audience clauses name customers, not the organisation: "marketing para
 // hoteles, aerolíneas y bancos", "software for banks", "advies voor ziekenhuizen".
-const ORG_PLURAL = "(?:versicherungen|versicherer|insurance companies|assurances|assicurazioni|aseguradoras|seguradoras|hotels|hoteles|hôtels|alberghi|aerolíneas|airlines|compagnies aériennes|compagnie aeree|fluggesellschaften|luchtvaartmaatschappijen|banks|banken|bancos|banques|banche|ziekenhuizen|hospitals|hôpitaux|ospedali|hospitales|krankenhäuser|universities|universiteiten|universités|universidades|scholen|schools|gemeenten|municipalities|overheden|governments|webshops|retailers|winkels|tiendas|negozi|bedrijven|companies|empresas|entreprises|aziende|unternehmen|klanten|clients|kunden|clientes|clienti|vervoerders|carriers|verzekeraars|insurers|media|uitgevers|publishers)";
+const ORG_PLURAL = "(?:versicherungen|versicherer|insurance companies|assurances|assicurazioni|aseguradoras|seguradoras|hotels|hoteles|hôtels|alberghi|aerolíneas|airlines|compagnies aériennes|compagnie aeree|fluggesellschaften|luchtvaartmaatschappijen|banks|banken|bancos|banques|banche|ziekenhuizen|hospitals|hôpitaux|ospedali|hospitales|krankenhäuser|universities|universiteiten|universités|universidades|scholen|schools|gemeenten|municipalities|overheden|governments|webshops|retailers|winkels|tiendas|negozi|bedrijven|companies|empresas|entreprises|aziende|unternehmen|klanten|clients|kunden|clientes|clienti|vervoerders|carriers|verzekeraars|insurers|media|uitgevers|publishers|nonprofits|non-profits|charities|ngos|ngo's|goede doelen|stichtingen|vereine|associations|makelaars|real estate agents|estate agents|realtors|energy companies|utilities|energiebedrijven|telecom operators|operators)";
 const AUDIENCE = new RegExp(`(?<![\\p{L}])(?:for|voor|für|pour|per|para|dla|pro|för|til|για|за)\\s+[^.|–—:;!?]{0,40}?(?<![\\p{L}])${ORG_PLURAL}(?![\\p{L}])[^.|–—:;!?]{0,60}`, "giu");
 export function stripAudience(text: string): string {
   return String(text || "").replace(AUDIENCE, " ");
@@ -384,6 +468,13 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
       evidence: evidence([govHost && "Domeinstructuur: overheidslabel in de hostnaam", govOwn && "Eigen identiteit noemt een overheids-/publieke dienst", govSchema && "Structured data: GovernmentOrganization"]) };
   }
 
+  // 3.6: a structural government host label (gov.xx, gouv.xx, gob.xx) is reserved
+  // for public bodies. Alone it gives a probable government identity, never 85+.
+  if (!retailer && govHost) {
+    return { sector: "government", key: "government", label: "Overheid & Publieke sector", confidence: "medium", confidenceScore: 80,
+      evidence: ["Domeinstructuur: overheidslabel in de hostnaam; de titel en omschrijving noemen geen overheidsdienst"] };
+  }
+
   // 2. News / media / broadcasting.
   const newsSchema = schema.has("newsmediaorganization") || schema.has("broadcastservice") || schema.has("televisionstation") || schema.has("radiostation");
   const broadcaster = TELEVISION.test(own) && RADIO.test(own);
@@ -465,6 +556,19 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   if (!retailer && TELECOM_ACCESS.test(own) && (TELECOM_MOBILE.test(own) || TELECOM_TV.test(own))) {
     return { sector: "telecom_technology", key: "telecom_technology", label: "Telecom & Technologie", confidence: "high", confidenceScore: 90, evidence: ["Eigen identiteit noemt netwerktoegang (glasvezel/breedband) en abonnementen"] };
   }
+  // 3.6 (G2): three or more telecom service families, home internet among them,
+  // plus plans, an operator/network or calling.
+  const telecomFamilies = TELECOM_FAMILIES.filter(([, re]) => re.test(own)).map(([name]) => name);
+  if (!retailer && !publication && telecomFamilies.length >= 3 && telecomFamilies.includes("internet")
+      && (telecomFamilies.includes("abonnementen/tarieven") || telecomFamilies.includes("netwerk/operator") || telecomFamilies.includes("bellen"))) {
+    return { sector: "telecom_technology", key: "telecom_technology", label: "Telecom & Technologie", confidence: "high", confidenceScore: telecomFamilies.length >= 4 ? 90 : 86,
+      evidence: [`Eigen identiteit noemt ${telecomFamilies.length} telecomdiensten (${telecomFamilies.join(", ")})`] };
+  }
+  // 3.6 (G3): the organisation calls itself an energy/electricity company.
+  if (!retailer && !publication && ENERGY_COMPANY.test(own)) {
+    return { sector: "energy_utilities", key: "energy_utilities", label: "Energie & Nutsvoorzieningen", confidence: "high", confidenceScore: countSources((s) => ENERGY_COMPANY.test(s) || ENERGY.test(s)) >= 2 ? 92 : 88,
+      evidence: ["Eigen identiteit: energie- of stroombedrijf"] };
+  }
   if (!retailer && (POWER_AND_GAS.test(own) || ENERGY.test(own) && (GAS.test(own) || /\b(?:tarie|tarif|contract|vertrag|contrat|contratt|contrat|leverancier|supplier|anbieter|fournisseur|fornitor|proveedor|fornecedor)/i.test(own)))) {
     return { sector: "energy_utilities", key: "energy_utilities", label: "Energie & Nutsvoorzieningen", confidence: "high", confidenceScore: 90, evidence: ["Eigen identiteit noemt stroom/gas en leveringsvoorwaarden"] };
   }
@@ -514,6 +618,13 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   if (!retailer && COURIER.test(own) && PARCEL.test(own)) {
     return { sector: "transport_travel", key: "postal_logistics", label: "Post- & pakketvervoer", confidence: "high", confidenceScore: 88, evidence: ["Eigen identiteit: koerier- of pakketdienst"] };
   }
+  // 3.6 (G9): a software product named by its category ("CRM", "HR-Software",
+  // "invoicing in one tool") together with software wording in its own identity.
+  if (!retailer && !publication && ((SAAS_PRODUCT.test(title) && (SOFTWARE.test(own) || SAAS_PRODUCT.test(description) || SOFTWARE_FUNNEL.test(nav + " " + h2)))
+      || (SOFTWARE.test(title) && SAAS_PRODUCT.test(own)))) {
+    return { sector: "saas_b2b", key: "saas_b2b", label: "SaaS / B2B software", confidence: "high", confidenceScore: 86,
+      evidence: ["Eigen identiteit: softwareproduct, benoemd naar productcategorie (bijv. CRM, facturatie, HR-software)"] };
+  }
   if (!retailer && SOFTWARE.test(title) && (SOFTWARE_FUNNEL.test(nav + " " + h2 + " " + own) || schema.has("softwareapplication") || schema.has("webapplication"))) {
     return { sector: "saas_b2b", key: "saas_b2b", label: "SaaS / B2B software", confidence: "medium", confidenceScore: 78, evidence: ["Eigen identiteit: softwareproduct met demo-, prijs- of loginfunnel"] };
   }
@@ -523,6 +634,38 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   if (!retailer && (cultureSchema && (CULTURE.test(own) || CULTURE_SUPPORT.test(own)) || (CULTURE.test(title) && CULTURE_SUPPORT.test(own)) || countSources((s) => CULTURE.test(s)) >= 2)) {
     return { sector: "events_culture", key: "events_culture", label: "Evenementen & Cultuur", confidence: "high", confidenceScore: cultureSchema ? 93 : 90,
       evidence: evidence([CULTURE.test(own) && "Eigen identiteit: museum, theater, concertzaal of festival", CULTURE_SUPPORT.test(own) && "Eigen identiteit noemt tentoonstellingen, programma of tickets", cultureSchema && "Structured data: museum/podium"]) };
+  }
+
+  // 3.6 (G4): real-estate portals and agencies.
+  const reSources = countSources((s) => REAL_ESTATE.test(s));
+  if (!retailer && !publication && (reSources >= 2 || (REAL_ESTATE.test(title) && SALE_OR_RENT.test(own)) || schema.has("realestateagent"))) {
+    return { sector: "real_estate", key: "real_estate", label: "Vastgoed & Makelaardij", confidence: "high", confidenceScore: reSources >= 2 ? 90 : 86,
+      evidence: [`Eigen identiteit noemt woningen/vastgoed te koop of te huur (${reSources} identiteitsbron(nen))`] };
+  }
+  // 3.6 (G4): non-profit organisations (NGO, charity, cause) or a humanitarian
+  // need together with a call to donate or help.
+  const ngoSchema = schema.has("ngo") || schema.has("nonprofitorganization") || schema.has("charity");
+  // A charity that also runs a (gift/fundraising) web shop is still a charity:
+  // when the title or schema names the NGO and the shop is only mentioned in the
+  // description, the shop is a secondary activity and certainty is lowered.
+  const ngoAnchored = ngoSchema || NGO_STRONG.test(title) || (NGO_NEED.test(title) && NGO_SUPPORT_CALL.test(own + " " + nav));
+  const shopIsSecondary = retailer && ngoAnchored && !retailSelfDescription(title);
+  if ((!retailer || shopIsSecondary) && !publication && (ngoSchema || NGO_STRONG.test(own) || (NGO_NEED.test(own) && NGO_SUPPORT_CALL.test(own + " " + nav)))) {
+    return { sector: "nonprofit", key: "nonprofit", label: "Goede doelen & Non-profit", confidence: "high",
+      confidenceScore: shopIsSecondary ? 86 : ngoSchema || countSources((s) => NGO_STRONG.test(s)) >= 2 ? 92 : 86,
+      evidence: evidence([NGO_STRONG.test(own) && "Eigen identiteit: NGO, goed doel of maatschappelijke missie", NGO_NEED.test(own) && "Eigen identiteit noemt hulp aan mensen in nood", NGO_SUPPORT_CALL.test(own + " " + nav) && "Oproep tot doneren of steunen", ngoSchema && "Structured data: NGO/non-profit", shopIsSecondary && "Nevenactiviteit in de omschrijving; titel of structured data bepaalt de hoofdidentiteit"]) };
+  }
+  // 3.6 (G5): hotels name themselves in the title and describe rooms or booking.
+  const lodgingSchema = ["hotel", "lodgingbusiness", "hostel", "resort", "motel", "bedandbreakfast"].some((t) => schema.has(t));
+  if (!retailer && !publication && !transportIntermediary && (lodgingSchema || (HOTEL_TITLE.test(title) && HOTEL_STAY.test(own)))) {
+    return { sector: "hospitality", key: "hotel", label: "Hotel / accommodatie", confidence: "high", confidenceScore: lodgingSchema ? 92 : 88,
+      evidence: evidence([HOTEL_TITLE.test(title) && "Titel noemt hotel(s)", HOTEL_STAY.test(own) && "Eigen identiteit noemt kamers of boeken van een verblijf", lodgingSchema && "Structured data: hotel/accommodatie"]) };
+  }
+  // Amusement and theme parks.
+  const parkSources = countSources((s) => AMUSEMENT.test(s));
+  if (!retailer && !publication && (parkSources >= 1 || schema.has("amusementpark"))) {
+    return { sector: "tourism_recreation", key: "amusement_park", label: "Toerisme & Recreatie · attractiepark", confidence: parkSources >= 2 || schema.has("amusementpark") ? "high" : "medium", confidenceScore: parkSources >= 2 || schema.has("amusementpark") ? 88 : 80,
+      evidence: [`Eigen identiteit noemt een attractie-/pretpark (${parkSources} identiteitsbron(nen))`] };
   }
 
   // 8. Medium tier: the homepage names only its brand, but navigation and section
@@ -599,7 +742,8 @@ const TRADE_NOUNS: Array<{ re: RegExp; host: RegExp; sector: EuSector; key: stri
 export function brandTradeNoun(title: string, siteName: string, hostname: string): { sector: EuSector; key: string; label: string; noun: string; sources: string[] } | null {
   // Only short, name-like strings: a long title describes topics, not the company type.
   const nameLike = (value: string) => value && value.split(/\s+/).filter(Boolean).length <= 5 ? value : "";
-  const titleName = nameLike((title || "").split(/\s*[|–—:]\s*|\s+-\s+/).map((part) => part.trim()).filter(Boolean)[0] || "");
+  // 3.6 (G8): skip a first part that only says "Home"/"Startseite" and read the name after it.
+  const titleName = nameLike((title || "").split(/\s*[|–—:]\s*|\s+-\s+/).map((part) => part.trim()).filter(Boolean).find((part) => !GENERIC_TITLE_PART.test(part)) || "");
   const site = nameLike(siteName || "");
   const label = (hostname || "").toLowerCase().replace(/^www\./, "").split(".")[0] || "";
   for (const noun of TRADE_NOUNS) {

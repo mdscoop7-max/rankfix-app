@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import DashboardNav from "../nav";
 import AiAssistant from "@/components/ai-assistant";
 import type { Locale } from "@/lib/locales";
@@ -39,18 +39,25 @@ export default function DashboardScan() {
   const [websites,setWebsites]=useState<string[]>([]);
   const [urlError,setUrlError]=useState("");
   const [busy,setBusy]=useState(false);
+  // 3.6 (P3): the saved/remembered URL arrives asynchronously; it may only fill an
+  // untouched field, never overwrite what the user has typed meanwhile. One scan
+  // at a time: a second Enter while a scan runs does not start a duplicate.
+  const userEdited=useRef(false);
+  const inFlight=useRef(false);
   const [error,setError]=useState("");
   const [result,setResult]=useState<Result|null>(null);
   const [usage,setUsage]=useState<{plan:string;used:number;limit:number|null}>({plan:"free",used:0,limit:2});
-  useEffect(()=>{fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in text)setLanguage(d.language)}).catch(()=>{});fetch("/api/history",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(d?.usage)setUsage(d.usage);const candidates=[...(Array.isArray(d?.scans)?d.scans:[]),...(Array.isArray(d?.history)?d.history:[])].map((item:any)=>item?.scanned_url).filter(Boolean).map((value:string)=>/^https?:\/\//i.test(value)?value:`https://${value}`);const unique=[...new Set(candidates)] as string[];setWebsites(unique);const remembered=typeof window!=="undefined"?window.localStorage.getItem("rankfix:last-scan-url"):"";const saved=remembered||d?.usage?.websiteHost||unique[0];if(verificationUrl)setUrl(/^https?:\/\//i.test(verificationUrl)?verificationUrl:`https://${verificationUrl}`);else if(saved)setUrl(/^https?:\/\//i.test(saved)?saved:`https://${saved}`)}).catch(()=>{})},[verificationUrl]);
+  useEffect(()=>{fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in text)setLanguage(d.language)}).catch(()=>{});fetch("/api/history",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(d?.usage)setUsage(d.usage);const candidates=[...(Array.isArray(d?.scans)?d.scans:[]),...(Array.isArray(d?.history)?d.history:[])].map((item:any)=>item?.scanned_url).filter(Boolean).map((value:string)=>/^https?:\/\//i.test(value)?value:`https://${value}`);const unique=[...new Set(candidates)] as string[];setWebsites(unique);const remembered=typeof window!=="undefined"?window.localStorage.getItem("rankfix:last-scan-url"):"";const saved=remembered||d?.usage?.websiteHost||unique[0];if(verificationUrl)setUrl(/^https?:\/\//i.test(verificationUrl)?verificationUrl:`https://${verificationUrl}`);else if(saved&&!userEdited.current)setUrl(/^https?:\/\//i.test(saved)?saved:`https://${saved}`)}).catch(()=>{})},[verificationUrl]);
   const t=text[language];
   async function run(event:React.FormEvent){
-    event.preventDefault(); setError(""); setUrlError(""); setResult(null);
+    event.preventDefault();
+    if(inFlight.current)return;
+    setError(""); setUrlError(""); setResult(null);
     const clean=url.trim();
     if(!clean){setUrlError(t.failed);return;}
     const normalized=/^https?:\/\//i.test(clean)?clean:`https://${clean}`;
     try{new URL(normalized);}catch{setUrlError(language==="nl"?"Vul een geldige website in, bijvoorbeeld example.com.":"Enter a valid website, for example example.com.");return;}
-    setUrl(normalized); setBusy(true);
+    setUrl(normalized); setBusy(true); inFlight.current=true;
     try{
       const response=await fetch("/api/scan",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:normalized,mode:"both",dashboard:true,language})});
       const data=await response.json();
@@ -59,7 +66,7 @@ export default function DashboardScan() {
       if(data.scanId){ const target="/dashboard/audit/"+encodeURIComponent(data.scanId)+(verificationIssue?"?verify_issue="+encodeURIComponent(verificationIssue):""); router.push(target); return; }
       throw new Error(t.reportFailed);
     }catch(cause){setError(cause instanceof Error?cause.message:t.failed);}
-    finally{setBusy(false);}
+    finally{setBusy(false); inFlight.current=false;}
   }
   const checks=[...(result?.seo?.checks||[]),...(result?.geo?.checks||[])];
   const issues=checks.filter(c=>c.status==="fail"||c.status==="warning").length;
@@ -73,7 +80,7 @@ export default function DashboardScan() {
       {usage.plan==="free"&&<section className="rf-plan-card"><div><span className="rf-eyebrow">Free · €0</span><h2>{usage.used} / {usage.limit??2} {language==="nl"?"scans deze maand":language==="de"?"Scans diesen Monat":language==="fr"?"analyses ce mois-ci":language==="it"?"scansioni questo mese":language==="es"?"análisis este mes":"scans this month"}</h2><p>{usage.used>=(usage.limit??2)?(language==="nl"?"Je gratis scans zijn gebruikt. Je bestaande rapport blijft beschikbaar. Upgrade voor nieuwe scans en Premium-functies.":language==="de"?"Deine kostenlosen Scans sind aufgebraucht. Dein bestehender Bericht bleibt verfügbar. Upgrade für neue Scans und Premium-Funktionen.":language==="fr"?"Vos analyses gratuites sont utilisées. Votre rapport reste disponible. Passez à une offre supérieure pour de nouvelles analyses et les fonctions Premium.":language==="it"?"Hai utilizzato le scansioni gratuite. Il report esistente resta disponibile. Passa a un piano superiore per nuove scansioni e funzioni Premium.":language==="es"?"Has utilizado tus análisis gratuitos. Tu informe sigue disponible. Mejora el plan para nuevos análisis y funciones Premium.":"Your free scans have been used. Your existing report remains available. Upgrade for new scans and Premium features."):(language==="nl"?"Free bevat 1 website en 2 volledige scans per maand.":language==="de"?"Free enthält 1 Website und 2 vollständige Scans pro Monat.":language==="fr"?"L’offre gratuite comprend 1 site et 2 analyses complètes par mois.":language==="it"?"Free include 1 sito e 2 scansioni complete al mese.":language==="es"?"Free incluye 1 web y 2 análisis completos al mes.":"Free includes 1 website and 2 full scans per month.")}</p></div>{usage.used>=(usage.limit??2)&&<Link className="rf-primary-link" href={`/${language}#pricing`}>{language==="nl"?"Bekijk abonnementen":language==="de"?"Tarife ansehen":language==="fr"?"Voir les offres":language==="it"?"Vedi i piani":language==="es"?"Ver planes":"View plans"}</Link>}</section>}
       <section className="rf-dashboard-scan rf-shared-scan">
         <div className="rf-shared-scan-badge">SEO + GEO · Google & AI Search</div>
-        <form onSubmit={run}><label htmlFor="dashboard-scan-url">{t.url}</label><div className="rf-shared-scan-form"><input id="dashboard-scan-url" type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" value={url} onChange={e=>{const next=e.target.value;const embedded=next.slice(1).search(/https?:\/\//i);setUrl(embedded>=0?next.slice(embedded+1):next)}} onFocus={e=>e.currentTarget.select()} placeholder="https://example.com" list="rankfix-saved-websites" required/><datalist id="rankfix-saved-websites">{websites.map(site=><option key={site} value={site}/>)}</datalist><button className="rf-primary" type="submit" disabled={busy}>{busy?t.running:t.run}</button></div></form>
+        <form onSubmit={run}><label htmlFor="dashboard-scan-url">{t.url}</label><div className="rf-shared-scan-form"><input id="dashboard-scan-url" type="text" inputMode="url" autoCapitalize="none" autoCorrect="off" value={url} onChange={e=>{userEdited.current=true;const next=e.target.value;const embedded=next.slice(1).search(/https?:\/\//i);setUrl(embedded>=0?next.slice(embedded+1):next)}} onFocus={e=>e.currentTarget.select()} placeholder="https://example.com" list="rankfix-saved-websites" required/><datalist id="rankfix-saved-websites">{websites.map(site=><option key={site} value={site}/>)}</datalist><button className="rf-primary" type="submit" disabled={busy}>{busy?t.running:t.run}</button></div></form>
         <div className="rf-shared-scan-meta" aria-label="Scanonderdelen"><span>SEO</span><span>GEO</span><span>Security</span><span>{t.technical}</span><span>{t.shop}</span><span>{t.ads}</span></div>
       </section>
       {urlError&&<p className="rf-alert" role="alert">{urlError}</p>}{error&&<p className="rf-alert" role="alert">{error}</p>}

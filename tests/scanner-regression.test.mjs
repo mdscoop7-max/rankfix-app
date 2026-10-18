@@ -157,9 +157,10 @@ test("score model exposes weighted coverage and transparent formula", async () =
   const score = await readFile(new URL("../lib/audit-score.ts", import.meta.url), "utf8");
   const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   const report = await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
-  assert.match(score, /SCORE_MODEL_VERSION = "3\.5-evidence-gated"/);
+  assert.match(score, /SCORE_MODEL_VERSION = "3\.6-unassessed-excluded"/);
   assert.match(score, /assessedWeight \/ totalWeight/);
-  assert.match(route, /formula: mode === "both" \? "0\.6 × SEO \+ 0\.4 × GEO"/);
+  assert.match(route, /m === "both" \? "0\.6 × SEO \+ 0\.4 × GEO"/);
+  assert.match(route, /formula: scoreFormula\(scoringMode\(\)\)/);
   assert.match(route, /securitySeparate: true/);
   assert.match(route, /coverageBasis: "assessed_weight \/ applicable_weight"/);
   assert.match(report, /Betrouwbaarheid:/);
@@ -235,7 +236,7 @@ test("score engine deduplicates penalties that share one proven root cause", asy
     { ...base, issue_status: "WARNING", points: 0, maxPoints: 4, rootCause: "meta_description" },
     { ...base, issue_status: "PASS", points: 6, maxPoints: 6 },
   ]);
-  assert.equal(SCORE_MODEL_VERSION, "3.5-evidence-gated");
+  assert.equal(SCORE_MODEL_VERSION, "3.6-unassessed-excluded");
   assert.equal(score, 50);
 });
 
@@ -312,7 +313,7 @@ test("description length advice is gradual without changing fix identity", async
 test("score model protects low-confidence failures from hard penalties", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../lib/audit-score.ts", import.meta.url), "utf8");
-  assert.match(source, /SCORE_MODEL_VERSION = "3\.5-evidence-gated"/);
+  assert.match(source, /SCORE_MODEL_VERSION = "3\.6-unassessed-excluded"/);
   assert.match(source, /item\.issue_status === "FAIL" && item\.confidence === "low"/);
   assert.match(source, /points: item\.maxPoints, issue_status: "INFO" as const/);
   assert.match(source, /for \(const item of confidenceSafe\)/);
@@ -1601,7 +1602,10 @@ test("retail sector evidence wins over incidental sector words without claiming 
   assert.match(source, /commerceAsPrimaryIdentity = !telecomProviderIdentity && \(retailPrimaryIdentity/);
   assert.match(source, /commerceHints: Boolean\(retailPrimaryIdentity/);
   assert.match(source, /!retailPrimaryIdentity && !finalCommerceDecision\.confirmed && reconciledIdentityStrong/);
-  assert.match(source, /explicitRetailIdentity && !evidenceCommerceConfirmed \? 78/);
+  // 3.6: retail identity without confirmed checkout stays at 78; commerce without
+  // any retail self-identity is capped below the confident band.
+  assert.match(source, /!evidenceCommerceConfirmed \? 78/);
+  assert.match(source, /!explicitRetailIdentity \? Math\.min\(UNSELF_IDENTIFIED_COMMERCE_CAP/);
   assert.match(source, /!shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity/);
 });
 

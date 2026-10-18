@@ -17,7 +17,7 @@ import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, fi
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readHtmlSampleHeadFirst, readResponsePrefix, readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
-import { applyEvidenceBasedScoreCap, capPerfectScore, evidenceLevel, evidenceRange, headlineScore, requireCompleteEvidenceForPerfect, stableCoreChecks, SCORE_MODEL_VERSION, scoreApplicableChecks, combinedScoreRange, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
+import { applyEvidenceBasedScoreCap, capPerfectScore, categoryAssessed, effectiveScoreMode, evidenceLevel, evidenceRange, headlineScore, requireCompleteEvidenceForPerfect, stableCoreChecks, SCORE_MODEL_VERSION, scoreApplicableChecks, combinedScoreRange, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
 import { isPaidPlan, normalizePlan, planLimits } from "@/lib/plans";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
@@ -41,6 +41,9 @@ import { detectEuPrimaryIdentity, isConsentHeading, retailSelfDescription } from
 import { enforceReportConsistency } from "@/lib/report-consistency";
 
 export const maxDuration = 300;
+// 3.6 (G1): highest sector confidence for "webshop" when the site never calls
+// itself a shop (no shop wording, no Store schema). Stays below the 85% band.
+const UNSELF_IDENTIFIED_COMMERCE_CAP = 80;
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -1993,9 +1996,12 @@ async function runScan(request: Request) {
           sector:"ecommerce" as SectorKey,
           key:"ecommerce",
           label:"Webshop / e-commerce",
-          confidence:(explicitRetailIdentity && !evidenceCommerceConfirmed ? "medium" : "high") as "medium"|"high",
-          confidenceScore:explicitRetailIdentity && !evidenceCommerceConfirmed ? 78 : Math.min(99, Math.round(86 + evidenceCommerceStrength * 2)),
-          evidence:[...(storeSchemaRetailIdentity ? [`Schema: ${storeSchemaTypes.join(", ")} met onafhankelijk commercebewijs`] : []), ...(explicitRetailIdentity && !storeSchemaRetailIdentity ? ["Primair retailbewijs: productassortiment plus online-verkooptaal of winkelidentiteit in de paginametadata"] : []), `Scanbewijs: ${evidenceCommerceStrength} onafhankelijk${evidenceCommerceStrength===1?" commercesignaal":"e commercesignalen"}`, ...(catalogTop?.key==="ecommerce" ? catalogTop.evidence : [])].slice(0,6),
+          // 3.6 (G1): shop capability without retail self-identity (no shop wording,
+          // no Store schema) is a probable webshop, never a confident one: telecom,
+          // energy, real-estate and charity sites also show prices and carts.
+          confidence:(!explicitRetailIdentity || !evidenceCommerceConfirmed ? "medium" : "high") as "medium"|"high",
+          confidenceScore:!explicitRetailIdentity ? Math.min(UNSELF_IDENTIFIED_COMMERCE_CAP, Math.round(72 + evidenceCommerceStrength * 2)) : !evidenceCommerceConfirmed ? 78 : Math.min(99, Math.round(86 + evidenceCommerceStrength * 2)),
+          evidence:[...(storeSchemaRetailIdentity ? [`Schema: ${storeSchemaTypes.join(", ")} met onafhankelijk commercebewijs`] : []), ...(explicitRetailIdentity && !storeSchemaRetailIdentity ? ["Primair retailbewijs: productassortiment plus online-verkooptaal of winkelidentiteit in de paginametadata"] : []), ...(!explicitRetailIdentity ? ["Geen winkelidentiteit in titel, omschrijving of schema: webshop is waarschijnlijk, niet bevestigd"] : []), `Scanbewijs: ${evidenceCommerceStrength} onafhankelijk${evidenceCommerceStrength===1?" commercesignaal":"e commercesignalen"}`, ...(catalogTop?.key==="ecommerce" ? catalogTop.evidence : [])].slice(0,6),
           applicableModules:["core_seo","geo","technical","ecommerce","product","pricing_currency","merchant","checkout",...(euConsumerApplicable?["eu_consumer"]:[])],
         }
       : primaryNonCommerceIdentity
@@ -2027,7 +2033,9 @@ async function runScan(request: Request) {
     // incidental guest/booking language on a payment, service or retailer site.
     const restaurantIdentityEvidence = /\b(?:restaurant|brasserie|bistro|café|cafe|eetcafé|food establishment|dining restaurant)\b/i.test(sectorIdentitySource)
       || schemaSet.has("restaurant") || schemaSet.has("foodestablishment");
-    if (sectorProfile.sector === "hospitality" && primaryBusinessEvidence.sector !== "hospitality" && !restaurantIdentityEvidence) {
+    // 3.6 (G5): a multilingual hotel identity (title names hotels plus rooms/stay,
+    // or Hotel/LodgingBusiness schema) is independent confirmation too.
+    if (sectorProfile.sector === "hospitality" && primaryBusinessEvidence.sector !== "hospitality" && euPrimaryIdentity?.sector !== "hospitality" && !restaurantIdentityEvidence) {
       sectorProfile.sector = "unknown";
       sectorProfile.key = "unknown";
       sectorProfile.label = "Sector niet betrouwbaar vastgesteld";
@@ -3948,13 +3956,20 @@ async function runScan(request: Request) {
     applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate || thinRawDocument, rendered:javascriptExecuted, url:finalUrl.toString(), rawSubstantive:rawSubstantiveDocument });
     const selectedSeoChecks = mode === "geo" ? [] : seoChecks;
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
+    // 3.6 (G11): the weighting actually used. A category without any assessed
+    // core check (for example GEO when the page could not be read) drops out of
+    // the total instead of counting as 0 — no hidden deduction for missing evidence.
+    const scoringMode = () => effectiveScoreMode(mode, categoryAssessed(stableCoreChecks(selectedSeoChecks,"seo")), categoryAssessed(stableCoreChecks(selectedGeoChecks,"geo")));
+    const unassessedCategories = () => mode !== "both" ? [] : (["seo","geo"] as const).filter((group) => !categoryAssessed(stableCoreChecks(group === "seo" ? selectedSeoChecks : selectedGeoChecks, group)));
+    const scoreFormula = (m: "both"|"seo"|"geo") => m === "both" ? "0.6 × SEO + 0.4 × GEO" : m === "seo" ? (mode === "both" ? "SEO (GEO niet beoordeeld: geen GEO-controle bevestigd)" : "SEO") : (mode === "both" ? "GEO (SEO niet beoordeeld: geen SEO-controle bevestigd)" : "GEO");
+    const scoreWeights = (m: "both"|"seo"|"geo") => m === "both" ? { seo: 0.6, geo: 0.4, security: 0 } : m === "seo" ? { seo: 1, geo: 0, security: 0 } : { seo: 0, geo: 1, security: 0 };
     let selectedSeoScore = scoreApplicableChecks(stableCoreChecks(selectedSeoChecks,"seo"));
     let selectedGeoScore = scoreApplicableChecks(stableCoreChecks(selectedGeoChecks,"geo"));
     selectedSeoScore = applyEvidenceBasedScoreCap(selectedSeoScore, stableCoreChecks(selectedSeoChecks,"seo"));
     selectedGeoScore = applyEvidenceBasedScoreCap(selectedGeoScore, stableCoreChecks(selectedGeoChecks,"geo"));
     selectedSeoScore = capPerfectScore(selectedSeoScore, selectedSeoChecks);
     selectedGeoScore = capPerfectScore(selectedGeoScore, selectedGeoChecks);
-    let selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
+    let selectedOverallScore = scoringMode() === "seo" ? selectedSeoScore : scoringMode() === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
     selectedOverallScore = capPerfectScore(applyEvidenceBasedScoreCap(selectedOverallScore, [...stableCoreChecks(selectedSeoChecks,"seo"),...stableCoreChecks(selectedGeoChecks,"geo")]), [...selectedSeoChecks,...selectedGeoChecks]);
     const checks = [...selectedSeoChecks, ...selectedGeoChecks];
     let seoCoverage = weightedCoverage(selectedSeoChecks);
@@ -3969,7 +3984,7 @@ async function runScan(request: Request) {
       const combined = combinedScoreRange(seoR, geoR);
       const all = [...seoCore, ...geoCore];
       const fullAll = [...selectedSeoChecks, ...selectedGeoChecks];
-      const overall = mode === "seo" ? seoR : mode === "geo" ? geoR : { ...combined, low: capPerfectScore(applyEvidenceBasedScoreCap(combined.low, all), fullAll), high: capPerfectScore(applyEvidenceBasedScoreCap(combined.high, all), fullAll) };
+      const overall = scoringMode() === "seo" ? seoR : scoringMode() === "geo" ? geoR : { ...combined, low: capPerfectScore(applyEvidenceBasedScoreCap(combined.low, all), fullAll), high: capPerfectScore(applyEvidenceBasedScoreCap(combined.high, all), fullAll) };
       return { seoR, geoR, overall };
     };
     const initialRanges = reportRanges();
@@ -3980,8 +3995,9 @@ async function runScan(request: Request) {
       version: SCORE_MODEL_VERSION,
       breakdown: scoreBreakdown(checks),
       comparison:null as ReturnType<typeof compareScoreVersions> | null,
-      formula: mode === "both" ? "0.6 × SEO + 0.4 × GEO" : mode === "seo" ? "SEO" : "GEO",
-      weights: mode === "both" ? { seo: 0.6, geo: 0.4, security: 0 } : mode === "seo" ? { seo: 1, geo: 0, security: 0 } : { seo: 0, geo: 1, security: 0 },
+      formula: scoreFormula(scoringMode()),
+      weights: scoreWeights(scoringMode()),
+      unassessedCategories: unassessedCategories() as string[],
       securitySeparate: true,
       coverageBasis: "assessed_weight / applicable_weight",
       range: overallScoreRange,
@@ -5003,9 +5019,13 @@ async function runScan(request: Request) {
       sectorProfile.sector = "ecommerce";
       sectorProfile.key = "ecommerce";
       sectorProfile.label = "Webshop / e-commerce";
-      sectorProfile.confidence = "high";
-      sectorProfile.confidenceScore = Math.max(sectorProfile.confidenceScore, sitewideCommerceEvidence.confirmed ? 92 : 88);
-      sectorProfile.evidence = [...sectorProfile.evidence, `Scanbewijs bevestigt commerce; eerdere sectorhint: ${previousSector}`].slice(0,6);
+      // 3.6 (G1): without retail self-identity the late commerce decision stays
+      // probable (below the 85% "confident" band), whatever the earlier hint was.
+      sectorProfile.confidence = explicitRetailIdentity ? "high" : "medium";
+      sectorProfile.confidenceScore = explicitRetailIdentity
+        ? Math.max(sectorProfile.confidenceScore, sitewideCommerceEvidence.confirmed ? 92 : 88)
+        : sitewideCommerceEvidence.confirmed ? UNSELF_IDENTIFIED_COMMERCE_CAP + 4 : UNSELF_IDENTIFIED_COMMERCE_CAP;
+      sectorProfile.evidence = [...sectorProfile.evidence, `Scanbewijs bevestigt commerce; eerdere sectorhint: ${previousSector}`, ...(!explicitRetailIdentity ? ["Geen winkelidentiteit in titel, omschrijving of schema: webshop is waarschijnlijk, niet bevestigd"] : [])].slice(0,6);
     }
 
     // Final Master reconciliation: late technology/multi-page evidence may improve
@@ -5028,7 +5048,7 @@ async function runScan(request: Request) {
     }
     // A retail identity whose shop is confirmed by hard evidence (for example a
     // representative product page) carries the same confidence as any confirmed shop.
-    if (sectorProfile.key === "ecommerce" && finalCommerceDecision.confirmed && sectorProfile.confidenceScore < 88) {
+    if (sectorProfile.key === "ecommerce" && finalCommerceDecision.confirmed && explicitRetailIdentity && sectorProfile.confidenceScore < 88) {
       sectorProfile.confidence = "high";
       sectorProfile.confidenceScore = 88;
       sectorProfile.evidence = [...sectorProfile.evidence, "Representatieve productpagina bevestigt webshopfunctionaliteit"].slice(0,6);
@@ -5441,7 +5461,7 @@ async function runScan(request: Request) {
     // Reapply evidence coverage caps: this second scoring pass must not erase them.
     selectedSeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(stableCoreChecks(selectedSeoChecks,"seo")), stableCoreChecks(selectedSeoChecks,"seo"));
     selectedGeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(stableCoreChecks(selectedGeoChecks,"geo")), stableCoreChecks(selectedGeoChecks,"geo"));
-    selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
+    selectedOverallScore = scoringMode() === "seo" ? selectedSeoScore : scoringMode() === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
     selectedOverallScore = applyEvidenceBasedScoreCap(selectedOverallScore, [...stableCoreChecks(selectedSeoChecks,"seo"),...stableCoreChecks(selectedGeoChecks,"geo")]);
     selectedSeoScore = capPerfectScore(selectedSeoScore, selectedSeoChecks);
     selectedGeoScore = capPerfectScore(selectedGeoScore, selectedGeoChecks);
@@ -5450,7 +5470,7 @@ async function runScan(request: Request) {
     selectedSeoScore = requireCompleteEvidenceForPerfect(selectedSeoScore, selectedSeoChecks);
     selectedGeoScore = requireCompleteEvidenceForPerfect(selectedGeoScore, selectedGeoChecks);
     selectedOverallScore = requireCompleteEvidenceForPerfect(selectedOverallScore, [...selectedSeoChecks,...selectedGeoChecks]);
-    if (mode === "both") selectedOverallScore = Math.min(selectedOverallScore, Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4));
+    if (scoringMode() === "both") selectedOverallScore = Math.min(selectedOverallScore, Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4));
     seoCoverage = weightedCoverage(selectedSeoChecks);
     geoCoverage = weightedCoverage(selectedGeoChecks);
     overallCoverage = weightedCoverage(checks);
@@ -5480,6 +5500,8 @@ async function runScan(request: Request) {
       perfectScoreRule: "100/100 alleen bij volledig bevestigd bewijs; bij onbevestigde controles maximaal 99.",
     });
     scoreModel.coverageAdjustment = 0;
+    // Final weighting after multi-page reconciliation (G11).
+    Object.assign(scoreModel, { formula: scoreFormula(scoringMode()), weights: scoreWeights(scoringMode()), unassessedCategories: unassessedCategories() });
     // Central self-check: sector label, sector evidence, modules, advice,
     // points, evidence URLs and scores must describe the same facts before the
     // report is stored or shown. Contradictions are corrected and recorded.
@@ -5487,7 +5509,7 @@ async function runScan(request: Request) {
       sector: sectorProfile,
       checks,
       scannedUrl: finalUrl.toString(),
-      scores: { seo: selectedSeoScore, geo: selectedGeoScore, overall: selectedOverallScore, mode },
+      scores: { seo: selectedSeoScore, geo: selectedGeoScore, overall: selectedOverallScore, mode: scoringMode() },
       range: scoreModel.range,
       coveragePercent: overallCoverage.coveragePercent,
       javascriptRequiredButNotRendered: Boolean(javascriptCandidate) && !javascriptExecuted,
@@ -5510,6 +5532,10 @@ async function runScan(request: Request) {
     scoreModel.range = { ...scoreModel.range, low: Math.min(scoreModel.range.low, selectedOverallScore) };
     Object.assign(scoreModel, { headline: headlineScore(selectedOverallScore, scoreModel.range, overallCoverage.coveragePercent, scoreEvidence.level) });
     const selfCheck = consistency.selfCheck;
+    // 3.6 (G11): a category without any assessed check is stored and shown as
+    // "not assessed" (null), never as 0 next to a total that ignores it.
+    const storedSeoScore: number | null = unassessedCategories().includes("seo") ? null : selectedSeoScore;
+    const storedGeoScore: number | null = unassessedCategories().includes("geo") ? null : selectedGeoScore;
     masterEvidence.primarySector.label = sectorProfile.label;
     masterEvidence.activeModules = sectorProfile.applicableModules;
     if (selfCheck.corrections.length || selfCheck.flags.length) console.info("RankFix self-check", { page: finalUrl.toString(), corrections: selfCheck.corrections, flags: selfCheck.flags });
@@ -5581,6 +5607,9 @@ async function runScan(request: Request) {
     const excludedNoindexPages = multiPageAudits.filter((item)=>item.evidenceChecks?.some((e)=>e.key==="noindex")).length;
     const unableToFetchPages = multiPageAudits.length - auditedRawPages.length - excludedNoindexPages;
     const sampleAccounting = sampleSummary(multiPageAudits.length, scoredSamplePages.length, excludedNoindexPages, unableToFetchPages, partialHeadPages);
+    // 3.6 (G13): page-type counts describe exactly the pages listed in pageAudits
+    // (after deduplication and second-hop product samples), not the earlier selection.
+    const reportedPageTypeCount = (type: string) => reportedMultiPageAudits.filter((x)=>x.type===type).length;
     const multiPage = {
       accounting:sampleAccounting,
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:representativePageLimit,
@@ -5633,7 +5662,7 @@ async function runScan(request: Request) {
         productSample: multiPageCapabilities.productSample,
         categorySample: multiPageCapabilities.categorySample,
       },
-      counts:{ selected:multiPageAudits.length, fetched:auditedRawPages.length+excludedNoindexPages, scored:scoredSamplePages.length, unscoredMetadata:unscoredMetadataPages, headOnly:partialHeadPages, excludedNoindex:excludedNoindexPages, fetchFailed:unableToFetchPages, contact:uniqueMultiPagePages.filter((x)=>x.type==="contact").length, article:uniqueMultiPagePages.filter((x)=>x.type==="article").length, homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, form:uniqueMultiPagePages.filter((x)=>x.type==="form").length, legal:uniqueMultiPagePages.filter((x)=>x.type==="legal").length, service:uniqueMultiPagePages.filter((x)=>x.type==="service").length, listing:uniqueMultiPagePages.filter((x)=>x.type==="listing").length, support:uniqueMultiPagePages.filter((x)=>x.type==="support").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
+      counts:{ selected:multiPageAudits.length, fetched:auditedRawPages.length+excludedNoindexPages, scored:scoredSamplePages.length, unscoredMetadata:unscoredMetadataPages, headOnly:partialHeadPages, excludedNoindex:excludedNoindexPages, fetchFailed:unableToFetchPages, contact:reportedPageTypeCount("contact"), article:reportedPageTypeCount("article"), homepage:reportedPageTypeCount("homepage"), category:reportedPageTypeCount("category"), product:reportedPageTypeCount("product"), form:reportedPageTypeCount("form"), legal:reportedPageTypeCount("legal"), service:reportedPageTypeCount("service"), listing:reportedPageTypeCount("listing"), support:reportedPageTypeCount("support"), other:reportedPageTypeCount("other"), audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
       note:"Steekproefscore telt alleen pagina's met vier beoordeelde metadata-controles (title, description, H1 en canonical). Pagina's met onbevestigd JavaScript-bewijs worden apart geteld en niet als 100/100 voorgesteld. Dit is geen volledige site-audit.",
     };
 
@@ -5734,15 +5763,15 @@ async function runScan(request: Request) {
         console.info("RankFix scan phase", { phase: "history_write_start", page: finalUrl.toString(), isProductPage, productOptimizerSourceCount });
         const insertedScan = await getDb().query(
           "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id",
-          [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
+          [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, storedSeoScore, storedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             // End-to-end scan duration (fetch, render, sample, scoring) for speed benchmarks.
             scanDurationMs: Date.now() - started,
             language: scanLanguage,
             mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, selfCheck, summary: scanSummary, rendering, recovery, access, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
-            seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
-            geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
+            seo: { score: storedSeoScore, grade: storedSeoScore == null ? "-" : grade(selectedSeoScore), assessed: storedSeoScore != null, coverage: seoCoverage, checks: selectedSeoChecks },
+            geo: { score: storedGeoScore, grade: storedGeoScore == null ? "-" : grade(selectedGeoScore), assessed: storedGeoScore != null, coverage: geoCoverage, checks: selectedGeoChecks },
             metrics: { siteType: classification.websiteType === "Webshop" ? "ECOMMERCE" : "WEBSITE", websiteType: classification.websiteType, sector: classification.sector, pageTypeClassification: classification.pageType, title, titleLength: title.length, description, descriptionLength: description.length, descriptionState, h1Count: h1s.length, h1s,
               imageCount, imageElementCount, imagesMissingAlt, wordCount, headingsCount: headings.length, linksCount: links.length, pageType: schemaContextLabel, recommendedSchema, localBusinessDetails,
               internalLinks, canonical: canonical || null, lang: lang || null, robots: robots || null,
@@ -5877,7 +5906,7 @@ async function runScan(request: Request) {
           const scanId = savedScanId;
           await getDb().query(
             "INSERT INTO website_health_events (user_id,website_host,scanned_url,scan_id,event_type,details) VALUES ($1,$2,$3,$4,'SCAN',$5)",
-            [user.id,websiteHost,finalUrl.toString(),scanId,JSON.stringify({overallScore:selectedOverallScore,seoScore:selectedSeoScore,geoScore:selectedGeoScore})]
+            [user.id,websiteHost,finalUrl.toString(),scanId,JSON.stringify({overallScore:selectedOverallScore,seoScore:storedSeoScore,geoScore:storedGeoScore})]
           );
           const previousChecks = [
             ...(previousScan.rows[0]?.result?.seo?.checks || []),
@@ -5976,8 +6005,8 @@ async function runScan(request: Request) {
       security: securityEngine,
       accessibility: accessibilityEngine,
       adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
-      seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
-      geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
+      seo: { score: storedSeoScore, grade: storedSeoScore == null ? "-" : grade(selectedSeoScore), assessed: storedSeoScore != null, coverage: seoCoverage, checks: selectedSeoChecks },
+      geo: { score: storedGeoScore, grade: storedGeoScore == null ? "-" : grade(selectedGeoScore), assessed: storedGeoScore != null, coverage: geoCoverage, checks: selectedGeoChecks },
       metrics: {
         siteType: classification.websiteType === "Webshop" ? "ECOMMERCE" : "WEBSITE",
         websiteType: classification.websiteType,
