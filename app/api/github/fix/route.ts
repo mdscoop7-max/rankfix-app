@@ -7,6 +7,7 @@ import { decryptToken, githubFetch } from "@/lib/github";
 import { validateGithubFix } from "@/lib/github-fix-validator";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { consumeRateLimit } from "@/lib/rate-limit";
+import { applyMetaDescriptionToSource, checkDescriptionCandidate, generateMetaDescription, normalizeDescriptionText, DESCRIPTION_ERROR_NL, PATCH_ERROR_NL } from "@/lib/meta-description-fix";
 
 function safeRepo(v:string){ return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(v) && !v.includes(".."); }
 function safePath(v:string){ return v.length>0 && v.length<240 && !v.startsWith("/") && !v.split("/").includes("..") && !/[<>:"|?*]/.test(v); }
@@ -616,10 +617,33 @@ export async function POST(request:Request){
       if(file.type!=="file"||typeof file.content!=="string") return NextResponse.json({error:msg("Dit bestand kan niet worden bewerkt.","This file cannot be edited.","Diese Datei kann nicht bearbeitet werden.","Ce fichier ne peut pas être modifié.","Questo file non può essere modificato.","Este archivo no se puede editar.")},{status:400});
       current=Buffer.from(file.content.replace(/\n/g,""),"base64").toString("utf8");
       if(current.length>120000) return NextResponse.json({error:msg("Bestand is te groot voor een veilige AI-codefix.","The file is too large for a safe AI code fix.","Die Datei ist zu groß für einen sicheren AI-Codefix.","Le fichier est trop volumineux pour une correction de code AI sûre.","Il file è troppo grande per una correzione di codice AI sicura.","El archivo es demasiado grande para una corrección de código AI segura.")},{status:413});
+      if(issueId==="META_DESCRIPTION_GUIDANCE"||issueId==="META_DESCRIPTION_MISSING"){
+        // Deterministic: only the meta description changes, with exactly the text the
+        // customer approved (or, without one, the shared guideline-checked generator).
+        const metrics=(scanResult?.metrics||{}) as Record<string,unknown>;
+        const liveDescription=issueId==="META_DESCRIPTION_MISSING"?"":normalizeDescriptionText(metrics.description);
+        const fileAlreadyOk=validateRequestedFixCompletion(current,current,issue,issueId).currentAlreadySatisfied;
+        if(!fileAlreadyOk){
+          const approvedText=normalizeDescriptionText(typeof body?.proposed_value==="string"?body.proposed_value:"");
+          let descriptionText=approvedText&&checkDescriptionCandidate(approvedText,liveDescription).ok?approvedText:"";
+          if(!descriptionText){
+            const h1s=Array.isArray(metrics.h1s)?metrics.h1s:[];
+            const made=await generateMetaDescription({url:trustedUrl,current:liveDescription,title:String(metrics.title||""),h1:String(h1s[0]||"")});
+            if(!made.ok) return NextResponse.json({error:language==="nl"?DESCRIPTION_ERROR_NL[made.code]:localizeProviderError(made.code==="NO_SAFE_TEXT"||made.code==="AI_INCOMPLETE"?"AI_INVALID_OUTPUT":made.code,language),code:made.code},{status:made.code==="NO_SAFE_TEXT"?422:503});
+            descriptionText=made.text;
+          }
+          const patch=applyMetaDescriptionToSource(path,current,descriptionText,liveDescription);
+          if(!patch.ok) return NextResponse.json({error:language==="nl"?PATCH_ERROR_NL[patch.code]:localizeFixError("RankFix kon geen geschikt bestand vinden voor deze fix.",language),code:patch.code,path},{status:422});
+          generated={content:patch.content,summary:`RankFix vervangt alleen de meta description in ${path} door: “${descriptionText}” (${descriptionText.length} tekens). Titel, Open Graph, canonical en overige code blijven ongewijzigd.`};
+        }else{
+          generated={content:current,summary:""};
+        }
+      }else{
       const deterministicOgFix=buildDeterministicOgFix(path,current,issue,context,issueId);
       const verifiedSchemaFix=buildVerifiedWebsiteSchemaFix(path,current,issueId,trustedUrl);
       generated=deterministicOgFix || verifiedSchemaFix || await generateCodeFix(path,current,issue,context,issueId);
       generated={...generated,content:minimizeGeneratedFix(current,generated.content,issueId,path,trustedUrl)};
+      }
     }
     if(generated.content.length>180000) return NextResponse.json({error:msg("AI-output is te groot voor een veilige wijziging.","AI output is too large for a safe change.","Die AI-Ausgabe ist zu groß für eine sichere Änderung.","La sortie AI est trop volumineuse pour une modification sûre.","L’output AI è troppo grande per una modifica sicura.","La salida de AI es demasiado grande para un cambio seguro.")},{status:422});
     if(!generated.content.trim() || /(?:\[YOUR_[^\]]*\]|\bTODO\b|CHANGE_ME|REPLACE_ME|INSERT_[A-Z_]+)/i.test(generated.content)) return NextResponse.json({error:msg("AI-output bevat lege inhoud of placeholders.","AI output contains empty content or placeholders.","Die AI-Ausgabe enthält leere Inhalte oder Platzhalter.","La sortie AI contient du contenu vide ou des espaces réservés.","L’output AI contiene contenuti vuoti o segnaposto.","La salida de AI contiene contenido vacío o marcadores de posición.")},{status:422});

@@ -217,7 +217,7 @@ export default function GithubPage(){
     }
     setBusy(true);setError("");setMessage("");setValidation(null);
     try{
-      const r=await fetch("/api/github/fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({repo:cleanRepo,path:cleanPath,baseBranch,scan_id:activeScanId,issue_id:activeIssueId,preview:!publish,proposal_id:publish?proposalId:undefined,proposal_hash:publish?proposalHash:undefined,language})});
+      const r=await fetch("/api/github/fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({repo:cleanRepo,path:cleanPath,baseBranch,scan_id:activeScanId,issue_id:activeIssueId,preview:!publish,proposal_id:publish?proposalId:undefined,proposal_hash:publish?proposalHash:undefined,proposed_value:!publish&&/^META_DESCRIPTION_(?:GUIDANCE|MISSING)$/i.test(activeIssueId)&&typeof proposal?.content==="string"?proposal.content:undefined,language})});
       const text=await r.text();
       let d:any={};
       try{d=JSON.parse(text);}catch{}

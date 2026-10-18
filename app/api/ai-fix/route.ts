@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { validateFix } from "@/lib/seo-fix-validator";
 import { ensureDatabase } from "@/lib/db-init";
 import { consumeRateLimit } from "@/lib/rate-limit";
+import { generateMetaDescription, DESCRIPTION_ERROR_NL } from "@/lib/meta-description-fix";
 
 type FixType = "meta_title" | "meta_description" | "h1" | "faq" | "breadcrumb" | "expertise" | "structured_data" | "social_metadata" | "heading_structure" | "canonical" | "alt_text" | "product_copy_metadata";
 
@@ -267,6 +268,26 @@ export async function POST(request: Request) {
     }
     let mode = "rule_based_fallback";
     const safeCurrent = cleanContextValue(current);
+    // Meta description: one shared, guideline-checked generator (AI first, then an
+    // evidence-bound fallback). The GitHub step applies exactly this approved text.
+    if (type === "meta_description") {
+      const generated = await generateMetaDescription({ url, current: safeCurrent, title: safeContext.title, h1: safeContext.h1 });
+      if (!generated.ok) {
+        console.error("RankFix meta description fix unavailable", generated.code, requestId);
+        return NextResponse.json({ error: generated.code, message: DESCRIPTION_ERROR_NL[generated.code], requestId }, { status: generated.code === "NO_SAFE_TEXT" ? 422 : 503 });
+      }
+      const descriptionFix = {
+        title: "Nieuwe meta description",
+        content: generated.text,
+        reason: generated.source === "ai"
+          ? `Herschreven binnen de richtwaarde (${generated.text.length} tekens) met alleen informatie die al op de pagina staat.`
+          : `Samengesteld uit bevestigde paginatekst (huidige beschrijving, H1 en titel) binnen de richtwaarde (${generated.text.length} tekens); er is niets verzonnen.`
+      };
+      const descriptionValidation = validateFix({ issue_id: issueId, rule_id: issueId, proposed: descriptionFix.content, source: generated.source === "ai" ? "ai" : "deterministic", currentIssue: { issue_id: issueId, rule_id: issueId, status: issueStatus }, currentValue: safeCurrent, expectedSchema: null });
+      if (!descriptionValidation.validation.valid) return NextResponse.json({ success:false, error:"invalid_output", validation:descriptionValidation.validation }, { status:422 });
+      const aiMode = generated.source === "ai";
+      return NextResponse.json({ success:true, mode: aiMode ? "openai" : "rule_based_fallback", provider: aiMode ? "OpenAI" : "RankFix", model: aiMode ? (process.env.OPENAI_MODEL || "gpt-5.6-luna") : null, fix: descriptionFix, normalizedFix: descriptionValidation, requestId });
+    }
     // Structural SEO fix routing is deterministic in production; keep verified scan data on these paths.
     // This prevents structural issues from being misclassified as structured-data proposals.
     const deterministicTypes: FixType[] = ["structured_data", "social_metadata", "canonical", "heading_structure", "alt_text"];
@@ -380,5 +401,9 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({success:true,mode,provider:mode==="openai"?"OpenAI":"RankFix",model:mode==="openai"?(process.env.OPENAI_MODEL||"gpt-5.6-luna"):null,fix,normalizedFix:validated, requestId});
-  } catch { return NextResponse.json({error:"De AI-fix kon niet worden gemaakt."},{status:500}); }
+  } catch (error) {
+    // Log only the error class/message (never request data or keys) so failures are diagnosable.
+    console.error("RankFix ai-fix failed", error instanceof Error ? `${error.name}: ${error.message.slice(0,200)}` : "unknown");
+    return NextResponse.json({error:"De AI-fix kon niet worden gemaakt. Er is niets gewijzigd; probeer het opnieuw."},{status:500});
+  }
 }
