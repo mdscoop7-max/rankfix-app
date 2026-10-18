@@ -275,7 +275,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
   const [githubProgress, setGithubProgress] = useState(0);
   const [githubResult, setGithubResult] = useState<{url:string;title:string;number:number} | null>(null);
   const [githubAlreadyApplied, setGithubAlreadyApplied] = useState(false);
-  const [githubResults, setGithubResults] = useState<Record<string, {url:string;title:string;number:number}>>({});
+  const [githubResults] = useState<Record<string, {url:string;title:string;number:number}>>({});
   const [githubError, setGithubError] = useState("");
   const [authUser, setAuthUser] = useState<{ name?: string; email?: string } | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -479,51 +479,25 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
     finally { setFixing(null); }
   }
 
-  async function createGithubFix(item: Check) {
+  // The public scan is intentionally anonymous and never has a saved, owner-
+  // authenticated scan_id. Do not call /api/github/fix from this public page.
+  // Continue through an authenticated dashboard scan, which supplies the trusted
+  // scan_id and issue_id to the existing approval-gated AutoFix workflow.
+  function createGithubFix(item: Check) {
     if (!result) return;
-    const key = item.issue_id || item.key;
-    setGithubFixing(key); setGithubProgress(8); setGithubResult(null); setGithubAlreadyApplied(false); setGithubError("");
-    try {
-      const issueId = item.issue_id || item.rule_id || item.key;
-      const context = ["URL: " + result.finalUrl, "Scan URL: " + result.scannedUrl, "Issue: " + item.title, "Recommendation: " + item.fix, "Current title: " + cleanFixContextValue(result.metrics.title), "Current description: " + cleanFixContextValue(result.metrics.description), "H1: " + cleanFixContextValue(result.metrics.h1s[0] || ""), "Canonical: " + cleanFixContextValue(result.metrics.canonical || ""), "OG title: " + cleanFixContextValue(result.metrics.openGraph.title || ""), "OG description: " + cleanFixContextValue(result.metrics.openGraph.description || ""), "OG image: " + cleanFixContextValue(result.metrics.openGraph.image || ""), "Existing page image candidate: " + cleanFixContextValue(result.metrics.imageAltCandidates?.[0]?.src || ""), "Image alt candidates: " + JSON.stringify(result.metrics.imageAltCandidates || [])].join("\n");
-      setGithubProgress(30);
-      const response = await fetch("/api/github/fix", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ issue:item.title + ": " + item.fix, context, url:result.finalUrl, issue_id:issueId }) });
-      setGithubProgress(72);
-      const contentType = response.headers.get("content-type") || "";
-      const raw = await response.text();
-      let data: any = null;
-      if (contentType.includes("application/json")) {
-        try { data = JSON.parse(raw); } catch {}
-      }
-      if (!response.ok) {
-        throw new Error(
-          data?.error ||
-          `RankFix kon de verbetering niet uitvoeren (HTTP ${response.status}). Controleer of de nieuwste Render-deploy actief is.`
-        );
-      }
-      if (!data) {
-        throw new Error(
-          `RankFix kreeg geen JSON terug van /api/github/fix (content-type: ${contentType || "onbekend"}).`
-        );
-      }
-      setGithubProgress(100);
-      if (data.alreadyApplied) {
-        setGithubAlreadyApplied(true);
-        return;
-      }
-      if (!data.pr?.url || !data.pr?.number) throw new Error("RankFix kon de technische wijziging niet veilig afronden.");
-      const prResult = {url:data.pr.url,title:data.pr.title,number:data.pr.number};
-      setGithubResult(prResult);
-      setGithubResults((prev) => ({ ...prev, [key]: prResult }));
-      setResult((prev) => {
-        if (!prev) return prev;
-        const markWaiting = (checks: Check[]) => checks.map((check) => (
-          (check.issue_id || check.key) === key ? { ...check, fix_status: "WAITING" as const } : check
-        ));
-        return { ...prev, seo: { ...prev.seo, checks: markWaiting(prev.seo.checks) }, geo: { ...prev.geo, checks: markWaiting(prev.geo.checks) } };
-      });
-    } catch (err) { setGithubError(err instanceof Error ? err.message : "GitHub fix mislukt."); }
-    finally { setTimeout(() => setGithubFixing(null), 500); }
+    const issueId = String(item.issue_id || item.rule_id || item.key || "").trim();
+    if (!issueId || !["warning", "fail"].includes(item.status)) {
+      setGithubError("Deze verbetering kan niet veilig automatisch worden gestart.");
+      return;
+    }
+    const website = result.scannedUrl || result.finalUrl;
+    setGithubFixing(issueId);
+    setGithubProgress(0);
+    setGithubResult(null);
+    setGithubAlreadyApplied(false);
+    setGithubError("");
+    const params = new URLSearchParams({ url: website, fix_issue: issueId });
+    window.location.assign("/dashboard/scan?" + params.toString());
   }
   async function copyFix(key: string) {
     const content = fixes[key]?.content;
@@ -1243,9 +1217,10 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                                 <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">{fixes[item.issue_id || item.key].title}</div>
                                 <div className="mt-2 whitespace-pre-wrap break-words text-sm text-slate-200">{fixes[item.issue_id || item.key].content}</div>
                                 <p className="mt-2 text-xs text-slate-500">{fixes[item.issue_id || item.key].reason}</p>
+                                <p className="mt-2 text-xs text-slate-400">{language==="nl"?"Deze voorbeeldtekst verandert nog niets. Voor een veilige codefix vraagt RankFix eerst een ingelogde, opgeslagen scan. Daarna controleer je de wijziging binnen RankFix.":"This sample does not change your website. A safe fix requires an authenticated saved scan, then review inside RankFix."}</p>
                                 <div className="mt-3 flex flex-wrap gap-2">
                                   <button type="button" onClick={() => copyFix(item.issue_id || item.key)} className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-950">{copied === (item.issue_id || item.key) ? "Gekopieerd ✓" : "Gebruik deze tekst"}</button>
-                                  <button type="button" onClick={() => createGithubFix(item)} disabled={githubFixing === (item.issue_id || item.key)} className="rounded-lg border border-emerald-400/20 bg-emerald-400/5 px-3 py-2 text-xs font-bold text-emerald-200 disabled:opacity-50">{githubFixing === (item.issue_id || item.key) ? "Bezig…" : "Fix veilig klaarzetten →"}</button>
+                                  <button type="button" onClick={() => createGithubFix(item)} disabled={githubFixing === (item.issue_id || item.key)} className="rounded-lg border border-emerald-400/20 bg-emerald-400/5 px-3 py-2 text-xs font-bold text-emerald-200 disabled:opacity-50">{githubFixing === (item.issue_id || item.key) ? "Dashboard openen…" : language==="nl"?"Open veilige Fix →":language==="de"?"Sicheren Fix öffnen →":language==="fr"?"Ouvrir le correctif sûr →":language==="it"?"Apri correzione sicura →":language==="es"?"Abrir corrección segura →":"Open safe Fix →"}</button>
                                 </div>
                               </div>
                             )}

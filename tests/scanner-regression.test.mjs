@@ -1736,3 +1736,18 @@ test("a sampled link that redirects to an account or personal page leaves the sa
   for (const u of ["https://x.it/recupero-credenziali/", "https://x.pl/plus/kontynuuj-odtwarzanie", "https://x.pl/plus/preferencje-tresci", "https://x.de/passwort-vergessen"]) assert.equal(isNonContentUrl(u), true, u);
   assert.equal(isNonContentUrl("https://x.it/servizi-online-area-personale"), false, "a content page about the personal area stays");
 });
+
+test("public report Fix never sends an unauthenticated GitHub request without scan_id", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const root = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const dashboard = await readFile(new URL("../app/dashboard/scan/page.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(root, /fetch\("\/api\/github\/fix"/);
+  assert.match(root, /new URLSearchParams\(\{ url: website, fix_issue: issueId \}\)/);
+  assert.match(root, /window\.location\.assign\("\/dashboard\/scan\?" \+ params\.toString\(\)\)/);
+  assert.match(dashboard, /const fixIssue = searchParams\.get\("fix_issue"\)/);
+  assert.match(dashboard, /data\.scanId/);
+  assert.match(dashboard, /c\.status==="warning"\|\|c\.status==="fail"/);
+  assert.match(dashboard, /new URLSearchParams\(\{scan_id:String\(data\.scanId\),issue_id:fixIssue/);
+  assert.match(dashboard, /router\.push\("\/dashboard\/github\?"\+params\.toString\(\)\)/);
+  assert.match(dashboard, /router\.push\(target\)/);
+});

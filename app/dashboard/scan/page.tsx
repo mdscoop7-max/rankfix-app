@@ -34,6 +34,7 @@ export default function DashboardScan() {
   const searchParams = useSearchParams();
   const verificationUrl = searchParams.get("url") || "";
   const verificationIssue = searchParams.get("verify_issue") || "";
+  const fixIssue = searchParams.get("fix_issue") || "";
   const [language,setLanguage]=useState<Locale>("nl");
   const [url,setUrl]=useState("");
   const [websites,setWebsites]=useState<string[]>([]);
@@ -56,7 +57,22 @@ export default function DashboardScan() {
       const data=await response.json();
       if(!response.ok) throw new Error(data.error||t.failed);
       if(typeof window!=="undefined")window.localStorage.setItem("rankfix:last-scan-url",normalized);
-      if(data.scanId){ const target="/dashboard/audit/"+encodeURIComponent(data.scanId)+(verificationIssue?"?verify_issue="+encodeURIComponent(verificationIssue):""); router.push(target); return; }
+      if(data.scanId){
+        // Only a current, saved scan with the same unresolved rule may open Fix.
+        const allChecks=[...(Array.isArray(data.seo?.checks)?data.seo.checks:[]),...(Array.isArray(data.geo?.checks)?data.geo.checks:[])];
+        const matching=fixIssue&&allChecks.some((c: {issue_id?:string;rule_id?:string;status?:string})=>
+          String(c.issue_id||c.rule_id||"").toUpperCase()===fixIssue.toUpperCase() &&
+          (c.status==="warning"||c.status==="fail")
+        );
+        if(matching){
+          const params=new URLSearchParams({scan_id:String(data.scanId),issue_id:fixIssue,url:String(data.finalUrl||normalized)});
+          router.push("/dashboard/github?"+params.toString());
+          return;
+        }
+        const target="/dashboard/audit/"+encodeURIComponent(data.scanId)+(verificationIssue?"?verify_issue="+encodeURIComponent(verificationIssue):"");
+        router.push(target);
+        return;
+      }
       throw new Error(t.reportFailed);
     }catch(cause){setError(cause instanceof Error?cause.message:t.failed);}
     finally{setBusy(false);}
@@ -69,6 +85,7 @@ export default function DashboardScan() {
     <DashboardNav current={1}/>
     <div className="rf-body"><Link href="/dashboard" className="rf-page-back">← {language==="nl"?"Terug naar Overzicht":language==="de"?"Zurück zur Übersicht":language==="fr"?"Retour à l’aperçu":language==="it"?"Torna alla panoramica":language==="es"?"Volver al resumen":"Back to Overview"}</Link>
       <div className="rf-heading"><h1>{t.title}</h1><p>{t.intro}</p></div>
+      {fixIssue&&<div className="mb-4 rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4 text-sm text-cyan-100"><strong>{language==="nl"?"Veilige Fix voorbereiden":"Prepare a safe Fix"}</strong><p className="mt-1 text-slate-300">{language==="nl"?"Controleer het websiteadres en druk op Scan starten. RankFix slaat de scan op en opent daarna automatisch het gekozen verbeterpunt als het nog voorkomt. Er verandert niets live zonder jouw toestemming.":"Review the website and start a saved scan. RankFix will then open the selected issue if it is still present. Nothing goes live without your permission."}</p></div>}
       {verificationIssue&&<div className="mb-4 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] p-4 text-sm text-emerald-100"><strong>{language==="nl"?"Fix controleren":language==="de"?"Fix prüfen":language==="fr"?"Vérifier le correctif":language==="it"?"Verifica correzione":language==="es"?"Verificar corrección":"Verify fix"}</strong><p className="mt-1 text-slate-300">{language==="nl"?"RankFix scant de live website opnieuw en controleert of hetzelfde verbeterpunt nu is opgelost.":language==="de"?"RankFix scannt die Live-Website erneut und prüft, ob derselbe Punkt jetzt gelöst ist.":language==="fr"?"RankFix analyse à nouveau le site en ligne et vérifie si le même point est maintenant résolu.":language==="it"?"RankFix esegue una nuova scansione del sito live e verifica se lo stesso problema è stato risolto.":language==="es"?"RankFix vuelve a analizar la web en vivo y comprueba si el mismo punto está resuelto.":"RankFix rescans the live website and checks whether the same improvement is now resolved."}</p></div>}
       {usage.qaTester&&<section className="rf-plan-card"><div><span className="rf-eyebrow">{language==="nl"?"QA-testaccount":language==="de"?"QA-Testkonto":language==="fr"?"Compte test QA":language==="it"?"Account di test QA":language==="es"?"Cuenta de prueba QA":"QA test account"}</span><h2>{language==="nl"?"Scans beschikbaar voor testen":language==="de"?"Scans für Tests verfügbar":language==="fr"?"Analyses disponibles pour les tests":language==="it"?"Scansioni disponibili per i test":language==="es"?"Análisis disponibles para pruebas":"Scans available for testing"}</h2><p>{language==="nl"?"Alleen dit interne testaccount is vrijgesteld van de maandlimiet op deze QA-omgeving. Voor gewone klanten blijven de abonnementslimieten gelden.":language==="de"?"Nur dieses interne Testkonto ist in dieser QA-Umgebung von der Monatsgrenze ausgenommen. Für Kunden gelten weiterhin die Tarifgrenzen.":language==="fr"?"Seul ce compte de test interne est exempté de la limite mensuelle dans cet environnement QA. Les limites des clients restent inchangées.":language==="it"?"Solo questo account di test interno è esente dal limite mensile in questo ambiente QA. I limiti per i clienti non cambiano.":language==="es"?"Solo esta cuenta interna de pruebas está exenta del límite mensual en este entorno QA. Los límites para clientes no cambian.":"Only this internal test account is exempt from the monthly limit in this QA environment. Customer plan limits remain unchanged."}</p></div></section>}
       {usage.plan==="free"&&!usage.qaTester&&<section className="rf-plan-card"><div><span className="rf-eyebrow">Free · €0</span><h2>{usage.used} / {usage.limit??2} {language==="nl"?"scans deze maand":language==="de"?"Scans diesen Monat":language==="fr"?"analyses ce mois-ci":language==="it"?"scansioni questo mese":language==="es"?"análisis este mes":"scans this month"}</h2><p>{usage.used>=(usage.limit??2)?(language==="nl"?"Je gratis scans zijn gebruikt. Je bestaande rapport blijft beschikbaar. Upgrade voor nieuwe scans en Premium-functies.":language==="de"?"Deine kostenlosen Scans sind aufgebraucht. Dein bestehender Bericht bleibt verfügbar. Upgrade für neue Scans und Premium-Funktionen.":language==="fr"?"Vos analyses gratuites sont utilisées. Votre rapport reste disponible. Passez à une offre supérieure pour de nouvelles analyses et les fonctions Premium.":language==="it"?"Hai utilizzato le scansioni gratuite. Il report esistente resta disponibile. Passa a un piano superiore per nuove scansioni e funzioni Premium.":language==="es"?"Has utilizado tus análisis gratuitos. Tu informe sigue disponible. Mejora el plan para nuevos análisis y funciones Premium.":"Your free scans have been used. Your existing report remains available. Upgrade for new scans and Premium features."):(language==="nl"?"Free bevat 1 website en 2 volledige scans per maand.":language==="de"?"Free enthält 1 Website und 2 vollständige Scans pro Monat.":language==="fr"?"L’offre gratuite comprend 1 site et 2 analyses complètes par mois.":language==="it"?"Free include 1 sito e 2 scansioni complete al mese.":language==="es"?"Free incluye 1 web y 2 análisis completos al mes.":"Free includes 1 website and 2 full scans per month.")}</p></div>{usage.used>=(usage.limit??2)&&<Link className="rf-primary-link" href={`/${language}#pricing`}>{language==="nl"?"Bekijk abonnementen":language==="de"?"Tarife ansehen":language==="fr"?"Voir les offres":language==="it"?"Vedi i piani":language==="es"?"Ver planes":"View plans"}</Link>}</section>}
