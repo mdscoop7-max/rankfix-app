@@ -93,7 +93,7 @@ test("scanner regression source keeps evidence-only classification safeguards", 
   assert.match(quality, /pixelbreedte, niet van een harde tekengrens/);
   assert.match(quality, /uitzonderlijk kort/);
   assert.match(quality, /uitzonderlijk lang/);
-  assert.match(source, /assessPageTitle\(pageTitle, finalCandidate\.hostname, new Date\(\), representativeTitlePixelWidth\)/);
+  assert.match(source, /assessPageTitle\(pageTitle, finalCandidate\.hostname, new Date\(\), representativeTitlePixelWidth(?:, finalCandidate\.pathname)?\)/);
 });
 
 
@@ -197,7 +197,7 @@ test("meta description diagnostics distinguish missing from empty", async () => 
   assert.match(source, /descriptionState: "missing" \| "empty" \| "present"/);
   assert.match(source, /descriptionState === "empty" \? "De meta description-tag is aanwezig, maar de content is leeg\."/);
   assert.match(source, /descriptionState,/);
-  assert.match(source, /assessPageDescription\(pageDescription, Boolean\(pageDescriptionTag\)\)/);
+  assert.match(source, /assessPageDescription\(pageDescription, Boolean\(pageDescriptionTag\), representativeEvidenceSource === "rendered_html" \? "rendered" : "raw"\)/);
   const quality = await readFile(new URL("../lib/report-quality.ts", import.meta.url), "utf8");
   assert.match(quality, /"Meta description-tag aanwezig maar content is leeg\."/);
 });
@@ -652,10 +652,16 @@ test("active scanner fix IDs map to bounded dashboard fix actions", async () => 
 
 test("GitHub proposal routing recognizes active scanner IDs without title guessing", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/dashboard/github/page.tsx", import.meta.url), "utf8");
-  for (const mapping of ['title:"meta_title"','description:"meta_description"','h1:"h1"','alt:"alt_text"','schema:"structured_data"']) {
-    assert.equal(source.includes(mapping),true,mapping);
+  // The scanner maps its check keys to rule IDs; the Fix page routes on those IDs only
+  // (never on titles) and the server decides the fix path per rule ID.
+  const scan = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  for (const mapping of ['title: { rule_id: title ? "META_TITLE_GUIDANCE"','description: { rule_id: description ? "META_DESCRIPTION_GUIDANCE"','alt: { rule_id: "IMAGE_ALT_MISSING"','schema: { rule_id: "STRUCTURED_DATA_MISSING"']) {
+    assert.equal(scan.includes(mapping),true,mapping);
   }
+  assert.match(scan,/item\.issue_id = mapped\.rule_id;/);
+  const source = await readFile(new URL("../app/dashboard/github/page.tsx", import.meta.url), "utf8");
+  assert.match(source,/const META_DESCRIPTION = \/\^\(\?:META\|SITE\)_DESCRIPTION_\(\?:GUIDANCE\|MISSING\)\$\/i;/);
+  assert.doesNotMatch(source,/titleHint/);
 });
 
 test("Evidence Engine avoids double-counting medium text hints as independent sector proof", async () => {
@@ -741,11 +747,12 @@ test("audit AI-advice actions open the in-dashboard assistant", async () => {
 });
 
 
-test("GitHub OAuth production fallback points to Render, not retired Vercel host", async () => {
+test("GitHub OAuth callback uses the configured environment instead of a stale fixed host", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/github/connect/route.ts", import.meta.url), "utf8");
-  assert.match(source,/https:\/\/rankfix-app\.onrender\.com/);
-  assert.doesNotMatch(source,/rankfix-app\.vercel\.app/);
+  assert.match(source, /process\.env\.APP_URL \|\| new URL\(request\.url\)\.origin/);
+  assert.match(source, /process\.env\.GITHUB_CALLBACK_URL \|\| base \+ "\/api\/github\/callback"/);
+  assert.doesNotMatch(source, /rankfix-app\.(?:vercel\.app|onrender\.com)/);
 });
 
 test("Local SEO route contains no deployment-marker residue", async () => {
@@ -771,7 +778,7 @@ test("expensive and mail-triggering endpoints have coarse rate limits", async ()
 test("every audit problem has a visible remediation path", async () => {
   const { readFile } = await import("node:fs/promises");
   const audit = await readFile(new URL("../app/dashboard/audit/[id]/page.tsx", import.meta.url), "utf8");
-  assert.match(audit,/Maak veilige GitHub-fix/);
+  assert.match(audit,/Fix probleem/);
   assert.match(audit,/Vraag RankFix AI/);
   assert.match(audit,/Bekijk handmatige stappen/);
   assert.match(audit,/remediationAction\(check\)==="manual"/);
@@ -1320,9 +1327,10 @@ test("finding 6: business details pass only with concrete details, not just abse
   assert.deepEqual(assessBusinessDetails({ placeholders: [], details: none, registration: null, schemaContact: false, thinShell: false }), { status: "unable_to_confirm", reason: "no_details" });
   assert.deepEqual(assessBusinessDetails({ placeholders: [], details: none, registration: null, schemaContact: false, thinShell: true }), { status: "unable_to_confirm", reason: "thin_shell" });
   assert.equal(assessBusinessDetails({ placeholders: ["[kvk]"], details: none, registration: null, schemaContact: false, thinShell: false }).status, "fail");
-  const details = findBusinessContactDetails("Damrak 1, 1012 LG Amsterdam · bel 020-123 45 67", '<a href="mailto:info@bedrijf.nl">mail</a>');
-  assert.deepEqual(assessBusinessDetails({ placeholders: [], details, registration: findCompanyRegistration("KvK-nummer: 12345678"), schemaContact: false, thinShell: false }),
-    { status: "pass", found: ["KvK 12345678", "adres (Damrak 1, 1012 LG Amsterdam)", "telefoonnummer", "e-mailadres"] });
+  // 3.5: realistic values (a counting run such as 020-123 45 67 or KvK 12345678 is template data, see below).
+  const details = findBusinessContactDetails("Damrak 1, 1012 LG Amsterdam · bel 020-547 88 12", '<a href="mailto:info@bedrijf.nl">mail</a>');
+  assert.deepEqual(assessBusinessDetails({ placeholders: [], details, registration: findCompanyRegistration("KvK-nummer: 34098712"), schemaContact: false, thinShell: false }),
+    { status: "pass", found: ["KvK 34098712", "adres (Damrak 1, 1012 LG Amsterdam)", "telefoonnummer", "e-mailadres"] });
   assert.equal(findCompanyRegistration("Vul je KvK-nummer in"), null);
   assert.equal(findVisibleAddress("Vul je postcode in"), null);
   assert.equal(findBusinessContactDetails("", '<input type="email" name="email">').mailtoLink, false);
@@ -1727,4 +1735,40 @@ test("a sampled link that redirects to an account or personal page leaves the sa
   const { isNonContentUrl } = await import("../lib/report-quality.ts");
   for (const u of ["https://x.it/recupero-credenziali/", "https://x.pl/plus/kontynuuj-odtwarzanie", "https://x.pl/plus/preferencje-tresci", "https://x.de/passwort-vergessen"]) assert.equal(isNonContentUrl(u), true, u);
   assert.equal(isNonContentUrl("https://x.it/servizi-online-area-personale"), false, "a content page about the personal area stays");
+});
+
+test("public report Fix never sends an unauthenticated GitHub request without scan_id", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const root = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const dashboard = await readFile(new URL("../app/dashboard/scan/page.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(root, /fetch\("\/api\/github\/fix"/);
+  assert.match(root, /new URLSearchParams\(\{ url: website, fix_issue: issueId, start_fix:"1" \}\)/);
+  assert.match(root, /window\.location\.assign\("\/dashboard\/scan\?" \+ params\.toString\(\)\)/);
+  assert.match(dashboard, /const fixIssue = searchParams\.get\("fix_issue"\)/);
+  assert.match(dashboard, /data\.scanId/);
+  assert.match(dashboard, /c\.status==="warning"\|\|c\.status==="fail"/);
+  assert.match(dashboard, /new URLSearchParams\(\{scan_id:String\(data\.scanId\),issue_id:fixIssue/);
+  assert.match(dashboard, /router\.push\("\/dashboard\/github\?"\+params\.toString\(\)\)/);
+  assert.match(dashboard, /router\.push\(target\)/);
+});
+
+test("public meta description proposal is evidence-based and provides inline failure feedback", async () => {
+ const {readFile}=await import("node:fs/promises");
+ const ui=await readFile(new URL("../app/page.tsx",import.meta.url),"utf8");
+ assert.match(ui,/import \{ buildEvidenceDescription \} from/);
+ assert.match(ui,/if\(type==="meta_description"\)/);
+ assert.match(ui,/setFixErrors\(p=>/);
+ assert.match(ui,/fixErrors\[item\.issue_id \|\| item\.key\]/);
+ assert.match(ui,/start_fix:"1"/);
+ assert.match(ui,/SOCIAL_METADATA_INCOMPLETE/);
+});
+test("public safe Fix auto-resumes through authenticated stored scan after login", async () => {
+ const {readFile}=await import("node:fs/promises");
+ const ui=await readFile(new URL("../app/dashboard/scan/page.tsx",import.meta.url),"utf8");
+ assert.match(ui,/startFix=searchParams\.get\("start_fix"\)==="1"/);
+ assert.match(ui,/autoStarted=useRef\(false\)/);
+ assert.match(ui,/window\.location\.replace\("\/account\?next="\+encodeURIComponent\(next\)\)/);
+ assert.match(ui,/void runScan\(verificationUrl\)/);
+ assert.match(ui,/if\(response\.status===401&&fixIssue\)/);
+ assert.match(ui,/router\.push\("\/dashboard\/github\?"\+params\.toString\(\)\)/);
 });

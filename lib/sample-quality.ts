@@ -31,6 +31,13 @@ export function refineSamplePageType(input: {
   productSchemaCount?: number;
   /** The page describes a financial offer (account, loan, card, insurance) in its structured data. */
   financialOffer?: boolean;
+  /**
+   * The page's own identity (title, description, H1) or typed schema describes a
+   * service the visitor can use (send, apply, open, book, rates...), in any EU language.
+   */
+  serviceEvidence?: boolean;
+  /** The page carries its own publication date (datePublished, article:published_time, <time> in an <article>). */
+  datedArticle?: boolean;
 }): SamplePageType {
   const { proposed } = input;
   if (["homepage", "legal", "support", "form", "contact"].includes(proposed)) return proposed;
@@ -40,7 +47,7 @@ export function refineSamplePageType(input: {
   // elsewhere on the site suggest; a purchase action on the page itself is needed
   // before an editorial URL can be a product.
   const editorial = looksLikeEditorialPath(path) || /\/(?:blog|news|nieuws|artikelen|articles)\//i.test(path);
-  if (input.articleSchema || (editorial && !(input.productSchema && input.purchaseAction))) return "article";
+  if (input.articleSchema || input.datedArticle || (editorial && !(input.productSchema && input.purchaseAction))) return "article";
   if (input.eventSchema || (looksLikeEventPath(path) && !input.purchaseAction)) return "event";
   if (looksLikeCorporatePath(path) && !input.productSchema && !input.purchaseAction) return "corporate";
   // An account, loan, card or insurance page is a service page, even below /produkty/ or
@@ -54,9 +61,18 @@ export function refineSamplePageType(input: {
   // An ItemList of articles or topics is not a product range: a collection also
   // shows prices, a purchase action or Product objects.
   const commerceOnPage = input.visiblePrices > 0 || input.purchaseAction || (input.productSchemaCount || 0) > 0;
-  const collection = looksLikeCategoryPath(path) || (input.productSchemaCount || 0) >= 2 || (input.itemListSchema && input.repeatedProductLinks && commerceOnPage);
+  // A catalogue-like URL is only a weak hint: a hub that lists services or offers
+  // without products, prices or purchase actions is not a product category
+  // (field reports 16-10: postal service pages typed "category").
+  const pathCollection = looksLikeCategoryPath(path) && (commerceOnPage || input.repeatedProductLinks || input.itemListSchema);
+  // Several independent Product objects make a collection. Related or accessory
+  // products nested inside the page's own Product are not counted (see
+  // countIndependentProducts), so a product detail page stays a product page.
+  const collection = pathCollection || (input.productSchemaCount || 0) >= 2 || (input.itemListSchema && input.repeatedProductLinks && commerceOnPage);
   if (collection) return "category";
   if (input.productSchema) return "product";
+  // The page's own content describes a service and it sells nothing itself.
+  if (input.serviceEvidence && !input.purchaseAction && !input.productSchema && ["other", "category", "product"].includes(proposed)) return "service";
   // A deeply nested product/variant route with a concrete model number and
   // a single detail heading is stronger than its generic parent /shop category.
   // This is page typing only, never proof of checkout or an Offer.
@@ -72,11 +88,52 @@ export function refineSamplePageType(input: {
     return "category";
   // Standalone topic/category hubs and commerce/shop indexes are collections,
   // not miscellaneous pages. Preserve "other" for genuinely unclassified pages.
-  if (proposed === "other" && /\/(?:[^/]+-)?(?:shop|store|catalogus|catalog|assortiment|collectie|collection|categorieen|categories|smarthome|smart-home|gaming)\/?$/i.test(path)) return "category";
+  if ((proposed === "other" || proposed === "category") && /\/(?:[^/]+-)?(?:shop|store|catalogus|catalog|assortiment|collectie|collection|categorieen|categories|smarthome|smart-home|gaming)\/?$/i.test(path)) return "category";
+  // A category proposed from URL shape alone, without any collection evidence on
+  // the page, is not a proven product category, unless the path itself sits in an
+  // explicit shop section (listings there are often rendered client-side).
+  if (proposed === "category" && !commerceOnPage && !input.repeatedProductLinks && !input.itemListSchema && !/\/(?:shop|store|webshop|winkel|boutique|negozio|tienda|sklep|loja|kauppa|butik|e-?shop)(?:\/|$)/i.test(path)) return "other";
   if (proposed === "other" && /\/(?:tv|televisie|streaming|internet|bellen|mobiel-abonnement)\/?$/i.test(path)) return "service";
   if (proposed === "other" && (input.serviceOffer || /\/(?:diensten?|services?|solutions?|oplossingen?|behandelingen?)\//i.test(path))) return "service";
   return proposed;
 }
+
+/**
+ * Service intent in a page's OWN identity (title, meta description, H1), in EU
+ * languages: actions a visitor takes with a service provider (send a parcel, open
+ * an account, apply, book, request) and rate/plan vocabulary. Used only together
+ * with "no purchase action and no Product schema", so a shop page never becomes a
+ * service page. No brand, domain or sector vocabulary.
+ */
+export const SERVICE_INTENT = /(?<![\p{L}])(?:diensten|dienstverlening|aanvragen|afsluiten|versturen|verzenden|aangetekend|tarieven|abonnement(?:en)?|service[s]?|solutions?|apply|request|open an account|send(?:ing)? a (?:parcel|letter|package)|ship(?:ping)? (?:a )?(?:parcel|package)|track(?:ing)? (?:a |your )?(?:parcel|shipment)|rates|plans|envoyer|exp[ée]dier|exp[ée]dition|envoi|souscrire|ouvrir un compte|demander|suivre (?:un|votre) (?:envoi|colis)|tarifs|offres?|solutions? d|versenden|verschicken|beantragen|abschlie(?:ß|ss)en|er[öo]ffnen|tarife|leistungen|l[öo]sungen|spedire|spedizion[ei]|richied[ei]re|richiedi|aprire (?:un|il) conto|attivare|tariffe|servizi[o]?|soluzioni|enviar|env[ií]o|solicitar|contratar|abrir una cuenta|tarifas|servicios?|soluciones|wy[śs]lij|wysy[łl]k[aią]|za[łl][óo][żz]|otw[óo]rz|wniosek|z[łl][óo][żz] wniosek|us[łl]ug[aiy]?|cennik|oferta|rozwi[ąa]zania|leasing|konto (?:osobiste|firmowe)|abrir conta|servi[çc]os|solicitar|customer support|support portal|supplier portal|customer portal|portal|klantenservice|kundenservice|kundendienst|service client|assistenza clienti|atenci[óo]n al cliente|obs[łl]uga klienta)(?![\p{L}])/iu;
+
+/**
+ * Number of schema.org Product objects in a page's JSON-LD that are not nested
+ * inside another Product (isRelatedTo, isSimilarTo, isAccessoryOrSparePartFor,
+ * hasVariant...). Products inside an ItemList still count: that is a grid.
+ */
+export function countIndependentProducts(html: string): number {
+  let count = 0;
+  const isProduct = (value: Record<string, unknown>) => {
+    const types = Array.isArray(value["@type"]) ? value["@type"] : [value["@type"]];
+    return types.some((type) => String(type || "").toLowerCase() === "product");
+  };
+  const walk = (value: unknown, insideProduct: boolean, depth: number) => {
+    if (!value || typeof value !== "object" || depth > 12) return;
+    if (Array.isArray(value)) { for (const item of value) walk(item, insideProduct, depth + 1); return; }
+    const node = value as Record<string, unknown>;
+    const product = isProduct(node);
+    if (product && !insideProduct) count++;
+    for (const nested of Object.values(node)) walk(nested, insideProduct || product, depth + 1);
+  };
+  for (const match of html.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
+    try { walk(JSON.parse(match[1]), false, 0); } catch { /* invalid JSON-LD is reported elsewhere */ }
+  }
+  return count;
+}
+
+/** schema.org types that describe a service offer rather than merchandise. */
+export const SERVICE_SCHEMA_TYPES: ReadonlySet<string> = new Set(["service", "professionalservice", "governmentservice", "financialservice", "broadcastservice", "cableorsatelliteservice", "foodservice", "taxi", "taxiservice", "webapi"]);
 
 // Avoid calling an under-observed JS shell a 100/100 page. HTTP availability
 // alone is not a title/description/H1/canonical assessment.

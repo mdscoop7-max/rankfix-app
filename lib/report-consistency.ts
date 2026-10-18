@@ -46,7 +46,10 @@ export type SelfCheck = {
   flags: SelfCheckEntry[];
 };
 
-export const SELF_CHECK_VERSION = "selfcheck-1.0";
+export const SELF_CHECK_VERSION = "selfcheck-1.1";
+
+// Absolute claims that no limited automated check can support (security, WCAG).
+const ABSOLUTE_CLAIM = /\b(?:volledig (?:veilig|toegankelijk|beveiligd)|website is (?:veilig|toegankelijk)|geen beveiligingsrisico'?s?|wcag[- ]?(?:conform|compliant)|voldoet aan (?:de )?wcag|fully (?:secure|accessible)|site is (?:secure|accessible)|no security risks?|vollständig (?:sicher|barrierefrei)|entièrement (?:sécurisé|accessible)|completamente (?:sicuro|accessibile|seguro|accesible))\b/gi;
 
 /** Canonical family label per primary sector; used when a label contradicts its sector. */
 export const SECTOR_FAMILY_LABEL: Record<string, string> = {
@@ -172,7 +175,17 @@ export function enforceReportConsistency(input: {
   range?: { low: number; high: number } | null;
   coveragePercent: number;
   javascriptRequiredButNotRendered?: boolean;
-}): { selfCheck: SelfCheck; scores: { seo: number; geo: number; overall: number } } {
+  /** Final evidence level of the headline score ("complete" = Definitief). */
+  evidenceLevel?: "complete" | "provisional" | "insufficient";
+  /** Representative pages typed as product / financial product pages. */
+  sampledProductPages?: number;
+  sampledFinancialProductPages?: number;
+  /** HTTP status the website gave the scanned page in the sample, and whether RankFix was blocked. */
+  scannedPageSampleStatus?: number | null;
+  scannerBlocked?: boolean;
+  /** Security and accessibility checks are limited by nature: no absolute claims. */
+  limitedChecks?: ConsistencyCheck[];
+}): { selfCheck: SelfCheck; scores: { seo: number; geo: number; overall: number }; evidenceLevel?: "complete" | "provisional" | "insufficient" } {
   const corrections: SelfCheckEntry[] = [];
   const flags: SelfCheckEntry[] = [];
   const { sector } = input;
@@ -271,7 +284,53 @@ export function enforceReportConsistency(input: {
     flags.push({ code: "score_outside_range", action: "flagged", detail: `Score ${overall} valt buiten het bereik ${input.range.low}–${input.range.high}.` });
   }
 
-  // 8. Reliability: say how much the conclusions can be trusted.
+  // 8. Score certainty: "Definitief" (complete) is impossible next to an
+  //    unconfirmed scored check; such a score keeps an uncertainty range.
+  let evidenceLevel = input.evidenceLevel;
+  const unconfirmedScored = input.checks.filter((item) => item.issue_status === "UNABLE_TO_CONFIRM" && item.maxPoints > 0).length;
+  if (evidenceLevel === "complete" && unconfirmedScored > 0) {
+    corrections.push({ code: "final_score_with_unconfirmed", action: "corrected", detail: `Score stond als definitief terwijl ${unconfirmedScored} controle(s) niet bevestigd zijn; voorlopig gemaakt.` });
+    evidenceLevel = "provisional";
+  }
+  if (evidenceLevel === "complete" && input.range && input.range.low < input.range.high) {
+    corrections.push({ code: "final_score_with_range", action: "corrected", detail: `Score stond als definitief naast een bereik ${input.range.low}–${input.range.high}; voorlopig gemaakt.` });
+    evidenceLevel = "provisional";
+  }
+
+  // 9. Applicability wording uses the same product evidence as the sample: never
+  //    "no products found" next to sampled product or financial-product pages.
+  if ((input.sampledProductPages || 0) > 0 || (input.sampledFinancialProductPages || 0) > 0) {
+    for (const item of input.checks) {
+      if (item.issue_status !== "NOT_APPLICABLE" || !/geen producten of productpagina|geen product-, prijs-|no products (?:or product pages )?(?:were )?found/i.test(item.message)) continue;
+      const replacement = (input.sampledProductPages || 0) > 0
+        ? "Er zijn productpagina's gevonden, maar deze controle hoort bij een functie die voor deze website niet is bevestigd; niet van toepassing."
+        : "De gevonden productpagina's beschrijven financiële producten, geen fysieke retailproducten; deze retailcontrole is niet van toepassing.";
+      corrections.push({ code: "na_contradicts_product_sample", action: "corrected", detail: `${item.key}: N.v.t.-tekst ontkende productpagina's die wel in de steekproef staan.` });
+      item.message = replacement;
+      if (item.evidence) item.evidence = { ...item.evidence, details: replacement };
+    }
+  }
+
+  // 10. HTTP status: the status check and the sample of the same URL agree, and a
+  //     block aimed at RankFix is never presented as a website error.
+  const statusCheck = input.checks.find((item) => item.key === "status");
+  if (statusCheck && (statusCheck.issue_status === "WARNING" || statusCheck.issue_status === "FAIL")) {
+    const reported = Number((statusCheck.message.match(/HTTP (\d{3})/) || [])[1] || NaN);
+    if (input.scannerBlocked || (typeof input.scannedPageSampleStatus === "number" && Number.isFinite(reported) && input.scannedPageSampleStatus !== reported)) {
+      flags.push({ code: "http_status_contradiction", action: "flagged", detail: `HTTP-statuscontrole meldt ${reported}, de steekproef van dezelfde URL ${input.scannedPageSampleStatus ?? "?"}${input.scannerBlocked ? " (RankFix geblokkeerd)" : ""}.` });
+    }
+  }
+
+  // 11. Limited checks never claim that a site is secure or accessible.
+  for (const item of [...input.checks, ...(input.limitedChecks || [])]) {
+    if (!ABSOLUTE_CLAIM.test(item.message)) continue;
+    ABSOLUTE_CLAIM.lastIndex = 0;
+    corrections.push({ code: "absolute_claim_in_limited_check", action: "corrected", detail: `${item.key}: absolute veiligheids-/toegankelijkheidsclaim verwijderd.` });
+    item.message = item.message.replace(ABSOLUTE_CLAIM, "geen problemen gevonden in deze beperkte controle");
+  }
+  ABSOLUTE_CLAIM.lastIndex = 0;
+
+  // 12. Reliability: say how much the conclusions can be trusted.
   const reasons: string[] = [];
   if (input.coveragePercent < 70) reasons.push(`Slechts ${input.coveragePercent}% van de relevante controles kon worden beoordeeld.`);
   else if (input.coveragePercent < 90) reasons.push(`${input.coveragePercent}% van de relevante controles kon worden beoordeeld.`);
@@ -291,5 +350,6 @@ export function enforceReportConsistency(input: {
       flags,
     },
     scores: { seo, geo, overall },
+    evidenceLevel,
   };
 }

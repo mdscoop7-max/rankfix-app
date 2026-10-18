@@ -117,15 +117,97 @@ export function findVisibleAddress(text: string): string | null {
   return match ? `${match[1]} ${match[2]}, ${match[3]} ${match[4]}` : null;
 }
 
-export type BusinessContactDetails = { phone: string | null; email: string | null; address: string | null; telLink: boolean; mailtoLink: boolean };
+export type BusinessContactDetails = { phone: string | null; email: string | null; address: string | null; telLink: boolean; mailtoLink: boolean; suspectedTestData?: string[] };
 
-export function findBusinessContactDetails(text: string, html: string): BusinessContactDetails {
+// ---------------------------------------------------------------------------
+// Example / test contact data (3.5). Template and documentation values such as
+// info@example.com, +31 6 12345678, "Teststraat 1, 1234 AB" or KvK 12345678 look
+// like contact details but identify nobody. They are never business evidence;
+// the report names them so they can be replaced.
+// ---------------------------------------------------------------------------
+const PLACEHOLDER_EMAIL_DOMAIN = /@(?:(?:[\w-]+\.)*(?:example|voorbeeld|beispiel|exemple|esempio|ejemplo|exemplo|przyklad|exempel|eksempel|esimerkki|priklad|exemplu|pelda|paradeigma|yourdomain|yourcompany|your-company|yoursite|mydomain|mycompany|mysite|jouwdomein|jouwbedrijf|uwdomein|uwbedrijf|ihredomain|ihrefirma|votredomaine|votresociete|tuodominio|tudominio|domain|domein|company|email|website|test|testing|placeholder|sample)\.[a-z.]{2,10}|[\w.-]+\.(?:example|invalid|localhost))$/i;
+const PLACEHOLDER_EMAIL_LOCAL = /^(?:test|tester|example|voorbeeld|beispiel|exemple|esempio|ejemplo|placeholder|naam|name|yourname|your\.name|jouwnaam|uwnaam|john\.doe|jane\.doe|johndoe|janedoe|max\.mustermann|maxmustermann|jean\.dupont|mario\.rossi|jan\.jansen)@/i;
+const PLACEHOLDER_STREET = /\b(?:test|voorbeeld|muster|beispiel|example|sample|exemple|esempio|ejemplo|exempel|eksempel|esimerkki)(?:straat|laan|weg|plein|stra(?:ß|ss)e|gasse|weg|street|road|avenue|lane|gatan|vägen|vej|gade|veien|gata|katu|tie)\b|\b(?:rue de l'exemple|via esempio|calle ejemplo|rua exemplo|ulica przykładowa|ukázková ulice|strada exemplu)\b/i;
+const PLACEHOLDER_TOWN = /\b(?:voorbeeldstad|voorbeelddorp|teststad|musterstadt|musterhausen|beispielstadt|anytown|sampletown|villexemple|esempiopoli|exempelstad|eksempelby|esimerkkikaupunki|przykładowo|cidade exemplo)\b/i;
+
+function sequentialRun(digits: string, length: number): boolean {
+  for (let i = 0; i + length <= digits.length; i++) {
+    const part = digits.slice(i, i + length);
+    let up = true, down = true;
+    for (let k = 1; k < part.length; k++) {
+      if ((Number(part[k - 1]) + 1) % 10 !== Number(part[k])) up = false;
+      if ((Number(part[k]) + 1) % 10 !== Number(part[k - 1])) down = false;
+    }
+    if (up || down) return true;
+  }
+  return false;
+}
+
+/** A visible e-mail address that is a template or documentation value. */
+export function isPlaceholderEmail(email: string, siteHost = ""): boolean {
+  const value = email.trim().toLowerCase();
+  const domain = value.split("@")[1] || "";
+  const own = siteHost.toLowerCase().replace(/^www\./, "");
+  // The site's own domain is never a placeholder (even under a reserved test TLD).
+  if (own && (domain === own || domain.endsWith(`.${own}`))) return false;
+  return PLACEHOLDER_EMAIL_DOMAIN.test(value) || PLACEHOLDER_EMAIL_LOCAL.test(value) || /\.test$/.test(domain);
+}
+
+/** A phone number made of a counting run (1234567), one repeated digit, or a 555-01xx fiction number. */
+export function isPlaceholderPhone(phone: string): boolean {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 6) return false;
+  // Subscriber part: drop an international prefix (00/+ and up to 3 country digits) or a trunk 0.
+  const national = digits.replace(/^00?\d{0,3}?(?=\d{9,10}$)/, "").replace(/^0/, "");
+  if (/^(\d)\1{5,}$/.test(national) || /(\d)\1{6,}/.test(national)) return true;
+  if (sequentialRun(national.slice(-8), 7) || sequentialRun(national, 8)) return true;
+  if (/(?:^|1)555(?:01\d\d)$/.test(digits.slice(-7)) || /^(?:1)?\d{3}55501\d\d$/.test(digits)) return true;
+  return false;
+}
+
+/** An address with a template street, a template town or the NL documentation postcode 1234 AB. */
+export function isPlaceholderAddress(address: string): boolean {
+  return PLACEHOLDER_STREET.test(address) || PLACEHOLDER_TOWN.test(address) || /\b1234\s?AB\b/.test(address) || /\b(?:12345|00000|99999)\s+[A-ZÀ-Ý]/.test(address);
+}
+
+/** A company registration number made of a counting run or one repeated digit. */
+export function isPlaceholderRegistration(value: string): boolean {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length < 6) return false;
+  return /^(\d)\1+$/.test(digits.slice(0, 8)) || sequentialRun(digits.slice(0, 9), 7) || /^(?:0+|12345678|87654321)/.test(digits);
+}
+
+function firstAccepted(text: string, find: (value: string) => string | null, reject: (value: string) => boolean, rejected: string[]): string | null {
+  // Look past a rejected example value: a real detail can follow it.
+  let rest = text;
+  for (let i = 0; i < 6; i++) {
+    const hit = find(rest);
+    if (!hit) return null;
+    if (!reject(hit)) return hit;
+    rejected.push(hit);
+    const at = rest.indexOf(hit);
+    if (at < 0) return null;
+    rest = rest.slice(at + hit.length);
+  }
+  return null;
+}
+
+export function findBusinessContactDetails(text: string, html: string, siteHost = ""): BusinessContactDetails {
+  const suspected: string[] = [];
+  const phone = firstAccepted(text, findVisiblePhone, isPlaceholderPhone, suspected);
+  const email = firstAccepted(text, findVisibleEmail, (value) => isPlaceholderEmail(value, siteHost), suspected);
+  const address = firstAccepted(text, findVisibleAddress, isPlaceholderAddress, suspected);
+  const telNumbers = [...html.matchAll(/href\s*=\s*["']tel:([^"']+)["']/gi)].map((match) => match[1]).filter((value) => value.replace(/\D/g, "").length >= 6);
+  const mailtos = [...html.matchAll(/href\s*=\s*["']mailto:([^"'@\s?]+@[^"'\s?]+\.[a-z]{2,})/gi)].map((match) => match[1]);
+  for (const value of telNumbers) if (isPlaceholderPhone(value)) suspected.push(value);
+  for (const value of mailtos) if (isPlaceholderEmail(value, siteHost)) suspected.push(value);
   return {
-    phone: findVisiblePhone(text),
-    email: findVisibleEmail(text),
-    address: findVisibleAddress(text),
-    telLink: [...html.matchAll(/href\s*=\s*["']tel:([^"']+)["']/gi)].some((match) => match[1].replace(/\D/g, "").length >= 6),
-    mailtoLink: /href\s*=\s*["']mailto:[^"'@\s]+@[^"'\s]+\.[a-z]{2,}/i.test(html),
+    phone,
+    email,
+    address,
+    telLink: telNumbers.some((value) => !isPlaceholderPhone(value)),
+    mailtoLink: mailtos.some((value) => !isPlaceholderEmail(value, siteHost)),
+    suspectedTestData: [...new Set(suspected)].slice(0, 6),
   };
 }
 
@@ -135,23 +217,31 @@ export function hasBusinessContactDetails(details: BusinessContactDetails): bool
 
 // Registration identifiers: Dutch KvK (8 digits), EU VAT numbers, or a labelled
 // company registration number. A label without a number does not count.
-export function findCompanyRegistration(text: string): string | null {
+export function findCompanyRegistration(text: string, includePlaceholders = false): string | null {
   const kvk = text.match(/\b(?:kvk|k\.v\.k\.|kamer van koophandel)(?:[\s-]*(?:nr|nummer|number|no)\.?)?\s*:?\s*(\d{8})\b/i);
-  if (kvk) return `KvK ${kvk[1]}`;
+  if (kvk && (includePlaceholders || !isPlaceholderRegistration(kvk[1]))) return `KvK ${kvk[1]}`;
   const vat = text.match(/\b(?:btw|vat|ust-?idnr|tva|iva)(?:[\s-]*(?:nr|nummer|number|id|no)\.?)?\s*:?\s*([A-Z]{2}\s?[0-9A-Z]{8,12})\b/i);
-  if (vat) return `BTW/VAT ${vat[1].replace(/\s/g, "")}`;
+  if (vat && (includePlaceholders || !isPlaceholderRegistration(vat[1]))) return `BTW/VAT ${vat[1].replace(/\s/g, "")}`;
   return null;
+}
+
+/** Registration number that is a template value (KvK 12345678): reported, never evidence. */
+export function findPlaceholderRegistration(text: string): string | null {
+  const found = findCompanyRegistration(text, true);
+  return found && isPlaceholderRegistration(found) ? found : null;
 }
 
 export type BusinessDetailsAssessment =
   | { status: "fail"; placeholders: string[] }
   | { status: "pass"; found: string[] }
+  | { status: "warning"; testData: string[] }
   | { status: "unable_to_confirm"; reason: "no_details" | "thin_shell" };
 
 // "No placeholders found" is not proof of correct business details: pass needs
 // at least one concrete identifier or contact detail on the page.
-export function assessBusinessDetails(input: { placeholders: string[]; details: BusinessContactDetails; registration: string | null; schemaContact: boolean; thinShell: boolean }): BusinessDetailsAssessment {
+export function assessBusinessDetails(input: { placeholders: string[]; details: BusinessContactDetails; registration: string | null; schemaContact: boolean; thinShell: boolean; testRegistration?: string | null }): BusinessDetailsAssessment {
   if (input.placeholders.length) return { status: "fail", placeholders: input.placeholders };
+  const testData = [...(input.details.suspectedTestData || []), ...(input.testRegistration ? [input.testRegistration] : [])];
   const found = [
     input.registration,
     input.details.address && `adres (${input.details.address})`,
@@ -159,6 +249,9 @@ export function assessBusinessDetails(input: { placeholders: string[]; details: 
     (input.details.email || input.details.mailtoLink) && "e-mailadres",
     input.schemaContact && "adres/telefoon in structured data",
   ].filter((item): item is string => Boolean(item));
+  // Example/test values next to real details: the real details count, the test
+  // values are still named. Only test values: a visible, fixable issue.
   if (found.length) return { status: "pass", found };
+  if (testData.length) return { status: "warning", testData };
   return { status: "unable_to_confirm", reason: input.thinShell ? "thin_shell" : "no_details" };
 }

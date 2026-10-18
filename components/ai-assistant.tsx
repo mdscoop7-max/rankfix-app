@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import { getFixPolicy } from "@/lib/fix-policy";
 
 type Props = { dashboard?: boolean; scanId?: string | null; publicLocale?: string; errorContext?: string | null };
 
 export default function AiAssistant({ dashboard = false, scanId = null, publicLocale = "nl", errorContext = null }: Props) {
+  const pathname = usePathname() || "";
+  const alreadyOnFixPage = pathname.startsWith("/dashboard/github");
   const greeting: Record<string, string> = {
     nl: "Hoi! Ik ben RankFix AI. Ik kan uitleg geven over RankFix, SEO, GEO, audits, AI Search en hoe de app werkt.",
     en: "Hi! I’m RankFix AI. I can explain RankFix, SEO, GEO, audits, AI Search and how the app works.",
@@ -26,6 +30,7 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
   ]);
   const [busy, setBusy] = useState(false);
   const [scanIssue, setScanIssue] = useState<any>(null);
+  const [scanIssueLoaded,setScanIssueLoaded]=useState(false);
   const [fixBusy, setFixBusy] = useState(false);
   const [fixResult, setFixResult] = useState("");
   const [language, setLanguage] = useState(publicLocale);
@@ -70,7 +75,7 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
 
   useEffect(() => {
     if (!dashboard || !errorContext) return;
-    setOpen(true);
+    // Fix errors must not automatically reopen the assistant above the controls.
     setMessages((m) => [...m, { role: "assistant", content: (extra[language]||extra.nl).blocked + " " + errorContext }]);
     setInput((extra[language]||extra.nl).blockedAsk);
   }, [dashboard, errorContext]);
@@ -79,23 +84,45 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
     if (!dashboard || !scanId) return;
     setInput((extra[language]||extra.nl).scanAsk);
     setScanIssue(null);
+    setScanIssueLoaded(false);
     setFixResult("");
     fetch("/api/assistant/scan?scanId=" + encodeURIComponent(scanId), { cache: "no-store" })
       .then(async (r) => { const raw=await r.text(); if(!raw.trim()) return {}; try{return JSON.parse(raw);}catch{return {};} })
-      .then((d) => setScanIssue(d.issues?.[0] || null))
-      .catch(() => setScanIssue(null));
+      .then((d) => {
+        const issues = Array.isArray(d.issues) ? d.issues : [];
+        // The assistant must select only actionable findings, never a manual
+        // Brand Identity issue that leads to a misleading GitHub Fix button.
+        const supported = issues.filter((item: any) => {
+          const policy=getFixPolicy(String(item?.issue_id||item?.rule_id||""));
+          return policy.action==="github_fix" && Boolean(policy.safe_type);
+        });
+        const verifiedSchema = supported.find((item: any) =>
+          ["ORGANIZATION_WEBSITE_SCHEMA","STRUCTURED_DATA_MISSING","SITE_STRUCTURED_DATA_MISSING"]
+            .includes(String(item?.issue_id||item?.rule_id||"").toUpperCase())
+          && String(item?.confidence||"").toLowerCase()==="high"
+        );
+        setScanIssue(verifiedSchema || supported[0] || null);
+      })
+      .catch(() => setScanIssue(null))
+      .finally(() => setScanIssueLoaded(true));
   }, [dashboard, scanId]);
 
-  async function startGithubFix() {
+  function startGithubFix() {
+    if (alreadyOnFixPage) {
+      // Do not navigate back to the exact same Fix page: show its current state.
+      setOpen(false);
+      document.querySelector<HTMLElement>(".rf-fix-engine")?.scrollIntoView({behavior:"smooth",block:"start"});
+      return;
+    }
     if (!scanIssue || !scanId || fixBusy) return;
-    setFixBusy(true);
     const issueId=String(scanIssue.issue_id||scanIssue.rule_id||"").trim();
     if(!issueId){
       setFixResult(ex.nochange);
-      setFixBusy(false);
       return;
     }
-    window.location.href="/dashboard/github?scan_id="+encodeURIComponent(scanId)+"&issue_id="+encodeURIComponent(issueId);
+    setFixBusy(true);
+    setOpen(false);
+    window.location.assign("/dashboard/github?scan_id="+encodeURIComponent(scanId)+"&issue_id="+encodeURIComponent(issueId));
   }
 
   useEffect(() => {
@@ -171,11 +198,17 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
               <div className="border-t border-white/10 px-5 py-4">
                 <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">{ex.safe}</div>
                 <p className="mt-1 text-xs text-slate-400">
-                  {scanIssue ? scanIssue.title : "Actief scanprobleem laden…"}
+                  {alreadyOnFixPage
+                    ? "Je bent al op de Fix-pagina. Sluit deze assistent om het voorstel, de blokkade of de goedkeuringsknop te bekijken."
+                     : scanIssue ? scanIssue.title : scanIssueLoaded ? "Geen automatische Fix voor deze scan. Bekijk de verbeterpunten en eventuele handmatige stappen in het rapport." : "Actief scanprobleem laden…"}
                 </p>
-                <button type="button" onClick={startGithubFix} disabled={!scanIssue || fixBusy} className="mt-3 w-full rounded-xl bg-emerald-300 px-4 py-3 text-sm font-bold text-slate-950 disabled:opacity-40">
-                  {fixBusy ? ex.checking : ex.start}
-                </button>
+                {alreadyOnFixPage || scanIssue
+                  ? <button type="button" onClick={startGithubFix} disabled={!alreadyOnFixPage && fixBusy} className="mt-3 w-full rounded-xl bg-emerald-300 px-4 py-3 text-sm font-bold text-slate-950 disabled:opacity-40">
+                      {alreadyOnFixPage ? "Bekijk huidige Fix" : fixBusy ? ex.checking : ex.start}
+                    </button>
+                  : scanIssueLoaded
+                    ? <button type="button" onClick={() => {setOpen(false);window.location.assign("/dashboard/audit/"+encodeURIComponent(scanId));}} className="mt-3 w-full rounded-xl bg-emerald-300 px-4 py-3 text-sm font-bold text-slate-950">Bekijk verbeterpunten</button>
+                    : <button type="button" disabled className="mt-3 w-full rounded-xl bg-slate-400 px-4 py-3 text-sm font-bold text-slate-950 opacity-40">{ex.loading}</button>}
                 {fixResult && <p className="mt-2 break-words text-xs text-slate-400">{fixResult}</p>}
               </div>
             )}

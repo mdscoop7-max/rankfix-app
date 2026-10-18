@@ -25,6 +25,12 @@ export function decryptToken(value: string) {
   decipher.setAuthTag(Buffer.from(tag, "base64url"));
   return Buffer.concat([decipher.update(Buffer.from(encrypted, "base64url")), decipher.final()]).toString("utf8");
 }
+/** GitHub API failure with the HTTP status, so callers can resume safely (e.g. 422 "already exists"). */
+export class GithubError extends Error {
+  readonly status: number;
+  constructor(message: string, status: number) { super(message); this.name = "GithubError"; this.status = status; }
+}
+
 export async function githubFetch<T>(token: string, path: string, init: RequestInit = {}) {
   const response = await fetch(API + path, {
     ...init,
@@ -34,6 +40,6 @@ export async function githubFetch<T>(token: string, path: string, init: RequestI
   const text=await response.text();
   let data:unknown=null; try{data=text?JSON.parse(text):null;}catch{data={message:text};}
   const message=data&&typeof data==="object"&&"message" in data?String((data as {message?:unknown}).message||""):"";
-  if(!response.ok) throw new Error(message || ("GitHub API error " + response.status));
+  if(!response.ok) throw new GithubError(message || ("GitHub API error " + response.status), response.status);
   return data as T;
 }

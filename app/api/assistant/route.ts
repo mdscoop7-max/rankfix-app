@@ -187,11 +187,25 @@ export async function POST(request: Request) {
       }
     }
 
-    const key = process.env.OPENAI_API_KEY;
+    // When the dashboard already supplies the verified reason of a blocked
+    // action, provide that specific explanation even if external AI is offline.
+    // This is explicitly rule-based status help, not a fabricated AI response.
+    if(dashboard && errorContext && /(?:blokkeer|geblokkeerd|handmatig|waarom|veilig|blocked|manual|why)/i.test(message)){
+      const answer=responseLanguage==="nl"
+        ? "RankFix heeft deze fix nog niet live uitgevoerd. Bekende reden: "+errorContext+". Controleer de status en de voorgestelde wijziging in RankFix. Een ontbrekende toestemming kun je daar geven, maar doe dit alleen als de wijziging klopt. Als de broncode of het bewijs is veranderd, moet RankFix stoppen en een nieuw voorstel maken."
+        : "RankFix has not confirmed a live fix. Recorded reason: "+errorContext+". Check the proposal and status inside RankFix. Approve only if the change is correct; an outdated or unverifiable fix must not be published.";
+      return NextResponse.json({answer,mode:"verified_status_help"});
+    }
 
-    if (!key) {
+    const key = (process.env.OPENAI_API_KEY || "").trim();
+
+    // Do not pass malformed keys (including accidental pasted newlines) to
+    // Headers: the runtime exception can otherwise leak the secret to logs.
+    if (!key || !/^sk-[A-Za-z0-9_-]+$/.test(key)) {
+      console.error("Assistant configuration unavailable: OPENAI_API_KEY missing or malformed (secret omitted)");
       return NextResponse.json(
-        { error: assistantErrors[responseLanguage].unavailable },
+        { error: responseLanguage==="nl" ? "AI is tijdelijk niet beschikbaar door een configuratieprobleem. De beheerder moet de AI-koppeling herstellen. Er is niets aan je website gewijzigd." : assistantErrors[responseLanguage].unavailable,
+          code:"ASSISTANT_CONFIGURATION_UNAVAILABLE" },
         { status: 503 }
       );
     }
@@ -238,7 +252,7 @@ export async function POST(request: Request) {
         model: process.env.OPENAI_MODEL || "gpt-5.6-luna",
         instructions: system,
         input: message,
-        max_output_tokens: 700,
+        max_output_tokens: 2000,
       }),
     });
 

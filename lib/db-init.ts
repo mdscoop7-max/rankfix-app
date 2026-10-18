@@ -99,12 +99,30 @@ const statements = [
       ORDER BY updated_at DESC, created_at DESC, id DESC
     ) AS row_number
     FROM pending_fixes
-    WHERE status IN ('PROPOSED','PR_CREATED','AWAITING_MERGE','AWAITING_VERIFICATION','STILL_PRESENT','PREPARED')
+    WHERE status IN ('PROPOSED','PR_CREATED','AWAITING_MERGE','AWAITING_DEPLOYMENT','AWAITING_VERIFICATION','STILL_PRESENT','PREPARED','NEEDS_ATTENTION')
   )
   UPDATE pending_fixes
   SET status = 'SUPERSEDED', updated_at = NOW()
   WHERE id IN (SELECT id FROM ranked_pending_fixes WHERE row_number > 1)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS pending_fixes_active_issue_idx ON pending_fixes(user_id, scanned_url, issue_id) WHERE status IN ('PROPOSED','PR_CREATED','AWAITING_MERGE','AWAITING_VERIFICATION','STILL_PRESENT','PREPARED')`,
+  // Fix Engine lifecycle (QA): deployment tracking, live check and safe stops.
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS base_branch TEXT`,
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS proposal_id UUID`,
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS auto_publish BOOLEAN NOT NULL DEFAULT FALSE`,
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS expected_value TEXT`,
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS head_sha TEXT`,
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS base_blob_sha TEXT`,
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS merge_commit_sha TEXT`,
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS deploy_state TEXT`,
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS deploy_success_at TIMESTAMPTZ`,
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS live_seen_at TIMESTAMPTZ`,
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS merge_attempts INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS verification_attempts INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS last_error_code TEXT`,
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS phase_started_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`,
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS next_check_at TIMESTAMPTZ`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS pending_fixes_active_issue_v2_idx ON pending_fixes(user_id, scanned_url, issue_id) WHERE status IN ('PROPOSED','PR_CREATED','AWAITING_MERGE','AWAITING_DEPLOYMENT','AWAITING_VERIFICATION','STILL_PRESENT','PREPARED','NEEDS_ATTENTION')`,
+  `DROP INDEX IF EXISTS pending_fixes_active_issue_idx`,
   `CREATE TABLE IF NOT EXISTS fix_proposals (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -152,6 +170,8 @@ const statements = [
   `ALTER TABLE fix_proposals ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '2 hours')`,
   `ALTER TABLE fix_proposals ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`,
   `CREATE UNIQUE INDEX IF NOT EXISTS fix_proposals_hash_idx ON fix_proposals(user_id,proposal_hash)`,
+  `ALTER TABLE fix_proposals ADD COLUMN IF NOT EXISTS generator TEXT`,
+  `ALTER TABLE fix_proposals ADD COLUMN IF NOT EXISTS expected_value TEXT`,
   `CREATE TABLE IF NOT EXISTS fix_events (
     id BIGSERIAL PRIMARY KEY,
     proposal_id UUID REFERENCES fix_proposals(id) ON DELETE CASCADE,
@@ -162,6 +182,8 @@ const statements = [
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`,
   `CREATE INDEX IF NOT EXISTS fix_events_proposal_idx ON fix_events(proposal_id,created_at DESC)`,
+  `ALTER TABLE fix_events ADD COLUMN IF NOT EXISTS pending_fix_id UUID`,
+  `CREATE INDEX IF NOT EXISTS fix_events_pending_idx ON fix_events(pending_fix_id,created_at DESC)`,
   `CREATE TABLE IF NOT EXISTS website_repositories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -173,6 +195,10 @@ const statements = [
     UNIQUE(user_id, website_host)
   )`,
   `CREATE INDEX IF NOT EXISTS website_repositories_user_idx ON website_repositories(user_id, website_host)`,
+  `ALTER TABLE website_repositories ADD COLUMN IF NOT EXISTS autofix_publish BOOLEAN NOT NULL DEFAULT FALSE`,
+  `ALTER TABLE website_repositories ADD COLUMN IF NOT EXISTS autofix_repository TEXT`,
+  `ALTER TABLE website_repositories ADD COLUMN IF NOT EXISTS autofix_branch TEXT`,
+  `ALTER TABLE website_repositories ADD COLUMN IF NOT EXISTS autofix_consented_at TIMESTAMPTZ`,
   `CREATE TABLE IF NOT EXISTS website_health_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

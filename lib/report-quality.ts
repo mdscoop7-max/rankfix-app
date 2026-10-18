@@ -50,7 +50,10 @@ export function renderFailureText(stored: unknown): string {
 // Page sampling: which URLs may represent a website.
 // ---------------------------------------------------------------------------
 
-const TRACKING_PARAM = /^(?:utm_[a-z]+|gclid|gbraid|wbraid|fbclid|msclkid|dclid|yclid|twclid|ttclid|li_fat_id|mc_cid|mc_eid|_ga|_gl|_ke|_hsenc|_hsmi|gad_[a-z]+|camp|campaign|cmp|cid|icid|intcmp|int_cmp|ref|referrer|source|src|trk|tracking|sc_[a-z]+|s_kwcid|ef_id|from_srp|prevent-auto-open-privacy-settings)$/i;
+// Marketing and analytics parameters of the common EU/US tools (Google, Meta,
+// Microsoft, AT Internet/Piano, Matomo, Webtrends, Adobe, HubSpot, Mailchimp,
+// Marketo, affiliate networks). They never identify a different page.
+const TRACKING_PARAM = /^(?:utm_[a-z_]+|xtor|at_[a-z_]+|srsltid|pk_[a-z_]+|mtm_[a-z_]+|matomo_[a-z_]+|piwik_[a-z_]+|wt_mc|wt\.mc_id|wt\.[a-z_]+|ito|ns_[a-z_]+|spm|scid|igshid|mkt_tok|hsctatracking|oly_[a-z_]+|vero_[a-z_]+|rb_clickid|epik|s_cid|sscid|irclickid|awc|zanpid|tduid|ranmid|ransiteid|ranEAID|gclid|gbraid|wbraid|fbclid|msclkid|dclid|yclid|twclid|ttclid|li_fat_id|mc_cid|mc_eid|_ga|_gl|_ke|_hsenc|_hsmi|gad_[a-z]+|camp|campaign|cmp|cid|icid|intcmp|int_cmp|ref|referrer|source|src|trk|tracking|sc_[a-z]+|s_kwcid|ef_id|from_srp|prevent-auto-open-privacy-settings)$/i;
 
 export function stripTrackingParams(value: string): string {
   try {
@@ -178,9 +181,34 @@ export function outdatedTitleYear(title: string, now: Date = new Date()): number
   return old.length && !years.some((year) => year >= current - 1) ? Math.max(...old) : null;
 }
 
-export function assessPageTitle(title: string, host: string, now: Date = new Date(), pixelWidth: number | null = null): MetaAssessment {
+/**
+ * A CMS template that prints a field label into the title: "… | Careers Description",
+ * "Product | ASML Title", "Page title", "undefined", "{{ title }}", "%title%". Only the
+ * last segment is read, and a trailing label word ("Description", "Title") counts only
+ * when the rest of that segment is the site's brand or a section of the page's own URL,
+ * so real titles such as "Software engineer job description" are untouched.
+ */
+const FIELD_LABEL = /\b(?:description|beschrijving|omschrijving|beschreibung|descripción|descrizione|title|titel|titre|titolo|título|meta[- ]?title|seo[- ]?title)$/i;
+export function templateFieldLeak(title: string, host = "", path = ""): string | null {
+  const value = title.trim();
+  if (/\{\{[^}]*\}\}|%[a-z_]+%|\$\{[^}]*\}|^(?:undefined|null|nan|page title|seo title|meta title)$|\b(?:undefined|null)\s*$/i.test(value)) return value;
+  const segments = value.split(/\s+[|–—-]\s+|\s*\|\s*/).map((part) => part.trim()).filter(Boolean);
+  if (segments.length < 2) return null;
+  const last = segments[segments.length - 1];
+  const label = last.match(FIELD_LABEL)?.[0];
+  if (!label) return null;
+  const rest = last.slice(0, last.length - label.length).trim().toLowerCase();
+  if (!rest || rest.split(/\s+/).length > 2) return null;
+  const brand = host.toLowerCase().replace(/^www\./, "").split(".")[0] || "";
+  const sections = path.toLowerCase().split("/").filter(Boolean);
+  return rest === brand || sections.includes(rest) || sections.includes(rest.replace(/\s+/g, "-")) ? last : null;
+}
+
+export function assessPageTitle(title: string, host: string, now: Date = new Date(), pixelWidth: number | null = null, path = ""): MetaAssessment {
   const value = title.trim();
   if (!value) return { status: "WARNING", credit: 0.25, details: "Geen title gevonden in raw HTML.", flag: "missing" };
+  const leak = templateFieldLeak(value, host, path);
+  if (leak) return { status: "WARNING", credit: 0.7, details: `Title bevat een sjabloonveld ("${leak}"); het CMS print waarschijnlijk een veldnaam in plaats van een waarde.`, flag: "placeholder" };
   if (isPlaceholderTitle(value)) {
     return { status: "WARNING", credit: 0.3, details: `Title is een algemene standaardtitel ("${value}") zonder onderwerp.`, flag: "placeholder" };
   }
@@ -211,11 +239,11 @@ export function assessPageTitle(title: string, host: string, now: Date = new Dat
   return { status: "PASS", credit: 1, details: lengthText };
 }
 
-export function assessPageDescription(description: string, tagPresent: boolean): MetaAssessment {
+export function assessPageDescription(description: string, tagPresent: boolean, source: "raw" | "rendered" = "raw"): MetaAssessment {
   const value = description.trim();
   if (!value) return tagPresent
     ? { status: "WARNING", credit: 0.25, details: "Meta description-tag aanwezig maar content is leeg.", flag: "empty" }
-    : { status: "WARNING", credit: 0.25, details: "Geen meta description-tag gevonden in raw HTML.", flag: "missing" };
+    : { status: "WARNING", credit: 0.25, details: source === "rendered" ? "Geen meta description-tag gevonden, ook niet na JavaScript-rendering." : "Geen meta description-tag gevonden in raw HTML.", flag: "missing" };
   const length = value.length;
   if (length >= 70 && length <= 160) return { status: "PASS", credit: 1, details: `Meta description gevonden (${length} tekens); bruikbare lengte.` };
   // Like titles: Google truncates long descriptions in the snippet; length alone
@@ -244,11 +272,29 @@ export function botManagerCookies(cookieNames: string[]): string[] {
   return [...new Set(cookieNames.filter((name) => BOT_MANAGER_COOKIE.test(name)))];
 }
 
+// Bot managers also announce themselves in response headers without setting a
+// cookie (DataDome, Cloudflare challenge, Imperva, Sucuri, PerimeterX, Kasada).
+// Plain CDN headers (Akamai, Cloudflare) are not bot-manager evidence on their own.
+const BOT_MANAGER_HEADER = /^(?:x-datadome(?:-cid)?|cf-mitigated|x-iinfo|x-sucuri-id|x-sucuri-block|x-px-[\w-]+|x-kpsdk-[\w-]+)$/i;
+export function botManagerHeaders(headers: Headers | Array<[string, string]>): string[] {
+  const names: string[] = [];
+  const entries = Array.isArray(headers) ? headers : [...headers.entries()];
+  for (const [name, value] of entries) {
+    if (BOT_MANAGER_HEADER.test(name)) names.push(name.toLowerCase());
+    if (/^server$/i.test(name) && /datadome|imperva|incapsula|sucuri/i.test(value)) names.push(`server: ${value}`);
+  }
+  return [...new Set(names)];
+}
+
 // A bot manager on its own is common and harmless (IKEA, Coolblue). Only when the
-// response also lacks the head metadata a real storefront ships do we treat it as
-// a reduced bot response whose absences prove nothing.
-export function isReducedBotResponse(input: { botCookies: string[]; jsonLdBlocks: number; ogTags: number; h1Count: number }): boolean {
-  return input.botCookies.length > 0 && input.jsonLdBlocks === 0 && input.ogTags === 0 && input.h1Count === 0;
+// response also lacks the head metadata a real page ships do we treat it as a
+// reduced bot response whose absences prove nothing. The H1 rule is relaxed to
+// "no H1 or a short page" so a stripped page with a stray heading still counts.
+export function isReducedBotResponse(input: { botCookies: string[]; botHeaders?: string[]; jsonLdBlocks: number; ogTags: number; h1Count: number; visibleWords?: number; descriptionPresent?: boolean }): boolean {
+  const botManager = input.botCookies.length > 0 || (input.botHeaders || []).length > 0;
+  if (!botManager || input.jsonLdBlocks > 0 || input.ogTags > 0) return false;
+  if (input.h1Count === 0) return true;
+  return input.descriptionPresent === false && typeof input.visibleWords === "number" && input.visibleWords < 150;
 }
 
 // Checks whose negative result depends on the page body or head metadata that a
@@ -256,7 +302,11 @@ export function isReducedBotResponse(input: { botCookies: string[]; jsonLdBlocks
 export const BOT_SENSITIVE_CHECKS = new Set([
   "schema", "organization_website", "entity", "social", "twitter_card", "h1", "headings",
   "trust_legal_signals", "faq", "answer", "breadcrumbs", "alt", "content", "identity", "trust",
+  "author", "business_placeholders",
 ]);
+// Head elements that a stripped response may omit: only their ABSENCE is unproven
+// (a present but too long description is still evidence about the real page).
+export const BOT_SENSITIVE_WHEN_ABSENT = new Set(["description", "geo_description", "canonical", "lang", "hreflang"]);
 
 // ---------------------------------------------------------------------------
 // Sitewide aggregation: real counts and template patterns.
@@ -310,4 +360,13 @@ const NON_ENTITY_TYPES = /^(?:\w*action|listitem|itemlist|breadcrumblist|imageob
 
 export function entityTypesForDisplay(types: string[]): string[] {
   return [...new Set(types.filter((type) => !NON_ENTITY_TYPES.test(type.trim())))];
+}
+
+// A registrar's placeholder for a reserved, parked or for-sale domain is not a website:
+// there is no organisation, content or SEO to audit. Read from the title, or from the
+// body of a short page only (hosting providers mention "domain names" on real sites).
+const PARKED_PHRASES = /(?<![\p{L}])(?:domeinnaam (?:is )?gereserveerd|domein (?:is )?gereserveerd|deze domeinnaam is (?:geregistreerd|te koop|gereserveerd)|deze domeinnaam is geregistreerd door|this domain (?:is|has been|may be) (?:for sale|parked|registered|reserved)|this domain name is (?:for sale|parked|reserved)|domain (?:name )?(?:is )?(?:parked|reserved)|parked (?:domain|free)|buy this domain|the domain [\p{L}\p{N}.-]+ is for sale|diese domain (?:ist|wurde) (?:registriert|reserviert|geparkt|zu verkaufen)|domain (?:ist )?reserviert|ce (?:nom de )?domaine (?:est|a été) (?:à vendre|réservé|enregistré|parqué)|domaine réservé|questo dominio è (?:in vendita|stato registrato|riservato)|dominio (?:riservato|in vendita|parcheggiato)|este dominio (?:está a la venta|ha sido registrado|está reservado)|dominio reservado|ta domena (?:je naprodaj|je rezervirana)|ta domena jest na sprzedaż|domena (?:zarezerwowana|na sprzedaż)|doména je (?:na prodej|rezervována)|denne domæne er (?:til salg|reserveret)|denna domän är (?:till salu|reserverad)|sedoparking|parkingcrew|bodis\.com)(?![\p{L}])/iu;
+export function isParkedDomainPage(input: { title: string; text: string; words: number }): boolean {
+  if (PARKED_PHRASES.test(String(input.title || ""))) return true;
+  return input.words < 300 && PARKED_PHRASES.test(String(input.text || "").slice(0, 4000));
 }

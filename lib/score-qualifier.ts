@@ -43,8 +43,11 @@ const TEXT: Record<Locale, { complete: string; final: string; sectorOnly: string
 export function scoreQualifier(result: QualifiableResult | null | undefined, locale: Locale) {
   const t = TEXT[locale] || TEXT.nl;
   const model = result?.scoreModel || {};
-  const level = model.evidenceLevel || (model.provisional ? "provisional" : "complete");
   const coverage = result?.coverage?.coveragePercent;
+  // "Complete" needs every applicable check confirmed. Older stored reports could
+  // say "complete" at e.g. 97% coverage; those are shown as provisional (with range).
+  const storedLevel = model.evidenceLevel || (model.provisional ? "provisional" : "complete");
+  const level = storedLevel === "complete" && typeof coverage === "number" && coverage < 100 ? "provisional" : storedLevel;
   const parts = [
     model.headline?.kind === "range" && typeof result?.overallScore === "number" ? `${t.point} ${result.overallScore}` : "",
     typeof coverage === "number" ? `${t.coverage} ${coverage}%` : "",
@@ -58,7 +61,7 @@ export function scoreQualifier(result: QualifiableResult | null | undefined, loc
   const reasons: string[] = model.evidenceReasons || [];
   // A missing sector is named as such, also when other reasons apply (it changes which modules count).
   const unknownSector = level === "provisional" && reasons.some((r) => /^Hoofdsector niet vastgesteld/.test(r));
-  const label = level === "complete" && !fully ? t.final : onlySector ? t.sectorOnly : unknownSector ? t.sectorUnknown : t[level];
+  const label = level === "complete" && !fully ? t.final : level === "provisional" && storedLevel === "complete" ? t.provisional : onlySector ? t.sectorOnly : unknownSector ? t.sectorUnknown : t[level];
   return { level, label, detail: parts.join(" · "), note: level === "complete" ? "" : t.perfect };
 }
 

@@ -44,7 +44,8 @@
     "financial_services"
    ],
    "scannedOn": "2026-10-16",
-   "finding": "Sector juist; rendering mislukt, bewijsdekking 72% (owner-scan 16-10)"
+   "finding": "Sector juist; rendering mislukt, bewijsdekking 72% (owner-scan 16-10)",
+   "rescan": "16-10 23:29: sector juist 90%; browser geblokkeerd/armer (17 vs 1871 woorden), raw HTML behouden, indicatie 73–100; dienstpagina's met sitebreed Article-schema als artikel getypeerd"
   },
   {
    "host": "brembo.com",
@@ -56,7 +57,14 @@
    "host": "mbank.pl",
    "expected": "financial_services",
    "scannedOn": "2026-10-16",
-   "finding": "Sector juist 96%; controle financiële producten vs. webshop (owner-scan 16-10)"
+   "finding": "Sector juist 96%; controle financiële producten vs. webshop (owner-scan 16-10)",
+   "rescan": "16-10 23:26/23:27: sector juist, retailcontroles N.v.t., rekeningpagina's als dienst; 'raw HTML'-tekst na rendering"
+  },
+  {
+   "host": "simple.nl",
+   "expected": "parked",
+   "scannedOn": "2026-10-16",
+   "finding": "Geparkeerd/gereserveerd domein kreeg een volledige SEO-score (37–84); korte statische pagina als 'JavaScript-shell' behandeld"
   }
  ],
  "planned": [
