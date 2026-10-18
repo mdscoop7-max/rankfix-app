@@ -307,7 +307,27 @@ export default function GithubPage(){
           {validation?.errors?.length ? <ul className="mt-3 list-disc space-y-1 pl-5">{validation.errors.map((item,i)=><li key={i}>{item}</li>)}</ul> : null}
           {validation?.warnings?.length ? <div className="mt-4"><div className="font-semibold text-amber-200">{t.warnings}</div><ul className="mt-1 list-disc space-y-1 pl-5 text-amber-100">{validation.warnings.map((item,i)=><li key={i}>{item}</li>)}</ul></div> : null}
         </div>}
-        {message&&<div className="rounded-xl bg-emerald-500/10 p-4 text-sm text-emerald-200 break-all">{message}</div>}{completedPr&&<div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/[0.06] p-5"><strong className="text-emerald-200">{language==="nl"?"Pull Request klaar":"Pull Request ready"}</strong><p className="mt-2 text-sm text-slate-300">{error ? (language==="nl"?"Automatisch publiceren is geblokkeerd. RankFix AI is geopend om uit te leggen wat nodig is. Gebruik GitHub alleen als de AI aangeeft dat dit noodzakelijk is.":"Automatic publishing is blocked. RankFix AI is open to explain what is needed. Use GitHub only if the AI says it is necessary.") : (language==="nl"?completedPr.merged ? (language==="nl"?"De Pull Request is samengevoegd. Scan de live website opnieuw om de verbetering te controleren.":"The Pull Request has been merged. Rescan the live website to verify the fix.") : (language==="nl"?"Pull Request aangemaakt, maar nog niet samengevoegd. Je live website is niet gewijzigd. Controleer eerst de code op GitHub en merge alleen na jouw goedkeuring. Scan pas daarna opnieuw.":"Pull Request created but not merged. Your live website has not changed. Review the code on GitHub and merge only after your approval. Rescan afterwards."))}</p><div className="mt-4 flex flex-wrap gap-3">{siteUrl&&<Link href={`/dashboard/scan?url=${encodeURIComponent(siteUrl)}&verify_issue=${encodeURIComponent(issueId)}`} className="rf-primary-link inline-flex w-auto">{language==="nl"?completedPr.merged ? (language==="nl"?"Opnieuw scannen en fix controleren →":"Rescan and verify fix →") : (language==="nl"?"Na PR-merge: opnieuw scannen →":"After PR merge: rescan →")}</Link>}{completedPr.url&&<a href={completedPr.url} target="_blank" rel="noreferrer" className="inline-flex rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-slate-300">{language==="nl"?"Bekijk PR op GitHub ↗":"View PR on GitHub ↗"}</a>}</div></div>}
+        {message&&<div className="rounded-xl bg-emerald-500/10 p-4 text-sm text-emerald-200 break-all">{message}</div>}
+        {completedPr&&(
+          <div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/[0.06] p-5">
+            <strong className="text-emerald-200">{language==="nl"?"Pull Request klaar":"Pull Request ready"}</strong>
+            <p className="mt-2 text-sm text-slate-300">
+              {error
+                ? (language==="nl"?"De Pull Request-status kan niet worden bevestigd. Controleer de details op GitHub.":"The Pull Request status could not be confirmed. Review the details on GitHub.")
+                : completedPr.merged
+                  ? (language==="nl"?"De Pull Request is samengevoegd. Controleer de live website met een nieuwe scan.":"The Pull Request has been merged. Rescan the live website to verify the fix.")
+                  : (language==="nl"?"Pull Request aangemaakt, maar nog niet samengevoegd. Je live website is nog niet gewijzigd. Controleer de code in GitHub en merge alleen na jouw goedkeuring. Scan pas daarna opnieuw.":"Pull Request created but not merged. Your live website has not changed. Review the code on GitHub and merge only after your approval. Rescan afterwards.")}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              {siteUrl&&<Link href={`/dashboard/scan?url=${encodeURIComponent(siteUrl)}&verify_issue=${encodeURIComponent(issueId)}`} className="rf-primary-link inline-flex w-auto">
+                {completedPr.merged
+                  ? (language==="nl"?"Opnieuw scannen en fix controleren →":"Rescan and verify fix →")
+                  : (language==="nl"?"Na PR-merge: opnieuw scannen →":"After PR merge: rescan →")}
+              </Link>}
+              {completedPr.url&&<a href={completedPr.url} target="_blank" rel="noreferrer" className="inline-flex rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-slate-300">{language==="nl"?"Bekijk PR op GitHub ↗":"View PR on GitHub ↗"}</a>}
+            </div>
+          </div>
+        )}
         {preview&&<div className="rounded-2xl border border-cyan-300/20 bg-black/25 p-4 text-sm">
           <div className="flex items-center justify-between gap-3"><strong>{t.preview} {preview.startLine}</strong><span className="text-slate-400">{preview.changedLines??"?"} {t.changed}</span></div>
           {preview.summary&&<p className="mt-2 text-slate-300">{preview.summary}</p>}
