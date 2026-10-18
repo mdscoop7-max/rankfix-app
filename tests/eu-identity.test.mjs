@@ -214,7 +214,7 @@ test("generic public-interest mission with help request is a provisional nonprof
   const cases=[
     {title:"Samen voor natuur | Vereniging A",description:"Wij komen op voor vogels en hun leefgebieden. Help je mee?",schemaTypes:["Organization","WebSite"]},
     {title:"Protect wildlife | Conservation Group",description:"We protect wildlife and their habitats. Donate to help.",schemaTypes:["Organization","WebSite"]},
-    {title:"Naturschutz gemeinsam | Gruppe",description:"Wir schützen Tiere und Lebensräume. Jetzt spenden.",schemaTypes:["Organization"]},
+    {title:"Gemeinsam für Tiere | Gruppe",description:"Wir schützen Tiere und Lebensräume. Jetzt spenden.",schemaTypes:["Organization"]},
   ];
   for(const sample of cases){
     const id=detectEuPrimaryIdentity({...sample,hostname:"neutral-sample.test",homepage:true});

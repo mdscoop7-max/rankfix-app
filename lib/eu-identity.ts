@@ -324,7 +324,7 @@ const NGO_STRONG = either(
 // own identity: public-interest action, what is protected, and an invitation
 // to help. These are generic language signals, never domain exceptions.
 const NGO_MISSION_ACTION = stems([
-  "komt op voor", "zet zich in voor", "zetten ons in voor", "beschermt", "beschermen", "voor het behoud van",
+  "komt op voor", "komen op voor", "zet zich in voor", "zetten ons in voor", "beschermt", "beschermen", "voor het behoud van",
   "protect", "conserve", "safeguard", "stand up for", "defend",
   "schützen", "schützt", "setzen uns ein für", "setzen sich ein für",
   "protège", "protégeons", "protéger", "préserver", "défendre",
