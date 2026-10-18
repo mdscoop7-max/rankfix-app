@@ -44,6 +44,39 @@ Gemeten door `detectEuPrimaryIdentity()` rechtstreeks te draaien op de opgeslage
 | P2 | G13: paginatype-telling uit dezelfde typering als de audits | `lib/representative-pages.ts` of route | eenheidstest |
 | P3 | Scanformulier: geen oude URL via suggestielijst bij Enter | dashboard | handmatig + test indien mogelijk |
 
-## Status
+## Status (18 oktober 2026)
 
-Wordt per afgerond onderdeel bijgewerkt, met commit en testresultaat.
+| Prio | Onderdeel | Status | Commit | Regressiebewijs |
+|---|---|---|---|---|
+| P0 | G2–G10 identiteit | klaar | `66f0c7d` | `tests/eu-identity-36.test.mjs`: 52 positieve en negatieve gevallen in 12 talen |
+| P0 | G1 commerce-zekerheid, G5 hotelveto | klaar | `832598b` | scanmatrix: 7 nieuwe profielen (telecom/energie/vastgoed/goed doel/SaaS met winkelfunctie, hotelketen, winkel zonder winkelwoorden ≤ 84) |
+| P1 | G11 niet-beoordeelde categorie | klaar | `8741875` | `tests/score-unassessed-36.test.mjs`; scanmatrix-invariant in alle drie modi; scoremodel `3.6-unassessed-excluded` |
+| P2 | G12 www-terugval na DNS-miss | klaar | `263c39f` | `tests/dns-www-fallback-36.test.mjs` (incl. geen terugval bij tijdelijke DNS-fout of geblokkeerd adres) |
+| P2 | G13 paginatypetelling | klaar | `22e0de5` | scanmatrix-invariant: oude code 21/137 fout, nieuwe 0/137 |
+| P3 | Scanformulier | klaar | `166cf78` | `tests/scan-form-36.test.mjs` |
+
+Volledige suite na alle commits: 489 tests, 488 geslaagd, 0 mislukt, 1 overgeslagen (PostgreSQL-integratietest zonder `RF_PG_TEST_URL`, zoals voorheen).
+Scanmatrix: 137/137 in de modi both, seo en geo. Typecheck schoon. ESLint: geen nieuwe meldingen ten opzichte van de basis (bestaande meldingen in `route.ts` blijven).
+`next build` kon in de werkomgeving niet afronden omdat Google Fonts daar niet bereikbaar is; de build wordt op de Vercel-preview gecontroleerd.
+
+### Controle op de opgeslagen pilotmetadata (alleen regressie, niet als onafhankelijke meting)
+
+Van de 23 sites met een foute of geen sector geeft de identiteitsmodule nu 18 keer de juiste sector op titel en omschrijving alleen.
+De 5 overige (Adyen, EDF, Caritas, Hengeler, VDL) hebben geen sectorwoord in titel of omschrijving ("EDF France | Groupe EDF", "Startseite").
+Daar is onthouden de eerlijke uitkomst; Adyen wordt door de betaaldienstenmodule herkend. Dit is geen nieuwe score: deze sites zijn bij het herstel gezien.
+
+## De 14 mislukte scans (afzonderlijk onderzocht)
+
+Bron: `scan_attempts` van de pilot (alleen gelezen). Bij geen enkele mislukte scan is een rapport opgeslagen of een scan in rekening gebracht.
+
+| Site | Code | Oorzaak | Besluit |
+|---|---|---|---|
+| Wehkamp, PcComponentes, Allianz DE, Gouvernement.fr, Valtioneuvosto, Pararius, Booli | `CHALLENGE_OR_INTERSTITIAL` | Botbescherming toont een uitdaging in plaats van de pagina | Niet omzeilen. Melding is eerlijk, geen rapport. |
+| Immowelt, NH Hotels | `HTTP_BLOCKED` (403) | Toegang geweigerd aan de scanner | Niet omzeilen (geen browser-user-agent vervalsen). |
+| Personio | `SITE_RATE_LIMITED` (429), ook bij herkansing | Rate limit van de site | Respecteren; geen automatische herhaling. |
+| ABN AMRO | `HTTP_SERVER_ERROR` (503), ook bij herkansing | Site geeft 503 aan de scanner | Niet omzeilen; eerlijk als "niet beschikbaar" gemeld. |
+| CaixaBank, KLM | `FETCH_TIMEOUT` (15 s, twee pogingen) | Geen antwoord binnen het budget; vanuit deze werkomgeving niet live te reproduceren | Ongewijzigd. Open risico: kan trage site of bot-tarpit zijn. Meten in de blinde set. |
+| Scandic Hotels | `FETCH_CONNECTION` | Verbinding verbroken op netwerkniveau | Niet omzeilen. |
+| HCL Lyon | `FETCH_DNS` op de kale host | Alleen `www.` heeft een DNS-record | **Hersteld (G12).** |
+
+Conclusie: 11 van de 14 zijn bewuste toegangsbeperkingen die RankFix volgens de opdracht niet mag omzeilen. Het stabiliteitscriterium van scorekaart v2 telt die mee; een hogere stabiliteit is daar alleen eerlijk haalbaar met sites die scanners toelaten, niet met trucs.
