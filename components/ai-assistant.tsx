@@ -82,7 +82,19 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
     setFixResult("");
     fetch("/api/assistant/scan?scanId=" + encodeURIComponent(scanId), { cache: "no-store" })
       .then(async (r) => { const raw=await r.text(); if(!raw.trim()) return {}; try{return JSON.parse(raw);}catch{return {};} })
-      .then((d) => setScanIssue(d.issues?.[0] || null))
+      .then((d) => {
+        const issues = Array.isArray(d.issues) ? d.issues : [];
+        // The scan's first warning can require external AI. Prefer an evidenced
+        // homepage schema issue that the GitHub Fix route can preview without it.
+        // The fix endpoint still independently validates confidence/evidence and
+        // only produces a diff; it never writes code on this button press.
+        const verifiedSchema = issues.find((item: any) =>
+          ["ORGANIZATION_WEBSITE_SCHEMA", "STRUCTURED_DATA_MISSING", "SITE_STRUCTURED_DATA_MISSING"]
+            .includes(String(item?.issue_id || item?.rule_id || "").toUpperCase())
+          && String(item?.confidence || "").toLowerCase() === "high"
+        );
+        setScanIssue(verifiedSchema || issues[0] || null);
+      })
       .catch(() => setScanIssue(null));
   }, [dashboard, scanId]);
 
