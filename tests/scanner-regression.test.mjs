@@ -1742,7 +1742,7 @@ test("public report Fix never sends an unauthenticated GitHub request without sc
   const root = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
   const dashboard = await readFile(new URL("../app/dashboard/scan/page.tsx", import.meta.url), "utf8");
   assert.doesNotMatch(root, /fetch\("\/api\/github\/fix"/);
-  assert.match(root, /new URLSearchParams\(\{ url: website, fix_issue: issueId \}\)/);
+  assert.match(root, /new URLSearchParams\(\{ url: website, fix_issue: issueId, start_fix:"1" \}\)/);
   assert.match(root, /window\.location\.assign\("\/dashboard\/scan\?" \+ params\.toString\(\)\)/);
   assert.match(dashboard, /const fixIssue = searchParams\.get\("fix_issue"\)/);
   assert.match(dashboard, /data\.scanId/);
