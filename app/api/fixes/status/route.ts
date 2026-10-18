@@ -5,6 +5,7 @@ import { getDb } from "@/lib/db";
 import { decryptToken } from "@/lib/github";
 import { advanceFix, publicFixView, autoPublishSupported, confirmedFixIsStale, ACTIVE_FIX_STATUS_SQL, type FixRow } from "@/lib/fix-engine";
 import { createEngineDeps } from "@/lib/fix-engine-deps";
+import { isTransientSeoCopy } from "@/lib/meta-description-fix";
 
 function normalizeScanUrl(value:string){
   try{
@@ -60,9 +61,12 @@ export async function GET(request:Request){
   const latestCheck=latestChecks.find((c:{issue_id?:string;rule_id?:string})=>
     String(c.issue_id||c.rule_id||"").toUpperCase()===issueFilter.toUpperCase()
   );
+  // Older saved scans keep their historical scoring rules. A temporary form
+  // notification must not support a current verified SEO repair.
+  const metaQualityIssue=isTransientSeoCopy(latestScan?.result?.metrics?.description);
   const latestScanInfo=latestScan
-    ? {id:String(latestScan.id),created_at:latestScan.created_at,issue_status:latestCheck
-        ? String(latestCheck.issue_status||latestCheck.status||"").toUpperCase():null}
+    ? {id:String(latestScan.id),created_at:latestScan.created_at,meta_quality_issue:metaQualityIssue,issue_status:latestCheck
+        ? ((metaQualityIssue&&String(latestCheck.issue_id||latestCheck.rule_id||"")==="META_DESCRIPTION_GUIDANCE")?"WARNING":String(latestCheck.issue_status||latestCheck.status||"").toUpperCase()):null}
     : null;
   const pending=await db.query(
     `SELECT * FROM pending_fixes
@@ -97,8 +101,14 @@ export async function GET(request:Request){
     [user.id,scannedUrl,issueFilter]
   );
   const views=[];
+  const alreadyReported=new Set<string>();
   for(const row of refreshed.rows as FixRow[]){
+    // The newest repair wins. Never display two successful histories as two
+    // currently resolved issues on either mobile or desktop.
+    if(alreadyReported.has(row.issue_id)) continue;
+    alreadyReported.add(row.issue_id);
     if(confirmedFixIsStale(row,latestScan)||confirmedFixIsStale(row,contextScan)) continue;
+    if(row.status==="VERIFIED_RESOLVED" && row.issue_id==="META_DESCRIPTION_GUIDANCE" && metaQualityIssue) continue;
     const view=publicFixView(row);
     let review:null|{proposal_id:string;proposal_hash:string;scan_id:string;expected_value:string;summary:string}=null;
     // A previous Pull Request must not hide the customer approval action.

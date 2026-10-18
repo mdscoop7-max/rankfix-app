@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   applyMetaDescriptionToSource, buildEvidenceDescription, extractSourceDescriptionEvidence, checkDescriptionCandidate,
-  generateMetaDescription, parseAiJsonObject, normalizeDescriptionText,
+  generateMetaDescription, parseAiJsonObject, normalizeDescriptionText, isTransientSeoCopy,
 } from "../lib/meta-description-fix.ts";
 
 const NEW = "Bekijk het assortiment van Voorbeeldshop: keukenspullen, tuingereedschap en opbergoplossingen, overzichtelijk per categorie geordend.";
@@ -246,4 +246,23 @@ test("transient form and status feedback is never trusted as SEO description cop
   assert.doesNotMatch(evidence[0],/Je bericht kon niet worden verzonden/);
   const text=buildEvidenceDescription({current:"Ontdek gadgets en slimme producten bij Voorbeeldshop.",h1:"Slimme gadgets voor een makkelijker leven.",extra:["Je bericht kon niet worden verzonden.",evidence[0]]});
   assert.ok(text===null||!text.includes("Je bericht kon niet worden verzonden."));
+});
+
+test("QA: old 153-character message must be corrected, not counted as a good description", () => {
+  const polluted="Ontdek gadgets en slimme producten bij TrendMix. Slimme gadgets voor een makkelijker leven. Slimme gadgets en meer. Je bericht kon niet worden verzonden.";
+  assert.equal(polluted.length,153);
+  assert.equal(isTransientSeoCopy(polluted),true);
+  assert.ok(checkDescriptionCandidate(polluted).errors.includes("TRANSIENT_UI_MESSAGE"));
+  const repaired=buildEvidenceDescription({current:polluted,title:"TrendMix | Slimme gadgets en meer",h1:"Slimme gadgets voor een makkelijker leven.",extra:["Handige tech, praktische accessoires en slimme producten voor thuis, onderweg en op kantoor."]});
+  assert.ok(repaired===null || (checkDescriptionCandidate(repaired,polluted).ok && !isTransientSeoCopy(repaired)),repaired??"");
+  assert.equal(isTransientSeoCopy("Slimme gadgets en accessoires voor thuis."),false);
+});
+
+test("QA: scan, source, and live-verification enforce the same content quality", () => {
+  const scan=readFileSync(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
+  const fix=readFileSync(new URL("../app/api/github/fix/route.ts",import.meta.url),"utf8");
+  const engine=readFileSync(new URL("../lib/fix-engine.ts",import.meta.url),"utf8");
+  assert.match(scan,/isTransientSeoCopy\(description\)/);
+  assert.match(fix,/checkDescriptionCandidate\(description\)\.ok/);
+  assert.match(engine,/if\(!checkDescriptionCandidate\(live\)\.ok\) return "not_yet"/);
 });

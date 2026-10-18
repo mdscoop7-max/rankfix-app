@@ -61,7 +61,7 @@ export default function GithubPage() {
   const [notice, setNotice] = useState("");
   const [fixPlan, setFixPlan] = useState<Plan | null>(null);
   const [fix, setFix] = useState<FixView | null>(null);
-  const [latestScanInfo,setLatestScanInfo] = useState<{id:string;created_at:string|null;issue_status:string|null}|null>(null);
+  const [latestScanInfo,setLatestScanInfo] = useState<{id:string;created_at:string|null;issue_status:string|null;meta_quality_issue?:boolean}|null>(null);
   const [scanBusy, setScanBusy] = useState(false);
   const [contextLoading, setContextLoading] = useState(true);
   const [mappingWarning, setMappingWarning] = useState("");
@@ -311,6 +311,12 @@ export default function GithubPage() {
           <Link href={"/dashboard/audit/"+encodeURIComponent(latestScanInfo.id)} className="mt-3 inline-flex min-h-11 items-center rounded-lg border border-amber-200/30 px-4 font-semibold text-white">{tx("Bekijk nieuwste scan →","View latest scan →")}</Link>
         </div>}
 
+        {latestScanInfo?.meta_quality_issue && !historicalScan && isMeta && <div role="alert" className="rf-fix-alert mt-4 rounded-xl border border-amber-300/30 bg-amber-300/[0.08] p-4 text-sm leading-6 text-amber-100">
+          <strong>{tx("Beschrijving bevat een formuliermelding", "Description contains a form message")}</strong>
+          <p className="mt-2">{tx("Deze scan gebruikte nog de oude inhoudscontrole: de meta description heeft voldoende tekens, maar bevat een verzend- of foutmelding. Dit is niet volledig opgelost. Maak een nieuwe scan na het herstellen van de paginatekst.", "This scan used earlier copy validation. The meta description is long enough but includes form feedback. The fix is not fully resolved. Scan again after correcting the page copy.")}</p>
+          <Link className="mt-3 inline-flex min-h-11 items-center rounded-lg border border-amber-200/30 px-4 font-semibold text-white" href="/dashboard/scan">{tx("Opnieuw scannen →","Scan again →")}</Link>
+        </div>}
+
         {/* Progress — one place for status; no duplicate success messages. */}
         {!contextLoading && fix && <section aria-live="polite" className="rf-fix-status-panel mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-6">
           <h2 className="text-lg font-bold">{fix.reason_code === "PR_AWAITING_OWNER" ? tx("Jouw akkoord is nodig", "Your approval is required") : fix.stage === "confirmed" ? (historicalScan ? tx("✓ Eerdere Fix bevestigd", "✓ Previous Fix confirmed") : "✓ " + stageLabels.confirmed) : fix.stage === "manual" ? stageLabels.manual : stageLabels[fix.stage]}</h2>
@@ -396,6 +402,8 @@ export default function GithubPage() {
                   {connected && !mapped && !mappingWarning && repos.length > 1 && <label className="mb-4 block text-sm"><span className="font-semibold">{tx("Eenmalig: in welke repository staat deze website?", "One-time: which repository holds this website?")}</span><select value={repo} onChange={(e) => { setRepo(e.target.value); const r = repos.find((x) => x.full_name === e.target.value); if (r) setBaseBranch(r.default_branch || "main"); }} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"><option value="">{tx("Kies repository", "Choose repository")}</option>{repos.map((r) => <option key={r.full_name} value={r.full_name}>{r.full_name}</option>)}</select></label>}
                   {historicalScan
                     ? <p role="status" className="rf-fix-alert rounded-xl border border-amber-300/25 bg-amber-300/[0.08] p-4 text-sm text-amber-100">{tx("Start geen Fix vanuit deze oude scan. Open eerst de nieuwste scan hierboven.", "Do not start a Fix from this old scan. Open the latest scan above.")}</p>
+                    : latestScanInfo?.meta_quality_issue && isMeta && String(check?.status||"").toLowerCase()==="pass"
+                    ? <p role="status" className="rf-fix-alert rounded-xl border border-amber-300/25 bg-amber-300/[0.08] p-4 text-sm text-amber-100">{tx("Deze oudere kwaliteitscontrole gaf ten onrechte een PASS. Maak eerst een nieuwe scan voordat RankFix veilig een Fix voorbereidt.", "Earlier validation incorrectly passed this description. Run a new scan before RankFix prepares another Fix.")}</p>
                     : socialImageMissing
                     ? <div role="status" className="rf-fix-alert rounded-xl border border-amber-300/25 bg-amber-300/[0.08] p-4 text-sm leading-6 text-amber-100">
                         <strong>{tx("Voor deze Fix ontbreekt een echte afbeelding", "An existing image is required for this Fix")}</strong>

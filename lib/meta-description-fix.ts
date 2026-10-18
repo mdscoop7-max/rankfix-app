@@ -28,7 +28,10 @@ export function normalizeDescriptionText(value: unknown): string {
     .trim();
 }
 
-const TRANSIENT_UI_MESSAGE = /(?:je bericht kon niet worden verzonden|your message could not be sent|message could not be sent|het formulier kon niet worden verzonden|something went wrong sending|verzenden is mislukt)/i;
+const TRANSIENT_UI_MESSAGE = /(?:\b(?:je|uw) bericht (?:kon niet worden verzonden|is verzonden)|\byour message (?:could not be sent|was sent|has been sent)|\bmessage could not be sent|\bhet formulier kon niet worden verzonden|\bsomething went wrong sending|\bverzenden is mislukt|\bform submission failed)/i;
+export function isTransientSeoCopy(value:unknown):boolean {
+  return TRANSIENT_UI_MESSAGE.test(String(value??""));
+}
 const PLACEHOLDER = /\[(?:[A-Z_ ]{3,}|your[^\]]*)\]|\bTODO\b|CHANGE_ME|REPLACE_ME|INSERT_[A-Z_]+|lorem ipsum|\{\{|\{%|\$\{/i;
 
 export function checkDescriptionCandidate(text: string, current = ""): { ok: boolean; errors: string[] } {
@@ -77,7 +80,13 @@ export function buildEvidenceDescription(input: { current?: string; title?: stri
     seen.push(key);
     parts.push(s);
   };
-  add(input.current);
+  // An existing description may contain temporary form feedback.
+  // Retain separately verified page-copy sentences, never the UI notice.
+  const current=normalizeDescriptionText(input.current||"");
+  const cleanCurrent=isTransientSeoCopy(current)
+    ? current.split(/(?<=[.!?])\s+/).filter(part=>!isTransientSeoCopy(part)).join(" ")
+    : current;
+  add(cleanCurrent);
   add(input.h1);
   // A title like "Brand | Tagline" contributes its non-brand segments.
   const titleSegments = normalizeDescriptionText(input.title || "").split(/\s*[|–—·]\s*/).filter((s) => s.split(/\s+/).length >= 2);
@@ -90,10 +99,10 @@ export function buildEvidenceDescription(input: { current?: string; title?: stri
   let best:string|null=null;
   let bestScore=-Infinity;
   for(let mask=1;mask<(1<<candidates.length);mask++){
-    if(input.current && !(mask&1)) continue;
+    if(cleanCurrent && !(mask&1)) continue;
     const text=candidates.filter((_,index)=>Boolean(mask&(1<<index))).join(" ");
     if(!checkDescriptionCandidate(text,input.current||"").ok) continue;
-    const score=(mask&1?100:0) + (candidates.length>3 && mask&(1<<(candidates.length-1))?20:0)
+    const score=(cleanCurrent && (mask&1)?100:0) + (candidates.length>3 && mask&(1<<(candidates.length-1))?20:0)
       - Math.abs(text.length-145) - text.split(". ").length*0.2;
     if(score>bestScore){ bestScore=score;best=text; }
   }

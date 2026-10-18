@@ -8,6 +8,7 @@ import { fetchFailureCode, finishScanAttempt, startScanAttempt } from "@/lib/sca
 import { requireEvidenceForScoredChecks } from "@/lib/scan-feedback";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang, isMarketSelectorPage } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
+import { isTransientSeoCopy } from "@/lib/meta-description-fix";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { assessPassiveSecurity, formBlocks, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
@@ -2891,6 +2892,8 @@ async function runScan(request: Request) {
         ? metadataMayBeClientRendered
           ? check("unable_to_confirm", "description", "seo", "Meta description", "De meta description kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de description opnieuw met een volledige render voordat je een wijziging maakt.", 0, 10)
           : check("fail", "description", "seo", "Meta description", descriptionState === "empty" ? "De meta description-tag is aanwezig, maar de content is leeg." : "Er is geen meta description-tag gevonden.", "Laat RankFix AI een nieuwe meta description maken op basis van de pagina.", 0, 10)
+        : isTransientSeoCopy(description)
+          ? check("warning", "description", "seo", "Meta description", "De meta description bevat een tijdelijke formuliermelding. Die hoort niet in de zoekresultaten.", "Gebruik uitsluitend relevante, bevestigde paginatekst; verwijder verzend- en foutmeldingen.", 6, 10)
         : descriptionQualityIssue
           ? check("warning", "description", "seo", "Meta description", `De description is ${description.length} tekens, maar bevat relatief veel herhaalde woorden.`, "Maak de description natuurlijker en voorkom keyword stuffing.", 6, 10)
           // A long description is truncated in the snippet, not a defect: advice

@@ -137,7 +137,7 @@ function validateRequestedFixCompletion(current:string, proposed:string, issue:s
       || current.match(/<meta[^>]+content=["']([^"']*)["'][^>]+name=["']description["'][^>]*>/i)?.[1]
       || current.match(/\bdescription\s*:\s*["']([^"']*)["']/i)?.[1]
       || "";
-    if(description.trim().length>=120 && description.trim().length<=160) return {errors:[],currentAlreadySatisfied:true};
+    if(checkDescriptionCandidate(description).ok) return {errors:[],currentAlreadySatisfied:true};
   }
 
   return {errors,currentAlreadySatisfied:requestedCount>0&&currentSatisfied===requestedCount};

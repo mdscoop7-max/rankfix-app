@@ -309,3 +309,14 @@ test("Fix and audit states retain legible mobile and desktop presentation",()=>{
   assert.match(css,/@media\(max-width:650px\)/);
   assert.match(auditCss,/rf-audit-stale-banner/);
 });
+
+test("QA: status is shared between desktop and mobile and historical successes cannot mask a quality failure",()=>{
+  const status=readFileSync(new URL("../app/api/fixes/status/route.ts",import.meta.url),"utf8");
+  const ui=readFileSync(new URL("../app/dashboard/github/page.tsx",import.meta.url),"utf8");
+  const audit=readFileSync(new URL("../app/dashboard/audit/[id]/page.tsx",import.meta.url),"utf8");
+  assert.match(status,/const metaQualityIssue=isTransientSeoCopy/);
+  assert.match(status,/alreadyReported=new Set/);
+  assert.match(status,/row\.status==="VERIFIED_RESOLVED" && row\.issue_id==="META_DESCRIPTION_GUIDANCE" && metaQualityIssue/);
+  assert.match(ui,/latestScanInfo\?\.meta_quality_issue && !historicalScan && isMeta/);
+  assert.match(audit,/latestScanInfo\.meta_quality_issue/);
+});

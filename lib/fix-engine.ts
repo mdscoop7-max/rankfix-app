@@ -17,7 +17,7 @@
  * (GitHub, live page) is injected so every transition is testable offline.
  */
 import { getFixPolicy } from "./fix-policy.ts";
-import { normalizeDescriptionText } from "./meta-description-fix.ts";
+import { normalizeDescriptionText, checkDescriptionCandidate } from "./meta-description-fix.ts";
 
 export const ACTIVE_FIX_STATUSES = ["PROPOSED", "PR_CREATED", "AWAITING_MERGE", "AWAITING_DEPLOYMENT", "AWAITING_VERIFICATION", "STILL_PRESENT", "PREPARED", "NEEDS_ATTENTION"] as const;
 export const ACTIVE_FIX_STATUS_SQL = ACTIVE_FIX_STATUSES.map((s) => `'${s}'`).join(",");
@@ -203,8 +203,10 @@ export function liveFixApplied(issueId: string, html: string, expectedValue: str
     // Missing or duplicated descriptions are never "applied".
     if (tags.length !== 1) return "not_yet";
     const live = normalizeDescriptionText(metaContent(html, "description") || "");
+    // Do not confirm a meta-description repair based on length alone.
+    if(!checkDescriptionCandidate(live).ok) return "not_yet";
     if (expectedValue) return live.toLowerCase() === normalizeDescriptionText(expectedValue).toLowerCase() ? "applied" : "not_yet";
-    return live.length >= 120 && live.length <= 160 ? "applied" : "not_yet";
+    return "applied";
   }
   if (SCHEMA.has(issueId)) {
     const blocks = [...html.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
