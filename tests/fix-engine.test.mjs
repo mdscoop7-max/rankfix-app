@@ -274,7 +274,7 @@ test("Fix controls retain selected scan context and the assistant selects only a
   const assistant=readFileSync(new URL("../components/ai-assistant.tsx",import.meta.url),"utf8");
   assert.match(status,/confirmedFixIsStale\(row,contextScan\)/);
   assert.match(status,/SELECT created_at,scanned_url,final_url,result FROM scans WHERE id=\$1 AND user_id=\$2/);
-  assert.match(ui,/if\(r\.ok\) setFix\(current\)/);
+  assert.match(ui,/if\(r\.ok\)\s*\{\s*setFix\(current\);\s*setLatestScanInfo\(d\.latest_scan\|\|null\);\s*\}/);
   assert.match(ui,/scan_id=\$\{encodeURIComponent\(scanId\)\}/);
   assert.match(audit,/scan_id="\+encodeURIComponent\(String\(id\)\)/);
   assert.match(assistant,/policy\.action==="github_fix" && Boolean\(policy\.safe_type\)/);
