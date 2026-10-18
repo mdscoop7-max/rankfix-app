@@ -1,0 +1,685 @@
+{
+ "source": "Independent blind test set 4 (eu-independent4), PRE-REGISTERED 18 Oct 2026 for the evaluation of engine 3.6, before any scan of these sites and without inspecting their pages. Organisations chosen from general knowledge, per sector in a fixed candidate order; same sector distribution as eu-independent3. Disjoint (registrable host) from all hosts in tests/fixtures (EU-81, pilot-2, eu-independent3 = pilot 68, holdout, exposure register), issue #154 and its comments, docs/ and the pilot-68 run log. Labels are the sector each organisation was chosen for; the owner reviews labels before the run and may mark a site 'ambiguous' (excluded from sector accuracy, not removed). Not to be used for tuning before its first measurement. Scored with the unchanged scorecard v2 plus manual review of page type, CMS/platform, SEO/GEO correctness and module applicability.",
+ "frozenAt": "2026-10-18",
+ "status": "pre-registered, labels pending owner review",
+ "sites": [
+  {
+   "country": "BE",
+   "language": "fr",
+   "name": "La Libre",
+   "hosts": [
+    "lalibre.be",
+    "www.lalibre.be"
+   ],
+   "expected": "news_media"
+  },
+  {
+   "country": "AT",
+   "language": "de",
+   "name": "Kleine Zeitung",
+   "hosts": [
+    "kleinezeitung.at",
+    "www.kleinezeitung.at"
+   ],
+   "expected": "news_media"
+  },
+  {
+   "country": "FI",
+   "language": "fi",
+   "name": "Iltalehti",
+   "hosts": [
+    "iltalehti.fi",
+    "www.iltalehti.fi"
+   ],
+   "expected": "news_media"
+  },
+  {
+   "country": "SI",
+   "language": "sl",
+   "name": "Delo",
+   "hosts": [
+    "delo.si",
+    "www.delo.si"
+   ],
+   "expected": "news_media"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "Bax-shop",
+   "hosts": [
+    "bax-shop.nl",
+    "www.bax-shop.nl"
+   ],
+   "expected": "ecommerce"
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "Thomann",
+   "hosts": [
+    "thomann.de",
+    "www.thomann.de"
+   ],
+   "expected": "ecommerce"
+  },
+  {
+   "country": "FR",
+   "language": "fr",
+   "name": "Boulanger",
+   "hosts": [
+    "boulanger.com",
+    "www.boulanger.com"
+   ],
+   "expected": "ecommerce"
+  },
+  {
+   "country": "PL",
+   "language": "pl",
+   "name": "Morele",
+   "hosts": [
+    "morele.net",
+    "www.morele.net"
+   ],
+   "expected": "ecommerce"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "Triodos Bank",
+   "hosts": [
+    "triodos.nl",
+    "www.triodos.nl"
+   ],
+   "expected": "financial_services"
+  },
+  {
+   "country": "ES",
+   "language": "es",
+   "name": "Bankinter",
+   "hosts": [
+    "bankinter.com",
+    "www.bankinter.com"
+   ],
+   "expected": "financial_services"
+  },
+  {
+   "country": "FI",
+   "language": "fi",
+   "name": "OP",
+   "hosts": [
+    "op.fi",
+    "www.op.fi"
+   ],
+   "expected": "financial_services"
+  },
+  {
+   "country": "BE",
+   "language": "nl",
+   "name": "Belfius",
+   "hosts": [
+    "belfius.be",
+    "www.belfius.be"
+   ],
+   "expected": "financial_services"
+  },
+  {
+   "country": "IT",
+   "language": "it",
+   "name": "Mediobanca",
+   "hosts": [
+    "mediobanca.com",
+    "www.mediobanca.com"
+   ],
+   "expected": "financial_services"
+  },
+  {
+   "country": "SE",
+   "language": "en",
+   "name": "Klarna",
+   "hosts": [
+    "klarna.com",
+    "www.klarna.com"
+   ],
+   "expected": "financial_services"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "GVB",
+   "hosts": [
+    "gvb.nl",
+    "www.gvb.nl"
+   ],
+   "expected": "transport_travel"
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "FlixBus",
+   "hosts": [
+    "flixbus.de",
+    "www.flixbus.de"
+   ],
+   "expected": "transport_travel"
+  },
+  {
+   "country": "FI",
+   "language": "en",
+   "name": "Finnair",
+   "hosts": [
+    "finnair.com",
+    "www.finnair.com"
+   ],
+   "expected": "transport_travel"
+  },
+  {
+   "country": "AT",
+   "language": "de",
+   "name": "Westbahn",
+   "hosts": [
+    "westbahn.at",
+    "www.westbahn.at"
+   ],
+   "expected": "transport_travel"
+  },
+  {
+   "country": "BE",
+   "language": "nl",
+   "name": "Belgium.be",
+   "hosts": [
+    "belgium.be",
+    "www.belgium.be"
+   ],
+   "expected": "government"
+  },
+  {
+   "country": "AT",
+   "language": "de",
+   "name": "Österreich.gv.at",
+   "hosts": [
+    "oesterreich.gv.at"
+   ],
+   "expected": "government"
+  },
+  {
+   "country": "DK",
+   "language": "da",
+   "name": "Borger.dk",
+   "hosts": [
+    "borger.dk",
+    "www.borger.dk"
+   ],
+   "expected": "government"
+  },
+  {
+   "country": "EE",
+   "language": "en",
+   "name": "Eesti.ee",
+   "hosts": [
+    "eesti.ee",
+    "www.eesti.ee"
+   ],
+   "expected": "government"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "Universiteit Leiden",
+   "hosts": [
+    "universiteitleiden.nl",
+    "www.universiteitleiden.nl"
+   ],
+   "expected": "education"
+  },
+  {
+   "country": "DK",
+   "language": "da",
+   "name": "Aarhus Universitet",
+   "hosts": [
+    "au.dk",
+    "www.au.dk"
+   ],
+   "expected": "education"
+  },
+  {
+   "country": "IT",
+   "language": "it",
+   "name": "Politecnico di Milano",
+   "hosts": [
+    "polimi.it",
+    "www.polimi.it"
+   ],
+   "expected": "education"
+  },
+  {
+   "country": "IE",
+   "language": "en",
+   "name": "University College Dublin",
+   "hosts": [
+    "ucd.ie",
+    "www.ucd.ie"
+   ],
+   "expected": "education"
+  },
+  {
+   "country": "FR",
+   "language": "fr",
+   "name": "Université de Strasbourg",
+   "hosts": [
+    "unistra.fr",
+    "www.unistra.fr"
+   ],
+   "expected": "education"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "UMC Utrecht",
+   "hosts": [
+    "umcutrecht.nl",
+    "www.umcutrecht.nl"
+   ],
+   "expected": "health_wellness"
+  },
+  {
+   "country": "FR",
+   "language": "fr",
+   "name": "AP-HP",
+   "hosts": [
+    "aphp.fr",
+    "www.aphp.fr"
+   ],
+   "expected": "health_wellness"
+  },
+  {
+   "country": "ES",
+   "language": "es",
+   "name": "Hospital Clínic Barcelona",
+   "hosts": [
+    "clinicbarcelona.org",
+    "www.clinicbarcelona.org"
+   ],
+   "expected": "health_wellness"
+  },
+  {
+   "country": "BE",
+   "language": "nl",
+   "name": "UZ Leuven",
+   "hosts": [
+    "uzleuven.be",
+    "www.uzleuven.be"
+   ],
+   "expected": "health_wellness"
+  },
+  {
+   "country": "AT",
+   "language": "de",
+   "name": "AKH Wien",
+   "hosts": [
+    "akhwien.at",
+    "www.akhwien.at"
+   ],
+   "expected": "health_wellness"
+  },
+  {
+   "country": "SE",
+   "language": "sv",
+   "name": "Telia",
+   "hosts": [
+    "telia.se",
+    "www.telia.se"
+   ],
+   "expected": "telecom_technology"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "Odido",
+   "hosts": [
+    "odido.nl",
+    "www.odido.nl"
+   ],
+   "expected": "telecom_technology"
+  },
+  {
+   "country": "BE",
+   "language": "fr",
+   "name": "VOO",
+   "hosts": [
+    "voo.be",
+    "www.voo.be"
+   ],
+   "expected": "telecom_technology"
+  },
+  {
+   "country": "ES",
+   "language": "es",
+   "name": "Movistar",
+   "hosts": [
+    "movistar.es",
+    "www.movistar.es"
+   ],
+   "expected": "telecom_technology"
+  },
+  {
+   "country": "FR",
+   "language": "fr",
+   "name": "Engie",
+   "hosts": [
+    "particuliers.engie.fr"
+   ],
+   "expected": "energy_utilities"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "Essent",
+   "hosts": [
+    "essent.nl",
+    "www.essent.nl"
+   ],
+   "expected": "energy_utilities"
+  },
+  {
+   "country": "BE",
+   "language": "nl",
+   "name": "Luminus",
+   "hosts": [
+    "luminus.be",
+    "www.luminus.be"
+   ],
+   "expected": "energy_utilities"
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "EnBW",
+   "hosts": [
+    "enbw.com",
+    "www.enbw.com"
+   ],
+   "expected": "energy_utilities"
+  },
+  {
+   "country": "AT",
+   "language": "de",
+   "name": "willhaben Immobilien",
+   "hosts": [
+    "willhaben.at",
+    "www.willhaben.at"
+   ],
+   "expected": "real_estate"
+  },
+  {
+   "country": "BE",
+   "language": "nl",
+   "name": "Immoweb",
+   "hosts": [
+    "immoweb.be",
+    "www.immoweb.be"
+   ],
+   "expected": "real_estate"
+  },
+  {
+   "country": "IT",
+   "language": "it",
+   "name": "Immobiliare.it",
+   "hosts": [
+    "immobiliare.it",
+    "www.immobiliare.it"
+   ],
+   "expected": "real_estate"
+  },
+  {
+   "country": "PL",
+   "language": "pl",
+   "name": "Otodom",
+   "hosts": [
+    "otodom.pl",
+    "www.otodom.pl"
+   ],
+   "expected": "real_estate"
+  },
+  {
+   "country": "SE",
+   "language": "en",
+   "name": "Atlas Copco",
+   "hosts": [
+    "atlascopco.com",
+    "www.atlascopco.com"
+   ],
+   "expected": "manufacturing_industrial"
+  },
+  {
+   "country": "FI",
+   "language": "en",
+   "name": "Wärtsilä",
+   "hosts": [
+    "wartsila.com",
+    "www.wartsila.com"
+   ],
+   "expected": "manufacturing_industrial"
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "Schaeffler",
+   "hosts": [
+    "schaeffler.com",
+    "www.schaeffler.com"
+   ],
+   "expected": "manufacturing_industrial"
+  },
+  {
+   "country": "SE",
+   "language": "en",
+   "name": "SKF",
+   "hosts": [
+    "skf.com",
+    "www.skf.com"
+   ],
+   "expected": "manufacturing_industrial"
+  },
+  {
+   "country": "DK",
+   "language": "en",
+   "name": "Grundfos",
+   "hosts": [
+    "grundfos.com",
+    "www.grundfos.com"
+   ],
+   "expected": "manufacturing_industrial"
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "Motel One",
+   "hosts": [
+    "motel-one.com",
+    "www.motel-one.com"
+   ],
+   "expected": "hospitality"
+  },
+  {
+   "country": "ES",
+   "language": "es",
+   "name": "Meliá",
+   "hosts": [
+    "melia.com",
+    "www.melia.com"
+   ],
+   "expected": "hospitality"
+  },
+  {
+   "country": "BE",
+   "language": "en",
+   "name": "Radisson Hotels",
+   "hosts": [
+    "radissonhotels.com",
+    "www.radissonhotels.com"
+   ],
+   "expected": "hospitality"
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "Europa-Park",
+   "hosts": [
+    "europapark.de",
+    "www.europapark.de"
+   ],
+   "expected": "tourism_recreation,events_culture"
+  },
+  {
+   "country": "SE",
+   "language": "sv",
+   "name": "Liseberg",
+   "hosts": [
+    "liseberg.se",
+    "www.liseberg.se"
+   ],
+   "expected": "tourism_recreation,events_culture"
+  },
+  {
+   "country": "ES",
+   "language": "es",
+   "name": "PortAventura World",
+   "hosts": [
+    "portaventuraworld.com",
+    "www.portaventuraworld.com"
+   ],
+   "expected": "tourism_recreation"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "Artsen zonder Grenzen",
+   "hosts": [
+    "artsenzondergrenzen.nl",
+    "www.artsenzondergrenzen.nl"
+   ],
+   "expected": "nonprofit"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "KWF Kankerbestrijding",
+   "hosts": [
+    "kwf.nl",
+    "www.kwf.nl"
+   ],
+   "expected": "nonprofit"
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "Greenpeace Deutschland",
+   "hosts": [
+    "greenpeace.de",
+    "www.greenpeace.de"
+   ],
+   "expected": "nonprofit"
+  },
+  {
+   "country": "IT",
+   "language": "it",
+   "name": "Save the Children Italia",
+   "hosts": [
+    "savethechildren.it",
+    "www.savethechildren.it"
+   ],
+   "expected": "nonprofit"
+  },
+  {
+   "country": "NL",
+   "language": "nl",
+   "name": "Van Gogh Museum",
+   "hosts": [
+    "vangoghmuseum.nl",
+    "www.vangoghmuseum.nl"
+   ],
+   "expected": "events_culture"
+  },
+  {
+   "country": "ES",
+   "language": "es",
+   "name": "Museo del Prado",
+   "hosts": [
+    "museodelprado.es",
+    "www.museodelprado.es"
+   ],
+   "expected": "events_culture"
+  },
+  {
+   "country": "DE",
+   "language": "de",
+   "name": "Berliner Philharmoniker",
+   "hosts": [
+    "berliner-philharmoniker.de",
+    "www.berliner-philharmoniker.de"
+   ],
+   "expected": "events_culture"
+  },
+  {
+   "country": "IT",
+   "language": "it",
+   "name": "Teatro alla Scala",
+   "hosts": [
+    "teatroallascala.org",
+    "www.teatroallascala.org"
+   ],
+   "expected": "events_culture"
+  },
+  {
+   "country": "EE",
+   "language": "en",
+   "name": "Pipedrive",
+   "hosts": [
+    "pipedrive.com",
+    "www.pipedrive.com"
+   ],
+   "expected": "saas_b2b"
+  },
+  {
+   "country": "NL",
+   "language": "en",
+   "name": "Sendcloud",
+   "hosts": [
+    "sendcloud.com",
+    "www.sendcloud.com"
+   ],
+   "expected": "saas_b2b"
+  },
+  {
+   "country": "ES",
+   "language": "es",
+   "name": "Holded",
+   "hosts": [
+    "holded.com",
+    "www.holded.com"
+   ],
+   "expected": "saas_b2b"
+  },
+  {
+   "country": "NL",
+   "language": "en",
+   "name": "Stibbe",
+   "hosts": [
+    "stibbe.com",
+    "www.stibbe.com"
+   ],
+   "expected": "professional_services"
+  },
+  {
+   "country": "ES",
+   "language": "es",
+   "name": "Cuatrecasas",
+   "hosts": [
+    "cuatrecasas.com",
+    "www.cuatrecasas.com"
+   ],
+   "expected": "professional_services"
+  }
+ ]
+}
