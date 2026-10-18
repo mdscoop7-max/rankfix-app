@@ -26,7 +26,7 @@ const scannedUrl = "https://trendmix-q6fx.vercel.app/";
 test("verified TrendMix homepage can preview Organization + WebSite JSON-LD without AI", () => {
   const result = makePreview("templates/index.html", source, "ORGANIZATION_WEBSITE_SCHEMA", scannedUrl);
   assert.ok(result, "realistic TrendMix metadata must yield a safe proposal");
-  const tag = result.content.match(/<script type="application\\/ld\\+json">([\\s\\S]*?)<\\/script>/);
+  const tag = result.content.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
   assert.ok(tag, "schema must be inside one JSON-LD script");
   const graph = JSON.parse(tag[1])["@graph"];
   assert.deepEqual(graph.map(entry => entry["@type"]), ["Organization", "WebSite"]);
@@ -34,7 +34,7 @@ test("verified TrendMix homepage can preview Organization + WebSite JSON-LD with
   assert.equal(graph[0].url, jinjaHost, "derive domain at render time; do not pin temporary preview host");
   assert.equal(graph[1].publisher["@id"], graph[0]["@id"]);
   assert.equal(result.content.replace(tag[0] + "\n", ""), source, "the rest of the storefront must be unchanged");
-  assert.doesNotMatch(result.content, /https:\/\/trendmix-q6fx\\.vercel\\.app/);
+  assert.ok(!result.content.includes(scannedUrl), "do not hard-code the temporary deployment URL");
 });
 
 test("schema proposal supports missing schema findings and is idempotent", () => {
