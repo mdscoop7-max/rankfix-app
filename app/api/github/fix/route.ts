@@ -624,8 +624,13 @@ export async function POST(request:Request){
         const liveDescription=issueId==="META_DESCRIPTION_MISSING"?"":normalizeDescriptionText(metrics.description);
         const fileAlreadyOk=validateRequestedFixCompletion(current,current,issue,issueId).currentAlreadySatisfied;
         if(!fileAlreadyOk){
-          const approvedText=normalizeDescriptionText(typeof body?.proposed_value==="string"?body.proposed_value:"");
-          let descriptionText=approvedText&&checkDescriptionCandidate(approvedText,liveDescription).ok?approvedText:"";
+          const suppliedText=typeof body?.proposed_value==="string"?body.proposed_value:null;
+          const approvedText=suppliedText===null?"":normalizeDescriptionText(suppliedText);
+          // Fail closed: never silently replace the customer's supplied text with another AI result.
+          if(suppliedText!==null&&!checkDescriptionCandidate(approvedText,liveDescription).ok){
+            return NextResponse.json({error:msg("De goedgekeurde tekst voldoet niet meer aan de veiligheidscontrole. Maak een nieuw voorstel en controleer het opnieuw.","The approved text no longer passes validation. Create a fresh proposal and review it again.","Der bestätigte Text besteht die Prüfung nicht mehr. Erstelle einen neuen Vorschlag.","Le texte approuvé ne passe plus la validation. Créez une nouvelle proposition.","Il testo approvato non supera più la verifica. Crea una nuova proposta.","El texto aprobado ya no supera la validación. Crea otra propuesta."),code:"APPROVED_TEXT_INVALID"},{status:422});
+          }
+          let descriptionText=suppliedText===null?"":approvedText;
           if(!descriptionText){
             const h1s=Array.isArray(metrics.h1s)?metrics.h1s:[];
             const made=await generateMetaDescription({url:trustedUrl,current:liveDescription,title:String(metrics.title||""),h1:String(h1s[0]||"")});

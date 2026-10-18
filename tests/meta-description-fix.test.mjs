@@ -181,6 +181,10 @@ test("routes: description proposals and GitHub edits use the shared deterministi
   const aiIdx = gh.indexOf("await generateCodeFix(path,current,issue,context,issueId)");
   assert.ok(descIdx > 0 && aiIdx > descIdx, "description patch must run before (and instead of) the full-file AI rewrite");
   assert.match(gh, /applyMetaDescriptionToSource\(path,current,descriptionText,liveDescription\)/);
+  assert.match(gh, /if\(suppliedText!==null&&!checkDescriptionCandidate\(approvedText,liveDescription\)\.ok\)/);
+  assert.match(gh, /code:"APPROVED_TEXT_INVALID"/);
   const page = readFileSync(new URL("../app/dashboard/github/page.tsx", import.meta.url), "utf8");
   assert.match(page, /proposed_value:!publish&&\/\^META_DESCRIPTION_/);
+  assert.match(page, /Fix probleem →/);
+  assert.match(page, /proposalLoading\|\|Boolean\(validation\?\.errors/);
 });
