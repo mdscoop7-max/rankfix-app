@@ -68,6 +68,11 @@ for (const p of PROFILES) {
       if (mode === "both" && assessed && typeof j[group]?.score !== "number") problems.push(`${group} assessed but score ${j[group]?.score}`);
     }
     if (mode === "both" && j.geo?.score === null && j.seo?.score !== null && Math.abs(j.overallScore - j.seo.score) > 1) problems.push(`GEO not assessed: total ${j.overallScore} should follow SEO ${j.seo.score}`);
+    // 3.6 (G13): page-type counts equal the types of the pages actually listed.
+    if (j.multiPage?.counts && Array.isArray(j.multiPage.pageAudits)) for (const t of ["contact","article","homepage","category","product","form","legal","service","listing","support","other"]) {
+      const listed = j.multiPage.pageAudits.filter((a) => a.type === t).length;
+      if ((j.multiPage.counts[t] ?? 0) !== listed) problems.push(`page-type count ${t}=${j.multiPage.counts[t]} but ${listed} listed`);
+    }
     if (p.maxConf != null && sp.confidenceScore > p.maxConf) problems.push(`confidence ${sp.confidenceScore} above ${p.maxConf} for ${sp.sector}`);
     if (p.page && j.pageTypeEvidence.type !== p.page) problems.push(`PAGE ${j.pageTypeEvidence.type} != ${p.page}`);
     const retailKeys = ["product_schema", "merchant_product_readiness", "checkout_funnel_static", "checkout_trust", "webshop_trust", "commercial_terms_signal", "merchant_feed_signal", "product_stock", "product_price_consistency"];
