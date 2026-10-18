@@ -741,11 +741,12 @@ test("audit AI-advice actions open the in-dashboard assistant", async () => {
 });
 
 
-test("GitHub OAuth production fallback points to Render, not retired Vercel host", async () => {
+test("GitHub OAuth callback uses the configured environment instead of a stale fixed host", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/github/connect/route.ts", import.meta.url), "utf8");
-  assert.match(source,/https:\/\/rankfix-app\.onrender\.com/);
-  assert.doesNotMatch(source,/rankfix-app\.vercel\.app/);
+  assert.match(source, /process\.env\.APP_URL \|\| new URL\(request\.url\)\.origin/);
+  assert.match(source, /process\.env\.GITHUB_CALLBACK_URL \|\| base \+ "\/api\/github\/callback"/);
+  assert.doesNotMatch(source, /rankfix-app\.(?:vercel\.app|onrender\.com)/);
 });
 
 test("Local SEO route contains no deployment-marker residue", async () => {
@@ -771,7 +772,7 @@ test("expensive and mail-triggering endpoints have coarse rate limits", async ()
 test("every audit problem has a visible remediation path", async () => {
   const { readFile } = await import("node:fs/promises");
   const audit = await readFile(new URL("../app/dashboard/audit/[id]/page.tsx", import.meta.url), "utf8");
-  assert.match(audit,/Maak veilige GitHub-fix/);
+  assert.match(audit,/Fix probleem/);
   assert.match(audit,/Vraag RankFix AI/);
   assert.match(audit,/Bekijk handmatige stappen/);
   assert.match(audit,/remediationAction\(check\)==="manual"/);
