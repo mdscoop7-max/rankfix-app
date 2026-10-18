@@ -38,6 +38,36 @@ export async function assertPublicDns(hostname:string){
   if(!records.length || records.some(record=>isPrivateIp(record.address))) throw new Error("URL_DNS_BLOCKED");
 }
 
+/**
+ * 3.6 (G12): when the host the user typed does not exist in DNS (NXDOMAIN),
+ * try its www / bare variant once — the same site, as a browser's address bar
+ * would. Only a definitive "not found" triggers it (no retries on temporary DNS
+ * errors, never on blocked or private addresses), and the variant goes through
+ * the same public-DNS check. Returns the variant URL, or null to keep the
+ * original (whose own check then reports the original error).
+ */
+export async function wwwVariantAfterDnsMiss(url: URL, check: (hostname: string) => Promise<void>): Promise<URL | null> {
+  if (isIP(url.hostname)) return null;
+  try {
+    await check(url.hostname);
+    return null;
+  } catch (error) {
+    const code = (error as { code?: string })?.code;
+    if (code !== "ENOTFOUND") return null;
+  }
+  const host = url.hostname.toLowerCase();
+  const variantHost = host.startsWith("www.") ? host.slice(4) : `www.${host}`;
+  if (!variantHost.includes(".")) return null;
+  try {
+    await check(variantHost);
+  } catch {
+    return null;
+  }
+  const variant = new URL(url.toString());
+  variant.hostname = variantHost;
+  return variant;
+}
+
 export function validatePublicHttpUrl(value: string) {
   const url = new URL(value);
   if (!["http:", "https:"].includes(url.protocol)) throw new Error("URL_PROTOCOL_BLOCKED");
@@ -61,9 +91,14 @@ export async function safePublicFetch(value: string | URL, options: { timeoutMs?
   let current = validatePublicHttpUrl(typeof value === "string" ? value : value.toString());
   const redirectChain: Array<{ from: string; to: string; status: number }> = [];
   const cookieJar = new Map<string, string>();
+  let dnsFallback: { from: string; to: string } | null = null;
 
   for (let redirect = 0; redirect <= maxRedirects; redirect++) {
     validatePublicHttpUrl(current.toString());
+    if (redirect === 0) {
+      const dnsFallbackUrl = await wwwVariantAfterDnsMiss(current, assertPublicDns);
+      if (dnsFallbackUrl) { dnsFallback = { from: current.toString(), to: dnsFallbackUrl.toString() }; current = validatePublicHttpUrl(dnsFallbackUrl.toString()); }
+    }
     await assertPublicDns(current.hostname);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -93,7 +128,7 @@ export async function safePublicFetch(value: string | URL, options: { timeoutMs?
         if (eq > 0 && pair.length < 4096) cookieJar.set(pair.slice(0, eq).trim(), pair.slice(eq + 1).trim());
       }
       const location = response.headers.get("location");
-      if (!location) return { response, finalUrl: current, redirectChain };
+      if (!location) return { response, finalUrl: current, redirectChain, dnsFallback };
       const next = validatePublicHttpUrl(new URL(location, current).toString());
       // Never carry cookies to another site.
       if (registrableTail(next.hostname) !== registrableTail(current.hostname)) cookieJar.clear();
@@ -101,7 +136,7 @@ export async function safePublicFetch(value: string | URL, options: { timeoutMs?
       current = next;
       continue;
     }
-    return { response, finalUrl: current, redirectChain };
+    return { response, finalUrl: current, redirectChain, dnsFallback };
   }
   throw new Error("REDIRECT_LIMIT");
 }

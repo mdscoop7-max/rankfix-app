@@ -25,7 +25,7 @@ export async function resolve(spec, ctx, next) {
 }
 export async function load(url, ctx, next) {
   if (url === pathToFileURL(ROOT + "/lib/safe-fetch.ts").href) {
-    return { format: "module-typescript", source: readFileSync(new URL(url), "utf8").replace("await assertPublicDns(current.hostname);", ""), shortCircuit: true };
+    return { format: "module-typescript", source: readFileSync(new URL(url), "utf8").replace("await assertPublicDns(current.hostname);", "").replace("await wwwVariantAfterDnsMiss(current, assertPublicDns)", "null"), shortCircuit: true };
   }
   if (url === pathToFileURL(ROOT + "/lib/headless-render.ts").href) {
     const src = readFileSync(new URL(url), "utf8").replace(/export async function renderPublicPage\(([^)]*)\)([^{]*)\{/, "export async function renderPublicPage($1)$2{ if (globalThis.__RF_RENDER) return globalThis.__RF_RENDER(arguments[0]); throw new Error('RENDER_UNAVAILABLE_IN_MATRIX');");
