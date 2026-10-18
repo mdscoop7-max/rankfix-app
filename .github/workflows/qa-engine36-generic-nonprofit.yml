@@ -1,0 +1,29 @@
+name: QA Generic Sector Motor 3.6
+on:
+  push:
+    branches: [qa/engine36-generic-nonprofit-evidence-20261019]
+permissions:
+  contents: read
+jobs:
+  regression:
+    name: Engine regression, lint and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: "true"
+      DATABASE_URL: "postgresql://rankfix:rankfix@127.0.0.1:5432/rankfix_ci"
+      SESSION_SECRET: "ci-only-session-secret-not-for-production"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      - name: Complete regression suite
+        run: npm test
+      - name: Legacy lint report
+        continue-on-error: true
+        run: npm run lint
+      - name: Application build
+        run: npm run build

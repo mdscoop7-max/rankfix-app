@@ -1312,7 +1312,13 @@ async function runScan(request: Request) {
       schemaSet.has("newsmediaorganization") ||
       newsMediaIdentity({ title, description, h1: h1s.join(" "), homepage: isHomepage })
     );
-    const effectiveLocalSchemaSignal = hasLocalBusinessSignal && !governmentIdentitySignal && !governmentSchemaPresent && !transportLogisticsSchemaContext && !ecommerceSchemaContext && !newsMediaSchemaContext;
+    // Organisation identity outranks incidental shop/contact capability. Use the
+    // same evidence-first detector as the later Sector Motor, even in raw HTML.
+    const preliminaryNonprofitIdentity = detectEuPrimaryIdentity({
+      title, description, h1s, ogSiteName: decode(ogSiteName || ""), schemaTypes,
+      hostname: finalUrl.hostname, homepage: isHomepage,
+    })?.sector === "nonprofit";
+    const effectiveLocalSchemaSignal = hasLocalBusinessSignal && !preliminaryNonprofitIdentity && !governmentIdentitySignal && !governmentSchemaPresent && !transportLogisticsSchemaContext && !ecommerceSchemaContext && !newsMediaSchemaContext;
     const recommendedSchema = governmentIdentitySignal || governmentSchemaPresent
       ? (isHomepage ? "GovernmentOrganization + WebSite" : "GovernmentOrganization / WebPage")
       : newsMediaSchemaContext

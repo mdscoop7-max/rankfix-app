@@ -209,3 +209,38 @@ test("booking widgets and transport commentary are not sufficient for operator i
     assert.notEqual(id?.key, "passenger_transport", JSON.stringify({ value, id }));
   }
 });
+
+test("generic public-interest mission with help request is a provisional nonprofit identity, even without NGO schema",()=>{
+  const cases=[
+    {title:"Samen voor natuur | Vereniging A",description:"Wij komen op voor vogels en hun leefgebieden. Help je mee?",schemaTypes:["Organization","WebSite"]},
+    {title:"Protect wildlife | Conservation Group",description:"We protect wildlife and their habitats. Donate to help.",schemaTypes:["Organization","WebSite"]},
+    {title:"Naturschutz gemeinsam | Gruppe",description:"Wir schützen Tiere und Lebensräume. Jetzt spenden.",schemaTypes:["Organization"]},
+  ];
+  for(const sample of cases){
+    const id=detectEuPrimaryIdentity({...sample,hostname:"neutral-sample.test",homepage:true});
+    assert.equal(id?.sector,"nonprofit",JSON.stringify({sample,id}));
+    assert.equal(id?.confidence,"medium",JSON.stringify(id));
+    assert.ok(id.confidenceScore<80,JSON.stringify(id));
+    assert.match(id.evidence.join(" "),/juridische status niet bewezen/);
+  }
+});
+
+test("generic mission logic abstains for stores, publishers and missing corroboration",()=>{
+  const cases=[
+    {title:"Birdwatching Blog",description:"We protect wildlife and their habitats. Donate to help.",schemaTypes:["Blog","Organization"]},
+    {title:"Buy accessories online | Nature Store",description:"We protect wildlife and habitats. Shop online for feeders; donate to help.",schemaTypes:["Store","Organization"]},
+    {title:"Conservation information service",description:"We protect wildlife and their habitats.",schemaTypes:["Organization"]},
+    {title:"Nature photographers",description:"Wildlife habitats are beautiful. Help je mee?",schemaTypes:["Organization"]},
+  ];
+  for(const sample of cases){
+    const id=detectEuPrimaryIdentity({...sample,hostname:"neutral-other.test",homepage:true});
+    assert.notEqual(id?.sector,"nonprofit",JSON.stringify({sample,id}));
+  }
+});
+
+test("generic nonprofit sector prevents LocalBusiness advice solely from opening-hours or a secondary shop",()=>{
+  const source=readFileSync(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
+  assert.match(source,/preliminaryNonprofitIdentity = detectEuPrimaryIdentity/);
+  assert.match(source,/hasLocalBusinessSignal && !preliminaryNonprofitIdentity && !governmentIdentitySignal/);
+  assert.doesNotMatch(source,/vogelbescherming\.nl|natuurmonumenten\.nl/i);
+});
