@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { ensureDatabase } from "@/lib/db-init";
 import { getDb } from "@/lib/db";
-import { decryptToken, githubFetch } from "@/lib/github";
+import { decryptToken } from "@/lib/github";
+import { advanceFix, publicFixView, ACTIVE_FIX_STATUS_SQL, type FixRow } from "@/lib/fix-engine";
+import { createEngineDeps } from "@/lib/fix-engine-deps";
 
 function normalizeScanUrl(value:string){
   try{
@@ -14,62 +16,49 @@ function normalizeScanUrl(value:string){
   }catch{return "";}
 }
 
+/**
+ * Persisted Fix Engine status. Every call advances each active fix by at most one
+ * safe step (merge with consent → deployment → live page), so progress continues
+ * whenever the customer (re)opens RankFix, from any device.
+ */
 export async function GET(request:Request){
   const user=await getCurrentUser();
   if(!user) return NextResponse.json({error:"Login vereist."},{status:401});
-  await ensureDatabase();
-  const rawUrl=new URL(request.url).searchParams.get("url")||"";
-  const scannedUrl=normalizeScanUrl(rawUrl);
+  const params=new URL(request.url).searchParams;
+  const scannedUrl=normalizeScanUrl(params.get("url")||"");
+  const issueFilter=(params.get("issue_id")||"").trim();
   if(!scannedUrl) return NextResponse.json({error:"Ongeldige website URL."},{status:400});
-
+  try{
+    await ensureDatabase();
+  }catch{
+    return NextResponse.json({error:"De RankFix-database is tijdelijk niet bereikbaar. Er is niets gewijzigd; probeer het zo opnieuw.",code:"DATABASE_UNAVAILABLE"},{status:503});
+  }
   const db=getDb();
   const pending=await db.query(
-    `SELECT id,issue_id,status,repository,pr_number,pr_url,branch,merge_error,merged_at,verified_at,verification_scan_id
-     FROM pending_fixes
+    `SELECT * FROM pending_fixes
      WHERE user_id=$1 AND scanned_url=$2
-       AND status IN ('AWAITING_MERGE','AWAITING_VERIFICATION','STILL_PRESENT','VERIFIED_RESOLVED')
+       AND (status IN (${ACTIVE_FIX_STATUS_SQL}) OR (status='VERIFIED_RESOLVED' AND updated_at>NOW()-INTERVAL '7 days'))
+       AND ($3='' OR issue_id=$3)
        AND expires_at>NOW()
      ORDER BY updated_at DESC`,
-    [user.id,scannedUrl]
+    [user.id,scannedUrl,issueFilter]
   );
-
-  const needsGithub=pending.rows.some((row:any)=>row.status==="AWAITING_MERGE"&&row.repository&&row.pr_number);
-  let token="";
+  const rows=pending.rows as FixRow[];
+  const needsGithub=rows.some((row)=>row.status==="AWAITING_MERGE"||row.status==="PR_CREATED"||row.status==="AWAITING_DEPLOYMENT");
+  let token:string|null=null;
   if(needsGithub){
     const connection=await db.query("SELECT access_token_encrypted FROM github_connections WHERE user_id=$1 LIMIT 1",[user.id]);
-    if(connection.rowCount){
-      try{token=decryptToken(connection.rows[0].access_token_encrypted);}catch{}
+    if(connection.rowCount){ try{ token=decryptToken(connection.rows[0].access_token_encrypted); }catch{ token=null; } }
+  }
+  const deps=createEngineDeps(token);
+  for(const row of rows.slice(0,10)){
+    if(["AWAITING_MERGE","PR_CREATED","AWAITING_DEPLOYMENT","AWAITING_VERIFICATION","STILL_PRESENT"].includes(row.status)){
+      await advanceFix(deps,row);
     }
   }
-
-  if(token){
-    for(const row of pending.rows){
-      if(row.status!=="AWAITING_MERGE"||!row.repository||!row.pr_number) continue;
-      try{
-        const pr=await githubFetch<{merged?:boolean;merged_at?:string|null;state?:string}>(token,"/repos/"+row.repository+"/pulls/"+Number(row.pr_number));
-        if(pr?.merged===true||pr?.merged_at){
-          await db.query(
-            "UPDATE pending_fixes SET status='AWAITING_VERIFICATION',merged_at=COALESCE(merged_at,NOW()),merge_error=NULL,updated_at=NOW() WHERE id=$1 AND user_id=$2 AND status='AWAITING_MERGE'",
-            [row.id,user.id]
-          );
-          row.status="AWAITING_VERIFICATION";
-          row.merged_at=row.merged_at||new Date().toISOString();
-          row.merge_error=null;
-        }
-      }catch(error){
-        console.error("RankFix AutoFix PR status refresh failed",error instanceof Error?error.message:"unknown");
-      }
-    }
-  }
-
-  return NextResponse.json({fixes:pending.rows.map((row:any)=>({
-    issue_id:String(row.issue_id),
-    status:String(row.status),
-    pr_number:row.pr_number?Number(row.pr_number):null,
-    pr_url:row.pr_url||null,
-    branch:row.branch||null,
-    merged_at:row.merged_at||null,
-    verified_at:row.verified_at||null,
-    verification_scan_id:row.verification_scan_id||null
-  }))});
+  return NextResponse.json({fixes:rows.map((row)=>{
+    const view=publicFixView(row);
+    // Backwards-compatible fields used by the audit page.
+    return {...view,pr_number:view.technical.pr_number,pr_url:view.technical.pr_url,branch:view.technical.branch,merged_at:view.technical.merged_at,verified_at:(row as FixRow & {verified_at?:string|null}).verified_at||null,verification_scan_id:(row as FixRow & {verification_scan_id?:string|null}).verification_scan_id||null};
+  })});
 }

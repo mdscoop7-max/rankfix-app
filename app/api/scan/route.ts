@@ -5647,7 +5647,7 @@ async function runScan(request: Request) {
         await ensureDatabase();
         const normalizedScanUrl = normalizeScanUrl(finalUrl.toString());
         const pending = await getDb().query(
-          "SELECT issue_id, status FROM pending_fixes WHERE user_id=$1 AND scanned_url=$2 AND status IN ('AWAITING_MERGE','AWAITING_VERIFICATION','STILL_PRESENT','PREPARED') AND expires_at>NOW()",
+          "SELECT issue_id, status FROM pending_fixes WHERE user_id=$1 AND scanned_url=$2 AND status IN ('AWAITING_MERGE','AWAITING_DEPLOYMENT','AWAITING_VERIFICATION','STILL_PRESENT','PREPARED') AND expires_at>NOW()",
           [user.id, normalizedScanUrl]
         );
         pendingFixes = new Map(pending.rows.map((row: any) => [String(row.issue_id), { status: String(row.status) }]));
@@ -5787,7 +5787,7 @@ async function runScan(request: Request) {
         if (dashboardScan && savedScanId && pendingFixes.size > 0) {
           const verificationCandidates = new Set(
             [...pendingFixes.entries()]
-              .filter(([, pending]) => pending.status === "AWAITING_VERIFICATION" || pending.status === "STILL_PRESENT")
+              .filter(([, pending]) => pending.status === "AWAITING_VERIFICATION" || pending.status === "STILL_PRESENT" || pending.status === "AWAITING_DEPLOYMENT")
               .map(([issueId]) => issueId)
           );
           const seenVerificationRules = new Set<string>();
@@ -5800,20 +5800,23 @@ async function runScan(request: Request) {
             const liveEvidence = item.evidence;
             const hasLiveEvidence = !!liveEvidence && liveEvidence.found !== null && liveEvidence.found !== undefined && liveEvidence.found !== "";
             const pendingFix=pendingFixes.get(issueId);
-            if(!pendingFix || (pendingFix.status!=="AWAITING_VERIFICATION" && pendingFix.status!=="STILL_PRESENT")) continue;
+            if(!pendingFix || (pendingFix.status!=="AWAITING_VERIFICATION" && pendingFix.status!=="STILL_PRESENT" && pendingFix.status!=="AWAITING_DEPLOYMENT")) continue;
             // A merged PR is not proof that production changed. Verification must
             // come from a fresh live scan with positive evidence for the exact rule.
             // Medium confidence may be useful for diagnosis, but is not strong
             // enough to permanently mark an automated code fix as resolved.
             const verified=liveStatus==="PASS" && liveConfidence==="high" && hasLiveEvidence;
-            const nextStatus=verified?"VERIFIED_RESOLVED":"STILL_PRESENT";
+            // Only a definite FAIL/WARNING means "still present". A blocked, unconfirmed or
+            // N/A result keeps the fix waiting, and a deployment still in progress stays there.
+            const definiteIssue=liveStatus==="FAIL"||liveStatus==="WARNING";
+            const nextStatus=verified?"VERIFIED_RESOLVED":(definiteIssue&&pendingFix.status!=="AWAITING_DEPLOYMENT"?"STILL_PRESENT":pendingFix.status);
             const confirmed = await getDb().query(
-              "UPDATE pending_fixes SET status=$4, verified_at=CASE WHEN $4='VERIFIED_RESOLVED' THEN NOW() ELSE verified_at END, verification_scan_id=$5, updated_at=NOW() WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 AND status IN ('AWAITING_VERIFICATION','STILL_PRESENT') AND expires_at>NOW() RETURNING id",
+              "UPDATE pending_fixes SET status=$4, verified_at=CASE WHEN $4='VERIFIED_RESOLVED' THEN NOW() ELSE verified_at END, verification_attempts=verification_attempts+CASE WHEN status IN ('AWAITING_VERIFICATION','STILL_PRESENT') THEN 1 ELSE 0 END, phase_started_at=CASE WHEN status<>$4 THEN NOW() ELSE phase_started_at END, verification_scan_id=$5, updated_at=NOW() WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 AND status IN ('AWAITING_VERIFICATION','STILL_PRESENT','AWAITING_DEPLOYMENT') AND expires_at>NOW() RETURNING id",
               [user.id, normalizedScanUrl, issueId, nextStatus, savedScanId]
             );
             if (!confirmed.rowCount) continue;
 
-            item.fix_status = verified ? "DONE" : "STILL_PRESENT";
+            item.fix_status = verified ? "DONE" : nextStatus === "STILL_PRESENT" ? "STILL_PRESENT" : "WAITING";
             if(!verified) continue;
             await getDb().query(
               "INSERT INTO website_health_events (user_id,website_host,scanned_url,scan_id,event_type,rule_id,previous_status,current_status,severity,details) VALUES ($1,$2,$3,$4,'FIX_CONFIRMED',$5,'AWAITING_VERIFICATION','PASS',$6,$7)",
@@ -5851,7 +5854,7 @@ async function runScan(request: Request) {
           for (const issueId of verificationCandidates) {
             if (seenVerificationRules.has(issueId)) continue;
             await getDb().query(
-              "UPDATE pending_fixes SET status='AWAITING_VERIFICATION', verification_scan_id=$4, updated_at=NOW() WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 AND status IN ('AWAITING_VERIFICATION','STILL_PRESENT') AND expires_at>NOW()",
+              "UPDATE pending_fixes SET verification_scan_id=$4, updated_at=NOW() WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 AND status IN ('AWAITING_VERIFICATION','STILL_PRESENT','AWAITING_DEPLOYMENT') AND expires_at>NOW()",
               [user.id, normalizedScanUrl, issueId, savedScanId]
             );
           }

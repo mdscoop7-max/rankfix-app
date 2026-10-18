@@ -652,10 +652,16 @@ test("active scanner fix IDs map to bounded dashboard fix actions", async () => 
 
 test("GitHub proposal routing recognizes active scanner IDs without title guessing", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/dashboard/github/page.tsx", import.meta.url), "utf8");
-  for (const mapping of ['title:"meta_title"','description:"meta_description"','h1:"h1"','alt:"alt_text"','schema:"structured_data"']) {
-    assert.equal(source.includes(mapping),true,mapping);
+  // The scanner maps its check keys to rule IDs; the Fix page routes on those IDs only
+  // (never on titles) and the server decides the fix path per rule ID.
+  const scan = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  for (const mapping of ['title: { rule_id: title ? "META_TITLE_GUIDANCE"','description: { rule_id: description ? "META_DESCRIPTION_GUIDANCE"','alt: { rule_id: "IMAGE_ALT_MISSING"','schema: { rule_id: "STRUCTURED_DATA_MISSING"']) {
+    assert.equal(scan.includes(mapping),true,mapping);
   }
+  assert.match(scan,/item\.issue_id = mapped\.rule_id;/);
+  const source = await readFile(new URL("../app/dashboard/github/page.tsx", import.meta.url), "utf8");
+  assert.match(source,/const META_DESCRIPTION = \/\^\(\?:META\|SITE\)_DESCRIPTION_\(\?:GUIDANCE\|MISSING\)\$\/i;/);
+  assert.doesNotMatch(source,/titleHint/);
 });
 
 test("Evidence Engine avoids double-counting medium text hints as independent sector proof", async () => {

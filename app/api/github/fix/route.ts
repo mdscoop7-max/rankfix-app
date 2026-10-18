@@ -3,10 +3,12 @@ import { createHash } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
-import { decryptToken, githubFetch } from "@/lib/github";
+import { decryptToken, githubFetch, GithubError } from "@/lib/github";
 import { validateGithubFix } from "@/lib/github-fix-validator";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { consumeRateLimit } from "@/lib/rate-limit";
+import { advanceFix, autofixLevel, autoPublishSupported, publicFixView, siteConsentValid, ACTIVE_FIX_STATUS_SQL, REASON_NL, type FixRow } from "@/lib/fix-engine";
+import { createEngineDeps } from "@/lib/fix-engine-deps";
 import { applyMetaDescriptionToSource, checkDescriptionCandidate, generateMetaDescription, normalizeDescriptionText, DESCRIPTION_ERROR_NL, PATCH_ERROR_NL } from "@/lib/meta-description-fix";
 
 function safeRepo(v:string){ return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(v) && !v.includes(".."); }
@@ -259,8 +261,10 @@ function buildVerifiedWebsiteSchemaFix(filePath:string,current:string,issueId:st
 }
 
 class FixProviderError extends Error {
-  constructor(public readonly code:"AI_UNAVAILABLE"|"AI_PROVIDER_ERROR"|"AI_INVALID_OUTPUT",message:string){
+  readonly code:"AI_UNAVAILABLE"|"AI_PROVIDER_ERROR"|"AI_INVALID_OUTPUT";
+  constructor(code:"AI_UNAVAILABLE"|"AI_PROVIDER_ERROR"|"AI_INVALID_OUTPUT",message:string){
     super(message);
+    this.code=code;
     this.name="FixProviderError";
   }
 }
@@ -500,10 +504,10 @@ export async function POST(request:Request){
     const scannedHost=normalizeHostname(trustedUrl);
     let effectiveRepo=requestedRepo;
     let effectiveBaseBranch=baseBranch;
-    let existingMapping:{repository?:string;base_branch?:string}|null=null;
+    let existingMapping:{repository?:string;base_branch?:string;autofix_publish?:boolean;autofix_repository?:string|null;autofix_branch?:string|null}|null=null;
     if(scannedHost){
       const saved=await getDb().query(
-        "SELECT repository,base_branch FROM website_repositories WHERE user_id=$1 AND website_host=$2 LIMIT 1",
+        "SELECT repository,base_branch,autofix_publish,autofix_repository,autofix_branch FROM website_repositories WHERE user_id=$1 AND website_host=$2 LIMIT 1",
         [user.id,scannedHost]
       );
       if(saved.rowCount){
@@ -573,19 +577,59 @@ export async function POST(request:Request){
     let current:string;
     let file:{type?:string;content?:string;sha:string};
     let generated:{content:string;summary:string};
-    type StoredFixProposal = {id:string;proposal_hash:string;base_blob_sha:string;base_commit_sha:string;proposed_content:string;original_content:string;summary:string;file_path:string;repository:string;base_branch:string;status:string;branch?:string|null;pr_number?:number|null;pr_url?:string|null};
+    let generator="ai_rewrite";
+    let expectedValue:string|null=null;
+    type StoredFixProposal = {id:string;generator?:string|null;expected_value?:string|null;proposal_hash:string;base_blob_sha:string;base_commit_sha:string;proposed_content:string;original_content:string;summary:string;file_path:string;repository:string;base_branch:string;status:string;branch?:string|null;pr_number?:number|null;pr_url?:string|null};
     let activeProposal:StoredFixProposal|null=null;
 
+    const scannedUrl=normalizeScanUrl(trustedUrl);
+    let publishMode:"publish"|"auto"|"pr_only"="pr_only";
+    let allowMerge=false;
+    const deps=createEngineDeps(token);
+    const respond=(row:FixRow,extra:Record<string,unknown>={})=>NextResponse.json({success:true,status:String(row.status).toLowerCase(),repository:repo,path,issue_id:issueId,branch:row.branch||null,fix:publicFixView(row),pr:{number:row.pr_number?Number(row.pr_number):null,url:row.pr_url||null},merge:{merged:Boolean(row.merged_at),blocked:row.status==="NEEDS_ATTENTION"},...extra});
     if(!previewOnly){
       if(!proposalId || !approvedHash){
         return NextResponse.json({error:msg("Maak eerst een diff-preview en keur precies dat voorstel goed.","Create a diff preview first and approve that exact proposal.","Erstelle zuerst eine Diff-Vorschau und bestätige genau diesen Vorschlag.","Créez d’abord un aperçu du diff et approuvez exactement cette proposition.","Crea prima un'anteprima diff e approva esattamente quella proposta.","Crea primero una vista previa del diff y aprueba exactamente esa propuesta."),code:"PROPOSAL_REQUIRED"},{status:409});
       }
-      const stored=await db.query("SELECT id,proposal_hash,base_blob_sha,base_commit_sha,proposed_content,original_content,summary,file_path,repository,base_branch,status FROM fix_proposals WHERE id=$1 AND user_id=$2 AND scan_id=$3 AND issue_id=$4 AND expires_at>NOW() LIMIT 1",[proposalId,user.id,scanId,issueId]);
+      const stored=await db.query("SELECT id,generator,expected_value,proposal_hash,base_blob_sha,base_commit_sha,proposed_content,original_content,summary,file_path,repository,base_branch,status FROM fix_proposals WHERE id=$1 AND user_id=$2 AND scan_id=$3 AND issue_id=$4 AND expires_at>NOW() LIMIT 1",[proposalId,user.id,scanId,issueId]);
       if(!stored.rowCount) return NextResponse.json({error:msg("Deze preview is verlopen of bestaat niet meer. Maak een nieuwe preview.","This preview expired or no longer exists. Create a new preview.","Diese Vorschau ist abgelaufen oder existiert nicht mehr. Erstelle eine neue Vorschau.","Cet aperçu a expiré ou n’existe plus. Créez un nouvel aperçu.","Questa anteprima è scaduta o non esiste più. Creane una nuova.","Esta vista previa caducó o ya no existe. Crea una nueva."),code:"PROPOSAL_EXPIRED"},{status:409});
       const loadedProposal=stored.rows[0] as StoredFixProposal;
       activeProposal=loadedProposal;
       if(loadedProposal.repository.toLowerCase()!==repo.toLowerCase() || loadedProposal.base_branch!==effectiveBaseBranch || loadedProposal.proposal_hash!==approvedHash){
         return NextResponse.json({error:msg("Het goedgekeurde voorstel komt niet meer overeen met deze publicatie.","The approved proposal no longer matches this publication.","Der genehmigte Vorschlag stimmt nicht mehr mit dieser Veröffentlichung überein.","La proposition approuvée ne correspond plus à cette publication.","La proposta approvata non corrisponde più a questa pubblicazione.","La propuesta aprobada ya no coincide con esta publicación."),code:"PROPOSAL_HASH_MISMATCH"},{status:409});
+      }
+      generator=String(loadedProposal.generator||"ai_rewrite");
+      expectedValue=loadedProposal.expected_value||null;
+      path=loadedProposal.file_path;
+      // Publication authority: a supported deterministic fix may be merged only with explicit
+      // consent — this approval in RankFix ("publish") or the website's standing AutoFix setting ("auto").
+      publishMode=body?.publish_mode==="publish"||body?.publish_mode==="auto"?body.publish_mode:"pr_only";
+      const consent=siteConsentValid(existingMapping?{...existingMapping,repository:repo,base_branch:effectiveBaseBranch}:null);
+      allowMerge=autoPublishSupported(issueId,generator)&&(publishMode==="publish"||(publishMode==="auto"&&consent));
+      if(publishMode!=="pr_only"&&!allowMerge){
+        return NextResponse.json({error:language==="nl"?REASON_NL.AUTOFIX_NOT_AUTHORIZED:"Automatic publication is not allowed for this website or issue type.",code:"AUTOFIX_NOT_AUTHORIZED",autofix:{level:autofixLevel(issueId),publishable:autoPublishSupported(issueId,generator),siteConsent:consent}},{status:403});
+      }
+      const loadActive=async()=>(await db.query(`SELECT * FROM pending_fixes WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 AND status IN (${ACTIVE_FIX_STATUS_SQL}) AND expires_at>NOW() ORDER BY created_at DESC LIMIT 1`,[user.id,scannedUrl,issueId])).rows[0] as FixRow|undefined;
+
+      // Resume instead of restarting: an active fix for this page + rule continues where it stopped.
+      const active=scannedUrl?await loadActive():undefined;
+      if(active){
+        const sameProposal=!active.proposal_id||!activeProposal||active.proposal_id===activeProposal.id;
+        const retryable=new Set(["GITHUB_UNAVAILABLE","GITHUB_NOT_CONNECTED","MERGE_TIMEOUT","CHECKS_PENDING","MERGEABILITY_PENDING","LIVE_UNREACHABLE","DEPLOY_TIMEOUT"]);
+        if(active.status==="NEEDS_ATTENTION"&&!sameProposal){
+          await db.query("UPDATE pending_fixes SET status='SUPERSEDED',updated_at=NOW() WHERE id=$1 AND user_id=$2",[active.id,user.id]);
+        }else{
+          if(active.status==="NEEDS_ATTENTION"&&retryable.has(String(active.last_error_code||""))){
+            const resumeStatus=active.merged_at?"AWAITING_DEPLOYMENT":"AWAITING_MERGE";
+            await db.query("UPDATE pending_fixes SET status=$3,auto_publish=(auto_publish OR $4::boolean),phase_started_at=NOW(),next_check_at=NULL,last_error_code=NULL,updated_at=NOW() WHERE id=$1 AND user_id=$2 AND status='NEEDS_ATTENTION'",[active.id,user.id,resumeStatus,allowMerge&&sameProposal]);
+          }else if(allowMerge&&sameProposal&&active.status==="AWAITING_MERGE"&&!active.auto_publish){
+            // The owner now explicitly approves publication of the same, already prepared change.
+            await db.query("UPDATE pending_fixes SET auto_publish=TRUE,next_check_at=NULL,phase_started_at=NOW(),updated_at=NOW() WHERE id=$1 AND user_id=$2",[active.id,user.id]);
+          }
+          const fresh=(await db.query("SELECT * FROM pending_fixes WHERE id=$1",[active.id])).rows[0] as FixRow;
+          await advanceFix(deps,fresh);
+          return respond(fresh,{idempotent:true});
+        }
       }
       path=loadedProposal.file_path;
       file=await githubFetch<{type?:string;content?:string;sha:string}>(token,"/repos/"+repo+"/contents/"+path+"?ref="+encodeURIComponent(effectiveBaseBranch));
@@ -639,6 +683,7 @@ export async function POST(request:Request){
           }
           const patch=applyMetaDescriptionToSource(path,current,descriptionText,liveDescription);
           if(!patch.ok) return NextResponse.json({error:language==="nl"?PATCH_ERROR_NL[patch.code]:localizeFixError("RankFix kon geen geschikt bestand vinden voor deze fix.",language),code:patch.code,path},{status:422});
+          generator="meta_description_v1"; expectedValue=descriptionText;
           generated={content:patch.content,summary:`RankFix vervangt alleen de meta description in ${path} door: “${descriptionText}” (${descriptionText.length} tekens). Titel, Open Graph, canonical en overige code blijven ongewijzigd.`};
         }else{
           generated={content:current,summary:""};
@@ -646,6 +691,7 @@ export async function POST(request:Request){
       }else{
       const deterministicOgFix=buildDeterministicOgFix(path,current,issue,context,issueId);
       const verifiedSchemaFix=buildVerifiedWebsiteSchemaFix(path,current,issueId,trustedUrl);
+      generator=deterministicOgFix?"deterministic_og_v1":verifiedSchemaFix?"verified_schema_v1":"ai_rewrite";
       generated=deterministicOgFix || verifiedSchemaFix || await generateCodeFix(path,current,issue,context,issueId);
       generated={...generated,content:minimizeGeneratedFix(current,generated.content,issueId,path,trustedUrl)};
       }
@@ -729,8 +775,8 @@ export async function POST(request:Request){
       const baseRef=await githubFetch<{object:{sha:string}}>(token,"/repos/"+repo+"/git/ref/heads/"+encodeURIComponent(effectiveBaseBranch));
       const proposalHash=createHash("sha256").update([scanId,issueId,repo,effectiveBaseBranch,baseRef.object.sha,path,file.sha,generated.content].join("\\0")).digest("hex");
       const stored=await db.query(
-        "INSERT INTO fix_proposals (user_id,scan_id,issue_id,policy_version,repository,base_branch,base_commit_sha,file_path,base_blob_sha,base_file_sha,original_content,proposed_content,proposal_hash,summary,status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9,$10,$11,$12,$13,'PREVIEW_READY') ON CONFLICT (user_id,proposal_hash) DO UPDATE SET expires_at=NOW()+INTERVAL '2 hours',updated_at=NOW() RETURNING id,proposal_hash",
-        [user.id,scanId,issueId,"fix-policy-v1",repo,effectiveBaseBranch,baseRef.object.sha,path,file.sha,current,generated.content,proposalHash,generated.summary]
+        "INSERT INTO fix_proposals (user_id,scan_id,issue_id,policy_version,repository,base_branch,base_commit_sha,file_path,base_blob_sha,base_file_sha,original_content,proposed_content,proposal_hash,summary,status,generator,expected_value) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$9,$10,$11,$12,$13,'PREVIEW_READY',$14,$15) ON CONFLICT (user_id,proposal_hash) DO UPDATE SET expires_at=NOW()+INTERVAL '2 hours',updated_at=NOW(),generator=EXCLUDED.generator,expected_value=EXCLUDED.expected_value RETURNING id,proposal_hash",
+        [user.id,scanId,issueId,"fix-policy-v1",repo,effectiveBaseBranch,baseRef.object.sha,path,file.sha,current,generated.content,proposalHash,generated.summary,generator,expectedValue]
       );
       const beforeLines=current.split("\n");
       const afterLines=generated.content.split("\n");
@@ -743,103 +789,67 @@ export async function POST(request:Request){
       return NextResponse.json({
         success:true,status:"preview",summary:generated.summary,repository:repo,path,
         proposal_id:stored.rows[0].id,proposal_hash:stored.rows[0].proposal_hash,
+        expected_value:expectedValue,
+        autofix:{level:autofixLevel(issueId),publishable:autoPublishSupported(issueId,generator),siteConsent:siteConsentValid(existingMapping?{...existingMapping,repository:repo,base_branch:effectiveBaseBranch}:null),generator},
         preview:{startLine:prefix+1,before:beforeChanged,after:afterChanged,truncated:(beforeLines.length-prefix-suffix>80)||(afterLines.length-prefix-suffix>80),changedLines:changeEstimate.changed}
       });
     }
 
-    const scannedUrl = normalizeScanUrl(trustedUrl);
-    if(scannedUrl && issueId){
-      const existing=await db.query(
-        "SELECT status,pr_number,pr_url,branch,merge_error FROM pending_fixes WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 AND status IN ('PROPOSED','PR_CREATED','AWAITING_MERGE','AWAITING_VERIFICATION','STILL_PRESENT','PREPARED') AND expires_at>NOW() ORDER BY created_at DESC LIMIT 1",
-        [user.id,scannedUrl,issueId]
-      );
-      const active=existing.rows[0];
-      if(active?.pr_number){
-        return NextResponse.json({
-          success:true,idempotent:true,status:String(active.status||"AWAITING_MERGE").toLowerCase(),
-          repository:repo,issue_id:issueId,branch:active.branch||null,
-          merge:{merged:Boolean(active.status==="AWAITING_VERIFICATION"),blocked:Boolean(active.status==="AWAITING_MERGE"),reason:active.merge_error||null},
-          verification:{required:true,state:active.status==="AWAITING_VERIFICATION"?"WAITING_FOR_LIVE_RESCAN":"WAITING_FOR_MERGE",scanned_url:scannedUrl},
-          pr:{number:Number(active.pr_number),url:active.pr_url||null}
-        });
+    if(!activeProposal) return NextResponse.json({error:msg("Maak eerst een diff-preview en keur precies dat voorstel goed.","Create a diff preview first and approve that exact proposal.","Erstelle zuerst eine Diff-Vorschau und bestätige genau diesen Vorschlag.","Créez d’abord un aperçu du diff et approuvez exactement cette proposition.","Crea prima un'anteprima diff e approva esattamente quella proposta.","Crea primero una vista previa del diff y aprueba exactamente esa propuesta."),code:"PROPOSAL_REQUIRED"},{status:409});
+    const branch="rankfix/"+slug(issueId)+"-"+activeProposal.proposal_hash.slice(0,8);
+    const encodedBranch=encodeURIComponent(branch);
+    // Idempotent branch: reuse it when a previous attempt already created it.
+    let branchExists=false;
+    try{ await githubFetch<{object:{sha:string}}>(token,"/repos/"+repo+"/git/ref/heads/"+encodedBranch); branchExists=true; }
+    catch(error){ if(!(error instanceof GithubError&&error.status===404)) throw error; }
+    if(!branchExists){
+      const baseRef=await githubFetch<{object:{sha:string}}>(token,"/repos/"+repo+"/git/ref/heads/"+encodeURIComponent(effectiveBaseBranch));
+      try{ await githubFetch<unknown>(token,"/repos/"+repo+"/git/refs",{method:"POST",body:JSON.stringify({ref:"refs/heads/"+branch,sha:baseRef.object.sha})}); }
+      catch(error){ if(!(error instanceof GithubError&&error.status===422)) throw error; }
+    }
+    // Idempotent commit: only write when the branch does not already hold the approved content.
+    const onBranch=await githubFetch<{type?:string;content?:string;sha:string}>(token,"/repos/"+repo+"/contents/"+path+"?ref="+encodedBranch);
+    const branchContent=Buffer.from((onBranch.content||"").replace(/\n/g,""),"base64").toString("utf8");
+    if(branchContent!==generated.content){
+      if(branchContent!==current){
+        await db.query("UPDATE fix_proposals SET status='FAILED',failure=$2::jsonb,updated_at=NOW() WHERE id=$1",[activeProposal.id,JSON.stringify({code:"BRANCH_DIVERGED"})]);
+        return NextResponse.json({error:msg("De RankFix-branch bevat al andere wijzigingen. Er is niets gepubliceerd; maak een nieuwe scan en een nieuw voorstel.","The RankFix branch already contains other changes. Nothing was published; create a new scan and proposal.","Der RankFix-Branch enthält bereits andere Änderungen.","La branche RankFix contient déjà d’autres modifications.","Il branch RankFix contiene già altre modifiche.","La rama de RankFix ya contiene otros cambios."),code:"BRANCH_DIVERGED"},{status:409});
       }
+      await githubFetch<unknown>(token,"/repos/"+repo+"/contents/"+path,{
+        method:"PUT",
+        body:JSON.stringify({message:"fix: RankFix "+slug(issueId),content:Buffer.from(generated.content,"utf8").toString("base64"),branch,sha:onBranch.sha})
+      });
     }
-
-    if(activeProposal?.pr_number){
-      return NextResponse.json({success:true,idempotent:true,status:String(activeProposal.status||"PR_OPEN").toLowerCase(),repository:repo,path,pr:{number:activeProposal.pr_number,url:activeProposal.pr_url},branch:activeProposal.branch});
-    }
-    const branch=activeProposal ? "rankfix/"+slug(issueId)+"-"+activeProposal.proposal_hash.slice(0,8) : "rankfix/"+Date.now()+"-"+slug(issue);
-    const baseRef=await githubFetch<{object:{sha:string}}>(token,"/repos/"+repo+"/git/ref/heads/"+encodeURIComponent(effectiveBaseBranch));
-    await githubFetch<unknown>(token,"/repos/"+repo+"/git/refs",{method:"POST",body:JSON.stringify({ref:"refs/heads/"+branch,sha:baseRef.object.sha})});
-    await githubFetch<unknown>(token,"/repos/"+repo+"/contents/"+path,{
-      method:"PUT",
-      body:JSON.stringify({message:"fix: RankFix "+slug(issue),content:Buffer.from(generated.content,"utf8").toString("base64"),branch,sha:file.sha})
-    });
-    const written=await githubFetch<{type?:string;content?:string;sha:string}>(token,"/repos/"+repo+"/contents/"+path+"?ref="+encodeURIComponent(branch));
+    const written=await githubFetch<{type?:string;content?:string;sha:string}>(token,"/repos/"+repo+"/contents/"+path+"?ref="+encodedBranch);
     const writtenContent=Buffer.from((written.content||"").replace(/\n/g,""),"base64").toString("utf8");
     if(writtenContent!==generated.content){
-      if(activeProposal) await db.query("UPDATE fix_proposals SET status='FAILED',failure=$2::jsonb,updated_at=NOW() WHERE id=$1",[activeProposal.id,JSON.stringify({code:"COMMIT_MISMATCH"})]);
+      await db.query("UPDATE fix_proposals SET status='FAILED',failure=$2::jsonb,updated_at=NOW() WHERE id=$1",[activeProposal.id,JSON.stringify({code:"COMMIT_MISMATCH"})]);
       return NextResponse.json({error:msg("GitHub bevestigde niet exact dezelfde inhoud als de goedgekeurde preview.","GitHub did not confirm the exact content from the approved preview.","GitHub hat nicht exakt den Inhalt der genehmigten Vorschau bestätigt.","GitHub n’a pas confirmé exactement le contenu de l’aperçu approuvé.","GitHub non ha confermato esattamente il contenuto dell'anteprima approvata.","GitHub no confirmó exactamente el contenido de la vista previa aprobada."),code:"COMMIT_MISMATCH"},{status:409});
     }
-    const pr=await githubFetch<{number?:number;html_url?:string;title?:string}>(token,"/repos/"+repo+"/pulls",{
+    const headRef=await githubFetch<{object:{sha:string}}>(token,"/repos/"+repo+"/git/ref/heads/"+encodedBranch);
+    // Idempotent PR: reuse an open PR for this branch instead of opening a duplicate.
+    const owner=repo.split("/")[0];
+    const existingPrs=await githubFetch<Array<{number?:number;html_url?:string;title?:string;state?:string}>>(token,"/repos/"+repo+"/pulls?state=open&head="+encodeURIComponent(owner+":"+branch)+"&per_page=5");
+    const pr=(Array.isArray(existingPrs)&&existingPrs[0])||await githubFetch<{number?:number;html_url?:string;title?:string}>(token,"/repos/"+repo+"/pulls",{
       method:"POST",
-      body:JSON.stringify({title:"RankFix: "+generated.summary.slice(0,70),head:branch,base:effectiveBaseBranch,body:"## RankFix AI fix\n\n"+generated.summary+"\n\nGenerated by RankFix AI. Review the diff before merging.\n\nTarget: "+path})
+      body:JSON.stringify({title:"RankFix: "+generated.summary.slice(0,70),head:branch,base:effectiveBaseBranch,body:"## RankFix fix\n\n"+generated.summary+"\n\n"+(allowMerge?"Approved in RankFix for publication. RankFix merges only after its safety checks pass (single expected file, small diff, unchanged base, green checks).":"Prepared by RankFix. Review the diff before merging.")+"\n\nTarget: "+path+"\nRule: "+issueId})
     });
-    // QA safety: creating a Pull Request is not permission to merge.
-    // Keep the source website untouched until the owner separately reviews and merges.
-    const mergeState:"AWAITING_MERGE"="AWAITING_MERGE";
-    const mergeError:string|null=null;
-    const merged=false;
-    if(activeProposal){
-      // fix_proposals tracks the proposal lifecycle; deployment/verification
-      // states belong to pending_fixes. Never write PR workflow states into
-      // the proposal status CHECK constraint.
-      await db.query(
-        "UPDATE fix_proposals SET status='PUBLISHED',branch=$2,pr_number=$3,pr_url=$4,updated_at=NOW() WHERE id=$1",
-        [activeProposal.id,branch,Number(pr.number)||null,pr.html_url||null]
-      );
-    }
-    if (scannedUrl && issueId) {
-      await db.query(
-        `INSERT INTO pending_fixes (user_id,scanned_url,issue_id,status,repository,file_path,pr_number,pr_url,branch,merge_error,merged_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,CASE WHEN $11::boolean THEN NOW() ELSE NULL END)
-         ON CONFLICT (user_id,scanned_url,issue_id)
-           WHERE status IN ('PROPOSED','PR_CREATED','AWAITING_MERGE','AWAITING_VERIFICATION','STILL_PRESENT','PREPARED')
-         DO UPDATE SET
-           status=EXCLUDED.status,
-           repository=EXCLUDED.repository,
-           file_path=EXCLUDED.file_path,
-           pr_number=EXCLUDED.pr_number,
-           pr_url=EXCLUDED.pr_url,
-           branch=EXCLUDED.branch,
-           merge_error=EXCLUDED.merge_error,
-           merged_at=EXCLUDED.merged_at,
-           verified_at=NULL,
-           verification_scan_id=NULL,
-           updated_at=NOW()`,
-        [user.id,scannedUrl,issueId,mergeState,repo,path,Number(pr.number)||null,pr.html_url||null,branch,mergeError,merged]
-      );
-    }
-
-    return NextResponse.json({
-      success:true,
-      status:mergeState.toLowerCase(),
-      summary:generated.summary,
-      repository:repo,
-      path,
-      branch,
-      issue_id:issueId,
-      merge:{merged,blocked:!merged,reason:mergeError},
-      verification:{
-        required:true,
-        state:merged?"WAITING_FOR_LIVE_RESCAN":"WAITING_FOR_MERGE",
-        scanned_url:scannedUrl,
-        message:merged
-          ?"De wijziging is door RankFix gemerged. Een nieuwe live scan moet nu bevestigen dat het probleem echt is opgelost."
-          :"De Pull Request is veilig aangemaakt, maar GitHub staat automatisch mergen nog niet toe. RankFix AI kan uitleggen welke stap nodig is."
-      },
-      pr:{number:pr.number,url:pr.html_url,title:pr.title}
-    });
+    await db.query("UPDATE fix_proposals SET status='PUBLISHED',branch=$2,pr_number=$3,pr_url=$4,updated_at=NOW() WHERE id=$1",[activeProposal.id,branch,Number(pr.number)||null,pr.html_url||null]);
+    if(!scannedUrl) return NextResponse.json({success:true,status:"awaiting_merge",repository:repo,path,branch,issue_id:issueId,pr:{number:pr.number,url:pr.html_url}});
+    const inserted=await db.query(
+      `INSERT INTO pending_fixes (user_id,scanned_url,issue_id,status,repository,file_path,pr_number,pr_url,branch,base_branch,proposal_id,auto_publish,expected_value,head_sha,base_blob_sha,phase_started_at)
+       VALUES ($1,$2,$3,'AWAITING_MERGE',$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,NOW())
+       ON CONFLICT (user_id,scanned_url,issue_id) WHERE status IN (${ACTIVE_FIX_STATUS_SQL})
+       DO UPDATE SET status='AWAITING_MERGE',repository=EXCLUDED.repository,file_path=EXCLUDED.file_path,pr_number=EXCLUDED.pr_number,pr_url=EXCLUDED.pr_url,branch=EXCLUDED.branch,base_branch=EXCLUDED.base_branch,proposal_id=EXCLUDED.proposal_id,auto_publish=EXCLUDED.auto_publish,expected_value=EXCLUDED.expected_value,head_sha=EXCLUDED.head_sha,base_blob_sha=EXCLUDED.base_blob_sha,merge_error=NULL,merged_at=NULL,merge_commit_sha=NULL,deploy_state=NULL,deploy_success_at=NULL,live_seen_at=NULL,merge_attempts=0,verification_attempts=0,last_error_code=NULL,next_check_at=NULL,verified_at=NULL,verification_scan_id=NULL,phase_started_at=NOW(),updated_at=NOW()
+       RETURNING *`,
+      [user.id,scannedUrl,issueId,repo,path,Number(pr.number)||null,pr.html_url||null,branch,effectiveBaseBranch,activeProposal.id,allowMerge,expectedValue,headRef.object.sha,activeProposal.base_blob_sha]
+    );
+    const row=inserted.rows[0] as FixRow;
+    await db.query("INSERT INTO fix_events (proposal_id,pending_fix_id,user_id,stage,reason_code,detail) VALUES ($1,$2,$3,'AWAITING_MERGE',$4,$5::jsonb)",[activeProposal.id,row.id,user.id,allowMerge?(publishMode==="auto"?"SITE_CONSENT":"OWNER_APPROVED"):"PR_ONLY",JSON.stringify({pr:pr.number,branch})]).catch(()=>{});
+    // First merge attempt right away; GitHub often needs a few seconds to compute mergeability,
+    // in which case the status endpoint continues safely.
+    if(allowMerge) await advanceFix(deps,row);
+    return respond(row,{summary:generated.summary,verification:{required:true,scanned_url:scannedUrl}});
   }catch(error){
     if(error instanceof FixProviderError){
       return NextResponse.json({error:localizeProviderError(error.code,language)},{status:error.code==="AI_UNAVAILABLE"?503:502});

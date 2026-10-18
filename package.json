@@ -11,7 +11,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
-    "load:test": "node scripts/load-test.mjs"
+    "load:test": "node scripts/load-test.mjs",
+    "test:fix-flow": "RF_REAL_DB=1 node --experimental-strip-types --no-warnings --import ./tests/scan-matrix/register.mjs tests/fix-engine/run-flow-pg.mjs"
   },
   "dependencies": {
     "@sparticuz/chromium": "153.0.0",

@@ -184,7 +184,8 @@ test("routes: description proposals and GitHub edits use the shared deterministi
   assert.match(gh, /if\(suppliedText!==null&&!checkDescriptionCandidate\(approvedText,liveDescription\)\.ok\)/);
   assert.match(gh, /code:"APPROVED_TEXT_INVALID"/);
   const page = readFileSync(new URL("../app/dashboard/github/page.tsx", import.meta.url), "utf8");
-  assert.match(page, /proposed_value:!publish&&\/\^META_DESCRIPTION_/);
-  assert.match(page, /Fix probleem →/);
-  assert.match(page, /proposalLoading\|\|Boolean\(validation\?\.errors/);
+  // The approved text is sent with the preview, and only that stored proposal can be published.
+  assert.match(page, /preview: true, proposed_value: proposedText \|\| undefined/);
+  assert.match(page, /proposal_id: p\.proposalId, proposal_hash: p\.proposalHash, publish_mode: mode/);
+  assert.match(page, /nl: "Fix probleem"/);
 });
