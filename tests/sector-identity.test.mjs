@@ -200,7 +200,7 @@ test("retail sites without a product sample get a bounded second hop", async () 
   assert.match(source, /item\.evidenceSource!=="rendered_html"\)\.slice\(0,2\)/, "at most two listing renders");
   // Nomination is never evidence: confirmation still comes from the fetched page.
   assert.match(source, /return audits\.some\(\(item\)=>item\.status==="audited" && item\.commerceEvidence\?\.confirmedRetailPage\)/);
-  assert.match(source, /sectorProfile\.key === "ecommerce" && finalCommerceDecision\.confirmed && sectorProfile\.confidenceScore < 88/);
+  assert.match(source, /sectorProfile\.key === "ecommerce" && finalCommerceDecision\.confirmed && explicitRetailIdentity && sectorProfile\.confidenceScore < 88/);
 });
 
 test("one page type cannot crowd out the representative sample", async () => {

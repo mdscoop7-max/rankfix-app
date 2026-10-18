@@ -58,6 +58,7 @@ for (const p of PROFILES) {
     if (p.expect && !p.expect.includes(sp.sector)) problems.push(`SECTOR ${sp.sector}/${sp.key} not in ${p.expect.join("|")}`);
     if (p.labelLike && !p.labelLike.test(sp.label)) problems.push(`LABEL "${sp.label}" does not match ${p.labelLike}`);
     if (p.notExpect?.includes(sp.sector)) problems.push(`SECTOR forbidden ${sp.sector}`);
+    if (p.maxConf != null && sp.confidenceScore > p.maxConf) problems.push(`confidence ${sp.confidenceScore} above ${p.maxConf} for ${sp.sector}`);
     if (p.page && j.pageTypeEvidence.type !== p.page) problems.push(`PAGE ${j.pageTypeEvidence.type} != ${p.page}`);
     const retailKeys = ["product_schema", "merchant_product_readiness", "checkout_funnel_static", "checkout_trust", "webshop_trust", "commercial_terms_signal", "merchant_feed_signal", "product_stock", "product_price_consistency"];
     if (!p.commerce && sp.sector !== "ecommerce") for (const c of checks) if (retailKeys.includes(c.key) && (c.status === "warning" || c.status === "fail")) problems.push(`retail check on non-shop: ${c.key}=${c.status}`);

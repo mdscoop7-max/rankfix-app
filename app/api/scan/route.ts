@@ -41,6 +41,9 @@ import { detectEuPrimaryIdentity, isConsentHeading, retailSelfDescription } from
 import { enforceReportConsistency } from "@/lib/report-consistency";
 
 export const maxDuration = 300;
+// 3.6 (G1): highest sector confidence for "webshop" when the site never calls
+// itself a shop (no shop wording, no Store schema). Stays below the 85% band.
+const UNSELF_IDENTIFIED_COMMERCE_CAP = 80;
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -1993,9 +1996,12 @@ async function runScan(request: Request) {
           sector:"ecommerce" as SectorKey,
           key:"ecommerce",
           label:"Webshop / e-commerce",
-          confidence:(explicitRetailIdentity && !evidenceCommerceConfirmed ? "medium" : "high") as "medium"|"high",
-          confidenceScore:explicitRetailIdentity && !evidenceCommerceConfirmed ? 78 : Math.min(99, Math.round(86 + evidenceCommerceStrength * 2)),
-          evidence:[...(storeSchemaRetailIdentity ? [`Schema: ${storeSchemaTypes.join(", ")} met onafhankelijk commercebewijs`] : []), ...(explicitRetailIdentity && !storeSchemaRetailIdentity ? ["Primair retailbewijs: productassortiment plus online-verkooptaal of winkelidentiteit in de paginametadata"] : []), `Scanbewijs: ${evidenceCommerceStrength} onafhankelijk${evidenceCommerceStrength===1?" commercesignaal":"e commercesignalen"}`, ...(catalogTop?.key==="ecommerce" ? catalogTop.evidence : [])].slice(0,6),
+          // 3.6 (G1): shop capability without retail self-identity (no shop wording,
+          // no Store schema) is a probable webshop, never a confident one: telecom,
+          // energy, real-estate and charity sites also show prices and carts.
+          confidence:(!explicitRetailIdentity || !evidenceCommerceConfirmed ? "medium" : "high") as "medium"|"high",
+          confidenceScore:!explicitRetailIdentity ? Math.min(UNSELF_IDENTIFIED_COMMERCE_CAP, Math.round(72 + evidenceCommerceStrength * 2)) : !evidenceCommerceConfirmed ? 78 : Math.min(99, Math.round(86 + evidenceCommerceStrength * 2)),
+          evidence:[...(storeSchemaRetailIdentity ? [`Schema: ${storeSchemaTypes.join(", ")} met onafhankelijk commercebewijs`] : []), ...(explicitRetailIdentity && !storeSchemaRetailIdentity ? ["Primair retailbewijs: productassortiment plus online-verkooptaal of winkelidentiteit in de paginametadata"] : []), ...(!explicitRetailIdentity ? ["Geen winkelidentiteit in titel, omschrijving of schema: webshop is waarschijnlijk, niet bevestigd"] : []), `Scanbewijs: ${evidenceCommerceStrength} onafhankelijk${evidenceCommerceStrength===1?" commercesignaal":"e commercesignalen"}`, ...(catalogTop?.key==="ecommerce" ? catalogTop.evidence : [])].slice(0,6),
           applicableModules:["core_seo","geo","technical","ecommerce","product","pricing_currency","merchant","checkout",...(euConsumerApplicable?["eu_consumer"]:[])],
         }
       : primaryNonCommerceIdentity
@@ -2027,7 +2033,9 @@ async function runScan(request: Request) {
     // incidental guest/booking language on a payment, service or retailer site.
     const restaurantIdentityEvidence = /\b(?:restaurant|brasserie|bistro|café|cafe|eetcafé|food establishment|dining restaurant)\b/i.test(sectorIdentitySource)
       || schemaSet.has("restaurant") || schemaSet.has("foodestablishment");
-    if (sectorProfile.sector === "hospitality" && primaryBusinessEvidence.sector !== "hospitality" && !restaurantIdentityEvidence) {
+    // 3.6 (G5): a multilingual hotel identity (title names hotels plus rooms/stay,
+    // or Hotel/LodgingBusiness schema) is independent confirmation too.
+    if (sectorProfile.sector === "hospitality" && primaryBusinessEvidence.sector !== "hospitality" && euPrimaryIdentity?.sector !== "hospitality" && !restaurantIdentityEvidence) {
       sectorProfile.sector = "unknown";
       sectorProfile.key = "unknown";
       sectorProfile.label = "Sector niet betrouwbaar vastgesteld";
@@ -5003,9 +5011,13 @@ async function runScan(request: Request) {
       sectorProfile.sector = "ecommerce";
       sectorProfile.key = "ecommerce";
       sectorProfile.label = "Webshop / e-commerce";
-      sectorProfile.confidence = "high";
-      sectorProfile.confidenceScore = Math.max(sectorProfile.confidenceScore, sitewideCommerceEvidence.confirmed ? 92 : 88);
-      sectorProfile.evidence = [...sectorProfile.evidence, `Scanbewijs bevestigt commerce; eerdere sectorhint: ${previousSector}`].slice(0,6);
+      // 3.6 (G1): without retail self-identity the late commerce decision stays
+      // probable (below the 85% "confident" band), whatever the earlier hint was.
+      sectorProfile.confidence = explicitRetailIdentity ? "high" : "medium";
+      sectorProfile.confidenceScore = explicitRetailIdentity
+        ? Math.max(sectorProfile.confidenceScore, sitewideCommerceEvidence.confirmed ? 92 : 88)
+        : sitewideCommerceEvidence.confirmed ? UNSELF_IDENTIFIED_COMMERCE_CAP + 4 : UNSELF_IDENTIFIED_COMMERCE_CAP;
+      sectorProfile.evidence = [...sectorProfile.evidence, `Scanbewijs bevestigt commerce; eerdere sectorhint: ${previousSector}`, ...(!explicitRetailIdentity ? ["Geen winkelidentiteit in titel, omschrijving of schema: webshop is waarschijnlijk, niet bevestigd"] : [])].slice(0,6);
     }
 
     // Final Master reconciliation: late technology/multi-page evidence may improve
@@ -5028,7 +5040,7 @@ async function runScan(request: Request) {
     }
     // A retail identity whose shop is confirmed by hard evidence (for example a
     // representative product page) carries the same confidence as any confirmed shop.
-    if (sectorProfile.key === "ecommerce" && finalCommerceDecision.confirmed && sectorProfile.confidenceScore < 88) {
+    if (sectorProfile.key === "ecommerce" && finalCommerceDecision.confirmed && explicitRetailIdentity && sectorProfile.confidenceScore < 88) {
       sectorProfile.confidence = "high";
       sectorProfile.confidenceScore = 88;
       sectorProfile.evidence = [...sectorProfile.evidence, "Representatieve productpagina bevestigt webshopfunctionaliteit"].slice(0,6);

@@ -1601,7 +1601,10 @@ test("retail sector evidence wins over incidental sector words without claiming 
   assert.match(source, /commerceAsPrimaryIdentity = !telecomProviderIdentity && \(retailPrimaryIdentity/);
   assert.match(source, /commerceHints: Boolean\(retailPrimaryIdentity/);
   assert.match(source, /!retailPrimaryIdentity && !finalCommerceDecision\.confirmed && reconciledIdentityStrong/);
-  assert.match(source, /explicitRetailIdentity && !evidenceCommerceConfirmed \? 78/);
+  // 3.6: retail identity without confirmed checkout stays at 78; commerce without
+  // any retail self-identity is capped below the confident band.
+  assert.match(source, /!evidenceCommerceConfirmed \? 78/);
+  assert.match(source, /!explicitRetailIdentity \? Math\.min\(UNSELF_IDENTIFIED_COMMERCE_CAP/);
   assert.match(source, /!shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity/);
 });
 
