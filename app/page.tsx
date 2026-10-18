@@ -45,8 +45,9 @@ type ScanResult = {
   pageTypeEvidence?: {type:string;confidence:string;evidence:string[]};
   technologyProfile?: {siteType?:"Webshop"|"Landingpage"|"Website";cms:string|null;commercePlatform:string|null;framework:string|null;isCommerce:boolean;confidence:number;confidenceLabel:"high"|"medium"|"low";evidence:string[]};
   sectorProfile?: {sector?:string;key?:string;label:string;confidence:"high"|"medium"|"low";confidenceScore?:number;evidence:string[];applicableModules:string[]};
-  seo: { score: number; grade: string; checks: Check[] };
-  geo: { score: number; grade: string; checks: Check[] };
+  // null = category not assessed (no check could be confirmed), never a 0.
+  seo: { score: number | null; grade: string; checks: Check[]; assessed?: boolean };
+  geo: { score: number | null; grade: string; checks: Check[]; assessed?: boolean };
   metrics: {
     title: string;
     titleLength: number;
@@ -592,7 +593,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
     }
     for (const [category, audit] of [["SEO", result.seo], ["GEO", result.geo]] as const) {
       if (result.mode !== "both" && category.toLowerCase() !== result.mode) continue;
-      lines.push("", category + " — " + audit.score + "/100");
+      lines.push("", category + " — " + (audit.score ?? "niet beoordeeld") + (audit.score == null ? "" : "/100"));
       audit.checks.forEach((check, index) => {
         lines.push("", (index + 1) + ". " + check.title + " [" + check.status + "]",
           "Points: " + check.points + "/" + check.maxPoints,
@@ -1134,7 +1135,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                   .map(([key, data]) => (
                     <button key={key} type="button" onClick={() => setTab(key)} className={`rounded-xl border px-3 py-2 text-left transition ${tab === key ? "border-emerald-300/30 bg-emerald-300/10 text-slate-900" : "border-slate-200 bg-white/[0.02] text-slate-500 hover:text-violet-700"}`}>
                       <div className="text-[10px] font-bold uppercase tracking-widest">{key}</div>
-                      <div className="mt-1 text-xl font-black">{data.score}</div>
+                      <div className="mt-1 text-xl font-black">{data.score ?? "—"}</div>
                     </button>
                   ))}
               </div>
@@ -1181,7 +1182,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                       >
                         <div className="text-[10px] font-bold uppercase tracking-widest">{key} audit</div>
                         <div className="mt-2">
-                          <div className="whitespace-nowrap text-xl font-black">{data.score}<span className="ml-0.5 text-xs font-bold opacity-60">/100</span></div>
+                          <div className="whitespace-nowrap text-xl font-black">{data.score ?? "—"}<span className="ml-0.5 text-xs font-bold opacity-60">/100</span></div>
                           <div className="mt-2">
                             <span className="inline-flex whitespace-nowrap rounded-full border border-current/10 bg-white/60 px-2 py-1 text-[11px] font-semibold">{ar.coverage}: {data.checks.filter((item) => item.status !== "not_applicable" && item.status !== "unable_to_confirm").length}/{data.checks.length}</span>
                           </div>

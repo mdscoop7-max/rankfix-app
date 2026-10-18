@@ -17,7 +17,7 @@ import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, fi
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readHtmlSampleHeadFirst, readResponsePrefix, readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
-import { applyEvidenceBasedScoreCap, capPerfectScore, evidenceLevel, evidenceRange, headlineScore, requireCompleteEvidenceForPerfect, stableCoreChecks, SCORE_MODEL_VERSION, scoreApplicableChecks, combinedScoreRange, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
+import { applyEvidenceBasedScoreCap, capPerfectScore, categoryAssessed, effectiveScoreMode, evidenceLevel, evidenceRange, headlineScore, requireCompleteEvidenceForPerfect, stableCoreChecks, SCORE_MODEL_VERSION, scoreApplicableChecks, combinedScoreRange, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
 import { isPaidPlan, normalizePlan, planLimits } from "@/lib/plans";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
@@ -3956,13 +3956,20 @@ async function runScan(request: Request) {
     applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate || thinRawDocument, rendered:javascriptExecuted, url:finalUrl.toString(), rawSubstantive:rawSubstantiveDocument });
     const selectedSeoChecks = mode === "geo" ? [] : seoChecks;
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
+    // 3.6 (G11): the weighting actually used. A category without any assessed
+    // core check (for example GEO when the page could not be read) drops out of
+    // the total instead of counting as 0 — no hidden deduction for missing evidence.
+    const scoringMode = () => effectiveScoreMode(mode, categoryAssessed(stableCoreChecks(selectedSeoChecks,"seo")), categoryAssessed(stableCoreChecks(selectedGeoChecks,"geo")));
+    const unassessedCategories = () => mode !== "both" ? [] : (["seo","geo"] as const).filter((group) => !categoryAssessed(stableCoreChecks(group === "seo" ? selectedSeoChecks : selectedGeoChecks, group)));
+    const scoreFormula = (m: "both"|"seo"|"geo") => m === "both" ? "0.6 × SEO + 0.4 × GEO" : m === "seo" ? (mode === "both" ? "SEO (GEO niet beoordeeld: geen GEO-controle bevestigd)" : "SEO") : (mode === "both" ? "GEO (SEO niet beoordeeld: geen SEO-controle bevestigd)" : "GEO");
+    const scoreWeights = (m: "both"|"seo"|"geo") => m === "both" ? { seo: 0.6, geo: 0.4, security: 0 } : m === "seo" ? { seo: 1, geo: 0, security: 0 } : { seo: 0, geo: 1, security: 0 };
     let selectedSeoScore = scoreApplicableChecks(stableCoreChecks(selectedSeoChecks,"seo"));
     let selectedGeoScore = scoreApplicableChecks(stableCoreChecks(selectedGeoChecks,"geo"));
     selectedSeoScore = applyEvidenceBasedScoreCap(selectedSeoScore, stableCoreChecks(selectedSeoChecks,"seo"));
     selectedGeoScore = applyEvidenceBasedScoreCap(selectedGeoScore, stableCoreChecks(selectedGeoChecks,"geo"));
     selectedSeoScore = capPerfectScore(selectedSeoScore, selectedSeoChecks);
     selectedGeoScore = capPerfectScore(selectedGeoScore, selectedGeoChecks);
-    let selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
+    let selectedOverallScore = scoringMode() === "seo" ? selectedSeoScore : scoringMode() === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
     selectedOverallScore = capPerfectScore(applyEvidenceBasedScoreCap(selectedOverallScore, [...stableCoreChecks(selectedSeoChecks,"seo"),...stableCoreChecks(selectedGeoChecks,"geo")]), [...selectedSeoChecks,...selectedGeoChecks]);
     const checks = [...selectedSeoChecks, ...selectedGeoChecks];
     let seoCoverage = weightedCoverage(selectedSeoChecks);
@@ -3977,7 +3984,7 @@ async function runScan(request: Request) {
       const combined = combinedScoreRange(seoR, geoR);
       const all = [...seoCore, ...geoCore];
       const fullAll = [...selectedSeoChecks, ...selectedGeoChecks];
-      const overall = mode === "seo" ? seoR : mode === "geo" ? geoR : { ...combined, low: capPerfectScore(applyEvidenceBasedScoreCap(combined.low, all), fullAll), high: capPerfectScore(applyEvidenceBasedScoreCap(combined.high, all), fullAll) };
+      const overall = scoringMode() === "seo" ? seoR : scoringMode() === "geo" ? geoR : { ...combined, low: capPerfectScore(applyEvidenceBasedScoreCap(combined.low, all), fullAll), high: capPerfectScore(applyEvidenceBasedScoreCap(combined.high, all), fullAll) };
       return { seoR, geoR, overall };
     };
     const initialRanges = reportRanges();
@@ -3988,8 +3995,9 @@ async function runScan(request: Request) {
       version: SCORE_MODEL_VERSION,
       breakdown: scoreBreakdown(checks),
       comparison:null as ReturnType<typeof compareScoreVersions> | null,
-      formula: mode === "both" ? "0.6 × SEO + 0.4 × GEO" : mode === "seo" ? "SEO" : "GEO",
-      weights: mode === "both" ? { seo: 0.6, geo: 0.4, security: 0 } : mode === "seo" ? { seo: 1, geo: 0, security: 0 } : { seo: 0, geo: 1, security: 0 },
+      formula: scoreFormula(scoringMode()),
+      weights: scoreWeights(scoringMode()),
+      unassessedCategories: unassessedCategories() as string[],
       securitySeparate: true,
       coverageBasis: "assessed_weight / applicable_weight",
       range: overallScoreRange,
@@ -5453,7 +5461,7 @@ async function runScan(request: Request) {
     // Reapply evidence coverage caps: this second scoring pass must not erase them.
     selectedSeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(stableCoreChecks(selectedSeoChecks,"seo")), stableCoreChecks(selectedSeoChecks,"seo"));
     selectedGeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(stableCoreChecks(selectedGeoChecks,"geo")), stableCoreChecks(selectedGeoChecks,"geo"));
-    selectedOverallScore = mode === "seo" ? selectedSeoScore : mode === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
+    selectedOverallScore = scoringMode() === "seo" ? selectedSeoScore : scoringMode() === "geo" ? selectedGeoScore : Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4);
     selectedOverallScore = applyEvidenceBasedScoreCap(selectedOverallScore, [...stableCoreChecks(selectedSeoChecks,"seo"),...stableCoreChecks(selectedGeoChecks,"geo")]);
     selectedSeoScore = capPerfectScore(selectedSeoScore, selectedSeoChecks);
     selectedGeoScore = capPerfectScore(selectedGeoScore, selectedGeoChecks);
@@ -5462,7 +5470,7 @@ async function runScan(request: Request) {
     selectedSeoScore = requireCompleteEvidenceForPerfect(selectedSeoScore, selectedSeoChecks);
     selectedGeoScore = requireCompleteEvidenceForPerfect(selectedGeoScore, selectedGeoChecks);
     selectedOverallScore = requireCompleteEvidenceForPerfect(selectedOverallScore, [...selectedSeoChecks,...selectedGeoChecks]);
-    if (mode === "both") selectedOverallScore = Math.min(selectedOverallScore, Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4));
+    if (scoringMode() === "both") selectedOverallScore = Math.min(selectedOverallScore, Math.round(selectedSeoScore * 0.6 + selectedGeoScore * 0.4));
     seoCoverage = weightedCoverage(selectedSeoChecks);
     geoCoverage = weightedCoverage(selectedGeoChecks);
     overallCoverage = weightedCoverage(checks);
@@ -5492,6 +5500,8 @@ async function runScan(request: Request) {
       perfectScoreRule: "100/100 alleen bij volledig bevestigd bewijs; bij onbevestigde controles maximaal 99.",
     });
     scoreModel.coverageAdjustment = 0;
+    // Final weighting after multi-page reconciliation (G11).
+    Object.assign(scoreModel, { formula: scoreFormula(scoringMode()), weights: scoreWeights(scoringMode()), unassessedCategories: unassessedCategories() });
     // Central self-check: sector label, sector evidence, modules, advice,
     // points, evidence URLs and scores must describe the same facts before the
     // report is stored or shown. Contradictions are corrected and recorded.
@@ -5499,7 +5509,7 @@ async function runScan(request: Request) {
       sector: sectorProfile,
       checks,
       scannedUrl: finalUrl.toString(),
-      scores: { seo: selectedSeoScore, geo: selectedGeoScore, overall: selectedOverallScore, mode },
+      scores: { seo: selectedSeoScore, geo: selectedGeoScore, overall: selectedOverallScore, mode: scoringMode() },
       range: scoreModel.range,
       coveragePercent: overallCoverage.coveragePercent,
       javascriptRequiredButNotRendered: Boolean(javascriptCandidate) && !javascriptExecuted,
@@ -5522,6 +5532,10 @@ async function runScan(request: Request) {
     scoreModel.range = { ...scoreModel.range, low: Math.min(scoreModel.range.low, selectedOverallScore) };
     Object.assign(scoreModel, { headline: headlineScore(selectedOverallScore, scoreModel.range, overallCoverage.coveragePercent, scoreEvidence.level) });
     const selfCheck = consistency.selfCheck;
+    // 3.6 (G11): a category without any assessed check is stored and shown as
+    // "not assessed" (null), never as 0 next to a total that ignores it.
+    const storedSeoScore: number | null = unassessedCategories().includes("seo") ? null : selectedSeoScore;
+    const storedGeoScore: number | null = unassessedCategories().includes("geo") ? null : selectedGeoScore;
     masterEvidence.primarySector.label = sectorProfile.label;
     masterEvidence.activeModules = sectorProfile.applicableModules;
     if (selfCheck.corrections.length || selfCheck.flags.length) console.info("RankFix self-check", { page: finalUrl.toString(), corrections: selfCheck.corrections, flags: selfCheck.flags });
@@ -5746,15 +5760,15 @@ async function runScan(request: Request) {
         console.info("RankFix scan phase", { phase: "history_write_start", page: finalUrl.toString(), isProductPage, productOptimizerSourceCount });
         const insertedScan = await getDb().query(
           "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id",
-          [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
+          [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, storedSeoScore, storedGeoScore, JSON.stringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             // End-to-end scan duration (fetch, render, sample, scoring) for speed benchmarks.
             scanDurationMs: Date.now() - started,
             language: scanLanguage,
             mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, selfCheck, summary: scanSummary, rendering, recovery, access, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
-            seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
-            geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
+            seo: { score: storedSeoScore, grade: storedSeoScore == null ? "-" : grade(selectedSeoScore), assessed: storedSeoScore != null, coverage: seoCoverage, checks: selectedSeoChecks },
+            geo: { score: storedGeoScore, grade: storedGeoScore == null ? "-" : grade(selectedGeoScore), assessed: storedGeoScore != null, coverage: geoCoverage, checks: selectedGeoChecks },
             metrics: { siteType: classification.websiteType === "Webshop" ? "ECOMMERCE" : "WEBSITE", websiteType: classification.websiteType, sector: classification.sector, pageTypeClassification: classification.pageType, title, titleLength: title.length, description, descriptionLength: description.length, descriptionState, h1Count: h1s.length, h1s,
               imageCount, imageElementCount, imagesMissingAlt, wordCount, headingsCount: headings.length, linksCount: links.length, pageType: schemaContextLabel, recommendedSchema, localBusinessDetails,
               internalLinks, canonical: canonical || null, lang: lang || null, robots: robots || null,
@@ -5889,7 +5903,7 @@ async function runScan(request: Request) {
           const scanId = savedScanId;
           await getDb().query(
             "INSERT INTO website_health_events (user_id,website_host,scanned_url,scan_id,event_type,details) VALUES ($1,$2,$3,$4,'SCAN',$5)",
-            [user.id,websiteHost,finalUrl.toString(),scanId,JSON.stringify({overallScore:selectedOverallScore,seoScore:selectedSeoScore,geoScore:selectedGeoScore})]
+            [user.id,websiteHost,finalUrl.toString(),scanId,JSON.stringify({overallScore:selectedOverallScore,seoScore:storedSeoScore,geoScore:storedGeoScore})]
           );
           const previousChecks = [
             ...(previousScan.rows[0]?.result?.seo?.checks || []),
@@ -5988,8 +6002,8 @@ async function runScan(request: Request) {
       security: securityEngine,
       accessibility: accessibilityEngine,
       adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
-      seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
-      geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
+      seo: { score: storedSeoScore, grade: storedSeoScore == null ? "-" : grade(selectedSeoScore), assessed: storedSeoScore != null, coverage: seoCoverage, checks: selectedSeoChecks },
+      geo: { score: storedGeoScore, grade: storedGeoScore == null ? "-" : grade(selectedGeoScore), assessed: storedGeoScore != null, coverage: geoCoverage, checks: selectedGeoChecks },
       metrics: {
         siteType: classification.websiteType === "Webshop" ? "ECOMMERCE" : "WEBSITE",
         websiteType: classification.websiteType,

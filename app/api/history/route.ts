@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 import { normalizePlan, planLimits } from "@/lib/plans";
 
 type AuditCheck={status?:string;severity?:string;category?:string;rule_id?:string;issue_id?:string;key?:string;title?:string};
-type Row={id:string;scanned_url:string;final_url?:string;overall_score:number;seo_score:number;geo_score:number;created_at:string;result:{technologyProfile?:{siteType?:string;cms?:string;platform?:string;framework?:string;confidence?:number;evidence?:string[]};seo?:{checks?:AuditCheck[]};geo?:{checks?:AuditCheck[]};security?:{score?:number}}};
+type Row={id:string;scanned_url:string;final_url?:string;overall_score:number;seo_score:number|null;geo_score:number|null;created_at:string;result:{technologyProfile?:{siteType?:string;cms?:string;platform?:string;framework?:string;confidence?:number;evidence?:string[]};seo?:{checks?:AuditCheck[]};geo?:{checks?:AuditCheck[]};security?:{score?:number}}};
 type HostScan={scanned_url:string;final_url?:string};
 function host(scan:HostScan){try{return new URL(scan.final_url||scan.scanned_url).hostname.toLowerCase().replace(/^www\./,"")}catch{return scan.scanned_url}}
 function summary(scan:Row){

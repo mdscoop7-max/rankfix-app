@@ -10,6 +10,7 @@ installMatrixFetch2();
 const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const { POST } = await import(ROOT + "/app/api/scan/route.ts");
 const { labelFitsSector } = await import(ROOT + "/lib/report-consistency.ts");
+const { stableCoreChecks } = await import(ROOT + "/lib/audit-score.ts");
 const only = process.env.ONLY ? process.env.ONLY.split(",") : null;
 const rows = []; const fs = await import("node:fs");
 const quiet = () => { const s = [console.info, console.warn, console.log, console.error]; const errs = []; console.info = () => {}; console.warn = () => {}; console.error = (...a) => errs.push(a); return () => { [console.info, console.warn, console.log, console.error] = s; return errs; }; };
@@ -40,7 +41,7 @@ for (const p of PROFILES) {
       if ((c.status === "not_applicable" || c.status === "unable_to_confirm") && c.points > 0) problems.push(`${c.key} ${c.status} has points ${c.points}`);
       if (c.points > c.maxPoints) problems.push(`${c.key} points>max`);
     }
-    const expOverall = Math.round(j.seo.score * 0.6 + j.geo.score * 0.4);
+    const expOverall = j.geo.score === null ? j.seo.score : j.seo.score === null ? j.geo.score : Math.round(j.seo.score * 0.6 + j.geo.score * 0.4);
     if ((process.env.MODE||'both')==='both' && Math.abs(expOverall - j.overallScore) > 0 && !(j.overallScore < expOverall)) problems.push(`overall ${j.overallScore} vs 0.6/0.4 ${expOverall}`);
     const bd = j.scoreModel.breakdown || [];
     for (const b of bd) { const c = checks.find(x => x.key === b.key && x.category === b.category); if (!c) { problems.push(`breakdown ${b.key} without check`); continue; } if (c.status !== b.status) problems.push(`breakdown status ${b.key} ${b.status} vs ${c.status}`); if ((b.earnedPoints ?? 0) !== (["not_applicable","unable_to_confirm"].includes(c.status) ? (b.earnedPoints ?? 0) : c.points)) problems.push(`breakdown points ${b.key} ${b.earnedPoints} vs ${c.points}`); if (["not_applicable","unable_to_confirm"].includes(b.status) && b.earnedPoints > 0) problems.push(`breakdown ${b.key} ${b.status} earned ${b.earnedPoints}`); }
@@ -58,6 +59,15 @@ for (const p of PROFILES) {
     if (p.expect && !p.expect.includes(sp.sector)) problems.push(`SECTOR ${sp.sector}/${sp.key} not in ${p.expect.join("|")}`);
     if (p.labelLike && !p.labelLike.test(sp.label)) problems.push(`LABEL "${sp.label}" does not match ${p.labelLike}`);
     if (p.notExpect?.includes(sp.sector)) problems.push(`SECTOR forbidden ${sp.sector}`);
+    // 3.6 (G11): a category without any assessed core check is "not assessed"
+    // (null) and drops out of the total; it is never stored or shown as 0.
+    for (const group of ["seo", "geo"]) {
+      const core = stableCoreChecks(j[group]?.checks || [], group);
+      const assessed = core.some((c) => c.maxPoints > 0 && c.issue_status !== "NOT_APPLICABLE" && c.issue_status !== "UNABLE_TO_CONFIRM");
+      if (mode === "both" && !assessed && j[group]?.score !== null) problems.push(`${group} not assessed but score ${j[group]?.score}`);
+      if (mode === "both" && assessed && typeof j[group]?.score !== "number") problems.push(`${group} assessed but score ${j[group]?.score}`);
+    }
+    if (mode === "both" && j.geo?.score === null && j.seo?.score !== null && Math.abs(j.overallScore - j.seo.score) > 1) problems.push(`GEO not assessed: total ${j.overallScore} should follow SEO ${j.seo.score}`);
     if (p.maxConf != null && sp.confidenceScore > p.maxConf) problems.push(`confidence ${sp.confidenceScore} above ${p.maxConf} for ${sp.sector}`);
     if (p.page && j.pageTypeEvidence.type !== p.page) problems.push(`PAGE ${j.pageTypeEvidence.type} != ${p.page}`);
     const retailKeys = ["product_schema", "merchant_product_readiness", "checkout_funnel_static", "checkout_trust", "webshop_trust", "commercial_terms_signal", "merchant_feed_signal", "product_stock", "product_price_consistency"];
