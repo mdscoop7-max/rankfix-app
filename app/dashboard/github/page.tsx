@@ -205,7 +205,7 @@ export default function GithubPage() {
       return null;
     }
     if (!pd.proposal_id) throw new Error(tx("De oplossing kon niet worden voorbereid.", "The fix could not be prepared."));
-    return { proposalId: String(pd.proposal_id), proposalHash: String(pd.proposal_hash), text: String(pd.expected_value || proposedText || ""), summary: String(pd.summary || ""), preview: pd.preview || null, publishable: Boolean(pd.autofix?.publishable), siteConsent: Boolean(pd.autofix?.siteConsent), level: String(pd.autofix?.level || "review"), path: String(pd.path || "") };
+    return { proposalId: String(pd.proposal_id), proposalHash: String(pd.proposal_hash), text: String(pd.expected_value || ""), summary: String(pd.summary || ""), preview: pd.preview || null, publishable: Boolean(pd.autofix?.publishable), siteConsent: Boolean(pd.autofix?.siteConsent), level: String(pd.autofix?.level || "review"), path: String(pd.path || "") };
   }
 
   async function publish(p: Plan, mode: "auto" | "publish" | "pr_only") {
