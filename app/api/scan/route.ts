@@ -1310,8 +1310,18 @@ async function runScan(request: Request) {
       schemaSet.has("newsmediaorganization") ||
       newsMediaIdentity({ title, description, h1: h1s.join(" "), homepage: isHomepage })
     );
-    const effectiveLocalSchemaSignal = hasLocalBusinessSignal && !governmentIdentitySignal && !governmentSchemaPresent && !transportLogisticsSchemaContext && !ecommerceSchemaContext && !newsMediaSchemaContext;
-    const recommendedSchema = governmentIdentitySignal || governmentSchemaPresent
+    // NGO headquarters, a charity's physical shop or a public phone number do
+    // not turn the organisation's homepage into a local retail/service business.
+    // Use the same evidence-gated, domain-agnostic identity detector as the
+    // Sector Motor; never let scattered footer "openingstijden" outrank the mission.
+    const nonprofitSchemaContext = isHomepage && detectEuPrimaryIdentity({
+      title,description,h1s,ogSiteName:decode(ogSiteName||""),schemaTypes,
+      hostname:finalUrl.hostname,homepage:true
+    })?.sector==="nonprofit";
+    const effectiveLocalSchemaSignal = hasLocalBusinessSignal && !nonprofitSchemaContext && !governmentIdentitySignal && !governmentSchemaPresent && !transportLogisticsSchemaContext && !ecommerceSchemaContext && !newsMediaSchemaContext;
+    const recommendedSchema = nonprofitSchemaContext
+      ? (isHomepage ? "Organization + WebSite" : "Organization / WebPage")
+      : governmentIdentitySignal || governmentSchemaPresent
       ? (isHomepage ? "GovernmentOrganization + WebSite" : "GovernmentOrganization / WebPage")
       : newsMediaSchemaContext
       ? (isHomepage ? "NewsMediaOrganization + WebSite" : hasArticleSignal ? "NewsArticle" : "NewsMediaOrganization / WebPage")
@@ -1322,8 +1332,10 @@ async function runScan(request: Request) {
           : effectiveLocalSchemaSignal
             ? specificLocalSchema || "LocalBusiness"
             : isHomepage ? "Organization + WebSite" : isProductPage ? "Product" : hasCategorySignal ? "ItemList / CollectionPage" : hasArticleSignal ? "Article" : "WebPage";
-    const schemaContextLabel = governmentIdentitySignal || governmentSchemaPresent ? "overheids-/publieke pagina" : newsMediaSchemaContext ? (isHomepage ? "nieuws-/mediahomepage" : hasArticleSignal ? "nieuwsartikel" : "nieuws-/mediapagina") : transportLogisticsSchemaContext ? (isHomepage ? "transport-/logistiekhomepage" : "transport-/dienstpagina") : ecommerceSchemaContext ? (isProductPage ? "productpagina" : isHomepage ? "webshophomepage" : hasCategorySignal ? "webshopcategorie" : "webshoppagina") : effectiveLocalSchemaSignal ? "lokale bedrijfs-/dienstpagina" : isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "lijst-/categoriepagina" : hasArticleSignal ? "artikel-/nieuwspagina" : "contentpagina";
-    const hasRelevantContextSchema = governmentIdentitySignal || governmentSchemaPresent
+    const schemaContextLabel = nonprofitSchemaContext ? "maatschappelijke/non-profitorganisatie" : governmentIdentitySignal || governmentSchemaPresent ? "overheids-/publieke pagina" : newsMediaSchemaContext ? (isHomepage ? "nieuws-/mediahomepage" : hasArticleSignal ? "nieuwsartikel" : "nieuws-/mediapagina") : transportLogisticsSchemaContext ? (isHomepage ? "transport-/logistiekhomepage" : "transport-/dienstpagina") : ecommerceSchemaContext ? (isProductPage ? "productpagina" : isHomepage ? "webshophomepage" : hasCategorySignal ? "webshopcategorie" : "webshoppagina") : effectiveLocalSchemaSignal ? "lokale bedrijfs-/dienstpagina" : isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "lijst-/categoriepagina" : hasArticleSignal ? "artikel-/nieuwspagina" : "contentpagina";
+    const hasRelevantContextSchema = nonprofitSchemaContext
+      ? schemaSet.has("ngo") || schemaSet.has("organization") || schemaSet.has("website")
+      : governmentIdentitySignal || governmentSchemaPresent
       ? governmentSchemaPresent || schemaSet.has("organization") || schemaSet.has("website") || schemaSet.has("webpage")
       : newsMediaSchemaContext
       ? schemaSet.has("newsmediaorganization") || schemaSet.has("organization") || schemaSet.has("website") || schemaSet.has("newsarticle") || schemaSet.has("article")

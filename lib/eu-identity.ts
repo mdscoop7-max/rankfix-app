@@ -272,6 +272,15 @@ const NONPROFIT_CAUSE = stems([
   "tutela della natura", "human rights", "mensenrechten", "humanitaire organisatie",
   "humanitarian organisation", "humanitarian organization", "organisation humanitaire"
 ]);
+// Advocacy is a public-benefit mission only when the organisation itself says
+// it advocates for people/animals/habitats and asks for help. A charity schema is
+// not required: genuine associations may use generic Organization + WebSite.
+const NONPROFIT_ADVOCACY_ACTION = /\b(?:komt|komen) op voor\b|\b(?:zet|zetten) zich in voor\b|\b(?:wij|we) beschermen\b|\b(?:we|wij) komen op voor\b|\badvocat(?:e|es|ing) for\b|\bstand(?:s)? up for\b|\bprotect(?:ing|s)? (?:wildlife|birds|animals|habitats|nature)\b/i;
+const NONPROFIT_PUBLIC_BENEFIT = stems([
+  "vogels", "vogels en natuur", "birds", "leefgebieden", "leefgebied", "habitats", "wildlife",
+  "natuur", "dieren", "animals", "biodiversiteit", "biodiversity", "milieu", "environment",
+  "mensenrechten", "human rights", "burgerrechten", "civil rights", "kinderen", "children"
+]);
 const NONPROFIT_SUPPORT = stems([
   "doneer", "doneren", "donate", "donation", "donateur", "spenden", "sponsor",
   "word lid", "word nu lid", "word vrijwilliger", "vrijwilliger", "become a member",
@@ -551,16 +560,20 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   const nonprofitOwn = NONPROFIT_CAUSE.test(own);
   const nonprofitSupport = NONPROFIT_SUPPORT.test(own + " " + nav);
   const nonprofitSourceCount = countSources((s) => NONPROFIT_CAUSE.test(s));
+  const nonprofitAdvocacy = schema.has("organization") && NONPROFIT_ADVOCACY_ACTION.test(own)
+    && NONPROFIT_PUBLIC_BENEFIT.test(own) && nonprofitSupport;
   const nonprofitMissionConfirmed = (nonprofitSchema && (nonprofitOwn || nonprofitSupport))
-    || (nonprofitSourceCount >= 2 && nonprofitSupport);
+    || (nonprofitSourceCount >= 2 && nonprofitSupport)
+    || nonprofitAdvocacy;
   const secondaryShop = retailer && nonprofitMissionConfirmed && !retailSelfDescription(title);
   if (nonprofitMissionConfirmed && (!retailer || secondaryShop) && !publication) {
     return { sector: "nonprofit", key: "nonprofit", label: "Goede doelen & Non-profit",
-      confidence: "high", confidenceScore: secondaryShop ? 86 : nonprofitSchema ? 92 : 86,
+      confidence: "high", confidenceScore: secondaryShop ? 86 : nonprofitSchema ? 92 : nonprofitAdvocacy ? 80 : 86,
       evidence: evidence([
         nonprofitSchema && "Structured data: NGO / non-profitorganisatie",
         nonprofitOwn && "Non-profit: maatschappelijke of natuurbehoudmissie in eigen pagina-identiteit",
-        nonprofitSupport && "Non-profit: leden, donateurs of vrijwilligers in eigen navigatie",
+        nonprofitSupport && "Non-profit: oproep tot steun, lidmaatschap, doneren of vrijwilligerswerk",
+        nonprofitAdvocacy && "Non-profit: eigen missie voor publieke belangen met oproep tot steun",
         nonprofitSourceCount >= 2 && "Non-profit: maatschappelijke missie in meerdere identiteitsbronnen",
         secondaryShop && "Non-profit: winkel-/verkoopfunctie is een nevenactiviteit, niet de hoofdsector",
       ]) };

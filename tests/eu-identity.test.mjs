@@ -238,3 +238,39 @@ test("nonprofit identity requires real mission evidence and respects retail/page
     assert.notEqual(id?.sector,"nonprofit",JSON.stringify({value,id}));
   }
 });
+
+test("public-benefit advocacy with Organization schema and a support call is a non-profit without NGO JSON-LD", () => {
+  const input={
+    title:"Samen voor vogels en natuur | Voorbeeldorganisatie",
+    description:"Voorbeeldorganisatie komt op voor vogels en hun leefgebieden. Help je mee?",
+    h1s:["Samen voor vogels en natuur","Voorbeeldorganisatie"],
+    navLabels:[],
+    schemaTypes:["Organization","WebSite"],
+    hostname:"neutral-conservation.test",homepage:true,
+  };
+  const result=detectEuPrimaryIdentity(input);
+  assert.equal(result?.sector,"nonprofit",JSON.stringify(result));
+  assert.equal(result?.confidenceScore,80,JSON.stringify(result));
+  assert.ok(result.evidence.some(x=>x.includes("publieke belangen")),JSON.stringify(result));
+});
+
+test("generic Organization, nature articles and retail support CTAs do not prove charity identity", () => {
+  const negative=[
+    {title:"Vogelgids en tuintips | Online magazine",description:"Lees alles over vogels en hun leefgebieden. Help je mee?",schemaTypes:["Organization","WebSite"]},
+    {title:"Vogels en natuur | Detailhandel",description:"Onze webshop komt op voor vogels en hun leefgebieden. Help je mee?",schemaTypes:["Organization","Store"]},
+    {title:"Lokale vogelwinkel",description:"We komen op voor lagere prijzen en goede service. Help je mee?",schemaTypes:["Organization","WebSite"]},
+    {title:"Vogelonderzoek",description:"Wij beschermen vogels en hun leefgebieden",schemaTypes:["Organization","WebSite"]},
+  ];
+  for(const x of negative){
+    const result=detectEuPrimaryIdentity({...x,hostname:"neutral-check.test",homepage:true,navLabels:[]});
+    assert.notEqual(result?.sector,"nonprofit",JSON.stringify({x,result}));
+  }
+});
+
+test("non-profit evidence takes precedence over generic LocalBusiness structured-data advice", () => {
+  const route=readFileSync(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
+  assert.match(route,/const nonprofitSchemaContext = isHomepage && detectEuPrimaryIdentity/);
+  assert.match(route,/const effectiveLocalSchemaSignal = hasLocalBusinessSignal && !nonprofitSchemaContext/);
+  assert.match(route,/const recommendedSchema = nonprofitSchemaContext/);
+  assert.match(route,/const hasRelevantContextSchema = nonprofitSchemaContext/);
+});
