@@ -82,8 +82,23 @@ export function buildEvidenceDescription(input: { current?: string; title?: stri
   titleSegments.forEach(add);
   (input.extra || []).forEach(add);
   if (!parts.length) return null;
-  const combined = fitToMax(parts.join(" "), META_DESCRIPTION_MAX);
-  return checkDescriptionCandidate(combined, input.current || "").ok ? combined : null;
+  // Prefer intact, source-backed sentences. A mechanically truncated summary
+  // can otherwise end in nonsense such as "accessoires en.".
+  const candidates=parts.slice(0,10);
+  let best:string|null=null;
+  let bestScore=-Infinity;
+  for(let mask=1;mask<(1<<candidates.length);mask++){
+    if(input.current && !(mask&1)) continue;
+    const text=candidates.filter((_,index)=>Boolean(mask&(1<<index))).join(" ");
+    if(!checkDescriptionCandidate(text,input.current||"").ok) continue;
+    const score=(mask&1?100:0) + (candidates.length>3 && mask&(1<<(candidates.length-1))?20:0)
+      - Math.abs(text.length-145) - text.split(". ").length*0.2;
+    if(score>bestScore){ bestScore=score;best=text; }
+  }
+  if(best) return best;
+  const combined=fitToMax(parts.join(" "),META_DESCRIPTION_MAX);
+  if(/\\b(?:en|of|de|het|een|voor|met|bij|van|in|op|naar|zoals)\\.$/i.test(combined)) return null;
+  return checkDescriptionCandidate(combined,input.current||"").ok?combined:null;
 }
 
 /**

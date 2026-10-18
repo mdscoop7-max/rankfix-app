@@ -226,3 +226,12 @@ test("source paragraphs with dynamic placeholders never become trusted marketing
     ["Handige tech, praktische accessoires en slimme producten voor thuis, onderweg en op kantoor."]);
   assert.deepEqual(extractSourceDescriptionEvidence("app/layout.tsx","<p>Not source HTML</p>"),[]);
 });
+
+test("TrendMix source fallback chooses complete real sentences, not an unfinished clause",()=>{
+  const description="Ontdek gadgets en slimme producten bij TrendMix.";
+  const hero="Handige tech, praktische accessoires en slimme producten voor thuis, onderweg en op kantoor.";
+  const result=buildEvidenceDescription({current:description,title:"TrendMix | Slimme gadgets en meer",h1:"Slimme gadgets voor een makkelijker leven.",extra:[hero]});
+  assert.equal(result,description+" "+hero);
+  assert.ok(result.length>=120&&result.length<=160);
+  assert.doesNotMatch(result,/\\b(?:en|of|de|het|voor|met|bij)\\.$/i);
+});
