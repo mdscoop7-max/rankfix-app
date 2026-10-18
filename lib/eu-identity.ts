@@ -319,6 +319,25 @@ const NGO_STRONG = either(
     "human rights", "mensenrechten", "menschenrechte", "droits humains", "droits de l'homme", "droits de l’homme", "diritti umani", "derechos humanos", "direitos humanos", "prawa człowieka",
     "naturschutz", "artenschutz", "umweltschutz", "tierschutz", "natuurbescherming", "nature conservation", "wildlife conservation", "protection de la nature", "tutela della natura"]),
 );
+// A mission-led organisation may describe its work rather than declare
+// NGO/charity in the homepage schema. Require THREE separate elements in its
+// own identity: public-interest action, what is protected, and an invitation
+// to help. These are generic language signals, never domain exceptions.
+const NGO_MISSION_ACTION = stems([
+  "komt op voor", "komen op voor", "zet zich in voor", "zetten ons in voor", "beschermt", "beschermen", "voor het behoud van",
+  "protect", "conserve", "safeguard", "stand up for", "defend",
+  "schützen", "schützt", "setzen uns ein für", "setzen sich ein für",
+  "protège", "protégeons", "protéger", "préserver", "défendre",
+  "protegg", "difend", "tutel", "proteger", "protege", "defiend", "conserv"
+]);
+const NGO_MISSION_CAUSE = stems([
+  "vogels", "vogelsoorten", "dieren", "leefgebieden", "natuur", "biodiversiteit",
+  "birds", "wildlife", "animals", "habitats", "nature", "biodiversity", "environment",
+  "vögel", "tiere", "lebensräume", "natur", "artenvielfalt", "umwelt",
+  "oiseaux", "animaux", "biodiversité", "environnement",
+  "uccelli", "animali", "natura", "ambiente", "pájaros", "aves", "animales", "naturaleza", "medio ambiente",
+  "mensenrechten", "human rights", "children's rights", "kinderrechten"
+]);
 const NGO_NEED = stems(["mensen in nood", "people in need", "menschen in not", "personnes dans le besoin", "persone in difficoltà", "personas necesitadas", "noodhulp", "disaster relief", "katastrophenhilfe", "aide humanitaire", "aiuti umanitari", "ayuda humanitaria", "humanit", "umanitari"]);
 const NGO_SUPPORT_CALL = stems(["doneer", "doneren", "donate", "donation", "spenden", "spende", "faire un don", "faites un don", "dona ora", "donare", "haz un donativo", "hazte socio", "help je mee", "help mee", "hilf mit", "aidez-nous", "aiutaci", "ayúdanos", "become a member", "word lid", "word donateur"]);
 // Hotels name themselves in the title and describe rooms or booking a stay (G5).
@@ -648,12 +667,18 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   // A charity that also runs a (gift/fundraising) web shop is still a charity:
   // when the title or schema names the NGO and the shop is only mentioned in the
   // description, the shop is a secondary activity and certainty is lowered.
-  const ngoAnchored = ngoSchema || NGO_STRONG.test(title) || (NGO_NEED.test(title) && NGO_SUPPORT_CALL.test(own + " " + nav));
+  const ngoSupport = NGO_SUPPORT_CALL.test(own + " " + nav);
+  const ngoMission = NGO_MISSION_ACTION.test(description) &&
+    NGO_MISSION_CAUSE.test(description) && ngoSupport && !retailSelfDescription(own);
+  const ngoAnchored = ngoSchema || NGO_STRONG.test(title) || (NGO_NEED.test(title) && ngoSupport) || ngoMission;
   const shopIsSecondary = retailer && ngoAnchored && !retailSelfDescription(title);
-  if ((!retailer || shopIsSecondary) && !publication && (ngoSchema || NGO_STRONG.test(own) || (NGO_NEED.test(own) && NGO_SUPPORT_CALL.test(own + " " + nav)))) {
-    return { sector: "nonprofit", key: "nonprofit", label: "Goede doelen & Non-profit", confidence: "high",
-      confidenceScore: shopIsSecondary ? 86 : ngoSchema || countSources((s) => NGO_STRONG.test(s)) >= 2 ? 92 : 86,
-      evidence: evidence([NGO_STRONG.test(own) && "Eigen identiteit: NGO, goed doel of maatschappelijke missie", NGO_NEED.test(own) && "Eigen identiteit noemt hulp aan mensen in nood", NGO_SUPPORT_CALL.test(own + " " + nav) && "Oproep tot doneren of steunen", ngoSchema && "Structured data: NGO/non-profit", shopIsSecondary && "Nevenactiviteit in de omschrijving; titel of structured data bepaalt de hoofdidentiteit"]) };
+  const ngoExplicit = ngoSchema || NGO_STRONG.test(own) || (NGO_NEED.test(own) && ngoSupport);
+  if ((!retailer || shopIsSecondary) && !publication && (ngoExplicit || ngoMission)) {
+    // A claimed mission is NOT proof of the legal status of a charity.
+    const missionOnly = ngoMission && !ngoExplicit;
+    return { sector: "nonprofit", key: "nonprofit", label: "Goede doelen & Non-profit", confidence: missionOnly ? "medium" : "high",
+      confidenceScore: missionOnly ? 76 : shopIsSecondary ? 86 : ngoSchema || countSources((s) => NGO_STRONG.test(s)) >= 2 ? 92 : 86,
+      evidence: evidence([NGO_STRONG.test(own) && "Eigen identiteit: NGO, goed doel of maatschappelijke missie", NGO_NEED.test(own) && "Eigen identiteit noemt hulp aan mensen in nood", ngoSupport && "Oproep tot doneren of steunen", ngoSchema && "Structured data: NGO/non-profit", missionOnly && "Non-profit-indicatie: beschermingsmissie plus publiek belang en oproep om te helpen; juridische status niet bewezen", shopIsSecondary && "Nevenactiviteit in de omschrijving; titel of structured data bepaalt de hoofdidentiteit"]) };
   }
   // 3.6 (G5): hotels name themselves in the title and describe rooms or booking.
   const lodgingSchema = ["hotel", "lodgingbusiness", "hostel", "resort", "motel", "bedandbreakfast"].some((t) => schema.has(t));
