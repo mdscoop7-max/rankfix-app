@@ -259,6 +259,25 @@ const ENERGY = stems(["energieleverancier", "stroom", "strom", "électricité", 
 const POWER_AND_GAS = stems(["luce e gas", "gas e luce", "luz y gas", "luz e gás", "luz e gas", "strom und gas", "gas und strom", "stroom en gas", "gas en stroom", "électricité et gaz", "gaz et électricité", "el og gas", "el och gas", "sähkö ja kaasu", "prąd i gaz", "elektřina a plyn", "áram és gáz", "energie electrică și gaz"]);
 const GAS = words(["gas", "gás", "erdgas", "gaz", "gaz naturel", "kaasu", "maagaas", "gāze", "dujos", "plyn", "φυσικό αέριο", "газ", "plin"]);
 
+// Cause/mission identity is separate from a shop, newsfeed or event programme.
+// Use declared NGO schema together with the page's OWN mission or membership
+// language, or repeat the cause across independent page identity fields.
+// Generic conservation terms alone, or a donation button in a shop, cannot
+// turn an unrelated company into a non-profit organisation.
+const NONPROFIT_CAUSE = stems([
+  "nonprofit", "non-profit", "non profit", "goed doel", "goede doelen", "liefdadig", "charity", "charitable",
+  "hulporganisatie", "hilfsorganisation", "gemeinnützig", "naturschutz", "artenschutz",
+  "natuurbescherming", "natuurbehoud", "natuur beschermen", "bescherm de natuur",
+  "nature conservation", "wildlife conservation", "nature protection", "protection de la nature",
+  "tutela della natura", "human rights", "mensenrechten", "humanitaire organisatie",
+  "humanitarian organisation", "humanitarian organization", "organisation humanitaire"
+]);
+const NONPROFIT_SUPPORT = stems([
+  "doneer", "doneren", "donate", "donation", "donateur", "spenden", "sponsor",
+  "word lid", "word nu lid", "word vrijwilliger", "vrijwilliger", "become a member",
+  "membership", "help mee", "help je mee", "steun onze", "support our mission"
+]);
+
 // ---------------------------------------------------------------- retail veto
 // Retail self-description in the main EU languages. When a page's own identity
 // says it sells goods online, ambiguous words (credit, tickets, travel, health)
@@ -523,6 +542,28 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   if (!retailer && (cultureSchema && (CULTURE.test(own) || CULTURE_SUPPORT.test(own)) || (CULTURE.test(title) && CULTURE_SUPPORT.test(own)) || countSources((s) => CULTURE.test(s)) >= 2)) {
     return { sector: "events_culture", key: "events_culture", label: "Evenementen & Cultuur", confidence: "high", confidenceScore: cultureSchema ? 93 : 90,
       evidence: evidence([CULTURE.test(own) && "Eigen identiteit: museum, theater, concertzaal of festival", CULTURE_SUPPORT.test(own) && "Eigen identiteit noemt tentoonstellingen, programma of tickets", cultureSchema && "Structured data: museum/podium"]) };
+  }
+
+  // Non-profit/association: the declared organisation and its own mission
+  // determine the primary sector. Store and booking schema may describe
+  // fundraising or secondary activities, not the organisation as a whole.
+  const nonprofitSchema = schema.has("ngo") || schema.has("nonprofitorganization") || schema.has("charity");
+  const nonprofitOwn = NONPROFIT_CAUSE.test(own);
+  const nonprofitSupport = NONPROFIT_SUPPORT.test(own + " " + nav);
+  const nonprofitSourceCount = countSources((s) => NONPROFIT_CAUSE.test(s));
+  const nonprofitMissionConfirmed = (nonprofitSchema && (nonprofitOwn || nonprofitSupport))
+    || (nonprofitSourceCount >= 2 && nonprofitSupport);
+  const secondaryShop = retailer && nonprofitMissionConfirmed && !retailSelfDescription(title);
+  if (nonprofitMissionConfirmed && (!retailer || secondaryShop) && !publication) {
+    return { sector: "nonprofit", key: "nonprofit", label: "Goede doelen & Non-profit",
+      confidence: "high", confidenceScore: secondaryShop ? 86 : nonprofitSchema ? 92 : 86,
+      evidence: evidence([
+        nonprofitSchema && "Structured data: NGO / non-profitorganisatie",
+        nonprofitOwn && "Eigen identiteit: maatschappelijke of natuurbehoudmissie",
+        nonprofitSupport && "Eigen navigatie: doneren, lid worden of vrijwilligerswerk",
+        nonprofitSourceCount >= 2 && "Missie in meerdere identiteitsbronnen",
+        secondaryShop && "Winkel-/verkoopfunctie is een nevenactiviteit, geen hoofdsector",
+      ]) };
   }
 
   // 8. Medium tier: the homepage names only its brand, but navigation and section

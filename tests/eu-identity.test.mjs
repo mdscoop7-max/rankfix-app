@@ -209,3 +209,32 @@ test("booking widgets and transport commentary are not sufficient for operator i
     assert.notEqual(id?.key, "passenger_transport", JSON.stringify({ value, id }));
   }
 });
+
+test("primary NGO identity outranks an incidental Store and LegalService schema", () => {
+  const id=detectEuPrimaryIdentity({
+    title:"Natuur beschermen in Nederland | Natuurmonumenten",
+    description:"Bescherm natuurgebieden. Word lid of doneer en help de natuur te behouden.",
+    h1s:["Natuurmonumenten"],
+    navLabels:["Word lid","Doneer","Natuurgebieden","Webwinkel","Nieuws"],
+    schemaTypes:["NGO","Organization","Store","LegalService"],
+    hostname:"neutral-cause.test",homepage:true,
+  });
+  assert.equal(id?.sector,"nonprofit",JSON.stringify(id));
+  assert.equal(id?.key,"nonprofit");
+  assert.equal(id?.label,"Goede doelen & Non-profit");
+  assert.ok(id.confidenceScore<=92 && id.confidenceScore>=80,JSON.stringify(id));
+  assert.ok(id.evidence.some(x=>/NGO/.test(x)),JSON.stringify(id));
+});
+
+test("nonprofit identity requires real mission evidence and respects retail/page identity", () => {
+  const negativeCases=[
+    {title:"Winkel met natuurproducten | Groene Shop",description:"Online webshop en retail voor natuurliefhebbers.",schemaTypes:["Store","Organization"],navLabels:["Doneren","Producten","Winkelwagen"]},
+    {title:"Advocatenkantoor De Buren",description:"Onze cliënten omvatten organisaties voor natuurbescherming.",schemaTypes:["LegalService"],navLabels:["Diensten","Nieuws","Contact"]},
+    {title:"Natuurexcursies",description:"Wandelroutes en excursies in de natuur.",schemaTypes:["Organization","Store"],navLabels:["Tickets","Boek nu"]},
+    {title:"Online webshop en winkel | GoedDoel Producten",description:"Shop online voor producten.",schemaTypes:["NGO","Store"],navLabels:["Winkelwagen","Checkout"]},
+  ];
+  for(const value of negativeCases){
+    const id=detectEuPrimaryIdentity({hostname:"neutral.test",homepage:true,...value});
+    assert.notEqual(id?.sector,"nonprofit",JSON.stringify({value,id}));
+  }
+});
