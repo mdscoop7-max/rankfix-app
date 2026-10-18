@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { getFixPolicy } from "@/lib/fix-policy";
 
 type Props = { dashboard?: boolean; scanId?: string | null; publicLocale?: string; errorContext?: string | null };
 
@@ -29,6 +30,7 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
   ]);
   const [busy, setBusy] = useState(false);
   const [scanIssue, setScanIssue] = useState<any>(null);
+  const [scanIssueLoaded,setScanIssueLoaded]=useState(false);
   const [fixBusy, setFixBusy] = useState(false);
   const [fixResult, setFixResult] = useState("");
   const [language, setLanguage] = useState(publicLocale);
@@ -82,23 +84,27 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
     if (!dashboard || !scanId) return;
     setInput((extra[language]||extra.nl).scanAsk);
     setScanIssue(null);
+    setScanIssueLoaded(false);
     setFixResult("");
     fetch("/api/assistant/scan?scanId=" + encodeURIComponent(scanId), { cache: "no-store" })
       .then(async (r) => { const raw=await r.text(); if(!raw.trim()) return {}; try{return JSON.parse(raw);}catch{return {};} })
       .then((d) => {
         const issues = Array.isArray(d.issues) ? d.issues : [];
-        // The scan's first warning can require external AI. Prefer an evidenced
-        // homepage schema issue that the GitHub Fix route can preview without it.
-        // The fix endpoint still independently validates confidence/evidence and
-        // only produces a diff; it never writes code on this button press.
-        const verifiedSchema = issues.find((item: any) =>
-          ["ORGANIZATION_WEBSITE_SCHEMA", "STRUCTURED_DATA_MISSING", "SITE_STRUCTURED_DATA_MISSING"]
-            .includes(String(item?.issue_id || item?.rule_id || "").toUpperCase())
-          && String(item?.confidence || "").toLowerCase() === "high"
+        // The assistant must select only actionable findings, never a manual
+        // Brand Identity issue that leads to a misleading GitHub Fix button.
+        const supported = issues.filter((item: any) => {
+          const policy=getFixPolicy(String(item?.issue_id||item?.rule_id||""));
+          return policy.action==="github_fix" && Boolean(policy.safe_type);
+        });
+        const verifiedSchema = supported.find((item: any) =>
+          ["ORGANIZATION_WEBSITE_SCHEMA","STRUCTURED_DATA_MISSING","SITE_STRUCTURED_DATA_MISSING"]
+            .includes(String(item?.issue_id||item?.rule_id||"").toUpperCase())
+          && String(item?.confidence||"").toLowerCase()==="high"
         );
-        setScanIssue(verifiedSchema || issues[0] || null);
+        setScanIssue(verifiedSchema || supported[0] || null);
       })
-      .catch(() => setScanIssue(null));
+      .catch(() => setScanIssue(null))
+      .finally(() => setScanIssueLoaded(true));
   }, [dashboard, scanId]);
 
   function startGithubFix() {
@@ -194,11 +200,15 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
                 <p className="mt-1 text-xs text-slate-400">
                   {alreadyOnFixPage
                     ? "Je bent al op de Fix-pagina. Sluit deze assistent om het voorstel, de blokkade of de goedkeuringsknop te bekijken."
-                    : scanIssue ? scanIssue.title : "Actief scanprobleem laden…"}
+                     : scanIssue ? scanIssue.title : scanIssueLoaded ? "Geen automatische Fix voor deze scan. Bekijk de verbeterpunten en eventuele handmatige stappen in het rapport." : "Actief scanprobleem laden…"}
                 </p>
-                <button type="button" onClick={startGithubFix} disabled={!alreadyOnFixPage && (!scanIssue || fixBusy)} className="mt-3 w-full rounded-xl bg-emerald-300 px-4 py-3 text-sm font-bold text-slate-950 disabled:opacity-40">
-                  {alreadyOnFixPage ? "Bekijk huidige Fix" : fixBusy ? ex.checking : ex.start}
-                </button>
+                {alreadyOnFixPage || scanIssue
+                  ? <button type="button" onClick={startGithubFix} disabled={!alreadyOnFixPage && fixBusy} className="mt-3 w-full rounded-xl bg-emerald-300 px-4 py-3 text-sm font-bold text-slate-950 disabled:opacity-40">
+                      {alreadyOnFixPage ? "Bekijk huidige Fix" : fixBusy ? ex.checking : ex.start}
+                    </button>
+                  : scanIssueLoaded
+                    ? <button type="button" onClick={() => {setOpen(false);window.location.assign("/dashboard/audit/"+encodeURIComponent(scanId));}} className="mt-3 w-full rounded-xl bg-emerald-300 px-4 py-3 text-sm font-bold text-slate-950">Bekijk verbeterpunten</button>
+                    : <button type="button" disabled className="mt-3 w-full rounded-xl bg-slate-400 px-4 py-3 text-sm font-bold text-slate-950 opacity-40">{ex.loading}</button>}
                 {fixResult && <p className="mt-2 break-words text-xs text-slate-400">{fixResult}</p>}
               </div>
             )}

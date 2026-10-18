@@ -400,6 +400,20 @@ export function readyForVerificationScan(row: FixRow, now = Date.now()): boolean
   return now - ms(row.phase_started_at) >= (row.status === "STILL_PRESENT" ? 60_000 : 0);
 }
 
+
+/** Historic success does not override a new, proven regression in a later scan. */
+export function confirmedFixIsStale(
+  row: Pick<FixRow,"status"|"issue_id"> & {verified_at?:string|Date|null},
+  scan: {created_at?:string|Date|null;result?:{seo?:{checks?:Array<{issue_id?:string;rule_id?:string;status?:string;issue_status?:string}>};geo?:{checks?:Array<{issue_id?:string;rule_id?:string;status?:string;issue_status?:string}>}}}|null
+): boolean {
+  if(row.status!=="VERIFIED_RESOLVED" || !scan?.created_at || !row.verified_at) return false;
+  const scanTime=new Date(scan.created_at).getTime(),verifiedTime=new Date(row.verified_at).getTime();
+  if(!Number.isFinite(scanTime)||!Number.isFinite(verifiedTime)||scanTime<=verifiedTime) return false;
+  const checks=[...(scan.result?.seo?.checks||[]),...(scan.result?.geo?.checks||[])];
+  return checks.some(c=>String(c.issue_id||c.rule_id||"").toUpperCase()===row.issue_id.toUpperCase()
+    && ["WARNING","FAIL"].includes(String(c.issue_status||c.status||"").toUpperCase()));
+}
+
 export function publicFixView(row: FixRow) {
   const stage = customerStage(row);
   const code = row.status === "AWAITING_MERGE" && !row.auto_publish ? "PR_AWAITING_OWNER" : row.last_error_code || null;

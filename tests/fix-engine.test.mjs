@@ -257,3 +257,26 @@ test("a social metadata Fix is visible live only with title, description and a r
   assert.equal(E.liveFixApplied("SOCIAL_METADATA_INCOMPLETE",tags(image("https://cdn.example.com/preview.webp")),null),"applied","verified URL and metadata justify proceeding to full rescan");
   assert.equal(E.liveFixApplied("SOCIAL_METADATA_INCOMPLETE",'<meta property="og:image" content="https://cdn.example.com/preview.webp">',null),"not_yet","title/description missing");
 });
+
+test("newly reintroduced defects cannot be hidden by older confirmed Fix statuses",()=>{
+  const row={issue_id:"META_DESCRIPTION_GUIDANCE",status:"VERIFIED_RESOLVED",verified_at:"2026-10-18T17:27:15Z"};
+  const scan=(date,status="warning",id="META_DESCRIPTION_GUIDANCE")=>({created_at:date,result:{seo:{checks:[{issue_id:id,status}]}}});
+  assert.equal(E.confirmedFixIsStale(row,scan("2026-10-19T12:00:00Z")),true);
+  assert.equal(E.confirmedFixIsStale(row,scan("2026-10-18T17:00:00Z")),false);
+  assert.equal(E.confirmedFixIsStale(row,scan("2026-10-19T12:00:00Z","pass")),false);
+  assert.equal(E.confirmedFixIsStale(row,scan("2026-10-19T12:00:00Z","warning","SOME_OTHER_RULE")),false);
+  assert.equal(E.confirmedFixIsStale({...row,status:"AWAITING_DEPLOYMENT"},scan("2026-10-19T12:00:00Z")),false);
+});
+test("Fix controls retain selected scan context and the assistant selects only allowed fixes",()=>{
+  const status=readFileSync(new URL("../app/api/fixes/status/route.ts",import.meta.url),"utf8");
+  const ui=readFileSync(new URL("../app/dashboard/github/page.tsx",import.meta.url),"utf8");
+  const audit=readFileSync(new URL("../app/dashboard/audit/[id]/page.tsx",import.meta.url),"utf8");
+  const assistant=readFileSync(new URL("../components/ai-assistant.tsx",import.meta.url),"utf8");
+  assert.match(status,/confirmedFixIsStale\(row,contextScan\)/);
+  assert.match(status,/SELECT created_at,scanned_url,final_url,result FROM scans WHERE id=\$1 AND user_id=\$2/);
+  assert.match(ui,/if\(r\.ok\) setFix\(current\)/);
+  assert.match(ui,/scan_id=\$\{encodeURIComponent\(scanId\)\}/);
+  assert.match(audit,/scan_id="\+encodeURIComponent\(String\(id\)\)/);
+  assert.match(assistant,/policy\.action==="github_fix" && Boolean\(policy\.safe_type\)/);
+  assert.match(assistant,/Bekijk verbeterpunten/);
+});

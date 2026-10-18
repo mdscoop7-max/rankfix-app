@@ -72,13 +72,14 @@ export default function GithubPage() {
   const refreshStatus = useCallback(async (url: string) => {
     if (!url || !issueId) return null;
     try {
-      const r = await fetch(`/api/fixes/status?url=${encodeURIComponent(url)}&issue_id=${encodeURIComponent(issueId)}`, { cache: "no-store" });
+      const r = await fetch(`/api/fixes/status?url=${encodeURIComponent(url)}&issue_id=${encodeURIComponent(issueId)}&scan_id=${encodeURIComponent(scanId)}`, { cache: "no-store" });
       const d = await readJson(r);
       const current: FixView | null = r.ok && Array.isArray(d.fixes) ? (d.fixes as FixView[]).find((f) => f.issue_id === issueId) || null : null;
-      if (current) setFix(current);
+      if(r.ok) setFix(current);
+      else setError(d.error || "De huidige Fix-status kon niet worden geladen.");
       return current;
     } catch { return null; }
-  }, [issueId]);
+  }, [issueId,scanId]);
 
   // Load the saved website mapping and existing Fix status FIRST. A slow or
   // failing GitHub repository enumeration must not hide an already linked site.

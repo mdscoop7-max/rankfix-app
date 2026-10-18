@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { ensureDatabase } from "@/lib/db-init";
 import { getDb } from "@/lib/db";
 import { decryptToken } from "@/lib/github";
-import { advanceFix, publicFixView, autoPublishSupported, ACTIVE_FIX_STATUS_SQL, type FixRow } from "@/lib/fix-engine";
+import { advanceFix, publicFixView, autoPublishSupported, confirmedFixIsStale, ACTIVE_FIX_STATUS_SQL, type FixRow } from "@/lib/fix-engine";
 import { createEngineDeps } from "@/lib/fix-engine-deps";
 
 function normalizeScanUrl(value:string){
@@ -27,6 +27,7 @@ export async function GET(request:Request){
   const params=new URL(request.url).searchParams;
   const scannedUrl=normalizeScanUrl(params.get("url")||"");
   const issueFilter=(params.get("issue_id")||"").trim();
+  const scanId=(params.get("scan_id")||"").trim();
   if(!scannedUrl) return NextResponse.json({error:"Ongeldige website URL."},{status:400});
   try{
     await ensureDatabase();
@@ -34,6 +35,16 @@ export async function GET(request:Request){
     return NextResponse.json({error:"De RankFix-database is tijdelijk niet bereikbaar. Er is niets gewijzigd; probeer het zo opnieuw.",code:"DATABASE_UNAVAILABLE"},{status:503});
   }
   const db=getDb();
+  type ScanContext = NonNullable<Parameters<typeof confirmedFixIsStale>[1]> & {scanned_url:string;final_url?:string|null};
+  let contextScan:ScanContext|null=null;
+  if(scanId){
+    const found=await db.query("SELECT created_at,scanned_url,final_url,result FROM scans WHERE id=$1 AND user_id=$2 LIMIT 1",[scanId,user.id]);
+    if(!found.rowCount) return NextResponse.json({error:"Scan niet gevonden."},{status:404});
+    contextScan=found.rows[0] as ScanContext;
+    if(normalizeScanUrl(String(contextScan.final_url||contextScan.scanned_url))!==scannedUrl){
+      return NextResponse.json({error:"De scan hoort niet bij deze website."},{status:400});
+    }
+  }
   const pending=await db.query(
     `SELECT * FROM pending_fixes
      WHERE user_id=$1 AND scanned_url=$2
@@ -68,6 +79,7 @@ export async function GET(request:Request){
   );
   const views=[];
   for(const row of refreshed.rows as FixRow[]){
+    if(confirmedFixIsStale(row,contextScan)) continue;
     const view=publicFixView(row);
     let review:null|{proposal_id:string;proposal_hash:string;scan_id:string;expected_value:string;summary:string}=null;
     // A previous Pull Request must not hide the customer approval action.

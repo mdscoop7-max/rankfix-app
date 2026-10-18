@@ -122,7 +122,7 @@ export default function AuditDetail() {
 
   async function refreshFixFlow(url:string){
     try{
-      const response=await fetch("/api/fixes/status?url="+encodeURIComponent(url),{cache:"no-store"});
+      const response=await fetch("/api/fixes/status?url="+encodeURIComponent(url)+"&scan_id="+encodeURIComponent(String(id)),{cache:"no-store"});
       const data=await response.json();
       if(response.ok&&Array.isArray(data.fixes)) setFixFlow(data.fixes);
     }catch{}
@@ -133,7 +133,7 @@ export default function AuditDetail() {
     refreshFixFlow(auditedUrl);
     const timer=window.setInterval(()=>refreshFixFlow(auditedUrl),15000);
     return()=>window.clearInterval(timer);
-  },[auditedUrl]);
+  },[auditedUrl,id]);
 
   useEffect(()=>{
     if(!auditedUrl||verificationBusy) return;
