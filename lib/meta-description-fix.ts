@@ -97,7 +97,7 @@ export function buildEvidenceDescription(input: { current?: string; title?: stri
   }
   if(best) return best;
   const combined=fitToMax(parts.join(" "),META_DESCRIPTION_MAX);
-  if(/\\b(?:en|of|de|het|een|voor|met|bij|van|in|op|naar|zoals)\\.$/i.test(combined)) return null;
+  if(/\b(?:en|of|de|het|een|voor|met|bij|van|in|op|naar|zoals)\.$/i.test(combined)) return null;
   return checkDescriptionCandidate(combined,input.current||"").ok?combined:null;
 }
 

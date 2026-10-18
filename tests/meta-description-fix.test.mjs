@@ -233,5 +233,5 @@ test("TrendMix source fallback chooses complete real sentences, not an unfinishe
   const result=buildEvidenceDescription({current:description,title:"TrendMix | Slimme gadgets en meer",h1:"Slimme gadgets voor een makkelijker leven.",extra:[hero]});
   assert.equal(result,description+" "+hero);
   assert.ok(result.length>=120&&result.length<=160);
-  assert.doesNotMatch(result,/\\b(?:en|of|de|het|voor|met|bij)\\.$/i);
+  assert.doesNotMatch(result,/\b(?:en|of|de|het|voor|met|bij)\.$/i);
 });
