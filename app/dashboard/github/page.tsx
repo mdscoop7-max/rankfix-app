@@ -13,7 +13,7 @@ type Check = { title?: string; message?: string; fix?: string; status?: string; 
 type ScanData = { scanned_url: string; final_url?: string | null; result?: { seo?: { checks?: Check[] }; geo?: { checks?: Check[] }; metrics?: Record<string, unknown> } };
 type Preview = { startLine: number; before: string[]; after: string[]; truncated?: boolean; changedLines?: number; summary?: string };
 type Stage = "preparing" | "executing" | "updating" | "checking" | "confirmed" | "manual";
-type FixView = { issue_id: string; status: string; stage: Stage; stage_label: string; reason_code: string | null; reason: string | null; ready_for_scan: boolean; technical: { repository: string | null; file: string | null; branch: string | null; pr_number: number | null; pr_url: string | null; merge_commit: string | null; deployment: string | null; verification_attempts: number } };
+type FixView = { issue_id: string; status: string; stage: Stage; stage_label: string; reason_code: string | null; reason: string | null; ready_for_scan: boolean; review?: {proposal_id:string;proposal_hash:string;scan_id:string;expected_value:string;summary:string}|null; technical: { repository: string | null; file: string | null; branch: string | null; pr_number: number | null; pr_url: string | null; merge_commit: string | null; deployment: string | null; verification_attempts: number } };
 type Plan = { proposalId: string; proposalHash: string; text: string; summary: string; preview: Preview | null; publishable: boolean; siteConsent: boolean; level: string; path: string };
 
 const STAGES: Stage[] = ["preparing", "executing", "updating", "checking", "confirmed"];
@@ -197,6 +197,23 @@ export default function GithubPage() {
     finally { setBusy(false); }
   }
 
+  async function approveExisting() {
+    if(busy||!fix?.review||fix.reason_code!=="PR_AWAITING_OWNER") return;
+    setBusy(true);setError("");
+    try {
+      const review=fix.review;
+      const r=await fetch("/api/github/fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+        repo:fix.technical.repository||repo,baseBranch,scan_id:review.scan_id,issue_id:fix.issue_id,
+        preview:false,proposal_id:review.proposal_id,proposal_hash:review.proposal_hash,publish_mode:"publish",language
+      })});
+      const d=await readJson(r);
+      if(!r.ok) throw new Error(d.error||tx("Deze bestaande fix kan niet veilig worden gepubliceerd.","The existing fix could not be safely published."));
+      if(d.fix) setFix(d.fix as FixView);
+      await refreshStatus(siteUrl);
+    }catch(e){setError(e instanceof Error?e.message:String(e));}
+    finally{setBusy(false);}
+  }
+
   async function setAutofixConsent(enable: boolean) {
     if (!siteUrl) return;
     setBusy(true); setError("");
@@ -235,7 +252,7 @@ export default function GithubPage() {
 
         {/* Progress — one place for status; no duplicate success messages. */}
         {fix && <section aria-live="polite" className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-6">
-          <h2 className="text-lg font-bold">{fix.stage === "confirmed" ? "✓ " + stageLabels.confirmed : fix.stage === "manual" ? stageLabels.manual : stageLabels[fix.stage]}</h2>
+          <h2 className="text-lg font-bold">{fix.reason_code === "PR_AWAITING_OWNER" ? tx("Jouw akkoord is nodig", "Your approval is required") : fix.stage === "confirmed" ? "✓ " + stageLabels.confirmed : fix.stage === "manual" ? stageLabels.manual : stageLabels[fix.stage]}</h2>
           <ol className="mt-4 grid gap-2">
             {STAGES.map((stage, i) => {
               const done = fix.stage === "confirmed" ? true : stageIndex > i;
@@ -262,7 +279,17 @@ export default function GithubPage() {
               <dt>Status</dt><dd>{fix.status}{fix.reason_code ? ` · ${fix.reason_code}` : ""}</dd>
             </dl>
           </details>
-          {fix.stage === "manual" && <button type="button" disabled={busy} onClick={() => { setFix(null); void runFix(); }} className="mt-4 min-h-11 w-full rounded-xl border border-white/15 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{tx("Opnieuw proberen", "Try again")}</button>}
+          {fix.reason_code === "PR_AWAITING_OWNER" && <div className="mt-4 rounded-xl border border-amber-300/20 bg-amber-300/[0.06] p-4">
+             {fix.review
+               ? <><p className="text-sm font-semibold text-white">{tx("Bestaande oplossing controleren","Review the existing fix")}</p>
+                   <p className="mt-2 text-sm text-slate-300">{tx("Deze wijziging staat klaar, maar is nog niet live. Dit is de tekst die RankFix heeft voorbereid:","This change is ready but is not live yet. Here is the text RankFix prepared:")}</p>
+                   <blockquote className="mt-3 whitespace-pre-wrap rounded-lg border border-white/10 bg-black/20 p-3 text-sm text-white">{fix.review.expected_value}</blockquote>
+                   <p className="mt-2 text-xs text-amber-100">{tx("Met jouw akkoord controleert RankFix opnieuw de Pull Request en publiceert alleen als alle veiligheidscontroles slagen.","With your approval RankFix rechecks the Pull Request and publishes only if all safety checks pass.")}</p>
+                   <button type="button" disabled={busy} onClick={() => void approveExisting()} className="mt-4 min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 font-bold text-[#04342C] disabled:opacity-50">{busy?tx("Bezig…","Working…"):tx("Goedkeuren en live zetten","Approve and publish")}</button>
+                 </>
+               : <p className="text-sm text-amber-100">{tx("Deze oudere Pull Request kan niet veilig in RankFix worden goedgekeurd, omdat de originele goedgekeurde preview ontbreekt of verlopen is. Er is niets live gewijzigd; laat deze eerst opnieuw controleren.","This older Pull Request cannot be safely approved in RankFix because the original preview is missing or expired. Nothing has gone live; have it rechecked first.")}</p>}
+           </div>}
+           {fix.stage === "manual" && fix.reason_code !== "PR_AWAITING_OWNER" && <button type="button" disabled={busy} onClick={() => { setFix(null); void runFix(); }} className="mt-4 min-h-11 w-full rounded-xl border border-white/15 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{tx("Nieuwe controle proberen", "Try checking again")}</button>}
         </section>}
 
         {error && <div role="alert" className="mt-5 rounded-xl bg-red-500/10 p-4 text-sm text-red-200">{error}</div>}

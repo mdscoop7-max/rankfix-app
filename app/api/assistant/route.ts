@@ -187,11 +187,15 @@ export async function POST(request: Request) {
       }
     }
 
-    const key = process.env.OPENAI_API_KEY;
+    const key = (process.env.OPENAI_API_KEY || "").trim();
 
-    if (!key) {
+    // Do not pass malformed keys (including accidental pasted newlines) to
+    // Headers: the runtime exception can otherwise leak the secret to logs.
+    if (!key || !/^sk-[A-Za-z0-9_-]+$/.test(key)) {
+      console.error("Assistant configuration unavailable: OPENAI_API_KEY missing or malformed (secret omitted)");
       return NextResponse.json(
-        { error: assistantErrors[responseLanguage].unavailable },
+        { error: responseLanguage==="nl" ? "AI is tijdelijk niet beschikbaar door een configuratieprobleem. De beheerder moet de AI-koppeling herstellen. Er is niets aan je website gewijzigd." : assistantErrors[responseLanguage].unavailable,
+          code:"ASSISTANT_CONFIGURATION_UNAVAILABLE" },
         { status: 503 }
       );
     }
@@ -238,7 +242,7 @@ export async function POST(request: Request) {
         model: process.env.OPENAI_MODEL || "gpt-5.6-luna",
         instructions: system,
         input: message,
-        max_output_tokens: 700,
+        max_output_tokens: 2000,
       }),
     });
 

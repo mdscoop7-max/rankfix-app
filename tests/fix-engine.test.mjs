@@ -168,3 +168,20 @@ test("status endpoint and routes: database outage is a clear 503, consent is exp
   assert.equal((engine.match(/\/merge`/g) || []).length, 1, "exactly one merge call site");
   assert.match(engine, /sha: headSha/);
 });
+
+test("an unmerged AutoFix remains approvable inside RankFix, without exposing an unsafe universal publish button", () => {
+  const page=readFileSync(new URL("../app/dashboard/github/page.tsx",import.meta.url),"utf8");
+  const status=readFileSync(new URL("../app/api/fixes/status/route.ts",import.meta.url),"utf8");
+  assert.match(page,/fix\.reason_code === "PR_AWAITING_OWNER"/);
+  assert.match(page,/approveExisting\(\)/);
+  assert.match(page,/proposal_hash:review\.proposal_hash/);
+  assert.match(status,/autoPublishSupported\(row\.issue_id,String\(proposal\.generator\|\|""\)\)/);
+  assert.match(status,/row\.status==="AWAITING_MERGE"&&!row\.auto_publish&&row\.proposal_id&&row\.pr_number/);
+  assert.match(status,/const refreshed=await db\.query/);
+});
+test("assistant refuses malformed preview secret before building Authorization header", () => {
+  const assistant=readFileSync(new URL("../app/api/assistant/route.ts",import.meta.url),"utf8");
+  assert.match(assistant,/ASSISTANT_CONFIGURATION_UNAVAILABLE/);
+  assert.match(assistant,/!\/\^sk-\[A-Za-z0-9_-\]\+\$\/\.test\(key\)/);
+  assert.match(assistant,/max_output_tokens: 2000/);
+});
