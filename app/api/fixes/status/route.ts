@@ -45,6 +45,25 @@ export async function GET(request:Request){
       return NextResponse.json({error:"De scan hoort niet bij deze website."},{status:400});
     }
   }
+  // A historic successful Fix is not the same as the current state. Compare
+  // every confirmation to the newest saved scan of this website, regardless
+  // of which (older) report URL was opened.
+  const latestResult=await db.query(
+    "SELECT id::text AS id,created_at,result FROM scans WHERE user_id=$1 AND (scanned_url=$2 OR final_url=$2) ORDER BY created_at DESC LIMIT 1",
+    [user.id,scannedUrl]
+  );
+  const latestScan=latestResult.rows[0]||null;
+  const latestChecks=[
+    ...(Array.isArray(latestScan?.result?.seo?.checks)?latestScan.result.seo.checks:[]),
+    ...(Array.isArray(latestScan?.result?.geo?.checks)?latestScan.result.geo.checks:[])
+  ];
+  const latestCheck=latestChecks.find((c:{issue_id?:string;rule_id?:string})=>
+    String(c.issue_id||c.rule_id||"").toUpperCase()===issueFilter.toUpperCase()
+  );
+  const latestScanInfo=latestScan
+    ? {id:String(latestScan.id),created_at:latestScan.created_at,issue_status:latestCheck
+        ? String(latestCheck.issue_status||latestCheck.status||"").toUpperCase():null}
+    : null;
   const pending=await db.query(
     `SELECT * FROM pending_fixes
      WHERE user_id=$1 AND scanned_url=$2
@@ -79,7 +98,7 @@ export async function GET(request:Request){
   );
   const views=[];
   for(const row of refreshed.rows as FixRow[]){
-    if(confirmedFixIsStale(row,contextScan)) continue;
+    if(confirmedFixIsStale(row,latestScan)||confirmedFixIsStale(row,contextScan)) continue;
     const view=publicFixView(row);
     let review:null|{proposal_id:string;proposal_hash:string;scan_id:string;expected_value:string;summary:string}=null;
     // A previous Pull Request must not hide the customer approval action.
@@ -97,5 +116,5 @@ export async function GET(request:Request){
     }
     views.push({...view,review,pr_number:view.technical.pr_number,pr_url:view.technical.pr_url,branch:view.technical.branch,merged_at:view.technical.merged_at,verified_at:(row as FixRow & {verified_at?:string|null}).verified_at||null,verification_scan_id:(row as FixRow & {verification_scan_id?:string|null}).verification_scan_id||null});
   }
-  return NextResponse.json({fixes:views});
+  return NextResponse.json({fixes:views,latest_scan:latestScanInfo});
 }

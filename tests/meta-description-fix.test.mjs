@@ -235,3 +235,15 @@ test("TrendMix source fallback chooses complete real sentences, not an unfinishe
   assert.ok(result.length>=120&&result.length<=160);
   assert.doesNotMatch(result,/\b(?:en|of|de|het|voor|met|bij)\.$/i);
 });
+
+test("transient form and status feedback is never trusted as SEO description copy", () => {
+  const bad="Ontdek gadgets en slimme producten bij Voorbeeldshop. Slimme gadgets voor een makkelijker leven. Je bericht kon niet worden verzonden.";
+  assert.ok(bad.length>=120&&bad.length<=160);
+  assert.deepEqual(checkDescriptionCandidate(bad).errors.includes("TRANSIENT_UI_MESSAGE"),true);
+  const source='<main><p>Je bericht kon niet worden verzonden. Probeer het later opnieuw. Met deze melding kan een klant niet verder.</p><p>Ontdek gadgets en slimme producten bij Voorbeeldshop, van slimme accessoires tot praktische artikelen.</p></main>';
+  const evidence=extractSourceDescriptionEvidence("templates/index.html",source);
+  assert.equal(evidence.length,1);
+  assert.doesNotMatch(evidence[0],/Je bericht kon niet worden verzonden/);
+  const text=buildEvidenceDescription({current:"Ontdek gadgets en slimme producten bij Voorbeeldshop.",h1:"Slimme gadgets voor een makkelijker leven.",extra:["Je bericht kon niet worden verzonden.",evidence[0]]});
+  assert.ok(text===null||!text.includes("Je bericht kon niet worden verzonden."));
+});

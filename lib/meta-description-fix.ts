@@ -28,6 +28,7 @@ export function normalizeDescriptionText(value: unknown): string {
     .trim();
 }
 
+const TRANSIENT_UI_MESSAGE = /(?:je bericht kon niet worden verzonden|your message could not be sent|message could not be sent|het formulier kon niet worden verzonden|something went wrong sending|verzenden is mislukt)/i;
 const PLACEHOLDER = /\[(?:[A-Z_ ]{3,}|your[^\]]*)\]|\bTODO\b|CHANGE_ME|REPLACE_ME|INSERT_[A-Z_]+|lorem ipsum|\{\{|\{%|\$\{/i;
 
 export function checkDescriptionCandidate(text: string, current = ""): { ok: boolean; errors: string[] } {
@@ -38,6 +39,7 @@ export function checkDescriptionCandidate(text: string, current = ""): { ok: boo
   if (value.length > META_DESCRIPTION_MAX) errors.push("TOO_LONG");
   if (/<[^>]+>/.test(String(text))) errors.push("HTML");
   if (PLACEHOLDER.test(value)) errors.push("PLACEHOLDER");
+  if (TRANSIENT_UI_MESSAGE.test(value)) errors.push("TRANSIENT_UI_MESSAGE");
   if (/https?:\/\//i.test(value)) errors.push("URL");
   if (current && value.toLowerCase() === normalizeDescriptionText(current).toLowerCase()) errors.push("UNCHANGED");
   return { ok: errors.length === 0, errors };
@@ -69,7 +71,7 @@ export function buildEvidenceDescription(input: { current?: string; title?: stri
   const seen: string[] = [];
   const add = (raw: string | undefined) => {
     const s = sentence(raw || "");
-    if (s.length < 8) return;
+    if (s.length < 8 || TRANSIENT_UI_MESSAGE.test(s)) return;
     const key = s.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, "").trim();
     if (!key || seen.some((k) => k.includes(key) || key.includes(k))) return;
     seen.push(key);
@@ -115,7 +117,7 @@ export function extractSourceDescriptionEvidence(filePath: string, source: strin
     .map((match)=>match[1])
     .filter((raw)=>!/(?:\{\{|\{%|<\?|<%|\$\{|<script\b|<style\b)/i.test(raw))
     .map((raw)=>normalizeDescriptionText(raw.replace(/<[^>]*>/g," ")))
-    .filter((value)=>value.length>=35&&value.length<=260&&!PLACEHOLDER.test(value))
+    .filter((value)=>value.length>=35&&value.length<=260&&!PLACEHOLDER.test(value)&&!TRANSIENT_UI_MESSAGE.test(value))
     .slice(0,8);
 }
 

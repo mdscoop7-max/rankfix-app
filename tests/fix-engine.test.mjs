@@ -280,3 +280,16 @@ test("Fix controls retain selected scan context and the assistant selects only a
   assert.match(assistant,/policy\.action==="github_fix" && Boolean\(policy\.safe_type\)/);
   assert.match(assistant,/Bekijk verbeterpunten/);
 });
+
+test("old reports must not show their historic Fix as currently resolved after a newer regression", () => {
+  const status=readFileSync(new URL("../app/api/fixes/status/route.ts",import.meta.url),"utf8");
+  const ui=readFileSync(new URL("../app/dashboard/github/page.tsx",import.meta.url),"utf8");
+  const audit=readFileSync(new URL("../app/dashboard/audit/[id]/page.tsx",import.meta.url),"utf8");
+  assert.match(status,/ORDER BY created_at DESC LIMIT 1/);
+  assert.match(status,/confirmedFixIsStale\(row,latestScan\)/);
+  assert.match(status,/latest_scan:latestScanInfo/);
+  assert.match(ui,/const historicalScan=Boolean\(latestScanInfo\?\.id/);
+  assert.match(ui,/Je bekijkt een oudere scan/);
+  assert.match(ui,/Automatisch publiceren wordt niet gestart vanuit een oudere scan/);
+  assert.match(audit,/Dit is een eerder scanrapport/);
+});
