@@ -185,3 +185,13 @@ test("assistant refuses malformed preview secret before building Authorization h
   assert.match(assistant,/!\/\^sk-\[A-Za-z0-9_-\]\+\$\/\.test\(key\)/);
   assert.match(assistant,/max_output_tokens: 2000/);
 });
+
+test("assistant can explain a known blocked Fix status even if provider configuration is unavailable", () => {
+  const source=readFileSync(new URL("../app/api/assistant/route.ts",import.meta.url),"utf8");
+  const fallback=source.indexOf('mode:"verified_status_help"');
+  const provider=source.indexOf('const key = (process.env.OPENAI_API_KEY || "").trim()');
+  assert.ok(fallback>0 && provider>fallback);
+  assert.match(source,/dashboard && errorContext/);
+  const shared=readFileSync(new URL("../lib/meta-description-fix.ts",import.meta.url),"utf8");
+  assert.match(shared,/!key \|\| !\/\^sk-/);
+});

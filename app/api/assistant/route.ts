@@ -187,6 +187,16 @@ export async function POST(request: Request) {
       }
     }
 
+    // When the dashboard already supplies the verified reason of a blocked
+    // action, provide that specific explanation even if external AI is offline.
+    // This is explicitly rule-based status help, not a fabricated AI response.
+    if(dashboard && errorContext && /(?:blokkeer|geblokkeerd|handmatig|waarom|veilig|blocked|manual|why)/i.test(message)){
+      const answer=responseLanguage==="nl"
+        ? "RankFix heeft deze fix nog niet live uitgevoerd. Bekende reden: "+errorContext+". Controleer de status en de voorgestelde wijziging in RankFix. Een ontbrekende toestemming kun je daar geven, maar doe dit alleen als de wijziging klopt. Als de broncode of het bewijs is veranderd, moet RankFix stoppen en een nieuw voorstel maken."
+        : "RankFix has not confirmed a live fix. Recorded reason: "+errorContext+". Check the proposal and status inside RankFix. Approve only if the change is correct; an outdated or unverifiable fix must not be published.";
+      return NextResponse.json({answer,mode:"verified_status_help"});
+    }
+
     const key = (process.env.OPENAI_API_KEY || "").trim();
 
     // Do not pass malformed keys (including accidental pasted newlines) to

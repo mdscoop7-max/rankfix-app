@@ -201,7 +201,9 @@ export type AiFailure = "AI_UNAVAILABLE" | "AI_PROVIDER_ERROR" | "AI_INCOMPLETE"
  */
 export async function requestAiJson(prompt: string, opts: { maxOutputTokens?: number; fetchImpl?: typeof fetch } = {}): Promise<{ ok: true; data: Record<string, unknown> } | { ok: false; code: AiFailure; status?: number }> {
   const key = process.env.OPENAI_API_KEY?.trim();
-  if (!key) return { ok: false, code: "AI_UNAVAILABLE" };
+  // Invalid pasted values (newlines, duplicate keys) are not API credentials.
+  // Return a safe fallback result without leaking any secret into request logs.
+  if (!key || !/^sk-[A-Za-z0-9_-]+$/.test(key)) return { ok: false, code: "AI_UNAVAILABLE" };
   const model = process.env.OPENAI_MODEL?.trim() || "gpt-5.6-luna";
   const doFetch = opts.fetchImpl || fetch;
   const reasoningCapable = /^(?:gpt-5|o\d)/i.test(model);
