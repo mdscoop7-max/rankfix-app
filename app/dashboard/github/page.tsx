@@ -62,6 +62,8 @@ export default function GithubPage() {
   const [fixPlan, setFixPlan] = useState<Plan | null>(null);
   const [fix, setFix] = useState<FixView | null>(null);
   const [scanBusy, setScanBusy] = useState(false);
+  const [contextLoading, setContextLoading] = useState(true);
+  const [mappingWarning, setMappingWarning] = useState("");
   const scanRunning = useRef(false);
 
   const siteUrl = scan?.final_url || scan?.scanned_url || "";
@@ -78,41 +80,87 @@ export default function GithubPage() {
     } catch { return null; }
   }, [issueId]);
 
-  // Load account, scan, GitHub link and any fix already in progress (status survives page closes).
+  // Load the saved website mapping and existing Fix status FIRST. A slow or
+  // failing GitHub repository enumeration must not hide an already linked site.
+  // Neither loading nor inspecting status grants publishing consent.
   useEffect(() => {
-    fetch("/api/account/language").then((r) => (r.ok ? readJson(r) : null)).then((d) => { if (d?.language && d.language in STAGE_LABELS) setLanguage(d.language as Locale); }).catch(() => {});
-    fetch("/api/auth/me", { cache: "no-store" }).then((r) => (r.ok ? readJson(r) : null)).then((d) => { if (d?.user?.plan_code) setPlanCode(String(d.user.plan_code)); }).catch(() => {});
+    let active = true;
+    setContextLoading(true);
+    setMappingWarning("");
+    fetch("/api/account/language").then((r) => (r.ok ? readJson(r) : null)).then((d) => { if (active && d?.language && d.language in STAGE_LABELS) setLanguage(d.language as Locale); }).catch(() => {});
+    fetch("/api/auth/me", { cache: "no-store" }).then((r) => (r.ok ? readJson(r) : null)).then((d) => { if (active && d?.user?.plan_code) setPlanCode(String(d.user.plan_code)); }).catch(() => {});
     (async () => {
-      let url = "";
-      if (scanId) {
-        const sr = await fetch("/api/history/" + encodeURIComponent(scanId), { cache: "no-store" });
-        const sd = await readJson(sr);
-        if (sr.ok && sd.scan) {
-          setScan(sd.scan);
-          url = sd.scan.final_url || sd.scan.scanned_url;
-          const all: Check[] = [...(sd.scan.result?.seo?.checks || []), ...(sd.scan.result?.geo?.checks || [])];
-          setCheck(all.find((c) => String(c.issue_id || c.rule_id || "").toUpperCase() === issueId.toUpperCase()) || null);
-        }
+      if (!scanId || !issueId) {
+        setError("Open deze Fix via een opgeslagen scan en een gekozen probleem.");
+        return;
       }
-      const gs = await fetch("/api/github/status");
-      const gd = await readJson(gs);
-      if (gd.connected) {
-        setConnected(true); setLogin(gd.connection?.github_login || "");
-        const rr = await fetch("/api/github/repos"); const rd = await readJson(rr);
-        const available: Repo[] = Array.isArray(rd.repos) ? rd.repos : [];
-        setRepos(available);
-        if (available.length === 1) { setRepo(available[0].full_name); setBaseBranch(available[0].default_branch || "main"); }
-        if (url) {
-          const mr = await fetch("/api/github/site-repository?url=" + encodeURIComponent(url)); const md = await readJson(mr);
-          if (mr.ok && md.mapped) { setRepo(md.repository); setBaseBranch(md.baseBranch || "main"); setMapped(true); setAutofix(Boolean(md.autofix?.enabled)); }
+      const sr = await fetch("/api/history/" + encodeURIComponent(scanId), { cache: "no-store" });
+      const sd = await readJson(sr);
+      if (sr.status === 401) { window.location.replace("/account?next=" + encodeURIComponent(window.location.pathname + window.location.search)); return; }
+      if (!sr.ok || !sd.scan) throw new Error(sd.error || "Deze opgeslagen scan kon niet worden geladen.");
+      if (!active) return;
+      setScan(sd.scan);
+      const url = String(sd.scan.final_url || sd.scan.scanned_url || "");
+      const all: Check[] = [...(sd.scan.result?.seo?.checks || []), ...(sd.scan.result?.geo?.checks || [])];
+      setCheck(all.find((c) => String(c.issue_id || c.rule_id || "").toUpperCase() === issueId.toUpperCase()) || null);
+
+      // These calls are deliberately independent of GitHub /user/repos.
+      const [mr, gs, existing] = await Promise.allSettled([
+        fetch("/api/github/site-repository?url=" + encodeURIComponent(url), { cache: "no-store" }),
+        fetch("/api/github/status", { cache: "no-store" }),
+        refreshStatus(url),
+      ]);
+      if (!active) return;
+      let mappedRepository = "";
+      if (mr.status === "fulfilled") {
+        const md = await readJson(mr.value);
+        if (mr.value.ok && md.mapped && typeof md.repository === "string" && /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(md.repository)) {
+          mappedRepository = md.repository;
+          setRepo(md.repository);
+          setBaseBranch(md.baseBranch || "main");
+          setMapped(true);
+          setAutofix(Boolean(md.autofix?.enabled));
+        } else if (!mr.value.ok) {
+          setMappingWarning(md.error || "De bestaande websitekoppeling kon niet worden geladen. Probeer de pagina opnieuw te openen.");
         }
+      } else {
+        setMappingWarning("De bestaande websitekoppeling is tijdelijk niet bereikbaar. Probeer het opnieuw.");
+      }
+      if (existing.status === "rejected") setError("De huidige Fix-status kon niet worden gecontroleerd. Probeer het opnieuw.");
+      if (gs.status !== "fulfilled") {
+        setConnected(false);
+        setError("De GitHub-verbinding kon niet worden gecontroleerd. Probeer de pagina opnieuw te openen.");
+        return;
+      }
+      const gd = await readJson(gs.value);
+      if (!active) return;
+      if (!gs.value.ok && gs.value.status === 401) {
+        window.location.replace("/account?next=" + encodeURIComponent(window.location.pathname + window.location.search));
+        return;
+      }
+      if (gd.connected) {
+        setConnected(true);
+        setLogin(gd.connection?.github_login || "");
+        // Repo discovery is convenience only: it never overrides the saved mapping.
+        void fetch("/api/github/repos", { cache: "no-store" }).then(async rr => {
+          const rd = await readJson(rr);
+          if (!active || !rr.ok) return;
+          const available: Repo[] = Array.isArray(rd.repos) ? rd.repos : [];
+          setRepos(available);
+          if (!mappedRepository && available.length === 1) {
+            setRepo(available[0].full_name);
+            setBaseBranch(available[0].default_branch || "main");
+          }
+        }).catch(() => {});
       } else {
         setConnected(false);
         if (gd.setupRequired) setGithubSetupRequired(true);
-        if (gd.reauthorize || gd.error) setError(gd.error || tx("Verbind GitHub opnieuw.", "Reconnect GitHub."));
+        if (gd.reauthorize || gd.error) setError(gd.error || "De GitHub-koppeling moet opnieuw worden gecontroleerd.");
       }
-      if (url) await refreshStatus(url);
-    })().catch(() => setError(tx("RankFix kon de gegevens niet laden. Probeer het opnieuw.", "RankFix could not load the data. Please try again.")));
+    })().catch(e => {
+      if (active) setError(e instanceof Error ? e.message : "RankFix kon je bestaande Fix niet laden.");
+    }).finally(() => { if (active) setContextLoading(false); });
+    return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scanId, issueId]);
 
@@ -171,7 +219,7 @@ export default function GithubPage() {
   }
 
   async function runFix() {
-    if (busy) return;
+    if (busy || contextLoading) return;
     setError(""); setNotice("");
     if (!(await ensureRepositoryChoice())) return;
     setBusy(true);
@@ -292,6 +340,8 @@ export default function GithubPage() {
            {fix.stage === "manual" && fix.reason_code !== "PR_AWAITING_OWNER" && <button type="button" disabled={busy} onClick={() => { setFix(null); void runFix(); }} className="mt-4 min-h-11 w-full rounded-xl border border-white/15 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{tx("Nieuwe controle proberen", "Try checking again")}</button>}
         </section>}
 
+        {contextLoading && <p role="status" className="mt-5 rounded-xl border border-cyan-300/20 bg-cyan-300/5 p-4 text-sm text-cyan-100">RankFix haalt je opgeslagen scan, websitekoppeling en bestaande Fix-status op…</p>}
+        {mappingWarning && <p role="alert" className="mt-4 rounded-xl border border-amber-300/20 bg-amber-300/10 p-3 text-sm text-amber-100">{mappingWarning}</p>}
         {error && <div role="alert" className="mt-5 rounded-xl bg-red-500/10 p-4 text-sm text-red-200">{error}</div>}
         {notice && !fix && <div role="status" className="mt-5 rounded-xl bg-emerald-500/10 p-4 text-sm text-emerald-100">{notice}</div>}
 
@@ -320,14 +370,15 @@ export default function GithubPage() {
         </section>}
 
         {/* Start */}
-        {!fix && !fixPlan && <section className="mt-6">
+        {!contextLoading && !fix && !fixPlan && <section className="mt-6">
           {plan === "free"
             ? <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.06] p-5"><p className="text-sm text-emerald-100">{tx("Automatisch oplossen is beschikbaar met een abonnement.", "Automatic fixing is available with a subscription.")}</p><Link href={`/checkout?plan=start&lang=${language}`} className="mt-3 inline-flex rounded-xl bg-emerald-400 px-5 py-3 font-bold text-slate-950">{tx("Bekijk abonnementen", "View plans")}</Link></div>
             : connected === false
               ? <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5"><h2 className="font-bold">{tx("Eenmalig: verbind GitHub", "One-time: connect GitHub")}</h2><p className="mt-1 text-sm text-slate-400">{tx("RankFix past je website aan via de GitHub-repository waar de code staat. Je keurt de toegang zelf goed bij GitHub.", "RankFix updates your site through the GitHub repository holding its code. You approve access on GitHub yourself.")}</p>{githubSetupRequired ? <p className="mt-3 rounded-xl bg-amber-300/10 p-3 text-sm text-amber-100">{tx("GitHub is in deze omgeving nog niet ingesteld.", "GitHub is not configured in this environment yet.")}</p> : <button type="button" onClick={() => window.location.assign("/api/github/connect")} className="mt-3 inline-flex rounded-xl bg-white px-5 py-3 font-bold text-slate-950">{tx("Verbind GitHub", "Connect GitHub")} →</button>}</div>
               : <>
-                  {connected && !mapped && repos.length > 1 && <label className="mb-4 block text-sm"><span className="font-semibold">{tx("Eenmalig: in welke repository staat deze website?", "One-time: which repository holds this website?")}</span><select value={repo} onChange={(e) => { setRepo(e.target.value); const r = repos.find((x) => x.full_name === e.target.value); if (r) setBaseBranch(r.default_branch || "main"); }} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"><option value="">{tx("Kies repository", "Choose repository")}</option>{repos.map((r) => <option key={r.full_name} value={r.full_name}>{r.full_name}</option>)}</select></label>}
-                  <button type="button" disabled={busy || connected === null || !check} onClick={() => void runFix()} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 text-base font-bold text-[#04342C] disabled:opacity-50">{busy ? stageLabels.preparing + "…" : FIX_BUTTON[language]}</button>
+                  {connected && !mapped && !mappingWarning && repos.length > 1 && <label className="mb-4 block text-sm"><span className="font-semibold">{tx("Eenmalig: in welke repository staat deze website?", "One-time: which repository holds this website?")}</span><select value={repo} onChange={(e) => { setRepo(e.target.value); const r = repos.find((x) => x.full_name === e.target.value); if (r) setBaseBranch(r.default_branch || "main"); }} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"><option value="">{tx("Kies repository", "Choose repository")}</option>{repos.map((r) => <option key={r.full_name} value={r.full_name}>{r.full_name}</option>)}</select></label>}
+                  <button type="button" disabled={busy || Boolean(mappingWarning) || !repo || connected !== true || !check} onClick={() => void runFix()} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 text-base font-bold text-[#04342C] disabled:opacity-50">{busy ? stageLabels.preparing + "…" : FIX_BUTTON[language]}</button>
+                  {connected && !repo && !mappingWarning && <p className="mt-2 text-xs text-amber-200">RankFix zoekt je repository. Als die niet verschijnt, controleer dan je GitHub-koppeling; er is niets gepubliceerd.</p>}
                   {!check && scan && <p className="mt-2 text-xs text-amber-200">{tx("Dit verbeterpunt staat niet (meer) in deze scan.", "This issue is not (or no longer) in this scan.")}</p>}
                   <p className="mt-2 text-center text-xs text-slate-500">{autofix ? tx("Automatisch publiceren staat aan: ondersteunde, veilige fixes worden na alle controles direct live gezet.", "Automatic publishing is on: supported, safe fixes go live right after all checks.") : tx("Je ziet eerst wat RankFix verandert en keurt het daarna met één klik goed.", "You first see what RankFix changes, then approve it with one click.")}</p>
                 </>}

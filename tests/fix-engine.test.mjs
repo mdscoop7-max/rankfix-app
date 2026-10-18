@@ -195,3 +195,16 @@ test("assistant can explain a known blocked Fix status even if provider configur
   const shared=readFileSync(new URL("../lib/meta-description-fix.ts",import.meta.url),"utf8");
   assert.match(shared,/!key \|\| !\/\^sk-/);
 });
+
+test("saved website mapping and pending Fix load independently of GitHub repository enumeration", () => {
+  const ui=readFileSync(new URL("../app/dashboard/github/page.tsx",import.meta.url),"utf8");
+  assert.match(ui,/Promise\.allSettled\(\[/);
+  assert.match(ui,/fetch\("\/api\/github\/site-repository\?url="/);
+  assert.match(ui,/refreshStatus\(url\)/);
+  const mapped=ui.indexOf('mappedRepository = md.repository');
+  const discover=ui.indexOf('fetch("/api/github/repos", { cache: "no-store" })');
+  assert.ok(mapped>=0 && discover>mapped, "load existing mapping before GitHub repo discovery");
+  assert.match(ui,/!contextLoading && !fix && !fixPlan/);
+  assert.match(ui,/disabled=\{busy \|\| Boolean\(mappingWarning\) \|\| !repo \|\| connected !== true \|\| !check\}/);
+  assert.match(ui,/setMappingWarning\("De bestaande websitekoppeling is tijdelijk niet bereikbaar/);
+});
