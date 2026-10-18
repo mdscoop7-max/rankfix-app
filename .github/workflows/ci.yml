@@ -51,3 +51,15 @@ jobs:
       - name: Production build
         if: ${{ !cancelled() }}
         run: npm run build
+
+      - name: Fixes browser smoke (mobile and desktop)
+        if: ${{ success() }}
+        run: |
+          npm run start -- --hostname 127.0.0.1 -p 3100 > /tmp/rankfix-ci-browser.log 2>&1 &
+          NEXT_PID=$!
+          trap 'kill "$NEXT_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:3100/dashboard/fixes >/dev/null; then break; fi
+            sleep 1
+          done
+          node tests/manual/fixes-responsive.browser.mjs
