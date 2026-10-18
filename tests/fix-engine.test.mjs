@@ -222,3 +222,12 @@ test("a legacy pending Pull Request cannot consume a freshly approved Fix", () =
   assert.match(ui,/Nieuw veilig voorstel maken/);
   assert.match(ui,/setFix\(null\); setFixPlan\(null\); void runFix\(\)/);
 });
+
+test("assistant Fix action never reloads current Fix route and errors do not reopen overlay", () => {
+  const code=readFileSync(new URL("../components/ai-assistant.tsx",import.meta.url),"utf8");
+  assert.match(code,/const alreadyOnFixPage = pathname\.startsWith\("\/dashboard\/github"\)/);
+  assert.match(code,/if \(alreadyOnFixPage\) \{[\s\S]*?setOpen\(false\);[\s\S]*?scrollIntoView/);
+  assert.match(code,/alreadyOnFixPage \? "Bekijk huidige Fix"/);
+  assert.doesNotMatch(code,/if \(!dashboard \|\| !errorContext\) return;\s*setOpen\(true\)/);
+  assert.match(code,/window\.location\.assign\("\/dashboard\/github\?scan_id="/);
+});
