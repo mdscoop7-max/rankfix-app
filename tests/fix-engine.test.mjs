@@ -231,3 +231,17 @@ test("assistant Fix action never reloads current Fix route and errors do not reo
   assert.doesNotMatch(code,/if \(!dashboard \|\| !errorContext\) return;\s*setOpen\(true\)/);
   assert.match(code,/window\.location\.assign\("\/dashboard\/github\?scan_id="/);
 });
+
+test("social metadata without verified image evidence is explicitly blocked before creating a PR", () => {
+  const api=readFileSync(new URL("../app/api/github/fix/route.ts",import.meta.url),"utf8");
+  const ui=readFileSync(new URL("../app/dashboard/github/page.tsx",import.meta.url),"utf8");
+  assert.match(api,/if\(issueId==="SOCIAL_METADATA_INCOMPLETE"\)/);
+  assert.match(api,/SOCIAL_IMAGE_EVIDENCE_REQUIRED/);
+  const guard=api.indexOf('code:"SOCIAL_IMAGE_EVIDENCE_REQUIRED"');
+  const connection=api.indexOf('const connection=await getDb().query');
+  assert.ok(guard>0 && connection>guard, "reject unsupported image before fetching GitHub credentials");
+  assert.match(ui,/const socialImageMissing=issueId==="SOCIAL_METADATA_INCOMPLETE" && !hasTrustedSocialImage/);
+  assert.match(ui,/socialImageMissing\s*\? <div role="status"/);
+  assert.match(ui,/Array\.isArray\(pd\.validation\?\.errors\)/);
+  assert.match(ui,/Automatisch publiceren wordt niet gestart/);
+});

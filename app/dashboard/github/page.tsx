@@ -200,7 +200,10 @@ export default function GithubPage() {
     const pd = await readJson(pr);
     if (!pr.ok) {
       if (/bad credentials|GitHub-token|opnieuw verbinden/i.test(String(pd.error || ""))) setConnected(false);
-      throw new Error(pd.error || tx("De oplossing kon niet veilig worden voorbereid. Er is niets gewijzigd.", "The fix could not be prepared safely. Nothing was changed."));
+      const detailedReason=Array.isArray(pd.validation?.errors)
+        ? pd.validation.errors.filter((value:unknown)=>typeof value==="string").slice(0,3).join(" · ")
+        : "";
+      throw new Error([pd.error,detailedReason].filter(Boolean).join(" — ") || tx("De oplossing kon niet veilig worden voorbereid. Er is niets gewijzigd.", "The fix could not be prepared safely. Nothing was changed."));
     }
     if (pd.alreadyApplied) {
       setNotice(tx("Deze verbetering staat al in de broncode. RankFix controleert nu de live pagina.", "This improvement is already in the source code. RankFix is now checking the live page."));
@@ -287,6 +290,12 @@ export default function GithubPage() {
   const activeStage: Stage | null = fix?.stage || null;
   const stageIndex = activeStage ? STAGES.indexOf(activeStage) : -1;
   const isMeta = META_DESCRIPTION.test(issueId);
+  const metrics=scan?.result?.metrics;
+  const og=metrics?.openGraph as {image?:unknown}|undefined;
+  const imageCandidates=metrics?.imageAltCandidates;
+  const imageEvidence=[og?.image,...(Array.isArray(imageCandidates)?imageCandidates.map((x:{src?:unknown})=>x?.src):[])];
+  const hasTrustedSocialImage=imageEvidence.some((v:unknown)=>typeof v==="string" && Boolean(v.trim()) && !/(?:favicon|touch-icon|apple-touch-icon|mask-icon|site-icon|browserconfig)/i.test(v));
+  const socialImageMissing=issueId==="SOCIAL_METADATA_INCOMPLETE" && !hasTrustedSocialImage;
 
   return <main className="rf-page" lang={language}>
     <div className="rf-shell">
@@ -379,10 +388,18 @@ export default function GithubPage() {
               ? <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5"><h2 className="font-bold">{tx("Eenmalig: verbind GitHub", "One-time: connect GitHub")}</h2><p className="mt-1 text-sm text-slate-400">{tx("RankFix past je website aan via de GitHub-repository waar de code staat. Je keurt de toegang zelf goed bij GitHub.", "RankFix updates your site through the GitHub repository holding its code. You approve access on GitHub yourself.")}</p>{githubSetupRequired ? <p className="mt-3 rounded-xl bg-amber-300/10 p-3 text-sm text-amber-100">{tx("GitHub is in deze omgeving nog niet ingesteld.", "GitHub is not configured in this environment yet.")}</p> : <button type="button" onClick={() => window.location.assign("/api/github/connect")} className="mt-3 inline-flex rounded-xl bg-white px-5 py-3 font-bold text-slate-950">{tx("Verbind GitHub", "Connect GitHub")} →</button>}</div>
               : <>
                   {connected && !mapped && !mappingWarning && repos.length > 1 && <label className="mb-4 block text-sm"><span className="font-semibold">{tx("Eenmalig: in welke repository staat deze website?", "One-time: which repository holds this website?")}</span><select value={repo} onChange={(e) => { setRepo(e.target.value); const r = repos.find((x) => x.full_name === e.target.value); if (r) setBaseBranch(r.default_branch || "main"); }} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"><option value="">{tx("Kies repository", "Choose repository")}</option>{repos.map((r) => <option key={r.full_name} value={r.full_name}>{r.full_name}</option>)}</select></label>}
-                  <button type="button" disabled={busy || Boolean(mappingWarning) || !repo || connected !== true || !check} onClick={() => void runFix()} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 text-base font-bold text-[#04342C] disabled:opacity-50">{busy ? stageLabels.preparing + "…" : FIX_BUTTON[language]}</button>
+                  {socialImageMissing
+                    ? <div role="status" className="rounded-xl border border-amber-300/25 bg-amber-300/[0.08] p-4 text-sm leading-6 text-amber-100">
+                        <strong>{tx("Voor deze Fix ontbreekt een echte afbeelding", "An existing image is required for this Fix")}</strong>
+                        <p className="mt-2">{tx("RankFix heeft geen betrouwbare afbeelding gevonden voor og:image. De titel en beschrijving zijn bekend, maar zonder echte afbeelding kan de volledige Social metadata-fix niet veilig worden gepubliceerd. Zet eerst een geschikte afbeelding op je website en scan opnieuw. Er is nu niets veranderd.", "RankFix could not verify an image for og:image. The title and description are available, but a complete Social metadata fix cannot safely publish without a real image. Add a suitable image to your site and scan again. Nothing changed.")}</p>
+                      </div>
+                    : <button type="button" disabled={busy || Boolean(mappingWarning) || !repo || connected !== true || !check} onClick={() => void runFix()} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 text-base font-bold text-[#04342C] disabled:opacity-50">{busy ? stageLabels.preparing + "…" : FIX_BUTTON[language]}</button>}
                   {connected && !repo && !mappingWarning && <p className="mt-2 text-xs text-amber-200">RankFix zoekt je repository. Als die niet verschijnt, controleer dan je GitHub-koppeling; er is niets gepubliceerd.</p>}
                   {!check && scan && <p className="mt-2 text-xs text-amber-200">{tx("Dit verbeterpunt staat niet (meer) in deze scan.", "This issue is not (or no longer) in this scan.")}</p>}
-                  <p className="mt-2 text-center text-xs text-slate-500">{autofix ? tx("Automatisch publiceren staat aan: ondersteunde, veilige fixes worden na alle controles direct live gezet.", "Automatic publishing is on: supported, safe fixes go live right after all checks.") : tx("Je ziet eerst wat RankFix verandert en keurt het daarna met één klik goed.", "You first see what RankFix changes, then approve it with one click.")}</p>
+                  <p className="mt-2 text-center text-xs text-slate-500">{socialImageMissing
+                    ? tx("Deze Fix is geblokkeerd wegens ontbrekend bewijs. Automatisch publiceren wordt niet gestart.", "This Fix is blocked because image evidence is missing. Automatic publishing will not start.")
+                    : autofix ? tx("Automatisch publiceren staat aan: ondersteunde, veilige fixes worden na alle controles direct live gezet.", "Automatic publishing is on: supported, safe fixes go live right after all checks.")
+                    : tx("Je ziet eerst wat RankFix verandert en keurt het daarna met één klik goed.", "You first see what RankFix changes, then approve it with one click.")}</p>
                 </>}
         </section>}
 

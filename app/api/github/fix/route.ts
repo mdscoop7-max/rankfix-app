@@ -498,6 +498,33 @@ export async function POST(request:Request){
     context=[trustedCheck.message,trustedCheck.fix,trustedCheck?.evidence?.details].filter(Boolean).map(String).join("\n").slice(0,6000);
     const trustedUrl=String(scanRow.final_url||"");
 
+    // The complete Social metadata fix includes og:image. A missing image in
+    // the owner's saved scan is not a license to invent one or to weaken the
+    // GitHub validator. Return a specific, actionable reason before AI or PRs.
+    if(issueId==="SOCIAL_METADATA_INCOMPLETE"){
+      const m=scanResult?.metrics||{};
+      const imageCandidates=Array.isArray(m.imageAltCandidates)?m.imageAltCandidates:[];
+      const imageValues=[m.openGraph?.image,...imageCandidates.map((candidate:{src?:unknown})=>candidate?.src)];
+      const hasTrustedImageEvidence=imageValues.some((value:unknown)=>{
+        if(typeof value!=="string"||!value.trim()) return false;
+        return !/(?:favicon|touch-icon|apple-touch-icon|mask-icon|site-icon|browserconfig)/i.test(value);
+      });
+      if(!hasTrustedImageEvidence){
+        return NextResponse.json({
+          error:msg(
+            "RankFix heeft geen betrouwbare bestaande afbeelding gevonden voor og:image. Daarom kan Social metadata nog niet volledig veilig worden hersteld. Gebruik eerst een echte, openbaar bereikbare afbeelding van je website en scan daarna opnieuw. Er is niets gewijzigd.",
+            "RankFix could not verify an existing image for og:image. The Social metadata fix cannot be safely completed yet. Use an actual, publicly accessible image on your website and scan again. Nothing was changed.",
+            "RankFix konnte kein verlässliches vorhandenes Bild für og:image bestätigen. Verwende zuerst ein echtes öffentlich erreichbares Website-Bild und scanne dann erneut. Es wurde nichts geändert.",
+            "RankFix n'a trouvé aucune image existante fiable pour og:image. Utilisez une véritable image publique de votre site et relancez l'analyse. Rien n'a été modifié.",
+            "RankFix non ha trovato un'immagine esistente affidabile per og:image. Usa un'immagine reale e pubblica del tuo sito, poi ripeti la scansione. Nessuna modifica effettuata.",
+            "RankFix no encontró una imagen existente fiable para og:image. Usa una imagen real y pública de tu web y vuelve a analizarla. No se cambió nada."
+          ),
+          code:"SOCIAL_IMAGE_EVIDENCE_REQUIRED",
+          issue_id:issueId
+        },{status:422});
+      }
+    }
+
     const connection=await getDb().query("SELECT access_token_encrypted FROM github_connections WHERE user_id=$1",[user.id]);
     if(!connection.rowCount) return NextResponse.json({error:msg("Verbind eerst GitHub via je dashboard.","Connect GitHub from your dashboard first.","Verbinde zuerst GitHub über dein Dashboard.","Connectez d’abord GitHub depuis votre tableau de bord.","Collega prima GitHub dalla dashboard.","Conecta primero GitHub desde tu panel.")},{status:409});
     const token=decryptToken(connection.rows[0].access_token_encrypted);
