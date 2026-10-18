@@ -1751,3 +1751,24 @@ test("public report Fix never sends an unauthenticated GitHub request without sc
   assert.match(dashboard, /router\.push\("\/dashboard\/github\?"\+params\.toString\(\)\)/);
   assert.match(dashboard, /router\.push\(target\)/);
 });
+
+test("public meta description proposal is evidence-based and provides inline failure feedback", async () => {
+ const {readFile}=await import("node:fs/promises");
+ const ui=await readFile(new URL("../app/page.tsx",import.meta.url),"utf8");
+ assert.match(ui,/import \{ buildEvidenceDescription \} from/);
+ assert.match(ui,/if\(type==="meta_description"\)/);
+ assert.match(ui,/setFixErrors\(p=>/);
+ assert.match(ui,/fixErrors\[item\.issue_id \|\| item\.key\]/);
+ assert.match(ui,/start_fix:"1"/);
+ assert.match(ui,/SOCIAL_METADATA_INCOMPLETE/);
+});
+test("public safe Fix auto-resumes through authenticated stored scan after login", async () => {
+ const {readFile}=await import("node:fs/promises");
+ const ui=await readFile(new URL("../app/dashboard/scan/page.tsx",import.meta.url),"utf8");
+ assert.match(ui,/startFix=searchParams\.get\("start_fix"\)==="1"/);
+ assert.match(ui,/autoStarted=useRef\(false\)/);
+ assert.match(ui,/window\.location\.replace\("\/account\?next="\+encodeURIComponent\(next\)\)/);
+ assert.match(ui,/void runScan\(verificationUrl\)/);
+ assert.match(ui,/if\(response\.status===401&&fixIssue\)/);
+ assert.match(ui,/router\.push\("\/dashboard\/github\?"\+params\.toString\(\)\)/);
+});
