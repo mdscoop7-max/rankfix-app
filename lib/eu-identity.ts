@@ -559,10 +559,10 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
       confidence: "high", confidenceScore: secondaryShop ? 86 : nonprofitSchema ? 92 : 86,
       evidence: evidence([
         nonprofitSchema && "Structured data: NGO / non-profitorganisatie",
-        nonprofitOwn && "Eigen identiteit: maatschappelijke of natuurbehoudmissie",
-        nonprofitSupport && "Eigen navigatie: doneren, lid worden of vrijwilligerswerk",
-        nonprofitSourceCount >= 2 && "Missie in meerdere identiteitsbronnen",
-        secondaryShop && "Winkel-/verkoopfunctie is een nevenactiviteit, geen hoofdsector",
+        nonprofitOwn && "Non-profit: maatschappelijke of natuurbehoudmissie in eigen pagina-identiteit",
+        nonprofitSupport && "Non-profit: leden, donateurs of vrijwilligers in eigen navigatie",
+        nonprofitSourceCount >= 2 && "Non-profit: maatschappelijke missie in meerdere identiteitsbronnen",
+        secondaryShop && "Non-profit: winkel-/verkoopfunctie is een nevenactiviteit, niet de hoofdsector",
       ]) };
   }
 
