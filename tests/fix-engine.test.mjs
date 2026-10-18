@@ -208,3 +208,17 @@ test("saved website mapping and pending Fix load independently of GitHub reposit
   assert.match(ui,/disabled=\{busy \|\| Boolean\(mappingWarning\) \|\| !repo \|\| connected !== true \|\| !check\}/);
   assert.match(ui,/setMappingWarning\("De bestaande websitekoppeling is tijdelijk niet bereikbaar/);
 });
+
+test("a legacy pending Pull Request cannot consume a freshly approved Fix", () => {
+  const source=readFileSync(new URL("../app/api/github/fix/route.ts",import.meta.url),"utf8");
+  assert.match(source,/const sameProposal=Boolean\(active\.proposal_id && activeProposal && active\.proposal_id===activeProposal\.id\)/);
+  assert.match(source,/olderPr\.merged\|\|olderPr\.merged_at/);
+  assert.match(source,/olderPr\.head\?\.ref!==active\.branch/);
+  assert.match(source,/PREVIOUS_PR_UNAVAILABLE/);
+  assert.match(source,/REPLACED_BY_FRESH_APPROVAL/);
+  assert.match(source,/proposal_id IS NOT DISTINCT FROM \$4 RETURNING id/);
+  assert.match(source,/status='SUPERSEDED'/);
+  const ui=readFileSync(new URL("../app/dashboard/github/page.tsx",import.meta.url),"utf8");
+  assert.match(ui,/Nieuw veilig voorstel maken/);
+  assert.match(ui,/setFix\(null\); setFixPlan\(null\); void runFix\(\)/);
+});

@@ -611,22 +611,53 @@ export async function POST(request:Request){
       }
       const loadActive=async()=>(await db.query(`SELECT * FROM pending_fixes WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 AND status IN (${ACTIVE_FIX_STATUS_SQL}) AND expires_at>NOW() ORDER BY created_at DESC LIMIT 1`,[user.id,scannedUrl,issueId])).rows[0] as FixRow|undefined;
 
-      // Resume instead of restarting: an active fix for this page + rule continues where it stopped.
+      // An old, unmerged fix with missing/expired approval must never swallow
+      // a freshly reviewed and explicitly approved proposal. Preserve the old
+      // record as SUPERSEDED; do not silently merge or modify the old PR.
       const active=scannedUrl?await loadActive():undefined;
       if(active){
-        const sameProposal=!active.proposal_id||!activeProposal||active.proposal_id===activeProposal.id;
+        // A NULL legacy proposal ID is NOT proof that the proposals match.
+        const sameProposal=Boolean(active.proposal_id && activeProposal && active.proposal_id===activeProposal.id);
         const retryable=new Set(["GITHUB_UNAVAILABLE","GITHUB_NOT_CONNECTED","MERGE_TIMEOUT","CHECKS_PENDING","MERGEABILITY_PENDING","LIVE_UNREACHABLE","DEPLOY_TIMEOUT"]);
-        if(active.status==="NEEDS_ATTENTION"&&!sameProposal){
-          await db.query("UPDATE pending_fixes SET status='SUPERSEDED',updated_at=NOW() WHERE id=$1 AND user_id=$2",[active.id,user.id]);
+        if(!sameProposal){
+          if(active.merged_at||active.auto_publish||!["NEEDS_ATTENTION","AWAITING_MERGE","PR_CREATED"].includes(active.status)){
+            return NextResponse.json({error:"Er loopt al een andere Fix. RankFix wacht op de uitkomst en vervangt geen mogelijk gepubliceerde wijziging.",code:"FIX_IN_PROGRESS"},{status:409});
+          }
+          if(active.pr_number){
+            // Even if the database is old, GitHub's actual PR state is authoritative.
+            // Never supersede a PR that may already have reached production.
+            const olderPr=await githubFetch<{state?:string;merged?:boolean;merged_at?:string|null;head?:{ref?:string};base?:{ref?:string}}>(
+              token,"/repos/"+repo+"/pulls/"+Number(active.pr_number)
+            ).catch(()=>null);
+            if(!olderPr){
+              return NextResponse.json({error:"De oude Pull Request kon niet worden gecontroleerd. Er is niets veranderd; probeer het later opnieuw.",code:"PREVIOUS_PR_UNAVAILABLE"},{status:503});
+            }
+            if(olderPr.merged||olderPr.merged_at){
+              await advanceFix(deps,active);
+              return NextResponse.json({error:"De oudere Fix is al samengevoegd. RankFix controleert eerst de live publicatie; start daarna pas een nieuwe Fix.",code:"PREVIOUS_PR_ALREADY_MERGED"},{status:409});
+            }
+            if(olderPr.state!=="open"||olderPr.head?.ref!==active.branch||olderPr.base?.ref!==effectiveBaseBranch||active.repository?.toLowerCase()!==repo.toLowerCase()){
+              return NextResponse.json({error:"De oudere Pull Request heeft een andere status, branch of repository. RankFix wijzigt niets automatisch.",code:"PREVIOUS_PR_MISMATCH"},{status:409});
+            }
+          }
+          // Conditional update is essential: parallel tabs must not overwrite a
+          // newer Fix. This operation changes RankFix's internal QA state only.
+          const superseded=await db.query(
+            "UPDATE pending_fixes SET status='SUPERSEDED',last_error_code='REPLACED_BY_FRESH_APPROVAL',updated_at=NOW() WHERE id=$1 AND user_id=$2 AND status=$3 AND auto_publish=FALSE AND merged_at IS NULL AND proposal_id IS NOT DISTINCT FROM $4 RETURNING id",
+            [active.id,user.id,active.status,active.proposal_id]
+          );
+          if(!superseded.rowCount){
+            return NextResponse.json({error:"De Fix is intussen gewijzigd. Vernieuw de status voordat je opnieuw publiceert.",code:"FIX_STATE_CHANGED"},{status:409});
+          }
         }else{
           if(active.status==="NEEDS_ATTENTION"&&retryable.has(String(active.last_error_code||""))){
             const resumeStatus=active.merged_at?"AWAITING_DEPLOYMENT":"AWAITING_MERGE";
-            await db.query("UPDATE pending_fixes SET status=$3,auto_publish=(auto_publish OR $4::boolean),phase_started_at=NOW(),next_check_at=NULL,last_error_code=NULL,updated_at=NOW() WHERE id=$1 AND user_id=$2 AND status='NEEDS_ATTENTION'",[active.id,user.id,resumeStatus,allowMerge&&sameProposal]);
-          }else if(allowMerge&&sameProposal&&active.status==="AWAITING_MERGE"&&!active.auto_publish){
-            // The owner now explicitly approves publication of the same, already prepared change.
-            await db.query("UPDATE pending_fixes SET auto_publish=TRUE,next_check_at=NULL,phase_started_at=NOW(),updated_at=NOW() WHERE id=$1 AND user_id=$2",[active.id,user.id]);
+            await db.query("UPDATE pending_fixes SET status=$3,auto_publish=(auto_publish OR $4::boolean),phase_started_at=NOW(),next_check_at=NULL,last_error_code=NULL,updated_at=NOW() WHERE id=$1 AND user_id=$2 AND status='NEEDS_ATTENTION'",[active.id,user.id,resumeStatus,allowMerge]);
+          }else if(allowMerge&&active.status==="AWAITING_MERGE"&&!active.auto_publish){
+            // Explicit owner approval of the SAME stored proposal.
+            await db.query("UPDATE pending_fixes SET auto_publish=TRUE,next_check_at=NULL,phase_started_at=NOW(),updated_at=NOW() WHERE id=$1 AND user_id=$2 AND status='AWAITING_MERGE' AND proposal_id=$3",[active.id,user.id,activeProposal.id]);
           }
-          const fresh=(await db.query("SELECT * FROM pending_fixes WHERE id=$1",[active.id])).rows[0] as FixRow;
+          const fresh=(await db.query("SELECT * FROM pending_fixes WHERE id=$1 AND user_id=$2",[active.id,user.id])).rows[0] as FixRow;
           await advanceFix(deps,fresh);
           return respond(fresh,{idempotent:true});
         }

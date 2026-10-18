@@ -299,7 +299,7 @@ export default function GithubPage() {
         {siteUrl && <p className="mt-1 break-all text-xs text-slate-500">{siteUrl}</p>}
 
         {/* Progress — one place for status; no duplicate success messages. */}
-        {fix && <section aria-live="polite" className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-6">
+        {!contextLoading && fix && <section aria-live="polite" className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-6">
           <h2 className="text-lg font-bold">{fix.reason_code === "PR_AWAITING_OWNER" ? tx("Jouw akkoord is nodig", "Your approval is required") : fix.stage === "confirmed" ? "✓ " + stageLabels.confirmed : fix.stage === "manual" ? stageLabels.manual : stageLabels[fix.stage]}</h2>
           <ol className="mt-4 grid gap-2">
             {STAGES.map((stage, i) => {
@@ -335,7 +335,9 @@ export default function GithubPage() {
                    <p className="mt-2 text-xs text-amber-100">{tx("Met jouw akkoord controleert RankFix opnieuw de Pull Request en publiceert alleen als alle veiligheidscontroles slagen.","With your approval RankFix rechecks the Pull Request and publishes only if all safety checks pass.")}</p>
                    <button type="button" disabled={busy} onClick={() => void approveExisting()} className="mt-4 min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 font-bold text-[#04342C] disabled:opacity-50">{busy?tx("Bezig…","Working…"):tx("Goedkeuren en live zetten","Approve and publish")}</button>
                  </>
-               : <p className="text-sm text-amber-100">{tx("Deze oudere Pull Request kan niet veilig in RankFix worden goedgekeurd, omdat de originele goedgekeurde preview ontbreekt of verlopen is. Er is niets live gewijzigd; laat deze eerst opnieuw controleren.","This older Pull Request cannot be safely approved in RankFix because the original preview is missing or expired. Nothing has gone live; have it rechecked first.")}</p>}
+               : <><p className="text-sm text-amber-100">{tx("De oude Fix heeft geen geldig opgeslagen voorstel meer. De Pull Request is niet samengevoegd. Je kunt een nieuw voorstel maken en dat binnen RankFix beoordelen; de oude PR wordt nooit automatisch gepubliceerd.","The old fix no longer has a valid saved proposal. The Pull Request has not been merged. You can prepare a fresh proposal and review it inside RankFix; the old PR is never silently published.")}</p>
+                   <button type="button" disabled={busy || contextLoading || !repo || connected!==true || !check} onClick={() => { setFix(null); setFixPlan(null); void runFix(); }} className="mt-4 min-h-12 w-full rounded-xl bg-[#5DCAA5] px-4 py-3 font-bold text-[#04342C] disabled:opacity-50">{tx("Nieuw veilig voorstel maken","Prepare a new safe proposal")}</button>
+                 </>}
            </div>}
            {fix.stage === "manual" && fix.reason_code !== "PR_AWAITING_OWNER" && <button type="button" disabled={busy} onClick={() => { setFix(null); void runFix(); }} className="mt-4 min-h-11 w-full rounded-xl border border-white/15 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{tx("Nieuwe controle proberen", "Try checking again")}</button>}
         </section>}
