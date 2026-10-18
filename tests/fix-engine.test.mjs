@@ -245,3 +245,15 @@ test("social metadata without verified image evidence is explicitly blocked befo
   assert.match(ui,/Array\.isArray\(pd\.validation\?\.errors\)/);
   assert.match(ui,/Automatisch publiceren wordt niet gestart/);
 });
+
+test("a social metadata Fix is visible live only with title, description and a real absolute OG image", () => {
+  const tags=(image="") => '<meta property="og:title" content="TrendMix">'+
+    '<meta property="og:description" content="Gadgets en slimme oplossingen">'+image;
+  const image=(url)=>'<meta property="og:image" content="'+url+'">';
+  assert.equal(E.liveFixApplied("SOCIAL_METADATA_INCOMPLETE",tags(),null),"not_yet","no image is not a completed fix");
+  assert.equal(E.liveFixApplied("SOCIAL_METADATA_INCOMPLETE",tags(image("/images/banner.jpg")),null),"not_yet","relative image cannot prove a public OG image");
+  assert.equal(E.liveFixApplied("SOCIAL_METADATA_INCOMPLETE",tags(image("https://trendmix-q6fx.vercel.app/favicon.svg")),null),"not_yet","favicon is not a marketing preview");
+  assert.equal(E.liveFixApplied("SOCIAL_METADATA_INCOMPLETE",tags(image("javascript:alert(1)")),null),"not_yet","unsafe protocol must not count");
+  assert.equal(E.liveFixApplied("SOCIAL_METADATA_INCOMPLETE",tags(image("https://cdn.example.com/preview.webp")),null),"applied","verified URL and metadata justify proceeding to full rescan");
+  assert.equal(E.liveFixApplied("SOCIAL_METADATA_INCOMPLETE",'<meta property="og:image" content="https://cdn.example.com/preview.webp">',null),"not_yet","title/description missing");
+});

@@ -211,7 +211,20 @@ export function liveFixApplied(issueId: string, html: string, expectedValue: str
     return blocks.some((b) => /"@type"\s*:/.test(b[1])) ? "applied" : "not_yet";
   }
   if (SOCIAL.has(issueId)) {
-    return metaContent(html, "og:title", "property") && metaContent(html, "og:description", "property") ? "applied" : "not_yet";
+    // This finding requires the COMPLETE social preview: title, description,
+    // and an actual public image URL. A partial fix cannot advance to a
+    // verifying scan, let alone be described as confirmed to the customer.
+    const title = metaContent(html, "og:title", "property");
+    const description = metaContent(html, "og:description", "property");
+    const image = metaContent(html, "og:image", "property");
+    if (!title?.trim() || !description?.trim() || !image?.trim()) return "not_yet";
+    try {
+      const parsed = new URL(image);
+      if (!["http:", "https:"].includes(parsed.protocol) || !parsed.hostname || parsed.username || parsed.password) return "not_yet";
+      const path = parsed.pathname.toLowerCase();
+      if (/(?:^|[\\/_-])(?:favicon|touch-icon|apple-touch-icon|mask-icon|site-icon|browserconfig)(?:[.\\/_-]|$)/.test(path)) return "not_yet";
+    } catch { return "not_yet"; }
+    return "applied";
   }
   return "unknown";
 }
