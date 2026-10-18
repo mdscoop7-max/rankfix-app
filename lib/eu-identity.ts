@@ -565,7 +565,7 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   const nonprofitMissionConfirmed = (nonprofitSchema && (nonprofitOwn || nonprofitSupport))
     || (nonprofitSourceCount >= 2 && nonprofitSupport)
     || nonprofitAdvocacy;
-  const secondaryShop = retailer && nonprofitMissionConfirmed && !retailSelfDescription(title);
+  const secondaryShop = retailer && nonprofitMissionConfirmed && !retailSelfDescription(own);
   if (nonprofitMissionConfirmed && (!retailer || secondaryShop) && !publication) {
     return { sector: "nonprofit", key: "nonprofit", label: "Goede doelen & Non-profit",
       confidence: "high", confidenceScore: secondaryShop ? 86 : nonprofitSchema ? 92 : nonprofitAdvocacy ? 80 : 86,
