@@ -266,3 +266,14 @@ test("QA: scan, source, and live-verification enforce the same content quality",
   assert.match(fix,/checkDescriptionCandidate\(description\)\.ok/);
   assert.match(engine,/if\(!checkDescriptionCandidate\(live\)\.ok\) return "not_yet"/);
 });
+
+test("QA: a form-notice description can be repaired with only verified source sentences",()=>{
+ const bad="Ontdek gadgets en slimme producten bij TrendMix. Slimme gadgets voor een makkelijker leven. Slimme gadgets en meer. Je bericht kon niet worden verzonden.";
+ const hero="Handige tech, praktische accessoires en slimme producten voor thuis, onderweg en op kantoor.";
+ const good=buildEvidenceDescription({current:bad,title:"TrendMix | Slimme gadgets en meer",h1:"Slimme gadgets voor een makkelijker leven.",extra:[hero]});
+ assert.ok(good!==null,"should find a bounded combination from verified static page copy");
+ assert.equal(checkDescriptionCandidate(good,bad).ok,true);
+ assert.doesNotMatch(good,/je bericht|verzonden|verzenden/i);
+ assert.match(good,/Ontdek gadgets en slimme producten bij TrendMix/);
+ assert.ok(good.length>=120&&good.length<=160);
+});

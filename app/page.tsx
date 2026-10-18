@@ -408,8 +408,8 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         });
         if(!candidate){
           setFixErrors(p=>({...p,[fixKey]:language==="nl"
-            ?"Er is niet genoeg bevestigde paginainhoud voor een veilige meta description. Open de beveiligde Fix om dit te laten controleren."
-            :"Not enough verified page content for a safe description. Open the secure Fix for review."}));
+            ?"De openbare scan heeft onvoldoende bewezen tekst. Open de beveiligde Fix: die controleert ook de echte paginatekst in je gekoppelde bronbestand. Er wordt hier niets gepubliceerd."
+            :"The public scan has insufficient verified text. Open the secure Fix to inspect page text in the linked source file. Nothing is published here."}));
           return;
         }
         setFixes(p=>({...p,[fixKey]:{
@@ -1243,7 +1243,10 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                                 {fixing === (item.issue_id || item.key) ? ar.analyzing : ar.fixProposal}
                               </button>
                             )}
-                            {fixErrors[item.issue_id || item.key] && <p role="alert" className="mt-3 rounded-lg border border-amber-300/30 bg-amber-400/10 p-3 text-xs font-semibold text-amber-100">{fixErrors[item.issue_id || item.key]}</p>}
+                            {fixErrors[item.issue_id || item.key] && <div role="alert" className="mt-3 rounded-lg border border-amber-300/30 bg-amber-400/10 p-3 text-xs font-semibold text-amber-100">
+  <p>{fixErrors[item.issue_id || item.key]}</p>
+  {String(item.issue_id||item.rule_id||"").startsWith("META_DESCRIPTION_") && <button type="button" onClick={() => createGithubFix(item)} className="mt-3 min-h-11 rounded-lg border border-amber-200/50 px-4 py-2 font-bold text-amber-100">{language==="nl"?"Open beveiligde Fix →":"Open secure Fix →"}</button>}
+</div>}
                             {fixes[item.issue_id || item.key] && (
                               <div className="mt-3 rounded-xl border border-emerald-400/15 bg-emerald-400/[0.04] p-3">
                                 <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">{fixes[item.issue_id || item.key].title}</div>

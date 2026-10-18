@@ -15,7 +15,7 @@ const siteLabels:Record<Locale,string>={nl:"Terug naar site",en:"Back to site",f
 const languageLabels:Record<Locale,string>={nl:"Taal kiezen",en:"Choose language",fr:"Choisir la langue",es:"Elegir idioma",it:"Scegli lingua",de:"Sprache wählen"};
 const flagCodes:Record<Locale,string>={nl:"nl",en:"gb",de:"de",fr:"fr",it:"it",es:"es"};
 const languageOrder:Locale[]=["nl","en","de","fr","it","es"];
-const desktop=["/dashboard","/dashboard#websites","/dashboard/scan","/dashboard/github","/dashboard/history","/dashboard/more"];
+const desktop=["/dashboard","/dashboard#websites","/dashboard/scan","/dashboard/fixes","/dashboard/history","/dashboard/more"];
 const mobileIndexes=[0,1,2,3,5];
 const paths=[
  "M4 13h5l2-8 3 14 2-6h4",

@@ -83,10 +83,14 @@ export function buildEvidenceDescription(input: { current?: string; title?: stri
   // An existing description may contain temporary form feedback.
   // Retain separately verified page-copy sentences, never the UI notice.
   const current=normalizeDescriptionText(input.current||"");
-  const cleanCurrent=isTransientSeoCopy(current)
-    ? current.split(/(?<=[.!?])\s+/).filter(part=>!isTransientSeoCopy(part)).join(" ")
-    : current;
-  add(cleanCurrent);
+  // Form-status notices can contaminate an otherwise valid description.
+  // Split only contaminated text so independently verified sentences may
+  // combine with visible source paragraphs without inventing new facts.
+  const descriptionParts=isTransientSeoCopy(current)
+    ? current.split(/(?<=[.!?])\s+/).filter(part=>part.trim()&&!isTransientSeoCopy(part))
+    : [current];
+  const hasUsableDescription=descriptionParts.some(part=>part.trim().length>=8);
+  descriptionParts.forEach(add);
   add(input.h1);
   // A title like "Brand | Tagline" contributes its non-brand segments.
   const titleSegments = normalizeDescriptionText(input.title || "").split(/\s*[|–—·]\s*/).filter((s) => s.split(/\s+/).length >= 2);
@@ -99,10 +103,10 @@ export function buildEvidenceDescription(input: { current?: string; title?: stri
   let best:string|null=null;
   let bestScore=-Infinity;
   for(let mask=1;mask<(1<<candidates.length);mask++){
-    if(cleanCurrent && !(mask&1)) continue;
+    if(hasUsableDescription && !(mask&1)) continue;
     const text=candidates.filter((_,index)=>Boolean(mask&(1<<index))).join(" ");
     if(!checkDescriptionCandidate(text,input.current||"").ok) continue;
-    const score=(cleanCurrent && (mask&1)?100:0) + (candidates.length>3 && mask&(1<<(candidates.length-1))?20:0)
+    const score=(hasUsableDescription && (mask&1)?100:0) + (candidates.length>3 && mask&(1<<(candidates.length-1))?20:0)
       - Math.abs(text.length-145) - text.split(". ").length*0.2;
     if(score>bestScore){ bestScore=score;best=text; }
   }

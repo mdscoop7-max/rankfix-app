@@ -320,3 +320,25 @@ test("QA: status is shared between desktop and mobile and historical successes c
   assert.match(ui,/latestScanInfo\?\.meta_quality_issue && !historicalScan && isMeta/);
   assert.match(audit,/latestScanInfo\.meta_quality_issue/);
 });
+
+test("QA Fixes menu routes mobile and desktop into a usable scan inbox",()=>{
+ const nav=readFileSync(new URL("../app/dashboard/nav.tsx",import.meta.url),"utf8");
+ const home=readFileSync(new URL("../app/dashboard/page.tsx",import.meta.url),"utf8");
+ const inbox=readFileSync(new URL("../app/dashboard/fixes/page.tsx",import.meta.url),"utf8");
+ const fix=readFileSync(new URL("../app/dashboard/github/page.tsx",import.meta.url),"utf8");
+ assert.match(nav,/const desktop=\[[^\n]*"\/dashboard\/fixes"/);
+ assert.match(nav,/const mobileIndexes=\[0,1,2,3,5\]/);
+ assert.doesNotMatch(home,/href="\/dashboard\/github"/);
+ assert.match(home,/href="\/dashboard\/fixes"/);
+ assert.match(inbox,/latestBySite=new Set/);
+ assert.match(inbox,/\/dashboard\/audit\//);
+ assert.match(fix,/if\(!scanId\|\|!issueId\)/);
+ assert.match(fix,/href="\/dashboard\/fixes"/);
+});
+
+test("QA public metadata preview routes missing evidence to secure Fix instead of dead end",()=>{
+ const ui=readFileSync(new URL("../app/page.tsx",import.meta.url),"utf8");
+ assert.match(ui,/Open beveiligde Fix/);
+ assert.match(ui,/echte paginatekst in je gekoppelde bronbestand/);
+ assert.match(ui,/createGithubFix\(item\)/);
+});

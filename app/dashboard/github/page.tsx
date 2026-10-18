@@ -294,6 +294,19 @@ export default function GithubPage() {
   const socialImageMissing=issueId==="SOCIAL_METADATA_INCOMPLETE" && !hasTrustedSocialImage;
   const historicalScan=Boolean(latestScanInfo?.id && latestScanInfo.id!==scanId);
 
+  // The menu does not have a scan ID: never open a half-initialized publisher.
+  if(!scanId||!issueId) return <main className="rf-page" lang={language}><div className="rf-shell">
+    <header className="rf-header"><Link href="/dashboard" className="rf-brand">RankFix <span>AI</span></Link></header>
+    <DashboardNav current={3}/>
+    <section className="rf-body rf-fix-engine">
+      <div className="mx-auto max-w-2xl rounded-2xl border border-white/15 bg-white/[0.04] p-5 sm:p-7">
+        <h1 className="text-2xl font-bold">{tx("Kies eerst een verbeterpunt","Choose an issue first")}</h1>
+        <p className="mt-3 text-sm leading-7 text-slate-300">{tx("Een veilige Fix heeft een opgeslagen scan en een specifiek probleem nodig. Kies je nieuwste rapport en open daar het verbeterpunt. Er is niets gewijzigd.","A safe Fix needs a saved scan and a specific issue. Open your newest report and select an issue. Nothing was changed.")}</p>
+        <Link href="/dashboard/fixes" className="mt-5 inline-flex min-h-12 items-center rounded-xl bg-[#5DCAA5] px-5 py-3 font-bold text-[#04342C]">{tx("Bekijk mijn Fixes →","Open my Fixes →")}</Link>
+      </div>
+    </section>
+  </div></main>;
+
   return <main className="rf-page" lang={language}>
     <div className="rf-shell">
       <header className="rf-header"><Link href="/dashboard" className="rf-brand">RankFix <span>AI</span></Link></header>
