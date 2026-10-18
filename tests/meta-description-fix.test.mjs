@@ -110,7 +110,7 @@ function mockFetch(responses, seen) {
 
 async function withKey(fn, model) {
   const prev = { key: process.env.OPENAI_API_KEY, model: process.env.OPENAI_MODEL };
-  process.env.OPENAI_API_KEY = "test-key-not-real";
+  process.env.OPENAI_API_KEY = "sk-test-key-not-real";
   if (model) process.env.OPENAI_MODEL = model; else delete process.env.OPENAI_MODEL;
   const origError = console.error; console.error = () => {};
   try { return await fn(); } finally {
