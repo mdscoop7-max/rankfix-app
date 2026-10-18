@@ -303,7 +303,7 @@ export default function GithubPage() {
         <h1 className="mt-2 text-2xl font-black leading-tight sm:text-3xl">{check?.title || tx("Probleem oplossen", "Fix an issue")}</h1>
         {check?.message && <p className="mt-2 text-sm leading-6 text-slate-300">{check.message}</p>}
         {siteUrl && <p className="mt-1 break-all text-xs text-slate-500">{siteUrl}</p>}
-        {historicalScan && latestScanInfo && <div role="status" className="mt-4 rounded-xl border border-amber-300/30 bg-amber-300/[0.08] p-4 text-sm text-amber-100">
+        {historicalScan && latestScanInfo && <div role="status" className="rf-fix-alert mt-4 rounded-xl border border-amber-300/30 bg-amber-300/[0.08] p-4 text-sm text-amber-100">
           <strong>{tx("Je bekijkt een oudere scan", "You are viewing an older scan")}</strong>
           <p className="mt-2">{latestScanInfo.issue_status==="PASS"
             ? tx("Deze melding komt uit een oude meting. In de nieuwste scan slaagt deze controle. Gebruik die meting voor de actuele status.", "This warning is from an older scan. The check passes in the latest scan. Use that report for the current status.")
@@ -312,13 +312,13 @@ export default function GithubPage() {
         </div>}
 
         {/* Progress — one place for status; no duplicate success messages. */}
-        {!contextLoading && fix && <section aria-live="polite" className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-6">
+        {!contextLoading && fix && <section aria-live="polite" className="rf-fix-status-panel mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-6">
           <h2 className="text-lg font-bold">{fix.reason_code === "PR_AWAITING_OWNER" ? tx("Jouw akkoord is nodig", "Your approval is required") : fix.stage === "confirmed" ? (historicalScan ? tx("✓ Eerdere Fix bevestigd", "✓ Previous Fix confirmed") : "✓ " + stageLabels.confirmed) : fix.stage === "manual" ? stageLabels.manual : stageLabels[fix.stage]}</h2>
           <ol className="mt-4 grid gap-2">
             {STAGES.map((stage, i) => {
               const done = fix.stage === "confirmed" ? true : stageIndex > i;
               const current = stageIndex === i && fix.stage !== "confirmed";
-              return <li key={stage} className={`flex items-center gap-3 rounded-xl border px-3 py-2 text-sm ${current ? "border-emerald-300/40 bg-emerald-400/[0.08] text-white" : done ? "border-white/10 text-emerald-200" : "border-white/5 text-slate-500"}`}>
+              return <li key={stage} data-done={done ? "true" : "false"} data-current={current ? "true" : "false"} className={`rf-fix-progress-step flex items-center gap-3 rounded-xl border px-3 py-2 text-sm ${current ? "border-emerald-300/40 bg-emerald-400/[0.08] text-white" : done ? "border-white/10 text-emerald-200" : "border-white/5 text-slate-500"}`}>
                 <span aria-hidden="true" className="w-5 text-center">{done ? "✓" : current ? "●" : "○"}</span>
                 <span>{stageLabels[stage]}</span>
                 {current && (stage === "checking" && scanBusy ? <span className="ml-auto text-xs text-emerald-200">{tx("scan loopt…", "scanning…")}</span> : <span className="ml-auto text-xs text-emerald-200">{tx("bezig…", "in progress…")}</span>)}
@@ -326,7 +326,7 @@ export default function GithubPage() {
             })}
           </ol>
           {fix.stage === "updating" && <p className="mt-3 text-sm text-slate-400">{tx("De wijziging is samengevoegd. RankFix wacht tot de nieuwe versie van je website live staat; dit duurt meestal enkele minuten. Je kunt deze pagina sluiten — de voortgang blijft bewaard.", "The change was merged. RankFix waits until the new version of your site is live, usually a few minutes. You can close this page — progress is saved.")}</p>}
-          {fix.stage === "confirmed" && <p className="mt-3 text-sm text-emerald-100">{historicalScan
+          {fix.stage === "confirmed" && <p className="rf-fix-confirmed-copy mt-3 text-sm text-emerald-100">{historicalScan
             ? tx("Deze bevestiging hoort bij de Fix-geschiedenis. Bekijk de nieuwste scan hierboven voor de actuele staat van je website.", "This is a historic Fix confirmation. See the latest scan above for the current website status.")
             : tx("Een nieuwe live scan heeft bevestigd dat dit probleem is opgelost.", "A fresh live scan confirmed that this issue is resolved.")}</p>}
           {fix.reason && <p className={`mt-3 rounded-xl p-3 text-sm ${fix.stage === "manual" ? "bg-amber-300/10 text-amber-100" : "bg-white/5 text-slate-300"}`}>{fix.reason}</p>}
@@ -395,9 +395,9 @@ export default function GithubPage() {
               : <>
                   {connected && !mapped && !mappingWarning && repos.length > 1 && <label className="mb-4 block text-sm"><span className="font-semibold">{tx("Eenmalig: in welke repository staat deze website?", "One-time: which repository holds this website?")}</span><select value={repo} onChange={(e) => { setRepo(e.target.value); const r = repos.find((x) => x.full_name === e.target.value); if (r) setBaseBranch(r.default_branch || "main"); }} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"><option value="">{tx("Kies repository", "Choose repository")}</option>{repos.map((r) => <option key={r.full_name} value={r.full_name}>{r.full_name}</option>)}</select></label>}
                   {historicalScan
-                    ? <p role="status" className="rounded-xl border border-amber-300/25 bg-amber-300/[0.08] p-4 text-sm text-amber-100">{tx("Start geen Fix vanuit deze oude scan. Open eerst de nieuwste scan hierboven.", "Do not start a Fix from this old scan. Open the latest scan above.")}</p>
+                    ? <p role="status" className="rf-fix-alert rounded-xl border border-amber-300/25 bg-amber-300/[0.08] p-4 text-sm text-amber-100">{tx("Start geen Fix vanuit deze oude scan. Open eerst de nieuwste scan hierboven.", "Do not start a Fix from this old scan. Open the latest scan above.")}</p>
                     : socialImageMissing
-                    ? <div role="status" className="rounded-xl border border-amber-300/25 bg-amber-300/[0.08] p-4 text-sm leading-6 text-amber-100">
+                    ? <div role="status" className="rf-fix-alert rounded-xl border border-amber-300/25 bg-amber-300/[0.08] p-4 text-sm leading-6 text-amber-100">
                         <strong>{tx("Voor deze Fix ontbreekt een echte afbeelding", "An existing image is required for this Fix")}</strong>
                         <p className="mt-2">{tx("RankFix heeft geen betrouwbare afbeelding gevonden voor og:image. De titel en beschrijving zijn bekend, maar zonder echte afbeelding kan de volledige Social metadata-fix niet veilig worden gepubliceerd. Zet eerst een geschikte afbeelding op je website en scan opnieuw. Er is nu niets veranderd.", "RankFix could not verify an image for og:image. The title and description are available, but a complete Social metadata fix cannot safely publish without a real image. Add a suitable image to your site and scan again. Nothing changed.")}</p>
                       </div>

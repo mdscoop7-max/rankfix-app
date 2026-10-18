@@ -293,3 +293,19 @@ test("old reports must not show their historic Fix as currently resolved after a
   assert.match(ui,/Automatisch publiceren wordt niet gestart vanuit een oudere scan/);
   assert.match(audit,/Dit is een eerder scanrapport/);
 });
+
+test("Fix and audit states retain legible mobile and desktop presentation",()=>{
+  const ui=readFileSync(new URL("../app/dashboard/github/page.tsx",import.meta.url),"utf8");
+  const audit=readFileSync(new URL("../app/dashboard/audit/[id]/page.tsx",import.meta.url),"utf8");
+  const css=readFileSync(new URL("../app/dashboard/dashboard.css",import.meta.url),"utf8");
+  const auditCss=readFileSync(new URL("../app/dashboard/audit/[id]/audit.css",import.meta.url),"utf8");
+  assert.match(ui,/rf-fix-status-panel/);
+  assert.match(ui,/data-done=\{done \? "true" : "false"\}/);
+  assert.match(ui,/rf-fix-alert/);
+  assert.match(audit,/rf-audit-stale-banner/);
+  assert.match(css,/rf-fix-status-panel dd\{min-width:0;overflow-wrap:anywhere\}/);
+  assert.match(css,/rf-fix-progress-step\[data-done="true"\]/);
+  assert.match(css,/@media\(min-width:651px\)/);
+  assert.match(css,/@media\(max-width:650px\)/);
+  assert.match(auditCss,/rf-audit-stale-banner/);
+});

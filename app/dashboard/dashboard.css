@@ -818,3 +818,28 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
 @keyframes rfMotorTurn{to{transform:rotate(360deg)}}
 @keyframes rfMotorSweep{0%,100%{transform:rotate(-55deg);opacity:.45}50%{transform:rotate(55deg);opacity:1}}
 @media (prefers-reduced-motion:reduce){.rf-scan-meter-ring:after,.rf-scan-meter-sweep{animation:none!important}}
+
+/* Fix Engine: identical status hierarchy and legible messages on every viewport. */
+.rf-fix-engine,.rf-fix-status-panel,.rf-fix-progress-step{min-width:0}
+.rf-fix-engine h1,.rf-fix-engine h2,.rf-fix-engine strong,.rf-fix-engine dd,.rf-fix-engine p{overflow-wrap:anywhere}
+.rf-fix-progress-step>span:last-child{min-width:0;overflow-wrap:anywhere}
+.rf-fix-status-panel dl{grid-template-columns:minmax(0,max-content) minmax(0,1fr)}
+.rf-fix-status-panel dd{min-width:0;overflow-wrap:anywhere}
+.rf-fix-alert{overflow-wrap:anywhere}
+@media(min-width:651px){
+  .rf-fix-engine .rf-fix-status-panel{background:#fff!important;border-color:#dce6ef!important;color:#172033!important;box-shadow:0 5px 18px rgba(25,38,58,.04)}
+  .rf-fix-engine .rf-fix-status-panel h2{color:#172033!important}
+  .rf-fix-engine .rf-fix-status-panel .rf-fix-progress-step{background:#f7f9fc!important;border-color:#e1e7ef!important;color:#53627a!important}
+  .rf-fix-engine .rf-fix-status-panel .rf-fix-progress-step[data-done="true"]{background:#effbf6!important;border-color:#c4eadc!important;color:#087f65!important}
+  .rf-fix-engine .rf-fix-status-panel .rf-fix-progress-step[data-current="true"]{background:#edf6ff!important;border-color:#acd0f6!important;color:#175eaa!important}
+  .rf-fix-engine .rf-fix-status-panel .rf-fix-confirmed-copy{color:#087f65!important}
+  .rf-fix-engine .rf-fix-status-panel details,.rf-fix-engine .rf-fix-status-panel dt,.rf-fix-engine .rf-fix-status-panel dd{color:#53627a!important}
+  .rf-fix-engine .rf-fix-alert{background:#fff7e8!important;border-color:#f3d6a5!important;color:#815100!important}
+  .rf-fix-engine .rf-fix-alert p,.rf-fix-engine .rf-fix-alert strong{color:#815100!important}
+  .rf-fix-engine .rf-fix-alert a{color:#644200!important;border-color:#c99c4b!important}
+}
+@media(max-width:650px){
+  .rf-fix-engine .rf-fix-alert,.rf-fix-engine .rf-fix-status-panel{width:100%;max-width:100%}
+  .rf-fix-engine .rf-fix-status-panel{padding:16px}
+  .rf-fix-engine .rf-fix-progress-step{gap:10px}
+}
