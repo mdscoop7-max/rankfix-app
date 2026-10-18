@@ -31,7 +31,9 @@ export default function ScanClient({ locale }: { locale: Locale }) {
   const [result, setResult] = useState<Result | null>(null);
   useEffect(() => { try { const remembered = window.localStorage.getItem("rankfix:last-scan-url"); if (remembered) setUrl(remembered); } catch {} }, []);
   async function run(event: React.FormEvent) {
-    event.preventDefault(); setBusy(true); setError(""); setResult(null);
+    event.preventDefault();
+    if (busy) return; // 3.6 (P3): one scan at a time, no duplicate on a second Enter.
+    setBusy(true); setError(""); setResult(null);
     try {
       const response = await fetch("/api/scan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`, mode: "both", language: locale }) });
       const data = await response.json();
