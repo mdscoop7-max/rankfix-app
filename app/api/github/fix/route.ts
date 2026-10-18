@@ -9,7 +9,7 @@ import { getFixPolicy } from "@/lib/fix-policy";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { advanceFix, autofixLevel, autoPublishSupported, publicFixView, siteConsentValid, ACTIVE_FIX_STATUS_SQL, REASON_NL, type FixRow } from "@/lib/fix-engine";
 import { createEngineDeps } from "@/lib/fix-engine-deps";
-import { applyMetaDescriptionToSource, checkDescriptionCandidate, generateMetaDescription, normalizeDescriptionText, DESCRIPTION_ERROR_NL, PATCH_ERROR_NL } from "@/lib/meta-description-fix";
+import { applyMetaDescriptionToSource, checkDescriptionCandidate, extractSourceDescriptionEvidence, generateMetaDescription, normalizeDescriptionText, DESCRIPTION_ERROR_NL, PATCH_ERROR_NL } from "@/lib/meta-description-fix";
 
 function safeRepo(v:string){ return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(v) && !v.includes(".."); }
 function safePath(v:string){ return v.length>0 && v.length<240 && !v.startsWith("/") && !v.split("/").includes("..") && !/[<>:"|?*]/.test(v); }
@@ -735,7 +735,8 @@ export async function POST(request:Request){
           let descriptionText=suppliedText===null?"":approvedText;
           if(!descriptionText){
             const h1s=Array.isArray(metrics.h1s)?metrics.h1s:[];
-            const made=await generateMetaDescription({url:trustedUrl,current:liveDescription,title:String(metrics.title||""),h1:String(h1s[0]||"")});
+            const extra=extractSourceDescriptionEvidence(path,current);
+            const made=await generateMetaDescription({url:trustedUrl,current:liveDescription,title:String(metrics.title||""),h1:String(h1s[0]||""),extra});
             if(!made.ok) return NextResponse.json({error:language==="nl"?DESCRIPTION_ERROR_NL[made.code]:localizeProviderError(made.code==="NO_SAFE_TEXT"||made.code==="AI_INCOMPLETE"?"AI_INVALID_OUTPUT":made.code,language),code:made.code},{status:made.code==="NO_SAFE_TEXT"?422:503});
             descriptionText=made.text;
           }

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  applyMetaDescriptionToSource, buildEvidenceDescription, checkDescriptionCandidate,
+  applyMetaDescriptionToSource, buildEvidenceDescription, extractSourceDescriptionEvidence, checkDescriptionCandidate,
   generateMetaDescription, parseAiJsonObject, normalizeDescriptionText,
 } from "../lib/meta-description-fix.ts";
 
@@ -185,7 +185,44 @@ test("routes: description proposals and GitHub edits use the shared deterministi
   assert.match(gh, /code:"APPROVED_TEXT_INVALID"/);
   const page = readFileSync(new URL("../app/dashboard/github/page.tsx", import.meta.url), "utf8");
   // The approved text is sent with the preview, and only that stored proposal can be published.
-  assert.match(page, /preview: true, proposed_value: proposedText \|\| undefined/);
+  assert.match(page, /preview: true, language/);
+  assert.doesNotMatch(page, /await fetch\("\/api\/ai-fix"/);
   assert.match(page, /proposal_id: p\.proposalId, proposal_hash: p\.proposalHash, publish_mode: mode/);
   assert.match(page, /nl: "Fix probleem"/);
+});
+
+test("regression: TrendMix's intentionally short description is fixable even without external AI", async () => {
+  const short="Ontdek gadgets en slimme producten bij TrendMix.";
+  const html='<html><head><title>TrendMix | Slimme gadgets en meer</title><meta name="description" content="'+short+'"></head>'+
+    '<body><main><section class="hero"><h1>Slimme gadgets voor een makkelijker leven.</h1>'+
+    '<p>Handige tech, praktische accessoires en slimme producten voor thuis, onderweg en op kantoor.</p></section></main></body></html>';
+  const extra=extractSourceDescriptionEvidence("templates/index.html",html);
+  assert.deepEqual(extra,["Handige tech, praktische accessoires en slimme producten voor thuis, onderweg en op kantoor."]);
+  const before=process.env.OPENAI_API_KEY;
+  delete process.env.OPENAI_API_KEY;
+  try{
+    const proposal=await generateMetaDescription({
+      url:"https://trendmix-q6fx.vercel.app/",current:short,
+      title:"TrendMix | Slimme gadgets en meer",
+      h1:"Slimme gadgets voor een makkelijker leven.",extra
+    });
+    assert.equal(proposal.ok,true,JSON.stringify(proposal));
+    assert.equal(proposal.source,"evidence");
+    assert.ok(proposal.text.length>=120&&proposal.text.length<=160);
+    const changed=applyMetaDescriptionToSource("templates/index.html",html,proposal.text,short);
+    assert.equal(changed.ok,true);
+    assert.equal(changed.content,html.replace('content="'+short+'"','content="'+proposal.text+'"'));
+    const textEvidence=new Set([short,"TrendMix | Slimme gadgets en meer","Slimme gadgets voor een makkelijker leven.",...extra].join(" ").toLowerCase().match(/[\p{L}\p{N}]+/gu));
+    for(const word of proposal.text.toLowerCase().match(/[\p{L}\p{N}]+/gu)) assert.ok(textEvidence.has(word),"unexpected unverified word: "+word);
+  }finally{
+    if(before===undefined) delete process.env.OPENAI_API_KEY;
+    else process.env.OPENAI_API_KEY=before;
+  }
+});
+
+test("source paragraphs with dynamic placeholders never become trusted marketing claims",()=>{
+  assert.deepEqual(extractSourceDescriptionEvidence("templates/index.html",
+    '<main><p>{{ product.price }} euro direct geleverd in heel Europa.</p><p>Handige tech, praktische accessoires en slimme producten voor thuis, onderweg en op kantoor.</p></main>'),
+    ["Handige tech, praktische accessoires en slimme producten voor thuis, onderweg en op kantoor."]);
+  assert.deepEqual(extractSourceDescriptionEvidence("app/layout.tsx","<p>Not source HTML</p>"),[]);
 });

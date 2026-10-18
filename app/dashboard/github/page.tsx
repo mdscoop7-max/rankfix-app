@@ -189,15 +189,9 @@ export default function GithubPage() {
   }
 
   async function prepare(): Promise<Plan | null> {
-    let proposedText = "";
-    if (META_DESCRIPTION.test(issueId)) {
-      const m = (scan?.result?.metrics || {}) as { description?: string; title?: string; h1s?: string[] };
-      const ar = await fetch("/api/ai-fix", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: siteUrl, issue_id: issueId, request_id: crypto.randomUUID(), type: "meta_description", current: String(m.description || ""), context: { title: String(m.title || ""), description: String(m.description || ""), h1: String(m.h1s?.[0] || "") }, issue_status: String(check?.status || "WARNING").toUpperCase() }) });
-      const ad = await readJson(ar);
-      if (!ar.ok) throw new Error(ad.message || (ad.validation?.errors || []).join(" · ") || ad.error || tx("RankFix kon geen veilige tekst maken. Er is niets gewijzigd.", "RankFix could not create a safe text. Nothing was changed."));
-      proposedText = String(ad.fix?.content || "");
-    }
-    const pr = await fetch("/api/github/fix", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ repo, baseBranch, scan_id: scanId, issue_id: issueId, preview: true, proposed_value: proposedText || undefined, language }) });
+    // One authoritative proposal path. The server reads the selected safe source
+    // file and its page copy; no separate AI provider call may block this button.
+    const pr = await fetch("/api/github/fix", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ repo, baseBranch, scan_id: scanId, issue_id: issueId, preview: true, language }) });
     const pd = await readJson(pr);
     if (!pr.ok) {
       if (/bad credentials|GitHub-token|opnieuw verbinden/i.test(String(pd.error || ""))) setConnected(false);

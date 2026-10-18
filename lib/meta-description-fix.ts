@@ -86,6 +86,24 @@ export function buildEvidenceDescription(input: { current?: string; title?: stri
   return checkDescriptionCandidate(combined, input.current || "").ok ? combined : null;
 }
 
+/**
+ * Extract only static, visible paragraphs from the exact GitHub HTML template.
+ * The Fix endpoint independently checks that the template description matches
+ * the live scan before writing anything. No unrelated business facts are added.
+ * Dynamic template values are deliberately excluded.
+ */
+export function extractSourceDescriptionEvidence(filePath: string, source: string): string[] {
+  if(!/\.html?$/i.test(filePath)) return [];
+  const noHead=source.replace(/<head\b[^>]*>[\s\S]*?<\/head>/gi," ");
+  const main=noHead.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i)?.[1]||noHead;
+  return [...main.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)]
+    .map((match)=>match[1])
+    .filter((raw)=>!/(?:\{\{|\{%|<\?|<%|\$\{|<script\b|<style\b)/i.test(raw))
+    .map((raw)=>normalizeDescriptionText(raw.replace(/<[^>]*>/g," ")))
+    .filter((value)=>value.length>=35&&value.length<=260&&!PLACEHOLDER.test(value))
+    .slice(0,8);
+}
+
 /** Extracts the first balanced JSON object from model output (tolerates fences/prose). */
 export function parseAiJsonObject(text: string): Record<string, unknown> | null {
   const clean = String(text || "").replace(/```(?:json)?/gi, "").trim();
@@ -258,7 +276,7 @@ export type DescriptionResult =
   | { ok: true; text: string; source: "ai" | "evidence"; attempts: number }
   | { ok: false; code: AiFailure | "NO_SAFE_TEXT"; attempts: number };
 
-export async function generateMetaDescription(input: { url: string; current?: string; title?: string; h1?: string; fetchImpl?: typeof fetch }): Promise<DescriptionResult> {
+export async function generateMetaDescription(input: { url: string; current?: string; title?: string; h1?: string; extra?: string[]; fetchImpl?: typeof fetch }): Promise<DescriptionResult> {
   const current = normalizeDescriptionText(input.current);
   let lastCode: AiFailure | "NO_SAFE_TEXT" = "NO_SAFE_TEXT";
   let feedback = "";
@@ -275,6 +293,7 @@ export async function generateMetaDescription(input: { url: string; current?: st
         `Title: ${normalizeDescriptionText(input.title)}`,
         `H1: ${normalizeDescriptionText(input.h1)}`,
         `Current description: ${current}`,
+        ...(input.extra||[]).slice(0,4).map((v)=>`Verified visible page text: ${normalizeDescriptionText(v)}`),
         feedback,
       ].filter(Boolean).join("\n");
       const res = await requestAiJson(prompt, { fetchImpl: input.fetchImpl });
@@ -286,7 +305,7 @@ export async function generateMetaDescription(input: { url: string; current?: st
       feedback = `Your previous answer (${candidate.length} characters) was rejected: ${check.errors.join(", ")}. Fix exactly that.`;
     }
   } else lastCode = "AI_UNAVAILABLE";
-  const evidence = buildEvidenceDescription({ current, title: input.title, h1: input.h1 });
+  const evidence = buildEvidenceDescription({ current, title: input.title, h1: input.h1, extra: input.extra });
   if (evidence) return { ok: true, text: evidence, source: "evidence", attempts };
   return { ok: false, code: lastCode, attempts };
 }
