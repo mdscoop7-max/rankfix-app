@@ -3,15 +3,18 @@ import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { encryptToken, githubFetch } from "@/lib/github";
+import { githubReturnPath, githubReturnStatus } from "@/lib/github-oauth-navigation";
 
 export async function GET(request:Request) {
   const url=new URL(request.url);
   const code=url.searchParams.get("code"), state=url.searchParams.get("state");
   const store=await cookies(), expected=store.get("github_oauth_state")?.value;
-  const user=await getCurrentUser(), base=process.env.APP_URL || url.origin;
+  const returnTo=githubReturnPath(store.get("github_oauth_return")?.value);
+  const user=await getCurrentUser(), base=url.origin;
   if(!user) return NextResponse.redirect(base+"/account");
-  if(!code || !state || !expected || state!==expected) return NextResponse.redirect(base+"/dashboard?github=error");
+  if(!code || !state || !expected || state!==expected) return NextResponse.redirect(base+githubReturnStatus(returnTo,"error"));
   store.delete("github_oauth_state");
+  store.delete("github_oauth_return");
   try {
     const tokenResponse=await fetch("https://github.com/login/oauth/access_token",{
       method:"POST",headers:{"Accept":"application/json","Content-Type":"application/json"},
@@ -26,6 +29,6 @@ export async function GET(request:Request) {
       "INSERT INTO github_connections (user_id,github_user_id,github_login,access_token_encrypted,scopes) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (user_id) DO UPDATE SET github_user_id=EXCLUDED.github_user_id,github_login=EXCLUDED.github_login,access_token_encrypted=EXCLUDED.access_token_encrypted,scopes=EXCLUDED.scopes,updated_at=NOW()",
       [user.id,ghUser.id,ghUser.login,encryptToken(accessToken),typeof tokenData.scope==="string"?tokenData.scope:""]
     );
-    return NextResponse.redirect(base+"/dashboard?github=connected");
-  } catch { return NextResponse.redirect(base+"/dashboard?github=error"); }
+    return NextResponse.redirect(base+githubReturnStatus(returnTo,"connected"));
+  } catch { return NextResponse.redirect(base+githubReturnStatus(returnTo,"error")); }
 }

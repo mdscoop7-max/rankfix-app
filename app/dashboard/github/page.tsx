@@ -22,7 +22,19 @@ es:{back:"Panel",title:"Una propuesta de código para tu web.",intro:"RankFix so
 
 export default function GithubPage(){
   const searchParams=useSearchParams();
+  return <GithubWorkspace key={searchParams.toString()} searchParams={searchParams}/>;
+}
+
+function GithubWorkspace({searchParams}:{searchParams:ReturnType<typeof useSearchParams>}){
   const [connected,setConnected]=useState(false);
+  const [oauthReady,setOauthReady]=useState<boolean|null>(null);
+  const returnTo="/dashboard/github"+(searchParams.toString()?"?"+searchParams.toString():"");
+  const connectHref="/api/github/connect?return_to="+encodeURIComponent(returnTo);
+  useEffect(()=>{
+    const controller=new AbortController();
+    fetch("/api/github/configuration",{signal:controller.signal,cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>setOauthReady(d?.ready===true)).catch(()=>{if(!controller.signal.aborted)setOauthReady(false)});
+    return ()=>controller.abort();
+  }, []);
   const [login,setLogin]=useState("");
   const [repos,setRepos]=useState<Repo[]>([]);
   const [reposLoading,setReposLoading]=useState(true);
@@ -49,7 +61,6 @@ export default function GithubPage(){
   const [proposal,setProposal]=useState<AiProposal|null>(null);
   const [proposalLoading,setProposalLoading]=useState(false);
   const [proposalError,setProposalError]=useState("");
-  const [proposalRequested,setProposalRequested]=useState(false);
   const [completedPr,setCompletedPr]=useState<{number?:number;url?:string;title?:string}|null>(null);
   const t=ui[language];
 
@@ -70,6 +81,7 @@ export default function GithubPage(){
     const incomingScanId=params.get("scan_id")||""; setScanId(incomingScanId); setIssueId(params.get("issue_id")||"");
     let incomingUrl=params.get("url")||"";
     (async()=>{
+      try {
       if(incomingScanId){
         try{
           const sr=await fetch("/api/history/"+encodeURIComponent(incomingScanId),{cache:"no-store"});
@@ -87,13 +99,14 @@ export default function GithubPage(){
         setConnected(false);
         setError(d.error || t.verifyFail);
       }
-      setReposLoading(false);
+      } catch { setError(t.verifyFail); }
+      finally { setReposLoading(false); }
     })();
   },[searchParams]);
 
   useEffect(()=>{
-    if(!scanData||!issueId||proposalRequested) return;
-    setProposalRequested(true);
+    if(!scanData||!issueId) return;
+    const controller=new AbortController();
     const allChecks=[...(scanData?.result?.seo?.checks||[]),...(scanData?.result?.geo?.checks||[])];
     const normalizedRequestedIssue=String(issueId||"").trim().toUpperCase();
     const check=allChecks.find((c:any)=>String(c.issue_id||c.rule_id||"").trim().toUpperCase()===normalizedRequestedIssue);
@@ -120,11 +133,12 @@ export default function GithubPage(){
     const productEvidence=productOptimizer.product||{};
     const context={title:m.title||"",description:m.description||"",h1:m.h1s?.[0]||"",canonical:m.canonical||"",imageAltCandidates:m.imageAltCandidates||[],ogTitle:m.openGraph?.title||"",ogDescription:m.openGraph?.description||"",ogImage:m.openGraph?.image||"",recommendedSchema:m.recommendedSchema||"",url:scanData.scanned_url,productName:productEvidence.name||"",productSku:productEvidence.sku||"",productOffers:productEvidence.offers||[],productSourceCount:String(productOptimizer.sourceCount||0)};
     setProposalLoading(true);setProposalError("");
-    fetch("/api/ai-fix",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:scanData.scanned_url,issue_id:normalizedIssue,request_id:crypto.randomUUID(),type,current,context,issue_status:String(check.status||"FAIL").toUpperCase()})})
-      .then(async r=>{const d=await readJsonSafe(r);if(!r.ok){if(d.error==="insufficient_verified_product_data")throw new Error(d.message||"Product Optimizer heeft onvoldoende bewezen productgegevens.");if(d.error==="ai_required")throw new Error(d.message||"Product Optimizer AI is niet beschikbaar.");if(d.error==="missing_verified_asset")throw new Error(language==="nl"?"Afbeelding nodig voor deze fix. RankFix kon geen bestaande, geschikte afbeelding voor og:image bevestigen en verzint daarom geen afbeeldings-URL. Kies een bestaande afbeelding van de website of geef een geldige afbeeldings-URL op; daarna kan RankFix de fix veilig maken.":"An image is needed for this fix. RankFix could not verify an existing suitable image for og:image and will not invent an image URL. Choose an existing website image or provide a valid image URL so RankFix can create the fix safely.");throw new Error(d.error==="invalid_output"?(d.validation?.errors||[]).join(" · "):d.message||d.error||"AI-fix mislukt.");}setProposal(d.fix);})
-      .catch(e=>setProposalError(e instanceof Error?e.message:"AI-fix mislukt."))
-      .finally(()=>setProposalLoading(false));
-  },[scanData,issueId,proposalRequested,language]);
+    fetch("/api/ai-fix",{method:"POST",signal:controller.signal,headers:{"Content-Type":"application/json"},body:JSON.stringify({url:scanData.scanned_url,issue_id:normalizedIssue,request_id:crypto.randomUUID(),type,current,context,issue_status:String(check.status||"FAIL").toUpperCase()})})
+      .then(async r=>{const d=await readJsonSafe(r);if(!r.ok){if(d.error==="insufficient_verified_product_data")throw new Error(d.message||"Product Optimizer heeft onvoldoende bewezen productgegevens.");if(d.error==="ai_required")throw new Error(d.message||"Product Optimizer AI is niet beschikbaar.");if(d.error==="missing_verified_asset")throw new Error(language==="nl"?"Afbeelding nodig voor deze fix. RankFix kon geen bestaande, geschikte afbeelding voor og:image bevestigen en verzint daarom geen afbeeldings-URL. Kies een bestaande afbeelding van de website of geef een geldige afbeeldings-URL op; daarna kan RankFix de fix veilig maken.":"An image is needed for this fix. RankFix could not verify an existing suitable image for og:image and will not invent an image URL. Choose an existing website image or provide a valid image URL so RankFix can create the fix safely.");throw new Error(d.error==="invalid_output"?(d.validation?.errors||[]).join(" · "):d.message||d.error||"AI-fix mislukt.");}if(!controller.signal.aborted)setProposal(d.fix);})
+      .catch(e=>{if(!controller.signal.aborted)setProposalError(e instanceof Error?e.message:"AI-fix mislukt.")})
+      .finally(()=>{if(!controller.signal.aborted)setProposalLoading(false)});
+    return ()=>controller.abort();
+  },[scanData,issueId,language]);
 
   async function changeRepositoryMapping(){
     if(!siteUrl||busy) return;
@@ -249,14 +263,17 @@ export default function GithubPage(){
       </div>}
       {plan==="free"&&proposal&&<p className="mt-4 text-sm text-slate-400">{language==="nl"?"Je kunt dit voorstel handmatig gebruiken. GitHub is optioneel.":"You can use this proposal manually. GitHub is optional."}</p>}
       {scanId&&<Link href={`/dashboard/audit/${encodeURIComponent(scanId)}`} className="mt-4 inline-flex rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-slate-200">← {language==="nl"?"Terug naar audit":"Back to audit"}</Link>}
-      {plan==="free" ? null : !connected ? <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-7">
+      {(oauthReady===false||searchParams.get("github")==="unavailable")&&<div className="rf-github-config-notice" role="status"><strong>{language==="nl"?"GitHub koppelen is nog niet ingesteld voor deze testomgeving.":"GitHub connection has not been configured for this preview yet."}</strong><p>{language==="nl"?"De beheerder moet de GitHub OAuth-instellingen activeren. Je scan en gekozen verbeterpunt blijven bewaard. Je kunt je rapport en de handmatige stappen blijven bekijken.":"The administrator needs to activate the GitHub OAuth settings. Your scan and selected issue are preserved. Your report and manual steps remain available."}</p><Link href={scanId?`/dashboard/audit/${encodeURIComponent(scanId)}`:"/dashboard/improvements"}>{language==="nl"?"Terug naar mijn verbeterpunten":"Back to my improvements"} →</Link></div>}
+      {searchParams.get("github")==="error"&&<p className="rf-alert" role="alert">{language==="nl"?"GitHub verbinden is niet afgerond. Probeer opnieuw; je gekozen verbeterpunt is bewaard.":"GitHub authorization was not completed. Try again; your selected issue has been preserved."}</p>}
+      {!scanId&&<div className="rf-github-config-notice"><p>{language==="nl"?"Kies eerst een verbeterpunt uit je scan. De fixknop neemt het juiste probleem automatisch mee.":"Choose an improvement from your scan. The fix button includes the correct issue automatically."}</p><Link href="/dashboard/improvements">{language==="nl"?"Bekijk verbeterpunten":"View improvements"} →</Link></div>}
+      {!connected ? <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-7">
         <h2 className="text-xl font-bold">{t.connect}</h2>
         <p className="mt-2 text-sm text-slate-500">{t.connectInfo}</p>
-        <Link href="/api/github/connect" className="mt-5 inline-flex rounded-xl bg-white px-5 py-3 font-bold text-slate-950">{t.connectCta} →</Link>
-      </div> : <form noValidate onSubmit={createFix} className="mt-8 space-y-5 rounded-3xl border border-[#334155] bg-[#101B2D] p-4 sm:p-7">
+        <a href={oauthReady?connectHref:undefined} aria-disabled={!oauthReady} className="rf-github-connect-button">{oauthReady===null?(language==="nl"?"Koppeling controleren…":"Checking connection…"):t.connectCta} →</a>
+      </div> : plan==="free" ? <div className="rf-github-config-notice"><p>{language==="nl"?"GitHub is gekoppeld. Voor codefixes via GitHub heb je een abonnement met AI-fixes nodig.":"GitHub is connected. Code fixes require a plan with AI fixes."}</p><Link href="/dashboard/account">{language==="nl"?"Bekijk mijn abonnement":"View my plan"} →</Link></div> : <form noValidate onSubmit={createFix} className="mt-8 space-y-5 rounded-3xl border border-[#334155] bg-[#101B2D] p-4 sm:p-7">
         <div className="flex flex-col gap-3 rounded-xl border border-emerald-400/15 bg-emerald-400/5 p-4 text-sm text-emerald-200 sm:flex-row sm:items-center sm:justify-between">
           <span>{t.connected} <b>{login}</b>.</span>
-          <Link href="/api/github/connect" className="rounded-lg border border-emerald-300/20 px-3 py-2 text-xs font-bold text-emerald-100 hover:bg-emerald-300/10">{t.reconnect}</Link>
+          <Link href={connectHref} className="rounded-lg border border-emerald-300/20 px-3 py-2 text-xs font-bold text-emerald-100 hover:bg-emerald-300/10">{t.reconnect}</Link>
         </div>
         <label className="block"><span className="text-sm font-semibold">{mapped?t.linkedRepo:reposLoading?t.searchRepo:t.chooseRepo}</span>{reposLoading&&<p className="mt-2 text-sm text-cyan-200" role="status">{t.searching}</p>}<select required disabled={reposLoading||busy} value={repo} onChange={e=>void selectRepository(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3"><option value="">{reposLoading?t.loading:t.selectRepo}</option>{repos.map(r=><option key={r.full_name} value={r.full_name}>{r.full_name}{r.private?` · ${t.privateRepo}`:""}</option>)}</select><p className="mt-2 text-xs text-slate-500">{mapped?t.mappedInfo:t.chooseInfo}</p>{mapped&&<button type="button" disabled={busy} onClick={changeRepositoryMapping} className="mt-3 rounded-lg border border-white/10 px-3 py-2 text-xs font-bold text-slate-200 hover:bg-white/5 disabled:opacity-50">{t.changeRepo}</button>}</label>
         {siteUrl&&<div className="rounded-xl border border-white/10 bg-black/20 p-4 text-sm"><span className="text-slate-500">{t.website}</span><div className="mt-1 font-semibold break-all">{siteUrl}</div></div>}
@@ -269,7 +286,7 @@ export default function GithubPage(){
           {validation?.errors?.length ? <ul className="mt-3 list-disc space-y-1 pl-5">{validation.errors.map((item,i)=><li key={i}>{item}</li>)}</ul> : null}
           {validation?.warnings?.length ? <div className="mt-4"><div className="font-semibold text-amber-200">{t.warnings}</div><ul className="mt-1 list-disc space-y-1 pl-5 text-amber-100">{validation.warnings.map((item,i)=><li key={i}>{item}</li>)}</ul></div> : null}
         </div>}
-        {message&&<div className="rounded-xl bg-emerald-500/10 p-4 text-sm text-emerald-200 break-all">{message}</div>}{completedPr&&<div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/[0.06] p-5"><strong className="text-emerald-200">{language==="nl"?"Pull Request klaar":"Pull Request ready"}</strong><p className="mt-2 text-sm text-slate-300">{error ? (language==="nl"?"Automatisch publiceren is geblokkeerd. RankFix AI is geopend om uit te leggen wat nodig is. Gebruik GitHub alleen als de AI aangeeft dat dit noodzakelijk is.":"Automatic publishing is blocked. RankFix AI is open to explain what is needed. Use GitHub only if the AI says it is necessary.") : (language==="nl"?"De fix is gepubliceerd. Scan de live website opnieuw om te controleren of het probleem echt is opgelost.":"The fix is published. Scan the live website again to verify the issue is really resolved.")}</p><div className="mt-4 flex flex-wrap gap-3">{siteUrl&&<Link href={`/dashboard/scan?url=${encodeURIComponent(siteUrl)}&verify_issue=${encodeURIComponent(issueId)}`} className="rf-primary-link inline-flex w-auto">{language==="nl"?"Opnieuw scannen en fix controleren →":"Rescan and verify fix →"}</Link>}{completedPr.url&&<a href={completedPr.url} target="_blank" rel="noreferrer" className="inline-flex rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-slate-300">{language==="nl"?"Bekijk PR op GitHub ↗":"View PR on GitHub ↗"}</a>}</div></div>}
+        {message&&<div className="rounded-xl bg-emerald-500/10 p-4 text-sm text-emerald-200 break-all">{message}</div>}{completedPr&&<div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/[0.06] p-5"><strong className="text-emerald-200">{language==="nl"?"Pull Request klaar":"Pull Request ready"}</strong><p className="mt-2 text-sm text-slate-300">{error ? (language==="nl"?"Automatisch publiceren is geblokkeerd. RankFix AI is geopend om uit te leggen wat nodig is. Gebruik GitHub alleen als de AI aangeeft dat dit noodzakelijk is.":"Automatic publishing is blocked. RankFix AI is open to explain what is needed. Use GitHub only if the AI says it is necessary.") : (language==="nl"?"Controleer en publiceer de pull request op GitHub. Scan daarna de live website opnieuw om de verbetering te bevestigen.":"Review and publish the pull request on GitHub. Then scan the live website again to verify the improvement.")}</p><div className="mt-4 flex flex-wrap gap-3">{siteUrl&&<Link href={`/dashboard/scan?url=${encodeURIComponent(siteUrl)}&verify_issue=${encodeURIComponent(issueId)}`} className="rf-primary-link inline-flex w-auto">{language==="nl"?"Opnieuw scannen en fix controleren →":"Rescan and verify fix →"}</Link>}{completedPr.url&&<a href={completedPr.url} target="_blank" rel="noreferrer" className="inline-flex rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-slate-300">{language==="nl"?"Bekijk PR op GitHub ↗":"View PR on GitHub ↗"}</a>}</div></div>}
         {preview&&<div className="rounded-2xl border border-cyan-300/20 bg-black/25 p-4 text-sm">
           <div className="flex items-center justify-between gap-3"><strong>{t.preview} {preview.startLine}</strong><span className="text-slate-400">{preview.changedLines??"?"} {t.changed}</span></div>
           {preview.summary&&<p className="mt-2 text-slate-300">{preview.summary}</p>}
@@ -277,7 +294,7 @@ export default function GithubPage(){
           {preview.truncated&&<p className="mt-2 text-xs text-amber-200">Preview is ingekort; controleer na het aanmaken ook de volledige GitHub-diff.</p>}
           <button type="button" onClick={()=>{setPreview(null);setProposalId("");setProposalHash("");setMessage("");}} className="mt-3 text-xs text-slate-300 underline">{t.cancel}</button>
         </div>}
-        {!completedPr&&<button type="submit" disabled={busy||Boolean(validation?.errors?.length)||error===t.missingAudit} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 font-bold text-[#04342C] disabled:opacity-50">{busy?t.busy:preview?t.approve:t.makePreview}</button>}
+        {!completedPr&&<button type="submit" disabled={busy||!scanId||!issueId||!repo||reposLoading||Boolean(validation?.errors?.length)||error===t.missingAudit} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 font-bold text-[#04342C] disabled:opacity-50">{busy?t.busy:preview?t.approve:t.makePreview}</button>}
       </form>}
     </section>
     </div>
