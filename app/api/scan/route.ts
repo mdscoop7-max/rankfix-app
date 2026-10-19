@@ -434,13 +434,15 @@ export async function POST(request: Request) {
   return response;
 }
 
-async function runScan(request: Request) {
+export async function runRestrictedQaScan(request: Request) { return runScan(request, true); }
+
+async function runScan(request: Request, restrictedQa = false) {
   let fallbackLanguage = "nl";
   try {
     const body = await request.json();
     const rawUrl = typeof body?.url === "string" ? body.url.trim() : "";
     const mode: AuditMode = body?.mode === "seo" || body?.mode === "geo" || body?.mode === "both" ? body.mode : "both";
-    const dashboardScan = body?.dashboard === true;
+    const dashboardScan = !restrictedQa && body?.dashboard === true;
     // Every authenticated dashboard rescan automatically rechecks prepared fixes.
     // A fix is still marked DONE only by the strict fresh-evidence PASS gate below.
     const scanLanguage = ["nl","en","de","fr","it","es"].includes(body?.language) ? body.language : "nl";
@@ -512,11 +514,17 @@ async function runScan(request: Request) {
     // trigger network fetches and bounded browser rendering. Hourly limits come from
     // scanRateLimitPolicy: per network for visitors and Free accounts, per account for
     // paying customers, none for server-configured internal tester account IDs.
+    let usageIpHash: string | null = null;
+    if (restrictedQa) {
+      const permitted = new Set(["monumenten.nl","coolblue.nl","mollie.com","concertgebouw.nl","vogelbescherming.nl"]);
+      const hostname = target.hostname.toLowerCase().replace(/^www\\./,"");
+      if (!permitted.has(hostname)) return NextResponse.json({error:"Website niet beschikbaar voor deze afgeschermde QA-test.",code:"QA_HOST_NOT_ALLOWED"},{status:403});
+    } else {
     await ensureDatabase();
     let usageUser: Awaited<ReturnType<typeof getCurrentUser>> = null;
     try { usageUser = await getCurrentUser(); } catch {}
     const usageWebsiteHost = target.hostname.toLowerCase().replace(/^www\./, "");
-    let usageIpHash: string | null = null;
+
     const planCode = usageUser
       ? normalizePlan((await getDb().query("SELECT plan_code FROM users WHERE id=$1 LIMIT 1", [usageUser.id])).rows[0]?.plan_code)
       : "free";
@@ -594,6 +602,8 @@ async function runScan(request: Request) {
       // bypass the coarse Free-plan network protection.
       const limited = await enforceScanRateLimit();
       if (limited) return limited;
+    }
+
     }
 
     const started = Date.now();
@@ -5371,7 +5381,7 @@ async function runScan(request: Request) {
     let user = null;
     let savedScanId: string | null = null;
     let pendingFixes = new Map<string, { status: string }>();
-    try { user = await getCurrentUser(); } catch {}
+    if (!restrictedQa) { try { user = await getCurrentUser(); } catch {} }
     if (dashboardScan && !user) return NextResponse.json({ error: scanError.session, code: "SESSION_EXPIRED" }, { status: 401 });
     if (user) {
       try {
