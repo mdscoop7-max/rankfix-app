@@ -60,6 +60,7 @@ function GithubWorkspace({searchParams}:{searchParams:ReturnType<typeof useSearc
   const [selectedCheck,setSelectedCheck]=useState<any>(null);
   const [proposal,setProposal]=useState<AiProposal|null>(null);
   const [proposalLoading,setProposalLoading]=useState(false);
+  const [copied,setCopied]=useState(false);
   const [proposalError,setProposalError]=useState("");
   const [completedPr,setCompletedPr]=useState<{number?:number;url?:string;title?:string}|null>(null);
   const t=ui[language];
