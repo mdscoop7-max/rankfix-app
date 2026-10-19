@@ -1,0 +1,55 @@
+/* Shared navigation is scoped independently from the legacy page styles. */
+.rx-sidebar,.rx-drawer,.rx-mobile-nav,.rx-language{font-family:Arial,Helvetica,sans-serif}
+.rx-sidebar *,.rx-drawer *,.rx-mobile-nav *{box-sizing:border-box}
+.rx-sidebar{position:fixed;inset:0 auto 0 0;z-index:50;width:244px;background:linear-gradient(155deg,#0c2843,#081d33 75%);border-right:1px solid #184566;display:flex;flex-direction:column;padding:22px 14px 16px;color:#f7fbff;overflow-y:auto;scrollbar-width:thin}
+.rx-sidebar a,.rx-drawer a,.rx-mobile-nav a{text-decoration:none;color:inherit}
+.rx-sidebar svg,.rx-drawer svg,.rx-mobile-nav svg,.rx-language svg,.rx-legacy-toggle svg{width:23px;height:23px;flex:none}
+.rx-menu-brand{display:flex;align-items:center;justify-content:space-between;margin:0 10px 24px}
+.rx-menu-brand>a{display:flex;align-items:center;gap:12px;font-size:25px;letter-spacing:-.9px;min-height:44px}
+.rx-menu-brand>a>span{display:grid;place-items:center;width:43px;height:43px;border:1px solid #12496c;border-radius:12px;background:#05213d;color:#25bcff;box-shadow:0 5px 16px #00102155}
+.rx-menu-brand button{border:0;background:none;color:#fff;padding:9px;cursor:pointer}
+.rx-main-menu,.rx-service-menu{display:grid;gap:7px}
+.rx-main-menu>a,.rx-service-menu>a{display:flex;align-items:center;gap:14px;min-height:49px;padding:11px 12px;border:1px solid transparent;border-radius:13px;font-size:14px;line-height:1.3;font-weight:500;transition:background .15s,border-color .15s;color:#edf5ff}
+.rx-main-menu>a>span,.rx-service-menu>a>span{min-width:0}
+.rx-main-menu>a:hover,.rx-service-menu>a:hover{background:#113655;border-color:#245578}
+.rx-main-menu>a[aria-current],.rx-service-menu>a[aria-current]{background:linear-gradient(135deg,#05284b,#08223d);border-color:#00a9ff;box-shadow:0 0 0 1px #008de844,0 5px 14px #009dff16;color:#fff;font-weight:700}
+.rx-main-menu em{font-style:normal;display:grid;place-items:center;min-width:23px;height:23px;padding:0 5px;margin-left:auto;border-radius:50px;background:#ae2940;color:#fff;font-size:12px}
+.rx-main-menu .rx-menu-chevron{width:15px;height:15px;margin-left:auto}
+.rx-menu-bottom{margin-top:auto;padding-top:30px}
+.rx-plan{display:block;padding:15px 16px;border:1px solid #22577b;border-radius:16px;background:linear-gradient(140deg,#0b2843,#102c48);margin:0 0 24px}
+.rx-plan strong{display:block;color:#fff;font-size:13px;font-weight:700;text-transform:capitalize}
+.rx-plan>span{display:block;margin:5px 0 11px;font-size:12px;color:#d3e1f0}
+.rx-progress{height:8px;border-radius:20px;background:#e8edf5;overflow:hidden}
+.rx-progress>i{display:block;height:100%;background:#0788ff;border-radius:inherit}
+.rx-plan .rx-progress{background:#294763}
+.rx-service-menu>a{min-height:43px;font-size:13px}
+.rx-admin-link{font-size:11px;color:#9cccea!important;margin:8px 12px}
+.rx-language{position:relative;display:inline-flex;flex:none;align-items:center;color:#fff}
+.rx-language select{appearance:none;border:1px solid #17496a;border-radius:13px;min-height:45px;background:#061c32;color:#fff;font-size:14px;font-weight:650;padding:9px 30px 9px 13px;cursor:pointer;width:76px;box-sizing:border-box}
+.rx-language option{background:#0b2038;color:#fff}
+.rx-language>svg{position:absolute;right:10px;width:15px;height:15px;pointer-events:none}
+.rx-language-error{position:absolute;right:0;top:100%;font-size:12px;color:#ffb4bb;background:#08243d;padding:6px;z-index:90}
+.rx-legacy-language{margin:8px 12px 0}.rx-page .rx-legacy-language{display:none}
+.rx-sidebar a:focus-visible,.rx-drawer :is(a,button,select):focus-visible,.rx-mobile-nav :is(a,button):focus-visible{outline:2px solid #24dcaa;outline-offset:3px}
+.rx-menu-dialog{position:fixed;inset:0 auto 0 0;margin:0;width: min(340px,90vw);max-width:90vw;height:100dvh;max-height:100dvh;padding:0;border:0;color:#fff;background:#0b2038;z-index:200;box-shadow:15px 0 55px #0006}
+.rx-menu-dialog::backdrop{background:#020d1acc;backdrop-filter:blur(3px)}
+.rx-drawer{display:flex;flex-direction:column;min-height:100%;padding:22px 14px max(24px,env(safe-area-inset-bottom))}
+.rx-drawer .rx-menu-bottom{padding-top:28px}.rx-drawer .rx-language{margin:12px}
+.rx-mobile-nav,.rx-legacy-toggle{display:none}
+.rx-sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+/* Existing audit, scan and account pages retain their content and gain the same menu. */
+.rf-page:has(.rx-sidebar){padding-left:268px!important;padding-right:24px!important;min-height:100vh}
+.rf-page:has(.rx-sidebar)>.rf-shell{max-width:1280px!important;width:100%!important}
+@media(max-width:1050px) and (min-width:761px){.rx-sidebar{width:220px;padding-inline:10px}.rx-main-menu>a{font-size:13px;gap:10px;padding-inline:10px}.rx-menu-brand{margin-inline:10px}.rf-page:has(.rx-sidebar){padding-left:240px!important;padding-right:18px!important}}
+@media(max-width:760px){
+ .rx-sidebar{display:none}
+ .rx-mobile-nav{position:fixed;inset:auto 0 0;z-index:80;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;padding:8px 5px calc(7px + env(safe-area-inset-bottom));min-height:72px;border-top:1px solid #1b4968;background:rgba(5,26,46,.98);color:#f7fbff;backdrop-filter:blur(14px)}
+ .rx-mobile-nav>a,.rx-mobile-nav>button{border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:49px;min-width:0;padding:2px;color:#f7fbff;cursor:pointer;font-size:10px;font-weight:500;line-height:1.2}
+ .rx-mobile-nav svg{width:25px;height:25px}.rx-mobile-nav span{max-width:100%;overflow-wrap:anywhere}
+ .rx-mobile-nav>[aria-current]{color:#0b9fff}.rx-mobile-nav>[aria-current] svg{stroke-width:2.3}
+ .rf-page:has(.rx-sidebar){padding:62px 12px calc(100px + env(safe-area-inset-bottom))!important}
+ .rf-page:has(.rx-sidebar) .rf-shell{padding-bottom:0!important;min-height:0!important}
+ .rf-page .rx-legacy-toggle{display:flex;align-items:center;gap:12px;position:fixed;top:8px;left:12px;z-index:60;padding:8px 12px;border:1px solid #285271;border-radius:12px;background:#0b2038;color:white;min-height:43px}
+ .rx-page .rx-legacy-toggle{display:none}
+}
+@media(prefers-reduced-motion:reduce){.rx-main-menu>a,.rx-service-menu>a{transition:none}}
