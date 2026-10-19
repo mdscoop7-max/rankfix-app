@@ -516,9 +516,8 @@ async function runScan(request: Request, restrictedQa = false) {
     // paying customers, none for server-configured internal tester account IDs.
     let usageIpHash: string | null = null;
     if (restrictedQa) {
-      const permitted = new Set(["monumenten.nl","coolblue.nl","mollie.com","concertgebouw.nl","vogelbescherming.nl"]);
-      const hostname = target.hostname.toLowerCase().replace(/^www\./,"");
-      if (!permitted.has(hostname)) { console.warn("Restricted QA host rejected", { hostname }); return NextResponse.json({error:`Website ${hostname} staat niet op de QA-testlijst.`,code:"QA_HOST_NOT_ALLOWED",hostname},{status:403}); }
+      // Public URL safety is enforced by validatePublicHttpUrl and safePublicFetch.
+      // This QA entrypoint is restricted by Vercel Deployment Protection.
     } else {
     await ensureDatabase();
     let usageUser: Awaited<ReturnType<typeof getCurrentUser>> = null;
