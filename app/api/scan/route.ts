@@ -5527,7 +5527,10 @@ async function runScan(request: Request) {
       discoveredInternalUrls:discoveredMultiPage.length, sampleLinkSource, fallbackSources, duplicateSamplesRemoved, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,
       // Which sampled page proved the product fields (null = none was proven).
       representativeProduct: productSamplePage ? { url: productSamplePage.url, fields: productFieldCount(productSamplePage.commerceEvidence?.product) } : null,
-      siteSampleScore: scoredSamplePages.length ? Math.round(scoredSamplePages.reduce((sum,item)=>sum+(item.score||0),0)/scoredSamplePages.length) : null,
+      siteSampleScore: scoredSamplePages.length ? Math.min(
+          scoredSamplePages.some(item => item.score !== null && item.score < 100) || scoredSamplePages.length < multiPageAudits.length ? 99 : 100,
+          Math.round(scoredSamplePages.reduce((sum,item)=>sum+(item.score||0),0)/scoredSamplePages.length)
+        ) : null,
       siteSampleCoverage: {
         selected: multiPageAudits.length,
         unscoredMetadata: unscoredMetadataPages,
@@ -5552,7 +5555,10 @@ async function runScan(request: Request) {
         checkedPages: auditedRawPages.length,
         pagesWithIssues: auditedRawPages.filter((page)=>page.evidenceChecks.some((item)=>["title","description","h1","canonical"].includes(item.key) && item.status==="WARNING")).length,
         topIssues: sitewideCheckAggregation.filter((item)=>item.affectedCount>0).sort((a,b)=>b.affectedCount-a.affectedCount).map((item)=>({key:item.key,affected:item.affectedCount,checked:item.checkedPages})),
-        sampleScore: scoredSamplePages.length ? Math.round(scoredSamplePages.reduce((sum,item)=>sum+(item.score||0),0)/scoredSamplePages.length) : null,
+        sampleScore: scoredSamplePages.length ? Math.min(
+          scoredSamplePages.some(item => item.score !== null && item.score < 100) || scoredSamplePages.length < multiPageAudits.length ? 99 : 100,
+          Math.round(scoredSamplePages.reduce((sum,item)=>sum+(item.score||0),0)/scoredSamplePages.length)
+        ) : null,
       },
       templateSummary: Object.entries(reportedMultiPageAudits.reduce((acc, page) => {
         const type = page.type || "other";
