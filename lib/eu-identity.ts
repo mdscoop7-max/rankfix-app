@@ -23,7 +23,7 @@
 
 export type EuSector =
   | "news_media" | "financial_services" | "transport_travel" | "government"
-  | "education" | "health_wellness" | "telecom_technology" | "energy_utilities" | "events_culture" | "professional_services" | "saas_b2b" | "fitness_sports" | "tourism_recreation" | "manufacturing_industrial";
+  | "education" | "health_wellness" | "telecom_technology" | "energy_utilities" | "events_culture" | "professional_services" | "saas_b2b" | "fitness_sports" | "tourism_recreation" | "manufacturing_industrial" | "nonprofit";
 
 export type EuIdentity = {
   sector: EuSector;
@@ -258,6 +258,44 @@ const TELECOM_TV = stems(["tv", "televis", "internet"]);
 const ENERGY = stems(["energieleverancier", "stroom", "strom", "électricité", "elettricit", "electricidad", "eletricidade", "elektricitet", "sähkö", "elekter", "elektroenerģ", "elektros energ", "prąd", "elektřin", "elektrin", "áram", "energie electr", "ηλεκτρικ ρεύμ", "struj", "energy supplier", "energiaszolg", "energia elétrica"]);
 const POWER_AND_GAS = stems(["luce e gas", "gas e luce", "luz y gas", "luz e gás", "luz e gas", "strom und gas", "gas und strom", "stroom en gas", "gas en stroom", "électricité et gaz", "gaz et électricité", "el og gas", "el och gas", "sähkö ja kaasu", "prąd i gaz", "elektřina a plyn", "áram és gáz", "energie electrică și gaz"]);
 const GAS = words(["gas", "gás", "erdgas", "gaz", "gaz naturel", "kaasu", "maagaas", "gāze", "dujos", "plyn", "φυσικό αέριο", "газ", "plin"]);
+
+// Cause/mission identity is separate from a shop, newsfeed or event programme.
+// Use declared NGO schema together with the page's OWN mission or membership
+// language, or repeat the cause across independent page identity fields.
+// Generic conservation terms alone, or a donation button in a shop, cannot
+// turn an unrelated company into a non-profit organisation.
+const NONPROFIT_CAUSE = stems([
+  "nonprofit", "non-profit", "non profit", "goed doel", "goede doelen", "liefdadig", "charity", "charitable",
+  "hulporganisatie", "hilfsorganisation", "gemeinnützig", "naturschutz", "artenschutz",
+  "natuurbescherming", "natuurbehoud", "natuur beschermen", "bescherm de natuur",
+  "nature conservation", "wildlife conservation", "nature protection", "protection de la nature",
+  "tutela della natura", "human rights", "mensenrechten", "humanitaire organisatie",
+  "humanitarian organisation", "humanitarian organization", "organisation humanitaire"
+]);
+// Advocacy is a public-benefit mission only when the organisation itself says
+// it advocates for people/animals/habitats and asks for help. A charity schema is
+// not required: genuine associations may use generic Organization + WebSite.
+// Distinct public-benefit mission language may prove an animal-welfare charity
+// even without NGO/Organization JSON-LD. Require a welfare cause in the PAGE
+// IDENTITY, a helping action in its own description AND a support appeal in
+// that same description. A shop/blog merely mentioning pets is insufficient.
+const NONPROFIT_WELFARE_CAUSE = stems([
+  "dierenleed", "dierenwelzijn", "dieren in nood", "dierenmishandeling", "animal welfare",
+  "animal cruelty", "animal rescue", "animal protection", "animal abuse",
+  "maltraitance animale", "bien-être animal", "tierschutz", "tierleid"
+]);
+const NONPROFIT_MISSION_ACTION = /\b(?:zet|zetten)\s+(?:zich|ons)\s+in\s+om\b.{0,110}\b(?:helpen|beschermen|redden|voorkomen|bestrijden)\b|\b(?:we|wij)\s+(?:helpen|beschermen|redden|voorkomen)\b|\b(?:we|wij)\s+(?:help|protect|rescue)\b/iu;
+const NONPROFIT_ADVOCACY_ACTION = /\b(?:komt|komen) op voor\b|\b(?:zet|zetten) zich in voor\b|\b(?:wij|we) beschermen\b|\b(?:we|wij) komen op voor\b|\badvocat(?:e|es|ing) for\b|\bstand(?:s)? up for\b|\bprotect(?:ing|s)? (?:wildlife|birds|animals|habitats|nature)\b/i;
+const NONPROFIT_PUBLIC_BENEFIT = stems([
+  "vogels", "vogels en natuur", "birds", "leefgebieden", "leefgebied", "habitats", "wildlife",
+  "natuur", "dieren", "animals", "biodiversiteit", "biodiversity", "milieu", "environment",
+  "mensenrechten", "human rights", "burgerrechten", "civil rights", "kinderen", "children"
+]);
+const NONPROFIT_SUPPORT = stems([
+  "doneer", "doneren", "donate", "donation", "donateur", "spenden", "sponsor",
+  "word lid", "word nu lid", "word vrijwilliger", "vrijwilliger", "become a member",
+  "membership", "help mee", "help je mee", "steun onze", "jouw steun", "uw steun", "your support", "we need your help", "support our mission"
+]);
 
 // ---------------------------------------------------------------- retail veto
 // Retail self-description in the main EU languages. When a page's own identity
@@ -523,6 +561,39 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   if (!retailer && (cultureSchema && (CULTURE.test(own) || CULTURE_SUPPORT.test(own)) || (CULTURE.test(title) && CULTURE_SUPPORT.test(own)) || countSources((s) => CULTURE.test(s)) >= 2)) {
     return { sector: "events_culture", key: "events_culture", label: "Evenementen & Cultuur", confidence: "high", confidenceScore: cultureSchema ? 93 : 90,
       evidence: evidence([CULTURE.test(own) && "Eigen identiteit: museum, theater, concertzaal of festival", CULTURE_SUPPORT.test(own) && "Eigen identiteit noemt tentoonstellingen, programma of tickets", cultureSchema && "Structured data: museum/podium"]) };
+  }
+
+  // Non-profit/association: the declared organisation and its own mission
+  // determine the primary sector. Store and booking schema may describe
+  // fundraising or secondary activities, not the organisation as a whole.
+  const nonprofitSchema = schema.has("ngo") || schema.has("nonprofitorganization") || schema.has("charity");
+  const nonprofitOwn = NONPROFIT_CAUSE.test(own);
+  const nonprofitSupport = NONPROFIT_SUPPORT.test(own + " " + nav);
+  const nonprofitSourceCount = countSources((s) => NONPROFIT_CAUSE.test(s));
+  const nonprofitAdvocacy = schema.has("organization") && NONPROFIT_ADVOCACY_ACTION.test(own)
+    && NONPROFIT_PUBLIC_BENEFIT.test(own) && nonprofitSupport;
+  const nonprofitWelfareAppeal = NONPROFIT_WELFARE_CAUSE.test(title + " " + h1)
+    && NONPROFIT_MISSION_ACTION.test(description)
+    && NONPROFIT_PUBLIC_BENEFIT.test(description)
+    && NONPROFIT_SUPPORT.test(description);
+  const nonprofitMissionConfirmed = (nonprofitSchema && (nonprofitOwn || nonprofitSupport))
+    || (nonprofitSourceCount >= 2 && nonprofitSupport)
+    || nonprofitAdvocacy
+    || nonprofitWelfareAppeal;
+  const secondaryShop = retailer && nonprofitMissionConfirmed && !retailSelfDescription(own);
+  if (nonprofitMissionConfirmed && (!retailer || secondaryShop) && !publication) {
+    return { sector: "nonprofit", key: "nonprofit", label: "Goede doelen & Non-profit",
+      confidence: nonprofitWelfareAppeal && !nonprofitSchema && !nonprofitAdvocacy ? "medium" : "high",
+      confidenceScore: secondaryShop ? 86 : nonprofitSchema ? 92 : nonprofitAdvocacy ? 80 : nonprofitWelfareAppeal ? 76 : 86,
+      evidence: evidence([
+        nonprofitSchema && "Structured data: NGO / non-profitorganisatie",
+        nonprofitOwn && "Non-profit: maatschappelijke of natuurbehoudmissie in eigen pagina-identiteit",
+        nonprofitSupport && "Non-profit: oproep tot steun, lidmaatschap, doneren of vrijwilligerswerk",
+        nonprofitAdvocacy && "Non-profit: eigen missie voor publieke belangen met oproep tot steun",
+        nonprofitWelfareAppeal && "Non-profit: dierenwelzijnsmissie, helpen en steunoproep in eigen paginabewijs",
+        nonprofitSourceCount >= 2 && "Non-profit: maatschappelijke missie in meerdere identiteitsbronnen",
+        secondaryShop && "Non-profit: winkel-/verkoopfunctie is een nevenactiviteit, niet de hoofdsector",
+      ]) };
   }
 
   // 8. Medium tier: the homepage names only its brand, but navigation and section

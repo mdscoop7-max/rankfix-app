@@ -1,0 +1,33 @@
+name: QA NGO live scan (isolated preview)
+on:
+  push:
+    branches: [qa/nonprofit-identity-nature-20261019]
+permissions:
+  contents: read
+jobs:
+  external-site-smoke:
+    name: Public API NGO scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - name: Scan Natuurmonumenten on isolated preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          target='https://rankfix-iprh72qnk-scoop5.vercel.app'
+          echo "Checking QA preview (not production)"
+          curl --fail --silent --show-error --connect-timeout 15 --max-time 40 -o /dev/null "$target/"
+          echo "Running one public SEO + GEO scan"
+          status="$(curl --silent --show-error --connect-timeout 15 --max-time 310 --retry 0 -o /tmp/ngo-scan.json -w '%{http_code}' \
+            -H 'Content-Type: application/json' \
+            --data '{"url":"https://www.natuurmonumenten.nl/","mode":"both","language":"nl"}' \
+            "$target/api/scan")"
+          echo "HTTP $status"
+          if [[ "$status" != "200" ]]; then
+            jq -c '{error,code,retryable}' /tmp/ngo-scan.json || true
+            echo "QA scan did not complete"
+            exit 1
+          fi
+          jq -c '{success,sector:.sectorProfile.sector,model:.sectorProfile.businessModel.model,confidence:.sectorProfile.confidenceScore,score:.overallScore,coverage:.coverage.coveragePercent}' /tmp/ngo-scan.json
+          jq -e '.success == true and .sectorProfile.sector == "nonprofit" and .sectorProfile.businessModel.model == "non_profit"' /tmp/ngo-scan.json >/dev/null
+          echo "NGO primary identity and nonprofit business model verified on real public site"

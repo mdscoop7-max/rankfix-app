@@ -209,3 +209,110 @@ test("booking widgets and transport commentary are not sufficient for operator i
     assert.notEqual(id?.key, "passenger_transport", JSON.stringify({ value, id }));
   }
 });
+
+test("primary NGO identity outranks an incidental Store and LegalService schema", () => {
+  const id=detectEuPrimaryIdentity({
+    title:"Natuur beschermen in Nederland | Natuurmonumenten",
+    description:"Bescherm natuurgebieden. Word lid of doneer en help de natuur te behouden.",
+    h1s:["Natuurmonumenten"],
+    navLabels:["Word lid","Doneer","Natuurgebieden","Webwinkel","Nieuws"],
+    schemaTypes:["NGO","Organization","Store","LegalService"],
+    hostname:"neutral-cause.test",homepage:true,
+  });
+  assert.equal(id?.sector,"nonprofit",JSON.stringify(id));
+  assert.equal(id?.key,"nonprofit");
+  assert.equal(id?.label,"Goede doelen & Non-profit");
+  assert.ok(id.confidenceScore<=92 && id.confidenceScore>=80,JSON.stringify(id));
+  assert.ok(id.evidence.some(x=>/NGO/.test(x)),JSON.stringify(id));
+});
+
+test("nonprofit identity requires real mission evidence and respects retail/page identity", () => {
+  const negativeCases=[
+    {title:"Winkel met natuurproducten | Groene Shop",description:"Online webshop en retail voor natuurliefhebbers.",schemaTypes:["Store","Organization"],navLabels:["Doneren","Producten","Winkelwagen"]},
+    {title:"Advocatenkantoor De Buren",description:"Onze cliënten omvatten organisaties voor natuurbescherming.",schemaTypes:["LegalService"],navLabels:["Diensten","Nieuws","Contact"]},
+    {title:"Natuurexcursies",description:"Wandelroutes en excursies in de natuur.",schemaTypes:["Organization","Store"],navLabels:["Tickets","Boek nu"]},
+    {title:"Online webshop en winkel | GoedDoel Producten",description:"Shop online voor producten.",schemaTypes:["NGO","Store"],navLabels:["Winkelwagen","Checkout"]},
+  ];
+  for(const value of negativeCases){
+    const id=detectEuPrimaryIdentity({hostname:"neutral.test",homepage:true,...value});
+    assert.notEqual(id?.sector,"nonprofit",JSON.stringify({value,id}));
+  }
+});
+
+test("public-benefit advocacy with Organization schema and a support call is a non-profit without NGO JSON-LD", () => {
+  const input={
+    title:"Samen voor vogels en natuur | Voorbeeldorganisatie",
+    description:"Voorbeeldorganisatie komt op voor vogels en hun leefgebieden. Help je mee?",
+    h1s:["Samen voor vogels en natuur","Voorbeeldorganisatie"],
+    navLabels:[],
+    schemaTypes:["Organization","WebSite"],
+    hostname:"neutral-conservation.test",homepage:true,
+  };
+  const result=detectEuPrimaryIdentity(input);
+  assert.equal(result?.sector,"nonprofit",JSON.stringify(result));
+  assert.equal(result?.confidenceScore,80,JSON.stringify(result));
+  assert.ok(result.evidence.some(x=>x.includes("publieke belangen")),JSON.stringify(result));
+});
+
+test("generic Organization, nature articles and retail support CTAs do not prove charity identity", () => {
+  const negative=[
+    {title:"Vogelgids en tuintips | Online magazine",description:"Lees alles over vogels en hun leefgebieden. Help je mee?",schemaTypes:["Organization","WebSite"]},
+    {title:"Vogels en natuur | Detailhandel",description:"Onze webshop komt op voor vogels en hun leefgebieden. Help je mee?",schemaTypes:["Organization","Store"]},
+    {title:"Lokale vogelwinkel",description:"We komen op voor lagere prijzen en goede service. Help je mee?",schemaTypes:["Organization","WebSite"]},
+    {title:"Vogelonderzoek",description:"Wij beschermen vogels en hun leefgebieden",schemaTypes:["Organization","WebSite"]},
+  ];
+  for(const x of negative){
+    const result=detectEuPrimaryIdentity({...x,hostname:"neutral-check.test",homepage:true,navLabels:[]});
+    assert.notEqual(result?.sector,"nonprofit",JSON.stringify({x,result}));
+  }
+});
+
+test("non-profit evidence takes precedence over generic LocalBusiness structured-data advice", () => {
+  const route=readFileSync(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
+  assert.match(route,/const nonprofitSchemaContext = isHomepage && detectEuPrimaryIdentity/);
+  assert.match(route,/const effectiveLocalSchemaSignal = hasLocalBusinessSignal && !nonprofitSchemaContext/);
+  assert.match(route,/const recommendedSchema = nonprofitSchemaContext/);
+  assert.match(route,/const hasRelevantContextSchema = nonprofitSchemaContext/);
+});
+
+test("welfare charity without NGO or Organization schema: independent cause, mission and support appeal", () => {
+  const result=detectEuPrimaryIdentity({
+    title:"Jij kan helpen dierenleed te voorkomen",
+    description:"Elk jaar worden talloze dieren mishandeld, verwaarloosd en gedumpt. Een organisatie zet zich in om deze dieren te helpen. Jouw steun is hard nodig.",
+    h1s:["Jij kan helpen dierenleed te voorkomen"],
+    schemaTypes:[], navLabels:[], hostname:"neutral-animal-welfare.test", homepage:true,
+  });
+  assert.equal(result?.sector,"nonprofit",JSON.stringify(result));
+  assert.equal(result?.confidence,"medium",JSON.stringify(result));
+  assert.ok(result.confidenceScore>=70&&result.confidenceScore<=80,JSON.stringify(result));
+  assert.ok(result.evidence.some(x=>x.includes("dierenwelzijnsmissie")),JSON.stringify(result));
+});
+
+test("welfare language in articles and commercial storefronts must not prove NGO identity", () => {
+  const negatives=[
+    {
+      title:"Vogels en dieren in nood | Artikelen",
+      description:"Lees onze artikelen over dierenleed en dierenwelzijn. Tips voor wie dieren wil helpen, ook zonder donaties.",
+      schemaTypes:["Blog","Organization"],navLabels:["Nieuws","Lees verder"]
+    },
+    {
+      title:"Dierenleed voorkomen | Online dierenwinkel",
+      description:"Onze online shop zet zich in om dieren te helpen. Jouw steun is hard nodig voor onze acties.",
+      schemaTypes:["Store"],navLabels:["Winkelwagen","Producten","Bestellen"]
+    },
+    {
+      title:"Dierenwelzijn bij onze klanten | Softwareleverancier",
+      description:"Wij beschermen gegevens van dierenasielen en bieden B2B-software aan. Jouw steun voor onze producten is welkom.",
+      schemaTypes:["SoftwareApplication"],navLabels:["Prijzen","Demo"]
+    },
+    {
+      title:"Dierenleed voorkomen | Nieuwsbericht",
+      description:"Dit artikel beschrijft hoe een vrijwilligersorganisatie zich inzet om deze dieren te helpen. Jouw steun is hard nodig voor hun campagne.",
+      schemaTypes:["NewsArticle"],navLabels:["Nieuws"]
+    }
+  ];
+  for(const x of negatives){
+    const result=detectEuPrimaryIdentity({...x,hostname:"neutral-control.test",homepage:true});
+    assert.notEqual(result?.sector,"nonprofit",JSON.stringify({x,result}));
+  }
+});
