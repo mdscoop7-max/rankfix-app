@@ -58,6 +58,7 @@ function MenuContent({ language, path, usage, issues, close, drawer }: MenuProps
 
 export default function DashboardNav({ language: suppliedLanguage, usage: suppliedUsage, issues, loadSummary = true }: { current?: number; language?: Locale; usage?: WorkspaceUsage; issues?: number; loadSummary?: boolean }) {
   const path = usePathname() || "/dashboard";
+  const noDbQaScan = path === "/dashboard/scan";
   const [language, setLanguage] = useState<Locale>("nl");
   const [usage, setUsage] = useState<WorkspaceUsage>();
   const [admin, setAdmin] = useState(false);
@@ -66,11 +67,11 @@ export default function DashboardNav({ language: suppliedLanguage, usage: suppli
   const t = workspaceCopy[activeLanguage];
   useEffect(() => {
     const controller = new AbortController();
-    if (!suppliedLanguage) fetch("/api/account/language", { signal: controller.signal }).then(r => r.ok ? r.json() : null).then(data => { if (data?.language in workspaceCopy) setLanguage(data.language); }).catch(() => {});
-    if (loadSummary && !suppliedUsage) fetch("/api/history", { signal: controller.signal, cache: "no-store" }).then(r => r.ok ? r.json() : null).then(data => { if (data?.usage) setUsage(data.usage); }).catch(() => {});
-    fetch("/api/health/admin-status", { signal: controller.signal, cache: "no-store" }).then(r => r.ok ? r.json() : null).then(data => setAdmin(data?.admin === true)).catch(() => {});
+    if (!noDbQaScan && !suppliedLanguage) fetch("/api/account/language", { signal: controller.signal }).then(r => r.ok ? r.json() : null).then(data => { if (data?.language in workspaceCopy) setLanguage(data.language); }).catch(() => {});
+    if (!noDbQaScan && loadSummary && !suppliedUsage) fetch("/api/history", { signal: controller.signal, cache: "no-store" }).then(r => r.ok ? r.json() : null).then(data => { if (data?.usage) setUsage(data.usage); }).catch(() => {});
+    if (!noDbQaScan) fetch("/api/health/admin-status", { signal: controller.signal, cache: "no-store" }).then(r => r.ok ? r.json() : null).then(data => setAdmin(data?.admin === true)).catch(() => {});
     return () => controller.abort();
-  }, [suppliedLanguage, suppliedUsage, loadSummary]);
+  }, [suppliedLanguage, suppliedUsage, loadSummary, noDbQaScan]);
   useEffect(() => {
     const open = () => { if (!dialog.current?.open) dialog.current?.showModal(); };
     window.addEventListener("rankfix:open-menu", open);
