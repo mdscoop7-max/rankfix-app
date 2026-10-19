@@ -45,20 +45,29 @@ export default function DashboardScan() {
   const [error,setError]=useState("");
   const [result,setResult]=useState<Result|null>(null);
   const [usage,setUsage]=useState<{plan:string;used:number;limit:number|null}>({plan:"free",used:0,limit:2});
-  useEffect(()=>{fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language&&d.language in text)setLanguage(d.language)}).catch(()=>{});fetch("/api/history",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{if(d?.usage)setUsage(d.usage);const candidates=[...(Array.isArray(d?.scans)?d.scans:[]),...(Array.isArray(d?.history)?d.history:[])].map((item:{scanned_url?:string})=>item?.scanned_url).filter((value:string|undefined):value is string=>Boolean(value)).map((value:string)=>/^https?:\/\//i.test(value)?value:`https://${value}`);const unique=[...new Set(candidates)] as string[];setWebsites(unique);const remembered=typeof window!=="undefined"?window.localStorage.getItem("rankfix:last-scan-url"):"";const saved=remembered||d?.usage?.websiteHost||unique[0];if(verificationUrl)setUrl(/^https?:\/\//i.test(verificationUrl)?verificationUrl:`https://${verificationUrl}`);else if(saved)setUrl(/^https?:\/\//i.test(saved)?saved:`https://${saved}`)}).catch(()=>{})},[verificationUrl]);
+  useEffect(()=>{
+    const previous=typeof window!=="undefined"?window.localStorage.getItem("rankfix:last-scan-url"):"";
+    if(verificationUrl)setUrl(verificationUrl);
+    else if(previous)setUrl(previous);
+  },[verificationUrl]);
   const t=text[language];
   async function run(event:React.FormEvent){
     event.preventDefault(); setError(""); setUrlError(""); setResult(null);
     const clean=url.trim();
     if(!clean){setUrlError(t.failed);return;}
     const normalized=/^https?:\/\//i.test(clean)?clean:`https://${clean}`;
-    try{new URL(normalized);}catch{setUrlError(language==="nl"?"Vul een geldige website in, bijvoorbeeld example.com.":"Enter a valid website, for example example.com.");return;}
-    setUrl(normalized); setBusy(true);
+    let destination:URL;
+    try{destination=new URL(normalized);}catch{setUrlError("Vul een geldige website in, bijvoorbeeld coolblue.nl.");return;}
+    const host=destination.hostname.toLowerCase().replace(/^www\./,"");
+    const allowed=new Set(["monumenten.nl","coolblue.nl","mollie.com","concertgebouw.nl","vogelbescherming.nl"]);
+    if(!allowed.has(host)){setUrlError("Deze Vercel-testversie ondersteunt momenteel vijf vastgelegde websites. Kies een van de vijf testdomeinen.");return;}
+    const scanUrl="https://www."+host+"/";
+    setUrl(scanUrl); setBusy(true);
     try{
-      const response=await fetch("/api/qa-engine",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:normalized,mode:"both",dashboard:false,language})});
+      const response=await fetch("/api/qa-engine",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:scanUrl,mode:"both",dashboard:false,language})});
       const data=await response.json();
       if(!response.ok) throw new Error(data.error||t.failed);
-      if(typeof window!=="undefined")window.localStorage.setItem("rankfix:last-scan-url",normalized);
+      if(typeof window!=="undefined")window.localStorage.setItem("rankfix:last-scan-url",scanUrl);
       if(data.scanId){ const target="/dashboard/audit/"+encodeURIComponent(data.scanId)+(verificationIssue?"?verify_issue="+encodeURIComponent(verificationIssue):""); router.push(target); return; }
       setResult(data as Result);
     }catch(cause){setError(cause instanceof Error?cause.message:t.failed);}
