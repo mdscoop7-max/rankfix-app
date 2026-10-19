@@ -274,3 +274,45 @@ test("non-profit evidence takes precedence over generic LocalBusiness structured
   assert.match(route,/const recommendedSchema = nonprofitSchemaContext/);
   assert.match(route,/const hasRelevantContextSchema = nonprofitSchemaContext/);
 });
+
+test("welfare charity without NGO or Organization schema: independent cause, mission and support appeal", () => {
+  const result=detectEuPrimaryIdentity({
+    title:"Jij kan helpen dierenleed te voorkomen",
+    description:"Elk jaar worden talloze dieren mishandeld, verwaarloosd en gedumpt. Een organisatie zet zich in om deze dieren te helpen. Jouw steun is hard nodig.",
+    h1s:["Jij kan helpen dierenleed te voorkomen"],
+    schemaTypes:[], navLabels:[], hostname:"neutral-animal-welfare.test", homepage:true,
+  });
+  assert.equal(result?.sector,"nonprofit",JSON.stringify(result));
+  assert.equal(result?.confidence,"medium",JSON.stringify(result));
+  assert.ok(result.confidenceScore>=70&&result.confidenceScore<=80,JSON.stringify(result));
+  assert.ok(result.evidence.some(x=>x.includes("dierenwelzijnsmissie")),JSON.stringify(result));
+});
+
+test("welfare language in articles and commercial storefronts must not prove NGO identity", () => {
+  const negatives=[
+    {
+      title:"Vogels en dieren in nood | Artikelen",
+      description:"Lees onze artikelen over dierenleed en dierenwelzijn. Tips voor wie dieren wil helpen, ook zonder donaties.",
+      schemaTypes:["Blog","Organization"],navLabels:["Nieuws","Lees verder"]
+    },
+    {
+      title:"Dierenleed voorkomen | Online dierenwinkel",
+      description:"Onze online shop zet zich in om dieren te helpen. Jouw steun is hard nodig voor onze acties.",
+      schemaTypes:["Store"],navLabels:["Winkelwagen","Producten","Bestellen"]
+    },
+    {
+      title:"Dierenwelzijn bij onze klanten | Softwareleverancier",
+      description:"Wij beschermen gegevens van dierenasielen en bieden B2B-software aan. Jouw steun voor onze producten is welkom.",
+      schemaTypes:["SoftwareApplication"],navLabels:["Prijzen","Demo"]
+    },
+    {
+      title:"Dierenleed voorkomen | Nieuwsbericht",
+      description:"Dit artikel beschrijft hoe een vrijwilligersorganisatie zich inzet om deze dieren te helpen. Jouw steun is hard nodig voor hun campagne.",
+      schemaTypes:["NewsArticle"],navLabels:["Nieuws"]
+    }
+  ];
+  for(const x of negatives){
+    const result=detectEuPrimaryIdentity({...x,hostname:"neutral-control.test",homepage:true});
+    assert.notEqual(result?.sector,"nonprofit",JSON.stringify({x,result}));
+  }
+});
