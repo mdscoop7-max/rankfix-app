@@ -22,7 +22,7 @@ export async function POST(request:Request){
   const fetchResult=await safePublicFetch(selection.url,{timeoutMs:13000,maxRedirects:4,userAgent:"RankFixBot/2.1 (+https://rankfix-app.vercel.app)"});
   const response=fetchResult.response;
   if(!response.ok)return NextResponse.json({website:key,error:"Website gaf HTTP "+response.status,code:"HTTP_ERROR"},{status:502});
-  const html=await readResponseTextLimited(response,950000,14000);
+  const html=await readResponseTextLimited(response,5_000_000,20000);
   const title=get(html,/<title\b[^>]*>([\s\S]*?)<\/title>/i);
   const description=get(html,/<meta\b(?=[^>]*name=["']description["'])(?=[^>]*content=["']([^"']*)["'])[^>]*>/i)||get(html,/<meta\b(?=[^>]*content=["']([^"']*)["'])(?=[^>]*name=["']description["'])[^>]*>/i);
   const heading=get(html,/<h1\b[^>]*>([\s\S]*?)<\/h1>/i);
@@ -31,5 +31,5 @@ export async function POST(request:Request){
   const schemaTypes=[...new Set(scripts.flatMap(s=>[...s[1].matchAll(/"@type"\s*:\s*"([^"]+)"/g)].map(m=>m[1])))].slice(0,20);
   const terms={retail:/\b(winkelwagen|add to cart|in winkelwagen|producten|bestellen|checkout)\b/i.test(visible),events:/\b(concerten|concert|evenementen|agenda|tickets|kaarten)\b/i.test(visible),financial:/\b(betaaloplossingen|betalingen|payment|payments|payment service provider|betaalprovider)\b/i.test(visible),heritage:/\b(monument|monumenten|erfgoed|restauratie|rijksmonument)\b/i.test(visible),nature:/\b(vogels|vogelbescherming|natuur|doneren|leden)\b/i.test(visible)};
   return NextResponse.json({website:key,expected:selection.expected,finalUrl:fetchResult.finalUrl.toString(),httpStatus:response.status,observations:{title,description,h1:heading,schemaTypes,terms},scanKind:"limited-live-page-check",disclaimer:"Beperkte HTML-controle. Geen volledige RankFix SEO/GEO-score, sectorclassificatie of opgeslagen scan.",checkedAt:new Date().toISOString()},{headers:{"Cache-Control":"no-store"}});
- }catch(error){console.warn("QA page check failed",error instanceof Error?error.message:"unknown");return NextResponse.json({website:key,error:"Kon deze website nu niet uitlezen. Dit is geen SEO-oordeel.",code:"FETCH_FAILED"},{status:502})}
+ }catch(error){const reason=error instanceof Error?error.message:"unknown";console.warn("QA page check failed",reason);return NextResponse.json({website:key,error:reason==="RESPONSE_TOO_LARGE"?"De website heeft meer HTML dan deze beperkte test kan verwerken.":reason==="BODY_TIMEOUT"?"De website stuurde de HTML niet op tijd terug.":"Kon deze website nu niet uitlezen. Dit is geen SEO-oordeel.",code:reason==="RESPONSE_TOO_LARGE"?"HTML_TOO_LARGE":reason==="BODY_TIMEOUT"?"HTML_TIMEOUT":"FETCH_FAILED"},{status:502})}
 }
