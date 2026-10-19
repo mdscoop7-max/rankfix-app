@@ -517,7 +517,7 @@ async function runScan(request: Request, restrictedQa = false) {
     let usageIpHash: string | null = null;
     if (restrictedQa) {
       const permitted = new Set(["monumenten.nl","coolblue.nl","mollie.com","concertgebouw.nl","vogelbescherming.nl"]);
-      const hostname = target.hostname.toLowerCase().replace(/^www\\./,"");
+      const hostname = target.hostname.toLowerCase().replace(/^www\./,"");
       if (!permitted.has(hostname)) return NextResponse.json({error:"Website niet beschikbaar voor deze afgeschermde QA-test.",code:"QA_HOST_NOT_ALLOWED"},{status:403});
     } else {
     await ensureDatabase();
