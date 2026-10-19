@@ -50,6 +50,7 @@ export default function GithubPage(){
   const [proposalLoading,setProposalLoading]=useState(false);
   const [proposalError,setProposalError]=useState("");
   const [proposalRequested,setProposalRequested]=useState(false);
+  const [copied,setCopied]=useState(false);
   const [completedPr,setCompletedPr]=useState<{number?:number;url?:string;title?:string}|null>(null);
   const t=ui[language];
 
@@ -156,6 +157,7 @@ export default function GithubPage(){
       }finally{ setBusy(false); }
     }
     setRepo(nextRepo);
+    setPreview(null); setProposalId(""); setProposalHash(""); setValidation(null); setError(""); setMessage("");
     const selected=repos.find(r=>r.full_name===nextRepo);
     if(selected) setBaseBranch(selected.default_branch);
   }
@@ -245,11 +247,12 @@ export default function GithubPage(){
         <div className="text-xs font-bold uppercase tracking-widest text-cyan-300">{language==="nl"?"Voorstel voor verbetering":"Fix proposal"}</div>
         {proposalLoading&&<p className="mt-3 text-slate-300">{language==="nl"?"RankFix onderzoekt de beste aanpassing voor dit verbeterpunt…":"RankFix is creating a concrete proposal from this scan…"}</p>}
         {proposalError&&<div className="mt-3 rounded-xl bg-red-500/10 p-4 text-sm text-red-200"><strong>{language==="nl"?"Dit voorstel is nog niet klaar voor gebruik.":"Proposal could not be validated automatically."}</strong><div className="mt-1">{proposalError}</div>{selectedCheck?.fix&&<div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3 text-slate-100">{selectedCheck.fix}</div>}</div>}
-        {proposal&&<><h2 className="mt-3 text-xl font-bold text-white">{proposal.title}</h2><p className="mt-2 text-sm text-slate-400">{proposal.reason}</p>{String(selectedCheck?.issue_id||selectedCheck?.rule_id||"").toUpperCase()==="PRODUCT_COPY_OPTIMIZER"?<div className="mt-4 grid gap-3">{proposal.content.split(/\n+/).filter(Boolean).map((line:string,index:number)=>{const split=line.indexOf(":");const label=split>0?line.slice(0,split).trim():"";const value=split>0?line.slice(split+1).trim():line.trim();return <div key={index} className="rounded-xl border border-white/10 bg-black/25 p-4"><div className="text-xs font-bold uppercase tracking-wider text-cyan-300">{label||(language==="nl"?"Voorstel":"Proposal")}</div><div className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-100">{value}</div></div>})}</div>:<pre className="mt-4 max-h-96 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/25 p-4 text-sm text-slate-100">{proposal.content}</pre>}<button type="button" onClick={()=>navigator.clipboard.writeText(proposal.content)} className="mt-4 rounded-xl border border-cyan-300/20 px-4 py-2 text-sm font-bold text-cyan-100">{language==="nl"?"Kopieer voorstel":"Copy proposal"}</button></>}
+        {proposal&&<><h2 className="mt-3 text-xl font-bold text-white">{proposal.title}</h2><p className="mt-2 text-sm text-slate-400">{proposal.reason}</p>{String(selectedCheck?.issue_id||selectedCheck?.rule_id||"").toUpperCase()==="PRODUCT_COPY_OPTIMIZER"?<div className="mt-4 grid gap-3">{proposal.content.split(/\n+/).filter(Boolean).map((line:string,index:number)=>{const split=line.indexOf(":");const label=split>0?line.slice(0,split).trim():"";const value=split>0?line.slice(split+1).trim():line.trim();return <div key={index} className="rounded-xl border border-white/10 bg-black/25 p-4"><div className="text-xs font-bold uppercase tracking-wider text-cyan-300">{label||(language==="nl"?"Voorstel":"Proposal")}</div><div className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-100">{value}</div></div>})}</div>:<pre className="mt-4 max-h-96 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/25 p-4 text-sm text-slate-100">{proposal.content}</pre>}<button type="button" onClick={async()=>{try{await navigator.clipboard.writeText(proposal.content);setCopied(true);}catch{setCopied(false);}}} className="mt-4 rounded-xl border border-cyan-300/20 px-4 py-2 text-sm font-bold text-cyan-100">{copied?(language==="nl"?"Voorstel gekopieerd":"Proposal copied"):(language==="nl"?"Kopieer voorstel":"Copy proposal")}</button></>}
       </div>}
       {plan==="free"&&proposal&&<p className="mt-4 text-sm text-slate-400">{language==="nl"?"Je kunt deze stappen zelf uitvoeren. Een GitHub-koppeling is niet verplicht.":"You can use this proposal manually. GitHub is optional."}</p>}
       {scanId&&<Link href={`/dashboard/audit/${encodeURIComponent(scanId)}`} className="mt-4 inline-flex rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-slate-200">← {language==="nl"?"Terug naar je auditrapport":"Back to audit"}</Link>}
       {plan==="free" ? null : !connected ? <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-7">
+        {error&&<div role="alert" className="mb-5 rounded-xl border border-amber-300/20 bg-amber-300/10 p-4 text-sm text-amber-100">{error}</div>}
         <h2 className="text-xl font-bold">{t.connect}</h2>
         <p className="mt-2 text-sm text-slate-500">{t.connectInfo}</p>
         <Link href="/api/github/connect" className="mt-5 inline-flex rounded-xl bg-white px-5 py-3 font-bold text-slate-950">{t.connectCta} →</Link>
@@ -277,7 +280,7 @@ export default function GithubPage(){
           {preview.truncated&&<p className="mt-2 text-xs text-amber-200">Het voorbeeld is ingekort. Bekijk de volledige wijziging op GitHub voordat je deze goedkeurt.</p>}
           <button type="button" onClick={()=>{setPreview(null);setProposalId("");setProposalHash("");setMessage("");}} className="mt-3 text-xs text-slate-300 underline">{t.cancel}</button>
         </div>}
-        {!completedPr&&<button type="submit" disabled={busy||Boolean(validation?.errors?.length)||error===t.missingAudit} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 font-bold text-[#04342C] disabled:opacity-50">{busy?t.busy:preview?t.approve:t.makePreview}</button>}
+        {!completedPr&&<button type="submit" disabled={busy||!repo||!scanId||!issueId||Boolean(preview&&!proposalId)} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 font-bold text-[#04342C] disabled:opacity-50">{busy?t.busy:preview?t.approve:t.makePreview}</button>}
       </form>}
     </section>
     </div>
