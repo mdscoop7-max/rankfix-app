@@ -3,7 +3,7 @@ import type { QualifiableResult } from "@/lib/score-qualifier";
 export type WebsiteScan = { id: string; scanned_url: string; final_url?: string | null; overall_score: number; seo_score: number; geo_score: number; security_score?: number; created_at: string; open_issues: number; critical_issues: number };
 export type WorkspaceUsage = { plan: string; used: number; limit: number | null; actions?: { aiFixes?: { used: number; limit: number | null } } };
 export type WorkspaceHistory = { scans: WebsiteScan[]; history: WebsiteScan[]; fixes: Record<string, number>; usage: WorkspaceUsage };
-export type AuditCheck = { title: string; category?: string; key?: string; rule_id?: string; issue_id?: string; status: string; severity?: string; message?: string; fix?: string; confidence?: string; evidence?: { found?: unknown } };
+export type AuditCheck = { fix_category?: string; fix_status?: string; title: string; category?: string; key?: string; rule_id?: string; issue_id?: string; status: string; severity?: string; message?: string; fix?: string; confidence?: string; evidence?: { found?: unknown } };
 export type WorkspaceAudit = QualifiableResult & { seo?: { score: number; checks?: AuditCheck[] }; geo?: { score: number; checks?: AuditCheck[] }; security?: { score?: number; checks?: AuditCheck[] } };
 
 export function websiteHost(scan: Pick<WebsiteScan, "scanned_url" | "final_url">): string {

@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import AiAssistant from "@/components/ai-assistant";
+import { getFixPolicy } from "@/lib/fix-policy";
+import { issueAnchor, safeGithubFixHref } from "@/lib/dashboard-fix-action";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import type { Locale } from "@/lib/locales";
@@ -68,6 +71,7 @@ export default function DashboardWorkspace({ view = "overview" }: { view?: View 
         if (controller.signal.aborted) return;
         if (preference?.language in workspaceCopy) setLanguage(preference.language);
         setUser(me.user); setData(history);
+        try { setSelectedId(sessionStorage.getItem("rankfix:selected-scan") || ""); } catch {}
         const hour = new Date().getHours(); setGreeting(hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening");
       } catch { if (!controller.signal.aborted) setError("dashboard"); }
       finally { if (!controller.signal.aborted) setLoading(false); }
@@ -128,9 +132,12 @@ export default function DashboardWorkspace({ view = "overview" }: { view?: View 
     if (!visible.length) return <div className="rx-empty"><WorkspaceIcon name={query ? "scan" : "check"} /><h3>{query ? t.noResults : t.noIssues}</h3><p>{t.noIssuesHint}</p><Link className="rx-text-link" href={auditHref}>{t.audit} →</Link></div>;
     return <div className="rx-issue-list">{visible.slice(0, limit).map((check, index) => {
       const tone = issueTone(check);
+      const fixTarget = safeGithubFixHref(check, selected.id, getFixPolicy(check.issue_id || check.rule_id || check.key || ""));
+      const target = fixTarget || `${auditHref}?focus_issue=${encodeURIComponent(issueAnchor(check))}#${issueAnchor(check)}`;
+      const label = fixTarget ? ({ nl: "Fix maken", en: "Create fix", de: "Fix erstellen", fr: "Corriger", it: "Crea fix", es: "Crear fix" })[language] : t.solve;
       const severity = check.severity?.toUpperCase();
       const impact = severity === "CRITICAL" || severity === "HIGH" ? "high" : severity === "LOW" ? "low" : "medium";
-      return <article className="rx-issue-row" key={`${check.category}:${check.rule_id || check.issue_id || check.key || check.title}:${index}`}><span className={`rx-issue-icon rx-${tone.color}`}><WorkspaceIcon name={tone.icon} /></span><div className="rx-issue-copy"><h3>{check.title}</h3><p>{check.message || t.details}</p></div><span className={`rx-impact rx-impact-${impact}`}>{t[impact]}</span><Link className="rx-resolve" href={issueHref} aria-label={`${t.solve}: ${check.title}`}>{t.solve}</Link></article>;
+      return <article className="rx-issue-row" key={`${check.category}:${check.rule_id || check.issue_id || check.key || check.title}:${index}`}><span className={`rx-issue-icon rx-${tone.color}`}><WorkspaceIcon name={tone.icon} /></span><div className="rx-issue-copy"><h3>{check.title}</h3><p>{check.message || t.details}</p></div><span className={`rx-impact rx-impact-${impact}`}>{t[impact]}</span><Link className="rx-resolve" href={target} aria-label={`${label}: ${check.title}`}>{label}</Link></article>;
     })}</div>;
   }
 
@@ -152,6 +159,7 @@ export default function DashboardWorkspace({ view = "overview" }: { view?: View 
   const cards = view === "tools" ? toolCards : view === "connections" ? connectionCards : [...toolCards, ...connectionCards, ...serviceCards];
   return <main className="rx-page" lang={language}>
     <a className="rx-skip-link" href="#rx-content">{t.overview}</a>
+    <AiAssistant dashboard scanId={selectedScanId || null} />
     <DashboardNav loadSummary={false} language={language} usage={usage} issues={selected?.open_issues} />
     <div className="rx-workspace">
       <header className="rx-topbar">
@@ -164,7 +172,7 @@ export default function DashboardWorkspace({ view = "overview" }: { view?: View 
       </header>
       <div className="rx-content" id="rx-content">
         <div className="rx-heading"><div><h1>{heading}</h1><p>{view === "overview" ? <>{t.state} <strong>{selected ? websiteHost(selected) : t.noSite}</strong></> : view === "tools" ? t.toolIntro : view === "connections" ? t.connectionIntro : view === "websites" ? t.siteIntro : view === "improvements" ? t.issueIntro : t.helpHint}</p></div><Link href="/dashboard/scan" className="rx-primary"><WorkspaceIcon name="plus" />{t.scan}</Link></div>
-        {data.scans.length > 1 && ["overview", "improvements", "tools"].includes(view) && <label className="rx-site-select"><span>{t.selectSite}</span><select value={selectedScanId} onChange={event => { setSelectedId(event.target.value); setSearch(""); }}>{data.scans.map(scan => <option value={scan.id} key={scan.id}>{websiteHost(scan)}</option>)}</select></label>}
+        {data.scans.length > 1 && ["overview", "improvements", "tools"].includes(view) && <label className="rx-site-select"><span>{t.selectSite}</span><select value={selectedScanId} onChange={event => { setSelectedId(event.target.value); try { sessionStorage.setItem("rankfix:selected-scan", event.target.value); } catch {} setSearch(""); }}>{data.scans.map(scan => <option value={scan.id} key={scan.id}>{websiteHost(scan)}</option>)}</select></label>}
         {loading ? <div className="rx-loading" role="status"><span />{t.loading}</div> : error ? <div className="rx-error" role="alert"><p>{t.error}</p><button type="button" className="rx-primary" onClick={() => setAttempt(value => value + 1)}>{t.retry}</button></div> : <>
           {view === "overview" && <>
             <section className="rx-summary" aria-label={t.overview}>

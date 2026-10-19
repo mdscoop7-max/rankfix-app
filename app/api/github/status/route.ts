@@ -14,7 +14,6 @@ export async function GET() {
   try {
     token=decryptToken(r.rows[0].access_token_encrypted);
   } catch {
-    await getDb().query("DELETE FROM github_connections WHERE user_id=$1",[user.id]);
     return NextResponse.json({connected:false,reauthorize:true,error:"De opgeslagen GitHub-koppeling is ongeldig. Verbind GitHub opnieuw."});
   }
   try {

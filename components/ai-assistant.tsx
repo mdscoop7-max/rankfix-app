@@ -1,10 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { DashboardAssistantContext, useDashboardAssistantContext } from "./dashboard-assistant-context";
+import "./ai-assistant.css";
 
-type Props = { dashboard?: boolean; scanId?: string | null; publicLocale?: string; errorContext?: string | null };
+type Props = { host?: boolean; dashboard?: boolean; scanId?: string | null; publicLocale?: string; errorContext?: string | null };
 
-export default function AiAssistant({ dashboard = false, scanId = null, publicLocale = "nl", errorContext = null }: Props) {
+export default function AiAssistant(props: Props) {
+  return props.dashboard && !props.host ? <DashboardAssistantContext scanId={props.scanId} errorContext={props.errorContext} /> : <AssistantPanel {...props} />;
+}
+
+function AssistantPanel({ dashboard = false, host = false, scanId: suppliedScanId = null, publicLocale = "nl", errorContext: suppliedError = null }: Props) {
+  const router = useRouter();
+  const context = useDashboardAssistantContext()?.context;
+  const scanId = host ? context?.scanId || null : suppliedScanId;
+  const errorContext = host ? context?.errorContext || null : suppliedError;
   const greeting: Record<string, string> = {
     nl: "Hoi! Ik ben RankFix AI. Ik kan uitleg geven over RankFix, SEO, GEO, audits, AI Search en hoe de app werkt.",
     en: "Hi! I’m RankFix AI. I can explain RankFix, SEO, GEO, audits, AI Search and how the app works.",
@@ -25,11 +36,13 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
     },
   ]);
   const [busy, setBusy] = useState(false);
-  const [scanIssue, setScanIssue] = useState<any>(null);
+  const [scanIssueState, setScanIssueState] = useState<{ scanId: string; issue: { issue_id?: string; rule_id?: string; title?: string } | null } | null>(null);
   const [fixBusy, setFixBusy] = useState(false);
   const [fixResult, setFixResult] = useState("");
-  const [language, setLanguage] = useState(publicLocale);
-  const extra: Record<string, any> = {
+  const [preferredLanguage, setLanguage] = useState(publicLocale);
+  const language = dashboard ? preferredLanguage : publicLocale;
+  const scanIssue = scanIssueState?.scanId === scanId ? scanIssueState.issue : null;
+  const extra: Record<string, Record<string, string>> = {
     nl:{greet:"Hoi! Ik ben RankFix AI. Stel gerust technische vragen over je scans, SEO, GEO, scores, fixes, abonnementen of het Dashboard.",blocked:"Ik zie dat RankFix deze actie veilig heeft geblokkeerd.",blockedAsk:"Leg uit waarom deze actie is geblokkeerd en wat ik veilig moet controleren.",scanAsk:"Leg deze scan uit en noem de 3 belangrijkste problemen met een concrete oplossing.",none:"Geen actief probleem gevonden.",githubFail:"GitHub Fix kon niet worden gestart.",created:"Codevoorstel aangemaakt. Controleer en merge de PR, en scan daarna opnieuw: ",already:"De code bevat dit al; er is niets gewijzigd. Controleer de live pagina met een nieuwe scan.",nochange:"Er is geen wijziging bevestigd.",failed:"GitHub Fix mislukt.",generic:"Er ging iets mis.",retry:"Er ging iets mis. Probeer het opnieuw.",safe:"Veilige fix",loading:"Actief scanprobleem laden…",checking:"GitHub Fix wordt gecontroleerd…",start:"Start veilige GitHub Fix"},
     en:{greet:"Hi! I’m RankFix AI. Ask me technical questions about your scans, SEO, GEO, scores, fixes, plans or Dashboard.",blocked:"I can see RankFix safely blocked this action.",blockedAsk:"Explain why this action was blocked and what I should safely check.",scanAsk:"Explain this scan and list the 3 most important problems with a concrete solution.",none:"No active issue found.",githubFail:"GitHub Fix could not be started.",created:"Code proposal created. Review and merge the PR, then scan again: ",already:"The code already contains this; nothing was changed. Verify the live page with a new scan.",nochange:"No change was confirmed.",failed:"GitHub Fix failed.",generic:"Something went wrong.",retry:"Something went wrong. Please try again.",safe:"Safe fix",loading:"Loading active scan issue…",checking:"GitHub Fix is being checked…",start:"Start safe GitHub Fix"},
     de:{greet:"Hallo! Ich bin RankFix AI. Frag mich zu deinen Scans, SEO, GEO, Scores, Fixes, Tarifen oder dem Dashboard.",blocked:"RankFix hat diese Aktion aus Sicherheitsgründen blockiert.",blockedAsk:"Erkläre, warum diese Aktion blockiert wurde und was ich sicher prüfen sollte.",scanAsk:"Erkläre diesen Scan und nenne die 3 wichtigsten Probleme mit einer konkreten Lösung.",none:"Kein aktives Problem gefunden.",githubFail:"GitHub Fix konnte nicht gestartet werden.",created:"Codevorschlag erstellt. Prüfe und merge den PR und scanne danach erneut: ",already:"Der Code enthält dies bereits; es wurde nichts geändert. Prüfe die Live-Seite mit einem neuen Scan.",nochange:"Keine Änderung wurde bestätigt.",failed:"GitHub Fix fehlgeschlagen.",generic:"Etwas ist schiefgelaufen.",retry:"Etwas ist schiefgelaufen. Bitte versuche es erneut.",safe:"Sicherer Fix",loading:"Aktives Scanproblem wird geladen…",checking:"GitHub Fix wird geprüft…",start:"Sicheren GitHub Fix starten"},
@@ -39,12 +52,14 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
   };
   const ex=extra[language]||extra.nl;
 
+  const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    if (!dashboard) {
-      setLanguage(publicLocale);
-      setMessages((current) => current.length <= 1 ? [{ role: "assistant", content: greeting[publicLocale] || greeting.nl }] : current);
-    }
-  }, [dashboard, publicLocale]);
+    if (!open) return;
+    inputRef.current?.focus();
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
+    window.addEventListener("keydown", escape);
+    return () => window.removeEventListener("keydown", escape);
+  }, [open]);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -56,6 +71,9 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
   useEffect(() => {
     if (!dashboard) return;
     fetch("/api/account/language").then(r=>r.ok?r.json():null).then(d=>{if(d?.language)setLanguage(d.language)}).catch(()=>{});
+    const change = (event: Event) => setLanguage((event as CustomEvent<string>).detail);
+    window.addEventListener("rankfix-language", change);
+    return () => window.removeEventListener("rankfix-language", change);
   }, [dashboard]);
 
   useEffect(() => {
@@ -68,22 +86,24 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
     return () => window.removeEventListener("rankfix:open-assistant", onOpenAssistant as EventListener);
   }, []);
 
-  useEffect(() => {
-    if (!dashboard || !errorContext) return;
-    setOpen(true);
-    setMessages((m) => [...m, { role: "assistant", content: (extra[language]||extra.nl).blocked + " " + errorContext }]);
-    setInput((extra[language]||extra.nl).blockedAsk);
-  }, [dashboard, errorContext]);
+  const [seenError, setSeenError] = useState<string | null>(null);
+  if (dashboard && errorContext !== seenError) {
+    setSeenError(errorContext);
+    if (errorContext) {
+      setOpen(true);
+      setMessages(m => [...m, { role: "assistant", content: ex.blocked + " " + errorContext }]);
+      setInput(ex.blockedAsk);
+    }
+  }
 
   useEffect(() => {
     if (!dashboard || !scanId) return;
-    setInput((extra[language]||extra.nl).scanAsk);
-    setScanIssue(null);
-    setFixResult("");
-    fetch("/api/assistant/scan?scanId=" + encodeURIComponent(scanId), { cache: "no-store" })
-      .then(async (r) => { const raw=await r.text(); if(!raw.trim()) return {}; try{return JSON.parse(raw);}catch{return {};} })
-      .then((d) => setScanIssue(d.issues?.[0] || null))
-      .catch(() => setScanIssue(null));
+    const controller = new AbortController();
+    fetch("/api/assistant/scan?scanId=" + encodeURIComponent(scanId), { cache: "no-store", signal: controller.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (!controller.signal.aborted) setScanIssueState({ scanId, issue: data?.issues?.[0] || null }); })
+      .catch(() => { if (!controller.signal.aborted) setScanIssueState({ scanId, issue: null }); });
+    return () => controller.abort();
   }, [dashboard, scanId]);
 
   async function startGithubFix() {
@@ -95,7 +115,8 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
       setFixBusy(false);
       return;
     }
-    window.location.href="/dashboard/github?scan_id="+encodeURIComponent(scanId)+"&issue_id="+encodeURIComponent(issueId);
+    router.push("/dashboard/github?scan_id="+encodeURIComponent(scanId)+"&issue_id="+encodeURIComponent(issueId));
+    setFixBusy(false);
   }
 
   useEffect(() => {
@@ -116,7 +137,7 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
         body: JSON.stringify({ message: question, dashboard, scanId, language, errorContext }),
       });
       const raw = await response.text();
-      let data:any={};
+      let data: { answer?: string; error?: string } = {};
       try { data=raw.trim()?JSON.parse(raw):{}; } catch { data={}; }
       setMessages((m) => [...m, { role: "assistant", content: data.answer || data.error || ex.generic }]);
     } catch {
@@ -137,19 +158,20 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
   const tx = ui[language] || ui.nl;
 
   return (
-    <>
+    <div className={dashboard ? "rf-ai-root rf-ai-dashboard" : "rf-ai-root"}>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`fixed right-3 z-[110] rounded-full border border-emerald-300/30 bg-[#0F3B30]/95 px-2.5 py-2 text-[11px] font-bold text-emerald-100 shadow-xl shadow-emerald-950/25 backdrop-blur sm:right-5 sm:px-4 sm:py-3 sm:text-sm ${dashboard ? "bottom-[calc(104px+env(safe-area-inset-bottom))] sm:bottom-5" : "bottom-[calc(104px+env(safe-area-inset-bottom))] sm:bottom-5"} ${open ? "pointer-events-none opacity-0" : "opacity-100"}`}
+        aria-label={tx.button}
+        className={`rf-ai-launcher fixed right-3 z-[110] rounded-full border border-emerald-300/30 bg-[#0F3B30]/95 px-2.5 py-2 text-[11px] font-bold text-emerald-100 shadow-xl shadow-emerald-950/25 backdrop-blur sm:right-5 sm:px-4 sm:py-3 sm:text-sm ${dashboard ? "bottom-[calc(104px+env(safe-area-inset-bottom))] sm:bottom-5" : "bottom-[calc(104px+env(safe-area-inset-bottom))] sm:bottom-5"} ${open ? "pointer-events-none opacity-0" : "opacity-100"}`}
       >
         ✦ {tx.button}
       </button>
 
       {open && (
         <div className={dashboard ? "pointer-events-none fixed inset-0 z-[120] flex items-end justify-end p-3 pb-[calc(88px+env(safe-area-inset-bottom))] sm:p-5" : "fixed inset-0 z-[120] flex items-end justify-end bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4"}>
-          <div className={`flex w-full max-w-md flex-col overflow-hidden border border-white/10 bg-[#101B2D]/98 shadow-2xl backdrop-blur-xl ${dashboard ? "pointer-events-auto h-[min(480px,56dvh)] rounded-3xl sm:h-[min(680px,90vh)]" : "h-[min(680px,100dvh)] rounded-t-3xl sm:h-[min(680px,90vh)] sm:rounded-3xl"}`}>
-            <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+          <div role="dialog" aria-label="RankFix AI" className={`rf-ai-panel flex w-full max-w-md flex-col overflow-hidden border border-white/10 bg-[#101B2D]/98 shadow-2xl backdrop-blur-xl ${dashboard ? "pointer-events-auto h-[min(480px,56dvh)] rounded-3xl sm:h-[min(680px,90vh)]" : "h-[min(680px,100dvh)] rounded-t-3xl sm:h-[min(680px,90vh)] sm:rounded-3xl"}`}>
+            <div className="rf-ai-header flex items-center justify-between border-b border-white/10 px-5 py-4">
               <div>
                 <div className="font-bold">RankFix AI</div>
                 <div className="text-xs text-slate-500">{dashboard ? tx.subtitle : tx.subtitle}</div>
@@ -157,10 +179,10 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
               <button type="button" onClick={() => setOpen(false)} aria-label={tx.close} className="rounded-full px-3 py-1 text-xl text-slate-300 hover:text-white">×</button>
             </div>
 
-            <div className="flex-1 space-y-4 overflow-y-auto p-5">
+            <div className="rf-ai-messages flex-1 space-y-4 overflow-y-auto p-5" aria-live="polite" aria-relevant="additions text">
               {messages.map((message, index) => (
-                <div key={index} className={message.role === "user" ? "ml-8 rounded-2xl bg-emerald-400/10 p-3 text-sm text-emerald-50" : "mr-8 rounded-2xl bg-white/5 p-3 text-sm leading-6 text-slate-300"}>
-                  {message.content}
+                <div key={index} className={message.role === "user" ? "rf-ai-message rf-ai-user " + "ml-8 rounded-2xl bg-emerald-400/10 p-3 text-sm text-emerald-50" : "rf-ai-message mr-8 rounded-2xl bg-white/5 p-3 text-sm leading-6 text-slate-300"}>
+                  {index === 0 ? (greeting[language] || greeting.nl) : message.content}
                 </div>
               ))}
               {busy && <div className="mr-8 rounded-2xl bg-white/5 p-3 text-sm text-slate-500">{tx.thinking}</div>}
@@ -183,11 +205,13 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
             <div className="border-t border-white/10 p-4 pb-[calc(16px+env(safe-area-inset-bottom))]">
               <div className="flex gap-2">
                 <input
+                  ref={inputRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") send(); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) void send(); }}
+                  aria-label={tx.placeholder}
                   placeholder={tx.placeholder}
-                  className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm outline-none placeholder:text-slate-600"
+                  className="rf-ai-input min-w-0 flex-1 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm outline-none placeholder:text-slate-600"
                 />
                 <button type="button" onClick={send} disabled={busy || !input.trim()} className="rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-950 disabled:opacity-40">
                   {tx.send}
@@ -197,6 +221,6 @@ export default function AiAssistant({ dashboard = false, scanId = null, publicLo
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

@@ -741,10 +741,11 @@ test("audit AI-advice actions open the in-dashboard assistant", async () => {
 });
 
 
-test("GitHub OAuth production fallback points to Render, not retired Vercel host", async () => {
+test("GitHub OAuth stays on the active deployment origin", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/github/connect/route.ts", import.meta.url), "utf8");
-  assert.match(source,/https:\/\/rankfix-app\.onrender\.com/);
+  assert.match(source,/const base=url\.origin/);
+  assert.match(source,/githubOAuthConfiguration\(base, process\.env\)/);
   assert.doesNotMatch(source,/rankfix-app\.vercel\.app/);
 });
 
