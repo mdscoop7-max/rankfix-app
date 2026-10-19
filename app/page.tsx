@@ -79,15 +79,7 @@ type ScanResult = {
 
 type TestHistoryEntry = { url: string; status: "success" | "blocked" | "failed"; score?: number; lastTested?: string };
 const TEST_HISTORY_KEY = "rankfix-free-scan-test-sites-v1";
-const INITIAL_TEST_SITES: TestHistoryEntry[] = [
-  {url:"https://www.ikea.com/nl/nl/",status:"success",score:98},
-  {url:"https://www.spyderkoeriers.nl/",status:"success",score:96},
-  {url:"https://tandartsplantagemiddenlaan.nl/",status:"success",score:94},
-  {url:"https://www.housingnet.nl/",status:"success",score:89},
-  {url:"https://www.kwik-fit.nl/",status:"success",score:90},
-  {url:"https://www.funda.nl/",status:"blocked"},
-  {url:"https://www.dekas.com/",status:"failed"}
-];
+const INITIAL_TEST_SITES: TestHistoryEntry[] = [];
 function canonicalTestUrl(raw: string): string {
   try { const u = new URL(/^https?:\/\//i.test(raw.trim()) ? raw.trim() : "https://" + raw.trim()); return u.protocol + "//" + u.host.toLowerCase() + (u.pathname.replace(/\/+$/, "") || "/"); }
   catch { return raw.trim(); }
