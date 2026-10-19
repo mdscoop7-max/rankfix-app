@@ -21,6 +21,7 @@ for (const p of PROFILES) {
   catch (e) { j = { thrown: String(e?.stack || e) }; }
   const ms = Date.now() - t0; const errs = restore();
   const problems = [];
+  if (p.expectCode && j.code !== p.expectCode) problems.push(`code ${j.code} (expected ${p.expectCode})`);
   if (p.expectHttp) { if (!p.expectHttp.includes(status)) problems.push(`HTTP ${status} not in ${p.expectHttp} ${j.error || j.thrown || ""} ${JSON.stringify(errs.find(e => /scan failed/i.test(String(e[0])))?.[1] || "").slice(0, 500)}`); if (status !== 200) { rows.push({ id: p.id, status, sector: "-", key: (j.error||"").slice(0,60), conf: "", page: "", score: "", ms, problems }); continue; } }
   if (status !== 200) problems.push(`HTTP ${status} ${j.error || j.thrown || ""} ${JSON.stringify(errs.find(e => /scan failed/i.test(String(e[0])))?.[1] || "").slice(0, 400)}`);
   else {
@@ -93,6 +94,12 @@ for (const p of PROFILES) {
       if (ps && !j.multiPage?.representativeProduct && !(j.evidenceLayer?.productOffers?.length || j.productOffers?.length || /productpagina|Product structured data/i.test(ps.message))) problems.push("product_schema pass without Product/Offer evidence");
       const importantOpen = all.filter((c) => c.status === "unable_to_confirm" && c.maxPoints >= 8);
       if (j.overallScore >= 98 && importantOpen.length && j.scoreModel?.evidenceLevel === "complete") problems.push(`score ${j.overallScore} shown as complete with ${importantOpen.length} important unconfirmed check(s): ${importantOpen.map((c) => c.key).join(",")}`);
+      // 3.5: "complete" (Definitief) is impossible next to ANY unconfirmed scored check or a real range.
+      const anyOpen = all.filter((c) => c.status === "unable_to_confirm" && c.maxPoints > 0);
+      if (j.scoreModel?.evidenceLevel === "complete" && anyOpen.length) problems.push(`evidenceLevel complete with ${anyOpen.length} unconfirmed check(s): ${anyOpen.map((c) => c.key).join(",")}`);
+      if (j.scoreModel?.evidenceLevel === "complete" && j.scoreModel?.range && j.scoreModel.range.low < j.scoreModel.range.high) problems.push(`evidenceLevel complete next to range ${j.scoreModel.range.low}-${j.scoreModel.range.high}`);
+      // Every scored check says where its evidence came from.
+      for (const c of all) if (c.maxPoints > 0 && !c.evidence?.source) problems.push(`${c.key}: no evidence source`);
     }
     if (p.secondary) for (const sec of p.secondary) if (!(j.sectorProfile?.secondaryActivities || []).some((x) => x.sector === sec)) problems.push(`secondary activity ${sec} missing`);
     if (p.maxSectorConfidence != null && (j.sectorProfile?.confidenceScore ?? 0) > p.maxSectorConfidence) problems.push(`sector confidence ${j.sectorProfile?.confidenceScore} > ${p.maxSectorConfidence}`);

@@ -240,7 +240,11 @@ export function evidenceLevel(input: { coveragePercent: number; javascriptRequir
   if (sectorUnknown) reasons.push("Hoofdsector niet vastgesteld: alleen algemene controles toegepast");
   const important = input.importantUnconfirmed || [];
   if (important.length) reasons.push(`Belangrijke controle(s) niet bevestigd: ${important.slice(0, 3).join(", ")}`);
-  const level: EvidenceLevel = insufficient ? "insufficient" : input.coveragePercent < 90 || input.javascriptRequiredButNotRendered || input.renderDegraded || input.renderPartial || important.length > 0 || sectorAmbiguous || sectorUnknown ? "provisional" : "complete";
+  // "Complete" (shown as "Definitief") is a claim that every applicable check was
+  // confirmed. One unconfirmed check, however light, leaves an uncertainty range
+  // above or below the score, so the score is provisional (field report 16-10:
+  // 98/100 "definitief" next to 3 unconfirmed checks and a stored range 90-99).
+  const level: EvidenceLevel = insufficient ? "insufficient" : input.coveragePercent < 90 || input.unconfirmed > 0 || input.javascriptRequiredButNotRendered || input.renderDegraded || input.renderPartial || important.length > 0 || sectorAmbiguous || sectorUnknown ? "provisional" : "complete";
   return { level, reasons };
 }
 

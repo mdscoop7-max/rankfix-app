@@ -201,3 +201,15 @@ test("rendering: Nuxt/Next hydration wait is bounded and rejected snapshots are 
   assert.match(route, /renderedWords: visibleWordCount\(rendered\.html\)/);
   assert.match(report, /Browserbewijs:/);
 });
+
+
+test("sample headline never rounds a proven 96/100 page to a perfect 100", async () => {
+  const scores = [...Array(28).fill(100), 96];
+  const mean = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+  assert.equal(Math.round(mean), 100); // Original false-perfect behaviour.
+  const shown = Math.min(scores.some(score => score < 100) ? 99 : 100, Math.round(mean));
+  assert.equal(shown, 99);
+  const route = await source("app/api/scan/route.ts");
+  assert.equal((route.match(/scoredSamplePages\.some\(item => item\.score !== null && item\.score < 100\)/g)||[]).length, 2);
+  assert.equal((route.match(/scoredSamplePages\.length < multiPageAudits\.length \? 99 : 100/g)||[]).length, 2);
+});
