@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - qa/fix-engine-test-harness-20261020
+      - qa/fix-engine-manual-merge-20261020
 
 permissions:
   contents: read
