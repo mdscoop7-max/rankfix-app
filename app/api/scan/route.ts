@@ -1,3 +1,4 @@
+import { isDatabaseFreeQaPreview, checkDatabaseFreeQaLimit } from "@/lib/database-free-qa";
 import { decideCommerceModules } from "@/lib/sector-motor-decisions";
 import { NextResponse } from "next/server";
 import { createHash } from "crypto";
@@ -402,6 +403,12 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
  * (timeout). Best effort: logging never changes the scan response.
  */
 export async function POST(request: Request) {
+  if (isDatabaseFreeQaPreview()) {
+    // QA only: run the existing real engine without Neon-backed usage, accounts or history.
+    const limit = checkDatabaseFreeQaLimit(requestIp(request));
+    if (!limit.allowed) return NextResponse.json({ error: "Testlimiet bereikt: maximaal 8 scans per uur per netwerk. Probeer later opnieuw.", code: "QA_SCAN_LIMIT" }, { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } });
+    return runRestrictedQaScan(request);
+  }
   const attemptStarted = Date.now();
   let requestedUrl = "";
   try { const peek = await request.clone().json(); requestedUrl = typeof peek?.url === "string" ? peek.url.trim().slice(0, 500) : ""; } catch {}
