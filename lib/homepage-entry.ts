@@ -1,4 +1,4 @@
-import { visibleWordCount } from "./render-quality";
+import { visibleWordCount } from "./render-quality.ts";
 
 /**
  * A domain root can be a tiny language gateway that returns HTTP 200.
