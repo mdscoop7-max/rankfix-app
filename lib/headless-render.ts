@@ -246,7 +246,7 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
     // A partially loaded page is not a basis for an accessibility rule run.
     if (!partialNavigation) try {
       const axeCore = (await import("axe-core")).default;
-      await withinTimeout(page.evaluate(axeCore.source), Math.min(2500, remaining()));
+      await withinTimeout(page.addScriptTag({ content: axeCore.source }), Math.min(2500, remaining()));
       axeReport = await withinTimeout(page.evaluate(async () => {
         const axe = (window as typeof window & { axe?: {
           run: (root: Document, options: object) => Promise<{

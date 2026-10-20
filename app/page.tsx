@@ -208,6 +208,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
   const [testHistory, setTestHistory] = useState<TestHistoryEntry[]>(INITIAL_TEST_SITES);
   const [historyReady, setHistoryReady] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [scanAbort, setScanAbort] = useState<AbortController | null>(null);
   const [error, setError] = useState("");
   const [result, setResult] = useState<ScanResult | null>(null);
   const [tab, setTab] = useState<"seo" | "geo">("seo");
@@ -635,12 +636,15 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
     setScanning(true);
     setError("");
     setResult(null);
+    const controller=new AbortController();setScanAbort(controller);
+    const scanTimeout=window.setTimeout(()=>controller.abort("timeout"),135_000);
 
     try {
       const response = await fetch("/api/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, mode: auditMode, language }),
+        signal: controller.signal,
       });
       const contentType = response.headers.get("content-type") || "";
       const raw = await response.text();
@@ -668,13 +672,15 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
       setTab(auditMode === "geo" ? "geo" : "seo");
       setTimeout(() => document.getElementById("resultaat")?.scrollIntoView({ behavior: "smooth" }), 50);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Scan mislukt.";
+      const message = controller.signal.aborted ? (controller.signal.reason==="cancelled"?"Scan gestopt.":"De scan duurt te lang. Probeer een andere website.") : err instanceof Error ? err.message : "Scan mislukt.";
       setError(message);
+      if(controller.signal.reason==="cancelled")return;
       setTestHistory(items => recordTestHistory(items, {
         url: url.trim(), status: /403|challenge|blocked|geblokkeerd|tussenpagina/i.test(message) ? "blocked" : "failed",
         lastTested: new Date().toISOString()
       }));
     } finally {
+      window.clearTimeout(scanTimeout);setScanAbort(null);
       setScanning(false);
     }
   }
@@ -917,7 +923,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         </div>
       </section>
 
-      {scanning && <ScanProgress url={url} language={language} />}
+      {scanning && <ScanProgress url={url} language={language} onCancel={()=>scanAbort?.abort("cancelled")} />}
 
       {githubFixing && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center bg-[#0B1220]/85 px-4 py-6 backdrop-blur-xl">

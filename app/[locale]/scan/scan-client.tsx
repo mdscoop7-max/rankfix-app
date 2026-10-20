@@ -29,21 +29,24 @@ export default function ScanClient({ locale }: { locale: Locale }) {
   const u = scanUi[locale];
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
+  const [scanAbort, setScanAbort] = useState<AbortController | null>(null);
   const [error, setError] = useState("");
   const [result, setResult] = useState<Result | null>(null);
   const [recentSites, setRecentSites] = useState<string[]>([]);
   useEffect(() => { const saved=readRecentScanUrls(); setRecentSites(saved); if(saved[0])setUrl(saved[0]); }, []);
   async function run(event: React.FormEvent) {
     event.preventDefault(); setBusy(true); setError(""); setResult(null);
+    const controller=new AbortController();setScanAbort(controller);
+    const scanTimeout=window.setTimeout(()=>controller.abort("timeout"),135_000);
     try {
-      const response = await fetch("/api/scan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`, mode: "both", language: locale }) });
+      const response = await fetch("/api/scan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`, mode: "both", language: locale }), signal: controller.signal });
       const data = await response.json();
       if (!response.ok) throw new Error(data?.error || t.error);
       const normalized = /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`;
       try { window.localStorage.setItem("rankfix:last-scan-url", normalized); } catch {}
       setUrl(normalized); setResult(data);
       setRecentSites(rememberScanUrl(normalized));
-    } catch (cause) { setError(cause instanceof Error ? cause.message : t.error); } finally { setBusy(false); }
+    } catch (cause) { setError(controller.signal.aborted?(controller.signal.reason==="cancelled"?"Scan gestopt.":"De scan duurt te lang. Probeer later opnieuw."):cause instanceof Error ? cause.message : t.error); } finally { window.clearTimeout(scanTimeout);setScanAbort(null);setBusy(false); }
   }
   function downloadPdf(){if(!result)return;try{downloadQaAuditPdf(result,url,locale)}catch{setError(locale==="nl"?"PDF maken is niet gelukt.":"Could not create the PDF.")}}
   const checks = [...(result?.seo?.checks || []), ...(result?.geo?.checks || [])];
@@ -56,6 +59,7 @@ export default function ScanClient({ locale }: { locale: Locale }) {
     <form onSubmit={run} className="lc-scan-box"><label htmlFor="lc-url">{t.url}</label><input id="lc-url" value={url} onChange={event => { const next=event.target.value; const embedded=next.slice(1).search(/https?:\/\//i); setUrl(embedded>=0?next.slice(embedded+1):next); }} onFocus={event=>event.currentTarget.select()} placeholder="https://example.com" required /><button type="submit" disabled={busy} className="lc-primary">{busy ? t.running : t.run}</button></form>
     {recentSites.length>0&&<div style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:8,marginTop:12,marginBottom:14}}><strong style={{fontSize:13}}>{locale==="nl"?"Eerder gescand:":"Recent sites:"}</strong>{recentSites.map(site=><button type="button" key={site} title={site} onClick={()=>setUrl(site)} style={{border:"1px solid #94a3b8",borderRadius:20,padding:"6px 12px",fontSize:12,maxWidth:"100%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{site.replace(/^https?:\/\//,"").replace(/\/$/,"")}</button>)}<button type="button" style={{fontSize:12,textDecoration:"underline"}} onClick={()=>{forgetRecentScanUrls();setRecentSites([])}}>{locale==="nl"?"Wis lijst":"Clear list"}</button></div>}
     {error && <p role="alert" className="lc-note">{error}</p>}
+    {busy && <button type="button" className="lc-secondary" onClick={()=>scanAbort?.abort("cancelled")}>{locale==="nl"?"Stop scan":"Cancel scan"}</button>}
     {busy && <section className="lc-scan-visual" aria-live="polite"><div className="lc-meter lc-meter-running"><div className="lc-meter-core"><strong>AI</strong><span>{t.running}</span></div></div><div><h2>{t.running}</h2><p>{u.scope}</p></div></section>}
     {result && <section className="lc-scan-results" aria-live="polite"><div className="lc-scan-visual"><div className="lc-meter" style={{"--score":result.overallScore} as React.CSSProperties}><div className="lc-meter-core"><strong>{headlineDisplay(result as never)}</strong><span>/100</span></div></div><div><h2>{t.score}</h2><p>SEO {result.seo?.score ?? "—"} · GEO {result.geo?.score ?? "—"} · Security {result.security?.score ?? "—"} · {issues} {t.issues.toLowerCase()}</p><ScoreQualifier result={result as never} locale={locale}/></div></div><div className="lc-grid"><div className="lc-card"><strong>SEO</strong>{result.seo?.score ?? "—"}/100</div><div className="lc-card"><strong>GEO</strong>{result.geo?.score ?? "—"}/100</div><div className="lc-card"><strong>Security</strong>{result.security?.score ?? "—"}/100</div><div className="lc-card"><strong>{t.issues}</strong>{issues}</div></div><p>{t.success}: {passed}</p>{(notApplicable > 0 || unableToConfirm > 0) && <p className="lc-note">{u.na}: {notApplicable} · {u.unconfirmed}: {unableToConfirm}. {u.scoreNote}</p>}<p>{t.next}</p><button type="button" className="lc-primary" onClick={downloadPdf}>{locale==="nl"?"Download PDF-rapport":"Download PDF report"}</button> <Link className="lc-secondary" href="/dashboard">{t.signIn}</Link></section>}
   </div>;

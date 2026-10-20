@@ -44,6 +44,7 @@ export default function DashboardScan() {
   const [websites,setWebsites]=useState<string[]>([]);
   const [urlError,setUrlError]=useState("");
   const [busy,setBusy]=useState(false);
+  const [scanAbort,setScanAbort]=useState<AbortController|null>(null);
   const [error,setError]=useState("");
   const [result,setResult]=useState<Result|null>(null);
   const [usage,setUsage]=useState<{plan:string;used:number;limit:number|null}>({plan:"free",used:0,limit:2});
@@ -65,15 +66,17 @@ export default function DashboardScan() {
     const host=destination.hostname.toLowerCase().replace(/^www\./,"");
     const scanUrl=destination.toString();
     setUrl(scanUrl); setBusy(true);
+    const controller=new AbortController();setScanAbort(controller);
+    const scanTimeout=window.setTimeout(()=>controller.abort("timeout"),135_000);
     try{
-      const response=await fetch("/api/qa-engine",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:scanUrl,mode:"both",dashboard:false,language})});
+      const response=await fetch("/api/qa-engine",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url:scanUrl,mode:"both",dashboard:false,language}),signal:controller.signal});
       const data=await response.json();
       if(!response.ok) throw new Error(data.error||t.failed);
       setWebsites(rememberScanUrl(scanUrl));
       if(data.scanId){ const target="/dashboard/audit/"+encodeURIComponent(data.scanId)+(verificationIssue?"?verify_issue="+encodeURIComponent(verificationIssue):""); router.push(target); return; }
       setResult(data as Result);
-    }catch(cause){setError(cause instanceof Error?cause.message:t.failed);}
-    finally{setBusy(false);}
+    }catch(cause){setError(controller.signal.aborted?(controller.signal.reason==="cancelled"?"Scan gestopt.":"De scan duurt te lang. Probeer een andere website of start opnieuw."):cause instanceof Error?cause.message:t.failed);}
+    finally{window.clearTimeout(scanTimeout);setScanAbort(null);setBusy(false);}
   }
   const checks=[...(result?.seo?.checks||[]),...(result?.geo?.checks||[])];
   function downloadPdf(){if(!result)return;try{downloadQaAuditPdf(result,url,language)}catch{setError(language==="nl"?"PDF maken is niet gelukt. Gebruik eventueel de JSON-download.":"Could not create PDF. You can still download JSON.")}}
@@ -90,7 +93,7 @@ export default function DashboardScan() {
         <div className="rf-shared-scan-meta" aria-label="Scanonderdelen"><span>SEO</span><span>GEO</span><span>Security</span><span>{t.technical}</span><span>{t.shop}</span><span>{t.ads}</span></div>
       </section>
       {urlError&&<p className="rf-alert" role="alert">{urlError}</p>}{error&&<p className="rf-alert" role="alert">{error}</p>}
-      {busy && <ScanProgress url={url} language={language} />}
+      {busy && <ScanProgress url={url} language={language} onCancel={()=>scanAbort?.abort("cancelled")} />}
       {result&&<section className="rf-report rf-shared-result" aria-live="polite"><div className="rf-shared-score" style={{"--rf-score":result.overallScore} as React.CSSProperties}><strong>{headlineDisplay(result as never)}</strong><span>/100</span></div><div><span className="rf-eyebrow">{t.score}</span><h2>SEO {result.seo?.score??"—"} · GEO {result.geo?.score??"—"} · Security {result.security?.score??"—"}</h2><p>{passed} {t.passed} · {issues} {t.issues}</p><ScoreQualifier result={result as never} locale={language}/><p><strong>Sector:</strong> {result.sectorProfile?.label||result.classification?.sector||"Onbekend"} · {checks.length} controles.</p><p>Dit rapport is niet opgeslagen. Download het voordat je deze pagina verlaat.</p><div className="rf-shared-actions"><button type="button" className="rf-primary-link" onClick={downloadPdf}>Download PDF-rapport</button><button type="button" className="rf-back" onClick={downloadAudit}>Download JSON (technisch)</button><Link className="rf-back" href="/dashboard">← {t.dashboard}</Link></div></div></section>}
     <AiAssistant dashboard/>
   </DashboardFrame>;

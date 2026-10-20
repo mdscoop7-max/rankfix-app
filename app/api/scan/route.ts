@@ -617,8 +617,8 @@ async function runScan(request: Request, restrictedQa = false) {
     // Whole-scan time budget (maxDuration = 300 s): no new browser render after
     // 180 s and no new sample page after 170 s, so every scan returns a report in
     // time instead of being killed by the platform with nothing stored.
-    const renderBudget = createRenderBudget(undefined, 180_000);
-    const SAMPLE_DEADLINE_MS = 170_000;
+    const renderBudget = createRenderBudget(restrictedQa ? 16 : undefined, restrictedQa ? 100_000 : 180_000);
+    const SAMPLE_DEADLINE_MS = restrictedQa ? 90_000 : 170_000;
     let response: Response;
     let fetchedFinalUrl: URL | null = null;
     let redirectChain: Array<{ from: string; to: string; status: number }> = [];
@@ -4121,7 +4121,7 @@ async function runScan(request: Request, restrictedQa = false) {
     // Scan Motor 3.0 phase 1: broaden evidence coverage without turning the scan
     // into an unbounded crawler. Cap the selection at thirty distinct URLs;
     // the worker pool remains bounded to protect scan performance.
-    const representativePageLimit = 30;
+    const representativePageLimit = restrictedQa ? 16 : 30; // QA: bounded representative sample, never a full-site audit.
     // Keep representative sampling inside the locale/subdirectory the customer
     // actually scanned. Falling back to origin "/" can switch country/language
     // (for example /nl/nl/ -> global root) and contaminate sector/content evidence.
@@ -4418,7 +4418,7 @@ async function runScan(request: Request, restrictedQa = false) {
     // representative pages are selected, but only four network/browser audits run
     // concurrently. This prevents a JavaScript-heavy site from spawning 20
     // simultaneous Puppeteer recoveries and exhausting memory/CPU.
-    const representativeAuditConcurrency = 4;
+    const representativeAuditConcurrency = restrictedQa ? 3 : 4;
     const multiPageAudits: MultiPageAudit[] = new Array(uniqueMultiPagePages.length);
     let nextRepresentativePageIndex = 0;
     const representativeWorkers = Array.from(
