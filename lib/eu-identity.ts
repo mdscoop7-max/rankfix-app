@@ -418,7 +418,7 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   // For instance, an institutional title of the form "Bank X – the central
   // bank of Y" and navigation about monetary policy are independent proofs.
   // A story ABOUT a central bank must not become a bank website.
-  const titleParts = title.split(/\\s*[|–—]\\s*/);
+  const titleParts = title.split(/\s*[|–—]\s*/);
   const institutionalTitle = titleParts.length >= 2
     && /(?:bank|banque|banca|banco|zentralbank)/iu.test(titleParts[0])
     && CENTRAL_BANK_TERMS.test(titleParts.slice(1).join(" "));
