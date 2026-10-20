@@ -33,7 +33,7 @@ jobs:
       - name: Install isolated, pinned QA tools without changing the lockfile
         run: npm install --no-save --package-lock=false --no-audit --no-fund vitest@4.1.11 fast-check@4.10.2 @playwright/test@1.64.1
       - name: Fix Engine invariants and randomized tests
-        run: npx vitest run tests/qa/fix-engine.spec.ts --reporter=verbose
+        run: npx vitest run tests/qa/fix-engine.spec.ts tests/qa/no-automerge.spec.ts --reporter=verbose
       - name: Existing RankFix regression suite (fail on any failure)
         run: npm test
 
