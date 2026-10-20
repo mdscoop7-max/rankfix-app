@@ -11,6 +11,7 @@
 | https://info.cern.ch/ | 14:27:55 | 200 | 74 | 83 | 60 | 51% | Niet bevestigd (0%) | 7 | 28 |
 | https://www.amsterdam.nl/ | 14:38:18 | 200 | 77 | 81 | 72 | 90% | Overheid & Publieke sector (90%) | 8 | 4 |
 | https://www.kpn.com/ | 14:44:14 (12:44:14 UTC) | niet vermeld | **68–100 voorlopig** | 99 | 99 | **68%** | Telecom & Technologie (96%) | 0 | 12 |
+| https://www.umcutrecht.nl/nl | 14:46:48 (12:46:48 UTC) | niet vermeld | **91** | 99 | 80 | **94%** | Zorg & Gezondheid · universitair medisch centrum (92%) | 3 | 2 |
 
 Dit zijn momentopnamen van de gebruiker (korte samenvattingen), **geen onafhankelijke benchmarks voor juistheid van de cijfers**.
 
@@ -51,6 +52,19 @@ Dit zijn momentopnamen van de gebruiker (korte samenvattingen), **geen onafhanke
 - **Review:** controleer of 'niet van toepassing' voor retail/checkout voldoende onderbouwd is gezien productsignalen; check geslaagde controles bij onvolledige rendering; houd onzekerheid zichtbaar; herhaal scan indien nodig. Bijzonder: 0 waarschuwingen bij 68% dekking mag niet aanvoelen als voltooide audit.
 - Bron: door gebruiker geplakte RankFix-audittekst, niet onafhankelijk geverifieerd. Originele JSON ontbreekt.
 
+### UMC Utrecht (ziekenhuis)
+- Gebruiker deelde een **leesbaar auditrapport** met scanmoment 20-10-2026 12:46:48 UTC voor `https://www.umcutrecht.nl/`, uiteindelijk gescand als `https://www.umcutrecht.nl/nl`; steekproef 15 van 16 pagina's.
+- Totaal 91/100, SEO 99, GEO 80, Security 84, bewijsdekking 94%. 31 controles geslaagd, 3 waarschuwingen, 2 onbevestigd. HTTP-status niet expliciet in dit rapport vermeld.
+- Herkende sector: **Zorg & Gezondheid · universitair medisch centrum (92%)**. Dit is passend bij de site, die zichzelf omschrijft als universitair ziekenhuis met zorg, onderzoek en onderwijs.
+- **3 waarschuwingen**: social metadata mist naar zeggen `og:image`; geen valide JSON-LD op de pagina (voorgesteld: `LocalBusiness`); geen bevestigd `Organization` of `WebSite` schema op de homepage. Alle drie onafhankelijk te verifiëren via HTML/rendered DOM vóór conclusies of scoreaftrek. Dubbele aftrek tussen algemene structured data en Organization/WebSite nagaan.
+- **Schema-type advies is te generiek**: dit is geen gewone lokale bedrijfs-/dienstpagina, maar een universitair ziekenhuis. `Hospital` is een specifieker schema.org-type, onder zowel `MedicalOrganization` als `LocalBusiness`; beoordeel `Hospital` met passende `Organization` / `WebSite` en uitsluitend feitelijk bevestigde properties. `LocalBusiness` is niet fundamenteel ongeldig, maar wel een onvoldoende specifiek standaardadvies (bron: https://schema.org/Hospital).
+- **2 onbevestigd**: bedrijfsgegevens (niet op deze pagina aangetroffen ≠ niet op andere pagina's); Google Ads readiness (GTM 1, Ads ID 0, GA4 0, events 0, conversion labels 0, consent-signaal gevonden). Niet interpreteren als bewezen technische of medische kwaliteitsfout. Bovendien is betaalde advertenties gereedheid niet noodzakelijk voor zorgpagina's.
+- **31 geslaagd gemeld**: Behandelingen & diensten; Afspraak maken; Team & expertise; Broken links; Interne redirects; Verkeerde linkbestemming; Meta title; Meta description; H1-heading; Heading-structuur; Canonical URL; Mobiele viewport; HTML-taal; Indexeerbaarheid; Afbeelding alt-teksten; Contentdekking; HTTPS; HTTP-status; Server response; robots.txt; Sitemap-signaal; Meertalige SEO; URL-structuur; Tekstweergave; Afbeeldingsbronnen; Privacy & vertrouwenssignalen; Consent Mode signaal; Entity-signalen; Trust & context; Expliciete paginasamenvatting; Brand identity.
+- **Niet van toepassing gemeld**: Twitter Card; Commerciële voorwaarden; Merchant Center productbasis; Merchant Center feed-signaal; Prijsnotatie; Checkout & funnel; Checkout informatie; EU korting & referentieprijs; EU reviewtransparantie; EU schaarsteclaim; EU consumenteninformatie; Prijs & valuta consistentie; Webshop vertrouwen; Productvariant-URL; Productprijs consistentie; Productvoorraad; Webshop-beloftes; Checkout- en betaalvertrouwen; AI Product Copy & Metadata; Product structured data; Breadcrumbs; Vraag & antwoord content; Expertise-signalen.
+- **Controlepunt scoremodel**: Security 84 terwijl er in dit leesbare rapport geen specifieke securitywaarschuwingen staan. Onderzoek welke feiten of factoren tot 84 leiden, en maak scores herleidbaar.
+- Gebruik als test voor zorgspecifieke checks, betrouwbare structured data-aanbevelingen en onderscheid tussen algemene sites, lokaal ziekenhuis en universitair medisch centrum. Geen automatisch advies genereren dat meer medische claims doet dan bron bewijst.
+- Bron voor auditcijfers is het door de gebruiker geplakte rapport; geen volledige JSON aanwezig, dus metadata/schema-uitkomsten niet onafhankelijk bevestigd.
+
 ## Reviewvragen voor Claude (later)
 1. Reproduceer Amsterdam robots user-agent selectie voor Googlebot versus wildcard `*`; voeg regressietest en een niet-dubbel-aftrekregel toe waar nodig.
 2. Onderzoek waarom sitemap HTTP 403 in scan werd gerapporteerd; registreer status, content-type, user-agent, en zekerheid zonder blokkades als bewezen technische websitefouten te labelen.
@@ -59,6 +73,7 @@ Dit zijn momentopnamen van de gebruiker (korte samenvattingen), **geen onafhanke
 5. Per handmatige testcase echte HTML/headers opnieuw controleren: de screenshots/samenvattingen zijn geen onafhankelijk bewijs van alle SEO-claims.
 6. Test verschillende sectoren en websites mét echte fouten; vereist onafhankelijk gevalideerde claims vóór publieke lancering.
 7. KPN: verklaar renderingverlies, voorlopige scoreband 68–100 en hoge deelcijfers 99/99 bij 68% bewijs; valideer niet-van-toepassing-classificaties.
+8. UMC Utrecht: test `Hospital` / `MedicalOrganization` schema-advies versus generiek `LocalBusiness`, voorkom overlappende scoreaftrek, verklaar Security 84 en controleer de drie waarschuwingen onafhankelijk.
 
 ## UI voor handmatig testen
 In previewbranch `fix/dashboard-login-resilience-20261020` bevat `app/dashboard/database-free-qa.tsx` inmiddels zowel **Kopieer samenvatting** als **Kopieer volledig rapport**, plus Download JSON en Deel auditbestand. Dit rapport omvat uitsluitend de tekst van gedeelde korte samenvattingen; voor volledige diagnostiek moeten originele JSON-audits apart worden aangeleverd.
