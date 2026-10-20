@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { isDatabaseFreeQaPreview, checkDatabaseFreeQaLimit } from "../lib/database-free-qa.ts";
 import { qaAuditFilename } from "../lib/qa-audit-export.ts";
+import { formatQaAuditText } from "../lib/qa-audit-text.ts";
 
 const source = (path) => readFile(new URL("../" + path, import.meta.url), "utf8");
 
@@ -86,4 +87,44 @@ test("full QA audit has a persistent native download and mobile fallbacks", asyn
   assert.match(ui, /value=\{json\} aria-label="Volledig JSON-auditrapport"/);
   assert.match(ui, /result\.scoreModel\?\.version/);
   assert.doesNotMatch(ui, /link\.click\(\)/);
+});
+
+
+test("QA copy button copies readable report, keeping huge raw JSON separate", async () => {
+  const ui = await source("app/dashboard/database-free-qa.tsx");
+  assert.match(ui, /formatQaAuditText\(result/);
+  assert.match(ui, /navigator\.clipboard\.writeText\(auditText\)/);
+  assert.match(ui, /Kopieer audit \(tekst\)/);
+  assert.match(ui, /Kopieer volledige JSON/);
+  assert.match(ui, /value=\{auditText\} aria-label="Leesbaar auditrapport als tekst"/);
+});
+
+test("plain audit faithfully keeps real sector, scores, warnings and unconfirmed evidence", () => {
+  const report = formatQaAuditText({
+    scannedUrl: "https://www.monumenten.nl/",
+    scannedAt: "2026-10-20T10:28:57Z",
+    overallScore: 99,
+    seo: { score: 99, checks: [
+      { status: "warning", title: "Interne redirects", message: "1 van 16 interne links leidt via een redirect.",
+        fix: "Link direct naar de eind-URL.", evidence: { details: "1 van 16 interne links leidt via een redirect." } },
+      { status: "unable_to_confirm", title: "Broken links",
+        message: "6 van 16 interne links konden niet betrouwbaar worden opgehaald." },
+      { status: "pass", title: "Meta title" },
+    ] },
+    geo: { score: 100, checks: [{ status: "pass", title: "Brand identity" }] },
+    security: { score: 96 },
+    sectorProfile: { label: "Erfgoed & monumenteninformatie" },
+    coverage: { coveragePercent: 98, unableToConfirm: 1 },
+    multiPage: { counts: { audited: 29, selected: 29 } },
+  });
+  assert.match(report, /RANKFIX \/ AUDITRAPPORT/);
+  assert.match(report, /www\.monumenten\.nl/);
+  assert.match(report, /Eindscore: 99\/100 \| SEO: 99 \| GEO: 100 \| Security: 96/);
+  assert.match(report, /Erfgoed & monumenteninformatie/);
+  assert.match(report, /Bewijsdekking: 98%/);
+  assert.match(report, /\[LET OP\] Interne redirects/);
+  assert.match(report, /6 van 16 interne links konden niet betrouwbaar worden opgehaald/);
+  assert.match(report, /Pagina's in steekproef: 29 van 29/);
+  assert.equal(report.match(/1 van 16 interne links leidt via een redirect/g)?.length, 1, "avoid duplicate evidence");
+  assert.doesNotMatch(report, /ownIdentityText|pageAudits|structuredCommerceEvidence/);
 });

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { qaAuditFilename } from "@/lib/qa-audit-export";
 import { downloadQaAuditPdf } from "@/lib/qa-audit-pdf";
+import { formatQaAuditText } from "@/lib/qa-audit-text";
 import { readRecentScanUrls, rememberScanUrl, forgetRecentScanUrls } from "@/lib/recent-scan-urls";
 
 type AuditCheck = { key?: string; title?: string; status: string; message?: string; fix?: string; evidence?: { details?: string } };
@@ -11,6 +12,8 @@ type AuditResult = {
   scannedUrl?: string; finalUrl?: string; scannedAt?: string; httpStatus?: number;
   overallScore?: number; grade?: string;
   scoreModel?: { version?: string; provisional?: boolean; evidenceLevel?: string; evidenceReasons?: string[]; headline?: { kind?: string; display?: string } };
+  security?: { score?: number };
+  multiPage?: { counts?: { audited?: number; selected?: number } };
   seo?: { score?: number; checks?: AuditCheck[] };
   geo?: { score?: number; checks?: AuditCheck[] };
   sectorProfile?: { label?: string; confidence?: string; confidenceScore?: number; evidence?: string[] };
@@ -105,16 +108,27 @@ export default function DatabaseFreeQaDashboard() {
     }
   }
 
+  async function copyAudit() {
+    if (!auditText) return;
+    try {
+      await navigator.clipboard.writeText(auditText);
+      setExportMessage("Leesbaar RankFix-auditrapport gekopieerd. Plak het direct in een bericht of document.");
+    } catch {
+      setExportMessage("Kopiëren is geblokkeerd. Open 'Bekijk leesbare audittekst' hieronder om de tekst handmatig te selecteren.");
+    }
+  }
+
   async function copyJson() {
     if (!json) return;
     try {
       await navigator.clipboard.writeText(json);
-      setExportMessage("Het volledige auditrapport is gekopieerd.");
+      setExportMessage("Volledige technische JSON gekopieerd.");
     } catch {
       setExportMessage("Automatisch kopiëren wordt geblokkeerd. Open 'Bekijk audit-JSON' en selecteer de tekst handmatig.");
     }
   }
 
+  const auditText = result ? formatQaAuditText(result, result.finalUrl || result.scannedUrl || url) : "";
   const checks = result ? [...(result.seo?.checks || []), ...(result.geo?.checks || [])] : [];
   const issues = checks.filter(check => check.status === "fail" || check.status === "warning");
   const unknown = checks.filter(check => check.status === "unable_to_confirm");
@@ -157,14 +171,20 @@ export default function DatabaseFreeQaDashboard() {
             <div><h2 className="text-xl font-bold break-all">{result.finalUrl || result.scannedUrl}</h2>
               <p className="mt-1 text-sm text-slate-500">HTTP {result.httpStatus ?? "onbekend"} · {result.scannedAt ? new Date(result.scannedAt).toLocaleString("nl-NL") : "Live scan"}</p></div>
             <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={downloadPdf} className="rounded-xl bg-teal-700 px-4 py-3 font-semibold text-white hover:bg-teal-800">Download PDF-rapport</button>
-              <a href={downloadHref || undefined} download={exportFilename}
-                aria-disabled={!downloadHref} onClick={event => { if (!downloadHref) event.preventDefault(); }}
-                className="rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white hover:bg-slate-800">
-                Download volledig JSON-rapport
-              </a>
-              <button type="button" onClick={shareJson} className="rounded-xl border border-slate-300 px-4 py-3 font-semibold hover:bg-slate-50">Deel auditbestand</button>
-              <button type="button" onClick={copyJson} className="rounded-xl border border-slate-300 px-4 py-3 font-semibold hover:bg-slate-50">Kopieer audit</button>
+              <button type="button" onClick={copyAudit} className="rounded-xl bg-teal-700 px-4 py-3 font-semibold text-white hover:bg-teal-800">Kopieer audit (tekst)</button>
+              <button type="button" onClick={downloadPdf} className="rounded-xl border border-teal-700 bg-white px-4 py-3 font-semibold text-teal-800 hover:bg-teal-50">Download PDF-rapport</button>
+              <details className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2">
+                <summary className="cursor-pointer py-1 font-semibold">Meer exportopties</summary>
+                <div className="mt-3 flex flex-wrap gap-2 pb-2">
+                  <a href={downloadHref || undefined} download={exportFilename}
+                    aria-disabled={!downloadHref} onClick={event => { if (!downloadHref) event.preventDefault(); }}
+                    className="rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white hover:bg-slate-800">
+                    Download volledig JSON-rapport
+                  </a>
+                  <button type="button" onClick={shareJson} className="rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold hover:bg-slate-50">Deel auditbestand</button>
+                  <button type="button" onClick={copyJson} className="rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold hover:bg-slate-50">Kopieer volledige JSON</button>
+                </div>
+              </details>
             </div>
           </div>
           {exportMessage && <p role="status" className="mt-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{exportMessage}</p>}
@@ -193,6 +213,14 @@ export default function DatabaseFreeQaDashboard() {
             {check.fix && <p className="mt-2 text-sm text-teal-800">Advies: {check.fix}</p>}
           </li>)}</ul>}
           {issues.length > 20 && <p className="mt-3 text-sm text-slate-500">Nog {issues.length - 20} aandachtspunten staan in de JSON-download.</p>}
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-6">
+          <details>
+            <summary className="cursor-pointer font-semibold">Bekijk leesbare audittekst (ook handmatig kopiëren)</summary>
+            <p className="mt-2 text-sm text-slate-600">Dit is een overzichtelijk rapport op basis van dezelfde echte scan. Selecteer de tekst als de kopieerknop op je apparaat niet werkt.</p>
+            <textarea readOnly value={auditText} aria-label="Leesbaar auditrapport als tekst" rows={12}
+              className="mt-3 w-full resize-y rounded-lg border border-slate-300 p-3 font-mono text-xs" />
+          </details>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-6">
           <details>
