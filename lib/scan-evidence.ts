@@ -106,7 +106,13 @@ export function buildScanEvidence(input: {
 
   const cart = has(html, /(?:href|action|id|class|aria-label|data-[\w-]+)\s*=\s*["'][^"']*(?:cart|basket|winkelwagen|warenkorb|panier|carrello|carrito)[^"']*["']/i);
   const addToCart = has(text, /\b(add to cart|add to basket|in winkelwagen|toevoegen aan winkelwagen|in den warenkorb|ajouter au panier|aggiungi al carrello|añadir al carrito)\b/i);
-  const checkout = has(html, /(?:href|action|id|class|aria-label|data-[\w-]+)\s*=\s*["'][^"']*(?:checkout|afrekenen|kasse|paiement|pagamento|pago)[^"']*["']/i);
+  // Class names/tracking attributes mentioning checkout are not proof of
+  // an actionable payment flow. Require a real link/form target or action label.
+  const checkoutTarget = /(?:^|\/)(?:checkout|afrekenen|kasse|paiement|pagamento)(?:\/|[?#&]|$)/i;
+  const checkoutLabel = /\b(?:aria-label|value)\s*=\s*["']\s*(?:naar |ga naar |proceed to |go to )?(?:checkout|afrekenen|zur kasse|payer maintenant|paga ora)\s*["']/i;
+  const checkout = [...html.matchAll(/<(?:a|form)\b[^>]{0,3000}>/gi)]
+    .some(m => checkoutTarget.test(m[0].match(/\b(?:href|action)\s*=\s*["']([^"']+)["']/i)?.[1] || ""))
+    || [...html.matchAll(/<(?:button|input)\b[^>]{0,2000}>/gi)].some(m => checkoutLabel.test(m[0]));
   // Offer is used by service businesses too; it must never be treated as a retail product page by itself.
   const productSchema = schemaHas("Product");
   const productPathHint = /\/(?:product|products|p|artikel|item)\//i.test(url);
@@ -192,7 +198,8 @@ export function buildScanEvidence(input: {
   const stayDates = has(text, /\b(aankomst|vertrek|check[- ]in|check[- ]out|arrival|departure|verblijfsdata|stay dates?)\b/i);
   const guests = has(text, /\b(gasten?|guests?|personen|persons?|adults?|volwassenen|children|kinderen)\b/i);
   const automotiveServiceSchema = schemaHas("AutomotiveBusiness", "AutoRepair");
-  const automotiveServiceText = has(text, /\b(apk|onderhoud|werkplaats|autoservice|banden|tyres?|uitlijnen|car repair|reparatie)\b/i);
+  // Generic maintenance/repair text is NOT evidence of vehicle servicing.
+  const automotiveServiceText = has(text, /\b(apk|autowerkplaats|autogarage|autoservice|garagebedrijf|autobanden|bandenservice|auto[- ]?onderhoud|auto[- ]?reparatie|car repair|car service|tyre service)\b/i);
   const automotiveService = automotiveServiceSchema || automotiveServiceText;
   const automotiveDealerSchema = schemaHas("AutoDealer");
   const automotiveDealerText = has(text, /\b(autodealer|occasions?|auto(?:'s)? te koop|cars? for sale|proefrit|test drive)\b/i);
