@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { qaAuditFilename } from "@/lib/qa-audit-export";
 
 type AuditCheck = { key?: string; title?: string; status?: string; message?: string; fix?: string; evidence?: unknown };
 type AuditResult = {
   scannedUrl?: string; finalUrl?: string; scannedAt?: string; httpStatus?: number;
   overallScore?: number; grade?: string;
+  scoreModel?: { version?: string };
   seo?: { score?: number; checks?: AuditCheck[] };
   geo?: { score?: number; checks?: AuditCheck[] };
   sectorProfile?: { label?: string; confidence?: string; confidenceScore?: number; evidence?: string[] };
@@ -23,6 +25,20 @@ export default function DatabaseFreeQaDashboard() {
   const [error, setError] = useState("");
   const [result, setResult] = useState<AuditResult | null>(null);
   const [json, setJson] = useState("");
+  const [downloadHref, setDownloadHref] = useState("");
+  const [exportMessage, setExportMessage] = useState("");
+
+  // Keep the URL alive while the report is on screen, instead of revoking it
+  // immediately after a click (which may cancel the download on Android).
+  useEffect(() => {
+    if (!json) { setDownloadHref(""); return; }
+    const href = URL.createObjectURL(new Blob([json], { type: "application/json;charset=utf-8" }));
+    setDownloadHref(href);
+    return () => URL.revokeObjectURL(href);
+  }, [json]);
+
+  const exportFilename = qaAuditFilename(result?.finalUrl || result?.scannedUrl, result?.scannedAt);
+
 
   async function scan(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -31,6 +47,7 @@ export default function DatabaseFreeQaDashboard() {
     setError("");
     setResult(null);
     setJson("");
+    setExportMessage("");
     try {
       const response = await fetch("/api/scan", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -53,19 +70,34 @@ export default function DatabaseFreeQaDashboard() {
     } finally { setBusy(false); }
   }
 
-  function downloadJson() {
+  async function shareJson() {
     if (!json || !result) return;
-    const file = new Blob([json], { type: "application/json;charset=utf-8" });
-    const href = URL.createObjectURL(file);
-    const link = document.createElement("a");
-    link.href = href;
-    let hostname = "website";
-    try { hostname = new URL(result.finalUrl || result.scannedUrl || "").hostname; } catch {}
-    link.download = `rankfix-test-${hostname.replace(/[^a-z0-9.-]/gi, "-")}-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(href);
+    if (typeof navigator.share !== "function") {
+      setExportMessage("Delen wordt niet ondersteund door deze browser. Gebruik Download JSON of Kopieer audit.");
+      return;
+    }
+    try {
+      const file = new File([json], exportFilename, { type: "application/json" });
+      if (navigator.canShare && !navigator.canShare({ files: [file] })) {
+        setExportMessage("Je browser kan dit bestand niet delen. Gebruik Download JSON of Kopieer audit.");
+        return;
+      }
+      await navigator.share({ title: "RankFix volledig auditrapport", files: [file] });
+      setExportMessage("Je audit is aangeboden aan het deelmenu van je apparaat.");
+    } catch (cause) {
+      if (cause instanceof Error && cause.name === "AbortError") return;
+      setExportMessage("Bestand delen lukte niet. Gebruik Download JSON of Kopieer audit.");
+    }
+  }
+
+  async function copyJson() {
+    if (!json) return;
+    try {
+      await navigator.clipboard.writeText(json);
+      setExportMessage("Het volledige auditrapport is gekopieerd.");
+    } catch {
+      setExportMessage("Automatisch kopiëren wordt geblokkeerd. Open 'Bekijk audit-JSON' en selecteer de tekst handmatig.");
+    }
   }
 
   const checks = result ? [...(result.seo?.checks || []), ...(result.geo?.checks || [])] : [];
@@ -107,8 +139,19 @@ export default function DatabaseFreeQaDashboard() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div><h2 className="text-xl font-bold break-all">{result.finalUrl || result.scannedUrl}</h2>
               <p className="mt-1 text-sm text-slate-500">HTTP {result.httpStatus ?? "onbekend"} · {result.scannedAt ? new Date(result.scannedAt).toLocaleString("nl-NL") : "Live scan"}</p></div>
-            <button type="button" onClick={downloadJson} className="rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white hover:bg-slate-800">Download volledig JSON-rapport</button>
+            <div className="flex flex-wrap gap-2">
+              <a href={downloadHref || undefined} download={exportFilename}
+                aria-disabled={!downloadHref} onClick={event => { if (!downloadHref) event.preventDefault(); }}
+                className="rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white hover:bg-slate-800">
+                Download volledig JSON-rapport
+              </a>
+              <button type="button" onClick={shareJson} className="rounded-xl border border-slate-300 px-4 py-3 font-semibold hover:bg-slate-50">Deel auditbestand</button>
+              <button type="button" onClick={copyJson} className="rounded-xl border border-slate-300 px-4 py-3 font-semibold hover:bg-slate-50">Kopieer audit</button>
+            </div>
           </div>
+          {exportMessage && <p role="status" className="mt-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{exportMessage}</p>}
+          <p className="mt-3 text-xs text-slate-600">Volledige export: {exportFilename} · {Math.max(1, Math.round(new Blob([json]).size / 1024))} kB. Bij problemen in een mobiele browser kun je ook delen of kopiëren.</p>
+          <p className="mt-1 text-xs text-slate-600">Motor: {result.scoreModel?.version || "versie niet vermeld"} · echte RankFix-scanroute, geen demonstratiescore.</p>
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
               ["Totaal", result.overallScore], ["SEO", result.seo?.score], ["GEO", result.geo?.score],
@@ -132,6 +175,14 @@ export default function DatabaseFreeQaDashboard() {
             {check.fix && <p className="mt-2 text-sm text-teal-800">Advies: {check.fix}</p>}
           </li>)}</ul>}
           {issues.length > 20 && <p className="mt-3 text-sm text-slate-500">Nog {issues.length - 20} aandachtspunten staan in de JSON-download.</p>}
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-6">
+          <details>
+            <summary className="cursor-pointer font-semibold">Bekijk audit-JSON (alternatief voor downloaden)</summary>
+            <p className="mt-2 text-sm text-slate-600">Het volledige, ongewijzigde JSON-antwoord van de echte scanner. Je kunt de tekst selecteren en opslaan.</p>
+            <textarea readOnly value={json} aria-label="Volledig JSON-auditrapport" rows={12}
+              className="mt-3 w-full resize-y rounded-lg border border-slate-300 p-3 font-mono text-xs" />
+          </details>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-6">
           <h2 className="text-xl font-bold">Niet bevestigd</h2>
