@@ -302,6 +302,48 @@ const REPORT_CASES = [
     checkStatus: { sitemap: ["unable_to_confirm"] }, message: { sitemap: /standaardlocaties/ }, noMessage: { sitemap: /server bereikbaar/ },
     files: { "/robots.txt": { type: "text/plain", body: "User-agent: *\nAllow: /\n" }, "/sitemap.xml": { body: "nf", status: 404 }, "/sitemap_index.xml": { body: "nf", status: 404 }, "/wp-sitemap.xml": { body: "nf", status: 404 }, "/sitemap-index.xml": { body: "nf", status: 404 } },
     home: { title: "Transportbedrijf Noord | wegtransport en logistiek", desc: "Wegtransport, groupage en volle vrachten naar Frankrijk en Duitsland.", h1: "Transportbedrijf Noord", body: "<p>Logistiek en internationaal transport, pallets en containers.</p>" } },
+  // QA 20 Oct 2026 (neutral reproductions, generic failure classes).
+  // robots.txt: Googlebot has its own group, the wildcard group blocks everything. The
+  // homepage is crawlable for Google; a 403 on the sitemap is a crawler block, not a broken sitemap.
+  { id: "qa-robots-googlebot-group-sitemap-403", host: "gemeente-qa.test", expect: ["government"],
+    checkStatus: { indexability: ["pass"], robots_txt: ["pass"], sitemap: ["unable_to_confirm"] },
+    message: { indexability: /Googlebot/ }, noMessage: { indexability: /blokkeert het gescande pad/, sitemap: /geen geldige/i },
+    home: { title: "Gemeente Voorbeeld – officiële website van de gemeente", desc: "Informatie over gemeentelijke diensten, afval, paspoort, vergunningen en meldingen van de gemeente.", h1: "Gemeente Voorbeeld", body: "<p>Vraag een paspoort aan, meld een storing of regel een vergunning bij de gemeente.</p>", lds: [org("Gemeente Voorbeeld", "GovernmentOrganization"), site] },
+    files: {
+      "/robots.txt": { type: "text/plain", body: "User-agent: *\nDisallow: /\n\nUser-agent: GoogleBot\nDisallow: /aspx/\nDisallow: /*?*appidt=*\n\nSitemap: https://__HOST__/sitemap.xml\n" },
+      "/sitemap.xml": { type: "text/html", status: 403, body: "<html><head><title>Access Denied</title></head><body>Access Denied</body></html>" },
+    } },
+  // Same wildcard block without a Googlebot group IS a real indexability warning,
+  // reported once (shared root cause), not twice.
+  { id: "qa-robots-wildcard-blocks-all", host: "blocked-qa.test", expect: ["unknown", "general_business"],
+    checkStatus: { indexability: ["warning"], robots_txt: ["warning"] },
+    home: { title: "Adviesbureau Voorbeeld – advies voor ondernemers", desc: "Wij adviseren mkb-bedrijven over financiën en groei. Vraag een gesprek aan.", h1: "Advies voor ondernemers", body: "<p>Ons team helpt met strategie en financiering.</p>" },
+    files: { "/robots.txt": { type: "text/plain", body: "User-agent: *\nDisallow: /\n" } } },
+  // University hospital: Hospital is the specific type; LocalBusiness is never advised.
+  { id: "qa-umc-hospital-jsonld-hospital", host: "umc-qa.test", expect: ["health_wellness"],
+    checkStatus: { schema: ["pass"], organization_website: ["pass"] },
+    home: { title: "Universitair Medisch Centrum Voorbeeld | patiëntenzorg, onderzoek en onderwijs", desc: "Universitair ziekenhuis voor patiënten: zorg, onderzoek en opleiding. Maak een afspraak of vind een specialist.", h1: "Universitair Medisch Centrum Voorbeeld", body: "<p>Patiëntenzorg, behandelingen en afspraak maken bij onze specialisten.</p>", lds: [org("UMC Voorbeeld", "Hospital"), site] } },
+  { id: "qa-umc-hospital-no-jsonld", host: "umc2-qa.test", expect: ["health_wellness"],
+    checkStatus: { schema: ["warning", "unable_to_confirm"] }, fixHas: { schema: /Hospital/ }, noFix: { schema: /LocalBusiness/ }, noMessage: { schema: /lokale bedrijfs/ },
+    home: { title: "Universitair Medisch Centrum Voorbeeld | patiëntenzorg, onderzoek en onderwijs", desc: "Universitair ziekenhuis voor patiënten: zorg, onderzoek en opleiding. Maak een afspraak of vind een specialist.", h1: "Universitair Medisch Centrum Voorbeeld", body: "<p>Patiëntenzorg, behandelingen en afspraak maken bij onze specialisten. Telefoon 020 123 4567, adres Kerkstraat 1.</p>" } },
+  // University: JSON-LD @type written as full schema.org URLs must be recognised.
+  { id: "qa-university-fullurl-types", host: "uni-qa.test", expect: ["education"],
+    checkStatus: { schema: ["pass"], organization_website: ["pass"] },
+    home: { title: "Universiteit Voorbeeld | studeren, onderzoek en opleidingen", desc: "Studeer aan Universiteit Voorbeeld: bachelor- en masteropleidingen, onderzoek en faculteiten.", h1: "Universiteit Voorbeeld", body: "<p>Opleidingen, faculteiten en onderzoek. Meld je aan voor een studie.</p>", lds: [org("Universiteit Voorbeeld", "https://schema.org/CollegeOrUniversity"), { "@type": "https://schema.org/WebSite", name: "Universiteit Voorbeeld", url: "https://__HOST__/" }] } },
+  { id: "qa-university-no-jsonld", host: "uni2-qa.test", expect: ["education"],
+    checkStatus: { schema: ["warning", "unable_to_confirm"] }, fixHas: { schema: /CollegeOrUniversity/ }, noFix: { schema: /LocalBusiness/ }, noMessage: { schema: /lokale bedrijfs/ },
+    home: { title: "Universiteit Voorbeeld | studeren, onderzoek en opleidingen", desc: "Studeer aan Universiteit Voorbeeld: bachelor- en masteropleidingen, onderzoek en faculteiten.", h1: "Universiteit Voorbeeld", body: "<p>Opleidingen, faculteiten en onderzoek. Contact: Kerkstraat 1, telefoon 020 123 4567.</p>" } },
+  // A tag manager container alone does not make Google Ads relevant for a hospital or school.
+  { id: "qa-gtm-only-no-ads-readiness", host: "umc3-qa.test", expect: ["health_wellness"], checkStatus: { ads_readiness: ["not_applicable"] },
+    home: { title: "Universitair Medisch Centrum Voorbeeld | patiëntenzorg, onderzoek en onderwijs", desc: "Universitair ziekenhuis voor patiënten: zorg, onderzoek en opleiding. Maak een afspraak of vind een specialist.", h1: "Universitair Medisch Centrum Voorbeeld", body: "<p>Patiëntenzorg en afspraak maken.</p>", lds: [org("UMC Voorbeeld", "Hospital"), site],
+      extraHead: "<script>(function(w,d,s,l,i){w[l]=w[l]||[];var f=d.getElementsByTagName(s)[0],j=d.createElement(s);j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-ABCD123');</script>" } },
+  // Open Graph: an empty og:image tag before the real one, and og:image:secure_url only.
+  { id: "qa-og-image-empty-first-tag", host: "og-qa.test", expect: ["unknown", "general_business"], checkStatus: { social: ["pass"] },
+    raw: "<!doctype html><html lang='nl'><head><meta charset='utf-8'><title>Adviesbureau Voorbeeld – advies voor ondernemers</title><meta name='description' content='Wij adviseren mkb-bedrijven over financiën en groei. Vraag een gesprek aan voor een vrijblijvende kennismaking.'><meta name='viewport' content='width=device-width, initial-scale=1'><link rel='canonical' href='https://og-qa.test/'><meta property='og:title' content='Adviesbureau Voorbeeld'><meta property='og:description' content='Advies voor ondernemers'><meta property='og:image' content=''><meta property='og:image' content='https://og-qa.test/og.jpg'></head><body><h1>Advies voor ondernemers</h1><p>Ons team helpt met strategie en financiering voor mkb-bedrijven in heel Nederland, van startup tot familiebedrijf. Neem contact op voor een gesprek.</p><a href='/contact'>Contact</a></body></html>" },
+  { id: "qa-og-image-secure-url-only", host: "og2-qa.test", expect: ["unknown", "general_business"], checkStatus: { social: ["pass"] },
+    raw: "<!doctype html><html lang='nl'><head><meta charset='utf-8'><title>Adviesbureau Voorbeeld – advies voor ondernemers</title><meta name='description' content='Wij adviseren mkb-bedrijven over financiën en groei. Vraag een gesprek aan voor een vrijblijvende kennismaking.'><meta name='viewport' content='width=device-width, initial-scale=1'><link rel='canonical' href='https://og2-qa.test/'><meta property='og:title' content='Adviesbureau Voorbeeld'><meta property='og:description' content='Advies voor ondernemers'><meta property='og:image:secure_url' content='https://og2-qa.test/og.jpg'></head><body><h1>Advies voor ondernemers</h1><p>Ons team helpt met strategie en financiering voor mkb-bedrijven in heel Nederland, van startup tot familiebedrijf. Neem contact op voor een gesprek.</p><a href='/contact'>Contact</a></body></html>" },
+  { id: "qa-og-image-truly-missing", host: "og3-qa.test", expect: ["unknown", "general_business"], checkStatus: { social: ["warning"] }, message: { social: /og:image/ },
+    raw: "<!doctype html><html lang='nl'><head><meta charset='utf-8'><title>Adviesbureau Voorbeeld – advies voor ondernemers</title><meta name='description' content='Wij adviseren mkb-bedrijven over financiën en groei. Vraag een gesprek aan voor een vrijblijvende kennismaking.'><meta name='viewport' content='width=device-width, initial-scale=1'><link rel='canonical' href='https://og3-qa.test/'><meta property='og:title' content='Adviesbureau Voorbeeld'><meta property='og:description' content='Advies voor ondernemers'><meta property='og:image' content=''></head><body><h1>Advies voor ondernemers</h1><p>Ons team helpt met strategie en financiering voor mkb-bedrijven in heel Nederland, van startup tot familiebedrijf. Neem contact op voor een gesprek.</p><a href='/contact'>Contact</a></body></html>" },
 ];
 for (const p of REPORT_CASES) PROFILES.push(p);
 

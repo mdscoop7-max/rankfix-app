@@ -32,6 +32,9 @@ import { indexJsonLdIds, resolveSchemaImage } from "@/lib/schema-image";
 import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, commerceServiceSignals, compareScoreVersions } from "@/lib/scan-feedback";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { isSubstantiveRender, renderImprovesEvidence, preserveRawHeadEvidence, renderIsErrorState, visibleWordCount } from "@/lib/render-quality";
+import { assessRobots } from "@/lib/robots-policy";
+import { normalizeSchemaType, schemaAdviceForSector } from "@/lib/schema-advice";
+import { classifySitemapResponse, describeSitemapBlock } from "@/lib/sitemap-evidence";
 import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeCategoryPath, looksLikeCorporatePath, looksLikeEditorialPath, looksLikeEventPath, looksLikeProductDetailPath, looksLikeStorePage, productUrlsFromSitemap } from "@/lib/product-links";
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
@@ -915,16 +918,25 @@ async function runScan(request: Request, restrictedQa = false) {
     const wordCount = text ? text.split(/\s+/).filter(Boolean).length : 0;
 
     const metaTags = [...html.matchAll(/<meta\b[^>]*>/gi)].map((m) => m[0]);
-    const getMeta = (key: string) =>
-      decode(metaTags.map((tag) => ({
-        property: attrFromTag(tag, "property"),
-        name: attrFromTag(tag, "name"),
-        content: attrFromTag(tag, "content"),
-      })).find((x) => x.property.toLowerCase() === key.toLowerCase() || x.name.toLowerCase() === key.toLowerCase())?.content || "");
+    const parsedMetaTags = metaTags.map((tag) => ({
+      property: attrFromTag(tag, "property").toLowerCase(),
+      name: attrFromTag(tag, "name").toLowerCase(),
+      content: attrFromTag(tag, "content"),
+    }));
+    // The first tag with a key may be empty while a later one carries the value
+    // (CMS plugins emit both); the first NON-EMPTY content wins.
+    const getMeta = (key: string, ...aliases: string[]) => {
+      for (const wanted of [key, ...aliases].map((value) => value.toLowerCase())) {
+        const hit = parsedMetaTags.find((x) => (x.property === wanted || x.name === wanted) && x.content.trim());
+        if (hit) return decode(hit.content);
+      }
+      return "";
+    };
 
     const ogTitle = getMeta("og:title");
     const ogDescription = getMeta("og:description");
-    const ogImage = getMeta("og:image");
+    // og:image:secure_url / og:image:url are valid carriers of the same image.
+    const ogImage = getMeta("og:image", "og:image:secure_url", "og:image:url");
     const ogUrl = getMeta("og:url");
     const twitterCardRaw = getMeta("twitter:card").trim();
     const twitterCard = /^(summary|summary_large_image|app|player)$/i.test(twitterCardRaw) ? twitterCardRaw : "";
@@ -954,7 +966,10 @@ async function runScan(request: Request, restrictedQa = false) {
       const rawTypes = objectValue["@type"];
       if (rawTypes) {
         const types = Array.isArray(rawTypes) ? rawTypes : [rawTypes];
-        schemaTypes.push(...types.filter((type) => typeof type === "string").map(String));
+        // "https://schema.org/Organization" and "schema:Organization" are the same type.
+        const normalizedTypes = types.filter((type) => typeof type === "string").map(normalizeSchemaType).filter(Boolean);
+        objectValue["@type"] = Array.isArray(rawTypes) ? normalizedTypes : normalizedTypes[0];
+        schemaTypes.push(...normalizedTypes);
       }
       for (const nested of Object.values(objectValue)) {
         if (Array.isArray(nested)) nested.forEach((item) => collectSchemaObjects(item, seen));
@@ -1303,7 +1318,7 @@ async function runScan(request: Request, restrictedQa = false) {
       newsMediaIdentity({ title, description, h1: h1s.join(" "), homepage: isHomepage })
     );
     const effectiveLocalSchemaSignal = hasLocalBusinessSignal && !governmentIdentitySignal && !governmentSchemaPresent && !transportLogisticsSchemaContext && !ecommerceSchemaContext && !newsMediaSchemaContext;
-    const recommendedSchema = governmentIdentitySignal || governmentSchemaPresent
+    let recommendedSchema = governmentIdentitySignal || governmentSchemaPresent
       ? (isHomepage ? "GovernmentOrganization + WebSite" : "GovernmentOrganization / WebPage")
       : newsMediaSchemaContext
       ? (isHomepage ? "NewsMediaOrganization + WebSite" : hasArticleSignal ? "NewsArticle" : "NewsMediaOrganization / WebPage")
@@ -1314,8 +1329,8 @@ async function runScan(request: Request, restrictedQa = false) {
           : effectiveLocalSchemaSignal
             ? specificLocalSchema || "LocalBusiness"
             : isHomepage ? "Organization + WebSite" : isProductPage ? "Product" : hasCategorySignal ? "ItemList / CollectionPage" : hasArticleSignal ? "Article" : "WebPage";
-    const schemaContextLabel = governmentIdentitySignal || governmentSchemaPresent ? "overheids-/publieke pagina" : newsMediaSchemaContext ? (isHomepage ? "nieuws-/mediahomepage" : hasArticleSignal ? "nieuwsartikel" : "nieuws-/mediapagina") : transportLogisticsSchemaContext ? (isHomepage ? "transport-/logistiekhomepage" : "transport-/dienstpagina") : ecommerceSchemaContext ? (isProductPage ? "productpagina" : isHomepage ? "webshophomepage" : hasCategorySignal ? "webshopcategorie" : "webshoppagina") : effectiveLocalSchemaSignal ? "lokale bedrijfs-/dienstpagina" : isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "lijst-/categoriepagina" : hasArticleSignal ? "artikel-/nieuwspagina" : "contentpagina";
-    const hasRelevantContextSchema = governmentIdentitySignal || governmentSchemaPresent
+    let schemaContextLabel = governmentIdentitySignal || governmentSchemaPresent ? "overheids-/publieke pagina" : newsMediaSchemaContext ? (isHomepage ? "nieuws-/mediahomepage" : hasArticleSignal ? "nieuwsartikel" : "nieuws-/mediapagina") : transportLogisticsSchemaContext ? (isHomepage ? "transport-/logistiekhomepage" : "transport-/dienstpagina") : ecommerceSchemaContext ? (isProductPage ? "productpagina" : isHomepage ? "webshophomepage" : hasCategorySignal ? "webshopcategorie" : "webshoppagina") : effectiveLocalSchemaSignal ? "lokale bedrijfs-/dienstpagina" : isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "lijst-/categoriepagina" : hasArticleSignal ? "artikel-/nieuwspagina" : "contentpagina";
+    let hasRelevantContextSchema = governmentIdentitySignal || governmentSchemaPresent
       ? governmentSchemaPresent || schemaSet.has("organization") || schemaSet.has("website") || schemaSet.has("webpage")
       : newsMediaSchemaContext
       ? schemaSet.has("newsmediaorganization") || schemaSet.has("organization") || schemaSet.has("website") || schemaSet.has("newsarticle") || schemaSet.has("article")
@@ -1386,42 +1401,12 @@ async function runScan(request: Request, restrictedQa = false) {
       } else if (r.status === 404) robotsStatus = "FAIL";
     } catch { robotsStatus = "UNABLE_TO_CONFIRM"; }
     const robotsPath = finalUrl.pathname || "/";
-    const robotsGroups = robotsTxt
-      .split(/\r?\n/)
-      .map((line) => line.replace(/#.*$/, "").trim())
-      .reduce((groups: Array<{ agents: string[]; rules: Array<{ kind: "allow" | "disallow"; path: string }> }>, line) => {
-        const agent = line.match(/^user-agent\s*:\s*(.+)$/i)?.[1]?.trim().toLowerCase();
-        if (agent) {
-          const last = groups[groups.length - 1];
-          if (!last || last.rules.length) groups.push({ agents: [agent], rules: [] });
-          else last.agents.push(agent);
-          return groups;
-        }
-        const rule = line.match(/^(allow|disallow)\s*:\s*(.*)$/i);
-        if (rule && groups.length) groups[groups.length - 1].rules.push({ kind: rule[1].toLowerCase() as "allow" | "disallow", path: rule[2].trim() });
-        return groups;
-      }, []);
-    const applicableRobotsGroups = robotsGroups.filter((group) => group.agents.includes("*") || group.agents.some((agent) => /rankfixbot|googlebot/.test(agent)));
-    const robotsRuleMatches = (rulePath: string, candidatePath: string) => {
-      if (!rulePath) return false;
-      const anchored = rulePath.endsWith("$");
-      const rawPattern = anchored ? rulePath.slice(0, -1) : rulePath;
-      // Escape regex metacharacters except the robots wildcard, then expand *.
-      const escapedPattern = rawPattern
-        .split("*")
-        .map((part) => part.replace(/[.+?^{}()|[\]\\]/g, "\\$&"))
-        .join(".*");
-      try {
-        return new RegExp("^" + escapedPattern + (anchored ? "$" : "")).test(candidatePath);
-      } catch {
-        return false;
-      }
-    };
-    const matchingRobotsRules = applicableRobotsGroups
-      .flatMap((group) => group.rules)
-      .filter((rule) => robotsRuleMatches(rule.path, robotsPath))
-      .sort((a, b) => b.path.length - a.path.length || (a.kind === "allow" ? -1 : 1));
-    const robotsPathBlocked = robotsStatus === "PASS" && matchingRobotsRules.length > 0 && matchingRobotsRules[0].kind === "disallow";
+    // RFC 9309: a crawler follows only its most specific group. Googlebot's own group
+    // replaces the wildcard group instead of being merged with it.
+    const robotsAssessment = assessRobots(robotsTxt, robotsPath);
+    const matchingRobotsRules = robotsAssessment.google.rule ? [robotsAssessment.google.rule] : [];
+    const robotsPathBlocked = robotsStatus === "PASS" && robotsAssessment.blockedForGoogle;
+    const robotsWildcardOnlyBlock = robotsStatus === "PASS" && robotsAssessment.wildcardOnlyBlock;
     const htmlDeclaredSitemapUrls = [...html.matchAll(/<link\b[^>]*>/gi)]
       .map((match) => match[0])
       .filter((tag) => /\brel\s*=\s*["'][^"']*\bsitemap\b[^"']*["']/i.test(tag))
@@ -1511,6 +1496,11 @@ async function runScan(request: Request, restrictedQa = false) {
             // Keep scanning when robots.txt already declared a broken sitemap so
             // the report can mention both the broken declaration and valid fallback.
             if (declaredSitemapHttpFailures.length === 0) break;
+          } else if (!hasSitemapRoot && classifySitemapResponse({ status: r.status, contentType, body: sitemapBody }) === "crawler_blocked") {
+            // 200 with a bot-challenge/HTML interstitial: unreadable for us, not a broken sitemap.
+            sitemapFetchFailed = true;
+            if (candidate.source === "robots" || candidate.source === "html") declaredSitemapFetchFailed = true;
+            sitemapDiagnostic = describeSitemapBlock(candidate.url, { status: r.status, contentType, userAgent: "RankFixBot/2.1" });
           } else if (candidate.source === "robots" || candidate.source === "html") {
             sitemapStatus = "FAIL";
             sitemapDiagnostic = hasSitemapRoot
@@ -1521,6 +1511,13 @@ async function runScan(request: Request, restrictedQa = false) {
           }
         } else {
           sitemapDiagnostic = `${candidate.url} gaf HTTP ${r.status}; content-type: ${r.headers.get("content-type") || "onbekend"}.`;
+          const failureKind = classifySitemapResponse({ status: r.status, contentType: r.headers.get("content-type") || "" });
+          if (failureKind === "crawler_blocked" || failureKind === "server_error") {
+            // 401/403/429/5xx: we could not read it. Never a proven site defect.
+            sitemapFetchFailed = true;
+            if (candidate.source === "robots" || candidate.source === "html") declaredSitemapFetchFailed = true;
+            sitemapDiagnostic = describeSitemapBlock(candidate.url, { status: r.status, contentType: r.headers.get("content-type") || "", userAgent: "RankFixBot/2.1" });
+          }
           if ((r.status === 404 || r.status === 410) && candidate.source === "robots") {
             sitemapStatus = "FAIL";
             brokenDeclaredSitemaps.push(candidate.url);
@@ -2000,6 +1997,19 @@ async function runScan(request: Request, restrictedQa = false) {
       });
     }
 
+    // One source of truth: structured-data advice follows the primary sector decision.
+    // A university hospital or a university is an institution, never a LocalBusiness page.
+    const sectorSchemaAdvice = schemaAdviceForSector({
+      sector: sectorProfile.sector, key: sectorProfile.key, label: sectorProfile.label,
+      ownIdentityText: [title, description, identityH1s.join(" ")].join(" "), isHomepage,
+    });
+    if (sectorSchemaAdvice) {
+      recommendedSchema = sectorSchemaAdvice.recommended;
+      schemaContextLabel = sectorSchemaAdvice.contextLabel;
+      hasRelevantContextSchema = schemaTypes.some((type) => sectorSchemaAdvice.accepted.has(type.toLowerCase()) && !["organization", "website", "webpage"].includes(type.toLowerCase()))
+        || (schemaSet.has("organization") && schemaSet.has("website"));
+    }
+
     Object.assign(sectorProfile, { businessModel: detectBusinessModel({ sector: sectorProfile.sector, navLabels: identityNavLabels, ownText: [title, description, identityH1s.join(" ")].join(" ") }) });
 
     // The sector engine must abstain rather than invent a lodging business from
@@ -2236,12 +2246,29 @@ async function runScan(request: Request, restrictedQa = false) {
     const securityPoints = securityApplicable.reduce((sum,item)=>sum+item.points,0);
     const securityScore = securityMax ? Math.round((securityPoints/securityMax)*100) : 0;
     const securitySummary = summarizeAuditChecks(securityChecks);
+    // Traceable security score: points earned of the points that could be assessed.
+    // Not applicable and unconfirmed checks are listed but never counted. Rebuilt after
+    // the late form check so the breakdown always equals the final score.
+    const buildSecurityBreakdown = (list: Check[]) => {
+      const counted = list.filter((item)=>item.issue_status !== "NOT_APPLICABLE" && item.issue_status !== "UNABLE_TO_CONFIRM");
+      return {
+        formula:"score = verdiende punten / maximale punten van toepasselijke, bevestigde controles",
+        earnedPoints:counted.reduce((sum,item)=>sum+item.points,0),
+        maxPoints:counted.reduce((sum,item)=>sum+item.maxPoints,0),
+        counted:counted.map((item)=>({key:item.key,title:item.title,status:item.status,points:item.points,maxPoints:item.maxPoints})),
+        deductions:counted.filter((item)=>item.points<item.maxPoints).map((item)=>({key:item.key,title:item.title,status:item.status,lostPoints:item.maxPoints-item.points,reason:item.message})),
+        notCounted:list.filter((item)=>item.issue_status==="NOT_APPLICABLE"||item.issue_status==="UNABLE_TO_CONFIRM").map((item)=>({key:item.key,title:item.title,status:item.status})),
+      };
+    };
     const securityEngine = {
       version:"1.1-passive",
       mode:"PASSIVE_STATIC_EVIDENCE" as const,
       score:securityScore,
       grade:grade(securityScore),
       summary:securitySummary,
+      // Traceable score: points earned of the points that could be assessed. Not
+      // applicable and unconfirmed checks are listed but never counted.
+      breakdown:buildSecurityBreakdown(securityChecks),
       checks:securityChecks,
       note:"Passieve security-audit op responseheaders en opgehaalde HTML. Geen exploit-, brute-force-, login- of actieve kwetsbaarheidstests uitgevoerd."
     };
@@ -2962,10 +2989,10 @@ async function runScan(request: Request, restrictedQa = false) {
     seoChecks.push(noindexSignal
       ? check("warning", "indexability", "seo", "Indexeerbaarheid", `Een noindex-signaal is gevonden${xRobotsTag ? ` in X-Robots-Tag/meta robots (${[robots, xRobotsTag].filter(Boolean).join(" | ")})` : ` in meta robots (${robots})`}.`, "Controleer of noindex bewust is ingesteld. Verwijder het alleen als deze pagina in zoekmachines moet verschijnen.", 0, 6)
       : robotsPathBlocked
-        ? check("warning", "indexability", "seo", "Indexeerbaarheid", `robots.txt blokkeert het gescande pad via: Disallow: ${matchingRobotsRules[0].path}`, "Controleer of deze crawlblokkade bewust is. Pas robots.txt alleen aan wanneer zoekmachines deze pagina moeten kunnen crawlen.", 0, 6)
+        ? { ...check("warning", "indexability", "seo", "Indexeerbaarheid", `robots.txt blokkeert het gescande pad voor Googlebot (${robotsAssessment.google.matchedAgent === "*" ? "wildcardgroep *" : `groep ${robotsAssessment.google.matchedAgent}`}) via: Disallow: ${matchingRobotsRules[0].path}`, "Controleer of deze crawlblokkade bewust is. Pas robots.txt alleen aan wanneer zoekmachines deze pagina moeten kunnen crawlen.", 0, 6), rootCause: "robots_txt_block" }
         : robotsStatus === "UNABLE_TO_CONFIRM"
           ? check("unable_to_confirm", "indexability", "seo", "Indexeerbaarheid", "Geen noindex-signaal gevonden, maar RankFix kon robots.txt niet betrouwbaar controleren.", "Probeer opnieuw om crawlbaarheid en indexeerbaarheid samen te bevestigen.", 0, 6)
-          : check("pass", "indexability", "seo", "Indexeerbaarheid", `Geen noindex gevonden en geen robots.txt-regel blokkeert dit pad${robots ? `; meta robots: "${robots}"` : ""}.`, "Externe zoekmachine-indexstatus blijft een aparte controle.", 6, 6)
+          : check("pass", "indexability", "seo", "Indexeerbaarheid", `Geen noindex gevonden en geen robots.txt-regel blokkeert dit pad voor Googlebot${robotsWildcardOnlyBlock ? " (de wildcardgroep * blokkeert wel, maar Googlebot heeft een eigen groep die dit pad toestaat)" : ""}${robots ? `; meta robots: "${robots}"` : ""}.`, "Externe zoekmachine-indexstatus blijft een aparte controle.", 6, 6)
     );
     const missingAltRatio = imageElementCount ? imagesMissingAlt / imageElementCount : 0;
     const altPoints = imagesMissingAlt === 0
@@ -3030,8 +3057,8 @@ async function runScan(request: Request, restrictedQa = false) {
     );
     seoChecks.push(robotsStatus === "PASS"
       ? robotsPathBlocked
-        ? check("warning", "robots_txt", "seo", "robots.txt", `robots.txt is bereikbaar, maar blokkeert het gescande pad via Disallow: ${matchingRobotsRules[0].path}.`, "Controleer of deze blokkade bewust is.", 1, 4)
-        : check("pass", "robots_txt", "seo", "robots.txt", "robots.txt is bereikbaar en bevat geen toepasselijke blokkade voor het gescande pad.", "Houd crawlregels bewust en controleer belangrijke publieke pagina's.", 4, 4)
+        ? { ...check("warning", "robots_txt", "seo", "robots.txt", `robots.txt is bereikbaar, maar blokkeert het gescande pad voor Googlebot via Disallow: ${matchingRobotsRules[0].path}.`, "Controleer of deze blokkade bewust is.", 1, 4), rootCause: "robots_txt_block" }
+        : check("pass", "robots_txt", "seo", "robots.txt", robotsWildcardOnlyBlock ? `robots.txt is bereikbaar. De wildcardgroep (*) blokkeert dit pad, maar Googlebot heeft een eigen groep die het toestaat; andere crawlers kunnen wel geblokkeerd zijn.` : "robots.txt is bereikbaar en bevat geen toepasselijke blokkade voor het gescande pad.", "Houd crawlregels bewust en controleer belangrijke publieke pagina's.", 4, 4)
       : robotsStatus === "FAIL"
         ? check("not_applicable", "robots_txt", "seo", "robots.txt", "robots.txt gaf 404 terug. Het ontbreken van robots.txt blokkeert crawlers op zichzelf niet en kost daarom geen SEO-punten.", "Publiceer robots.txt alleen wanneer je crawlregels of sitemapverwijzingen wilt beheren.", 0, 4)
         : check("unable_to_confirm", "robots_txt", "seo", "robots.txt", "RankFix kon robots.txt tijdens deze scan niet betrouwbaar ophalen.", "Probeer opnieuw wanneer de server bereikbaar is.", 0, 4)
@@ -3049,7 +3076,15 @@ async function runScan(request: Request, restrictedQa = false) {
     );
 
     geoChecks.push(
-      effectiveLocalSchemaSignal
+      sectorSchemaAdvice
+        ? hasRelevantContextSchema
+          ? check("pass", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) met een passend schema-type gevonden voor deze ${schemaContextLabel}.`, `Controleer ook de inhoudelijke velden en houd structured data gelijk aan zichtbare content. Passende hoofdkeuze: ${recommendedSchema}.`, 12, 12)
+          : validJsonLd > 0
+            ? check("warning", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) gevonden (types: ${[...new Set(schemaTypes)].slice(0, 8).join(", ") || "geen type herkend"}), maar geen type dat bij deze ${schemaContextLabel} past.`, `Voeg alleen feitelijk onderbouwde properties toe. Passende richting: ${recommendedSchema}; gebruik geen LocalBusiness voor een instelling.`, 6, 12)
+            : metadataMayBeClientRendered
+              ? check("unable_to_confirm", "schema", "geo", "Structured data", `Structured data kon niet betrouwbaar worden bevestigd voor deze ${schemaContextLabel}, omdat de JavaScript-pagina niet volledig kon worden gerenderd.`, "Controleer structured data opnieuw met een volledige render voordat je schema toevoegt of wijzigt.", 0, 12)
+              : check("warning", "schema", "geo", "Structured data", `Geen geldige JSON-LD structured data gevonden voor deze ${schemaContextLabel}. Dit is een machineleesbare optimalisatiekans; de zichtbare pagina kan zonder JSON-LD nog steeds inhoudelijk correct zijn.`, `Voeg schema.org JSON-LD toe wanneer de zichtbare content dit ondersteunt. Passende richting: ${recommendedSchema}.`, 4, 12)
+      : effectiveLocalSchemaSignal
         ? hasRelevantLocalSchema
           ? check("pass", "schema", "geo", "Structured data", `${validJsonLd} geldige JSON-LD block(s) met passend lokaal bedrijfstype gevonden voor deze ${schemaContextLabel}.`, `Behoud het meest specifieke passende type: ${recommendedSchema}. Controleer verplichte en relevante velden.`, 12, 12)
           : validJsonLd > 0
@@ -3339,7 +3374,9 @@ async function runScan(request: Request, restrictedQa = false) {
           : check("warning","checkout_trust","seo","Checkout- en betaalvertrouwen","Geen duidelijke betaal- of checkoutsignalen gevonden op deze commerciële pagina.","Toon betaalmogelijkheden en relevante veiligheids-/vertrouwensinformatie waar de bezoeker een aankoopbeslissing neemt.",2,5)
       : check("not_applicable","checkout_trust","seo","Checkout- en betaalvertrouwen","Geen webshop-signalen gevonden; checkoutcontrole is niet van toepassing.","Gebruik deze controle op echte webshopcontent.",0,5));
     const adsApplicableByCustomer = hasAdsProfile && Boolean(adsProfile.campaignGoal || adsProfile.primaryOffer || adsProfile.targetCountries || adsProfile.adLanguages);
-    const adsApplicableByEvidence = adsTrackingSignals > 0 || hasConversionSignal || hasExplicitAdsConversionSnippet;
+    // A tag manager container or analytics alone says nothing about paid advertising:
+    // only an Ads ID, an Ads conversion label or conversion events make Ads relevant.
+    const adsApplicableByEvidence = hasGoogleAdsTag || hasConversionSignal || hasExplicitAdsConversionSnippet;
     const adsApplicable = adsApplicableByCustomer || adsApplicableByEvidence;
     seoChecks.push(
       !adsApplicable
@@ -3565,7 +3602,7 @@ async function runScan(request: Request, restrictedQa = false) {
         status: response.status,
         response: responseTime,
         sitemap: sitemapFound ? (confirmedSitemapUrl || true) : robotsDeclaredSitemapUrls.length ? `declared=${robotsDeclaredSitemapUrls.join(",")}; status=${sitemapStatus}` : sitemapStatus,
-        robots_txt: robotsStatus === "PASS" ? `${robotsUrl.toString()}; pathBlocked=${robotsPathBlocked}${matchingRobotsRules[0] ? `; rule=${matchingRobotsRules[0].kind}:${matchingRobotsRules[0].path}` : ""}` : robotsStatus,
+        robots_txt: robotsStatus === "PASS" ? `${robotsUrl.toString()}; pathBlocked=${robotsPathBlocked}; googlebotGroup=${robotsAssessment.google.matchedAgent}; wildcardOnlyBlock=${robotsWildcardOnlyBlock}${matchingRobotsRules[0] ? `; rule=${matchingRobotsRules[0].kind}:${matchingRobotsRules[0].path}` : ""}` : robotsStatus,
         indexability: noindexSignal ? [robots, xRobotsTag].filter(Boolean).join(" | ") : robotsPathBlocked ? `robots disallow: ${matchingRobotsRules[0].path}` : "no noindex or applicable robots block found",
         hreflang: hreflangEntries.length ? hreflangEntries.map((entry) => `${entry.language}=>${entry.href || "missing"}`).join(" | ") : null,
         twitter_card: twitterCard || null,
@@ -5031,6 +5068,7 @@ async function runScan(request: Request, restrictedQa = false) {
       securityEngine.score = finalSecurityMax ? Math.round((finalSecurityPoints/finalSecurityMax)*100) : 0;
       securityEngine.grade = grade(securityEngine.score);
       securityEngine.summary = summarizeAuditChecks(securityChecks);
+      securityEngine.breakdown = buildSecurityBreakdown(securityChecks);
     }
 
     const orgWebsiteCheck = geoChecks.find((item)=>item.key==="organization_website");

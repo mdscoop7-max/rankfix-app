@@ -554,7 +554,10 @@ test("transport route pages are typed as services for transport sectors", async 
 test("structured data uses effective local context instead of raw local hints", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  assert.match(source, /geoChecks\.push\(\s*effectiveLocalSchemaSignal/);
+  // The primary-sector decision (hospital, university) comes first; the page-signal
+  // local logic is the fallback and must still use the effective, not the raw, signal.
+  assert.match(source, /geoChecks\.push\(\s*sectorSchemaAdvice\s*\?/);
+  assert.match(source, /:\s*effectiveLocalSchemaSignal\s*\?\s*hasRelevantLocalSchema/);
   assert.doesNotMatch(source, /geoChecks\.push\(\s*hasLocalBusinessSignal\s*\?/);
 });
 

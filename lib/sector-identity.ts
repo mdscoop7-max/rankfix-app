@@ -38,6 +38,9 @@ const ORGANIZATION_SCHEMA_TYPES = new Set([
   "plumber", "electrician", "professionalservice", "legalservice", "attorney", "accountingservice",
   "financialservice", "bankorcreditunion", "insuranceagency", "employmentagency", "travelagency",
   "entertainmentbusiness", "childcare", "movingcompany", "parkingfacility",
+  // Institutions: hospitals, schools and public bodies are Organization subtypes too.
+  "hospital", "medicalbusiness", "communityhealth", "preschool", "elementaryschool", "middleschool", "highschool",
+  "governmentoffice", "library", "museum", "diagnosticlab",
   ...RETAIL_STORE_SCHEMA_TYPES,
 ]);
 

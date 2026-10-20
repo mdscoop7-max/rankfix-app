@@ -69,6 +69,8 @@ for (const p of PROFILES) {
       if (!c) { if ((process.env.MODE || "both") === "both") problems.push(`check ${k} missing`); } else if (!allowed.includes(c.status)) problems.push(`${k}=${c.status} not in ${allowed}: ${c.message.slice(0, 140)}`);
     }
     for (const [k, re] of Object.entries(p.message || {})) { const c = byKey(k); if (c && !re.test(c.message)) problems.push(`${k} message lacks ${re}: ${c.message.slice(0, 140)}`); }
+    for (const [k, re] of Object.entries(p.fixHas || {})) { const c = byKey(k); if (c && !re.test(c.fix || "")) problems.push(`${k} fix lacks ${re}: ${(c.fix || "").slice(0, 140)}`); }
+    for (const [k, re] of Object.entries(p.noFix || {})) { const c = byKey(k); if (c && re.test(c.fix || "")) problems.push(`${k} fix has ${re}: ${(c.fix || "").slice(0, 140)}`); }
     for (const [k, re] of Object.entries(p.noMessage || {})) { const c = byKey(k); if (c && re.test(c.message)) problems.push(`${k} message has ${re}: ${c.message.slice(0, 140)}`); }
     for (const [path, types] of Object.entries(p.sampleTypes || {})) { const a = (j.multiPage?.pageAudits || []).find((x) => new URL(x.url).pathname === path); if (!types.length) { if (a) problems.push(`sample ${path} must not be sampled (personal utility page)`); continue; } if (!a) problems.push(`sample ${path} not audited`); else if (!types.includes(a.type)) problems.push(`sample ${path} typed ${a.type} (expected ${types})`); }
     if (p.tech) for (const [k, v] of Object.entries(p.tech)) { if ((j.technologyProfile?.[k] ?? null) !== v) problems.push(`technology ${k}=${j.technologyProfile?.[k]} (expected ${v})`); }
@@ -103,6 +105,16 @@ for (const p of PROFILES) {
     if (p.maxScore != null && (process.env.MODE || "both") === "both" && j.overallScore > p.maxScore) problems.push(`score ${j.overallScore} > ${p.maxScore} despite issues`);
     for (const m of p.noModules || []) if (j.sectorProfile.applicableModules.includes(m)) problems.push(`module ${m} should not be active`);
     if (p.sitemap && byKey("sitemap")) { const c = byKey("sitemap"); if (!c?.message.includes(p.sitemap)) problems.push(`sitemap chose: ${c?.message.slice(0, 120)}`); }
+    // Security score must be traceable: breakdown points reproduce the displayed score.
+    { const sec = j.security; const b = sec?.breakdown;
+      if (!b) problems.push("security.breakdown missing");
+      else {
+        const expected = b.maxPoints ? Math.round((b.earnedPoints / b.maxPoints) * 100) : 0;
+        if (expected !== sec.score) problems.push(`security breakdown ${b.earnedPoints}/${b.maxPoints} gives ${expected}, score is ${sec.score}`);
+        const lost = b.deductions.reduce((n, d) => n + d.lostPoints, 0);
+        if (b.maxPoints - b.earnedPoints !== lost) problems.push(`security deductions ${lost} != ${b.maxPoints - b.earnedPoints}`);
+        if (sec.score < 100 && !b.deductions.length && b.maxPoints) problems.push("security score below 100 without any listed deduction");
+      } }
     // Central self-check: present, label consistent, and the engine itself
     // should not need corrections (a correction means an upstream contradiction).
     if (!j.selfCheck) problems.push("selfCheck missing");
