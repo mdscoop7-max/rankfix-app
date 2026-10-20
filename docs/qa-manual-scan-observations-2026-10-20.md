@@ -13,6 +13,8 @@
 | https://www.kpn.com/ | 14:44:14 (12:44:14 UTC) | niet vermeld | **68–100 voorlopig** | 99 | 99 | **68%** | Telecom & Technologie (96%) | 0 | 12 |
 | https://www.umcutrecht.nl/nl | 14:46:48 (12:46:48 UTC) | niet vermeld | **91** | 99 | 80 | **94%** | Zorg & Gezondheid · universitair medisch centrum (92%) | 3 | 2 |
 | https://www.uva.nl/ | 14:49:55 (12:49:55 UTC) | niet vermeld | **91 voorlopig** | 95 | 85 | **88%** | Onderwijs & Opleiding (93%) | 3 | 5 |
+| https://www.ns.nl/ | 14:53:05 (12:53:05 UTC) | niet vermeld | **91** | 99 | 80 | **95%** | Personenvervoer (spoor, luchtvaart, OV) (90%) | 2 | 2 |
+| https://trendmix-q6fx.vercel.app/ | 19:25:43 (17:25:43 UTC) | niet vermeld | **88 voorlopig** | 88 | 100 | **83%** | Webshop / e-commerce (90%) | 1 | 12 |
 
 Dit zijn momentopnamen van de gebruiker (korte samenvattingen), **geen onafhankelijke benchmarks voor juistheid van de cijfers**.
 
@@ -76,6 +78,23 @@ Dit zijn momentopnamen van de gebruiker (korte samenvattingen), **geen onafhanke
 - Vergelijk met UMC Utrecht: beide krijgen een generiek `LocalBusiness`-advies en Security 84 zonder zichtbare securitydetails in deze samenvattingen. Onderzoek scoreherleidbaarheid, het sectorspecifieke schemabeleid en mogelijke dubbele waarschuwingen. Dit is **een hypothese, geen bewezen bug**.
 - Bron: door gebruiker geplakte audittekst; originele technische JSON/HTML nog niet onafhankelijk onderzocht.
 
+### Nederlandse Spoorwegen (NS)
+- Gebruiker deelde echte RankFix-audit van `https://www.ns.nl/` op 20-10-2026 12:53:05 UTC. Totaal 91/100, SEO 99, GEO 80, Security 89, bewijsdekking 95%; 2 waarschuwingen, 2 onbevestigd, 29 geslaagd; steekproef 16/16.
+- Sector gemeld: **Personenvervoer (spoor, luchtvaart, openbaar vervoer)** (90%). Hoofdsector personenvervoer is plausibel, maar bedrijfsspecifieke subsector ontbreekt. Correcter: **Vervoer & Mobiliteit → Spoorvervoer / OV → spoorwegvervoerder (trein)**. Niet suggereren dat NS luchtvaart aanbiedt. Nauwkeurige sector- en subsectorclassificatie met onafhankelijke bewijssignalen toevoegen; 90%-confidence op brede sector niet verwarren met specifieke subtype-confidence.
+- Twee waarschuwingen: geen geldige JSON-LD op homepage; geen bevestigde `Organization`/`WebSite` JSON-LD. Dit is mogelijk één gedeelde hoofdoorzaak; controleer dubbele puntenaftrek. Niet bewezen SEO-fout zonder broncontrole.
+- Twee onbevestigd: bedrijfsgegevens buiten homepage niet onderzocht; daadwerkelijke boekingsflow is niet interactief doorlopen. Goed dat de scanner dat onderscheid maakt.
+- Geslaagd (29) o.a. meta title/description, headings, canonical, indexeerbaarheid, alt-teksten, HTTPS, robots/sitemap, privacy/trust, abonnement & prijs, entity- en brandsignalen. Uitgebreide lijst staat in oorspronkelijke door gebruiker geplakte audit, niet in dit addendum.
+- Product-/webshop- en checkoutregels veelal 'niet van toepassing': valideer of niet-interactief boeken van treintickets buiten e-commercechecklist bewust is gemodelleerd; geen ongegronde fouten. Geen ruwe JSON meegeleverd.
+
+### TrendMix (eigen webshop)
+- Gebruiker deelde audit: `https://trendmix-q6fx.vercel.app/`, 20-10-2026 17:25:43 UTC, steekproef 15/15. **Eindscore 88 voorlopig**, SEO 88, GEO 100, Security 96, bewijsdekking slechts 83%; 1 bewezen/door scanner als fout gerapporteerd aandachtspunt, 12 onbevestigd, 36 geslaagd. Sector Webshop/e-commerce (90%) is logisch.
+- **Canonical-domeinmismatch bevestigd in broncode van de gedeployde Git-commit**. De homepage `templates/index.html` (repo `mdscoop7-max/Trendmix`, SHA `ab1fc36246081a6b5765b82bd457aab003e5a608`) heeft vast `<link rel="canonical" href="https://trendmix-jet.vercel.app/">`, terwijl de scan de `trendmix-q6fx.vercel.app`-homepage betrof. Ook `og:url`, `og:image`, en `Organization`/`WebSite` JSON-LD URL's en IDs wijzen nog naar `trendmix-jet.vercel.app`; op categoriepagina's `templates/category.html` dezelfde hardgecodeerde oude host. **RankFix heeft terecht een domeinmismatch gesignaleerd**. Niet definitief fout als de oude host bewust als canoniek hoofddomein gekozen is; eigenaar moet het gewenste primaire domein bevestigen. Bij overstap: één configureerbare canonieke host gebruiken, alle absolute SEO-URL's consistent maken en redirects instellen; productie niet zonder akkoord wijzigen.
+- **12 onbevestigd**: Meertalige SEO; Merchant Center productbasis; Merchant Center feed; Bedrijfsgegevens; Checkout & funnel; Checkout informatie; EU consumenteninformatie; Prijs & valuta consistentie; Productvariant-URL; Productprijs consistentie; Productvoorraad; Checkout- en betaalvertrouwen. Niet als bewezen fouten tellen. De score is voorlopig bij 83% dekking.
+- **36 geslaagd gemeld**, o.a. structured data, Organization+WebSite, Product structured data, social metadata, privacy/trust, commerciële voorwaarden, betalingsgerelateerde hints. Regressiepunt: schema syntactisch geldig kan toch semantisch inconsistente oude domeinnamen bevatten. Als controle 'geslaagd' wordt, verduidelijk of alleen technische aanwezigheid of volledige correctheid is bewezen.
+- Context: `SITE_URL` bestaat al als configuratievariabele in `app.py` voor robots en sitemap, maar homepage en categorie gebruiken die niet voor hardgecodeerde canonical/OG/schema URL's. `templates/base.html` en producttemplates genereren canonicals dynamisch via request-url.
+- Een eerder geïndexeerde HTML-snapshot bevatte testbedrijfsgegevens, maar actuele gedeployde footerbroncode bevat deze tekst niet in dezelfde vorm; **geen actuele placeholderfout claimen zonder live hercontrole**. Door de gebruiker aangeleverde scanmeldingen zijn niet allemaal onafhankelijk geverifieerd.
+- **Actie:** als TrendMix q6fx voortaan hoofdsite is, canonical, OG en JSON-LD op de juiste host afstemmen; RankFix-engine voorlopig niet aanpassen voor deze waarschuwing.
+
 ## Reviewvragen voor Claude (later)
 1. Reproduceer Amsterdam robots user-agent selectie voor Googlebot versus wildcard `*`; voeg regressietest en een niet-dubbel-aftrekregel toe waar nodig.
 2. Onderzoek waarom sitemap HTTP 403 in scan werd gerapporteerd; registreer status, content-type, user-agent, en zekerheid zonder blokkades als bewezen technische websitefouten te labelen.
@@ -87,6 +106,9 @@ Dit zijn momentopnamen van de gebruiker (korte samenvattingen), **geen onafhanke
 8. UMC Utrecht: test `Hospital` / `MedicalOrganization` schema-advies versus generiek `LocalBusiness`, voorkom overlappende scoreaftrek, verklaar Security 84 en controleer de drie waarschuwingen onafhankelijk.
 
 9. UvA: verifieer sectorafhankelijke JSON-LD-types, dat de al aanwezige JSON-LD correct gelezen wordt, en de Security 84-score.
+
+10. NS: verbeter subsector spoorvervoer/trein, zonder luchtvaart als bedrijfsspecifieke activiteit te suggereren; verifieer gedeelde oorzaak bij JSON-LD-waarschuwingen.
+11. TrendMix: RankFix canonicalwaarschuwing is onderbouwd door hardgecodeerde oude host in TrendMix-broncode; dit is primair een siteconfiguratiepunt, geen bewezen fout van de RankFix-canonicalregel. Controleer semantische consistentie van geslaagde JSON-LD/OG-checks.
 
 ## UI voor handmatig testen
 In previewbranch `fix/dashboard-login-resilience-20261020` bevat `app/dashboard/database-free-qa.tsx` inmiddels zowel **Kopieer samenvatting** als **Kopieer volledig rapport**, plus Download JSON en Deel auditbestand. Dit rapport omvat uitsluitend de tekst van gedeelde korte samenvattingen; voor volledige diagnostiek moeten originele JSON-audits apart worden aangeleverd.
