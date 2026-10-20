@@ -1,0 +1,67 @@
+name: RankFix Fix Engine QA (isolated)
+
+# Only this QA branch; no triggers on main and no deployment job.
+on:
+  push:
+    branches:
+      - qa/fix-engine-test-harness-20261020
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rankfix-fix-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  safety:
+    name: Vitest + fast-check + existing regression tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install existing RankFix dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install isolated, pinned QA tools without changing the lockfile
+        run: npm install --no-save --package-lock=false --no-audit --no-fund vitest@4.1.11 fast-check@4.10.2 @playwright/test@1.64.1
+      - name: Fix Engine invariants and randomized tests
+        run: npx vitest run tests/qa/fix-engine.spec.ts --reporter=verbose
+      - name: Existing RankFix regression suite (fail on any failure)
+        run: npm test
+
+  browser:
+    name: Playwright Fix-button safety (local fixture)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install RankFix dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install isolated Playwright without changing the lockfile
+        run: npm install --no-save --package-lock=false --no-audit --no-fund @playwright/test@1.64.1
+      - name: Install browser for local-only QA
+        run: npx playwright install --with-deps chromium
+      - name: Exercise Fix buttons in local browser, with write APIs mocked
+        run: npx playwright test --config=playwright.qa.config.ts
+      - name: Preserve failure traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rankfix-fix-qa-traces
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 3
