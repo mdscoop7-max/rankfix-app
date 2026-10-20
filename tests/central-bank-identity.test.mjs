@@ -63,3 +63,38 @@ test("a central bank name alone without a proven mandate is not sufficient", () 
   });
   assert.notEqual(result?.key, "financial_central_bank");
 });
+
+
+test("central-bank H1 and independently supported homepage text beat generic CMS title", () => {
+  const result = detectEuPrimaryIdentity({
+    title: "Home | De Nederlandsche Bank",
+    h1s: ["De Nederlandsche Bank – de centrale bank van Nederland"],
+    description: "Welkom bij onze organisatie.",
+    navLabels: ["Nieuws", "Publicaties", "Betalen"],
+    bodyText: "Actueel nieuws. Bekijk onze registers. Wij maken ons sterk voor financiële stabiliteit en houden toezicht op financiële instellingen.",
+    homepage: true,
+  });
+  assert.equal(result?.key, "financial_central_bank");
+  assert.equal(result?.sector, "financial_services");
+});
+
+test("central-bank mention in article body without bank self-identity stays unconfirmed", () => {
+  const result = detectEuPrimaryIdentity({
+    title: "Hoe reageert de economie op monetair beleid?",
+    h1s: ["Onderzoek naar de centrale bank van Nederland"],
+    description: "Een verslag over rentebesluiten en toezicht.",
+    bodyText: "De centrale bank is toezichthouder. Financiële stabiliteit is belangrijk.",
+    homepage: false,
+  });
+  assert.notEqual(result?.key, "financial_central_bank");
+});
+
+test("generic institution page with finance subjects but no central-bank identity abstains", () => {
+  const result = detectEuPrimaryIdentity({
+    title: "Informatiecentrum | Betalen en geld",
+    h1s: ["Welkom bij ons informatiecentrum"],
+    bodyText: "We publiceren informatie over monetair beleid en financiële stabiliteit.",
+    homepage: true,
+  });
+  assert.notEqual(result?.key, "financial_central_bank");
+});
