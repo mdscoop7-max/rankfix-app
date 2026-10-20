@@ -410,7 +410,7 @@ export async function POST(request: Request) {
   if (isDatabaseFreeQaPreview()) {
     // QA only: run the existing real engine without Neon-backed usage, accounts or history.
     const limit = checkDatabaseFreeQaLimit(requestIp(request));
-    if (!limit.allowed) return NextResponse.json({ error: "Testlimiet bereikt: maximaal 8 scans per uur per netwerk. Probeer later opnieuw.", code: "QA_SCAN_LIMIT" }, { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } });
+    if (!limit.allowed) return NextResponse.json({ error: "Testlimiet bereikt: maximaal 20 scans per uur per netwerk op deze QA-preview. Probeer later opnieuw.", code: "QA_SCAN_LIMIT" }, { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } });
     return runRestrictedQaScan(request);
   }
   const attemptStarted = Date.now();
