@@ -19,7 +19,7 @@ export type QaAuditResult = {
   seo?: { score?: number; checks?: Check[] };
   geo?: { score?: number; checks?: Check[] };
   security?: { score?: number };
-  sectorProfile?: { label?: string; sector?: string; confidence?: number };
+  sectorProfile?: { label?: string; sector?: string; confidence?: number | string };
   classification?: { sector?: string; websiteType?: string; confidence?: number };
   coverage?: { coveragePercent?: number; relevant?: number; confirmed?: number; unableToConfirm?: number };
   scoreModel?: { provisional?: boolean; evidenceLevel?: string; evidenceReasons?: string[]; headline?: { kind?: string; display?: string } };

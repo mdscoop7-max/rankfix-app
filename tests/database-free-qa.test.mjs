@@ -50,6 +50,27 @@ test("QA dashboard is branch-isolated, provides a real request and JSON export",
   assert.doesNotMatch(ui, /INITIAL_TEST_SITES|FAKE_SCORE|MOCK_SCAN/);
 });
 
+test("QA access does not touch Neon and clearly separates tester access from real login", async () => {
+ const me = await source("app/api/auth/me/route.ts");
+ const login = await source("app/api/auth/login/route.ts");
+ const register = await source("app/api/auth/register/route.ts");
+ const account = await source("app/account/page.tsx");
+ for (const file of [me,login,register]) assert.match(file,/isDatabaseFreeQaPreview\(\)/);
+ assert.match(me,/qaPreview: true, accountLoginAvailable: false/);
+ assert.match(login,/QA_ACCOUNT_LOGIN_DISABLED/);
+ assert.match(register,/QA_ACCOUNT_REGISTRATION_DISABLED/);
+ assert.match(account,/Open testdashboard zonder accountlogin/);
+});
+
+test("QA testdashboard can stop a scan, download PDF and reuse browser-only websites", async () => {
+ const page = await source("app/dashboard/database-free-qa.tsx");
+ assert.match(page,/AbortController/);
+ assert.match(page,/Stop scan/);
+ assert.match(page,/downloadQaAuditPdf/);
+ assert.match(page,/readRecentScanUrls/);
+ assert.match(page,/rememberScanUrl/);
+});
+
 test("QA audit filenames are safe and reflect the scanned site and actual scan date", () => {
   assert.equal(qaAuditFilename("https://www.monumenten.nl/", "2026-10-20T08:03:29Z"), "rankfix-audit-www.monumenten.nl-2026-10-20.json");
   assert.equal(qaAuditFilename("not a url", "2026-10-20T08:03:29Z"), "rankfix-audit-website-2026-10-20.json");

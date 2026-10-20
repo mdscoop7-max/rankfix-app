@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSession, verifyPassword } from "@/lib/auth";
+import { isDatabaseFreeQaPreview } from "@/lib/database-free-qa";
 import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
 import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
@@ -8,6 +9,7 @@ const langOf=(v:unknown):Lang=>typeof v==="string"&&["nl","en","de","fr","it","e
 const tr=<T,>(l:Lang,v:Record<Lang,T>)=>v[l];
 
 export async function POST(request: Request) {
+  if (isDatabaseFreeQaPreview()) return NextResponse.json({error:"In deze QA-testversie staat de accountlogin uit omdat de accountdatabase niet gebruikt wordt. Open het testdashboard zonder accountlogin.",code:"QA_ACCOUNT_LOGIN_DISABLED",dashboardUrl:"/dashboard"},{status:503,headers:{"Cache-Control":"no-store"}});
   let language:Lang="nl";
   try {
     const body=await request.json(); language=langOf(body?.language);

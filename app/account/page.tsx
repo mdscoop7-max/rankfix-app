@@ -12,6 +12,7 @@ export default function Account() {
   const [confirmPassword,setConfirmPassword]=useState("");
   const [error,setError]=useState("");
   const [busy,setBusy]=useState(false);
+  const [qaPreview,setQaPreview]=useState(false);
   const [rememberMe,setRememberMe]=useState(true);
   const [showPassword,setShowPassword]=useState(false);
   const [language,setLanguage]=useState<Locale>("nl");
@@ -47,6 +48,7 @@ export default function Account() {
     fetch("/api/auth/me", { cache: "no-store" })
       .then((r) => r.json())
       .then((d) => {
+        if (d.qaPreview === true) { setQaPreview(true); return; }
         if (d.user) window.location.replace(loginDestination());
       })
       .catch(() => {});
@@ -96,12 +98,13 @@ export default function Account() {
       <div className="mx-auto max-w-md">
         <a href={"/"+language} className="text-lg font-bold">RankFix <span className="text-emerald-300">AI</span></a>
         <div className="mt-8 rounded-3xl border border-[#334155] bg-[#101B2D] p-5 shadow-xl sm:mt-10 sm:p-7">
-          <div className="flex rounded-xl bg-black/20 p-1">
+          {qaPreview && <section className="rounded-2xl border border-emerald-300/30 bg-emerald-400/10 p-4" aria-label="QA testdashboard"><h1 className="text-xl font-bold text-emerald-200">RankFix testdashboard</h1><p className="mt-2 text-sm text-slate-200">Dit is de besloten ontwikkelversie. Je bestaande account kan hier niet worden ingelogd omdat de database tijdelijk uitstaat. Je kunt de echte SEO/GEO-scan wel gebruiken, een PDF downloaden en recente websites terugvinden, zonder account of opslag op de server.</p><a href="/dashboard" className="mt-4 block rounded-xl bg-[#5DCAA5] px-4 py-3 text-center font-bold text-[#04342C]">Open testdashboard zonder accountlogin →</a></section>}
+          {!qaPreview && <div className="flex rounded-xl bg-black/20 p-1">
             <button onClick={()=>setMode("login")} className={`flex-1 rounded-lg px-3 py-2 text-sm ${mode==="login"?"bg-white text-slate-950":"text-slate-400"}`}>{t.login}</button>
             <button onClick={()=>setMode("register")} className={`flex-1 rounded-lg px-3 py-2 text-sm ${mode==="register"?"bg-white text-slate-950":"text-slate-400"}`}>{t.register}</button>
-          </div>
+          </div>}
 
-          <h1 className="mt-8 text-3xl font-black">{mode==="register"?t.start:t.welcome}</h1>
+          {!qaPreview && <><h1 className="mt-8 text-3xl font-black">{mode==="register"?t.start:t.welcome}</h1>
           <p className="mt-2 text-sm text-slate-400">
             {mode==="register"?t.startInfo:t.loginInfo}
           </p>
@@ -142,7 +145,7 @@ export default function Account() {
             <button disabled={busy} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-4 py-3 font-bold text-[#04342C] disabled:opacity-50">
               {busy?t.busy:mode==="register"?t.submitRegister:t.submitLogin}
             </button>
-          </form>
+          </form></>}
         </div>
       </div>
     </main>

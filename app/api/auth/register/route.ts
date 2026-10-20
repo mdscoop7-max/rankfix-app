@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSession, hashPassword } from "@/lib/auth";
+import { isDatabaseFreeQaPreview } from "@/lib/database-free-qa";
 import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
 import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
@@ -24,6 +25,7 @@ const languageFromRequest=(request:Request):Lang|null=>{
 };
 
 export async function POST(request: Request) {
+ if(isDatabaseFreeQaPreview()) return NextResponse.json({error:"Registreren is tijdelijk uitgeschakeld in de databasevrije QA-test. Open het testdashboard zonder accountlogin.",code:"QA_ACCOUNT_REGISTRATION_DISABLED",dashboardUrl:"/dashboard"},{status:503,headers:{"Cache-Control":"no-store"}});
  let language:Lang="nl";
  try{
   const body=await request.json();
