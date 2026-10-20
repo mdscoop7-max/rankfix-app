@@ -120,9 +120,42 @@ Gebruiker deelde een korte QA-samenvatting van `https://info.cern.ch/`, HTTP 200
 - Controleer bij eventuele vervolgscan de twee niet-uitgeschreven waarschuwingen, alle 28 onbekenden en bewijsbron van de voornaamste beweringen uit het oorspronkelijke JSON-rapport.
 - **Status:** live regressie uitgevoerd, grotendeels identiek aan eerdere scan; geen definitief acceptatiebewijs voor ontbrekende-bewijsbeleid, geen onafhankelijke HTML-hercontrole.
 
-## Volgende beoogde hertests
-1. Overige relevante benchmarks: Monumenten.nl en eventueel NS.nl.
-2. Prioriteit: aanvullende JSON-evidence van de reeds uitgevoerde hertests.
-2. Prioriteit: originele Coolblue JSON + HTML-evidence van og:image-metadata en regressiefixtures.
+## Monumenten.nl — 20:57:22 Nederlandse tijd
+Gebruiker deelde een korte QA-samenvatting van `https://www.monumenten.nl/`, HTTP 200, op de databasevrije preview. Geen volledig JSON-rapport; het gedrag van de redirect is nog niet onafhankelijk opnieuw gecontroleerd.
 
-Rapporteer bij elke test zowel resultaten als beperkingen, en merge draft-PR #174 niet zonder onafhankelijke kwaliteitscontrole.
+| Maatstaf | Eerdere scan | PR #174 QA-preview |
+|---|---:|---:|
+| Totaal | 99 | 99 |
+| SEO | 99 | 99 |
+| GEO | 100 | 100 |
+| Bewijsdekking | 98% | 98% |
+| Aandachtspunten | 1 | 1 |
+| Niet bevestigd | 1 | 1 |
+| Sector | Erfgoed & monumenteninformatie (93%) | Erfgoed & monumenteninformatie (93%) |
+
+- Eén melding interne redirect blijft staan: **1 van 16 interne links (6%)** zou van `https://www.monumenten.nl/bedrijven` naar `https://www.monumenten.nl/specialistenwijzer` verwijzen via een redirect. Als bevestigd, is rechtstreeks linken naar de doel-URL een beperkte optimalisatie; het is **geen bewezen kapotte link** en niet noodzakelijk een ernstig rankingprobleem.
+- `Broken links` blijft **onbevestigd**; dit is geen bewijs dat alle 16 links foutloos of kapot zijn.
+- Geen nieuwe regressie zichtbaar in de beperkte samenvatting. Het is mogelijk dat de scanregels onveranderd bleven of dat een bugfix niet op deze site van toepassing was.
+- **Conclusie:** stabiele baseline, geen onafhankelijk bewezen wijziging. Alle zeven geplande hertests afgerond.
+
+## Evaluatie na 7/7 live hertests
+
+| Website | Totaal vroeger → nu | SEO vroeger → nu | GEO vroeger → nu | Dekking vroeger → nu | Belangrijkste observatie |
+|---|---|---|---|---|---|
+| Amsterdam | 77 → 82 | 81 → 88 | 72 → 72 | 90% → 88% | Botspecifieke robots- en sitemapinterpretatie lijkt verbeterd; 5 open waarschuwingen |
+| UMC Utrecht | 91 → 91 | 99 → 99 | 80 → 80 | 94% → 97% | Generiek LocalBusiness-advies weg uit korte tekst; 1 onbekend over |
+| UvA | 91 → 91 | 95 → 95 | 85 → 85 | 88% → 90% | Generiek LocalBusiness-advies weg, JSON-LD Intangible gemeld; hoofsector nog breed |
+| Coolblue | 99 → 99 | 99 → 99 | 100 → 100 | 85% → 85% | og:image blijft warning; fix op deze live site niet bevestigd |
+| KPN | oude scoreband 68–100 → zichtbare 99 | 99 → 99 | 99 → 99 | 68% → 68% | Render-/bewijsverlies niet opgelost; 12 onbevestigd |
+| CERN | 74 → 74 | 83 → 83 | 60 → 60 | 51% → 51% | Onbekende sector blijft eerlijk onbekend, 28 onbevestigd |
+| Monumenten | 99 → 99 | 99 → 99 | 100 → 100 | 98% → 98% | Eén interne redirect blijft gerapporteerd |
+
+### Voorlopig besluit
+- **Positief en ondersteund door live scanoutput:** 7/7 websites geven weer een rapport; sectoren en basisresultaten blijven stabiel; Amsterdam-waarschuwingen over robots/sitemap lijken gecorrigeerd; bij UMC/UvA is generiek LocalBusiness-advies uit korte uitvoer verdwenen; bij UMC/UvA neemt bewijsdekking toe.
+- **Niet bewezen:** daadwerkelijke correctheid van elk HTML/robots/schema/OG-resultaat zonder originele JSON, headers en live-fetched head; de correcte types `Hospital` en `CollegeOrUniversity` staan niet expliciet in de korte samenvattingen; de OG-image-parserfix wordt door Coolblue niet bevestigd.
+- **Nog open voor technische acceptatie:** oorspronkelijke 2 bestaande falende dashboard-UI-tests reproduceerbaar/wegwerken; scanresultaten onder 70–90% dekking adequaat kwalificeren (inclusief **deelscores** en interval); renderverlies bij KPN; ontbrekende schema-identity en mogelijk dubbele oorzaakaftrek bij UMC/UvA/Amsterdam; sector-subtype UvA; eventuele production- en QA-pariteitscontrole met niet-destructieve fixtures.
+- **Advies:** markeer draft PR #174 als **gedeeltelijk live gevalideerd maar niet release-klaar**. Geen merge naar basis, main of productiedeploy totdat de twee dashboardtests afgehandeld zijn, relevante uitgebreide JSON/HTML-bewijzen en neutrale regressietests de reparaties ondersteunen, en acceptatiecriteria expliciet zijn afgetekend. Bijkomende reparaties voor laag bewijs en rendering mogen als aparte vervolg-PR worden behandeld.
+- **Bron:** uitsluitend korte, door gebruiker gedeelde QA-preview-auditresultaten; geen automatische scoreberekening of onafhankelijke verificatie van daadwerkelijke sitefouten. PR-status gecontroleerd op 20 oktober: open, draft en niet gemerged. Vercel-check op PR-head `b2c3b5d...` staat op success; dat bevestigt een geslaagde deploy, **niet** geslaagde inhoudelijke regressietests of een live-toelating.
+
+## Afgeronde hertests en resterend bewijs
+Alle zeven geplande sites zijn opnieuw gescand. Vraag indien nodig het volledige JSON-rapport en exacte HTML-/headerfragmenten op voor de nog onbevestigde bevindingen, vooral Amsterdam robots/sitemap, UMC/UvA schema's en Coolblue og:image. Geen productie- of main-wijzigingen uit deze QA-notitie.
