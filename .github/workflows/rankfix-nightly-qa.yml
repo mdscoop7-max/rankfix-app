@@ -1,0 +1,160 @@
+# QA ONLY. This is a smoke/regression run over the known EU-81 development set,
+# never over the frozen 68-site independent hold-out. No production writes/deploys.
+# Cron is 01:20 UTC = 03:20 NL (summer) or 02:20 NL (winter).
+# Activates ONLY after RF_NIGHTLY_ENABLED=true and secure QA configuration exists.
+name: RankFix Nightly QA Mini-Pilot
+
+on:
+  schedule:
+    - cron: "20 1 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: rankfix-nightly-qa-minipilot
+  cancel-in-progress: false
+
+jobs:
+  nightly-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      RF_NIGHTLY_ENABLED: ${{ vars.RF_NIGHTLY_ENABLED }}
+      RF_BASE_URL: ${{ vars.RF_NIGHTLY_QA_URL }}
+      RF_DEPLOYMENT_SHA: ${{ vars.RF_NIGHTLY_QA_SHA }}
+      RF_DELAY_MS: "8000"
+      RF_MAX_TRIES: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Check opt-in and QA-only safeguards
+        id: guard
+        env:
+          RF_SESSION: ${{ secrets.RF_NIGHTLY_QA_SESSION }}
+        shell: bash
+        run: |
+          if [ "$RF_NIGHTLY_ENABLED" != "true" ]; then
+            echo "QA minipilot disabled. No scans attempted." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ -z "$RF_SESSION" ] || [ -z "$RF_BASE_URL" ] || [ -z "$RF_DEPLOYMENT_SHA" ]; then
+            echo "Missing QA-only session, preview URL or deployment SHA. No scans attempted." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if ! RF_BASE_URL="$RF_BASE_URL" RF_DEPLOYMENT_SHA="$RF_DEPLOYMENT_SHA" node --input-type=module -e '
+            const base = process.env.RF_BASE_URL;
+            const sha = process.env.RF_DEPLOYMENT_SHA;
+            let url;
+            try { url = new URL(base); } catch { process.exit(1); }
+            if (url.protocol !== "https:" ||
+                !/^rankfix-app-git-[a-z0-9-]+[.]vercel[.]app$/i.test(url.hostname) ||
+                url.username || url.password || url.search || url.hash ||
+                url.pathname !== "/" ||
+                !/^[a-f0-9]{40}$/i.test(sha)) process.exit(1);
+          '; then
+            echo "::error::Invalid QA preview host or SHA. Production is forbidden."
+            exit 1
+          fi
+          echo "active=true" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare small rotating development-set sample
+        if: steps.guard.outputs.active == 'true'
+        shell: bash
+        run: |
+          mkdir -p pilot-output
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from "node:fs";
+          const source = JSON.parse(readFileSync("tests/fixtures/eu81/plan.json", "utf8"));
+          const pool = source.sites.filter((s) => s.hosts?.[0] && s.expected);
+          if (pool.length < 4) throw Error("Insufficient known regression sites");
+          const start = (Math.floor(Date.now() / 86400000) * 4) % pool.length;
+          const sites = Array.from({ length: 4 }, (_, i) => pool[(start + i) % pool.length]);
+          writeFileSync("pilot-output/nightly.plan.json", JSON.stringify({
+            source: "Known EU-81 regression set, NOT the independent 68-site hold-out",
+            sites
+          }, null, 2));
+          console.log("Prepared 4 QA regression sites:", sites.map((s) => s.name).join(", "));
+          NODE
+
+      - name: Scan at most four QA sites (one attempt each)
+        id: scan
+        if: steps.guard.outputs.active == 'true'
+        env:
+          RF_SESSION: ${{ secrets.RF_NIGHTLY_QA_SESSION }}
+        run: |
+          node --experimental-strip-types scripts/engine-benchmark/run-pilot.mjs \
+            pilot-output/nightly.plan.json pilot-output/nightly
+
+      - name: Summarize honest results, including failures
+        if: always() && steps.guard.outputs.active == 'true'
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync, appendFileSync, existsSync } from "node:fs";
+          const read = (f, fallback) => existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : fallback;
+          const plan = read("pilot-output/nightly.plan.json", {sites: []});
+          const attempts = read("pilot-output/nightly.attempts.json", []);
+          const scans = read("pilot-output/nightly.scans.json", []);
+          const escapeCell = (s) => String(s ?? "").replace(/[|\n\r]/g, " ");
+          const lines = [
+            "## RankFix Nightly QA — " + new Date().toISOString().slice(0, 10),
+            "",
+            "Environment: isolated QA preview only; 4 sites from known EU-81 development set. This is **not** an independent quality score.",
+            "",
+            "Configured deployment: \`" + (process.env.RF_DEPLOYMENT_SHA || "unknown") + "\` (not independently verified by this workflow).",
+            "",
+            "| Website | Scan | Sector | Expected |",
+            "|---|---|---|---|"
+          ];
+          let succeeded = 0, correct = 0, wrong = 0, unknown = 0;
+          for (const site of plan.sites) {
+            const url = "https://" + site.hosts[0] + "/";
+            const scan = scans.find((s) => s.scanned_url === url);
+            const attempt = attempts.find((a) => a.requested_url === url);
+            const actual = scan?.result?.sectorProfile?.sector || "unknown";
+            const expected = [].concat(site.expected);
+            if (scan) {
+              succeeded++;
+              if (actual === "unknown") unknown++;
+              else if (expected.includes(actual)) correct++;
+              else wrong++;
+            }
+            const status = scan ? "saved" : attempt ? escapeCell(attempt.category) + " (" + escapeCell(attempt.error_code) + ")" : "not attempted";
+            lines.push("| " + escapeCell(site.name) + " | " + status + " | " + escapeCell(scan ? actual : "—") + " | " + escapeCell(expected.join("/")) + " |");
+          }
+          lines.push("", "Reports saved: **" + succeeded + "/" + plan.sites.length + "**. Sector correct: **" + correct +
+            "**, wrong: **" + wrong + "**, unknown: **" + unknown + "** (among reports).", "");
+          lines.push("All failures remain visible; no engine changes, deployment or production operations were performed.");
+          lines.push("", "Workflow run: " + process.env.GITHUB_SERVER_URL + "/" + process.env.GITHUB_REPOSITORY +
+            "/actions/runs/" + process.env.GITHUB_RUN_ID);
+          const report = lines.join("\n") + "\n";
+          writeFileSync("pilot-output/report.md", report);
+          if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, report);
+          console.log(report);
+          NODE
+
+      - name: Preserve QA logs for review
+        if: always() && steps.guard.outputs.active == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rankfix-nightly-qa-${{ github.run_id }}
+          path: pilot-output/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Post morning-ready summary to pilot issue for Claude and reviewers
+        if: always() && steps.guard.outputs.active == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -s pilot-output/report.md ]; then
+            gh issue comment 154 --repo "${{ github.repository }}" --body-file pilot-output/report.md
+          fi
