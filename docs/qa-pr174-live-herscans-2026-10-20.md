@@ -40,9 +40,28 @@ Door gebruiker aangeleverde korte QA-samenvatting, geen volledig JSON. Homepage 
 - **Open:** zowel Structured data als Organization + WebSite waarschuwen dat er geen valide JSON-LD/identity is bevestigd. Eerdere korte/leesbare scan meldde ook 'geen valide JSON-LD'. Dit kan een reëel SEO-advies zijn, maar toets gedeelde grondoorzaak/afwijkende scoring en eventueel alternatieve schema-microdata afzonderlijk.
 - **Conclusie:** 3 procentpunt méér bewijs en één onbekende minder, maar geen score- of GEO-verbetering. De sectorbewuste advisering lijkt verbeterd; geen volledige acceptatie van PR #174 zonder originele JSON, raw HTML/headers, bewijs voor de juiste `Hospital`-aanbeveling en regressiecontrole.
 
+## Universiteit van Amsterdam (UvA) — 20:40:29 Nederlandse tijd
+Door gebruiker geplakte korte QA-samenvatting van `https://www.uva.nl/`, HTTP 200. Nog geen originele JSON-audit of onafhankelijke hercontrole van de live HTML.
+
+| Maatstaf | Eerdere scan | Nieuwe QA-preview |
+|---|---:|---:|
+| Totaal | 91 | 91 |
+| SEO | 95 | 95 |
+| GEO | 85 | 85 |
+| Bewijsdekking | 88% | 90% |
+| Aandachtspunten | 3 | 3 |
+| Onbevestigd | 5 | 4 |
+
+- Herkende sector **Onderwijs & Opleiding (93%)** is stabiel.
+- **Verbetering:** geen generieke `LocalBusiness`-aanbeveling meer in de korte samenvatting; structured-data-melding benoemt specifiek een universiteits-/hogeschoolhomepage. Toets in volledige JSON of het concrete advies `CollegeOrUniversity` of `EducationalOrganization` is waar toepasselijk.
+- **Nieuwe diagnostische specificiteit:** scanner meldt **1 geldig JSON-LD-blok met type `Intangible`**, maar geen bevestigd passend universitair identiteitstype. De aanwezigheid van `Intangible` bewijst niet dat er geen ander microdata-, JSON-LD- of gerenderd identity-schema is. Lees de originele JSON en eventueel raw HTML om deze claim te verifiëren.
+- **Stabiel aandachtspunt:** meta description volgens scanner 26 tekens (warning). Lengte is een inhoudelijke optimalisatie, niet automatisch technisch ongeldig.
+- **Mogelijke dubbele oorzaak:** 'Structured data' en 'Organization + WebSite' waarschuwen beide bij niet-bevestigde universiteitsidentiteit. Onderzoek aftrekdeduplicatie en welke types als Organization-subtype worden erkend.
+- **Dekking:** 90% (+2 p.p.). De enige eerder onbevestigde `Google Ads readiness`-controle verdwijnt van lijst; resterend: sitemap, meertalige SEO, Consent Mode, bedrijfsgegevens. Dit lijkt consistent met de GTM-only fix, maar de korte uitvoer toont geen check-internals.
+- Conclusie: **gedeeltelijke verbetering van sectorgerichte advisering en bewijsdekking**, zonder SEO/GEO-scorewijziging. Niet als volledige PR-goedkeuring markeren. Uitvoer verifiëren met JSON/HTML en extra branchetests.
+
 ## Volgende beoogde hertests
-1. Universiteit van Amsterdam (CollegeOrUniversity/Organization)
-2. Coolblue (Open Graph-image)
-3. Overige relevante benchmarks: KPN, CERN en evt. Monumenten.nl
+1. Coolblue (Open Graph-image)
+2. Overige relevante benchmarks: KPN, CERN en evt. Monumenten.nl
 
 Rapporteer bij elke test zowel resultaten als beperkingen, en merge draft-PR #174 niet zonder onafhankelijke kwaliteitscontrole.
