@@ -5,7 +5,7 @@
  */
 export function isDatabaseFreeQaPreview(env: NodeJS.ProcessEnv = process.env): boolean {
   if (env.VERCEL_ENV === "production") return false;
-  if (env.VERCEL_ENV === "preview" && env.VERCEL_GIT_COMMIT_REF === "fix/dashboard-login-resilience-20261020") return true;
+  if (env.VERCEL_ENV === "preview" && (env.VERCEL_GIT_COMMIT_REF === "fix/dashboard-login-resilience-20261020" || env.VERCEL_GIT_COMMIT_REF === "qa/pr174-dbfree-live-20261020")) return true;
   return env.NODE_ENV === "development" && env.RANKFIX_QA_NO_DB === "1";
 }
 
