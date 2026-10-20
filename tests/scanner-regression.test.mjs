@@ -93,7 +93,7 @@ test("scanner regression source keeps evidence-only classification safeguards", 
   assert.match(quality, /pixelbreedte, niet van een harde tekengrens/);
   assert.match(quality, /uitzonderlijk kort/);
   assert.match(quality, /uitzonderlijk lang/);
-  assert.match(source, /assessPageTitle\(pageTitle, finalCandidate\.hostname, new Date\(\), representativeTitlePixelWidth\)/);
+  assert.match(source, /assessPageTitle\(pageTitle, finalCandidate\.hostname, new Date\(\), representativeTitlePixelWidth(?:, finalCandidate\.pathname)?\)/);
 });
 
 

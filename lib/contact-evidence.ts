@@ -125,10 +125,10 @@ export type BusinessContactDetails = { phone: string | null; email: string | nul
 // like contact details but identify nobody. They are never business evidence;
 // the report names them so they can be replaced.
 // ---------------------------------------------------------------------------
-const PLACEHOLDER_EMAIL_DOMAIN = /@(?:(?:[\w-]+\.)*(?:example|voorbeeld|beispiel|exemple|esempio|ejemplo|exemplo|przyklad|yourdomain|yourcompany|your-company|yoursite|mydomain|mycompany|mysite|jouwdomein|jouwbedrijf|uwdomein|uwbedrijf|ihredomain|ihrefirma|votredomaine|votresociete|tuodominio|tudominio|domain|domein|company|email|website|test|testing|placeholder|sample)\.[a-z.]{2,10}|[\w.-]+\.(?:example|invalid|localhost))$/i;
+const PLACEHOLDER_EMAIL_DOMAIN = /@(?:(?:[\w-]+\.)*(?:example|voorbeeld|beispiel|exemple|esempio|ejemplo|exemplo|przyklad|exempel|eksempel|esimerkki|priklad|exemplu|pelda|paradeigma|yourdomain|yourcompany|your-company|yoursite|mydomain|mycompany|mysite|jouwdomein|jouwbedrijf|uwdomein|uwbedrijf|ihredomain|ihrefirma|votredomaine|votresociete|tuodominio|tudominio|domain|domein|company|email|website|test|testing|placeholder|sample)\.[a-z.]{2,10}|[\w.-]+\.(?:example|invalid|localhost))$/i;
 const PLACEHOLDER_EMAIL_LOCAL = /^(?:test|tester|example|voorbeeld|beispiel|exemple|esempio|ejemplo|placeholder|naam|name|yourname|your\.name|jouwnaam|uwnaam|john\.doe|jane\.doe|johndoe|janedoe|max\.mustermann|maxmustermann|jean\.dupont|mario\.rossi|jan\.jansen)@/i;
-const PLACEHOLDER_STREET = /\b(?:test|voorbeeld|muster|beispiel|example|sample|exemple|esempio|ejemplo)(?:straat|laan|weg|plein|stra(?:ß|ss)e|gasse|weg|street|road|avenue|lane)\b|\b(?:rue de l'exemple|via esempio|calle ejemplo|rua exemplo)\b/i;
-const PLACEHOLDER_TOWN = /\b(?:voorbeeldstad|voorbeelddorp|teststad|musterstadt|musterhausen|beispielstadt|anytown|sampletown|villexemple|esempiopoli)\b/i;
+const PLACEHOLDER_STREET = /\b(?:test|voorbeeld|muster|beispiel|example|sample|exemple|esempio|ejemplo|exempel|eksempel|esimerkki)(?:straat|laan|weg|plein|stra(?:ß|ss)e|gasse|weg|street|road|avenue|lane|gatan|vägen|vej|gade|veien|gata|katu|tie)\b|\b(?:rue de l'exemple|via esempio|calle ejemplo|rua exemplo|ulica przykładowa|ukázková ulice|strada exemplu)\b/i;
+const PLACEHOLDER_TOWN = /\b(?:voorbeeldstad|voorbeelddorp|teststad|musterstadt|musterhausen|beispielstadt|anytown|sampletown|villexemple|esempiopoli|exempelstad|eksempelby|esimerkkikaupunki|przykładowo|cidade exemplo)\b/i;
 
 function sequentialRun(digits: string, length: number): boolean {
   for (let i = 0; i + length <= digits.length; i++) {
