@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { isDatabaseFreeQaPreview, checkDatabaseFreeQaLimit } from "../lib/database-free-qa.ts";
+import { qaAuditFilename } from "../lib/qa-audit-export.ts";
 
 const source = (path) => readFile(new URL("../" + path, import.meta.url), "utf8");
 
@@ -45,4 +46,21 @@ test("QA dashboard is branch-isolated, provides a real request and JSON export",
   assert.match(ui, /type: "application\/json;charset=utf-8"/);
   assert.match(ui, /Download volledig JSON-rapport/);
   assert.doesNotMatch(ui, /INITIAL_TEST_SITES|FAKE_SCORE|MOCK_SCAN/);
+});
+
+test("QA audit filenames are safe and reflect the scanned site and actual scan date", () => {
+  assert.equal(qaAuditFilename("https://www.monumenten.nl/", "2026-10-20T08:03:29Z"), "rankfix-audit-www.monumenten.nl-2026-10-20.json");
+  assert.equal(qaAuditFilename("not a url", "2026-10-20T08:03:29Z"), "rankfix-audit-website-2026-10-20.json");
+  assert.equal(qaAuditFilename("https://test.nl/path?secret=1", "2026-10-20T08:03:29Z"), "rankfix-audit-test.nl-2026-10-20.json");
+});
+
+test("full QA audit has a persistent native download and mobile fallbacks", async () => {
+  const ui = await source("app/dashboard/database-free-qa.tsx");
+  assert.match(ui, /href=\{downloadHref \|\| undefined\} download=\{exportFilename\}/);
+  assert.match(ui, /return \(\) => URL\.revokeObjectURL\(href\)/);
+  assert.match(ui, /navigator\.share\(/);
+  assert.match(ui, /navigator\.clipboard\.writeText\(json\)/);
+  assert.match(ui, /value=\{json\} aria-label="Volledig JSON-auditrapport"/);
+  assert.match(ui, /result\.scoreModel\?\.version/);
+  assert.doesNotMatch(ui, /link\.click\(\)/);
 });
