@@ -3,12 +3,17 @@
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { qaAuditFilename } from "@/lib/qa-audit-export";
+import { downloadQaAuditPdf } from "@/lib/qa-audit-pdf";
+import { formatQaAuditText } from "@/lib/qa-audit-text";
+import { readRecentScanUrls, rememberScanUrl, forgetRecentScanUrls } from "@/lib/recent-scan-urls";
 
-type AuditCheck = { key?: string; title?: string; status?: string; message?: string; fix?: string; evidence?: unknown };
+type AuditCheck = { key?: string; title?: string; status: string; message?: string; fix?: string; evidence?: { details?: string } };
 type AuditResult = {
   scannedUrl?: string; finalUrl?: string; scannedAt?: string; httpStatus?: number;
   overallScore?: number; grade?: string;
-  scoreModel?: { version?: string };
+  scoreModel?: { version?: string; provisional?: boolean; evidenceLevel?: string; evidenceReasons?: string[]; headline?: { kind?: string; display?: string } };
+  security?: { score?: number };
+  multiPage?: { counts?: { audited?: number; selected?: number } };
   seo?: { score?: number; checks?: AuditCheck[] };
   geo?: { score?: number; checks?: AuditCheck[] };
   sectorProfile?: { label?: string; confidence?: string; confidenceScore?: number; evidence?: string[] };
@@ -22,11 +27,15 @@ export default function DatabaseFreeQaDashboard() {
   const [url, setUrl] = useState("");
   const [mode, setMode] = useState<"seo" | "geo" | "both">("both");
   const [busy, setBusy] = useState(false);
+  const [scanAbort, setScanAbort] = useState<AbortController | null>(null);
+  const [recentSites, setRecentSites] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [result, setResult] = useState<AuditResult | null>(null);
   const [json, setJson] = useState("");
   const [downloadHref, setDownloadHref] = useState("");
   const [exportMessage, setExportMessage] = useState("");
+
+  useEffect(() => { const saved=readRecentScanUrls();setRecentSites(saved);if(saved[0])setUrl(saved[0]); }, []);
 
   // Keep the URL alive while the report is on screen, instead of revoking it
   // immediately after a click (which may cancel the download on Android).
@@ -48,10 +57,12 @@ export default function DatabaseFreeQaDashboard() {
     setResult(null);
     setJson("");
     setExportMessage("");
+    const controller=new AbortController();setScanAbort(controller);
+    const timeout=window.setTimeout(()=>controller.abort("timeout"),135_000);
     try {
       const response = await fetch("/api/scan", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        cache: "no-store", body: JSON.stringify({ url: url.trim(), mode, language: "nl" }),
+        cache: "no-store", body: JSON.stringify({ url: url.trim(), mode, language: "nl" }), signal: controller.signal,
       });
       const body = await response.text();
       let audit: AuditResult;
@@ -65,9 +76,16 @@ export default function DatabaseFreeQaDashboard() {
       }
       setResult(audit);
       setJson(body);
+      setRecentSites(rememberScanUrl(audit.finalUrl || audit.scannedUrl || url));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "De scan kon niet worden voltooid.");
-    } finally { setBusy(false); }
+      setError(controller.signal.aborted?(controller.signal.reason==="cancelled"?"De scan is gestopt.":"Deze scan duurde te lang en is gestopt. Probeer een andere website."):cause instanceof Error ? cause.message : "De scan kon niet worden voltooid.");
+    } finally { window.clearTimeout(timeout);setScanAbort(null);setBusy(false); }
+  }
+
+  function downloadPdf() {
+    if(!result)return;
+    try { downloadQaAuditPdf(result, result.finalUrl || result.scannedUrl || url, "nl"); }
+    catch { setExportMessage("PDF maken is mislukt. Gebruik de JSON-download als alternatief."); }
   }
 
   async function shareJson() {
@@ -90,16 +108,27 @@ export default function DatabaseFreeQaDashboard() {
     }
   }
 
+  async function copyAudit() {
+    if (!auditText) return;
+    try {
+      await navigator.clipboard.writeText(auditText);
+      setExportMessage("Leesbaar RankFix-auditrapport gekopieerd. Plak het direct in een bericht of document.");
+    } catch {
+      setExportMessage("Kopiëren is geblokkeerd. Open 'Bekijk leesbare audittekst' hieronder om de tekst handmatig te selecteren.");
+    }
+  }
+
   async function copyJson() {
     if (!json) return;
     try {
       await navigator.clipboard.writeText(json);
-      setExportMessage("Het volledige auditrapport is gekopieerd.");
+      setExportMessage("Volledige technische JSON gekopieerd.");
     } catch {
       setExportMessage("Automatisch kopiëren wordt geblokkeerd. Open 'Bekijk audit-JSON' en selecteer de tekst handmatig.");
     }
   }
 
+  const auditText = result ? formatQaAuditText(result, result.finalUrl || result.scannedUrl || url) : "";
   const checks = result ? [...(result.seo?.checks || []), ...(result.geo?.checks || [])] : [];
   const issues = checks.filter(check => check.status === "fail" || check.status === "warning");
   const unknown = checks.filter(check => check.status === "unable_to_confirm");
@@ -110,7 +139,7 @@ export default function DatabaseFreeQaDashboard() {
         <div>
           <p className="text-sm font-semibold uppercase tracking-wider text-teal-700">RankFix · besloten QA-test</p>
           <h1 className="mt-2 text-3xl font-bold">SEO/GEO-testdashboard</h1>
-          <p className="mt-2 text-slate-600">Echte RankFix-scanmotor · zonder inloggen of database · geen permanente opslag</p>
+          <p className="mt-2 text-slate-600">Echte RankFix-scanmotor · zonder accountdatabase · geen permanente serveropslag</p>
         </div>
         <Link href="/" className="rounded-xl border border-slate-300 bg-white px-4 py-2 font-semibold hover:bg-slate-50">Terug naar website</Link>
       </div>
@@ -130,6 +159,8 @@ export default function DatabaseFreeQaDashboard() {
             {busy ? "Website wordt echt gescand…" : "Start echte scan"}
           </button>
         </div>
+        {recentSites.length>0&&<div className="mt-4 flex flex-wrap items-center gap-2"><strong className="mr-1 text-sm">Eerder gescand:</strong>{recentSites.map(site=><button type="button" key={site} title={site} onClick={()=>setUrl(site)} disabled={busy} className="max-w-full truncate rounded-full border border-slate-300 bg-slate-50 px-3 py-2 text-xs hover:bg-slate-100 disabled:opacity-50">{site.replace(/^https?:\/\//,"").replace(/\/$/,"")}</button>)}<button type="button" className="rounded-lg px-2 py-2 text-xs underline" onClick={()=>{forgetRecentScanUrls();setRecentSites([]);}}>Wis lijst</button></div>}
+        {busy&&<button type="button" onClick={()=>scanAbort?.abort("cancelled")} className="mt-4 rounded-xl border border-red-300 px-4 py-3 font-semibold text-red-800">Stop scan</button>}
         <p className="mt-4 text-sm text-slate-500">Geen demoresultaten. Testlimiet: maximaal 8 verzoeken per uur per netwerk (per serverinstantie, indicatief). Live websites blijven ongewijzigd.</p>
       </form>
 
@@ -140,13 +171,20 @@ export default function DatabaseFreeQaDashboard() {
             <div><h2 className="text-xl font-bold break-all">{result.finalUrl || result.scannedUrl}</h2>
               <p className="mt-1 text-sm text-slate-500">HTTP {result.httpStatus ?? "onbekend"} · {result.scannedAt ? new Date(result.scannedAt).toLocaleString("nl-NL") : "Live scan"}</p></div>
             <div className="flex flex-wrap gap-2">
-              <a href={downloadHref || undefined} download={exportFilename}
-                aria-disabled={!downloadHref} onClick={event => { if (!downloadHref) event.preventDefault(); }}
-                className="rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white hover:bg-slate-800">
-                Download volledig JSON-rapport
-              </a>
-              <button type="button" onClick={shareJson} className="rounded-xl border border-slate-300 px-4 py-3 font-semibold hover:bg-slate-50">Deel auditbestand</button>
-              <button type="button" onClick={copyJson} className="rounded-xl border border-slate-300 px-4 py-3 font-semibold hover:bg-slate-50">Kopieer audit</button>
+              <button type="button" onClick={copyAudit} className="rounded-xl bg-teal-700 px-4 py-3 font-semibold text-white hover:bg-teal-800">Kopieer audit (tekst)</button>
+              <button type="button" onClick={downloadPdf} className="rounded-xl border border-teal-700 bg-white px-4 py-3 font-semibold text-teal-800 hover:bg-teal-50">Download PDF-rapport</button>
+              <details className="rounded-xl border border-slate-300 bg-slate-50 px-3 py-2">
+                <summary className="cursor-pointer py-1 font-semibold">Meer exportopties</summary>
+                <div className="mt-3 flex flex-wrap gap-2 pb-2">
+                  <a href={downloadHref || undefined} download={exportFilename}
+                    aria-disabled={!downloadHref} onClick={event => { if (!downloadHref) event.preventDefault(); }}
+                    className="rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white hover:bg-slate-800">
+                    Download volledig JSON-rapport
+                  </a>
+                  <button type="button" onClick={shareJson} className="rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold hover:bg-slate-50">Deel auditbestand</button>
+                  <button type="button" onClick={copyJson} className="rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold hover:bg-slate-50">Kopieer volledige JSON</button>
+                </div>
+              </details>
             </div>
           </div>
           {exportMessage && <p role="status" className="mt-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{exportMessage}</p>}
@@ -175,6 +213,14 @@ export default function DatabaseFreeQaDashboard() {
             {check.fix && <p className="mt-2 text-sm text-teal-800">Advies: {check.fix}</p>}
           </li>)}</ul>}
           {issues.length > 20 && <p className="mt-3 text-sm text-slate-500">Nog {issues.length - 20} aandachtspunten staan in de JSON-download.</p>}
+        </div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-6">
+          <details>
+            <summary className="cursor-pointer font-semibold">Bekijk leesbare audittekst (ook handmatig kopiëren)</summary>
+            <p className="mt-2 text-sm text-slate-600">Dit is een overzichtelijk rapport op basis van dezelfde echte scan. Selecteer de tekst als de kopieerknop op je apparaat niet werkt.</p>
+            <textarea readOnly value={auditText} aria-label="Leesbaar auditrapport als tekst" rows={12}
+              className="mt-3 w-full resize-y rounded-lg border border-slate-300 p-3 font-mono text-xs" />
+          </details>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-6">
           <details>

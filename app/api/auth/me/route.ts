@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { isDatabaseFreeQaPreview } from "@/lib/database-free-qa";
 
 export async function GET() {
+  // QA preview never contacts the account database. This is not an authenticated user.
+  if (isDatabaseFreeQaPreview()) return NextResponse.json({ user: null, qaPreview: true, accountLoginAvailable: false }, { headers: { "Cache-Control": "no-store" } });
   try {
     const user = await getCurrentUser();
     return NextResponse.json({ user }, { headers: { "Cache-Control": "no-store" } });

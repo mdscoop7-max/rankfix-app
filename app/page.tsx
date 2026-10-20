@@ -208,6 +208,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
   const [testHistory, setTestHistory] = useState<TestHistoryEntry[]>(INITIAL_TEST_SITES);
   const [historyReady, setHistoryReady] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [scanAbort, setScanAbort] = useState<AbortController | null>(null);
   const [error, setError] = useState("");
   const [result, setResult] = useState<ScanResult | null>(null);
   const [tab, setTab] = useState<"seo" | "geo">("seo");
@@ -635,12 +636,15 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
     setScanning(true);
     setError("");
     setResult(null);
+    const controller=new AbortController();setScanAbort(controller);
+    const scanTimeout=window.setTimeout(()=>controller.abort("timeout"),135_000);
 
     try {
       const response = await fetch("/api/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, mode: auditMode, language }),
+        signal: controller.signal,
       });
       const contentType = response.headers.get("content-type") || "";
       const raw = await response.text();
@@ -668,13 +672,15 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
       setTab(auditMode === "geo" ? "geo" : "seo");
       setTimeout(() => document.getElementById("resultaat")?.scrollIntoView({ behavior: "smooth" }), 50);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Scan mislukt.";
+      const message = controller.signal.aborted ? (controller.signal.reason==="cancelled"?"Scan gestopt.":"De scan duurt te lang. Probeer een andere website.") : err instanceof Error ? err.message : "Scan mislukt.";
       setError(message);
+      if(controller.signal.reason==="cancelled")return;
       setTestHistory(items => recordTestHistory(items, {
         url: url.trim(), status: /403|challenge|blocked|geblokkeerd|tussenpagina/i.test(message) ? "blocked" : "failed",
         lastTested: new Date().toISOString()
       }));
     } finally {
+      window.clearTimeout(scanTimeout);setScanAbort(null);
       setScanning(false);
     }
   }
@@ -827,6 +833,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
               aria-label={language==="nl"?"Websiteadres":language==="de"?"Website-Adresse":language==="fr"?"Adresse du site":language==="it"?"Indirizzo del sito":language==="es"?"Dirección del sitio":"Website address"}
               value={url}
               onChange={(e) => setUrl(e.target.value)}
+              list="rankfix-home-recent-sites"
               placeholder="jouwdomein.nl"
               required
               className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-[#16233A] px-4 py-4 text-base outline-none placeholder:text-slate-600 focus:border-emerald-300 sm:border-0 sm:bg-transparent sm:text-sm"
@@ -838,6 +845,8 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
               {scanning ? t.scanning : `${t.start} ${auditMode === "seo" ? "SEO" : auditMode === "geo" ? "GEO" : "SEO + GEO"} ${t.auditStart}`}
             </button>
           </form>
+          <datalist id="rankfix-home-recent-sites">{testHistory.slice(0,20).map(site=><option key={canonicalTestUrl(site.url)} value={site.url}/>)}</datalist>
+          {testHistory.length>0&&<div className="mt-3 flex flex-wrap items-center gap-2 text-left"><span className="text-xs font-semibold text-slate-300">{language==="nl"?"Eerder gescand:":"Recent sites:"}</span>{testHistory.slice(0,6).map(site=><button key={canonicalTestUrl(site.url)} type="button" disabled={scanning} title={site.url} onClick={()=>setUrl(site.url)} className="max-w-full truncate rounded-full border border-emerald-300/30 bg-emerald-300/10 px-3 py-2 text-xs text-emerald-100 hover:bg-emerald-300/20 disabled:opacity-50">{site.url.replace(/^https?:\/\//,"").replace(/\/$/,"")}</button>)}</div>}
           <div className="mt-4 text-left">
             <details className="rounded-xl border border-slate-700/70 bg-slate-900/50 p-3">
               <summary className="cursor-pointer text-sm font-semibold text-slate-100">
@@ -914,7 +923,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
         </div>
       </section>
 
-      {scanning && <ScanProgress url={url} language={language} />}
+      {scanning && <ScanProgress url={url} language={language} onCancel={()=>scanAbort?.abort("cancelled")} />}
 
       {githubFixing && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center bg-[#0B1220]/85 px-4 py-6 backdrop-blur-xl">

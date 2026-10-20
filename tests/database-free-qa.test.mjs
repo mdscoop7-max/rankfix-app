@@ -3,12 +3,15 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { isDatabaseFreeQaPreview, checkDatabaseFreeQaLimit } from "../lib/database-free-qa.ts";
 import { qaAuditFilename } from "../lib/qa-audit-export.ts";
+import { formatQaAuditText } from "../lib/qa-audit-text.ts";
 
 const source = (path) => readFile(new URL("../" + path, import.meta.url), "utf8");
 
 test("database-free QA is strictly isolated to the dedicated preview branch", () => {
   const qa = { VERCEL_ENV: "preview", VERCEL_GIT_COMMIT_REF: "fix/dashboard-login-resilience-20261020" };
   assert.equal(isDatabaseFreeQaPreview(qa), true);
+  assert.equal(isDatabaseFreeQaPreview({ ...qa, VERCEL_GIT_COMMIT_REF: "qa/stateless-pdf-report-20261020" }), true);
+  assert.equal(isDatabaseFreeQaPreview({ ...qa, VERCEL_GIT_COMMIT_REF: "qa/stateless-pdf-report-20261020", VERCEL_ENV: "production" }), false);
   assert.equal(isDatabaseFreeQaPreview({ ...qa, VERCEL_ENV: "production" }), false);
   assert.equal(isDatabaseFreeQaPreview({ ...qa, VERCEL_GIT_COMMIT_REF: "main" }), false);
   assert.equal(isDatabaseFreeQaPreview({ ...qa, VERCEL_GIT_COMMIT_REF: "feat/dashboard-reference-desktop-mobile-20261019" }), false);
@@ -48,6 +51,27 @@ test("QA dashboard is branch-isolated, provides a real request and JSON export",
   assert.doesNotMatch(ui, /INITIAL_TEST_SITES|FAKE_SCORE|MOCK_SCAN/);
 });
 
+test("QA access does not touch Neon and clearly separates tester access from real login", async () => {
+ const me = await source("app/api/auth/me/route.ts");
+ const login = await source("app/api/auth/login/route.ts");
+ const register = await source("app/api/auth/register/route.ts");
+ const account = await source("app/account/page.tsx");
+ for (const file of [me,login,register]) assert.match(file,/isDatabaseFreeQaPreview\(\)/);
+ assert.match(me,/qaPreview: true, accountLoginAvailable: false/);
+ assert.match(login,/QA_ACCOUNT_LOGIN_DISABLED/);
+ assert.match(register,/QA_ACCOUNT_REGISTRATION_DISABLED/);
+ assert.match(account,/Open testdashboard zonder accountlogin/);
+});
+
+test("QA testdashboard can stop a scan, download PDF and reuse browser-only websites", async () => {
+ const page = await source("app/dashboard/database-free-qa.tsx");
+ assert.match(page,/AbortController/);
+ assert.match(page,/Stop scan/);
+ assert.match(page,/downloadQaAuditPdf/);
+ assert.match(page,/readRecentScanUrls/);
+ assert.match(page,/rememberScanUrl/);
+});
+
 test("QA audit filenames are safe and reflect the scanned site and actual scan date", () => {
   assert.equal(qaAuditFilename("https://www.monumenten.nl/", "2026-10-20T08:03:29Z"), "rankfix-audit-www.monumenten.nl-2026-10-20.json");
   assert.equal(qaAuditFilename("not a url", "2026-10-20T08:03:29Z"), "rankfix-audit-website-2026-10-20.json");
@@ -63,4 +87,44 @@ test("full QA audit has a persistent native download and mobile fallbacks", asyn
   assert.match(ui, /value=\{json\} aria-label="Volledig JSON-auditrapport"/);
   assert.match(ui, /result\.scoreModel\?\.version/);
   assert.doesNotMatch(ui, /link\.click\(\)/);
+});
+
+
+test("QA copy button copies readable report, keeping huge raw JSON separate", async () => {
+  const ui = await source("app/dashboard/database-free-qa.tsx");
+  assert.match(ui, /formatQaAuditText\(result/);
+  assert.match(ui, /navigator\.clipboard\.writeText\(auditText\)/);
+  assert.match(ui, /Kopieer audit \(tekst\)/);
+  assert.match(ui, /Kopieer volledige JSON/);
+  assert.match(ui, /value=\{auditText\} aria-label="Leesbaar auditrapport als tekst"/);
+});
+
+test("plain audit faithfully keeps real sector, scores, warnings and unconfirmed evidence", () => {
+  const report = formatQaAuditText({
+    scannedUrl: "https://www.monumenten.nl/",
+    scannedAt: "2026-10-20T10:28:57Z",
+    overallScore: 99,
+    seo: { score: 99, checks: [
+      { status: "warning", title: "Interne redirects", message: "1 van 16 interne links leidt via een redirect.",
+        fix: "Link direct naar de eind-URL.", evidence: { details: "1 van 16 interne links leidt via een redirect." } },
+      { status: "unable_to_confirm", title: "Broken links",
+        message: "6 van 16 interne links konden niet betrouwbaar worden opgehaald." },
+      { status: "pass", title: "Meta title" },
+    ] },
+    geo: { score: 100, checks: [{ status: "pass", title: "Brand identity" }] },
+    security: { score: 96 },
+    sectorProfile: { label: "Erfgoed & monumenteninformatie" },
+    coverage: { coveragePercent: 98, unableToConfirm: 1 },
+    multiPage: { counts: { audited: 29, selected: 29 } },
+  });
+  assert.match(report, /RANKFIX \/ AUDITRAPPORT/);
+  assert.match(report, /www\.monumenten\.nl/);
+  assert.match(report, /Eindscore: 99\/100 \| SEO: 99 \| GEO: 100 \| Security: 96/);
+  assert.match(report, /Erfgoed & monumenteninformatie/);
+  assert.match(report, /Bewijsdekking: 98%/);
+  assert.match(report, /\[LET OP\] Interne redirects/);
+  assert.match(report, /6 van 16 interne links konden niet betrouwbaar worden opgehaald/);
+  assert.match(report, /Pagina's in steekproef: 29 van 29/);
+  assert.equal(report.match(/1 van 16 interne links leidt via een redirect/g)?.length, 1, "avoid duplicate evidence");
+  assert.doesNotMatch(report, /ownIdentityText|pageAudits|structuredCommerceEvidence/);
 });
