@@ -66,8 +66,12 @@ export default function DashboardWorkspace({ view = "overview" }: { view?: View 
         const [meResponse, preferenceResponse, historyResponse] = await Promise.all([fetch("/api/auth/me", { signal: controller.signal, cache: "no-store" }), fetch("/api/account/language", { signal: controller.signal }), fetch("/api/history", { signal: controller.signal, cache: "no-store" })]);
         const me = await meResponse.json();
         if (meResponse.status === 401 || (meResponse.ok && !me.user)) { router.replace("/account"); return; }
-        if (!meResponse.ok || !me.user || !historyResponse.ok) throw new Error("dashboard");
-        const [preference, history] = await Promise.all([preferenceResponse.ok ? preferenceResponse.json() : null, historyResponse.json()]);
+        if (!meResponse.ok || !me.user) throw new Error("dashboard");
+        // A history/database outage must not prevent an authenticated user from opening the dashboard.
+        const [preference, history] = await Promise.all([
+          preferenceResponse.ok ? preferenceResponse.json().catch(() => null) : null,
+          historyResponse.ok ? historyResponse.json().catch(() => emptyData) : emptyData,
+        ]);
         if (controller.signal.aborted) return;
         if (preference?.language in workspaceCopy) setLanguage(preference.language);
         setUser(me.user); setData(history);

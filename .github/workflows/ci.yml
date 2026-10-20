@@ -4,7 +4,8 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main]
+    # Run complete test/lint/build verification for this isolated QA branch as well.
+    branches: [main, fix/dashboard-login-resilience-20261020]
   workflow_dispatch:
 
 concurrency:
