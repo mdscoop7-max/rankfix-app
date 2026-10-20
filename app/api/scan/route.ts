@@ -43,6 +43,7 @@ import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSche
 import { detectPrimaryBusinessIdentity, isSiteHomepagePath } from "@/lib/primary-business-identity";
 import { detectEuPrimaryIdentity, isConsentHeading, retailSelfDescription } from "@/lib/eu-identity";
 import { enforceReportConsistency } from "@/lib/report-consistency";
+import { rootLandingCandidates, isRicherRootLanding } from "@/lib/homepage-entry";
 
 export const maxDuration = 300;
 
@@ -681,7 +682,7 @@ async function runScan(request: Request, restrictedQa = false) {
     // safePublicFetch follows redirects manually for SSRF safety. Response.url therefore
     // is not a reliable source of the terminal URL. Always use the validated finalUrl
     // returned by safePublicFetch so share/short links are classified from the actual site.
-    const finalUrl = fetchedFinalUrl ?? new URL(response.url || target.toString());
+    let finalUrl = fetchedFinalUrl ?? new URL(response.url || target.toString());
     console.info("RankFix redirect resolution", { requested: target.toString(), final: finalUrl.toString(), hops: redirectChain.length });
     // Primary recovery, JS hydration and quality-gate fallback share one browser attempt.
     let primaryRenderAttempts = 0;
@@ -759,6 +760,48 @@ async function runScan(request: Request, restrictedQa = false) {
     }
     if (!html || html.length < 20) {
       return NextResponse.json({ error: scanError.html, code: "EMPTY_HTML", recovery }, { status: 422 });
+    }
+
+    // A domain-root HTTP 200 can be just a language selector or a client-side
+    // location gateway. Try at most two same-origin homepage candidates and
+    // adopt one ONLY when it yields significantly richer, trustworthy content.
+    // Never rewrite explicit inner-page URLs or disguise an unverified response.
+    if (response.ok && !recoveredHtml && target.pathname === "/" && !target.search) {
+      const rootHtml = html;
+      const rootUrl = finalUrl;
+      for (const localized of rootLandingCandidates(rootUrl, rootHtml, scanLanguage).slice(0, 2)) {
+        try {
+          const candidateFetch = await safePublicFetch(localized, {
+            timeoutMs: 9000, maxRedirects: 3,
+            userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)",
+            accept: "text/html,application/xhtml+xml",
+            acceptLanguage: `${scanLanguage};q=1,en;q=0.8,*;q=0.5`,
+          });
+          // Follow only the original site's own localized landing. An external
+          // redirect must never turn into the scanned site's identity.
+          if (!candidateFetch.response.ok || candidateFetch.finalUrl.origin !== rootUrl.origin ||
+              !/^\\/(?:[a-z]{2}(?:-[a-z]{2})?|home|index(?:\\.html?)?)\\/?$/i.test(candidateFetch.finalUrl.pathname)) {
+            try { await candidateFetch.response.body?.cancel(); } catch {}
+            continue;
+          }
+          const landedHtml = await readResponseTextLimited(candidateFetch.response, 8_000_000, 18000);
+          if (!isRicherRootLanding(rootHtml, landedHtml)) continue;
+          html = landedHtml;
+          response = candidateFetch.response;
+          finalUrl = candidateFetch.finalUrl;
+          redirectChain = [...redirectChain, ...candidateFetch.redirectChain];
+          console.info("RankFix root landing resolved", {
+            from: rootUrl.toString(), to: finalUrl.toString(),
+            evidence: "same_origin_richer_localized_homepage",
+          });
+          break;
+        } catch (landingError) {
+          console.info("RankFix root landing candidate unavailable", {
+            from: rootUrl.toString(),
+            reason: fetchFailureCode(landingError),
+          });
+        }
+      }
     }
 
     const rawHtml = recoveredHtml ? "" : html;
