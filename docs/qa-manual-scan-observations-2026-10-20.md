@@ -12,6 +12,7 @@
 | https://www.amsterdam.nl/ | 14:38:18 | 200 | 77 | 81 | 72 | 90% | Overheid & Publieke sector (90%) | 8 | 4 |
 | https://www.kpn.com/ | 14:44:14 (12:44:14 UTC) | niet vermeld | **68–100 voorlopig** | 99 | 99 | **68%** | Telecom & Technologie (96%) | 0 | 12 |
 | https://www.umcutrecht.nl/nl | 14:46:48 (12:46:48 UTC) | niet vermeld | **91** | 99 | 80 | **94%** | Zorg & Gezondheid · universitair medisch centrum (92%) | 3 | 2 |
+| https://www.uva.nl/ | 14:49:55 (12:49:55 UTC) | niet vermeld | **91 voorlopig** | 95 | 85 | **88%** | Onderwijs & Opleiding (93%) | 3 | 5 |
 
 Dit zijn momentopnamen van de gebruiker (korte samenvattingen), **geen onafhankelijke benchmarks voor juistheid van de cijfers**.
 
@@ -65,6 +66,16 @@ Dit zijn momentopnamen van de gebruiker (korte samenvattingen), **geen onafhanke
 - Gebruik als test voor zorgspecifieke checks, betrouwbare structured data-aanbevelingen en onderscheid tussen algemene sites, lokaal ziekenhuis en universitair medisch centrum. Geen automatisch advies genereren dat meer medische claims doet dan bron bewijst.
 - Bron voor auditcijfers is het door de gebruiker geplakte rapport; geen volledige JSON aanwezig, dus metadata/schema-uitkomsten niet onafhankelijk bevestigd.
 
+### Universiteit van Amsterdam (UvA)
+- Gebruiker deelde een RankFix-auditrapport van `www.uva.nl`, 20 oktober 2026 om 12:49:55 UTC, steekproef 14/16 pagina's.
+- Eindscore 91/100 **voorlopig** (bewijsdekking 88%); SEO 95, GEO 85, Security 84; sector Onderwijs & Opleiding (93%); 3 waarschuwingen, 5 onbevestigd, 26 geslaagd.
+- Waarschuwingen: (1) Meta description 26 tekens volgens scanner, waarschuwing voor mogelijke ontbrekende context. (2) Eén geldige JSON-LD-block gevonden, maar geen `LocalBusiness`-schema. Dit lijkt een onjuist schema-advies voor een universiteit: onderzoek `CollegeOrUniversity` / `EducationalOrganization` in plaats van generiek `LocalBusiness`. (3) Geen bevestigd `Organization` of `WebSite`-schema. Bepaal wat in de reeds gevonden JSON-LD-block staat, ook wanneer `@graph` wordt gebruikt.
+- Vijf onbevestigd: sitemap-signaal (standaardlocaties niet bevestigd, `/sitemap-index.xml` 404 volgens scan); meertalige SEO (equivalente taal-URL's niet bewezen); Consent Mode signaal (runtime niet aangetoond); bedrijfsgegevens (mogelijk op andere pagina); Google Ads readiness (1 GTM; 0 Ads, GA4, event-ID's; consent niet bewezen). Niet presenteren als fouten.
+- Geslaagd (26): broken links, interne redirects, verkeerde linkbestemming, meta title, H1, heading-structuur, canonical, viewport, HTML-taal, indexeerbaarheid, afbeelding alt, contentdekking, HTTPS, HTTP-status, serverresponse, social metadata, robots.txt, Twitter Card, URL-structuur, tekstweergave, afbeeldingsbronnen, privacy/trust, entity-signalen, trust/context, expliciete paginasamenvatting, brand identity.
+- Niet van toepassing: commerciële voorwaarden, Merchant Center productbasis/feed, prijsnotatie, checkout/funnel/informatie, EU-korting/review/schaarste/consumenteninfo, prijs/valuta, webshop vertrouwen/beloftes, productvarianten/prijs/voorraad/schema, checkout/betaalvertrouwen, AI Product Copy, breadcrumbs, vraag/antwoord, expertise-signalen.
+- Vergelijk met UMC Utrecht: beide krijgen een generiek `LocalBusiness`-advies en Security 84 zonder zichtbare securitydetails in deze samenvattingen. Onderzoek scoreherleidbaarheid, het sectorspecifieke schemabeleid en mogelijke dubbele waarschuwingen. Dit is **een hypothese, geen bewezen bug**.
+- Bron: door gebruiker geplakte audittekst; originele technische JSON/HTML nog niet onafhankelijk onderzocht.
+
 ## Reviewvragen voor Claude (later)
 1. Reproduceer Amsterdam robots user-agent selectie voor Googlebot versus wildcard `*`; voeg regressietest en een niet-dubbel-aftrekregel toe waar nodig.
 2. Onderzoek waarom sitemap HTTP 403 in scan werd gerapporteerd; registreer status, content-type, user-agent, en zekerheid zonder blokkades als bewezen technische websitefouten te labelen.
@@ -74,6 +85,8 @@ Dit zijn momentopnamen van de gebruiker (korte samenvattingen), **geen onafhanke
 6. Test verschillende sectoren en websites mét echte fouten; vereist onafhankelijk gevalideerde claims vóór publieke lancering.
 7. KPN: verklaar renderingverlies, voorlopige scoreband 68–100 en hoge deelcijfers 99/99 bij 68% bewijs; valideer niet-van-toepassing-classificaties.
 8. UMC Utrecht: test `Hospital` / `MedicalOrganization` schema-advies versus generiek `LocalBusiness`, voorkom overlappende scoreaftrek, verklaar Security 84 en controleer de drie waarschuwingen onafhankelijk.
+
+9. UvA: verifieer sectorafhankelijke JSON-LD-types, dat de al aanwezige JSON-LD correct gelezen wordt, en de Security 84-score.
 
 ## UI voor handmatig testen
 In previewbranch `fix/dashboard-login-resilience-20261020` bevat `app/dashboard/database-free-qa.tsx` inmiddels zowel **Kopieer samenvatting** als **Kopieer volledig rapport**, plus Download JSON en Deel auditbestand. Dit rapport omvat uitsluitend de tekst van gedeelde korte samenvattingen; voor volledige diagnostiek moeten originele JSON-audits apart worden aangeleverd.
