@@ -44,7 +44,8 @@ test("QA dashboard is branch-isolated, provides a real request and JSON export",
   assert.match(layout, /if \(isDatabaseFreeQaPreview\(\)\)/);
   assert.match(ui, /fetch\("\/api\/scan"/);
   assert.match(ui, /type: "application\/json;charset=utf-8"/);
-  assert.match(ui, /Download volledig JSON-rapport/);
+  assert.match(ui, /<a href=\{downloadHref \|\| undefined\} download=\{exportFilename\}/);
+  assert.match(ui, /Download JSON\s*<\/a>/);
   assert.doesNotMatch(ui, /INITIAL_TEST_SITES|FAKE_SCORE|MOCK_SCAN/);
 });
 
@@ -59,7 +60,9 @@ test("full QA audit has a persistent native download and mobile fallbacks", asyn
   assert.match(ui, /href=\{downloadHref \|\| undefined\} download=\{exportFilename\}/);
   assert.match(ui, /return \(\) => URL\.revokeObjectURL\(href\)/);
   assert.match(ui, /navigator\.share\(/);
-  assert.match(ui, /navigator\.clipboard\.writeText\(json\)/);
+  assert.match(ui, /onClick=\{\(\) => void copyText\(json, "Volledig rapport"\)\}/);
+  assert.match(ui, /await navigator\.clipboard\.writeText\(content\)/);
+  assert.match(ui, /document\.execCommand\("copy"\)/);
   assert.match(ui, /value=\{json\} aria-label="Volledig JSON-auditrapport"/);
   assert.match(ui, /result\.scoreModel\?\.version/);
   assert.doesNotMatch(ui, /link\.click\(\)/);
