@@ -1,4 +1,5 @@
 import { isDatabaseFreeQaPreview, checkDatabaseFreeQaLimit } from "@/lib/database-free-qa";
+import { heritageKnowledgeIdentity } from "@/lib/heritage-identity";
 import { decideCommerceModules } from "@/lib/sector-motor-decisions";
 import { NextResponse } from "next/server";
 import { createHash } from "crypto";
@@ -1709,7 +1710,7 @@ async function runScan(request: Request, restrictedQa = false) {
       note: "Evidence-first: ontbrekend bewijs is niet automatisch een fout. Sectoren en functies worden alleen bevestigd op gevonden signalen.",
     };
 
-    type SectorKey = "financial_services"|"ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"education"|"nonprofit"|"energy_utilities"|"events_culture"|"fitness_sports"|"manufacturing_industrial"|"general_business"|"unknown";
+    type SectorKey = "financial_services"|"ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"education"|"nonprofit"|"energy_utilities"|"events_culture"|"fitness_sports"|"manufacturing_industrial"|"general_business"|"heritage_information"|"unknown";
     const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]}> = [
       {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\b/i,/\b(te koop|te huur|for sale|for rent|woningaanbod)\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
       {sector:"automotive",label:"Automotive",patterns:[/\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\b/i,/\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
@@ -1747,6 +1748,7 @@ async function runScan(request: Request, restrictedQa = false) {
     // headings are removed first: they describe the banner, not the organisation.
     const identityH1s = h1s.filter((value)=>!isConsentHeading(value));
     const identityH2s = headings.filter((h)=>h.level===2).map((h)=>h.text).filter((value)=>!isConsentHeading(value)).slice(0,12);
+    const heritagePortalIdentity = heritageKnowledgeIdentity({ title, description, headings:identityH1s, homepage:isSiteHomepagePath(finalUrl.pathname) || isHomepage });
     const identityNavLabels: string[] = [];
     {
       const navSource = html.slice(0, 600000);
@@ -1910,6 +1912,9 @@ async function runScan(request: Request, restrictedQa = false) {
         : beautyServiceIdentity && !explicitMedicalIdentity
           ? {sector:"beauty",key:"beauty_salon",label:"Beauty & Wellness",evidence:["Scanbewijs: beauty-/wellnessidentiteit bevestigd"]}
           : automotiveServiceIdentity ? {sector:"automotive",key:"car_repair",label:"Automotive · garage / autoservice",evidence:["Scanbewijs: garage-/autoservice-identiteit bevestigd"]}
+          : heritagePortalIdentity
+            ? {sector:"heritage_information",key:heritagePortalIdentity.key,label:heritagePortalIdentity.label,
+               evidence:heritagePortalIdentity.evidence,confidence:"high" as const,confidenceScore:93}
           // Multilingual EU identity (government, education, care, carriers, post,
           // telecom, energy). A navigation-only (medium) identity never outranks a
           // strong legacy sector candidate; it only fills an otherwise empty decision.
@@ -4511,14 +4516,14 @@ async function runScan(request: Request, restrictedQa = false) {
     const pagesWithOwnIdentity = (pattern: RegExp) => auditedMultiPages.filter((item)=>pattern.test(item.ownIdentityText||item.title||"")).length;
     const multiPageCapabilities = {
       transport: /\b(transport|logistics?|logistiek|freight|vracht|forwarding|expeditie|wegtransport|road transport|warehousing|opslag|distribution|distributie|courier|koerier)\b/i.test(multiPageIdentityText),
-      hospitality: /\b(hotel|hotels|room|rooms|kamer|kamers|overnachten|booking|boeken|reserveren|restaurant)\b/i.test(multiPageIdentityText),
+      hospitality: (sectorProfile.sector==="unknown" || sectorProfile.sector==="hospitality") && /\b(hotel|hotels|room|rooms|kamer|kamers|overnachten|booking|boeken|reserveren|restaurant)\b/i.test(multiPageIdentityText),
       treatment: /\b(behandeling|behandelingen|treatment|specialisatie|tandarts|dentist|spoed|afspraak)\b/i.test(multiPageIdentityText),
       // Keep vehicle sales/inventory separate from garage/service capability.
       // A tyre or workshop site is automotive, but that alone is not evidence that it sells vehicles.
       vehicleSales: /\b(occasion|occasions|vehicle inventory|voertuigvoorraad|autovoorraad|proefrit|test drive|auto kopen|cars for sale)\b/i.test(multiPageIdentityText)
         || auditedMultiPages.some((item)=>/\/(?:voorraad|occasions?|vehicles?|autos?|cars)(?:\/|$)/i.test(new URL(item.url).pathname) && !/\b(werkplaats|service|banden|tyres?|uitlijnen|apk|onderhoud|repair)\b/i.test(`${item.url} ${item.title||""}`)),
-      automotiveService: /\b(werkplaats|garage|banden|tyres?|uitlijnen|apk|onderhoud|autoservice|car service|repair)\b/i.test(multiPageIdentityText),
-      properties: /\b(woning|woningen|huis|huizen|property|properties|makelaar|aanbod|koop|huur)\b/i.test(multiPageIdentityText),
+      automotiveService: (sectorProfile.sector==="unknown" || sectorProfile.sector==="automotive") && /\b(autowerkplaats|autogarage|autobanden|autoservice|garagebedrijf|auto[- ]?onderhoud|auto[- ]?reparatie|car service|car repair|tyre service|apk)\b/i.test(multiPageIdentityText),
+      properties: (sectorProfile.sector==="unknown" || sectorProfile.sector==="real_estate") && /\b(woning|woningen|huis|huizen|property|properties|makelaar|aanbod|koop|huur)\b/i.test(multiPageIdentityText),
       professional: /\b(expert|experts|expertise|practice|rechtsgebied|people|professionals?|advocaat|advocaten|lawyer|law firm)\b/i.test(multiPageIdentityText),
       productSample: auditedMultiPages.some((item)=>item.type==="product"),
       categorySample: auditedMultiPages.some((item)=>item.type==="category"),
