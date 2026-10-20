@@ -44,6 +44,7 @@ import { detectPrimaryBusinessIdentity, isSiteHomepagePath } from "@/lib/primary
 import { detectEuPrimaryIdentity, isConsentHeading, retailSelfDescription } from "@/lib/eu-identity";
 import { enforceReportConsistency } from "@/lib/report-consistency";
 import { rootLandingCandidates, isRicherRootLanding } from "@/lib/homepage-entry";
+import { normalizeScanUrlInput } from "@/lib/scan-url-input";
 
 export const maxDuration = 300;
 
@@ -452,7 +453,7 @@ async function runScan(request: Request, restrictedQa = false) {
   let fallbackLanguage = "nl";
   try {
     const body = await request.json();
-    const rawUrl = typeof body?.url === "string" ? body.url.trim() : "";
+    const rawUrl = typeof body?.url === "string" ? normalizeScanUrlInput(body.url) : "";
     const mode: AuditMode = body?.mode === "seo" || body?.mode === "geo" || body?.mode === "both" ? body.mode : "both";
     const dashboardScan = !restrictedQa && body?.dashboard === true;
     // Every authenticated dashboard rescan automatically rechecks prepared fixes.
