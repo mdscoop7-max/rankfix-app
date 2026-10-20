@@ -100,8 +100,29 @@ Gebruikerssamenvatting van live QA-preview-scan `https://www.kpn.com/` (HTTP 200
 - Test een gecontroleerde JS-zware fixture, browser/HTML-delta, netwerk-/bot-beperkingen, gedeelde oorzaak van onbekende checks en consistentie tussen korte, volledige en JSON-rapportweergave.
 - **Beoordeling:** geen aantoonbare verbetering ten opzichte van eerdere scan. De enginefix-PR had rendering expliciet niet aangepast; geen acceptatiebewijs voor de KPN-casus.
 
+## CERN (info.cern.ch) — 20:53:55 Nederlandse tijd
+Gebruiker deelde een korte QA-samenvatting van `https://info.cern.ch/`, HTTP 200, op de vernieuwde databasevrije PR #174-preview. Originele volledige JSON ontbreekt.
+
+| Maatstaf | Eerdere scan | PR #174 QA-preview |
+|---|---:|---:|
+| Totaal | 74 | 74 |
+| SEO | 83 | 83 |
+| GEO | 60 | 60 |
+| Bewijsdekking | 51% | 51% |
+| Aandachtspunten | 7 | 7 |
+| Niet bevestigd | 28 | 28 |
+| Sector | Niet bevestigd (0%) | Niet bevestigd (0%) |
+
+- **Geen aantoonbare regressie of verbetering van de score/sector/dekking.** Claude had terecht aangegeven bewust geen historische/informatieve website-sector te verzinnen; het niet-bevestigde sectorlabel blijft eerlijk, maar de productkwaliteit bij deze lage dekking vraagt aandacht.
+- Zichtbare aandachtspunten in korte uitvoer: ontbrekende meta description (fail), subheading zonder H2 (warning, advies in plaats van bewezen rankingverlies), ontbrekende canonical (warning), OG-tags `og:title`, `og:description`, `og:image` volgens scanner afwezig, ontbrekend JSON-LD-schema op historische homepage (warning) plus twee niet getoonde waarschuwingen.
+- Voorbeelden van 28 onbevestigd: mobiele viewport, HTML-taal, contentdekking, sitemap, afbeeldingsbronnen, privacy-/trustsignalen en 22 overige controles. Niet als sitefout rekenen.
+- **Belangrijker dan scorestabiliteit:** 51% bewijsdekking is onvoldoende om het cijfer 74 als definitief te presenteren; koppel totaal- en deelscores expliciet aan eigen onzekerheidskwalificatie en eventueel bandbreedte. Bij oudere/statische websites moet de motor historische doelstelling respecteren, zonder metadata die vrijwillig ontbreekt automatisch tot kritieke rankingclaims te verheffen.
+- Controleer bij eventuele vervolgscan de twee niet-uitgeschreven waarschuwingen, alle 28 onbekenden en bewijsbron van de voornaamste beweringen uit het oorspronkelijke JSON-rapport.
+- **Status:** live regressie uitgevoerd, grotendeels identiek aan eerdere scan; geen definitief acceptatiebewijs voor ontbrekende-bewijsbeleid, geen onafhankelijke HTML-hercontrole.
+
 ## Volgende beoogde hertests
-1. Overige relevante benchmarks: CERN en evt. Monumenten.nl.
+1. Overige relevante benchmarks: Monumenten.nl en eventueel NS.nl.
+2. Prioriteit: aanvullende JSON-evidence van de reeds uitgevoerde hertests.
 2. Prioriteit: originele Coolblue JSON + HTML-evidence van og:image-metadata en regressiefixtures.
 
 Rapporteer bij elke test zowel resultaten als beperkingen, en merge draft-PR #174 niet zonder onafhankelijke kwaliteitscontrole.
