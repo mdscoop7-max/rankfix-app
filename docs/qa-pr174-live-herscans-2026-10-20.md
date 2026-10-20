@@ -53,6 +53,7 @@ Door gebruiker geplakte korte QA-samenvatting van `https://www.uva.nl/`, HTTP 20
 | Onbevestigd | 5 | 4 |
 
 - Herkende sector **Onderwijs & Opleiding (93%)** is stabiel.
+- **Subsector blijft te generiek:** het label `Onderwijs & Opleiding` is inhoudelijk juist als hoofdsector, maar benoemt geen `universiteit`, `hoger onderwijs` of `wetenschappelijk onderwijs`. Verifieer of interne sectoridentiteit het subtype wel opslaat; anders sectorclassificatie uitbreiden zonder een niet-onderbouwd label te verzinnen. Een universiteit moet niet hetzelfde gedifferentieerd worden als een basisschool of trainingsbedrijf. Sectorlabel en schema-advies dienen dezelfde specifieke identiteit te volgen.
 - **Verbetering:** geen generieke `LocalBusiness`-aanbeveling meer in de korte samenvatting; structured-data-melding benoemt specifiek een universiteits-/hogeschoolhomepage. Toets in volledige JSON of het concrete advies `CollegeOrUniversity` of `EducationalOrganization` is waar toepasselijk.
 - **Nieuwe diagnostische specificiteit:** scanner meldt **1 geldig JSON-LD-blok met type `Intangible`**, maar geen bevestigd passend universitair identiteitstype. De aanwezigheid van `Intangible` bewijst niet dat er geen ander microdata-, JSON-LD- of gerenderd identity-schema is. Lees de originele JSON en eventueel raw HTML om deze claim te verifiëren.
 - **Stabiel aandachtspunt:** meta description volgens scanner 26 tekens (warning). Lengte is een inhoudelijke optimalisatie, niet automatisch technisch ongeldig.
