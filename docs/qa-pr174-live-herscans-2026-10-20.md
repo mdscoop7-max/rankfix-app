@@ -3,6 +3,8 @@
 QA-preview: https://rankfix-k486asi2e-scoop5.vercel.app/dashboard
 Branch: qa/pr174-dbfree-live-20261020 (databasevrij; PR #174 engine plus afzonderlijke QA-vrijschakeling). Geen merge naar main of wijziging aan productie.
 
+QA-testlimiet op 20 oktober verhoogd van 8 naar 20 scans per uur per netwerk, uitsluitend in deze beschermde previewbranch, naar aanleiding van een `QA_SCAN_LIMIT` na vijf gerapporteerde en andere niet-geslaagde scanpogingen. Nieuwe READY-deployment: https://rankfix-9ytfsbpby-scoop5.vercel.app/dashboard (HTTP 200 en QA-dashboard bevestigd). Productie en PR #174 zijn niet gewijzigd.
+
 ## Amsterdam.nl — 20:33:38 Nederlandse tijd
 Korte gebruikerssamenvatting, volledig JSON-rapport nog niet ontvangen.
 
