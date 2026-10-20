@@ -780,7 +780,7 @@ async function runScan(request: Request, restrictedQa = false) {
           // Follow only the original site's own localized landing. An external
           // redirect must never turn into the scanned site's identity.
           if (!candidateFetch.response.ok || candidateFetch.finalUrl.origin !== rootUrl.origin ||
-              !/^\\/(?:[a-z]{2}(?:-[a-z]{2})?|home|index(?:\\.html?)?)\\/?$/i.test(candidateFetch.finalUrl.pathname)) {
+              !isSiteHomepagePath(candidateFetch.finalUrl.pathname)) {
             try { await candidateFetch.response.body?.cancel(); } catch {}
             continue;
           }
