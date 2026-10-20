@@ -79,8 +79,27 @@ Door gebruiker verstrekte korte QA-samenvatting van `https://www.coolblue.nl/`, 
 - In verkorte uitvoer: meertalige SEO, privacy/trust, Merchant Center feed, bedrijfsgegevens, checkout/funnel, EU-reviewtransparantie + 5 verdere controles onbevestigd. Leg exacte set vast uit originele JSON, geef geen N.v.t.- of FAIL-interpretatie zonder bewijs.
 - **Status:** OG-image-fix nog niet bevestigd door live Coolblue-regressietest. Te testen met originele JSON + een gecontroleerde fixture waarin lege `og:image` wordt gevolgd door valide `og:image:secure_url`; ontbrekende tags moeten warning blijven.
 
+## KPN — 20:47:52 Nederlandse tijd
+Gebruikerssamenvatting van live QA-preview-scan `https://www.kpn.com/` (HTTP 200). Geen volledig JSON-rapport of onafhankelijk vastgelegde gerenderde DOM.
+
+| Maatstaf | Eerdere productie-scan | Nieuwe PR #174 QA-preview |
+|---|---:|---:|
+| SEO | 99 | 99 |
+| GEO | 99 | 99 |
+| Totaalweergave | voorlopig bereik 68–100 | 99/100 in korte samenvatting |
+| Bewijsdekking | 68% | 68% |
+| Aandachtspunten | 0 | 0 |
+| Niet bevestigd | 12 | 12 |
+
+- Sector **Telecom & Technologie (96%)** bleef gelijk.
+- Geen bewezen problemen of waarschuwingen, maar 12 controles onbevestigd. De korte samenvatting noemt expliciet: social metadata, privacy-/vertrouwenssignalen, Merchant Center productbasis, bedrijfsgegevens, prijs-/valutaconsistentie, productvariant-URL en nog zes niet gespecificeerde controles.
+- **Renderprobleem niet gerepareerd of live opgelost:** 68% gewogen bewijsdekking blijft onveranderd, consistent met Claude's opgegeven open punt van ontbrekende JS-rendering/DOM. Die technische oorzaak is nog niet opnieuw bewezen zonder ruwe scan-JSON en renderdiagnostiek.
+- **Scorecommunicatie als productrisico:** 99/99 als SEO/GEO-deelscore en een zichtbare korte `Totaal: 99/100` kan hoog vertrouwen suggereren bij slechts 68% dekking. Vorige rapport toonde voorlopig score-interval **68–100**. Bied een expliciete voorlopigheidskwalificatie én scorebereik en onzekerheid voor totaalscore en deelscores afzonderlijk. Onbekend = geen bewezen fout; verhoog scores niet automatisch door ontbrekende data.
+- Test een gecontroleerde JS-zware fixture, browser/HTML-delta, netwerk-/bot-beperkingen, gedeelde oorzaak van onbekende checks en consistentie tussen korte, volledige en JSON-rapportweergave.
+- **Beoordeling:** geen aantoonbare verbetering ten opzichte van eerdere scan. De enginefix-PR had rendering expliciet niet aangepast; geen acceptatiebewijs voor de KPN-casus.
+
 ## Volgende beoogde hertests
-1. Overige relevante benchmarks: KPN, CERN en evt. Monumenten.nl.
+1. Overige relevante benchmarks: CERN en evt. Monumenten.nl.
 2. Prioriteit: originele Coolblue JSON + HTML-evidence van og:image-metadata en regressiefixtures.
 
 Rapporteer bij elke test zowel resultaten als beperkingen, en merge draft-PR #174 niet zonder onafhankelijke kwaliteitscontrole.
