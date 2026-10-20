@@ -46,6 +46,8 @@ export type EuIdentityInput = {
   schemaTypes?: string[];
   hostname?: string;
   homepage?: boolean;
+  /** Bounded visible homepage text: supporting mandate evidence, never primary identity. */
+  bodyText?: string;
 };
 
 // Unicode-aware word boundaries: \b does not work for "Notícias" or "Zprávy".
@@ -418,15 +420,25 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   // For instance, an institutional title of the form "Bank X – the central
   // bank of Y" and navigation about monetary policy are independent proofs.
   // A story ABOUT a central bank must not become a bank website.
-  const titleParts = title.split(/\s*[|–—]\s*/);
-  const institutionalTitle = titleParts.length >= 2
-    && /(?:bank|banque|banca|banco|zentralbank)/iu.test(titleParts[0])
-    && CENTRAL_BANK_TERMS.test(titleParts.slice(1).join(" "));
+  const bankInstitutionPrefix = /(?:bank|banque|banca|banco|zentralbank)/iu;
+  // A title or H1 of "Bank Name – the central bank of X" is a
+  // first-party institutional claim; a news headline about a bank is not.
+  const explicitInstitutionHeader = (line: string) => {
+    const parts = line.split(/\s*[|–—]\s*/).map(p => p.trim()).filter(Boolean);
+    return parts.length >= 2 && bankInstitutionPrefix.test(parts[0])
+      && CENTRAL_BANK_TERMS.test(parts.slice(1).join(" "));
+  };
   const centralBankSelfIdentification =
-    (CENTRAL_BANK_TERMS.test(title) && (institutionalTitle
-      || (CENTRAL_BANK_TERMS.test(description) && CENTRAL_BANK_TERMS.test(site))))
-    || (CENTRAL_BANK_TERMS.test(description) && CENTRAL_BANK_TERMS.test(h1));
-  const centralBankMandate = CENTRAL_BANK_MANDATE.test([description, h1, nav, h2].join(" "));
+    explicitInstitutionHeader(title) || explicitInstitutionHeader(h1)
+    || (CENTRAL_BANK_TERMS.test(description) && CENTRAL_BANK_TERMS.test(h1)
+        && bankInstitutionPrefix.test(title + " " + site));
+  // Navigation is useful but an inaccessible/oversized menu must not hide
+  // evidence already printed in the website's own visible homepage body.
+  // Only independent mandate terminology corroborates the explicit title/H1.
+  const centralBankMandate = CENTRAL_BANK_MANDATE.test([
+    description, h1, nav, h2, (input.bodyText || "").slice(0, 120000),
+  ].join(" "));
+
   if (!retailer && !publication && centralBankSelfIdentification && centralBankMandate) {
     return {
       sector: "financial_services",
