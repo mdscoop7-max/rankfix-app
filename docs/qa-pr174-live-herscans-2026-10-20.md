@@ -22,10 +22,27 @@ HTTP 200. Sector Overheid & Publieke sector (90%) ongewijzigd.
 - Onbevestigd: mobiele viewport, HTML-taal, sitemap, meertalige SEO, bedrijfsgegevens.
 - Conclusie: eerste live hertest geeft aanwijzingen dat robots- en sitemapfixes werken, maar bewijsdekking daalt twee punten; geen definitieve engine-goedkeuring zonder JSON en meer live voorbeelden.
 
+## UMC Utrecht — 20:37:46 Nederlandse tijd
+Door gebruiker aangeleverde korte QA-samenvatting, geen volledig JSON. Homepage `https://www.umcutrecht.nl/nl` HTTP 200. Sector Zorg & Gezondheid · universitair medisch centrum (92%), identiek aan eerdere scan.
+
+| Maatstaf | Eerdere scan | Nieuwe QA-preview |
+|---|---:|---:|
+| Totaal | 91 | 91 |
+| SEO | 99 | 99 |
+| GEO | 80 | 80 |
+| Bewijsdekking | 94% | 97% |
+| Aandachtspunten | 3 | 3 |
+| Onbevestigd | 2 | 1 |
+
+- **Verbetering:** geen generiek `LocalBusiness`-advies in de korte uitvoer; waarschuwing spreekt over de `ziekenhuis-homepage`. Dit bewijst nog niet dat de uitvoer in JSON ook expliciet `Hospital` adviseert; dat vereist controle van het uitgebreide resultaat.
+- **Verbetering:** Google Ads readiness valt weg uit onbevestigde controles, passend bij het verwijderen van de irrelevante GTM-only detectie voor een ziekenhuis. Alleen bedrijfsgegevens blijven onbevestigd.
+- **Open:** OG-image `og:image` ontbreekt volgens scanner, ondanks nieuwe OG-extractieregels. Indien de bronsite daadwerkelijk geen bruikbare afbeelding heeft, is de blijvende waarschuwing terecht; controleer eerst rauwe HTML inclusief `og:image:secure_url`.
+- **Open:** zowel Structured data als Organization + WebSite waarschuwen dat er geen valide JSON-LD/identity is bevestigd. Eerdere korte/leesbare scan meldde ook 'geen valide JSON-LD'. Dit kan een reëel SEO-advies zijn, maar toets gedeelde grondoorzaak/afwijkende scoring en eventueel alternatieve schema-microdata afzonderlijk.
+- **Conclusie:** 3 procentpunt méér bewijs en één onbekende minder, maar geen score- of GEO-verbetering. De sectorbewuste advisering lijkt verbeterd; geen volledige acceptatie van PR #174 zonder originele JSON, raw HTML/headers, bewijs voor de juiste `Hospital`-aanbeveling en regressiecontrole.
+
 ## Volgende beoogde hertests
-1. UMC Utrecht (Hospital-sector/schema-advies)
-2. Universiteit van Amsterdam (CollegeOrUniversity/Organization)
-3. Coolblue (Open Graph-image)
-4. Overige relevante benchmarks: KPN, CERN en evt. Monumenten.nl
+1. Universiteit van Amsterdam (CollegeOrUniversity/Organization)
+2. Coolblue (Open Graph-image)
+3. Overige relevante benchmarks: KPN, CERN en evt. Monumenten.nl
 
 Rapporteer bij elke test zowel resultaten als beperkingen, en merge draft-PR #174 niet zonder onafhankelijke kwaliteitscontrole.
