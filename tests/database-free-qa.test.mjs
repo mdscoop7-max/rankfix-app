@@ -9,6 +9,9 @@ const source = (path) => readFile(new URL("../" + path, import.meta.url), "utf8"
 test("database-free QA is strictly isolated to the dedicated preview branch", () => {
   const qa = { VERCEL_ENV: "preview", VERCEL_GIT_COMMIT_REF: "fix/dashboard-login-resilience-20261020" };
   assert.equal(isDatabaseFreeQaPreview(qa), true);
+  assert.equal(isDatabaseFreeQaPreview({ ...qa, VERCEL_GIT_COMMIT_REF: "qa/sector-recognition-independent-20261020" }), true);
+  assert.equal(isDatabaseFreeQaPreview({ ...qa, VERCEL_GIT_COMMIT_REF: "qa/sector-recognition-independent-20261020", VERCEL_ENV: "production" }), false);
+  assert.equal(isDatabaseFreeQaPreview({ ...qa, VERCEL_GIT_COMMIT_REF: "qa/other-test-branch" }), false);
   assert.equal(isDatabaseFreeQaPreview({ ...qa, VERCEL_ENV: "production" }), false);
   assert.equal(isDatabaseFreeQaPreview({ ...qa, VERCEL_GIT_COMMIT_REF: "main" }), false);
   assert.equal(isDatabaseFreeQaPreview({ ...qa, VERCEL_GIT_COMMIT_REF: "feat/dashboard-reference-desktop-mobile-20261019" }), false);
