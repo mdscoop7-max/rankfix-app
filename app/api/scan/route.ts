@@ -1805,6 +1805,7 @@ async function runScan(request: Request, restrictedQa = false) {
     const euPrimaryIdentity = detectEuPrimaryIdentity({
       title, description, h1s: identityH1s, h2s: identityH2s, ogSiteName: decode(ogSiteName || ""), navLabels: identityNavLabels,
       schemaTypes, hostname: finalUrl.hostname, homepage: isSiteHomepagePath(finalUrl.pathname) || isHomepage,
+      bodyText: text.slice(0, 120000),
     });
     const euRetailSelfDescription = retailSelfDescription([title, description, identityH1s.join(" ")].join(" "));
     // Strong page/site identity must beat incidental words elsewhere in long pages.
