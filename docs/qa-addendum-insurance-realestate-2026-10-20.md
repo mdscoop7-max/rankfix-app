@@ -19,3 +19,6 @@
 
 ## Volgende stap Claude
 Reproduceer de drie vastgoedcases met gecontroleerde fixtures, voeg regressietests toe voor zero-width URL-tekens, sectorsubtype vastgoedverhuur en challenge-responses. Houd bewezen afwijkingen, hypotheses en crawlerblokkades gescheiden. Niet direct naar productie publiceren.
+
+## Extra bevestiging uit Vercel-logs
+- Bij de Centraal Beheer-scan logde de centrale self-check `advice_sector_mismatch` met een correctie van het LocalBusiness-advies voor `financial_services`, terwijl de leesbare uitvoer nog wel 'Richting: LocalBusiness' vermeldde. Onderzoek of export/rapport een oude checkboodschap toont na self-check; test consistentie van afgegeven advies en gecorrigeerde status. Dit is een interne inconsistentie in de scanrapportage, geen bewezen externe websitefout.
