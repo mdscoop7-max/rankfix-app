@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import DashboardNav from "../nav";
 import AiAssistant from "@/components/ai-assistant";
@@ -19,6 +19,16 @@ de:{back:"Dashboard",title:"Ein Codevorschlag für deine Website.",intro:"RankFi
 fr:{back:"Tableau de bord",title:"Une proposition de code pour votre site.",intro:"RankFix lit uniquement le fichier sélectionné, effectue la modification minimale nécessaire et ouvre une Pull Request séparée. Rien n’est fusionné automatiquement en production.",connect:"Connecter GitHub",connectInfo:"RankFix n’accède à GitHub qu’après votre autorisation sur GitHub.",connectCta:"Connecter GitHub",connected:"GitHub connecté en tant que",reconnect:"Reconnecter GitHub",linkedRepo:"Dépôt associé",searchRepo:"Recherche du dépôt…",chooseRepo:"Choisissez une fois le dépôt de ce site",searching:"RankFix recherche vos dépôts GitHub et vérifie l’association avec ce site…",loading:"Chargement des dépôts…",selectRepo:"Sélectionner un dépôt",privateRepo:"privé",mappedInfo:"RankFix utilise automatiquement cette association vérifiée.",chooseInfo:"Vous ne devez le faire qu’une fois par site. RankFix choisit ensuite automatiquement la branche, le fichier et les données techniques.",changeRepo:"Modifier l’association du dépôt",website:"Site",blocked:"Correctif bloqué",warnings:"Avertissements",preview:"Aperçu du diff · à partir de la ligne",changed:"lignes modifiées",empty:"vide",truncated:"L’aperçu est abrégé ; vérifiez aussi le diff GitHub complet après sa création.",cancel:"Annuler l’aperçu",busy:"AI + GitHub travaillent…",approve:"Aperçu approuvé — créer la Pull Request",makePreview:"Créer d’abord l’aperçu du diff",invalidLink:"La connexion GitHub est invalide. Reconnectez GitHub.",verifyFail:"GitHub n’a pas pu être vérifié. Reconnectez GitHub.",release:"Libération de l’association du dépôt…",mappingFail:"Impossible de modifier l’association du dépôt.",released:"Association libérée. Choisissez maintenant le bon dépôt pour ce site.",missingSite:"Le contexte du site manque ; rouvrez ce correctif depuis le rapport d’audit.",changing:"Modification de l’association du dépôt…",oldReleased:"Ancienne association libérée. Vérifiez le nouveau dépôt puis créez l’aperçu du diff.",missingAudit:"Le contexte d’audit manque. Rouvrez ce correctif via ‘Créer un correctif AI’ pour le point concerné.",chooseOnce:"Choisissez une fois le dépôt GitHub associé à ce site.",repoFormat:"Le dépôt doit être au format owner/repository, par exemple mdscoop7-max/Trendmix.",fixFail:"Le correctif GitHub a échoué. Vérifiez le dépôt et le fichier.",invalidGithub:"Votre connexion GitHub est invalide. Cliquez sur ‘Reconnecter GitHub’ et autorisez RankFix à nouveau.",previewReady:"Aperçu prêt. Vérifiez la modification ci-dessous ; aucune branche ni Pull Request n’a encore été créée.",alreadyApplied:"Le code demandé est déjà présent dans le fichier. Rien n’a été modifié. Vérifiez la page en ligne avec une nouvelle analyse.",prProposed:"Modification de code proposée dans la PR",engineFail:"La connexion au moteur de correctifs GitHub a échoué."},
 it:{back:"Dashboard",title:"Una proposta di codice per il tuo sito.",intro:"RankFix legge solo il file selezionato, applica la modifica minima necessaria e apre una Pull Request separata. Nulla viene unito automaticamente in produzione.",connect:"Collega GitHub",connectInfo:"RankFix accede a GitHub solo dopo la tua autorizzazione su GitHub.",connectCta:"Collega GitHub",connected:"GitHub collegato come",reconnect:"Ricollega GitHub",linkedRepo:"Repository collegato",searchRepo:"Ricerca repository…",chooseRepo:"Scegli una volta il repository di questo sito",searching:"RankFix cerca i tuoi repository GitHub e verifica il collegamento con questo sito…",loading:"Caricamento repository…",selectRepo:"Seleziona repository",privateRepo:"privato",mappedInfo:"RankFix usa automaticamente questo collegamento verificato.",chooseInfo:"Devi farlo una sola volta per sito. RankFix seleziona poi automaticamente branch, file e dati tecnici.",changeRepo:"Modifica collegamento repository",website:"Sito",blocked:"Fix bloccato",warnings:"Avvisi",preview:"Anteprima diff · dalla riga",changed:"righe modificate",empty:"vuoto",truncated:"L’anteprima è abbreviata; dopo la creazione controlla anche il diff GitHub completo.",cancel:"Annulla anteprima",busy:"AI + GitHub stanno lavorando…",approve:"Anteprima approvata — crea Pull Request",makePreview:"Crea prima l’anteprima diff",invalidLink:"Il collegamento GitHub non è valido. Ricollega GitHub.",verifyFail:"Impossibile verificare GitHub. Ricollega GitHub.",release:"Scollegamento repository…",mappingFail:"Impossibile modificare il collegamento del repository.",released:"Collegamento rimosso. Ora scegli il repository corretto per questo sito.",missingSite:"Manca il contesto del sito; riapri questo fix dal report di audit.",changing:"Modifica collegamento repository…",oldReleased:"Vecchio collegamento rimosso. Controlla il nuovo repository e poi crea l’anteprima diff.",missingAudit:"Manca il contesto dell’audit. Riapri questo fix tramite ‘Crea fix AI’ per il problema specifico nel report.",chooseOnce:"Scegli una volta il repository GitHub di questo sito.",repoFormat:"Il repository deve avere il formato owner/repository, ad esempio mdscoop7-max/Trendmix.",fixFail:"Fix GitHub non riuscito. Controlla repository e file.",invalidGithub:"Il collegamento GitHub non è valido. Fai clic su ‘Ricollega GitHub’ e autorizza nuovamente RankFix.",previewReady:"Anteprima pronta. Controlla la modifica qui sotto; non è ancora stato creato alcun branch o Pull Request.",alreadyApplied:"Il codice richiesto è già nel file. Non è stato modificato nulla. Controlla la pagina live con una nuova scansione.",prProposed:"Modifica del codice proposta nella PR",engineFail:"Connessione al GitHub Fix Engine non riuscita."},
 es:{back:"Panel",title:"Una propuesta de código para tu web.",intro:"RankFix solo lee el archivo seleccionado, realiza el cambio mínimo necesario y abre una Pull Request independiente. Nada se fusiona automáticamente en producción.",connect:"Conectar GitHub",connectInfo:"RankFix solo obtiene acceso a GitHub después de que lo apruebes en GitHub.",connectCta:"Conectar GitHub",connected:"GitHub conectado como",reconnect:"Volver a conectar GitHub",linkedRepo:"Repositorio vinculado",searchRepo:"Buscando repositorio…",chooseRepo:"Elige una vez el repositorio de esta web",searching:"RankFix busca tus repositorios de GitHub y comprueba el vínculo con esta web…",loading:"Cargando repositorios…",selectRepo:"Seleccionar repositorio",privateRepo:"privado",mappedInfo:"RankFix utiliza automáticamente este vínculo verificado.",chooseInfo:"Solo tienes que hacerlo una vez por web. Después RankFix selecciona automáticamente la rama, el archivo y los datos técnicos.",changeRepo:"Cambiar vínculo del repositorio",website:"Web",blocked:"Mejora bloqueada",warnings:"Advertencias",preview:"Vista previa del diff · desde la línea",changed:"líneas modificadas",empty:"vacío",truncated:"La vista previa está abreviada; revisa también el diff completo de GitHub después de crearlo.",cancel:"Cancelar vista previa",busy:"AI + GitHub están trabajando…",approve:"Vista previa aprobada — crear Pull Request",makePreview:"Crear primero vista previa del diff",invalidLink:"La conexión de GitHub no es válida. Vuelve a conectar GitHub.",verifyFail:"No se pudo verificar GitHub. Vuelve a conectarlo.",release:"Liberando vínculo del repositorio…",mappingFail:"No se pudo cambiar el vínculo del repositorio.",released:"Vínculo liberado. Elige ahora el repositorio correcto para esta web.",missingSite:"Falta el contexto de la web; vuelve a abrir esta mejora desde el informe de auditoría.",changing:"Cambiando vínculo del repositorio…",oldReleased:"Vínculo anterior liberado. Comprueba el nuevo repositorio y crea después la vista previa del diff.",missingAudit:"Falta el contexto de auditoría. Vuelve a abrir esta mejora mediante ‘Crear mejora AI’ en el punto específico del informe.",chooseOnce:"Elige una vez el repositorio de GitHub correspondiente a esta web.",repoFormat:"El repositorio debe tener formato owner/repository, por ejemplo mdscoop7-max/Trendmix.",fixFail:"La mejora de GitHub ha fallado. Comprueba el repositorio y el archivo.",invalidGithub:"Tu conexión de GitHub no es válida. Haz clic en ‘Volver a conectar GitHub’ y autoriza RankFix de nuevo.",previewReady:"Vista previa lista. Revisa el cambio; todavía no se ha creado ninguna rama ni Pull Request.",alreadyApplied:"El código solicitado ya está en el archivo. No se ha modificado nada. Comprueba la página en vivo con un nuevo análisis.",prProposed:"Cambio de código propuesto en la PR",engineFail:"La conexión con GitHub Fix Engine ha fallado."}};
+
+type UpgradeCopy={cta:string;locked:string;title:string;description:string;subscribe:string;plans:string;soon:string;close:string};
+const upgradeCopy:Record<Locale,UpgradeCopy>={
+  nl:{cta:"Fix aanmaken",locked:"Beschikbaar met abonnement",title:"Maak van dit voorstel een echte fix",description:"Met Start of een hoger abonnement kun je een veilige GitHub-fix voorbereiden en zelf controleren voordat je publiceert.",subscribe:"Abonneren",plans:"Bekijk alle abonnementen",soon:"Abonnementen en betalingen zijn nog niet actief. Op de volgende pagina kun je het pakket bekijken, maar nog niets afrekenen.",close:"Sluiten"},
+  en:{cta:"Create fix",locked:"Available with a subscription",title:"Turn this proposal into a fix",description:"With Start or a higher plan you can prepare a safe GitHub fix and review it yourself before publishing.",subscribe:"Subscribe",plans:"Compare plans",soon:"Subscriptions and payments are not active yet. You can view the plan on the next page, but cannot pay or activate it yet.",close:"Close"},
+  de:{cta:"Fix erstellen",locked:"Mit Abonnement verfügbar",title:"Aus diesem Vorschlag einen Fix machen",description:"Mit Start oder einem höheren Tarif kannst du einen sicheren GitHub-Fix vorbereiten und vor der Veröffentlichung prüfen.",subscribe:"Abonnieren",plans:"Alle Tarife ansehen",soon:"Abonnements und Zahlungen sind noch nicht aktiv. Du kannst den Tarif ansehen, aber noch nicht bezahlen.",close:"Schließen"},
+  fr:{cta:"Créer un correctif",locked:"Disponible avec un abonnement",title:"Transformez cette proposition en correctif",description:"Avec Start ou une offre supérieure, préparez un correctif GitHub et vérifiez-le avant publication.",subscribe:"S'abonner",plans:"Voir les offres",soon:"Les abonnements et paiements ne sont pas encore actifs. Vous pouvez consulter l'offre, sans paiement pour le moment.",close:"Fermer"},
+  it:{cta:"Crea correzione",locked:"Disponibile con abbonamento",title:"Trasforma la proposta in una correzione",description:"Con Start o un piano superiore puoi preparare una correzione GitHub e verificarla prima di pubblicarla.",subscribe:"Abbonati",plans:"Vedi tutti i piani",soon:"Abbonamenti e pagamenti non sono ancora attivi. Puoi vedere il piano, ma non pagare o attivarlo.",close:"Chiudi"},
+  es:{cta:"Crear corrección",locked:"Disponible con suscripción",title:"Convierte la propuesta en una corrección",description:"Con Start o un plan superior puedes preparar una corrección de GitHub y revisarla antes de publicarla.",subscribe:"Suscribirse",plans:"Ver todos los planes",soon:"Las suscripciones y los pagos aún no están activos. Puedes consultar el plan, pero no pagarlo ni activarlo.",close:"Cerrar"}
+};
 
 export default function GithubPage(){
   const searchParams=useSearchParams();
@@ -44,6 +54,8 @@ export default function GithubPage(){
   const [proposalHash,setProposalHash]=useState("");
   const [language,setLanguage]=useState<Locale>("nl");
   const [plan,setPlan]=useState("free");
+  const [upgradeOpen,setUpgradeOpen]=useState(false);
+  const upgradeDialogRef=useRef<HTMLDialogElement>(null);
   const [scanData,setScanData]=useState<any>(null);
   const [selectedCheck,setSelectedCheck]=useState<any>(null);
   const [proposal,setProposal]=useState<AiProposal|null>(null);
@@ -52,6 +64,14 @@ export default function GithubPage(){
   const [proposalRequested,setProposalRequested]=useState(false);
   const [completedPr,setCompletedPr]=useState<{number?:number;url?:string;title?:string}|null>(null);
   const t=ui[language];
+  const upgrade=upgradeCopy[language];
+
+  useEffect(()=>{
+    const dialog=upgradeDialogRef.current;
+    if(!dialog) return;
+    if(upgradeOpen && !dialog.open) dialog.showModal();
+    if(!upgradeOpen && dialog.open) dialog.close();
+  },[upgradeOpen]);
 
   async function readJsonSafe(response:Response){
     const raw=await response.text();
@@ -249,7 +269,12 @@ export default function GithubPage(){
       </div>}
       {plan==="free"&&proposal&&<p className="mt-4 text-sm text-slate-400">{language==="nl"?"Je kunt dit voorstel handmatig gebruiken. GitHub is optioneel.":"You can use this proposal manually. GitHub is optional."}</p>}
       {scanId&&<Link href={`/dashboard/audit/${encodeURIComponent(scanId)}`} className="mt-4 inline-flex rounded-xl border border-white/10 px-4 py-2 text-sm font-bold text-slate-200">← {language==="nl"?"Terug naar audit":"Back to audit"}</Link>}
-      {plan==="free" ? null : !connected ? <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-7">
+      {plan==="free" ? <div className="mt-8 rounded-3xl border border-emerald-400/20 bg-emerald-400/[0.06] p-5 sm:p-7">
+        <p className="text-sm font-semibold text-emerald-200">{upgrade.locked}</p>
+        <button type="button" onClick={()=>setUpgradeOpen(true)} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 font-bold text-slate-950 transition hover:bg-emerald-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300">
+          {upgrade.cta} <span aria-hidden="true">→</span>
+        </button>
+      </div> : !connected ? <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-7">
         <h2 className="text-xl font-bold">{t.connect}</h2>
         <p className="mt-2 text-sm text-slate-500">{t.connectInfo}</p>
         <Link href="/api/github/connect" className="mt-5 inline-flex rounded-xl bg-white px-5 py-3 font-bold text-slate-950">{t.connectCta} →</Link>
@@ -280,6 +305,21 @@ export default function GithubPage(){
         {!completedPr&&<button type="submit" disabled={busy||Boolean(validation?.errors?.length)||error===t.missingAudit} className="min-h-12 w-full rounded-xl bg-[#5DCAA5] px-5 py-3 font-bold text-[#04342C] disabled:opacity-50">{busy?t.busy:preview?t.approve:t.makePreview}</button>}
       </form>}
     </section>
+    <dialog ref={upgradeDialogRef} onClose={()=>setUpgradeOpen(false)} aria-labelledby="rankfix-upgrade-title" className="w-[calc(100%-2rem)] max-w-lg rounded-3xl border border-emerald-300/25 bg-[#0C2032] p-0 text-white shadow-2xl backdrop:bg-slate-950/75">
+      <div className="p-6 sm:p-8">
+        <div className="flex items-start justify-between gap-4">
+          <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-bold text-emerald-200">{upgrade.locked}</span>
+          <button type="button" onClick={()=>setUpgradeOpen(false)} aria-label={upgrade.close} className="rounded-full border border-white/15 px-3 py-1 text-xl text-slate-200 hover:bg-white/10">×</button>
+        </div>
+        <h2 id="rankfix-upgrade-title" className="mt-5 text-2xl font-black leading-tight">{upgrade.title}</h2>
+        <p className="mt-3 text-sm leading-6 text-slate-300">{upgrade.description}</p>
+        <p className="mt-4 rounded-xl border border-amber-300/25 bg-amber-300/10 p-3 text-sm leading-6 text-amber-100">{upgrade.soon}</p>
+        <div className="mt-6 flex flex-col gap-3">
+          <Link href={`/checkout?plan=start&lang=${language}`} onClick={()=>setUpgradeOpen(false)} className="rounded-xl bg-emerald-400 px-5 py-3 text-center font-bold text-slate-950 hover:bg-emerald-300">{upgrade.subscribe} →</Link>
+          <Link href={`/${language}#pricing`} onClick={()=>setUpgradeOpen(false)} className="rounded-xl border border-white/20 px-5 py-3 text-center font-semibold text-white hover:bg-white/10">{upgrade.plans}</Link>
+        </div>
+      </div>
+    </dialog>
     </div>
     <AiAssistant dashboard scanId={scanId || null} errorContext={error ? [error, ...(validation?.errors || [])].join(" ") : null} />
   </main>
