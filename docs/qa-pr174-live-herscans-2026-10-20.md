@@ -61,8 +61,26 @@ Door gebruiker geplakte korte QA-samenvatting van `https://www.uva.nl/`, HTTP 20
 - **Dekking:** 90% (+2 p.p.). De enige eerder onbevestigde `Google Ads readiness`-controle verdwijnt van lijst; resterend: sitemap, meertalige SEO, Consent Mode, bedrijfsgegevens. Dit lijkt consistent met de GTM-only fix, maar de korte uitvoer toont geen check-internals.
 - Conclusie: **gedeeltelijke verbetering van sectorgerichte advisering en bewijsdekking**, zonder SEO/GEO-scorewijziging. Niet als volledige PR-goedkeuring markeren. Uitvoer verifiëren met JSON/HTML en extra branchetests.
 
+## Coolblue — 20:45:05 Nederlandse tijd
+Door gebruiker verstrekte korte QA-samenvatting van `https://www.coolblue.nl/`, HTTP 200. Geen volledige JSON-audit of raw HTML-headers uit dezelfde RankFix-fetch beschikbaar.
+
+| Maatstaf | Eerdere scan | Nieuwe QA-preview |
+|---|---:|---:|
+| Totaal | 99 | 99 |
+| SEO | 99 | 99 |
+| GEO | 100 | 100 |
+| Bewijsdekking | 85% | 85% |
+| Aandachtspunten | 1 | 1 |
+| Onbevestigd | 11 | 11 |
+
+- Sector Webshop / e-commerce (88%) bleef ongewijzigd en is passend.
+- **Geen aangetoond effect van de OG-image-fix op deze test:** `Social metadata` blijft warning: `og:image` ontbreekt volgens RankFix. De fix kan correct zijn terwijl de bronsite daadwerkelijk geen geldige OG-image aanbiedt; óf de parser mist nog een variant. Inspecteer de EXACTE serverrespons van de RankFix-fetch en de page head: `og:image`, `og:image:url`, `og:image:secure_url`, meerdere tags met lege eerste waarde, hoofdlettervarianten en JSON/HTML-weergave. Aparte onafhankelijke webtekstweergave van Coolblue toonde bruikbare sitecontent, maar bevat geen controleerbare meta-tagwaarden; directe verzoeken uit tijdelijke testomgeving liepen vast op DNS. **Geen false positive als bewezen claimen.**
+- Stabiel 99/100 bij slechts 85% bewijsdekking en 11 onbevestigd. Beoordeel voorlopig-label/scoreband op SEO en GEO afzonderlijk (dit beleid is nog niet gewijzigd).
+- In verkorte uitvoer: meertalige SEO, privacy/trust, Merchant Center feed, bedrijfsgegevens, checkout/funnel, EU-reviewtransparantie + 5 verdere controles onbevestigd. Leg exacte set vast uit originele JSON, geef geen N.v.t.- of FAIL-interpretatie zonder bewijs.
+- **Status:** OG-image-fix nog niet bevestigd door live Coolblue-regressietest. Te testen met originele JSON + een gecontroleerde fixture waarin lege `og:image` wordt gevolgd door valide `og:image:secure_url`; ontbrekende tags moeten warning blijven.
+
 ## Volgende beoogde hertests
-1. Coolblue (Open Graph-image)
-2. Overige relevante benchmarks: KPN, CERN en evt. Monumenten.nl
+1. Overige relevante benchmarks: KPN, CERN en evt. Monumenten.nl.
+2. Prioriteit: originele Coolblue JSON + HTML-evidence van og:image-metadata en regressiefixtures.
 
 Rapporteer bij elke test zowel resultaten als beperkingen, en merge draft-PR #174 niet zonder onafhankelijke kwaliteitscontrole.
