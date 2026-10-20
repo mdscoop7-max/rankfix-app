@@ -60,7 +60,7 @@ test("Fix button requires preview before publish (mocked API; no GitHub write)",
   expect(sent).toHaveLength(1);
   expect(sent[0].preview).toBe(true);
 
-  await page.getByRole("button", { name: "Fix publiceren" }).click();
+  await page.getByRole("button", { name: "Maak Pull Request" }).click();
   await expect(page.getByText(/Pull Request aangemaakt/i)).toBeVisible();
   expect(sent).toHaveLength(2);
   expect(sent[1].preview).toBe(false);
