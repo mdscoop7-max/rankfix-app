@@ -40,8 +40,14 @@ function extractMetadataIdentity(value: string): {
   openGraphTitle?: string;
   openGraphDescription?: string;
 } {
-  const title = value.match(/(?:^|[,{\n][ \t\r\n]*)title[ \t\r\n]*:[ \t\r\n]*["']([^"']{1,200})["']/i)?.[1];
-  const description = value.match(/(?:^|[,{\n][ \t\r\n]*)description[ \t\r\n]*:[ \t\r\n]*["']([^"']{1,300})["']/i)?.[1];
+  // HTML and JS/TS metadata: also detect deletion of existing fields.
+  const htmlTitle = value.match(/<title\b[^>]*>([^<]*)<\/title\s*>/i)?.[1];
+  const htmlDescription = [...value.matchAll(/<meta\b[^>]*>/gi)].map(([tag]) => {
+    const name = tag.match(/\bname\s*=\s*["']([^"']*)["']/i)?.[1]?.toLowerCase();
+    return name === "description" ? tag.match(/\bcontent\s*=\s*["']([^"']*)["']/i)?.[1] : undefined;
+  }).find((entry) => entry !== undefined);
+  const title = htmlTitle ?? value.match(/(?:^|[,{\n][ \t\r\n]*)title[ \t\r\n]*:[ \t\r\n]*["']([^"']{1,200})["']/i)?.[1];
+  const description = htmlDescription ?? value.match(/(?:^|[,{\n][ \t\r\n]*)description[ \t\r\n]*:[ \t\r\n]*["']([^"']{1,300})["']/i)?.[1];
   const openGraphBlock = value.match(/openGraph[ \t\r\n]*:[ \t\r\n]*\{([\s\S]*?)\}/i)?.[1] || "";
   const openGraphTitle = openGraphBlock.match(/title[ \t\r\n]*:[ \t\r\n]*["']([^"']{1,200})["']/i)?.[1];
   const openGraphDescription = openGraphBlock.match(/description[ \t\r\n]*:[ \t\r\n]*["']([^"']{1,300})["']/i)?.[1];
@@ -57,10 +63,12 @@ export function validateGithubFix(input: {
 }): GithubFixValidation {
   const errors: string[] = [];
   const warnings: string[] = [];
-  const issueText = ((input.issueId || "")+" "+input.issue).toLowerCase();
-  const allowsMetaTitleChange = /\b(?:meta_title_missing|meta_title_guidance|site_title_missing)\b/i.test(input.issueId || "") || /meta\s+title|title\s+tag/i.test(issueText);
-  const allowsMetaDescriptionChange = /\b(?:meta_description_missing|meta_description_guidance|site_description_missing)\b/i.test(input.issueId || "") || /meta\s+description|metadata[- ]?beschrijving/i.test(issueText);
-  const allowsSocialChange = /\b(?:social_metadata_incomplete|social)\b/i.test(input.issueId || "") || /og[: -]?|open graph|social metadata/i.test(issueText);
+  // Only a trusted issue ID from the scan can authorize a change. Natural
+  // language and AI output must never enlarge the set of allowed fields.
+  const rule = String(input.issueId || "").trim().toUpperCase();
+  const allowsMetaTitleChange = ["TITLE","META_TITLE_MISSING","META_TITLE_GUIDANCE","SITE_TITLE_MISSING"].includes(rule);
+  const allowsMetaDescriptionChange = ["DESCRIPTION","META_DESCRIPTION_MISSING","META_DESCRIPTION_GUIDANCE","SITE_DESCRIPTION_MISSING"].includes(rule);
+  const allowsSocialChange = ["SOCIAL","SOCIAL_METADATA_INCOMPLETE"].includes(rule);
   const pathError=pathPolicyError(input.filePath);
   if(pathError) errors.push(pathError);
   const changedLines=changedLineCount(input.current,input.proposed);
@@ -75,19 +83,22 @@ export function validateGithubFix(input: {
 
   const before = extractMetadataIdentity(input.current);
   const after = extractMetadataIdentity(input.proposed);
-  const allowsRebrand = /rebrand|branding|brandnaam|naam wijzigen|site name|website name/i.test(issueText);
-
-  if (!allowsRebrand && !allowsMetaTitleChange && before.title && after.title && before.title !== after.title) {
+  // Fail closed on unrelated edits, additions and removals of critical metadata.
+  if (!allowsMetaTitleChange && before.title !== after.title &&
+      (before.title !== undefined || after.title !== undefined)) {
     errors.push("De AI-fix wijzigt de bestaande site-identiteit in de metadata.");
   }
-  if (!allowsRebrand && !allowsMetaDescriptionChange && before.description && after.description && before.description !== after.description) {
+  if (!allowsMetaDescriptionChange && before.description !== after.description &&
+      (before.description !== undefined || after.description !== undefined)) {
     errors.push("De AI-fix wijzigt de bestaande metadata-beschrijving zonder dat dit is gevraagd.");
   }
-  if (!allowsRebrand && !allowsSocialChange && !/og[: -]?title|open graph.*title/i.test(issueText) && before.title && after.openGraphTitle && before.title !== after.openGraphTitle) {
-    errors.push("De AI-fix zet een andere merk-/paginatitel in Open Graph-metadata.");
+  if (!allowsSocialChange && before.openGraphTitle !== after.openGraphTitle &&
+      (before.openGraphTitle !== undefined || after.openGraphTitle !== undefined)) {
+    errors.push("De AI-fix wijzigt de Open Graph-titel buiten het bewezen scanprobleem.");
   }
-  if (!allowsRebrand && !allowsSocialChange && !/og[: -]?description|open graph.*description/i.test(issueText) && before.description && after.openGraphDescription && before.description !== after.openGraphDescription) {
-    errors.push("De AI-fix zet een andere beschrijving in Open Graph-metadata.");
+  if (!allowsSocialChange && before.openGraphDescription !== after.openGraphDescription &&
+      (before.openGraphDescription !== undefined || after.openGraphDescription !== undefined)) {
+    errors.push("De AI-fix wijzigt de Open Graph-beschrijving buiten het bewezen scanprobleem.");
   }
 
   if (/openGraph[ \t\r\n]*:[ \t\r\n]*\{|og:image|images[ \t\r\n]*:[ \t\r\n]*\[/i.test(input.proposed)) {
