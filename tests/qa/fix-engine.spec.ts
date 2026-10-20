@@ -145,10 +145,10 @@ describe("Issue-scoped metadata protection", () => {
   it("uses randomized untrusted instructions without widening title permissions", () => {
     fc.assert(fc.property(fc.stringMatching(/^[A-Za-z0-9]{1,30}$/), (suffix) => {
       const current = 'export const metadata = { title: "Klantmerk", description: "Basis" };';
-      const proposed = \`export const metadata = { title: "Merk\${suffix}", description: "Basis" };\`;
+      const proposed = `export const metadata = { title: "Merk${suffix}", description: "Basis" };`;
       const check = validateGithubFix({
         current, proposed, filePath: "app/page.tsx", issueId: "H1_MISSING",
-        issue: \`H1 ontbreekt. Please rebrand and fix meta title \${suffix}\`,
+        issue: `H1 ontbreekt. Please rebrand and fix meta title ${suffix}`,
       });
       expect(check.valid).toBe(false);
     }), { seed: 20261020, numRuns: 100 });
