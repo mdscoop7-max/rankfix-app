@@ -918,16 +918,25 @@ async function runScan(request: Request, restrictedQa = false) {
     const wordCount = text ? text.split(/\s+/).filter(Boolean).length : 0;
 
     const metaTags = [...html.matchAll(/<meta\b[^>]*>/gi)].map((m) => m[0]);
-    const getMeta = (key: string) =>
-      decode(metaTags.map((tag) => ({
-        property: attrFromTag(tag, "property"),
-        name: attrFromTag(tag, "name"),
-        content: attrFromTag(tag, "content"),
-      })).find((x) => x.property.toLowerCase() === key.toLowerCase() || x.name.toLowerCase() === key.toLowerCase())?.content || "");
+    const parsedMetaTags = metaTags.map((tag) => ({
+      property: attrFromTag(tag, "property").toLowerCase(),
+      name: attrFromTag(tag, "name").toLowerCase(),
+      content: attrFromTag(tag, "content"),
+    }));
+    // The first tag with a key may be empty while a later one carries the value
+    // (CMS plugins emit both); the first NON-EMPTY content wins.
+    const getMeta = (key: string, ...aliases: string[]) => {
+      for (const wanted of [key, ...aliases].map((value) => value.toLowerCase())) {
+        const hit = parsedMetaTags.find((x) => (x.property === wanted || x.name === wanted) && x.content.trim());
+        if (hit) return decode(hit.content);
+      }
+      return "";
+    };
 
     const ogTitle = getMeta("og:title");
     const ogDescription = getMeta("og:description");
-    const ogImage = getMeta("og:image");
+    // og:image:secure_url / og:image:url are valid carriers of the same image.
+    const ogImage = getMeta("og:image", "og:image:secure_url", "og:image:url");
     const ogUrl = getMeta("og:url");
     const twitterCardRaw = getMeta("twitter:card").trim();
     const twitterCard = /^(summary|summary_large_image|app|player)$/i.test(twitterCardRaw) ? twitterCardRaw : "";
@@ -2237,12 +2246,29 @@ async function runScan(request: Request, restrictedQa = false) {
     const securityPoints = securityApplicable.reduce((sum,item)=>sum+item.points,0);
     const securityScore = securityMax ? Math.round((securityPoints/securityMax)*100) : 0;
     const securitySummary = summarizeAuditChecks(securityChecks);
+    // Traceable security score: points earned of the points that could be assessed.
+    // Not applicable and unconfirmed checks are listed but never counted. Rebuilt after
+    // the late form check so the breakdown always equals the final score.
+    const buildSecurityBreakdown = (list: Check[]) => {
+      const counted = list.filter((item)=>item.issue_status !== "NOT_APPLICABLE" && item.issue_status !== "UNABLE_TO_CONFIRM");
+      return {
+        formula:"score = verdiende punten / maximale punten van toepasselijke, bevestigde controles",
+        earnedPoints:counted.reduce((sum,item)=>sum+item.points,0),
+        maxPoints:counted.reduce((sum,item)=>sum+item.maxPoints,0),
+        counted:counted.map((item)=>({key:item.key,title:item.title,status:item.status,points:item.points,maxPoints:item.maxPoints})),
+        deductions:counted.filter((item)=>item.points<item.maxPoints).map((item)=>({key:item.key,title:item.title,status:item.status,lostPoints:item.maxPoints-item.points,reason:item.message})),
+        notCounted:list.filter((item)=>item.issue_status==="NOT_APPLICABLE"||item.issue_status==="UNABLE_TO_CONFIRM").map((item)=>({key:item.key,title:item.title,status:item.status})),
+      };
+    };
     const securityEngine = {
       version:"1.1-passive",
       mode:"PASSIVE_STATIC_EVIDENCE" as const,
       score:securityScore,
       grade:grade(securityScore),
       summary:securitySummary,
+      // Traceable score: points earned of the points that could be assessed. Not
+      // applicable and unconfirmed checks are listed but never counted.
+      breakdown:buildSecurityBreakdown(securityChecks),
       checks:securityChecks,
       note:"Passieve security-audit op responseheaders en opgehaalde HTML. Geen exploit-, brute-force-, login- of actieve kwetsbaarheidstests uitgevoerd."
     };
@@ -3348,7 +3374,9 @@ async function runScan(request: Request, restrictedQa = false) {
           : check("warning","checkout_trust","seo","Checkout- en betaalvertrouwen","Geen duidelijke betaal- of checkoutsignalen gevonden op deze commerciële pagina.","Toon betaalmogelijkheden en relevante veiligheids-/vertrouwensinformatie waar de bezoeker een aankoopbeslissing neemt.",2,5)
       : check("not_applicable","checkout_trust","seo","Checkout- en betaalvertrouwen","Geen webshop-signalen gevonden; checkoutcontrole is niet van toepassing.","Gebruik deze controle op echte webshopcontent.",0,5));
     const adsApplicableByCustomer = hasAdsProfile && Boolean(adsProfile.campaignGoal || adsProfile.primaryOffer || adsProfile.targetCountries || adsProfile.adLanguages);
-    const adsApplicableByEvidence = adsTrackingSignals > 0 || hasConversionSignal || hasExplicitAdsConversionSnippet;
+    // A tag manager container or analytics alone says nothing about paid advertising:
+    // only an Ads ID, an Ads conversion label or conversion events make Ads relevant.
+    const adsApplicableByEvidence = hasGoogleAdsTag || hasConversionSignal || hasExplicitAdsConversionSnippet;
     const adsApplicable = adsApplicableByCustomer || adsApplicableByEvidence;
     seoChecks.push(
       !adsApplicable
@@ -5040,6 +5068,7 @@ async function runScan(request: Request, restrictedQa = false) {
       securityEngine.score = finalSecurityMax ? Math.round((finalSecurityPoints/finalSecurityMax)*100) : 0;
       securityEngine.grade = grade(securityEngine.score);
       securityEngine.summary = summarizeAuditChecks(securityChecks);
+      securityEngine.breakdown = buildSecurityBreakdown(securityChecks);
     }
 
     const orgWebsiteCheck = geoChecks.find((item)=>item.key==="organization_website");
