@@ -10,6 +10,7 @@
 | https://www.monumenten.nl/ | 14:26:00 | 200 | 99 | 99 | 100 | 98% | Erfgoed & monumenteninformatie (93%) | 1 | 1 |
 | https://info.cern.ch/ | 14:27:55 | 200 | 74 | 83 | 60 | 51% | Niet bevestigd (0%) | 7 | 28 |
 | https://www.amsterdam.nl/ | 14:38:18 | 200 | 77 | 81 | 72 | 90% | Overheid & Publieke sector (90%) | 8 | 4 |
+| https://www.kpn.com/ | 14:44:14 (12:44:14 UTC) | niet vermeld | **68–100 voorlopig** | 99 | 99 | **68%** | Telecom & Technologie (96%) | 0 | 12 |
 
 Dit zijn momentopnamen van de gebruiker (korte samenvattingen), **geen onafhankelijke benchmarks voor juistheid van de cijfers**.
 
@@ -39,6 +40,17 @@ Dit zijn momentopnamen van de gebruiker (korte samenvattingen), **geen onafhanke
 - **Sitemap-waarschuwing niet bewezen als sitefout.** De scanner meldde 403/HTML, terwijl een afzonderlijke tekstweblezer een XML-response als `text/xml` aanduidde maar zelf niet kon parsen. Controleren met gecontroleerde HTTP-aanvragen en user-agentvarianten, en onderscheid maken tussen crawlerblokkade/403 en een werkelijk ongeldige XML-sitemap.
 - Opmerking gebruiker: in eerdere tests had een overheidswebsite volgens herinnering een goed resultaat. In de repository komen `rijksoverheid.nl` voor in `tests/fixtures/eu-pilot2/plan.json` en `amsterdam.nl` in `tests/fixtures/eu-independent3/plan.json` met verwachte sector `government`, maar deze fixtureplannen tonen **geen eerdere handmatige scores**. Vergelijk alleen dezelfde domeinen en scanversies wanneer je scoreverschillen beoordeelt.
 
+### KPN.com
+- De gebruiker deelde een **leesbaar auditrapport** van een echte scan op 20-10-2026 12:44:14 UTC. Website `https://www.kpn.com/`. Steekproef 15 van 16 pagina's.
+- Resultaat: **eindscore 68–100 (voorlopig interval)**, SEO 99, GEO 99, Security 93; bewijsdekking slechts 68%. 27 geslaagde controles, 0 bewezen fouten of waarschuwingen, 12 onbevestigd. De eindscore mag niet als definitief 99 of 100 worden weergegeven.
+- Sector: `Telecom & Technologie` met 96% zekerheid (plausibele classificatie; confidence niet onafhankelijk gevalideerd).
+- **Renderingbeperking:** JavaScript-pagina niet volledig gerenderd; browser-rendering leverde minder inhoud dan raw HTML. Onderzoek eerst de browser/HTML-discrepantie, botbeveiliging, time-outs, hydration en errors.
+- **12 onbevestigd:** Social metadata; Privacy & vertrouwenssignalen; Merchant Center productbasis; Bedrijfsgegevens; Prijs & valuta consistentie; Productvariant-URL; Productprijs consistentie; Productvoorraad; Structured data; Organization + WebSite; AI Product Copy & Metadata; Product structured data. Onbevestigd is geen bewezen fout.
+- **27 gerapporteerd als geslaagd:** Broken links; Interne redirects; Verkeerde linkbestemming; Meta title; Meta description; H1-heading; Heading-structuur; Canonical URL; Mobiele viewport; HTML-taal; Indexeerbaarheid; Afbeelding alt-teksten; Contentdekking; HTTPS; HTTP-status; Server response; robots.txt; Sitemap-signaal; URL-structuur; Tekstweergave; Afbeeldingsbronnen; Prijsnotatie; Abonnement & prijs; Entity-signalen; Trust & context; Expliciete paginasamenvatting; Brand identity.
+- **Niet van toepassing verklaard:** Twitter Card; Meertalige SEO; Commerciële voorwaarden; Merchant Center feed-signaal; Consent Mode signaal; Checkout & funnel; Checkout informatie; EU korting & referentieprijs; EU reviewtransparantie; EU schaarsteclaim; EU consumenteninformatie; Webshop vertrouwen; Webshop-beloftes; Checkout- en betaalvertrouwen; Google Ads readiness; Breadcrumbs; Vraag & antwoord content; Expertise-signalen.
+- **Review:** controleer of 'niet van toepassing' voor retail/checkout voldoende onderbouwd is gezien productsignalen; check geslaagde controles bij onvolledige rendering; houd onzekerheid zichtbaar; herhaal scan indien nodig. Bijzonder: 0 waarschuwingen bij 68% dekking mag niet aanvoelen als voltooide audit.
+- Bron: door gebruiker geplakte RankFix-audittekst, niet onafhankelijk geverifieerd. Originele JSON ontbreekt.
+
 ## Reviewvragen voor Claude (later)
 1. Reproduceer Amsterdam robots user-agent selectie voor Googlebot versus wildcard `*`; voeg regressietest en een niet-dubbel-aftrekregel toe waar nodig.
 2. Onderzoek waarom sitemap HTTP 403 in scan werd gerapporteerd; registreer status, content-type, user-agent, en zekerheid zonder blokkades als bewezen technische websitefouten te labelen.
@@ -46,6 +58,7 @@ Dit zijn momentopnamen van de gebruiker (korte samenvattingen), **geen onafhanke
 4. Sectoridentificatie voor kleine/historische informatieve websites verbeteren zonder willekeurige sectoren te verzinnen.
 5. Per handmatige testcase echte HTML/headers opnieuw controleren: de screenshots/samenvattingen zijn geen onafhankelijk bewijs van alle SEO-claims.
 6. Test verschillende sectoren en websites mét echte fouten; vereist onafhankelijk gevalideerde claims vóór publieke lancering.
+7. KPN: verklaar renderingverlies, voorlopige scoreband 68–100 en hoge deelcijfers 99/99 bij 68% bewijs; valideer niet-van-toepassing-classificaties.
 
 ## UI voor handmatig testen
 In previewbranch `fix/dashboard-login-resilience-20261020` bevat `app/dashboard/database-free-qa.tsx` inmiddels zowel **Kopieer samenvatting** als **Kopieer volledig rapport**, plus Download JSON en Deel auditbestand. Dit rapport omvat uitsluitend de tekst van gedeelde korte samenvattingen; voor volledige diagnostiek moeten originele JSON-audits apart worden aangeleverd.
