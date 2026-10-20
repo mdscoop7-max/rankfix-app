@@ -73,36 +73,80 @@ export default function DatabaseFreeQaDashboard() {
   async function shareJson() {
     if (!json || !result) return;
     if (typeof navigator.share !== "function") {
-      setExportMessage("Delen wordt niet ondersteund door deze browser. Gebruik Download JSON of Kopieer audit.");
+      setExportMessage("Delen wordt niet ondersteund door deze browser. Gebruik Download JSON of Kopieer volledig rapport.");
       return;
     }
     try {
       const file = new File([json], exportFilename, { type: "application/json" });
       if (navigator.canShare && !navigator.canShare({ files: [file] })) {
-        setExportMessage("Je browser kan dit bestand niet delen. Gebruik Download JSON of Kopieer audit.");
+        setExportMessage("Je browser kan dit bestand niet delen. Gebruik Download JSON of Kopieer volledig rapport.");
         return;
       }
       await navigator.share({ title: "RankFix volledig auditrapport", files: [file] });
       setExportMessage("Je audit is aangeboden aan het deelmenu van je apparaat.");
     } catch (cause) {
       if (cause instanceof Error && cause.name === "AbortError") return;
-      setExportMessage("Bestand delen lukte niet. Gebruik Download JSON of Kopieer audit.");
+      setExportMessage("Bestand delen lukte niet. Gebruik Download JSON of Kopieer volledig rapport.");
     }
   }
 
-  async function copyJson() {
-    if (!json) return;
+  async function copyText(content: string, name: string) {
+    if (!content) return;
     try {
-      await navigator.clipboard.writeText(json);
-      setExportMessage("Het volledige auditrapport is gekopieerd.");
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard API niet beschikbaar");
+      await navigator.clipboard.writeText(content);
+      setExportMessage(`${name} gekopieerd. Je kunt de tekst nu plakken.`);
     } catch {
-      setExportMessage("Automatisch kopiëren wordt geblokkeerd. Open 'Bekijk audit-JSON' en selecteer de tekst handmatig.");
+      // Fallback for mobile browsers where the modern clipboard API is blocked.
+      const textarea = document.createElement("textarea");
+      textarea.value = content;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      try {
+        textarea.focus();
+        textarea.select();
+        if (!document.execCommand("copy")) throw new Error("Kopiëren geblokkeerd");
+        setExportMessage(`${name} gekopieerd. Je kunt de tekst nu plakken.`);
+      } catch {
+        setExportMessage("Automatisch kopiëren is geblokkeerd. Open 'Bekijk korte samenvatting' of 'Bekijk audit-JSON' en selecteer de tekst handmatig.");
+      } finally {
+        textarea.remove();
+      }
     }
   }
 
   const checks = result ? [...(result.seo?.checks || []), ...(result.geo?.checks || [])] : [];
   const issues = checks.filter(check => check.status === "fail" || check.status === "warning");
   const unknown = checks.filter(check => check.status === "unable_to_confirm");
+  const summaryText = result ? [
+    "RankFix · korte QA-samenvatting",
+    `Website: ${result.finalUrl || result.scannedUrl || "Niet bekend"}`,
+    `Scanmoment: ${result.scannedAt ? new Date(result.scannedAt).toLocaleString("nl-NL") : "Niet vermeld"}`,
+    `HTTP: ${result.httpStatus ?? "niet bekend"}`,
+    `Totaal: ${result.overallScore ?? "n.b."}/100`,
+    `SEO: ${result.seo?.score ?? "niet getest"}`,
+    `GEO: ${result.geo?.score ?? "niet getest"}`,
+    `Bewijsdekking: ${result.coverage?.coveragePercent == null ? "n.b." : `${result.coverage.coveragePercent}%`}`,
+    `Sector: ${result.sectorProfile?.label || "Niet bevestigd"}${typeof result.sectorProfile?.confidenceScore === "number" ? ` (${result.sectorProfile.confidenceScore}% zekerheid)` : ""}`,
+    `Aandachtspunten: ${issues.length} · Niet bevestigd: ${unknown.length}`,
+    "",
+    "Belangrijkste aandachtspunten:",
+    ...(issues.length
+      ? issues.slice(0, 5).map(check => `- ${check.title || check.key || "Controle"} (${check.status})${check.message ? `: ${check.message}` : ""}`)
+      : ["- Geen bewezen fouten of waarschuwingen in deze scan."]),
+    ...(issues.length > 5 ? [`- En nog ${issues.length - 5} aandachtspunten (zie volledig rapport).`] : []),
+    "",
+    "Niet bevestigd (geen bewezen fouten):",
+    ...(unknown.length
+      ? unknown.slice(0, 6).map(check => `- ${check.title || check.key || "Controle"}`)
+      : ["- Geen in dit rapport."]),
+    ...(unknown.length > 6 ? [`- En nog ${unknown.length - 6} onbevestigde controles (zie volledig rapport).`] : []),
+    "",
+    "Let op: een hoge score bevestigt niet dat alle controles zijn uitgevoerd.",
+    "Volledige technische details staan in het JSON-rapport.",
+  ].join("\n") : "";
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10 text-slate-900">
@@ -140,16 +184,25 @@ export default function DatabaseFreeQaDashboard() {
             <div><h2 className="text-xl font-bold break-all">{result.finalUrl || result.scannedUrl}</h2>
               <p className="mt-1 text-sm text-slate-500">HTTP {result.httpStatus ?? "onbekend"} · {result.scannedAt ? new Date(result.scannedAt).toLocaleString("nl-NL") : "Live scan"}</p></div>
             <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => void copyText(summaryText, "Korte samenvatting")}
+                className="rounded-xl bg-teal-700 px-4 py-3 font-semibold text-white hover:bg-teal-800">Kopieer samenvatting</button>
+              <button type="button" onClick={() => void copyText(json, "Volledig rapport")}
+                className="rounded-xl border border-teal-700 px-4 py-3 font-semibold text-teal-800 hover:bg-teal-50">Kopieer volledig rapport</button>
               <a href={downloadHref || undefined} download={exportFilename}
                 aria-disabled={!downloadHref} onClick={event => { if (!downloadHref) event.preventDefault(); }}
-                className="rounded-xl bg-slate-900 px-4 py-3 font-semibold text-white hover:bg-slate-800">
-                Download volledig JSON-rapport
+                className="rounded-xl border border-slate-300 px-4 py-3 font-semibold hover:bg-slate-50">
+                Download JSON
               </a>
               <button type="button" onClick={shareJson} className="rounded-xl border border-slate-300 px-4 py-3 font-semibold hover:bg-slate-50">Deel auditbestand</button>
-              <button type="button" onClick={copyJson} className="rounded-xl border border-slate-300 px-4 py-3 font-semibold hover:bg-slate-50">Kopieer audit</button>
             </div>
           </div>
           {exportMessage && <p role="status" className="mt-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{exportMessage}</p>}
+          <details className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <summary className="cursor-pointer font-semibold">Bekijk korte samenvatting (ook handmatig te kopiëren)</summary>
+            <textarea readOnly value={summaryText} aria-label="Korte QA-samenvatting" rows={12}
+              onFocus={event => event.currentTarget.select()}
+              className="mt-3 w-full resize-y rounded-lg border border-slate-300 bg-white p-3 font-mono text-sm" />
+          </details>
           <p className="mt-3 text-xs text-slate-600">Volledige export: {exportFilename} · {Math.max(1, Math.round(new Blob([json]).size / 1024))} kB. Bij problemen in een mobiele browser kun je ook delen of kopiëren.</p>
           <p className="mt-1 text-xs text-slate-600">Motor: {result.scoreModel?.version || "versie niet vermeld"} · echte RankFix-scanroute, geen demonstratiescore.</p>
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
