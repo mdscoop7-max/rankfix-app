@@ -43,7 +43,7 @@ export default function DatabaseFreeQaDashboard() {
       if (!response.ok || audit.error) {
         throw new Error([audit.error || "Scan mislukt.", audit.code ? `(${audit.code})` : ""].filter(Boolean).join(" "));
       }
-      if (typeof audit.overallScore !== "number" || !audit.seo || !audit.geo) {
+      if (typeof audit.overallScore !== "number" || (mode !== "geo" && !audit.seo) || (mode !== "seo" && !audit.geo)) {
         throw new Error("De scan leverde geen volledig SEO/GEO-rapport op.");
       }
       setResult(audit);
