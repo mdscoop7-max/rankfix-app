@@ -69,6 +69,8 @@ for (const p of PROFILES) {
       if (!c) { if ((process.env.MODE || "both") === "both") problems.push(`check ${k} missing`); } else if (!allowed.includes(c.status)) problems.push(`${k}=${c.status} not in ${allowed}: ${c.message.slice(0, 140)}`);
     }
     for (const [k, re] of Object.entries(p.message || {})) { const c = byKey(k); if (c && !re.test(c.message)) problems.push(`${k} message lacks ${re}: ${c.message.slice(0, 140)}`); }
+    for (const [k, re] of Object.entries(p.fixHas || {})) { const c = byKey(k); if (c && !re.test(c.fix || "")) problems.push(`${k} fix lacks ${re}: ${(c.fix || "").slice(0, 140)}`); }
+    for (const [k, re] of Object.entries(p.noFix || {})) { const c = byKey(k); if (c && re.test(c.fix || "")) problems.push(`${k} fix has ${re}: ${(c.fix || "").slice(0, 140)}`); }
     for (const [k, re] of Object.entries(p.noMessage || {})) { const c = byKey(k); if (c && re.test(c.message)) problems.push(`${k} message has ${re}: ${c.message.slice(0, 140)}`); }
     for (const [path, types] of Object.entries(p.sampleTypes || {})) { const a = (j.multiPage?.pageAudits || []).find((x) => new URL(x.url).pathname === path); if (!types.length) { if (a) problems.push(`sample ${path} must not be sampled (personal utility page)`); continue; } if (!a) problems.push(`sample ${path} not audited`); else if (!types.includes(a.type)) problems.push(`sample ${path} typed ${a.type} (expected ${types})`); }
     if (p.tech) for (const [k, v] of Object.entries(p.tech)) { if ((j.technologyProfile?.[k] ?? null) !== v) problems.push(`technology ${k}=${j.technologyProfile?.[k]} (expected ${v})`); }
