@@ -26,5 +26,5 @@ export function checkDatabaseFreeQaLimit(ip: string, now = Date.now()): { allowe
       if (qaBuckets.size <= 500) break;
     }
   }
-  return { allowed: current.hits <= 8, retryAfterSeconds: Math.max(1, Math.ceil((current.started + windowMs - now) / 1000)) };
+  return { allowed: current.hits <= 20, retryAfterSeconds: Math.max(1, Math.ceil((current.started + windowMs - now) / 1000)) };
 }
