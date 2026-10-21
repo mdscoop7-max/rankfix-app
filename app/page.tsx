@@ -10,6 +10,8 @@ import "./root-mobile-nav.css";
 import { ScoreQualifier } from "@/components/score-qualifier";
 import { buildEvidenceDescription } from "@/lib/meta-description-fix";
 import { headlineDisplay } from "@/lib/score-qualifier";
+import SpeedAudit from "@/components/speed-audit";
+import type { WebsiteSpeed } from "@/lib/pagespeed";
 
 type Check = {
   key: string;
@@ -37,6 +39,7 @@ type ScanResult = {
   overallScore: number;
   grade: string;
   responseTime: number;
+  websiteSpeed?: WebsiteSpeed | null;
   httpStatus: number;
   summary?: {passed:number;issues:number;notApplicable:number;unableToConfirm:number;pendingFixes:number};
   coverage?: {coveragePercent:number};
@@ -1071,6 +1074,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
           </section>
         ) : (
         <section id="resultaat" className="mx-auto max-w-6xl scroll-mt-8 px-5 py-12 lg:px-8">
+          <SpeedAudit locale={language} speed={result.websiteSpeed} />
           <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
             <div>
               <div className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">{wf.liveAudit}</div>
