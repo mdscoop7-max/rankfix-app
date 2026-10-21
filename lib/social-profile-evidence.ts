@@ -1,4 +1,4 @@
-import { htmlAttribute } from "./html-head-evidence";
+import { htmlAttribute } from "./html-head-evidence.ts";
 
 /**
  * Official profiles explicitly linked from the site's own footer or a labelled
