@@ -41,7 +41,8 @@ import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
 import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, telecomOperatorIdentity, newsMediaIdentity } from "@/lib/sector-identity";
 import { detectPrimaryBusinessIdentity, isSiteHomepagePath } from "@/lib/primary-business-identity";
-import { detectEuPrimaryIdentity, isConsentHeading, retailSelfDescription } from "@/lib/eu-identity";
+import { detectEuPrimaryIdentity, isConsentHeading, retailSelfDescription, isPublication } from "@/lib/eu-identity";
+import { inferSectorFromIndependentSources } from "@/lib/sector-evidence-arbiter";
 import { enforceReportConsistency } from "@/lib/report-consistency";
 import { rootLandingCandidates, isRicherRootLanding } from "@/lib/homepage-entry";
 import { normalizeScanUrlInput } from "@/lib/scan-url-input";
@@ -2009,10 +2010,33 @@ async function runScan(request: Request, restrictedQa = false) {
       // Hospitality/service words only veto retail when they name the business in
       // the title or H1; "met restaurant" in a store description is a facility.
       && !(/\b(?:restaurant|hotel|reserveren|reserveer tafel|vakantieverhuur|transportdiensten|schoonmaakdienst)\b/i.test([title, h1s.join(" ")].join(" ")) && !storeSchemaRetailIdentity);
-    const primaryNonCommerceIdentity = retailPrimaryIdentity ? null : (masterIdentityOverride
-      || (strongSectorCandidate && sectorCandidates[0].sector !== "ecommerce"
-        ? {sector:sectorCandidates[0].sector,key:sectorCandidates[0].sector,label:sectorCandidates[0].label,evidence:[`Primaire identiteit: ${sectorCandidates[0].hits} onafhankelijke ${sectorCandidates[0].hits===1?"sectorsignaal":"sectorsignalen"}`]}
-        : null));
+    // Universal source-based fallback: distinct first-party identity sources
+    // corroborate each other. Body-text repetition is not independent proof.
+    // A known financial provider, verified merchant or other strong identity wins.
+    const independentSectorEvidence = isHomepage && !retailPrimaryIdentity && !isPublication(title, schemaTypes)
+      ? inferSectorFromIndependentSources({
+          title, description, h1s: identityH1s, h2s: identityH2s,
+          navLabels: identityNavLabels, ogTitle: ogTitle || "",
+        }, sectorSignals
+          .filter((signal) => signal.sector !== "news_media" && signal.sector !== "hospitality")
+          .map((signal) => ({
+            sector: signal.sector, label: signal.label, primary: signal.patterns[0],
+            support: signal.patterns.slice(1), modules: signal.modules,
+          })))
+      : null;
+    // Legacy keyword hits may all originate in the same HTML field. Keep its
+    // classification as a tentative hint rather than an unearned 90%+ certainty.
+    const legacyIdentityCandidate = strongSectorCandidate && sectorCandidates[0].sector !== "ecommerce"
+      ? {
+          sector: sectorCandidates[0].sector, key: sectorCandidates[0].sector,
+          label: sectorCandidates[0].label,
+          evidence: ["Sectorhint uit het huidige document; brononafhankelijkheid is niet voldoende vastgesteld"],
+          confidence: "medium" as const, confidenceScore: 78,
+        }
+      : null;
+    const primaryNonCommerceIdentity = retailPrimaryIdentity ? null : (
+      masterIdentityOverride || independentSectorEvidence || legacyIdentityCandidate
+    );
     const commerceAsPrimaryIdentity = !telecomProviderIdentity && (retailPrimaryIdentity || (evidenceCommerceConfirmed && !primaryNonCommerceIdentity));
     const sectorProfile = commerceAsPrimaryIdentity
       ? {
