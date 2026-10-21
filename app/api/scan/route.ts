@@ -11,6 +11,8 @@ import { getFixPolicy } from "@/lib/fix-policy";
 import { isTransientSeoCopy } from "@/lib/meta-description-fix";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { extractHeadMetadata } from "@/lib/html-head-evidence";
+import { classifyScanInfrastructureFailure } from "@/lib/scan-runtime-errors";
+import { explainCoreScore } from "@/lib/score-reconciliation";
 import { industrialCorporateEvidence } from "@/lib/industrial-corporate";
 import { officialSocialProfileLinks } from "@/lib/social-profile-evidence";
 import { detectRealEstateSubtype } from "@/lib/real-estate-subtype";
@@ -5623,6 +5625,15 @@ async function runScan(request: Request) {
     masterEvidence.activeModules = sectorProfile.applicableModules;
     if (selfCheck.corrections.length || selfCheck.flags.length) console.info("RankFix self-check", { page: finalUrl.toString(), corrections: selfCheck.corrections, flags: selfCheck.flags });
     scoreModel.breakdown = scoreBreakdown(checks);
+    // Give customers the actual scored core subset and the bridge from its
+    // row totals to final SEO/GEO scores; otherwise a score like Bosch's GEO 74
+    // cannot be reproduced from a table also containing non-scoring modules.
+    Object.assign(scoreModel,{reconciliation:{
+      seo:explainCoreScore(selectedSeoChecks,"seo",selectedSeoScore),
+      geo:explainCoreScore(selectedGeoChecks,"geo",selectedGeoScore),
+    }});
+    // Keep summary, check list, coverage and score based on the exact same final
+    // evidence statuses. Previously this stayed frozen before the commerce gate.
     // Keep summary, check list, coverage and score based on the exact same final
     // evidence statuses. Previously this stayed frozen before the commerce gate.
     scanSummary = summarizeAuditChecks(checks);
@@ -6155,6 +6166,16 @@ async function runScan(request: Request) {
       pendingFixes: checks.filter((item) => item.fix_status === "WAITING").map((item) => item.issue_id || item.rule_id || item.key),
     });
   } catch (error) {
+    const infrastructure = classifyScanInfrastructureFailure(error);
+    if (infrastructure) {
+      console.error("RankFix scan infrastructure unavailable", { code: infrastructure.code, message: error instanceof Error ? error.message.slice(0,200) : "unknown" });
+      return NextResponse.json({
+        error: infrastructure.message[fallbackLanguage as keyof typeof infrastructure.message] || infrastructure.message.nl,
+        code: infrastructure.code,
+        retryable: infrastructure.retryable,
+        charged: infrastructure.charged,
+      }, { status: infrastructure.httpStatus });
+    }
     const technicalCode = error instanceof URIError ? "SCAN_URL_DECODE_ERROR" : error instanceof Error && /timeout|abort/i.test(error.message) ? "SCAN_TIMEOUT" : "SCAN_INTERNAL_ERROR";
     console.error("RankFix scan failed:", { code: technicalCode, message: error instanceof Error ? error.message : "unknown error", name: error instanceof Error ? error.name : "unknown", stack: error instanceof Error ? error.stack : undefined });
     const fallbackErrors: Record<string,string> = {nl:"De SEO/GEO-scan kon niet worden voltooid. RankFix heeft de technische fout vastgelegd; probeer de pagina opnieuw.",en:"The SEO/GEO scan could not be completed. RankFix recorded the technical error; try the page again.",de:"Der SEO/GEO-Scan konnte nicht abgeschlossen werden. RankFix hat den technischen Fehler erfasst; versuche die Seite erneut.",fr:"L’analyse SEO/GEO n’a pas pu être terminée. RankFix a enregistré l’erreur technique ; réessayez la page.",it:"La scansione SEO/GEO non è stata completata. RankFix ha registrato l’errore tecnico; riprova la pagina.",es:"No se pudo completar el análisis SEO/GEO. RankFix registró el error técnico; vuelve a intentar la página."};
