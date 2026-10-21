@@ -8,6 +8,8 @@ import RootMobileNav from "./root-mobile-nav";
 import PublicReviews from "@/components/public-reviews";
 import "./root-mobile-nav.css";
 import { ScoreQualifier } from "@/components/score-qualifier";
+import SpeedAudit from "@/components/speed-audit";
+import type { WebsiteSpeed } from "@/lib/pagespeed";
 import { headlineDisplay } from "@/lib/score-qualifier";
 
 type Check = {
@@ -36,6 +38,7 @@ type ScanResult = {
   overallScore: number;
   grade: string;
   responseTime: number;
+  websiteSpeed?: WebsiteSpeed | null;
   httpStatus: number;
   summary?: {passed:number;issues:number;notApplicable:number;unableToConfirm:number;pendingFixes:number};
   coverage?: {coveragePercent:number};
@@ -895,6 +898,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                       ? ["SEO","GEO / AI Search","Security","Técnica","E-commerce","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Search Console","Consent Mode","SEO local","Datos estructurados","Accesibilidad","Quality & Trust","Enlaces rotos","Redirecciones"]
                       : ["SEO","GEO / AI Search","Security","Technical","E-commerce","EU-Omnibus & Consumer Rights","Merchant Readiness","Ads & Analytics","Search Console","Consent Mode","Local SEO","Structured Data","Accessibility","Quality & Trust","Broken Links","Redirects"]
             ).map((feature) => <span key={feature} className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1.5">✓ {feature}</span>)}
+            <span className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1.5 text-cyan-200">◷ {language === "nl" ? "Website Speed: mobiel + desktop (in ontwikkeling)" : language === "de" ? "Website-Speed: Mobil + Desktop (in Entwicklung)" : language === "fr" ? "Vitesse du site : mobile + ordinateur (en développement)" : language === "it" ? "Velocità sito: mobile + desktop (in sviluppo)" : language === "es" ? "Velocidad web: móvil + escritorio (en desarrollo)" : "Website speed: mobile + desktop (in development)"}</span>
           </div>
           <p className="mt-3 text-center text-xs text-slate-300">
             {language === "nl"
@@ -1066,6 +1070,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
           </section>
         ) : (
         <section id="resultaat" className="mx-auto max-w-6xl scroll-mt-8 px-5 py-12 lg:px-8">
+          <SpeedAudit locale={language} speed={result.websiteSpeed} />
           <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
             <div>
               <div className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">{wf.liveAudit}</div>
