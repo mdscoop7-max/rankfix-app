@@ -9,6 +9,13 @@ import { requireEvidenceForScoredChecks } from "@/lib/scan-feedback";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang, isMarketSelectorPage } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { decodeHtmlEntities } from "@/lib/html-entities";
+import { extractHeadMetadata } from "@/lib/html-head-evidence";
+import { classifyScanInfrastructureFailure } from "@/lib/scan-runtime-errors";
+import { officialSocialProfileLinks } from "@/lib/social-profile-evidence";
+import { detectRealEstateSubtype } from "@/lib/real-estate-subtype";
+import { explainCoreScore } from "@/lib/score-reconciliation";
+import { industrialCorporateEvidence } from "@/lib/industrial-corporate";
+import { normalizeLegalText, LEGAL_LINK_LEXICON } from "@/lib/legal-lexicon";
 import { assessPassiveSecurity, formBlocks, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
 import { assessPageDescription, assessPageTitle, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isClientShell, isPlaceholderTitle, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
@@ -849,26 +856,20 @@ async function runScan(request: Request) {
     const titlePixelEstimate = titlePixelAdvice(renderedDocument?.titlePixelWidth);
     // Invisible characters (zero-width space/joiners, BOM) are not a title.
     const title = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i).replace(/[\u200B-\u200D\u2060\uFEFF]/g, "").trim();
-    const descriptionMetaTag = html.match(/<meta\b[^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] ||
-      html.match(/<meta\b[^>]*content\s*=\s*["'][^"']*["'][^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] || "";
-    const descriptionContentMatch = descriptionMetaTag.match(/\bcontent\s*=\s*(["'])([\s\S]*?)\1/i);
-    const description = descriptionContentMatch ? stripHtml(descriptionContentMatch[2]).trim() : "";
-    const descriptionState: "missing" | "empty" | "present" = !descriptionMetaTag ? "missing" : !description ? "empty" : "present";
+    // Use source-order-independent metadata extraction. Wrong attribution is
+    // more dangerous than an honest unable-to-confirm finding.
+    const headMetadata = extractHeadMetadata(html);
+    const description = stripHtml(headMetadata.description).trim();
+    const descriptionState: "missing" | "empty" | "present" = headMetadata.descriptionState;
     const h1s = allMatches(html, /<h1[^>]*>([\s\S]*?)<\/h1>/gi).map(stripHtml).filter(Boolean);
     const headingTags = [...html.matchAll(/<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/gi)];
     const headings = headingTags.map((m) => ({ level: Number(m[1]), text: stripHtml(m[2]) })).filter((h) => h.text);
-    const canonical =
-      firstMatch(html, /<link[^>]+rel\s*=\s*["']canonical["'][^>]+href\s*=\s*["']([^"']+)["'][^>]*>/i) ||
-      firstMatch(html, /<link[^>]+href\s*=\s*["']([^"']+)["'][^>]+rel\s*=\s*["']canonical["'][^>]*>/i);
-    const lang = firstMatch(html, /<html[^>]+lang\s*=\s*["']([^"']+)["']/i);
+    const canonical = decode(headMetadata.canonical);
+    const lang = decode(headMetadata.lang);
     const langIsValid = /^(?:[a-z]{2,3})(?:-[a-z0-9]{2,8})*$/i.test(lang);
-    const viewportContent =
-      firstMatch(html, /<meta[^>]+name\s*=\s*["']viewport["'][^>]+content\s*=\s*["']([^"']+)["']/i) ||
-      firstMatch(html, /<meta[^>]+content\s*=\s*["']([^"']+)["'][^>]+name\s*=\s*["']viewport["']/i);
+    const viewportContent = decode(headMetadata.viewport);
     const viewportIsResponsive = /(?:^|[,;\s])width\s*=\s*device-width(?:$|[,;\s])/i.test(viewportContent);
-    const robots =
-      firstMatch(html, /<meta[^>]+name\s*=\s*["']robots["'][^>]+content\s*=\s*["']([^"']+)["']/i) ||
-      firstMatch(html, /<meta[^>]+content\s*=\s*["']([^"']+)["'][^>]+name\s*=\s*["']robots["']/i);
+    const robots = decode(headMetadata.robots);
     const xRobotsTag = response.headers.get("x-robots-tag") || "";
     const noindexSignal = /(?:^|[,;\s])noindex(?:$|[,;\s])/i.test(robots) || /(?:^|[,;\s])noindex(?:$|[,;\s])/i.test(xRobotsTag);
     const imageMetrics = extractImageMetrics(html);
@@ -1086,7 +1087,10 @@ async function runScan(request: Request) {
     // such as "postcode" or an e-mail input are not contact details.
     const businessContactDetails = findBusinessContactDetails(text, html);
     const hasBusinessContactDetails = hasBusinessContactDetailsFn(businessContactDetails);
-    const hasSocialOrReviewSignal = /\b(instagram|facebook|linkedin|google reviews|reviews|tripadvisor|trustpilot)\b/i.test(text) || sameAsCount > 0;
+    // Only a first-party footer/social-nav profile link or explicit review text
+    // establishes an official profile; plain platform mentions can be clients.
+    const officialSocialUrls = officialSocialProfileLinks(html);
+    const hasSocialOrReviewSignal = officialSocialUrls.length > 0 || sameAsCount > 0 || /\b(google reviews|klantreviews|geverifieerde beoordelingen|trustpilot|tripadvisor)\b/i.test(text);
     const hasContactChannelSignal = hasBusinessContactDetails || (hasContactSignal && (hasContactFormSignal || hasContactActionSignal));
     const hasServiceExpertiseSignal = /\b(diensten|services|service|specialist|specialisten|expert|expertise|seo|geo|structured data|schema\.org|technical seo|technische seo|ai[- ]search|search readiness|auditsoftware|auditing|behandeling|behandelingen|hair|haar|knippen|kleur|color|styling|restaurant|keuken|cuisine|tandarts|elektricien|loodgieter|aannemer|dakdekker)\b/i.test(text);
     const hasStrongCommerceAction = /\b(add to cart|add-to-cart|add to basket|buy now|in winkelwagen|toevoegen(?: aan winkelwagen)?|koop nu|jetzt kaufen|in den warenkorb|ajouter au panier|acheter maintenant|añadir al carrito|comprar ahora|aggiungi al carrello|acquista ora)\b/i.test(text);
@@ -1971,6 +1975,24 @@ async function runScan(request: Request) {
           }
         : {...legacyProfile,key:legacyProfile.sector};
 
+    // A sector is not a subtype. Housing landlords/investors must never inherit
+    // "estate agent" requirements from the broad real estate family.
+    let realEstateSubtypeDecision = detectRealEstateSubtype({
+      title,description,h1s:identityH1s,navLabels:identityNavLabels,schemaTypes
+    });
+    if (sectorProfile.sector === "real_estate") {
+      Object.assign(sectorProfile,{
+        subtype:realEstateSubtypeDecision.subtype,
+        subtypeLabel:realEstateSubtypeDecision.label,
+        subtypeConfidenceScore:realEstateSubtypeDecision.confidenceScore,
+        subtypeEvidence:realEstateSubtypeDecision.evidence.map(item=>finalUrl.toString()+": "+item),
+      });
+      if (realEstateSubtypeDecision.subtype !== "unknown") {
+        sectorProfile.label="Vastgoed · "+realEstateSubtypeDecision.label;
+        sectorProfile.evidence=[...sectorProfile.evidence,...realEstateSubtypeDecision.evidence.map(item=>finalUrl.toString()+": "+item)].slice(0,8);
+      }
+    }
+
     // Primary vs secondary activities: a university hospital is care first, with
     // teaching and research as secondary activities (shown, never the identity).
     if (euPrimaryIdentity?.secondary?.length && sectorProfile.sector === euPrimaryIdentity.sector) {
@@ -2256,13 +2278,22 @@ async function runScan(request: Request) {
       return item;
     };
     if (sectorProfile.sector === "real_estate") {
-      const listingSignal = (scanEvidence.sectorDetails.realEstate.listing.value && scanEvidence.sectorDetails.realEstate.listing.confidence !== "low") || /\b(te koop|te huur|koopwoning|huurwoning|woningaanbod|objecten|properties|for sale|for rent)\b/i.test(text) || schemaSet.has("realestatelisting");
+      const listingSignal = (scanEvidence.sectorDetails.realEstate.listing.value && scanEvidence.sectorDetails.realEstate.listing.confidence !== "low") || /\b(te koop|te huur|koopwoning|huurwoning|huurwoningen|woningaanbod|objecten|properties|for sale|for rent)\b/i.test(text) || schemaSet.has("realestatelisting");
       const leadSignal = hasContactChannelSignal || /\b(bezichtiging|waardebepaling|verkoopadvies|plan een afspraak|contact opnemen)\b/i.test(text);
       const areaSignal = /\b(werkgebied|regio|buurt|wijk|plaats|gemeente|service area|area served)\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.areaServed));
+      const isAgent=realEstateSubtypeDecision.subtype==="real_estate_agent";
+      const isLandlord=["institutional_property_rental","property_rental_operator"].includes(realEstateSubtypeDecision.subtype);
+      const rentalLeadSignal=/\b(inschrijven|bezichtiging|woningaanbod|huurwoningen|huurders(?:service)?|huren in \d+ stappen|huurcontract|mijn huur)\b/i.test(text);
       seoChecks.push(
-        sectorCheck("sector_real_estate_listings","Vastgoedaanbod",listingSignal,"Vastgoed-/woningsignalen zijn in de pagina bevestigd.","RankFix kon in de raw HTML geen vastgoedaanbod betrouwbaar bevestigen.","Maak woningaanbod en de bijbehorende bestemming duidelijk vindbaar wanneer dit voor deze pagina relevant is."),
-        sectorCheck("sector_real_estate_leads","Makelaar conversie",leadSignal,"Een contact-, bezichtigings- of waardebepalingssignaal is bevestigd.","Een duidelijke makelaar-CTA kon in de raw HTML niet betrouwbaar worden bevestigd.","Maak de belangrijkste vervolgstap, zoals contact, bezichtiging of waardebepaling, duidelijk zichtbaar."),
-        sectorCheck("sector_real_estate_area","Werkgebied makelaar",areaSignal,"Een lokaal werkgebied-/regiosignaal is bevestigd.","Het werkgebied kon in de raw HTML niet betrouwbaar worden bevestigd.","Beschrijf relevante plaatsen of regio's wanneer lokale vindbaarheid belangrijk is.")
+        sectorCheck("sector_real_estate_listings","Vastgoedaanbod",listingSignal,"Vastgoed-/woningsignalen zijn in de pagina bevestigd.","RankFix kon in de raw HTML geen vastgoedaanbod betrouwbaar bevestigen.","Maak het vastgoedaanbod vindbaar wanneer dit voor deze pagina relevant is."),
+        isAgent
+          ? sectorCheck("sector_real_estate_leads","Makelaar conversie",leadSignal,"Een contact-, bezichtigings- of waardebepalingssignaal is bevestigd.","Een duidelijke makelaar-CTA kon in de raw HTML niet betrouwbaar worden bevestigd.","Maak bezichtiging of waardebepaling duidelijk zichtbaar als dit voor de makelaar relevant is.")
+          : isLandlord
+            ? sectorCheck("sector_real_estate_leads","Huurders- en woninginformatie",rentalLeadSignal,"Huurwoning- of huurdersinformatie is zichtbaar.","Huurwoning- of huurdersinformatie kon niet betrouwbaar worden bevestigd.","Maak het huurwoningaanbod en het inschrijf- of huurdersproces duidelijk vindbaar.")
+            : sectorCheck("sector_real_estate_leads","Vastgoedcontact",leadSignal,"Contactinformatie of een passende vervolgstap is zichtbaar.","Contact of vervolgstap kon niet betrouwbaar worden bevestigd.","Maak de passende vervolgstap duidelijk wanneer dit bij deze organisatie hoort."),
+        isAgent
+          ? sectorCheck("sector_real_estate_area","Werkgebied makelaar",areaSignal,"Een lokaal werkgebied-/regiosignaal is bevestigd.","Het lokale werkgebied kon niet betrouwbaar worden bevestigd.","Beschrijf plaatsen of regio's wanneer lokale vindbaarheid belangrijk is.")
+          : check("not_applicable","sector_real_estate_area","seo","Werkgebied makelaar","Geen makelaar- of lokaal-bemiddelingsbewijs; een lokaal makelaarswerkgebied mag niet van een verhuurder, belegger of platform worden geëist.","Niet van toepassing zonder bewezen makelaarsidentiteit.",0,4)
       );
     } else if (sectorProfile.sector === "automotive") {
       const workshopSignal = /\b(apk|onderhoud|reparatie|werkplaats|autoservice|banden|diagnose)\b/i.test(text);
@@ -2372,14 +2403,6 @@ async function runScan(request: Request) {
 
     // Extended audit signals: trust, ecommerce quality, URL hygiene, social metadata and multilingual SEO.
     const placeholderMatches = text.match(/\[(?:kvk|btw|adres|e-?mail|email|telefoon|phone|address|postcode|plaats|company|naam)\]/gi) || [];
-    const normalizeLegalText = (value: string) =>
-      safeDecodeURIComponent(value)
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toLowerCase()
-        .replace(/[_-]+/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
     const legalAnchorEvidence = [...html.matchAll(/<a\b([^>]*)href\s*=\s*["']([^"']+)["']([^>]*)>([\s\S]*?)<\/a>/gi)]
       .map((match) => {
         const attrs = (match[1] || "") + " " + (match[3] || "");
@@ -2389,11 +2412,7 @@ async function runScan(request: Request) {
         const titleAttr = attrFromTag("<a " + attrs + ">", "title");
         return { href, label, aria, title: titleAttr, haystack: normalizeLegalText([href, label, aria, titleAttr].join(" ")) };
       });
-    const legalLexicon = {
-      privacy: /\b(?:privacy|privacybeleid|privacy policy|privacidade|privatnost\w*|zasebnost\w*|datenschutz|confidentialite|vie privee|privacidad|riservatezza)\b/i,
-      cookies: /\b(?:cookie\w*|piskotk\w*|kolacic\w*|galleta\w*|biscott\w*)\b/i,
-      terms: /\b(?:voorwaarden|terms|conditions|agb|cgv|condiciones|condizioni|termos|uvjet\w*|pogoj\w*|conditions generales)\b/i,
-    };
+    const legalLexicon = LEGAL_LINK_LEXICON;
     // Third-party provider policies (e.g. Google's Privacy Policy in an embed)
     // do not establish the scanned business's own privacy, cookies or terms.
     const findLegalSignal = (pattern: RegExp) =>
@@ -4697,6 +4716,35 @@ async function runScan(request: Request) {
       masterEvidence.activeModules = sectorProfile.applicableModules;
     }
 
+    // Sparse corporate homepages can still establish industrial identity when a
+    // checked first-party About/Unternehmen page declares a tech/industrial group
+    // and an independent services page confirms the same economic activity.
+    // This is not a keyword fallback: no customer names, no secondary news body.
+    const corporateIndustrial = industrialCorporateEvidence({
+      homeHeadings:headings.filter(h=>h.level===2 || h.level===3).map(h=>h.text).slice(0,24),
+      pages:auditedMultiPages.map(p=>({
+        url:p.url,type:p.type,identityText:p.identityText||"",
+        ownIdentityText:p.ownIdentityText||p.title||""
+      })),
+    });
+    if (corporateIndustrial && !masterIdentityOverride && !finalCommerceDecision.confirmed
+      && !retailPrimaryIdentity && sectorProfile.sector==="unknown" && !marketSelectorPage) {
+      sectorProfile.sector=corporateIndustrial.sector;
+      sectorProfile.key=corporateIndustrial.sector;
+      sectorProfile.label="Industrie & technologie";
+      sectorProfile.confidence="high";
+      sectorProfile.confidenceScore=corporateIndustrial.confidenceScore;
+      sectorProfile.evidence=corporateIndustrial.evidence;
+      sectorProfile.applicableModules=[...new Set([...sectorProfile.applicableModules,"manufacturing_industrial"])];
+      Object.assign(sectorProfile,{
+        subtype:corporateIndustrial.subtype,
+        subtypeLabel:"Industrieel technologieconcern",
+        subtypeConfidenceScore:corporateIndustrial.confidenceScore,
+        subtypeEvidence:corporateIndustrial.evidence
+      });
+      masterEvidence.activeModules=sectorProfile.applicableModules;
+    }
+
     // An international country/language selector (proven by hreflang) is a brand
     // portal. Without a proven sector it is labelled as such before any late
     // fallback can guess one from a single word on a corporate subpage (transport,
@@ -4819,6 +4867,42 @@ async function runScan(request: Request) {
     // Final Master reconciliation: late technology/multi-page evidence may improve
     // the site-level decision after the initial Master object was created. Keep
     // one authoritative website type, sector and page type for every consumer.
+    // Sitewide subtype review uses the own title/description/H1 of audited pages,
+    // never incidental article body text or brand/domain exceptions.
+    if (sectorProfile.sector === "real_estate") {
+      const updatedSubtype = detectRealEstateSubtype({
+        title,description,h1s:identityH1s,navLabels:identityNavLabels,schemaTypes,
+        sampledOwnIdentity:auditedMultiPages.map(page=>page.ownIdentityText||page.title||"").filter(Boolean)
+      });
+      if (updatedSubtype.confidenceScore > realEstateSubtypeDecision.confidenceScore) {
+        realEstateSubtypeDecision=updatedSubtype;
+      }
+      Object.assign(sectorProfile,{
+        subtype:realEstateSubtypeDecision.subtype,
+        subtypeLabel:realEstateSubtypeDecision.label,
+        subtypeConfidenceScore:realEstateSubtypeDecision.confidenceScore,
+        subtypeEvidence:realEstateSubtypeDecision.evidence.map(item=>finalUrl.toString()+": "+item),
+      });
+      if (realEstateSubtypeDecision.subtype!=="unknown") {
+        sectorProfile.label="Vastgoed · "+realEstateSubtypeDecision.label;
+        sectorProfile.evidence=[...new Set([...sectorProfile.evidence,...realEstateSubtypeDecision.evidence.map(item=>finalUrl.toString()+": "+item)])].slice(0,8);
+      }
+      // The late representative-page evidence can override an initial agent hint.
+      // If it does, immediately suppress any already-generated agent-only advice.
+      if (realEstateSubtypeDecision.subtype!=="real_estate_agent") {
+        const area=seoChecks.find(item=>item.key==="sector_real_estate_area");
+        if (area) Object.assign(area,check("not_applicable","sector_real_estate_area","seo","Werkgebied makelaar","Niet toepasbaar: de website is niet onafhankelijk als makelaarsbedrijf vastgesteld.","Geen makelaarsspecifiek werkgebied vereist.",0,4));
+        const lead=seoChecks.find(item=>item.key==="sector_real_estate_leads");
+        if (lead && /Makelaar conversie/i.test(lead.title)) {
+          Object.assign(lead,check("unable_to_confirm","sector_real_estate_leads","seo","Vastgoedcontact","De primaire organisatie is niet als makelaar bevestigd. De passende contact-/huurderroute vraagt afzonderlijk bewijs.","Beoordeel de vervolgstap voor het bewezen vastgoedsubtype.",0,4));
+        }
+      }
+      Object.assign(masterEvidence.primarySector,{
+        subtype:realEstateSubtypeDecision.subtype,
+        subtypeLabel:realEstateSubtypeDecision.label,
+        subtypeConfidenceScore:realEstateSubtypeDecision.confidenceScore
+      });
+    }
     const sectorDisplayPolicy = sectorProfile.confidenceScore >= 80 ? "confirmed" : sectorProfile.confidenceScore >= 60 ? "probable" : "unconfirmed";
     masterEvidence.primarySector = {
       key: sectorProfile.key,
@@ -4999,6 +5083,43 @@ async function runScan(request: Request) {
         trustLegalCheck.message = `Niet alle basissignalen zijn gevonden: ${missing}. Wel bevestigd via de steekproef: ${sampleProof}.`;
         trustLegalCheck.points = Math.max(trustLegalCheck.points, Number(privacyOk)+Number(cookieOk)+Number(contactOk)+2);
         if (trustLegalCheck.evidence) trustLegalCheck.evidence.details = trustLegalCheck.message;
+      }
+    }
+
+    // Registered company information is commonly on Impressum/legal or contact
+    // pages. Only a successfully audited first-party legal/contact page with a
+    // concrete address, phone, email or registration can upgrade this finding.
+    // The mere word "Impressum" or a page link is never business-details proof.
+    const businessCheck = seoChecks.find(item=>item.key==="business_placeholders");
+    if (businessCheck?.status==="unable_to_confirm") {
+      const evidencePages=auditedMultiPages.filter(item=>
+        ["contact","legal"].includes(item.type) ||
+        /\/(?:impressum|imprint|rechtliche-hinweise|mentions-legales|contact|kontakt|over-ons)(?:\/|$)/i.test(new URL(item.url).pathname)
+      );
+      for (const page of evidencePages) {
+        const sampleText=String(page.identityText||"");
+        const proof=assessBusinessDetails({
+          placeholders:[],details:findBusinessContactDetails(sampleText,""),
+          registration:findCompanyRegistration(sampleText),
+          schemaContact:false,thinShell:false
+        });
+        if (proof.status!=="pass")continue;
+        const message="Concrete bedrijfsgegevens bevestigd op een representatieve juridische-/contactpagina ("+page.url+"): "+proof.found.join(", ")+".";
+        Object.assign(businessCheck,check("pass","business_placeholders","seo","Bedrijfsgegevens",message,"Houd deze gegevens actueel en bereikbaar.",6,6));
+        businessCheck.evidence={url:page.url,found:true,details:message};
+        const entityCheck=geoChecks.find(item=>item.key==="entity");
+        if (entityCheck && entityCheck.status==="warning" && hasVisibleBusinessIdentity) {
+          const entityMessage="Organisatie-identiteit op homepage en concrete bedrijfsgegevens op "+page.url+" zijn onafhankelijk bevestigd.";
+          Object.assign(entityCheck,check("pass","entity","geo","Entity-signalen",entityMessage,"Houd publieke organisatie- en contactgegevens consistent.",10,10));
+          entityCheck.evidence={url:page.url,found:true,details:entityMessage};
+        }
+        const brandCheck=geoChecks.find(item=>item.key==="identity");
+        if (brandCheck && brandCheck.status==="warning" && visibleBrandNameSignal && visibleBrandLogoSignal) {
+          const brandMessage="Merknaam en logo op homepage, plus zakelijke contact-/registratiegegevens uit "+page.url+" bevestigd; externe sociale profielen zijn afzonderlijk te beoordelen.";
+          Object.assign(brandCheck,check("pass","identity","geo","Brand identity",brandMessage,"Houd merknaam, logo en geverifieerde bedrijfsgegevens consistent.",5,5));
+          brandCheck.evidence={url:page.url,found:true,details:brandMessage};
+        }
+        break;
       }
     }
 
@@ -5246,6 +5367,13 @@ async function runScan(request: Request) {
     masterEvidence.activeModules = sectorProfile.applicableModules;
     if (selfCheck.corrections.length || selfCheck.flags.length) console.info("RankFix self-check", { page: finalUrl.toString(), corrections: selfCheck.corrections, flags: selfCheck.flags });
     scoreModel.breakdown = scoreBreakdown(checks);
+    // Give customers the actual scored core subset and the bridge from its
+    // row totals to final SEO/GEO scores; otherwise a score like Bosch's GEO 74
+    // cannot be reproduced from a table also containing non-scoring modules.
+    Object.assign(scoreModel,{reconciliation:{
+      seo:explainCoreScore(selectedSeoChecks,"seo",selectedSeoScore),
+      geo:explainCoreScore(selectedGeoChecks,"geo",selectedGeoScore),
+    }});
     // Keep summary, check list, coverage and score based on the exact same final
     // evidence statuses. Previously this stayed frozen before the commerce gate.
     scanSummary = summarizeAuditChecks(checks);
@@ -5773,6 +5901,16 @@ async function runScan(request: Request) {
       pendingFixes: checks.filter((item) => item.fix_status === "WAITING").map((item) => item.issue_id || item.rule_id || item.key),
     });
   } catch (error) {
+    const infrastructure = classifyScanInfrastructureFailure(error);
+    if (infrastructure) {
+      console.error("RankFix scan infrastructure unavailable", { code: infrastructure.code, message: error instanceof Error ? error.message.slice(0,200) : "unknown" });
+      return NextResponse.json({
+        error: infrastructure.message[fallbackLanguage as keyof typeof infrastructure.message] || infrastructure.message.nl,
+        code: infrastructure.code,
+        retryable: infrastructure.retryable,
+        charged: infrastructure.charged,
+      }, { status: infrastructure.httpStatus });
+    }
     const technicalCode = error instanceof URIError ? "SCAN_URL_DECODE_ERROR" : error instanceof Error && /timeout|abort/i.test(error.message) ? "SCAN_TIMEOUT" : "SCAN_INTERNAL_ERROR";
     console.error("RankFix scan failed:", { code: technicalCode, message: error instanceof Error ? error.message : "unknown error", name: error instanceof Error ? error.name : "unknown", stack: error instanceof Error ? error.stack : undefined });
     const fallbackErrors: Record<string,string> = {nl:"De SEO/GEO-scan kon niet worden voltooid. RankFix heeft de technische fout vastgelegd; probeer de pagina opnieuw.",en:"The SEO/GEO scan could not be completed. RankFix recorded the technical error; try the page again.",de:"Der SEO/GEO-Scan konnte nicht abgeschlossen werden. RankFix hat den technischen Fehler erfasst; versuche die Seite erneut.",fr:"L’analyse SEO/GEO n’a pas pu être terminée. RankFix a enregistré l’erreur technique ; réessayez la page.",it:"La scansione SEO/GEO non è stata completata. RankFix ha registrato l’errore tecnico; riprova la pagina.",es:"No se pudo completar el análisis SEO/GEO. RankFix registró el error técnico; vuelve a intentar la página."};
