@@ -12,6 +12,7 @@ import { decodeHtmlEntities } from "@/lib/html-entities";
 import { extractHeadMetadata } from "@/lib/html-head-evidence";
 import { officialSocialProfileLinks } from "@/lib/social-profile-evidence";
 import { detectRealEstateSubtype } from "@/lib/real-estate-subtype";
+import { explainCoreScore } from "@/lib/score-reconciliation";
 import { normalizeLegalText, LEGAL_LINK_LEXICON } from "@/lib/legal-lexicon";
 import { assessPassiveSecurity, formBlocks, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
@@ -5298,6 +5299,13 @@ async function runScan(request: Request) {
     masterEvidence.activeModules = sectorProfile.applicableModules;
     if (selfCheck.corrections.length || selfCheck.flags.length) console.info("RankFix self-check", { page: finalUrl.toString(), corrections: selfCheck.corrections, flags: selfCheck.flags });
     scoreModel.breakdown = scoreBreakdown(checks);
+    // Give customers the actual scored core subset and the bridge from its
+    // row totals to final SEO/GEO scores; otherwise a score like Bosch's GEO 74
+    // cannot be reproduced from a table also containing non-scoring modules.
+    Object.assign(scoreModel,{reconciliation:{
+      seo:explainCoreScore(selectedSeoChecks,"seo",selectedSeoScore),
+      geo:explainCoreScore(selectedGeoChecks,"geo",selectedGeoScore),
+    }});
     // Keep summary, check list, coverage and score based on the exact same final
     // evidence statuses. Previously this stayed frozen before the commerce gate.
     scanSummary = summarizeAuditChecks(checks);
