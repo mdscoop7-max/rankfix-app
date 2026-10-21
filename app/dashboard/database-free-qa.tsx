@@ -14,6 +14,10 @@ type AuditResult = {
   sectorProfile?: { label?: string; confidence?: string; confidenceScore?: number; evidence?: string[] };
   coverage?: { coveragePercent?: number; unableToConfirm?: number; confirmed?: number };
   selfCheck?: { consistent?: boolean; reliability?: string; reliabilityReasons?: string[] };
+  deepDiagnosis?: { scope?: { sampled?: number; scored?: number; discovered?: number; fullSiteVerified?: boolean };
+    evidence?: { unresolvedTemplateLinks?: number; unconfirmed?: number };
+    fixReadiness?: { codeProposalCandidates?: number; manualOrAdviceOnly?: number; blockedByEvidence?: number; liveChangesAllowed?: boolean };
+    rootCauseGroups?: Array<{ code: string; status: string; finding: string; nextStep: string; affectedRules: string[] }> };
   summary?: { issues?: number; unableToConfirm?: number };
   error?: string; code?: string;
 };
@@ -130,6 +134,8 @@ export default function DatabaseFreeQaDashboard() {
     `GEO: ${result.geo?.score ?? "niet getest"}`,
     `Bewijsdekking: ${result.coverage?.coveragePercent == null ? "n.b." : `${result.coverage.coveragePercent}%`}`,
     `Sector: ${result.sectorProfile?.label || "Niet bevestigd"}${typeof result.sectorProfile?.confidenceScore === "number" ? ` (${result.sectorProfile.confidenceScore}% zekerheid)` : ""}`,
+    ...(result.deepDiagnosis?.scope ? [`Scanbereik: representatieve steekproef; ${result.deepDiagnosis.scope.scored ?? 0} scorende van ${result.deepDiagnosis.scope.sampled ?? 0} geselecteerde pagina\u0027s. Geen volledige sitecrawl.`] : []),
+    ...(result.deepDiagnosis?.evidence?.unresolvedTemplateLinks ? [`Linkbewijs: ${result.deepDiagnosis.evidence.unresolvedTemplateLinks} technische template-href(s) niet als bewezen broken links meegerekend.`] : []),
     `Aandachtspunten: ${issues.length} · Niet bevestigd: ${unknown.length}`,
     "",
     "Belangrijkste aandachtspunten:",
@@ -218,6 +224,12 @@ export default function DatabaseFreeQaDashboard() {
           </p>
           <p className="mt-2 text-sm text-slate-600">{issues.length} aandachtspunten · {unknown.length} onbevestigde controles. Een hoge score is geen bewijs dat alle controles zijn uitgevoerd.</p>
           {result.selfCheck?.consistent === false && <p className="mt-3 rounded-lg bg-amber-50 p-3 text-amber-900">Let op: de interne consistentiecontrole van het rapport is niet geslaagd.</p>}
+          {result.deepDiagnosis && <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <h3 className="font-bold">Diepe controle · bewijs, oorzaakgroepen en herstelbaarheid</h3>
+            <p className="mt-2 text-sm text-slate-700">Van één domeinnaam tot een representatieve steekproef: {result.deepDiagnosis.scope?.scored ?? 0} scorende pagina's van {result.deepDiagnosis.scope?.sampled ?? 0} geselecteerd. {result.deepDiagnosis.scope?.discovered ?? 0} interne URL's ontdekt. Dit is geen volledige sitecrawl.</p>
+            <p className="mt-2 text-sm text-slate-700">Fix-check: {result.deepDiagnosis.fixReadiness?.codeProposalCandidates ?? 0} kandidaat/kandidaten voor een gecontroleerd codevoorstel; {result.deepDiagnosis.fixReadiness?.blockedByEvidence ?? 0} waarschuwing(en) blokkeren wegens ontbrekend bewijs. RankFix past niets automatisch live aan.</p>
+            {(result.deepDiagnosis.rootCauseGroups?.length || 0) > 0 && <ul className="mt-3 list-inside list-disc space-y-2 text-sm text-slate-700">{result.deepDiagnosis.rootCauseGroups?.slice(0, 8).map(group => <li key={group.code}><strong>{group.finding}</strong> {group.nextStep}</li>)}</ul>}
+          </div>}
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-6">
           <h2 className="text-xl font-bold">Geconstateerde aandachtspunten</h2>
