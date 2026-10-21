@@ -1,4 +1,4 @@
-import { scoreApplicableChecks, stableCoreChecks, type ScorableAuditCheck } from "./audit-score";
+import { scoreApplicableChecks, stableCoreChecks, type ScorableAuditCheck } from "./audit-score.ts";
 
 /** Descriptive reconstruction from exactly the checks used by the score engine. */
 export function explainCoreScore(
