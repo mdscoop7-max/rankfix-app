@@ -2,11 +2,11 @@ import { scoreApplicableChecks, stableCoreChecks, type ScorableAuditCheck } from
 
 /** Descriptive reconstruction from exactly the checks used by the score engine. */
 export function explainCoreScore(
-  checks:ScorableAuditCheck[],
+  checks:Array<ScorableAuditCheck & {key:string}>,
   category:"seo"|"geo",
   displayedScore:number,
 ) {
-  const core=stableCoreChecks(checks,category);
+  const core=stableCoreChecks(checks,category) as Array<ScorableAuditCheck & {key:string}>;
   const assessed=core.filter(c=>c.issue_status!=="NOT_APPLICABLE"&&c.issue_status!=="UNABLE_TO_CONFIRM");
   const totalMax=assessed.reduce((sum,c)=>sum+c.maxPoints,0);
   const totalEarned=assessed.reduce((sum,c)=>sum+c.points,0);
