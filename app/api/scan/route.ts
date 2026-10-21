@@ -2440,7 +2440,7 @@ async function runScan(request: Request, restrictedQa = false) {
     seoChecks.push(
       linkEvidenceUnavailable
         ? check("unable_to_confirm", "broken_links", "seo", "Broken links", "De raw HTML is een dunne JavaScript-shell en bevat geen betrouwbare interne linkset.", "Controleer broken links opnieuw na geslaagde JavaScript-rendering.", 0, 5)
-        : uniqueInternalAnchors.length === 0
+        : uniqueInternalAnchors.length === 0 && unconfirmedTemplateAnchors.length === 0
         ? check("not_applicable", "broken_links", "seo", "Broken links", "Geen controleerbare interne links gevonden op deze pagina.", "Controleer links opnieuw wanneer de pagina interne navigatie bevat.", 0, 5)
         : brokenInternalLinks.length > 0
           ? check("warning", "broken_links", "seo", "Broken links", `${brokenInternalLinks.length} van ${linkAuditResults.length} gecontroleerde interne link(s) gaf een bewezen foutstatus (${Math.round(brokenInternalLinkRatio * 100)}%). Voorbeeld: ${brokenInternalLinks[0]?.url} → HTTP ${brokenInternalLinks[0]?.status}.`, "Herstel de bestemming, verwijder de link of redirect een oude URL naar de juiste relevante pagina.", brokenLinkPoints, 5)
@@ -2451,8 +2451,10 @@ async function runScan(request: Request, restrictedQa = false) {
     seoChecks.push(
       linkEvidenceUnavailable
         ? check("unable_to_confirm", "internal_redirects", "seo", "Interne redirects", "De raw HTML is een dunne JavaScript-shell en bevat geen betrouwbare interne linkset.", "Controleer redirects opnieuw na geslaagde JavaScript-rendering.", 0, 4)
-        : uniqueInternalAnchors.length === 0
+        : uniqueInternalAnchors.length === 0 && unconfirmedTemplateAnchors.length === 0
         ? check("not_applicable", "internal_redirects", "seo", "Interne redirects", "Geen controleerbare interne links gevonden op deze pagina.", "Gebruik directe interne links zodra er navigatie aanwezig is.", 0, 4)
+        : redirectedInternalLinks.length === 0 && uniqueInternalAnchors.length === 0 && unconfirmedTemplateAnchors.length > 0
+          ? check("unable_to_confirm", "internal_redirects", "seo", "Interne redirects", "Alle gevonden interne hrefs bevatten onopgeloste template-expressies; een echte redirectbestemming is nog niet bevestigd.", "Controleer de gerenderde DOM voordat je redirects beoordeelt.", 0, 4)
         : redirectedInternalLinks.length === 0
           ? check("pass", "internal_redirects", "seo", "Interne redirects", `${linkAuditResults.length} interne link(s) gecontroleerd; geen doorgestuurde bestemmingen gevonden.`, "Link intern bij voorkeur direct naar de definitieve URL.", 4, 4)
           : check("warning", "internal_redirects", "seo", "Interne redirects", `${redirectedInternalLinks.length} van ${linkAuditResults.length} gecontroleerde interne link(s) komt via een redirect op een andere URL uit (${Math.round(redirectedInternalLinkRatio * 100)}%). Voorbeeld: ${shortUrl(redirectedInternalLinks[0]?.url || "")} → ${shortUrl(redirectedInternalLinks[0]?.finalUrl || "")}.`, "Werk interne links bij naar de definitieve URL om onnodige redirects te vermijden.", internalRedirectPoints, 4)
