@@ -47,6 +47,7 @@ import { enforceReportConsistency } from "@/lib/report-consistency";
 import { rootLandingCandidates, isRicherRootLanding } from "@/lib/homepage-entry";
 import { normalizeScanUrlInput } from "@/lib/scan-url-input";
 import { classifyLinkAuditInputs } from "@/lib/link-audit-evidence";
+import { inspectHeadEvidence, htmlAnchors, htmlOpeningTags, htmlAttributes } from "@/lib/html-document-evidence";
 import { buildDeepScanDiagnosis } from "@/lib/deep-scan-diagnosis";
 
 export const maxDuration = 300;
@@ -913,28 +914,21 @@ async function runScan(request: Request, restrictedQa = false) {
     }
 
     const titlePixelEstimate = titlePixelAdvice(renderedDocument?.titlePixelWidth);
-    // Invisible characters (zero-width space/joiners, BOM) are not a title.
-    const title = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i).replace(/[\u200B-\u200D\u2060\uFEFF]/g, "").trim();
-    const descriptionMetaTag = html.match(/<meta\b[^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] ||
-      html.match(/<meta\b[^>]*content\s*=\s*["'][^"']*["'][^>]*(?:name|property)\s*=\s*["']description["'][^>]*>/i)?.[0] || "";
-    const descriptionContentMatch = descriptionMetaTag.match(/\bcontent\s*=\s*(["'])([\s\S]*?)\1/i);
-    const description = descriptionContentMatch ? stripHtml(descriptionContentMatch[2]).trim() : "";
-    const descriptionState: "missing" | "empty" | "present" = !descriptionMetaTag ? "missing" : !description ? "empty" : "present";
+    // Reuse one parser for all head evidence, regardless of attribute order/quotes.
+    const headEvidence = inspectHeadEvidence(html);
+    const rawHeadEvidence = inspectHeadEvidence(rawHtml);
+    const title = headEvidence.title.replace(/[\u200B-\u200D\u2060\uFEFF]/g, "").trim();
+    const description = headEvidence.description;
+    const descriptionState: "missing" | "empty" | "present" = !headEvidence.descriptionPresent ? "missing" : !description ? "empty" : "present";
     const h1s = allMatches(html, /<h1[^>]*>([\s\S]*?)<\/h1>/gi).map(stripHtml).filter(Boolean);
     const headingTags = [...html.matchAll(/<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/gi)];
     const headings = headingTags.map((m) => ({ level: Number(m[1]), text: stripHtml(m[2]) })).filter((h) => h.text);
-    const canonical =
-      firstMatch(html, /<link[^>]+rel\s*=\s*["']canonical["'][^>]+href\s*=\s*["']([^"']+)["'][^>]*>/i) ||
-      firstMatch(html, /<link[^>]+href\s*=\s*["']([^"']+)["'][^>]+rel\s*=\s*["']canonical["'][^>]*>/i);
-    const lang = firstMatch(html, /<html[^>]+lang\s*=\s*["']([^"']+)["']/i);
+    const canonical = headEvidence.canonical;
+    const lang = headEvidence.lang;
     const langIsValid = /^(?:[a-z]{2,3})(?:-[a-z0-9]{2,8})*$/i.test(lang);
-    const viewportContent =
-      firstMatch(html, /<meta[^>]+name\s*=\s*["']viewport["'][^>]+content\s*=\s*["']([^"']+)["']/i) ||
-      firstMatch(html, /<meta[^>]+content\s*=\s*["']([^"']+)["'][^>]+name\s*=\s*["']viewport["']/i);
+    const viewportContent = headEvidence.viewport;
     const viewportIsResponsive = /(?:^|[,;\s])width\s*=\s*device-width(?:$|[,;\s])/i.test(viewportContent);
-    const robots =
-      firstMatch(html, /<meta[^>]+name\s*=\s*["']robots["'][^>]+content\s*=\s*["']([^"']+)["']/i) ||
-      firstMatch(html, /<meta[^>]+content\s*=\s*["']([^"']+)["'][^>]+name\s*=\s*["']robots["']/i);
+    const robots = headEvidence.robots;
     const xRobotsTag = response.headers.get("x-robots-tag") || "";
     const noindexSignal = /(?:^|[,;\s])noindex(?:$|[,;\s])/i.test(robots) || /(?:^|[,;\s])noindex(?:$|[,;\s])/i.test(xRobotsTag);
     const imageMetrics = extractImageMetrics(html);
@@ -964,12 +958,7 @@ async function runScan(request: Request, restrictedQa = false) {
     const text = stripHtml(html);
     const wordCount = text ? text.split(/\s+/).filter(Boolean).length : 0;
 
-    const metaTags = [...html.matchAll(/<meta\b[^>]*>/gi)].map((m) => m[0]);
-    const parsedMetaTags = metaTags.map((tag) => ({
-      property: attrFromTag(tag, "property").toLowerCase(),
-      name: attrFromTag(tag, "name").toLowerCase(),
-      content: attrFromTag(tag, "content"),
-    }));
+    const parsedMetaTags = headEvidence.metas;
     // The first tag with a key may be empty while a later one carries the value
     // (CMS plugins emit both); the first NON-EMPTY content wins.
     const getMeta = (key: string, ...aliases: string[]) => {
@@ -985,6 +974,7 @@ async function runScan(request: Request, restrictedQa = false) {
     // og:image:secure_url / og:image:url are valid carriers of the same image.
     const ogImage = getMeta("og:image", "og:image:secure_url", "og:image:url");
     const ogUrl = getMeta("og:url");
+    const ogType = getMeta("og:type").trim().toLowerCase();
     const twitterCardRaw = getMeta("twitter:card").trim();
     const twitterCard = /^(summary|summary_large_image|app|player)$/i.test(twitterCardRaw) ? twitterCardRaw : "";
     const twitterCardInvalidValue = Boolean(twitterCardRaw && !twitterCard);
@@ -2953,7 +2943,10 @@ async function runScan(request: Request, restrictedQa = false) {
 
 
     // If rendering failed on a JS-driven page, raw HTML absence is not proof of absence.
-    const metadataMayBeClientRendered = javascriptCandidate && !javascriptExecuted;
+    // Absent head metadata is not a proven site fault when the retrieved HTML
+    // lacks a trustworthy complete head (especially when several tags vanish).
+    const headEvidenceUnreliable = !javascriptExecuted && (headEvidence.simultaneousCoreAbsence || !headEvidence.headComplete);
+    const metadataMayBeClientRendered = (javascriptCandidate && !javascriptExecuted) || headEvidenceUnreliable;
     // A substantive server-rendered body proves heading structure on its own;
     // only a thin script shell leaves H1/headings unconfirmed without a render.
     const bodyStructureMayBeClientRendered = metadataMayBeClientRendered && !rawSubstantiveDocument;
