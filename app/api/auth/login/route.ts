@@ -3,6 +3,7 @@ import { createSession, verifyPassword } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
 import { consumeRateLimit, requestIp } from "@/lib/rate-limit";
+import { classifyLoginInfrastructureFailure } from "@/lib/login-infrastructure";
 type Lang="nl"|"en"|"de"|"fr"|"it"|"es";
 const langOf=(v:unknown):Lang=>typeof v==="string"&&["nl","en","de","fr","it","es"].includes(v)?v as Lang:"nl";
 const tr=<T,>(l:Lang,v:Record<Lang,T>)=>v[l];
@@ -25,17 +26,38 @@ export async function POST(request: Request) {
     step = "session-creation";
     await createSession(user.id,rememberMe); return NextResponse.json({success:true,user:{id:user.id,email:user.email,name:user.name}});
   } catch (error) {
-    // QA-safe diagnostics: never log credentials, request bodies, session tokens or DB error messages.
-    console.error("[rankfix-login] Internal login error", { step, errorType: error instanceof Error ? error.name : "UnknownError" });
-    const infrastructureFailure = error instanceof Error && /(?:\b402\b|quota|exceeded.*limit|database.+(?:unavailable|timeout)|connection.+(?:timeout|refused))/i.test(error.message);
-    if(infrastructureFailure) return NextResponse.json({error:tr(language,{
-      nl:"Inloggen is tijdelijk niet mogelijk door een storing in de testdatabase. Dit betekent niet dat je wachtwoord fout is. Probeer het later opnieuw.",
-      en:"Login is temporarily unavailable because of a test database outage. This does not mean your password is incorrect. Please try again later.",
-      de:"Die Anmeldung ist vorübergehend wegen einer Störung der Testdatenbank nicht möglich. Dein Passwort muss nicht falsch sein. Bitte versuche es später erneut.",
-      fr:"La connexion est temporairement indisponible à cause de la base de données de test. Cela ne signifie pas que votre mot de passe est incorrect. Réessayez plus tard.",
-      it:"L'accesso non è temporaneamente disponibile a causa del database di test. Questo non significa che la password sia errata. Riprova più tardi.",
-      es:"El inicio de sesión no está disponible temporalmente debido a la base de datos de pruebas. Esto no significa que la contraseña sea incorrecta. Inténtalo más tarde."
-    }),code:"DATABASE_TEMPORARILY_UNAVAILABLE"},{status:503});
-    return NextResponse.json({error:tr(language,{nl:"Inloggen mislukt.",en:"Login failed.",de:"Anmeldung fehlgeschlagen.",fr:"Échec de la connexion.",it:"Accesso non riuscito.",es:"No se pudo iniciar sesión."})},{status:500});
+    // Do not log account names, passwords, DB connection strings or tokens.
+    const infrastructure = classifyLoginInfrastructureFailure(error);
+    console.error("[rankfix-login] Login service error", {
+      step,
+      kind: infrastructure || "technical",
+      errorType: error instanceof Error ? error.name : "UnknownError",
+    });
+    if (infrastructure) {
+      const messages=tr(language,{
+        nl:"Inloggen is tijdelijk niet mogelijk: de RankFix-testdatabase is niet beschikbaar. Dit betekent niet dat je wachtwoord onjuist is. Probeer opnieuw zodra de database is hersteld.",
+        en:"Login is temporarily unavailable: the RankFix test database cannot be reached. This does not mean your password is wrong. Please retry when the database is restored.",
+        de:"Anmeldung vorübergehend nicht möglich: Die RankFix-Testdatenbank ist nicht erreichbar. Dies bedeutet nicht, dass dein Passwort falsch ist.",
+        fr:"Connexion temporairement impossible : la base de données de test RankFix est indisponible. Cela ne signifie pas que votre mot de passe est incorrect.",
+        it:"Accesso temporaneamente non disponibile: il database di test RankFix non è accessibile. Questo non significa che la password sia errata.",
+        es:"Inicio de sesión temporalmente no disponible: no se puede acceder a la base de datos de pruebas de RankFix. Esto no significa que la contraseña sea incorrecta."
+      });
+      return NextResponse.json({
+        error:messages,
+        code:infrastructure==="quota"?"DATABASE_QUOTA_EXCEEDED":"LOGIN_DATABASE_UNAVAILABLE",
+        retryable:false,charged:false
+      },{status:503});
+    }
+    return NextResponse.json({
+      error:tr(language,{
+        nl:"Inloggen kan tijdelijk niet worden voltooid door een technische storing. Dit betekent niet dat je wachtwoord onjuist is.",
+        en:"Login cannot be completed because of a temporary technical error. This does not mean your password is incorrect.",
+        de:"Die Anmeldung konnte wegen eines technischen Fehlers nicht abgeschlossen werden. Dein Passwort ist dadurch nicht als falsch bestätigt.",
+        fr:"La connexion n’a pas pu être effectuée en raison d’un problème technique. Votre mot de passe n’a pas été déclaré incorrect.",
+        it:"Accesso non completato a causa di un errore tecnico. La password non è stata verificata come errata.",
+        es:"No se pudo completar el inicio de sesión por un error técnico. No se ha confirmado que la contraseña sea incorrecta."
+      }),
+      code:"LOGIN_TECHNICAL_ERROR",retryable:true,charged:false
+    },{status:500});
   }
 }
