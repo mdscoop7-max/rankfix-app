@@ -2413,7 +2413,18 @@ async function runScan(request: Request, restrictedQa = false) {
       item.evidence = { url: finalUrl.toString(), found: found ? true : null, details: found ? foundMessage : missingMessage };
       return item;
     };
-    if (sectorProfile.sector === "real_estate") {
+    if (sectorProfile.sector === "real_estate" && sectorProfile.key === "residential_landlord") {
+      const rentalOffer = /\b(?:huurwoning(?:en)?|woningaanbod|rental (?:homes|apartments|properties)|aanbod bekijken|beschikbare woningen)\b/i.test(text);
+      const tenantSupport = /\b(?:huurderservice|huurders?|mijn huur|huurzaken|reparatieverzoek|tenant(?:s)? support|resident(?:s)? portal|service en contact)\b/i.test(text);
+      seoChecks.push(
+        sectorCheck("sector_landlord_rental_homes", "Huurwoningaanbod", rentalOffer,
+          "Aanbod van huurwoningen is aangetroffen.", "Huurwoningaanbod niet bevestigd op deze pagina.",
+          "Toon beschikbaar huurwoningaanbod duidelijk wanneer dit voor deze pagina relevant is."),
+        sectorCheck("sector_landlord_tenant_service", "Huurdersservice", tenantSupport,
+          "Informatie of dienstverlening voor huurders is gevonden.", "Huurdersservice niet bevestigd op deze pagina.",
+          "Maak service- en contactmogelijkheden voor huurders vindbaar."),
+      );
+    } else if (sectorProfile.sector === "real_estate") {
       const listingSignal = (scanEvidence.sectorDetails.realEstate.listing.value && scanEvidence.sectorDetails.realEstate.listing.confidence !== "low") || /\b(te koop|te huur|koopwoning|huurwoning|woningaanbod|objecten|properties|for sale|for rent)\b/i.test(text) || schemaSet.has("realestatelisting");
       const leadSignal = hasContactChannelSignal || /\b(bezichtiging|waardebepaling|verkoopadvies|plan een afspraak|contact opnemen)\b/i.test(text);
       const areaSignal = /\b(werkgebied|regio|buurt|wijk|plaats|gemeente|service area|area served)\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.areaServed));
