@@ -34,7 +34,8 @@ test("customer sector in a software case study does not hijack primary sector",(
     title:"Softwareplatform voor teams",description:"Wij leveren SaaS aan hotels en restaurants",
     h1s:["Ons softwareplatform"],navLabels:["Demo","Dashboard"],
   },definitions);
-  assert.equal(result,null);
+  assert.equal(result?.sector,"saas_b2b");
+  assert.ok(result.confidenceScore < 80);
 });
 
 test("equally plausible conflicting identities abstain",()=>{
