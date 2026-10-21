@@ -2534,15 +2534,12 @@ async function runScan(request: Request, restrictedQa = false) {
         .replace(/[_-]+/g, " ")
         .replace(/\s+/g, " ")
         .trim();
-    const legalAnchorEvidence = [...html.matchAll(/<a\b([^>]*)href\s*=\s*["']([^"']+)["']([^>]*)>([\s\S]*?)<\/a>/gi)]
-      .map((match) => {
-        const attrs = (match[1] || "") + " " + (match[3] || "");
-        const href = decode(match[2] || "");
-        const label = decode(stripHtml(match[4] || ""));
-        const aria = attrFromTag("<a " + attrs + ">", "aria-label");
-        const titleAttr = attrFromTag("<a " + attrs + ">", "title");
-        return { href, label, aria, title: titleAttr, haystack: normalizeLegalText([href, label, aria, titleAttr].join(" ")) };
-      });
+    // Read every real anchor, including footers where href can follow
+    // aria-label, class or title. Attribute positions and quotes are arbitrary.
+    const legalAnchorEvidence = htmlAnchors(html).map((anchor) => ({
+      ...anchor,
+      haystack: normalizeLegalText([anchor.href, anchor.label, anchor.aria, anchor.title].join(" ")),
+    }));
     const legalLexicon = {
       privacy: /\b(?:privacy|privacybeleid|privacy policy|privacidade|privatnost\w*|zasebnost\w*|datenschutz|confidentialite|vie privee|privacidad|riservatezza)\b/i,
       cookies: /\b(?:cookie\w*|piskotk\w*|kolacic\w*|galleta\w*|biscott\w*)\b/i,
@@ -2773,7 +2770,8 @@ async function runScan(request: Request, restrictedQa = false) {
     // A normal "&amp;" in source HTML renders as "&" and is not a visible escape defect.
     const decodedVisibleText = decode(text);
     const hasVisibleHtmlEscape = /&(?:amp|quot|lt|gt|#(?:x[0-9a-f]+|\d+));/i.test(decodedVisibleText);
-    const hreflangTags = [...html.matchAll(/<link\b[^>]*>/gi)].map((m) => m[0]).filter((tag) => /\brel\s*=\s*["']alternate["']/i.test(tag) && /\bhreflang\s*=/i.test(tag));
+    const hreflangTags = htmlOpeningTags(html, "link")
+      .filter((tag) => htmlAttributes(tag).rel?.toLowerCase().split(/\s+/).includes("alternate") && Boolean(htmlAttributes(tag).hreflang));
     const hreflangEntries = hreflangTags.map((tag) => ({ language: attrFromTag(tag, "hreflang").toLowerCase(), href: attrFromTag(tag, "href") }));
     const documentLanguage = lang.trim().toLowerCase().replace("_", "-");
     const hreflangAssessment = assessHreflang(hreflangEntries, finalUrl.toString(), documentLanguage, normalizeScanUrl);
@@ -2805,8 +2803,8 @@ async function runScan(request: Request, restrictedQa = false) {
           const fetched = await safePublicFetch(alternate, { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml" });
           if (!fetched.response.ok) { hreflangReciprocity.failed++; return; }
           const alternateHtml = await readResponseTextLimited(fetched.response, 1_500_000);
-          const backLinks = [...alternateHtml.matchAll(/<link\b[^>]*>/gi)].map((m) => m[0])
-            .filter((tag) => /\brel\s*=\s*["']alternate["']/i.test(tag) && /\bhreflang\s*=/i.test(tag))
+          const backLinks = htmlOpeningTags(alternateHtml, "link")
+            .filter((tag) => htmlAttributes(tag).rel?.toLowerCase().split(/\s+/).includes("alternate") && Boolean(htmlAttributes(tag).hreflang))
             .map((tag) => { try { return normalizeScanUrl(new URL(attrFromTag(tag, "href"), fetched.finalUrl).toString()); } catch { return ""; } });
           hreflangReciprocity.checked++;
           if (backLinks.includes(selfNormalized)) hreflangReciprocity.reciprocal++;
@@ -3091,7 +3089,9 @@ async function runScan(request: Request, restrictedQa = false) {
         : check("pass", "viewport", "seo", "Mobiele viewport", `De viewport bevat een responsive width=device-width-instelling: "${viewportContent}".`, "Test daarnaast de echte mobiele layout, tapdoelen en Core Web Vitals.", 5, 5)
     );
     seoChecks.push(!lang
-      ? check("warning", "lang", "seo", "HTML-taal", "Geen HTML lang-attribuut gevonden.", "Voeg het juiste lang-attribuut toe aan <html>.", 1, 4)
+      ? headEvidenceUnreliable
+        ? check("unable_to_confirm", "lang", "seo", "HTML-taal", "De opgehaalde HTML-head is onvolledig; het ontbreken van lang is niet bewezen.", "Vergelijk de raw HTML met een volledige browserrender.", 0, 4)
+        : check("warning", "lang", "seo", "HTML-taal", "Geen HTML lang-attribuut gevonden.", "Voeg het juiste lang-attribuut toe aan <html>.", 1, 4)
       : langIsValid
         ? check("pass", "lang", "seo", "HTML-taal", `De pagina heeft een syntactisch geldige lang-code: "${lang}".`, "Controleer afzonderlijk of deze code overeenkomt met de werkelijk gebruikte paginataal.", 4, 4)
         : check("warning", "lang", "seo", "HTML-taal", `Het lang-attribuut "${lang}" heeft geen geldige taalcode-opbouw.`, "Gebruik een geldige taalcode, bijvoorbeeld nl, en, de of nl-NL.", 1, 4)
