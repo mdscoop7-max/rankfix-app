@@ -48,6 +48,7 @@ import { rootLandingCandidates, isRicherRootLanding } from "@/lib/homepage-entry
 import { normalizeScanUrlInput } from "@/lib/scan-url-input";
 import { classifyLinkAuditInputs } from "@/lib/link-audit-evidence";
 import { inspectHeadEvidence, htmlAnchors, htmlOpeningTags, htmlAttributes } from "@/lib/html-document-evidence";
+import { sitemapHreflangForUrl } from "@/lib/sitemap-hreflang-evidence";
 import { residentialLandlordIdentity } from "@/lib/residential-landlord-identity";
 import { buildDeepScanDiagnosis } from "@/lib/deep-scan-diagnosis";
 
@@ -2807,6 +2808,30 @@ async function runScan(request: Request, restrictedQa = false) {
     const languageSelectorSignal = otherLocaleLinks.length > 0
       || /<a\b[^>]*\shreflang\s*=/i.test(html)
       || /<select\b[^>]*(?:lang|language|taal|sprache|idioma|lingua)[^>]*>/i.test(html);
+    // The document head may omit hreflang while a first-party XML sitemap
+    // declares the exact page's alternate languages. Do not infer equivalence
+    // from language-picker buttons or sitemap index links alone.
+    let sitemapLanguageProof = { currentUrlFound:false, alternates:[] as Array<{language:string;href:string}>, confirmedLanguages:[] as string[] };
+    if (!hreflangEntries.length && languageSelectorSignal && confirmedSitemapUrl) {
+      const inspectXml = async (url: string) => {
+        const result = await safePublicFetch(url, {timeoutMs:5000,maxRedirects:2,userAgent:"RankFixBot/2.1 (+https://rankfix-app.vercel.app)",accept:"application/xml,text/xml"});
+        return result.response.ok ? readResponsePrefix(result.response, 1_500_000) : "";
+      };
+      try {
+        const indexOrXml = await inspectXml(confirmedSitemapUrl);
+        sitemapLanguageProof = sitemapHreflangForUrl(indexOrXml,finalUrl.toString());
+        if (!sitemapLanguageProof.currentUrlFound && /<sitemapindex\b/i.test(indexOrXml)) {
+          const children = childSitemapsFromIndex(indexOrXml)
+            .filter((url) => {try {return normalizeHost(new URL(url).hostname) === siteHost;}catch{return false;}})
+            .slice(0,4);
+          const proofs = await Promise.all(children.map(async (url) => {
+            try {return sitemapHreflangForUrl(await inspectXml(url),finalUrl.toString());}
+            catch {return {currentUrlFound:false,alternates:[] as Array<{language:string;href:string}>,confirmedLanguages:[] as string[]};}
+          }));
+          sitemapLanguageProof = proofs.find((item)=>item.currentUrlFound) || sitemapLanguageProof;
+        }
+      } catch { /* Network access is unconfirmed, never a missing hreflang fault. */ }
+    }
     // Bounded reciprocity check for valid same-host hreflang: fetch up to three
     // alternates and verify each links back to this page.
     const hreflangReciprocity = { checked: 0, reciprocal: 0, missing: [] as string[], failed: 0 };
@@ -2832,7 +2857,8 @@ async function runScan(request: Request, restrictedQa = false) {
     }
     // A language/country selector alone does not prove equivalent translated URLs exist.
     // Only explicit hreflang markup is strong enough in a single raw-HTML page scan.
-    const multilingualUrlEvidence = hreflangAssessment.kind !== "none";
+    const sitemapMultiLanguageProof = sitemapLanguageProof.currentUrlFound && sitemapLanguageProof.confirmedLanguages.length >= 2;
+    const multilingualUrlEvidence = hreflangAssessment.kind !== "none" || sitemapMultiLanguageProof;
     // OnlineStore, LocalBusiness, Dentist, ... are schema.org Organization subtypes.
     const organizationSchemaPresent = hasOrganizationSchema(schemaTypes);
     const websiteSchemaPresent = schemaSet.has("website");
@@ -3253,6 +3279,8 @@ async function runScan(request: Request, restrictedQa = false) {
       ? languageSelectorSignal
         ? check("unable_to_confirm", "hreflang", "seo", "Meertalige SEO", "Een taal- of landkeuze is zichtbaar, maar deze paginascan bewijst niet dat equivalente vertaalde URL's bestaan. Hreflang wordt daarom niet als ontbrekende fout beoordeeld.", "Bevestig alternatieve taal-URL's in een sitebrede crawl voordat hreflang verplicht wordt gesteld.", 0, 5)
         : check("not_applicable", "hreflang", "seo", "Meertalige SEO", "Geen bewezen alternatieve taal-URL's gevonden; RankFix telt hreflang daarom niet mee in de score.", "Gebruik hreflang wanneer dezelfde content aantoonbaar in meerdere talen/URL's beschikbaar is.", 0, 5)
+      : hreflangAssessment.kind === "none" && sitemapMultiLanguageProof
+        ? check("pass", "hreflang", "seo", "Meertalige SEO", `In de officiële XML-sitemap staan ${sitemapLanguageProof.confirmedLanguages.length} unieke taalversies voor precies deze pagina (${sitemapLanguageProof.confirmedLanguages.join(", ")}). Dit bevestigt de sitemap-verklaring, niet automatisch HTTP-bereikbaarheid of wederkerigheid van alle alternatieven.`, "Controleer bij wijzigingen ook de canonicals en wederkerige taalverwijzingen.", 5, 5)
       : hreflangAssessment.kind === "invalid"
           ? check("warning", "hreflang", "seo", "Meertalige SEO", `${hreflangAssessment.total} hreflang-link(s) gevonden, maar ${hreflangAssessment.invalid} bevat een ongeldige of ontbrekende taal-/regiocode of URL.`, "Corrigeer ongeldige hreflang-codes en href-URL's. Controleer daarna wederkerigheid tussen taalversies.", 2, 5)
           : hreflangAssessment.kind === "self_mismatch"
