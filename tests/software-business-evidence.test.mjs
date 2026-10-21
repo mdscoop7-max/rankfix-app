@@ -7,8 +7,8 @@ const catalogue = [
   { sector: "saas_b2b", label: "SaaS / B2B", primary: SOFTWARE_PRODUCT_IDENTITY,
     support: [SOFTWARE_PRODUCT_CAPABILITIES], modules: ["saas_b2b"] },
   { sector: "financial_services", label: "Financiële dienstverlening",
-    primary: /\\b(?:financial infrastructure|payment processing|betalingsverkeer)\\b/i,
-    support: [/\\b(?:money transfers|payouts|betalingen verwerken)\\b/i], modules: ["financial_services"] },
+    primary: /\b(?:financial infrastructure|payment processing|betalingsverkeer)\b/i,
+    support: [/\b(?:money transfers|payouts|betalingen verwerken)\b/i], modules: ["financial_services"] },
 ];
 
 test("generic site intro: salesfunnel software + separate product capabilities is a SaaS identity", () => {
