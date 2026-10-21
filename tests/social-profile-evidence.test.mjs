@@ -21,3 +21,5 @@ test("A labelled social navigation is an alternative to a footer",()=>{
  const html='<nav aria-label="Soziale Medien"><a href="https://www.linkedin.com/company/example/">Company</a></nav>';
  assert.equal(officialSocialProfileLinks(html).length,1);
 });
+
+test("first-party social-media section outside footer exposes profiles",()=>{ const html='<section class="site-social-media"><h2>Unternehmen in Social Media</h2><a href="https://www.instagram.com/examplecorp/">Instagram</a></section>'; assert.equal(officialSocialProfileLinks(html).length,1); });
