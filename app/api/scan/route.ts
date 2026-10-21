@@ -11,6 +11,7 @@ import { getFixPolicy } from "@/lib/fix-policy";
 import { isTransientSeoCopy } from "@/lib/meta-description-fix";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { extractHeadMetadata } from "@/lib/html-head-evidence";
+import { detectRealEstateSubtype } from "@/lib/real-estate-subtype";
 import { normalizeLegalText, LEGAL_LINK_LEXICON } from "@/lib/legal-lexicon";
 import { assessPassiveSecurity, formBlocks, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
@@ -1305,7 +1306,9 @@ async function runScan(request: Request) {
       schemaSet.has("newsmediaorganization") ||
       newsMediaIdentity({ title, description, h1: h1s.join(" "), homepage: isHomepage })
     );
-    const effectiveLocalSchemaSignal = hasLocalBusinessSignal && !governmentIdentitySignal && !governmentSchemaPresent && !transportLogisticsSchemaContext && !ecommerceSchemaContext && !newsMediaSchemaContext;
+    const earlyPropertySubtype = detectRealEstateSubtype({title,description,h1s:identityH1s,navLabels:identityNavLabels,schemaTypes});
+    const nationwideRentalOperator = ["institutional_property_rental","property_rental_operator"].includes(earlyPropertySubtype.subtype);
+    const effectiveLocalSchemaSignal = hasLocalBusinessSignal && !nationwideRentalOperator && !governmentIdentitySignal && !governmentSchemaPresent && !transportLogisticsSchemaContext && !ecommerceSchemaContext && !newsMediaSchemaContext;
     const recommendedSchema = governmentIdentitySignal || governmentSchemaPresent
       ? (isHomepage ? "GovernmentOrganization + WebSite" : "GovernmentOrganization / WebPage")
       : newsMediaSchemaContext
@@ -2008,6 +2011,13 @@ async function runScan(request: Request) {
           }
         : {...legacyProfile,key:legacyProfile.sector};
 
+    // Site-level business subtype differs from homepage page type; unknown remains unknown.
+    let realEstateSubtypeDecision = earlyPropertySubtype;
+    if (sectorProfile.sector === "real_estate") {
+      Object.assign(sectorProfile, {subtype:realEstateSubtypeDecision.subtype, subtypeLabel:realEstateSubtypeDecision.label, subtypeConfidenceScore:realEstateSubtypeDecision.confidenceScore, subtypeEvidence:realEstateSubtypeDecision.evidence});
+      if (realEstateSubtypeDecision.subtype !== "unknown") sectorProfile.label = "Vastgoed · " + realEstateSubtypeDecision.label;
+    }
+
     // Primary vs secondary activities: a university hospital is care first, with
     // teaching and research as secondary activities (shown, never the identity).
     if (euPrimaryIdentity?.secondary?.length && sectorProfile.sector === euPrimaryIdentity.sector) {
@@ -2304,10 +2314,19 @@ async function runScan(request: Request) {
       const listingSignal = (scanEvidence.sectorDetails.realEstate.listing.value && scanEvidence.sectorDetails.realEstate.listing.confidence !== "low") || /\b(te koop|te huur|koopwoning|huurwoning|woningaanbod|objecten|properties|for sale|for rent)\b/i.test(text) || schemaSet.has("realestatelisting");
       const leadSignal = hasContactChannelSignal || /\b(bezichtiging|waardebepaling|verkoopadvies|plan een afspraak|contact opnemen)\b/i.test(text);
       const areaSignal = /\b(werkgebied|regio|buurt|wijk|plaats|gemeente|service area|area served)\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.areaServed));
+      const agentVerified = realEstateSubtypeDecision.subtype === "real_estate_agent";
+      const rentalVerified = ["institutional_property_rental","property_rental_operator"].includes(realEstateSubtypeDecision.subtype);
+      const rentalProcess = /\b(inschrijven|bezichtiging|huurwoning|huurwoningen|woningaanbod|huurders?|huren in \d+ stappen|huurcontract|mijn huur)\b/i.test(text);
       seoChecks.push(
-        sectorCheck("sector_real_estate_listings","Vastgoedaanbod",listingSignal,"Vastgoed-/woningsignalen zijn in de pagina bevestigd.","RankFix kon in de raw HTML geen vastgoedaanbod betrouwbaar bevestigen.","Maak woningaanbod en de bijbehorende bestemming duidelijk vindbaar wanneer dit voor deze pagina relevant is."),
-        sectorCheck("sector_real_estate_leads","Makelaar conversie",leadSignal,"Een contact-, bezichtigings- of waardebepalingssignaal is bevestigd.","Een duidelijke makelaar-CTA kon in de raw HTML niet betrouwbaar worden bevestigd.","Maak de belangrijkste vervolgstap, zoals contact, bezichtiging of waardebepaling, duidelijk zichtbaar."),
-        sectorCheck("sector_real_estate_area","Werkgebied makelaar",areaSignal,"Een lokaal werkgebied-/regiosignaal is bevestigd.","Het werkgebied kon in de raw HTML niet betrouwbaar worden bevestigd.","Beschrijf relevante plaatsen of regio's wanneer lokale vindbaarheid belangrijk is.")
+        sectorCheck("sector_real_estate_listings","Vastgoedaanbod",listingSignal,"Vastgoed-/woningaanbod is in de pagina bevestigd.","RankFix kon vastgoedaanbod in de beschikbare HTML niet betrouwbaar bevestigen.","Maak relevant vastgoedaanbod vindbaar wanneer deze website dit aanbiedt."),
+        agentVerified
+          ? sectorCheck("sector_real_estate_leads","Makelaar conversie",leadSignal,"Contact-, bezichtigings- of verkoopadviesactie bevestigd.","Een makelaar-CTA is niet betrouwbaar bevestigd.","Maak de passende makelaarsvervolgstap zichtbaar.")
+          : rentalVerified
+            ? sectorCheck("sector_real_estate_leads","Huurwoning- en huurdersproces",rentalProcess,"Huurwoningaanbod of huurdersproces is zichtbaar.","Het huurdersproces kon niet betrouwbaar worden bevestigd.","Maak inschrijven, bezichtigingen en huurdersinformatie bereikbaar.")
+            : check("unable_to_confirm","sector_real_estate_leads","seo","Vastgoedcontact","Het vastgoedsubtype is nog niet bevestigd: geen makelaar- of verhuurdersadvies zonder bewijs.","Bevestig de primaire rol van de organisatie voor een passend advies.",0,4),
+        agentVerified
+          ? sectorCheck("sector_real_estate_area","Werkgebied makelaar",areaSignal,"Het makelaarswerkgebied is zichtbaar.","Geen lokaal werkgebied bevestigd.","Beschrijf het werkgebied wanneer lokale makelaardij wordt aangeboden.")
+          : check("not_applicable","sector_real_estate_area","seo","Werkgebied makelaar","Niet van toepassing: geen onafhankelijke bevestiging dat de organisatie een makelaar is.","Geen actie zolang een makelaarsidentiteit niet is aangetoond.",0,4)
       );
     } else if (sectorProfile.sector === "automotive") {
       const workshopSignal = /\b(apk|onderhoud|reparatie|werkplaats|autoservice|banden|diagnose)\b/i.test(text);
@@ -4997,6 +5016,33 @@ async function runScan(request: Request) {
     // Final Master reconciliation: late technology/multi-page evidence may improve
     // the site-level decision after the initial Master object was created. Keep
     // one authoritative website type, sector and page type for every consumer.
+    // Prefer corroborating organization evidence from first-party representative
+    // titles/descriptions/H1s; article body text may merely mention a landlord.
+    if (sectorProfile.sector === "real_estate") {
+      const updatedSubtype = detectRealEstateSubtype({
+        title,description,h1s:identityH1s,navLabels:identityNavLabels,schemaTypes,
+        sampledOwnIdentity:auditedMultiPages.filter(page=>["corporate","service","listing","homepage","contact"].includes(page.type)).map(page=>page.ownIdentityText||page.title||"").filter(Boolean)
+      });
+      if (updatedSubtype.confidenceScore > realEstateSubtypeDecision.confidenceScore) realEstateSubtypeDecision=updatedSubtype;
+      Object.assign(sectorProfile,{subtype:realEstateSubtypeDecision.subtype,subtypeLabel:realEstateSubtypeDecision.label,subtypeConfidenceScore:realEstateSubtypeDecision.confidenceScore,subtypeEvidence:realEstateSubtypeDecision.evidence});
+      if (realEstateSubtypeDecision.subtype !== "unknown") {
+        sectorProfile.label="Vastgoed · "+realEstateSubtypeDecision.label;
+        sectorProfile.evidence=[...new Set([...sectorProfile.evidence,...realEstateSubtypeDecision.evidence])].slice(0,8);
+      }
+      const agent=realEstateSubtypeDecision.subtype==="real_estate_agent";
+      const rent=["institutional_property_rental","property_rental_operator"].includes(realEstateSubtypeDecision.subtype);
+      if (!agent) {
+        const area=seoChecks.find(item=>item.key==="sector_real_estate_area");
+        if(area)Object.assign(area,check("not_applicable","sector_real_estate_area","seo","Werkgebied makelaar","Deze organisatie is niet bewezen een makelaar; lokaal makelaarswerkgebied is niet van toepassing.","Geen actie zonder bevestigd makelaarsbedrijf.",0,4));
+        const leads=seoChecks.find(item=>item.key==="sector_real_estate_leads");
+        if (leads && rent) Object.assign(leads,check("pass","sector_real_estate_leads","seo","Huurwoning- en huurdersproces","Deze website presenteert zich aantoonbaar als woningverhuurder en biedt huurwoningen of huurdersinformatie aan.","Houd inschrijven, bezichtigen en huurdersinformatie duidelijk bereikbaar.",4,4));
+        else if(leads)Object.assign(leads,check("unable_to_confirm","sector_real_estate_leads","seo","Vastgoedcontact","Het vastgoedsubtype is onvoldoende bevestigd. Geen makelaar- of verhuurderadvies zonder bewijs.","Bevestig eerst de organisatie-identiteit.",0,4));
+      }
+      if (rent) {
+        const structured=geoChecks.find(item=>item.key==="schema");
+        if (structured && /LocalBusiness/i.test(structured.fix)) structured.fix="Controleer Organization- en WebSite-schema op aantoonbare organisatiedata. LocalBusiness is niet vereist voor een landelijke woningverhuurder.";
+      }
+    }
     const sectorDisplayPolicy = sectorProfile.confidenceScore >= 80 ? "confirmed" : sectorProfile.confidenceScore >= 60 ? "probable" : "unconfirmed";
     masterEvidence.primarySector = {
       key: sectorProfile.key,
