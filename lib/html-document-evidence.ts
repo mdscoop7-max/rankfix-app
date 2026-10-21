@@ -1,4 +1,4 @@
-import { decodeHtmlEntities } from "./html-entities";
+import { decodeHtmlEntities } from "./html-entities.ts";
 
 /** Attribute order, case and quotation style must not change scan evidence. */
 export function htmlAttributes(tag: string): Record<string, string> {
