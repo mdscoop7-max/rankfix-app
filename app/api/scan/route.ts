@@ -13,6 +13,7 @@ import { extractHeadMetadata } from "@/lib/html-head-evidence";
 import { officialSocialProfileLinks } from "@/lib/social-profile-evidence";
 import { detectRealEstateSubtype } from "@/lib/real-estate-subtype";
 import { explainCoreScore } from "@/lib/score-reconciliation";
+import { industrialCorporateEvidence } from "@/lib/industrial-corporate";
 import { normalizeLegalText, LEGAL_LINK_LEXICON } from "@/lib/legal-lexicon";
 import { assessPassiveSecurity, formBlocks, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
@@ -4712,6 +4713,35 @@ async function runScan(request: Request) {
       sectorProfile.evidence = [`Scanbewijs: ${reconciledPages} representatieve pagina's noemen deze activiteit in hun eigen titel/omschrijving/H1; de homepage zelf bevestigt de sector niet`];
       sectorProfile.applicableModules = [...new Set(["core_seo","geo","technical",...reconciledTop.modules])];
       masterEvidence.activeModules = sectorProfile.applicableModules;
+    }
+
+    // Sparse corporate homepages can still establish industrial identity when a
+    // checked first-party About/Unternehmen page declares a tech/industrial group
+    // and an independent services page confirms the same economic activity.
+    // This is not a keyword fallback: no customer names, no secondary news body.
+    const corporateIndustrial = industrialCorporateEvidence({
+      homeHeadings:headings.filter(h=>h.level===2 || h.level===3).map(h=>h.text).slice(0,24),
+      pages:auditedMultiPages.map(p=>({
+        url:p.url,type:p.type,identityText:p.identityText||"",
+        ownIdentityText:p.ownIdentityText||p.title||""
+      })),
+    });
+    if (corporateIndustrial && !masterIdentityOverride && !finalCommerceDecision.confirmed
+      && !retailPrimaryIdentity && sectorProfile.sector==="unknown" && !marketSelectorPage) {
+      sectorProfile.sector=corporateIndustrial.sector;
+      sectorProfile.key=corporateIndustrial.sector;
+      sectorProfile.label="Industrie & technologie";
+      sectorProfile.confidence="high";
+      sectorProfile.confidenceScore=corporateIndustrial.confidenceScore;
+      sectorProfile.evidence=corporateIndustrial.evidence;
+      sectorProfile.applicableModules=[...new Set([...sectorProfile.applicableModules,"manufacturing_industrial"])];
+      Object.assign(sectorProfile,{
+        subtype:corporateIndustrial.subtype,
+        subtypeLabel:"Industrieel technologieconcern",
+        subtypeConfidenceScore:corporateIndustrial.confidenceScore,
+        subtypeEvidence:corporateIndustrial.evidence
+      });
+      masterEvidence.activeModules=sectorProfile.applicableModules;
     }
 
     // An international country/language selector (proven by hreflang) is a brand
