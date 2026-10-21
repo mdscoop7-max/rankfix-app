@@ -5050,18 +5050,16 @@ async function runScan(request: Request, restrictedQa = false) {
     // Final Master reconciliation: late technology/multi-page evidence may improve
     // the site-level decision after the initial Master object was created. Keep
     // one authoritative website type, sector and page type for every consumer.
-    // A sub-75% sector is a hypothesis, not an established company identity.
-    // Keep its candidate and confidence in the evidence trail, but do not publish
-    // the guessed sector as a confirmed primary classification or activate its modules.
+    // A sub-75% sector is a *tentative candidate*, not a verified sector.
+    // Preserve which family was suggested (with its actual confidence and
+    // an UNCONFIRMED display policy) so scanners, benchmarks and customers
+    // can distinguish a promising sector hypothesis from "no candidate".
+    // Never activate sector-specific modules from weak, navigation-only evidence.
     if (sectorProfile.sector !== "unknown" && sectorProfile.confidenceScore < 75) {
-      const candidate = { sector:sectorProfile.sector, label:sectorProfile.label, confidenceScore:sectorProfile.confidenceScore };
-      sectorProfile.sector = "unknown";
-      sectorProfile.key = "unknown";
-      sectorProfile.label = "Sector niet bevestigd";
       sectorProfile.confidence = "low";
-      sectorProfile.confidenceScore = 0;
-      sectorProfile.evidence = [`Sector ter bevestiging: ${candidate.label} (${candidate.confidenceScore}%); te weinig onafhankelijk bewijs voor een sectorspecifieke audit.`];
+      sectorProfile.evidence = [...sectorProfile.evidence, "Voorlopige sectorhypothese: onvoldoende onafhankelijk bewijs voor sectorspecifieke beoordeling."].slice(0,6);
       sectorProfile.applicableModules = ["core_seo","geo","technical","business_identity"];
+      masterEvidence.activeModules = sectorProfile.applicableModules;
     }
     const sectorDisplayPolicy = sectorProfile.confidenceScore >= 80 ? "confirmed" : sectorProfile.confidenceScore >= 75 ? "probable" : "unconfirmed";
     masterEvidence.primarySector = {
