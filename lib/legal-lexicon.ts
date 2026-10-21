@@ -7,7 +7,7 @@ export function normalizeLegalText(value:string):string {
 }
 
 export const LEGAL_LINK_LEXICON = {
-  privacy:/\b(?:privacy|privacybeleid|privacy policy|privacidade|privatnost\w*|zasebnost\w*|datenschutz\w*|privatsphare|confidentialite|vie privee|privacidad|riservatezza)\b/i,
+  privacy:/\b(?:privacy|privacybeleid|privacyverklaring|privacy policy|privacidade|privatnost\w*|zasebnost\w*|datenschutz\w*|privatsphare|confidentialite|vie privee|privacidad|riservatezza)\b/i,
   cookies:/\b(?:cookie\w*|cookie\s+(?:settings|preferences|policy|richtlinie|einstellungen)|piskotk\w*|kolacic\w*|galleta\w*|biscott\w*|privatsphare\s+(?:einstellungen|settings)|datenschutz\s+(?:einstellungen|settings)|consent\s+settings|privacy\s+(?:preferences|settings))\b/i,
   terms:/\b(?:voorwaarden|terms|conditions|agb|cgv|condiciones|condizioni|termos|uvjet\w*|pogoj\w*|conditions generales)\b/i,
 };
