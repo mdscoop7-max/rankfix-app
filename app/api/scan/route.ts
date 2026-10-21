@@ -2987,7 +2987,16 @@ async function runScan(request: Request, restrictedQa = false) {
     // If rendering failed on a JS-driven page, raw HTML absence is not proof of absence.
     // Absent head metadata is not a proven site fault when the retrieved HTML
     // lacks a trustworthy complete head (especially when several tags vanish).
-    const headEvidenceUnreliable = !javascriptExecuted && (headEvidence.simultaneousCoreAbsence || !headEvidence.headComplete);
+    // An apparently rich page whose head offers Open Graph tags but lacks at
+    // least three independent fundamentals is suspicious. On such a response,
+    // don't turn "not observed" into a proven missing head element.
+    const absentHeadFundamentals = [!headEvidence.description, !headEvidence.canonical,
+      !headEvidence.viewport, !headEvidence.lang].filter(Boolean).length;
+    const mixedHeadSignals = headEvidence.metas.some(item => /^og:|^twitter:/i.test(item.property || item.name));
+    const headEvidenceUnreliable = !javascriptExecuted && (
+      headEvidence.simultaneousCoreAbsence || !headEvidence.headComplete
+      || (absentHeadFundamentals >= 3 && mixedHeadSignals)
+    );
     const metadataMayBeClientRendered = (javascriptCandidate && !javascriptExecuted) || headEvidenceUnreliable;
     // A substantive server-rendered body proves heading structure on its own;
     // only a thin script shell leaves H1/headings unconfirmed without a render.
