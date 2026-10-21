@@ -4835,6 +4835,42 @@ async function runScan(request: Request) {
     // Final Master reconciliation: late technology/multi-page evidence may improve
     // the site-level decision after the initial Master object was created. Keep
     // one authoritative website type, sector and page type for every consumer.
+    // Sitewide subtype review uses the own title/description/H1 of audited pages,
+    // never incidental article body text or brand/domain exceptions.
+    if (sectorProfile.sector === "real_estate") {
+      const updatedSubtype = detectRealEstateSubtype({
+        title,description,h1s:identityH1s,navLabels:identityNavLabels,schemaTypes,
+        sampledOwnIdentity:auditedMultiPages.map(page=>page.ownIdentityText||page.title||"").filter(Boolean)
+      });
+      if (updatedSubtype.confidenceScore > realEstateSubtypeDecision.confidenceScore) {
+        realEstateSubtypeDecision=updatedSubtype;
+      }
+      Object.assign(sectorProfile,{
+        subtype:realEstateSubtypeDecision.subtype,
+        subtypeLabel:realEstateSubtypeDecision.label,
+        subtypeConfidenceScore:realEstateSubtypeDecision.confidenceScore,
+        subtypeEvidence:realEstateSubtypeDecision.evidence.map(item=>finalUrl.toString()+": "+item),
+      });
+      if (realEstateSubtypeDecision.subtype!=="unknown") {
+        sectorProfile.label="Vastgoed · "+realEstateSubtypeDecision.label;
+        sectorProfile.evidence=[...new Set([...sectorProfile.evidence,...realEstateSubtypeDecision.evidence.map(item=>finalUrl.toString()+": "+item)])].slice(0,8);
+      }
+      // The late representative-page evidence can override an initial agent hint.
+      // If it does, immediately suppress any already-generated agent-only advice.
+      if (realEstateSubtypeDecision.subtype!=="real_estate_agent") {
+        const area=seoChecks.find(item=>item.key==="sector_real_estate_area");
+        if (area) Object.assign(area,check("not_applicable","sector_real_estate_area","seo","Werkgebied makelaar","Niet toepasbaar: de website is niet onafhankelijk als makelaarsbedrijf vastgesteld.","Geen makelaarsspecifiek werkgebied vereist.",0,4));
+        const lead=seoChecks.find(item=>item.key==="sector_real_estate_leads");
+        if (lead && /Makelaar conversie/i.test(lead.title)) {
+          Object.assign(lead,check("unable_to_confirm","sector_real_estate_leads","seo","Vastgoedcontact","De primaire organisatie is niet als makelaar bevestigd. De passende contact-/huurderroute vraagt afzonderlijk bewijs.","Beoordeel de vervolgstap voor het bewezen vastgoedsubtype.",0,4));
+        }
+      }
+      Object.assign(masterEvidence.primarySector,{
+        subtype:realEstateSubtypeDecision.subtype,
+        subtypeLabel:realEstateSubtypeDecision.label,
+        subtypeConfidenceScore:realEstateSubtypeDecision.confidenceScore
+      });
+    }
     const sectorDisplayPolicy = sectorProfile.confidenceScore >= 80 ? "confirmed" : sectorProfile.confidenceScore >= 60 ? "probable" : "unconfirmed";
     masterEvidence.primarySector = {
       key: sectorProfile.key,
