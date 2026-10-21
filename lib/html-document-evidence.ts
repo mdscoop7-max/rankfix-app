@@ -18,7 +18,7 @@ export function htmlOpeningTags(html: string, name: string): string[] {
   const safe = name.replace(/[^a-z0-9:-]/gi, "");
   if (!safe) return [];
   // The alternating quoted branches preserve > inside attribute values.
-  const re = new RegExp("<" + safe + "\\b(?:[^>\\\"\x27]|\\\"[^\\\"]*\\\"|\x27[^\x27]*\x27)*>", "gi");
+  const re = new RegExp("<" + safe + "\\b(?:[^>\"\x27]|\"[^\"]*\"|\x27[^\x27]*\x27)*>", "gi");
   return [...html.matchAll(re)].map(m => m[0]);
 }
 
@@ -58,7 +58,7 @@ export function inspectHeadEvidence(html: string): HeadEvidence {
 /** Collect link labels independently from position of href, aria-label or title. */
 export function htmlAnchors(html: string): Array<{ href:string; label:string; aria:string; title:string }> {
   const result: Array<{ href:string; label:string; aria:string; title:string }> = [];
-  const re = /<a\b((?:[^>\\"\x27]|\\"[^\\"]*\\"|\x27[^\x27]*\x27)*)>([\s\S]*?)<\/a\s*>/gi;
+  const re = /<a\b((?:[^>"']|"[^"]*"|'[^']*')*)>([\s\S]*?)<\/a\s*>/gi;
   for (const m of html.matchAll(re)) {
     const a = htmlAttributes("<a " + m[1] + ">");
     if (!a.href) continue;
