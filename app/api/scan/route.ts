@@ -10,6 +10,8 @@ import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, 
 import { getFixPolicy } from "@/lib/fix-policy";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { extractHeadMetadata } from "@/lib/html-head-evidence";
+import { officialSocialProfileLinks } from "@/lib/social-profile-evidence";
+import { normalizeLegalText, LEGAL_LINK_LEXICON } from "@/lib/legal-lexicon";
 import { assessPassiveSecurity, formBlocks, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
 import { assessPageDescription, assessPageTitle, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isClientShell, isPlaceholderTitle, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
@@ -1081,7 +1083,10 @@ async function runScan(request: Request) {
     // such as "postcode" or an e-mail input are not contact details.
     const businessContactDetails = findBusinessContactDetails(text, html);
     const hasBusinessContactDetails = hasBusinessContactDetailsFn(businessContactDetails);
-    const hasSocialOrReviewSignal = /\b(instagram|facebook|linkedin|google reviews|reviews|tripadvisor|trustpilot)\b/i.test(text) || sameAsCount > 0;
+    // Only a first-party footer/social-nav profile link or explicit review text
+    // establishes an official profile; plain platform mentions can be clients.
+    const officialSocialUrls = officialSocialProfileLinks(html);
+    const hasSocialOrReviewSignal = officialSocialUrls.length > 0 || sameAsCount > 0 || /\b(google reviews|klantreviews|geverifieerde beoordelingen|trustpilot|tripadvisor)\b/i.test(text);
     const hasContactChannelSignal = hasBusinessContactDetails || (hasContactSignal && (hasContactFormSignal || hasContactActionSignal));
     const hasServiceExpertiseSignal = /\b(diensten|services|service|specialist|specialisten|expert|expertise|seo|geo|structured data|schema\.org|technical seo|technische seo|ai[- ]search|search readiness|auditsoftware|auditing|behandeling|behandelingen|hair|haar|knippen|kleur|color|styling|restaurant|keuken|cuisine|tandarts|elektricien|loodgieter|aannemer|dakdekker)\b/i.test(text);
     const hasStrongCommerceAction = /\b(add to cart|add-to-cart|add to basket|buy now|in winkelwagen|toevoegen(?: aan winkelwagen)?|koop nu|jetzt kaufen|in den warenkorb|ajouter au panier|acheter maintenant|añadir al carrito|comprar ahora|aggiungi al carrello|acquista ora)\b/i.test(text);
@@ -2367,14 +2372,6 @@ async function runScan(request: Request) {
 
     // Extended audit signals: trust, ecommerce quality, URL hygiene, social metadata and multilingual SEO.
     const placeholderMatches = text.match(/\[(?:kvk|btw|adres|e-?mail|email|telefoon|phone|address|postcode|plaats|company|naam)\]/gi) || [];
-    const normalizeLegalText = (value: string) =>
-      safeDecodeURIComponent(value)
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toLowerCase()
-        .replace(/[_-]+/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
     const legalAnchorEvidence = [...html.matchAll(/<a\b([^>]*)href\s*=\s*["']([^"']+)["']([^>]*)>([\s\S]*?)<\/a>/gi)]
       .map((match) => {
         const attrs = (match[1] || "") + " " + (match[3] || "");
@@ -2384,11 +2381,7 @@ async function runScan(request: Request) {
         const titleAttr = attrFromTag("<a " + attrs + ">", "title");
         return { href, label, aria, title: titleAttr, haystack: normalizeLegalText([href, label, aria, titleAttr].join(" ")) };
       });
-    const legalLexicon = {
-      privacy: /\b(?:privacy|privacybeleid|privacy policy|privacidade|privatnost\w*|zasebnost\w*|datenschutz|confidentialite|vie privee|privacidad|riservatezza)\b/i,
-      cookies: /\b(?:cookie\w*|piskotk\w*|kolacic\w*|galleta\w*|biscott\w*)\b/i,
-      terms: /\b(?:voorwaarden|terms|conditions|agb|cgv|condiciones|condizioni|termos|uvjet\w*|pogoj\w*|conditions generales)\b/i,
-    };
+    const legalLexicon = LEGAL_LINK_LEXICON;
     // Third-party provider policies (e.g. Google's Privacy Policy in an embed)
     // do not establish the scanned business's own privacy, cookies or terms.
     const findLegalSignal = (pattern: RegExp) =>
