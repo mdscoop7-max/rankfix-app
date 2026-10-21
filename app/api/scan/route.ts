@@ -2841,7 +2841,12 @@ async function runScan(request: Request) {
 
 
     // If rendering failed on a JS-driven page, raw HTML absence is not proof of absence.
-    const metadataMayBeClientRendered = javascriptCandidate && !javascriptExecuted;
+    // Multiple absent fundamentals alongside existing OG metadata is a weak/incomplete
+    // head evidence pattern. Never turn it into a proven SEO failure without a render.
+    const incompleteHeadEvidence = !javascriptExecuted && Boolean(title) && Boolean(ogTitle || ogDescription)
+      && !headMetadata.evidence.description && !headMetadata.evidence.canonical
+      && !headMetadata.evidence.viewport && !headMetadata.evidence.lang;
+    const metadataMayBeClientRendered = (javascriptCandidate && !javascriptExecuted) || incompleteHeadEvidence;
     // A substantive server-rendered body proves heading structure on its own;
     // only a thin script shell leaves H1/headings unconfirmed without a render.
     const bodyStructureMayBeClientRendered = metadataMayBeClientRendered && !rawSubstantiveDocument;
@@ -2893,7 +2898,7 @@ async function runScan(request: Request) {
       !description
         ? metadataMayBeClientRendered
           ? check("unable_to_confirm", "description", "seo", "Meta description", "De meta description kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de description opnieuw met een volledige render voordat je een wijziging maakt.", 0, 10)
-          : check("fail", "description", "seo", "Meta description", descriptionState === "empty" ? "De meta description-tag is aanwezig, maar de content is leeg." : "Er is geen meta description-tag gevonden.", "Laat RankFix AI een nieuwe meta description maken op basis van de pagina.", 0, 10)
+          : check("fail", "description", "seo", "Meta description", descriptionState === "empty" ? "De meta description-tag is aanwezig, maar de content is leeg." : "Er is geen meta description-tag gevonden.", "Controleer de werkelijk opgehaalde en gerenderde head. Ontbreekt de description daadwerkelijk, schrijf dan een unieke beschrijving die de inhoud van deze pagina feitelijk samenvat.", 0, 10)
         : isTransientSeoCopy(description)
           ? check("warning", "description", "seo", "Meta description", "De meta description bevat een tijdelijke formuliermelding. Die hoort niet in de zoekresultaten.", "Gebruik uitsluitend relevante, bevestigde paginatekst; verwijder verzend- en foutmeldingen.", 6, 10)
         : descriptionQualityIssue
@@ -3510,8 +3515,11 @@ async function runScan(request: Request) {
     // page-summary evidence here: the normal meta description and meaningful
     // visible page copy. Open Graph remains a social-preview concern above.
     const hasExplicitPageSummary = Boolean(description) && wordCount >= (isProductPage ? 40 : 80);
+    const missingMetaButSubstantiveBody = !description && wordCount >= (isProductPage ? 40 : 80);
     geoChecks.push(hasExplicitPageSummary
       ? check("pass", "answer", "geo", "Expliciete paginasamenvatting", "Een meta description en voldoende zichtbare paginatekst geven samen een concrete samenvatting van de pagina.", "Houd de meta description en zichtbare introductie inhoudelijk consistent.", 6, 6)
+      : missingMetaButSubstantiveBody
+        ? check("unable_to_confirm", "answer", "geo", "Expliciete paginasamenvatting", "De meta description ontbreekt in het beschikbare bewijs, maar er is inhoudelijke paginatekst aanwezig. Dat is dezelfde mogelijke hoofdoorzaak als de SEO-descriptioncontrole; RankFix rekent hiervoor geen tweede aftrek zonder onafhankelijk bewijs dat de zichtbare samenvatting ontbreekt.", "Beoordeel apart of een duidelijke zichtbare introductie aanwezig is.", 0, 6)
       : metadataMayBeClientRendered
         ? check("unable_to_confirm", "answer", "geo", "Expliciete paginasamenvatting", "De beschikbare raw HTML bewijst geen complete paginasamenvatting en deze JavaScript-pagina kon niet volledig worden gerenderd.", "Controleer de zichtbare introductie opnieuw met een volledige render voordat dit als GEO-verbeterpunt wordt aangemerkt.", 0, 6)
         : check("warning", "answer", "geo", "Expliciete paginasamenvatting", "RankFix vond onvoldoende combinatie van een beschrijvende meta description en zichtbare paginatekst om een expliciete paginasamenvatting te bevestigen.", "Voeg een concrete meta description en duidelijke zichtbare introductie toe; dit is een readiness-signaal en geen garantie op zichtbaarheid in AI-zoekmachines.", 2, 6)
@@ -4445,7 +4453,11 @@ async function runScan(request: Request) {
         // A JavaScript application shell that could not be rendered cannot prove a
         // missing title, description, H1 or canonical; those stay unconfirmed.
         const pageClientShell = isClientShell({ visibleWords: pageQualityWords, scriptCount: (pageHtml.match(/<script\b/gi) || []).length, jsFramework: representativeJsFramework, h1Count: pageH1s.length, rendered: representativeEvidenceSource === "rendered_html" });
-        const pageMissingEvidenceUnverified = partialHeadOnly || missingJsHeadEvidenceUnverified({
+        const sampleIncompleteHead = representativeEvidenceSource !== "rendered_html"
+          && Boolean(pageQualityTitle) && /<meta\\b[^>]+(?:property|name)\\s*=\\s*["'](?:og:|twitter:)/i.test(pageHtml)
+          && !pageHead.evidence.description && !pageHead.evidence.canonical
+          && !pageHead.evidence.viewport && !pageHead.evidence.lang;
+        const pageMissingEvidenceUnverified = partialHeadOnly || sampleIncompleteHead || missingJsHeadEvidenceUnverified({
           frameworkSignal: representativeJsFramework,
           rendered: representativeEvidenceSource === "rendered_html",
           clientShell: pageClientShell,
