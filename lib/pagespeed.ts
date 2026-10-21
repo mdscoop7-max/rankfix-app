@@ -67,11 +67,8 @@ export async function measureWebsiteSpeed(
     note: "Losse snelheidsmeting; niet meegewogen in SEO- of GEO-score. Geen automatische snelheidsfix.",
   };
   const key = options.apiKey ?? process.env.PAGESPEED_API_KEY;
-  if (!key) {
-    report.mobile = emptyDevice("PageSpeed API nog niet geconfigureerd");
-    report.desktop = emptyDevice("PageSpeed API nog niet geconfigureerd");
-    return report;
-  }
+  // Google documents anonymous API requests; quota/rate limits can prevent results.
+  // Always attempt both devices and report a neutral unavailable state if refused.
   // The scan route already validates the final public HTTP(S) URL. Do not
   // submit credentials, URL fragments or unsupported protocols to the provider.
   let safeUrl: URL;
@@ -86,16 +83,16 @@ export async function measureWebsiteSpeed(
     return report;
   }
   const fetcher = options.fetcher ?? fetch;
-  const deadline = Math.max(1000, Math.min(options.timeoutMs ?? 20000, 25000));
+  const deadline = Math.max(1000, Math.min(options.timeoutMs ?? 14000, 25000));
   const getDevice = async (strategy: "mobile" | "desktop"): Promise<SpeedDevice> => {
     const api = new URL("https://www.googleapis.com/pagespeedonline/v5/runPagespeed");
     api.searchParams.set("url", safeUrl.toString());
     api.searchParams.set("strategy", strategy);
     api.searchParams.set("category", "PERFORMANCE");
-    api.searchParams.set("key", key);
+    if (key) api.searchParams.set("key", key);
     try {
       const response = await fetcher(api.toString(), { signal: AbortSignal.timeout(deadline) });
-      if (!response.ok) return emptyDevice(response.status === 429 ? "Meetdienst tijdelijk beperkt" : "Meetdienst niet beschikbaar");
+      if (!response.ok) return emptyDevice(response.status === 429 ? (key ? "Meetdienst tijdelijk beperkt (API-limiet)" : "Anonieme PageSpeed-meting beperkt: API-sleutel nodig of limiet bereikt") : "Meetdienst niet beschikbaar (HTTP " + response.status + ")");
       const json = await response.json();
       return parsePageSpeed(json);
     } catch {
