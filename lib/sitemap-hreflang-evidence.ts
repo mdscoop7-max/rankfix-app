@@ -1,5 +1,5 @@
-import { decodeHtmlEntities } from "./html-entities";
-import { htmlAttributes } from "./html-document-evidence";
+import { decodeHtmlEntities } from "./html-entities.ts";
+import { htmlAttributes } from "./html-document-evidence.ts";
 
 export type SitemapHreflangEvidence = {
   currentUrlFound: boolean;
