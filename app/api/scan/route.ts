@@ -1307,7 +1307,8 @@ async function runScan(request: Request) {
       newsMediaIdentity({ title, description, h1: h1s.join(" "), homepage: isHomepage })
     );
     const earlyPropertySubtype = detectRealEstateSubtype({title,description,h1s,schemaTypes});
-    const nationwideRentalOperator = ["institutional_property_rental","property_rental_operator"].includes(earlyPropertySubtype.subtype);
+    const nationwideRentalOperator = ["institutional_property_rental","property_rental_operator"].includes(earlyPropertySubtype.subtype)
+      || (isHomepage && /\bhuurwoningen in (?:heel )?nederland\b/i.test([title,description,h1s.join(" ")].join(" ")) && !schemaSet.has("realestateagent"));
     const effectiveLocalSchemaSignal = hasLocalBusinessSignal && !nationwideRentalOperator && !governmentIdentitySignal && !governmentSchemaPresent && !transportLogisticsSchemaContext && !ecommerceSchemaContext && !newsMediaSchemaContext;
     const recommendedSchema = governmentIdentitySignal || governmentSchemaPresent
       ? (isHomepage ? "GovernmentOrganization + WebSite" : "GovernmentOrganization / WebPage")
@@ -4904,6 +4905,35 @@ async function runScan(request: Request) {
       sectorProfile.evidence = [`Scanbewijs: ${reconciledPages} representatieve pagina's noemen deze activiteit in hun eigen titel/omschrijving/H1; de homepage zelf bevestigt de sector niet`];
       sectorProfile.applicableModules = [...new Set(["core_seo","geo","technical",...reconciledTop.modules])];
       masterEvidence.activeModules = sectorProfile.applicableModules;
+    }
+
+    // A detail URL can hide the organization identity in its own title. Require
+    // independently fetched site pages to agree before recovering a sector.
+    // Do not infer a landlord subtype from an individual listing's title alone.
+    const independentlyNamedRentalPages = auditedMultiPages.filter(page=>
+      /\b(?:huurwoningen?|woningaanbod|woningverhuur|woningbelegger|rental housing|properties for rent)\b/i.test(page.ownIdentityText||"")
+    );
+    const housingDetailUrl = /\/(?:huurwoningen?|rental[-/]homes?|woningaanbod|rental[-/]properties)(?:[-/]|$)/i.test(finalUrl.pathname);
+    if (sectorProfile.sector === "unknown" && housingDetailUrl && independentlyNamedRentalPages.length >= 2 && !finalCommerceDecision.confirmed) {
+      sectorProfile.sector = "real_estate";
+      sectorProfile.key = "real_estate";
+      sectorProfile.label = "Vastgoed · subtype nog niet bevestigd";
+      sectorProfile.confidence = "medium";
+      sectorProfile.confidenceScore = Math.min(82,74+independentlyNamedRentalPages.length*2);
+      sectorProfile.evidence = [
+        "Deze detailpagina bevat woningverhuur in de URL, maar bewijst de organisatie-identiteit niet zelfstandig",
+        independentlyNamedRentalPages.length+" opgehaalde sitepagina's bevestigen huurwoningen/woningaanbod in eigen titel, H1 of omschrijving"
+      ];
+      sectorProfile.applicableModules = [...new Set(["core_seo","geo","technical",...((sectorSignals.find(x=>x.sector==="real_estate")?.modules)||[])])];
+      masterEvidence.activeModules = sectorProfile.applicableModules;
+      // This sector was recovered after the page-level checks: only add
+      // confirmed positive site-level evidence, never invented agent rules.
+      if (!seoChecks.some(item=>item.key==="sector_real_estate_listings")) {
+        const source = independentlyNamedRentalPages[0];
+        const item = check("pass","sector_real_estate_listings","seo","Vastgoedaanbod","De representatieve steekproef bevat ten minste twee onafhankelijk bevestigde woningaanbodpagina's.","Behoud de woningaanbodinformatie.",4,4);
+        item.evidence = {url:source.url,found:true,details:item.message};
+        seoChecks.push(item);
+      }
     }
 
     // An international country/language selector (proven by hreflang) is a brand
