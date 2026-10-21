@@ -8,10 +8,13 @@ import { htmlAttribute } from "./html-head-evidence.ts";
 const SOCIAL_HOSTS = /(?:^|\.)(?:linkedin\.com|youtube\.com|instagram\.com|facebook\.com|x\.com|twitter\.com|tiktok\.com)$/i;
 const SOCIAL_NAV = /<nav\b[^>]*(?:social|soziale|réseaux\s+sociaux|redes\s+sociales)[^>]*>[\s\S]*?<\/nav>/gi;
 const FOOTER = /<footer\b[^>]*>[\s\S]*?<\/footer>/gi;
+// Many corporate sites render icon links in a labelled social-media section,
+// outside the footer. Only explicitly labelled containers qualify.
+const SOCIAL_SECTION = /<section\b[^>]*(?:social-media|social-links|social-icons|follow-us|soziale-medien|socialmedia)[^>]*>[\s\S]{0,30000}?<\/section>/gi;
 const IGNORED_PATHS = /^\/(?:share|sharer|sharer\.php|intent|dialog|watch|embed|search|hashtag)(?:\/|$)/i;
 
 export function officialSocialProfileLinks(html:string):string[] {
-  const regions=[...html.matchAll(FOOTER),...html.matchAll(SOCIAL_NAV)].map(match=>match[0]);
+  const regions=[...html.matchAll(FOOTER),...html.matchAll(SOCIAL_NAV),...html.matchAll(SOCIAL_SECTION)].map(match=>match[0]);
   const links=new Set<string>();
   for(const region of regions) {
     for(const match of region.matchAll(/<a\b[^>]*>/gi)) {
