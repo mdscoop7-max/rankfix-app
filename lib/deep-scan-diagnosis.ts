@@ -73,9 +73,9 @@ export function buildDeepScanDiagnosis(input: {
     finding: String(selected - scored) + " van " + String(selected) + " geselecteerde pagina's leverden geen volledig scorende steekproef op.",
     nextStep: "Toon de niet-geverifieerde pagina's en hun ophaal-/renderreden; trek geen conclusies over de hele site.",
   });
-  if (!input.sector?.sector || input.sector.sector === "unknown" || !input.sector.confidenceScore) groups.push({
+  if (!input.sector?.sector || input.sector.sector === "unknown" || (input.sector.confidenceScore ?? 0) < 75) groups.push({
     code: "sector_unconfirmed", status: "unconfirmed", affectedRules: [],
-    finding: "De primaire organisatie-identiteit is niet onafhankelijk bewezen.",
+    finding: "De primaire organisatie-identiteit is niet voldoende onafhankelijk bevestigd; het eventuele sectorlabel is voorlopig.",
     nextStep: "Vergelijk titel, H1, eigen organisatieomschrijving, navigatie en structured data; raad de sector niet op basis van domeinnaam alleen.",
   });
   if (missingProof.length) groups.push({
