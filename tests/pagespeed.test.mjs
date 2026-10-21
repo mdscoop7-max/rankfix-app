@@ -51,12 +51,20 @@ test("The existing scan requests both devices, even if just one succeeds", async
   assert.equal(speed.desktop.score, null);
 });
 
-test("No key means unavailable, without a provider request or SEO score changes", async () => {
+test("Without an API key both anonymous strategies are still checked, with honest missing scores", async () => {
+  const devices = [];
   const speed = await measureWebsiteSpeed("https://example.org/", {
     apiKey: "",
-    fetcher: async () => { throw new Error("must not call"); },
+    fetcher: async (uri) => {
+      const u = new URL(String(uri));
+      assert.equal(u.searchParams.has("key"), false);
+      devices.push(u.searchParams.get("strategy"));
+      return new Response("quota", { status: 429 });
+    },
   });
+  assert.deepEqual(devices.sort(), ["desktop", "mobile"]);
   assert.equal(speed.status, "unavailable");
   assert.equal(speed.mobile.score, null);
   assert.equal(speed.desktop.score, null);
+  assert.match(speed.mobile.reason, /API-sleutel|limiet/i);
 });
