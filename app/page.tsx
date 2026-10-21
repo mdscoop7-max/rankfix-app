@@ -8,6 +8,7 @@ import RootMobileNav from "./root-mobile-nav";
 import PublicReviews from "@/components/public-reviews";
 import "./root-mobile-nav.css";
 import { ScoreQualifier } from "@/components/score-qualifier";
+import SpeedPromo from "@/components/speed-promo";
 import { headlineDisplay } from "@/lib/score-qualifier";
 
 type Check = {
@@ -881,6 +882,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
             </details>
           </div>
         </div>
+        <SpeedPromo locale={language} />
         <div className="mx-auto mt-4 max-w-4xl px-2">
           <div className="flex flex-wrap justify-center gap-2 text-xs font-semibold text-emerald-100">
             {(language === "nl"
