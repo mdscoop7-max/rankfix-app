@@ -1306,7 +1306,7 @@ async function runScan(request: Request) {
       schemaSet.has("newsmediaorganization") ||
       newsMediaIdentity({ title, description, h1: h1s.join(" "), homepage: isHomepage })
     );
-    const earlyPropertySubtype = detectRealEstateSubtype({title,description,h1s:identityH1s,navLabels:identityNavLabels,schemaTypes});
+    const earlyPropertySubtype = detectRealEstateSubtype({title,description,h1s,schemaTypes});
     const nationwideRentalOperator = ["institutional_property_rental","property_rental_operator"].includes(earlyPropertySubtype.subtype);
     const effectiveLocalSchemaSignal = hasLocalBusinessSignal && !nationwideRentalOperator && !governmentIdentitySignal && !governmentSchemaPresent && !transportLogisticsSchemaContext && !ecommerceSchemaContext && !newsMediaSchemaContext;
     const recommendedSchema = governmentIdentitySignal || governmentSchemaPresent
@@ -2012,7 +2012,7 @@ async function runScan(request: Request) {
         : {...legacyProfile,key:legacyProfile.sector};
 
     // Site-level business subtype differs from homepage page type; unknown remains unknown.
-    let realEstateSubtypeDecision = earlyPropertySubtype;
+    let realEstateSubtypeDecision = detectRealEstateSubtype({title,description,h1s:identityH1s,navLabels:identityNavLabels,schemaTypes});
     if (sectorProfile.sector === "real_estate") {
       Object.assign(sectorProfile, {subtype:realEstateSubtypeDecision.subtype, subtypeLabel:realEstateSubtypeDecision.label, subtypeConfidenceScore:realEstateSubtypeDecision.confidenceScore, subtypeEvidence:realEstateSubtypeDecision.evidence});
       if (realEstateSubtypeDecision.subtype !== "unknown") sectorProfile.label = "Vastgoed · " + realEstateSubtypeDecision.label;
