@@ -5103,7 +5103,6 @@ async function runScan(request: Request, restrictedQa = false) {
       sectorConfidence: sectorProfile.confidenceScore,
       commerceConfirmed: finalCommerceDecision.confirmed,
       siteSampleSelected: reportedMultiPageAudits.length,
-      siteSampleScored: scoredSamplePages.length,
     });
     // Late representative evidence is reconciled before the final score. Checks remain
     // page-specific unless their rule is explicitly a site/capability check.
