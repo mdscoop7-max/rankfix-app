@@ -4289,7 +4289,7 @@ async function runScan(request: Request, restrictedQa = false) {
       if (/^\/(?:[a-z]{2}(?:-[a-z]{2})?)\/?$/i.test(path)) score -= 10;
       return score;
     };
-    const rankedMultiPage = discoveredMultiPage.filter((item) => multiPageRelevance(item) > -100).sort((a,b) => multiPageRelevance(b) - multiPageRelevance(a));
+    const rankedMultiPage = discoveredMultiPage.filter((item) => multiPageRelevance(item) > -100).sort((a,b) => multiPageRelevance(b) - multiPageRelevance(a) || normalizeScanUrl(a.url).localeCompare(normalizeScanUrl(b.url), "en"));
     const pickMultiPage = (type: MultiPageCandidate["type"], limit: number) => rankedMultiPage.filter((item) => item.type === type).slice(0, limit);
     // Scan Motor 3.0 phase 1: broaden evidence coverage without turning the scan
     // into an unbounded crawler. Cap the selection at thirty distinct URLs;
@@ -5012,7 +5012,20 @@ async function runScan(request: Request, restrictedQa = false) {
     // Final Master reconciliation: late technology/multi-page evidence may improve
     // the site-level decision after the initial Master object was created. Keep
     // one authoritative website type, sector and page type for every consumer.
-    const sectorDisplayPolicy = sectorProfile.confidenceScore >= 80 ? "confirmed" : sectorProfile.confidenceScore >= 60 ? "probable" : "unconfirmed";
+    // A sub-75% sector is a hypothesis, not an established company identity.
+    // Keep its candidate and confidence in the evidence trail, but do not publish
+    // the guessed sector as a confirmed primary classification or activate its modules.
+    if (sectorProfile.sector !== "unknown" && sectorProfile.confidenceScore < 75) {
+      const candidate = { sector:sectorProfile.sector, label:sectorProfile.label, confidenceScore:sectorProfile.confidenceScore };
+      sectorProfile.sector = "unknown";
+      sectorProfile.key = "unknown";
+      sectorProfile.label = "Sector niet bevestigd";
+      sectorProfile.confidence = "low";
+      sectorProfile.confidenceScore = 0;
+      sectorProfile.evidence = [`Sector ter bevestiging: ${candidate.label} (${candidate.confidenceScore}%); te weinig onafhankelijk bewijs voor een sectorspecifieke audit.`];
+      sectorProfile.applicableModules = ["core_seo","geo","technical","business_identity"];
+    }
+    const sectorDisplayPolicy = sectorProfile.confidenceScore >= 80 ? "confirmed" : sectorProfile.confidenceScore >= 75 ? "probable" : "unconfirmed";
     masterEvidence.primarySector = {
       key: sectorProfile.key,
       label: sectorProfile.label,
@@ -5500,34 +5513,43 @@ async function runScan(request: Request, restrictedQa = false) {
     }
 
     const scoredSamplePages = auditedRawPages.filter((item)=>item.score!==null);
+    const unscoredSamplePages = reportedMultiPageAudits.filter((item)=>item.status !== "audited" || item.score === null)
+      .map((item) => ({
+        url: item.url,
+        httpStatus: item.httpStatus,
+        reasonCode: item.evidenceChecks?.find((finding)=>finding.status === "UNABLE_TO_CONFIRM")?.key || (item.partialHead ? "incomplete_head" : "unscored"),
+        reason: item.evidenceChecks?.find((finding)=>finding.status === "UNABLE_TO_CONFIRM")?.details || (item.partialHead ? "Onvoldoende head-metadata voor een betrouwbare paginascore." : "Deze geselecteerde pagina is niet volledig gescoord."),
+      }));
     // Audited pages with incomplete JS-dependent metadata are still listed,
     // but do not contribute an artificially perfect sample score.
     const unscoredMetadataPages = auditedRawPages.length - scoredSamplePages.length;
     const partialHeadPages = auditedRawPages.filter((item)=>item.partialHead).length;
-    const excludedNoindexPages = multiPageAudits.filter((item)=>item.evidenceChecks?.some((e)=>e.key==="noindex")).length;
-    const unableToFetchPages = multiPageAudits.length - auditedRawPages.length - excludedNoindexPages;
-    const sampleAccounting = sampleSummary(multiPageAudits.length, scoredSamplePages.length, excludedNoindexPages, unableToFetchPages, partialHeadPages);
+    const excludedNoindexPages = reportedMultiPageAudits.filter((item)=>item.evidenceChecks?.some((e)=>e.key==="noindex")).length;
+    const unableToFetchPages = reportedMultiPageAudits.length - auditedRawPages.length - excludedNoindexPages;
+    const sampleAccounting = sampleSummary(reportedMultiPageAudits.length, scoredSamplePages.length, excludedNoindexPages, unableToFetchPages, partialHeadPages);
     const multiPage = {
       accounting:sampleAccounting,
+      unscoredPages: unscoredSamplePages,
+      samplingPolicy: "Deterministische rangorde bij gelijke relevantie; inhoud, toegang en live site kunnen tussen scans veranderen.",
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:representativePageLimit,
       discoveredInternalUrls:discoveredMultiPage.length, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,
       // Which sampled page proved the product fields (null = none was proven).
       representativeProduct: productSamplePage ? { url: productSamplePage.url, fields: productFieldCount(productSamplePage.commerceEvidence?.product) } : null,
       siteSampleScore: scoredSamplePages.length ? Math.round(scoredSamplePages.reduce((sum,item)=>sum+(item.score||0),0)/scoredSamplePages.length) : null,
       siteSampleCoverage: {
-        selected: multiPageAudits.length,
+        selected: reportedMultiPageAudits.length,
         unscoredMetadata: unscoredMetadataPages,
         headOnly: partialHeadPages,
         checked: auditedRawPages.length,
         scored: scoredSamplePages.length,
         excludedNoindex: excludedNoindexPages,
         fetchFailed: unableToFetchPages,
-        unableToConfirm: multiPageAudits.length-auditedRawPages.length,
-        coveragePercent: multiPageAudits.length ? Math.round((scoredSamplePages.length/multiPageAudits.length)*100) : 0,
-        provisional: multiPageAudits.length > 0 && scoredSamplePages.length < multiPageAudits.length,
+        unableToConfirm: reportedMultiPageAudits.length-auditedRawPages.length,
+        coveragePercent: reportedMultiPageAudits.length ? Math.round((scoredSamplePages.length/reportedMultiPageAudits.length)*100) : 0,
+        provisional: reportedMultiPageAudits.length > 0 && scoredSamplePages.length < reportedMultiPageAudits.length,
       },
       siteSampleLabel: scoredSamplePages.length
-        ? (scoredSamplePages.length < multiPageAudits.length ? "Voorlopige site-samplescore" : "Site-samplescore")
+        ? (scoredSamplePages.length < reportedMultiPageAudits.length ? "Voorlopige site-samplescore" : "Site-samplescore")
         : "Site-sample niet te bevestigen",
       sitewideCommerceEvidence,
       sitewideCheckAggregation,
