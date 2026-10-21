@@ -43,6 +43,7 @@ import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSche
 import { detectPrimaryBusinessIdentity, isSiteHomepagePath } from "@/lib/primary-business-identity";
 import { detectEuPrimaryIdentity, isConsentHeading, retailSelfDescription, isPublication } from "@/lib/eu-identity";
 import { inferSectorFromIndependentSources } from "@/lib/sector-evidence-arbiter";
+import { SOFTWARE_PRODUCT_IDENTITY, SOFTWARE_PRODUCT_CAPABILITIES } from "@/lib/software-business-evidence";
 import { enforceReportConsistency } from "@/lib/report-consistency";
 import { rootLandingCandidates, isRicherRootLanding } from "@/lib/homepage-entry";
 import { normalizeScanUrlInput } from "@/lib/scan-url-input";
@@ -1766,7 +1767,7 @@ async function runScan(request: Request, restrictedQa = false) {
       {sector:"tourism_recreation",label:"Toerisme & Recreatie",patterns:[TOURISM_IDENTITY_PATTERN,TOURISM_ACTIVITY_PATTERN],modules:["core_seo","geo","local","tourism_recreation"]},
       {sector:"food_local_retail",label:"Voeding & lokale retail",patterns:[/\b(bakkerij|bakker|bakery|baker|patisserie|pastry|brood|bread|banket|artisan bakery)\b/i,/\b(gebak|taart|cakes?|croissant|sourdough|zuurdesem|vers brood|fresh bread)\b/i],modules:["core_seo","geo","local","lead_conversion","food_local_retail"]},
       {sector:"service_marketplace",label:"Dienstenplatform",patterns:[/\b(vind (?:de )?beste bedrijven|vergelijk (?:bedrijven|specialisten|dienstverleners)|dienstverleners vergelijken|professionals vergelijken|bedrijven vergelijken)\b/i,/\b(top 10|reviews?|beoordelingen|offertes? vergelijken|bedrijven voor jou|specialisten in jouw regio)\b/i],modules:["core_seo","geo","technical","structured_data","links","service_marketplace"]},
-      {sector:"saas_b2b",label:"SaaS / B2B",patterns:[/\b(saas|software platform|software-as-a-service|api platform|business software|auditsoftware|seo software|geo software|website audit|seo audit|geo audit)\b/i,/\b(demo|features|integrations|integraties|dashboard|website scan|website scannen|website analyseren|audit platform)\b/i],modules:["core_seo","geo","technical","security","structured_data","links","accessibility","lead_conversion","saas_b2b"]},
+      {sector:"saas_b2b",label:"SaaS / B2B",patterns:[SOFTWARE_PRODUCT_IDENTITY,SOFTWARE_PRODUCT_CAPABILITIES],modules:["core_seo","geo","technical","security","structured_data","links","accessibility","lead_conversion","saas_b2b"]},
       // Every signal below is only counted when its first pattern is in the page identity
       // (see anchoredToBusinessIdentity), so passing body mentions never select these sectors.
       {sector:"education",label:"Onderwijs & Opleiding",patterns:[/\b(basisschool|middelbare school|hogeschool|universiteit|university|college|mbo|hbo|onderwijs|opleidingen|opleidingscentrum|cursussen|online cursus|courses|academy|academie|school voor|schule|universität|école|scuola|escuela)\b/i,/\b(studenten|students|leerlingen|aanmelden|inschrijven|enrol|enroll|open dag|open day|studiegids|opleiding|curriculum|docenten|lesrooster)\b/i],modules:["core_seo","geo","local","lead_conversion","education"]},
