@@ -14,7 +14,8 @@ export type ScanInfrastructureFailure = {
 export function classifyScanInfrastructureFailure(error:unknown):ScanInfrastructureFailure|null {
   const message=error instanceof Error ? error.message : typeof error==="string"?error:"";
   const missing=/\bDATABASE_URL\b.*(?:ontbreekt|missing|not set|undefined)|(?:missing|ontbreekt)\s+\bDATABASE_URL\b/i.test(message);
-  const quota=/(?:neondberror|neon(?:\s|db)|postgres|database|db\.query)[\s\S]{0,400}(?:exceeded (?:the )?quota|quota exceeded|quota limit|HTTP status 402|SQLSTATE\s*53000)|(?:exceeded (?:the )?quota|quota exceeded)[\s\S]{0,400}(?:neon|postgres|database)/i.test(message);
+  const databaseErrorCode = error && typeof error === "object" && "code" in error ? String(error.code || "") : "";
+  const quota = databaseErrorCode === "53000" || /(?:neondberror|neon(?:\s|db)|postgres|database|db\.query)[\s\S]{0,400}(?:exceeded (?:the )?quota|quota exceeded|quota limit|HTTP status 402|SQLSTATE\s*53000)|(?:exceeded (?:the )?quota|quota exceeded)[\s\S]{0,400}(?:neon|postgres|database)/i.test(message);
   if (!missing && !quota)return null;
   if (missing)return {
     code:"SCAN_DATABASE_UNCONFIGURED",httpStatus:503,retryable:false,charged:false,
