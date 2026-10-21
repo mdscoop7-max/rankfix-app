@@ -9,6 +9,9 @@ const source = (path) => readFile(new URL("../" + path, import.meta.url), "utf8"
 test("database-free QA is strictly isolated to the dedicated preview branch", () => {
   const qa = { VERCEL_ENV: "preview", VERCEL_GIT_COMMIT_REF: "fix/dashboard-login-resilience-20261020" };
   assert.equal(isDatabaseFreeQaPreview(qa), true);
+  assert.equal(isDatabaseFreeQaPreview({ ...qa, VERCEL_GIT_COMMIT_REF: "qa/sector-recognition-independent-20261020" }), true);
+  assert.equal(isDatabaseFreeQaPreview({ ...qa, VERCEL_GIT_COMMIT_REF: "qa/sector-recognition-independent-20261020", VERCEL_ENV: "production" }), false);
+  assert.equal(isDatabaseFreeQaPreview({ ...qa, VERCEL_GIT_COMMIT_REF: "qa/other-test-branch" }), false);
   assert.equal(isDatabaseFreeQaPreview({ ...qa, VERCEL_ENV: "production" }), false);
   assert.equal(isDatabaseFreeQaPreview({ ...qa, VERCEL_GIT_COMMIT_REF: "main" }), false);
   assert.equal(isDatabaseFreeQaPreview({ ...qa, VERCEL_GIT_COMMIT_REF: "feat/dashboard-reference-desktop-mobile-20261019" }), false);
@@ -44,7 +47,8 @@ test("QA dashboard is branch-isolated, provides a real request and JSON export",
   assert.match(layout, /if \(isDatabaseFreeQaPreview\(\)\)/);
   assert.match(ui, /fetch\("\/api\/scan"/);
   assert.match(ui, /type: "application\/json;charset=utf-8"/);
-  assert.match(ui, /Download volledig JSON-rapport/);
+  assert.match(ui, /<a href=\{downloadHref \|\| undefined\} download=\{exportFilename\}/);
+  assert.match(ui, /Download JSON\s*<\/a>/);
   assert.doesNotMatch(ui, /INITIAL_TEST_SITES|FAKE_SCORE|MOCK_SCAN/);
 });
 
@@ -59,7 +63,9 @@ test("full QA audit has a persistent native download and mobile fallbacks", asyn
   assert.match(ui, /href=\{downloadHref \|\| undefined\} download=\{exportFilename\}/);
   assert.match(ui, /return \(\) => URL\.revokeObjectURL\(href\)/);
   assert.match(ui, /navigator\.share\(/);
-  assert.match(ui, /navigator\.clipboard\.writeText\(json\)/);
+  assert.match(ui, /onClick=\{\(\) => void copyText\(json, "Volledig rapport"\)\}/);
+  assert.match(ui, /await navigator\.clipboard\.writeText\(content\)/);
+  assert.match(ui, /document\.execCommand\("copy"\)/);
   assert.match(ui, /value=\{json\} aria-label="Volledig JSON-auditrapport"/);
   assert.match(ui, /result\.scoreModel\?\.version/);
   assert.doesNotMatch(ui, /link\.click\(\)/);

@@ -46,6 +46,8 @@ export type EuIdentityInput = {
   schemaTypes?: string[];
   hostname?: string;
   homepage?: boolean;
+  /** Bounded visible homepage text: supporting mandate evidence, never primary identity. */
+  bodyText?: string;
 };
 
 // Unicode-aware word boundaries: \b does not work for "Notícias" or "Zprávy".
@@ -166,6 +168,22 @@ const INSURANCE = stems([
   "застрахов", "osiguran", "zavarovan", "insurance", "insurer",
 ]);
 const FINANCE_SCHEMA = new Set(["bankorcreditunion", "financialservice", "financialproduct", "loanorcredit", "bankaccount", "depositaccount", "mortgageloan", "paymentcard", "creditcard", "investmentorDeposit".toLowerCase()]);
+
+// An independent central bank supervises finance and monetary stability; it
+// does not sell the typical products of a consumer bank. Require institutional
+// self-description PLUS a corroborating mandate, never a domain/brand list.
+const CENTRAL_BANK_TERMS = stems([
+  "centrale bank", "central bank", "zentralbank", "banque centrale",
+  "banca centrale", "banco central", "banca centrală", "centralbank",
+]);
+const CENTRAL_BANK_MANDATE = stems([
+  "monetair beleid", "monetary policy", "monetäre politik",
+  "politique monétaire", "politica monetaria", "política monetaria",
+  "financiële stabiliteit", "financial stability", "price stability",
+  "prijsstabiliteit", "preisstabilität", "financieel toezicht",
+  "bankentoezicht", "banking supervision", "toezicht op financiële instellingen",
+  "eurosysteem", "eurosystem", "inflatie", "inflation",
+]);
 
 // ---------------------------------------------------------------- transport
 const AIR_WORDS = words(["loty", "lotów", "lety", "letenky", "lennud", "lidojumi", "skrydžiai", "flyrejser", "flyg", "lentoja"]);
@@ -321,6 +339,8 @@ const TITLE_FAMILIES: Array<{ sector: EuSector; key: string; label: string; prim
  */
 export function detectEuPrimaryIdentity(input: EuIdentityInput): EuIdentity | null {
   const result = detectEuPrimaryIdentityCore(input);
+  // Specific institution evidence must not be overwritten by generic title-word families.
+  if (result?.key === "financial_central_bank") return result;
   const title = stripAudience((input.title || "").slice(0, 300));
   const named = TITLE_FAMILIES
     .map((f) => ({ ...f, at: title.search(new RegExp(f.re.source, f.re.flags.replace("g", ""))) }))
@@ -394,6 +414,43 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   if (publication) {
     return { sector: "news_media", key: "publisher_blog", label: "Blog & publicaties", confidence: "medium", confidenceScore: 76,
       evidence: ["Eigen identiteit: blog, magazine, gids of vergelijkingssite (schrijft over een onderwerp, is geen aanbieder ervan)"] };
+  }
+
+  // Central banks use a separate evidence path from consumer banking.
+  // For instance, an institutional title of the form "Bank X – the central
+  // bank of Y" and navigation about monetary policy are independent proofs.
+  // A story ABOUT a central bank must not become a bank website.
+  const bankInstitutionPrefix = /(?:bank|banque|banca|banco|zentralbank)/iu;
+  // A title or H1 of "Bank Name – the central bank of X" is a
+  // first-party institutional claim; a news headline about a bank is not.
+  const explicitInstitutionHeader = (line: string) => {
+    const parts = line.split(/\s*[|–—]\s*/).map(p => p.trim()).filter(Boolean);
+    return parts.length >= 2 && bankInstitutionPrefix.test(parts[0])
+      && CENTRAL_BANK_TERMS.test(parts.slice(1).join(" "));
+  };
+  const centralBankSelfIdentification =
+    explicitInstitutionHeader(title) || explicitInstitutionHeader(h1)
+    || (CENTRAL_BANK_TERMS.test(description) && CENTRAL_BANK_TERMS.test(h1)
+        && bankInstitutionPrefix.test(title + " " + site));
+  // Navigation is useful but an inaccessible/oversized menu must not hide
+  // evidence already printed in the website's own visible homepage body.
+  // Only independent mandate terminology corroborates the explicit title/H1.
+  const centralBankMandate = CENTRAL_BANK_MANDATE.test([
+    description, h1, nav, h2, (input.bodyText || "").slice(0, 120000),
+  ].join(" "));
+
+  if (!retailer && !publication && centralBankSelfIdentification && centralBankMandate) {
+    return {
+      sector: "financial_services",
+      key: "financial_central_bank",
+      label: "Financiële sector · centrale bank & toezicht",
+      confidence: "high",
+      confidenceScore: 92,
+      evidence: [
+        "Eigen titel/omschrijving bevestigt de identiteit als centrale bank",
+        "Afzonderlijke informatie bevestigt monetair beleid, toezicht of financiële stabiliteit",
+      ],
+    };
   }
 
   // 3. Financial services (banks, insurers). Payments stay in primary-business-identity.ts.

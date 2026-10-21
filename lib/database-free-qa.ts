@@ -5,7 +5,9 @@
  */
 export function isDatabaseFreeQaPreview(env: NodeJS.ProcessEnv = process.env): boolean {
   if (env.VERCEL_ENV === "production") return false;
-  if (env.VERCEL_ENV === "preview" && env.VERCEL_GIT_COMMIT_REF === "fix/dashboard-login-resilience-20261020") return true;
+  // Exact QA branch allowlist: this fixed shared preview exposes the real scan
+  // motor without DB reads/writes, logins or billing. Never enable on production.
+  if (env.VERCEL_ENV === "preview" && ["fix/dashboard-login-resilience-20261020", "qa/sector-recognition-independent-20261020"].includes(env.VERCEL_GIT_COMMIT_REF || "")) return true;
   return env.NODE_ENV === "development" && env.RANKFIX_QA_NO_DB === "1";
 }
 

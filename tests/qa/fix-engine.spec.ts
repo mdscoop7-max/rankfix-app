@@ -3,6 +3,7 @@ import fc from "fast-check";
 import { validateGithubFix } from "../../lib/github-fix-validator";
 import { validateFix, canApplyFix } from "../../lib/seo-fix-validator";
 import { getFixPolicy } from "../../lib/fix-policy";
+import { buildDeepScanDiagnosis } from "../../lib/deep-scan-diagnosis";
 
 const candidate = (current: string, proposed: string, filePath = "app/page.tsx", issueId = "H1_MISSING") =>
   validateGithubFix({ current, proposed, filePath, issue: "H1 ontbreekt", issueId });
@@ -152,5 +153,50 @@ describe("Issue-scoped metadata protection", () => {
       });
       expect(check.valid).toBe(false);
     }), { seed: 20261020, numRuns: 100 });
+  });
+});
+
+describe("generic deep evidence diagnosis", () => {
+  it("groups related schema warnings instead of suggesting two unrelated fixes", () => {
+    const report = buildDeepScanDiagnosis({
+      checks: [
+        {key:"schema",status:"warning",evidence:{found:false,url:"https://example.org"}},
+        {key:"organization_website",status:"warning",evidence:{found:false,url:"https://example.org"}},
+      ],
+      sector:{sector:"government",confidenceScore:93,evidence:["Homepage organization"]},
+      sample:{discoveredInternalUrls:40,siteSampleCoverage:{selected:10,scored:10}},
+    });
+    expect(report.rootCauseGroups.filter(x=>x.code==="machine_readable_identity")).toHaveLength(1);
+    expect(report.rootCauseGroups.find(x=>x.code==="machine_readable_identity")?.affectedRules).toHaveLength(2);
+    expect(report.scope.fullSiteVerified).toBe(false);
+    expect(report.fixReadiness.liveChangesAllowed).toBe(false);
+  });
+
+  it("reports uncertain scope and unknown sector without inventing sector identity", () => {
+    const report = buildDeepScanDiagnosis({
+      checks:[{key:"h1",status:"unable_to_confirm",evidence:{found:null}}],
+      sector:{sector:"unknown",confidenceScore:0},
+      sample:{discoveredInternalUrls:200,siteSampleCoverage:{selected:25,scored:17,fetchFailed:5}},
+      linkAudit:{unresolvedTemplateHrefs:2,checked:16,uniqueInternal:19},
+    });
+    expect(report.rootCauseGroups.map(x=>x.code)).toEqual(expect.arrayContaining([
+      "unresolved_template_hrefs", "partial_site_sampling", "sector_unconfirmed"
+    ]));
+    expect(report.scope.scored).toBe(17);
+    expect(report.scope.discovered).toBe(200);
+    expect(report.fixReadiness.codeProposalCandidates).toBe(0);
+  });
+
+  it("blocks fix proposals when a warning has no explicit source evidence", () => {
+    const report = buildDeepScanDiagnosis({
+      checks:[
+        {key:"title",status:"warning",confidence:"high",evidence:{found:false}},
+        {key:"description",status:"warning",confidence:"high",evidence:{found:null}},
+        {key:"h1",status:"pass",evidence:{found:true}},
+      ], sector:{sector:"education",confidenceScore:91},
+    });
+    expect(report.fixReadiness.codeProposalCandidates).toBe(1);
+    expect(report.fixReadiness.blockedByEvidence).toBe(1);
+    expect(report.rootCauseGroups.map(x=>x.code)).toContain("missing_issue_provenance");
   });
 });

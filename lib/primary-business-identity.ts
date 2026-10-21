@@ -17,7 +17,7 @@ export type PrimaryBusinessIdentity = {
   evidence: string[];
 };
 
-const paymentPurpose = /\b(?:payments? (?:platform|processing|processor|provider|gateway|services?|solutions?|infrastructure|technology)|(?:online|in[- ]person|digital|mobile|contactless) payments?|payment orchestration|accept (?:online |card |digital |in[- ]person )?payments?|process (?:online |card |digital )?payments?|payment service provider|merchant acquiring|merchant accounts?|fintech|financial services?|financial (?:infrastructure|platform|technology)|digital wallet|mobile wallet|(?:send|receive|transfer)(?:,? (?:and )?(?:send|receive|save|spend))* money|money transfers?|manage (?:your )?money|banking services?|betaalplatform|betaaldienst(?:verlener)?|betaaloplossingen|betalingen (?:accepteren|ontvangen|verwerken)|betaalverwerking|betaalprovider|geld (?:overmaken|versturen|sturen)|betalingsverkeer|zahlungs(?:anbieter|dienstleister|lösung(?:en)?|plattform)|paiements? en ligne|solutions? de paiement|pagos (?:online|en línea)|pagamenti (?:online|digitali))\b/i;
+const paymentPurpose = /\b(?:payments? (?:platform|processing|processor|provider|gateway|services?|solutions?|infrastructure|technology)|(?:online|in[- ]person|digital|mobile|contactless) payments?|payment orchestration|accept (?:online |card |digital |in[- ]person )?payments?|process (?:online |card |digital )?payments?|payment service provider|merchant acquiring|merchant accounts?|fintech|financial services?|financial (?:infrastructure|platform|technology)|digital wallet|mobile wallet|(?:send|receive|transfer)(?:,? (?:and )?(?:send|receive|save|spend))* money|money transfers?|manage (?:your )?money|banking services?|betaalplatform|betaaldienst(?:verlener)?|betaaloplossingen|betalingen (?:accepteren|ontvangen|verwerken)|(?:ontvang|accepteer|verwerk|faciliteer|optimaliseer|beheer) (?:online |digitale |wereldwijde )?betalingen|financi(?:ë|e)le? (?:infrastructuur|dienstverlening|diensten|platform|technologie)|betalingsinfrastructuur|betaalverwerking|betaalprovider|geld (?:overmaken|versturen|sturen)|betalingsverkeer|zahlungs(?:anbieter|dienstleister|lösung(?:en)?|plattform)|paiements? en ligne|solutions? de paiement|pagos (?:online|en línea)|pagamenti (?:online|digitali))\b/i;
 // Banks and insurers. Deliberately no bare "bank" (Dutch for sofa) or "savings".
 const bankingPurpose = /\b(?:bankieren|online banking|mobiel bankieren|bankrekening|betaalrekening|spaarrekening|bank accounts?|savings accounts?|current accounts?|hypothe(?:ek|ken|cair)|mortgages?|persoonlijke lening|personal loans?|business loans?|zakelijke financiering|credit cards?|creditcards?|beleggen|vermogensbeheer|wealth management|girokonto|sparkonto|baufinanzierung|compte bancaire|conto corrente|cuenta bancaria)\b/i;
 const insurancePurpose = /\b(?:verzekering(?:en)?|verzekeraar|zorgverzekering|autoverzekering|insurance|insurer|versicherung(?:en)?|assurances?|assicurazion[ei]|seguros?)\b/i;
@@ -25,6 +25,13 @@ const insurancePurpose = /\b(?:verzekering(?:en)?|verzekeraar|zorgverzekering|au
 // words in its title ("camping", "saving", "insurance included") describe the
 // assortment, not the company's own business.
 const retailSalesLanguage = /\b(?:webshop|webwinkel|online winkel|online store|online shop|shop online|onlineshop|online (?:kopen|bestellen|shoppen)|bestel(?:len)? (?:direct |eenvoudig |snel )?online|koop (?:direct )?online|buy online|order online|gratis verzending|free shipping|kopen\b|bestellen\b|winkelwagen|in de winkel|shop now)\b/i;
+// A single first-party headline can assert TWO different aspects of the same
+// core financial service (the service itself plus actual money movement). That
+// supports a tentative payment-provider identity even if metadata is generic.
+// Never use a bare "billing", "API", "platform", brand name or feature name.
+const paymentInfrastructureIdentity = /\b(?:financi(?:ë|e)le? infrastructuur|financial infrastructure|payments? infrastructure|payments? (?:platform|provider|processor|processing|gateway|services?)|betaal(?:platform|provider|verwerking|infrastructuur)|betalingsinfrastructuur|payment service provider|merchant acquiring|infrastructure (?:de |pour les )?paiements?|infraestructura de pagos|infrastruttura (?:dei )?pagamenti)\b/iu;
+const paymentTransactionMandate = /\b(?:ontvang(?:en|t)?(?: \w+){0,3} betalingen|accepteer(?: \w+){0,3} betalingen|verwerk(?:en|t)?(?: \w+){0,3} betalingen|betalingen (?:ontvangen|verwerken|accepteren)|accept(?:ing)? payments?|process(?:ing)? payments?|payouts?|uitbetalingen|money transfers?|transacties? (?:verwerken|afhandelen)|transacti(?:on|e)s? processing|accepter des paiements|aceptar pagos|accettare pagamenti)\b/iu;
+
 const contextualFinancialSchema = new Set([
   "financialservice", "bankorcreditunion", "paymentservice",
   "paymentcard", "creditcard", "loanorcredit", "financialproduct",
@@ -46,6 +53,7 @@ export function detectPrimaryBusinessIdentity(input: {
   description?: string;
   headings?: string[];
   schemaTypes?: string[];
+  homepage?: boolean;
 }): PrimaryBusinessIdentity {
   // Audience clauses ("IT-Dienstleister für Banken und Versicherungen") name
   // customers, not the company's own financial or lodging business.
@@ -67,10 +75,13 @@ export function detectPrimaryBusinessIdentity(input: {
   const financeTextSources = Number(paymentTitle) + Number(paymentDescription) + Number(paymentHeading);
   // Two independent identity sources, or one plus typed financial schema.
   // A retailer's own sales language overrides generic money wording.
-  const paymentsProven = !retailSeller && (
-    (paymentTitle && paymentDescription)
-    || financeTextSources >= 2
-    || (financeTextSources >= 1 && financeSchema));
+  const detailedSingleSourcePaymentIdentity = Boolean(input.homepage && !retailSeller &&
+    [title, description, heading].some((source) => paymentInfrastructureIdentity.test(source) && paymentTransactionMandate.test(source)));
+  const paymentsStronglyProven = !retailSeller && (financeTextSources >= 2 || (financeTextSources >= 1 && financeSchema));
+  // One first-party homepage source showing both financial infrastructure and
+  // real payment movement can decide financial vs generic software, but only at
+  // medium confidence. An unrelated payment feature alone is insufficient.
+  const paymentsProven = paymentsStronglyProven || detailedSingleSourcePaymentIdentity;
   const bankingTerms = new Set((identityText.match(new RegExp(bankingPurpose.source, "gi")) || []).map((term) => term.toLowerCase()));
   const insuranceProven = !retailSeller && (schema.has("insuranceagency") || insurancePurpose.test(title));
   const bankingProven = !retailSeller && (bankingTerms.size >= 2 || (bankingTerms.size >= 1 && financeSchema));
@@ -98,8 +109,8 @@ export function detectPrimaryBusinessIdentity(input: {
     return {
       sector: "financial_services",
       financialKind,
-      confidence: "high",
-      confidenceScore: financeSchema ? 96 : 92,
+      confidence: financialKind === "payments" && !paymentsStronglyProven ? "medium" : "high",
+      confidenceScore: financialKind === "payments" && !paymentsStronglyProven ? 78 : financeSchema ? 96 : 92,
       evidence: [
         financialKind === "banking" ? "Bedrijfsidentiteit bevestigt bank-/financiële producten" : "",
         financialKind === "insurance" ? "Bedrijfsidentiteit bevestigt verzekeringen" : "",
@@ -107,6 +118,7 @@ export function detectPrimaryBusinessIdentity(input: {
         paymentDescription && financialKind === "payments" ? "Bedrijfsomschrijving bevestigt financiële/betaaldiensten" : "",
         paymentHeading && financialKind === "payments" ? "Hoofdkop bevestigt financiële/betaaldiensten" : "",
         financeSchema ? "Aanvullend financieel structured-data-signaal" : "",
+        financialKind === "payments" && detailedSingleSourcePaymentIdentity && !paymentsStronglyProven ? "Eén eigen homepagebron bevestigt financiële infrastructuur én daadwerkelijke betaalverwerking; zekerheid voorlopig begrensd" : "",
       ].filter(Boolean),
     };
   }

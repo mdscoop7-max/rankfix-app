@@ -37,6 +37,15 @@ export function schemaAdviceForSector(input: {
   const own = `${input.key || ""} ${input.label || ""} ${input.ownIdentityText || ""}`.toLowerCase();
   const withSite = (type: string) => (input.isHomepage ? `${type} + WebSite` : `${type} / WebPage`);
 
+  if (input.sector === "real_estate" && input.key === "residential_landlord") {
+    return {
+      recommended: withSite("Organization"),
+      accepted: new Set(ORG_BASE),
+      contextLabel: input.isHomepage ? "woningverhuur-homepage" : "woningverhuurpagina",
+      suppressLocalBusiness: true,
+    };
+  }
+
   if (input.sector === "health_wellness") {
     const hospitalLike = /healthcare_academic|hospital|ziekenhuis|medisch centrum|medical cent|umc|klinikum|krankenhaus|hôpital|ospedal/.test(own);
     if (hospitalLike) {
