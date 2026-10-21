@@ -28,6 +28,7 @@ import { renderOnce, renderWithRetry, representativeNeedsJavaScriptRendering } f
 import { isFinancialOfferSchema, missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore } from "@/lib/sample-quality";
 import { parseStructuredPrice, offerPrice } from "@/lib/price";
 import { detectBusinessModel } from "@/lib/business-model";
+import { resolvePrimaryWebsiteType } from "@/lib/website-type-evidence";
 import { indexJsonLdIds, resolveSchemaImage } from "@/lib/schema-image";
 import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, commerceServiceSignals, compareScoreVersions } from "@/lib/scan-feedback";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
@@ -5086,16 +5087,24 @@ async function runScan(request: Request, restrictedQa = false) {
       masterEvidence.primarySector.confidenceScore = sectorProfile.confidenceScore;
       masterEvidence.primarySector.displayPolicy = "confirmed";
     }
-    const websiteType = finalCommerceDecision.confirmed
-      ? "Webshop"
-      : sectorProfile.key === "recruitment" && masterEvidence.businessModels.includes("recruitment")
-        ? "Recruitmentwebsite"
-        // Reserving or collecting in-store is a secondary retail capability, not a booking site.
-        : sectorProfile.key !== "ecommerce" && masterEvidence.businessModels.some(model => model === "appointments" || model === "reservations" || model === "bookings")
-          ? "Boekings-/afsprakenwebsite"
-          : technologyProfile.siteType === "Landingpage"
-            ? "Website"
-            : technologyProfile.siteType;
+    const websiteType = resolvePrimaryWebsiteType({
+      primarySector: sectorProfile.sector,
+      primaryKey: sectorProfile.key,
+      commerceConfirmed: finalCommerceDecision.confirmed,
+      technologySiteType: technologyProfile.siteType,
+      businessModels: masterEvidence.businessModels,
+    });
+    // Log the FINAL reconciled type. The earlier technology_profile_built log
+    // is only a preliminary technology inference and may contain commerce hints
+    // on payment/service sites whose main business is not retail.
+    console.info("RankFix scan phase", {
+      phase: "website_type_reconciled", page: finalUrl.toString(),
+      websiteType, primarySector: sectorProfile.sector,
+      sectorConfidence: sectorProfile.confidenceScore,
+      commerceConfirmed: finalCommerceDecision.confirmed,
+      siteSampleSelected: reportedMultiPageAudits.length,
+      siteSampleScored: scoredSamplePages.length,
+    });
     // Late representative evidence is reconciled before the final score. Checks remain
     // page-specific unless their rule is explicitly a site/capability check.
     if (sectorProfile.sector === "automotive") {
