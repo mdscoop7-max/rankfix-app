@@ -135,10 +135,11 @@ export default function DatabaseFreeQaDashboard() {
     `Totaal: ${result.overallScore ?? "n.b."}/100`,
     `SEO: ${result.seo?.score ?? "niet getest"}`,
     `GEO: ${result.geo?.score ?? "niet getest"}`,
-    `Bewijsdekking: ${result.coverage?.coveragePercent == null ? "n.b." : `${result.coverage.coveragePercent}%`}`,
+    `Bewijsdekking: ${result.coverage?.coveragePercent == null ? "n.b." : `${result.coverage.coveragePercent}%`} (gewogen toepasselijke scancontroles, geen paginadekking)`,
     `Sector: ${result.sectorProfile?.label || "Niet bevestigd"}${typeof result.sectorProfile?.confidenceScore === "number" ? ` (${result.sectorProfile.confidenceScore}% zekerheid)` : ""}`,
     ...(sectorCorrection.trim() ? [`Gebruikersvoorstel sector (niet door RankFix bevestigd): ${sectorCorrection.trim()}`] : []),
     ...(result.deepDiagnosis?.scope ? [`Scanbereik: representatieve steekproef; ${result.deepDiagnosis.scope.scored ?? 0} scorende van ${result.deepDiagnosis.scope.sampled ?? 0} geselecteerde pagina\u0027s. Geen volledige sitecrawl.`] : []),
+    ...(result.multiPage?.siteSampleCoverage?.selected ? [`Pagina-steekproefdekking: ${result.multiPage.siteSampleCoverage.coveragePercent ?? "n.b."}% (${result.multiPage.siteSampleCoverage.scored ?? 0}/${result.multiPage.siteSampleCoverage.selected} geselecteerde pagina\u0027s volledig gescoord). Dit staat los van de bewijsdekking van controles.`] : []),
     ...(result.deepDiagnosis?.evidence?.unresolvedTemplateLinks ? [`Linkbewijs: ${result.deepDiagnosis.evidence.unresolvedTemplateLinks} technische template-href(s) niet als bewezen broken links meegerekend.`] : []),
     ...(result.multiPage?.siteSampleCoverage?.provisional ? [`Site-steekproef voorlopig (${result.multiPage.siteSampleCoverage.scored ?? 0}/${result.multiPage.siteSampleCoverage.selected ?? 0} pagina\u0027s); de totaalscore betreft gecontroleerde SEO/GEO-signalen, geen gehele site.`] : []),
     ...((result.multiPage?.unscoredPages || []).length ? ["Niet volledig gescoorde steekproefpagina\u0027s:",...(result.multiPage?.unscoredPages || []).slice(0, 12).map((page)=>`- ${page.url} — ${page.reasonCode}: ${page.reason}`)] : []),
@@ -225,6 +226,7 @@ export default function DatabaseFreeQaDashboard() {
               <p className="text-sm text-slate-500">{label}</p><p className="mt-1 text-3xl font-bold">{value ?? "—"}</p>
             </div>)}
           </div>
+          <p className="mt-3 text-sm text-slate-600">Bewijsdekking geeft aan welk deel van de toepasselijke SEO/GEO-controles is onderbouwd; de pagina-steekproef wordt apart getoond en een volledig gescoorde steekproef is geen volledige sitecrawl.</p>
           <p className="mt-4"><strong>Herkende sector:</strong> {result.sectorProfile?.label || "Niet bevestigd"}
             {typeof result.sectorProfile?.confidenceScore === "number" ? ` (${result.sectorProfile.confidenceScore}% zekerheid)` : ""}
           </p>
