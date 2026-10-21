@@ -5085,6 +5085,43 @@ async function runScan(request: Request) {
       }
     }
 
+    // Registered company information is commonly on Impressum/legal or contact
+    // pages. Only a successfully audited first-party legal/contact page with a
+    // concrete address, phone, email or registration can upgrade this finding.
+    // The mere word "Impressum" or a page link is never business-details proof.
+    const businessCheck = seoChecks.find(item=>item.key==="business_placeholders");
+    if (businessCheck?.status==="unable_to_confirm") {
+      const evidencePages=auditedMultiPages.filter(item=>
+        ["contact","legal"].includes(item.type) ||
+        /\/(?:impressum|imprint|rechtliche-hinweise|mentions-legales|contact|kontakt|over-ons)(?:\/|$)/i.test(new URL(item.url).pathname)
+      );
+      for (const page of evidencePages) {
+        const sampleText=String(page.identityText||"");
+        const proof=assessBusinessDetails({
+          placeholders:[],details:findBusinessContactDetails(sampleText,""),
+          registration:findCompanyRegistration(sampleText),
+          schemaContact:false,thinShell:false
+        });
+        if (proof.status!=="pass")continue;
+        const message="Concrete bedrijfsgegevens bevestigd op een representatieve juridische-/contactpagina ("+page.url+"): "+proof.found.join(", ")+".";
+        Object.assign(businessCheck,check("pass","business_placeholders","seo","Bedrijfsgegevens",message,"Houd deze gegevens actueel en bereikbaar.",6,6));
+        businessCheck.evidence={url:page.url,found:true,details:message};
+        const entityCheck=geoChecks.find(item=>item.key==="entity");
+        if (entityCheck && entityCheck.status==="warning" && hasVisibleBusinessIdentity) {
+          const entityMessage="Organisatie-identiteit op homepage en concrete bedrijfsgegevens op "+page.url+" zijn onafhankelijk bevestigd.";
+          Object.assign(entityCheck,check("pass","entity","geo","Entity-signalen",entityMessage,"Houd publieke organisatie- en contactgegevens consistent.",10,10));
+          entityCheck.evidence={url:page.url,found:true,details:entityMessage};
+        }
+        const brandCheck=geoChecks.find(item=>item.key==="identity");
+        if (brandCheck && brandCheck.status==="warning" && visibleBrandNameSignal && visibleBrandLogoSignal) {
+          const brandMessage="Merknaam en logo op homepage, plus zakelijke contact-/registratiegegevens uit "+page.url+" bevestigd; externe sociale profielen zijn afzonderlijk te beoordelen.";
+          Object.assign(brandCheck,check("pass","identity","geo","Brand identity",brandMessage,"Houd merknaam, logo en geverifieerde bedrijfsgegevens consistent.",5,5));
+          brandCheck.evidence={url:page.url,found:true,details:brandMessage};
+        }
+        break;
+      }
+    }
+
     // The form check above can change after the security score was first computed.
     // Recompute from the final check list so the score always equals the points shown.
     {
