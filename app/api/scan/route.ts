@@ -2160,6 +2160,46 @@ async function runScan(request: Request, restrictedQa = false) {
       ...capabilityModules.filter((module)=>!sectorDefiningModules.has(module)),
     ])];
 
+    // Explain which classifier had enough independent evidence. The sample
+    // crawl runs later, so its pages must not be presented as evidence that was
+    // used for the initial homepage identity decision.
+    const sectorDecisionTrace = {
+      version: "2.0",
+      scope: "homepage_primary_identity",
+      inputs: {
+        title: Boolean(title), description: Boolean(description),
+        h1Count: identityH1s.length, h2Count: identityH2s.length,
+        navigationLabels: identityNavLabels.length,
+        schemaTypes: schemaTypes.length,
+        rendered: javascriptExecuted,
+      },
+      candidates: {
+        primaryBusiness: { sector: primaryBusinessEvidence.sector,
+          financialKind: primaryBusinessEvidence.financialKind || null,
+          confidenceScore: primaryBusinessEvidence.confidenceScore,
+          evidence: primaryBusinessEvidence.evidence },
+        multilingual: euPrimaryIdentity
+          ? { sector: euPrimaryIdentity.sector, key: euPrimaryIdentity.key, confidenceScore: euPrimaryIdentity.confidenceScore, evidence: euPrimaryIdentity.evidence }
+          : null,
+        crossSource: independentSectorEvidence
+          ? { sector: independentSectorEvidence.sector, confidenceScore: independentSectorEvidence.confidenceScore, sourceIds: independentSectorEvidence.sourceIds }
+          : null,
+        keywordOnly: legacyIdentityCandidate
+          ? { sector: legacyIdentityCandidate.sector, confidenceScore: legacyIdentityCandidate.confidenceScore }
+          : null,
+        catalog: evidenceSectorCandidates.slice(0, 3).map(item => ({ key: item.key, score: item.score })),
+      },
+      selected: {
+        sector: sectorProfile.sector, key: sectorProfile.key,
+        label: sectorProfile.label, confidenceScore: sectorProfile.confidenceScore,
+        evidence: sectorProfile.evidence,
+      },
+      notes: [
+        "De sector volgt uit organisatie-identiteit en onafhankelijke bewijzen, niet uit de merknaam of domeinlijst.",
+        "Extra gescande pagina's worden apart beoordeeld; een homepage-sector is geen bewijs voor alle pagina's.",
+      ],
+    };
+
     const masterEvidence = {
       version:"1.0",
       primarySector:{
@@ -5849,6 +5889,7 @@ async function runScan(request: Request, restrictedQa = false) {
       pageTypeInvariant,
       technologyProfile,
       sectorProfile,
+      sectorDecisionTrace,
       commerceApplicability: commerceApplicabilityReport,
       evidenceLayer,
       security: securityEngine,
