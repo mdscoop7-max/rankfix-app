@@ -45,6 +45,7 @@ import { detectEuPrimaryIdentity, isConsentHeading, retailSelfDescription } from
 import { enforceReportConsistency } from "@/lib/report-consistency";
 import { rootLandingCandidates, isRicherRootLanding } from "@/lib/homepage-entry";
 import { normalizeScanUrlInput } from "@/lib/scan-url-input";
+import { classifyLinkAuditInputs } from "@/lib/link-audit-evidence";
 
 export const maxDuration = 300;
 
@@ -1609,7 +1610,10 @@ async function runScan(request: Request, restrictedQa = false) {
         return { sourceHref, context: [anchorText, imageAlt].filter(Boolean).join(" ").trim().slice(0, 220) };
       })
       .filter((item) => item.sourceHref && !/^(?:#|mailto:|tel:|javascript:)/i.test(item.sourceHref));
-    const allUniqueInternalAnchors = [...new Map(anchorTags.flatMap((item) => {
+    // A client-template variable is not a visited URL. Preserve this uncertainty
+    // rather than manufacturing a 404 and claiming a confirmed broken link.
+    const { actionable: actionableAnchorTags, unresolvedTemplates: unconfirmedTemplateAnchors } = classifyLinkAuditInputs(anchorTags);
+    const allUniqueInternalAnchors = [...new Map(actionableAnchorTags.flatMap((item) => {
       try {
         const parsed = new URL(item.sourceHref, finalUrl);
         if (!/^https?:$/.test(parsed.protocol) || parsed.hostname !== finalUrl.hostname) return [];
@@ -2428,6 +2432,7 @@ async function runScan(request: Request, restrictedQa = false) {
       (rawVisibleWords < 100 && rawScriptCount >= 4) ||
       /<div\b[^>]*\bid\s*=\s*["'](?:root|app|__next|__nuxt)["'][^>]*>\s*<\/div>/i.test(rawHtml)
     );
+    const unconfirmedLinkCount = unconfirmedInternalLinks.length + unconfirmedTemplateAnchors.length;
     const brokenInternalLinkRatio = checkedInternalLinkCount ? brokenInternalLinks.length / checkedInternalLinkCount : 0;
     const brokenLinkPoints = brokenInternalLinkRatio <= 0.05 ? 4 : brokenInternalLinkRatio <= 0.15 ? 3 : brokenInternalLinkRatio <= 0.30 ? 2 : 1;
     const redirectedInternalLinkRatio = checkedInternalLinkCount ? redirectedInternalLinks.length / checkedInternalLinkCount : 0;
@@ -2439,8 +2444,8 @@ async function runScan(request: Request, restrictedQa = false) {
         ? check("not_applicable", "broken_links", "seo", "Broken links", "Geen controleerbare interne links gevonden op deze pagina.", "Controleer links opnieuw wanneer de pagina interne navigatie bevat.", 0, 5)
         : brokenInternalLinks.length > 0
           ? check("warning", "broken_links", "seo", "Broken links", `${brokenInternalLinks.length} van ${linkAuditResults.length} gecontroleerde interne link(s) gaf een bewezen foutstatus (${Math.round(brokenInternalLinkRatio * 100)}%). Voorbeeld: ${brokenInternalLinks[0]?.url} → HTTP ${brokenInternalLinks[0]?.status}.`, "Herstel de bestemming, verwijder de link of redirect een oude URL naar de juiste relevante pagina.", brokenLinkPoints, 5)
-          : unconfirmedInternalLinks.length > 0
-            ? check("unable_to_confirm", "broken_links", "seo", "Broken links", `${unconfirmedInternalLinks.length} van ${linkAuditResults.length} interne link(s) kon tijdens deze scan niet betrouwbaar worden opgehaald. Er is geen 404/410/5xx bewezen.`, "Controleer deze links opnieuw; een fetchfout alleen is geen bewijs van een kapotte link.", 0, 5)
+          : unconfirmedLinkCount > 0
+            ? check("unable_to_confirm", "broken_links", "seo", "Broken links", `${unconfirmedInternalLinks.length} ophaalfout(en) bij ${linkAuditResults.length} gecontroleerde interne URL(s); ${unconfirmedTemplateAnchors.length} onopgeloste HTML-templatehref(s) zijn niet als echte bezoekerslinks bewezen. Voor deze gevallen is geen broken-linkstatus bewezen.`, "Controleer twijfelgevallen in de werkelijk gerenderde DOM; een technische placeholder of fetchfout is geen bewezen kapotte link.", 0, 5)
             : check("pass", "broken_links", "seo", "Broken links", `${linkAuditResults.length} interne link(s) steekproefsgewijs gecontroleerd; geen 404, 410 of 5xx gevonden.`, "Blijf interne links controleren bij wijzigingen en verwijderde pagina's.", 5, 5)
     );
     seoChecks.push(
@@ -5768,9 +5773,10 @@ async function runScan(request: Request, restrictedQa = false) {
       javascriptExecuted,
       internalLinks: {
         anchorsFound: anchorTags.length,
+        unresolvedTemplateHrefs: unconfirmedTemplateAnchors.length,
         uniqueInternal: allUniqueInternalAnchors.length,
         checked: linkAuditResults.length,
-        limit: 24,
+        limit: 16,
         truncated: allUniqueInternalAnchors.length > linkAuditResults.length,
       },
       accessibility: javascriptExecuted && renderedDocument?.domAccessibility ? "HYDRATED_DOM_BASICS" as const : "INDICATIVE_ONLY" as const,
