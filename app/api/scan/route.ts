@@ -11,6 +11,8 @@ import { getFixPolicy } from "@/lib/fix-policy";
 import { isTransientSeoCopy } from "@/lib/meta-description-fix";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { extractHeadMetadata } from "@/lib/html-head-evidence";
+import { industrialCorporateEvidence } from "@/lib/industrial-corporate";
+import { officialSocialProfileLinks } from "@/lib/social-profile-evidence";
 import { detectRealEstateSubtype } from "@/lib/real-estate-subtype";
 import { normalizeLegalText, LEGAL_LINK_LEXICON } from "@/lib/legal-lexicon";
 import { assessPassiveSecurity, formBlocks, setCookieValues } from "@/lib/security-signals";
@@ -1106,7 +1108,10 @@ async function runScan(request: Request) {
     // such as "postcode" or an e-mail input are not contact details.
     const businessContactDetails = findBusinessContactDetails(text, html, finalUrl.hostname);
     const hasBusinessContactDetails = hasBusinessContactDetailsFn(businessContactDetails);
-    const hasSocialOrReviewSignal = /\b(instagram|facebook|linkedin|google reviews|reviews|tripadvisor|trustpilot)\b/i.test(text) || sameAsCount > 0;
+    // Count only profiles explicitly linked from the site or recognizable review evidence;
+    // generic names of platforms in text can refer to customers or competitors.
+    const officialSocialUrls = officialSocialProfileLinks(html);
+    const hasSocialOrReviewSignal = officialSocialUrls.length > 0 || sameAsCount > 0 || /\b(google reviews|klantreviews|geverifieerde beoordelingen|trustpilot|tripadvisor)\b/i.test(text);
     const hasContactChannelSignal = hasBusinessContactDetails || (hasContactSignal && (hasContactFormSignal || hasContactActionSignal));
     const hasServiceExpertiseSignal = /\b(diensten|services|service|specialist|specialisten|expert|expertise|seo|geo|structured data|schema\.org|technical seo|technische seo|ai[- ]search|search readiness|auditsoftware|auditing|behandeling|behandelingen|hair|haar|knippen|kleur|color|styling|restaurant|keuken|cuisine|tandarts|elektricien|loodgieter|aannemer|dakdekker)\b/i.test(text);
     const hasStrongCommerceAction = /\b(add to cart|add-to-cart|add to basket|buy now|in winkelwagen|toevoegen(?: aan winkelwagen)?|koop nu|jetzt kaufen|in den warenkorb|ajouter au panier|acheter maintenant|añadir al carrito|comprar ahora|aggiungi al carrello|acquista ora)\b/i.test(text);
@@ -4934,6 +4939,35 @@ async function runScan(request: Request) {
         item.evidence = {url:source.url,found:true,details:item.message};
         seoChecks.push(item);
       }
+    }
+
+    // Sparse corporate homepages can still establish industrial identity when a
+    // checked first-party About/Unternehmen page declares a tech/industrial group
+    // and an independent services page confirms the same economic activity.
+    // This is not a keyword fallback: no customer names, no secondary news body.
+    const corporateIndustrial = industrialCorporateEvidence({
+      homeHeadings:headings.filter(h=>h.level===2 || h.level===3).map(h=>h.text).slice(0,24),
+      pages:auditedMultiPages.map(p=>({
+        url:p.url,type:p.type,identityText:p.identityText||"",
+        ownIdentityText:p.ownIdentityText||p.title||""
+      })),
+    });
+    if (corporateIndustrial && !masterIdentityOverride && !finalCommerceDecision.confirmed
+      && !retailPrimaryIdentity && sectorProfile.sector==="unknown" && !marketSelectorPage) {
+      sectorProfile.sector=corporateIndustrial.sector;
+      sectorProfile.key=corporateIndustrial.sector;
+      sectorProfile.label="Industrie & technologie";
+      sectorProfile.confidence="high";
+      sectorProfile.confidenceScore=corporateIndustrial.confidenceScore;
+      sectorProfile.evidence=corporateIndustrial.evidence;
+      sectorProfile.applicableModules=[...new Set([...sectorProfile.applicableModules,"manufacturing_industrial"])];
+      Object.assign(sectorProfile,{
+        subtype:corporateIndustrial.subtype,
+        subtypeLabel:"Industrieel technologieconcern",
+        subtypeConfidenceScore:corporateIndustrial.confidenceScore,
+        subtypeEvidence:corporateIndustrial.evidence
+      });
+      masterEvidence.activeModules=sectorProfile.applicableModules;
     }
 
     // An international country/language selector (proven by hreflang) is a brand
