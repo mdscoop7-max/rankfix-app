@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { copy, type Locale } from "@/lib/locales";
 import { ScoreQualifier } from "@/components/score-qualifier";
+import SpeedPromo from "@/components/speed-promo";
 import { headlineDisplay } from "@/lib/score-qualifier";
 const freeInfo: Record<Locale,{title:string;items:string[]}> = {
   nl:{title:"Wat controleert de gratis RankFix-scan?",items:["SEO & GEO / AI Search","Security & techniek","Webshop & Merchant Readiness","EU Consumer Rights & Consent Mode","Ads & Analytics · Search Console · Local SEO","Structured Data & Accessibility","Quality & Trust · Broken Links · Redirects","Direct een score met concrete verbeterpunten. Geen betaalkaart nodig; RankFix wijzigt niets automatisch."]},
@@ -48,6 +49,7 @@ export default function ScanClient({ locale }: { locale: Locale }) {
   const unableToConfirm = checks.filter(check => check.status === "unable_to_confirm").length;
   return <div className="lc-container lc-prose"><h1>{t.run}</h1><p>{t.intro}</p>
     <section className="lc-card lc-free-scope"><strong>{free.title}</strong><div className="lc-free-scope-grid">{free.items.map(item=><span key={item}>✓ {item}</span>)}</div></section>
+    <SpeedPromo locale={locale} variant="dark" />
     <form onSubmit={run} className="lc-scan-box"><label htmlFor="lc-url">{t.url}</label><input id="lc-url" value={url} onChange={event => { const next=event.target.value; const embedded=next.slice(1).search(/https?:\/\//i); setUrl(embedded>=0?next.slice(embedded+1):next); }} onFocus={event=>event.currentTarget.select()} placeholder="https://example.com" required /><button type="submit" disabled={busy} className="lc-primary">{busy ? t.running : t.run}</button></form>
     {error && <p role="alert" className="lc-note">{error}</p>}
     {busy && <section className="lc-scan-visual" aria-live="polite"><div className="lc-meter lc-meter-running"><div className="lc-meter-core"><strong>AI</strong><span>{t.running}</span></div></div><div><h2>{t.running}</h2><p>{u.scope}</p></div></section>}
