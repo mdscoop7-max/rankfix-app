@@ -13,6 +13,7 @@ type AuditResult = {
   geo?: { score?: number; checks?: AuditCheck[] };
   sectorProfile?: { label?: string; confidence?: string; confidenceScore?: number; evidence?: string[] };
   coverage?: { coveragePercent?: number; unableToConfirm?: number; confirmed?: number };
+  multiPage?: { siteSampleCoverage?: { selected?: number; scored?: number; coveragePercent?: number; provisional?: boolean }; unscoredPages?: Array<{ url: string; httpStatus?: number | null; reasonCode: string; reason: string }> };
   selfCheck?: { consistent?: boolean; reliability?: string; reliabilityReasons?: string[] };
   deepDiagnosis?: { scope?: { sampled?: number; scored?: number; discovered?: number; fullSiteVerified?: boolean };
     evidence?: { unresolvedTemplateLinks?: number; unconfirmed?: number };
@@ -31,6 +32,7 @@ export default function DatabaseFreeQaDashboard() {
   const [json, setJson] = useState("");
   const [downloadHref, setDownloadHref] = useState("");
   const [exportMessage, setExportMessage] = useState("");
+  const [sectorCorrection, setSectorCorrection] = useState("");
 
   // Keep the URL alive while the report is on screen, instead of revoking it
   // immediately after a click (which may cancel the download on Android).
@@ -52,6 +54,7 @@ export default function DatabaseFreeQaDashboard() {
     setResult(null);
     setJson("");
     setExportMessage("");
+    setSectorCorrection("");
     try {
       const response = await fetch("/api/scan", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -134,8 +137,11 @@ export default function DatabaseFreeQaDashboard() {
     `GEO: ${result.geo?.score ?? "niet getest"}`,
     `Bewijsdekking: ${result.coverage?.coveragePercent == null ? "n.b." : `${result.coverage.coveragePercent}%`}`,
     `Sector: ${result.sectorProfile?.label || "Niet bevestigd"}${typeof result.sectorProfile?.confidenceScore === "number" ? ` (${result.sectorProfile.confidenceScore}% zekerheid)` : ""}`,
+    ...(sectorCorrection.trim() ? [`Gebruikersvoorstel sector (niet door RankFix bevestigd): ${sectorCorrection.trim()}`] : []),
     ...(result.deepDiagnosis?.scope ? [`Scanbereik: representatieve steekproef; ${result.deepDiagnosis.scope.scored ?? 0} scorende van ${result.deepDiagnosis.scope.sampled ?? 0} geselecteerde pagina\u0027s. Geen volledige sitecrawl.`] : []),
     ...(result.deepDiagnosis?.evidence?.unresolvedTemplateLinks ? [`Linkbewijs: ${result.deepDiagnosis.evidence.unresolvedTemplateLinks} technische template-href(s) niet als bewezen broken links meegerekend.`] : []),
+    ...(result.multiPage?.siteSampleCoverage?.provisional ? [`Site-steekproef voorlopig (${result.multiPage.siteSampleCoverage.scored ?? 0}/${result.multiPage.siteSampleCoverage.selected ?? 0} pagina\u0027s); de totaalscore betreft gecontroleerde SEO/GEO-signalen, geen gehele site.`] : []),
+    ...((result.multiPage?.unscoredPages || []).length ? ["Niet volledig gescoorde steekproefpagina\u0027s:",...(result.multiPage?.unscoredPages || []).slice(0, 12).map((page)=>`- ${page.url} — ${page.reasonCode}: ${page.reason}`)] : []),
     `Aandachtspunten: ${issues.length} · Niet bevestigd: ${unknown.length}`,
     "",
     "Belangrijkste aandachtspunten:",
@@ -222,6 +228,17 @@ export default function DatabaseFreeQaDashboard() {
           <p className="mt-4"><strong>Herkende sector:</strong> {result.sectorProfile?.label || "Niet bevestigd"}
             {typeof result.sectorProfile?.confidenceScore === "number" ? ` (${result.sectorProfile.confidenceScore}% zekerheid)` : ""}
           </p>
+          {result.multiPage?.siteSampleCoverage?.provisional && <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><strong>Voorlopige site-steekproef:</strong> {result.multiPage.siteSampleCoverage.scored ?? 0} van {result.multiPage.siteSampleCoverage.selected ?? 0} geselecteerde pagina's volledig gescoord. De SEO/GEO-score is geen oordeel over de ontbrekende pagina's.</p>}
+          {result.sectorProfile?.confidenceScore != null && result.sectorProfile.confidenceScore < 75 && <div className="mt-3 rounded-xl border border-slate-200 p-3">
+            <p className="text-sm font-semibold">Sector niet bevestigd — stel een correctie voor</p>
+            <label htmlFor="qa-sector-correction" className="mt-2 block text-sm">Welke sector past volgens jou beter?</label>
+            <input id="qa-sector-correction" value={sectorCorrection} onChange={event=>setSectorCorrection(event.target.value)} maxLength={100} placeholder="Bijv. woningverhuurder of betaalplatform" className="mt-1 w-full rounded-lg border border-slate-300 p-2" />
+            <p className="mt-2 text-xs text-slate-600">Dit is alleen jouw voorstel en wordt niet automatisch door RankFix overgenomen of opgeslagen. Kopieer de korte samenvatting om de correctie door te geven.</p>
+          </div>}
+          {(result.multiPage?.unscoredPages?.length || 0) > 0 && <details className="mt-3 rounded-xl border border-slate-200 p-3">
+            <summary className="cursor-pointer font-semibold">Niet gescoorde steekproefpagina's ({result.multiPage?.unscoredPages?.length})</summary>
+            <ul className="mt-2 space-y-2 text-sm">{result.multiPage?.unscoredPages?.map((page,i)=><li key={page.url + i} className="break-all"><strong>{page.url}</strong><span className="block text-slate-600">{page.reasonCode}: {page.reason}</span></li>)}</ul>
+          </details>}
           <p className="mt-2 text-sm text-slate-600">{issues.length} aandachtspunten · {unknown.length} onbevestigde controles. Een hoge score is geen bewijs dat alle controles zijn uitgevoerd.</p>
           {result.selfCheck?.consistent === false && <p className="mt-3 rounded-lg bg-amber-50 p-3 text-amber-900">Let op: de interne consistentiecontrole van het rapport is niet geslaagd.</p>}
           {result.deepDiagnosis && <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
