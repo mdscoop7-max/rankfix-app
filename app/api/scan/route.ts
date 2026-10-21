@@ -3157,11 +3157,19 @@ async function runScan(request: Request, restrictedQa = false) {
       !ogDescription ? "og:description" : null,
       !ogImage ? "og:image" : null,
     ].filter(Boolean) as string[];
+    // An absolute og:url must agree with the canonical preference when both
+    // exist. A website homepage must never declare an article Open Graph type.
+    const ogCanonicalMismatch = Boolean(ogUrl && ogUrlIsAbsolute && canonicalUrl && normalizeScanUrl(ogUrl) !== normalizeScanUrl(canonicalUrl.toString()));
+    const ogHomepageTypeMismatch = Boolean(ogType && isHomepage && ogType !== "website");
     const invalidOpenGraphFields = [
       ogImage && !ogImageIsAbsolute ? "og:image (geen absolute http(s)-URL)" : null,
       ogUrl && !ogUrlIsAbsolute ? "og:url (geen absolute http(s)-URL)" : null,
+      ogCanonicalMismatch ? "og:url wijkt af van canonical" : null,
+      ogHomepageTypeMismatch ? "og:type is article/ander type op een homepage (verwacht website)" : null,
     ].filter(Boolean) as string[];
-    seoChecks.push(missingOpenGraphFields.length === 0 && invalidOpenGraphFields.length === 0
+    seoChecks.push(headEvidenceUnreliable && !ogTitle && !ogDescription && !ogImage
+      ? check("unable_to_confirm", "social", "seo", "Social metadata", "De opgehaalde HTML-head is onvolledig; ontbrekende Open Graph-velden zijn niet bewezen.", "Vergelijk raw HTML en browserrender voordat je ontbrekende social metadata meldt.", 0, 4)
+      : missingOpenGraphFields.length === 0 && invalidOpenGraphFields.length === 0
       ? check("pass", "social", "seo", "Social metadata", "Open Graph title, description en image zijn aanwezig; URL-velden gebruiken geldige absolute http(s)-URL's.", "Controleer social previews voor belangrijke pagina's.", 4, 4)
       : check("warning", "social", "seo", "Social metadata", `Open Graph vraagt aandacht.${missingOpenGraphFields.length ? " Ontbrekend: " + missingOpenGraphFields.join(", ") + "." : ""}${invalidOpenGraphFields.length ? " Ongeldig: " + invalidOpenGraphFields.join(", ") + "." : ""}`, "Vul ontbrekende velden aan en gebruik voor og:image en og:url absolute http(s)-URL's.", Math.max(1, 4 - Math.min(3, missingOpenGraphFields.length + invalidOpenGraphFields.length)), 4)
     );
