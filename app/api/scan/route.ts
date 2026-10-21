@@ -46,6 +46,7 @@ import { enforceReportConsistency } from "@/lib/report-consistency";
 import { rootLandingCandidates, isRicherRootLanding } from "@/lib/homepage-entry";
 import { normalizeScanUrlInput } from "@/lib/scan-url-input";
 import { classifyLinkAuditInputs } from "@/lib/link-audit-evidence";
+import { buildDeepScanDiagnosis } from "@/lib/deep-scan-diagnosis";
 
 export const maxDuration = 300;
 
@@ -5769,6 +5770,16 @@ async function runScan(request: Request, restrictedQa = false) {
     }
 
 
+    // General-purpose root cause analysis: evidence and scope only.
+    // The diagnosis never initiates writes or claims all site pages were read.
+    const deepDiagnosis = buildDeepScanDiagnosis({
+      checks,
+      sector: sectorProfile,
+      sample: multiPage,
+      linkAudit: { unresolvedTemplateHrefs: unconfirmedTemplateAnchors.length,
+        checked: linkAuditResults.length, uniqueInternal: allUniqueInternalAnchors.length },
+    });
+
     const scanScope = {
       page: finalUrl.toString(),
       mode: "PAGE_SAMPLE" as const,
@@ -5808,6 +5819,7 @@ async function runScan(request: Request, restrictedQa = false) {
       recovery,
       scope: scanScope,
       multiPage,
+      deepDiagnosis,
       classification,
       pageTypeEvidence,
       pageTypeInvariant,
