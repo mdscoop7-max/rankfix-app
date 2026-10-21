@@ -11,6 +11,7 @@ import { getFixPolicy } from "@/lib/fix-policy";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { extractHeadMetadata } from "@/lib/html-head-evidence";
 import { officialSocialProfileLinks } from "@/lib/social-profile-evidence";
+import { detectRealEstateSubtype } from "@/lib/real-estate-subtype";
 import { normalizeLegalText, LEGAL_LINK_LEXICON } from "@/lib/legal-lexicon";
 import { assessPassiveSecurity, formBlocks, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
@@ -1971,6 +1972,24 @@ async function runScan(request: Request) {
           }
         : {...legacyProfile,key:legacyProfile.sector};
 
+    // A sector is not a subtype. Housing landlords/investors must never inherit
+    // "estate agent" requirements from the broad real estate family.
+    let realEstateSubtypeDecision = detectRealEstateSubtype({
+      title,description,h1s:identityH1s,navLabels:identityNavLabels,schemaTypes
+    });
+    if (sectorProfile.sector === "real_estate") {
+      Object.assign(sectorProfile,{
+        subtype:realEstateSubtypeDecision.subtype,
+        subtypeLabel:realEstateSubtypeDecision.label,
+        subtypeConfidenceScore:realEstateSubtypeDecision.confidenceScore,
+        subtypeEvidence:realEstateSubtypeDecision.evidence.map(item=>finalUrl.toString()+": "+item),
+      });
+      if (realEstateSubtypeDecision.subtype !== "unknown") {
+        sectorProfile.label="Vastgoed · "+realEstateSubtypeDecision.label;
+        sectorProfile.evidence=[...sectorProfile.evidence,...realEstateSubtypeDecision.evidence.map(item=>finalUrl.toString()+": "+item)].slice(0,8);
+      }
+    }
+
     // Primary vs secondary activities: a university hospital is care first, with
     // teaching and research as secondary activities (shown, never the identity).
     if (euPrimaryIdentity?.secondary?.length && sectorProfile.sector === euPrimaryIdentity.sector) {
@@ -2256,13 +2275,22 @@ async function runScan(request: Request) {
       return item;
     };
     if (sectorProfile.sector === "real_estate") {
-      const listingSignal = (scanEvidence.sectorDetails.realEstate.listing.value && scanEvidence.sectorDetails.realEstate.listing.confidence !== "low") || /\b(te koop|te huur|koopwoning|huurwoning|woningaanbod|objecten|properties|for sale|for rent)\b/i.test(text) || schemaSet.has("realestatelisting");
+      const listingSignal = (scanEvidence.sectorDetails.realEstate.listing.value && scanEvidence.sectorDetails.realEstate.listing.confidence !== "low") || /\b(te koop|te huur|koopwoning|huurwoning|huurwoningen|woningaanbod|objecten|properties|for sale|for rent)\b/i.test(text) || schemaSet.has("realestatelisting");
       const leadSignal = hasContactChannelSignal || /\b(bezichtiging|waardebepaling|verkoopadvies|plan een afspraak|contact opnemen)\b/i.test(text);
       const areaSignal = /\b(werkgebied|regio|buurt|wijk|plaats|gemeente|service area|area served)\b/i.test(text) || schemaObjects.some((item:any)=>Boolean(item?.areaServed));
+      const isAgent=realEstateSubtypeDecision.subtype==="real_estate_agent";
+      const isLandlord=["institutional_property_rental","property_rental_operator"].includes(realEstateSubtypeDecision.subtype);
+      const rentalLeadSignal=/\b(inschrijven|bezichtiging|woningaanbod|huurwoningen|huurders(?:service)?|huren in \d+ stappen|huurcontract|mijn huur)\b/i.test(text);
       seoChecks.push(
-        sectorCheck("sector_real_estate_listings","Vastgoedaanbod",listingSignal,"Vastgoed-/woningsignalen zijn in de pagina bevestigd.","RankFix kon in de raw HTML geen vastgoedaanbod betrouwbaar bevestigen.","Maak woningaanbod en de bijbehorende bestemming duidelijk vindbaar wanneer dit voor deze pagina relevant is."),
-        sectorCheck("sector_real_estate_leads","Makelaar conversie",leadSignal,"Een contact-, bezichtigings- of waardebepalingssignaal is bevestigd.","Een duidelijke makelaar-CTA kon in de raw HTML niet betrouwbaar worden bevestigd.","Maak de belangrijkste vervolgstap, zoals contact, bezichtiging of waardebepaling, duidelijk zichtbaar."),
-        sectorCheck("sector_real_estate_area","Werkgebied makelaar",areaSignal,"Een lokaal werkgebied-/regiosignaal is bevestigd.","Het werkgebied kon in de raw HTML niet betrouwbaar worden bevestigd.","Beschrijf relevante plaatsen of regio's wanneer lokale vindbaarheid belangrijk is.")
+        sectorCheck("sector_real_estate_listings","Vastgoedaanbod",listingSignal,"Vastgoed-/woningsignalen zijn in de pagina bevestigd.","RankFix kon in de raw HTML geen vastgoedaanbod betrouwbaar bevestigen.","Maak het vastgoedaanbod vindbaar wanneer dit voor deze pagina relevant is."),
+        isAgent
+          ? sectorCheck("sector_real_estate_leads","Makelaar conversie",leadSignal,"Een contact-, bezichtigings- of waardebepalingssignaal is bevestigd.","Een duidelijke makelaar-CTA kon in de raw HTML niet betrouwbaar worden bevestigd.","Maak bezichtiging of waardebepaling duidelijk zichtbaar als dit voor de makelaar relevant is.")
+          : isLandlord
+            ? sectorCheck("sector_real_estate_leads","Huurders- en woninginformatie",rentalLeadSignal,"Huurwoning- of huurdersinformatie is zichtbaar.","Huurwoning- of huurdersinformatie kon niet betrouwbaar worden bevestigd.","Maak het huurwoningaanbod en het inschrijf- of huurdersproces duidelijk vindbaar.")
+            : sectorCheck("sector_real_estate_leads","Vastgoedcontact",leadSignal,"Contactinformatie of een passende vervolgstap is zichtbaar.","Contact of vervolgstap kon niet betrouwbaar worden bevestigd.","Maak de passende vervolgstap duidelijk wanneer dit bij deze organisatie hoort."),
+        isAgent
+          ? sectorCheck("sector_real_estate_area","Werkgebied makelaar",areaSignal,"Een lokaal werkgebied-/regiosignaal is bevestigd.","Het lokale werkgebied kon niet betrouwbaar worden bevestigd.","Beschrijf plaatsen of regio's wanneer lokale vindbaarheid belangrijk is.")
+          : check("not_applicable","sector_real_estate_area","seo","Werkgebied makelaar","Geen makelaar- of lokaal-bemiddelingsbewijs; een lokaal makelaarswerkgebied mag niet van een verhuurder, belegger of platform worden geëist.","Niet van toepassing zonder bewezen makelaarsidentiteit.",0,4)
       );
     } else if (sectorProfile.sector === "automotive") {
       const workshopSignal = /\b(apk|onderhoud|reparatie|werkplaats|autoservice|banden|diagnose)\b/i.test(text);
