@@ -138,8 +138,10 @@ test("multilingual trust, social URL and auth redirect bundle stays evidence bas
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   assert.match(source, /normalizeLegalText/);
-  assert.match(source, /privatnost\\w\*\|zasebnost\\w\*/);
-  assert.match(source, /piskotk\\w\*\|kolacic\\w\*/);
+  const legalRules = await readFile(new URL("../lib/legal-lexicon.ts", import.meta.url), "utf8");
+  assert.match(source, /LEGAL_LINK_LEXICON/);
+  assert.match(legalRules, /privatnost\\w\*\|zasebnost\\w\*/);
+  assert.match(legalRules, /piskotk\\w\*\|kolacic\\w\*/);
   const contactLexicon = await readFile(new URL("../lib/contact-evidence.ts", import.meta.url), "utf8");
   assert.match(contactLexicon, /assistenza clienti/);
   assert.match(contactLexicon, /apoio ao cliente/);
