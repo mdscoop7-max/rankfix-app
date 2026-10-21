@@ -1,4 +1,4 @@
-import { getFixPolicy } from "./fix-policy";
+import { getFixPolicy } from "./fix-policy.ts";
 
 export type DeepDiagnosticCheck = {
   key?: string; rule_id?: string; issue_id?: string; title?: string;
