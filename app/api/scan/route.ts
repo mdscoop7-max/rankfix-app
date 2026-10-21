@@ -48,6 +48,7 @@ import { rootLandingCandidates, isRicherRootLanding } from "@/lib/homepage-entry
 import { normalizeScanUrlInput } from "@/lib/scan-url-input";
 import { classifyLinkAuditInputs } from "@/lib/link-audit-evidence";
 import { inspectHeadEvidence, htmlAnchors, htmlOpeningTags, htmlAttributes } from "@/lib/html-document-evidence";
+import { residentialLandlordIdentity } from "@/lib/residential-landlord-identity";
 import { buildDeepScanDiagnosis } from "@/lib/deep-scan-diagnosis";
 
 export const maxDuration = 300;
@@ -1909,6 +1910,10 @@ async function runScan(request: Request, restrictedQa = false) {
     // Short-stay accommodation must outrank generic words such as "te huur".
     // Long-term housing remains real estate; guest/night/date/booking evidence is hospitality.
     const realEstateIdentity = Boolean(!shortStayIdentity && scanEvidence.inventory.properties.value && scanEvidence.inventory.properties.confidence !== "low" && (/\/(?:woningaanbod|residential-listings|properties?|real-estate)(?:\/|$)/i.test(finalUrl.pathname) || /\b(?:makelaar|woningaanbod|te koop|te huur|for sale|for rent|real estate)\b/i.test(sectorIdentitySource)));
+    // Differentiate property owners/landlords from agents and brokers.
+    const residentialOwner = residentialLandlordIdentity({
+      title, description, h1s: identityH1s, bodyText: text.slice(0, 16000), homepage: isHomepage,
+    });
     const automotiveServiceIdentity = Boolean(/\b(?:apk|autobanden|banden|uitlijnen|werkplaats|autoservice|auto-onderhoud|car repair|tyres?)\b/i.test(sectorIdentitySource) || schemaSet.has("autorepair"));
     const explicitMedicalIdentity = /\b(?:tandarts|dentist|kliniek|clinic|medical|medicalclinic|(?:fysio|physio)therap\w*|osteopa\w*|chiropract\w*|huisarts\w*|psycholo\w*|logoped\w*|podotherap\w*|verloskund\w*|orthodont\w*|mondhygi\w*|mondzorg|patient|patiënt|physician|huisarts|doctor)\b/i.test(sectorIdentitySource) || schemaSet.has("dentist") || schemaSet.has("medicalclinic");
     const beautyServiceIdentity = /\b(?:beauty salon|beautysalon|schoonheidssalon|day spa|dayspa|city spa|wellness|manicure|pedicure|nail salon|nagelsalon|facial|gezichtsbehandeling)\b/i.test(sectorIdentitySource) || schemaSet.has("beautysalon") || schemaSet.has("dayspa");
@@ -1945,8 +1950,10 @@ async function runScan(request: Request, restrictedQa = false) {
       ? {sector:"financial_services",key:euPrimaryIdentity.key,label:euPrimaryIdentity.label,evidence:euPrimaryIdentity.evidence.map((line)=>`Primaire identiteit: ${line}`)}
       : shortStayIdentity
       ? {sector:"hospitality",key:lodgingSubtype.key,label:lodgingSubtype.label,evidence:["Scanbewijs: kort verblijf/accommodatie bevestigd", ...lodgingDetail.shortStay.evidence, ...lodgingDetail.stayDates.evidence, ...lodgingDetail.guests.evidence]}
-      : realEstateIdentity
-        ? {sector:"real_estate",key:"real_estate",label:"Vastgoed & Makelaardij",evidence:["Scanbewijs: vastgoed/woningidentiteit bevestigd", ...scanEvidence.inventory.properties.evidence]}
+      : (realEstateIdentity || residentialOwner)
+        ? {sector:"real_estate",key:residentialOwner?.key || "real_estate",label:residentialOwner?.label || "Vastgoed & Makelaardij",
+          evidence:residentialOwner?.evidence || ["Scanbewijs: vastgoed/woningidentiteit bevestigd", ...scanEvidence.inventory.properties.evidence],
+          confidence:residentialOwner ? "high" as const : undefined, confidenceScore:residentialOwner?.confidenceScore}
         : beautyServiceIdentity && !explicitMedicalIdentity
           ? {sector:"beauty",key:"beauty_salon",label:"Beauty & Wellness",evidence:["Scanbewijs: beauty-/wellnessidentiteit bevestigd"]}
           : automotiveServiceIdentity ? {sector:"automotive",key:"car_repair",label:"Automotive · garage / autoservice",evidence:["Scanbewijs: garage-/autoservice-identiteit bevestigd"]}
