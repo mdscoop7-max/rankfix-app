@@ -1789,7 +1789,7 @@ async function runScan(request: Request, restrictedQa = false) {
     const sectorSource = [sectorIdentitySource, text.slice(0,120000), schemaTypes.join(" ")].join(" ");
     // Primary identity comes from title, description, H1 and typed schema only;
     // marketing examples, visitors and customer sectors in body text are secondary.
-    const primaryBusinessEvidence = detectPrimaryBusinessIdentity({title,description,headings:h1s,schemaTypes});
+    const primaryBusinessEvidence = detectPrimaryBusinessIdentity({title,description,headings:h1s,schemaTypes,homepage:isHomepage});
     // Multilingual primary identity (EU languages, typed schema, government host
     // label, navigation as a medium-confidence fallback). Cookie/consent dialog
     // headings are removed first: they describe the banner, not the organisation.
