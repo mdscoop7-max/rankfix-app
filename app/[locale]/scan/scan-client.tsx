@@ -3,7 +3,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { copy, type Locale } from "@/lib/locales";
 import { ScoreQualifier } from "@/components/score-qualifier";
-import SpeedPromo from "@/components/speed-promo";
+import SpeedAudit from "@/components/speed-audit";
+import type { WebsiteSpeed } from "@/lib/pagespeed";
 import { headlineDisplay } from "@/lib/score-qualifier";
 const freeInfo: Record<Locale,{title:string;items:string[]}> = {
   nl:{title:"Wat controleert de gratis RankFix-scan?",items:["SEO & GEO / AI Search","Security & techniek","Webshop & Merchant Readiness","EU Consumer Rights & Consent Mode","Ads & Analytics · Search Console · Local SEO","Structured Data & Accessibility","Quality & Trust · Broken Links · Redirects","Direct een score met concrete verbeterpunten. Geen betaalkaart nodig; RankFix wijzigt niets automatisch."]},
@@ -21,7 +22,7 @@ const scanUi: Record<Locale,{scope:string;na:string;unconfirmed:string;scoreNote
   it:{scope:"SEO · GEO/AI Search · Security · tecnica · ecommerce · EU-Omnibus & Consumer Rights · Merchant readiness · Ads e analytics · Search Console · Consent Mode · SEO locale · dati strutturati · accessibilità · Quality & Trust · link non validi · redirect",na:"N/D",unconfirmed:"Non confermabile",scoreNote:"Questi controlli non risultano superati e non influenzano il punteggio."},
   es:{scope:"SEO · GEO/AI Search · Security · técnica · ecommerce · EU-Omnibus & Consumer Rights · Merchant readiness · Ads y analítica · Search Console · Consent Mode · SEO local · datos estructurados · accesibilidad · Quality & Trust · enlaces rotos · redirecciones",na:"N/A",unconfirmed:"No se puede confirmar",scoreNote:"Estas comprobaciones no cuentan como superadas y no afectan a la puntuación."}
 };
-type Result = { overallScore: number; seo?: { score: number; checks: Array<{ status: string }> }; geo?: { score: number; checks: Array<{ status: string }> }; security?: { score: number } };
+type Result = { websiteSpeed?: WebsiteSpeed | null; overallScore: number; seo?: { score: number; checks: Array<{ status: string }> }; geo?: { score: number; checks: Array<{ status: string }> }; security?: { score: number } };
 export default function ScanClient({ locale }: { locale: Locale }) {
   const t = copy[locale];
   const free = freeInfo[locale];
@@ -49,10 +50,11 @@ export default function ScanClient({ locale }: { locale: Locale }) {
   const unableToConfirm = checks.filter(check => check.status === "unable_to_confirm").length;
   return <div className="lc-container lc-prose"><h1>{t.run}</h1><p>{t.intro}</p>
     <section className="lc-card lc-free-scope"><strong>{free.title}</strong><div className="lc-free-scope-grid">{free.items.map(item=><span key={item}>✓ {item}</span>)}</div></section>
-    <SpeedPromo locale={locale} variant="dark" />
+    <p className="lc-note">{locale === "nl" ? "Binnenkort in dezelfde gratis scan: snelheid mobiel + desktop." : locale === "de" ? "Demnächst im selben kostenlosen Scan: Mobil- und Desktop-Geschwindigkeit." : locale === "fr" ? "Bientôt dans la même analyse gratuite : vitesse sur mobile et ordinateur." : locale === "it" ? "Presto nella stessa scansione gratuita: velocità mobile e desktop." : locale === "es" ? "Próximamente en el mismo análisis gratuito: velocidad móvil y de escritorio." : "Coming soon in this same free scan: mobile and desktop speed."}</p>
     <form onSubmit={run} className="lc-scan-box"><label htmlFor="lc-url">{t.url}</label><input id="lc-url" value={url} onChange={event => { const next=event.target.value; const embedded=next.slice(1).search(/https?:\/\//i); setUrl(embedded>=0?next.slice(embedded+1):next); }} onFocus={event=>event.currentTarget.select()} placeholder="https://example.com" required /><button type="submit" disabled={busy} className="lc-primary">{busy ? t.running : t.run}</button></form>
     {error && <p role="alert" className="lc-note">{error}</p>}
     {busy && <section className="lc-scan-visual" aria-live="polite"><div className="lc-meter lc-meter-running"><div className="lc-meter-core"><strong>AI</strong><span>{t.running}</span></div></div><div><h2>{t.running}</h2><p>{u.scope}</p></div></section>}
+    {result && <SpeedAudit locale={locale} speed={result.websiteSpeed} dark />}
     {result && <section className="lc-scan-results" aria-live="polite"><div className="lc-scan-visual"><div className="lc-meter" style={{"--score":result.overallScore} as React.CSSProperties}><div className="lc-meter-core"><strong>{headlineDisplay(result as never)}</strong><span>/100</span></div></div><div><h2>{t.score}</h2><p>SEO {result.seo?.score ?? "—"} · GEO {result.geo?.score ?? "—"} · Security {result.security?.score ?? "—"} · {issues} {t.issues.toLowerCase()}</p><ScoreQualifier result={result as never} locale={locale}/></div></div><div className="lc-grid"><div className="lc-card"><strong>SEO</strong>{result.seo?.score ?? "—"}/100</div><div className="lc-card"><strong>GEO</strong>{result.geo?.score ?? "—"}/100</div><div className="lc-card"><strong>Security</strong>{result.security?.score ?? "—"}/100</div><div className="lc-card"><strong>{t.issues}</strong>{issues}</div></div><p>{t.success}: {passed}</p>{(notApplicable > 0 || unableToConfirm > 0) && <p className="lc-note">{u.na}: {notApplicable} · {u.unconfirmed}: {unableToConfirm}. {u.scoreNote}</p>}<p>{t.next}</p><Link className="lc-secondary" href="/dashboard">{t.signIn}</Link></section>}
   </div>;
 }
