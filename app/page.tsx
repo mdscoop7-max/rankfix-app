@@ -7,6 +7,7 @@ import AiAssistant from "@/components/ai-assistant";
 import RootMobileNav from "./root-mobile-nav";
 import PublicReviews from "@/components/public-reviews";
 import "./root-mobile-nav.css";
+import "./public-audit.css";
 import { ScoreQualifier } from "@/components/score-qualifier";
 import { buildEvidenceDescription } from "@/lib/meta-description-fix";
 import { headlineDisplay } from "@/lib/score-qualifier";
@@ -1161,7 +1162,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                   </div>
                   <div className="mt-4 space-y-2">
                     {issues.map((item) => (
-                      <div key={item.issue_id || item.key} className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-black/10 p-3">
+                      <div key={item.issue_id || item.key} className="rf-public-finding flex items-start gap-3 rounded-2xl border border-slate-200 bg-black/10 p-3">
                         <span className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg text-xs font-bold ${item.status === "warning" ? "bg-amber-400/10 text-amber-300" : "bg-red-400/10 text-red-300"}`}>{statusIcon[item.status]}</span>
                         <div className="min-w-0 flex-1">
                           <div className="font-semibold">{item.title}</div>
