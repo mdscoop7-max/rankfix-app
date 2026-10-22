@@ -1,0 +1,247 @@
+{
+  "id": "round-b",
+  "description": "Media, transport/logistiek en financiële diensten",
+  "status": "QA_PROPOSED_LABELS",
+  "sites": [
+    {
+      "country": "NL",
+      "group": "news_media",
+      "name": "NOS",
+      "hosts": [
+        "nos.nl"
+      ],
+      "expected": "news_media",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "group": "news_media",
+      "name": "NU.nl",
+      "hosts": [
+        "nu.nl"
+      ],
+      "expected": "news_media",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "group": "transport_travel",
+      "name": "NS",
+      "hosts": [
+        "ns.nl"
+      ],
+      "expected": "transport_travel",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "group": "transport_travel",
+      "name": "PostNL",
+      "hosts": [
+        "postnl.nl"
+      ],
+      "expected": "transport_travel",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "group": "financial_services",
+      "name": "ING",
+      "hosts": [
+        "ing.nl"
+      ],
+      "expected": "financial_services",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "group": "financial_services",
+      "name": "Rabobank",
+      "hosts": [
+        "rabobank.nl"
+      ],
+      "expected": "financial_services",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "group": "news_media",
+      "name": "Tagesschau",
+      "hosts": [
+        "tagesschau.de"
+      ],
+      "expected": "news_media",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "group": "news_media",
+      "name": "ZDFheute",
+      "hosts": [
+        "zdfheute.de"
+      ],
+      "expected": "news_media",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "group": "transport_travel",
+      "name": "Deutsche Bahn",
+      "hosts": [
+        "bahn.de"
+      ],
+      "expected": "transport_travel",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "group": "transport_travel",
+      "name": "DHL Deutschland",
+      "hosts": [
+        "dhl.de"
+      ],
+      "expected": "transport_travel",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "group": "financial_services",
+      "name": "Deutsche Bank",
+      "hosts": [
+        "deutsche-bank.de"
+      ],
+      "expected": "financial_services",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "group": "financial_services",
+      "name": "Commerzbank",
+      "hosts": [
+        "commerzbank.de"
+      ],
+      "expected": "financial_services",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "group": "news_media",
+      "name": "VRT",
+      "hosts": [
+        "vrt.be"
+      ],
+      "expected": "news_media",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "group": "news_media",
+      "name": "RTBF",
+      "hosts": [
+        "rtbf.be"
+      ],
+      "expected": "news_media",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "group": "transport_travel",
+      "name": "bpost",
+      "hosts": [
+        "bpost.be"
+      ],
+      "expected": "transport_travel",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "group": "transport_travel",
+      "name": "NMBS/SNCB",
+      "hosts": [
+        "belgiantrain.be"
+      ],
+      "expected": "transport_travel",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "group": "financial_services",
+      "name": "KBC",
+      "hosts": [
+        "kbc.be"
+      ],
+      "expected": "financial_services",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "group": "financial_services",
+      "name": "Belfius",
+      "hosts": [
+        "belfius.be"
+      ],
+      "expected": "financial_services",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "group": "news_media",
+      "name": "Franceinfo",
+      "hosts": [
+        "francetvinfo.fr"
+      ],
+      "expected": "news_media",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "group": "news_media",
+      "name": "Le Monde",
+      "hosts": [
+        "lemonde.fr"
+      ],
+      "expected": "news_media",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "group": "transport_travel",
+      "name": "SNCF Connect",
+      "hosts": [
+        "sncf-connect.com"
+      ],
+      "expected": "transport_travel",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "group": "transport_travel",
+      "name": "La Poste",
+      "hosts": [
+        "laposte.fr"
+      ],
+      "expected": "transport_travel",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "group": "financial_services",
+      "name": "BNP Paribas",
+      "hosts": [
+        "bnpparibas.fr"
+      ],
+      "expected": "financial_services",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "group": "financial_services",
+      "name": "Crédit Agricole",
+      "hosts": [
+        "credit-agricole.fr"
+      ],
+      "expected": "financial_services",
+      "reviewStatus": "proposed_not_independently_verified"
+    }
+  ]
+}

@@ -138,8 +138,9 @@ test("multilingual trust, social URL and auth redirect bundle stays evidence bas
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   assert.match(source, /normalizeLegalText/);
-  assert.match(source, /privatnost\\w\*\|zasebnost\\w\*/);
-  assert.match(source, /piskotk\\w\*\|kolacic\\w\*/);
+  const legal = await readFile(new URL("../lib/legal-lexicon.ts", import.meta.url), "utf8");
+  assert.match(legal, /privatnost\\w\*\|zasebnost\\w\*/);
+  assert.match(legal, /piskotk\\w\*\|kolacic\\w\*/);
   const contactLexicon = await readFile(new URL("../lib/contact-evidence.ts", import.meta.url), "utf8");
   assert.match(contactLexicon, /assistenza clienti/);
   assert.match(contactLexicon, /apoio ao cliente/);
@@ -185,7 +186,7 @@ test("government identity overrides generic LocalBusiness schema advice", async 
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   assert.match(source, /governmentIdentitySignal/);
   assert.match(source, /GovernmentOrganization \+ WebSite/);
-  assert.match(source, /effectiveLocalSchemaSignal = hasLocalBusinessSignal && !governmentIdentitySignal/);
+  assert.match(source, /effectiveLocalSchemaSignal = hasLocalBusinessSignal && [^;]*!governmentIdentitySignal/);
   assert.match(source, /effectiveLocalBusinessPage = !isProductPage && !hasCategorySignal && effectiveLocalSchemaSignal/);
   assert.match(source, /localBusinessDetails = effectiveLocalSchemaSignal/);
 });
@@ -582,7 +583,7 @@ test("production scan limits have no plan-wide or hardcoded-host bypass", async 
   assert.doesNotMatch(source, /validationTestAccount\s*=\s*planCode\s*===\s*"pro"/);
   assert.doesNotMatch(source, /unlimitedTestHost/);
   assert.doesNotMatch(source, /trendmix-jet\.vercel\.app/);
-  assert.match(source, /if \(!internalTestAccount && used >= limits\.scans\)/);
+  assert.match(source, /if \(used >= limits\.scans\)/);
 });
 
 test("anonymous public scans and contact mail have coarse abuse protection", async () => {

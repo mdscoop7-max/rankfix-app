@@ -1,3 +1,5 @@
+import { scanRuntime } from "@/lib/scan-runtime";
+import { sectorPageEvidence, scanCoverageDimensions } from "@/lib/sector-page-evidence";
 import { decideCommerceModules } from "@/lib/sector-motor-decisions";
 import { NextResponse } from "next/server";
 import { createHash } from "crypto";
@@ -4111,7 +4113,7 @@ async function runScan(request: Request) {
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
     type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "event" | "corporate" | "contact" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { excludedUtility?: boolean; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; schemaTypes?: string[]; businessDetails?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; productSchemaCount?: number; financialOffer?: boolean; eventSchema?: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageAudit = MultiPageCandidate & { excludedUtility?: boolean; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; identityHeadings?: string[]; schemaTypes?: string[]; businessDetails?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; productSchemaCount?: number; financialOffer?: boolean; eventSchema?: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -4464,7 +4466,7 @@ async function runScan(request: Request) {
         // missing title, description, H1 or canonical; those stay unconfirmed.
         const pageClientShell = isClientShell({ visibleWords: pageQualityWords, scriptCount: (pageHtml.match(/<script\b/gi) || []).length, jsFramework: representativeJsFramework, h1Count: pageH1s.length, rendered: representativeEvidenceSource === "rendered_html" });
         const sampleIncompleteHead = representativeEvidenceSource !== "rendered_html"
-          && Boolean(pageQualityTitle) && /<meta\\b[^>]+(?:property|name)\\s*=\\s*["'](?:og:|twitter:)/i.test(pageHtml)
+          && Boolean(pageQualityTitle) && /<meta\b[^>]+(?:property|name)\s*=\s*["'](?:og:|twitter:)/i.test(pageHtml)
           && !pageHead.evidence.description && !pageHead.evidence.canonical
           && !pageHead.evidence.viewport && !pageHead.evidence.lang;
         const pageMissingEvidenceUnverified = partialHeadOnly || sampleIncompleteHead || missingJsHeadEvidenceUnverified({
@@ -4536,7 +4538,7 @@ async function runScan(request: Request) {
         // Concrete business details on this sampled page (address, phone, e-mail, registration).
         const pageBusinessDetails = (() => { const d = findBusinessContactDetails(pageQualityText, pageHtml, finalCandidate.hostname); const reg = findCompanyRegistration(pageQualityText); const found = [reg, d.address && `adres (${d.address})`, (d.phone || d.telLink) && "telefoonnummer", (d.email || d.mailtoLink) && "e-mailadres"].filter(Boolean) as string[]; return found; })();
         const pageSampleScore = sampleEvidenceScore(evidenceChecks, (key) => evidenceCredit(evidenceChecks.find((item)=>item.key===key)!));
-        return { ...page, type:refinedType, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:pageSampleScore, partialHead:partialHeadOnly, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), ownIdentityText:[pageTitle,pageDescription,pageH1s.filter((value: string)=>!isConsentHeading(value)).join(" ")].filter(Boolean).join(" "), schemaTypes:[...new Set(pageSchemaTypes)], businessDetails:pageBusinessDetails, formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, productLinks:extractProductDetailLinks(pageHtml, finalCandidate.toString(), siteHost, 8), evidenceChecks };
+        return { ...page, type:refinedType, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:pageSampleScore, partialHead:partialHeadOnly, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), ownIdentityText:[pageTitle,pageDescription,pageH1s.filter((value: string)=>!isConsentHeading(value)).join(" ")].filter(Boolean).join(" "), identityHeadings:pageH1s.filter((value: string)=>!isConsentHeading(value)), schemaTypes:[...new Set(pageSchemaTypes)], businessDetails:pageBusinessDetails, formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, productLinks:extractProductDetailLinks(pageHtml, finalCandidate.toString(), siteHost, 8), evidenceChecks };
       } catch (multiPageError) {
         const rawReason = multiPageError instanceof Error ? multiPageError.message : "FETCH_FAILED";
         const reason = /timeout|abort/i.test(rawReason)
@@ -4890,6 +4892,17 @@ async function runScan(request: Request) {
         masterEvidence.capabilities = masterEvidence.capabilities.filter((item)=>item!==capability);
       }
     }
+    const multilingualPageIdentity = sectorPageEvidence(finalUrl.toString(), auditedRawPages);
+    if (!masterIdentityOverride && sectorProfile.sector === "unknown" && !retailPrimaryIdentity
+      && !finalCommerceDecision.confirmed && !marketSelectorPage && multilingualPageIdentity.decision) {
+      const decision = multilingualPageIdentity.decision;
+      Object.assign(sectorProfile, decision);
+      sectorProfile.applicableModules = [...new Set(["core_seo", "geo", "technical",
+        ...(sectorSignals.find(item => item.sector === decision.sector)?.modules || [])])];
+      masterEvidence.activeModules = sectorProfile.applicableModules;
+    }
+    Object.assign(sectorProfile, {pageEvidence:multilingualPageIdentity});
+
     // Evidence Engine v2: reconcile primary identity after representative evidence.
     const reconciledIdentitySource = [sectorIdentitySource, multiPageOwnIdentityText].filter(Boolean).join(" ");
     const reconciledSectorCandidates = sectorSignals.map((item) => {
@@ -4904,7 +4917,7 @@ async function runScan(request: Request) {
     // agree independently: at least two pages name it in their own identity.
     const reconciledPages = reconciledTop ? pagesWithOwnIdentity(sectorSignals.find((item)=>item.sector===reconciledTop.sector)?.patterns[0] || /$^/) : 0;
     const reconciledIdentityStrong = Boolean(reconciledTop && reconciledTop.score >= 3 && reconciledPages >= 2 && (!reconciledRunnerUp || reconciledTop.score > reconciledRunnerUp.score));
-    if (!masterIdentityOverride && sectorProfile.sector==="unknown" && !retailPrimaryIdentity && !finalCommerceDecision.confirmed && reconciledIdentityStrong && reconciledTop && sectorProfile.sector !== reconciledTop.sector) {
+    if (!masterIdentityOverride && sectorProfile.sector==="unknown" && !retailPrimaryIdentity && !finalCommerceDecision.confirmed && reconciledIdentityStrong && reconciledTop && multilingualPageIdentity.reason !== "conflicting_page_identities" && sectorProfile.sector !== reconciledTop.sector) {
       sectorProfile.sector = reconciledTop.sector;
       sectorProfile.key = reconciledTop.sector;
       sectorProfile.label = reconciledTop.label;
@@ -4990,7 +5003,7 @@ async function runScan(request: Request) {
     // business, and never at high confidence: one word in a subpage body (a
     // traffic report, an "airport" news section) is not a sector.
     const transportOwnPages = pagesWithOwnIdentity(/\b(?:transport(?:bedrijf|onderneming| company)?|logistics?|logistiek|freight|vrachtvervoer|forwarding|expeditie|wegtransport|road transport|warehousing|koerier|courier)\b/i);
-    if (!masterIdentityOverride && !finalCommerceDecision.confirmed && transportOwnPages >= 2 && sectorProfile.key==="unknown") {
+    if (!masterIdentityOverride && !finalCommerceDecision.confirmed && transportOwnPages >= 2 && sectorProfile.key==="unknown" && multilingualPageIdentity.reason !== "conflicting_page_identities") {
       sectorProfile.sector = "transport_travel";
       sectorProfile.key = "transport_travel";
       sectorProfile.label = "Transport & Logistiek";
@@ -5704,6 +5717,7 @@ async function runScan(request: Request) {
     const sampleAccounting = sampleSummary(multiPageAudits.length, scoredSamplePages.length, excludedNoindexPages, unableToFetchPages, partialHeadPages);
     const multiPage = {
       accounting:sampleAccounting,
+      coverageDimensions:scanCoverageDimensions(overallCoverage.coveragePercent, multiPageAudits.length, auditedRawPages.length+excludedNoindexPages, scoredSamplePages.length),
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:representativePageLimit,
       discoveredInternalUrls:discoveredMultiPage.length, sampleLinkSource, fallbackSources, sampleLimitation, duplicateSamplesRemoved, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,
       // Which sampled page proved the product fields (null = none was proven).
@@ -5864,7 +5878,7 @@ async function runScan(request: Request) {
             // End-to-end scan duration (fetch, render, sample, scoring) for speed benchmarks.
             scanDurationMs: Date.now() - started,
             language: scanLanguage,
-            mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, selfCheck, summary: scanSummary, websiteSpeed, rendering, recovery, access, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, multiPage,
+            runtime:scanRuntime(), mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, selfCheck, summary: scanSummary, websiteSpeed, rendering, recovery, access, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -6075,6 +6089,7 @@ async function runScan(request: Request) {
     console.info("RankFix scan phase", { phase: "response_ready", page: finalUrl.toString(), isProductPage, productOptimizerSourceCount, savedScanId: Boolean(savedScanId) });
     return NextResponse.json({
       success: true,
+      runtime:scanRuntime(),
       scanId: savedScanId,
       mode,
       scannedUrl: target.toString(),
