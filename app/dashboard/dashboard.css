@@ -843,3 +843,26 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
   .rf-fix-engine .rf-fix-status-panel{padding:16px}
   .rf-fix-engine .rf-fix-progress-step{gap:10px}
 }
+
+
+/* Customer-first Fix actions: same emphasis across the dashboard and site cards. */
+.rf-command-actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:10px; }
+.rf-command-actions .rf-fix-cta,
+.rf-site-actions .rf-site-fix-link {
+  background:#6ce6b8;
+  color:#062d25;
+  border:1px solid #6ce6b8;
+  font-weight:800;
+}
+.rf-command-actions .rf-fix-cta:hover,
+.rf-site-actions .rf-site-fix-link:hover {background:#a0f6d3;color:#062d25;border-color:#a0f6d3}
+.rf-site-actions {flex-wrap:wrap;justify-content:flex-end}
+.rf-site-actions .rf-site-fix-link {min-height:40px;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;padding:8px 12px;text-align:center;font-size:12px}
+.rf-command-actions a:focus-visible,.rf-site-actions .rf-site-fix-link:focus-visible{outline:3px solid #d3fff1;outline-offset:2px}
+@media(max-width:650px){
+  .rf-command-actions{width:100%;justify-content:stretch}
+  .rf-command-actions .rf-scan-cta{width:100%}
+  .rf-site{align-items:stretch;flex-direction:column}
+  .rf-site-actions{width:100%;justify-content:flex-start;gap:8px}
+  .rf-site-actions .rf-site-fix-link{min-height:44px}
+}
