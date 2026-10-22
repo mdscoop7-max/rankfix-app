@@ -83,7 +83,7 @@ test("titles: an old year in a title is flagged as outdated", () => {
   assert.equal(assessPageTitle("Tarieven en vergoedingen 2017 Acupunctuur Praktijk Gerda Dijkstra.", "www.acupunctuurdijkstra.nl", now).flag, "outdated_year");
 });
 
-test("descriptions: long descriptions are advice without deduction; missing or short ones still count", () => {
+test("descriptions: nonempty length alone is advice without deduction; missing and empty are warnings", () => {
   assert.equal(assessPageDescription("x".repeat(128), true).status, "PASS");
   const long = assessPageDescription("x".repeat(181), true);
   assert.equal(long.status, "PASS");
@@ -93,7 +93,20 @@ test("descriptions: long descriptions are advice without deduction; missing or s
   assert.match(long.details, /lange kant/);
   assert.match(assessPageDescription("x".repeat(274), true).details, /uitzonderlijk lang/);
   assert.match(assessPageDescription("x".repeat(51), true).details, /kort/);
+  // Bosch 22 October 2026: 41-, 47- and 67-character descriptions are real
+  // metadata, not proven SEO defects based solely on character count.
+  for (const size of [15, 41, 47, 51, 67, 69, 70, 160, 181, 274]) {
+    const result = assessPageDescription("x".repeat(size), true);
+    assert.equal(result.status, "PASS", `length ${size}`);
+    assert.equal(result.credit, 1, `length ${size}`);
+  }
   assert.match(assessPageDescription("x".repeat(15), true).details, /uitzonderlijk kort/);
+  assert.match(assessPageDescription("x".repeat(41), true).details, /geen aftrek/);
+  assert.match(assessPageDescription("x".repeat(67), true).details, /geen aftrek/);
+  for (const [description, tagPresent] of [["", true], ["", false]]) {
+    assert.equal(assessPageDescription(description, tagPresent).status, "WARNING");
+    assert.equal(assessPageDescription(description, tagPresent).credit, 0.25);
+  }
   assert.match(assessPageDescription("", true).details, /content is leeg/);
   assert.match(assessPageDescription("", false).details, /Geen meta description-tag/);
 });
