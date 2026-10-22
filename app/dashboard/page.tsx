@@ -94,7 +94,7 @@ export default function Dashboard() {
         <div className="rf-heading rf-dashboard-title"><div><h1>{language==="nl"?`Hallo, ${user?.name || ""}`:language==="de"?`Hallo, ${user?.name || ""}`:language==="fr"?`Bonjour, ${user?.name || ""}`:language==="it"?`Ciao, ${user?.name || ""}`:language==="es"?`Hola, ${user?.name || ""}`:`Hello, ${user?.name || ""}`}</h1><p>{t.intro}</p></div><Link className="rf-primary-link" href="/dashboard/scan">＋ {x.newScan}</Link></div>
         <section className="rf-workspace-strip" aria-label="Workspace summary">
           <div><span className="rf-eyebrow">{usage.plan === "free" ? "Free · €0" : usage.plan}</span><strong>{latestHost || x.firstWebsite}</strong><small>{latest ? `${latest.overall_score}/100 · ${latest.open_issues} ${x.improvements}` : x.startAudit}</small></div>
-          <div className="rf-workspace-strip-actions"><Link href="/dashboard/history">${x.history} →</Link></div>
+          <div className="rf-workspace-strip-actions"><Link href="/dashboard/history">{x.history} →</Link></div>
         </section>
         {error && <p className="rf-alert" role="alert">{error}</p>}
         {message && <p className="rf-notice" role="status">{message}</p>}
