@@ -7,12 +7,12 @@ import "../dashboard.css";
 
 type Scan={id:string;scanned_url:string;created_at:string;open_issues:number;overall_score:number};
 const names:Record<Locale,string[]> = {
- nl:["Mijn Fixes","Kies de nieuwste scan van je website. In het rapport selecteer je het probleem voor de veilige Fix. Oude resultaten zijn geen actuele bevestiging.","Scans laden…","Je hebt nog geen opgeslagen scan. Start een controle om verbeterpunten te kiezen.","Bekijk verbeterpunten →","Opnieuw scannen","open verbeterpunten","Nieuwe scan","Scans laden mislukt.","Terug naar overzicht","Nieuwste scan"],
- en:["My Fixes","Choose your newest website scan and select the issue in its report. Older results do not prove a current fix.","Loading scans…","No saved scans yet. Scan a site to choose an issue.","View improvements →","Scan again","open improvements","New scan","Could not load scans.","Back to overview","Latest scan"],
- de:["Meine Fixes","Wähle den neuesten Scan und danach einen Punkt im Bericht.","Scans werden geladen…","Noch keine Scans. Starte einen Scan.","Verbesserungen ansehen →","Erneut scannen","offene Punkte","Neuer Scan","Fehler beim Laden.","Zurück zur Übersicht","Neuester Scan"],
- fr:["Mes corrections","Choisissez la dernière analyse, puis un point du rapport.","Chargement…","Aucune analyse. Analysez votre site.","Voir les points →","Réanalyser","points ouverts","Nouvelle analyse","Erreur de chargement.","Retour au tableau de bord","Dernière analyse"],
- it:["Le mie correzioni","Scegli l'ultima scansione e il problema da correggere.","Caricamento…","Nessuna scansione. Avvia un'analisi.","Vedi miglioramenti →","Ripeti scansione","problemi aperti","Nuova scansione","Errore di caricamento.","Torna alla panoramica","Ultima scansione"],
- es:["Mis correcciones","Selecciona el análisis más reciente y el problema del informe.","Cargando…","No hay análisis. Inicia uno.","Ver mejoras →","Analizar de nuevo","problemas pendientes","Nuevo análisis","Error al cargar.","Volver al resumen","Último análisis"]
+ nl:["Mijn Fixes","Kies de nieuwste scan van je website. In het rapport selecteer je het probleem voor de veilige Fix. Oude resultaten zijn geen actuele bevestiging.","Scans laden…","Je hebt nog geen opgeslagen scan. Start een controle om verbeterpunten te kiezen.","Bekijk Fix-opties →","Opnieuw scannen","open verbeterpunten","Nieuwe scan","Scans laden mislukt.","Terug naar overzicht","Nieuwste scan"],
+ en:["My Fixes","Choose your newest website scan and select the issue in its report. Older results do not prove a current fix.","Loading scans…","No saved scans yet. Scan a site to choose an issue.","View Fix options →","Scan again","open improvements","New scan","Could not load scans.","Back to overview","Latest scan"],
+ de:["Meine Fixes","Wähle den neuesten Scan und danach einen Punkt im Bericht.","Scans werden geladen…","Noch keine Scans. Starte einen Scan.","Fix-Optionen ansehen →","Erneut scannen","offene Punkte","Neuer Scan","Fehler beim Laden.","Zurück zur Übersicht","Neuester Scan"],
+ fr:["Mes corrections","Choisissez la dernière analyse, puis un point du rapport.","Chargement…","Aucune analyse. Analysez votre site.","Voir les solutions →","Réanalyser","points ouverts","Nouvelle analyse","Erreur de chargement.","Retour au tableau de bord","Dernière analyse"],
+ it:["Le mie correzioni","Scegli l'ultima scansione e il problema da correggere.","Caricamento…","Nessuna scansione. Avvia un'analisi.","Vedi le soluzioni →","Ripeti scansione","problemi aperti","Nuova scansione","Errore di caricamento.","Torna alla panoramica","Ultima scansione"],
+ es:["Mis correcciones","Selecciona el análisis más reciente y el problema del informe.","Cargando…","No hay análisis. Inicia uno.","Ver opciones de corrección →","Analizar de nuevo","problemas pendientes","Nuevo análisis","Error al cargar.","Volver al resumen","Último análisis"]
 };
 const host=(u:string)=>{try{return new URL(u).hostname.toLowerCase().replace(/^www\./,"")}catch{return u.toLowerCase()}};
 export default function FixesHome(){
@@ -53,7 +53,10 @@ export default function FixesHome(){
          <h2 className="mt-2 break-all text-lg font-bold">{host(scan.scanned_url)}</h2>
          <p className="mt-1 text-sm text-slate-400">{new Date(scan.created_at).toLocaleString(language)} · {scan.open_issues} {t[6]} · {scan.overall_score}/100</p>
          <div className="mt-4 flex flex-wrap gap-3">
-           <Link href={"/dashboard/audit/"+encodeURIComponent(scan.id)} className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl bg-[#5DCAA5] px-4 py-3 text-center text-sm font-bold text-[#04342C]">{t[4]}</Link>
+           <Link href={"/dashboard/audit/"+encodeURIComponent(scan.id)} className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl bg-[#5DCAA5] px-4 py-3 text-center text-sm font-bold text-[#04342C]">{scan.open_issues>0?t[4]:({
+             nl:"Bekijk audit →",en:"View audit →",de:"Audit ansehen →",
+             fr:"Voir l'audit →",it:"Vedi audit →",es:"Ver auditoría →"
+           }[language])}</Link>
            <Link href={"/dashboard/scan?url="+encodeURIComponent(scan.scanned_url)} className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/20 px-4 py-3 text-center text-sm font-semibold">{t[5]}</Link>
          </div>
        </article>)}</div>}
