@@ -5774,7 +5774,7 @@ async function runScan(request: Request) {
 
     // Read-only mobile and desktop PageSpeed for the same customer scan.
     // Speed is independent evidence and never changes SEO/GEO scores.
-    const websiteSpeed = response.status === 200 ? await measureWebsiteSpeed(finalUrl.toString()) : null;
+    const websiteSpeed = response.status === 200 ? await measureWebsiteSpeed(finalUrl.toString(), {timeoutMs:Math.min(45000, Math.max(0, 285000 - (Date.now() - started)))}) : null;
 
     let user = null;
     let savedScanId: string | null = null;
