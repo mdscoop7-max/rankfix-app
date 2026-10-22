@@ -68,3 +68,17 @@ test("Without an API key both anonymous strategies are still checked, with hones
   assert.equal(speed.desktop.score, null);
   assert.match(speed.mobile.reason, /API-sleutel|limiet/i);
 });
+
+
+test("Public free scan displays PageSpeed from the shared scan response (mobile and desktop)", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const home = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const scanRoute = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const fullReport = await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
+  const card = await readFile(new URL("../components/speed-audit.tsx", import.meta.url), "utf8");
+  assert.match(home, /<SpeedAudit locale=\{language\} speed=\{result\.websiteSpeed\}/);
+  assert.match(scanRoute, /websiteSpeed = response\.status === 200 \? await measureWebsiteSpeed\(finalUrl\.toString\(\)\)/);
+  assert.match(card, /value=\{speed\?\.mobile\}/);
+  assert.match(card, /value=\{speed\?\.desktop\}/);
+  assert.match(fullReport, /r\.websiteSpeed\?\.\[device\]/);
+});
