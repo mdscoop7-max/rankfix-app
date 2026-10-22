@@ -242,6 +242,10 @@ const MEDICAL_CENTRE = words([
 /** Acronyms are only medical names next to a care concept ("UMC Utrecht", "CHU de Lille"). */
 const MEDICAL_CENTRE_ACRONYM = words(["umc", "chu", "chru", "aphp", "ap-hp", "uz", "ukm", "uke"]);
 const HEALTH_CONCEPTS: Array<[string, RegExp]> = [
+  // Hospital pages often describe their patients rather than diseases or
+  // emergencies. This remains one concept: a patient mention alone cannot
+  // establish healthcare, and publication/retail/insurance guards still apply.
+  ["patients", stems(["patiënt", "patient", "pazient", "pacient", "pazjent", "potila", "patsient", "pacjen", "paciens", "ασθεν", "пациент"])],
   ["health", stems(["gezondheid", "health", "gesundheit", "santé", "salute", "salud", "saúde", "hälsa", "sundhed", "helse", "terveys", "tervis", "veselīb", "sveikat", "zdrow", "zdraví", "zdravie", "egészség", "sănătat", "υγεί", "здрав", "zdravlj", "zdravj"])],
   ["care", stems(["zorgverlen", "zorgaanbied", "gezondheidszorg", "thuiszorg", "ouderenzorg", "jeugdzorg", "vård", "pleje", "hoito", "ravi ", "ravile", "medical care", "healthcare", "gesundheitsversorg", "soins", "cure mediche", "atención sanitaria", "cuidados de saúde", "opieka zdrowotn", "péče", "starostliv", "ellátás", "îngrijir", "περίθαλψ"])],
   ["disease", stems(["ziekte", "krankheit", "maladie", "malatti", "enfermedad", "doença", "sjukdom", "sygdom", "sairau", "haigus", "slimīb", "ligos", "chorob", "nemoc", "choroby", "betegség", "boal", "ασθέν", "болест", "bolest", "symptom", "symptôm", "sintom", "síntoma", "besvär"])],

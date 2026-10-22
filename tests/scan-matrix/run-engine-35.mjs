@@ -434,6 +434,25 @@ const S = [];
     } });
 }
 
+// #186: sparse homepage; two independently fetched pages establish healthcare.
+// Deliberately different languages; no brand/domain or body keyword shortcuts.
+{
+  const host = "corroboration.test";
+  const links = [["/services/soins", "Notre organisation"], ["/services/patienten", "Informationen"]];
+  const home = page({title:"Voorbeeld",desc:"Welkom op onze website. Informatie over onze organisatie.",h1:"Welkom",body:filler("nl",40),links});
+  const care = page({lang:"fr",title:"Hôpital et soins médicaux",desc:"Patients et médecins : soins dans notre hôpital.",h1:"Notre hôpital",body:filler("fr",30),links});
+  const clinic = page({lang:"de",title:"Krankenhaus und medizinische Versorgung",desc:"Patienten, Ärzte und Behandlungen in unserer Klinik.",h1:"Unser Krankenhaus",body:filler("de",30),links});
+  S.push({id:"multilingual-page-corroboration",host,lang:"nl",route:u=>u.pathname==="/"?{body:home}:u.pathname==="/services/soins"?{body:care}:u.pathname==="/services/patienten"?{body:clinic}:null,
+    expect:(j,P)=>{
+      if(process.env.DUMP)console.log(JSON.stringify({sector:j.sectorProfile,pages:j.multiPage?.pageAudits},null,2));
+      if(j.sectorProfile?.sector!=="health_wellness")P(`sector ${j.sectorProfile?.sector}`);
+      if(j.sectorProfile?.pageEvidence?.reason!=="corroborated_pages")P(`page evidence ${j.sectorProfile?.pageEvidence?.reason}`);
+      if(j.sectorProfile?.confidenceScore>=80)P("sample-only recovery presented as confirmed");
+      if(j.multiPage?.coverageDimensions?.pages?.selected!==j.multiPage?.counts?.selected)P("coverage page counts differ");
+      if(!j.runtime?.sectorEngine)P("engine version missing");
+    }});
+}
+
 // Report-wide invariants applied to every scenario that produced a report.
 function invariants(j, P) {
   const level = j.scoreModel?.evidenceLevel;
