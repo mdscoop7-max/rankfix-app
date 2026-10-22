@@ -88,3 +88,28 @@
   .rf-audit-stale-banner p,.rf-audit-stale-banner strong{color:#815100!important}
   .rf-audit-stale-banner a{color:#644200!important;border-color:#c99c4b!important}
 }
+
+
+/* QA: calm audit hierarchy, readable findings and a separate destructive action. */
+.rf-audit-issue{padding:16px 18px;border-radius:14px}
+.rf-audit-issue p{font-size:14px;line-height:1.65;overflow-wrap:anywhere}
+#rankfix-priorities ol li{align-items:flex-start}
+#rankfix-priorities ol li>div:last-child{flex:1;min-width:0;overflow-wrap:anywhere}
+#rankfix-priorities ol li p{line-height:1.6}
+#rankfix-priorities a,#rankfix-priorities button{min-height:44px;display:inline-flex;align-items:center;justify-content:center;white-space:normal;text-align:center}
+.rf-audit-customer-actions a{min-height:44px}
+.rf-audit-manage{border-top:1px solid var(--border-muted);padding-top:14px}
+.rf-audit-manage>summary{cursor:pointer;color:var(--text-secondary);font-size:13px;font-weight:700}
+.rf-audit-delete-action{min-height:44px;margin-top:12px;border:1px solid #d69b9b;border-radius:9px;padding:10px 14px;background:transparent;color:#ffb1b1;font-size:13px;font-weight:750}
+.rf-audit-delete-action:hover{background:#4d2027}
+@media(min-width:651px){
+  .rf-audit-manage>summary{color:#4c5f79}
+  .rf-audit-manage>p{color:#64748b}
+  .rf-audit-delete-action{color:#a82727;border-color:#f0b0b0}
+  .rf-audit-delete-action:hover{background:#fff0f0;color:#8b1e1e}
+}
+@media(max-width:650px){
+  .rf-audit-issue{padding:14px}
+  #rankfix-priorities ol li{padding:14px}
+  #rankfix-priorities a,#rankfix-priorities button{width:100%}
+}
