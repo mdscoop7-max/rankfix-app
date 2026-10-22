@@ -562,13 +562,14 @@ async function runScan(request: Request) {
     // Free keeps the cross-account per-domain allowance; paid plans use account-level monthly allowances.
     if (dashboardScan) {
       if (!usageUser) return NextResponse.json({ error: scanError.session, code: "SESSION_EXPIRED" }, { status: 401 });
-      const limits = planLimits(planCode);
+      // Private QA allowance, never exposed through the commercial plan catalog.
+      const limits = internalTestAccount ? { ...planLimits(planCode), websites: 500, scans: 2000 } : planLimits(planCode);
       const accountHosts = await getDb().query(
         "SELECT DISTINCT lower(regexp_replace(split_part(split_part(COALESCE(final_url,scanned_url),'://',2),'/',1),'^www\\.','')) AS website_host FROM scans WHERE user_id=$1 ORDER BY website_host",
         [usageUser.id]
       );
       const existingHosts = accountHosts.rows.map(row=>String(row.website_host||"").split(":")[0]).filter(Boolean);
-      if (!internalTestAccount && !existingHosts.includes(usageWebsiteHost) && existingHosts.length >= limits.websites) {
+      if (!existingHosts.includes(usageWebsiteHost) && existingHosts.length >= limits.websites) {
         const websiteMessages: Record<string,string> = {
           nl:`Je ${planCode} abonnement ondersteunt maximaal ${limits.websites} website(s). Upgrade je abonnement om meer websites te beheren.`,
           en:`Your ${planCode} plan supports up to ${limits.websites} website(s). Upgrade your plan to manage more websites.`,
@@ -577,15 +578,15 @@ async function runScan(request: Request) {
           it:`Il piano ${planCode} supporta fino a ${limits.websites} sito/i. Effettua l’upgrade per gestire più siti.`,
           es:`Tu plan ${planCode} admite hasta ${limits.websites} sitio(s). Mejora tu plan para gestionar más sitios.`
         };
-        return NextResponse.json({error:websiteMessages[scanLanguage],code:"WEBSITE_LIMIT",usage:{plan:planCode,used:existingHosts.length,limit:limits.websites}},{status:403});
+        return NextResponse.json({error:websiteMessages[scanLanguage],code:"WEBSITE_LIMIT",usage:{plan:internalTestAccount?"internal-qa":planCode,used:existingHosts.length,limit:limits.websites}},{status:403});
       }
       const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0,0,0,0);
-      const scanUsage = planCode==="free"
+      const scanUsage = planCode==="free" && !internalTestAccount
         ? await getDb().query("SELECT COUNT(*)::int AS count FROM usage_events WHERE website_host=$1 AND event_type='SCAN' AND created_at >= $2",[usageWebsiteHost,monthStart.toISOString()])
         : await getDb().query("SELECT COUNT(*)::int AS count FROM usage_events WHERE user_id=$1 AND event_type='SCAN' AND created_at >= $2",[usageUser.id,monthStart.toISOString()]);
       const used = Number(scanUsage.rows[0]?.count || 0);
-      // Only an explicitly configured internal test account may bypass customer limits.
-      if (!internalTestAccount && used >= limits.scans) {
+      // Internal QA has finite, server-enforced allowances; customer limits remain unchanged.
+      if (used >= limits.scans) {
         const limitMessages: Record<string,string> = {
           nl:`Je ${limits.scans} scans van deze maand zijn gebruikt. Je bestaande rapporten blijven beschikbaar.`,
           en:`Your ${limits.scans} scans for this month have been used. Your existing reports remain available.`,
@@ -594,7 +595,7 @@ async function runScan(request: Request) {
           it:`Le ${limits.scans} scansioni di questo mese sono state utilizzate. I rapporti esistenti restano disponibili.`,
           es:`Tus ${limits.scans} análisis de este mes ya se han utilizado. Tus informes existentes seguirán disponibles.`
         };
-        return NextResponse.json({error:limitMessages[scanLanguage],code:"SCAN_LIMIT",usage:{plan:planCode,used,limit:limits.scans}},{status:429});
+        return NextResponse.json({error:limitMessages[scanLanguage],code:"SCAN_LIMIT",usage:{plan:internalTestAccount?"internal-qa":planCode,used,limit:limits.scans}},{status:429});
       }
       if(planCode==="free"){
         const ip = requestIp(request);
