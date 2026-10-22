@@ -1,0 +1,30 @@
+/* QA: clear, accessible free-scan results. Scoped to the actual audit output. */
+#resultaat .rf-public-finding {
+  border-color: rgba(148, 163, 184, .32);
+  background: #13263c;
+  color: #f2f7fd;
+}
+#resultaat .rf-public-finding p,
+#resultaat .rf-public-finding .text-slate-300 {
+  color: #d0ddeb;
+  overflow-wrap: anywhere;
+}
+#resultaat .rf-public-finding .text-xs { line-height: 1.55; }
+#resultaat .rf-public-finding button {
+  white-space: normal;
+  text-align: center;
+  min-height: 44px;
+}
+#resultaat details.bg-slate-50 {
+  background-color: #13263c;
+  border-color: #37526a;
+  color: #edf5fc;
+}
+#resultaat details.bg-slate-50 > summary,
+#resultaat details.bg-slate-50 > div { color: #e2ecf6; }
+#resultaat details.bg-slate-50 .text-slate-500,
+#resultaat details.bg-slate-50 .text-slate-600 { color: #bfcede; }
+@media (max-width: 480px) {
+  #resultaat .rf-public-finding { padding: 14px; }
+  #resultaat .rf-public-finding button { width: 100%; }
+}
