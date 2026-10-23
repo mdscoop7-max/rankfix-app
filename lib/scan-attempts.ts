@@ -17,6 +17,7 @@ export type ScanAttemptCategory =
 /** Network failure → stable code. Never contains raw runtime text. */
 export function fetchFailureCode(error: unknown): string {
   const text = `${error instanceof Error ? `${error.name} ${error.message}` : String(error)} ${(error as { cause?: { code?: string; message?: string } })?.cause?.code || ""} ${(error as { cause?: { message?: string } })?.cause?.message || ""}`;
+  if (/REDIRECT_LOOP/.test(text)) return "REDIRECT_LOOP";
   if (/REDIRECT_LIMIT/.test(text)) return "REDIRECT_LIMIT";
   if (/BODY_TIMEOUT/.test(text)) return "BODY_TIMEOUT";
   if (/RESPONSE_TOO_LARGE/.test(text)) return "RESPONSE_TOO_LARGE";
@@ -34,9 +35,9 @@ export function classifyScanOutcome(httpStatus: number, code: string | null | un
   if (/SITE_RATE_LIMITED/.test(c)) return "site_blocked";
   if (/WEBSITE_LIMIT|SCAN_LIMIT|RATE_LIMIT/.test(c)) return "quota";
   if (/INVALID_URL|UNSAFE_URL|SESSION|SHARE_LINK/.test(c)) return "input";
-  if (/HTTP_BLOCKED|CHALLENGE|SITE_RATE_LIMITED/.test(c)) return "site_blocked";
+  if (/HTTP_BLOCKED|HTTP_AUTH_REQUIRED|CHALLENGE|SITE_RATE_LIMITED/.test(c)) return "site_blocked";
   if (/HTTP_NOT_FOUND|HTTP_SERVER_ERROR|EMPTY_HTML|NOT_HTML|PARKED_DOMAIN/.test(c)) return "site_unavailable";
-  if (/^FETCH_|REDIRECT_LIMIT|RESPONSE_TOO_LARGE|BODY_TIMEOUT/.test(c)) return "network";
+  if (/^FETCH_|REDIRECT_LIMIT|REDIRECT_LOOP|RESPONSE_TOO_LARGE|BODY_TIMEOUT/.test(c)) return "network";
   if (/HISTORY_SAVE/.test(c)) return "save_failed";
   if (httpStatus === 401 || httpStatus === 400) return "input";
   if (httpStatus === 429) return "quota";
