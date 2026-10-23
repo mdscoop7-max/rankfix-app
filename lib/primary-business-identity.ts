@@ -17,7 +17,7 @@ export type PrimaryBusinessIdentity = {
   evidence: string[];
 };
 
-const paymentPurpose = /\b(?:payments? (?:platform|processing|processor|provider|gateway|services?|solutions?|infrastructure|technology)|(?:online|in[- ]person|digital|mobile|contactless) payments?|payment orchestration|accept (?:online |card |digital |in[- ]person )?payments?|process (?:online |card |digital )?payments?|payment service provider|merchant acquiring|merchant accounts?|fintech|financial services?|financial (?:infrastructure|platform|technology)|digital wallet|mobile wallet|(?:send|receive|transfer)(?:,? (?:and )?(?:send|receive|save|spend))* money|money transfers?|manage (?:your )?money|banking services?|betaalplatform|betaaldienst(?:verlener)?|betaaloplossingen|betalingen (?:accepteren|ontvangen|verwerken)|betaalverwerking|betaalprovider|geld (?:overmaken|versturen|sturen)|betalingsverkeer|zahlungs(?:anbieter|dienstleister|lösung(?:en)?|plattform|abwicklung|verkehr)|bezahl(?:lösung(?:en)?|terminals?|dienst(?:e|leister)?)|payment[- ](?:partner|lösung(?:en)?|anbieter|dienstleister|provider|oplossingen)|karten(?:zahlung(?:en)?|terminals?)|betaalterminals?|pinautomaten?|paiements? en ligne|solutions? de paiement|prestataires? de (?:services de )?paiement|terminaux? de paiement|pagos (?:online|en línea)|pasarela de pagos?|soluciones de pago|pagamenti (?:online|digitali)|soluzioni di pagamento)\b/i;
+const paymentPurpose = /\b(?:payments? (?:platform|processing|processor|provider|gateway|services?|solutions?|infrastructure|technology)|(?:online|in[- ]person|digital|mobile|contactless) payments?|payment orchestration|accept (?:online |card |digital |in[- ]person )?payments?|process (?:online |card |digital )?payments?|payment service provider|merchant acquiring|merchant accounts?|fintech|financial services?|financial (?:infrastructure|platform|technology)|digital wallet|mobile wallet|(?:send|receive|transfer)(?:,? (?:and )?(?:send|receive|save|spend))* money|money transfers?|manage (?:your )?money|banking services?|betaalplatform|betaaldienst(?:verlener)?|betaaloplossingen|betalingen (?:accepteren|ontvangen|verwerken)|betaalverwerking|betaalprovider|geld (?:overmaken|versturen|sturen)|betalingsverkeer|zahlungs(?:anbieter|dienstleister|lösung(?:en)?|plattform|abwicklung|verkehr)|payment-?(?:lösung(?:en)?|anbieter|dienstleister|systeme?)|paymentlösung(?:en)?|bezahl(?:lösung(?:en)?|systeme?)|bezahl(?:lösung(?:en)?|terminals?|dienst(?:e|leister)?)|payment[- ](?:partner|lösung(?:en)?|anbieter|dienstleister|provider|oplossingen)|karten(?:zahlung(?:en)?|terminals?)|betaalterminals?|pinautomaten?|paiements? en ligne|solutions? de paiement|prestataires? de (?:services de )?paiement|terminaux? de paiement|pagos (?:online|en línea)|pasarela de pagos?|soluciones de pago|pagamenti (?:online|digitali)|soluzioni di pagamento)\b/i;
 // Banks and insurers. Deliberately no bare "bank" (Dutch for sofa) or "savings".
 const bankingPurpose = /\b(?:bankieren|online banking|mobiel bankieren|bankrekening|betaalrekening|spaarrekening|bank accounts?|savings accounts?|current accounts?|hypothe(?:ek|ken|cair)|mortgages?|persoonlijke lening|personal loans?|business loans?|zakelijke financiering|credit cards?|creditcards?|beleggen|vermogensbeheer|wealth management|girokonto|sparkonto|baufinanzierung|compte bancaire|conto corrente|cuenta bancaria)\b/i;
 const insurancePurpose = /\b(?:verzekering(?:en)?|verzekeraar|zorgverzekering|autoverzekering|insurance|insurer|versicherung(?:en)?|assurances?|assicurazion[ei]|seguros?)\b/i;
@@ -25,12 +25,18 @@ const insurancePurpose = /\b(?:verzekering(?:en)?|verzekeraar|zorgverzekering|au
 // words in its title ("camping", "saving", "insurance included") describe the
 // assortment, not the company's own business.
 const retailSalesLanguage = /\b(?:webshop|webwinkel|online winkel|online store|online shop|shop online|onlineshop|online (?:kopen|bestellen|shoppen)|bestel(?:len)? (?:direct |eenvoudig |snel )?online|koop (?:direct )?online|buy online|order online|gratis verzending|free shipping|kopen\b|bestellen\b|winkelwagen|in de winkel|shop now)\b/i;
+// A payment provider names payment as its product to businesses ("Das beste
+// Payment für Ihr Business", "payments for your business, online and in-store").
+const paymentNoun = /\b(?:payments?|zahlung(?:en)?|bezahlen|paiements?|pagamenti|pagos|betalingen|betalen)\b/i;
+const merchantAudience = /\b(?:für ihr (?:business|unternehmen|geschäft)|for your (?:business|company|store)|voor (?:je|jouw|uw) (?:bedrijf|onderneming|zaak)|pour votre (?:entreprise|commerce|activité)|per la tua (?:azienda|attività)|para tu (?:negocio|empresa)|online,? (?:instore|in-store|in store)|omnichannel|point of sale|kassensystem|kartenterminal|betaalterminal|payment terminal)\b/i;
 const contextualFinancialSchema = new Set([
   "financialservice", "bankorcreditunion", "paymentservice",
   "paymentcard", "creditcard", "loanorcredit", "financialproduct",
 ]);
 // Unambiguous lodging words. "camping", "campground" and "resort" are also
 // product categories (tents, resort wear), so they only count with stay wording.
+// German/Dutch compounds ("Premiumhotels", "Stadthotel") name lodging too.
+const lodgingCompound = /(?<![\p{L}])\p{L}{3,}hotels?(?![\p{L}])/iu;
 const lodgingPurpose = /\b(?:hotel(?:s)?|hostel(?:s)?|guesthouse|guest house|bed and breakfast|b&b|accommodation|accommodatie|lodging|overnight stays?|overnachten|overnachtingen|hotelkamers?|kamers (?:boeken|reserveren)|book (?:a |your )?(?:room|stay)|book rooms?|room reservations?|vakantiehuizen?|vakantiewoningen?|vakantiepark|bungalowpark|holiday rental|vacation rental|holiday home|holiday park|overnight accommodation|ferienwohnung(?:en)?|ferienhaus|unterkunft|hébergement|alloggio|alojamiento)\b/i;
 const ambiguousLodging = /\b(?:camping|campground|campsite|glamping|resort|chaletpark)\b/i;
 const stayWording = /\b(?:overnacht(?:en|ing(?:en)?)|kampeerplaats(?:en)?|kampeerplek(?:ken)?|staanplaats(?:en)?|pitch(?:es)?|plaatsen boeken|chalets?|bungalows?|stacaravans?|accommodaties?|accommodation|book (?:a |your )?(?:pitch|stay)|reserveer|reserveren|boek (?:je|uw) (?:plek|verblijf)|verblijf|stay|nights?|nachten)\b/i;
@@ -67,7 +73,8 @@ export function detectPrimaryBusinessIdentity(input: {
   const financeTextSources = Number(paymentTitle) + Number(paymentDescription) + Number(paymentHeading);
   // Two independent identity sources, or one plus typed financial schema.
   // A retailer's own sales language overrides generic money wording.
-  const paymentsProven = !retailSeller && (
+  const merchantPayments = !retailSeller && paymentNoun.test(title) && paymentNoun.test(description) && merchantAudience.test(description);
+  const paymentsProven = !retailSeller && (merchantPayments ||
     (paymentTitle && paymentDescription)
     || financeTextSources >= 2
     || (financeTextSources >= 1 && financeSchema));
@@ -80,11 +87,11 @@ export function detectPrimaryBusinessIdentity(input: {
     : insuranceProven ? "insurance"
     : bankingProven ? "banking" : undefined;
   const financeProven = Boolean(financialKind);
-  const lodgingTitle = lodgingPurpose.test(title) || (ambiguousLodging.test(title) && !retailSeller && stayWording.test(identityText));
+  const lodgingTitle = lodgingPurpose.test(title) || lodgingCompound.test(title) || (ambiguousLodging.test(title) && !retailSeller && stayWording.test(identityText));
   // Once the title names lodging, stay wording (pitches, chalets, "reserveer je
   // verblijf") in the description or heading is an independent second source.
   const stayBacked = (text: string) => lodgingTitle && !retailSeller && stayWording.test(text);
-  const lodgingDescription = lodgingPurpose.test(description) || (ambiguousLodging.test(description) && !retailSeller && stayWording.test(identityText)) || stayBacked(description);
+  const lodgingDescription = lodgingPurpose.test(description) || lodgingCompound.test(description) || (ambiguousLodging.test(description) && !retailSeller && stayWording.test(identityText)) || stayBacked(description);
   const lodgingHeading = lodgingPurpose.test(heading) || (ambiguousLodging.test(heading) && !retailSeller && stayWording.test(identityText)) || stayBacked(heading);
   const lodgingSchema = [...schema].some((t) => accommodationSchema.has(t));
   const lodgingTextSources = Number(lodgingTitle) + Number(lodgingDescription) + Number(lodgingHeading);

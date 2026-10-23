@@ -36,7 +36,7 @@ export function classifyScanOutcome(httpStatus: number, code: string | null | un
   if (/WEBSITE_LIMIT|SCAN_LIMIT|RATE_LIMIT/.test(c)) return "quota";
   if (/INVALID_URL|UNSAFE_URL|SESSION|SHARE_LINK/.test(c)) return "input";
   if (/HTTP_BLOCKED|HTTP_AUTH_REQUIRED|CHALLENGE|SITE_RATE_LIMITED/.test(c)) return "site_blocked";
-  if (/HTTP_NOT_FOUND|HTTP_SERVER_ERROR|EMPTY_HTML|NOT_HTML|PARKED_DOMAIN/.test(c)) return "site_unavailable";
+  if (/HTTP_NOT_FOUND|HTTP_SERVER_ERROR|EMPTY_HTML|NOT_HTML|PARKED_DOMAIN|SITE_ERROR_PAGE/.test(c)) return "site_unavailable";
   if (/^FETCH_|REDIRECT_LIMIT|REDIRECT_LOOP|RESPONSE_TOO_LARGE|BODY_TIMEOUT/.test(c)) return "network";
   if (/HISTORY_SAVE/.test(c)) return "save_failed";
   if (httpStatus === 401 || httpStatus === 400) return "input";

@@ -35,7 +35,7 @@ test("scan matrix: English and German reports keep the same decisions", () => {
 
 test("rendering: rich render is used, failed/poorer renders fall back honestly, challenges abstain", () => {
   const r = run("run-render.mjs");
-  assert.equal(r.total, 6);
+  assert.equal(r.total, 12);
   assert.equal(r.failed, 0, r.log);
 });
 

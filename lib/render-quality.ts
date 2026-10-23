@@ -1,3 +1,4 @@
+import { classifyNonContentPage } from "./page-gate.ts";
 // Guards for browser-rendered evidence. A headless render can itself be blocked
 // (bot challenge, empty shell) while still returning HTTP 200 and a <title>.
 // Such a document is not evidence of the website and must never replace better
@@ -18,7 +19,14 @@ export function visibleWordCount(html: string): number {
 export const MIN_RECOVERED_WORDS = 40;
 
 export function isSubstantiveRender(html: string | null | undefined): boolean {
-  return Boolean(html) && visibleWordCount(html as string) >= MIN_RECOVERED_WORDS;
+  if (!html) return false;
+  const words = visibleWordCount(html);
+  if (words < MIN_RECOVERED_WORDS) return false;
+  // A recovered render that is itself a block, error or maintenance page is not
+  // the website (QA #186: "AntiBot" and "connection was interrupted" were scored).
+  const title = (html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "").replace(/\s+/g, " ").trim();
+  const text = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 12000);
+  return !classifyNonContentPage({ title, text, words });
 }
 
 // A render replaces the raw HTML only when the raw HTML was a thin client shell or
