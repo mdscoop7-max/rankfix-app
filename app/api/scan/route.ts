@@ -4826,7 +4826,6 @@ async function runScan(request: Request) {
       : {url:representativeHomeUrl, type:"homepage", status:"not_scanned"};
     const extendedIndustry = corroborateDeclaredIndustry(sectorHomepage.url, sectorHomepage, auditedRawPages);
     const specificIndustry = extendedIndustry.decision;
-    const previousIndustry = sectorProfile.sector;
     const acceptExtendedIndustry = Boolean(specificIndustry && !marketSelectorPage &&
       (sectorProfile.sector === specificIndustry.sector ||
        ["unknown","general_business"].includes(sectorProfile.sector) ||
@@ -5089,9 +5088,7 @@ async function runScan(request: Request) {
 
     // Set when the decision below makes the shop a sales channel; the later
     // commerce reconciliation must then not overturn it (one decision, one owner).
-    let commerceIsChannel = Boolean(acceptExtendedIndustry &&
-      previousIndustry === "ecommerce" && specificIndustry &&
-      specificIndustry.sector !== "ecommerce" && finalCommerceDecision.confirmed);
+    let commerceIsChannel = Boolean(verifiedNonCommerceIndustry && finalCommerceDecision.confirmed);
     if (commerceIsChannel) {
       Object.assign(sectorProfile, {secondaryActivities:[{
         sector:"ecommerce", label:"Webshop als secundair verkoopkanaal",
