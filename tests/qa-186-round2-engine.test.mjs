@@ -135,3 +135,17 @@ test("replay of recorded 96-site identities: no wrong sector, and no regression 
   // Measured on 23 Oct 2026: 41 before this round, 52 after. A lower number is a regression.
   assert.ok(rows.filter((r) => r.verdict === "compatible").length >= 52);
 });
+
+test("database retry: only errors before the statement reached PostgreSQL are retried", async () => {
+  const { isConnectPhaseError, databaseFailureCode } = await import("../lib/db.ts");
+  assert.ok(isConnectPhaseError({ message: "timeout exceeded when trying to connect" }));
+  assert.ok(isConnectPhaseError({ code: "53300", message: "sorry, too many clients already" }));
+  assert.ok(isConnectPhaseError({ code: "ECONNREFUSED" }));
+  // After the statement was sent a retry could duplicate a write: never retried.
+  assert.equal(isConnectPhaseError({ message: "Connection terminated unexpectedly" }), false);
+  assert.equal(isConnectPhaseError({ code: "22P02", message: "invalid input syntax for type json" }), false);
+  assert.equal(isConnectPhaseError({ code: "23505" }), false);
+  assert.equal(databaseFailureCode({ code: "22P02" }), "22P02");
+  assert.equal(databaseFailureCode({ message: "Connection terminated unexpectedly" }), "CONNECTION_TERMINATED");
+  assert.equal(databaseFailureCode(new TypeError("x is undefined")), "ENGINE_ERROR");
+});

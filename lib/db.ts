@@ -29,8 +29,19 @@ export function getDb() {
     // in a scan report must never make a completed scan unsavable.
     const pool = global.__rankfixPool;
     const query = pool.query.bind(pool) as (...args: unknown[]) => unknown;
-    (pool as unknown as { query: (...args: unknown[]) => unknown }).query = (text: unknown, params?: unknown, ...rest: unknown[]) =>
-      query(text, Array.isArray(params) ? params.map(safeQueryParam) : params, ...rest);
+    (pool as unknown as { query: (...args: unknown[]) => unknown }).query = (text: unknown, params?: unknown, ...rest: unknown[]) => {
+      const safeParams = Array.isArray(params) ? params.map(safeQueryParam) : params;
+      // Callback-style calls keep their original behaviour.
+      if (rest.some((arg) => typeof arg === "function") || typeof params === "function") return query(text, safeParams, ...rest);
+      // A failure while ESTABLISHING the connection means the statement never
+      // reached the server, so one retry cannot duplicate a write. Errors after
+      // the statement was sent are never retried here.
+      return (query(text, safeParams, ...rest) as Promise<unknown>).catch(async (error: unknown) => {
+        if (!isConnectPhaseError(error)) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        return query(text, safeParams, ...rest);
+      });
+    };
     global.__rankfixPool.on("error",(error)=>{
       // A failed idle client must never crash the whole Node process.
       console.error("PostgreSQL idle client error",error.message);
@@ -49,4 +60,23 @@ export function safeQueryParam(value: unknown): unknown {
     try { return jsonbStringify(JSON.parse(value)); } catch { /* not JSON: treat as text */ }
   }
   return jsonbSafeString(value);
+}
+
+/** Errors raised before a statement reached PostgreSQL (safe to retry once). */
+export function isConnectPhaseError(error: unknown): boolean {
+  const code = String((error as { code?: unknown })?.code || "");
+  const message = String((error as { message?: unknown })?.message || "");
+  return ["53300", "57P03", "08001", "08004", "ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN"].includes(code)
+    || /timeout exceeded when trying to connect|Connection terminated due to connection timeout|connect ECONNREFUSED|too many clients already|the database system is starting up/i.test(message);
+}
+
+/** Non-secret classification of a failed save, for the response and attempt logs. */
+export function databaseFailureCode(error: unknown): string | null {
+  const code = String((error as { code?: unknown })?.code || "");
+  if (/^[0-9A-Z]{5}$/.test(code)) return code;
+  if (/^E[A-Z]+$/.test(code)) return code;
+  const message = String((error as { message?: unknown })?.message || "");
+  if (/Connection terminated/i.test(message)) return "CONNECTION_TERMINATED";
+  if (/timeout/i.test(message)) return "TIMEOUT";
+  return error instanceof TypeError || error instanceof RangeError || error instanceof SyntaxError ? "ENGINE_ERROR" : null;
 }

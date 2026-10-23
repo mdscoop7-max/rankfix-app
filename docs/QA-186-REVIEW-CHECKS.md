@@ -98,3 +98,37 @@ are skipped. tsc clean, webpack build passes, lint unchanged.
 - Browser recovery after a timeout adds up to 15 s and one Chromium start for
   sites that hang; cost and cold starts on Vercel were not measured.
 - Sector labels of the test group remain `proposed_not_independently_verified`.
+
+## Live TestLab run on QA af918dbd (23 Oct 2026, 11:02–11:50 UTC)
+
+| | QA 10e32df (this morning) | QA af918dbd (this branch) |
+| --- | --- | --- |
+| Full reports | 71 | 68 |
+| Main sector compatible | 54 of 71 | 64 of 68 |
+| Unconfirmed | 13 | 4 (EDF, bol, Umicore, Agfa) |
+| Wrong main sector | 4 | 0 |
+| Subtype compatible | 8 of 12 | 10 of 11 |
+| No report | 25 | 28 |
+
+Fewer reports, by cause: Colruyt and Iberia now stop on their block/error page
+instead of being scored (intended). VRT returned HTTP 403 to RankFix in 3 s
+(it served HTTP 200 this morning); Charité timed out (17 s success this morning);
+DHL failed to save. ING and PostNL still time out; the browser visit after the
+timeout did not reach them either. Delhaize, which failed to save this morning,
+was stored.
+
+Follow-up repairs from this run:
+- Browser redirects (apex → www, "/" → "/es/es/"): links were resolved against the
+  pre-render URL, so all 12 sampled pages of one site returned 404. The rendered
+  URL is now adopted within the same registrable site (exact host comparison;
+  two-level public suffixes handled); a redirect to another site is not adopted.
+- Saving: connect-phase database errors are retried once (never after a statement
+  was sent); the previous-scan comparison can no longer fail the save; a failed save
+  reports `saveFailure.stage` and `saveFailure.cause` (PostgreSQL code, no secrets).
+  The DHL cause could not be read: Vercel runtime logs returned 403 to this session.
+  All 70 reconstructed sites were saved twice on real PostgreSQL without error.
+- `scripts/testlab/run.mjs` records `failure` (blockKind, nonContent, saveFailure,
+  recovery), `access`, `rendering` and `sampleRetryPass`. The laptop runner
+  (`testlab-96.mjs`, outside the repository) does not store these yet.
+- One site (TIM) refuses every sub-page also sequentially: the retry pass made one
+  attempt and stopped (`still_refused`), as designed.

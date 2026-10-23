@@ -46,24 +46,34 @@ const SCEN = [
     ].filter(Boolean) },
   // A timeout whose browser visit is a challenge stays a failed fetch (no score).
   { id: "timeout-render-challenge", host: "slowchal.test", rawThrow: "timeout", raw: "", render: () => `<html><head><title>Just a moment...</title></head><body>${"Checking your browser before accessing. ".repeat(12)}</body></html>`, expect: { http: 502, code: "FETCH_TIMEOUT" } },
+  // QA #186: the browser follows a JavaScript redirect from the apex to www; sub-pages
+  // exist only on www. Links must resolve against the URL the browser ended on.
+  { id: "render-redirect-apex-www", host: "apexsite.test", altHost: "www.apexsite.test", subpagesOnlyOnAlt: true, raw: shellHtml("App"),
+    render: () => fullHtml.replaceAll("spa-rich.test", "www.apexsite.test"), renderFinalUrl: "https://www.apexsite.test/",
+    expect: { js: true, sector: ["saas_b2b"], titleStatus: ["pass"] },
+    extra: (j) => { const pages = (j.multiPage?.pageAudits || []).filter((p) => new URL(p.url).pathname !== "/"); const ok = pages.filter((p) => p.status === "audited"); return [ok.length < 2 && `only ${ok.length} sampled pages audited: ${JSON.stringify(pages.map((p) => [p.url, p.httpStatus]))}`, new URL(j.finalUrl).host !== "www.apexsite.test" && `finalUrl ${j.finalUrl}`].filter(Boolean); } },
+  // A browser redirect to ANOTHER site is not adopted.
+  { id: "render-redirect-other-site", host: "origin.test", raw: shellHtml("App"), render: () => fullHtml.replaceAll("spa-rich.test", "origin.test"), renderFinalUrl: "https://elsewhere.test/landing",
+    expect: { js: true, sector: ["saas_b2b"], titleStatus: ["pass"] }, extra: (j) => [new URL(j.finalUrl).host !== "origin.test" && `adopted foreign URL ${j.finalUrl}`].filter(Boolean) },
 ];
 const sub = (host, path) => `<!doctype html><html lang="en"><head><title>${path} | Site</title><meta name="description" content="Information about ${path} from this website, contact us for details."></head><body><h1>${path}</h1><p>Info.</p></body></html>`;
 globalThis.fetch = async (input) => {
   const u = new URL(typeof input === "string" ? input : input.url);
-  const sc = SCEN.find((s) => s.host === u.host);
+  const sc = SCEN.find((s) => s.host === u.host || s.altHost === u.host);
   const h = (b, st = 200) => new Response(b, { status: st, headers: { "content-type": "text/html; charset=utf-8" } });
   if (u.pathname === "/robots.txt") return new Response("User-agent: *\nAllow: /\n", { status: 200, headers: { "content-type": "text/plain" } });
   if (/\.(js|jpg|png|css)$/.test(u.pathname)) return new Response("x", { status: 200, headers: { "content-type": "application/javascript" } });
   if (!sc) return h("nf", 404);
+  if (sc.subpagesOnlyOnAlt && u.host === sc.host && u.pathname !== "/") return h("nf", 404);
   if (u.pathname === "/" && sc.rawThrow) { const e = new Error("The operation was aborted due to timeout"); e.name = "TimeoutError"; throw e; }
   if (u.pathname === "/") return h(sc.raw, sc.rawStatus || 200);
   return h(sub(u.host, u.pathname));
 };
 globalThis.__RF_RENDER = async (url) => {
-  const u = new URL(url); const sc = SCEN.find((s) => s.host === u.host);
+  const u = new URL(url); const sc = SCEN.find((s) => s.host === u.host || s.altHost === u.host);
   if (!sc || u.pathname !== "/") return { html: sub(u.host, u.pathname), finalUrl: url, elapsedMs: 50, requests: 3, titlePixelWidth: 300, domAccessibility: { controls: 0, unnamedButtons: 0, unlabeledControls: 0 }, axeReport: null };
   const html = sc.render();
-  return { html, finalUrl: url, elapsedMs: 800, requests: 12, titlePixelWidth: 410, domAccessibility: { controls: 4, unnamedButtons: 0, unlabeledControls: 0 }, axeReport: { violations: [], passes: 20, incomplete: 0, scope: "hydrated_wcag_a_aa" } };
+  return { html, finalUrl: sc.renderFinalUrl || url, elapsedMs: 800, requests: 12, titlePixelWidth: 410, domAccessibility: { controls: 4, unnamedButtons: 0, unlabeledControls: 0 }, axeReport: { violations: [], passes: 20, incomplete: 0, scope: "hydrated_wcag_a_aa" } };
 };
 const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const { POST } = await import(ROOT + "/app/api/scan/route.ts");
