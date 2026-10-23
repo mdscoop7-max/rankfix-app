@@ -66,6 +66,14 @@ export async function measureWebsiteSpeed(
     desktop: emptyDevice("Nog niet gemeten"),
     note: "Losse snelheidsmeting; niet meegewogen in SEO- of GEO-score. Geen automatische snelheidsfix.",
   };
+  // QA-only pause: never contact Google PageSpeed until explicitly re-enabled.
+  // Keep the report shape intact so existing audits and historic reports remain usable.
+  if (process.env.RANKFIX_PAGESPEED_ENABLED !== "true") {
+    report.mobile = emptyDevice("Speed Test tijdelijk uitgeschakeld; later beschikbaar");
+    report.desktop = emptyDevice("Speed Test tijdelijk uitgeschakeld; later beschikbaar");
+    report.note = "Speed Test tijdelijk uitgeschakeld; geen externe PageSpeed-aanvragen.";
+    return report;
+  }
   const key = options.apiKey ?? process.env.PAGESPEED_API_KEY;
   // Google documents anonymous API requests; quota/rate limits can prevent results.
   // Always attempt both devices and report a neutral unavailable state if refused.
