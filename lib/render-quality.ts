@@ -26,7 +26,7 @@ export function isSubstantiveRender(html: string | null | undefined): boolean {
   // the website (QA #186: "AntiBot" and "connection was interrupted" were scored).
   const title = (html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "").replace(/\s+/g, " ").trim();
   const text = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 12000);
-  return !classifyNonContentPage({ title, text, words });
+  return !classifyNonContentPage({ title, text, words, html });
 }
 
 // A render replaces the raw HTML only when the raw HTML was a thin client shell or

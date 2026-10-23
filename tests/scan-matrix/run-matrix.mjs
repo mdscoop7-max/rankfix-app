@@ -101,6 +101,7 @@ for (const p of PROFILES) {
       // Every scored check says where its evidence came from.
       for (const c of all) if (c.maxPoints > 0 && !c.evidence?.source) problems.push(`${c.key}: no evidence source`);
     }
+    if (p.retryPass) { const rp = j.multiPage?.sampleRetryPass; if (!rp) problems.push("multiPage.sampleRetryPass missing"); else for (const [k, v] of Object.entries(p.retryPass)) if (rp[k] !== v) problems.push(`sampleRetryPass.${k}=${rp[k]} (expected ${v})`); }
     if (p.sampleRecoveredMin) { const rec = (j.multiPage?.pageAudits || []).filter((x) => x.status === "audited" && (x.evidence || []).some((e) => /sequenti/.test(e))).length; if (rec < p.sampleRecoveredMin) problems.push(`only ${rec} sample pages recovered sequentially (expected ≥ ${p.sampleRecoveredMin}); ${JSON.stringify((j.multiPage?.pageAudits || []).map((x) => [new URL(x.url).pathname, x.status]))}`); }
     for (const path of p.sampleUnconfirmed || []) { const a = (j.multiPage?.pageAudits || []).find((x) => new URL(x.url).pathname === path); if (!a) problems.push(`sample ${path} missing`); else if (a.status !== "unable_to_confirm") problems.push(`sample ${path} is ${a.status}; a maintenance/challenge page must not be audited`); }
     if (p.secondary) for (const sec of p.secondary) if (!(j.sectorProfile?.secondaryActivities || []).some((x) => x.sector === sec)) problems.push(`secondary activity ${sec} missing`);

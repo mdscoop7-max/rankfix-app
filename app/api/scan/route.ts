@@ -926,7 +926,7 @@ async function runScan(request: Request) {
     // Error and maintenance pages (and challenge titles the older patterns miss,
     // e.g. "AntiBot") are not the website: no score. After a refused request
     // (403/405) such a page is still the block; otherwise the site is unavailable.
-    const nonContentPage = classifyNonContentPage({ title: qualityTitle, text: qualityText, words: qualityWords });
+    const nonContentPage = classifyNonContentPage({ title: qualityTitle, text: qualityText, words: qualityWords, html });
     if (nonContentPage) {
       const refused = recovery.attempted && !response.ok;
       const code = nonContentPage.kind === "challenge" || refused ? (refused ? "HTTP_BLOCKED" : "CHALLENGE_OR_INTERSTITIAL") : "SITE_ERROR_PAGE";
@@ -4464,7 +4464,7 @@ async function runScan(request: Request) {
         }
         // Maintenance, error and block pages answer with HTTP 200 too; they are not
         // evidence of the website and never enter the sample or its scores.
-        const pageNonContent = classifyNonContentPage({ title: pageQualityTitle, text: pageQualityText, words: pageQualityWords });
+        const pageNonContent = classifyNonContentPage({ title: pageQualityTitle, text: pageQualityText, words: pageQualityWords, html: pageHtml });
         if (pageNonContent) {
           return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, nonContent:pageNonContent.kind, title:pageQualityTitle||null, description:pageQualityDescription||null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"quality",status:"UNABLE_TO_CONFIRM",details:nonContentDetail(pageNonContent)}] };
         }
@@ -4664,20 +4664,27 @@ async function runScan(request: Request) {
     // no HTTP status). When most fetches failed at network level, retry a bounded
     // number of them sequentially with a pause. Same requests, slower; an HTTP
     // refusal (403/429), a timeout or a block page is never retried here.
+    const sampleRetryPass = { triggered: false, attempted: 0, recovered: 0, stoppedReason: null as string | null };
     {
       const networkFailed = multiPageAudits
         .map((item, index) => ({ item, index }))
         .filter(({ item }) => item?.status === "unable_to_confirm" && item.httpStatus === null && ["FETCH_CONNECTION", "FETCH_FAILED"].includes(item.fetchFailure || ""));
       const attempted = multiPageAudits.filter((item) => item && !(normalizeScanUrl(item.url) === normalizeScanUrl(finalUrl.toString()))).length;
       if (networkFailed.length >= 3 && networkFailed.length >= attempted * 0.5) {
+        // Hard budget: at most 30 s for the whole pass and never closer than 40 s
+        // to the sample deadline, so one slow retry (fetch + redirects + one
+        // browser recovery) still ends before later scan phases need the time.
+        const retryUntil = Math.min(Date.now() + 30_000, started + SAMPLE_DEADLINE_MS - 40_000);
+        sampleRetryPass.triggered = true;
         for (const { index } of networkFailed.slice(0, 6)) {
-          if (Date.now() - started > SAMPLE_DEADLINE_MS - 15_000) break;
+          if (Date.now() > retryUntil) { sampleRetryPass.stoppedReason = "time_budget"; break; }
           await new Promise((resolve) => setTimeout(resolve, 700));
+          sampleRetryPass.attempted++;
           const retried = await auditMultiPage(uniqueMultiPagePages[index]);
-          if (retried.status === "audited") retried.evidence = [...(retried.evidence || []), "opgehaald bij een tweede, sequentiële poging"];
+          if (retried.status === "audited") { sampleRetryPass.recovered++; retried.evidence = [...(retried.evidence || []), "opgehaald bij een tweede, sequentiële poging"]; }
           multiPageAudits[index] = retried;
           // Still refused after a pause: the site limits this client; stop asking.
-          if (retried.status !== "audited" && retried.httpStatus === null) break;
+          if (retried.status !== "audited" && retried.httpStatus === null) { sampleRetryPass.stoppedReason = "still_refused"; break; }
         }
       }
     }
@@ -5870,6 +5877,7 @@ async function runScan(request: Request) {
     const sampleAccounting = sampleSummary(multiPageAudits.length, scoredSamplePages.length, excludedNoindexPages, unableToFetchPages, partialHeadPages);
     const multiPage = {
       accounting:sampleAccounting,
+      sampleRetryPass,
       coverageDimensions:scanCoverageDimensions(overallCoverage.coveragePercent, multiPageAudits.length, auditedRawPages.length+excludedNoindexPages, scoredSamplePages.length),
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:representativePageLimit,
       discoveredInternalUrls:discoveredMultiPage.length, sampleLinkSource, fallbackSources, sampleLimitation, duplicateSamplesRemoved, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,

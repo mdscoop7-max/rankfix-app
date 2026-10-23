@@ -68,8 +68,14 @@ export const PROFILES = [
       "/diensten": { body: "<!doctype html><html><head><title>Our site is currently undergoing maintenance | Vervoerder</title></head><body><p>We are performing maintenance. Back soon.</p></body></html>" },
       "/over-ons": { body: "<!doctype html><html><head><title>Human Verification</title></head><body><p>Please verify you are a human.</p></body></html>" },
     } },
-  { id: "qa186b-parallel-reset", host: "burst.test", expect: ["transport_travel"], resetParallelSubpages: true, sampleRecoveredMin: 3,
+  { id: "qa186b-parallel-reset", host: "burst.test", expect: ["transport_travel"], resetParallelSubpages: true, sampleRecoveredMin: 3, retryPass: { triggered: true },
     home: { title: "Wegtransport en logistiek | Burst", desc: "Wegtransport, groupage en opslag in heel Europa.", h1: "Transport en logistiek", body: "<p><a href='/diensten'>Diensten</a> <a href='/over-ons'>Over ons</a> <a href='/contact'>Contact</a> <a href='/vacatures'>Vacatures</a> <a href='/opslag'>Opslag</a></p>" } },
+  // Refuses every sub-page, also one at a time: exactly one extra request, then stop.
+  { id: "qa186b-reset-always", host: "refuseall.test", expect: ["transport_travel"], resetAllSubpages: true, retryPass: { triggered: true, attempted: 1, recovered: 0, stoppedReason: "still_refused" },
+    home: { title: "Wegtransport en logistiek | Refuse", desc: "Wegtransport, groupage en opslag in heel Europa.", h1: "Transport en logistiek", body: "<p><a href='/diensten'>Diensten</a> <a href='/over-ons'>Over ons</a> <a href='/contact'>Contact</a> <a href='/vacatures'>Vacatures</a> <a href='/opslag'>Opslag</a></p>" } },
+  // Only one page fails: no retry pass (it is not a parallel-connection limit).
+  { id: "qa186b-one-failure", host: "onefail.test", expect: ["transport_travel"], resetOnePath: "/opslag", retryPass: { triggered: false, attempted: 0 },
+    home: { title: "Wegtransport en logistiek | Onefail", desc: "Wegtransport, groupage en opslag in heel Europa.", h1: "Transport en logistiek", body: "<p><a href='/diensten'>Diensten</a> <a href='/over-ons'>Over ons</a> <a href='/contact'>Contact</a> <a href='/vacatures'>Vacatures</a> <a href='/opslag'>Opslag</a></p>" } },
   // Retail
   { id: "shop-nl", host: "sneakers.test", expect: ["ecommerce"], commerce: true, home: { title: "Sneakers webshop – online bestellen", desc: "Sneakers online kopen. Gratis verzending en retourneren.", h1: "Sneakers", body: "<div class='product-card' data-price='89.99'>Air <span>€ 89,99</span><form action='/cart/add'><button>In winkelwagen</button></form></div><div class='product-card' data-price='99.99'>Run <span>€ 99,99</span><form action='/cart/add'><button>In winkelwagen</button></form></div><a href='/winkelwagen'>Winkelwagen</a> <a href='/product/air'>Air</a> <a href='/product/run'>Run</a> <a href='/verzending'>Verzending</a> <a href='/retour'>Retour</a>", lds: [{ ...org("Sneakers", "OnlineStore") }, site] } },
   { id: "shop-de", host: "moebel.test", expect: ["ecommerce"], commerce: true, home: { lang: "de", title: "Möbel online kaufen | Möbelshop", desc: "Möbel und Wohnaccessoires online bestellen. Kostenloser Versand.", h1: "Möbel", body: "<div class='product-card'>Sofa <span>€ 499,00</span><form action='/warenkorb/add'><button>In den Warenkorb</button></form></div><div class='product-card'>Tisch <span>€ 199,00</span><form action='/cart/add'><button>In den Warenkorb</button></form></div><a href='/warenkorb'>Warenkorb</a> <a href='/product/sofa'>Sofa</a> <a href='/product/tisch'>Tisch</a> <a href='/versand'>Versand</a> <a href='/ruecksendung'>Rücksendung</a>", lds: [org("Möbelshop", "FurnitureStore"), site] } },
@@ -303,6 +309,13 @@ export function installMatrixFetch2() {
     if (p?.redirectTo && u.pathname === "/") return new Response("", { status: 301, headers: { location: p.redirectTo } });
     if (p?.pdf && u.pathname === "/") return new Response("%PDF-1.4 binary", { status: 200, headers: { "content-type": "application/pdf" } });
     if (p?.empty && u.pathname === "/") return new Response("", { status: 200, headers: { "content-type": "text/html" } });
+    // QA #186: a firewall that resets every sub-page request, or only one page.
+    const always = PROFILES.find((x) => x.host === u.host && (x.resetAllSubpages || x.resetOnePath));
+    if (always && u.pathname !== "/" && !/\.(?:txt|xml)$/.test(u.pathname) && (always.resetAllSubpages || u.pathname === always.resetOnePath)) {
+      always.__subpageRequests = (always.__subpageRequests || 0) + 1;
+      const e = new TypeError("fetch failed"); e.cause = { code: "ECONNRESET", message: "socket hang up" }; throw e;
+    }
+    if (always && u.pathname !== "/" && !/\.(?:txt|xml)$/.test(u.pathname)) always.__subpageRequests = (always.__subpageRequests || 0) + 1;
     // QA #186: a firewall that resets parallel connections but serves one at a time.
     const burst = PROFILES.find((x) => x.host === u.host && x.resetParallelSubpages);
     if (burst && u.pathname !== "/" && !/\.(?:txt|xml)$/.test(u.pathname)) {
