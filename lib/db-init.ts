@@ -1,4 +1,4 @@
-import { getDb } from "./db";
+import { getDb } from "./db.ts";
 
 let initialized = false;
 let initializing: Promise<void> | null = null;
@@ -369,10 +369,44 @@ const statements = [
   `CREATE INDEX IF NOT EXISTS scan_attempts_category_idx ON scan_attempts(category, created_at DESC)`
 ];
 
+// Run after the statements, under the same advisory lock (legacy Fix Engine lifecycle).
+const reconcile = [
+  "ALTER TABLE fix_proposals DROP CONSTRAINT IF EXISTS fix_proposals_status_check",
+  "ALTER TABLE fix_proposals ALTER COLUMN status SET DEFAULT 'PREVIEW_READY'",
+  "UPDATE fix_proposals SET status = 'PREVIEW_READY' WHERE status = 'PREVIEWED'",
+  "ALTER TABLE fix_proposals ADD CONSTRAINT fix_proposals_status_check CHECK (status IN ('PREVIEW_READY','APPROVED','PUBLISHED','FAILED','EXPIRED','INVALIDATED'))",
+];
+
+/**
+ * Fingerprint of the exact schema SQL above. Every new serverless instance used
+ * to run all statements (ALTER TABLE takes ACCESS EXCLUSIVE locks on users,
+ * scans, ...) inside one transaction. Concurrent requests then waited on those
+ * locks, and a scan insert (which also locks users through its foreign key)
+ * could be chosen as deadlock victim. Once a fingerprint has been applied, a new
+ * instance only reads it; the full migration runs again only when the SQL changes.
+ */
+export function schemaFingerprint(sql: string[] = [...statements, ...reconcile]): string {
+  let hash = 0x811c9dc5;
+  for (const char of sql.join("\u0000")) { hash ^= char.charCodeAt(0); hash = Math.imul(hash, 0x01000193) >>> 0; }
+  return `v1-${sql.length}-${hash.toString(16).padStart(8, "0")}`;
+}
+
+async function schemaAlreadyApplied(version: string): Promise<boolean> {
+  try {
+    const result = await getDb().query("SELECT 1 FROM rankfix_schema_versions WHERE version=$1", [version]);
+    return result.rows.length > 0;
+  } catch {
+    // Table missing (first run) or not readable: run the full migration.
+    return false;
+  }
+}
+
 export async function ensureDatabase() {
   if (initialized) return;
   if (!initializing) {
     initializing = (async () => {
+      const version = schemaFingerprint();
+      if (await schemaAlreadyApplied(version)) { initialized = true; return; }
       const client = await getDb().connect();
       try {
         await client.query("BEGIN");
@@ -381,14 +415,10 @@ export async function ensureDatabase() {
         await client.query("SELECT pg_advisory_xact_lock(hashtext('rankfix_schema_init'), 1)");
 
         for (const statement of statements) await client.query(statement);
+        for (const statement of reconcile) await client.query(statement);
 
-        // Reconcile the legacy Fix Engine lifecycle only once, after the data
-        // is normalized, while holding the same advisory lock.
-        await client.query("ALTER TABLE fix_proposals DROP CONSTRAINT IF EXISTS fix_proposals_status_check");
-        await client.query("ALTER TABLE fix_proposals ALTER COLUMN status SET DEFAULT 'PREVIEW_READY'");
-        await client.query("UPDATE fix_proposals SET status = 'PREVIEW_READY' WHERE status = 'PREVIEWED'");
-        await client.query("ALTER TABLE fix_proposals ADD CONSTRAINT fix_proposals_status_check CHECK (status IN ('PREVIEW_READY','APPROVED','PUBLISHED','FAILED','EXPIRED','INVALIDATED'))");
-
+        await client.query("CREATE TABLE IF NOT EXISTS rankfix_schema_versions (version TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW())");
+        await client.query("INSERT INTO rankfix_schema_versions (version) VALUES ($1) ON CONFLICT (version) DO NOTHING", [version]);
         await client.query("COMMIT");
         initialized = true;
       } catch (error) {

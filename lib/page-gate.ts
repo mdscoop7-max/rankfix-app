@@ -39,6 +39,25 @@ const shortTitle = (title: string) => {
 // /cdn-cgi/challenge-platform/scripts/jsd/main.js, Imperva's _Incapsula_Resource,
 // Queue-it's queueclient script, AWS WAF token SDKs and DataDome's tags.js.
 const CHALLENGE_MARKUP = /(?:window\._cf_chl_opt|\/cdn-cgi\/challenge-platform\/h\/[a-z]\/orchestrate\/(?:chl_page|captcha|managed)|cf-chl-widget|geo\.captcha-delivery\.com|ct\.captcha-delivery\.com|id=["']px-captcha["']|incapsula incident id|errors\.edgesuite\.net|validate\.perfdrive\.com)/i;
+// Block pages that name the visitor's IP address or access as blocked, and
+// image-CAPTCHA templates (F5/BIG-IP and similar). Help-centre articles ABOUT
+// IP blocks exist, so these phrases are decisive only on short pages and only
+// in the title or the opening text.
+const ACCESS_BLOCKED = /(?:\bip[- ]?(?:address|adres|adresse)?\s+(?:is|has been|was|wurde|ist|est|a été|è stato|ha sido|werd)\s+(?:temporarily\s+|tijdelijk\s+|vorübergehend\s+|temporairement\s+)?(?:blocked|geblokkeerd|gesperrt|blockiert|bloqu[ée]e?|bloccat[oa]|bloquead[oa])|adresse ip (?:est |a été )?bloqu[ée]e|(?:your|uw|je|ihr|votre|tu|il tuo) (?:access|toegang|zugriff|accès|acceso|accesso)\b[^.!?]{0,60}\b(?:has been|is|wurde|ist|a été|ha sido|è stato)\s+(?:temporarily\s+|tijdelijk\s+|vorübergehend\s+|temporairement\s+)?(?:blocked|geblokkeerd|gesperrt|blockiert|bloqué|bloqueado|bloccato|restricted|beperkt)|testing whether you are a human|whether you are a human visitor|what code is in the image|prevent automated spam submission|type the characters (?:you see|in the image)|voer de tekens in die u ziet|geben sie die zeichen ein)/i;
+const ACCESS_BLOCKED_MAX_WORDS = 600;
+// "If your IP address has been blocked, ..." / "Why is my access blocked?" is
+// help text ABOUT blocks, not a block message.
+const HYPOTHETICAL = /(?:\b(?:if|when|why|whether|how|what if|als|wanneer|waarom|indien|wenn|warum|falls|si|quand|pourquoi|se|perché|cuando|por qué)\b[^.!?]{0,40}$)/i;
+function accessBlockedMessage(value: string): boolean {
+  const pattern = new RegExp(ACCESS_BLOCKED.source, "gi");
+  for (let match = pattern.exec(value); match; match = pattern.exec(value)) {
+    const before = value.slice(Math.max(0, match.index - 50), match.index);
+    const sentenceEnd = value.slice(match.index + match[0].length).search(/[.!?]/);
+    const question = sentenceEnd >= 0 && value[match.index + match[0].length + sentenceEnd] === "?";
+    if (!HYPOTHETICAL.test(before) && !question) return true;
+  }
+  return false;
+}
 // Edge error templates name a reference/incident ID.
 const EDGE_REFERENCE = /(?:reference\s*(?:#|id:?)\s*\d{1,3}\.[0-9a-f]{6,}\.\d{6,}\.[0-9a-f]{6,}|cloudflare ray id:?\s*[0-9a-f]{12,}|incident id:?\s*\d{6,}|support id(?: is)?:?\s*\d{10,})/i;
 
@@ -69,6 +88,7 @@ export function classifyNonContentPage(input: { title?: string | null; text?: st
   if (notLong && CHALLENGE_TITLE.test(title)) return { kind: "challenge", reason: "title_is_block_message" };
   if (notLong && EDGE_REFERENCE.test(head) && (ERROR_STRONG.test(head) || /access denied|blocked|forbidden|permission/i.test(head))) return { kind: "challenge", reason: "edge_block_reference" };
   if (short && BLOCK_TITLE_WORDS.test(title) && shortTitle(title)) return { kind: "challenge", reason: "title_names_block" };
+  if (words < ACCESS_BLOCKED_MAX_WORDS && accessBlockedMessage(`${title}. ${text.slice(0, 600)}`)) return { kind: "challenge", reason: "access_blocked_message" };
 
   // A longer page (template with cookie banner/footer) must repeat the message in
   // its opening text; an article whose headline mentions an error does not.

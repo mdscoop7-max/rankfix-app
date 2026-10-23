@@ -1698,7 +1698,7 @@ test("scan summary matches final check statuses after commerce and sector reconc
   const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   const applicabilityEnd = route.indexOf("if (!shopWordingApplies(finalCommerceApplicability");
   const finalSummary = route.lastIndexOf("scanSummary = summarizeAuditChecks(checks);");
-  const firstSave = route.indexOf("INSERT INTO scans (user_id");
+  const firstSave = route.indexOf("INSERT INTO scans (id, user_id");
   assert.ok(applicabilityEnd > 0 && finalSummary > applicabilityEnd, "summary must be recalculated after final commerce gate");
   assert.ok(firstSave > finalSummary, "the final counts must be available before saving report to history");
   assert.match(route, /summary: scanSummary/);

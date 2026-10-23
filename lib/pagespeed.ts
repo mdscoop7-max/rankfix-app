@@ -3,7 +3,7 @@
  * Performance scores never become SEO/GEO points and never authorize a code fix.
  * Configure PAGESPEED_API_KEY server-side to enable measured results.
  */
-export type SpeedFailureCode = "not_configured" | "quota_limited" | "key_rejected" | "api_disabled" | "timeout" | "provider_unavailable" | "invalid_response" | "invalid_url" | "measurement_failed" | "scan_budget_exhausted";
+export type SpeedFailureCode = "not_configured" | "quota_limited" | "key_rejected" | "api_disabled" | "timeout" | "provider_unavailable" | "invalid_response" | "invalid_url" | "measurement_failed" | "scan_budget_exhausted" | "site_refused_scanner" | "site_not_reached";
 export type SpeedDevice = {
   status: "measured" | "unavailable";
   score: number | null;
@@ -75,6 +75,25 @@ function providerFailure(status: number, body: unknown, configured: boolean): Sp
   return emptyDevice("De snelheidsmeetdienst is tijdelijk niet beschikbaar.", "provider_unavailable");
 }
 
+/**
+ * Report for a scan whose own page request did not return HTTP 200 (refused by
+ * the site, or recovered through the browser after a time-out). No speed request
+ * is made, and both devices say why: a measurement of a refused or recovered page
+ * would not describe what visitors get.
+ */
+export function speedNotMeasured(url: string, httpStatus: number): WebsiteSpeed {
+  const refused = [401, 403, 405, 429].includes(httpStatus);
+  const reason = refused
+    ? `Niet gemeten: de website weigerde het verzoek van RankFix (HTTP ${httpStatus}). Mobiel en desktop worden alleen gemeten als de pagina zelf bereikbaar is.`
+    : "Niet gemeten: de pagina antwoordde niet normaal op het verzoek van RankFix. Mobiel en desktop worden alleen gemeten als de pagina zelf bereikbaar is.";
+  const code: SpeedFailureCode = refused ? "site_refused_scanner" : "site_not_reached";
+  return {
+    source: "Google PageSpeed Insights", status: "unavailable", measuredAt: new Date().toISOString(), url,
+    mobile: emptyDevice(reason, code), desktop: emptyDevice(reason, code),
+    note: "Geen snelheidsmeting voor deze scan; er zijn geen mobiele of desktopwaarden geschat.",
+  };
+}
+
 export async function measureWebsiteSpeed(
   url: string,
   options: { apiKey?: string; fetcher?: typeof fetch; timeoutMs?: number; allowAnonymous?: boolean; now?: () => number; wait?: (ms: number) => Promise<void> } = {},
@@ -89,7 +108,8 @@ export async function measureWebsiteSpeed(
   };
   // A missing credential is an environment issue, not a target website defect.
   // Anonymous use is explicit so batch scans do not hammer a shared public quota.
-  // QA default: no external PageSpeed requests until explicitly enabled.\n  // Injected fetchers are test doubles; production scan calls never inject one.
+  // QA default: no external PageSpeed requests until explicitly enabled.
+  // Injected fetchers are test doubles; production scan calls never inject one.
   if (process.env.RANKFIX_PAGESPEED_ENABLED !== "true" && !options.fetcher) {
     report.note = "Speed Test tijdelijk uitgeschakeld; geen externe PageSpeed-aanvragen.";
     return bothUnavailable("Speed Test tijdelijk uitgeschakeld; later beschikbaar", "not_configured");

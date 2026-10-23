@@ -2,9 +2,9 @@ import { scanRuntime } from "@/lib/scan-runtime";
 import { sectorPageEvidence, scanCoverageDimensions, isAudiencePagePath } from "@/lib/sector-page-evidence";
 import { decideCommerceModules } from "@/lib/sector-motor-decisions";
 import { NextResponse } from "next/server";
-import { createHash } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
-import { databaseFailureCode, getDb } from "@/lib/db";
+import { databaseFailureCode, databaseFailureDetail, getDb, withDbRetry } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
 import { fetchFailureCode, finishScanAttempt, startScanAttempt } from "@/lib/scan-attempts";
 import { diagnoseBlockedResponse, diagnoseChallenge, diagnoseFetchFailure } from "@/lib/access-diagnostics";
@@ -53,7 +53,7 @@ import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSche
 import { detectPrimaryBusinessIdentity, isSiteHomepagePath } from "@/lib/primary-business-identity";
 import { detectEuPrimaryIdentity, isConsentHeading, retailSelfDescription, stripAudience } from "@/lib/eu-identity";
 import { enforceReportConsistency } from "@/lib/report-consistency";
-import { measureWebsiteSpeed } from "@/lib/pagespeed";
+import { measureWebsiteSpeed, speedNotMeasured } from "@/lib/pagespeed";
 
 export const maxDuration = 300;
 
@@ -439,7 +439,9 @@ export async function POST(request: Request) {
       await finishScanAttempt(getDb(), attemptId, {
         httpStatus: response.status,
         code: response.status === 200 ? null : (typeof body?.code === "string" ? body.code : null),
-        error: response.status === 200 ? null : String(body?.error || "").slice(0, 300),
+        // A failed save stores its stage and database cause (no secrets), so the
+        // cause can be read back afterwards without platform logs.
+        error: response.status === 200 ? null : `${String(body?.error || "").slice(0, 160)}${body?.saveFailure && typeof body.saveFailure === "object" ? ` [save ${JSON.stringify(body.saveFailure).slice(0, 135)}]` : ""}`.slice(0, 300),
         durationMs: Date.now() - attemptStarted,
         finalUrl: typeof body?.finalUrl === "string" ? body.finalUrl : null,
         scanId: typeof body?.scanId === "string" ? body.scanId : null,
@@ -5958,7 +5960,9 @@ async function runScan(request: Request) {
 
     // Read-only mobile and desktop PageSpeed for the same customer scan.
     // Speed is independent evidence and never changes SEO/GEO scores.
-    const websiteSpeed = response.status === 200 ? await measureWebsiteSpeed(finalUrl.toString(), {timeoutMs:Math.min(45000, Math.max(0, 285000 - (Date.now() - started)))}) : null;
+    // Not measured when the page itself was refused or only recovered through the
+    // browser; the report then says why mobile and desktop are missing.
+    const websiteSpeed = response.status === 200 ? await measureWebsiteSpeed(finalUrl.toString(), {timeoutMs:Math.min(45000, Math.max(0, 285000 - (Date.now() - started)))}) : speedNotMeasured(finalUrl.toString(), response.status);
 
     let user = null;
     let savedScanId: string | null = null;
@@ -5973,18 +5977,20 @@ async function runScan(request: Request) {
         await ensureDatabase();
         const normalizedScanUrl = normalizeScanUrl(finalUrl.toString());
         saveStage = "pending_fixes";
-        const pending = await getDb().query(
+        // Reads are idempotent: a broken pooled connection or an aborted
+        // statement is retried instead of failing a completed scan.
+        const pending = await withDbRetry(() => getDb().query(
           "SELECT issue_id, status FROM pending_fixes WHERE user_id=$1 AND scanned_url=$2 AND status IN ('AWAITING_MERGE','AWAITING_DEPLOYMENT','AWAITING_VERIFICATION','STILL_PRESENT','PREPARED') AND expires_at>NOW()",
           [user.id, normalizedScanUrl]
-        );
+        ));
         pendingFixes = new Map(pending.rows.map((row: any) => [String(row.issue_id), { status: String(row.status) }]));
 
         const websiteHost = finalUrl.hostname.toLowerCase().replace(/^www\./, "");
         saveStage = "fix_memory";
-        const rememberedFixes = await getDb().query(
+        const rememberedFixes = await withDbRetry(() => getDb().query(
           "SELECT rule_id,file_path,repository,pr_number,fix_summary,evidence,last_confirmed_at,recurrence_count,recurrence_open,last_recurred_at FROM fix_memory WHERE user_id=$1 AND website_host=$2 AND scanned_url=$3",
           [user.id, websiteHost, normalizedScanUrl]
-        );
+        ));
         const rememberedByRule = new Map(rememberedFixes.rows.map((row:any)=>[String(row.rule_id),row]));
 
         for (const item of checks) {
@@ -6033,10 +6039,15 @@ async function runScan(request: Request) {
           }
         }
         saveStage = "previous_scan";
-        const previousScan = await getDb().query(
+        // The previous report only feeds the informative comparison and health
+        // events; failing to read it must never block storing the new report.
+        const previousScan = await withDbRetry(() => getDb().query(
           "SELECT id,result FROM scans WHERE user_id=$1 AND (final_url=$2 OR scanned_url=$3) AND result->>'mode'=$4 ORDER BY created_at DESC LIMIT 1",
           [user.id, finalUrl.toString(), target.toString(), mode]
-        );
+        )).catch((readError: unknown) => {
+          console.error("RankFix previous-scan read skipped", { cause: databaseFailureCode(readError), detail: databaseFailureDetail(readError) });
+          return { rows: [] as never[] };
+        });
         const priorReport = previousScan.rows[0]?.result;
         // Comparing with the previous report is informative only: a malformed or
         // older report shape must never stop the new report from being stored.
@@ -6066,9 +6077,11 @@ async function runScan(request: Request) {
         }
         console.info("RankFix scan phase", { phase: "history_write_start", page: finalUrl.toString(), isProductPage, productOptimizerSourceCount });
         saveStage = "insert_scan";
-        const insertedScan = await getDb().query(
-          "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id",
-          [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, jsonbStringify({
+        // The row id is chosen here, so the insert is idempotent: after a broken
+        // connection or an aborted statement it is sent again, and ON CONFLICT
+        // guarantees one stored report even if the first attempt did arrive.
+        const newScanId = randomUUID();
+        const scanRow = [newScanId, user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, jsonbStringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             // End-to-end scan duration (fetch, render, sample, scoring) for speed benchmarks.
             scanDurationMs: Date.now() - started,
@@ -6110,9 +6123,17 @@ async function runScan(request: Request) {
               checkoutFunnel: checkoutFunnelEvidence,
               twitterCard: twitterCard || null, schemaTypes: [...new Set(schemaTypes)].slice(0,12),
               jsonLdBlocks: validJsonLd, sitemapFound, robotsMentionsSitemap, robotsStatus, sitemapUrl: confirmedSitemapUrl || robotsDeclaredSitemapUrls[0] || null }
-          }), CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION]
-        );
-        savedScanId = insertedScan.rows[0]?.id ? String(insertedScan.rows[0].id) : null;
+          }), CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION];
+        savedScanId = await withDbRetry(async () => {
+          const inserted = await getDb().query(
+            "INSERT INTO scans (id, user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT (id) DO NOTHING RETURNING id",
+            scanRow,
+          );
+          if (inserted.rows[0]?.id) return String(inserted.rows[0].id);
+          // No row returned: an earlier attempt of this same insert was stored.
+          const existing = await getDb().query("SELECT id FROM scans WHERE id=$1 AND user_id=$2", [newScanId, user.id]);
+          return existing.rows[0]?.id ? String(existing.rows[0].id) : null;
+        });
         console.info("RankFix scan phase", { phase: "history_write_done", page: finalUrl.toString(), savedScanId: Boolean(savedScanId) });
 
         // Dedicated live verification: a prepared fix is confirmed only when the
@@ -6255,12 +6276,13 @@ async function runScan(request: Request) {
           savedScanId: Boolean(savedScanId),
           stage: saveStage,
           cause: databaseFailureCode(saveError),
+          detail: databaseFailureDetail(saveError),
         });
         // If the primary scan row was already inserted, the audit report is
         // usable even when a later monitoring/verification write fails.
         // Do not turn a completed scan into a false "scan failed" response.
         if (dashboardScan && !savedScanId) {
-          return NextResponse.json({ error: scanError.history, code: "SCAN_HISTORY_SAVE_FAILED", saveFailure: { stage: saveStage, cause: databaseFailureCode(saveError) }, retryable: true, charged: false }, { status: 500 });
+          return NextResponse.json({ error: scanError.history, code: "SCAN_HISTORY_SAVE_FAILED", saveFailure: { stage: saveStage, cause: databaseFailureCode(saveError), detail: databaseFailureDetail(saveError) }, retryable: true, charged: false }, { status: 500 });
         }
       }
     }

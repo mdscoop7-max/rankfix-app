@@ -132,3 +132,32 @@ Follow-up repairs from this run:
   (`testlab-96.mjs`, outside the repository) does not store these yet.
 - One site (TIM) refuses every sub-page also sequentially: the retry pass made one
   attempt and stopped (`still_refused`), as designed.
+
+## TestLab run of 23 Oct 2026, evening (QA af918dbd, 17:42–18:32 UTC)
+
+96 sites, 69 reports, 65 compatible, 4 unconfirmed (EDF, bol, Umicore, Agfa),
+27 without report. Note: this run tested af918dbd, which does not contain commit
+7219358 (rendered-URL adoption, save diagnostics).
+
+Root causes found in the raw scans and the QA database:
+
+| Finding | Cause | Repair |
+| --- | --- | --- |
+| bol: report 80/100, sector unknown | HTTP 403; the browser recovery got an "IP address is blocked" page in three languages, which the page gate did not know | Gate: IP/access-blocked messages and image-CAPTCHA templates, short pages only, help texts ("If your IP address has been blocked…", questions) excluded. Result: `HTTP_BLOCKED`, no score |
+| Agfa: report 59/100, 37 words, no title | The rendered homepage was an F5-style image CAPTCHA ("testing whether you are a human visitor", support ID) | Same gate rule. Result: `CHALLENGE_OR_INTERSTITIAL`, no score |
+| EDF unconfirmed | 10 of 14 sample pages refused (403); one own page declares "fournisseur d'électricité et de gaz" in its title; a second own page says "au service de l'énergie" but carries no vote; the rule needed two voting pages | One explicit TITLE declaration + another own page naming the same sector family + no contradicting vote → probable sector (medium, 74). Without that corroboration it stays unknown |
+| Umicore unconfirmed | Its own offering is described on market sub-pages (/markets-products/electronics-telecom: "We provide advanced materials…"); all market sub-pages were excluded as customer pages | A market page may corroborate a sector that an ordinary own page already supports, and only when the detected sector is not the market the page addresses (the industrial-manufacturing page is still excluded). Market pages alone never decide |
+| Achmea subtype financial_services instead of insurance | Two insurance votes + one generic "financiële dienstverlener" vote; any disagreement fell back to the generic key | Generic votes do not overrule specific ones; disagreeing specific votes (insurance + banking) still give the main sector only |
+| eir, Coolblue BE: SCAN_HISTORY_SAVE_FAILED | Not readable directly (Vercel logs 403, no Neon logs). The QA database shows: both were saved fine in the morning, 4 save failures in ~800 attempts, one per run, at different stages of the run; the database stayed reachable (the attempt row was written right after). Reproduced on PostgreSQL: every new serverless instance ran the full schema migration (ALTER TABLE users/scans …) in one transaction; a scan INSERT on another instance holds its lock on scans and waits for users (foreign key) → `40P01 deadlock detected` → the scan save fails | (1) Schema fingerprint: an applied schema is never migrated again, so no DDL locks on cold starts; (2) the scan insert has a client-chosen id with `ON CONFLICT DO NOTHING` and is retried after deadlock / broken connection (exactly one row, proven); reads are retried, the previous-scan read can no longer fail the save; (3) stage, PostgreSQL code and message are stored in `scan_attempts.error`, so the next failure's cause can be read from the database |
+| tim.it: "98" from 1 of 16 sample pages | Thin-sample rule only made it "provisional" | Fewer than a quarter of a sample of 8+ pages is "insufficient": the headline becomes the range (89–98) and the report says "indicatie" |
+| fiat.it, bol.com: no PageSpeed section data | Page answered 403 → `websiteSpeed: null`, no reason | Explicit "not measured" for mobile and desktop with the reason (site refused RankFix / not reached); the report page always shows why |
+| Slow scans (max 123 s) | All JavaScript sites: the sample pages of framework sites are rendered in the browser (13–30 renders); primary render 3–6 s. All within the 180 s render budget | Not changed (would change evidence); measured, see report |
+| ING, PostNL timeouts; 22 × 403/challenge | Site-side refusal of the scanner; no bypass | Unchanged by design: no score, provider-specific message |
+
+Verification (offline, no live scans): full-route replay of the evening run
+reconstructs the live result of af918dbd exactly (64 compatible, 4 unknown, 1
+wrong artefact). This branch: 66 compatible, 0 unknown, 1 wrong (same
+artefact), bol and Agfa without report. Morning run: 65 compatible, 0 unknown,
+1 wrong, 4 without report (Colruyt, Iberia, bol, Agfa). No other site changed in
+either run. Suite: 571 passed, 0 failed, 0 skipped (with PostgreSQL, slow and replay
+tests); tsc clean; webpack build passes; lint unchanged.

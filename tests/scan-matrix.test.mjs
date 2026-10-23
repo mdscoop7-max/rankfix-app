@@ -35,7 +35,7 @@ test("scan matrix: English and German reports keep the same decisions", () => {
 
 test("rendering: rich render is used, failed/poorer renders fall back honestly, challenges abstain", () => {
   const r = run("run-render.mjs");
-  assert.equal(r.total, 14);
+  assert.equal(r.total, 16);
   assert.equal(r.failed, 0, r.log);
 });
 
@@ -66,6 +66,13 @@ test("scan persistence on real PostgreSQL: emoji cut by text limits and NUL neve
   assert.equal(r.failed, 0, r.log);
 });
 
+// QA #186 (TestLab 23-10 evening): no schema DDL on a warm schema, and an idempotent,
+// retried scan insert (deadlock victim / broken connection never loses the report).
+test("scan persistence on real PostgreSQL: schema init never blocks a running save; insert retry stores exactly one row", { skip: !process.env.RF_PG_TEST_URL && "RF_PG_TEST_URL not set" }, () => {
+  const r = run("run-save-race-pg.mjs", { RF_REAL_DB: "1", DATABASE_URL: process.env.RF_PG_TEST_URL });
+  assert.equal(r.failed, 0, r.log);
+});
+
 // QA #186: wall-clock limits with requests that really hang until their timeout
 // (about 90 s). Opt-in: RF_SLOW_TESTS=1.
 test("timeouts: hanging primary and sample requests stay within the scan budget and fail cleanly", { skip: !process.env.RF_SLOW_TESTS && "RF_SLOW_TESTS not set", timeout: 300000 }, () => {
@@ -75,16 +82,24 @@ test("timeouts: hanging primary and sample requests stay within the scan budget 
 
 // QA #186: full-route replay of the 70 recorded TestLab sites (identity, text,
 // sampled links, commerce evidence) through the real scan route. Opt-in
-// (RF_ROUTE_REPLAY=1, ~1-2 min). Measured 23 Oct 2026 on this branch:
-// 63 compatible, 4 unknown, 1 wrong (a reconstruction artefact that the old
-// engine shows too), 2 without report (block/error pages). A higher wrong count
-// or a lower compatible count is a regression.
-test("full-route replay of the recorded 96-site run: no new wrong sectors", { skip: !process.env.RF_ROUTE_REPLAY && "RF_ROUTE_REPLAY not set", timeout: 300000 }, () => {
-  const out = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--import", "./tests/scan-matrix/register.mjs", "tests/scan-matrix/run-route-replay.mjs", "--json"], { cwd: root, encoding: "utf8", timeout: 280000 });
+// (RF_ROUTE_REPLAY=1, ~1-2 min per run). Measured 23 Oct 2026 (evening repairs):
+// morning fixture: 65 compatible, 0 unknown, 1 wrong (a reconstruction artefact that
+// the old engine shows too), 4 without report (Colruyt, Iberia, bol, Agfa: block or
+// CAPTCHA pages). Evening fixture: 66 compatible, 0 unknown, 1 wrong (same
+// artefact), 2 without report (bol, Agfa). The deployed engine (af918dbd)
+// reproduces the live evening result exactly on the evening fixture.
+for (const [label, fixture, minimum, blocked] of [
+  ["96-site run 23-10 morning", "route.json.gz", 65, ["colruyt.be", "iberia.com", "bol.com", "agfa.com"]],
+  ["96-site run 23-10 evening", "route-evening.json.gz", 66, ["bol.com", "agfa.com"]],
+]) test(`full-route replay of the recorded ${label}: no new wrong sectors, block pages never scored`, { skip: !process.env.RF_ROUTE_REPLAY && "RF_ROUTE_REPLAY not set", timeout: 300000 }, () => {
+  const out = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--import", "./tests/scan-matrix/register.mjs", "tests/scan-matrix/run-route-replay.mjs", "--json"], { cwd: root, encoding: "utf8", timeout: 280000, env: { ...process.env, ROUTE_FIXTURE: `${root}/tests/fixtures/testlab-96-replay/${fixture}` } });
   const line = (out.stdout || "").split("\n").find((l) => l.startsWith("ROUTE_REPLAY "));
   assert.ok(line, (out.stderr || "").slice(-1500));
   const rows = JSON.parse(line.slice("ROUTE_REPLAY ".length));
   const count = (v) => rows.filter((r) => r.verdict === v).length;
   assert.ok(count("wrong") <= 1, rows.filter((r) => r.verdict === "wrong").map((r) => `${r.host}: ${r.sector}`).join(", "));
-  assert.ok(count("compatible") >= 63, `compatible ${count("compatible")}`);
+  assert.ok(count("compatible") >= minimum, `compatible ${count("compatible")}`);
+  for (const host of blocked) assert.equal(rows.find((r) => r.host === host)?.verdict, "no_report", `${host} must not be scored`);
+  const achmea = rows.find((r) => r.host === "achmea.nl");
+  if (achmea) assert.equal(achmea.key, "financial_insurance", "Achmea subtype");
 });
