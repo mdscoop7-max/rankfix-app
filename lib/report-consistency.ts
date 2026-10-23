@@ -75,6 +75,12 @@ export const SECTOR_FAMILY_LABEL: Record<string, string> = {
   events_culture: "Evenementen & cultuur",
   fitness_sports: "Sport & fitness",
   manufacturing_industrial: "Industrie & Productie",
+  cybersecurity: "Cybersecurity & informatiebeveiliging",
+  waste_recycling: "Afvalverwerking & recycling",
+  sports_organizations: "Sportbond & sportorganisatie",
+  maritime_ports: "Havenbedrijf & maritieme infrastructuur",
+  airports: "Luchthaven & luchthavenexploitatie",
+  agriculture_horticulture: "Landbouw & tuinbouw",
 };
 
 /**
@@ -104,6 +110,12 @@ const FAMILY_LABEL_WORDS: Record<string, RegExp> = {
   events_culture: /event|evenement|cultuur|culture|museum|theater|ticket|festival/i,
   fitness_sports: /sport|fitness|gym|club/i,
   manufacturing_industrial: /industri|productie|fabrik|manufactur|b2b/i,
+  cybersecurity: /cyber|informatiebeveilig|security|incident response/i,
+  waste_recycling: /afval|recycl|waste|resource recovery|hergebruik/i,
+  sports_organizations: /sport|voetbal|football|federati|olympi/i,
+  maritime_ports: /haven|mariti|port|harbor|harbour|terminal/i,
+  airports: /luchthaven|airport|aéroport|flughafen|aeroporto|aeropuerto/i,
+  agriculture_horticulture: /landbouw|tuinbouw|agrar|horticultur|agricultur|teelt/i,
 };
 
 /** Sector-defining modules and the primary sector each one belongs to. */
