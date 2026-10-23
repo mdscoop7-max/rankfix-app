@@ -46,7 +46,7 @@ export function hasOrganizationSchema(schemaTypes: Iterable<string>): boolean {
 }
 
 // Retail self-description in the page identity (title, description, h1, URL).
-const RETAIL_ASSORTMENT = /\b(?:kleding|schoenen|accessoires|accessories|woonaccessoires|mode|fashion|elektronica|home.elektronica|apparaten|witgoed|wasmachines|televisies|laptops|meubels|meubelen|furniture|interieur|woonartikelen|bouwmaterialen|dierenbenodigdheden|sportartikelen|speelgoed|producten|products)\b/i;
+const RETAIL_ASSORTMENT = /\b(?:kleding|schoenen|accessoires|accessories|woonaccessoires|mode|fashion|elektronica|home.elektronica|apparaten|witgoed|wasmachines|televisies|laptops|meubels|meubelen|furniture|interieur|woonartikelen|bouwmaterialen|dierenbenodigdheden|sportartikelen|speelgoed|boodschappen|supermarkt|supermarch\w*|supermarket|groceries|lebensmittel|producten|products)\b/i;
 // Both word orders: "online bestellen" and "bestel online".
 const ONLINE_SALES = /\b(?:online (?:kopen|bestellen|shoppen|shopping)|bestel(?:len)? (?:direct |eenvoudig |snel )?online|koop (?:direct )?online|webshop|webwinkel|online winkel|shop online|buy online|order online|online store)\b/i;
 // Compounds such as "woonwinkels" or "webwinkel" count; "winkelwagen" does not.
