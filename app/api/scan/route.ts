@@ -4,7 +4,7 @@ import { decideCommerceModules } from "@/lib/sector-motor-decisions";
 import { NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
-import { getDb } from "@/lib/db";
+import { databaseFailureCode, getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
 import { fetchFailureCode, finishScanAttempt, startScanAttempt } from "@/lib/scan-attempts";
 import { diagnoseBlockedResponse, diagnoseChallenge, diagnoseFetchFailure } from "@/lib/access-diagnostics";
@@ -702,7 +702,7 @@ async function runScan(request: Request) {
     // safePublicFetch follows redirects manually for SSRF safety. Response.url therefore
     // is not a reliable source of the terminal URL. Always use the validated finalUrl
     // returned by safePublicFetch so share/short links are classified from the actual site.
-    const finalUrl = fetchedFinalUrl ?? new URL(response.url || target.toString());
+    let finalUrl = fetchedFinalUrl ?? new URL(response.url || target.toString());
     console.info("RankFix redirect resolution", { requested: target.toString(), final: finalUrl.toString(), hops: redirectChain.length });
     // Primary recovery, JS hydration and quality-gate fallback share one browser attempt.
     let primaryRenderAttempts = 0;
@@ -899,6 +899,29 @@ async function runScan(request: Request) {
       }
     }
 
+    // A browser render can follow a JavaScript or meta redirect (apex → www,
+    // "/" → "/nl/"). Links in the rendered DOM are relative to the URL the browser
+    // ended on; resolving them against the pre-render URL produced 404s for every
+    // sampled page (QA #186). Adopt the rendered URL, but only within the same
+    // registrable site; a redirect to another site is never followed silently.
+    if (renderedDocument?.finalUrl && javascriptExecuted) {
+      try {
+        const renderedUrl = validatePublicHttpUrl(renderedDocument.finalUrl);
+        const site = (host: string) => {
+          const labels = host.toLowerCase().replace(/^www\./, "").split(".").filter(Boolean);
+          // Two-level public suffixes (co.uk, com.au, gv.at ...) keep three labels.
+          const twoLevel = labels.length >= 3 && labels[labels.length - 1].length === 2 && ["co", "com", "net", "org", "gov", "ac", "edu", "gv", "or", "go", "ne"].includes(labels[labels.length - 2]);
+          return labels.slice(twoLevel ? -3 : -2).join(".");
+        };
+        // Exact host and path: normalizeScanUrl treats www and apex as equal, but
+        // links resolve against the exact host the browser ended on.
+        const exact = (url: URL) => `${url.protocol}//${url.host.toLowerCase()}${url.pathname.replace(/\/+$/, "") || "/"}`;
+        if (exact(renderedUrl) !== exact(finalUrl) && site(renderedUrl.hostname) === site(finalUrl.hostname)) {
+          redirectChain = [...redirectChain, { from: finalUrl.toString(), to: renderedUrl.toString(), status: 0 }];
+          finalUrl = renderedUrl;
+        }
+      } catch { /* keep the fetched URL */ }
+    }
     const qualityTitle = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
     const qualityText = stripHtml(html).slice(0, 12000);
     const qualityWords = qualityText.split(/\s+/).filter(Boolean).length;
@@ -5939,13 +5962,17 @@ async function runScan(request: Request) {
 
     let user = null;
     let savedScanId: string | null = null;
+    // Which persistence step was running when a save failed (reported, not secret).
+    let saveStage = "start";
     let pendingFixes = new Map<string, { status: string }>();
     try { user = await getCurrentUser(); } catch {}
     if (dashboardScan && !user) return NextResponse.json({ error: scanError.session, code: "SESSION_EXPIRED" }, { status: 401 });
     if (user) {
       try {
+        saveStage = "schema";
         await ensureDatabase();
         const normalizedScanUrl = normalizeScanUrl(finalUrl.toString());
+        saveStage = "pending_fixes";
         const pending = await getDb().query(
           "SELECT issue_id, status FROM pending_fixes WHERE user_id=$1 AND scanned_url=$2 AND status IN ('AWAITING_MERGE','AWAITING_DEPLOYMENT','AWAITING_VERIFICATION','STILL_PRESENT','PREPARED') AND expires_at>NOW()",
           [user.id, normalizedScanUrl]
@@ -5953,6 +5980,7 @@ async function runScan(request: Request) {
         pendingFixes = new Map(pending.rows.map((row: any) => [String(row.issue_id), { status: String(row.status) }]));
 
         const websiteHost = finalUrl.hostname.toLowerCase().replace(/^www\./, "");
+        saveStage = "fix_memory";
         const rememberedFixes = await getDb().query(
           "SELECT rule_id,file_path,repository,pr_number,fix_summary,evidence,last_confirmed_at,recurrence_count,recurrence_open,last_recurred_at FROM fix_memory WHERE user_id=$1 AND website_host=$2 AND scanned_url=$3",
           [user.id, websiteHost, normalizedScanUrl]
@@ -6004,12 +6032,15 @@ async function runScan(request: Request) {
             };
           }
         }
+        saveStage = "previous_scan";
         const previousScan = await getDb().query(
           "SELECT id,result FROM scans WHERE user_id=$1 AND (final_url=$2 OR scanned_url=$3) AND result->>'mode'=$4 ORDER BY created_at DESC LIMIT 1",
           [user.id, finalUrl.toString(), target.toString(), mode]
         );
         const priorReport = previousScan.rows[0]?.result;
-        if (priorReport && Number.isFinite(Number(priorReport.overallScore))) {
+        // Comparing with the previous report is informative only: a malformed or
+        // older report shape must never stop the new report from being stored.
+        if (priorReport && Number.isFinite(Number(priorReport.overallScore))) try {
           const previousBreakdown = Array.isArray(priorReport.scoreModel?.breakdown) ? priorReport.scoreModel.breakdown : [];
           const previousByCheck = new Map<string,string>(previousBreakdown.map((item:{key:string;category:string;status:string}) =>
             [(item.category||"seo")+":"+(item.key||""),item.status||""]));
@@ -6030,8 +6061,11 @@ async function runScan(request: Request) {
               changedChecks,
             },
           );
+        } catch (comparisonError) {
+          console.error("RankFix previous-scan comparison skipped", { message: comparisonError instanceof Error ? comparisonError.message.slice(0, 200) : "unknown" });
         }
         console.info("RankFix scan phase", { phase: "history_write_start", page: finalUrl.toString(), isProductPage, productOptimizerSourceCount });
+        saveStage = "insert_scan";
         const insertedScan = await getDb().query(
           "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id",
           [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, jsonbStringify({
@@ -6219,12 +6253,14 @@ async function runScan(request: Request) {
           page: finalUrl.toString(),
           dashboardScan,
           savedScanId: Boolean(savedScanId),
+          stage: saveStage,
+          cause: databaseFailureCode(saveError),
         });
         // If the primary scan row was already inserted, the audit report is
         // usable even when a later monitoring/verification write fails.
         // Do not turn a completed scan into a false "scan failed" response.
         if (dashboardScan && !savedScanId) {
-          return NextResponse.json({ error: scanError.history, code: "SCAN_HISTORY_SAVE_FAILED", retryable: true, charged: false }, { status: 500 });
+          return NextResponse.json({ error: scanError.history, code: "SCAN_HISTORY_SAVE_FAILED", saveFailure: { stage: saveStage, cause: databaseFailureCode(saveError) }, retryable: true, charged: false }, { status: 500 });
         }
       }
     }
