@@ -21,3 +21,11 @@ export function speedFailureMessage(value: Pick<SpeedDevice,"reason" | "reasonCo
     : code === "invalid_url" ? "invalid" : code === "scan_budget_exhausted" ? "budget" : "unavailable";
   return messages[locale][key];
 }
+
+/** Lab metrics as Google reports them; a missing metric is "—", never a guess. */
+export function formatSpeedLab(lab: SpeedDevice["lab"] | null | undefined): string {
+  const seconds = (ms: number | null | undefined) => (ms == null ? "—" : `${(ms / 1000).toFixed(2)} s`);
+  const cls = lab?.cls == null ? "—" : String(Math.round(lab.cls * 1000) / 1000);
+  const tbt = lab?.tbtMs == null ? "—" : `${Math.round(lab.tbtMs)} ms`;
+  return `FCP ${seconds(lab?.fcpMs)} · LCP ${seconds(lab?.lcpMs)} · CLS ${cls} · TBT ${tbt} · SI ${seconds(lab?.speedIndexMs)}`;
+}

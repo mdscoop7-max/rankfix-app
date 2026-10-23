@@ -7,7 +7,8 @@ export type SpeedFailureCode = "not_configured" | "quota_limited" | "key_rejecte
 export type SpeedDevice = {
   status: "measured" | "unavailable";
   score: number | null;
-  lab: { fcpMs: number | null; lcpMs: number | null; cls: number | null; tbtMs: number | null };
+  // speedIndexMs is optional: reports saved before it was parsed do not carry it.
+  lab: { fcpMs: number | null; lcpMs: number | null; cls: number | null; tbtMs: number | null; speedIndexMs?: number | null };
   field: { inpMs: number | null };
   reason: string | null;
   reasonCode?: SpeedFailureCode | null;
@@ -29,7 +30,7 @@ const finite = (n: unknown): number | null =>
   typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : null;
 const emptyDevice = (reason: string, reasonCode: SpeedFailureCode = "invalid_response"): SpeedDevice => ({
   status: "unavailable", score: null,
-  lab: { fcpMs: null, lcpMs: null, cls: null, tbtMs: null },
+  lab: { fcpMs: null, lcpMs: null, cls: null, tbtMs: null, speedIndexMs: null },
   field: { inpMs: null }, reason, reasonCode,
 });
 export function parsePageSpeed(input: unknown): SpeedDevice {
@@ -55,6 +56,7 @@ export function parsePageSpeed(input: unknown): SpeedDevice {
       lcpMs: auditMetric("largest-contentful-paint"),
       cls: auditMetric("cumulative-layout-shift"),
       tbtMs: auditMetric("total-blocking-time"),
+      speedIndexMs: auditMetric("speed-index"),
     },
     field: { inpMs: finite(inp?.percentile) },
     reason: null, reasonCode: null,

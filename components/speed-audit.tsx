@@ -1,4 +1,4 @@
-import { speedFailureMessage } from "@/lib/speed-display";
+import { formatSpeedLab, speedFailureMessage } from "@/lib/speed-display";
 import type { Locale } from "@/lib/locales";
 import type { SpeedDevice, WebsiteSpeed } from "@/lib/pagespeed";
 
@@ -51,9 +51,6 @@ function DeviceCard({
   unavailable: string; lab: string; field: string; noInp: string;
 }) {
   const measured = value?.status === "measured" && value.score !== null;
-  const lcp = value?.lab?.lcpMs;
-  const cls = value?.lab?.cls;
-  const tbt = value?.lab?.tbtMs;
   const inp = value?.field?.inpMs;
   return (
     <div className={`min-w-0 rounded-xl border p-3 ${dark ? "border-slate-600 bg-[#0B2038]" : "border-slate-200 bg-slate-50"}`}>
@@ -63,7 +60,7 @@ function DeviceCard({
       </div>
       {measured ? (
         <div className="mt-2 space-y-1 text-xs leading-5">
-          <p><b>{lab}</b>: LCP {lcp == null ? "—" : (lcp / 1000).toFixed(2) + " s"} · CLS {cls ?? "—"} · TBT {tbt == null ? "—" : Math.round(tbt) + " ms"}</p>
+          <p><b>{lab}</b>: {formatSpeedLab(value?.lab)}</p>
           <p><b>{field}</b>: {inp == null ? noInp : Math.round(inp) + " ms"}</p>
         </div>
       ) : (

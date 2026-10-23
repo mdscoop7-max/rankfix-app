@@ -222,8 +222,14 @@ export type EvidenceLevel = "complete" | "provisional" | "insufficient";
  * certainty. "insufficient" means the number describes only part of the site
  * evidence and must be presented as an indication, never as a final grade.
  */
-export function evidenceLevel(input: { coveragePercent: number; javascriptRequiredButNotRendered: boolean; renderDegraded?: boolean; renderPartial?: boolean; sectorConfidence?: number; sectorUnknown?: boolean; unconfirmed: number; importantUnconfirmed?: string[] }): { level: EvidenceLevel; reasons: string[] } {
+export function evidenceLevel(input: { coveragePercent: number; javascriptRequiredButNotRendered: boolean; renderDegraded?: boolean; renderPartial?: boolean; sectorConfidence?: number; sectorUnknown?: boolean; unconfirmed: number; importantUnconfirmed?: string[]; pageSample?: { selected: number; fetched: number } }): { level: EvidenceLevel; reasons: string[] } {
   const reasons: string[] = [];
+  // Check coverage (weighted applicable checks) is not page coverage: a report
+  // whose representative sample mostly failed to load (1 of 16 pages) cannot
+  // present site-wide conclusions as definitive, whatever the check coverage.
+  const sample = input.pageSample;
+  const thinSample = Boolean(sample && sample.selected >= 4 && sample.fetched / sample.selected < 0.5);
+  if (thinSample && sample) reasons.push(`Steekproef: ${sample.fetched} van ${sample.selected} geselecteerde pagina's opgehaald`);
   if (input.coveragePercent < 60) reasons.push(`Bewijsdekking ${input.coveragePercent}% (onder 60%)`);
   else if (input.coveragePercent < 90) reasons.push(`Bewijsdekking ${input.coveragePercent}% (onder 90%)`);
   if (input.javascriptRequiredButNotRendered) reasons.push("JavaScript-pagina niet volledig gerenderd");
@@ -244,7 +250,7 @@ export function evidenceLevel(input: { coveragePercent: number; javascriptRequir
   // confirmed. One unconfirmed check, however light, leaves an uncertainty range
   // above or below the score, so the score is provisional (field report 16-10:
   // 98/100 "definitief" next to 3 unconfirmed checks and a stored range 90-99).
-  const level: EvidenceLevel = insufficient ? "insufficient" : input.coveragePercent < 90 || input.unconfirmed > 0 || input.javascriptRequiredButNotRendered || input.renderDegraded || input.renderPartial || important.length > 0 || sectorAmbiguous || sectorUnknown ? "provisional" : "complete";
+  const level: EvidenceLevel = insufficient ? "insufficient" : input.coveragePercent < 90 || input.unconfirmed > 0 || input.javascriptRequiredButNotRendered || input.renderDegraded || input.renderPartial || important.length > 0 || sectorAmbiguous || sectorUnknown || thinSample ? "provisional" : "complete";
   return { level, reasons };
 }
 
