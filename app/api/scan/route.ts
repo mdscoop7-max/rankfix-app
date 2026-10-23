@@ -4810,6 +4810,42 @@ async function runScan(request: Request) {
     // Keep the scanned page, then prefer structurally different DOM templates.
     // This second-stage dedupe is universal: no sector or path vocabulary is used.
     const auditedRawPages = reportedMultiPageAudits.filter((item)=>item.status==="audited");
+    // Independent sector proof from the homepage FIRST, then own internal
+    // company/service pages. This is not an additional network scan; it uses
+    // evidence already fetched by the representative-page audit above.
+    // Strong checkout capabilities never convert an independently confirmed
+    // service organisation into a webshop. Unproven/inconsistent cases abstain.
+    const sectorHomepage = (isHomepage || isSiteHomepagePath(finalUrl.pathname))
+      ? {url:finalUrl.toString(), type:"homepage", status:"audited", title, description,
+          identityHeadings:identityH1s, schemaTypes}
+      : {url:new URL("/",finalUrl).toString(), type:"homepage", status:"not_scanned"};
+    const extendedIndustry = corroborateDeclaredIndustry(sectorHomepage.url, sectorHomepage, auditedRawPages);
+    const specificIndustry = extendedIndustry.decision;
+    const previousIndustry = sectorProfile.sector;
+    const acceptExtendedIndustry = Boolean(specificIndustry && !marketSelectorPage &&
+      (sectorProfile.sector === specificIndustry.sector ||
+       ["unknown","general_business"].includes(sectorProfile.sector) ||
+       (sectorProfile.sector === "ecommerce" && !explicitRetailIdentity && !euRetailSelfDescription)));
+    if (acceptExtendedIndustry && specificIndustry) {
+      sectorProfile.sector = specificIndustry.sector as SectorKey;
+      sectorProfile.key = specificIndustry.key;
+      sectorProfile.label = specificIndustry.label;
+      sectorProfile.confidence = specificIndustry.confidence as "high"|"medium";
+      sectorProfile.confidenceScore = specificIndustry.confidenceScore;
+      sectorProfile.evidence = [...specificIndustry.evidence, "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"].slice(0,6);
+      sectorProfile.applicableModules = [...new Set([
+        ...sectorProfile.applicableModules,
+        ...(sectorSignals.find(item=>item.sector===specificIndustry.sector)?.modules || []),
+      ])];
+      masterEvidence.activeModules = sectorProfile.applicableModules;
+    }
+    Object.assign(sectorProfile, {extendedIndustryEvidence:{
+      reason:extendedIndustry.reason, homepageIdentity:extendedIndustry.homepageIdentity,
+      supportingPages:extendedIndustry.supportingPages, candidates:extendedIndustry.candidates,
+      applied:acceptExtendedIndustry,
+    }});
+
+    const verifiedNonCommerceIndustry = Boolean(acceptExtendedIndustry && specificIndustry && specificIndustry.sector !== "ecommerce");
     const auditedMultiPages: MultiPageAudit[] = [];
     const seenStructures = new Set<string>();
     for (const item of auditedRawPages) {
@@ -4981,7 +5017,7 @@ async function runScan(request: Request) {
     // This applies to ALL independently recognized service providers, not
     // only one industry. Payment/booking/checkout widgets are a capability,
     // not proof that the provider is itself a retail webshop.
-    const hardCommerceEvidence = primaryNonCommerceIdentity
+    const hardCommerceEvidence = (primaryNonCommerceIdentity || verifiedNonCommerceIndustry)
       ? confirmedRetailEvidenceForService({
           representativePurchase: verifiedRepresentativePurchase,
           productDetailSchema: confirmedCurrentProduct,
@@ -4994,9 +5030,9 @@ async function runScan(request: Request) {
           corroboratedProductAndPrice
         );
     const technologyOnlyCommerce = technologyProfile.isCommerce && !hardCommerceEvidence;
-    const secondaryCommerceOnly = Boolean(primaryNonCommerceIdentity && !hardCommerceEvidence);
+    const secondaryCommerceOnly = Boolean((primaryNonCommerceIdentity || verifiedNonCommerceIndustry) && !hardCommerceEvidence);
     const finalCommerceDecision = {
-      confirmed: hardCommerceEvidence || (technologyOnlyCommerce && !primaryNonCommerceIdentity),
+      confirmed: hardCommerceEvidence || (technologyOnlyCommerce && !(primaryNonCommerceIdentity || verifiedNonCommerceIndustry)),
       currentPageEvidence: hardCommerceEvidence && masterEvidence.commerce.confirmed,
       technologyProfile: technologyProfile.isCommerce,
       technologyOnly: technologyOnlyCommerce,
@@ -5017,14 +5053,14 @@ async function runScan(request: Request) {
       && Boolean(item.commerceEvidence?.strongCommerceAction || (item.commerceEvidence?.priceSignals||0) > 0 || (item.commerceEvidence?.product?.price && item.commerceEvidence?.product?.currency)));
     const finalCommerceApplicability = commerceApplicability({
       confirmed: finalCommerceDecision.confirmed,
-      primaryNonCommerceIdentity: Boolean(primaryNonCommerceIdentity),
+      primaryNonCommerceIdentity: Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry),
       commerceHints: Boolean(retailPrimaryIdentity || technologyProfile.isCommerce || hasEcommerceSignal || masterEvidence.commerce.strength > 0 || secondaryCommerceOnly),
       thinShell: thinRawHtmlEvidence,
       marketSelector: marketSelectorPage,
       auditedRepresentativePages: representativeAuditedPageCount,
       verifiedSecondaryCommerce: Boolean(sitewideCommerceEvidence.confirmed || verifiedRepresentativeProductDetail || representativeCommercialProductIntent),
     });
-    if (!finalCommerceDecision.confirmed && primaryNonCommerceIdentity) {
+    if (!finalCommerceDecision.confirmed && (primaryNonCommerceIdentity || verifiedNonCommerceIndustry)) {
       masterEvidence.commerce.confirmed = false;
       masterEvidence.businessModels = masterEvidence.businessModels.filter((model)=>model!=="commerce");
       technologyProfile.isCommerce = false;
@@ -5045,40 +5081,6 @@ async function runScan(request: Request) {
     }
     Object.assign(sectorProfile, {pageEvidence:multilingualPageIdentity});
 
-    // Independent sector proof from the homepage FIRST, then own internal
-    // company/service pages. This is not an additional network scan; it uses
-    // evidence already fetched by the representative-page audit above.
-    // Strong checkout capabilities never convert an independently confirmed
-    // service organisation into a webshop. Unproven/inconsistent cases abstain.
-    const sectorHomepage = (isHomepage || isSiteHomepagePath(finalUrl.pathname))
-      ? {url:finalUrl.toString(), type:"homepage", status:"audited", title, description,
-          identityHeadings:identityH1s, schemaTypes}
-      : {url:new URL("/",finalUrl).toString(), type:"homepage", status:"not_scanned"};
-    const extendedIndustry = corroborateDeclaredIndustry(finalUrl.toString(), sectorHomepage, auditedRawPages);
-    const specificIndustry = extendedIndustry.decision;
-    const previousIndustry = sectorProfile.sector;
-    const acceptExtendedIndustry = Boolean(specificIndustry && !marketSelectorPage &&
-      (sectorProfile.sector === specificIndustry.sector ||
-       ["unknown","general_business"].includes(sectorProfile.sector) ||
-       (sectorProfile.sector === "ecommerce" && !explicitRetailIdentity && !euRetailSelfDescription)));
-    if (acceptExtendedIndustry && specificIndustry) {
-      sectorProfile.sector = specificIndustry.sector as SectorKey;
-      sectorProfile.key = specificIndustry.key;
-      sectorProfile.label = specificIndustry.label;
-      sectorProfile.confidence = specificIndustry.confidence as "high"|"medium";
-      sectorProfile.confidenceScore = specificIndustry.confidenceScore;
-      sectorProfile.evidence = [...specificIndustry.evidence, "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"].slice(0,6);
-      sectorProfile.applicableModules = [...new Set([
-        ...sectorProfile.applicableModules,
-        ...(sectorSignals.find(item=>item.sector===specificIndustry.sector)?.modules || []),
-      ])];
-      masterEvidence.activeModules = sectorProfile.applicableModules;
-    }
-    Object.assign(sectorProfile, {extendedIndustryEvidence:{
-      reason:extendedIndustry.reason, homepageIdentity:extendedIndustry.homepageIdentity,
-      supportingPages:extendedIndustry.supportingPages, candidates:extendedIndustry.candidates,
-      applied:acceptExtendedIndustry,
-    }});
 
     // Set when the decision below makes the shop a sales channel; the later
     // commerce reconciliation must then not overturn it (one decision, one owner).
@@ -5248,7 +5250,7 @@ async function runScan(request: Request) {
     const allCommerceModules = new Set([...commerceModules, "eu_consumer"]);
     const motorCommerceModules = decideCommerceModules({
       primarySector: sectorProfile.sector,
-      primaryBusinessModel: retailPrimaryIdentity ? "retail" : primaryNonCommerceIdentity ? "service" : "unknown",
+      primaryBusinessModel: verifiedNonCommerceIndustry ? "service" : retailPrimaryIdentity ? "retail" : primaryNonCommerceIdentity ? "service" : "unknown",
       retailProduct: Boolean(confirmedCurrentProduct || representativeRetailProduct),
       productPrice: Boolean(corroboratedProductAndPrice),
       cart: Boolean(confirmedAddToCart || (scanEvidence.commerce.cart.value && scanEvidence.commerce.cart.confidence === "high")),
@@ -5260,7 +5262,7 @@ async function runScan(request: Request) {
     const allowedCommerceModules = new Set(motorCommerceModules);
     // A transaction on a secondary page does not redefine the site's primary type.
     // Keep site type consistent with the central sector motor, for every service sector.
-    if (primaryNonCommerceIdentity && technologyProfile.siteType === "Webshop") {
+    if ((primaryNonCommerceIdentity || verifiedNonCommerceIndustry) && technologyProfile.siteType === "Webshop") {
       technologyProfile.siteType = "Website";
       technologyProfile.isCommerce = false;
       technologyProfile.evidence = [...technologyProfile.evidence, "Secundaire transactiefuncties wijzigen de primaire dienstverlenersidentiteit niet."].slice(0,8);
