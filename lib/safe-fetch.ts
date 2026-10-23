@@ -61,9 +61,17 @@ export async function safePublicFetch(value: string | URL, options: { timeoutMs?
   let current = validatePublicHttpUrl(typeof value === "string" ? value : value.toString());
   const redirectChain: Array<{ from: string; to: string; status: number }> = [];
   const cookieJar = new Map<string, string>();
+  // A consent/session redirect may return to the same URL once with a new cookie.
+  // Returning to a URL with an unchanged cookie jar is a loop: stop immediately
+  // instead of spending the remaining redirect budget (and scan time) on it.
+  const visited = new Set<string>();
+  const visitKey = (url: URL) => `${url.protocol}//${url.host.toLowerCase()}${url.pathname}${url.search}|${[...cookieJar.entries()].map(([k, v]) => `${k}=${v}`).sort().join(";")}`;
 
   for (let redirect = 0; redirect <= maxRedirects; redirect++) {
     validatePublicHttpUrl(current.toString());
+    const key = visitKey(current);
+    if (visited.has(key)) throw new Error("REDIRECT_LOOP");
+    visited.add(key);
     await assertPublicDns(current.hostname);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
