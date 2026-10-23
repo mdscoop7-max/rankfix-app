@@ -50,7 +50,9 @@ function DeviceCard({
   unavailable: string; lab: string; field: string; noInp: string;
 }) {
   const measured = value?.status === "measured" && value.score !== null;
+  const fcp = value?.lab?.fcpMs;
   const lcp = value?.lab?.lcpMs;
+  const si = value?.lab?.speedIndexMs;
   const cls = value?.lab?.cls;
   const tbt = value?.lab?.tbtMs;
   const inp = value?.field?.inpMs;
@@ -62,7 +64,7 @@ function DeviceCard({
       </div>
       {measured ? (
         <div className="mt-2 space-y-1 text-xs leading-5">
-          <p><b>{lab}</b>: LCP {lcp == null ? "—" : (lcp / 1000).toFixed(2) + " s"} · CLS {cls ?? "—"} · TBT {tbt == null ? "—" : Math.round(tbt) + " ms"}</p>
+          <p><b>{lab}</b>: FCP {fcp == null ? "—" : (fcp / 1000).toFixed(2) + " s"} · LCP {lcp == null ? "—" : (lcp / 1000).toFixed(2) + " s"} · CLS {cls ?? "—"} · TBT {tbt == null ? "—" : Math.round(tbt) + " ms"} · SI {si == null ? "—" : (si / 1000).toFixed(2) + " s"}</p>
           <p><b>{field}</b>: {inp == null ? noInp : Math.round(inp) + " ms"}</p>
         </div>
       ) : (
