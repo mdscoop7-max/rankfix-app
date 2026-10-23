@@ -29,6 +29,11 @@ jobs:
         run: node --experimental-strip-types --test tests/site-sector-corroboration.test.mjs
       - name: Existing regression suite
         run: npm test
+      # Next.js 16 provides the global LayoutProps/ PageProps types through
+      # generated .next/types. Running tsc on a clean checkout without typegen
+      # incorrectly reports LayoutProps as missing; fix the order, not app code.
+      - name: Generate Next.js route/layout types
+        run: npx next typegen
       - name: TypeScript type check
         run: npx tsc --noEmit
       - name: Next.js production build (no deploy)
