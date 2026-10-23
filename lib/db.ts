@@ -1,4 +1,5 @@
 import { Pool } from "pg";
+import { jsonbSafeString, jsonbStringify } from "./jsonb-safe.ts";
 
 declare global {
   var __rankfixPool: Pool | undefined;
@@ -23,10 +24,29 @@ export function getDb() {
       allowExitOnIdle: false,
       ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
     });
+    // Every query passes through one parameter guard: PostgreSQL rejects NUL in
+    // text and lone UTF-16 surrogates / \u0000 escapes in jsonb. One cut emoji
+    // in a scan report must never make a completed scan unsavable.
+    const pool = global.__rankfixPool;
+    const query = pool.query.bind(pool) as (...args: unknown[]) => unknown;
+    (pool as unknown as { query: (...args: unknown[]) => unknown }).query = (text: unknown, params?: unknown, ...rest: unknown[]) =>
+      query(text, Array.isArray(params) ? params.map(safeQueryParam) : params, ...rest);
     global.__rankfixPool.on("error",(error)=>{
       // A failed idle client must never crash the whole Node process.
       console.error("PostgreSQL idle client error",error.message);
     });
   }
   return global.__rankfixPool;
+}
+
+// JSON text that escapes a NUL or a UTF-16 surrogate may be invalid for jsonb;
+// re-serialise only those. Plain strings lose NUL bytes (invalid in PostgreSQL text).
+const RISKY_JSON_ESCAPE = /\\u(?:0000|d[89a-f][0-9a-f]{2})/i;
+export function safeQueryParam(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  const first = value.trimStart()[0];
+  if ((first === "{" || first === "[") && RISKY_JSON_ESCAPE.test(value)) {
+    try { return jsonbStringify(JSON.parse(value)); } catch { /* not JSON: treat as text */ }
+  }
+  return jsonbSafeString(value);
 }

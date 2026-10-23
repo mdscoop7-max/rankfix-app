@@ -30,6 +30,22 @@ const SCEN = [
       j.scoreModel.evidenceLevel === "complete" && "evidence level complete on unrendered shell",
       j.overallScore >= 100 && "100 on unrendered shell",
     ].filter(Boolean) },
+  // QA #186: a 403 whose browser recovery shows a block page, or an error page, is not the website.
+  { id: "refused-render-antibot", host: "antibot.test", rawStatus: 405, raw: "<html><head><title>Denied</title></head><body>Denied</body></html>", render: () => `<html><head><title>Shop | AntiBot</title></head><body><p>${"Please wait while we check your request. ".repeat(12)}</p></body></html>`, expect: { http: 422, code: "HTTP_BLOCKED" } },
+  { id: "refused-render-error", host: "errpage.test", rawStatus: 403, raw: "<html><head><title>403</title></head><body>Forbidden</body></html>", render: () => `<html><head><title>Sorry! The connection was interrupted due to an error, but we can take you to the homepage.</title></head><body><p>${"Sorry, the connection was interrupted due to an error. ".repeat(8)}</p></body></html>`, expect: { http: 422, code: "HTTP_BLOCKED" } },
+  { id: "maintenance-page", host: "maint.test", raw: `<!doctype html><html lang="en"><head><title>Our site is currently undergoing maintenance</title></head><body><h1>We'll be back soon</h1><p>Our site is currently undergoing maintenance. Please come back later.</p></body></html>`, render: () => { throw new Error("not needed"); }, expect: { http: 422, code: "SITE_ERROR_PAGE" } },
+  // Negative control: a long article ABOUT errors and maintenance is a normal page.
+  { id: "article-about-errors", host: "errblog.test", raw: `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Something went wrong? How to plan website maintenance</title><meta name="description" content="A practical guide to planning maintenance windows and handling errors on business websites."><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="canonical" href="https://errblog.test/"></head><body><h1>Planning website maintenance</h1><p>${"Schedule maintenance outside peak hours, communicate early and test rollbacks so errors stay rare. ".repeat(40)}</p></body></html>`, render: () => { throw new Error("not needed"); }, expect: { js: false, sector: ["unknown", "saas_b2b", "professional_services", "news_media"], titleStatus: ["pass", "warning"] } },
+  // A site that never answers a plain request but serves the browser: one bounded visit, honest note.
+  { id: "timeout-browser-recovery", host: "slowgate.test", rawThrow: "timeout", raw: "", render: () => fullHtml.replaceAll("spa-rich.test", "slowgate.test"), expect: { js: true, sector: ["saas_b2b"], titleStatus: ["pass"] },
+    extra: (j) => [
+      !j.access?.rankfixBlocked && "access.rankfixBlocked missing",
+      !/tijdslimiet|time-out/.test(j.access?.note || "") && `access note ${j.access?.note}`,
+      j.checks.find((c) => c.key === "status")?.status !== "unable_to_confirm" && "status check must stay unconfirmed",
+      /HTTP 504/.test(JSON.stringify(j.checks)) && "synthetic 504 leaked into a check",
+    ].filter(Boolean) },
+  // A timeout whose browser visit is a challenge stays a failed fetch (no score).
+  { id: "timeout-render-challenge", host: "slowchal.test", rawThrow: "timeout", raw: "", render: () => `<html><head><title>Just a moment...</title></head><body>${"Checking your browser before accessing. ".repeat(12)}</body></html>`, expect: { http: 502, code: "FETCH_TIMEOUT" } },
 ];
 const sub = (host, path) => `<!doctype html><html lang="en"><head><title>${path} | Site</title><meta name="description" content="Information about ${path} from this website, contact us for details."></head><body><h1>${path}</h1><p>Info.</p></body></html>`;
 globalThis.fetch = async (input) => {
@@ -39,7 +55,8 @@ globalThis.fetch = async (input) => {
   if (u.pathname === "/robots.txt") return new Response("User-agent: *\nAllow: /\n", { status: 200, headers: { "content-type": "text/plain" } });
   if (/\.(js|jpg|png|css)$/.test(u.pathname)) return new Response("x", { status: 200, headers: { "content-type": "application/javascript" } });
   if (!sc) return h("nf", 404);
-  if (u.pathname === "/") return h(sc.raw);
+  if (u.pathname === "/" && sc.rawThrow) { const e = new Error("The operation was aborted due to timeout"); e.name = "TimeoutError"; throw e; }
+  if (u.pathname === "/") return h(sc.raw, sc.rawStatus || 200);
   return h(sub(u.host, u.pathname));
 };
 globalThis.__RF_RENDER = async (url) => {
@@ -57,7 +74,7 @@ for (const sc of SCEN) {
   const res = await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: `https://${sc.host}/`, mode: "both", language: "nl" }) }));
   const j = await res.json(); console.error = ce;
   const p = [];
-  if (sc.expect.http) { if (res.status !== sc.expect.http) p.push(`HTTP ${res.status} != ${sc.expect.http}`); }
+  if (sc.expect.http) { if (res.status !== sc.expect.http) p.push(`HTTP ${res.status} != ${sc.expect.http} (${j.code}: ${String(j.error).slice(0, 120)})`); if (sc.expect.code && j.code !== sc.expect.code) p.push(`code ${j.code} != ${sc.expect.code}`); if (typeof j.overallScore === "number") p.push(`score ${j.overallScore} on a page that is not the website`); }
   else if (res.status !== 200) p.push(`HTTP ${res.status} ${j.error} ${JSON.stringify(errs.find(e=>/scan failed/i.test(String(e[0])))?.[1]||"").slice(0,600)}`);
   else {
     const t = j.checks.find((c) => c.key === "title");

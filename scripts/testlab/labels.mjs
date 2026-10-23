@@ -14,6 +14,8 @@ export function failureCategory(status,code='') {
  if(/WEBSITE_LIMIT|SCAN_LIMIT|QUOTA|RATE_LIMIT/.test(code)||[402,429].includes(status))return 'quota';
  if(/DATABASE|INFRASTRUCTURE/.test(code))return 'infrastructure';
  if(/BLOCKED|CHALLENGE|CAPTCHA|ROBOTS/.test(code))return 'site_blocked';
+ // The website served an error or maintenance page instead of its content.
+ if(/SITE_ERROR_PAGE|HTTP_NOT_FOUND|HTTP_SERVER_ERROR/.test(code))return 'site_unavailable';
  if([401,403].includes(status))return 'auth';
  if(/TIMEOUT/.test(code))return 'timeout';
  if(status===0||/FETCH_|REDIRECT_LOOP|REDIRECT_LIMIT/.test(code))return 'network';

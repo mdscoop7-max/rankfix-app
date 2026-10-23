@@ -8,6 +8,9 @@ import { getDb } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
 import { fetchFailureCode, finishScanAttempt, startScanAttempt } from "@/lib/scan-attempts";
 import { diagnoseBlockedResponse, diagnoseChallenge, diagnoseFetchFailure } from "@/lib/access-diagnostics";
+import { jsonbStringify } from "@/lib/jsonb-safe";
+import { classifyNonContentPage, nonContentDetail } from "@/lib/page-gate";
+import { manufacturerRegistrationEvidence } from "@/lib/manufacturer-evidence";
 import { requireEvidenceForScoredChecks } from "@/lib/scan-feedback";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang, isMarketSelectorPage } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
@@ -621,6 +624,7 @@ async function runScan(request: Request) {
     let fetchedFinalUrl: URL | null = null;
     let redirectChain: Array<{ from: string; to: string; status: number }> = [];
     let primaryFetchAttempts = 0;
+    let timeoutRecovery: { code: string; rendered: Awaited<ReturnType<typeof renderPublicPage>> } | null = null;
     try {
       let activeTarget = target;
       const fetchOnce = () => (primaryFetchAttempts++, safePublicFetch(activeTarget, { timeoutMs: 15000, maxRedirects: 6, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain,application/xml", acceptLanguage: `${scanLanguage};q=1,en;q=0.8,*;q=0.5` }));
@@ -669,10 +673,29 @@ async function runScan(request: Request) {
       // scans can be counted and explained; the raw message stays in the log only.
       const code = fetchFailureCode(fetchError);
       console.info("RankFix primary fetch failed", { url: target.toString(), code, message: fetchError instanceof Error ? fetchError.message.slice(0, 200) : String(fetchError) });
-      return NextResponse.json(
+      // Some sites never answer a plain HTTP client but do serve a real browser
+      // (QA #186: two sites timed out on both attempts). Give a timeout or a dropped
+      // connection the same single, bounded browser visit that a 403 already gets.
+      // The browser identifies as RankFixBot and never solves challenges; a block
+      // or error page is not accepted as the website (isSubstantiveRender).
+      if (["FETCH_TIMEOUT", "FETCH_CONNECTION"].includes(code) && Date.now() - started < 75_000) {
+        try {
+          const rendered = await renderPublicPage(target.toString(), 15000, renderBudget);
+          if (isSubstantiveRender(rendered.html)) {
+            timeoutRecovery = { code, rendered };
+            fetchedFinalUrl = new URL(rendered.finalUrl || target.toString());
+            redirectChain = [];
+          }
+        } catch (renderError) {
+          console.info("RankFix timeout recovery render failed", { url: target.toString(), reason: renderFailureCode(renderError) });
+        }
+      }
+      if (!timeoutRecovery) return NextResponse.json(
         { error: scanError.fetch, code, diagnosis: diagnoseFetchFailure(code, Math.max(1, primaryFetchAttempts), Date.now() - started), charged: false },
         { status: 502 }
       );
+      // Placeholder for the unanswered request; content comes from the browser.
+      response = new Response(null, { status: 504 });
     }
 
     const responseTime = Date.now() - started;
@@ -710,6 +733,16 @@ async function runScan(request: Request) {
     };
     let recoveredHtml: string | null = null;
     let recoveredRenderElapsedMs: number | null = null;
+    if (timeoutRecovery) {
+      recovery.attempted = true;
+      recovery.browserRecovered = true;
+      recovery.limitedScope = true;
+      recovery.evidenceSource = "rendered_html";
+      recovery.reason = `PRIMARY_${timeoutRecovery.code}_BROWSER_RECOVERY`;
+      recoveredHtml = timeoutRecovery.rendered.html;
+      renderedDocument = timeoutRecovery.rendered;
+      recoveredRenderElapsedMs = timeoutRecovery.rendered.elapsedMs;
+    }
     if (!response.ok && (response.status === 202 || response.status === 403 || response.status === 405)) {
       recovery.attempted = true;
       try {
@@ -753,17 +786,21 @@ async function runScan(request: Request) {
       // Customer-facing Dutch text names the actual cause (login, bot protection,
       // generic refusal) instead of one generic "blocked" sentence.
       if (diagnosis && scanLanguage === "nl") httpMessages.nl = `Scan niet mogelijk (HTTP ${response.status}). ${diagnosis.advice} Er is daarom geen score berekend.`;
-      return NextResponse.json({ error: httpMessages[scanLanguage], code: [404, 410].includes(response.status) ? "HTTP_NOT_FOUND" : response.status >= 500 ? "HTTP_SERVER_ERROR" : diagnosis?.kind === "authentication_required" ? "HTTP_AUTH_REQUIRED" : "HTTP_BLOCKED", httpStatus: response.status, recovery, diagnosis, charged: false }, { status: 422 });
+      return NextResponse.json({ error: httpMessages[scanLanguage], code: [404, 410].includes(response.status) ? "HTTP_NOT_FOUND" : response.status >= 500 ? "HTTP_SERVER_ERROR" : "HTTP_BLOCKED", blockKind: diagnosis?.kind || null, httpStatus: response.status, recovery, diagnosis, charged: false }, { status: 422 });
     }
 
     // The website answered RankFix itself with an access refusal, but a real browser
     // received the page: a crawler block aimed at the scanner, not a website error.
     const scannerAccessBlocked = Boolean(recoveredHtml) && !response.ok;
+    // What RankFix itself received: an HTTP refusal, or no answer at all.
+    const rankfixRefusal = timeoutRecovery ? (timeoutRecovery.code === "FETCH_TIMEOUT" ? "geen antwoord binnen de tijdslimiet" : "verbinding verbroken") : `HTTP ${recovery.originalHttpStatus}`;
     const access = {
       rankfixBlocked: scannerAccessBlocked,
-      originalStatus: scannerAccessBlocked ? recovery.originalHttpStatus : null,
+      originalStatus: scannerAccessBlocked && !timeoutRecovery ? recovery.originalHttpStatus : null,
       attribution: scannerAccessBlocked ? "crawler_block" as const : null,
-      note: scannerAccessBlocked ? `De website weigerde het verzoek van RankFix (HTTP ${recovery.originalHttpStatus}); een browser kreeg de pagina wel. Statuscode en responstijd zijn daarom niet beoordeeld; de inhoud komt uit de browserweergave.` : null,
+      note: !scannerAccessBlocked ? null : timeoutRecovery
+        ? `De website beantwoordde het directe verzoek van RankFix niet (${timeoutRecovery.code === "FETCH_TIMEOUT" ? "time-out" : "verbinding verbroken"}); een browser kreeg de pagina wel. Statuscode en responstijd zijn daarom niet beoordeeld; de inhoud komt uit de browserweergave.`
+        : `De website weigerde het verzoek van RankFix (${rankfixRefusal}); een browser kreeg de pagina wel. Statuscode en responstijd zijn daarom niet beoordeeld; de inhoud komt uit de browserweergave.`,
     };
     // Modern commerce/product pages can contain large SSR payloads and JSON-LD. Keep a strict cap, but allow enough room to audit them safely.
     let html: string;
@@ -786,7 +823,13 @@ async function runScan(request: Request) {
     // Bounded render: framework evidence alone is useful, but a thin client shell
     // is also a strong reason to render once. This improves Shopify/Next/Nuxt sites
     // without rendering every SSR page or retrying indefinitely.
-    const javascriptCandidate = !recoveredHtml && (javascriptFrameworkSignal || thinClientShell);
+    // A thin document without any identity (no title, no meta description, no H1)
+    // is a loader, cookie wall or redirect stub more often than a real page; it
+    // gets the same single browser attempt as a client shell (QA #186: such a page
+    // was scored 59 without a render attempt).
+    const rawHasIdentity = /<title[^>]*>\s*[^<\s][^<]*<\/title>/i.test(rawHtml) || /<meta[^>]+name\s*=\s*["']description["'][^>]+content\s*=\s*["'][^"']{10,}/i.test(rawHtml) || /<h1\b[^>]*>[\s\S]{0,400}?[^\s<][\s\S]{0,400}?<\/h1>/i.test(rawHtml);
+    const identitylessThinDocument = rawVisibleWords < 80 && !rawHasIdentity;
+    const javascriptCandidate = !recoveredHtml && (javascriptFrameworkSignal || thinClientShell || identitylessThinDocument);
     // A thin raw document with scripts (fewer than 80 visible words) is incomplete
     // evidence when no browser render succeeded: missing metadata there is not a
     // proven website defect. A substantive server-rendered body (250+ words, not a
@@ -879,6 +922,26 @@ async function runScan(request: Request) {
         es:"El sitio no pudo analizarse de forma fiable. El servidor devolvió una página intermedia, de verificación o de enrutamiento en lugar del sitio esperado. Por eso no se calculó ninguna puntuación."
       };
       return NextResponse.json({ error: qualityMessages[scanLanguage], code: "CHALLENGE_OR_INTERSTITIAL", diagnosis: diagnoseChallenge(response.headers, html), recovery, charged: false }, { status: 422 });
+    }
+    // Error and maintenance pages (and challenge titles the older patterns miss,
+    // e.g. "AntiBot") are not the website: no score. After a refused request
+    // (403/405) such a page is still the block; otherwise the site is unavailable.
+    const nonContentPage = classifyNonContentPage({ title: qualityTitle, text: qualityText, words: qualityWords, html });
+    if (nonContentPage) {
+      const refused = recovery.attempted && !response.ok;
+      const code = nonContentPage.kind === "challenge" || refused ? (refused ? "HTTP_BLOCKED" : "CHALLENGE_OR_INTERSTITIAL") : "SITE_ERROR_PAGE";
+      const nonContentMessages: Record<string,string> = {
+        nl: code === "SITE_ERROR_PAGE"
+          ? `De website toonde een ${nonContentPage.kind === "maintenance" ? "onderhoudspagina" : "foutpagina"} in plaats van de inhoud. Er is daarom geen score berekend; probeer het later opnieuw.`
+          : "De website toonde een controle- of blokkadepagina in plaats van de inhoud. RankFix omzeilt dit niet; er is daarom geen score berekend.",
+        en: code === "SITE_ERROR_PAGE" ? "The website returned an error or maintenance page instead of its content, so no score was calculated." : "The website returned a block or verification page instead of its content, so no score was calculated.",
+        de: code === "SITE_ERROR_PAGE" ? "Die Website lieferte eine Fehler- oder Wartungsseite statt ihres Inhalts; daher wurde keine Bewertung berechnet." : "Die Website lieferte eine Sperr- oder Prüfseite statt ihres Inhalts; daher wurde keine Bewertung berechnet.",
+        fr: code === "SITE_ERROR_PAGE" ? "Le site a renvoyé une page d’erreur ou de maintenance au lieu de son contenu ; aucun score n’a été calculé." : "Le site a renvoyé une page de blocage ou de vérification au lieu de son contenu ; aucun score n’a été calculé.",
+        it: code === "SITE_ERROR_PAGE" ? "Il sito ha restituito una pagina di errore o di manutenzione invece del contenuto; nessun punteggio calcolato." : "Il sito ha restituito una pagina di blocco o di verifica invece del contenuto; nessun punteggio calcolato.",
+        es: code === "SITE_ERROR_PAGE" ? "El sitio devolvió una página de error o de mantenimiento en lugar de su contenido; no se calculó ninguna puntuación." : "El sitio devolvió una página de bloqueo o verificación en lugar de su contenido; no se calculó ninguna puntuación.",
+      };
+      return NextResponse.json({ error: nonContentMessages[scanLanguage], code, httpStatus: recovery.originalHttpStatus, nonContent: nonContentPage,
+        diagnosis: code === "SITE_ERROR_PAGE" ? null : refused ? diagnoseBlockedResponse(recovery.originalHttpStatus, response.headers, html) : diagnoseChallenge(response.headers, html), recovery, charged: false }, { status: 422 });
     }
     // A reserved, parked or for-sale domain placeholder has no organisation or content to
     // audit: no score (scoring its missing description or HTTPS would describe the registrar).
@@ -3073,7 +3136,7 @@ async function runScan(request: Request) {
     // unconfirmed and never scored (field report 16-10: HTTP 200 in the sample,
     // HTTP 403 as a website warning in the same report).
     seoChecks.push(scannerAccessBlocked
-      ? check("unable_to_confirm", "status", "seo", "HTTP-status", `Het verzoek van RankFix werd geweigerd (HTTP ${recovery.originalHttpStatus}), maar een browser kreeg de pagina wel te zien. Dit wijst op bot- of crawlerbeveiliging tegenover RankFix en is geen bewezen fout van de website. Of gewone bezoekers en zoekmachines HTTP 200 krijgen, kan RankFix niet bevestigen.`, "Geen actie nodig voor bezoekers. Controleer in Google Search Console of Googlebot de pagina zonder blokkade kan ophalen.", 0, 6)
+      ? check("unable_to_confirm", "status", "seo", "HTTP-status", `Het verzoek van RankFix werd geweigerd (${rankfixRefusal}), maar een browser kreeg de pagina wel te zien. Dit wijst op bot- of crawlerbeveiliging tegenover RankFix en is geen bewezen fout van de website. Of gewone bezoekers en zoekmachines HTTP 200 krijgen, kan RankFix niet bevestigen.`, "Geen actie nodig voor bezoekers. Controleer in Google Search Console of Googlebot de pagina zonder blokkade kan ophalen.", 0, 6)
       : response.status === 200
       ? check("pass", "status", "seo", "HTTP-status", "De pagina gaf HTTP 200 terug.", "Behoud HTTP 200 voor normale indexeerbare pagina's.", 6, 6)
       : response.ok
@@ -3084,7 +3147,7 @@ async function runScan(request: Request) {
     // It is useful as a server-response signal, but it is not browser TTFB and must never
     // be presented as measured Core Web Vitals (LCP/CLS/INP).
     seoChecks.push(scannerAccessBlocked
-      ? check("unable_to_confirm", "response", "seo", "Server response", `De gemeten responstijd hoort bij een geweigerd verzoek van RankFix (HTTP ${recovery.originalHttpStatus}), niet bij de pagina die bezoekers krijgen; daarom niet beoordeeld.`, "Meet serverrespons en Core Web Vitals met browser- of velddata.", 0, 5)
+      ? check("unable_to_confirm", "response", "seo", "Server response", `De gemeten responstijd hoort bij een geweigerd verzoek van RankFix (${rankfixRefusal}), niet bij de pagina die bezoekers krijgen; daarom niet beoordeeld.`, "Meet serverrespons en Core Web Vitals met browser- of velddata.", 0, 5)
       : responseTime < 1500
       ? check("pass", "response", "seo", "Server response", `RankFix ontving de eerste volledige HTTP-response in ongeveer ${responseTime} ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.`, "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.", 5, 5)
       : responseTime < 3000
@@ -4126,7 +4189,7 @@ async function runScan(request: Request) {
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
     type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "event" | "corporate" | "contact" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { excludedUtility?: boolean; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; identityHeadings?: string[]; schemaTypes?: string[]; businessDetails?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; productSchemaCount?: number; financialOffer?: boolean; eventSchema?: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageAudit = MultiPageCandidate & { excludedUtility?: boolean; nonContent?: "challenge" | "error" | "maintenance"; fetchFailure?: string; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; identityHeadings?: string[]; schemaTypes?: string[]; businessDetails?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; productSchemaCount?: number; financialOffer?: boolean; eventSchema?: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -4399,6 +4462,12 @@ async function runScan(request: Request) {
         if (pageChallenge) {
           return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, title:pageQualityTitle||null, description:pageQualityDescription||null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"quality",status:"UNABLE_TO_CONFIRM",details:"HTTP-response lijkt een bot-/securitychallenge in plaats van de bedoelde pagina; deze sample wordt niet gescoord."}] };
         }
+        // Maintenance, error and block pages answer with HTTP 200 too; they are not
+        // evidence of the website and never enter the sample or its scores.
+        const pageNonContent = classifyNonContentPage({ title: pageQualityTitle, text: pageQualityText, words: pageQualityWords, html: pageHtml });
+        if (pageNonContent) {
+          return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, nonContent:pageNonContent.kind, title:pageQualityTitle||null, description:pageQualityDescription||null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"quality",status:"UNABLE_TO_CONFIRM",details:nonContentDetail(pageNonContent)}] };
+        }
         if ((r.status !== 200 && pageQualityWords < 40 && !pageQualityTitle && !pageQualityDescription) ||
             (pageQualityWords < 15 && !pageQualityTitle && !pageQualityDescription)) {
           return { ...page, url:finalCandidate.toString(), status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"quality",status:"UNABLE_TO_CONFIRM",details:`HTTP ${r.status}; response bevat onvoldoende betrouwbare pagina-inhoud voor scoring.`}] };
@@ -4499,7 +4568,7 @@ async function runScan(request: Request) {
         const evidenceChecks: MultiPageAudit["evidenceChecks"] = [
           // The scanned page's real status (a refusal to RankFix is not a website 200 or error).
           isScannedPage && scannerAccessBlocked
-            ? {key:"http",status:"UNABLE_TO_CONFIRM",details:`HTTP ${response.status} voor RankFix; de pagina is via een browser opgehaald (crawlerblokkade, geen bewezen websitefout).`}
+            ? {key:"http",status:"UNABLE_TO_CONFIRM",details:`${rankfixRefusal} voor RankFix; de pagina is via een browser opgehaald (crawlerblokkade, geen bewezen websitefout).`}
             : {key:"http",status:"PASS",details:`HTTP ${isScannedPage ? response.status : r.status}`},
           {key:"title",status:!pageTitle && pageMissingEvidenceUnverified?"UNABLE_TO_CONFIRM":pageTitleAssessment.status==="PASS"?"PASS":"WARNING",details:!pageTitle && pageMissingEvidenceUnverified?`${pageTitleAssessment.details} ${clientShellNote}`:pageTitleAssessment.details},
           {key:"description",status:!pageDescription && pageMissingEvidenceUnverified?"UNABLE_TO_CONFIRM":pageDescriptionAssessment.status==="PASS"?"PASS":"WARNING",details:!pageDescription && pageMissingEvidenceUnverified?`${pageDescriptionAssessment.details} ${clientShellNote}`:pageDescriptionAssessment.details},
@@ -4567,7 +4636,9 @@ async function runScan(request: Request) {
                 : /5\d\d/.test(rawReason)
                   ? "serverfout"
                   : "ophalen mislukt";
-        return { ...page, status:"unable_to_confirm", httpStatus:null, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"fetch",status:"UNABLE_TO_CONFIRM",details:`Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ${reason}).`}] };
+        const fetchFailure = fetchFailureCode(multiPageError);
+        const detailedReason = reason === "ophalen mislukt" && fetchFailure === "FETCH_CONNECTION" ? "verbinding geweigerd of verbroken" : reason;
+        return { ...page, status:"unable_to_confirm", httpStatus:null, fetchFailure, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"fetch",status:"UNABLE_TO_CONFIRM",details:`Pagina kon binnen de begrensde multi-page scan niet betrouwbaar worden opgehaald (reden: ${detailedReason}).`}] };
       }
     };
     // Keep multi-page scans predictable on small production instances. Up to 20
@@ -4588,6 +4659,35 @@ async function runScan(request: Request) {
       },
     );
     await Promise.all(representativeWorkers);
+    // Some firewalls drop parallel connections from one client while serving the
+    // same pages one at a time (QA #186: 15 of 16 sample pages failed in 4 s with
+    // no HTTP status). When most fetches failed at network level, retry a bounded
+    // number of them sequentially with a pause. Same requests, slower; an HTTP
+    // refusal (403/429), a timeout or a block page is never retried here.
+    const sampleRetryPass = { triggered: false, attempted: 0, recovered: 0, stoppedReason: null as string | null };
+    {
+      const networkFailed = multiPageAudits
+        .map((item, index) => ({ item, index }))
+        .filter(({ item }) => item?.status === "unable_to_confirm" && item.httpStatus === null && ["FETCH_CONNECTION", "FETCH_FAILED"].includes(item.fetchFailure || ""));
+      const attempted = multiPageAudits.filter((item) => item && !(normalizeScanUrl(item.url) === normalizeScanUrl(finalUrl.toString()))).length;
+      if (networkFailed.length >= 3 && networkFailed.length >= attempted * 0.5) {
+        // Hard budget: at most 30 s for the whole pass and never closer than 40 s
+        // to the sample deadline, so one slow retry (fetch + redirects + one
+        // browser recovery) still ends before later scan phases need the time.
+        const retryUntil = Math.min(Date.now() + 30_000, started + SAMPLE_DEADLINE_MS - 40_000);
+        sampleRetryPass.triggered = true;
+        for (const { index } of networkFailed.slice(0, 6)) {
+          if (Date.now() > retryUntil) { sampleRetryPass.stoppedReason = "time_budget"; break; }
+          await new Promise((resolve) => setTimeout(resolve, 700));
+          sampleRetryPass.attempted++;
+          const retried = await auditMultiPage(uniqueMultiPagePages[index]);
+          if (retried.status === "audited") { sampleRetryPass.recovered++; retried.evidence = [...(retried.evidence || []), "opgehaald bij een tweede, sequentiële poging"]; }
+          multiPageAudits[index] = retried;
+          // Still refused after a pause: the site limits this client; stop asking.
+          if (retried.status !== "audited" && retried.httpStatus === null) { sampleRetryPass.stoppedReason = "still_refused"; break; }
+        }
+      }
+    }
     // Utility pages reached via redirects leave the sample entirely.
     for (let i = multiPageAudits.length - 1; i >= 0; i--) if (multiPageAudits[i]?.excludedUtility) multiPageAudits.splice(i, 1);
     // Second hop for retail sites: product links often appear only on category or
@@ -4702,7 +4802,7 @@ async function runScan(request: Request) {
         ? { nl: "de gescande pagina bevatte geen interne links (navigatie en footer niet geladen)", en: "the scanned page contained no internal links (navigation and footer not loaded)" }
         : { nl: `de gescande pagina bevatte maar ${pageLinks} interne link(s)`, en: `the scanned page contained only ${pageLinks} internal link(s)` });
       if (sampleLinkSource === "fallback") {
-        if (scannerAccessBlocked) reasons.push({ nl: `de ruwe HTML was een geweigerde response (HTTP ${recovery.originalHttpStatus}) zonder links`, en: `the raw HTML was a refused response (HTTP ${recovery.originalHttpStatus}) without links` });
+        if (scannerAccessBlocked) reasons.push({ nl: `de ruwe HTML was een geweigerde response (${rankfixRefusal}) zonder links`, en: `the raw HTML was a refused response (${rankfixRefusal}) without links` });
         if (sitemapRefusals.length) { const codes = [...new Set(sitemapRefusals)].join("/"); reasons.push({ nl: `de sitemap weigerde RankFix (HTTP ${codes})`, en: `the sitemap refused RankFix (HTTP ${codes})` }); }
         else if (!sitemapPageUrls.length) reasons.push(sitemapFound ? { nl: "de sitemap is een index zonder direct bruikbare pagina-URL's", en: "the sitemap is an index without directly usable page URLs" } : { nl: "er is geen bruikbare sitemap gevonden", en: "no usable sitemap was found" });
         if (!fallbackSources.length) reasons.push({ nl: "er was geen andere bron met pagina-URL's", en: "no other source of page URLs was available" });
@@ -4919,6 +5019,48 @@ async function runScan(request: Request) {
     }
     Object.assign(sectorProfile, {pageEvidence:multilingualPageIdentity});
 
+    // Set when the decision below makes the shop a sales channel; the later
+    // commerce reconciliation must then not overturn it (one decision, one owner).
+    let commerceIsChannel = false;
+    // QA #186: a confirmed cart is a sales channel. Without the site calling itself
+    // a shop (webshop, online store, Store schema), commerce stays the primary
+    // sector only when nothing better is known. Two independent own pages naming
+    // another activity (a telecom operator, an energy supplier that sells devices),
+    // or a product-registration service of a manufacturer, decide the sector; the
+    // shop is kept as a secondary activity and its checks stay applicable.
+    {
+      // retailPrimaryIdentity is already true for any confirmed cart; what matters
+      // here is whether the site itself says it is a shop.
+      const commerceOnlyIdentity = sectorProfile.sector === "ecommerce" && !explicitRetailIdentity && !euRetailSelfDescription;
+      const pageDecision = multilingualPageIdentity.decision;
+      const shopAsChannel = (evidence: string[]) => ({ sector: "ecommerce", label: "Online verkoop (webshop als verkoopkanaal)", evidence: evidence.slice(0, 3) });
+      const decidedModules = (sector: string) => [...new Set([...sectorProfile.applicableModules, ...(sectorSignals.find((item) => item.sector === sector)?.modules || [])])];
+      if (commerceOnlyIdentity && !masterIdentityOverride && pageDecision && pageDecision.sector !== "ecommerce") {
+        const channel = shopAsChannel(sectorProfile.evidence);
+        Object.assign(sectorProfile, pageDecision, {
+          evidence: [...pageDecision.evidence, "Winkelwagen/checkout bevestigd als verkoopkanaal; de eigen pagina's beschrijven een andere hoofdactiviteit"].slice(0, 6),
+          applicableModules: decidedModules(pageDecision.sector),
+          secondaryActivities: [channel],
+        });
+        commerceIsChannel = true;
+        masterEvidence.activeModules = sectorProfile.applicableModules;
+      } else if ((commerceOnlyIdentity || sectorProfile.sector === "unknown") && !masterIdentityOverride && !marketSelectorPage) {
+        const registration = manufacturerRegistrationEvidence(auditedMultiPages);
+        if (registration) {
+          const channel = commerceOnlyIdentity ? [shopAsChannel(sectorProfile.evidence)] : [];
+          Object.assign(sectorProfile, {
+            sector: "manufacturing_industrial", key: "brand_manufacturer", label: "Industrie & productie · merkfabrikant",
+            confidence: "medium", confidenceScore: 76,
+            evidence: [registration.evidence, commerceOnlyIdentity ? "Winkelwagen/checkout bevestigd als eigen verkoopkanaal van de fabrikant" : "Geen eigen winkelidentiteit gevonden"],
+            applicableModules: decidedModules("manufacturing_industrial"),
+            ...(channel.length ? { secondaryActivities: channel } : {}),
+          });
+          commerceIsChannel = true;
+          masterEvidence.activeModules = sectorProfile.applicableModules;
+        }
+      }
+    }
+
     // Evidence Engine v2: reconcile primary identity after representative evidence.
     const reconciledIdentitySource = [sectorIdentitySource, multiPageOwnIdentityText].filter(Boolean).join(" ");
     const reconciledSectorCandidates = sectorSignals.map((item) => {
@@ -5112,7 +5254,7 @@ async function runScan(request: Request) {
     // Commerce is a primary site identity. Once Scanbewijs confirms a webshop,
     // incidental content-sector words must not leave the report labelled as an
     // unrelated sector. Preserve the previous candidate as diagnostic evidence.
-    if (finalCommerceDecision.confirmed && sectorProfile.key!=="ecommerce" && !primaryNonCommerceIdentity) {
+    if (finalCommerceDecision.confirmed && sectorProfile.key!=="ecommerce" && !primaryNonCommerceIdentity && !commerceIsChannel) {
       const previousSector = sectorProfile.label;
       sectorProfile.sector = "ecommerce";
       sectorProfile.key = "ecommerce";
@@ -5735,6 +5877,7 @@ async function runScan(request: Request) {
     const sampleAccounting = sampleSummary(multiPageAudits.length, scoredSamplePages.length, excludedNoindexPages, unableToFetchPages, partialHeadPages);
     const multiPage = {
       accounting:sampleAccounting,
+      sampleRetryPass,
       coverageDimensions:scanCoverageDimensions(overallCoverage.coveragePercent, multiPageAudits.length, auditedRawPages.length+excludedNoindexPages, scoredSamplePages.length),
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:representativePageLimit,
       discoveredInternalUrls:discoveredMultiPage.length, sampleLinkSource, fallbackSources, sampleLimitation, duplicateSamplesRemoved, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,
@@ -5891,7 +6034,7 @@ async function runScan(request: Request) {
         console.info("RankFix scan phase", { phase: "history_write_start", page: finalUrl.toString(), isProductPage, productOptimizerSourceCount });
         const insertedScan = await getDb().query(
           "INSERT INTO scans (user_id, scanned_url, final_url, overall_score, seo_score, geo_score, result, crawler_version, rules_version, fix_policy_version, ai_policy_version) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id",
-          [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, JSON.stringify({
+          [user.id, target.toString(), finalUrl.toString(), selectedOverallScore, selectedSeoScore, selectedGeoScore, jsonbStringify({
             scannedUrl: target.toString(), finalUrl: finalUrl.toString(), responseTime, httpStatus: response.status,
             // End-to-end scan duration (fetch, render, sample, scoring) for speed benchmarks.
             scanDurationMs: Date.now() - started,
@@ -5977,7 +6120,7 @@ async function runScan(request: Request) {
             if(!verified) continue;
             await getDb().query(
               "INSERT INTO website_health_events (user_id,website_host,scanned_url,scan_id,event_type,rule_id,previous_status,current_status,severity,details) VALUES ($1,$2,$3,$4,'FIX_CONFIRMED',$5,'AWAITING_VERIFICATION','PASS',$6,$7)",
-              [user.id, websiteHost, finalUrl.toString(), savedScanId, issueId, item.severity || null, JSON.stringify({title:item.title,message:item.message,verification:"fresh_live_scan",confidence:liveConfidence,evidence:liveEvidence?.details||null})]
+              [user.id, websiteHost, finalUrl.toString(), savedScanId, issueId, item.severity || null, jsonbStringify({title:item.title,message:item.message,verification:"fresh_live_scan",confidence:liveConfidence,evidence:liveEvidence?.details||null})]
             );
             const verifiedFix = await getDb().query(
               "SELECT repository,file_path,pr_number FROM pending_fixes WHERE user_id=$1 AND scanned_url=$2 AND issue_id=$3 ORDER BY updated_at DESC LIMIT 1",
@@ -6002,7 +6145,7 @@ async function runScan(request: Request) {
                  recurrence_count=fix_memory.recurrence_count,
                  recurrence_open=FALSE,
                  updated_at=NOW()`,
-              [user.id,websiteHost,issueId,normalizedScanUrl,verifiedFixRow.repository||null,verifiedFixRow.file_path||null,verifiedFixRow.pr_number||null,savedScanId,String(item.fix||item.message||item.title||""),JSON.stringify({status:"PASS",confidence:liveConfidence,details:liveEvidence?.details||null})]
+              [user.id,websiteHost,issueId,normalizedScanUrl,verifiedFixRow.repository||null,verifiedFixRow.file_path||null,verifiedFixRow.pr_number||null,savedScanId,String(item.fix||item.message||item.title||""),jsonbStringify({status:"PASS",confidence:liveConfidence,details:liveEvidence?.details||null})]
             );
           }
           // If the exact rule is absent from the fresh scan, absence is not proof.
@@ -6023,7 +6166,7 @@ async function runScan(request: Request) {
         if (dashboardScan && savedScanId) {
           await getDb().query(
             "UPDATE scans SET result=jsonb_set(jsonb_set(result,'{seo,checks}',$1::jsonb,true),'{geo,checks}',$2::jsonb,true) WHERE id=$3 AND user_id=$4",
-            [JSON.stringify(selectedSeoChecks), JSON.stringify(selectedGeoChecks), savedScanId, user.id]
+            [jsonbStringify(selectedSeoChecks), jsonbStringify(selectedGeoChecks), savedScanId, user.id]
           );
         }
 
@@ -6037,7 +6180,7 @@ async function runScan(request: Request) {
           const scanId = savedScanId;
           await getDb().query(
             "INSERT INTO website_health_events (user_id,website_host,scanned_url,scan_id,event_type,details) VALUES ($1,$2,$3,$4,'SCAN',$5)",
-            [user.id,websiteHost,finalUrl.toString(),scanId,JSON.stringify({overallScore:selectedOverallScore,seoScore:selectedSeoScore,geoScore:selectedGeoScore})]
+            [user.id,websiteHost,finalUrl.toString(),scanId,jsonbStringify({overallScore:selectedOverallScore,seoScore:selectedSeoScore,geoScore:selectedGeoScore})]
           );
           const previousChecks = [
             ...(previousScan.rows[0]?.result?.seo?.checks || []),
@@ -6062,7 +6205,7 @@ async function runScan(request: Request) {
             if(!improved&&!regressed) continue;
             await getDb().query(
               "INSERT INTO website_health_events (user_id,website_host,scanned_url,scan_id,event_type,rule_id,previous_status,current_status,severity,details) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
-              [user.id,websiteHost,finalUrl.toString(),scanId,improved?"IMPROVEMENT":"REGRESSION",ruleId,before,now,item.severity||null,JSON.stringify({title:item.title,message:item.message})]
+              [user.id,websiteHost,finalUrl.toString(),scanId,improved?"IMPROVEMENT":"REGRESSION",ruleId,before,now,item.severity||null,jsonbStringify({title:item.title,message:item.message})]
             );
           }
         } catch (monitorError) {
