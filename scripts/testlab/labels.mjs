@@ -8,12 +8,15 @@ export function compareSector(expected,profile={}) {
   subtypeMatch:key?profile.key===key:null,labelStatus:'proposed_not_independently_verified'};
 }
 export function failureCategory(status,code='') {
+ // The target website's own refusals (its 429, its login, its WAF) are site
+ // blocks, never a RankFix quota: they must not stop the TestLab run.
+ if(/SITE_RATE_LIMITED|HTTP_AUTH_REQUIRED/.test(code))return 'site_blocked';
  if(/WEBSITE_LIMIT|SCAN_LIMIT|QUOTA|RATE_LIMIT/.test(code)||[402,429].includes(status))return 'quota';
  if(/DATABASE|INFRASTRUCTURE/.test(code))return 'infrastructure';
  if(/BLOCKED|CHALLENGE|CAPTCHA|ROBOTS/.test(code))return 'site_blocked';
  if([401,403].includes(status))return 'auth';
  if(/TIMEOUT/.test(code))return 'timeout';
- if(status===0||/FETCH_DNS|FETCH_NETWORK/.test(code))return 'network';
+ if(status===0||/FETCH_|REDIRECT_LOOP|REDIRECT_LIMIT/.test(code))return 'network';
  if(status===200)return 'invalid_response';
  return status>=500?'server_error':'site_or_input_error';
 }
