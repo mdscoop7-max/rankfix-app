@@ -1,5 +1,6 @@
 import { scanRuntime } from "@/lib/scan-runtime";
 import { sectorPageEvidence, scanCoverageDimensions, isAudiencePagePath } from "@/lib/sector-page-evidence";
+import { corroborateDeclaredIndustry } from "@/lib/site-sector-corroboration.mjs";
 import { decideCommerceModules } from "@/lib/sector-motor-decisions";
 import { NextResponse } from "next/server";
 import { createHash, randomUUID } from "crypto";
@@ -1844,7 +1845,7 @@ async function runScan(request: Request) {
       note: "Evidence-first: ontbrekend bewijs is niet automatisch een fout. Sectoren en functies worden alleen bevestigd op gevonden signalen.",
     };
 
-    type SectorKey = "financial_services"|"ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"education"|"nonprofit"|"energy_utilities"|"events_culture"|"fitness_sports"|"manufacturing_industrial"|"general_business"|"unknown";
+    type SectorKey = "financial_services"|"ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"education"|"nonprofit"|"energy_utilities"|"events_culture"|"fitness_sports"|"manufacturing_industrial"|"cybersecurity"|"waste_recycling"|"sports_organizations"|"maritime_ports"|"airports"|"agriculture_horticulture"|"general_business"|"unknown";
     const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]}> = [
       {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\b/i,/\b(te koop|te huur|for sale|for rent|woningaanbod|annonces? immobili\w*|biens? immobili\w*|vente immobili\w*|zu verkaufen|zu vermieten|en venta|en alquiler|in vendita|in affitto)\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
       {sector:"automotive",label:"Automotive",patterns:[/\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\b/i,/\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
@@ -1980,6 +1981,14 @@ async function runScan(request: Request) {
       events:"events_culture", entertainment:"events_culture", museum_culture:"events_culture", fitness:"fitness_sports", sports_club:"fitness_sports",
       publisher_blog:"news_media", food_delivery:"hospitality", parking:"transport_travel", coworking:"professional_services",
       manufacturer:"manufacturing_industrial", wholesale:"general_business", marketplace:"service_marketplace",
+      // Newly supported sector catalog families: map the catalog key to the
+      // final engine's broad primary sector. This mapping is NOT sufficient
+      // evidence by itself; homepage + separate own-page corroboration below
+      // must confirm the organisation's own activity.
+      cybersecurity:"cybersecurity", waste_recycling:"waste_recycling",
+      sports_organizations:"sports_organizations", maritime_ports:"maritime_ports",
+      airports:"airports", agriculture_horticulture:"agriculture_horticulture",
+      architecture_design:"professional_services", charities_nonprofits:"nonprofit",
     };
     const mappedCatalogSector = catalogTop ? catalogLegacyMap[catalogTop.key] : undefined;
     // Even a high-scoring catalog sector requires independent primary evidence;
@@ -4318,7 +4327,10 @@ async function runScan(request: Request) {
       const firstPathSegment = path.split("/").filter(Boolean)[0] || "";
       const candidateLocale = localeSegmentPattern.test(firstPathSegment) ? firstPathSegment.split("-")[0].toLowerCase() : "";
       const isLegal = /(?:^|\/)(?:privacy|privacy-policy|privacybeleid|privacyverklaring|datenschutz|datenschutzhinweise|datenschutzerklaerung|terms|terms-and-conditions|terms-of-use|voorwaarden|algemene-voorwaarden|cookie|cookies|cookie-policy|cookiebeleid|disclaimer|legal|impressum)(?:\/|$)/i.test(path);
-      const utilityContext = /\b(privacy|cookie|voorwaarden|terms|login|account|vacature|career|jobs|nieuws|news|blog|geschiedenis|history|impressie|gallery|over ons|about us)\b/i.test(context);
+      const utilityContext = /\b(privacy|cookie|voorwaarden|terms|login|account|vacature|career|jobs|nieuws|news|blog|geschiedenis|history|impressie|gallery)\b/i.test(context);
+      // First-party About/Organisation/Services pages are identity evidence;
+      // they must not be ranked like legal, account or editorial utility pages.
+      const identityContext = /\b(over ons|over het bedrijf|onze organisatie|about us|about the company|who we are|what we do|our organisation|our organization|company|expertise|our mission|nos activités|qui sommes-nous|über uns|chi siamo)\b/i.test(context);
       const capabilityContext = /\b(product|producten|shop|winkel|aanbod|voorraad|woning|woningen|occasion|service|diensten|dienstverlening|transport|logistiek|freight|warehouse|opslag|behandeling|treatment|afspraak|booking|reserver|offerte|quote|kamer|rooms?)\b/i.test(context);
       const contextWords = context.split(/\s+/).filter(Boolean).length;
       let score = item.type === "product" ? 34 : item.type === "contact" ? 32 : item.type === "article" ? 14 : item.type === "form" ? 32 : item.type === "service" ? 30 : item.type === "listing" ? 30 : item.type === "category" ? 28 : item.type === "support" ? 16 : item.type === "legal" || isLegal ? 18 : 8;
@@ -4326,12 +4338,14 @@ async function runScan(request: Request) {
       else if (preferredLocale && candidateLocale && candidateLocale !== preferredLocale) score -= 24;
       else if (preferredLocale && !candidateLocale) score += 2;
       if (capabilityContext) score += 24;
+      if (identityContext && !isLegal) score += 18;
       if (contextWords >= 2) score += 4;
       if (utilityContext && !capabilityContext) score -= 30;
       // Path semantics are deliberately weak evidence only; they can break ties but
       // cannot by themselves dominate structural link context.
       if (/(?:dienst|service|product|shop|store|catalog|aanbod|voorraad|woning|property|occasion|transport|logist|warehouse|behandel|treatment|booking|reserve)/i.test(path)) score += 6;
-      if (/(?:nieuws|news|blog|geschiedenis|history|impressie|gallery|over-ons|about-us)/i.test(path)) score -= 12;
+      if (/(?:nieuws|news|blog|geschiedenis|history|impressie|gallery)/i.test(path)) score -= 12;
+      if (/(?:\/about(?:-us)?|\/over-ons|\/over-het-bedrijf|\/wie-zijn-wij|\/unternehmen|\/ueber-uns|\/uber-uns|\/qui-sommes-nous|\/chi-siamo|\/our-company)(?:\/|$)/i.test(path)) score += 7;
       if (/^\/(?:[a-z]{2}(?:-[a-z]{2})?)\/?$/i.test(path)) score -= 10;
       return score;
     };
@@ -4809,6 +4823,41 @@ async function runScan(request: Request) {
     // Keep the scanned page, then prefer structurally different DOM templates.
     // This second-stage dedupe is universal: no sector or path vocabulary is used.
     const auditedRawPages = reportedMultiPageAudits.filter((item)=>item.status==="audited");
+    // Independent sector proof from the homepage FIRST, then own internal
+    // company/service pages. This is not an additional network scan; it uses
+    // evidence already fetched by the representative-page audit above.
+    // Strong checkout capabilities never convert an independently confirmed
+    // service organisation into a webshop. Unproven/inconsistent cases abstain.
+    const sectorHomepage = (isHomepage || isSiteHomepagePath(finalUrl.pathname))
+      ? {url:finalUrl.toString(), type:"homepage", status:"audited", title, description,
+          identityHeadings:identityH1s, schemaTypes}
+      : {url:representativeHomeUrl, type:"homepage", status:"not_scanned"};
+    const extendedIndustry = corroborateDeclaredIndustry(sectorHomepage.url, sectorHomepage, auditedRawPages);
+    const specificIndustry = extendedIndustry.decision;
+    const acceptExtendedIndustry = Boolean(specificIndustry && !marketSelectorPage &&
+      (sectorProfile.sector === specificIndustry.sector ||
+       ["unknown","general_business"].includes(sectorProfile.sector) ||
+       (sectorProfile.sector === "ecommerce" && !explicitRetailIdentity && !euRetailSelfDescription)));
+    if (acceptExtendedIndustry && specificIndustry) {
+      sectorProfile.sector = specificIndustry.sector as SectorKey;
+      sectorProfile.key = specificIndustry.key;
+      sectorProfile.label = specificIndustry.label;
+      sectorProfile.confidence = specificIndustry.confidence as "high"|"medium";
+      sectorProfile.confidenceScore = specificIndustry.confidenceScore;
+      sectorProfile.evidence = [...specificIndustry.evidence, "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"].slice(0,6);
+      sectorProfile.applicableModules = [...new Set([
+        ...sectorProfile.applicableModules,
+        ...(sectorSignals.find(item=>item.sector===specificIndustry.sector)?.modules || []),
+      ])];
+      masterEvidence.activeModules = sectorProfile.applicableModules;
+    }
+    Object.assign(sectorProfile, {extendedIndustryEvidence:{
+      reason:extendedIndustry.reason, homepageIdentity:extendedIndustry.homepageIdentity,
+      supportingPages:extendedIndustry.supportingPages, candidates:extendedIndustry.candidates,
+      applied:acceptExtendedIndustry,
+    }});
+
+    const verifiedNonCommerceIndustry = Boolean(acceptExtendedIndustry && specificIndustry && specificIndustry.sector !== "ecommerce");
     const auditedMultiPages: MultiPageAudit[] = [];
     const seenStructures = new Set<string>();
     for (const item of auditedRawPages) {
@@ -4980,7 +5029,7 @@ async function runScan(request: Request) {
     // This applies to ALL independently recognized service providers, not
     // only one industry. Payment/booking/checkout widgets are a capability,
     // not proof that the provider is itself a retail webshop.
-    const hardCommerceEvidence = primaryNonCommerceIdentity
+    const hardCommerceEvidence = (primaryNonCommerceIdentity || verifiedNonCommerceIndustry)
       ? confirmedRetailEvidenceForService({
           representativePurchase: verifiedRepresentativePurchase,
           productDetailSchema: confirmedCurrentProduct,
@@ -4993,9 +5042,9 @@ async function runScan(request: Request) {
           corroboratedProductAndPrice
         );
     const technologyOnlyCommerce = technologyProfile.isCommerce && !hardCommerceEvidence;
-    const secondaryCommerceOnly = Boolean(primaryNonCommerceIdentity && !hardCommerceEvidence);
+    const secondaryCommerceOnly = Boolean((primaryNonCommerceIdentity || verifiedNonCommerceIndustry) && !hardCommerceEvidence);
     const finalCommerceDecision = {
-      confirmed: hardCommerceEvidence || (technologyOnlyCommerce && !primaryNonCommerceIdentity),
+      confirmed: hardCommerceEvidence || (technologyOnlyCommerce && !(primaryNonCommerceIdentity || verifiedNonCommerceIndustry)),
       currentPageEvidence: hardCommerceEvidence && masterEvidence.commerce.confirmed,
       technologyProfile: technologyProfile.isCommerce,
       technologyOnly: technologyOnlyCommerce,
@@ -5016,14 +5065,14 @@ async function runScan(request: Request) {
       && Boolean(item.commerceEvidence?.strongCommerceAction || (item.commerceEvidence?.priceSignals||0) > 0 || (item.commerceEvidence?.product?.price && item.commerceEvidence?.product?.currency)));
     const finalCommerceApplicability = commerceApplicability({
       confirmed: finalCommerceDecision.confirmed,
-      primaryNonCommerceIdentity: Boolean(primaryNonCommerceIdentity),
+      primaryNonCommerceIdentity: Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry),
       commerceHints: Boolean(retailPrimaryIdentity || technologyProfile.isCommerce || hasEcommerceSignal || masterEvidence.commerce.strength > 0 || secondaryCommerceOnly),
       thinShell: thinRawHtmlEvidence,
       marketSelector: marketSelectorPage,
       auditedRepresentativePages: representativeAuditedPageCount,
       verifiedSecondaryCommerce: Boolean(sitewideCommerceEvidence.confirmed || verifiedRepresentativeProductDetail || representativeCommercialProductIntent),
     });
-    if (!finalCommerceDecision.confirmed && primaryNonCommerceIdentity) {
+    if (!finalCommerceDecision.confirmed && (primaryNonCommerceIdentity || verifiedNonCommerceIndustry)) {
       masterEvidence.commerce.confirmed = false;
       masterEvidence.businessModels = masterEvidence.businessModels.filter((model)=>model!=="commerce");
       technologyProfile.isCommerce = false;
@@ -5044,9 +5093,16 @@ async function runScan(request: Request) {
     }
     Object.assign(sectorProfile, {pageEvidence:multilingualPageIdentity});
 
+
     // Set when the decision below makes the shop a sales channel; the later
     // commerce reconciliation must then not overturn it (one decision, one owner).
-    let commerceIsChannel = false;
+    let commerceIsChannel = Boolean(verifiedNonCommerceIndustry && finalCommerceDecision.confirmed);
+    if (commerceIsChannel) {
+      Object.assign(sectorProfile, {secondaryActivities:[{
+        sector:"ecommerce", label:"Webshop als secundair verkoopkanaal",
+        evidence:["Product- of winkelwagenfuncties bewijzen niet de hoofdsector"],
+      }]});
+    }
     // QA #186: a confirmed cart is a sales channel. Without the site calling itself
     // a shop (webshop, online store, Store schema), commerce stays the primary
     // sector only when nothing better is known. Two independent own pages naming
@@ -5204,7 +5260,7 @@ async function runScan(request: Request) {
     const allCommerceModules = new Set([...commerceModules, "eu_consumer"]);
     const motorCommerceModules = decideCommerceModules({
       primarySector: sectorProfile.sector,
-      primaryBusinessModel: retailPrimaryIdentity ? "retail" : primaryNonCommerceIdentity ? "service" : "unknown",
+      primaryBusinessModel: verifiedNonCommerceIndustry ? "service" : retailPrimaryIdentity ? "retail" : primaryNonCommerceIdentity ? "service" : "unknown",
       retailProduct: Boolean(confirmedCurrentProduct || representativeRetailProduct),
       productPrice: Boolean(corroboratedProductAndPrice),
       cart: Boolean(confirmedAddToCart || (scanEvidence.commerce.cart.value && scanEvidence.commerce.cart.confidence === "high")),
@@ -5216,7 +5272,7 @@ async function runScan(request: Request) {
     const allowedCommerceModules = new Set(motorCommerceModules);
     // A transaction on a secondary page does not redefine the site's primary type.
     // Keep site type consistent with the central sector motor, for every service sector.
-    if (primaryNonCommerceIdentity && technologyProfile.siteType === "Webshop") {
+    if ((primaryNonCommerceIdentity || verifiedNonCommerceIndustry) && technologyProfile.siteType === "Webshop") {
       technologyProfile.siteType = "Website";
       technologyProfile.isCommerce = false;
       technologyProfile.evidence = [...technologyProfile.evidence, "Secundaire transactiefuncties wijzigen de primaire dienstverlenersidentiteit niet."].slice(0,8);

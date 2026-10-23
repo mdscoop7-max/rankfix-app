@@ -72,7 +72,10 @@ test("primary-sector and page classification are wired into RankFix before comme
   assert.match(route,/const shortStayIdentity = primaryBusinessEvidence\.sector === "hospitality" && Boolean/);
   assert.match(route,/primaryBusinessEvidence\.sector === "financial_services"/);
   assert.match(route,/retailPurchaseEvidence\s*&& primaryBusinessEvidence\.sector !== "financial_services"/);
-  assert.match(route,/const hardCommerceEvidence = primaryNonCommerceIdentity/);
+  // The service gate also accepts independently corroborated sector identity.
+  // Its presence is a prerequisite for treating a cart as a secondary capability.
+  assert.match(route,/const verifiedNonCommerceIndustry = Boolean\(acceptExtendedIndustry/);
+  assert.match(route,/const hardCommerceEvidence = \(primaryNonCommerceIdentity \|\| verifiedNonCommerceIndustry\)/);
   assert.match(route,/confirmedRetailEvidenceForService\(\{/);
 });
 

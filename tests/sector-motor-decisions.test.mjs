@@ -44,6 +44,7 @@ test("scanner imports central motor and preserves service site identity",async()
  const source=await readFile(new URL("../app/api/scan/route.ts",import.meta.url),"utf8");
  assert.match(source,/import \{ decideCommerceModules \} from "@\/lib\/sector-motor-decisions"/);
  assert.match(source,/const motorCommerceModules = decideCommerceModules\(/);
- assert.match(source,/primaryNonCommerceIdentity && technologyProfile\.siteType === "Webshop"/);
+  assert.match(source,/\(primaryNonCommerceIdentity \|\| verifiedNonCommerceIndustry\) && technologyProfile\.siteType === "Webshop"/);
+  assert.match(source,/primaryBusinessModel: verifiedNonCommerceIndustry \? "service"/);
  assert.match(source,/allowedCommerceModules\.has\(module\)/);
 });
