@@ -148,6 +148,16 @@ for (const p of PROFILES) {
       } }
     // 3.5 evidence gate: every scored check names where it was observed and what was found.
     for (const c of checks) if (["pass", "warning", "fail"].includes(c.status) && c.maxPoints > 0 && (!c.evidence?.url || c.evidence.found === null || c.evidence.found === undefined)) problems.push(`scored check ${c.key}=${c.status} without evidence`);
+    // QA #186: one finding per (category, key), and one title never carries two
+    // contradicting conclusions (pass in one place, warning/fail in another).
+    { const seen = new Map();
+      for (const c of [...(j.seo?.checks || []), ...(j.geo?.checks || [])]) {
+        const id = `${c.category}:${c.key}`;
+        if (seen.has(id)) problems.push(`duplicate finding ${id} (${seen.get(id)} / ${c.status})`);
+        seen.set(id, c.status);
+      }
+      const issueKeys = new Set((j.issues || []).map((x) => `${x.category || ""}:${x.key || x.id || ""}`));
+      if ((j.issues || []).length && issueKeys.size < (j.issues || []).length) problems.push(`duplicate issues in issue list (${j.issues.length} vs ${issueKeys.size} unique)`); }
     // Global invariant: a report with any warning/fail never shows 100.
     if ((process.env.MODE || "both") === "both" && checks.some((c) => c.status === "warning" || c.status === "fail") && j.overallScore >= 100) problems.push("100/100 with open issues");
   }

@@ -264,6 +264,18 @@ export function enforceReportConsistency(input: {
     }
   }
 
+  // 6b. One finding per (category, key). A second check with the same key is a
+  //     duplicated or contradicting conclusion; it is recorded, never hidden.
+  {
+    const seen = new Map<string, string>();
+    for (const item of input.checks) {
+      const id = `${item.category || ""}:${item.key}`;
+      const previous = seen.get(id);
+      if (previous !== undefined) flags.push({ code: previous === item.issue_status ? "duplicate_finding" : "contradicting_finding", action: "flagged", detail: `${item.key}: dubbele bevinding (${previous} en ${item.issue_status}).` });
+      else seen.set(id, item.issue_status);
+    }
+  }
+
   // 7. Scores: 100 only when nothing is left to improve; score within its own range.
   const scored = (group?: string) => input.checks.filter((item) => (!group || item.category === group) && item.maxPoints > 0);
   const hasIssue = (items: ConsistencyCheck[]) => items.some((item) => item.issue_status === "WARNING" || item.issue_status === "FAIL");
@@ -343,7 +355,7 @@ export function enforceReportConsistency(input: {
   return {
     selfCheck: {
       version: SELF_CHECK_VERSION,
-      consistent: corrections.length === 0 && flags.filter((f) => f.code === "score_outside_range").length === 0,
+      consistent: corrections.length === 0 && flags.filter((f) => ["score_outside_range", "contradicting_finding"].includes(f.code)).length === 0,
       reliability,
       reliabilityReasons: reasons,
       corrections,

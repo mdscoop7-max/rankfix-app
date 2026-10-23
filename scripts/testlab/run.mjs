@@ -48,7 +48,7 @@ for(const site of selected){
  try{r=await request('/api/scan',{url:'https://'+site.hosts[0]+'/',mode:'both',language:'nl',dashboard:true},330000)}catch(e){r={status:0,data:{code:'CLIENT_TIMEOUT_OR_NETWORK',error:e.message}}}
  if(r.data?.success&&r.data?.runtime?.commitSha!==sha)throw Error('QA changed during the test; no comparison is valid');
  const success=r.status===200&&r.data?.success===true;
- const row={host:site.hosts[0],name:site.name,country:site.country,round:site.round,status:success?'success':failureCategory(r.status,r.data?.code||''),httpStatus:r.status,code:r.data?.code||null,elapsedMs:Date.now()-started,
+ const row={host:site.hosts[0],name:site.name,country:site.country,round:site.round,status:success?'success':failureCategory(r.status,r.data?.code||''),httpStatus:r.status,code:r.data?.code||null,diagnosis:success?null:(r.data?.diagnosis||null),elapsedMs:Date.now()-started,
   comparison:success?compareSector(site.expected,r.data.sectorProfile):null,
   score:success?{overall:r.data.overallScore,seo:r.data.seo?.score,geo:r.data.geo?.score,evidenceLevel:r.data.scoreModel?.evidenceLevel}:null,
   coverage:r.data.multiPage?.coverageDimensions||null,sectorEvidence:r.data.sectorProfile||null,speed:r.data.websiteSpeed||null};

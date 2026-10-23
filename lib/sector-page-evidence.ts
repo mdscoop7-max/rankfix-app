@@ -10,6 +10,14 @@ export type IdentityPage = {
 // Recovery uses the SAME multilingual identity rules as the homepage. Repeated
 // templates, URL aliases, editorial topics and client stories are not independent
 // business declarations. A vote is a page-level decision, never a body keyword.
+// Pages about the industries, markets or customers a company SERVES ("/branchen/
+// transport", "/industries/healthcare", "/klanten/", "/case-studies/") describe
+// its clients. They are never independent evidence of the company's own sector.
+const AUDIENCE_PATH = /\/(?:industries|industry|branchen|branche|sectoren|sectors?|secteurs?|settori|settore|sectores|industrias|maerkte|m%C3%A4rkte|märkte|markets?|markten|marches|march%C3%A9s|marchés|mercati|mercados|use-cases?|customers?|klanten|kunden|clients?|referenties|referenzen|references|case-studies|cases?|success-stories|customer-stories|klantverhalen|kundenstimmen|temoignages|témoignages)(?:\/|$)/i;
+export function isAudiencePagePath(value: string): boolean {
+  try { return AUDIENCE_PATH.test(new URL(value).pathname); } catch { return AUDIENCE_PATH.test(String(value || "")); }
+}
+
 export function sectorPageEvidence(homeUrl: string, pages: IdentityPage[]) {
   const home = new URL(homeUrl);
   const host = home.hostname.replace(/^www\./, "");
@@ -24,7 +32,7 @@ export function sectorPageEvidence(homeUrl: string, pages: IdentityPage[]) {
     // Query parameters and fragments cannot supply independent corroboration.
     const path = url.pathname.replace(/\/+$/, "") || "/";
     const normalized = host + path;
-    if (urls.has(normalized)) continue;
+    if (urls.has(normalized) || isAudiencePagePath(url.toString())) continue;
     urls.add(normalized);
     const h1s = (page.identityHeadings || []).filter(value => !isConsentHeading(value));
     const signature = [page.title, page.description, ...h1s].join(" ").normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim();
