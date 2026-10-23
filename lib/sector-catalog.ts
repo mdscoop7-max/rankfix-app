@@ -10,7 +10,7 @@ export type SectorKey =
   | "food_delivery" | "telecom" | "energy" | "software_app" | "agency"
   | "photography" | "medical_clinic" | "pharmacy" | "veterinary" | "childcare"
   | "senior_care" | "car_rental" | "car_repair" | "parking" | "property_rental"
-  | "bed_breakfast" | "holiday_rental" | "holiday_park" | "camping" | "coworking" | "entertainment" | "museum_culture" | "sports_club" | "general_business";
+  | "bed_breakfast" | "holiday_rental" | "holiday_park" | "camping" | "coworking" | "entertainment" | "museum_culture" | "sports_club" | "cybersecurity" | "waste_recycling" | "sports_organizations" | "maritime_ports" | "airports" | "agriculture_horticulture" | "architecture_design" | "charities_nonprofits" | "general_business";
 
 export type SectorDefinition = {
   key: SectorKey;
@@ -81,6 +81,17 @@ export const SECTOR_CATALOG: SectorDefinition[] = [
   {key:"senior_care",label:"Ouderenzorg",keywords:/\b(ouderenzorg|senior care|verpleeghuis|nursing home)\b/i,schemaTypes:["MedicalOrganization"],expectedCapabilities:["care_services","locations","contact","trust"]},
   {key:"parking",label:"Parkeren",keywords:/\b(parking|parkeren|parkeergarage|car park)\b/i,schemaTypes:["ParkingFacility"],expectedCapabilities:["locations","availability_or_hours","pricing"]},
   {key:"coworking",label:"Coworking / flexwerk",keywords:/\b(coworking|flexwerk|flex office|workspace)\b/i,schemaTypes:["LocalBusiness"],expectedCapabilities:["spaces","availability","pricing","booking_or_contact"]},
+  // These new families are classification candidates only until a verified
+  // first-party business identity is established on multiple distinct pages.
+  // Expected capabilities are guidance, not assumed failures.
+  {key:"cybersecurity",label:"Cybersecurity & informatiebeveiliging",keywords:/\b(?:cyber[- ]?security|cyberbeveiliging|informatiebeveiliging|managed detection|threat intelligence)\b/i,expectedCapabilities:["services","security_expertise","contact"],forbiddenAssumptions:["cart","checkout","physical_stock"]},
+  {key:"waste_recycling",label:"Afvalverwerking & recycling",keywords:/\b(?:waste management|waste recycling|recyclingbedrijf|afvalverwerking|recyclage|entsorgung)\b/i,expectedCapabilities:["services","processing","contact"],optionalCapabilities:["locations"]},
+  {key:"sports_organizations",label:"Sportbond & sportorganisatie",keywords:/\b(?:sports? federation|sportbond|voetbalbond|sportfederatie|olympic committee|football association)\b/i,schemaTypes:["SportsOrganization"],expectedCapabilities:["organisation","competitions","members","contact"]},
+  {key:"maritime_ports",label:"Havenbedrijf & maritieme infrastructuur",keywords:/\b(?:port authority|maritime port|havenbedrijf|port operator|seaport|harbour authority)\b/i,expectedCapabilities:["port_services","terminals","contact"],optionalCapabilities:["cargo"]},
+  {key:"airports",label:"Luchthaven & luchthavenexploitatie",keywords:/\b(?:airport|luchthaven|aéroport|flughafen|aeroporto)\b/i,schemaTypes:["Airport"],expectedCapabilities:["flights","terminals","traveler_information","contact"]},
+  {key:"agriculture_horticulture",label:"Landbouw & tuinbouw",keywords:/\b(?:horticulture|landbouw|tuinbouw|agricultural cooperative|floriculture|flower auction)\b/i,expectedCapabilities:["production_or_cooperative","services","contact"]},
+  {key:"architecture_design",label:"Architectuur & ontwerp",keywords:/\b(?:architectuurbureau|architectenbureau|architecture firm|architecture studio|architects practice)\b/i,expectedCapabilities:["projects","services","contact"]},
+  {key:"charities_nonprofits",label:"Goede doelen & hulporganisaties",keywords:/\b(?:humanitarian organisation|charitable organization|hulporganisatie|charity|nonprofit)\b/i,expectedCapabilities:["mission","organisation","contact"],optionalCapabilities:["donations"]},
   {key:"general_business",label:"Algemene bedrijfswebsite",keywords:/\b(over ons|about us|onze diensten|our services|bedrijf|company)\b/i,schemaTypes:["Organization","LocalBusiness"],expectedCapabilities:["organization","services_or_offer","contact"]}
 ];
 
