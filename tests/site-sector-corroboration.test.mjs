@@ -63,6 +63,18 @@ test("shopping carts, product marketing and appointment widgets do not prove any
   assert.equal(detectDeclaredIndustry(homepage("Cloud architecture platform","Software architecture for cloud data teams")),null);
   assert.equal(detectDeclaredIndustry(homepage("Tractor manufacturer","Agricultural equipment and farm machinery for farmers")),null);
 });
+test("industry-customer routes under composite market paths cannot vote",()=>{
+  const home=homepage("Cloud consulting software","IT platforms for different business markets");
+  const r=decision(home,[
+    page("/markets-products/airports","International Airport","Flight departures and passenger terminals"),
+    page("/industries-technology/legal","Global law firm","Legal services and litigation"),
+  ]);
+  assert.equal(r.decision,null);
+});
+test("legal software and museum merchandise are not organisational identity",()=>{
+  assert.equal(detectDeclaredIndustry(homepage("Legal software for lawyers","Legal tech and legal automation platform for law firms")),null);
+  assert.equal(detectDeclaredIndustry(homepage("Museum shop","Exhibition gifts and museum merchandise for visitors")),null);
+});
 test("failed/partial or outside-domain pages are excluded",()=>{
   const h=homepage("International Airport","Flight arrivals and passenger terminals");
   for(const x of [
