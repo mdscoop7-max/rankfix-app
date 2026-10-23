@@ -89,8 +89,8 @@ export async function measureWebsiteSpeed(
   };
   // A missing credential is an environment issue, not a target website defect.
   // Anonymous use is explicit so batch scans do not hammer a shared public quota.
-  // QA default: no external PageSpeed requests until explicitly enabled.
-  if (process.env.RANKFIX_PAGESPEED_ENABLED !== "true") {
+  // QA default: no external PageSpeed requests until explicitly enabled.\n  // Injected fetchers are test doubles; production scan calls never inject one.
+  if (process.env.RANKFIX_PAGESPEED_ENABLED !== "true" && !options.fetcher) {
     report.note = "Speed Test tijdelijk uitgeschakeld; geen externe PageSpeed-aanvragen.";
     return bothUnavailable("Speed Test tijdelijk uitgeschakeld; later beschikbaar", "not_configured");
   }
