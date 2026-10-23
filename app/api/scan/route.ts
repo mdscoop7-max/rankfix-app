@@ -1981,6 +1981,14 @@ async function runScan(request: Request) {
       events:"events_culture", entertainment:"events_culture", museum_culture:"events_culture", fitness:"fitness_sports", sports_club:"fitness_sports",
       publisher_blog:"news_media", food_delivery:"hospitality", parking:"transport_travel", coworking:"professional_services",
       manufacturer:"manufacturing_industrial", wholesale:"general_business", marketplace:"service_marketplace",
+      // Newly supported sector catalog families: map the catalog key to the
+      // final engine's broad primary sector. This mapping is NOT sufficient
+      // evidence by itself; homepage + separate own-page corroboration below
+      // must confirm the organisation's own activity.
+      cybersecurity:"cybersecurity", waste_recycling:"waste_recycling",
+      sports_organizations:"sports_organizations", maritime_ports:"maritime_ports",
+      airports:"airports", agriculture_horticulture:"agriculture_horticulture",
+      architecture_design:"professional_services", charities_nonprofits:"nonprofit",
     };
     const mappedCatalogSector = catalogTop ? catalogLegacyMap[catalogTop.key] : undefined;
     // Even a high-scoring catalog sector requires independent primary evidence;
