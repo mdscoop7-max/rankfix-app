@@ -1,5 +1,6 @@
 import { scanRuntime } from "@/lib/scan-runtime";
 import { sectorPageEvidence, scanCoverageDimensions, isAudiencePagePath } from "@/lib/sector-page-evidence";
+import { corroborateDeclaredIndustry } from "@/lib/site-sector-corroboration.mjs";
 import { decideCommerceModules } from "@/lib/sector-motor-decisions";
 import { NextResponse } from "next/server";
 import { createHash, randomUUID } from "crypto";
@@ -1844,7 +1845,7 @@ async function runScan(request: Request) {
       note: "Evidence-first: ontbrekend bewijs is niet automatisch een fout. Sectoren en functies worden alleen bevestigd op gevonden signalen.",
     };
 
-    type SectorKey = "financial_services"|"ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"education"|"nonprofit"|"energy_utilities"|"events_culture"|"fitness_sports"|"manufacturing_industrial"|"general_business"|"unknown";
+    type SectorKey = "financial_services"|"ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"education"|"nonprofit"|"energy_utilities"|"events_culture"|"fitness_sports"|"manufacturing_industrial"|"cybersecurity"|"waste_recycling"|"sports_organizations"|"maritime_ports"|"airports"|"agriculture_horticulture"|"general_business"|"unknown";
     const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]}> = [
       {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\b/i,/\b(te koop|te huur|for sale|for rent|woningaanbod|annonces? immobili\w*|biens? immobili\w*|vente immobili\w*|zu verkaufen|zu vermieten|en venta|en alquiler|in vendita|in affitto)\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
       {sector:"automotive",label:"Automotive",patterns:[/\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\b/i,/\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
@@ -5044,9 +5045,52 @@ async function runScan(request: Request) {
     }
     Object.assign(sectorProfile, {pageEvidence:multilingualPageIdentity});
 
+    // Independent sector proof from the homepage FIRST, then own internal
+    // company/service pages. This is not an additional network scan; it uses
+    // evidence already fetched by the representative-page audit above.
+    // Strong checkout capabilities never convert an independently confirmed
+    // service organisation into a webshop. Unproven/inconsistent cases abstain.
+    const sectorHomepage = (isHomepage || isSiteHomepagePath(finalUrl.pathname))
+      ? {url:finalUrl.toString(), type:"homepage", status:"audited", title, description,
+          identityHeadings:identityH1s, schemaTypes}
+      : {url:new URL("/",finalUrl).toString(), type:"homepage", status:"not_scanned"};
+    const extendedIndustry = corroborateDeclaredIndustry(finalUrl.toString(), sectorHomepage, auditedRawPages);
+    const specificIndustry = extendedIndustry.decision;
+    const previousIndustry = sectorProfile.sector;
+    const acceptExtendedIndustry = Boolean(specificIndustry && !marketSelectorPage &&
+      (sectorProfile.sector === specificIndustry.sector ||
+       ["unknown","general_business"].includes(sectorProfile.sector) ||
+       (sectorProfile.sector === "ecommerce" && !explicitRetailIdentity && !euRetailSelfDescription)));
+    if (acceptExtendedIndustry && specificIndustry) {
+      sectorProfile.sector = specificIndustry.sector as SectorKey;
+      sectorProfile.key = specificIndustry.key;
+      sectorProfile.label = specificIndustry.label;
+      sectorProfile.confidence = specificIndustry.confidence as "high"|"medium";
+      sectorProfile.confidenceScore = specificIndustry.confidenceScore;
+      sectorProfile.evidence = [...specificIndustry.evidence, "Homepage en onafhankelijke eigen pagina's bevestigen de hoofdactiviteit"].slice(0,6);
+      sectorProfile.applicableModules = [...new Set([
+        ...sectorProfile.applicableModules,
+        ...(sectorSignals.find(item=>item.sector===specificIndustry.sector)?.modules || []),
+      ])];
+      masterEvidence.activeModules = sectorProfile.applicableModules;
+    }
+    Object.assign(sectorProfile, {extendedIndustryEvidence:{
+      reason:extendedIndustry.reason, homepageIdentity:extendedIndustry.homepageIdentity,
+      supportingPages:extendedIndustry.supportingPages, candidates:extendedIndustry.candidates,
+      applied:acceptExtendedIndustry,
+    }});
+
     // Set when the decision below makes the shop a sales channel; the later
     // commerce reconciliation must then not overturn it (one decision, one owner).
-    let commerceIsChannel = false;
+    let commerceIsChannel = Boolean(acceptExtendedIndustry &&
+      previousIndustry === "ecommerce" && specificIndustry &&
+      specificIndustry.sector !== "ecommerce" && finalCommerceDecision.confirmed);
+    if (commerceIsChannel) {
+      Object.assign(sectorProfile, {secondaryActivities:[{
+        sector:"ecommerce", label:"Webshop als secundair verkoopkanaal",
+        evidence:["Product- of winkelwagenfuncties bewijzen niet de hoofdsector"],
+      }]});
+    }
     // QA #186: a confirmed cart is a sales channel. Without the site calling itself
     // a shop (webshop, online store, Store schema), commerce stays the primary
     // sector only when nothing better is known. Two independent own pages naming
