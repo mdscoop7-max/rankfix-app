@@ -412,6 +412,16 @@ const TITLE_FAMILIES: Array<{ sector: EuSector; key: string; label: string; prim
 ];
 
 /**
+ * Whether a text names the family of a sector ("energie", "insurance",
+ * "telecom", "logistics", "financial services"). Only used as CORROBORATION of
+ * an explicit identity found elsewhere, never as identity on its own.
+ */
+export function sectorFamilyMentioned(sector: string, text: string): boolean {
+  const value = stripAudience(String(text || "").slice(0, 600));
+  return TITLE_FAMILIES.some((family) => family.sector === sector && family.re.test(value));
+}
+
+/**
  * Conglomerates name several primary activities in their own title
  * ("Poste Italiane - Servizi postali, finanziari e assicurativi"). An
  * organisation lists its core activity first, so the FIRST named activity is

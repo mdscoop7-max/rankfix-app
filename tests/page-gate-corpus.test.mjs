@@ -36,6 +36,10 @@ const BLOCK_PAGES = {
   "human verification (Siemens-like)": doc("Human Verification", `<p>Please wait while we verify.</p>`),
   "dutch block title": doc("Toegang geweigerd", `<p>Je hebt geen toegang tot deze pagina.</p>`),
   "german just a moment": doc("Einen Moment bitte…", `<p>Ihre Verbindung wird geprüft.</p>`),
+  // TestLab 23-10 evening: both were scored as the website (80 and 59).
+  "retailer IP block, 3 languages (bol-like, served with HTTP 403)": doc("shop", `<h1>IP address is blocked</h1><h1>IP adres is geblokkeerd</h1><h1>L'adresse IP est bloquée</h1><p>Your access to shop has been temporarily blocked due to possible abuse from this IP address. This may be caused by several factors, including: Use of a VPN. Outdated browser or browser extensions. Automated scripts.</p><p>For more information, you can contact our customer service.</p>`),
+  "image CAPTCHA without title (F5/Agfa-like)": doc("", `<p>This question is for testing whether you are a human visitor and to prevent automated spam submission.</p><p>Audio is not supported in your browser.</p><p>What code is in the image?</p><button>submit</button><p>Your support ID is: 699070390611420714 .</p>`),
+  "german access blocked": doc("Shop", `<h1>Zugriff gesperrt</h1><p>Ihr Zugriff auf diese Seite wurde vorübergehend blockiert.</p>`),
 };
 const ERROR_PAGES = {
   "404 en": doc("Page not found | Brand", `<h1>Page not found</h1><p>The page you requested could not be found.</p>`),
@@ -67,6 +71,10 @@ test("a recovered render of any of these templates is never accepted as the webs
 
 const longProse = (topic) => `<p>${`${topic} matters for every organisation. We explain the practical steps, the costs and what to ask your supplier before you decide. `.repeat(40)}</p>`;
 const ORDINARY_PAGES = {
+  // Help texts ABOUT blocked IP addresses or access are not block pages.
+  "help article: if your IP address has been blocked": doc("Help | Shop", `<h1>Can't reach our website?</h1><p>If your IP address has been blocked, please contact customer service. When your access is blocked by your company firewall, ask your IT department.</p>`),
+  "FAQ question: why is my access blocked": doc("FAQ | Bank", `<h1>Veelgestelde vragen</h1><p>Waarom is mijn toegang tot de app geblokkeerd? Na drie foute pincodes blokkeren wij de app tijdelijk.</p><p>Is uw toegang geblokkeerd? Bel ons.</p>`),
+
   "security vendor bot protection": doc("Bot Protection & Mitigation | Vendor", `<h1>Bot Protection</h1>${longProse("Bot protection")}`),
   "security vendor ddos (short)": doc("DDoS protection for enterprises | Vendor", `<h1>DDoS protection</h1><p>Stop attacks before they reach your network. Request a demo.</p>`),
   "captcha vendor (short)": doc("hCaptcha – stop bots, protect privacy", `<h1>Stop bots</h1><p>The privacy-first CAPTCHA for websites. Free plan available.</p>`),
@@ -90,8 +98,8 @@ test("page gate does not reject ordinary pages about these topics or pages that 
   for (const [name, html] of Object.entries(ORDINARY_PAGES)) assert.equal(gate(html), null, `${name}: ${JSON.stringify(gate(html))}`);
 });
 
-test("recorded real pages of the 96-site run: only genuine block/error/maintenance pages are rejected", () => {
-  const fixture = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/testlab-96-replay/route.json.gz", import.meta.url))).toString("utf8"));
+for (const [label, file, minimum] of [["96-site run 23-10 morning", "route.json.gz", 15], ["96-site run 23-10 evening", "route-evening.json.gz", 2]]) test(`recorded real pages of the ${label}: only genuine block/error/maintenance pages are rejected`, () => {
+  const fixture = JSON.parse(gunzipSync(readFileSync(new URL(`./fixtures/testlab-96-replay/${file}`, import.meta.url))).toString("utf8"));
   const flagged = [];
   let checked = 0;
   for (const site of fixture.sites) for (const page of site.pages) {
@@ -100,10 +108,10 @@ test("recorded real pages of the 96-site run: only genuine block/error/maintenan
     // The stored text is the first 3000 characters; real pages are at least that long.
     const words = Math.max(String(page.body || "").split(/\s+/).filter(Boolean).length, String(page.body || "").length >= 2900 ? 450 : 0);
     const hit = classifyNonContentPage({ title: page.title, text: page.body, words });
-    if (hit) flagged.push(`${site.host} ${hit.kind}: ${String(page.title).slice(0, 70)}`);
+    if (hit) flagged.push({ line: `${site.host} ${hit.kind}/${hit.reason}: ${String(page.title).slice(0, 70)}`, body: String(page.body || "").slice(0, 300) });
   }
   assert.ok(checked > 1000, `only ${checked} pages`);
-  // Every flagged page must be a page whose own title is a block, error or maintenance message.
-  for (const line of flagged) assert.match(line, /maintenance|human verification|antibot|connection was interrupted/i, `false rejection: ${line}`);
-  assert.ok(flagged.length >= 15, `expected the known maintenance/verification pages, got ${flagged.length}`);
+  // Every flagged page must be a page whose own title or opening text is a block, error or maintenance message.
+  for (const { line, body } of flagged) assert.match(`${line} ${body}`, /maintenance|human verification|antibot|connection was interrupted|ip address is blocked|whether you are a human/i, `false rejection: ${line}`);
+  assert.ok(flagged.length >= minimum, `expected the known block/maintenance/verification pages, got ${flagged.length}`);
 });

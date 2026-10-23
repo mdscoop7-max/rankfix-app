@@ -121,11 +121,14 @@ test("redirect loop with an unchanged cookie jar stops at once; a one-time cooki
   }
 });
 
-test("a thin representative sample (1 of 16 pages) is provisional, not definitive", () => {
+// Tightened after the TestLab run of 23-10 (evening): fewer than a quarter of a
+// sample of 8+ pages is "insufficient" (indication), a thin sample above that "provisional".
+test("a thin representative sample is never definitive; 1 of 16 pages is only an indication", () => {
   const base = { coveragePercent: 95, javascriptRequiredButNotRendered: false, unconfirmed: 0 };
   assert.equal(evidenceLevel(base).level, "complete");
   const thin = evidenceLevel({ ...base, pageSample: { selected: 16, fetched: 1 } });
-  assert.equal(thin.level, "provisional");
+  assert.equal(thin.level, "insufficient");
+  assert.equal(evidenceLevel({ ...base, pageSample: { selected: 16, fetched: 6 } }).level, "provisional");
   assert.ok(thin.reasons.some((r) => /1 van 16/.test(r)));
   assert.equal(evidenceLevel({ ...base, pageSample: { selected: 16, fetched: 12 } }).level, "complete");
 });

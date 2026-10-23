@@ -10,6 +10,9 @@ const problems = [];
 const check = (cond, msg) => { if (!cond) problems.push(msg); };
 
 // 1. Start from the FIRST version of the table (as deployed earlier on the preview).
+// A database left by an earlier deployment has no fingerprint of the current schema,
+// so the full migration runs once and upgrades the table in place.
+await db.query("DROP TABLE IF EXISTS rankfix_schema_versions");
 await db.query("DROP TABLE IF EXISTS scan_attempts");
 await db.query(`CREATE TABLE IF NOT EXISTS scan_attempts (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID, requested_url TEXT NOT NULL, http_status INTEGER NOT NULL, outcome TEXT NOT NULL, error TEXT, duration_ms INTEGER, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`);
 const { ensureDatabase } = await import(ROOT + "/lib/db-init.ts");

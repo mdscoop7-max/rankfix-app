@@ -1,4 +1,4 @@
-import { detectEuPrimaryIdentity, isConsentHeading } from "./eu-identity.ts";
+import { detectEuPrimaryIdentity, isConsentHeading, sectorFamilyMentioned } from "./eu-identity.ts";
 import { detectPrimaryBusinessIdentity } from "./primary-business-identity.ts";
 
 export type IdentityPage = {
@@ -44,7 +44,16 @@ export function sectorPageEvidence(homeUrl: string, pages: IdentityPage[]) {
   const host = home.hostname.replace(/^www\./, "");
   const urls = new Set<string>();
   const identities = new Set<string>();
-  const votes: Array<{ sector: string; key: string; label: string; url: string; evidence: string[] }> = [];
+  const votes: Array<{ sector: string; key: string; label: string; url: string; evidence: string[]; score: number; fromTitle: boolean }> = [];
+  // Pages under a market/industry section ("/markets-products/electronics-telecom")
+  // usually name the CUSTOMER market. Such a page may only corroborate when what it
+  // says about the organisation is NOT the market it addresses ("We provide advanced
+  // materials for electronics & telecom" is a materials producer, not a telecom
+  // operator), and only for a sector that an ordinary own page already supports.
+  const audienceVotes: typeof votes = [];
+  // Own pages without a vote: they may still mention the sector family ("au service
+  // de l'énergie") and then corroborate a single explicit page-level declaration.
+  const nonVotingOwnPages: Array<{ url: string; signature: string }> = [];
   for (const page of pages) {
     if (page.status !== "audited" || page.partialHead) continue;
     let url: URL;
@@ -54,7 +63,8 @@ export function sectorPageEvidence(homeUrl: string, pages: IdentityPage[]) {
     // Query parameters and fragments cannot supply independent corroboration.
     const path = url.pathname.replace(/\/+$/, "") || "/";
     const normalized = host + path;
-    if (urls.has(normalized) || isAudiencePagePath(url.toString()) || EDITORIAL_PATH.test(url.pathname)) continue;
+    if (urls.has(normalized) || EDITORIAL_PATH.test(url.pathname)) continue;
+    const audiencePage = isAudiencePagePath(url.toString());
     urls.add(normalized);
     const h1s = (page.identityHeadings || []).filter(value => !isConsentHeading(value));
     const signature = [page.title, page.description, ...h1s].join(" ").normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim();
@@ -68,9 +78,26 @@ export function sectorPageEvidence(homeUrl: string, pages: IdentityPage[]) {
     const result = primary.sector !== "unknown"
       ? {...primary, key:primary.financialKind ? `financial_${primary.financialKind}` : primary.sector, label:primary.sector === "hospitality" ? "Accommodatie & verblijf" : "Financiële dienstverlening"}
       : eu;
-    if (!result || result.confidenceScore < 75) continue;
-    votes.push({sector:result.sector, key:result.key, label:result.label, url:url.toString(), evidence:result.evidence});
+    if (audiencePage) {
+      if (!result || result.confidenceScore < 75) continue;
+      const segment = (() => { const last = url.pathname.split("/").filter(Boolean).pop() || ""; try { return decodeURIComponent(last); } catch { return last; } })().replace(/[-_]+/g, " ");
+      const marketLabel = [String(page.title || "").split(/\s*[|–—]\s*/)[0] || "", segment];
+      const namesMarket = marketLabel.some((label) => {
+        const market = detectEuPrimaryIdentity({title:label, description:"", h1s:[], homepage:false});
+        return Boolean(market && market.sector === result.sector) || sectorFamilyMentioned(result.sector, label);
+      });
+      if (!namesMarket) audienceVotes.push({sector:result.sector, key:result.key, label:result.label, url:url.toString(), evidence:result.evidence, score:result.confidenceScore, fromTitle:false});
+      continue;
+    }
+    if (!result || result.confidenceScore < 75) { nonVotingOwnPages.push({url:url.toString(), signature}); continue; }
+    const fromTitle = Boolean(page.title) && (() => {
+      const titleOnly = detectEuPrimaryIdentity({title:page.title || "", description:"", h1s:[], schemaTypes:page.schemaTypes, homepage:false});
+      return Boolean(titleOnly && titleOnly.sector === result.sector && titleOnly.confidenceScore >= 86);
+    })();
+    votes.push({sector:result.sector, key:result.key, label:result.label, url:url.toString(), evidence:result.evidence, score:result.confidenceScore, fromTitle});
   }
+  const ownSectors = new Set(votes.map(vote => vote.sector));
+  for (const vote of audienceVotes) if (ownSectors.has(vote.sector)) votes.push({...vote, evidence:[...vote.evidence, "marktpagina beschrijft het eigen aanbod, niet de klantenmarkt"]});
   const sectors = [...new Set(votes.map(vote => vote.sector))];
   const candidates = sectors.map(sector => ({sector, pages:votes.filter(vote => vote.sector === sector)})).sort((a,b) => b.pages.length-a.pages.length || a.sector.localeCompare(b.sector));
   const top = candidates[0];
@@ -81,11 +108,23 @@ export function sectorPageEvidence(homeUrl: string, pages: IdentityPage[]) {
   // agreeing pages and at least three times the runner-up. Closer splits abstain.
   const runnerUp = candidates[1];
   const dominant = Boolean(top && runnerUp && top.pages.length >= 3 && top.pages.length >= runnerUp.pages.length * 3);
-  const reason = !top ? "no_identity_evidence" : sectors.length > 1 ? (dominant ? "dominant_page_identity" : "conflicting_page_identities") : top.pages.length < 2 ? "insufficient_independent_pages" : "corroborated_pages";
-  const decision = (reason === "corroborated_pages" || reason === "dominant_page_identity") && top ? {
-    sector:top.sector, key:top.pages.every(p => p.key === top.pages[0].key) ? top.pages[0].key : top.sector,
-    label:top.pages[0].label, confidence:"medium" as const, confidenceScore:reason === "dominant_page_identity" ? 74 : 78,
-    evidence:top.pages.map(page => `${page.url}: ${page.evidence.join("; ")}`),
+  // One own page that declares the activity explicitly in its TITLE ("EDF
+  // Entreprises, fournisseur d'électricité et de gaz") is strong but single
+  // evidence. It becomes a probable decision only when another own page names the
+  // same sector family ("au service de l'énergie") and no page contradicts it.
+  const familySupport = top && sectors.length === 1 && top.pages.length === 1 && top.pages[0].fromTitle
+    ? nonVotingOwnPages.find((page) => page.url !== top.pages[0].url && sectorFamilyMentioned(top.sector, page.signature))
+    : undefined;
+  const reason = !top ? "no_identity_evidence" : sectors.length > 1 ? (dominant ? "dominant_page_identity" : "conflicting_page_identities") : top.pages.length < 2 ? (familySupport ? "explicit_page_with_family_support" : "insufficient_independent_pages") : "corroborated_pages";
+  // Subtype: generic votes ("financiële dienstverlener") do not overrule specific
+  // ones ("verzekeringen"); disagreeing specific votes keep the main sector only.
+  const specificKeys = top ? [...new Set(top.pages.map(p => p.key).filter(key => key !== top.sector))] : [];
+  const decidedKey = top ? (top.pages.every(p => p.key === top.pages[0].key) ? top.pages[0].key : specificKeys.length === 1 ? specificKeys[0] : top.sector) : "";
+  const decidedLabel = top ? (top.pages.find(p => p.key === decidedKey) || top.pages[0]).label : "";
+  const decision = (reason === "corroborated_pages" || reason === "dominant_page_identity" || reason === "explicit_page_with_family_support") && top ? {
+    sector:top.sector, key:decidedKey,
+    label:decidedLabel, confidence:"medium" as const, confidenceScore:reason === "corroborated_pages" ? 78 : 74,
+    evidence:[...top.pages.map(page => `${page.url}: ${page.evidence.join("; ")}`), ...(familySupport ? [`${familySupport.url}: eigen pagina noemt dezelfde sector`] : [])],
   } : null;
   return {decision, reason, independentPages:identities.size, supportingPages:top?.pages.length || 0, candidates};
 }

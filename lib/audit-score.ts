@@ -236,7 +236,10 @@ export function evidenceLevel(input: { coveragePercent: number; javascriptRequir
   if (input.renderDegraded) reasons.push("Browser-rendering leverde minder inhoud dan de ruwe HTML");
   if (input.renderPartial) reasons.push("Pagina laadde niet volledig binnen de tijdslimiet; een momentopname van de browser is gebruikt");
   if (input.unconfirmed > 0) reasons.push(`${input.unconfirmed} toepasselijke controle(s) niet te bevestigen`);
-  const insufficient = input.coveragePercent < 60 || (input.javascriptRequiredButNotRendered && input.coveragePercent < 75);
+  // Fewer than a quarter of a real sample (8+ pages) loaded: the report rests on
+  // one or two pages, so it is an indication only (TestLab 23-10: 1 of 16 pages).
+  const severelyThinSample = Boolean(sample && sample.selected >= 8 && sample.fetched / sample.selected < 0.25);
+  const insufficient = input.coveragePercent < 60 || (input.javascriptRequiredButNotRendered && input.coveragePercent < 75) || severelyThinSample;
   // An ambiguous primary sector changes which modules apply: never "definitief".
   const sectorAmbiguous = typeof input.sectorConfidence === "number" && input.sectorConfidence > 0 && input.sectorConfidence < 75;
   if (sectorAmbiguous) reasons.push(`Hoofdsector niet eenduidig (zekerheid ${input.sectorConfidence}%)`);

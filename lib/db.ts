@@ -70,6 +70,48 @@ export function isConnectPhaseError(error: unknown): boolean {
     || /timeout exceeded when trying to connect|Connection terminated due to connection timeout|connect ECONNREFUSED|too many clients already|the database system is starting up/i.test(message);
 }
 
+/**
+ * Errors after which the SAME statement can be sent again without a wrong result,
+ * PROVIDED the statement is idempotent (a read, or an insert with a client-chosen
+ * primary key and ON CONFLICT DO NOTHING): the connection broke, the server
+ * restarted, or PostgreSQL aborted the statement (deadlock, serialization, lock
+ * timeout). Never used for plain writes.
+ */
+export function isTransientDbError(error: unknown): boolean {
+  if (isConnectPhaseError(error)) return true;
+  const code = String((error as { code?: unknown })?.code || "");
+  const message = String((error as { message?: unknown })?.message || "");
+  return ["40P01", "40001", "55P03", "57P01", "57P02", "08000", "08003", "08006", "ECONNRESET", "EPIPE", "ETIMEDOUT"].includes(code)
+    || /Connection terminated unexpectedly|Client has encountered a connection error|Connection terminated|socket hang up|read ECONNRESET|server closed the connection unexpectedly|terminating connection/i.test(message);
+}
+
+/**
+ * Runs an IDEMPOTENT database step and repeats it after a transient failure
+ * (at most `attempts` times in total, short backoff). The caller guarantees
+ * that repeating the step cannot duplicate or corrupt data.
+ */
+export async function withDbRetry<T>(step: () => Promise<T>, options: { attempts?: number; backoffMs?: number[]; wait?: (ms: number) => Promise<void> } = {}): Promise<T> {
+  const attempts = Math.max(1, options.attempts ?? 3);
+  const backoff = options.backoffMs ?? [300, 900];
+  const wait = options.wait ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try { return await step(); }
+    catch (error) {
+      lastError = error;
+      if (attempt === attempts || !isTransientDbError(error)) throw error;
+      await wait(backoff[Math.min(attempt - 1, backoff.length - 1)] ?? 500);
+    }
+  }
+  throw lastError;
+}
+
+/** Short, non-secret text of a database error (PostgreSQL messages carry no credentials). */
+export function databaseFailureDetail(error: unknown): string | null {
+  const message = String((error as { message?: unknown })?.message || "").replace(/postgres(?:ql)?:\/\/\S+/gi, "[url]").replace(/\s+/g, " ").trim();
+  return message ? message.slice(0, 120) : null;
+}
+
 /** Non-secret classification of a failed save, for the response and attempt logs. */
 export function databaseFailureCode(error: unknown): string | null {
   const code = String((error as { code?: unknown })?.code || "");
