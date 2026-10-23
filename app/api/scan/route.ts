@@ -4319,7 +4319,10 @@ async function runScan(request: Request) {
       const firstPathSegment = path.split("/").filter(Boolean)[0] || "";
       const candidateLocale = localeSegmentPattern.test(firstPathSegment) ? firstPathSegment.split("-")[0].toLowerCase() : "";
       const isLegal = /(?:^|\/)(?:privacy|privacy-policy|privacybeleid|privacyverklaring|datenschutz|datenschutzhinweise|datenschutzerklaerung|terms|terms-and-conditions|terms-of-use|voorwaarden|algemene-voorwaarden|cookie|cookies|cookie-policy|cookiebeleid|disclaimer|legal|impressum)(?:\/|$)/i.test(path);
-      const utilityContext = /\b(privacy|cookie|voorwaarden|terms|login|account|vacature|career|jobs|nieuws|news|blog|geschiedenis|history|impressie|gallery|over ons|about us)\b/i.test(context);
+      const utilityContext = /\b(privacy|cookie|voorwaarden|terms|login|account|vacature|career|jobs|nieuws|news|blog|geschiedenis|history|impressie|gallery)\b/i.test(context);
+      // First-party About/Organisation/Services pages are identity evidence;
+      // they must not be ranked like legal, account or editorial utility pages.
+      const identityContext = /\b(over ons|over het bedrijf|onze organisatie|about us|about the company|who we are|what we do|our organisation|our organization|company|expertise|our mission|nos activités|qui sommes-nous|über uns|chi siamo)\b/i.test(context);
       const capabilityContext = /\b(product|producten|shop|winkel|aanbod|voorraad|woning|woningen|occasion|service|diensten|dienstverlening|transport|logistiek|freight|warehouse|opslag|behandeling|treatment|afspraak|booking|reserver|offerte|quote|kamer|rooms?)\b/i.test(context);
       const contextWords = context.split(/\s+/).filter(Boolean).length;
       let score = item.type === "product" ? 34 : item.type === "contact" ? 32 : item.type === "article" ? 14 : item.type === "form" ? 32 : item.type === "service" ? 30 : item.type === "listing" ? 30 : item.type === "category" ? 28 : item.type === "support" ? 16 : item.type === "legal" || isLegal ? 18 : 8;
@@ -4327,12 +4330,14 @@ async function runScan(request: Request) {
       else if (preferredLocale && candidateLocale && candidateLocale !== preferredLocale) score -= 24;
       else if (preferredLocale && !candidateLocale) score += 2;
       if (capabilityContext) score += 24;
+      if (identityContext && !isLegal) score += 18;
       if (contextWords >= 2) score += 4;
       if (utilityContext && !capabilityContext) score -= 30;
       // Path semantics are deliberately weak evidence only; they can break ties but
       // cannot by themselves dominate structural link context.
       if (/(?:dienst|service|product|shop|store|catalog|aanbod|voorraad|woning|property|occasion|transport|logist|warehouse|behandel|treatment|booking|reserve)/i.test(path)) score += 6;
-      if (/(?:nieuws|news|blog|geschiedenis|history|impressie|gallery|over-ons|about-us)/i.test(path)) score -= 12;
+      if (/(?:nieuws|news|blog|geschiedenis|history|impressie|gallery)/i.test(path)) score -= 12;
+      if (/(?:\/about(?:-us)?|\/over-ons|\/over-het-bedrijf|\/wie-zijn-wij|\/unternehmen|\/ueber-uns|\/uber-uns|\/qui-sommes-nous|\/chi-siamo|\/our-company)(?:\/|$)/i.test(path)) score += 7;
       if (/^\/(?:[a-z]{2}(?:-[a-z]{2})?)\/?$/i.test(path)) score -= 10;
       return score;
     };
@@ -4818,7 +4823,7 @@ async function runScan(request: Request) {
     const sectorHomepage = (isHomepage || isSiteHomepagePath(finalUrl.pathname))
       ? {url:finalUrl.toString(), type:"homepage", status:"audited", title, description,
           identityHeadings:identityH1s, schemaTypes}
-      : {url:new URL("/",finalUrl).toString(), type:"homepage", status:"not_scanned"};
+      : {url:representativeHomeUrl, type:"homepage", status:"not_scanned"};
     const extendedIndustry = corroborateDeclaredIndustry(sectorHomepage.url, sectorHomepage, auditedRawPages);
     const specificIndustry = extendedIndustry.decision;
     const previousIndustry = sectorProfile.sector;
