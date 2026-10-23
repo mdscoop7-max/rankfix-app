@@ -6,7 +6,7 @@
 export type SpeedDevice = {
   status: "measured" | "unavailable";
   score: number | null;
-  lab: { fcpMs: number | null; lcpMs: number | null; cls: number | null; tbtMs: number | null };
+  lab: { fcpMs: number | null; lcpMs: number | null; cls: number | null; tbtMs: number | null; speedIndexMs: number | null };
   field: { inpMs: number | null };
   reason: string | null;
 };
@@ -23,7 +23,7 @@ const finite = (n: unknown): number | null =>
   typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : null;
 const emptyDevice = (reason: string): SpeedDevice => ({
   status: "unavailable", score: null,
-  lab: { fcpMs: null, lcpMs: null, cls: null, tbtMs: null },
+  lab: { fcpMs: null, lcpMs: null, cls: null, tbtMs: null, speedIndexMs: null },
   field: { inpMs: null }, reason,
 });
 export function parsePageSpeed(input: unknown): SpeedDevice {
@@ -48,6 +48,7 @@ export function parsePageSpeed(input: unknown): SpeedDevice {
       lcpMs: auditMetric("largest-contentful-paint"),
       cls: auditMetric("cumulative-layout-shift"),
       tbtMs: auditMetric("total-blocking-time"),
+      speedIndexMs: auditMetric("speed-index"),
     },
     field: { inpMs: finite(inp?.percentile) },
     reason: null,
@@ -95,7 +96,13 @@ export async function measureWebsiteSpeed(
     api.searchParams.set("key", key);
     try {
       const response = await fetcher(api.toString(), { signal: AbortSignal.timeout(deadline) });
-      if (!response.ok) return emptyDevice(response.status === 429 ? "Meetdienst tijdelijk beperkt" : "Meetdienst niet beschikbaar");
+      if (!response.ok) {
+        const reason = response.status === 429 ? "PageSpeed-quota of snelheidslimiet bereikt (429)"
+          : response.status === 401 || response.status === 403 ? "PageSpeed API-sleutel of toegangsrechten controleren"
+          : response.status >= 500 ? "Google PageSpeed tijdelijk niet beschikbaar"
+          : `PageSpeed-meting mislukt (HTTP ${response.status})`;
+        return emptyDevice(reason);
+      }
       const json = await response.json();
       return parsePageSpeed(json);
     } catch {

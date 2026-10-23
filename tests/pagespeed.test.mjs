@@ -10,6 +10,7 @@ const data = (score, inp = null) => ({
       "largest-contentful-paint": { numericValue: 1800 },
       "cumulative-layout-shift": { numericValue: 0.03 },
       "total-blocking-time": { numericValue: 45 },
+      "speed-index": { numericValue: 2100 },
     },
   },
   loadingExperience: { metrics: inp == null ? {} : { INTERACTION_TO_NEXT_PAINT: { percentile: inp } } },
@@ -21,6 +22,7 @@ test("PageSpeed supports actual 0 and 100, lab metrics and separate field INP", 
   assert.equal(result.score, 100);
   assert.equal(result.lab.lcpMs, 1800);
   assert.equal(result.lab.cls, 0.03);
+  assert.equal(result.lab.speedIndexMs, 2100);
   assert.equal(result.field.inpMs, 180);
   assert.equal(parsePageSpeed(data(1)).field.inpMs, null);
 });
