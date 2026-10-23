@@ -50,7 +50,7 @@ test("different sector pages conflict and abstain",()=>{
     page("/services","International Airport","Flight information and terminal arrivals"),
     page("/legal","Global law firm and legal counsel","Legal services and litigation"),
   ]);
-  assert.equal(r.decision?.key,"airports"); // clear homepage + internal identity still wins
+  assert.equal(r.decision,null); // a contradictory independent identity requires review
   const all=decision(homepage("International Airport","Flight arrivals and passenger terminals"),[
     page("/legal","Global law firm and legal counsel","Legal services and litigation"),
     page("/law","Law firm services","Litigation and legal counsel"),
