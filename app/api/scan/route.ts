@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { createHash, randomUUID } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { attachScanIncident, createScanTrace, type ScanTrace } from "@/lib/scan-incident";
+import { summarizeSiteAccess } from "@/lib/site-access";
 import { resolveScanUser } from "@/lib/scan-session";
 import { databaseFailureCode, databaseFailureDetail, getDb, withDbRetry } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
@@ -868,7 +869,16 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       // Customer-facing Dutch text names the actual cause (login, bot protection,
       // generic refusal) instead of one generic "blocked" sentence.
       if (diagnosis && scanLanguage === "nl") httpMessages.nl = `Scan niet mogelijk (HTTP ${response.status}). ${diagnosis.advice} Er is daarom geen score berekend.`;
-      return NextResponse.json({ error: httpMessages[scanLanguage], code: [404, 410].includes(response.status) ? "HTTP_NOT_FOUND" : response.status >= 500 ? "HTTP_SERVER_ERROR" : "HTTP_BLOCKED", blockKind: diagnosis?.kind || null, httpStatus: response.status, recovery, diagnosis, charged: false }, { status: 422 });
+      // A refused start page does not mean every page refuses: the customer may
+      // start from a direct article/category page. RankFix never retries around
+      // the refusal itself.
+      const alternativeStart = accessBlock ? {
+        possible: true,
+        advice: scanLanguage === "nl"
+          ? "Deze pagina weigerde RankFix. Je kunt een andere openbare pagina van dezelfde website (bijvoorbeeld een categorie- of artikelpagina) als startpunt invoeren; RankFix beoordeelt dan alleen de pagina's die wel bereikbaar zijn en maakt een gedeeltelijk rapport."
+          : "This page refused RankFix. You can enter another public page of the same website (for example a category or article page) as the start; RankFix then assesses only the pages it can reach and produces a partial report.",
+      } : null;
+      return NextResponse.json({ error: httpMessages[scanLanguage], code: [404, 410].includes(response.status) ? "HTTP_NOT_FOUND" : response.status >= 500 ? "HTTP_SERVER_ERROR" : "HTTP_BLOCKED", blockKind: diagnosis?.kind || null, httpStatus: response.status, recovery, diagnosis, alternativeStart, charged: false }, { status: 422 });
     }
 
     // The website answered RankFix itself with an access refusal, but a real browser
@@ -6280,7 +6290,16 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const sampleOutcomes = sampleOutcomeCounts(reportedMultiPageAudits, multiPageAudits.length - reportedMultiPageAudits.length);
     const unableToFetchPages = sampleOutcomes.notRetrieved;
     const sampleAccounting = sampleSummary(multiPageAudits.length, scoredSamplePages.length, excludedNoindexPages, unableToFetchPages, partialHeadPages);
+    // Homepage outcome and page coverage, separately from the start page (QA 144:
+    // blocked homepage with an accessible subpage gives a partial report).
+    const siteAccess = summarizeSiteAccess({
+      startUrl: finalUrl.toString(),
+      startIsHomepage: isSiteHomepagePath(finalUrl.pathname) || isHomepage,
+      homepageUrl: representativeHomeUrl,
+      pages: reportedMultiPageAudits,
+    });
     const multiPage = {
+      siteAccess,
       accounting:sampleAccounting,
       sampleRetryPass,
       coverageDimensions:scanCoverageDimensions(overallCoverage.coveragePercent, multiPageAudits.length, auditedRawPages.length+excludedNoindexPages, scoredSamplePages.length),

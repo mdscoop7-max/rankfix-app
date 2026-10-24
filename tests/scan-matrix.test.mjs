@@ -152,3 +152,9 @@ for (const [label, fixture, minimum, blocked, labelDisputes = []] of [
   const achmea = rows.find((r) => r.host === "achmea.nl");
   if (achmea) assert.equal(achmea.key, "financial_insurance", "Achmea subtype");
 });
+
+test("QA 144: blocked homepage → incident + alternative start; accessible subpage → partial report with blocked homepage registered", () => {
+  const r = run("run-blocked-homepage.mjs");
+  assert.equal(r.total, 2);
+  assert.equal(r.failed, 0, r.log);
+});
