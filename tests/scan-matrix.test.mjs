@@ -88,6 +88,17 @@ test("commerce is a channel unless the site presents itself as a shop", () => {
   assert.equal(r.failed, 0, r.log);
 });
 
+// Sector recognition 24-10: opticians, hair salons, hotels and restaurants (and
+// other local trades) in NL, EN, DE, FR, ES and IT, with negative controls
+// (online lens/haircare shops, salon/hotel software, catering wholesale) and
+// abstention cases. Checks sector, subtype, sales channel and that unknown is
+// never presented as confirmed.
+test("local businesses: multilingual trade identity, shop vs service vs webshop, abstention", () => {
+  const r = run("run-local-business.mjs");
+  assert.equal(r.failed, 0, r.log);
+  assert.ok(r.total >= 50, `only ${r.total} local-business profiles ran`);
+});
+
 // Live QA scan 4a9fe1db: a sampled page that answered HTTP 403 (also in the browser)
 // was scored 71 with "HTTP 403" passed. Refusal pages are never scored, and an
 // HTTP check never passes on a 4xx/5xx sample.
