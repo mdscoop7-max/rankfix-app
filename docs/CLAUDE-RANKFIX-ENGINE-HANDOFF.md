@@ -196,3 +196,6 @@ Field reports of 16-10 used only as examples; every fix is a generic rule, no do
 
 ## Status 24 Oct 2026 (Claude) — local trades, multilingual
 Opticians, hair/beauty salons, hotels, restaurants, bakeries, pharmacies, dentists, physiotherapy, garages and estate agents are recognised from their own trade noun in NL/EN/DE/FR/ES/IT; a declared local trade stays primary and its webshop/ordering becomes a sales channel (`sectorProfile.salesChannel`); market mentions ("software for hotels") are never identity; `decisionStatus` uses the 80/60 thresholds. Details, before/after and open points: `docs/QA-SECTOR-LOCAL-TRADES-20261024.md`.
+
+## Status 24 Oct 2026, evening (Claude) — QA 144 P0 repair
+Branch `fix/qa-144-p0-reliability-20261024` (base `qa/rankfix-shared-preview` @ e7e9b8b). Incident evidence per failed scan (website vs API status, phase, trace id); swallowed session-lookup errors no longer become SESSION_EXPIRED; TestLab retries RankFix-side stops instead of skipping the site; `multiPage.siteAccess` (blocked homepage, partial coverage); sector classes (wellness ≠ beauty, careers sites, supermarkets, compound bank brands); `multiPage.sitewideIssues` + `scoreModel.scope`; product provenance (no sibling SKU); structured broken-link records; axe-core as a plain script. 649/0/7 tests. Details: `docs/QA-144-P0-REPAIR-20261024.md`.

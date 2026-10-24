@@ -10,6 +10,8 @@ import "./root-mobile-nav.css";
 import { ScoreQualifier } from "@/components/score-qualifier";
 import { buildEvidenceDescription } from "@/lib/meta-description-fix";
 import { headlineDisplay } from "@/lib/score-qualifier";
+import { SitewideIssues } from "@/components/sitewide-issues";
+import type { SitewideIssue } from "@/lib/sitewide-issues";
 import SpeedAudit from "@/components/speed-audit";
 import type { WebsiteSpeed } from "@/lib/pagespeed";
 
@@ -1174,9 +1176,10 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
               ) : (
                 <div className="rounded-3xl border border-emerald-400/15 bg-emerald-400/[0.035] p-5">
                   <div className="text-xs font-bold uppercase tracking-widest text-emerald-300">Alles gecontroleerd</div>
-                  <div className="mt-1 text-lg font-black">Geen actieve verbeterpunten gevonden.</div>
+                  <div className="mt-1 text-lg font-black">{(((result as {multiPage?:{sitewideIssues?:SitewideIssue[]}}).multiPage?.sitewideIssues)||[]).length ? "Geen actieve verbeterpunten op deze pagina." : "Geen actieve verbeterpunten gevonden."}</div>
                 </div>
               )}
+              <SitewideIssues issues={(result as {multiPage?:{sitewideIssues?:SitewideIssue[]}}).multiPage?.sitewideIssues} locale="nl"/>
 
               {result.mode === "both" && (
                 <div className="rounded-3xl border border-slate-200 bg-white/[0.035] p-2">

@@ -7,7 +7,7 @@ import type { Locale } from "@/lib/locales";
 export type QualifiableResult = {
   overallScore?: number;
   coverage?: { coveragePercent?: number } | null;
-  scoreModel?: { evidenceLevel?: "complete" | "provisional" | "insufficient"; evidenceReasons?: string[]; provisional?: boolean; range?: { low: number; high: number } | null; headline?: { kind: "score" | "range"; display: string } | null } | null;
+  scoreModel?: { evidenceLevel?: "complete" | "provisional" | "insufficient"; evidenceReasons?: string[]; provisional?: boolean; range?: { low: number; high: number } | null; headline?: { kind: "score" | "range"; display: string } | null; scope?: { caution?: string | null; notes?: string[] } | null } | null;
   selfCheck?: { reliability?: "high" | "medium" | "low" } | null;
   multiPage?: { counts?: { selected?: number; audited?: number } | null; sitewideSummary?: { scoredPageIsHomepage?: boolean; checkedPages?: number; pagesWithIssues?: number; topIssues?: Array<{ key: string; affected: number; checked: number }>; sampleScore?: number | null } } | null;
 };

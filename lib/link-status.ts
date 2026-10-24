@@ -8,7 +8,7 @@
  * Account/login links that refuse anonymous requests are expected and skipped.
  */
 export type LinkOutcome = "ok" | "missing" | "server_error" | "unconfirmed" | "skipped";
-export type LinkCheck = { url: string; status: number | null; error: boolean; softNotFound?: boolean; accountLink?: boolean };
+export type LinkCheck = { url: string; status: number | null; error: boolean; softNotFound?: boolean; accountLink?: boolean; challenged?: boolean; finalUrl?: string | null };
 
 export function linkOutcome(link: LinkCheck): LinkOutcome {
   if (link.error || link.status === null) return "unconfirmed";
@@ -16,6 +16,9 @@ export function linkOutcome(link: LinkCheck): LinkOutcome {
   if (link.status >= 500) return "server_error";
   if (link.status === 401 || link.status === 403) return link.accountLink ? "skipped" : "unconfirmed";
   if (link.status === 429) return "unconfirmed";
+  // HTTP 200 is not automatically healthy: a bot-check/challenge page proves
+  // nothing about the destination (QA 144), a "not found" template is missing.
+  if (link.challenged) return "unconfirmed";
   if (link.softNotFound) return "missing";
   return "ok";
 }
@@ -25,6 +28,7 @@ const reasonOf = (link: LinkCheck) => link.error || link.status === null
   ? "geen antwoord"
   : link.status === 429 ? "HTTP 429, tijdelijk beperkt"
   : link.status === 401 || link.status === 403 ? `HTTP ${link.status}, toegang geweigerd voor RankFix`
+  : link.challenged ? `HTTP ${link.status} met een controle-/blokkadepagina; bestemming niet bevestigd`
   : link.softNotFound ? "HTTP 200 met een 'niet gevonden'-pagina (soft 404)"
   : `HTTP ${link.status}`;
 const list = (links: LinkCheck[], max = 5) => links.slice(0, max).map((l) => `${pathOf(l.url)} (${reasonOf(l)})`).join(", ") + (links.length > max ? ` en ${links.length - max} meer` : "");
@@ -79,4 +83,40 @@ export function brokenLinkSummary(links: LinkCheck[], referringPage?: string): {
   // Without a proven error, "passed" needs most links really checked; otherwise unconfirmed.
   if (unconfirmed.length && verified < counted.length * 0.8) return { ...base, status: "unable_to_confirm", message: `${head}; ${verified} bevestigd zonder fout. ${parts.join(". ")}.`, fix: "Controleer deze links opnieuw; een blokkade of time-out alleen is geen bewijs van een kapotte link.", points: 0 };
   return { ...base, status: "pass", message: unconfirmed.length ? `${head}; ${verified} zonder 404, 410 of serverfout. ${parts.join(". ")}.` : `${head}; geen 404, 410, soft 404 of serverfout gevonden.`, fix: "Blijf interne links controleren bij wijzigingen en verwijderde pagina's.", points: 5 };
+}
+
+/**
+ * One structured record per non-OK internal link (QA 144 brief, item 10):
+ * referring page, link target, final URL after redirects, HTTP status, the
+ * evidence, the impact and the recommended action. Temporary failures (no
+ * answer, 401/403/429, challenge) are "unconfirmed", never a proven broken link.
+ */
+export type BrokenLinkRecord = {
+  sourceUrl: string;
+  targetUrl: string;
+  finalUrl: string | null;
+  httpStatus: number | null;
+  outcome: Exclude<LinkOutcome, "ok" | "skipped">;
+  proven: boolean;
+  evidence: string;
+  impact: string;
+  recommendedAction: string;
+};
+export function brokenLinkRecords(links: LinkCheck[], sourceUrl: string): BrokenLinkRecord[] {
+  return links.flatMap((link) => {
+    const outcome = linkOutcome(link);
+    if (outcome === "ok" || outcome === "skipped") return [];
+    const evidence = outcome === "missing"
+      ? (link.softNotFound ? `HTTP ${link.status} met een 'niet gevonden'-pagina (soft 404)` : `HTTP ${link.status}: de pagina bestaat niet`)
+      : outcome === "server_error" ? `HTTP ${link.status} bij twee pogingen` : reasonOf(link);
+    const impact = outcome === "missing"
+      ? "Bezoekers en zoekmachines volgen een link naar een pagina die niet bestaat; linkwaarde gaat verloren."
+      : outcome === "server_error" ? "Bezoekers krijgen mogelijk een foutpagina; zoekmachines kunnen de pagina niet indexeren zolang de fout blijft."
+        : "Niet bewezen: RankFix kon de bestemming niet controleren. Dit is geen bevestigde kapotte link.";
+    const recommendedAction = outcome === "missing"
+      ? `Pas op ${sourceUrl} de link aan naar de juiste pagina, verwijder hem, of zet een 301-redirect van ${link.url} naar de best passende pagina.${link.softNotFound ? " Laat een 'niet gevonden'-pagina HTTP 404 geven in plaats van 200." : ""}`
+      : outcome === "server_error" ? `Controleer de serverlogs voor ${link.url} en of bezoekers dezelfde fout krijgen.`
+        : "Controleer deze link later opnieuw of in een browser; onderneem pas actie als een fout wordt bevestigd.";
+    return [{ sourceUrl, targetUrl: link.url, finalUrl: link.finalUrl ?? null, httpStatus: link.status, outcome, proven: outcome !== "unconfirmed", evidence, impact, recommendedAction }];
+  });
 }

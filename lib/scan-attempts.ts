@@ -12,6 +12,7 @@ export type ScanAttemptCategory =
   | "network"          // timeout, DNS, TLS, connection, redirect loop
   | "engine_error"     // RankFix failed while analysing
   | "save_failed"      // analysed, but storing the report failed
+  | "infrastructure"   // RankFix database/session lookup unavailable (never the website)
   | "time_limit"       // RankFix stopped the scan itself before the platform limit
   | "function_timeout"; // the attempt never finished (platform killed the function)
 
@@ -34,6 +35,7 @@ export function classifyScanOutcome(httpStatus: number, code: string | null | un
   const c = String(code || "");
   if (httpStatus === 200) return "success";
   if (/SITE_RATE_LIMITED/.test(c)) return "site_blocked";
+  if (/AUTH_LOOKUP_UNAVAILABLE|DATABASE_QUOTA|SCAN_DATABASE/.test(c)) return "infrastructure";
   if (/WEBSITE_LIMIT|SCAN_LIMIT|RATE_LIMIT/.test(c)) return "quota";
   if (/INVALID_URL|UNSAFE_URL|SESSION|SHARE_LINK/.test(c)) return "input";
   if (/HTTP_BLOCKED|HTTP_AUTH_REQUIRED|CHALLENGE|SITE_RATE_LIMITED/.test(c)) return "site_blocked";

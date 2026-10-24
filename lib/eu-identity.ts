@@ -766,7 +766,7 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   // "Hotel Z"). A brand-only title, the og:site_name and the hostname are read for a
   // company-type noun; two independent sources give a confirmed sector, one source a
   // probable one. Never on retailers or publications (checked above).
-  const trade = brandTradeNoun(title, site, input.hostname || "");
+  const trade = brandTradeNoun(title, site, input.hostname || "") || compoundBankBrand(title, site, input.hostname || "", [input.description || "", ...(input.h1s || []), ...(input.navLabels || [])].join(" | "));
   if (trade && !retailer && !transportIntermediary && !publication) {
     const confirmed = trade.sources.length >= 2;
     return { sector: trade.sector, key: trade.key, label: trade.label, confidence: confirmed ? "high" : "medium", confidenceScore: confirmed ? 82 : 72,
@@ -787,6 +787,30 @@ const TRADE_NOUNS: Array<{ re: RegExp; host: RegExp; sector: EuSector; key: stri
   { re: words(["zeitung", "krant", "dagblad", "gazzetta", "gazeta", "tidning", "tidende", "sanomat", "noviny", "dagbladet"]), host: /(?:zeitung|krant|dagblad|gazzetta|gazeta|tidning)$/, sector: "news_media", key: "news_media", label: "Nieuws & Media" },
   { re: words(["ferries", "ferry", "veerdienst", "fähre", "traghetti", "färjor", "busreisen", "autocares"]), host: /(?:ferries|ferry|traghetti)$/, sector: "transport_travel", key: "passenger_transport", label: "Personenvervoer (spoor, luchtvaart, openbaar vervoer)" },
 ];
+
+// QA 144: banks often carry a compound brand ("<name>bank") that the whole-word
+// trade noun cannot see. The compound counts only when (1) a short title segment
+// or the site name IS that brand, (2) the hostname label is the same brand and
+// (3) the page itself names at least two distinct banking products. "Voedselbank",
+// "databank" or "bloedbank" sites name no banking products and never pass.
+const BANK_PRODUCTS: Array<[string, RegExp]> = [
+  ["payments", /(?<![\p{L}])(?:betalen|betaalrekening\p{L}*|payments?|current accounts?|girokont\p{L}*|zahlungsverkehr|compte courant|conto corrente|cuenta corriente)(?![\p{L}])/iu],
+  ["savings", /(?<![\p{L}])(?:sparen|spaarrekening\p{L}*|savings?|sparkont\p{L}*|épargne|risparmi\p{L}*|ahorro\p{L}*)(?![\p{L}])/iu],
+  ["loans", /(?<![\p{L}])(?:lenen|leningen?|loans?|kredite?|crédits?|prêts?|prestiti|préstamos?)(?![\p{L}])/iu],
+  ["mortgage", /(?<![\p{L}])(?:hypothe\p{L}*|mortgages?|baufinanzierung|immobilienkredit|mutu[oi]|hipotecas?)(?![\p{L}])/iu],
+  ["investing", /(?<![\p{L}])(?:beleggen|investing|investments?|geldanlage|investissements?|investimenti|inversi[oó]n(?:es)?)(?![\p{L}])/iu],
+  ["banking", /(?<![\p{L}])(?:bankieren|bankzaken|online banking|internetbankieren|mobiel bankieren|banking)(?![\p{L}])/iu],
+];
+export function compoundBankBrand(title: string, siteName: string, hostname: string, ownText: string): { sector: EuSector; key: string; label: string; noun: string; sources: string[] } | null {
+  const label = (hostname || "").toLowerCase().replace(/^www\./, "").split(".")[0] || "";
+  if (!/^\p{L}{3,}bank$/u.test(label)) return null;
+  const segments = (title || "").split(/\s*[|–—:]\s*|\s+-\s+/).map((part) => part.trim().toLowerCase()).filter(Boolean);
+  const named = segments.includes(label) || (siteName || "").trim().toLowerCase() === label;
+  if (!named) return null;
+  const products = BANK_PRODUCTS.filter(([, re]) => re.test(`${title} | ${ownText}`)).map(([name]) => name);
+  if (products.length < 2) return null;
+  return { sector: "financial_services", key: "financial_banking", label: "Bank & financiële producten", noun: label, sources: ["de titel", "de domeinnaam", `de bankproducten op de pagina (${products.join(", ")})`] };
+}
 
 /** The trade noun in a short brand name (title or site name) and/or the hostname. */
 export function brandTradeNoun(title: string, siteName: string, hostname: string): { sector: EuSector; key: string; label: string; noun: string; sources: string[] } | null {
