@@ -29,6 +29,26 @@ const reasonOf = (link: LinkCheck) => link.error || link.status === null
   : `HTTP ${link.status}`;
 const list = (links: LinkCheck[], max = 5) => links.slice(0, max).map((l) => `${pathOf(l.url)} (${reasonOf(l)})`).join(", ") + (links.length > max ? ` en ${links.length - max} meer` : "");
 
+/** Deterministic evidence copy: optional AI translation must never erase URLs. */
+export function localizedBrokenLinkCopy(links: LinkCheck[], referringPage: string, language: string) {
+  const copy: Record<string, string[]> = {
+    en: ["Referring page", "Checked links", "Missing page", "Server error after retry", "Unable to confirm", "No response", "No missing pages or server errors confirmed", "On the referring page, correct or remove links to missing pages, or configure an appropriate 301 redirect. Check server logs for server errors. Retry unconfirmed links; a block or timeout does not prove a broken link."],
+    de: ["Verweisende Seite", "Geprüfte Links", "Fehlende Seite", "Serverfehler nach erneutem Versuch", "Nicht bestätigt", "Keine Antwort", "Keine fehlenden Seiten oder Serverfehler bestätigt", "Korrigiere oder entferne auf der verweisenden Seite Links zu fehlenden Seiten oder richte eine passende 301-Weiterleitung ein. Prüfe bei Serverfehlern die Serverprotokolle. Prüfe unbestätigte Links erneut; eine Sperre oder Zeitüberschreitung beweist keinen defekten Link."],
+    fr: ["Page contenant le lien", "Liens vérifiés", "Page introuvable", "Erreur serveur après nouvelle tentative", "Non confirmé", "Aucune réponse", "Aucune page introuvable ni erreur serveur confirmée", "Sur la page contenant le lien, corrigez ou supprimez les liens vers les pages introuvables, ou configurez une redirection 301 adaptée. Consultez les journaux pour les erreurs serveur. Revérifiez les liens non confirmés ; un blocage ou un délai dépassé ne prouve pas un lien cassé."],
+    it: ["Pagina di origine", "Link controllati", "Pagina mancante", "Errore del server dopo un nuovo tentativo", "Non confermato", "Nessuna risposta", "Nessuna pagina mancante o errore del server confermato", "Nella pagina di origine, correggi o rimuovi i link alle pagine mancanti oppure configura un reindirizzamento 301 appropriato. Controlla i log per gli errori del server. Ricontrolla i link non confermati; un blocco o timeout non dimostra un link non funzionante."],
+    es: ["Página de origen", "Enlaces comprobados", "Página inexistente", "Error del servidor tras reintento", "No confirmado", "Sin respuesta", "No se confirmaron páginas inexistentes ni errores del servidor", "En la página de origen, corrige o elimina los enlaces a páginas inexistentes o configura una redirección 301 adecuada. Revisa los registros para los errores del servidor. Vuelve a comprobar los enlaces no confirmados; un bloqueo o tiempo de espera no demuestra un enlace roto."],
+  };
+  const c = copy[language];
+  if (!c) return brokenLinkSummary(links, referringPage);
+  const checked = links.filter((l) => linkOutcome(l) !== "skipped");
+  const issues = checked.filter((l) => linkOutcome(l) !== "ok").map((l) => {
+    const outcome = linkOutcome(l);
+    const reason = outcome === "missing" ? c[2] : outcome === "server_error" ? c[3] : c[4];
+    return `${l.url} (${reason}; ${l.status === null || l.error ? c[5] : `HTTP ${l.status}`}${l.softNotFound ? "; soft 404" : ""})`;
+  });
+  return { message: `${c[0]}: ${referringPage}. ${c[1]}: ${checked.length}. ${issues.length ? issues.join("; ") : c[6]}.`, fix: `${c[0]}: ${referringPage}. ${c[7]}` };
+}
+
 /** Check status, message and action for the broken-links check (Dutch report text). */
 export function brokenLinkSummary(links: LinkCheck[], referringPage?: string): { status: "pass" | "warning" | "unable_to_confirm" | "not_applicable"; message: string; fix: string; missing: number; serverErrors: number; unconfirmed: number; checked: number; points: number } {
   const counted = links.filter((l) => linkOutcome(l) !== "skipped");

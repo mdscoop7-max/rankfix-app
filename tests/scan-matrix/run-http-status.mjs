@@ -92,6 +92,19 @@ for (const [host, [code, nlText, enText]] of Object.entries(HOME)) {
     }
   }
 }
+// Translation fallback must retain actionable evidence in every report language.
+for (const language of ["en", "de", "fr", "it", "es"]) {
+  const { res, j } = await scan("linksite.test", language);
+  const bl = j.seo?.checks?.find((c) => c.key === "broken_links");
+  rows.push({ host: "linksite.test", language, http: res.status });
+  for (const text of [bl?.message, bl?.fix, bl?.evidence?.details]) {
+    if (!text?.includes("https://linksite.test/")) problems.push(`${language}: referring page lost: ${text}`);
+  }
+  for (const path of ["/weg", "/oud", "/verdwenen", "/storing", "/prive", "/druk"]) {
+    if (!bl?.message?.includes(path)) problems.push(`${language}: destination ${path} lost`);
+  }
+  if (!bl?.message?.includes("HTTP 404") || !bl?.message?.includes("soft 404")) problems.push(`${language}: HTTP evidence lost`);
+}
 for (const r of rows) console.log(JSON.stringify(r));
 for (const p of problems) console.log(" - " + p);
 console.log("SCAN_MATRIX_RESULT " + JSON.stringify({ total: rows.length, failed: problems.length }));
