@@ -33,3 +33,23 @@ export function formatSpeedLab(lab: SpeedDevice["lab"] | null | undefined): stri
   const tbt = lab?.tbtMs == null ? "—" : `${Math.round(lab.tbtMs)} ms`;
   return `FCP ${seconds(lab?.fcpMs)} · LCP ${seconds(lab?.lcpMs)} · CLS ${cls} · TBT ${tbt} · SI ${seconds(lab?.speedIndexMs)}`;
 }
+
+
+/** CrUX represents the 75th percentile over the previous 28 days, not a lab simulation. */
+export function formatSpeedField(field: SpeedDevice["field"] | null | undefined): string {
+  const lcp = field?.lcpMs == null ? "—" : (field.lcpMs / 1000).toFixed(2) + " s";
+  const cls = field?.cls == null ? "—" : String(Math.round(field.cls * 1000) / 1000);
+  const inp = field?.inpMs == null ? "—" : Math.round(field.inpMs) + " ms";
+  return "LCP " + lcp + " · CLS " + cls + " · INP " + inp;
+}
+const speedAdviceTranslations: Record<Locale,Record<"images"|"scripts"|"layout",string>> = {
+  nl:{images:"Optimaliseer de door Lighthouse genoemde afbeelding (formaat, compressie en afmetingen).",scripts:"Onderzoek de genoemde scripts of renderblokkering; stel niet-kritieke code uit.",layout:"Stabiliseer het genoemde element (reserveer ruimte voor afbeeldingen, advertenties of dynamische inhoud)."},
+  en:{images:"Optimize the image identified by Lighthouse (format, compression and dimensions).",scripts:"Review flagged scripts or render blockers; defer noncritical code.",layout:"Stabilize the identified element (reserve space for images, ads and dynamic content)."},
+  de:{images:"Das von Lighthouse genannte Bild optimieren (Format, Komprimierung, Größe).",scripts:"Markierte Skripte oder Renderblockaden prüfen; unkritischen Code verschieben.",layout:"Markiertes Element stabilisieren (Platz für Bilder, Werbung und dynamische Inhalte reservieren)."},
+  fr:{images:"Optimiser l’image détectée par Lighthouse (format, compression et dimensions).",scripts:"Examiner les scripts et blocages du rendu signalés ; différer le code non essentiel.",layout:"Stabiliser l’élément indiqué (réserver l’espace pour images, publicités et contenu dynamique)."},
+  it:{images:"Ottimizzare l’immagine indicata da Lighthouse (formato, compressione e dimensioni).",scripts:"Esaminare gli script segnalati o il blocco del rendering; rinviare il codice non essenziale.",layout:"Stabilizzare l’elemento indicato (riservare spazio a immagini, annunci e contenuti dinamici)."},
+  es:{images:"Optimizar la imagen señalada por Lighthouse (formato, compresión y dimensiones).",scripts:"Revisar scripts o bloqueos de renderizado identificados; aplazar código no esencial.",layout:"Estabilizar el elemento indicado (reservar espacio para imágenes, anuncios y contenido dinámico)."},
+};
+export function speedAdviceMessage(kind: "images"|"scripts"|"layout", locale: Locale): string {
+  return speedAdviceTranslations[locale][kind];
+}

@@ -200,3 +200,52 @@ test("All six interface languages explain failures and saved legacy reports safe
   }
   assert.equal(setup.size,6);
 });
+
+
+test("CrUX p75 LCP, CLS and INP are shown separately from lab values and labeled by scope", () => {
+  const fixture = data(0.85, 180);
+  fixture.loadingExperience.metrics.LARGEST_CONTENTFUL_PAINT_MS = {percentile:3200};
+  fixture.loadingExperience.metrics.CUMULATIVE_LAYOUT_SHIFT_SCORE = {percentile:9};
+  const result = parsePageSpeed(fixture);
+  assert.deepEqual(result.field, {inpMs:180,lcpMs:3200,cls:0.09,scope:"url"});
+  assert.equal(result.lab.lcpMs,1800);
+  assert.equal(result.lab.cls,0.03);
+  fixture.loadingExperience.origin_fallback = true;
+  assert.equal(parsePageSpeed(fixture).field.scope,"origin");
+  fixture.loadingExperience.metrics.CUMULATIVE_LAYOUT_SHIFT_SCORE.percentile = 0;
+  assert.equal(parsePageSpeed(fixture).field.cls,0);
+});
+
+test("Insufficient real-user data does not become a fictitious success", () => {
+  const result = parsePageSpeed(data(1));
+  assert.equal(result.field.lcpMs,null);
+  assert.equal(result.field.cls,null);
+  assert.equal(result.field.inpMs,null);
+  assert.equal(result.field.scope,null);
+  assert.deepEqual(result.advice,[]);
+});
+
+test("Only failed Lighthouse image, script and layout audits produce grounded advice", () => {
+  const fixture = data(0.7);
+  fixture.lighthouseResult.audits["uses-optimized-images"]={score:0.2,details:{items:[{url:"https://example.org/hero.webp?token=private#secret"}]}};
+  fixture.lighthouseResult.audits["unused-javascript"]={score:0.3,details:{items:[{url:"https://cdn.example.net/app.js?key=secret"}]}};
+  fixture.lighthouseResult.audits["layout-shift-elements"]={score:0,details:{items:[{node:{selector:".hero img"}}]}};
+  const advice = parsePageSpeed(fixture).advice;
+  assert.deepEqual(advice.map(a=>a.kind),["images","scripts","layout"]);
+  assert.deepEqual(advice.map(a=>a.target),["example.org/hero.webp","cdn.example.net/app.js",".hero img"]);
+  assert.doesNotMatch(JSON.stringify(advice),/secret|private/);
+  fixture.lighthouseResult.audits["uses-optimized-images"].score=1;
+  assert.equal(parsePageSpeed(fixture).advice.filter(a=>a.kind==="images").length,0);
+});
+
+
+test("CrUX origin-only fallback is used honestly and labeled origin", () => {
+  const fixture = data(0.99);
+  fixture.originLoadingExperience = {metrics:{
+    LARGEST_CONTENTFUL_PAINT_MS:{percentile:1800},
+    CUMULATIVE_LAYOUT_SHIFT_SCORE:{percentile:12},
+    INTERACTION_TO_NEXT_PAINT:{percentile:210},
+  }};
+  const result = parsePageSpeed(fixture);
+  assert.deepEqual(result.field,{inpMs:210,lcpMs:1800,cls:0.12,scope:"origin"});
+});

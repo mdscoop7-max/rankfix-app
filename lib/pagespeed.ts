@@ -4,12 +4,15 @@
  * Configure PAGESPEED_API_KEY server-side to enable measured results.
  */
 export type SpeedFailureCode = "not_configured" | "quota_limited" | "key_rejected" | "api_disabled" | "timeout" | "provider_unavailable" | "invalid_response" | "invalid_url" | "measurement_failed" | "scan_budget_exhausted" | "site_refused_scanner" | "site_not_reached";
+export type SpeedAdvice = { kind: "images" | "scripts" | "layout"; auditId: string; target: string | null };
+export type SpeedField = { inpMs: number | null; lcpMs?: number | null; cls?: number | null; scope?: "url" | "origin" | null };
 export type SpeedDevice = {
   status: "measured" | "unavailable";
   score: number | null;
   // speedIndexMs is optional: reports saved before it was parsed do not carry it.
   lab: { fcpMs: number | null; lcpMs: number | null; cls: number | null; tbtMs: number | null; speedIndexMs?: number | null };
-  field: { inpMs: number | null };
+  field: SpeedField;
+  advice?: SpeedAdvice[];
   reason: string | null;
   reasonCode?: SpeedFailureCode | null;
   httpStatus?: number;
@@ -46,8 +49,19 @@ export function parsePageSpeed(input: unknown): SpeedDevice {
   const auditMetric = (key: string) =>
     finite((audits?.[key] as Record<string, unknown> | undefined)?.numericValue);
   const crux = record.loadingExperience as Record<string, unknown> | undefined;
-  const metrics = crux?.metrics as Record<string, unknown> | undefined;
+  const pageMetrics = crux?.metrics as Record<string, unknown> | undefined;
+  const origin = record.originLoadingExperience as Record<string, unknown> | undefined;
+  const originMetrics = origin?.metrics as Record<string, unknown> | undefined;
+  // Page-level CrUX is preferred. Only fall back to origin data when the URL has no metrics.
+  const usingOrigin = !pageMetrics || Object.keys(pageMetrics).length === 0;
+  const metrics = usingOrigin ? originMetrics : pageMetrics;
   const inp = metrics?.INTERACTION_TO_NEXT_PAINT as Record<string, unknown> | undefined;
+  const lcp = metrics?.LARGEST_CONTENTFUL_PAINT_MS as Record<string, unknown> | undefined;
+  const cls = metrics?.CUMULATIVE_LAYOUT_SHIFT_SCORE as Record<string, unknown> | undefined;
+  // CrUX CLS percentile is represented as an integer scaled by 100: 8 means 0.08.
+  const rawCls = finite(cls?.percentile);
+  const hasField = [finite(inp?.percentile), finite(lcp?.percentile), rawCls].some(v => v !== null);
+  const scope = hasField ? usingOrigin || crux?.origin_fallback === true ? "origin" : "url" : null;
   return {
     status: "measured",
     score: Math.round(fraction * 100),
@@ -58,12 +72,52 @@ export function parsePageSpeed(input: unknown): SpeedDevice {
       tbtMs: auditMetric("total-blocking-time"),
       speedIndexMs: auditMetric("speed-index"),
     },
-    field: { inpMs: finite(inp?.percentile) },
+    field: { inpMs: finite(inp?.percentile), lcpMs: finite(lcp?.percentile), cls: rawCls === null ? null : rawCls / 100, scope },
+    advice: extractSpeedAdvice(audits),
     reason: null, reasonCode: null,
     measuredAt: typeof lighthouse?.fetchTime === "string" && Number.isFinite(Date.parse(lighthouse.fetchTime)) ? lighthouse.fetchTime : null,
     lighthouseVersion: typeof lighthouse?.lighthouseVersion === "string" ? lighthouse.lighthouseVersion : null,
   };
 }
+
+/** Include a suggestion only when a named Lighthouse audit failed. */
+function extractSpeedAdvice(audits: Record<string, unknown> | undefined): SpeedAdvice[] {
+  if (!audits) return [];
+  const groups: Array<{kind: SpeedAdvice["kind"]; ids: string[]}> = [
+    {kind:"images",ids:["image-delivery-insight","uses-optimized-images","modern-image-formats","uses-responsive-images","offscreen-images"]},
+    {kind:"scripts",ids:["render-blocking-insight","render-blocking-resources","unused-javascript","bootup-time","legacy-javascript-insight"]},
+    {kind:"layout",ids:["cls-culprits-insight","layout-shift-elements"]},
+  ];
+  // We never store query strings, fragments, credentials or unbounded DOM text.
+  const safeTarget = (v: unknown): string | null => {
+    if (typeof v !== "string" || !v || v.length > 2048) return null;
+    try {
+      const url = new URL(v);
+      if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+      return (url.hostname + url.pathname).slice(0,160);
+    } catch { return /^[#.\w\-\s>:[\]="']{1,120}$/.test(v) ? v : null; }
+  };
+  const out: SpeedAdvice[] = [];
+  for (const group of groups) for (const id of group.ids) {
+    const audit = audits[id] as Record<string, unknown> | undefined;
+    if (!audit || typeof audit !== "object") continue;
+    const score = finite(audit.score);
+    if (score === null || score >= 0.9) continue;
+    const details = audit.details as Record<string, unknown> | undefined;
+    const items = Array.isArray(details?.items) ? details.items as Record<string,unknown>[] : [];
+    let target: string | null = null;
+    for (const item of items.slice(0,12)) {
+      if (!item || typeof item !== "object") continue;
+      const node = item.node as Record<string,unknown> | undefined;
+      target = safeTarget(item.url) ?? safeTarget(node?.selector) ?? safeTarget(item.selector);
+      if (target) break;
+    }
+    out.push({kind:group.kind,auditId:id,target});
+    break;
+  }
+  return out;
+}
+
 // The diagnostic codes are stored; provider error text and keys are never exposed.
 function providerFailure(status: number, body: unknown, configured: boolean): SpeedDevice {
   const error = body && typeof body === "object" ? (body as {error?: {errors?: Array<{reason?: string}>;details?: Array<{reason?: string}>}}).error : undefined;
