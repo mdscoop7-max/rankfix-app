@@ -27,7 +27,7 @@ import { normalizeLegalText, LEGAL_LINK_LEXICON } from "@/lib/legal-lexicon";
 import { assessPassiveSecurity, formBlocks, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
 import { assessPageDescription, assessPageTitle, isParkedDomainPage, BOT_SENSITIVE_CHECKS, botManagerCookies, botManagerHeaders, BOT_SENSITIVE_WHEN_ABSENT, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isClientShell, isPlaceholderTitle, templateFieldLeak, isNonContentUrl, isReducedBotResponse, renderFailureCode, renderFailureDetail, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
-import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, confirmedRetailEvidenceForService, isStorefrontOnlyForService, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
+import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, confirmedRetailEvidenceForService, isStorefrontOnlyForService, neutralizeShopWording, hasProductOffer, shopWordingApplies } from "@/lib/commerce-applicability";
 import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findPlaceholderRegistration, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readHtmlSampleHeadFirst, readResponsePrefix, readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
@@ -4710,7 +4710,10 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           repeatedProductLinks: new Set(pageProductLinks).size >= 3,
           priceSignals: pagePriceSignals,
           product: pageProductEvidence,
-          confirmedRetailPage: pageProductSchema || (pageStrongCommerceAction && pagePriceSignals >= 1) || (pageItemListSchema && new Set(pageProductLinks).size >= 3) || (pageStoreSchema && pagePriceSignals >= 2),
+          // Product schema with only a name (software, a manufacturer's model page) is
+          // product information; a retail page needs an offer: price + currency,
+          // stock status, a visible price or a buy action (live QA scan 2627bab0).
+          confirmedRetailPage: (pageProductSchema && hasProductOffer({ product: pageProductEvidence, priceSignals: pagePriceSignals, strongCommerceAction: pageStrongCommerceAction })) || (pageStrongCommerceAction && pagePriceSignals >= 1) || (pageItemListSchema && new Set(pageProductLinks).size >= 3) || (pageStoreSchema && pagePriceSignals >= 2),
         };
         // Meta rules are shared with the main page (lib/report-quality.ts).
         const pageTitleAssessment = assessPageTitle(pageTitle, finalCandidate.hostname, new Date(), representativeTitlePixelWidth, finalCandidate.pathname);
@@ -5154,9 +5157,11 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // technology and multi-page evidence have all had a chance to contribute.
     // Commerce can be secondary to a proven service identity. Cart/checkout
     // navigation or a shop shell alone is not hard retail evidence.
-    const representativeRetailProduct = auditedMultiPages.some((item)=>item.type==="product" && Boolean(item.commerceEvidence?.product));
+    // A named product without any offer (price, stock, buy action) is product
+    // information, not commerce: software vendors and manufacturers publish it too.
+    const representativeRetailProduct = auditedMultiPages.some((item)=>item.type==="product" && Boolean(item.commerceEvidence?.product) && hasProductOffer(item.commerceEvidence));
     const verifiedRepresentativeProductDetail = auditedMultiPages.some((item)=>item.type==="product" &&
-      Boolean(item.commerceEvidence?.productSchema && item.commerceEvidence?.product));
+      Boolean(item.commerceEvidence?.productSchema && item.commerceEvidence?.product) && hasProductOffer(item.commerceEvidence));
     const verifiedRepresentativePurchase = auditedMultiPages.some((item)=>item.type==="product" &&
       Boolean(item.commerceEvidence?.productSchema && item.commerceEvidence?.strongCommerceAction &&
         item.commerceEvidence?.product?.price && item.commerceEvidence?.product?.currency));

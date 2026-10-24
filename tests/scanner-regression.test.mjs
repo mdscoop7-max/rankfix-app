@@ -173,7 +173,7 @@ test("multi-page retail evidence can strengthen site profile without activating 
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   assert.match(source, /pageCommerceEvidence/);
-  assert.match(source, /confirmedRetailPage: pageProductSchema/);
+  assert.match(source, /confirmedRetailPage: \(pageProductSchema && hasProductOffer\(/);
   assert.match(source, /sitewideCommerceEvidence/);
   assert.match(source, /!transportBookingIdentity && sitewideCommerceEvidence\.confirmed/);
   assert.match(source, /technologyProfile\.siteType = "Webshop"/);

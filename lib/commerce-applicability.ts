@@ -109,3 +109,16 @@ export function confirmedRetailEvidenceForService(input: {
   return input.representativePurchase ||
     (input.productDetailSchema && input.addToCart && input.productAndPrice);
 }
+
+/**
+ * Does a sampled product page carry an OFFER (something for sale), not just a
+ * product description? Product schema with only a name is published by software
+ * vendors and manufacturers too (live QA scan 2627bab0: 12 security-software pages,
+ * none with price, stock or cart). An offer is price + currency, a stock status,
+ * a visible price, or a buy/add-to-cart action.
+ */
+export function hasProductOffer(evidence: { product?: { price?: string | null; currency?: string | null; availability?: string | null } | null; priceSignals?: number; strongCommerceAction?: boolean } | null | undefined): boolean {
+  if (!evidence) return false;
+  const p = evidence.product;
+  return Boolean((p?.price && p?.currency) || p?.availability || (evidence.priceSignals || 0) > 0 || evidence.strongCommerceAction);
+}

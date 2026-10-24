@@ -38,6 +38,25 @@ const SITES = {
       "/": doc({ title: "Modehuis | Online kledingwinkel voor dames en heren", description: "Shop dameskleding en herenkleding online. Gratis verzending en retourneren binnen 30 dagen.", h1: ["Nieuwe collectie"], schema: ["OnlineStore"], body: `<a href="/categorie/dames">Dames</a> <a href="/categorie/heren">Heren</a> <a href="/klantenservice/retourneren">Retourneren</a> <a href="/klantenservice/verzending">Verzending</a> <a href="/winkelwagen">Winkelwagen</a>` + filler("Ontdek de nieuwe collectie jassen, truien en jeans.") }),
     },
   },
+  // Live QA scan 2627bab0 (24 Oct, QA b8a35f0): a security-software vendor whose
+  // product pages carry Product schema with only a name (no offer, price, stock or
+  // cart) was "webshop: niet te bevestigen", activating 11 retail checks as
+  // unconfirmed (evidence coverage 74%). Product information is not commerce.
+  "secuvendor.test": {
+    expect: { notSector: ["ecommerce"], commerce: ["absent"] },
+    pages: {
+      "/": doc({ lang: "en", title: "Secuvendor | Cybersecurity as a Service", description: "Secuvendor is a cybersecurity company delivering AI-native endpoint, firewall and managed detection and response to stop attacks.", h1: ["Cybersecurity for every organization"], body: ["endpoint", "firewall", "siem", "mobile"].map((p) => `<a href="/products/${p}">Secuvendor ${p}</a>`).join(" ") + filler("Stop ransomware and breaches with managed detection and response.") }),
+      ...Object.fromEntries(["endpoint", "firewall", "siem", "mobile"].map((p) => [`/products/${p}`, doc({ lang: "en", title: `Secuvendor ${p} | Cybersecurity`, description: `Secuvendor ${p} protects your organization against advanced attacks.`, h1: [`Secuvendor ${p}`], body: filler("Detection and response for your security team. Request a demo or start a free trial.") }).replace("</head>", `<script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@type": "Product", name: `Secuvendor ${p}`, brand: { "@type": "Brand", name: "Secuvendor" } })}</script></head>`)])),
+    },
+  },
+  // A shop whose product pages carry Product schema WITH an offer stays a shop.
+  "fietsenwinkel.test": {
+    expect: { sector: ["ecommerce"], commerce: ["confirmed"] },
+    pages: {
+      "/": doc({ title: "Fietsenwinkel | Online fietsen en onderdelen kopen", description: "Koop fietsen, onderdelen en accessoires online. Gratis verzending vanaf 50 euro.", h1: ["Fietsen kopen"], body: [1, 2, 3].map((i) => `<div class="product-card"><a href="/product/fiets-${i}">Fiets ${i}</a><span class="price">€ ${499 + i},00</span></div>`).join("") + `<a href="/winkelwagen">Winkelwagen</a>` }),
+      "/product/fiets-1": productPage("Fiets 1", "500.00"), "/product/fiets-2": productPage("Fiets 2", "501.00"),
+    },
+  },
   "hulpkruis.test": {
     expect: { notSector: ["ecommerce"] },
     pages: {
@@ -87,6 +106,7 @@ for (const [host, site] of Object.entries(SITES)) {
   if (res.status !== 200) { problems.push(`${host}: HTTP ${res.status} ${j.code}`); continue; }
   if (site.expect.notSector?.includes(sp.sector)) problems.push(`${host}: primary sector ${sp.sector} (${sp.confidenceScore})`);
   if (site.expect.sector && !site.expect.sector.includes(sp.sector)) problems.push(`${host}: sector ${sp.sector}, expected ${site.expect.sector.join("|")}`);
+  if (site.expect.commerce && !site.expect.commerce.includes(j.commerceApplicability?.state)) problems.push(`${host}: webshop functionality ${j.commerceApplicability?.state} (${j.commerceApplicability?.reason || ""}), expected ${site.expect.commerce.join("|")}`);
   if (site.expect.notCommerce?.includes(j.commerceApplicability?.state)) problems.push(`${host}: webshop functionality ${j.commerceApplicability?.state} without any shop evidence`);
   // Live QA scan 4a9fe1db: "Commerce-signalen bevestigd" next to "Webshop: niet aanwezig".
   if (j.commerceApplicability?.state !== "confirmed" && (j.technologyProfile?.evidence || []).some((line) => /Commerce-signalen bevestigd/.test(line))) problems.push(`${host}: website evidence says "commerce signals confirmed" without a confirmed shop`);
