@@ -12,6 +12,7 @@ export type ScanAttemptCategory =
   | "network"          // timeout, DNS, TLS, connection, redirect loop
   | "engine_error"     // RankFix failed while analysing
   | "save_failed"      // analysed, but storing the report failed
+  | "time_limit"       // RankFix stopped the scan itself before the platform limit
   | "function_timeout"; // the attempt never finished (platform killed the function)
 
 /** Network failure → stable code. Never contains raw runtime text. */
@@ -39,6 +40,7 @@ export function classifyScanOutcome(httpStatus: number, code: string | null | un
   if (/HTTP_NOT_FOUND|HTTP_SERVER_ERROR|EMPTY_HTML|NOT_HTML|PARKED_DOMAIN|SITE_ERROR_PAGE/.test(c)) return "site_unavailable";
   if (/^FETCH_|REDIRECT_LIMIT|REDIRECT_LOOP|RESPONSE_TOO_LARGE|BODY_TIMEOUT/.test(c)) return "network";
   if (/HISTORY_SAVE/.test(c)) return "save_failed";
+  if (/^SCAN_TIMEOUT$/.test(c)) return "time_limit";
   if (httpStatus === 401 || httpStatus === 400) return "input";
   if (httpStatus === 429) return "quota";
   return "engine_error";

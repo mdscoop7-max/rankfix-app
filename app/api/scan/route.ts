@@ -1,6 +1,6 @@
 import { scanRuntime } from "@/lib/scan-runtime";
 import { sectorPageEvidence, scanCoverageDimensions, isAudiencePagePath } from "@/lib/sector-page-evidence";
-import { corroborateDeclaredIndustry } from "@/lib/site-sector-corroboration.mjs";
+import { corroborateDeclaredIndustry, detectDeclaredIndustry } from "@/lib/site-sector-corroboration.mjs";
 import { decideCommerceModules } from "@/lib/sector-motor-decisions";
 import { NextResponse } from "next/server";
 import { createHash, randomUUID } from "crypto";
@@ -57,6 +57,17 @@ import { enforceReportConsistency } from "@/lib/report-consistency";
 import { measureWebsiteSpeed, speedNotMeasured } from "@/lib/pagespeed";
 
 export const maxDuration = 300;
+// Controlled stop before the platform limit (maxDuration). The scan answers with
+// SCAN_TIMEOUT instead of being killed without a response. Overridable for tests.
+const SCAN_HARD_LIMIT_MS = (() => { const v = Number(process.env.RANKFIX_SCAN_HARD_LIMIT_MS); return Number.isFinite(v) && v >= 5_000 && v <= 285_000 ? v : 270_000; })();
+const scanTimeoutMessages: Record<string, string> = {
+  nl: "De scan is gestopt omdat de website te traag reageerde om binnen de tijdslimiet volledig te analyseren. Er is geen score berekend en de scan is niet in rekening gebracht. Probeer het later opnieuw.",
+  en: "The scan was stopped because the website responded too slowly to be analysed within the time limit. No score was calculated and the scan was not charged. Please try again later.",
+  de: "Der Scan wurde gestoppt, weil die Website zu langsam antwortete, um sie im Zeitlimit vollständig zu analysieren. Es wurde kein Score berechnet und der Scan wurde nicht berechnet.",
+  fr: "L'analyse a été arrêtée car le site répondait trop lentement pour être analysé dans le délai imparti. Aucun score n'a été calculé et l'analyse n'a pas été facturée.",
+  it: "La scansione è stata interrotta perché il sito rispondeva troppo lentamente per essere analizzato entro il limite di tempo. Nessun punteggio calcolato e scansione non addebitata.",
+  es: "El análisis se detuvo porque el sitio respondía demasiado lento para analizarlo dentro del límite de tiempo. No se calculó ninguna puntuación y no se cobró el análisis.",
+};
 
 type Status = "pass" | "warning" | "fail" | "not_applicable" | "unable_to_confirm";
 
@@ -433,7 +444,21 @@ export async function POST(request: Request) {
   } catch (error) {
     console.warn("RankFix scan attempt log unavailable", { message: error instanceof Error ? error.message.slice(0, 160) : "unknown" });
   }
-  const response = await runScan(request);
+  // Hard stop: whatever phase is still running (a hanging render, a slow page),
+  // the client gets a controlled answer before the platform kills the function.
+  const clock = { expired: false };
+  let peekLanguage = "nl";
+  try { const peek = await request.clone().json(); if (typeof peek?.language === "string" && scanTimeoutMessages[peek.language]) peekLanguage = peek.language; } catch {}
+  let hardStopTimer: ReturnType<typeof setTimeout> | undefined;
+  const hardStop = new Promise<Response>((resolve) => {
+    hardStopTimer = setTimeout(() => {
+      clock.expired = true;
+      console.warn("RankFix scan stopped at the hard time limit", { limitMs: SCAN_HARD_LIMIT_MS, page: requestedUrl.slice(0, 200) });
+      resolve(NextResponse.json({ error: scanTimeoutMessages[peekLanguage], code: "SCAN_TIMEOUT", retryable: true, charged: false, limitSeconds: Math.round(SCAN_HARD_LIMIT_MS / 1000) }, { status: 503 }));
+    }, Math.max(1_000, SCAN_HARD_LIMIT_MS - (Date.now() - attemptStarted)));
+  });
+  const response = await Promise.race([runScan(request, clock), hardStop]);
+  if (hardStopTimer) clearTimeout(hardStopTimer);
   if (attemptId) {
     try {
       const body = await response.clone().json().catch(() => ({} as Record<string, unknown>));
@@ -454,7 +479,7 @@ export async function POST(request: Request) {
   return response;
 }
 
-async function runScan(request: Request) {
+async function runScan(request: Request, clock: { expired: boolean } = { expired: false }) {
   let fallbackLanguage = "nl";
   try {
     const body = await request.json();
@@ -1329,6 +1354,10 @@ async function runScan(request: Request) {
     const retailCommerceSignal = hasConfirmedCommercePlatform || productSchemaCommerceSignal || repeatedProductLinkSignal || storefrontMarkupSignal || homepageStorefrontSignal || siteLevelCommerceSignal || catalogStorefrontSignal || hardPurchaseFlowSignal;
     const transportRetailStoreEvidence = hasConfirmedCommercePlatform && (repeatedProductLinkSignal || storefrontMarkupSignal || hasStoreSchema);
     const hasEcommerceSignal = transportBookingIdentity ? transportRetailStoreEvidence : retailCommerceSignal;
+    // QA-144: a commerce plugin or platform asset on a page (WooCommerce on a
+    // restaurant or charity site, a shop theme) proves a capability, not that the
+    // organisation is a shop. Only product/storefront evidence on the page does.
+    const platformOnlyCommerceSignal = hasConfirmedCommercePlatform && !(productSchemaCommerceSignal || repeatedProductLinkSignal || storefrontMarkupSignal || homepageStorefrontSignal || siteLevelCommerceSignal || catalogStorefrontSignal || hardPurchaseFlowSignal);
     // EU consumer/Omnibus checks are jurisdiction-sensitive. A non-EU country
     // storefront (for example .com.au) must not receive EU compliance signals
     // merely because it is an e-commerce site.
@@ -1916,20 +1945,48 @@ async function runScan(request: Request) {
     if (["housepainter","roofingcontractor","generalcontractor","locksmith","hvacbusiness","movingcompany"].some((type)=>schemaSet.has(type))) schemaSectorBoost.home_services = 3;
     if (schemaSet.has("newsarticle")) schemaSectorBoost.news_media = 3;
     // Scanbewijs priority: domain identity outranks incidental generic words.
+    // QA-144: a sector word inside the organisation's NAME ("Baker McKenzie", a law
+    // firm) is not a statement about its activity. Title segments that are the
+    // brand (equal to the domain label or the site name) only anchor a sector when
+    // the description or H1 independently supports it.
+    const squashName = (value: string) => value.normalize("NFKD").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const brandHostLabel = squashName(finalUrl.hostname.replace(/^www\./i, "").split(".")[0] || "");
+    const brandSiteName = squashName(decode(ogSiteName || ""));
+    const isBrandSegment = (segment: string) => {
+      const value = squashName(segment);
+      return value.length >= 3 && (value === brandHostLabel || (brandSiteName.length >= 3 && value === brandSiteName));
+    };
+    const titleSegments = title.split(/\s*[|–—:]\s*|\s+-\s+/).map((part) => part.trim()).filter(Boolean);
+    const brandTitle = titleSegments.filter(isBrandSegment).join(" ");
+    const brandlessTitle = titleSegments.filter((part) => !isBrandSegment(part)).join(" ");
+    const anchorIdentitySource = [brandlessTitle, description, h1s.join(" "), finalUrl.hostname, finalUrl.pathname, isTourismBoardHost(finalUrl.hostname) ? "toerisme" : ""].join(" ");
+    const descriptionAndHeadings = [description, h1s.join(" ")].join(" ");
+    const legacyAnchored = (patterns: RegExp[]) => Boolean(patterns[0]?.test(anchorIdentitySource)
+      || (brandTitle && patterns[0]?.test(brandTitle) && (patterns[0]?.test(descriptionAndHeadings) || patterns[1]?.test(descriptionAndHeadings))));
+    // Anchored in the organisation's own title or description (not only in one of
+    // several H1s such as project or campaign headings): only then may a keyword
+    // decision be presented as confirmed.
+    const legacyAnchoredInMeta = (patterns: RegExp[]) => Boolean(patterns[0]?.test([brandlessTitle, description].join(" ")));
+    // The homepage's own declaration of a specific activity (law firm, airport,
+    // architecture practice, cybersecurity, car rental...) in two independent
+    // fields or in its self-description sentence. Outranks loose keywords.
+    const homepageDeclared = (isSiteHomepagePath(finalUrl.pathname) || isHomepage)
+      ? detectDeclaredIndustry({ title, description, identityHeadings: identityH1s, schemaTypes }) : null;
     const sectorPriority: Partial<Record<SectorKey, number>> = { government: 30, real_estate: 28, automotive: 27, transport_travel: 20, telecom_technology: 20, health_wellness: 16, education: 15, energy_utilities: 15, news_media: 10, nonprofit: 8, events_culture: 6, fitness_sports: 6 };
     const sectorCandidates = sectorSignals.map(item=>{
       const contentHits = item.patterns.filter(pattern=>pattern.test(sectorSource)).length;
-      const identityBoost = item.patterns[0]?.test(sectorIdentitySource) ? 1 : 0;
-      const identityPriorityBoost = item.patterns[0]?.test(sectorIdentitySource) && item.patterns[1]?.test(sectorSource) ? 1 : 0;
+      const anchored = legacyAnchored(item.patterns);
+      const identityBoost = anchored ? 1 : 0;
+      const identityPriorityBoost = anchored && item.patterns[1]?.test(sectorSource) ? 1 : 0;
       const transportContextBoost = item.sector === "transport_travel" && transportBookingIdentity ? 2 : 0;
       // Content/navigation is only supporting evidence. Never promote an
       // industry solely from terms in FAQ, pricing examples or customer stories.
-      const anchoredToBusinessIdentity = Boolean(item.patterns[0]?.test(sectorIdentitySource) || schemaSectorBoost[item.sector]);
+      const anchoredToBusinessIdentity = Boolean(anchored || schemaSectorBoost[item.sector]);
       // The word "news/nieuws" alone (a company's own news page) is not publisher
       // identity: news needs the same proof as the master news rule.
       const newsWithoutPublisherIdentity = item.sector === "news_media" && !schemaSet.has("newsmediaorganization") && !schemaSet.has("newsarticle")
         && !newsMediaIdentity({ title, description, h1: identityH1s.join(" "), homepage: isSiteHomepagePath(finalUrl.pathname) }) && !(euPrimaryIdentity?.sector === "news_media");
-      const suppressedHits = !anchoredToBusinessIdentity || newsWithoutPublisherIdentity || (item.sector === "automotive" && sewerIdentity && !(schemaSectorBoost.automotive || item.patterns[0]?.test(sectorIdentitySource)))
+      const suppressedHits = !anchoredToBusinessIdentity || newsWithoutPublisherIdentity || (item.sector === "automotive" && sewerIdentity && !(schemaSectorBoost.automotive || anchored))
         ? 0 : contentHits + identityBoost + identityPriorityBoost + transportContextBoost + (schemaSectorBoost[item.sector] || 0);
       return {sector:item.sector,label:item.label,hits:suppressedHits,modules:item.modules,priority:sectorPriority[item.sector] || 0};
     }).filter(item=>item.hits>0).sort((a,b)=>b.hits-a.hits || b.priority-a.priority);
@@ -1957,7 +2014,15 @@ async function runScan(request: Request) {
     const catalogTop = evidenceSectorCandidates[0];
     const catalogRunnerUp = evidenceSectorCandidates[1];
     const catalogSectorStrong = Boolean(catalogTop && catalogTop.score >= 4 && (!catalogRunnerUp || catalogTop.score >= catalogRunnerUp.score + 2));
-    const legacyProfile = hasEcommerceSignal
+    // QA-144: a commerce plugin alone (platform-only) or one kind of commerce
+    // signal is not a storefront; see retailPurchaseEvidence below.
+    // A shop has a purchase element on its own page (cart, add-to-cart, checkout or
+    // Product schema). Prices alone are menus, donation amounts or rental rates.
+    const homepagePurchaseElement = Boolean((scanEvidence.commerce.cart.value && scanEvidence.commerce.cart.confidence === "high")
+      || (scanEvidence.commerce.addToCart.value && scanEvidence.commerce.addToCart.confidence === "high")
+      || (scanEvidence.commerce.checkout.value && scanEvidence.commerce.checkout.confidence === "high")
+      || scanEvidence.schema.product);
+    const legacyProfile = hasEcommerceSignal && !platformOnlyCommerceSignal && (homepagePurchaseElement || evidenceCommerceConfirmed)
       ? {sector:"ecommerce" as SectorKey,label:"Webshop / e-commerce",confidence:"high" as const,confidenceScore:95,evidence:["Harde aankoop-/storefrontsignalen bevestigd"],applicableModules:["core_seo","geo","ecommerce","product","pricing_currency","merchant","checkout",...(euConsumerApplicable?["eu_consumer"]:[])]}
       : strongSectorCandidate
         ? {sector:sectorCandidates[0].sector,label:sectorCandidates[0].label,confidence:(sectorCandidates[0].hits>=3 ? "high" : "medium") as "high"|"medium",confidenceScore:sectorCandidates[0].hits>=3 ? 95 : 75,evidence:[`${sectorCandidates[0].hits} sectorsignalen inclusief gedeeld schema-/contentsbewijs`],applicableModules:sectorCandidates[0].modules}
@@ -2042,7 +2107,9 @@ async function runScan(request: Request) {
       telecomServiceIdentity ||
       telecomIndependentIdentity.primary
     ) && !(hasRetailStoreSchema(schemaTypes) && evidenceCommerceConfirmed) && !newsMediaPrimaryIdentity;
-    const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[];confidence?:"high"|"medium";confidenceScore?:number} | null = newsMediaPrimaryIdentity
+    const euGenericIdentityApplies = Boolean(euPrimaryIdentity && (euPrimaryIdentity.confidence === "medium" || (euPrimaryIdentity.sector !== "news_media" && euPrimaryIdentity.sector !== "financial_services"))
+      && (euPrimaryIdentity.confidence === "high" || !strongSectorCandidate));
+    const baseMasterIdentity: {sector:SectorKey;key:string;label:string;evidence:string[];confidence?:"high"|"medium";confidenceScore?:number} | null = newsMediaPrimaryIdentity
       ? {sector:"news_media",key:"news_media",label:"Nieuws & Media",evidence:["Primaire identiteit: nieuws-/mediaorganisatie in titel, omschrijving of H1"]}
       : telecomProviderIdentity
       ? {sector:"telecom_technology",key:"telecom_technology",label:"Telecom & Technologie",evidence:["Primaire identiteit: telecomabonnementen en netwerkdiensten"]}
@@ -2062,12 +2129,31 @@ async function runScan(request: Request) {
           // strong legacy sector candidate; it only fills an otherwise empty decision.
           // Medium (navigation-only) identities of every sector, and high ones of the
           // sectors not handled by a dedicated rule above.
-          : euPrimaryIdentity && (euPrimaryIdentity.confidence === "medium" || (euPrimaryIdentity.sector !== "news_media" && euPrimaryIdentity.sector !== "financial_services"))
-            && (euPrimaryIdentity.confidence === "high" || !strongSectorCandidate)
+          : euPrimaryIdentity && euGenericIdentityApplies
             ? {sector:euPrimaryIdentity.sector as SectorKey,key:euPrimaryIdentity.key,label:euPrimaryIdentity.label,evidence:euPrimaryIdentity.evidence.map((line)=>`Primaire identiteit: ${line}`),confidence:euPrimaryIdentity.confidence,confidenceScore:euPrimaryIdentity.confidenceScore}
             : euPrimaryIdentity?.sector === "news_media" && !telecomSubscriptionIdentity && !evidenceCommerceConfirmed && !strongSectorCandidate
               ? {sector:"news_media",key:"news_media",label:"Nieuws & Media",evidence:euPrimaryIdentity.evidence.map((line)=>`Primaire identiteit: ${line}`),confidence:euPrimaryIdentity.confidence,confidenceScore:euPrimaryIdentity.confidenceScore}
               : null;
+    // QA-144: the homepage's own declaration of a specific activity decides when no
+    // dedicated identity rule did, when only a navigation-level (medium) identity
+    // exists, or when it is the more specific form of the same activity (an
+    // airport rather than "passenger transport", cybersecurity rather than generic
+    // software, a law firm within professional services). Homepage-only evidence
+    // is "probable" (76); own pages corroborate it later.
+    const DECLARED_REFINES: Record<string, string[]> = {
+      airports:["transport_travel"], maritime_ports:["transport_travel"], cybersecurity:["saas_b2b","telecom_technology"],
+      professional_services:["professional_services"], events_culture:["events_culture"], health_wellness:["health_wellness"], nonprofit:["nonprofit"], automotive:["automotive"],
+    };
+    const baseIsEuGeneric = Boolean(baseMasterIdentity && euGenericIdentityApplies && euPrimaryIdentity && baseMasterIdentity.sector === euPrimaryIdentity.sector && baseMasterIdentity.key === euPrimaryIdentity.key);
+    const declaredIdentityApplies = Boolean(homepageDeclared && (
+      !baseMasterIdentity
+      || (baseIsEuGeneric && euPrimaryIdentity?.confidence === "medium")
+      || ((DECLARED_REFINES[homepageDeclared.sector] || []).includes(baseMasterIdentity.sector) && baseMasterIdentity.key !== homepageDeclared.key)
+    ));
+    const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[];confidence?:"high"|"medium";confidenceScore?:number} | null = declaredIdentityApplies && homepageDeclared
+      ? {sector:homepageDeclared.sector as SectorKey,key:homepageDeclared.key,label:homepageDeclared.label,confidence:"medium",confidenceScore:76,
+          evidence:[`Eigen bedrijfsomschrijving op de homepage: ${homepageDeclared.label}`, ...(baseMasterIdentity ? [`Specifieker dan de algemene identiteit: ${baseMasterIdentity.label}`] : [])]}
+      : baseMasterIdentity;
     // Primary identity outranks generic commerce capability. A dealer, hotel,
     // service provider or other clearly identified business may publish inventory
     // and prices without being an e-commerce storefront. Commerce becomes the
@@ -2091,9 +2177,24 @@ async function runScan(request: Request) {
       // Online-shop self-description in any EU language ("negozio online",
       // "e-pood", "sklep internetowy", ...) plus at least one commerce signal.
       || (euRetailSelfDescription && (evidenceCommerceStrength >= 1 || commerceNavigationSignal));
-    const retailPurchaseEvidence = evidenceCommerceConfirmed || hasEcommerceSignal || explicitRetailIdentity;
+    // QA-144: what makes the shop the organisation itself. The site says it is a
+    // shop (webshop, online store, official store, Store schema).
+    // Both are evidence-gated: the self-description counts only together with
+    // commerce signals (a store builder SaaS also says "online store").
+    const storefrontIdentity = Boolean(explicitRetailIdentity || storeSchemaRetailIdentity);
+    // A platform plugin, or prices without a purchase element (menus,
+    // donations or rental rates), is not a webshop identity.
+    const retailPurchaseEvidence = storefrontIdentity || evidenceCommerceConfirmed
+      || (hasEcommerceSignal && !platformOnlyCommerceSignal && homepagePurchaseElement);
+    // Any established non-retail identity (own declaration, dedicated identity rule,
+    // or an anchored keyword candidate) stays primary unless the site itself says
+    // it is a shop: a webshop, ticket sale, reservation or donation form is then a
+    // channel of that organisation, not its sector.
+    const nonRetailIdentityKnown = Boolean((masterIdentityOverride && masterIdentityOverride.sector !== "ecommerce")
+      || (strongSectorCandidate && sectorCandidates[0].sector !== "ecommerce"));
     const retailPrimaryIdentity = retailPurchaseEvidence
       && primaryBusinessEvidence.sector !== "financial_services"
+      && (storefrontIdentity || !nonRetailIdentityKnown)
       && !telecomProviderIdentity && !shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity
       && !beautyServiceIdentity && !explicitMedicalIdentity && !transportBookingIdentity
       // A multilingual non-retail identity (bank, carrier, post, government...)
@@ -2106,9 +2207,12 @@ async function runScan(request: Request) {
       && !(/\b(?:restaurant|hotel|reserveren|reserveer tafel|vakantieverhuur|transportdiensten|schoonmaakdienst)\b/i.test([title, h1s.join(" ")].join(" ")) && !storeSchemaRetailIdentity);
     const primaryNonCommerceIdentity = retailPrimaryIdentity ? null : (masterIdentityOverride
       || (strongSectorCandidate && sectorCandidates[0].sector !== "ecommerce"
-        ? {sector:sectorCandidates[0].sector,key:sectorCandidates[0].sector,label:sectorCandidates[0].label,evidence:[`Primaire identiteit: ${sectorCandidates[0].hits} onafhankelijke ${sectorCandidates[0].hits===1?"sectorsignaal":"sectorsignalen"}`]}
+        ? {sector:sectorCandidates[0].sector,key:sectorCandidates[0].sector,label:sectorCandidates[0].label,evidence:[`Primaire identiteit: ${sectorCandidates[0].hits} onafhankelijke ${sectorCandidates[0].hits===1?"sectorsignaal":"sectorsignalen"}`],
+            // Keyword evidence named only in a heading, the host or the path (not in
+            // the organisation's own title or description) is probable, never confirmed.
+            ...(legacyAnchoredInMeta(sectorSignals.find((item)=>item.sector===sectorCandidates[0].sector)?.patterns || []) || schemaSectorBoost[sectorCandidates[0].sector] ? {} : {confidence:"medium" as const, confidenceScore:74})}
         : null));
-    const commerceAsPrimaryIdentity = !telecomProviderIdentity && (retailPrimaryIdentity || (evidenceCommerceConfirmed && !primaryNonCommerceIdentity));
+    const commerceAsPrimaryIdentity = !telecomProviderIdentity && (retailPrimaryIdentity || (evidenceCommerceConfirmed && !primaryNonCommerceIdentity && !nonRetailIdentityKnown));
     const sectorProfile = commerceAsPrimaryIdentity
       ? {
           sector:"ecommerce" as SectorKey,
@@ -4403,7 +4507,23 @@ async function runScan(request: Request) {
     // A non-news homepage with Article/BlogPosting schema: the CMS adds it to every page.
     const homepageArticleTemplate = (isSiteHomepagePath(finalUrl.pathname) || isHomepage) && sectorProfile.sector !== "news_media"
       && ["article","newsarticle","blogposting"].some((type)=>schemaSet.has(type));
+    // Every sampled page (fetch, redirects, browser recovery, render queue) must
+    // finish before the hard sample stop; a page still running then counts as
+    // "not confirmed" instead of holding up the whole scan.
+    const SAMPLE_HARD_STOP_AT = started + Math.min(SAMPLE_DEADLINE_MS + 40_000, SCAN_HARD_LIMIT_MS - 50_000);
+    const sampleTimeLimited = (page: MultiPageCandidate): MultiPageAudit => ({ ...page, status:"unable_to_confirm", httpStatus:null, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"fetch",status:"UNABLE_TO_CONFIRM",details:"Niet opgehaald: de tijdslimiet van de scan was bereikt. Deze pagina telt niet mee in de steekproef."}] });
     const auditMultiPage = async (page: MultiPageCandidate): Promise<MultiPageAudit> => {
+      const remainingMs = SAMPLE_HARD_STOP_AT - Date.now();
+      if (remainingMs <= 1_000 || clock.expired) return sampleTimeLimited(page);
+      let stopTimer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        return await Promise.race([
+          auditMultiPageWithinBudget(page),
+          new Promise<MultiPageAudit>((resolve) => { stopTimer = setTimeout(() => resolve(sampleTimeLimited(page)), remainingMs); }),
+        ]);
+      } finally { if (stopTimer) clearTimeout(stopTimer); }
+    };
+    const auditMultiPageWithinBudget = async (page: MultiPageCandidate): Promise<MultiPageAudit> => {
       if (Date.now() - started > SAMPLE_DEADLINE_MS) {
         return { ...page, status:"unable_to_confirm", httpStatus:null, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"fetch",status:"UNABLE_TO_CONFIRM",details:"Niet opgehaald: de tijdslimiet van de scan was bereikt. Deze pagina telt niet mee in de steekproef."}] };
       }
@@ -4736,7 +4856,9 @@ async function runScan(request: Request) {
     // retail evidence only when the fetched page itself proves it.
     const retailContextForProducts = sectorProfile.key === "ecommerce" || explicitRetailIdentity || hasEcommerceSignal;
     const confirmedProductSample = multiPageAudits.some((item)=>item?.status==="audited" && item.type==="product" && item.commerceEvidence?.confirmedRetailPage);
-    if (retailContextForProducts && !confirmedProductSample) {
+    // Optional second hop: only with enough time left before the sample deadline.
+    const productHuntTime = () => Date.now() - started < SAMPLE_DEADLINE_MS - 20_000 && !clock.expired;
+    if (retailContextForProducts && !confirmedProductSample && productHuntTime()) {
       const sampledUrls = new Set(multiPageAudits.map((item)=>normalizeScanUrl(item.url)));
       const unsampled = (urls: string[]) => [...new Set(urls)].filter((url)=>!sampledUrls.has(normalizeScanUrl(url)));
       const auditProductCandidates = async (urls: string[]) => {
@@ -4748,13 +4870,14 @@ async function runScan(request: Request) {
       let productConfirmed = await auditProductCandidates(multiPageAudits.flatMap((item)=>item?.productLinks || []));
       // Sitemaps often list product URLs directly and need no browser. Read at most
       // three declared sitemaps (1.5 MB each, one child of an index, no .gz).
-      if (!productConfirmed) {
+      if (!productConfirmed && productHuntTime()) {
         const readSitemap = async (url: string) => {
           const fetchedSitemap = await safePublicFetch(url, { timeoutMs: 6000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "application/xml,text/xml" });
           return fetchedSitemap.response.ok ? readResponsePrefix(fetchedSitemap.response, 1_500_000) : "";
         };
         const sitemapSources = [...new Set([...robotsDeclaredSitemapUrls, ...(confirmedSitemapUrl ? [confirmedSitemapUrl] : [])])].filter((url)=>!/\.gz(?:$|\?)/i.test(url)).slice(0,3);
         for (const sitemapSource of sitemapSources) {
+          if (!productHuntTime()) break;
           try {
             let sitemapXml = await readSitemap(sitemapSource);
             const childSitemap = childSitemapsFromIndex(sitemapXml)[0];
@@ -4764,9 +4887,10 @@ async function runScan(request: Request) {
           if (productConfirmed) break;
         }
       }
-      if (!productConfirmed) {
+      if (!productConfirmed && productHuntTime()) {
         const listingPages = multiPageAudits.filter((item)=>item?.status==="audited" && (item.type==="category" || item.type==="other") && item.evidenceSource!=="rendered_html").slice(0,2);
         for (const listing of listingPages) {
+          if (!productHuntTime()) break;
           try {
             const renderedListing = await renderPublicPage(listing.url, 10000, renderBudget);
             if (isSubstantiveRender(renderedListing.html)) productConfirmed = await auditProductCandidates(extractProductDetailLinks(renderedListing.html, listing.url, siteHost, 8));
@@ -4834,10 +4958,17 @@ async function runScan(request: Request) {
       : {url:representativeHomeUrl, type:"homepage", status:"not_scanned"};
     const extendedIndustry = corroborateDeclaredIndustry(sectorHomepage.url, sectorHomepage, auditedRawPages);
     const specificIndustry = extendedIndustry.decision;
+    // QA-144: corroborated own declarations (homepage + own pages) also replace a
+    // decision that rested only on loose keywords, and refine a broader identity of
+    // the same activity (airport within passenger transport, cybersecurity within
+    // software). A dedicated identity of another sector is never overruled here.
+    const keywordOnlyDecision = Boolean(!masterIdentityOverride && primaryNonCommerceIdentity && strongSectorCandidate && primaryNonCommerceIdentity.sector === sectorCandidates[0].sector && sectorProfile.sector === primaryNonCommerceIdentity.sector);
     const acceptExtendedIndustry = Boolean(specificIndustry && !marketSelectorPage &&
       (sectorProfile.sector === specificIndustry.sector ||
        ["unknown","general_business"].includes(sectorProfile.sector) ||
-       (sectorProfile.sector === "ecommerce" && !explicitRetailIdentity && !euRetailSelfDescription)));
+       keywordOnlyDecision ||
+       (DECLARED_REFINES[specificIndustry.sector] || []).includes(sectorProfile.sector) ||
+       (sectorProfile.sector === "ecommerce" && !explicitRetailIdentity && !euRetailSelfDescription && !storeSchemaRetailIdentity)));
     if (acceptExtendedIndustry && specificIndustry) {
       sectorProfile.sector = specificIndustry.sector as SectorKey;
       sectorProfile.key = specificIndustry.key;
@@ -5044,7 +5175,10 @@ async function runScan(request: Request) {
     const technologyOnlyCommerce = technologyProfile.isCommerce && !hardCommerceEvidence;
     const secondaryCommerceOnly = Boolean((primaryNonCommerceIdentity || verifiedNonCommerceIndustry) && !hardCommerceEvidence);
     const finalCommerceDecision = {
-      confirmed: hardCommerceEvidence || (technologyOnlyCommerce && !(primaryNonCommerceIdentity || verifiedNonCommerceIndustry)),
+      // QA-144: a platform plugin or commerce script without products, cart or
+      // storefront on the page is a hint, never a confirmed webshop.
+      confirmed: hardCommerceEvidence || (technologyOnlyCommerce && !(primaryNonCommerceIdentity || verifiedNonCommerceIndustry)
+        && (storefrontIdentity || evidenceCommerceConfirmed || (!platformOnlyCommerceSignal && homepagePurchaseElement))),
       currentPageEvidence: hardCommerceEvidence && masterEvidence.commerce.confirmed,
       technologyProfile: technologyProfile.isCommerce,
       technologyOnly: technologyOnlyCommerce,
@@ -5335,6 +5469,25 @@ async function runScan(request: Request) {
     // Commerce is a primary site identity. Once Scanbewijs confirms a webshop,
     // incidental content-sector words must not leave the report labelled as an
     // unrelated sector. Preserve the previous candidate as diagnostic evidence.
+    // QA-144: commerce found only on sampled pages or via technology makes the
+    // shop the primary sector only when the site presents itself as one or its
+    // own entry page carries storefront evidence; otherwise it is a sales channel
+    // of an organisation whose sector is not (yet) proven.
+    const homepageStorefront = Boolean(storefrontIdentity || evidenceCommerceConfirmed || retailPrimaryIdentity);
+    if (finalCommerceDecision.confirmed && sectorProfile.key!=="ecommerce" && !primaryNonCommerceIdentity && !commerceIsChannel && !homepageStorefront) {
+      const channel = { sector: "ecommerce", label: "Online verkoop (verkoopkanaal op deelpagina's)", evidence: ["Product- of winkelwagenbewijs alleen op deelpagina's of via techniek; de website presenteert zich niet als webshop"] };
+      const pageDecision = multilingualPageIdentity.decision;
+      // Own pages that agree on another activity (accommodation, a federation...)
+      // then decide the sector, exactly as when no shop had been found.
+      if (sectorProfile.sector === "unknown" && pageDecision && pageDecision.sector !== "ecommerce" && !marketSelectorPage) {
+        Object.assign(sectorProfile, pageDecision, {
+          applicableModules: [...new Set([...sectorProfile.applicableModules, ...(sectorSignals.find((item) => item.sector === pageDecision.sector)?.modules || [])])],
+        });
+        masterEvidence.activeModules = sectorProfile.applicableModules;
+      }
+      Object.assign(sectorProfile, { secondaryActivities: [channel] });
+      commerceIsChannel = true;
+    }
     if (finalCommerceDecision.confirmed && sectorProfile.key!=="ecommerce" && !primaryNonCommerceIdentity && !commerceIsChannel) {
       const previousSector = sectorProfile.label;
       sectorProfile.sector = "ecommerce";
@@ -5392,7 +5545,7 @@ async function runScan(request: Request) {
     }
     // A retail identity whose shop is confirmed by hard evidence (for example a
     // representative product page) carries the same confidence as any confirmed shop.
-    if (sectorProfile.key === "ecommerce" && finalCommerceDecision.confirmed && sectorProfile.confidenceScore < 88) {
+    if (sectorProfile.key === "ecommerce" && finalCommerceDecision.confirmed && sectorProfile.confidenceScore < 88 && homepageStorefront) {
       sectorProfile.confidence = "high";
       sectorProfile.confidenceScore = 88;
       sectorProfile.evidence = [...sectorProfile.evidence, "Representatieve productpagina bevestigt webshopfunctionaliteit"].slice(0,6);
@@ -6020,6 +6173,9 @@ async function runScan(request: Request) {
     // browser; the report then says why mobile and desktop are missing.
     const websiteSpeed = response.status === 200 ? await measureWebsiteSpeed(finalUrl.toString(), {timeoutMs:Math.min(45000, Math.max(0, 285000 - (Date.now() - started)))}) : speedNotMeasured(finalUrl.toString(), response.status);
 
+    // The client already received SCAN_TIMEOUT: never store a report or count usage
+    // for a scan the customer was told did not complete.
+    if (clock.expired) return NextResponse.json({ error: "SCAN_TIMEOUT", code: "SCAN_TIMEOUT" }, { status: 503 });
     let user = null;
     let savedScanId: string | null = null;
     // Which persistence step was running when a save failed (reported, not secret).

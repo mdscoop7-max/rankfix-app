@@ -333,7 +333,6 @@ const ENERGY = stems(["energieleverancier", "energiebedrijf", "energy company", 
 const POWER_AND_GAS = stems(["luce e gas", "gas e luce", "luz y gas", "luz e gás", "luz e gas", "strom und gas", "gas und strom", "stroom en gas", "gas en stroom", "électricité et gaz", "gaz et électricité", "el og gas", "el och gas", "sähkö ja kaasu", "prąd i gaz", "elektřina a plyn", "áram és gáz", "energie electrică și gaz"]);
 // Power generation: utilities that produce rather than only supply electricity.
 const POWER_GENERATION = stems(["renewable energ", "producers of electricity", "producer of electricity", "electricity generat", "electricity produc", "power generation", "stromerzeugung", "production d'électricité", "nucléaire", "nuclear power", "kernenergie", "kernkraft", "hydroelectric", "wasserkraft", "waterkracht", "hydropower", "hydroélectri", "idroelettri", "hidroeléctri", "erneuerbare energie", "renewable energy", "hernieuwbare energie", "duurzame energie", "énergies renouvelables", "energia rinnovabile", "energías renovables", "windkraft", "windenergie", "wind power", "éolien", "kraftwerk", "power plant", "centrale électrique", "kernenergie", "nucléaire", "photovolta", "ökostrom", "groene stroom"]);
-const GAS = words(["gas", "gás", "erdgas", "gaz", "gaz naturel", "kaasu", "maagaas", "gāze", "dujos", "plyn", "φυσικό αέριο", "газ", "plin"]);
 
 // ---------------------------------------------------------------- automotive
 // Car makers and dealers name vehicles together with how they are chosen or
@@ -352,6 +351,8 @@ const VEHICLE_OFFER = words([
 // says it sells goods online, ambiguous words (credit, tickets, travel, health)
 // describe the assortment and never the company.
 const RETAIL_SELF = stems([
+  // A shop that names itself the brand's "official store" sells the products itself.
+  "official store", "official online store", "official shop", "official online shop", "officiële webshop", "officiële winkel", "offizieller shop", "offizieller online-shop", "boutique officielle", "tienda oficial", "negozio ufficiale", "loja oficial",
   "webshop", "webwinkel", "online winkel", "onlineshop", "online shop", "online-shop", "online store", "shop online", "online kopen", "online bestellen", "online kaufen", "online bestellen",
   "negozio online", "negozio di", "vendita online", "acquista online", "boutique en ligne", "achat en ligne", "tienda online", "tienda en línea", "compra online", "loja online", "compras online",
   "nettbutikk", "nettbutik", "webbutik", "webbshop", "verkkokaup", "e-pood", "interneta veikal", "internetinė parduotuv", "el. parduotuv", "sklep internetow", "sklep online", "internetový obchod", "internetový obchod", "e-shop", "webáruház", "online áruház", "magazin online", "ηλεκτρονικό κατάστημ", "онлайн магазин", "internetska trgovin", "spletna trgovin", "lebensmittel online", "supermarkt online", "supermercato online", "supermarché en ligne",
@@ -607,7 +608,11 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
     return { sector: "telecom_technology", key: "telecom_technology", label: "Telecom & Technologie", confidence: bundleSources >= 2 ? "high" : "medium", confidenceScore: bundleSources >= 2 ? 88 : 78,
       evidence: [`Eigen identiteit noemt een telecombundel (internet met mobiel/tv) in ${bundleSources} identiteitsbron(nen)`, "Eigen identiteit noemt vaste lijn, abonnementen of pakketten"] };
   }
-  if (!retailer && (POWER_AND_GAS.test(own) || ENERGY.test(own) && (GAS.test(own) || POWER_GENERATION.test(own) || /\b(?:tarie|tarif|contract|vertrag|contrat|contratt|contrat|leverancier|supplier|anbieter|fournisseur|fornitor|proveedor|fornecedor)/i.test(own)))) {
+  // Mentioning electricity and gas is not supplying them: an energy-monitoring
+  // device, an installer or a comparison app names both too. A supplier names the
+  // supply itself (tariff, contract, supplier, delivery) or produces the power.
+  const ENERGY_SUPPLY = /\b(?:tarie|tarif|contract|vertrag|contrat|contratt|leverancier|levering|supplier|supply|anbieter|versorger|fournisseur|fourniture|fornitor|fornitura|proveedor|suministro|fornecedor|klant worden|overstappen|switch to|offre|offerta|oferta)/i;
+  if (!retailer && (POWER_AND_GAS.test(own) && (ENERGY_SUPPLY.test(own) || POWER_GENERATION.test(own) || countSources((s) => POWER_AND_GAS.test(s)) >= 2 || POWER_AND_GAS.test(title)) || ENERGY.test(own) && (POWER_GENERATION.test(own) || ENERGY_SUPPLY.test(own)))) {
     return { sector: "energy_utilities", key: "energy_utilities", label: "Energie & Nutsvoorzieningen", confidence: "high", confidenceScore: 90, evidence: ["Eigen identiteit noemt stroom/gas en leveringsvoorwaarden"] };
   }
 
@@ -666,7 +671,10 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   if (!retailer && (schema.has("pharmacy") || PHARMACY.test(title) || countSources((s) => PHARMACY.test(s)) >= 2)) {
     return { sector: "health_wellness", key: "pharmacy", label: "Zorg & Gezondheid · apotheek", confidence: "high", confidenceScore: schema.has("pharmacy") ? 93 : 90, evidence: ["Eigen identiteit: apotheek"] };
   }
-  if (!retailer && (schema.has("exercisegym") || schema.has("healthclub") || FITNESS.test(title) || countSources((s) => FITNESS.test(s)) >= 2)) {
+  // "Gym clothes", "gym bag", "workout gear": the activity word describes a
+  // product, not a gym the organisation runs.
+  const gymProduct = (value: string) => value.replace(/\b(?:gym|fitness|yoga|pilates|crossfit|sport|workout|training)[- ]?(?:clothes|clothing|wear|apparel|gear|shorts|leggings|tops?|bags?|shoes|equipment|accessories|supplements?|kleding|schoenen|tassen)\b/gi, " ");
+  if (!retailer && (schema.has("exercisegym") || schema.has("healthclub") || FITNESS.test(gymProduct(title)) || countSources((s) => FITNESS.test(gymProduct(s))) >= 2)) {
     return { sector: "fitness_sports", key: "fitness_sports", label: "Sport & Fitness", confidence: "high", confidenceScore: 90, evidence: ["Eigen identiteit: sportschool/fitness"] };
   }
   if (!retailer && (schema.has("travelagency") || TRAVEL_AGENCY.test(title) || countSources((s) => TRAVEL_AGENCY.test(s)) >= 2)) {

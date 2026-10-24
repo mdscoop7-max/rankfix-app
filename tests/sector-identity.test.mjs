@@ -195,7 +195,8 @@ test("product-detail candidates are nominated by URL shape, never editorial page
 test("retail sites without a product sample get a bounded second hop", async () => {
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
   assert.match(source, /const retailContextForProducts = sectorProfile\.key === "ecommerce" \|\| explicitRetailIdentity \|\| hasEcommerceSignal;/);
-  assert.match(source, /if \(retailContextForProducts && !confirmedProductSample\)/);
+  // QA-144: the second hop only starts with time left before the sample deadline.
+  assert.match(source, /if \(retailContextForProducts && !confirmedProductSample && productHuntTime\(\)\)/);
   assert.match(source, /unsampled\(urls\)\.slice\(0,3\)/, "at most three product audits per hop");
   assert.match(source, /item\.evidenceSource!=="rendered_html"\)\.slice\(0,2\)/, "at most two listing renders");
   // Nomination is never evidence: confirmation still comes from the fetched page.

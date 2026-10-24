@@ -87,7 +87,7 @@ for (const site of fixture.sites) {
   if (process.env.DUMP_DIR) (await import("node:fs")).writeFileSync(`${process.env.DUMP_DIR}/${site.host}.json`, JSON.stringify(j));
   const sector = j.sectorProfile?.sector || "no_report";
   const verdict = status !== 200 ? "no_report" : sector === "unknown" ? "unknown" : compareSector(site.expected, j.sectorProfile).sectorMatch ? "compatible" : "wrong";
-  rows.push({ host: site.host, expected: site.expected, status, sector, key: j.sectorProfile?.key || null, verdict, liveOld: site.liveOld.sector, code: j.code || null, score: j.overallScore ?? null });
+  rows.push({ host: site.host, expected: site.expected, status, sector, key: j.sectorProfile?.key || null, verdict, liveOld: site.liveOld.sector, code: j.code || null, score: j.overallScore ?? null, confidence: j.sectorProfile?.confidenceScore ?? null, secondary: (j.sectorProfile?.secondaryActivities || []).map((a) => a.sector) });
 }
 if (process.argv.includes("--json")) { console.log("ROUTE_REPLAY " + JSON.stringify(rows)); process.exit(0); }
 const n = (v) => rows.filter((r) => r.verdict === v).length;
