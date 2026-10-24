@@ -1,9 +1,11 @@
+import { AXE_RUN_SCRIPT } from "./axe-script.ts";
 import type { Browser } from "puppeteer-core";
 import { claimRender, launchSourceFor, hardenedServerlessArgs, type RenderBudget } from "@/lib/render-limits";
 import { assertPublicDns, validatePublicHttpUrl } from "@/lib/safe-fetch";
 
 export { createRenderBudget } from "@/lib/render-limits";
 export type HeadlessMode = "raw_html" | "javascript_rendered";
+
 export type AxeSummary = {
   violations: {id:string;impact:string;nodes:number}[];
   passes: number;
@@ -16,6 +18,8 @@ export type RenderedPage = { html: string; finalUrl: string; elapsedMs: number; 
   titlePixelWidth: number | null;
   domAccessibility: {controls:number;unnamedButtons:number;unlabeledControls:number} | null;
   axeReport: AxeSummary | null;
+  /** Why axe-core did not complete (null when it ran or was not attempted). */
+  axeError?: string | null;
 };
 
 const ALLOWED = new Set(["document", "script", "stylesheet", "xhr", "fetch"]);
@@ -263,38 +267,20 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
     // failed crawl. In that case the report explicitly falls back to the
     // limited accessible-name inspection, not a WCAG conformance claim.
     let axeReport: AxeSummary | null = null;
+    let axeError: string | null = partialNavigation ? "PARTIAL_NAVIGATION" : null;
     // A partially loaded page is not a basis for an accessibility rule run.
     if (!partialNavigation) try {
       const axeCore = (await import("axe-core")).default;
       await withinTimeout(page.evaluate(axeCore.source), Math.min(2500, remaining()));
-      axeReport = await withinTimeout(page.evaluate(async () => {
-        const axe = (window as typeof window & { axe?: {
-          run: (root: Document, options: object) => Promise<{
-            violations: Array<{id:string;impact:string|null;nodes:unknown[]}>;
-            passes: unknown[]; incomplete: unknown[];
-          }>;
-        } }).axe;
-        if (!axe) throw new Error("AXE_NOT_INJECTED");
-        const result = await axe.run(document, {
-          runOnly: {type:"tag",values:["wcag2a","wcag2aa","wcag21a","wcag21aa"]},
-        });
-        return {
-          violations: result.violations.slice(0,30).map(rule=>({
-            id:rule.id,
-            impact:rule.impact||"moderate",
-            nodes:rule.nodes.length,
-          })),
-          passes:result.passes.length,
-          incomplete:result.incomplete.length,
-          scope:"hydrated_wcag_a_aa" as const,
-        };
-      }), Math.min(3500, remaining()));
+      // Passed as a STRING, not a function: a bundled/transpiled async function
+      // carries helper references (e.g. "t") that do not exist in the page and
+      // failed with "t is not defined" (QA 144). A string is evaluated as-is.
+      axeReport = await withinTimeout(page.evaluate(AXE_RUN_SCRIPT) as Promise<AxeSummary>, Math.min(3500, remaining()));
     } catch (error) {
-      console.info("RankFix axe-core fallback", {
-        reason:error instanceof Error ? error.message.slice(0,80) : "AXE_UNAVAILABLE",
-      });
+      axeError = error instanceof Error ? error.message.slice(0,80) : "AXE_UNAVAILABLE";
+      console.info("RankFix axe-core fallback", { reason: axeError });
     }
-    return { html, finalUrl: finalUrl.toString(), elapsedMs: Date.now() - started, requests, ...(partialNavigation ? { partialNavigation } : {}), ...domDetails, axeReport };
+    return { html, finalUrl: finalUrl.toString(), elapsedMs: Date.now() - started, requests, ...(partialNavigation ? { partialNavigation } : {}), ...domDetails, axeReport, axeError };
   } finally {
     if (browser) {
       try { await withinTimeout(browser.close(), 2000); }

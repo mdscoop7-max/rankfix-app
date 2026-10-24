@@ -18,7 +18,7 @@ import { fetchFailureCode, finishScanAttempt, startScanAttempt } from "@/lib/sca
 import { diagnoseBlockedResponse, diagnoseChallenge, diagnoseFetchFailure, fetchFailureMessage } from "@/lib/access-diagnostics";
 import { jsonbStringify } from "@/lib/jsonb-safe";
 import { classifyNonContentPage, nonContentDetail } from "@/lib/page-gate";
-import { brokenLinkSummary, localizedBrokenLinkCopy, linkOutcome } from "@/lib/link-status";
+import { brokenLinkRecords, brokenLinkSummary, localizedBrokenLinkCopy, linkOutcome } from "@/lib/link-status";
 import { manufacturerRegistrationEvidence } from "@/lib/manufacturer-evidence";
 import { requireEvidenceForScoredChecks } from "@/lib/scan-feedback";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang, isMarketSelectorPage } from "@/lib/seo-rules";
@@ -1795,7 +1795,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
 
     // Lightweight internal-link audit. Keep this bounded so one page cannot turn a scan
     // into an unbounded crawler. HTTP evidence and semantic evidence stay separate.
-    type LinkAuditResult = { sourceHref: string; url: string; status: number | null; finalUrl: string | null; redirected: boolean; error: boolean; context: string; softNotFound?: boolean; accountLink?: boolean };
+    type LinkAuditResult = { sourceHref: string; url: string; status: number | null; finalUrl: string | null; redirected: boolean; error: boolean; context: string; softNotFound?: boolean; accountLink?: boolean; challenged?: boolean };
     const anchorTags = [...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)]
       .map((match) => {
         const sourceHref = decode(match[1] || "");
@@ -1827,15 +1827,18 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         const destination = result.finalUrl?.toString() || res.url || item.url;
         // HTTP 200 serving a "page not found" template is a missing page (soft 404).
         let softNotFound = false;
+        let challenged = false;
         if (res.ok && /text\/html|application\/xhtml/i.test(res.headers.get("content-type") || "")) {
           try {
             const head = await Promise.race([readResponsePrefix(res, 40_000), new Promise<string>((resolve) => setTimeout(() => resolve(""), 2500))]);
             const linkTitle = firstMatch(head, /<title[^>]*>([\s\S]*?)<\/title>/i);
             const linkText = stripHtml(head).slice(0, 4000);
-            softNotFound = classifyNonContentPage({ title: linkTitle, text: linkText, words: linkText.split(/\s+/).filter(Boolean).length, html: head })?.kind === "error";
+            const linkGate = classifyNonContentPage({ title: linkTitle, text: linkText, words: linkText.split(/\s+/).filter(Boolean).length, html: head });
+            softNotFound = linkGate?.kind === "error";
+            challenged = linkGate?.kind === "challenge";
           } catch {}
         } else { try { await res.body?.cancel(); } catch {} }
-        return { sourceHref: item.sourceHref, url: item.url, status: res.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context, softNotFound, accountLink: isNonContentUrl(item.url) || isNonContentUrl(destination) };
+        return { sourceHref: item.sourceHref, url: item.url, status: res.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context, softNotFound, challenged, accountLink: isNonContentUrl(item.url) || isNonContentUrl(destination) };
       } catch {
         return { sourceHref: item.sourceHref, url: item.url, status: null, finalUrl: null, redirected: false, error: true, context: item.context, accountLink: isNonContentUrl(item.url) };
       }
@@ -2633,8 +2636,12 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const accessibilityEngine = {
       version:"1.2-axe-hydrated-dom",
       mode: javascriptExecuted && renderedDocument?.domAccessibility ? "RENDERED_DOM" as const : "INDICATIVE_RAW_HTML" as const,
-      // Without a rendered DOM the number is indicative only and must not be shown as a score.
-      scoreShown: Boolean(javascriptExecuted && renderedDocument?.domAccessibility),
+      // Without a completed axe-core run the number is a limited DOM check (QA 144:
+      // Decathlon showed 100/100 while axe could not finish). It is never shown as
+      // a score that could read as a WCAG assessment.
+      scoreShown: Boolean(javascriptExecuted && renderedDocument?.domAccessibility && renderedDocument?.axeReport),
+      auditLevel: javascriptExecuted && renderedDocument?.axeReport ? "axe_wcag_a_aa_automated" as const : javascriptExecuted && renderedDocument?.domAccessibility ? "limited_dom_name_label_check" as const : "not_available" as const,
+      axeStatus: !javascriptExecuted ? "not_run_no_rendered_dom" : renderedDocument?.axeReport ? "completed" : `not_completed${renderedDocument?.axeError ? `: ${renderedDocument.axeError}` : ""}`,
       limitedScope: true,
       claimPolicy: "Automatisch toetsbare regels; nooit een volledige WCAG-/EAA-conformiteitsbeoordeling.",
       axe: javascriptExecuted ? renderedDocument?.axeReport || null : null,
@@ -2763,6 +2770,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             (linkCheck as Check & { links?: unknown }).links = linkAuditResults
               .map((item) => ({ url: item.url, referringPage: finalUrl.toString(), httpStatus: item.status, outcome: linkOutcome(item), softNotFound: Boolean(item.softNotFound) }))
               .filter((item) => item.outcome !== "ok" && item.outcome !== "skipped");
+            // sourceUrl/targetUrl/finalUrl/httpStatus/evidence/impact/recommendedAction per link.
+            (linkCheck as Check & { linkRecords?: unknown }).linkRecords = brokenLinkRecords(linkAuditResults, finalUrl.toString());
             return linkCheck;
           })()
     );
