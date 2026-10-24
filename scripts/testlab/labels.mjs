@@ -1,6 +1,13 @@
 // TestLab labels describe subtypes; the engine returns broader primary sectors.
 // Keep both comparisons visible. A broad match never proves a subtype.
-const labels={payments:['financial_services','financial_payments'],banking:['financial_services','financial_banking'],insurance:['financial_services','financial_insurance'],healthcare:['health_wellness'],energy:['energy_utilities'],telecom:['telecom_technology'],logistics:['transport_travel'],travel:['transport_travel','passenger_transport'],retail:['ecommerce'],software:['saas_b2b']};
+const labels={
+ payments:['financial_services','financial_payments'],banking:['financial_services','financial_banking'],insurance:['financial_services','financial_insurance'],financial_services:['financial_services'],
+ healthcare:['health_wellness'],veterinary_animal_care:['health_wellness','veterinary'],
+ energy:['energy_utilities'],telecom:['telecom_technology'],logistics:['transport_travel'],travel:['transport_travel','passenger_transport'],retail:['ecommerce'],software:['saas_b2b'],
+ legal_services:['professional_services','legal'],architecture_design:['professional_services','architecture_design'],
+ charities_nonprofits:['nonprofit','charities_nonprofits'],museums_culture:['events_culture','museum_culture'],
+ recruitment_staffing:['recruitment'],
+};
 export function compareSector(expected,profile={}) {
  const [sector,key]=labels[expected]||[expected];
  return {expected,expectedSector:sector,observed:profile.sector||'unknown',sectorMatch:profile.sector===sector,
