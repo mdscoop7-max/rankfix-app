@@ -30,7 +30,7 @@ const reasonOf = (link: LinkCheck) => link.error || link.status === null
 const list = (links: LinkCheck[], max = 5) => links.slice(0, max).map((l) => `${pathOf(l.url)} (${reasonOf(l)})`).join(", ") + (links.length > max ? ` en ${links.length - max} meer` : "");
 
 /** Check status, message and action for the broken-links check (Dutch report text). */
-export function brokenLinkSummary(links: LinkCheck[]): { status: "pass" | "warning" | "unable_to_confirm" | "not_applicable"; message: string; fix: string; missing: number; serverErrors: number; unconfirmed: number; checked: number; points: number } {
+export function brokenLinkSummary(links: LinkCheck[], referringPage?: string): { status: "pass" | "warning" | "unable_to_confirm" | "not_applicable"; message: string; fix: string; missing: number; serverErrors: number; unconfirmed: number; checked: number; points: number } {
   const counted = links.filter((l) => linkOutcome(l) !== "skipped");
   const missing = counted.filter((l) => linkOutcome(l) === "missing");
   const server = counted.filter((l) => linkOutcome(l) === "server_error");
@@ -43,12 +43,15 @@ export function brokenLinkSummary(links: LinkCheck[]): { status: "pass" | "warni
     server.length ? `${server.length} gaven een serverfout (ook bij een tweede poging; geen ontbrekende pagina, mogelijk tijdelijk): ${list(server)}` : "",
     unconfirmed.length ? `${unconfirmed.length} niet te bevestigen (geblokkeerd, tijdelijk beperkt of geen antwoord; geen bewijs van een fout): ${list(unconfirmed)}` : "",
   ].filter(Boolean);
-  const head = `${counted.length} interne link(s) gecontroleerd`;
+  // The page that contains the links, so the customer knows where to fix them.
+  const head = `${counted.length} interne link(s) gecontroleerd${referringPage ? ` op ${referringPage}` : ""}`;
   if (missing.length || server.length) {
-    const ratio = (missing.length + server.length) / Math.max(1, verified);
+    // Same denominator as before: all checked links. Links RankFix could not check
+    // must not make a proven error weigh more (they are not evidence either way).
+    const ratio = (missing.length + server.length) / counted.length;
     const points = ratio <= 0.05 ? 4 : ratio <= 0.15 ? 3 : ratio <= 0.30 ? 2 : 1;
     const fix = [
-      missing.length ? "Ontbrekende pagina's: pas de link aan naar de juiste pagina, verwijder de link, of zet een 301-redirect van de oude URL naar de best passende pagina. Een 'niet gevonden'-pagina hoort HTTP 404 te geven, niet 200." : "",
+      missing.length ? `Ontbrekende pagina's: pas de link${referringPage ? ` op ${referringPage}` : ""} aan naar de juiste pagina, verwijder de link, of zet een 301-redirect van de oude URL naar de best passende pagina. Een 'niet gevonden'-pagina hoort HTTP 404 te geven, niet 200.` : "",
       server.length ? "Serverfouten: controleer de serverlogs voor deze URL's en of bezoekers dezelfde fout krijgen." : "",
     ].filter(Boolean).join(" ");
     return { ...base, status: "warning", message: `${head}. ${parts.join(". ")}.`, fix, points };

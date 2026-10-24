@@ -75,6 +75,14 @@ for (const [host, [code, nlText, enText]] of Object.entries(HOME)) {
     if (!/(prive|druk)/.test(m) || !/niet te bevestigen/i.test(m)) problems.push(`linksite.test: 403/429 links not reported as unconfirmed: "${m}"`);
     if (/account\/login/.test(m)) problems.push(`linksite.test: login link reported: "${m}"`);
     if (!/(herstel|redirect)/i.test(bl?.fix || "")) problems.push(`linksite.test: no action in fix "${bl?.fix}"`);
+    // Referring page named in message, action and structured evidence.
+    if (!m.includes("op https://linksite.test/")) problems.push(`linksite.test: referring page not named in "${m}"`);
+    if (!(bl?.fix || "").includes("op https://linksite.test/")) problems.push(`linksite.test: referring page not in action "${bl?.fix}"`);
+    const weg = (bl?.links || []).find((l) => l.url.endsWith("/weg"));
+    if (!weg || weg.httpStatus !== 404 || weg.outcome !== "missing" || weg.referringPage !== "https://linksite.test/") problems.push(`linksite.test: structured link evidence ${JSON.stringify(weg)}`);
+    const soft = (bl?.links || []).find((l) => l.url.endsWith("/verdwenen"));
+    if (!soft || soft.httpStatus !== 200 || !soft.softNotFound || soft.outcome !== "missing") problems.push(`linksite.test: soft 404 evidence ${JSON.stringify(soft)}`);
+    if ((bl?.links || []).some((l) => l.url.includes("/account/"))) problems.push("linksite.test: skipped login link in evidence list");
     // Sampled pages: a 404 sample is not an assessed content page.
     for (const audit of j.multiPage?.pageAudits || []) {
       const path = new URL(audit.url).pathname.replace(/\/$/, "");

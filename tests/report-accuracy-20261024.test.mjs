@@ -78,3 +78,12 @@ test("internal links: missing, server error, unconfirmed and account links are k
   assert.match(p.message, /niet te bevestigen[^.]*\/druk/);
   assert.equal(brokenLinkSummary([L("/a", 200), L("/b", 200)]).message, "2 interne link(s) gecontroleerd; geen 404, 410, soft 404 of serverfout gevonden.");
 });
+
+test("broken links name the referring page; unverifiable links do not make a proven error weigh more", () => {
+  const L = (path, status) => ({ url: `https://site.test${path}`, status, error: status === null });
+  const s = brokenLinkSummary([L("/weg", 404), ...Array.from({ length: 3 }, (_, i) => L(`/ok${i}`, 200)), ...Array.from({ length: 10 }, (_, i) => L(`/x${i}`, 403))], "https://site.test/");
+  assert.match(s.message, /^14 interne link\(s\) gecontroleerd op https:\/\/site\.test\/\./);
+  assert.match(s.fix, /pas de link op https:\/\/site\.test\/ aan/);
+  // 1 missing of 14 checked = 7% → 3 points (as before); not 1 of 4 verified = 25% → 2.
+  assert.equal(s.points, 3);
+});

@@ -1794,7 +1794,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // that proves the destination is gone or server-broken is actionable here.
     // Missing pages (404/410/soft 404), server errors (5xx twice) and unconfirmed links
     // (401/403/429/no answer) are separate outcomes; see lib/link-status.ts.
-    const linkSummary = brokenLinkSummary(linkAuditResults);
+    const linkSummary = brokenLinkSummary(linkAuditResults, finalUrl.toString());
     const unconfirmedInternalLinks = linkAuditResults.filter((item) => linkOutcome(item) === "unconfirmed");
     const brokenInternalLinks = linkAuditResults.filter((item) => ["missing", "server_error"].includes(linkOutcome(item)));
     const isAuthUtilityRedirect = (item: LinkAuditResult) => {
@@ -2674,7 +2674,16 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     seoChecks.push(
       linkEvidenceUnavailable
         ? check("unable_to_confirm", "broken_links", "seo", "Broken links", "De raw HTML is een dunne JavaScript-shell en bevat geen betrouwbare interne linkset.", "Controleer broken links opnieuw na geslaagde JavaScript-rendering.", 0, 5)
-        : check(linkSummary.status, "broken_links", "seo", "Broken links", linkSummary.message, linkSummary.fix, linkSummary.points, 5)
+        : (() => {
+            const linkCheck = check(linkSummary.status, "broken_links", "seo", "Broken links", linkSummary.message, linkSummary.fix, linkSummary.points, 5);
+            // Structured evidence: the referring page and every non-OK link with its
+            // status and outcome, so dashboard/PDF/JSON can list URL, reason and action.
+            linkCheck.evidence = { url: finalUrl.toString(), found: linkSummary.missing + linkSummary.serverErrors, expected: "0 ontbrekende pagina's of serverfouten", details: linkSummary.message };
+            (linkCheck as Check & { links?: unknown }).links = linkAuditResults
+              .map((item) => ({ url: item.url, referringPage: finalUrl.toString(), httpStatus: item.status, outcome: linkOutcome(item), softNotFound: Boolean(item.softNotFound) }))
+              .filter((item) => item.outcome !== "ok" && item.outcome !== "skipped");
+            return linkCheck;
+          })()
     );
     seoChecks.push(
       linkEvidenceUnavailable
