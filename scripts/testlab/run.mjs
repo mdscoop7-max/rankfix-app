@@ -60,7 +60,9 @@ if(phase==='all'){
 }
 const save=()=>{writeFileSync(filename+'.tmp',JSON.stringify(report,null,2));renameSync(filename+'.tmp',filename)};
 for(const site of selected){
- if(report.sites.some(r=>r.host===site.hosts[0]&&r.status==='success'))continue;
+ // Final rows (report or a website outcome) are kept; a pending row (RankFix
+ // session/quota/infrastructure or lost connection) is scanned again.
+ if(report.sites.some(r=>r.host===site.hosts[0]&&!r.pending))continue;
  const started=Date.now();let r;
  try{r=await request('/api/scan',{url:'https://'+site.hosts[0]+'/',mode:'both',language:'nl',dashboard:true},330000)}catch(e){r={status:0,data:{code:'CLIENT_TIMEOUT_OR_NETWORK',error:e.message}}}
  if(r.data?.success&&r.data?.runtime?.commitSha!==sha)throw Error('QA changed during the test; no comparison is valid');
@@ -72,10 +74,14 @@ for(const site of selected){
   sampleRetryPass:success?(r.data?.multiPage?.sampleRetryPass||null):null,elapsedMs:Date.now()-started,
   comparison:success?compareSector(site.expected,r.data.sectorProfile):null,
   score:success?{overall:r.data.overallScore,seo:r.data.seo?.score,geo:r.data.geo?.score,evidenceLevel:r.data.scoreModel?.evidenceLevel}:null,
-  coverage:r.data.multiPage?.coverageDimensions||null,sectorEvidence:r.data.sectorProfile||null,speed:r.data.websiteSpeed||null};
+  coverage:r.data.multiPage?.coverageDimensions||null,sectorEvidence:r.data.sectorProfile||null,speed:r.data.websiteSpeed||null,
+  // Website status, RankFix API status, reason code and who caused it, kept apart.
+  incident:success?null:(r.data?.incident||{traceId:r.data?.traceId||null,originHttpStatus:typeof r.data?.httpStatus==='number'?r.data.httpStatus:null,apiHttpStatus:r.status,reasonCode:r.data?.code||null,attribution:null,phase:null}),
+  pending:['quota','auth','infrastructure'].includes(failureCategory(r.status,r.data?.code||'',r.data?.incident?.attribution))||r.status===0};
+ if(!success)row.status=failureCategory(r.status,r.data?.code||'',r.data?.incident?.attribution);
  report.sites=report.sites.filter(r=>r.host!==row.host);report.sites.push(row);save();
  console.log(`${phase} ${report.sites.length}/${selected.length} ${row.name}: ${row.status}`);
- if(['quota','auth','infrastructure'].includes(row.status))throw Error(`Stopped on QA ${row.status}; target website not blamed`);
+ if(row.pending)throw Error(`Stopped on QA ${row.status}; ${row.host} not judged and will be scanned again on resume`);
  await new Promise(r=>setTimeout(r,8000));
 }
 report.finishedAt=new Date().toISOString();

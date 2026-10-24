@@ -5,6 +5,8 @@ import { decideCommerceModules } from "@/lib/sector-motor-decisions";
 import { NextResponse } from "next/server";
 import { createHash, randomUUID } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
+import { attachScanIncident, createScanTrace, type ScanTrace } from "@/lib/scan-incident";
+import { resolveScanUser } from "@/lib/scan-session";
 import { databaseFailureCode, databaseFailureDetail, getDb, withDbRetry } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
 import { fetchFailureCode, finishScanAttempt, startScanAttempt } from "@/lib/scan-attempts";
@@ -459,8 +461,16 @@ export async function POST(request: Request) {
       resolve(NextResponse.json({ error: scanTimeoutMessages[peekLanguage], code: "SCAN_TIMEOUT", retryable: true, charged: false, limitSeconds: Math.round(SCAN_HARD_LIMIT_MS / 1000) }, { status: 503 }));
     }, Math.max(1_000, SCAN_HARD_LIMIT_MS - (Date.now() - attemptStarted)));
   });
-  const response = await Promise.race([runScan(request, clock), hardStop]);
+  // One trace per request: website status, API status, reason code, phase and
+  // browser attempt stay separate in every error answer (incident) and log.
+  const trace = createScanTrace(requestedUrl);
+  const rawResponse = await Promise.race([runScan(request, clock, trace), hardStop]);
   if (hardStopTimer) clearTimeout(hardStopTimer);
+  let response = rawResponse;
+  try { response = await attachScanIncident(rawResponse, trace); } catch (error) {
+    console.warn("RankFix scan incident attach failed", { traceId: trace.traceId, message: error instanceof Error ? error.message.slice(0, 160) : "unknown" });
+  }
+  if (!response.ok) console.info("RankFix scan incident", { traceId: trace.traceId, apiHttpStatus: response.status, originHttpStatus: trace.originHttpStatus, phase: trace.phase, page: trace.requestedUrl.slice(0, 200) });
   if (attemptId) {
     try {
       const body = await response.clone().json().catch(() => ({} as Record<string, unknown>));
@@ -481,7 +491,7 @@ export async function POST(request: Request) {
   return response;
 }
 
-async function runScan(request: Request, clock: { expired: boolean } = { expired: false }) {
+async function runScan(request: Request, clock: { expired: boolean } = { expired: false }, trace: ScanTrace = createScanTrace("")) {
   let fallbackLanguage = "nl";
   try {
     const body = await request.json();
@@ -493,12 +503,12 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const scanLanguage = ["nl","en","de","fr","it","es"].includes(body?.language) ? body.language : "nl";
     fallbackLanguage = scanLanguage;
     const errors: Record<string, Record<string, string>> = {
-      nl:{url:"Vul een website URL in.",unsafe:"Deze URL kan niet veilig worden gescand.",fetch:"De website kon niet worden opgehaald. Controleer de URL en probeer opnieuw.",rate:"Deze website beperkt tijdelijk scanverzoeken. RankFix heeft opnieuw geprobeerd, maar de limiet is nog actief. Probeer later opnieuw.",html:"De website gaf geen bruikbare HTML terug.",session:"Je sessie is verlopen. Log opnieuw in om deze scan in je dashboard op te slaan.",history:"De scan is uitgevoerd, maar kon niet in je historie worden opgeslagen. Probeer opnieuw.",generic:"Er ging iets mis tijdens de SEO/GEO-scan."},
-      en:{url:"Enter a website URL.",unsafe:"This URL cannot be scanned safely.",fetch:"The website could not be retrieved. Check the URL and try again.",rate:"This website is temporarily limiting scan requests. RankFix retried, but the limit is still active. Try again later.",html:"The website did not return usable HTML.",session:"Your session has expired. Log in again to save this scan to your dashboard.",history:"The scan completed but could not be saved to your history. Try again.",generic:"Something went wrong during the SEO/GEO scan."},
-      de:{url:"Gib eine Website-URL ein.",unsafe:"Diese URL kann nicht sicher gescannt werden.",fetch:"Die Website konnte nicht abgerufen werden. Prüfe die URL und versuche es erneut.",rate:"Diese Website begrenzt Scan-Anfragen vorübergehend. RankFix hat es erneut versucht, aber das Limit ist noch aktiv. Versuche es später erneut.",html:"Die Website hat kein verwendbares HTML zurückgegeben.",session:"Deine Sitzung ist abgelaufen. Melde dich erneut an, um diesen Scan im Dashboard zu speichern.",history:"Der Scan wurde ausgeführt, konnte aber nicht im Verlauf gespeichert werden. Versuche es erneut.",generic:"Beim SEO/GEO-Scan ist ein Fehler aufgetreten."},
-      fr:{url:"Saisissez l’URL d’un site.",unsafe:"Cette URL ne peut pas être analysée en toute sécurité.",fetch:"Le site n’a pas pu être récupéré. Vérifiez l’URL et réessayez.",rate:"Ce site limite temporairement les demandes d’analyse. RankFix a réessayé, mais la limite est toujours active. Réessayez plus tard.",html:"Le site n’a renvoyé aucun HTML exploitable.",session:"Votre session a expiré. Reconnectez-vous pour enregistrer cette analyse dans votre tableau de bord.",history:"L’analyse est terminée, mais n’a pas pu être enregistrée dans votre historique. Réessayez.",generic:"Une erreur s’est produite pendant l’analyse SEO/GEO."},
-      it:{url:"Inserisci l’URL di un sito.",unsafe:"Questo URL non può essere analizzato in sicurezza.",fetch:"Impossibile recuperare il sito. Controlla l’URL e riprova.",rate:"Questo sito limita temporaneamente le richieste di scansione. RankFix ha riprovato, ma il limite è ancora attivo. Riprova più tardi.",html:"Il sito non ha restituito HTML utilizzabile.",session:"La sessione è scaduta. Accedi di nuovo per salvare la scansione nella dashboard.",history:"La scansione è stata completata, ma non è stato possibile salvarla nella cronologia. Riprova.",generic:"Si è verificato un errore durante la scansione SEO/GEO."},
-      es:{url:"Introduce la URL de un sitio web.",unsafe:"Esta URL no se puede analizar de forma segura.",fetch:"No se pudo obtener el sitio web. Comprueba la URL e inténtalo de nuevo.",rate:"Este sitio limita temporalmente las solicitudes de análisis. RankFix lo ha intentado de nuevo, pero el límite sigue activo. Inténtalo más tarde.",html:"El sitio no devolvió HTML utilizable.",session:"Tu sesión ha caducado. Inicia sesión de nuevo para guardar este análisis en tu panel.",history:"El análisis se completó, pero no pudo guardarse en tu historial. Inténtalo de nuevo.",generic:"Se produjo un error durante el análisis SEO/GEO."}
+      nl:{authUnavailable:"RankFix kon je inlogstatus tijdelijk niet controleren (database of verbinding). Dit is een RankFix-probleem, niet van de website. Er is niets in rekening gebracht; probeer opnieuw.",url:"Vul een website URL in.",unsafe:"Deze URL kan niet veilig worden gescand.",fetch:"De website kon niet worden opgehaald. Controleer de URL en probeer opnieuw.",rate:"Deze website beperkt tijdelijk scanverzoeken. RankFix heeft opnieuw geprobeerd, maar de limiet is nog actief. Probeer later opnieuw.",html:"De website gaf geen bruikbare HTML terug.",session:"Je sessie is verlopen. Log opnieuw in om deze scan in je dashboard op te slaan.",history:"De scan is uitgevoerd, maar kon niet in je historie worden opgeslagen. Probeer opnieuw.",generic:"Er ging iets mis tijdens de SEO/GEO-scan."},
+      en:{authUnavailable:"RankFix could not verify your login right now (database or connection). This is a RankFix problem, not the website. You were not charged; try again.",url:"Enter a website URL.",unsafe:"This URL cannot be scanned safely.",fetch:"The website could not be retrieved. Check the URL and try again.",rate:"This website is temporarily limiting scan requests. RankFix retried, but the limit is still active. Try again later.",html:"The website did not return usable HTML.",session:"Your session has expired. Log in again to save this scan to your dashboard.",history:"The scan completed but could not be saved to your history. Try again.",generic:"Something went wrong during the SEO/GEO scan."},
+      de:{authUnavailable:"RankFix konnte deine Anmeldung gerade nicht prüfen (Datenbank oder Verbindung). Das ist ein RankFix-Problem, nicht der Website. Es wurde nichts berechnet; versuche es erneut.",url:"Gib eine Website-URL ein.",unsafe:"Diese URL kann nicht sicher gescannt werden.",fetch:"Die Website konnte nicht abgerufen werden. Prüfe die URL und versuche es erneut.",rate:"Diese Website begrenzt Scan-Anfragen vorübergehend. RankFix hat es erneut versucht, aber das Limit ist noch aktiv. Versuche es später erneut.",html:"Die Website hat kein verwendbares HTML zurückgegeben.",session:"Deine Sitzung ist abgelaufen. Melde dich erneut an, um diesen Scan im Dashboard zu speichern.",history:"Der Scan wurde ausgeführt, konnte aber nicht im Verlauf gespeichert werden. Versuche es erneut.",generic:"Beim SEO/GEO-Scan ist ein Fehler aufgetreten."},
+      fr:{authUnavailable:"RankFix n’a pas pu vérifier votre connexion pour le moment (base de données ou réseau). Il s’agit d’un problème RankFix, pas du site. Aucun frais ; réessayez.",url:"Saisissez l’URL d’un site.",unsafe:"Cette URL ne peut pas être analysée en toute sécurité.",fetch:"Le site n’a pas pu être récupéré. Vérifiez l’URL et réessayez.",rate:"Ce site limite temporairement les demandes d’analyse. RankFix a réessayé, mais la limite est toujours active. Réessayez plus tard.",html:"Le site n’a renvoyé aucun HTML exploitable.",session:"Votre session a expiré. Reconnectez-vous pour enregistrer cette analyse dans votre tableau de bord.",history:"L’analyse est terminée, mais n’a pas pu être enregistrée dans votre historique. Réessayez.",generic:"Une erreur s’est produite pendant l’analyse SEO/GEO."},
+      it:{authUnavailable:"RankFix non è riuscito a verificare l’accesso (database o connessione). È un problema di RankFix, non del sito. Nessun addebito; riprova.",url:"Inserisci l’URL di un sito.",unsafe:"Questo URL non può essere analizzato in sicurezza.",fetch:"Impossibile recuperare il sito. Controlla l’URL e riprova.",rate:"Questo sito limita temporaneamente le richieste di scansione. RankFix ha riprovato, ma il limite è ancora attivo. Riprova più tardi.",html:"Il sito non ha restituito HTML utilizzabile.",session:"La sessione è scaduta. Accedi di nuovo per salvare la scansione nella dashboard.",history:"La scansione è stata completata, ma non è stato possibile salvarla nella cronologia. Riprova.",generic:"Si è verificato un errore durante la scansione SEO/GEO."},
+      es:{authUnavailable:"RankFix no pudo verificar tu sesión ahora mismo (base de datos o conexión). Es un problema de RankFix, no del sitio. Sin cargos; inténtalo de nuevo.",url:"Introduce la URL de un sitio web.",unsafe:"Esta URL no se puede analizar de forma segura.",fetch:"No se pudo obtener el sitio web. Comprueba la URL e inténtalo de nuevo.",rate:"Este sitio limita temporalmente las solicitudes de análisis. RankFix lo ha intentado de nuevo, pero el límite sigue activo. Inténtalo más tarde.",html:"El sitio no devolvió HTML utilizable.",session:"Tu sesión ha caducado. Inicia sesión de nuevo para guardar este análisis en tu panel.",history:"El análisis se completó, pero no pudo guardarse en tu historial. Inténtalo de nuevo.",generic:"Se produjo un error durante el análisis SEO/GEO."}
     };
     const scanError = errors[scanLanguage];
     const cleanAdsField = (value: unknown, max = 120) => typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, max) : "";
@@ -532,6 +542,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     } catch {
       return NextResponse.json({ error: scanError.unsafe, code: "UNSAFE_URL" }, { status: 400 });
     }
+    trace.normalizedUrl = target.toString();
+    if (!trace.requestedUrl) trace.requestedUrl = rawUrl.slice(0, 500);
 
     // share.google is only a redirect resolver, never a scan target or evidence source.
     // Resolve it once before plan limits, history, scoring and reporting, then discard
@@ -559,9 +571,15 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // trigger network fetches and bounded browser rendering. Hourly limits come from
     // scanRateLimitPolicy: per network for visitors and Free accounts, per account for
     // paying customers, none for server-configured internal tester account IDs.
+    trace.phase = "session";
     await ensureDatabase();
-    let usageUser: Awaited<ReturnType<typeof getCurrentUser>> = null;
-    try { usageUser = await getCurrentUser(); } catch {}
+    // A database/connection failure while reading the session is a RankFix
+    // infrastructure problem, never "session expired" (QA 144: five sites).
+    const usageLookup = await resolveScanUser(getCurrentUser);
+    let usageUser: Awaited<ReturnType<typeof getCurrentUser>> = usageLookup.user;
+    if (dashboardScan && usageLookup.lookupFailed) {
+      return NextResponse.json({ error: scanError.authUnavailable, code: "AUTH_LOOKUP_UNAVAILABLE", retryable: true, charged: false }, { status: 503 });
+    }
     const usageWebsiteHost = target.hostname.toLowerCase().replace(/^www\./, "");
     let usageIpHash: string | null = null;
     const planCode = usageUser
@@ -644,6 +662,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       if (limited) return limited;
     }
 
+    trace.phase = "fetch";
     const started = Date.now();
     // Whole-scan time budget (maxDuration = 300 s): no new browser render after
     // 180 s and no new sample page after 170 s, so every scan returns a report in
@@ -709,14 +728,18 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       // The browser identifies as RankFixBot and never solves challenges; a block
       // or error page is not accepted as the website (isSubstantiveRender).
       if (["FETCH_TIMEOUT", "FETCH_CONNECTION"].includes(code) && Date.now() - started < 75_000) {
+        trace.phase = "browser_render";
+        trace.browserRender = { attempted: true, outcome: "not_substantive", reason: `PRIMARY_${code}` };
         try {
           const rendered = await renderPublicPage(target.toString(), 15000, renderBudget);
           if (isSubstantiveRender(rendered.html)) {
+            trace.browserRender = { attempted: true, outcome: "recovered", reason: `PRIMARY_${code}_BROWSER_RECOVERY` };
             timeoutRecovery = { code, rendered };
             fetchedFinalUrl = new URL(rendered.finalUrl || target.toString());
             redirectChain = [];
           }
         } catch (renderError) {
+          trace.browserRender = { attempted: true, outcome: "failed", reason: renderFailureCode(renderError) };
           console.info("RankFix timeout recovery render failed", { url: target.toString(), reason: renderFailureCode(renderError) });
         }
       }
@@ -729,10 +752,14 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     }
 
     const responseTime = Date.now() - started;
+    // 504 is only the internal placeholder for "no answer" (timeout recovery).
+    trace.originHttpStatus = timeoutRecovery ? null : response.status;
     // safePublicFetch follows redirects manually for SSRF safety. Response.url therefore
     // is not a reliable source of the terminal URL. Always use the validated finalUrl
     // returned by safePublicFetch so share/short links are classified from the actual site.
     let finalUrl = fetchedFinalUrl ?? new URL(response.url || target.toString());
+    trace.finalUrl = finalUrl.toString();
+    trace.redirects = redirectChain.slice(0, 10);
     console.info("RankFix redirect resolution", { requested: target.toString(), final: finalUrl.toString(), hops: redirectChain.length });
     // Primary recovery, JS hydration and quality-gate fallback share one browser attempt.
     let primaryRenderAttempts = 0;
@@ -775,11 +802,14 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     }
     if (!response.ok && (response.status === 202 || response.status === 403 || response.status === 405)) {
       recovery.attempted = true;
+      trace.phase = "browser_render";
+      trace.browserRender = { attempted: true, outcome: "not_substantive", reason: `HTTP_${response.status}_RECOVERY` };
       try {
         const recovered = await renderPrimaryOnce();
         // A blocked render (challenge or empty shell with only a <title>) is not a recovery.
         if (!isSubstantiveRender(recovered.html)) recovery.reason = "RECOVERY_RENDER_NOT_SUBSTANTIVE";
         else {
+          trace.browserRender = { attempted: true, outcome: "recovered", reason: `HTTP_${response.status}_RECOVERY` };
           recoveredHtml = recovered.html;
           renderedDocument = recovered;
           recoveredRenderElapsedMs = recovered.elapsedMs;
@@ -789,6 +819,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         }
       } catch (recoveryError) {
         recovery.reason = renderFailureCode(recoveryError);
+        trace.browserRender = { attempted: true, outcome: "failed", reason: recovery.reason };
         console.info("RankFix recovery render failed", { page: finalUrl.toString(), error: recoveryError instanceof Error ? recoveryError.message.slice(0, 200) : String(recoveryError) });
       }
     }
@@ -975,6 +1006,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         }
       } catch { /* keep the fetched URL */ }
     }
+    trace.phase = "content_gate";
+    trace.finalUrl = finalUrl.toString();
+    trace.redirects = redirectChain.slice(0, 10);
     const qualityTitle = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
     const qualityText = stripHtml(html).slice(0, 12000);
     const qualityWords = qualityText.split(/\s+/).filter(Boolean).length;
@@ -1032,6 +1066,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       };
       return NextResponse.json({ error: parkedMessages[scanLanguage] || parkedMessages.en, code: "PARKED_DOMAIN", charged: false }, { status: 422 });
     }
+    trace.phase = "analysis";
 
     const titlePixelEstimate = titlePixelAdvice(renderedDocument?.titlePixelWidth);
     // Invisible characters (zero-width space/joiners, BOM) are not a title.
@@ -4900,6 +4935,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // concurrently. This prevents a JavaScript-heavy site from spawning 20
     // simultaneous Puppeteer recoveries and exhausting memory/CPU.
     const representativeAuditConcurrency = 4;
+    trace.phase = "sample";
     const multiPageAudits: MultiPageAudit[] = new Array(uniqueMultiPagePages.length);
     let nextRepresentativePageIndex = 0;
     const representativeWorkers = Array.from(
@@ -6317,8 +6353,15 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // Which persistence step was running when a save failed (reported, not secret).
     let saveStage = "start";
     let pendingFixes = new Map<string, { status: string }>();
-    try { user = await getCurrentUser(); } catch {}
-    if (dashboardScan && !user) return NextResponse.json({ error: scanError.session, code: "SESSION_EXPIRED" }, { status: 401 });
+    trace.phase = "save";
+    // The session was already verified before the crawl. Re-read it once; a
+    // transient database failure here must not throw away a finished scan as
+    // "session expired": fall back to the verified user from the start.
+    const saveLookup = await resolveScanUser(getCurrentUser);
+    user = saveLookup.user ?? (saveLookup.lookupFailed ? usageUser : null);
+    if (dashboardScan && !user) return NextResponse.json(saveLookup.lookupFailed
+      ? { error: scanError.authUnavailable, code: "AUTH_LOOKUP_UNAVAILABLE", retryable: true, charged: false }
+      : { error: scanError.session, code: "SESSION_EXPIRED" }, { status: saveLookup.lookupFailed ? 503 : 401 });
     if (user) {
       try {
         saveStage = "schema";
