@@ -64,7 +64,7 @@ for (const host of Object.keys(SITES)) {
   const o = j.multiPage?.counts?.outcomes;
   if (!o) problems.push(`${host}: no sample outcome counts`);
   else {
-    const sum = o.scored + o.unscored + o.noindex + o.nonContent + o.thinContent + o.notRetrieved + o.duplicate;
+    const sum = o.scored + o.unscored + o.noindex + o.nonContent + o.thinContent + (o.missing || 0) + o.notRetrieved + o.duplicate;
     if (sum !== o.selected || o.selected !== j.multiPage.counts.selected) problems.push(`${host}: outcomes add up to ${sum}, selected ${o.selected}/${j.multiPage.counts.selected}`);
     if (j.multiPage.counts.fetchFailed !== o.notRetrieved) problems.push(`${host}: fetchFailed ${j.multiPage.counts.fetchFailed} ≠ not retrieved ${o.notRetrieved}`);
   }

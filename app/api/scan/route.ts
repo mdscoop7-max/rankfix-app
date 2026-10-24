@@ -11,6 +11,7 @@ import { fetchFailureCode, finishScanAttempt, startScanAttempt } from "@/lib/sca
 import { diagnoseBlockedResponse, diagnoseChallenge, diagnoseFetchFailure, fetchFailureMessage } from "@/lib/access-diagnostics";
 import { jsonbStringify } from "@/lib/jsonb-safe";
 import { classifyNonContentPage, nonContentDetail } from "@/lib/page-gate";
+import { brokenLinkSummary, linkOutcome } from "@/lib/link-status";
 import { manufacturerRegistrationEvidence } from "@/lib/manufacturer-evidence";
 import { requireEvidenceForScoredChecks } from "@/lib/scan-feedback";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang, isMarketSelectorPage } from "@/lib/seo-rules";
@@ -799,11 +800,32 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           : response.status >= 500
             ? `De website gaf een serverfout (HTTP ${response.status}). Probeer het later opnieuw; er is daarom geen score berekend.`
             : `Scan geblokkeerd door website (HTTP ${response.status}). RankFix kon deze website niet betrouwbaar analyseren. Er is daarom geen score berekend.`,
-        en:`The website returned HTTP ${response.status} and cannot be analysed reliably.`,
-        de:`Die Website hat HTTP ${response.status} zurückgegeben und kann nicht zuverlässig analysiert werden.`,
-        fr:`Le site a renvoyé HTTP ${response.status} et ne peut pas être analysé de manière fiable.`,
-        it:`Il sito ha restituito HTTP ${response.status} e non può essere analizzato in modo affidabile.`,
-        es:`El sitio devolvió HTTP ${response.status} y no se puede analizar de forma fiable.`
+        // Same three causes in every scan language: missing page, server error, access refused.
+        en:[404,410].includes(response.status)
+          ? `This page does not exist (HTTP ${response.status}). Check the URL; no score was calculated.`
+          : response.status >= 500
+            ? `The website returned a server error (HTTP ${response.status}). Please try again later; no score was calculated.`
+            : `The website refused the scan (HTTP ${response.status}). RankFix could not analyse it reliably, so no score was calculated.`,
+        de:[404,410].includes(response.status)
+          ? `Diese Seite existiert nicht (HTTP ${response.status}). Prüfen Sie die URL; es wurde kein Score berechnet.`
+          : response.status >= 500
+            ? `Die Website meldete einen Serverfehler (HTTP ${response.status}). Bitte später erneut versuchen; es wurde kein Score berechnet.`
+            : `Die Website hat den Scan abgelehnt (HTTP ${response.status}). RankFix konnte sie nicht zuverlässig analysieren; es wurde kein Score berechnet.`,
+        fr:[404,410].includes(response.status)
+          ? `Cette page n'existe pas (HTTP ${response.status}). Vérifiez l'URL ; aucun score n'a été calculé.`
+          : response.status >= 500
+            ? `Le site a renvoyé une erreur serveur (HTTP ${response.status}). Réessayez plus tard ; aucun score n'a été calculé.`
+            : `Le site a refusé l'analyse (HTTP ${response.status}). RankFix n'a pas pu l'analyser de manière fiable ; aucun score n'a été calculé.`,
+        it:[404,410].includes(response.status)
+          ? `Questa pagina non esiste (HTTP ${response.status}). Controlla l'URL; nessun punteggio è stato calcolato.`
+          : response.status >= 500
+            ? `Il sito ha restituito un errore del server (HTTP ${response.status}). Riprova più tardi; nessun punteggio è stato calcolato.`
+            : `Il sito ha rifiutato la scansione (HTTP ${response.status}). RankFix non ha potuto analizzarlo in modo affidabile; nessun punteggio è stato calcolato.`,
+        es:[404,410].includes(response.status)
+          ? `Esta página no existe (HTTP ${response.status}). Comprueba la URL; no se ha calculado ninguna puntuación.`
+          : response.status >= 500
+            ? `El sitio devolvió un error del servidor (HTTP ${response.status}). Inténtalo más tarde; no se ha calculado ninguna puntuación.`
+            : `El sitio rechazó el análisis (HTTP ${response.status}). RankFix no pudo analizarlo de forma fiable; no se ha calculado ninguna puntuación.`,
       };
       const accessBlock = ![404, 410].includes(response.status) && response.status < 500;
       let blockedBody = "";
@@ -1723,7 +1745,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
 
     // Lightweight internal-link audit. Keep this bounded so one page cannot turn a scan
     // into an unbounded crawler. HTTP evidence and semantic evidence stay separate.
-    type LinkAuditResult = { sourceHref: string; url: string; status: number | null; finalUrl: string | null; redirected: boolean; error: boolean; context: string };
+    type LinkAuditResult = { sourceHref: string; url: string; status: number | null; finalUrl: string | null; redirected: boolean; error: boolean; context: string; softNotFound?: boolean; accountLink?: boolean };
     const anchorTags = [...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)]
       .map((match) => {
         const sourceHref = decode(match[1] || "");
@@ -1746,19 +1768,35 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // Keep network fan-out modest so adding more motor checks does not make RankFix slower.
     const uniqueInternalAnchors = allUniqueInternalAnchors.slice(0, 16);
     const linkAuditResults: LinkAuditResult[] = await Promise.all(uniqueInternalAnchors.map(async (item) => {
+      const linkFetch = () => safePublicFetch(new URL(item.url), { timeoutMs: 4500, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain" });
       try {
-        const result = await safePublicFetch(new URL(item.url), { timeoutMs: 4500, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain" });
+        let result = await linkFetch();
+        // A single 5xx can be a hiccup: one retry before calling it a server error.
+        if (result.response.status >= 500) { try { await result.response.body?.cancel(); } catch {} await new Promise((resolve) => setTimeout(resolve, 400)); result = await linkFetch(); }
         const res = result.response;
-        const destination = res.url || item.url;
-        return { sourceHref: item.sourceHref, url: item.url, status: res.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context };
+        const destination = result.finalUrl?.toString() || res.url || item.url;
+        // HTTP 200 serving a "page not found" template is a missing page (soft 404).
+        let softNotFound = false;
+        if (res.ok && /text\/html|application\/xhtml/i.test(res.headers.get("content-type") || "")) {
+          try {
+            const head = await Promise.race([readResponsePrefix(res, 40_000), new Promise<string>((resolve) => setTimeout(() => resolve(""), 2500))]);
+            const linkTitle = firstMatch(head, /<title[^>]*>([\s\S]*?)<\/title>/i);
+            const linkText = stripHtml(head).slice(0, 4000);
+            softNotFound = classifyNonContentPage({ title: linkTitle, text: linkText, words: linkText.split(/\s+/).filter(Boolean).length, html: head })?.kind === "error";
+          } catch {}
+        } else { try { await res.body?.cancel(); } catch {} }
+        return { sourceHref: item.sourceHref, url: item.url, status: res.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context, softNotFound, accountLink: isNonContentUrl(item.url) || isNonContentUrl(destination) };
       } catch {
-        return { sourceHref: item.sourceHref, url: item.url, status: null, finalUrl: null, redirected: false, error: true, context: item.context };
+        return { sourceHref: item.sourceHref, url: item.url, status: null, finalUrl: null, redirected: false, error: true, context: item.context, accountLink: isNonContentUrl(item.url) };
       }
     }));
     // A timeout/DNS/fetch failure is not proof of a broken link. Only an HTTP response
     // that proves the destination is gone or server-broken is actionable here.
-    const unconfirmedInternalLinks = linkAuditResults.filter((item) => item.error || item.status === null);
-    const brokenInternalLinks = linkAuditResults.filter((item) => item.status === 404 || item.status === 410 || (item.status !== null && item.status >= 500));
+    // Missing pages (404/410/soft 404), server errors (5xx twice) and unconfirmed links
+    // (401/403/429/no answer) are separate outcomes; see lib/link-status.ts.
+    const linkSummary = brokenLinkSummary(linkAuditResults);
+    const unconfirmedInternalLinks = linkAuditResults.filter((item) => linkOutcome(item) === "unconfirmed");
+    const brokenInternalLinks = linkAuditResults.filter((item) => ["missing", "server_error"].includes(linkOutcome(item)));
     const isAuthUtilityRedirect = (item: LinkAuditResult) => {
       if (!item.redirected || item.error) return false;
       try {
@@ -2631,20 +2669,12 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       (rawVisibleWords < 100 && rawScriptCount >= 4) ||
       /<div\b[^>]*\bid\s*=\s*["'](?:root|app|__next|__nuxt)["'][^>]*>\s*<\/div>/i.test(rawHtml)
     );
-    const brokenInternalLinkRatio = checkedInternalLinkCount ? brokenInternalLinks.length / checkedInternalLinkCount : 0;
-    const brokenLinkPoints = brokenInternalLinkRatio <= 0.05 ? 4 : brokenInternalLinkRatio <= 0.15 ? 3 : brokenInternalLinkRatio <= 0.30 ? 2 : 1;
     const redirectedInternalLinkRatio = checkedInternalLinkCount ? redirectedInternalLinks.length / checkedInternalLinkCount : 0;
     const internalRedirectPoints = redirectedInternalLinkRatio <= 0.10 ? 3 : redirectedInternalLinkRatio <= 0.30 ? 2 : 1;
     seoChecks.push(
       linkEvidenceUnavailable
         ? check("unable_to_confirm", "broken_links", "seo", "Broken links", "De raw HTML is een dunne JavaScript-shell en bevat geen betrouwbare interne linkset.", "Controleer broken links opnieuw na geslaagde JavaScript-rendering.", 0, 5)
-        : uniqueInternalAnchors.length === 0
-        ? check("not_applicable", "broken_links", "seo", "Broken links", "Geen controleerbare interne links gevonden op deze pagina.", "Controleer links opnieuw wanneer de pagina interne navigatie bevat.", 0, 5)
-        : brokenInternalLinks.length > 0
-          ? check("warning", "broken_links", "seo", "Broken links", `${brokenInternalLinks.length} van ${linkAuditResults.length} gecontroleerde interne link(s) gaf een bewezen foutstatus (${Math.round(brokenInternalLinkRatio * 100)}%). Voorbeeld: ${brokenInternalLinks[0]?.url} → HTTP ${brokenInternalLinks[0]?.status}.`, "Herstel de bestemming, verwijder de link of redirect een oude URL naar de juiste relevante pagina.", brokenLinkPoints, 5)
-          : unconfirmedInternalLinks.length > 0
-            ? check("unable_to_confirm", "broken_links", "seo", "Broken links", `${unconfirmedInternalLinks.length} van ${linkAuditResults.length} interne link(s) kon tijdens deze scan niet betrouwbaar worden opgehaald. Er is geen 404/410/5xx bewezen.`, "Controleer deze links opnieuw; een fetchfout alleen is geen bewijs van een kapotte link.", 0, 5)
-            : check("pass", "broken_links", "seo", "Broken links", `${linkAuditResults.length} interne link(s) steekproefsgewijs gecontroleerd; geen 404, 410 of 5xx gevonden.`, "Blijf interne links controleren bij wijzigingen en verwijderde pagina's.", 5, 5)
+        : check(linkSummary.status, "broken_links", "seo", "Broken links", linkSummary.message, linkSummary.fix, linkSummary.points, 5)
     );
     seoChecks.push(
       linkEvidenceUnavailable
@@ -4571,7 +4601,13 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         if (!pageHtml && (!r.ok || (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")))) {
           return { ...page, status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"http",status:"UNABLE_TO_CONFIRM",details:r.status === 401 || r.status === 403
             ? `HTTP ${r.status}: de website weigerde de toegang tot deze pagina, ook bij weergave in een browser. Een toegangsfout is geen inhoudspagina; deze pagina telt niet mee in de steekproef of de score.`
-            : `HTTP ${r.status}; pagina kon niet betrouwbaar als HTML worden beoordeeld na begrensde recovery.`}] };
+            : r.status === 404 || r.status === 410
+              ? `HTTP ${r.status}: deze pagina bestaat niet (meer), terwijl de website ernaar linkt. Pas de link aan of zet een 301-redirect naar de juiste pagina. Telt niet mee in de steekproefscore.`
+              : r.status === 429
+                ? "HTTP 429: de website beperkte tijdelijk het aantal verzoeken. Geen bewijs van een fout; deze pagina telt niet mee in de steekproef."
+                : r.status >= 500
+                  ? `HTTP ${r.status}: de server gaf een fout voor deze pagina. Mogelijk tijdelijk; controleer of bezoekers dezelfde fout krijgen. Telt niet mee in de steekproefscore.`
+                  : `HTTP ${r.status}; pagina kon niet betrouwbaar als HTML worden beoordeeld na begrensde recovery.`}] };
         }
         // The scanned page already passed the main-page size limit.
         const htmlSample = pageHtml

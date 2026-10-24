@@ -21,7 +21,8 @@ export function sampleOutcomeText(outcomes: Partial<SampleOutcomeCounts> | null 
     n(outcomes.noindex) > 0 ? (nl ? `${n(outcomes.noindex)} uitgesloten (noindex)` : `${n(outcomes.noindex)} excluded (noindex)`) : "",
     n(outcomes.thinContent) > 0 ? (nl ? `${n(outcomes.thinContent)} wel opgehaald, maar te weinig inhoud om te beoordelen` : `${n(outcomes.thinContent)} fetched, but too little content to assess`) : "",
     n(outcomes.nonContent) > 0 ? (nl ? `${n(outcomes.nonContent)} uitgesloten (blokkade-, fout-, onderhouds- of accountpagina)` : `${n(outcomes.nonContent)} excluded (block, error, maintenance or account page)`) : "",
-    n(outcomes.notRetrieved) > 0 ? (nl ? `${n(outcomes.notRetrieved)} niet opgehaald (fout, toegang geweigerd of tijdslimiet)` : `${n(outcomes.notRetrieved)} not retrieved (error, access refused or time limit)`) : "",
+    n(outcomes.missing) > 0 ? (nl ? `${n(outcomes.missing)} bestaan niet (HTTP 404/410; de website linkt naar een ontbrekende pagina)` : `${n(outcomes.missing)} do not exist (HTTP 404/410; the site links to a missing page)`) : "",
+    n(outcomes.notRetrieved) > 0 ? (nl ? `${n(outcomes.notRetrieved)} niet opgehaald (serverfout, toegang geweigerd, tijdelijk beperkt of tijdslimiet)` : `${n(outcomes.notRetrieved)} not retrieved (server error, access refused, rate limited or time limit)`) : "",
     n(outcomes.duplicate) > 0 ? (nl ? `${n(outcomes.duplicate)} dubbel (zelfde pagina na doorverwijzing) en één keer geteld` : `${n(outcomes.duplicate)} duplicate (same page after a redirect), counted once`) : "",
   ].filter(Boolean);
   return parts.length ? `${parts.join(" · ")}. ` : "";

@@ -84,7 +84,9 @@ test("scanner regression source keeps evidence-only classification safeguards", 
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
 
   assert.match(source, /productSchemaCommerceSignal/);
-  assert.match(source, /fetchfout alleen is geen bewijs van een kapotte link/);
+  // Broken-link wording moved to lib/link-status.ts (missing vs server error vs unconfirmed).
+  const linkStatus = await (await import("node:fs/promises")).readFile(new URL("../lib/link-status.ts", import.meta.url), "utf8");
+  assert.match(linkStatus, /alleen is geen bewijs van een kapotte link/);
   assert.match(source, /const accessibilityIssueCount=unlabeledFormControls\+emptyButtons/);
   assert.match(source, /Organization\/WebSite structured data kon niet betrouwbaar worden bevestigd/);
   assert.match(source, /Een individuele auteur is niet vereist op een organisatie-, dienst- of merkhomepage/);
@@ -332,9 +334,10 @@ test("GEO brand identity respects evidence confidence and gradual signals", asyn
 test("link and accessibility penalties scale with proven impact", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
-  assert.match(source, /brokenInternalLinkRatio <= 0\.05 \? 4 : brokenInternalLinkRatio <= 0\.15 \? 3 : brokenInternalLinkRatio <= 0\.30 \? 2 : 1/);
+  const linkStatus = await readFile(new URL("../lib/link-status.ts", import.meta.url), "utf8");
+  assert.match(linkStatus, /ratio <= 0\.05 \? 4 : ratio <= 0\.15 \? 3 : ratio <= 0\.30 \? 2 : 1/);
   assert.match(source, /redirectedInternalLinkRatio <= 0\.10 \? 3 : redirectedInternalLinkRatio <= 0\.30 \? 2 : 1/);
-  assert.match(source, /brokenLinkPoints, 5/);
+  assert.match(source, /linkSummary\.points, 5/);
   assert.match(source, /internalRedirectPoints, 4/);
   assert.match(source, /accessibilityIssueRatio <= 0\.05 \? 4 : accessibilityIssueRatio <= 0\.20 \? 3 : accessibilityIssueRatio <= 0\.50 \? 2 : 1/);
   assert.match(source, /accessibilityPoints,5/);

@@ -96,6 +96,15 @@ test("sampled pages that refuse access are not scored and never pass the HTTP ch
   assert.equal(r.failed, 0, r.log);
 });
 
+// HTTP 200/403/404/410/429/500 and soft 404 for the scanned page, sampled pages and
+// internal links: no score for a missing or failing homepage (in every language), a
+// sampled 404 is not an assessed page, missing pages, server errors and blocks are
+// reported apart with URL, reason and action.
+test("HTTP status matrix: homepage, sampled pages and internal links", { timeout: 600000 }, () => {
+  const r = run("run-http-status.mjs");
+  assert.equal(r.failed, 0, r.log);
+});
+
 // QA #186: wall-clock limits with requests that really hang until their timeout
 // (about 90 s). Opt-in: RF_SLOW_TESTS=1.
 test("timeouts: hanging primary and sample requests stay within the scan budget and fail cleanly", { skip: !process.env.RF_SLOW_TESTS && "RF_SLOW_TESTS not set", timeout: 300000 }, () => {

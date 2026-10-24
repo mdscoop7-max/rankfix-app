@@ -107,22 +107,24 @@ export function sampleSummary(selected:number,scored:number,noindex:number,fetch
  *   noindex       fetched, asks search engines not to index it
  *   nonContent    fetched, but a block/error/maintenance or account page
  *   thinContent   fetched (HTTP 2xx), too little content to assess
- *   notRetrieved  network error, time limit or a 4xx/5xx refusal
+ *   missing       HTTP 404/410: the site links to a page that does not exist
+ *   notRetrieved  network error, time limit, a refusal (401/403/429) or a 5xx
  *   duplicate     same page as another sample after redirects/canonical
  * The parts always add up to `selected`.
  */
-export type SampleOutcomeCounts = { selected: number; scored: number; unscored: number; noindex: number; nonContent: number; thinContent: number; notRetrieved: number; duplicate: number };
+export type SampleOutcomeCounts = { selected: number; scored: number; unscored: number; noindex: number; nonContent: number; thinContent: number; missing: number; notRetrieved: number; duplicate: number };
 export function sampleOutcomeCounts(
   pages: Array<{ status?: string | null; score?: number | null; nonContent?: string | null; excludedUtility?: boolean; httpStatus?: number | null; evidenceChecks?: Array<{ key: string; details?: string }> }>,
   duplicates: number,
 ): SampleOutcomeCounts {
-  const c: SampleOutcomeCounts = { selected: pages.length + duplicates, scored: 0, unscored: 0, noindex: 0, nonContent: 0, thinContent: 0, notRetrieved: 0, duplicate: duplicates };
+  const c: SampleOutcomeCounts = { selected: pages.length + duplicates, scored: 0, unscored: 0, noindex: 0, nonContent: 0, thinContent: 0, missing: 0, notRetrieved: 0, duplicate: duplicates };
   for (const page of pages) {
     const key = page.evidenceChecks?.[0]?.key;
     if (page.status === "audited") { if (page.score == null) c.unscored++; else c.scored++; continue; }
     if (page.evidenceChecks?.some((e) => e.key === "noindex")) { c.noindex++; continue; }
     if (page.nonContent || page.excludedUtility || key === "excluded" || /challenge|blokkade|controle- of blokkadepagina/i.test(page.evidenceChecks?.[0]?.details || "")) { c.nonContent++; continue; }
     if (key === "quality" && (page.httpStatus ?? 0) >= 200 && (page.httpStatus ?? 0) < 300) { c.thinContent++; continue; }
+    if (page.httpStatus === 404 || page.httpStatus === 410) { c.missing++; continue; }
     c.notRetrieved++;
   }
   return c;
