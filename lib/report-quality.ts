@@ -14,6 +14,8 @@ export type RenderFailureCode =
   | "RENDER_DEGRADED"
   | "RENDER_NOT_SUBSTANTIVE"
   | "RENDER_LIMIT_REACHED"
+  | "BROWSER_CRASHED"
+  | "RENDER_NETWORK"
   | "RENDER_FAILED";
 
 export function renderFailureCode(error: unknown): RenderFailureCode {
@@ -25,6 +27,10 @@ export function renderFailureCode(error: unknown): RenderFailureCode {
   if (/RENDER_BUDGET_EXHAUSTED|RENDER_DEADLINE_REACHED|RENDER_LIMIT_REACHED/.test(message)) return "RENDER_LIMIT_REACHED";
   if (/RENDER_DEGRADED/.test(message)) return "RENDER_DEGRADED";
   if (/NOT_SUBSTANTIVE/.test(message)) return "RENDER_NOT_SUBSTANTIVE";
+  // QA-144: 18 of 93 renders ended as an unexplained RENDER_FAILED. Name the two
+  // common classes so a TestLab run shows why the browser did not finish.
+  if (/Target closed|Session closed|Protocol error|browser has disconnected|Navigating frame was detached|Execution context was destroyed|Connection closed|crash/i.test(message)) return "BROWSER_CRASHED";
+  if (/net::ERR_|ERR_(?:CONNECTION|NAME_NOT_RESOLVED|CERT|SSL|HTTP2|ABORTED|EMPTY_RESPONSE|TOO_MANY_REDIRECTS)/i.test(message)) return "RENDER_NETWORK";
   return "RENDER_FAILED";
 }
 
@@ -36,8 +42,20 @@ const RENDER_FAILURE_COPY: Record<RenderFailureCode, string> = {
   RENDER_DEGRADED: "de browserversie bevatte minder inhoud dan de HTML-versie",
   RENDER_NOT_SUBSTANTIVE: "de browserversie bevatte geen bruikbare pagina-inhoud",
   RENDER_LIMIT_REACHED: "het maximum aantal browserpogingen of de scandeadline is bereikt",
+  BROWSER_CRASHED: "de browser in de scanomgeving stopte tijdens het laden van de pagina",
+  RENDER_NETWORK: "de browser kreeg geen bruikbare netwerkverbinding met (een deel van) de website",
   RENDER_FAILED: "de browser-rendering kon niet worden voltooid",
 };
+
+/**
+ * Short, non-secret class of a render error for diagnostics (no URLs, no paths,
+ * no stack): what a TestLab run needs to see why rendering failed.
+ */
+export function renderFailureDetail(error: unknown): string | null {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  const cleaned = message.replace(/https?:\/\/\S+/gi, "[url]").replace(/(?:\/[\w.-]+){2,}/g, "[path]").replace(/\s+/g, " ").trim();
+  return cleaned ? cleaned.slice(0, 100) : null;
+}
 
 // Older reports stored the raw (truncated) runtime message; map it as well.
 export function renderFailureText(stored: unknown): string {

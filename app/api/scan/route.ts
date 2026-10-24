@@ -1,6 +1,6 @@
 import { scanRuntime } from "@/lib/scan-runtime";
 import { sectorPageEvidence, scanCoverageDimensions, isAudiencePagePath } from "@/lib/sector-page-evidence";
-import { corroborateDeclaredIndustry, detectDeclaredIndustry } from "@/lib/site-sector-corroboration.mjs";
+import { corroborateDeclaredIndustry, detectDeclaredIndustry, refineSubtype } from "@/lib/site-sector-corroboration.mjs";
 import { decideCommerceModules } from "@/lib/sector-motor-decisions";
 import { NextResponse } from "next/server";
 import { createHash, randomUUID } from "crypto";
@@ -8,7 +8,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { databaseFailureCode, databaseFailureDetail, getDb, withDbRetry } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
 import { fetchFailureCode, finishScanAttempt, startScanAttempt } from "@/lib/scan-attempts";
-import { diagnoseBlockedResponse, diagnoseChallenge, diagnoseFetchFailure } from "@/lib/access-diagnostics";
+import { diagnoseBlockedResponse, diagnoseChallenge, diagnoseFetchFailure, fetchFailureMessage } from "@/lib/access-diagnostics";
 import { jsonbStringify } from "@/lib/jsonb-safe";
 import { classifyNonContentPage, nonContentDetail } from "@/lib/page-gate";
 import { manufacturerRegistrationEvidence } from "@/lib/manufacturer-evidence";
@@ -26,7 +26,7 @@ import { detectRealEstateSubtype } from "@/lib/real-estate-subtype";
 import { normalizeLegalText, LEGAL_LINK_LEXICON } from "@/lib/legal-lexicon";
 import { assessPassiveSecurity, formBlocks, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
-import { assessPageDescription, assessPageTitle, isParkedDomainPage, BOT_SENSITIVE_CHECKS, botManagerCookies, botManagerHeaders, BOT_SENSITIVE_WHEN_ABSENT, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isClientShell, isPlaceholderTitle, templateFieldLeak, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
+import { assessPageDescription, assessPageTitle, isParkedDomainPage, BOT_SENSITIVE_CHECKS, botManagerCookies, botManagerHeaders, BOT_SENSITIVE_WHEN_ABSENT, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isClientShell, isPlaceholderTitle, templateFieldLeak, isNonContentUrl, isReducedBotResponse, renderFailureCode, renderFailureDetail, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, confirmedRetailEvidenceForService, isStorefrontOnlyForService, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
 import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findPlaceholderRegistration, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
@@ -719,7 +719,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         }
       }
       if (!timeoutRecovery) return NextResponse.json(
-        { error: scanError.fetch, code, diagnosis: diagnoseFetchFailure(code, Math.max(1, primaryFetchAttempts), Date.now() - started), charged: false },
+        { error: fetchFailureMessage(code, scanLanguage, (Date.now() - started) / 1000) || scanError.fetch, code, diagnosis: diagnoseFetchFailure(code, Math.max(1, primaryFetchAttempts), Date.now() - started), charged: false },
         { status: 502 }
       );
       // Placeholder for the unanswered request; content comes from the browser.
@@ -836,7 +836,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       html = recoveredHtml ?? await readResponseTextLimited(response, 8_000_000, 25_000);
     } catch (bodyError) {
       const code = fetchFailureCode(bodyError);
-      return NextResponse.json({ error: scanError.fetch, code, recovery }, { status: 502 });
+      return NextResponse.json({ error: fetchFailureMessage(code, scanLanguage, (Date.now() - started) / 1000) || scanError.fetch, code, recovery, charged: false }, { status: 502 });
     }
     if (!html || html.length < 20) {
       return NextResponse.json({ error: scanError.html, code: "EMPTY_HTML", recovery }, { status: 422 });
@@ -867,6 +867,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     let javascriptExecuted = Boolean(recoveredHtml);
     let renderElapsedMs: number | null = recoveredRenderElapsedMs;
     let renderFallbackReason: string | null = recovery.reason;
+    let renderFailureDetailText: string | null = null;
     let rejectedBrowserSnapshot: {rawWords:number;renderedWords:number;reason:string} | null = null;
     if (javascriptCandidate) {
       try {
@@ -894,6 +895,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       } catch (renderError) {
         // Store a stable code; the raw runtime message stays in the server log only.
         renderFallbackReason = renderFailureCode(renderError);
+        renderFailureDetailText = renderFailureDetail(renderError);
         console.info("RankFix headless fallback", { page: finalUrl.toString(), reason: renderFallbackReason, error: renderError instanceof Error ? renderError.message.slice(0, 200) : String(renderError) });
       }
     }
@@ -4309,6 +4311,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       note: javascriptExecuted ? (jsRenderingNotes[scanLanguage] || jsRenderingNotes.en) : (rawRenderingNotes[scanLanguage] || rawRenderingNotes.en),
       elapsedMs: renderElapsedMs,
       fallbackReason: javascriptCandidate && !javascriptExecuted ? (renderFallbackReason || "RENDER_FAILED") : null,
+      // Diagnostic class of the browser error (no URLs or stack), for TestLab analysis.
+      fallbackDetail: javascriptCandidate && !javascriptExecuted ? renderFailureDetailText : null,
       attempts: primaryRenderAttempts,
       rejectedBrowserSnapshot,
       // The page missed DOMContentLoaded within the budget; its DOM snapshot passed the evidence gate.
@@ -5529,6 +5533,17 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       if (rent) {
         const structured=geoChecks.find(item=>item.key==="schema");
         if (structured && /LocalBusiness/i.test(structured.fix)) structured.fix="Controleer Organization- en WebSite-schema op aantoonbare organisatiedata. LocalBusiness is niet vereist voor een landelijke woningverhuurder.";
+      }
+    }
+    // QA-144 (item 5): refine a generic subtype from the organisation's own homepage
+    // title/description (law firm, architecture studio, museum, veterinary clinic,
+    // charity). The main sector and its confidence stay as decided.
+    {
+      const refined = (isSiteHomepagePath(finalUrl.pathname) || isHomepage) ? refineSubtype({ sector: sectorProfile.sector, key: sectorProfile.key }, { title, description }) : null;
+      if (refined) {
+        sectorProfile.key = refined.key;
+        sectorProfile.label = refined.label;
+        sectorProfile.evidence = [...sectorProfile.evidence, `Subtype uit de eigen titel/omschrijving: ${refined.label}`].slice(0, 6);
       }
     }
     const sectorDisplayPolicy = sectorProfile.confidenceScore >= 80 ? "confirmed" : sectorProfile.confidenceScore >= 60 ? "probable" : "unconfirmed";

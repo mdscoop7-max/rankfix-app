@@ -162,3 +162,26 @@ test("QA-144 energy, fitness and retail identities: supplier needs supply wordin
   assert.equal(sector({ title: "Gymshark Official Store - Gym Clothes & Workout Clothes", description: "Shop gym clothing for the gym." }), null);
   assert.equal(sector({ title: "Basic-Fit | Sportschool in de buurt" }), "fitness_sports");
 });
+
+test("QA-144 messages and diagnostics: specific fetch messages, classified render failures, refined subtypes", async () => {
+  const { fetchFailureMessage } = await import("../lib/access-diagnostics.ts");
+  const { renderFailureCode, renderFailureDetail } = await import("../lib/report-quality.ts");
+  const { refineSubtype } = await import("../lib/site-sector-corroboration.mjs");
+  assert.match(fetchFailureMessage("FETCH_TIMEOUT", "nl", 33), /binnen 33 seconden geen antwoord/);
+  assert.doesNotMatch(fetchFailureMessage("FETCH_TIMEOUT", "nl", 33), /Controleer de URL/);
+  assert.match(fetchFailureMessage("FETCH_TLS", "nl", 1), /HTTPS-certificaat/);
+  assert.match(fetchFailureMessage("FETCH_DNS", "nl", 1), /spelling van de URL/);
+  assert.equal(fetchFailureMessage("SOMETHING_ELSE", "nl", 1), "");
+  assert.equal(renderFailureCode(new Error("Protocol error (Target.createTarget): Target closed")), "BROWSER_CRASHED");
+  assert.equal(renderFailureCode(new Error("net::ERR_HTTP2_PROTOCOL_ERROR at https://x.test")), "RENDER_NETWORK");
+  assert.equal(renderFailureCode(new Error("Navigation timeout of 12000 ms exceeded")), "RENDER_TIMEOUT");
+  assert.equal(renderFailureCode(new Error("weird")), "RENDER_FAILED");
+  const detail = renderFailureDetail(new Error("net::ERR_FAILED at https://secret.test/path?q=1 in /var/task/node_modules/a.js"));
+  assert.ok(detail && !/secret|var\/task/.test(detail), detail);
+  assert.equal(refineSubtype({ sector: "events_culture", key: "events_culture" }, { title: "Rijksmuseum, hét museum van Nederland" })?.key, "museum_culture");
+  assert.equal(refineSubtype({ sector: "professional_services", key: "professional_services" }, { title: "Explore Beyond Architecture | UNS" })?.key, "architecture_design");
+  assert.equal(refineSubtype({ sector: "professional_services", key: "professional_services" }, { title: "Cloud architects for SaaS | CloudCo" }), null);
+  assert.equal(refineSubtype({ sector: "events_culture", key: "events_culture" }, { title: "Museum shop | Gifts" }), null);
+  assert.equal(refineSubtype({ sector: "transport_travel", key: "transport_travel" }, { title: "Rijksmuseum" }), null, "never changes the sector");
+  assert.equal(refineSubtype({ sector: "professional_services", key: "legal" }, { title: "Architects" }), null, "keeps an already specific subtype");
+});

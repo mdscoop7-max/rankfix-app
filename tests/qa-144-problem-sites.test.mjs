@@ -33,6 +33,9 @@ const CASES = [
   { host: "fosterandpartners.com", before: "unknown (59, 1 of 3 pages)", sector: "professional_services", key: "architecture_design" },
   { host: "uefa.com", before: "unknown", sector: "sports_organizations" },
   { host: "prezero.nl", before: "unknown", sector: "waste_recycling" },
+  // Subtype refinement (item 5): right sector, generic subtype before.
+  { host: "rijksmuseum.nl", before: "events_culture/events_culture", sector: "events_culture", key: "museum_culture" },
+  { host: "unstudio.com", before: "professional_services/professional_services", sector: "professional_services", key: "architecture_design" },
   { host: "remondis.com", before: "unknown, scored 59 on a 'Challenge Validation' page", sector: "no_report" },
 ];
 

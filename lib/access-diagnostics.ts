@@ -123,3 +123,46 @@ function normalize(value: string): string {
     return value;
   }
 }
+
+/**
+ * QA-144: the customer-facing message for a failed fetch names what actually
+ * happened. "Check the URL" was shown for time-outs and certificate errors of
+ * correct, existing URLs (ING, PostNL, KLM, ABB, Center Parcs), which is wrong.
+ */
+export function fetchFailureMessage(code: string, language: string, seconds: number): string {
+  const s = Math.max(1, Math.round(seconds));
+  const m: Record<string, Record<string, string>> = {
+    FETCH_TIMEOUT: {
+      nl: `Scan niet mogelijk: de website gaf binnen ${s} seconden geen antwoord aan de RankFix-scanner, ook niet na een tweede poging. De URL is niet per se fout: dit gebeurt bij overbelasting of wanneer een beveiliging onbekende scanners stil laat wachten. Er is geen score berekend. Probeer later opnieuw of laat RankFixBot toe.`,
+      en: `Scan not possible: the website did not answer the RankFix scanner within ${s} seconds, also not on a second attempt. The URL is not necessarily wrong: this happens under load or when security lets unknown scanners wait silently. No score was calculated.`,
+      de: `Scan nicht möglich: Die Website hat dem RankFix-Scanner innerhalb von ${s} Sekunden nicht geantwortet, auch nicht beim zweiten Versuch. Die URL ist nicht unbedingt falsch. Es wurde kein Score berechnet.`,
+      fr: `Analyse impossible : le site n'a pas répondu au scanner RankFix en ${s} secondes, même après une seconde tentative. L'URL n'est pas forcément erronée. Aucun score n'a été calculé.`,
+      it: `Scansione non possibile: il sito non ha risposto allo scanner RankFix entro ${s} secondi, nemmeno al secondo tentativo. L'URL non è necessariamente errato. Nessun punteggio calcolato.`,
+      es: `Análisis no posible: el sitio no respondió al escáner de RankFix en ${s} segundos, tampoco en un segundo intento. La URL no es necesariamente incorrecta. No se calculó ninguna puntuación.`,
+    },
+    BODY_TIMEOUT: {
+      nl: "Scan niet mogelijk: de website begon te antwoorden maar leverde de pagina niet binnen de tijdslimiet. Er is geen score berekend. Probeer het later opnieuw.",
+      en: "Scan not possible: the website started to answer but did not deliver the page within the time limit. No score was calculated.",
+    },
+    FETCH_TLS: {
+      nl: "Scan niet mogelijk: de beveiligde verbinding (HTTPS-certificaat) met de website kon niet worden opgezet. Controleer het certificaat en de certificaatketen van de website. Er is geen score berekend.",
+      en: "Scan not possible: the secure connection (HTTPS certificate) to the website could not be established. Check the website's certificate and certificate chain. No score was calculated.",
+      de: "Scan nicht möglich: Die sichere Verbindung (HTTPS-Zertifikat) konnte nicht aufgebaut werden. Prüfe das Zertifikat und die Zertifikatskette. Es wurde kein Score berechnet.",
+      fr: "Analyse impossible : la connexion sécurisée (certificat HTTPS) n'a pas pu être établie. Vérifiez le certificat et sa chaîne. Aucun score n'a été calculé.",
+    },
+    FETCH_CONNECTION: {
+      nl: "Scan niet mogelijk: de website weigerde of verbrak de verbinding met de RankFix-scanner. Er is geen score berekend. Probeer later opnieuw of laat RankFixBot toe.",
+      en: "Scan not possible: the website refused or closed the connection to the RankFix scanner. No score was calculated.",
+    },
+    FETCH_DNS: {
+      nl: "Scan niet mogelijk: de domeinnaam kon niet worden gevonden. Controleer de spelling van de URL.",
+      en: "Scan not possible: the domain name could not be found. Check the spelling of the URL.",
+    },
+    REDIRECT_LOOP: {
+      nl: "Scan niet mogelijk: de website stuurt de scanner in een doorverwijzingslus. Controleer de redirects van deze URL. Er is geen score berekend.",
+      en: "Scan not possible: the website sends the scanner into a redirect loop. Check the redirects of this URL. No score was calculated.",
+    },
+  };
+  const byCode = m[code];
+  return byCode ? (byCode[language] || byCode.en || byCode.nl) : "";
+}

@@ -49,6 +49,8 @@ for (const id of Object.keys(SCEN)) {
     if (j.diagnosis?.attempts !== 2) fail(`diagnosis attempts ${j.diagnosis?.attempts}`);
     if (j.charged !== false) fail("must not be charged");
     if (s > 45) fail(`took ${s}s (limit 45s)`);
+    // QA-144: a time-out of a correct URL must not tell the customer to check the URL.
+    if (/Controleer de URL/.test(j.error || "") || !/geen antwoord/.test(j.error || "")) fail(`message: ${j.error}`);
   }
   if (id === "all-samples-hang") {
     if (res.status !== 200) fail(`HTTP ${res.status} ${j.code}`);
