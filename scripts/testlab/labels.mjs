@@ -6,6 +6,7 @@ const labels={
  energy:['energy_utilities'],telecom:['telecom_technology'],logistics:['transport_travel'],travel:['transport_travel','passenger_transport'],retail:['ecommerce'],software:['saas_b2b'],
  legal_services:['professional_services','legal'],architecture_design:['professional_services','architecture_design'],
  charities_nonprofits:['nonprofit','charities_nonprofits'],museums_culture:['events_culture','museum_culture'],
+ manufacturing:['manufacturing_industrial','brand_manufacturer'],industry:['manufacturing_industrial'],
  recruitment_staffing:['recruitment'],
 };
 // A retail label is also met by a LOCAL retail trade: an optician or pharmacy
