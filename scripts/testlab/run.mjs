@@ -4,6 +4,7 @@ import {readFileSync,writeFileSync,mkdirSync,existsSync,renameSync,openSync,clos
 import {resolve,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {compareSector,failureCategory} from './labels.mjs';
+import {execFileSync} from 'node:child_process';
 const args=process.argv.slice(2);
 const arg=(name,fallback)=>args.includes(name)?args[args.indexOf(name)+1]:fallback;
 const dir=fileURLToPath(new URL('../../tests/fixtures/testlab-96/',import.meta.url));
@@ -18,12 +19,23 @@ const phase=arg('--phase','targeted');
 if(!['targeted','all','new48','lab144'].includes(phase))throw Error('Use --phase targeted, all (legacy 96), new48, or lab144');
 // Existing targeted/all baseline is preserved. The 144-lab is manually started.
 const selected=phase==='all'?legacy:phase==='lab144'?all:phase==='new48'?extra:legacy.filter(s=>s.round.endsWith('-nieuw'));
-const base=process.env.RF_BASE_URL||'https://rankfix-app-git-qa-rankfix-shared-preview-scoop5.vercel.app';
-if(new URL(base).origin!==base||new URL(base).hostname!=='rankfix-app-git-qa-rankfix-shared-preview-scoop5.vercel.app')throw Error('Only the fixed QA preview is allowed');
+// --local explicitly opts into a loopback-only runner. The default remains QA-preview-only.
+const local=args.includes('--local');
+const base=local?(process.env.RF_BASE_URL||'http://localhost:3000'):(process.env.RF_BASE_URL||'https://rankfix-app-git-qa-rankfix-shared-preview-scoop5.vercel.app');
+const origin=new URL(base);
+if(origin.origin!==base||origin.pathname!=='/'||origin.search||origin.hash)throw Error('RF_BASE_URL must be an origin without a path');
+if(local){
+ if(origin.protocol!=='http:'||!['localhost','127.0.0.1','[::1]'].includes(origin.hostname))throw Error('--local permits loopback HTTP only, never a remote host');
+} else if(origin.hostname!=='rankfix-app-git-qa-rankfix-shared-preview-scoop5.vercel.app'||origin.protocol!=='https:')throw Error('Only the fixed QA preview is allowed');
+
 if(!['targeted','all','new48','lab144'].includes(phase))throw Error('Unknown phase');
 if(args.includes('--dry-run')){console.log(JSON.stringify({phase,total:selected.length,uniqueTotal:all.length,base,labels:'proposed_not_independently_verified',sites:selected},null,2));process.exit(0)}
-const sha=process.env.RF_DEPLOYMENT_SHA;
-if(!/^[a-f0-9]{40}$/i.test(sha||''))throw Error('RF_DEPLOYMENT_SHA must be the verified full QA commit');
+const sha=local?execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim():process.env.RF_DEPLOYMENT_SHA;
+if(!/^[a-f0-9]{40}$/i.test(sha||''))throw Error('A verified full QA commit is required');
+if(local){
+ const branch=execFileSync('git',['branch','--show-current'],{encoding:'utf8'}).trim();
+ if(branch!=='qa/rankfix-shared-preview')throw Error('Local TestLab requires the qa/rankfix-shared-preview branch');
+}
 if(!/^[a-f0-9]{64}$/.test(process.env.RF_SESSION||''))throw Error('An authenticated RF_SESSION for the isolated QA tester is required');
 const headers={'content-type':'application/json',cookie:'rankfix_session='+process.env.RF_SESSION,
  ...(process.env.VERCEL_BYPASS?{'x-vercel-protection-bypass':process.env.VERCEL_BYPASS}:{}),
@@ -34,8 +46,8 @@ async function request(path,body,timeout=25000){
  return {status:r.status,data};
 }
 const auth=await request('/api/auth/me');if(auth.status!==200||!auth.data?.user)throw Error('QA authentication not confirmed; no scans started');
-const version=await request('/api/scan/version');if(version.status!==200||version.data?.commitSha!==sha||version.data?.environment!=='preview')throw Error('QA version/environment not confirmed; no scans started');
-const output=resolve(arg('--output',`/tmp/rankfix-testlab-${sha.slice(0,8)}`));mkdirSync(output,{recursive:true});
+const version=await request('/api/scan/version');if(version.status!==200||version.data?.commitSha!==sha||version.data?.environment!==(local?'local':'preview'))throw Error('QA version/environment not confirmed; no scans started');
+const output=resolve(arg('--output',local?join(process.env.LOCALAPPDATA||process.env.TEMP||'.',`rankfix-testlab-${sha.slice(0,8)}`):`/tmp/rankfix-testlab-${sha.slice(0,8)}`));mkdirSync(output,{recursive:true});
 const lock=join(output,'.running.lock');
 const lockFd=openSync(lock,'wx');
 try {
