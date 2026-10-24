@@ -6,7 +6,6 @@ import DashboardNav from "@/app/dashboard/nav";
 type Site={host:string;name:string;country:string;group:string;expected:string;round:string};
 type SiteResult={host:string;status:string;expected:string;sector:string|null;confidence:number|null;score:number|null;seo:number|null;geo:number|null;http:number;reason:string;elapsedMs:number;scanId:string|null;at:string};
 type Catalog={sites:Site[];count:number;runtime:{commitSha:string|null;environment:string}};
-const sleep=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
 const family:Record<string,string>={
  retail:"ecommerce",payments:"financial_services",banking:"financial_services",insurance:"financial_services",
  beauty:"beauty",healthcare:"health_wellness",veterinary_animal_care:"health_wellness",
@@ -45,32 +44,63 @@ export default function TestLab144() {
  const [results,setResults]=useState<SiteResult[]>([]);
  const [running,setRunning]=useState(false);
  const [query,setQuery]=useState("");
- const stop=useRef(false);
+ const [job,setJob]=useState<{id:string;status:string;scope:string;error?:string}|null>(null);
+ const migrationDone=useRef(false);
  const mounted=useRef(true);
  useEffect(()=>{
   mounted.current=true;
-  Promise.all([
-   fetch("/api/testlab/catalog",{cache:"no-store",credentials:"same-origin"}).then(async r=>({ok:r.ok,data:await r.json()})),
-   fetch("/api/scan/version",{cache:"no-store"}).then(r=>r.json()),
-  ]).then(([answer,version])=>{
+  async function sync(){
+   try{
+    const response=await fetch("/api/testlab/jobs",{credentials:"same-origin",cache:"no-store"});
+    if(!response.ok)return;
+    const data=await response.json();
     if(!mounted.current)return;
-    if(!answer.ok || !answer.data?.sites){
-      setError("Alleen een ingelogde interne QA-tester mag het testlab starten. Meld je aan op de QA-website.");
-      setNotice("");return;
+    setResults(Array.isArray(data.results)?data.results:[]);
+    setJob(data.run||null);
+    setRunning(["starting","running"].includes(data.run?.status));
+   }catch{}
+  }
+  async function load(){
+   try{
+    const [catalogResponse,version]=await Promise.all([
+      fetch("/api/testlab/catalog",{cache:"no-store"}),fetch("/api/scan/version",{cache:"no-store"}).then(r=>r.json())
+    ]);
+    const data=await catalogResponse.json();
+    if(!catalogResponse.ok||!Array.isArray(data.sites))throw Error("Alleen de aangemelde interne QA-tester heeft toegang.");
+    if(data.sites.length!==144||version.environment!=="preview"||!version.commitSha||
+       version.commitSha!==data.runtime?.commitSha)throw Error("QA-versie of catalogus kon niet worden bevestigd.");
+    if(!mounted.current)return;
+    setCatalog(data);
+    if(!migrationDone.current){
+     migrationDone.current=true;
+     const entries: {sourceSha:string;rows:SiteResult[]}[]=[];
+     for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i)||"";
+      if(!key.startsWith("rankfix-qa-testlab-144:"))continue;
+      try{
+       const rows=JSON.parse(localStorage.getItem(key)||"[]");
+       if(Array.isArray(rows)&&rows.length)entries.push({sourceSha:key.slice("rankfix-qa-testlab-144:".length),rows:rows.slice(0,144)});
+      }catch{}
+     }
+     if(entries.length){
+      const imported=await fetch("/api/testlab/jobs",{method:"POST",headers:{"Content-Type":"application/json"},
+       body:JSON.stringify({action:"import",entries:entries.slice(0,8)})});
+      if(!imported.ok){
+       setError("Bestaande browserresultaten konden nog niet naar de QA-database worden overgezet. Ze blijven veilig in deze browser; er wordt niets gewist.");
+      }else{
+       const migrated=await imported.json();
+       setNotice("Browserresultaten overgenomen: "+migrated.treated+" opgeslagen in de QA-database. Sluiten van het tabblad stopt toekomstige servertests niet.");
+      }
+     }else setNotice("Klaar. De server houdt de resultaten bij, ook wanneer je laptop uitstaat.");
     }
-    const next=answer.data as Catalog;
-    if(next.sites.length!==144 || version.environment!=="preview" || !version.commitSha || version.commitSha!==next.runtime.commitSha){
-      setError("QA-versie of catalogus niet betrouwbaar bevestigd. Er worden geen scans gestart.");
-      setNotice("");return;
-    }
-    setCatalog(next);
-    const stored=localStorage.getItem(storageKey(version.commitSha));
-    if(stored){try{const list=JSON.parse(stored);
-      if(Array.isArray(list))setResults(list.filter((r:SiteResult)=>next.sites.some(s=>s.host===r.host)).slice(0,144));
-    }catch{}}
-    setNotice("Klaar. Start de test handmatig; standaard worden eerst de 48 nieuwe websites geselecteerd.");
-  }).catch(()=>{if(mounted.current){setError("QA-catalogus kon niet worden opgehaald.");setNotice("");}});
-  return()=>{mounted.current=false;stop.current=true;};
+    await sync();
+   }catch(e){
+    if(mounted.current){setError(e instanceof Error?e.message:"QA-verbinding mislukt");setNotice("");}
+   }
+  }
+  void load();
+  const timer=window.setInterval(()=>void sync(),5000);
+  return()=>{mounted.current=false;window.clearInterval(timer);};
  },[]);
  const sites=catalog?.sites||[];
  const scoped=useMemo(()=>sites.filter(s=>
@@ -85,56 +115,28 @@ export default function TestLab144() {
  const mismatches=scoped.filter(s=>{const r=byHost.get(s.host);return r?.status==="succes"&&r.sector&&r.sector!==(family[s.expected]||s.expected);}).length;
  const countries=useMemo(()=>[...new Set(sites.map(s=>s.country))].sort(),[sites]);
  const wrongType=(s:Site,r:SiteResult)=>r.status==="succes"&&r.sector!==null&&r.sector!==(family[s.expected]||s.expected);
- const persist=(list:SiteResult[])=>{setResults(list);if(catalog?.runtime.commitSha)localStorage.setItem(storageKey(catalog.runtime.commitSha),JSON.stringify(list));};
  async function start(){
   if(!catalog||running)return;
-  const queue=scoped.filter(s=>!byHost.has(s.host));
-  if(!queue.length){setNotice("Alles in deze selectie is al getest. Kies een andere groep of wis resultaten.");return;}
-  stop.current=false;setRunning(true);setError("");
-  setNotice("Test gestart. Eén website tegelijk, met een pauze tussen scans. Je kunt stoppen na de huidige scan.");
-  let list=[...results];
+  setError("");
+  setNotice("De serverwachtrij wordt gestart…");
   try{
-   for(const site of queue){
-    if(stop.current || !mounted.current)break;
-    const startAt=Date.now();
-    let row:SiteResult;
-    try{
-      // Fail closed if the shared QA alias was redeployed mid-run.
-      const v=await fetch("/api/scan/version",{cache:"no-store"}).then(r=>r.json());
-      if(v.environment!=="preview"||v.commitSha!==catalog.runtime.commitSha){throw new Error("QA_DEPLOYMENT_CHANGED");}
-      const response=await fetch("/api/scan",{
-        method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
-        body:JSON.stringify({url:"https://"+site.host+"/",mode:"both",dashboard:true,language:"nl"})
-      });
-      const data=await response.json();
-      const success=response.ok&&data?.success===true;
-      const code=String(data?.code||data?.errorCode||"");
-      const status=success?"succes":classify(code,response.status);
-      row={host:site.host,status,expected:site.expected,sector:success?(data.sectorProfile?.sector||null):null,
-       confidence:success?(data.sectorProfile?.confidenceScore??null):null,
-       score:success?(data.overallScore??null):null,seo:success?(data.seo?.score??null):null,geo:success?(data.geo?.score??null):null,
-       http:response.status,reason:success?"":code||String(data.error||"Scan niet bevestigd").slice(0,200),
-       elapsedMs:Date.now()-startAt,scanId:success?(data.scanId||null):null,at:new Date().toISOString()};
-    }catch(e){
-      const message=e instanceof Error?e.message:"Netwerk- of scanprobleem";
-      if(message==="QA_DEPLOYMENT_CHANGED"){setError("QA is tijdens de test veranderd. Test veilig gestopt; vernieuw de pagina.");break;}
-      row={host:site.host,status:"netwerkfout",expected:site.expected,sector:null,confidence:null,score:null,seo:null,geo:null,
-       http:0,reason:message.slice(0,180),elapsedMs:Date.now()-startAt,scanId:null,at:new Date().toISOString()};
-    }
-    list=[...list.filter(x=>x.host!==site.host),row];persist(list);
-    setNotice(site.host+" — "+row.status+" • "+list.filter(r=>scoped.some(s=>s.host===r.host)).length+"/"+scoped.length+" getest");
-    if(["quota","login","infrastructuur"].includes(row.status)){
-      setError("QA heeft "+row.status+" gemeld. Test gestopt zonder andere websites als fout te markeren.");break;
-    }
-    if(!stop.current)await sleep(8000);
-   }
-  }finally{if(mounted.current)setRunning(false);}
+   const response=await fetch("/api/testlab/jobs",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({action:"start",scope})});
+   const data=await response.json();
+   if(!response.ok)throw Error(data.detail||data.error||"Test niet gestart.");
+   setResults(data.results||[]);
+   setJob(data.run||null);
+   setRunning(["starting","running"].includes(data.run?.status));
+   setNotice("Servertest gestart. Je kunt deze pagina en je laptop nu sluiten; de QA-workflow gaat zelfstandig verder.");
+  }catch(e){setError(e instanceof Error?e.message:"Serverfout bij het starten.");setRunning(false);}
  }
- function stopAfterCurrent(){stop.current=true;setNotice("Stop aangevraagd: de lopende websitescan wordt eerst afgerond.");}
- function clearResults(){
-  if(running)return;
-  if(!window.confirm("Alle lokaal bewaarde resultaten voor deze QA-versie wissen?"))return;
-  persist([]);setNotice("Resultaten gewist. Test kan opnieuw worden gestart.");
+ async function stopAfterCurrent(){
+  setNotice("Pauze aangevraagd. De lopende website wordt eerst afgerond.");
+  try{
+   const response=await fetch("/api/testlab/jobs",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"pause"})});
+   if(!response.ok)throw Error("Pauzeren mislukt.");
+   const data=await response.json();setResults(data.results||[]);setJob(data.run||null);setRunning(false);
+  }catch{setError("Pauzeren kon niet bevestigd worden. Controleer de serverstatus.");}
  }
  function exportResult(fmt:"json"|"csv"){
   if(!catalog)return;
@@ -167,9 +169,9 @@ export default function TestLab144() {
       <optgroup label="Land">{countries.map(x=><option key={x} value={x}>{x}</option>)}</optgroup>
      </select>
     </label>
-    <button className="rf-lab-primary" type="button" disabled={!catalog||running||!scoped.length} onClick={()=>void start()}>{running?"Test draait…":finished?"Doorgaan met resterende":"Start test"}</button>
-    <button type="button" disabled={!running} onClick={stopAfterCurrent}>Stop na huidige scan</button>
-    <button type="button" disabled={running||!results.length} onClick={clearResults}>Resultaten wissen</button>
+    <button className="rf-lab-primary" type="button" disabled={!catalog||running||!scoped.length} onClick={()=>void start()}>{running?"Server verwerkt websites…":finished?"Hervat resterende":"Start servertest"}</button>
+    <button type="button" disabled={!running} onClick={stopAfterCurrent}>Pauze na huidige scan</button>
+    
    </div>
    <div className="rf-lab-stats">
     <div className="rf-lab-stat"><strong>{scoped.length}</strong><span>In selectie</span></div>
@@ -177,8 +179,8 @@ export default function TestLab144() {
     <div className="rf-lab-stat"><strong>{passed}</strong><span>Scanrapport ontvangen</span></div>
     <div className="rf-lab-stat"><strong>{mismatches}</strong><span>Mogelijk andere hoofdsector</span></div>
    </div>
-   <div role="status" className={"rf-lab-status"+(error?" rf-lab-error":"")}>{error||notice}</div>
-   <p className="rf-lab-note">Sectorlabels zijn voorlopig en nog niet onafhankelijk gevalideerd. Geblokkeerde sites en technische problemen tellen niet als sectorfout. Resultaten worden lokaal in deze browser bewaard per QA-commit. Sluit het tabblad niet tijdens een actieve test.</p>
+   <div role="status" className={"rf-lab-status"+(error?" rf-lab-error":"")}>{error||notice}{job?.status?" · Serverstatus: "+job.status:""}</div>
+   <p className="rf-lab-note">Sectorlabels zijn voorlopig en nog niet onafhankelijk gevalideerd. Geblokkeerde sites en technische problemen tellen niet als sectorfout. Resultaten worden opgeslagen in de QA-database. Een gestart serverproces loopt door als je het tabblad sluit.</p>
    <div className="rf-lab-controls"><button type="button" disabled={!catalog} onClick={()=>exportResult("csv")}>Exporteer CSV</button><button type="button" disabled={!catalog} onClick={()=>exportResult("json")}>Exporteer JSON</button></div>
   </section>
   <section className="rf-lab-panel">

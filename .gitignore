@@ -42,3 +42,5 @@ next-env.d.ts
 
 # Puppeteer browser download (see .puppeteerrc.cjs)
 /.cache
+
+.workflow-data/
