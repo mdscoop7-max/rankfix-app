@@ -18,6 +18,26 @@ const SITES = {
       "/shop/uitshirt-2026": productPage("Uitshirt 2026", "94.95"),
     },
   },
+  // Live QA scan a5cf4634 (24 Oct, QA 5da81ee): the federation homepage itself has
+  // no price, cart, checkout or product, no shop page was sampled, yet the site was
+  // "ecommerce 88". Generic trigger: a "Shop" navigation word plus two CMS
+  // /categorie/ paths and one customer-service link counted as a client-rendered
+  // storefront. Reconstructed with a neutral host; no shop page exists here.
+  "bondsite.test": {
+    expect: { notSector: ["ecommerce"], sector: ["sports_organizations", "unknown"], notCommerce: ["confirmed"] },
+    pages: {
+      "/": doc({ title: "Bondsite.nl: De officiële website van de Koninklijke Nederlandse Voetbalbond | Bondsite", description: "Met het laatste nieuws vanuit het amateur- en betaald voetbal. Biedt ondersteuning aan vrijwilligers op het kennisplatform.", body: `<a href="/node/categorie/betaald-voetbal">Betaald voetbal</a> <a href="/node/categorie/amateurvoetbal">Amateurvoetbal</a> <a href="/node/categorie/oranje">Oranje</a> <a href="/over-ons/contact/klantenservice">Klantenservice</a>` + filler("Nieuws over competities, clubs, scheidsrechters en wedstrijden in het amateurvoetbal en betaald voetbal.") }),
+      "/over-ons": doc({ title: "Over de bond | Bondsite", description: "De Koninklijke Nederlandse Voetbalbond organiseert de competities voor amateur- en betaald voetbal.", h1: ["Over de bond"], body: filler("De voetbalbond organiseert competities en ondersteunt clubs en vrijwilligers.") }),
+    },
+  },
+  // A genuine shop whose prices and cart are client-rendered keeps its sector when
+  // it presents itself as a shop (own description + OnlineStore schema).
+  "modehuis.test": {
+    expect: { sector: ["ecommerce"] },
+    pages: {
+      "/": doc({ title: "Modehuis | Online kledingwinkel voor dames en heren", description: "Shop dameskleding en herenkleding online. Gratis verzending en retourneren binnen 30 dagen.", h1: ["Nieuwe collectie"], schema: ["OnlineStore"], body: `<a href="/categorie/dames">Dames</a> <a href="/categorie/heren">Heren</a> <a href="/klantenservice/retourneren">Retourneren</a> <a href="/klantenservice/verzending">Verzending</a> <a href="/winkelwagen">Winkelwagen</a>` + filler("Ontdek de nieuwe collectie jassen, truien en jeans.") }),
+    },
+  },
   "hulpkruis.test": {
     expect: { notSector: ["ecommerce"] },
     pages: {
@@ -67,6 +87,7 @@ for (const [host, site] of Object.entries(SITES)) {
   if (res.status !== 200) { problems.push(`${host}: HTTP ${res.status} ${j.code}`); continue; }
   if (site.expect.notSector?.includes(sp.sector)) problems.push(`${host}: primary sector ${sp.sector} (${sp.confidenceScore})`);
   if (site.expect.sector && !site.expect.sector.includes(sp.sector)) problems.push(`${host}: sector ${sp.sector}, expected ${site.expect.sector.join("|")}`);
+  if (site.expect.notCommerce?.includes(j.commerceApplicability?.state)) problems.push(`${host}: webshop functionality ${j.commerceApplicability?.state} without any shop evidence`);
 }
 for (const r of rows) console.log(`${r.host.padEnd(20)} ${String(r.sector).padEnd(22)} ${String(r.confidence).padEnd(4)} secondary=${r.secondary.join(",") || "-"} commerce=${r.commerce}`);
 for (const p of problems) console.log(" - " + p);
