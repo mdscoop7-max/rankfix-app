@@ -372,12 +372,25 @@ const CULTURE_SUPPORT = stems(["exposit", "exhibit", "ausstellung", "mostr", "ex
 // hoteles, aerolíneas y bancos", "software for banks", "advies voor ziekenhuizen".
 const ORG_PLURAL = "(?:versicherungen|versicherer|insurance companies|assurances|assicurazioni|aseguradoras|seguradoras|hotels|hoteles|hôtels|alberghi|aerolíneas|airlines|compagnies aériennes|compagnie aeree|fluggesellschaften|luchtvaartmaatschappijen|banks|banken|bancos|banques|banche|ziekenhuizen|hospitals|hôpitaux|ospedali|hospitales|krankenhäuser|universities|universiteiten|universités|universidades|scholen|schools|gemeenten|municipalities|overheden|governments|webshops|retailers|winkels|tiendas|negozi|bedrijven|companies|empresas|entreprises|aziende|unternehmen|klanten|clients|kunden|clientes|clienti|vervoerders|carriers|verzekeraars|insurers|media|uitgevers|publishers|financial services|financial institutions|financiële instellingen|finanzinstitute|institutions financières"
   + "|apotheken|apotheke|pharmacies|farmacie|farmacias|studi medici|arztpraxen|artsenpraktijken|cabinets médicaux|consultorios|restaurants|ristoranti|restaurantes|hotellerie|gastronomie|negozi|commercianti|händler|merchants|commerçants|comerciantes|professionisti|professionals|freiberufler|freelancers|zzp'ers|artisans|handwerker|ambachtslieden|dienstleister|dienstverleners|prestataires|liberi professionisti|e-commerce-händler|onlinehändler"
+  // Local trades as customers: "software for salons", "voor kappers", "pour les opticiens".
+  + "|salons|kapsalons|kappers|hairdressers|barbers|friseure|friseursalons|coiffeurs|salons de coiffure|peluquerías|peluquerias|parrucchieri|opticiens|opticians|optiker|ópticas|opticas|ottici|bakkerijen|bakeries|bäckereien|boulangeries|panaderías|cafés|cafes|bars|beauty salons|schoonheidssalons|horecaondernemers|hoteliers|restaurateurs"
   // Industries served: "Payment für Handel und Mobilität", "software voor de zorg",
   // "solutions pour le transport". The provider names its customers' industry.
   + "|transport|transportbranche|logistik|logistics|logistiek|logistique|logistica|mobilität|mobility|mobiliteit|mobilité|mobilità|handel|einzelhandel|retail|detailhandel|commerce|hotellerie|hospitality|gastronomie|horeca|healthcare|gesundheitswesen|zorg|santé|industrie|industry|industries|tourismus|tourism|toerisme|tourisme|travel|reisebranche|e-commerce|ecommerce|onlinehandel|automotive|autohandel|bouw|construction)";
 const AUDIENCE = new RegExp(`(?<![\\p{L}])(?:for|voor|für|pour|per|para|dla|pro|för|til|για|за)\\s+[^.|–—:;!?]{0,40}?(?<![\\p{L}])${ORG_PLURAL}(?![\\p{L}])[^.|–—:;!?]{0,60}`, "giu");
 export function stripAudience(text: string): string {
   return String(text || "").replace(AUDIENCE, " ");
+}
+
+// A product named after its market ("hotel booking engine", "salon software",
+// "restaurant equipment", "kappersbenodigdheden") is made FOR that market; the
+// market word is not the organisation's own trade.
+const MARKET_PRODUCT = /(?<![\p{L}])[\p{L}-]+\s+(?:booking engine|channel manager|software|platform|pms|pos|crm|kassa\p{L}*|apparatuur|equipment|supplies|benodigdheden|groothandel|wholesale|marketing|websites?|furniture|meubilair)(?![\p{L}])/giu;
+// "For your hotel", "voor jouw salon", "pour votre restaurant": the reader's
+// business, i.e. the customer, never the writer's own trade.
+const YOUR_BUSINESS = /(?<![\p{L}])(?:for|voor|für|pour|para|per)\s+(?:your|je|jouw|uw|ihr(?:en|em|e)?|dein(?:en|em|e)?|votre|vos|ton|ta|tes|tu|tus|su|sus|il tuo|la tua|i tuoi|le tue|il vostro|la vostra)\s+[\p{L}-]+/giu;
+export function stripMarketMentions(text: string): string {
+  return stripAudience(text).replace(MARKET_PRODUCT, " ").replace(YOUR_BUSINESS, " ");
 }
 
 /** Blogs, magazines, guides and comparison sites write ABOUT a sector. */

@@ -1,6 +1,6 @@
 import { scanRuntime } from "@/lib/scan-runtime";
 import { sectorPageEvidence, scanCoverageDimensions, isAudiencePagePath } from "@/lib/sector-page-evidence";
-import { corroborateDeclaredIndustry, detectDeclaredIndustry, refineSubtype } from "@/lib/site-sector-corroboration.mjs";
+import { LOCAL_TRADE_KEYS, corroborateDeclaredIndustry, detectDeclaredIndustry, refineSubtype } from "@/lib/site-sector-corroboration.mjs";
 import { decideCommerceModules } from "@/lib/sector-motor-decisions";
 import { NextResponse } from "next/server";
 import { createHash, randomUUID } from "crypto";
@@ -53,8 +53,9 @@ import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
 import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, telecomOperatorIdentity, newsMediaIdentity } from "@/lib/sector-identity";
 import { detectPrimaryBusinessIdentity, isSiteHomepagePath } from "@/lib/primary-business-identity";
-import { detectEuPrimaryIdentity, isConsentHeading, retailSelfDescription, stripAudience } from "@/lib/eu-identity";
+import { detectEuPrimaryIdentity, isConsentHeading, retailSelfDescription, stripAudience, stripMarketMentions } from "@/lib/eu-identity";
 import { enforceReportConsistency } from "@/lib/report-consistency";
+import { decideSalesChannel } from "@/lib/sales-channel";
 import { measureWebsiteSpeed, speedNotMeasured } from "@/lib/pagespeed";
 
 export const maxDuration = 300;
@@ -1999,14 +2000,16 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const titleSegments = title.split(/\s*[|–—:]\s*|\s+-\s+/).map((part) => part.trim()).filter(Boolean);
     const brandTitle = titleSegments.filter(isBrandSegment).join(" ");
     const brandlessTitle = titleSegments.filter((part) => !isBrandSegment(part)).join(" ");
-    const anchorIdentitySource = [brandlessTitle, description, h1s.join(" "), finalUrl.hostname, finalUrl.pathname, isTourismBoardHost(finalUrl.hostname) ? "toerisme" : ""].join(" ");
-    const descriptionAndHeadings = [description, h1s.join(" ")].join(" ");
+    // Market mentions ("software for hotels", "hotel booking engine") name the
+    // customers or a product made for them, never the organisation's own trade.
+    const anchorIdentitySource = stripMarketMentions([brandlessTitle, description, h1s.join(" "), finalUrl.hostname, finalUrl.pathname, isTourismBoardHost(finalUrl.hostname) ? "toerisme" : ""].join(" | "));
+    const descriptionAndHeadings = stripMarketMentions([description, h1s.join(" ")].join(" | "));
     const legacyAnchored = (patterns: RegExp[]) => Boolean(patterns[0]?.test(anchorIdentitySource)
-      || (brandTitle && patterns[0]?.test(brandTitle) && (patterns[0]?.test(descriptionAndHeadings) || patterns[1]?.test(descriptionAndHeadings))));
+      || (brandTitle && patterns[0]?.test(stripMarketMentions(brandTitle)) && (patterns[0]?.test(descriptionAndHeadings) || patterns[1]?.test(descriptionAndHeadings))));
     // Anchored in the organisation's own title or description (not only in one of
     // several H1s such as project or campaign headings): only then may a keyword
     // decision be presented as confirmed.
-    const legacyAnchoredInMeta = (patterns: RegExp[]) => Boolean(patterns[0]?.test([brandlessTitle, description].join(" ")));
+    const legacyAnchoredInMeta = (patterns: RegExp[]) => Boolean(patterns[0]?.test(stripMarketMentions([brandlessTitle, description].join(" | "))));
     // The homepage's own declaration of a specific activity (law firm, airport,
     // architecture practice, cybersecurity, car rental...) in two independent
     // fields or in its self-description sentence. Outranks loose keywords.
@@ -2183,6 +2186,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const DECLARED_REFINES: Record<string, string[]> = {
       airports:["transport_travel"], maritime_ports:["transport_travel"], cybersecurity:["saas_b2b","telecom_technology"],
       professional_services:["professional_services"], events_culture:["events_culture"], health_wellness:["health_wellness"], nonprofit:["nonprofit"], automotive:["automotive"],
+      // A local trade (hotel, restaurant, hair salon, optician...) refines a
+      // generic keyword decision of the same broad sector.
+      hospitality:["hospitality"], beauty:["beauty"], food_local_retail:["food_local_retail"], real_estate:["real_estate"],
     };
     const baseIsEuGeneric = Boolean(baseMasterIdentity && euGenericIdentityApplies && euPrimaryIdentity && baseMasterIdentity.sector === euPrimaryIdentity.sector && baseMasterIdentity.key === euPrimaryIdentity.key);
     const declaredIdentityApplies = Boolean(homepageDeclared && (
@@ -2190,8 +2196,15 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       || (baseIsEuGeneric && euPrimaryIdentity?.confidence === "medium")
       || ((DECLARED_REFINES[homepageDeclared.sector] || []).includes(baseMasterIdentity.sector) && baseMasterIdentity.key !== homepageDeclared.key)
     ));
+    // The declaration agrees with an identity already established for the same
+    // broad sector (a dedicated rule or an anchored keyword decision): it refines
+    // the subtype, and the two independent rules together keep that certainty.
+    const declaredAgreeingScore = homepageDeclared ? Math.max(
+      baseMasterIdentity && baseMasterIdentity.sector === homepageDeclared.sector ? (baseMasterIdentity.confidenceScore ?? 90) : 0,
+      strongSectorCandidate && sectorCandidates[0].sector === homepageDeclared.sector && legacyAnchoredInMeta(sectorSignals.find((item)=>item.sector===sectorCandidates[0].sector)?.patterns || []) ? (sectorCandidates[0].hits >= 3 ? 95 : 90) : 0,
+    ) : 0;
     const masterIdentityOverride: {sector:SectorKey;key:string;label:string;evidence:string[];confidence?:"high"|"medium";confidenceScore?:number} | null = declaredIdentityApplies && homepageDeclared
-      ? {sector:homepageDeclared.sector as SectorKey,key:homepageDeclared.key,label:homepageDeclared.label,confidence:"medium",confidenceScore:76,
+      ? {sector:homepageDeclared.sector as SectorKey,key:homepageDeclared.key,label:homepageDeclared.label,confidence:declaredAgreeingScore >= 80 ? "high" : "medium",confidenceScore:Math.max(76, declaredAgreeingScore),
           evidence:[`Eigen bedrijfsomschrijving op de homepage: ${homepageDeclared.label}`, ...(baseMasterIdentity ? [`Specifieker dan de algemene identiteit: ${baseMasterIdentity.label}`] : [])]}
       : baseMasterIdentity;
     // Primary identity outranks generic commerce capability. A dealer, hotel,
@@ -2230,13 +2243,17 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // or an anchored keyword candidate) stays primary unless the site itself says
     // it is a shop: a webshop, ticket sale, reservation or donation form is then a
     // channel of that organisation, not its sector.
+    // A local trade the homepage declares for itself (optician, pharmacy, salon,
+    // hotel, restaurant, bakery) sells through shops, salons or venues; its own
+    // webshop, online ordering or booking is a sales channel of that trade.
+    const localTradeIdentity = Boolean(masterIdentityOverride && LOCAL_TRADE_KEYS.has(masterIdentityOverride.key));
     const nonRetailIdentityKnown = Boolean((masterIdentityOverride && masterIdentityOverride.sector !== "ecommerce")
       || (strongSectorCandidate && sectorCandidates[0].sector !== "ecommerce"));
     const retailPrimaryIdentity = retailPurchaseEvidence
       && primaryBusinessEvidence.sector !== "financial_services"
       && (storefrontIdentity || !nonRetailIdentityKnown)
       && !telecomProviderIdentity && !shortStayIdentity && !realEstateIdentity && !automotiveServiceIdentity
-      && !beautyServiceIdentity && !explicitMedicalIdentity && !transportBookingIdentity
+      && !beautyServiceIdentity && !explicitMedicalIdentity && !transportBookingIdentity && !localTradeIdentity
       // A multilingual non-retail identity (bank, carrier, post, government...)
       // means a cart, voucher shop or ticket checkout is a capability, not the sector.
       // A navigation-only (medium) identity also wins over a cart, unless the page
@@ -2301,7 +2318,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       || schemaSet.has("restaurant") || schemaSet.has("foodestablishment")
       // The homepage's own two-field declaration of a restaurant ("biljartcafé ...
       // biefstuk en gerechten") is independent restaurant identity evidence.
-      || Boolean(declaredIdentityApplies && homepageDeclared?.key === "restaurant");
+      // The homepage's own multilingual declaration of a restaurant or hotel
+      // (ristorante, hôtel, Gasthaus, restaurante...) is the same kind of evidence.
+      || Boolean(declaredIdentityApplies && homepageDeclared?.sector === "hospitality");
     if (sectorProfile.sector === "hospitality" && primaryBusinessEvidence.sector !== "hospitality" && !restaurantIdentityEvidence) {
       sectorProfile.sector = "unknown";
       sectorProfile.key = "unknown";
@@ -5522,7 +5541,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // Re-run only clearly contradicted/underspecified primary identity decisions
     // with representative evidence. Secondary topics can never override a strong
     // primary sector. This fixes recruitment text on hotel sites without hardcoding brands.
-    if (!masterIdentityOverride && !finalCommerceDecision.confirmed && multiPageCapabilities.hospitality && (sectorProfile.key==="recruitment" || sectorProfile.key==="unknown") && /\b(?:hotel|accommodatie|overnachten|overnachting|kamers|lodging)\b/i.test(sectorIdentitySource)) {
+    if (!masterIdentityOverride && !finalCommerceDecision.confirmed && multiPageCapabilities.hospitality && (sectorProfile.key==="recruitment" || sectorProfile.key==="unknown") && /\b(?:hotel|accommodatie|overnachten|overnachting|kamers|lodging)\b/i.test(stripMarketMentions(sectorIdentitySource))) {
       sectorProfile.sector = "hospitality";
       sectorProfile.key = "hospitality";
       sectorProfile.label = "Hotels & hospitality";
@@ -5881,9 +5900,27 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       Object.assign(sectorProfile, {
         secondaryActivities: secondary,
         businessModelMix: secondary.length ? "mixed" : "single",
-        // Honest status of the primary decision: "confirmed" needs high certainty.
-        decisionStatus: sectorProfile.sector === "unknown" ? "unconfirmed" : sectorProfile.confidenceScore >= 75 ? "confirmed" : "probable",
+        // Honest status of the primary decision, on the same thresholds as
+        // masterEvidence.primarySector.displayPolicy: "confirmed" needs ≥ 80
+        // (e.g. homepage plus own pages, or two independent rules agreeing); a
+        // homepage-only declaration (76) is "probable".
+        decisionStatus: sectorProfile.sector === "unknown" || sectorProfile.confidenceScore < 60 ? "unconfirmed" : sectorProfile.confidenceScore >= 80 ? "confirmed" : "probable",
       });
+      // How the primary activity reaches customers: physical shop, service on
+      // location, webshop, or both. Descriptive; never changes sector or score.
+      const onlineSalesConfirmed = Boolean(finalCommerceDecision.confirmed || secondary.some((item) => item.sector === "ecommerce"));
+      const salesChannel = sectorProfile.sector === "unknown" ? null : decideSalesChannel({
+        sector: sectorProfile.sector, key: sectorProfile.key,
+        navLabels: [...identityNavLabels, ...allUniqueInternalAnchors.map((item) => item.context || "")].filter(Boolean).slice(0, 240),
+        internalPaths: [...allUniqueInternalAnchors.map((item) => item.url), ...reportedMultiPageAudits.map((item) => item.url)].flatMap((url) => { try { return [new URL(url).pathname]; } catch { return []; } }).slice(0, 300),
+        identityText: [title, description, identityH1s.join(" ")].join(" | "),
+        schemaTypes,
+        hasAddress: Boolean(scanEvidence.organization.address.value && scanEvidence.organization.address.confidence !== "low"),
+        hasOpeningHours: Boolean(scanEvidence.organization.openingHours.value && scanEvidence.organization.openingHours.confidence !== "low"),
+        onlineSalesConfirmed,
+        onlineSalesEvidence: secondary.find((item) => item.sector === "ecommerce")?.evidence,
+      });
+      Object.assign(sectorProfile, { salesChannel });
     }
 
     // Evidence Engine final applicability gate.

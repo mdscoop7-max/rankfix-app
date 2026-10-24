@@ -8,9 +8,15 @@ const labels={
  charities_nonprofits:['nonprofit','charities_nonprofits'],museums_culture:['events_culture','museum_culture'],
  recruitment_staffing:['recruitment'],
 };
+// A retail label is also met by a LOCAL retail trade: an optician or pharmacy
+// sells goods over the counter (and often online) as part of its own trade, a
+// bakery is local food retail. These are reported in their own family; the
+// TestLab broad label "retail" must not count them as wrong.
+const alsoCompatible={retail:[['health_wellness','optician'],['health_wellness','pharmacy'],['food_local_retail',null]]};
 export function compareSector(expected,profile={}) {
  const [sector,key]=labels[expected]||[expected];
- return {expected,expectedSector:sector,observed:profile.sector||'unknown',sectorMatch:profile.sector===sector,
+ const compatible=profile.sector===sector||(alsoCompatible[expected]||[]).some(([s,k])=>profile.sector===s&&(!k||profile.key===k));
+ return {expected,expectedSector:sector,observed:profile.sector||'unknown',sectorMatch:compatible,
   expectedSubtype:key||null,observedSubtype:profile.key||profile.subtype||null,
   subtypeMatch:key?profile.key===key:null,labelStatus:'proposed_not_independently_verified'};
 }
