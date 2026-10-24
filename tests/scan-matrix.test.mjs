@@ -158,3 +158,20 @@ test("QA 144: blocked homepage → incident + alternative start; accessible subp
   assert.equal(r.total, 2);
   assert.equal(r.failed, 0, r.log);
 });
+
+test("QA 144: sector failure classes (hospitality group ≠ beauty, careers site ≠ transport, supermarkets, compound bank brand) with negative controls", () => {
+  const r = run("run-local-business.mjs", { PROFILES: "qa144" });
+  assert.ok(r.total >= 11, `profiles missing: ${r.total}`);
+  assert.equal(r.failed, 0, r.log);
+});
+
+test("QA 144: proven problems on other sampled pages reach the advice list; high score carries a caution", () => {
+  const r = run("run-sitewide-issues.mjs");
+  assert.equal(r.failed, 0, r.log);
+});
+
+test("QA 144: product data stays bound to the entered page (no sibling SKU), ambiguous products are not merged", () => {
+  const r = run("run-product-provenance.mjs");
+  assert.equal(r.total, 2);
+  assert.equal(r.failed, 0, r.log);
+});

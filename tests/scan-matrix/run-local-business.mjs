@@ -1,7 +1,10 @@
 // Runs the local-business sector profiles through the REAL /api/scan route
 // (no network, no browser) and checks sector, subtype, sales channel and
 // abstention. Prints a table and SCAN_MATRIX_RESULT for the test harness.
-import { LOCAL_SITES } from "./local-business-profiles.mjs";
+// PROFILES=qa144 runs the QA 144 sector-class profiles instead (same checks).
+const LOCAL_SITES = process.env.PROFILES === "qa144"
+  ? (await import("./qa144-sector-profiles.mjs")).QA144_SITES
+  : (await import("./local-business-profiles.mjs")).LOCAL_SITES;
 const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 globalThis.fetch = async (input) => {
   const u = new URL(typeof input === "string" ? input : input.url);
@@ -20,7 +23,7 @@ const rows = [];
 const problems = [];
 for (const [host, site] of Object.entries(LOCAL_SITES)) {
   if (only && !only.has(host)) continue;
-  const res = await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: `https://${host}/`, mode: "both", language: "nl" }) }));
+  const res = await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: `https://${host}${site.startPath || "/"}`, mode: "both", language: "nl" }) }));
   const j = await res.json();
   const sp = j.sectorProfile || {};
   const row = { host, group: site.group, status: res.status, sector: sp.sector, key: sp.key, label: sp.label, confidence: sp.confidenceScore, decision: sp.decisionStatus, channel: sp.salesChannel?.channel ?? null, secondary: (sp.secondaryActivities || []).map((a) => a.sector), commerce: j.commerceApplicability?.state, evidence: (sp.evidence || []).slice(0, 3), selfCheck: j.selfCheck?.corrections?.length || 0 };

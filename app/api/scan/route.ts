@@ -7,6 +7,10 @@ import { createHash, randomUUID } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { attachScanIncident, createScanTrace, type ScanTrace } from "@/lib/scan-incident";
 import { summarizeSiteAccess } from "@/lib/site-access";
+import { careersSiteIdentity } from "@/lib/careers-identity";
+import { buildSitewideIssues } from "@/lib/sitewide-issues";
+import { buildScoreScope } from "@/lib/score-scope";
+import { selectPageProduct } from "@/lib/product-provenance";
 import { resolveScanUser } from "@/lib/scan-session";
 import { databaseFailureCode, databaseFailureDetail, getDb, withDbRetry } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
@@ -1968,7 +1972,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\b(advocaat|advocaten(?:kantoor)?|accountant|accountants(?:kantoor)?|boekhouder|boekhouding|belastingadvi(?:es|seur|seurs)|administratiekantoor|consultant|notaris|law firm|legalservice|legal services|accounting|consultancy|tax advi(?:ce|sor)|steuerberat(?:er|ung)|expert-comptable|commercialista)\b/i,/\b(diensten|expertise|advies|consult)\b/i],modules:["core_seo","geo","local","lead_conversion","professional_services"]},
       {sector:"hospitality",label:"Horeca",patterns:[/\b(restaurant|cafe|café|hotel|brasserie|bistro|reserveren|reservation|restaurantmenu|menukaart)\b/i,/\b(openingstijden|opening hours|tafel reserveren)\b/i],modules:["core_seo","geo","local","lead_conversion","hospitality"]},
       {sector:"health_wellness",label:"Zorg & Gezondheid",patterns:[/\b(kliniek|clinic|ziekenhuis|ziekenhuizen|hospital|krankenhaus|klinikum|hôpital|ospedale|medisch centrum|universitair medisch centrum|university medical cent(?:er|re)|(?:fysio|physio)therap\w*|osteopa\w*|chiropract\w*|huisarts\w*|psycholo\w*|logoped\w*|podotherap\w*|verloskund\w*|orthodont\w*|mondhygi\w*|tandarts|dentist|medicalclinic|physician|mondzorg|acupunctuur|acupuncture|acupuncturist|therapeut|therapist|therapie|therapy|tuina)\b/i,/\b(afspraak|appointment|behandeling|behandelingen|treatment|treatments|patient|patiënt|praktijk|practice)\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
-      {sector:"beauty",label:"Beauty & Verzorging",patterns:[/\b(kapper|hairdresser|hairsalon|hair salon|hairstyling|beauty salon|beautysalon|schoonheidssalon|nagelsalon|nail salon|barber|day spa|dayspa|city spa|wellness|manicure|pedicure|facial|gezichtsbehandeling)\b/i,/\b(afspraak|appointment|salons?|knippen|haar|hair|spa|wellness|manicure|pedicure|beauty treatment|beauty treatments)\b/i],modules:["core_seo","geo","local","lead_conversion","beauty"]},
+      {sector:"beauty",label:"Beauty & Verzorging",patterns:[/\b(kapper|hairdresser|hairsalon|hair salon|hairstyling|beauty salon|beautysalon|schoonheidssalon|nagelsalon|nail salon|barber|day spa|dayspa|city spa|manicure|pedicure|gezichtsbehandeling)\b/i,/\b(afspraak|appointment|salons?|knippen|haar|hair|spa|wellness|manicure|pedicure|beauty treatment|beauty treatments)\b/i],modules:["core_seo","geo","local","lead_conversion","beauty"]},
       {sector:"recruitment",label:"Recruitment & Werk",patterns:[/\b(recruitment|uitzendbureau|uitzendorganisatie|employment agency|staffing agency|staffing|werving en selectie|recruitmentbureau|recruitment agency)\b/i,/\b(werkgevers?|kandidaten?|talent acquisition|detachering|interim professionals?|recruiter)\b/i],modules:["core_seo","geo","lead_conversion","recruitment"]},
       {sector:"government",label:"Overheid & Publieke sector",patterns:[/\b(gemeente|municipality|overheid|government|rijksoverheid|ministry|ministerie|public service|stadhuis|burgerzaken)\b/i,/\b(digid|vergunning|paspoort|loket|inwoners|wetgeving|beleid|minister|cabinet)\b/i],modules:["core_seo","geo","government"]},
       {sector:"transport_travel",label:"Transport & Logistiek",patterns:[/(?:\b(logistiek|logistics|transportbedrijf|transport company|wegtransport|road transport|freight|vrachtvervoer|distributie|distribution|expeditie|forwarding|koerier|courier|spoorweg|railway|railways|train operator|national railway|nationale? vervoerder|airline|luchtvaartmaatschappij|public transport|openbaar vervoer|ferroviaria|železnice|željeznice|dráhy|intercity|prijevoz|putnički|vlak)\b|hellenic\s+train|cyprus\s+airways|σιδηρόδρομ|τρένο)/iu,/(?:\b(zending|shipments?|warehousing|opslag|supply chain|groupage|pallets?|containers?|internationaal transport|international transport|tickets?|billet|fahrplan|timetable|dienstregeling|journey planner|vluchten?|flights?|destinations?|reizen|travel|utazás|dopravca|vozni red|karta|karte)\b|δρομολόγ|εισιτήρ|πτήσ)/iu],modules:["core_seo","geo","technical","local","lead_conversion","transport_travel"]},
@@ -2171,7 +2175,16 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const realEstateIdentity = Boolean(!shortStayIdentity && scanEvidence.inventory.properties.value && scanEvidence.inventory.properties.confidence !== "low" && (/\/(?:woningaanbod|residential-listings|properties?|real-estate)(?:\/|$)/i.test(finalUrl.pathname) || /\b(?:makelaar|woningaanbod|te koop|te huur|for sale|for rent|real estate)\b/i.test(sectorIdentitySource)));
     const automotiveServiceIdentity = Boolean(/\b(?:apk|autobanden|banden|uitlijnen|autowerkplaats|autoservice|auto-onderhoud|car repair|tyres?)\b/i.test(sectorIdentitySource) || schemaSet.has("autorepair"));
     const explicitMedicalIdentity = /\b(?:tandarts|dentist|kliniek|clinic|medical|medicalclinic|(?:fysio|physio)therap\w*|osteopa\w*|chiropract\w*|huisarts\w*|psycholo\w*|logoped\w*|podotherap\w*|verloskund\w*|orthodont\w*|mondhygi\w*|mondzorg|patient|patiënt|physician|huisarts|doctor)\b/i.test(sectorIdentitySource) || schemaSet.has("dentist") || schemaSet.has("medicalclinic");
-    const beautyServiceIdentity = /\b(?:beauty salon|beautysalon|schoonheidssalon|day spa|dayspa|city spa|wellness|manicure|pedicure|nail salon|nagelsalon|facial|gezichtsbehandeling)\b/i.test(sectorIdentitySource) || schemaSet.has("beautysalon") || schemaSet.has("dayspa");
+    // QA 144: a hospitality group or hotel naming "spa and wellness" is not a
+    // beauty business (was Beauty 95%). Wellness/manicure/facial are activities
+    // that support, never decide; the trade noun (salon, day spa) or typed
+    // schema decides, and a lodging/hospitality identity vetoes activity words.
+    const beautyTradeNoun = /\b(?:beauty salon|beautysalon|schoonheidssalon|schoonheidsspecialist\w*|nagelstudio|nail salon|nagelsalon|day spa|dayspa|city spa|kosmetikstudio|institut de beauté|salón de belleza|centro de est[ée]tica|istituto di bellezza)\b/i.test(sectorIdentitySource);
+    const beautyActivityWords = (sectorIdentitySource.match(/\b(?:wellness|manicure|pedicure|facials?|gezichtsbehandeling(?:en)?)\b/gi) || []).map((w) => w.toLowerCase());
+    const lodgingOrHospitalityIdentity = /\b(?:hotels?|hôtels?|resorts?|hospitality|hotelgroep|hotel group|lodging|accommodati\w*|overnacht\w*|vakantiepark\w*|holiday parks?)\b/i.test(sectorIdentitySource);
+    const beautyServiceIdentity = schemaSet.has("beautysalon") || schemaSet.has("dayspa") || schemaSet.has("nailsalon")
+      || (beautyTradeNoun && !lodgingOrHospitalityIdentity)
+      || (new Set(beautyActivityWords).size >= 2 && !lodgingOrHospitalityIdentity && !beautyActivityWords.every((w) => w === "wellness"));
     // Primary telecom subscription identity outranks incidental commerce widgets.
     // Require subscription and network/provider terminology in page identity,
     // not a lone generic price, product, or shopping navigation link.
@@ -2197,7 +2210,11 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     ) && !(hasRetailStoreSchema(schemaTypes) && evidenceCommerceConfirmed) && !newsMediaPrimaryIdentity;
     const euGenericIdentityApplies = Boolean(euPrimaryIdentity && (euPrimaryIdentity.confidence === "medium" || (euPrimaryIdentity.sector !== "news_media" && euPrimaryIdentity.sector !== "financial_services"))
       && (euPrimaryIdentity.confidence === "high" || !strongSectorCandidate));
-    const baseMasterIdentity: {sector:SectorKey;key:string;label:string;evidence:string[];confidence?:"high"|"medium";confidenceScore?:number} | null = newsMediaPrimaryIdentity
+    // Employer careers site: the vacancy topic is the page topic, not the site.
+    const careersIdentity = careersSiteIdentity({ title, description, h1s: identityH1s, hostname: finalUrl.hostname, ogSiteName: decode(ogSiteName || ""), navLabels: identityNavLabels, homepage: isSiteHomepagePath(finalUrl.pathname) || isHomepage });
+    const baseMasterIdentity: {sector:SectorKey;key:string;label:string;evidence:string[];confidence?:"high"|"medium";confidenceScore?:number} | null = careersIdentity
+      ? {sector:"recruitment",key:careersIdentity.key,label:careersIdentity.label,evidence:careersIdentity.evidence,confidence:careersIdentity.confidence,confidenceScore:careersIdentity.confidenceScore}
+      : newsMediaPrimaryIdentity
       ? {sector:"news_media",key:"news_media",label:"Nieuws & Media",evidence:["Primaire identiteit: nieuws-/mediaorganisatie in titel, omschrijving of H1"]}
       : telecomProviderIdentity
       ? {sector:"telecom_technology",key:"telecom_technology",label:"Telecom & Technologie",evidence:["Primaire identiteit: telecomabonnementen en netwerkdiensten"]}
@@ -3748,7 +3765,17 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       : check("not_applicable", "organization_website", "geo", "Organization + WebSite", "Homepage-specifieke Organization/WebSite-controle is niet vereist op deze URL.", "Controleer de homepage afzonderlijk voor organisatie- en website-identiteit.", 0, 8)
     );
 
-    const primaryProductEvidence = productOfferEvidence.find((product) => Boolean(product.name)) || productOfferEvidence[0] || null;
+    // QA 144: the page's OWN product (URL, article number in the URL, or name =
+    // H1/title), never simply the first Product object (a sibling model, an
+    // accessory). Several unmatched products: not confirmable, never merged.
+    const pageProductMatch = selectPageProduct(productSchemaObjects.map((product: any) => ({
+      name: typeof product?.name === "string" ? product.name : "",
+      sku: typeof product?.sku === "string" ? product.sku : "",
+      url: typeof product?.url === "string" ? product.url : "",
+      id: typeof product?.["@id"] === "string" ? product["@id"] : "",
+      productIds: [product?.productID, product?.gtin, product?.gtin13, product?.gtin8, product?.gtin12, product?.gtin14, product?.mpn].filter((value) => typeof value === "string" || typeof value === "number").map(String),
+    })), { url: finalUrl.toString(), title, h1s });
+    const primaryProductEvidence = pageProductMatch.index !== null ? productOfferEvidence[pageProductMatch.index] : null;
     // "Bevestigde productvelden" means the same five product fields everywhere
     // (name, image, SKU, price + currency, availability); copy sources are counted apart.
     const primaryProductFieldCount = primaryProductEvidence ? [
@@ -4788,6 +4815,10 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         const pagePriceSignals = (pageQualityText.match(/(?:€|EUR\b|\bEUR\s*)\s*\d{1,5}(?:[.,]\d{2})?|\d{1,5}(?:[.,]\d{2})?\s*(?:€|EUR\b)/gi)||[]).length;
         const pageJsonLdRoots: unknown[] = [];
         const pageProductJson = (() => {
+          // Every top-level Product (nested related/accessory products excluded),
+          // then the one that belongs to THIS page (QA 144: SKU of a sibling model
+          // was shown). Ambiguous: no product, never a merge.
+          const found:any[] = [];
           for (const raw of [...pageHtml.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)].map((m)=>m[1])) {
             try {
               const parsed = JSON.parse(raw);
@@ -4797,7 +4828,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
                 const value = queue.shift();
                 if (!value || typeof value !== "object") continue;
                 const types = Array.isArray(value["@type"]) ? value["@type"] : [value["@type"]];
-                if (types.some((t:any)=>String(t||"").toLowerCase()==="product")) return value;
+                if (types.some((t:any)=>String(t||"").toLowerCase()==="product")) { found.push(value); continue; }
                 for (const nested of Object.values(value)) {
                   if (Array.isArray(nested)) queue.push(...nested);
                   else if (nested && typeof nested==="object") queue.push(nested);
@@ -4805,7 +4836,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
               }
             } catch {}
           }
-          return null;
+          if (found.length <= 1) return found[0] || null;
+          const match = selectPageProduct(found.map((product:any)=>({ name: typeof product?.name==="string" ? product.name : "", sku: typeof product?.sku==="string" ? product.sku : "", url: typeof product?.url==="string" ? product.url : "", id: typeof product?.["@id"]==="string" ? product["@id"] : "", productIds: [product?.productID, product?.gtin, product?.gtin13, product?.mpn].filter((v)=>typeof v==="string"||typeof v==="number").map(String) })), { url: finalCandidate.toString(), title: pageQualityTitle, h1s: [...pageHtml.matchAll(/<h1\b[^>]*>([\s\S]*?)<\/h1>/gi)].map((m)=>stripHtml(m[1]).trim()).filter(Boolean).slice(0,3) });
+          return match.index === null ? null : found[match.index];
         })();
         const pageOffer:any = pageProductJson ? (Array.isArray(pageProductJson.offers) ? pageProductJson.offers[0] : pageProductJson.offers) : null;
         const pageImageValue = pageProductJson?.image;
@@ -5755,7 +5788,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       .filter((item)=>item.type==="product" && item.commerceEvidence?.product)
       .sort((a,b)=>(Number(Boolean(b.commerceEvidence?.confirmedRetailPage))-Number(Boolean(a.commerceEvidence?.confirmedRetailPage))) || (productFieldCount(b.commerceEvidence?.product)-productFieldCount(a.commerceEvidence?.product)))[0];
     const representativeProduct = productSamplePage?.commerceEvidence?.product;
-    if (finalCommerceDecision.confirmed && representativeProduct) {
+    // On a product page the entered product is evaluated from its own page only;
+    // a sibling product from the sample never overwrites its product checks.
+    if (finalCommerceDecision.confirmed && representativeProduct && !isProductPage) {
       const productEvidenceCount = [representativeProduct.name,representativeProduct.image,representativeProduct.sku,representativeProduct.price&&representativeProduct.currency,representativeProduct.availability].filter(Boolean).length;
       const productSchemaCheck = seoChecks.find((item)=>item.key==="product_schema");
       if (productSchemaCheck && auditedMultiPages.some((item)=>item.type==="product" && item.commerceEvidence?.productSchema)) Object.assign(productSchemaCheck, check("pass","product_schema","seo","Product structured data","Een representatieve productpagina bevat bevestigde Product structured data.","Houd Product structured data gelijk aan de zichtbare productinformatie.",6,6));
@@ -6089,7 +6124,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     };
     // Same ranked choice as the product diagnostics: the best-evidenced real product page.
     const representativeProductPage = productSamplePage;
-    if ((finalCommerceDecision.confirmed || verifiedRepresentativeProductDetail) && representativeProductPage?.commerceEvidence?.product) {
+    if ((finalCommerceDecision.confirmed || verifiedRepresentativeProductDetail) && representativeProductPage?.commerceEvidence?.product && !isProductPage) {
       const product = representativeProductPage.commerceEvidence.product;
       const sourceCount = [product.name,product.image,product.sku,product.price&&product.currency,product.availability].filter(Boolean).length;
       // Diagnostics are consumers of Scanbewijs too. A representative product
@@ -6357,6 +6392,28 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       counts:{ selected:multiPageAudits.length, fetched:auditedRawPages.length+excludedNoindexPages, scored:scoredSamplePages.length, unscoredMetadata:unscoredMetadataPages, headOnly:partialHeadPages, excludedNoindex:excludedNoindexPages, fetchFailed:unableToFetchPages, outcomes:sampleOutcomes, contact:uniqueMultiPagePages.filter((x)=>x.type==="contact").length, article:uniqueMultiPagePages.filter((x)=>x.type==="article").length, homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, form:uniqueMultiPagePages.filter((x)=>x.type==="form").length, legal:uniqueMultiPagePages.filter((x)=>x.type==="legal").length, service:uniqueMultiPagePages.filter((x)=>x.type==="service").length, listing:uniqueMultiPagePages.filter((x)=>x.type==="listing").length, support:uniqueMultiPagePages.filter((x)=>x.type==="support").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
       note:"Steekproefscore telt alleen pagina's met vier beoordeelde metadata-controles (title, description, H1 en canonical). Pagina's met onbevestigd JavaScript-bewijs worden apart geteld en niet als 100/100 voorgesteld. Dit is geen volledige site-audit.",
     };
+    // QA 144: every proven problem on another assessed page reaches the advice
+    // list (URL, check, severity, evidence, fix), separately from the page score.
+    const sitewideIssues = buildSitewideIssues(reportedMultiPageAudits, finalUrl.toString());
+    Object.assign(multiPage, { sitewideIssues });
+    Object.assign(scanSummary, { sitewideIssues: sitewideIssues.filter((i) => i.certainty === "confirmed").length, sitewideIssuesToConfirm: sitewideIssues.filter((i) => i.certainty !== "confirmed").length });
+    // What the headline number covers, next to coverage and status (never changes it).
+    Object.assign(scoreModel, { scope: buildScoreScope({
+      overallScore: selectedOverallScore,
+      startUrl: finalUrl.toString(),
+      startIsHomepage: siteAccess.startIsHomepage,
+      evidenceCoveragePercent: overallCoverage.coveragePercent,
+      unconfirmedChecks: overallCoverage.unableToConfirm,
+      evidenceLevel: scoreEvidence.level,
+      range: scoreModel.range,
+      pages: { selected: siteAccess.pages.selected, assessed: siteAccess.pages.assessed },
+      siteCoverage: siteAccess.scanCoverage,
+      homepageAccess: siteAccess.homepage.access,
+      sampleScore: multiPage.sitewideSummary.sampleScore,
+      sitewideIssues: { confirmed: sitewideIssues.filter((i) => i.certainty === "confirmed").length, toConfirm: sitewideIssues.filter((i) => i.certainty !== "confirmed").length },
+      sectorStatus: (sectorProfile as { decisionStatus?: "confirmed" | "probable" | "unconfirmed" }).decisionStatus || (sectorProfile.sector === "unknown" ? "unconfirmed" : "probable"),
+      sectorLabel: sectorProfile.label,
+    }) });
 
     // Read-only mobile and desktop PageSpeed for the same customer scan.
     // Speed is independent evidence and never changes SEO/GEO scores.
@@ -6505,7 +6562,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
               internalLinks, canonical: canonical || null, lang: lang || null, robots: robots || null,
               openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null }, imageAltCandidates,
               productOptimizer: isProductPage
-                ? { eligible: productOptimizerSourceCount >= 3 && [...seoChecks,...geoChecks].some((c)=>c.key==="product_copy_optimizer" && c.status==="pass"), sourceCount: primaryProductFieldCount, copySourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page" }
+                ? { eligible: productOptimizerSourceCount >= 3 && [...seoChecks,...geoChecks].some((c)=>c.key==="product_copy_optimizer" && c.status==="pass"), sourceCount: primaryProductFieldCount, copySourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page", sourceUrl: finalUrl.toString(), productMatch: pageProductMatch, status: pageProductMatch.conflict ? "page_product_not_confirmable" : primaryProductEvidence ? "page_product_confirmed" : "no_page_product" }
                 : (() => {
                     // The same best-evidenced product page as the product checks (never the first match).
                     const sample = productSamplePage || auditedMultiPages.find((item)=>item.type==="product");
@@ -6776,7 +6833,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null },
         imageAltCandidates,
         productOptimizer: isProductPage
-                ? { eligible: productOptimizerSourceCount >= 3 && [...seoChecks,...geoChecks].some((c)=>c.key==="product_copy_optimizer" && c.status==="pass"), sourceCount: primaryProductFieldCount, copySourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page" }
+                ? { eligible: productOptimizerSourceCount >= 3 && [...seoChecks,...geoChecks].some((c)=>c.key==="product_copy_optimizer" && c.status==="pass"), sourceCount: primaryProductFieldCount, copySourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page", sourceUrl: finalUrl.toString(), productMatch: pageProductMatch, status: pageProductMatch.conflict ? "page_product_not_confirmable" : primaryProductEvidence ? "page_product_confirmed" : "no_page_product" }
                 : (() => {
                     // The same best-evidenced product page as the product checks (never the first match).
                     const sample = productSamplePage || auditedMultiPages.find((item)=>item.type==="product");
