@@ -5,7 +5,6 @@ import { decideCommerceModules } from "@/lib/sector-motor-decisions";
 import { NextResponse } from "next/server";
 import { createHash, randomUUID } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
-import { trustedWorker } from "@/lib/qa-testlab-backend";
 import { databaseFailureCode, databaseFailureDetail, getDb, withDbRetry } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
 import { fetchFailureCode, finishScanAttempt, startScanAttempt } from "@/lib/scan-attempts";
@@ -432,17 +431,13 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
  * category. A row that stays "running" means the platform killed the function
  * (timeout). Best effort: logging never changes the scan response.
  */
-async function scanRequestUser(request:Request,url:string){
-  const cookieUser=await getCurrentUser().catch(()=>null);
-  return cookieUser || await trustedWorker(request,url);
-}
 export async function POST(request: Request) {
   const attemptStarted = Date.now();
   let requestedUrl = "";
   try { const peek = await request.clone().json(); requestedUrl = typeof peek?.url === "string" ? peek.url.trim().slice(0, 500) : ""; } catch {}
   let attemptId: string | null = null;
   try {
-    const user = requestedUrl ? await scanRequestUser(request,requestedUrl) : null;
+    const user = requestedUrl ? await getCurrentUser() : null;
     if (user) {
       await ensureDatabase();
       attemptId = await startScanAttempt(getDb(), user.id, requestedUrl);
@@ -565,7 +560,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // paying customers, none for server-configured internal tester account IDs.
     await ensureDatabase();
     let usageUser: Awaited<ReturnType<typeof getCurrentUser>> = null;
-    try { usageUser = await scanRequestUser(request,rawUrl); } catch {}
+    try { usageUser = await getCurrentUser(); } catch {}
     const usageWebsiteHost = target.hostname.toLowerCase().replace(/^www\./, "");
     let usageIpHash: string | null = null;
     const planCode = usageUser
@@ -6285,7 +6280,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // Which persistence step was running when a save failed (reported, not secret).
     let saveStage = "start";
     let pendingFixes = new Map<string, { status: string }>();
-    try { user = await scanRequestUser(request,rawUrl); } catch {}
+    try { user = await getCurrentUser(); } catch {}
     if (dashboardScan && !user) return NextResponse.json({ error: scanError.session, code: "SESSION_EXPIRED" }, { status: 401 });
     if (user) {
       try {
