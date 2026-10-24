@@ -39,6 +39,8 @@ const BLOCK_PAGES = {
   // TestLab 23-10 evening: both were scored as the website (80 and 59).
   "retailer IP block, 3 languages (bol-like, served with HTTP 403)": doc("shop", `<h1>IP address is blocked</h1><h1>IP adres is geblokkeerd</h1><h1>L'adresse IP est bloquée</h1><p>Your access to shop has been temporarily blocked due to possible abuse from this IP address. This may be caused by several factors, including: Use of a VPN. Outdated browser or browser extensions. Automated scripts.</p><p>For more information, you can contact our customer service.</p>`),
   "image CAPTCHA without title (F5/Agfa-like)": doc("", `<p>This question is for testing whether you are a human visitor and to prevent automated spam submission.</p><p>Audio is not supported in your browser.</p><p>What code is in the image?</p><button>submit</button><p>Your support ID is: 699070390611420714 .</p>`),
+  // TestLab 144 (24-10): scored 59 as the website.
+  "challenge validation title (Remondis-like)": doc("Challenge Validation", `<p>Please wait while your request is being verified...</p>`),
   "german access blocked": doc("Shop", `<h1>Zugriff gesperrt</h1><p>Ihr Zugriff auf diese Seite wurde vorübergehend blockiert.</p>`),
 };
 const ERROR_PAGES = {

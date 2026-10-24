@@ -25,7 +25,15 @@ const CASES = [
   { host: "sentinelone.com", before: "saas_b2b 78", sector: "cybersecurity" },
   { host: "knvb.nl", before: "ecommerce 88 (shop sub-page)", sector: "sports_organizations" },
   { host: "rodekruis.nl", before: "ecommerce 88 (donation amounts)", notSector: "ecommerce" },
-  { host: "loetje.com", before: "ecommerce 88 (WooCommerce plugin, menu prices)", notSector: "ecommerce" },
+  { host: "loetje.com", before: "ecommerce 88 (WooCommerce plugin, menu prices)", sector: "hospitality", key: "restaurant" },
+  // New sectors (phase 2): own declaration on the homepage, or homepage title + own pages.
+  { host: "renewi.com", before: "unknown", sector: "waste_recycling" },
+  { host: "veolia.com", before: "unknown", sector: "waste_recycling" },
+  { host: "cosun.com", before: "unknown", sector: "agriculture_horticulture" },
+  { host: "fosterandpartners.com", before: "unknown (59, 1 of 3 pages)", sector: "professional_services", key: "architecture_design" },
+  { host: "uefa.com", before: "unknown", sector: "sports_organizations" },
+  { host: "prezero.nl", before: "unknown", sector: "waste_recycling" },
+  { host: "remondis.com", before: "unknown, scored 59 on a 'Challenge Validation' page", sector: "no_report" },
 ];
 
 test("QA-144 problem websites: correct sector now, never a wrong sector at high certainty", { timeout: 600000 }, () => {
@@ -41,6 +49,7 @@ test("QA-144 problem websites: correct sector now, never a wrong sector at high 
     const r = rows.get(c.host);
     if (!r) { problems.push(`${c.host}: not replayed`); continue; }
     const now = `${r.sector}/${r.key} ${r.confidence}`;
+    if (c.sector === "no_report") { if (r.verdict !== "no_report") problems.push(`${c.host}: ${now}, expected no report`); continue; }
     if (c.sector && r.sector !== c.sector) problems.push(`${c.host}: before ${c.before}, now ${now}, expected ${c.sector}`);
     if (c.key && r.key !== c.key) problems.push(`${c.host}: subtype ${r.key}, expected ${c.key}`);
     if (c.notSector && r.sector === c.notSector) problems.push(`${c.host}: still ${now}`);

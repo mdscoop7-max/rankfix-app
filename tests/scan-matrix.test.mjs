@@ -108,7 +108,7 @@ for (const [label, fixture, minimum, blocked, labelDisputes = []] of [
   ["96-site run 23-10 evening", "route-evening.json.gz", 66, ["bol.com", "agfa.com"]],
   // Two animal-welfare charities labelled "veterinary" in the TestLab; the engine
   // says non-profit. A label dispute, listed explicitly, not a hidden tolerance.
-  ["144-site run 24-10 (QA 5da81ee4)", "../testlab-144-replay/route.json.gz", 74, [], ["pdsa.org.uk", "rspca.org.uk"]],
+  ["144-site run 24-10 (QA 5da81ee4)", "../testlab-144-replay/route.json.gz", 79, ["remondis.com"], ["pdsa.org.uk", "rspca.org.uk"]],
 ]) test(`full-route replay of the recorded ${label}: no new wrong sectors, block pages never scored`, { skip: !process.env.RF_ROUTE_REPLAY && "RF_ROUTE_REPLAY not set", timeout: 300000 }, () => {
   const out = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--import", "./tests/scan-matrix/register.mjs", "tests/scan-matrix/run-route-replay.mjs", "--json"], { cwd: root, encoding: "utf8", timeout: 280000, env: { ...process.env, ROUTE_FIXTURE: `${root}/tests/fixtures/testlab-96-replay/${fixture}` } });
   const line = (out.stdout || "").split("\n").find((l) => l.startsWith("ROUTE_REPLAY "));

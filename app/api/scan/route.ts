@@ -2258,7 +2258,10 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // The sector engine must abstain rather than invent a lodging business from
     // incidental guest/booking language on a payment, service or retailer site.
     const restaurantIdentityEvidence = /\b(?:restaurant|brasserie|bistro|café|cafe|eetcafé|food establishment|dining restaurant)\b/i.test(sectorIdentitySource)
-      || schemaSet.has("restaurant") || schemaSet.has("foodestablishment");
+      || schemaSet.has("restaurant") || schemaSet.has("foodestablishment")
+      // The homepage's own two-field declaration of a restaurant ("biljartcafé ...
+      // biefstuk en gerechten") is independent restaurant identity evidence.
+      || Boolean(declaredIdentityApplies && homepageDeclared?.key === "restaurant");
     if (sectorProfile.sector === "hospitality" && primaryBusinessEvidence.sector !== "hospitality" && !restaurantIdentityEvidence) {
       sectorProfile.sector = "unknown";
       sectorProfile.key = "unknown";

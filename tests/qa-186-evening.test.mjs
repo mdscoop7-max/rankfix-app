@@ -131,3 +131,34 @@ test("page gate on the two templates that were scored as websites, and on ordina
   assert.equal(classifyNonContentPage({ title: "Hulp | Bank", text: "Als je toegang tot de app is geblokkeerd na drie foute pincodes, bel ons. Waarom is mijn IP-adres geblokkeerd? Lees verder.", words: 120 }), null);
   assert.equal(classifyNonContentPage({ title: "Firewall products | Vendor", text: "Our firewall makes sure an attacker's IP address is blocked automatically. ".repeat(3) + "Product details ".repeat(400), words: 1300 }), null);
 });
+
+test("QA-144 declared industries: own declarations count, products and audiences named after a market do not", async () => {
+  const { detectDeclaredIndustry } = await import("../lib/site-sector-corroboration.mjs");
+  const d = (title, description, identityHeadings = [], schemaTypes = []) => detectDeclaredIndustry({ title, description, identityHeadings, schemaTypes })?.key || null;
+  assert.equal(d("Baker McKenzie – Local strength, global excellence", "We provide comprehensive and practical legal advice that cuts through complexity."), "legal");
+  assert.equal(d("MVRDV - Architects", "MVRDV is a global operating architecture and urbanism practice."), "architecture_design");
+  assert.equal(d("Heathrow: Welcome to Heathrow Airport", "Heathrow is the UK’s biggest airport, serving hundreds of destinations."), "airports");
+  assert.equal(d("Car Rental with Great Rates | Enterprise Rent-A-Car", "Book a rental car at airport and city locations."), "car_rental");
+  assert.equal(d("Bedrijfsafval laten ophalen & verwerken | Renewi", "Wij leveren een breed aanbod van afvaldiensten."), "waste_recycling");
+  assert.equal(d("De plant is onze held - Cosun", "Royal Cosun is een internationale agrarische coöperatie van telers."), "agriculture_horticulture");
+  assert.equal(d("Welkom bij Stamcafé - De lekkerste biefstuk en gerechten", "Wat begon als biljartcafé groeide uit tot dé plek voor gastvrijheid."), "restaurant");
+  assert.equal(d("Cyber security software for SMBs", "Endpoint protection and threat detection platform."), "cybersecurity");
+  for (const [title, description] of [
+    ["Restaurant software | TableApp", "We provide reservation software for restaurants."],
+    ["LexSoft – Legal software", "We provide practice management software for law firms and lawyers."],
+    ["CloudCo", "We are a team of cloud architects helping SaaS companies."],
+    ["Hiscox", "We provide insurance for architects and engineers."],
+    ["Airport Parking Deals", "Cheap airport parking near all UK airports. Book now."],
+    ["Recipes | FoodBlog", "Easy dinner recipes and dishes for every night of the week."],
+  ]) assert.equal(d(title, description), null, title);
+});
+
+test("QA-144 energy, fitness and retail identities: supplier needs supply wording; gym clothes are products", async () => {
+  const { detectEuPrimaryIdentity } = await import("../lib/eu-identity.ts");
+  const sector = (o) => detectEuPrimaryIdentity({ homepage: true, ...o })?.sector || null;
+  assert.equal(sector({ title: "Live insight into your energy consumption - HomeWizard", description: "Follow your electricity, gas, water and solar surplus live in the app." }), null);
+  assert.equal(sector({ title: "Essent | Energieleverancier voor stroom en gas" }), "energy_utilities");
+  assert.equal(sector({ title: "Vattenfall | Stroom en gas", description: "Bekijk onze tarieven voor stroom en gas" }), "energy_utilities");
+  assert.equal(sector({ title: "Gymshark Official Store - Gym Clothes & Workout Clothes", description: "Shop gym clothing for the gym." }), null);
+  assert.equal(sector({ title: "Basic-Fit | Sportschool in de buurt" }), "fitness_sports");
+});
