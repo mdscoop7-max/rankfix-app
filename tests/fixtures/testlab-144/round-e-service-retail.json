@@ -1,0 +1,247 @@
+{
+  "id": "round-e-service-retail",
+  "description": "Handmatig opgestarte QA-TestLab: diverse dienstverleners, kappers, opticiens en webshops. Verwachte sectorlabels zijn voorstellen en dienen onafhankelijk te worden gecontroleerd.",
+  "status": "QA_PROPOSED_LABELS",
+  "sites": [
+    {
+      "country": "NL",
+      "name": "BrainWash Kappers",
+      "hosts": [
+        "brainwash-kappers.nl"
+      ],
+      "group": "hair_salon",
+      "expected": "beauty",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Pearle Opticiens",
+      "hosts": [
+        "pearle.nl"
+      ],
+      "group": "optician",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Zoofy",
+      "hosts": [
+        "zoofy.nl"
+      ],
+      "group": "service_marketplace",
+      "expected": "service_marketplace",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "GAMMA",
+      "hosts": [
+        "gamma.nl"
+      ],
+      "group": "diy_store",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "name": "Kreatos",
+      "hosts": [
+        "kreatos.be"
+      ],
+      "group": "hair_salon",
+      "expected": "beauty",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "name": "Pearle België",
+      "hosts": [
+        "pearle.be"
+      ],
+      "group": "optician",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "name": "Tom&Co",
+      "hosts": [
+        "tomandco.com"
+      ],
+      "group": "pet_store",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "name": "Brico",
+      "hosts": [
+        "brico.be"
+      ],
+      "group": "diy_store",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "Friseur Klier",
+      "hosts": [
+        "klier.de"
+      ],
+      "group": "hair_salon",
+      "expected": "beauty",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "Fielmann",
+      "hosts": [
+        "fielmann.de"
+      ],
+      "group": "optician",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "A.T.U.",
+      "hosts": [
+        "atu.de"
+      ],
+      "group": "car_repair",
+      "expected": "automotive",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "OBI",
+      "hosts": [
+        "obi.de"
+      ],
+      "group": "diy_store",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "name": "Franck Provost",
+      "hosts": [
+        "franckprovost.com"
+      ],
+      "group": "hair_salon",
+      "expected": "beauty",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "name": "Optical Center",
+      "hosts": [
+        "optical-center.fr"
+      ],
+      "group": "optician",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "name": "Accor",
+      "hosts": [
+        "accor.com"
+      ],
+      "group": "hotel",
+      "expected": "hospitality",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "name": "Norauto",
+      "hosts": [
+        "norauto.fr"
+      ],
+      "group": "car_repair",
+      "expected": "automotive",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "ES",
+      "name": "Marco Aldany",
+      "hosts": [
+        "marcoaldany.com"
+      ],
+      "group": "hair_salon",
+      "expected": "beauty",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "ES",
+      "name": "Multiópticas",
+      "hosts": [
+        "multiopticas.com"
+      ],
+      "group": "optician",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "ES",
+      "name": "Mercadona",
+      "hosts": [
+        "mercadona.es"
+      ],
+      "group": "supermarket",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "ES",
+      "name": "idealista",
+      "hosts": [
+        "idealista.com"
+      ],
+      "group": "property_platform",
+      "expected": "real_estate",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "IT",
+      "name": "Toni&Guy Italia",
+      "hosts": [
+        "toniandguy.it"
+      ],
+      "group": "hair_salon",
+      "expected": "beauty",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "IT",
+      "name": "Salmoiraghi & Viganò",
+      "hosts": [
+        "salmoiraghievigano.it"
+      ],
+      "group": "optician",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "IT",
+      "name": "Arcaplanet",
+      "hosts": [
+        "arcaplanet.it"
+      ],
+      "group": "pet_store",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "IT",
+      "name": "Rossopomodoro",
+      "hosts": [
+        "rossopomodoro.it"
+      ],
+      "group": "restaurant",
+      "expected": "hospitality",
+      "reviewStatus": "proposed_not_independently_verified"
+    }
+  ]
+}

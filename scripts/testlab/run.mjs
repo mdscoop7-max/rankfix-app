@@ -7,15 +7,20 @@ import {compareSector,failureCategory} from './labels.mjs';
 const args=process.argv.slice(2);
 const arg=(name,fallback)=>args.includes(name)?args[args.indexOf(name)+1]:fallback;
 const dir=fileURLToPath(new URL('../../tests/fixtures/testlab-96/',import.meta.url));
-const plans=['round-a.json','round-b.json','round-c-nieuw.json','round-d-nieuw.json'].map(f=>JSON.parse(readFileSync(join(dir,f),'utf8')));
-const all=plans.flatMap(p=>p.sites.map(s=>({...s,round:p.id})));
-if(all.length!==96||new Set(all.map(s=>s.hosts[0])).size!==96)throw Error('96 unique sites required');
+const legacyPlans=['round-a.json','round-b.json','round-c-nieuw.json','round-d-nieuw.json'].map(f=>JSON.parse(readFileSync(join(dir,f),'utf8')));
+const newDir=fileURLToPath(new URL('../../tests/fixtures/testlab-144/',import.meta.url));
+const newPlans=['round-e-service-retail.json','round-f-service-retail.json'].map(f=>JSON.parse(readFileSync(join(newDir,f),'utf8')));
+const legacy=legacyPlans.flatMap(p=>p.sites.map(s=>({...s,round:p.id})));
+const extra=newPlans.flatMap(p=>p.sites.map(s=>({...s,round:p.id})));
+const all=[...legacy,...extra];
+if(legacy.length!==96||extra.length!==48||all.length!==144||new Set(all.map(s=>s.hosts[0].replace(/^www\./,''))).size!==144)throw Error('TestLab needs 144 unique websites (96 baseline + 48 new)');
 const phase=arg('--phase','targeted');
-if(!['targeted','all'].includes(phase))throw Error('Use --phase targeted or all');
-// Start with previously problematic sector groups. No hidden holdout is read.
-const selected=phase==='all'?all:all.filter(s=>s.round.endsWith('-nieuw'));
+if(!['targeted','all','new48','lab144'].includes(phase))throw Error('Use --phase targeted, all (legacy 96), new48, or lab144');
+// Existing targeted/all baseline is preserved. The 144-lab is manually started.
+const selected=phase==='all'?legacy:phase==='lab144'?all:phase==='new48'?extra:legacy.filter(s=>s.round.endsWith('-nieuw'));
 const base=process.env.RF_BASE_URL||'https://rankfix-app-git-qa-rankfix-shared-preview-scoop5.vercel.app';
 if(new URL(base).origin!==base||new URL(base).hostname!=='rankfix-app-git-qa-rankfix-shared-preview-scoop5.vercel.app')throw Error('Only the fixed QA preview is allowed');
+if(!['targeted','all','new48','lab144'].includes(phase))throw Error('Unknown phase');
 if(args.includes('--dry-run')){console.log(JSON.stringify({phase,total:selected.length,uniqueTotal:all.length,base,labels:'proposed_not_independently_verified',sites:selected},null,2));process.exit(0)}
 const sha=process.env.RF_DEPLOYMENT_SHA;
 if(!/^[a-f0-9]{40}$/i.test(sha||''))throw Error('RF_DEPLOYMENT_SHA must be the verified full QA commit');
@@ -30,7 +35,7 @@ async function request(path,body,timeout=25000){
 }
 const auth=await request('/api/auth/me');if(auth.status!==200||!auth.data?.user)throw Error('QA authentication not confirmed; no scans started');
 const version=await request('/api/scan/version');if(version.status!==200||version.data?.commitSha!==sha||version.data?.environment!=='preview')throw Error('QA version/environment not confirmed; no scans started');
-const output=resolve(arg('--output',`/tmp/rankfix-186-${sha.slice(0,8)}`));mkdirSync(output,{recursive:true});
+const output=resolve(arg('--output',`/tmp/rankfix-testlab-${sha.slice(0,8)}`));mkdirSync(output,{recursive:true});
 const lock=join(output,'.running.lock');
 const lockFd=openSync(lock,'wx');
 try {
