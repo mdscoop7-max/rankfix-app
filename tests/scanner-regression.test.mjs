@@ -81,7 +81,7 @@ test("scanner URL guard blocks local and private targets", () => {
 
 test("scanner regression source keeps evidence-only classification safeguards", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
 
   assert.match(source, /productSchemaCommerceSignal/);
   // Broken-link wording moved to lib/link-status.ts (missing vs server error vs unconfirmed).
@@ -101,7 +101,7 @@ test("scanner regression source keeps evidence-only classification safeguards", 
 
 test("EU regression bundle keeps classification, confidence and challenge guards", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   const report = await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
 
   assert.match(source, /transportBookingIdentity/);
@@ -120,7 +120,7 @@ test("EU regression bundle keeps classification, confidence and challenge guards
 
 test("central classification bundle keeps transport, retail and canonical decisions aligned", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /transportBookingIdentityEarly/);
   assert.match(source, /transportRetailStoreEvidence/);
   assert.match(source, /!transportBookingIdentity && shopCatalogHrefCount/);
@@ -138,7 +138,7 @@ test("central classification bundle keeps transport, retail and canonical decisi
 
 test("multilingual trust, social URL and auth redirect bundle stays evidence based", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /normalizeLegalText/);
   const legal = await readFile(new URL("../lib/legal-lexicon.ts", import.meta.url), "utf8");
   assert.match(legal, /privatnost\\w\*\|zasebnost\\w\*/);
@@ -173,7 +173,7 @@ test("score model exposes weighted coverage and transparent formula", async () =
 
 test("multi-page retail evidence can strengthen site profile without activating page checks", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /pageCommerceEvidence/);
   assert.match(source, /confirmedRetailPage: \(pageProductSchema && hasProductOffer\(/);
   assert.match(source, /sitewideCommerceEvidence/);
@@ -185,7 +185,7 @@ test("multi-page retail evidence can strengthen site profile without activating 
 
 test("government identity overrides generic LocalBusiness schema advice", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /governmentIdentitySignal/);
   assert.match(source, /GovernmentOrganization \+ WebSite/);
   assert.match(source, /effectiveLocalSchemaSignal = hasLocalBusinessSignal && [^;]*!governmentIdentitySignal/);
@@ -196,7 +196,7 @@ test("government identity overrides generic LocalBusiness schema advice", async 
 
 test("meta description diagnostics distinguish missing from empty", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /descriptionState: "missing" \| "empty" \| "present"/);
   assert.match(source, /descriptionState === "empty" \? "De meta description-tag is aanwezig, maar de content is leeg\."/);
   assert.match(source, /descriptionState,/);
@@ -208,7 +208,7 @@ test("meta description diagnostics distinguish missing from empty", async () => 
 
 test("multi-page canonical absence uses the same evidence semantics as the main scan", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /key:"canonical",status:pageCanonical[\s\S]*?: "WARNING"/);
   assert.match(source, /Geen expliciete canonical gevonden; dit is niet automatisch een indexeringsprobleem/);
   assert.doesNotMatch(source, /afwezigheid wordt hier niet als bewezen fout gescoord/);
@@ -218,7 +218,7 @@ test("multi-page canonical absence uses the same evidence semantics as the main 
 
 test("strong product evidence wins over article classification and exposes an invariant", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /const rawArticleSignal = !isHomepage/);
   assert.match(source, /const articleSuppressedByCommerce = isProductPage && rawArticleSignal/);
   assert.match(source, /const hasArticleSignal = rawArticleSignal && !isProductPage/);
@@ -268,7 +268,7 @@ test("score engine keeps independent penalties independent", async () => {
 
 test("advisory evidence does not become a hard failure", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /Deze ene meting is traag, maar bewijst geen structureel performanceprobleem/);
   assert.doesNotMatch(source, /check\("fail", "response", "seo", "Server response"/);
   assert.match(source, /check\("warning", "schema", "geo", "Structured data"[\s\S]*machineleesbare optimalisatiekans/);
@@ -279,7 +279,7 @@ test("advisory evidence does not become a hard failure", async () => {
 
 test("alt scoring is gradual and keeps the existing fix rule stable", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /const missingAltRatio = imageElementCount \? imagesMissingAlt \/ imageElementCount : 0/);
   assert.match(source, /missingAltRatio <= 0\.10[\s\S]*\? 6[\s\S]*missingAltRatio <= 0\.25[\s\S]*\? 5[\s\S]*missingAltRatio <= 0\.50[\s\S]*\? 3[\s\S]*: 1/);
   assert.match(source, /alt: \{ rule_id: "IMAGE_ALT_MISSING", severity: "LOW" \}/);
@@ -289,7 +289,7 @@ test("alt scoring is gradual and keeps the existing fix rule stable", async () =
 
 test("measurable metadata defects use gradual penalties", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /const titleLengthPoints = \(length: number\) =>/);
   assert.match(source, /length >= 15 && length <= 110 \? 10 : 9/);
   assert.match(source, /titlePixelEstimate\.warning/);
@@ -302,7 +302,7 @@ test("measurable metadata defects use gradual penalties", async () => {
 
 test("description length advice is gradual without changing fix identity", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /const descriptionLengthPoints = \(length: number\) =>/);
   assert.match(source, /length >= 50 && length < 70/);
   assert.match(source, /length >= 30 && length < 50/);
@@ -324,7 +324,7 @@ test("score model protects low-confidence failures from hard penalties", async (
 
 test("GEO brand identity respects evidence confidence and gradual signals", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /const brandIdentityPoints = visibleBrandSignals >= 3 \? 5 : visibleBrandSignals === 2 \? 4 : visibleBrandSignals === 1 \? 3 : 2/);
   assert.match(source, /metadataMayBeClientRendered[\s\S]*check\("unable_to_confirm", "identity", "geo", "Brand identity"/);
   assert.match(source, /check\("warning", "identity", "geo", "Brand identity", brandSignalDetail, brandRecommendation, brandIdentityPoints, 5\)/);
@@ -333,7 +333,7 @@ test("GEO brand identity respects evidence confidence and gradual signals", asyn
 
 test("link and accessibility penalties scale with proven impact", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   const linkStatus = await readFile(new URL("../lib/link-status.ts", import.meta.url), "utf8");
   assert.match(linkStatus, /ratio <= 0\.05 \? 4 : ratio <= 0\.15 \? 3 : ratio <= 0\.30 \? 2 : 1/);
   assert.match(source, /redirectedInternalLinkRatio <= 0\.10 \? 3 : redirectedInternalLinkRatio <= 0\.30 \? 2 : 1/);
@@ -346,7 +346,7 @@ test("link and accessibility penalties scale with proven impact", async () => {
 
 test("heading advice scales gradually without becoming a hard failure", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /const headingStructurePoints = hasH2 \? 7 : subheadingCount >= 3 \? 6 : subheadingCount >= 1 \? 5 : 4/);
   assert.match(source, /check\("warning", "headings", "seo", "Heading-structuur"[\s\S]*headingStructurePoints, 7\)/);
   assert.match(source, /structuuradvies en geen bewezen rankingfout/);
@@ -355,7 +355,7 @@ test("heading advice scales gradually without becoming a hard failure", async ()
 
 test("GEO identity and trust advice preserve partial proven signals", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /organizationWebsiteSignals = Number\(organizationSchemaPresent\) \+ Number\(websiteSchemaPresent\)/);
   assert.match(source, /organizationWebsiteSignals === 2 \? 8 : organizationWebsiteSignals === 1 \? 6 : 4/);
   assert.match(source, /machineleesbaar identity-advies en geen bewijs dat de zichtbare organisatie-identiteit ontbreekt/);
@@ -367,7 +367,7 @@ test("GEO identity and trust advice preserve partial proven signals", async () =
 
 test("Evidence Engine reconciles representative identity and capabilities before final score", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /reconciledIdentitySource/);
   // Late reconciliation uses the sampled pages' own identity (title/description/H1),
   // needs two agreeing pages and never claims high confidence (issue #151).
@@ -381,7 +381,7 @@ test("Evidence Engine reconciles representative identity and capabilities before
 
 test("health identity includes acupuncture and therapy evidence", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /acupunctuur\|acupuncture\|acupuncturist/);
   assert.match(source, /behandelingen\|treatment\|treatments/);
 });
@@ -412,7 +412,7 @@ test("customer audit UX is localized for every supported locale", async () => {
 
 test("cookie security is evaluated per observed Set-Cookie record", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   // Per-cookie evaluation lives in lib/security-signals.ts (behaviour tested in "security FP/FN 4").
   const signals = await readFile(new URL("../lib/security-signals.ts", import.meta.url), "utf8");
   assert.match(source, /const cookieObservations = passiveSecurity\.cookieFlags\.cookies/);
@@ -425,7 +425,7 @@ test("cookie security is evaluated per observed Set-Cookie record", async () => 
 
 test("representative site evidence propagates into specialist checks", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /promoteCheckFromRepresentativeEvidence/);
   assert.match(source, /"sector_real_estate_listings",\s*multiPageCapabilities\.properties/);
   assert.match(source, /"sector_automotive_inventory",\s*multiPageCapabilities\.vehicleSales/);
@@ -436,7 +436,7 @@ test("representative site evidence propagates into specialist checks", async () 
 
 test("representative page ranking prefers structural capability context", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /anchorContextByUrl/);
   assert.match(source, /const capabilityContext =/);
   assert.match(source, /const utilityContext =/);
@@ -459,7 +459,7 @@ test("Evidence Engine keeps URL-only product hints below confirmed retail eviden
 
 test("Evidence Engine exposes explicit capability states and never infers absence from one page", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /type EvidenceCapabilityState = "detected" \| "likely" \| "unknown" \| "absent_proven"/);
   assert.match(source, /buildCapabilityState/);
   assert.match(source, /reason:"insufficient_coverage"/);
@@ -473,7 +473,7 @@ test("Evidence Engine exposes explicit capability states and never infers absenc
 
 test("representative evidence preserves page intent across structural dedupe", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.equal(source.includes('const key = `${item.type}:${item.structureKey || templateShapeKey(item.url)}`;'), true);
   assert.equal(source.includes("audited:auditedRawPages.length"), true);
   assert.equal(source.includes("formEvidence:{formCount:pageForms.length"), true);
@@ -491,7 +491,7 @@ test("customer report groups not-applicable checks and shows sitewide sample war
 
 test("sector reconciliation hides provisional previous sector and protects beauty-wellness identity", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.equal(source.includes("Vorige voorlopige sector:"), false);
   assert.equal(source.includes("beautyServiceIdentity && !explicitMedicalIdentity"), true);
   assert.equal(source.includes('label:"Beauty & Wellness"'), true);
@@ -508,7 +508,7 @@ test("response decoder supports declared legacy charset", async () => {
 
 test("share.google is resolved before usage, history and scan evidence", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   const resolver = source.indexOf('target.hostname.toLowerCase() === "share.google"');
   const usage = source.indexOf("const usageWebsiteHost = target.hostname");
   assert.ok(resolver >= 0 && usage > resolver);
@@ -517,7 +517,7 @@ test("share.google is resolved before usage, history and scan evidence", async (
 
 test("representative page typing includes service listing and support intents", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /"service" \| "listing" \| "support"/);
   assert.match(source, /supportPath \? "support" : \(articlePath \|\| editorialPage\) \? "article" : eventPage \? "event" : corporatePage \? "corporate" : listingPath \? "listing"/);
   assert.match(source, /resolvedServicePage \? "service"/);
@@ -525,7 +525,7 @@ test("representative page typing includes service listing and support intents", 
 
 test("transport and ecommerce schema advice do not fall through to generic LocalBusiness", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /transportLogisticsSchemaContext/);
   assert.match(source, /"Service \+ Organization"/);
   assert.match(source, /ecommerceSchemaContext/);
@@ -534,7 +534,7 @@ test("transport and ecommerce schema advice do not fall through to generic Local
 
 test("security form transport uses representative form pages rather than global forms", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /representativeFormPages = auditedMultiPages\.filter\(\(item\)=>item\.type==="form"\)/);
   assert.match(source, /Globale zoek-, login- en footerformulieren tellen niet als bewijs/);
 });
@@ -550,14 +550,14 @@ test("full audit report shows complete actions and uncertainty lists", async () 
 
 test("transport route pages are typed as services for transport sectors", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /transport\|logist/);
   assert.match(source, /\(\?:\^\|\\\/\)transport\(\?:\\\/\|\$\)/);
 });
 
 test("structured data uses effective local context instead of raw local hints", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /geoChecks\.push\(\s*effectiveLocalSchemaSignal/);
   assert.doesNotMatch(source, /geoChecks\.push\(\s*hasLocalBusinessSignal\s*\?/);
 });
@@ -565,7 +565,7 @@ test("structured data uses effective local context instead of raw local hints", 
 
 test("tracking parameters are stripped before scan usage and fetch logic", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   const stripping = source.indexOf('["utm_source", "utm_medium", "utm_campaign"');
   const usage = source.indexOf("const usageWebsiteHost = target.hostname");
   assert.ok(stripping >= 0 && usage > stripping);
@@ -574,7 +574,7 @@ test("tracking parameters are stripped before scan usage and fetch logic", async
 
 test("commerce product pages cannot inherit transport schema context from incidental text", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /const transportLogisticsSchemaContext = !hasEcommerceSignal && !isProductPage/);
   assert.match(source, /test\(localIdentityText\)/);
 });
@@ -582,7 +582,7 @@ test("commerce product pages cannot inherit transport schema context from incide
 
 test("production scan limits have no plan-wide or hardcoded-host bypass", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.doesNotMatch(source, /validationTestAccount\s*=\s*planCode\s*===\s*"pro"/);
   assert.doesNotMatch(source, /unlimitedTestHost/);
   assert.doesNotMatch(source, /trendmix-jet\.vercel\.app/);
@@ -591,7 +591,7 @@ test("production scan limits have no plan-wide or hardcoded-host bypass", async 
 
 test("anonymous public scans and contact mail have coarse abuse protection", async () => {
   const { readFile } = await import("node:fs/promises");
-  const scan = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const scan = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   const contact = await readFile(new URL("../app/api/contact/route.ts", import.meta.url), "utf8");
   // Anonymous scans are limited before any fetch starts (limits: lib/scan-access.ts).
   assert.match(scan, /if \(!dashboardScan\) \{\n\s+const limited = await enforceScanRateLimit\(\);\n\s+if \(limited\) return limited;/);
@@ -658,7 +658,7 @@ test("GitHub proposal routing recognizes active scanner IDs without title guessi
   const { readFile } = await import("node:fs/promises");
   // The scanner maps its check keys to rule IDs; the Fix page routes on those IDs only
   // (never on titles) and the server decides the fix path per rule ID.
-  const scan = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const scan = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   for (const mapping of ['title: { rule_id: title ? "META_TITLE_GUIDANCE"','description: { rule_id: description ? "META_DESCRIPTION_GUIDANCE"','alt: { rule_id: "IMAGE_ALT_MISSING"','schema: { rule_id: "STRUCTURED_DATA_MISSING"']) {
     assert.equal(scan.includes(mapping),true,mapping);
   }
@@ -702,7 +702,7 @@ test("unused evidence merge and sector capability exports stay removed", async (
 
 test("dashboard scans do not call removed automatic report email code", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.doesNotMatch(source,/sendScanReportEmail/);
 });
 
@@ -1236,7 +1236,7 @@ test("no regex matches a literal backslash where an escape class was meant", asy
   // parsing, www-normalisation and the reset-password digit rule.
   const { readFile, readdir } = await import("node:fs/promises");
   const { join } = await import("node:path");
-  const root = new URL("..", import.meta.url).pathname;
+  const root = (await import("node:url")).fileURLToPath(new URL("..", import.meta.url));
   const files = [];
   const walk = async (dir) => {
     for (const entry of await readdir(join(root, dir), { withFileTypes: true })) {
@@ -1605,7 +1605,7 @@ test("security 5: results and scores before (main) and after the fixes", () => {
 
 test("retail sector evidence wins over incidental sector words without claiming verified checkout", async () => {
   const { readFile } = await import("node:fs/promises");
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /const retailAssortmentIdentity =/);
   assert.match(source, /const explicitRetailIdentity = storeSchemaRetailIdentity \|\| \(retailAssortmentIdentity/);
   assert.match(source, /const retailPrimaryIdentity = retailPurchaseEvidence/);
@@ -1710,7 +1710,7 @@ test("scan summary matches final check statuses after commerce and sector reconc
 
 test("cookie link is only required when cookies or trackers are observed", async () => {
   const { readFile: rf } = await import("node:fs/promises");
-  const source = await rf(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await rf(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /const cookieSignalOk = hasCookieLink \|\| !cookieUseObserved;/);
   assert.match(source, /!cookieSignalOk\?"cookies":null/);
   assert.doesNotMatch(source, /!hasCookieLink\?"cookies":null/);
@@ -1718,14 +1718,14 @@ test("cookie link is only required when cookies or trackers are observed", async
 
 test("cart/checkout signals never confirm a working checkout", async () => {
   const { readFile: rf } = await import("node:fs/promises");
-  const source = await rf(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await rf(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.doesNotMatch(source, /check\("pass","checkout_funnel_static"/);
   assert.doesNotMatch(source, /check\("pass","checkout_trust"/);
 });
 
 test("canonical to the same page without query parameters is equivalent, not a warning", async () => {
   const { readFile: rf } = await import("node:fs/promises");
-  const source = await rf(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await rf(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /function canonicalEquivalent\(canonical: URL, page: URL\): boolean/);
   assert.match(source, /canonicalEquivalent\(resolved, finalCandidate\)\?"PASS":"WARNING"/);
   // Long homepage descriptions: advice, no deduction.
@@ -1734,7 +1734,7 @@ test("canonical to the same page without query parameters is equivalent, not a w
 
 test("a sampled link that redirects to an account or personal page leaves the sample", async () => {
   const { readFile: rf } = await import("node:fs/promises");
-  const source = await rf(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await rf(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /if \(isNonContentUrl\(finalCandidate\.toString\(\)\)\) \{\n\s+return \{ \.\.\.page, url:finalCandidate\.toString\(\), excludedUtility:true/);
   assert.match(source, /if \(multiPageAudits\[i\]\?\.excludedUtility\) multiPageAudits\.splice\(i, 1\);/);
   const { isNonContentUrl } = await import("../lib/report-quality.ts");

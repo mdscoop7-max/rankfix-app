@@ -33,8 +33,10 @@ test("48 new cases: 12 countries, opticians, hairdressers and broad services",()
 test("real QA lab requires tester authentication and exact deployed preview SHA",()=>{
  const source=readFileSync(join(root,"scripts/testlab/run.mjs"),"utf8");
  assert.match(source,/phase==='lab144'\?all/);
- assert.match(source,/RF_DEPLOYMENT_SHA must be the verified full QA commit/);
- assert.match(source,/RF_SESSION for the isolated QA tester/);
+ assert.match(source,/process\.env\.RF_DEPLOYMENT_SHA/);
+ assert.match(source,/A verified full QA commit is required/);
+ assert.match(source,/\^\[a-f0-9\]\{40\}\$/);
+ assert.match(source,/An authenticated RF_SESSION for the isolated QA tester is required/);
  assert.match(source,/Only the fixed QA preview is allowed/);
  assert.match(source,/Stopped on QA/);
 });

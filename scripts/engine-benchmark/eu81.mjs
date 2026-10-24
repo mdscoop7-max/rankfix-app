@@ -6,12 +6,14 @@
 // Optional 2nd file: SELECT requested_url, http_status, outcome, error, duration_ms, created_at FROM scan_attempts;
 // Save the rows as JSON arrays. Nothing is written to any database.
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { evaluate } from "./metrics.mjs";
 import { effectiveCategory } from "../../lib/scan-attempts.ts";
 import { scorecardV2 } from "./scorecard-v2.mjs";
 import { summarizeReview } from "./review.mjs";
 
-const planPath = process.env.RF_PLAN ? new URL(process.env.RF_PLAN, `file://${process.cwd()}/`) : new URL("../../tests/fixtures/eu81/plan.json", import.meta.url);
+const planPath = process.env.RF_PLAN ? pathToFileURL(resolve(process.env.RF_PLAN)) : new URL("../../tests/fixtures/eu81/plan.json", import.meta.url);
 const plan = JSON.parse(readFileSync(planPath, "utf8")).sites;
 const exposures = JSON.parse(readFileSync(new URL("../../tests/fixtures/evaluation/exposures.json", import.meta.url), "utf8")).exposures;
 const norm = (u) => { try { return new URL(/^https?:/i.test(u) ? u : `https://${u}`).hostname.toLowerCase().replace(/^www\./, ""); } catch { return String(u || "").toLowerCase(); } };
@@ -61,7 +63,7 @@ export function exportRows(scans) {
   });
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const [mode, file, attemptsFile] = process.argv.slice(2);
   if (mode === "v2") {
     // Scorecard v2 (frozen, docs/SCORECARD-3.5.md): independent rows only; exposed cases listed apart.

@@ -176,7 +176,7 @@ test("no API key: evidence fallback when possible, never an exception", async ()
 test("routes: description proposals and GitHub edits use the shared deterministic path", () => {
   const aiFix = readFileSync(new URL("../app/api/ai-fix/route.ts", import.meta.url), "utf8");
   assert.match(aiFix, /if \(type === "meta_description"\) \{\s*const generated = await generateMetaDescription/);
-  const gh = readFileSync(new URL("../app/api/github/fix/route.ts", import.meta.url), "utf8");
+  const gh = readFileSync(new URL("../app/api/github/fix/route.ts", import.meta.url), "utf8").replace(/\r\n/g, "\n");
   const descIdx = gh.indexOf('if(issueId==="META_DESCRIPTION_GUIDANCE"||issueId==="META_DESCRIPTION_MISSING"){\n        // Deterministic');
   const aiIdx = gh.indexOf("await generateCodeFix(path,current,issue,context,issueId)");
   assert.ok(descIdx > 0 && aiIdx > descIdx, "description patch must run before (and instead of) the full-file AI rewrite");

@@ -111,11 +111,31 @@ export async function renderPublicPage(value: string, timeoutMs = 12000, budget?
       const local = (await import("puppeteer")).default;
       executablePath = await local.executablePath();
     }
+    // Local QA machines can have Chrome or Edge installed without a Puppeteer
+    // cache. Never use this fallback in serverless mode.
+    const { access } = await import("node:fs/promises");
     try {
-      const { access } = await import("node:fs/promises");
       await access(executablePath);
     } catch {
-      throw new Error("RENDER_CHROME_NOT_INSTALLED");
+      if (source !== "serverless") {
+        const { platform } = await import("node:os");
+        const { join } = await import("node:path");
+        const candidates = platform() === "win32"
+          ? [
+              join(process.env.PROGRAMFILES || "C:\\Program Files", "Google", "Chrome", "Application", "chrome.exe"),
+              join(process.env["PROGRAMFILES(X86)"] || "C:\\Program Files (x86)", "Google", "Chrome", "Application", "chrome.exe"),
+              join(process.env.PROGRAMFILES || "C:\\Program Files", "Microsoft", "Edge", "Application", "msedge.exe"),
+              join(process.env["PROGRAMFILES(X86)"] || "C:\\Program Files (x86)", "Microsoft", "Edge", "Application", "msedge.exe"),
+            ]
+          : platform() === "darwin"
+            ? ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"]
+            : ["/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser"];
+        const found = await Promise.all(candidates.map(async p => {
+          try { await access(p); return p; } catch { return null; }
+        }));
+        executablePath = found.find((p): p is string => p !== null) || executablePath;
+      }
+      try { await access(executablePath); } catch { throw new Error("RENDER_CHROME_NOT_INSTALLED"); }
     }
     const puppeteer = (await import("puppeteer-core")).default;
     browser = await puppeteer.launch({
