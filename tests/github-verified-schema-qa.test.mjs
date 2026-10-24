@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 // Exercise the exact standalone rule-based helper from the QA GitHub Fix route.
 // This is deliberately source-bound: the test fails if the guard is removed,
 // the handler is renamed, or its safe preview behavior changes.
-const route = readFileSync(new URL("../app/api/github/fix/route.ts", import.meta.url), "utf8");
+const route = readFileSync(new URL("../app/api/github/fix/route.ts", import.meta.url), "utf8").replace(/\r\n/g, "\n");
 const name = "function buildVerifiedWebsiteSchemaFix(";
 const start = route.indexOf(name);
 assert.ok(start >= 0, "verified schema fallback must remain available");
