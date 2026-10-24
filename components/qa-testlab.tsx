@@ -41,7 +41,7 @@ export default function TestLab144() {
  const [catalog,setCatalog]=useState<Catalog|null>(null);
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("Toegang en QA-versie controleren…");
- const [scope,setScope]=useState("new48");
+ const [scope,setScope]=useState("all");
  const [results,setResults]=useState<SiteResult[]>([]);
  const [running,setRunning]=useState(false);
  const [query,setQuery]=useState("");
@@ -59,7 +59,7 @@ export default function TestLab144() {
       setNotice("");return;
     }
     const next=answer.data as Catalog;
-    if(next.sites.length!==144 || version.environment!=="preview" || !version.commitSha || version.commitSha!==next.runtime.commitSha){
+    if(next.sites.length!==144 || !["preview","local"].includes(version.environment) || !version.commitSha || version.commitSha!==next.runtime.commitSha){
       setError("QA-versie of catalogus niet betrouwbaar bevestigd. Er worden geen scans gestart.");
       setNotice("");return;
     }
@@ -68,7 +68,7 @@ export default function TestLab144() {
     if(stored){try{const list=JSON.parse(stored);
       if(Array.isArray(list))setResults(list.filter((r:SiteResult)=>next.sites.some(s=>s.host===r.host)).slice(0,144));
     }catch{}}
-    setNotice("Klaar. Start de test handmatig; standaard worden eerst de 48 nieuwe websites geselecteerd.");
+    setNotice("Klaar. Alle 144 websites zijn geselecteerd. Klik één keer op Start test; houd dit tabblad open.");
   }).catch(()=>{if(mounted.current){setError("QA-catalogus kon niet worden opgehaald.");setNotice("");}});
   return()=>{mounted.current=false;stop.current=true;};
  },[]);
@@ -101,7 +101,7 @@ export default function TestLab144() {
     try{
       // Fail closed if the shared QA alias was redeployed mid-run.
       const v=await fetch("/api/scan/version",{cache:"no-store"}).then(r=>r.json());
-      if(v.environment!=="preview"||v.commitSha!==catalog.runtime.commitSha){throw new Error("QA_DEPLOYMENT_CHANGED");}
+      if(!["preview","local"].includes(v.environment)||v.environment!==catalog.runtime.environment||v.commitSha!==catalog.runtime.commitSha){throw new Error("QA_DEPLOYMENT_CHANGED");}
       const response=await fetch("/api/scan",{
         method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
         body:JSON.stringify({url:"https://"+site.host+"/",mode:"both",dashboard:true,language:"nl"})
