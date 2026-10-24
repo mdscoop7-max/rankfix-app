@@ -88,6 +88,14 @@ test("commerce is a channel unless the site presents itself as a shop", () => {
   assert.equal(r.failed, 0, r.log);
 });
 
+// Live QA scan 4a9fe1db: a sampled page that answered HTTP 403 (also in the browser)
+// was scored 71 with "HTTP 403" passed. Refusal pages are never scored, and an
+// HTTP check never passes on a 4xx/5xx sample.
+test("sampled pages that refuse access are not scored and never pass the HTTP check", () => {
+  const r = run("run-sample-access.mjs");
+  assert.equal(r.failed, 0, r.log);
+});
+
 // QA #186: wall-clock limits with requests that really hang until their timeout
 // (about 90 s). Opt-in: RF_SLOW_TESTS=1.
 test("timeouts: hanging primary and sample requests stay within the scan budget and fail cleanly", { skip: !process.env.RF_SLOW_TESTS && "RF_SLOW_TESTS not set", timeout: 300000 }, () => {

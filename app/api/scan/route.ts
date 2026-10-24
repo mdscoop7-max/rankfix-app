@@ -43,7 +43,7 @@ import { countIndependentProducts, isFinancialOfferSchema, missingJsHeadEvidence
 import { parseStructuredPrice, offerPrice } from "@/lib/price";
 import { detectBusinessModel } from "@/lib/business-model";
 import { indexJsonLdIds, resolveSchemaImage } from "@/lib/schema-image";
-import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, commerceServiceSignals, compareScoreVersions } from "@/lib/scan-feedback";
+import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, sampleOutcomeCounts, commerceServiceSignals, compareScoreVersions } from "@/lib/scan-feedback";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
 import { isSubstantiveRender, renderImprovesEvidence, preserveRawHeadEvidence, renderIsErrorState, visibleWordCount } from "@/lib/render-quality";
 import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeCategoryPath, looksLikeCorporatePath, looksLikeEditorialPath, looksLikeEventPath, looksLikeProductDetailPath, looksLikeStorePage, productUrlsFromSitemap } from "@/lib/product-links";
@@ -4569,7 +4569,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           } catch {}
         }
         if (!pageHtml && (!r.ok || (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")))) {
-          return { ...page, status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"http",status:"UNABLE_TO_CONFIRM",details:`HTTP ${r.status}; pagina kon niet betrouwbaar als HTML worden beoordeeld na begrensde recovery.`}] };
+          return { ...page, status:"unable_to_confirm", httpStatus:r.status, title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"http",status:"UNABLE_TO_CONFIRM",details:r.status === 401 || r.status === 403
+            ? `HTTP ${r.status}: de website weigerde de toegang tot deze pagina, ook bij weergave in een browser. Een toegangsfout is geen inhoudspagina; deze pagina telt niet mee in de steekproef of de score.`
+            : `HTTP ${r.status}; pagina kon niet betrouwbaar als HTML worden beoordeeld na begrensde recovery.`}] };
         }
         // The scanned page already passed the main-page size limit.
         const htmlSample = pageHtml
@@ -4599,8 +4601,11 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             } else {
               page.evidence.push("javascript render poorer than raw HTML; raw HTML retained");
             }
-          } catch {
-            page.evidence.push("javascript rendering unavailable; raw HTML retained");
+          } catch (sampleRenderError) {
+            // Name why the browser did not finish (crash, network, time limit), so a
+            // TestLab run shows the cause per sampled page, as for the scanned page.
+            const sampleRenderDetail = renderFailureDetail(sampleRenderError);
+            page.evidence.push(`javascript rendering unavailable (${renderFailureCode(sampleRenderError)}${sampleRenderDetail ? `: ${sampleRenderDetail}` : ""}); raw HTML retained`);
           }
         }
         const pageQualityTitle = firstMatch(pageHtml, /<title[^>]*>([\s\S]*?)<\/title>/i);
@@ -4735,7 +4740,11 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           // The scanned page's real status (a refusal to RankFix is not a website 200 or error).
           isScannedPage && scannerAccessBlocked
             ? {key:"http",status:"UNABLE_TO_CONFIRM",details:`${rankfixRefusal} voor RankFix; de pagina is via een browser opgehaald (crawlerblokkade, geen bewezen websitefout).`}
-            : {key:"http",status:"PASS",details:`HTTP ${isScannedPage ? response.status : r.status}`},
+            // A sampled page that refused RankFix (4xx/5xx) and only reached us through
+            // the browser has no confirmed status: never "passed" on a refusal.
+            : !isScannedPage && !r.ok
+              ? {key:"http",status:"UNABLE_TO_CONFIRM",details:`HTTP ${r.status} voor RankFix; de inhoud is via een browser opgehaald. Of bezoekers en zoekmachines deze pagina zonder blokkade krijgen, is niet bevestigd.`}
+              : {key:"http",status:"PASS",details:`HTTP ${isScannedPage ? response.status : r.status}`},
           {key:"title",status:!pageTitle && pageMissingEvidenceUnverified?"UNABLE_TO_CONFIRM":pageTitleAssessment.status==="PASS"?"PASS":"WARNING",details:!pageTitle && pageMissingEvidenceUnverified?`${pageTitleAssessment.details} ${clientShellNote}`:pageTitleAssessment.details},
           {key:"description",status:!pageDescription && pageMissingEvidenceUnverified?"UNABLE_TO_CONFIRM":pageDescriptionAssessment.status==="PASS"?"PASS":"WARNING",details:!pageDescription && pageMissingEvidenceUnverified?`${pageDescriptionAssessment.details} ${clientShellNote}`:pageDescriptionAssessment.details},
           {key:"h1",status:pageH1s.length>0?"PASS":pageMissingEvidenceUnverified?"UNABLE_TO_CONFIRM":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:pageH1s.length===0&&pageMissingEvidenceUnverified?`0 H1-heading(s) gevonden in de raw HTML. ${clientShellNote}`:`${pageH1s.length} H1-heading(s) gevonden.`},
@@ -5218,10 +5227,16 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       masterEvidence.businessModels = masterEvidence.businessModels.filter((model)=>model!=="commerce");
       technologyProfile.isCommerce = false;
       technologyProfile.siteType = technologyProfile.siteType === "Webshop" ? "Website" : technologyProfile.siteType;
-      technologyProfile.evidence = [...technologyProfile.evidence, "Secundaire commerce-navigatie gevonden; geen harde product-/retailketen bevestigd."].slice(0,8);
       for (const capability of ["ecommerce","merchant","consumer_rights"]) {
         masterEvidence.capabilities = masterEvidence.capabilities.filter((item)=>item!==capability);
       }
+    }
+    // The early "commerce signals" line describes hints (shop links, category paths,
+    // a plugin), not a shop. Without a confirmed shop it must never say "confirmed",
+    // whatever the sector, and no "Custom" shop platform is shown.
+    if (!finalCommerceDecision.confirmed && technologyProfile.evidence.some((line)=>/^Commerce-signalen bevestigd/.test(line))) {
+      technologyProfile.evidence = [...technologyProfile.evidence.filter((line)=>!/^Commerce-signalen bevestigd/.test(line)), "Losse commerce-aanwijzingen gevonden (zoals een shoplink of categoriepagina's), maar geen webshop vastgesteld: geen product-, winkelwagen- of afrekenketen bevestigd."].slice(0,8);
+      if (technologyProfile.commercePlatform === "Custom / niet bevestigd") technologyProfile.commercePlatform = null;
     }
     const multilingualPageIdentity = sectorPageEvidence(finalUrl.toString(), auditedRawPages);
     if (!masterIdentityOverride && sectorProfile.sector === "unknown" && !retailPrimaryIdentity
@@ -6125,7 +6140,10 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const unscoredMetadataPages = auditedRawPages.length - scoredSamplePages.length;
     const partialHeadPages = auditedRawPages.filter((item)=>item.partialHead).length;
     const excludedNoindexPages = multiPageAudits.filter((item)=>item.evidenceChecks?.some((e)=>e.key==="noindex")).length;
-    const unableToFetchPages = multiPageAudits.length - auditedRawPages.length - excludedNoindexPages;
+    // Every selected page gets one real outcome (fetched-but-thin and duplicates are
+    // not "not fetched"); see lib/scan-feedback.ts sampleOutcomeCounts.
+    const sampleOutcomes = sampleOutcomeCounts(reportedMultiPageAudits, multiPageAudits.length - reportedMultiPageAudits.length);
+    const unableToFetchPages = sampleOutcomes.notRetrieved;
     const sampleAccounting = sampleSummary(multiPageAudits.length, scoredSamplePages.length, excludedNoindexPages, unableToFetchPages, partialHeadPages);
     const multiPage = {
       accounting:sampleAccounting,
@@ -6144,6 +6162,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         scored: scoredSamplePages.length,
         excludedNoindex: excludedNoindexPages,
         fetchFailed: unableToFetchPages,
+        outcomes: sampleOutcomes,
         unableToConfirm: multiPageAudits.length-auditedRawPages.length,
         coveragePercent: multiPageAudits.length ? Math.round((scoredSamplePages.length/multiPageAudits.length)*100) : 0,
         provisional: multiPageAudits.length > 0 && scoredSamplePages.length < multiPageAudits.length,
@@ -6181,7 +6200,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         productSample: multiPageCapabilities.productSample,
         categorySample: multiPageCapabilities.categorySample,
       },
-      counts:{ selected:multiPageAudits.length, fetched:auditedRawPages.length+excludedNoindexPages, scored:scoredSamplePages.length, unscoredMetadata:unscoredMetadataPages, headOnly:partialHeadPages, excludedNoindex:excludedNoindexPages, fetchFailed:unableToFetchPages, contact:uniqueMultiPagePages.filter((x)=>x.type==="contact").length, article:uniqueMultiPagePages.filter((x)=>x.type==="article").length, homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, form:uniqueMultiPagePages.filter((x)=>x.type==="form").length, legal:uniqueMultiPagePages.filter((x)=>x.type==="legal").length, service:uniqueMultiPagePages.filter((x)=>x.type==="service").length, listing:uniqueMultiPagePages.filter((x)=>x.type==="listing").length, support:uniqueMultiPagePages.filter((x)=>x.type==="support").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
+      counts:{ selected:multiPageAudits.length, fetched:auditedRawPages.length+excludedNoindexPages, scored:scoredSamplePages.length, unscoredMetadata:unscoredMetadataPages, headOnly:partialHeadPages, excludedNoindex:excludedNoindexPages, fetchFailed:unableToFetchPages, outcomes:sampleOutcomes, contact:uniqueMultiPagePages.filter((x)=>x.type==="contact").length, article:uniqueMultiPagePages.filter((x)=>x.type==="article").length, homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, form:uniqueMultiPagePages.filter((x)=>x.type==="form").length, legal:uniqueMultiPagePages.filter((x)=>x.type==="legal").length, service:uniqueMultiPagePages.filter((x)=>x.type==="service").length, listing:uniqueMultiPagePages.filter((x)=>x.type==="listing").length, support:uniqueMultiPagePages.filter((x)=>x.type==="support").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
       note:"Steekproefscore telt alleen pagina's met vier beoordeelde metadata-controles (title, description, H1 en canonical). Pagina's met onbevestigd JavaScript-bewijs worden apart geteld en niet als 100/100 voorgesteld. Dit is geen volledige site-audit.",
     };
 

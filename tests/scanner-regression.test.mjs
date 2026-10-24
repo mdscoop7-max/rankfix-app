@@ -792,7 +792,8 @@ test("representative JS pages receive bounded browser evidence recovery", async 
   assert.match(scanner,/representativeJsFramework/);
   assert.match(scanner,/representativeThinShell/);
   assert.match(scanner,/javascript-rendered representative page/);
-  assert.match(scanner,/javascript rendering unavailable; raw HTML retained/);
+  assert.match(scanner,/javascript rendering unavailable \(\$\{renderFailureCode\(sampleRenderError\)\}/);
+  assert.match(scanner,/\); raw HTML retained`/);
 });
 
 test("commerce identity requires confirmed high-confidence signals", async () => {

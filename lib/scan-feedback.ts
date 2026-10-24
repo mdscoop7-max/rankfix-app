@@ -97,6 +97,37 @@ export function sampleSummary(selected:number,scored:number,noindex:number,fetch
     consistent: selected>=scored && noindex>=0 && fetchFailed>=0 && headOnly>=0};
 }
 
+/**
+ * One outcome per selected sample page, so the report never calls a fetched page
+ * "not fetched". Live QA scan 345f4d24 (Heathrow) said "3 niet opgehaald" for two
+ * pages that were fetched (HTTP 200) but carried too little content, plus one
+ * page that was a duplicate after a redirect.
+ *   scored        audited and in the sample score
+ *   unscored      audited, metadata not fully assessable (JS), not in the average
+ *   noindex       fetched, asks search engines not to index it
+ *   nonContent    fetched, but a block/error/maintenance or account page
+ *   thinContent   fetched (HTTP 2xx), too little content to assess
+ *   notRetrieved  network error, time limit or a 4xx/5xx refusal
+ *   duplicate     same page as another sample after redirects/canonical
+ * The parts always add up to `selected`.
+ */
+export type SampleOutcomeCounts = { selected: number; scored: number; unscored: number; noindex: number; nonContent: number; thinContent: number; notRetrieved: number; duplicate: number };
+export function sampleOutcomeCounts(
+  pages: Array<{ status?: string | null; score?: number | null; nonContent?: string | null; excludedUtility?: boolean; httpStatus?: number | null; evidenceChecks?: Array<{ key: string; details?: string }> }>,
+  duplicates: number,
+): SampleOutcomeCounts {
+  const c: SampleOutcomeCounts = { selected: pages.length + duplicates, scored: 0, unscored: 0, noindex: 0, nonContent: 0, thinContent: 0, notRetrieved: 0, duplicate: duplicates };
+  for (const page of pages) {
+    const key = page.evidenceChecks?.[0]?.key;
+    if (page.status === "audited") { if (page.score == null) c.unscored++; else c.scored++; continue; }
+    if (page.evidenceChecks?.some((e) => e.key === "noindex")) { c.noindex++; continue; }
+    if (page.nonContent || page.excludedUtility || key === "excluded" || /challenge|blokkade|controle- of blokkadepagina/i.test(page.evidenceChecks?.[0]?.details || "")) { c.nonContent++; continue; }
+    if (key === "quality" && (page.httpStatus ?? 0) >= 200 && (page.httpStatus ?? 0) < 300) { c.thinContent++; continue; }
+    c.notRetrieved++;
+  }
+  return c;
+}
+
 export function commerceServiceSignals(input:{subscription:boolean;booking:boolean;lead:boolean;price:boolean}) {
   return {
     subscription:input.subscription,

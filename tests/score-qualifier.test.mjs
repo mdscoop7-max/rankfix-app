@@ -37,7 +37,7 @@ test("'complete evidence' wording only at 100% coverage", async () => {
   assert.match(at97.label, /^Voorlopig/);
   assert.match(at97.detail, /bewijsdekking 97%/);
   assert.match(at97.detail, /mogelijk bereik 92–99/);
-  assert.equal(scoreQualifier({ coverage: { coveragePercent: 100 }, scoreModel: { evidenceLevel: "complete" } }, "nl").label, "Definitief: volledig bewijs");
+  assert.equal(scoreQualifier({ coverage: { coveragePercent: 100 }, scoreModel: { evidenceLevel: "complete" } }, "nl").label, "Definitief: alle toepasselijke controles bevestigd");
 });
 
 test("provisional only because of an ambiguous sector says so, and a one-value range is hidden", async () => {

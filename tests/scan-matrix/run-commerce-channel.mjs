@@ -88,6 +88,9 @@ for (const [host, site] of Object.entries(SITES)) {
   if (site.expect.notSector?.includes(sp.sector)) problems.push(`${host}: primary sector ${sp.sector} (${sp.confidenceScore})`);
   if (site.expect.sector && !site.expect.sector.includes(sp.sector)) problems.push(`${host}: sector ${sp.sector}, expected ${site.expect.sector.join("|")}`);
   if (site.expect.notCommerce?.includes(j.commerceApplicability?.state)) problems.push(`${host}: webshop functionality ${j.commerceApplicability?.state} without any shop evidence`);
+  // Live QA scan 4a9fe1db: "Commerce-signalen bevestigd" next to "Webshop: niet aanwezig".
+  if (j.commerceApplicability?.state !== "confirmed" && (j.technologyProfile?.evidence || []).some((line) => /Commerce-signalen bevestigd/.test(line))) problems.push(`${host}: website evidence says "commerce signals confirmed" without a confirmed shop`);
+  if (j.commerceApplicability?.state !== "confirmed" && j.technologyProfile?.commercePlatform === "Custom / niet bevestigd") problems.push(`${host}: commerce platform "Custom" shown without a shop`);
 }
 for (const r of rows) console.log(`${r.host.padEnd(20)} ${String(r.sector).padEnd(22)} ${String(r.confidence).padEnd(4)} secondary=${r.secondary.join(",") || "-"} commerce=${r.commerce}`);
 for (const p of problems) console.log(" - " + p);
