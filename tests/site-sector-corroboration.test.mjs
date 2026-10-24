@@ -93,3 +93,35 @@ test("ambiguous homepage with three independently named own pages can corroborat
   assert.equal(r.decision?.key,"airports");
   assert.equal(r.reason,"corroborated_homepage_and_pages");
 });
+
+
+test("service intermediary with homepage and independent company page is not a webshop",()=>{
+  const home=homepage("Boek snel een betrouwbare vakman online","Boek online een klus en kies een datum. Een betrouwbare vakman uit de buurt pakt de klus op.");
+  const about=page("/over-ons","Over ons","HandyMatch maakt het regelen van een vakman simpel. Via HandyMatch boeken klanten direct een gescreende vakspecialist voor klussen in huis.",{type:"corporate"});
+  const found=decision(home,[about]);
+  assert.equal(found.decision?.sector,"service_marketplace");
+  assert.equal(found.decision?.key,"service_marketplace");
+  assert.equal(found.supportingPages,2);
+  assert.ok(found.decision.confidenceScore<=90);
+});
+test("direct individual contractor booking does not become a marketplace",()=>{
+  const home=homepage("Boek een betrouwbare vakman online","Boek een vakman en kies een klus en een datum bij ons bedrijf.");
+  const service=page("/onze-diensten","Boek een betrouwbare vakman online","Wij voeren zelf klussen uit en bieden directe afspraken.");
+  assert.equal(decision(home,[service]).decision,null);
+});
+test("single, blocked or editorial pages never establish service marketplace",()=>{
+  const h=homepage("Boek een betrouwbare vakman online","Boek klussen met een gescreende vakman bij jou in de buurt");
+  const about=page("/over-ons","Over ons","Via HandyMatch boeken klanten direct een gescreende vakspecialist voor klussen.",{type:"corporate"});
+  assert.equal(decision(h,[]).decision,null);
+  assert.equal(decision(h,[{...about,status:"blocked"}]).decision,null);
+  assert.equal(decision(h,[{...about,type:"article"}]).decision,null);
+});
+
+
+test("realistic service-booking metadata corroborates own homepage and About page",()=>{
+  const home=homepage("Zoofy: Boek snel een betrouwbare vakman online. Zo gefikst.","Boek online een klus en kies zelf de datum en tijd. Een betrouwbare vakman uit de buurt pakt de klus snel op. Via Zoofy krijg je garantie en betaal je achteraf!");
+  const about=page("/over-ons/","Over ons","Zoofy maakt het regelen van een betrouwbare vakman simpel, snel en veilig. Via Zoofy boeken klanten direct een gescreende vakspecialist voor klussen in en om het huis, zonder gedoe met offertes of onduidelijke prijzen. Je kiest je klus, ziet vooraf waar je aan toe bent en betaalt veilig achteraf via Zoofy.",{type:"corporate"});
+  const found=decision(home,[about]);
+  assert.equal(found.decision?.sector,"service_marketplace");
+  assert.deepEqual(found.candidates.map(c=>c.key),["service_marketplace"]);
+});

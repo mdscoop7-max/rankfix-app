@@ -220,8 +220,13 @@ export function hasBusinessContactDetails(details: BusinessContactDetails): bool
 export function findCompanyRegistration(text: string, includePlaceholders = false): string | null {
   const kvk = text.match(/\b(?:kvk|k\.v\.k\.|kamer van koophandel)(?:[\s-]*(?:nr|nummer|number|no)\.?)?\s*:?\s*(\d{8})\b/i);
   if (kvk && (includePlaceholders || !isPlaceholderRegistration(kvk[1]))) return `KvK ${kvk[1]}`;
-  const vat = text.match(/\b(?:btw|vat|ust-?idnr|tva|iva)(?:[\s-]*(?:nr|nummer|number|id|no)\.?)?\s*:?\s*([A-Z]{2}\s?[0-9A-Z]{8,12})\b/i);
-  if (vat && (includePlaceholders || !isPlaceholderRegistration(vat[1]))) return `BTW/VAT ${vat[1].replace(/\s/g, "")}`;
+  // Navigation text such as 'BTW Elektricien' is not a VAT number.
+  // A genuine VAT ID includes at least six digits after its country prefix.
+  for (const vat of text.matchAll(/\b(?:btw|vat|ust-?idnr|tva|iva)(?:[\s-]*(?:nr|nummer|number|id|no)\.?)?\s*:?\s*([A-Z]{2}\s?[0-9A-Z]{8,12})\b/gi)) {
+    const value = vat[1].replace(/\s/g, "");
+    if ((value.match(/\d/g) || []).length < 6) continue;
+    if (includePlaceholders || !isPlaceholderRegistration(value)) return "BTW/VAT " + value;
+  }
   return null;
 }
 
