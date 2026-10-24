@@ -36,8 +36,9 @@ async function processNextSite(jobId:string):Promise<boolean>{
  let result:QaResult;
  try{
   const ts=Date.now();
-  const host=process.env.VERCEL_URL;
-  if(!host)throw Error("QA_DEPLOYMENT_URL_UNAVAILABLE");
+  // The unique preview deployment URL is SSO-protected. The fixed QA alias is public.
+  // HMAC and job/commit validation still restrict actual scan execution to internal QA.
+  const host="rankfix-app-git-qa-rankfix-shared-preview-scoop5.vercel.app";
   const response=await fetch("https://"+host+"/api/scan",{
    method:"POST",headers:{
     "Content-Type":"application/json",
