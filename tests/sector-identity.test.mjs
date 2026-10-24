@@ -81,7 +81,7 @@ test("Evidence Layer reads array-valued @type such as OnlineStore + FurnitureSto
 });
 
 test("scan route wires the central identity rules without brand exceptions", async () => {
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /patterns:\[TOURISM_IDENTITY_PATTERN,TOURISM_ACTIVITY_PATTERN\]/);
   assert.equal(source.includes("ontdek [a-zà-ÿ-]+"), false);
   assert.equal(source.includes("visit [a-zà-ÿ-]+"), false);
@@ -117,7 +117,7 @@ test("a blocked or empty browser render is never treated as website evidence", a
   assert.equal(renderImprovesEvidence(visibleWordCount(rich), false, rich), true);
   // A thin client shell is still replaced by a meaningful render.
   assert.equal(renderImprovesEvidence(5, true, rich), true);
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.equal(source.includes("html.length >= 20) {"), false, "no render is accepted on byte length alone");
   assert.equal((source.match(/isSubstantiveRender\(/g) || []).length, 5, "primary, timeout recovery, quality-gate, representative and second-hop renders");
   assert.equal((source.match(/renderImprovesEvidence\(/g) || []).length, 2);
@@ -130,14 +130,14 @@ test("schema.org Organization subtypes count as Organization identity", async ()
   for (const types of [["WebSite"], ["WebPage", "BreadcrumbList"], ["Product", "Offer"], ["Person"], []]) {
     assert.equal(hasOrganizationSchema(types), false, types.join(","));
   }
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /const organizationSchemaPresent = hasOrganizationSchema\(schemaTypes\)/);
   assert.match(source, /const hasOrg = hasOrganizationSchema\(homepageTypes\)/);
   assert.equal(source.includes('homepageTypes.has("organization")'), false);
 });
 
 test("the scanned page is reused as its own representative sample, not refetched", async () => {
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /const isScannedPage = normalizeScanUrl\(page\.url\) === normalizeScanUrl\(finalUrl\.toString\(\)\)/);
   assert.match(source, /isScannedPage\n\s+\? \{ response: new Response\(html,/);
   // The scanned page already passed the 8 MB main-page limit; a large homepage is not "fetch failed".
@@ -152,12 +152,12 @@ test("FAQ/help-center pages cannot crowd out the representative sample", async (
   const picked = selectRepresentativePages([], [...faq, ...shop], 20, (u) => u, (u) => u, { matches: isFaq, limit: 3 });
   assert.equal(picked.filter((p) => isFaq(p.url)).length, 3);
   assert.equal(picked.filter((p) => !isFaq(p.url)).length, 10);
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /templateShapeKey, \{ matches: isFaqSample, limit: 3 \}/);
 });
 
 test("every module the scanner can activate has a report label in every locale", async () => {
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   const { CAPABILITY_MODULE_MAP } = await import("../lib/sector-catalog.ts");
   const modules = new Set(Object.values(CAPABILITY_MODULE_MAP).flat());
   for (const match of source.matchAll(/modules:\[([^\]]*)\]/g)) for (const m of match[1].matchAll(/"([a-z_]+)"/g)) modules.add(m[1]);
@@ -193,7 +193,7 @@ test("product-detail candidates are nominated by URL shape, never editorial page
 });
 
 test("retail sites without a product sample get a bounded second hop", async () => {
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /const retailContextForProducts = sectorProfile\.key === "ecommerce" \|\| explicitRetailIdentity \|\| hasEcommerceSignal;/);
   // QA-144: the second hop only starts with time left before the sample deadline.
   assert.match(source, /if \(retailContextForProducts && !confirmedProductSample && productHuntTime\(\)\)/);
@@ -217,7 +217,7 @@ test("one page type cannot crowd out the representative sample", async () => {
   assert.equal(picked.filter((p) => p.type === "legal").length, 3);
   // Without a ceiling the previous behaviour is unchanged.
   assert.equal(selectRepresentativePages([], [...brands, ...rest], 30, (u) => u, (u) => u).filter((p) => p.type === "other").length, 25);
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /\{ matches: isFaqSample, limit: 3 \}, Math\.ceil\(representativePageLimit \* 0\.4\), \{ key: sectionKey, limit: 5, exemptTypes: \["product"\] \}\)/);
   // Slug-with-id product nomination applies to retail sites only.
   assert.match(source, /\(\(sectorProfile\.key === "ecommerce" \|\| explicitRetailIdentity \|\| hasEcommerceSignal\) && looksLikeProductDetailPath\(path\)\)/);
@@ -230,7 +230,7 @@ test("product candidates come from sitemaps without a browser", async () => {
   const index = `<sitemapindex><sitemap><loc>https://www.shop.example/sitemap-pages.xml</loc></sitemap><sitemap><loc>https://www.shop.example/sitemap-products-1.xml</loc></sitemap><sitemap><loc>https://www.shop.example/sitemap-products-2.xml.gz</loc></sitemap></sitemapindex>`;
   assert.deepEqual(childSitemapsFromIndex(index), ["https://www.shop.example/sitemap-products-1.xml", "https://www.shop.example/sitemap-pages.xml"]);
   assert.deepEqual(childSitemapsFromIndex(urlset), []);
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /readResponsePrefix\(fetchedSitemap\.response, 1_500_000\)/);
   assert.ok(source.indexOf("productUrlsFromSitemap(sitemapXml") < source.indexOf("const listingPages = multiPageAudits"), "sitemap is tried before any browser render");
 });
@@ -243,13 +243,13 @@ test("bounded prefix reads never fail on large documents", async () => {
 });
 
 test("a retail identity never receives LocalBusiness schema advice", async () => {
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /const ecommerceSchemaContext = hasEcommerceSignal \|\| earlyRetailIdentity \|\|/);
   assert.match(source, /const earlyRetailIdentity = hasRetailStoreSchema\(schemaTypes\) \|\| \(earlyRetailLanguage\.assortment && \(earlyRetailLanguage\.onlineSales \|\| \(earlyRetailLanguage\.store && commerceNavigationSignal\)\)\)/);
 });
 
 test("a confirmed shop never shows shop checks as 'not applicable' because one page lacked signals", async () => {
-  const source = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(source, /const euMarketEligible = !explicitNonEuCountryTld && \(euCountryTld \|\| euLanguageSignal \|\| euroMarketSignal\);/);
   assert.match(source, /const euConsumerApplicable = hasEcommerceSignal && euMarketEligible;/);
   // EU modules follow the final site decision plus market eligibility.
@@ -279,7 +279,7 @@ test("telecom operator detection needs independent network and subscription evid
 });
 
 test("primary telecom identity is a separate decision from verified physical-store evidence", async () => {
-  const route = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const route = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.match(route, /telecomOperatorIdentity\(sectorIdentitySource\)/);
   assert.match(route, /hasRetailStoreSchema\(schemaTypes\) && evidenceCommerceConfirmed/);
   assert.match(route, /const commerceAsPrimaryIdentity = !telecomProviderIdentity &&/);
