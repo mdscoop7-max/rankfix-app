@@ -603,10 +603,15 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   }
 
   // 6. Health information and care portals (not shops, not insurers).
+  // QA international-28 control: a software vendor for hospitals ("Software voor
+  // ziekenhuizen", "Ziekenhuissoftware" with a demo/pricing funnel) is not a care
+  // provider; it names its customers' concepts (patients, clinics).
+  const softwareTitle = SOFTWARE.test(title) || /\p{L}{3,}(?:software|plattform|platform|logiciel)(?![\p{L}])/iu.test(title);
+  const softwareVendor = (softwareTitle || SOFTWARE.test(own)) && SOFTWARE_FUNNEL.test(nav + " " + h2 + " " + own);
   const healthConcepts = distinct(own, HEALTH_CONCEPTS);
   const healthSchema = ["hospital", "medicalorganization", "medicalclinic", "physician"].some((t) => schema.has(t));
   const hospitalTitle = (HEALTH_CONCEPTS.find(([n]) => n === "clinic")?.[1] as Tester).test(title) && healthConcepts.length >= 2;
-  if (!retailer && (healthSchema || hospitalTitle || healthConcepts.length >= 3 || (healthConcepts.length >= 2 && countSources((s) => distinct(s, HEALTH_CONCEPTS).length > 0) >= 2))) {
+  if (!retailer && (!softwareVendor || healthSchema) && (healthSchema || hospitalTitle || healthConcepts.length >= 3 || (healthConcepts.length >= 2 && countSources((s) => distinct(s, HEALTH_CONCEPTS).length > 0) >= 2))) {
     return { sector: "health_wellness", key: "health_wellness", label: "Zorg & Gezondheid", confidence: "high", confidenceScore: healthSchema ? 94 : 90,
       evidence: [`Eigen identiteit noemt ${healthConcepts.length} zorgconcepten (${healthConcepts.join(", ")})`, ...(healthSchema ? ["Structured data: zorgorganisatie"] : [])] };
   }
@@ -701,7 +706,7 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   if (!retailer && COURIER.test(own) && PARCEL.test(own)) {
     return { sector: "transport_travel", key: "postal_logistics", label: "Post- & pakketvervoer", confidence: "high", confidenceScore: 88, evidence: ["Eigen identiteit: koerier- of pakketdienst"] };
   }
-  if (!retailer && !publication && SOFTWARE.test(title) && (SOFTWARE_FUNNEL.test(nav + " " + h2 + " " + own) || SOFTWARE_ACTION.test(own) || schema.has("softwareapplication") || schema.has("webapplication"))) {
+  if (!retailer && !publication && softwareTitle && (SOFTWARE_FUNNEL.test(nav + " " + h2 + " " + own) || SOFTWARE_ACTION.test(own) || schema.has("softwareapplication") || schema.has("webapplication"))) {
     return { sector: "saas_b2b", key: "saas_b2b", label: "SaaS / B2B software", confidence: "medium", confidenceScore: 78, evidence: ["Eigen identiteit: softwareproduct met demo-, prijs- of loginfunnel"] };
   }
 

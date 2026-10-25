@@ -113,22 +113,38 @@ export function buildScanEvidence(input: {
   const productPage = productSchema || productPathHint;
 
   // Price evidence must be adjacent to an amount; a currency mentioned in a footer
-  // or exchange-rate table alone is not proof of a retail price. Plain "kr"
-  // is deliberately kept ambiguous rather than assigned to SEK/DKK/NOK.
-  const moneyToken = String.raw`(?:€|eur\b|\$|usd\b|£|gbp\b|pln\b|zł|czk\b|kč|sek\b|dkk\b|nok\b|kr\b|huf\b|ft\b|ron\b|lei\b|bgn\b|лв)`;
+  // or exchange-rate table alone is not proof of a retail price. Plain "kr" is
+  // only assigned to SEK/DKK/NOK/ISK when the page language or the country
+  // domain names one country; otherwise it stays unassigned.
+  // QA international-28 (25 Oct): Swiss francs (CHF, Fr., SFr.), the round-price
+  // notations "€ 12,-" and "CHF 12.–", and the currencies of European countries
+  // outside the eurozone/EU (ISK, RSD, MKD, ALL, BAM, MDL, UAH, TRY, GEL) were not
+  // recognised as prices. Codes that are also common words in lower-cased page
+  // text ("all", "try", "gel", "km") are only read as their symbol or local word.
+  const moneyToken = String.raw`(?:€|eur\b|\$|usd\b|£|gbp\b|chf\b|s?fr\.|pln\b|zł|czk\b|kč|sek\b|dkk\b|nok\b|isk\b|kr\.?(?![\p{L}])|huf\b|ft\b|ron\b|lei\b|bgn\b|лв|rsd\b|дин\.?|din\.(?![\p{L}])|mkd\b|ден\b|lek[ëe]?\b|bam\b|mdl\b|uah\b|₴|грн|₺|₾)`;
   // Bounded amounts prevent quadratic scanning of adversarial digit-only pages.
-  const amount = String.raw`(?:\d{1,3}(?:[ .,'’]\d{3}){1,4}(?:[.,]\d{1,2})?|\d{1,12}(?:[.,]\d{1,2})?)`;
-  const pricePattern = new RegExp(String.raw`(?:${moneyToken}\s*${amount}(?![\d.,])|(?<![\d.,])${amount}\s*${moneyToken})`, "gi");
+  // A round price may end in ",-" / ".–" (NL, DE, CH, Nordic shops).
+  const amount = String.raw`(?:\d{1,3}(?:[ .,'’]\d{3}){1,4}(?:[.,](?:\d{1,2}|[-–—]{1,2}))?|\d{1,12}(?:[.,](?:\d{1,2}|[-–—]{1,2}))?)`;
+  // A time or day range ("Fr. 9-18 Uhr", "€ 10 - 20 min") is not a price.
+  const pricePattern = new RegExp(String.raw`(?:${moneyToken}\s*${amount}(?![\d.,])(?!\s*[-–]\s*\d)(?!\s*(?:uhr|h|u|min|:)(?![\p{L}]))|(?<![\d.,])${amount}\s*${moneyToken})`, "giu");
   const priceMatches = [...text.matchAll(pricePattern)];
+  const lang = String(input.language || (rawHtml.match(/<html\b[^>]*\blang\s*=\s*["']?([a-z]{2,3})/i)?.[1]) || "").toLowerCase().slice(0, 2);
+  let tld = "";
+  try { tld = new URL(input.url).hostname.toLowerCase().split(".").pop() || ""; } catch { /* keep empty */ }
+  const krByCountry: Record<string, string> = { sv: "SEK", se: "SEK", da: "DKK", dk: "DKK", nb: "NOK", nn: "NOK", no: "NOK", is: "ISK", fo: "DKK", gl: "DKK" };
+  const krCurrency = krByCountry[tld] || krByCountry[lang] || null;
   const currencyAliases: Record<string,string> = {
     "€":"EUR","eur":"EUR","$":"USD","usd":"USD","£":"GBP","gbp":"GBP",
+    "chf":"CHF","fr.":"CHF","sfr.":"CHF",
     "pln":"PLN","zł":"PLN","czk":"CZK","kč":"CZK",
-    "sek":"SEK","dkk":"DKK","nok":"NOK","huf":"HUF","ft":"HUF",
+    "sek":"SEK","dkk":"DKK","nok":"NOK","isk":"ISK","huf":"HUF","ft":"HUF",
     "ron":"RON","lei":"RON","bgn":"BGN","лв":"BGN",
+    "rsd":"RSD","дин":"RSD","дин.":"RSD","din":"RSD","din.":"RSD","mkd":"MKD","ден":"MKD","all":"ALL","lek":"ALL","lekë":"ALL","leke":"ALL",
+    "bam":"BAM","km":"BAM","mdl":"MDL","uah":"UAH","₴":"UAH","грн":"UAH","try":"TRY","₺":"TRY","gel":"GEL","₾":"GEL",
   };
   const currencies = uniq(priceMatches.flatMap(m =>
-    [...m[0].toLowerCase().matchAll(new RegExp(moneyToken, "gi"))]
-      .map(x => currencyAliases[x[0].toLowerCase()])
+    [...m[0].toLowerCase().matchAll(new RegExp(moneyToken, "giu"))]
+      .map(x => { const t = x[0].toLowerCase(); return /^kr\.?$/.test(t) ? krCurrency : currencyAliases[t]; })
       .filter((code): code is string => Boolean(code))
   ));
   const priceCount = priceMatches.length;

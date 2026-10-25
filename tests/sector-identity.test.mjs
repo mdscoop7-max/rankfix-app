@@ -250,7 +250,10 @@ test("a retail identity never receives LocalBusiness schema advice", async () =>
 
 test("a confirmed shop never shows shop checks as 'not applicable' because one page lacked signals", async () => {
   const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
-  assert.match(source, /const euMarketEligible = !explicitNonEuCountryTld && \(euCountryTld \|\| euLanguageSignal \|\| euroMarketSignal\);/);
+  // EEA storefronts (NO/IS/LI) are eligible; Swiss-franc/pound-only stores on a generic domain are not.
+  assert.match(source, /const euMarketEligible = !explicitNonEuCountryTld && \(euCountryTld \|\| \(\(euLanguageSignal \|\| euroMarketSignal\) && !nonEuCurrencyOnly\)\);/);
+  assert.match(source, /const euCountryTld = [^\n]*\|no\|is\|li\)\$\//);
+  assert.match(source, /const explicitNonEuCountryTld = [^\n]*\|ch\)\$\//);
   assert.match(source, /const euConsumerApplicable = hasEcommerceSignal && euMarketEligible;/);
   // EU modules follow the final site decision plus market eligibility.
   assert.match(source, /finalEuCommerceKeys\.has\(item\.key\) && !euMarketEligible/);

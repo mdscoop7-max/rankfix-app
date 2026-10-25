@@ -298,4 +298,94 @@ export const QA144_SITES = {
         nav: [["/functies", "Functies"], ["/prijzen", "Prijzen"], ["/demo", "Demo aanvragen"]], body: filler("Kassasoftware, voorraadbeheer en rapportages voor retailers.") }),
     },
   },
+
+  // ───── QA international-28 (TestLab @ 3d9239aa, 25 Oct): own self-description in
+  // the site's language was not recognised → "unknown" with 88–99 scores. Neutral
+  // invented texts per class; never a real site text, brand or domain rule.
+  "maeglerhus.test": {
+    group: "intl28_real_estate_da", expect: { sector: ["real_estate"] },
+    pages: {
+      "/": doc({ lang: "da", title: "Mæglerhus | Ejendomsmægler i hele Danmark", description: "Vi er ejendomsmæglere og hjælper dig med at sælge din bolig. Find boliger til salg nær dig.", h1: ["Find din næste bolig"],
+        nav: [["/boliger-til-salg", "Boliger til salg"], ["/salgsvurdering", "Gratis salgsvurdering"], ["/butikker", "Find butik"]], body: filler("Boliger til salg, salgsvurdering og rådgivning om køb og salg af bolig.") }),
+      "/boliger-til-salg": doc({ lang: "da", title: "Boliger til salg | Mæglerhus", description: "Se alle boliger til salg hos vores ejendomsmæglere.", h1: ["Boliger til salg"] }),
+    },
+  },
+  "valitys.test": {
+    group: "intl28_real_estate_fi", expect: { sector: ["real_estate"] },
+    pages: {
+      "/": doc({ lang: "fi", title: "Välitys | Kiinteistönvälitys ja asunnot myynnissä", description: "Olemme kiinteistönvälittäjä. Löydä myytävät asunnot ja myy asuntosi kanssamme.", h1: ["Myytävät asunnot"],
+        nav: [["/asunnot", "Asunnot"], ["/myy", "Myy asuntosi"], ["/toimistot", "Toimistot"]], body: filler("Myytävät asunnot, arvio ja asuntokauppa.") }),
+    },
+  },
+  "agenzia-casa.test": {
+    group: "intl28_real_estate_it", expect: { sector: ["real_estate"] },
+    pages: {
+      "/": doc({ lang: "it", title: "Agenzia Casa | Agenzia immobiliare: case in vendita e in affitto", description: "Siamo una rete di agenzie immobiliari: compra, vendi o affitta casa con noi.", h1: ["Case in vendita"],
+        nav: [["/vendita", "Vendita"], ["/affitto", "Affitto"], ["/agenzie", "Agenzie"]], body: filler("Case in vendita e in affitto, valutazione gratuita della tua casa.") }),
+    },
+  },
+  "hypotheek-advies.test": {
+    group: "intl28_mortgage_nl", expect: { sector: ["financial_services"], notSector: ["unknown"] },
+    pages: {
+      "/": doc({ title: "Hypotheekadvies | Onafhankelijk hypotheekadvies bij jou in de buurt", description: "Wij zijn hypotheekadviseurs en vergelijken hypotheken van meer dan 30 geldverstrekkers voor jouw woning.", h1: ["Jouw hypotheek, goed geregeld"],
+        nav: [["/hypotheek-berekenen", "Hypotheek berekenen"], ["/rente", "Actuele rente"], ["/vestigingen", "Vestigingen"]], body: filler("Bereken je maximale hypotheek, bekijk de actuele rente en maak een afspraak met een adviseur.") }),
+    },
+  },
+  "rede-saude.test": {
+    group: "intl28_hospital_pt", expect: { sector: ["health_wellness"] },
+    pages: {
+      "/": doc({ lang: "pt", title: "Rede Saúde | Hospitais e clínicas privadas", description: "Somos uma rede de hospitais e clínicas privadas em Portugal. Marque a sua consulta online.", h1: ["Marque a sua consulta"],
+        nav: [["/especialidades", "Especialidades"], ["/medicos", "Médicos"], ["/hospitais", "Hospitais e clínicas"], ["/urgencia", "Urgência"]], body: filler("Especialidades, médicos, exames e urgência em todos os nossos hospitais.") }),
+    },
+  },
+  "hosting-dominio.test": {
+    group: "intl28_hosting_it", expect: { sector: ["saas_b2b"] },
+    pages: {
+      "/": doc({ lang: "it", title: "Hosting Dominio | Hosting, domini e server cloud", description: "Siamo un provider di hosting: registra il tuo dominio, hosting web, PEC, server e cloud.", h1: ["Il tuo sito online"],
+        nav: [["/domini", "Domini"], ["/hosting", "Hosting"], ["/cloud", "Cloud"], ["/pec", "PEC"]], body: filler("Registrazione domini, hosting WordPress, server dedicati e cloud.") }),
+    },
+  },
+  "baugruppe.test": {
+    group: "intl28_construction_ch", expect: { sector: ["manufacturing_industrial"], notSector: ["home_services"] },
+    pages: {
+      "/": doc({ lang: "de", title: "Baugruppe | Bau- und Immobiliendienstleister", description: "Wir sind ein Baukonzern und planen, bauen und modernisieren Gebäude, Tunnel, Brücken und Infrastruktur.", h1: ["Wir bauen Lebensräume"],
+        nav: [["/hochbau", "Hochbau"], ["/tiefbau", "Tiefbau"], ["/projekte", "Projekte"], ["/investoren", "Investoren"]], body: filler("Infrastrukturprojekte, Tunnelbau und Großprojekte in der Schweiz und Deutschland.") }),
+    },
+  },
+  "faa-tilbud.test": {
+    group: "intl28_marketplace_no", expect: { sector: ["service_marketplace"] },
+    pages: {
+      "/": doc({ lang: "nb", title: "Få Tilbud | Få tilbud fra håndverkere", description: "Legg ut jobben gratis og få tilbud fra kvalifiserte håndverkere i hele Norge.", h1: ["Hva skal du få gjort?"],
+        nav: [["/legg-ut", "Legg ut jobb"], ["/handverkere", "Finn håndverkere"], ["/slik-fungerer-det", "Slik fungerer det"]], body: filler("Beskriv jobben, motta tilbud og sammenlign anmeldelser av håndverkere.") }),
+    },
+  },
+  // Negative controls for the new classes.
+  "bauunternehmen-meier.test": {
+    group: "intl28_control_local_builder", expect: { notSector: ["manufacturing_industrial"] },
+    pages: {
+      "/": doc({ lang: "de", title: "Bauunternehmen Meier | Hausbau in der Region", description: "Wir sind ein Bauunternehmen für Einfamilienhäuser, Umbau und Renovierung.", h1: ["Ihr Haus aus einer Hand"],
+        nav: [["/leistungen", "Leistungen"], ["/referenzen", "Referenzen"], ["/kontakt", "Kontakt"]], body: filler("Neubau, Umbau und Renovierung von Einfamilienhäusern.") }),
+    },
+  },
+  "webbureau-pixel.test": {
+    group: "intl28_control_agency_hosting", expect: { notSector: ["saas_b2b"] },
+    pages: {
+      "/": doc({ title: "Webbureau Pixel | Webdesign en hosting", description: "Wij maken websites en verzorgen hosting, domeinnamen en e-mail voor ondernemers.", h1: ["Websites die werken"],
+        nav: [["/webdesign", "Webdesign"], ["/hosting", "Hosting"], ["/portfolio", "Portfolio"]], body: filler("Webdesign, webshops en onderhoud voor mkb.") }),
+    },
+  },
+  "timmer-hansen.test": {
+    group: "intl28_control_contractor_no", expect: { notSector: ["service_marketplace"] },
+    pages: {
+      "/": doc({ lang: "nb", title: "Tømrer Hansen | Få tilbud", description: "Få et gratis tilbud fra våre håndverkere i Oslo.", h1: ["Tømrer i Oslo"],
+        nav: [["/tjenester", "Tjenester"], ["/kontakt", "Kontakt"]], body: filler("Vi bygger terrasser, kjøkken og bad.") }),
+    },
+  },
+  "epd-zorg.test": {
+    group: "intl28_control_hospital_software", expect: { notSector: ["health_wellness"] },
+    pages: {
+      "/": doc({ title: "EPD Zorg | Ziekenhuissoftware", description: "Software voor ziekenhuizen en klinieken: afspraken, patiëntendossier en planning.", h1: ["Het EPD voor de zorg"],
+        nav: [["/functies", "Functies"], ["/demo", "Demo aanvragen"], ["/prijzen", "Prijzen"]], body: filler("Planning, dossier en koppelingen voor zorginstellingen.") }),
+    },
+  },
 };

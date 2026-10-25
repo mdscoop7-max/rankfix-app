@@ -1469,13 +1469,21 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // storefront (for example .com.au) must not receive EU compliance signals
     // merely because it is an e-commerce site.
     const hostLower = finalUrl.hostname.toLowerCase();
-    const euCountryTld = /\.(?:at|be|bg|hr|cy|cz|de|dk|ee|es|fi|fr|gr|hu|ie|it|lt|lu|lv|mt|nl|pl|pt|ro|se|si|sk)$/.test(hostLower);
-    const explicitNonEuCountryTld = /\.(?:com\.au|co\.uk|ca|us|co\.nz|jp|cn|in|br|mx|ch|no)$/.test(hostLower);
-    const euLanguageSignal = /^(?:nl|de|fr|it|es|pt|pl|sv|da|fi|cs|sk|hu|ro|bg|el|hr|et|lv|lt|sl|mt)(?:-|$)/i.test(lang || "");
+    // QA international-28 (25 Oct): Norway, Iceland and Liechtenstein apply the EU
+    // consumer rules through the EEA Agreement (14-day withdrawal, Omnibus price
+    // indications), so their storefronts are eligible. Switzerland and the UK are
+    // not EU/EEA: their own consumer law differs (Switzerland has no general online
+    // withdrawal right), so EU signals are not applied there.
+    const euCountryTld = /\.(?:at|be|bg|hr|cy|cz|de|dk|ee|es|fi|fr|gr|hu|ie|it|lt|lu|lv|mt|nl|pl|pt|ro|se|si|sk|no|is|li)$/.test(hostLower);
+    const explicitNonEuCountryTld = /\.(?:com\.au|co\.uk|uk|ca|us|co\.nz|jp|cn|in|br|mx|ch)$/.test(hostLower);
+    const euLanguageSignal = /^(?:nl|de|fr|it|es|pt|pl|sv|da|fi|cs|sk|hu|ro|bg|el|hr|et|lv|lt|sl|mt|nb|nn|no|is|ga)(?:-|$)/i.test(lang || "");
     const euroMarketSignal = /(?:€|\bEUR\b)/i.test(text);
+    // A German/French/Italian-language store that prices only in Swiss francs (or
+    // pounds) on a generic domain targets a non-EU market.
+    const nonEuCurrencyOnly = !euroMarketSignal && /(?:\bCHF\s?\d|\d\s?CHF\b|\bS?Fr\.\s?\d|£\s?\d|\bGBP\s?\d)/i.test(text) && !/(?:\b(?:SEK|DKK|NOK|PLN|CZK|HUF|RON|BGN|ISK)\b|zł|kč)/i.test(text);
     // EU market eligibility is a property of the storefront; whether the shop itself
     // is confirmed is decided later (page signal here, final site decision below).
-    const euMarketEligible = !explicitNonEuCountryTld && (euCountryTld || euLanguageSignal || euroMarketSignal);
+    const euMarketEligible = !explicitNonEuCountryTld && (euCountryTld || ((euLanguageSignal || euroMarketSignal) && !nonEuCurrencyOnly));
     const euConsumerApplicable = hasEcommerceSignal && euMarketEligible;
     const requestedLanguages = adsProfile.adLanguages.split(/[,;]/).map((value) => value.trim().toLowerCase()).filter(Boolean).slice(0, 6);
     const requestedCountries = adsProfile.targetCountries.split(/[,;]/).map((value) => value.trim()).filter(Boolean).slice(0, 8);
@@ -2287,12 +2295,20 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       // A local trade (hotel, restaurant, hair salon, optician...) refines a
       // generic keyword decision of the same broad sector.
       hospitality:["hospitality"], beauty:["beauty"], food_local_retail:["food_local_retail"], real_estate:["real_estate"],
+      // QA international-28: an independent mortgage adviser that names lenders'
+      // products ("hypotheken", "rente") is not a bank; its own declaration refines
+      // the financial subtype (a bank naming itself never declares this, see
+      // detectDeclaredIndustry).
+      financial_services:["financial_services"],
     };
     const baseIsEuGeneric = Boolean(baseMasterIdentity && euGenericIdentityApplies && euPrimaryIdentity && baseMasterIdentity.sector === euPrimaryIdentity.sector && baseMasterIdentity.key === euPrimaryIdentity.key);
     const declaredIdentityApplies = Boolean(homepageDeclared && (
       !baseMasterIdentity
       || (baseIsEuGeneric && euPrimaryIdentity?.confidence === "medium")
-      || ((DECLARED_REFINES[homepageDeclared.sector] || []).includes(baseMasterIdentity.sector) && baseMasterIdentity.key !== homepageDeclared.key)
+      // A broad declaration ("hospital", key = the sector itself) never replaces a
+      // more specific subtype of the same sector (an academic medical centre).
+      || ((DECLARED_REFINES[homepageDeclared.sector] || []).includes(baseMasterIdentity.sector) && baseMasterIdentity.key !== homepageDeclared.key
+        && !(homepageDeclared.key === homepageDeclared.sector && baseMasterIdentity.sector === homepageDeclared.sector && baseMasterIdentity.key !== baseMasterIdentity.sector))
     ));
     // The declaration agrees with an identity already established for the same
     // broad sector (a dedicated rule or an anchored keyword decision): it refines
@@ -3158,8 +3174,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // Keep structured and visible commerce evidence separate. A footer link or
     // JSON-LD policy proves availability of information, not that product-page
     // shoppers can actually see it where they make the purchase decision.
-    const visibleShippingMatches = text.match(/(?:verzendkosten|verzending|levering|bezorging|ophalen|afhalen|shipping(?:\s+(?:cost|costs|information))?|delivery(?:\s+(?:cost|costs|information))?|versand(?:kosten)?|lieferung|frais de livraison|livraison|spedizione|consegna|gastos de envío|envío)/gi) || [];
-    const visibleReturnsMatches = text.match(/(?:retour(?:neren|beleid)?|herroepingsrecht|bedenktijd|14\s*dagen|return(?:s| policy)?|refund(?: policy)?|rückgabe|widerrufsrecht|retour(?:s)?|droit de rétractation|reso|diritto di recesso|devolución|derecho de desistimiento)/gi) || [];
+    const visibleShippingMatches = text.match(/(?:verzendkosten|verzending|levering|bezorging|ophalen|afhalen|shipping(?:\s+(?:cost|costs|information))?|delivery(?:\s+(?:cost|costs|information))?|versand(?:kosten)?|lieferung|frais de livraison|livraison|spedizione|consegna|gastos de envío|envío|portes de envio|envio|entrega|frakt\p{L}*|fragt\p{L}*|leverans\p{L}*|toimitu\p{L}*|wysyłk\p{L}*|dostaw\p{L}*|doprava|doručení|doručenie|szállítás\p{L}*|livrare|transport gratuit|tarne|piegāde|pristatym\p{L}*|αποστολ\p{L}*|dostava|poštnina|poštarina)/giu) || [];
+    const visibleReturnsMatches = text.match(/(?:retour(?:neren|beleid)?|herroepingsrecht|bedenktijd|14\s*dagen|return(?:s| policy)?|refund(?: policy)?|rückgabe|widerrufsrecht|retour(?:s)?|droit de rétractation|reso|diritto di recesso|devolución|derecho de desistimiento|devolução|devoluções|direito de livre resolução|returrätt|ångerrätt|angrerett|angrefrist|fortrydelsesret|returret|palautus\p{L}*|peruuttamisoikeu\p{L}*|zwrot\p{L}*|prawo odstąpienia|odstoupení od smlouvy|vrácení zboží|odstúpenie od zmluvy|elállási jog|visszaküldés|dreptul de retragere|retur(?:nare)?|taganemisõigus|atteikuma tiesības|teisė atsisakyti|δικαίωμα υπαναχώρησης|pravo na odstop|pravo na raskid|14\s*(?:dagen|days|tage|jours|días|dias|giorni|dni|dní|dnů|päivää|päivän|dage|dagar|dager|nap|zile|päeva|dienu|dienų|ημέρες))/giu) || [];
     const hasVisibleShippingSignal = visibleShippingMatches.length > 0;
     const hasVisibleReturnsSignal = visibleReturnsMatches.length > 0;
     const hasShippingSignal = hasStructuredShipping || hasVisibleShippingSignal;
@@ -5179,7 +5195,11 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // the same activity (airport within passenger transport, cybersecurity within
     // software). A dedicated identity of another sector is never overruled here.
     const keywordOnlyDecision = Boolean(!masterIdentityOverride && primaryNonCommerceIdentity && strongSectorCandidate && primaryNonCommerceIdentity.sector === sectorCandidates[0].sector && sectorProfile.sector === primaryNonCommerceIdentity.sector);
-    const acceptExtendedIndustry = Boolean(specificIndustry && !marketSelectorPage &&
+    // A broad corroborated activity (key = the sector itself, e.g. "hospital") never
+    // replaces a more specific subtype of the same sector already decided.
+    const broadOverSpecific = Boolean(specificIndustry && specificIndustry.key === specificIndustry.sector
+      && sectorProfile.sector === specificIndustry.sector && sectorProfile.key && sectorProfile.key !== sectorProfile.sector);
+    const acceptExtendedIndustry = Boolean(specificIndustry && !marketSelectorPage && !broadOverSpecific &&
       (sectorProfile.sector === specificIndustry.sector ||
        ["unknown","general_business"].includes(sectorProfile.sector) ||
        keywordOnlyDecision ||
