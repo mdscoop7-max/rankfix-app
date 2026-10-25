@@ -34,16 +34,15 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
-      - name: Production dependency audit
-        continue-on-error: true
+      - name: Production dependency audit (blocking)
         run: npm audit --omit=dev --audit-level=high
 
       - name: Tests
         run: npm test
 
-      - name: Lint (legacy debt report)
+      - name: Lint (legacy debt; nonblocking, must be fixed separately)
         if: ${{ !cancelled() }}
         continue-on-error: true
         run: npm run lint

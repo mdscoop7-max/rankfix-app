@@ -20,9 +20,9 @@
   "dependencies": {
     "@sparticuz/chromium": "153.0.0",
     "axe-core": "4.13.0",
-    "next": "16.3.8",
+    "next": "16.4.3",
     "pg": "^8.16.3",
-    "puppeteer-core": "25.12.0",
+    "puppeteer-core": "25.16.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "sharp": "^0.35.5"
@@ -34,9 +34,9 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.3.8",
+    "eslint-config-next": "16.4.3",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "puppeteer": "25.12.0"
+    "puppeteer": "25.16.0"
   }
 }
