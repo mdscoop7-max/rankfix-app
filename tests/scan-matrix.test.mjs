@@ -181,3 +181,15 @@ test("QA 144 round 2: refused request + browser error page is not the website (n
   assert.equal(r.total, 8);
   assert.equal(r.failed, 0, r.log);
 });
+
+test("QA 144 run 7a2155c: DNS www/apex fallback, homepage 404 gets one browser check, deep 404 untouched", () => {
+  const r = run("run-network-404.mjs");
+  assert.equal(r.total, 6);
+  assert.equal(r.failed, 0, r.log);
+});
+
+test("QA 144 run 7a2155c: DIY store chain declared in its title is retail after a refused request; software for DIY stores is not", () => {
+  const r = run("run-diy-recovered.mjs");
+  assert.equal(r.total, 3);
+  assert.equal(r.failed, 0, r.log);
+});

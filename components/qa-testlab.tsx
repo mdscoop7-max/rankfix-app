@@ -3,21 +3,17 @@
 import {useEffect, useMemo, useRef, useState} from "react";
 import DashboardNav from "@/app/dashboard/nav";
 import {classifyScanAnswer, isFinalResult, resumeQueue, stopsRun, upsertResult} from "@/lib/testlab-outcome.mjs";
+// One comparison for dashboard and CLI (scripts/testlab/run.mjs): a broad label
+// such as "retail" is also met by a local retail trade (optician, pharmacy).
+import {compareSector} from "@/scripts/testlab/labels.mjs";
 
 type Site={host:string;name:string;country:string;group:string;expected:string;round:string};
 type Incident={traceId:string|null;originHttpStatus:number|null;apiHttpStatus:number;reasonCode:string;attribution:string|null;phase:string|null;finalUrl:string|null;browserRender:unknown};
 // pending=true: RankFix/runner stopped (session, quota, infrastructure, connection); the website was not judged and is retried on resume.
-type SiteResult={host:string;status:string;expected:string;sector:string|null;confidence:number|null;score:number|null;seo:number|null;geo:number|null;http:number;reason:string;elapsedMs:number;scanId:string|null;at:string;pending?:boolean;incident?:Incident|null};
+type SiteResult={host:string;status:string;expected:string;sector:string|null;key?:string|null;confidence:number|null;score:number|null;seo:number|null;geo:number|null;http:number;reason:string;elapsedMs:number;scanId:string|null;at:string;pending?:boolean;incident?:Incident|null};
 type Catalog={sites:Site[];count:number;runtime:{commitSha:string|null;environment:string}};
 const sleep=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
-const family:Record<string,string>={
- retail:"ecommerce",payments:"financial_services",banking:"financial_services",insurance:"financial_services",
- beauty:"beauty",healthcare:"health_wellness",veterinary_animal_care:"health_wellness",
- legal_services:"professional_services",architecture_design:"professional_services",
- charities_nonprofits:"nonprofit",museums_culture:"events_culture",travel:"transport_travel",
- logistics:"transport_travel",software:"saas_b2b",energy:"energy_utilities",telecom:"telecom_technology",
- recruitment_staffing:"recruitment",
-};
+
 const storageKey=(sha:string)=>"rankfix-qa-testlab-144:"+sha;
 const num=(n:number|null)=>n==null?"—":String(Math.round(n));
 function csvCell(value:unknown){
@@ -76,9 +72,9 @@ export default function TestLab144() {
  const byHost=useMemo(()=>new Map(results.map(r=>[r.host,r])),[results]);
  const finished=scoped.filter(s=>isFinalResult(byHost.get(s.host))).length;
  const passed=scoped.filter(s=>byHost.get(s.host)?.status==="succes").length;
- const mismatches=scoped.filter(s=>{const r=byHost.get(s.host);return r?.status==="succes"&&r.sector&&r.sector!==(family[s.expected]||s.expected);}).length;
+ const wrongType=(s:Site,r:SiteResult)=>r.status==="succes"&&r.sector!==null&&!compareSector(s.expected,{sector:r.sector,key:r.key||undefined}).sectorMatch;
+ const mismatches=scoped.filter(s=>{const r=byHost.get(s.host);return Boolean(r&&wrongType(s,r));}).length;
  const countries=useMemo(()=>[...new Set(sites.map(s=>s.country))].sort(),[sites]);
- const wrongType=(s:Site,r:SiteResult)=>r.status==="succes"&&r.sector!==null&&r.sector!==(family[s.expected]||s.expected);
  const persist=(list:SiteResult[])=>{setResults(list);if(catalog?.runtime.commitSha)localStorage.setItem(storageKey(catalog.runtime.commitSha),JSON.stringify(list));};
  async function start(){
   if(!catalog||running)return;
@@ -119,7 +115,7 @@ export default function TestLab144() {
       const code=String(data?.code||data?.errorCode||"");
       const status=classifyScanAnswer({ok:response.ok,status:response.status,data});
       const inc=data?.incident;
-      row={host:site.host,status,expected:site.expected,sector:success?(data.sectorProfile?.sector||null):null,
+      row={host:site.host,status,expected:site.expected,sector:success?(data.sectorProfile?.sector||null):null,key:success?(data.sectorProfile?.key||null):null,
        confidence:success?(data.sectorProfile?.confidenceScore??null):null,
        score:success?(data.overallScore??null):null,seo:success?(data.seo?.score??null):null,geo:success?(data.geo?.score??null):null,
        http:response.status,reason:success?"":code||String(data.error||"Scan niet bevestigd").slice(0,200),

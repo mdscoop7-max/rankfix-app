@@ -269,4 +269,33 @@ export const QA144_SITES = {
       "/service/reparatie": doc({ title: "Reparatie of omruiling | Witgoedshop", description: "Laat je apparaat repareren via onze reparatieservice.", h1: ["Reparatie"] }),
     },
   },
+
+  // DIY store chain (field titles of run 7a2155c, brand neutralised), NL and FR.
+  "klusmarkt.test": {
+    group: "diy_store_r4", expect: { sector: ["ecommerce"], notSector: ["unknown"] },
+    pages: {
+      "/": doc({ title: "Klusmarkt.be | De grootste doe-het-zelf winkels van België", description: "Alles voor je klus: gereedschap, bouwmaterialen, tuin en verf. Bestel online of haal af in een van onze winkels.", h1: [],
+        nav: [["/gereedschap", "Gereedschap"], ["/bouwmaterialen", "Bouwmaterialen"], ["/tuin", "Tuin"], ["/verf", "Verf"], ["/winkels", "Winkels"], ["/cart", "Winkelmandje"]],
+        body: products([["Boormachine", "79,99"], ["Verfroller", "6,99"], ["Tuinslang", "24,99"]], "In winkelmandje") + `<a href="/checkout">Afrekenen</a>` }),
+      "/gereedschap": doc({ title: "Gereedschap kopen | Klusmarkt.be", description: "Boormachines, zagen en handgereedschap.", h1: ["Gereedschap"], body: products([["Boormachine", "79,99"], ["Zaag", "19,99"]], "In winkelmandje") }),
+      "/winkels": doc({ title: "Onze winkels | Klusmarkt.be", description: "Vind een Klusmarkt-winkel bij jou in de buurt.", h1: ["Winkels"] }),
+    },
+  },
+  "bricomarche-fr.test": {
+    group: "diy_store_r4", expect: { sector: ["ecommerce"], notSector: ["unknown"] },
+    pages: {
+      "/": doc({ lang: "fr", title: "Bricomarque.be | Plus grands magasins de bricolage en Belgique", description: "Outillage, matériaux, jardin et peinture. Commandez en ligne ou retirez dans l'un de nos magasins.", h1: [],
+        nav: [["/outillage", "Outillage"], ["/materiaux", "Matériaux"], ["/jardin", "Jardin"], ["/magasins", "Magasins"], ["/panier", "Panier"]],
+        body: products([["Perceuse", "79,99"], ["Rouleau", "6,99"], ["Tuyau", "24,99"]], "Ajouter au panier") + `<a href="/checkout">Commander</a>` }),
+      "/outillage": doc({ lang: "fr", title: "Outillage | Bricomarque.be", description: "Perceuses, scies et outils à main.", h1: ["Outillage"], body: products([["Perceuse", "79,99"], ["Scie", "19,99"]], "Ajouter au panier") }),
+    },
+  },
+  // Negative control: software FOR DIY stores is not a DIY store.
+  "kassasoft-diy.test": {
+    group: "saas_control_r4", expect: { notSector: ["ecommerce"] },
+    pages: {
+      "/": doc({ title: "KassaSoft | Kassasoftware voor bouwmarkten en doe-het-zelf winkels", description: "Kassasysteem en voorraadbeheer voor doe-het-zelf winkels en bouwmarkten. Vraag een demo aan.", h1: ["Software voor bouwmarkten"],
+        nav: [["/functies", "Functies"], ["/prijzen", "Prijzen"], ["/demo", "Demo aanvragen"]], body: filler("Kassasoftware, voorraadbeheer en rapportages voor retailers.") }),
+    },
+  },
 };

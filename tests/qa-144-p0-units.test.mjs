@@ -202,3 +202,22 @@ test("round 4: unconfirmed checks never lower a score (scoring rule unchanged)",
   const unconfirmed = { issue_status: "UNABLE_TO_CONFIRM", points: 0, maxPoints: 10, confidence: "low" };
   assert.equal(scoreApplicableChecks([pass]), scoreApplicableChecks([pass, unconfirmed, unconfirmed]));
 });
+
+test("round 5: title superlative self-description declares the trade; editorial titles never do", async () => {
+  const { detectDeclaredIndustry } = await import("../lib/site-sector-corroboration.mjs");
+  assert.equal(detectDeclaredIndustry({ title: "Klusketen.be | De grootste doe-het-zelf winkels van België" })?.sector, "ecommerce");
+  assert.equal(detectDeclaredIndustry({ title: "Bricoketen.be | Plus grands magasins de bricolage en Belgique" })?.sector, "ecommerce");
+  assert.equal(detectDeclaredIndustry({ title: "Hotelnieuws | De grootste hotels van Europa in beeld" }), null);
+  assert.equal(detectDeclaredIndustry({ title: "Top 10: de grootste bouwmarkten van Nederland" }), null);
+  assert.equal(detectDeclaredIndustry({ title: "KassaSoft | Kassasoftware voor bouwmarkten en doe-het-zelf winkels" }), null);
+});
+
+test("round 5: dashboard TestLab uses the CLI comparison (optician meets the broad retail label)", async () => {
+  const { compareSector } = await import("../scripts/testlab/labels.mjs");
+  assert.equal(compareSector("retail", { sector: "health_wellness", key: "optician" }).sectorMatch, true);
+  assert.equal(compareSector("retail", { sector: "health_wellness", key: "dentist" }).sectorMatch, false);
+  const { readFileSync } = await import("node:fs");
+  const lab = readFileSync(new URL("../components/qa-testlab.tsx", import.meta.url), "utf8");
+  assert.match(lab, /compareSector\(s\.expected/);
+  assert.doesNotMatch(lab, /const family:Record/);
+});

@@ -678,6 +678,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     let fetchedFinalUrl: URL | null = null;
     let redirectChain: Array<{ from: string; to: string; status: number }> = [];
     let primaryFetchAttempts = 0;
+    let hostFallback: { from: string; to: string; reason: string } | null = null;
     let timeoutRecovery: { code: string; rendered: Awaited<ReturnType<typeof renderPublicPage>> } | null = null;
     try {
       let activeTarget = target;
@@ -696,7 +697,21 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         return fetchOnce();
       };
       try {
-        ({ response, finalUrl: fetchedFinalUrl, redirectChain } = await fetchTarget());
+        try {
+          ({ response, finalUrl: fetchedFinalUrl, redirectChain } = await fetchTarget());
+        } catch (dnsError) {
+          // QA 144: "hartlauer.at" had no DNS record while "www.hartlauer.at" can.
+          // One attempt on the www/apex counterpart; never another site.
+          if (fetchFailureCode(dnsError) !== "FETCH_DNS") throw dnsError;
+          const host = activeTarget.hostname.toLowerCase();
+          const alternate = host.startsWith("www.") ? host.slice(4) : `www.${host}`;
+          if (!alternate.includes(".")) throw dnsError;
+          const original = activeTarget.toString();
+          activeTarget = validatePublicHttpUrl(`${activeTarget.protocol}//${alternate}${activeTarget.pathname}${activeTarget.search}`);
+          ({ response, finalUrl: fetchedFinalUrl, redirectChain } = await fetchTarget());
+          hostFallback = { from: original, to: activeTarget.toString(), reason: "FETCH_DNS" };
+          target = activeTarget;
+        }
       } catch (httpsError) {
         // For a scheme-less domain RankFix first tries HTTPS. Some legacy sites still only
         // answer on HTTP, so retry HTTP once. Never downgrade an explicitly supplied HTTPS URL.
@@ -805,7 +820,11 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       renderedDocument = timeoutRecovery.rendered;
       recoveredRenderElapsedMs = timeoutRecovery.rendered.elapsedMs;
     }
-    if (!response.ok && (response.status === 202 || response.status === 403 || response.status === 405)) {
+    // A 404/410 on the HOMEPAGE of a live domain is implausible as "page does not
+    // exist" (QA 144: a retailer homepage answered 404 to RankFix in 270 ms). It gets
+    // the same single bounded browser check as a 403; an error page stays an error.
+    const rootNotFound = [404, 410].includes(response.status) && isSiteHomepagePath(finalUrl.pathname);
+    if (!response.ok && (response.status === 202 || response.status === 403 || response.status === 405 || rootNotFound)) {
       recovery.attempted = true;
       trace.phase = "browser_render";
       trace.browserRender = { attempted: true, outcome: "not_substantive", reason: `HTTP_${response.status}_RECOVERY` };
@@ -865,6 +884,13 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             : `El sitio rechazó el análisis (HTTP ${response.status}). RankFix no pudo analizarlo de forma fiable; no se ha calculado ninguna puntuación.`,
       };
       const accessBlock = ![404, 410].includes(response.status) && response.status < 500;
+      if (rootNotFound) {
+        const rootText: Record<string,string> = {
+          nl: `Deze homepage bestaat niet (HTTP ${response.status}): ook een browsercontrole kreeg geen pagina. Controleer of de URL klopt; er is daarom geen score berekend.`,
+          en: `This homepage does not exist (HTTP ${response.status}): a browser check found no page either. Check the URL; no score was calculated.`,
+        };
+        httpMessages.nl = rootText.nl; httpMessages.en = rootText.en;
+      }
       let blockedBody = "";
       // Bounded: a block page that trickles in must not hold the answer.
       if (accessBlock) { try { blockedBody = await Promise.race([readResponsePrefix(response, 60_000), new Promise<string>((resolve) => setTimeout(() => resolve(""), 4000))]); } catch {} }
@@ -902,6 +928,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       attribution: scannerAccessBlocked ? "crawler_block" as const : null,
       note: !scannerAccessBlocked ? null : (recoveryWithoutNavigation ? "De browserweergave bevatte geen eigen navigatie; niet bewezen dat dit de volledige homepage is. " : "") + (timeoutRecovery
         ? `De website beantwoordde het directe verzoek van RankFix niet (${timeoutRecovery.code === "FETCH_TIMEOUT" ? "time-out" : "verbinding verbroken"}); een browser kreeg de pagina wel. Statuscode en responstijd zijn daarom niet beoordeeld; de inhoud komt uit de browserweergave.`
+        : [404, 410].includes(recovery.originalHttpStatus) ? `De website gaf RankFix ${rankfixRefusal} op de homepage, terwijl een browser de pagina wel kreeg: een antwoord voor geautomatiseerde verzoeken, geen ontbrekende pagina. Statuscode en responstijd zijn daarom niet beoordeeld; de inhoud komt uit de browserweergave.`
         : `De website weigerde het verzoek van RankFix (${rankfixRefusal}); een browser kreeg de pagina wel. Statuscode en responstijd zijn daarom niet beoordeeld; de inhoud komt uit de browserweergave.`),
     };
     // Modern commerce/product pages can contain large SSR payloads and JSON-LD. Keep a strict cap, but allow enough room to audit them safely.
@@ -6580,7 +6607,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             // End-to-end scan duration (fetch, render, sample, scoring) for speed benchmarks.
             scanDurationMs: Date.now() - started,
             language: scanLanguage,
-            runtime:scanRuntime(), mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, selfCheck, summary: scanSummary, websiteSpeed, rendering, recovery, access, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, multiPage,
+            runtime:scanRuntime(), mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, selfCheck, summary: scanSummary, websiteSpeed, rendering, recovery, access, hostFallback, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -6821,6 +6848,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       rendering,
       recovery,
       access,
+      hostFallback,
       scope: scanScope,
       multiPage,
       classification,
