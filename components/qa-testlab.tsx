@@ -14,7 +14,7 @@ type SiteResult={host:string;status:string;expected:string;sector:string|null;ke
 type Catalog={sites:Site[];count:number;runtime:{commitSha:string|null;environment:string}};
 const sleep=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
 
-const storageKey=(sha:string,variant:string)=>"rankfix-qa-testlab-"+variant+":"+sha;
+const storageKey=(sha:string,variant:string)=>variant==="international"?"rankfix-qa-testlab-international-28:"+sha:"rankfix-qa-testlab-144:"+sha;
 const num=(n:number|null)=>n==null?"—":String(Math.round(n));
 function csvCell(value:unknown){
  const text=String(value??"");
