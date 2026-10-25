@@ -1,7 +1,7 @@
 import type { Locale } from "@/lib/locales";
 import type { SitewideIssue } from "@/lib/sitewide-issues";
 
-type ScopeLike = { caution?: string | null; notes?: string[] } | null | undefined;
+type ScopeLike = { caution?: string | null; sectorDistinction?: string | null; notes?: string[] } | null | undefined;
 
 const T: Record<Locale, { title: string; intro: string; toConfirm: string; evidence: string; fix: string; none: string; page: string }> = {
   nl: { title: "Verbeterpunten op andere pagina's (steekproef)", intro: "Deze punten zijn gevonden op andere beoordeelde pagina's van dezelfde website. Ze tellen niet mee in de score van de ingevoerde pagina.", toConfirm: "Nog te bevestigen in een browser", evidence: "Bewijs", fix: "Herstel", none: "Geen bevestigde aandachtspunten op de andere beoordeelde pagina's.", page: "Pagina" },
@@ -40,6 +40,10 @@ export function SitewideIssues({ issues, locale }: { issues: SitewideIssue[] | n
 
 /** One prominent line next to a high headline score; null when nothing to qualify. */
 export function ScoreCaution({ scope }: { scope: ScopeLike }) {
-  if (!scope?.caution) return null;
-  return <p className="rf-score-caution" role="note" style={{ margin: "6px 0 0", fontSize: 13, fontWeight: 600, color: "#b45309" }}>{scope.caution}</p>;
+  if (!scope?.caution && !scope?.sectorDistinction) return null;
+  return <>
+    {scope?.caution ? <p className="rf-score-caution" role="note" style={{ margin: "6px 0 0", fontSize: 13, fontWeight: 600, color: "#b45309" }}>{scope.caution}</p> : null}
+    {/* A technical score is never presented as a sector confirmation. */}
+    {scope?.sectorDistinction ? <p className="rf-score-sector-distinction" role="note" style={{ margin: "4px 0 0", fontSize: 13 }}>{scope.sectorDistinction}</p> : null}
+  </>;
 }

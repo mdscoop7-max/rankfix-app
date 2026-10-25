@@ -70,10 +70,16 @@ test("visible prices: Swiss francs, round-price notation, Nordic kr by country, 
 
 test("FAQ: a question and its answer in more languages and markups; a lone FAQ heading is not proof", () => {
   const A = "<p>Dit is het volledige antwoord op de vraag.</p>";
-  assert.equal(confirmedFaqContent(`<h3>¿Cuánto tarda el envío</h3>${A}`), true);
-  assert.equal(confirmedFaqContent(`<h3>Quanto costa la spedizione in Italia</h3><div><div>${A}</div></div>`), true);
+  assert.equal(confirmedFaqContent(`<h2>Preguntas frecuentes</h2><h3>¿Cuánto tarda el envío</h3>${A}`), true);
+  assert.equal(confirmedFaqContent(`<h2>Domande frequenti</h2><h3>Quanto costa la spedizione in Italia</h3><div><div>${A}</div></div>`), true);
+  // Three question/answer headings form a Q&A series even without a FAQ label.
+  assert.equal(confirmedFaqContent(`<h3>Wat kost het?</h3>${A}<h3>Hoe lang duurt het?</h3>${A}<h3>Kan ik retourneren?</h3>${A}`), true);
+  // A question heading with long inner markup still counts (regression from the
+  // 400-character cap in 215829cc, Terveystalo field case).
+  assert.equal(confirmedFaqContent(`<h2><span class="a">${"<span></span>".repeat(40)}Huolestuttaako nuoren vointi?</span></h2><p>Saat neuvontapuhelussa ohjausta ammattilaiselta.</p>`), true);
   assert.equal(confirmedFaqContent(`<dt>Hur lång är leveranstiden</dt><dd>Leveranstiden är normalt två till tre dagar.</dd>`), true);
   assert.equal(confirmedFaqContent(`<button aria-expanded="false">Ile kosztuje dostawa do domu?</button><div>Dostawa kosztuje 9,99 zł w całej Polsce.</div>`), true);
+  assert.equal(confirmedFaqContent(`<h2>Συχνές ερωτήσεις</h2><h3>Πόσο κοστίζει η αποστολή;</h3>${A}`), true);
   assert.equal(confirmedFaqContent(`<h3>Πόσο κοστίζει η αποστολή;</h3>${A}`), true);
   assert.equal(confirmedFaqContent(`<h3>Care instructions for wool</h3>${A}`), false);
   assert.equal(confirmedFaqContent(`<h3>Co-working spaces in Krakow</h3>${A}`), false);
@@ -87,4 +93,26 @@ test("legal links (privacy, cookies, terms) in Nordic, Finnish, Polish and other
     ["/polityka-prywatnosci", "Polityka prywatności", "privacy"], ["/evasteet", "Evästeet", "cookies"], ["/kopvillkor", "Köpvillkor", "terms"],
     ["/regulamin", "Regulamin sklepu", "terms"], ["/handelsbetingelser", "Handelsbetingelser", "terms"],
   ]) assert.equal(matchedLegalSignals(href, label)[kind], true, href);
+});
+
+test("metadata emitted outside <head> (streaming SSR) is reported as outside head, never as missing", async () => {
+  const { extractHeadMetadata } = await import("../lib/html-head-evidence.ts");
+  const m = extractHeadMetadata(`<html lang="es"><head><title>X</title></head><body><title>X</title><meta name="description" content="Contrata profesionales de confianza."/><link rel="canonical" href="https://x.test/"/></body></html>`);
+  assert.equal(m.description, "");
+  assert.equal(m.evidence.description, false);
+  assert.equal(m.outsideHead.description, "Contrata profesionales de confianza.");
+  assert.equal(m.outsideHead.canonical, "https://x.test/");
+  const inHead = extractHeadMetadata(`<html><head><meta name="description" content="In head."></head><body></body></html>`);
+  assert.equal(inHead.description, "In head.");
+  assert.equal(inHead.outsideHead.description, null);
+});
+
+test("a high technical score is stated separately from an unconfirmed or probable sector", async () => {
+  const { buildScoreScope } = await import("../lib/score-scope.ts");
+  const base = { overallScore: 98, startUrl: "https://x.test/", startIsHomepage: true, evidenceCoveragePercent: 90, unconfirmedChecks: 2, evidenceLevel: "provisional", pages: { selected: 10, assessed: 9 }, siteCoverage: "complete", sampleScore: 90, sitewideIssues: { confirmed: 0, toConfirm: 0 } };
+  const unknown = buildScoreScope({ ...base, sectorStatus: "unconfirmed" });
+  assert.match(unknown.sectorDistinction, /Technische SEO\/GEO-score 98\/100.*niet bevestigd.*sectorspecifieke controles zijn niet uitgevoerd/);
+  const probable = buildScoreScope({ ...base, sectorStatus: "probable", sectorLabel: "Makelaardij & vastgoed" });
+  assert.match(probable.sectorDistinction, /waarschijnlijk \(Makelaardij & vastgoed\).*bevestigt de sector niet/);
+  assert.equal(buildScoreScope({ ...base, sectorStatus: "confirmed" }).sectorDistinction, null);
 });

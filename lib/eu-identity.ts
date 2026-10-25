@@ -163,6 +163,9 @@ const TECH_COMPANY = stems([
   "entreprise technologique", "groupe technologique", "société technologique", "société de technologie", "azienda tecnologica", "gruppo tecnologico", "empresa tecnológica", "grupo tecnológico",
 ]);
 const PHYSICAL_GOODS = stems(["devices", "apparaten", "geräte", "appareils", "dispositivi", "dispositivos", "materials", "materialen", "materiaal", "werkstoff", "matériaux", "materiali", "materiales", "batter", "catalys", "katalys", "imaging", "beeldvorming", "lighting", "verlichting", "monitoring systems", "medical equipment", "medische apparatuur", "products", "producten", "produkte", "produits", "prodotti", "productos"]);
+const HOSTING_NAV = words(["hosting", "web hosting", "webhosting", "hébergement", "hébergement web", "alojamiento", "alojamiento web", "hospedagem", "webhotel", "webhotell", "webhotelli"]);
+const HOSTING_DOMAIN = stems(["domini", "domain", "domein", "domaine", "dominio", "domínio", "domän", "domæne", "domene", "verkkotunnu", "domen"]);
+const HOSTING_INFRA = words(["server", "servers", "serveur", "serveurs", "servidor", "servidores", "server dedicati", "cloud", "vps", "ssl", "datacenter", "data center", "rechenzentrum"]);
 const SOFTWARE = stems(["software", "saas", "platform", "plattform", "plateforme", "piattaforma", "plataforma", "logiciel", "app for", "regtech", "fintech platform"]);
 const SOFTWARE_FUNNEL = stems(["book a demo", "free trial", "start trial", "request a demo", "demo aanvragen", "demo anfragen", "gratis proberen", "kostenlos testen", "essai gratuit", "prova gratuita", "prueba gratis", "pricing", "prijzen", "preise", "tarifs", "features", "functies", "funktionen", "integrations", "integraties", "login", "inloggen", "anmelden"]);
 // What a business-software vendor says it does for its customers.
@@ -760,6 +763,15 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   if (AGENCY.test(title + " " + h1) && AGENCY_SERVICE.test(own + " " + structure)) {
     return { sector: "professional_services", key: "professional_services", label: "Zakelijke dienstverlening", confidence: "medium", confidenceScore: 76,
       evidence: ["Eigen identiteit: bureau/agentschap met zakelijke diensten"] };
+  }
+  // QA international-28 (laptop page check, 25 Oct): a hosting provider whose
+  // title is only "Home | <brand>" and that has no description or H1 describes its
+  // activity in its section headings and navigation (hosting + domains + servers
+  // or cloud). Probable (medium) only; a web agency that also hosts is excluded.
+  if (!publication && HOSTING_NAV.test(structure) && HOSTING_DOMAIN.test(structure) && HOSTING_INFRA.test(structure)
+    && !/(?<![\p{L}])(?:webdesign\p{L}*|web design|webbureau|web agency|agence web|webagentur|agenzia web|agencia web|realizzazione siti|création de sites|diseño web)(?![\p{L}])/iu.test(own + " " + structure)) {
+    return { sector: "saas_b2b", key: "web_hosting", label: "Software & cloud · webhosting en domeinen", confidence: "medium", confidenceScore: 74,
+      evidence: ["Navigatie en koppen beschrijven webhosting, domeinen en servers/cloud; de titel en omschrijving noemen dit niet zelf"] };
   }
   if (POSTAL_SPECIFIC(structure) && PARCEL.test(structure) && PARCEL.test(own)) {
     return { sector: "transport_travel", key: "postal_logistics", label: "Post- & pakketvervoer", confidence: "medium", confidenceScore: 74,
