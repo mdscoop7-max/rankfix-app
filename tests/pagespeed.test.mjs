@@ -249,3 +249,17 @@ test("CrUX origin-only fallback is used honestly and labeled origin", () => {
   const result = parsePageSpeed(fixture);
   assert.deepEqual(result.field,{inpMs:210,lcpMs:1800,cls:0.12,scope:"origin"});
 });
+
+
+test("Public free scan displays PageSpeed from the shared scan response (mobile and desktop)", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const home = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  const scanRoute = await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8");
+  const fullReport = await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
+  const card = await readFile(new URL("../components/speed-audit.tsx", import.meta.url), "utf8");
+  assert.match(home, /<SpeedAudit locale=\{language\} speed=\{result\.websiteSpeed\}/);
+  assert.match(scanRoute, /websiteSpeed = response\.status === 200 \? await measureWebsiteSpeed\(finalUrl\.toString\(\)\)/);
+  assert.match(card, /value=\{speed\?\.mobile\}/);
+  assert.match(card, /value=\{speed\?\.desktop\}/);
+  assert.match(fullReport, /r\.websiteSpeed\?\.\[device\]/);
+});

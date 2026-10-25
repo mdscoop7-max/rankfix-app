@@ -268,8 +268,11 @@ export function assessPageDescription(description: string, tagPresent: boolean, 
   // is advice, not a demonstrated defect, so it costs no points.
   if (length > 160 && length <= 200) return { status: "PASS", credit: 1, details: `Meta description gevonden (${length} tekens); aan de lange kant, Google kort descriptions boven ongeveer 160 tekens vaak in (advies, geen aftrek).` };
   if (length > 200) return { status: "PASS", credit: 1, details: `Meta description gevonden (${length} tekens); uitzonderlijk lang, wordt in zoekresultaten ingekort (advies, geen aftrek).` };
-  if (length >= 50) return { status: "WARNING", credit: 0.85, details: `Meta description gevonden (${length} tekens); kort.` };
-  return { status: "WARNING", credit: 0.65, details: `Meta description gevonden (${length} tekens); uitzonderlijk kort.` };
+  // A nonempty description may be brief by design (privacy/legal headings,
+  // concise page summaries). Google has no fixed character-length requirement.
+  // Report length as preview advice, never as a proven quality defect or penalty.
+  if (length >= 50) return { status: "PASS", credit: 1, details: `Meta description gevonden (${length} tekens); kort (lengteadvies, geen aftrek).` };
+  return { status: "PASS", credit: 1, details: `Meta description gevonden (${length} tekens); uitzonderlijk kort (lengteadvies, geen aftrek).` };
 }
 
 // ---------------------------------------------------------------------------
