@@ -65,3 +65,15 @@ test("an unknown primary sector is provisional, never 'Definitief' (field scan 1
   // A browser snapshot of a page that did not finish loading is provisional too.
   assert.equal(evidenceLevel({ coveragePercent: 100, javascriptRequiredButNotRendered: false, unconfirmed: 0, sectorConfidence: 90, renderPartial: true }).level, "provisional");
 });
+
+test("score qualifier uses a valid HTML container around its caution paragraph", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const qualifier = await readFile(new URL("../components/score-qualifier.tsx", import.meta.url), "utf8");
+  const caution = await readFile(new URL("../components/sitewide-issues.tsx", import.meta.url), "utf8");
+
+  // A <p> inside another <p> is auto-corrected by the browser and hydrates differently.
+  assert.match(qualifier, /<div className="rf-score-qualifier"/);
+  assert.doesNotMatch(qualifier, /<p className="rf-score-qualifier"/);
+  assert.match(qualifier, /<ScoreCaution scope=/);
+  assert.match(caution, /<p className="rf-score-caution"/);
+});
