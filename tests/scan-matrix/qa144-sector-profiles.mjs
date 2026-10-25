@@ -129,4 +129,83 @@ export const QA144_SITES = {
         body: filler("Steun ons met een donatie of word vrijwilliger.") }),
     },
   },
+
+  // ───── Round 2 (TestLab 144 @ 290f692c, 25 Oct) — neutral reproductions ─────
+  // Hair-salon chain (PT) whose title says "salons and hair products" and whose
+  // description invites a visit AND online purchase: the salon trade stays primary.
+  "salao-capilar.test": {
+    group: "hair_salon_r2", expect: { sector: ["beauty"], key: ["hair_salon"], notSector: ["ecommerce"], channel: ["omnichannel", "service_location", "physical_store"] },
+    pages: {
+      "/": doc({ lang: "pt", title: "Marca Capilar Portugal | Salões e Produtos Capilares", description: "Encontra os melhores cabeleireiros e produtos capilares na loja Marca Capilar Portugal. Marca a tua visita ou compra online os teus essenciais de cabelo.", h1: ["Marca Capilar"],
+        nav: [["/saloes", "Salões"], ["/loja", "Loja"], ["/servicos", "Serviços"], ["/marcacao", "Marcar visita"]], schema: ["Organization", "WebSite"],
+        body: products([["Champô nutritivo", "12,90"], ["Máscara reparadora", "18,90"], ["Sérum", "22,90"], ["Laca", "9,90"]], "Adicionar ao carrinho") + `<a href="/checkout">Finalizar compra</a>` + filler("Produtos capilares profissionais e marcação nos nossos salões.") }),
+      "/saloes": doc({ lang: "pt", title: "Os nossos salões | Marca Capilar", description: "Encontra o salão de cabeleireiro mais próximo e marca a tua visita.", h1: ["Salões"] }),
+      "/loja": doc({ lang: "pt", title: "Loja online de produtos capilares | Marca Capilar", description: "Compra online champôs, máscaras e produtos de styling.", h1: ["Loja"], body: products([["Champô nutritivo", "12,90"], ["Máscara reparadora", "18,90"]], "Adicionar ao carrinho") }),
+    },
+  },
+  // Service marketplace (PT) with a consent-banner H1.
+  "contrata-pro.test": {
+    group: "service_marketplace_r2", expect: { sector: ["service_marketplace"], notSector: ["unknown"] },
+    pages: {
+      "/": doc({ lang: "pt", title: "Contrate Profissionais Avaliados - ContrataPro", description: "Não adie os seus projectos, faça-os acontecer. Na ContrataPro encontrará profissionais com disponibilidade, interesse e avaliações para realizar qualquer serviço.", h1: ["Utilizamos cookies", "Se é para fazer, é para ContrataPro!"],
+        nav: [["/servicos", "Serviços"], ["/como-funciona", "Como funciona"], ["/profissionais", "Sou profissional"], ["/pedir-orcamento", "Pedir orçamento"]], schema: ["WebSite", "Organization"],
+        body: filler("Peça orçamentos grátis a profissionais verificados perto de si.") }),
+      "/como-funciona": doc({ lang: "pt", title: "Como funciona | ContrataPro", description: "Descreva o seu pedido e receba orçamentos de profissionais avaliados na sua zona.", h1: ["Como funciona"] }),
+    },
+  },
+  // Negative control: recruitment agency that "finds professionals".
+  "recruta-ti.test": {
+    group: "recruitment_control", expect: { notSector: ["service_marketplace"] },
+    pages: {
+      "/": doc({ lang: "pt", title: "Encontre profissionais de TI | RecrutaTI", description: "Agência de recrutamento: encontramos profissionais de TI para a sua empresa. Veja as nossas vagas de emprego.", h1: ["Recrutamento de TI"],
+        nav: [["/vagas", "Vagas"], ["/empresas", "Empresas"], ["/candidatos", "Candidatos"]], body: filler("Recrutamento e seleção de talento tecnológico.") }),
+    },
+  },
+  // Hospitality group naming hotels AND restaurants (one sector, two activities).
+  "hospitality-group.test": {
+    group: "hospitality_group_r2", expect: { sector: ["hospitality"], notSector: ["beauty", "unknown"] },
+    pages: {
+      "/": doc({ lang: "en", title: "Hospitality Group", description: "Hospitality Group is a world-leading hospitality group offering stays and experiences across more than 110 countries with over 5,800 hotels and resorts, 10,000 bars & restaurants, wellness facilities and flexible workspaces.", h1: ["The Power of Human Creativity in Hospitality"],
+        nav: [["/brands", "Brands"], ["/group", "Group"], ["/commitment", "Commitment"], ["/finance", "Finance"], ["/talent", "Talent"]], body: filler("Our hotels and restaurants welcome guests every day.") }),
+      "/brands": doc({ lang: "en", title: "Brands | Hospitality Group", description: "From luxury to economy, discover our hotel brands.", h1: ["Brands"] }),
+    },
+  },
+  // Manufacturer whose category pages say "Bekijk en vergelijk …-producten … lees reviews en bestel online".
+  "elektromerk.test": {
+    group: "manufacturer_r2", expect: { notSector: ["news_media"] },
+    pages: {
+      "/": doc({ title: "Elektromerk - Nederland | Elektromerk", description: "Lees meer over Elektromerk en hoe wij helpen het leven van mensen te verbeteren met belangrijke innovaties op het gebied van gezondheidszorg, consumer lifestyle en verlichting.", h1: ["Meld je nu aan"],
+        nav: [["/c/frisdrankmakers/latest", "Frisdrankmakers"], ["/c/accessoires/latest", "Accessoires"], ["/c/verzorging/latest", "Verzorging"], ["/cart", "Winkelwagen"]],
+        body: products([["Frisdrankmaker", "99,99"], ["Scheerapparaat", "79,99"]], "In winkelwagen") + filler("Innovaties voor gezondheid en welzijn.") }),
+      "/c/frisdrankmakers/latest": doc({ title: "Bekijk en vergelijk Frisdrankmakers-producten | Elektromerk", description: "Ontdek de Frisdrankmakers. Lees waarom deze Frisdrankmakers bij uw behoeften passen. Vergelijk, lees reviews en bestel online.", h1: ["Frisdrankmakers"], body: products([["Frisdrankmaker A", "99,99"], ["Frisdrankmaker B", "129,99"]], "In winkelwagen") }),
+      "/c/accessoires/latest": doc({ title: "Bekijk en vergelijk Accessoires en vervangingen-producten | Elektromerk", description: "Ontdek de Accessoires en vervangingen. Vergelijk, lees reviews en bestel online.", h1: ["Accessoires"], body: products([["Opzetstuk", "19,99"], ["Filter", "14,99"]], "In winkelwagen") }),
+      "/c/verzorging/latest": doc({ title: "Bekijk en vergelijk Verzorging-producten | Elektromerk", description: "Ontdek de Verzorging. Vergelijk, lees reviews en bestel online.", h1: ["Verzorging"], body: products([["Trimmer", "49,99"], ["Epilator", "69,99"]], "In winkelwagen") }),
+    },
+  },
+  // Negative control: a real comparison site stays a publication.
+  "vergelijkwijzer.test": {
+    group: "comparison_control", expect: { sector: ["news_media", "unknown", "service_marketplace"] },
+    pages: {
+      "/": doc({ title: "Vergelijkwijzer | Vergelijk energie, internet en verzekeringen", description: "Onafhankelijk vergelijken: wij vergelijken aanbieders van energie, internet en verzekeringen en schrijven reviews.", h1: ["Vergelijk en bespaar"],
+        nav: [["/energie", "Energie vergelijken"], ["/internet", "Internet vergelijken"], ["/reviews", "Reviews"]], body: filler("Onafhankelijke vergelijkingen en reviews van aanbieders.") }),
+    },
+  },
+  // Optician chain with Product/Offer category pages and shop mentions: retail channel visible.
+  "opticien-keten.test": {
+    group: "optician_r2", expect: { sector: ["health_wellness"], key: ["optician"], channel: ["omnichannel"] },
+    pages: {
+      "/": doc({ title: "Keten Opticiens - Beste Opticien van Nederland | Keten Opticiens", description: "Een breed assortiment brillen, zonnebrillen en contactlenzen. Onze Opticiens staan garant voor deskundig advies en uitstekende kwaliteit tegen scherpe prijzen.", h1: [],
+        nav: [["/brillen/op-sterkte", "Brillen"], ["/zonnebrillen/outlet", "Zonnebrillen"], ["/maak-afspraak", "Afspraak maken"], ["/winkels", "Winkels"], ["/over-ons", "Over ons"]],
+        schema: [{ "@type": "OnlineStore", name: "Keten Opticiens", url: "https://__HOST__/" }], body: filler("Brillen, zonnebrillen en contactlenzen bij jouw opticien.") }),
+      "/brillen/op-sterkte": doc({ title: "Bril op sterkte kopen? Bestel online bij | Keten Opticiens", description: "Met een bril op sterkte zie je alles weer scherp! Bestel online of kom langs in de winkel ✓ Gratis verzending v.a. €25 ✓ Gratis retour", h1: ["Brillen op sterkte"],
+        schema: [{ "@type": "ItemList", itemListElement: [1, 2, 3].map((i) => ({ "@type": "ListItem", position: i, item: { "@type": "Product", name: `Montuur ${i}`, image: "https://__HOST__/m.jpg", offers: { "@type": "Offer", price: `${89 + i}.00`, priceCurrency: "EUR" } } })) }],
+        body: [1, 2, 3, 4, 5, 6].map((i) => `<div class="product-card"><a href="/brillen/montuur-${i}-10${i}">Montuur ${i}</a><span class="price">€ ${89 + i},00</span></div>`).join("") }),
+      "/zonnebrillen/outlet": doc({ title: "Zonnebrillen outlet | Shop jouw zonnebril met korting bij | Keten Opticiens", description: "Koop je zonnebril met flinke korting online of in onze winkels ✓ Gratis verzending v.a. €25", h1: ["Zonnebrillen outlet"],
+        schema: [{ "@type": "ItemList", itemListElement: [1, 2, 3].map((i) => ({ "@type": "ListItem", position: i, item: { "@type": "Product", name: `Zonnebril ${i}`, image: "https://__HOST__/z.jpg", offers: { "@type": "Offer", price: `${49 + i}.00`, priceCurrency: "EUR" } } })) }],
+        body: [1, 2, 3, 4, 5, 6].map((i) => `<div class="product-card"><a href="/zonnebrillen/zonnebril-${i}-20${i}">Zonnebril ${i}</a><span class="price">€ ${49 + i},00</span></div>`).join("") }),
+      "/winkels": doc({ title: "Vind een winkel bij jou in de buurt | Keten Opticiens", description: "Meer dan 150 winkels in Nederland. Bekijk openingstijden en maak een afspraak.", h1: ["Winkels"] }),
+      "/maak-afspraak": doc({ title: "Maak een afspraak voor een oogmeting | Keten Opticiens", description: "Zoek de dichtstbijzijnde winkel bij jou in de buurt en boek je afspraak online.", h1: ["Afspraak"] }),
+      "/over-ons": doc({ title: "Over ons | Keten Opticiens", description: "Keten Opticiens is een opticienketen met winkels in heel Nederland.", h1: ["Over ons"] }),
+    },
+  },
 };

@@ -142,3 +142,29 @@ test("axe-core stays outside the server bundle (bundled axe.source fails in the 
   const ci = await readFile(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
   assert.match(ci, /axe-bundle-check\.mjs/);
 });
+
+test("round 2: score caution from 80 and always with an unknown sector", () => {
+  const base = { startUrl: "https://a.example/", startIsHomepage: true, evidenceCoveragePercent: 88, unconfirmedChecks: 2, evidenceLevel: "provisional", range: null, pages: { selected: 10, assessed: 10 }, siteCoverage: "complete", sampleScore: null, sitewideIssues: { confirmed: 0, toConfirm: 0 } };
+  assert.match(buildScoreScope({ ...base, overallScore: 89, sectorStatus: "unconfirmed" }).caution, /sector niet bevestigd/);
+  assert.match(buildScoreScope({ ...base, overallScore: 66, sectorStatus: "unconfirmed" }).caution, /66\/100/);
+  assert.ok(buildScoreScope({ ...base, overallScore: 88, sectorStatus: "probable" }).caution);
+  assert.equal(buildScoreScope({ ...base, overallScore: 75, sectorStatus: "confirmed" }).caution, null);
+});
+
+test("round 2: comparison wording on own product pages is not a publication; a real comparison site still is", async () => {
+  const { isPublication } = await import("../lib/eu-identity.ts");
+  assert.equal(isPublication("Bekijk en vergelijk Frisdrankmakers-producten | Merk"), false);
+  assert.equal(isPublication("Compare our models | Brand"), false);
+  assert.equal(isPublication("Vergelijkwijzer | Vergelijk energie, internet en verzekeringen"), true);
+  assert.equal(isPublication("Merk Blog: tips en trends"), true);
+});
+
+test("round 2: refusal recovery needs own navigation or enough content", async () => {
+  const { isSubstantiveRender, internalLinkCount } = await import("../lib/render-quality.ts");
+  const short = `<html><head><title>Welkom</title></head><body><h1>Welkom</h1><p>${"woord ".repeat(60)}</p><a href="tel:1">Bel</a><a href="https://elders.example/">x</a></body></html>`;
+  assert.equal(isSubstantiveRender(short), true, "without refusal the old rule applies");
+  assert.equal(isSubstantiveRender(short, { afterRefusal: true, hostname: "site.example" }), false);
+  const nav = short.replace("<h1>", '<a href="/a">a</a><a href="/b">b</a><a href="https://www.site.example/c">c</a><h1>');
+  assert.equal(internalLinkCount(nav, "site.example"), 3);
+  assert.equal(isSubstantiveRender(nav, { afterRefusal: true, hostname: "site.example" }), true);
+});

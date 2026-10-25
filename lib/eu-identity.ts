@@ -394,9 +394,14 @@ export function stripMarketMentions(text: string): string {
 }
 
 /** Blogs, magazines, guides and comparison sites write ABOUT a sector. */
+// "Bekijk en vergelijk X-producten", "compare our models", "lees reviews en bestel
+// online": a maker or shop inviting customers to compare ITS OWN products is not a
+// comparison site (QA 144: a manufacturer's category pages voted "blog/media").
+const OWN_PRODUCT_CTA = /(?<![\p{L}])(?:\p{L}*producten|products?|produkte?|produits?|prodott[io]|productos?|produtos?|modellen|models?|modelle|modèles|assortiment|bestel\p{L}*|kopen|koop|shop|buy|order|kaufen|bestellen|acheter|commander|acquista|comprar|compra)(?![\p{L}])/iu;
 export function isPublication(identity: string, schemaTypes: string[] = []): boolean {
-  return /(?<![\p{L}])\p{L}*(?:blog|vlog)(?![\p{L}])|(?<![\p{L}])(?:magazine|magazin|tijdschrift|revista|rivista|zeitschrift|reisgids|travel guide|guide de voyage|vergelijk|vergleich|comparateur|comparador|review|reviews)(?![\p{L}])/iu.test(identity)
-    || schemaTypes.some((t) => ["blog", "blogposting"].includes(String(t).toLowerCase()));
+  if (schemaTypes.some((t) => ["blog", "blogposting"].includes(String(t).toLowerCase()))) return true;
+  if (/(?<![\p{L}])\p{L}*(?:blog|vlog)(?![\p{L}])|(?<![\p{L}])(?:magazine|magazin|tijdschrift|revista|rivista|zeitschrift|reisgids|travel guide|guide de voyage)(?![\p{L}])/iu.test(identity)) return true;
+  return /(?<![\p{L}])(?:vergelijk|vergleich|comparateur|comparador|review|reviews)(?![\p{L}])/iu.test(identity) && !OWN_PRODUCT_CTA.test(identity);
 }
 
 export function retailSelfDescription(text: string): boolean {

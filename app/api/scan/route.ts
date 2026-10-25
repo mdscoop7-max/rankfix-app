@@ -737,7 +737,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         trace.browserRender = { attempted: true, outcome: "not_substantive", reason: `PRIMARY_${code}` };
         try {
           const rendered = await renderPublicPage(target.toString(), 15000, renderBudget);
-          if (isSubstantiveRender(rendered.html)) {
+          if (isSubstantiveRender(rendered.html, { afterRefusal: true, hostname: target.hostname })) {
             trace.browserRender = { attempted: true, outcome: "recovered", reason: `PRIMARY_${code}_BROWSER_RECOVERY` };
             timeoutRecovery = { code, rendered };
             fetchedFinalUrl = new URL(rendered.finalUrl || target.toString());
@@ -812,7 +812,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       try {
         const recovered = await renderPrimaryOnce();
         // A blocked render (challenge or empty shell with only a <title>) is not a recovery.
-        if (!isSubstantiveRender(recovered.html)) recovery.reason = "RECOVERY_RENDER_NOT_SUBSTANTIVE";
+        if (!isSubstantiveRender(recovered.html, { afterRefusal: true, hostname: finalUrl.hostname })) recovery.reason = "RECOVERY_RENDER_NOT_SUBSTANTIVE";
         else {
           trace.browserRender = { attempted: true, outcome: "recovered", reason: `HTTP_${response.status}_RECOVERY` };
           recoveredHtml = recovered.html;
@@ -980,7 +980,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     if (preliminaryInterstitial && !javascriptExecuted) {
       try {
         const recovered = await renderPrimaryOnce();
-        if (isSubstantiveRender(recovered.html)) {
+        if (isSubstantiveRender(recovered.html, { afterRefusal: true, hostname: finalUrl.hostname })) {
           html = recovered.html;
           renderedDocument = recovered;
           javascriptExecuted = true;
@@ -4716,7 +4716,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         if (!r.ok && (r.status === 202 || r.status === 403 || r.status === 405)) {
           try {
             const recoveredPage = await renderRepresentativeOnce();
-            if (isSubstantiveRender(recoveredPage.html)) { pageHtml = recoveredPage.html; representativeEvidenceSource = "rendered_html"; representativeTitlePixelWidth = recoveredPage.titlePixelWidth; }
+            if (isSubstantiveRender(recoveredPage.html, { afterRefusal: true, hostname: finalCandidate.hostname })) { pageHtml = recoveredPage.html; representativeEvidenceSource = "rendered_html"; representativeTitlePixelWidth = recoveredPage.titlePixelWidth; }
           } catch {}
         }
         if (!pageHtml && (!r.ok || (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")))) {
@@ -5962,8 +5962,17 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         secondary.push({ sector, label, evidence: [evidence] });
       };
       const retailProductPages = auditedMultiPages.filter((item) => item.type === "product" && item.commerceEvidence?.confirmedRetailPage && !item.commerceEvidence?.financialOffer);
-      if (sectorProfile.sector !== "ecommerce" && sectorProfile.sector !== "unknown" && retailProductPages.length > 0) {
-        addSecondary("ecommerce", "Online verkoop van producten", `${retailProductPages.length} representatieve productpagina('s) met Product-schema of aankoopactie: ${retailProductPages.slice(0, 2).map((item) => shortUrl(item.url)).join(", ")}`);
+      // QA 144 (optician chain): category pages listing priced products in their own
+      // structured data (Product/ItemList with an Offer) are online sales too. A Store
+      // schema plus a few footer prices on a legal/contact page is not.
+      // All fetched pages: the template-deduplicated set keeps one category page.
+      const retailCategoryPages = reportedMultiPageAudits.filter((item) => item.status === "audited" && item.type === "category" && item.commerceEvidence?.confirmedRetailPage && !item.commerceEvidence?.financialOffer
+        && (item.commerceEvidence?.productSchema || item.commerceEvidence?.itemListSchema) && (item.commerceEvidence?.priceSignals || 0) >= 3);
+      if (sectorProfile.sector !== "ecommerce" && sectorProfile.sector !== "unknown" && (retailProductPages.length > 0 || retailCategoryPages.length >= 2)) {
+        const pages = [...retailProductPages, ...retailCategoryPages];
+        addSecondary("ecommerce", "Online verkoop van producten", retailProductPages.length > 0
+          ? `${retailProductPages.length} representatieve productpagina('s) met Product-schema of aankoopactie: ${retailProductPages.slice(0, 2).map((item) => shortUrl(item.url)).join(", ")}`
+          : `${retailCategoryPages.length} categoriepagina's met geprijsde producten in eigen structured data: ${pages.slice(0, 2).map((item) => shortUrl(item.url)).join(", ")}`);
       }
       const financialPages = auditedMultiPages.filter((item) => item.commerceEvidence?.financialOffer);
       if (sectorProfile.sector !== "financial_services" && sectorProfile.sector !== "unknown" && financialPages.length > 0) {

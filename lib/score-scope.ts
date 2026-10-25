@@ -69,7 +69,8 @@ export function buildScoreScope(input: ScoreScopeInput): ScoreScope {
     input.sitewideIssues.confirmed ? `${input.sitewideIssues.confirmed} aandachtspunten op andere pagina's` : "",
     !sectorConfirmed ? "sector niet bevestigd" : "",
   ].filter(Boolean);
-  const caution = input.overallScore >= 90 && reasons.length
+  // QA 144: 88–89 with an unknown sector or partial scan also read as "fine".
+  const caution = reasons.length && (input.overallScore >= 80 || input.sectorStatus === "unconfirmed")
     ? `${input.overallScore}/100 betekent niet dat de hele website vrijwel perfect is: ${reasons.join(", ")}.`
     : null;
   return {

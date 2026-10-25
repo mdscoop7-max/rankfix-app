@@ -18,10 +18,34 @@ export function visibleWordCount(html: string): number {
 // Minimum visible content for a recovered page to count as the website itself.
 export const MIN_RECOVERED_WORDS = 40;
 
-export function isSubstantiveRender(html: string | null | undefined): boolean {
+/** Same-site navigation links in a document (relative or on the given host). */
+export function internalLinkCount(html: string, hostname: string): number {
+  const host = String(hostname || "").toLowerCase().replace(/^www\./, "");
+  let n = 0;
+  for (const m of html.matchAll(/<a\b[^>]*\bhref\s*=\s*["']([^"'#][^"']*)["']/gi)) {
+    const href = m[1].trim();
+    if (/^(?:mailto:|tel:|javascript:)/i.test(href)) continue;
+    if (/^https?:\/\//i.test(href)) { try { if (new URL(href).hostname.toLowerCase().replace(/^www\./, "") === host) n++; } catch {} continue; }
+    if (href.startsWith("//")) continue;
+    n++;
+  }
+  return n;
+}
+/** After a refused request the browser page must also look like the website. */
+export const MIN_REFUSAL_RECOVERY_WORDS = 150;
+export const MIN_REFUSAL_RECOVERY_LINKS = 3;
+
+/**
+ * options.afterRefusal: the site refused RankFix (403/405/202/timeout). Then a
+ * short page without own navigation is not proof the browser got the website:
+ * an error template ("Sorry, er gaat iets niet goed…": 41 words, 0 internal
+ * links, QA 144) must not be scored as the homepage.
+ */
+export function isSubstantiveRender(html: string | null | undefined, options: { afterRefusal?: boolean; hostname?: string } = {}): boolean {
   if (!html) return false;
   const words = visibleWordCount(html);
   if (words < MIN_RECOVERED_WORDS) return false;
+  if (options.afterRefusal && words < MIN_REFUSAL_RECOVERY_WORDS && internalLinkCount(html, options.hostname || "") < MIN_REFUSAL_RECOVERY_LINKS) return false;
   // A recovered render that is itself a block, error or maintenance page is not
   // the website (QA #186: "AntiBot" and "connection was interrupted" were scored).
   const title = (html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "").replace(/\s+/g, " ").trim();
