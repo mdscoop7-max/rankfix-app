@@ -134,3 +134,11 @@ test("axe-core run script is plain JavaScript without transpiler helpers and ret
   assert.deepEqual(JSON.parse(JSON.stringify(out)), { violations: [{ id: "label", impact: "serious", nodes: 2 }], passes: 3, incomplete: 0, scope: "hydrated_wcag_a_aa" });
   await assert.rejects(vm.runInContext(AXE_RUN_SCRIPT, vm.createContext({ window: {}, document: {} })), /AXE_NOT_INJECTED/);
 });
+
+test("axe-core stays outside the server bundle (bundled axe.source fails in the browser with 't is not defined')", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const cfg = await readFile(new URL("../next.config.ts", import.meta.url), "utf8");
+  assert.match(cfg, /serverExternalPackages:\s*\[[^\]]*"axe-core"/);
+  const ci = await readFile(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
+  assert.match(ci, /axe-bundle-check\.mjs/);
+});

@@ -52,6 +52,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: npm run build
 
+      - name: axe-core not bundled (QA 144)
+        if: ${{ success() }}
+        run: node tests/manual/axe-bundle-check.mjs
+
       - name: Fixes browser smoke (mobile and desktop)
         if: ${{ success() }}
         run: |
