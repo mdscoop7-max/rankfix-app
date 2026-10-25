@@ -701,15 +701,38 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           ({ response, finalUrl: fetchedFinalUrl, redirectChain } = await fetchTarget());
         } catch (dnsError) {
           // QA 144: "hartlauer.at" had no DNS record while "www.hartlauer.at" can.
-          // One attempt on the www/apex counterpart; never another site.
-          if (fetchFailureCode(dnsError) !== "FETCH_DNS") throw dnsError;
+          // QA 144 / 28 (25 Oct, laptop browser check): the bare domain of a salon
+          // accepted no HTTPS connection at all (a browser also hung >15 s) while
+          // "www." answered in 0.3 s. One attempt on the www/apex counterpart of the
+          // SAME site for a DNS failure, timeout or refused connection; never another
+          // site, never a different client identity. A refusal with an HTTP status
+          // (403/429…) is not covered here and stays a refusal.
+          const code = fetchFailureCode(dnsError);
+          if (!["FETCH_DNS", "FETCH_TIMEOUT", "FETCH_CONNECTION"].includes(code)) throw dnsError;
           const host = activeTarget.hostname.toLowerCase();
           const alternate = host.startsWith("www.") ? host.slice(4) : `www.${host}`;
-          if (!alternate.includes(".")) throw dnsError;
+          if (!alternate.includes(".") || /^\d+(?:\.\d+){3}$/.test(host)) throw dnsError;
           const original = activeTarget.toString();
+          const originalTarget = activeTarget;
           activeTarget = validatePublicHttpUrl(`${activeTarget.protocol}//${alternate}${activeTarget.pathname}${activeTarget.search}`);
-          ({ response, finalUrl: fetchedFinalUrl, redirectChain } = await fetchTarget());
-          hostFallback = { from: original, to: activeTarget.toString(), reason: "FETCH_DNS" };
+          try {
+            // The first host already had two attempts after a timeout: the counterpart
+            // gets one, so the extra wait stays bounded (≤ 15 s).
+            const alternate = code === "FETCH_DNS" ? await fetchTarget() : await fetchOnce();
+            // After a timeout the counterpart only replaces the entered address when
+            // it actually serves a page (2xx): a 404/403/5xx there says nothing about
+            // the address the customer entered.
+            if (code !== "FETCH_DNS" && !(alternate.response.status >= 200 && alternate.response.status < 300)) {
+              try { await alternate.response.body?.cancel(); } catch {}
+              throw dnsError;
+            }
+            ({ response, finalUrl: fetchedFinalUrl, redirectChain } = alternate);
+          } catch (alternateError) {
+            // Report the original failure for the address the customer entered.
+            activeTarget = originalTarget;
+            throw code === "FETCH_DNS" ? alternateError : dnsError;
+          }
+          hostFallback = { from: original, to: activeTarget.toString(), reason: code };
           target = activeTarget;
         }
       } catch (httpsError) {

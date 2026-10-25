@@ -182,9 +182,9 @@ test("QA 144 round 2: refused request + browser error page is not the website (n
   assert.equal(r.failed, 0, r.log);
 });
 
-test("QA 144 run 7a2155c: DNS www/apex fallback, homepage 404 gets one browser check, deep 404 untouched", () => {
+test("QA 144 run 7a2155c: DNS/timeout www/apex fallback (same site only, not after a refusal), homepage 404 gets one browser check, deep 404 untouched", () => {
   const r = run("run-network-404.mjs");
-  assert.equal(r.total, 6);
+  assert.equal(r.total, 10);
   assert.equal(r.failed, 0, r.log);
 });
 

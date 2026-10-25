@@ -47,3 +47,16 @@ Homepage-only declarations stay "probable" (76) until own pages corroborate them
   render, sample access and local 53 unchanged. 12 new neutral route profiles (8 classes + 4 controls) pass;
   on 3d9239aa 6 of the 8 classes failed and the hospital-software control was misread.
 - tsc --noEmit clean.
+
+## Timeouts ing.nl / brainwash-kappers.nl (laptop browser check, 25 Oct 19:45, read-only)
+Earlier TestLab (7a2155c): both FETCH_TIMEOUT in phase browser_render, no origin status.
+- brainwash-kappers.nl: the bare domain accepts no HTTPS connection (laptop browser also
+  hung > 15 s); www.brainwash-kappers.nl answers HTTP 200 in 0.3 s (268 words, 53 links).
+  Fix: after a timeout/refused connection, ONE attempt on the www/apex counterpart of the
+  same site, adopted only when it serves a 2xx page; never after an HTTP refusal (403/429).
+- ing.nl: in a normal browser the bare domain redirects to www and answers fast (TTFB 51 ms).
+  Not reproduced as a site timeout; the RankFix server fetch from the laptop could not be
+  run (no shell on the laptop in this session). Not changed. Observation: the page content
+  sits entirely in shadow DOM (149 web components, ~1,700 words) while the light DOM has
+  3 words; RankFix's browser snapshot (page.content()) does not include shadow DOM, so a
+  render of this kind of site would look empty. Not changed (needs a separate decision).
