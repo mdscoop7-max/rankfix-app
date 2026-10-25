@@ -159,12 +159,15 @@ test("round 2: comparison wording on own product pages is not a publication; a r
   assert.equal(isPublication("Merk Blog: tips en trends"), true);
 });
 
-test("round 2: refusal recovery needs own navigation or enough content", async () => {
+test("round 3: refusal recovery is decided on content; own navigation is counted (one-page anchors included) for the warning", async () => {
   const { isSubstantiveRender, internalLinkCount } = await import("../lib/render-quality.ts");
-  const short = `<html><head><title>Welkom</title></head><body><h1>Welkom</h1><p>${"woord ".repeat(60)}</p><a href="tel:1">Bel</a><a href="https://elders.example/">x</a></body></html>`;
-  assert.equal(isSubstantiveRender(short), true, "without refusal the old rule applies");
-  assert.equal(isSubstantiveRender(short, { afterRefusal: true, hostname: "site.example" }), false);
-  const nav = short.replace("<h1>", '<a href="/a">a</a><a href="/b">b</a><a href="https://www.site.example/c">c</a><h1>');
-  assert.equal(internalLinkCount(nav, "site.example"), 3);
-  assert.equal(isSubstantiveRender(nav, { afterRefusal: true, hostname: "site.example" }), true);
+  const real = `<html><head><title>Nord Airlines</title></head><body><h1>Welcome</h1><p>${"Book flights and holidays with us. ".repeat(12)}</p></body></html>`;
+  assert.equal(isSubstantiveRender(real, { afterRefusal: true, hostname: "nord.example" }), true, "real homepage without links is not blocked");
+  const err = `<html><head><title>Sorry, er gaat iets niet goed…</title></head><body><h1>Sorry, er gaat iets niet goed…</h1><p>${"Probeer het later nog eens. ".repeat(10)}</p></body></html>`;
+  assert.equal(isSubstantiveRender(err, { afterRefusal: true, hostname: "bank.example" }), false);
+  const maint = `<html><head><title>maintenance</title></head><body><h1>We'll be back soon</h1><p>${"Our website is temporarily unavailable. ".repeat(15)}</p></body></html>`;
+  assert.equal(isSubstantiveRender(maint, { afterRefusal: true }), false);
+  const onePage = `<a href="#brood">Brood</a><a href="#gebak">Gebak</a><a href="#nergens">x</a><a href="#">top</a><section id="brood"></section><section id="gebak"></section>`;
+  assert.equal(internalLinkCount(onePage, "bakker.example"), 2, "only anchors whose target exists");
+  assert.equal(internalLinkCount(`<a href="/a">a</a><a href="/a">a</a><a href="https://www.site.example/b">b</a><a href="https://other.example/">o</a><a href="tel:1">t</a>`, "site.example"), 2, "distinct same-site links only");
 });

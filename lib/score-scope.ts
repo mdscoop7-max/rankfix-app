@@ -27,6 +27,8 @@ export type ScoreScopeInput = {
   sitewideIssues: { confirmed: number; toConfirm: number };
   sectorStatus: "confirmed" | "probable" | "unconfirmed";
   sectorLabel?: string | null;
+  /** The site refused RankFix and the browser page had no own navigation. */
+  recoveryWithoutNavigation?: boolean;
 };
 
 export type ScoreScope = {
@@ -68,9 +70,10 @@ export function buildScoreScope(input: ScoreScopeInput): ScoreScope {
     input.evidenceCoveragePercent < 100 ? `${input.evidenceCoveragePercent}% bewijsdekking` : "",
     input.sitewideIssues.confirmed ? `${input.sitewideIssues.confirmed} aandachtspunten op andere pagina's` : "",
     !sectorConfirmed ? "sector niet bevestigd" : "",
+    input.recoveryWithoutNavigation ? "browserpagina na weigering zonder eigen navigatie (niet bewezen dat dit de volledige homepage is)" : "",
   ].filter(Boolean);
   // QA 144: 88–89 with an unknown sector or partial scan also read as "fine".
-  const caution = reasons.length && (input.overallScore >= 80 || input.sectorStatus === "unconfirmed")
+  const caution = reasons.length && (input.overallScore >= 80 || input.sectorStatus === "unconfirmed" || input.recoveryWithoutNavigation)
     ? `${input.overallScore}/100 betekent niet dat de hele website vrijwel perfect is: ${reasons.join(", ")}.`
     : null;
   return {

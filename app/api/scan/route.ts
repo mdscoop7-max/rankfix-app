@@ -53,7 +53,7 @@ import { detectBusinessModel } from "@/lib/business-model";
 import { indexJsonLdIds, resolveSchemaImage } from "@/lib/schema-image";
 import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, sampleOutcomeCounts, commerceServiceSignals, compareScoreVersions } from "@/lib/scan-feedback";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
-import { isSubstantiveRender, renderImprovesEvidence, preserveRawHeadEvidence, renderIsErrorState, visibleWordCount } from "@/lib/render-quality";
+import { isSubstantiveRender, renderImprovesEvidence, preserveRawHeadEvidence, renderIsErrorState, visibleWordCount, internalLinkCount, MIN_REFUSAL_RECOVERY_LINKS } from "@/lib/render-quality";
 import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeCategoryPath, looksLikeCorporatePath, looksLikeEditorialPath, looksLikeEventPath, looksLikeProductDetailPath, looksLikeStorePage, productUrlsFromSitemap } from "@/lib/product-links";
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
@@ -890,13 +890,19 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const scannerAccessBlocked = Boolean(recoveredHtml) && !response.ok;
     // What RankFix itself received: an HTTP refusal, or no answer at all.
     const rankfixRefusal = timeoutRecovery ? (timeoutRecovery.code === "FETCH_TIMEOUT" ? "geen antwoord binnen de tijdslimiet" : "verbinding verbroken") : `HTTP ${recovery.originalHttpStatus}`;
+    // A recovered page without own navigation is accepted (real homepages can
+    // render without links) but is NOT proven to be the complete homepage.
+    const recoveryOwnLinks = recoveredHtml ? internalLinkCount(recoveredHtml, finalUrl.hostname) : null;
+    const recoveryWithoutNavigation = recoveryOwnLinks !== null && recoveryOwnLinks < MIN_REFUSAL_RECOVERY_LINKS;
     const access = {
       rankfixBlocked: scannerAccessBlocked,
+      recoveredOwnLinks: recoveryOwnLinks,
+      recoveryWithoutNavigation,
       originalStatus: scannerAccessBlocked && !timeoutRecovery ? recovery.originalHttpStatus : null,
       attribution: scannerAccessBlocked ? "crawler_block" as const : null,
-      note: !scannerAccessBlocked ? null : timeoutRecovery
+      note: !scannerAccessBlocked ? null : (recoveryWithoutNavigation ? "De browserweergave bevatte geen eigen navigatie; niet bewezen dat dit de volledige homepage is. " : "") + (timeoutRecovery
         ? `De website beantwoordde het directe verzoek van RankFix niet (${timeoutRecovery.code === "FETCH_TIMEOUT" ? "time-out" : "verbinding verbroken"}); een browser kreeg de pagina wel. Statuscode en responstijd zijn daarom niet beoordeeld; de inhoud komt uit de browserweergave.`
-        : `De website weigerde het verzoek van RankFix (${rankfixRefusal}); een browser kreeg de pagina wel. Statuscode en responstijd zijn daarom niet beoordeeld; de inhoud komt uit de browserweergave.`,
+        : `De website weigerde het verzoek van RankFix (${rankfixRefusal}); een browser kreeg de pagina wel. Statuscode en responstijd zijn daarom niet beoordeeld; de inhoud komt uit de browserweergave.`),
     };
     // Modern commerce/product pages can contain large SSR payloads and JSON-LD. Keep a strict cap, but allow enough room to audit them safely.
     let html: string;
@@ -6431,6 +6437,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       sitewideIssues: { confirmed: sitewideIssues.filter((i) => i.certainty === "confirmed").length, toConfirm: sitewideIssues.filter((i) => i.certainty !== "confirmed").length },
       sectorStatus: (sectorProfile as { decisionStatus?: "confirmed" | "probable" | "unconfirmed" }).decisionStatus || (sectorProfile.sector === "unknown" ? "unconfirmed" : "probable"),
       sectorLabel: sectorProfile.label,
+      recoveryWithoutNavigation: access.recoveryWithoutNavigation,
     }) });
 
     // Read-only mobile and desktop PageSpeed for the same customer scan.

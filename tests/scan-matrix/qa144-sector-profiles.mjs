@@ -208,4 +208,65 @@ export const QA144_SITES = {
       "/over-ons": doc({ title: "Over ons | Keten Opticiens", description: "Keten Opticiens is een opticienketen met winkels in heel Nederland.", h1: ["Over ons"] }),
     },
   },
+
+  // Manufacturer that sells direct, rebuilt from the real page titles of the
+  // field case (brand neutralised): own product categories with "Bekijk en
+  // vergelijk", product registration, repair/exchange by model number,
+  // professional/healthcare pages with MedicalDevice schema, own webshop.
+  "huismerk-tech.test": {
+    group: "manufacturer_r3", expect: { sector: ["manufacturing_industrial"], key: ["brand_manufacturer"], notSector: ["news_media"] },
+    pages: {
+      "/": doc({ title: "Huismerk - Nederland | Huismerk", description: "Lees meer over Huismerk en hoe wij helpen het leven van mensen te verbeteren met belangrijke innovaties op het gebied van gezondheidszorg, consumer lifestyle en verlichting.", h1: ["Meld je nu aan"],
+        nav: [["/c-m-pe/scheerapparaten", "Scheerapparaten"], ["/c-m-ho/frisdrankmakers/latest", "Frisdrankmakers"], ["/c-m-pe/accessoires/latest", "Accessoires"], ["/c-s/support", "Ondersteuning"], ["/c-s/support/registreer-je-product", "Registreer je product"], ["/c-s/support/reparatie-en-ruilen", "Reparatie en ruilen"], ["/healthcare/beeldgeleide-therapie", "Healthcare"], ["/c-e/shop/best-sellers", "Bestsellers"], ["/cart", "Winkelwagen"]],
+        body: products([["OneBlade", "39,99"], ["Frisdrankmaker", "99,99"]], "In winkelwagen") + `<a href="/checkout">Afrekenen</a>` + filler("Innovaties voor gezondheid, persoonlijke verzorging en het huishouden.") }),
+      "/c-m-pe/scheerapparaten": doc({ title: "Scheerapparaten | Huismerk", description: "Vind veelgestelde vragen, gebruikershandleidingen en tips voor je scheerapparaat.", h1: ["Scheerapparaten"] }),
+      "/c-m-ho/frisdrankmakers/latest": doc({ title: "Bekijk en vergelijk Frisdrankmakers-producten | Huismerk", description: "Ontdek de Frisdrankmakers. Lees waarom deze Frisdrankmakers bij uw behoeften passen. Vergelijk, lees reviews en bestel online.", h1: ["Frisdrankmakers"], body: products([["Frisdrankmaker A", "99,99"], ["Frisdrankmaker B", "129,99"]], "In winkelwagen") }),
+      "/c-m-pe/accessoires/latest": doc({ title: "Bekijk en vergelijk Accessoires en vervangingen-producten | Huismerk", description: "Ontdek de Accessoires en vervangingen. Vergelijk, lees reviews en bestel online.", h1: ["Accessoires"], body: products([["Opzetstuk", "19,99"], ["Filter", "14,99"]], "In winkelwagen") }),
+      "/c-s/support": doc({ title: "Huismerk klantenservice ondersteuning | Huismerk", description: "Zoek Huismerk-ondersteuningsartikelen op onderwerp of product en krijg de hulp die u nodig heeft.", h1: ["Ondersteuning"] }),
+      "/c-s/support/registreer-je-product": doc({ title: "Productregistratie | Huismerk", description: "Als u een nieuwe aankoop wilt registreren, houd dan het product bij de hand en log in op uw account.", h1: ["Registreer je product"] }),
+      "/c-s/support/reparatie-en-ruilen": doc({ title: "Reparatie of omruiling | Huismerk", description: "Voer het modelnummer of de productnaam in om oplossingen voor productproblemen te vinden.", h1: ["Reparatie of omruiling"] }),
+      "/healthcare/beeldgeleide-therapie": doc({ title: "Beeldgeleide therapie - Huismerk", description: "Een geïntegreerd portfolio van interventionele beeldvormingssystemen, smart-apparaten en software.", h1: ["Beeldgeleide therapie"], schema: ["MedicalDevice"] }),
+      "/c-e/shop/best-sellers": doc({ title: "Huismerk Bestsellers | Huismerk", description: "Huismerk best verkopende producten voor een gezondere levensstijl", h1: ["Bestsellers"], body: products([["OneBlade", "39,99"], ["Tandenborstel", "89,99"]], "In winkelwagen") }),
+    },
+  },
+  // Negative control: a retailer that names itself a webshop and also offers
+  // product registration for the brands it sells stays a retailer.
+  "elektrowinkel.test": {
+    group: "retailer_control_r3", expect: { sector: ["ecommerce"], notSector: ["manufacturing_industrial"] },
+    pages: {
+      "/": doc({ title: "Elektrowinkel | Dé webshop voor elektronica en witgoed", description: "Elektrowinkel is dé online winkel voor televisies, laptops en witgoed van alle grote merken. Voor 23:59 besteld, morgen in huis.", h1: ["Elektronica online kopen"],
+        nav: [["/televisies", "Televisies"], ["/laptops", "Laptops"], ["/service/productregistratie", "Productregistratie"], ["/cart", "Winkelwagen"]],
+        schema: [{ "@type": "OnlineStore", name: "Elektrowinkel", url: "https://__HOST__/" }],
+        body: products([["Televisie 55 inch", "599,00"], ["Laptop 15 inch", "799,00"], ["Wasmachine", "549,00"]], "In winkelwagen") + `<a href="/checkout">Afrekenen</a>` }),
+      "/televisies": doc({ title: "Televisies kopen | Elektrowinkel", description: "Bekijk ons assortiment televisies van alle merken.", h1: ["Televisies"], body: products([["TV A", "599,00"], ["TV B", "699,00"]], "In winkelwagen") }),
+      "/service/productregistratie": doc({ title: "Productregistratie | Elektrowinkel", description: "Registreer je product voor de garantie van de fabrikant.", h1: ["Productregistratie"] }),
+    },
+  },
+
+  // Same manufacturer pattern WITHOUT a registration page in the sample:
+  // repair/exchange by model number + user manuals on own pages.
+  "huismerk-zonder-registratie.test": {
+    group: "manufacturer_r3", expect: { sector: ["manufacturing_industrial"], key: ["brand_manufacturer"] },
+    pages: {
+      "/": doc({ title: "Huismerk Twee - Nederland | Huismerk Twee", description: "Huismerk Twee ontwikkelt innovaties voor persoonlijke verzorging en het huishouden.", h1: ["Meld je nu aan"],
+        nav: [["/c-m-ho/frisdrankmakers/latest", "Frisdrankmakers"], ["/c-s/support/reparatie-en-ruilen", "Reparatie en ruilen"], ["/c-m-pe/scheerapparaten", "Scheerapparaten"], ["/cart", "Winkelwagen"]],
+        body: products([["Scheerapparaat", "79,99"], ["Frisdrankmaker", "99,99"]], "In winkelwagen") + `<a href="/checkout">Afrekenen</a>` }),
+      "/c-m-ho/frisdrankmakers/latest": doc({ title: "Bekijk en vergelijk Frisdrankmakers-producten | Huismerk Twee", description: "Vergelijk, lees reviews en bestel online.", h1: ["Frisdrankmakers"], body: products([["A", "99,99"], ["B", "129,99"]], "In winkelwagen") }),
+      "/c-s/support/reparatie-en-ruilen": doc({ title: "Reparatie of omruiling | Huismerk Twee", description: "Voer het modelnummer of de productnaam in om oplossingen voor productproblemen te vinden.", h1: ["Reparatie of omruiling"] }),
+      "/c-m-pe/scheerapparaten": doc({ title: "Scheerapparaten | Huismerk Twee", description: "Vind veelgestelde vragen, gebruikershandleidingen en tips voor je scheerapparaat.", h1: ["Scheerapparaten"] }),
+    },
+  },
+  // Negative control: a retailer with a manuals page and a repair page, which
+  // calls itself a webshop, stays a retailer.
+  "witgoedshop.test": {
+    group: "retailer_control_r3", expect: { sector: ["ecommerce"], notSector: ["manufacturing_industrial"] },
+    pages: {
+      "/": doc({ title: "Witgoedshop | Webshop voor wasmachines en koelkasten", description: "Witgoedshop is een webshop voor witgoed van alle merken. Online bestellen, gratis bezorgd.", h1: ["Witgoed online kopen"],
+        nav: [["/wasmachines", "Wasmachines"], ["/service/handleidingen", "Handleidingen"], ["/service/reparatie", "Reparatie"], ["/cart", "Winkelwagen"]],
+        body: products([["Wasmachine", "549,00"], ["Koelkast", "699,00"]], "In winkelwagen") + `<a href="/checkout">Afrekenen</a>` }),
+      "/wasmachines": doc({ title: "Wasmachines kopen | Witgoedshop", description: "Wasmachines van alle merken.", h1: ["Wasmachines"], body: products([["W1", "549,00"], ["W2", "649,00"]], "In winkelwagen") }),
+      "/service/handleidingen": doc({ title: "Handleidingen | Witgoedshop", description: "Download gebruikershandleidingen van alle merken op modelnummer.", h1: ["Handleidingen"] }),
+      "/service/reparatie": doc({ title: "Reparatie of omruiling | Witgoedshop", description: "Laat je apparaat repareren via onze reparatieservice.", h1: ["Reparatie"] }),
+    },
+  },
 };

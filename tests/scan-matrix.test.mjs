@@ -178,6 +178,6 @@ test("QA 144: product data stays bound to the entered page (no sibling SKU), amb
 
 test("QA 144 round 2: refused request + browser error page is not the website (no score); real pages behind a 403 still recover", () => {
   const r = run("run-refused-error-render.mjs");
-  assert.equal(r.total, 4);
+  assert.equal(r.total, 8);
   assert.equal(r.failed, 0, r.log);
 });
