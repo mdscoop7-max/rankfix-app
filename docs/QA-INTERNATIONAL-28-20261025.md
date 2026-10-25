@@ -87,3 +87,16 @@ controles zijn niet uitgevoerd … zegt niets over de sector"), shown under the 
 Verification: 678 tests, 671 pass, 0 fail; 7 new neutral route profiles (6 classes fail on
 f6ebd201, pass now; agency control stays non-hosting); replays 232 sites: 1 difference —
 a recorded French property portal unknown → real_estate (expected label real_estate).
+
+## Round 3 (25 Oct 21:30) — owner decisions and field report
+- FAQ (owner approved): a heading question counts only inside a page-labelled FAQ (EU/EEA
+  languages) or as a series of ≥ 3 pairs; every pair must answer its question (shared
+  content-word stem) and must not be promotion/event/CTA wording. details/dt/accordion/
+  microdata keep one pair, without promotion. Positive and negative regression tests added;
+  the earlier single-heading test now uses a labelled FAQ (behaviour change by decision).
+- Car body / collision repair (owner report, NL chain "unknown" at 99/100): declaration
+  of body-repair trades in NL, DE, FR, IT, ES, PT, Nordic, FI, PL, CS, HU, RO → automotive /
+  car_repair. Bare "schadeherstel" needs a vehicle word (property damage repair is excluded).
+- Found with the new control: property-damage repair was "Vastgoed 90" because the word
+  "woning" anchored the legacy real-estate rule. "woning/huizen" are now context only;
+  replays (232 sites) and the 53 local profiles are unchanged.
