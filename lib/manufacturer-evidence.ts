@@ -15,6 +15,18 @@ const REGISTRATION_PATH = /\/(?:register-your-product|product-registration|regis
 
 export type ManufacturerPage = { url: string; status: string; title?: string | null; description?: string | null };
 
+// Services for products the organisation makes itself, by model number:
+// repair/exchange, user manuals, spare parts, firmware. One such page can exist
+// on a retailer too; TWO different kinds on own pages (and no shop identity,
+// checked by the caller) are manufacturer evidence. Multilingual.
+const OWN_PRODUCT_SUPPORT: Array<[string, RegExp]> = [
+  ["repair", /(?:reparatie of omruiling|reparatie en ruilen|repair (?:or|and) (?:exchange|replacement)|reparatur (?:oder|und) austausch|réparation (?:ou|et) (?:échange|remplacement)|riparazione (?:o|e) sostituzione|reparación (?:o|y) (?:cambio|sustitución))/i],
+  ["manuals", /(?:gebruikershandleiding(?:en)?|handleidingen|user manuals?|bedienungsanleitung(?:en)?|modes? d'emploi|manuali d'uso|manuales de usuario)/i],
+  ["parts", /(?:reserveonderdelen|onderdelen en accessoires|spare parts|ersatzteile|pièces détachées|ricambi|piezas de repuesto)/i],
+  ["model", /(?:modelnummer|model number|modellnummer|numéro de modèle|numero di modello|número de modelo)/i],
+  ["firmware", /(?:firmware|software-update|softwareupdates?)/i],
+];
+
 export function manufacturerRegistrationEvidence(pages: ManufacturerPage[]): { url: string; evidence: string } | null {
   for (const page of pages) {
     if (page.status !== "audited") continue;
@@ -26,6 +38,17 @@ export function manufacturerRegistrationEvidence(pages: ManufacturerPage[]): { u
     if (REGISTRATION.test(own) || (REGISTRATION_PATH.test(path) && /\b(?:register|registr|garantie|warranty|enregistr)/i.test(own))) {
       return { url: page.url, evidence: `Eigen pagina voor registratie van gekochte producten (garantie/ondersteuning van eigen producten): ${page.url}` };
     }
+  }
+  // Second route (QA 144: the registration page is not always in the sample).
+  const kinds = new Map<string, string>();
+  for (const page of pages) {
+    if (page.status !== "audited") continue;
+    const own = `${page.title || ""} ${page.description || ""}`;
+    for (const [kind, re] of OWN_PRODUCT_SUPPORT) if (!kinds.has(kind) && re.test(own)) { kinds.set(kind, page.url); break; }
+  }
+  const urls = [...new Set(kinds.values())];
+  if (kinds.size >= 2 && urls.length >= 2) {
+    return { url: urls[0], evidence: `Eigen ondersteuningspagina's voor eigen producten (${[...kinds.keys()].join(", ")}): ${urls.slice(0, 2).join(", ")}` };
   }
   return null;
 }

@@ -1636,7 +1636,9 @@ test("FAQ evidence requires actual answers, not just generic accordions", () => 
   assert.equal(confirmedFaqContent('<h2>FAQ</h2><p>Welkom bij onze winkel</p>'), false);
   assert.equal(confirmedFaqContent('<details><summary>Instellingen</summary>Menu links</details>'), false);
   assert.equal(confirmedFaqContent('<details><summary>Hoe werkt retourneren?</summary><p>Stuur het product binnen 30 dagen terug.</p></details>'), true);
-  assert.equal(confirmedFaqContent('<h2>Wanneer wordt mijn bestelling verzonden?</h2><p>De bestelling wordt de volgende werkdag verzonden.</p>'), true);
+  // Owner decision 25 Oct: a heading pair counts inside a labelled FAQ (or a series of three).
+  assert.equal(confirmedFaqContent('<h2>Veelgestelde vragen</h2><h3>Wanneer wordt mijn bestelling verzonden?</h3><p>De bestelling wordt de volgende werkdag verzonden.</p>'), true);
+  assert.equal(confirmedFaqContent('<h2>Wanneer wordt mijn bestelling verzonden?</h2><p>De bestelling wordt de volgende werkdag verzonden.</p>'), false);
 });
 
 test("webshop delivery and returns claims are detected in marketing text", () => {

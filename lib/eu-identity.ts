@@ -163,6 +163,9 @@ const TECH_COMPANY = stems([
   "entreprise technologique", "groupe technologique", "société technologique", "société de technologie", "azienda tecnologica", "gruppo tecnologico", "empresa tecnológica", "grupo tecnológico",
 ]);
 const PHYSICAL_GOODS = stems(["devices", "apparaten", "geräte", "appareils", "dispositivi", "dispositivos", "materials", "materialen", "materiaal", "werkstoff", "matériaux", "materiali", "materiales", "batter", "catalys", "katalys", "imaging", "beeldvorming", "lighting", "verlichting", "monitoring systems", "medical equipment", "medische apparatuur", "products", "producten", "produkte", "produits", "prodotti", "productos"]);
+const HOSTING_NAV = words(["hosting", "web hosting", "webhosting", "hébergement", "hébergement web", "alojamiento", "alojamiento web", "hospedagem", "webhotel", "webhotell", "webhotelli"]);
+const HOSTING_DOMAIN = stems(["domini", "domain", "domein", "domaine", "dominio", "domínio", "domän", "domæne", "domene", "verkkotunnu", "domen"]);
+const HOSTING_INFRA = words(["server", "servers", "serveur", "serveurs", "servidor", "servidores", "server dedicati", "cloud", "vps", "ssl", "datacenter", "data center", "rechenzentrum"]);
 const SOFTWARE = stems(["software", "saas", "platform", "plattform", "plateforme", "piattaforma", "plataforma", "logiciel", "app for", "regtech", "fintech platform"]);
 const SOFTWARE_FUNNEL = stems(["book a demo", "free trial", "start trial", "request a demo", "demo aanvragen", "demo anfragen", "gratis proberen", "kostenlos testen", "essai gratuit", "prova gratuita", "prueba gratis", "pricing", "prijzen", "preise", "tarifs", "features", "functies", "funktionen", "integrations", "integraties", "login", "inloggen", "anmelden"]);
 // What a business-software vendor says it does for its customers.
@@ -394,9 +397,14 @@ export function stripMarketMentions(text: string): string {
 }
 
 /** Blogs, magazines, guides and comparison sites write ABOUT a sector. */
+// "Bekijk en vergelijk X-producten", "compare our models", "lees reviews en bestel
+// online": a maker or shop inviting customers to compare ITS OWN products is not a
+// comparison site (QA 144: a manufacturer's category pages voted "blog/media").
+const OWN_PRODUCT_CTA = /(?<![\p{L}])(?:\p{L}*producten|products?|produkte?|produits?|prodott[io]|productos?|produtos?|modellen|models?|modelle|modèles|assortiment|bestel\p{L}*|kopen|koop|shop|buy|order|kaufen|bestellen|acheter|commander|acquista|comprar|compra)(?![\p{L}])/iu;
 export function isPublication(identity: string, schemaTypes: string[] = []): boolean {
-  return /(?<![\p{L}])\p{L}*(?:blog|vlog)(?![\p{L}])|(?<![\p{L}])(?:magazine|magazin|tijdschrift|revista|rivista|zeitschrift|reisgids|travel guide|guide de voyage|vergelijk|vergleich|comparateur|comparador|review|reviews)(?![\p{L}])/iu.test(identity)
-    || schemaTypes.some((t) => ["blog", "blogposting"].includes(String(t).toLowerCase()));
+  if (schemaTypes.some((t) => ["blog", "blogposting"].includes(String(t).toLowerCase()))) return true;
+  if (/(?<![\p{L}])\p{L}*(?:blog|vlog)(?![\p{L}])|(?<![\p{L}])(?:magazine|magazin|tijdschrift|revista|rivista|zeitschrift|reisgids|travel guide|guide de voyage)(?![\p{L}])/iu.test(identity)) return true;
+  return /(?<![\p{L}])(?:vergelijk|vergleich|comparateur|comparador|review|reviews)(?![\p{L}])/iu.test(identity) && !OWN_PRODUCT_CTA.test(identity);
 }
 
 export function retailSelfDescription(text: string): boolean {
@@ -598,10 +606,15 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   }
 
   // 6. Health information and care portals (not shops, not insurers).
+  // QA international-28 control: a software vendor for hospitals ("Software voor
+  // ziekenhuizen", "Ziekenhuissoftware" with a demo/pricing funnel) is not a care
+  // provider; it names its customers' concepts (patients, clinics).
+  const softwareTitle = SOFTWARE.test(title) || /\p{L}{3,}(?:software|plattform|platform|logiciel)(?![\p{L}])/iu.test(title);
+  const softwareVendor = (softwareTitle || SOFTWARE.test(own)) && SOFTWARE_FUNNEL.test(nav + " " + h2 + " " + own);
   const healthConcepts = distinct(own, HEALTH_CONCEPTS);
   const healthSchema = ["hospital", "medicalorganization", "medicalclinic", "physician"].some((t) => schema.has(t));
   const hospitalTitle = (HEALTH_CONCEPTS.find(([n]) => n === "clinic")?.[1] as Tester).test(title) && healthConcepts.length >= 2;
-  if (!retailer && (healthSchema || hospitalTitle || healthConcepts.length >= 3 || (healthConcepts.length >= 2 && countSources((s) => distinct(s, HEALTH_CONCEPTS).length > 0) >= 2))) {
+  if (!retailer && (!softwareVendor || healthSchema) && (healthSchema || hospitalTitle || healthConcepts.length >= 3 || (healthConcepts.length >= 2 && countSources((s) => distinct(s, HEALTH_CONCEPTS).length > 0) >= 2))) {
     return { sector: "health_wellness", key: "health_wellness", label: "Zorg & Gezondheid", confidence: "high", confidenceScore: healthSchema ? 94 : 90,
       evidence: [`Eigen identiteit noemt ${healthConcepts.length} zorgconcepten (${healthConcepts.join(", ")})`, ...(healthSchema ? ["Structured data: zorgorganisatie"] : [])] };
   }
@@ -696,7 +709,7 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   if (!retailer && COURIER.test(own) && PARCEL.test(own)) {
     return { sector: "transport_travel", key: "postal_logistics", label: "Post- & pakketvervoer", confidence: "high", confidenceScore: 88, evidence: ["Eigen identiteit: koerier- of pakketdienst"] };
   }
-  if (!retailer && !publication && SOFTWARE.test(title) && (SOFTWARE_FUNNEL.test(nav + " " + h2 + " " + own) || SOFTWARE_ACTION.test(own) || schema.has("softwareapplication") || schema.has("webapplication"))) {
+  if (!retailer && !publication && softwareTitle && (SOFTWARE_FUNNEL.test(nav + " " + h2 + " " + own) || SOFTWARE_ACTION.test(own) || schema.has("softwareapplication") || schema.has("webapplication"))) {
     return { sector: "saas_b2b", key: "saas_b2b", label: "SaaS / B2B software", confidence: "medium", confidenceScore: 78, evidence: ["Eigen identiteit: softwareproduct met demo-, prijs- of loginfunnel"] };
   }
 
@@ -750,6 +763,15 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   if (AGENCY.test(title + " " + h1) && AGENCY_SERVICE.test(own + " " + structure)) {
     return { sector: "professional_services", key: "professional_services", label: "Zakelijke dienstverlening", confidence: "medium", confidenceScore: 76,
       evidence: ["Eigen identiteit: bureau/agentschap met zakelijke diensten"] };
+  }
+  // QA international-28 (laptop page check, 25 Oct): a hosting provider whose
+  // title is only "Home | <brand>" and that has no description or H1 describes its
+  // activity in its section headings and navigation (hosting + domains + servers
+  // or cloud). Probable (medium) only; a web agency that also hosts is excluded.
+  if (!publication && HOSTING_NAV.test(structure) && HOSTING_DOMAIN.test(structure) && HOSTING_INFRA.test(structure)
+    && !/(?<![\p{L}])(?:webdesign\p{L}*|web design|webbureau|web agency|agence web|webagentur|agenzia web|agencia web|realizzazione siti|création de sites|diseño web)(?![\p{L}])/iu.test(own + " " + structure)) {
+    return { sector: "saas_b2b", key: "web_hosting", label: "Software & cloud · webhosting en domeinen", confidence: "medium", confidenceScore: 74,
+      evidence: ["Navigatie en koppen beschrijven webhosting, domeinen en servers/cloud; de titel en omschrijving noemen dit niet zelf"] };
   }
   if (POSTAL_SPECIFIC(structure) && PARCEL.test(structure) && PARCEL.test(own)) {
     return { sector: "transport_travel", key: "postal_logistics", label: "Post- & pakketvervoer", confidence: "medium", confidenceScore: 74,
