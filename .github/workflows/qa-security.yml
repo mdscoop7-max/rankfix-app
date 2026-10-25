@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: rankfix-qa-security-${{ github.ref }}
@@ -36,8 +36,8 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Resolve patched dependencies and regenerate lockfile
-        run: npm install --no-audit --no-fund
+      - name: Install exactly the audited dependency lockfile
+        run: npm ci --no-audit --no-fund
 
       - name: Blocking production dependency security audit
         run: npm audit --omit=dev --audit-level=high
@@ -75,16 +75,3 @@ jobs:
             sleep 1
           done
           node tests/manual/fixes-responsive.browser.mjs
-
-      - name: Update security dependency lockfile only after all checks pass
-        if: github.ref == 'refs/heads/fix/qa-144-p0-reliability-20261024' && github.event_name == 'push'
-        run: |
-          if ! git diff --quiet -- package-lock.json; then
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add package-lock.json
-            git commit -m "chore: lock verified secure dependencies for QA [skip ci]"
-            git push origin "HEAD:${GITHUB_REF_NAME}"
-          else
-            echo 'Dependency lockfile already matches the validated packages.'
-          fi
