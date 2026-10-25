@@ -60,3 +60,30 @@ Earlier TestLab (7a2155c): both FETCH_TIMEOUT in phase browser_render, no origin
   sits entirely in shadow DOM (149 web components, ~1,700 words) while the light DOM has
   3 words; RankFix's browser snapshot (page.content()) does not include shadow DOM, so a
   render of this kind of site would look empty. Not changed (needs a separate decision).
+
+## Round 2 (TestLab @ f6ebd201, 25 Oct 21:10) — six remaining "unknown" sites
+Owner's run: 22 reports, 6 refusals unchanged, unknown 10 → 6. Real page content was read
+read-only in the laptop browser; saved reports via /api/history (owner logged in).
+| Site class | Confirmed cause | Fix (generic) |
+|---|---|---|
+| Home-services marketplace (ES) | React streaming SSR puts `<meta name=description>` and canonical in `<body>`; RankFix read head only → identity saw no description; the SEO check said "geen meta description-tag gevonden" (untrue) | Outside-head description used for identity only; SEO checks unchanged in points but now say "staat buiten <head>" |
+| Doctor booking (FR) | "soignant" missing; "trouvez un spécialiste … prenez rendez-vous" order not covered | practitioner nouns + reversed order |
+| Web hosting (IT) | title "Home \| brand", no description, no H1; activity only in H2 + navigation | probable (74) navigation-level hosting identity; agencies excluded |
+| Property listing portal (IT) | "Annunci case e appartamenti in vendita" (listing portal, no agency noun) | listing-portal nouns in 15 languages |
+| Construction group (CH) | "Bauunternehmer", "Immobiliendienstleisterin" (noun forms) | noun forms; infrastructure context still required |
+| Service marketplace (NO) | "finne fagfolk", "legg ut jobben … bli kontaktet av håndverkere" | Nordic verbs/phrases + context |
+
+Terveystalo 93 → 91: FAQ check pass (10/10) → not applicable. Cause: the FAQ rewrite in
+215829cc capped heading markup at 400 characters; 12 of its headings carry longer inner
+markup. Regression fixed (visible text ≤ 250 chars, markup up to 2,000). Note for the owner:
+the two headings that pass are promotional teasers ending in "?", not a FAQ; tightening the
+FAQ rule would change existing documented behaviour and needs a decision.
+The same run also gained legal links (FI "Tietosuojaseloste"): unable → pass.
+
+Score vs sector: every report with an unconfirmed or probable sector now carries
+`scoreModel.scope.sectorDistinction` ("Technische SEO/GEO-score X/100 … sectorspecifieke
+controles zijn niet uitgevoerd … zegt niets over de sector"), shown under the headline score.
+
+Verification: 678 tests, 671 pass, 0 fail; 7 new neutral route profiles (6 classes fail on
+f6ebd201, pass now; agency control stays non-hosting); replays 232 sites: 1 difference —
+a recorded French property portal unknown → real_estate (expected label real_estate).

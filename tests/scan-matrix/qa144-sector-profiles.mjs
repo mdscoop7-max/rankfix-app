@@ -388,4 +388,56 @@ export const QA144_SITES = {
         nav: [["/functies", "Functies"], ["/demo", "Demo aanvragen"], ["/prijzen", "Prijzen"]], body: filler("Planning, dossier en koppelingen voor zorginstellingen.") }),
     },
   },
+
+  // ───── QA international-28 round 2 (TestLab @ f6ebd201, laptop page check, 25 Oct):
+  // the six remaining "unknown" classes, neutral invented texts.
+  // Streaming SSR: title in head, meta description emitted in the body.
+  "reformas-hogar.test": {
+    group: "intl28b_marketplace_body_meta", expect: { sector: ["service_marketplace"] },
+    pages: {
+      "/": doc({ lang: "es", title: "Reformas Hogar - Reformas y Servicios para el Hogar", h1: ["Encuentra profesionales recomendados cerca de ti"],
+        nav: [["/directorio", "Directorio de profesionales"], ["/reformas", "Reformas"], ["/precios", "Guía de precios"]],
+        body: `<meta name="description" content="Contrata profesionales de confianza para reformar tu hogar y pide presupuesto gratis."/>` + filler("Cuéntanos qué necesitas y contacta gratis con pintores, carpinteros y empresas de reformas.") }),
+    },
+  },
+  // Hosting provider whose title is only "Home | brand" and that has no description or H1.
+  "hostitalia.test": {
+    group: "intl28b_hosting_nav_only", expect: { sector: ["saas_b2b"] },
+    pages: {
+      "/": doc({ lang: "it", title: "Home | Hostitalia.it", h2: ["HOSTING e DOMINI", "PEC e TRUST SERVICES", "CLOUD E SERVER DEDICATI", "CERTIFICATI SSL"],
+        nav: [["/hosting", "Hosting"], ["/domini", "Domini"], ["/server", "Server"], ["/cloud", "Cloud"], ["/ssl", "SSL"], ["/supporto", "Supporto"]], body: filler("Soluzioni digitali per la tua attività.") }),
+    },
+  },
+  "annunci-casa.test": {
+    group: "intl28b_listing_portal_it", expect: { sector: ["real_estate"] },
+    pages: {
+      "/": doc({ lang: "it", title: "Annunci case e appartamenti in vendita e in affitto - Casaportale.it", description: "Oltre 100.000 annunci di appartamenti, case e immobili in vendita e in affitto.", body: filler("Cerca tra migliaia di annunci di case e appartamenti.") }),
+    },
+  },
+  "rdv-sante.test": {
+    group: "intl28b_booking_fr", expect: { sector: ["health_wellness"] },
+    pages: {
+      "/": doc({ lang: "fr", title: "RdvSanté : Prenez rendez-vous en ligne chez un soignant", description: "Trouvez rapidement un spécialiste près de chez vous et prenez rendez-vous gratuitement en ligne.", body: filler("Médecins, dentistes et kinés disponibles en ligne.") }),
+    },
+  },
+  "bauholding.test": {
+    group: "intl28b_construction_noun_forms", expect: { sector: ["manufacturing_industrial"] },
+    pages: {
+      "/": doc({ lang: "de", title: "Bauholding – Bauunternehmer & Immobiliendienstleisterin", description: "Als führende Bau- und Immobiliendienstleisterin entwickelt und realisiert Bauholding Lebensräume, Arbeitswelten und Infrastruktur.", h1: ["Bauholding — Schweiz"], body: filler("Hochbau, Tiefbau und Infrastrukturprojekte.") }),
+    },
+  },
+  "finn-fagfolk.test": {
+    group: "intl28b_marketplace_no", expect: { sector: ["service_marketplace"] },
+    pages: {
+      "/": doc({ lang: "nb", title: "Fagportal - Den enkleste måten å finne fagfolk på", description: "Har du en jobb du vil få utført? Legg ut jobben og bli kontaktet av flere håndverkere i ditt nærområde!", h1: ["Hva trenger du hjelp med?"], body: filler("Slik fungerer det: legg ut jobben, få svar og velg håndverker.") }),
+    },
+  },
+  // Control: a web agency whose navigation lists hosting, domains and servers.
+  "webstudio-nav.test": {
+    group: "intl28b_control_agency_nav", expect: { notSector: ["saas_b2b"] },
+    pages: {
+      "/": doc({ title: "Home | Webstudio", h2: ["Webdesign", "Hosting en domeinen", "Servers en onderhoud"],
+        nav: [["/webdesign", "Webdesign"], ["/hosting", "Hosting"], ["/domeinen", "Domeinen"], ["/server", "Server"]], body: filler("Wij maken websites voor ondernemers.") }),
+    },
+  },
 };

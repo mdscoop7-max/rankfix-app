@@ -43,6 +43,13 @@ export type ScoreScope = {
   range: { low: number; high: number; method: "min_max_over_unconfirmed_checks"; statisticalInterval: false } | null;
   /** Shown next to a high headline score whenever it must not read as "the whole site is near perfect". */
   caution: string | null;
+  /**
+   * QA international-28: a high technical score next to an unknown or only probable
+   * sector. States that the score measures general SEO/GEO checks, that
+   * sector-specific checks were not applied, and that the score does not confirm
+   * the sector. Null when the sector is confirmed.
+   */
+  sectorDistinction: string | null;
   notes: string[];
 };
 
@@ -76,6 +83,10 @@ export function buildScoreScope(input: ScoreScopeInput): ScoreScope {
   const caution = reasons.length && (input.overallScore >= 80 || input.sectorStatus === "unconfirmed" || input.recoveryWithoutNavigation)
     ? `${input.overallScore}/100 betekent niet dat de hele website vrijwel perfect is: ${reasons.join(", ")}.`
     : null;
+  const sectorDistinction = sectorConfirmed ? null
+    : input.sectorStatus === "unconfirmed"
+      ? `Technische SEO/GEO-score ${input.overallScore}/100 op basis van algemene controles. De hoofdsector is niet bevestigd: sectorspecifieke controles zijn niet uitgevoerd en tellen niet mee. Een hoge score zegt niets over de sector.`
+      : `Technische SEO/GEO-score ${input.overallScore}/100. Hoofdsector waarschijnlijk${input.sectorLabel ? ` (${input.sectorLabel})` : ""}, maar nog niet door andere eigen pagina's bevestigd; sectorspecifieke conclusies zijn voorlopig. De score bevestigt de sector niet.`;
   return {
     scoreAppliesTo: "start_page",
     startPage: { url: input.startUrl, isHomepage: input.startIsHomepage, score: input.overallScore },
@@ -87,6 +98,7 @@ export function buildScoreScope(input: ScoreScopeInput): ScoreScope {
     sectorConfirmed,
     range,
     caution,
+    sectorDistinction,
     notes,
   };
 }

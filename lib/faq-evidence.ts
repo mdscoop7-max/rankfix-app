@@ -44,9 +44,12 @@ export function confirmedFaqContent(html: string): boolean {
   for(const m of html.matchAll(/<details\b[^>]*>\s*<summary\b[^>]*>([\s\S]*?)<\/summary>([\s\S]*?)<\/details>/gi)) {
     if(isQuestion(visible(m[1])) && answered(m[2])) return true;
   }
-  // Heading question followed by its answer, possibly inside up to three wrappers.
-  for(const m of html.matchAll(/<h[2-6]\b[^>]*>([\s\S]{1,400}?)<\/h[2-6]>\s*(?:<\/?(?:div|section|span)\b[^>]*>\s*){0,4}<(?:p|div|span|section)\b[^>]*>([\s\S]{0,4000}?)<\/(?:p|div|span|section)>/gi)) {
-    if(isQuestion(visible(m[1])) && answered(m[2])) return true;
+  // Heading question followed by its answer, possibly inside a few wrappers.
+  // The heading may hold long inner markup (spans, icons); its visible text is
+  // what must read as a question. One pair counts, as before (existing rule).
+  for(const m of html.matchAll(/<h([2-6])\b[^>]*>((?:(?!<h[1-6]\b)[\s\S]){1,2000}?)<\/h\1>\s*(?:<\/?(?:div|section|span)\b[^>]*>\s*){0,4}<(?:p|div|span|section)\b[^>]*>([\s\S]{0,4000}?)<\/(?:p|div|span|section)>/gi)) {
+    const q = visible(m[2]);
+    if(q.length <= 250 && isQuestion(q) && answered(m[3])) return true;
   }
   // Definition list.
   for(const m of html.matchAll(/<dt\b[^>]*>([\s\S]{1,400}?)<\/dt>\s*<dd\b[^>]*>([\s\S]{0,4000}?)<\/dd>/gi)) {

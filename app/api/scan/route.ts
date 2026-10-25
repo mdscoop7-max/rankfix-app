@@ -1144,6 +1144,11 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // Source-order-independent head extraction; only tags inside <head> count.
     const headMetadata = extractHeadMetadata(html);
     const description = stripHtml(headMetadata.description).trim();
+    // The organisation's own self-description for IDENTITY decisions only: a meta
+    // description emitted outside <head> (streaming SSR) still states what the
+    // organisation does. SEO checks keep using the head description.
+    const outsideHeadDescription = stripHtml(decode(headMetadata.outsideHead.description || "")).trim();
+    const identityDescription = description || outsideHeadDescription;
     const descriptionState: "missing" | "empty" | "present" = headMetadata.descriptionState;
     const h1s = allMatches(html, /<h1[^>]*>([\s\S]*?)<\/h1>/gi).map(stripHtml).filter(Boolean);
     const headingTags = [...html.matchAll(/<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/gi)];
@@ -2083,7 +2088,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       }
     }
     const euPrimaryIdentity = detectEuPrimaryIdentity({
-      title, description, h1s: identityH1s, h2s: identityH2s, ogSiteName: decode(ogSiteName || ""), navLabels: identityNavLabels,
+      title, description: identityDescription, h1s: identityH1s, h2s: identityH2s, ogSiteName: decode(ogSiteName || ""), navLabels: identityNavLabels,
       schemaTypes, hostname: finalUrl.hostname, homepage: isSiteHomepagePath(finalUrl.pathname) || isHomepage,
     });
     const euRetailSelfDescription = retailSelfDescription([title, description, identityH1s.join(" ")].join(" "));
@@ -2130,7 +2135,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // architecture practice, cybersecurity, car rental...) in two independent
     // fields or in its self-description sentence. Outranks loose keywords.
     const homepageDeclared = (isSiteHomepagePath(finalUrl.pathname) || isHomepage)
-      ? detectDeclaredIndustry({ title, description, identityHeadings: identityH1s, schemaTypes }) : null;
+      ? detectDeclaredIndustry({ title, description: identityDescription, identityHeadings: identityH1s, schemaTypes }) : null;
     const sectorPriority: Partial<Record<SectorKey, number>> = { government: 30, real_estate: 28, automotive: 27, transport_travel: 20, telecom_technology: 20, health_wellness: 16, education: 15, energy_utilities: 15, news_media: 10, nonprofit: 8, events_culture: 6, fitness_sports: 6 };
     const sectorCandidates = sectorSignals.map(item=>{
       const contentHits = item.patterns.filter(pattern=>pattern.test(sectorSource)).length;
@@ -2278,7 +2283,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const euGenericIdentityApplies = Boolean(euPrimaryIdentity && (euPrimaryIdentity.confidence === "medium" || (euPrimaryIdentity.sector !== "news_media" && euPrimaryIdentity.sector !== "financial_services"))
       && (euPrimaryIdentity.confidence === "high" || !strongSectorCandidate));
     // Employer careers site: the vacancy topic is the page topic, not the site.
-    const careersIdentity = careersSiteIdentity({ title, description, h1s: identityH1s, hostname: finalUrl.hostname, ogSiteName: decode(ogSiteName || ""), navLabels: identityNavLabels, homepage: isSiteHomepagePath(finalUrl.pathname) || isHomepage });
+    const careersIdentity = careersSiteIdentity({ title, description: identityDescription, h1s: identityH1s, hostname: finalUrl.hostname, ogSiteName: decode(ogSiteName || ""), navLabels: identityNavLabels, homepage: isSiteHomepagePath(finalUrl.pathname) || isHomepage });
     const baseMasterIdentity: {sector:SectorKey;key:string;label:string;evidence:string[];confidence?:"high"|"medium";confidenceScore?:number} | null = careersIdentity
       ? {sector:"recruitment",key:careersIdentity.key,label:careersIdentity.label,evidence:careersIdentity.evidence,confidence:careersIdentity.confidence,confidenceScore:careersIdentity.confidenceScore}
       : newsMediaPrimaryIdentity
@@ -3330,7 +3335,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       !description
         ? metadataMayBeClientRendered
           ? check("unable_to_confirm", "description", "seo", "Meta description", "De meta description kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de description opnieuw met een volledige render voordat je een wijziging maakt.", 0, 10)
-          : check("fail", "description", "seo", "Meta description", descriptionState === "empty" ? "De meta description-tag is aanwezig, maar de content is leeg." : "Er is geen meta description-tag gevonden.", "Controleer de werkelijk opgehaalde en gerenderde head. Ontbreekt de description daadwerkelijk, schrijf dan een unieke beschrijving die de inhoud van deze pagina feitelijk samenvat.", 0, 10)
+          : check("fail", "description", "seo", "Meta description", descriptionState === "empty" ? "De meta description-tag is aanwezig, maar de content is leeg." : outsideHeadDescription ? "Er staat een meta description in de HTML, maar buiten <head> (in de body, bijvoorbeeld door streaming rendering). Zoekmachines lezen die daar mogelijk niet; in <head> is geen description gevonden." : "Er is geen meta description-tag gevonden.", "Controleer de werkelijk opgehaalde en gerenderde head. Ontbreekt de description daadwerkelijk, schrijf dan een unieke beschrijving die de inhoud van deze pagina feitelijk samenvat.", 0, 10)
         : isTransientSeoCopy(description)
           ? check("warning", "description", "seo", "Meta description", "De meta description bevat een tijdelijke formuliermelding. Die hoort niet in de zoekresultaten.", "Gebruik uitsluitend relevante, bevestigde paginatekst; verwijder verzend- en foutmeldingen.", 6, 10)
         : descriptionQualityIssue
@@ -3412,7 +3417,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         : !canonicalUrl
           ? metadataMayBeClientRendered
             ? check("unable_to_confirm", "canonical", "seo", "Canonical URL", "De canonical kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de canonical opnieuw met een volledige render voordat je een wijziging maakt.", 0, 7)
-            : check("warning", "canonical", "seo", "Canonical URL", "Geen expliciete canonical URL aangetroffen. Zoekmachines kunnen ook zonder canonical een voorkeurs-URL bepalen; dit is geen bewezen indexeringsfout.", "Controleer of duplicaten of alternatieve URL-varianten een expliciete canonical nodig maken.", 6, 7)
+            : check("warning", "canonical", "seo", "Canonical URL", headMetadata.outsideHead.canonical ? "Er staat een canonical-link in de HTML, maar buiten <head> (in de body). Zoekmachines negeren een canonical buiten <head>; in <head> is geen canonical gevonden." : "Geen expliciete canonical URL aangetroffen. Zoekmachines kunnen ook zonder canonical een voorkeurs-URL bepalen; dit is geen bewezen indexeringsfout.", "Controleer of duplicaten of alternatieve URL-varianten een expliciete canonical nodig maken.", 6, 7)
         : canonicalIsSelf || canonicalIsLocalePreferred || canonicalDropsKnownListingParams
           ? check("pass", "canonical", "seo", "Canonical URL", canonicalIsLocalePreferred ? "De rootpagina verwijst bewust naar de equivalente taalvoorkeurs-URL." : canonicalDropsQuery ? "De canonical wijst naar dezelfde inhoud zonder queryparameters." : "De canonical verwijst naar dezelfde URL als de gescande pagina.", "Behoud een duidelijke canonical die overeenkomt met de voorkeurs- en taalstructuur van de site.", 7, 7)
           : canonicalIsCrossDomain
@@ -5208,7 +5213,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // Strong checkout capabilities never convert an independently confirmed
     // service organisation into a webshop. Unproven/inconsistent cases abstain.
     const sectorHomepage = (isHomepage || isSiteHomepagePath(finalUrl.pathname))
-      ? {url:finalUrl.toString(), type:"homepage", status:"audited", title, description,
+      ? {url:finalUrl.toString(), type:"homepage", status:"audited", title, description: identityDescription,
           identityHeadings:identityH1s, schemaTypes}
       : {url:representativeHomeUrl, type:"homepage", status:"not_scanned"};
     const extendedIndustry = corroborateDeclaredIndustry(sectorHomepage.url, sectorHomepage, auditedRawPages);
