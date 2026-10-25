@@ -68,23 +68,30 @@ test("visible prices: Swiss francs, round-price notation, Nordic kr by country, 
   }
 });
 
-test("FAQ: a question and its answer in more languages and markups; a lone FAQ heading is not proof", () => {
-  const A = "<p>Dit is het volledige antwoord op de vraag.</p>";
-  assert.equal(confirmedFaqContent(`<h2>Preguntas frecuentes</h2><h3>¿Cuánto tarda el envío</h3>${A}`), true);
-  assert.equal(confirmedFaqContent(`<h2>Domande frequenti</h2><h3>Quanto costa la spedizione in Italia</h3><div><div>${A}</div></div>`), true);
-  // Three question/answer headings form a Q&A series even without a FAQ label.
-  assert.equal(confirmedFaqContent(`<h3>Wat kost het?</h3>${A}<h3>Hoe lang duurt het?</h3>${A}<h3>Kan ik retourneren?</h3>${A}`), true);
-  // A question heading with long inner markup still counts (regression from the
-  // 400-character cap in 215829cc, Terveystalo field case).
-  assert.equal(confirmedFaqContent(`<h2><span class="a">${"<span></span>".repeat(40)}Huolestuttaako nuoren vointi?</span></h2><p>Saat neuvontapuhelussa ohjausta ammattilaiselta.</p>`), true);
-  assert.equal(confirmedFaqContent(`<dt>Hur lång är leveranstiden</dt><dd>Leveranstiden är normalt två till tre dagar.</dd>`), true);
+test("FAQ: real questions with fitting answers count; promotional teasers ending in '?' do not (owner decision 25 Oct)", () => {
+  const A = (t) => `<p>${t}</p>`;
+  // Positive: labelled FAQ section, any EU/EEA language; structural Q&A markups.
+  assert.equal(confirmedFaqContent(`<h2>Preguntas frecuentes</h2><h3>¿Cuánto tarda el envío?</h3>${A("El envío tarda normalmente dos o tres días laborables.")}`), true);
+  assert.equal(confirmedFaqContent(`<h2>Domande frequenti</h2><h3>Quanto costa la spedizione in Italia?</h3><div><div>${A("La spedizione in Italia costa 4,90 euro.")}</div></div>`), true);
+  assert.equal(confirmedFaqContent(`<h2>Usein kysyttyä</h2><h3>Miten voin perua ajanvarauksen?</h3>${A("Voit perua ajanvarauksen verkossa viimeistään edellisenä päivänä.")}`), true);
+  assert.equal(confirmedFaqContent(`<h2>Συχνές ερωτήσεις</h2><h3>Πόσο κοστίζει η αποστολή;</h3>${A("Η αποστολή κοστίζει τρία ευρώ σε όλη την Ελλάδα.")}`), true);
+  // Positive: a series of three fitting question/answer pairs without a label.
+  assert.equal(confirmedFaqContent(`<h3>Wat kost een APK-keuring?</h3>${A("Een APK-keuring kost bij ons 39 euro.")}<h3>Hoe lang duurt een APK-keuring?</h3>${A("Een APK-keuring duurt ongeveer drie kwartier.")}<h3>Kan ik wachten tijdens de keuring?</h3>${A("Tijdens de keuring kunt u wachten in onze wachtruimte.")}`), true);
+  // Positive: long inner heading markup inside a labelled FAQ.
+  assert.equal(confirmedFaqContent(`<h2>FAQ</h2><h3><span>${"<span></span>".repeat(40)}How long does delivery take?</span></h3>${A("Delivery takes two to three working days.")}`), true);
+  assert.equal(confirmedFaqContent(`<dt>Hur lång är leveranstiden?</dt><dd>Leveranstiden är normalt två till tre dagar.</dd>`), true);
   assert.equal(confirmedFaqContent(`<button aria-expanded="false">Ile kosztuje dostawa do domu?</button><div>Dostawa kosztuje 9,99 zł w całej Polsce.</div>`), true);
-  assert.equal(confirmedFaqContent(`<h2>Συχνές ερωτήσεις</h2><h3>Πόσο κοστίζει η αποστολή;</h3>${A}`), true);
-  assert.equal(confirmedFaqContent(`<h3>Πόσο κοστίζει η αποστολή;</h3>${A}`), true);
-  assert.equal(confirmedFaqContent(`<h3>Care instructions for wool</h3>${A}`), false);
-  assert.equal(confirmedFaqContent(`<h3>Co-working spaces in Krakow</h3>${A}`), false);
-  assert.equal(confirmedFaqContent(`<h2>FAQ</h2>${A}`), false);
-  assert.equal(confirmedFaqContent(`<h3>Wat kost het?</h3><p>Niets.</p>`), false);
+  assert.equal(confirmedFaqContent(`<details><summary>Hoe werkt retourneren?</summary><p>Stuur het product binnen 30 dagen terug.</p></details>`), true);
+  // Negative: promotional teasers (field case, FI) — two cards ending in "?".
+  assert.equal(confirmedFaqContent(`<h2>Voiko kaihileikkauksella päästä eroon silmälaseista?</h2>${A("Webinaarissamme 28.10. klo 18–19 silmätautien erikoislääkärit keskustelevat kaihileikkauksista.")}<h2>Huolestuttaako nuoren vointi?</h2>${A("Kun nuoren vointi mietityttää, saat neuvontapuhelussa ohjausta ammattilaiselta.")}`), false);
+  // Negative: a promotion even inside a FAQ label, and campaign cards in a series.
+  assert.equal(confirmedFaqContent(`<h2>FAQ</h2><h3>Op zoek naar een nieuwe bank?</h3>${A("Bekijk onze actie: nu 20% korting op de eerste maand.")}`), false);
+  assert.equal(confirmedFaqContent(`<h3>Toe aan vakantie?</h3>${A("Ontdek onze zomeraanbieding en lees meer.")}<h3>Klaar voor de winter?</h3>${A("Bekijk de winterbanden actie.")}<h3>Nieuwe fiets nodig?</h3>${A("Ontdek de collectie.")}`), false);
+  // Negative: an unrelated "answer" under a question heading.
+  assert.equal(confirmedFaqContent(`<h2>Veelgestelde vragen</h2><h3>Wanneer wordt mijn bestelling verzonden?</h3>${A("Onze winkel in Utrecht is ook op zondag open.")}`), false);
+  assert.equal(confirmedFaqContent(`<h3>Care instructions for wool</h3>${A("Dit is het volledige antwoord op de vraag.")}`), false);
+  assert.equal(confirmedFaqContent(`<h2>FAQ</h2>${A("Welkom bij onze winkel en veel plezier.")}`), false);
+  assert.equal(confirmedFaqContent(`<h2>FAQ</h2><h3>Wat kost het?</h3><p>Niets.</p>`), false);
 });
 
 test("legal links (privacy, cookies, terms) in Nordic, Finnish, Polish and other EU/EEA languages", () => {

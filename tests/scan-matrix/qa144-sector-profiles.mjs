@@ -440,4 +440,24 @@ export const QA144_SITES = {
         nav: [["/webdesign", "Webdesign"], ["/hosting", "Hosting"], ["/domeinen", "Domeinen"], ["/server", "Server"]], body: filler("Wij maken websites voor ondernemers.") }),
     },
   },
+
+  // ───── Car body / collision repair (owner report 25 Oct: NL body-repair chain "unknown").
+  "schadeketen.test": {
+    group: "car_body_repair_nl", expect: { sector: ["automotive"], key: ["car_repair"] },
+    pages: {
+      "/": doc({ title: "Schadeketen Autoherstel. Eind goed. Al goed.", description: "Schadeketen Autoherstel is een van de grootste schadeherstelketens van Nederland, en altijd een vestiging bij u in de buurt!", h1: ["Schadeketen Autoherstel. Eind goed. Al goed."],
+        nav: [["/schadeherstel/autoschade", "Autoschade"], ["/schadeherstel/ruitschade", "Ruitschade"], ["/specialisme/uitdeuken", "Uitdeuken"], ["/vestigingen", "Vestigingen"]], body: filler("Autoschade, ruitschade en lakschade vakkundig hersteld, met garantie.") }),
+      "/schadeherstel/autoschade": doc({ title: "Autoschade snel en vakkundig laten herstellen – Schadeketen", description: "Laat uw autoschade herstellen door onze schadeherstelbedrijven, met garantie.", h1: ["Autoschade herstellen"] }),
+      "/schadeherstel/ruitschade": doc({ title: "Autoruitschade snel en goed laten herstellen – Schadeketen", description: "Autoruitschade? Wij herstellen of vervangen uw autoruit.", h1: ["Ruitschade"] }),
+    },
+  },
+  "karosserie-beispiel.test": {
+    group: "car_body_repair_de", expect: { sector: ["automotive"] },
+    pages: { "/": doc({ lang: "de", title: "Karosseriewerkstatt Beispiel | Unfallinstandsetzung und Lackierung", description: "Wir sind Ihr Karosseriefachbetrieb: Unfallschäden, Lackierung, Dellen und Versicherungsabwicklung.", h1: ["Karosserie & Lack"], body: filler("Unfallinstandsetzung, Smart Repair und Lackierung.") }) },
+  },
+  // Control: property damage repair ("schadeherstel" without vehicles) is not automotive.
+  "woningherstel.test": {
+    group: "control_property_damage", expect: { notSector: ["automotive"] },
+    pages: { "/": doc({ title: "Woningherstel | Schadeherstel na brand en water", description: "Wij zijn specialist in schadeherstel na brand- en waterschade in uw woning of bedrijfspand.", h1: ["Schadeherstel"], body: filler("Brandschade, waterschade en inbraakschade herstellen.") }) },
+  },
 };
