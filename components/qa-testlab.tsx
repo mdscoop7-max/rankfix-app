@@ -140,7 +140,7 @@ export default function TestLab144() {
     list=upsertResult(list,row) as SiteResult[];persist(list);
     setNotice(site.host+" — "+row.status+(row.pending?" (niet beoordeeld, wordt opnieuw geprobeerd)":"")+" • "+list.filter(r=>isFinalResult(r)&&scoped.some(s=>s.host===r.host)).length+"/"+scoped.length+" afgerond");
     if(row.pending){
-      setError("RankFix meldde "+row.status+". Test gestopt; "+site.host+" is NIET als resultaat opgeslagen en wordt bij hervatten opnieuw gescand.");break;
+      setError("RankFix meldde "+row.status+". Test gestopt; "+site.host+" is niet als eindresultaat opgeslagen (gemarkeerd als opnieuw te testen) en wordt bij hervatten opnieuw gescand.");break;
     }
     if(!stop.current)await sleep(8000);
    }
@@ -194,7 +194,7 @@ export default function TestLab144() {
     <div className="rf-lab-stat"><strong>{mismatches}</strong><span>Mogelijk andere hoofdsector</span></div>
    </div>
    <div role="status" className={"rf-lab-status"+(error?" rf-lab-error":"")}>{error||notice}</div>
-   <p className="rf-lab-note">Sectorlabels zijn voorlopig en nog niet onafhankelijk gevalideerd. Geblokkeerde sites en technische problemen tellen niet als sectorfout. Resultaten worden lokaal in deze browser bewaard per QA-commit. Sluit het tabblad niet tijdens een actieve test.</p>
+   <p className="rf-lab-note">Sectorlabels zijn voorlopig en nog niet onafhankelijk gevalideerd. Geblokkeerde sites en technische problemen tellen niet als sectorfout. Deze test draait in dit browsertabblad op je laptop, niet automatisch op de server. Sluit je het tabblad of gaat de laptop in slaap, dan stopt de test; met "Doorgaan met resterende" gaat hij verder bij de eerste niet-afgeronde website. Resultaten staan alleen in deze browser (per QA-commit): exporteer tussendoor JSON/CSV, want gewiste browsergegevens wissen ook de resultaten.</p>
    <div className="rf-lab-controls"><button type="button" disabled={!catalog} onClick={()=>exportResult("csv")}>Exporteer CSV</button><button type="button" disabled={!catalog} onClick={()=>exportResult("json")}>Exporteer JSON</button></div>
   </section>
   <section className="rf-lab-panel">

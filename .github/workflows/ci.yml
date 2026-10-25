@@ -56,6 +56,22 @@ jobs:
         if: ${{ success() }}
         run: node tests/manual/axe-bundle-check.mjs
 
+      - name: axe-core in a real browser (QA 144)
+        if: ${{ success() }}
+        run: CHROME_EXECUTABLE_PATH="$(command -v google-chrome || command -v chromium)" node --experimental-strip-types tests/manual/axe-real-browser.browser.mjs
+
+      - name: TestLab stop and resume in a real browser (QA 144)
+        if: ${{ success() }}
+        run: |
+          VERCEL_ENV=preview npm run start -- --hostname 127.0.0.1 -p 3101 > /tmp/rankfix-ci-testlab.log 2>&1 &
+          LAB_PID=$!
+          trap 'kill "$LAB_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:3101/dashboard/testlab >/dev/null; then break; fi
+            sleep 1
+          done
+          RF_BASE=http://127.0.0.1:3101 CHROME_EXECUTABLE_PATH="$(command -v google-chrome || command -v chromium)" node tests/manual/testlab-stop-resume.browser.mjs
+
       - name: Fixes browser smoke (mobile and desktop)
         if: ${{ success() }}
         run: |
