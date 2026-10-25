@@ -22,7 +22,7 @@ test("site access: blocked homepage, subpage start → partial; never claims the
   ] });
   assert.equal(s.homepage.access, "blocked");
   assert.equal(s.homepage.httpStatus, 403);
-  assert.deepEqual(s.pages, { selected: 5, assessed: 2, refused: 2, missing: 0, notRetrieved: 1 });
+  assert.deepEqual(s.pages, { selected: 5, assessed: 2, refused: 2, missing: 0, notRetrieved: 1, excluded: 0, duplicate: 0 });
   assert.equal(s.scanCoverage, "partial");
   assert.match(s.note, /niet dat de hele website toegankelijk is/);
   const only = summarizeSiteAccess({ startUrl: "https://x.example/p", startIsHomepage: false, homepageUrl: "https://x.example/", pages: [{ url: "https://x.example/p", status: "audited" }, { url: "https://x.example/", status: "unable_to_confirm", httpStatus: 403 }] });
@@ -170,4 +170,35 @@ test("round 3: refusal recovery is decided on content; own navigation is counted
   const onePage = `<a href="#brood">Brood</a><a href="#gebak">Gebak</a><a href="#nergens">x</a><a href="#">top</a><section id="brood"></section><section id="gebak"></section>`;
   assert.equal(internalLinkCount(onePage, "bakker.example"), 2, "only anchors whose target exists");
   assert.equal(internalLinkCount(`<a href="/a">a</a><a href="/a">a</a><a href="https://www.site.example/b">b</a><a href="https://other.example/">o</a><a href="tel:1">t</a>`, "site.example"), 2, "distinct same-site links only");
+});
+
+test("round 4: page counts share one denominator (duplicates and exclusions counted, not hidden)", () => {
+  const s = summarizeSiteAccess({ startUrl: "https://e.example/", startIsHomepage: true, homepageUrl: "https://e.example/", duplicates: 1, pages: [
+    ...Array.from({ length: 26 }, (_, i) => ({ url: `https://e.example/p${i}`, status: "audited", httpStatus: 200 })),
+    { url: "https://e.example/noindex", status: "unable_to_confirm", httpStatus: 200, evidenceChecks: [{ key: "noindex" }] },
+    { url: "https://e.example/weg", status: "unable_to_confirm", httpStatus: 404 },
+  ] });
+  assert.equal(s.pages.selected, 29, "same as multiPage.counts.selected");
+  assert.equal(s.pages.assessed, 26);
+  assert.equal(s.pages.excluded, 1);
+  assert.equal(s.pages.missing, 1);
+  assert.equal(s.pages.duplicate, 1);
+  assert.equal(s.pages.notRetrieved, 0, "a fetched noindex page is not 'not retrieved'");
+  assert.equal(s.pages.assessed + s.pages.refused + s.pages.missing + s.pages.notRetrieved + s.pages.excluded + s.pages.duplicate, s.pages.selected);
+  assert.match(s.note, /26 van 29/);
+});
+
+test("round 4: per-dimension confirmed checks are shown, unconfirmed checks explained as not scored", async () => {
+  const { confirmedChecksLine } = await import("../lib/score-qualifier.ts");
+  const line = confirmedChecksLine({ mode: "both", seo: { coverage: { relevant: 20, confirmed: 20 } }, geo: { coverage: { relevant: 12, confirmed: 9 } } }, "nl");
+  assert.equal(line, "SEO: 20 van 20 controles bevestigd · GEO: 9 van 12 controles bevestigd (niet-bevestigde controles tellen niet mee en kosten geen punten)");
+  assert.equal(confirmedChecksLine({ mode: "seo", seo: { coverage: { relevant: 5, confirmed: 5 } }, geo: { coverage: { relevant: 3, confirmed: 1 } } }, "en"), "SEO: 5 of 5 checks confirmed");
+  assert.equal(confirmedChecksLine({}, "nl"), "");
+});
+
+test("round 4: unconfirmed checks never lower a score (scoring rule unchanged)", async () => {
+  const { scoreApplicableChecks } = await import("../lib/audit-score.ts");
+  const pass = { issue_status: "PASS", points: 10, maxPoints: 10, confidence: "high" };
+  const unconfirmed = { issue_status: "UNABLE_TO_CONFIRM", points: 0, maxPoints: 10, confidence: "low" };
+  assert.equal(scoreApplicableChecks([pass]), scoreApplicableChecks([pass, unconfirmed, unconfirmed]));
 });

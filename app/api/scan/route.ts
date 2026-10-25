@@ -6356,6 +6356,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       startIsHomepage: isSiteHomepagePath(finalUrl.pathname) || isHomepage,
       homepageUrl: representativeHomeUrl,
       pages: reportedMultiPageAudits,
+      // Same denominator as multiPage.counts.selected (QA: "26/28" next to "26/29").
+      duplicates: multiPageAudits.length - reportedMultiPageAudits.length,
     });
     const multiPage = {
       siteAccess,

@@ -19,6 +19,7 @@ export type SamplePageAccess = {
   httpStatus?: number | null;
   nonContent?: string | null;       // "challenge" | "error" | "maintenance"
   fetchFailure?: string | null;
+  evidenceChecks?: Array<{ key: string }> | null;
 };
 
 export type HomepageAccess = "is_start_page" | "accessible" | "blocked" | "missing" | "not_retrieved" | "not_sampled";
@@ -27,7 +28,8 @@ export type SiteAccessSummary = {
   startUrl: string;
   startIsHomepage: boolean;
   homepage: { url: string; access: HomepageAccess; httpStatus: number | null };
-  pages: { selected: number; assessed: number; refused: number; missing: number; notRetrieved: number };
+  /** selected = every selected page incl. duplicates, the same denominator as multiPage.counts.selected. */
+  pages: { selected: number; assessed: number; refused: number; missing: number; notRetrieved: number; excluded: number; duplicate: number };
   /** complete: every selected page assessed; partial: some refused/not retrieved; start_only: only the start page. */
   scanCoverage: "complete" | "partial" | "start_only";
   /** Customer-facing Dutch note; never claims the whole site is accessible from one page. */
@@ -43,8 +45,12 @@ function key(url: string): string {
   } catch { return String(url || ""); }
 }
 
-export function pageAccessOutcome(page: SamplePageAccess): "assessed" | "refused" | "missing" | "not_retrieved" {
+export function pageAccessOutcome(page: SamplePageAccess): "assessed" | "refused" | "missing" | "not_retrieved" | "excluded" {
   if (page.status === "audited") return "assessed";
+  // Fetched but deliberately not assessed: noindex, account/utility pages, too thin.
+  // (A block/challenge page stays "refused" below.)
+  const key = page.evidenceChecks?.[0]?.key;
+  if (page.nonContent !== "challenge" && (key === "noindex" || key === "excluded" || (key === "quality" && Number(page.httpStatus) >= 200 && Number(page.httpStatus) < 300))) return "excluded";
   if (page.nonContent === "challenge" || REFUSED.has(Number(page.httpStatus))) return "refused";
   if (page.httpStatus === 404 || page.httpStatus === 410) return "missing";
   return "not_retrieved";
@@ -55,14 +61,18 @@ export function summarizeSiteAccess(input: {
   startIsHomepage: boolean;
   homepageUrl: string;
   pages: SamplePageAccess[];
+  /** Selected pages that turned out to be a duplicate after a redirect (counted once). */
+  duplicates?: number;
 }): SiteAccessSummary {
   const pages = input.pages || [];
-  const counts = { selected: pages.length, assessed: 0, refused: 0, missing: 0, notRetrieved: 0 };
+  const duplicate = Math.max(0, input.duplicates || 0);
+  const counts = { selected: pages.length + duplicate, assessed: 0, refused: 0, missing: 0, notRetrieved: 0, excluded: 0, duplicate };
   for (const page of pages) {
     const outcome = pageAccessOutcome(page);
     if (outcome === "assessed") counts.assessed++;
     else if (outcome === "refused") counts.refused++;
     else if (outcome === "missing") counts.missing++;
+    else if (outcome === "excluded") counts.excluded++;
     else counts.notRetrieved++;
   }
   let homepage: SiteAccessSummary["homepage"];
@@ -92,7 +102,7 @@ export function summarizeSiteAccess(input: {
   else if (homepage.access === "not_retrieved") parts.push("De homepage kon niet worden opgehaald en is niet beoordeeld.");
   else if (homepage.access === "missing") parts.push("De homepage gaf HTTP 404/410.");
   else if (homepage.access === "not_sampled") parts.push("De homepage zat niet in de steekproef.");
-  parts.push(`${counts.assessed} van ${counts.selected} geselecteerde pagina's zijn inhoudelijk beoordeeld${counts.refused ? `; ${counts.refused} geweigerd` : ""}${counts.notRetrieved ? `; ${counts.notRetrieved} niet opgehaald` : ""}${counts.missing ? `; ${counts.missing} bestaan niet` : ""}.`);
+  parts.push(`${counts.assessed} van ${counts.selected} geselecteerde pagina's zijn inhoudelijk beoordeeld${counts.refused ? `; ${counts.refused} geweigerd` : ""}${counts.notRetrieved ? `; ${counts.notRetrieved} niet opgehaald` : ""}${counts.missing ? `; ${counts.missing} bestaan niet` : ""}${counts.excluded ? `; ${counts.excluded} bewust uitgesloten (noindex, account- of te dunne pagina)` : ""}${counts.duplicate ? `; ${counts.duplicate} dubbel na doorverwijzing (één keer geteld)` : ""}.`);
   if (scanCoverage !== "complete") parts.push("Dit is een gedeeltelijk rapport: alleen de beoordeelde pagina's tellen mee. Bereikbare pagina's bewijzen niet dat de hele website toegankelijk is.");
   return {
     startUrl: input.startUrl,
