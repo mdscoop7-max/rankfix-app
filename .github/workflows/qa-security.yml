@@ -1,0 +1,77 @@
+name: RankFix QA security and reproducibility
+
+on:
+  push:
+    branches: [fix/qa-144-p0-reliability-20261024]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rankfix-qa-security-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.repository == 'mdscoop7-max/rankfix-app'
+    name: Security audit, tests, build and browser QA
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+      DATABASE_URL: "postgresql://rankfix:rankfix@127.0.0.1:5432/rankfix_ci"
+      SESSION_SECRET: "ci-only-session-secret-not-for-production"
+      PUPPETEER_SKIP_DOWNLOAD: "true"
+    steps:
+      - name: Checkout exact QA branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Node 24 with npm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install exactly the audited dependency lockfile
+        run: npm ci --no-audit --no-fund
+
+      - name: Blocking production dependency security audit
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: All unit and integration tests
+        run: npm test
+
+      - name: TypeScript and production build
+        run: npm run build
+
+      - name: Confirm axe-core script is not bundled
+        run: node tests/manual/axe-bundle-check.mjs
+
+      - name: axe-core in real Chromium
+        run: CHROME_EXECUTABLE_PATH="$(command -v google-chrome || command -v chromium)" node --experimental-strip-types tests/manual/axe-real-browser.browser.mjs
+
+      - name: TestLab stop/resume in real Chromium
+        run: |
+          VERCEL_ENV=preview npm run start -- --hostname 127.0.0.1 -p 3101 > /tmp/rankfix-qa-testlab.log 2>&1 &
+          APP_PID=$!
+          trap 'kill "$APP_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:3101/dashboard/testlab >/dev/null; then break; fi
+            sleep 1
+          done
+          RF_BASE=http://127.0.0.1:3101 CHROME_EXECUTABLE_PATH="$(command -v google-chrome || command -v chromium)" node tests/manual/testlab-stop-resume.browser.mjs
+
+      - name: Mobile and desktop fixes browser smoke
+        run: |
+          npm run start -- --hostname 127.0.0.1 -p 3100 > /tmp/rankfix-qa-fixes.log 2>&1 &
+          APP_PID=$!
+          trap 'kill "$APP_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:3100/dashboard/fixes >/dev/null; then break; fi
+            sleep 1
+          done
+          node tests/manual/fixes-responsive.browser.mjs

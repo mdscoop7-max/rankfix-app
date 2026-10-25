@@ -36,3 +36,8 @@ Volledig lokaal, zonder productiedatabase, betalingen of e-mail (geen `RESEND_AP
 6. Draai `node tests/manual/auth-and-limits.e2e.mjs` opnieuw: alle regels moeten `PASS` zijn.
 
 Scans eindigen lokaal met HTTP 502 omdat externe sites niet bereikbaar zijn; de limieten worden vóór het ophalen geteld en dus wel getest.
+
+## QA 144 browser checks (also run in CI)
+- `axe-real-browser.browser.mjs`: axe-core injected and run in real Chromium; reproduces the `t is not defined` failure class.
+- `axe-bundle-check.mjs`: after `next build`, fails if axe-core was bundled (bundled `axe.source` breaks in the browser).
+- `testlab-stop-resume.browser.mjs`: drives the real `/dashboard/testlab` page (production build, `VERCEL_ENV=preview`) with mocked APIs: stop on expired session, resume without skipping, retry after a lost connection, stop after current scan, export without duplicates. TestLab runs in the browser tab on the laptop; it does not continue on the server.

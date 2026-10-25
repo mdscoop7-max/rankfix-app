@@ -2,9 +2,12 @@
 
 import {useEffect, useMemo, useRef, useState} from "react";
 import DashboardNav from "@/app/dashboard/nav";
+import {classifyScanAnswer, isFinalResult, resumeQueue, stopsRun, upsertResult} from "@/lib/testlab-outcome.mjs";
 
 type Site={host:string;name:string;country:string;group:string;expected:string;round:string};
-type SiteResult={host:string;status:string;expected:string;sector:string|null;confidence:number|null;score:number|null;seo:number|null;geo:number|null;http:number;reason:string;elapsedMs:number;scanId:string|null;at:string};
+type Incident={traceId:string|null;originHttpStatus:number|null;apiHttpStatus:number;reasonCode:string;attribution:string|null;phase:string|null;finalUrl:string|null;browserRender:unknown};
+// pending=true: RankFix/runner stopped (session, quota, infrastructure, connection); the website was not judged and is retried on resume.
+type SiteResult={host:string;status:string;expected:string;sector:string|null;confidence:number|null;score:number|null;seo:number|null;geo:number|null;http:number;reason:string;elapsedMs:number;scanId:string|null;at:string;pending?:boolean;incident?:Incident|null};
 type Catalog={sites:Site[];count:number;runtime:{commitSha:string|null;environment:string}};
 const sleep=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
 const family:Record<string,string>={
@@ -15,15 +18,6 @@ const family:Record<string,string>={
  logistics:"transport_travel",software:"saas_b2b",energy:"energy_utilities",telecom:"telecom_technology",
  recruitment_staffing:"recruitment",
 };
-function classify(code:string,http:number) {
- if(/SITE_RATE_LIMITED|HTTP_AUTH_REQUIRED|BLOCKED|CHALLENGE|CAPTCHA|ROBOTS/.test(code))return "site_geblokkeerd";
- if(/WEBSITE_LIMIT|SCAN_LIMIT|QUOTA|RATE_LIMIT/.test(code)||http===402||http===429)return "quota";
- if(http===401 || (http===403&&/AUTH|SESSION|LOGIN/.test(code)))return "login";
- if(/DATABASE|INFRASTRUCTURE|DB_|SERVER_CONFIG/.test(code))return "infrastructuur";
- if(/HTTP_NOT_FOUND|HTTP_SERVER_ERROR|SITE_ERROR_PAGE|NON_CONTENT/.test(code))return "site_onbereikbaar";
- if(/TIMEOUT|TIMED_OUT/.test(code))return "timeout";
- return "scan_mislukt";
-}
 const storageKey=(sha:string)=>"rankfix-qa-testlab-144:"+sha;
 const num=(n:number|null)=>n==null?"—":String(Math.round(n));
 function csvCell(value:unknown){
@@ -80,7 +74,7 @@ export default function TestLab144() {
  ),[scope,sites]);
  const visible=useMemo(()=>scoped.filter(s=>[s.name,s.host,s.country,s.group,s.expected].join(" ").toLowerCase().includes(query.toLowerCase())),[scoped,query]);
  const byHost=useMemo(()=>new Map(results.map(r=>[r.host,r])),[results]);
- const finished=scoped.filter(s=>byHost.has(s.host)).length;
+ const finished=scoped.filter(s=>isFinalResult(byHost.get(s.host))).length;
  const passed=scoped.filter(s=>byHost.get(s.host)?.status==="succes").length;
  const mismatches=scoped.filter(s=>{const r=byHost.get(s.host);return r?.status==="succes"&&r.sector&&r.sector!==(family[s.expected]||s.expected);}).length;
  const countries=useMemo(()=>[...new Set(sites.map(s=>s.country))].sort(),[sites]);
@@ -88,7 +82,8 @@ export default function TestLab144() {
  const persist=(list:SiteResult[])=>{setResults(list);if(catalog?.runtime.commitSha)localStorage.setItem(storageKey(catalog.runtime.commitSha),JSON.stringify(list));};
  async function start(){
   if(!catalog||running)return;
-  const queue=scoped.filter(s=>!byHost.has(s.host));
+  // Never tested, or only a pending (RankFix-side) row: retried, never skipped.
+  const queue=resumeQueue(scoped,results);
   if(!queue.length){setNotice("Alles in deze selectie is al getest. Kies een andere groep of wis resultaten.");return;}
   stop.current=false;setRunning(true);setError("");
   setNotice("Test gestart. Eén website tegelijk, met een pauze tussen scans. Je kunt stoppen na de huidige scan.");
@@ -97,11 +92,24 @@ export default function TestLab144() {
    for(const site of queue){
     if(stop.current || !mounted.current)break;
     const startAt=Date.now();
-    let row:SiteResult;
-    try{
+    let row:SiteResult|null=null;
+    for(let attempt=0;attempt<2&&!row;attempt++){
+     try{
       // Fail closed if the shared QA alias was redeployed mid-run.
       const v=await fetch("/api/scan/version",{cache:"no-store"}).then(r=>r.json());
       if(!["preview","local"].includes(v.environment)||v.environment!==catalog.runtime.environment||v.commitSha!==catalog.runtime.commitSha){throw new Error("QA_DEPLOYMENT_CHANGED");}
+      // Session first: an expired RankFix login must stop the run BEFORE the
+      // website is scanned, never be stored as the website's result.
+      const me=await fetch("/api/auth/me",{cache:"no-store",credentials:"same-origin"});
+      const meData=await me.json().catch(()=>null);
+      if(me.status===503){
+       row={host:site.host,status:"infrastructuur",expected:site.expected,sector:null,confidence:null,score:null,seo:null,geo:null,http:me.status,reason:"RankFix-accountcontrole tijdelijk niet beschikbaar; website niet gescand",elapsedMs:Date.now()-startAt,scanId:null,at:new Date().toISOString(),pending:true,incident:null};
+       break;
+      }
+      if(!me.ok||!meData?.user){
+       row={host:site.host,status:"login",expected:site.expected,sector:null,confidence:null,score:null,seo:null,geo:null,http:me.status,reason:"RankFix-sessie niet geldig; website niet gescand",elapsedMs:Date.now()-startAt,scanId:null,at:new Date().toISOString(),pending:true,incident:null};
+       break;
+      }
       const response=await fetch("/api/scan",{
         method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
         body:JSON.stringify({url:"https://"+site.host+"/",mode:"both",dashboard:true,language:"nl"})
@@ -109,22 +117,30 @@ export default function TestLab144() {
       const data=await response.json();
       const success=response.ok&&data?.success===true;
       const code=String(data?.code||data?.errorCode||"");
-      const status=success?"succes":classify(code,response.status);
+      const status=classifyScanAnswer({ok:response.ok,status:response.status,data});
+      const inc=data?.incident;
       row={host:site.host,status,expected:site.expected,sector:success?(data.sectorProfile?.sector||null):null,
        confidence:success?(data.sectorProfile?.confidenceScore??null):null,
        score:success?(data.overallScore??null):null,seo:success?(data.seo?.score??null):null,geo:success?(data.geo?.score??null):null,
        http:response.status,reason:success?"":code||String(data.error||"Scan niet bevestigd").slice(0,200),
-       elapsedMs:Date.now()-startAt,scanId:success?(data.scanId||null):null,at:new Date().toISOString()};
-    }catch(e){
+       elapsedMs:Date.now()-startAt,scanId:success?(data.scanId||null):null,at:new Date().toISOString(),
+       pending:stopsRun(status),
+       incident:success?null:{traceId:inc?.traceId??data?.traceId??null,originHttpStatus:inc?.originHttpStatus??(typeof data?.httpStatus==="number"?data.httpStatus:null),apiHttpStatus:response.status,reasonCode:code,attribution:inc?.attribution??null,phase:inc?.phase??null,finalUrl:inc?.finalUrl??null,browserRender:inc?.browserRender??null}};
+     }catch(e){
       const message=e instanceof Error?e.message:"Netwerk- of scanprobleem";
-      if(message==="QA_DEPLOYMENT_CHANGED"){setError("QA is tijdens de test veranderd. Test veilig gestopt; vernieuw de pagina.");break;}
-      row={host:site.host,status:"netwerkfout",expected:site.expected,sector:null,confidence:null,score:null,seo:null,geo:null,
-       http:0,reason:message.slice(0,180),elapsedMs:Date.now()-startAt,scanId:null,at:new Date().toISOString()};
+      if(message==="QA_DEPLOYMENT_CHANGED"){setError("QA is tijdens de test veranderd. Test veilig gestopt; vernieuw de pagina.");stop.current=true;break;}
+      // "Failed to fetch": the browser lost its connection to RankFix. That says
+      // nothing about the website. Retry the same website once, then stop.
+      if(attempt===0){setNotice(site.host+" — verbinding met RankFix verbroken; zelfde website wordt opnieuw geprobeerd…");await sleep(10000);continue;}
+      row={host:site.host,status:classifyScanAnswer({ok:false,status:0,clientError:message}),expected:site.expected,sector:null,confidence:null,score:null,seo:null,geo:null,
+       http:0,reason:("Verbinding met RankFix: "+message).slice(0,180),elapsedMs:Date.now()-startAt,scanId:null,at:new Date().toISOString(),pending:true,incident:null};
+     }
     }
-    list=[...list.filter(x=>x.host!==site.host),row];persist(list);
-    setNotice(site.host+" — "+row.status+" • "+list.filter(r=>scoped.some(s=>s.host===r.host)).length+"/"+scoped.length+" getest");
-    if(["quota","login","infrastructuur"].includes(row.status)){
-      setError("QA heeft "+row.status+" gemeld. Test gestopt zonder andere websites als fout te markeren.");break;
+    if(!row)break;
+    list=upsertResult(list,row) as SiteResult[];persist(list);
+    setNotice(site.host+" — "+row.status+(row.pending?" (niet beoordeeld, wordt opnieuw geprobeerd)":"")+" • "+list.filter(r=>isFinalResult(r)&&scoped.some(s=>s.host===r.host)).length+"/"+scoped.length+" afgerond");
+    if(row.pending){
+      setError("RankFix meldde "+row.status+". Test gestopt; "+site.host+" is niet als eindresultaat opgeslagen (gemarkeerd als opnieuw te testen) en wordt bij hervatten opnieuw gescand.");break;
     }
     if(!stop.current)await sleep(8000);
    }
@@ -144,8 +160,8 @@ export default function TestLab144() {
       JSON.stringify({commitSha:catalog.runtime.commitSha,generatedAt:new Date().toISOString(),labels:"proposed_not_independently_verified",sites:complete},null,2));
     return;
   }
-  const columns=["land","bedrijf","domein","sector_verwacht","subtype_verwacht","gevonden_sector","zekerheid","status","score","seo","geo","http","duur_ms","reden","scan_id"];
-  const lines=complete.map(({result:r,...s})=>[s.country,s.name,s.host,s.expected,s.group,r?.sector??"",r?.confidence??"",r?.status??"nog_niet_getest",r?.score??"",r?.seo??"",r?.geo??"",r?.http??"",r?.elapsedMs??"",r?.reason??"",r?.scanId??""].map(csvCell).join(","));
+  const columns=["land","bedrijf","domein","sector_verwacht","subtype_verwacht","gevonden_sector","zekerheid","status","opnieuw_te_testen","score","seo","geo","api_http","website_http","redencode","toewijzing","fase","trace_id","duur_ms","reden","scan_id"];
+  const lines=complete.map(({result:r,...s})=>[s.country,s.name,s.host,s.expected,s.group,r?.sector??"",r?.confidence??"",r?.status??"nog_niet_getest",r?.pending?"ja":"",r?.score??"",r?.seo??"",r?.geo??"",r?.http??"",r?.incident?.originHttpStatus??"",r?.incident?.reasonCode??"",r?.incident?.attribution??"",r?.incident?.phase??"",r?.incident?.traceId??"",r?.elapsedMs??"",r?.reason??"",r?.scanId??""].map(csvCell).join(","));
   saveDownload("rankfix-testlab-144-"+catalog.runtime.commitSha?.slice(0,8)+".csv","text/csv;charset=utf-8","\uFEFF"+columns.join(",")+"\n"+lines.join("\n"));
  }
  return <div className="rf-lab">
@@ -178,7 +194,7 @@ export default function TestLab144() {
     <div className="rf-lab-stat"><strong>{mismatches}</strong><span>Mogelijk andere hoofdsector</span></div>
    </div>
    <div role="status" className={"rf-lab-status"+(error?" rf-lab-error":"")}>{error||notice}</div>
-   <p className="rf-lab-note">Sectorlabels zijn voorlopig en nog niet onafhankelijk gevalideerd. Geblokkeerde sites en technische problemen tellen niet als sectorfout. Resultaten worden lokaal in deze browser bewaard per QA-commit. Sluit het tabblad niet tijdens een actieve test.</p>
+   <p className="rf-lab-note">Sectorlabels zijn voorlopig en nog niet onafhankelijk gevalideerd. Geblokkeerde sites en technische problemen tellen niet als sectorfout. Deze test draait in dit browsertabblad op je laptop, niet automatisch op de server. Sluit je het tabblad of gaat de laptop in slaap, dan stopt de test; met "Doorgaan met resterende" gaat hij verder bij de eerste niet-afgeronde website. Resultaten staan alleen in deze browser (per QA-commit): exporteer tussendoor JSON/CSV, want gewiste browsergegevens wissen ook de resultaten.</p>
    <div className="rf-lab-controls"><button type="button" disabled={!catalog} onClick={()=>exportResult("csv")}>Exporteer CSV</button><button type="button" disabled={!catalog} onClick={()=>exportResult("json")}>Exporteer JSON</button></div>
   </section>
   <section className="rf-lab-panel">
@@ -187,7 +203,7 @@ export default function TestLab144() {
     {visible.map(site=>{const r=byHost.get(site.host);return <tr key={site.host}>
      <td><strong>{site.name}</strong><small><a href={"https://"+site.host+"/"} target="_blank" rel="noopener noreferrer">{site.host}</a></small></td>
      <td>{site.country}<small>{site.group} · {site.expected}</small></td>
-     <td>{!r?<span className="rf-lab-no">Nog niet getest</span>:<span className={wrongType(site,r)?"rf-lab-warn":r.status==="succes"?"rf-lab-good":"rf-lab-no"}>{r.status}</span>}
+     <td>{!r?<span className="rf-lab-no">Nog niet getest</span>:r.pending?<span className="rf-lab-no">Opnieuw te testen ({r.status})</span>:<span className={wrongType(site,r)?"rf-lab-warn":r.status==="succes"?"rf-lab-good":"rf-lab-no"}>{r.status}</span>}
        {r?.sector&&<small>Gevonden: {r.sector}{wrongType(site,r)?" · beoordelen":""}</small>}
        {r?.reason&&<small title={r.reason}>{r.reason.slice(0,90)}</small>}</td>
      <td>{num(r?.score??null)}</td><td>{num(r?.seo??null)} / {num(r?.geo??null)}</td>

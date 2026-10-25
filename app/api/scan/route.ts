@@ -5,13 +5,20 @@ import { decideCommerceModules } from "@/lib/sector-motor-decisions";
 import { NextResponse } from "next/server";
 import { createHash, randomUUID } from "crypto";
 import { getCurrentUser } from "@/lib/auth";
+import { attachScanIncident, createScanTrace, type ScanTrace } from "@/lib/scan-incident";
+import { summarizeSiteAccess } from "@/lib/site-access";
+import { careersSiteIdentity } from "@/lib/careers-identity";
+import { buildSitewideIssues } from "@/lib/sitewide-issues";
+import { buildScoreScope } from "@/lib/score-scope";
+import { selectPageProduct } from "@/lib/product-provenance";
+import { resolveScanUser } from "@/lib/scan-session";
 import { databaseFailureCode, databaseFailureDetail, getDb, withDbRetry } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
 import { fetchFailureCode, finishScanAttempt, startScanAttempt } from "@/lib/scan-attempts";
 import { diagnoseBlockedResponse, diagnoseChallenge, diagnoseFetchFailure, fetchFailureMessage } from "@/lib/access-diagnostics";
 import { jsonbStringify } from "@/lib/jsonb-safe";
 import { classifyNonContentPage, nonContentDetail } from "@/lib/page-gate";
-import { brokenLinkSummary, localizedBrokenLinkCopy, linkOutcome } from "@/lib/link-status";
+import { brokenLinkRecords, brokenLinkSummary, localizedBrokenLinkCopy, linkOutcome } from "@/lib/link-status";
 import { manufacturerRegistrationEvidence } from "@/lib/manufacturer-evidence";
 import { requireEvidenceForScoredChecks } from "@/lib/scan-feedback";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang, isMarketSelectorPage } from "@/lib/seo-rules";
@@ -459,8 +466,16 @@ export async function POST(request: Request) {
       resolve(NextResponse.json({ error: scanTimeoutMessages[peekLanguage], code: "SCAN_TIMEOUT", retryable: true, charged: false, limitSeconds: Math.round(SCAN_HARD_LIMIT_MS / 1000) }, { status: 503 }));
     }, Math.max(1_000, SCAN_HARD_LIMIT_MS - (Date.now() - attemptStarted)));
   });
-  const response = await Promise.race([runScan(request, clock), hardStop]);
+  // One trace per request: website status, API status, reason code, phase and
+  // browser attempt stay separate in every error answer (incident) and log.
+  const trace = createScanTrace(requestedUrl);
+  const rawResponse = await Promise.race([runScan(request, clock, trace), hardStop]);
   if (hardStopTimer) clearTimeout(hardStopTimer);
+  let response = rawResponse;
+  try { response = await attachScanIncident(rawResponse, trace); } catch (error) {
+    console.warn("RankFix scan incident attach failed", { traceId: trace.traceId, message: error instanceof Error ? error.message.slice(0, 160) : "unknown" });
+  }
+  if (!response.ok) console.info("RankFix scan incident", { traceId: trace.traceId, apiHttpStatus: response.status, originHttpStatus: trace.originHttpStatus, phase: trace.phase, page: trace.requestedUrl.slice(0, 200) });
   if (attemptId) {
     try {
       const body = await response.clone().json().catch(() => ({} as Record<string, unknown>));
@@ -481,7 +496,7 @@ export async function POST(request: Request) {
   return response;
 }
 
-async function runScan(request: Request, clock: { expired: boolean } = { expired: false }) {
+async function runScan(request: Request, clock: { expired: boolean } = { expired: false }, trace: ScanTrace = createScanTrace("")) {
   let fallbackLanguage = "nl";
   try {
     const body = await request.json();
@@ -493,12 +508,12 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const scanLanguage = ["nl","en","de","fr","it","es"].includes(body?.language) ? body.language : "nl";
     fallbackLanguage = scanLanguage;
     const errors: Record<string, Record<string, string>> = {
-      nl:{url:"Vul een website URL in.",unsafe:"Deze URL kan niet veilig worden gescand.",fetch:"De website kon niet worden opgehaald. Controleer de URL en probeer opnieuw.",rate:"Deze website beperkt tijdelijk scanverzoeken. RankFix heeft opnieuw geprobeerd, maar de limiet is nog actief. Probeer later opnieuw.",html:"De website gaf geen bruikbare HTML terug.",session:"Je sessie is verlopen. Log opnieuw in om deze scan in je dashboard op te slaan.",history:"De scan is uitgevoerd, maar kon niet in je historie worden opgeslagen. Probeer opnieuw.",generic:"Er ging iets mis tijdens de SEO/GEO-scan."},
-      en:{url:"Enter a website URL.",unsafe:"This URL cannot be scanned safely.",fetch:"The website could not be retrieved. Check the URL and try again.",rate:"This website is temporarily limiting scan requests. RankFix retried, but the limit is still active. Try again later.",html:"The website did not return usable HTML.",session:"Your session has expired. Log in again to save this scan to your dashboard.",history:"The scan completed but could not be saved to your history. Try again.",generic:"Something went wrong during the SEO/GEO scan."},
-      de:{url:"Gib eine Website-URL ein.",unsafe:"Diese URL kann nicht sicher gescannt werden.",fetch:"Die Website konnte nicht abgerufen werden. Prüfe die URL und versuche es erneut.",rate:"Diese Website begrenzt Scan-Anfragen vorübergehend. RankFix hat es erneut versucht, aber das Limit ist noch aktiv. Versuche es später erneut.",html:"Die Website hat kein verwendbares HTML zurückgegeben.",session:"Deine Sitzung ist abgelaufen. Melde dich erneut an, um diesen Scan im Dashboard zu speichern.",history:"Der Scan wurde ausgeführt, konnte aber nicht im Verlauf gespeichert werden. Versuche es erneut.",generic:"Beim SEO/GEO-Scan ist ein Fehler aufgetreten."},
-      fr:{url:"Saisissez l’URL d’un site.",unsafe:"Cette URL ne peut pas être analysée en toute sécurité.",fetch:"Le site n’a pas pu être récupéré. Vérifiez l’URL et réessayez.",rate:"Ce site limite temporairement les demandes d’analyse. RankFix a réessayé, mais la limite est toujours active. Réessayez plus tard.",html:"Le site n’a renvoyé aucun HTML exploitable.",session:"Votre session a expiré. Reconnectez-vous pour enregistrer cette analyse dans votre tableau de bord.",history:"L’analyse est terminée, mais n’a pas pu être enregistrée dans votre historique. Réessayez.",generic:"Une erreur s’est produite pendant l’analyse SEO/GEO."},
-      it:{url:"Inserisci l’URL di un sito.",unsafe:"Questo URL non può essere analizzato in sicurezza.",fetch:"Impossibile recuperare il sito. Controlla l’URL e riprova.",rate:"Questo sito limita temporaneamente le richieste di scansione. RankFix ha riprovato, ma il limite è ancora attivo. Riprova più tardi.",html:"Il sito non ha restituito HTML utilizzabile.",session:"La sessione è scaduta. Accedi di nuovo per salvare la scansione nella dashboard.",history:"La scansione è stata completata, ma non è stato possibile salvarla nella cronologia. Riprova.",generic:"Si è verificato un errore durante la scansione SEO/GEO."},
-      es:{url:"Introduce la URL de un sitio web.",unsafe:"Esta URL no se puede analizar de forma segura.",fetch:"No se pudo obtener el sitio web. Comprueba la URL e inténtalo de nuevo.",rate:"Este sitio limita temporalmente las solicitudes de análisis. RankFix lo ha intentado de nuevo, pero el límite sigue activo. Inténtalo más tarde.",html:"El sitio no devolvió HTML utilizable.",session:"Tu sesión ha caducado. Inicia sesión de nuevo para guardar este análisis en tu panel.",history:"El análisis se completó, pero no pudo guardarse en tu historial. Inténtalo de nuevo.",generic:"Se produjo un error durante el análisis SEO/GEO."}
+      nl:{authUnavailable:"RankFix kon je inlogstatus tijdelijk niet controleren (database of verbinding). Dit is een RankFix-probleem, niet van de website. Er is niets in rekening gebracht; probeer opnieuw.",url:"Vul een website URL in.",unsafe:"Deze URL kan niet veilig worden gescand.",fetch:"De website kon niet worden opgehaald. Controleer de URL en probeer opnieuw.",rate:"Deze website beperkt tijdelijk scanverzoeken. RankFix heeft opnieuw geprobeerd, maar de limiet is nog actief. Probeer later opnieuw.",html:"De website gaf geen bruikbare HTML terug.",session:"Je sessie is verlopen. Log opnieuw in om deze scan in je dashboard op te slaan.",history:"De scan is uitgevoerd, maar kon niet in je historie worden opgeslagen. Probeer opnieuw.",generic:"Er ging iets mis tijdens de SEO/GEO-scan."},
+      en:{authUnavailable:"RankFix could not verify your login right now (database or connection). This is a RankFix problem, not the website. You were not charged; try again.",url:"Enter a website URL.",unsafe:"This URL cannot be scanned safely.",fetch:"The website could not be retrieved. Check the URL and try again.",rate:"This website is temporarily limiting scan requests. RankFix retried, but the limit is still active. Try again later.",html:"The website did not return usable HTML.",session:"Your session has expired. Log in again to save this scan to your dashboard.",history:"The scan completed but could not be saved to your history. Try again.",generic:"Something went wrong during the SEO/GEO scan."},
+      de:{authUnavailable:"RankFix konnte deine Anmeldung gerade nicht prüfen (Datenbank oder Verbindung). Das ist ein RankFix-Problem, nicht der Website. Es wurde nichts berechnet; versuche es erneut.",url:"Gib eine Website-URL ein.",unsafe:"Diese URL kann nicht sicher gescannt werden.",fetch:"Die Website konnte nicht abgerufen werden. Prüfe die URL und versuche es erneut.",rate:"Diese Website begrenzt Scan-Anfragen vorübergehend. RankFix hat es erneut versucht, aber das Limit ist noch aktiv. Versuche es später erneut.",html:"Die Website hat kein verwendbares HTML zurückgegeben.",session:"Deine Sitzung ist abgelaufen. Melde dich erneut an, um diesen Scan im Dashboard zu speichern.",history:"Der Scan wurde ausgeführt, konnte aber nicht im Verlauf gespeichert werden. Versuche es erneut.",generic:"Beim SEO/GEO-Scan ist ein Fehler aufgetreten."},
+      fr:{authUnavailable:"RankFix n’a pas pu vérifier votre connexion pour le moment (base de données ou réseau). Il s’agit d’un problème RankFix, pas du site. Aucun frais ; réessayez.",url:"Saisissez l’URL d’un site.",unsafe:"Cette URL ne peut pas être analysée en toute sécurité.",fetch:"Le site n’a pas pu être récupéré. Vérifiez l’URL et réessayez.",rate:"Ce site limite temporairement les demandes d’analyse. RankFix a réessayé, mais la limite est toujours active. Réessayez plus tard.",html:"Le site n’a renvoyé aucun HTML exploitable.",session:"Votre session a expiré. Reconnectez-vous pour enregistrer cette analyse dans votre tableau de bord.",history:"L’analyse est terminée, mais n’a pas pu être enregistrée dans votre historique. Réessayez.",generic:"Une erreur s’est produite pendant l’analyse SEO/GEO."},
+      it:{authUnavailable:"RankFix non è riuscito a verificare l’accesso (database o connessione). È un problema di RankFix, non del sito. Nessun addebito; riprova.",url:"Inserisci l’URL di un sito.",unsafe:"Questo URL non può essere analizzato in sicurezza.",fetch:"Impossibile recuperare il sito. Controlla l’URL e riprova.",rate:"Questo sito limita temporaneamente le richieste di scansione. RankFix ha riprovato, ma il limite è ancora attivo. Riprova più tardi.",html:"Il sito non ha restituito HTML utilizzabile.",session:"La sessione è scaduta. Accedi di nuovo per salvare la scansione nella dashboard.",history:"La scansione è stata completata, ma non è stato possibile salvarla nella cronologia. Riprova.",generic:"Si è verificato un errore durante la scansione SEO/GEO."},
+      es:{authUnavailable:"RankFix no pudo verificar tu sesión ahora mismo (base de datos o conexión). Es un problema de RankFix, no del sitio. Sin cargos; inténtalo de nuevo.",url:"Introduce la URL de un sitio web.",unsafe:"Esta URL no se puede analizar de forma segura.",fetch:"No se pudo obtener el sitio web. Comprueba la URL e inténtalo de nuevo.",rate:"Este sitio limita temporalmente las solicitudes de análisis. RankFix lo ha intentado de nuevo, pero el límite sigue activo. Inténtalo más tarde.",html:"El sitio no devolvió HTML utilizable.",session:"Tu sesión ha caducado. Inicia sesión de nuevo para guardar este análisis en tu panel.",history:"El análisis se completó, pero no pudo guardarse en tu historial. Inténtalo de nuevo.",generic:"Se produjo un error durante el análisis SEO/GEO."}
     };
     const scanError = errors[scanLanguage];
     const cleanAdsField = (value: unknown, max = 120) => typeof value === "string" ? value.trim().replace(/\s+/g, " ").slice(0, max) : "";
@@ -532,6 +547,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     } catch {
       return NextResponse.json({ error: scanError.unsafe, code: "UNSAFE_URL" }, { status: 400 });
     }
+    trace.normalizedUrl = target.toString();
+    if (!trace.requestedUrl) trace.requestedUrl = rawUrl.slice(0, 500);
 
     // share.google is only a redirect resolver, never a scan target or evidence source.
     // Resolve it once before plan limits, history, scoring and reporting, then discard
@@ -559,9 +576,15 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // trigger network fetches and bounded browser rendering. Hourly limits come from
     // scanRateLimitPolicy: per network for visitors and Free accounts, per account for
     // paying customers, none for server-configured internal tester account IDs.
+    trace.phase = "session";
     await ensureDatabase();
-    let usageUser: Awaited<ReturnType<typeof getCurrentUser>> = null;
-    try { usageUser = await getCurrentUser(); } catch {}
+    // A database/connection failure while reading the session is a RankFix
+    // infrastructure problem, never "session expired" (QA 144: five sites).
+    const usageLookup = await resolveScanUser(getCurrentUser);
+    let usageUser: Awaited<ReturnType<typeof getCurrentUser>> = usageLookup.user;
+    if (dashboardScan && usageLookup.lookupFailed) {
+      return NextResponse.json({ error: scanError.authUnavailable, code: "AUTH_LOOKUP_UNAVAILABLE", retryable: true, charged: false }, { status: 503 });
+    }
     const usageWebsiteHost = target.hostname.toLowerCase().replace(/^www\./, "");
     let usageIpHash: string | null = null;
     const planCode = usageUser
@@ -644,6 +667,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       if (limited) return limited;
     }
 
+    trace.phase = "fetch";
     const started = Date.now();
     // Whole-scan time budget (maxDuration = 300 s): no new browser render after
     // 180 s and no new sample page after 170 s, so every scan returns a report in
@@ -709,14 +733,18 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       // The browser identifies as RankFixBot and never solves challenges; a block
       // or error page is not accepted as the website (isSubstantiveRender).
       if (["FETCH_TIMEOUT", "FETCH_CONNECTION"].includes(code) && Date.now() - started < 75_000) {
+        trace.phase = "browser_render";
+        trace.browserRender = { attempted: true, outcome: "not_substantive", reason: `PRIMARY_${code}` };
         try {
           const rendered = await renderPublicPage(target.toString(), 15000, renderBudget);
           if (isSubstantiveRender(rendered.html)) {
+            trace.browserRender = { attempted: true, outcome: "recovered", reason: `PRIMARY_${code}_BROWSER_RECOVERY` };
             timeoutRecovery = { code, rendered };
             fetchedFinalUrl = new URL(rendered.finalUrl || target.toString());
             redirectChain = [];
           }
         } catch (renderError) {
+          trace.browserRender = { attempted: true, outcome: "failed", reason: renderFailureCode(renderError) };
           console.info("RankFix timeout recovery render failed", { url: target.toString(), reason: renderFailureCode(renderError) });
         }
       }
@@ -729,10 +757,14 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     }
 
     const responseTime = Date.now() - started;
+    // 504 is only the internal placeholder for "no answer" (timeout recovery).
+    trace.originHttpStatus = timeoutRecovery ? null : response.status;
     // safePublicFetch follows redirects manually for SSRF safety. Response.url therefore
     // is not a reliable source of the terminal URL. Always use the validated finalUrl
     // returned by safePublicFetch so share/short links are classified from the actual site.
     let finalUrl = fetchedFinalUrl ?? new URL(response.url || target.toString());
+    trace.finalUrl = finalUrl.toString();
+    trace.redirects = redirectChain.slice(0, 10);
     console.info("RankFix redirect resolution", { requested: target.toString(), final: finalUrl.toString(), hops: redirectChain.length });
     // Primary recovery, JS hydration and quality-gate fallback share one browser attempt.
     let primaryRenderAttempts = 0;
@@ -775,11 +807,14 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     }
     if (!response.ok && (response.status === 202 || response.status === 403 || response.status === 405)) {
       recovery.attempted = true;
+      trace.phase = "browser_render";
+      trace.browserRender = { attempted: true, outcome: "not_substantive", reason: `HTTP_${response.status}_RECOVERY` };
       try {
         const recovered = await renderPrimaryOnce();
         // A blocked render (challenge or empty shell with only a <title>) is not a recovery.
         if (!isSubstantiveRender(recovered.html)) recovery.reason = "RECOVERY_RENDER_NOT_SUBSTANTIVE";
         else {
+          trace.browserRender = { attempted: true, outcome: "recovered", reason: `HTTP_${response.status}_RECOVERY` };
           recoveredHtml = recovered.html;
           renderedDocument = recovered;
           recoveredRenderElapsedMs = recovered.elapsedMs;
@@ -789,6 +824,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         }
       } catch (recoveryError) {
         recovery.reason = renderFailureCode(recoveryError);
+        trace.browserRender = { attempted: true, outcome: "failed", reason: recovery.reason };
         console.info("RankFix recovery render failed", { page: finalUrl.toString(), error: recoveryError instanceof Error ? recoveryError.message.slice(0, 200) : String(recoveryError) });
       }
     }
@@ -837,7 +873,16 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       // Customer-facing Dutch text names the actual cause (login, bot protection,
       // generic refusal) instead of one generic "blocked" sentence.
       if (diagnosis && scanLanguage === "nl") httpMessages.nl = `Scan niet mogelijk (HTTP ${response.status}). ${diagnosis.advice} Er is daarom geen score berekend.`;
-      return NextResponse.json({ error: httpMessages[scanLanguage], code: [404, 410].includes(response.status) ? "HTTP_NOT_FOUND" : response.status >= 500 ? "HTTP_SERVER_ERROR" : "HTTP_BLOCKED", blockKind: diagnosis?.kind || null, httpStatus: response.status, recovery, diagnosis, charged: false }, { status: 422 });
+      // A refused start page does not mean every page refuses: the customer may
+      // start from a direct article/category page. RankFix never retries around
+      // the refusal itself.
+      const alternativeStart = accessBlock ? {
+        possible: true,
+        advice: scanLanguage === "nl"
+          ? "Deze pagina weigerde RankFix. Je kunt een andere openbare pagina van dezelfde website (bijvoorbeeld een categorie- of artikelpagina) als startpunt invoeren; RankFix beoordeelt dan alleen de pagina's die wel bereikbaar zijn en maakt een gedeeltelijk rapport."
+          : "This page refused RankFix. You can enter another public page of the same website (for example a category or article page) as the start; RankFix then assesses only the pages it can reach and produces a partial report.",
+      } : null;
+      return NextResponse.json({ error: httpMessages[scanLanguage], code: [404, 410].includes(response.status) ? "HTTP_NOT_FOUND" : response.status >= 500 ? "HTTP_SERVER_ERROR" : "HTTP_BLOCKED", blockKind: diagnosis?.kind || null, httpStatus: response.status, recovery, diagnosis, alternativeStart, charged: false }, { status: 422 });
     }
 
     // The website answered RankFix itself with an access refusal, but a real browser
@@ -975,6 +1020,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         }
       } catch { /* keep the fetched URL */ }
     }
+    trace.phase = "content_gate";
+    trace.finalUrl = finalUrl.toString();
+    trace.redirects = redirectChain.slice(0, 10);
     const qualityTitle = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
     const qualityText = stripHtml(html).slice(0, 12000);
     const qualityWords = qualityText.split(/\s+/).filter(Boolean).length;
@@ -1032,6 +1080,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       };
       return NextResponse.json({ error: parkedMessages[scanLanguage] || parkedMessages.en, code: "PARKED_DOMAIN", charged: false }, { status: 422 });
     }
+    trace.phase = "analysis";
 
     const titlePixelEstimate = titlePixelAdvice(renderedDocument?.titlePixelWidth);
     // Invisible characters (zero-width space/joiners, BOM) are not a title.
@@ -1746,7 +1795,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
 
     // Lightweight internal-link audit. Keep this bounded so one page cannot turn a scan
     // into an unbounded crawler. HTTP evidence and semantic evidence stay separate.
-    type LinkAuditResult = { sourceHref: string; url: string; status: number | null; finalUrl: string | null; redirected: boolean; error: boolean; context: string; softNotFound?: boolean; accountLink?: boolean };
+    type LinkAuditResult = { sourceHref: string; url: string; status: number | null; finalUrl: string | null; redirected: boolean; error: boolean; context: string; softNotFound?: boolean; accountLink?: boolean; challenged?: boolean };
     const anchorTags = [...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)]
       .map((match) => {
         const sourceHref = decode(match[1] || "");
@@ -1778,15 +1827,18 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         const destination = result.finalUrl?.toString() || res.url || item.url;
         // HTTP 200 serving a "page not found" template is a missing page (soft 404).
         let softNotFound = false;
+        let challenged = false;
         if (res.ok && /text\/html|application\/xhtml/i.test(res.headers.get("content-type") || "")) {
           try {
             const head = await Promise.race([readResponsePrefix(res, 40_000), new Promise<string>((resolve) => setTimeout(() => resolve(""), 2500))]);
             const linkTitle = firstMatch(head, /<title[^>]*>([\s\S]*?)<\/title>/i);
             const linkText = stripHtml(head).slice(0, 4000);
-            softNotFound = classifyNonContentPage({ title: linkTitle, text: linkText, words: linkText.split(/\s+/).filter(Boolean).length, html: head })?.kind === "error";
+            const linkGate = classifyNonContentPage({ title: linkTitle, text: linkText, words: linkText.split(/\s+/).filter(Boolean).length, html: head });
+            softNotFound = linkGate?.kind === "error";
+            challenged = linkGate?.kind === "challenge";
           } catch {}
         } else { try { await res.body?.cancel(); } catch {} }
-        return { sourceHref: item.sourceHref, url: item.url, status: res.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context, softNotFound, accountLink: isNonContentUrl(item.url) || isNonContentUrl(destination) };
+        return { sourceHref: item.sourceHref, url: item.url, status: res.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context, softNotFound, challenged, accountLink: isNonContentUrl(item.url) || isNonContentUrl(destination) };
       } catch {
         return { sourceHref: item.sourceHref, url: item.url, status: null, finalUrl: null, redirected: false, error: true, context: item.context, accountLink: isNonContentUrl(item.url) };
       }
@@ -1923,7 +1975,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\b(advocaat|advocaten(?:kantoor)?|accountant|accountants(?:kantoor)?|boekhouder|boekhouding|belastingadvi(?:es|seur|seurs)|administratiekantoor|consultant|notaris|law firm|legalservice|legal services|accounting|consultancy|tax advi(?:ce|sor)|steuerberat(?:er|ung)|expert-comptable|commercialista)\b/i,/\b(diensten|expertise|advies|consult)\b/i],modules:["core_seo","geo","local","lead_conversion","professional_services"]},
       {sector:"hospitality",label:"Horeca",patterns:[/\b(restaurant|cafe|café|hotel|brasserie|bistro|reserveren|reservation|restaurantmenu|menukaart)\b/i,/\b(openingstijden|opening hours|tafel reserveren)\b/i],modules:["core_seo","geo","local","lead_conversion","hospitality"]},
       {sector:"health_wellness",label:"Zorg & Gezondheid",patterns:[/\b(kliniek|clinic|ziekenhuis|ziekenhuizen|hospital|krankenhaus|klinikum|hôpital|ospedale|medisch centrum|universitair medisch centrum|university medical cent(?:er|re)|(?:fysio|physio)therap\w*|osteopa\w*|chiropract\w*|huisarts\w*|psycholo\w*|logoped\w*|podotherap\w*|verloskund\w*|orthodont\w*|mondhygi\w*|tandarts|dentist|medicalclinic|physician|mondzorg|acupunctuur|acupuncture|acupuncturist|therapeut|therapist|therapie|therapy|tuina)\b/i,/\b(afspraak|appointment|behandeling|behandelingen|treatment|treatments|patient|patiënt|praktijk|practice)\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
-      {sector:"beauty",label:"Beauty & Verzorging",patterns:[/\b(kapper|hairdresser|hairsalon|hair salon|hairstyling|beauty salon|beautysalon|schoonheidssalon|nagelsalon|nail salon|barber|day spa|dayspa|city spa|wellness|manicure|pedicure|facial|gezichtsbehandeling)\b/i,/\b(afspraak|appointment|salons?|knippen|haar|hair|spa|wellness|manicure|pedicure|beauty treatment|beauty treatments)\b/i],modules:["core_seo","geo","local","lead_conversion","beauty"]},
+      {sector:"beauty",label:"Beauty & Verzorging",patterns:[/\b(kapper|hairdresser|hairsalon|hair salon|hairstyling|beauty salon|beautysalon|schoonheidssalon|nagelsalon|nail salon|barber|day spa|dayspa|city spa|manicure|pedicure|gezichtsbehandeling)\b/i,/\b(afspraak|appointment|salons?|knippen|haar|hair|spa|wellness|manicure|pedicure|beauty treatment|beauty treatments)\b/i],modules:["core_seo","geo","local","lead_conversion","beauty"]},
       {sector:"recruitment",label:"Recruitment & Werk",patterns:[/\b(recruitment|uitzendbureau|uitzendorganisatie|employment agency|staffing agency|staffing|werving en selectie|recruitmentbureau|recruitment agency)\b/i,/\b(werkgevers?|kandidaten?|talent acquisition|detachering|interim professionals?|recruiter)\b/i],modules:["core_seo","geo","lead_conversion","recruitment"]},
       {sector:"government",label:"Overheid & Publieke sector",patterns:[/\b(gemeente|municipality|overheid|government|rijksoverheid|ministry|ministerie|public service|stadhuis|burgerzaken)\b/i,/\b(digid|vergunning|paspoort|loket|inwoners|wetgeving|beleid|minister|cabinet)\b/i],modules:["core_seo","geo","government"]},
       {sector:"transport_travel",label:"Transport & Logistiek",patterns:[/(?:\b(logistiek|logistics|transportbedrijf|transport company|wegtransport|road transport|freight|vrachtvervoer|distributie|distribution|expeditie|forwarding|koerier|courier|spoorweg|railway|railways|train operator|national railway|nationale? vervoerder|airline|luchtvaartmaatschappij|public transport|openbaar vervoer|ferroviaria|železnice|željeznice|dráhy|intercity|prijevoz|putnički|vlak)\b|hellenic\s+train|cyprus\s+airways|σιδηρόδρομ|τρένο)/iu,/(?:\b(zending|shipments?|warehousing|opslag|supply chain|groupage|pallets?|containers?|internationaal transport|international transport|tickets?|billet|fahrplan|timetable|dienstregeling|journey planner|vluchten?|flights?|destinations?|reizen|travel|utazás|dopravca|vozni red|karta|karte)\b|δρομολόγ|εισιτήρ|πτήσ)/iu],modules:["core_seo","geo","technical","local","lead_conversion","transport_travel"]},
@@ -2126,7 +2178,16 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const realEstateIdentity = Boolean(!shortStayIdentity && scanEvidence.inventory.properties.value && scanEvidence.inventory.properties.confidence !== "low" && (/\/(?:woningaanbod|residential-listings|properties?|real-estate)(?:\/|$)/i.test(finalUrl.pathname) || /\b(?:makelaar|woningaanbod|te koop|te huur|for sale|for rent|real estate)\b/i.test(sectorIdentitySource)));
     const automotiveServiceIdentity = Boolean(/\b(?:apk|autobanden|banden|uitlijnen|autowerkplaats|autoservice|auto-onderhoud|car repair|tyres?)\b/i.test(sectorIdentitySource) || schemaSet.has("autorepair"));
     const explicitMedicalIdentity = /\b(?:tandarts|dentist|kliniek|clinic|medical|medicalclinic|(?:fysio|physio)therap\w*|osteopa\w*|chiropract\w*|huisarts\w*|psycholo\w*|logoped\w*|podotherap\w*|verloskund\w*|orthodont\w*|mondhygi\w*|mondzorg|patient|patiënt|physician|huisarts|doctor)\b/i.test(sectorIdentitySource) || schemaSet.has("dentist") || schemaSet.has("medicalclinic");
-    const beautyServiceIdentity = /\b(?:beauty salon|beautysalon|schoonheidssalon|day spa|dayspa|city spa|wellness|manicure|pedicure|nail salon|nagelsalon|facial|gezichtsbehandeling)\b/i.test(sectorIdentitySource) || schemaSet.has("beautysalon") || schemaSet.has("dayspa");
+    // QA 144: a hospitality group or hotel naming "spa and wellness" is not a
+    // beauty business (was Beauty 95%). Wellness/manicure/facial are activities
+    // that support, never decide; the trade noun (salon, day spa) or typed
+    // schema decides, and a lodging/hospitality identity vetoes activity words.
+    const beautyTradeNoun = /\b(?:beauty salon|beautysalon|schoonheidssalon|schoonheidsspecialist\w*|nagelstudio|nail salon|nagelsalon|day spa|dayspa|city spa|kosmetikstudio|institut de beauté|salón de belleza|centro de est[ée]tica|istituto di bellezza)\b/i.test(sectorIdentitySource);
+    const beautyActivityWords = (sectorIdentitySource.match(/\b(?:wellness|manicure|pedicure|facials?|gezichtsbehandeling(?:en)?)\b/gi) || []).map((w) => w.toLowerCase());
+    const lodgingOrHospitalityIdentity = /\b(?:hotels?|hôtels?|resorts?|hospitality|hotelgroep|hotel group|lodging|accommodati\w*|overnacht\w*|vakantiepark\w*|holiday parks?)\b/i.test(sectorIdentitySource);
+    const beautyServiceIdentity = schemaSet.has("beautysalon") || schemaSet.has("dayspa") || schemaSet.has("nailsalon")
+      || (beautyTradeNoun && !lodgingOrHospitalityIdentity)
+      || (new Set(beautyActivityWords).size >= 2 && !lodgingOrHospitalityIdentity && !beautyActivityWords.every((w) => w === "wellness"));
     // Primary telecom subscription identity outranks incidental commerce widgets.
     // Require subscription and network/provider terminology in page identity,
     // not a lone generic price, product, or shopping navigation link.
@@ -2152,7 +2213,11 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     ) && !(hasRetailStoreSchema(schemaTypes) && evidenceCommerceConfirmed) && !newsMediaPrimaryIdentity;
     const euGenericIdentityApplies = Boolean(euPrimaryIdentity && (euPrimaryIdentity.confidence === "medium" || (euPrimaryIdentity.sector !== "news_media" && euPrimaryIdentity.sector !== "financial_services"))
       && (euPrimaryIdentity.confidence === "high" || !strongSectorCandidate));
-    const baseMasterIdentity: {sector:SectorKey;key:string;label:string;evidence:string[];confidence?:"high"|"medium";confidenceScore?:number} | null = newsMediaPrimaryIdentity
+    // Employer careers site: the vacancy topic is the page topic, not the site.
+    const careersIdentity = careersSiteIdentity({ title, description, h1s: identityH1s, hostname: finalUrl.hostname, ogSiteName: decode(ogSiteName || ""), navLabels: identityNavLabels, homepage: isSiteHomepagePath(finalUrl.pathname) || isHomepage });
+    const baseMasterIdentity: {sector:SectorKey;key:string;label:string;evidence:string[];confidence?:"high"|"medium";confidenceScore?:number} | null = careersIdentity
+      ? {sector:"recruitment",key:careersIdentity.key,label:careersIdentity.label,evidence:careersIdentity.evidence,confidence:careersIdentity.confidence,confidenceScore:careersIdentity.confidenceScore}
+      : newsMediaPrimaryIdentity
       ? {sector:"news_media",key:"news_media",label:"Nieuws & Media",evidence:["Primaire identiteit: nieuws-/mediaorganisatie in titel, omschrijving of H1"]}
       : telecomProviderIdentity
       ? {sector:"telecom_technology",key:"telecom_technology",label:"Telecom & Technologie",evidence:["Primaire identiteit: telecomabonnementen en netwerkdiensten"]}
@@ -2571,8 +2636,12 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const accessibilityEngine = {
       version:"1.2-axe-hydrated-dom",
       mode: javascriptExecuted && renderedDocument?.domAccessibility ? "RENDERED_DOM" as const : "INDICATIVE_RAW_HTML" as const,
-      // Without a rendered DOM the number is indicative only and must not be shown as a score.
-      scoreShown: Boolean(javascriptExecuted && renderedDocument?.domAccessibility),
+      // Without a completed axe-core run the number is a limited DOM check (QA 144:
+      // Decathlon showed 100/100 while axe could not finish). It is never shown as
+      // a score that could read as a WCAG assessment.
+      scoreShown: Boolean(javascriptExecuted && renderedDocument?.domAccessibility && renderedDocument?.axeReport),
+      auditLevel: javascriptExecuted && renderedDocument?.axeReport ? "axe_wcag_a_aa_automated" as const : javascriptExecuted && renderedDocument?.domAccessibility ? "limited_dom_name_label_check" as const : "not_available" as const,
+      axeStatus: !javascriptExecuted ? "not_run_no_rendered_dom" : renderedDocument?.axeReport ? "completed" : `not_completed${renderedDocument?.axeError ? `: ${renderedDocument.axeError}` : ""}`,
       limitedScope: true,
       claimPolicy: "Automatisch toetsbare regels; nooit een volledige WCAG-/EAA-conformiteitsbeoordeling.",
       axe: javascriptExecuted ? renderedDocument?.axeReport || null : null,
@@ -2701,6 +2770,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             (linkCheck as Check & { links?: unknown }).links = linkAuditResults
               .map((item) => ({ url: item.url, referringPage: finalUrl.toString(), httpStatus: item.status, outcome: linkOutcome(item), softNotFound: Boolean(item.softNotFound) }))
               .filter((item) => item.outcome !== "ok" && item.outcome !== "skipped");
+            // sourceUrl/targetUrl/finalUrl/httpStatus/evidence/impact/recommendedAction per link.
+            (linkCheck as Check & { linkRecords?: unknown }).linkRecords = brokenLinkRecords(linkAuditResults, finalUrl.toString());
             return linkCheck;
           })()
     );
@@ -3703,7 +3774,17 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       : check("not_applicable", "organization_website", "geo", "Organization + WebSite", "Homepage-specifieke Organization/WebSite-controle is niet vereist op deze URL.", "Controleer de homepage afzonderlijk voor organisatie- en website-identiteit.", 0, 8)
     );
 
-    const primaryProductEvidence = productOfferEvidence.find((product) => Boolean(product.name)) || productOfferEvidence[0] || null;
+    // QA 144: the page's OWN product (URL, article number in the URL, or name =
+    // H1/title), never simply the first Product object (a sibling model, an
+    // accessory). Several unmatched products: not confirmable, never merged.
+    const pageProductMatch = selectPageProduct(productSchemaObjects.map((product: any) => ({
+      name: typeof product?.name === "string" ? product.name : "",
+      sku: typeof product?.sku === "string" ? product.sku : "",
+      url: typeof product?.url === "string" ? product.url : "",
+      id: typeof product?.["@id"] === "string" ? product["@id"] : "",
+      productIds: [product?.productID, product?.gtin, product?.gtin13, product?.gtin8, product?.gtin12, product?.gtin14, product?.mpn].filter((value) => typeof value === "string" || typeof value === "number").map(String),
+    })), { url: finalUrl.toString(), title, h1s });
+    const primaryProductEvidence = pageProductMatch.index !== null ? productOfferEvidence[pageProductMatch.index] : null;
     // "Bevestigde productvelden" means the same five product fields everywhere
     // (name, image, SKU, price + currency, availability); copy sources are counted apart.
     const primaryProductFieldCount = primaryProductEvidence ? [
@@ -4743,6 +4824,10 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         const pagePriceSignals = (pageQualityText.match(/(?:€|EUR\b|\bEUR\s*)\s*\d{1,5}(?:[.,]\d{2})?|\d{1,5}(?:[.,]\d{2})?\s*(?:€|EUR\b)/gi)||[]).length;
         const pageJsonLdRoots: unknown[] = [];
         const pageProductJson = (() => {
+          // Every top-level Product (nested related/accessory products excluded),
+          // then the one that belongs to THIS page (QA 144: SKU of a sibling model
+          // was shown). Ambiguous: no product, never a merge.
+          const found:any[] = [];
           for (const raw of [...pageHtml.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)].map((m)=>m[1])) {
             try {
               const parsed = JSON.parse(raw);
@@ -4752,7 +4837,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
                 const value = queue.shift();
                 if (!value || typeof value !== "object") continue;
                 const types = Array.isArray(value["@type"]) ? value["@type"] : [value["@type"]];
-                if (types.some((t:any)=>String(t||"").toLowerCase()==="product")) return value;
+                if (types.some((t:any)=>String(t||"").toLowerCase()==="product")) { found.push(value); continue; }
                 for (const nested of Object.values(value)) {
                   if (Array.isArray(nested)) queue.push(...nested);
                   else if (nested && typeof nested==="object") queue.push(nested);
@@ -4760,7 +4845,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
               }
             } catch {}
           }
-          return null;
+          if (found.length <= 1) return found[0] || null;
+          const match = selectPageProduct(found.map((product:any)=>({ name: typeof product?.name==="string" ? product.name : "", sku: typeof product?.sku==="string" ? product.sku : "", url: typeof product?.url==="string" ? product.url : "", id: typeof product?.["@id"]==="string" ? product["@id"] : "", productIds: [product?.productID, product?.gtin, product?.gtin13, product?.mpn].filter((v)=>typeof v==="string"||typeof v==="number").map(String) })), { url: finalCandidate.toString(), title: pageQualityTitle, h1s: [...pageHtml.matchAll(/<h1\b[^>]*>([\s\S]*?)<\/h1>/gi)].map((m)=>stripHtml(m[1]).trim()).filter(Boolean).slice(0,3) });
+          return match.index === null ? null : found[match.index];
         })();
         const pageOffer:any = pageProductJson ? (Array.isArray(pageProductJson.offers) ? pageProductJson.offers[0] : pageProductJson.offers) : null;
         const pageImageValue = pageProductJson?.image;
@@ -4900,6 +4987,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // concurrently. This prevents a JavaScript-heavy site from spawning 20
     // simultaneous Puppeteer recoveries and exhausting memory/CPU.
     const representativeAuditConcurrency = 4;
+    trace.phase = "sample";
     const multiPageAudits: MultiPageAudit[] = new Array(uniqueMultiPagePages.length);
     let nextRepresentativePageIndex = 0;
     const representativeWorkers = Array.from(
@@ -5709,7 +5797,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       .filter((item)=>item.type==="product" && item.commerceEvidence?.product)
       .sort((a,b)=>(Number(Boolean(b.commerceEvidence?.confirmedRetailPage))-Number(Boolean(a.commerceEvidence?.confirmedRetailPage))) || (productFieldCount(b.commerceEvidence?.product)-productFieldCount(a.commerceEvidence?.product)))[0];
     const representativeProduct = productSamplePage?.commerceEvidence?.product;
-    if (finalCommerceDecision.confirmed && representativeProduct) {
+    // On a product page the entered product is evaluated from its own page only;
+    // a sibling product from the sample never overwrites its product checks.
+    if (finalCommerceDecision.confirmed && representativeProduct && !isProductPage) {
       const productEvidenceCount = [representativeProduct.name,representativeProduct.image,representativeProduct.sku,representativeProduct.price&&representativeProduct.currency,representativeProduct.availability].filter(Boolean).length;
       const productSchemaCheck = seoChecks.find((item)=>item.key==="product_schema");
       if (productSchemaCheck && auditedMultiPages.some((item)=>item.type==="product" && item.commerceEvidence?.productSchema)) Object.assign(productSchemaCheck, check("pass","product_schema","seo","Product structured data","Een representatieve productpagina bevat bevestigde Product structured data.","Houd Product structured data gelijk aan de zichtbare productinformatie.",6,6));
@@ -6043,7 +6133,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     };
     // Same ranked choice as the product diagnostics: the best-evidenced real product page.
     const representativeProductPage = productSamplePage;
-    if ((finalCommerceDecision.confirmed || verifiedRepresentativeProductDetail) && representativeProductPage?.commerceEvidence?.product) {
+    if ((finalCommerceDecision.confirmed || verifiedRepresentativeProductDetail) && representativeProductPage?.commerceEvidence?.product && !isProductPage) {
       const product = representativeProductPage.commerceEvidence.product;
       const sourceCount = [product.name,product.image,product.sku,product.price&&product.currency,product.availability].filter(Boolean).length;
       // Diagnostics are consumers of Scanbewijs too. A representative product
@@ -6244,7 +6334,16 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const sampleOutcomes = sampleOutcomeCounts(reportedMultiPageAudits, multiPageAudits.length - reportedMultiPageAudits.length);
     const unableToFetchPages = sampleOutcomes.notRetrieved;
     const sampleAccounting = sampleSummary(multiPageAudits.length, scoredSamplePages.length, excludedNoindexPages, unableToFetchPages, partialHeadPages);
+    // Homepage outcome and page coverage, separately from the start page (QA 144:
+    // blocked homepage with an accessible subpage gives a partial report).
+    const siteAccess = summarizeSiteAccess({
+      startUrl: finalUrl.toString(),
+      startIsHomepage: isSiteHomepagePath(finalUrl.pathname) || isHomepage,
+      homepageUrl: representativeHomeUrl,
+      pages: reportedMultiPageAudits,
+    });
     const multiPage = {
+      siteAccess,
       accounting:sampleAccounting,
       sampleRetryPass,
       coverageDimensions:scanCoverageDimensions(overallCoverage.coveragePercent, multiPageAudits.length, auditedRawPages.length+excludedNoindexPages, scoredSamplePages.length),
@@ -6302,6 +6401,28 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       counts:{ selected:multiPageAudits.length, fetched:auditedRawPages.length+excludedNoindexPages, scored:scoredSamplePages.length, unscoredMetadata:unscoredMetadataPages, headOnly:partialHeadPages, excludedNoindex:excludedNoindexPages, fetchFailed:unableToFetchPages, outcomes:sampleOutcomes, contact:uniqueMultiPagePages.filter((x)=>x.type==="contact").length, article:uniqueMultiPagePages.filter((x)=>x.type==="article").length, homepage:uniqueMultiPagePages.filter((x)=>x.type==="homepage").length, category:uniqueMultiPagePages.filter((x)=>x.type==="category").length, product:uniqueMultiPagePages.filter((x)=>x.type==="product").length, form:uniqueMultiPagePages.filter((x)=>x.type==="form").length, legal:uniqueMultiPagePages.filter((x)=>x.type==="legal").length, service:uniqueMultiPagePages.filter((x)=>x.type==="service").length, listing:uniqueMultiPagePages.filter((x)=>x.type==="listing").length, support:uniqueMultiPagePages.filter((x)=>x.type==="support").length, other:uniqueMultiPagePages.filter((x)=>x.type==="other").length, audited:auditedRawPages.length, unableToConfirm:multiPageAudits.length-auditedRawPages.length },
       note:"Steekproefscore telt alleen pagina's met vier beoordeelde metadata-controles (title, description, H1 en canonical). Pagina's met onbevestigd JavaScript-bewijs worden apart geteld en niet als 100/100 voorgesteld. Dit is geen volledige site-audit.",
     };
+    // QA 144: every proven problem on another assessed page reaches the advice
+    // list (URL, check, severity, evidence, fix), separately from the page score.
+    const sitewideIssues = buildSitewideIssues(reportedMultiPageAudits, finalUrl.toString());
+    Object.assign(multiPage, { sitewideIssues });
+    Object.assign(scanSummary, { sitewideIssues: sitewideIssues.filter((i) => i.certainty === "confirmed").length, sitewideIssuesToConfirm: sitewideIssues.filter((i) => i.certainty !== "confirmed").length });
+    // What the headline number covers, next to coverage and status (never changes it).
+    Object.assign(scoreModel, { scope: buildScoreScope({
+      overallScore: selectedOverallScore,
+      startUrl: finalUrl.toString(),
+      startIsHomepage: siteAccess.startIsHomepage,
+      evidenceCoveragePercent: overallCoverage.coveragePercent,
+      unconfirmedChecks: overallCoverage.unableToConfirm,
+      evidenceLevel: scoreEvidence.level,
+      range: scoreModel.range,
+      pages: { selected: siteAccess.pages.selected, assessed: siteAccess.pages.assessed },
+      siteCoverage: siteAccess.scanCoverage,
+      homepageAccess: siteAccess.homepage.access,
+      sampleScore: multiPage.sitewideSummary.sampleScore,
+      sitewideIssues: { confirmed: sitewideIssues.filter((i) => i.certainty === "confirmed").length, toConfirm: sitewideIssues.filter((i) => i.certainty !== "confirmed").length },
+      sectorStatus: (sectorProfile as { decisionStatus?: "confirmed" | "probable" | "unconfirmed" }).decisionStatus || (sectorProfile.sector === "unknown" ? "unconfirmed" : "probable"),
+      sectorLabel: sectorProfile.label,
+    }) });
 
     // Read-only mobile and desktop PageSpeed for the same customer scan.
     // Speed is independent evidence and never changes SEO/GEO scores.
@@ -6317,8 +6438,15 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // Which persistence step was running when a save failed (reported, not secret).
     let saveStage = "start";
     let pendingFixes = new Map<string, { status: string }>();
-    try { user = await getCurrentUser(); } catch {}
-    if (dashboardScan && !user) return NextResponse.json({ error: scanError.session, code: "SESSION_EXPIRED" }, { status: 401 });
+    trace.phase = "save";
+    // The session was already verified before the crawl. Re-read it once; a
+    // transient database failure here must not throw away a finished scan as
+    // "session expired": fall back to the verified user from the start.
+    const saveLookup = await resolveScanUser(getCurrentUser);
+    user = saveLookup.user ?? (saveLookup.lookupFailed ? usageUser : null);
+    if (dashboardScan && !user) return NextResponse.json(saveLookup.lookupFailed
+      ? { error: scanError.authUnavailable, code: "AUTH_LOOKUP_UNAVAILABLE", retryable: true, charged: false }
+      : { error: scanError.session, code: "SESSION_EXPIRED" }, { status: saveLookup.lookupFailed ? 503 : 401 });
     if (user) {
       try {
         saveStage = "schema";
@@ -6443,7 +6571,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
               internalLinks, canonical: canonical || null, lang: lang || null, robots: robots || null,
               openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null }, imageAltCandidates,
               productOptimizer: isProductPage
-                ? { eligible: productOptimizerSourceCount >= 3 && [...seoChecks,...geoChecks].some((c)=>c.key==="product_copy_optimizer" && c.status==="pass"), sourceCount: primaryProductFieldCount, copySourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page" }
+                ? { eligible: productOptimizerSourceCount >= 3 && [...seoChecks,...geoChecks].some((c)=>c.key==="product_copy_optimizer" && c.status==="pass"), sourceCount: primaryProductFieldCount, copySourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page", sourceUrl: finalUrl.toString(), productMatch: pageProductMatch, status: pageProductMatch.conflict ? "page_product_not_confirmable" : primaryProductEvidence ? "page_product_confirmed" : "no_page_product" }
                 : (() => {
                     // The same best-evidenced product page as the product checks (never the first match).
                     const sample = productSamplePage || auditedMultiPages.find((item)=>item.type==="product");
@@ -6714,7 +6842,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null },
         imageAltCandidates,
         productOptimizer: isProductPage
-                ? { eligible: productOptimizerSourceCount >= 3 && [...seoChecks,...geoChecks].some((c)=>c.key==="product_copy_optimizer" && c.status==="pass"), sourceCount: primaryProductFieldCount, copySourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page" }
+                ? { eligible: productOptimizerSourceCount >= 3 && [...seoChecks,...geoChecks].some((c)=>c.key==="product_copy_optimizer" && c.status==="pass"), sourceCount: primaryProductFieldCount, copySourceCount: productOptimizerSourceCount, product: primaryProductEvidence ? { name: primaryProductEvidence.name || null, image: primaryProductEvidence.imageUrl || null, sku: primaryProductEvidence.sku || null, offers: primaryProductEvidence.offers.slice(0,3) } : null, provenance: "current_page", sourceUrl: finalUrl.toString(), productMatch: pageProductMatch, status: pageProductMatch.conflict ? "page_product_not_confirmable" : primaryProductEvidence ? "page_product_confirmed" : "no_page_product" }
                 : (() => {
                     // The same best-evidenced product page as the product checks (never the first match).
                     const sample = productSamplePage || auditedMultiPages.find((item)=>item.type==="product");

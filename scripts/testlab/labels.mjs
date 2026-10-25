@@ -21,7 +21,13 @@ export function compareSector(expected,profile={}) {
   expectedSubtype:key||null,observedSubtype:profile.key||profile.subtype||null,
   subtypeMatch:key?profile.key===key:null,labelStatus:'proposed_not_independently_verified'};
 }
-export function failureCategory(status,code='') {
+export function failureCategory(status,code='',attribution=null) {
+ // Incident attribution from the scan API is authoritative when present.
+ if(attribution==='rankfix_session')return 'auth';
+ if(attribution==='rankfix_quota')return 'quota';
+ if(attribution==='rankfix_infrastructure')return 'infrastructure';
+ if(/AUTH_LOOKUP_UNAVAILABLE/.test(code))return 'infrastructure';
+ if(/SESSION_EXPIRED/.test(code))return 'auth';
  // The target website's own refusals (its 429, its login, its WAF) are site
  // blocks, never a RankFix quota: they must not stop the TestLab run.
  if(/SITE_RATE_LIMITED|HTTP_AUTH_REQUIRED/.test(code))return 'site_blocked';
