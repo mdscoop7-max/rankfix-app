@@ -14,7 +14,7 @@ type SiteResult={host:string;status:string;expected:string;sector:string|null;ke
 type Catalog={sites:Site[];count:number;runtime:{commitSha:string|null;environment:string}};
 const sleep=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
 
-const storageKey=(sha:string)=>"rankfix-qa-testlab-144:"+sha;
+const storageKey=(sha:string,variant:string)=>"rankfix-qa-testlab-"+variant+":"+sha;
 const num=(n:number|null)=>n==null?"—":String(Math.round(n));
 function csvCell(value:unknown){
  const text=String(value??"");
@@ -27,7 +27,10 @@ function saveDownload(name:string,type:string,content:string){
  window.setTimeout(()=>URL.revokeObjectURL(url),3000);
 }
 
-export default function TestLab144() {
+export default function TestLab144({variant="classic"}:{variant?:"classic"|"international"}={}) {
+ const international=variant==="international";
+ const expectedTotal=international?28:144;
+ const catalogUrl=international?"/api/testlab/international/catalog":"/api/testlab/catalog";
  const [catalog,setCatalog]=useState<Catalog|null>(null);
  const [error,setError]=useState("");
  const [notice,setNotice]=useState("Toegang en QA-versie controleren…");
@@ -40,7 +43,7 @@ export default function TestLab144() {
  useEffect(()=>{
   mounted.current=true;
   Promise.all([
-   fetch("/api/testlab/catalog",{cache:"no-store",credentials:"same-origin"}).then(async r=>({ok:r.ok,data:await r.json()})),
+   fetch(catalogUrl,{cache:"no-store",credentials:"same-origin"}).then(async r=>({ok:r.ok,data:await r.json()})),
    fetch("/api/scan/version",{cache:"no-store"}).then(r=>r.json()),
   ]).then(([answer,version])=>{
     if(!mounted.current)return;
@@ -49,25 +52,26 @@ export default function TestLab144() {
       setNotice("");return;
     }
     const next=answer.data as Catalog;
-    if(next.sites.length!==144 || !["preview","local"].includes(version.environment) || !version.commitSha || version.commitSha!==next.runtime.commitSha){
+    if(next.sites.length!==expectedTotal || !["preview","local"].includes(version.environment) || !version.commitSha || version.commitSha!==next.runtime.commitSha){
       setError("QA-versie of catalogus niet betrouwbaar bevestigd. Er worden geen scans gestart.");
       setNotice("");return;
     }
     setCatalog(next);
-    const stored=localStorage.getItem(storageKey(version.commitSha));
+    const stored=localStorage.getItem(storageKey(version.commitSha,variant));
     if(stored){try{const list=JSON.parse(stored);
-      if(Array.isArray(list))setResults(list.filter((r:SiteResult)=>next.sites.some(s=>s.host===r.host)).slice(0,144));
+      if(Array.isArray(list))setResults(list.filter((r:SiteResult)=>next.sites.some(s=>s.host===r.host)).slice(0,expectedTotal));
     }catch{}}
-    setNotice("Klaar. Alle 144 websites zijn geselecteerd. Klik één keer op Start test; houd dit tabblad open.");
+    setNotice(`Klaar. Alle ${expectedTotal} websites zijn geselecteerd. Klik één keer op Start test; houd dit tabblad open.`);
   }).catch(()=>{if(mounted.current){setError("QA-catalogus kon niet worden opgehaald.");setNotice("");}});
   return()=>{mounted.current=false;stop.current=true;};
- },[]);
+ },[catalogUrl,expectedTotal,variant]);
  const sites=catalog?.sites||[];
  const scoped=useMemo(()=>sites.filter(s=>
-  scope==="all" || scope==="new48" && /round-[ef]-/.test(s.round) ||
-  scope==="hair_salon"&&s.group==="hair_salon" || scope==="optician"&&s.group==="optician" ||
+  scope==="all" || (!international && scope==="new48" && /round-[ef]-/.test(s.round)) ||
+  (international && scope==="group:"+s.group) ||
+  (!international && scope==="hair_salon"&&s.group==="hair_salon") || (!international && scope==="optician"&&s.group==="optician") ||
   scope===s.country || scope===s.round
- ),[scope,sites]);
+ ),[scope,sites,international]);
  const visible=useMemo(()=>scoped.filter(s=>[s.name,s.host,s.country,s.group,s.expected].join(" ").toLowerCase().includes(query.toLowerCase())),[scoped,query]);
  const byHost=useMemo(()=>new Map(results.map(r=>[r.host,r])),[results]);
  const finished=scoped.filter(s=>isFinalResult(byHost.get(s.host))).length;
@@ -75,7 +79,7 @@ export default function TestLab144() {
  const wrongType=(s:Site,r:SiteResult)=>r.status==="succes"&&r.sector!==null&&!compareSector(s.expected,{sector:r.sector,key:r.key||undefined}).sectorMatch;
  const mismatches=scoped.filter(s=>{const r=byHost.get(s.host);return Boolean(r&&wrongType(s,r));}).length;
  const countries=useMemo(()=>[...new Set(sites.map(s=>s.country))].sort(),[sites]);
- const persist=(list:SiteResult[])=>{setResults(list);if(catalog?.runtime.commitSha)localStorage.setItem(storageKey(catalog.runtime.commitSha),JSON.stringify(list));};
+ const persist=(list:SiteResult[])=>{setResults(list);if(catalog?.runtime.commitSha)localStorage.setItem(storageKey(catalog.runtime.commitSha,variant),JSON.stringify(list));};
  async function start(){
   if(!catalog||running)return;
   // Never tested, or only a pending (RankFix-side) row: retried, never skipped.
@@ -152,30 +156,32 @@ export default function TestLab144() {
   if(!catalog)return;
   const complete=sites.map(s=>({...s,result:byHost.get(s.host)||null}));
   if(fmt==="json"){
-    saveDownload("rankfix-testlab-144-"+catalog.runtime.commitSha?.slice(0,8)+".json","application/json;charset=utf-8",
+    saveDownload(`rankfix-testlab-${international?"international-28":"144"}-`+catalog.runtime.commitSha?.slice(0,8)+".json","application/json;charset=utf-8",
       JSON.stringify({commitSha:catalog.runtime.commitSha,generatedAt:new Date().toISOString(),labels:"proposed_not_independently_verified",sites:complete},null,2));
     return;
   }
   const columns=["land","bedrijf","domein","sector_verwacht","subtype_verwacht","gevonden_sector","zekerheid","status","opnieuw_te_testen","score","seo","geo","api_http","website_http","redencode","toewijzing","fase","trace_id","duur_ms","reden","scan_id"];
   const lines=complete.map(({result:r,...s})=>[s.country,s.name,s.host,s.expected,s.group,r?.sector??"",r?.confidence??"",r?.status??"nog_niet_getest",r?.pending?"ja":"",r?.score??"",r?.seo??"",r?.geo??"",r?.http??"",r?.incident?.originHttpStatus??"",r?.incident?.reasonCode??"",r?.incident?.attribution??"",r?.incident?.phase??"",r?.incident?.traceId??"",r?.elapsedMs??"",r?.reason??"",r?.scanId??""].map(csvCell).join(","));
-  saveDownload("rankfix-testlab-144-"+catalog.runtime.commitSha?.slice(0,8)+".csv","text/csv;charset=utf-8","\uFEFF"+columns.join(",")+"\n"+lines.join("\n"));
+  saveDownload(`rankfix-testlab-${international?"international-28":"144"}-`+catalog.runtime.commitSha?.slice(0,8)+".csv","text/csv;charset=utf-8","\uFEFF"+columns.join(",")+"\n"+lines.join("\n"));
  }
  return <div className="rf-lab">
   <DashboardNav/>
   <header className="rf-lab-hero">
    <div><div className="rf-lab-eyebrow">RankFix • besloten QA</div>
-    <h1>TestLab — 144 websites</h1>
+    <h1>{international?"TestLab — 28 internationale beroepen":"TestLab — 144 websites"}</h1>
     <p>Controleer sectoren, winkels en dienstverleners in verschillende landen. Alle tests zijn alleen-lezen en wijzigen geen klantwebsite.</p>
-   </div><div className="rf-lab-count">144<span>unieke websites</span></div>
+    <p><a href={international?"/dashboard/testlab":"/dashboard/testlab/international"}>{international?"Terug naar de oorspronkelijke 144 websites":"Nieuwe ronde: 28 beroepen in 14 landen"}</a></p>
+   </div><div className="rf-lab-count">{expectedTotal}<span>unieke websites</span></div>
   </header>
   <section className="rf-lab-panel">
    <div className="rf-lab-table-top"><h2>Test starten</h2><span><code>{catalog?.runtime.commitSha?.slice(0,12)||"Versie controleren"}</code></span></div>
    <div className="rf-lab-controls">
     <label>Testgroep
      <select disabled={running||!catalog} value={scope} onChange={e=>setScope(e.target.value)}>
-      <option value="new48">Nieuwe 48 websites</option><option value="all">Alle 144 websites</option>
-      <option value="hair_salon">Kapsalons (12)</option><option value="optician">Opticiens (12)</option>
+      {!international&&<option value="new48">Nieuwe 48 websites</option>}<option value="all">{international?"Alle 28 internationale websites":"Alle 144 websites"}</option>
+      {!international&&<><option value="hair_salon">Kapsalons (12)</option><option value="optician">Opticiens (12)</option></>}
       <optgroup label="Ronde">{[...new Set(sites.map(s=>s.round))].map(x=><option key={x} value={x}>{x}</option>)}</optgroup>
+      {international&&<optgroup label="Beroep / vakgebied">{[...new Set(sites.map(s=>s.group))].sort().map(x=><option key={x} value={"group:"+x}>{x.replaceAll("_"," ")}</option>)}</optgroup>}
       <optgroup label="Land">{countries.map(x=><option key={x} value={x}>{x}</option>)}</optgroup>
      </select>
     </label>
