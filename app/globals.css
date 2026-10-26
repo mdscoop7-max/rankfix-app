@@ -111,3 +111,12 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .lc-free-scope-grid{display:flex;flex-wrap:wrap;gap:9px}
 .lc-free-scope-grid span{display:inline-flex;align-items:center;min-height:38px;padding:8px 12px;border:1px solid rgba(93,202,165,.25);border-radius:999px;background:rgba(15,59,48,.55);color:#d7f8eb;font-size:.88rem;font-weight:700;line-height:1.25}
 @media(max-width:640px){.lc-free-scope{padding:18px!important}.lc-free-scope-grid{gap:8px}.lc-free-scope-grid span{font-size:.8rem;min-height:34px;padding:7px 10px}}
+
+
+/* Public site: never render a low-contrast light hamburger icon on a light button.
+   The mobile navigation stays readable on the dark header at every breakpoint. */
+.rankfix-home nav button[aria-controls="rankfix-mobile-menu"]{background:#102a46!important;border-color:#315875!important;color:#f7fbff!important}
+.rankfix-home nav button[aria-controls="rankfix-mobile-menu"]:hover{background:#194668!important}
+.rankfix-home #rankfix-mobile-menu :is(a,button):hover,
+.rankfix-home #rankfix-mobile-menu :is(a,button):focus-visible{background:#194668!important;color:#fff!important}
+.rankfix-home nav :is(a,button,select):focus-visible{outline:3px solid #7fe8c5!important;outline-offset:3px!important}
