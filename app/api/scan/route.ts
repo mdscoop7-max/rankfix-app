@@ -24,7 +24,7 @@ import { purchaseActionInHtml, productCardLinks, priceSignalCount, isApiOrFeedPa
 import { neutralizeTemplateBindings, isTemplateHref, isCartActionUrl } from "@/lib/template-links";
 import { brokenLinkRecords, brokenLinkSummary, localizedBrokenLinkCopy, linkOutcome } from "@/lib/link-status";
 import { manufacturerRegistrationEvidence } from "@/lib/manufacturer-evidence";
-import { requireEvidenceForScoredChecks } from "@/lib/scan-feedback";
+import { requireEvidenceForScoredChecks, applyIncompleteRecoveryUncertainty } from "@/lib/scan-feedback";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang, isMarketSelectorPage } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { isTransientSeoCopy } from "@/lib/meta-description-fix";
@@ -4554,6 +4554,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     for (const item of seoChecks) {
       if (["subscription_price_visibility","booking_transaction","lead_form_presence"].includes(item.key) && item.evidence && !item.evidence.url) item.evidence = { ...item.evidence, url: finalUrl.toString(), found: item.status === "pass" ? true : item.evidence.found };
     }
+    applyIncompleteRecoveryUncertainty([...seoChecks,...geoChecks], { incompleteRecovery: access.recoveryWithoutNavigation && access.rankfixBlocked, url: finalUrl.toString() });
     applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate || thinRawDocument, rendered:javascriptExecuted, url:finalUrl.toString(), rawSubstantive:rawSubstantiveDocument });
     const selectedSeoChecks = mode === "geo" ? [] : seoChecks;
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
