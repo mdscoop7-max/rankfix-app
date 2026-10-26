@@ -5680,6 +5680,22 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       masterEvidence.activeModules = sectorProfile.applicableModules;
     }
     Object.assign(sectorProfile, {pageEvidence:multilingualPageIdentity});
+    // Generic recovery diagnosis: never infer a brand's sector from its name.
+    // When a refused homepage yields no navigation and representative pages
+    // provide no corroboration, explain *why* sector recognition abstained.
+    if (sectorProfile.sector === "unknown" && access.rankfixBlocked && access.recoveryWithoutNavigation
+      && !multilingualPageIdentity.decision) {
+      Object.assign(sectorProfile, {
+        decisionStatus: "unconfirmed",
+        evidence: [
+          "Sector niet bevestigd wegens toegangsbeperking: de oorspronkelijke aanvraag werd geweigerd en de browserweergave bevatte onvoldoende eigen navigatie.",
+          "Geen onafhankelijk bereikbare representatieve product-, categorie- of organisatiepagina bevestigde de hoofdactiviteit.",
+          "Een bekende merknaam of domeinnaam alleen is geen bewijs voor de sector.",
+        ],
+        accessLimitation: "blocked_incomplete_homepage",
+      });
+    }
+
 
 
     // Set when the decision below makes the shop a sales channel; the later
