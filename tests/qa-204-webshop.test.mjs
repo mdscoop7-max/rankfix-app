@@ -146,7 +146,7 @@ test("an unverifiable start-page 404 is a site-side, unscored outcome, never 'pa
 test("TestLab 144 commerce catalog: 72 webshop targets, 72 other sectors, unique hosts", () => {
   const catalog = JSON.parse(readFileSync(new URL("./fixtures/testlab-144/catalog-commerce-diverse-20261026.json", import.meta.url), "utf8"));
   assert.equal(catalog.sites.length, 144);
-  const normalizedHosts = catalog.sites.map(s => s.hosts[0].toLowerCase().replace(/^www\\./, ""));
+  const normalizedHosts = catalog.sites.map(s => s.hosts[0].toLowerCase().replace(/^www\./, ""));
   assert.equal(new Set(normalizedHosts).size, 144);
   const stores = catalog.sites.filter(s => s.expected === "ecommerce");
   const other = catalog.sites.filter(s => s.expected !== "ecommerce");
