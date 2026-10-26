@@ -6705,6 +6705,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // exact affected URLs. UNABLE samples remain uncertainty and never become FAIL.
     const sitewideCheckAggregation = ["title","description","h1","canonical"].map((key) => {
       const observations = auditedRawPages.flatMap((page) => {
+        // Incomplete recovery after a 403 cannot prove metadata was absent.
+        if (access.rankfixBlocked && access.recoveryWithoutNavigation && /^(?:title|description|canonical|h1)$/.test(key)) return [];
         const finding = page.evidenceChecks.find((item)=>item.key===key);
         return finding ? [{url:page.url,status:finding.status,details:finding.details}] : [];
       });
@@ -6819,7 +6821,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     };
     // QA 144: every proven problem on another assessed page reaches the advice
     // list (URL, check, severity, evidence, fix), separately from the page score.
-    const sitewideIssues = buildSitewideIssues(reportedMultiPageAudits, finalUrl.toString());
+    const sitewideIssues = access.rankfixBlocked && access.recoveryWithoutNavigation
+      ? [] // Do not promote unverified recovered-page absence to proven sitewide issues.
+      : buildSitewideIssues(reportedMultiPageAudits, finalUrl.toString());
     Object.assign(multiPage, { sitewideIssues });
     Object.assign(scanSummary, { sitewideIssues: sitewideIssues.filter((i) => i.certainty === "confirmed").length, sitewideIssuesToConfirm: sitewideIssues.filter((i) => i.certainty !== "confirmed").length });
     // What the headline number covers, next to coverage and status (never changes it).
