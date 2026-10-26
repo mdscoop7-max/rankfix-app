@@ -10,6 +10,23 @@ function positiveInt(value:string|undefined,fallback:number,min:number,max:numbe
   return Number.isFinite(parsed)?Math.min(max,Math.max(min,parsed)):fallback;
 }
 
+/**
+ * Next.js sets NODE_ENV=production for `next start`, including when QA runs on
+ * a laptop. PostgreSQL on loopback often has SSL disabled by default.
+ * Do not force SSL for that *local* connection; remote production behaviour
+ * stays unchanged.
+ */
+export function postgresSslOptions(databaseUrl: string, nodeEnv: string | undefined):
+  false | {rejectUnauthorized: false} | undefined {
+  try {
+    const host = new URL(databaseUrl).hostname.toLowerCase().replace(/^\[|\]$/g, "");
+    if (host === "localhost" || host === "127.0.0.1" || host === "::1") return false;
+  } catch {
+    // Invalid URLs remain the PostgreSQL client's responsibility to reject.
+  }
+  return nodeEnv === "production" ? {rejectUnauthorized: false} : undefined;
+}
+
 export function getDb() {
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL ontbreekt.");
   if (!global.__rankfixPool) {
@@ -22,7 +39,7 @@ export function getDb() {
       connectionTimeoutMillis: positiveInt(process.env.DB_CONNECT_TIMEOUT_MS,8000,1000,30000),
       idleTimeoutMillis: positiveInt(process.env.DB_IDLE_TIMEOUT_MS,30000,5000,120000),
       allowExitOnIdle: false,
-      ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
+      ssl: postgresSslOptions(process.env.DATABASE_URL, process.env.NODE_ENV),
     });
     // Every query passes through one parameter guard: PostgreSQL rejects NUL in
     // text and lone UTF-16 surrogates / \u0000 escapes in jsonb. One cut emoji
