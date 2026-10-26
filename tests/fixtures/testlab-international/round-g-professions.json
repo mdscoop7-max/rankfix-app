@@ -1,0 +1,287 @@
+{
+  "id": "round-g-international-professions",
+  "description": "QA-only international professions / sectors: 28 websites from 14 countries; labels are hypotheses, not ground truth; results independent from classic 144.",
+  "status": "QA_PROPOSED_LABELS",
+  "sites": [
+    {
+      "country": "NL",
+      "name": "Royal FloraHolland",
+      "hosts": [
+        "royalfloraholland.com"
+      ],
+      "group": "flower_auction",
+      "expected": "agriculture_horticulture",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "De Hypotheker",
+      "hosts": [
+        "dehypotheker.nl"
+      ],
+      "group": "mortgage_advisor",
+      "expected": "financial_services",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "name": "JIMS",
+      "hosts": [
+        "jims.be"
+      ],
+      "group": "fitness_club",
+      "expected": "health_wellness",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "name": "Torfs",
+      "hosts": [
+        "torfs.be"
+      ],
+      "group": "shoe_retail",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "Dr. Klein",
+      "hosts": [
+        "drklein.de"
+      ],
+      "group": "mortgage_advisor",
+      "expected": "financial_services",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "HORNBACH",
+      "hosts": [
+        "hornbach.de"
+      ],
+      "group": "diy_store",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "name": "Doctolib",
+      "hosts": [
+        "doctolib.fr"
+      ],
+      "group": "doctor_booking_platform",
+      "expected": "health_wellness",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "name": "Orpi",
+      "hosts": [
+        "orpi.com"
+      ],
+      "group": "real_estate_agency",
+      "expected": "real_estate",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "ES",
+      "name": "Legálitas",
+      "hosts": [
+        "legalitas.com"
+      ],
+      "group": "legal_advice",
+      "expected": "legal_services",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "ES",
+      "name": "Habitissimo",
+      "hosts": [
+        "habitissimo.es"
+      ],
+      "group": "home_services_marketplace",
+      "expected": "service_marketplace",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "IT",
+      "name": "Aruba",
+      "hosts": [
+        "aruba.it"
+      ],
+      "group": "web_hosting",
+      "expected": "software",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "IT",
+      "name": "Tecnocasa",
+      "hosts": [
+        "tecnocasa.it"
+      ],
+      "group": "real_estate_agency",
+      "expected": "real_estate",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "PT",
+      "name": "CUF",
+      "hosts": [
+        "cuf.pt"
+      ],
+      "group": "hospital_healthcare",
+      "expected": "healthcare",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "PT",
+      "name": "Worten",
+      "hosts": [
+        "worten.pt"
+      ],
+      "group": "electronics_retail",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "GB",
+      "name": "Timpson",
+      "hosts": [
+        "timpson.co.uk"
+      ],
+      "group": "repair_services",
+      "expected": "professional_services",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "GB",
+      "name": "Rightmove",
+      "hosts": [
+        "rightmove.co.uk"
+      ],
+      "group": "property_platform",
+      "expected": "real_estate",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "CH",
+      "name": "Implenia",
+      "hosts": [
+        "implenia.com"
+      ],
+      "group": "construction_company",
+      "expected": "manufacturing_industrial",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "CH",
+      "name": "Amavita",
+      "hosts": [
+        "amavita.ch"
+      ],
+      "group": "pharmacy_retail",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "SE",
+      "name": "Apoteket",
+      "hosts": [
+        "apoteket.se"
+      ],
+      "group": "pharmacy_retail",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "SE",
+      "name": "Hemnet",
+      "hosts": [
+        "hemnet.se"
+      ],
+      "group": "property_platform",
+      "expected": "real_estate",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DK",
+      "name": "jem & fix",
+      "hosts": [
+        "jemogfix.dk"
+      ],
+      "group": "diy_store",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DK",
+      "name": "home",
+      "hosts": [
+        "home.dk"
+      ],
+      "group": "real_estate_agency",
+      "expected": "real_estate",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FI",
+      "name": "Terveystalo",
+      "hosts": [
+        "terveystalo.com"
+      ],
+      "group": "healthcare_provider",
+      "expected": "healthcare",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FI",
+      "name": "Kiinteistömaailma",
+      "hosts": [
+        "kiinteistomaailma.fi"
+      ],
+      "group": "real_estate_agency",
+      "expected": "real_estate",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NO",
+      "name": "Mittanbud",
+      "hosts": [
+        "mittanbud.no"
+      ],
+      "group": "service_marketplace",
+      "expected": "service_marketplace",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NO",
+      "name": "Vitusapotek",
+      "hosts": [
+        "vitusapotek.no"
+      ],
+      "group": "pharmacy_retail",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "PL",
+      "name": "Pracuj.pl",
+      "hosts": [
+        "pracuj.pl"
+      ],
+      "group": "jobs_platform",
+      "expected": "recruitment_staffing",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "PL",
+      "name": "Castorama",
+      "hosts": [
+        "castorama.pl"
+      ],
+      "group": "diy_store",
+      "expected": "retail",
+      "reviewStatus": "proposed_not_independently_verified"
+    }
+  ]
+}
