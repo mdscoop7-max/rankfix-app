@@ -37,7 +37,7 @@ await page.setRequestInterception(true);
 page.on("request", async (req) => {
   const url = new URL(req.url());
   if (!url.pathname.startsWith("/api/")) return req.continue();
-  if (url.pathname === "/api/testlab/catalog") return respond(req, { sites, count: 144, runtime: { commitSha: SHA, environment: "preview" } });
+  if (url.pathname === "/api/testlab/catalog") return respond(req, { sites, count: 144, catalogId: "baseline", categoryCounts: { webshops: 8, other: 136 }, runtime: { commitSha: SHA, environment: "preview" } });
   if (url.pathname === "/api/scan/version") return respond(req, { commitSha: SHA, environment: "preview" });
   if (url.pathname === "/api/auth/me") return respond(req, { user: state.loggedIn ? { id: "qa" } : null });
   if (url.pathname === "/api/scan") {
@@ -62,7 +62,8 @@ const log = [];
 
 // A
 await page.goto(`${BASE}/dashboard/testlab`);
-await waitStatus(/Klaar\. Alle 144/);
+// The catalog answer of #206 names the catalog; the notice counts webshops and others.
+await waitStatus(/Klaar\. \d+ webshops en \d+ andere websites/);
 state.behaviour[H[1]] = "session";
 await clickButton("Start test");
 let s = await waitStatus(/RankFix meldde login/);

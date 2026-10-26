@@ -56,6 +56,9 @@ export default function TestLab144() {
       setError("QA-versie of catalogus niet betrouwbaar bevestigd. Er worden geen scans gestart.");
       setNotice("");return;
     }
+    // Older catalog answers have no catalogId/categoryCounts: they are the baseline 144.
+    if(!next.catalogId)next.catalogId="baseline";
+    if(!next.categoryCounts){const webshops=next.sites.filter(s=>["ecommerce","retail"].includes(s.expected)).length;next.categoryCounts={webshops,other:next.sites.length-webshops};}
     setCatalog(next);
     const stored=localStorage.getItem(storageKey(version.commitSha,next.catalogId));
     if(stored){try{const list=JSON.parse(stored);
