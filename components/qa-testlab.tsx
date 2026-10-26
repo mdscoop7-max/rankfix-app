@@ -9,13 +9,14 @@ type Site={host:string;name:string;country:string;group:string;expected:string;r
 type Incident={traceId:string|null;originHttpStatus:number|null;apiHttpStatus:number;reasonCode:string;attribution:string|null;phase:string|null;finalUrl:string|null;browserRender:unknown};
 // pending=true: RankFix/runner stopped (session, quota, infrastructure, connection); the website was not judged and is retried on resume.
 type SiteResult={host:string;status:string;expected:string;sector:string|null;sectorKey?:string|null;websiteType?:string|null;commercePlatform?:string|null;industryVertical?:string|null;confidence:number|null;score:number|null;seo:number|null;geo:number|null;http:number;reason:string;elapsedMs:number;scanId:string|null;at:string;pending?:boolean;incident?:Incident|null};
-type Catalog={sites:Site[];count:number;runtime:{commitSha:string|null;environment:string}};
+type Catalog={sites:Site[];count:number;catalogId:string;categoryCounts:{webshops:number;other:number};runtime:{commitSha:string|null;environment:string}};
 const sleep=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
 // One verdict per site (exact / equivalent / unconfirmed / mismatch), shared with
 // scripts/testlab: a literal label difference is not a sector error (QA #204).
 const verdictOf=(s:Site,r:SiteResult)=>r.status==="succes"?sectorVerdict(s.expected,{sector:r.sector,key:r.sectorKey,websiteType:r.websiteType}).verdict as string:null;
 const VERDICT_LABEL:Record<string,string>={exact:"exact",equivalent:"taxonomisch equivalent",unconfirmed:"sector onbevestigd",mismatch:"waarschijnlijk fout"};
-const storageKey=(sha:string)=>"rankfix-qa-testlab-144:"+sha;
+// Preserve all baseline results under their original key; isolate the new catalog.
+const storageKey=(sha:string,catalogId:string)=>catalogId==="baseline"?"rankfix-qa-testlab-144:"+sha:"rankfix-qa-testlab-144:"+catalogId+":"+sha;
 const num=(n:number|null)=>n==null?"—":String(Math.round(n));
 function csvCell(value:unknown){
  const text=String(value??"");
@@ -40,8 +41,9 @@ export default function TestLab144() {
  const mounted=useRef(true);
  useEffect(()=>{
   mounted.current=true;
+  const catalogId=new URLSearchParams(window.location.search).get("catalog")==="commerce"?"commerce":"baseline";
   Promise.all([
-   fetch("/api/testlab/catalog",{cache:"no-store",credentials:"same-origin"}).then(async r=>({ok:r.ok,data:await r.json()})),
+   fetch("/api/testlab/catalog?catalog="+catalogId,{cache:"no-store",credentials:"same-origin"}).then(async r=>({ok:r.ok,data:await r.json()})),
    fetch("/api/scan/version",{cache:"no-store"}).then(r=>r.json()),
   ]).then(([answer,version])=>{
     if(!mounted.current)return;
@@ -55,17 +57,18 @@ export default function TestLab144() {
       setNotice("");return;
     }
     setCatalog(next);
-    const stored=localStorage.getItem(storageKey(version.commitSha));
+    const stored=localStorage.getItem(storageKey(version.commitSha,next.catalogId));
     if(stored){try{const list=JSON.parse(stored);
       if(Array.isArray(list))setResults(list.filter((r:SiteResult)=>next.sites.some(s=>s.host===r.host)).slice(0,144));
     }catch{}}
-    setNotice("Klaar. Alle 144 websites zijn geselecteerd. Klik één keer op Start test; houd dit tabblad open.");
+    setNotice("Klaar. "+next.categoryCounts.webshops+" webshops en "+next.categoryCounts.other+" andere websites geselecteerd. Klik één keer op Start test; houd dit tabblad open.");
   }).catch(()=>{if(mounted.current){setError("QA-catalogus kon niet worden opgehaald.");setNotice("");}});
   return()=>{mounted.current=false;stop.current=true;};
  },[]);
  const sites=catalog?.sites||[];
+ const isCommerceCatalog=catalog?.catalogId==="commerce";
  const scoped=useMemo(()=>sites.filter(s=>
-  scope==="all" || scope==="new48" && /round-[ef]-/.test(s.round) ||
+  scope==="all" || scope==="webshops"&&s.expected==="ecommerce" || scope==="other"&&s.expected!=="ecommerce" || scope==="new48" && /round-[ef]-/.test(s.round) ||
   scope==="hair_salon"&&s.group==="hair_salon" || scope==="optician"&&s.group==="optician" ||
   scope===s.country || scope===s.round
  ),[scope,sites]);
@@ -77,7 +80,7 @@ export default function TestLab144() {
  const mismatches=verdictCounts.mismatch||0;
  const countries=useMemo(()=>[...new Set(sites.map(s=>s.country))].sort(),[sites]);
  const wrongType=(s:Site,r:SiteResult)=>verdictOf(s,r)==="mismatch";
- const persist=(list:SiteResult[])=>{setResults(list);if(catalog?.runtime.commitSha)localStorage.setItem(storageKey(catalog.runtime.commitSha),JSON.stringify(list));};
+ const persist=(list:SiteResult[])=>{setResults(list);if(catalog?.runtime.commitSha)localStorage.setItem(storageKey(catalog.runtime.commitSha,catalog.catalogId),JSON.stringify(list));};
  async function start(){
   if(!catalog||running)return;
   // Never tested, or only a pending (RankFix-side) row: retried, never skipped.
@@ -156,30 +159,31 @@ export default function TestLab144() {
  function exportResult(fmt:"json"|"csv"){
   if(!catalog)return;
   const complete=sites.map(s=>({...s,result:byHost.get(s.host)||null}));
+  const exportName="rankfix-testlab-144-"+(catalog.catalogId==="commerce"?"commerce-":"")+catalog.runtime.commitSha?.slice(0,8);
   if(fmt==="json"){
-    saveDownload("rankfix-testlab-144-"+catalog.runtime.commitSha?.slice(0,8)+".json","application/json;charset=utf-8",
-      JSON.stringify({commitSha:catalog.runtime.commitSha,generatedAt:new Date().toISOString(),labels:"proposed_not_independently_verified",verdictCounts,sites:complete.map(x=>({...x,verdict:x.result?verdictOf(x,x.result):null}))},null,2));
+    saveDownload(exportName+".json","application/json;charset=utf-8",
+      JSON.stringify({commitSha:catalog.runtime.commitSha,catalogId:catalog.catalogId,categoryCounts:catalog.categoryCounts,generatedAt:new Date().toISOString(),labels:"proposed_not_independently_verified",verdictCounts,sites:complete.map(x=>({...x,verdict:x.result?verdictOf(x,x.result):null}))},null,2));
     return;
   }
   const columns=["land","bedrijf","domein","sector_verwacht","subtype_verwacht","gevonden_sector","gevonden_subtype","oordeel_sector","websitetype","webshopplatform","branche_webshop","zekerheid","status","opnieuw_te_testen","score","seo","geo","api_http","website_http","redencode","toewijzing","fase","trace_id","duur_ms","reden","scan_id"];
   const lines=complete.map(({result:r,...s})=>[s.country,s.name,s.host,s.expected,s.group,r?.sector??"",r?.sectorKey??"",r?(verdictOf(s,r)??""):"",r?.websiteType??"",r?.commercePlatform??"",r?.industryVertical??"",r?.confidence??"",r?.status??"nog_niet_getest",r?.pending?"ja":"",r?.score??"",r?.seo??"",r?.geo??"",r?.http??"",r?.incident?.originHttpStatus??"",r?.incident?.reasonCode??"",r?.incident?.attribution??"",r?.incident?.phase??"",r?.incident?.traceId??"",r?.elapsedMs??"",r?.reason??"",r?.scanId??""].map(csvCell).join(","));
-  saveDownload("rankfix-testlab-144-"+catalog.runtime.commitSha?.slice(0,8)+".csv","text/csv;charset=utf-8","\uFEFF"+columns.join(",")+"\n"+lines.join("\n"));
+  saveDownload(exportName+".csv","text/csv;charset=utf-8","\uFEFF"+columns.join(",")+"\n"+lines.join("\n"));
  }
  return <div className="rf-lab">
   <DashboardNav/>
   <header className="rf-lab-hero">
    <div><div className="rf-lab-eyebrow">RankFix • besloten QA</div>
     <h1>TestLab — 144 websites</h1>
-    <p>Controleer sectoren, winkels en dienstverleners in verschillende landen. Alle tests zijn alleen-lezen en wijzigen geen klantwebsite.</p>
+    <p>{isCommerceCatalog?"Nieuwe catalogus: 72 webshops uit 13 verkoopsectoren en 72 websites uit andere branches.":"Bestaande baseline: sectoren, winkels en dienstverleners in verschillende landen."} Alle tests zijn alleen-lezen en wijzigen geen klantwebsite.</p>
    </div><div className="rf-lab-count">144<span>unieke websites</span></div>
   </header>
   <section className="rf-lab-panel">
-   <div className="rf-lab-table-top"><h2>Test starten</h2><span><code>{catalog?.runtime.commitSha?.slice(0,12)||"Versie controleren"}</code></span></div>
+   <div className="rf-lab-table-top"><h2>Test starten · {isCommerceCatalog?"72 webshops + 72 overige":"baseline 144"}</h2><span><code>{catalog?.runtime.commitSha?.slice(0,12)||"Versie controleren"}</code></span></div>
    <div className="rf-lab-controls">
     <label>Testgroep
      <select disabled={running||!catalog} value={scope} onChange={e=>setScope(e.target.value)}>
-      <option value="new48">Nieuwe 48 websites</option><option value="all">Alle 144 websites</option>
-      <option value="hair_salon">Kapsalons (12)</option><option value="optician">Opticiens (12)</option>
+      <option value="all">Alle 144 websites</option>
+      {isCommerceCatalog?<><option value="webshops">Webshops (72)</option><option value="other">Andere sectoren (72)</option></>:<><option value="new48">Nieuwe 48 websites</option><option value="hair_salon">Kapsalons (12)</option><option value="optician">Opticiens (12)</option></>}
       <optgroup label="Ronde">{[...new Set(sites.map(s=>s.round))].map(x=><option key={x} value={x}>{x}</option>)}</optgroup>
       <optgroup label="Land">{countries.map(x=><option key={x} value={x}>{x}</option>)}</optgroup>
      </select>
@@ -197,7 +201,7 @@ export default function TestLab144() {
     <div className="rf-lab-stat"><strong>{verdictCounts.unconfirmed||0}</strong><span>Sector onbevestigd</span></div>
    </div>
    <div role="status" className={"rf-lab-status"+(error?" rf-lab-error":"")}>{error||notice}</div>
-   <p className="rf-lab-note">Sectorlabels zijn voorlopig en nog niet onafhankelijk gevalideerd. Geblokkeerde sites en technische problemen tellen niet als sectorfout. Deze test draait in dit browsertabblad op je laptop, niet automatisch op de server. Sluit je het tabblad of gaat de laptop in slaap, dan stopt de test; met "Doorgaan met resterende" gaat hij verder bij de eerste niet-afgeronde website. Resultaten staan alleen in deze browser (per QA-commit): exporteer tussendoor JSON/CSV, want gewiste browsergegevens wissen ook de resultaten.</p>
+   <p className="rf-lab-note">{isCommerceCatalog?"Dit is de nieuwe 72/72-catalogus; de oude 144 baseline blijft apart beschikbaar via /dashboard/testlab. ":""}Sectorlabels zijn voorlopig en nog niet onafhankelijk gevalideerd. Geblokkeerde sites en technische problemen tellen niet als sectorfout. Deze test draait in dit browsertabblad op je laptop, niet automatisch op de server. Sluit je het tabblad of gaat de laptop in slaap, dan stopt de test; met "Doorgaan met resterende" gaat hij verder bij de eerste niet-afgeronde website. Resultaten staan alleen in deze browser (per QA-commit): exporteer tussendoor JSON/CSV, want gewiste browsergegevens wissen ook de resultaten.</p>
    <div className="rf-lab-controls"><button type="button" disabled={!catalog} onClick={()=>exportResult("csv")}>Exporteer CSV</button><button type="button" disabled={!catalog} onClick={()=>exportResult("json")}>Exporteer JSON</button></div>
   </section>
   <section className="rf-lab-panel">
