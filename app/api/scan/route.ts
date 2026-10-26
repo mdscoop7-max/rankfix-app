@@ -24,7 +24,7 @@ import { purchaseActionInHtml, productCardLinks, priceSignalCount, isApiOrFeedPa
 import { neutralizeTemplateBindings, isTemplateHref, isCartActionUrl } from "@/lib/template-links";
 import { brokenLinkRecords, brokenLinkSummary, localizedBrokenLinkCopy, linkOutcome } from "@/lib/link-status";
 import { manufacturerRegistrationEvidence } from "@/lib/manufacturer-evidence";
-import { requireEvidenceForScoredChecks } from "@/lib/scan-feedback";
+import { requireEvidenceForScoredChecks, applyIncompleteRecoveryUncertainty } from "@/lib/scan-feedback";
 import { CRAWLER_VERSION, RULES_VERSION, FIX_POLICY_VERSION, AI_POLICY_VERSION, statusCode, assessHreflang, isMarketSelectorPage } from "@/lib/seo-rules";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { isTransientSeoCopy } from "@/lib/meta-description-fix";
@@ -4554,6 +4554,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     for (const item of seoChecks) {
       if (["subscription_price_visibility","booking_transaction","lead_form_presence"].includes(item.key) && item.evidence && !item.evidence.url) item.evidence = { ...item.evidence, url: finalUrl.toString(), found: item.status === "pass" ? true : item.evidence.found };
     }
+    applyIncompleteRecoveryUncertainty([...seoChecks,...geoChecks], { incompleteRecovery: access.recoveryWithoutNavigation && access.rankfixBlocked, url: finalUrl.toString() });
     applyJsEvidenceUncertainty([...seoChecks,...geoChecks], { framework:javascriptCandidate || thinRawDocument, rendered:javascriptExecuted, url:finalUrl.toString(), rawSubstantive:rawSubstantiveDocument });
     const selectedSeoChecks = mode === "geo" ? [] : seoChecks;
     const selectedGeoChecks = mode === "seo" ? [] : geoChecks;
@@ -4609,10 +4610,16 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const servicePathSignal = /\/(?:dienst|diensten|service|services|oplossing|oplossingen|solution|solutions|expertise|behandeling|behandelingen|treatment|practice|werkplaats)(?:\/|$)/i.test(pathname);
     const serviceContentSignal = /\b(?:onze diensten|our services|dienstverlening|service|services|expertise|oplossingen|solutions)\b/i.test([title, description, h1s.join(" ")].join(" "));
     const resolvedServicePage = !isHomepage && !isProductPage && !hasCategorySignal && (servicePathSignal || serviceContentSignal);
+    // URL shape may suggest a page type, but never establishes sector or products.
+    const urlPageHint = /\/(?:html-sitemap|sitemaps?)\//i.test(pathname)
+      ? "Mogelijke sitemap-URL (alleen pad, inhoud niet bevestigd)"
+      : /\/[a-z0-9-]+\/[a-z]{1,5}\d{3,}(?:\.html?)?$/i.test(pathname)
+        ? "Mogelijke productdetail-URL (alleen pad, product niet bevestigd)"
+        : null;
     const pageTypeEvidence = {
       type: isHomepage ? "homepage" : propertyListingPage ? "property_listing" : isProductPage ? "product" : hasCategorySignal ? "category" : (effectiveLocalBusinessPage || resolvedServicePage) ? "service" : effectiveArticlePage ? "article" : "unknown",
       confidence: isHomepage ? "high" : propertyListingPage ? "high" : isProductPage && (hasProductSchema || hasSkuSignal) ? "high" : isProductPage ? "medium" : hasCategorySignal && (hasItemListSignal || repeatedProductCardSignal) ? "high" : resolvedServicePage && servicePathSignal ? "high" : effectiveLocalBusinessPage || resolvedServicePage || hasCategorySignal || effectiveArticlePage ? "medium" : "low",
-      evidence: [isHomepage ? `localized/root path: ${pathname}` : "", propertyListingPage ? "Scanbewijs: vastgoedobject/listing" : "", servicePathSignal ? `resolved service path: ${pathname}` : "", resolvedServicePage && serviceContentSignal ? "service intent in resolved page metadata/headings" : "", hasProductSchema ? "Product schema present" : "", hasStoreSchema ? "Store schema present" : "", hasItemListSignal ? "ItemList schema present" : "", genericCategoryPathSignal && !isProductPage ? `generic commerce category path: ${pathname}` : genericCategoryPathSignal ? `shop path: ${pathname}` : "", repeatedProductCardSignal ? "repeated product-card commerce signals" : "", commercialNavigationEvidence ? "commercial navigation + shop/support links" : "", hasSkuSignal ? "SKU signal present" : "", hasStrongCommerceAction ? "commerce action present" : "", articleSuppressedByCommerce ? "article signal suppressed by stronger product evidence" : ""].filter(Boolean),
+      evidence: [urlPageHint || "", isHomepage ? `localized/root path: ${pathname}` : "", propertyListingPage ? "Scanbewijs: vastgoedobject/listing" : "", servicePathSignal ? `resolved service path: ${pathname}` : "", resolvedServicePage && serviceContentSignal ? "service intent in resolved page metadata/headings" : "", hasProductSchema ? "Product schema present" : "", hasStoreSchema ? "Store schema present" : "", hasItemListSignal ? "ItemList schema present" : "", genericCategoryPathSignal && !isProductPage ? `generic commerce category path: ${pathname}` : genericCategoryPathSignal ? `shop path: ${pathname}` : "", repeatedProductCardSignal ? "repeated product-card commerce signals" : "", commercialNavigationEvidence ? "commercial navigation + shop/support links" : "", hasSkuSignal ? "SKU signal present" : "", hasStrongCommerceAction ? "commerce action present" : "", articleSuppressedByCommerce ? "article signal suppressed by stronger product evidence" : ""].filter(Boolean),
     };
     const pageTypeContradictions = [
       pageTypeEvidence.type === "article" && isProductPage ? "article_vs_product" : null,
@@ -5679,6 +5686,22 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       masterEvidence.activeModules = sectorProfile.applicableModules;
     }
     Object.assign(sectorProfile, {pageEvidence:multilingualPageIdentity});
+    // Generic recovery diagnosis: never infer a brand's sector from its name.
+    // When a refused homepage yields no navigation and representative pages
+    // provide no corroboration, explain *why* sector recognition abstained.
+    if (sectorProfile.sector === "unknown" && access.rankfixBlocked && access.recoveryWithoutNavigation
+      && !multilingualPageIdentity.decision) {
+      Object.assign(sectorProfile, {
+        decisionStatus: "unconfirmed",
+        evidence: [
+          "Sector niet bevestigd wegens toegangsbeperking: de oorspronkelijke aanvraag werd geweigerd en de browserweergave bevatte onvoldoende eigen navigatie.",
+          "Geen onafhankelijk bereikbare representatieve product-, categorie- of organisatiepagina bevestigde de hoofdactiviteit.",
+          "Een bekende merknaam of domeinnaam alleen is geen bewijs voor de sector.",
+        ],
+        accessLimitation: "blocked_incomplete_homepage",
+      });
+    }
+
 
 
     // Set when the decision below makes the shop a sales channel; the later
@@ -6688,6 +6711,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // exact affected URLs. UNABLE samples remain uncertainty and never become FAIL.
     const sitewideCheckAggregation = ["title","description","h1","canonical"].map((key) => {
       const observations = auditedRawPages.flatMap((page) => {
+        // Incomplete recovery after a 403 cannot prove metadata was absent.
+        if (access.rankfixBlocked && access.recoveryWithoutNavigation && page.httpStatus === 403) return [];
         const finding = page.evidenceChecks.find((item)=>item.key===key);
         return finding ? [{url:page.url,status:finding.status,details:finding.details}] : [];
       });
@@ -6713,7 +6738,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     });
     // One shared title suffix that pushes many titles over 60 characters is a single
     // template fix; report it as such.
-    const sitewideTitlePattern = titleTemplatePattern(auditedRawPages.map((page)=>page.title || ""), finalUrl.hostname);
+    const sitewideTitlePattern = titleTemplatePattern(auditedRawPages.filter((page) => !(access.rankfixBlocked && access.recoveryWithoutNavigation && page.httpStatus === 403)).map((page)=>page.title || ""), finalUrl.hostname);
     const titleAggregation = sitewideCheckAggregation.find((item)=>item.key==="title");
     if (titleAggregation && sitewideTitlePattern) {
       (titleAggregation as typeof titleAggregation & { templatePattern?: unknown }).templatePattern = sitewideTitlePattern;
@@ -6802,7 +6827,10 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     };
     // QA 144: every proven problem on another assessed page reaches the advice
     // list (URL, check, severity, evidence, fix), separately from the page score.
-    const sitewideIssues = buildSitewideIssues(reportedMultiPageAudits, finalUrl.toString());
+    const sitewideIssues = buildSitewideIssues(
+      reportedMultiPageAudits.filter((page) => !(access.rankfixBlocked && access.recoveryWithoutNavigation && page.httpStatus === 403)),
+      finalUrl.toString(),
+    );
     Object.assign(multiPage, { sitewideIssues });
     Object.assign(scanSummary, { sitewideIssues: sitewideIssues.filter((i) => i.certainty === "confirmed").length, sitewideIssuesToConfirm: sitewideIssues.filter((i) => i.certainty !== "confirmed").length });
     // What the headline number covers, next to coverage and status (never changes it).

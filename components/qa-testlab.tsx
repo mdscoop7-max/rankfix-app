@@ -216,8 +216,8 @@ export default function TestLab144() {
      <td>{site.country}<small>{site.group} · {site.expected}</small></td>
      <td>{!r?<span className="rf-lab-no">Nog niet getest</span>:r.pending?<span className="rf-lab-no">Opnieuw te testen ({r.status})</span>:<span className={wrongType(site,r)?"rf-lab-warn":r.status==="succes"?"rf-lab-good":"rf-lab-no"}>{r.status}</span>}
        {r?.sector&&<small>Gevonden: {r.sector}{r.sectorKey&&r.sectorKey!==r.sector?` (${r.sectorKey})`:""} · {VERDICT_LABEL[verdictOf(site,r)||""]||""}{r.websiteType==="ecommerce_store"?` · webshop${r.commercePlatform?` (${r.commercePlatform})`:""}`:""}</small>}
-       {r?.reason&&<small title={r.reason}>{r.reason.slice(0,90)}</small>}</td>
-     <td>{num(r?.score??null)}{r?.evidenceLevel&&r.evidenceLevel!=="complete"&&<small title="Score alleen op bevestigd bewijs; niet sitebreed definitief">{r.evidenceLevel==="insufficient"?"indicatie":"voorlopig"}</small>}</td><td>{num(r?.seo??null)} / {num(r?.geo??null)}</td>
+       {r?.reason&&<small title={r.reason}>{r.reason.slice(0,90)}</small>}{r?.status==="succes"&&r.websiteType==="ecommerce_store"&&r.sector&&r.sector!=="ecommerce"&&r.sector!=="unknown"&&<small className="rf-lab-warn" title="Controle nodig: webshopfuncties en hoofdsector wijzen op verschillende websiteprofielen">Profielconflict: hoofdsector {r.sector}, websitetype webshop — onderzoek hoofdactiviteit en shopbewijs</small>}</td>
+     <td>{num(r?.score??null)}{r?.evidenceLevel==="insufficient"&&<small className="rf-lab-warn" title="Onvoldoende bewijsdekking: de numerieke score is niet sitebreed bevestigd">ONVOLDOENDE BEWIJS — indicatieve score; controleer het rapport</small>}{r?.evidenceLevel&&r.evidenceLevel!=="insufficient"&&r.evidenceLevel!=="complete"&&<small title="Beperkte bewijsdekking; niet sitebreed definitief">Voorlopig — beperkte bewijsdekking</small>}</td><td>{num(r?.seo??null)} / {num(r?.geo??null)}</td>
      <td>{r?.scanId?<a href={"/dashboard/audit/"+encodeURIComponent(r.scanId)+"/report"}>Open rapport</a>:"—"}</td>
     </tr>})}
    </tbody></table></div>
