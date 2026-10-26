@@ -1,4 +1,5 @@
 import { neutralizeTemplateBindings, isTemplateHref, isCartActionUrl } from "./template-links.ts";
+import { productCardLinks, isApiOrFeedPath } from "./commerce-markup.ts";
 // Candidate selection for product-detail pages. URL shape only nominates a page;
 // a candidate counts as product evidence only after the fetched page itself proves
 // it (Product schema, or a commerce action with a price). No platform or brand rules.
@@ -51,12 +52,19 @@ export function looksLikeProductDetailPath(pathname: string): boolean {
 export function extractProductDetailLinks(html: string, pageUrl: string, siteHost: string, limit = 8): string[] {
   const host = siteHost.toLowerCase().replace(/^www\./, "");
   const found = new Set<string>();
-  for (const match of neutralizeTemplateBindings(html).matchAll(/\shref\s*=\s*["']([^"'#]+)["']/gi)) {
+  // Product cards first: their links are products whatever the URL looks like
+  // ("/aluminium-koffer-alu-eco-1", "/smith-payroll-mips-fietshelm/").
+  const templateFree = neutralizeTemplateBindings(html);
+  for (const url of productCardLinks(templateFree, pageUrl, host, limit)) {
+    if (!looksLikeCategoryPath(new URL(url).pathname)) found.add(url);
+    if (found.size >= limit) return [...found];
+  }
+  for (const match of templateFree.matchAll(/\shref\s*=\s*["']([^"'#]+)["']/gi)) {
     if (isTemplateHref(match[1]) || isCartActionUrl(match[1])) continue;
     let url: URL;
     try { url = new URL(match[1], pageUrl); } catch { continue; }
     if (!/^https?:$/.test(url.protocol) || url.hostname.toLowerCase().replace(/^www\./, "") !== host) continue;
-    if (!looksLikeProductDetailPath(url.pathname)) continue;
+    if (!looksLikeProductDetailPath(url.pathname) || isApiOrFeedPath(url.pathname, url.search)) continue;
     url.search = "";
     url.hash = "";
     found.add(url.toString());
@@ -72,7 +80,7 @@ export function productUrlsFromSitemap(xml: string, siteHost: string, limit = 8)
   for (const match of xml.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/gi)) {
     let url: URL;
     try { url = new URL(match[1].replace(/&amp;/g, "&")); } catch { continue; }
-    if (url.hostname.toLowerCase().replace(/^www\./, "") !== host || !looksLikeProductDetailPath(url.pathname)) continue;
+    if (url.hostname.toLowerCase().replace(/^www\./, "") !== host || !looksLikeProductDetailPath(url.pathname) || isApiOrFeedPath(url.pathname, url.search)) continue;
     found.push(url.toString());
     if (found.length >= limit) break;
   }

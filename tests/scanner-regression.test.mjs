@@ -1186,8 +1186,9 @@ test("commerce applicability: N/A only with evidence that the site is not a shop
 });
 
 test("commerce applicability: every reason has report copy and an existing report reason code", () => {
-  for (const reason of ["service_identity", "no_commerce_evidence", "market_selector", "thin_shell", "weak_commerce_signals", "low_coverage"]) assert.ok(COMMERCE_APPLICABILITY_COPY[reason], reason);
-  for (const code of Object.values(UNCONFIRMED_COMMERCE_REASON_CODE)) assert.ok(["type_uncertain", "needs_js", "weak_evidence", "insufficient_pages"].includes(code), code);
+  for (const reason of ["service_identity", "no_commerce_evidence", "market_selector", "thin_shell", "weak_commerce_signals", "low_coverage", "sample_refused", "referral_platform"]) assert.ok(COMMERCE_APPLICABILITY_COPY[reason], reason);
+  // access_refused (QA commerce 72/72): shop pages refused RankFix; explained in the report.
+  for (const code of Object.values(UNCONFIRMED_COMMERCE_REASON_CODE)) assert.ok(["type_uncertain", "needs_js", "weak_evidence", "insufficient_pages", "access_refused"].includes(code), code);
 });
 
 test("scan route uses the three-way commerce gate instead of blanket N/A", async () => {

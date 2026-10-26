@@ -1,6 +1,6 @@
 import { scanRuntime } from "@/lib/scan-runtime";
 import { sectorPageEvidence, scanCoverageDimensions, isAudiencePagePath } from "@/lib/sector-page-evidence";
-import { LOCAL_TRADE_KEYS, corroborateDeclaredIndustry, detectDeclaredIndustry, refineSubtype } from "@/lib/site-sector-corroboration.mjs";
+import { LOCAL_TRADE_KEYS, corroborateDeclaredIndustry, detectDeclaredIndustry, refineSubtype, stripBrandNames } from "@/lib/site-sector-corroboration.mjs";
 import { decideCommerceModules } from "@/lib/sector-motor-decisions";
 import { NextResponse } from "next/server";
 import { createHash, randomUUID } from "crypto";
@@ -19,6 +19,8 @@ import { diagnoseBlockedResponse, diagnoseChallenge, diagnoseFetchFailure, fetch
 import { jsonbStringify } from "@/lib/jsonb-safe";
 import { classifyNonContentPage, nonContentDetail } from "@/lib/page-gate";
 import { buildWebsiteProfile } from "@/lib/website-profile";
+import { comparisonPlatformIdentity } from "@/lib/platform-identity";
+import { purchaseActionInHtml, productCardLinks, priceSignalCount, isApiOrFeedPath } from "@/lib/commerce-markup";
 import { neutralizeTemplateBindings, isTemplateHref, isCartActionUrl } from "@/lib/template-links";
 import { brokenLinkRecords, brokenLinkSummary, localizedBrokenLinkCopy, linkOutcome } from "@/lib/link-status";
 import { manufacturerRegistrationEvidence } from "@/lib/manufacturer-evidence";
@@ -140,7 +142,7 @@ type Check = {
   severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
   confidence: "high" | "medium" | "low";
   rootCause?: string;
-  reasonCode?: "cap_absent" | "needs_js" | "insufficient_pages" | "weak_evidence" | "type_uncertain";
+  reasonCode?: "cap_absent" | "needs_js" | "insufficient_pages" | "weak_evidence" | "type_uncertain" | "access_refused";
   impactClaim: "proven_impact" | "best_practice" | "hygiene";
   formKind?: "contact" | "appointment" | "booking" | "quote" | "checkout" | "newsletter" | "login" | "search";
   evidence: { url: string; found: string | number | boolean | null; expected?: string; details: string; source?: EvidenceSource };
@@ -1999,7 +2001,10 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // A representative bounded sample is enough for the synchronous scan.
     // Keep network fan-out modest so adding more motor checks does not make RankFix slower.
     const uniqueInternalAnchors = allUniqueInternalAnchors.slice(0, 16);
-    const linkAuditResults: LinkAuditResult[] = await Promise.all(uniqueInternalAnchors.map(async (item) => {
+    // Link probes run in batches of 8; after two HTTP 429 answers the remaining
+    // links are not requested (QA #207: respect the website's rate limit).
+    let linkProbeRateLimited = 0;
+    const probeLink = async (item: (typeof uniqueInternalAnchors)[number]): Promise<LinkAuditResult> => {
       const linkFetch = () => safePublicFetch(new URL(item.url), { timeoutMs: 4500, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain" });
       try {
         let result = await linkFetch();
@@ -2024,7 +2029,13 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       } catch {
         return { sourceHref: item.sourceHref, url: item.url, status: null, finalUrl: null, redirected: false, error: true, context: item.context, accountLink: isNonContentUrl(item.url) };
       }
-    }));
+    };
+    const linkAuditResults: LinkAuditResult[] = [];
+    for (let start = 0; start < uniqueInternalAnchors.length && linkProbeRateLimited < 2; start += 8) {
+      const batch = await Promise.all(uniqueInternalAnchors.slice(start, start + 8).map(probeLink));
+      linkProbeRateLimited += batch.filter((item) => item.status === 429).length;
+      linkAuditResults.push(...batch);
+    }
     // A timeout/DNS/fetch failure is not proof of a broken link. Only an HTTP response
     // that proves the destination is gone or server-broken is actionable here.
     // Missing pages (404/410/soft 404), server errors (5xx twice) and unconfirmed links
@@ -2236,8 +2247,13 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const brandlessTitle = titleSegments.filter((part) => !isBrandSegment(part)).join(" ");
     // Market mentions ("software for hotels", "hotel booking engine") name the
     // customers or a product made for them, never the organisation's own trade.
-    const anchorIdentitySource = stripMarketMentions([brandlessTitle, description, h1s.join(" "), finalUrl.hostname, finalUrl.pathname, isTourismBoardHost(finalUrl.hostname) ? "toerisme" : ""].join(" | "));
-    const descriptionAndHeadings = stripMarketMentions([description, h1s.join(" ")].join(" | "));
+    // Brand names (hostname label, "Name.com" in own fields) are names, not trades.
+    const brandOwnText = [title, description, h1s.join(" ")].join(" ");
+    // The hostname is identity evidence ("kapsalon-jansen.nl"), unless the site
+    // writes its own name as that domain ("Bakker.com"): then it is a brand.
+    const hostnameIdentity = stripBrandNames(finalUrl.hostname, "", brandOwnText).trim() ? stripBrandNames(finalUrl.hostname, "", brandOwnText) : "";
+    const anchorIdentitySource = stripMarketMentions(stripBrandNames([brandlessTitle, description, h1s.join(" "), finalUrl.pathname, isTourismBoardHost(finalUrl.hostname) ? "toerisme" : ""].join(" | "), finalUrl.hostname, brandOwnText) + " | " + hostnameIdentity);
+    const descriptionAndHeadings = stripMarketMentions(stripBrandNames([description, h1s.join(" ")].join(" | "), finalUrl.hostname, brandOwnText));
     const legacyAnchored = (patterns: RegExp[]) => Boolean(patterns[0]?.test(anchorIdentitySource)
       || (brandTitle && patterns[0]?.test(stripMarketMentions(brandTitle)) && (patterns[0]?.test(descriptionAndHeadings) || patterns[1]?.test(descriptionAndHeadings))));
     // Anchored in the organisation's own title or description (not only in one of
@@ -2248,7 +2264,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // architecture practice, cybersecurity, car rental...) in two independent
     // fields or in its self-description sentence. Outranks loose keywords.
     const homepageDeclared = (isSiteHomepagePath(finalUrl.pathname) || isHomepage)
-      ? detectDeclaredIndustry({ title, description: identityDescription, identityHeadings: identityH1s, schemaTypes }) : null;
+      ? detectDeclaredIndustry({ title, description: identityDescription, identityHeadings: identityH1s, schemaTypes, hostname: finalUrl.hostname }) : null;
     const sectorPriority: Partial<Record<SectorKey, number>> = { government: 30, real_estate: 28, automotive: 27, transport_travel: 20, telecom_technology: 20, health_wellness: 16, education: 15, energy_utilities: 15, news_media: 10, nonprofit: 8, events_culture: 6, fitness_sports: 6 };
     const sectorCandidates = sectorSignals.map(item=>{
       const contentHits = item.patterns.filter(pattern=>pattern.test(sectorSource)).length;
@@ -4698,6 +4714,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         if (normalized === normalizeScanUrl(finalUrl.toString())) return null;
         const path = safeDecodeURIComponent(candidate.pathname).toLowerCase();
         if (/\.(?:jpg|jpeg|png|gif|webp|svg|pdf|zip|xml|json|css|js|ico|woff2?)(?:$|\?)/i.test(path)) return null;
+        // API and feed endpoints are not pages (QA #207: /wp-json/wp/v2/product/58 was sampled as a product).
+        if (isApiOrFeedPath(path, candidate.search)) return null;
         const pathSegments = path.split("/").filter(Boolean);
         const legalUtilitySegment = LEGAL_PATH_SEGMENT;
         if (/(?:^|\/)(?:myaccount|my-account|account|mijn-account|login|account-login|signin|sign-in|register|wishlist|verlanglijst|favorites?|favourites?|favorieten|cart|basket|winkelwagen|checkout|afrekenen|kassa|search|zoeken)(?:\/|$)/i.test(path)) return null;
@@ -5015,19 +5033,22 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         const pageProductSchema = !pageFinancialOffer && pageSchemaTypes.some((type)=>type==="product" || type.endsWith("product"));
         const pageItemListSchema = pageSchemaTypes.some((type)=>type==="itemlist");
         const pageStoreSchema = pageSchemaTypes.some((type)=>/^(?:store|onlinestore|departmentstore|wholesalestore)$/.test(type));
-        const pageStrongCommerceAction = /\b(?:add to cart|add to basket|buy now|shop now|toevoegen aan winkelwagen|in winkelwagen|acquista ora|aggiungi al carrello|comprar ahora|adicionar ao carrinho|ajouter au panier|in den warenkorb)\b/i.test(pageQualityText);
+        // Visible text, or a purchase control in the markup (icon-only buttons named by
+        // aria-label/title, cart-add forms, platform hooks): commerce 72/72 QA.
+        const pageStrongCommerceAction = /\b(?:add to cart|add to basket|buy now|shop now|toevoegen aan winkelwagen|in winkelwagen|acquista ora|aggiungi al carrello|comprar ahora|adicionar ao carrinho|ajouter au panier|in den warenkorb)\b/i.test(pageQualityText) || purchaseActionInHtml(pageHtml);
         // Product links by URL shape (multilingual product segments, product ids)
         // or by structure: the link inside a product card/tile of a grid, as
         // WooCommerce, Shopify, Magento, PrestaShop and OpenCart print them
         // (QA #203: "/producten/zon" with 7 products was typed "product").
         const pageTemplateFreeHtml = neutralizeTemplateBindings(pageHtml);
-        const pageCardProductLinks = [...pageTemplateFreeHtml.matchAll(/<(?:li|div|article)\b[^>]*class\s*=\s*["'][^"']*(?:product-card|product-item|product-miniature|product-thumb|product-tile|product-grid-item|grid-product|productitem|type-product|(?<![\w-])product(?![\w-]))[^"']*["'][^>]*>[\s\S]{0,600}?<a\b[^>]*?\shref\s*=\s*["']([^"']+)["']/gi)]
-          .map((m)=>safeDecodeURIComponent(m[1]||""));
+        const pageCardProductLinks = productCardLinks(pageTemplateFreeHtml, finalCandidate.toString(), siteHost, 24);
         const pageProductLinks = [...[...pageTemplateFreeHtml.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi)]
           .map((m)=>safeDecodeURIComponent(m[1]||""))
           .filter((href)=>!isTemplateHref(href) && !isCartActionUrl(href) && (/(?:^|\/)(?:product|products|producten|produkt|produkte|produit|produits|prodotto|prodotti|producto|productos|produto|produtos|produkty|product-page|p)\/[^/?#]+|\/(?:dp|artikel|prodotto|produto)\/|[?&]product_id=\d+/i.test(href))),
           ...pageCardProductLinks.filter((href)=>!isTemplateHref(href) && !isCartActionUrl(href) && !/^(?:#|mailto:|tel:|javascript:)/i.test(href))];
-        const pagePriceSignals = (pageQualityText.match(/(?:€|EUR\b|\bEUR\s*)\s*\d{1,5}(?:[.,]\d{2})?|\d{1,5}(?:[.,]\d{2})?\s*(?:€|EUR\b)/gi)||[]).length;
+        // Whole page text (bounded): on large category pages the product grid starts
+        // far beyond the 12k-character quality excerpt (297 prices were read as 9).
+        const pagePriceSignals = priceSignalCount(stripHtml(pageHtml));
         const pageJsonLdRoots: unknown[] = [];
         const pageProductJson = (() => {
           // Every top-level Product (nested related/accessory products excluded),
@@ -5162,12 +5183,16 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           purchaseAction: pageStrongCommerceAction,
           visiblePrices: pagePriceSignals,
           uniqueH1: pageH1s.length === 1,
+          // Platform single-product markup (WooCommerce body class / main add-to-cart button,
+          // Magento product-info-main, Shopify product form): a detail page with a
+          // "related products" grid stays a product page (QA #207).
           detailIdentity: Boolean(/\b(?:sku|artikelnummer|modelnummer|ean|gtin)\b/i.test(pageHtml.slice(0,250000)) || /\b(?:iphone|galaxy|pixel|smartphone)\b/i.test(pageTitle)),
+          singleProductMarkup: Boolean(/class\s*=\s*["'][^"']*(?<![\w-])(?:single-product|product-info-main|product-single|product__info-wrapper|product-detail(?:s)?-main)(?![\w-])|single_add_to_cart_button|id\s*=\s*["']product-addtocart-button["']/i.test(pageHtml.slice(0,600000))),
         });
         // Concrete business details on this sampled page (address, phone, e-mail, registration).
         const pageBusinessDetails = (() => { const d = findBusinessContactDetails(pageQualityText, pageHtml, finalCandidate.hostname); const reg = findCompanyRegistration(pageQualityText); const found = [reg, d.address && `adres (${d.address})`, (d.phone || d.telLink) && "telefoonnummer", (d.email || d.mailtoLink) && "e-mailadres"].filter(Boolean) as string[]; return found; })();
         const pageSampleScore = sampleEvidenceScore(evidenceChecks, (key) => evidenceCredit(evidenceChecks.find((item)=>item.key===key)!));
-        return { ...page, type:refinedType, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:pageSampleScore, partialHead:partialHeadOnly, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), ownIdentityText:[pageTitle,pageDescription,pageH1s.filter((value: string)=>!isConsentHeading(value)).join(" ")].filter(Boolean).join(" "), identityHeadings:pageH1s.filter((value: string)=>!isConsentHeading(value)), schemaTypes:[...new Set(pageSchemaTypes)], businessDetails:pageBusinessDetails, formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, productLinks:extractProductDetailLinks(pageHtml, finalCandidate.toString(), siteHost, 8), evidenceChecks };
+        return { ...page, type:refinedType, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:pageSampleScore, partialHead:partialHeadOnly, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), ownIdentityText:[pageTitle,pageDescription,pageH1s.filter((value: string)=>!isConsentHeading(value)).join(" ")].filter(Boolean).join(" "), identityHeadings:pageH1s.filter((value: string)=>!isConsentHeading(value)), schemaTypes:[...new Set(pageSchemaTypes)], businessDetails:pageBusinessDetails, formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, productLinks:[...new Set([...productCardLinks(neutralizeTemplateBindings(pageHtml), finalCandidate.toString(), siteHost, 8), ...extractProductDetailLinks(pageHtml, finalCandidate.toString(), siteHost, 8)])].slice(0, 12), evidenceChecks };
       } catch (multiPageError) {
         const rawReason = multiPageError instanceof Error ? multiPageError.message : "FETCH_FAILED";
         const reason = /timeout|abort/i.test(rawReason)
@@ -5196,13 +5221,24 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     trace.phase = "sample";
     const multiPageAudits: MultiPageAudit[] = new Array(uniqueMultiPagePages.length);
     let nextRepresentativePageIndex = 0;
+    // QA #207 (17/18 and 30/33 sample pages HTTP 429): after the website signals a
+    // rate limit twice, RankFix stops requesting more pages instead of collecting
+    // more 429s. The pages not requested are reported as such, never as errors.
+    const sampleRateLimit = { hits: 0, stopped: false, skipped: 0 };
     const representativeWorkers = Array.from(
       { length: Math.min(representativeAuditConcurrency, uniqueMultiPagePages.length) },
       async () => {
         while (true) {
           const index = nextRepresentativePageIndex++;
           if (index >= uniqueMultiPagePages.length) return;
-          multiPageAudits[index] = await auditMultiPage(uniqueMultiPagePages[index]);
+          const candidate = uniqueMultiPagePages[index];
+          if (sampleRateLimit.stopped && normalizeScanUrl(candidate.url) !== normalizeScanUrl(finalUrl.toString())) {
+            sampleRateLimit.skipped++;
+            multiPageAudits[index] = { ...candidate, status:"unable_to_confirm", httpStatus:null, fetchFailure:"RATE_LIMIT_RESPECTED", title:null, description:null, h1Count:null, canonical:null, score:null, evidenceChecks:[{key:"rate_limited",status:"UNABLE_TO_CONFIRM",details:"Niet opgevraagd: de website meldde een verzoekenlimiet (HTTP 429). RankFix respecteert die en vraagt geen extra pagina's op. Geen bewijs van een fout; deze pagina telt niet mee in de steekproef."}] };
+            continue;
+          }
+          multiPageAudits[index] = await auditMultiPage(candidate);
+          if (multiPageAudits[index]?.httpStatus === 429 && ++sampleRateLimit.hits >= 2) sampleRateLimit.stopped = true;
         }
       },
     );
@@ -5243,11 +5279,15 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // from audited listing pages (rendering at most two listings that load products
     // client-side) and audit them. URL shape only nominates; a sample counts as
     // retail evidence only when the fetched page itself proves it.
-    const retailContextForProducts = sectorProfile.key === "ecommerce" || explicitRetailIdentity || hasEcommerceSignal;
+    // A sampled listing with a grid of linked, priced products is retail context too
+    // (QA commerce 72/72: shops without shop words on the homepage).
+    const listingWithProducts = multiPageAudits.some((item)=>item?.status==="audited" && (item.type==="category" || item.type==="listing" || item.type==="other")
+      && Boolean(item.commerceEvidence?.repeatedProductLinks) && (item.commerceEvidence?.priceSignals||0) >= 3);
+    const retailContextForProducts = sectorProfile.key === "ecommerce" || explicitRetailIdentity || hasEcommerceSignal || listingWithProducts;
     const confirmedProductSample = multiPageAudits.some((item)=>item?.status==="audited" && item.type==="product" && item.commerceEvidence?.confirmedRetailPage);
     // Optional second hop: only with enough time left before the sample deadline.
     const productHuntTime = () => Date.now() - started < SAMPLE_DEADLINE_MS - 20_000 && !clock.expired;
-    if (retailContextForProducts && !confirmedProductSample && productHuntTime()) {
+    if (retailContextForProducts && !confirmedProductSample && productHuntTime() && !sampleRateLimit.stopped) {
       const sampledUrls = new Set(multiPageAudits.map((item)=>normalizeScanUrl(item.url)));
       const unsampled = (urls: string[]) => [...new Set(urls)].filter((url)=>!sampledUrls.has(normalizeScanUrl(url)));
       const auditProductCandidates = async (urls: string[]) => {
@@ -5592,6 +5632,16 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       && item.type==="product"
       && !item.commerceEvidence?.financialOffer
       && Boolean(item.commerceEvidence?.strongCommerceAction || (item.commerceEvidence?.priceSignals||0) > 0 || (item.commerceEvidence?.product?.price && item.commerceEvidence?.product?.currency)));
+    // QA #207/#209: a comparison or quote platform (own title/description, or own
+    // About page + referral wording) without its own cart is not a webshop: its
+    // products/specialists are sold by connected shops or providers.
+    const platformIdentity = comparisonPlatformIdentity({
+      ownText: [title, description, identityH1s.join(" ")].join(" · "),
+      aboutTexts: auditedMultiPages.filter((item)=>item.status==="audited" && (item.type==="corporate" || /(?:^|\/)(?:over|over-ons|over-\p{L}+|about|about-us|uber-uns|ueber-uns|qui-sommes-nous|chi-siamo|quienes-somos)(?:\/|$)/iu.test(new URL(item.url).pathname))).map((item)=>[item.ownIdentityText || "", (item.identityText || "").slice(0, 1500)].join(" ")),
+    });
+    const ownCartEvidence = Boolean(confirmedAddToCart || auditedMultiPages.some((item)=>item.status==="audited" && item.commerceEvidence?.strongCommerceAction));
+    const referralPlatform = Boolean(platformIdentity && !ownCartEvidence);
+    if (referralPlatform) finalCommerceDecision.confirmed = false;
     const finalCommerceApplicability = commerceApplicability({
       confirmed: finalCommerceDecision.confirmed,
       primaryNonCommerceIdentity: Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry),
@@ -5600,6 +5650,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       marketSelector: marketSelectorPage,
       auditedRepresentativePages: representativeAuditedPageCount,
       verifiedSecondaryCommerce: Boolean(sitewideCommerceEvidence.confirmed || verifiedRepresentativeProductDetail || representativeCommercialProductIntent),
+      referralPlatform,
+      refusedRetailPages: multiPageAudits.filter((item)=>item && (item.type==="product" || item.type==="category" || item.type==="listing") && item.status!=="audited" && [202,401,403,405,429].includes(Number(item.httpStatus))).length,
     });
     if (!finalCommerceDecision.confirmed && (primaryNonCommerceIdentity || verifiedNonCommerceIndustry)) {
       masterEvidence.commerce.confirmed = false;
@@ -5809,9 +5861,19 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       && !masterIdentityOverride && sectorProfile.sector === "unknown" && homepageLinkedRetailPages >= 2
       && (confirmedShopPlatform || confirmedRetailSamples.length >= 3));
     const sampledAddToCart = auditedMultiPages.some((item)=>item.status==="audited" && item.type==="product" && Boolean(item.commerceEvidence?.strongCommerceAction) && hasProductOffer(item.commerceEvidence));
+    // QA commerce 72/72 (Travelbags, Sarenza, Fixami, Nike, IKEA): a confirmed shop
+    // with NO other identity anywhere (no own declaration, no page decision, no
+    // service identity) is the business itself. "Sector unknown" next to
+    // "Websitetype: webshop" contradicted itself. A federation or charity with a
+    // shop section has its own identity and keeps the shop as a sales channel.
+    const otherPageIdentity = Boolean(multilingualPageIdentity.decision && multilingualPageIdentity.decision.sector !== "ecommerce" && !marketSelectorPage);
+    const sampledRetailPages = auditedMultiPages.filter((item)=>item.status==="audited" && (item.commerceEvidence?.confirmedRetailPage
+      || ((item.type==="category" || item.type==="listing") && (item.commerceEvidence?.priceSignals||0) >= 3 && item.commerceEvidence?.repeatedProductLinks))).length;
+    const orphanStorefront = Boolean(finalCommerceDecision.confirmed && sectorProfile.sector === "unknown" && !otherPageIdentity
+      && !primaryNonCommerceIdentity && !verifiedNonCommerceIndustry && !masterIdentityOverride && !euPrimaryIdentity && sampledRetailPages >= 1);
     const motorCommerceModules = decideCommerceModules({
       primarySector: sectorProfile.sector,
-      primaryBusinessModel: verifiedNonCommerceIndustry ? "service" : (retailPrimaryIdentity || sampleProvenStorefront) ? "retail" : primaryNonCommerceIdentity ? "service" : "unknown",
+      primaryBusinessModel: verifiedNonCommerceIndustry ? "service" : (retailPrimaryIdentity || sampleProvenStorefront || orphanStorefront) ? "retail" : primaryNonCommerceIdentity ? "service" : "unknown",
       // A confirmed shop whose product grid with prices is on the scanned page (no
       // product page sampled yet) still sells products (QA #204: OpenCart grid).
       retailProduct: Boolean(confirmedCurrentProduct || representativeRetailProduct || (finalCommerceDecision.confirmed && corroboratedProductAndPrice)),
@@ -5895,7 +5957,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // own entry page carries storefront evidence; otherwise it is a sales channel
     // of an organisation whose sector is not (yet) proven.
     const homepageStorefront = Boolean(storefrontIdentity || evidenceCommerceConfirmed || retailPrimaryIdentity);
-    if (finalCommerceDecision.confirmed && sectorProfile.key!=="ecommerce" && !primaryNonCommerceIdentity && !commerceIsChannel && !homepageStorefront && !sampleProvenStorefront) {
+    if (finalCommerceDecision.confirmed && sectorProfile.key!=="ecommerce" && !primaryNonCommerceIdentity && !commerceIsChannel && !homepageStorefront && !sampleProvenStorefront && !orphanStorefront) {
       const channel = { sector: "ecommerce", label: "Online verkoop (verkoopkanaal op deelpagina's)", evidence: ["Product- of winkelwagenbewijs alleen op deelpagina's of via techniek; de website presenteert zich niet als webshop"] };
       const pageDecision = multilingualPageIdentity.decision;
       // Own pages that agree on another activity (accommodation, a federation...)
@@ -5915,12 +5977,49 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       sectorProfile.key = "ecommerce";
       sectorProfile.label = "Webshop / e-commerce";
       sectorProfile.confidence = "high";
-      sectorProfile.confidenceScore = Math.max(sectorProfile.confidenceScore, sampleProvenStorefront && !homepageStorefront ? 84 : sitewideCommerceEvidence.confirmed ? 92 : 88);
-      sectorProfile.evidence = sampleProvenStorefront && !homepageStorefront
+      const orphanOnly = orphanStorefront && !sampleProvenStorefront && !homepageStorefront;
+      sectorProfile.confidenceScore = orphanOnly ? Math.max(sectorProfile.confidenceScore, sampledRetailPages >= 2 ? 80 : 70)
+        : Math.max(sectorProfile.confidenceScore, sampleProvenStorefront && !homepageStorefront ? 84 : sitewideCommerceEvidence.confirmed ? 92 : 88);
+      if (orphanOnly) sectorProfile.confidence = sampledRetailPages >= 2 ? "high" : "medium";
+      sectorProfile.evidence = orphanOnly
+        ? [`Webshopfuncties bevestigd op ${sampledRetailPages} ${sampledRetailPages === 1 ? "eigen pagina" : "eigen pagina's"}; geen andere hoofdactiviteit gevonden in titel, omschrijving, koppen of de steekproef`]
+        : sampleProvenStorefront && !homepageStorefront
         ? [`Webshop vastgesteld via ${homepageLinkedRetailPages} direct gelinkte product-/categoriepagina's met aanbod${confirmedShopPlatform ? ` op ${technologyProfile.commercePlatform}` : ""}; de homepage zelf toont geen winkelwagen of producten in de server-HTML`].slice(0,6)
         : [...sectorProfile.evidence, `Scanbewijs bevestigt commerce; eerdere sectorhint: ${previousSector}`].slice(0,6);
     }
 
+    // QA #207/#209: comparison and quote platforms get their own type instead of
+    // "webshop" or "blog & publicaties". A stronger own identity (a bank, a
+    // government body, a declared trade) is never replaced.
+    if (platformIdentity && (["unknown","ecommerce"].includes(sectorProfile.sector) || (sectorProfile.sector === "news_media" && sectorProfile.key === "publisher_blog") || sectorProfile.sector === "service_marketplace")
+      && !primaryNonCommerceIdentity && !(masterIdentityOverride && masterIdentityOverride.sector !== "service_marketplace")) {
+      const ownDeclared = /titel\/omschrijving/.test(platformIdentity.evidence[0] || "");
+      Object.assign(sectorProfile, {
+        sector: "service_marketplace", key: "comparison_platform", label: "Vergelijkings- / offerteplatform",
+        confidence: ownDeclared ? "high" : "medium", confidenceScore: ownDeclared ? 84 : 74,
+        evidence: platformIdentity.evidence,
+      });
+      sectorProfile.applicableModules = [...new Set(["core_seo","geo","technical","structured_data","links","service_marketplace","lead_conversion", ...sectorProfile.applicableModules.filter((m)=>!["news_media","ecommerce","checkout","merchant","eu_consumer"].includes(m))])];
+      masterEvidence.activeModules = sectorProfile.applicableModules;
+    }
+    // QA commerce 72/72 (Medpets "dé online shop", Intertoys "online speelgoedwinkel",
+    // Bruna "online boeken bestellen"): the site's OWN title/description/H1 says it
+    // is a shop, but products and cart are not in the server HTML. That is a retail
+    // identity with unconfirmed shop functions, never "sector unknown 0%".
+    const ownIdentityWords = [title, description, identityH1s.join(" ")].join(" · ");
+    // Both readings must agree: a shop-software vendor ("Webshop software ... start je
+    // eigen webshop") loses "software" when market mentions are stripped.
+    const ownRetailDeclaration = retailSelfDescription(ownIdentityWords) && retailSelfDescription(stripMarketMentions(ownIdentityWords));
+    if (sectorProfile.sector === "unknown" && ownRetailDeclaration && !finalCommerceDecision.confirmed && !otherPageIdentity
+      && !primaryNonCommerceIdentity && !verifiedNonCommerceIndustry && !masterIdentityOverride && !euPrimaryIdentity) {
+      Object.assign(sectorProfile, {
+        sector: "ecommerce", key: "ecommerce", label: "Webshop / retail (eigen omschrijving; webshopfuncties niet bevestigd)",
+        confidence: "medium", confidenceScore: 72,
+        evidence: ["Eigen titel of omschrijving noemt de website een (online) winkel of webshop", "Producten, prijzen of winkelwagen niet bevestigd in de opgehaalde HTML; webshopcontroles blijven 'niet te bevestigen'"],
+      });
+      for (const moduleKey of ["ecommerce","product"]) if (!sectorProfile.applicableModules.includes(moduleKey)) sectorProfile.applicableModules.push(moduleKey);
+      masterEvidence.activeModules = sectorProfile.applicableModules;
+    }
     // Final Master reconciliation: late technology/multi-page evidence may improve
     // the site-level decision after the initial Master object was created. Keep
     // one authoritative website type, sector and page type for every consumer.
@@ -6523,6 +6622,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // dimensions with their own evidence (lib/website-profile.ts).
     const websiteProfile = buildWebsiteProfile({
       commerceState: commerceApplicabilityReport.state,
+      commerceReason: (commerceApplicabilityReport as { reason?: string }).reason || null,
+      platformKind: platformIdentity && sectorProfile.key === "comparison_platform" ? "comparison_platform" : null,
       commerceEvidence: [
         commerceApplicabilityReport.state === "confirmed" ? commerceApplicabilityReport.message : "",
         sitewideCommerceEvidence.confirmed ? `Webshopfuncties bevestigd op ${sitewideCommerceEvidence.sampleCount} steekproefpagina('s)` : "",
@@ -6537,10 +6638,15 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       framework: technologyProfile.framework,
       catalog: [
         { url: finalUrl.toString(), kind: "homepage" as const, text: [title, description, identityH1s.join(" ")].join(" · ") },
-        ...auditedMultiPages.filter((item)=>item.status==="audited" && (item.type==="product" || item.type==="category" || item.type==="listing") && (item.commerceEvidence?.confirmedRetailPage || hasProductOffer(item.commerceEvidence) || (item.commerceEvidence?.priceSignals||0) > 0))
+        ...auditedMultiPages.filter((item)=>item.status==="audited" && (((item.type==="product" || item.type==="category" || item.type==="listing") && (hasProductOffer(item.commerceEvidence) || (item.commerceEvidence?.priceSignals||0) > 0)) || Boolean(item.commerceEvidence?.confirmedRetailPage)))
           .map((item)=>({ url: item.url, kind: item.type==="product" ? "product" as const : "category" as const, text: [item.ownIdentityText || "", item.commerceEvidence?.product?.name || ""].join(" · ") })),
       ],
     });
+    // One website type for every consumer (QA #207: header "Webshop" next to
+    // "Websitetype niet vastgesteld"). The technology profile follows the
+    // evidence-gated website profile, never the other way round.
+    if (websiteProfile.websiteType.value === "ecommerce_store" && websiteProfile.websiteType.status === "confirmed") { technologyProfile.siteType = "Webshop"; technologyProfile.isCommerce = true; }
+    else if (technologyProfile.siteType === "Webshop") { technologyProfile.siteType = "Website"; technologyProfile.isCommerce = false; }
     masterEvidence.primarySector.label = sectorProfile.label;
     masterEvidence.activeModules = sectorProfile.applicableModules;
     if (selfCheck.corrections.length || selfCheck.flags.length) console.info("RankFix self-check", { page: finalUrl.toString(), corrections: selfCheck.corrections, flags: selfCheck.flags });
@@ -6638,6 +6744,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       siteAccess,
       accounting:sampleAccounting,
       sampleRetryPass,
+      sampleRateLimit,
       coverageDimensions:scanCoverageDimensions(overallCoverage.coveragePercent, multiPageAudits.length, auditedRawPages.length+excludedNoindexPages, scoredSamplePages.length),
       enabled:true, mode:"REPRESENTATIVE_AUDIT" as const, currentPageScoredSeparately:true, maxPages:representativePageLimit,
       discoveredInternalUrls:discoveredMultiPage.length, sampleLinkSource, fallbackSources, sampleLimitation, duplicateSamplesRemoved, selectedPages:uniqueMultiPagePages, pageAudits:reportedMultiPageAudits,

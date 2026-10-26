@@ -1,3 +1,4 @@
+import { isComparisonPlatformText } from "./platform-identity.ts";
 /**
  * Multilingual primary-identity evidence for the Sector Motor (RankFix 3.1).
  *
@@ -413,11 +414,20 @@ const OWN_PRODUCT_CTA = /(?<![\p{L}])(?:\p{L}*producten|products?|produkte?|prod
 export function isPublication(identity: string, schemaTypes: string[] = []): boolean {
   if (schemaTypes.some((t) => ["blog", "blogposting"].includes(String(t).toLowerCase()))) return true;
   if (/(?<![\p{L}])\p{L}*(?:blog|vlog)(?![\p{L}])|(?<![\p{L}])(?:magazine|magazin|tijdschrift|revista|rivista|zeitschrift|reisgids|travel guide|guide de voyage)(?![\p{L}])/iu.test(identity)) return true;
+  // A comparison or quote platform compares to send visitors on (QA #209): not a publication.
+  if (isComparisonPlatformText(identity)) return false;
   return /(?<![\p{L}])(?:vergelijk|vergleich|comparateur|comparador|review|reviews)(?![\p{L}])/iu.test(identity) && !OWN_PRODUCT_CTA.test(identity);
 }
 
+// QA commerce 72/72: "online speelgoedwinkel", "dé online shop voor", "Running &
+// Outdoor Fitness Retailer", "Online boeken en cadeaus bestellen".
+const RETAIL_SELF_COMPOUND = /(?<![\p{L}])(?:buy|order|koop|kaufen|achetez|acquista|compra)\s+(?:[\p{L}&,'’-]+\s+){1,6}online(?![\p{L}])|(?<![\p{L}])online[\s-]+\p{L}{3,}(?:winkel|shop|store|boetiek|kaufhaus|warenhaus|händler)(?![\p{L}])|(?<![\p{L}])\p{L}{3,}webshop(?![\p{L}])|(?<![\p{L}])(?:online[\s-]+)?(?:retailer|einzelhändler|detaillist|détaillant|minorista|rivenditore)(?![\p{L}])|(?<![\p{L}])online\s+(?!(?:\p{L}+\s+){0,3}(?:eten|maaltijd\p{L}*|pizza\p{L}*|sushi|food|lunch|diner|cursus\p{L}*|training\p{L}*|tickets?|kaartje\p{L}*|afspraak|essen|repas|cibo|comida)(?![\p{L}]))(?:\p{L}+\s+){1,4}(?:bestellen|kopen|kaufen|acheter|comprare|comprar)(?![\p{L}])/iu;
+// A seller of shop software ("start your online store", "webshop software") is not a shop.
+const SHOP_SOFTWARE = /(?<![\p{L}])(?:start|create|build|launch|open|bouw|maak|begin|start\s+je|erstelle|créez|crea)\s+(?:your|je|jouw|een|uw|ihren?|eigenen?|votre|tu|il\s+tuo)\s+(?:own\s+|eigen\s+)?(?:online\s*)?(?:store|shop|webshop|winkel|online-?shop|boutique|tienda|negozio)|(?<![\p{L}])(?:software|saas|platform|plateforme|plattform|builder|plugin|e-?commerce\s+solution)(?![\p{L}])/iu;
 export function retailSelfDescription(text: string): boolean {
-  return RETAIL_SELF.test(text || "");
+  const value = text || "";
+  if (SHOP_SOFTWARE.test(value)) return RETAIL_SELF.test(value.replace(SHOP_SOFTWARE, " ")) && !/(?<![\p{L}])(?:software|saas|platform|builder|plugin)(?![\p{L}])/iu.test(value);
+  return RETAIL_SELF.test(value) || RETAIL_SELF_COMPOUND.test(value);
 }
 
 type Tester = { test: (value: string) => boolean };

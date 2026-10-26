@@ -8,7 +8,7 @@ import {sectorVerdict} from "@/scripts/testlab/labels.mjs";
 type Site={host:string;name:string;country:string;group:string;expected:string;round:string};
 type Incident={traceId:string|null;originHttpStatus:number|null;apiHttpStatus:number;reasonCode:string;attribution:string|null;phase:string|null;finalUrl:string|null;browserRender:unknown};
 // pending=true: RankFix/runner stopped (session, quota, infrastructure, connection); the website was not judged and is retried on resume.
-type SiteResult={host:string;status:string;expected:string;sector:string|null;sectorKey?:string|null;websiteType?:string|null;commercePlatform?:string|null;industryVertical?:string|null;confidence:number|null;score:number|null;seo:number|null;geo:number|null;http:number;reason:string;elapsedMs:number;scanId:string|null;at:string;pending?:boolean;incident?:Incident|null};
+type SiteResult={host:string;status:string;expected:string;sector:string|null;sectorKey?:string|null;websiteType?:string|null;commercePlatform?:string|null;industryVertical?:string|null;evidenceLevel?:string|null;confidence:number|null;score:number|null;seo:number|null;geo:number|null;http:number;reason:string;elapsedMs:number;scanId:string|null;at:string;pending?:boolean;incident?:Incident|null};
 type Catalog={sites:Site[];count:number;catalogId:string;categoryCounts:{webshops:number;other:number};runtime:{commitSha:string|null;environment:string}};
 const sleep=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
 // One verdict per site (exact / equivalent / unconfirmed / mismatch), shared with
@@ -124,6 +124,7 @@ export default function TestLab144() {
        sectorKey:success?(data.sectorProfile?.key||null):null,websiteType:success?(data.websiteProfile?.websiteType?.value||null):null,
        commercePlatform:success?(data.websiteProfile?.commercePlatform?.label||data.technologyProfile?.commercePlatform||null):null,
        industryVertical:success?(data.websiteProfile?.industryVertical?.value||null):null,
+       evidenceLevel:success?(data.scoreModel?.evidenceLevel||null):null,
        confidence:success?(data.sectorProfile?.confidenceScore??null):null,
        score:success?(data.overallScore??null):null,seo:success?(data.seo?.score??null):null,geo:success?(data.geo?.score??null):null,
        http:response.status,reason:success?"":code||String(data.error||"Scan niet bevestigd").slice(0,200),
@@ -165,8 +166,8 @@ export default function TestLab144() {
       JSON.stringify({commitSha:catalog.runtime.commitSha,catalogId:catalog.catalogId,categoryCounts:catalog.categoryCounts,generatedAt:new Date().toISOString(),labels:"proposed_not_independently_verified",verdictCounts,sites:complete.map(x=>({...x,verdict:x.result?verdictOf(x,x.result):null}))},null,2));
     return;
   }
-  const columns=["land","bedrijf","domein","sector_verwacht","subtype_verwacht","gevonden_sector","gevonden_subtype","oordeel_sector","websitetype","webshopplatform","branche_webshop","zekerheid","status","opnieuw_te_testen","score","seo","geo","api_http","website_http","redencode","toewijzing","fase","trace_id","duur_ms","reden","scan_id"];
-  const lines=complete.map(({result:r,...s})=>[s.country,s.name,s.host,s.expected,s.group,r?.sector??"",r?.sectorKey??"",r?(verdictOf(s,r)??""):"",r?.websiteType??"",r?.commercePlatform??"",r?.industryVertical??"",r?.confidence??"",r?.status??"nog_niet_getest",r?.pending?"ja":"",r?.score??"",r?.seo??"",r?.geo??"",r?.http??"",r?.incident?.originHttpStatus??"",r?.incident?.reasonCode??"",r?.incident?.attribution??"",r?.incident?.phase??"",r?.incident?.traceId??"",r?.elapsedMs??"",r?.reason??"",r?.scanId??""].map(csvCell).join(","));
+  const columns=["land","bedrijf","domein","sector_verwacht","subtype_verwacht","gevonden_sector","gevonden_subtype","oordeel_sector","websitetype","webshopplatform","branche_webshop","zekerheid","bewijsniveau_score","status","opnieuw_te_testen","score","seo","geo","api_http","website_http","redencode","toewijzing","fase","trace_id","duur_ms","reden","scan_id"];
+  const lines=complete.map(({result:r,...s})=>[s.country,s.name,s.host,s.expected,s.group,r?.sector??"",r?.sectorKey??"",r?(verdictOf(s,r)??""):"",r?.websiteType??"",r?.commercePlatform??"",r?.industryVertical??"",r?.confidence??"",r?.evidenceLevel??"",r?.status??"nog_niet_getest",r?.pending?"ja":"",r?.score??"",r?.seo??"",r?.geo??"",r?.http??"",r?.incident?.originHttpStatus??"",r?.incident?.reasonCode??"",r?.incident?.attribution??"",r?.incident?.phase??"",r?.incident?.traceId??"",r?.elapsedMs??"",r?.reason??"",r?.scanId??""].map(csvCell).join(","));
   saveDownload(exportName+".csv","text/csv;charset=utf-8","\uFEFF"+columns.join(",")+"\n"+lines.join("\n"));
  }
  return <div className="rf-lab">
@@ -213,7 +214,7 @@ export default function TestLab144() {
      <td>{!r?<span className="rf-lab-no">Nog niet getest</span>:r.pending?<span className="rf-lab-no">Opnieuw te testen ({r.status})</span>:<span className={wrongType(site,r)?"rf-lab-warn":r.status==="succes"?"rf-lab-good":"rf-lab-no"}>{r.status}</span>}
        {r?.sector&&<small>Gevonden: {r.sector}{r.sectorKey&&r.sectorKey!==r.sector?` (${r.sectorKey})`:""} · {VERDICT_LABEL[verdictOf(site,r)||""]||""}{r.websiteType==="ecommerce_store"?` · webshop${r.commercePlatform?` (${r.commercePlatform})`:""}`:""}</small>}
        {r?.reason&&<small title={r.reason}>{r.reason.slice(0,90)}</small>}</td>
-     <td>{num(r?.score??null)}</td><td>{num(r?.seo??null)} / {num(r?.geo??null)}</td>
+     <td>{num(r?.score??null)}{r?.evidenceLevel&&r.evidenceLevel!=="complete"&&<small title="Score alleen op bevestigd bewijs; niet sitebreed definitief">{r.evidenceLevel==="insufficient"?"indicatie":"voorlopig"}</small>}</td><td>{num(r?.seo??null)} / {num(r?.geo??null)}</td>
      <td>{r?.scanId?<a href={"/dashboard/audit/"+encodeURIComponent(r.scanId)+"/report"}>Open rapport</a>:"—"}</td>
     </tr>})}
    </tbody></table></div>
