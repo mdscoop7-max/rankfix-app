@@ -3,6 +3,7 @@
 // render wording, TestLab verdicts and unverifiable start-page 404s.
 import test from "node:test";
 import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
 import { buildWebsiteProfile, detectIndustryVertical } from "../lib/website-profile.ts";
 import { isTemplateHref, neutralizeTemplateBindings, isCartActionUrl } from "../lib/template-links.ts";
 import { detectEuPrimaryIdentity, stripAudience } from "../lib/eu-identity.ts";
@@ -138,4 +139,24 @@ test("an unverifiable start-page 404 is a site-side, unscored outcome, never 'pa
   assert.equal(classifyScanAnswer({ ok: false, status: 422, data: { code: "UNVERIFIED_NOT_FOUND", incident: { attribution: "target_site" } } }), "site_geblokkeerd");
   assert.equal(classifyScanAnswer({ ok: false, status: 422, data: { code: "UNVERIFIED_NOT_FOUND" } }), "site_geblokkeerd");
   assert.equal(classifyScanAnswer({ ok: false, status: 422, data: { code: "HTTP_NOT_FOUND", incident: { attribution: "target_site" } } }), "site_onbereikbaar");
+});
+
+
+// Keep the new commerce-heavy QA catalog independently reproducible and intact.
+test("TestLab 144 commerce catalog: 72 webshop targets, 72 other sectors, unique hosts", () => {
+  const catalog = JSON.parse(readFileSync(new URL("./fixtures/testlab-144/catalog-commerce-diverse-20261026.json", import.meta.url), "utf8"));
+  assert.equal(catalog.sites.length, 144);
+  const normalizedHosts = catalog.sites.map(s => s.hosts[0].toLowerCase().replace(/^www\\./, ""));
+  assert.equal(new Set(normalizedHosts).size, 144);
+  const stores = catalog.sites.filter(s => s.expected === "ecommerce");
+  const other = catalog.sites.filter(s => s.expected !== "ecommerce");
+  assert.equal(stores.length, 72);
+  assert.equal(other.length, 72);
+  assert.equal(new Set(stores.map(s => s.group)).size, 13);
+  for (const host of ["combray-skincare.com", "rayskincare.com", "allekoffers.nl"]) {
+    assert.ok(normalizedHosts.includes(host), host + " absent");
+  }
+  assert.ok(other.some(s => s.group === "healthcare"));
+  assert.ok(other.some(s => s.group === "education"));
+  assert.ok(other.some(s => s.group === "hair_salon"));
 });
