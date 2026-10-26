@@ -1,0 +1,1598 @@
+{
+  "id": "testlab-144-commerce-diverse-20261026",
+  "description": "144 echte domeinen: 72 winkel-sites verdeeld over 13 productsectoren, 72 overige websites uit brede sectoren. Labels zijn voorgesteld, niet onafhankelijk geverifieerd.",
+  "reviewStatus": "proposed_not_independently_verified",
+  "baseline": "tests/fixtures/testlab-96 and tests/fixtures/testlab-144 (untouched)",
+  "notes": [
+    "Geen gegarandeerde toegang tot publieke sites (403/429/CAPTCHA tellen apart).",
+    "Geen checkout-betalingen, accounts of mutaties uitvoeren.",
+    "Echte voorraad, prijs, valuta en winkelwagens alleen als bewijs aanwezig is; niet verifieerbaar is geen geslaagde check.",
+    "Alle domeinen vereisen een actieve lokale QA-app met geautoriseerde testsessie."
+  ],
+  "sites": [
+    {
+      "country": "NL",
+      "name": "Combray",
+      "hosts": [
+        "combray-skincare.com"
+      ],
+      "group": "shop_beauty",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "BE",
+      "name": "Ray Skincare",
+      "hosts": [
+        "rayskincare.com"
+      ],
+      "group": "shop_beauty",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "NL",
+      "name": "Douglas",
+      "hosts": [
+        "douglas.nl"
+      ],
+      "group": "shop_beauty",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "NL",
+      "name": "Notino",
+      "hosts": [
+        "notino.nl"
+      ],
+      "group": "shop_beauty",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "NL",
+      "name": "LOOKFANTASTIC",
+      "hosts": [
+        "lookfantastic.nl"
+      ],
+      "group": "shop_beauty",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "NL",
+      "name": "Rituals",
+      "hosts": [
+        "rituals.com"
+      ],
+      "group": "shop_beauty",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "FR",
+      "name": "Sephora",
+      "hosts": [
+        "sephora.fr"
+      ],
+      "group": "shop_beauty",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "GB",
+      "name": "Lush",
+      "hosts": [
+        "lush.com"
+      ],
+      "group": "shop_beauty",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "NL",
+      "name": "Zalando",
+      "hosts": [
+        "zalando.nl"
+      ],
+      "group": "shop_fashion",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "NL",
+      "name": "ABOUT YOU",
+      "hosts": [
+        "aboutyou.nl"
+      ],
+      "group": "shop_fashion",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "GB",
+      "name": "ASOS",
+      "hosts": [
+        "asos.com"
+      ],
+      "group": "shop_fashion",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "ES",
+      "name": "Mango",
+      "hosts": [
+        "mango.com"
+      ],
+      "group": "shop_fashion",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "SE",
+      "name": "H&M",
+      "hosts": [
+        "hm.com"
+      ],
+      "group": "shop_fashion",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "GB",
+      "name": "UNIQLO",
+      "hosts": [
+        "uniqlo.com"
+      ],
+      "group": "shop_fashion",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "NL",
+      "name": "Allekoffers",
+      "hosts": [
+        "allekoffers.nl"
+      ],
+      "group": "shop_shoes_bags",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "NL",
+      "name": "Travelbags",
+      "hosts": [
+        "travelbags.nl"
+      ],
+      "group": "shop_shoes_bags",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "NL",
+      "name": "Bagageonline",
+      "hosts": [
+        "bagageonline.nl"
+      ],
+      "group": "shop_shoes_bags",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "NL",
+      "name": "Omoda",
+      "hosts": [
+        "omoda.nl"
+      ],
+      "group": "shop_shoes_bags",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "NL",
+      "name": "vanHaren",
+      "hosts": [
+        "vanharen.nl"
+      ],
+      "group": "shop_shoes_bags",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "FR",
+      "name": "Sarenza",
+      "hosts": [
+        "sarenza.com"
+      ],
+      "group": "shop_shoes_bags",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "NL",
+      "name": "Coolblue",
+      "hosts": [
+        "coolblue.nl"
+      ],
+      "group": "shop_electronics",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "NL",
+      "name": "MediaMarkt",
+      "hosts": [
+        "mediamarkt.nl"
+      ],
+      "group": "shop_electronics",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "NL",
+      "name": "Alternate",
+      "hosts": [
+        "alternate.nl"
+      ],
+      "group": "shop_electronics",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "NL",
+      "name": "Azerty",
+      "hosts": [
+        "azerty.nl"
+      ],
+      "group": "shop_electronics",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-1"
+    },
+    {
+      "country": "NL",
+      "name": "Conrad",
+      "hosts": [
+        "conrad.nl"
+      ],
+      "group": "shop_electronics",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "FR",
+      "name": "Fnac",
+      "hosts": [
+        "fnac.com"
+      ],
+      "group": "shop_electronics",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "NL",
+      "name": "fonQ",
+      "hosts": [
+        "fonq.nl"
+      ],
+      "group": "shop_home_furniture",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "SE",
+      "name": "IKEA",
+      "hosts": [
+        "ikea.com"
+      ],
+      "group": "shop_home_furniture",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "NL",
+      "name": "JYSK",
+      "hosts": [
+        "jysk.nl"
+      ],
+      "group": "shop_home_furniture",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "NL",
+      "name": "Westwing",
+      "hosts": [
+        "westwing.nl"
+      ],
+      "group": "shop_home_furniture",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "DE",
+      "name": "home24",
+      "hosts": [
+        "home24.de"
+      ],
+      "group": "shop_home_furniture",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "FR",
+      "name": "Maisons du Monde",
+      "hosts": [
+        "maisonsdumonde.com"
+      ],
+      "group": "shop_home_furniture",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "NL",
+      "name": "Toolstation",
+      "hosts": [
+        "toolstation.nl"
+      ],
+      "group": "shop_tools_diy",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "NL",
+      "name": "GAMMA",
+      "hosts": [
+        "gamma.nl"
+      ],
+      "group": "shop_tools_diy",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "NL",
+      "name": "HORNBACH",
+      "hosts": [
+        "hornbach.nl"
+      ],
+      "group": "shop_tools_diy",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "NL",
+      "name": "Fixami",
+      "hosts": [
+        "fixami.nl"
+      ],
+      "group": "shop_tools_diy",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "GB",
+      "name": "Screwfix",
+      "hosts": [
+        "screwfix.com"
+      ],
+      "group": "shop_tools_diy",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "FR",
+      "name": "ManoMano",
+      "hosts": [
+        "manomano.fr"
+      ],
+      "group": "shop_tools_diy",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "NL",
+      "name": "Intratuin",
+      "hosts": [
+        "intratuin.nl"
+      ],
+      "group": "shop_garden_plants",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "NL",
+      "name": "PLNTS",
+      "hosts": [
+        "plnts.com"
+      ],
+      "group": "shop_garden_plants",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "NL",
+      "name": "Plantje.nl",
+      "hosts": [
+        "plantje.nl"
+      ],
+      "group": "shop_garden_plants",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "NL",
+      "name": "Bakker",
+      "hosts": [
+        "bakker.com"
+      ],
+      "group": "shop_garden_plants",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "NL",
+      "name": "Decathlon",
+      "hosts": [
+        "decathlon.nl"
+      ],
+      "group": "shop_sport_outdoor",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "NL",
+      "name": "Bever",
+      "hosts": [
+        "bever.nl"
+      ],
+      "group": "shop_sport_outdoor",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "NL",
+      "name": "Bergfreunde",
+      "hosts": [
+        "bergfreunde.nl"
+      ],
+      "group": "shop_sport_outdoor",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "US",
+      "name": "Nike",
+      "hosts": [
+        "nike.com"
+      ],
+      "group": "shop_sport_outdoor",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "NL",
+      "name": "adidas",
+      "hosts": [
+        "adidas.nl"
+      ],
+      "group": "shop_sport_outdoor",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "GB",
+      "name": "SportsShoes",
+      "hosts": [
+        "sportsshoes.com"
+      ],
+      "group": "shop_sport_outdoor",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-2"
+    },
+    {
+      "country": "NL",
+      "name": "Zooplus",
+      "hosts": [
+        "zooplus.nl"
+      ],
+      "group": "shop_pets",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "NL",
+      "name": "Medpets",
+      "hosts": [
+        "medpets.nl"
+      ],
+      "group": "shop_pets",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "NL",
+      "name": "Pets Place",
+      "hosts": [
+        "petsplace.nl"
+      ],
+      "group": "shop_pets",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "NL",
+      "name": "bitiba",
+      "hosts": [
+        "bitiba.nl"
+      ],
+      "group": "shop_pets",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "NL",
+      "name": "Albert Heijn",
+      "hosts": [
+        "ah.nl"
+      ],
+      "group": "shop_grocery_food",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "NL",
+      "name": "Jumbo",
+      "hosts": [
+        "jumbo.com"
+      ],
+      "group": "shop_grocery_food",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "NL",
+      "name": "Crisp",
+      "hosts": [
+        "crisp.nl"
+      ],
+      "group": "shop_grocery_food",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "PT",
+      "name": "Continente",
+      "hosts": [
+        "continente.pt"
+      ],
+      "group": "shop_grocery_food",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "NL",
+      "name": "Intertoys",
+      "hosts": [
+        "intertoys.nl"
+      ],
+      "group": "shop_toys_books_music",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "GB",
+      "name": "Smyths Toys",
+      "hosts": [
+        "smythstoys.com"
+      ],
+      "group": "shop_toys_books_music",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "NL",
+      "name": "Bruna",
+      "hosts": [
+        "bruna.nl"
+      ],
+      "group": "shop_toys_books_music",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "NL",
+      "name": "Pipoos",
+      "hosts": [
+        "pipoos.com"
+      ],
+      "group": "shop_toys_books_music",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "DE",
+      "name": "Thomann",
+      "hosts": [
+        "thomann.de"
+      ],
+      "group": "shop_toys_books_music",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "FR",
+      "name": "King Jouet",
+      "hosts": [
+        "king-jouet.com"
+      ],
+      "group": "shop_toys_books_music",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "NL",
+      "name": "Lucardi",
+      "hosts": [
+        "lucardi.nl"
+      ],
+      "group": "shop_jewelry",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "DK",
+      "name": "Pandora",
+      "hosts": [
+        "pandora.net"
+      ],
+      "group": "shop_jewelry",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "AT",
+      "name": "Swarovski",
+      "hosts": [
+        "swarovski.com"
+      ],
+      "group": "shop_jewelry",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "DE",
+      "name": "Juwelo",
+      "hosts": [
+        "juwelo.de"
+      ],
+      "group": "shop_jewelry",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "NL",
+      "name": "Winparts",
+      "hosts": [
+        "winparts.nl"
+      ],
+      "group": "shop_auto_bicycle",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "NL",
+      "name": "AUTODOC",
+      "hosts": [
+        "autodoc.nl"
+      ],
+      "group": "shop_auto_bicycle",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "NL",
+      "name": "Mantel",
+      "hosts": [
+        "mantel.com"
+      ],
+      "group": "shop_auto_bicycle",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "NL",
+      "name": "12GO Biking",
+      "hosts": [
+        "12gobiking.nl"
+      ],
+      "group": "shop_auto_bicycle",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "GB",
+      "name": "Halfords",
+      "hosts": [
+        "halfords.com"
+      ],
+      "group": "shop_auto_bicycle",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "NL",
+      "name": "Fietsonderdelenoutlet",
+      "hosts": [
+        "fietsonderdelenoutlet.nl"
+      ],
+      "group": "shop_auto_bicycle",
+      "expected": "ecommerce",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "shops-3"
+    },
+    {
+      "country": "NL",
+      "group": "real_estate",
+      "name": "Vesteda",
+      "hosts": [
+        "vesteda.com"
+      ],
+      "expected": "real_estate",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "NL",
+      "group": "real_estate",
+      "name": "Funda",
+      "hosts": [
+        "funda.nl"
+      ],
+      "expected": "real_estate",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "NL",
+      "group": "manufacturing_industrial",
+      "name": "ASML",
+      "hosts": [
+        "asml.com"
+      ],
+      "expected": "manufacturing_industrial",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "NL",
+      "group": "manufacturing_industrial",
+      "name": "Philips",
+      "hosts": [
+        "philips.com"
+      ],
+      "expected": "manufacturing_industrial",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "DE",
+      "group": "real_estate",
+      "name": "ImmoScout24",
+      "hosts": [
+        "immobilienscout24.de"
+      ],
+      "expected": "real_estate",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "DE",
+      "group": "manufacturing_industrial",
+      "name": "Bosch",
+      "hosts": [
+        "bosch.de"
+      ],
+      "expected": "manufacturing_industrial",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "BE",
+      "group": "real_estate",
+      "name": "Immoweb",
+      "hosts": [
+        "immoweb.be"
+      ],
+      "expected": "real_estate",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "BE",
+      "group": "manufacturing_industrial",
+      "name": "Umicore",
+      "hosts": [
+        "umicore.com"
+      ],
+      "expected": "manufacturing_industrial",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "FR",
+      "group": "real_estate",
+      "name": "SeLoger",
+      "hosts": [
+        "seloger.com"
+      ],
+      "expected": "real_estate",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "FR",
+      "group": "manufacturing_industrial",
+      "name": "Saint-Gobain",
+      "hosts": [
+        "saint-gobain.com"
+      ],
+      "expected": "manufacturing_industrial",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "BE",
+      "group": "real_estate",
+      "name": "Zimmo",
+      "hosts": [
+        "zimmo.be"
+      ],
+      "expected": "real_estate",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "DE",
+      "group": "manufacturing_industrial",
+      "name": "Siemens",
+      "hosts": [
+        "siemens.com"
+      ],
+      "expected": "manufacturing_industrial",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "NL",
+      "group": "news_media",
+      "name": "NOS",
+      "hosts": [
+        "nos.nl"
+      ],
+      "expected": "news_media",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "NL",
+      "group": "news_media",
+      "name": "NU.nl",
+      "hosts": [
+        "nu.nl"
+      ],
+      "expected": "news_media",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "NL",
+      "group": "transport_travel",
+      "name": "NS",
+      "hosts": [
+        "ns.nl"
+      ],
+      "expected": "transport_travel",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "NL",
+      "group": "transport_travel",
+      "name": "PostNL",
+      "hosts": [
+        "postnl.nl"
+      ],
+      "expected": "transport_travel",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "DE",
+      "group": "news_media",
+      "name": "Tagesschau",
+      "hosts": [
+        "tagesschau.de"
+      ],
+      "expected": "news_media",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "DE",
+      "group": "transport_travel",
+      "name": "Deutsche Bahn",
+      "hosts": [
+        "bahn.de"
+      ],
+      "expected": "transport_travel",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "BE",
+      "group": "news_media",
+      "name": "VRT",
+      "hosts": [
+        "vrt.be"
+      ],
+      "expected": "news_media",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "BE",
+      "group": "transport_travel",
+      "name": "NMBS/SNCB",
+      "hosts": [
+        "belgiantrain.be"
+      ],
+      "expected": "transport_travel",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "FR",
+      "group": "news_media",
+      "name": "Franceinfo",
+      "hosts": [
+        "francetvinfo.fr"
+      ],
+      "expected": "news_media",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "FR",
+      "group": "news_media",
+      "name": "Le Monde",
+      "hosts": [
+        "lemonde.fr"
+      ],
+      "expected": "news_media",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "FR",
+      "group": "transport_travel",
+      "name": "SNCF Connect",
+      "hosts": [
+        "sncf-connect.com"
+      ],
+      "expected": "transport_travel",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "FR",
+      "group": "transport_travel",
+      "name": "La Poste",
+      "hosts": [
+        "laposte.fr"
+      ],
+      "expected": "transport_travel",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-1"
+    },
+    {
+      "country": "NL",
+      "name": "Mollie",
+      "hosts": [
+        "mollie.com"
+      ],
+      "group": "payments",
+      "expected": "payments",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "DE",
+      "name": "Allianz",
+      "hosts": [
+        "allianz.de"
+      ],
+      "group": "insurance",
+      "expected": "insurance",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "BE",
+      "name": "Argenta",
+      "hosts": [
+        "argenta.be"
+      ],
+      "group": "banking",
+      "expected": "banking",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "FR",
+      "name": "EDF",
+      "hosts": [
+        "edf.fr"
+      ],
+      "group": "energy",
+      "expected": "energy",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "NL",
+      "name": "Erasmus MC",
+      "hosts": [
+        "erasmusmc.nl"
+      ],
+      "group": "healthcare",
+      "expected": "healthcare",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "DE",
+      "name": "TU München",
+      "hosts": [
+        "tum.de"
+      ],
+      "group": "education",
+      "expected": "education",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "BE",
+      "name": "Vlaanderen",
+      "hosts": [
+        "vlaanderen.be"
+      ],
+      "group": "government",
+      "expected": "government",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "NL",
+      "name": "Transavia",
+      "hosts": [
+        "transavia.com"
+      ],
+      "group": "travel",
+      "expected": "travel",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "DE",
+      "name": "Deutsche Telekom",
+      "hosts": [
+        "telekom.de"
+      ],
+      "group": "telecom",
+      "expected": "telecom",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "BE",
+      "name": "H.Essers",
+      "hosts": [
+        "essers.com"
+      ],
+      "group": "logistics",
+      "expected": "logistics",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "NL",
+      "name": "Achmea",
+      "hosts": [
+        "achmea.nl"
+      ],
+      "group": "insurance",
+      "expected": "insurance",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "BE",
+      "name": "UZ Leuven",
+      "hosts": [
+        "uzleuven.be"
+      ],
+      "group": "healthcare",
+      "expected": "healthcare",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "FR",
+      "name": "Sorbonne Université",
+      "hosts": [
+        "sorbonne-universite.fr"
+      ],
+      "group": "education",
+      "expected": "education",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "NL",
+      "name": "AFAS",
+      "hosts": [
+        "afas.nl"
+      ],
+      "group": "software",
+      "expected": "software",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "DE",
+      "name": "Charité",
+      "hosts": [
+        "charite.de"
+      ],
+      "group": "healthcare",
+      "expected": "healthcare",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "FR",
+      "name": "GEODIS",
+      "hosts": [
+        "geodis.com"
+      ],
+      "group": "logistics",
+      "expected": "logistics",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "ES",
+      "name": "BBVA",
+      "hosts": [
+        "bbva.es"
+      ],
+      "group": "banking",
+      "expected": "banking",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "IT",
+      "name": "Generali",
+      "hosts": [
+        "generali.it"
+      ],
+      "group": "insurance",
+      "expected": "insurance",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "AT",
+      "name": "VERBUND",
+      "hosts": [
+        "verbund.com"
+      ],
+      "group": "energy",
+      "expected": "energy",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "IE",
+      "name": "Stripe",
+      "hosts": [
+        "stripe.com"
+      ],
+      "group": "payments",
+      "expected": "payments",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "ES",
+      "name": "Iberia",
+      "hosts": [
+        "iberia.com"
+      ],
+      "group": "travel",
+      "expected": "travel",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "IE",
+      "name": "eir",
+      "hosts": [
+        "eir.ie"
+      ],
+      "group": "telecom",
+      "expected": "telecom",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "ES",
+      "name": "Quirónsalud",
+      "hosts": [
+        "quironsalud.com"
+      ],
+      "group": "healthcare",
+      "expected": "healthcare",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "AT",
+      "name": "oesterreich.gv.at",
+      "hosts": [
+        "oesterreich.gv.at"
+      ],
+      "group": "government",
+      "expected": "government",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-2"
+    },
+    {
+      "country": "IE",
+      "name": "Trinity College Dublin",
+      "hosts": [
+        "tcd.ie"
+      ],
+      "group": "education",
+      "expected": "education",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "ES",
+      "name": "MAPFRE",
+      "hosts": [
+        "mapfre.es"
+      ],
+      "group": "insurance",
+      "expected": "insurance",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "IT",
+      "name": "Enel",
+      "hosts": [
+        "enel.it"
+      ],
+      "group": "energy",
+      "expected": "energy",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "IE",
+      "name": "AIB",
+      "hosts": [
+        "aib.ie"
+      ],
+      "group": "banking",
+      "expected": "banking",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "ES",
+      "name": "Correos",
+      "hosts": [
+        "correos.es"
+      ],
+      "group": "logistics",
+      "expected": "logistics",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "AT",
+      "name": "AKH Wien",
+      "hosts": [
+        "akhwien.at"
+      ],
+      "group": "healthcare",
+      "expected": "healthcare",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "ES",
+      "name": "Universidad Complutense",
+      "hosts": [
+        "ucm.es"
+      ],
+      "group": "education",
+      "expected": "education",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "AT",
+      "name": "UNIQA",
+      "hosts": [
+        "uniqa.at"
+      ],
+      "group": "insurance",
+      "expected": "insurance",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "NL",
+      "name": "BrainWash Kappers",
+      "hosts": [
+        "brainwash-kappers.nl"
+      ],
+      "group": "hair_salon",
+      "expected": "beauty",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "BE",
+      "name": "Kreatos",
+      "hosts": [
+        "kreatos.be"
+      ],
+      "group": "hair_salon",
+      "expected": "beauty",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "FR",
+      "name": "Franck Provost",
+      "hosts": [
+        "franckprovost.com"
+      ],
+      "group": "hair_salon",
+      "expected": "beauty",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "IT",
+      "name": "Toni&Guy Italia",
+      "hosts": [
+        "toniandguy.it"
+      ],
+      "group": "hair_salon",
+      "expected": "beauty",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "GB",
+      "name": "Rush Hair",
+      "hosts": [
+        "rush.co.uk"
+      ],
+      "group": "hair_salon",
+      "expected": "beauty",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "SE",
+      "name": "Cutters",
+      "hosts": [
+        "cutters.se"
+      ],
+      "group": "hair_salon",
+      "expected": "beauty",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "NL",
+      "name": "Zoofy",
+      "hosts": [
+        "zoofy.nl"
+      ],
+      "group": "service_marketplace",
+      "expected": "service_marketplace",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "ES",
+      "name": "idealista",
+      "hosts": [
+        "idealista.com"
+      ],
+      "group": "property_platform",
+      "expected": "real_estate",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "FR",
+      "name": "Accor",
+      "hosts": [
+        "accor.com"
+      ],
+      "group": "hotel",
+      "expected": "hospitality",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "IT",
+      "name": "Rossopomodoro",
+      "hosts": [
+        "rossopomodoro.it"
+      ],
+      "group": "restaurant",
+      "expected": "hospitality",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "AT",
+      "name": "Wiener Linien",
+      "hosts": [
+        "wienerlinien.at"
+      ],
+      "group": "public_transport",
+      "expected": "transport_travel",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "IE",
+      "name": "Irish Rail",
+      "hosts": [
+        "irishrail.ie"
+      ],
+      "group": "railway",
+      "expected": "transport_travel",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "FR",
+      "name": "Norauto",
+      "hosts": [
+        "norauto.fr"
+      ],
+      "group": "car_repair",
+      "expected": "automotive",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "DE",
+      "name": "A.T.U.",
+      "hosts": [
+        "atu.de"
+      ],
+      "group": "car_repair",
+      "expected": "automotive",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "PT",
+      "name": "Zaask",
+      "hosts": [
+        "zaask.pt"
+      ],
+      "group": "service_marketplace",
+      "expected": "service_marketplace",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    },
+    {
+      "country": "SE",
+      "name": "SJ",
+      "hosts": [
+        "sj.se"
+      ],
+      "group": "railway",
+      "expected": "transport_travel",
+      "reviewStatus": "proposed_not_independently_verified",
+      "round": "other-3"
+    }
+  ]
+}
