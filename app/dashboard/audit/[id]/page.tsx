@@ -32,7 +32,7 @@ function fixHref(check:Check,scan:Scan){
   const policy=issueId?getFixPolicy(issueId):{category:"C" as const,safe_type:null};
   // One policy source for scanner, UI and backend. A rule is exposed only when
   // today's policy and the policy stored with the scan both allow a safe fix.
-  if(!issueId||policy.action!=="github_fix"||!policy.safe_type||check.fix_category==="C"||!["fail","warning"].includes(status)||confidence==="low"||!hasEvidence) return "";
+  if(!idForFix(scan)||!issueId||policy.action!=="github_fix"||!policy.safe_type||check.fix_category==="C"||!["fail","warning"].includes(status)||confidence==="low"||!hasEvidence) return "";
   const q=new URLSearchParams({scan_id:String(idForFix(scan)),issue_id:issueId});
   return "/dashboard/github?"+q.toString();
 }
