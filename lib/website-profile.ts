@@ -37,7 +37,7 @@ const stems = (list: string[]) => new RegExp(`${B}(?:${list.join("|")})\\p{L}*`,
 // Catalogue vocabulary per vertical, main EU languages. Product nouns only:
 // a market ("voor de luchtvaart") or a service ("behandeling") is not a vertical.
 export const VERTICALS: Vertical[] = [
-  { key: "beauty_personal_care", label: "Beauty & huidverzorging", re: stems(["skin ?care", "skincare", "huidverzorg", "hautpflege", "soin du visage", "soins visage", "cuidado facial", "cura del viso", "serum", "sérum", "siero", "gezichtsolie", "facial oil", "face oil", "huile visage", "gesichtsöl", "dagcr[eè]me", "nachtcr[eè]me", "day cream", "night cream", "moisturi", "hydraterende", "reiniger", "cleanser", "toner", "zonnebrand", "zonnecr[eè]me", "sunscreen", "sun cream", "spf ?\\d", "cosmetic", "cosmetica", "kosmetik", "cosmétique", "make-?up", "mascara", "lipstick", "lippenstift", "foundation", "parfum", "perfume", "eau de", "shampoo", "conditioner", "deodorant", "nagellak", "nail polish", "oogcr[eè]me", "eye cream", "anti-?aging", "retinol", "body lotion", "bodylotion", "douchegel", "shower gel"]) },
+  { key: "beauty_personal_care", label: "Beauty & huidverzorging", re: stems(["skin ?care", "skincare", "huidverzorg", "hautpflege", "soin du visage", "soins visage", "cuidado facial", "cura del viso", "serum", "sérum", "siero", "gezichtsolie", "facial oil", "face oil", "huile visage", "gesichtsöl", "dagcr[eè]me", "nachtcr[eè]me", "day cream", "night cream", "moisturi", "hydraterende", "reiniger", "cleanser", "toner", "zonnebrand", "zonnecr[eè]me", "sunscreen", "sun cream", "spf ?\\d", "cosmetic", "cosmetica", "kosmetik", "cosmétique", "make-?up", "mascara", "lipstick", "lippenstift", "foundation", "parfum", "perfume", "eau de", "shampoo", "conditioner", "deodorant", "nagellak", "nail polish", "oogcr[eè]me", "eye cream", "anti-?aging", "retinol", "body lotion", "bodylotion", "douchegel", "shower gel", "haarverzorging", "haarproducten", "haarstyling", "haarmasker", "hair ?care", "hair products", "haarpflege", "kappersbenodigdheden", "friseurbedarf", "haarverf", "hair dye", "haarlak", "hairspray", "nagelverzorging"]) },
   { key: "fashion_apparel", label: "Mode, kleding & schoenen", re: stems(["kleding", "clothing", "kleidung", "vêtement", "ropa ", "abbigliamento", "jurk", "dress", "kleid", "robe", "t-?shirt", "shirt", "blouse", "jeans", "broek", "trousers", "pants", "hose", "pantalon", "jas ", "jassen", "jacket", "jacke", "veste", "trui", "sweater", "hoodie", "pullover", "legging", "sneaker", "schoen", "shoes", "schuhe", "chaussure", "zapato", "scarpe", "laars", "laarzen", "boots", "stiefel", "derby", "loafer", "sandal", "sokken", "socks", "lingerie", "ondergoed", "underwear", "badmode", "swimwear", "mode ", "fashion"]) },
   { key: "electronics", label: "Elektronica", re: stems(["laptop", "notebook", "smartphone", "telefoon", "televisie", "tv ", "televisions?", "fernseher", "koptelefoon", "headphone", "kopfhörer", "oordop", "earbud", "camera", "kamera", "monitor", "tablet", "oplader", "charger", "powerbank", "elektronica", "electronics", "elektronik", "électronique", "wasmachine", "washing machine", "waschmaschine", "koelkast", "fridge", "kühlschrank", "stofzuiger", "vacuum cleaner", "staubsauger", "speaker", "lautsprecher", "printer", "drucker", "router", "console", "spelcomputer"]) },
   { key: "home_furniture", label: "Wonen & meubels", re: stems(["meubel", "furniture", "möbel", "meuble", "mueble", "mobili", "bank ", "banken", "sofa", "fauteuil", "armchair", "sessel", "eettafel", "dining table", "esstisch", "stoel", "chair", "stuhl", "chaise", "kast ", "kasten", "wardrobe", "schrank", "matras", "mattress", "matratze", "boxspring", "verlichting", "lighting", "leuchte", "hanglamp", "vloerkleed", "rug ", "teppich", "woonaccessoire", "home decor", "wohnaccessoire", "dekbed", "duvet", "beddengoed", "bedding", "gordijn", "curtain"]) },
@@ -51,7 +51,7 @@ export const VERTICALS: Vertical[] = [
   { key: "jewelry_watches", label: "Sieraden & horloges", re: stems(["sieraad", "sieraden", "jewel", "schmuck", "bijou", "joya", "gioiell", "ring ", "ringen", "ketting", "necklace", "halskette", "collier", "armband", "bracelet", "oorbel", "earring", "ohrring", "horloge", "watch(?:es)?(?![\\p{L}])", "armbanduhr", "montre", "reloj", "orologi"]) },
   { key: "books_media", label: "Boeken & media", re: stems(["boek ", "boeken", "books?(?![\\p{L}])", "bücher", "buch ", "livre", "libro", "e-?book", "luisterboek", "audiobook", "hörbuch", "strip", "comic", "vinyl", "lp ", "blu-?ray", "dvd"]) },
   { key: "health_pharmacy", label: "Gezondheid & drogisterij", re: stems(["vitamine", "vitamin", "supplement", "nahrungsergänz", "complément alimentaire", "drogisterij", "drugstore", "drogerie", "pijnstill", "painkiller", "zelfzorg", "self-care", "multivitamine", "probiotic", "probiotica", "omega-?3", "eiwitpoeder", "protein powder"]) },
-  { key: "garden", label: "Tuin & buitenleven", re: stems(["tuinmeubel", "garden furniture", "gartenmöbel", "tuingereedschap", "garden tools", "gartengerät", "tuinplant", "kamerplant", "houseplant", "zimmerpflanze", "zaden", "seeds", "saatgut", "bloembol", "bulbs", "grasmaaier", "lawn mower", "rasenmäher", "barbecue", "bbq", "parasol", "vijver", "pond", "potgrond", "potting soil"]) },
+  { key: "garden", label: "Tuin & buitenleven", re: stems(["tuinmeubel", "garden furniture", "gartenmöbel", "jardinerie", "plantes? d.(?:extérieur|intérieur)", "plantes vivaces", "vivaces", "bulbes", "graines", "rosiers?", "arbustes?", "arbres fruitiers", "gartenpflanzen", "stauden", "blumenzwiebeln", "saatgut", "plantas de exterior", "semillas", "piante da esterno", "bulbi", "sementi", "vaste planten", "bloembollen", "fruitbomen", "heesters", "tuingereedschap", "garden tools", "gartengerät", "tuinplant", "kamerplant", "houseplant", "zimmerpflanze", "zaden", "seeds", "saatgut", "bloembol", "bulbs", "grasmaaier", "lawn mower", "rasenmäher", "barbecue", "bbq", "parasol", "vijver", "pond", "potgrond", "potting soil"]) },
   { key: "office_supplies", label: "Kantoor & papier", re: stems(["kantoorartikel", "office supplies", "bürobedarf", "fournitures de bureau", "printpapier", "printer paper", "inktcartridge", "ink cartridge", "toner ", "pennen", "pens ", "notitieboek", "notebook paper", "agenda's", "nietmachine", "stapler"]) },
 ];
 
@@ -63,6 +63,10 @@ const PLATFORM_LABEL: Record<string, string> = {
 
 export type WebsiteProfileInput = {
   commerceState: string;
+  /** Why shop functionality is not confirmed (commerce applicability reason), if known. */
+  commerceReason?: string | null;
+  /** A comparison or quote platform (QA #207/#209). */
+  platformKind?: "comparison_platform" | null;
   commerceEvidence?: string[];
   sector: string;
   sectorLabel: string;
@@ -123,13 +127,19 @@ export function buildWebsiteProfile(input: WebsiteProfileInput): WebsiteProfile 
   const cmsTech = input.technologies.find((t) => t.role === "cms");
   const fwTech = input.technologies.find((t) => t.role === "framework");
 
-  const websiteType: Dimension = shop
+  const websiteType: Dimension = input.platformKind === "comparison_platform"
+    ? { value: "comparison_platform", label: "Vergelijkings- / offerteplatform", status: input.sectorConfidence >= 80 ? "confirmed" : "probable", confidence: input.sectorConfidence, evidence: ["Eigen omschrijving: vergelijken of offertes aanvragen; verkoop of uitvoering via aangesloten winkels of aanbieders", "Een eigen winkelwagen of checkout is geen vereiste"] }
+    : shop
     ? { value: "ecommerce_store", label: "Webshop", status: "confirmed", confidence: Math.min(97, Math.max(84, input.sectorConfidence || 0)), evidence: (input.commerceEvidence || []).slice(0, 4) }
     : input.sector === "unknown"
       ? { value: "unknown", label: "Websitetype niet vastgesteld", status: "unknown", confidence: 0, evidence: ["Geen bevestigde webshop en geen vastgestelde hoofdactiviteit"] }
       : NON_COMMERCE_TYPES[input.sector]
         ? { ...NON_COMMERCE_TYPES[input.sector], status: input.sectorConfidence >= 80 ? "confirmed" : "probable", confidence: input.sectorConfidence, evidence: [`Hoofdactiviteit: ${input.sectorLabel}`] }
-        : { value: "services", label: input.sector === "ecommerce" ? "Retail (webshop niet bevestigd)" : "Dienstverlener / organisatie", status: input.sectorConfidence >= 80 ? "confirmed" : "probable", confidence: input.sectorConfidence, evidence: [`Hoofdactiviteit: ${input.sectorLabel}; geen bevestigde webshop`] };
+        // A retailer whose shop functions could not be confirmed is still a retailer,
+        // never a "service provider" (QA commerce 72/72: Screwfix, Bergfreunde, Juwelo).
+        : input.sector === "ecommerce"
+          ? { value: "ecommerce_store", label: input.commerceReason === "sample_refused" ? "Webshop / retail (niet te bevestigen: shoppagina's weigerden RankFix)" : "Webshop / retail (webshopfuncties niet bevestigd)", status: "probable", confidence: Math.min(79, input.sectorConfidence), evidence: [`Hoofdactiviteit: ${input.sectorLabel}`, input.commerceReason === "sample_refused" ? "Product- en categoriepagina's weigerden RankFix; winkelwagen en checkout zijn niet te bevestigen" : "Product-, winkelwagen- of afrekenketen niet volledig bevestigd in de opgehaalde HTML"] }
+          : { value: "services", label: "Dienstverlener / organisatie", status: input.sectorConfidence >= 80 ? "confirmed" : "probable", confidence: input.sectorConfidence, evidence: [`Hoofdactiviteit: ${input.sectorLabel}; geen bevestigde webshop`] };
 
   const platformName = platformTech?.name || (input.commercePlatform && input.commercePlatform !== "Custom / niet bevestigd" && !/bevestigd/.test(input.commercePlatform) ? input.commercePlatform : null);
   const commercePlatform: Dimension = platformName
@@ -148,7 +158,7 @@ export function buildWebsiteProfile(input: WebsiteProfileInput): WebsiteProfile 
     ? { value: input.framework, label: input.framework, status: (fwTech?.confidence || 0) >= 80 ? "confirmed" : "probable", confidence: fwTech?.confidence || 72, evidence: fwTech?.evidence || [] }
     : { value: null, label: "Niet vastgesteld", status: "unknown", confidence: 0, evidence: [] };
 
-  const industryVertical: Dimension = shop
+  const industryVertical: Dimension = (shop || websiteType.value === "ecommerce_store")
     ? detectIndustryVertical(input.catalog)
     : { value: null, label: "Zie hoofdactiviteit", status: "not_applicable", confidence: 0, evidence: ["Branche wordt alleen apart bepaald voor een bevestigde webshop"] };
 

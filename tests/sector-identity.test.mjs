@@ -194,9 +194,11 @@ test("product-detail candidates are nominated by URL shape, never editorial page
 
 test("retail sites without a product sample get a bounded second hop", async () => {
   const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
-  assert.match(source, /const retailContextForProducts = sectorProfile\.key === "ecommerce" \|\| explicitRetailIdentity \|\| hasEcommerceSignal;/);
-  // QA-144: the second hop only starts with time left before the sample deadline.
-  assert.match(source, /if \(retailContextForProducts && !confirmedProductSample && productHuntTime\(\)\)/);
+  // QA commerce 72/72: a sampled grid of linked, priced products is retail context too.
+  assert.match(source, /const retailContextForProducts = sectorProfile\.key === "ecommerce" \|\| explicitRetailIdentity \|\| hasEcommerceSignal \|\| listingWithProducts;/);
+  // QA-144: the second hop only starts with time left before the sample deadline,
+  // and never after the website rate-limited RankFix (QA #207).
+  assert.match(source, /if \(retailContextForProducts && !confirmedProductSample && productHuntTime\(\) && !sampleRateLimit\.stopped\)/);
   assert.match(source, /unsampled\(urls\)\.slice\(0,3\)/, "at most three product audits per hop");
   assert.match(source, /item\.evidenceSource!=="rendered_html"\)\.slice\(0,2\)/, "at most two listing renders");
   // Nomination is never evidence: confirmation still comes from the fetched page.
@@ -250,7 +252,10 @@ test("a retail identity never receives LocalBusiness schema advice", async () =>
 
 test("a confirmed shop never shows shop checks as 'not applicable' because one page lacked signals", async () => {
   const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
-  assert.match(source, /const euMarketEligible = !explicitNonEuCountryTld && \(euCountryTld \|\| euLanguageSignal \|\| euroMarketSignal\);/);
+  // EEA storefronts (NO/IS/LI) are eligible; Swiss-franc/pound-only stores on a generic domain are not.
+  assert.match(source, /const euMarketEligible = !explicitNonEuCountryTld && \(euCountryTld \|\| \(\(euLanguageSignal \|\| euroMarketSignal\) && !nonEuCurrencyOnly\)\);/);
+  assert.match(source, /const euCountryTld = [^\n]*\|no\|is\|li\)\$\//);
+  assert.match(source, /const explicitNonEuCountryTld = [^\n]*\|ch\)\$\//);
   assert.match(source, /const euConsumerApplicable = hasEcommerceSignal && euMarketEligible;/);
   // EU modules follow the final site decision plus market eligibility.
   assert.match(source, /finalEuCommerceKeys\.has\(item\.key\) && !euMarketEligible/);

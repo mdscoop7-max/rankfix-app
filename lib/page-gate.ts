@@ -63,11 +63,23 @@ const EDGE_REFERENCE = /(?:reference\s*(?:#|id:?)\s*\d{1,3}\.[0-9a-f]{6,}\.\d{6,
 
 // Error templates. Strong phrases are page-level messages, not headlines.
 const ERROR_STRONG = /(?:connection was interrupted|an error (?:has )?occurred|(?:error|fout|fehler|erreur|errore)\s*(?:code:?\s*)?(?:404|500|502|503|504)\b|\b(?:404|500|502|503|504)\s*(?:error|not found|internal server error|bad gateway|service unavailable)|page not found|pagina niet gevonden|seite (?:wurde )?nicht gefunden|page (?:introuvable|non trouvée)|pagina non trovata|página no encontrada|es ist ein fehler aufgetreten|une erreur (?:s'est produite|est survenue)|se ha producido un error|ha ocurrido un error|si è verificato un errore|er is een fout opgetreden|internal server error|bad gateway)/i;
-const ERROR_WEAK = /(?:something went wrong|er is iets (?:mis ?gegaan|fout ?gegaan)|er ging iets mis|service unavailable|oops[!,.]|whoops)/i;
+// Present and past tense, NL/EN/DE/FR/IT/ES/PT (QA 144: "Sorry, er gaat iets niet
+// goed…" on a refused request was scored as the homepage).
+const ERROR_WEAK = /(?:something (?:went|is going|has gone) wrong|something isn'?t working|er is (?:helaas )?iets (?:mis ?gegaan|fout ?gegaan|niet goed gegaan)|er ging (?:helaas )?iets (?:mis|fout|niet goed)|er gaat (?:helaas )?iets (?:mis|fout|niet goed)|(?:da )?ist (?:leider )?etwas schief ?gegangen|etwas ist schief ?gelaufen|ein fehler ist aufgetreten|(?:un problème|une erreur) (?:est survenue?|s'est produite?)|quelque chose s'est mal passé|qualcosa è andato storto|si è verificato un problema|algo (?:salió|ha salido) mal|algo correu mal|ocorreu um erro|service unavailable|oops[!,.]|whoops)/i;
 // Maintenance OF THE WEBSITE ("our site is undergoing maintenance", "website in
 // onderhoud"); a maintenance service page never says the site itself is down.
 const SITE_MAINTENANCE = /(?:(?:site|website|webshop|page|pagina|seite|portal|app)\b[^.!?]{0,40}\b(?:undergoing|under|in|down for|currently in) maintenance|(?:undergoing|scheduled) maintenance|maintenance (?:mode|in progress)|we(?:'| a)re (?:currently )?(?:doing|performing|carrying out) (?:some )?maintenance|(?:website|site|webshop|pagina) (?:is )?(?:tijdelijk )?in onderhoud|wegens (?:gepland )?onderhoud|(?:website|seite|webseite|shop) (?:wird|ist)[^.!?]{0,30}(?:gewartet|wartungsarbeiten|wartungsmodus)|aufgrund von wartungsarbeiten|wartungsmodus|site en (?:cours de )?maintenance|en cours de maintenance|(?:sito|pagina) in manutenzione|(?:sitio|página|web) en mantenimiento|be back (?:soon|shortly)|bald (?:wieder )?zurück|zo snel mogelijk (?:weer )?terug|de retour (?:très )?bientôt)/i;
 const TEMPORARILY_DOWN = /(?:temporarily (?:unavailable|down)|tijdelijk (?:niet beschikbaar|onbereikbaar)|vorübergehend nicht (?:verfügbar|erreichbar)|momentanément indisponible|temporaneamente non disponibile|temporalmente no disponible)/i;
+
+const APOLOGY = /^(?:(?:sorry|oops|oeps|helaas|whoops|hoppla|désolé|lo sentimos|ci dispiace|desculpe|ups)[\s,!.:]*)*/i;
+/** The main title segment is an error message and nothing else. */
+function errorMessageTitle(title: string): boolean {
+  const main = (title.split(/\s*[|–—]\s*|\s+-\s+/)[0] || "").trim();
+  if (!main || /\?/.test(main)) return false;
+  const rest = main.replace(APOLOGY, "").trim();
+  const m = new RegExp(`^${ERROR_WEAK.source}`, "i").exec(rest);
+  return Boolean(m) && /^[\s.…!]*$/.test(rest.slice(m![0].length));
+}
 
 /** Up to this many visible words a vendor template can be, cookie banner and footer included. */
 export const LONG_PAGE_WORDS = 1500;
@@ -94,9 +106,14 @@ export function classifyNonContentPage(input: { title?: string | null; text?: st
   // its opening text; an article whose headline mentions an error does not.
   if (ERROR_STRONG.test(title) && (short || (notLong && ERROR_STRONG.test(text.slice(0, 800)) && !/(?:\b(?:19|20)\d{2}\b.*(?:min read|leestijd|lesezeit))/i.test(text.slice(0, 800))))) return { kind: "error", reason: "title_names_error" };
   if (notLong && EDGE_REFERENCE.test(head) && ERROR_STRONG.test(head)) return { kind: "error", reason: "edge_error_reference" };
-  if (short && ERROR_WEAK.test(title)) return { kind: "error", reason: "title_names_error" };
+  // Weak wording only when it IS the main title ("Sorry, er gaat iets niet goed…"),
+  // never a topic or a question ("Er gaat iets mis met je cv-ketel? | Loodgieter").
+  if (short && errorMessageTitle(title)) return { kind: "error", reason: "title_names_error" };
 
   if (notLong && SITE_MAINTENANCE.test(title)) return { kind: "maintenance", reason: "title_names_site_maintenance" };
+  // A title that is ONLY the word maintenance (any EU language), e.g. "maintenance".
+  // Bare word only: "Onderhoud | Garage Jansen" is a garage's service page.
+  if (short && /^(?:maintenance|onderhoud|wartung(?:sarbeiten)?|manutenzione|mantenimiento|manuten[çc][ãa]o|underhåll|vedligeholdelse)[.!…]*$/i.test(title)) return { kind: "maintenance", reason: "title_is_maintenance" };
   if (short && SITE_MAINTENANCE.test(text)) return { kind: "maintenance", reason: "text_names_site_maintenance" };
   if (words < 120 && TEMPORARILY_DOWN.test(title) && !/(?:product|artikel|item|article|prodotto|producto|produit|voorraad|stock|lager)/i.test(head)) return { kind: "maintenance", reason: "title_names_unavailable" };
   // Body-only error wording needs a very short page without its own title.

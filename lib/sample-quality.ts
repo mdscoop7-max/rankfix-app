@@ -38,6 +38,8 @@ export function refineSamplePageType(input: {
   serviceEvidence?: boolean;
   /** The page carries its own publication date (datePublished, article:published_time, <time> in an <article>). */
   datedArticle?: boolean;
+  /** Platform single-product markup (WooCommerce single-product / main add-to-cart, Magento product-info-main). */
+  singleProductMarkup?: boolean;
 }): SamplePageType {
   const { proposed } = input;
   if (["homepage", "legal", "support", "form", "contact"].includes(proposed)) return proposed;
@@ -70,6 +72,8 @@ export function refineSamplePageType(input: {
   // countIndependentProducts), so a product detail page stays a product page.
   const collection = pathCollection || (input.productSchemaCount || 0) >= 2 || (input.itemListSchema && input.repeatedProductLinks && commerceOnPage);
   if (collection) return "category";
+  // A product detail page with a "related products" grid (QA #207).
+  if (input.singleProductMarkup && (input.purchaseAction || input.productOffer || input.visiblePrices > 0)) return "product";
   // A grid of three or more linked products with prices, without the page's own
   // single Product and without a model/article number, lists products: it is a
   // collection, even below /producten/ or /products/ (QA #203).

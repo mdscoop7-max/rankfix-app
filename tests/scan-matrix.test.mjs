@@ -42,6 +42,15 @@ test("webshops across platforms (QA #203/#204): type, platform, branch, modules,
   assert.equal(r.failed, 0, r.log.split("\n").filter((l) => /^ - /.test(l)).join("\n"));
 });
 
+// QA commerce 72/72 (26 Oct): Hyvä cards, large category pages, shops without shop
+// words, client-side shops, refused shop pages, surname brands, wholesalers, 429,
+// API endpoints, comparison/quote platforms; plus negative controls.
+test("commerce 72/72 webshops and platforms: one consistent website type, sector and platform", () => {
+  const r = run("run-commerce72.mjs");
+  assert.ok(r.total >= 15, `too few sites: ${r.total}`);
+  assert.equal(r.failed, 0, r.log.split("\n").filter((l) => /^ - /.test(l)).join("\n"));
+});
+
 test("start page answering 404: confirmed, recovered or not verifiable, never a guess (QA #204)", () => {
   const r = run("run-root-404.mjs");
   assert.equal(r.total, 6);
@@ -188,5 +197,23 @@ test("QA 144: proven problems on other sampled pages reach the advice list; high
 test("QA 144: product data stays bound to the entered page (no sibling SKU), ambiguous products are not merged", () => {
   const r = run("run-product-provenance.mjs");
   assert.equal(r.total, 2);
+  assert.equal(r.failed, 0, r.log);
+});
+
+test("QA 144 round 2: refused request + browser error page is not the website (no score); real pages behind a 403 still recover", () => {
+  const r = run("run-refused-error-render.mjs");
+  assert.equal(r.total, 8);
+  assert.equal(r.failed, 0, r.log);
+});
+
+test("QA 144 run 7a2155c: DNS/timeout www/apex fallback (same site only, not after a refusal), homepage 404 gets one browser check, deep 404 untouched", () => {
+  const r = run("run-network-404.mjs");
+  assert.equal(r.total, 10);
+  assert.equal(r.failed, 0, r.log);
+});
+
+test("QA 144 run 7a2155c: DIY store chain declared in its title is retail after a refused request; software for DIY stores is not", () => {
+  const r = run("run-diy-recovered.mjs");
+  assert.equal(r.total, 3);
   assert.equal(r.failed, 0, r.log);
 });

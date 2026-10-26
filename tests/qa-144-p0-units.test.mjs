@@ -22,7 +22,7 @@ test("site access: blocked homepage, subpage start → partial; never claims the
   ] });
   assert.equal(s.homepage.access, "blocked");
   assert.equal(s.homepage.httpStatus, 403);
-  assert.deepEqual(s.pages, { selected: 5, assessed: 2, refused: 2, missing: 0, notRetrieved: 1 });
+  assert.deepEqual(s.pages, { selected: 5, assessed: 2, refused: 2, missing: 0, notRetrieved: 1, excluded: 0, duplicate: 0 });
   assert.equal(s.scanCoverage, "partial");
   assert.match(s.note, /niet dat de hele website toegankelijk is/);
   const only = summarizeSiteAccess({ startUrl: "https://x.example/p", startIsHomepage: false, homepageUrl: "https://x.example/", pages: [{ url: "https://x.example/p", status: "audited" }, { url: "https://x.example/", status: "unable_to_confirm", httpStatus: 403 }] });
@@ -141,4 +141,86 @@ test("axe-core stays outside the server bundle (bundled axe.source fails in the 
   assert.match(cfg, /serverExternalPackages:\s*\[[^\]]*"axe-core"/);
   const ci = await readFile(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
   assert.match(ci, /axe-bundle-check\.mjs/);
+});
+
+test("round 2: score caution from 80 and always with an unknown sector", () => {
+  const base = { startUrl: "https://a.example/", startIsHomepage: true, evidenceCoveragePercent: 88, unconfirmedChecks: 2, evidenceLevel: "provisional", range: null, pages: { selected: 10, assessed: 10 }, siteCoverage: "complete", sampleScore: null, sitewideIssues: { confirmed: 0, toConfirm: 0 } };
+  assert.match(buildScoreScope({ ...base, overallScore: 89, sectorStatus: "unconfirmed" }).caution, /sector niet bevestigd/);
+  assert.match(buildScoreScope({ ...base, overallScore: 66, sectorStatus: "unconfirmed" }).caution, /66\/100/);
+  assert.ok(buildScoreScope({ ...base, overallScore: 88, sectorStatus: "probable" }).caution);
+  assert.equal(buildScoreScope({ ...base, overallScore: 75, sectorStatus: "confirmed" }).caution, null);
+});
+
+test("round 2: comparison wording on own product pages is not a publication; a real comparison site still is", async () => {
+  const { isPublication } = await import("../lib/eu-identity.ts");
+  assert.equal(isPublication("Bekijk en vergelijk Frisdrankmakers-producten | Merk"), false);
+  assert.equal(isPublication("Compare our models | Brand"), false);
+  assert.equal(isPublication("Vergelijkwijzer | Vergelijk energie, internet en verzekeringen"), true);
+  assert.equal(isPublication("Merk Blog: tips en trends"), true);
+});
+
+test("round 3: refusal recovery is decided on content; own navigation is counted (one-page anchors included) for the warning", async () => {
+  const { isSubstantiveRender, internalLinkCount } = await import("../lib/render-quality.ts");
+  const real = `<html><head><title>Nord Airlines</title></head><body><h1>Welcome</h1><p>${"Book flights and holidays with us. ".repeat(12)}</p></body></html>`;
+  assert.equal(isSubstantiveRender(real, { afterRefusal: true, hostname: "nord.example" }), true, "real homepage without links is not blocked");
+  const err = `<html><head><title>Sorry, er gaat iets niet goed…</title></head><body><h1>Sorry, er gaat iets niet goed…</h1><p>${"Probeer het later nog eens. ".repeat(10)}</p></body></html>`;
+  assert.equal(isSubstantiveRender(err, { afterRefusal: true, hostname: "bank.example" }), false);
+  const maint = `<html><head><title>maintenance</title></head><body><h1>We'll be back soon</h1><p>${"Our website is temporarily unavailable. ".repeat(15)}</p></body></html>`;
+  assert.equal(isSubstantiveRender(maint, { afterRefusal: true }), false);
+  const onePage = `<a href="#brood">Brood</a><a href="#gebak">Gebak</a><a href="#nergens">x</a><a href="#">top</a><section id="brood"></section><section id="gebak"></section>`;
+  assert.equal(internalLinkCount(onePage, "bakker.example"), 2, "only anchors whose target exists");
+  assert.equal(internalLinkCount(`<a href="/a">a</a><a href="/a">a</a><a href="https://www.site.example/b">b</a><a href="https://other.example/">o</a><a href="tel:1">t</a>`, "site.example"), 2, "distinct same-site links only");
+});
+
+test("round 4: page counts share one denominator (duplicates and exclusions counted, not hidden)", () => {
+  const s = summarizeSiteAccess({ startUrl: "https://e.example/", startIsHomepage: true, homepageUrl: "https://e.example/", duplicates: 1, pages: [
+    ...Array.from({ length: 26 }, (_, i) => ({ url: `https://e.example/p${i}`, status: "audited", httpStatus: 200 })),
+    { url: "https://e.example/noindex", status: "unable_to_confirm", httpStatus: 200, evidenceChecks: [{ key: "noindex" }] },
+    { url: "https://e.example/weg", status: "unable_to_confirm", httpStatus: 404 },
+  ] });
+  assert.equal(s.pages.selected, 29, "same as multiPage.counts.selected");
+  assert.equal(s.pages.assessed, 26);
+  assert.equal(s.pages.excluded, 1);
+  assert.equal(s.pages.missing, 1);
+  assert.equal(s.pages.duplicate, 1);
+  assert.equal(s.pages.notRetrieved, 0, "a fetched noindex page is not 'not retrieved'");
+  assert.equal(s.pages.assessed + s.pages.refused + s.pages.missing + s.pages.notRetrieved + s.pages.excluded + s.pages.duplicate, s.pages.selected);
+  assert.match(s.note, /26 van 29/);
+});
+
+test("round 4: per-dimension confirmed checks are shown, unconfirmed checks explained as not scored", async () => {
+  const { confirmedChecksLine } = await import("../lib/score-qualifier.ts");
+  const line = confirmedChecksLine({ mode: "both", seo: { coverage: { relevant: 20, confirmed: 20 } }, geo: { coverage: { relevant: 12, confirmed: 9 } } }, "nl");
+  assert.equal(line, "SEO: 20 van 20 controles bevestigd · GEO: 9 van 12 controles bevestigd (niet-bevestigde controles tellen niet mee en kosten geen punten)");
+  assert.equal(confirmedChecksLine({ mode: "seo", seo: { coverage: { relevant: 5, confirmed: 5 } }, geo: { coverage: { relevant: 3, confirmed: 1 } } }, "en"), "SEO: 5 of 5 checks confirmed");
+  assert.equal(confirmedChecksLine({}, "nl"), "");
+});
+
+test("round 4: unconfirmed checks never lower a score (scoring rule unchanged)", async () => {
+  const { scoreApplicableChecks } = await import("../lib/audit-score.ts");
+  const pass = { issue_status: "PASS", points: 10, maxPoints: 10, confidence: "high" };
+  const unconfirmed = { issue_status: "UNABLE_TO_CONFIRM", points: 0, maxPoints: 10, confidence: "low" };
+  assert.equal(scoreApplicableChecks([pass]), scoreApplicableChecks([pass, unconfirmed, unconfirmed]));
+});
+
+test("round 5: title superlative self-description declares the trade; editorial titles never do", async () => {
+  const { detectDeclaredIndustry } = await import("../lib/site-sector-corroboration.mjs");
+  assert.equal(detectDeclaredIndustry({ title: "Klusketen.be | De grootste doe-het-zelf winkels van België" })?.sector, "ecommerce");
+  assert.equal(detectDeclaredIndustry({ title: "Bricoketen.be | Plus grands magasins de bricolage en Belgique" })?.sector, "ecommerce");
+  assert.equal(detectDeclaredIndustry({ title: "Hotelnieuws | De grootste hotels van Europa in beeld" }), null);
+  assert.equal(detectDeclaredIndustry({ title: "Top 10: de grootste bouwmarkten van Nederland" }), null);
+  assert.equal(detectDeclaredIndustry({ title: "KassaSoft | Kassasoftware voor bouwmarkten en doe-het-zelf winkels" }), null);
+});
+
+test("round 5: dashboard TestLab uses the CLI comparison (optician meets the broad retail label)", async () => {
+  const { compareSector } = await import("../scripts/testlab/labels.mjs");
+  assert.equal(compareSector("retail", { sector: "health_wellness", key: "optician" }).sectorMatch, true);
+  assert.equal(compareSector("retail", { sector: "health_wellness", key: "dentist" }).sectorMatch, false);
+  const { readFileSync } = await import("node:fs");
+  const lab = readFileSync(new URL("../components/qa-testlab.tsx", import.meta.url), "utf8");
+  // QA #204: the dashboard uses sectorVerdict, which is built on compareSector.
+  assert.match(lab, /sectorVerdict\(s\.expected/);
+  const { sectorVerdict } = await import("../scripts/testlab/labels.mjs");
+  assert.equal(sectorVerdict("retail", { sector: "health_wellness", key: "optician" }).verdict, "equivalent");
+  assert.doesNotMatch(lab, /const family:Record/);
 });

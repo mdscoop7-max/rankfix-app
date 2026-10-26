@@ -11,6 +11,15 @@ export type HeadMetadata = {
   robots:string;
   lang:string;
   evidence:{description:boolean;canonical:boolean;viewport:boolean;robots:boolean;lang:boolean};
+  /**
+   * QA international-28 (laptop page check, 25 Oct): React streaming SSR can emit
+   * <title>, <meta name="description"> and <link rel="canonical"> after </head>;
+   * in the browser DOM they stay in <body>. They do not count as head metadata
+   * (search engines may ignore them there), but they are reported as "outside
+   * head" instead of "missing", and the description remains the organisation's
+   * own self-description for identity decisions.
+   */
+  outsideHead:{description:string|null;canonical:string|null};
 };
 
 export function htmlAttribute(tag:string, name:string):string {
@@ -36,6 +45,9 @@ export function extractHeadMetadata(html:string):HeadMetadata {
   const robotsTag=findMeta("robots");
   const htmlTag=html.match(/<html\b[^>]*>/i)?.[0]||"";
   const lang=htmlAttribute(htmlTag,"lang");
+  const rest = match ? html.slice((match.index||0)+match[0].length) : "";
+  const bodyMeta = descTag ? null : [...rest.matchAll(/<meta\b[^>]*>/gi)].map(m=>m[0]).find(tag=>htmlAttribute(tag,"name").toLowerCase()==="description");
+  const bodyCanonical = canonicalTag ? null : [...rest.matchAll(/<link\b[^>]*>/gi)].map(m=>m[0]).find(tag=>htmlAttribute(tag,"rel").toLowerCase().split(/\s+/).includes("canonical"));
   return {
     description,
     descriptionState:!descTag?"missing":description?"present":"empty",
@@ -44,5 +56,6 @@ export function extractHeadMetadata(html:string):HeadMetadata {
     robots:robotsTag?htmlAttribute(robotsTag,"content"):"",
     lang,
     evidence:{description:Boolean(descTag),canonical:Boolean(canonicalTag),viewport:Boolean(viewportTag),robots:Boolean(robotsTag),lang:Boolean(lang)},
+    outsideHead:{description:bodyMeta ? htmlAttribute(bodyMeta,"content") || null : null, canonical:bodyCanonical ? htmlAttribute(bodyCanonical,"href") || null : null},
   };
 }

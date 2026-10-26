@@ -5,7 +5,7 @@
 export type CommerceApplicability =
   | { state: "confirmed" }
   | { state: "absent"; reason: "service_identity" | "no_commerce_evidence" }
-  | { state: "unconfirmed"; reason: "market_selector" | "thin_shell" | "weak_commerce_signals" | "low_coverage" };
+  | { state: "unconfirmed"; reason: "market_selector" | "thin_shell" | "weak_commerce_signals" | "low_coverage" | "sample_refused" | "referral_platform" };
 
 export function commerceApplicability(input: {
   confirmed: boolean;
@@ -15,8 +15,16 @@ export function commerceApplicability(input: {
   marketSelector: boolean;
   auditedRepresentativePages: number;
   verifiedSecondaryCommerce?: boolean;
+  /** Product/category pages that refused RankFix (401/403/405/429/202); QA commerce 72/72. */
+  refusedRetailPages?: number;
+  /** A comparison/quote platform without its own cart (QA #207/#209). */
+  referralPlatform?: boolean;
 }): CommerceApplicability {
+  if (input.referralPlatform) return { state: "unconfirmed", reason: "referral_platform" };
   if (input.confirmed) return { state: "confirmed" };
+  // The shop pages themselves refused RankFix: whether checkout works is unknowable,
+  // never "absent" and never a weak-signal verdict about the shop.
+  if ((input.refusedRetailPages || 0) >= 2 && (input.commerceHints || input.verifiedSecondaryCommerce)) return { state: "unconfirmed", reason: "sample_refused" };
   if (input.marketSelector) return { state: "unconfirmed", reason: "market_selector" };
   if (input.thinShell) return { state: "unconfirmed", reason: "thin_shell" };
   // A primary service identity may also sell real products (e.g. phones at a
@@ -36,6 +44,8 @@ export const COMMERCE_APPLICABILITY_COPY: Record<string, string> = {
   thin_shell: "De opgehaalde HTML is een dunne JavaScript-shell zonder uitgevoerde rendering. Of hier een webshop is, kan niet betrouwbaar worden vastgesteld.",
   weak_commerce_signals: "Er zijn product- of webshopsignalen gevonden, maar niet alle betaal-, winkelwagen- en retailfuncties zijn onafhankelijk bevestigd. Relevante productcontroles blijven mogelijk; onbevestigde shopfuncties zijn niet automatisch afwezig.",
   low_coverage: "Te weinig representatieve pagina's konden worden onderzocht om vast te stellen of er een webshop is.",
+  referral_platform: "Dit is een vergelijkings- of offerteplatform: bestellen, betalen en leveren gebeuren bij aangesloten winkels of aanbieders. Een eigen winkelwagen of checkout is daarom geen vereiste; productgegevens, doorverwijzingen en partnerinformatie blijven relevant.",
+  sample_refused: "De product- en categoriepagina's weigerden RankFix (bijvoorbeeld HTTP 403, 405 of 429). De webshop is daarom niet te bevestigen; dit is geen bewijs dat er geen webshop is. RankFix omzeilt deze beveiliging niet.",
 };
 
 // Existing report reason codes, so dashboard and PDF explain the status correctly.
@@ -44,6 +54,8 @@ export const UNCONFIRMED_COMMERCE_REASON_CODE = {
   thin_shell: "needs_js",
   weak_commerce_signals: "weak_evidence",
   low_coverage: "insufficient_pages",
+  sample_refused: "access_refused",
+  referral_platform: "type_uncertain",
 } as const;
 
 // Shop wording ("webshophomepage", "productlinks", OnlineStore advice) is only
