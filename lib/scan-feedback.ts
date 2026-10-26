@@ -208,3 +208,32 @@ export function requireEvidenceForScoredChecks(checks: EvidenceCheck[], pageUrl:
   }
   return demoted;
 }
+
+
+// A browser recovery after a blocked/failed primary request is not proof of a
+// complete homepage when its own navigation did not load. Negative DOM findings
+// may be artefacts of that partial document; preserve positive evidence and
+// independently checked HTTP signals. Generic policy: never inspect the domain.
+export function applyIncompleteRecoveryUncertainty(
+  checks: EvidenceCheck[],
+  input: { incompleteRecovery: boolean; url: string },
+): number {
+  if (!input.incompleteRecovery) return 0;
+  let changed = 0;
+  for (const c of checks) {
+    if (!DOM_DEPENDENT_CHECKS.has(c.key) || !["warning", "fail"].includes(c.status)) continue;
+    // Positive findings (e.g. a demonstrably duplicated heading) are retained.
+    // Missing/negative metadata in a partial rendered page is not proof of absence.
+    if (c.evidence?.found === true) continue;
+    c.status = "unable_to_confirm";
+    c.issue_status = "UNABLE_TO_CONFIRM";
+    c.points = 0;
+    c.confidence = "low";
+    c.reasonCode = "incomplete_recovery";
+    c.message = "Niet te bevestigen: na een geweigerd of mislukt verzoek ontbrak eigen navigatie in de browserweergave. Dit is mogelijk geen volledige websitepagina.";
+    c.fix = "Controleer dit op een volledige, publiek toegankelijke pagina; verander niets op basis van onvolledig scanbewijs.";
+    c.evidence = { url: input.url, found: null, details: c.message };
+    changed++;
+  }
+  return changed;
+}
