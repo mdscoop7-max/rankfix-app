@@ -70,6 +70,11 @@ export function refineSamplePageType(input: {
   // countIndependentProducts), so a product detail page stays a product page.
   const collection = pathCollection || (input.productSchemaCount || 0) >= 2 || (input.itemListSchema && input.repeatedProductLinks && commerceOnPage);
   if (collection) return "category";
+  // A grid of three or more linked products with prices, without the page's own
+  // single Product and without a model/article number, lists products: it is a
+  // collection, even below /producten/ or /products/ (QA #203).
+  const ownSingleProduct = input.productSchema && (input.productSchemaCount || 1) === 1;
+  if (input.repeatedProductLinks && input.visiblePrices >= 3 && !ownSingleProduct && !input.detailIdentity) return "category";
   if (input.productSchema) return "product";
   // The page's own content describes a service and it sells nothing itself.
   if (input.serviceEvidence && !input.purchaseAction && !input.productSchema && ["other", "category", "product"].includes(proposed)) return "service";

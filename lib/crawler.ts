@@ -1,4 +1,5 @@
 import { URL } from "node:url";
+import { neutralizeTemplateBindings, isTemplateHref, isCartActionUrl } from "@/lib/template-links";
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { decodeHtmlEntities } from "@/lib/html-entities";
 import { offerPrice } from "@/lib/price";
@@ -184,7 +185,7 @@ export async function crawlSite(startUrl:string,requestedMode:CrawlMode="STANDAR
       const headingLevels=[...html.matchAll(/<h([1-6])\b[^>]*>/gi)].map(m=>Number(m[1]));
       let headingLevelSkips=0; for(let i=1;i<headingLevels.length;i++) if(headingLevels[i]>headingLevels[i-1]+1) headingLevelSkips++;
       const accessibility={unlabeledControls,emptyButtons,emptyLinks,iframesMissingTitle,duplicateIds,hasMainLandmark,headingLevelSkips};
-      const links=[...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi)].map(m=>normalize(m[1],resolved)).filter(Boolean) as string[];
+      const links=[...neutralizeTemplateBindings(html).matchAll(/<a\b[^>]*href\s*=\s*["']([^"']+)["']/gi)].filter(m=>!isTemplateHref(m[1])&&!isCartActionUrl(m[1])).map(m=>normalize(m[1],resolved)).filter(Boolean) as string[];
       const uniqueLinks=[...new Set(links)];
       const blocks=[...html.matchAll(/<script\b(?=[^>]*\btype\s*=\s*(?:(["'])application\/ld\+json\1|application\/ld\+json(?:\s|>|\/)))[^>]*>([\s\S]*?)<\/script>/gi)];
       const types:string[]=[]; let jsonLdInvalid=0;

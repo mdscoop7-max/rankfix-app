@@ -33,6 +33,21 @@ test("scan matrix: English and German reports keep the same decisions", () => {
   }
 });
 
+// QA #203/#204: WooCommerce, headless Shopify, Magento, PrestaShop and OpenCart shops
+// are webshops with their platform and branch; case shops are not carriers; template
+// bindings are not links; negative controls never become a webshop.
+test("webshops across platforms (QA #203/#204): type, platform, branch, modules, links, currencies", () => {
+  const r = run("run-webshop-qa204.mjs");
+  assert.ok(r.total >= 12, `too few sites: ${r.total}`);
+  assert.equal(r.failed, 0, r.log.split("\n").filter((l) => /^ - /.test(l)).join("\n"));
+});
+
+test("start page answering 404: confirmed, recovered or not verifiable, never a guess (QA #204)", () => {
+  const r = run("run-root-404.mjs");
+  assert.equal(r.total, 6);
+  assert.equal(r.failed, 0, r.log);
+});
+
 test("rendering: rich render is used, failed/poorer renders fall back honestly, challenges abstain", () => {
   const r = run("run-render.mjs");
   assert.equal(r.total, 17);
