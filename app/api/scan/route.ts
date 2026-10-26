@@ -15,7 +15,7 @@ import { resolveScanUser } from "@/lib/scan-session";
 import { databaseFailureCode, databaseFailureDetail, getDb, withDbRetry } from "@/lib/db";
 import { ensureDatabase } from "@/lib/db-init";
 import { fetchFailureCode, finishScanAttempt, startScanAttempt } from "@/lib/scan-attempts";
-import { diagnoseBlockedResponse, diagnoseChallenge, diagnoseFetchFailure, fetchFailureMessage } from "@/lib/access-diagnostics";
+import { diagnoseBlockedResponse, diagnoseChallenge, diagnoseFetchFailure, fetchFailureMessage, detectProtectionProvider } from "@/lib/access-diagnostics";
 import { jsonbStringify } from "@/lib/jsonb-safe";
 import { classifyNonContentPage, nonContentDetail } from "@/lib/page-gate";
 import { buildWebsiteProfile } from "@/lib/website-profile";
@@ -48,7 +48,7 @@ import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
 import { createRenderBudget, renderPublicPage } from "@/lib/headless-render";
 import { renderOnce, renderWithRetry, representativeNeedsJavaScriptRendering } from "@/lib/render-strategy";
-import { annotateEvidenceSources, type EvidenceSource } from "@/lib/evidence-source";
+import { annotateEvidenceSources, type EvidenceSource, alignRenderedWording } from "@/lib/evidence-source";
 import { countIndependentProducts, isFinancialOfferSchema, missingJsHeadEvidenceUnverified, refineSamplePageType, sampleEvidenceScore, SERVICE_INTENT, SERVICE_SCHEMA_TYPES } from "@/lib/sample-quality";
 import { parseStructuredPrice, offerPrice } from "@/lib/price";
 import { detectBusinessModel } from "@/lib/business-model";
@@ -874,6 +874,65 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         console.info("RankFix recovery render failed", { page: finalUrl.toString(), error: recoveryError instanceof Error ? recoveryError.message.slice(0, 200) : String(recoveryError) });
       }
     }
+    // QA #204 (a large store's start page answered RankFix with HTTP 404 while
+    // its browser view was blocked): a site's ROOT that answers 404/410 to a
+    // plain request is rare and often protection. One ordinary browser visit
+    // decides: the real page (recovered, limited scope), the same not-found page
+    // (a confirmed 404), or no usable answer (not verifiable: no score, and not
+    // reported as a missing page). Never a bypass: one normal visit only.
+    let notFoundVerification: "not_root" | "confirmed" | "unverified" | "recovered" = "not_root";
+    if (!response.ok && !recoveredHtml && [404, 410].includes(response.status) && /^\/(?:[a-z]{2}(?:[-_][a-z]{2})?\/?)?$/i.test(finalUrl.pathname)) {
+      // The site's own not-found page in the 404 body confirms it without a browser.
+      let notFoundBody = "";
+      try { notFoundBody = await Promise.race([readResponsePrefix(response, 60_000), new Promise<string>((resolve) => setTimeout(() => resolve(""), 3000))]); } catch {}
+      const bodyText = stripHtml(notFoundBody).slice(0, 8000);
+      const bodyGate = notFoundBody ? classifyNonContentPage({ title: firstMatch(notFoundBody, /<title[^>]*>([\s\S]*?)<\/title>/i), text: bodyText, words: bodyText.split(/\s+/).filter(Boolean).length, html: notFoundBody }) : null;
+      if (bodyGate?.kind === "error" && !detectProtectionProvider(response.headers, notFoundBody)) notFoundVerification = "confirmed";
+    }
+    if (notFoundVerification === "not_root" && !response.ok && !recoveredHtml && [404, 410].includes(response.status) && /^\/(?:[a-z]{2}(?:[-_][a-z]{2})?\/?)?$/i.test(finalUrl.pathname)) {
+      recovery.attempted = true;
+      trace.phase = "browser_render";
+      try {
+        const rendered = await renderPrimaryOnce();
+        const renderedTitle = firstMatch(rendered.html, /<title[^>]*>([\s\S]*?)<\/title>/i);
+        const renderedText = stripHtml(rendered.html).slice(0, 12000);
+        const renderedGate = classifyNonContentPage({ title: renderedTitle, text: renderedText, words: renderedText.split(/\s+/).filter(Boolean).length, html: rendered.html });
+        if (renderedGate?.kind === "error") {
+          notFoundVerification = "confirmed";
+          recovery.reason = "RENDER_CONFIRMS_NOT_FOUND";
+          trace.browserRender = { attempted: true, outcome: "not_substantive", reason: "RENDER_CONFIRMS_NOT_FOUND" };
+        } else if (!isSubstantiveRender(rendered.html) || renderedGate) {
+          notFoundVerification = "unverified";
+          recovery.reason = renderedGate?.kind === "challenge" ? "RENDER_CHALLENGE" : "RECOVERY_RENDER_NOT_SUBSTANTIVE";
+          trace.browserRender = { attempted: true, outcome: "not_substantive", reason: recovery.reason };
+        } else {
+          notFoundVerification = "recovered";
+          trace.browserRender = { attempted: true, outcome: "recovered", reason: `HTTP_${response.status}_ROOT_RECOVERY` };
+          recoveredHtml = rendered.html;
+          renderedDocument = rendered;
+          recoveredRenderElapsedMs = rendered.elapsedMs;
+          recovery.browserRecovered = true;
+          recovery.limitedScope = true;
+          recovery.evidenceSource = "rendered_html";
+        }
+      } catch (verifyError) {
+        notFoundVerification = "unverified";
+        recovery.reason = renderFailureCode(verifyError);
+        trace.browserRender = { attempted: true, outcome: "failed", reason: recovery.reason };
+      }
+    }
+    if (!response.ok && !recoveredHtml && notFoundVerification === "unverified") {
+      const unverifiedMessages: Record<string,string> = {
+        nl: `De startpagina antwoordde RankFix met HTTP ${response.status}, maar dat kon niet worden bevestigd: de browserweergave werd geblokkeerd of leverde geen inhoud. Mogelijk weigert de website geautomatiseerde bezoekers. Er is geen score berekend en dit is geen bewezen ontbrekende pagina.`,
+        en: `The start page answered RankFix with HTTP ${response.status}, but this could not be verified: the browser view was blocked or returned no content. The website may refuse automated visitors. No score was calculated and this is not a proven missing page.`,
+        de: `Die Startseite antwortete RankFix mit HTTP ${response.status}, was nicht bestätigt werden konnte: Die Browseransicht wurde blockiert oder lieferte keinen Inhalt. Es wurde keine Bewertung berechnet; dies ist keine nachgewiesen fehlende Seite.`,
+        fr: `La page d’accueil a répondu HTTP ${response.status} à RankFix, sans confirmation possible : l’affichage navigateur a été bloqué ou vide. Aucun score calculé ; ce n’est pas une page manquante prouvée.`,
+        it: `La home page ha risposto a RankFix con HTTP ${response.status}, ma non è stato possibile confermarlo: la visualizzazione nel browser è stata bloccata o vuota. Nessun punteggio calcolato; non è una pagina mancante dimostrata.`,
+        es: `La página de inicio respondió a RankFix con HTTP ${response.status}, pero no se pudo confirmar: la vista del navegador fue bloqueada o vacía. No se calculó ninguna puntuación; no es una página inexistente demostrada.`,
+      };
+      try { await response.body?.cancel(); } catch {}
+      return NextResponse.json({ error: unverifiedMessages[scanLanguage] || unverifiedMessages.en, code: "UNVERIFIED_NOT_FOUND", blockKind: "unverified_not_found", httpStatus: response.status, recovery, verification: { originStatus: response.status, browserRender: trace.browserRender, verdict: "unverified" }, charged: false }, { status: 422 });
+    }
     if (!response.ok && !recoveredHtml) {
       const httpMessages: Record<string,string> = {
         // Only 401/403/429 are access blocks; 404/410 mean the page does not exist
@@ -928,7 +987,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           ? "Deze pagina weigerde RankFix. Je kunt een andere openbare pagina van dezelfde website (bijvoorbeeld een categorie- of artikelpagina) als startpunt invoeren; RankFix beoordeelt dan alleen de pagina's die wel bereikbaar zijn en maakt een gedeeltelijk rapport."
           : "This page refused RankFix. You can enter another public page of the same website (for example a category or article page) as the start; RankFix then assesses only the pages it can reach and produces a partial report.",
       } : null;
-      return NextResponse.json({ error: httpMessages[scanLanguage], code: [404, 410].includes(response.status) ? "HTTP_NOT_FOUND" : response.status >= 500 ? "HTTP_SERVER_ERROR" : "HTTP_BLOCKED", blockKind: diagnosis?.kind || null, httpStatus: response.status, recovery, diagnosis, alternativeStart, charged: false }, { status: 422 });
+      return NextResponse.json({ error: httpMessages[scanLanguage], code: [404, 410].includes(response.status) ? "HTTP_NOT_FOUND" : response.status >= 500 ? "HTTP_SERVER_ERROR" : "HTTP_BLOCKED", blockKind: diagnosis?.kind || null, httpStatus: response.status, recovery, diagnosis, alternativeStart, verification: notFoundVerification === "not_root" ? null : { originStatus: response.status, browserRender: trace.browserRender, verdict: notFoundVerification }, charged: false }, { status: 422 });
     }
 
     // The website answered RankFix itself with an access refusal, but a real browser
@@ -6288,6 +6347,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // Provenance per check: raw HTML, rendered DOM, HTTP response, robots.txt,
     // sitemap, link probes or a sampled page (bookkeeping only, never a status).
     annotateEvidenceSources([...seoChecks,...geoChecks,...securityChecks,...accessibilityChecks], finalUrl.toString(), javascriptExecuted ? "rendered_html" : "raw_html");
+    alignRenderedWording([...seoChecks,...geoChecks], javascriptExecuted);
     // Final score is calculated only after representative evidence reconciliation.
     // Reapply evidence coverage caps: this second scoring pass must not erase them.
     selectedSeoScore = applyEvidenceBasedScoreCap(scoreApplicableChecks(stableCoreChecks(selectedSeoChecks,"seo")), stableCoreChecks(selectedSeoChecks,"seo"));

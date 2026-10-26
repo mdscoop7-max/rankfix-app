@@ -3,21 +3,18 @@
 import {useEffect, useMemo, useRef, useState} from "react";
 import DashboardNav from "@/app/dashboard/nav";
 import {classifyScanAnswer, isFinalResult, resumeQueue, stopsRun, upsertResult} from "@/lib/testlab-outcome.mjs";
+import {sectorVerdict} from "@/scripts/testlab/labels.mjs";
 
 type Site={host:string;name:string;country:string;group:string;expected:string;round:string};
 type Incident={traceId:string|null;originHttpStatus:number|null;apiHttpStatus:number;reasonCode:string;attribution:string|null;phase:string|null;finalUrl:string|null;browserRender:unknown};
 // pending=true: RankFix/runner stopped (session, quota, infrastructure, connection); the website was not judged and is retried on resume.
-type SiteResult={host:string;status:string;expected:string;sector:string|null;confidence:number|null;score:number|null;seo:number|null;geo:number|null;http:number;reason:string;elapsedMs:number;scanId:string|null;at:string;pending?:boolean;incident?:Incident|null};
+type SiteResult={host:string;status:string;expected:string;sector:string|null;sectorKey?:string|null;websiteType?:string|null;commercePlatform?:string|null;industryVertical?:string|null;confidence:number|null;score:number|null;seo:number|null;geo:number|null;http:number;reason:string;elapsedMs:number;scanId:string|null;at:string;pending?:boolean;incident?:Incident|null};
 type Catalog={sites:Site[];count:number;runtime:{commitSha:string|null;environment:string}};
 const sleep=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
-const family:Record<string,string>={
- retail:"ecommerce",payments:"financial_services",banking:"financial_services",insurance:"financial_services",
- beauty:"beauty",healthcare:"health_wellness",veterinary_animal_care:"health_wellness",
- legal_services:"professional_services",architecture_design:"professional_services",
- charities_nonprofits:"nonprofit",museums_culture:"events_culture",travel:"transport_travel",
- logistics:"transport_travel",software:"saas_b2b",energy:"energy_utilities",telecom:"telecom_technology",
- recruitment_staffing:"recruitment",
-};
+// One verdict per site (exact / equivalent / unconfirmed / mismatch), shared with
+// scripts/testlab: a literal label difference is not a sector error (QA #204).
+const verdictOf=(s:Site,r:SiteResult)=>r.status==="succes"?sectorVerdict(s.expected,{sector:r.sector,key:r.sectorKey,websiteType:r.websiteType}).verdict as string:null;
+const VERDICT_LABEL:Record<string,string>={exact:"exact",equivalent:"taxonomisch equivalent",unconfirmed:"sector onbevestigd",mismatch:"waarschijnlijk fout"};
 const storageKey=(sha:string)=>"rankfix-qa-testlab-144:"+sha;
 const num=(n:number|null)=>n==null?"—":String(Math.round(n));
 function csvCell(value:unknown){
@@ -76,9 +73,10 @@ export default function TestLab144() {
  const byHost=useMemo(()=>new Map(results.map(r=>[r.host,r])),[results]);
  const finished=scoped.filter(s=>isFinalResult(byHost.get(s.host))).length;
  const passed=scoped.filter(s=>byHost.get(s.host)?.status==="succes").length;
- const mismatches=scoped.filter(s=>{const r=byHost.get(s.host);return r?.status==="succes"&&r.sector&&r.sector!==(family[s.expected]||s.expected);}).length;
+ const verdictCounts=scoped.reduce((acc,s)=>{const r=byHost.get(s.host);const v=r?verdictOf(s,r):null;if(v)acc[v]=(acc[v]||0)+1;return acc;},{} as Record<string,number>);
+ const mismatches=verdictCounts.mismatch||0;
  const countries=useMemo(()=>[...new Set(sites.map(s=>s.country))].sort(),[sites]);
- const wrongType=(s:Site,r:SiteResult)=>r.status==="succes"&&r.sector!==null&&r.sector!==(family[s.expected]||s.expected);
+ const wrongType=(s:Site,r:SiteResult)=>verdictOf(s,r)==="mismatch";
  const persist=(list:SiteResult[])=>{setResults(list);if(catalog?.runtime.commitSha)localStorage.setItem(storageKey(catalog.runtime.commitSha),JSON.stringify(list));};
  async function start(){
   if(!catalog||running)return;
@@ -120,6 +118,9 @@ export default function TestLab144() {
       const status=classifyScanAnswer({ok:response.ok,status:response.status,data});
       const inc=data?.incident;
       row={host:site.host,status,expected:site.expected,sector:success?(data.sectorProfile?.sector||null):null,
+       sectorKey:success?(data.sectorProfile?.key||null):null,websiteType:success?(data.websiteProfile?.websiteType?.value||null):null,
+       commercePlatform:success?(data.websiteProfile?.commercePlatform?.label||data.technologyProfile?.commercePlatform||null):null,
+       industryVertical:success?(data.websiteProfile?.industryVertical?.value||null):null,
        confidence:success?(data.sectorProfile?.confidenceScore??null):null,
        score:success?(data.overallScore??null):null,seo:success?(data.seo?.score??null):null,geo:success?(data.geo?.score??null):null,
        http:response.status,reason:success?"":code||String(data.error||"Scan niet bevestigd").slice(0,200),
@@ -157,11 +158,11 @@ export default function TestLab144() {
   const complete=sites.map(s=>({...s,result:byHost.get(s.host)||null}));
   if(fmt==="json"){
     saveDownload("rankfix-testlab-144-"+catalog.runtime.commitSha?.slice(0,8)+".json","application/json;charset=utf-8",
-      JSON.stringify({commitSha:catalog.runtime.commitSha,generatedAt:new Date().toISOString(),labels:"proposed_not_independently_verified",sites:complete},null,2));
+      JSON.stringify({commitSha:catalog.runtime.commitSha,generatedAt:new Date().toISOString(),labels:"proposed_not_independently_verified",verdictCounts,sites:complete.map(x=>({...x,verdict:x.result?verdictOf(x,x.result):null}))},null,2));
     return;
   }
-  const columns=["land","bedrijf","domein","sector_verwacht","subtype_verwacht","gevonden_sector","zekerheid","status","opnieuw_te_testen","score","seo","geo","api_http","website_http","redencode","toewijzing","fase","trace_id","duur_ms","reden","scan_id"];
-  const lines=complete.map(({result:r,...s})=>[s.country,s.name,s.host,s.expected,s.group,r?.sector??"",r?.confidence??"",r?.status??"nog_niet_getest",r?.pending?"ja":"",r?.score??"",r?.seo??"",r?.geo??"",r?.http??"",r?.incident?.originHttpStatus??"",r?.incident?.reasonCode??"",r?.incident?.attribution??"",r?.incident?.phase??"",r?.incident?.traceId??"",r?.elapsedMs??"",r?.reason??"",r?.scanId??""].map(csvCell).join(","));
+  const columns=["land","bedrijf","domein","sector_verwacht","subtype_verwacht","gevonden_sector","gevonden_subtype","oordeel_sector","websitetype","webshopplatform","branche_webshop","zekerheid","status","opnieuw_te_testen","score","seo","geo","api_http","website_http","redencode","toewijzing","fase","trace_id","duur_ms","reden","scan_id"];
+  const lines=complete.map(({result:r,...s})=>[s.country,s.name,s.host,s.expected,s.group,r?.sector??"",r?.sectorKey??"",r?(verdictOf(s,r)??""):"",r?.websiteType??"",r?.commercePlatform??"",r?.industryVertical??"",r?.confidence??"",r?.status??"nog_niet_getest",r?.pending?"ja":"",r?.score??"",r?.seo??"",r?.geo??"",r?.http??"",r?.incident?.originHttpStatus??"",r?.incident?.reasonCode??"",r?.incident?.attribution??"",r?.incident?.phase??"",r?.incident?.traceId??"",r?.elapsedMs??"",r?.reason??"",r?.scanId??""].map(csvCell).join(","));
   saveDownload("rankfix-testlab-144-"+catalog.runtime.commitSha?.slice(0,8)+".csv","text/csv;charset=utf-8","\uFEFF"+columns.join(",")+"\n"+lines.join("\n"));
  }
  return <div className="rf-lab">
@@ -191,7 +192,9 @@ export default function TestLab144() {
     <div className="rf-lab-stat"><strong>{scoped.length}</strong><span>In selectie</span></div>
     <div className="rf-lab-stat"><strong>{finished}</strong><span>Behandeld</span></div>
     <div className="rf-lab-stat"><strong>{passed}</strong><span>Scanrapport ontvangen</span></div>
-    <div className="rf-lab-stat"><strong>{mismatches}</strong><span>Mogelijk andere hoofdsector</span></div>
+    <div className="rf-lab-stat"><strong>{mismatches}</strong><span>Waarschijnlijk andere hoofdsector</span></div>
+    <div className="rf-lab-stat"><strong>{verdictCounts.equivalent||0}</strong><span>Taxonomisch equivalent</span></div>
+    <div className="rf-lab-stat"><strong>{verdictCounts.unconfirmed||0}</strong><span>Sector onbevestigd</span></div>
    </div>
    <div role="status" className={"rf-lab-status"+(error?" rf-lab-error":"")}>{error||notice}</div>
    <p className="rf-lab-note">Sectorlabels zijn voorlopig en nog niet onafhankelijk gevalideerd. Geblokkeerde sites en technische problemen tellen niet als sectorfout. Deze test draait in dit browsertabblad op je laptop, niet automatisch op de server. Sluit je het tabblad of gaat de laptop in slaap, dan stopt de test; met "Doorgaan met resterende" gaat hij verder bij de eerste niet-afgeronde website. Resultaten staan alleen in deze browser (per QA-commit): exporteer tussendoor JSON/CSV, want gewiste browsergegevens wissen ook de resultaten.</p>
@@ -204,7 +207,7 @@ export default function TestLab144() {
      <td><strong>{site.name}</strong><small><a href={"https://"+site.host+"/"} target="_blank" rel="noopener noreferrer">{site.host}</a></small></td>
      <td>{site.country}<small>{site.group} · {site.expected}</small></td>
      <td>{!r?<span className="rf-lab-no">Nog niet getest</span>:r.pending?<span className="rf-lab-no">Opnieuw te testen ({r.status})</span>:<span className={wrongType(site,r)?"rf-lab-warn":r.status==="succes"?"rf-lab-good":"rf-lab-no"}>{r.status}</span>}
-       {r?.sector&&<small>Gevonden: {r.sector}{wrongType(site,r)?" · beoordelen":""}</small>}
+       {r?.sector&&<small>Gevonden: {r.sector}{r.sectorKey&&r.sectorKey!==r.sector?` (${r.sectorKey})`:""} · {VERDICT_LABEL[verdictOf(site,r)||""]||""}{r.websiteType==="ecommerce_store"?` · webshop${r.commercePlatform?` (${r.commercePlatform})`:""}`:""}</small>}
        {r?.reason&&<small title={r.reason}>{r.reason.slice(0,90)}</small>}</td>
      <td>{num(r?.score??null)}</td><td>{num(r?.seo??null)} / {num(r?.geo??null)}</td>
      <td>{r?.scanId?<a href={"/dashboard/audit/"+encodeURIComponent(r.scanId)+"/report"}>Open rapport</a>:"—"}</td>

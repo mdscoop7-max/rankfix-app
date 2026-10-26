@@ -119,7 +119,7 @@ test("a blocked or empty browser render is never treated as website evidence", a
   assert.equal(renderImprovesEvidence(5, true, rich), true);
   const source = (await readFile(new URL("../app/api/scan/route.ts", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
   assert.equal(source.includes("html.length >= 20) {"), false, "no render is accepted on byte length alone");
-  assert.equal((source.match(/isSubstantiveRender\(/g) || []).length, 5, "primary, timeout recovery, quality-gate, representative and second-hop renders");
+  assert.equal((source.match(/isSubstantiveRender\(/g) || []).length, 6, "primary, timeout recovery, quality-gate, start-page 404 verification, representative and second-hop renders");
   assert.equal((source.match(/renderImprovesEvidence\(/g) || []).length, 2);
 });
 
