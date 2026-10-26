@@ -376,10 +376,17 @@ const ORG_PLURAL = "(?:versicherungen|versicherer|insurance companies|assurances
   + "|salons|kapsalons|kappers|hairdressers|barbers|friseure|friseursalons|coiffeurs|salons de coiffure|peluquerías|peluquerias|parrucchieri|opticiens|opticians|optiker|ópticas|opticas|ottici|bakkerijen|bakeries|bäckereien|boulangeries|panaderías|cafés|cafes|bars|beauty salons|schoonheidssalons|horecaondernemers|hoteliers|restaurateurs"
   // Industries served: "Payment für Handel und Mobilität", "software voor de zorg",
   // "solutions pour le transport". The provider names its customers' industry.
-  + "|transport|transportbranche|logistik|logistics|logistiek|logistique|logistica|mobilität|mobility|mobiliteit|mobilité|mobilità|handel|einzelhandel|retail|detailhandel|commerce|hotellerie|hospitality|gastronomie|horeca|healthcare|gesundheitswesen|zorg|santé|industrie|industry|industries|tourismus|tourism|toerisme|tourisme|travel|reisebranche|e-commerce|ecommerce|onlinehandel|automotive|autohandel|bouw|construction)";
+  + "|transport|transportbranche|logistik|logistics|logistiek|logistique|logistica|mobilität|mobility|mobiliteit|mobilité|mobilità|handel|einzelhandel|retail|detailhandel|commerce|hotellerie|hospitality|gastronomie|horeca|healthcare|gesundheitswesen|zorg|santé|industrie|industry|industries|tourismus|tourism|toerisme|tourisme|travel|reisebranche|e-commerce|ecommerce|onlinehandel|automotive|autohandel|bouw|construction"
+  // Fields of application of products (QA #203: "koffers voor transport, luchtvaart,
+  // defensie en industrie" is a case shop's market, not an airline).
+  + "|luchtvaart|aviation|aviation industry|luftfahrt|aéronautique|aeronautica|aeronáutica|aerospace|lucht- en ruimtevaart|defensie|defence|defense|verteidigung|défense|difesa|defensa|militair|military|offshore|scheepvaart|shipping industry|evenementen|events|eventbranche|veranstaltungstechnik|medische sector|medical sector|laboratoria|laboratories)";
 const AUDIENCE = new RegExp(`(?<![\\p{L}])(?:for|voor|für|pour|per|para|dla|pro|för|til|για|за)\\s+[^.|–—:;!?]{0,40}?(?<![\\p{L}])${ORG_PLURAL}(?![\\p{L}])[^.|–—:;!?]{0,60}`, "giu");
+// A transport word fused with a goods noun names a PRODUCT: flightcases, flight
+// bags, reiskoffers, Flugkoffer, travel adapters. It never names a carrier
+// (QA #203: a case webshop became "Personenvervoer 90%" from "Flightcases").
+const TRANSPORT_GOODS = /(?<![\p{L}])(?:flight|vlieg|vlucht|reis|travel|trein|train|flug|reise|voyage|viaggio|viaje|bagage|luggage|cabin|cabine|kabinen|handbagage)[\s-]?(?:cases?|koffers?|kisten?|kist|tassen|tas|bags?|backpacks?|rugzak(?:ken)?|trolleys?|adapters?|kussens?|kussen|pillows?|sets?|flessen|fles|bottles?|wekkers?|kits?|organizers?|etuis?|hüllen|hülle|koffer|taschen|tasche|valises?|valigi\p{L}*|maletas?|sacs?|boxen|boxes|box)(?![\p{L}])/giu;
 export function stripAudience(text: string): string {
-  return String(text || "").replace(AUDIENCE, " ");
+  return String(text || "").replace(AUDIENCE, " ").replace(TRANSPORT_GOODS, " goederen ");
 }
 
 // A product named after its market ("hotel booking engine", "salon software",
@@ -480,8 +487,8 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   const description = stripAudience((input.description || "").slice(0, 700));
   const h1 = stripAudience((input.h1s || []).slice(0, 4).join(" · ").slice(0, 500));
   const site = (input.ogSiteName || "").slice(0, 120);
-  const h2 = (input.h2s || []).slice(0, 12).join(" · ").slice(0, 800);
-  const nav = (input.navLabels || []).slice(0, 80).join(" · ").slice(0, 3000);
+  const h2 = (input.h2s || []).slice(0, 12).join(" · ").slice(0, 800).replace(TRANSPORT_GOODS, " goederen ");
+  const nav = (input.navLabels || []).slice(0, 80).join(" · ").slice(0, 3000).replace(TRANSPORT_GOODS, " goederen ");
   const schema = new Set((input.schemaTypes || []).map((t) => String(t).toLowerCase()));
   const own = [title, description, h1, site].join(" · ");
   const sources = { title, description, h1, site };
@@ -580,7 +587,11 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   const airlineSchema = schema.has("airline") || schema.has("busorcoachstop") || schema.has("trainstation") || schema.has("airport");
   const modes = [AIR.test(own) && "luchtvaart", RAIL.test(own) && "spoor", (BUS.test(own) || FERRY.test(own)) && "openbaar vervoer/veer"].filter(Boolean) as string[];
   const travelOwn = [TICKETS.test(own) && "vervoersbewijzen", TIMETABLE.test(own) && "dienstregeling", JOURNEY.test(own) && "reis/boeking"].filter(Boolean) as string[];
-  if (!retailer && !publication && !transportIntermediary && (airlineSchema || (modes.length >= 1 && (travelOwn.length >= 1 || countSources((s) => AIR.test(s) || RAIL.test(s) || BUS.test(s) || FERRY.test(s)) >= 2)))) {
+  // A transport mode alone (even in two sources) describes what a business is
+  // about, not that it carries passengers: case shops, model-train shops, aviation
+  // suppliers. A carrier also names a passenger service (tickets, timetable,
+  // journeys) or declares itself in typed data (QA #203).
+  if (!retailer && !publication && !transportIntermediary && (airlineSchema || (modes.length >= 1 && travelOwn.length >= 1))) {
     return { sector: "transport_travel", key: "passenger_transport", label: "Personenvervoer (spoor, luchtvaart, openbaar vervoer)", confidence: "high", confidenceScore: airlineSchema ? 95 : 90,
       evidence: evidence([airlineSchema && "Structured data: vervoerder (Airline/station)", modes.length > 0 && `Eigen identiteit noemt vervoerswijze: ${modes.join(", ")}`, travelOwn.length > 0 && `Eigen identiteit noemt ${travelOwn.join(", ")}`]) };
   }

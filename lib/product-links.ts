@@ -1,3 +1,4 @@
+import { neutralizeTemplateBindings, isTemplateHref, isCartActionUrl } from "./template-links.ts";
 // Candidate selection for product-detail pages. URL shape only nominates a page;
 // a candidate counts as product evidence only after the fetched page itself proves
 // it (Product schema, or a commerce action with a price). No platform or brand rules.
@@ -50,7 +51,8 @@ export function looksLikeProductDetailPath(pathname: string): boolean {
 export function extractProductDetailLinks(html: string, pageUrl: string, siteHost: string, limit = 8): string[] {
   const host = siteHost.toLowerCase().replace(/^www\./, "");
   const found = new Set<string>();
-  for (const match of html.matchAll(/href\s*=\s*["']([^"'#]+)["']/gi)) {
+  for (const match of neutralizeTemplateBindings(html).matchAll(/\shref\s*=\s*["']([^"'#]+)["']/gi)) {
+    if (isTemplateHref(match[1]) || isCartActionUrl(match[1])) continue;
     let url: URL;
     try { url = new URL(match[1], pageUrl); } catch { continue; }
     if (!/^https?:$/.test(url.protocol) || url.hostname.toLowerCase().replace(/^www\./, "") !== host) continue;
