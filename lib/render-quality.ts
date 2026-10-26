@@ -18,10 +18,41 @@ export function visibleWordCount(html: string): number {
 // Minimum visible content for a recovered page to count as the website itself.
 export const MIN_RECOVERED_WORDS = 40;
 
-export function isSubstantiveRender(html: string | null | undefined): boolean {
+/**
+ * The page's own navigation: distinct same-site links (relative or on the host)
+ * plus in-page section links ("#diensten") whose target id exists, so a one-page
+ * site counts. mailto:/tel:/javascript:, other hosts and "#" alone do not.
+ */
+export function internalLinkCount(html: string, hostname: string): number {
+  const host = String(hostname || "").toLowerCase().replace(/^www\./, "");
+  const ids = new Set([...html.matchAll(/\bid\s*=\s*["']([^"']+)["']/gi)].map((m) => m[1]));
+  const seen = new Set<string>();
+  for (const m of html.matchAll(/<a\b[^>]*\bhref\s*=\s*["']([^"']*)["']/gi)) {
+    const href = m[1].trim();
+    if (!href || /^(?:mailto:|tel:|javascript:|data:)/i.test(href) || href.startsWith("//")) continue;
+    if (href.startsWith("#")) { const id = href.slice(1); if (id && ids.has(decodeURIComponentSafe(id))) seen.add(href); continue; }
+    if (/^https?:\/\//i.test(href)) { try { const u = new URL(href); if (u.hostname.toLowerCase().replace(/^www\./, "") === host) seen.add(u.pathname + u.search); } catch {} continue; }
+    seen.add(href.split("#")[0] || href);
+  }
+  return seen.size;
+}
+function decodeURIComponentSafe(v: string): string { try { return decodeURIComponent(v); } catch { return v; } }
+/** Below this many own links a refusal recovery is reported as "without own navigation". */
+export const MIN_REFUSAL_RECOVERY_LINKS = 3;
+
+/**
+ * Decides on CONTENT only: block, error and maintenance pages (page-gate.ts).
+ * A structural rule (own links) was tried and rejected for QA 144: real
+ * homepages behind a 403 can render without navigation (field case: airline
+ * homepage, brand-only title, no description, no links). Such recoveries are
+ * accepted and flagged instead (recoveryNavigation), see the scan route.
+ * options is kept for callers; afterRefusal does not change the decision.
+ */
+export function isSubstantiveRender(html: string | null | undefined, options: { afterRefusal?: boolean; hostname?: string } = {}): boolean {
   if (!html) return false;
   const words = visibleWordCount(html);
   if (words < MIN_RECOVERED_WORDS) return false;
+  void options;
   // A recovered render that is itself a block, error or maintenance page is not
   // the website (QA #186: "AntiBot" and "connection was interrupted" were scored).
   const title = (html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "").replace(/\s+/g, " ").trim();

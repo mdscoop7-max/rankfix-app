@@ -55,7 +55,7 @@ import { detectBusinessModel } from "@/lib/business-model";
 import { indexJsonLdIds, resolveSchemaImage } from "@/lib/schema-image";
 import { isJavaScriptFramework, applyJsEvidenceUncertainty, titlePixelAdvice, scoreBreakdown, sampleSummary, sampleOutcomeCounts, commerceServiceSignals, compareScoreVersions } from "@/lib/scan-feedback";
 import { buildScanEvidence, collectEvidencePartners } from "@/lib/scan-evidence";
-import { isSubstantiveRender, renderImprovesEvidence, preserveRawHeadEvidence, renderIsErrorState, visibleWordCount } from "@/lib/render-quality";
+import { isSubstantiveRender, renderImprovesEvidence, preserveRawHeadEvidence, renderIsErrorState, visibleWordCount, internalLinkCount, MIN_REFUSAL_RECOVERY_LINKS } from "@/lib/render-quality";
 import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeCategoryPath, looksLikeCorporatePath, looksLikeEditorialPath, looksLikeEventPath, looksLikeProductDetailPath, looksLikeStorePage, productUrlsFromSitemap } from "@/lib/product-links";
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
@@ -724,6 +724,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     let fetchedFinalUrl: URL | null = null;
     let redirectChain: Array<{ from: string; to: string; status: number }> = [];
     let primaryFetchAttempts = 0;
+    let hostFallback: { from: string; to: string; reason: string } | null = null;
     let timeoutRecovery: { code: string; rendered: Awaited<ReturnType<typeof renderPublicPage>> } | null = null;
     try {
       let activeTarget = target;
@@ -742,7 +743,44 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         return fetchOnce();
       };
       try {
-        ({ response, finalUrl: fetchedFinalUrl, redirectChain } = await fetchTarget());
+        try {
+          ({ response, finalUrl: fetchedFinalUrl, redirectChain } = await fetchTarget());
+        } catch (dnsError) {
+          // QA 144: "hartlauer.at" had no DNS record while "www.hartlauer.at" can.
+          // QA 144 / 28 (25 Oct, laptop browser check): the bare domain of a salon
+          // accepted no HTTPS connection at all (a browser also hung >15 s) while
+          // "www." answered in 0.3 s. One attempt on the www/apex counterpart of the
+          // SAME site for a DNS failure, timeout or refused connection; never another
+          // site, never a different client identity. A refusal with an HTTP status
+          // (403/429…) is not covered here and stays a refusal.
+          const code = fetchFailureCode(dnsError);
+          if (!["FETCH_DNS", "FETCH_TIMEOUT", "FETCH_CONNECTION"].includes(code)) throw dnsError;
+          const host = activeTarget.hostname.toLowerCase();
+          const alternate = host.startsWith("www.") ? host.slice(4) : `www.${host}`;
+          if (!alternate.includes(".") || /^\d+(?:\.\d+){3}$/.test(host)) throw dnsError;
+          const original = activeTarget.toString();
+          const originalTarget = activeTarget;
+          activeTarget = validatePublicHttpUrl(`${activeTarget.protocol}//${alternate}${activeTarget.pathname}${activeTarget.search}`);
+          try {
+            // The first host already had two attempts after a timeout: the counterpart
+            // gets one, so the extra wait stays bounded (≤ 15 s).
+            const alternate = code === "FETCH_DNS" ? await fetchTarget() : await fetchOnce();
+            // After a timeout the counterpart only replaces the entered address when
+            // it actually serves a page (2xx): a 404/403/5xx there says nothing about
+            // the address the customer entered.
+            if (code !== "FETCH_DNS" && !(alternate.response.status >= 200 && alternate.response.status < 300)) {
+              try { await alternate.response.body?.cancel(); } catch {}
+              throw dnsError;
+            }
+            ({ response, finalUrl: fetchedFinalUrl, redirectChain } = alternate);
+          } catch (alternateError) {
+            // Report the original failure for the address the customer entered.
+            activeTarget = originalTarget;
+            throw code === "FETCH_DNS" ? alternateError : dnsError;
+          }
+          hostFallback = { from: original, to: activeTarget.toString(), reason: code };
+          target = activeTarget;
+        }
       } catch (httpsError) {
         // For a scheme-less domain RankFix first tries HTTPS. Some legacy sites still only
         // answer on HTTP, so retry HTTP once. Never downgrade an explicitly supplied HTTPS URL.
@@ -783,7 +821,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         trace.browserRender = { attempted: true, outcome: "not_substantive", reason: `PRIMARY_${code}` };
         try {
           const rendered = await renderPublicPage(target.toString(), 15000, renderBudget);
-          if (isSubstantiveRender(rendered.html)) {
+          if (isSubstantiveRender(rendered.html, { afterRefusal: true, hostname: target.hostname })) {
             trace.browserRender = { attempted: true, outcome: "recovered", reason: `PRIMARY_${code}_BROWSER_RECOVERY` };
             timeoutRecovery = { code, rendered };
             fetchedFinalUrl = new URL(rendered.finalUrl || target.toString());
@@ -851,6 +889,12 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       renderedDocument = timeoutRecovery.rendered;
       recoveredRenderElapsedMs = timeoutRecovery.rendered.elapsedMs;
     }
+    // A 404/410 on the HOMEPAGE of a live domain is implausible as "page does not
+    // exist" (QA 144: a retailer homepage answered 404 to RankFix in 270 ms). It gets
+    // the same single bounded browser check as a 403; an error page stays an error.
+    const rootNotFound = [404, 410].includes(response.status) && isSiteHomepagePath(finalUrl.pathname);
+    // A homepage 404/410 is verified separately below (own not-found body first,
+    // then one browser view), so a blocked view is never reported as "does not exist".
     if (!response.ok && (response.status === 202 || response.status === 403 || response.status === 405)) {
       recovery.attempted = true;
       trace.phase = "browser_render";
@@ -858,7 +902,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       try {
         const recovered = await renderPrimaryOnce();
         // A blocked render (challenge or empty shell with only a <title>) is not a recovery.
-        if (!isSubstantiveRender(recovered.html)) recovery.reason = "RECOVERY_RENDER_NOT_SUBSTANTIVE";
+        if (!isSubstantiveRender(recovered.html, { afterRefusal: true, hostname: finalUrl.hostname })) recovery.reason = "RECOVERY_RENDER_NOT_SUBSTANTIVE";
         else {
           trace.browserRender = { attempted: true, outcome: "recovered", reason: `HTTP_${response.status}_RECOVERY` };
           recoveredHtml = recovered.html;
@@ -881,7 +925,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // (a confirmed 404), or no usable answer (not verifiable: no score, and not
     // reported as a missing page). Never a bypass: one normal visit only.
     let notFoundVerification: "not_root" | "confirmed" | "unverified" | "recovered" = "not_root";
-    if (!response.ok && !recoveredHtml && [404, 410].includes(response.status) && /^\/(?:[a-z]{2}(?:[-_][a-z]{2})?\/?)?$/i.test(finalUrl.pathname)) {
+    if (!response.ok && !recoveredHtml && rootNotFound) {
       // The site's own not-found page in the 404 body confirms it without a browser.
       let notFoundBody = "";
       try { notFoundBody = await Promise.race([readResponsePrefix(response, 60_000), new Promise<string>((resolve) => setTimeout(() => resolve(""), 3000))]); } catch {}
@@ -889,7 +933,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       const bodyGate = notFoundBody ? classifyNonContentPage({ title: firstMatch(notFoundBody, /<title[^>]*>([\s\S]*?)<\/title>/i), text: bodyText, words: bodyText.split(/\s+/).filter(Boolean).length, html: notFoundBody }) : null;
       if (bodyGate?.kind === "error" && !detectProtectionProvider(response.headers, notFoundBody)) notFoundVerification = "confirmed";
     }
-    if (notFoundVerification === "not_root" && !response.ok && !recoveredHtml && [404, 410].includes(response.status) && /^\/(?:[a-z]{2}(?:[-_][a-z]{2})?\/?)?$/i.test(finalUrl.pathname)) {
+    if (notFoundVerification === "not_root" && !response.ok && !recoveredHtml && rootNotFound) {
       recovery.attempted = true;
       trace.phase = "browser_render";
       try {
@@ -901,7 +945,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           notFoundVerification = "confirmed";
           recovery.reason = "RENDER_CONFIRMS_NOT_FOUND";
           trace.browserRender = { attempted: true, outcome: "not_substantive", reason: "RENDER_CONFIRMS_NOT_FOUND" };
-        } else if (!isSubstantiveRender(rendered.html) || renderedGate) {
+        } else if (!isSubstantiveRender(rendered.html, { afterRefusal: true, hostname: finalUrl.hostname }) || renderedGate) {
           notFoundVerification = "unverified";
           recovery.reason = renderedGate?.kind === "challenge" ? "RENDER_CHALLENGE" : "RECOVERY_RENDER_NOT_SUBSTANTIVE";
           trace.browserRender = { attempted: true, outcome: "not_substantive", reason: recovery.reason };
@@ -970,6 +1014,17 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             : `El sitio rechazó el análisis (HTTP ${response.status}). RankFix no pudo analizarlo de forma fiable; no se ha calculado ninguna puntuación.`,
       };
       const accessBlock = ![404, 410].includes(response.status) && response.status < 500;
+      if (rootNotFound && notFoundVerification === "confirmed") {
+        const rootText: Record<string,string> = {
+          nl: recovery.reason === "RENDER_CONFIRMS_NOT_FOUND"
+            ? `Deze homepage bestaat niet (HTTP ${response.status}): ook een browsercontrole kreeg de niet-gevonden-pagina van de website. Controleer of de URL klopt; er is daarom geen score berekend.`
+            : `Deze homepage bestaat niet (HTTP ${response.status}): de website toont zelf een niet-gevonden-pagina. Controleer of de URL klopt; er is daarom geen score berekend.`,
+          en: recovery.reason === "RENDER_CONFIRMS_NOT_FOUND"
+            ? `This homepage does not exist (HTTP ${response.status}): a browser check also received the website's not-found page. Check the URL; no score was calculated.`
+            : `This homepage does not exist (HTTP ${response.status}): the website itself shows a not-found page. Check the URL; no score was calculated.`,
+        };
+        httpMessages.nl = rootText.nl; httpMessages.en = rootText.en;
+      }
       let blockedBody = "";
       // Bounded: a block page that trickles in must not hold the answer.
       if (accessBlock) { try { blockedBody = await Promise.race([readResponsePrefix(response, 60_000), new Promise<string>((resolve) => setTimeout(() => resolve(""), 4000))]); } catch {} }
@@ -995,13 +1050,20 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const scannerAccessBlocked = Boolean(recoveredHtml) && !response.ok;
     // What RankFix itself received: an HTTP refusal, or no answer at all.
     const rankfixRefusal = timeoutRecovery ? (timeoutRecovery.code === "FETCH_TIMEOUT" ? "geen antwoord binnen de tijdslimiet" : "verbinding verbroken") : `HTTP ${recovery.originalHttpStatus}`;
+    // A recovered page without own navigation is accepted (real homepages can
+    // render without links) but is NOT proven to be the complete homepage.
+    const recoveryOwnLinks = recoveredHtml ? internalLinkCount(recoveredHtml, finalUrl.hostname) : null;
+    const recoveryWithoutNavigation = recoveryOwnLinks !== null && recoveryOwnLinks < MIN_REFUSAL_RECOVERY_LINKS;
     const access = {
       rankfixBlocked: scannerAccessBlocked,
+      recoveredOwnLinks: recoveryOwnLinks,
+      recoveryWithoutNavigation,
       originalStatus: scannerAccessBlocked && !timeoutRecovery ? recovery.originalHttpStatus : null,
       attribution: scannerAccessBlocked ? "crawler_block" as const : null,
-      note: !scannerAccessBlocked ? null : timeoutRecovery
+      note: !scannerAccessBlocked ? null : (recoveryWithoutNavigation ? "De browserweergave bevatte geen eigen navigatie; niet bewezen dat dit de volledige homepage is. " : "") + (timeoutRecovery
         ? `De website beantwoordde het directe verzoek van RankFix niet (${timeoutRecovery.code === "FETCH_TIMEOUT" ? "time-out" : "verbinding verbroken"}); een browser kreeg de pagina wel. Statuscode en responstijd zijn daarom niet beoordeeld; de inhoud komt uit de browserweergave.`
-        : `De website weigerde het verzoek van RankFix (${rankfixRefusal}); een browser kreeg de pagina wel. Statuscode en responstijd zijn daarom niet beoordeeld; de inhoud komt uit de browserweergave.`,
+        : [404, 410].includes(recovery.originalHttpStatus) ? `De website gaf RankFix ${rankfixRefusal} op de homepage, terwijl een browser de pagina wel kreeg: een antwoord voor geautomatiseerde verzoeken, geen ontbrekende pagina. Statuscode en responstijd zijn daarom niet beoordeeld; de inhoud komt uit de browserweergave.`
+        : `De website weigerde het verzoek van RankFix (${rankfixRefusal}); een browser kreeg de pagina wel. Statuscode en responstijd zijn daarom niet beoordeeld; de inhoud komt uit de browserweergave.`),
     };
     // Modern commerce/product pages can contain large SSR payloads and JSON-LD. Keep a strict cap, but allow enough room to audit them safely.
     let html: string;
@@ -1085,7 +1147,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     if (preliminaryInterstitial && !javascriptExecuted) {
       try {
         const recovered = await renderPrimaryOnce();
-        if (isSubstantiveRender(recovered.html)) {
+        if (isSubstantiveRender(recovered.html, { afterRefusal: true, hostname: finalUrl.hostname })) {
           html = recovered.html;
           renderedDocument = recovered;
           javascriptExecuted = true;
@@ -1193,6 +1255,11 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // Source-order-independent head extraction; only tags inside <head> count.
     const headMetadata = extractHeadMetadata(html);
     const description = stripHtml(headMetadata.description).trim();
+    // The organisation's own self-description for IDENTITY decisions only: a meta
+    // description emitted outside <head> (streaming SSR) still states what the
+    // organisation does. SEO checks keep using the head description.
+    const outsideHeadDescription = stripHtml(decode(headMetadata.outsideHead.description || "")).trim();
+    const identityDescription = description || outsideHeadDescription;
     const descriptionState: "missing" | "empty" | "present" = headMetadata.descriptionState;
     const h1s = allMatches(html, /<h1[^>]*>([\s\S]*?)<\/h1>/gi).map(stripHtml).filter(Boolean);
     const headingTags = [...html.matchAll(/<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/gi)];
@@ -1541,13 +1608,21 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // storefront (for example .com.au) must not receive EU compliance signals
     // merely because it is an e-commerce site.
     const hostLower = finalUrl.hostname.toLowerCase();
-    const euCountryTld = /\.(?:at|be|bg|hr|cy|cz|de|dk|ee|es|fi|fr|gr|hu|ie|it|lt|lu|lv|mt|nl|pl|pt|ro|se|si|sk)$/.test(hostLower);
-    const explicitNonEuCountryTld = /\.(?:com\.au|co\.uk|ca|us|co\.nz|jp|cn|in|br|mx|ch|no)$/.test(hostLower);
-    const euLanguageSignal = /^(?:nl|de|fr|it|es|pt|pl|sv|da|fi|cs|sk|hu|ro|bg|el|hr|et|lv|lt|sl|mt)(?:-|$)/i.test(lang || "");
+    // QA international-28 (25 Oct): Norway, Iceland and Liechtenstein apply the EU
+    // consumer rules through the EEA Agreement (14-day withdrawal, Omnibus price
+    // indications), so their storefronts are eligible. Switzerland and the UK are
+    // not EU/EEA: their own consumer law differs (Switzerland has no general online
+    // withdrawal right), so EU signals are not applied there.
+    const euCountryTld = /\.(?:at|be|bg|hr|cy|cz|de|dk|ee|es|fi|fr|gr|hu|ie|it|lt|lu|lv|mt|nl|pl|pt|ro|se|si|sk|no|is|li)$/.test(hostLower);
+    const explicitNonEuCountryTld = /\.(?:com\.au|co\.uk|uk|ca|us|co\.nz|jp|cn|in|br|mx|ch)$/.test(hostLower);
+    const euLanguageSignal = /^(?:nl|de|fr|it|es|pt|pl|sv|da|fi|cs|sk|hu|ro|bg|el|hr|et|lv|lt|sl|mt|nb|nn|no|is|ga)(?:-|$)/i.test(lang || "");
     const euroMarketSignal = /(?:€|\bEUR\b)/i.test(text);
+    // A German/French/Italian-language store that prices only in Swiss francs (or
+    // pounds) on a generic domain targets a non-EU market.
+    const nonEuCurrencyOnly = !euroMarketSignal && /(?:\bCHF\s?\d|\d\s?CHF\b|\bS?Fr\.\s?\d|£\s?\d|\bGBP\s?\d)/i.test(text) && !/(?:\b(?:SEK|DKK|NOK|PLN|CZK|HUF|RON|BGN|ISK)\b|zł|kč)/i.test(text);
     // EU market eligibility is a property of the storefront; whether the shop itself
     // is confirmed is decided later (page signal here, final site decision below).
-    const euMarketEligible = !explicitNonEuCountryTld && (euCountryTld || euLanguageSignal || euroMarketSignal);
+    const euMarketEligible = !explicitNonEuCountryTld && (euCountryTld || ((euLanguageSignal || euroMarketSignal) && !nonEuCurrencyOnly));
     const euConsumerApplicable = hasEcommerceSignal && euMarketEligible;
     const requestedLanguages = adsProfile.adLanguages.split(/[,;]/).map((value) => value.trim().toLowerCase()).filter(Boolean).slice(0, 6);
     const requestedCountries = adsProfile.targetCountries.split(/[,;]/).map((value) => value.trim()).filter(Boolean).slice(0, 8);
@@ -2076,7 +2151,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
 
     type SectorKey = "financial_services"|"ecommerce"|"real_estate"|"automotive"|"home_services"|"professional_services"|"hospitality"|"health_wellness"|"beauty"|"recruitment"|"government"|"news_media"|"tourism_recreation"|"transport_travel"|"telecom_technology"|"service_marketplace"|"food_local_retail"|"saas_b2b"|"education"|"nonprofit"|"energy_utilities"|"events_culture"|"fitness_sports"|"manufacturing_industrial"|"cybersecurity"|"waste_recycling"|"sports_organizations"|"maritime_ports"|"airports"|"agriculture_horticulture"|"general_business"|"unknown";
     const sectorSignals: Array<{sector:SectorKey; label:string; patterns:RegExp[]; modules:string[]}> = [
-      {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\b(makelaar|vastgoed|woning(?:en)?|huizen|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\b/i,/\b(te koop|te huur|for sale|for rent|woningaanbod|annonces? immobili\w*|biens? immobili\w*|vente immobili\w*|zu verkaufen|zu vermieten|en venta|en alquiler|in vendita|in affitto)\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
+      {sector:"real_estate",label:"Vastgoed & Makelaardij",patterns:[/\b(makelaar|vastgoed|koopwoning|huurwoning|real estate|property|immobilier|inmobiliaria|realestateagent)\b/i,/\b(woning(?:en)?|huizen|te koop|te huur|for sale|for rent|woningaanbod|annonces? immobili\w*|biens? immobili\w*|vente immobili\w*|zu verkaufen|zu vermieten|en venta|en alquiler|in vendita|in affitto)\b/i],modules:["core_seo","geo","local","lead_conversion","real_estate"]},
       {sector:"automotive",label:"Automotive",patterns:[/\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\b/i,/\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
       {sector:"home_services",label:"Lokale vakdienst",patterns:[/\b(loodgieter|plumber|aannemer|installateur|elektricien|schilder|schilders(?:bedrijf|werk(?:en|zaamheden)?)|schilderwerk(?:en|zaamheden)?|stukadoor(?:sbedrijf)?|timmer(?:man|bedrijf)|glazenwasser|hoveniers?(?:bedrijf)?|dakdekker|klus(?:sen)?bedrijf|bouwbedrijf|bouwservice|general contractor|electrician|contractor|riool(?:service|specialist)?|rioolprobleem|ontstopping|ontstoppen|afvoer|schoonmaak(?:bedrijf|dienst(?:en)?)?|kantoorschoonmaak|cleaning service|cleaning company)\b/i,/\b(offerte|werkgebied|servicegebied|installatie|reparatie|renovatie|verbouwing|bouw|verstopping|riolering|riooldienst(?:en)?|schoonmaak|cleaning)\b/i],modules:["core_seo","geo","local","lead_conversion","home_services"]},
       {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\b(advocaat|advocaten(?:kantoor)?|accountant|accountants(?:kantoor)?|boekhouder|boekhouding|belastingadvi(?:es|seur|seurs)|administratiekantoor|consultant|notaris|law firm|legalservice|legal services|accounting|consultancy|tax advi(?:ce|sor)|steuerberat(?:er|ung)|expert-comptable|commercialista)\b/i,/\b(diensten|expertise|advies|consult)\b/i],modules:["core_seo","geo","local","lead_conversion","professional_services"]},
@@ -2126,7 +2201,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       }
     }
     const euPrimaryIdentity = detectEuPrimaryIdentity({
-      title, description, h1s: identityH1s, h2s: identityH2s, ogSiteName: decode(ogSiteName || ""), navLabels: identityNavLabels,
+      title, description: identityDescription, h1s: identityH1s, h2s: identityH2s, ogSiteName: decode(ogSiteName || ""), navLabels: identityNavLabels,
       schemaTypes, hostname: finalUrl.hostname, homepage: isSiteHomepagePath(finalUrl.pathname) || isHomepage,
     });
     const euRetailSelfDescription = retailSelfDescription([title, description, identityH1s.join(" ")].join(" "));
@@ -2173,7 +2248,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // architecture practice, cybersecurity, car rental...) in two independent
     // fields or in its self-description sentence. Outranks loose keywords.
     const homepageDeclared = (isSiteHomepagePath(finalUrl.pathname) || isHomepage)
-      ? detectDeclaredIndustry({ title, description, identityHeadings: identityH1s, schemaTypes }) : null;
+      ? detectDeclaredIndustry({ title, description: identityDescription, identityHeadings: identityH1s, schemaTypes }) : null;
     const sectorPriority: Partial<Record<SectorKey, number>> = { government: 30, real_estate: 28, automotive: 27, transport_travel: 20, telecom_technology: 20, health_wellness: 16, education: 15, energy_utilities: 15, news_media: 10, nonprofit: 8, events_culture: 6, fitness_sports: 6 };
     const sectorCandidates = sectorSignals.map(item=>{
       const contentHits = item.patterns.filter(pattern=>pattern.test(sectorSource)).length;
@@ -2321,7 +2396,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const euGenericIdentityApplies = Boolean(euPrimaryIdentity && (euPrimaryIdentity.confidence === "medium" || (euPrimaryIdentity.sector !== "news_media" && euPrimaryIdentity.sector !== "financial_services"))
       && (euPrimaryIdentity.confidence === "high" || !strongSectorCandidate));
     // Employer careers site: the vacancy topic is the page topic, not the site.
-    const careersIdentity = careersSiteIdentity({ title, description, h1s: identityH1s, hostname: finalUrl.hostname, ogSiteName: decode(ogSiteName || ""), navLabels: identityNavLabels, homepage: isSiteHomepagePath(finalUrl.pathname) || isHomepage });
+    const careersIdentity = careersSiteIdentity({ title, description: identityDescription, h1s: identityH1s, hostname: finalUrl.hostname, ogSiteName: decode(ogSiteName || ""), navLabels: identityNavLabels, homepage: isSiteHomepagePath(finalUrl.pathname) || isHomepage });
     const baseMasterIdentity: {sector:SectorKey;key:string;label:string;evidence:string[];confidence?:"high"|"medium";confidenceScore?:number} | null = careersIdentity
       ? {sector:"recruitment",key:careersIdentity.key,label:careersIdentity.label,evidence:careersIdentity.evidence,confidence:careersIdentity.confidence,confidenceScore:careersIdentity.confidenceScore}
       : newsMediaPrimaryIdentity
@@ -2361,12 +2436,20 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       // A local trade (hotel, restaurant, hair salon, optician...) refines a
       // generic keyword decision of the same broad sector.
       hospitality:["hospitality"], beauty:["beauty"], food_local_retail:["food_local_retail"], real_estate:["real_estate"],
+      // QA international-28: an independent mortgage adviser that names lenders'
+      // products ("hypotheken", "rente") is not a bank; its own declaration refines
+      // the financial subtype (a bank naming itself never declares this, see
+      // detectDeclaredIndustry).
+      financial_services:["financial_services"],
     };
     const baseIsEuGeneric = Boolean(baseMasterIdentity && euGenericIdentityApplies && euPrimaryIdentity && baseMasterIdentity.sector === euPrimaryIdentity.sector && baseMasterIdentity.key === euPrimaryIdentity.key);
     const declaredIdentityApplies = Boolean(homepageDeclared && (
       !baseMasterIdentity
       || (baseIsEuGeneric && euPrimaryIdentity?.confidence === "medium")
-      || ((DECLARED_REFINES[homepageDeclared.sector] || []).includes(baseMasterIdentity.sector) && baseMasterIdentity.key !== homepageDeclared.key)
+      // A broad declaration ("hospital", key = the sector itself) never replaces a
+      // more specific subtype of the same sector (an academic medical centre).
+      || ((DECLARED_REFINES[homepageDeclared.sector] || []).includes(baseMasterIdentity.sector) && baseMasterIdentity.key !== homepageDeclared.key
+        && !(homepageDeclared.key === homepageDeclared.sector && baseMasterIdentity.sector === homepageDeclared.sector && baseMasterIdentity.key !== baseMasterIdentity.sector))
     ));
     // The declaration agrees with an identity already established for the same
     // broad sector (a dedicated rule or an anchored keyword decision): it refines
@@ -3240,8 +3323,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // Keep structured and visible commerce evidence separate. A footer link or
     // JSON-LD policy proves availability of information, not that product-page
     // shoppers can actually see it where they make the purchase decision.
-    const visibleShippingMatches = text.match(/(?:verzendkosten|verzending|levering|bezorging|ophalen|afhalen|shipping(?:\s+(?:cost|costs|information))?|delivery(?:\s+(?:cost|costs|information))?|versand(?:kosten)?|lieferung|frais de livraison|livraison|spedizione|consegna|gastos de envío|envío)/gi) || [];
-    const visibleReturnsMatches = text.match(/(?:retour(?:neren|beleid)?|herroepingsrecht|bedenktijd|14\s*dagen|return(?:s| policy)?|refund(?: policy)?|rückgabe|widerrufsrecht|retour(?:s)?|droit de rétractation|reso|diritto di recesso|devolución|derecho de desistimiento)/gi) || [];
+    const visibleShippingMatches = text.match(/(?:verzendkosten|verzending|levering|bezorging|ophalen|afhalen|shipping(?:\s+(?:cost|costs|information))?|delivery(?:\s+(?:cost|costs|information))?|versand(?:kosten)?|lieferung|frais de livraison|livraison|spedizione|consegna|gastos de envío|envío|portes de envio|envio|entrega|frakt\p{L}*|fragt\p{L}*|leverans\p{L}*|toimitu\p{L}*|wysyłk\p{L}*|dostaw\p{L}*|doprava|doručení|doručenie|szállítás\p{L}*|livrare|transport gratuit|tarne|piegāde|pristatym\p{L}*|αποστολ\p{L}*|dostava|poštnina|poštarina)/giu) || [];
+    const visibleReturnsMatches = text.match(/(?:retour(?:neren|beleid)?|herroepingsrecht|bedenktijd|14\s*dagen|return(?:s| policy)?|refund(?: policy)?|rückgabe|widerrufsrecht|retour(?:s)?|droit de rétractation|reso|diritto di recesso|devolución|derecho de desistimiento|devolução|devoluções|direito de livre resolução|returrätt|ångerrätt|angrerett|angrefrist|fortrydelsesret|returret|palautus\p{L}*|peruuttamisoikeu\p{L}*|zwrot\p{L}*|prawo odstąpienia|odstoupení od smlouvy|vrácení zboží|odstúpenie od zmluvy|elállási jog|visszaküldés|dreptul de retragere|retur(?:nare)?|taganemisõigus|atteikuma tiesības|teisė atsisakyti|δικαίωμα υπαναχώρησης|pravo na odstop|pravo na raskid|14\s*(?:dagen|days|tage|jours|días|dias|giorni|dni|dní|dnů|päivää|päivän|dage|dagar|dager|nap|zile|päeva|dienu|dienų|ημέρες))/giu) || [];
     const hasVisibleShippingSignal = visibleShippingMatches.length > 0;
     const hasVisibleReturnsSignal = visibleReturnsMatches.length > 0;
     const hasShippingSignal = hasStructuredShipping || hasVisibleShippingSignal;
@@ -3373,7 +3456,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       !description
         ? metadataMayBeClientRendered
           ? check("unable_to_confirm", "description", "seo", "Meta description", "De meta description kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de description opnieuw met een volledige render voordat je een wijziging maakt.", 0, 10)
-          : check("fail", "description", "seo", "Meta description", descriptionState === "empty" ? "De meta description-tag is aanwezig, maar de content is leeg." : "Er is geen meta description-tag gevonden.", "Controleer de werkelijk opgehaalde en gerenderde head. Ontbreekt de description daadwerkelijk, schrijf dan een unieke beschrijving die de inhoud van deze pagina feitelijk samenvat.", 0, 10)
+          : check("fail", "description", "seo", "Meta description", descriptionState === "empty" ? "De meta description-tag is aanwezig, maar de content is leeg." : outsideHeadDescription ? "Er staat een meta description in de HTML, maar buiten <head> (in de body, bijvoorbeeld door streaming rendering). Zoekmachines lezen die daar mogelijk niet; in <head> is geen description gevonden." : "Er is geen meta description-tag gevonden.", "Controleer de werkelijk opgehaalde en gerenderde head. Ontbreekt de description daadwerkelijk, schrijf dan een unieke beschrijving die de inhoud van deze pagina feitelijk samenvat.", 0, 10)
         : isTransientSeoCopy(description)
           ? check("warning", "description", "seo", "Meta description", "De meta description bevat een tijdelijke formuliermelding. Die hoort niet in de zoekresultaten.", "Gebruik uitsluitend relevante, bevestigde paginatekst; verwijder verzend- en foutmeldingen.", 6, 10)
         : descriptionQualityIssue
@@ -3455,7 +3538,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         : !canonicalUrl
           ? metadataMayBeClientRendered
             ? check("unable_to_confirm", "canonical", "seo", "Canonical URL", "De canonical kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de canonical opnieuw met een volledige render voordat je een wijziging maakt.", 0, 7)
-            : check("warning", "canonical", "seo", "Canonical URL", "Geen expliciete canonical URL aangetroffen. Zoekmachines kunnen ook zonder canonical een voorkeurs-URL bepalen; dit is geen bewezen indexeringsfout.", "Controleer of duplicaten of alternatieve URL-varianten een expliciete canonical nodig maken.", 6, 7)
+            : check("warning", "canonical", "seo", "Canonical URL", headMetadata.outsideHead.canonical ? "Er staat een canonical-link in de HTML, maar buiten <head> (in de body). Zoekmachines negeren een canonical buiten <head>; in <head> is geen canonical gevonden." : "Geen expliciete canonical URL aangetroffen. Zoekmachines kunnen ook zonder canonical een voorkeurs-URL bepalen; dit is geen bewezen indexeringsfout.", "Controleer of duplicaten of alternatieve URL-varianten een expliciete canonical nodig maken.", 6, 7)
         : canonicalIsSelf || canonicalIsLocalePreferred || canonicalDropsKnownListingParams
           ? check("pass", "canonical", "seo", "Canonical URL", canonicalIsLocalePreferred ? "De rootpagina verwijst bewust naar de equivalente taalvoorkeurs-URL." : canonicalDropsQuery ? "De canonical wijst naar dezelfde inhoud zonder queryparameters." : "De canonical verwijst naar dezelfde URL als de gescande pagina.", "Behoud een duidelijke canonical die overeenkomt met de voorkeurs- en taalstructuur van de site.", 7, 7)
           : canonicalIsCrossDomain
@@ -4831,7 +4914,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         if (!r.ok && (r.status === 202 || r.status === 403 || r.status === 405)) {
           try {
             const recoveredPage = await renderRepresentativeOnce();
-            if (isSubstantiveRender(recoveredPage.html)) { pageHtml = recoveredPage.html; representativeEvidenceSource = "rendered_html"; representativeTitlePixelWidth = recoveredPage.titlePixelWidth; }
+            if (isSubstantiveRender(recoveredPage.html, { afterRefusal: true, hostname: finalCandidate.hostname })) { pageHtml = recoveredPage.html; representativeEvidenceSource = "rendered_html"; representativeTitlePixelWidth = recoveredPage.titlePixelWidth; }
           } catch {}
         }
         if (!pageHtml && (!r.ok || (!contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")))) {
@@ -5259,7 +5342,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // Strong checkout capabilities never convert an independently confirmed
     // service organisation into a webshop. Unproven/inconsistent cases abstain.
     const sectorHomepage = (isHomepage || isSiteHomepagePath(finalUrl.pathname))
-      ? {url:finalUrl.toString(), type:"homepage", status:"audited", title, description,
+      ? {url:finalUrl.toString(), type:"homepage", status:"audited", title, description: identityDescription,
           identityHeadings:identityH1s, schemaTypes}
       : {url:representativeHomeUrl, type:"homepage", status:"not_scanned"};
     const extendedIndustry = corroborateDeclaredIndustry(sectorHomepage.url, sectorHomepage, auditedRawPages);
@@ -5269,7 +5352,11 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // the same activity (airport within passenger transport, cybersecurity within
     // software). A dedicated identity of another sector is never overruled here.
     const keywordOnlyDecision = Boolean(!masterIdentityOverride && primaryNonCommerceIdentity && strongSectorCandidate && primaryNonCommerceIdentity.sector === sectorCandidates[0].sector && sectorProfile.sector === primaryNonCommerceIdentity.sector);
-    const acceptExtendedIndustry = Boolean(specificIndustry && !marketSelectorPage &&
+    // A broad corroborated activity (key = the sector itself, e.g. "hospital") never
+    // replaces a more specific subtype of the same sector already decided.
+    const broadOverSpecific = Boolean(specificIndustry && specificIndustry.key === specificIndustry.sector
+      && sectorProfile.sector === specificIndustry.sector && sectorProfile.key && sectorProfile.key !== sectorProfile.sector);
+    const acceptExtendedIndustry = Boolean(specificIndustry && !marketSelectorPage && !broadOverSpecific &&
       (sectorProfile.sector === specificIndustry.sector ||
        ["unknown","general_business"].includes(sectorProfile.sector) ||
        keywordOnlyDecision ||
@@ -6107,8 +6194,17 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         secondary.push({ sector, label, evidence: [evidence] });
       };
       const retailProductPages = auditedMultiPages.filter((item) => item.type === "product" && item.commerceEvidence?.confirmedRetailPage && !item.commerceEvidence?.financialOffer);
-      if (sectorProfile.sector !== "ecommerce" && sectorProfile.sector !== "unknown" && retailProductPages.length > 0) {
-        addSecondary("ecommerce", "Online verkoop van producten", `${retailProductPages.length} representatieve productpagina('s) met Product-schema of aankoopactie: ${retailProductPages.slice(0, 2).map((item) => shortUrl(item.url)).join(", ")}`);
+      // QA 144 (optician chain): category pages listing priced products in their own
+      // structured data (Product/ItemList with an Offer) are online sales too. A Store
+      // schema plus a few footer prices on a legal/contact page is not.
+      // All fetched pages: the template-deduplicated set keeps one category page.
+      const retailCategoryPages = reportedMultiPageAudits.filter((item) => item.status === "audited" && item.type === "category" && item.commerceEvidence?.confirmedRetailPage && !item.commerceEvidence?.financialOffer
+        && (item.commerceEvidence?.productSchema || item.commerceEvidence?.itemListSchema) && (item.commerceEvidence?.priceSignals || 0) >= 3);
+      if (sectorProfile.sector !== "ecommerce" && sectorProfile.sector !== "unknown" && (retailProductPages.length > 0 || retailCategoryPages.length >= 2)) {
+        const pages = [...retailProductPages, ...retailCategoryPages];
+        addSecondary("ecommerce", "Online verkoop van producten", retailProductPages.length > 0
+          ? `${retailProductPages.length} representatieve productpagina('s) met Product-schema of aankoopactie: ${retailProductPages.slice(0, 2).map((item) => shortUrl(item.url)).join(", ")}`
+          : `${retailCategoryPages.length} categoriepagina's met geprijsde producten in eigen structured data: ${pages.slice(0, 2).map((item) => shortUrl(item.url)).join(", ")}`);
       }
       const financialPages = auditedMultiPages.filter((item) => item.commerceEvidence?.financialOffer);
       if (sectorProfile.sector !== "financial_services" && sectorProfile.sector !== "unknown" && financialPages.length > 0) {
@@ -6535,6 +6631,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       startIsHomepage: isSiteHomepagePath(finalUrl.pathname) || isHomepage,
       homepageUrl: representativeHomeUrl,
       pages: reportedMultiPageAudits,
+      // Same denominator as multiPage.counts.selected (QA: "26/28" next to "26/29").
+      duplicates: multiPageAudits.length - reportedMultiPageAudits.length,
     });
     const multiPage = {
       siteAccess,
@@ -6616,6 +6714,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       sitewideIssues: { confirmed: sitewideIssues.filter((i) => i.certainty === "confirmed").length, toConfirm: sitewideIssues.filter((i) => i.certainty !== "confirmed").length },
       sectorStatus: (sectorProfile as { decisionStatus?: "confirmed" | "probable" | "unconfirmed" }).decisionStatus || (sectorProfile.sector === "unknown" ? "unconfirmed" : "probable"),
       sectorLabel: sectorProfile.label,
+      recoveryWithoutNavigation: access.recoveryWithoutNavigation,
     }) });
 
     // Read-only mobile and desktop PageSpeed for the same customer scan.
@@ -6756,7 +6855,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             // End-to-end scan duration (fetch, render, sample, scoring) for speed benchmarks.
             scanDurationMs: Date.now() - started,
             language: scanLanguage,
-            runtime:scanRuntime(), mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, selfCheck, summary: scanSummary, websiteSpeed, rendering, recovery, access, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, websiteProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, multiPage,
+            runtime:scanRuntime(), mode, overallScore: selectedOverallScore, grade: grade(selectedOverallScore), coverage: overallCoverage, scoreModel, selfCheck, summary: scanSummary, websiteSpeed, rendering, recovery, access, hostFallback, classification, pageTypeEvidence, pageTypeInvariant, technologyProfile, websiteProfile, sectorProfile, commerceApplicability: commerceApplicabilityReport, security: securityEngine, accessibility: accessibilityEngine, multiPage,
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
@@ -6997,6 +7096,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       rendering,
       recovery,
       access,
+      hostFallback,
       scope: scanScope,
       multiPage,
       classification,

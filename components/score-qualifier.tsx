@@ -1,4 +1,4 @@
-import { scoreQualifier, scoreScope, type QualifiableResult } from "@/lib/score-qualifier";
+import { confirmedChecksLine, scoreQualifier, scoreScope, type QualifiableResult } from "@/lib/score-qualifier";
 import type { Locale } from "@/lib/locales";
 import { ScoreCaution } from "@/components/sitewide-issues";
 
@@ -13,6 +13,7 @@ export function ScoreQualifier({ result, locale }: { result: QualifiableResult |
       <ScoreCaution scope={result?.scoreModel?.scope} />
       {q.detail ? <span style={{ opacity: 0.8 }}> · {q.detail}</span> : null}
       <small style={{ display: "block", opacity: 0.8 }}>{scoreScope(result, locale)}</small>
+      {confirmedChecksLine(result, locale) ? <small className="rf-score-confirmed" style={{ display: "block", opacity: 0.8 }}>{confirmedChecksLine(result, locale)}</small> : null}
       {q.note ? <small style={{ display: "block", opacity: 0.7 }}>{q.note}</small> : null}
     </div>
   );

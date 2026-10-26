@@ -190,3 +190,21 @@ test("QA 144: product data stays bound to the entered page (no sibling SKU), amb
   assert.equal(r.total, 2);
   assert.equal(r.failed, 0, r.log);
 });
+
+test("QA 144 round 2: refused request + browser error page is not the website (no score); real pages behind a 403 still recover", () => {
+  const r = run("run-refused-error-render.mjs");
+  assert.equal(r.total, 8);
+  assert.equal(r.failed, 0, r.log);
+});
+
+test("QA 144 run 7a2155c: DNS/timeout www/apex fallback (same site only, not after a refusal), homepage 404 gets one browser check, deep 404 untouched", () => {
+  const r = run("run-network-404.mjs");
+  assert.equal(r.total, 10);
+  assert.equal(r.failed, 0, r.log);
+});
+
+test("QA 144 run 7a2155c: DIY store chain declared in its title is retail after a refused request; software for DIY stores is not", () => {
+  const r = run("run-diy-recovered.mjs");
+  assert.equal(r.total, 3);
+  assert.equal(r.failed, 0, r.log);
+});

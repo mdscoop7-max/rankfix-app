@@ -4,8 +4,12 @@ import type { Locale } from "@/lib/locales";
  * One wording for "how final is this score?", shared by every place that shows
  * a headline score (issue #151). It reads only fields the scan already returns.
  */
+type DimensionCoverage = { coverage?: { relevant?: number; confirmed?: number; unableToConfirm?: number } | null } | null;
 export type QualifiableResult = {
   overallScore?: number;
+  seo?: DimensionCoverage;
+  geo?: DimensionCoverage;
+  mode?: string;
   coverage?: { coveragePercent?: number } | null;
   scoreModel?: { evidenceLevel?: "complete" | "provisional" | "insufficient"; evidenceReasons?: string[]; provisional?: boolean; range?: { low: number; high: number } | null; headline?: { kind: "score" | "range"; display: string } | null; scope?: { caution?: string | null; notes?: string[] } | null } | null;
   selfCheck?: { reliability?: "high" | "medium" | "low" } | null;
@@ -39,6 +43,36 @@ const TEXT: Record<Locale, { complete: string; final: string; sectorOnly: string
   it: { complete: "Definitivo: tutti i controlli applicabili confermati", final: "Definitivo", sectorOnly: "Provvisorio: tutti i controlli confermati, settore principale ambiguo", sectorUnknown: "Provvisorio: settore principale non determinato, solo controlli generali", provisional: "Provvisorio: non tutto è stato confermato", insufficient: "Indicazione: prove insufficienti per un punteggio definitivo", coverage: "copertura delle prove", pages: (a: number, t: number) => `pagine valutate ${a}/${t}`, range: "intervallo possibile", reliability: "affidabilità", levels: { high: "alta", medium: "media", low: "bassa" }, perfect: "100/100 viene assegnato solo se tutti i controlli applicabili sono confermati." , point: "punteggio su prove confermate" },
   es: { complete: "Definitivo: todos los controles aplicables confirmados", final: "Definitivo", sectorOnly: "Provisional: todos los controles confirmados, sector principal ambiguo", sectorUnknown: "Provisional: sector principal no determinado, solo controles generales", provisional: "Provisional: no todo pudo confirmarse", insufficient: "Indicación: evidencia insuficiente para una puntuación definitiva", coverage: "cobertura de evidencia", pages: (a: number, t: number) => `páginas evaluadas ${a}/${t}`, range: "rango posible", reliability: "fiabilidad", levels: { high: "alta", medium: "media", low: "baja" }, perfect: "100/100 solo se da cuando todos los controles aplicables están confirmados." , point: "puntuación sobre evidencia confirmada" },
 };
+
+// "SEO 18/20 controles bevestigd": unconfirmed checks are not in the score and
+// cost no points; the reader sees how many checks the number rests on.
+const CONFIRMED: Record<Locale, (dim: string, confirmed: number, relevant: number) => string> = {
+  nl: (d, c, r) => `${d}: ${c} van ${r} controles bevestigd`,
+  en: (d, c, r) => `${d}: ${c} of ${r} checks confirmed`,
+  de: (d, c, r) => `${d}: ${c} von ${r} Prüfungen bestätigt`,
+  fr: (d, c, r) => `${d} : ${c} contrôles confirmés sur ${r}`,
+  it: (d, c, r) => `${d}: ${c} controlli confermati su ${r}`,
+  es: (d, c, r) => `${d}: ${c} de ${r} controles confirmados`,
+};
+const NOT_SCORED: Record<Locale, string> = {
+  nl: "niet-bevestigde controles tellen niet mee en kosten geen punten",
+  en: "unconfirmed checks are not scored and cost no points",
+  de: "nicht bestätigte Prüfungen zählen nicht und kosten keine Punkte",
+  fr: "les contrôles non confirmés ne comptent pas et ne coûtent aucun point",
+  it: "i controlli non confermati non contano e non tolgono punti",
+  es: "los controles no confirmados no cuentan ni restan puntos",
+};
+export function confirmedChecksLine(result: QualifiableResult | null | undefined, locale: Locale): string {
+  const fmt = CONFIRMED[locale] || CONFIRMED.nl;
+  const dims: Array<[string, DimensionCoverage | undefined]> = [["SEO", result?.seo], ["GEO", result?.geo]];
+  const parts = dims
+    .filter(([name]) => !result?.mode || result.mode === "both" || result.mode.toLowerCase() === name.toLowerCase())
+    .map(([name, d]) => d?.coverage && typeof d.coverage.relevant === "number" && typeof d.coverage.confirmed === "number" ? { name, ...d.coverage } : null)
+    .filter(Boolean) as Array<{ name: string; relevant: number; confirmed: number }>;
+  if (!parts.length) return "";
+  const anyUnconfirmed = parts.some((p) => p.confirmed < p.relevant);
+  return parts.map((p) => fmt(p.name, p.confirmed, p.relevant)).join(" · ") + (anyUnconfirmed ? ` (${NOT_SCORED[locale] || NOT_SCORED.nl})` : "");
+}
 
 export function scoreQualifier(result: QualifiableResult | null | undefined, locale: Locale) {
   const t = TEXT[locale] || TEXT.nl;
