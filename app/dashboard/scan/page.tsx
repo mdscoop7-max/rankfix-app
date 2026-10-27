@@ -7,6 +7,7 @@ import DashboardNav from "../nav";
 import AiAssistant from "@/components/ai-assistant";
 import type { Locale } from "@/lib/locales";
 import "../dashboard.css";
+import "./scan-premium.css";
 import { ScoreQualifier } from "@/components/score-qualifier";
 import { headlineDisplay } from "@/lib/score-qualifier";
 
@@ -77,10 +78,17 @@ export default function DashboardScan() {
         <div className="rf-shared-scan-meta" aria-label="Scanonderdelen"><span>SEO</span><span>GEO</span><span>Security</span><span>{t.technical}</span><span>{t.shop}</span><span>{t.ads}</span></div>
       </section>
       {urlError&&<p className="rf-alert" role="alert">{urlError}</p>}{error&&<p className="rf-alert" role="alert">{error}</p>}
-      {busy&&<section className="rf-scan-progress rf-scan-modern" aria-live="polite">
-        <div className="rf-scan-visual rf-scan-meter" aria-hidden="true"><div className="rf-scan-meter-ring"/><div className="rf-scan-meter-sweep"/><div className="rf-scan-meter-inner"><div className="rf-scan-core">R<span>F</span></div><small>Motor</small></div></div>
-        <div className="rf-scan-progress-copy"><span className="rf-eyebrow">RankFix Motor</span><strong>{t.running}</strong><p>{language==="nl"?"We controleren je website stap voor stap. Je rapport opent automatisch zodra de scan klaar is.":language==="de"?"Wir prüfen deine Website Schritt für Schritt. Der Bericht öffnet sich automatisch, sobald der Scan fertig ist.":language==="fr"?"Nous vérifions votre site étape par étape. Le rapport s’ouvre automatiquement dès que l’analyse est terminée.":language==="it"?"Controlliamo il sito passo dopo passo. Il report si apre automaticamente al termine.":language==="es"?"Comprobamos tu web paso a paso. El informe se abrirá automáticamente al terminar.":"We check your website step by step. Your report opens automatically when the scan is complete."}</p>
-        <div className="rf-scan-stage-track"><span/><span/><span/><span/><span/><span/></div><div className="rf-scan-stage-labels"><span>SEO</span><span>GEO</span><span>Security</span><span>{t.technical}</span><span>{t.shop}</span><span>{t.ads}</span></div></div>
+      {busy&&<section className="rf-premium-scan" aria-live="polite" aria-label={t.running}>
+        <div className="rf-premium-steps" aria-label="Scanworkflow">{["Website verbinden","Pagina’s ophalen","SEO analyse","GEO analyse","Inhoud analyseren","Rapport genereren"].map((step,index)=><div key={step} className={index===0?"active":""}><span>{index+1}</span><small>{language==="nl"?step:["Connect","Pages","SEO","GEO","Content","Report"][index]}</small></div>)}</div>
+        <div className="rf-premium-main">
+          <div className="rf-premium-hero">
+            <div className="rf-premium-url"><span aria-hidden="true">↗</span><div><strong>{url}</strong><small>{t.running}</small></div></div>
+            <div className="rf-premium-orbit" role="status" aria-label={t.running}><div className="rf-premium-orbit-inner"><span>{language==="nl"?"Scan bezig…":t.running}</span><strong className="rf-premium-pulse">RankFix</strong><small>SEO · GEO · AI</small></div></div>
+            <p className="rf-premium-footnote">{language==="nl"?"Je website wordt gecontroleerd. Het rapport opent automatisch zodra de scan klaar is.":"Your website is being checked. The report will open automatically when ready."}</p>
+          </div>
+          <div className="rf-premium-status"><div className="rf-premium-status-head"><h2>{language==="nl"?"Scanvoortgang":t.running}</h2><span><i/> LIVE</span></div>{["Website verbinden","Pagina’s ontdekken","SEO controleren","GEO analyseren","Inhoud controleren","Technische analyse","Rapport opstellen"].map((step,index)=><div className="rf-premium-status-row" key={step}><span className={index===0?"rf-premium-active-dot":"rf-premium-pending-dot"}>{index===0?"◌":"·"}</span><div><strong>{language==="nl"?step:["Connect website","Discover pages","SEO audit","GEO audit","Content checks","Technical checks","Prepare report"][index]}</strong><small>{index===0?(language==="nl"?"Verbinding en websitegegevens controleren":"Checking website connection"):(language==="nl"?"Wordt gecontroleerd tijdens de scan":"Checked during scan")}</small></div></div>)}</div>
+        </div>
+        <div className="rf-premium-bottom"><div><span>SEO</span><strong>{language==="nl"?"In controle":"Checking"}</strong></div><div><span>GEO</span><strong>{language==="nl"?"In controle":"Checking"}</strong></div><div><span>{t.technical}</span><strong>{language==="nl"?"In controle":"Checking"}</strong></div></div>
       </section>}
       {result&&<section className="rf-report rf-shared-result" aria-live="polite"><div className="rf-shared-score" style={{"--rf-score":result.overallScore} as React.CSSProperties}><strong>{headlineDisplay(result as never)}</strong><span>/100</span></div><div><span className="rf-eyebrow">{t.score}</span><h2>SEO {result.seo?.score??"—"} · GEO {result.geo?.score??"—"} · Security {result.security?.score??"—"}</h2><p>{passed} {t.passed} · {issues} {t.issues}</p><ScoreQualifier result={result as never} locale={language}/><p>{t.next}</p><div className="rf-shared-actions"><Link className="rf-primary-link" href="/dashboard/history">{t.history}</Link><Link className="rf-back" href="/dashboard">← {t.dashboard}</Link></div></div></section>}
     </div>
