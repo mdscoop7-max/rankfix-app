@@ -121,7 +121,8 @@ function classify(url:string,html:string,jsonTypes:string[]):PageType{
   // Industrial manufacturers may publish /products/ without selling online.
   // A product path alone is not evidence of an ecommerce category.
   const commerceSignals = /(?:add to cart|add to basket|in winkelwagen|toevoegen aan winkelwagen|ajouter au panier|in den warenkorb|añadir al carrito|aggiungi al carrello|checkout|afrekenen)/i.test(text) || /(?:itemprop=["']price["']|"@type"\s*:\s*"Offer"|["']priceCurrency["'])/i.test(html);
-  // Generic ItemList and /category/ are also used by blogs and industrial catalogs.\n  if(/\/(collections|collection|shop)\b/.test(p)||(commerceSignals&&(types.includes("itemlist")||/\/(category|categorie|categories|producten|products)\b/.test(p))))return "product_category";
+  // Generic ItemList and /category/ are also used by blogs and industrial catalogs.
+  if(/\/(collections|collection|shop)\b/.test(p)||(commerceSignals&&(types.includes("itemlist")||/\/(category|categorie|categories|producten|products)\b/.test(p))))return "product_category";
   if(/\/(diensten|services|service)\b/.test(p))return "service";
   if(/\/(stad|city|locatie|locations|regio)\b/.test(p))return "city_landing";
   if(/\/(nl|en|de|fr|es)\//.test(p))return "national_landing";
