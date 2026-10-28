@@ -108,8 +108,9 @@ function classify(url:string,html:string,jsonTypes:string[]):PageType{
   if(/\/(filter|filters)\b/.test(p))return "filter";
   const types=jsonTypes.map(x=>x.toLowerCase());
   const hasLocalBusinessType = types.some(t => ["localbusiness","restaurant","bakery","barorcafe","beautysalon","dayspa","dentist","electrician","generalcontractor","homeandconstructionbusiness","locksmith","medicalclinic","plumber","roofingcontractor","store","hairdresser","automotivebusiness","realestateagent","legalservice","accountingservice","travelagency","hotel"].includes(t));
-  const localSignals = /\b(openingstijden|opening hours|horaires|öffnungszeiten|orari|horario)\b/i.test(text) && /(\+?\d[\d\s().-]{7,}|\b(postcode|postal code|address|adres|straat|street|rue|straße|via)\b)/i.test(text);
-  if(hasLocalBusinessType || localSignals)return "local_business";
+  // Opening hours and address are frequently repeated in sitewide footers.
+  // Only explicit structured business identity classifies a page as local_business.
+  if(hasLocalBusinessType)return "local_business";
   if(types.includes("product"))return "product";
   if(types.includes("article")||types.includes("newsarticle")||/\/(blog|nieuws|news|artikel)\b/.test(p))return /news|nieuws/.test(p)?"news":"blog_article";
   // Sitewide navigation often contains FAQ and Contact links. Do not let
