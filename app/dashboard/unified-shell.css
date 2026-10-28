@@ -113,3 +113,11 @@
 @media(max-width:1100px){.rf-help-modern-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.rf-quick-top .rf-quick-actions-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:800px){.rf-help-modern-bottom{grid-template-columns:1fr}}
 @media(max-width:650px){.rf-wave-hero{padding:26px 18px}.rf-help-modern-grid{grid-template-columns:1fr}.rf-help-modern-topic{min-height:110px}.rf-help-modern-support{align-items:flex-start}.rf-help-modern-robot{width:56px;height:56px;font-size:30px}.rf-quick-top .rf-quick-actions-grid{gap:8px}.rf-quick-top .rf-quick-actions-grid>a{min-height:68px;font-size:12px}.rf-score-ring{width:78px;height:78px;font-size:23px!important}.rf-unified .rf-page .rf-overview-metrics>.rf-card{min-height:145px;padding:12px}.rf-unified-top-title{font-size:13px}}
+
+.rf-quick-top .rf-quick-actions-grid>button{min-height:72px;background:#fff!important;color:#11386c!important;border:1px solid #c8e0fa!important;border-radius:14px;box-shadow:0 5px 18px #7fb5e51f;padding:10px;display:flex;align-items:center;gap:10px;font:inherit;text-align:left;cursor:pointer}
+.rf-quick-top .rf-quick-actions-grid>button:hover{border-color:#0785fa!important}
+.rf-unified .rf-page .rf-scan-meter-ring{border-color:#cae5ff!important}
+.rf-unified .rf-page .rf-scan-meter-sweep{border-top-color:#087cff!important;border-right-color:#0cb6e8!important}
+.rf-unified .rf-page .rf-scan-core{color:#087cff!important}
+.rf-unified .rf-page .rf-scan-stage-track span{background:linear-gradient(100deg,#087cff,#56c5ff)!important}
+@media(max-width:650px){.rf-quick-top .rf-quick-actions-grid>button{min-height:68px;font-size:12px}}
