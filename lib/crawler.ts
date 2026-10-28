@@ -115,7 +115,10 @@ function classify(url:string,html:string,jsonTypes:string[]):PageType{
   if(types.includes("faqpage")||/\b(faq|veelgestelde vragen|frequently asked questions)\b/.test(text))return "faq";
   if(/\/(contact|contacteer-ons)\b/.test(p)||/\bcontact\b/.test(text))return "contact";
   if(/\/(about|over-ons|over-ons)\b/.test(p))return "about";
-  // A manufacturer may have /products/ pages without a retail catalogue.\n  // Only classify generic product-path collections as commerce when the HTML\n  // contains independently visible purchasing evidence.\n  const commerceSignals = /(?:add to cart|add to basket|in winkelwagen|toevoegen aan winkelwagen|ajouter au panier|in den warenkorb|añadir al carrito|aggiungi al carrello|checkout|afrekenen)/i.test(text) || /(?:itemprop=["\x27]price["\x27]|"@type"\s*:\s*"Offer"|["\x27]priceCurrency["\x27])/i.test(html);\n  if(types.includes("itemlist")||/\/(category|categorie|categories|collections|collection|shop)\b/.test(p)||(/\/(producten|products)\b/.test(p)&&commerceSignals))return "product_category";
+  // Industrial manufacturers may publish /products/ without selling online.
+  // A product path alone is not evidence of an ecommerce category.
+  const commerceSignals = /(?:add to cart|add to basket|in winkelwagen|toevoegen aan winkelwagen|ajouter au panier|in den warenkorb|añadir al carrito|aggiungi al carrello|checkout|afrekenen)/i.test(text) || /(?:itemprop=["']price["']|"@type"\s*:\s*"Offer"|["']priceCurrency["'])/i.test(html);
+  if(types.includes("itemlist")||/\/(category|categorie|categories|collections|collection|shop)\b/.test(p)||(/\/(producten|products)\b/.test(p)&&commerceSignals))return "product_category";
   if(/\/(diensten|services|service)\b/.test(p))return "service";
   if(/\/(stad|city|locatie|locations|regio)\b/.test(p))return "city_landing";
   if(/\/(nl|en|de|fr|es)\//.test(p))return "national_landing";
