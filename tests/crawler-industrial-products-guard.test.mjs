@@ -41,3 +41,13 @@ test("opening hours and address in shared footer do not turn services into local
   assert.equal(classify("https://company.example/services/engineering", html, []), "service");
   assert.equal(classify("https://company.example/services/engineering", html, ["LocalBusiness"]), "local_business");
 });
+
+test("generic blog category does not become ecommerce category", () => {
+  assert.equal(classify("https://publisher.example/category/technology", "<h1>Technology articles</h1>", []), "generic");
+});
+test("ItemList without purchase evidence is not ecommerce", () => {
+  assert.equal(classify("https://factory.example/industries", "<h1>Industrial solutions</h1>", ["ItemList"]), "generic");
+});
+test("ItemList with add-to-cart evidence remains ecommerce category", () => {
+  assert.equal(classify("https://shop.example/category/shoes", "<h1>Shoes</h1><button>Add to cart</button>", ["ItemList"]), "product_category");
+});
