@@ -28,3 +28,10 @@ test("structured Product evidence remains product, not generic", () => {
 test("manufacturer products page does not become commerce through ItemList-free navigation", () => {
   assert.equal(classify("https://factory.example/products/robotics", "<h1>Robotics portfolio</h1>", []), "generic");
 });
+
+test("footer FAQ and Contact navigation must not override the actual page type", () => {
+  const html = "<nav><a href='/faq'>FAQ</a><a href='/contact'>Contact</a></nav><h1>Industrial services</h1>";
+  assert.equal(classify("https://factory.example/services/engineering", html, []), "service");
+  assert.equal(classify("https://factory.example/faq", html, []), "faq");
+  assert.equal(classify("https://factory.example/contact", html, []), "contact");
+});
