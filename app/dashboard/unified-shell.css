@@ -121,3 +121,25 @@
 .rf-unified .rf-page .rf-scan-core{color:#087cff!important}
 .rf-unified .rf-page .rf-scan-stage-track span{background:linear-gradient(100deg,#087cff,#56c5ff)!important}
 @media(max-width:650px){.rf-quick-top .rf-quick-actions-grid>button{min-height:68px;font-size:12px}}
+
+/* Approved visual reference: app dashboard only; never public marketing pages */
+.rf-unified:has(.rf-dashboard-home){background:linear-gradient(160deg,#e6f4ff,#f6fbff 64%,#e6f3ff)}
+.rf-unified:has(.rf-dashboard-home) .rf-unified-side{background:linear-gradient(165deg,#f8fcff 0%,#e0f0ff 48%,#a8d6ff 100%)}
+.rf-unified:has(.rf-dashboard-home) .rf-unified-main{background:radial-gradient(ellipse at 80% 4%,#79b9ff7a,transparent 38%),linear-gradient(160deg,#e7f5ff,#f8fcff 60%,#e9f5ff)}
+.rf-dashboard-home .rf-dashboard-wave{margin:0 0 10px;padding:38px 22px 28px;border-radius:20px 20px 0 0;background:radial-gradient(circle at 72% 23%,#ffffffab 0 13px,transparent 16px),radial-gradient(circle at 86% 48%,#ffffff94 0 19px,transparent 23px),radial-gradient(ellipse at 63% -42%,#4aa6ff9c 0 35%,transparent 36%),radial-gradient(ellipse at 90% 5%,#8cc9ffbd 0 33%,transparent 34%),linear-gradient(135deg,#e6f5ff,#a7d6ff 65%,#d9efff);border:1px solid #d1e7fb;position:relative;overflow:hidden}
+.rf-dashboard-home .rf-dashboard-wave::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 62% 28% at 45% 0%,#fff9 0 68%,transparent 70%),radial-gradient(ellipse 55% 33% at 76% 90%,#ffffff6b 0 65%,transparent 67%);opacity:.55}
+.rf-dashboard-home .rf-dashboard-wave h1{font-size:clamp(30px,3.8vw,50px);color:#081d5b!important;letter-spacing:-.045em}
+.rf-dashboard-home .rf-dashboard-wave h1::first-letter{color:#087bff}
+.rf-dashboard-home .rf-dashboard-wave p{color:#315b91;font-size:16px}
+.rf-dashboard-home .rf-quick-top{margin:0 0 20px!important}
+.rf-dashboard-home .rf-quick-top .rf-quick-actions-grid>a,.rf-dashboard-home .rf-quick-top .rf-quick-actions-grid>button{background:#fff!important;box-shadow:0 8px 22px #7fb5e52b;border-radius:15px;min-height:88px;font-weight:750;color:#102c64!important}
+.rf-dashboard-home .rf-dashboard-meters{display:grid;grid-template-columns:1fr;gap:0;background:#fff;border:1px solid #d7e8fa;border-radius:20px;padding:18px 20px;margin-bottom:20px;box-shadow:0 9px 24px #9abfe63b}
+.rf-dashboard-home .rf-dashboard-meters .rf-dashboard-hero{padding:0 0 12px;background:transparent!important;border:0!important;box-shadow:none!important}
+.rf-dashboard-home .rf-dashboard-meters .rf-dashboard-latest{gap:20px}
+.rf-dashboard-home .rf-dashboard-meters .rf-overview-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.rf-dashboard-home .rf-dashboard-meters .rf-overview-metrics>.rf-card{align-items:center!important;text-align:center!important;min-height:160px!important;background:linear-gradient(180deg,#fff,#f9fcff)!important;box-shadow:none!important}
+.rf-dashboard-home .rf-dashboard-meters .rf-score-ring{margin:auto}
+.rf-dashboard-home .rf-dashboard-meters .rf-overall-meter{width:148px;height:148px;flex-shrink:0}
+.rf-dashboard-home .rf-gsc-summary,.rf-dashboard-home .rf-websites-featured{background:#fff!important;border:1px solid #d7e8fa!important;border-radius:20px!important}
+@media(max-width:950px){.rf-dashboard-home .rf-dashboard-meters .rf-overview-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.rf-dashboard-home .rf-dashboard-wave{padding:25px 16px}.rf-dashboard-home .rf-dashboard-meters{padding:14px}.rf-dashboard-home .rf-dashboard-meters .rf-overall-meter{width:115px;height:115px}.rf-dashboard-home .rf-dashboard-meters .rf-dashboard-latest{flex-wrap:wrap}.rf-dashboard-home .rf-dashboard-meters .rf-overview-metrics>.rf-card{min-height:145px!important}}
