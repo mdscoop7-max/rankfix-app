@@ -1,0 +1,260 @@
+{
+  "id": "fresh-144-candidates-20261029",
+  "status": "candidate_only_not_activated",
+  "description": "First batch of known organization domains proposed for a separate future 144-site QA catalog. Not yet independently verified for live reachability, sector, or ownership.",
+  "sites": [
+    {
+      "country": "NL",
+      "name": "NXP Semiconductors",
+      "hosts": [
+        "nxp.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "VDL Groep",
+      "hosts": [
+        "vdlgroep.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "ZEISS",
+      "hosts": [
+        "zeiss.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "BASF",
+      "hosts": [
+        "basf.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "SE",
+      "name": "Sandvik",
+      "hosts": [
+        "sandvik.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "SE",
+      "name": "SKF",
+      "hosts": [
+        "skf.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "CH",
+      "name": "ABB",
+      "hosts": [
+        "abb.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Wageningen University",
+      "hosts": [
+        "wur.nl"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "TU Delft",
+      "hosts": [
+        "tudelft.nl"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "name": "KU Leuven",
+      "hosts": [
+        "kuleuven.be"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "GB",
+      "name": "University of Oxford",
+      "hosts": [
+        "ox.ac.uk"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Nationale ombudsman",
+      "hosts": [
+        "nationaleombudsman.nl"
+      ],
+      "group": "public",
+      "expected": "public",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Autoriteit Persoonsgegevens",
+      "hosts": [
+        "autoriteitpersoonsgegevens.nl"
+      ],
+      "group": "public",
+      "expected": "public",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "EU",
+      "name": "European Medicines Agency",
+      "hosts": [
+        "ema.europa.eu"
+      ],
+      "group": "public",
+      "expected": "public",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "EU",
+      "name": "European Environment Agency",
+      "hosts": [
+        "eea.europa.eu"
+      ],
+      "group": "public",
+      "expected": "public",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Stichting Lezen",
+      "hosts": [
+        "lezen.nl"
+      ],
+      "group": "nonprofit",
+      "expected": "nonprofit",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Natuurmonumenten",
+      "hosts": [
+        "natuurmonumenten.nl"
+      ],
+      "group": "nonprofit",
+      "expected": "nonprofit",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "GB",
+      "name": "Oxfam",
+      "hosts": [
+        "oxfam.org.uk"
+      ],
+      "group": "nonprofit",
+      "expected": "nonprofit",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Het Concertgebouw",
+      "hosts": [
+        "concertgebouw.nl"
+      ],
+      "group": "culture",
+      "expected": "culture",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Mauritshuis",
+      "hosts": [
+        "mauritshuis.nl"
+      ],
+      "group": "culture",
+      "expected": "culture",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "name": "Musée d'Orsay",
+      "hosts": [
+        "musee-orsay.fr"
+      ],
+      "group": "culture",
+      "expected": "culture",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "ProRail",
+      "hosts": [
+        "prorail.nl"
+      ],
+      "group": "transport",
+      "expected": "transport",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "NS International",
+      "hosts": [
+        "nsinternational.com"
+      ],
+      "group": "transport",
+      "expected": "transport",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    }
+  ]
+}
