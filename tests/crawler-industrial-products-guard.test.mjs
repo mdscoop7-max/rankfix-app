@@ -53,5 +53,5 @@ test("ItemList with add-to-cart evidence remains ecommerce category", () => {
 });
 
 test("crawler classifier contains no escaped newline that disables following logic", () => {
-  assert.doesNotMatch(classifier, /\/\/[^\n]*\\\\n\s*if\s*\(/);
+  assert.doesNotMatch(classifier, /\/\/[^\n]*\\n\s*if\s*\(/);
 });
