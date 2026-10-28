@@ -1,12 +1,11 @@
-import type { Metadata } from "next";
-
-// Private application pages: never indexed, no canonical or hreflang.
-export const metadata: Metadata = {
-  title: "Dashboard | RankFix AI",
-  robots: { index: false, follow: false },
-  alternates: { canonical: null, languages: {} },
-};
-
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return children;
+"use client";
+import Link from "next/link";
+import {usePathname} from "next/navigation";
+import {useState} from "react";
+import "./unified-shell.css";
+const links=[["▦","Dashboard","/dashboard/overview-preview"],["⌕","Website analyse","/dashboard/scan"],["▤","Rapporten","/dashboard/history"],["▱","Projecten","/dashboard"],["◈","Concurrenten","/dashboard/competitor"],["◎","SEO & GEO","/dashboard/more"],["?","Helpcentrum","/dashboard/help"],["✉","Contact & support","/dashboard/contact"],["⚙","Instellingen","/dashboard/account"]];
+export default function DashboardLayout({children}:{children:React.ReactNode}){
+ const path=usePathname()||"";const [open,setOpen]=useState(false);
+ if(path==="/dashboard/overview-preview")return children;
+ return <div className="rf-unified"><aside className={"rf-unified-side "+(open?"is-open":"")}><Link className="rf-unified-logo" href="/dashboard/overview-preview"><b>▂▅▇ RankFix <span>AI</span></b><small>SEO · GEO · AI Visibility</small></Link><nav aria-label="RankFix dashboardmenu">{links.map(([icon,label,href])=><Link key={label} href={href} aria-current={path===href?"page":undefined} onClick={()=>setOpen(false)}><span aria-hidden="true">{icon}</span>{label}</Link>)}</nav><Link className="rf-unified-site" href="/">← Terug naar website</Link></aside><div className="rf-unified-main"><header className="rf-unified-top"><button type="button" className="rf-unified-toggle" onClick={()=>setOpen(v=>!v)} aria-expanded={open} aria-label="Navigatie openen of sluiten">☰</button><span className="rf-unified-top-title">RankFix AI</span><Link href="/dashboard/account" aria-label="Account" className="rf-unified-user">RK</Link></header>{children}</div>{open&&<button type="button" className="rf-unified-backdrop" onClick={()=>setOpen(false)} aria-label="Menu sluiten"/>}</div>;
 }
