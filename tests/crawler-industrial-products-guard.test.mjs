@@ -51,3 +51,7 @@ test("ItemList without purchase evidence is not ecommerce", () => {
 test("ItemList with add-to-cart evidence remains ecommerce category", () => {
   assert.equal(classify("https://shop.example/category/shoes", "<h1>Shoes</h1><button>Add to cart</button>", ["ItemList"]), "product_category");
 });
+
+test("crawler classifier contains no escaped newline that disables following logic", () => {
+  assert.doesNotMatch(classifier, /\/\/[^\n]*\\\\n\s*if\s*\(/);
+});
