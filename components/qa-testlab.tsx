@@ -59,7 +59,7 @@ export default function TestLab144() {
       setNotice("");return;
     }
     const next=answer.data as Catalog;
-    if(next.sites.length!==144 || version.environment!=="preview" || !version.commitSha || version.commitSha!==next.runtime.commitSha){
+    if(next.sites.length!==144 || !(version.environment==="preview" || (version.environment==="local" && process.env.NODE_ENV==="development")) || !version.commitSha || version.commitSha!==next.runtime.commitSha){
       setError("QA-versie of catalogus niet betrouwbaar bevestigd. Er worden geen scans gestart.");
       setNotice("");return;
     }
@@ -101,7 +101,7 @@ export default function TestLab144() {
     try{
       // Fail closed if the shared QA alias was redeployed mid-run.
       const v=await fetch("/api/scan/version",{cache:"no-store"}).then(r=>r.json());
-      if(v.environment!=="preview"||v.commitSha!==catalog.runtime.commitSha){throw new Error("QA_DEPLOYMENT_CHANGED");}
+      if(!(v.environment==="preview" || v.environment==="local")||!v.commitSha||v.commitSha!==catalog.runtime.commitSha){throw new Error("QA_DEPLOYMENT_CHANGED");}
       const response=await fetch("/api/scan",{
         method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
         body:JSON.stringify({url:"https://"+site.host+"/",mode:"both",dashboard:true,language:"nl"})
