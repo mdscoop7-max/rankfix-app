@@ -35,3 +35,9 @@ test("footer FAQ and Contact navigation must not override the actual page type",
   assert.equal(classify("https://factory.example/faq", html, []), "faq");
   assert.equal(classify("https://factory.example/contact", html, []), "contact");
 });
+
+test("opening hours and address in shared footer do not turn services into local business", () => {
+  const html = "<main><h1>Engineering services</h1></main><footer>Opening hours 9-5. Address Main Street 12345</footer>";
+  assert.equal(classify("https://company.example/services/engineering", html, []), "service");
+  assert.equal(classify("https://company.example/services/engineering", html, ["LocalBusiness"]), "local_business");
+});
