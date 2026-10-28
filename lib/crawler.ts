@@ -112,8 +112,10 @@ function classify(url:string,html:string,jsonTypes:string[]):PageType{
   if(hasLocalBusinessType || localSignals)return "local_business";
   if(types.includes("product"))return "product";
   if(types.includes("article")||types.includes("newsarticle")||/\/(blog|nieuws|news|artikel)\b/.test(p))return /news|nieuws/.test(p)?"news":"blog_article";
-  if(types.includes("faqpage")||/\b(faq|veelgestelde vragen|frequently asked questions)\b/.test(text))return "faq";
-  if(/\/(contact|contacteer-ons)\b/.test(p)||/\bcontact\b/.test(text))return "contact";
+  // Sitewide navigation often contains FAQ and Contact links. Do not let
+  // these boilerplate words reclassify unrelated pages.
+  if(types.includes("faqpage")||/\/(faq|veelgestelde-vragen|frequently-asked-questions)(?:\/|$)/.test(p))return "faq";
+  if(/\/(contact|contacteer-ons)(?:\/|$)/.test(p))return "contact";
   if(/\/(about|over-ons|over-ons)\b/.test(p))return "about";
   // Industrial manufacturers may publish /products/ without selling online.
   // A product path alone is not evidence of an ecommerce category.
