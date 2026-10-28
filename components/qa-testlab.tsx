@@ -41,7 +41,8 @@ export default function TestLab144() {
  const mounted=useRef(true);
  useEffect(()=>{
   mounted.current=true;
-  const catalogId=new URLSearchParams(window.location.search).get("catalog")==="commerce"?"commerce":"baseline";
+  const requestedCatalog=new URLSearchParams(window.location.search).get("catalog");
+  const catalogId=requestedCatalog==="commerce"||requestedCatalog==="fresh144"?requestedCatalog:"baseline";
   Promise.all([
    fetch("/api/testlab/catalog?catalog="+catalogId,{cache:"no-store",credentials:"same-origin"}).then(async r=>({ok:r.ok,data:await r.json()})),
    fetch("/api/scan/version",{cache:"no-store"}).then(r=>r.json()),
@@ -163,7 +164,7 @@ export default function TestLab144() {
  function exportResult(fmt:"json"|"csv"){
   if(!catalog)return;
   const complete=sites.map(s=>({...s,result:byHost.get(s.host)||null}));
-  const exportName="rankfix-testlab-144-"+(catalog.catalogId==="commerce"?"commerce-":"")+catalog.runtime.commitSha?.slice(0,8);
+  const exportName="rankfix-testlab-144-"+catalog.catalogId+"-"+catalog.runtime.commitSha?.slice(0,8);
   if(fmt==="json"){
     saveDownload(exportName+".json","application/json;charset=utf-8",
       JSON.stringify({commitSha:catalog.runtime.commitSha,catalogId:catalog.catalogId,categoryCounts:catalog.categoryCounts,generatedAt:new Date().toISOString(),labels:"proposed_not_independently_verified",verdictCounts,sites:complete.map(x=>({...x,verdict:x.result?verdictOf(x,x.result):null}))},null,2));
@@ -178,7 +179,7 @@ export default function TestLab144() {
   <header className="rf-lab-hero">
    <div><div className="rf-lab-eyebrow">RankFix • besloten QA</div>
     <h1>TestLab — 144 websites</h1>
-    <p>{isCommerceCatalog?"Nieuwe catalogus: 72 webshops uit 13 verkoopsectoren en 72 websites uit andere branches.":"Bestaande baseline: sectoren, winkels en dienstverleners in verschillende landen."} Alle tests zijn alleen-lezen en wijzigen geen klantwebsite.</p>
+    <p>{catalog?.catalogId==="fresh144"?"Nieuwe 144 websitekandidaten, zonder overlap met de twee oude catalogi.":isCommerceCatalog?"Commerce-catalogus: 72 webshops en 72 andere websites.":"Bestaande baseline: sectoren, winkels en dienstverleners in verschillende landen."} Alle tests zijn alleen-lezen en wijzigen geen klantwebsite.</p>
    </div><div className="rf-lab-count">144<span>unieke websites</span></div>
   </header>
   <section className="rf-lab-panel">
@@ -205,7 +206,7 @@ export default function TestLab144() {
     <div className="rf-lab-stat"><strong>{verdictCounts.unconfirmed||0}</strong><span>Sector onbevestigd</span></div>
    </div>
    <div role="status" className={"rf-lab-status"+(error?" rf-lab-error":"")}>{error||notice}</div>
-   <p className="rf-lab-note">{isCommerceCatalog?"Dit is de nieuwe 72/72-catalogus; de oude 144 baseline blijft apart beschikbaar via /dashboard/testlab. ":""}Sectorlabels zijn voorlopig en nog niet onafhankelijk gevalideerd. Geblokkeerde sites en technische problemen tellen niet als sectorfout. Deze test draait in dit browsertabblad op je laptop, niet automatisch op de server. Sluit je het tabblad of gaat de laptop in slaap, dan stopt de test; met "Doorgaan met resterende" gaat hij verder bij de eerste niet-afgeronde website. Resultaten staan alleen in deze browser (per QA-commit): exporteer tussendoor JSON/CSV, want gewiste browsergegevens wissen ook de resultaten.</p>
+   <p className="rf-lab-note">{catalog?.catalogId==="fresh144"?"Nieuwe kandidaatcatalogus: bereikbaarheid en verwachte sectoren zijn nog niet onafhankelijk gecontroleerd. ":isCommerceCatalog?"Dit is de 72/72-catalogus; de oude baseline blijft apart beschikbaar. ":""}Sectorlabels zijn voorlopig en nog niet onafhankelijk gevalideerd. Geblokkeerde sites en technische problemen tellen niet als sectorfout. Deze test draait in dit browsertabblad op je laptop, niet automatisch op de server. Sluit je het tabblad of gaat de laptop in slaap, dan stopt de test; met "Doorgaan met resterende" gaat hij verder bij de eerste niet-afgeronde website. Resultaten staan alleen in deze browser (per QA-commit): exporteer tussendoor JSON/CSV, want gewiste browsergegevens wissen ook de resultaten.</p>
    <div className="rf-lab-controls"><button type="button" disabled={!catalog} onClick={()=>exportResult("csv")}>Exporteer CSV</button><button type="button" disabled={!catalog} onClick={()=>exportResult("json")}>Exporteer JSON</button></div>
   </section>
   <section className="rf-lab-panel">
