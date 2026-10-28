@@ -1,0 +1,1591 @@
+{
+  "id": "fresh144",
+  "description": "144 distinct candidate websites, non-overlapping with historical baseline and commerce catalogs. Labels and live accessibility are provisional and unverified.",
+  "reviewStatus": "proposed_not_independently_verified",
+  "sites": [
+    {
+      "country": "NL",
+      "name": "NXP Semiconductors",
+      "hosts": [
+        "nxp.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "VDL Groep",
+      "hosts": [
+        "vdlgroep.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "ZEISS",
+      "hosts": [
+        "zeiss.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "BASF",
+      "hosts": [
+        "basf.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "SE",
+      "name": "Sandvik",
+      "hosts": [
+        "sandvik.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "SE",
+      "name": "SKF",
+      "hosts": [
+        "skf.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "CH",
+      "name": "ABB",
+      "hosts": [
+        "abb.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Wageningen University",
+      "hosts": [
+        "wur.nl"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "TU Delft",
+      "hosts": [
+        "tudelft.nl"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "name": "KU Leuven",
+      "hosts": [
+        "kuleuven.be"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "GB",
+      "name": "University of Oxford",
+      "hosts": [
+        "ox.ac.uk"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Nationale ombudsman",
+      "hosts": [
+        "nationaleombudsman.nl"
+      ],
+      "group": "public",
+      "expected": "public",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Autoriteit Persoonsgegevens",
+      "hosts": [
+        "autoriteitpersoonsgegevens.nl"
+      ],
+      "group": "public",
+      "expected": "public",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "EU",
+      "name": "European Medicines Agency",
+      "hosts": [
+        "ema.europa.eu"
+      ],
+      "group": "public",
+      "expected": "public",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "EU",
+      "name": "European Environment Agency",
+      "hosts": [
+        "eea.europa.eu"
+      ],
+      "group": "public",
+      "expected": "public",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Stichting Lezen",
+      "hosts": [
+        "lezen.nl"
+      ],
+      "group": "nonprofit",
+      "expected": "nonprofit",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Natuurmonumenten",
+      "hosts": [
+        "natuurmonumenten.nl"
+      ],
+      "group": "nonprofit",
+      "expected": "nonprofit",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "GB",
+      "name": "Oxfam",
+      "hosts": [
+        "oxfam.org.uk"
+      ],
+      "group": "nonprofit",
+      "expected": "nonprofit",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Het Concertgebouw",
+      "hosts": [
+        "concertgebouw.nl"
+      ],
+      "group": "culture",
+      "expected": "culture",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Mauritshuis",
+      "hosts": [
+        "mauritshuis.nl"
+      ],
+      "group": "culture",
+      "expected": "culture",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "name": "Musée d'Orsay",
+      "hosts": [
+        "musee-orsay.fr"
+      ],
+      "group": "culture",
+      "expected": "culture",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "ProRail",
+      "hosts": [
+        "prorail.nl"
+      ],
+      "group": "transport",
+      "expected": "transport",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "NS International",
+      "hosts": [
+        "nsinternational.com"
+      ],
+      "group": "transport",
+      "expected": "transport",
+      "round": "fresh-candidates-1",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Rijkswaterstaat",
+      "hosts": [
+        "rijkswaterstaat.nl"
+      ],
+      "group": "public",
+      "expected": "public",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Kadaster",
+      "hosts": [
+        "kadaster.nl"
+      ],
+      "group": "public",
+      "expected": "public",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Centraal Bureau voor de Statistiek",
+      "hosts": [
+        "cbs.nl"
+      ],
+      "group": "public",
+      "expected": "public",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Autoriteit Consument en Markt",
+      "hosts": [
+        "acm.nl"
+      ],
+      "group": "public",
+      "expected": "public",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "De Nederlandsche Bank",
+      "hosts": [
+        "dnb.nl"
+      ],
+      "group": "finance",
+      "expected": "finance",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "AFM",
+      "hosts": [
+        "afm.nl"
+      ],
+      "group": "finance",
+      "expected": "finance",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Triodos Bank",
+      "hosts": [
+        "triodos.nl"
+      ],
+      "group": "finance",
+      "expected": "finance",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "ASN Bank",
+      "hosts": [
+        "asnbank.nl"
+      ],
+      "group": "finance",
+      "expected": "finance",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Van Lanschot Kempen",
+      "hosts": [
+        "vanlanschotkempen.com"
+      ],
+      "group": "finance",
+      "expected": "finance",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "a.s.r.",
+      "hosts": [
+        "asr.nl"
+      ],
+      "group": "insurance",
+      "expected": "insurance",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Univé",
+      "hosts": [
+        "unive.nl"
+      ],
+      "group": "insurance",
+      "expected": "insurance",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Zilveren Kruis",
+      "hosts": [
+        "zilverenkruis.nl"
+      ],
+      "group": "insurance",
+      "expected": "insurance",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "VGZ",
+      "hosts": [
+        "vgz.nl"
+      ],
+      "group": "insurance",
+      "expected": "insurance",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "CZ",
+      "hosts": [
+        "cz.nl"
+      ],
+      "group": "insurance",
+      "expected": "insurance",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "UMC Utrecht",
+      "hosts": [
+        "umcutrecht.nl"
+      ],
+      "group": "healthcare",
+      "expected": "healthcare",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Radboudumc",
+      "hosts": [
+        "radboudumc.nl"
+      ],
+      "group": "healthcare",
+      "expected": "healthcare",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Maastricht UMC+",
+      "hosts": [
+        "mumc.nl"
+      ],
+      "group": "healthcare",
+      "expected": "healthcare",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Amsterdam UMC",
+      "hosts": [
+        "amsterdamumc.nl"
+      ],
+      "group": "healthcare",
+      "expected": "healthcare",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "GGD GHOR Nederland",
+      "hosts": [
+        "ggdghor.nl"
+      ],
+      "group": "healthcare",
+      "expected": "healthcare",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Hartstichting",
+      "hosts": [
+        "hartstichting.nl"
+      ],
+      "group": "nonprofit",
+      "expected": "nonprofit",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Longfonds",
+      "hosts": [
+        "longfonds.nl"
+      ],
+      "group": "nonprofit",
+      "expected": "nonprofit",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "KWF",
+      "hosts": [
+        "kwf.nl"
+      ],
+      "group": "nonprofit",
+      "expected": "nonprofit",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Stichting AAP",
+      "hosts": [
+        "aap.nl"
+      ],
+      "group": "nonprofit",
+      "expected": "nonprofit",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Vogelbescherming",
+      "hosts": [
+        "vogelbescherming.nl"
+      ],
+      "group": "nonprofit",
+      "expected": "nonprofit",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Milieudefensie",
+      "hosts": [
+        "milieudefensie.nl"
+      ],
+      "group": "nonprofit",
+      "expected": "nonprofit",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Humanitas",
+      "hosts": [
+        "humanitas.nl"
+      ],
+      "group": "nonprofit",
+      "expected": "nonprofit",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Rode Kruis",
+      "hosts": [
+        "rodekruis.nl"
+      ],
+      "group": "nonprofit",
+      "expected": "nonprofit",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Leger des Heils",
+      "hosts": [
+        "legerdesheils.nl"
+      ],
+      "group": "nonprofit",
+      "expected": "nonprofit",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Eindhoven University of Technology",
+      "hosts": [
+        "tue.nl"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Universiteit Twente",
+      "hosts": [
+        "utwente.nl"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Universiteit Leiden",
+      "hosts": [
+        "universiteitleiden.nl"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Universiteit Utrecht",
+      "hosts": [
+        "uu.nl"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Rijksuniversiteit Groningen",
+      "hosts": [
+        "rug.nl"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Erasmus Universiteit Rotterdam",
+      "hosts": [
+        "eur.nl"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Open Universiteit",
+      "hosts": [
+        "ou.nl"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Hogeschool Rotterdam",
+      "hosts": [
+        "hogeschoolrotterdam.nl"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Fontys",
+      "hosts": [
+        "fontys.nl"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Avans",
+      "hosts": [
+        "avans.nl"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "HAN University of Applied Sciences",
+      "hosts": [
+        "han.nl"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "AkzoNobel",
+      "hosts": [
+        "akzonobel.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "DSM-Firmenich",
+      "hosts": [
+        "dsm-firmenich.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Signify",
+      "hosts": [
+        "signify.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Vanderlande",
+      "hosts": [
+        "vanderlande.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Damen Shipyards",
+      "hosts": [
+        "damen.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Royal IHC",
+      "hosts": [
+        "royalihc.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Heijmans",
+      "hosts": [
+        "heijmans.nl"
+      ],
+      "group": "construction",
+      "expected": "construction",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "BAM",
+      "hosts": [
+        "bam.com"
+      ],
+      "group": "construction",
+      "expected": "construction",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "VolkerWessels",
+      "hosts": [
+        "volkerwessels.com"
+      ],
+      "group": "construction",
+      "expected": "construction",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Ballast Nedam",
+      "hosts": [
+        "ballast-nedam.nl"
+      ],
+      "group": "construction",
+      "expected": "construction",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Arcadis",
+      "hosts": [
+        "arcadis.com"
+      ],
+      "group": "engineering",
+      "expected": "engineering",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Royal HaskoningDHV",
+      "hosts": [
+        "haskoning.com"
+      ],
+      "group": "engineering",
+      "expected": "engineering",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Sweco",
+      "hosts": [
+        "sweco.nl"
+      ],
+      "group": "engineering",
+      "expected": "engineering",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "TenneT",
+      "hosts": [
+        "tennet.eu"
+      ],
+      "group": "energy",
+      "expected": "energy",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Enexis",
+      "hosts": [
+        "enexis.nl"
+      ],
+      "group": "energy",
+      "expected": "energy",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Liander",
+      "hosts": [
+        "liander.nl"
+      ],
+      "group": "energy",
+      "expected": "energy",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Stedin",
+      "hosts": [
+        "stedin.net"
+      ],
+      "group": "energy",
+      "expected": "energy",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Gasunie",
+      "hosts": [
+        "gasunie.nl"
+      ],
+      "group": "energy",
+      "expected": "energy",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Port of Rotterdam",
+      "hosts": [
+        "portofrotterdam.com"
+      ],
+      "group": "logistics",
+      "expected": "logistics",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Schiphol",
+      "hosts": [
+        "schiphol.nl"
+      ],
+      "group": "transport",
+      "expected": "transport",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "RET",
+      "hosts": [
+        "ret.nl"
+      ],
+      "group": "transport",
+      "expected": "transport",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "GVB",
+      "hosts": [
+        "gvb.nl"
+      ],
+      "group": "transport",
+      "expected": "transport",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "HTM",
+      "hosts": [
+        "htm.nl"
+      ],
+      "group": "transport",
+      "expected": "transport",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Arriva Nederland",
+      "hosts": [
+        "arriva.nl"
+      ],
+      "group": "transport",
+      "expected": "transport",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Connexxion",
+      "hosts": [
+        "connexxion.nl"
+      ],
+      "group": "transport",
+      "expected": "transport",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "DHL Nederland",
+      "hosts": [
+        "dhl.com"
+      ],
+      "group": "logistics",
+      "expected": "logistics",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "DPD Nederland",
+      "hosts": [
+        "dpd.com"
+      ],
+      "group": "logistics",
+      "expected": "logistics",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Museum Boijmans Van Beuningen",
+      "hosts": [
+        "boijmans.nl"
+      ],
+      "group": "culture",
+      "expected": "culture",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Rijksmuseum",
+      "hosts": [
+        "rijksmuseum.nl"
+      ],
+      "group": "culture",
+      "expected": "culture",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Van Gogh Museum",
+      "hosts": [
+        "vangoghmuseum.nl"
+      ],
+      "group": "culture",
+      "expected": "culture",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "NEMO Science Museum",
+      "hosts": [
+        "nemosciencemuseum.nl"
+      ],
+      "group": "culture",
+      "expected": "culture",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Naturalis",
+      "hosts": [
+        "naturalis.nl"
+      ],
+      "group": "culture",
+      "expected": "culture",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Kröller-Müller Museum",
+      "hosts": [
+        "krollermuller.nl"
+      ],
+      "group": "culture",
+      "expected": "culture",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Paleis Het Loo",
+      "hosts": [
+        "paleishetloo.nl"
+      ],
+      "group": "culture",
+      "expected": "culture",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Efteling",
+      "hosts": [
+        "efteling.com"
+      ],
+      "group": "hospitality",
+      "expected": "hospitality",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Walibi Holland",
+      "hosts": [
+        "walibi.nl"
+      ],
+      "group": "hospitality",
+      "expected": "hospitality",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "ARTIS",
+      "hosts": [
+        "artis.nl"
+      ],
+      "group": "hospitality",
+      "expected": "hospitality",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Burgers' Zoo",
+      "hosts": [
+        "burgerszoo.nl"
+      ],
+      "group": "hospitality",
+      "expected": "hospitality",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Diergaarde Blijdorp",
+      "hosts": [
+        "diergaardeblijdorp.nl"
+      ],
+      "group": "hospitality",
+      "expected": "hospitality",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Beekse Bergen",
+      "hosts": [
+        "beeksebergen.nl"
+      ],
+      "group": "hospitality",
+      "expected": "hospitality",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Roompot",
+      "hosts": [
+        "roompot.nl"
+      ],
+      "group": "hospitality",
+      "expected": "hospitality",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Landal",
+      "hosts": [
+        "landal.nl"
+      ],
+      "group": "hospitality",
+      "expected": "hospitality",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Center Parcs",
+      "hosts": [
+        "centerparcs.nl"
+      ],
+      "group": "hospitality",
+      "expected": "hospitality",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Van der Valk",
+      "hosts": [
+        "valk.nl"
+      ],
+      "group": "hospitality",
+      "expected": "hospitality",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Fletcher Hotels",
+      "hosts": [
+        "fletcher.nl"
+      ],
+      "group": "hospitality",
+      "expected": "hospitality",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Bastion Hotels",
+      "hosts": [
+        "bastionhotels.com"
+      ],
+      "group": "hospitality",
+      "expected": "hospitality",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "NH Hotels",
+      "hosts": [
+        "nh-hotels.com"
+      ],
+      "group": "hospitality",
+      "expected": "hospitality",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "name": "De Lijn",
+      "hosts": [
+        "delijn.be"
+      ],
+      "group": "transport",
+      "expected": "transport",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "name": "UZA",
+      "hosts": [
+        "uza.be"
+      ],
+      "group": "healthcare",
+      "expected": "healthcare",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "name": "UZ Gent",
+      "hosts": [
+        "uzgent.be"
+      ],
+      "group": "healthcare",
+      "expected": "healthcare",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "name": "Universiteit Gent",
+      "hosts": [
+        "ugent.be"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "BE",
+      "name": "Universiteit Antwerpen",
+      "hosts": [
+        "uantwerpen.be"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "Fraunhofer",
+      "hosts": [
+        "fraunhofer.de"
+      ],
+      "group": "research",
+      "expected": "research",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "Max Planck Gesellschaft",
+      "hosts": [
+        "mpg.de"
+      ],
+      "group": "research",
+      "expected": "research",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "Robert Bosch",
+      "hosts": [
+        "bosch.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "Henkel",
+      "hosts": [
+        "henkel.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "Deutsche Telekom",
+      "hosts": [
+        "telekom.com"
+      ],
+      "group": "telecom",
+      "expected": "telecom",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "Allianz",
+      "hosts": [
+        "allianz.com"
+      ],
+      "group": "insurance",
+      "expected": "insurance",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DE",
+      "name": "Munich Re",
+      "hosts": [
+        "munichre.com"
+      ],
+      "group": "insurance",
+      "expected": "insurance",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "name": "SNCF",
+      "hosts": [
+        "sncf.com"
+      ],
+      "group": "transport",
+      "expected": "transport",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "name": "INRIA",
+      "hosts": [
+        "inria.fr"
+      ],
+      "group": "research",
+      "expected": "research",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "name": "CNRS",
+      "hosts": [
+        "cnrs.fr"
+      ],
+      "group": "research",
+      "expected": "research",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "name": "Airbus",
+      "hosts": [
+        "airbus.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "name": "Thales",
+      "hosts": [
+        "thalesgroup.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "name": "AXA",
+      "hosts": [
+        "axa.com"
+      ],
+      "group": "insurance",
+      "expected": "insurance",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "name": "Louvre",
+      "hosts": [
+        "louvre.fr"
+      ],
+      "group": "culture",
+      "expected": "culture",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "GB",
+      "name": "National Trust",
+      "hosts": [
+        "nationaltrust.org.uk"
+      ],
+      "group": "nonprofit",
+      "expected": "nonprofit",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "GB",
+      "name": "British Museum",
+      "hosts": [
+        "britishmuseum.org"
+      ],
+      "group": "culture",
+      "expected": "culture",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "GB",
+      "name": "Imperial College London",
+      "hosts": [
+        "imperial.ac.uk"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "GB",
+      "name": "University of Cambridge",
+      "hosts": [
+        "cam.ac.uk"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "GB",
+      "name": "Network Rail",
+      "hosts": [
+        "networkrail.co.uk"
+      ],
+      "group": "transport",
+      "expected": "transport",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "GB",
+      "name": "Rolls-Royce",
+      "hosts": [
+        "rolls-royce.com"
+      ],
+      "group": "manufacturing",
+      "expected": "manufacturing",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "GB",
+      "name": "AstraZeneca",
+      "hosts": [
+        "astrazeneca.com"
+      ],
+      "group": "healthcare",
+      "expected": "healthcare",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "GB",
+      "name": "BBC",
+      "hosts": [
+        "bbc.co.uk"
+      ],
+      "group": "media",
+      "expected": "media",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "CH",
+      "name": "CERN",
+      "hosts": [
+        "home.cern"
+      ],
+      "group": "research",
+      "expected": "research",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "CH",
+      "name": "ETH Zurich",
+      "hosts": [
+        "ethz.ch"
+      ],
+      "group": "education",
+      "expected": "education",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "CH",
+      "name": "Swiss Federal Railways",
+      "hosts": [
+        "sbb.ch"
+      ],
+      "group": "transport",
+      "expected": "transport",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "CH",
+      "name": "Roche",
+      "hosts": [
+        "roche.com"
+      ],
+      "group": "healthcare",
+      "expected": "healthcare",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "CH",
+      "name": "Novartis",
+      "hosts": [
+        "novartis.com"
+      ],
+      "group": "healthcare",
+      "expected": "healthcare",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DK",
+      "name": "Novo Nordisk",
+      "hosts": [
+        "novonordisk.com"
+      ],
+      "group": "healthcare",
+      "expected": "healthcare",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DK",
+      "name": "Maersk",
+      "hosts": [
+        "maersk.com"
+      ],
+      "group": "logistics",
+      "expected": "logistics",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DK",
+      "name": "Vestas",
+      "hosts": [
+        "vestas.com"
+      ],
+      "group": "energy",
+      "expected": "energy",
+      "round": "fresh-candidates-2",
+      "reviewStatus": "proposed_not_independently_verified"
+    }
+  ]
+}
