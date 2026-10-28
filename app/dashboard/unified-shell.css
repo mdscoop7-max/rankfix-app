@@ -1,1 +1,37 @@
 .rf-unified{min-height:100vh;display:flex;background:linear-gradient(145deg,#e9f7ff,#f5fbff 65%,#e6f6ff);color:#102049}.rf-unified-side{width:226px;flex:none;min-height:100vh;padding:20px 12px;background:linear-gradient(180deg,#f9fdff,#f1faff);border-right:1px solid #d8eaf9;display:flex;flex-direction:column}.rf-unified-logo{padding:6px 12px 28px;text-decoration:none;color:#102049}.rf-unified-logo b{display:block;font-size:21px}.rf-unified-logo b span{color:#0868e8}.rf-unified-logo small{display:block;font-size:10px}.rf-unified-side nav{display:grid;gap:4px}.rf-unified-side nav a{display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;text-decoration:none;color:#14214b;font-size:14px}.rf-unified-side nav a span{width:23px;text-align:center;font-size:20px}.rf-unified-side nav a:hover,.rf-unified-side nav a[aria-current=page]{background:#d6eaff;color:#075be0}.rf-unified-side nav a[aria-current=page]{font-weight:700;border-left:4px solid #056af9}.rf-unified-site{margin-top:auto;padding:14px;color:#0868e8;text-decoration:none;font-size:12px}.rf-unified-main{min-width:0;flex:1}.rf-unified-top{height:70px;display:flex;align-items:center;justify-content:space-between;padding:12px 25px}.rf-unified-top-title{font-weight:800;color:#0868e8}.rf-unified-user{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#086af6;color:#fff;text-decoration:none;font-weight:bold}.rf-unified-toggle{display:none}.rf-unified .rf-page{background:transparent;padding:8px 20px 45px;min-height:calc(100vh - 70px);color:#102049;--bg-page:#e9f7ff;--bg-surface:#fff;--bg-card:#fff;--border-subtle:#dce9f6;--border-muted:#b9cfe5;--text-primary:#102049;--text-secondary:#60799a;--brand:#0868e8;--brand-dark:#fff;--brand-light:#075be0;--brand-surface:#e6f3ff}.rf-unified .rf-shell{max-width:none;border:0;background:transparent;overflow:visible}.rf-unified .rf-header,.rf-unified .rf-desktop-nav,.rf-unified .rf-mobile-site-link,.rf-unified .rf-nav{display:none!important}.rf-unified .rf-body{padding:12px 0 30px}.rf-unified .rf-heading h1{color:#0868e8}.rf-unified .rf-card,.rf-unified .rf-site,.rf-unified .rf-report{box-shadow:0 4px 20px #c3d9e927}.rf-unified-backdrop{display:none}@media(max-width:650px){.rf-unified-side{position:fixed;z-index:31;transform:translateX(-100%);transition:transform .2s;box-shadow:0 0 25px #102c5540}.rf-unified-side.is-open{transform:translateX(0)}.rf-unified-toggle{display:block;background:#fff;color:#0868e8;border:1px solid #d9e8f8;border-radius:9px;padding:8px 12px}.rf-unified .rf-page{padding:8px 12px 35px}.rf-unified-backdrop{display:block;position:fixed;inset:0;background:#0b244c66;border:0;z-index:30}}
+
+/* Unified light customer experience, preserving dark text for contrast */
+.rf-unified{--rf-ink:#183153;--rf-blue:#0868e8}
+.rf-unified-side{position:sticky;top:0;height:100vh;overflow-y:auto}
+.rf-unified-sub{display:grid;gap:2px;margin:16px 5px 12px;padding:13px 8px;border-top:1px solid #dceafa}
+.rf-unified-sub strong{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:#587392;padding:4px 9px}
+.rf-unified-sub a{font-size:12px;padding:9px 11px;border-radius:8px;color:#345879;text-decoration:none}
+.rf-unified-sub a:hover{background:#e1efff;color:#0868e8}
+.rf-unified .rf-page{--brand-dark:#fff;--brand-light:#0868e8;--brand-surface:#e9f5ff;--text-primary:#183153;--text-secondary:#516b88;--bg-page:#eff8ff;--bg-surface:#fff;--bg-card:#fff;--border-muted:#bdd2e6;--border-subtle:#dbe9f7}
+.rf-unified .rf-shell{background:transparent}
+.rf-unified .rf-heading h1{color:#0868e8!important}
+.rf-unified .rf-more-card,.rf-unified .rf-help-topic,.rf-unified .rf-card,.rf-unified .rf-site,.rf-unified .rf-report,.rf-unified .rf-fix-summary,.rf-unified .rf-github-steps{background:#fff!important;color:#183153!important;border-color:#dce9f6!important}
+.rf-unified .rf-help-ai,.rf-unified .rf-welcome{background:linear-gradient(115deg,#dcedff,#f5fbff)!important;color:#183153!important;border-color:#c5e2ff!important}
+.rf-unified .rf-help-ai strong,.rf-unified .rf-github-steps h2,.rf-unified .rf-help-ai p,.rf-unified .rf-github-steps div{color:#183153!important}
+.rf-unified .rf-page input:not([type="checkbox"]):not([type="radio"]),.rf-unified .rf-page textarea,.rf-unified .rf-page select{background:#fff!important;color:#183153!important;border:1px solid #b7cee7!important;border-radius:11px;min-height:43px;max-width:100%;box-shadow:none}
+.rf-unified .rf-page input::placeholder,.rf-unified .rf-page textarea::placeholder{color:#7389a1!important}
+.rf-unified .rf-page input:focus-visible,.rf-unified .rf-page textarea:focus-visible,.rf-unified .rf-page select:focus-visible{outline:3px solid #9ed0ff!important;outline-offset:1px}
+.rf-unified .rf-page button:not([disabled]),.rf-unified .rf-page a{transition:background .15s ease,border-color .15s ease}
+.rf-unified .rf-page .rf-primary,.rf-unified .rf-page .rf-primary-link{background:#0868e8!important;color:white!important}
+.rf-unified .rf-page .rf-more-explainer{background:#fff!important;color:#183153!important;border-color:#dbe9f7!important}
+.rf-unified .rf-page .rf-more-explainer p{color:#516b88!important}
+.rf-unified .rf-page .rf-help-topic,.rf-unified .rf-page .rf-more-card{box-shadow:0 5px 20px #c6def333}
+.rf-unified .rf-page .rf-help-topic:hover,.rf-unified .rf-page .rf-more-card:hover{border-color:#8ec5fa!important}
+.rf-unified .rf-page .rf-help-grid,.rf-unified .rf-page .rf-more-grid{gap:14px}
+.rf-unified .rf-page .rf-help-topic{padding:20px;min-height:86px}
+.rf-unified .rf-page .rf-back{color:#0868e8}
+.rf-unified .rf-page .rf-notice{background:#e9f5ff;color:#174e86}
+.rf-unified .rf-page .rf-alert{background:#fff0f0;color:#a52635}
+.rf-tool-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:26px}
+.rf-tool-tile{display:flex;flex-direction:column;gap:10px;padding:24px;border:1px solid #d9e8f6;border-radius:17px;background:#fff;text-decoration:none;box-shadow:0 6px 25px #bad8f326}
+.rf-tool-tile strong{font-size:18px;color:#173457}
+.rf-tool-tile p{font-size:14px;color:#5b7390;line-height:1.6}
+.rf-tool-dot{display:grid;place-items:center;width:42px;height:42px;background:#e2f2ff;border-radius:12px;color:#0868e8}
+.rf-tool-action{margin-top:auto;color:#0868e8;font-weight:700;font-size:13px}
+@media(max-width:850px){.rf-unified-side{width:210px}.rf-unified-top{padding:12px 16px}.rf-tool-grid{grid-template-columns:1fr}}
+@media(max-width:650px){.rf-unified-side{position:fixed;height:100dvh;width:min(85vw,300px);top:0;left:0}.rf-unified-top{height:62px}.rf-unified .rf-page{padding:8px 12px 35px;min-height:calc(100dvh - 62px)}.rf-unified .rf-body{padding:12px 0 28px}.rf-unified .rf-page .rf-help-grid,.rf-unified .rf-page .rf-more-grid{grid-template-columns:1fr}.rf-tool-tile{padding:18px}.rf-unified .rf-page button,.rf-unified .rf-page a{touch-action:manipulation}}
