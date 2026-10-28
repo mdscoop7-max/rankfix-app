@@ -1,6 +1,6 @@
 {
   "id": "fresh144",
-  "description": "144 distinct candidate websites, non-overlapping with historical baseline and commerce catalogs. Labels and live accessibility are provisional and unverified.",
+  "description": "144 distinct provisional candidate domains, including 24 e-commerce candidates, disjoint from historical catalogs; live accessibility and sector labels not independently verified.",
   "reviewStatus": "proposed_not_independently_verified",
   "sites": [
     {
@@ -1324,267 +1324,267 @@
       "reviewStatus": "proposed_not_independently_verified"
     },
     {
+      "country": "NL",
+      "name": "Dille & Kamille",
+      "hosts": [
+        "dille-kamille.nl"
+      ],
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "wehkamp",
+      "hosts": [
+        "wehkamp.nl"
+      ],
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "HEMA",
+      "hosts": [
+        "hema.nl"
+      ],
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Praxis",
+      "hosts": [
+        "praxis.nl"
+      ],
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Karwei",
+      "hosts": [
+        "karwei.nl"
+      ],
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Welkoop",
+      "hosts": [
+        "welkoop.nl"
+      ],
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Megekko",
+      "hosts": [
+        "megekko.nl"
+      ],
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Bax Music",
+      "hosts": [
+        "bax-shop.nl"
+      ],
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "ES",
+      "name": "OBRAMAT",
+      "hosts": [
+        "obramat.es"
+      ],
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "FR",
+      "name": "Leroy Merlin",
+      "hosts": [
+        "leroymerlin.fr"
+      ],
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "CH",
+      "name": "Galaxus",
+      "hosts": [
+        "galaxus.ch"
+      ],
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "CH",
+      "name": "Digitec",
+      "hosts": [
+        "digitec.ch"
+      ],
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Kwantum",
+      "hosts": [
+        "kwantum.nl"
+      ],
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Leen Bakker",
+      "hosts": [
+        "leenbakker.nl"
+      ],
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "vidaXL",
+      "hosts": [
+        "vidaxl.nl"
+      ],
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "Sissy-Boy",
+      "hosts": [
+        "sissy-boy.com"
+      ],
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "DK",
+      "name": "Søstrene Grene",
+      "hosts": [
+        "sostrenegrene.com"
+      ],
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "LOBERON",
+      "hosts": [
+        "loberon.nl"
+      ],
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "ES",
+      "name": "Zara",
+      "hosts": [
+        "zara.com"
+      ],
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "GB",
+      "name": "COS",
+      "hosts": [
+        "cos.com"
+      ],
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "SE",
+      "name": "ARKET",
+      "hosts": [
+        "arket.com"
+      ],
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
+      "country": "NL",
+      "name": "ICI PARIS XL",
+      "hosts": [
+        "iciparisxl.nl"
+      ],
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
+      "reviewStatus": "proposed_not_independently_verified"
+    },
+    {
       "country": "DE",
-      "name": "Munich Re",
+      "name": "flaconi",
       "hosts": [
-        "munichre.com"
+        "flaconi.de"
       ],
-      "group": "insurance",
-      "expected": "insurance",
-      "round": "fresh-candidates-2",
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
       "reviewStatus": "proposed_not_independently_verified"
     },
     {
-      "country": "FR",
-      "name": "SNCF",
+      "country": "NL",
+      "name": "Kruidvat",
       "hosts": [
-        "sncf.com"
+        "kruidvat.nl"
       ],
-      "group": "transport",
-      "expected": "transport",
-      "round": "fresh-candidates-2",
-      "reviewStatus": "proposed_not_independently_verified"
-    },
-    {
-      "country": "FR",
-      "name": "INRIA",
-      "hosts": [
-        "inria.fr"
-      ],
-      "group": "research",
-      "expected": "research",
-      "round": "fresh-candidates-2",
-      "reviewStatus": "proposed_not_independently_verified"
-    },
-    {
-      "country": "FR",
-      "name": "CNRS",
-      "hosts": [
-        "cnrs.fr"
-      ],
-      "group": "research",
-      "expected": "research",
-      "round": "fresh-candidates-2",
-      "reviewStatus": "proposed_not_independently_verified"
-    },
-    {
-      "country": "FR",
-      "name": "Airbus",
-      "hosts": [
-        "airbus.com"
-      ],
-      "group": "manufacturing",
-      "expected": "manufacturing",
-      "round": "fresh-candidates-2",
-      "reviewStatus": "proposed_not_independently_verified"
-    },
-    {
-      "country": "FR",
-      "name": "Thales",
-      "hosts": [
-        "thalesgroup.com"
-      ],
-      "group": "manufacturing",
-      "expected": "manufacturing",
-      "round": "fresh-candidates-2",
-      "reviewStatus": "proposed_not_independently_verified"
-    },
-    {
-      "country": "FR",
-      "name": "AXA",
-      "hosts": [
-        "axa.com"
-      ],
-      "group": "insurance",
-      "expected": "insurance",
-      "round": "fresh-candidates-2",
-      "reviewStatus": "proposed_not_independently_verified"
-    },
-    {
-      "country": "FR",
-      "name": "Louvre",
-      "hosts": [
-        "louvre.fr"
-      ],
-      "group": "culture",
-      "expected": "culture",
-      "round": "fresh-candidates-2",
-      "reviewStatus": "proposed_not_independently_verified"
-    },
-    {
-      "country": "GB",
-      "name": "National Trust",
-      "hosts": [
-        "nationaltrust.org.uk"
-      ],
-      "group": "nonprofit",
-      "expected": "nonprofit",
-      "round": "fresh-candidates-2",
-      "reviewStatus": "proposed_not_independently_verified"
-    },
-    {
-      "country": "GB",
-      "name": "British Museum",
-      "hosts": [
-        "britishmuseum.org"
-      ],
-      "group": "culture",
-      "expected": "culture",
-      "round": "fresh-candidates-2",
-      "reviewStatus": "proposed_not_independently_verified"
-    },
-    {
-      "country": "GB",
-      "name": "Imperial College London",
-      "hosts": [
-        "imperial.ac.uk"
-      ],
-      "group": "education",
-      "expected": "education",
-      "round": "fresh-candidates-2",
-      "reviewStatus": "proposed_not_independently_verified"
-    },
-    {
-      "country": "GB",
-      "name": "University of Cambridge",
-      "hosts": [
-        "cam.ac.uk"
-      ],
-      "group": "education",
-      "expected": "education",
-      "round": "fresh-candidates-2",
-      "reviewStatus": "proposed_not_independently_verified"
-    },
-    {
-      "country": "GB",
-      "name": "Network Rail",
-      "hosts": [
-        "networkrail.co.uk"
-      ],
-      "group": "transport",
-      "expected": "transport",
-      "round": "fresh-candidates-2",
-      "reviewStatus": "proposed_not_independently_verified"
-    },
-    {
-      "country": "GB",
-      "name": "Rolls-Royce",
-      "hosts": [
-        "rolls-royce.com"
-      ],
-      "group": "manufacturing",
-      "expected": "manufacturing",
-      "round": "fresh-candidates-2",
-      "reviewStatus": "proposed_not_independently_verified"
-    },
-    {
-      "country": "GB",
-      "name": "AstraZeneca",
-      "hosts": [
-        "astrazeneca.com"
-      ],
-      "group": "healthcare",
-      "expected": "healthcare",
-      "round": "fresh-candidates-2",
-      "reviewStatus": "proposed_not_independently_verified"
-    },
-    {
-      "country": "GB",
-      "name": "BBC",
-      "hosts": [
-        "bbc.co.uk"
-      ],
-      "group": "media",
-      "expected": "media",
-      "round": "fresh-candidates-2",
-      "reviewStatus": "proposed_not_independently_verified"
-    },
-    {
-      "country": "CH",
-      "name": "CERN",
-      "hosts": [
-        "home.cern"
-      ],
-      "group": "research",
-      "expected": "research",
-      "round": "fresh-candidates-2",
-      "reviewStatus": "proposed_not_independently_verified"
-    },
-    {
-      "country": "CH",
-      "name": "ETH Zurich",
-      "hosts": [
-        "ethz.ch"
-      ],
-      "group": "education",
-      "expected": "education",
-      "round": "fresh-candidates-2",
-      "reviewStatus": "proposed_not_independently_verified"
-    },
-    {
-      "country": "CH",
-      "name": "Swiss Federal Railways",
-      "hosts": [
-        "sbb.ch"
-      ],
-      "group": "transport",
-      "expected": "transport",
-      "round": "fresh-candidates-2",
-      "reviewStatus": "proposed_not_independently_verified"
-    },
-    {
-      "country": "CH",
-      "name": "Roche",
-      "hosts": [
-        "roche.com"
-      ],
-      "group": "healthcare",
-      "expected": "healthcare",
-      "round": "fresh-candidates-2",
-      "reviewStatus": "proposed_not_independently_verified"
-    },
-    {
-      "country": "CH",
-      "name": "Novartis",
-      "hosts": [
-        "novartis.com"
-      ],
-      "group": "healthcare",
-      "expected": "healthcare",
-      "round": "fresh-candidates-2",
-      "reviewStatus": "proposed_not_independently_verified"
-    },
-    {
-      "country": "DK",
-      "name": "Novo Nordisk",
-      "hosts": [
-        "novonordisk.com"
-      ],
-      "group": "healthcare",
-      "expected": "healthcare",
-      "round": "fresh-candidates-2",
-      "reviewStatus": "proposed_not_independently_verified"
-    },
-    {
-      "country": "DK",
-      "name": "Maersk",
-      "hosts": [
-        "maersk.com"
-      ],
-      "group": "logistics",
-      "expected": "logistics",
-      "round": "fresh-candidates-2",
-      "reviewStatus": "proposed_not_independently_verified"
-    },
-    {
-      "country": "DK",
-      "name": "Vestas",
-      "hosts": [
-        "vestas.com"
-      ],
-      "group": "energy",
-      "expected": "energy",
-      "round": "fresh-candidates-2",
+      "group": "ecommerce",
+      "expected": "ecommerce",
+      "round": "fresh-commerce-candidates",
       "reviewStatus": "proposed_not_independently_verified"
     }
   ]
