@@ -1,10 +1,30 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-const crawler=readFileSync(new URL("../lib/crawler.ts",import.meta.url),"utf8");
-test("industrial products path requires purchasing evidence for retail category classification",()=>{
- assert.ok(crawler.includes("commerceSignals"));
- assert.ok(crawler.includes("products)"));
- assert.ok(crawler.includes("add to cart"));
- assert.ok(crawler.includes("&&commerceSignals"));
+import {runInNewContext} from "node:vm";
+
+// Exercise the crawler's actual classification logic without network requests.
+const source = readFileSync(new URL("../lib/crawler.ts", import.meta.url), "utf8");
+const start = source.indexOf("function classify(");
+const end = source.indexOf("\nfunction normalize(", start);
+assert.ok(start >= 0 && end > start, "crawler classifier exists");
+const classifier = source.slice(start, end)
+  .replace("url:string,html:string,jsonTypes:string[]", "url,html,jsonTypes")
+  .replace("):PageType{", "){");
+const classify = runInNewContext(classifier + "\nclassify", {
+  URL,
+  stripHtml: (html) => html.replace(/<[^>]+>/g, " "),
+});
+
+test("industrial product overview is not automatically a retail category", () => {
+  assert.equal(classify("https://factory.example/products/", "<h1>Industrial automation products</h1><p>Request a quote</p>", []), "generic");
+});
+test("real commerce products overview retains retail category", () => {
+  assert.equal(classify("https://shop.example/products/", "<h1>Products</h1><button>Add to cart</button>", []), "product_category");
+});
+test("structured Product evidence remains product, not generic", () => {
+  assert.equal(classify("https://shop.example/products/123", "<h1>Widget</h1>", ["Product"]), "product");
+});
+test("manufacturer products page does not become commerce through ItemList-free navigation", () => {
+  assert.equal(classify("https://factory.example/products/robotics", "<h1>Robotics portfolio</h1>", []), "generic");
 });
