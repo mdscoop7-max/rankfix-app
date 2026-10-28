@@ -83,7 +83,7 @@ export default function Dashboard() {
   const recentHistory = (usage.plan==="free" ? history.slice(0,1) : history.slice(0,5));
   const latestHost = latest ? (() => { try { return new URL(latest.scanned_url).hostname; } catch { return latest.scanned_url; } })() : null;
 
-  return <main className="rf-page" lang={language}>
+  return <main className="rf-page rf-dashboard-home" lang={language}>
     <div className="rf-shell">
       <header className="rf-header">
         <Link href="/dashboard" className="rf-brand">RankFix <span>AI</span></Link>
@@ -91,11 +91,11 @@ export default function Dashboard() {
       </header>
       <DashboardNav current={0} />
       <div className="rf-body">
-        <div className="rf-heading rf-dashboard-title"><div><h1>{language==="nl"?`Hallo, ${user?.name || ""}`:language==="de"?`Hallo, ${user?.name || ""}`:language==="fr"?`Bonjour, ${user?.name || ""}`:language==="it"?`Ciao, ${user?.name || ""}`:language==="es"?`Hola, ${user?.name || ""}`:`Hello, ${user?.name || ""}`}</h1><p>{t.intro}</p></div></div>
+        <div className="rf-heading rf-dashboard-title rf-dashboard-wave"><div><h1>{language==="nl"?`Hallo, ${user?.name || ""}`:language==="de"?`Hallo, ${user?.name || ""}`:language==="fr"?`Bonjour, ${user?.name || ""}`:language==="it"?`Ciao, ${user?.name || ""}`:language==="es"?`Hola, ${user?.name || ""}`:`Hello, ${user?.name || ""}`}</h1><p>{t.intro}</p></div></div>
         <section className="rf-section rf-quick-actions-section rf-quick-top"><div className="rf-quick-actions-grid"><Link href="/dashboard/scan"><span className="rf-quick-icon rf-quick-icon-health" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 13h4l2-6 3 10 2-4h5"/></svg></span><b>{x.newScan}</b></Link><button type="button" onClick={()=>window.dispatchEvent(new Event("rankfix-open-ai"))}><span className="rf-quick-icon rf-quick-icon-ai" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l1.4 4.1L17.5 8.5l-4.1 1.4L12 14l-1.4-4.1-4.1-1.4 4.1-1.4L12 3z M18 14l.8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8L18 14z"/></svg></span><b>AI Assistant</b></button><Link href="/dashboard/github"><span className="rf-quick-icon rf-quick-icon-github" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 8h8v8H8z M12 2v3 M12 19v3 M2 12h3 M19 12h3"/></svg></span><b>GitHub Fixes</b></Link>{latest?<Link href={`/dashboard/audit/${latest.id}/report`}><span className="rf-quick-icon rf-quick-icon-report" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6z M9 10h6 M9 14h6 M9 18h4"/></svg></span><b>{language==="nl"?"PDF rapport":language==="de"?"PDF-Bericht":language==="fr"?"Rapport PDF":language==="it"?"Report PDF":language==="es"?"Informe PDF":"PDF report"}</b></Link>:<Link href="/dashboard/history"><span className="rf-quick-icon rf-quick-icon-report" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6z M9 10h6 M9 14h6 M9 18h4"/></svg></span><b>{language==="nl"?"Rapporten":language==="de"?"Berichte":language==="fr"?"Rapports":language==="it"?"Report":language==="es"?"Informes":"Reports"}</b></Link>}</div></section>
         {error && <p className="rf-alert" role="alert">{error}</p>}
         {message && <p className="rf-notice" role="status">{message}</p>}
-        <section className="rf-dashboard-status rf-command-center">
+        <section className="rf-dashboard-status rf-command-center rf-dashboard-meters">
           <div className="rf-dashboard-hero">
             <div className="rf-dashboard-latest">{latest && <div className="rf-overall-meter" style={{"--rf-score":latest.overall_score} as React.CSSProperties}><div><strong>{latest.overall_score}</strong><span>/100</span></div></div>}<div><span className="rf-eyebrow">{x.latest}</span><h2>{latestHost || x.firstWebsite}</h2><p>{latest ? `${x.scanned} ${new Date(latest.created_at).toLocaleString(language)}` : x.startAudit}</p>{latest?.technology_profile && <p className="rf-profile-line"><strong>{language==="nl"?"Websiteprofiel":language==="de"?"Websiteprofil":language==="fr"?"Profil du site":language==="it"?"Profilo del sito":language==="es"?"Perfil del sitio":"Website profile"}:</strong> {latest.technology_profile.siteType || "Website"} · {latest.technology_profile.framework || latest.technology_profile.platform || latest.technology_profile.cms || (language==="nl"?"Niet bevestigd":"Not confirmed")} · {latest.technology_profile.confidence ?? 40}%</p>}</div></div>
             
