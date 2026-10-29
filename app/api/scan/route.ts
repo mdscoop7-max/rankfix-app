@@ -1,3 +1,4 @@
+import { hasLocalQaSession } from "@/lib/local-qa";
 import { scanRuntime } from "@/lib/scan-runtime";
 import { sectorPageEvidence, scanCoverageDimensions, isAudiencePagePath } from "@/lib/sector-page-evidence";
 import { LOCAL_TRADE_KEYS, corroborateDeclaredIndustry, detectDeclaredIndustry, refineSubtype, stripBrandNames } from "@/lib/site-sector-corroboration.mjs";
@@ -488,12 +489,13 @@ function detectTechnologyProfile(html: string, headers: Headers, commerceSignal:
  * (timeout). Best effort: logging never changes the scan response.
  */
 export async function POST(request: Request) {
+  const localQa = await hasLocalQaSession(request);
   const attemptStarted = Date.now();
   let requestedUrl = "";
   try { const peek = await request.clone().json(); requestedUrl = typeof peek?.url === "string" ? peek.url.trim().slice(0, 500) : ""; } catch {}
   let attemptId: string | null = null;
   try {
-    const user = requestedUrl ? await getCurrentUser() : null;
+    const user = !localQa && requestedUrl ? await getCurrentUser() : null;
     if (user) {
       await ensureDatabase();
       attemptId = await startScanAttempt(getDb(), user.id, requestedUrl);
@@ -625,12 +627,12 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // scanRateLimitPolicy: per network for visitors and Free accounts, per account for
     // paying customers, none for server-configured internal tester account IDs.
     trace.phase = "session";
-    await ensureDatabase();
+    if (!localQa) await ensureDatabase();
     // A database/connection failure while reading the session is a RankFix
     // infrastructure problem, never "session expired" (QA 144: five sites).
-    const usageLookup = await resolveScanUser(getCurrentUser);
+    const usageLookup = localQa ? {user:null,lookupFailed:false} : await resolveScanUser(getCurrentUser);
     let usageUser: Awaited<ReturnType<typeof getCurrentUser>> = usageLookup.user;
-    if (dashboardScan && usageLookup.lookupFailed) {
+    if (dashboardScan && !localQa && usageLookup.lookupFailed) {
       return NextResponse.json({ error: scanError.authUnavailable, code: "AUTH_LOOKUP_UNAVAILABLE", retryable: true, charged: false }, { status: 503 });
     }
     const usageWebsiteHost = target.hostname.toLowerCase().replace(/^www\./, "");
@@ -660,14 +662,14 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         { status: 429, headers: { "Retry-After": String(result.retryAfterSeconds) } }
       );
     };
-    if (!dashboardScan) {
+    if (!dashboardScan && !localQa) {
       const limited = await enforceScanRateLimit();
       if (limited) return limited;
     }
 
     // Dashboard allowances are enforced server-side before starting an expensive crawl.
     // Free keeps the cross-account per-domain allowance; paid plans use account-level monthly allowances.
-    if (dashboardScan) {
+    if (dashboardScan && !localQa) {
       if (!usageUser) return NextResponse.json({ error: scanError.session, code: "SESSION_EXPIRED" }, { status: 401 });
       // Private QA allowance, never exposed through the commercial plan catalog.
       const limits = internalTestAccount ? { ...planLimits(planCode), websites: 500, scans: 2000 } : planLimits(planCode);
@@ -6842,9 +6844,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // The session was already verified before the crawl. Re-read it once; a
     // transient database failure here must not throw away a finished scan as
     // "session expired": fall back to the verified user from the start.
-    const saveLookup = await resolveScanUser(getCurrentUser);
+    const saveLookup = localQa ? {user:null,lookupFailed:false} : await resolveScanUser(getCurrentUser);
     user = saveLookup.user ?? (saveLookup.lookupFailed ? usageUser : null);
-    if (dashboardScan && !user) return NextResponse.json(saveLookup.lookupFailed
+    if (dashboardScan && !localQa && !user) return NextResponse.json(saveLookup.lookupFailed
       ? { error: scanError.authUnavailable, code: "AUTH_LOOKUP_UNAVAILABLE", retryable: true, charged: false }
       : { error: scanError.session, code: "SESSION_EXPIRED" }, { status: saveLookup.lookupFailed ? 503 : 401 });
     if (user) {
