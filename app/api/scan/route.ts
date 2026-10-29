@@ -547,6 +547,7 @@ export async function POST(request: Request) {
 }
 
 async function runScan(request: Request, clock: { expired: boolean } = { expired: false }, trace: ScanTrace = createScanTrace("")) {
+  const localQa = await hasLocalQaSession(request);
   let fallbackLanguage = "nl";
   try {
     const body = await request.json();
