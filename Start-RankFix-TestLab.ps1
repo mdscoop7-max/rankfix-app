@@ -27,6 +27,12 @@ if ($listener) {
   try {
     $v = Invoke-RestMethod "http://127.0.0.1:$port/api/scan/version" -TimeoutSec 4
     $ok = ($v.environment -eq 'local')
+    if ($ok) {
+      try {
+        $probe = Invoke-RestMethod -Uri $url -Headers @{ 'x-rankfix-qa-probe' = '1' } -TimeoutSec 4
+        $ok = ($probe.authorized -eq $true -and $probe.mode -eq 'local-qa')
+      } catch { $ok = $false }
+    }
   } catch {}
   if (-not $ok) {
     Write-Host "Op poort $port draait een andere of vastgelopen server (PID $($listener.OwningProcess))." -ForegroundColor Yellow
@@ -54,7 +60,12 @@ if (-not $listener) {
     Start-Sleep -Seconds 2
     try {
       $v = Invoke-RestMethod "http://127.0.0.1:$port/api/scan/version" -TimeoutSec 3
-      if ($v.environment -eq 'local') { $ready = $true; break }
+      if ($v.environment -eq 'local') {
+        try {
+          $probe = Invoke-RestMethod -Uri $url -Headers @{ 'x-rankfix-qa-probe' = '1' } -TimeoutSec 4
+          if ($probe.authorized -eq $true) { $ready = $true; break }
+        } catch {}
+      }
     } catch {}
   }
   if (-not $ready) { throw 'Server niet gereed. Bekijk het geopende CMD-venster.' }
