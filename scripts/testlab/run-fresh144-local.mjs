@@ -25,6 +25,7 @@ const report=existsSync(file)?JSON.parse(readFileSync(file,'utf8')):{commitSha:s
 if(report.commitSha!==sha||report.catalogId!=='fresh144')throw Error('Resultaten horen bij een andere QA-versie.');
 const save=()=>{writeFileSync(file+'.tmp',JSON.stringify(report,null,2));renameSync(file+'.tmp',file)};
 console.log('RankFix QA: 144 websites | versie '+sha.slice(0,12)+' | resultaten: '+file);
+let consecutiveFailures=0;
 for(const [index,site] of catalog.data.sites.entries()){
  if(report.results.some(x=>x.host===site.host&&x.status==='success'))continue;
  console.log((index+1)+'/144 '+site.host);
@@ -37,11 +38,18 @@ for(const [index,site] of catalog.data.sites.entries()){
  }catch(e){
   row={host:site.host,expected:site.expected,status:'connection_error',reason:String(e.message||e),scanId:null,elapsedMs:Date.now()-started,at:new Date().toISOString(),pending:true};
  }
- report.results=report.results.filter(x=>x.host!==site.host);report.results.push(row);save();
+ report.results=report.results.filter(x=>x.host!==site.host);report.results.push(row);
+ report.updatedAt=new Date().toISOString();
+ report.summary={attempted:report.results.length,success:report.results.filter(x=>x.status==='success').length,technicalFailures:report.results.filter(x=>x.pending).length,remaining:144-report.results.filter(x=>x.status==='success').length};
+ save();
  if(row.pending){
-  console.error('Scan onderbroken bij '+site.host+': '+row.reason+'. Voortgang bewaard. Herstart pas nadat de server gezond is.');
-  process.exitCode=1;break;
- }
+  consecutiveFailures++;
+  console.warn('Technische fout bij '+site.host+': '+row.reason+'; niet als websitefout beoordeeld. JSON bewaard.');
+  if(consecutiveFailures>=2){
+   console.error('Twee opeenvolgende technische fouten. QA gestopt om de lokale server niet te overbelasten.');
+   process.exitCode=1;break;
+  }
+ }else consecutiveFailures=0;
  await new Promise(r=>setTimeout(r,8000));
 }
 console.log('Resultaten: '+file);
