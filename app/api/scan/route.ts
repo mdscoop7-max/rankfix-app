@@ -662,7 +662,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         { status: 429, headers: { "Retry-After": String(result.retryAfterSeconds) } }
       );
     };
-    if (!dashboardScan && !localQa) {
+    if (!dashboardScan) {
       const limited = await enforceScanRateLimit();
       if (limited) return limited;
     }
