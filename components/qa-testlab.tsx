@@ -109,8 +109,10 @@ export default function TestLab144() {
       if(!["preview","local"].includes(v.environment)||v.environment!==catalog.runtime.environment||v.commitSha!==catalog.runtime.commitSha){throw new Error("QA_DEPLOYMENT_CHANGED");}
       // Session first: an expired RankFix login must stop the run BEFORE the
       // website is scanned, never be stored as the website's result.
-      const me=await fetch("/api/auth/me",{cache:"no-store",credentials:"same-origin",signal:AbortSignal.timeout(12000)});
-      const meData=await me.json().catch(()=>null);
+      const localMe=await fetch("/api/testlab/local-session",{cache:"no-store",credentials:"same-origin",signal:AbortSignal.timeout(12000)});
+      const localAuthorized=localMe.ok;
+      const me=localAuthorized ? localMe : await fetch("/api/auth/me",{cache:"no-store",credentials:"same-origin",signal:AbortSignal.timeout(12000)});
+      const meData=localAuthorized ? {user:{id:"local-qa"}} : await me.json().catch(()=>null);
       if(me.status===503){
        row={host:site.host,status:"infrastructuur",expected:site.expected,sector:null,confidence:null,score:null,seo:null,geo:null,http:me.status,reason:"RankFix-accountcontrole tijdelijk niet beschikbaar; website niet gescand",elapsedMs:Date.now()-startAt,scanId:null,at:new Date().toISOString(),pending:true,incident:null};
        break;
