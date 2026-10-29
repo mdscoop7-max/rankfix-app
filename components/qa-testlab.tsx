@@ -2,13 +2,14 @@
 
 import {useEffect, useMemo, useRef, useState} from "react";
 import DashboardNav from "@/app/dashboard/nav";
+import {saveQaAudit} from "@/lib/testlab-audit-store";
 import {classifyScanAnswer, isFinalResult, resumeQueue, stopsRun, upsertResult} from "@/lib/testlab-outcome.mjs";
 import {sectorVerdict} from "@/scripts/testlab/labels.mjs";
 
 type Site={host:string;name:string;country:string;group:string;expected:string;round:string};
 type Incident={traceId:string|null;originHttpStatus:number|null;apiHttpStatus:number;reasonCode:string;attribution:string|null;phase:string|null;finalUrl:string|null;browserRender:unknown};
 // pending=true: RankFix/runner stopped (session, quota, infrastructure, connection); the website was not judged and is retried on resume.
-type SiteResult={host:string;status:string;expected:string;sector:string|null;sectorKey?:string|null;websiteType?:string|null;commercePlatform?:string|null;industryVertical?:string|null;evidenceLevel?:string|null;confidence:number|null;score:number|null;seo:number|null;geo:number|null;http:number;reason:string;elapsedMs:number;scanId:string|null;at:string;pending?:boolean;incident?:Incident|null};
+type SiteResult={host:string;status:string;expected:string;sector:string|null;sectorKey?:string|null;websiteType?:string|null;commercePlatform?:string|null;industryVertical?:string|null;evidenceLevel?:string|null;confidence:number|null;score:number|null;seo:number|null;geo:number|null;http:number;reason:string;elapsedMs:number;scanId:string|null;qaAuditId?:string|null;at:string;pending?:boolean;incident?:Incident|null};
 type Catalog={sites:Site[];count:number;catalogId:string;categoryCounts:{webshops:number;other:number};runtime:{commitSha:string|null;environment:string}};
 const sleep=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
 // One verdict per site (exact / equivalent / unconfirmed / mismatch), shared with
@@ -131,6 +132,17 @@ export default function TestLab144() {
       const code=String(data?.code||data?.errorCode||"");
       const status=classifyScanAnswer({ok:response.ok,status:response.status,data});
       const inc=data?.incident;
+      // Local QA has no database user, so /api/scan may return success with
+      // scanId:null. Preserve the full response in IndexedDB for an auditable report.
+      let qaAuditId:string|null=null;
+      if(success && !data.scanId){
+       qaAuditId=crypto.randomUUID();
+       try { await saveQaAudit(qaAuditId, data, site.host); }
+       catch(e){
+        row={host:site.host,status:"infrastructuur",expected:site.expected,sector:null,confidence:null,score:null,seo:null,geo:null,http:response.status,reason:"QA-rapport kon niet lokaal worden opgeslagen: "+String(e).slice(0,100),elapsedMs:Date.now()-startAt,scanId:null,at:new Date().toISOString(),pending:true,incident:null};
+        break;
+       }
+      }
       row={host:site.host,status,expected:site.expected,sector:success?(data.sectorProfile?.sector||null):null,
        sectorKey:success?(data.sectorProfile?.key||null):null,websiteType:success?(data.websiteProfile?.websiteType?.value||null):null,
        commercePlatform:success?(data.websiteProfile?.commercePlatform?.label||data.technologyProfile?.commercePlatform||null):null,
@@ -139,7 +151,7 @@ export default function TestLab144() {
        confidence:success?(data.sectorProfile?.confidenceScore??null):null,
        score:success?(data.overallScore??null):null,seo:success?(data.seo?.score??null):null,geo:success?(data.geo?.score??null):null,
        http:response.status,reason:success?"":code||String(data.error||"Scan niet bevestigd").slice(0,200),
-       elapsedMs:Date.now()-startAt,scanId:success?(data.scanId||null):null,at:new Date().toISOString(),
+       elapsedMs:Date.now()-startAt,scanId:success?(data.scanId||null):null,qaAuditId,at:new Date().toISOString(),
        pending:stopsRun(status),
        incident:success?null:{traceId:inc?.traceId??data?.traceId??null,originHttpStatus:inc?.originHttpStatus??(typeof data?.httpStatus==="number"?data.httpStatus:null),apiHttpStatus:response.status,reasonCode:code,attribution:inc?.attribution??null,phase:inc?.phase??null,finalUrl:inc?.finalUrl??null,browserRender:inc?.browserRender??null}};
      }catch(e){
@@ -190,7 +202,7 @@ export default function TestLab144() {
    </div><div className="rf-lab-count">144<span>unieke websites</span></div>
   </header>
   <section className="rf-lab-panel">
-   <div className="rf-lab-table-top"><h2>Test starten · {isCommerceCatalog?"72 webshops + 72 overige":"baseline 144"}</h2><span><code>{catalog?.runtime.commitSha?.slice(0,12)||"Versie controleren"}</code></span></div>
+   <div className="rf-lab-table-top"><h2>Test starten · {catalog?.catalogId==="fresh144"?"nieuwe 144 websites":isCommerceCatalog?"72 webshops + 72 overige":"baseline 144"}</h2><span><code>{catalog?.runtime.commitSha?.slice(0,12)||"Versie controleren"}</code></span></div>
    <div className="rf-lab-controls">
     <label>Testgroep
      <select disabled={running||!catalog} value={scope} onChange={e=>setScope(e.target.value)}>
@@ -207,7 +219,7 @@ export default function TestLab144() {
    <div className="rf-lab-stats">
     <div className="rf-lab-stat"><strong>{scoped.length}</strong><span>In selectie</span></div>
     <div className="rf-lab-stat"><strong>{finished}</strong><span>Behandeld</span></div>
-    <div className="rf-lab-stat"><strong>{passed}</strong><span>Scanrapport ontvangen</span></div>
+    <div className="rf-lab-stat"><strong>{passed}</strong><span>Scan uitgevoerd</span></div>
     <div className="rf-lab-stat"><strong>{mismatches}</strong><span>Waarschijnlijk andere hoofdsector</span></div>
     <div className="rf-lab-stat"><strong>{verdictCounts.equivalent||0}</strong><span>Taxonomisch equivalent</span></div>
     <div className="rf-lab-stat"><strong>{verdictCounts.unconfirmed||0}</strong><span>Sector onbevestigd</span></div>
@@ -226,7 +238,7 @@ export default function TestLab144() {
        {r?.sector&&<small>Gevonden: {r.sector}{r.sectorKey&&r.sectorKey!==r.sector?` (${r.sectorKey})`:""} · {VERDICT_LABEL[verdictOf(site,r)||""]||""}{r.websiteType==="ecommerce_store"?` · webshop${r.commercePlatform?` (${r.commercePlatform})`:""}`:""}</small>}
        {r?.reason&&<small title={r.reason}>{r.reason.slice(0,90)}</small>}</td>
      <td>{num(r?.score??null)}{r?.evidenceLevel&&r.evidenceLevel!=="complete"&&<small title="Score alleen op bevestigd bewijs; niet sitebreed definitief">{r.evidenceLevel==="insufficient"?"indicatie":"voorlopig"}</small>}</td><td>{num(r?.seo??null)} / {num(r?.geo??null)}</td>
-     <td>{r?.scanId?<a href={"/dashboard/audit/"+encodeURIComponent(r.scanId)+"/report"}>Open rapport</a>:"—"}</td>
+     <td>{r?.scanId?<a href={"/dashboard/audit/"+encodeURIComponent(r.scanId)+"/report"}>Open rapport</a>:r?.qaAuditId?<a href={"/dashboard/testlab/report?id="+encodeURIComponent(r.qaAuditId)}>Open QA-audit</a>:r?.status==="succes"?"Rapport ontbreekt (oude scan)":"—"}</td>
     </tr>})}
    </tbody></table></div>
   </section>
