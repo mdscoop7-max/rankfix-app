@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
+import { hasLocalQaSession } from "@/lib/local-qa";
 import { ensureDatabase } from "@/lib/db-init";
 
 const languages = ["nl", "en", "fr", "es", "it", "de"] as const;
@@ -22,6 +23,8 @@ function requestLanguage(request?: Request): Language {
 }
 
 export async function GET(request: Request) {
+  if (await hasLocalQaSession(request)) return NextResponse.json({language:"nl",mode:"local-qa"});
+  if (!process.env.DATABASE_URL) return NextResponse.json({language:"nl",unavailable:true});
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: messages[requestLanguage(request)].login }, { status: 401 });
   await ensureDatabase();
@@ -30,6 +33,8 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  if (await hasLocalQaSession(request)) return NextResponse.json({error:"LOCAL_QA_READ_ONLY"},{status:403});
+  if (!process.env.DATABASE_URL) return NextResponse.json({error:"DATABASE_UNAVAILABLE"},{status:503});
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: messages[requestLanguage(request)].login }, { status: 401 });
   const body = await request.json().catch(() => ({}));
