@@ -9,8 +9,9 @@ import e from "@/tests/fixtures/testlab-144/round-e-service-retail.json";
 import f from "@/tests/fixtures/testlab-144/round-f-service-retail.json";
 import commerce from "@/tests/fixtures/testlab-144/catalog-commerce-diverse-20261026.json";
 import fresh from "@/tests/fixtures/testlab-144/catalog-fresh-144-20261029.json";
-import {hasLocalQaSession} from "@/lib/local-qa";
+import {hasLocalQaSession,localQaEnabled,loopbackRequest,localQaCookieName} from "@/lib/local-qa";
 import {scanRuntime} from "@/lib/scan-runtime";
+import {cookies} from "next/headers";
 
 export async function GET(request:NextRequest) {
   if (process.env.VERCEL_ENV !== "preview" && process.env.NODE_ENV !== "development") {
@@ -19,7 +20,7 @@ export async function GET(request:NextRequest) {
   const localQa = await hasLocalQaSession(request);
   let user: Awaited<ReturnType<typeof getCurrentUser>> = null;
   if (!localQa) {
-    if (process.env.NODE_ENV === "development" && !process.env.DATABASE_URL) return NextResponse.json({error:"LOCAL_QA_SESSION_REQUIRED",hint:"Start via Start-RankFix-TestLab.cmd, close any old server first."},{status:401});
+    if (process.env.NODE_ENV === "development" && !process.env.DATABASE_URL) return NextResponse.json({error:"LOCAL_QA_SESSION_REQUIRED",hint:"Start via Start-RankFix-TestLab.cmd, close any old server first.",diagnostic:{qaEnabled:localQaEnabled(),loopback:loopbackRequest(request),cookiePresent:Boolean((await cookies()).get(localQaCookieName)?.value)}},{status:401});
     try { user=await getCurrentUser(); } catch { return NextResponse.json({error:"QA_AUTH_UNAVAILABLE"},{status:503}); }
   }
   if (!localQa && (!user || !isInternalTester(user.id))) return NextResponse.json({error:"INTERNAL_TESTER_REQUIRED"},{status:403});
