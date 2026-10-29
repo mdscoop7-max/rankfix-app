@@ -18,7 +18,10 @@ export async function GET(request:NextRequest) {
   }
   const localQa = await hasLocalQaSession(request);
   let user: Awaited<ReturnType<typeof getCurrentUser>> = null;
-  if (!localQa) { try { user=await getCurrentUser(); } catch { return NextResponse.json({error:"QA_AUTH_UNAVAILABLE"},{status:503}); } }
+  if (!localQa) {
+    if (process.env.NODE_ENV === "development" && !process.env.DATABASE_URL) return NextResponse.json({error:"LOCAL_QA_SESSION_REQUIRED",hint:"Start via Start-RankFix-TestLab.cmd, close any old server first."},{status:401});
+    try { user=await getCurrentUser(); } catch { return NextResponse.json({error:"QA_AUTH_UNAVAILABLE"},{status:503}); }
+  }
   if (!localQa && (!user || !isInternalTester(user.id))) return NextResponse.json({error:"INTERNAL_TESTER_REQUIRED"},{status:403});
   const catalogId=request.nextUrl.searchParams.get("catalog") || "baseline";
   if(!["baseline","commerce","fresh144"].includes(catalogId))
