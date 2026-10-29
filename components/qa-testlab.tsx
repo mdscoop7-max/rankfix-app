@@ -70,7 +70,7 @@ export default function TestLab144() {
       if(Array.isArray(list))setResults(list.filter((r:SiteResult)=>next.sites.some(s=>s.host===r.host)).slice(0,144));
     }catch{}}
     setNotice("Klaar. "+next.categoryCounts.webshops+" webshops en "+next.categoryCounts.other+" andere websites geselecteerd. Klik één keer op Start test; houd dit tabblad open.");
-  }).catch(()=>{if(mounted.current){setError("QA-catalogus reageert niet binnen 12 seconden of de server is niet bereikbaar. Er worden geen scans gestart.");setNotice("");}});
+  }).catch((cause)=>{if(mounted.current){setError("TestLab kon niet laden: "+(cause instanceof Error ? cause.message : "server niet bereikbaar")+". Controleer de lokale QA-aanmelding en herlaad de pagina.");setNotice("");}});
   return()=>{mounted.current=false;stop.current=true;};
  },[]);
  const sites=catalog?.sites||[];
