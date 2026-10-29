@@ -86,7 +86,7 @@ export default function TestLab144() {
  const visible=useMemo(()=>scoped.filter(s=>[s.name,s.host,s.country,s.group,s.expected].join(" ").toLowerCase().includes(query.toLowerCase())),[scoped,query]);
  const byHost=useMemo(()=>new Map(results.map(r=>[r.host,r])),[results]);
  const finished=scoped.filter(s=>isFinalResult(byHost.get(s.host))).length;
- const passed=scoped.filter(s=>byHost.get(s.host)?.status==="succes").length;
+ const passed=scoped.filter(s=>{const r=byHost.get(s.host);return r?.status==="succes" && Boolean(r.scanId||r.qaAuditId);}).length;
  const verdictCounts=scoped.reduce((acc,s)=>{const r=byHost.get(s.host);const v=r?verdictOf(s,r):null;if(v)acc[v]=(acc[v]||0)+1;return acc;},{} as Record<string,number>);
  const mismatches=verdictCounts.mismatch||0;
  const countries=useMemo(()=>[...new Set(sites.map(s=>s.country))].sort(),[sites]);
@@ -127,7 +127,7 @@ export default function TestLab144() {
       const response=await fetch("/api/scan",{
         method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
         body:JSON.stringify({url:"https://"+site.host+"/",mode:"both",dashboard:true,language:"nl"}),
-        signal:AbortSignal.timeout(300000)
+        signal:AbortSignal.timeout(285000)
       });
       const data=await response.json();
       const success=response.ok&&data?.success===true;
@@ -201,14 +201,14 @@ export default function TestLab144() {
    <div><div className="rf-lab-eyebrow">RankFix • besloten QA</div>
     <h1>TestLab — 144 websites</h1>
     <p>{catalog?.catalogId==="fresh144"?"Nieuwe 144 websitekandidaten, zonder overlap met de twee oude catalogi.":isCommerceCatalog?"Commerce-catalogus: 72 webshops en 72 andere websites.":"Bestaande baseline: sectoren, winkels en dienstverleners in verschillende landen."} Alle tests zijn alleen-lezen en wijzigen geen klantwebsite.</p>
-   </div><div className="rf-lab-count">144<span>unieke websites</span></div>
+   </div><div className="rf-lab-count">{scoped.length}<span>websites in selectie</span></div>
   </header>
   <section className="rf-lab-panel">
    <div className="rf-lab-table-top"><h2>Test starten · {catalog?.catalogId==="fresh144"?"nieuwe 144 websites":isCommerceCatalog?"72 webshops + 72 overige":"baseline 144"}</h2><span><code>{catalog?.runtime.commitSha?.slice(0,12)||"Versie controleren"}</code></span></div>
    <div className="rf-lab-controls">
     <label>Testgroep
      <select disabled={running||!catalog} value={scope} onChange={e=>setScope(e.target.value)}>
-      <option value="all">Alle websites behalve VDL (143)</option>
+      <option value="all">Alle websites behalve VDL ({sites.filter(s=>s.host!=="vdlgroep.com").length})</option>
       {isCommerceCatalog?<><option value="webshops">Webshops (72)</option><option value="other">Andere sectoren (72)</option></>:<><option value="new48">Nieuwe 48 websites</option><option value="hair_salon">Kapsalons (12)</option><option value="optician">Opticiens (12)</option></>}
       <optgroup label="Ronde">{[...new Set(sites.map(s=>s.round))].map(x=><option key={x} value={x}>{x}</option>)}</optgroup>
       <optgroup label="Land">{countries.map(x=><option key={x} value={x}>{x}</option>)}</optgroup>
