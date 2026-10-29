@@ -137,6 +137,17 @@ for (const p of PROFILES) {
       if (!["complete", "provisional", "insufficient"].includes(j.scoreModel.evidenceLevel)) problems.push("evidenceLevel missing");
       if (j.coverage?.coveragePercent < 60 && j.scoreModel.evidenceLevel !== "insufficient") problems.push(`coverage ${j.coverage.coveragePercent}% but evidenceLevel ${j.scoreModel.evidenceLevel}`);
       if (j.scoreModel.evidenceLevel !== "complete" && !j.scoreModel.provisional) problems.push("non-complete evidence not provisional");
+      // Per-dimension evidence (fresh144): SEO and GEO are judged separately, and one
+      // thin dimension makes the whole score an indication, whatever the sector.
+      const dims = j.scoreModel.dimensionEvidence;
+      if (!dims?.seo || !dims?.geo) problems.push("dimensionEvidence missing for mode both");
+      else {
+        for (const [name, d] of [["seo", dims.seo], ["geo", dims.geo]]) {
+          if (d.determinable !== (d.coveragePercent >= 60 && d.applicableWeight > 0)) problems.push(`${name} determinable=${d.determinable} at ${d.coveragePercent}%`);
+          if (!d.determinable && j.scoreModel.evidenceLevel !== "insufficient") problems.push(`${name} evidence insufficient (${d.coveragePercent}%) but evidenceLevel ${j.scoreModel.evidenceLevel}`);
+          if (d.level === "complete" && d.unconfirmed > 0) problems.push(`${name} complete with ${d.unconfirmed} unconfirmed core check(s)`);
+        }
+      }
       // Without a primary sector the sector modules were never chosen: never "definitief".
       if (j.sectorProfile?.sector === "unknown" && j.scoreModel.evidenceLevel === "complete") problems.push("unknown primary sector shown as complete evidence");
       if (j.coverage?.coveragePercent < 70 && j.overallScore >= 90 && j.scoreModel.headline?.kind !== "range") problems.push(`headline ${j.overallScore} shown as a bare number at ${j.coverage.coveragePercent}% coverage`);

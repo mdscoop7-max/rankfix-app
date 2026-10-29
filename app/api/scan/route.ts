@@ -45,7 +45,7 @@ import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, fi
 import { extractImageMetrics } from "@/lib/image-metrics";
 import { readHtmlSampleHeadFirst, readResponsePrefix, readResponseTextLimited, safePublicFetch, validatePublicHttpUrl } from "@/lib/safe-fetch";
 import { buildAdsKeywordIntelligence } from "@/lib/ads-keyword-intelligence";
-import { applyEvidenceBasedScoreCap, capPerfectScore, evidenceLevel, evidenceRange, headlineScore, requireCompleteEvidenceForPerfect, stableCoreChecks, SCORE_MODEL_VERSION, scoreApplicableChecks, combinedScoreRange, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
+import { applyEvidenceBasedScoreCap, capPerfectScore, dimensionEvidence, evidenceLevel, evidenceRange, headlineScore, requireCompleteEvidenceForPerfect, stableCoreChecks, SCORE_MODEL_VERSION, scoreApplicableChecks, combinedScoreRange, scoreRange, summarizeAuditChecks, weightedCoverage } from "@/lib/audit-score";
 import { isPaidPlan, normalizePlan, planLimits } from "@/lib/plans";
 import { checkRateLimit, requestIp } from "@/lib/rate-limit";
 import { internalTesterIds, isInternalTester, isInternalTesterCustomerId, scanRateLimitPolicy, scanRateLimitMessage } from "@/lib/scan-access";
@@ -6570,7 +6570,15 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     scoreModel.range = { ...finalRanges.overall, ...evidenceRange(selectedOverallScore, finalRanges.overall, [...selectedSeoChecks,...selectedGeoChecks]) };
     scoreModel.seoRange = { ...finalRanges.seoR, ...evidenceRange(selectedSeoScore, finalRanges.seoR, selectedSeoChecks) };
     scoreModel.geoRange = { ...finalRanges.geoR, ...evidenceRange(selectedGeoScore, finalRanges.geoR, selectedGeoChecks) };
+    // Evidence behind each dimension's own number (SEO and GEO separately), so a
+    // GEO score built on a few confirmed checks is not carried by a well evidenced SEO.
+    const seoDimensionEvidence = mode === "geo" ? null : dimensionEvidence(selectedSeoChecks, "seo");
+    const geoDimensionEvidence = mode === "seo" ? null : dimensionEvidence(selectedGeoChecks, "geo");
     const scoreEvidence = evidenceLevel({
+      dimensions: [
+        ...(seoDimensionEvidence ? [{ name: "SEO" as const, coveragePercent: seoDimensionEvidence.coveragePercent }] : []),
+        ...(geoDimensionEvidence ? [{ name: "GEO" as const, coveragePercent: geoDimensionEvidence.coveragePercent }] : []),
+      ],
       coveragePercent: overallCoverage.coveragePercent,
       javascriptRequiredButNotRendered: Boolean(javascriptCandidate) && !javascriptExecuted,
       renderDegraded: Boolean(rejectedBrowserSnapshot),
@@ -6589,6 +6597,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     Object.assign(scoreModel, {
       evidenceLevel: scoreEvidence.level,
       evidenceReasons: scoreEvidence.reasons,
+      dimensionEvidence: { seo: seoDimensionEvidence, geo: geoDimensionEvidence },
       perfectScoreRule: "100/100 alleen bij volledig bevestigd bewijs; bij onbevestigde controles maximaal 99.",
     });
     scoreModel.coverageAdjustment = 0;
