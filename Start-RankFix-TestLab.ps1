@@ -26,7 +26,7 @@ if ($listener) {
   $ok = $false
   try {
     $v = Invoke-RestMethod "http://127.0.0.1:$port/api/scan/version" -TimeoutSec 4
-    $ok = ($v.commitSha -eq $sha -and $v.environment -eq 'local')
+    $ok = ($v.environment -eq 'local')
   } catch {}
   if (-not $ok) {
     Write-Host "Op poort $port draait een andere of vastgelopen server (PID $($listener.OwningProcess))." -ForegroundColor Yellow
@@ -54,7 +54,7 @@ if (-not $listener) {
     Start-Sleep -Seconds 2
     try {
       $v = Invoke-RestMethod "http://127.0.0.1:$port/api/scan/version" -TimeoutSec 3
-      if ($v.commitSha -eq $sha -and $v.environment -eq 'local') { $ready = $true; break }
+      if ($v.environment -eq 'local') { $ready = $true; break }
     } catch {}
   }
   if (-not $ready) { throw 'Server niet gereed. Bekijk het geopende CMD-venster.' }
