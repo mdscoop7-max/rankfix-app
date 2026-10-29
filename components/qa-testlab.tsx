@@ -44,12 +44,16 @@ export default function TestLab144() {
   const requestedCatalog=new URLSearchParams(window.location.search).get("catalog");
   const catalogId=requestedCatalog==="commerce"||requestedCatalog==="fresh144"?requestedCatalog:"baseline";
   Promise.all([
-   fetch("/api/testlab/catalog?catalog="+catalogId,{cache:"no-store",credentials:"same-origin"}).then(async r=>({ok:r.ok,data:await r.json()})),
-   fetch("/api/scan/version",{cache:"no-store"}).then(r=>r.json()),
+   fetch("/api/testlab/catalog?catalog="+catalogId,{cache:"no-store",credentials:"same-origin",signal:AbortSignal.timeout(12000)}).then(async r=>({ok:r.ok,status:r.status,data:await r.json()})),
+   fetch("/api/scan/version",{cache:"no-store",signal:AbortSignal.timeout(12000)}).then(r=>r.json()),
   ]).then(([answer,version])=>{
     if(!mounted.current)return;
     if(!answer.ok || !answer.data?.sites){
-      setError("Alleen een ingelogde interne QA-tester mag het testlab starten. Meld je aan op de QA-website.");
+      const code=answer.data?.error;
+      setError(answer.status===503 && code==="QA_AUTH_UNAVAILABLE"
+        ? "RankFix QA kan niet aanmelden: de databaseverbinding ontbreekt of is niet beschikbaar. TestLab start geen scans. Herstel de QA-databaseverbinding of gebruik een afzonderlijk beveiligde lokale QA-modus."
+        : answer.status===403 ? "Alleen een aangemelde interne QA-tester heeft toegang tot TestLab."
+        : "QA-catalogus niet beschikbaar (HTTP "+answer.status+", "+(code||"onbekende fout")+"). Er worden geen scans gestart.");
       setNotice("");return;
     }
     const next=answer.data as Catalog;
@@ -66,7 +70,7 @@ export default function TestLab144() {
       if(Array.isArray(list))setResults(list.filter((r:SiteResult)=>next.sites.some(s=>s.host===r.host)).slice(0,144));
     }catch{}}
     setNotice("Klaar. "+next.categoryCounts.webshops+" webshops en "+next.categoryCounts.other+" andere websites geselecteerd. Klik één keer op Start test; houd dit tabblad open.");
-  }).catch(()=>{if(mounted.current){setError("QA-catalogus kon niet worden opgehaald.");setNotice("");}});
+  }).catch(()=>{if(mounted.current){setError("QA-catalogus reageert niet binnen 12 seconden of de server is niet bereikbaar. Er worden geen scans gestart.");setNotice("");}});
   return()=>{mounted.current=false;stop.current=true;};
  },[]);
  const sites=catalog?.sites||[];
