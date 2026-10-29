@@ -70,17 +70,19 @@ export default function TestLab144() {
     if(stored){try{const list=JSON.parse(stored);
       if(Array.isArray(list))setResults(list.filter((r:SiteResult)=>next.sites.some(s=>s.host===r.host)).slice(0,144));
     }catch{}}
-    setNotice("Klaar. "+next.categoryCounts.webshops+" webshops en "+next.categoryCounts.other+" andere websites geselecteerd. Klik één keer op Start test; houd dit tabblad open.");
+    setNotice("Klaar. VDL Groep tijdelijk uitgesloten wegens verbindingsproblemen; 143 websites blijven testbaar. "+next.categoryCounts.webshops+" webshops en "+next.categoryCounts.other+" andere websites geselecteerd. Klik één keer op Start test; houd dit tabblad open.");
   }).catch((cause)=>{if(mounted.current){setError("TestLab kon niet laden: "+(cause instanceof Error ? cause.message : "server niet bereikbaar")+". Controleer de lokale QA-aanmelding en herlaad de pagina.");setNotice("");}});
   return()=>{mounted.current=false;stop.current=true;};
  },[]);
  const sites=catalog?.sites||[];
  const isCommerceCatalog=catalog?.catalogId==="commerce";
- const scoped=useMemo(()=>sites.filter(s=>
+ // VDL Groep is temporarily excluded from QA runs after repeated RankFix connection failures.
+ // Keep its catalog entry and historical result for diagnosis; do not erase evidence.
+ const scoped=useMemo(()=>sites.filter(s=>s.host!=="vdlgroep.com" && (
   scope==="all" || scope==="webshops"&&s.expected==="ecommerce" || scope==="other"&&s.expected!=="ecommerce" || scope==="new48" && /round-[ef]-/.test(s.round) ||
   scope==="hair_salon"&&s.group==="hair_salon" || scope==="optician"&&s.group==="optician" ||
   scope===s.country || scope===s.round
- ),[scope,sites]);
+ )),[scope,sites]);
  const visible=useMemo(()=>scoped.filter(s=>[s.name,s.host,s.country,s.group,s.expected].join(" ").toLowerCase().includes(query.toLowerCase())),[scoped,query]);
  const byHost=useMemo(()=>new Map(results.map(r=>[r.host,r])),[results]);
  const finished=scoped.filter(s=>isFinalResult(byHost.get(s.host))).length;
@@ -206,7 +208,7 @@ export default function TestLab144() {
    <div className="rf-lab-controls">
     <label>Testgroep
      <select disabled={running||!catalog} value={scope} onChange={e=>setScope(e.target.value)}>
-      <option value="all">Alle 144 websites</option>
+      <option value="all">Alle websites behalve VDL (143)</option>
       {isCommerceCatalog?<><option value="webshops">Webshops (72)</option><option value="other">Andere sectoren (72)</option></>:<><option value="new48">Nieuwe 48 websites</option><option value="hair_salon">Kapsalons (12)</option><option value="optician">Opticiens (12)</option></>}
       <optgroup label="Ronde">{[...new Set(sites.map(s=>s.round))].map(x=><option key={x} value={x}>{x}</option>)}</optgroup>
       <optgroup label="Land">{countries.map(x=><option key={x} value={x}>{x}</option>)}</optgroup>
@@ -225,7 +227,7 @@ export default function TestLab144() {
     <div className="rf-lab-stat"><strong>{verdictCounts.unconfirmed||0}</strong><span>Sector onbevestigd</span></div>
    </div>
    <div role="status" className={"rf-lab-status"+(error?" rf-lab-error":"")}>{error||notice}</div>
-   <p className="rf-lab-note">{catalog?.catalogId==="fresh144"?"Nieuwe kandidaatcatalogus: bereikbaarheid en verwachte sectoren zijn nog niet onafhankelijk gecontroleerd. ":isCommerceCatalog?"Dit is de 72/72-catalogus; de oude baseline blijft apart beschikbaar. ":""}Sectorlabels zijn voorlopig en nog niet onafhankelijk gevalideerd. Geblokkeerde sites en technische problemen tellen niet als sectorfout. Deze test draait in dit browsertabblad op je laptop, niet automatisch op de server. Sluit je het tabblad of gaat de laptop in slaap, dan stopt de test; met "Doorgaan met resterende" gaat hij verder bij de eerste niet-afgeronde website. Resultaten staan alleen in deze browser (per QA-commit): exporteer tussendoor JSON/CSV, want gewiste browsergegevens wissen ook de resultaten.</p>
+   <p className="rf-lab-note">{catalog?.catalogId==="fresh144"?"Nieuwe kandidaatcatalogus: bereikbaarheid en verwachte sectoren zijn nog niet onafhankelijk gecontroleerd. ":isCommerceCatalog?"Dit is de 72/72-catalogus; de oude baseline blijft apart beschikbaar. ":""}VDL Groep is tijdelijk uitgesloten van nieuwe scans, maar blijft in de catalogus en eerdere exportresultaten aanwezig. Sectorlabels zijn voorlopig en nog niet onafhankelijk gevalideerd. Geblokkeerde sites en technische problemen tellen niet als sectorfout. Deze test draait in dit browsertabblad op je laptop, niet automatisch op de server. Sluit je het tabblad of gaat de laptop in slaap, dan stopt de test; met "Doorgaan met resterende" gaat hij verder bij de eerste niet-afgeronde website. Resultaten staan alleen in deze browser (per QA-commit): exporteer tussendoor JSON/CSV, want gewiste browsergegevens wissen ook de resultaten.</p>
    <div className="rf-lab-controls"><button type="button" disabled={!catalog} onClick={()=>exportResult("csv")}>Exporteer CSV</button><button type="button" disabled={!catalog} onClick={()=>exportResult("json")}>Exporteer JSON</button></div>
   </section>
   <section className="rf-lab-panel">
