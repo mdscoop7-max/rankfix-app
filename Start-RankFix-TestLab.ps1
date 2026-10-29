@@ -53,8 +53,8 @@ if (-not $listener) {
     if ($answer -eq 'JA') { Remove-Item '.next/dev/lock' -Force -ErrorAction SilentlyContinue }
   }
   Write-Host 'QA-server starten op 127.0.0.1:3002...'
-  $command = 'set RF_QA_COMMIT_SHA=' + $sha + ' && set RF_LOCAL_QA_TOKEN=' + $token + ' && npm.cmd run dev -- -p 3002 -H 127.0.0.1'
-  Start-Process -FilePath 'cmd.exe' -ArgumentList ('/k "' + $command + '"') -WorkingDirectory $PSScriptRoot | Out-Null
+  $command = 'set "RF_QA_COMMIT_SHA=' + $sha + '" && set "RF_LOCAL_QA_TOKEN=' + $token + '" && npm.cmd run dev -- -p 3002 -H 127.0.0.1'
+  Start-Process -FilePath 'cmd.exe' -ArgumentList '/k', $command -WorkingDirectory $PSScriptRoot | Out-Null
   $ready = $false
   for ($i=0; $i -lt 15; $i++) {
     Start-Sleep -Seconds 2
