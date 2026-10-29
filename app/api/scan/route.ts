@@ -5821,10 +5821,11 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // fallback can guess one from a single word on a corporate subpage (transport,
     // restaurant, booking). Commerce applicability stays "unconfirmed".
     if (marketSelectorPage && !finalCommerceDecision.confirmed && sectorProfile.key==="unknown") {
-      sectorProfile.key = "market_selector";
-      sectorProfile.label = "Internationaal merk- en landkeuzeportaal";
-      sectorProfile.confidence = "high";
-      sectorProfile.confidenceScore = 90;
+      // A market selector is a page type, not evidence of the business sector.
+      // Keep the sector unknown until independent sector evidence is found.
+      sectorProfile.label = "Sector nog niet bevestigd (internationaal landkeuzeportaal)";
+      sectorProfile.confidence = "low";
+      sectorProfile.confidenceScore = 0;
       sectorProfile.evidence = ["Hreflang: x-default verwijst naar deze pagina en minstens drie taal-/landversies", ...(retailAssortmentIdentity ? ["Merkidentiteit noemt een productassortiment; de webshop staat op de landversies"] : [])];
     }
 
