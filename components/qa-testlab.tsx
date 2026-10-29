@@ -105,11 +105,11 @@ export default function TestLab144() {
     for(let attempt=0;attempt<2&&!row;attempt++){
      try{
       // Fail closed if the shared QA alias was redeployed mid-run.
-      const v=await fetch("/api/scan/version",{cache:"no-store"}).then(r=>r.json());
+      const v=await fetch("/api/scan/version",{cache:"no-store",signal:AbortSignal.timeout(12000)}).then(r=>r.json());
       if(!["preview","local"].includes(v.environment)||v.environment!==catalog.runtime.environment||v.commitSha!==catalog.runtime.commitSha){throw new Error("QA_DEPLOYMENT_CHANGED");}
       // Session first: an expired RankFix login must stop the run BEFORE the
       // website is scanned, never be stored as the website's result.
-      const me=await fetch("/api/auth/me",{cache:"no-store",credentials:"same-origin"});
+      const me=await fetch("/api/auth/me",{cache:"no-store",credentials:"same-origin",signal:AbortSignal.timeout(12000)});
       const meData=await me.json().catch(()=>null);
       if(me.status===503){
        row={host:site.host,status:"infrastructuur",expected:site.expected,sector:null,confidence:null,score:null,seo:null,geo:null,http:me.status,reason:"RankFix-accountcontrole tijdelijk niet beschikbaar; website niet gescand",elapsedMs:Date.now()-startAt,scanId:null,at:new Date().toISOString(),pending:true,incident:null};
@@ -121,7 +121,8 @@ export default function TestLab144() {
       }
       const response=await fetch("/api/scan",{
         method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",
-        body:JSON.stringify({url:"https://"+site.host+"/",mode:"both",dashboard:true,language:"nl"})
+        body:JSON.stringify({url:"https://"+site.host+"/",mode:"both",dashboard:true,language:"nl"}),
+        signal:AbortSignal.timeout(300000)
       });
       const data=await response.json();
       const success=response.ok&&data?.success===true;
