@@ -56,19 +56,22 @@ if (-not $listener) {
   $command = 'set RF_QA_COMMIT_SHA=' + $sha + ' && set RF_LOCAL_QA_TOKEN=' + $token + ' && npm.cmd run dev -- -p 3002 -H 127.0.0.1'
   Start-Process -FilePath 'cmd.exe' -ArgumentList '/k', $command -WorkingDirectory $PSScriptRoot | Out-Null
   $ready = $false
-  for ($i=0; $i -lt 45; $i++) {
+  for ($i=0; $i -lt 15; $i++) {
     Start-Sleep -Seconds 2
     try {
       $v = Invoke-RestMethod "http://127.0.0.1:$port/api/scan/version" -TimeoutSec 3
-      if ($v.environment -eq 'local') {
-        try {
-          $probe = Invoke-RestMethod -Uri $url -Headers @{ 'x-rankfix-qa-probe' = '1' } -TimeoutSec 4
-          if ($probe.authorized -eq $true) { $ready = $true; break }
-        } catch {}
-      }
+      if ($v.environment -eq 'local') { $ready = $true; break }
     } catch {}
   }
-  if (-not $ready) { throw 'Server niet gereed. Bekijk het geopende CMD-venster.' }
+  if (-not $ready) { throw 'Server reageert niet binnen 30 seconden. Bekijk het CMD-venster.' }
+}
+Write-Host 'Server gereed. QA-aanmelding controleren...' -ForegroundColor Cyan
+try {
+  $probe = Invoke-RestMethod -Uri $url -Headers @{ 'x-rankfix-qa-probe' = '1' } -TimeoutSec 15
+  if ($probe.authorized -ne $true) { throw 'QA-toegang niet bevestigd' }
+} catch {
+  Write-Host 'Lokale QA-aanmelding werkt nog niet. Controleer of de oude server is afgesloten en de nieuwe server de token heeft geladen.' -ForegroundColor Red
+  throw $_
 }
 Start-Process $url
-Write-Host 'Beveiligd lokaal TestLab geopend. Neon niet nodig voor QA-scans.' -ForegroundColor Green
+Write-Host 'TestLab geopend via beveiligde lokale sessie.' -ForegroundColor Green
