@@ -9,15 +9,17 @@ import e from "@/tests/fixtures/testlab-144/round-e-service-retail.json";
 import f from "@/tests/fixtures/testlab-144/round-f-service-retail.json";
 import commerce from "@/tests/fixtures/testlab-144/catalog-commerce-diverse-20261026.json";
 import fresh from "@/tests/fixtures/testlab-144/catalog-fresh-144-20261029.json";
+import {hasLocalQaSession} from "@/lib/local-qa";
 import {scanRuntime} from "@/lib/scan-runtime";
 
 export async function GET(request:NextRequest) {
   if (process.env.VERCEL_ENV !== "preview" && process.env.NODE_ENV !== "development") {
     return NextResponse.json({error:"QA_ONLY"},{status:404});
   }
+  const localQa = await hasLocalQaSession(request);
   let user: Awaited<ReturnType<typeof getCurrentUser>> = null;
-  try { user=await getCurrentUser(); } catch { return NextResponse.json({error:"QA_AUTH_UNAVAILABLE"},{status:503}); }
-  if (!user || !isInternalTester(user.id)) return NextResponse.json({error:"INTERNAL_TESTER_REQUIRED"},{status:403});
+  if (!localQa) { try { user=await getCurrentUser(); } catch { return NextResponse.json({error:"QA_AUTH_UNAVAILABLE"},{status:503}); } }
+  if (!localQa && (!user || !isInternalTester(user.id))) return NextResponse.json({error:"INTERNAL_TESTER_REQUIRED"},{status:403});
   const catalogId=request.nextUrl.searchParams.get("catalog") || "baseline";
   if(!["baseline","commerce","fresh144"].includes(catalogId))
     return NextResponse.json({error:"UNKNOWN_TESTLAB_CATALOG"},{status:400});
