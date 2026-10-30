@@ -2081,6 +2081,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // Login/account links intentionally redirect to SSO/OAuth providers on many sites.
     // They are not SEO redirect debt and must never produce "link to the OAuth URL" advice.
     const redirectedInternalLinks = linkAuditResults.filter((item) => item.redirected && !item.error && !isAuthUtilityRedirect(item));
+    const NON_NAME_ANCHOR = /(?<![\p{L}])(?:beoordel\p{L}*|rating\p{L}*|reviews?|recensies?|bewertung\p{L}*|avis|valoraci\p{L}*|sterren|stars?|sterne|étoiles|van de (?:5|10)|out of (?:5|10)|sur (?:5|10)|von (?:5|10)|bekijk\p{L}*|meer info|lees meer|read more|shop now|koop nu|bestel nu|buy now|in (?:de )?winkel(?:wagen|mand)\p{L}*|add to (?:cart|bag|basket)|in den warenkorb|ajouter au panier|vergelijk\p{L}*|compare)(?![\p{L}])|[€$£]\s?\d/iu;
     const productSlugStopWords = new Set(["product","products","shop","winkel","store","category","categorie","tag","product-tag","collections","collection","the","and","voor","van","met","een","het","de"]);
     const semanticTokens = (value: string) => safeDecodeURIComponent(value).toLowerCase().replace(/[^a-z0-9à-ÿ]+/gi, " ").split(/\s+/).filter((token) => token.length >= 3 && !productSlugStopWords.has(token));
     const semanticLinkMismatches = linkAuditResults.flatMap((item) => {
@@ -2089,9 +2090,14 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       try { destination = new URL(item.finalUrl || item.url); } catch { return []; }
       // Only judge product-like destinations when the visible anchor itself names a product.
       // Price-only anchors do not contain enough semantic evidence and therefore never fail here.
+      // Ratings, review counts, prices and buttons inside a product card are not the
+      // product's name ("Beoordeling is 8,8 van de 10, gebaseerd op 15 reviews").
+      if (NON_NAME_ANCHOR.test(item.context)) return [];
       const contextTokens = [...new Set(semanticTokens(item.context))];
       const destinationTokens = [...new Set(semanticTokens(destination.pathname))];
-      if (contextTokens.length < 2 || destinationTokens.length < 2) return [];
+      // A two-word use-case or category label ("Asthma management") is not a product
+      // name; short anchors only count when they carry a model number.
+      if (contextTokens.length < 2 || destinationTokens.length < 2 || (contextTokens.length < 3 && !/\d/.test(item.context))) return [];
       const overlap = contextTokens.filter((token) => destinationTokens.includes(token));
       const productLikeDestination = /\/(?:product|products|shop)\//i.test(destination.pathname);
       if (!productLikeDestination || overlap.length > 0) return [];

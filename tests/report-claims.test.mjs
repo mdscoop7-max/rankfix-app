@@ -35,7 +35,7 @@ test("synthetic claim scenarios: schema subtypes, sector-aware schema context, s
   assert.ok(line, out.stderr || out.stdout);
   const result = JSON.parse(line.slice("SCAN_MATRIX_RESULT ".length));
   assert.equal(result.failed, 0, out.stdout);
-  assert.equal(result.total, 7);
+  assert.equal(result.total, 12);
 });
 
 // Sector outcome on the replay sets may not get worse than on 30 Oct 2026.
