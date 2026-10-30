@@ -483,7 +483,8 @@ export function governmentHostname(hostname = ""): boolean {
   // Ignore the TLD itself (".gov" in the US is fine too, but never a brand label).
   // Only the label directly before the top-level domain counts (gov.cz, gouv.fr,
   // gv.at, admin.ch), so a subdomain such as admin.shop.com never matches.
-  return (labels.length >= 2 && GOV_HOST_LABEL.test(labels[labels.length - 2])) || labels[labels.length - 1] === "gov";
+  // europa.eu is reserved for EU institutions and agencies (EMA, EEA …).
+  return (labels.length >= 2 && GOV_HOST_LABEL.test(labels[labels.length - 2])) || labels[labels.length - 1] === "gov" || labels.slice(-2).join(".") === "europa.eu";
 }
 
 const TITLE_FAMILIES: Array<{ sector: EuSector; key: string; label: string; primaryLabel: string; re: RegExp }> = [
@@ -892,7 +893,8 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
     return { sector: "education", key: "education", label: "Onderwijs & Opleiding", confidence: "medium", confidenceScore: 74,
       evidence: ["Navigatie en koppen beschrijven studie en onderzoek aan een onderwijsinstelling"] };
   }
-  if (AGENCY.test(title + " " + h1) && AGENCY_SERVICE.test(own + " " + structure)) {
+  // A public agency on a reserved government host is not a consultancy "agency".
+  if (AGENCY.test(title + " " + h1) && AGENCY_SERVICE.test(own + " " + structure) && !governmentHostname(input.hostname)) {
     return { sector: "professional_services", key: "professional_services", label: "Zakelijke dienstverlening", confidence: "medium", confidenceScore: 76,
       evidence: ["Eigen identiteit: bureau/agentschap met zakelijke diensten"] };
   }

@@ -8,12 +8,20 @@ const labels={
  charities_nonprofits:['nonprofit','charities_nonprofits'],museums_culture:['events_culture','museum_culture'],
  manufacturing:['manufacturing_industrial','brand_manufacturer'],industry:['manufacturing_industrial'],
  recruitment_staffing:['recruitment'],
+ // fresh144 catalog vocabulary (29 Oct): broad labels without a subtype. Without
+ // these, "public" vs government or "transport" vs transport_travel counted as a
+ // sector error (25 of 40 "mismatches" in the 1dc8681 export).
+ public:['government'],transport:['transport_travel'],culture:['events_culture'],finance:['financial_services'],
+ nonprofit:['nonprofit'],construction:['manufacturing_industrial','construction_infrastructure'],
+ engineering:['professional_services'],research:['education'],
 };
 // A retail label is also met by a LOCAL retail trade: an optician or pharmacy
 // sells goods over the counter (and often online) as part of its own trade, a
 // bakery is local food retail. These are reported in their own family; the
 // TestLab broad label "retail" must not count them as wrong.
-const alsoCompatible={retail:[['health_wellness','optician'],['health_wellness','pharmacy'],['food_local_retail',null]]};
+const alsoCompatible={retail:[['health_wellness','optician'],['health_wellness','pharmacy'],['food_local_retail',null]],
+ // A port authority is logistics infrastructure; an engineering consultancy may be typed industrial B2B.
+ logistics:[['maritime_ports',null]],engineering:[['manufacturing_industrial',null]],construction:[['home_services',null]]};
 export function compareSector(expected,profile={}) {
  const [sector,key]=labels[expected]||[expected];
  const compatible=profile.sector===sector||(alsoCompatible[expected]||[]).some(([s,k])=>profile.sector===s&&(!k||profile.key===k));

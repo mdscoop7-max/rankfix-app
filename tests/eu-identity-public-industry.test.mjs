@@ -23,3 +23,9 @@ test("semiconductor maker is manufacturing; listed markets in the title are not 
   assert.notEqual(id({ title: "FabSoft | Software for semiconductor fabs", description: "MES software platform for semiconductor manufacturing. Book a demo.", navLabels: ["Features", "Pricing", "Demo"] })?.key, "semiconductors_electronics");
   assert.notEqual(id({ title: "Chipshop | Microcontrollers online kopen", description: "Webshop voor microcontrollers en elektronische componenten. Bestel online.", navLabels: ["Winkelmand", "Arduino"] })?.key, "semiconductors_electronics");
 });
+
+test("EU agency on europa.eu is government, not a consultancy agency; a private agency stays professional", () => {
+  const ema = id({ hostname: "www.ema.europa.eu", title: "European Medicines Agency (EMA)", description: "The European Medicines Agency provides services for the evaluation of medicines.", navLabels: ["Medicines", "Human regulatory", "Committees", "About us"] });
+  assert.equal(ema?.sector, "government");
+  assert.notEqual(id({ hostname: "agency.example.nl", title: "Creative Agency Voorbeeld", description: "Wij zijn een agency voor branding en campagnes. Onze diensten: strategie en design.", navLabels: ["Diensten", "Cases"] })?.sector, "government");
+});
