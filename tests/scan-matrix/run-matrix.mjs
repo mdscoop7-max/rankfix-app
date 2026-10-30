@@ -150,6 +150,9 @@ for (const p of PROFILES) {
       }
       // Without a primary sector the sector modules were never chosen: never "definitief".
       if (j.sectorProfile?.sector === "unknown" && j.scoreModel.evidenceLevel === "complete") problems.push("unknown primary sector shown as complete evidence");
+      // Provisional/insufficient evidence with a real range: the headline is that range.
+      if (j.scoreModel.evidenceLevel !== "complete" && r && r.low < r.high && j.scoreModel.headline?.kind !== "range") problems.push(`${j.scoreModel.evidenceLevel} evidence with range ${r.low}-${r.high} but headline ${j.scoreModel.headline?.display}`);
+      if (j.scoreModel.headline?.kind === "range" && !(j.overallScore >= r.low && j.overallScore <= r.high)) problems.push(`headline range ${j.scoreModel.headline.display} excludes score ${j.overallScore}`);
       if (j.coverage?.coveragePercent < 70 && j.overallScore >= 90 && j.scoreModel.headline?.kind !== "range") problems.push(`headline ${j.overallScore} shown as a bare number at ${j.coverage.coveragePercent}% coverage`);
     }
     // Homepage score and site sample must be reported side by side and agree.

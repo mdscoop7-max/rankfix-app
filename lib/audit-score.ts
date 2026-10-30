@@ -295,12 +295,14 @@ export function evidenceLevel(input: { coveragePercent: number; javascriptRequir
 }
 
 /**
- * What the big headline number shows. With less than 70% of the applicable
- * evidence confirmed (or an "insufficient" evidence level), a single number
- * such as 99 claims more than the scan can support, so the headline becomes
- * the range ("64–99") and the point score moves to the detail line.
+ * What the big headline number shows. Whenever the evidence is not complete
+ * (provisional or insufficient) and the unconfirmed checks really leave room
+ * (low < high), the headline is the range ("82–99") and the point score moves to
+ * the detail line: a single number such as 99 claims more than the scan can
+ * support. Complete evidence, or a range of one value, shows the plain score.
+ * Only presentation changes; the score itself is never recalculated here.
  */
-export function headlineScore(score: number, range: { low: number; high: number } | null | undefined, coveragePercent: number, level: EvidenceLevel) {
-  const asRange = Boolean(range) && (coveragePercent < 70 || level === "insufficient") && range!.low < range!.high;
+export function headlineScore(score: number, range: { low: number; high: number } | null | undefined, _coveragePercent: number, level: EvidenceLevel) {
+  const asRange = Boolean(range) && level !== "complete" && range!.low < range!.high;
   return { numeric: score, kind: asRange ? "range" as const : "score" as const, display: asRange ? `${range!.low}–${range!.high}` : String(score) };
 }
