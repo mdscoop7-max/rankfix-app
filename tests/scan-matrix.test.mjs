@@ -140,6 +140,13 @@ test("HTTP status matrix: homepage, sampled pages and internal links", { timeout
   assert.equal(r.failed, 0, r.log);
 });
 
+// fresh144: missing JSON-LD is only a warning when its absence is proven; a tag
+// manager without a render leaves it unconfirmed and costs no points.
+test("JSON-LD evidence: absence is proven only without a possible client-side injector", { timeout: 300000 }, () => {
+  const r = run("run-jsonld-evidence.mjs");
+  assert.equal(r.failed, 0, r.log);
+});
+
 // QA #186: wall-clock limits with requests that really hang until their timeout
 // (about 90 s). Opt-in: RF_SLOW_TESTS=1.
 test("timeouts: hanging primary and sample requests stay within the scan budget and fail cleanly", { skip: !process.env.RF_SLOW_TESTS && "RF_SLOW_TESTS not set", timeout: 300000 }, () => {
