@@ -22,7 +22,10 @@ const fixturePath = process.env.ROUTE_FIXTURE || `${ROOT}/tests/fixtures/testlab
 const raw = readFileSync(fixturePath);
 const fixture = JSON.parse((fixturePath.endsWith(".gz") ? gunzipSync(raw) : raw).toString("utf8"));
 const only = process.env.ONLY ? new Set(process.env.ONLY.split(",")) : null;
-const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+// Recorded fields are sometimes still HTML-encoded (descriptions, nav labels were
+// stored raw): decode once so the reconstructed HTML encodes them exactly once.
+const { decodeHtmlEntities } = await import(new URL("../../lib/html-entities.ts", import.meta.url).href);
+const esc = (v) => decodeHtmlEntities(String(v ?? "")).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 function commerceMarkup(c) {
   if (!c) return "";

@@ -1261,7 +1261,10 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const title = firstMatch(html, /<title[^>]*>([\s\S]*?)<\/title>/i).replace(/[\u200B-\u200D\u2060\uFEFF]/g, "").trim();
     // Source-order-independent head extraction; only tags inside <head> count.
     const headMetadata = extractHeadMetadata(html);
-    const description = stripHtml(headMetadata.description).trim();
+    // Attribute values are HTML-encoded ("Nederland&#x27;s", "eten &amp; drinken"):
+    // decode once, like a browser and a search engine do, before counting
+    // characters or reading identity words.
+    const description = decode(stripHtml(headMetadata.description));
     // The organisation's own self-description for IDENTITY decisions only: a meta
     // description emitted outside <head> (streaming SSR) still states what the
     // organisation does. SEO checks keep using the head description.
@@ -2225,7 +2228,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       let block: RegExpExecArray | null;
       while ((block = blockRe.exec(navSource)) && identityNavLabels.length < 80) {
         for (const anchor of block[2].matchAll(/<a\b[^>]*>([\s\S]{0,400}?)<\/a>/gi)) {
-          const label = stripHtml(anchor[1]).replace(/\s+/g, " ").trim();
+          const label = decode(stripHtml(anchor[1])).replace(/\s+/g, " ").trim();
           if (label && label.length < 40) identityNavLabels.push(label);
           if (identityNavLabels.length >= 80) break;
         }
@@ -3267,7 +3270,11 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // stripHtml keeps entities encoded, so decode the visible text before checking rendering.
     // A normal "&amp;" in source HTML renders as "&" and is not a visible escape defect.
     const decodedVisibleText = decode(text);
-    const hasVisibleHtmlEscape = /&(?:amp|quot|lt|gt|#(?:x[0-9a-f]+|\d+));/i.test(decodedVisibleText);
+    const VISIBLE_ENTITY = /&(?:amp|quot|lt|gt|apos|nbsp|#(?:x[0-9a-f]+|\d+));/i;
+    // After one decode an entity left in title/description/H1 is double-encoded:
+    // search results and the page show it literally ("Nederland&#x27;s").
+    const metadataEscapes = [["title", title], ["meta description", description], ["H1", h1s.join(" ")]].filter(([, value]) => VISIBLE_ENTITY.test(value)).map(([field, value]) => ({ field, sample: (value.match(/&(?:amp|quot|lt|gt|apos|nbsp|#(?:x[0-9a-f]+|\d+));/i) || [""])[0] }));
+    const hasVisibleHtmlEscape = VISIBLE_ENTITY.test(decodedVisibleText) || metadataEscapes.length > 0;
     const hreflangTags = [...html.matchAll(/<link\b[^>]*>/gi)].map((m) => m[0]).filter((tag) => /\brel\s*=\s*["']alternate["']/i.test(tag) && /\bhreflang\s*=/i.test(tag));
     const hreflangEntries = hreflangTags.map((tag) => ({ language: attrFromTag(tag, "hreflang").toLowerCase(), href: attrFromTag(tag, "href") }));
     const documentLanguage = lang.trim().toLowerCase().replace("_", "-");
@@ -3774,7 +3781,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     );
 
     seoChecks.push(hasVisibleHtmlEscape
-      ? check("warning", "html_escape", "seo", "Tekstweergave", "Mogelijk HTML-escaped tekst zoals &amp; lijkt zichtbaar in de inhoud.", "Controleer rendering en encoding zodat bezoekers gewone leestekens zien.", 2, 4)
+      ? check("warning", "html_escape", "seo", "Tekstweergave", metadataEscapes.length ? `Dubbel gecodeerde tekst in ${metadataEscapes.map((item) => `${item.field} (${item.sample})`).join(", ")}: bezoekers en zoekmachines zien deze code letterlijk.` : "Mogelijk HTML-escaped tekst zoals &amp; lijkt zichtbaar in de inhoud.", "Controleer rendering en encoding zodat bezoekers gewone leestekens zien.", 2, 4)
       : check("pass", "html_escape", "seo", "Tekstweergave", "Geen duidelijke zichtbare HTML-escape-fout gevonden.", "Behoud correcte HTML-encoding.", 4, 4)
     );
 
