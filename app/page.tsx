@@ -1195,7 +1195,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                         <div className="mt-2">
                           <div className="whitespace-nowrap text-xl font-black">{data.score}<span className="ml-0.5 text-xs font-bold opacity-60">/100</span></div>
                           <div className="mt-2">
-                            <span className="inline-flex whitespace-nowrap rounded-full border border-current/10 bg-white/60 px-2 py-1 text-[11px] font-semibold">{ar.coverage}: {data.checks.filter((item) => item.status !== "not_applicable" && item.status !== "unable_to_confirm").length}/{data.checks.length}</span>
+                            <span className="inline-flex whitespace-nowrap rounded-full border border-current/10 bg-white/60 px-2 py-1 text-[11px] font-semibold">{ar.coverage}: {data.checks.filter((item) => item.status !== "not_applicable" && item.status !== "unable_to_confirm").length}/{data.checks.filter((item) => item.status !== "not_applicable").length}</span>
                           </div>
                         </div>
                       </button>
@@ -1209,7 +1209,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-500">{tab.toUpperCase()} audit</div>
-                    <div className="mt-1 text-lg font-black">{ar.coverage}: {activeChecks.filter((item) => item.status !== "not_applicable" && item.status !== "unable_to_confirm").length}/{activeChecks.length} {ar.assessed}</div>
+                    <div className="mt-1 text-lg font-black">{ar.coverage}: {activeChecks.filter((item) => item.status !== "not_applicable" && item.status !== "unable_to_confirm").length}/{activeChecks.filter((item) => item.status !== "not_applicable").length} {ar.assessed}</div>
                     <div className="mt-1 text-xs text-slate-500">{activeChecks.filter((item) => item.status === "pass").length} {ar.passed} · {activeChecks.filter((item) => item.status === "warning" || item.status === "fail").length} {ar.improvements} · {activeChecks.filter((item) => item.status === "not_applicable" || item.status === "unable_to_confirm").length} {ar.naOrUnknown}</div>
                   </div>
                   <span className="text-xs text-slate-600">{activeChecks.length} {ar.checks}</span>

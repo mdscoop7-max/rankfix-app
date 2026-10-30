@@ -3123,8 +3123,14 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const legalLexicon = LEGAL_LINK_LEXICON;
     // Third-party provider policies (e.g. Google's Privacy Policy in an embed)
     // do not establish the scanned business's own privacy, cookies or terms.
+    // A link that opens consent settings ("Privacy-instellingen" → ?modal=cookie-instellingen,
+    // "Cookie settings", javascript:/# handlers) is a preferences dialog, not a policy page.
+    const isConsentSettingsLink = (item: { href: string; label: string; aria: string; title: string }) =>
+      /^(?:javascript:|#)/i.test(item.href.trim())
+      || /[?&#](?:modal|consent|cookie[-_]?settings|privacy[-_]?settings)=?/i.test(item.href)
+      || /(?:instellingen|voorkeuren|settings|preferences|einstellungen|param[eè]tres|preferenze|configuraci[oó]n|beheren|manage)/i.test([item.label, item.aria, item.title].join(" "));
     const findLegalSignal = (pattern: RegExp) =>
-      legalAnchorEvidence.find((item) => isFirstPartyLegalLink(item.href, finalUrl.toString()) && pattern.test(item.haystack)) || null;
+      legalAnchorEvidence.find((item) => isFirstPartyLegalLink(item.href, finalUrl.toString()) && !isConsentSettingsLink(item) && pattern.test(item.haystack)) || null;
     const privacyEvidence = findLegalSignal(legalLexicon.privacy);
     const cookieEvidence = findLegalSignal(legalLexicon.cookies);
     const termsEvidence = findLegalSignal(legalLexicon.terms);
