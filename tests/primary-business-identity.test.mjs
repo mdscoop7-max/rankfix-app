@@ -59,9 +59,12 @@ test("primary-sector evidence: weaker conflicting identity abstains instead of g
 });
 
 test("generic homepage aliases do not create product pages", () => {
-  for (const path of ["/","/us/home","/nl/home","/en-us/home","/fr/","/home","/us/en/home","/en/gb/home","/index.html"])
+  for (const path of ["/","/us/home","/nl/home","/en-us/home","/fr/","/home","/us/en/home","/en/gb/home","/index.html",
+    // Server start pages (QA replay: telekom /start, esselunga /it-it/homepage.html, enterprise /en/home.html).
+    "/start","/de/start","/en/home.html","/it-it/homepage.html","/de/startseite","/fr/accueil","/es/inicio","/index.php"])
     assert.equal(isSiteHomepagePath(path),true,path);
-  for (const path of ["/us/products","/shop/home","/products/home","/guides/home","/us/home/product","/us/products/example"])
+  for (const path of ["/us/products","/shop/home","/products/home","/guides/home","/us/home/product","/us/products/example",
+    "/shop/start","/blog/homepage.html","/products/index.html","/startpakket","/home-improvement"])
     assert.equal(isSiteHomepagePath(path),false,path);
 });
 

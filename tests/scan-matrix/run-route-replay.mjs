@@ -63,9 +63,19 @@ for (const site of fixture.sites) {
     else routes.set(key, { status: 200, html: pageHtml(p, { lang: site.lang }) });
   }
 }
+// REPLAY_FROM_ROOT=1: scan https://<host>/ like a live TestLab run; the root
+// answers 301 to the recorded landing page (root-redirect landings such as /start).
+const fromRoot = process.env.REPLAY_FROM_ROOT === "1";
+const startUrl = (site) => fromRoot ? `https://${site.host}/` : site.finalUrl;
+if (fromRoot) for (const site of fixture.sites) {
+  if (only && !only.has(site.host)) continue;
+  const root = `https://${site.host}/`;
+  if (new URL(root).toString() !== new URL(site.finalUrl).toString() && !routes.has(`${site.host}/`)) routes.set(`${site.host}/`, { status: 301, location: site.finalUrl, html: "" });
+}
 globalThis.fetch = async (input) => {
   const u = new URL(typeof input === "string" ? input : input.url);
   const hit = routes.get(u.host + u.pathname + u.search) || routes.get(u.host + u.pathname) || routes.get(u.host + u.pathname.replace(/\/$/, "")) || routes.get(u.host + u.pathname + "/");
+  if (hit?.location) return new Response(null, { status: hit.status, headers: { location: hit.location } });
   if (hit) return new Response(hit.html, { status: hit.status, headers: { "content-type": "text/html; charset=utf-8" } });
   return new Response("not found", { status: 404, headers: { "content-type": "text/plain" } });
 };
@@ -80,7 +90,7 @@ for (const site of fixture.sites) {
   const ce = console.error; console.error = () => {};
   let j = {}, status = 0;
   try {
-    const res = await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: site.finalUrl, mode: "both", language: "nl" }) }));
+    const res = await POST(new Request("http://localhost/api/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: startUrl(site), mode: "both", language: "nl" }) }));
     status = res.status; j = await res.json();
   } catch (error) { j = { error: String(error) }; }
   console.error = ce;

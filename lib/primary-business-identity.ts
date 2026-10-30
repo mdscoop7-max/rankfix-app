@@ -139,10 +139,13 @@ export function detectPrimaryBusinessIdentity(input: {
  */
 export function isSiteHomepagePath(path: string): boolean {
   const normalized = (path || "/").split("?")[0].replace(/\/+$/, "") || "/";
-  if (normalized === "/" || /^\/(?:home|index(?:\.html?)?)$/i.test(normalized)) return true;
+  // Generic start-page names in the main EU languages, optionally as a server
+  // page (/en/home.html, /it-it/homepage.html, /start, /de/startseite).
+  const HOME_SUFFIX = /^(?:home|homepage|index|start|startseite|startpagina|accueil|inicio|portada|pagina-iniziale)(?:\.(?:html?|php|aspx?|jsp))?$/i;
+  if (normalized === "/" || HOME_SUFFIX.test(normalized.slice(1))) return true;
   const pieces = normalized.split("/").filter(Boolean).map((p) => p.toLowerCase());
   if (!pieces.length || pieces.length > 3) return false;
-  const isHomeSuffix = /^(?:home|index(?:\.html?)?)$/.test(pieces[pieces.length - 1]);
+  const isHomeSuffix = HOME_SUFFIX.test(pieces[pieces.length - 1]);
   const marketPieces = isHomeSuffix ? pieces.slice(0, -1) : pieces;
   if (!marketPieces.length || marketPieces.length > 2) return false;
   const markets = new Set([

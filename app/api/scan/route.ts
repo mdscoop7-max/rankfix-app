@@ -64,10 +64,11 @@ import { childSitemapsFromIndex, extractProductDetailLinks, looksLikeCategoryPat
 import { confirmedFaqContent } from "@/lib/faq-evidence";
 import { findWebshopClaims } from "@/lib/commerce-claims";
 import { modulesForCapabilities, rankSectorCandidates, sectorCatalogSummary } from "@/lib/sector-catalog";
-import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, telecomOperatorIdentity, newsMediaIdentity } from "@/lib/sector-identity";
+import { TOURISM_ACTIVITY_PATTERN, TOURISM_IDENTITY_PATTERN, hasOrganizationSchema, hasTypedLocalEntitySchema, hasRetailStoreSchema, isTourismBoardHost, retailIdentityLanguage, retailStoreSchemaTypes, telecomOperatorIdentity, newsMediaIdentity } from "@/lib/sector-identity";
 import { detectPrimaryBusinessIdentity, isSiteHomepagePath } from "@/lib/primary-business-identity";
 import { detectEuPrimaryIdentity, isConsentHeading, retailSelfDescription, stripAudience, stripMarketMentions } from "@/lib/eu-identity";
-import { enforceReportConsistency } from "@/lib/report-consistency";
+import { enforceReportConsistency, isNonLocalSector } from "@/lib/report-consistency";
+import { normalizeSchemaType, schemaTypesOf } from "@/lib/schema-type";
 import { decideSalesChannel } from "@/lib/sales-channel";
 import { measureWebsiteSpeed, speedNotMeasured } from "@/lib/pagespeed";
 
@@ -1345,7 +1346,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       const rawTypes = objectValue["@type"];
       if (rawTypes) {
         const types = Array.isArray(rawTypes) ? rawTypes : [rawTypes];
-        schemaTypes.push(...types.filter((type) => typeof type === "string").map(String));
+        schemaTypes.push(...types.map(normalizeSchemaType).filter((type): type is string => Boolean(type)));
       }
       for (const nested of Object.values(objectValue)) {
         if (Array.isArray(nested)) nested.forEach((item) => collectSchemaObjects(item, seen));
@@ -1363,7 +1364,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const schemaSet = new Set(schemaTypes.map((v) => v.toLowerCase()));
     const hasEntitySchema = hasOrganizationSchema(schemaTypes) || ["person", "product", "article", "website"].some((t) => schemaSet.has(t));
     const organizationObjects = schemaObjects.filter((item) => {
-      const types = Array.isArray(item?.["@type"]) ? item["@type"] : [item?.["@type"]];
+      const types: string[] = schemaTypesOf(item);
       return hasOrganizationSchema(types.filter((type: unknown) => typeof type === "string"));
     });
     const organizationSchema = organizationObjects[0] || null;
@@ -1393,7 +1394,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const financialOfferSchema = isFinancialOfferSchema([...schemaSet]);
     const hasProductSchema = schemaSet.has("product") && !financialOfferSchema;
     const productSchemaObjects = schemaObjects.filter((item) => {
-      const types = Array.isArray(item?.["@type"]) ? item["@type"] : [item?.["@type"]];
+      const types: string[] = schemaTypesOf(item);
       return types.some((type: unknown) => String(type || "").toLowerCase() === "product");
     });
     type ProductOfferEvidence = {
@@ -1637,7 +1638,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:site_name["']/i)?.[1]
       || "";
     const localBusinessObjects = schemaObjects.filter((item) => {
-      const types = Array.isArray(item?.["@type"]) ? item["@type"] : [item?.["@type"]];
+      const types: string[] = schemaTypesOf(item);
       return types.some((type: unknown) => {
         const normalized = String(type || "").toLowerCase();
         return normalized === "localbusiness" || normalized.endsWith("store") || normalized === "restaurant";
@@ -1690,7 +1691,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const specificLocalSchema = hasLocalBusinessSignal
       ? identityLocalSchema || "LocalBusiness"
       : null;
-    const hasRelevantLocalSchema = schemaSet.has("localbusiness") || schemaSet.has("onlinestore") || (specificLocalSchema ? schemaSet.has(specificLocalSchema.toLowerCase()) : false);
+    const hasRelevantLocalSchema = hasTypedLocalEntitySchema(schemaTypes) || schemaSet.has("onlinestore") || (specificLocalSchema ? schemaSet.has(specificLocalSchema.toLowerCase()) : false);
     const governmentIdentitySignal = /\b(rijksoverheid|government|government of|ministerie|ministry|rijksoverheid\.nl|overheid|gemeente|municipality|provincie|province|public authority|publieke sector)\b/i.test([title, description, h1s.join(" "), finalUrl.hostname].join(" "));
     const governmentSchemaPresent = schemaSet.has("governmentorganization") || schemaSet.has("governmentoffice");
     const transportLogisticsSchemaContext = !hasEcommerceSignal && !isProductPage && /\b(transport|logistics?|logistiek|freight|vracht|forwarding|expeditie|warehousing|opslag|supply chain|distribution|distributie|4pl|3pl)\b/i.test(localIdentityText);
@@ -1711,46 +1712,55 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const earlyPropertySubtype = detectRealEstateSubtype({title,description,h1s,schemaTypes});
     const nationwideRentalOperator = ["institutional_property_rental","property_rental_operator"].includes(earlyPropertySubtype.subtype)
       || (isHomepage && /\bhuurwoningen in (?:heel )?nederland\b/i.test([title,description,h1s.join(" ")].join(" ")) && !schemaSet.has("realestateagent"));
-    const effectiveLocalSchemaSignal = hasLocalBusinessSignal && !nationwideRentalOperator && !governmentIdentitySignal && !governmentSchemaPresent && !transportLogisticsSchemaContext && !ecommerceSchemaContext && !newsMediaSchemaContext;
-    const recommendedSchema = governmentIdentitySignal || governmentSchemaPresent
-      ? (isHomepage ? "GovernmentOrganization + WebSite" : "GovernmentOrganization / WebPage")
-      : newsMediaSchemaContext
-      ? (isHomepage ? "NewsMediaOrganization + WebSite" : hasArticleSignal ? "NewsArticle" : "NewsMediaOrganization / WebPage")
-      : transportLogisticsSchemaContext
-        ? (isHomepage ? "Organization + WebSite" : transportServicePath ? "Service + Organization" : "Organization / WebPage")
-        : ecommerceSchemaContext
-          ? (isProductPage ? "Product" : isHomepage ? "OnlineStore + WebSite" : hasCategorySignal ? "ItemList / CollectionPage" : "Organization / WebPage")
-          : effectiveLocalSchemaSignal
-            ? specificLocalSchema || "LocalBusiness"
-            : isHomepage ? "Organization + WebSite" : isProductPage ? "Product" : hasCategorySignal ? "ItemList / CollectionPage" : hasArticleSignal ? "Article" : "WebPage";
-    const schemaContextLabel = governmentIdentitySignal || governmentSchemaPresent ? "overheids-/publieke pagina" : newsMediaSchemaContext ? (isHomepage ? "nieuws-/mediahomepage" : hasArticleSignal ? "nieuwsartikel" : "nieuws-/mediapagina") : transportLogisticsSchemaContext ? (isHomepage ? "transport-/logistiekhomepage" : "transport-/dienstpagina") : ecommerceSchemaContext ? (isProductPage ? "productpagina" : isHomepage ? "webshophomepage" : hasCategorySignal ? "webshopcategorie" : "webshoppagina") : effectiveLocalSchemaSignal ? "lokale bedrijfs-/dienstpagina" : isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "lijst-/categoriepagina" : hasArticleSignal ? "artikel-/nieuwspagina" : "contentpagina";
-    const hasRelevantContextSchema = governmentIdentitySignal || governmentSchemaPresent
-      ? governmentSchemaPresent || schemaSet.has("organization") || schemaSet.has("website") || schemaSet.has("webpage")
-      : newsMediaSchemaContext
-      ? schemaSet.has("newsmediaorganization") || schemaSet.has("organization") || schemaSet.has("website") || schemaSet.has("newsarticle") || schemaSet.has("article")
-      : transportLogisticsSchemaContext
-        ? (isHomepage
-            ? schemaSet.has("organization") || schemaSet.has("website") || schemaSet.has("service")
-            : schemaSet.has("service") || schemaSet.has("organization") || schemaSet.has("webpage"))
-        : ecommerceSchemaContext
-          ? (isProductPage
-              ? hasProductSchema
-              : isHomepage
-                ? schemaSet.has("onlinestore") || schemaSet.has("website") || schemaSet.has("organization")
-                : hasCategorySignal
-                  ? schemaSet.has("itemlist") || schemaSet.has("collectionpage") || schemaSet.has("onlinestore")
-                  : schemaSet.has("webpage") || schemaSet.has("organization") || schemaSet.has("onlinestore"))
-          : effectiveLocalSchemaSignal
-            ? hasRelevantLocalSchema
-            : isProductPage
-            ? hasProductSchema
-            : hasCategorySignal
-              ? schemaSet.has("itemlist") || schemaSet.has("collectionpage")
-              : hasArticleSignal
-                ? schemaSet.has("article") || schemaSet.has("newsarticle") || schemaSet.has("blogposting")
+    let effectiveLocalSchemaSignal = hasLocalBusinessSignal && !nationwideRentalOperator && !governmentIdentitySignal && !governmentSchemaPresent && !transportLogisticsSchemaContext && !ecommerceSchemaContext && !newsMediaSchemaContext;
+    // Schema advice context. Recomputed once the sector is known (see
+    // "schema context follows sector"): a local hint must not give LocalBusiness
+    // advice to a bank, telecom provider or charity.
+    const schemaContextFor = (localSignal: boolean, transportSignal: boolean) => {
+      const recommendedSchema = governmentIdentitySignal || governmentSchemaPresent
+        ? (isHomepage ? "GovernmentOrganization + WebSite" : "GovernmentOrganization / WebPage")
+        : newsMediaSchemaContext
+        ? (isHomepage ? "NewsMediaOrganization + WebSite" : hasArticleSignal ? "NewsArticle" : "NewsMediaOrganization / WebPage")
+        : transportSignal
+          ? (isHomepage ? "Organization + WebSite" : transportServicePath ? "Service + Organization" : "Organization / WebPage")
+          : ecommerceSchemaContext
+            ? (isProductPage ? "Product" : isHomepage ? "OnlineStore + WebSite" : hasCategorySignal ? "ItemList / CollectionPage" : "Organization / WebPage")
+            : localSignal
+              ? specificLocalSchema || "LocalBusiness"
+              : isHomepage ? "Organization + WebSite" : isProductPage ? "Product" : hasCategorySignal ? "ItemList / CollectionPage" : hasArticleSignal ? "Article" : "WebPage";
+      const schemaContextLabel = governmentIdentitySignal || governmentSchemaPresent ? "overheids-/publieke pagina" : newsMediaSchemaContext ? (isHomepage ? "nieuws-/mediahomepage" : hasArticleSignal ? "nieuwsartikel" : "nieuws-/mediapagina") : transportSignal ? (isHomepage ? "transport-/logistiekhomepage" : "transport-/dienstpagina") : ecommerceSchemaContext ? (isProductPage ? "productpagina" : isHomepage ? "webshophomepage" : hasCategorySignal ? "webshopcategorie" : "webshoppagina") : localSignal ? "lokale bedrijfs-/dienstpagina" : isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "lijst-/categoriepagina" : hasArticleSignal ? "artikel-/nieuwspagina" : "contentpagina";
+      // schema.org inheritance: Corporation, LegalService, EmploymentAgency … are Organizations.
+      const organizationSchemaPresent = hasOrganizationSchema(schemaTypes);
+      const hasRelevantContextSchema = governmentIdentitySignal || governmentSchemaPresent
+        ? governmentSchemaPresent || organizationSchemaPresent || schemaSet.has("website") || schemaSet.has("webpage")
+        : newsMediaSchemaContext
+        ? schemaSet.has("newsmediaorganization") || organizationSchemaPresent || schemaSet.has("website") || schemaSet.has("newsarticle") || schemaSet.has("article")
+        : transportSignal
+          ? (isHomepage
+              ? organizationSchemaPresent || schemaSet.has("website") || schemaSet.has("service")
+              : schemaSet.has("service") || organizationSchemaPresent || schemaSet.has("webpage"))
+          : ecommerceSchemaContext
+            ? (isProductPage
+                ? hasProductSchema
                 : isHomepage
-                  ? schemaSet.has("organization") || schemaSet.has("website")
-                  : schemaSet.has("webpage") || schemaSet.has("article") || schemaSet.has("organization") || schemaSet.has("website");
+                  ? schemaSet.has("onlinestore") || schemaSet.has("website") || organizationSchemaPresent
+                  : hasCategorySignal
+                    ? schemaSet.has("itemlist") || schemaSet.has("collectionpage") || schemaSet.has("onlinestore")
+                    : schemaSet.has("webpage") || organizationSchemaPresent || schemaSet.has("onlinestore"))
+            : localSignal
+              ? hasRelevantLocalSchema
+              : isProductPage
+              ? hasProductSchema
+              : hasCategorySignal
+                ? schemaSet.has("itemlist") || schemaSet.has("collectionpage")
+                : hasArticleSignal
+                  ? schemaSet.has("article") || schemaSet.has("newsarticle") || schemaSet.has("blogposting")
+                  : isHomepage
+                    ? organizationSchemaPresent || schemaSet.has("website")
+                    : schemaSet.has("webpage") || schemaSet.has("article") || organizationSchemaPresent || schemaSet.has("website");
+      return { recommendedSchema, schemaContextLabel, hasRelevantContextSchema };
+    };
+    let { recommendedSchema, schemaContextLabel, hasRelevantContextSchema } = schemaContextFor(effectiveLocalSchemaSignal, transportLogisticsSchemaContext);
     const businessName = organizationName || (title.split(/[|–—-]/)[0] || "").trim();
     const phoneMatch = text.match(/(?:\+31\s?6|0)[\d\s().-]{8,}/);
     // Word-boundary anchored matcher: an unanchored "[A-Z0-9._%+-]+@" pattern is
@@ -1758,7 +1768,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const visibleEmail = businessContactDetails.email; // example/test addresses are not contact evidence
     const emailMatch = visibleEmail ? [visibleEmail] : null;
     const addressMatch = text.match(/\b([^,]{3,60}\s+\d+[A-Za-z]?)\s+(\d{4}\s?[A-Z]{2})\s+([A-Za-zÀ-ÿ' -]{2,40})\b/);
-    const localBusinessDetails = effectiveLocalSchemaSignal ? {
+    let localBusinessDetails = effectiveLocalSchemaSignal ? {
       name: businessName || null,
       streetAddress: addressMatch?.[1]?.trim() || null,
       postalCode: addressMatch?.[2]?.trim() || null,
@@ -3607,6 +3617,20 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       ? check("pass", "alt", "seo", "Afbeelding alt-teksten", `Alle ${imageElementCount} controleerbare <img>-elementen in de ${javascriptExecuted ? "gerenderde" : "raw"} HTML hebben alt-attributen.${javascriptExecuted ? "" : " JavaScript-geladen afbeeldingen zijn niet meegenomen."}`, "Schrijf beschrijvende alt-teksten voor informatieve afbeeldingen.", 7, 7)
       : check("warning", "alt", "seo", "Afbeelding alt-teksten", `${imagesMissingAlt} van ${imageElementCount} controleerbare <img>-elementen in de ${javascriptExecuted ? "gerenderde" : "raw"} HTML missen alt (${Math.round(missingAltRatio * 100)}%).${javascriptExecuted ? "" : " JavaScript-geladen afbeeldingen zijn niet meegenomen."}`, "Voeg beschrijvende alt-teksten toe waar ze betekenis toevoegen.", altPoints, 7)
     );
+    // Schema context follows sector: the local and transport hints above were
+    // decided from keywords before the sector. A non-local primary sector (bank,
+    // telecom, charity…) gets no LocalBusiness advice, and "logistiek" in a
+    // recruitment agency's vacancies does not make it a transport homepage.
+    {
+      const sector = String(sectorProfile.sector || "unknown");
+      const transportContext = transportLogisticsSchemaContext && (sector === "unknown" || ["transport_travel", "maritime_ports", "airports"].includes(sector));
+      const localContext = hasLocalBusinessSignal && !nationwideRentalOperator && !governmentIdentitySignal && !governmentSchemaPresent && !transportContext && !ecommerceSchemaContext && !newsMediaSchemaContext && !isNonLocalSector(sector);
+      if (localContext !== effectiveLocalSchemaSignal || transportContext !== transportLogisticsSchemaContext) {
+        if (!localContext) localBusinessDetails = null;
+        effectiveLocalSchemaSignal = localContext;
+        ({ recommendedSchema, schemaContextLabel, hasRelevantContextSchema } = schemaContextFor(localContext, transportContext));
+      }
+    }
     const effectiveLocalBusinessPage = !isProductPage && !hasCategorySignal && effectiveLocalSchemaSignal;
     const effectiveArticlePage = hasArticleSignal && !effectiveLocalBusinessPage;
     const contentContext = isHomepage ? "homepage" : isProductPage ? "productpagina" : hasCategorySignal ? "categorie-/lijstpagina" : effectiveLocalBusinessPage ? "lokale bedrijfspagina" : effectiveArticlePage ? "artikelpagina" : "contentpagina";
@@ -4790,7 +4814,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       };
       if (rawHtml && rawHtml !== html) addFallback([...neutralizeTemplateBindings(rawHtml).matchAll(/<a\b[^>]*href\s*=\s*["']([^"'#]+)["']/gi)].map((m) => decode(m[1] || "")).filter((href) => !isTemplateHref(href) && !isCartActionUrl(href)), "links in de ruwe HTML");
       addFallback(schemaObjects.flatMap((item) => {
-        const types = Array.isArray(item?.["@type"]) ? item["@type"] : [item?.["@type"]];
+        const types: string[] = schemaTypesOf(item);
         return types.some((type: unknown) => /^sitenavigationelement$/i.test(String(type || ""))) ? [item?.url].flat().filter((value: unknown): value is string => typeof value === "string") : [];
       }), "navigatie in structured data");
       addFallback(sitemapPageUrls, "sitemap");
@@ -5071,7 +5095,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
               while (queue.length) {
                 const value = queue.shift();
                 if (!value || typeof value !== "object") continue;
-                const types = Array.isArray(value["@type"]) ? value["@type"] : [value["@type"]];
+                const types: string[] = schemaTypesOf(value);
                 if (types.some((t:any)=>String(t||"").toLowerCase()==="product")) { found.push(value); continue; }
                 for (const nested of Object.values(value)) {
                   if (Array.isArray(nested)) queue.push(...nested);
@@ -6682,8 +6706,13 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // evidence statuses. Previously this stayed frozen before the commerce gate.
     scanSummary = summarizeAuditChecks(checks);
 
+    // One source of truth for "Webshop": the evidence-gated website profile. The
+    // early websiteType was decided before that profile and could still say
+    // "Webshop" for a payment provider the profile classified as a service
+    // (classification vs websiteProfile disagreed in the same report).
+    const shopConfirmed = websiteProfile.websiteType.value === "ecommerce_store" && websiteProfile.websiteType.status === "confirmed";
     const classification = {
-      websiteType,
+      websiteType: shopConfirmed ? "Webshop" : websiteType === "Webshop" ? "Website" : websiteType,
       sector: {
         key: sectorProfile.key,
         label: sectorProfile.label,
