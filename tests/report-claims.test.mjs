@@ -74,3 +74,10 @@ test("crawl coverage: missing relevant parts are nominated from the sitemap inde
   assert.ok(line, out.stderr || out.stdout);
   assert.equal(JSON.parse(line.slice("SCAN_MATRIX_RESULT ".length)).failed, 0, out.stdout);
 });
+
+test("blocked homepage: partial report from a public sitemap page; fully blocked site and non-root pages unchanged", () => {
+  const out = node("tests/scan-matrix/run-alternate-start.mjs");
+  const line = out.stdout.split("\n").find((l) => l.startsWith("SCAN_MATRIX_RESULT "));
+  assert.ok(line, out.stderr || out.stdout);
+  assert.equal(JSON.parse(line.slice("SCAN_MATRIX_RESULT ".length)).failed, 0, out.stdout);
+});

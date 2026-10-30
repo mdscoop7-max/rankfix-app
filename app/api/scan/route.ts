@@ -70,6 +70,7 @@ import { detectEuPrimaryIdentity, isConsentHeading, retailSelfDescription, strip
 import { enforceReportConsistency, isNonLocalSector } from "@/lib/report-consistency";
 import { normalizeSchemaType, schemaTypesOf } from "@/lib/schema-type";
 import { sectionCoverage } from "@/lib/section-coverage";
+import { ALTERNATE_START_CODES, locValues, pickAlternateStartUrls, sitemapUrlsFromRobots } from "@/lib/alternate-start";
 import { decideSalesChannel } from "@/lib/sales-channel";
 import { measureWebsiteSpeed, speedNotMeasured } from "@/lib/pagespeed";
 
@@ -522,8 +523,17 @@ export async function POST(request: Request) {
   // One trace per request: website status, API status, reason code, phase and
   // browser attempt stay separate in every error answer (incident) and log.
   const trace = createScanTrace(requestedUrl);
-  const rawResponse = await Promise.race([runScan(request, clock, trace), hardStop]);
+  const requestBody = await request.clone().json().catch(() => null) as Record<string, unknown> | null;
+  let rawResponse = await Promise.race([runScan(request, clock, trace), hardStop]);
   if (hardStopTimer) clearTimeout(hardStopTimer);
+  // Homepage refused RankFix or did not answer: try a public page the site itself
+  // publishes in its sitemap as start page (partial report, clearly labelled).
+  try {
+    const alternate = await tryAlternateStart(request, requestBody, rawResponse, clock, attemptStarted);
+    if (alternate) rawResponse = alternate;
+  } catch (error) {
+    console.warn("RankFix alternate start failed", { message: error instanceof Error ? error.message.slice(0, 160) : "unknown" });
+  }
   let response = rawResponse;
   try { response = await attachScanIncident(rawResponse, trace); } catch (error) {
     console.warn("RankFix scan incident attach failed", { traceId: trace.traceId, message: error instanceof Error ? error.message.slice(0, 160) : "unknown" });
@@ -547,6 +557,57 @@ export async function POST(request: Request) {
     }
   }
   return response;
+}
+
+async function tryAlternateStart(request: Request, body: Record<string, unknown> | null, first: Response, clock: { expired: boolean }, attemptStarted: number): Promise<Response | null> {
+  if (first.status !== 422 || clock.expired) return null;
+  const failed = await first.clone().json().catch(() => null) as Record<string, unknown> | null;
+  const code = typeof failed?.code === "string" ? failed.code : "";
+  if (!ALTERNATE_START_CODES.has(code)) return null;
+  const requested = typeof body?.url === "string" ? body.url.trim() : "";
+  let origin: URL;
+  try { origin = new URL(/^https?:\/\//i.test(requested) ? requested : `https://${requested}`); } catch { return null; }
+  if ((origin.pathname.replace(/\/+$/, "") || "/") !== "/" || origin.search) return null;
+  const remaining = () => SCAN_HARD_LIMIT_MS - (Date.now() - attemptStarted);
+  if (remaining() < 120_000) return null;
+  const read = async (url: string, accept: string) => {
+    try {
+      const r = (await safePublicFetch(new URL(url), { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept })).response;
+      if (!r.ok) { try { await r.body?.cancel(); } catch {} return ""; }
+      return await readResponseTextLimited(r, 2_000_000);
+    } catch { return ""; }
+  };
+  const robots = await read(`${origin.origin}/robots.txt`, "text/plain");
+  const pageUrls: string[] = [];
+  for (const sitemap of sitemapUrlsFromRobots(robots, origin.origin).slice(0, 3)) {
+    if (pageUrls.length >= 50 || remaining() < 110_000) break;
+    const parsed = locValues(await read(sitemap, "application/xml,text/xml"));
+    if (parsed.kind === "urlset") pageUrls.push(...parsed.locs.slice(0, 200));
+    else if (parsed.kind === "sitemapindex") {
+      const child = [...parsed.locs].sort((a, b) => Number(!/(?:page|categor|product|collection|content|service)/i.test(a)) - Number(!/(?:page|categor|product|collection|content|service)/i.test(b)))[0];
+      if (child) { const inner = locValues(await read(child, "application/xml,text/xml")); if (inner.kind === "urlset") pageUrls.push(...inner.locs.slice(0, 200)); }
+    }
+  }
+  for (const candidate of pickAlternateStartUrls(pageUrls, origin.hostname, 2)) {
+    if (remaining() < 100_000 || clock.expired) break;
+    const retry = new Request(request.url, { method: "POST", headers: request.headers, body: JSON.stringify({ ...(body || {}), url: candidate }) });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const limit = new Promise<null>((resolve) => { timer = setTimeout(() => resolve(null), Math.max(1_000, remaining() - 10_000)); });
+    const result = await Promise.race([runScan(retry, clock, createScanTrace(candidate)), limit]);
+    if (timer) clearTimeout(timer);
+    if (!result || !result.ok) continue;
+    const json = await result.json().catch(() => null) as Record<string, any> | null;
+    if (!json?.success) continue;
+    const reason = code === "HTTP_BLOCKED" || code === "CHALLENGE_OR_INTERSTITIAL" ? "weigerde RankFix" : "antwoordde niet op tijd";
+    json.alternateStart = { requestedUrl: origin.toString(), reasonCode: code, originHttpStatus: typeof failed?.httpStatus === "number" ? failed.httpStatus : null, startUrl: candidate, source: "sitemap",
+      note: `De homepage ${reason} (${code}). RankFix startte daarom op een openbare pagina uit de sitemap van de website: ${candidate}. Dit is een gedeeltelijk rapport; de homepage zelf is niet gecontroleerd.` };
+    if (json.scoreModel) {
+      if (json.scoreModel.evidenceLevel === "complete") json.scoreModel.evidenceLevel = "provisional";
+      json.scoreModel.evidenceReasons = [...(json.scoreModel.evidenceReasons || []), `Homepage ${reason} (${code}); rapport gestart vanaf ${candidate}`];
+    }
+    return NextResponse.json(json, { status: 200 });
+  }
+  return null;
 }
 
 async function runScan(request: Request, clock: { expired: boolean } = { expired: false }, trace: ScanTrace = createScanTrace("")) {
