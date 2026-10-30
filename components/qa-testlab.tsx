@@ -41,6 +41,11 @@ export default function TestLab144() {
  const [query,setQuery]=useState("");
  const stop=useRef(false);
  const mounted=useRef(true);
+ // A run survives a page reload (next dev HMR reconnect, sleep, accidental F5):
+ // the run flag stays in localStorage and the page resumes the queue itself.
+ const [resumePending,setResumePending]=useState<{scope:string}|null>(null);
+ const startRef=useRef<(()=>void)|null>(null);
+ const runKey=(sha:string,catalogId:string)=>"rankfix-qa-testlab-run:"+catalogId+":"+sha;
  useEffect(()=>{
   mounted.current=true;
   const requestedCatalog=new URLSearchParams(window.location.search).get("catalog");
@@ -71,6 +76,9 @@ export default function TestLab144() {
     if(stored){try{const list=JSON.parse(stored);
       if(Array.isArray(list))setResults(list.filter((r:SiteResult)=>next.sites.some(s=>s.host===r.host)).slice(0,144));
     }catch{}}
+    try{const flag=JSON.parse(localStorage.getItem(runKey(version.commitSha,next.catalogId))||"null");
+     if(flag?.active&&Date.now()-Number(flag.at||0)<12*3600_000){setScope(String(flag.scope||"all"));setResumePending({scope:String(flag.scope||"all")});setNotice("De TestLab-pagina is tijdens een lopende test opnieuw geladen. De test gaat over 5 seconden automatisch verder bij de eerste niet-geteste website; bestaande resultaten blijven bewaard.");return;}
+    }catch{}
     setNotice("Klaar. VDL Groep tijdelijk uitgesloten wegens verbindingsproblemen; 143 websites blijven testbaar. "+next.categoryCounts.webshops+" webshops en "+next.categoryCounts.other+" andere websites geselecteerd. Klik één keer op Start test; houd dit tabblad open.");
   }).catch((cause)=>{if(mounted.current){setError("TestLab kon niet laden: "+(cause instanceof Error ? cause.message : "server niet bereikbaar")+". Controleer de lokale QA-aanmelding en herlaad de pagina.");setNotice("");}});
   return()=>{mounted.current=false;stop.current=true;};
@@ -100,6 +108,8 @@ export default function TestLab144() {
   const queue=resumeQueue(scoped,results);
   if(!queue.length){setNotice("Alles in deze selectie is al getest. Kies een andere groep of wis resultaten.");return;}
   stop.current=false;setRunning(true);setError("");
+  const flagKey=catalog.runtime.commitSha?runKey(catalog.runtime.commitSha,catalog.catalogId):null;
+  if(flagKey)localStorage.setItem(flagKey,JSON.stringify({active:true,scope,at:Date.now()}));
   setNotice("Test gestart. Eén website tegelijk, met een pauze tussen scans. Je kunt stoppen na de huidige scan.");
   let list=[...results];
   try{
@@ -177,8 +187,20 @@ export default function TestLab144() {
     }
     if(!stop.current)await sleep(8000);
    }
-  }finally{if(mounted.current)setRunning(false);}
+   if(mounted.current){const done=list.filter(r=>isFinalResult(r)&&scoped.some(s=>s.host===r.host)).length;
+    if(stop.current)setNotice("Test gestopt op verzoek: "+done+"/"+scoped.length+" afgerond. Klik Start test om verder te gaan.");
+    else if(done>=scoped.length)setNotice("Test afgerond: "+done+"/"+scoped.length+" websites. Exporteer de resultaten als JSON.");}
+  }finally{
+   // Unmounted mid-run (reload): keep the flag so the reloaded page resumes.
+   if(mounted.current){setRunning(false);if(flagKey)localStorage.removeItem(flagKey);}
+  }
  }
+ useEffect(()=>{startRef.current=start;});
+ useEffect(()=>{
+  if(!resumePending||!catalog||running||resumePending.scope!==scope)return;
+  const timer=setTimeout(()=>{setResumePending(null);startRef.current?.();},5000);
+  return()=>clearTimeout(timer);
+ },[resumePending,catalog,running,scope]);
  function stopAfterCurrent(){stop.current=true;setNotice("Stop aangevraagd: de lopende websitescan wordt eerst afgerond.");}
  function clearResults(){
   if(running)return;
