@@ -1790,6 +1790,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // Same-site page URLs listed in a valid sitemap: an alternative source for the
     // representative sample when the scanned document exposes too few links.
     const sitemapPageUrls: string[] = [];
+    const sitemapChildUrls: string[] = [];
     let sitemapStatus: "PASS" | "FAIL" | "UNABLE_TO_CONFIRM" = "UNABLE_TO_CONFIRM";
     let sitemapFetchCompleted = false;
     let robotsDeclaredSitemapUrls: string[] = [];
@@ -1932,6 +1933,12 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             ? sameOriginLocValues.length > 0 || (candidate.source === "robots" && validLocValues.length > 0)
             : sameOriginLocValues.length > 0;
           if (structurallyValid && sitemapKind === "urlset" && sitemapPageUrls.length < 200) sitemapPageUrls.push(...sameOriginLocValues.slice(0, 200 - sitemapPageUrls.length));
+          // A sitemap index lists child sitemaps, not pages: remember up to two
+          // same-site children (page/product/category sitemaps first) to read later.
+          if (structurallyValid && sitemapKind === "sitemapindex") {
+            const rank = (u: string) => /(?:page|pagina|product|categor|collection|content|post|service|dienst)/i.test(u) ? 0 : /(?:image|video|news|blog|author|tag)/i.test(u) ? 2 : 1;
+            for (const child of [...sameOriginLocValues].sort((a, b) => rank(a) - rank(b))) if (!sitemapChildUrls.includes(child) && sitemapChildUrls.length < 2) sitemapChildUrls.push(child);
+          }
           if (structurallyValid && sitemapEntriesMatchSite) {
             sitemapFound = true;
             sitemapStatus = "PASS";
@@ -4812,6 +4819,23 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // sample. Then use, in order: links in the raw server HTML, SiteNavigationElement
     // URLs in structured data, and the sitemap. These only nominate pages; every
     // candidate is fetched and judged on its own evidence. No site or path rules.
+    // Child sitemaps of a sitemap index (bounded: two files, 5 s, 2 MB each) so a
+    // site that publishes its pages only through an index still nominates them.
+    if (!sitemapPageUrls.length && sitemapChildUrls.length && !clock.expired) {
+      for (const child of sitemapChildUrls) {
+        try {
+          const r = (await safePublicFetch(new URL(child), { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/plain,application/xml,text/xml" })).response;
+          if (!r.ok) { try { await r.body?.cancel(); } catch {} continue; }
+          const body = await readResponseTextLimited(r, 2_000_000);
+          if (!/<(?:(?:[a-z0-9_-]+):)?urlset\b/i.test(body)) continue;
+          const origin = new URL(child).origin;
+          for (const m of body.matchAll(/<(?:(?:[a-z0-9_-]+):)?loc\b[^>]*>([\s\S]*?)<\/(?:(?:[a-z0-9_-]+):)?loc>/gi)) {
+            const value = decode(String(m[1] || "").trim());
+            try { if (new URL(value).origin === origin && sitemapPageUrls.length < 200) sitemapPageUrls.push(value); } catch {}
+          }
+        } catch { /* a child sitemap that does not answer only means fewer candidates */ }
+      }
+    }
     const sampleLinkSource: "page_links" | "fallback" = allUniqueInternalAnchors.length >= 3 ? "page_links" : "fallback";
     const fallbackSources: string[] = [];
     const fallbackAnchors: Array<{ url: string; context: string; sourceHref: string }> = [];
@@ -4846,6 +4870,40 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       if (context) { const cleanContext = context.replace(/\s*(?:""|“”|''|«\s*»)\s*$/,"").trim(); if (cleanContext) candidate.evidence.push(`link-context: ${cleanContext.slice(0,120)}`); }
       return [[normalizeScanUrl(candidate.url), candidate] as const];
     })).values()];
+    // Section gap fill: when the page's own links do not reach a relevant part of
+    // the site (contact, legal, support, services, or categories/products for a
+    // shop), nominate URLs the site itself publishes for it — sitemap entries and
+    // links in the raw server HTML — up to two per missing part. Never guessed paths.
+    const sectionGapFill: Array<{ type: string; source: string; count: number }> = [];
+    {
+      const shopLike = Boolean(masterEvidence.commerce.confirmed || technologyProfile.isCommerce || hasEcommerceSignal);
+      const wanted: MultiPageCandidate["type"][] = shopLike ? ["category", "product", "contact", "legal", "support"] : ["service", "contact", "legal", "support"];
+      const have = new Set(discoveredMultiPage.map((item) => item.type));
+      const known = new Set(discoveredMultiPage.map((item) => normalizeScanUrl(item.url)));
+      const pools: Array<[string, string[]]> = [
+        ["sitemap", sitemapPageUrls],
+        ["ruwe HTML", rawHtml && rawHtml !== html ? [...neutralizeTemplateBindings(rawHtml).matchAll(/<a\b[^>]*href\s*=\s*["']([^"'#]+)["']/gi)].map((m) => decode(m[1] || "")).filter((href) => !isTemplateHref(href) && !isCartActionUrl(href)) : []],
+      ];
+      for (const type of wanted) {
+        if (have.has(type)) continue;
+        for (const [source, urls] of pools) {
+          let added = 0;
+          for (const raw of urls) {
+            if (added >= 2) break;
+            let parsed: URL; try { parsed = new URL(raw, finalUrl); } catch { continue; }
+            if (!/^https?:$/.test(parsed.protocol) || normalizeHost(parsed.hostname) !== siteHost) continue;
+            parsed.hash = "";
+            const key = normalizeScanUrl(parsed.toString());
+            if (known.has(key) || key === normalizeScanUrl(finalUrl.toString())) continue;
+            const candidate = classifyMultiPageCandidate(parsed.toString());
+            if (!candidate || candidate.type !== type) continue;
+            candidate.evidence.push(`aanvulling: ${source} (ontbrekend onderdeel ${type})`);
+            discoveredMultiPage.push(candidate); known.add(key); added++;
+          }
+          if (added) { sectionGapFill.push({ type, source, count: added }); have.add(type); break; }
+        }
+      }
+    }
     // Evidence-first representative selection. URL shape is only a weak fallback;
     // structural link context from the scanned page is the primary signal. This keeps
     // narrative/news/history pages from outranking pages that expose services,
@@ -6817,6 +6875,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     });
     const multiPage = {
       sectionCoverage: sectionCoverageReport,
+      sectionGapFill,
       siteAccess,
       accounting:sampleAccounting,
       sampleRetryPass,

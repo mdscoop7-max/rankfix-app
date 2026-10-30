@@ -67,3 +67,10 @@ for (const [fixture, floor] of Object.entries(FLOOR)) {
     } finally { rmSync(dir, { recursive: true, force: true }); }
   });
 }
+
+test("crawl coverage: missing relevant parts are nominated from the sitemap index (no guessed paths)", () => {
+  const out = node("tests/scan-matrix/run-section-gapfill.mjs");
+  const line = out.stdout.split("\n").find((l) => l.startsWith("SCAN_MATRIX_RESULT "));
+  assert.ok(line, out.stderr || out.stdout);
+  assert.equal(JSON.parse(line.slice("SCAN_MATRIX_RESULT ".length)).failed, 0, out.stdout);
+});
