@@ -2605,13 +2605,16 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       // biefstuk en gerechten") is independent restaurant identity evidence.
       // The homepage's own multilingual declaration of a restaurant or hotel
       // (ristorante, hôtel, Gasthaus, restaurante...) is the same kind of evidence.
-      || Boolean(declaredIdentityApplies && homepageDeclared?.sector === "hospitality");
+      || Boolean(declaredIdentityApplies && homepageDeclared?.sector === "hospitality")
+      // A food-service chain recognised from dishes + menu + locations (eu-identity).
+      || Boolean(euPrimaryIdentity?.sector === "hospitality" && euPrimaryIdentity.key === "restaurant");
     if (sectorProfile.sector === "hospitality" && primaryBusinessEvidence.sector !== "hospitality" && !restaurantIdentityEvidence) {
       sectorProfile.sector = "unknown";
       sectorProfile.key = "unknown";
       sectorProfile.label = "Sector niet betrouwbaar vastgesteld";
       sectorProfile.confidence = "low";
-      sectorProfile.confidenceScore = 35;
+      // An abstained sector carries no certainty (report invariant: unknown = 0%).
+      sectorProfile.confidenceScore = 0;
       sectorProfile.evidence = ["Horeca- of verblijfssignalen waren niet onafhankelijk bevestigd in de bedrijfsidentiteit"];
       sectorProfile.applicableModules = ["core_seo","geo","technical","business_identity"];
     }

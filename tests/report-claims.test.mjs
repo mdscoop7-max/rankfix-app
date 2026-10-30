@@ -40,7 +40,7 @@ test("synthetic claim scenarios: schema subtypes, sector-aware schema context, s
 
 // Sector outcome on the replay sets may not get worse than on 30 Oct 2026.
 const FLOOR = {
-  "testlab-144-replay/route.json.gz": { compatible: 81, wrong: 2 },
+  "testlab-144-replay/route.json.gz": { compatible: 86, wrong: 2 },
   "testlab-96-replay/route.json.gz": { compatible: 66, wrong: 0 },
   "testlab-96-replay/route-evening.json.gz": { compatible: 67, wrong: 0 },
 };

@@ -24,7 +24,7 @@ import { isComparisonPlatformText } from "./platform-identity.ts";
 
 export type EuSector =
   | "news_media" | "financial_services" | "transport_travel" | "government"
-  | "education" | "health_wellness" | "telecom_technology" | "energy_utilities" | "events_culture" | "professional_services" | "saas_b2b" | "fitness_sports" | "tourism_recreation" | "manufacturing_industrial" | "automotive" | "nonprofit";
+  | "education" | "health_wellness" | "telecom_technology" | "energy_utilities" | "events_culture" | "professional_services" | "saas_b2b" | "fitness_sports" | "tourism_recreation" | "manufacturing_industrial" | "automotive" | "nonprofit" | "agriculture_horticulture" | "hospitality" | "sports_organizations";
 
 export type EuIdentity = {
   sector: EuSector;
@@ -61,6 +61,8 @@ function stems(list: string[]): RegExp {
   return new RegExp(`${B}(?:${list.join("|")})\\p{L}*`, "iu");
 }
 
+const ENERGY_TRANSITION = stems(["transition énergétique", "transition energetique", "energy transition", "energietransitie", "energiewende", "transizione energetica", "transición energética", "transição energética", "energiomställning", "transformacja energetyczna"]);
+const RENEWABLE_STRUCTURE = stems(["production renouvelable", "renouvelable", "renewable", "rinnovabil", "renovable", "erneuerbar", "hernieuwbar", "duurzame opwek", "énergie renouvelable", "hydroélectri", "hydropower", "waterkracht", "wasserkraft"]);
 // Fundraising actions (navigation, buttons, own fields) in the main EU languages.
 const DONATE = new RegExp(`${B}(?:doneer\\p{L}*|doneren|donatie\\p{L}*|donateur\\p{L}*|donate|donating|donations?|steun met geld|word donateur|spenden|jetzt spenden|spende\\p{L}*|faire un don|je donne|dona(?: ora| ahora| agora)?|donar|donativo\\p{L}*|donera|lahjoita\\p{L}*|wesprzyj|darowizn\\p{L}*|give monthly|gift aid)${E}`, "iu");
 // Charity registration identifiers.
@@ -192,6 +194,34 @@ const BANK_CONCEPTS: Array<[string, RegExp]> = [
   ["investing", stems(["beleggen", "beleggingen", "investment", "investiț", "investiti", "investimen", "inversi", "sijoit", "investeer", "investēš", "investic", "befektet", "επενδύσ", "инвестиц", "ulaganj", "naložb", "vermogensbeheer", "wealth management", "private banking"])],
   ["banking", stems(["bankieren", "banking", "bancar", "bancair", "bancari", "bancária", "bankowoś", "bankovn", "banki szolg", "τραπεζ", "банков", "bankovn", "bančn", "pankkipalvel", "pangateenus", "banku pakalpoj", "bankininkyst", "bankowość", "operatiuni bancare", "operațiuni bancare"])],
 ];
+// Agriculture: distinct farming concepts in navigation/section structure (QA
+// replay: an agricultural cooperative with only "farm, field" in its own text).
+const AGRI_CONCEPTS: Array<[string, RegExp]> = [
+  ["arable", stems(["arable", "akkerbouw", "ackerbau", "grandes cultures", "seminativ", "cultivos extensivos", "crop protection", "gewasbescherming", "pflanzenschutz"])],
+  ["livestock", stems(["livestock", "veehouderij", "rundvee", "melkvee", "dairy farm", "pluimvee", "poultry", "varkens", "swine", "pig farm", "tierhaltung", "geflügel", "élevage", "volaille", "allevament", "ganadería", "avicultura"])],
+  ["feed", stems(["animal feed", "diervoeder", "veevoer", "mengvoer", "futtermittel", "aliment du bétail", "alimentation animale", "mangimi", "piensos", "nutritional solutions", "animal nutrition", "diervoeding", "tierernährung"])],
+  ["soil", stems(["soil health", "healthy soil", "bodem", "bodemgezondheid", "bodenfruchtbarkeit", "fertili", "fertiliz", "fertilis", "kunstmest", "meststof", "dünger", "engrais", "concimi", "abonos"])],
+  ["seed", stems(["seeds", "zaaizaad", "pootgoed", "saatgut", "semences", "sementi", "semillas"])],
+  ["farmers", stems(["farmers", "growers", "boeren", "telers", "veehouders", "landwirte", "agriculteurs", "éleveurs", "agricoltori", "allevatori", "agricultores", "ganaderos"])],
+];
+const FARM_OWN = stems(["farm", "field", "agri", "boerderij", "landbouw", "landwirtschaft", "agricult", "agricol", "agrícol", "agrar", "agrarisch"]);
+// Food service without the trade noun (a chain named only by its brand):
+// dishes in its own text, a menu and its locations in its navigation.
+const DISHES = stems(["gerechten", "dishes", "gerichte", "plats", "piatti", "platos", "pratos", "lunch", "ontbijt", "breakfast", "diner", "dinner", "eten en drinken", "food and drink", "frühstück", "déjeuner", "pranzo", "almuerzo"]);
+const MENU_NAV = stems(["menu", "menukaart", "speisekarte", "carte", "menù", "carta"]);
+const LOCATIONS_NAV = stems(["locaties", "vestigingen", "locations", "restaurants", "standorte", "filialen", "adresses", "nos restaurants", "sedi", "ristoranti", "ubicaciones", "restaurantes"]);
+// Sport organisations and events: a sport named in the own fields plus
+// competition structure (results, fixtures, draws, tickets, players, clubs).
+const SPORT_OWN = stems(["sport", "tennis", "voetbal", "football", "fußball", "fussball", "hockey", "golf", "cycling", "wielren", "atletiek", "athletics", "olympi", "championship", "kampioenschap", "meisterschaft", "championnat", "campionat", "campeonato"]);
+const SPORT_CONCEPTS: Array<[string, RegExp]> = [
+  ["results", stems(["live scores", "scores", "uitslagen", "results", "ergebnisse", "résultats", "risultati", "resultados", "standings", "klassement"])],
+  ["fixtures", stems(["draws", "fixtures", "programma", "schedule", "spielplan", "calendrier", "calendario", "wedstrijden", "matches", "kalender"])],
+  ["players", stems(["players", "spelers", "athletes", "sporters", "spieler", "joueurs", "giocatori", "jugadores", "teamnl", "team nl"])],
+  ["clubs", stems(["clubs", "verenigingen", "sportverenigingen", "vereine", "clubondersteuning", "sportbonden", "federations", "bonden", "leden", "members"])],
+  ["tickets", stems(["tickets", "kaarten", "billets", "biglietti", "entradas"])],
+  ["governance", stems(["algemene vergadering", "general assembly", "mitgliederversammlung", "raad van toezicht", "board of directors", "statuten", "governance"])],
+];
+const GYM = stems(["sportschool", "fitness", "gym", "lidmaatschap", "membership", "proefles", "trial class", "personal training"]);
 // The institution names itself a bank (any EU language). Counts as one concept;
 // a bank still needs two more (accounts, loans, cards...). Dutch "bank" = sofa,
 // which the retail veto and the 3-concept rule keep out.
@@ -785,6 +815,33 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   if (civic.length >= 3 && (civic.includes("documents") || civic.includes("governance") || civic.includes("counter"))) {
     return { sector: "government", key: "government", label: "Overheid & Publieke sector", confidence: "medium", confidenceScore: 74,
       evidence: [`Navigatie en koppen beschrijven gemeentelijke/publieke dienstverlening (${civic.join(", ")})`] };
+  }
+  // Agricultural supplier/cooperative: farming named in its own fields and at
+  // least three distinct farming concepts in its navigation. Machinery makers and
+  // farm software are excluded (they sell TO farmers).
+  const agri = distinct(structure, AGRI_CONCEPTS);
+  if (!publication && FARM_OWN.test(own) && agri.length >= 3 && !/(?<![\p{L}])(?:machinery|machines|tractors?|trekkers?|maschinen|software|platform|app)(?![\p{L}])/iu.test(own)) {
+    return { sector: "agriculture_horticulture", key: "agriculture_horticulture", label: "Landbouw & tuinbouw", confidence: "medium", confidenceScore: 74,
+      evidence: [`Landbouw: eigen omschrijving noemt landbouw en de navigatie beschrijft ${agri.join(", ")}`] };
+  }
+  // Food-service chain named only by its brand.
+  if (!publication && DISHES.test(own) && MENU_NAV.test(nav) && LOCATIONS_NAV.test(nav) && !/(?<![\p{L}])(?:recepten|recipes|rezepte|recettes|ricette|recetas|supermarkt\p{L}*|supermarket|boodschappen|groceries|software|platform)(?![\p{L}])/iu.test(own)) {
+    return { sector: "hospitality", key: "restaurant", label: "Restaurant & horeca", confidence: "medium", confidenceScore: 72,
+      evidence: ["Horeca: eigen omschrijving noemt gerechten en de navigatie heeft een menukaart en locaties"] };
+  }
+  // Sport federation or sporting event (not a gym, not a sports shop).
+  const sport = distinct(structure + " " + own, SPORT_CONCEPTS);
+  if (!publication && SPORT_OWN.test(own) && sport.length >= 2 && !GYM.test(own)) {
+    return { sector: "sports_organizations", key: "sports_organizations", label: "Sportbond & sportorganisatie", confidence: "medium", confidenceScore: 72,
+      evidence: [`Sportorganisatie: eigen omschrijving noemt sport en navigatie/koppen beschrijven ${sport.join(", ")}`] };
+  }
+  // Energy company with a mission-style title ("Agir pour la transition
+  // énergétique"): the energy transition in its own fields plus power generation
+  // (hydro, wind, renewables, nuclear) in its navigation. Probable only; a
+  // consultancy that advises on the transition has no generation sections.
+  if (!publication && ENERGY_TRANSITION.test(own) && (POWER_GENERATION.test(structure) || RENEWABLE_STRUCTURE.test(structure)) && !AGENCY.test(title + " " + h1)) {
+    return { sector: "energy_utilities", key: "energy_utilities", label: "Energie & Nutsvoorzieningen", confidence: "medium", confidenceScore: 74,
+      evidence: ["Energie: eigen omschrijving noemt de energietransitie en de navigatie beschrijft energieopwekking"] };
   }
   // Charity / non-profit (QA replay: Rode Kruis, Amnesty, KWF, UNICEF unknown). A
   // fundraising action in the navigation or own fields ("Doneer", "Donate",
