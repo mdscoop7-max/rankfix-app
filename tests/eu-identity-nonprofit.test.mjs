@@ -25,3 +25,9 @@ test("no charity without both signals, and never for software, shops or publicat
   // Publication writing about charities.
   assert.notEqual(id({ title: "Goede Doelen Blog | Nieuws over liefdadigheid", description: "Het magazine over goede doelen en mensen in nood.", navLabels: ["Artikelen", "Doneren tips"] })?.sector, "nonprofit");
 });
+
+test("nature-conservation association with membership is a non-profit; a gym with 'lid worden' is not", () => {
+  const n = id({ title: "Natuurmonumenten | Samen beschermen we de natuur", description: "Natuurmonumenten zet zich in voor natuurbescherming en biodiversiteit in Nederland.", navLabels: ["Natuurgebieden", "Word lid", "Doneer", "Over ons"] });
+  assert.equal(n?.sector, "nonprofit");
+  assert.notEqual(id({ title: "FitClub | Sportschool", description: "Train bij de beste gym van de stad.", navLabels: ["Lessen", "Word lid", "Rooster"] })?.sector, "nonprofit");
+});

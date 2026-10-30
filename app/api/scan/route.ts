@@ -5311,6 +5311,10 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           rendered: representativeEvidenceSource === "rendered_html",
           clientShell: pageClientShell,
         });
+        // QA 30 Oct (nu.nl): a missing H1 in server HTML is only proven when the page
+        // was rendered or cannot add content with JavaScript (fewer than 3 scripts).
+        const pageScriptCount = (pageHtml.match(/<script\b(?![^>]*type\s*=\s*["']application\/(?:ld\+)?json["'])/gi) || []).length;
+        const pageH1UnverifiedWithoutRender = representativeEvidenceSource !== "rendered_html" && pageScriptCount >= 3;
         const clientShellNote = "De pagina laadt haar inhoud via JavaScript en browser-rendering was niet beschikbaar; dit wordt daarom niet als ontbrekend beoordeeld.";
         // A page that asks search engines not to index it does not represent the
         // website in search results and is not scored.
@@ -5331,7 +5335,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
               : {key:"http",status:"PASS",details:`HTTP ${isScannedPage ? response.status : r.status}`},
           {key:"title",status:!pageTitle && pageMissingEvidenceUnverified?"UNABLE_TO_CONFIRM":pageTitleAssessment.status==="PASS"?"PASS":"WARNING",details:!pageTitle && pageMissingEvidenceUnverified?`${pageTitleAssessment.details} ${clientShellNote}`:pageTitleAssessment.details},
           {key:"description",status:!pageDescription && pageMissingEvidenceUnverified?"UNABLE_TO_CONFIRM":pageDescriptionAssessment.status==="PASS"?"PASS":"WARNING",details:!pageDescription && pageMissingEvidenceUnverified?`${pageDescriptionAssessment.details} ${clientShellNote}`:pageDescriptionAssessment.details},
-          {key:"h1",status:pageH1s.length>0?"PASS":pageMissingEvidenceUnverified?"UNABLE_TO_CONFIRM":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:pageH1s.length===0&&pageMissingEvidenceUnverified?`0 H1-heading(s) gevonden in de raw HTML. ${clientShellNote}`:`${pageH1s.length} H1-heading(s) gevonden.`},
+          {key:"h1",status:pageH1s.length>0?"PASS":(pageMissingEvidenceUnverified||pageH1UnverifiedWithoutRender)?"UNABLE_TO_CONFIRM":"WARNING",details:pageH1s.length>1?`${pageH1s.length} H1-headings gevonden; meerdere H1-elementen gelden hier als structuuradvies en niet als bewezen fout.`:pageH1s.length===0&&pageMissingEvidenceUnverified?`0 H1-heading(s) gevonden in de raw HTML. ${clientShellNote}`:pageH1s.length===0&&pageH1UnverifiedWithoutRender?`0 H1-heading(s) in de server-HTML; deze pagina laadt ${pageScriptCount} scripts en is niet in een browser gerenderd, dus een via JavaScript toegevoegde H1 is niet uitgesloten. Niet als fout geteld.`:`${pageH1s.length} H1-heading(s) gevonden.`},
           {key:"canonical",status:pageCanonical
             ? (()=>{ try { const resolved=new URL(pageCanonical,finalCandidate); if(!/^https?:$/.test(resolved.protocol)) return "WARNING"; return canonicalEquivalent(resolved, finalCandidate)?"PASS":"WARNING"; } catch { return "WARNING"; } })()
             : pageMissingEvidenceUnverified ? "UNABLE_TO_CONFIRM" : "WARNING",

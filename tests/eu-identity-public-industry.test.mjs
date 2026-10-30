@@ -29,3 +29,9 @@ test("EU agency on europa.eu is government, not a consultancy agency; a private 
   assert.equal(ema?.sector, "government");
   assert.notEqual(id({ hostname: "agency.example.nl", title: "Creative Agency Voorbeeld", description: "Wij zijn een agency voor branding en campagnes. Onze diensten: strategie en design.", navLabels: ["Diensten", "Cases"] })?.sector, "government");
 });
+
+test("regulators are government; a company named 'authority' without supervision is not", () => {
+  assert.equal(id({ title: "Autoriteit Persoonsgegevens", description: "De Autoriteit Persoonsgegevens houdt toezicht op de verwerking van persoonsgegevens.", navLabels: ["Onderwerpen", "Klacht melden", "Over ons"] })?.sector, "government");
+  assert.equal(id({ title: "AFM | Autoriteit Financiële Markten", description: "De AFM houdt toezicht op het gedrag van de financiële markten in Nederland.", navLabels: ["Consumenten", "Sector", "Actueel"] })?.sector, "government");
+  assert.notEqual(id({ title: "Brand Authority | Marketingbureau", description: "Wij bouwen merken en campagnes voor ondernemers.", navLabels: ["Diensten", "Cases"] })?.sector, "government");
+});
