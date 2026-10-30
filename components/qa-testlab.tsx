@@ -5,7 +5,7 @@ import DashboardNav from "@/app/dashboard/nav";
 import {saveQaAudit} from "@/lib/testlab-audit-store";
 import {classifyScanAnswer, isFinalResult, resumeQueue, stopsRun, upsertResult} from "@/lib/testlab-outcome.mjs";
 import {sectorVerdict} from "@/scripts/testlab/labels.mjs";
-import {scoreEvidenceFields, scoreEvidenceCsvValues, SCORE_EVIDENCE_CSV_HEADERS, type ScoreEvidenceFields} from "@/lib/testlab-score-evidence";
+import {scoreEvidenceFields, scoreEvidenceCsvValues, scoreDisplay, SCORE_EVIDENCE_CSV_HEADERS, type ScoreEvidenceFields} from "@/lib/testlab-score-evidence";
 
 type Site={host:string;name:string;country:string;group:string;expected:string;round:string};
 type Incident={traceId:string|null;originHttpStatus:number|null;apiHttpStatus:number;reasonCode:string;attribution:string|null;phase:string|null;finalUrl:string|null;browserRender:unknown};
@@ -242,7 +242,7 @@ export default function TestLab144() {
      <td>{!r?<span className="rf-lab-no">Nog niet getest</span>:r.pending?<span className="rf-lab-no">Opnieuw te testen ({r.status})</span>:<span className={wrongType(site,r)?"rf-lab-warn":r.status==="succes"?"rf-lab-good":"rf-lab-no"}>{r.status==="succes"?(verdictOf(site,r)==="mismatch"?"Succes — sectorafwijking":verdictOf(site,r)==="unconfirmed"?"Succes — sector onbevestigd":"Succes — sector passend"):r.status}</span>}
        {r?.sector&&<small>Gevonden: {r.sector}{r.sectorKey&&r.sectorKey!==r.sector?` (${r.sectorKey})`:""} · {VERDICT_LABEL[verdictOf(site,r)||""]||""}{r.websiteType==="ecommerce_store"?` · webshop${r.commercePlatform?` (${r.commercePlatform})`:""}`:""}</small>}
        {r?.reason&&<small title={r.reason}>{r.reason.slice(0,90)}</small>}</td>
-     <td>{num(r?.score??null)}{r?.evidenceLevel&&r.evidenceLevel!=="complete"&&<small title="Score alleen op bevestigd bewijs; niet sitebreed definitief">{r.evidenceLevel==="insufficient"?"indicatie":"voorlopig"}</small>}</td><td>{num(r?.seo??null)} / {num(r?.geo??null)}</td>
+     <td>{(()=>{const d=scoreDisplay(r?.score??null,r?.scoreEvidence,r?.evidenceLevel);return <>{d.main}{d.detail&&<small title="Een bereik betekent: niet alle toepasselijke controles zijn bevestigd">{d.detail}</small>}</>;})()}</td><td>{num(r?.seo??null)} / {num(r?.geo??null)}{r?.scoreEvidence&&(r.scoreEvidence.seoCoveragePercent!=null||r.scoreEvidence.geoCoveragePercent!=null)&&<small>dekking {r.scoreEvidence.seoCoveragePercent??"—"}% / {r.scoreEvidence.geoCoveragePercent??"—"}%</small>}</td>
      <td>{r?.scanId?<a href={"/dashboard/audit/"+encodeURIComponent(r.scanId)+"/report"}>Open rapport</a>:r?.qaAuditId?<a href={"/dashboard/testlab/report?id="+encodeURIComponent(r.qaAuditId)}>Open QA-audit</a>:r?.status==="succes"?"Rapport ontbreekt (oude scan)":"—"}</td>
     </tr>})}
    </tbody></table></div>

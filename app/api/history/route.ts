@@ -1,3 +1,4 @@
+import { headlineDisplay } from "@/lib/score-qualifier";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
@@ -7,7 +8,7 @@ import { normalizePlan, planLimits } from "@/lib/plans";
 import { isInternalTester, isInternalTesterCustomerId } from "@/lib/scan-access";
 
 type AuditCheck={status?:string;severity?:string;category?:string;rule_id?:string;issue_id?:string;key?:string;title?:string};
-type Row={id:string;scanned_url:string;final_url?:string;overall_score:number;seo_score:number;geo_score:number;created_at:string;result:{technologyProfile?:{siteType?:string;cms?:string;platform?:string;framework?:string;confidence?:number;evidence?:string[]};seo?:{checks?:AuditCheck[]};geo?:{checks?:AuditCheck[]};security?:{score?:number}}};
+type Row={id:string;scanned_url:string;final_url?:string;overall_score:number;seo_score:number;geo_score:number;created_at:string;result:{scoreModel?:{evidenceLevel?:"complete"|"provisional"|"insufficient";range?:{low:number;high:number}|null;headline?:{kind:"score"|"range";display:string}|null};coverage?:{coveragePercent?:number};technologyProfile?:{siteType?:string;cms?:string;platform?:string;framework?:string;confidence?:number;evidence?:string[]};seo?:{checks?:AuditCheck[]};geo?:{checks?:AuditCheck[]};security?:{score?:number}}};
 type HostScan={scanned_url:string;final_url?:string};
 function host(scan:HostScan){try{return new URL(scan.final_url||scan.scanned_url).hostname.toLowerCase().replace(/^www\./,"")}catch{return scan.scanned_url}}
 function summary(scan:Row){
@@ -15,7 +16,7 @@ function summary(scan:Row){
  const statusRank:Record<string,number>={fail:5,warning:4,pass:3,unable_to_confirm:2,not_applicable:1};
  const uniqueChecks=Array.from(checks.reduce((map:Map<string,AuditCheck>,check:AuditCheck)=>{const category=String(check.category||"").trim().toLowerCase();const rule=String(check.rule_id||check.issue_id||check.key||check.title||"").trim().toLowerCase();const key=category+":"+rule;const current=map.get(key);if(!current||(statusRank[String(check.status).toLowerCase()]||0)>(statusRank[String(current.status).toLowerCase()]||0))map.set(key,check);return map;},new Map<string,AuditCheck>()).values());
  const issues=uniqueChecks.filter((c:AuditCheck)=>c.status==="fail"||c.status==="warning");
- return {id:scan.id,scanned_url:scan.scanned_url,final_url:scan.final_url,overall_score:scan.overall_score,seo_score:scan.seo_score,geo_score:scan.geo_score,security_score:Number(scan.result?.security?.score??0),created_at:scan.created_at,open_issues:issues.length,critical_issues:issues.filter((c:AuditCheck)=>c.severity==="CRITICAL").length,technology_profile:scan.result?.technologyProfile||null};
+ return {id:scan.id,scanned_url:scan.scanned_url,final_url:scan.final_url,overall_score:scan.overall_score,score_display:headlineDisplay({overallScore:scan.overall_score,scoreModel:scan.result?.scoreModel}),evidence_level:scan.result?.scoreModel?.evidenceLevel??null,coverage_percent:scan.result?.coverage?.coveragePercent??null,seo_score:scan.seo_score,geo_score:scan.geo_score,security_score:Number(scan.result?.security?.score??0),created_at:scan.created_at,open_issues:issues.length,critical_issues:issues.filter((c:AuditCheck)=>c.severity==="CRITICAL").length,technology_profile:scan.result?.technologyProfile||null};
 }
 export async function GET(){
  const user=await getCurrentUser();

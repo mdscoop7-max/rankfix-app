@@ -66,3 +66,20 @@ export function scoreEvidenceCsvValues(fields: Partial<ScoreEvidenceFields> | nu
   const f = fields || {};
   return [f.headline ?? "", f.headlineKind ?? "", f.rangeLow ?? "", f.rangeHigh ?? "", f.coveragePercent ?? "", f.unableToConfirm ?? "", f.seoCoveragePercent ?? "", f.geoCoveragePercent ?? "", f.seoEvidenceLevel ?? "", f.geoEvidenceLevel ?? "", f.renderingCompleteness ?? "", (f.evidenceReasons || []).join(" | ")];
 }
+
+/**
+ * What a TestLab row or QA report shows as "the score" (QA 30 Oct: "NXP 98/100
+ * met 62% bewijsdekking"). The headline the customer report shows is the range
+ * whenever evidence is incomplete; the point score (computed over confirmed
+ * checks only) is never shown alone next to incomplete evidence.
+ */
+export function scoreDisplay(score: number | null | undefined, evidence: ScoreEvidenceFields | null | undefined, evidenceLevel?: string | null): { main: string; detail: string | null } {
+  if (score == null) return { main: "—", detail: null };
+  const level = evidenceLevel || null;
+  const coverage = evidence?.coveragePercent ?? null;
+  const range = evidence?.headlineKind === "range" && evidence.headline ? evidence.headline
+    : evidence?.rangeLow != null && evidence?.rangeHigh != null && evidence.rangeLow < evidence.rangeHigh && level !== "complete" ? `${evidence.rangeLow}–${evidence.rangeHigh}` : null;
+  const qualifier = level === "insufficient" ? "indicatie" : level && level !== "complete" ? "voorlopig" : level === "complete" ? "definitief" : null;
+  const parts = [range ? `punt ${Math.round(score)} op bevestigd bewijs` : null, coverage != null ? `dekking ${coverage}%` : null, qualifier].filter(Boolean);
+  return { main: range || String(Math.round(score)), detail: parts.length ? parts.join(" · ") : null };
+}

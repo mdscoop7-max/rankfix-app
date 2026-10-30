@@ -107,5 +107,9 @@ export function scoreQualifier(result: QualifiableResult | null | undefined, loc
 export function headlineDisplay(result: QualifiableResult | null | undefined): string {
   const h = result?.scoreModel?.headline;
   if (h?.kind === "range" && h.display) return h.display;
+  // Reports stored before the headline existed: incomplete evidence with a real
+  // range still shows the range, never the bare point score.
+  const r = result?.scoreModel?.range;
+  if (!h && r && r.low < r.high && result?.scoreModel?.evidenceLevel !== "complete") return `${r.low}–${r.high}`;
   return result?.overallScore == null ? "—" : String(result.overallScore);
 }

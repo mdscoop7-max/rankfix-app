@@ -2,6 +2,7 @@
 import {Suspense,useEffect,useState} from "react";
 import {useSearchParams} from "next/navigation";
 import {readQaAudit} from "@/lib/testlab-audit-store";
+import {scoreDisplay, scoreEvidenceFields} from "@/lib/testlab-score-evidence";
 function Report(){
  const params=useSearchParams();
  const id=params.get("id")||"";
@@ -25,7 +26,7 @@ function Report(){
    <p>Dit is de volledige ruwe scanrespons voor QA, geen onafhankelijk gevalideerd eindrapport.</p>
    <button type="button" onClick={download}>Download volledige audit (JSON)</button>
    <h2>Samenvatting</h2>
-   <p>Score: {record.result?.overallScore??"niet gemeten"} · SEO: {record.result?.seo?.score??"niet gemeten"} · GEO: {record.result?.geo?.score??"niet gemeten"}</p>
+   {(()=>{const ev=scoreEvidenceFields(record.result);const d=scoreDisplay(record.result?.overallScore,ev,record.result?.scoreModel?.evidenceLevel);return <p>Score: <strong>{d.main}</strong>{d.detail?` (${d.detail})`:""} · SEO: {record.result?.seo?.score??"niet gemeten"}{ev.seoCoveragePercent!=null?` (dekking ${ev.seoCoveragePercent}%)`:""} · GEO: {record.result?.geo?.score??"niet gemeten"}{ev.geoCoveragePercent!=null?` (dekking ${ev.geoCoveragePercent}%)`:""}</p>;})()}
    <h2>Scanbewijs</h2>
    <pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere",background:"#f3f4f6",color:"#111827",padding:16,borderRadius:8}}>{JSON.stringify(record.result,null,2)}</pre>
   </>}
