@@ -17,7 +17,8 @@
     "load:test": "node scripts/load-test.mjs",
     "test:fix-flow": "RF_REAL_DB=1 node --experimental-strip-types --no-warnings --import ./tests/scan-matrix/register.mjs tests/fix-engine/run-flow-pg.mjs",
     "qa:144": "node scripts/testlab/run-fresh144-local.mjs",
-    "check:scan": "node --test tests/scan-routes.test.mjs"
+    "check:scan": "node --test tests/scan-routes.test.mjs",
+    "qa:144:analyze": "node scripts/testlab/analyze-evidence.mjs qa-results/fresh144-latest"
   },
   "dependencies": {
     "@sparticuz/chromium": "153.0.0",
