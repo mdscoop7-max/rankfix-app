@@ -1273,7 +1273,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const descriptionState: "missing" | "empty" | "present" = headMetadata.descriptionState;
     const h1s = allMatches(html, /<h1[^>]*>([\s\S]*?)<\/h1>/gi).map(stripHtml).filter(Boolean);
     const headingTags = [...html.matchAll(/<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/gi)];
-    const headings = headingTags.map((m) => ({ level: Number(m[1]), text: stripHtml(m[2]) })).filter((h) => h.text);
+    const headings = headingTags.map((m) => ({ level: Number(m[1]), text: decode(stripHtml(m[2])) })).filter((h) => h.text);
     const canonical = decode(headMetadata.canonical);
     const lang = decode(headMetadata.lang);
     const langIsValid = /^(?:[a-z]{2,3})(?:-[a-z0-9]{2,8})*$/i.test(lang);
@@ -5036,7 +5036,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         // Same evidence rules for sampled pages and homepage.
         const pageHead = extractHeadMetadata(pageHtml);
         const pageDescriptionTag = pageHead.evidence.description;
-        const pageQualityDescription = stripHtml(pageHead.description).trim();
+        const pageQualityDescription = decode(stripHtml(pageHead.description));
         const pageQualityText = stripHtml(pageHtml).slice(0, 12000);
         const pageQualityWords = pageQualityText.split(/\s+/).filter(Boolean).length;
         // Structural fingerprint: language-independent DOM evidence used to detect
