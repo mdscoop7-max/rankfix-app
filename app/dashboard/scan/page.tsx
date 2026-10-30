@@ -8,6 +8,7 @@ import AiAssistant from "@/components/ai-assistant";
 import type { Locale } from "@/lib/locales";
 import "../dashboard.css";
 import { ScoreQualifier } from "@/components/score-qualifier";
+import { saveQaAudit } from "@/lib/testlab-audit-store";
 import { headlineDisplay } from "@/lib/score-qualifier";
 
 type Check = { status: string };
@@ -106,6 +107,15 @@ export default function DashboardScan() {
         }
         const target="/dashboard/audit/"+encodeURIComponent(data.scanId)+(verificationIssue?"?verify_issue="+encodeURIComponent(verificationIssue):"");
         router.push(target);
+        return;
+      }
+      // A local, authenticated QA session may finish without a Neon scan ID.
+      // Keep the complete evidence in this browser instead of losing the scan.
+      // Never treat this as a production audit or enable GitHub Fix without a saved scan.
+      if (process.env.NODE_ENV === "development" && !fixIssue && data.success === true) {
+        const qaId = "manual-" + crypto.randomUUID();
+        await saveQaAudit(qaId, data, new URL(normalized).hostname);
+        router.push("/dashboard/testlab/report?id=" + encodeURIComponent(qaId));
         return;
       }
       throw new Error(t.reportFailed);
