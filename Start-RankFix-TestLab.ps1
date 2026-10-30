@@ -74,4 +74,4 @@ try {
   throw $_
 }
 Start-Process $url
-Write-Host 'TestLab geopend via beveiligde lokale sessie.' -ForegroundColor Green
+Write-Host 'Browseraanmelding geopend. De pagina controleert nu zelf de QA-cookie en catalogustoegang.' -ForegroundColor Cyan
