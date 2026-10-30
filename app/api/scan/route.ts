@@ -69,6 +69,7 @@ import { detectPrimaryBusinessIdentity, isSiteHomepagePath } from "@/lib/primary
 import { detectEuPrimaryIdentity, isConsentHeading, retailSelfDescription, stripAudience, stripMarketMentions } from "@/lib/eu-identity";
 import { enforceReportConsistency, isNonLocalSector } from "@/lib/report-consistency";
 import { normalizeSchemaType, schemaTypesOf } from "@/lib/schema-type";
+import { sectionCoverage } from "@/lib/section-coverage";
 import { decideSalesChannel } from "@/lib/sales-channel";
 import { measureWebsiteSpeed, speedNotMeasured } from "@/lib/pagespeed";
 
@@ -6806,7 +6807,16 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       // Same denominator as multiPage.counts.selected (QA: "26/28" next to "26/29").
       duplicates: multiPageAudits.length - reportedMultiPageAudits.length,
     });
+    // Which relevant parts of the site were examined, not accessible, missing or not found.
+    const sectionCoverageReport = sectionCoverage({
+      pages: reportedMultiPageAudits.map((p) => ({ url: p.url, type: p.type, status: p.status, httpStatus: p.httpStatus, nonContent: p.nonContent, fetchFailure: p.fetchFailure, excludedUtility: p.excludedUtility })),
+      isShop: classification.websiteType === "Webshop" || websiteProfile.websiteType.value === "ecommerce_store",
+      homepageUrl: siteAccess.homepage.url || finalUrl.toString(),
+      homepageAccess: siteAccess.homepage.access,
+      homepageHttpStatus: siteAccess.homepage.httpStatus,
+    });
     const multiPage = {
+      sectionCoverage: sectionCoverageReport,
       siteAccess,
       accounting:sampleAccounting,
       sampleRetryPass,
