@@ -63,6 +63,11 @@ function stems(list: string[]): RegExp {
 
 const ENERGY_TRANSITION = stems(["transition énergétique", "transition energetique", "energy transition", "energietransitie", "energiewende", "transizione energetica", "transición energética", "transição energética", "energiomställning", "transformacja energetyczna"]);
 const RENEWABLE_STRUCTURE = stems(["production renouvelable", "renouvelable", "renewable", "rinnovabil", "renovable", "erneuerbar", "hernieuwbar", "duurzame opwek", "énergie renouvelable", "hydroélectri", "hydropower", "waterkracht", "wasserkraft"]);
+// Official statistics institutes and public land/property registers (EU languages).
+const OFFICIAL_BODY = words(["centraal bureau voor de statistiek", "bureau voor de statistiek", "statistics netherlands", "statistiek vlaanderen", "statistisches bundesamt", "statistik austria", "bundesamt für statistik", "office for national statistics", "central statistics office", "institut national de la statistique", "istituto nazionale di statistica", "instituto nacional de estadística", "instituto nacional de estatística", "statistics sweden", "statistiska centralbyrån", "danmarks statistik", "statistisk sentralbyrå", "tilastokeskus", "główny urząd statystyczny", "český statistický úřad", "eurostat", "kadaster", "cadastre", "land registry", "land register", "grundbuchamt", "katasteramt", "catasto", "catastro", "kataster", "lantmäteriet", "kartverket", "maanmittauslaitos", "ordnance survey"]);
+const OFFICIAL_TASK = stems(["statisti", "cijfers", "figures", "zahlen", "chiffres", "dati", "datos", "registr", "eigendom", "ownership", "eigentum", "propriété", "percel", "parcel", "flurstück", "kadastra", "cadastra", "kaart", "maps", "karten", "landmeet", "survey", "openbare", "public", "öffentlich", "publique", "pubblic", "público"]);
+// Semiconductor / electronic component makers.
+const SEMICONDUCTOR = stems(["semiconductor", "halfgeleider", "halbleiter", "semi-conducteur", "semiconducteur", "semiconduttor", "semiconductor", "semicondutor", "microcontroller", "integrated circuit", "chipmaker", "chip maker", "chipfabrikant", "chipfabriek", "puce électronique", "mikrochip"]);
 // Fundraising actions (navigation, buttons, own fields) in the main EU languages.
 const DONATE = new RegExp(`${B}(?:doneer\\p{L}*|doneren|donatie\\p{L}*|donateur\\p{L}*|donate|donating|donations?|steun met geld|word donateur|spenden|jetzt spenden|spende\\p{L}*|faire un don|je donne|dona(?: ora| ahora| agora)?|donar|donativo\\p{L}*|donera|lahjoita\\p{L}*|wesprzyj|darowizn\\p{L}*|give monthly|gift aid)${E}`, "iu");
 // Charity registration identifiers.
@@ -514,7 +519,8 @@ export function detectEuPrimaryIdentity(input: EuIdentityInput): EuIdentity | nu
     .filter((f) => f.at >= 0)
     .sort((a, b) => a.at - b.at);
   const sectors = [...new Set(named.map((f) => f.sector))];
-  if (sectors.length >= 2 && !(result && ["government", "news_media", "education", "health_wellness"].includes(result.sector))) {
+  // A chip maker's title lists its markets ("Automotive, Security, IoT"): markets, not activities.
+  if (sectors.length >= 2 && !(result && (["government", "news_media", "education", "health_wellness"].includes(result.sector) || result.key === "semiconductors_electronics"))) {
     const first = named[0];
     const sameSector = named.filter((f) => f.sector === first.sector);
     const secondary = sectors.slice(1).map((sector) => {
@@ -713,6 +719,31 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   if (!retailer && !publication && !transportIntermediary && !aboutVehicles && vehicleSources >= 1 && (richVehicleSource || countSources((s) => VEHICLES.test(s)) >= 2)) {
     return { sector: "automotive", key: "automotive", label: "Automotive", confidence: vehicleSources >= 2 ? "high" : "medium", confidenceScore: vehicleSources >= 2 ? 88 : 76,
       evidence: [`Eigen identiteit noemt voertuigen met nieuwe/elektrische modellen, configurator, proefrit of dealers in ${vehicleSources} identiteitsbron(nen)`] };
+  }
+
+  // 7a'. Public registers and official statistics (QA 30 Oct: a national statistics
+  //     office "Centraal Bureau voor de Statistiek" read as a consultancy "bureau",
+  //     a land registry left unknown). The organisation names itself the official
+  //     statistics institute or the cadastre/land registry; a second own source
+  //     (statistics or registration wording) confirms it.
+  // Only as the organisation's own name: the brand segment of the title, the site
+  // name, or the subject that opens the description ("Het Kadaster registreert…").
+  // "Woningwaarde op basis van Kadaster-gegevens" on a broker site never counts.
+  const brandSegment = (title.split(/\s*[|–—:]\s*|\s+-\s+/)[0] || "").trim();
+  const opensDescription = new RegExp(`^(?:(?:het|de|the|das|der|die|l[ae]|il|el|o)\\s+)?${OFFICIAL_BODY.source}`, "iu").test(description.trim());
+  const officialName = OFFICIAL_BODY.test(brandSegment) || OFFICIAL_BODY.test(site) ? "titel" : opensDescription ? "omschrijving" : null;
+  if (!retailer && !publication && officialName) {
+    const corroborated = OFFICIAL_TASK.test([description, h1, nav, h2].join(" · "));
+    return { sector: "government", key: "government", label: "Overheid & Publieke sector", confidence: corroborated ? "high" : "medium", confidenceScore: corroborated ? 86 : 74,
+      evidence: [`Overheid: eigen ${officialName} noemt een officiële statistiekdienst of openbaar register${corroborated ? "; de omschrijving/navigatie beschrijft die publieke taak" : ""}`] };
+  }
+  // 7a''. Semiconductor and electronic-component makers (QA 30 Oct: a chip maker
+  //      whose title lists its markets "Automotive, Security, IoT" was typed
+  //      automotive at 90%). Markets named next to the own industry are markets.
+  const chipSources = countSources((text) => SEMICONDUCTOR.test(text));
+  if (!retailer && !publication && chipSources >= 1 && !(SOFTWARE.test(own) && !HARDWARE.test(own)) && !/(?<![\p{L}])(?:distribut\p{L}*|reseller|webshop|online store|shop)(?![\p{L}])/iu.test(own)) {
+    return { sector: "manufacturing_industrial", key: "semiconductors_electronics", label: "Industrie · halfgeleiders & elektronica", confidence: chipSources >= 2 ? "high" : "medium", confidenceScore: chipSources >= 2 ? 88 : 76,
+      evidence: [`Industrie: eigen identiteit noemt halfgeleiders/elektronische componenten in ${chipSources} bron(nen); genoemde markten (bijv. automotive) zijn afzetmarkten`] };
   }
 
   // 7b. Manufacturers and industrial suppliers (B2B). A software company that serves
