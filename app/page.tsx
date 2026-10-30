@@ -1224,7 +1224,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                 </div>
               </div>
 
-              <details className="rounded-3xl border border-slate-200 bg-slate-50">
+              <details open className="rounded-3xl border border-slate-200 bg-slate-50">
                 <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-slate-300">
                   <span className="mr-2">⌄</span> {ar.technical}
                 </summary>
@@ -1275,7 +1275,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                 </div>
               </details>
 
-              <details className="rounded-3xl border border-slate-200 bg-slate-50">
+              <details open className="rounded-3xl border border-slate-200 bg-slate-50">
                 <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-slate-300">
                   <span className="mr-2">⌄</span> {ar.metrics}
                 </summary>
