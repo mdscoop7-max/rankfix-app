@@ -84,7 +84,8 @@ export default function TestLab144() {
   scope==="hair_salon"&&s.group==="hair_salon" || scope==="optician"&&s.group==="optician" ||
   scope===s.country || scope===s.round
  )),[scope,sites]);
- const visible=useMemo(()=>scoped.filter(s=>[s.name,s.host,s.country,s.group,s.expected].join(" ").toLowerCase().includes(query.toLowerCase())),[scoped,query]);
+ // Alphabetical display only: preserve catalog order for the scan queue and stored results.
+ const visible=useMemo(()=>scoped.filter(s=>[s.name,s.host,s.country,s.group,s.expected].join(" ").toLowerCase().includes(query.toLowerCase())).sort((a,b)=>a.name.localeCompare(b.name,"nl",{sensitivity:"base"})||a.host.localeCompare(b.host,"nl",{sensitivity:"base"})),[scoped,query]);
  const byHost=useMemo(()=>new Map(results.map(r=>[r.host,r])),[results]);
  const finished=scoped.filter(s=>isFinalResult(byHost.get(s.host))).length;
  const passed=scoped.filter(s=>{const r=byHost.get(s.host);return r?.status==="succes" && Boolean(r.scanId||r.qaAuditId);}).length;
