@@ -7249,6 +7249,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         descriptionState,
         h1Count: h1s.length,
         h1s,
+        // Header/nav anchor labels the identity detectors used (QA evidence only; not scored).
+        navigationLabels: identityNavLabels.slice(0, 80),
         imageCount,
         imageElementCount,
         imagesMissingAlt,
