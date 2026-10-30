@@ -559,6 +559,14 @@ export async function POST(request: Request) {
   return response;
 }
 
+const localRateBuckets = new Map<string, number[]>();
+function localMemoryRateLimit(key: string, limit: number, windowSeconds: number) {
+  const now = Date.now(); const windowMs = windowSeconds * 1000;
+  const hits = (localRateBuckets.get(key) || []).filter((t) => now - t < windowMs);
+  if (hits.length >= limit) { localRateBuckets.set(key, hits); return { allowed: false, retryAfterSeconds: Math.max(1, Math.ceil((windowMs - (now - hits[0])) / 1000)) }; }
+  hits.push(now); localRateBuckets.set(key, hits); return { allowed: true, retryAfterSeconds: 0 };
+}
+
 async function tryAlternateStart(request: Request, body: Record<string, unknown> | null, first: Response, clock: { expired: boolean }, attemptStarted: number): Promise<Response | null> {
   if (first.status !== 422 || clock.expired) return null;
   const failed = await first.clone().json().catch(() => null) as Record<string, unknown> | null;
@@ -692,10 +700,14 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // scanRateLimitPolicy: per network for visitors and Free accounts, per account for
     // paying customers, none for server-configured internal tester account IDs.
     trace.phase = "session";
-    if (!localQa) await ensureDatabase();
+    // Local development without a database (a laptop check of the public scan):
+    // anonymous free scans run with an in-memory rate limit and are not stored.
+    // Never on Vercel or in production; dashboard scans still need the database.
+    const localNoDatabase = process.env.NODE_ENV === "development" && !process.env.VERCEL && !process.env.DATABASE_URL && !dashboardScan && !localQa;
+    if (!localQa && !localNoDatabase) await ensureDatabase();
     // A database/connection failure while reading the session is a RankFix
     // infrastructure problem, never "session expired" (QA 144: five sites).
-    const usageLookup = localQa ? {user:null,lookupFailed:false} : await resolveScanUser(getCurrentUser);
+    const usageLookup = localQa || localNoDatabase ? {user:null,lookupFailed:false} : await resolveScanUser(getCurrentUser);
     let usageUser: Awaited<ReturnType<typeof getCurrentUser>> = usageLookup.user;
     if (dashboardScan && !localQa && usageLookup.lookupFailed) {
       return NextResponse.json({ error: scanError.authUnavailable, code: "AUTH_LOOKUP_UNAVAILABLE", retryable: true, charged: false }, { status: 503 });
@@ -720,7 +732,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const enforceScanRateLimit = async () => {
       if (!scanRateLimit) return null;
       const identity = scanRateLimit.key === "user" ? String(usageUser?.id) : requestIp(request);
-      const result = await checkRateLimit(scanRateLimit.scope, identity, scanRateLimit.limit, scanRateLimit.windowSeconds);
+      const result = localNoDatabase
+        ? localMemoryRateLimit(`${scanRateLimit.scope}:${identity}`, scanRateLimit.limit, scanRateLimit.windowSeconds)
+        : await checkRateLimit(scanRateLimit.scope, identity, scanRateLimit.limit, scanRateLimit.windowSeconds);
       if (result.allowed) return null;
       return NextResponse.json(
         { error: scanRateLimitMessage(scanLanguage, result.retryAfterSeconds, scanRateLimit.key === "user"), code: scanRateLimit.code, retryAfterSeconds: result.retryAfterSeconds },
@@ -7038,7 +7052,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // The session was already verified before the crawl. Re-read it once; a
     // transient database failure here must not throw away a finished scan as
     // "session expired": fall back to the verified user from the start.
-    const saveLookup = localQa ? {user:null,lookupFailed:false} : await resolveScanUser(getCurrentUser);
+    const saveLookup = localQa || localNoDatabase ? {user:null,lookupFailed:false} : await resolveScanUser(getCurrentUser);
     user = saveLookup.user ?? (saveLookup.lookupFailed ? usageUser : null);
     if (dashboardScan && !localQa && !user) return NextResponse.json(saveLookup.lookupFailed
       ? { error: scanError.authUnavailable, code: "AUTH_LOOKUP_UNAVAILABLE", retryable: true, charged: false }
