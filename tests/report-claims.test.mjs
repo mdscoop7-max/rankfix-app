@@ -27,6 +27,8 @@ test("claim audit flags each contradiction class on a minimal report", () => {
   assert.ok(codes({ seo: { checks: [{ key: "x", status: "not_applicable", points: 3, maxPoints: 5 }] } }).includes("points_on_unscored_check"));
   assert.ok(codes({ overallScore: 100 }).includes("perfect_score_without_complete_evidence"));
   assert.ok(codes({ sectorProfile: { sector: "unknown", confidenceScore: 40 } }).includes("unknown_sector_with_confidence"));
+  assert.ok(codes({ seo: { checks: [{ key: "title", status: "warning", message: "Te lang", points: 3, maxPoints: 10, severity: "LOW", evidence: { url: "https://x.test/" } }] } }).includes("finding_incomplete"));
+  assert.deepEqual(codes({ seo: { checks: [{ key: "title", status: "warning", message: "Te lang", fix: "Inkorten", points: 3, maxPoints: 10, severity: "LOW", evidence: { url: "https://x.test/", found: 80 } }] } }), []);
 });
 
 test("synthetic claim scenarios: schema subtypes, sector-aware schema context, start pages, CMS @type", () => {
