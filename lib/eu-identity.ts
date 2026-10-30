@@ -24,7 +24,7 @@ import { isComparisonPlatformText } from "./platform-identity.ts";
 
 export type EuSector =
   | "news_media" | "financial_services" | "transport_travel" | "government"
-  | "education" | "health_wellness" | "telecom_technology" | "energy_utilities" | "events_culture" | "professional_services" | "saas_b2b" | "fitness_sports" | "tourism_recreation" | "manufacturing_industrial" | "automotive";
+  | "education" | "health_wellness" | "telecom_technology" | "energy_utilities" | "events_culture" | "professional_services" | "saas_b2b" | "fitness_sports" | "tourism_recreation" | "manufacturing_industrial" | "automotive" | "nonprofit";
 
 export type EuIdentity = {
   sector: EuSector;
@@ -60,6 +60,13 @@ function words(list: string[]): RegExp {
 function stems(list: string[]): RegExp {
   return new RegExp(`${B}(?:${list.join("|")})\\p{L}*`, "iu");
 }
+
+// Fundraising actions (navigation, buttons, own fields) in the main EU languages.
+const DONATE = new RegExp(`${B}(?:doneer\\p{L}*|doneren|donatie\\p{L}*|donateur\\p{L}*|donate|donating|donations?|steun met geld|word donateur|spenden|jetzt spenden|spende\\p{L}*|faire un don|je donne|dona(?: ora| ahora| agora)?|donar|donativo\\p{L}*|donera|lahjoita\\p{L}*|wesprzyj|darowizn\\p{L}*|give monthly|gift aid)${E}`, "iu");
+// Charity registration identifiers.
+const CHARITY_REGISTRATION = new RegExp(`${B}(?:rsin|anbi|registered charity|charity (?:no|number|registration)|charity commission|scottish charity|gemeinnützig\\p{L}*|spendenkonto|reconnue d.utilité publique|utilité publique|onlus|ente del terzo settore|sin ánimo de lucro|non-?profit organi[sz]ation|cbf-erkend|cbf keurmerk)${E}`, "iu");
+// A social cause the organisation names as its own purpose.
+const CHARITY_CAUSE = new RegExp(`${B}(?:humanitari\\p{L}*|humanitair\\p{L}*|humanitaire?|human rights|mensenrechten|menschenrechte?|droits (?:humains|de l.homme)|derechos humanos|diritti umani|mensen in nood|people in need|in need|in nood|in großer not|slachtoffers|victims|victimes|opfer|kankerbestrijding|tegen kanker|against cancer|gegen krebs|contre le cancer|fight against|strijd tegen|lutte contre|lucha contra|kampf gegen|animal welfare|dierenwelzijn|tierschutz|protection animale|every child|children in need|kinderrechten|child(?:ren)?'s rights|kinderen in nood|disadvantaged|kansarm\\p{L}*|campaign(?:s|ing)? for|global movement|beweging voor|charity|goede doel\\p{L}*|liefdadigheid|wohltätig\\p{L}*|caritati\\p{L}*|benéfic\\p{L}*)${E}`, "iu");
 /** The distinct words of one lexicon that occur in a text (for evidence lines). */
 function distinct2(text: string, re: RegExp): string[] {
   const g = new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g");
@@ -778,6 +785,20 @@ function detectEuPrimaryIdentityCore(input: EuIdentityInput): EuIdentity | null 
   if (civic.length >= 3 && (civic.includes("documents") || civic.includes("governance") || civic.includes("counter"))) {
     return { sector: "government", key: "government", label: "Overheid & Publieke sector", confidence: "medium", confidenceScore: 74,
       evidence: [`Navigatie en koppen beschrijven gemeentelijke/publieke dienstverlening (${civic.join(", ")})`] };
+  }
+  // Charity / non-profit (QA replay: Rode Kruis, Amnesty, KWF, UNICEF unknown). A
+  // fundraising action in the navigation or own fields ("Doneer", "Donate",
+  // "Spenden", "Faire un don") plus EITHER a charity registration (RSIN, ANBI,
+  // registered charity number, gemeinnützig, utilité publique, ONLUS) OR a cause
+  // in the organisation's own title/description/H1 (human rights, people in
+  // need, fight against a disease, animal welfare, children's rights). Probable
+  // only; a retailer's round-up donation or a CSR page never qualifies.
+  const fundraising = DONATE.test(structure) || DONATE.test(own);
+  if (!publication && fundraising && (CHARITY_REGISTRATION.test(structure + " " + own) || CHARITY_CAUSE.test(own))) {
+    return { sector: "nonprofit", key: "charities_nonprofits", label: "Goede doelen & hulporganisaties", confidence: "medium", confidenceScore: 74,
+      evidence: [CHARITY_REGISTRATION.test(structure + " " + own)
+        ? "Goed doel: navigatie bevat een donatie-actie en een registratie als goed doel (bijv. RSIN/ANBI of charity number)"
+        : "Goed doel: eigen omschrijving noemt een maatschappelijk doel en de navigatie bevat een donatie-actie"] };
   }
   if (UNIVERSITY.test(structure + " " + site) && EDU_SUPPORT.test(structure + " " + own)) {
     return { sector: "education", key: "education", label: "Onderwijs & Opleiding", confidence: "medium", confidenceScore: 74,

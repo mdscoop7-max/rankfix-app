@@ -3463,6 +3463,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       return 4;
     };
 
+    // "tekens" in the report are characters (code points), not UTF-16 units: an emoji is one character.
+    const titleChars = [...title].length;
+    const descriptionChars = [...description].length;
     seoChecks.push(
       !title
         ? metadataMayBeClientRendered
@@ -3479,12 +3482,12 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         : hasDanglingTitleSeparator(title)
           ? check("warning", "title", "seo", "Meta title", `De title begint of eindigt met een scheidingsteken ("${title}"); waarschijnlijk vult het template een paginanaam niet in.`, "Vul het ontbrekende deel van de title in of verwijder het losse scheidingsteken, bijvoorbeeld \"Onderwerp | Merk\".", 7, 10)
         : duplicateTitleSegment(title)
-          ? check("warning", "title", "seo", "Meta title", `De title is ${title.length} tekens en "${duplicateTitleSegment(title)}" staat er twee keer in; waarschijnlijk voegt het template het merk een tweede keer toe.`, "Laat het merk maar één keer in de title staan; controleer de title-instelling van het template of de SEO-plugin.", Math.min(8, titleLengthPoints(title.length)), 10)
+          ? check("warning", "title", "seo", "Meta title", `De title is ${titleChars} tekens en "${duplicateTitleSegment(title)}" staat er twee keer in; waarschijnlijk voegt het template het merk een tweede keer toe.`, "Laat het merk maar één keer in de title staan; controleer de title-instelling van het template of de SEO-plugin.", Math.min(8, titleLengthPoints(titleChars)), 10)
         : titleQualityIssue
-          ? check("warning", "title", "seo", "Meta title", `De title is ${title.length} tekens, maar bevat relatief veel herhaalde woorden.`, "Herschrijf de title natuurlijker en voorkom keyword stuffing.", 6, 10)
+          ? check("warning", "title", "seo", "Meta title", `De title is ${titleChars} tekens, maar bevat relatief veel herhaalde woorden.`, "Herschrijf de title natuurlijker en voorkom keyword stuffing.", 6, 10)
           : titlePixelEstimate.warning
             ? check("pass", "title", "seo", "Meta title", `${titlePixelEstimate.message} Advies, geen aftrek.`, "Controleer de daadwerkelijke zoekpreview. Kort alleen in als de relevante informatie wegvalt.", 10, 10)
-            : check("pass", "title", "seo", "Meta title", titlePixelEstimate.measured ? `Meta title gevonden (${title.length} tekens). ${titlePixelEstimate.message}` : `Meta title gevonden (${title.length} tekens). Lengte in tekens is geen harde SEO-eis; zonder pixelmeting geen aftrek.`, "Houd onderwerp, zoekintentie en merk herkenbaar.", 10, 10)
+            : check("pass", "title", "seo", "Meta title", titlePixelEstimate.measured ? `Meta title gevonden (${titleChars} tekens). ${titlePixelEstimate.message}` : `Meta title gevonden (${titleChars} tekens). Lengte in tekens is geen harde SEO-eis; zonder pixelmeting geen aftrek.`, "Houd onderwerp, zoekintentie en merk herkenbaar.", 10, 10)
     );
     seoChecks.push(
       !description
@@ -3494,16 +3497,16 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         : isTransientSeoCopy(description)
           ? check("warning", "description", "seo", "Meta description", "De meta description bevat een tijdelijke formuliermelding. Die hoort niet in de zoekresultaten.", "Gebruik uitsluitend relevante, bevestigde paginatekst; verwijder verzend- en foutmeldingen.", 6, 10)
         : descriptionQualityIssue
-          ? check("warning", "description", "seo", "Meta description", `De description is ${description.length} tekens, maar bevat relatief veel herhaalde woorden.`, "Maak de description natuurlijker en voorkom keyword stuffing.", 6, 10)
+          ? check("warning", "description", "seo", "Meta description", `De description is ${descriptionChars} tekens, maar bevat relatief veel herhaalde woorden.`, "Maak de description natuurlijker en voorkom keyword stuffing.", 6, 10)
           // A long description is truncated in the snippet, not a defect: advice
           // without deduction (same rule as titles and as the sampled pages).
-          : description.length > 160
-            ? check("pass", "description", "seo", "Meta description", `De description is ${description.length} tekens. Google kort descriptions boven ongeveer 160 tekens in de zoekpreview in; zet de kern vooraan. Advies, geen aftrek.`, "Zet de kern van de boodschap in de eerste 150 tekens; inkorten is optioneel.", 10, 10)
-          : description.length >= 70 && description.length <= 160
-            ? check("pass", "description", "seo", "Meta description", description.length >= 120 && description.length <= 160
-                ? `De description is ${description.length} tekens en goed gevuld.`
-                : `De description is ${description.length} tekens. De klassieke 120–160 tekens is een optimalisatierichtlijn, geen technische SEO-eis; deze aanwezige description wordt daarom niet als fout bestraft.`, "Houd de description concreet, uniek en passend bij de zoekintentie; optimaliseer lengte alleen wanneer dat de zoekpreview en boodschap verbetert.", 10, 10)
-            : check("warning", "description", "seo", "Meta description", `De description is ${description.length} tekens en daarmee kort: een zoekmachine krijgt weinig context over de pagina. Daarom een beperkte aftrek; hoe korter, hoe groter.`, "Controleer of de description de pagina duidelijk samenvat en herschrijf alleen wanneer de zoekpreview of boodschap daar aantoonbaar van profiteert.", descriptionLengthPoints(description.length), 10)
+          : descriptionChars > 160
+            ? check("pass", "description", "seo", "Meta description", `De description is ${descriptionChars} tekens. Google kort descriptions boven ongeveer 160 tekens in de zoekpreview in; zet de kern vooraan. Advies, geen aftrek.`, "Zet de kern van de boodschap in de eerste 150 tekens; inkorten is optioneel.", 10, 10)
+          : descriptionChars >= 70 && descriptionChars <= 160
+            ? check("pass", "description", "seo", "Meta description", descriptionChars >= 120 && descriptionChars <= 160
+                ? `De description is ${descriptionChars} tekens en goed gevuld.`
+                : `De description is ${descriptionChars} tekens. De klassieke 120–160 tekens is een optimalisatierichtlijn, geen technische SEO-eis; deze aanwezige description wordt daarom niet als fout bestraft.`, "Houd de description concreet, uniek en passend bij de zoekintentie; optimaliseer lengte alleen wanneer dat de zoekpreview en boodschap verbetert.", 10, 10)
+            : check("warning", "description", "seo", "Meta description", `De description is ${descriptionChars} tekens en daarmee kort: een zoekmachine krijgt weinig context over de pagina. Daarom een beperkte aftrek; hoe korter, hoe groter.`, "Controleer of de description de pagina duidelijk samenvat en herschrijf alleen wanneer de zoekpreview of boodschap daar aantoonbaar van profiteert.", descriptionLengthPoints(descriptionChars), 10)
     );
     seoChecks.push(h1s.length === 1
       ? check("pass", "h1", "seo", "H1-heading", "Er is precies één H1-heading gevonden.", "Behoud één duidelijke primaire H1.", 8, 8)
@@ -7013,7 +7016,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             adsKeywordIntelligence: { ...adsKeywordIntelligence, customerProfile: hasAdsProfile ? adsProfile : null },
             seo: { score: selectedSeoScore, grade: grade(selectedSeoScore), coverage: seoCoverage, checks: selectedSeoChecks },
             geo: { score: selectedGeoScore, grade: grade(selectedGeoScore), coverage: geoCoverage, checks: selectedGeoChecks },
-            metrics: { siteType: classification.websiteType === "Webshop" ? "ECOMMERCE" : "WEBSITE", websiteType: classification.websiteType, sector: classification.sector, pageTypeClassification: classification.pageType, title, titleLength: title.length, description, descriptionLength: description.length, descriptionState, h1Count: h1s.length, h1s,
+            metrics: { siteType: classification.websiteType === "Webshop" ? "ECOMMERCE" : "WEBSITE", websiteType: classification.websiteType, sector: classification.sector, pageTypeClassification: classification.pageType, title, titleLength: [...title].length, description, descriptionLength: [...description].length, descriptionState, h1Count: h1s.length, h1s,
               imageCount, imageElementCount, imagesMissingAlt, wordCount, headingsCount: headings.length, linksCount: links.length, pageType: schemaContextLabel, recommendedSchema, localBusinessDetails,
               internalLinks, canonical: canonical || null, lang: lang || null, robots: robots || null,
               openGraph: { title: ogTitle || null, description: ogDescription || null, image: ogImage || null }, imageAltCandidates,
@@ -7272,9 +7275,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         sector: classification.sector,
         pageTypeClassification: classification.pageType,
         title,
-        titleLength: title.length,
+        titleLength: [...title].length,
         description,
-        descriptionLength: description.length,
+        descriptionLength: [...description].length,
         descriptionState,
         h1Count: h1s.length,
         h1s,

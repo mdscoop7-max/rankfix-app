@@ -306,7 +306,7 @@ test("description length advice is gradual without changing fix identity", async
   assert.match(source, /const descriptionLengthPoints = \(length: number\) =>/);
   assert.match(source, /length >= 50 && length < 70/);
   assert.match(source, /length >= 30 && length < 50/);
-  assert.match(source, /descriptionLengthPoints\(description\.length\), 10/);
+  assert.match(source, /descriptionLengthPoints\(descriptionChars\), 10/);
   assert.match(source, /description: \{ rule_id: description \? "META_DESCRIPTION_GUIDANCE" : "META_DESCRIPTION_MISSING"/);
   assert.match(source, /description: description \|\| \(item\.key === "description" \? "metaDescriptionPresent=false" : null\)/);
 });
@@ -1732,7 +1732,7 @@ test("canonical to the same page without query parameters is equivalent, not a w
   assert.match(source, /function canonicalEquivalent\(canonical: URL, page: URL\): boolean/);
   assert.match(source, /canonicalEquivalent\(resolved, finalCandidate\)\?"PASS":"WARNING"/);
   // Long homepage descriptions: advice, no deduction.
-  assert.match(source, /description\.length > 160\n\s+\? check\("pass", "description"/);
+  assert.match(source, /descriptionChars > 160\n\s+\? check\("pass", "description"/);
 });
 
 test("a sampled link that redirects to an account or personal page leaves the sample", async () => {
