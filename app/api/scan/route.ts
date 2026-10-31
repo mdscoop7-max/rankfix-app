@@ -3671,7 +3671,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       : h1s.length === 0
         ? bodyStructureMayBeClientRendered
           ? check("unable_to_confirm", "h1", "seo", "H1-heading", "De H1 kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de headingstructuur opnieuw met een volledige render.", 0, 8)
-          : check("warning", "h1", "seo", "H1-heading", "Er is geen H1-heading gevonden. Dit is een structuur-/toegankelijkheidsaanbeveling en geen op zichzelf bewezen rankingfout.", "Voeg een duidelijke primaire H1 toe wanneer dat past bij de pagina-inhoud.", 6, 8)
+          // The text matches the deduction (PDF P6: "niet als fout geteld" but −2).
+          : check("warning", "h1", "seo", "H1-heading", "Er is geen H1-heading gevonden in de server-HTML van deze pagina (aandachtspunt, −2 punten). Een H1 maakt het hoofdonderwerp duidelijk voor zoekmachines, AI-systemen en schermlezers.", "Voeg een duidelijke primaire H1 toe wanneer dat past bij de pagina-inhoud.", 6, 8)
         : check("pass", "h1", "seo", "H1-heading", `Er zijn ${h1s.length} H1-headings gevonden. Meerdere H1-elementen zijn technisch toegestaan; RankFix behandelt dit daarom als structuuradvies en niet als bewezen SEO-probleem.`, "Overweeg één duidelijke primaire H1 en gebruik H2/H3 voor secties wanneer dat de documentstructuur begrijpelijker maakt.", 8, 8)
     );
     const subheadingCount = headings.length;
@@ -3830,13 +3831,29 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // responseTime is RankFix's own end-to-end fetch duration from its scan environment.
     // It is useful as a server-response signal, but it is not browser TTFB and must never
     // be presented as measured Core Web Vitals (LCP/CLS/INP).
+    // 31 Oct (PDF P6): one slow measurement is no finding. A slow first response is
+    // measured twice more; the MEDIAN counts, and only a median above 3 s costs points.
+    const responseSamples = [responseTime];
+    if (!scannerAccessBlocked && responseTime >= 1500) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const t0 = Date.now();
+        try {
+          const again = (await safePublicFetch(finalUrl.toString(), { timeoutMs: 8000, maxRedirects: 3, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html" })).response;
+          await readResponseTextLimited(again, 2_000_000, 8000).catch(() => "");
+          responseSamples.push(Date.now() - t0);
+        } catch { /* an unanswered re-measurement is not a sample */ }
+      }
+    }
+    const responseMedian = [...responseSamples].sort((a, b) => a - b)[Math.floor((responseSamples.length - 1) / 2)];
+    const responseBasis = responseSamples.length > 1 ? `mediaan van ${responseSamples.length} metingen (${responseSamples.join(", ")} ms)` : `1 meting`;
     seoChecks.push(scannerAccessBlocked
       ? check("unable_to_confirm", "response", "seo", "Server response", `De gemeten responstijd hoort bij een geweigerd verzoek van RankFix (${rankfixRefusal}), niet bij de pagina die bezoekers krijgen; daarom niet beoordeeld.`, "Meet serverrespons en Core Web Vitals met browser- of velddata.", 0, 5)
-      : responseTime < 1500
-      ? check("pass", "response", "seo", "Server response", `RankFix ontving de eerste volledige HTTP-response in ongeveer ${responseTime} ms vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital.`, "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.", 5, 5)
-      : responseTime < 3000
-        ? check("warning", "response", "seo", "Server response", `RankFix ontving de eerste volledige HTTP-response in ongeveer ${responseTime} ms vanuit de scanomgeving. Dit is geen browser-TTFB en bewijst de oorzaak van de vertraging niet.`, "Onderzoek server, caching, database en SSR als mogelijke oorzaken; bevestig prestaties afzonderlijk met browser- of veldmetingen.", 3, 5)
-        : check("warning", "response", "seo", "Server response", `RankFix ontving de eerste volledige HTTP-response in ongeveer ${responseTime} ms vanuit de scanomgeving. Deze ene meting is traag, maar bewijst geen structureel performanceprobleem en is geen Core Web Vitals-meting.`, "Herhaal de meting en onderzoek pas daarna server, caching, database of SSR wanneer de vertraging reproduceerbaar is.", 2, 5)
+      : responseMedian < 3000
+      ? check("pass", "response", "seo", "Server response", `RankFix ontving de volledige HTTP-response in ongeveer ${responseMedian} ms (${responseBasis}) vanuit de scanomgeving. Dit is een server-responssignaal, geen gemeten Core Web Vital; aftrek pas boven 3 seconden.`, responseMedian >= 1500 ? "De respons is aan de trage kant; onderzoek caching en serverbelasting en meet LCP, CLS en INP met browser- of velddata." : "Blijf server response volgen; meet LCP, CLS en INP afzonderlijk met browser- of velddata.", 5, 5)
+      : responseSamples.length < 3
+        // One slow measurement without confirmation is not evidence of a slow server.
+        ? check("unable_to_confirm", "response", "seo", "Server response", `De eerste meting duurde ongeveer ${responseTime} ms, maar de herhaalmetingen konden niet worden uitgevoerd. Eén meting bewijst geen trage server; daarom geen aftrek.`, "Meet de serverrespons opnieuw en met browser- of velddata.", 0, 5)
+        : check("warning", "response", "seo", "Server response", `De volledige HTTP-response duurde ongeveer ${responseMedian} ms (${responseBasis}) vanuit de scanomgeving: boven 3 seconden. Dit is geen browser-TTFB of Core Web Vitals-meting.`, "Onderzoek server, caching, database en SSR; bevestig met browser- of velddata (LCP, INP).", 2, 5)
     );
     const missingOpenGraphFields = [
       !ogTitle ? "og:title" : null,
@@ -4403,7 +4420,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         schema: validJsonLd ? `blocks=${validJsonLd}; types=${[...new Set(schemaTypes)].slice(0,12).join(",")}; contextRelevant=${hasRelevantContextSchema}` : (item.key === "schema" ? "validJsonLdBlocks=0" : null),
         https: finalUrl.protocol === "https:",
         status: response.status,
-        response: responseTime,
+        response: responseMedian,
         sitemap: sitemapFound ? (confirmedSitemapUrl || true) : robotsDeclaredSitemapUrls.length ? `declared=${robotsDeclaredSitemapUrls.join(",")}; status=${sitemapStatus}` : sitemapStatus,
         robots_txt: robotsStatus === "PASS" ? `${robotsUrl.toString()}; pathBlocked=${robotsPathBlocked}${matchingRobotsRules[0] ? `; rule=${matchingRobotsRules[0].kind}:${matchingRobotsRules[0].path}` : ""}` : robotsStatus,
         indexability: noindexSignal ? [robots, xRobotsTag].filter(Boolean).join(" | ") : robotsPathBlocked ? `robots disallow: ${matchingRobotsRules[0].path}` : "no noindex or applicable robots block found",

@@ -77,3 +77,10 @@ test("score qualifier uses a valid HTML container around its caution paragraph",
   assert.match(qualifier, /<ScoreCaution scope=/);
   assert.match(caution, /<p className="rf-score-caution"/);
 });
+
+test("PDF P6: 'Definitief' only for a rendered scan; a fully confirmed raw-HTML scan says so", () => {
+  const base = { coverage: { coveragePercent: 100 }, scoreModel: { evidenceLevel: "complete" } };
+  assert.equal(scoreQualifier({ ...base, rendering: { javascriptExecuted: true } }, "nl").label, "Definitief: alle toepasselijke controles bevestigd");
+  assert.equal(scoreQualifier({ ...base, rendering: { javascriptExecuted: false } }, "nl").label, "Volledig bevestigd in de server-HTML (zonder browserweergave)");
+  assert.equal(scoreQualifier({ ...base, rendering: { javascriptExecuted: false } }, "en").label, "Fully confirmed in the server HTML (no browser rendering)");
+});
