@@ -6,6 +6,7 @@ import {execFileSync} from 'node:child_process';
 import {gzipSync,gunzipSync} from 'node:zlib';
 import {summarizeScanResponse,EVIDENCE_EXPORT_VERSION} from '../../lib/testlab-evidence-export.mjs';
 import {sectorVerdict} from './labels.mjs';
+import {dimensionDisplayOf} from '../../lib/dimension-score-display.mjs';
 import {classifyScanAnswer,stopsRun} from '../../lib/testlab-outcome.mjs';
 const base='http://127.0.0.1:3002';
 const sha=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
@@ -66,7 +67,7 @@ for(const [index,site] of catalog.data.sites.entries()){
   const outcome=classifyScanAnswer({ok:response.status>=200&&response.status<300,status:response.status,data:d});
   const runnerSide=!success&&stopsRun(outcome);
   try{writeFileSync(auditFile(site.host),gzipSync(JSON.stringify(d)))}catch{}
-  row={commitSha:sha,host:site.host,expected:site.expected,status:success?'success':runnerSide?'api_error':'website_outcome',apiStatus:response.status,reason:success?null:(d.code||d.error||'UNKNOWN'),outcome,scanId:d.scanId||null,sector:d.sectorProfile?.primarySector||d.sectorProfile?.sector||null,score:d.overallScore??null,seo:d.seo?.score??null,geo:d.geo?.score??null,elapsedMs:Date.now()-started,at:new Date().toISOString(),pending:runnerSide};
+  row={commitSha:sha,host:site.host,expected:site.expected,status:success?'success':runnerSide?'api_error':'website_outcome',apiStatus:response.status,reason:success?null:(d.code||d.error||'UNKNOWN'),outcome,scanId:d.scanId||null,sector:d.sectorProfile?.primarySector||d.sectorProfile?.sector||null,score:d.overallScore??null,seo:d.seo?.score??null,geo:d.geo?.score??null,seoDisplay:d.seo?.score==null?null:dimensionDisplayOf(d,'seo').text,geoDisplay:d.geo?.score==null?null:dimensionDisplayOf(d,'geo').text,elapsedMs:Date.now()-started,at:new Date().toISOString(),pending:runnerSide};
  }catch(e){
   row={commitSha:sha,host:site.host,expected:site.expected,status:'connection_error',reason:String(e.message||e),scanId:null,elapsedMs:Date.now()-started,at:new Date().toISOString(),pending:true};
  }
@@ -75,7 +76,7 @@ for(const [index,site] of catalog.data.sites.entries()){
  report.updatedAt=new Date().toISOString();
  report.summary={attempted:report.results.length,success:report.results.filter(x=>x.status==='success').length,technicalFailures:report.results.filter(x=>x.pending).length,websiteOutcomes:report.results.filter(x=>x.status==='website_outcome').length,remaining:144-report.results.filter(x=>x.status==='success'||x.status==='website_outcome').length};
  save();
- const csvHeaders=['host','expected','status','apiStatus','reason','scanId','sector','score','seo','geo','elapsedMs','at'];
+ const csvHeaders=['host','expected','status','apiStatus','reason','scanId','sector','score','seo','geo','elapsedMs','at','seoDisplay','geoDisplay'];
  const csvValue=v=>'"'+String(v??'').replaceAll('"','""')+'"';
  writeFileSync(join(output,'fresh144.csv'),[csvHeaders.join(','),...report.results.map(x=>csvHeaders.map(k=>csvValue(x[k])).join(','))].join('\n')+'\n');
  if(row.pending){

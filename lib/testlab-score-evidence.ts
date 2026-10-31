@@ -7,13 +7,16 @@
  * the rendering outcome were left out. This projection copies those fields from
  * the scan response; it never computes or changes a score.
  */
-type Dimension = { coverage?: { coveragePercent?: number; relevant?: number; confirmed?: number; unableToConfirm?: number } | null } | null | undefined;
+import { dimensionDisplayOf } from "./dimension-score-display.mjs";
+type Dimension = { score?: number | null; coverage?: { coveragePercent?: number; relevant?: number; confirmed?: number; unableToConfirm?: number } | null } | null | undefined;
 type ScanResponseLike = {
   scoreModel?: {
     evidenceLevel?: string | null;
     evidenceReasons?: string[] | null;
     range?: { low?: number; high?: number } | null;
     headline?: { kind?: string; display?: string } | null;
+    seoRange?: { low?: number; high?: number } | null;
+    geoRange?: { low?: number; high?: number } | null;
     dimensionEvidence?: { seo?: { level?: string | null; coveragePercent?: number | null } | null; geo?: { level?: string | null; coveragePercent?: number | null } | null } | null;
   } | null;
   coverage?: { coveragePercent?: number; unableToConfirm?: number } | null;
@@ -35,6 +38,9 @@ export type ScoreEvidenceFields = {
   geoEvidenceLevel: string | null;
   renderingCompleteness: string | null;
   evidenceReasons: string[];
+  /** "97" or "64–99 (indicatie)": the SEO/GEO number as it may be shown. */
+  seoDisplay: string | null;
+  geoDisplay: string | null;
 };
 
 const num = (value: unknown): number | null => (typeof value === "number" && Number.isFinite(value) ? value : null);
@@ -52,6 +58,8 @@ export function scoreEvidenceFields(data: ScanResponseLike | null | undefined): 
     unableToConfirm: num(data?.coverage?.unableToConfirm),
     seoCoveragePercent: num(dimensions?.seo?.coveragePercent) ?? num(data?.seo?.coverage?.coveragePercent),
     geoCoveragePercent: num(dimensions?.geo?.coveragePercent) ?? num(data?.geo?.coverage?.coveragePercent),
+    seoDisplay: data?.seo?.score == null ? null : dimensionDisplayOf(data, "seo").text,
+    geoDisplay: data?.geo?.score == null ? null : dimensionDisplayOf(data, "geo").text,
     seoEvidenceLevel: dimensions?.seo?.level ?? null,
     geoEvidenceLevel: dimensions?.geo?.level ?? null,
     renderingCompleteness: data?.rendering?.completeness ?? null,
@@ -60,11 +68,11 @@ export function scoreEvidenceFields(data: ScanResponseLike | null | undefined): 
 }
 
 /** Extra CSV columns, appended after the existing ones so older parsers keep working. */
-export const SCORE_EVIDENCE_CSV_HEADERS = ["headline", "headline_kind", "range_low", "range_high", "coverage_percent", "unconfirmed_checks", "seo_coverage_percent", "geo_coverage_percent", "seo_evidence_level", "geo_evidence_level", "rendering_completeness", "evidence_reasons"] as const;
+export const SCORE_EVIDENCE_CSV_HEADERS = ["headline", "headline_kind", "range_low", "range_high", "coverage_percent", "unconfirmed_checks", "seo_coverage_percent", "geo_coverage_percent", "seo_evidence_level", "geo_evidence_level", "rendering_completeness", "evidence_reasons", "seo_display", "geo_display"] as const;
 
 export function scoreEvidenceCsvValues(fields: Partial<ScoreEvidenceFields> | null | undefined): Array<string | number> {
   const f = fields || {};
-  return [f.headline ?? "", f.headlineKind ?? "", f.rangeLow ?? "", f.rangeHigh ?? "", f.coveragePercent ?? "", f.unableToConfirm ?? "", f.seoCoveragePercent ?? "", f.geoCoveragePercent ?? "", f.seoEvidenceLevel ?? "", f.geoEvidenceLevel ?? "", f.renderingCompleteness ?? "", (f.evidenceReasons || []).join(" | ")];
+  return [f.headline ?? "", f.headlineKind ?? "", f.rangeLow ?? "", f.rangeHigh ?? "", f.coveragePercent ?? "", f.unableToConfirm ?? "", f.seoCoveragePercent ?? "", f.geoCoveragePercent ?? "", f.seoEvidenceLevel ?? "", f.geoEvidenceLevel ?? "", f.renderingCompleteness ?? "", (f.evidenceReasons || []).join(" | "), f.seoDisplay ?? "", f.geoDisplay ?? ""];
 }
 
 /**

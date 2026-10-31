@@ -1,17 +1,18 @@
 import type { Locale } from "@/lib/locales";
+import { dimensionDisplayOf } from "./dimension-score-display.mjs";
 
 /**
  * One wording for "how final is this score?", shared by every place that shows
  * a headline score (issue #151). It reads only fields the scan already returns.
  */
-type DimensionCoverage = { coverage?: { relevant?: number; confirmed?: number; unableToConfirm?: number } | null } | null;
+type DimensionCoverage = { score?: number | null; coverage?: { relevant?: number; confirmed?: number; unableToConfirm?: number } | null } | null;
 export type QualifiableResult = {
   overallScore?: number;
   seo?: DimensionCoverage;
   geo?: DimensionCoverage;
   mode?: string;
   coverage?: { coveragePercent?: number } | null;
-  scoreModel?: { evidenceLevel?: "complete" | "provisional" | "insufficient"; evidenceReasons?: string[]; provisional?: boolean; range?: { low: number; high: number } | null; headline?: { kind: "score" | "range"; display: string } | null; scope?: { caution?: string | null; notes?: string[] } | null } | null;
+  scoreModel?: { seoRange?: { low: number; high: number } | null; geoRange?: { low: number; high: number } | null; dimensionEvidence?: { seo?: { level?: string | null; coveragePercent?: number | null } | null; geo?: { level?: string | null; coveragePercent?: number | null } | null } | null; evidenceLevel?: "complete" | "provisional" | "insufficient"; evidenceReasons?: string[]; provisional?: boolean; range?: { low: number; high: number } | null; headline?: { kind: "score" | "range"; display: string } | null; scope?: { caution?: string | null; notes?: string[] } | null } | null;
   selfCheck?: { reliability?: "high" | "medium" | "low" } | null;
   multiPage?: { counts?: { selected?: number; audited?: number } | null; sitewideSummary?: { scoredPageIsHomepage?: boolean; checkedPages?: number; pagesWithIssues?: number; topIssues?: Array<{ key: string; affected: number; checked: number }>; sampleScore?: number | null } } | null;
 };
@@ -104,6 +105,17 @@ export function scoreQualifier(result: QualifiableResult | null | undefined, loc
 }
 
 /** The big headline: a range ("64–99") when evidence is below 70%, else the score. */
+/**
+ * SEO or GEO number as it may be shown: a range or "indicatie" when that
+ * dimension's own evidence is insufficient (lib/dimension-score-display.mjs).
+ */
+export function dimensionScoreDisplay(result: QualifiableResult | null | undefined, dimension: "seo" | "geo", locale: Locale = "nl"): { text: string; indication: boolean; coveragePercent: number | null } {
+  return dimensionDisplayOf(result, dimension, locale);
+}
+/** Plain-text label for one dimension: "64–99 (indicatie)" or "97". */
+export function dimensionScoreText(result: QualifiableResult | null | undefined, dimension: "seo" | "geo", locale: Locale = "nl"): string {
+  return dimensionDisplayOf(result, dimension, locale).text;
+}
 export function headlineDisplay(result: QualifiableResult | null | undefined): string {
   const h = result?.scoreModel?.headline;
   if (h?.kind === "range" && h.display) return h.display;

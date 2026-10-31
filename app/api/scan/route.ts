@@ -1,7 +1,7 @@
 import { hasLocalQaSession } from "@/lib/local-qa";
 import { scanRuntime } from "@/lib/scan-runtime";
 import { sectorPageEvidence, scanCoverageDimensions, isAudiencePagePath } from "@/lib/sector-page-evidence";
-import { LOCAL_TRADE_KEYS, corroborateDeclaredIndustry, detectDeclaredIndustry, refineSubtype, stripBrandNames } from "@/lib/site-sector-corroboration.mjs";
+import { LOCAL_TRADE_KEYS, corroborateDeclaredIndustry, detectDeclaredIndustry, refineSubtype, stripBrandNames, stripPersonNameBrands } from "@/lib/site-sector-corroboration.mjs";
 import { decideCommerceModules } from "@/lib/sector-motor-decisions";
 import { NextResponse } from "next/server";
 import { createHash, randomUUID } from "crypto";
@@ -2358,8 +2358,10 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // The hostname is identity evidence ("kapsalon-jansen.nl"), unless the site
     // writes its own name as that domain ("Bakker.com"): then it is a brand.
     const hostnameIdentity = stripBrandNames(finalUrl.hostname, "", brandOwnText).trim() ? stripBrandNames(finalUrl.hostname, "", brandOwnText) : "";
-    const anchorIdentitySource = stripMarketMentions(stripBrandNames([brandlessTitle, description, h1s.join(" "), finalUrl.pathname, isTourismBoardHost(finalUrl.hostname) ? "toerisme" : ""].join(" | "), finalUrl.hostname, brandOwnText) + " | " + hostnameIdentity);
-    const descriptionAndHeadings = stripMarketMentions(stripBrandNames([description, h1s.join(" ")].join(" | "), finalUrl.hostname, brandOwnText));
+    // A person name used as brand ("Leen Bakker") never declares the trade its
+    // surname happens to name (31 Oct: furniture chain typed as a bakery).
+    const anchorIdentitySource = stripMarketMentions(stripBrandNames(stripPersonNameBrands([brandlessTitle, description, h1s.join(" "), finalUrl.pathname, isTourismBoardHost(finalUrl.hostname) ? "toerisme" : ""].join(" | "), title), finalUrl.hostname, brandOwnText) + " | " + hostnameIdentity);
+    const descriptionAndHeadings = stripMarketMentions(stripBrandNames(stripPersonNameBrands([description, h1s.join(" ")].join(" | "), title), finalUrl.hostname, brandOwnText));
     const legacyAnchored = (patterns: RegExp[]) => Boolean(patterns[0]?.test(anchorIdentitySource)
       || (brandTitle && patterns[0]?.test(stripMarketMentions(brandTitle)) && (patterns[0]?.test(descriptionAndHeadings) || patterns[1]?.test(descriptionAndHeadings))));
     // Anchored in the organisation's own title or description (not only in one of

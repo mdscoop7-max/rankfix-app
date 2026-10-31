@@ -9,7 +9,7 @@ import PublicReviews from "@/components/public-reviews";
 import "./root-mobile-nav.css";
 import { ScoreQualifier } from "@/components/score-qualifier";
 import { buildEvidenceDescription } from "@/lib/meta-description-fix";
-import { headlineDisplay } from "@/lib/score-qualifier";
+import { dimensionScoreText, headlineDisplay } from "@/lib/score-qualifier";
 import { SitewideIssues } from "@/components/sitewide-issues";
 import type { SitewideIssue } from "@/lib/sitewide-issues";
 import SpeedAudit from "@/components/speed-audit";
@@ -1145,7 +1145,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                   .map(([key, data]) => (
                     <button key={key} type="button" onClick={() => setTab(key)} className={`rounded-xl border px-3 py-2 text-left transition ${tab === key ? "border-emerald-300/30 bg-emerald-300/10 text-slate-900" : "border-slate-200 bg-white/[0.02] text-slate-500 hover:text-violet-700"}`}>
                       <div className="text-[10px] font-bold uppercase tracking-widest">{key}</div>
-                      <div className="mt-1 text-xl font-black">{data.score}</div>
+                      <div className="mt-1 text-xl font-black">{dimensionScoreText(result as never, key, language)}</div>
                     </button>
                   ))}
               </div>
@@ -1193,7 +1193,7 @@ export default function Home({ initialLanguage = "nl" }: { initialLanguage?: Lan
                       >
                         <div className="text-[10px] font-bold uppercase tracking-widest">{key} audit</div>
                         <div className="mt-2">
-                          <div className="whitespace-nowrap text-xl font-black">{data.score}<span className="ml-0.5 text-xs font-bold opacity-60">/100</span></div>
+                          <div className="whitespace-nowrap text-xl font-black">{dimensionScoreText(result as never, key, language)}<span className="ml-0.5 text-xs font-bold opacity-60">/100</span></div>
                           <div className="mt-2">
                             <span className="inline-flex whitespace-nowrap rounded-full border border-current/10 bg-white/60 px-2 py-1 text-[11px] font-semibold">{ar.coverage}: {data.checks.filter((item) => item.status !== "not_applicable" && item.status !== "unable_to_confirm").length}/{data.checks.filter((item) => item.status !== "not_applicable").length}</span>
                           </div>

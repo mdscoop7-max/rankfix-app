@@ -1224,8 +1224,9 @@ test("report shows commerce applicability and raw-HTML limitations separately fr
   const report = await readFile(new URL("../app/dashboard/audit/[id]/report/page.tsx", import.meta.url), "utf8");
   assert.match(report, /Webshopfunctionaliteit:/);
   assert.match(report, /Beperking scanbron:/);
-  assert.match(report, /r\.seo\?\.score/);
-  assert.match(report, /r\.geo\?\.score/);
+  // 31 Oct: SEO/GEO through the shared display (range/indication on thin evidence).
+  assert.match(report, /dimensionScoreText\(r as never,"seo",language\)/);
+  assert.match(report, /dimensionScoreText\(r as never,"geo",language\)/);
   assert.match(report, /r\.security\?\.score/);
   assert.match(report, /toepasselijke controles/);
 });
