@@ -108,7 +108,7 @@ export const REASON_NL: Record<string, string> = {
   MERGE_CONFLICT: "De wijziging botst met andere wijzigingen. RankFix publiceert niet automatisch.",
   BRANCH_PROTECTED: "De repository vereist een extra goedkeuring of review voordat er gepubliceerd mag worden.",
   BASE_ADVANCED: "De website-branch is intussen veranderd; GitHub vereist eerst een update van de Pull Request.",
-  MERGE_TIMEOUT: "GitHub stond het samenvoegen niet binnen de wachttijd toe.",
+  MERGE_TIMEOUT: "GitHub gaf binnen de wachttijd geen uitsluitsel of de wijziging samengevoegd kan worden (mergeability bleef onbekend). RankFix heeft niets samengevoegd.",
   MERGE_REJECTED: "GitHub weigerde het samenvoegen.",
   AUTOFIX_NOT_AUTHORIZED: "Automatische publicatie is voor deze website of dit probleemtype niet toegestaan.",
   DEPLOY_FAILED: "De publicatie (deployment) van de website is mislukt. De live website is niet bijgewerkt.",
@@ -122,6 +122,13 @@ export const REASON_NL: Record<string, string> = {
   CI_INCOMPLETE: "GitHub gaf een onvolledige lijst van controles. Zonder volledig bewijs publiceert RankFix niet.",
   CI_SHA_MISMATCH: "De controles horen niet bij exact deze versie van de wijziging. RankFix publiceert niet.",
   CI_UNRELIABLE: "Een controle in GitHub gaf een onbetrouwbaar resultaat. RankFix publiceert niet.",
+  POLICY_UNAVAILABLE: "De regels van GitHub voor deze branch konden tijdelijk niet worden gelezen. Zonder die regels publiceert RankFix niet.",
+  POLICY_UNREADABLE: "Eerder geldende GitHub-regels voor deze branch zijn niet meer leesbaar voor RankFix. RankFix publiceert niet automatisch.",
+  POLICY_WEAKENED: "De verplichte controles voor deze branch zijn sinds de goedkeuring afgezwakt. RankFix publiceert niet automatisch; maak een nieuw voorstel.",
+  POLICY_INVALID: "De vastgelegde lijst verplichte controles is ongeldig (elke controle heeft een naam en GitHub-app-ID nodig). Pas de lijst aan.",
+  REQUIRED_CHECK_UNBOUND: "Een verplichte controle is niet aan een vaste GitHub-app gekoppeld; een gelijknamige controle van een andere bron zou dan meetellen. RankFix publiceert niet automatisch.",
+  NOT_SERVER_ENFORCED: "GitHub dwingt de verplichte controles voor deze branch niet zelf af, of RankFix zou ze kunnen omzeilen. RankFix maakt daarom alleen een Pull Request; zet in GitHub een ruleset met verplichte controles aan.",
+  MERGE_QUEUE_REQUIRED: "Deze branch gebruikt een merge queue. RankFix voegt niet zelf samen; de Pull Request staat klaar voor de queue.",
   CONTENT_MISMATCH: "De inhoud van de Pull Request is niet exact de goedgekeurde wijziging. RankFix publiceert niet automatisch.",
   CONTENT_UNAVAILABLE: "De inhoud van de goedgekeurde versie kon niet in GitHub worden gecontroleerd. RankFix publiceert niet.",
   EVIDENCE_CHANGED: "Tussen de laatste twee controles veranderde de situatie in GitHub (base, controles of regels). RankFix publiceert niet automatisch.",
@@ -145,7 +152,7 @@ export type CheckRun = { id?: number; name?: string; status?: string; conclusion
 export type CommitStatus = { id?: number; context?: string; state?: string };
 export type { RequiredCheck } from "./merge-policy.ts";
 
-export type MergeDecision = { decision: "merge" | "wait" | "block" | "merged"; code: string; /** Trusted policy seen in this evaluation (stored once per fix; may only get stricter). */ policy?: string };
+export type MergeDecision = { decision: "merge" | "wait" | "block" | "merged"; code: string; /** Trusted policy seen in this evaluation (stored once per fix; may only get stricter). */ policy?: string; /** Required checks that were missing or not successful (Astra F6: shown, not hidden). */ missing?: string[] };
 
 /**
  * CI evidence for exactly one head commit (P0, 31 Oct). Fail-closed: only a
@@ -327,7 +334,7 @@ export function liveFixApplied(issueId: string, html: string, expectedValue: str
 export type FixRow = {
   id: string; user_id: string; issue_id: string; scanned_url: string; status: string;
   repository?: string | null; pr_number?: number | null; pr_url?: string | null; branch?: string | null; base_branch?: string | null; file_path?: string | null;
-  auto_publish?: boolean | null; expected_value?: string | null; head_sha?: string | null; base_blob_sha?: string | null; required_checks?: string | string[] | null; required_policy?: string | null; approved_content_sha256?: string | null;
+  auto_publish?: boolean | null; expected_value?: string | null; head_sha?: string | null; base_blob_sha?: string | null; required_checks?: string | string[] | null; required_policy?: string | null; approved_content_sha256?: string | null; stop_detail?: string | null;
   merge_commit_sha?: string | null; merged_at?: string | Date | null; deploy_state?: string | null; deploy_success_at?: string | Date | null;
   live_seen_at?: string | Date | null; merge_attempts?: number | null; verification_attempts?: number | null;
   last_error_code?: string | null; phase_started_at?: string | Date | null; next_check_at?: string | Date | null; proposal_id?: string | null;
@@ -471,7 +478,7 @@ async function evaluateForMerge(gh: NonNullable<EngineDeps["github"]>, row: FixR
     expected: { branch: String(row.branch || ""), baseBranch: String(row.base_branch || ""), path: String(row.file_path || ""), headSha: row.head_sha, baseBlobSha: row.base_blob_sha },
     baseFileSha: baseFile,
   });
-  if (decision.decision !== "merge") return { decision: { ...decision, policy: seenPolicy }, fingerprint: null };
+  if (decision.decision !== "merge") return { decision: { ...decision, policy: seenPolicy, ...(ci.missing && decision.code === ci.code ? { missing: ci.missing } : {}) }, fingerprint: null };
   const filesSig = (Array.isArray(files) ? files : []).map((f) => `${f.filename}:${f.status}:${f.additions}:${f.deletions}`).join(",");
   return { decision: { ...decision, policy: seenPolicy }, fingerprint: [headSha, baseSha, pr.base?.ref, pr.mergeable_state, baseFile, headDigest, policy.fingerprint, ci.code, filesSig].join("\u0000") };
 }
@@ -522,15 +529,19 @@ export async function advanceFix(deps: EngineDeps, row: FixRow): Promise<FixRow>
         const result = await tryAutoMerge(deps, row);
         // The policy seen for this fix is kept; a later evaluation may only be stricter.
         const policyField = result.policy && result.policy !== row.required_policy ? { required_policy: result.policy } : {};
+        // Astra F6: keep the real cause (and which checks) instead of a generic time-out.
+        const detail = (timedOut: boolean) => ({ stop_detail: JSON.stringify({ code: result.code, missing: result.missing || [], timedOut, headSha: row.head_sha || null, observedAt: new Date(now).toISOString() }) });
         if (result.decision === "merged") {
           const pr = await deps.github<PullInfo>(`/repos/${row.repository}/pulls/${Number(row.pr_number)}`).catch(() => ({} as PullInfo));
           await transition(deps, row, "AWAITING_DEPLOYMENT", { merged_at: new Date(now).toISOString(), merge_commit_sha: pr.merge_commit_sha || null });
         } else if (result.decision === "block") {
-          await transition(deps, row, "NEEDS_ATTENTION", policyField, result.code);
+          await transition(deps, row, "NEEDS_ATTENTION", { ...policyField, ...detail(false) }, result.code);
         } else if (phaseAge > LIMITS.mergeWaitMs) {
-          await transition(deps, row, "NEEDS_ATTENTION", policyField, "MERGE_TIMEOUT");
+          // Only "GitHub never decided mergeability" is a merge time-out; any other
+          // wait keeps its own cause, marked as timed out.
+          await transition(deps, row, "NEEDS_ATTENTION", { ...policyField, ...detail(true) }, result.code === "MERGEABILITY_PENDING" ? "MERGE_TIMEOUT" : result.code);
         } else {
-          await keep(deps, row, result.code, 10_000, { merge_attempts: Number(row.merge_attempts || 0) + 1, ...policyField });
+          await keep(deps, row, result.code, 10_000, { merge_attempts: Number(row.merge_attempts || 0) + 1, ...policyField, ...detail(false) });
         }
         return row;
       }
@@ -619,16 +630,38 @@ export function fixActions(row: Pick<FixRow, "status" | "last_error_code" | "mer
   };
 }
 
+/** Customer-facing category, so "CI missing", "evidence unreadable" and "GitHub refused" are never confused (Astra F6). */
+export function reasonKind(code: string | null | undefined): "ci_missing" | "ci_failed" | "evidence_unreadable" | "policy" | "github_refused" | "changed" | "other" | null {
+  if (!code) return null;
+  if (["REQUIRED_CHECK_MISSING", "CHECKS_PENDING"].includes(code)) return "ci_missing";
+  if (["CHECKS_FAILED", "REQUIRED_CHECK_NOT_SUCCESSFUL", "CI_AMBIGUOUS"].includes(code)) return "ci_failed";
+  if (["CI_UNAVAILABLE", "CI_INCOMPLETE", "CI_UNRELIABLE", "CI_SHA_MISMATCH", "POLICY_UNAVAILABLE", "POLICY_UNREADABLE", "CONTENT_UNAVAILABLE", "BASE_UNAVAILABLE", "GITHUB_UNAVAILABLE", "GITHUB_NOT_CONNECTED", "EVIDENCE_MISSING"].includes(code)) return "evidence_unreadable";
+  if (["REQUIRED_CHECKS_UNDEFINED", "REQUIRED_CHECK_UNBOUND", "NOT_SERVER_ENFORCED", "POLICY_INVALID", "POLICY_WEAKENED", "MERGE_QUEUE_REQUIRED"].includes(code)) return "policy";
+  if (["MERGE_REJECTED", "BRANCH_PROTECTED", "MERGE_CONFLICT", "BASE_ADVANCED", "MERGE_TIMEOUT", "MERGEABILITY_PENDING"].includes(code)) return "github_refused";
+  if (["HEAD_CHANGED", "CONTENT_MISMATCH", "EVIDENCE_CHANGED", "UNEXPECTED_FILES", "STALE_BASE", "DIFF_TOO_LARGE", "BASE_MISMATCH", "HEAD_MISMATCH"].includes(code)) return "changed";
+  return "other";
+}
+
 export function publicFixView(row: FixRow) {
   const stage = customerStage(row);
   const code = row.status === "AWAITING_MERGE" && !row.auto_publish ? "PR_AWAITING_OWNER" : row.last_error_code || null;
+  let detail: { missing?: unknown; timedOut?: unknown } = {};
+  try { detail = row.stop_detail ? JSON.parse(String(row.stop_detail)) : {}; } catch { detail = {}; }
+  const timedOut = detail.timedOut === true && row.status === "NEEDS_ATTENTION";
+  const missing = Array.isArray(detail.missing) ? detail.missing.filter((x): x is string => typeof x === "string").slice(0, 10) : [];
+  // Astra F6: while RankFix waits during execution, the customer sees WHY.
+  const visible = stage === "manual" || code === "LIVE_UNREACHABLE" || (stage === "executing" && Boolean(code));
+  const base = visible && code ? REASON_NL[code] || null : null;
   return {
     issue_id: row.issue_id,
     status: row.status,
     stage,
     stage_label: STAGE_LABEL_NL[stage],
-    reason_code: stage === "manual" || code === "LIVE_UNREACHABLE" ? code : null,
-    reason: (stage === "manual" || code === "LIVE_UNREACHABLE") && code ? REASON_NL[code] || null : null,
+    reason_code: visible ? code : null,
+    reason: base ? base + (missing.length ? ` Betreft: ${missing.join(", ")}.` : "") + (timedOut ? " RankFix heeft de maximale wachttijd afgewacht en is daarna gestopt." : "") : null,
+    reason_kind: visible ? reasonKind(code) : null,
+    timed_out: timedOut,
+    missing_checks: missing,
     ready_for_scan: readyForVerificationScan(row),
     actions: fixActions(row),
     technical: {

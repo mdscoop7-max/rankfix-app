@@ -184,7 +184,7 @@ export async function POST(request:Request){
       Object.assign(fields,recovered.fields);
     }
     const resumeStatus=row.merged_at?"AWAITING_DEPLOYMENT":"AWAITING_MERGE";
-    const sets=["status=$3","phase_started_at=NOW()","next_check_at=NULL","last_error_code=NULL","updated_at=NOW()"];
+    const sets=["status=$3","phase_started_at=NOW()","next_check_at=NULL","last_error_code=NULL","stop_detail=NULL","updated_at=NOW()"];
     const params:unknown[]=[row.id,user.id,resumeStatus];
     for(const [key,value] of Object.entries(fields)){ params.push(value); sets.push(`${key}=$${params.length}`); }
     params.push(row.status);

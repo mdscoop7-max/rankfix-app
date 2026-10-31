@@ -537,7 +537,7 @@ await scenario("G blocked live page is never marked as fixed", async () => {
 await scenario("H AI provider down and too little page text: clear error, nothing created", async () => {
   await newUser("h");
   const repo = freshSite("h.voorbeeld.test", "acme/h-shop");
-  process.env.OPENAI_API_KEY = "test-key-not-real";
+  process.env.OPENAI_API_KEY = "sk-test-not-real"; // must look like a real key (lib/meta-description-fix.ts validates the format)
   OPENAI = () => new Response(JSON.stringify({ error: { message: "overloaded" } }), { status: 503 });
   try {
     const ai = await call(aiFixRoute.POST, "POST", "/api/ai-fix", { url: "https://h.voorbeeld.test/", issue_id: ISSUE, type: "meta_description", current: "Kort.", context: { title: "Shop", description: "Kort.", h1: "" }, issue_status: "WARNING" });

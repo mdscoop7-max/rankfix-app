@@ -312,3 +312,49 @@ test("legacy evidence is recovered only from the approved content at the PR's im
   const merged = await R.recoverLegacyEvidence(async (path) => (/pulls\/7$/.test(path) ? { merged: true, state: "closed", head: { sha: H, ref: "rankfix/x" } } : {}), fixRow(legacy), proposal);
   assert.equal(merged.code, "EVIDENCE_MISSING");
 });
+
+/* ------------------------------------------------------------ real cause instead of MERGE_TIMEOUT (F6) */
+// Minimal pending_fixes table: applies every "column=$n" of the engine's UPDATEs.
+function tableDb(row) {
+  return { query: async (sql, params = []) => {
+    if (!/^UPDATE pending_fixes SET/.test(sql)) return { rows: [], rowCount: 1 };
+    if (/status=\$\d+ RETURNING/.test(sql) && row.status !== params[params.length - 1]) return { rows: [], rowCount: 0 };
+    for (const [, key, n] of sql.split(" WHERE ")[0].matchAll(/(\w+)=\$(\d+)/g)) row[key] = params[Number(n) - 1];
+    return { rows: [{ ...row }], rowCount: 1 };
+  } };
+}
+const advance = async (ghOver, rowOver) => {
+  const row = fixRow({ phase_started_at: new Date(Date.now() - 20 * 60_000), ...rowOver });
+  const f = fakeGithub(ghOver);
+  await E.advanceFix({ db: tableDb(row), github: f.gh, probe: async () => ({ reachable: false, httpStatus: null, blocked: false, html: "" }) }, row);
+  return { row, view: E.publicFixView(row) };
+};
+
+test("after the wait limit the real cause is kept and shown, with the missing checks", async () => {
+  const { row, view } = await advance({ runs: () => [] });
+  assert.equal(row.status, "NEEDS_ATTENTION");
+  assert.equal(row.last_error_code, "REQUIRED_CHECK_MISSING");
+  assert.deepEqual(JSON.parse(row.stop_detail).missing, ["build"]);
+  assert.equal(view.timed_out, true); assert.equal(view.reason_kind, "ci_missing");
+  assert.deepEqual(view.missing_checks, ["build"]);
+  assert.match(view.reason, /verplichte GitHub-controle/); assert.match(view.reason, /Betreft: build/); assert.match(view.reason, /maximale wachttijd/);
+  assert.equal(view.actions.resume, true);
+});
+
+test("each stop category stays distinguishable: CI missing, evidence unreadable, policy, GitHub refused", async () => {
+  assert.equal((await advance({ checksError: 500 })).view.reason_kind, "evidence_unreadable");
+  assert.equal((await advance({ rulesError: 503 })).row.last_error_code, "POLICY_UNAVAILABLE");
+  assert.equal((await advance({ ruleset: { enforcement: "active", current_user_can_bypass: "always" } })).view.reason_kind, "policy");
+  const refused = await advance({ mergeError: 405 });
+  assert.equal(refused.row.last_error_code, "MERGE_REJECTED"); assert.equal(refused.view.reason_kind, "github_refused"); assert.equal(refused.view.timed_out, false);
+  // Only "GitHub never decided mergeability" becomes MERGE_TIMEOUT.
+  const unknown = await advance({ fresh: { mergeable: null, mergeable_state: "unknown" } });
+  assert.equal(unknown.row.last_error_code, "MERGE_TIMEOUT"); assert.equal(unknown.view.reason_kind, "github_refused");
+  assert.doesNotMatch(unknown.view.reason, /stond het samenvoegen niet/);
+});
+
+test("while waiting during execution the customer sees why", async () => {
+  const { row, view } = await advance({ runs: () => [run("build", null, { id: 1, status: "in_progress" })] }, { phase_started_at: new Date() });
+  assert.equal(row.status, "AWAITING_MERGE");
+  assert.equal(view.stage, "executing"); assert.equal(view.reason_code, "CHECKS_PENDING"); assert.equal(view.reason_kind, "ci_missing"); assert.equal(view.timed_out, false);
+});

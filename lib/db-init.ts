@@ -118,6 +118,8 @@ const statements = [
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS required_policy TEXT`,
   // Astra F4: SHA-256 of the approved file content, checked at the immutable head commit.
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS approved_content_sha256 TEXT`,
+  // Astra F6: root cause of the latest stop/wait (JSON: code, missing checks, timedOut, head, time).
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS stop_detail TEXT`,
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS merge_commit_sha TEXT`,
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS deploy_state TEXT`,
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS deploy_success_at TIMESTAMPTZ`,

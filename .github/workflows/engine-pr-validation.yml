@@ -21,6 +21,22 @@ jobs:
   engine:
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    # Astra review: the AutoFix flow (real PostgreSQL, simulated GitHub and website,
+    # no network) is a mandatory gate, not only a local check.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: rankfix
+          POSTGRES_PASSWORD: rankfix
+          POSTGRES_DB: rankfix_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rankfix -d rankfix_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     env:
       CI: "true"
       DATABASE_URL: "postgresql://rankfix:rankfix@127.0.0.1:5432/rankfix_ci"
@@ -37,6 +53,8 @@ jobs:
         run: node --test tests/crawler-industrial-products-guard.test.mjs
       - name: Existing regression suite
         run: npm test
+      - name: AutoFix full flow on PostgreSQL (fail-closed merge safety)
+        run: npm run test:fix-flow
       - name: Generate Next.js types
         run: npx next typegen
       - name: TypeScript check
