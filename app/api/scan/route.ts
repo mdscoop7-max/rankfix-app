@@ -3665,7 +3665,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // "No JSON-LD" is only a proven absence when a render saw the final DOM, or the raw
     // HTML is server-rendered and nothing (a tag manager) can add markup later.
     const jsonLdInjectors = jsonLdInjectorSignals(rawHtml);
-    const schemaAbsence = structuredDataAbsence({ validJsonLd, rendered: javascriptExecuted, clientRenderedRisk: metadataMayBeClientRendered, injectors: jsonLdInjectors, serverRendered: rawServerRendered && rawVisibleWords >= 50 });
+    const schemaAbsence = structuredDataAbsence({ validJsonLd, rendered: javascriptExecuted, clientRenderedRisk: metadataMayBeClientRendered, injectors: jsonLdInjectors });
     // A substantive server-rendered body proves heading structure on its own;
     // only a thin script shell leaves H1/headings unconfirmed without a render.
     const bodyStructureMayBeClientRendered = metadataMayBeClientRendered && !rawSubstantiveDocument;
@@ -4536,7 +4536,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         viewport: viewportContent || (item.key === "viewport" && (rawServerRendered || javascriptExecuted) ? "viewportMetaPresent=false; head=server-rendered" : null),
         lang: lang || null,
         alt: imageElementCount ? imagesMissingAlt : null,
-        schema: validJsonLd ? `blocks=${validJsonLd}; types=${[...new Set(schemaTypes)].slice(0,12).join(",")}; contextRelevant=${hasRelevantContextSchema}` : (item.key === "schema" ? "validJsonLdBlocks=0" : null),
+        schema: validJsonLd ? `blocks=${validJsonLd}; types=${[...new Set(schemaTypes)].slice(0,12).join(",")}; contextRelevant=${hasRelevantContextSchema}` : (item.key === "schema" ? `validJsonLdBlocks=0; observation=${schemaAbsence.observation}; basis=${schemaAbsence.basis}${jsonLdInjectors.length ? `; injectors=${jsonLdInjectors.join(",")}` : ""}` : null),
         https: finalUrl.protocol === "https:",
         status: response.status,
         response: responseMedian,

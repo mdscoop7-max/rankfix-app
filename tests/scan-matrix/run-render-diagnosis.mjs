@@ -23,7 +23,10 @@ for (const key of ["content", "trust_legal_signals", "image_sources", "headings"
 if (by(kort, "viewport")?.status !== "fail") problems.push(`kort: missing viewport should be a proven fail (${by(kort, "viewport")?.status})`);
 if (!(kort.coverage?.coveragePercent >= 80)) problems.push(`kort: coverage ${kort.coverage?.coveragePercent}%`);
 const gtm = await scan("gtm.test");
-if (by(gtm, "schema")?.status === "unable_to_confirm") problems.push(`gtm: schema unconfirmed on a substantive server-rendered page (${by(gtm, "schema")?.message?.slice(0, 80)})`);
+// 1 Nov (A/B on identical content): with a tag manager and no browser observation,
+// missing JSON-LD is "not observed" — never a proven absence and never a deduction.
+if (by(gtm, "schema")?.status !== "unable_to_confirm" || by(gtm, "schema")?.points !== 0) problems.push(`gtm: schema must be not observed (unable, 0 points), got ${by(gtm, "schema")?.status} ${by(gtm, "schema")?.points}`);
+if (!/observation=not_observed/.test(String(by(gtm, "schema")?.evidence?.found))) problems.push(`gtm: evidence does not record observation=not_observed (${by(gtm, "schema")?.evidence?.found})`);
 if (!/zoom|user-scalable/i.test(JSON.stringify([...gtm.seo.checks, ...(gtm.accessibility?.checks || [])].filter((c) => c.status !== "pass").map((c) => c.message)))) problems.push("gtm: user-scalable=0 not reported");
 const spa = await scan("spa.test");
 if (by(spa, "schema")?.status !== "unable_to_confirm") problems.push(`spa: a real client-side shell must keep schema unconfirmed (${by(spa, "schema")?.status})`);

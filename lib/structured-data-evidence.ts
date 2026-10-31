@@ -20,7 +20,18 @@ const INJECTORS: Array<{ name: string; pattern: RegExp }> = [
 
 export function jsonLdInjectorSignals(html: string): string[] {
   if (!html) return [];
-  return INJECTORS.filter(({ pattern }) => pattern.test(html)).map(({ name }) => name);
+  const found = INJECTORS.filter(({ pattern }) => pattern.test(html)).map(({ name }) => name);
+  // 1 Nov (A/B P5): an EMPTY ld+json script is a placeholder the page fills in
+  // the browser (nu.nl-like). Its presence means JSON-LD is client-side.
+  if (emptyJsonLdPlaceholders(html) > 0) found.push("lege JSON-LD-placeholder");
+  return found;
+}
+
+/** ld+json script tags without any content: filled by JavaScript at runtime. */
+export function emptyJsonLdPlaceholders(html: string): number {
+  let count = 0;
+  for (const m of String(html || "").matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) if (!m[1].trim()) count++;
+  return count;
 }
 
 export type StructuredDataBasis =
@@ -28,24 +39,27 @@ export type StructuredDataBasis =
   | "rendered_dom"
   | "raw_html_no_injectors"
   | "tag_manager_unrendered"
-  | "client_rendered_unrendered" | "raw_html_server_rendered";
+  | "client_rendered_unrendered";
 
-export function structuredDataAbsence(input: { validJsonLd: number; rendered: boolean; clientRenderedRisk: boolean; injectors: string[]; serverRendered?: boolean }): { proven: boolean; basis: StructuredDataBasis } {
-  if (input.validJsonLd > 0) return { proven: false, basis: "present" };
+/** Three states, never mixed: seen, proven absent, or not observed (no claim). */
+export type StructuredDataObservation = "present" | "proven_absent" | "not_observed";
+
+export function structuredDataAbsence(input: { validJsonLd: number; rendered: boolean; clientRenderedRisk: boolean; injectors: string[] }): { proven: boolean; basis: StructuredDataBasis; observation: StructuredDataObservation } {
+  if (input.validJsonLd > 0) return { proven: false, basis: "present", observation: "present" };
   // A completed browser render saw the final DOM: absence there is real evidence.
-  if (input.rendered) return { proven: true, basis: "rendered_dom" };
-  if (input.clientRenderedRisk) return { proven: false, basis: "client_rendered_unrendered" };
-  // 31 Oct (PDF P5): on a substantive server-rendered page the site publishes its
-  // own markup in the HTML; a tag manager alone does not make absence unproven
-  // ("pas na JavaScript zichtbaar" was wrong on Croatia, HousingNet, Kwik-Fit).
-  if (input.injectors.length && input.serverRendered) return { proven: true, basis: "raw_html_server_rendered" };
-  if (input.injectors.length) return { proven: false, basis: "tag_manager_unrendered" };
-  return { proven: true, basis: "raw_html_no_injectors" };
+  if (input.rendered) return { proven: true, basis: "rendered_dom", observation: "proven_absent" };
+  if (input.clientRenderedRisk) return { proven: false, basis: "client_rendered_unrendered", observation: "not_observed" };
+  // 1 Nov (A/B on identical content): a tag manager or an empty JSON-LD placeholder
+  // can add JSON-LD in the browser. Without a browser observation the absence is
+  // NOT proven, also on a substantive server-rendered page (the 31 Oct rule that
+  // treated it as proven gave 10 sites an unproven GEO deduction; reverted).
+  if (input.injectors.length) return { proven: false, basis: "tag_manager_unrendered", observation: "not_observed" };
+  return { proven: true, basis: "raw_html_no_injectors", observation: "proven_absent" };
 }
 
 export function structuredDataUnprovenMessage(basis: StructuredDataBasis, context: string, injectors: string[]): string {
   if (basis === "tag_manager_unrendered") {
-    return `Structured data is in de ruwe HTML van deze ${context} niet gevonden, maar de pagina laadt ${injectors.join(", ")}. Zo'n tag manager kan JSON-LD pas in de browser toevoegen, en er is geen volledige render beschikbaar. Het ontbreken is daarom niet bewezen.`;
+    return `Structured data is in de ruwe HTML van deze ${context} niet gevonden, maar de pagina bevat ${injectors.join(", ")}. Daarmee kan JSON-LD pas in de browser worden toegevoegd, en er is geen browserwaarneming beschikbaar. Het ontbreken is daarom niet bewezen: status niet waargenomen, geen aftrek.`;
   }
   return `Structured data kon niet betrouwbaar worden bevestigd voor deze ${context}, omdat de JavaScript-pagina niet volledig kon worden gerenderd.`;
 }

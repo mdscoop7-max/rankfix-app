@@ -1,15 +1,24 @@
-// 31 Oct (PDF P5): JSON-LD absence is "unconfirmed" only when the page may really
-// be client-rendered; on a substantive server-rendered page it is a finding.
+// JSON-LD evidence states (31 Oct PDF P5, corrected 1 Nov after the A/B replay).
 import test from "node:test";
 import assert from "node:assert/strict";
 import { structuredDataAbsence } from "../lib/structured-data-evidence.ts";
-test("structured data absence: server-rendered pages prove absence even with a tag manager", () => {
+test("structured data: present / proven absent / not observed are three separate states", () => {
   const base = { validJsonLd: 0, rendered: false, clientRenderedRisk: false, injectors: ["Google Tag Manager"] };
-  assert.deepEqual(structuredDataAbsence({ ...base, serverRendered: true }), { proven: true, basis: "raw_html_server_rendered" });
-  assert.deepEqual(structuredDataAbsence(base), { proven: false, basis: "tag_manager_unrendered" });
-  assert.deepEqual(structuredDataAbsence({ ...base, clientRenderedRisk: true, serverRendered: true }), { proven: false, basis: "client_rendered_unrendered" });
-  assert.deepEqual(structuredDataAbsence({ ...base, validJsonLd: 1 }), { proven: false, basis: "present" });
-  assert.deepEqual(structuredDataAbsence({ ...base, injectors: [] }), { proven: true, basis: "raw_html_no_injectors" });
+  // 1 Nov (A/B on identical content): no browser observation + tag manager = not observed, never proven absent.
+  assert.deepEqual(structuredDataAbsence(base), { proven: false, basis: "tag_manager_unrendered", observation: "not_observed" });
+  assert.deepEqual(structuredDataAbsence({ ...base, clientRenderedRisk: true }), { proven: false, basis: "client_rendered_unrendered", observation: "not_observed" });
+  assert.deepEqual(structuredDataAbsence({ ...base, rendered: true }), { proven: true, basis: "rendered_dom", observation: "proven_absent" });
+  assert.deepEqual(structuredDataAbsence({ ...base, validJsonLd: 1 }), { proven: false, basis: "present", observation: "present" });
+  assert.deepEqual(structuredDataAbsence({ ...base, injectors: [] }), { proven: true, basis: "raw_html_no_injectors", observation: "proven_absent" });
+});
+
+test("injector signals: first-party GTM, Adobe Launch and an EMPTY ld+json placeholder; a filled block is not a placeholder", async () => {
+  const { jsonLdInjectorSignals, emptyJsonLdPlaceholders } = await import("../lib/structured-data-evidence.ts");
+  assert.deepEqual(jsonLdInjectorSignals(`<script>(function(w,d,s,l,i){j.src='https://metrix.shop.test/gtm.js?id='+i;})(window,document,'script','dataLayer','GTM-WSRFH82');</script>`), ["Google Tag Manager"]);
+  assert.deepEqual(jsonLdInjectorSignals(`<script src="https://assets.adobedtm.com/abc/launch-123.min.js"></script>`), ["Adobe Launch"]);
+  assert.deepEqual(jsonLdInjectorSignals(`<script type="application/ld+json">\n   \n</script>`), ["lege JSON-LD-placeholder"]);
+  assert.equal(emptyJsonLdPlaceholders(`<script type="application/ld+json">{"@type":"Organization"}</script>`), 0);
+  assert.deepEqual(jsonLdInjectorSignals(`<script src="https://www.googletagmanager.com/gtag/js?id=G-ABC"></script>`), []);
 });
 
 test("PDF P4: a link to an error page is a missing page, whatever its HTTP status", async () => {
