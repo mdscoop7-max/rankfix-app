@@ -14,6 +14,7 @@ import { decodeHtmlEntities } from "@/lib/html-entities";
 import { assessPassiveSecurity, formBlocks, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
 import { eligibleSampleCandidates } from "@/lib/sample-eligibility";
+import { detectHardCommerceSignals } from "@/lib/commerce-hard-signals";
 import { assessPageDescription, assessPageTitle, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isClientShell, isPlaceholderTitle, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, confirmedRetailEvidenceForService, isStorefrontOnlyForService, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
 import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
@@ -4684,14 +4685,18 @@ async function runScan(request: Request) {
     // This applies to ALL independently recognized service providers, not
     // only one industry. Payment/booking/checkout widgets are a capability,
     // not proof that the provider is itself a retail webshop.
+    // Hard store signals (cart link/API plus add-to-cart, price + order button or payment logos)
+    // are sector-independent proof of a store, also for hybrids such as service + webshop.
+    const hardStoreSignals = detectHardCommerceSignals(html);
     const hardCommerceEvidence = primaryNonCommerceIdentity
       ? confirmedRetailEvidenceForService({
           representativePurchase: verifiedRepresentativePurchase,
           productDetailSchema: confirmedCurrentProduct,
           addToCart: confirmedAddToCart,
           productAndPrice: corroboratedProductAndPrice,
+          storefrontProven: hardStoreSignals.storefrontProven,
         })
-      : sitewideCommerceEvidence.confirmed || representativeRetailProduct || Boolean(
+      : sitewideCommerceEvidence.confirmed || representativeRetailProduct || hardStoreSignals.storefrontProven || Boolean(
           confirmedCurrentProduct ||
           confirmedAddToCart ||
           corroboratedProductAndPrice
@@ -4720,8 +4725,12 @@ async function runScan(request: Request) {
       confirmed: finalCommerceDecision.confirmed,
       primaryNonCommerceIdentity: Boolean(primaryNonCommerceIdentity),
       commerceHints: Boolean(retailPrimaryIdentity || technologyProfile.isCommerce || hasEcommerceSignal || masterEvidence.commerce.strength > 0 || secondaryCommerceOnly),
-      thinShell: thinRawHtmlEvidence,
+      // A thin raw page is only a "JavaScript shell" with script/framework evidence; a short
+      // server-rendered page is thin content, which says nothing about whether a store exists.
+      thinShell: thinRawHtmlEvidence && (javascriptFrameworkSignal || rawScriptCount >= 4),
       marketSelector: marketSelectorPage,
+      sectorUnknown: sectorProfile.sector === "unknown",
+      hardCommerceSignals: hardStoreSignals.count > 0,
       auditedRepresentativePages: representativeAuditedPageCount,
       verifiedSecondaryCommerce: Boolean(sitewideCommerceEvidence.confirmed || verifiedRepresentativeProductDetail || representativeCommercialProductIntent),
     });
