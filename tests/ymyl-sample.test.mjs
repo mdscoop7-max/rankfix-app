@@ -56,3 +56,16 @@ test("route: hospital without own organisation/team/legal evidence stays unconfi
   assert.equal(r.status, "unable_to_confirm", r.message);
   assert.equal(r.points, 0);
 });
+
+test("1 Nov: footer 'about' labels (multilingual) and named supervisors on privacy pages; a data-protection authority alone never counts", async () => {
+  const { ymylExpertiseEvidence, accountabilitySnippet } = await import("../lib/page-quality-signals.ts");
+  const ev = (label, host) => ymylExpertiseEvidence({ text: "", navigation: ["Home", label], schemaTypes: [], host }).some((x) => /over-ons/.test(x));
+  for (const [label, host] of [["Over Argenta", "www.argenta.be"], ["About Acme", "acme-bank.com"], ["Über die Charité", "charite.de"], ["À propos de Banque Lumière", "banquelumiere.fr"], ["Chi siamo", "x.it"], ["Sobre nosotros", "y.es"], ["Over ons", "z.nl"]]) assert.ok(ev(label, host), label);
+  // Topics and other brands are not the organisation page.
+  for (const [label, host] of [["Over beleggen", "www.argenta.be"], ["Over hypotheken", "bank.nl"], ["About cookies", "acme.com"], ["Overstappen", "bank.nl"], ["Over Mollie", "www.argenta.be"]]) assert.equal(ev(label, host), false, label);
+  assert.match(accountabilitySnippet("https://bank.test/nl/privacy/privacyverklaring.html", "Lange tekst. ".repeat(500) + "We delen gegevens met de Nationale Bank van België (NBB) en de FSMA als de wet dat voorschrijft."), /NBB|FSMA/);
+  // Every privacy statement names the data-protection authority: not accountability evidence.
+  assert.equal(accountabilitySnippet("https://shop.test/privacy", "Je kunt een klacht indienen bij de Autoriteit Persoonsgegevens, de toezichthouder voor privacy."), null);
+  assert.equal(accountabilitySnippet("https://shop.test/producten/fiets", "Onder toezicht van de AFM."), null);
+  assert.match(accountabilitySnippet("https://klinik.test/impressum", "Zuständige Aufsichtsbehörde: Senatsverwaltung für Gesundheit"), /Aufsichtsbeh/);
+});

@@ -1,4 +1,4 @@
-import { distinctH1s, htmlByteSize, LARGE_HTML_BYTES, detectLibraryVersions, isYmylSector, ymylExpertiseEvidence, ymylSampleEvidence } from "@/lib/page-quality-signals";
+import { distinctH1s, htmlByteSize, LARGE_HTML_BYTES, detectLibraryVersions, isYmylSector, ymylExpertiseEvidence, ymylSampleEvidence, accountabilitySnippet } from "@/lib/page-quality-signals";
 import { hospitalityNavigationEvidence, isPricedServiceIdentity } from "@/lib/sector-navigation";
 import { validJsonLdBlockTexts } from "@/lib/structured-data-evidence";
 import { securityAccessibilityActions } from "@/lib/security-access-actions";
@@ -2424,6 +2424,16 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         }
       }
     }
+    // 1 Nov (YMYL): footer link labels (organisation, legal, supervision pages are
+    // usually linked there). Used only as YMYL accountability evidence.
+    const footerLinkLabels: string[] = [];
+    for (const block of html.slice(0, 900000).matchAll(/<footer\b[^>]*>([\s\S]{0,80000}?)<\/footer>/gi)) {
+      for (const anchor of block[1].matchAll(/<a\b[^>]*>([\s\S]{0,400}?)<\/a>/gi)) {
+        const label = decode(stripHtml(anchor[1])).replace(/\s+/g, " ").trim();
+        if (label && label.length < 40) footerLinkLabels.push(label);
+        if (footerLinkLabels.length >= 120) break;
+      }
+    }
     const primaryBusinessEvidence = detectPrimaryBusinessIdentity({title,description,headings:h1s,schemaTypes,navigation:identityNavLabels});
     // Multilingual primary identity (EU languages, typed schema, government host
     // label, navigation as a medium-confidence fallback). Cookie/consent dialog
@@ -4433,7 +4443,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // PDF P9: YMYL homepages (health, finance, legal, insurance) are not N.v.t.:
     // expertise and accountability are judged from organisation-level evidence.
     const ymylHomepage = isHomepage && isYmylSector(sectorProfile.sector, sectorProfile.key);
-    const ymylEvidence = ymylHomepage ? ymylExpertiseEvidence({ text: [title, description, h1s.join(" "), text].join(" "), navigation: identityNavLabels, schemaTypes }) : [];
+    const ymylEvidence = ymylHomepage ? ymylExpertiseEvidence({ text: [title, description, h1s.join(" "), text].join(" "), navigation: [...identityNavLabels, ...footerLinkLabels], schemaTypes, host: finalUrl.hostname }) : [];
     geoChecks.push(ymylHomepage
       ? ymylEvidence.length >= 2
         ? check("pass", "author", "geo", "Expertise-signalen (YMYL)", `Deze organisatie valt in een YMYL-sector (gezondheid, financiën of juridisch). Op de homepage zijn ${ymylEvidence.length} onafhankelijke expertise- en verantwoordingssignalen bevestigd: ${ymylEvidence.join("; ")}.`, "Houd team, kwalificaties, registraties en toezichthouders actueel en zichtbaar; link naar de bron van registraties waar mogelijk.", 8, 8)
@@ -5063,7 +5073,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // without changing the score of the page the customer explicitly scanned.
     const normalizeHost = (value: string) => value.toLowerCase().replace(/^www\./, "");
     type MultiPageCandidate = { url: string; type: "homepage" | "category" | "product" | "form" | "legal" | "service" | "listing" | "support" | "article" | "event" | "corporate" | "contact" | "other"; evidence: string[] };
-    type MultiPageAudit = MultiPageCandidate & { excludedUtility?: boolean; nonContent?: "challenge" | "error" | "maintenance"; fetchFailure?: string; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; identityHeadings?: string[]; schemaTypes?: string[]; businessDetails?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; productSchemaCount?: number; financialOffer?: boolean; eventSchema?: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
+    type MultiPageAudit = MultiPageCandidate & { accountabilitySnippet?: string | null; excludedUtility?: boolean; nonContent?: "challenge" | "error" | "maintenance"; fetchFailure?: string; partialHead?: boolean; status: "audited" | "unable_to_confirm"; httpStatus: number | null; title: string | null; description: string | null; h1Count: number | null; canonical: string | null; score: number | null; structureKey?: string; evidenceSource?: "raw_html" | "rendered_html"; identityText?: string; ownIdentityText?: string; identityHeadings?: string[]; schemaTypes?: string[]; businessDetails?: string[]; formEvidence?: { formCount:number; passwordForm:boolean; insecureFormActions:number }; productLinks?: string[]; commerceEvidence?: { productSchema: boolean; productSchemaCount?: number; financialOffer?: boolean; eventSchema?: boolean; itemListSchema: boolean; storeSchema: boolean; strongCommerceAction: boolean; repeatedProductLinks: boolean; priceSignals: number; confirmedRetailPage: boolean; product?: { name: string | null; image: string | null; sku: string | null; price: string | null; currency: string | null; availability: string | null } | null }; evidenceChecks: { key: string; status: "PASS" | "WARNING" | "UNABLE_TO_CONFIRM"; details: string }[] };
     const siteHost = normalizeHost(finalUrl.hostname);
     const classifyMultiPageCandidate = (urlValue: string): MultiPageCandidate | null => {
       try {
@@ -5614,7 +5624,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         // Concrete business details on this sampled page (address, phone, e-mail, registration).
         const pageBusinessDetails = (() => { const d = findBusinessContactDetails(pageQualityText, pageHtml, finalCandidate.hostname); const reg = findCompanyRegistration(pageQualityText); const found = [reg, d.address && `adres (${d.address})`, (d.phone || d.telLink) && "telefoonnummer", (d.email || d.mailtoLink) && "e-mailadres"].filter(Boolean) as string[]; return found; })();
         const pageSampleScore = sampleEvidenceScore(evidenceChecks, (key) => evidenceCredit(evidenceChecks.find((item)=>item.key===key)!));
-        return { ...page, type:refinedType, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:pageSampleScore, partialHead:partialHeadOnly, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), ownIdentityText:[pageTitle,pageDescription,pageH1s.filter((value: string)=>!isConsentHeading(value)).join(" ")].filter(Boolean).join(" "), identityHeadings:pageH1s.filter((value: string)=>!isConsentHeading(value)), schemaTypes:[...new Set(pageSchemaTypes)], businessDetails:pageBusinessDetails, formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, productLinks:[...new Set([...productCardLinks(neutralizeTemplateBindings(pageHtml), finalCandidate.toString(), siteHost, 8), ...extractProductDetailLinks(pageHtml, finalCandidate.toString(), siteHost, 8)])].slice(0, 12), evidenceChecks };
+        return { ...page, type:refinedType, url:finalCandidate.toString(), status:"audited", httpStatus:r.status, title:pageTitle||null, description:pageDescription||null, h1Count:pageH1s.length, canonical:pageCanonical||null, structureKey:pageStructureKey, evidenceSource:representativeEvidenceSource, score:pageSampleScore, partialHead:partialHeadOnly, identityText:[pageTitle,pageDescription,pageH1s.join(" "),pageQualityText.slice(0,3000)].filter(Boolean).join(" "), accountabilitySnippet: accountabilitySnippet(finalCandidate.toString(), stripHtml(pageHtml)), ownIdentityText:[pageTitle,pageDescription,pageH1s.filter((value: string)=>!isConsentHeading(value)).join(" ")].filter(Boolean).join(" "), identityHeadings:pageH1s.filter((value: string)=>!isConsentHeading(value)), schemaTypes:[...new Set(pageSchemaTypes)], businessDetails:pageBusinessDetails, formEvidence:{formCount:pageForms.length,passwordForm:pagePasswordForm,insecureFormActions:pageInsecureFormActions}, commerceEvidence:pageCommerceEvidence, productLinks:[...new Set([...productCardLinks(neutralizeTemplateBindings(pageHtml), finalCandidate.toString(), siteHost, 8), ...extractProductDetailLinks(pageHtml, finalCandidate.toString(), siteHost, 8)])].slice(0, 12), evidenceChecks };
       } catch (multiPageError) {
         const rawReason = multiPageError instanceof Error ? multiPageError.message : "FETCH_FAILED";
         const reason = /timeout|abort/i.test(rawReason)
@@ -6111,7 +6121,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       const ymylItem = geoChecks.find((item) => item.key === "author");
       const sampleSignals = ymylSampleEvidence(auditedMultiPages, finalUrl.hostname);
       const kinds = new Map<string, string>();
-      for (const label of ymylEvidence) kinds.set(/navigatie/.test(label) ? "org" : /team|specialist/.test(label) ? "team" : /vergunning|registratie/.test(label) ? "oversight" : "schema", label);
+      for (const label of ymylEvidence) kinds.set(/navigatie|footer/.test(label) ? "org" : /team|specialist/.test(label) ? "team" : /vergunning|registratie/.test(label) ? "oversight" : "schema", label);
       for (const signal of sampleSignals) if (!kinds.has(signal.label.startsWith("organisatie") ? "org" : signal.label.startsWith("team") ? "team" : "oversight")) kinds.set(signal.label.startsWith("organisatie") ? "org" : signal.label.startsWith("team") ? "team" : "oversight", `${signal.label} (${shortUrl(signal.url)})`);
       if (ymylItem && ymylItem.status === "unable_to_confirm" && kinds.size >= 2 && sampleSignals.length) {
         const found = [...kinds.values()];
