@@ -93,13 +93,35 @@ const NON_CONTENT_QUERY = /^(?:q|query|search|zoek|sort|order|filter|filters|f|f
 // watch lists) in EU languages: per-user pages, never representative content.
 const PERSONAL_SEGMENT = /^(?:recupero-credenziali|recupero-password|recuperar-(?:contrasena|contraseña|clave)|mot-de-passe-oublie|passwort-vergessen|wachtwoord-vergeten|forgot-password|reset|preferences|preferencje(?:-tresci)?|preferenze|preferencias|preferenties|voorkeuren|einstellungen|settings|instellingen|kontynuuj-odtwarzanie|continue-watching|verder-kijken|weiterschauen|watchlist|mijn-lijst|moja-lista|my-list|historia-ogladania|watch-history)$/i;
 
+// 31 Oct (PDF P7): carts/checkout and bot traps are never representative pages.
+const UTILITY_SEGMENT = /^(?:shoppingcart|shopping-cart|cart|basket|checkout|afrekenen|kassa|warenkorb|panier|carrito|carrello|secret-?link|honeypot|bot-?trap|spider-?trap)$/i;
+const LOCALE_SEGMENT = /^(?:[a-z]{2})(?:[-_][a-z]{2})?$/i;
+const VARIANT_QUERY = /^(?:color|colour|kleur|farbe|couleur|size|maat|grootte|groesse|taille|variant|variation|sku|v|option|swatch)$/i;
+/**
+ * One identity per page for the sample (PDF P7: five language versions of one page,
+ * three colour variants of one product). The locale prefix (/en/, /nl-be/) and
+ * variant parameters (?color=, ?maat=) do not make a different page.
+ */
+export function sampleIdentityKey(value: string): string {
+  try {
+    const url = new URL(value);
+    const parts = url.pathname.split("/").filter(Boolean);
+    if (parts.length && LOCALE_SEGMENT.test(parts[0])) parts.shift();
+    for (const key of [...url.searchParams.keys()]) if (VARIANT_QUERY.test(key)) url.searchParams.delete(key);
+    url.hash = "";
+    const search = url.searchParams.toString();
+    // Still a valid URL: callers treat the key as a URL.
+    return `${url.protocol}//${url.hostname.replace(/^www\./, "").toLowerCase()}/${parts.join("/").toLowerCase().replace(/\/+$/, "")}${search ? `?${search}` : ""}`;
+  } catch { return value; }
+}
+
 export function isNonContentUrl(value: string): boolean {
   let url: URL;
   try { url = new URL(value); } catch { return true; }
   const segments = url.pathname.split("/").filter(Boolean).map((segment) => {
     try { return decodeURIComponent(segment).toLowerCase(); } catch { return segment.toLowerCase(); }
   });
-  if (segments.some((segment) => ACCOUNT_SEGMENT.test(segment) || PERSONAL_SEGMENT.test(segment))) return true;
+  if (segments.some((segment) => ACCOUNT_SEGMENT.test(segment) || PERSONAL_SEGMENT.test(segment) || UTILITY_SEGMENT.test(segment))) return true;
   // Facet/filter paths: "_product-awards-Alle-Awards", "/f/merk-x", "/filter/…".
   if (segments.some((segment) => segment.startsWith("_") || segment === "f" || segment === "filter" || segment === "filters" || segment === "facet")) return true;
   for (const key of url.searchParams.keys()) if (NON_CONTENT_QUERY.test(key)) return true;

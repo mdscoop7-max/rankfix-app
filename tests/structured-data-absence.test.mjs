@@ -20,3 +20,14 @@ test("PDF P4: a link to an error page is a missing page, whatever its HTTP statu
   assert.equal(linkOutcome({ url: "https://x.nl/banden", status: 200, error: false, finalUrl: "https://x.nl/404" }), "missing");
   assert.equal(linkOutcome({ url: "https://x.nl/banden", status: null, error: true }), "unconfirmed");
 });
+
+test("PDF P7: language and colour variants are one page; carts and bot traps are not sampled", async () => {
+  const { sampleIdentityKey, isNonContentUrl } = await import("../lib/report-quality.ts");
+  assert.equal(sampleIdentityKey("https://www.mollie.com/nl/pricing"), sampleIdentityKey("https://mollie.com/de/pricing"));
+  assert.equal(sampleIdentityKey("https://x.nl/en-gb/pricing/"), sampleIdentityKey("https://x.nl/pricing"));
+  assert.equal(sampleIdentityKey("https://ikea.test/p/billy?color=white"), sampleIdentityKey("https://ikea.test/p/billy?color=black"));
+  assert.notEqual(sampleIdentityKey("https://x.nl/nl/pricing"), sampleIdentityKey("https://x.nl/nl/contact"));
+  assert.notEqual(sampleIdentityKey("https://x.nl/search?page=2"), sampleIdentityKey("https://x.nl/search?page=3"));
+  for (const u of ["https://x.nl/shoppingcart", "https://x.nl/checkout", "https://x.nl/secret-link", "https://x.nl/nl/honeypot"]) assert.equal(isNonContentUrl(u), true, u);
+  assert.equal(isNonContentUrl("https://x.nl/banden"), false);
+});
