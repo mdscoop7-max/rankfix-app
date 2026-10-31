@@ -1,4 +1,4 @@
-import { distinctH1s, htmlByteSize, LARGE_HTML_BYTES, detectLibraryVersions, isYmylSector, ymylExpertiseEvidence } from "@/lib/page-quality-signals";
+import { distinctH1s, htmlByteSize, LARGE_HTML_BYTES, detectLibraryVersions, isYmylSector, ymylExpertiseEvidence, ymylSampleEvidence } from "@/lib/page-quality-signals";
 import { hospitalityNavigationEvidence, isPricedServiceIdentity } from "@/lib/sector-navigation";
 import { securityAccessibilityActions } from "@/lib/security-access-actions";
 import { sectorSchemaType, isGenericSchemaAdvice } from "@/lib/sector-schema";
@@ -6043,6 +6043,23 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const ownCartEvidence = Boolean(confirmedAddToCart || auditedMultiPages.some((item)=>item.status==="audited" && item.commerceEvidence?.strongCommerceAction));
     const referralPlatform = Boolean(platformIdentity && !ownCartEvidence);
     if (referralPlatform) finalCommerceDecision.confirmed = false;
+    // 31 Oct (five-site QA, P6/P9): YMYL expertise from the site's own sampled
+    // organisation, team/expert, contact and legal pages, each named by URL.
+    // Two independent kinds of evidence confirm it; fewer stays "unconfirmed"
+    // (never a deduction): a narrow homepage check alone cannot judge it.
+    if (ymylHomepage) {
+      const ymylItem = geoChecks.find((item) => item.key === "author");
+      const sampleSignals = ymylSampleEvidence(auditedMultiPages, finalUrl.hostname);
+      const kinds = new Map<string, string>();
+      for (const label of ymylEvidence) kinds.set(/navigatie/.test(label) ? "org" : /team|specialist/.test(label) ? "team" : /vergunning|registratie/.test(label) ? "oversight" : "schema", label);
+      for (const signal of sampleSignals) if (!kinds.has(signal.label.startsWith("organisatie") ? "org" : signal.label.startsWith("team") ? "team" : "oversight")) kinds.set(signal.label.startsWith("organisatie") ? "org" : signal.label.startsWith("team") ? "team" : "oversight", `${signal.label} (${shortUrl(signal.url)})`);
+      if (ymylItem && ymylItem.status === "unable_to_confirm" && kinds.size >= 2 && sampleSignals.length) {
+        const found = [...kinds.values()];
+        Object.assign(ymylItem, check("pass", "author", "geo", "Expertise-signalen (YMYL)", `Deze organisatie valt in een YMYL-sector (gezondheid, financiën of juridisch). Op de homepage en de eigen steekproefpagina's zijn ${found.length} onafhankelijke expertise- en verantwoordingssignalen bevestigd: ${found.join("; ")}.`, "Houd team, kwalificaties, registraties en toezichthouders actueel en vanaf de homepage bereikbaar.", 8, 8));
+        ymylItem.evidence = { url: finalUrl.toString(), found: `ymyl=true; evidence=${found.join(" | ")}`, details: ymylItem.message };
+        ymylItem.confidence = "high";
+      }
+    }
     const pricedServiceIdentity = Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry) && isPricedServiceIdentity(String(primaryNonCommerceIdentity?.key || sectorProfile.key || ""));
     const pricedServiceRetailProof = auditedMultiPages.some((item)=>item.status==="audited" && Boolean(item.commerceEvidence?.productSchema) && hasProductOffer(item.commerceEvidence));
     const finalCommerceApplicability = commerceApplicability({

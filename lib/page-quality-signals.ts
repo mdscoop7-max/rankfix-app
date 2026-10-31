@@ -66,3 +66,30 @@ export function ymylExpertiseEvidence(input: { text: string; navigation: string[
   if (input.schemaTypes.some((s) => /^(hospital|medicalorganization|physician|dentist|legalservice|attorney|financialservice|bankorcreditunion|insuranceagency|accountingservice|medicalclinic)$/i.test(s))) found.push("sectorspecifiek organisatieschema");
   return found;
 }
+
+// 31 Oct (five-site QA, P6/P9): YMYL expertise is usually shown on the
+// organisation, team/expert, contact and legal pages, not on the homepage.
+// Only the site's own sampled pages count; every signal names its URL.
+type SamplePage = { url: string; type?: string; status?: string; title?: string | null; ownIdentityText?: string | null; identityText?: string | null };
+const ORG_PAGE = /(?:over ons|wie (?:zijn|wij zijn) wij|onze organisatie|about(?: us)?|who we are|our (?:company|organi[sz]ation)|über uns|unternehmen|leitbild|struktur(?:,| und) organisation|leitungsgremien|vorstand|qui sommes|notre (?:entreprise|organisation)|chi siamo|la nostra azienda|quiénes somos|nuestra empresa|bestuur|raad van bestuur|board of directors|management team|governance)/iu;
+const TEAM_PAGE = /(?:specialisten|artsen|behandelaars|ons team|our team|unser team|notre équipe|il nostro team|nuestro equipo|experts?\b|expertinnen|experten|ärzt(?:e|innen)|médecins|medici|médicos|doctors|physicians|advocaten|lawyers|anwält|avocats|avvocati|abogados|adviseurs|advisors|berater|ansprechpartner(?:innen)?|contactpersonen|contact persons)/iu;
+const OVERSIGHT = /(?:aufsichtsbeh(?:ö|oe)rde|toezichthouder|onder toezicht|supervis(?:ed|ory authority)|regulated by|authori[sz]ed (?:and regulated )?by|zugelassen|bafin|\bafm\b|\bdnb\b|\bfca\b|\bfinma\b|\bacpr\b|\bconsob\b|\bkifid\b|big[- ]?regist|handelsregister|kvk[- ]?nummer|kamer van koophandel|registered (?:in|with)|ingeschreven (?:bij|in)|numéro (?:siren|rcs)|partita iva|registro (?:mercantil|delle imprese)|e-money institution|payment institution|betaalinstelling|zahlungsinstitut|kreditinstitut|krankenhausträger|körperschaft des öffentlichen rechts)/iu;
+const LEGAL_PATH = /(?:impressum|colofon|imprint|legal(?:-notice)?|mentions-legales|note-legali|aviso-legal|disclaimer|juridisch)/i;
+
+export function ymylSampleEvidence(pages: SamplePage[], host: string): { label: string; url: string }[] {
+  const out = new Map<string, { label: string; url: string }>();
+  const own = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, "") === host.replace(/^www\./, ""); } catch { return false; } };
+  for (const page of pages || []) {
+    if (page.status && page.status !== "audited") continue;
+    if (!page.url || !own(page.url)) continue;
+    let path = "/"; try { path = new URL(page.url).pathname; } catch { /* keep */ }
+    if (path === "/" || path === "") continue;
+    const ownText = `${page.title || ""} ${page.ownIdentityText || ""}`;
+    const fullText = `${ownText} ${page.identityText || ""}`.slice(0, 6000);
+    if (!out.has("org") && (page.type === "corporate" || ORG_PAGE.test(ownText))) out.set("org", { label: "organisatie-/over-ons-pagina", url: page.url });
+    if (!out.has("team") && TEAM_PAGE.test(ownText)) out.set("team", { label: "team-/specialisten- of contactpersonenpagina", url: page.url });
+    if (!out.has("oversight") && (LEGAL_PATH.test(path) || page.type === "legal") && OVERSIGHT.test(fullText)) out.set("oversight", { label: "toezicht, vergunning of registratie in de juridische informatie", url: page.url });
+    if (!out.has("oversight") && OVERSIGHT.test(ownText)) out.set("oversight", { label: "toezicht, vergunning of registratie genoemd", url: page.url });
+  }
+  return [...out.values()];
+}
