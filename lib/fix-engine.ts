@@ -117,6 +117,15 @@ export const REASON_NL: Record<string, string> = {
   VERIFY_UNCONFIRMED: "Meerdere nieuwe scans konden de oplossing niet bevestigen. RankFix voert geen nieuwe wijzigingen uit; controleer de oorzaak.",
   GITHUB_UNAVAILABLE: "GitHub is tijdelijk niet bereikbaar. RankFix probeert het later opnieuw; er is niets gewijzigd.",
   GITHUB_NOT_CONNECTED: "De GitHub-koppeling ontbreekt of is verlopen. Verbind GitHub opnieuw om verder te gaan.",
+  CI_UNAVAILABLE: "De GitHub-controles konden niet (volledig) worden opgehaald. Zonder bewijs van geslaagde controles publiceert RankFix niet.",
+  CI_INCOMPLETE: "GitHub gaf een onvolledige lijst van controles. Zonder volledig bewijs publiceert RankFix niet.",
+  CI_SHA_MISMATCH: "De controles horen niet bij exact deze versie van de wijziging. RankFix publiceert niet.",
+  CI_UNRELIABLE: "Een controle in GitHub gaf een onbetrouwbaar resultaat. RankFix publiceert niet.",
+  REQUIRED_CHECKS_UNDEFINED: "Voor deze repository is geen vertrouwde set verplichte controles vastgesteld (branch protection niet leesbaar en geen vastgelegde set). RankFix publiceert niet automatisch.",
+  REQUIRED_CHECK_MISSING: "Een verplichte GitHub-controle is (nog) niet uitgevoerd voor deze wijziging.",
+  REQUIRED_CHECK_NOT_SUCCESSFUL: "Een verplichte GitHub-controle is niet geslaagd (bijvoorbeeld overgeslagen of neutraal). RankFix publiceert niet.",
+  EVIDENCE_MISSING: "Het bewijs van de goedgekeurde versie (commit of bronbestand) ontbreekt. RankFix publiceert niet automatisch.",
+  BASE_UNAVAILABLE: "Het bronbestand op de website-branch kon niet worden gecontroleerd. RankFix publiceert niet.",
 };
 
 /* --------------------------------------------------------------------------
@@ -127,12 +136,85 @@ export const MAX_AUTOPUBLISH_LINES = 8;
 
 export type PullInfo = { state?: string; merged?: boolean; merged_at?: string | null; mergeable?: boolean | null; mergeable_state?: string; merge_commit_sha?: string | null; head?: { sha?: string; ref?: string }; base?: { ref?: string } };
 export type PullFile = { filename?: string; additions?: number; deletions?: number; status?: string };
-export type CheckRun = { status?: string; conclusion?: string | null };
+export type CheckRun = { id?: number; name?: string; status?: string; conclusion?: string | null; head_sha?: string; app?: { id?: number } | null };
+export type CommitStatus = { id?: number; context?: string; state?: string };
+export type RequiredCheck = { context: string; appId?: number | null };
 
 export type MergeDecision = { decision: "merge" | "wait" | "block" | "merged"; code: string };
 
+/**
+ * CI evidence for exactly one head commit (P0, 31 Oct). Fail-closed: only a
+ * complete, readable result in which every check of a TRUSTED required set ran
+ * on this exact SHA and concluded "success" is "ok". Missing, failed, skipped,
+ * neutral, stale, unreadable or incomplete evidence never counts as passed.
+ * The trusted set comes from branch protection or an explicitly recorded set;
+ * when neither exists there is no automatic merge (one random green check is
+ * never enough).
+ */
+export type CiEvidenceInput = {
+  headSha: string | null | undefined;
+  required: { source: "branch_protection" | "recorded" | "branch_protection+recorded" | "none"; checks: RequiredCheck[] };
+  checkRuns: { ok: boolean; runs: CheckRun[]; totalCount: number | null };
+  statuses: { ok: boolean; sha: string | null; statuses: CommitStatus[]; totalCount: number | null };
+};
+export type CiEvidence = { verdict: "ok" | "pending" | "failed" | "unavailable" | "untrusted"; code: string; missing?: string[] };
+
+const FAILED_CONCLUSIONS = new Set(["failure", "cancelled", "timed_out", "action_required", "startup_failure", "stale"]);
+
+export function evaluateCiEvidence(input: CiEvidenceInput): CiEvidence {
+  const sha = String(input.headSha || "");
+  if (!sha) return { verdict: "unavailable", code: "EVIDENCE_MISSING" };
+  const { checkRuns, statuses } = input;
+  if (!checkRuns.ok || !statuses.ok) return { verdict: "unavailable", code: "CI_UNAVAILABLE" };
+  if (typeof checkRuns.totalCount !== "number" || !Array.isArray(checkRuns.runs) || checkRuns.runs.length < checkRuns.totalCount) return { verdict: "unavailable", code: "CI_INCOMPLETE" };
+  if (typeof statuses.totalCount !== "number" || !Array.isArray(statuses.statuses) || statuses.statuses.length < statuses.totalCount) return { verdict: "unavailable", code: "CI_INCOMPLETE" };
+  if (statuses.sha !== sha) return { verdict: "unavailable", code: "CI_SHA_MISMATCH" };
+  if (checkRuns.runs.some((run) => run.head_sha !== sha)) return { verdict: "unavailable", code: "CI_SHA_MISMATCH" };
+  if (checkRuns.runs.some((run) => !run.name || !run.status)) return { verdict: "unavailable", code: "CI_UNRELIABLE" };
+  const required = (input.required.checks || []).filter((check) => check && typeof check.context === "string" && check.context.trim());
+  if (input.required.source === "none" || !required.length) return { verdict: "untrusted", code: "REQUIRED_CHECKS_UNDEFINED" };
+
+  // Latest attempt per check name (a re-run supersedes an earlier attempt).
+  const latestRuns = new Map<string, CheckRun>();
+  for (const run of checkRuns.runs) {
+    const key = `${run.name}#${run.app?.id ?? ""}`;
+    const prev = latestRuns.get(key);
+    if (!prev || Number(run.id || 0) > Number(prev.id || 0)) latestRuns.set(key, run);
+  }
+  const latestStatus = new Map<string, CommitStatus>();
+  for (const status of statuses.statuses) {
+    const key = String(status.context || "");
+    const prev = latestStatus.get(key);
+    if (!prev || Number(status.id || 0) > Number(prev.id || 0)) latestStatus.set(key, status);
+  }
+  const runs = [...latestRuns.values()];
+  const states = [...latestStatus.values()];
+  if (runs.some((run) => run.status === "completed" && FAILED_CONCLUSIONS.has(String(run.conclusion || "")))) return { verdict: "failed", code: "CHECKS_FAILED" };
+  if (states.some((status) => status.state === "failure" || status.state === "error")) return { verdict: "failed", code: "CHECKS_FAILED" };
+
+  const missing: string[] = [];
+  let pending = false;
+  for (const need of required) {
+    const appId = typeof need.appId === "number" && need.appId > 0 ? need.appId : null;
+    const run = runs.filter((r) => r.name === need.context && (appId === null || r.app?.id === appId)).sort((a, b) => Number(b.id || 0) - Number(a.id || 0))[0];
+    const status = appId === null ? latestStatus.get(need.context) : undefined;
+    if (!run && !status) { missing.push(need.context); continue; }
+    if (run) {
+      if (run.status !== "completed") { pending = true; continue; }
+      if (run.conclusion !== "success") return { verdict: "failed", code: "REQUIRED_CHECK_NOT_SUCCESSFUL", missing: [need.context] };
+    }
+    if (status) {
+      if (status.state === "pending") { pending = true; continue; }
+      if (status.state !== "success") return { verdict: "failed", code: "REQUIRED_CHECK_NOT_SUCCESSFUL", missing: [need.context] };
+    }
+  }
+  if (missing.length) return { verdict: "pending", code: "REQUIRED_CHECK_MISSING", missing };
+  if (pending || runs.some((run) => run.status !== "completed") || states.some((status) => status.state === "pending")) return { verdict: "pending", code: "CHECKS_PENDING" };
+  return { verdict: "ok", code: "CI_GREEN" };
+}
+
 export function evaluateMergeSafety(input: {
-  pr: PullInfo; files: PullFile[]; checkRuns: CheckRun[]; combinedState: string; combinedCount: number;
+  pr: PullInfo; files: PullFile[]; ci: CiEvidence;
   expected: { branch: string; baseBranch: string; path: string; headSha?: string | null; baseBlobSha?: string | null };
   baseFileSha: string | null;
 }): MergeDecision {
@@ -141,15 +223,17 @@ export function evaluateMergeSafety(input: {
   if (pr.state !== "open") return { decision: "block", code: "PR_CLOSED" };
   if (pr.base?.ref !== expected.baseBranch) return { decision: "block", code: "BASE_MISMATCH" };
   if (pr.head?.ref !== expected.branch) return { decision: "block", code: "HEAD_MISMATCH" };
-  if (expected.headSha && pr.head?.sha !== expected.headSha) return { decision: "block", code: "HEAD_CHANGED" };
+  // The approved head commit and source blob are mandatory evidence (P0).
+  if (!expected.headSha || !expected.baseBlobSha || !pr.head?.sha) return { decision: "block", code: "EVIDENCE_MISSING" };
+  if (pr.head.sha !== expected.headSha) return { decision: "block", code: "HEAD_CHANGED" };
   if (files.length !== 1 || files[0].filename !== expected.path || (files[0].status && files[0].status !== "modified")) return { decision: "block", code: "UNEXPECTED_FILES" };
   if (Number(files[0].additions || 0) > MAX_AUTOPUBLISH_LINES || Number(files[0].deletions || 0) > MAX_AUTOPUBLISH_LINES) return { decision: "block", code: "DIFF_TOO_LARGE" };
-  if (expected.baseBlobSha && input.baseFileSha !== expected.baseBlobSha) return { decision: "block", code: "STALE_BASE" };
-  const bad = new Set(["failure", "cancelled", "timed_out", "action_required", "startup_failure"]);
-  if (input.checkRuns.some((c) => bad.has(String(c.conclusion || "")))) return { decision: "block", code: "CHECKS_FAILED" };
-  if (["failure", "error"].includes(input.combinedState)) return { decision: "block", code: "CHECKS_FAILED" };
-  if (input.checkRuns.some((c) => c.status && c.status !== "completed")) return { decision: "wait", code: "CHECKS_PENDING" };
-  if (input.combinedState === "pending" && input.combinedCount > 0) return { decision: "wait", code: "CHECKS_PENDING" };
+  if (input.baseFileSha === null) return { decision: "wait", code: "BASE_UNAVAILABLE" };
+  if (input.baseFileSha !== expected.baseBlobSha) return { decision: "block", code: "STALE_BASE" };
+  // Fail-closed: anything but proven green CI on this exact SHA prevents a merge.
+  const ci = input.ci;
+  if (!ci || ci.verdict === "failed" || ci.verdict === "untrusted") return { decision: "block", code: ci?.code || "CI_UNAVAILABLE" };
+  if (ci.verdict !== "ok") return { decision: "wait", code: ci.code || "CI_UNAVAILABLE" };
   if (pr.mergeable === null || pr.mergeable === undefined || pr.mergeable_state === "unknown") return { decision: "wait", code: "MERGEABILITY_PENDING" };
   if (pr.mergeable === false || pr.mergeable_state === "dirty") return { decision: "block", code: "MERGE_CONFLICT" };
   if (pr.mergeable_state === "blocked") return { decision: "block", code: "BRANCH_PROTECTED" };
@@ -238,7 +322,7 @@ export function liveFixApplied(issueId: string, html: string, expectedValue: str
 export type FixRow = {
   id: string; user_id: string; issue_id: string; scanned_url: string; status: string;
   repository?: string | null; pr_number?: number | null; pr_url?: string | null; branch?: string | null; base_branch?: string | null; file_path?: string | null;
-  auto_publish?: boolean | null; expected_value?: string | null; head_sha?: string | null; base_blob_sha?: string | null;
+  auto_publish?: boolean | null; expected_value?: string | null; head_sha?: string | null; base_blob_sha?: string | null; required_checks?: string | string[] | null;
   merge_commit_sha?: string | null; merged_at?: string | Date | null; deploy_state?: string | null; deploy_success_at?: string | Date | null;
   live_seen_at?: string | Date | null; merge_attempts?: number | null; verification_attempts?: number | null;
   last_error_code?: string | null; phase_started_at?: string | Date | null; next_check_at?: string | Date | null; proposal_id?: string | null;
@@ -292,25 +376,99 @@ async function keep(deps: EngineDeps, row: FixRow, code: string | null, delayMs:
   Object.assign(row, extra);
 }
 
-/** Tries to merge an authorised, deterministic fix. Never merges when any check is uncertain. */
+const CI_PAGE_LIMIT = 10;
+
+/** All check runs of one commit, every page. Any error or malformed page → not ok. */
+export async function fetchCheckRuns(gh: NonNullable<EngineDeps["github"]>, repo: string, sha: string): Promise<CiEvidenceInput["checkRuns"]> {
+  try {
+    const runs: CheckRun[] = [];
+    let total: number | null = null;
+    for (let page = 1; page <= CI_PAGE_LIMIT; page++) {
+      const body = await gh<{ total_count?: number; check_runs?: CheckRun[] }>(`/repos/${repo}/commits/${sha}/check-runs?per_page=100&page=${page}`);
+      if (!body || typeof body.total_count !== "number" || !Array.isArray(body.check_runs)) return { ok: false, runs: [], totalCount: null };
+      if (total !== null && body.total_count !== total) return { ok: false, runs: [], totalCount: null };
+      // Every run must have a unique id: repeated or anonymous runs cannot fill the count.
+      for (const run of body.check_runs) { if (typeof run?.id !== "number" || runs.some((r) => r.id === run.id)) return { ok: false, runs: [], totalCount: null }; runs.push(run); }
+      total = body.total_count;
+      if (runs.length >= total || !body.check_runs.length) break;
+    }
+    return { ok: true, runs, totalCount: total };
+  } catch { return { ok: false, runs: [], totalCount: null }; }
+}
+
+/** Combined commit status of one commit, every page. Any error or malformed page → not ok. */
+export async function fetchCommitStatuses(gh: NonNullable<EngineDeps["github"]>, repo: string, sha: string): Promise<CiEvidenceInput["statuses"]> {
+  try {
+    const statuses: CommitStatus[] = [];
+    let total: number | null = null; let commit: string | null = null;
+    for (let page = 1; page <= CI_PAGE_LIMIT; page++) {
+      const body = await gh<{ sha?: string; total_count?: number; statuses?: CommitStatus[] }>(`/repos/${repo}/commits/${sha}/status?per_page=100&page=${page}`);
+      if (!body || typeof body.total_count !== "number" || !Array.isArray(body.statuses) || typeof body.sha !== "string") return { ok: false, sha: null, statuses: [], totalCount: null };
+      if (commit && body.sha !== commit) return { ok: false, sha: null, statuses: [], totalCount: null };
+      if (total !== null && body.total_count !== total) return { ok: false, sha: null, statuses: [], totalCount: null };
+      for (const status of body.statuses) { if (typeof status?.id !== "number" || statuses.some((x) => x.id === status.id)) return { ok: false, sha: null, statuses: [], totalCount: null }; statuses.push(status); }
+      commit = body.sha; total = body.total_count;
+      if (statuses.length >= total || !body.statuses.length) break;
+    }
+    return { ok: true, sha: commit, statuses, totalCount: total };
+  } catch { return { ok: false, sha: null, statuses: [], totalCount: null }; }
+}
+
+/** Parses an explicitly recorded required-check set (JSON array of names). Anything else → none. */
+export function parseRecordedChecks(value: unknown): string[] {
+  let list: unknown = value;
+  if (typeof value === "string") { try { list = JSON.parse(value); } catch { return []; } }
+  if (!Array.isArray(list)) return [];
+  return [...new Set(list.filter((x): x is string => typeof x === "string").map((x) => x.trim()).filter((x) => x && x.length <= 120))].slice(0, 30);
+}
+
+/**
+ * The trusted required-check set: branch protection of the base branch when it
+ * is readable and names checks, plus the set the owner explicitly recorded.
+ * Unreadable protection never falls back to "any green check".
+ */
+export async function requiredChecksFor(gh: NonNullable<EngineDeps["github"]>, repo: string, baseBranch: string, recorded: unknown): Promise<CiEvidenceInput["required"]> {
+  let fromProtection: RequiredCheck[] = [];
+  try {
+    const body = await gh<{ contexts?: string[]; checks?: Array<{ context?: string; app_id?: number | null }> }>(`/repos/${repo}/branches/${encodeURIComponent(baseBranch)}/protection/required_status_checks`);
+    const checks = Array.isArray(body?.checks) ? body.checks.filter((c) => typeof c?.context === "string" && c.context).map((c) => ({ context: String(c.context), appId: typeof c.app_id === "number" ? c.app_id : null })) : [];
+    const contexts = Array.isArray(body?.contexts) ? body.contexts.filter((c) => typeof c === "string" && c && !checks.some((k) => k.context === c)).map((c) => ({ context: c, appId: null })) : [];
+    fromProtection = [...checks, ...contexts];
+  } catch { fromProtection = []; }
+  const recordedChecks = parseRecordedChecks(recorded).filter((c) => !fromProtection.some((k) => k.context === c)).map((c) => ({ context: c, appId: null }));
+  const checks = [...fromProtection, ...recordedChecks];
+  const source = fromProtection.length && recordedChecks.length ? "branch_protection+recorded" : fromProtection.length ? "branch_protection" : recordedChecks.length ? "recorded" : "none";
+  return { source, checks };
+}
+
+/** Tries to merge an authorised, deterministic fix. Never merges unless every check is proven (fail-closed). */
 export async function tryAutoMerge(deps: EngineDeps, row: FixRow): Promise<MergeDecision> {
   const gh = deps.github!;
   const repo = row.repository!;
+  if (!row.head_sha || !row.base_blob_sha) return { decision: "block", code: "EVIDENCE_MISSING" };
   const pr = await gh<PullInfo & { number?: number }>(`/repos/${repo}/pulls/${Number(row.pr_number)}`);
   if (pr.merged || pr.merged_at) return { decision: "merged", code: "MERGED" };
-  const files = await gh<PullFile[]>(`/repos/${repo}/pulls/${Number(row.pr_number)}/files?per_page=10`);
   const headSha = pr.head?.sha || "";
-  const [checks, combined, baseFile] = await Promise.all([
-    gh<{ check_runs?: CheckRun[] }>(`/repos/${repo}/commits/${headSha}/check-runs?per_page=50`).catch(() => ({ check_runs: [] })),
-    gh<{ state?: string; total_count?: number }>(`/repos/${repo}/commits/${headSha}/status`).catch(() => ({ state: "pending", total_count: 0 })),
-    gh<{ sha?: string }>(`/repos/${repo}/contents/${row.file_path}?ref=${encodeURIComponent(String(row.base_branch || ""))}`).catch(() => ({ sha: undefined })),
+  if (!headSha) return { decision: "block", code: "EVIDENCE_MISSING" };
+  if (headSha !== row.head_sha) return { decision: "block", code: "HEAD_CHANGED" };
+  const files = await gh<PullFile[]>(`/repos/${repo}/pulls/${Number(row.pr_number)}/files?per_page=10`);
+  const [checkRuns, statuses, required, baseFile] = await Promise.all([
+    fetchCheckRuns(gh, repo, headSha),
+    fetchCommitStatuses(gh, repo, headSha),
+    requiredChecksFor(gh, repo, String(row.base_branch || ""), row.required_checks),
+    gh<{ sha?: string }>(`/repos/${repo}/contents/${row.file_path}?ref=${encodeURIComponent(String(row.base_branch || ""))}`).then((f) => (typeof f?.sha === "string" ? f.sha : null)).catch(() => null),
   ]);
+  const ci = evaluateCiEvidence({ headSha, required, checkRuns, statuses });
   const decision = evaluateMergeSafety({
-    pr, files: Array.isArray(files) ? files : [], checkRuns: checks.check_runs || [], combinedState: String(combined.state || "pending"), combinedCount: Number(combined.total_count || 0),
+    pr, files: Array.isArray(files) ? files : [], ci,
     expected: { branch: String(row.branch || ""), baseBranch: String(row.base_branch || ""), path: String(row.file_path || ""), headSha: row.head_sha, baseBlobSha: row.base_blob_sha },
-    baseFileSha: baseFile.sha || null,
+    baseFileSha: baseFile,
   });
   if (decision.decision !== "merge") return decision;
+  // Re-read the PR right before merging: a push after the evaluation must stop it.
+  const fresh = await gh<PullInfo>(`/repos/${repo}/pulls/${Number(row.pr_number)}`);
+  if (fresh.merged || fresh.merged_at) return { decision: "merged", code: "MERGED" };
+  if (fresh.state !== "open" || fresh.head?.sha !== headSha || fresh.base?.ref !== row.base_branch) return { decision: "block", code: "HEAD_CHANGED" };
   try {
     await gh(`/repos/${repo}/pulls/${Number(row.pr_number)}/merge`, { method: "PUT", body: JSON.stringify({ merge_method: "squash", sha: headSha, commit_title: `RankFix: ${row.issue_id} (#${row.pr_number})` }) });
     return { decision: "merged", code: "MERGED" };

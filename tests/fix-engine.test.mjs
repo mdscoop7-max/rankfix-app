@@ -31,11 +31,13 @@ test("standing consent is bound to the repository and branch it was given for", 
 const base = () => ({
   pr: { state: "open", merged: false, mergeable: true, mergeable_state: "clean", head: { sha: "h1", ref: "rankfix/x" }, base: { ref: "main" } },
   files: [{ filename: "templates/index.html", additions: 1, deletions: 1, status: "modified" }],
-  checkRuns: [], combinedState: "pending", combinedCount: 0,
+  // P0 (31 Oct): CI evidence is mandatory. Before, an empty check list with
+  // "pending/0" was treated as SAFE (merge without any CI).
+  ci: { verdict: "ok", code: "CI_GREEN" },
   expected: { branch: "rankfix/x", baseBranch: "main", path: "templates/index.html", headSha: "h1", baseBlobSha: "b1" },
   baseFileSha: "b1",
 });
-test("merge safety: merges only a clean, single-file, small, unchanged PR with green checks", () => {
+test("merge safety: merges only a clean, single-file, small, unchanged PR with proven green CI", () => {
   assert.deepEqual(E.evaluateMergeSafety(base()), { decision: "merge", code: "SAFE" });
   const cases = [
     [(x) => { x.pr.merged = true; }, "merged", "MERGED"],
@@ -47,10 +49,16 @@ test("merge safety: merges only a clean, single-file, small, unchanged PR with g
     [(x) => { x.files[0].filename = "other.html"; }, "block", "UNEXPECTED_FILES"],
     [(x) => { x.files[0].additions = 40; }, "block", "DIFF_TOO_LARGE"],
     [(x) => { x.baseFileSha = "b2"; }, "block", "STALE_BASE"],
-    [(x) => { x.checkRuns = [{ status: "completed", conclusion: "failure" }]; }, "block", "CHECKS_FAILED"],
-    [(x) => { x.combinedState = "failure"; x.combinedCount = 1; }, "block", "CHECKS_FAILED"],
-    [(x) => { x.checkRuns = [{ status: "in_progress", conclusion: null }]; }, "wait", "CHECKS_PENDING"],
-    [(x) => { x.combinedCount = 2; }, "wait", "CHECKS_PENDING"],
+    [(x) => { x.ci = { verdict: "failed", code: "CHECKS_FAILED" }; }, "block", "CHECKS_FAILED"],
+    [(x) => { x.ci = { verdict: "failed", code: "REQUIRED_CHECK_NOT_SUCCESSFUL" }; }, "block", "REQUIRED_CHECK_NOT_SUCCESSFUL"],
+    [(x) => { x.ci = { verdict: "untrusted", code: "REQUIRED_CHECKS_UNDEFINED" }; }, "block", "REQUIRED_CHECKS_UNDEFINED"],
+    [(x) => { x.ci = { verdict: "pending", code: "CHECKS_PENDING" }; }, "wait", "CHECKS_PENDING"],
+    [(x) => { x.ci = { verdict: "unavailable", code: "CI_UNAVAILABLE" }; }, "wait", "CI_UNAVAILABLE"],
+    [(x) => { x.ci = undefined; }, "block", "CI_UNAVAILABLE"],
+    [(x) => { x.expected.headSha = null; }, "block", "EVIDENCE_MISSING"],
+    [(x) => { x.expected.baseBlobSha = null; }, "block", "EVIDENCE_MISSING"],
+    [(x) => { x.pr.head.sha = ""; }, "block", "EVIDENCE_MISSING"],
+    [(x) => { x.baseFileSha = null; }, "wait", "BASE_UNAVAILABLE"],
     [(x) => { x.pr.mergeable = null; }, "wait", "MERGEABILITY_PENDING"],
     [(x) => { x.pr.mergeable = false; }, "block", "MERGE_CONFLICT"],
     [(x) => { x.pr.mergeable_state = "blocked"; }, "block", "BRANCH_PROTECTED"],
@@ -132,12 +140,21 @@ function memoryDb(row) {
 }
 
 test("advance: GitHub outage keeps the state and records a clear code (no crash, no transition)", async () => {
-  const row = { id: "1", user_id: "u", issue_id: "META_DESCRIPTION_GUIDANCE", scanned_url: "https://a.test/", status: "AWAITING_MERGE", repository: "o/r", pr_number: 3, auto_publish: true, phase_started_at: new Date() };
+  const row = { id: "1", user_id: "u", issue_id: "META_DESCRIPTION_GUIDANCE", scanned_url: "https://a.test/", status: "AWAITING_MERGE", repository: "o/r", pr_number: 3, auto_publish: true, head_sha: "h1", base_blob_sha: "b1", phase_started_at: new Date() };
   const db = memoryDb(row);
   const err = Object.assign(new Error("Service Unavailable"), { status: 503 });
   await E.advanceFix({ db, github: async () => { throw err; }, probe: async () => ({ reachable: false, httpStatus: null, blocked: false, html: "" }) }, row);
   assert.equal(row.status, "AWAITING_MERGE");
   assert.equal(row.last_error_code, "GITHUB_UNAVAILABLE");
+});
+
+test("advance: a legacy fix without the approved SHA evidence is never merged", async () => {
+  const row = { id: "1", user_id: "u", issue_id: "META_DESCRIPTION_GUIDANCE", scanned_url: "https://a.test/", status: "AWAITING_MERGE", repository: "o/r", pr_number: 3, auto_publish: true, phase_started_at: new Date() };
+  const calls = [];
+  await E.advanceFix({ db: memoryDb(row), github: async (path, init = {}) => { calls.push((init.method || "GET") + " " + path); return {}; }, probe: async () => ({ reachable: false, httpStatus: null, blocked: false, html: "" }) }, row);
+  assert.equal(row.status, "NEEDS_ATTENTION");
+  assert.equal(row.last_error_code, "EVIDENCE_MISSING");
+  assert.equal(calls.some((c) => c.startsWith("PUT")), false);
 });
 
 test("advance: missing GitHub connection is reported, not merged", async () => {
@@ -341,4 +358,122 @@ test("QA public metadata preview routes missing evidence to secure Fix instead o
  assert.match(ui,/Open beveiligde Fix/);
  assert.match(ui,/echte paginatekst in je gekoppelde bronbestand/);
  assert.match(ui,/createGithubFix\(item\)/);
+});
+
+/* ---------------------------------------------------------------- P0: fail-closed CI evidence */
+const H = "a".repeat(40);
+const run = (name, conclusion, extra = {}) => ({ id: extra.id ?? Math.floor(Math.random() * 1e9), name, status: "completed", conclusion, head_sha: H, app: { id: 15368 }, ...extra });
+const ciInput = (over = {}) => ({
+  headSha: H,
+  required: { source: "branch_protection", checks: [{ context: "build", appId: 15368 }] },
+  checkRuns: { ok: true, runs: [run("build", "success", { id: 1 })], totalCount: 1 },
+  statuses: { ok: true, sha: H, statuses: [], totalCount: 0 },
+  ...over,
+});
+test("CI evidence: only every trusted required check, completed and successful on this exact SHA, is ok", () => {
+  assert.deepEqual(E.evaluateCiEvidence(ciInput()), { verdict: "ok", code: "CI_GREEN" });
+  const cases = [
+    ["no checks at all", { checkRuns: { ok: true, runs: [], totalCount: 0 } }, "pending", "REQUIRED_CHECK_MISSING"],
+    ["check-runs API error", { checkRuns: { ok: false, runs: [], totalCount: null } }, "unavailable", "CI_UNAVAILABLE"],
+    ["status API error", { statuses: { ok: false, sha: null, statuses: [], totalCount: null } }, "unavailable", "CI_UNAVAILABLE"],
+    ["incomplete list", { checkRuns: { ok: true, runs: [run("build", "success", { id: 1 })], totalCount: 3 } }, "unavailable", "CI_INCOMPLETE"],
+    ["unknown total", { checkRuns: { ok: true, runs: [run("build", "success", { id: 1 })], totalCount: null } }, "unavailable", "CI_INCOMPLETE"],
+    ["incomplete statuses", { statuses: { ok: true, sha: H, statuses: [], totalCount: 2 } }, "unavailable", "CI_INCOMPLETE"],
+    ["run on another SHA", { checkRuns: { ok: true, runs: [run("build", "success", { id: 1, head_sha: "b".repeat(40) })], totalCount: 1 } }, "unavailable", "CI_SHA_MISMATCH"],
+    ["statuses of another SHA", { statuses: { ok: true, sha: "b".repeat(40), statuses: [], totalCount: 0 } }, "unavailable", "CI_SHA_MISMATCH"],
+    ["run without status", { checkRuns: { ok: true, runs: [run("build", "success", { id: 1, status: undefined })], totalCount: 1 } }, "unavailable", "CI_UNRELIABLE"],
+    ["no head SHA", { headSha: "" }, "unavailable", "EVIDENCE_MISSING"],
+    ["no trusted required set", { required: { source: "none", checks: [] } }, "untrusted", "REQUIRED_CHECKS_UNDEFINED"],
+    ["required skipped", { checkRuns: { ok: true, runs: [run("build", "skipped", { id: 1 })], totalCount: 1 } }, "failed", "REQUIRED_CHECK_NOT_SUCCESSFUL"],
+    ["required neutral", { checkRuns: { ok: true, runs: [run("build", "neutral", { id: 1 })], totalCount: 1 } }, "failed", "REQUIRED_CHECK_NOT_SUCCESSFUL"],
+    ["required stale", { checkRuns: { ok: true, runs: [run("build", "stale", { id: 1 })], totalCount: 1 } }, "failed", "CHECKS_FAILED"],
+    ["required failed", { checkRuns: { ok: true, runs: [run("build", "failure", { id: 1 })], totalCount: 1 } }, "failed", "CHECKS_FAILED"],
+    ["other check failed", { checkRuns: { ok: true, runs: [run("build", "success", { id: 1 }), run("lint", "failure", { id: 2 })], totalCount: 2 } }, "failed", "CHECKS_FAILED"],
+    ["status error", { statuses: { ok: true, sha: H, statuses: [{ id: 1, context: "ci/x", state: "error" }], totalCount: 1 } }, "failed", "CHECKS_FAILED"],
+    ["required still running", { checkRuns: { ok: true, runs: [run("build", null, { id: 1, status: "in_progress" })], totalCount: 1 } }, "pending", "CHECKS_PENDING"],
+    ["only a random green check", { checkRuns: { ok: true, runs: [run("lint", "success", { id: 2 })], totalCount: 1 } }, "pending", "REQUIRED_CHECK_MISSING"],
+    ["required check from an untrusted app", { checkRuns: { ok: true, runs: [run("build", "success", { id: 1, app: { id: 999 } })], totalCount: 1 } }, "pending", "REQUIRED_CHECK_MISSING"],
+  ];
+  for (const [name, over, verdict, code] of cases) {
+    const got = E.evaluateCiEvidence(ciInput(over));
+    assert.equal(got.verdict, verdict, name); assert.equal(got.code, code, name);
+    assert.notEqual(got.verdict, "ok", name);
+  }
+  // A re-run supersedes an earlier failed attempt of the same check.
+  assert.equal(E.evaluateCiEvidence(ciInput({ checkRuns: { ok: true, runs: [run("build", "failure", { id: 1 }), run("build", "success", { id: 2 })], totalCount: 2 } })).verdict, "ok");
+  // A required commit status (legacy CI) counts when it is success.
+  assert.equal(E.evaluateCiEvidence(ciInput({ required: { source: "recorded", checks: [{ context: "ci/legacy" }] }, checkRuns: { ok: true, runs: [], totalCount: 0 }, statuses: { ok: true, sha: H, statuses: [{ id: 1, context: "ci/legacy", state: "success" }], totalCount: 1 } })).verdict, "ok");
+});
+
+test("recorded required checks: only a clean list of names is trusted", () => {
+  assert.deepEqual(E.parseRecordedChecks('["build"," test ","build"]'), ["build", "test"]);
+  for (const bad of [null, "", "build", "{}", "[1,2]", 42, {}]) assert.deepEqual(E.parseRecordedChecks(bad), [], String(bad));
+});
+
+// tryAutoMerge against a scripted GitHub: never PUT /merge without proof.
+function fakeGithub(over = {}) {
+  const calls = [];
+  let pullReads = 0;
+  const state = { head: H, protection: { contexts: ["build"], checks: [{ context: "build", app_id: 15368 }] }, runs: [run("build", "success", { id: 1 })], total: null, ...over };
+  const gh = async (path, init = {}) => {
+    const method = init.method || "GET"; calls.push(method + " " + path);
+    const fail = (status) => { const e = new Error("GitHub " + status); e.status = status; throw e; };
+    if (/\/pulls\/7$/.test(path)) { pullReads++; const sha = state.headAfter && pullReads >= 2 ? state.headAfter : state.head; return { state: "open", merged: false, mergeable: true, mergeable_state: "clean", head: { sha, ref: "rankfix/x" }, base: { ref: "main" } }; }
+    if (/\/pulls\/7\/files/.test(path)) return [{ filename: "templates/index.html", additions: 1, deletions: 1, status: "modified" }];
+    if (/\/pulls\/7\/merge$/.test(path)) return { merged: true };
+    if (/protection\/required_status_checks$/.test(path)) return state.protectionError ? fail(state.protectionError) : state.protection;
+    if (/check-runs/.test(path)) { if (state.checksError) fail(state.checksError); const page = Number(new URL("http://x" + path).searchParams.get("page")); return { total_count: state.total ?? state.runs.length, check_runs: page === 1 ? state.runs : [] }; }
+    if (/\/status\?/.test(path)) { if (state.statusError) fail(state.statusError); return { sha: state.head, state: "pending", total_count: 0, statuses: [] }; }
+    if (/\/contents\//.test(path)) return state.baseError ? fail(state.baseError) : { sha: "b1" };
+    return fail(404);
+  };
+  return { gh, calls };
+}
+const fixRow = (over = {}) => ({ id: "1", user_id: "u", issue_id: "META_DESCRIPTION_GUIDANCE", scanned_url: "https://x.test/", status: "AWAITING_MERGE", repository: "o/r", pr_number: 7, branch: "rankfix/x", base_branch: "main", file_path: "templates/index.html", auto_publish: true, head_sha: H, base_blob_sha: "b1", ...over });
+const attempt = async (ghOver = {}, rowOver = {}) => { const { gh, calls } = fakeGithub(ghOver); const result = await E.tryAutoMerge({ github: gh, db: null, probe: null }, fixRow(rowOver)); return { result, merged: calls.some((c) => c.startsWith("PUT ") && c.endsWith("/merge")), calls }; };
+
+test("tryAutoMerge: proven green required CI on the approved SHA merges, re-reading the PR first", async () => {
+  const ok = await attempt();
+  assert.deepEqual(ok.result, { decision: "merged", code: "MERGED" });
+  assert.equal(ok.merged, true);
+  const reads = ok.calls.filter((c) => /GET \/repos\/o\/r\/pulls\/7$/.test(c)).length;
+  assert.equal(reads, 2, "PR must be re-read right before the merge");
+});
+
+test("tryAutoMerge is fail-closed: no merge on missing, failing, unreadable or untrusted CI evidence", async () => {
+  const cases = [
+    ["missing CI", { runs: [] }, {}, "REQUIRED_CHECK_MISSING"],
+    ["check-runs API 500", { checksError: 500 }, {}, "CI_UNAVAILABLE"],
+    ["check-runs API 404", { checksError: 404 }, {}, "CI_UNAVAILABLE"],
+    ["status API 502", { statusError: 502 }, {}, "CI_UNAVAILABLE"],
+    ["incomplete pagination", { total: 4 }, {}, "CI_INCOMPLETE"],
+    ["skipped required check", { runs: [run("build", "skipped", { id: 1 })] }, {}, "REQUIRED_CHECK_NOT_SUCCESSFUL"],
+    ["protection unreadable, no recorded set", { protectionError: 403 }, {}, "REQUIRED_CHECKS_UNDEFINED"],
+    ["protection unreadable, random green check", { protectionError: 404, runs: [run("lint", "success", { id: 3 })] }, {}, "REQUIRED_CHECKS_UNDEFINED"],
+    ["protection unreadable, recorded check absent", { protectionError: 404, runs: [run("lint", "success", { id: 3 })] }, { required_checks: '["build"]' }, "REQUIRED_CHECK_MISSING"],
+    ["head SHA changed since approval", { head: "c".repeat(40) }, {}, "HEAD_CHANGED"],
+    ["head SHA changes right before merge", { headAfter: "d".repeat(40) }, {}, "HEAD_CHANGED"],
+    ["approved head SHA not stored", {}, { head_sha: null }, "EVIDENCE_MISSING"],
+    ["approved base blob not stored", {}, { base_blob_sha: null }, "EVIDENCE_MISSING"],
+    ["base file unreadable", { baseError: 500 }, {}, "BASE_UNAVAILABLE"],
+  ];
+  for (const [name, ghOver, rowOver, code] of cases) {
+    const { result, merged } = await attempt(ghOver, rowOver);
+    assert.equal(merged, false, name + ": PUT /merge was called");
+    assert.equal(result.code, code, name);
+    assert.notEqual(result.decision, "merge", name);
+  }
+  // An explicitly recorded set is trusted when branch protection is unreadable.
+  const recorded = await attempt({ protectionError: 404 }, { required_checks: '["build"]' });
+  assert.equal(recorded.merged, true);
+});
+
+test("source guard: CI lookups never fall back to an empty or pending result", () => {
+  const src = readFileSync(new URL("../lib/fix-engine.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(src, /check-runs[^\n]*\.catch\(\s*\(\)\s*=>\s*\(\{\s*check_runs:\s*\[\]/);
+  assert.doesNotMatch(src, /\/status[^\n]*\.catch\(\s*\(\)\s*=>\s*\(\{\s*state:\s*"pending"/);
+  assert.match(src, /const ci = evaluateCiEvidence\(/);
+  // The only merge call sits behind the fail-closed evaluation and a fresh PR read.
+  assert.equal((src.match(/\/merge`/g) || []).length, 1);
+  assert.ok(src.indexOf("const fresh = await gh") < src.indexOf("/merge`"));
 });

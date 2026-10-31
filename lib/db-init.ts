@@ -112,6 +112,8 @@ const statements = [
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS expected_value TEXT`,
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS head_sha TEXT`,
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS base_blob_sha TEXT`,
+  // P0 (31 Oct): snapshot of the owner's explicitly recorded required CI checks (JSON array).
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS required_checks TEXT`,
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS merge_commit_sha TEXT`,
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS deploy_state TEXT`,
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS deploy_success_at TIMESTAMPTZ`,
@@ -199,6 +201,7 @@ const statements = [
   `ALTER TABLE website_repositories ADD COLUMN IF NOT EXISTS autofix_repository TEXT`,
   `ALTER TABLE website_repositories ADD COLUMN IF NOT EXISTS autofix_branch TEXT`,
   `ALTER TABLE website_repositories ADD COLUMN IF NOT EXISTS autofix_consented_at TIMESTAMPTZ`,
+  `ALTER TABLE website_repositories ADD COLUMN IF NOT EXISTS autofix_required_checks TEXT`,
   `CREATE TABLE IF NOT EXISTS website_health_events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

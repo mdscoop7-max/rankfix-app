@@ -89,6 +89,8 @@ function github(method, path, body) {
     const sub = mm[2] || "";
     if (sub === "" && method === "GET") {
       pr.polls++;
+      // Someone pushes to the PR branch between RankFix's evaluation and its merge.
+      if (repo.opts.pushBeforeMerge && pr.polls === repo.opts.pushBeforeMerge) { head.files["templates/about.html"] = "<p>late push</p>"; head.sha = repo.commit(head.files); }
       const computing = repo.opts.mergeabilityDelay && pr.polls <= repo.opts.mergeabilityDelay;
       return json({ ...pr, head: { ref: pr.head.ref, sha: head.sha }, mergeable: computing ? null : true, mergeable_state: computing ? "unknown" : (repo.opts.mergeableState || "clean") });
     }
@@ -107,8 +109,28 @@ function github(method, path, body) {
       return json({ merged: true, sha: pr.merge_commit_sha });
     }
   }
-  if ((mm = rpath.match(/^\/commits\/[^/]+\/check-runs$/))) return json({ check_runs: repo.opts.checkRuns || [] });
-  if ((mm = rpath.match(/^\/commits\/[^/]+\/status$/))) return json({ state: "pending", total_count: 0 });
+  // CI (P0, 31 Oct): a realistic GitHub. Default: branch protection requires
+  // "build", and "build" ran successfully on exactly the head commit.
+  const ci = repo.opts.ci || "green";
+  if ((mm = rpath.match(/^\/branches\/([^/]+)\/protection\/required_status_checks$/))) {
+    if (ci === "protection_unreadable" || ci === "protection_unreadable_recorded") return json({ message: "Not Found" }, 404);
+    return json({ contexts: ["build"], checks: [{ context: "build", app_id: 15368 }] });
+  }
+  if ((mm = rpath.match(/^\/commits\/([^/]+)\/check-runs$/))) {
+    if (ci === "checks_api_error") return json({ message: "Server Error" }, 500);
+    const headSha = mm[1];
+    const run = (name, conclusion, extra = {}) => ({ id: 1, name, status: "completed", conclusion, head_sha: headSha, app: { id: 15368 }, ...extra });
+    if (ci === "missing") return json({ total_count: 0, check_runs: [] });
+    if (ci === "skipped") return json({ total_count: 1, check_runs: [run("build", "skipped")] });
+    // GitHub reports 3 runs but only one is ever delivered (later pages empty).
+    if (ci === "incomplete") return json({ total_count: 3, check_runs: q.get("page") === "1" ? [run("build", "success")] : [] });
+    if (ci === "random_green") return json({ total_count: 1, check_runs: [run("lint", "success")] });
+    return json({ total_count: 1, check_runs: [run("build", "success")] });
+  }
+  if ((mm = rpath.match(/^\/commits\/([^/]+)\/status$/))) {
+    if (ci === "status_api_error") return json({ message: "Server Error" }, 500);
+    return json({ sha: mm[1], state: "pending", total_count: 0, statuses: [] });
+  }
   if (rpath === "/deployments") return json(repo.deployments.filter((d) => d.sha === q.get("sha")).map((d) => ({ id: d.id, environment: d.environment, production_environment: true })));
   if ((mm = rpath.match(/^\/deployments\/(\d+)\/statuses$/))) {
     const d = repo.deployments[Number(mm[1]) - 1];
@@ -261,6 +283,51 @@ await scenario("B approve-and-publish inside RankFix without standing consent", 
   check(pub.status === 200 && repo.merges === 1, `B: approve should merge (${pub.status}, merges ${repo.merges}) ${JSON.stringify(pub.body).slice(0, 200)}`);
   const fix = await poll(url, ISSUE);
   check(fix?.ready_for_scan, `B: ${JSON.stringify(fix).slice(0, 200)}`);
+});
+
+// P0 (31 Oct): fail-closed merge. None of these may ever reach PUT /merge.
+const noMergeScenario = (label, ci, codes, extra = {}) => scenario(`${label}: no automatic merge (${ci})`, async () => {
+  const id = label.toLowerCase().replace(/[^a-z0-9]/g, "");
+  await newUser(id);
+  const repo = freshSite(`${id}.voorbeeld.test`, `acme/${id}-shop`, { ci, ...extra });
+  const url = `https://${id}.voorbeeld.test/`;
+  const s1 = await scanSite(url);
+  const { pv } = await prepare(s1.body.scanId, ISSUE, `acme/${id}-shop`, true, url);
+  await publish(s1.body.scanId, ISSUE, `acme/${id}-shop`, pv, "publish");
+  const fix = await poll(url, ISSUE, 3);
+  check(repo.merges === undefined && !repo.calls.includes("PUT /pulls/1/merge"), `${label}: merged without CI evidence (${ci})`);
+  check(codes.includes(fix?.reason_code || "") || codes.includes(String((await db.query("SELECT last_error_code FROM pending_fixes WHERE scanned_url=$1", [url])).rows[0]?.last_error_code)), `${label}: reason ${fix?.reason_code} / ${JSON.stringify(fix).slice(0, 200)}`);
+});
+await noMergeScenario("CI1", "missing", ["REQUIRED_CHECK_MISSING"]);
+await noMergeScenario("CI2", "checks_api_error", ["CI_UNAVAILABLE"]);
+await noMergeScenario("CI3", "status_api_error", ["CI_UNAVAILABLE"]);
+await noMergeScenario("CI4", "skipped", ["REQUIRED_CHECK_NOT_SUCCESSFUL"]);
+await noMergeScenario("CI5", "incomplete", ["CI_INCOMPLETE", "CI_UNAVAILABLE"]);
+await noMergeScenario("CI6", "protection_unreadable", ["REQUIRED_CHECKS_UNDEFINED"]);
+await noMergeScenario("CI7", "green", ["HEAD_CHANGED", "UNEXPECTED_FILES"], { pushBeforeMerge: 2 });
+
+await scenario("CI8 unreadable branch protection + explicitly recorded required check: merges only on that check", async () => {
+  await newUser("ci8");
+  const repo = freshSite("ci8.voorbeeld.test", "acme/ci8-shop", { ci: "protection_unreadable_recorded", deployPolls: 1 });
+  const url = "https://ci8.voorbeeld.test/";
+  const s1 = await scanSite(url);
+  const { pv } = await prepare(s1.body.scanId, ISSUE, "acme/ci8-shop", true, url);
+  const consent = await call(siteRoute.PATCH, "PATCH", "/api/github/site-repository", { url, autofix_publish: true, confirm: "AUTOFIX_PUBLISH_CONSENT", required_checks: ["build"] });
+  check(consent.status === 200 && JSON.stringify(consent.body.autofix?.requiredChecks) === '["build"]', `CI8: consent ${JSON.stringify(consent.body)}`);
+  await publish(s1.body.scanId, ISSUE, "acme/ci8-shop", pv, "auto");
+  const fix = await poll(url, ISSUE);
+  check(repo.merges === 1, `CI8: recorded green check should allow the merge (${repo.merges}) ${JSON.stringify(fix).slice(0, 200)}`);
+});
+
+await scenario("CI9 a green non-required check never replaces the missing required check", async () => {
+  await newUser("ci9");
+  const repo = freshSite("ci9.voorbeeld.test", "acme/ci9-shop", { ci: "random_green" });
+  const url = "https://ci9.voorbeeld.test/";
+  const s1 = await scanSite(url);
+  const { pv } = await prepare(s1.body.scanId, ISSUE, "acme/ci9-shop", true, url);
+  await publish(s1.body.scanId, ISSUE, "acme/ci9-shop", pv, "publish");
+  await poll(url, ISSUE, 3);
+  check(repo.merges === undefined, "CI9: a non-required green check must not allow the merge");
 });
 
 await scenario("C PR-only: never merged by RankFix, shown as manual action", async () => {

@@ -7,7 +7,7 @@ import { decryptToken, githubFetch, GithubError } from "@/lib/github";
 import { validateGithubFix } from "@/lib/github-fix-validator";
 import { getFixPolicy } from "@/lib/fix-policy";
 import { consumeRateLimit } from "@/lib/rate-limit";
-import { advanceFix, autofixLevel, autoPublishSupported, publicFixView, siteConsentValid, ACTIVE_FIX_STATUS_SQL, REASON_NL, type FixRow } from "@/lib/fix-engine";
+import { parseRecordedChecks, advanceFix, autofixLevel, autoPublishSupported, publicFixView, siteConsentValid, ACTIVE_FIX_STATUS_SQL, REASON_NL, type FixRow } from "@/lib/fix-engine";
 import { createEngineDeps } from "@/lib/fix-engine-deps";
 import { applyMetaDescriptionToSource, checkDescriptionCandidate, extractSourceDescriptionEvidence, generateMetaDescription, normalizeDescriptionText, DESCRIPTION_ERROR_NL, PATCH_ERROR_NL } from "@/lib/meta-description-fix";
 
@@ -531,10 +531,10 @@ export async function POST(request:Request){
     const scannedHost=normalizeHostname(trustedUrl);
     let effectiveRepo=requestedRepo;
     let effectiveBaseBranch=baseBranch;
-    let existingMapping:{repository?:string;base_branch?:string;autofix_publish?:boolean;autofix_repository?:string|null;autofix_branch?:string|null}|null=null;
+    let existingMapping:{repository?:string;base_branch?:string;autofix_publish?:boolean;autofix_repository?:string|null;autofix_branch?:string|null;autofix_required_checks?:string|null}|null=null;
     if(scannedHost){
       const saved=await getDb().query(
-        "SELECT repository,base_branch,autofix_publish,autofix_repository,autofix_branch FROM website_repositories WHERE user_id=$1 AND website_host=$2 LIMIT 1",
+        "SELECT repository,base_branch,autofix_publish,autofix_repository,autofix_branch,autofix_required_checks FROM website_repositories WHERE user_id=$1 AND website_host=$2 LIMIT 1",
         [user.id,scannedHost]
       );
       if(saved.rowCount){
@@ -896,12 +896,12 @@ export async function POST(request:Request){
     await db.query("UPDATE fix_proposals SET status='PUBLISHED',branch=$2,pr_number=$3,pr_url=$4,updated_at=NOW() WHERE id=$1",[activeProposal.id,branch,Number(pr.number)||null,pr.html_url||null]);
     if(!scannedUrl) return NextResponse.json({success:true,status:"awaiting_merge",repository:repo,path,branch,issue_id:issueId,pr:{number:pr.number,url:pr.html_url}});
     const inserted=await db.query(
-      `INSERT INTO pending_fixes (user_id,scanned_url,issue_id,status,repository,file_path,pr_number,pr_url,branch,base_branch,proposal_id,auto_publish,expected_value,head_sha,base_blob_sha,phase_started_at)
-       VALUES ($1,$2,$3,'AWAITING_MERGE',$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,NOW())
+      `INSERT INTO pending_fixes (user_id,scanned_url,issue_id,status,repository,file_path,pr_number,pr_url,branch,base_branch,proposal_id,auto_publish,expected_value,head_sha,base_blob_sha,required_checks,phase_started_at)
+       VALUES ($1,$2,$3,'AWAITING_MERGE',$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,NOW())
        ON CONFLICT (user_id,scanned_url,issue_id) WHERE status IN (${ACTIVE_FIX_STATUS_SQL})
-       DO UPDATE SET status='AWAITING_MERGE',repository=EXCLUDED.repository,file_path=EXCLUDED.file_path,pr_number=EXCLUDED.pr_number,pr_url=EXCLUDED.pr_url,branch=EXCLUDED.branch,base_branch=EXCLUDED.base_branch,proposal_id=EXCLUDED.proposal_id,auto_publish=EXCLUDED.auto_publish,expected_value=EXCLUDED.expected_value,head_sha=EXCLUDED.head_sha,base_blob_sha=EXCLUDED.base_blob_sha,merge_error=NULL,merged_at=NULL,merge_commit_sha=NULL,deploy_state=NULL,deploy_success_at=NULL,live_seen_at=NULL,merge_attempts=0,verification_attempts=0,last_error_code=NULL,next_check_at=NULL,verified_at=NULL,verification_scan_id=NULL,phase_started_at=NOW(),updated_at=NOW()
+       DO UPDATE SET status='AWAITING_MERGE',repository=EXCLUDED.repository,file_path=EXCLUDED.file_path,pr_number=EXCLUDED.pr_number,pr_url=EXCLUDED.pr_url,branch=EXCLUDED.branch,base_branch=EXCLUDED.base_branch,proposal_id=EXCLUDED.proposal_id,auto_publish=EXCLUDED.auto_publish,expected_value=EXCLUDED.expected_value,head_sha=EXCLUDED.head_sha,base_blob_sha=EXCLUDED.base_blob_sha,required_checks=EXCLUDED.required_checks,merge_error=NULL,merged_at=NULL,merge_commit_sha=NULL,deploy_state=NULL,deploy_success_at=NULL,live_seen_at=NULL,merge_attempts=0,verification_attempts=0,last_error_code=NULL,next_check_at=NULL,verified_at=NULL,verification_scan_id=NULL,phase_started_at=NOW(),updated_at=NOW()
        RETURNING *`,
-      [user.id,scannedUrl,issueId,repo,path,Number(pr.number)||null,pr.html_url||null,branch,effectiveBaseBranch,activeProposal.id,allowMerge,expectedValue,headRef.object.sha,activeProposal.base_blob_sha]
+      [user.id,scannedUrl,issueId,repo,path,Number(pr.number)||null,pr.html_url||null,branch,effectiveBaseBranch,activeProposal.id,allowMerge,expectedValue,headRef.object.sha,activeProposal.base_blob_sha,(()=>{const c=parseRecordedChecks(existingMapping?.autofix_required_checks);return c.length?JSON.stringify(c):null;})()]
     );
     const row=inserted.rows[0] as FixRow;
     await db.query("INSERT INTO fix_events (proposal_id,pending_fix_id,user_id,stage,reason_code,detail) VALUES ($1,$2,$3,'AWAITING_MERGE',$4,$5::jsonb)",[activeProposal.id,row.id,user.id,allowMerge?(publishMode==="auto"?"SITE_CONSENT":"OWNER_APPROVED"):"PR_ONLY",JSON.stringify({pr:pr.number,branch})]).catch(()=>{});
