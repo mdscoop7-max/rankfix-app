@@ -2468,7 +2468,8 @@ async function runScan(request: Request) {
     const cookieSignalOk = hasCookieLink || !cookieUseObserved;
     const cookieNotRequiredNote = !hasCookieLink && !cookieUseObserved ? " Geen cookies of trackers waargenomen; een cookielink is daarom niet als ontbrekend beoordeeld." : "";
     const hasTermsLink = Boolean(termsEvidence);
-    const hasContactLink = Boolean(contactEvidence || contactFormFound || visibleContactEmail);
+    // A visible phone number, e-mail or postal address is contact evidence even without a "contact" link.
+    const hasContactLink = Boolean(contactEvidence || contactFormFound || visibleContactEmail || hasBusinessContactDetails);
     const legalLanguageCode = (lang || "").toLowerCase().split("-")[0];
     const legalLanguageSupported = new Set(["nl","en","it","pt","sl","hr","de","fr","es"]).has(legalLanguageCode);
     const legalEvidenceSummary = [privacyEvidence && `privacy: "${privacyEvidence.label || privacyEvidence.aria || privacyEvidence.title}" → ${privacyEvidence.href}`, cookieEvidence && `cookies: "${cookieEvidence.label || cookieEvidence.aria || cookieEvidence.title}" → ${cookieEvidence.href}`, contactEvidence ? `contact (${contactChannelLabels[contactEvidence.channel]}): "${contactEvidence.label || contactEvidence.aria || contactEvidence.title}" → ${contactEvidence.href}` : contactFormFound ? "contact (contactformulier): formulier met berichtveld en e-mail/telefoonveld" : visibleContactEmail ? `contact (e-mail): ${visibleContactEmail}` : null].filter(Boolean).join(" · ");

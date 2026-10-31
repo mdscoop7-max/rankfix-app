@@ -201,3 +201,13 @@ test("scan route wires the report-quality fixes", async () => {
   const puppeteerConfig = await readFile(new URL("../.puppeteerrc.cjs", import.meta.url), "utf8");
   assert.match(puppeteerConfig, /cacheDirectory: join\(__dirname, "\.cache", "puppeteer"\)/);
 });
+
+test("titles: soft hyphens and generic 'Home |' prefixes are flagged, long titles stay advice", () => {
+  assert.equal(assessPageTitle("Kinder­klinik en spoedeisende hulp | Ziekenhuis Voorbeeld", "voorbeeld.test").flag, "soft_hyphen");
+  assert.equal(assessPageTitle("Home | Voorbeeld Kappers", "voorbeeld.test").flag, "generic_prefix");
+  assert.equal(assessPageTitle("Welkom - Voorbeeld Kappers", "voorbeeld.test").flag, "generic_prefix");
+  const long = assessPageTitle("Gespecialiseerde kinderzorg en jeugdpsychiatrie in de regio Utrecht en omstreken | Voorbeeld", "voorbeeld.test");
+  assert.equal(long.status, "PASS");
+  assert.match(long.details, /langer dan 70 tekens/);
+  assert.equal(assessPageTitle("Kappers in Utrecht | Voorbeeld Kappers", "voorbeeld.test").status, "PASS");
+});
