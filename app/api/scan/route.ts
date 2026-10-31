@@ -1,4 +1,5 @@
 import { distinctH1s, htmlByteSize, LARGE_HTML_BYTES, detectLibraryVersions, isYmylSector, ymylExpertiseEvidence } from "@/lib/page-quality-signals";
+import { hospitalityNavigationEvidence, isPricedServiceIdentity } from "@/lib/sector-navigation";
 import { securityAccessibilityActions } from "@/lib/security-access-actions";
 import { sectorSchemaType, isGenericSchemaAdvice } from "@/lib/sector-schema";
 import { hasLocalQaSession } from "@/lib/local-qa";
@@ -2357,7 +2358,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       {sector:"automotive",label:"Automotive",patterns:[/\b(garage|autobedrijf|autodealer|occasions?|auto[- ]?onderhoud|car dealer|vehicle|automotive|automotivebusiness)\b/i,/\b(apk|proefrit|werkplaats|banden|reparatie|autoservice)\b/i],modules:["core_seo","geo","local","lead_conversion","automotive"]},
       {sector:"home_services",label:"Lokale vakdienst",patterns:[/\b(loodgieter|plumber|aannemer|installateur|elektricien|schilder|schilders(?:bedrijf|werk(?:en|zaamheden)?)|schilderwerk(?:en|zaamheden)?|stukadoor(?:sbedrijf)?|timmer(?:man|bedrijf)|glazenwasser|hoveniers?(?:bedrijf)?|dakdekker|klus(?:sen)?bedrijf|bouwbedrijf|bouwservice|general contractor|electrician|contractor|riool(?:service|specialist)?|rioolprobleem|ontstopping|ontstoppen|afvoer|schoonmaak(?:bedrijf|dienst(?:en)?)?|kantoorschoonmaak|cleaning service|cleaning company)\b/i,/\b(offerte|werkgebied|servicegebied|installatie|reparatie|renovatie|verbouwing|bouw|verstopping|riolering|riooldienst(?:en)?|schoonmaak|cleaning)\b/i],modules:["core_seo","geo","local","lead_conversion","home_services"]},
       {sector:"professional_services",label:"Zakelijke dienstverlening",patterns:[/\b(advocaat|advocaten(?:kantoor)?|accountant|accountants(?:kantoor)?|boekhouder|boekhouding|belastingadvi(?:es|seur|seurs)|administratiekantoor|consultant|notaris|law firm|legalservice|legal services|accounting|consultancy|tax advi(?:ce|sor)|steuerberat(?:er|ung)|expert-comptable|commercialista)\b/i,/\b(diensten|expertise|advies|consult)\b/i],modules:["core_seo","geo","local","lead_conversion","professional_services"]},
-      {sector:"hospitality",label:"Horeca",patterns:[/\b(restaurant|cafe|café|hotel|brasserie|bistro|reserveren|reservation|restaurantmenu|menukaart)\b/i,/\b(openingstijden|opening hours|tafel reserveren)\b/i],modules:["core_seo","geo","local","lead_conversion","hospitality"]},
+      {sector:"hospitality",label:"Horeca",patterns:[/\b(restaurant|cafe|café|hotel|brasserie|bistro|bistrot|reserveren|reservation|restaurantmenu|menukaart|ristorante|ristoranti|pizzeria|pizzerie|trattoria|osteria|(?<!per la |forniture per |attrezzature per |fornitori per )ristorazione|restaurante|restaurantes|crêperie)\b/i,/\b(openingstijden|opening hours|tafel reserveren|orari di apertura|prenota(?:re)? (?:un |il )?tavolo|prenotazioni|il nostro menu|menu del giorno|horaires d'ouverture|réserver une table|notre carte|horario de apertura|reservar (?:una )?mesa|nuestra carta|nuestro menú)\b/i],modules:["core_seo","geo","local","lead_conversion","hospitality"]},
       {sector:"health_wellness",label:"Zorg & Gezondheid",patterns:[/\b(kliniek|clinic|ziekenhuis|ziekenhuizen|hospital|krankenhaus|klinikum|hôpital|ospedale|medisch centrum|universitair medisch centrum|university medical cent(?:er|re)|(?:fysio|physio)therap\w*|osteopa\w*|chiropract\w*|huisarts\w*|psycholo\w*|logoped\w*|podotherap\w*|verloskund\w*|orthodont\w*|mondhygi\w*|tandarts|dentist|medicalclinic|physician|mondzorg|acupunctuur|acupuncture|acupuncturist|therapeut|therapist|therapie|therapy|tuina)\b/i,/\b(afspraak|appointment|behandeling|behandelingen|treatment|treatments|patient|patiënt|praktijk|practice)\b/i],modules:["core_seo","geo","local","lead_conversion","health_wellness"]},
       {sector:"beauty",label:"Beauty & Verzorging",patterns:[/\b(kapper|hairdresser|hairsalon|hair salon|hairstyling|beauty salon|beautysalon|schoonheidssalon|nagelsalon|nail salon|barber|day spa|dayspa|city spa|manicure|pedicure|gezichtsbehandeling)\b/i,/\b(afspraak|appointment|salons?|knippen|haar|hair|spa|wellness|manicure|pedicure|beauty treatment|beauty treatments)\b/i],modules:["core_seo","geo","local","lead_conversion","beauty"]},
       {sector:"recruitment",label:"Recruitment & Werk",patterns:[/\b(recruitment|uitzendbureau|uitzendorganisatie|employment agency|staffing agency|staffing|werving en selectie|recruitmentbureau|recruitment agency)\b/i,/\b(werkgevers?|kandidaten?|talent acquisition|detachering|interim professionals?|recruiter)\b/i],modules:["core_seo","geo","lead_conversion","recruitment"]},
@@ -6042,6 +6043,8 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const ownCartEvidence = Boolean(confirmedAddToCart || auditedMultiPages.some((item)=>item.status==="audited" && item.commerceEvidence?.strongCommerceAction));
     const referralPlatform = Boolean(platformIdentity && !ownCartEvidence);
     if (referralPlatform) finalCommerceDecision.confirmed = false;
+    const pricedServiceIdentity = Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry) && isPricedServiceIdentity(String(primaryNonCommerceIdentity?.key || sectorProfile.key || ""));
+    const pricedServiceRetailProof = auditedMultiPages.some((item)=>item.status==="audited" && Boolean(item.commerceEvidence?.productSchema) && hasProductOffer(item.commerceEvidence));
     const finalCommerceApplicability = commerceApplicability({
       confirmed: finalCommerceDecision.confirmed,
       primaryNonCommerceIdentity: Boolean(primaryNonCommerceIdentity || verifiedNonCommerceIndustry),
@@ -6049,7 +6052,13 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       thinShell: thinRawHtmlEvidence,
       marketSelector: marketSelectorPage,
       auditedRepresentativePages: representativeAuditedPageCount,
-      verifiedSecondaryCommerce: Boolean(sitewideCommerceEvidence.confirmed || verifiedRepresentativeProductDetail || representativeCommercialProductIntent),
+      // 31 Oct (five-site QA, P2): for a confirmed payment, financial or SaaS
+      // service, transaction fees, /products/ URLs and its own pay/checkout demo
+      // buttons describe the service itself. Secondary product sales then need
+      // hard retail proof: a sampled page with Product schema and an offer.
+      verifiedSecondaryCommerce: pricedServiceIdentity
+        ? pricedServiceRetailProof
+        : Boolean(sitewideCommerceEvidence.confirmed || verifiedRepresentativeProductDetail || representativeCommercialProductIntent),
       referralPlatform,
       refusedRetailPages: multiPageAudits.filter((item)=>item && (item.type==="product" || item.type==="category" || item.type==="listing") && item.status!=="audited" && [202,401,403,405,429].includes(Number(item.httpStatus))).length,
     });
@@ -6142,7 +6151,12 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // The homepage itself did not establish this sector, so sampled pages must
     // agree independently: at least two pages name it in their own identity.
     const reconciledPages = reconciledTop ? pagesWithOwnIdentity(sectorSignals.find((item)=>item.sector===reconciledTop.sector)?.patterns[0] || /$^/) : 0;
-    const reconciledIdentityStrong = Boolean(reconciledTop && reconciledTop.score >= 3 && reconciledPages >= 2 && (!reconciledRunnerUp || reconciledTop.score > reconciledRunnerUp.score));
+    // 31 Oct (five-site QA): a brand-only homepage (no description, no H1) can
+    // still show its activity in the navigation. Navigation alone never decides;
+    // it can replace the second sampled page only for a sector whose navigation
+    // is specific (hospitality: a menu AND a reservation entry, multilingual).
+    const navigationCorroborates = (sector: string) => sector === "hospitality" && hospitalityNavigationEvidence(identityNavLabels);
+    const reconciledIdentityStrong = Boolean(reconciledTop && reconciledTop.score >= 3 && (reconciledPages >= 2 || (reconciledPages >= 1 && navigationCorroborates(reconciledTop.sector))) && (!reconciledRunnerUp || reconciledTop.score > reconciledRunnerUp.score));
     if (!masterIdentityOverride && sectorProfile.sector==="unknown" && !retailPrimaryIdentity && !finalCommerceDecision.confirmed && reconciledIdentityStrong && reconciledTop && multilingualPageIdentity.reason !== "conflicting_page_identities" && sectorProfile.sector !== reconciledTop.sector) {
       sectorProfile.sector = reconciledTop.sector;
       sectorProfile.key = reconciledTop.sector;
@@ -6150,7 +6164,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       // Corroborated by sampled pages only, not by the homepage identity: medium.
       sectorProfile.confidence = "medium";
       sectorProfile.confidenceScore = Math.min(78, 66 + reconciledTop.score * 2);
-      sectorProfile.evidence = [`Scanbewijs: ${reconciledPages} representatieve pagina's noemen deze activiteit in hun eigen titel/omschrijving/H1; de homepage zelf bevestigt de sector niet`];
+      sectorProfile.evidence = [`Scanbewijs: ${reconciledPages} representatieve pagina's noemen deze activiteit in hun eigen titel/omschrijving/H1; de homepage zelf bevestigt de sector niet`, ...(reconciledPages < 2 ? ["Navigatiebewijs: menu- en reserveringsonderdeel in de eigen navigatie"] : [])];
       sectorProfile.applicableModules = [...new Set(["core_seo","geo","technical",...reconciledTop.modules])];
       masterEvidence.activeModules = sectorProfile.applicableModules;
     }

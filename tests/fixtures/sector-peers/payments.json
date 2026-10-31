@@ -13,7 +13,9 @@
     "Ontwikkelaars",
     "Klantverhalen",
     "Inloggen",
-    "Aanmelden"
+    "Aanmelden",
+    "Kaartterminals",
+    "Klarna"
    ],
    "h2": [
     "Accepteer alle populaire betaalmethoden",
@@ -27,7 +29,30 @@
     "platform": "Framer",
     "schemaType": "FinancialService"
    },
-   "head": "<meta name=\"generator\" content=\"Framer 3c9a1f2\"><link rel=\"preload\" href=\"https://framerusercontent.com/assets/font.woff2\">"
+   "head": "<meta name=\"generator\" content=\"Framer 3c9a1f2\"><link rel=\"preload\" href=\"https://framerusercontent.com/assets/font.woff2\">",
+   "navLinks": [
+    "/producten",
+    "/betaalmethoden",
+    "/prijzen",
+    "/ontwikkelaars",
+    "/klantverhalen",
+    "/inloggen",
+    "/aanmelden",
+    "/products/pos-payments/tap-app",
+    "/payments/klarna"
+   ],
+   "pages": {
+    "/products/pos-payments/tap-app": {
+     "title": "Tap to Pay app | Mollie",
+     "h1": "Accepteer contactloze betalingen met je telefoon",
+     "body": "<p>Geen vaste kosten. iDEAL €0,29 per transactie, creditcards 1,8% + €0,25. Kaartterminal vanaf €49,00 eenmalig.</p><p>Geen vaste kosten. iDEAL €0,29 per transactie, creditcards 1,8% + €0,25. Kaartterminal vanaf €49,00 eenmalig.</p><p>Geen vaste kosten. iDEAL €0,29 per transactie, creditcards 1,8% + €0,25. Kaartterminal vanaf €49,00 eenmalig.</p><p>Geen vaste kosten. iDEAL €0,29 per transactie, creditcards 1,8% + €0,25. Kaartterminal vanaf €49,00 eenmalig.</p><a href='/products/pos-payments/terminal'>Terminal</a><a href='/products/pos-payments/tap-app'>App</a>"
+    },
+    "/payments/klarna": {
+     "title": "Klarna accepteren | Mollie",
+     "h1": "Klarna als betaalmethode",
+     "body": "<p>Laat je klanten betalen met Klarna: achteraf betalen of in 3 termijnen. Tarief 2,99% + €0,35 per transactie.</p><form action='/checkout'><button type='submit'>Betaal nu</button><button>In winkelwagen</button></form><p>Laat je klanten betalen met Klarna: achteraf betalen of in 3 termijnen. Tarief 2,99% + €0,35 per transactie.</p><form action='/checkout'><button type='submit'>Betaal nu</button><button>In winkelwagen</button></form><p>Laat je klanten betalen met Klarna: achteraf betalen of in 3 termijnen. Tarief 2,99% + €0,35 per transactie.</p><form action='/checkout'><button type='submit'>Betaal nu</button><button>In winkelwagen</button></form>"
+    }
+   }
   },
   "paypal.test": {
    "title": "Online betalen, geld versturen en ontvangen | PayPal NL",
@@ -91,7 +116,9 @@
     "Resources",
     "Pricing",
     "Sign in",
-    "Contact sales"
+    "Contact sales",
+    "Kaartterminals",
+    "Klarna"
    ],
    "h2": [
     "Payments",
@@ -103,6 +130,29 @@
     "key": "financial_payments",
     "type": "services",
     "shopChecks": "not_applicable"
+   },
+   "navLinks": [
+    "/products",
+    "/solutions",
+    "/developers",
+    "/resources",
+    "/pricing",
+    "/sign in",
+    "/contact sales",
+    "/products/pos-payments/tap-app",
+    "/payments/klarna"
+   ],
+   "pages": {
+    "/products/pos-payments/tap-app": {
+     "title": "Tap to Pay app | Stripe",
+     "h1": "Accepteer contactloze betalingen met je telefoon",
+     "body": "<p>Geen vaste kosten. iDEAL €0,29 per transactie, creditcards 1,8% + €0,25. Kaartterminal vanaf €49,00 eenmalig.</p><p>Geen vaste kosten. iDEAL €0,29 per transactie, creditcards 1,8% + €0,25. Kaartterminal vanaf €49,00 eenmalig.</p><p>Geen vaste kosten. iDEAL €0,29 per transactie, creditcards 1,8% + €0,25. Kaartterminal vanaf €49,00 eenmalig.</p><p>Geen vaste kosten. iDEAL €0,29 per transactie, creditcards 1,8% + €0,25. Kaartterminal vanaf €49,00 eenmalig.</p><a href='/products/pos-payments/terminal'>Terminal</a><a href='/products/pos-payments/tap-app'>App</a>"
+    },
+    "/payments/klarna": {
+     "title": "Klarna accepteren | Stripe",
+     "h1": "Klarna als betaalmethode",
+     "body": "<p>Laat je klanten betalen met Klarna: achteraf betalen of in 3 termijnen. Tarief 2,99% + €0,35 per transactie.</p><form action='/checkout'><button type='submit'>Betaal nu</button><button>In winkelwagen</button></form><p>Laat je klanten betalen met Klarna: achteraf betalen of in 3 termijnen. Tarief 2,99% + €0,35 per transactie.</p><form action='/checkout'><button type='submit'>Betaal nu</button><button>In winkelwagen</button></form><p>Laat je klanten betalen met Klarna: achteraf betalen of in 3 termijnen. Tarief 2,99% + €0,35 per transactie.</p><form action='/checkout'><button type='submit'>Betaal nu</button><button>In winkelwagen</button></form>"
+    }
    }
   },
   "klarna.test": {
@@ -212,6 +262,33 @@
    ],
    "expect": {
     "notKey": "financial_payments"
+   }
+  },
+  "terminalsale.test": {
+   "lang": "nl",
+   "title": "PayBox: betaalterminals en online betalingen",
+   "desc": "PayBox verwerkt online betalingen voor ondernemers. Accepteer iDEAL en creditcards en bestel je eigen pinautomaat.",
+   "h1": "Betalingen voor ondernemers",
+   "nav": [
+    "Betaalmethoden",
+    "Prijzen",
+    "Pinautomaat kopen"
+   ],
+   "navLinks": [
+    "/betaalmethoden",
+    "/prijzen",
+    "/shop/pinautomaat-x1"
+   ],
+   "pages": {
+    "/shop/pinautomaat-x1": {
+     "title": "Pinautomaat X1 kopen | PayBox",
+     "h1": "Pinautomaat X1",
+     "body": "<script type='application/ld+json'>{\"@context\":\"https://schema.org\",\"@type\":\"Product\",\"name\":\"Pinautomaat X1\",\"sku\":\"X1\",\"offers\":{\"@type\":\"Offer\",\"price\":\"199.00\",\"priceCurrency\":\"EUR\",\"availability\":\"https://schema.org/InStock\"}}</script><p>Pinautomaat X1 voor €199,00.</p><button>In winkelwagen</button>"
+    }
+   },
+   "expect": {
+    "sector": "financial_services",
+    "notShopChecks": "not_applicable_only"
    }
   }
  }

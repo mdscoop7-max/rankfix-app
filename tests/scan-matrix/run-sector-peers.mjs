@@ -7,9 +7,16 @@ const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const DIR = `${ROOT}/tests/fixtures/sector-peers/`;
 const groups = readdirSync(DIR).filter((f) => f.endsWith(".json")).filter((f) => !process.env.GROUP || f.startsWith(process.env.GROUP)).map((f) => JSON.parse(readFileSync(DIR + f, "utf8")));
 const SITES = Object.assign({}, ...groups.map((g) => g.sites));
-const esc = (v) => String(v).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
-const page = (s) => `<!doctype html><html lang="${s.lang || "nl"}"><head><meta charset="utf-8"><title>${esc(s.title)}</title><meta name="description" content="${esc(s.desc)}">${s.head || ""}</head><body><header><nav>${(s.nav || []).map((n) => `<a href="/${encodeURIComponent(n.toLowerCase())}">${esc(n)}</a>`).join("")}</nav></header><main><h1>${esc(s.h1)}</h1>${(s.h2 || []).map((h) => `<h2>${esc(h)}</h2><p>${esc(s.desc)}</p>`).join("")}${s.body || ""}</main><footer>${s.footer || ""}<a href="/privacy">Privacy</a><a href="/contact">Contact</a></footer></body></html>`;
-globalThis.fetch = async (i) => { const u = new URL(typeof i === "string" ? i : i.url); const s = SITES[u.host]; return s && u.pathname === "/" ? new Response(page(s), { status: 200, headers: { "content-type": "text/html" } }) : new Response("nf", { status: 404 }); };
+const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+const page = (s) => `<!doctype html><html lang="${s.lang || "nl"}"><head><meta charset="utf-8"><title>${esc(s.title)}</title>${s.desc ? `<meta name="description" content="${esc(s.desc)}">` : ""}${s.head || ""}</head><body><header><nav>${(s.nav || []).map((n, i) => `<a href="${s.navLinks?.[i] || "/" + encodeURIComponent(n.toLowerCase())}">${esc(n)}</a>`).join("")}</nav></header><main>${s.h1 ? `<h1>${esc(s.h1)}</h1>` : ""}${(s.h2 || []).map((h) => `<h2>${esc(h)}</h2><p>${esc(s.desc)}</p>`).join("")}${s.body || ""}</main><footer>${s.footer || ""}<a href="/privacy">Privacy</a><a href="/contact">Contact</a></footer></body></html>`;
+// Optional sampled pages per site: { "/path": { title, desc, h1, body } } (linked from the nav).
+globalThis.fetch = async (i) => {
+  const u = new URL(typeof i === "string" ? i : i.url); const s = SITES[u.host];
+  if (!s) return new Response("nf", { status: 404 });
+  const sub = s.pages?.[u.pathname];
+  if (u.pathname === "/" || sub) return new Response(page(sub ? { lang: s.lang, nav: s.nav, navLinks: s.navLinks, footer: s.footer, ...sub } : s), { status: 200, headers: { "content-type": "text/html" } });
+  return new Response("nf", { status: 404 });
+};
 globalThis.__RF_RENDER = async () => { throw new Error("no"); };
 const { POST } = await import(ROOT + "/app/api/scan/route.ts"); console.info = console.warn = console.error = () => {};
 const problems = []; const got = {};
@@ -21,6 +28,9 @@ for (const [host, site] of Object.entries(SITES)) {
   const e = site.expect || {};
   if (e.sector && r.sector !== e.sector) problems.push(`${host}: sector ${r.sector}/${r.key}, expected ${e.sector}`);
   if (e.key && r.key !== e.key) problems.push(`${host}: subtype ${r.key}, expected ${e.key}`);
+  // A service that also sells a real product (Product schema + offer) keeps product checks possible.
+  if (e.notShopChecks === "not_applicable_only" && r.shop.length && r.shop.every((x) => x === "not_applicable")) problems.push(`${host}: verified product sale but all shop checks N.v.t.`);
+  if (e.notSector && r.sector === e.notSector) problems.push(`${host}: must not be sector ${e.notSector}`);
   if (e.notKey && r.key === e.notKey) problems.push(`${host}: must not be ${e.notKey}`);
   if (e.type && r.type !== e.type) problems.push(`${host}: website type ${r.type}, expected ${e.type}`);
   if (e.shopChecks && r.shop.some((x) => x !== e.shopChecks)) problems.push(`${host}: shop checks ${r.shop.join("/")}, expected ${e.shopChecks}`);
