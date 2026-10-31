@@ -190,6 +190,12 @@ test("QA 144: blocked homepage → incident + alternative start; accessible subp
   assert.equal(r.failed, 0, r.log);
 });
 
+test("P1 (31 Oct): a refusal page received by the browser after HTTP 403 is never scored (NL/EN/DE/FR/IT/ES); a real recovered homepage still is", () => {
+  const r = run("run-refusal-recovery.mjs");
+  assert.equal(r.total, 7);
+  assert.equal(r.failed, 0, r.log);
+});
+
 test("QA 144: sector failure classes (hospitality group ≠ beauty, careers site ≠ transport, supermarkets, compound bank brand) with negative controls", () => {
   const r = run("run-local-business.mjs", { PROFILES: "qa144" });
   assert.ok(r.total >= 11, `profiles missing: ${r.total}`);

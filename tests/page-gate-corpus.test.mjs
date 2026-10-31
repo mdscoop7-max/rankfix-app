@@ -42,6 +42,14 @@ const BLOCK_PAGES = {
   // TestLab 144 (24-10): scored 59 as the website.
   "challenge validation title (Remondis-like)": doc("Challenge Validation", `<p>Please wait while your request is being verified...</p>`),
   "german access blocked": doc("Shop", `<h1>Zugriff gesperrt</h1><p>Ihr Zugriff auf diese Seite wurde vorübergehend blockiert.</p>`),
+  // 31 Oct (five-site QA): a recovered render after HTTP 403 showed a refusal
+  // sentence with only the brand as title; it was scored 68 as the website.
+  "brand title, NL refusal sentence after 403 (adidas-like)": doc("brand", `<h1>Helaas kunnen we je op dit moment geen toegang verlenen tot onze site.</h1><p>Referentie: 18.4a2c1702.1793484249</p>`),
+  "EN refusal sentence": doc("Brand", `<h1>We're sorry</h1><p>We can't grant you access to this site at the moment.</p>`),
+  "DE refusal sentence": doc("Marke", `<h1>Leider können wir Ihnen derzeit keinen Zugriff gewähren.</h1>`),
+  "FR refusal sentence": doc("Marque", `<h1>Désolé</h1><p>Nous ne pouvons pas vous donner accès à ce site pour le moment.</p>`),
+  "IT refusal sentence": doc("Marchio", `<h1>Spiacenti</h1><p>Al momento non possiamo concederti l'accesso al sito.</p>`),
+  "ES refusal sentence": doc("Marca", `<h1>Lo sentimos</h1><p>En este momento no podemos darte acceso a nuestro sitio.</p>`),
 };
 const ERROR_PAGES = {
   "404 en": doc("Page not found | Brand", `<h1>Page not found</h1><p>The page you requested could not be found.</p>`),
@@ -93,6 +101,12 @@ const ORDINARY_PAGES = {
   "turnstile on contact form": doc("Contact | Bureau", `<h1>Contact</h1><form><div class="cf-turnstile"></div></form><script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>${longProse("Contact")}`),
   "recaptcha on contact form (short)": doc("Contact | Kapsalon", `<h1>Contact</h1><form><div class="g-recaptcha"></div><button>Verstuur</button></form><p>Bel ons of stuur een bericht.</p>`),
   "real 'just a moment' in body": doc("Over ons | Studio", `<h1>Over ons</h1><p>Just a moment of your time: we are a design studio in Utrecht.</p>${longProse("Design")}`),
+  // Account, membership and help wording about access is not a site block.
+  "help: why can't we give you access (question)": doc("Help | Bank", `<h1>Inloggen</h1><p>Waarom kunnen we je geen toegang geven tot de app? Controleer je pincode en probeer het opnieuw.</p>${longProse("Inloggen")}`),
+  "help: if we cannot grant you access": doc("Support | SaaS", `<h1>Access requests</h1><p>If we cannot grant you access to this site, your administrator receives an e-mail.</p>`),
+  "members area wording (short page)": doc("Leden | Vereniging", `<h1>Ledenomgeving</h1><p>Zonder lidmaatschap kunnen we je helaas geen toegang geven tot de ledenomgeving. Word lid voor 25 euro per jaar.</p>`),
+  "EN login: we can't give you access to your account": doc("Sign in | Shop", `<h1>Sign in</h1><p>Without a verified e-mail address we can't give you access to your account.</p>`),
+  "members area wording (long page)": doc("Leden | Vereniging", `<h1>Ledenomgeving</h1><p>Zonder lidmaatschap kunnen we je helaas geen toegang geven tot de ledenomgeving; word lid voor 25 euro per jaar.</p>${longProse("Lidmaatschap")}`),
   "queue explained": doc("Klantenservice | Telco", `<h1>Klantenservice</h1><p>Staat u in de wachtrij? Gemiddelde wachttijd 3 minuten.</p>${longProse("Klantenservice")}`),
 };
 
