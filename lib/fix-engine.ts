@@ -18,6 +18,7 @@
  */
 import { getFixPolicy } from "./fix-policy.ts";
 import { normalizeDescriptionText, checkDescriptionCandidate } from "./meta-description-fix.ts";
+import { evaluatePolicy, parsePolicySnapshot, parseRecordedPolicy, readServerPolicy, serializePolicy, type RequiredCheck } from "./merge-policy.ts";
 
 export const ACTIVE_FIX_STATUSES = ["PROPOSED", "PR_CREATED", "AWAITING_MERGE", "AWAITING_DEPLOYMENT", "AWAITING_VERIFICATION", "STILL_PRESENT", "PREPARED", "NEEDS_ATTENTION"] as const;
 export const ACTIVE_FIX_STATUS_SQL = ACTIVE_FIX_STATUSES.map((s) => `'${s}'`).join(",");
@@ -138,22 +139,23 @@ export type PullInfo = { state?: string; merged?: boolean; merged_at?: string | 
 export type PullFile = { filename?: string; additions?: number; deletions?: number; status?: string };
 export type CheckRun = { id?: number; name?: string; status?: string; conclusion?: string | null; head_sha?: string; app?: { id?: number } | null };
 export type CommitStatus = { id?: number; context?: string; state?: string };
-export type RequiredCheck = { context: string; appId?: number | null };
+export type { RequiredCheck } from "./merge-policy.ts";
 
-export type MergeDecision = { decision: "merge" | "wait" | "block" | "merged"; code: string };
+export type MergeDecision = { decision: "merge" | "wait" | "block" | "merged"; code: string; /** Trusted policy seen in this evaluation (stored once per fix; may only get stricter). */ policy?: string };
 
 /**
  * CI evidence for exactly one head commit (P0, 31 Oct). Fail-closed: only a
  * complete, readable result in which every check of a TRUSTED required set ran
  * on this exact SHA and concluded "success" is "ok". Missing, failed, skipped,
  * neutral, stale, unreadable or incomplete evidence never counts as passed.
- * The trusted set comes from branch protection or an explicitly recorded set;
- * when neither exists there is no automatic merge (one random green check is
- * never enough).
+ * The required set comes from evaluatePolicy (lib/merge-policy.ts): server-
+ * enforced, app-bound checks. A required check is satisfied ONLY by a check run
+ * of exactly its GitHub App; a commit status (no producer identity) or a run of
+ * another app never satisfies it (Astra F1).
  */
 export type CiEvidenceInput = {
   headSha: string | null | undefined;
-  required: { source: "branch_protection" | "recorded" | "branch_protection+recorded" | "none"; checks: RequiredCheck[] };
+  required: { checks: RequiredCheck[] };
   checkRuns: { ok: boolean; runs: CheckRun[]; totalCount: number | null };
   statuses: { ok: boolean; sha: string | null; statuses: CommitStatus[]; totalCount: number | null };
 };
@@ -172,7 +174,8 @@ export function evaluateCiEvidence(input: CiEvidenceInput): CiEvidence {
   if (checkRuns.runs.some((run) => run.head_sha !== sha)) return { verdict: "unavailable", code: "CI_SHA_MISMATCH" };
   if (checkRuns.runs.some((run) => !run.name || !run.status)) return { verdict: "unavailable", code: "CI_UNRELIABLE" };
   const required = (input.required.checks || []).filter((check) => check && typeof check.context === "string" && check.context.trim());
-  if (input.required.source === "none" || !required.length) return { verdict: "untrusted", code: "REQUIRED_CHECKS_UNDEFINED" };
+  if (!required.length) return { verdict: "untrusted", code: "REQUIRED_CHECKS_UNDEFINED" };
+  if (required.some((check) => !(typeof check.appId === "number" && check.appId > 0))) return { verdict: "untrusted", code: "REQUIRED_CHECK_UNBOUND" };
 
   // Latest attempt per check name (a re-run supersedes an earlier attempt).
   const latestRuns = new Map<string, CheckRun>();
@@ -195,18 +198,10 @@ export function evaluateCiEvidence(input: CiEvidenceInput): CiEvidence {
   const missing: string[] = [];
   let pending = false;
   for (const need of required) {
-    const appId = typeof need.appId === "number" && need.appId > 0 ? need.appId : null;
-    const run = runs.filter((r) => r.name === need.context && (appId === null || r.app?.id === appId)).sort((a, b) => Number(b.id || 0) - Number(a.id || 0))[0];
-    const status = appId === null ? latestStatus.get(need.context) : undefined;
-    if (!run && !status) { missing.push(need.context); continue; }
-    if (run) {
-      if (run.status !== "completed") { pending = true; continue; }
-      if (run.conclusion !== "success") return { verdict: "failed", code: "REQUIRED_CHECK_NOT_SUCCESSFUL", missing: [need.context] };
-    }
-    if (status) {
-      if (status.state === "pending") { pending = true; continue; }
-      if (status.state !== "success") return { verdict: "failed", code: "REQUIRED_CHECK_NOT_SUCCESSFUL", missing: [need.context] };
-    }
+    const run = runs.filter((r) => r.name === need.context && r.app?.id === need.appId).sort((a, b) => Number(b.id || 0) - Number(a.id || 0))[0];
+    if (!run) { missing.push(need.context); continue; }
+    if (run.status !== "completed") { pending = true; continue; }
+    if (run.conclusion !== "success") return { verdict: "failed", code: "REQUIRED_CHECK_NOT_SUCCESSFUL", missing: [need.context] };
   }
   if (missing.length) return { verdict: "pending", code: "REQUIRED_CHECK_MISSING", missing };
   if (pending || runs.some((run) => run.status !== "completed") || states.some((status) => status.state === "pending")) return { verdict: "pending", code: "CHECKS_PENDING" };
@@ -322,7 +317,7 @@ export function liveFixApplied(issueId: string, html: string, expectedValue: str
 export type FixRow = {
   id: string; user_id: string; issue_id: string; scanned_url: string; status: string;
   repository?: string | null; pr_number?: number | null; pr_url?: string | null; branch?: string | null; base_branch?: string | null; file_path?: string | null;
-  auto_publish?: boolean | null; expected_value?: string | null; head_sha?: string | null; base_blob_sha?: string | null; required_checks?: string | string[] | null;
+  auto_publish?: boolean | null; expected_value?: string | null; head_sha?: string | null; base_blob_sha?: string | null; required_checks?: string | string[] | null; required_policy?: string | null;
   merge_commit_sha?: string | null; merged_at?: string | Date | null; deploy_state?: string | null; deploy_success_at?: string | Date | null;
   live_seen_at?: string | Date | null; merge_attempts?: number | null; verification_attempts?: number | null;
   last_error_code?: string | null; phase_started_at?: string | Date | null; next_check_at?: string | Date | null; proposal_id?: string | null;
@@ -414,33 +409,6 @@ export async function fetchCommitStatuses(gh: NonNullable<EngineDeps["github"]>,
   } catch { return { ok: false, sha: null, statuses: [], totalCount: null }; }
 }
 
-/** Parses an explicitly recorded required-check set (JSON array of names). Anything else → none. */
-export function parseRecordedChecks(value: unknown): string[] {
-  let list: unknown = value;
-  if (typeof value === "string") { try { list = JSON.parse(value); } catch { return []; } }
-  if (!Array.isArray(list)) return [];
-  return [...new Set(list.filter((x): x is string => typeof x === "string").map((x) => x.trim()).filter((x) => x && x.length <= 120))].slice(0, 30);
-}
-
-/**
- * The trusted required-check set: branch protection of the base branch when it
- * is readable and names checks, plus the set the owner explicitly recorded.
- * Unreadable protection never falls back to "any green check".
- */
-export async function requiredChecksFor(gh: NonNullable<EngineDeps["github"]>, repo: string, baseBranch: string, recorded: unknown): Promise<CiEvidenceInput["required"]> {
-  let fromProtection: RequiredCheck[] = [];
-  try {
-    const body = await gh<{ contexts?: string[]; checks?: Array<{ context?: string; app_id?: number | null }> }>(`/repos/${repo}/branches/${encodeURIComponent(baseBranch)}/protection/required_status_checks`);
-    const checks = Array.isArray(body?.checks) ? body.checks.filter((c) => typeof c?.context === "string" && c.context).map((c) => ({ context: String(c.context), appId: typeof c.app_id === "number" ? c.app_id : null })) : [];
-    const contexts = Array.isArray(body?.contexts) ? body.contexts.filter((c) => typeof c === "string" && c && !checks.some((k) => k.context === c)).map((c) => ({ context: c, appId: null })) : [];
-    fromProtection = [...checks, ...contexts];
-  } catch { fromProtection = []; }
-  const recordedChecks = parseRecordedChecks(recorded).filter((c) => !fromProtection.some((k) => k.context === c)).map((c) => ({ context: c, appId: null }));
-  const checks = [...fromProtection, ...recordedChecks];
-  const source = fromProtection.length && recordedChecks.length ? "branch_protection+recorded" : fromProtection.length ? "branch_protection" : recordedChecks.length ? "recorded" : "none";
-  return { source, checks };
-}
-
 /** Tries to merge an authorised, deterministic fix. Never merges unless every check is proven (fail-closed). */
 export async function tryAutoMerge(deps: EngineDeps, row: FixRow): Promise<MergeDecision> {
   const gh = deps.github!;
@@ -452,10 +420,15 @@ export async function tryAutoMerge(deps: EngineDeps, row: FixRow): Promise<Merge
   if (!headSha) return { decision: "block", code: "EVIDENCE_MISSING" };
   if (headSha !== row.head_sha) return { decision: "block", code: "HEAD_CHANGED" };
   const files = await gh<PullFile[]>(`/repos/${repo}/pulls/${Number(row.pr_number)}/files?per_page=10`);
-  const [checkRuns, statuses, required, baseFile] = await Promise.all([
+  // Trusted policy first (Astra F1): server-enforced, app-bound, not bypassable,
+  // never weaker than earlier seen for this fix. No fallback on read errors.
+  const policy = evaluatePolicy({ server: await readServerPolicy(gh, repo, String(row.base_branch || "")), recorded: parseRecordedPolicy(row.required_checks), snapshot: parsePolicySnapshot(row.required_policy) });
+  const seenPolicy = policy.verdict === "ok" ? serializePolicy(policy.required) : undefined;
+  if (policy.verdict !== "ok") return { decision: policy.verdict === "wait" ? "wait" : "block", code: policy.code };
+  const required = { checks: policy.required };
+  const [checkRuns, statuses, baseFile] = await Promise.all([
     fetchCheckRuns(gh, repo, headSha),
     fetchCommitStatuses(gh, repo, headSha),
-    requiredChecksFor(gh, repo, String(row.base_branch || ""), row.required_checks),
     gh<{ sha?: string }>(`/repos/${repo}/contents/${row.file_path}?ref=${encodeURIComponent(String(row.base_branch || ""))}`).then((f) => (typeof f?.sha === "string" ? f.sha : null)).catch(() => null),
   ]);
   const ci = evaluateCiEvidence({ headSha, required, checkRuns, statuses });
@@ -464,7 +437,7 @@ export async function tryAutoMerge(deps: EngineDeps, row: FixRow): Promise<Merge
     expected: { branch: String(row.branch || ""), baseBranch: String(row.base_branch || ""), path: String(row.file_path || ""), headSha: row.head_sha, baseBlobSha: row.base_blob_sha },
     baseFileSha: baseFile,
   });
-  if (decision.decision !== "merge") return decision;
+  if (decision.decision !== "merge") return { ...decision, policy: seenPolicy };
   // Re-read the PR right before merging: a push after the evaluation must stop it.
   const fresh = await gh<PullInfo>(`/repos/${repo}/pulls/${Number(row.pr_number)}`);
   if (fresh.merged || fresh.merged_at) return { decision: "merged", code: "MERGED" };
@@ -494,15 +467,17 @@ export async function advanceFix(deps: EngineDeps, row: FixRow): Promise<FixRow>
       if (!deps.github) { await keep(deps, row, "GITHUB_NOT_CONNECTED", 60_000); return row; }
       if (row.auto_publish) {
         const result = await tryAutoMerge(deps, row);
+        // The policy seen for this fix is kept; a later evaluation may only be stricter.
+        const policyField = result.policy && result.policy !== row.required_policy ? { required_policy: result.policy } : {};
         if (result.decision === "merged") {
           const pr = await deps.github<PullInfo>(`/repos/${row.repository}/pulls/${Number(row.pr_number)}`).catch(() => ({} as PullInfo));
           await transition(deps, row, "AWAITING_DEPLOYMENT", { merged_at: new Date(now).toISOString(), merge_commit_sha: pr.merge_commit_sha || null });
         } else if (result.decision === "block") {
-          await transition(deps, row, "NEEDS_ATTENTION", {}, result.code);
+          await transition(deps, row, "NEEDS_ATTENTION", policyField, result.code);
         } else if (phaseAge > LIMITS.mergeWaitMs) {
-          await transition(deps, row, "NEEDS_ATTENTION", {}, "MERGE_TIMEOUT");
+          await transition(deps, row, "NEEDS_ATTENTION", policyField, "MERGE_TIMEOUT");
         } else {
-          await keep(deps, row, result.code, 10_000, { merge_attempts: Number(row.merge_attempts || 0) + 1 });
+          await keep(deps, row, result.code, 10_000, { merge_attempts: Number(row.merge_attempts || 0) + 1, ...policyField });
         }
         return row;
       }

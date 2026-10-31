@@ -112,10 +112,14 @@ function github(method, path, body) {
   // CI (P0, 31 Oct): a realistic GitHub. Default: branch protection requires
   // "build", and "build" ran successfully on exactly the head commit.
   const ci = repo.opts.ci || "green";
-  if ((mm = rpath.match(/^\/branches\/([^/]+)\/protection\/required_status_checks$/))) {
-    if (ci === "protection_unreadable" || ci === "protection_unreadable_recorded") return json({ message: "Not Found" }, 404);
-    return json({ contexts: ["build"], checks: [{ context: "build", app_id: 15368 }] });
+  // Server-side policy (Astra F1): an active ruleset requires "build" from GitHub
+  // Actions (app 15368) and the RankFix identity cannot bypass it.
+  if ((mm = rpath.match(/^\/rules\/branches\/([^/]+)$/))) {
+    if (ci === "rules_unreadable" || ci === "rules_unreadable_recorded") return json({ message: "Resource not accessible by integration" }, 403);
+    return json([{ type: "required_status_checks", ruleset_id: 9, ruleset_source_type: "Repository", parameters: { strict_required_status_checks_policy: false, required_status_checks: [{ context: "build", integration_id: 15368 }] } }]);
   }
+  if ((mm = rpath.match(/^\/rulesets\/(\d+)$/))) return json({ id: 9, enforcement: "active", current_user_can_bypass: ci === "bypass" ? "always" : "never" });
+  if ((mm = rpath.match(/^\/branches\/([^/]+)\/protection$/))) return json({ message: "Branch not protected" }, 404);
   if ((mm = rpath.match(/^\/commits\/([^/]+)\/check-runs$/))) {
     if (ci === "checks_api_error") return json({ message: "Server Error" }, 500);
     const headSha = mm[1];
@@ -125,6 +129,7 @@ function github(method, path, body) {
     // GitHub reports 3 runs but only one is ever delivered (later pages empty).
     if (ci === "incomplete") return json({ total_count: 3, check_runs: q.get("page") === "1" ? [run("build", "success")] : [] });
     if (ci === "random_green") return json({ total_count: 1, check_runs: [run("lint", "success")] });
+    if (ci === "wrong_app") return json({ total_count: 1, check_runs: [run("build", "success", { app: { id: 999 } })] });
     return json({ total_count: 1, check_runs: [run("build", "success")] });
   }
   if ((mm = rpath.match(/^\/commits\/([^/]+)\/status$/))) {
@@ -303,20 +308,28 @@ await noMergeScenario("CI2", "checks_api_error", ["CI_UNAVAILABLE"]);
 await noMergeScenario("CI3", "status_api_error", ["CI_UNAVAILABLE"]);
 await noMergeScenario("CI4", "skipped", ["REQUIRED_CHECK_NOT_SUCCESSFUL"]);
 await noMergeScenario("CI5", "incomplete", ["CI_INCOMPLETE", "CI_UNAVAILABLE"]);
-await noMergeScenario("CI6", "protection_unreadable", ["REQUIRED_CHECKS_UNDEFINED"]);
+await noMergeScenario("CI6", "rules_unreadable", ["REQUIRED_CHECKS_UNDEFINED"]);
 await noMergeScenario("CI7", "green", ["HEAD_CHANGED", "UNEXPECTED_FILES"], { pushBeforeMerge: 2 });
 
-await scenario("CI8 unreadable branch protection + explicitly recorded required check: merges only on that check", async () => {
+await noMergeScenario("CI10", "wrong_app", ["REQUIRED_CHECK_MISSING"]);
+await noMergeScenario("CI11", "bypass", ["NOT_SERVER_ENFORCED"]);
+
+await scenario("CI8 unreadable server rules + recorded policy: still PR-only; PATCH keeps or validates the policy", async () => {
   await newUser("ci8");
-  const repo = freshSite("ci8.voorbeeld.test", "acme/ci8-shop", { ci: "protection_unreadable_recorded", deployPolls: 1 });
+  const repo = freshSite("ci8.voorbeeld.test", "acme/ci8-shop", { ci: "rules_unreadable_recorded", deployPolls: 1 });
   const url = "https://ci8.voorbeeld.test/";
   const s1 = await scanSite(url);
   const { pv } = await prepare(s1.body.scanId, ISSUE, "acme/ci8-shop", true, url);
-  const consent = await call(siteRoute.PATCH, "PATCH", "/api/github/site-repository", { url, autofix_publish: true, confirm: "AUTOFIX_PUBLISH_CONSENT", required_checks: ["build"] });
-  check(consent.status === 200 && JSON.stringify(consent.body.autofix?.requiredChecks) === '["build"]', `CI8: consent ${JSON.stringify(consent.body)}`);
+  const invalid = await call(siteRoute.PATCH, "PATCH", "/api/github/site-repository", { url, autofix_publish: true, confirm: "AUTOFIX_PUBLISH_CONSENT", required_checks: [{ context: "build", app_id: 15368 }, "lint"] });
+  check(invalid.status === 400 && invalid.body.code === "POLICY_INVALID", `CI8: invalid policy must be refused (${invalid.status})`);
+  const consent = await call(siteRoute.PATCH, "PATCH", "/api/github/site-repository", { url, autofix_publish: true, confirm: "AUTOFIX_PUBLISH_CONSENT", required_checks: [{ context: "build", app_id: 15368 }] });
+  check(consent.status === 200 && JSON.stringify(consent.body.autofix?.requiredChecks?.checks) === '[{"context":"build","app_id":15368}]', `CI8: consent ${JSON.stringify(consent.body)}`);
+  const again = await call(siteRoute.PATCH, "PATCH", "/api/github/site-repository", { url, autofix_publish: true, confirm: "AUTOFIX_PUBLISH_CONSENT" });
+  check(JSON.stringify(again.body.autofix?.requiredChecks?.checks) === '[{"context":"build","app_id":15368}]', `CI8: PATCH without the field must keep the policy ${JSON.stringify(again.body.autofix)}`);
   await publish(s1.body.scanId, ISSUE, "acme/ci8-shop", pv, "auto");
-  const fix = await poll(url, ISSUE);
-  check(repo.merges === 1, `CI8: recorded green check should allow the merge (${repo.merges}) ${JSON.stringify(fix).slice(0, 200)}`);
+  await poll(url, ISSUE, 3);
+  const code = (await db.query("SELECT last_error_code FROM pending_fixes WHERE scanned_url=$1", [url])).rows[0]?.last_error_code;
+  check(repo.merges === undefined && code === "NOT_SERVER_ENFORCED", `CI8: recorded policy alone must not merge (${repo.merges}, ${code})`);
 });
 
 await scenario("CI9 a green non-required check never replaces the missing required check", async () => {

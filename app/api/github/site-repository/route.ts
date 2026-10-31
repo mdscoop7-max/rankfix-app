@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { ensureDatabase } from "@/lib/db-init";
 import { getDb } from "@/lib/db";
-import { parseRecordedChecks, siteConsentValid } from "@/lib/fix-engine";
+import { siteConsentValid } from "@/lib/fix-engine";
+import { parseRecordedPolicy } from "@/lib/merge-policy";
+
+const publicPolicy=(value:unknown)=>{const p=parseRecordedPolicy(value);return {valid:p.valid,checks:p.checks.map(c=>({context:c.context,app_id:c.appId})),error:p.error||null};};
 
 function normalizeHost(value:string){
   try { return new URL(value).hostname.toLowerCase().replace(/^www\./,""); }
@@ -22,7 +25,7 @@ export async function GET(request:Request){
   );
   if(!result.rowCount) return NextResponse.json({mapped:false,website_host:host,autofix:{enabled:false}});
   const row=result.rows[0];
-  return NextResponse.json({mapped:true,website_host:host,repository:row.repository,baseBranch:row.base_branch,verifiedAt:row.verified_at,autofix:{enabled:siteConsentValid(row),consentedAt:row.autofix_consented_at||null,requiredChecks:parseRecordedChecks(row.autofix_required_checks)}});
+  return NextResponse.json({mapped:true,website_host:host,repository:row.repository,baseBranch:row.base_branch,verifiedAt:row.verified_at,autofix:{enabled:siteConsentValid(row),consentedAt:row.autofix_consented_at||null,requiredChecks:publicPolicy(row.autofix_required_checks)}});
 }
 
 // Explicit, per-website AutoFix publication consent. It is bound to the exact
@@ -35,20 +38,24 @@ export async function PATCH(request:Request){
   if(!host) return NextResponse.json({error:"Ongeldige website-URL."},{status:400});
   const enable=body?.autofix_publish===true;
   if(enable && body?.confirm!=="AUTOFIX_PUBLISH_CONSENT") return NextResponse.json({error:"Bevestig eerst expliciet dat RankFix ondersteunde, veilige fixes automatisch mag publiceren.",code:"CONSENT_REQUIRED"},{status:400});
-  // P0: the owner may record the CI checks that must pass before an automatic
-  // merge. Without readable branch protection this explicit set is the only
-  // trusted source; without either, RankFix never merges automatically.
-  const requiredChecks=parseRecordedChecks(body?.required_checks);
+  // The owner may record EXTRA required CI checks ({context, app_id}). They never
+  // replace server-enforced rules (lib/merge-policy.ts). Astra F5/F7: a missing
+  // field keeps the stored policy; null or [] clears it explicitly; one invalid
+  // item rejects the whole request (never silently shortened).
+  const policyProvided=Object.prototype.hasOwnProperty.call(body||{},"required_checks");
+  const recorded=policyProvided?parseRecordedPolicy(body.required_checks):null;
+  if(recorded&&!recorded.valid) return NextResponse.json({error:"Ongeldige lijst verplichte controles: "+recorded.error,code:"POLICY_INVALID"},{status:400});
+  const policyValue=recorded?(recorded.checks.length?JSON.stringify(recorded.checks.map(c=>({context:c.context,app_id:c.appId}))):null):undefined;
   await ensureDatabase();
   const result=await getDb().query(
     enable
-      ? "UPDATE website_repositories SET autofix_publish=TRUE,autofix_repository=repository,autofix_branch=base_branch,autofix_consented_at=NOW(),autofix_required_checks=$3,updated_at=NOW() WHERE user_id=$1 AND website_host=$2 RETURNING repository,base_branch,autofix_publish,autofix_repository,autofix_branch,autofix_consented_at,autofix_required_checks"
-      : "UPDATE website_repositories SET autofix_publish=FALSE,autofix_repository=NULL,autofix_branch=NULL,autofix_consented_at=NULL,autofix_required_checks=NULL,updated_at=NOW() WHERE user_id=$1 AND website_host=$2 RETURNING repository,base_branch,autofix_publish,autofix_repository,autofix_branch,autofix_consented_at,autofix_required_checks",
-    enable?[user.id,host,requiredChecks.length?JSON.stringify(requiredChecks):null]:[user.id,host]
+      ? "UPDATE website_repositories SET autofix_publish=TRUE,autofix_repository=repository,autofix_branch=base_branch,autofix_consented_at=NOW(),autofix_required_checks=CASE WHEN $3::boolean THEN $4 ELSE autofix_required_checks END,updated_at=NOW() WHERE user_id=$1 AND website_host=$2 RETURNING repository,base_branch,autofix_publish,autofix_repository,autofix_branch,autofix_consented_at,autofix_required_checks"
+      : "UPDATE website_repositories SET autofix_publish=FALSE,autofix_repository=NULL,autofix_branch=NULL,autofix_consented_at=NULL,autofix_required_checks=CASE WHEN $3::boolean THEN $4 ELSE autofix_required_checks END,updated_at=NOW() WHERE user_id=$1 AND website_host=$2 RETURNING repository,base_branch,autofix_publish,autofix_repository,autofix_branch,autofix_consented_at,autofix_required_checks",
+    [user.id,host,policyProvided,policyValue??null]
   );
   if(!result.rowCount) return NextResponse.json({error:"Koppel eerst de GitHub-repository van deze website.",code:"NOT_MAPPED"},{status:409});
   const row=result.rows[0];
-  return NextResponse.json({ok:true,website_host:host,autofix:{enabled:siteConsentValid(row),consentedAt:row.autofix_consented_at||null,repository:row.repository,branch:row.base_branch,requiredChecks:parseRecordedChecks(row.autofix_required_checks)}});
+  return NextResponse.json({ok:true,website_host:host,autofix:{enabled:siteConsentValid(row),consentedAt:row.autofix_consented_at||null,repository:row.repository,branch:row.base_branch,requiredChecks:publicPolicy(row.autofix_required_checks)}});
 }
 
 
