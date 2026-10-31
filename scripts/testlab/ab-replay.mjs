@@ -7,6 +7,10 @@
 //   replay : scan with the engine in --root, answering every request from --cache
 //            only (no network). Requests the cache does not hold are reported.
 //   compare: per site and per check, the differences between two result files.
+//   observe: per URL (homepage + up to 2 own subpages from --cache), JSON-LD in the
+//            server HTML versus the browser DOM, with the browser started directly
+//            (independent of the scan route's own render decision). Every render
+//            records whether the browser started and the exact error if not.
 //
 // Browser rendering is OFF in every mode, so both engines judge the same server
 // HTML; render-dependent conclusions are out of scope of this comparison.
@@ -44,7 +48,8 @@ if (mode === "compare") {
   console.log(text);
   process.exit(0);
 }
-if (!["record", "replay"].includes(mode)) { console.error("Gebruik: record | replay | compare (zie kop van dit bestand)"); process.exit(2); }
+if (mode === "observe") await observe();
+if (!["record", "replay"].includes(mode)) { console.error("Gebruik: record | replay | compare | observe (zie kop van dit bestand)"); process.exit(2); }
 const root = resolve(opt("root", process.cwd()));
 const cacheFile = resolve(opt("cache", "ab-cache.json.gz"));
 const outFile = resolve(opt("out", `ab-${mode}.json`));
@@ -98,3 +103,54 @@ writeFileSync(outFile, JSON.stringify(result, null, 1));
 if (mode === "record") writeFileSync(cacheFile, gzipSync(JSON.stringify(cache)));
 console.log(`Klaar: ${outFile}${mode === "record" ? ` en ${cacheFile} (${Object.keys(cache).length} opgenomen antwoorden)` : ""}`);
 process.exit(0);
+
+async function observe() {
+  const root = resolve(opt("root", process.cwd()));
+  const sites = String(opt("sites", "")).split(",").map((x) => x.trim()).filter(Boolean);
+  const outFile = resolve(opt("out", "ab-observe.json"));
+  const perSite = Number(opt("subpages", "2"));
+  const cacheFile = opt("cache");
+  const cached = cacheFile && existsSync(resolve(cacheFile)) ? JSON.parse(gunzipSync(readFileSync(resolve(cacheFile))).toString("utf8")) : {};
+  const sd = await import(pathToFileURL(resolve(root, "lib/structured-data-evidence.ts")).href);
+  let render = null, renderImportError = null;
+  if (process.env.AB_SELFTEST) render = globalThis.__AB_FAKE_RENDER;
+  else { try { ({ renderPublicPage: render } = await import(pathToFileURL(resolve(root, "lib/headless-render.ts")).href)); } catch (e) { renderImportError = String(e?.message || e); } }
+  const fetcher = process.env.AB_SELFTEST ? globalThis.__AB_FAKE_FETCH : globalThis.fetch;
+  const jsonLd = (html) => {
+    const blocks = [...String(html || "").matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1].trim());
+    const types = new Set(); let valid = 0, invalid = 0;
+    for (const b of blocks) { if (!b) continue; try { const walk = (v) => { if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v === "object") { for (const t of [].concat(v["@type"] || [])) types.add(String(t)); Object.values(v).forEach(walk); } }; walk(JSON.parse(b)); valid++; } catch { invalid++; } }
+    return { blocks: blocks.length, valid, invalid, empty: blocks.filter((b) => !b).length, types: [...types].slice(0, 15) };
+  };
+  const pickSubpages = (host) => {
+    const own = Object.entries(cached).filter(([k, v]) => { try { const u = new URL(k.slice(4)); return u.hostname.replace(/^www\./, "") === host && u.pathname !== "/" && v.status === 200 && /html/.test(String(v.headers?.find?.(([h]) => h === "content-type")?.[1] || "")); } catch { return false; } }).map(([k]) => k.slice(4));
+    const about = own.filter((u) => /over|about|uber|ueber|qui-sommes|chi-siamo|quienes|organi[sz]ation|unternehmen/i.test(new URL(u).pathname));
+    return [...new Set([...about, ...own])].slice(0, perSite);
+  };
+  const result = { commit: (() => { try { return execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf8" }).trim(); } catch { return "onbekend"; } })(), mode: "observe", generatedAt: new Date().toISOString(), renderImportError, urls: [] };
+  for (const host of sites) {
+    for (const url of [`https://${host}/`, ...pickSubpages(host)]) {
+      const row = { host, url, raw: null, rawError: null, rendered: null, browser: { started: false, elapsedMs: null, error: renderImportError } };
+      try { const r = await fetcher(url, { headers: { "user-agent": "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html" } }); const html = await r.text(); row.raw = { status: r.status, ...jsonLd(html), injectors: sd.jsonLdInjectorSignals(html) }; } catch (e) { row.rawError = String(e?.message || e); }
+      if (render) {
+        const t = Date.now();
+        try { const page = await render(url, 15000); row.browser = { started: true, elapsedMs: Date.now() - t, error: null, finalUrl: page.finalUrl || null }; row.rendered = jsonLd(page.html); }
+        catch (e) { row.browser = { started: false, elapsedMs: Date.now() - t, error: String(e?.message || e).slice(0, 300) }; }
+      }
+      // Three states per URL, never mixed.
+      row.verdict = row.raw?.valid ? "aanwezig in server-HTML"
+        : row.rendered?.valid ? "aanwezig, pas na JavaScript (browser-DOM)"
+        : row.rendered ? "bewezen afwezig (browser-DOM bekeken)"
+        : row.raw && !row.raw.injectors.length ? "afwezig in server-HTML zonder tag manager (browser niet bekeken)"
+        : "niet waargenomen (geen browserwaarneming)";
+      result.urls.push(row);
+      console.log(`observe ${url}: server ${row.raw?.valid ?? "?"} blok(ken) | browser ${row.browser.started ? `${row.rendered?.valid} blok(ken) in ${row.browser.elapsedMs} ms` : `NIET gestart: ${row.browser.error}`} | ${row.verdict}`);
+    }
+  }
+  writeFileSync(outFile, JSON.stringify(result, null, 1));
+  const md = ["# JSON-LD: server-HTML tegenover browser-DOM", `commit ${result.commit}`, "", "| URL | server-HTML | browser-DOM | browser | oordeel |", "|---|---|---|---|---|",
+    ...result.urls.map((r) => `| ${r.url} | ${r.raw ? `${r.raw.valid} geldig${r.raw.empty ? ` + ${r.raw.empty} leeg` : ""} ${r.raw.types.slice(0, 4).join(",")}${r.raw.injectors.length ? ` · ${r.raw.injectors.join(",")}` : ""}` : r.rawError} | ${r.rendered ? `${r.rendered.valid} geldig ${r.rendered.types.slice(0, 4).join(",")}` : "—"} | ${r.browser.started ? `gestart, ${r.browser.elapsedMs} ms` : `niet gestart: ${r.browser.error}`} | ${r.verdict} |`)];
+  writeFileSync(outFile.replace(/\.json$/, ".md"), md.join("\n") + "\n");
+  console.log(`Klaar: ${outFile} en ${outFile.replace(/\.json$/, ".md")}`);
+  process.exit(0);
+}

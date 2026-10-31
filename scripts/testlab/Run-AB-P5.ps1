@@ -4,8 +4,9 @@
 # 1. neemt de HTTP-antwoorden van de sites één keer op (nieuwste QA-commit, browser uit)
 # 2. speelt exact die antwoorden af voor de nieuwe en de oude scanmotor
 # 3. schrijft de verschillen per controle naar qa-results\ab-p5\vergelijking.md
-# 4. controleert met een echte browser of JSON-LD pas na JavaScript verschijnt
+# 4. start de browser direct per URL en vergelijkt JSON-LD in server-HTML en browser-DOM
 param(
+  [switch]$ObserveOnly,
   [string]$OldCommit = "f701f62d",
   [string]$Sites = "nu.nl,ns.nl,bosch.de,afas.nl,argenta.be,uzleuven.be,alternate.nl,allekoffers.nl,tcd.ie,zoofy.nl,charite.de,rossopomodoro.it"
 )
@@ -23,9 +24,12 @@ function Invoke-Engine([string]$engineRoot, [string[]]$toolArgs) {
   & node --experimental-strip-types --no-warnings --import $loader $tool @toolArgs
   if ($LASTEXITCODE -ne 0) { throw "Gestopt; resultaten tot nu toe staan in $out" }
 }
+if (-not $ObserveOnly -or -not (Test-Path "$out\ab-cache.json.gz")) {
 Invoke-Engine $root @("record", "--root", $root, "--cache", "$out\ab-cache.json.gz", "--out", "$out\record-new.json", "--sites", $Sites)
 Invoke-Engine $root @("replay", "--root", $root, "--cache", "$out\ab-cache.json.gz", "--out", "$out\replay-new.json", "--sites", $Sites)
 Invoke-Engine $old  @("replay", "--root", $old,  "--cache", "$out\ab-cache.json.gz", "--out", "$out\replay-old.json", "--sites", $Sites)
 node $tool compare --a "$out\replay-old.json" --b "$out\replay-new.json" --out "$out\vergelijking.md" | Out-Null
-Invoke-Engine $root @("record", "--render", "on", "--root", $root, "--cache", "$out\render-cache.json.gz", "--out", "$out\render-new.json", "--sites", $Sites)
-Write-Host "Klaar. Bestanden in $out : vergelijking.md, replay-old.json, replay-new.json, record-new.json, render-new.json"
+}
+# Browserwaarneming los van de scanroute: per URL server-HTML tegenover browser-DOM.
+& node --experimental-strip-types --no-warnings --import ("file:///" + (($root -replace '\\', '/') + "/tests/scan-matrix/register.mjs")) $tool observe --root $root --cache "$out\ab-cache.json.gz" --out "$out\observe.json" --sites $Sites
+Write-Host "Klaar. Bestanden in $out : vergelijking.md, observe.md, replay-old.json, replay-new.json, record-new.json, observe.json"
