@@ -39,7 +39,7 @@ import { detectRealEstateSubtype } from "@/lib/real-estate-subtype";
 import { normalizeLegalText, LEGAL_LINK_LEXICON } from "@/lib/legal-lexicon";
 import { assessPassiveSecurity, formBlocks, setCookieValues } from "@/lib/security-signals";
 import { selectRepresentativePages } from "@/lib/representative-pages";
-import { assessPageDescription, assessPageTitle, isParkedDomainPage, BOT_SENSITIVE_CHECKS, botManagerCookies, botManagerHeaders, BOT_SENSITIVE_WHEN_ABSENT, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isClientShell, isPlaceholderTitle, templateFieldLeak, isNonContentUrl, sampleIdentityKey, isReducedBotResponse, renderFailureCode, renderFailureDetail, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
+import { assessPageDescription, assessPageTitle, isParkedDomainPage, BOT_SENSITIVE_CHECKS, botManagerCookies, botManagerHeaders, BOT_SENSITIVE_WHEN_ABSENT, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isGenericBrandTitle, invisibleTitleCharacters, isClientShell, isPlaceholderTitle, templateFieldLeak, isNonContentUrl, sampleIdentityKey, isReducedBotResponse, renderFailureCode, renderFailureDetail, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, confirmedRetailEvidenceForService, isStorefrontOnlyForService, neutralizeShopWording, hasProductOffer, shopWordingApplies } from "@/lib/commerce-applicability";
 import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findPlaceholderRegistration, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
 import { extractImageMetrics } from "@/lib/image-metrics";
@@ -1446,7 +1446,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
 
     const ogTitle = getMeta("og:title");
     const ogDescription = getMeta("og:description");
-    const ogImage = getMeta("og:image");
+    // og:image:url and og:image:secure_url are valid aliases (PDF P9, HousingNet).
+    const ogImage = getMeta("og:image") || getMeta("og:image:url") || getMeta("og:image:secure_url");
+    const ogType = getMeta("og:type").trim().toLowerCase();
     const ogUrl = getMeta("og:url");
     const twitterCardRaw = getMeta("twitter:card").trim();
     const twitterCard = /^(summary|summary_large_image|app|player)$/i.test(twitterCardRaw) ? twitterCardRaw : "";
@@ -3664,6 +3666,10 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           ? metadataMayBeClientRendered
             ? check("unable_to_confirm", "title", "seo", "Meta title", `De raw HTML bevat alleen een standaardtitel ("${title}"); deze JavaScript-pagina kon niet volledig worden gerenderd, dus de echte title is niet bevestigd.`, "Controleer de title opnieuw met een volledige render voordat je een wijziging maakt.", 0, 10)
             : check("warning", "title", "seo", "Meta title", `De title is een algemene standaardtitel ("${title}") en beschrijft het onderwerp van de pagina niet.`, "Gebruik een unieke title met onderwerp en merk, bijvoorbeeld \"Onderwerp | Merk\".", isHomepage ? 4 : 3, 10)
+        : isGenericBrandTitle(title, finalUrl.hostname)
+          ? check("warning", "title", "seo", "Meta title", `De title bestaat alleen uit een algemeen woord en de merknaam ("${title}") en zegt niets over wat de organisatie doet.`, "Noem het belangrijkste aanbod of de plaats in de title, bijvoorbeeld \"Kapper in Utrecht | Merk\".", 8, 10)
+        : invisibleTitleCharacters(title) > 0
+          ? check("warning", "title", "seo", "Meta title", `De title bevat ${invisibleTitleCharacters(title)} onzichtbaar teken(s) (zoals een zacht koppelteken U+00AD); die kunnen in zoekresultaten en bij delen als vreemde tekens verschijnen.`, "Verwijder zachte koppeltekens en andere onzichtbare tekens uit de title.", 9, 10)
         : isBrandOnlyTitle(title, finalUrl.hostname)
           ? check("warning", "title", "seo", "Meta title", isHomepage ? `De title bevat alleen de merknaam ("${title}"). Voor de homepage van een bekende organisatie is dat gebruikelijk; een korte omschrijving van wat de organisatie doet kan de zoekpreview verduidelijken. Licht advies.` : `De title bevat alleen de merknaam ("${title}"); het onderwerp van deze pagina ontbreekt.`, "Zet het onderwerp van de pagina vóór de merknaam, bijvoorbeeld \"Onderwerp | Merk\".", isHomepage ? 9 : 5, 10)
         : templateFieldLeak(title, finalUrl.hostname, finalUrl.pathname)
@@ -3895,6 +3901,19 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       ogImage && !ogImageIsAbsolute ? "og:image (geen absolute http(s)-URL)" : null,
       ogUrl && !ogUrlIsAbsolute ? "og:url (geen absolute http(s)-URL)" : null,
     ].filter(Boolean) as string[];
+    // PDF P9: og:url should be the canonical URL (HousingNet "?ref=og"), and
+    // og:type=article belongs on articles only (Charité contact page).
+    const ogUrlDiffers = (() => {
+      if (!ogUrl || !canonical) return false;
+      try {
+        const a = new URL(ogUrl, finalUrl); const b = new URL(canonical, finalUrl);
+        const norm = (u: URL) => `${u.hostname.replace(/^www\./, "")}${u.pathname.replace(/\/+$/, "") || "/"}${u.search}`;
+        return norm(a) !== norm(b);
+      } catch { return false; }
+    })();
+    const ogArticleOnNonArticle = ogType === "article" && !["article","newsarticle","blogposting","reportagenewsarticle"].some((t)=>schemaSet.has(t)) && !getMeta("article:published_time") && !/<time\b[^>]*datetime=/i.test(html);
+    if (ogUrlDiffers) invalidOpenGraphFields.push(`og:url (${ogUrl}) wijkt af van de canonical (${canonical}); gedeelde links verwijzen dan naar een andere URL`);
+    if (ogArticleOnNonArticle) invalidOpenGraphFields.push("og:type=article op een pagina die geen artikel is (gebruik og:type=website)");
     seoChecks.push(missingOpenGraphFields.length === 0 && invalidOpenGraphFields.length === 0
       ? check("pass", "social", "seo", "Social metadata", "Open Graph title, description en image zijn aanwezig; URL-velden gebruiken geldige absolute http(s)-URL's.", "Controleer social previews voor belangrijke pagina's.", 4, 4)
       : check("warning", "social", "seo", "Social metadata", `Open Graph vraagt aandacht.${missingOpenGraphFields.length ? " Ontbrekend: " + missingOpenGraphFields.join(", ") + "." : ""}${invalidOpenGraphFields.length ? " Ongeldig: " + invalidOpenGraphFields.join(", ") + "." : ""}`, "Vul ontbrekende velden aan en gebruik voor og:image en og:url absolute http(s)-URL's.", Math.max(1, 4 - Math.min(3, missingOpenGraphFields.length + invalidOpenGraphFields.length)), 4)

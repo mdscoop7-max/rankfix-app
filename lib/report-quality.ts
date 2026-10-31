@@ -191,6 +191,22 @@ const PLACEHOLDER_TITLES = new Set([
 export function hasDanglingTitleSeparator(title: string): boolean {
   return /^\s*[|–—:·•]/.test(title) || /[|–—:·•-]\s*$/.test(title) || /[|–—]\s*[|–—]/.test(title);
 }
+/**
+ * 31 Oct (PDF P9: "Home | BrainWash Kappers" scored 10/10): a placeholder word
+ * plus only the brand name describes no page topic either.
+ */
+export function isGenericBrandTitle(title: string, host: string): boolean {
+  const segments = titleSegments(title).map(normalizeSegment).filter(Boolean);
+  if (segments.length < 2) return false;
+  const tokens = new Set(brandTokens(host).map(normalizeSegment));
+  const placeholder = segments.filter((segment) => PLACEHOLDER_TITLES.has(segment));
+  const brand = segments.filter((segment) => tokens.has(segment) || tokens.has(segment.replace(/\s+/g, "")));
+  return placeholder.length >= 1 && placeholder.length + brand.length === segments.length && brand.length >= 1;
+}
+/** Soft hyphens (U+00AD) and other invisible characters in a title show up as odd characters in results. */
+export function invisibleTitleCharacters(title: string): number {
+  return (title.match(/[\u00AD\u200B-\u200D\u2060\uFEFF]/g) || []).length;
+}
 export function isPlaceholderTitle(title: string): boolean {
   return PLACEHOLDER_TITLES.has(title.trim().toLowerCase().replace(/\s+/g, " "));
 }
