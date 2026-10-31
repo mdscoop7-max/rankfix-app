@@ -122,6 +122,7 @@ export const REASON_NL: Record<string, string> = {
   CI_INCOMPLETE: "GitHub gaf een onvolledige lijst van controles. Zonder volledig bewijs publiceert RankFix niet.",
   CI_SHA_MISMATCH: "De controles horen niet bij exact deze versie van de wijziging. RankFix publiceert niet.",
   CI_UNRELIABLE: "Een controle in GitHub gaf een onbetrouwbaar resultaat. RankFix publiceert niet.",
+  CI_AMBIGUOUS: "Meerdere afzonderlijke workflows leveren een verplichte controle met dezelfde naam. Niet vast te stellen welke telt; RankFix publiceert niet automatisch.",
   REQUIRED_CHECKS_UNDEFINED: "Voor deze repository is geen vertrouwde set verplichte controles vastgesteld (branch protection niet leesbaar en geen vastgelegde set). RankFix publiceert niet automatisch.",
   REQUIRED_CHECK_MISSING: "Een verplichte GitHub-controle is (nog) niet uitgevoerd voor deze wijziging.",
   REQUIRED_CHECK_NOT_SUCCESSFUL: "Een verplichte GitHub-controle is niet geslaagd (bijvoorbeeld overgeslagen of neutraal). RankFix publiceert niet.",
@@ -137,7 +138,7 @@ export const MAX_AUTOPUBLISH_LINES = 8;
 
 export type PullInfo = { state?: string; merged?: boolean; merged_at?: string | null; mergeable?: boolean | null; mergeable_state?: string; merge_commit_sha?: string | null; head?: { sha?: string; ref?: string }; base?: { ref?: string } };
 export type PullFile = { filename?: string; additions?: number; deletions?: number; status?: string };
-export type CheckRun = { id?: number; name?: string; status?: string; conclusion?: string | null; head_sha?: string; app?: { id?: number } | null };
+export type CheckRun = { id?: number; name?: string; status?: string; conclusion?: string | null; head_sha?: string; app?: { id?: number } | null; check_suite?: { id?: number } | null };
 export type CommitStatus = { id?: number; context?: string; state?: string };
 export type { RequiredCheck } from "./merge-policy.ts";
 
@@ -172,15 +173,17 @@ export function evaluateCiEvidence(input: CiEvidenceInput): CiEvidence {
   if (typeof statuses.totalCount !== "number" || !Array.isArray(statuses.statuses) || statuses.statuses.length < statuses.totalCount) return { verdict: "unavailable", code: "CI_INCOMPLETE" };
   if (statuses.sha !== sha) return { verdict: "unavailable", code: "CI_SHA_MISMATCH" };
   if (checkRuns.runs.some((run) => run.head_sha !== sha)) return { verdict: "unavailable", code: "CI_SHA_MISMATCH" };
-  if (checkRuns.runs.some((run) => !run.name || !run.status)) return { verdict: "unavailable", code: "CI_UNRELIABLE" };
+  if (checkRuns.runs.some((run) => !run.name || !run.status || typeof run.app?.id !== "number" || typeof run.check_suite?.id !== "number")) return { verdict: "unavailable", code: "CI_UNRELIABLE" };
   const required = (input.required.checks || []).filter((check) => check && typeof check.context === "string" && check.context.trim());
   if (!required.length) return { verdict: "untrusted", code: "REQUIRED_CHECKS_UNDEFINED" };
   if (required.some((check) => !(typeof check.appId === "number" && check.appId > 0))) return { verdict: "untrusted", code: "REQUIRED_CHECK_UNBOUND" };
 
-  // Latest attempt per check name (a re-run supersedes an earlier attempt).
+  // Astra F2: a higher id alone proves no re-run. Only a newer attempt in the SAME
+  // check suite (a re-run of the same workflow run) supersedes an earlier one;
+  // independent workflows with the same job name are separate checks.
   const latestRuns = new Map<string, CheckRun>();
   for (const run of checkRuns.runs) {
-    const key = `${run.name}#${run.app?.id ?? ""}`;
+    const key = `${run.name}#${run.app?.id}#${run.check_suite?.id}`;
     const prev = latestRuns.get(key);
     if (!prev || Number(run.id || 0) > Number(prev.id || 0)) latestRuns.set(key, run);
   }
@@ -198,8 +201,12 @@ export function evaluateCiEvidence(input: CiEvidenceInput): CiEvidence {
   const missing: string[] = [];
   let pending = false;
   for (const need of required) {
-    const run = runs.filter((r) => r.name === need.context && r.app?.id === need.appId).sort((a, b) => Number(b.id || 0) - Number(a.id || 0))[0];
-    if (!run) { missing.push(need.context); continue; }
+    const candidates = runs.filter((r) => r.name === need.context && r.app?.id === need.appId);
+    if (!candidates.length) { missing.push(need.context); continue; }
+    // The same required name from more than one check suite is ambiguous: which
+    // one GitHub would count cannot be proven, so it is never treated as green.
+    if (new Set(candidates.map((r) => r.check_suite?.id)).size > 1) return { verdict: "untrusted", code: "CI_AMBIGUOUS", missing: [need.context] };
+    const run = candidates[0];
     if (run.status !== "completed") { pending = true; continue; }
     if (run.conclusion !== "success") return { verdict: "failed", code: "REQUIRED_CHECK_NOT_SUCCESSFUL", missing: [need.context] };
   }

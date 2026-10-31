@@ -202,3 +202,24 @@ test("tryAutoMerge (P0): missing, failing, incomplete or unreadable CI evidence 
   await noMerge("approved base blob not stored", {}, { base_blob_sha: null }, "EVIDENCE_MISSING");
   await noMerge("base file unreadable", { baseError: 500 }, {}, "BASE_UNAVAILABLE");
 });
+
+/* ------------------------------------------------------------ re-runs vs independent workflows (F2) */
+test("CI evidence (F2): only a newer attempt in the SAME check suite counts as a re-run", () => {
+  const ev = (runs) => E.evaluateCiEvidence(ciInput({ checkRuns: { ok: true, runs, totalCount: runs.length } }));
+  // True re-run: same workflow run (check suite), failed attempt then successful attempt.
+  assert.equal(ev([run("build", "failure", { id: 1, check_suite: { id: 5 } }), run("build", "success", { id: 2, check_suite: { id: 5 } })]).verdict, "ok");
+  // A re-run that fails again after a success is still a failure.
+  assert.equal(ev([run("build", "success", { id: 1, check_suite: { id: 5 } }), run("build", "failure", { id: 2, check_suite: { id: 5 } })]).code, "CHECKS_FAILED");
+  // Astra repro: two independent workflows, same job name and same app (GitHub Actions).
+  assert.equal(ev([run("build", "failure", { id: 1, check_suite: { id: 5 } }), run("build", "success", { id: 2, check_suite: { id: 6 } })]).code, "CHECKS_FAILED");
+  assert.equal(ev([run("build", "success", { id: 1, check_suite: { id: 5 } }), run("build", "success", { id: 2, check_suite: { id: 6 } })]).code, "CI_AMBIGUOUS");
+  assert.equal(ev([run("build", "success", { id: 1, check_suite: null })]).code, "CI_UNRELIABLE");
+  assert.equal(ev([run("build", "success", { id: 1, app: null })]).code, "CI_UNRELIABLE");
+});
+
+test("tryAutoMerge (F2): independent same-named workflows never merge; a real re-run does", async () => {
+  await noMerge("independent workflows, failed then success", { runs: () => [run("build", "failure", { id: 1, check_suite: { id: 5 } }), run("build", "success", { id: 2, check_suite: { id: 6 } })] }, {}, "CHECKS_FAILED");
+  await noMerge("independent workflows, both success", { runs: () => [run("build", "success", { id: 1, check_suite: { id: 5 } }), run("build", "success", { id: 2, check_suite: { id: 6 } })] }, {}, "CI_AMBIGUOUS");
+  const rerun = await attempt({ runs: () => [run("build", "failure", { id: 1, check_suite: { id: 5 } }), run("build", "success", { id: 2, check_suite: { id: 5 } })] });
+  assert.equal(rerun.merged, true);
+});

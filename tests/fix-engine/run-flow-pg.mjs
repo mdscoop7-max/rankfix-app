@@ -123,12 +123,14 @@ function github(method, path, body) {
   if ((mm = rpath.match(/^\/commits\/([^/]+)\/check-runs$/))) {
     if (ci === "checks_api_error") return json({ message: "Server Error" }, 500);
     const headSha = mm[1];
-    const run = (name, conclusion, extra = {}) => ({ id: 1, name, status: "completed", conclusion, head_sha: headSha, app: { id: 15368 }, ...extra });
+    const run = (name, conclusion, extra = {}) => ({ id: 1, name, status: "completed", conclusion, head_sha: headSha, app: { id: 15368 }, check_suite: { id: 77 }, ...extra });
     if (ci === "missing") return json({ total_count: 0, check_runs: [] });
     if (ci === "skipped") return json({ total_count: 1, check_runs: [run("build", "skipped")] });
     // GitHub reports 3 runs but only one is ever delivered (later pages empty).
     if (ci === "incomplete") return json({ total_count: 3, check_runs: q.get("page") === "1" ? [run("build", "success")] : [] });
     if (ci === "random_green") return json({ total_count: 1, check_runs: [run("lint", "success")] });
+    // Two independent workflows publish "build": one failed, one passed (Astra F2).
+    if (ci === "same_name_workflows") return json({ total_count: 2, check_runs: [run("build", "failure", { id: 1, check_suite: { id: 77 } }), run("build", "success", { id: 2, check_suite: { id: 78 } })] });
     if (ci === "wrong_app") return json({ total_count: 1, check_runs: [run("build", "success", { app: { id: 999 } })] });
     return json({ total_count: 1, check_runs: [run("build", "success")] });
   }
@@ -313,6 +315,7 @@ await noMergeScenario("CI7", "green", ["HEAD_CHANGED", "UNEXPECTED_FILES"], { pu
 
 await noMergeScenario("CI10", "wrong_app", ["REQUIRED_CHECK_MISSING"]);
 await noMergeScenario("CI11", "bypass", ["NOT_SERVER_ENFORCED"]);
+await noMergeScenario("CI12", "same_name_workflows", ["CHECKS_FAILED"]);
 
 await scenario("CI8 unreadable server rules + recorded policy: still PR-only; PATCH keeps or validates the policy", async () => {
   await newUser("ci8");
