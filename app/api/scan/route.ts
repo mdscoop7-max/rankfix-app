@@ -2134,6 +2134,11 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         const sourceHref = decode(match[1] || "");
         const body = match[2] || "";
         const anchorText = stripHtml(body);
+        // PDF P4: hidden and honeypot links are traps for bots, not navigation.
+        const openTag = match[0].slice(0, match[0].indexOf(">") + 1);
+        const hiddenLink = /\bhidden\b(?![-\w])|aria-hidden\s*=\s*["']true|style\s*=\s*["'][^"']*(?:display\s*:\s*none|visibility\s*:\s*hidden)|class\s*=\s*["'][^"']*\bhoneypot\b/i.test(openTag)
+          || /^(?:secret link|honeypot|bot trap|do not (?:click|follow)(?: this link)?)$/i.test(anchorText.trim());
+        if (hiddenLink) return { sourceHref: "", context: "" };
         const imageAlt = [...body.matchAll(/<img\b[^>]*\balt\s*=\s*["']([^"']+)["'][^>]*>/gi)].map((m) => decode(m[1] || "")).filter(Boolean).join(" ");
         return { sourceHref, context: [anchorText, imageAlt].filter(Boolean).join(" ").trim().slice(0, 220) };
       })
@@ -2149,6 +2154,22 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         return [[parsed.toString(), { ...item, url: parsed.toString() }] as const];
       } catch { return []; }
     })).values()];
+    // PDF P4 (BrainWash "Vind je salon" → homepage): the same visible anchor text
+    // pointing to different internal pages confuses visitors and crawlers. Reported
+    // as information next to the link check; never a deduction.
+    const anchorTargetConflicts = (() => {
+      const byText = new Map<string, Set<string>>();
+      for (const item of anchorTags) {
+        const text = item.context.replace(/\s+/g, " ").trim().toLowerCase();
+        if (text.length < 4 || text.length > 60 || /^(?:lees meer|meer|meer info|read more|more|learn more|klik hier|click here|home|bekijk|bekijken|ga naar|details|mehr|plus|ver más|leggi)$/.test(text)) continue;
+        try {
+          const target = new URL(item.sourceHref, finalUrl);
+          if (target.hostname.replace(/^www\./, "") !== finalUrl.hostname.replace(/^www\./, "")) continue;
+          byText.set(text, new Set([...(byText.get(text) || []), (target.pathname.replace(/\/+$/, "") || "/") + target.search]));
+        } catch {}
+      }
+      return [...byText.entries()].filter(([, targets]) => targets.size >= 2).slice(0, 5).map(([text, targets]) => ({ text, targets: [...targets].slice(0, 3) }));
+    })();
     // A representative bounded sample is enough for the synchronous scan.
     // Keep network fan-out modest so adding more motor checks does not make RankFix slower.
     const uniqueInternalAnchors = allUniqueInternalAnchors.slice(0, 16);
@@ -2178,6 +2199,14 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         } else { try { await res.body?.cancel(); } catch {} }
         return { sourceHref: item.sourceHref, url: item.url, status: res.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context, softNotFound, challenged, accountLink: isNonContentUrl(item.url) || isNonContentUrl(destination) };
       } catch {
+        // PDF P4: no answer is never a broken link; one retry after a short backoff.
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 800));
+          const retry = await safePublicFetch(new URL(item.url), { timeoutMs: 6000, maxRedirects: 4, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml,text/plain" });
+          try { await retry.response.body?.cancel(); } catch {}
+          const destination = retry.finalUrl?.toString() || retry.response.url || item.url;
+          return { sourceHref: item.sourceHref, url: item.url, status: retry.response.status, finalUrl: destination, redirected: normalizeScanUrl(destination) !== normalizeScanUrl(item.url), error: false, context: item.context, accountLink: isNonContentUrl(item.url) };
+        } catch {}
         return { sourceHref: item.sourceHref, url: item.url, status: null, finalUrl: null, redirected: false, error: true, context: item.context, accountLink: isNonContentUrl(item.url) };
       }
     };
@@ -3131,7 +3160,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       linkEvidenceUnavailable
         ? check("unable_to_confirm", "broken_links", "seo", "Broken links", "De raw HTML is een dunne JavaScript-shell en bevat geen betrouwbare interne linkset.", "Controleer broken links opnieuw na geslaagde JavaScript-rendering.", 0, 5)
         : (() => {
-            const linkCheck = check(linkSummary.status, "broken_links", "seo", "Broken links", linkSummary.message, linkSummary.fix, linkSummary.points, 5);
+            const conflictNote = anchorTargetConflicts.length ? ` Let op (geen aftrek): dezelfde linktekst verwijst naar verschillende pagina's: ${anchorTargetConflicts.map((c) => `"${c.text}" → ${c.targets.join(", ")}`).join("; ")}.` : "";
+            const linkCheck = check(linkSummary.status, "broken_links", "seo", "Broken links", linkSummary.message + conflictNote, linkSummary.fix, linkSummary.points, 5);
+            (linkCheck as Check & { anchorTargetConflicts?: unknown }).anchorTargetConflicts = anchorTargetConflicts;
             // Structured evidence: the referring page and every non-OK link with its
             // status and outcome, so dashboard/PDF/JSON can list URL, reason and action.
             linkCheck.evidence = { url: finalUrl.toString(), found: linkSummary.missing + linkSummary.serverErrors, expected: "0 ontbrekende pagina's of serverfouten", details: linkSummary.message };
@@ -6799,7 +6830,14 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       const anchorByUrl = new Map(allUniqueInternalAnchors.map((a) => [normalizeScanUrl(a.url), a] as const));
       const sampledMissing = multiPageAudits.filter((p) => (p.httpStatus === 404 || p.httpStatus === 410)
         && anchorByUrl.has(normalizeScanUrl(p.url)) && !probed.has(normalizeScanUrl(p.url)));
-      if (linkCheck && linkCheck.status !== "unable_to_confirm" && sampledMissing.length) {
+      // PDF P4: a link probe without answer whose page WAS fetched with HTTP 200 by
+      // the page sample is not an error (Croatia Airlines: "geen antwoord" vs 200).
+      const fetchedOk = new Map(multiPageAudits.filter((p) => p && p.httpStatus === 200 && p.status === "audited").map((p) => [normalizeScanUrl(p.url), p] as const));
+      let reconciledFromSample = 0;
+      for (const l of linkAuditResults) {
+        if (linkOutcome(l) === "unconfirmed" && fetchedOk.has(normalizeScanUrl(l.url))) { l.status = 200; l.error = false; l.challenged = false; reconciledFromSample++; }
+      }
+      if (linkCheck && (reconciledFromSample > 0 || (linkCheck.status !== "unable_to_confirm" && sampledMissing.length))) {
         for (const p of sampledMissing) {
           const a = anchorByUrl.get(normalizeScanUrl(p.url))!;
           linkAuditResults.push({ sourceHref: a.sourceHref, url: p.url, status: p.httpStatus, finalUrl: p.url, redirected: false, error: false, context: a.context, accountLink: isNonContentUrl(p.url) });

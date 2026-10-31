@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const run = (script, env) => {
-  const out = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--import", "./tests/scan-matrix/register.mjs", script], { cwd: root, encoding: "utf8", timeout: 240000, env: { ...process.env, ...((script.includes("consent-link") || script.includes("sample-h1") || script.includes("person-name-brand") || script.includes("sector-peers") || script.includes("render-diagnosis")) ? {} : { RF_REAL_DB: "1" }), ...env } });
+  const out = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--import", "./tests/scan-matrix/register.mjs", script], { cwd: root, encoding: "utf8", timeout: 240000, env: { ...process.env, ...((script.includes("consent-link") || script.includes("sample-h1") || script.includes("person-name-brand") || script.includes("sector-peers") || script.includes("render-diagnosis") || script.includes("link-check")) ? {} : { RF_REAL_DB: "1" }), ...env } });
   const line = out.stdout.split("\n").find((l) => l.startsWith("SCAN_MATRIX_RESULT "));
   assert.ok(line, out.stderr || out.stdout);
   return { result: JSON.parse(line.slice(19)), out };
@@ -40,5 +40,9 @@ test("sector peers: sites with the same sector and function get the same sector,
 });
 test("render diagnosis: a short server-rendered page is thin content, not a JS shell; a real shell stays unconfirmed", () => {
   const { result, out } = run("tests/scan-matrix/run-render-diagnosis.mjs", {});
+  assert.equal(result.failed, 0, out.stdout);
+});
+test("link check: error-page targets are broken, honeypots skipped, no-answer retried, anchor conflicts reported", () => {
+  const { result, out } = run("tests/scan-matrix/run-link-check.mjs", {});
   assert.equal(result.failed, 0, out.stdout);
 });
