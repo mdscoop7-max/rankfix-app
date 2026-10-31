@@ -39,7 +39,7 @@ export function fakeGithub(over = {}) {
     }
     if (/\/pulls\/7\/files$/.test(url.pathname)) return [{ filename: "templates/index.html", additions: 1, deletions: 1, status: "modified" }];
     if (/\/pulls\/7\/merge$/.test(url.pathname)) return s.mergeError ? fail(s.mergeError) : { merged: true };
-    if (/\/rules\/branches\//.test(url.pathname)) { reads.rules++; if (s.rulesError) fail(typeof s.rulesError === "function" ? s.rulesError(reads.rules) : s.rulesError); return typeof s.rules === "function" ? s.rules(reads.rules) : s.rules; }
+    if (/\/rules\/branches\//.test(url.pathname)) { reads.rules++; const err = typeof s.rulesError === "function" ? s.rulesError(reads.rules) : s.rulesError; if (err) fail(err); return typeof s.rules === "function" ? s.rules(reads.rules) : s.rules; }
     if (/\/rulesets\/\d+$/.test(url.pathname)) return s.rulesetError ? fail(s.rulesetError) : s.ruleset;
     if (/\/branches\/[^/]+\/protection$/.test(url.pathname)) return s.protectionError ? fail(s.protectionError) : s.protection;
     if (/\/check-runs$/.test(url.pathname)) {
@@ -222,4 +222,37 @@ test("tryAutoMerge (F2): independent same-named workflows never merge; a real re
   await noMerge("independent workflows, both success", { runs: () => [run("build", "success", { id: 1, check_suite: { id: 5 } }), run("build", "success", { id: 2, check_suite: { id: 6 } })] }, {}, "CI_AMBIGUOUS");
   const rerun = await attempt({ runs: () => [run("build", "failure", { id: 1, check_suite: { id: 5 } }), run("build", "success", { id: 2, check_suite: { id: 5 } })] });
   assert.equal(rerun.merged, true);
+});
+
+/* ------------------------------------------------------------ final re-check before merge (F3) */
+test("tryAutoMerge (F3): the complete evaluation runs twice, right before the merge", async () => {
+  const ok = await attempt();
+  assert.equal(ok.merged, true);
+  assert.equal(ok.reads.pull, 2); assert.equal(ok.reads.rules, 2); assert.equal(ok.reads.checks, 2); assert.equal(ok.reads.contents, 2);
+});
+
+test("tryAutoMerge (F3): any change or new blocker between evaluation and merge → no merge", async () => {
+  // Astra repro: first PR read clean, second blocked/unstable/unknown/behind merged on 54fab62.
+  await noMerge("final PR blocked", { fresh: { mergeable_state: "blocked" } }, {}, "BRANCH_PROTECTED");
+  await noMerge("final PR unstable", { fresh: { mergeable_state: "unstable" } }, {}, "CHECKS_FAILED");
+  await noMerge("final PR unknown", { fresh: { mergeable: null, mergeable_state: "unknown" } }, {}, "MERGEABILITY_PENDING");
+  await noMerge("final PR behind", { fresh: { mergeable_state: "behind" } }, {}, "BASE_ADVANCED");
+  await noMerge("final PR conflict", { fresh: { mergeable: false, mergeable_state: "dirty" } }, {}, "MERGE_CONFLICT");
+  await noMerge("final PR closed", { fresh: { state: "closed" } }, {}, "PR_CLOSED");
+  await noMerge("final head changed", { fresh: { head: { sha: "c".repeat(40), ref: "rankfix/x" } } }, {}, "HEAD_CHANGED");
+  await noMerge("base commit advanced, same head", { fresh: { base: { ref: "main", sha: "base2" } } }, {}, "EVIDENCE_CHANGED");
+  await noMerge("base commit missing", { baseSha: "" }, {}, "EVIDENCE_MISSING");
+  await noMerge("CI restarted before merge", { runs: (n) => (n === 1 ? [run("build", "success", { id: 1 })] : [run("build", null, { id: 2, status: "in_progress" })]) }, {}, "CHECKS_PENDING");
+  await noMerge("required check failed on re-read", { runs: (n) => (n === 1 ? [run("build", "success", { id: 1 })] : [run("build", "failure", { id: 1 })]) }, {}, "CHECKS_FAILED");
+  const twoChecks = [{ type: "required_status_checks", ruleset_id: 9, parameters: { required_status_checks: [{ context: "build", integration_id: APP }, { context: "e2e", integration_id: APP }] } }];
+  await noMerge("stricter policy added before merge", { rules: (n) => (n === 1 ? fakeGithub().state.rules : twoChecks) }, {}, "REQUIRED_CHECK_MISSING");
+  await noMerge("policy weakened before merge", { rules: (n) => (n === 1 ? twoChecks : fakeGithub().state.rules), runs: () => [run("build", "success", { id: 1 }), run("e2e", "success", { id: 2 })] }, {}, "EVIDENCE_CHANGED");
+  await noMerge("policy unavailable on re-read", { rulesError: (n) => (n > 1 ? 503 : null) }, {}, "POLICY_UNAVAILABLE");
+  await noMerge("policy unreadable on re-read", { rulesError: (n) => (n > 1 ? 403 : null) }, {}, "REQUIRED_CHECKS_UNDEFINED");
+  await noMerge("base file changed before merge", { baseBlob: (n) => (n === 1 ? "b1" : "b2") }, {}, "STALE_BASE");
+  // After both evaluations GitHub itself is the last defence: a refusal is reported, never retried as success.
+  for (const [mergeError, code] of [[405, "MERGE_REJECTED"], [403, "MERGE_REJECTED"], [422, "MERGE_REJECTED"], [409, "HEAD_CHANGED"]]) {
+    const { result } = await attempt({ mergeError });
+    assert.deepEqual([result.decision, result.code], ["block", code], `server ${mergeError}`);
+  }
 });

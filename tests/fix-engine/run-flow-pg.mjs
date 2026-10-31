@@ -92,7 +92,7 @@ function github(method, path, body) {
       // Someone pushes to the PR branch between RankFix's evaluation and its merge.
       if (repo.opts.pushBeforeMerge && pr.polls === repo.opts.pushBeforeMerge) { head.files["templates/about.html"] = "<p>late push</p>"; head.sha = repo.commit(head.files); }
       const computing = repo.opts.mergeabilityDelay && pr.polls <= repo.opts.mergeabilityDelay;
-      return json({ ...pr, head: { ref: pr.head.ref, sha: head.sha }, mergeable: computing ? null : true, mergeable_state: computing ? "unknown" : (repo.opts.mergeableState || "clean") });
+      return json({ ...pr, head: { ref: pr.head.ref, sha: head.sha }, base: { ref: pr.base.ref, sha: repo.branches[pr.base.ref].sha }, mergeable: computing ? null : true, mergeable_state: computing ? "unknown" : (repo.opts.mergeableState || "clean") });
     }
     if (sub === "/files") {
       const changed = Object.keys(head.files).filter((f) => head.files[f] !== repo.branches[pr.base.ref].files[f]);

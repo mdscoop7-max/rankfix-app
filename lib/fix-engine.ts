@@ -122,6 +122,7 @@ export const REASON_NL: Record<string, string> = {
   CI_INCOMPLETE: "GitHub gaf een onvolledige lijst van controles. Zonder volledig bewijs publiceert RankFix niet.",
   CI_SHA_MISMATCH: "De controles horen niet bij exact deze versie van de wijziging. RankFix publiceert niet.",
   CI_UNRELIABLE: "Een controle in GitHub gaf een onbetrouwbaar resultaat. RankFix publiceert niet.",
+  EVIDENCE_CHANGED: "Tussen de laatste twee controles veranderde de situatie in GitHub (base, controles of regels). RankFix publiceert niet automatisch.",
   CI_AMBIGUOUS: "Meerdere afzonderlijke workflows leveren een verplichte controle met dezelfde naam. Niet vast te stellen welke telt; RankFix publiceert niet automatisch.",
   REQUIRED_CHECKS_UNDEFINED: "Voor deze repository is geen vertrouwde set verplichte controles vastgesteld (branch protection niet leesbaar en geen vastgelegde set). RankFix publiceert niet automatisch.",
   REQUIRED_CHECK_MISSING: "Een verplichte GitHub-controle is (nog) niet uitgevoerd voor deze wijziging.",
@@ -136,7 +137,7 @@ export const REASON_NL: Record<string, string> = {
 
 export const MAX_AUTOPUBLISH_LINES = 8;
 
-export type PullInfo = { state?: string; merged?: boolean; merged_at?: string | null; mergeable?: boolean | null; mergeable_state?: string; merge_commit_sha?: string | null; head?: { sha?: string; ref?: string }; base?: { ref?: string } };
+export type PullInfo = { state?: string; merged?: boolean; merged_at?: string | null; mergeable?: boolean | null; mergeable_state?: string; merge_commit_sha?: string | null; head?: { sha?: string; ref?: string }; base?: { ref?: string; sha?: string } };
 export type PullFile = { filename?: string; additions?: number; deletions?: number; status?: string };
 export type CheckRun = { id?: number; name?: string; status?: string; conclusion?: string | null; head_sha?: string; app?: { id?: number } | null; check_suite?: { id?: number } | null };
 export type CommitStatus = { id?: number; context?: string; state?: string };
@@ -416,46 +417,70 @@ export async function fetchCommitStatuses(gh: NonNullable<EngineDeps["github"]>,
   } catch { return { ok: false, sha: null, statuses: [], totalCount: null }; }
 }
 
-/** Tries to merge an authorised, deterministic fix. Never merges unless every check is proven (fail-closed). */
-export async function tryAutoMerge(deps: EngineDeps, row: FixRow): Promise<MergeDecision> {
-  const gh = deps.github!;
+type Evaluation = { decision: MergeDecision; fingerprint: string | null };
+
+/**
+ * One complete, fresh evaluation of everything a merge depends on: PR state and
+ * mergeability, head and base commit, changed files, trusted policy, CI on the
+ * exact head SHA and the approved base blob. Fail-closed at every step.
+ */
+async function evaluateForMerge(gh: NonNullable<EngineDeps["github"]>, row: FixRow): Promise<Evaluation> {
   const repo = row.repository!;
-  if (!row.head_sha || !row.base_blob_sha) return { decision: "block", code: "EVIDENCE_MISSING" };
+  const stop = (decision: MergeDecision): Evaluation => ({ decision, fingerprint: null });
   const pr = await gh<PullInfo & { number?: number }>(`/repos/${repo}/pulls/${Number(row.pr_number)}`);
-  if (pr.merged || pr.merged_at) return { decision: "merged", code: "MERGED" };
+  if (pr.merged || pr.merged_at) return stop({ decision: "merged", code: "MERGED" });
   const headSha = pr.head?.sha || "";
-  if (!headSha) return { decision: "block", code: "EVIDENCE_MISSING" };
-  if (headSha !== row.head_sha) return { decision: "block", code: "HEAD_CHANGED" };
+  const baseSha = pr.base?.sha || "";
+  if (!headSha || !baseSha) return stop({ decision: "block", code: "EVIDENCE_MISSING" });
+  if (headSha !== row.head_sha) return stop({ decision: "block", code: "HEAD_CHANGED" });
   const files = await gh<PullFile[]>(`/repos/${repo}/pulls/${Number(row.pr_number)}/files?per_page=10`);
   // Trusted policy first (Astra F1): server-enforced, app-bound, not bypassable,
   // never weaker than earlier seen for this fix. No fallback on read errors.
   const policy = evaluatePolicy({ server: await readServerPolicy(gh, repo, String(row.base_branch || "")), recorded: parseRecordedPolicy(row.required_checks), snapshot: parsePolicySnapshot(row.required_policy) });
-  const seenPolicy = policy.verdict === "ok" ? serializePolicy(policy.required) : undefined;
-  if (policy.verdict !== "ok") return { decision: policy.verdict === "wait" ? "wait" : "block", code: policy.code };
-  const required = { checks: policy.required };
+  if (policy.verdict !== "ok") return stop({ decision: policy.verdict === "wait" ? "wait" : "block", code: policy.code });
+  const seenPolicy = serializePolicy(policy.required);
   const [checkRuns, statuses, baseFile] = await Promise.all([
     fetchCheckRuns(gh, repo, headSha),
     fetchCommitStatuses(gh, repo, headSha),
     gh<{ sha?: string }>(`/repos/${repo}/contents/${row.file_path}?ref=${encodeURIComponent(String(row.base_branch || ""))}`).then((f) => (typeof f?.sha === "string" ? f.sha : null)).catch(() => null),
   ]);
-  const ci = evaluateCiEvidence({ headSha, required, checkRuns, statuses });
+  const ci = evaluateCiEvidence({ headSha, required: { checks: policy.required }, checkRuns, statuses });
   const decision = evaluateMergeSafety({
     pr, files: Array.isArray(files) ? files : [], ci,
     expected: { branch: String(row.branch || ""), baseBranch: String(row.base_branch || ""), path: String(row.file_path || ""), headSha: row.head_sha, baseBlobSha: row.base_blob_sha },
     baseFileSha: baseFile,
   });
-  if (decision.decision !== "merge") return { ...decision, policy: seenPolicy };
-  // Re-read the PR right before merging: a push after the evaluation must stop it.
-  const fresh = await gh<PullInfo>(`/repos/${repo}/pulls/${Number(row.pr_number)}`);
-  if (fresh.merged || fresh.merged_at) return { decision: "merged", code: "MERGED" };
-  if (fresh.state !== "open" || fresh.head?.sha !== headSha || fresh.base?.ref !== row.base_branch) return { decision: "block", code: "HEAD_CHANGED" };
+  if (decision.decision !== "merge") return { decision: { ...decision, policy: seenPolicy }, fingerprint: null };
+  const filesSig = (Array.isArray(files) ? files : []).map((f) => `${f.filename}:${f.status}:${f.additions}:${f.deletions}`).join(",");
+  return { decision: { ...decision, policy: seenPolicy }, fingerprint: [headSha, baseSha, pr.base?.ref, pr.mergeable_state, baseFile, policy.fingerprint, ci.code, filesSig].join("\u0000") };
+}
+
+/**
+ * Tries to merge an authorised, deterministic fix (Astra F3). The complete
+ * evaluation runs twice; only when both are positive and describe exactly the
+ * same state (head, base commit, mergeability, files, policy, CI, base blob) is
+ * PUT /merge called, still pinned to the head SHA. Server-side enforcement
+ * without bypass (required by the policy) is the last line of defence for
+ * anything that changes after the second read.
+ */
+export async function tryAutoMerge(deps: EngineDeps, row: FixRow): Promise<MergeDecision> {
+  const gh = deps.github!;
+  const repo = row.repository!;
+  if (!row.head_sha || !row.base_blob_sha) return { decision: "block", code: "EVIDENCE_MISSING" };
+  const first = await evaluateForMerge(gh, row);
+  if (first.decision.decision !== "merge") return first.decision;
+  const second = await evaluateForMerge(gh, row);
+  if (second.decision.decision !== "merge") return second.decision;
+  if (first.fingerprint !== second.fingerprint) return { decision: "block", code: "EVIDENCE_CHANGED", policy: second.decision.policy };
+  const headSha = String(row.head_sha);
   try {
     await gh(`/repos/${repo}/pulls/${Number(row.pr_number)}/merge`, { method: "PUT", body: JSON.stringify({ merge_method: "squash", sha: headSha, commit_title: `RankFix: ${row.issue_id} (#${row.pr_number})` }) });
-    return { decision: "merged", code: "MERGED" };
+    return { decision: "merged", code: "MERGED", policy: second.decision.policy };
   } catch (error) {
     const status = (error as { status?: number }).status;
     if (status === 409) return { decision: "block", code: "HEAD_CHANGED" };
-    if (status === 405) return { decision: "block", code: "MERGE_REJECTED" };
+    // GitHub refused the merge (protection, rulesets, hooks): never retried blindly.
+    if (status === 405 || status === 403 || status === 422) return { decision: "block", code: "MERGE_REJECTED" };
     throw error;
   }
 }
