@@ -196,6 +196,12 @@ test("P1 (31 Oct): a refusal page received by the browser after HTTP 403 is neve
   assert.equal(r.failed, 0, r.log);
 });
 
+test("P7 (31 Oct): language/variant copies never re-enter the sample via the product hunt; fee pages of a payment provider do not start it", () => {
+  const r = run("run-sample-locale-dedupe.mjs");
+  assert.equal(r.total, 2);
+  assert.equal(r.failed, 0, r.log);
+});
+
 test("QA 144: sector failure classes (hospitality group ≠ beauty, careers site ≠ transport, supermarkets, compound bank brand) with negative controls", () => {
   const r = run("run-local-business.mjs", { PROFILES: "qa144" });
   assert.ok(r.total >= 11, `profiles missing: ${r.total}`);

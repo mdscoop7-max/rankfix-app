@@ -5676,16 +5676,26 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     // (QA commerce 72/72: shops without shop words on the homepage).
     const listingWithProducts = multiPageAudits.some((item)=>item?.status==="audited" && (item.type==="category" || item.type==="listing" || item.type==="other")
       && Boolean(item.commerceEvidence?.repeatedProductLinks) && (item.commerceEvidence?.priceSignals||0) >= 3);
-    const retailContextForProducts = sectorProfile.key === "ecommerce" || explicitRetailIdentity || hasEcommerceSignal || listingWithProducts;
+    // A payment/financial/SaaS service lists its own fees on /products/ pages:
+    // that is not a product grid, so it does not start the product hunt.
+    const pricedServiceForSample = Boolean(primaryNonCommerceIdentity) && isPricedServiceIdentity(String(primaryNonCommerceIdentity?.key || sectorProfile.key || ""));
+    const retailContextForProducts = sectorProfile.key === "ecommerce" || explicitRetailIdentity || hasEcommerceSignal || (listingWithProducts && !pricedServiceForSample);
     const confirmedProductSample = multiPageAudits.some((item)=>item?.status==="audited" && item.type==="product" && item.commerceEvidence?.confirmedRetailPage);
     // Optional second hop: only with enough time left before the sample deadline.
     const productHuntTime = () => Date.now() - started < SAMPLE_DEADLINE_MS - 20_000 && !clock.expired;
     if (retailContextForProducts && !confirmedProductSample && productHuntTime() && !sampleRateLimit.stopped) {
-      const sampledUrls = new Set(multiPageAudits.map((item)=>normalizeScanUrl(item.url)));
-      const unsampled = (urls: string[]) => [...new Set(urls)].filter((url)=>!sampledUrls.has(normalizeScanUrl(url)));
+      // 31 Oct (five-site QA, P7): the same language/variant key as the first
+      // selection, so /de/, /at/, /bg/ copies of a sampled page never re-enter.
+      const sampleKey = (url: string) => sampleIdentityKey(normalizeScanUrl(stripTrackingParams(url)));
+      const sampledUrls = new Set(multiPageAudits.map((item)=>sampleKey(item.url)));
+      const unsampled = (urls: string[]) => {
+        const picked: string[] = [];
+        for (const url of [...new Set(urls)]) { const key = sampleKey(url); if (sampledUrls.has(key) || picked.some((other) => sampleKey(other) === key)) continue; picked.push(url); }
+        return picked;
+      };
       const auditProductCandidates = async (urls: string[]) => {
         const audits = await Promise.all(unsampled(urls).slice(0,3).map((url)=>auditMultiPage({ url, type:"product", evidence:["product link found on a representative listing page"] })));
-        for (const audit of audits) sampledUrls.add(normalizeScanUrl(audit.url));
+        for (const audit of audits) sampledUrls.add(sampleKey(audit.url));
         multiPageAudits.push(...audits);
         return audits.some((item)=>item.status==="audited" && item.commerceEvidence?.confirmedRetailPage);
       };
