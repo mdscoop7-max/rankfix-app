@@ -132,7 +132,8 @@ export const REASON_NL: Record<string, string> = {
   CONTENT_MISMATCH: "De inhoud van de Pull Request is niet exact de goedgekeurde wijziging. RankFix publiceert niet automatisch.",
   CONTENT_UNAVAILABLE: "De inhoud van de goedgekeurde versie kon niet in GitHub worden gecontroleerd. RankFix publiceert niet.",
   EVIDENCE_CHANGED: "Tussen de laatste twee controles veranderde de situatie in GitHub (base, controles of regels). RankFix publiceert niet automatisch.",
-  CI_AMBIGUOUS: "Meerdere afzonderlijke workflows leveren een verplichte controle met dezelfde naam. Niet vast te stellen welke telt; RankFix publiceert niet automatisch.",
+  CI_AMBIGUOUS: "Meerdere afzonderlijke workflows of jobs leveren een controle met dezelfde naam, en GitHub bevestigt niet dat het om een herhaling van één job gaat. RankFix publiceert niet automatisch; geef de jobs unieke namen.",
+  RULESET_UNREADABLE: "Een GitHub-ruleset voor deze branch is niet (volledig) leesbaar voor RankFix; of RankFix de regels zou kunnen omzeilen is onbekend. RankFix publiceert niet automatisch.",
   REQUIRED_CHECKS_UNDEFINED: "Voor deze repository is geen vertrouwde set verplichte controles vastgesteld (branch protection niet leesbaar en geen vastgelegde set). RankFix publiceert niet automatisch.",
   REQUIRED_CHECK_MISSING: "Een verplichte GitHub-controle is (nog) niet uitgevoerd voor deze wijziging.",
   REQUIRED_CHECK_NOT_SUCCESSFUL: "Een verplichte GitHub-controle is niet geslaagd (bijvoorbeeld overgeslagen of neutraal). RankFix publiceert niet.",
@@ -169,6 +170,12 @@ export type CiEvidenceInput = {
   required: { checks: RequiredCheck[] };
   checkRuns: { ok: boolean; runs: CheckRun[]; totalCount: number | null };
   statuses: { ok: boolean; sha: string | null; statuses: CommitStatus[]; totalCount: number | null };
+  /**
+   * Per check suite that has several runs with the same name: the check-run ids of
+   * the LATEST attempt of every job (GitHub Actions jobs API, filter=latest).
+   * Absent = not proven. ok:false = could not be read.
+   */
+  attempts?: Record<string, { ok: boolean; latestRunIds: number[] }>;
 };
 export type CiEvidence = { verdict: "ok" | "pending" | "failed" | "unavailable" | "untrusted"; code: string; missing?: string[] };
 
@@ -188,14 +195,25 @@ export function evaluateCiEvidence(input: CiEvidenceInput): CiEvidence {
   if (!required.length) return { verdict: "untrusted", code: "REQUIRED_CHECKS_UNDEFINED" };
   if (required.some((check) => !(typeof check.appId === "number" && check.appId > 0))) return { verdict: "untrusted", code: "REQUIRED_CHECK_UNBOUND" };
 
-  // Astra F2: a higher id alone proves no re-run. Only a newer attempt in the SAME
-  // check suite (a re-run of the same workflow run) supersedes an earlier one;
-  // independent workflows with the same job name are separate checks.
-  const latestRuns = new Map<string, CheckRun>();
+  // A higher id alone proves no re-run. Within one check suite several runs with
+  // the same name are either re-run attempts of ONE job or DIFFERENT jobs that
+  // share a name (31 Oct). Only GitHub's own "latest attempt per job" list can
+  // tell them apart; without it the group is ambiguous and never green.
+  const groups = new Map<string, CheckRun[]>();
   for (const run of checkRuns.runs) {
     const key = `${run.name}#${run.app?.id}#${run.check_suite?.id}`;
-    const prev = latestRuns.get(key);
-    if (!prev || Number(run.id || 0) > Number(prev.id || 0)) latestRuns.set(key, run);
+    groups.set(key, [...(groups.get(key) || []), run]);
+  }
+  const latestRuns = new Map<string, CheckRun>();
+  for (const [key, group] of groups) {
+    if (group.length === 1) { latestRuns.set(key, group[0]); continue; }
+    const proof = input.attempts?.[String(group[0].check_suite?.id)];
+    if (proof && !proof.ok) return { verdict: "unavailable", code: "CI_UNAVAILABLE" };
+    if (!proof) return { verdict: "untrusted", code: "CI_AMBIGUOUS", missing: [String(group[0].name)] };
+    const latest = group.filter((run) => proof.latestRunIds.includes(Number(run.id)));
+    if (latest.length === 0) return { verdict: "unavailable", code: "CI_UNRELIABLE" };
+    if (latest.length > 1) return { verdict: "untrusted", code: "CI_AMBIGUOUS", missing: [String(group[0].name)] };
+    latestRuns.set(key, latest[0]);
   }
   const latestStatus = new Map<string, CommitStatus>();
   for (const status of statuses.statuses) {
@@ -408,6 +426,44 @@ export async function fetchCheckRuns(gh: NonNullable<EngineDeps["github"]>, repo
   } catch { return { ok: false, runs: [], totalCount: null }; }
 }
 
+/**
+ * For every check suite with several same-named runs: the check-run ids of the
+ * latest attempt of each job, from GitHub Actions (filter=latest). Non-Actions
+ * suites or anything unreadable are not proof (ambiguous / unavailable).
+ */
+export async function fetchLatestAttempts(gh: NonNullable<EngineDeps["github"]>, repo: string, sha: string, runs: CheckRun[]): Promise<NonNullable<CiEvidenceInput["attempts"]>> {
+  const counts = new Map<string, number>();
+  for (const run of runs) { const key = `${run.name}#${run.app?.id}#${run.check_suite?.id}`; counts.set(key, (counts.get(key) || 0) + 1); }
+  const suites = [...new Set(runs.filter((run) => (counts.get(`${run.name}#${run.app?.id}#${run.check_suite?.id}`) || 0) > 1).map((run) => Number(run.check_suite?.id)))].slice(0, 5);
+  const out: NonNullable<CiEvidenceInput["attempts"]> = {};
+  for (const suite of suites) {
+    try {
+      const wr = await gh<{ total_count?: number; workflow_runs?: Array<{ id?: number; head_sha?: string }> }>(`/repos/${repo}/actions/runs?check_suite_id=${suite}&per_page=5`);
+      if (!wr || typeof wr.total_count !== "number" || !Array.isArray(wr.workflow_runs)) { out[String(suite)] = { ok: false, latestRunIds: [] }; continue; }
+      // Not a GitHub Actions suite, or not exactly one workflow run for it: no proof.
+      if (wr.total_count !== 1 || wr.workflow_runs.length !== 1 || wr.workflow_runs[0].head_sha !== sha || typeof wr.workflow_runs[0].id !== "number") continue;
+      const ids: number[] = [];
+      let complete = false;
+      for (let page = 1; page <= 5; page++) {
+        const jobs = await gh<{ total_count?: number; jobs?: Array<{ check_run_url?: string; head_sha?: string }> }>(`/repos/${repo}/actions/runs/${wr.workflow_runs[0].id}/jobs?filter=latest&per_page=100&page=${page}`);
+        if (!jobs || typeof jobs.total_count !== "number" || !Array.isArray(jobs.jobs)) break;
+        for (const job of jobs.jobs) {
+          const match = /\/check-runs\/(\d+)$/.exec(String(job.check_run_url || ""));
+          if (!match || job.head_sha !== sha) { ids.length = 0; page = 99; break; }
+          ids.push(Number(match[1]));
+        }
+        if (page === 99) break;
+        if (ids.length >= jobs.total_count) { complete = true; break; }
+        if (!jobs.jobs.length) break;
+      }
+      out[String(suite)] = complete ? { ok: true, latestRunIds: ids } : { ok: false, latestRunIds: [] };
+    } catch {
+      out[String(suite)] = { ok: false, latestRunIds: [] };
+    }
+  }
+  return out;
+}
+
 /** Combined commit status of one commit, every page. Any error or malformed page → not ok. */
 export async function fetchCommitStatuses(gh: NonNullable<EngineDeps["github"]>, repo: string, sha: string): Promise<CiEvidenceInput["statuses"]> {
   try {
@@ -473,7 +529,8 @@ async function evaluateForMerge(gh: NonNullable<EngineDeps["github"]>, row: FixR
     fetchCommitStatuses(gh, repo, headSha),
     gh<{ sha?: string }>(`/repos/${repo}/contents/${row.file_path}?ref=${encodeURIComponent(String(row.base_branch || ""))}`).then((f) => (typeof f?.sha === "string" ? f.sha : null)).catch(() => null),
   ]);
-  const ci = evaluateCiEvidence({ headSha, required: { checks: policy.required }, checkRuns, statuses });
+  const attempts = checkRuns.ok ? await fetchLatestAttempts(gh, repo, headSha, checkRuns.runs) : {};
+  const ci = evaluateCiEvidence({ headSha, required: { checks: policy.required }, checkRuns, statuses, attempts });
   const decision = evaluateMergeSafety({
     pr, files: Array.isArray(files) ? files : [], ci,
     expected: { branch: String(row.branch || ""), baseBranch: String(row.base_branch || ""), path: String(row.file_path || ""), headSha: row.head_sha, baseBlobSha: row.base_blob_sha },
@@ -649,7 +706,7 @@ export function confirmedFixIsStale(
 export const RESUMABLE_CODES = new Set([
   "GITHUB_UNAVAILABLE", "GITHUB_NOT_CONNECTED", "MERGE_TIMEOUT", "CHECKS_PENDING", "MERGEABILITY_PENDING",
   "CI_UNAVAILABLE", "CI_INCOMPLETE", "CI_UNRELIABLE", "CI_AMBIGUOUS", "CI_SHA_MISMATCH", "REQUIRED_CHECK_MISSING", "REQUIRED_CHECK_NOT_SUCCESSFUL", "CHECKS_FAILED",
-  "POLICY_UNAVAILABLE", "POLICY_UNREADABLE", "REQUIRED_CHECKS_UNDEFINED", "REQUIRED_CHECK_UNBOUND", "NOT_SERVER_ENFORCED", "POLICY_INVALID", "MERGE_QUEUE_REQUIRED",
+  "POLICY_UNAVAILABLE", "POLICY_UNREADABLE", "REQUIRED_CHECKS_UNDEFINED", "REQUIRED_CHECK_UNBOUND", "NOT_SERVER_ENFORCED", "POLICY_INVALID", "MERGE_QUEUE_REQUIRED", "RULESET_UNREADABLE",
   "EVIDENCE_CHANGED", "EVIDENCE_MISSING", "CONTENT_UNAVAILABLE", "BASE_UNAVAILABLE", "MERGE_REJECTED", "BRANCH_PROTECTED",
   "LIVE_UNREACHABLE", "DEPLOY_TIMEOUT",
 ]);
@@ -668,7 +725,7 @@ export function reasonKind(code: string | null | undefined): "ci_missing" | "ci_
   if (["REQUIRED_CHECK_MISSING", "CHECKS_PENDING"].includes(code)) return "ci_missing";
   if (["CHECKS_FAILED", "REQUIRED_CHECK_NOT_SUCCESSFUL", "CI_AMBIGUOUS"].includes(code)) return "ci_failed";
   if (["CI_UNAVAILABLE", "CI_INCOMPLETE", "CI_UNRELIABLE", "CI_SHA_MISMATCH", "POLICY_UNAVAILABLE", "POLICY_UNREADABLE", "CONTENT_UNAVAILABLE", "BASE_UNAVAILABLE", "GITHUB_UNAVAILABLE", "GITHUB_NOT_CONNECTED", "EVIDENCE_MISSING"].includes(code)) return "evidence_unreadable";
-  if (["REQUIRED_CHECKS_UNDEFINED", "REQUIRED_CHECK_UNBOUND", "NOT_SERVER_ENFORCED", "POLICY_INVALID", "POLICY_WEAKENED", "MERGE_QUEUE_REQUIRED"].includes(code)) return "policy";
+  if (["REQUIRED_CHECKS_UNDEFINED", "REQUIRED_CHECK_UNBOUND", "NOT_SERVER_ENFORCED", "POLICY_INVALID", "POLICY_WEAKENED", "MERGE_QUEUE_REQUIRED", "RULESET_UNREADABLE"].includes(code)) return "policy";
   if (["MERGE_REJECTED", "BRANCH_PROTECTED", "MERGE_CONFLICT", "BASE_ADVANCED", "MERGE_TIMEOUT", "MERGEABILITY_PENDING"].includes(code)) return "github_refused";
   if (["HEAD_CHANGED", "CONTENT_MISMATCH", "EVIDENCE_CHANGED", "UNEXPECTED_FILES", "STALE_BASE", "DIFF_TOO_LARGE", "BASE_MISMATCH", "HEAD_MISMATCH"].includes(code)) return "changed";
   return "other";

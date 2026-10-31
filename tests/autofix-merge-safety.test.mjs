@@ -52,6 +52,19 @@ export function fakeGithub(over = {}) {
       const page = Number(url.searchParams.get("page"));
       return { total_count: s.total ?? runs.length, check_runs: page === 1 ? runs : [] };
     }
+    if (/\/actions\/runs$/.test(url.pathname)) {
+      if (s.actionsError) fail(s.actionsError);
+      const suite = url.searchParams.get("check_suite_id");
+      const runs = s.workflowRuns ? s.workflowRuns(suite) : [{ id: 500 + Number(suite), head_sha: s.head }];
+      return { total_count: runs.length, workflow_runs: runs };
+    }
+    if (/\/actions\/runs\/\d+\/jobs$/.test(url.pathname)) {
+      if (s.jobsError) fail(s.jobsError);
+      assert.equal(url.searchParams.get("filter"), "latest");
+      const ids = s.latestJobs || [];
+      const page = Number(url.searchParams.get("page"));
+      return { total_count: ids.length, jobs: page === 1 ? ids.map((id) => ({ id: id + 9000, check_run_url: `https://api.github.com/repos/o/r/check-runs/${id}`, head_sha: s.head })) : [] };
+    }
     if (/\/status$/.test(url.pathname)) { if (s.statusError) fail(s.statusError); return { sha: s.head, state: "pending", total_count: s.statuses.length, statuses: url.searchParams.get("page") === "1" ? s.statuses : [] }; }
     if (/\/contents\//.test(url.pathname) && /^[0-9a-f]{40}$/.test(url.searchParams.get("ref") || "")) {
       // File content at an immutable commit.
@@ -214,24 +227,40 @@ test("tryAutoMerge (P0): missing, failing, incomplete or unreadable CI evidence 
 });
 
 /* ------------------------------------------------------------ re-runs vs independent workflows (F2) */
-test("CI evidence (F2): only a newer attempt in the SAME check suite counts as a re-run", () => {
-  const ev = (runs) => E.evaluateCiEvidence(ciInput({ checkRuns: { ok: true, runs, totalCount: runs.length } }));
-  // True re-run: same workflow run (check suite), failed attempt then successful attempt.
-  assert.equal(ev([run("build", "failure", { id: 1, check_suite: { id: 5 } }), run("build", "success", { id: 2, check_suite: { id: 5 } })]).verdict, "ok");
-  // A re-run that fails again after a success is still a failure.
-  assert.equal(ev([run("build", "success", { id: 1, check_suite: { id: 5 } }), run("build", "failure", { id: 2, check_suite: { id: 5 } })]).code, "CHECKS_FAILED");
-  // Astra repro: two independent workflows, same job name and same app (GitHub Actions).
+test("CI evidence (F2, 31 Oct): same-named runs in one suite count only with GitHub's latest-attempt proof", () => {
+  const ev = (runs, attempts) => E.evaluateCiEvidence(ciInput({ checkRuns: { ok: true, runs, totalCount: runs.length }, attempts }));
+  const rerun = [run("build", "failure", { id: 1, check_suite: { id: 5 } }), run("build", "success", { id: 2, check_suite: { id: 5 } })];
+  // Real re-run: GitHub lists id 2 as the latest attempt of the job.
+  assert.equal(ev(rerun, { 5: { ok: true, latestRunIds: [2, 7] } }).verdict, "ok");
+  // Without proof the same data is ambiguous (two different jobs could share the name).
+  assert.equal(ev(rerun).code, "CI_AMBIGUOUS");
+  // Two DIFFERENT jobs in the same suite named "build": both are latest → ambiguous, never green.
+  assert.equal(ev(rerun, { 5: { ok: true, latestRunIds: [1, 2] } }).code, "CI_AMBIGUOUS");
+  // A re-run that failed again after a success is still a failure.
+  assert.equal(ev([run("build", "success", { id: 1, check_suite: { id: 5 } }), run("build", "failure", { id: 2, check_suite: { id: 5 } })], { 5: { ok: true, latestRunIds: [2] } }).code, "CHECKS_FAILED");
+  // Proof unreadable → unavailable; proof that names neither run → unreliable.
+  assert.equal(ev(rerun, { 5: { ok: false, latestRunIds: [] } }).code, "CI_UNAVAILABLE");
+  assert.equal(ev(rerun, { 5: { ok: true, latestRunIds: [99] } }).code, "CI_UNRELIABLE");
+  // Independent workflows (different suites), same job name and app.
   assert.equal(ev([run("build", "failure", { id: 1, check_suite: { id: 5 } }), run("build", "success", { id: 2, check_suite: { id: 6 } })]).code, "CHECKS_FAILED");
   assert.equal(ev([run("build", "success", { id: 1, check_suite: { id: 5 } }), run("build", "success", { id: 2, check_suite: { id: 6 } })]).code, "CI_AMBIGUOUS");
   assert.equal(ev([run("build", "success", { id: 1, check_suite: null })]).code, "CI_UNRELIABLE");
   assert.equal(ev([run("build", "success", { id: 1, app: null })]).code, "CI_UNRELIABLE");
 });
 
-test("tryAutoMerge (F2): independent same-named workflows never merge; a real re-run does", async () => {
+test("tryAutoMerge (F2, 31 Oct): different jobs with one name never merge; a proven re-run does", async () => {
+  const rerunRuns = () => [run("build", "failure", { id: 1, check_suite: { id: 5 } }), run("build", "success", { id: 2, check_suite: { id: 5 } })];
+  const proven = await attempt({ runs: rerunRuns, latestJobs: [2] });
+  assert.equal(proven.merged, true);
+  assert.ok(proven.calls.some((c) => /actions\/runs\?check_suite_id=5/.test(c)));
+  await noMerge("two jobs named build in one workflow run (one failed)", { runs: rerunRuns, latestJobs: [1, 2] }, {}, "CI_AMBIGUOUS");
+  await noMerge("two jobs named build, both green", { runs: () => [run("build", "success", { id: 1, check_suite: { id: 5 } }), run("build", "success", { id: 2, check_suite: { id: 5 } })], latestJobs: [1, 2] }, {}, "CI_AMBIGUOUS");
+  await noMerge("not a GitHub Actions suite (no workflow run)", { runs: rerunRuns, workflowRuns: () => [] }, {}, "CI_AMBIGUOUS");
+  await noMerge("workflow run of another commit", { runs: rerunRuns, workflowRuns: (suite) => [{ id: 505, head_sha: "e".repeat(40) }] }, {}, "CI_AMBIGUOUS");
+  await noMerge("jobs API error", { runs: rerunRuns, jobsError: 500 }, {}, "CI_UNAVAILABLE");
+  await noMerge("actions API error", { runs: rerunRuns, actionsError: 502 }, {}, "CI_UNAVAILABLE");
   await noMerge("independent workflows, failed then success", { runs: () => [run("build", "failure", { id: 1, check_suite: { id: 5 } }), run("build", "success", { id: 2, check_suite: { id: 6 } })] }, {}, "CHECKS_FAILED");
   await noMerge("independent workflows, both success", { runs: () => [run("build", "success", { id: 1, check_suite: { id: 5 } }), run("build", "success", { id: 2, check_suite: { id: 6 } })] }, {}, "CI_AMBIGUOUS");
-  const rerun = await attempt({ runs: () => [run("build", "failure", { id: 1, check_suite: { id: 5 } }), run("build", "success", { id: 2, check_suite: { id: 5 } })] });
-  assert.equal(rerun.merged, true);
 });
 
 /* ------------------------------------------------------------ final re-check before merge (F3) */

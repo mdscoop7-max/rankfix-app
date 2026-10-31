@@ -138,8 +138,18 @@ function github(method, path, body) {
     if (ci === "random_green") return json({ total_count: 1, check_runs: [run("lint", "success")] });
     // Two independent workflows publish "build": one failed, one passed (Astra F2).
     if (ci === "same_name_workflows") return json({ total_count: 2, check_runs: [run("build", "failure", { id: 1, check_suite: { id: 77 } }), run("build", "success", { id: 2, check_suite: { id: 78 } })] });
+    // One workflow run (suite 77) with two jobs that are both called "build" (31 Oct).
+    if (ci === "two_jobs_same_name") return json({ total_count: 2, check_runs: [run("build", "failure", { id: 1 }), run("build", "success", { id: 2 })] });
+    // A real re-run of one job: attempt 1 failed (id 1), attempt 2 passed (id 2).
+    if (ci === "proven_rerun") return json({ total_count: 2, check_runs: [run("build", "failure", { id: 1 }), run("build", "success", { id: 2 })] });
     if (ci === "wrong_app") return json({ total_count: 1, check_runs: [run("build", "success", { app: { id: 999 } })] });
     return json({ total_count: 1, check_runs: [run("build", "success")] });
+  }
+  if (rpath === "/actions/runs") return json({ total_count: 1, workflow_runs: [{ id: 4242, head_sha: repo.branches[repo.pulls[0]?.head.ref]?.sha }] });
+  if (rpath === "/actions/runs/4242/jobs") {
+    const latest = ci === "proven_rerun" ? [2] : [1, 2];
+    const headSha = repo.branches[repo.pulls[0]?.head.ref]?.sha;
+    return json({ total_count: latest.length, jobs: q.get("page") === "1" ? latest.map((id) => ({ id: 900 + id, check_run_url: `https://api.github.test/repos/${repo.fullName}/check-runs/${id}`, head_sha: headSha })) : [] });
   }
   if ((mm = rpath.match(/^\/commits\/([^/]+)\/status$/))) {
     if (ci === "status_api_error") return json({ message: "Server Error" }, 500);
@@ -324,6 +334,18 @@ await noMergeScenario("CI10", "wrong_app", ["REQUIRED_CHECK_MISSING"]);
 await noMergeScenario("CI11", "bypass", ["NOT_SERVER_ENFORCED"]);
 await noMergeScenario("CI12", "same_name_workflows", ["CHECKS_FAILED"]);
 await noMergeScenario("CI13", "green", ["HEAD_CHANGED", "CONTENT_MISMATCH"], { racePushSameFile: true });
+await noMergeScenario("CI14", "two_jobs_same_name", ["CI_AMBIGUOUS"]);
+
+await scenario("CI15 a re-run proven by GitHub Actions (latest attempt) merges", async () => {
+  await newUser("ci15");
+  const repo = freshSite("ci15.voorbeeld.test", "acme/ci15-shop", { ci: "proven_rerun", deployPolls: 1 });
+  const url = "https://ci15.voorbeeld.test/";
+  const s1 = await scanSite(url);
+  const { pv } = await prepare(s1.body.scanId, ISSUE, "acme/ci15-shop", true, url);
+  await publish(s1.body.scanId, ISSUE, "acme/ci15-shop", pv, "publish");
+  await poll(url, ISSUE);
+  check(repo.merges === 1, `CI15: proven re-run should merge (${repo.merges})`);
+});
 
 await scenario("CI8 unreadable server rules + recorded policy: still PR-only; PATCH keeps or validates the policy", async () => {
   await newUser("ci8");
