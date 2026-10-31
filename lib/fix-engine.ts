@@ -122,6 +122,8 @@ export const REASON_NL: Record<string, string> = {
   CI_INCOMPLETE: "GitHub gaf een onvolledige lijst van controles. Zonder volledig bewijs publiceert RankFix niet.",
   CI_SHA_MISMATCH: "De controles horen niet bij exact deze versie van de wijziging. RankFix publiceert niet.",
   CI_UNRELIABLE: "Een controle in GitHub gaf een onbetrouwbaar resultaat. RankFix publiceert niet.",
+  CONTENT_MISMATCH: "De inhoud van de Pull Request is niet exact de goedgekeurde wijziging. RankFix publiceert niet automatisch.",
+  CONTENT_UNAVAILABLE: "De inhoud van de goedgekeurde versie kon niet in GitHub worden gecontroleerd. RankFix publiceert niet.",
   EVIDENCE_CHANGED: "Tussen de laatste twee controles veranderde de situatie in GitHub (base, controles of regels). RankFix publiceert niet automatisch.",
   CI_AMBIGUOUS: "Meerdere afzonderlijke workflows leveren een verplichte controle met dezelfde naam. Niet vast te stellen welke telt; RankFix publiceert niet automatisch.",
   REQUIRED_CHECKS_UNDEFINED: "Voor deze repository is geen vertrouwde set verplichte controles vastgesteld (branch protection niet leesbaar en geen vastgelegde set). RankFix publiceert niet automatisch.",
@@ -325,7 +327,7 @@ export function liveFixApplied(issueId: string, html: string, expectedValue: str
 export type FixRow = {
   id: string; user_id: string; issue_id: string; scanned_url: string; status: string;
   repository?: string | null; pr_number?: number | null; pr_url?: string | null; branch?: string | null; base_branch?: string | null; file_path?: string | null;
-  auto_publish?: boolean | null; expected_value?: string | null; head_sha?: string | null; base_blob_sha?: string | null; required_checks?: string | string[] | null; required_policy?: string | null;
+  auto_publish?: boolean | null; expected_value?: string | null; head_sha?: string | null; base_blob_sha?: string | null; required_checks?: string | string[] | null; required_policy?: string | null; approved_content_sha256?: string | null;
   merge_commit_sha?: string | null; merged_at?: string | Date | null; deploy_state?: string | null; deploy_success_at?: string | Date | null;
   live_seen_at?: string | Date | null; merge_attempts?: number | null; verification_attempts?: number | null;
   last_error_code?: string | null; phase_started_at?: string | Date | null; next_check_at?: string | Date | null; proposal_id?: string | null;
@@ -419,6 +421,16 @@ export async function fetchCommitStatuses(gh: NonNullable<EngineDeps["github"]>,
 
 type Evaluation = { decision: MergeDecision; fingerprint: string | null };
 
+/** SHA-256 (hex) of UTF-8 text; Web Crypto so the module also loads in the browser bundle. */
+export async function contentDigest(text: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+function decodeBase64Utf8(value: string): string {
+  const binary = atob(value.replace(/\s/g, ""));
+  return new TextDecoder("utf-8", { fatal: true }).decode(Uint8Array.from(binary, (c) => c.charCodeAt(0)));
+}
+
 /**
  * One complete, fresh evaluation of everything a merge depends on: PR state and
  * mergeability, head and base commit, changed files, trusted policy, CI on the
@@ -434,6 +446,15 @@ async function evaluateForMerge(gh: NonNullable<EngineDeps["github"]>, row: FixR
   if (!headSha || !baseSha) return stop({ decision: "block", code: "EVIDENCE_MISSING" });
   if (headSha !== row.head_sha) return stop({ decision: "block", code: "HEAD_CHANGED" });
   const files = await gh<PullFile[]>(`/repos/${repo}/pulls/${Number(row.pr_number)}/files?per_page=10`);
+  // Astra F4: the approved content must be exactly what the immutable head
+  // commit contains. A push of another change in the same file (within the
+  // line limit) or a reused branch can therefore never be merged.
+  if (!row.approved_content_sha256) return stop({ decision: "block", code: "EVIDENCE_MISSING" });
+  const atHead = await gh<{ type?: string; encoding?: string; content?: string }>(`/repos/${repo}/contents/${row.file_path}?ref=${headSha}`).catch(() => null);
+  if (!atHead || atHead.type !== "file" || atHead.encoding !== "base64" || typeof atHead.content !== "string") return stop({ decision: "wait", code: "CONTENT_UNAVAILABLE" });
+  let headDigest: string;
+  try { headDigest = await contentDigest(decodeBase64Utf8(atHead.content)); } catch { return stop({ decision: "block", code: "CONTENT_MISMATCH" }); }
+  if (headDigest !== row.approved_content_sha256) return stop({ decision: "block", code: "CONTENT_MISMATCH" });
   // Trusted policy first (Astra F1): server-enforced, app-bound, not bypassable,
   // never weaker than earlier seen for this fix. No fallback on read errors.
   const policy = evaluatePolicy({ server: await readServerPolicy(gh, repo, String(row.base_branch || "")), recorded: parseRecordedPolicy(row.required_checks), snapshot: parsePolicySnapshot(row.required_policy) });
@@ -452,7 +473,7 @@ async function evaluateForMerge(gh: NonNullable<EngineDeps["github"]>, row: FixR
   });
   if (decision.decision !== "merge") return { decision: { ...decision, policy: seenPolicy }, fingerprint: null };
   const filesSig = (Array.isArray(files) ? files : []).map((f) => `${f.filename}:${f.status}:${f.additions}:${f.deletions}`).join(",");
-  return { decision: { ...decision, policy: seenPolicy }, fingerprint: [headSha, baseSha, pr.base?.ref, pr.mergeable_state, baseFile, policy.fingerprint, ci.code, filesSig].join("\u0000") };
+  return { decision: { ...decision, policy: seenPolicy }, fingerprint: [headSha, baseSha, pr.base?.ref, pr.mergeable_state, baseFile, headDigest, policy.fingerprint, ci.code, filesSig].join("\u0000") };
 }
 
 /**

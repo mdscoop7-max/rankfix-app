@@ -116,6 +116,8 @@ const statements = [
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS required_checks TEXT`,
   // Astra F1: trusted policy seen for this fix (JSON); may only get stricter.
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS required_policy TEXT`,
+  // Astra F4: SHA-256 of the approved file content, checked at the immutable head commit.
+  `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS approved_content_sha256 TEXT`,
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS merge_commit_sha TEXT`,
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS deploy_state TEXT`,
   `ALTER TABLE pending_fixes ADD COLUMN IF NOT EXISTS deploy_success_at TIMESTAMPTZ`,

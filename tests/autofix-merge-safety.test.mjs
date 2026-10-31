@@ -10,6 +10,9 @@ const E = await import("../lib/fix-engine.ts");
 const P = await import("../lib/merge-policy.ts");
 
 const H = "a".repeat(40);
+const APPROVED = "<meta name=\"description\" content=\"Goedgekeurde tekst\">";
+const APPROVED_SHA256 = await E.contentDigest(APPROVED);
+const b64 = (text) => Buffer.from(text, "utf8").toString("base64");
 const APP = 15368; // GitHub Actions
 let nextId = 1000;
 export const run = (name, conclusion, extra = {}) => ({ id: extra.id ?? nextId++, name, status: "completed", conclusion, head_sha: H, app: { id: APP }, check_suite: { id: 1 }, ...extra });
@@ -17,7 +20,7 @@ export const run = (name, conclusion, extra = {}) => ({ id: extra.id ?? nextId++
 /** Scripted GitHub. Every field can be overridden per scenario; `fresh` changes the PR on the 2nd+ read. */
 export function fakeGithub(over = {}) {
   const calls = [];
-  const reads = { pull: 0, rules: 0, checks: 0, contents: 0 };
+  const reads = { pull: 0, rules: 0, checks: 0, contents: 0, headContent: 0 };
   const s = {
     head: H, baseSha: "base1",
     rules: [{ type: "required_status_checks", ruleset_id: 9, parameters: { required_status_checks: [{ context: "build", integration_id: APP }] } }],
@@ -25,7 +28,7 @@ export function fakeGithub(over = {}) {
     protection: null, protectionError: 404,
     runs: () => [run("build", "success", { id: 1 })], total: null, checksError: null,
     statuses: [], statusError: null,
-    baseBlob: "b1", baseError: null,
+    baseBlob: "b1", baseError: null, headContent: APPROVED, headContentError: null,
     ...over,
   };
   const fail = (status) => { const e = new Error("GitHub " + status); e.status = status; throw e; };
@@ -50,12 +53,19 @@ export function fakeGithub(over = {}) {
       return { total_count: s.total ?? runs.length, check_runs: page === 1 ? runs : [] };
     }
     if (/\/status$/.test(url.pathname)) { if (s.statusError) fail(s.statusError); return { sha: s.head, state: "pending", total_count: s.statuses.length, statuses: url.searchParams.get("page") === "1" ? s.statuses : [] }; }
+    if (/\/contents\//.test(url.pathname) && /^[0-9a-f]{40}$/.test(url.searchParams.get("ref") || "")) {
+      // File content at an immutable commit.
+      if (s.headContentError) fail(s.headContentError);
+      const n = ++reads.headContent;
+      const text = url.searchParams.get("ref") === s.head ? (typeof s.headContent === "function" ? s.headContent(n) : s.headContent) : null;
+      return text === null ? fail(404) : { type: "file", encoding: "base64", content: b64(text) };
+    }
     if (/\/contents\//.test(url.pathname)) { reads.contents++; if (s.baseError) fail(s.baseError); return { sha: typeof s.baseBlob === "function" ? s.baseBlob(reads.contents) : s.baseBlob }; }
     return fail(404);
   };
   return { gh, calls, reads, state: s };
 }
-export const fixRow = (over = {}) => ({ id: "1", user_id: "u", issue_id: "META_DESCRIPTION_GUIDANCE", scanned_url: "https://x.test/", status: "AWAITING_MERGE", repository: "o/r", pr_number: 7, branch: "rankfix/x", base_branch: "main", file_path: "templates/index.html", auto_publish: true, head_sha: H, base_blob_sha: "b1", ...over });
+export const fixRow = (over = {}) => ({ id: "1", user_id: "u", issue_id: "META_DESCRIPTION_GUIDANCE", scanned_url: "https://x.test/", status: "AWAITING_MERGE", repository: "o/r", pr_number: 7, branch: "rankfix/x", base_branch: "main", file_path: "templates/index.html", auto_publish: true, head_sha: H, base_blob_sha: "b1", approved_content_sha256: APPROVED_SHA256, ...over });
 export async function attempt(ghOver = {}, rowOver = {}) {
   const f = fakeGithub(ghOver);
   const result = await E.tryAutoMerge({ github: f.gh, db: null, probe: null }, fixRow(rowOver));
@@ -255,4 +265,25 @@ test("tryAutoMerge (F3): any change or new blocker between evaluation and merge 
     const { result } = await attempt({ mergeError });
     assert.deepEqual([result.decision, result.code], ["block", code], `server ${mergeError}`);
   }
+});
+
+/* ------------------------------------------------------------ approved content bound to the immutable head (F4) */
+test("tryAutoMerge (F4): the approved content must be exactly the file at the immutable head commit", async () => {
+  const ok = await attempt();
+  assert.equal(ok.merged, true); assert.equal(ok.reads.headContent, 2);
+  // Another small change in the SAME file (within the line limit) on the approved SHA.
+  await noMerge("same-file change", { headContent: APPROVED + "\n<!-- extra -->" }, {}, "CONTENT_MISMATCH");
+  await noMerge("content changes between the two evaluations", { headContent: (n) => (n === 1 ? APPROVED : APPROVED + " ") }, {}, "CONTENT_MISMATCH");
+  await noMerge("approved content hash not stored (legacy fix)", {}, { approved_content_sha256: null }, "EVIDENCE_MISSING");
+  await noMerge("file missing at head", { headContent: null }, {}, "CONTENT_UNAVAILABLE");
+  await noMerge("content API error", { headContentError: 502 }, {}, "CONTENT_UNAVAILABLE");
+  await noMerge("binary / invalid UTF-8", { headContent: "\uFFFD" }, { approved_content_sha256: "0".repeat(64) }, "CONTENT_MISMATCH");
+});
+
+test("fix route (F4): the stored head SHA is the commit RankFix wrote, verified at that exact SHA", () => {
+  const src = readFileSync(new URL("../app/api/github/fix/route.ts", import.meta.url), "utf8");
+  assert.match(src, /approvedCommitSha=typeof put\?\.commit\?\.sha==="string"/);
+  assert.match(src, /contents\/"\+path\+"\?ref="\+approvedCommitSha/);
+  assert.doesNotMatch(src, /const headRef=await githubFetch/);
+  assert.match(src, /approved_content_sha256/);
 });

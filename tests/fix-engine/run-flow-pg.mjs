@@ -20,14 +20,16 @@ await ensureDatabase();
 /* ------------------------------------------------------------------ fake GitHub */
 const sha = (v) => createHash("sha1").update(String(v)).digest("hex");
 function makeRepo(fullName, files, opts = {}) {
-  const commit = (fs) => sha(JSON.stringify(fs) + Math.random());
+  // Every commit is an immutable snapshot, readable by its SHA (Astra F4).
+  const snapshots = {};
+  const commit = (fs) => { const id = sha(JSON.stringify(fs) + Math.random()); snapshots[id] = { files: { ...fs } }; return id; };
   const main = { files: { ...files } }; main.sha = commit(main.files);
-  return { fullName, branches: { main }, pulls: [], deployments: [], opts, calls: [], commit, deployedFiles: { ...files }, failNext: {} };
+  return { fullName, branches: { main }, snapshots, pulls: [], deployments: [], opts, calls: [], commit, deployedFiles: { ...files }, failNext: {} };
 }
 let REPOS = {};
 let LIVE = {}; // host -> { repo, path, blocked }
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
-const blob = (content) => ({ type: "file", content: Buffer.from(content, "utf8").toString("base64"), sha: sha("blob:" + content) });
+const blob = (content) => ({ type: "file", encoding: "base64", content: Buffer.from(content, "utf8").toString("base64"), sha: sha("blob:" + content) });
 
 function lineDiff(a, b) {
   const A = a.split("\n"), B = b.split("\n");
@@ -52,7 +54,8 @@ function github(method, path, body) {
   let mm;
   if ((mm = rpath.match(/^\/contents\/(.+)$/))) {
     const filePath = decodeURIComponent(mm[1]);
-    const branch = repo.branches[q.get("ref") || body?.branch || "main"];
+    const ref = q.get("ref") || body?.branch || "main";
+    const branch = repo.branches[ref] || repo.snapshots[ref];
     if (method === "GET") { if (!branch || branch.files[filePath] === undefined) return json({ message: "Not Found" }, 404); return json(blob(branch.files[filePath])); }
     if (method === "PUT") {
       const target = repo.branches[body.branch];
@@ -60,7 +63,10 @@ function github(method, path, body) {
       if (sha("blob:" + target.files[filePath]) !== body.sha) return json({ message: "sha mismatch" }, 409);
       target.files[filePath] = Buffer.from(body.content, "base64").toString("utf8");
       target.sha = repo.commit(target.files); target.commits = (target.commits || 0) + 1;
-      return json({ commit: { sha: target.sha } }, 200);
+      const written = target.sha;
+      // Astra F4 race: someone pushes a small change to the SAME file right after RankFix's write.
+      if (repo.opts.racePushSameFile) { target.files[filePath] = target.files[filePath].replace("</head>", "<script src=\"https://evil.test/x.js\"></script>\n</head>"); target.sha = repo.commit(target.files); }
+      return json({ commit: { sha: written } }, 200);
     }
   }
   if ((mm = rpath.match(/^\/git\/ref\/heads\/(.+)$/))) {
@@ -316,6 +322,7 @@ await noMergeScenario("CI7", "green", ["HEAD_CHANGED", "UNEXPECTED_FILES"], { pu
 await noMergeScenario("CI10", "wrong_app", ["REQUIRED_CHECK_MISSING"]);
 await noMergeScenario("CI11", "bypass", ["NOT_SERVER_ENFORCED"]);
 await noMergeScenario("CI12", "same_name_workflows", ["CHECKS_FAILED"]);
+await noMergeScenario("CI13", "green", ["HEAD_CHANGED", "CONTENT_MISMATCH"], { racePushSameFile: true });
 
 await scenario("CI8 unreadable server rules + recorded policy: still PR-only; PATCH keeps or validates the policy", async () => {
   await newUser("ci8");
