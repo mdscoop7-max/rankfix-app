@@ -91,7 +91,7 @@ const j = await (await POST(new Request("http://localhost/api/scan", { method: "
 const all = [...j.seo.checks, ...j.geo.checks, ...(j.security?.checks || j.securityEngine?.checks || [])];
 const by = (k) => all.find((c) => c.key === k) || {};
 const pick = (k) => [by(k).status, by(k).points, by(k).maxPoints, by(k).message || "", by(k).fix || ""];
-console.log("RESULT " + JSON.stringify({ sector: j.sectorProfile?.sector, h1: pick("h1"), size: pick("html_size"), lib: pick("security_outdated_libraries"), author: pick("author"), hreflang: pick("hreflang"), schema: pick("schema") }));
+console.log("RESULT " + JSON.stringify({ sector: j.sectorProfile?.sector, h1: pick("h1"), size: pick("html_size"), lib: pick("security_outdated_libraries"), author: pick("author"), hreflang: pick("hreflang"), schema: pick("schema"), actions: (j.securityAccessibilityActions || []).map((a) => a.impact + ":" + a.key) }));
 process.exit(0);`);
   const out = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--import", "./tests/scan-matrix/register.mjs", script], { cwd: new URL("../", import.meta.url).pathname, encoding: "utf8", timeout: 240000 });
   const line = out.stdout.split("\n").find((l) => l.startsWith("RESULT "));
@@ -104,4 +104,7 @@ process.exit(0);`);
   assert.equal(r.author[0], "pass"); assert.match(r.author[3], /YMYL/);
   assert.equal(r.hreflang[0], "warning"); assert.match(r.hreflang[3], /en: /);
   assert.match(r.schema[4], /Hospital/);
+  // P10: proven findings reach the action block, highest impact first.
+  assert.ok(r.actions.includes("medium:security_outdated_libraries"), r.actions.join(","));
+  assert.equal(r.actions[0].split(":")[0], "high");
 });
