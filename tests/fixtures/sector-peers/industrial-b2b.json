@@ -14,7 +14,8 @@
    ],
    "expect": {
     "shopChecks": "not_applicable",
-    "platform": "WordPress"
+    "platform": "WordPress",
+    "schemaType": "Organization"
    },
    "head": "<meta name=\"generator\" content=\"WordPress 6.6\"><link rel=\"stylesheet\" href=\"/wp-content/themes/enerco/style.css\"><script src=\"/wp-includes/js/jquery/jquery.min.js\"></script>"
   },

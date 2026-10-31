@@ -24,7 +24,8 @@
     "key": "financial_payments",
     "type": "services",
     "shopChecks": "not_applicable",
-    "platform": "Framer"
+    "platform": "Framer",
+    "schemaType": "FinancialService"
    },
    "head": "<meta name=\"generator\" content=\"Framer 3c9a1f2\"><link rel=\"preload\" href=\"https://framerusercontent.com/assets/font.woff2\">"
   },
@@ -49,7 +50,8 @@
     "sector": "financial_services",
     "key": "financial_payments",
     "type": "services",
-    "shopChecks": "not_applicable"
+    "shopChecks": "not_applicable",
+    "schemaType": "FinancialService"
    }
   },
   "adyen.test": {
@@ -179,7 +181,8 @@
    ],
    "expect": {
     "sector": "health_wellness",
-    "key": "dentist"
+    "key": "dentist",
+    "schemaType": "Dentist"
    }
   },
   "bakkerij.test": {

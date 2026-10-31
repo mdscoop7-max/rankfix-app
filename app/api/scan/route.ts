@@ -1,3 +1,5 @@
+import { distinctH1s, htmlByteSize, LARGE_HTML_BYTES, detectLibraryVersions, isYmylSector, ymylExpertiseEvidence } from "@/lib/page-quality-signals";
+import { sectorSchemaType, isGenericSchemaAdvice } from "@/lib/sector-schema";
 import { hasLocalQaSession } from "@/lib/local-qa";
 import { scanRuntime } from "@/lib/scan-runtime";
 import { sectorPageEvidence, scanCoverageDimensions, isAudiencePagePath } from "@/lib/sector-page-evidence";
@@ -1799,7 +1801,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
 
     const localSchemaCandidates = [
       { type: "Restaurant", pattern: /\b(restaurant|eetcafé|eetgelegenheid|brasserie|bistro|menukaart)\b/i },
-      { type: "Hairdresser", pattern: /\b(hairdresser|kapper|kappers|kapsalon|knippen|haarkleur|haarstyling|coiffeur|barbier)\b/i },
+      { type: "HairSalon", pattern: /\b(hairdresser|kapper|kappers|kapsalon|knippen|haarkleur|haarstyling|coiffeur|barbier)\b/i },
       { type: "Dentist", pattern: /\b(dentist|tandarts|tandheelkunde|mondzorg|orthodontist)\b/i },
       { type: "Electrician", pattern: /\b(electrician|elektricien|elektro|elektrotechniek|installatietechniek)\b/i },
       { type: "Plumber", pattern: /\b(plumber|loodgieter|loodgieters|cv-installateur|installateur)\b/i },
@@ -3010,6 +3012,17 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
             : `Alle ${scriptIntegrity.crossOrigin} zichtbare cross-origin script(s) bevatten een integrity-attribuut.`,"Houd externe scripts beperkt en gebruik SRI waar versievaste assets dit ondersteunen.",4,4)
         : securityCheck("warning","security_script_integrity","Externe scripts",`${scriptIntegrity.missingVersioned.length} versievast cross-origin script(s) zonder integrity-attribuut: ${scriptIntegrity.missingVersioned.slice(0,3).map((u: string)=>{ try { const x=new URL(u, finalUrl); return x.host + (x.pathname.length > 60 ? x.pathname.slice(0,57)+"…" : x.pathname); } catch { return String(u).slice(0,80); } }).join(", ")}. Voor zulke vaste bestanden is Subresource Integrity toepasbaar.`,"Voeg een integrity- en crossorigin-attribuut toe aan versievaste externe scripts, of host ze zelf.",2,4));
 
+    // PDF P9: outdated front-end libraries, judged only from versions visible in URLs.
+    const libraryFindings = detectLibraryVersions(html);
+    const outdatedLibraries = libraryFindings.filter((item) => item.outdated);
+    if (outdatedLibraries.length) {
+      securityChecks.push(securityCheck("warning","security_outdated_libraries","Verouderde JavaScript-bibliotheken",`${outdatedLibraries.length} verouderde bibliotheek(versie)(s) gevonden in de HTML: ${outdatedLibraries.slice(0,4).map((item)=>`${item.name} ${item.version} (${item.fixedIn ? `bekend beveiligingsadvies ${item.advisory}; opgelost vanaf ${item.fixedIn}` : item.advisory})`).join("; ")}. Bron: ${outdatedLibraries.slice(0,2).map((item)=>item.url.slice(0,140)).join(" · ")}. Of de kwetsbare functie echt wordt gebruikt, kan een passieve scan niet bepalen.`,"Werk de genoemde bibliotheken bij naar een ondersteunde versie (of via de CMS-/thema-update) en test daarna formulieren en interactieve onderdelen.",2,4));
+    } else if (libraryFindings.length) {
+      securityChecks.push(securityCheck("pass","security_outdated_libraries","Verouderde JavaScript-bibliotheken",`Zichtbare bibliotheekversies hebben geen bekend openbaar beveiligingsadvies in de RankFix-lijst: ${libraryFindings.slice(0,4).map((item)=>`${item.name} ${item.version}`).join(", ")}.`,"Houd bibliotheken via CMS-, thema- of buildupdates actueel.",4,4));
+    } else {
+      securityChecks.push(securityCheck("not_applicable","security_outdated_libraries","Verouderde JavaScript-bibliotheken","Geen bibliotheekversies zichtbaar in script- of stylesheet-URL's; RankFix raadt geen versies en beoordeelt dit daarom niet.","Controleer bibliotheekversies in de build of het CMS-updateoverzicht.",0,4));
+    }
+
     const securityApplicable = securityChecks.filter((item)=>item.issue_status !== "NOT_APPLICABLE" && item.issue_status !== "UNABLE_TO_CONFIRM");
     const securityMax = securityApplicable.reduce((sum,item)=>sum+item.maxPoints,0);
     const securityPoints = securityApplicable.reduce((sum,item)=>sum+item.points,0);
@@ -3491,6 +3504,25 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         } catch { hreflangReciprocity.failed++; }
       }));
     }
+    // PDF P9 (hreflang automatic): without hreflang, a same-host locale link is
+    // fetched (max 2). Proof of a translated version = the page answers 200 on the
+    // same host and its <html lang> matches the locale folder and differs from
+    // this page's language. Anything less stays "not confirmed".
+    const provenAlternateLanguages: { url: string; language: string }[] = [];
+    if (hreflangAssessment.kind === "none" && otherLocaleLinks.length && documentLanguage) {
+      const candidates = [...new Set(otherLocaleLinks.map((item) => item.url))].slice(0, 2);
+      await Promise.all(candidates.map(async (candidate) => {
+        try {
+          const folder = (new URL(candidate).pathname.split("/").filter(Boolean)[0] || "").toLowerCase().slice(0, 2);
+          const fetched = await safePublicFetch(candidate, { timeoutMs: 5000, maxRedirects: 2, userAgent: "RankFixBot/2.1 (+https://rankfix-app.vercel.app)", accept: "text/html,application/xhtml+xml" });
+          if (!fetched.response.ok || new URL(fetched.finalUrl).host !== finalUrl.host) return;
+          if (normalizeScanUrl(fetched.finalUrl.toString()) === normalizeScanUrl(finalUrl.toString())) return;
+          const alternateHtml = await readResponseTextLimited(fetched.response, 400_000);
+          const alternateLang = (alternateHtml.match(/<html\b[^>]*\blang\s*=\s*["']([^"']+)["']/i)?.[1] || "").toLowerCase();
+          if (alternateLang && alternateLang.slice(0, 2) === folder && alternateLang.slice(0, 2) !== documentLanguage.slice(0, 2)) provenAlternateLanguages.push({ url: fetched.finalUrl.toString(), language: alternateLang });
+        } catch { /* unconfirmed */ }
+      }));
+    }
     // A language/country selector alone does not prove equivalent translated URLs exist.
     // Only explicit hreflang markup is strong enough in a single raw-HTML page scan.
     const multilingualUrlEvidence = hreflangAssessment.kind !== "none";
@@ -3703,8 +3735,12 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
                 : `De description is ${descriptionChars} tekens. De klassieke 120–160 tekens is een optimalisatierichtlijn, geen technische SEO-eis; deze aanwezige description wordt daarom niet als fout bestraft.`, "Houd de description concreet, uniek en passend bij de zoekintentie; optimaliseer lengte alleen wanneer dat de zoekpreview en boodschap verbetert.", 10, 10)
             : check("warning", "description", "seo", "Meta description", `De description is ${descriptionChars} tekens en daarmee kort: een zoekmachine krijgt weinig context over de pagina. Daarom een beperkte aftrek; hoe korter, hoe groter.`, "Controleer of de description de pagina duidelijk samenvat en herschrijf alleen wanneer de zoekpreview of boodschap daar aantoonbaar van profiteert.", descriptionLengthPoints(descriptionChars), 10)
     );
+    // PDF P9: identical H1 copies (responsive variants of Framer/Webflow) are one H1.
+    const h1Distinct = distinctH1s(h1s);
     seoChecks.push(h1s.length === 1
       ? check("pass", "h1", "seo", "H1-heading", "Er is precies één H1-heading gevonden.", "Behoud één duidelijke primaire H1.", 8, 8)
+      : h1s.length > 1 && h1Distinct.distinct.length === 1
+        ? check("pass", "h1", "seo", "H1-heading", `Er is één H1-heading gevonden ("${h1Distinct.distinct[0].slice(0, 80)}"). De HTML bevat ${h1s.length} identieke kopieën, meestal responsieve varianten van een websitebouwer die per schermformaat worden getoond; RankFix telt dit als één H1.`, "Geen actie nodig voor SEO. Controleer alleen of verborgen kopieën ook voor schermlezers verborgen zijn (display:none of aria-hidden).", 8, 8)
       : h1s.length === 0
         ? bodyStructureMayBeClientRendered
           ? check("unable_to_confirm", "h1", "seo", "H1-heading", "De H1 kon niet betrouwbaar worden bevestigd omdat deze JavaScript-pagina niet volledig kon worden gerenderd.", "Controleer de headingstructuur opnieuw met een volledige render.", 0, 8)
@@ -3712,6 +3748,12 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
           : check("warning", "h1", "seo", "H1-heading", "Er is geen H1-heading gevonden in de server-HTML van deze pagina (aandachtspunt, −2 punten). Een H1 maakt het hoofdonderwerp duidelijk voor zoekmachines, AI-systemen en schermlezers.", "Voeg een duidelijke primaire H1 toe wanneer dat past bij de pagina-inhoud.", 6, 8)
         : check("pass", "h1", "seo", "H1-heading", `Er zijn ${h1s.length} H1-headings gevonden. Meerdere H1-elementen zijn technisch toegestaan; RankFix behandelt dit daarom als structuuradvies en niet als bewezen SEO-probleem.`, "Overweeg één duidelijke primaire H1 en gebruik H2/H3 voor secties wanneer dat de documentstructuur begrijpelijker maakt.", 8, 8)
     );
+    // PDF P9: very large HTML is a finding only when the fetched document proves it.
+    const rawHtmlBytes = htmlByteSize(html);
+    if (rawHtmlBytes > LARGE_HTML_BYTES) {
+      const mb = (rawHtmlBytes / 1024 / 1024).toFixed(1);
+      seoChecks.push(check("warning", "html_size", "seo", "HTML-documentgrootte", `Het HTML-document is ${mb} MB (gemeten op de opgehaalde server-HTML, zonder afbeeldingen, CSS of scripts). Zeer grote HTML vertraagt downloaden en verwerken; zoekmachines en AI-crawlers verwerken mogelijk niet alle inhoud onderaan de pagina.`, "Verplaats grote inline data (JSON-state, SVG's, base64-afbeeldingen, herhaalde menu's) naar externe bestanden of laad ze pas wanneer nodig. Streef naar ruim onder 2 MB HTML.", 1, 3));
+    }
     const subheadingCount = headings.length;
     const hasH2 = headings.some((h) => h.level === 2);
     const headingStructurePoints = hasH2 ? 7 : subheadingCount >= 3 ? 6 : subheadingCount >= 1 ? 5 : 4;
@@ -3833,6 +3875,15 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         if (!localContext) localBusinessDetails = null;
         effectiveLocalSchemaSignal = localContext;
         ({ recommendedSchema, schemaContextLabel, hasRelevantContextSchema } = schemaContextFor(localContext, transportContext));
+      }
+    }
+    // Sector-specific schema advice (PDF P9): advice only, points unchanged; a
+    // page that already carries the sector type counts as relevant.
+    {
+      const sectorType = sectorSchemaType({ sector: sectorProfile.sector, key: sectorProfile.key, identityText: [title, description, h1s.join(" "), schemaTypes.join(" ")].join(" "), schemaTypes });
+      if (sectorType && (isGenericSchemaAdvice(recommendedSchema) || (recommendedSchema === "OnlineStore + WebSite" && sectorProfile.sector !== "ecommerce")) && !isProductPage && (isHomepage || !hasCategorySignal)) {
+          recommendedSchema = isHomepage ? `${sectorType} + WebSite` : `${sectorType} / WebPage`;
+        if (schemaSet.has(sectorType.toLowerCase())) hasRelevantContextSchema = true;
       }
     }
     const effectiveLocalBusinessPage = !isProductPage && !hasCategorySignal && effectiveLocalSchemaSignal;
@@ -3969,7 +4020,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     );
 
     seoChecks.push(!multilingualUrlEvidence
-      ? languageSelectorSignal
+      ? provenAlternateLanguages.length
+        ? check("warning", "hreflang", "seo", "Meertalige SEO", `Er bestaat aantoonbaar een vertaalde versie van deze site (${provenAlternateLanguages.map((item) => `${item.language}: ${shortUrl(item.url)}`).join("; ")}, bereikbaar met HTTP 200 en met een eigen <html lang>), maar deze pagina bevat geen hreflang-links. Zoekmachines kunnen de taalversies daardoor verwarren of de verkeerde taal tonen.`, "Voeg op elke taalversie wederkerige <link rel=\"alternate\" hreflang=\"…\"> links toe (inclusief een verwijzing naar zichzelf en eventueel x-default).", 2, 5)
+        : languageSelectorSignal
         ? check("unable_to_confirm", "hreflang", "seo", "Meertalige SEO", "Een taal- of landkeuze is zichtbaar, maar deze paginascan bewijst niet dat equivalente vertaalde URL's bestaan. Hreflang wordt daarom niet als ontbrekende fout beoordeeld.", "Bevestig alternatieve taal-URL's in een sitebrede crawl voordat hreflang verplicht wordt gesteld.", 0, 5)
         : check("not_applicable", "hreflang", "seo", "Meertalige SEO", "Geen bewezen alternatieve taal-URL's gevonden; RankFix telt hreflang daarom niet mee in de score.", "Gebruik hreflang wanneer dezelfde content aantoonbaar in meerdere talen/URL's beschikbaar is.", 0, 5)
       : hreflangAssessment.kind === "invalid"
@@ -4343,7 +4396,15 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
       hasSocialOrReviewSignal
     );
     const organizationExpertiseSignal = hasOrganizationIdentity && hasServiceExpertiseSignal;
-    geoChecks.push(isHomepage
+    // PDF P9: YMYL homepages (health, finance, legal, insurance) are not N.v.t.:
+    // expertise and accountability are judged from organisation-level evidence.
+    const ymylHomepage = isHomepage && isYmylSector(sectorProfile.sector, sectorProfile.key);
+    const ymylEvidence = ymylHomepage ? ymylExpertiseEvidence({ text: [title, description, h1s.join(" "), text].join(" "), navigation: identityNavLabels, schemaTypes }) : [];
+    geoChecks.push(ymylHomepage
+      ? ymylEvidence.length >= 2
+        ? check("pass", "author", "geo", "Expertise-signalen (YMYL)", `Deze organisatie valt in een YMYL-sector (gezondheid, financiën of juridisch). Op de homepage zijn ${ymylEvidence.length} onafhankelijke expertise- en verantwoordingssignalen bevestigd: ${ymylEvidence.join("; ")}.`, "Houd team, kwalificaties, registraties en toezichthouders actueel en zichtbaar; link naar de bron van registraties waar mogelijk.", 8, 8)
+        : check("unable_to_confirm", "author", "geo", "Expertise-signalen (YMYL)", `Deze organisatie valt in een YMYL-sector (gezondheid, financiën of juridisch), waar zoekmachines en AI-systemen extra letten op expertise en verantwoording. Op de homepage ${ymylEvidence.length ? `is alleen bevestigd: ${ymylEvidence.join("; ")}` : "zijn geen team-, registratie- of organisatiesignalen bevestigd"}. Eén pagina bewijst niet dat dit elders ontbreekt; daarom geen aftrek.`, "Maak vanaf de homepage zichtbaar wie de zorg, het advies of de financiële dienst levert: team of specialisten, registraties (bijvoorbeeld BIG, AFM, DNB of de beroepsorde) en een over-ons-pagina.", 0, 8)
+      : isHomepage
       ? check("not_applicable", "author", "geo", "Expertise-signalen", "Een individuele auteur is niet vereist op een organisatie-, dienst- of merkhomepage. Auteurschap en expertise horen vooral op informatieve artikelen en adviescontent te worden beoordeeld.", "Controleer auteur, expertise, publicatiedatum en broncontext op pagina's waar auteurschap inhoudelijk relevant is.", 0, 8)
       : hasAuthorSignal || (hasLocalBusinessSignal && hasServiceExpertiseSignal) || organizationExpertiseSignal
         ? check("pass", "author", "geo", "Expertise-signalen", hasAuthorSignal ? "Auteur- of expertisesignalen zijn gevonden." : organizationExpertiseSignal ? "Duidelijke organisatie- en expertisesignalen zijn gevonden." : "Duidelijke dienst- en vakgebiedsignalen zijn gevonden voor deze lokale bedrijfspagina.", "Maak auteur, expertise, diensten en bronnen waar relevant nog explicieter.", 8, 8)
@@ -4425,7 +4486,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
     const ruleMap: Record<string, { rule_id: string; severity: Check["severity"] }> = {
       title: { rule_id: title ? "META_TITLE_GUIDANCE" : "META_TITLE_MISSING", severity: title ? "MEDIUM" : "HIGH" },
       description: { rule_id: description ? "META_DESCRIPTION_GUIDANCE" : "META_DESCRIPTION_MISSING", severity: description ? "LOW" : "HIGH" },
-      h1: { rule_id: h1s.length > 1 ? "H1_MULTIPLE" : "H1_MISSING", severity: h1s.length ? "MEDIUM" : "HIGH" },
+      h1: { rule_id: h1Distinct.distinct.length > 1 ? "H1_MULTIPLE" : "H1_MISSING", severity: h1s.length ? "MEDIUM" : "HIGH" },
       alt: { rule_id: "IMAGE_ALT_MISSING", severity: "LOW" },
       social: { rule_id: "SOCIAL_METADATA_INCOMPLETE", severity: "LOW" },
       schema: { rule_id: "STRUCTURED_DATA_MISSING", severity: "MEDIUM" },
@@ -4459,8 +4520,9 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         // Proven absence is evidence too. Keep an explicit marker so missing title/description
         // can safely pass the AI/GitHub fix evidence gate without weakening that gate.
         title: title || (item.key === "title" ? "metaTitlePresent=false" : null),
+        html_size: `htmlBytes=${rawHtmlBytes}`,
         description: description || (item.key === "description" ? "metaDescriptionPresent=false" : null),
-        h1: h1s.length,
+        h1: h1Distinct.duplicateCopies ? `${h1s.length} (identieke kopieën: ${h1Distinct.duplicateCopies}; uniek: ${h1Distinct.distinct.length})` : h1s.length,
         headings: headings.length,
         canonical: canonical || (item.key === "canonical" ? "canonicalPresent=false" : null),
         // A missing viewport on a server-rendered/rendered page is proven by the head itself.
@@ -4474,7 +4536,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         sitemap: sitemapFound ? (confirmedSitemapUrl || true) : robotsDeclaredSitemapUrls.length ? `declared=${robotsDeclaredSitemapUrls.join(",")}; status=${sitemapStatus}` : sitemapStatus,
         robots_txt: robotsStatus === "PASS" ? `${robotsUrl.toString()}; pathBlocked=${robotsPathBlocked}${matchingRobotsRules[0] ? `; rule=${matchingRobotsRules[0].kind}:${matchingRobotsRules[0].path}` : ""}` : robotsStatus,
         indexability: noindexSignal ? [robots, xRobotsTag].filter(Boolean).join(" | ") : robotsPathBlocked ? `robots disallow: ${matchingRobotsRules[0].path}` : "no noindex or applicable robots block found",
-        hreflang: hreflangEntries.length ? hreflangEntries.map((entry) => `${entry.language}=>${entry.href || "missing"}`).join(" | ") : null,
+        hreflang: hreflangEntries.length ? hreflangEntries.map((entry) => `${entry.language}=>${entry.href || "missing"}`).join(" | ") : provenAlternateLanguages.length ? `hreflangPresent=false; provenAlternates=${provenAlternateLanguages.map((item) => `${item.language}=>${item.url}`).join(" | ")}` : null,
         twitter_card: twitterCard || null,
         security_headers: presentSecurityHeaders.length ? `present=${presentSecurityHeaders.map(([name])=>name).join(",")}; core=${coreSecurityHeadersPresent}` : "present=none; core=false",
         faq: (hasFaqContent || hasFaqSchema) ? `content=${hasFaqContent}; schema=${hasFaqSchema}` : (item.key === "faq" ? "faqContent=false; faqSchema=false" : null),
@@ -4513,7 +4575,7 @@ async function runScan(request: Request, clock: { expired: boolean } = { expired
         webshop_trust: hasEcommerceSignal ? `shipping=${hasShippingSignal}; returns=${hasReturnsSignal}; reviewPlatform=${hasReviewPlatformSignal}; checkoutSignal=${hasCheckoutTrustSignal}` : null,
         organization_website: isHomepage ? `organizationSchema=${organizationSchemaPresent}; websiteSchema=${websiteSchemaPresent}; schemaTypes=${schemaTypes.slice(0,12).join(",")}` : null,
         entity: hasEntitySchema ? `schemaTypes=${schemaTypes.slice(0,12).join(",")}` : businessDetails.status === "pass" ? `businessDetails=${businessDetails.found.join(",")}` : (hasVisibleBusinessIdentity ? `visibleIdentity=true; contact=${hasBusinessContactDetails || hasContactChannelSignal}; externalProfile=${hasSocialOrReviewSignal}` : null),
-        author: (hasAuthorSignal || ecommerceExpertiseSignal || organizationExpertiseSignal || (hasLocalBusinessSignal && hasServiceExpertiseSignal)) ? `author=${hasAuthorSignal}; ecommerceExpertise=${ecommerceExpertiseSignal}; organizationExpertise=${organizationExpertiseSignal}; localServiceExpertise=${hasLocalBusinessSignal && hasServiceExpertiseSignal}` : null,
+        author: ymylHomepage ? (ymylEvidence.length ? `ymyl=true; evidence=${ymylEvidence.join(" | ")}` : null) : (hasAuthorSignal || ecommerceExpertiseSignal || organizationExpertiseSignal || (hasLocalBusinessSignal && hasServiceExpertiseSignal)) ? `author=${hasAuthorSignal}; ecommerceExpertise=${ecommerceExpertiseSignal}; organizationExpertise=${organizationExpertiseSignal}; localServiceExpertise=${hasLocalBusinessSignal && hasServiceExpertiseSignal}` : null,
         trust: (hasContactChannelSignal || hasAboutSignal || hasSocialOrReviewSignal) ? `contact=${hasContactChannelSignal}; about=${hasAboutSignal}; socialOrReview=${hasSocialOrReviewSignal}` : null,
         answer: `metaDescription=${Boolean(description)}; wordCount=${wordCount}; minimumVisibleWords=${isProductPage ? 40 : 80}; rendered=${javascriptExecuted}`,
         sector_real_estate_listings: sectorProfile.sector==="real_estate" ? "sector=real_estate; listing evidence evaluated" : null,

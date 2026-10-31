@@ -19,7 +19,8 @@
     "sector": "automotive",
     "type": "ecommerce_store",
     "platform": "Bloomreach (Hippo)",
-    "discountCheck": "active"
+    "discountCheck": "active",
+    "schemaType": "AutoRepair"
    }
   },
   "bandenexpert.test": {
@@ -36,7 +37,8 @@
    "footer": "<img alt=\"iDEAL\" src=\"/img/ideal.svg\"><img alt=\"Visa\" src=\"/img/visa.svg\"><img alt=\"Mastercard\" src=\"/img/mc.svg\">",
    "expect": {
     "sector": "automotive",
-    "type": "ecommerce_store"
+    "type": "ecommerce_store",
+    "schemaType": "AutoRepair"
    }
   },
   "garagejansen.test": {
@@ -52,7 +54,8 @@
    ],
    "expect": {
     "sector": "automotive",
-    "shopChecks": "not_applicable"
+    "shopChecks": "not_applicable",
+    "schemaType": "AutoRepair"
    }
   }
  }

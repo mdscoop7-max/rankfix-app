@@ -20,7 +20,8 @@
    "expect": {
     "sector": "beauty",
     "key": "hair_salon",
-    "shopChecks": "not_applicable"
+    "shopChecks": "not_applicable",
+    "schemaType": "HairSalon"
    }
   },
   "haarstudiozoe.test": {
@@ -37,7 +38,8 @@
    "expect": {
     "sector": "beauty",
     "key": "hair_salon",
-    "shopChecks": "not_applicable"
+    "shopChecks": "not_applicable",
+    "schemaType": "HairSalon"
    }
   },
   "barbershopnoord.test": {
@@ -53,7 +55,8 @@
    "expect": {
     "sector": "beauty",
     "key": "hair_salon",
-    "shopChecks": "not_applicable"
+    "shopChecks": "not_applicable",
+    "schemaType": "HairSalon"
    }
   }
  }

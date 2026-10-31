@@ -50,7 +50,8 @@
    "body": "<div class=listing>Herenhuis Leiden € 675.000 k.k.</div>",
    "expect": {
     "sector": "real_estate",
-    "shopChecks": "not_applicable"
+    "shopChecks": "not_applicable",
+    "schemaType": "RealEstateAgent"
    }
   }
  }

@@ -18,7 +18,8 @@
    "expect": {
     "sector": "health_wellness",
     "shopChecks": "not_applicable",
-    "platform": "TYPO3"
+    "platform": "TYPO3",
+    "schemaType": "Hospital"
    },
    "head": "<meta name=\"generator\" content=\"TYPO3 CMS\"><link rel=\"stylesheet\" href=\"/typo3temp/assets/css/main.css\">"
   },
@@ -37,7 +38,8 @@
    "expect": {
     "sector": "health_wellness",
     "shopChecks": "not_applicable",
-    "noPlatform": true
+    "noPlatform": true,
+    "schemaType": "Hospital"
    },
    "body": "<p>Onze nieuwe website is gebouwd met TYPO3 en Drupal-kennis van ons team; lees ook over Framer en Kolibri.</p>"
   },
@@ -54,7 +56,8 @@
    ],
    "expect": {
     "sector": "health_wellness",
-    "shopChecks": "not_applicable"
+    "shopChecks": "not_applicable",
+    "schemaType": "Hospital"
    }
   }
  }

@@ -16,7 +16,8 @@
    "body": "<div class=\"product-card\"><a href=\"/p/0\">BILLY boekenkast</a> <span class=\"price\">€ 49,00</span> <button class=\"add-to-cart\">In winkelwagen</button></div><div class=\"product-card\"><a href=\"/p/1\">KALLAX kast</a> <span class=\"price\">€ 59,00</span> <button class=\"add-to-cart\">In winkelwagen</button></div><div class=\"product-card\"><a href=\"/p/2\">MALM bed</a> <span class=\"price\">€ 199,00</span> <button class=\"add-to-cart\">In winkelwagen</button></div><a href=\"/winkelwagen\">Winkelwagen</a>",
    "footer": "<img alt=\"iDEAL\" src=\"/img/ideal.svg\"><img alt=\"Visa\" src=\"/img/visa.svg\"><img alt=\"Mastercard\" src=\"/img/mc.svg\">",
    "expect": {
-    "type": "ecommerce_store"
+    "type": "ecommerce_store",
+    "schemaType": "OnlineStore"
    }
   },
   "leenbakker.test": {
