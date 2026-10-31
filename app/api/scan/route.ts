@@ -15,6 +15,7 @@ import { assessPassiveSecurity, formBlocks, setCookieValues } from "@/lib/securi
 import { selectRepresentativePages } from "@/lib/representative-pages";
 import { eligibleSampleCandidates } from "@/lib/sample-eligibility";
 import { detectHardCommerceSignals } from "@/lib/commerce-hard-signals";
+import { detectOutdatedLibraries } from "@/lib/library-versions";
 import { assessPageDescription, assessPageTitle, BOT_SENSITIVE_CHECKS, botManagerCookies, duplicateTitleSegment, hasDanglingTitleSeparator, isBrandOnlyTitle, isClientShell, isPlaceholderTitle, isNonContentUrl, isReducedBotResponse, renderFailureCode, sectionKey, shortUrl, stripTrackingParams, titleTemplatePattern, entityTypesForDisplay } from "@/lib/report-quality";
 import { COMMERCE_APPLICABILITY_COPY, GENERIC_LINK_DESTINATION_PASS, PRODUCT_LINK_CHECK_UNCONFIRMED, UNCONFIRMED_COMMERCE_REASON_CODE, commerceApplicability, confirmedRetailEvidenceForService, isStorefrontOnlyForService, neutralizeShopWording, shopWordingApplies } from "@/lib/commerce-applicability";
 import { assessBusinessDetails, classifyContactAnchor, isFirstPartyLegalLink, findBusinessContactDetails, findCompanyRegistration, findVisibleEmail, hasBusinessContactDetails as hasBusinessContactDetailsFn, INDIRECT_CONTACT_KINDS, isContactForm, type ContactChannel } from "@/lib/contact-evidence";
@@ -938,7 +939,8 @@ async function runScan(request: Request) {
 
     const ogTitle = getMeta("og:title");
     const ogDescription = getMeta("og:description");
-    const ogImage = getMeta("og:image");
+    // og:image:url / og:image:secure_url are valid aliases of og:image.
+    const ogImage = getMeta("og:image") || getMeta("og:image:url") || getMeta("og:image:secure_url");
     const ogUrl = getMeta("og:url");
     const twitterCardRaw = getMeta("twitter:card").trim();
     const twitterCard = /^(summary|summary_large_image|app|player)$/i.test(twitterCardRaw) ? twitterCardRaw : "";
@@ -2220,6 +2222,12 @@ async function runScan(request: Request) {
         ? securityCheck("pass","security_mixed_content","Mixed content","Geen via HTTP geladen afbeeldingen, scripts, stylesheets of frames gevonden in de gescande HTTPS-HTML. Gewone links naar HTTP-sites zijn geen mixed content.","Blijf assets via HTTPS of relatieve URL's laden.",4,4)
         : securityCheck("fail","security_mixed_content","Mixed content",`${mixedContentMatches.length} via HTTP geladen bron(nen) gevonden op een HTTPS-pagina: ${mixedContentMatches.slice(0,3).join(", ")}.`,"Vervang HTTP-asset-URL's door HTTPS of veilige relatieve URL's.",4,4));
 
+    // Only reported when found: libraries with a known end-of-life/security-fixed version in their URL.
+    const outdatedLibraries = detectOutdatedLibraries(html);
+    if (outdatedLibraries.length > 0) {
+      securityChecks.push(securityCheck("warning","security_outdated_libraries","Verouderde bibliotheken",`Verouderde clientbibliotheek(en) gevonden: ${outdatedLibraries.map((lib) => `${lib.name} ${lib.version} (minimaal ${lib.minimumSafe}; ${lib.reason})`).join("; ")}.`,"Werk deze bibliotheken bij naar een ondersteunde versie en test daarna de pagina's die ze gebruiken.",0,2));
+    }
+
     const cookieObservations = passiveSecurity.cookieFlags.cookies;
     const cookieIssueCount = passiveSecurity.cookieFlags.issues;
     const cookieEvidenceSummary = cookieObservations.map((cookie)=>{
@@ -3069,6 +3077,9 @@ async function runScan(request: Request) {
     const invalidOpenGraphFields = [
       ogImage && !ogImageIsAbsolute ? "og:image (geen absolute http(s)-URL)" : null,
       ogUrl && !ogUrlIsAbsolute ? "og:url (geen absolute http(s)-URL)" : null,
+      // og:url should name the same page as the canonical (tracking parameters such as ?ref=og split the shares).
+      ogUrl && ogUrlIsAbsolute && canonical && isAbsoluteHttpUrl(canonical) && normalizeScanUrl(ogUrl) !== normalizeScanUrl(canonical)
+        ? `og:url (${ogUrl}) wijkt af van de canonical (${canonical})` : null,
     ].filter(Boolean) as string[];
     seoChecks.push(missingOpenGraphFields.length === 0 && invalidOpenGraphFields.length === 0
       ? check("pass", "social", "seo", "Social metadata", "Open Graph title, description en image zijn aanwezig; URL-velden gebruiken geldige absolute http(s)-URL's.", "Controleer social previews voor belangrijke pagina's.", 4, 4)
